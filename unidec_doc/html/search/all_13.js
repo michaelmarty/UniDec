@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['unidec_3a_20universal_20deconvolution_20of_20mass_20and_20ion_20mobility_20spectra',['UniDec: Universal Deconvolution of Mass and Ion Mobility Spectra',['../index.html',1,'']]],
   ['unidec',['UniDec',['../class_uni_dec_1_1unidec_1_1_uni_dec.html',1,'UniDec::unidec']]],
   ['unidec_5fimports',['unidec_imports',['../class_uni_dec_1_1unidec_1_1_uni_dec.html#ab5af599dc89b9c3139505fc7f587befc',1,'UniDec::unidec::UniDec']]],
   ['unidecapp',['UniDecApp',['../class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html',1,'UniDec::GUniDec']]],
