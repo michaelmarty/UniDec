@@ -1,0 +1,22 @@
+var searchData=
+[
+  ['save_5fall_5ffigures',['save_all_figures',['../class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#a9c6e28e44bb106264cdeeef5e1940eb4',1,'UniDec::unidec_modules::mainwindow::Mainwindow']]],
+  ['save_5fdefault',['save_default',['../class_uni_dec_1_1unidec_1_1_uni_dec.html#a78259a4b2c592f32a8b039e277f67e3c',1,'UniDec::unidec::UniDec']]],
+  ['save_5ffigure',['save_figure',['../class_uni_dec_1_1unidec__modules_1_1_plotting_window_1_1_plotting_window.html#a86189b26c84844d7501a6c539d58d342',1,'UniDec::unidec_modules::PlottingWindow::PlottingWindow']]],
+  ['score_5fpeaks',['score_peaks',['../class_uni_dec_1_1unidec__modules_1_1peakstructure_1_1_peaks.html#ad8e3f54d010f86ce704160c754450703',1,'UniDec::unidec_modules::peakstructure::Peaks']]],
+  ['set_5factive',['set_active',['../class_uni_dec_1_1unidec__modules_1_1isolated__packages_1_1_zoom_box_1_1_zoom_box.html#ab809136a44cd0c5901611bbb9d2b4d97',1,'UniDec::unidec_modules::isolated_packages::ZoomBox::ZoomBox']]],
+  ['set_5fcolor',['set_color',['../class_uni_dec_1_1unidec__modules_1_1_plotting_window_1_1_plotting_window.html#a2fd1d7778aa78d24f7fd57e0738a4992',1,'UniDec::unidec_modules::PlottingWindow::PlottingWindow']]],
+  ['set_5flabels',['set_labels',['../class_uni_dec_1_1unidec__modules_1_1tims__import__wizard_1_1import__wizard__grid_1_1_wizard_grid.html#afd959bbed66db4cc63fa13b2e89731ba',1,'UniDec::unidec_modules::tims_import_wizard::import_wizard_grid::WizardGrid']]],
+  ['set_5fnticks',['set_nticks',['../class_uni_dec_1_1unidec__modules_1_1_plotting_window_1_1_plotting_window.html#ac5d4325e42d5623c5e9149532fac58fa',1,'UniDec::unidec_modules::PlottingWindow::PlottingWindow']]],
+  ['set_5ftickcolor',['set_tickcolor',['../class_uni_dec_1_1unidec__modules_1_1_plotting_window_1_1_plotting_window.html#a6336e1542edeafeef1b2728066560140',1,'UniDec::unidec_modules::PlottingWindow::PlottingWindow']]],
+  ['setup_5fmain_5fpanel',['setup_main_panel',['../class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#adfd43ae134824504a3e14d49c59717f7',1,'UniDec::unidec_modules::mainwindow::Mainwindow']]],
+  ['setup_5fmenu',['setup_menu',['../class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#aab7b2d8e0d75d20040f2d036123a5473',1,'UniDec::unidec_modules::mainwindow::Mainwindow']]],
+  ['setup_5fshortcuts',['setup_shortcuts',['../class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#a81eaf6d9e19fa5d0990faa0e41017439',1,'UniDec::unidec_modules::mainwindow::Mainwindow']]],
+  ['setup_5ftool_5ftips',['setup_tool_tips',['../class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#a2cdfbd7e7b4b22f820eeb25dadb3052a',1,'UniDec::unidec_modules::mainwindow::Mainwindow']]],
+  ['setup_5fzoom',['setup_zoom',['../class_uni_dec_1_1unidec__modules_1_1_plotting_window_1_1_plotting_window.html#a6a42c2d68210567e7afbd4110577f7b8',1,'UniDec::unidec_modules::PlottingWindow::PlottingWindow']]],
+  ['showpopupmenu',['showPopupMenu',['../class_uni_dec_1_1unidec__modules_1_1tims__import__wizard_1_1import__wizard__grid_1_1_wizard_grid.html#adafb468bee25b4ea11a8816302e7b76e',1,'UniDec::unidec_modules::tims_import_wizard::import_wizard_grid::WizardGrid']]],
+  ['shrink_5fall_5ffigures',['shrink_all_figures',['../class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#a7666329ec63ae8b1d543c45ab2d4c287',1,'UniDec::unidec_modules::mainwindow::Mainwindow']]],
+  ['shrink_5ffigure',['shrink_figure',['../class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#a18debdf9093c06b82505c0d434e5347b',1,'UniDec::unidec_modules::mainwindow::Mainwindow']]],
+  ['size_5fhandler',['size_handler',['../class_uni_dec_1_1unidec__modules_1_1_plotting_window_1_1_plotting_window.html#af6f9629a25afdf1e33eb5ff3d4bc3cdf',1,'UniDec::unidec_modules::PlottingWindow::PlottingWindow']]],
+  ['start',['start',['../class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a0ce2e5977e8b5b313bf4492f8ba5ff07',1,'UniDec::GUniDec::UniDecApp']]]
+];
