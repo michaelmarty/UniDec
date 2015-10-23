@@ -1,0 +1,1215 @@
+__author__ = 'michael.marty'
+
+import os
+import sys
+import json
+
+import wx
+
+import wx.lib.mixins.listctrl  as  listmix
+
+import numpy as np
+
+import matplotlib.cm as cm
+from matplotlib import rcParams
+
+
+
+
+
+
+
+
+
+
+
+
+
+# from wx.lib.pubsub import setupkwargs
+from wx.lib.pubsub import pub
+from unidec_modules import UniFit, Extract2D, unidecstructure, PlotAnimations, plot1d, plot2d, miscwindows, MassDefects, \
+    nativez, IM_functions
+from unidec_modules.PlottingWindow import PlottingWindow
+import unidec_modules.unidectools as ud
+import multiprocessing
+from unidec_modules.masstools import AutocorrWindow
+
+rcParams['ps.useafm'] = True
+rcParams['ps.fonttype'] = 42
+rcParams['pdf.fonttype'] = 42
+
+
+def isempty(thing):
+    return np.asarray(thing).size == 0 or thing is None
+
+
+def stepmax(Y, index):
+    plus = Y[index + 1]
+    minus = Y[index - 1]
+    if plus > minus:
+        window = 1
+        d = 1
+    else:
+        window = -1
+        d = -1
+
+    val = Y[index]
+    newval = Y[index + window]
+
+    while Y[index + window] > val:
+        val = Y[index + window]
+        window += d
+        if index + window >= len(Y) or index + window < 0:
+            return val
+    return val
+
+
+def localmax(Y, start, end):
+    start = np.amax([0, start])
+    end = np.amin([len(Y), end])
+    try:
+        out = np.amax(Y[start:end])
+    except:
+        out = 0
+    return out
+
+
+def localmaxpos(data, start, end):
+    try:
+        boo1 = data[:, 0] < end
+        boo2 = data[:, 0] > start
+        intdat = data[np.all([boo1, boo2], axis=0)]
+        pos = np.argmax(intdat[:, 1])
+        return intdat[pos, 0]
+    except:
+        return 0
+
+
+def integrate(data, start, end):
+    boo1 = data[:, 0] < end
+    boo2 = data[:, 0] > start
+    intdat = data[np.all([boo1, boo2], axis=0)]
+    integral = np.trapz(intdat[:, 1], x=intdat[:, 0])
+    return integral
+
+
+def centerofmass(data, start, end):
+    boo1 = data[:, 0] < end
+    boo2 = data[:, 0] > start
+    cutdat = data[np.all([boo1, boo2], axis=0)]
+    weightedavg = np.average(cutdat[:, 0], weights=cutdat[:, 1])
+    return weightedavg
+
+
+def toint(string):
+    try:
+        x = int(string)
+    except:
+        x = 0
+    return x
+
+
+class XListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
+    def __init__(self, parent, ID, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+        wx.ListCtrl.__init__(self, parent, ID, pos, size, style)
+        listmix.ListCtrlAutoWidthMixin.__init__(self)
+        listmix.TextEditMixin.__init__(self)
+        self.InsertColumn(0, "X Values")
+        self.InsertColumn(1, "# Prot")
+        self.InsertColumn(2, "# Lig")
+        self.SetColumnWidth(0, width=100)  # , wx.LIST_AUTOSIZE)
+        self.SetColumnWidth(1, width=50)  # , wx.LIST_AUTOSIZE)
+        self.SetColumnWidth(2, width=50)  # , wx.LIST_AUTOSIZE)
+
+    def Populate(self, listctrldata, colors=None):
+        self.DeleteAllItems()
+        listctrldata = np.array(listctrldata)
+        for i in range(0, len(listctrldata)):
+            try:
+                index = self.InsertStringItem(sys.maxint, str(listctrldata[i, 0]))
+                self.SetStringItem(index, 1, str(listctrldata[i, 1]))
+                self.SetStringItem(index, 2, str(listctrldata[i, 2]))
+                self.SetItemData(index, i)
+            except:
+                index = self.InsertStringItem(sys.maxint, str(listctrldata[i]))
+
+            if colors is not None:
+                # print listctrldata[i],colors[i]
+                color = wx.Colour(round(colors[i][0] * 255), round(colors[i][1] * 255), round(colors[i][2] * 255),
+                                  alpha=255)
+                self.SetItemBackgroundColour(index, col=color)
+            self.SetItemData(index, i)
+        self.currentItem = 0
+        return self.GetMaxes()
+
+    def Clear(self):
+        self.DeleteAllItems()
+        return self.GetMaxes()
+
+    def AddLine(self, val=0):
+        index = self.InsertStringItem(sys.maxint, str(val))
+        self.SetStringItem(index, 1, str(1))
+        self.SetStringItem(index, 2, str(self.GetItemCount() - 1))
+        return self.GetMaxes()
+
+    def GetList(self):
+        count = self.GetItemCount()
+        list = []
+        for i in range(0, count):
+            sublist = [str(self.GetItem(i, col=0).GetText()), toint(self.GetItem(i, col=1).GetText()),
+                       toint(self.GetItem(i, col=2).GetText())]
+            if sublist[0] != "":
+                list.append(sublist)
+        return list
+
+    def GetMaxes(self):
+        try:
+            list = np.array(self.GetList())
+            maxp = np.amax([int(thing[1]) for thing in list])
+            maxl = np.amax([int(thing[2]) for thing in list])
+            return [maxp, maxl]
+        except:
+            return [0, 0]
+
+
+class YListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
+    def __init__(self, parent, ID, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+        wx.ListCtrl.__init__(self, parent, ID, pos, size, style)
+        listmix.ListCtrlAutoWidthMixin.__init__(self)
+        listmix.TextEditMixin.__init__(self)
+        self.InsertColumn(0, "File Name")
+        self.InsertColumn(1, "Variable 1 (Ligand)")
+        self.InsertColumn(2, "Variable 2 (Protein)")
+        self.InsertColumn(3, "Charge State")
+        self.SetColumnWidth(0, width=300)
+        self.SetColumnWidth(1, width=100)
+        self.SetColumnWidth(2, width=100)
+        self.SetColumnWidth(3, width=100)
+
+    def Populate(self, listctrldata, colors=None):
+        self.DeleteAllItems()
+        for i in range(0, len(listctrldata)):
+            index = self.InsertStringItem(sys.maxint, str(listctrldata[i][0]))
+            self.SetStringItem(index, 1, str(listctrldata[i][1]))
+            self.SetStringItem(index, 2, str(listctrldata[i][2]))
+            try:
+                self.SetStringItem(index, 3, str(listctrldata[i][3]))
+            except:
+                self.SetStringItem(index, 3, "All")
+            self.SetItemData(index, i)
+            if colors is not None:
+                color = wx.Colour(round(colors[i][0] * 255), round(colors[i][1] * 255), round(colors[i][2] * 255),
+                                  alpha=255)
+                self.SetItemBackgroundColour(index, col=color)
+
+    def Clear(self):
+        self.DeleteAllItems()
+
+    def AddLine(self, file="file.txt", var1="count", var2=0):
+        if var1 == "count":
+            var1 = self.GetItemCount()
+        index = self.InsertStringItem(sys.maxint, file)
+        self.SetStringItem(index, 1, str(var1))
+        self.SetStringItem(index, 2, str(var2))
+        self.SetStringItem(index, 3, str("All"))
+
+    def GetList(self):
+        count = self.GetItemCount()
+        colormap = cm.get_cmap('rainbow', count)
+        peakcolors = colormap(np.arange(count))
+        list = []
+        for i in range(0, count):
+            sublist = [str(self.GetItem(i, col=0).GetText()), float(self.GetItem(i, col=1).GetText()),
+                       float(self.GetItem(i, col=2).GetText()), self.GetItem(i, col=3).GetText(), peakcolors[i][0],
+                       peakcolors[i][1], peakcolors[i][2]]
+            list.append(sublist)
+
+        return list
+
+
+class ListCtrlPanel(wx.Panel):
+    def __init__(self, parent, type="X", size=(200, 400)):
+        wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
+        tID = wx.NewId()
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        if wx.Platform == "__WXMAC__" and \
+                hasattr(wx.GetApp().GetTopWindow(), "LoadDemo"):
+            self.useNative = wx.CheckBox(self, -1, "Use native listctrl")
+            self.useNative.SetValue(
+                not wx.SystemOptions.GetOptionInt("mac.listctrl.always_use_generic"))
+            self.Bind(wx.EVT_CHECKBOX, self.OnUseNative, self.useNative)
+            sizer.Add(self.useNative, 0, wx.ALL | wx.ALIGN_RIGHT, 4)
+        if type == "X":
+            self.list = XListCtrl(self, tID, size=size, style=wx.LC_REPORT | wx.BORDER_NONE)
+        elif type == "Y":
+            self.list = YListCtrl(self, tID, size=size, style=wx.LC_REPORT | wx.BORDER_NONE)
+        else:
+            print "Error making ListCtrlPanel"
+            exit()
+        sizer.Add(self.list, 1, wx.EXPAND)
+        self.SetSizer(sizer)
+        self.SetAutoLayout(True)
+        self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnRightClick, self.list)
+
+    def OnUseNative(self, event):
+        wx.SystemOptions.SetOptionInt("mac.listctrl.always_use_generic", not event.IsChecked())
+        wx.GetApp().GetTopWindow().LoadDemo("ListCtrl_edit")
+
+    def OnRightClick(self, event):
+        if not hasattr(self, "popupID1"):
+            self.popupID1 = wx.NewId()
+            self.popupID2 = wx.NewId()
+            self.popupID3 = wx.NewId()
+            self.popupID4 = wx.NewId()
+            # self.popupID5 = wx.NewId()
+            # self.popupID6 = wx.NewId()
+
+            self.Bind(wx.EVT_MENU, self.OnPopupOne, id=self.popupID1)
+            self.Bind(wx.EVT_MENU, self.OnPopupTwo, id=self.popupID2)
+            self.Bind(wx.EVT_MENU, self.OnPopupThree, id=self.popupID3)
+            self.Bind(wx.EVT_MENU, self.OnPopupFour, id=self.popupID4)
+            # self.Bind(wx.EVT_MENU, self.OnPopupFive, id=self.popupID5)
+            # self.Bind(wx.EVT_MENU, self.OnPopupSix, id=self.popupID6)
+        menu = wx.Menu()
+        menu.Append(self.popupID1, "Delete")
+        menu.Append(self.popupID2, "Delete All")
+        menu.Append(self.popupID3, "Fill Down Variable 2")
+        menu.Append(self.popupID4, "Fill Down Charge State")
+        # menu.Append(self.popupID5, "Color Select")
+        # menu.Append(self.popupID6, "Edit")
+        self.PopupMenu(menu)
+        menu.Destroy()
+
+    def OnPopupOne(self, event):
+        # Delete
+        item = self.list.GetFirstSelected()
+        num = self.list.GetSelectedItemCount()
+        self.selection = []
+        self.selection.append(item)
+        for i in range(1, num):
+            item = self.list.GetNextSelected(item)
+            self.selection.append(item)
+        for i in range(0, num):
+            self.list.DeleteItem(self.selection[num - i - 1])
+
+    def OnPopupTwo(self, event):
+        self.list.DeleteAllItems()
+
+    def OnPopupThree(self, event):
+        item = self.list.GetFirstSelected()
+        val = self.list.GetItem(item, col=2).GetText()
+        count = self.list.GetItemCount()
+        for i in range(0, count):
+            self.list.SetStringItem(i, 2, val)
+
+    def OnPopupFour(self, event):
+        item = self.list.GetFirstSelected()
+        val = self.list.GetItem(item, col=3).GetText()
+        count = self.list.GetItemCount()
+        for i in range(0, count):
+            self.list.SetStringItem(i, 3, val)
+
+
+class NetworkFrame(PlottingWindow):
+    def __init__(self, *args, **kwargs):
+        PlottingWindow.__init__(self, *args, **kwargs)
+        self.axes = self.figure.add_axes(self._axes)
+        self.flag = True
+
+    def Clear(self):
+        self.figure.clear()
+        self.axes = self.figure.add_axes(self._axes)
+        self.repaint()
+
+
+datachoices = {0: "Raw Data", 1: "Processed Data", 2: "Zero Charge Mass Spectrum"}
+extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position"}
+modelchoices = {"Simple Single KD": "one", "Parallel KD's Chained": "parallel", "All KD's Free": "free",
+                "Test for Best Model": "test", "Series KD's Chained": "series"}
+
+
+class DataCollector(wx.Frame):
+    def __init__(self, parent, title, config=None, pks=None, *args, **kwargs):
+        wx.Frame.__init__(self, parent, title=title)  # ,size=(200,-1))
+
+        if "directory" in kwargs:
+            self.directory = kwargs["directory"]
+        else:
+            self.directory = None
+
+        self.config = config
+        self.pks = pks
+        self.gridparams = None
+
+        if self.config is None:
+            self.config = unidecstructure.UniDecConfig()
+            self.config.initialize()
+            print "Using Empty Structure"
+            self.config.publicationmode = 1
+            try:
+                # import option_d
+                # self.config.cmap=option_d.viridis
+                self.config.cmap = "jet"
+            except:
+                pass
+                self.config.cmap = "jet"
+
+        self.CreateStatusBar(2)
+        self.SetStatusWidths([-1, 150])
+        pub.subscribe(self.OnMotion, 'newxy')
+
+        self.filemenu = wx.Menu()
+        self.menuSave = self.filemenu.Append(wx.ID_SAVE, "Save", "Save Parameters")
+        self.menuLoad = self.filemenu.Append(wx.ID_ANY, "Load", "Load Parameters")
+        self.filemenu.AppendSeparator()
+        self.menuSaveFigPNG = self.filemenu.Append(wx.ID_ANY, "Save Figures as PNG",
+                                                   "Save all figures as PNG in central directory")
+        self.menuSaveFigPDF = self.filemenu.Append(wx.ID_ANY, "Save Figures as PDF",
+                                                   "Save all figures as PDF in central directory")
+        self.Bind(wx.EVT_MENU, self.on_save, self.menuSave)
+        self.Bind(wx.EVT_MENU, self.on_load, self.menuLoad)
+        self.Bind(wx.EVT_MENU, self.on_save_fig, self.menuSaveFigPNG)
+        self.Bind(wx.EVT_MENU, self.on_save_figPDF, self.menuSaveFigPDF)
+        self.toolsmenu = wx.Menu()
+        self.experimentalmenu = wx.Menu()
+        self.menuAnimation = self.experimentalmenu.Append(wx.ID_ANY, "Animate Spectra",
+                                                          "Animation from spectra in list")
+        self.Bind(wx.EVT_MENU, self.on_animate, self.menuAnimation)
+        self.menuAnimation2 = self.experimentalmenu.Append(wx.ID_ANY, "Animate 2D Plots",
+                                                           "Animate mass v. charge or m/z v. charge")
+        self.Bind(wx.EVT_MENU, self.on_animate2, self.menuAnimation2)
+        self.menu2dGrid = self.experimentalmenu.Append(wx.ID_ANY, "2D Grid Extraction",
+                                                       "Extract a 2d Grid of intensities")
+        self.Bind(wx.EVT_MENU, self.on_2dgrid, self.menu2dGrid)
+        self.menudefect = self.experimentalmenu.Append(wx.ID_ANY, "Kendrick Mass Tools", "Mass Defect Analysis")
+        self.Bind(wx.EVT_MENU, self.on_defect, self.menudefect)
+        self.menulocalpath = self.toolsmenu.Append(wx.ID_ANY, "Convert to Local Path",
+                                                   "Change file name to reflect local path for portability")
+        self.Bind(wx.EVT_MENU, self.on_local_path, self.menulocalpath)
+        self.menuabsolutepath = self.toolsmenu.Append(wx.ID_ANY, "Convert to Absolute Path",
+                                                      "Change file name to reflect absolute path")
+        self.Bind(wx.EVT_MENU, self.on_absolute_path, self.menuabsolutepath)
+        self.menumsmsnorm = self.experimentalmenu.Append(wx.ID_ANY, "Normalize to MSMS",
+                                                         "Normalizes mass deconvolutions to MS1 scan for variable 1 +/- variable 2")
+        self.Bind(wx.EVT_MENU, self.on_MSMS_norm, self.menumsmsnorm)
+        self.menuautocorr = self.experimentalmenu.Append(wx.ID_ANY, "View Autocorrelation of Sum",
+                                                         "Shows autocorelation plot of sum")
+        self.Bind(wx.EVT_MENU, self.on_autocorr, self.menuautocorr)
+
+        self.menuBar = wx.MenuBar()
+        self.menuBar.Append(self.filemenu, "&File")
+        self.menuBar.Append(self.toolsmenu, "Tools")
+        self.menuBar.Append(self.experimentalmenu, "Experimental")
+        self.SetMenuBar(self.menuBar)
+
+        self.panel = wx.Panel(self)
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.inputsizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.ypanelsizer = wx.BoxSizer(wx.VERTICAL)
+        self.ypanel = ListCtrlPanel(self.panel, type="Y", size=(600, 500))
+        self.ypanelsizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        self.addybutton = wx.Button(self.panel, label="Add Files")
+        self.Bind(wx.EVT_BUTTON, self.on_add_y, self.addybutton)
+        self.ypanelsizer2.Add(self.addybutton, 0, wx.EXPAND)
+        self.ypanelsizer2.Add(wx.StaticText(self.panel, label="Directory:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.dirinput = wx.TextCtrl(self.panel, value="", size=(100, 20))
+        self.ypanelsizer2.Add(self.dirinput, 1, wx.EXPAND)
+        self.dirbutton = wx.Button(self.panel, label="...", size=(20, 20))
+        self.Bind(wx.EVT_BUTTON, self.on_choose_dir, self.dirbutton)
+        self.ypanelsizer2.Add(self.dirbutton, 0, wx.EXPAND)
+        self.ypanelsizer.Add(self.ypanelsizer2, 0, wx.EXPAND)
+        self.ypanelsizer.Add(self.ypanel, 0, wx.EXPAND)
+        self.inputsizer.Add(self.ypanelsizer, 0, wx.EXPAND)
+
+        self.xpanel = ListCtrlPanel(self.panel, size=(200, 500))
+        self.xpanelsizer = wx.BoxSizer(wx.VERTICAL)
+        self.addxbutton = wx.Button(self.panel, label="Add X Value")
+        self.Bind(wx.EVT_BUTTON, self.on_add_x, self.addxbutton)
+        self.xpanelsizer.Add(self.addxbutton, 0, wx.EXPAND)
+        self.xpanelsizer.Add(self.xpanel, 0, wx.EXPAND)
+        self.inputsizer.Add(self.xpanelsizer, 0, wx.EXPAND)
+
+        self.plotwindow = wx.Notebook(self.panel)
+        self.tab1 = wx.Panel(self.plotwindow)
+        self.tab2 = wx.Panel(self.plotwindow)
+        self.tab3 = wx.Panel(self.plotwindow)
+
+        self.plot1 = plot1d.Plot1d(self.tab1)
+        self.plot2d = plot2d.Plot2d(self.tab2)
+        self.plot4 = plot1d.Plot1d(self.tab3)
+
+        miscwindows.SetupTabBox(self.tab1, self.plot1)
+        miscwindows.SetupTabBox(self.tab2, self.plot2d)
+        miscwindows.SetupTabBox(self.tab3, self.plot4)
+        self.plotwindow.AddPage(self.tab1, "1D Stack")
+        self.plotwindow.AddPage(self.tab2, "2D Grid")
+        self.plotwindow.AddPage(self.tab3, "Summation")
+
+        self.plot2 = plot1d.Plot1d(self.panel)
+
+        self.plotwindow2 = wx.Notebook(self.panel)
+        self.tab12 = wx.Panel(self.plotwindow2)
+        self.tab22 = wx.Panel(self.plotwindow2)
+
+        self.plot3 = NetworkFrame(self.tab12)
+        self.plot3h = plot1d.Plot1d(self.tab22)
+
+        miscwindows.SetupTabBox(self.tab12, self.plot3)
+        miscwindows.SetupTabBox(self.tab22, self.plot3h)
+        self.plotwindow2.AddPage(self.tab12, "Network Model")
+        self.plotwindow2.AddPage(self.tab22, "histogram")
+
+        # self.plot3=NetworkFrame(self.panel)
+        self.inputsizer.Add(self.plotwindow, 0, wx.EXPAND)
+        self.sizer.Add(self.inputsizer, 1, wx.EXPAND)
+
+        self.runsizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.runsizer.Add(wx.StaticText(self.panel, label=" What to extract: "), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctldata = wx.ComboBox(self.panel, value="Raw Data", choices=datachoices.values(), style=wx.CB_READONLY)
+        self.runsizer.Add(self.ctldata, 0, wx.EXPAND)
+
+        self.runsizer.Add(wx.StaticText(self.panel, label=" Range:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctlmin = wx.TextCtrl(self.panel, value="", size=(50, 20))
+        self.runsizer.Add(self.ctlmin, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.runsizer.Add(wx.StaticText(self.panel, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctlmax = wx.TextCtrl(self.panel, value="", size=(50, 20))
+        self.runsizer.Add(self.ctlmax, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctlnorm = wx.CheckBox(self.panel, label="Normalize Data")
+        # self.Bind(wx.EVT_CHECKBOX, self.on_norm, self.ctlnorm)
+        self.runsizer.Add(self.ctlnorm, 0, wx.EXPAND)
+        self.runbutton = wx.Button(self.panel, label="Run Extraction")
+        self.Bind(wx.EVT_BUTTON, self.on_run, self.runbutton)
+        self.runsizer.Add(self.runbutton, 0, wx.EXPAND)
+        self.ctlnorm2 = wx.CheckBox(self.panel, label="Normalize Extraction")
+        self.runsizer.Add(self.ctlnorm2, 0, wx.EXPAND)
+        self.runsizer.Add(wx.StaticText(self.panel, label=" How to extract: "), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctlextract = wx.ComboBox(self.panel, value="Height", choices=extractchoices.values(), style=wx.CB_READONLY)
+        self.runsizer.Add(self.ctlextract, 0, wx.EXPAND)
+        self.runsizer.Add(wx.StaticText(self.panel, label=" Window:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctlwindow = wx.TextCtrl(self.panel, value="", size=(50, 20))
+        self.runsizer.Add(self.ctlwindow, 0, wx.EXPAND)
+
+        self.runsizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        # self.savefigbutton=wx.Button(self.panel,label="Save Figures")
+        # self.Bind(wx.EVT_BUTTON,self.on_save_fig,self.savefigbutton)
+        # self.runsizer2.Add(self.savefigbutton,0,wx.EXPAND)
+
+        self.runsizer2.Add(wx.StaticText(self.panel, label="Number of Proteins:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctlprot = wx.TextCtrl(self.panel, value="", size=(50, 20))
+        self.runsizer2.Add(self.ctlprot, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.runsizer2.Add(wx.StaticText(self.panel, label="Number of Ligands:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctllig = wx.TextCtrl(self.panel, value="", size=(50, 20))
+        self.runsizer2.Add(self.ctllig, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.runsizer2.Add(wx.StaticText(self.panel, label="Number of Bootstraps:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctlbootstrap = wx.TextCtrl(self.panel, value="0", size=(50, 20))
+        self.runsizer2.Add(self.ctlbootstrap, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.kdbutton = wx.Button(self.panel, label="Fit KDs")
+        self.Bind(wx.EVT_BUTTON, self.on_kd_fit, self.kdbutton)
+        self.runsizer2.Add(self.kdbutton, 0, wx.EXPAND)
+
+        choices = sorted(modelchoices.keys())
+        self.ctlprotmodel = wx.ComboBox(self.panel, value=choices[0], choices=choices, style=wx.CB_READONLY)
+        self.ctlligmodel = wx.ComboBox(self.panel, value=choices[0], choices=choices, style=wx.CB_READONLY)
+        self.runsizer2.Add(wx.StaticText(self.panel, label=" Protein Model: "), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.runsizer2.Add(self.ctlprotmodel, 0, wx.EXPAND)
+        self.runsizer2.Add(wx.StaticText(self.panel, label=" Ligand Model: "), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.runsizer2.Add(self.ctlligmodel, 0, wx.EXPAND)
+
+        self.runsizer2.Add(wx.StaticText(self.panel, label="Binding Sites Per Protein:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctlmaxsites = wx.TextCtrl(self.panel, value="None", size=(50, 20))
+        self.runsizer2.Add(self.ctlmaxsites, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        # self.runsizer2.Add(wx.StaticText(self.panel,label="Binding Sites Per Protein:"),0,wx.ALIGN_CENTER_VERTICAL)
+        self.ctloutliers = wx.CheckBox(self.panel, label="Remove Outliers")
+        self.runsizer2.Add(self.ctloutliers, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.sizer.Add(self.runsizer, 0, wx.EXPAND)
+        self.sizer.Add(self.runsizer2, 0, wx.EXPAND)
+
+        self.plotsizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        # self.plot3=NetworkFrame(self.panel)
+        self.plotsizer.Add(self.plot2, 0, wx.EXPAND)
+        self.plotsizer.Add(self.plotwindow2, 1, wx.EXPAND)
+        # self.plotsizer.Add(self.plot3,0,wx.EXPAND)
+        self.sizer.Add(self.plotsizer, 0, wx.EXPAND)
+
+        self.panel.SetSizer(self.sizer)
+        self.sizer.Fit(self)
+        self.xvals = []
+        self.yvals = []
+        self.range = []
+        self.extract = []
+        self.normflag = True
+        self.normflag2 = True
+        self.protflag = "free"
+        self.ligflag = "free"
+        self.datachoice = 0
+        self.numprot = 0
+        self.numlig = 0
+        self.bootstrap = 0
+        self.window = ''
+        self.maxsites = ''
+        self.extractchoice = 0
+        self.savename = "collection1.json"
+        self.localpath = 0
+        self.molig = None
+
+        self.Centre()
+        self.Show(True)
+        try:
+            self.LoadXfromPeaks(0)
+        except:
+            print "Failed to load from peak list"
+
+        if __name__ == "__main__":
+            # self.directory="C:\\cprog\\Georg"
+            # self.directory="C:\\Data\\AmtB_POPC"
+            # self.load(os.path.join(self.directory,"AmtB_04_test.json"))
+            #self.directory = "C:\\Data\\AmtB_DMPC"
+            #self.load(os.path.join(self.directory, "AmtB_07.json"))
+            try:
+                # self.directory="C:\\Data\\AmtB_POPC"
+                # self.directory="C:\\cprog\\Shane_ND3"
+                # self.directory="C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3"
+
+                # self.load(os.path.join(self.directory,"AmtB_04_test.json"))
+
+                self.directory="C:\\cprog\\Jon\\Jon Titration data\\Man9 141015"
+                self.load(os.path.join(self.directory,"collection1.json"))
+                # self.on_run(0)
+                # self.on_kd_fit(0)
+                # self.on_animate2(0)
+                pass
+            except:
+                pass
+
+    def LoadXfromPeaks(self, e):
+        if not ud.isempty(self.pks.peaks):
+            for p in self.pks.peaks:
+                maxes = self.xpanel.list.AddLine(val=p.mass)
+        try:
+            self.ctlprot.SetValue(str(maxes[0]))
+            self.ctllig.SetValue(str(maxes[1]))
+        except:
+            print "Failed to autoupdate total # of protein and ligand, update manually in boxes."
+
+    def on_save(self, e):
+        self.update_get(e)
+        try:
+            exout = self.extract.tolist()
+        except:
+            exout = []
+        # print "Saved: ",self.gridparams
+        outdict = {"x": self.xvals, "y": self.yvals, "dir": self.directory, "extractselection": self.extractchoice,
+                   "window": self.window,
+                   "selection": self.datachoice, "range": self.range, "normalize": self.normflag,
+                   "normalize2": self.normflag2,
+                   "numprot": self.numprot, "numlig": self.numlig, "bootstrap": self.bootstrap, "extract": exout,
+                   "protflag": self.protflag,
+                   "ligflag": self.ligflag, "maxsites": self.maxsites, "gridparams": self.gridparams,
+                   "molig": self.molig}
+
+        dlg = wx.FileDialog(self, "Save Collection in JSON Format", self.directory, self.savename, "*.json", wx.SAVE)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.savename = dlg.GetPath()
+            with open(self.savename, "w") as outfile:
+                json.dump(outdict, outfile)
+            print "Saved: ", self.savename
+        dlg.Destroy()
+
+    def on_load(self, e):
+        dlg = wx.FileDialog(self, "Load JSON Collection", self.directory, self.savename, "*.json", wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.savename = dlg.GetPath()
+            self.load(self.savename)
+        dlg.Destroy()
+
+    def load(self, savename):
+        with open(savename, "r") as outfile:
+            indict = json.load(outfile)
+        if "x" in indict:
+            self.xvals = indict["x"]
+        if "y" in indict:
+            self.yvals = indict["y"]
+        if "dir" in indict:
+            self.directory = indict["dir"]
+        if "extractselection" in indict:
+            self.extractchoice = indict["extractselection"]
+        if "selection" in indict:
+            self.datachoice = indict["selection"]
+        if "range" in indict:
+            self.range = indict["range"]
+        if "normalize" in indict:
+            self.normflag = indict["normalize"]
+        if "normalize2" in indict:
+            self.normflag2 = indict["normalize2"]
+        if "numprot" in indict:
+            self.numprot = indict["numprot"]
+        if "numlig" in indict:
+            self.numlig = indict["numlig"]
+        if "bootstrap" in indict:
+            self.bootstrap = indict["bootstrap"]
+        if "window" in indict:
+            self.window = indict["window"]
+        if "protflag" in indict:
+            self.protflag = indict["protflag"]
+        if "ligflag" in indict:
+            self.ligflag = indict["ligflag"]
+        if "maxsites" in indict:
+            self.maxsites = indict["maxsites"]
+        if "gridparams" in indict:
+            self.gridparams = indict["gridparams"]
+            # print "Loaded: ",self.gridparams
+        if "molig" in indict:
+            self.molig = indict["molig"]
+        self.update_set(0)
+        print "Loaded: ", savename
+        self.on_run(0)
+
+    def on_add_x(self, e):
+        maxes = self.xpanel.list.AddLine()
+        try:
+            self.ctlprot.SetValue(str(maxes[0]))
+            self.ctllig.SetValue(str(maxes[1]))
+        except:
+            print "Failed to autoupdate total # of protein and ligand, update manually in boxes."
+
+    def on_add_y(self, e):
+        self.update_get(e)
+        dlg = wx.FileDialog(self, "Load Files", self.directory, "", "*.*", wx.MULTIPLE)
+        if dlg.ShowModal() == wx.ID_OK:
+            filenames = dlg.GetPaths()
+            for file in filenames:
+                self.ypanel.list.AddLine(file=file)
+        dlg.Destroy()
+        self.localpath = 0
+
+    def on_choose_dir(self, e):
+        if self.directory is not None:
+            dlg = wx.DirDialog(None, "Choose Top Directory", "",
+                               wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)  # ,defaultPath=self.directory)
+        else:
+            dlg = wx.DirDialog(None, "Choose Top Directory", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.directory = dlg.GetPath()
+            self.dirinput.SetValue(self.directory)
+            # print self.directory
+        dlg.Destroy()
+
+    def OnMotion(self, xpos, ypos):
+        if xpos is not None and ypos is not None:
+            self.SetStatusText("x=%.4f y=%.2f" % (xpos, ypos), number=1)
+        pass
+
+    def update_get(self, e):
+        self.xvals = self.xpanel.list.GetList()
+        try:
+            maxes = self.xpanel.list.GetMaxes()
+            self.ctlprot.SetValue(str(maxes[0]))
+            self.ctllig.SetValue(str(maxes[1]))
+        except:
+            print "Failed to autoupdate total # of protein and ligand, update manually in boxes."
+        self.yvals = self.ypanel.list.GetList()
+        self.directory = self.dirinput.GetValue()
+        self.normflag = self.ctlnorm.GetValue()
+        self.normflag2 = self.ctlnorm2.GetValue()
+        self.datachoice = self.ctldata.GetSelection()
+        self.extractchoice = self.ctlextract.GetSelection()
+        self.protflag = modelchoices[self.ctlprotmodel.GetStringSelection()]
+        self.ligflag = modelchoices[self.ctlligmodel.GetStringSelection()]
+        try:
+            self.window = float(self.ctlwindow.GetValue())
+        except:
+            pass
+        try:
+            self.bootstrap = int(self.ctlbootstrap.GetValue())
+        except:
+            self.bootstrap = 1
+            pass
+        self.range = []
+        try:
+            self.range.append(float(self.ctlmin.GetValue()))
+            self.range.append(float(self.ctlmax.GetValue()))
+        except:
+            pass
+        try:
+            self.numprot = int(self.ctlprot.GetValue())
+            self.numlig = int(self.ctllig.GetValue())
+        except:
+            pass
+
+        try:
+            self.maxsites = int(self.ctlmaxsites.GetValue())
+        except:
+            self.maxsites = ''
+            # print self.xvals
+            # print self.yvals
+            # print self.directory
+
+    def update_set(self, e):
+        self.ctlprotmodel.SetValue(
+            next((label for label, flag in modelchoices.items() if flag == self.protflag), "test"))
+        self.ctlligmodel.SetValue(next((label for label, flag in modelchoices.items() if flag == self.ligflag), "test"))
+        self.dirinput.SetValue(self.directory)
+        self.xpanel.list.Populate(self.xvals)
+        self.ypanel.list.Populate(self.yvals)
+        self.ctlnorm.SetValue(self.normflag)
+        self.ctlnorm2.SetValue(self.normflag2)
+        self.ctlprot.SetValue(str(self.numprot))
+        self.ctllig.SetValue(str(self.numlig))
+        self.ctlwindow.SetValue(str(self.window))
+        self.ctlbootstrap.SetValue(str(self.bootstrap))
+        self.ctldata.SetSelection(self.datachoice)
+        self.ctlextract.SetSelection(self.extractchoice)
+        self.ctlmaxsites.SetValue(str(self.maxsites))
+        if not isempty(self.range):
+            self.ctlmin.SetValue(str(self.range[0]))
+            self.ctlmax.SetValue(str(self.range[1]))
+
+    def data_extract(self, data, x, choice, window=None):
+        if choice == 0:
+            index = np.argmin(np.abs(data[:, 0] - x))
+            val = data[index, 1]
+        elif choice == 1:
+            index = np.argmin(np.abs(data[:, 0] - x))
+            if window is not None:
+                start = np.argmin(np.abs(data[:, 0] - (x - window)))
+                end = np.argmin(np.abs(data[:, 0] - (x + window)))
+                val = localmax(data[:, 1], start, end)
+            else:
+                val = stepmax(data[:, 1], index)
+        elif choice == 2:
+            index = np.argmin(np.abs(data[:, 0] - x))
+            if window is not None:
+                start = x - window
+                end = x + window
+                val = integrate(data, start, end)
+            else:
+                val = data[index, 1]
+                print "NEED TO SET INTEGRAL WINDOW!\nUsing Peak Height Instead"
+        elif choice == 3:
+            index = np.argmin(np.abs(data[:, 0] - x))
+            if window is not None:
+                start = x - window
+                end = x + window
+                val = centerofmass(data, start, end)
+            else:
+                val = centerofmass(data, data[0, 0], data[len(data) - 1, 0])
+                print "No window set for center of mass!\nUsing entire data range...."
+        elif choice == 4:
+            index = np.argmin(np.abs(data[:, 0] - x))
+            if window is not None:
+                start = x - window
+                end = x + window
+                val = localmaxpos(data, start, end)
+            else:
+                val = localmaxpos(data, data[0, 0], data[len(data) - 1, 0])
+                print "No window set for local max position!\nUsing entire data range...."
+        return val
+
+    def on_run(self, e, vals=None):
+
+        self.update_get(e)
+        # os.chdir(self.directory)
+        self.data = []
+        self.extract = []
+        self.plot1.clear_plot()
+        self.plot2.clear_plot()
+        self.var1 = []
+        self.grid = []
+        ycolors = []
+
+        for k, list in enumerate(self.yvals):
+            file = list[0]
+            header = os.path.splitext(file)[0]
+            if self.localpath == 1:
+                header = os.path.join(self.directory, header)
+            print "Loading:", file
+            subheader = os.path.split(header)[1]
+            self.var1.append(list[1])
+            ycolors.append(list[4:7])
+            fcolor = np.array(list[4:7])
+            if self.datachoice == 0:
+                data = np.loadtxt(file)
+                self.xlabel = "m/z (Th)"
+            elif self.datachoice == 1:
+                file = os.path.join(header + "_unidecfiles", subheader + "_input.dat")
+                data = np.loadtxt(file)
+                self.xlabel = "m/z (Th)"
+            elif self.datachoice == 2:
+                self.xlabel = "Mass (Da)"
+                zstate = list[3]
+                file = os.path.join(header + "_unidecfiles", subheader + "_mass.txt")
+                data = np.loadtxt(file)
+                if not zstate == 'All':
+                    try:
+                        file = os.path.join(header + "_unidecfiles", subheader + "_massgrid.bin")
+                        massgrid = np.fromfile(file, dtype=float)
+                        configfile = os.path.join(header + "_unidecfiles", subheader + "_conf.dat")
+                        f = open(configfile, 'r')
+                        for line in f:
+                            if line.startswith("startz"):
+                                startz = int(line.split()[1])
+                            if line.startswith("endz"):
+                                endz = int(line.split()[1])
+                            if line.startswith("numz"):
+                                numz = int(line.split()[1])
+
+                        # zlength=endz-startz+1
+                        zlength = numz
+                        massgrid = np.reshape(massgrid, (len(data), zlength))
+
+                        if zstate[0] == "N":
+                            srange = zstate[1:]
+                            nzstart, nzend = srange.split(':')
+                            nzstart = float(nzstart)
+                            nzend = float(nzend)
+                            if nzstart > nzend:
+                                nzstart, nzend = nzend, nzstart
+                            ztab = np.arange(startz, endz + 1)
+                            mgrid, zgrid = np.meshgrid(data[:, 0], ztab, indexing='ij')
+
+                            offsetgrid = nativez.GetOffset(mgrid, zgrid)
+                            bool1 = offsetgrid >= nzstart
+                            bool2 = offsetgrid <= nzend
+                            bool3 = np.all([bool1, bool2], axis=0)
+                            mout = np.sum(massgrid * bool3, axis=1)
+
+                            data[:, 1] = mout
+                        else:
+                            zindex = int(zstate) - startz
+                            data[:, 1] = massgrid[:, zindex]
+                    except:
+                        print "FAILED TO EXTRACT CHARGE STATE\nUsing total for all charge states"
+                        list[3] = "All"
+                        try:
+                            self.ypanel.list.Populate(self.yvals, colors=ycolors)
+                        except:
+                            self.ypanel.list.Populate(self.yvals)
+
+            if not isempty(self.range):
+                bool1 = data[:, 0] >= self.range[0]
+                bool2 = data[:, 0] <= self.range[1]
+                bool3 = np.all([bool1, bool2], axis=0)
+                data = data[bool3]
+            if self.normflag:
+                data[:, 1] = data[:, 1] / np.amax(data[:, 1])
+            if vals is not None:
+                data[:, 1] = data[:, 1] * vals[k]
+            self.data.append(data)
+            if not self.plot1.flag:
+                self.plot1.plotrefreshtop(data[:, 0], data[:, 1], "Extracted Data", "", "", file, None, nopaint=True,
+                                          color=fcolor,test_kda=True)
+                self.grid.append(data)
+            else:
+                self.plot1.plotadd(data[:, 0], data[:, 1], fcolor, file)
+                try:
+                    self.grid.append(ud.mergedata(self.grid[0], data))
+                except:
+                    print "Error combining data"
+
+            xext = []
+            for i in xrange(0, len(self.xvals)):
+                s = self.xvals[i][0]
+                try:
+                    window = float(self.window)
+                except:
+                    window = None
+                val = self.data_extract(data, float(s), self.extractchoice, window=window)
+                xext.append(val)
+            self.extract.append(xext)
+        self.ypanel.list.Populate(self.yvals, colors=ycolors)
+        self.plot1.repaint()
+
+        self.extract = np.array(self.extract)
+        if len(self.xvals) != 0:
+            if self.normflag2 == 1:
+                sums = np.sum(self.extract, axis=1)
+                self.extract = [self.extract[i] / sums[i] for i in xrange(0, len(self.yvals))]
+                self.extract = np.array(self.extract)
+
+            colormap = cm.get_cmap('rainbow', len(self.xvals))
+            self.xcolors = colormap(np.arange(len(self.xvals)))
+            self.MakePlot2()
+            # print np.mean(self.extract,axis=0)
+            np.savetxt(os.path.join(self.directory, "extracts.txt"), self.extract)
+            self.xpanel.list.Populate(self.xvals, colors=self.xcolors)
+            self.plot2.repaint()
+        self.grid = np.array(self.grid)
+
+        if not ud.isempty(self.grid):
+            try:
+                self.plot4.plotrefreshtop(np.unique(self.grid[0, :, 0]), np.sum(self.grid[:, :, 1], axis=0), "Total",
+                                          "", "Sum", "", self.config,test_kda=True)
+                np.savetxt(os.path.join(self.directory, "sums.txt"),
+                           np.transpose([np.unique(self.grid[0, :, 0]), np.sum(self.grid[:, :, 1], axis=0)]))
+            except:
+                print "Failed total plot"
+                self.plot4.clear_plot()
+            try:
+                X, Y = np.meshgrid(self.grid[0, :, 0], self.var1, indexing='ij')
+                dat = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(np.transpose(self.grid[:, :, 1]))])
+                self.plot2d.contourplot(dat, self.config, xlab=self.xlabel, ylab="", title="Extracted Data")
+                self.on_export(e)
+            except:
+                print "Failed to make 2D plot"
+                self.plot2d.clear_plot()
+
+        print "Extraction Complete"
+
+    def MakePlot2(self):
+        self.plot2.clear_plot()
+        for i in xrange(0, len(self.xvals)):
+            color = self.xcolors[i]
+            if not self.plot2.flag:
+                self.plot2.plotrefreshtop(self.var1, self.extract[:, i], title="Extracted Data"
+                                          , color=color,test_kda=True)
+                self.plot2.plotadddot(self.var1, self.extract[:, i], color, "o")
+            else:
+                self.plot2.plotadd(self.var1, self.extract[:, i], color, file)
+                self.plot2.plotadddot(self.var1, self.extract[:, i], color, "o")
+        if self.normflag2 == 1:
+            self.plot2.subplot1.set_ylim([0, 1])
+
+    def on_save_fig(self, e):
+        name1 = os.path.join(self.directory, "Figure1.png")
+        if self.plot1.flag:
+            self.plot1.on_save_fig(e, name1)
+            print name1
+        name2 = os.path.join(self.directory, "Figure2.png")
+        if self.plot2.flag:
+            self.plot2.on_save_fig(e, name2)
+            print name2
+        name3 = os.path.join(self.directory, "Figure3.png")
+        if self.plot3.flag:
+            self.plot3.on_save_fig(e, name3)
+            print name3
+        name1 = os.path.join(self.directory, "Figure1_2D.png")
+        if self.plot2d.flag:
+            self.plot2d.on_save_fig(e, name1)
+            print name1
+        name3 = os.path.join(self.directory, "Figure4.png")
+        if self.plot4.flag:
+            self.plot4.on_save_fig(e, name3)
+            print name3
+
+    def on_save_figPDF(self, e):
+        name1 = os.path.join(self.directory, "Figure1.pdf")
+        if self.plot1.flag:
+            self.plot1.on_save_fig(e, name1)
+            print name1
+        name2 = os.path.join(self.directory, "Figure2.pdf")
+        if self.plot2.flag:
+            self.plot2.on_save_fig(e, name2)
+            print name2
+        name3 = os.path.join(self.directory, "Figure3.pdf")
+        if self.plot3.flag:
+            self.plot3.on_save_fig(e, name3)
+            print name3
+        name1 = os.path.join(self.directory, "Figure4.pdf")
+        if self.plot4.flag:
+            self.plot4.on_save_fig(e, name1)
+            print name1
+        name1 = os.path.join(self.directory, "Figure1_2D.pdf")
+        if self.plot2d.flag:
+            self.plot2d.on_save_fig(e, name1)
+            print name1
+
+    def on_kd_fit(self, e):
+        outlierflag = self.ctloutliers.GetValue()
+        self.update_get(e)
+        self.plot3.Clear()
+        # self.MakePlot2()
+        nodelist = []
+        for i in xrange(0, len(self.xvals)):
+            nodelist.append([self.xvals[i][1], self.xvals[i][2]])
+        nodelist = np.array(nodelist)
+        print "Nodes: ", nodelist
+        self.yvals = np.array(self.yvals)
+        self.plot2.clear_plot()
+        self.plot2.subplot1 = self.plot2.figure.add_axes(self.plot2._axes)
+        try:
+            maxsites = int(self.maxsites)
+        except:
+            maxsites = 0
+        kdfit = UniFit.KDmodel(self.numprot, self.numlig, self.extract.transpose(), self.yvals[:, 2].astype(np.float64),
+                               self.yvals[:, 1].astype(np.float64), nodelist, os.path.join(self.directory, "fits"),
+                               removeoutliers=outlierflag, plot1=self.plot2.subplot1, plot2=self.plot3.axes,
+                               plot3=self.plot3h, bootnum=self.bootstrap, prot=self.protflag, lig=self.ligflag,
+                               maxsites=maxsites)
+        self.plot2.repaint()
+        self.plot2.flag = True
+        datalim = [np.amin(nodelist[:, 1]) - 0.5, np.amin(nodelist[:, 0] - 0.5), np.amax(nodelist[:, 1] + 0.5),
+                   np.amax(nodelist[:, 0] + 0.5)]
+        self.plot3.axes.set_xlim(datalim[0], datalim[2])
+        self.plot3.axes.set_ylim(datalim[1], datalim[3])
+        self.plot3.setup_zoom([self.plot3.axes], 'box', data_lims=datalim)
+        self.plot3.repaint()
+
+    def on_animate(self, e):
+        self.yvals = np.array(self.yvals)
+        self.aniwindow = PlotAnimations.AnimationWindow(self, self.grid, self.config, yvals=self.yvals[:, 1])
+
+    def on_animate2(self, e):
+        self.update_get(e)
+        dlg = miscwindows.SingleInputDialog(self)
+        dlg.InitUI(title="Set Compression", message="Number of x values to compress:", defaultvalue="10")
+        dlg.ShowModal()
+        try:
+            self.compress = int(dlg.value)
+            if self.compress > 1:
+                print "Compressing Data by:", self.compress
+        except:
+            print "Unrecognized compression value"
+            self.compress = 0
+
+        print "Loading 2D Data..."
+        data2 = []
+        for i, list in enumerate(self.yvals):
+            file = list[0]
+            header = os.path.splitext(file)[0]
+            if self.localpath == 1:
+                header = os.path.join(self.directory, header)
+            subheader = os.path.split(header)[1]
+            if self.datachoice < 2:
+                file = os.path.join(header + "_unidecfiles", subheader + "_grid.bin")
+                file2 = os.path.join(header + "_unidecfiles", subheader + "_input.dat")
+
+            elif self.datachoice == 2:
+                file = os.path.join(header + "_unidecfiles", subheader + "_massgrid.bin")
+                file2 = os.path.join(header + "_unidecfiles", subheader + "_mass.txt")
+            data = np.loadtxt(file2)
+            massgrid = np.fromfile(file, dtype=float)
+            configfile = os.path.join(header + "_unidecfiles", subheader + "_conf.dat")
+            f = open(configfile, 'r')
+            for line in f:
+                if line.startswith("startz"):
+                    startz = int(line.split()[1])
+                if line.startswith("numz"):
+                    numz = int(line.split()[1])
+            f.close()
+            # zlength=endz-startz+1
+            zlength = numz
+            massgrid = np.reshape(massgrid, (len(data), zlength))
+            ztab = np.arange(startz, startz + numz)
+            mgrid, zgrid = np.meshgrid(data[:, 0], ztab, indexing='ij')
+
+            if not isempty(self.range):
+                bool1 = data[:, 0] >= self.range[0]
+                bool2 = data[:, 0] <= self.range[1]
+                bool3 = np.all([bool1, bool2], axis=0)
+                mgrid = mgrid[bool3]
+                zgrid = zgrid[bool3]
+                massgrid = massgrid[bool3]
+            if self.normflag:
+                massgrid = massgrid / np.amax(massgrid)
+
+            if self.compress > 1:
+                M, Z, D = IM_functions.compress_2d(mgrid, zgrid, massgrid, self.compress)
+                dat = np.transpose([np.ravel(M), np.ravel(Z), np.ravel(D)])
+            else:
+                dat = np.transpose([np.ravel(mgrid), np.ravel(zgrid), np.ravel(massgrid)])
+
+            data2.append(dat)
+            print i,
+        print "Loaded 2D Data"
+        self.yvals = np.array(self.yvals)
+        data2 = np.array(data2)
+        print data2.shape
+        self.aniwindow = PlotAnimations.AnimationWindow(self, data2, self.config, mode="2D", yvals=self.yvals[:, 1])
+
+    def on_2dgrid(self, e):
+        self.yvals = np.array(self.yvals)
+        exwindow = Extract2D.Extract2DPlot(self, self.grid, self.config, yvals=self.yvals[:, 1], params=self.gridparams,
+                                           directory=self.directory)
+        self.gridparams = exwindow.params
+
+    def on_defect(self, e):
+        self.yvals = np.array(self.yvals)
+        defectwindow = MassDefects.MassDefectWindow(self, self.grid, self.config, yvals=self.yvals[:, 1],
+                                                    dir=self.directory, value=self.molig)
+        pass
+
+    def on_autocorr(self, e):
+        masssum = np.transpose([np.unique(self.grid[0, :, 0]), np.sum(self.grid[:, :, 1], axis=0)])
+        print "Sum shape:", sum
+        autocorrwindow = AutocorrWindow(self)
+        autocorrwindow.InitUI(self.config, masssum)
+        autocorrwindow.ShowModal()
+
+    def on_local_path(self, e):
+        self.update_get(0)
+        for i, list in enumerate(self.yvals):
+            file = list[0]
+            localpath = os.path.relpath(file, self.directory)
+            list[0] = localpath
+        self.update_set(0)
+        self.localpath = 1
+
+    def on_absolute_path(self, e):
+        self.update_get(0)
+        for i, list in enumerate(self.yvals):
+            file = list[0]
+            abspath = os.path.abspath(os.path.join(self.directory, file))
+            list[0] = abspath
+        self.update_set(0)
+        self.localpath = 0
+
+    def on_export(self, e):
+        if not ud.isempty(self.grid):
+            try:
+                X, Y = np.meshgrid(self.grid[0, :, 0], self.var1, indexing='ij')
+                dat = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(np.transpose(self.grid[:, :, 1]))])
+                path = os.path.join(self.directory, "ExtractFull2D_" + self.xlabel[-3:-1] + "_.txt")
+                np.savetxt(path, dat)
+                print "Saved to: ", path
+            except:
+                print "Failed to export data"
+        else:
+            print "Grid is empty"
+
+    def on_MSMS_norm(self, e):
+        dlg = wx.FileDialog(self, "Choose MS1 data file in x y list format", '', "", "*.*", wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            filename = dlg.GetFilename()
+            dirname = dlg.GetDirectory()
+            path = os.path.join(dirname, filename)
+        dlg.Destroy()
+        print "Openening: ", path
+        msdat = np.loadtxt(path)
+        mids = np.array([y[1] for y in self.yvals]).astype(np.float)
+        wins = np.array([y[2] for y in self.yvals]).astype(np.float)
+
+        vals = []
+        for i, m in enumerate(mids):
+            w = float(wins[i])
+            if w == 0:
+                index = ud.nearest(msdat[:, 0], m)
+                val = msdat[index, 1]
+                pass
+            else:
+                limits = [m - w, m + w]
+                boo1 = msdat[:, 0] < limits[1]
+                boo2 = msdat[:, 0] > limits[0]
+                intdat = msdat[np.all([boo1, boo2], axis=0)]
+                val = np.trapz(intdat[:, 1], x=intdat[:, 0])
+                pass
+            vals.append(val)
+        vals = np.array(vals)
+        vals = vals / np.amax(vals)
+        print vals
+        self.on_run(0, vals=vals)
+
+
+# Main App Execution
+if __name__ == "__main__":
+    multiprocessing.freeze_support()
+    app = wx.App(False)
+    frame = DataCollector(None, "Collect Data")
+    app.MainLoop()
