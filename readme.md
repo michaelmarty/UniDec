@@ -1,4 +1,4 @@
-UniDec: Universal Deconvolution of Mass and Ion Mobility Spectra {#mainpage}
+UniDec: Universal Deconvolution of Mass and Ion Mobility Spectra 
 =================================================================
 
 UniDec is a Bayesian deconvolution program for deconvolution of mass spectra and ion mobility-mass spectra.
