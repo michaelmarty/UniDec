@@ -12,7 +12,28 @@ UniDec may be downloaded from [unidec.chem.ox.ac.uk](http://unidec.chem.ox.ac.uk
 
 Please contact michael.marty@chem.ox.ac.uk for questions, suggestions, or with any bugs.
 
-## Downloading the Binaries
+## Installing
+
+### Python
+
+There are several python libraries that UniDec will depend on. 
+
+matplotlib
+numpy
+scipy
+wxpython
+natsort
+twython
+pymzml
+networkx
+
+With the exception of wxpython, which can be installed from the [web](http://wxpython.org/), all of these can be installed from the command line with (for example):
+    
+    pip install natsort
+
+Note: I would highly recommend setting up 64-bit Python as the default. MS data works fine with 32-bit, but IM-MS data is prone to crash the memory. If you are getting memory errors, the first thing to try is to upgrade the bit level to 64.
+
+### Downloading the Binaries
 
 As described below, the Python code presented here relies on two critical binaries, UniDec.exe and UniDecIM.exe.
 
@@ -23,6 +44,8 @@ These binaries should be deposited in the /unidec_bin directory once downloaded.
 If you want to convert Waters .Raw files, you will also need to add cdt.dll (for IM-MS) and MassLynxRaw.dll (for MS) to the same directory.
 These files can be found [here](http://www.waters.com/waters/supportList.htm?cid=511442&locale=en_GB&filter=documenttype|DWNL&locale=en_GB) with support numbers DWNL134825112 and DWNL134815627.
 Unfortunately, the libraries provided by Waters do not work on certain instruments, such as the G2-Si. 
+
+I have binaries built for Mac and Linux as well. They are a bit slower than the Windows version because they are compiled with gcc rather than the Intel C Compiler, but they are perfectly functional and still pretty darn fast. I can send these to you on request.
 
 ##UniDec Documentation
 
