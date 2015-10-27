@@ -499,7 +499,7 @@ class UniDecApp(object):
         self.view.SetStatusText("Plotting Peaks", number=5)
 
         if self.eng.config.batchflag == 0:
-            self.view.peakpanel.AddData(self.eng.pks)
+            self.view.peakpanel.add_data(self.eng.pks)
             self.makeplot2(1)
             self.makeplot6(1)
             self.makeplot4(1)
@@ -1002,7 +1002,7 @@ class UniDecApp(object):
                     color = p.color
                     self.plot_integral(limits, color=color, filled=filled)
             self.view.plot2.repaint()
-            self.view.peakpanel.AddData(self.eng.pks, show="integral")
+            self.view.peakpanel.add_data(self.eng.pks, show="integral")
             try:
                 self.makeplot6(1, show="integral")
             except Exception, ex:
@@ -1056,7 +1056,7 @@ class UniDecApp(object):
         """
         self.export_config(None)
         cdat = self.eng.get_charge_peaks()
-        self.view.peakpanel.AddData(self.eng.pks, collab1="Charge")
+        self.view.peakpanel.add_data(self.eng.pks, collab1="Charge")
 
         self.view.plot2.plotrefreshtop(cdat[:, 0], cdat[:, 1], "Charge Distribution", "Charge", "Total Intensity",
                                        "useless label", self.eng.config)
@@ -1146,7 +1146,7 @@ class UniDecApp(object):
             if len(self.eng.config.matchlist[3]) == self.eng.pks.plen:
                 self.view.SetStatusText("Matching", number=5)
                 np.savetxt(self.eng.config.matchfile, np.transpose(self.eng.config.matchlist), fmt='%s', delimiter=",")
-                self.view.peakpanel.AddData(self.eng.pks)
+                self.view.peakpanel.add_data(self.eng.pks)
                 self.makeplot6(1)
         else:
             self.eng.config.matchlist = []
@@ -1154,7 +1154,7 @@ class UniDecApp(object):
         if self.eng.pks.changed == 1:
             mztab = ud.make_peaks_mztab(self.eng.data.mzgrid, self.eng.pks, self.eng.config.adductmass)
             ud.make_peaks_mztab_spectrum(self.eng.data.mzgrid, self.eng.pks, self.eng.data.data2, mztab)
-            self.view.peakpanel.AddData(self.eng.pks)
+            self.view.peakpanel.add_data(self.eng.pks)
             self.makeplot2(1)
             self.makeplot6(1)
             self.makeplot4(1)
@@ -1432,7 +1432,7 @@ class UniDecApp(object):
         for i in xrange(0, self.eng.pks.plen):
             p = self.eng.pks.peaks[i]
             p.area = "%.2f" % float(massfit[i, 2] / np.sum(massfit[:, 2]))
-        self.view.peakpanel.AddData(self.eng.pks)
+        self.view.peakpanel.add_data(self.eng.pks)
         self.on_export_params("PostFit")
 
     def on_batch(self, e=None, flag=0):

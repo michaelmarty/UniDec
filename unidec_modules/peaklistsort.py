@@ -12,9 +12,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.index = 0
 
         self.list_ctrl = wx.ListCtrl(self, pos=wx.DefaultPosition, size=(300, 1100),
-                                     style=wx.LC_REPORT | wx.BORDER_SUNKEN
-                                     # |wx.LC_SORT_ASCENDING
-                                     )
+                                     style=wx.LC_REPORT | wx.BORDER_SUNKEN)
         self.list_ctrl.InsertColumn(0, " ", width=25)
         self.list_ctrl.InsertColumn(1, "Mass (Da)", wx.LIST_FORMAT_RIGHT, width=70)
         self.list_ctrl.InsertColumn(2, "Intensity", width=65)
@@ -31,13 +29,18 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
 
         self.EVT_DELETE_SELECTION_2 = wx.PyEventBinder(wx.NewEventType(), 1)
         self.EVT_CHARGE_STATE = wx.PyEventBinder(wx.NewEventType(), 1)
-        self.EVT_DIFFERENCES = wx.PyEventBinder(wx.NewEventType(),1)
+        self.EVT_DIFFERENCES = wx.PyEventBinder(wx.NewEventType(), 1)
 
-    def Clear(self):
+        self.remove = []
+        self.selection = []
+        self.selection2 = []
+        self.pks = None
+
+    def clear_list(self):
         self.list_ctrl.DeleteAllItems()
         self.remove = []
 
-    def AddData(self, pks, show="area", collab1="Mass (Da)"):
+    def add_data(self, pks, show="area", collab1="Mass (Da)"):
         self.list_ctrl.DeleteAllItems()
         self.pks = pks
 
@@ -163,16 +166,15 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.selection2 = float(self.list_ctrl.GetItem(item, col=1).GetText())
 
         for p in self.pks.peaks:
-            p.diff=p.mass-self.selection2
+            p.diff = p.mass - self.selection2
         self.list_ctrl.DeleteAllItems()
 
-        self.AddData(self.pks,show="diff")
+        self.add_data(self.pks, show="diff")
 
         col = self.list_ctrl.GetColumn(3)
         col.SetText("Diff.")
         self.list_ctrl.SetColumn(3, col)
         self.list_ctrl.SetColumnWidth(3, 65)
-
 
         newevent = wx.PyCommandEvent(self.EVT_DIFFERENCES._getEvtType(), self.GetId())
         self.GetEventHandler().ProcessEvent(newevent)
@@ -182,7 +184,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.list_ctrl.DeleteAllItems()
         for p in self.pks.peaks:
             p.ignore = 0
-        self.AddData(self.pks)
+        self.add_data(self.pks)
         self.remove = []
         listmix.ColumnSorterMixin.__init__(self, 4)
 
