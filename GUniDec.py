@@ -861,7 +861,7 @@ class UniDecApp(object):
         :return: None
         """
         charges = np.arange(self.eng.config.startz, self.eng.config.endz + 1)
-        peaksel = self.view.peakpanel.selection2
+        peaksel = self.view.peakpanel.selection2[0]
         peakpos = (peaksel + charges * self.eng.config.adductmass) / charges
         boo1 = np.all([peakpos < self.eng.config.maxmz, peakpos > self.eng.config.minmz], axis=0)
         peakpos = peakpos[boo1]
@@ -874,8 +874,9 @@ class UniDecApp(object):
 
     def on_differences(self, e=None):
         """
-        Triggered by right click "plot charge states" on self.view.peakpanel.
-        Plots a line with text listing the charge states of a specific peak.
+        Triggered by right click "Display Differences" on self.view.peakpanel.
+        Plots a line with text listing the difference between each mass and a specific peak.
+        Updates the peakpanel to show the differences.
         :param e: unused event
         :return: None
         """
