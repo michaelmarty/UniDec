@@ -155,7 +155,7 @@ class Peaks:
                 p.massavg = np.average(p.peakmasses)
                 p.masserr = tval * np.std(p.peakmasses, ddof=1) / np.sqrt(p.score)
                 p.tval = tval
-            except ValueError or ZeroDivisionError or RuntimeWarning or RuntimeError:
+            except (ValueError, ZeroDivisionError, RuntimeWarning, RuntimeError):
                 p.massavg = 0
                 p.masserr = 0
                 p.tval = 0

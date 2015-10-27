@@ -52,14 +52,16 @@ class Mainwindow(wx.Frame):
             self.A_bmp = wx.ArtProvider.GetBitmap(wx.ART_HELP_SETTINGS, wx.ART_TOOLBAR, tsize)
             try:
                 self.ud_bmp = wx.BitmapFromImage(wx.Image("logo.ico").Rescale(tsize[0], tsize[1]))
-            except:
+            except Exception, ex:
                 self.ud_bmp = wx.ArtProvider.GetBitmap(wx.ART_HELP_SETTINGS, wx.ART_TOOLBAR, tsize)
-        except:
+                print ex
+        except Exception, ex:
             self.open_bmp = None
             self.next_bmp = None
             self.report_bmp = None
             self.A_bmp = None
             self.ud_bmp = None
+            print ex
 
         # Create Status Bar
         self.CreateStatusBar(7)
@@ -1146,7 +1148,6 @@ class Mainwindow(wx.Frame):
         if self.config.batchflag == 0:
             if self.config.imflag == 1 and self.twave != self.config.twaveflag:
                 self.on_flip_twave(0)
-            self.config.endz = self.config.startz + self.config.numz - 1
             self.ctlmassbins.SetValue(str(self.config.massbins))
             self.ctlstartz.SetValue(str(self.config.startz))
             self.ctlendz.SetValue(str(self.config.endz))
@@ -1215,7 +1216,7 @@ class Mainwindow(wx.Frame):
                 y = float(self.config.integrateub)
                 self.ctlintlb.SetValue(str(x))
                 self.ctlintub.SetValue(str(y))
-            except ValueError or TypeError:
+            except (ValueError, TypeError):
                 self.ctlintlb.SetValue("")
                 self.ctlintub.SetValue("")
             if self.config.imflag == 0:
@@ -1254,7 +1255,6 @@ class Mainwindow(wx.Frame):
         self.config.massbins = ud.string_to_value(self.ctlmassbins.GetValue())
         self.config.endz = ud.string_to_int(self.ctlendz.GetValue())
         self.config.startz = ud.string_to_int(self.ctlstartz.GetValue())
-        self.config.numz = self.config.endz - self.config.startz + 1
         self.config.zzsig = ud.string_to_value(self.ctlzzsig.GetValue())
         self.config.mzsig = ud.string_to_value(self.ctlmzsig.GetValue())
         self.config.massub = ud.string_to_value(self.ctlmassub.GetValue())

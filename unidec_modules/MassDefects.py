@@ -119,7 +119,7 @@ class MassDefectWindow(wx.Frame):
         self.ylab = "Normalized Mass Defect"
         try:
             self.on_total(0)
-        except:
+        except Exception, e:
             self.on_next(0)
         self.Centre()
         # self.MakeModal(True)
@@ -128,7 +128,7 @@ class MassDefectWindow(wx.Frame):
     def OnClose(self, e):
         try:
             self.parent.molig = self.m0
-        except:
+        except AttributeError:
             pass
         self.Destroy()
         # self.MakeModal(False)
@@ -138,9 +138,9 @@ class MassDefectWindow(wx.Frame):
             self.m0 = float(self.ctlm0.GetValue())
             try:
                 self.window = float(self.ctlwindow.GetValue())
-            except:
+            except ValueError:
                 self.window = 0
-        except:
+        except ValueError:
             print "Failed to get from gui"
         self.ktype = self.radiobox3.GetSelection()
         if self.ktype == 0:
@@ -186,7 +186,7 @@ class MassDefectWindow(wx.Frame):
                     pos2 = ud.nearest(self.nominal, nommass)
                     try:
                         intensity = data[j, 1]
-                    except:
+                    except (TypeError, IndexError):
                         intensity = 0
                     self.igrid[i, pos2, pos] += intensity
 
@@ -204,15 +204,15 @@ class MassDefectWindow(wx.Frame):
             title = ""
         try:
             self.plot2.contourplot(dat, self.config, xlab=self.xlab, ylab=self.ylab, title=title, normflag=1)
-        except:
+        except Exception, e:
             self.plot2.clear_plot()
-            print "Failed Plot2"
+            print "Failed Plot2", e
         try:
             self.plot1.plotrefreshtop(np.unique(self.m2grid), np.sum(self.igrid[i], axis=0), title, "Mass Defect",
                                       "Total Intensity", "", self.config)
-        except:
+        except Exception, e:
             self.plot1.clear_plot()
-            print "Failed Plot1"
+            print "Failed Plot1", e
 
     def makeplottotal(self):
         grid = np.sum(self.igrid, axis=0)
@@ -223,9 +223,9 @@ class MassDefectWindow(wx.Frame):
             path = os.path.join(self.directory, "Total_2D_Mass_Defects.txt")
             np.savetxt(path, dat)
             print 'Saved: ', path
-        except:
+        except Exception, e:
             self.plot2.clear_plot()
-            print "Failed Plot2"
+            print "Failed Plot2", e
         try:
             self.plot1.plotrefreshtop(np.unique(self.m2grid), np.sum(grid, axis=0), "Total Projection", "Mass Defect",
                                       "Total Intensity", "", self.config)
@@ -233,9 +233,9 @@ class MassDefectWindow(wx.Frame):
             outputdata = np.transpose([np.unique(self.m2grid), np.sum(grid, axis=0)])
             outfile = os.path.join(self.directory, "Total_1D_Mass_Defects.txt")
             np.savetxt(outfile, outputdata)
-        except:
+        except Exception, e:
             self.plot1.clear_plot()
-            print "Failed Plot1"
+            print "Failed Plot1", e
 
     def on_back(self, e):
         self.getfromgui()
@@ -323,8 +323,8 @@ class MassDefectWindow(wx.Frame):
             xlim = self.plot2.subplot1.get_xlim()
             self.plot2.subplot1.plot((xlim[0], xlim[1]), (vval, vval), color=self.plot2.ticcol)
             self.plot2.repaint()
-        except:
-            print "Failed: ", dialog.value
+        except Exception, e:
+            print "Failed: ", dialog.value, e
             pass
 
 

@@ -140,7 +140,7 @@ class PlottingWindow(wx.Window):
                 self.xlabel = "Mass (Da)"
                 self.kda = False
                 self.kdnorm = 1.
-        except TypeError or ValueError:
+        except (TypeError, ValueError):
             self.xlabel = "Mass (Da)"
             self.kdnorm = 1.
             self.kda = False

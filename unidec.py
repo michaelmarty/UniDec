@@ -585,10 +585,7 @@ class UniDec:
             massdat = self.data.massdat
         else:
             massdat = np.transpose([self.data.massdat[:, 0], data])
-        boo1 = massdat[:, 0] < limits[1]
-        boo2 = massdat[:, 0] > limits[0]
-        intdat = massdat[np.all([boo1, boo2], axis=0)]
-        integral = np.trapz(intdat[:, 1], x=intdat[:, 0])
+        integral, intdat = ud.integrate(massdat,limits[0],limits[1])
         return integral, intdat
 
     def autointegrate(self, ztab=None):
@@ -654,7 +651,7 @@ class UniDec:
                 try:
                     chargeareas = self.autointegrate(ztab=self.data.ztab)
                     ud.dataexport(chargeareas, self.config.outfname + "_chargedata_areas.dat")
-                except IndexError or ValueError or AttributeError or ZeroDivisionError:
+                except (IndexError, ValueError, AttributeError, ZeroDivisionError):
                     print "Unable to autointegrate"
 
             # Get Params
@@ -662,7 +659,7 @@ class UniDec:
             try:
                 self.autointegrate()
                 areas = [p.integral for p in self.pks.peaks]
-            except IndexError or ValueError or AttributeError or ZeroDivisionError:
+            except (IndexError, ValueError, AttributeError, ZeroDivisionError):
                 areas = peaks[:, 1]
                 print "Failed to integrate. Substituting heights for areas."
 
@@ -729,11 +726,7 @@ class UniDec:
             com = np.average(data[:, 0], weights=data[:, 1])
             std = ud.weighted_std(data[:, 0], data[:, 1])
         else:
-            bool1 = data[:, 0] > limits[0]
-            bool2 = data[:, 0] < limits[1]
-            bool3 = np.all(np.array([bool1, bool2]), axis=0)
-            com = np.average(data[bool3, 0], weights=data[bool3, 1])
-            std = ud.weighted_std(data[bool3, 0], data[bool3, 1])
+            com, std = ud.center_of_mass(data,limits[0],limits[1])
         return com, std
 
     def fit_all_masses(self):
@@ -897,7 +890,7 @@ class UniDec:
                     peaks = ud.peakdetect(massdat, self.config)
                     peaks = ud.mergepeaks(toppeaks, peaks, self.config.peakwindow)
                     peakdatavg.append(peaks)
-                except ValueError or TypeError or IndexError or ZeroDivisionError:
+                except (ValueError, TypeError, IndexError, ZeroDivisionError):
                     print "No peaks selected"
                     pass
                 massdat = ud.mergedata(self.data.massdat, massdat)
@@ -936,7 +929,7 @@ class UniDec:
             print "MassMean MassStd Mass%Std Int.Mean Int.Std Int.%Std"
             print peaks
             ud.dataexport(peaks, self.config.outfname + "_peakcverr.dat")
-        except IndexError or ValueError or ZeroDivisionError or TypeError or AttributeError:
+        except (IndexError, ValueError, ZeroDivisionError, TypeError, AttributeError):
             print "No peaks in cross validation..."
         return mean, stddev
 
@@ -1010,8 +1003,12 @@ class UniDec:
             if i == 0:
                 aligned.append(dat)
             else:
-                # dat1=dat
-                corr = signal.correlate(dat[:, 1], aligned[0][:, 1], mode="same")
+                dat1=deepcopy(dat)
+                if len(aligned[0])<len(dat):
+                    f=interp1d(aligned[0][:,0],aligned[0][:,1],fill_value=0,bounds_error=False)
+                    aligned[0]=np.transpose([dat[:,0],f(dat[:,0])])
+                # TODO: Problem when len (aligned[[0]) < len (dat)
+                corr = np.correlate(dat[:, 1], aligned[0][:, 1], mode="same")
                 move = np.argmax(corr) - np.argmax(dat[:, 1])
                 y = np.roll(self.data.massdat[:, 1], -move)[boo3]
                 if norm:
@@ -1021,8 +1018,9 @@ class UniDec:
                 print move
                 import matplotlib.pyplot as plt
                 plt.figure()
-                #plt.plot(dat1[:,0],dat1[:,1])
-                plt.plot(aligned[0][:,0],dat[:,1])
+                plt.plot(dat1[:,0],dat1[:,1])
+                #plt.plot(dat1[:,0],corr)
+                plt.plot(dat[:,0],dat[:,1])
                 plt.plot(aligned[0][:,0],aligned[0][:,1])
                 plt.show()
                 '''
@@ -1155,7 +1153,9 @@ class UniDec:
         return areas, means, stds
 
     def get_errors(self, **kwargs):
-        self.get_peaks_scores(**kwargs)
+        kwargs2=deepcopy(kwargs)
+        kwargs2["plot_corr"]=False
+        self.get_peaks_scores(**kwargs2)
         self.fit_isolated_peaks(**kwargs)
         self.correlate_intensities(window=self.config.peakwindow, **kwargs)
         self.normalize_peaks()
@@ -1188,12 +1188,12 @@ class UniDec:
         plt.subplot(121)
         try:
             plt.plot(self.data.data2[:, 0], self.data.data2[:, 1], color="k")
-        except IndexError or AttributeError:
+        except (IndexError, AttributeError):
             plt.plot(self.data.rawdata[:, 0], self.data.rawdata[:, 1], color="k")
         plt.subplot(122)
         try:
             plt.plot(self.data.massdat[:, 0], self.data.massdat[:, 1], color="k")
-        except IndexError or AttributeError:
+        except (IndexError, AttributeError):
             pass
         try:
             for p in self.pks.peaks:

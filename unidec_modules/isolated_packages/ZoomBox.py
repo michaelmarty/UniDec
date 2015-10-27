@@ -22,7 +22,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
         try:
             yvals.append([np.amin(ydat), np.amax(ydat)])
             xvals.append([np.amin(xdat), np.amax(xdat)])
-        except:
+        except Exception, e:
             pass
 
     for p in axes.collections:
@@ -41,7 +41,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
         try:
             yvals.append([np.amin(ydat), np.amax(ydat)])
             xvals.append([np.amin(xdat), np.amax(xdat)])
-        except:
+        except Exception, e:
             pass
 
     for patch in axes.patches:
@@ -58,9 +58,9 @@ def GetMaxes(axes, xmin=None, xmax=None):
                     try:
                         yvals.append([np.amin(ydat), np.amax(ydat)])
                         xvals.append([np.amin(xdat), np.amax(xdat)])
-                    except:
+                    except Exception, e:
                         pass
-        except:
+        except Exception, e:
             try:
                 xys = patch.xy
                 ydat = xys[:, 1]
@@ -71,7 +71,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
 
                 yvals.append([np.amin(ydat), np.amax(ydat)])
                 xvals.append([np.amin(xdat), np.amax(xdat)])
-            except:
+            except Exception, e:
                 pass
 
     for t in axes.texts:
@@ -396,7 +396,7 @@ class ZoomBox:
         # Switch to span if a small delta y is used
         try:
             y0, y1 = event.inaxes.get_ylim()
-        except:
+        except Exception, e:
             y0, y1 = self.data_lims[1], self.data_lims[3]
         if ymax - ymin < (y1 - y0) * self.crossoverpercent:
             # print ymax,ymin,ymax-ymin,(y1-y0)*self.crossoverpercent

@@ -72,10 +72,11 @@ class mzMLimporter:
         if len(self.data) > 1:
             try:
                 self.data = merge_spectra(self.data)
-            except:
+            except Exception, e:
                 concat = np.concatenate(self.data)
                 sort = concat[concat[:, 0].argsort()]
                 self.data = ud.removeduplicates(sort)
+                print e
 
     def get_data(self):
         """

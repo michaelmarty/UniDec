@@ -51,7 +51,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             col.SetText(collab1)
             self.list_ctrl.SetColumn(1, col)
             self.list_ctrl.SetColumnWidth(1, -2)
-        except:
+        except Exception, e:
             pass
 
         for i in xrange(0, self.pks.plen):
@@ -68,7 +68,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                     self.list_ctrl.SetStringItem(i, 3, str(p.diff))
                 else:
                     self.list_ctrl.SetStringItem(i, 3, "")
-            except:
+            except (ValueError, AttributeError, TypeError):
                 self.list_ctrl.SetStringItem(i, 3, "")
             self.list_ctrl.SetStringItem(i, 4, str(p.label))
             self.list_ctrl.SetItemData(i, i)

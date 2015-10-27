@@ -311,7 +311,7 @@ def BootMinWorker(queue,results_queue):
     while True:
         try:
             out=queue.get(False)
-        except:
+        except Exception, e:
             break
         data=out[0]
         kdargs=out[1]
@@ -732,14 +732,14 @@ class KDmodel:
                     out=results_queue.get(False)
                     self.randfit.append(out)
                     count+=1
-                except:
+                except Exception, e:
                     pass
             for p in workers:
                 p.join()
             self.randfit=np.array(self.randfit)
 
-        except:
-            print "Parallel Failed, using sequential..."
+        except Exception, e:
+            print "Parallel Failed, using sequential...", e
             self.randfit=np.array([BootMin(self.data,self.kdargs,hists[i]) for i in xrange(0,numpts)])
 
         print "Evaluation Time: ",time.clock()-startt
@@ -779,7 +779,7 @@ class KDmodel:
             try:
                 ax.plot(xvals,self.data[i],'o',color=colors[i],linestyle="None",label=self.nodenames[i])
                 ax.plot(xvals,self.fitgrid[i],'--',color=colors[i])
-            except:
+            except Exception, e:
                 ax.plot(xvals,self.data[i],'o',color=colors[i],linestyle="None",label="Unknown")
                 ax.plot(xvals,self.fitgrid[i],'--',color=colors[i])
 

@@ -255,7 +255,7 @@ class PinWindow(wx.Dialog):
     def OnClose(self, e):
         try:
             self.pin = int(self.inputbox.GetValue())
-        except:
+        except ValueError:
             self.pin = None
         self.Destroy()
         self.EndModal(0)

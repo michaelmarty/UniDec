@@ -137,8 +137,9 @@ class AnimationWindow(wx.Frame):
                     self.plot.subplot1.set_xlim(self.xlim)
                     self.plot.subplot1.set_ylim(self.ylim)
                 self.plot.repaint()
-        except:
+        except Exception, e:
             self.animation._stop()
+            print e
 
 
     def init(self):

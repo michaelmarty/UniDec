@@ -176,7 +176,7 @@ class UniDecApp(object):
         :return: None
         """
         # Clear other plots and panels
-        self.view.peakpanel.Clear()
+        self.view.peakpanel.clear_list()
         self.view.clear_all_plots()
         if not skipengine:
             # Open File in Engine
@@ -339,7 +339,7 @@ class UniDecApp(object):
                         self.view.ctlmindt.SetValue(str(np.amin(self.eng.data.rawdata3[:, 1])))
                         self.view.ctlmaxdt.SetValue(str(np.amax(self.eng.data.rawdata3[:, 1])))
                 print "Loaded: ", self.eng.config.defaultconfig
-            except ValueError or IndexError or TypeError:
+            except (ValueError, IndexError, TypeError):
                 print "Failed to Load: ", self.eng.config.defaultconfig
         self.view.SetStatusText("Loaded Default", number=5)
         pass
@@ -365,7 +365,7 @@ class UniDecApp(object):
                         mz = float(line[0])
                         i = float(line[1])
                         data.append([mz, i])
-                    except ValueError or TypeError:
+                    except (ValueError, TypeError):
                         pass
             data = np.array(data)
             if len(data) > 0:
@@ -383,7 +383,8 @@ class UniDecApp(object):
                 self.on_open_file(fname, newdir)
             else:
                 print "Paste failed, got: ", data
-        except:
+        except Exception, e:
+            print e
             wx.MessageBox("Unable to open the clipboard", "Error")
 
     def on_reset(self, e=None):
@@ -484,7 +485,7 @@ class UniDecApp(object):
 
         self.view.plot4.clear_plot()
         self.view.plot6.clear_plot()
-        self.view.peakpanel.Clear()
+        self.view.peakpanel.clear_list()
 
     def on_pick_peaks(self, e=None):
         """
@@ -770,8 +771,8 @@ class UniDecApp(object):
             try:
                 self.view.plot3color.make_color_plot(self.eng.data.mztgrid, np.unique(self.eng.data.data3[:, 0]),
                                                      np.unique(self.eng.data.data3[:, 1]), self.eng.data.ztab)
-            except:
-                print "Color Plot Error"
+            except Exception, e:
+                print "Color Plot Error", e
 
     def on_plot_nativeccs(self, e=None):
         """
@@ -823,8 +824,8 @@ class UniDecApp(object):
                                      cmap=self.eng.config.cmap)
             endtime = time.clock()
             print "Finished m/z Cube in: ", (endtime - starttime), " s"
-        except:
-            print "Failed m/z cube"
+        except Exception, ex:
+            print "Failed m/z cube", ex
             pass
         try:
             starttime = time.clock()
@@ -835,8 +836,8 @@ class UniDecApp(object):
                                       ylab="CCS (${\AA}$$^2$)", zlab="Charge", cmap=self.eng.config.cmap)
             endtime = time.clock()
             print "Finished Final Cube in: ", (endtime - starttime), " s"
-        except:
-            print "Failed final cube"
+        except Exception, ex:
+            print "Failed final cube", ex
             pass
 
     def on_delete(self, e=None):
@@ -1004,8 +1005,8 @@ class UniDecApp(object):
             self.view.peakpanel.AddData(self.eng.pks, show="integral")
             try:
                 self.makeplot6(1, show="integral")
-            except:
-                print "Didn't update bar chart"
+            except Exception, ex:
+                print "Didn't update bar chart", ex
                 pass
         pass
 
@@ -1303,8 +1304,8 @@ class UniDecApp(object):
         """
         try:
             self.view.on_save_figure_png(e, transparent=False)
-        except:
-            print "Couldn't make figures for Twitter"
+        except Exception, ex:
+            print "Couldn't make figures for Twitter", ex
         os.environ['REQUESTS_CA_BUNDLE'] = os.path.join(self.eng.config.UniDecDir, 'cacert.pem')
         print "Will look for file: ", os.path.join(self.eng.config.UniDecDir, 'cacert.pem')
         tweetwindow = twitter_interface.TwitterWindow(self.view, pngs=self.view.pngs, codes=self.twittercodes,
@@ -1582,9 +1583,9 @@ class UniDecApp(object):
             try:
                 texmaker.PDFTexReport(self.eng.config.outfname + '_report.tex')
                 self.view.SetStatusText("PDF Report Finished", number=5)
-            except:
+            except Exception, ex:
                 self.view.SetStatusText("PDF Report Failed", number=5)
-                print "PDF Report Failed to Generate. Check LaTeX installation.Need pdflatex in path."
+                print "PDF Report Failed to Generate. Check LaTeX installation.Need pdflatex in path.", ex
         else:
             print "PDF Figures written."
         pass

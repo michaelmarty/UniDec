@@ -118,13 +118,13 @@ class TestListCtrl2(wx.ListCtrl,
                 self.SetStringItem(index, 1, str(data[i][1]))
                 self.SetStringItem(index, 2, str(data[i][2]))
                 self.SetStringItem(index, 3, str(data[i][3]))
-            except:
+            except ValueError:
                 self.SetStringItem(index, 1, "")
                 self.SetStringItem(index, 2, "")
                 self.SetStringItem(index, 3, "")
             try:
                 self.SetStringItem(index, 4, str(data[i][4]))
-            except:
+            except ValueError:
                 self.SetStringItem(index, 4, "")
             #self.SetItemData(index, i)
 
@@ -687,7 +687,7 @@ class MassSelection(wx.Dialog):
         self.Destroy()
         try:
             self.EndModal(0)
-        except:
+        except Exception, e:
             pass
 
     def OnCloseCancel(self, e):
@@ -700,7 +700,7 @@ class MassSelection(wx.Dialog):
     def OnPopulateButton(self, e):
         try:
             self.masslistbox.list.Populate(self.pks.masses)
-        except:
+        except Exception, e:
             print "Pick peaks first"
 
     def OnPopulateButton2(self, e):
@@ -1105,7 +1105,7 @@ class ManualSelection(wx.Dialog):
                 try:
                     if detectoverlap(self.newtrunclist):
                         self.newtrunclist=correctassignments(self.newtrunclist,np.unique(self.data[:,0]),np.unique(self.data[:,1]))
-                except:
+                except Exception, e:
                     print "Error with overlapping assignments. Try making sure regions don't intersect."
             for i,l in enumerate(self.newtrunclist):
                 if self.config.imflag==0:

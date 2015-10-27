@@ -1,117 +1,31 @@
-__author__ = 'michael.marty'
-
 import os
 import sys
 import json
-
 import wx
-
-import wx.lib.mixins.listctrl  as  listmix
-
+import wx.lib.mixins.listctrl as listmix
 import numpy as np
-
 import matplotlib.cm as cm
 from matplotlib import rcParams
-
-
-
-
-
-
-
-
-
-
-
-
-
 # from wx.lib.pubsub import setupkwargs
 from wx.lib.pubsub import pub
-from unidec_modules import UniFit, Extract2D, unidecstructure, PlotAnimations, plot1d, plot2d, miscwindows, MassDefects, \
-    nativez, IM_functions
+import multiprocessing
+
+from unidec_modules import UniFit, Extract2D, unidecstructure, PlotAnimations, plot1d, plot2d, miscwindows, \
+    MassDefects, nativez, IM_functions
 from unidec_modules.PlottingWindow import PlottingWindow
 import unidec_modules.unidectools as ud
-import multiprocessing
 from unidec_modules.masstools import AutocorrWindow
+
+__author__ = 'michael.marty'
 
 rcParams['ps.useafm'] = True
 rcParams['ps.fonttype'] = 42
 rcParams['pdf.fonttype'] = 42
 
 
-def isempty(thing):
-    return np.asarray(thing).size == 0 or thing is None
-
-
-def stepmax(Y, index):
-    plus = Y[index + 1]
-    minus = Y[index - 1]
-    if plus > minus:
-        window = 1
-        d = 1
-    else:
-        window = -1
-        d = -1
-
-    val = Y[index]
-    newval = Y[index + window]
-
-    while Y[index + window] > val:
-        val = Y[index + window]
-        window += d
-        if index + window >= len(Y) or index + window < 0:
-            return val
-    return val
-
-
-def localmax(Y, start, end):
-    start = np.amax([0, start])
-    end = np.amin([len(Y), end])
-    try:
-        out = np.amax(Y[start:end])
-    except:
-        out = 0
-    return out
-
-
-def localmaxpos(data, start, end):
-    try:
-        boo1 = data[:, 0] < end
-        boo2 = data[:, 0] > start
-        intdat = data[np.all([boo1, boo2], axis=0)]
-        pos = np.argmax(intdat[:, 1])
-        return intdat[pos, 0]
-    except:
-        return 0
-
-
-def integrate(data, start, end):
-    boo1 = data[:, 0] < end
-    boo2 = data[:, 0] > start
-    intdat = data[np.all([boo1, boo2], axis=0)]
-    integral = np.trapz(intdat[:, 1], x=intdat[:, 0])
-    return integral
-
-
-def centerofmass(data, start, end):
-    boo1 = data[:, 0] < end
-    boo2 = data[:, 0] > start
-    cutdat = data[np.all([boo1, boo2], axis=0)]
-    weightedavg = np.average(cutdat[:, 0], weights=cutdat[:, 1])
-    return weightedavg
-
-
-def toint(string):
-    try:
-        x = int(string)
-    except:
-        x = 0
-    return x
-
-
-class XListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
-    def __init__(self, parent, ID, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
-        wx.ListCtrl.__init__(self, parent, ID, pos, size, style)
+class XValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
+    def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+        wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.TextEditMixin.__init__(self)
         self.InsertColumn(0, "X Values")
@@ -120,8 +34,9 @@ class XListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMix
         self.SetColumnWidth(0, width=100)  # , wx.LIST_AUTOSIZE)
         self.SetColumnWidth(1, width=50)  # , wx.LIST_AUTOSIZE)
         self.SetColumnWidth(2, width=50)  # , wx.LIST_AUTOSIZE)
+        self.currentItem = 0
 
-    def Populate(self, listctrldata, colors=None):
+    def populate(self, listctrldata, colors=None):
         self.DeleteAllItems()
         listctrldata = np.array(listctrldata)
         for i in range(0, len(listctrldata)):
@@ -130,7 +45,7 @@ class XListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMix
                 self.SetStringItem(index, 1, str(listctrldata[i, 1]))
                 self.SetStringItem(index, 2, str(listctrldata[i, 2]))
                 self.SetItemData(index, i)
-            except:
+            except (ValueError, TypeError):
                 index = self.InsertStringItem(sys.maxint, str(listctrldata[i]))
 
             if colors is not None:
@@ -140,41 +55,41 @@ class XListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMix
                 self.SetItemBackgroundColour(index, col=color)
             self.SetItemData(index, i)
         self.currentItem = 0
-        return self.GetMaxes()
+        return self.get_maxes()
 
-    def Clear(self):
+    def clear_list(self):
         self.DeleteAllItems()
-        return self.GetMaxes()
+        return self.get_maxes()
 
-    def AddLine(self, val=0):
+    def add_line(self, val=0):
         index = self.InsertStringItem(sys.maxint, str(val))
         self.SetStringItem(index, 1, str(1))
         self.SetStringItem(index, 2, str(self.GetItemCount() - 1))
-        return self.GetMaxes()
+        return self.get_maxes()
 
-    def GetList(self):
+    def get_list(self):
         count = self.GetItemCount()
-        list = []
+        list_output = []
         for i in range(0, count):
-            sublist = [str(self.GetItem(i, col=0).GetText()), toint(self.GetItem(i, col=1).GetText()),
-                       toint(self.GetItem(i, col=2).GetText())]
+            sublist = [str(self.GetItem(i, col=0).GetText()), ud.string_to_int(self.GetItem(i, col=1).GetText(), 0),
+                       ud.string_to_int(self.GetItem(i, col=2).GetText(), 0)]
             if sublist[0] != "":
-                list.append(sublist)
-        return list
+                list_output.append(sublist)
+        return list_output
 
-    def GetMaxes(self):
+    def get_maxes(self):
         try:
-            list = np.array(self.GetList())
-            maxp = np.amax([int(thing[1]) for thing in list])
-            maxl = np.amax([int(thing[2]) for thing in list])
+            array = np.array(self.get_list())
+            maxp = np.amax([int(thing[1]) for thing in array])
+            maxl = np.amax([int(thing[2]) for thing in array])
             return [maxp, maxl]
-        except:
+        except (ValueError, TypeError):
             return [0, 0]
 
 
-class YListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
-    def __init__(self, parent, ID, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
-        wx.ListCtrl.__init__(self, parent, ID, pos, size, style)
+class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
+    def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+        wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.TextEditMixin.__init__(self)
         self.InsertColumn(0, "File Name")
@@ -186,7 +101,7 @@ class YListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMix
         self.SetColumnWidth(2, width=100)
         self.SetColumnWidth(3, width=100)
 
-    def Populate(self, listctrldata, colors=None):
+    def populate(self, listctrldata, colors=None):
         self.DeleteAllItems()
         for i in range(0, len(listctrldata)):
             index = self.InsertStringItem(sys.maxint, str(listctrldata[i][0]))
@@ -194,7 +109,7 @@ class YListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMix
             self.SetStringItem(index, 2, str(listctrldata[i][2]))
             try:
                 self.SetStringItem(index, 3, str(listctrldata[i][3]))
-            except:
+            except (ValueError, TypeError):
                 self.SetStringItem(index, 3, "All")
             self.SetItemData(index, i)
             if colors is not None:
@@ -202,85 +117,70 @@ class YListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMix
                                   alpha=255)
                 self.SetItemBackgroundColour(index, col=color)
 
-    def Clear(self):
+    def clear_list(self):
         self.DeleteAllItems()
 
-    def AddLine(self, file="file.txt", var1="count", var2=0):
+    def add_line(self, file_name="file.txt", var1="count", var2=0):
         if var1 == "count":
             var1 = self.GetItemCount()
-        index = self.InsertStringItem(sys.maxint, file)
+        index = self.InsertStringItem(sys.maxint, file_name)
         self.SetStringItem(index, 1, str(var1))
         self.SetStringItem(index, 2, str(var2))
         self.SetStringItem(index, 3, str("All"))
 
-    def GetList(self):
+    def get_list(self):
         count = self.GetItemCount()
         colormap = cm.get_cmap('rainbow', count)
         peakcolors = colormap(np.arange(count))
-        list = []
+        list_output = []
         for i in range(0, count):
             sublist = [str(self.GetItem(i, col=0).GetText()), float(self.GetItem(i, col=1).GetText()),
                        float(self.GetItem(i, col=2).GetText()), self.GetItem(i, col=3).GetText(), peakcolors[i][0],
                        peakcolors[i][1], peakcolors[i][2]]
-            list.append(sublist)
+            list_output.append(sublist)
 
-        return list
+        return list_output
 
 
 class ListCtrlPanel(wx.Panel):
-    def __init__(self, parent, type="X", size=(200, 400)):
+    def __init__(self, parent, list_type="X", size=(200, 400)):
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
-        tID = wx.NewId()
+        id_value = wx.NewId()
+        self.selection = []
         sizer = wx.BoxSizer(wx.VERTICAL)
-        if wx.Platform == "__WXMAC__" and \
-                hasattr(wx.GetApp().GetTopWindow(), "LoadDemo"):
-            self.useNative = wx.CheckBox(self, -1, "Use native listctrl")
-            self.useNative.SetValue(
-                not wx.SystemOptions.GetOptionInt("mac.listctrl.always_use_generic"))
-            self.Bind(wx.EVT_CHECKBOX, self.OnUseNative, self.useNative)
-            sizer.Add(self.useNative, 0, wx.ALL | wx.ALIGN_RIGHT, 4)
-        if type == "X":
-            self.list = XListCtrl(self, tID, size=size, style=wx.LC_REPORT | wx.BORDER_NONE)
-        elif type == "Y":
-            self.list = YListCtrl(self, tID, size=size, style=wx.LC_REPORT | wx.BORDER_NONE)
+        if list_type == "X":
+            self.list = XValueListCtrl(self, id_value, size=size, style=wx.LC_REPORT | wx.BORDER_NONE)
+        elif list_type == "Y":
+            self.list = YValueListCtrl(self, id_value, size=size, style=wx.LC_REPORT | wx.BORDER_NONE)
         else:
             print "Error making ListCtrlPanel"
             exit()
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
-        self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnRightClick, self.list)
+        self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click, self.list)
 
-    def OnUseNative(self, event):
-        wx.SystemOptions.SetOptionInt("mac.listctrl.always_use_generic", not event.IsChecked())
-        wx.GetApp().GetTopWindow().LoadDemo("ListCtrl_edit")
+        self.popupID1 = wx.NewId()
+        self.popupID2 = wx.NewId()
+        self.popupID3 = wx.NewId()
+        self.popupID4 = wx.NewId()
 
-    def OnRightClick(self, event):
-        if not hasattr(self, "popupID1"):
-            self.popupID1 = wx.NewId()
-            self.popupID2 = wx.NewId()
-            self.popupID3 = wx.NewId()
-            self.popupID4 = wx.NewId()
-            # self.popupID5 = wx.NewId()
-            # self.popupID6 = wx.NewId()
+        self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
+        self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)
+        self.Bind(wx.EVT_MENU, self.on_popup_three, id=self.popupID3)
+        self.Bind(wx.EVT_MENU, self.on_popup_four, id=self.popupID4)
 
-            self.Bind(wx.EVT_MENU, self.OnPopupOne, id=self.popupID1)
-            self.Bind(wx.EVT_MENU, self.OnPopupTwo, id=self.popupID2)
-            self.Bind(wx.EVT_MENU, self.OnPopupThree, id=self.popupID3)
-            self.Bind(wx.EVT_MENU, self.OnPopupFour, id=self.popupID4)
-            # self.Bind(wx.EVT_MENU, self.OnPopupFive, id=self.popupID5)
-            # self.Bind(wx.EVT_MENU, self.OnPopupSix, id=self.popupID6)
-        menu = wx.Menu()
-        menu.Append(self.popupID1, "Delete")
-        menu.Append(self.popupID2, "Delete All")
-        menu.Append(self.popupID3, "Fill Down Variable 2")
-        menu.Append(self.popupID4, "Fill Down Charge State")
-        # menu.Append(self.popupID5, "Color Select")
-        # menu.Append(self.popupID6, "Edit")
-        self.PopupMenu(menu)
-        menu.Destroy()
+    def on_right_click(self, event):
+        if hasattr(self, "popupID1"):
+            menu = wx.Menu()
+            menu.Append(self.popupID1, "Delete")
+            menu.Append(self.popupID2, "Delete All")
+            menu.Append(self.popupID3, "Fill Down Variable 2")
+            menu.Append(self.popupID4, "Fill Down Charge State")
+            self.PopupMenu(menu)
+            menu.Destroy()
 
-    def OnPopupOne(self, event):
+    def on_popup_one(self, event):
         # Delete
         item = self.list.GetFirstSelected()
         num = self.list.GetSelectedItemCount()
@@ -292,17 +192,17 @@ class ListCtrlPanel(wx.Panel):
         for i in range(0, num):
             self.list.DeleteItem(self.selection[num - i - 1])
 
-    def OnPopupTwo(self, event):
+    def on_popup_two(self, event):
         self.list.DeleteAllItems()
 
-    def OnPopupThree(self, event):
+    def on_popup_three(self, event):
         item = self.list.GetFirstSelected()
         val = self.list.GetItem(item, col=2).GetText()
         count = self.list.GetItemCount()
         for i in range(0, count):
             self.list.SetStringItem(i, 2, val)
 
-    def OnPopupFour(self, event):
+    def on_popup_four(self, event):
         item = self.list.GetFirstSelected()
         val = self.list.GetItem(item, col=3).GetText()
         count = self.list.GetItemCount()
@@ -316,7 +216,7 @@ class NetworkFrame(PlottingWindow):
         self.axes = self.figure.add_axes(self._axes)
         self.flag = True
 
-    def Clear(self):
+    def clear_frame(self):
         self.figure.clear()
         self.axes = self.figure.add_axes(self._axes)
         self.repaint()
@@ -328,6 +228,7 @@ modelchoices = {"Simple Single KD": "one", "Parallel KD's Chained": "parallel", 
                 "Test for Best Model": "test", "Series KD's Chained": "series"}
 
 
+# noinspection PyNoneFunctionAssignment,PyNoneFunctionAssignment,PyArgumentList
 class DataCollector(wx.Frame):
     def __init__(self, parent, title, config=None, pks=None, *args, **kwargs):
         wx.Frame.__init__(self, parent, title=title)  # ,size=(200,-1))
@@ -350,13 +251,13 @@ class DataCollector(wx.Frame):
                 # import option_d
                 # self.config.cmap=option_d.viridis
                 self.config.cmap = "jet"
-            except:
+            except ImportError:
                 pass
                 self.config.cmap = "jet"
 
         self.CreateStatusBar(2)
         self.SetStatusWidths([-1, 150])
-        pub.subscribe(self.OnMotion, 'newxy')
+        pub.subscribe(self.on_motion, 'newxy')
 
         self.filemenu = wx.Menu()
         self.menuSave = self.filemenu.Append(wx.ID_SAVE, "Save", "Save Parameters")
@@ -408,7 +309,7 @@ class DataCollector(wx.Frame):
         self.inputsizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.ypanelsizer = wx.BoxSizer(wx.VERTICAL)
-        self.ypanel = ListCtrlPanel(self.panel, type="Y", size=(600, 500))
+        self.ypanel = ListCtrlPanel(self.panel, list_type="Y", size=(600, 500))
         self.ypanelsizer2 = wx.BoxSizer(wx.HORIZONTAL)
         self.addybutton = wx.Button(self.panel, label="Add Files")
         self.Bind(wx.EVT_BUTTON, self.on_add_y, self.addybutton)
@@ -423,7 +324,7 @@ class DataCollector(wx.Frame):
         self.ypanelsizer.Add(self.ypanel, 0, wx.EXPAND)
         self.inputsizer.Add(self.ypanelsizer, 0, wx.EXPAND)
 
-        self.xpanel = ListCtrlPanel(self.panel, size=(200, 500))
+        self.xpanel = ListCtrlPanel(self.panel, list_type="X", size=(200, 500))
         self.xpanelsizer = wx.BoxSizer(wx.VERTICAL)
         self.addxbutton = wx.Button(self.panel, label="Add X Value")
         self.Bind(wx.EVT_BUTTON, self.on_add_x, self.addxbutton)
@@ -492,9 +393,6 @@ class DataCollector(wx.Frame):
         self.runsizer.Add(self.ctlwindow, 0, wx.EXPAND)
 
         self.runsizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        # self.savefigbutton=wx.Button(self.panel,label="Save Figures")
-        # self.Bind(wx.EVT_BUTTON,self.on_save_fig,self.savefigbutton)
-        # self.runsizer2.Add(self.savefigbutton,0,wx.EXPAND)
 
         self.runsizer2.Add(wx.StaticText(self.panel, label="Number of Proteins:"), 0, wx.ALIGN_CENTER_VERTICAL)
         self.ctlprot = wx.TextCtrl(self.panel, value="", size=(50, 20))
@@ -559,20 +457,25 @@ class DataCollector(wx.Frame):
         self.savename = "collection1.json"
         self.localpath = 0
         self.molig = None
+        self.xcolors = []
+        self.data = []
+        self.grid = []
+        self.var1 = []
+        self.xlabel = "Mass"
 
         self.Centre()
         self.Show(True)
         try:
-            self.LoadXfromPeaks(0)
-        except:
+            self.load_x_from_peaks(0)
+        except (ValueError, TypeError, AttributeError):
             print "Failed to load from peak list"
 
         if __name__ == "__main__":
             # self.directory="C:\\cprog\\Georg"
             # self.directory="C:\\Data\\AmtB_POPC"
             # self.load(os.path.join(self.directory,"AmtB_04_test.json"))
-            #self.directory = "C:\\Data\\AmtB_DMPC"
-            #self.load(os.path.join(self.directory, "AmtB_07.json"))
+            # self.directory = "C:\\Data\\AmtB_DMPC"
+            # self.load(os.path.join(self.directory, "AmtB_07.json"))
             try:
                 # self.directory="C:\\Data\\AmtB_POPC"
                 # self.directory="C:\\cprog\\Shane_ND3"
@@ -580,30 +483,29 @@ class DataCollector(wx.Frame):
 
                 # self.load(os.path.join(self.directory,"AmtB_04_test.json"))
 
-                self.directory="C:\\cprog\\Jon\\Jon Titration data\\Man9 141015"
-                self.load(os.path.join(self.directory,"collection1.json"))
+                self.directory = "C:\\cprog\\Jon\\Jon Titration data\\Man9 141015"
+                self.load(os.path.join(self.directory, "collection1.json"))
                 # self.on_run(0)
                 # self.on_kd_fit(0)
                 # self.on_animate2(0)
                 pass
-            except:
+            except Exception, e:
+                print e
                 pass
 
-    def LoadXfromPeaks(self, e):
+    def load_x_from_peaks(self, e):
         if not ud.isempty(self.pks.peaks):
             for p in self.pks.peaks:
-                maxes = self.xpanel.list.AddLine(val=p.mass)
-        try:
-            self.ctlprot.SetValue(str(maxes[0]))
-            self.ctllig.SetValue(str(maxes[1]))
-        except:
-            print "Failed to autoupdate total # of protein and ligand, update manually in boxes."
+                maxes = self.xpanel.list.add_line(val=p.mass)
+        self.ctlprot.SetValue(str(maxes[0]))
+        self.ctllig.SetValue(str(maxes[1]))
+
 
     def on_save(self, e):
         self.update_get(e)
         try:
-            exout = self.extract.tolist()
-        except:
+            exout = np.array(self.extract).tolist()
+        except AttributeError:
             exout = []
         # print "Saved: ",self.gridparams
         outdict = {"x": self.xvals, "y": self.yvals, "dir": self.directory, "extractselection": self.extractchoice,
@@ -673,11 +575,11 @@ class DataCollector(wx.Frame):
         self.on_run(0)
 
     def on_add_x(self, e):
-        maxes = self.xpanel.list.AddLine()
+        maxes = self.xpanel.list.add_line()
         try:
             self.ctlprot.SetValue(str(maxes[0]))
             self.ctllig.SetValue(str(maxes[1]))
-        except:
+        except (ValueError, TypeError):
             print "Failed to autoupdate total # of protein and ligand, update manually in boxes."
 
     def on_add_y(self, e):
@@ -685,8 +587,8 @@ class DataCollector(wx.Frame):
         dlg = wx.FileDialog(self, "Load Files", self.directory, "", "*.*", wx.MULTIPLE)
         if dlg.ShowModal() == wx.ID_OK:
             filenames = dlg.GetPaths()
-            for file in filenames:
-                self.ypanel.list.AddLine(file=file)
+            for f in filenames:
+                self.ypanel.list.add_line(file_name=f)
         dlg.Destroy()
         self.localpath = 0
 
@@ -702,20 +604,20 @@ class DataCollector(wx.Frame):
             # print self.directory
         dlg.Destroy()
 
-    def OnMotion(self, xpos, ypos):
+    def on_motion(self, xpos, ypos):
         if xpos is not None and ypos is not None:
             self.SetStatusText("x=%.4f y=%.2f" % (xpos, ypos), number=1)
         pass
 
     def update_get(self, e):
-        self.xvals = self.xpanel.list.GetList()
+        self.xvals = self.xpanel.list.get_list()
         try:
-            maxes = self.xpanel.list.GetMaxes()
+            maxes = self.xpanel.list.get_maxes()
             self.ctlprot.SetValue(str(maxes[0]))
             self.ctllig.SetValue(str(maxes[1]))
-        except:
+        except (ValueError, TypeError):
             print "Failed to autoupdate total # of protein and ligand, update manually in boxes."
-        self.yvals = self.ypanel.list.GetList()
+        self.yvals = self.ypanel.list.get_list()
         self.directory = self.dirinput.GetValue()
         self.normflag = self.ctlnorm.GetValue()
         self.normflag2 = self.ctlnorm2.GetValue()
@@ -725,28 +627,28 @@ class DataCollector(wx.Frame):
         self.ligflag = modelchoices[self.ctlligmodel.GetStringSelection()]
         try:
             self.window = float(self.ctlwindow.GetValue())
-        except:
+        except ValueError:
             pass
         try:
             self.bootstrap = int(self.ctlbootstrap.GetValue())
-        except:
+        except ValueError:
             self.bootstrap = 1
             pass
         self.range = []
         try:
             self.range.append(float(self.ctlmin.GetValue()))
             self.range.append(float(self.ctlmax.GetValue()))
-        except:
+        except ValueError:
             pass
         try:
             self.numprot = int(self.ctlprot.GetValue())
             self.numlig = int(self.ctllig.GetValue())
-        except:
+        except ValueError:
             pass
 
         try:
             self.maxsites = int(self.ctlmaxsites.GetValue())
-        except:
+        except ValueError:
             self.maxsites = ''
             # print self.xvals
             # print self.yvals
@@ -757,8 +659,8 @@ class DataCollector(wx.Frame):
             next((label for label, flag in modelchoices.items() if flag == self.protflag), "test"))
         self.ctlligmodel.SetValue(next((label for label, flag in modelchoices.items() if flag == self.ligflag), "test"))
         self.dirinput.SetValue(self.directory)
-        self.xpanel.list.Populate(self.xvals)
-        self.ypanel.list.Populate(self.yvals)
+        self.xpanel.list.populate(self.xvals)
+        self.ypanel.list.populate(self.yvals)
         self.ctlnorm.SetValue(self.normflag)
         self.ctlnorm2.SetValue(self.normflag2)
         self.ctlprot.SetValue(str(self.numprot))
@@ -768,50 +670,9 @@ class DataCollector(wx.Frame):
         self.ctldata.SetSelection(self.datachoice)
         self.ctlextract.SetSelection(self.extractchoice)
         self.ctlmaxsites.SetValue(str(self.maxsites))
-        if not isempty(self.range):
+        if not ud.isempty(self.range):
             self.ctlmin.SetValue(str(self.range[0]))
             self.ctlmax.SetValue(str(self.range[1]))
-
-    def data_extract(self, data, x, choice, window=None):
-        if choice == 0:
-            index = np.argmin(np.abs(data[:, 0] - x))
-            val = data[index, 1]
-        elif choice == 1:
-            index = np.argmin(np.abs(data[:, 0] - x))
-            if window is not None:
-                start = np.argmin(np.abs(data[:, 0] - (x - window)))
-                end = np.argmin(np.abs(data[:, 0] - (x + window)))
-                val = localmax(data[:, 1], start, end)
-            else:
-                val = stepmax(data[:, 1], index)
-        elif choice == 2:
-            index = np.argmin(np.abs(data[:, 0] - x))
-            if window is not None:
-                start = x - window
-                end = x + window
-                val = integrate(data, start, end)
-            else:
-                val = data[index, 1]
-                print "NEED TO SET INTEGRAL WINDOW!\nUsing Peak Height Instead"
-        elif choice == 3:
-            index = np.argmin(np.abs(data[:, 0] - x))
-            if window is not None:
-                start = x - window
-                end = x + window
-                val = centerofmass(data, start, end)
-            else:
-                val = centerofmass(data, data[0, 0], data[len(data) - 1, 0])
-                print "No window set for center of mass!\nUsing entire data range...."
-        elif choice == 4:
-            index = np.argmin(np.abs(data[:, 0] - x))
-            if window is not None:
-                start = x - window
-                end = x + window
-                val = localmaxpos(data, start, end)
-            else:
-                val = localmaxpos(data, data[0, 0], data[len(data) - 1, 0])
-                print "No window set for local max position!\nUsing entire data range...."
-        return val
 
     def on_run(self, e, vals=None):
 
@@ -825,32 +686,32 @@ class DataCollector(wx.Frame):
         self.grid = []
         ycolors = []
 
-        for k, list in enumerate(self.yvals):
-            file = list[0]
-            header = os.path.splitext(file)[0]
+        for k, l in enumerate(self.yvals):
+            filename = l[0]
+            header = os.path.splitext(filename)[0]
             if self.localpath == 1:
                 header = os.path.join(self.directory, header)
-            print "Loading:", file
+            print "Loading:", filename
             subheader = os.path.split(header)[1]
-            self.var1.append(list[1])
-            ycolors.append(list[4:7])
-            fcolor = np.array(list[4:7])
+            self.var1.append(l[1])
+            ycolors.append(l[4:7])
+            fcolor = np.array(l[4:7])
             if self.datachoice == 0:
-                data = np.loadtxt(file)
+                data = np.loadtxt(filename)
                 self.xlabel = "m/z (Th)"
             elif self.datachoice == 1:
-                file = os.path.join(header + "_unidecfiles", subheader + "_input.dat")
-                data = np.loadtxt(file)
+                filename = os.path.join(header + "_unidecfiles", subheader + "_input.dat")
+                data = np.loadtxt(filename)
                 self.xlabel = "m/z (Th)"
             elif self.datachoice == 2:
                 self.xlabel = "Mass (Da)"
-                zstate = list[3]
-                file = os.path.join(header + "_unidecfiles", subheader + "_mass.txt")
-                data = np.loadtxt(file)
+                zstate = l[3]
+                filename = os.path.join(header + "_unidecfiles", subheader + "_mass.txt")
+                data = np.loadtxt(filename)
                 if not zstate == 'All':
                     try:
-                        file = os.path.join(header + "_unidecfiles", subheader + "_massgrid.bin")
-                        massgrid = np.fromfile(file, dtype=float)
+                        filename = os.path.join(header + "_unidecfiles", subheader + "_massgrid.bin")
+                        massgrid = np.fromfile(filename, dtype=float)
                         configfile = os.path.join(header + "_unidecfiles", subheader + "_conf.dat")
                         f = open(configfile, 'r')
                         for line in f:
@@ -858,11 +719,8 @@ class DataCollector(wx.Frame):
                                 startz = int(line.split()[1])
                             if line.startswith("endz"):
                                 endz = int(line.split()[1])
-                            if line.startswith("numz"):
-                                numz = int(line.split()[1])
+                        zlength = endz - startz + 1
 
-                        # zlength=endz-startz+1
-                        zlength = numz
                         massgrid = np.reshape(massgrid, (len(data), zlength))
 
                         if zstate[0] == "N":
@@ -885,15 +743,15 @@ class DataCollector(wx.Frame):
                         else:
                             zindex = int(zstate) - startz
                             data[:, 1] = massgrid[:, zindex]
-                    except:
-                        print "FAILED TO EXTRACT CHARGE STATE\nUsing total for all charge states"
-                        list[3] = "All"
+                    except Exception, e:
+                        print "FAILED TO EXTRACT CHARGE STATE\nUsing total for all charge states\n", e
+                        l[3] = "All"
                         try:
-                            self.ypanel.list.Populate(self.yvals, colors=ycolors)
-                        except:
-                            self.ypanel.list.Populate(self.yvals)
+                            self.ypanel.list.populate(self.yvals, colors=ycolors)
+                        except (ValueError, TypeError, AttributeError):
+                            self.ypanel.list.populate(self.yvals)
 
-            if not isempty(self.range):
+            if not ud.isempty(self.range):
                 bool1 = data[:, 0] >= self.range[0]
                 bool2 = data[:, 0] <= self.range[1]
                 bool3 = np.all([bool1, bool2], axis=0)
@@ -904,14 +762,14 @@ class DataCollector(wx.Frame):
                 data[:, 1] = data[:, 1] * vals[k]
             self.data.append(data)
             if not self.plot1.flag:
-                self.plot1.plotrefreshtop(data[:, 0], data[:, 1], "Extracted Data", "", "", file, None, nopaint=True,
-                                          color=fcolor,test_kda=True)
+                self.plot1.plotrefreshtop(data[:, 0], data[:, 1], "Extracted Data", "", "", filename, None, nopaint=True,
+                                          color=fcolor, test_kda=True)
                 self.grid.append(data)
             else:
-                self.plot1.plotadd(data[:, 0], data[:, 1], fcolor, file)
+                self.plot1.plotadd(data[:, 0], data[:, 1], fcolor, filename)
                 try:
                     self.grid.append(ud.mergedata(self.grid[0], data))
-                except:
+                except (ValueError, TypeError, AttributeError):
                     print "Error combining data"
 
             xext = []
@@ -919,12 +777,12 @@ class DataCollector(wx.Frame):
                 s = self.xvals[i][0]
                 try:
                     window = float(self.window)
-                except:
+                except (ValueError, TypeError):
                     window = None
-                val = self.data_extract(data, float(s), self.extractchoice, window=window)
+                val = ud.data_extract(data, float(s), self.extractchoice, window=window)
                 xext.append(val)
             self.extract.append(xext)
-        self.ypanel.list.Populate(self.yvals, colors=ycolors)
+        self.ypanel.list.populate(self.yvals, colors=ycolors)
         self.plot1.repaint()
 
         self.extract = np.array(self.extract)
@@ -936,40 +794,40 @@ class DataCollector(wx.Frame):
 
             colormap = cm.get_cmap('rainbow', len(self.xvals))
             self.xcolors = colormap(np.arange(len(self.xvals)))
-            self.MakePlot2()
+            self.makeplot2()
             # print np.mean(self.extract,axis=0)
             np.savetxt(os.path.join(self.directory, "extracts.txt"), self.extract)
-            self.xpanel.list.Populate(self.xvals, colors=self.xcolors)
+            self.xpanel.list.populate(self.xvals, colors=self.xcolors)
             self.plot2.repaint()
         self.grid = np.array(self.grid)
 
         if not ud.isempty(self.grid):
             try:
                 self.plot4.plotrefreshtop(np.unique(self.grid[0, :, 0]), np.sum(self.grid[:, :, 1], axis=0), "Total",
-                                          "", "Sum", "", self.config,test_kda=True)
+                                          "", "Sum", "", self.config, test_kda=True)
                 np.savetxt(os.path.join(self.directory, "sums.txt"),
                            np.transpose([np.unique(self.grid[0, :, 0]), np.sum(self.grid[:, :, 1], axis=0)]))
-            except:
+            except (ValueError, TypeError, AttributeError):
                 print "Failed total plot"
                 self.plot4.clear_plot()
             try:
-                X, Y = np.meshgrid(self.grid[0, :, 0], self.var1, indexing='ij')
-                dat = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(np.transpose(self.grid[:, :, 1]))])
+                x, y = np.meshgrid(self.grid[0, :, 0], self.var1, indexing='ij')
+                dat = np.transpose([np.ravel(x), np.ravel(y), np.ravel(np.transpose(self.grid[:, :, 1]))])
                 self.plot2d.contourplot(dat, self.config, xlab=self.xlabel, ylab="", title="Extracted Data")
                 self.on_export(e)
-            except:
+            except (ValueError, TypeError, AttributeError):
                 print "Failed to make 2D plot"
                 self.plot2d.clear_plot()
 
         print "Extraction Complete"
 
-    def MakePlot2(self):
+    def makeplot2(self):
         self.plot2.clear_plot()
         for i in xrange(0, len(self.xvals)):
             color = self.xcolors[i]
             if not self.plot2.flag:
                 self.plot2.plotrefreshtop(self.var1, self.extract[:, i], title="Extracted Data"
-                                          , color=color,test_kda=True)
+                                          , color=color, test_kda=True)
                 self.plot2.plotadddot(self.var1, self.extract[:, i], color, "o")
             else:
                 self.plot2.plotadd(self.var1, self.extract[:, i], color, file)
@@ -1024,8 +882,8 @@ class DataCollector(wx.Frame):
     def on_kd_fit(self, e):
         outlierflag = self.ctloutliers.GetValue()
         self.update_get(e)
-        self.plot3.Clear()
-        # self.MakePlot2()
+        self.plot3.clear_frame()
+        # self.makeplot2()
         nodelist = []
         for i in xrange(0, len(self.xvals)):
             nodelist.append([self.xvals[i][1], self.xvals[i][2]])
@@ -1033,16 +891,17 @@ class DataCollector(wx.Frame):
         print "Nodes: ", nodelist
         self.yvals = np.array(self.yvals)
         self.plot2.clear_plot()
+        # noinspection PyProtectedMember
         self.plot2.subplot1 = self.plot2.figure.add_axes(self.plot2._axes)
         try:
             maxsites = int(self.maxsites)
-        except:
+        except (ValueError, TypeError):
             maxsites = 0
-        kdfit = UniFit.KDmodel(self.numprot, self.numlig, self.extract.transpose(), self.yvals[:, 2].astype(np.float64),
-                               self.yvals[:, 1].astype(np.float64), nodelist, os.path.join(self.directory, "fits"),
-                               removeoutliers=outlierflag, plot1=self.plot2.subplot1, plot2=self.plot3.axes,
-                               plot3=self.plot3h, bootnum=self.bootstrap, prot=self.protflag, lig=self.ligflag,
-                               maxsites=maxsites)
+        UniFit.KDmodel(self.numprot, self.numlig, np.transpose(self.extract), self.yvals[:, 2].astype(np.float64),
+                       self.yvals[:, 1].astype(np.float64), nodelist, os.path.join(self.directory, "fits"),
+                       removeoutliers=outlierflag, plot1=self.plot2.subplot1, plot2=self.plot3.axes,
+                       plot3=self.plot3h, bootnum=self.bootstrap, prot=self.protflag, lig=self.ligflag,
+                       maxsites=maxsites)
         self.plot2.repaint()
         self.plot2.flag = True
         datalim = [np.amin(nodelist[:, 1]) - 0.5, np.amin(nodelist[:, 0] - 0.5), np.amax(nodelist[:, 1] + 0.5),
@@ -1054,7 +913,7 @@ class DataCollector(wx.Frame):
 
     def on_animate(self, e):
         self.yvals = np.array(self.yvals)
-        self.aniwindow = PlotAnimations.AnimationWindow(self, self.grid, self.config, yvals=self.yvals[:, 1])
+        PlotAnimations.AnimationWindow(self, self.grid, self.config, yvals=self.yvals[:, 1])
 
     def on_animate2(self, e):
         self.update_get(e)
@@ -1062,45 +921,48 @@ class DataCollector(wx.Frame):
         dlg.InitUI(title="Set Compression", message="Number of x values to compress:", defaultvalue="10")
         dlg.ShowModal()
         try:
-            self.compress = int(dlg.value)
-            if self.compress > 1:
-                print "Compressing Data by:", self.compress
-        except:
+            compress = int(dlg.value)
+            if compress > 1:
+                print "Compressing Data by:", compress
+        except (ValueError, TypeError, AttributeError):
             print "Unrecognized compression value"
-            self.compress = 0
+            compress = 0
 
         print "Loading 2D Data..."
         data2 = []
-        for i, list in enumerate(self.yvals):
-            file = list[0]
-            header = os.path.splitext(file)[0]
+        for i, l in enumerate(self.yvals):
+            filename = l[0]
+            header = os.path.splitext(filename)[0]
             if self.localpath == 1:
                 header = os.path.join(self.directory, header)
             subheader = os.path.split(header)[1]
             if self.datachoice < 2:
-                file = os.path.join(header + "_unidecfiles", subheader + "_grid.bin")
+                filename = os.path.join(header + "_unidecfiles", subheader + "_grid.bin")
                 file2 = os.path.join(header + "_unidecfiles", subheader + "_input.dat")
 
             elif self.datachoice == 2:
-                file = os.path.join(header + "_unidecfiles", subheader + "_massgrid.bin")
+                filename = os.path.join(header + "_unidecfiles", subheader + "_massgrid.bin")
                 file2 = os.path.join(header + "_unidecfiles", subheader + "_mass.txt")
+
+            else:
+                file2 = filename
+                print "Undefined choice for data type"
             data = np.loadtxt(file2)
-            massgrid = np.fromfile(file, dtype=float)
+            massgrid = np.fromfile(filename, dtype=float)
             configfile = os.path.join(header + "_unidecfiles", subheader + "_conf.dat")
             f = open(configfile, 'r')
             for line in f:
                 if line.startswith("startz"):
                     startz = int(line.split()[1])
-                if line.startswith("numz"):
-                    numz = int(line.split()[1])
+                if line.startswith("endz"):
+                    endz = int(line.split()[1])
             f.close()
-            # zlength=endz-startz+1
-            zlength = numz
+            zlength = endz - startz + 1
             massgrid = np.reshape(massgrid, (len(data), zlength))
-            ztab = np.arange(startz, startz + numz)
+            ztab = np.arange(startz, endz + 1)
             mgrid, zgrid = np.meshgrid(data[:, 0], ztab, indexing='ij')
 
-            if not isempty(self.range):
+            if not ud.isempty(self.range):
                 bool1 = data[:, 0] >= self.range[0]
                 bool2 = data[:, 0] <= self.range[1]
                 bool3 = np.all([bool1, bool2], axis=0)
@@ -1108,11 +970,11 @@ class DataCollector(wx.Frame):
                 zgrid = zgrid[bool3]
                 massgrid = massgrid[bool3]
             if self.normflag:
-                massgrid = massgrid / np.amax(massgrid)
+                massgrid /= np.amax(massgrid)
 
-            if self.compress > 1:
-                M, Z, D = IM_functions.compress_2d(mgrid, zgrid, massgrid, self.compress)
-                dat = np.transpose([np.ravel(M), np.ravel(Z), np.ravel(D)])
+            if compress > 1:
+                m, z, d = IM_functions.compress_2d(mgrid, zgrid, massgrid, compress)
+                dat = np.transpose([np.ravel(m), np.ravel(z), np.ravel(d)])
             else:
                 dat = np.transpose([np.ravel(mgrid), np.ravel(zgrid), np.ravel(massgrid)])
 
@@ -1122,7 +984,7 @@ class DataCollector(wx.Frame):
         self.yvals = np.array(self.yvals)
         data2 = np.array(data2)
         print data2.shape
-        self.aniwindow = PlotAnimations.AnimationWindow(self, data2, self.config, mode="2D", yvals=self.yvals[:, 1])
+        PlotAnimations.AnimationWindow(self, data2, self.config, mode="2D", yvals=self.yvals[:, 1])
 
     def on_2dgrid(self, e):
         self.yvals = np.array(self.yvals)
@@ -1132,44 +994,44 @@ class DataCollector(wx.Frame):
 
     def on_defect(self, e):
         self.yvals = np.array(self.yvals)
-        defectwindow = MassDefects.MassDefectWindow(self, self.grid, self.config, yvals=self.yvals[:, 1],
-                                                    dir=self.directory, value=self.molig)
+        MassDefects.MassDefectWindow(self, self.grid, self.config, yvals=self.yvals[:, 1],
+                                     dir=self.directory, value=self.molig)
         pass
 
     def on_autocorr(self, e):
         masssum = np.transpose([np.unique(self.grid[0, :, 0]), np.sum(self.grid[:, :, 1], axis=0)])
-        print "Sum shape:", sum
+        print "Sum shape:", masssum.shape
         autocorrwindow = AutocorrWindow(self)
         autocorrwindow.InitUI(self.config, masssum)
         autocorrwindow.ShowModal()
 
     def on_local_path(self, e):
         self.update_get(0)
-        for i, list in enumerate(self.yvals):
-            file = list[0]
-            localpath = os.path.relpath(file, self.directory)
-            list[0] = localpath
+        for i, l in enumerate(self.yvals):
+            filename = l[0]
+            localpath = os.path.relpath(filename, self.directory)
+            l[0] = localpath
         self.update_set(0)
         self.localpath = 1
 
     def on_absolute_path(self, e):
         self.update_get(0)
-        for i, list in enumerate(self.yvals):
-            file = list[0]
-            abspath = os.path.abspath(os.path.join(self.directory, file))
-            list[0] = abspath
+        for i, l in enumerate(self.yvals):
+            filename = l[0]
+            abspath = os.path.abspath(os.path.join(self.directory, filename))
+            l[0] = abspath
         self.update_set(0)
         self.localpath = 0
 
     def on_export(self, e):
         if not ud.isempty(self.grid):
             try:
-                X, Y = np.meshgrid(self.grid[0, :, 0], self.var1, indexing='ij')
-                dat = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(np.transpose(self.grid[:, :, 1]))])
-                path = os.path.join(self.directory, "ExtractFull2D_" + self.xlabel[-3:-1] + "_.txt")
+                x, y = np.meshgrid(self.grid[0, :, 0], self.var1, indexing='ij')
+                dat = np.transpose([np.ravel(x), np.ravel(y), np.ravel(np.transpose(self.grid[:, :, 1]))])
+                path = os.path.join(self.directory, "ExtractFull2D_" + self.xlabel[-3:-1] + ".txt")
                 np.savetxt(path, dat)
                 print "Saved to: ", path
-            except:
+            except (ValueError, TypeError):
                 print "Failed to export data"
         else:
             print "Grid is empty"
@@ -1180,31 +1042,32 @@ class DataCollector(wx.Frame):
             filename = dlg.GetFilename()
             dirname = dlg.GetDirectory()
             path = os.path.join(dirname, filename)
-        dlg.Destroy()
-        print "Openening: ", path
-        msdat = np.loadtxt(path)
-        mids = np.array([y[1] for y in self.yvals]).astype(np.float)
-        wins = np.array([y[2] for y in self.yvals]).astype(np.float)
 
-        vals = []
-        for i, m in enumerate(mids):
-            w = float(wins[i])
-            if w == 0:
-                index = ud.nearest(msdat[:, 0], m)
-                val = msdat[index, 1]
-                pass
-            else:
-                limits = [m - w, m + w]
-                boo1 = msdat[:, 0] < limits[1]
-                boo2 = msdat[:, 0] > limits[0]
-                intdat = msdat[np.all([boo1, boo2], axis=0)]
-                val = np.trapz(intdat[:, 1], x=intdat[:, 0])
-                pass
-            vals.append(val)
-        vals = np.array(vals)
-        vals = vals / np.amax(vals)
-        print vals
-        self.on_run(0, vals=vals)
+            dlg.Destroy()
+            print "Openening: ", path
+            msdat = np.loadtxt(path)
+            mids = np.array([y[1] for y in self.yvals]).astype(np.float)
+            wins = np.array([y[2] for y in self.yvals]).astype(np.float)
+
+            vals = []
+            for i, m in enumerate(mids):
+                w = float(wins[i])
+                if w == 0:
+                    index = ud.nearest(msdat[:, 0], m)
+                    val = msdat[index, 1]
+                    pass
+                else:
+                    limits = [m - w, m + w]
+                    boo1 = msdat[:, 0] < limits[1]
+                    boo2 = msdat[:, 0] > limits[0]
+                    intdat = msdat[np.all([boo1, boo2], axis=0)]
+                    val = np.trapz(intdat[:, 1], x=intdat[:, 0])
+                    pass
+                vals.append(val)
+            vals = np.array(vals)
+            vals /= np.amax(vals)
+            print vals
+            self.on_run(0, vals=vals)
 
 
 # Main App Execution

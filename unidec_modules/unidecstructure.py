@@ -161,6 +161,7 @@ class UniDecConfig:
         :param name: File name to write to.
         :return: None
         """
+        self.numz = self.endz - self.startz + 1
         f = open(name, 'w')
         f.write("input " + str(self.infname) + "\n")
         f.write("output " + str(self.outfname) + "\n")
@@ -438,6 +439,8 @@ class UniDecConfig:
                     if line.startswith("nativeccslb") or line.startswith("lbnativeccs"):
                         self.nativeccslb = ud.string_to_value(line.split()[1])
             f.close()
+            self.endz = self.startz + self.numz - 1
+
             if os.path.isfile(self.mfile):
                 self.masslist = np.loadtxt(self.mfile)
                 if self.masslist.size == 1:
@@ -563,7 +566,6 @@ class UniDecConfig:
         # Narrow Charge and Mass Range
         self.startz = 1
         self.endz = 30
-        self.numz = self.endz - self.startz + 1
         self.massub = 30000
         self.masslb = 100
         # Increase mass resolution and lower peak shape
@@ -581,7 +583,6 @@ class UniDecConfig:
         self.linflag = 2
         self.startz = 1
         self.endz = 1
-        self.numz = self.endz - self.startz + 1
         self.massbins = 0.1
         self.mzsig = 0.4
         self.psfun = 0

@@ -92,8 +92,8 @@ def auto_from_wizard(lines,exedir):
                 if mapper[index] is not '':
                     try:
                         parse[conv[mapper[index]]] = l[index]
-                    except:
-                        print "Unable to import: ",index,mapper[index],l[index]
+                    except Exception, e:
+                        print "Unable to import: ",index,mapper[index],l[index], e
 
 
             # fix range
@@ -131,18 +131,18 @@ def run_get_data(job_kwargs):
     try:
         start = float(job_kwargs[tt.START])
         end = float(job_kwargs[tt.END])
-    except:
+    except (ValueError, KeyError, AttributeError):
         start = None
         end = None
 
     try:
         scan_start = int(float(job_kwargs[tt.SCAN_START]))
-    except:
+    except (ValueError, KeyError, AttributeError):
         scan_start = 0
 
     try:
         scan_end = int(float(job_kwargs[tt.SCAN_END]))
-    except:
+    except (ValueError, KeyError, AttributeError):
         scan_end = None
     #print job_kwargs[tt.FUNCTION]
     if int(job_kwargs[tt.FUNCTION])!=1 :
@@ -245,7 +245,7 @@ def mp_process_from_wizard( job_list):
     core_worker = 1
     try:
         core_worker = cpu_count() - 1
-    except:
+    except Exception, e:
         pass
 
     workers = [Process(target=data_import_worker, args=( worker_queue, result_queue)) for i in range(core_worker)]
@@ -265,7 +265,7 @@ def mp_process_from_wizard( job_list):
             break
         try:
             job_kwargs = result_queue.get()
-        except: # Queue.Empty:
+        except Exception, e: # Queue.Empty:
             break
         pub.sendMessage('RAW DATA ADDED TO MODEL')
         result_count += 1
@@ -281,7 +281,7 @@ def data_import_worker(worker_queue, result_queue):
             try:
                 # false means it does not block waiting for more items
                 job_kwargs = worker_queue.get(False)
-            except: # Queue.Empty:
+            except Exception, e: # Queue.Empty:
                 break
 
             run_get_data(job_kwargs)
@@ -361,7 +361,7 @@ def parse_file(file_path, exp_type='linear', collision=None, debug=False,dir=Non
                 #print des.split()
                 out[tt.DRIFT_PRESSURE] = str(float(des.split()[2]))
                 out[tt.TEMP] = str(float(des.split()[4]))
-            except:
+            except Exception, e:
                 # modified for jon's format
                 des=des.replace("="," ")
                 weird_des = des.split()
@@ -375,7 +375,7 @@ def parse_file(file_path, exp_type='linear', collision=None, debug=False,dir=Non
                         else:
                             try:
                                 x = float(weird_des[c + 1])
-                            except:
+                            except (ValueError, IndexError):
                                 x = ''
                         out[tt.TEMP] = x
 
@@ -491,7 +491,7 @@ def get_stat_code(raw_file, stat_code,dir=None):
         param = float(stdout)
         if param > 0.:
             return param
-    except:
+    except ValueError:
         return None
 
 
@@ -562,7 +562,7 @@ def search_extern(file_path, search_string, split_skip=False):
                 try:
                     tmp = str(float(tmp))
 
-                except:
+                except ValueError:
                     tmp = None
 
                 return tmp

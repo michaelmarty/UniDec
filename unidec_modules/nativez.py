@@ -195,8 +195,8 @@ class NativeZ(wx.Dialog):
                 self.eshape = self.ctlfilt.GetSelection()
                 self.plot7.plot_native_z(zoff.offset, np.array(zoff.color) / 255, self.xvals, width=zwidth, alpha=0.5,
                                          shape=self.eshape)
-        except:
-            "Failed to plot"
+        except Exception, e:
+            "Failed to plot", e
             pass
 
     def on_edit(self, event):
@@ -418,11 +418,11 @@ class NativeZ(wx.Dialog):
         self.peakextracts = np.zeros((len(self.extracts), self.pks.plen))
         self.peakextractsarea = np.zeros((len(self.extracts), self.pks.plen))
         try:
-            X = self.pks.masses
-        except:
+            xvals = self.pks.masses
+        except AttributeError:
             print "No Peaks to Extract"
-            X = None
-        if X is not None:
+            xvals = None
+        if xvals is not None:
             for i in xrange(0, len(self.extracts)):
                 for j in xrange(0, self.pks.plen):
                     p = self.pks.peaks[j]
@@ -440,36 +440,36 @@ class NativeZ(wx.Dialog):
             try:
                 np.savetxt(self.config.outfname + "_extracted_heights.txt", self.peakextracts)
                 np.savetxt(self.config.outfname + "_extracted_areas.txt", self.peakextractsarea)
-            except:
-                print "Error saving files"
+            except Exception, e:
+                print "Error saving files", e
 
             if self.offsetvalue > 0:
-                X = np.round(X / self.offsetvalue)
+                xvals = np.round(xvals / self.offsetvalue)
                 label = "Subunit Number"
             else:
                 label = "Mass (Da)"
             sum1 = np.sum(self.peakextracts, axis=0)
-            self.plot3.plotrefreshtop(X, sum1, title="Extracted Heights", xlabel=label, ylabel="Intensity",
+            self.plot3.plotrefreshtop(xvals, sum1, title="Extracted Heights", xlabel=label, ylabel="Intensity",
                                       integerticks=True, test_kda=True)
             for i in xrange(0, len(self.extracts)):
-                self.plot3.plotadd(X, self.peakextracts[i], np.array(self.zoffs[i].color) / 255., str(i))
+                self.plot3.plotadd(xvals, self.peakextracts[i], np.array(self.zoffs[i].color) / 255., str(i))
             self.plot3.repaint()
             sum2 = np.sum(self.peakextractsarea, axis=0)
 
-            X2 = np.arange(0, len(sum1))
+            xvals2 = np.arange(0, len(sum1))
             cmap = self.config.peakcmap
-            colormap = cm.get_cmap(cmap, len(X))
-            peakcolors = colormap(np.arange(len(X)))
-            self.plot5.barplottop(X2, sum1 / np.amax(sum1), [int(i) for i in X], peakcolors, label,
+            colormap = cm.get_cmap(cmap, len(xvals))
+            peakcolors = colormap(np.arange(len(xvals)))
+            self.plot5.barplottop(xvals2, sum1 / np.amax(sum1), [int(i) for i in xvals], peakcolors, label,
                                   "Normalized Intensity", "Extracted Total Peak Heights")
             self.plot5.repaint()
             if np.amax(sum2) != 0:
-                self.plot4.plotrefreshtop(X, sum2, title="Extracted Areas", xlabel=label, ylabel="Area",
+                self.plot4.plotrefreshtop(xvals, sum2, title="Extracted Areas", xlabel=label, ylabel="Area",
                                           integerticks=True, test_kda=True)
                 for i in xrange(0, len(self.extracts)):
-                    self.plot4.plotadd(X, self.peakextractsarea[i], np.array(self.zoffs[i].color) / 255., str(i))
+                    self.plot4.plotadd(xvals, self.peakextractsarea[i], np.array(self.zoffs[i].color) / 255., str(i))
                 self.plot4.repaint()
-                self.plot6.barplottop(X2, sum2 / np.amax(sum2), [int(i) for i in X], peakcolors, label,
+                self.plot6.barplottop(xvals2, sum2 / np.amax(sum2), [int(i) for i in xvals], peakcolors, label,
                                       "Normalized Intensity", "Extracted Total Peak Areas")
                 self.plot6.repaint()
             else:
@@ -477,12 +477,12 @@ class NativeZ(wx.Dialog):
 
             try:
                 np.savetxt(self.config.outfname + "_total_extracted_heights.txt",
-                           np.transpose([self.pks.masses, X, sum1 / np.amax(sum1)]))
+                           np.transpose([self.pks.masses, xvals, sum1 / np.amax(sum1)]))
                 if np.amax(sum2) != 0:
                     np.savetxt(self.config.outfname + "_total_extracted_areas.txt",
-                               np.transpose([self.pks.masses, X, sum2 / np.amax(sum2)]))
-            except:
-                print "Error saving total files"
+                               np.transpose([self.pks.masses, xvals, sum2 / np.amax(sum2)]))
+            except Exception, e:
+                print "Error saving total files", e
 
     def SaveFig(self, e):
         extraheader = "_NativeZ"
@@ -685,7 +685,7 @@ class ColorList(wx.Panel):
                 self.ultimateList.DeleteItem(0)
                 count = self.ultimateList.GetItemCount()
                 num += 1
-            except:
+            except Exception, e:
                 num += 1
                 pass
         self.ultimateList.DeleteAllItems()

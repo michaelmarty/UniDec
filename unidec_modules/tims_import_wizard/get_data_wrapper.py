@@ -35,7 +35,7 @@ def new_get_data(start, end, im_bin_size, raw_file, pusher, function_no, scan_st
     try:
         call_params.append("--mass_start="+str(int(start)))
         call_params.append("--mass_end="+str(int(end)))
-    except:
+    except ValueError:
         pass
 
     p = subprocess.call(call_params, shell=False) #, stdout=devnull, shell=False) # extract arrival time distributions for a set of peaks
@@ -105,7 +105,7 @@ def new_get_data_MS(start, end, bin_size, raw_file, function_no, scan_start, sca
     try:
         call_params.append("--mass_start="+str(int(start)))
         call_params.append("--mass_end="+str(int(end)))
-    except:
+    except ValueError:
         pass
 
     p = subprocess.call(call_params)#, shell=False) #, stdout=devnull, shell=False) # extract arrival time distributions for a set of peaks

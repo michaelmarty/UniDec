@@ -63,7 +63,7 @@ else:
 
 try:
     libs = cdll.LoadLibrary(dllpath)
-except WindowsError:
+except OSError:
     print dllpath
     print "Failed to load libmypfunc, convolutions in nonlinear mode might be slow"
 
@@ -86,7 +86,7 @@ def isempty(thing):
             out = True
         else:
             out = False
-    except TypeError or ValueError or AttributeError:
+    except (TypeError, ValueError, AttributeError):
         print "Error testing emptiness"
         out = False
     return out
@@ -118,7 +118,7 @@ def simp_string_to_value(s):
         return False
 
 
-def string_to_int(s):
+def string_to_int(s, default=False):
     """
     Try to convert string to integer.
     :param s: String
@@ -128,7 +128,7 @@ def string_to_int(s):
         v = int(s)
         return v
     except (ValueError, TypeError):
-        return False
+        return default
 
 
 def safedivide(a, b):
@@ -239,6 +239,107 @@ def get_zvalue(ci=0.99):
     return stats.norm.isf((1 - ci) / 2.)
 
 
+def integrate(data, start, end):
+    boo1 = data[:, 0] < end
+    boo2 = data[:, 0] > start
+    intdat = data[np.all([boo1, boo2], axis=0)]
+    integral = np.trapz(intdat[:, 1], x=intdat[:, 0])
+    return integral, intdat
+
+
+def center_of_mass(data, start, end):
+    boo1 = data[:, 0] < end
+    boo2 = data[:, 0] > start
+    cutdat = data[np.all([boo1, boo2], axis=0)]
+    weightedavg = np.average(cutdat[:, 0], weights=cutdat[:, 1])
+    weightstd = weighted_std(cutdat[:, 0], cutdat[:, 1])
+    return weightedavg, weightstd
+
+
+def stepmax(array, index):
+    plus = array[index + 1]
+    minus = array[index - 1]
+    if plus > minus:
+        window = 1
+        d = 1
+    else:
+        window = -1
+        d = -1
+    val = array[index]
+    # newval = array[index + window]
+    while array[index + window] > val:
+        val = array[index + window]
+        window += d
+        if index + window >= len(array) or index + window < 0:
+            return val
+    return val
+
+
+def localmax(array, start, end):
+    start = np.amax([0, start])
+    end = np.amin([len(array), end])
+    try:
+        out = np.amax(array[start:end])
+    except (ValueError, TypeError):
+        out = 0
+    return out
+
+
+def localmaxpos(data, start, end):
+    try:
+        boo1 = data[:, 0] < end
+        boo2 = data[:, 0] > start
+        intdat = data[np.all([boo1, boo2], axis=0)]
+        pos = np.argmax(intdat[:, 1])
+        return intdat[pos, 0]
+    except (ValueError, TypeError):
+        return 0
+
+
+def data_extract(data, x, extract_method, window=None):
+        if extract_method == 0:
+            index = np.argmin(np.abs(data[:, 0] - x))
+            val = data[index, 1]
+        elif extract_method == 1:
+            index = np.argmin(np.abs(data[:, 0] - x))
+            if window is not None:
+                start = np.argmin(np.abs(data[:, 0] - (x - window)))
+                end = np.argmin(np.abs(data[:, 0] - (x + window)))
+                val = localmax(data[:, 1], start, end)
+            else:
+                val = stepmax(data[:, 1], index)
+        elif extract_method == 2:
+            index = np.argmin(np.abs(data[:, 0] - x))
+            if window is not None:
+                start = x - window
+                end = x + window
+                val, junk = integrate(data, start, end)
+            else:
+                val = data[index, 1]
+                print "NEED TO SET INTEGRAL WINDOW!\nUsing Peak Height Instead"
+        elif extract_method == 3:
+            # index = np.argmin(np.abs(data[:, 0] - x))
+            if window is not None:
+                start = x - window
+                end = x + window
+                val, junk = center_of_mass(data, start, end)
+            else:
+                val, junk = center_of_mass(data, data[0, 0], data[len(data) - 1, 0])
+                print "No window set for center of mass!\nUsing entire data range...."
+        elif extract_method == 4:
+            # index = np.argmin(np.abs(data[:, 0] - x))
+            if window is not None:
+                start = x - window
+                end = x + window
+                val = localmaxpos(data, start, end)
+            else:
+                val = localmaxpos(data, data[0, 0], data[len(data) - 1, 0])
+                print "No window set for local max position!\nUsing entire data range...."
+        else:
+            val = 0
+            print "Undefined extraction choice"
+        return val
+
 # ............................
 #
 # File manipulation
@@ -268,7 +369,7 @@ def header_test(path):
                         break
         if header > 0:
             print "Header Length:", header
-    except ImportError or WindowsError or AttributeError or IOError:
+    except (ImportError, WindowsError, AttributeError, IOError):
         print "Failed header test"
         header = 0
     return header
@@ -291,7 +392,7 @@ def load_mz_file(path, config):
     else:
         try:
             data = np.loadtxt(path, skiprows=header_test(path))
-        except ImportError or IOError:
+        except (ImportError, IOError):
             print"Failed to open:", path
             data = None
     return data
@@ -908,7 +1009,7 @@ def makeconvspecies(processed_data, pks, config):
     else:
         try:
             stickdat = [cconvolve(xvals, p.mztab, config.mzsig, config.psfun) for p in pks.peaks]
-        except WindowsError or TypeError or NameError or AttributeError:
+        except (WindowsError, TypeError, NameError, AttributeError):
             stickdat = [nonlinstickconv(xvals, p.mztab, config.mzsig, config.psfun) for p in pks.peaks]
 
     pks.composite = np.zeros(xlen)
@@ -1393,6 +1494,22 @@ def isolated_peak_fit(xvals, yvals, psfun, **kwargs):
     return np.transpose([fit, err]), fitdat
 
 
+def fft_diff(data,diffrange=[500.,1000.]):
+    massdif=data[1,0]-data[0,0]
+    fft=np.fft.rfft(data[:,1])
+    aft=np.abs(fft)
+    fvals=np.fft.rfftfreq(len(data),d=massdif)
+    aftdat=np.transpose([fvals,aft])
+    aftdat[:,1] /= np.amax(aftdat[:,1])
+    ftrange=[1./diffrange[1],1./diffrange[0]]
+    boo1=fvals<ftrange[1]
+    boo2=fvals>ftrange[0]
+    boo3=np.all([boo1,boo2],axis=0)
+    ftext=aftdat[boo3]
+    fit, err, fitdat = voigt_fit(ftext[:,0], ftext[:,1], np.average(ftrange), np.average(ftrange)/10., 0, 1, 0)
+    return 1./fit[0]
+
+
 def correlation_integration(dat1, dat2, alpha=0.01, plot_corr=False, **kwargs):
     """
     Perform MacCoss method (http://pubs.acs.org/doi/pdf/10.1021/ac034790h) of getting peak intensities
@@ -1490,6 +1607,7 @@ def broaden(aligned):
     # Apply the sigmas to the original array
     for i, a in enumerate(aligned):
         a[:, 1] = filt.gaussian_filter1d(a[:, 1], sigs[i])
+        pass
 
     # Sum and combine the spectra into a global master
     alignedsum = np.average(aligned[:, :, 1], axis=0)

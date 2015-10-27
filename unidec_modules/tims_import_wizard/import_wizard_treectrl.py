@@ -81,7 +81,7 @@ class TreeCtrlPanel(wx.Panel):
                         self.tree.SetItemImage(child, self.fldropenidx, wx.TreeItemIcon_Expanded)
                         if depth_limit > 0:
                             self.add_children(child, new_path, depth_limit - 1)
-        except WindowsError:
+        except OSError:
             pass
 
 

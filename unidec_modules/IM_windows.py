@@ -366,7 +366,7 @@ class IMToolExtract(wx.Dialog):
         try:
             self.zout = int(self.ctlzout.GetStringSelection())
             print "Charge State: ", self.zout
-        except:
+        except ValueError:
             self.zout = 0
 
     def OnAdd(self, e):
