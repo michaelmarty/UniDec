@@ -427,13 +427,13 @@ class NativeZ(wx.Dialog):
                 for j in xrange(0, self.pks.plen):
                     p = self.pks.peaks[j]
                     extract = self.extracts[i]
-                    xvals = extract[:, 0]
-                    yvals = extract[:, 1]
-                    index = ud.nearest(xvals, p.mass)
-                    self.peakextracts[i, j] = localmax(yvals, index, int(self.config.peakwindow / self.config.massbins))
+                    x = extract[:, 0]
+                    y = extract[:, 1]
+                    index = ud.nearest(x, p.mass)
+                    self.peakextracts[i, j] = localmax(y, index, int(self.config.peakwindow / self.config.massbins))
                     if not ud.isempty(p.integralrange):
-                        boo1 = xvals < p.integralrange[1]
-                        boo2 = xvals > p.integralrange[0]
+                        boo1 = x < p.integralrange[1]
+                        boo2 = x > p.integralrange[0]
                         intdat = extract[np.all([boo1, boo2], axis=0)]
                         integral = np.trapz(intdat[:, 1], x=intdat[:, 0])
                         self.peakextractsarea[i, j] = integral
@@ -449,6 +449,7 @@ class NativeZ(wx.Dialog):
             else:
                 label = "Mass (Da)"
             sum1 = np.sum(self.peakextracts, axis=0)
+            print xvals.shape,sum1.shape, self.peakextracts.shape
             self.plot3.plotrefreshtop(xvals, sum1, title="Extracted Heights", xlabel=label, ylabel="Intensity",
                                       integerticks=True, test_kda=True)
             for i in xrange(0, len(self.extracts)):

@@ -98,7 +98,7 @@ class TwitterWindow(wx.Dialog):
         closeButton = wx.Button(self, label='Cancel')
         hboxend.Add(okButton)
         hboxend.Add(closeButton, flag=wx.LEFT, border=5)
-        okButton.Bind(wx.EVT_BUTTON, self.OnClose)
+        okButton.Bind(wx.EVT_BUTTON, self.on_close)
         closeButton.Bind(wx.EVT_BUTTON, self.OnCloseCancel)
         self.vbox.Add(hboxend,
                       flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=10)

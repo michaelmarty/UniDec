@@ -1,6 +1,5 @@
 import string
 import math
-
 import matplotlib.cm as cm
 import numpy as np
 

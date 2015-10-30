@@ -26,8 +26,6 @@ Loads initial dll called libmypfunc. Will speed up convolutions and a few functi
 
 If this isn't present, it will print a warning but use the pure python code later on.
 """
-
-# TODO: Make this import more robust.
 dllname = "libmypfunc"
 
 if platform.system() == "Windows":
@@ -297,48 +295,49 @@ def localmaxpos(data, start, end):
 
 
 def data_extract(data, x, extract_method, window=None):
-        if extract_method == 0:
-            index = np.argmin(np.abs(data[:, 0] - x))
-            val = data[index, 1]
-        elif extract_method == 1:
-            index = np.argmin(np.abs(data[:, 0] - x))
-            if window is not None:
-                start = np.argmin(np.abs(data[:, 0] - (x - window)))
-                end = np.argmin(np.abs(data[:, 0] - (x + window)))
-                val = localmax(data[:, 1], start, end)
-            else:
-                val = stepmax(data[:, 1], index)
-        elif extract_method == 2:
-            index = np.argmin(np.abs(data[:, 0] - x))
-            if window is not None:
-                start = x - window
-                end = x + window
-                val, junk = integrate(data, start, end)
-            else:
-                val = data[index, 1]
-                print "NEED TO SET INTEGRAL WINDOW!\nUsing Peak Height Instead"
-        elif extract_method == 3:
-            # index = np.argmin(np.abs(data[:, 0] - x))
-            if window is not None:
-                start = x - window
-                end = x + window
-                val, junk = center_of_mass(data, start, end)
-            else:
-                val, junk = center_of_mass(data, data[0, 0], data[len(data) - 1, 0])
-                print "No window set for center of mass!\nUsing entire data range...."
-        elif extract_method == 4:
-            # index = np.argmin(np.abs(data[:, 0] - x))
-            if window is not None:
-                start = x - window
-                end = x + window
-                val = localmaxpos(data, start, end)
-            else:
-                val = localmaxpos(data, data[0, 0], data[len(data) - 1, 0])
-                print "No window set for local max position!\nUsing entire data range...."
+    if extract_method == 0:
+        index = np.argmin(np.abs(data[:, 0] - x))
+        val = data[index, 1]
+    elif extract_method == 1:
+        index = np.argmin(np.abs(data[:, 0] - x))
+        if window is not None:
+            start = np.argmin(np.abs(data[:, 0] - (x - window)))
+            end = np.argmin(np.abs(data[:, 0] - (x + window)))
+            val = localmax(data[:, 1], start, end)
         else:
-            val = 0
-            print "Undefined extraction choice"
-        return val
+            val = stepmax(data[:, 1], index)
+    elif extract_method == 2:
+        index = np.argmin(np.abs(data[:, 0] - x))
+        if window is not None:
+            start = x - window
+            end = x + window
+            val, junk = integrate(data, start, end)
+        else:
+            val = data[index, 1]
+            print "NEED TO SET INTEGRAL WINDOW!\nUsing Peak Height Instead"
+    elif extract_method == 3:
+        # index = np.argmin(np.abs(data[:, 0] - x))
+        if window is not None:
+            start = x - window
+            end = x + window
+            val, junk = center_of_mass(data, start, end)
+        else:
+            val, junk = center_of_mass(data, data[0, 0], data[len(data) - 1, 0])
+            print "No window set for center of mass!\nUsing entire data range...."
+    elif extract_method == 4:
+        # index = np.argmin(np.abs(data[:, 0] - x))
+        if window is not None:
+            start = x - window
+            end = x + window
+            val = localmaxpos(data, start, end)
+        else:
+            val = localmaxpos(data, data[0, 0], data[len(data) - 1, 0])
+            print "No window set for local max position!\nUsing entire data range...."
+    else:
+        val = 0
+        print "Undefined extraction choice"
+    return val
+
 
 # ............................
 #
@@ -1088,6 +1087,120 @@ def color_map_array(array, cmap, alpha):
     return cmarr, topcm
 
 
+# ..............................................
+#
+# Matching Functions
+#
+# ..................................................
+
+def lengths(array):
+    top = []
+    num = len(array)
+    for i in range(0, num):
+        start = int(array[i, 2])
+        end = int(array[i, 3])
+        top.append(end + 1 - start)
+    return top
+
+# TODO: Merge into make_isolated_matches
+def combine(array2):
+    lens = lengths(array2)
+    tup = tuple(lens)
+    startindex = array2[:, 2]
+    startindex = startindex.astype(np.int)
+    basemass = array2[:, 0]
+    basemass = basemass.astype(np.float)
+    omass = array2[:, 1]
+    omass = omass.astype(np.float)
+    finlist = []
+    for index in np.ndindex(tup):
+        total = np.sum((index + startindex) * omass + basemass)
+        if total > 0:
+            finlist.append(total)
+    return finlist
+
+
+def combine_all(array2):
+    lens = lengths(array2)
+    tup = tuple(lens)
+    startindex = array2[:, 2]
+    startindex = startindex.astype(np.int)
+    basemass = array2[:, 0]
+    basemass = basemass.astype(np.float)
+    omass = array2[:, 1]
+    omass = omass.astype(np.float)
+    names = array2[:, 4]
+    finlist = []
+    namelist = []
+    for index in np.ndindex(tup):
+        name = ""
+        for i in range(0, len(index)):
+            val = index[i] + startindex[i]
+            if val > 0:
+                name = name + str(val) + "" + names[i] + " "
+            else:
+                pass
+        total = np.sum((index + startindex) * omass + basemass)
+        if total > 0:
+            finlist.append(total)
+            namelist.append(name)
+            # print index,name
+    return finlist, namelist
+
+
+def make_isolated_match(oligos):
+    oligomasslist = []
+    oligonames = []
+    for i in range(0, len(oligos)):
+        start = int(oligos[i][2])
+        end = int(oligos[i][3])
+        for j in range(start, end + 1, 1):
+            newmass = float(oligos[i][0]) + j * float(oligos[i][1])
+            if newmass > 0:
+                oligomasslist.append(newmass)
+                if j > 0 or oligos[i][4] == "":
+                    oligonames.append(str(j) + "" + oligos[i][4])
+                else:
+                    oligonames.append("")
+                    # self.oligonames.append(str(j)+""+oligos[i][4])
+    oligomasslist = np.array(oligomasslist)
+    return oligomasslist, oligonames
+
+
+def make_all_matches(oligos):
+    if len(oligos) > 1:
+        oligos = np.array(oligos)
+        oligomasslist, oligonames = combine_all(oligos)
+        oligomasslist = np.array(oligomasslist)
+    else:
+        oligomasslist, oligonames = make_isolated_match(oligos)
+    return oligomasslist, oligonames
+
+
+def match(pks, oligomasslist, oligonames):
+    matches = []
+    error = []
+    peaks = []
+    names = []
+    for i in range(0, pks.plen):
+        p = pks.peaks[i]
+        target = p.mass
+        nearpt = nearestunsorted(oligomasslist, target)
+        match = oligomasslist[nearpt]
+        name = oligonames[nearpt]
+        p.label = name
+        p.match = match
+        p.matcherror = target - match
+        matches.append(match)
+        error.append(target - match)
+        peaks.append(target)
+        names.append(name)
+    matchlist = [peaks, matches, error, names]
+    return matchlist
+
+
+
+
 # ......................................................
 #
 # Peak Shape Function
@@ -1232,7 +1345,7 @@ def voigt(x, mu=0, sigma=1, gamma=1, amp=1, background=0):
     z = (x+i*gam)/(sig*sqrt(2))
     """
     if sigma == 0:
-        return ldis(x, mu, gamma*2., amp) + background
+        return ldis(x, mu, gamma * 2., amp) + background
     elif gamma == 0:
         return ndis_std(x, mu, sigma, amp) + background
     else:
@@ -1476,7 +1589,7 @@ def isolated_peak_fit(xvals, yvals, psfun, **kwargs):
     bguess = np.amin(yvals)
     sigguess = weighted_std(xvals, yvals - bguess) * 1
     # Two rounds to guess at area
-    if psfun<3:
+    if psfun < 3:
         testdat = psfit(xvals, sigguess, midguess, 1, bguess, psfun)
         aguess = np.amax(yvals) / np.amax(testdat)
         testdat = psfit(xvals, sigguess, midguess, aguess, bguess, psfun)
@@ -1487,27 +1600,27 @@ def isolated_peak_fit(xvals, yvals, psfun, **kwargs):
         testdat = psfit(xvals, sigguess, midguess, aguess, bguess, 0)
         aguess = aguess * np.amax(yvals) / np.amax(testdat)
     # Fit it
-    if psfun<3:
+    if psfun < 3:
         fit, err, fitdat = fit_peak(xvals, yvals, psfun, midguess, sigguess, aguess, bguess)
     else:
         fit, err, fitdat = voigt_fit(xvals, yvals, midguess, sigguess, 0, aguess, bguess)
     return np.transpose([fit, err]), fitdat
 
 
-def fft_diff(data,diffrange=[500.,1000.]):
-    massdif=data[1,0]-data[0,0]
-    fft=np.fft.rfft(data[:,1])
-    aft=np.abs(fft)
-    fvals=np.fft.rfftfreq(len(data),d=massdif)
-    aftdat=np.transpose([fvals,aft])
-    aftdat[:,1] /= np.amax(aftdat[:,1])
-    ftrange=[1./diffrange[1],1./diffrange[0]]
-    boo1=fvals<ftrange[1]
-    boo2=fvals>ftrange[0]
-    boo3=np.all([boo1,boo2],axis=0)
-    ftext=aftdat[boo3]
-    fit, err, fitdat = voigt_fit(ftext[:,0], ftext[:,1], np.average(ftrange), np.average(ftrange)/10., 0, 1, 0)
-    return 1./fit[0]
+def fft_diff(data, diffrange=[500., 1000.]):
+    massdif = data[1, 0] - data[0, 0]
+    fft = np.fft.rfft(data[:, 1])
+    aft = np.abs(fft)
+    fvals = np.fft.rfftfreq(len(data), d=massdif)
+    aftdat = np.transpose([fvals, aft])
+    aftdat[:, 1] /= np.amax(aftdat[:, 1])
+    ftrange = [1. / diffrange[1], 1. / diffrange[0]]
+    boo1 = fvals < ftrange[1]
+    boo2 = fvals > ftrange[0]
+    boo3 = np.all([boo1, boo2], axis=0)
+    ftext = aftdat[boo3]
+    fit, err, fitdat = voigt_fit(ftext[:, 0], ftext[:, 1], np.average(ftrange), np.average(ftrange) / 10., 0, 1, 0)
+    return 1. / fit[0]
 
 
 def correlation_integration(dat1, dat2, alpha=0.01, plot_corr=False, **kwargs):

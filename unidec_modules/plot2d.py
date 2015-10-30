@@ -12,6 +12,7 @@ class Plot2d(PlottingWindow):
     """
     Plotting class for 2D contour plots
     """
+
     def __init__(self, *args, **kwargs):
         """
         Initialize parameters for plotting window
@@ -141,7 +142,7 @@ class Plot2d(PlottingWindow):
         yvals = nativez.simchargefit(xvals) + offset
         self.subplot1.plot(xvals, yvals, color=col)
         if width > 0 and shape == 0:
-            self.subplot1.fill_between(xvals, yvals - width, yvals + width, color=col, alpha=alpha)
+            self.subplot1.fill_between(xvals / self.kdnorm, yvals - width, yvals + width, color=col, alpha=alpha)
         elif width > 0 and shape == 1:
             zbuff = width * 3
             start = -zbuff
@@ -149,8 +150,8 @@ class Plot2d(PlottingWindow):
             zrange = xrange(start, end)
             for i in xrange(1, len(zrange)):
                 weight = np.exp(-(zrange[i]) ** 2 / (2. * width * width))
-                self.subplot1.fill_between(xvals, yvals + zrange[i - 1] + 0.5, yvals + zrange[i] + 0.5, color=col,
-                                           alpha=alpha * weight, linewidth=0.0)
+                self.subplot1.fill_between(xvals / self.kdnorm, yvals + zrange[i - 1] + 0.5, yvals + zrange[i] + 0.5,
+                                           color=col, alpha=alpha * weight, linewidth=0.0)
         self.subplot1.axis([x1, x2, y1, y2])
         self.nativez.append([offset, col])
         self.repaint()

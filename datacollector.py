@@ -14,7 +14,7 @@ from unidec_modules import UniFit, Extract2D, unidecstructure, PlotAnimations, p
     MassDefects, nativez, IM_functions
 from unidec_modules.PlottingWindow import PlottingWindow
 import unidec_modules.unidectools as ud
-from unidec_modules.masstools import AutocorrWindow
+from unidec_modules.AutocorrWindow import AutocorrWindow
 
 __author__ = 'michael.marty'
 
@@ -341,9 +341,9 @@ class DataCollector(wx.Frame):
         self.plot2d = plot2d.Plot2d(self.tab2)
         self.plot4 = plot1d.Plot1d(self.tab3)
 
-        miscwindows.SetupTabBox(self.tab1, self.plot1)
-        miscwindows.SetupTabBox(self.tab2, self.plot2d)
-        miscwindows.SetupTabBox(self.tab3, self.plot4)
+        miscwindows.setup_tab_box(self.tab1, self.plot1)
+        miscwindows.setup_tab_box(self.tab2, self.plot2d)
+        miscwindows.setup_tab_box(self.tab3, self.plot4)
         self.plotwindow.AddPage(self.tab1, "1D Stack")
         self.plotwindow.AddPage(self.tab2, "2D Grid")
         self.plotwindow.AddPage(self.tab3, "Summation")
@@ -357,8 +357,8 @@ class DataCollector(wx.Frame):
         self.plot3 = NetworkFrame(self.tab12)
         self.plot3h = plot1d.Plot1d(self.tab22)
 
-        miscwindows.SetupTabBox(self.tab12, self.plot3)
-        miscwindows.SetupTabBox(self.tab22, self.plot3h)
+        miscwindows.setup_tab_box(self.tab12, self.plot3)
+        miscwindows.setup_tab_box(self.tab22, self.plot3h)
         self.plotwindow2.AddPage(self.tab12, "Network Model")
         self.plotwindow2.AddPage(self.tab22, "histogram")
 
@@ -1002,7 +1002,7 @@ class DataCollector(wx.Frame):
         masssum = np.transpose([np.unique(self.grid[0, :, 0]), np.sum(self.grid[:, :, 1], axis=0)])
         print "Sum shape:", masssum.shape
         autocorrwindow = AutocorrWindow(self)
-        autocorrwindow.InitUI(self.config, masssum)
+        autocorrwindow.initalize_dialog(self.config, masssum)
         autocorrwindow.ShowModal()
 
     def on_local_path(self, e):

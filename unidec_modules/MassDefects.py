@@ -1,6 +1,5 @@
 import os
 from copy import deepcopy
-
 import numpy as np
 import wx
 from scipy.interpolate import interp1d

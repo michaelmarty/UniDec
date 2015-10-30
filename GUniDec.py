@@ -1,33 +1,16 @@
 import time
 import os
 import thread
-
 import wx
 import numpy as np
-
 import unidec
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # from wx.lib.pubsub import setupkwargs
 # from wx.lib.pubsub import setupkwargs
 from wx.lib.pubsub import pub
 import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 from unidec_modules import Extract2D, peakwidthtools, masstools, miscwindows, \
-    MassDefects, mainwindow, nativez
+    MassDefects, mainwindow, nativez, ManualSelectionWindow, AutocorrWindow
 from unidec_modules.isolated_packages import FileDialogs, texmaker, twitter_interface
 import datacollector
 import import_wizard
@@ -120,8 +103,8 @@ class UniDecApp(object):
             fname = "0.txt"
             newdir = "C:\\cprog\\UniDecDemo"
             self.on_open_file(fname, newdir)
-            #self.on_auto(0)
-            #self.on_plot_peaks(0)
+            # self.on_auto(0)
+            # self.on_plot_peaks(0)
 
     # ..............................
     #
@@ -881,16 +864,16 @@ class UniDecApp(object):
         :return: None
         """
         peaksel = self.view.peakpanel.selection2
-        pmasses=np.array([p.mass for p in self.eng.pks.peaks])
+        pmasses = np.array([p.mass for p in self.eng.pks.peaks])
         peakdiff = pmasses - peaksel
         print peakdiff
 
         self.view.plot2.textremove()
-        for i,d in enumerate(peakdiff):
+        for i, d in enumerate(peakdiff):
             if d != 0:
                 self.view.plot2.addtext(str(d), pmasses[i], np.amax(self.eng.data.massdat[:, 1]) * 0.99)
             else:
-                self.view.plot2.addtext("0",pmasses[i], np.amax(self.eng.data.massdat[:, 1]) * 0.99)
+                self.view.plot2.addtext("0", pmasses[i], np.amax(self.eng.data.massdat[:, 1]) * 0.99)
 
     def on_plot_offsets(self, e=None):
         """
@@ -905,7 +888,7 @@ class UniDecApp(object):
                                     config=self.eng.config,
                                     ylab="Charge Offset", title="Mass vs. Charge Offset", test_kda=True)
 
-    def on_color_plot1d(self,e=None,filled=False):
+    def on_color_plot1d(self, e=None, filled=False):
         self.on_integrate(plot=False)
         self.eng.get_peaks_scores()
         self.makeplot2(1)
@@ -916,9 +899,9 @@ class UniDecApp(object):
                 self.plot_integral(limits, color=color, filled=filled)
                 self.view.plot2.repaint()
 
-                for i,z in enumerate(self.eng.data.ztab):
+                for i, z in enumerate(self.eng.data.ztab):
                     if p.mztab[i, 1] > self.eng.config.peakplotthresh * np.amax(p.mztab[:, 1]):
-                        mzlimits=np.array(limits)/float(z)
+                        mzlimits = np.array(limits) / float(z)
                         boo1 = self.eng.data.data2[:, 0] < mzlimits[1]
                         boo2 = self.eng.data.data2[:, 0] > mzlimits[0]
                         intdat = self.eng.data.data2[np.all([boo1, boo2], axis=0)]
@@ -1104,11 +1087,11 @@ class UniDecApp(object):
         :param e: unused event
         :return: None
         """
-        dlg = masstools.ManualSelection(self.view)
+        dlg = ManualSelectionWindow.ManualSelection(self.view)
         if self.eng.config.imflag == 0:
-            dlg.InitUI(self.eng.config, self.eng.data.data2)
+            dlg.initiate_dialog(self.eng.config, self.eng.data.data2)
         else:
-            dlg.InitUI(self.eng.config, self.eng.data.data3)
+            dlg.initiate_dialog(self.eng.config, self.eng.data.data3)
         dlg.ShowModal()
 
     def on_match(self, e=None):
@@ -1135,24 +1118,24 @@ class UniDecApp(object):
         :return: None
         """
         dlg = masstools.MassSelection(self.view)
-        dlg.InitUI(self.eng.config, self.eng.config.matchlist, self.eng.pks, massdat=self.eng.data.massdat)
+        dlg.init_dialog(self.eng.config, self.eng.pks, massdat=self.eng.data.massdat)
         if show:
             dlg.ShowModal()
         else:
-            dlg.OnMatchAll(0)
-            dlg.OnClose(0)
+            dlg.on_match_all(0)
+            dlg.on_close(0)
 
-        if dlg.newmatchlist != []:
-            self.eng.config.matchlist = dlg.newmatchlist
+        if self.eng.config.matchlist != []:
             if len(self.eng.config.matchlist[3]) == self.eng.pks.plen:
                 self.view.SetStatusText("Matching", number=5)
                 np.savetxt(self.eng.config.matchfile, np.transpose(self.eng.config.matchlist), fmt='%s', delimiter=",")
                 self.view.peakpanel.add_data(self.eng.pks)
                 self.makeplot6(1)
-        else:
-            self.eng.config.matchlist = []
+            else:
+                self.eng.config.matchlist = []
 
         if self.eng.pks.changed == 1:
+            print "Simulating Peaks"
             mztab = ud.make_peaks_mztab(self.eng.data.mzgrid, self.eng.pks, self.eng.config.adductmass)
             ud.make_peaks_mztab_spectrum(self.eng.data.mzgrid, self.eng.pks, self.eng.data.data2, mztab)
             self.view.peakpanel.add_data(self.eng.pks)
@@ -1164,7 +1147,7 @@ class UniDecApp(object):
         self.view.SetStatusText("Match Done", number=5)
         pass
 
-    def on_auto_peak_width(self,e=None):
+    def on_auto_peak_width(self, e=None):
         if not ud.isempty(self.eng.data.data2):
             self.eng.get_auto_peak_width()
             self.import_config()
@@ -1203,6 +1186,16 @@ class UniDecApp(object):
         dlg.InitUI(self.eng.config)
         dlg.ShowModal()
         self.export_config(self.eng.config.confname)
+
+    def on_autocorr_window(self, e=None):
+        """
+        Opens the autocorrelation window. Feed the config and massdat from the engine.
+        :param e: Unused event
+        :return: None
+        """
+        dlg = AutocorrWindow.AutocorrWindow(self.view)
+        dlg.initalize_dialog(self.eng.config, self.eng.data.massdat)
+        dlg.ShowModal()
 
     def on_unidec_path(self, e=None):
         """

@@ -1,23 +1,19 @@
-__author__ = 'Michael.Marty'
-
 import sys
 import os
 from copy import deepcopy
-
 import wx
-import wx.lib.mixins.listctrl  as  listmix
+import wx.lib.mixins.listctrl as listmix
 import matplotlib.cm as cm
 
 from unidec_modules.IM_functions import *
 from unidec_modules import plot1d, plot2d
 
+__author__ = 'Michael.Marty'
 
-class TestListCtrl4(wx.ListCtrl,
-                    listmix.ListCtrlAutoWidthMixin,
-                    listmix.TextEditMixin):
-    def __init__(self, parent, ID, pos=wx.DefaultPosition,
-                 size=wx.DefaultSize, style=0):
-        wx.ListCtrl.__init__(self, parent, ID, pos, size, style)
+
+class TestListCtrl4(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
+    def __init__(self, parent, id_val, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+        wx.ListCtrl.__init__(self, parent, id_val, pos, size, style)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.TextEditMixin.__init__(self)
         self.InsertColumn(0, "Mass (Da)")
@@ -54,23 +50,12 @@ class TestListCtrl4(wx.ListCtrl,
 class TestListCtrlPanel4(wx.Panel):
     def __init__(self, parent, size=(200, 200)):
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
-        tID = wx.NewId()
+        tid = wx.NewId()
         sizer = wx.BoxSizer(wx.VERTICAL)
-        if wx.Platform == "__WXMAC__" and \
-                hasattr(wx.GetApp().GetTopWindow(), "LoadDemo"):
-            self.useNative = wx.CheckBox(self, -1, "Use native listctrl")
-            self.useNative.SetValue(
-                not wx.SystemOptions.GetOptionInt("mac.listctrl.always_use_generic"))
-            self.Bind(wx.EVT_CHECKBOX, self.OnUseNative, self.useNative)
-            sizer.Add(self.useNative, 0, wx.ALL | wx.ALIGN_RIGHT, 4)
-        self.list = TestListCtrl4(self, tID, size=size, style=wx.LC_REPORT)
+        self.list = TestListCtrl4(self, tid, size=size, style=wx.LC_REPORT)
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
-
-    def OnUseNative(self, event):
-        wx.SystemOptions.SetOptionInt("mac.listctrl.always_use_generic", not event.IsChecked())
-        wx.GetApp().GetTopWindow().LoadDemo("ListCtrl_edit")
 
 
 class IMTools(wx.Dialog):

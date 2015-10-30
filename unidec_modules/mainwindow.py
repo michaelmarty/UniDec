@@ -180,7 +180,8 @@ class Mainwindow(wx.Frame):
                                                       "Batch convert .raw to .txt files with wizard")
         self.toolsmenu.AppendSeparator()
 
-        self.menuAutoWidth = self.toolsmenu.Append(wx.ID_ANY, "Automatic Peak Width\tCtrl+W", "Try to get peak width automatically.")
+        self.menuAutoWidth = self.toolsmenu.Append(wx.ID_ANY, "Automatic Peak Width\tCtrl+W",
+                                                   "Try to get peak width automatically.")
         self.menuWidth = self.toolsmenu.Append(wx.ID_ANY, "Peak Width Tool", "Help determine the peak width")
         self.toolsmenu.AppendSeparator()
 
@@ -208,6 +209,8 @@ class Mainwindow(wx.Frame):
 
         self.menukendrick = self.analysismenu.Append(wx.ID_ANY, "Kendrick Mass Tools", "Kendrick Mass Analysis")
         self.menu2Dgrid = self.analysismenu.Append(wx.ID_ANY, "2D Grid Analysis", "2D Grid Analysis")
+        self.menuautocorr = self.analysismenu.Append(wx.ID_ANY, "Autocorrelation",
+                                                     "Autocorrelation of Mass Distribution")
         self.analysismenu.AppendSeparator()
 
         self.menuintegrate = self.analysismenu.Append(wx.ID_ANY, "Integrate Peaks\tCtrl+I",
@@ -221,7 +224,7 @@ class Mainwindow(wx.Frame):
         self.analysismenu.AppendSeparator()
 
         self.menuchargeplot = self.analysismenu.Append(wx.ID_ANY, "Plot By Charge\tCtrl+Z",
-                                                    "Plots Mass Distributions as a Function of Charge")
+                                                       "Plots Mass Distributions as a Function of Charge")
         self.menuoffset = self.analysismenu.Append(wx.ID_ANY, "Plot Charge Offsets\tCtrl+F",
                                                    "Plots Mass vs. Charge Offset in 2D Plot")
 
@@ -285,7 +288,7 @@ class Mainwindow(wx.Frame):
                                                                   "Estimate errors through cross validation.")
             self.experimentalmenu.AppendSeparator()
             self.menucolor1d = self.experimentalmenu.Append(wx.ID_ANY, "Color Plots",
-                                                                  "Make a Different Colored 1D Plot")
+                                                            "Make a Different Colored 1D Plot")
             self.Bind(wx.EVT_MENU, self.pres.on_zerocharge_mass, self.menuDeisotope)
             self.Bind(wx.EVT_MENU, self.pres.on_cross_validate, self.menuCrossValidate)
             self.Bind(wx.EVT_MENU, self.pres.on_additional_parameters, self.menuAdditionalParameters)
@@ -358,6 +361,7 @@ class Mainwindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.pres.on_integrate, self.menuintegrate)
         self.Bind(wx.EVT_MENU, self.pres.on_2d_grid, self.menu2Dgrid)
         self.Bind(wx.EVT_MENU, self.pres.on_kendrick, self.menukendrick)
+        self.Bind(wx.EVT_MENU, self.pres.on_autocorr_window, self.menuautocorr)
         self.Bind(wx.EVT_MENU, self.pres.on_manual, self.menuManualFile)
         self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault1)
         self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault2)
@@ -421,12 +425,12 @@ class Mainwindow(wx.Frame):
             self.plot5 = plot2d.Plot2d(tab5)
             self.plot6 = plot1d.Plot1d(tab6)
 
-            miscwindows.SetupTabBox(tab1, self.plot1)
-            miscwindows.SetupTabBox(tab2, self.plot2)
-            miscwindows.SetupTabBox(tab3, self.plot3)
-            miscwindows.SetupTabBox(tab4, self.plot4)
-            miscwindows.SetupTabBox(tab5, self.plot5)
-            miscwindows.SetupTabBox(tab6, self.plot6)
+            miscwindows.setup_tab_box(tab1, self.plot1)
+            miscwindows.setup_tab_box(tab2, self.plot2)
+            miscwindows.setup_tab_box(tab3, self.plot3)
+            miscwindows.setup_tab_box(tab4, self.plot4)
+            miscwindows.setup_tab_box(tab5, self.plot5)
+            miscwindows.setup_tab_box(tab6, self.plot6)
 
             if self.config.imflag == 1:
                 tab1im = wx.Panel(plotwindow)
@@ -447,14 +451,14 @@ class Mainwindow(wx.Frame):
                 self.plot9 = plot3d.CubePlot(tab9)
                 self.plot10 = plot3d.CubePlot(tab10)
 
-                miscwindows.SetupTabBox(tab1im, self.plot1im)
-                miscwindows.SetupTabBox(tab1fit, self.plot1fit)
-                miscwindows.SetupTabBox(tab2ccs, self.plot2ccs)
-                miscwindows.SetupTabBox(tab3color, self.plot3color)
-                miscwindows.SetupTabBox(tab5mccs, self.plot5mccs)
-                miscwindows.SetupTabBox(tab5ccsz, self.plot5ccsz)
-                miscwindows.SetupTabBox(tab9, self.plot9)
-                miscwindows.SetupTabBox(tab10, self.plot10)
+                miscwindows.setup_tab_box(tab1im, self.plot1im)
+                miscwindows.setup_tab_box(tab1fit, self.plot1fit)
+                miscwindows.setup_tab_box(tab2ccs, self.plot2ccs)
+                miscwindows.setup_tab_box(tab3color, self.plot3color)
+                miscwindows.setup_tab_box(tab5mccs, self.plot5mccs)
+                miscwindows.setup_tab_box(tab5ccsz, self.plot5ccsz)
+                miscwindows.setup_tab_box(tab9, self.plot9)
+                miscwindows.setup_tab_box(tab10, self.plot10)
 
             plotwindow.AddPage(tab1, "MS Data v. Fit")
             if self.config.imflag == 1:

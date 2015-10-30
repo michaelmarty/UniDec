@@ -811,7 +811,9 @@ class UniDec:
             return False
 
         # Get directory, filename, and header
-        dirname, file_name = os.path.split(file_path)
+
+        self.config.dirname, file_name = os.path.split(load_path)
+
         header = os.path.splitext(file_name)[0]
         self.config.outfname = string.rsplit(header, sep="_", maxsplit=1)[0]
         print "Header:", self.config.outfname

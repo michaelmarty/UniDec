@@ -1,16 +1,14 @@
-__author__ = 'Michael.Marty'
-
 import os
 from copy import deepcopy
-
 import numpy as np
-
 import wx
 
 import unidecstructure
 import plot2d
 import plot1d
 import unidectools as ud
+
+__author__ = 'Michael.Marty'
 
 
 # def __init__(self,datalist,config=None,*args,**kwargs):
@@ -134,6 +132,7 @@ class Extract2DPlot(wx.Frame):
             self.on_total(0)
         except Exception, e:
             self.on_next(0)
+            print e
         self.Centre()
         self.Show(True)
 
@@ -195,7 +194,7 @@ class Extract2DPlot(wx.Frame):
                         else:
                             intensity = 0
                     self.igrid[i, j, k] = intensity
-        self.igrid = self.igrid / np.amax(self.igrid)
+        self.igrid /= np.amax(self.igrid)
 
     def makeplot(self):
         i = self.pos
@@ -262,28 +261,28 @@ class Extract2DPlot(wx.Frame):
             self.plot1.clear_plot()
             print "Failed Plot1", e
 
-    def on_close(self, e):
+    def on_close(self, e=None):
         print "Closing"
         self.config.discreteplot = self.storediscrete
         self.Destroy()
 
-    def on_back(self, e):
+    def on_back(self, e=None):
         self.getfromgui()
         self.pos += -1
-        self.pos = self.pos % len(self.datalist)
+        self.pos %= len(self.datalist)
         self.makegrid()
         self.extractall()
         self.makeplot()
 
-    def on_next(self, e):
+    def on_next(self, e=None):
         self.getfromgui()
         self.pos += 1
-        self.pos = self.pos % len(self.datalist)
+        self.pos %= len(self.datalist)
         self.makegrid()
         self.extractall()
         self.makeplot()
 
-    def on_total(self, e):
+    def on_total(self, e=None):
         self.getfromgui()
         self.makegrid()
         self.extractall()
@@ -306,6 +305,7 @@ class Extract2DPlot(wx.Frame):
             self.plot2.on_save_fig(e, name2)
             print name2
 
+    # noinspection PyPep8Naming
     def on_save_figPDF(self, e):
 
         name1 = os.path.join(self.directory, "Extract2DFigure1.pdf")
@@ -320,21 +320,21 @@ class Extract2DPlot(wx.Frame):
 
 # Main App Execution
 if __name__ == "__main__":
-    dir = "C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3\\MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit100_unidecfiles"
-    file = "MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit100_mass.txt"
+    dir_name = "C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3\\MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit100_unidecfiles"
+    file_name = "MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit100_mass.txt"
 
-    path = os.path.join(dir, file)
+    path = os.path.join(dir_name, file_name)
 
     data = np.loadtxt(path)
 
-    dir = "C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3\\MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit120_unidecfiles"
-    file = "MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit120_mass.txt"
-    path = os.path.join(dir, file)
+    dir_name = "C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3\\MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit120_unidecfiles"
+    file_name = "MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit120_mass.txt"
+    path = os.path.join(dir_name, file_name)
     data2 = np.loadtxt(path)
 
-    dir = "C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3\\MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit180_unidecfiles"
-    file = "MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit180_mass.txt"
-    path = os.path.join(dir, file)
+    dir_name = "C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3\\MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit180_unidecfiles"
+    file_name = "MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit180_mass.txt"
+    path = os.path.join(dir_name, file_name)
     data3 = np.loadtxt(path)
 
     datalist = [data, data2, data3]
