@@ -10,16 +10,40 @@ import unidectools as ud
 
 __author__ = 'Michael.Marty'
 
+"""
+Window for extracting intensity values from data to make 2D plots and 1D plots.
+"""
 
-# def __init__(self,datalist,config=None,*args,**kwargs):
-#    wx.Window.__init__(self, *args, **kwargs)
+
 class Extract2DPlot(wx.Frame):
-    def __init__(self, parent, datalist, config=None, yvals=None, directory=None, header=None, params=None, *args,
-                 **kwargs):
+    def __init__(self, parent, data_list, config=None, yvals=None, directory=None, header=None, params=None):
+        """
+        Create wx.Frame and initialzie components
+        :param parent: Parent window or panel passed to wx.Frame
+        :param data_list: Input data for extraction in a list of arrays (N x 2)
+        :param config: UniDecConfig object. If None, will use defaults.
+        :param yvals: Position values for corresponding data_list elements.
+        For plots, these become the titles. For the Weighted-Average-of-Position (WAP) these are the position values.
+        :param directory: Directory for saving files. Default is current working directory.
+        :param header: Header for files that are written. Default is "Extract"
+        :param params: List of 8 values that define the parameters for extraction.
+
+        0=mass 0
+        1=mass 1
+        2=mass 2
+        3=minimum oligomeric state of mass 1
+        4=maximum oligomeric state of mass 1
+        5=minimum oligomeric state of mass 2
+        6=maximum oligomeric state of mass 2
+        7=Error window for finding intensity value
+
+        masses = m0 + m1 * range(min m1, max m1 +1) + m2 * range(min m2, max m2 +1)
+
+        :return: None
+        """
         wx.Frame.__init__(self, parent, title="2D Grid Extraction", size=(-1, -1))
-
+        # Make Menu
         self.filemenu = wx.Menu()
-
         self.menuSaveFigPNG = self.filemenu.Append(wx.ID_ANY, "Save Figures as PNG",
                                                    "Save all figures as PNG in central directory")
         self.menuSaveFigPDF = self.filemenu.Append(wx.ID_ANY, "Save Figures as PDF",
@@ -30,8 +54,9 @@ class Extract2DPlot(wx.Frame):
         self.menuBar = wx.MenuBar()
         self.menuBar.Append(self.filemenu, "&File")
         self.SetMenuBar(self.menuBar)
-
+        # Initialize Parameters
         if config is None:
+            # Default UniDecConfig object
             self.config = unidecstructure.UniDecConfig()
             self.config.initialize()
         else:
@@ -52,82 +77,84 @@ class Extract2DPlot(wx.Frame):
         else:
             self.params = params
 
-        self.datalist = datalist
-        self.dlen = len(datalist)
+        self.datalist = data_list
+        self.dlen = len(data_list)
         self.pos = -1
         self.yvals = np.array(yvals).astype(np.float)
         if ud.isempty(yvals):
-            self.yvals = np.arange(0, len(datalist))
+            self.yvals = np.arange(0, len(data_list))
         self.storediscrete = deepcopy(self.config.discreteplot)
 
-        self.panel = wx.Panel(self)
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.plot1 = plot1d.Plot1d(self.panel)
-        self.plot2 = plot2d.Plot2d(self.panel)
-        self.sizer.Add(self.plot1, 1, wx.EXPAND)
-        self.sizer.Add(self.plot2, 1, wx.EXPAND)
+        # Setup GUI
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.plot1 = plot1d.Plot1d(panel)
+        self.plot2 = plot2d.Plot2d(panel)
+        sizer.Add(self.plot1, 1, wx.EXPAND)
+        sizer.Add(self.plot2, 1, wx.EXPAND)
 
-        self.controlsizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.controlsizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        controlsizer = wx.BoxSizer(wx.HORIZONTAL)
+        controlsizer1 = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.ctlm0 = wx.TextCtrl(self.panel, value=str(self.params[0]))
-        self.ctlm1 = wx.TextCtrl(self.panel, value=str(self.params[1]))
-        self.ctlm2 = wx.TextCtrl(self.panel, value=str(self.params[2]))
-        self.ctlm1min = wx.TextCtrl(self.panel, value=str(self.params[3]))
-        self.ctlm1max = wx.TextCtrl(self.panel, value=str(self.params[4]))
-        self.ctlm2min = wx.TextCtrl(self.panel, value=str(self.params[5]))
-        self.ctlm2max = wx.TextCtrl(self.panel, value=str(self.params[6]))
-        self.ctlwindow = wx.TextCtrl(self.panel, value=str(self.params[7]))
+        self.ctlm0 = wx.TextCtrl(panel, value=str(self.params[0]))
+        self.ctlm1 = wx.TextCtrl(panel, value=str(self.params[1]))
+        self.ctlm2 = wx.TextCtrl(panel, value=str(self.params[2]))
+        self.ctlm1min = wx.TextCtrl(panel, value=str(self.params[3]))
+        self.ctlm1max = wx.TextCtrl(panel, value=str(self.params[4]))
+        self.ctlm2min = wx.TextCtrl(panel, value=str(self.params[5]))
+        self.ctlm2max = wx.TextCtrl(panel, value=str(self.params[6]))
+        self.ctlwindow = wx.TextCtrl(panel, value=str(self.params[7]))
 
-        self.controlsizer.Add(wx.StaticText(self.panel, label="Mass 0"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.controlsizer.Add(self.ctlm0, 0, wx.EXPAND)
-        self.controlsizer.Add(wx.StaticText(self.panel, label="Mass 1"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.controlsizer.Add(self.ctlm1, 0, wx.EXPAND)
-        self.controlsizer.Add(wx.StaticText(self.panel, label="Mass 2"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.controlsizer.Add(self.ctlm2, 0, wx.EXPAND)
-        self.controlsizer.Add(wx.StaticText(self.panel, label="Mass Window"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.controlsizer.Add(self.ctlwindow, 0, wx.EXPAND)
+        controlsizer.Add(wx.StaticText(panel, label="Mass 0"), 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer.Add(self.ctlm0, 0, wx.EXPAND)
+        controlsizer.Add(wx.StaticText(panel, label="Mass 1"), 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer.Add(self.ctlm1, 0, wx.EXPAND)
+        controlsizer.Add(wx.StaticText(panel, label="Mass 2"), 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer.Add(self.ctlm2, 0, wx.EXPAND)
+        controlsizer.Add(wx.StaticText(panel, label="Mass Window"), 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer.Add(self.ctlwindow, 0, wx.EXPAND)
         if self.dlen > 1:
-            self.ctlnorm = wx.CheckBox(self.panel, label="Normalize")
-            self.controlsizer.Add(self.ctlnorm, 0, wx.EXPAND)
-        self.controlsizer1.Add(wx.StaticText(self.panel, label="Mass 1 Min #"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.controlsizer1.Add(self.ctlm1min, 0, wx.EXPAND)
-        self.controlsizer1.Add(wx.StaticText(self.panel, label="Mass 1 Max #"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.controlsizer1.Add(self.ctlm1max, 0, wx.EXPAND)
-        self.controlsizer1.Add(wx.StaticText(self.panel, label="Mass 2 Min #"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.controlsizer1.Add(self.ctlm2min, 0, wx.EXPAND)
-        self.controlsizer1.Add(wx.StaticText(self.panel, label="Mass 2 Max #"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.controlsizer1.Add(self.ctlm2max, 0, wx.EXPAND)
+            self.ctlnorm = wx.CheckBox(panel, label="Normalize")
+            controlsizer.Add(self.ctlnorm, 0, wx.EXPAND)
+        controlsizer1.Add(wx.StaticText(panel, label="Mass 1 Min #"), 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer1.Add(self.ctlm1min, 0, wx.EXPAND)
+        controlsizer1.Add(wx.StaticText(panel, label="Mass 1 Max #"), 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer1.Add(self.ctlm1max, 0, wx.EXPAND)
+        controlsizer1.Add(wx.StaticText(panel, label="Mass 2 Min #"), 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer1.Add(self.ctlm2min, 0, wx.EXPAND)
+        controlsizer1.Add(wx.StaticText(panel, label="Mass 2 Max #"), 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer1.Add(self.ctlm2max, 0, wx.EXPAND)
 
-        self.controlsizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        controlsizer2 = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.backbutton = wx.Button(self.panel, label="Back")
-        self.nextbutton = wx.Button(self.panel, label="Next")
+        backbutton = wx.Button(panel, label="Back")
+        nextbutton = wx.Button(panel, label="Next")
         if self.dlen > 1:
-            self.totalbutton = wx.Button(self.panel, label="Total")
+            totalbutton = wx.Button(panel, label="Total")
         else:
-            self.totalbutton = wx.Button(self.panel, label="Replot")
-        self.wapbutton = wx.Button(self.panel, label="WAP")
+            totalbutton = wx.Button(panel, label="Replot")
+        wapbutton = wx.Button(panel, label="WAP")
         if self.dlen > 1:
-            self.controlsizer2.Add(self.backbutton, 0, wx.EXPAND)
-            self.controlsizer2.Add(self.nextbutton, 0, wx.EXPAND)
-        self.controlsizer2.Add(self.totalbutton, 0, wx.EXPAND)
+            controlsizer2.Add(backbutton, 0, wx.EXPAND)
+            controlsizer2.Add(nextbutton, 0, wx.EXPAND)
+        controlsizer2.Add(totalbutton, 0, wx.EXPAND)
         if self.dlen > 1:
-            self.controlsizer2.Add(self.wapbutton, 0, wx.EXPAND)
+            controlsizer2.Add(wapbutton, 0, wx.EXPAND)
 
-        self.Bind(wx.EVT_BUTTON, self.on_back, self.backbutton)
-        self.Bind(wx.EVT_BUTTON, self.on_next, self.nextbutton)
-        self.Bind(wx.EVT_BUTTON, self.on_total, self.totalbutton)
-        self.Bind(wx.EVT_BUTTON, self.on_wap, self.wapbutton)
+        self.Bind(wx.EVT_BUTTON, self.on_back, backbutton)
+        self.Bind(wx.EVT_BUTTON, self.on_next, nextbutton)
+        self.Bind(wx.EVT_BUTTON, self.on_total, totalbutton)
+        self.Bind(wx.EVT_BUTTON, self.on_wap, wapbutton)
 
-        self.sizer.Add(self.controlsizer, 0, wx.EXPAND)
-        self.sizer.Add(self.controlsizer1, 0, wx.EXPAND)
-        self.sizer.Add(self.controlsizer2, 0, wx.EXPAND)
+        sizer.Add(controlsizer, 0, wx.EXPAND)
+        sizer.Add(controlsizer1, 0, wx.EXPAND)
+        sizer.Add(controlsizer2, 0, wx.EXPAND)
 
         self.Bind(wx.EVT_CLOSE, self.on_close, self)
 
-        self.panel.SetSizer(self.sizer)
-        self.sizer.Fit(self)
+        panel.SetSizer(sizer)
+        sizer.Fit(self)
+        # Run initial extraction
         try:
             self.on_total(0)
         except Exception, e:
@@ -135,51 +162,55 @@ class Extract2DPlot(wx.Frame):
             print e
         self.Centre()
         self.Show(True)
-
-    def modparams(self):
-        self.params[0] = self.m0
-        self.params[1] = self.m1
-        self.params[2] = self.m2
-        self.params[3] = self.m1minmax[0]
-        self.params[4] = self.m1minmax[1]
-        self.params[5] = self.m2minmax[0]
-        self.params[6] = self.m2minmax[1]
-        self.params[7] = self.window
+        self.normflag = 1
 
     def getfromgui(self):
+        """
+        Extract parameters from GUI to self.params
+        :return:
+        """
         try:
-            self.m0 = float(self.ctlm0.GetValue())
-            self.m1 = float(self.ctlm1.GetValue())
-            self.m2 = float(self.ctlm2.GetValue())
-            self.m1minmax = [int(self.ctlm1min.GetValue()), int(self.ctlm1max.GetValue())]
-            self.m2minmax = [int(self.ctlm2min.GetValue()), int(self.ctlm2max.GetValue())]
+            self.params[0] = float(self.ctlm0.GetValue())
+            self.params[1] = float(self.ctlm1.GetValue())
+            self.params[2] = float(self.ctlm2.GetValue())
+            self.params[3] = int(self.ctlm1min.GetValue())
+            self.params[4] = int(self.ctlm1max.GetValue())
+            self.params[5] = int(self.ctlm2min.GetValue())
+            self.params[6] = int(self.ctlm2max.GetValue())
             try:
-                self.window = float(self.ctlwindow.GetValue())
+                self.params[7] = float(self.ctlwindow.GetValue())
             except ValueError:
-                self.window = 0
+                self.params[7] = 0
             try:
                 self.normflag = int(self.ctlnorm.GetValue())
-            except ValueError:
+            except (ValueError, AttributeError):
                 self.normflag = 1
-            self.modparams()
         except ValueError:
             print "Failed to get from gui"
 
     def makegrid(self):
-        self.grids = []
-        self.m1range = np.arange(self.m1minmax[0], self.m1minmax[1] + 1)
-        self.m2range = np.arange(self.m2minmax[0], self.m2minmax[1] + 1)
+        """
+        Make grid of mass values for potential combinations of m1 and m2 + m0.
+        :return: None
+        """
+        self.m1range = np.arange(self.params[3], self.params[4] + 1)
+        self.m2range = np.arange(self.params[5], self.params[6] + 1)
         self.m1grid, self.m2grid = np.meshgrid(self.m1range, self.m2range, indexing='ij')
-        self.massgrid = self.m0 + self.m1grid * self.m1 + self.m2grid * self.m2
+        self.massgrid = self.params[0] + self.m1grid * self.params[1] + self.m2grid * self.params[2]
 
     def extractall(self):
+        """
+        Extract intensity values from self.datalist for mass values in self.massgrid.
+        :return: None
+        """
+        # TODO: Remove this functionality to unidectools to merge with datacollector.
+        # TODO: Optimize function. It currently preforms the extraction on all every time but doesn't need to...
         self.igrid = np.zeros((len(self.datalist), len(self.m1range), len(self.m2range)))
         for i, data in enumerate(self.datalist):
             for j in xrange(0, len(self.m1range)):
                 for k in xrange(0, len(self.m2range)):
                     mass = self.massgrid[j, k]
-
-                    if not self.window > 0:
+                    if not self.params[7] > 0:
                         pos = ud.nearest(data[:, 0], mass)
                         if pos != 0 and pos != len(data) - 1:
                             intensity = data[pos, 1]
@@ -187,7 +218,7 @@ class Extract2DPlot(wx.Frame):
                             intensity = 0
                     else:
                         mtest = np.abs(data[:, 0] - mass)
-                        btest = mtest < self.window
+                        btest = mtest < self.params[7]
                         pint = data[btest]
                         if not ud.isempty(pint):
                             intensity = np.amax(pint[:, 1])
@@ -197,11 +228,14 @@ class Extract2DPlot(wx.Frame):
         self.igrid /= np.amax(self.igrid)
 
     def makeplot(self):
+        """
+        Make the 2D and 1D plots for element self.pos in data_list.
+        :return: None
+        """
         i = self.pos
         dat = np.transpose([np.ravel(self.m1grid), np.ravel(self.m2grid), np.ravel(self.igrid[i])])
         self.config.discreteplot = 1
         # self.config.cmap="jet"
-
         title = str(self.yvals[i])
         try:
             self.plot2.contourplot(dat, self.config, xlab="mass 1", ylab="mass 2", title=title, normflag=self.normflag,
@@ -217,6 +251,11 @@ class Extract2DPlot(wx.Frame):
             print "Failed Plot1", e
 
     def makeplottotal(self):
+        """
+        Make the 2D and 1D plots for the sum of all arrays in data_list. Write outputs to _grid_2D_extract.txt and
+        _total_2D_extract.txt.
+        :return:
+        """
         grid = np.sum(self.igrid, axis=0)
         dat = np.transpose([np.ravel(self.m1grid), np.ravel(self.m2grid), np.ravel(grid)])
         self.config.discreteplot = 1
@@ -240,6 +279,11 @@ class Extract2DPlot(wx.Frame):
             print "Failed Plot1", e
 
     def makeplotwap(self):
+        """
+        Calculates the weighted average of position (WAP) for each element in the intensity grid.
+        Writes 1D output to _WAP_2D_Extract.txt.
+        :return: None
+        """
         grid = np.zeros((len(self.m1range), len(self.m2range)))
         for j in xrange(0, len(self.m1range)):
             for k in xrange(0, len(self.m2range)):
@@ -262,11 +306,21 @@ class Extract2DPlot(wx.Frame):
             print "Failed Plot1", e
 
     def on_close(self, e=None):
+        """
+        Close the window. Return self.config.discreteplot to its original value.
+        :param e:
+        :return:
+        """
         print "Closing"
         self.config.discreteplot = self.storediscrete
         self.Destroy()
 
     def on_back(self, e=None):
+        """
+        PLot the extraction from the previous array in data_list.
+        :param e: Unused event
+        :return:
+        """
         self.getfromgui()
         self.pos += -1
         self.pos %= len(self.datalist)
@@ -275,6 +329,11 @@ class Extract2DPlot(wx.Frame):
         self.makeplot()
 
     def on_next(self, e=None):
+        """
+        Plot the extraction from the next array in data_list.
+        :param e: Unused event
+        :return: None
+        """
         self.getfromgui()
         self.pos += 1
         self.pos %= len(self.datalist)
@@ -283,19 +342,33 @@ class Extract2DPlot(wx.Frame):
         self.makeplot()
 
     def on_total(self, e=None):
+        """
+        Extract all and plot total.
+        :param e: Unused event
+        :return: None
+        """
         self.getfromgui()
         self.makegrid()
         self.extractall()
         self.makeplottotal()
 
     def on_wap(self, e):
+        """
+        Extract all and plot weighted average of position.
+        :param e: Unused event
+        :return: None
+        """
         self.getfromgui()
         self.makegrid()
         self.extractall()
         self.makeplotwap()
 
     def on_save_fig(self, e):
-
+        """
+        Save figures as a PNG in self.directory.
+        :param e: Unused event
+        :return: None
+        """
         name1 = os.path.join(self.directory, "Extract2DFigure1.png")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)
@@ -307,7 +380,11 @@ class Extract2DPlot(wx.Frame):
 
     # noinspection PyPep8Naming
     def on_save_figPDF(self, e):
-
+        """
+        Save figures as a PDF in self.directory.
+        :param e: Unused event
+        :return: None
+        """
         name1 = os.path.join(self.directory, "Extract2DFigure1.pdf")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)

@@ -4,15 +4,30 @@ from copy import deepcopy
 import wx
 import wx.lib.mixins.listctrl as listmix
 import matplotlib.cm as cm
-
 from unidec_modules.IM_functions import *
 from unidec_modules import plot1d, plot2d
 
 __author__ = 'Michael.Marty'
 
 
-class TestListCtrl4(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
+"""
+This file contains two windows for manipulating IM-MS data.
+IMTools is used for plotting predicted m/z and arrival time for a given set of parameters.
+IMToolExtract is for extracting the CCS distribution for specific slices of the IM data.
+"""
+
+
+class IMListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
     def __init__(self, parent, id_val, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+        """
+        Create listctrl with 2 columns.
+        :param parent: Passed to wx.ListCtrl
+        :param id_val: Passed to wx.ListCtrl
+        :param pos: Passed to wx.ListCtrl
+        :param size: Passed to wx.ListCtrl
+        :param style: Passed to wx.ListCtrl
+        :return: None
+        """
         wx.ListCtrl.__init__(self, parent, id_val, pos, size, style)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.TextEditMixin.__init__(self)
@@ -21,14 +36,29 @@ class TestListCtrl4(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
         self.SetColumnWidth(0, 100)
         self.SetColumnWidth(1, 100)
 
-    def Clear(self):
+    def clear_list(self):
+        """
+        Clear list.
+        :return: None
+        """
         self.DeleteAllItems()
 
-    def AddLine(self, val=0):
+    def add_line(self, val=0):
+        """
+        Add a new line to the list.
+        :param val: Value for the first column. Default is 0. Default for second column is 0.
+        :return: None
+        """
         index = self.InsertStringItem(sys.maxint, str(val))
         self.SetStringItem(index, 1, str(0))
 
-    def Populate(self, data, colors=None):
+    def populate(self, data, colors=None):
+        """
+        Add data from array or nested list to the listctrl.
+        :param data: List or array of data values.
+        :param colors: Background colors list
+        :return: None
+        """
         self.DeleteAllItems()
         for i in range(0, len(data)):
             index = self.InsertStringItem(sys.maxint, str(data[i][0]))
@@ -38,21 +68,31 @@ class TestListCtrl4(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
                 col = wx.Colour(round(color[0] * 255), round(color[1] * 255), round(color[2] * 255), alpha=255)
                 self.SetItemBackgroundColour(index, col=col)
 
-    def GetList(self):
+    def get_list(self):
+        """
+        Return the list of values in the listctrl.
+        :return: Nested list of listctrl output
+        """
         count = self.GetItemCount()
-        list = []
+        list_out = []
         for i in range(0, count):
             sublist = [float(self.GetItem(i, col=0).GetText()), float(self.GetItem(i, col=1).GetText())]
-            list.append(sublist)
-        return list
+            list_out.append(sublist)
+        return list_out
 
 
-class TestListCtrlPanel4(wx.Panel):
+class IMListCtrlPanel(wx.Panel):
     def __init__(self, parent, size=(200, 200)):
+        """
+        Creates the panel for the IMListCtrl
+        :param parent: Parent window or panel
+        :param size: Size in pixels foor list control
+        :return: None
+        """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         tid = wx.NewId()
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self.list = TestListCtrl4(self, tid, size=size, style=wx.LC_REPORT)
+        self.list = IMListCtrl(self, tid, size=size, style=wx.LC_REPORT)
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
@@ -60,142 +100,183 @@ class TestListCtrlPanel4(wx.Panel):
 
 class IMTools(wx.Dialog):
     def __init__(self, *args, **kwargs):
+        """
+        Initialize the dialog window.
+        :param args: Passed to wx.Dialog
+        :param kwargs: Passed to wx.Dialog
+        :return: None
+        """
         super(IMTools, self).__init__(*args, **kwargs)
         self.SetSize((600, 800))
         self.SetTitle("Ion Mobility Tools")
+        self.pnl = None
+        self.pnl2 = None
+        self.plot = None
+        self.ctltwave = None
+        self.masspanel = None
+        self.twave = 0
+        self.flag = 0
+        self.data3 = []
+        self.config = None
+        self.defaultconfig = None
 
-    def InitUI(self, data3, config):
+    def initialize_interface(self, data3, config):
+        """
+        Initialize the parameters, setup the panels, and display the interface.
+        :param data3: IM-MS raw or processed data
+        :param config: UniDecConfig object
+        :return: None
+        """
         self.defaultconfig = config
         self.config = deepcopy(config)
         self.data3 = data3
+
         self.pnl = wx.Panel(self)
         self.pnl2 = wx.Panel(self)
-        self.SetupPanel()
-
+        self.setup_panel()
         self.CenterOnParent()
-        self.flag = 0
 
-    def SetupPanel(self):
+    def setup_panel(self):
+        """
+        Make/remake the main panel.
+        :return: None
+        """
+        # TODO: Inherit this from mainwindow somehow so controls are the same.
         for child in self.pnl.GetChildren():
             child.Destroy()
         for child in self.pnl2.GetChildren():
             child.Destroy()
-        self.vbox = wx.BoxSizer(wx.VERTICAL)
-        self.sb = wx.StaticBox(self.pnl, label='Ion Mobility Parameters Tool')
-        self.sbs = wx.StaticBoxSizer(self.sb, orient=wx.VERTICAL)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        sb = wx.StaticBox(self.pnl, label='Ion Mobility Parameters Tool')
+        sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 
         self.plot = plot2d.Plot2d(self.pnl)
         self.plot.contourplot(self.data3, self.config, xlab="m/z (Th)", ylab="Arrival Time (ms)", title="IM-MS Data")
-        self.sbs.Add(self.plot, 1, wx.EXPAND)
+        sbs.Add(self.plot, 1, wx.EXPAND)
 
-        self.ctlsizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.sb2 = wx.StaticBox(self.pnl, label='Instrumental Parameters')
-        self.sbs2 = wx.StaticBoxSizer(self.sb2, orient=wx.VERTICAL)
-        self.gbox1c = wx.GridBagSizer(wx.VERTICAL)
+        ctlsizer = wx.BoxSizer(wx.HORIZONTAL)
+        sb2 = wx.StaticBox(self.pnl, label='Instrumental Parameters')
+        sbs2 = wx.StaticBoxSizer(sb2, orient=wx.VERTICAL)
+        gbox1c = wx.GridBagSizer(wx.VERTICAL)
         size1 = (75, -1)
         self.ctltwave = wx.RadioBox(self.pnl, label="", choices=["Linear Cell", "Travelling Wave"])
-        self.Bind(wx.EVT_RADIOBOX, self.OnFlipTWave, self.ctltwave)
-        self.gbox1c.Add(self.ctltwave, (0, 0), span=(1, 5))
+        self.Bind(wx.EVT_RADIOBOX, self.on_flip_twave, self.ctltwave)
+        gbox1c.Add(self.ctltwave, (0, 0), span=(1, 5))
 
         if self.config.twaveflag == 0:
+            # Linear Mode controls
             self.ctlvolt = wx.TextCtrl(self.pnl, value="", size=size1)
-            self.gbox1c.Add(self.ctlvolt, (1, 1), span=(1, 1))
-            self.gbox1c.Add(wx.StaticText(self.pnl, label="Voltage (V): "), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1c.Add(self.ctlvolt, (1, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(self.pnl, label="Voltage (V): "), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.ctlpressure = wx.TextCtrl(self.pnl, value='', size=size1)
-            self.gbox1c.Add(self.ctlpressure, (2, 1), span=(1, 1))
-            self.gbox1c.Add(wx.StaticText(self.pnl, label="Pressure (Torr): "), (2, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1c.Add(self.ctlpressure, (2, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(self.pnl, label="Pressure (Torr): "), (2, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.ctltemp = wx.TextCtrl(self.pnl, value='', size=size1)
-            self.gbox1c.Add(self.ctltemp, (3, 1), span=(1, 1))
-            self.gbox1c.Add(wx.StaticText(self.pnl, label=u"Temperature (\u00B0C): "), (3, 0),
-                            flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1c.Add(self.ctltemp, (3, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(self.pnl, label=u"Temperature (\u00B0C): "), (3, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.ctlgasmass = wx.TextCtrl(self.pnl, value='', size=size1)
-            self.gbox1c.Add(self.ctlgasmass, (4, 1), span=(1, 1))
-            self.gbox1c.Add(wx.StaticText(self.pnl, label="Gas Mass (Da): "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1c.Add(self.ctlgasmass, (4, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(self.pnl, label="Gas Mass (Da): "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.ctlto = wx.TextCtrl(self.pnl, value='', size=size1)
-            self.gbox1c.Add(self.ctlto, (5, 1), span=(1, 1))
-            self.gbox1c.Add(wx.StaticText(self.pnl, label=u"Dead Time (t\u2080 in ms): "), (5, 0),
-                            flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1c.Add(self.ctlto, (5, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(self.pnl, label=u"Dead Time (t\u2080 in ms): "), (5, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.ctldriftlength = wx.TextCtrl(self.pnl, value='', size=size1)
-            self.gbox1c.Add(self.ctldriftlength, (6, 1), span=(1, 1))
-            self.gbox1c.Add(wx.StaticText(self.pnl, label="Drift Cell Length (m)"), (6, 0),
-                            flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1c.Add(self.ctldriftlength, (6, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(self.pnl, label="Drift Cell Length (m)"), (6, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.twave = 0
 
         else:
-
+            # T-Wave Controls
             self.ctltcal1 = wx.TextCtrl(self.pnl, value="", size=size1)
-            self.gbox1c.Add(self.ctltcal1, (1, 1), span=(1, 1))
-            self.gbox1c.Add(wx.StaticText(self.pnl, label="Calibration Parameter 1: "), (1, 0),
-                            flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1c.Add(self.ctltcal1, (1, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(self.pnl, label="Calibration Parameter 1: "), (1, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.ctltcal2 = wx.TextCtrl(self.pnl, value='', size=size1)
-            self.gbox1c.Add(self.ctltcal2, (2, 1), span=(1, 1))
-            self.gbox1c.Add(wx.StaticText(self.pnl, label="Calibration Parameter 2: "), (2, 0),
-                            flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1c.Add(self.ctltcal2, (2, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(self.pnl, label="Calibration Parameter 2: "), (2, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.ctledc = wx.TextCtrl(self.pnl, value='', size=size1)
-            self.gbox1c.Add(self.ctledc, (3, 1), span=(1, 1))
-            self.gbox1c.Add(wx.StaticText(self.pnl, label="EDC Parameter: "), (3, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1c.Add(self.ctledc, (3, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(self.pnl, label="EDC Parameter: "), (3, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.ctlgasmass = wx.TextCtrl(self.pnl, value='', size=size1)
-            self.gbox1c.Add(self.ctlgasmass, (4, 1), span=(1, 1))
-            self.gbox1c.Add(wx.StaticText(self.pnl, label="Gas Mass (Da): "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1c.Add(self.ctlgasmass, (4, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(self.pnl, label="Gas Mass (Da): "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.twave = 1
 
-        self.sbs2.Add(self.gbox1c, 0, wx.EXPAND)
-        self.ctlsizer.Add(self.sbs2, 0, wx.EXPAND)
+        sbs2.Add(gbox1c, 0, wx.EXPAND)
+        ctlsizer.Add(sbs2, 0, wx.EXPAND)
 
-        self.vbox2 = wx.BoxSizer(wx.VERTICAL)
-        self.masspanel = TestListCtrlPanel4(self.pnl)
-        self.addbutton = wx.Button(self.pnl, label="Add Species")
-        self.Bind(wx.EVT_BUTTON, self.OnAdd, self.addbutton)
-        self.vbox2.Add(self.addbutton, 0, wx.EXPAND)
-        self.vbox2.Add(self.masspanel, 0, wx.EXPAND)
-        self.plotbutton = wx.Button(self.pnl, label="Plot Species")
-        self.Bind(wx.EVT_BUTTON, self.OnPlot, self.plotbutton)
-        self.vbox2.Add(self.plotbutton, 0, wx.EXPAND)
+        vbox2 = wx.BoxSizer(wx.VERTICAL)
+        self.masspanel = IMListCtrlPanel(self.pnl)
+        addbutton = wx.Button(self.pnl, label="Add Species")
+        self.Bind(wx.EVT_BUTTON, self.on_add, addbutton)
+        vbox2.Add(addbutton, 0, wx.EXPAND)
+        vbox2.Add(self.masspanel, 0, wx.EXPAND)
+        plotbutton = wx.Button(self.pnl, label="Plot Species")
+        self.Bind(wx.EVT_BUTTON, self.on_plot, plotbutton)
+        vbox2.Add(plotbutton, 0, wx.EXPAND)
 
-        self.ctlsizer.Add(self.vbox2, -1, wx.EXPAND)
+        ctlsizer.Add(vbox2, -1, wx.EXPAND)
 
-        self.sbs.Add(self.ctlsizer, 0, wx.EXPAND)
-        self.pnl.SetSizer(self.sbs)
+        sbs.Add(ctlsizer, 0, wx.EXPAND)
+        self.pnl.SetSizer(sbs)
 
-        self.hboxend = wx.BoxSizer(wx.HORIZONTAL)
-        self.okButton = wx.Button(self.pnl2, label='Ok')
-        self.closeButton = wx.Button(self.pnl2, label='Cancel')
-        self.okButton.Bind(wx.EVT_BUTTON, self.OnClose)
-        self.closeButton.Bind(wx.EVT_BUTTON, self.OnCloseCancel)
-        self.hboxend.Add(self.okButton)
-        self.hboxend.Add(self.closeButton, flag=wx.LEFT, border=5)
-        self.pnl2.SetSizer(self.hboxend)
-        # self.hboxend.Fit(self.pnl2)
+        hboxend = wx.BoxSizer(wx.HORIZONTAL)
+        okbutton = wx.Button(self.pnl2, label='Ok')
+        closebutton = wx.Button(self.pnl2, label='Cancel')
+        okbutton.Bind(wx.EVT_BUTTON, self.on_close)
+        closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
+        hboxend.Add(okbutton)
+        hboxend.Add(closebutton, flag=wx.LEFT, border=5)
+        self.pnl2.SetSizer(hboxend)
 
-        self.vbox.Add(self.pnl, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
-        self.vbox.Add(self.pnl2, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=10)
+        vbox.Add(self.pnl, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
+        vbox.Add(self.pnl2, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=10)
 
-        self.SetSizer(self.vbox)
-        self.vbox.Fit(self)
+        self.SetSizer(vbox)
+        vbox.Fit(self)
 
-        self.loadtogui(0)
+        self.load_to_gui(0)
 
-    def OnClose(self, e):
-        self.getfromgui(e)
+    def on_close(self, e):
+        """
+        Close the window and set self.defaultconfig to the new self.config.
+        :param e: Unused event
+        :return: None
+        """
+        self.get_from_gui(e)
         self.defaultconfig = self.config
         self.Destroy()
         self.EndModal(0)
 
-    def OnCloseCancel(self, e):
+    def on_close_cancel(self, e):
+        """
+        Close the window but do not update self.defaultconfig.
+        :param e: Unused event
+        :return: None
+        """
         self.Destroy()
         self.EndModal(1)
 
-    def loadtogui(self, e):
+    def load_to_gui(self, e):
+        """
+        Load from self.config into the GUI control boxes.
+        :param e: Unused event
+        :return: None
+        """
         self.ctltwave.SetSelection(self.config.twaveflag)
         if self.config.twaveflag == 0:
             self.ctlvolt.SetValue(str(self.config.volt))
@@ -210,8 +291,12 @@ class IMTools(wx.Dialog):
             self.ctledc.SetValue(str(self.config.edc))
             self.ctlgasmass.SetValue(str(self.config.gasmass))
 
-    def getfromgui(self, e):
-
+    def get_from_gui(self, e):
+        """
+        Load from GUI to self.config
+        :param e: Unused event
+        :return: None
+        """
         if self.config.twaveflag == 0:
             self.config.volt = ud.string_to_value(self.ctlvolt.GetValue())
             self.config.temp = ud.string_to_value(self.ctltemp.GetValue())
@@ -225,12 +310,22 @@ class IMTools(wx.Dialog):
             self.config.edc = ud.string_to_value(self.ctledc.GetValue())
             self.config.gasmass = ud.string_to_value(self.ctlgasmass.GetValue())
 
-    def OnAdd(self, e):
-        self.masspanel.list.AddLine()
+    def on_add(self, e):
+        """
+        Add lines to the masspanel.
+        :param e: Unused event
+        :return: None
+        """
+        self.masspanel.list.add_line()
 
-    def OnPlot(self, e):
-        self.getfromgui(e)
-        outs = np.array(self.masspanel.list.GetList())
+    def on_plot(self, e):
+        """
+        Gathers all of the parameters and simulates the m/z and dt values. Plots the results.
+        :param e: wx.Event
+        :return: None
+        """
+        self.get_from_gui(e)
+        outs = np.array(self.masspanel.list.get_list())
         ztab = np.arange(float(self.config.startz), float(self.config.endz + 1))
         self.plot.clear_plot()
         self.plot.contourplot(self.data3, self.config, xlab="m/z (Th)", ylab="Arrival Time (ms)", title="IM-MS Data")
@@ -246,13 +341,18 @@ class IMTools(wx.Dialog):
             maxdt = np.amax(dtdat)
             mindt = np.amin(dtdat)
             clipped = np.clip(dts, mindt, maxdt)
-            print np.array([ztab, dts])
+            print mass, np.array([ztab, dts])
             if np.amin(clipped) == maxdt or np.amax(clipped) == mindt:
                 dts = clipped
             self.plot.subplot1.plot(mzvals, dts, marker="o")
         self.plot.repaint()
 
-    def OnFlipTWave(self, e):
+    def on_flip_twave(self, e):
+        """
+        Flip configuration from linear to t-wave. Changes the gas from Ni to He or visa versa. Remakes the GUI.
+        :param e: Unused event
+        :return: None
+        """
         self.config.twaveflag = self.ctltwave.GetSelection()
         if self.config.twaveflag == 0:
             self.config.gasmass = 4.002602
@@ -260,126 +360,188 @@ class IMTools(wx.Dialog):
         elif self.config.twaveflag == 1:
             self.config.gasmass = 28.0134
             print "Using Travelling Wave"
-        self.SetupPanel()
+        self.setup_panel()
         self.ctltwave.SetSelection(self.config.twaveflag)
 
 
 class IMToolExtract(wx.Dialog):
     def __init__(self, *args, **kwargs):
+        """
+        Creates dialog window for performing extraction of IM data slices.
+        :param args: Passed to wx.Dialog
+        :param kwargs: Passed to wx.Dialog
+        :return: None
+        """
         super(IMToolExtract, self).__init__(*args, **kwargs)
         self.SetSize((800, 800))
         self.SetTitle("Ion Mobility Extraction Tools")
+        self.plot1 = None
+        self.plot2 = None
+        self.masspanel = None
+        self.ctlzout = None
+        self.config = None
+        self.massdat = []
+        self.ccsdat = []
+        self.totalgrid = []
+        self.pks = []
+        self.ztab = []
+        self.zout = 0
 
-    def InitUI(self, massdat, ccsdat, mccsgrid, config, pks):
+    def initialize_interface(self, massdat, ccsdat, mccsgrid, config, pks):
+        """
+        Initilizes the interface and plots the intial results.
+        :param massdat: Mass distribution array (N x 2)
+        :param ccsdat: CCS distribution array (M x 2)
+        :param mccsgrid: Array of intensity values for corresponding mass and CCS values (N x M) array
+        :param config: UniDecConfig object
+        :param pks: Peaks object
+        :return: None
+        """
         self.config = config
         self.massdat = massdat
         self.ccsdat = ccsdat
         self.totalgrid = mccsgrid
         self.pks = pks
         self.ztab = np.arange(float(self.config.startz), float(self.config.endz + 1))
-        self.zstrings = [str(int(z)) for z in self.ztab]
-        self.zstrings.append("All")
+        zstrings = [str(int(z)) for z in self.ztab]
+        zstrings.append("All")
 
-        self.pnl = wx.Panel(self)
+        pnl = wx.Panel(self)
 
-        self.vbox = wx.BoxSizer(wx.VERTICAL)
-        self.sb = wx.StaticBox(self.pnl, label='Ion Mobility Extraction Tool')
-        self.sbs = wx.StaticBoxSizer(self.sb, orient=wx.HORIZONTAL)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        sb = wx.StaticBox(pnl, label='Ion Mobility Extraction Tool')
+        sbs = wx.StaticBoxSizer(sb, orient=wx.HORIZONTAL)
         figsize = (6, 5)
-        self.plot1 = plot2d.Plot2d(self.pnl, figsize=figsize)
-        self.plot2 = plot1d.Plot1d(self.pnl, figsize=figsize)
-        self.plotsizer = wx.BoxSizer(wx.VERTICAL)
-        self.plotsizer.Add(self.plot1, 0, wx.EXPAND)
-        self.plotsizer.Add(self.plot2, 0, wx.EXPAND)
-        self.sbs.Add(self.plotsizer, 0, wx.EXPAND)
+        self.plot1 = plot2d.Plot2d(pnl, figsize=figsize)
+        self.plot2 = plot1d.Plot1d(pnl, figsize=figsize)
+        plotsizer = wx.BoxSizer(wx.VERTICAL)
+        plotsizer.Add(self.plot1, 0, wx.EXPAND)
+        plotsizer.Add(self.plot2, 0, wx.EXPAND)
+        sbs.Add(plotsizer, 0, wx.EXPAND)
 
-        self.sb2 = wx.StaticBox(self.pnl, label='Extraction Parameters')
-        self.sbs2 = wx.StaticBoxSizer(self.sb2, orient=wx.VERTICAL)
-        self.gbox1c = wx.GridBagSizer(wx.VERTICAL)
+        sb2 = wx.StaticBox(pnl, label='Extraction Parameters')
+        sbs2 = wx.StaticBoxSizer(sb2, orient=wx.VERTICAL)
+        gbox1c = wx.GridBagSizer(wx.VERTICAL)
         size1 = (75, -1)
 
-        self.ctlzout = wx.ComboBox(self.pnl, value="", size=size1, choices=self.zstrings)
-        self.gbox1c.Add(self.ctlzout, (0, 1), span=(1, 1))
-        self.gbox1c.Add(wx.StaticText(self.pnl, label="Charge State: "), (0, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlzout = wx.ComboBox(pnl, value="", size=size1, choices=zstrings)
+        gbox1c.Add(self.ctlzout, (0, 1), span=(1, 1))
+        gbox1c.Add(wx.StaticText(pnl, label="Charge State: "), (0, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
-        self.sbs2.Add(self.gbox1c, 0, wx.EXPAND)
+        sbs2.Add(gbox1c, 0, wx.EXPAND)
 
-        self.masspanel = TestListCtrlPanel4(self.pnl, size=(200, 700))
-        self.addbutton = wx.Button(self.pnl, label="Add Species")
-        self.plotbutton = wx.Button(self.pnl, label="Plot Species")
-        self.sbs2.Add(self.plotbutton, 0, wx.EXPAND)
-        self.sbs2.Add(self.masspanel, 0, wx.EXPAND)
-        self.sbs2.Add(self.addbutton, 0, wx.EXPAND)
-        self.Bind(wx.EVT_BUTTON, self.OnAdd, self.addbutton)
-        self.Bind(wx.EVT_BUTTON, self.OnPlot, self.plotbutton)
+        self.masspanel = IMListCtrlPanel(pnl, size=(200, 700))
+        addbutton = wx.Button(pnl, label="Add Species")
+        plotbutton = wx.Button(pnl, label="Plot Species")
+        sbs2.Add(plotbutton, 0, wx.EXPAND)
+        sbs2.Add(self.masspanel, 0, wx.EXPAND)
+        sbs2.Add(addbutton, 0, wx.EXPAND)
+        self.Bind(wx.EVT_BUTTON, self.on_add, addbutton)
+        self.Bind(wx.EVT_BUTTON, self.on_plot, plotbutton)
 
-        self.sbs.Add(self.sbs2, 0, wx.EXPAND)
-        self.pnl.SetSizer(self.sbs)
+        sbs.Add(sbs2, 0, wx.EXPAND)
+        pnl.SetSizer(sbs)
 
-        self.hboxend = wx.BoxSizer(wx.HORIZONTAL)
-        self.okButton = wx.Button(self, label='Ok')
-        self.closeButton = wx.Button(self, label='Cancel')
-        self.okButton.Bind(wx.EVT_BUTTON, self.OnClose)
-        self.closeButton.Bind(wx.EVT_BUTTON, self.OnCloseCancel)
-        self.hboxend.Add(self.okButton)
-        self.hboxend.Add(self.closeButton, flag=wx.LEFT, border=5)
-        self.vbox.Add(self.pnl, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
-        self.vbox.Add(self.hboxend, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=10)
+        hboxend = wx.BoxSizer(wx.HORIZONTAL)
+        okbutton = wx.Button(self, label='Ok')
+        closebutton = wx.Button(self, label='Cancel')
+        okbutton.Bind(wx.EVT_BUTTON, self.on_close)
+        closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
+        hboxend.Add(okbutton)
+        hboxend.Add(closebutton, flag=wx.LEFT, border=5)
+        vbox.Add(pnl, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
+        vbox.Add(hboxend, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=10)
 
-        self.SetSizer(self.vbox)
-        self.vbox.Fit(self)
+        self.SetSizer(vbox)
+        vbox.Fit(self)
 
         self.CenterOnParent()
         self.loadpeaks(0)
-        self.OnPlot(0)
-        self.ctlzout.SetSelection(len(self.zstrings) - 1)
+        self.on_plot(0)
+        self.ctlzout.SetSelection(len(zstrings) - 1)
 
-    def OnClose(self, e):
+    def on_close(self, e):
+        """
+        Close the dialog and set self.config.zout to self.zout.
+        :param e: Unused event
+        :return: None
+        """
         self.config.zout = self.zout
         self.Destroy()
         self.EndModal(0)
 
-    def OnCloseCancel(self, e):
+    def on_close_cancel(self, e):
+        """
+        Close the dialog but do not update self.config.zout.
+        :param e: Unused event
+        :return: None
+        """
         self.Destroy()
         self.EndModal(1)
 
     def loadpeaks(self, e):
+        """
+        Load masses from self.pks.peaks into the masspanel.
+        :param e: Unused event
+        :return: None
+        """
         for p in self.pks.peaks:
-            self.masspanel.list.AddLine(val=p.mass)
+            self.masspanel.list.add_line(val=p.mass)
 
-    def getfromgui(self, e):
+    def get_from_gui(self, e):
+        """
+        Load from GUI to self.zout. If nothing is set, self.zout = 0.
+        :param e: Unused event
+        :return: None
+        """
         try:
             self.zout = int(self.ctlzout.GetStringSelection())
             print "Charge State: ", self.zout
         except ValueError:
             self.zout = 0
 
-    def OnAdd(self, e):
-        self.masspanel.list.AddLine()
+    def on_add(self, e):
+        """
+        Add a blank line to the masspanel.
+        :param e: Unused event
+        :return: None
+        """
+        self.masspanel.list.add_line()
 
-    def OnPlot(self, e):
-        self.getfromgui(e)
-        outs = np.array(self.masspanel.list.GetList())
+    def on_plot(self, e):
+        """
+        First, it updates from the GUI.
+        Second, if _zout_str(self.zout).bin file exists, it will be imported.
+            This allows slices of specific charge states to be extracted. Otherwise, the default is all charge states.
+        Third, the values are extracted and plotted.
+        :param e: Unused event
+        :return: None
+        """
+        # TODO: Split some of this off from the window into independent functions in IM_functions.py.
+        # Get parameters
+        self.get_from_gui(e)
+        outs = np.array(self.masspanel.list.get_list())
         fname = self.config.outfname + "_zout_" + str(self.zout) + ".bin"
         if os.path.isfile(fname):
-            self.zoutgrid = np.fromfile(fname, dtype=float)
+            zoutgrid = np.fromfile(fname, dtype=float)
         else:
-            self.zoutgrid = self.totalgrid
-
-        self.plot1.contourplot(xvals=self.massdat[:, 0], yvals=self.ccsdat[:, 0], zgrid=self.zoutgrid,
+            zoutgrid = self.totalgrid
+        # 2D plot
+        self.plot1.contourplot(xvals=self.massdat[:, 0], yvals=self.ccsdat[:, 0], zgrid=zoutgrid,
                                config=self.config, ylab="CCS (${\AA}$$^2$)", title="Mass vs. CCS", test_kda=True)
-        self.zoutgrid = np.reshape(self.zoutgrid, (len(self.massdat), len(self.ccsdat)))
-        self.ccsproj = np.sum(self.zoutgrid, axis=0)
-        self.plot2.plotrefreshtop(self.ccsdat[:, 0], self.ccsproj / np.amax(self.ccsproj), "CCS Extract",
+        # 1D CCS projection
+        zoutgrid = np.reshape(zoutgrid, (len(self.massdat), len(self.ccsdat)))
+        ccsproj = np.sum(zoutgrid, axis=0)
+        self.plot2.plotrefreshtop(self.ccsdat[:, 0], ccsproj / np.amax(ccsproj), "CCS Extract",
                                   "CCS (${\AA}$$^2$)", "Normalized Intensity", "", self.config)
-
         colormap = cm.get_cmap(self.config.peakcmap, len(outs))
         xcolors = colormap(np.arange(len(outs)))
         for i, l in enumerate(outs):
             mass = l[0]
-            ccsext = self.zoutgrid[ud.nearest(self.massdat[:, 0], mass)]
+            ccsext = zoutgrid[ud.nearest(self.massdat[:, 0], mass)]
             ccsmax = self.ccsdat[np.argmax(ccsext), 0]
             l[1] = ccsmax
             self.plot2.plotadd(self.ccsdat[:, 0], ccsext / np.amax(ccsext), xcolors[i], '')
         self.plot2.repaint()
-        self.masspanel.list.Populate(outs, colors=xcolors)
+        # Update colors on mass list
+        self.masspanel.list.populate(outs, colors=xcolors)

@@ -99,7 +99,7 @@ class TwitterWindow(wx.Dialog):
         hboxend.Add(okButton)
         hboxend.Add(closeButton, flag=wx.LEFT, border=5)
         okButton.Bind(wx.EVT_BUTTON, self.on_close)
-        closeButton.Bind(wx.EVT_BUTTON, self.OnCloseCancel)
+        closeButton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
         self.vbox.Add(hboxend,
                       flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=10)
         '''

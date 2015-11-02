@@ -248,6 +248,7 @@ class CubePlot(PlottingWindow):
         :param col: Color (not presently used)
         :return: None
         """
+        # TODO: Clean up some of the duplicate code between this function and isoticks
         xlen = self.xlen
         ylen = self.ylen
         zlen = self.zlen
