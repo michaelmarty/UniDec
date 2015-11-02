@@ -18,6 +18,15 @@ Module for window defining the oligomers, the expected masses, and for matching 
 
 class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
     def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+        """
+        Create the mass list ctrl with one column.
+        :param parent: Passed to wx.ListCtrl
+        :param id_value: Passed to wx.ListCtrl
+        :param pos: Passed to wx.ListCtrl
+        :param size: Passed to wx.ListCtrl
+        :param style: Passed to wx.ListCtrl
+        :return: None
+        """
         wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.TextEditMixin.__init__(self)
@@ -29,18 +38,35 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click_masslist, self)
 
     def populate(self, listctrldata):
+        """
+        Populate the the listctrl from a list of mass values
+        :param listctrldata: mass value list
+        :return: None
+        """
         self.DeleteAllItems()
         for i in range(0, len(listctrldata)):
             index = self.InsertStringItem(sys.maxint, str(listctrldata[i]))
             self.SetItemData(index, i)
 
     def clear(self):
+        """
+        Clear the list.
+        :return: None
+        """
         self.DeleteAllItems()
 
     def add_line(self):
+        """
+        Add a new line, default of 0.
+        :return: None
+        """
         self.InsertStringItem(sys.maxint, str(0))
 
     def get_list(self):
+        """
+        Return the list as a list of mass values
+        :return: List of mass values
+        """
         count = self.GetItemCount()
         list_out = []
         for i in range(0, count):
@@ -48,6 +74,11 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         return list_out
 
     def on_right_click_masslist(self, event):
+        """
+        Create a right click menu.
+        :param event: Unused event
+        :return: None
+        """
         if hasattr(self, "popupID1"):
             menu = wx.Menu()
             menu.Append(self.popupID1, "Delete")
@@ -55,6 +86,11 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
             menu.Destroy()
 
     def on_masslist_delete(self, event):
+        """
+        Delete the selected item.
+        :param event: Unused event.
+        :return: None
+        """
         item = self.GetFirstSelected()
         num = self.GetSelectedItemCount()
         selection = [item]
@@ -67,6 +103,11 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
 
 class MassListCtrlPanel(wx.Panel):
     def __init__(self, parent):
+        """
+        ListCtrlPanel for the Mass list
+        :param parent: Parent panel or window
+        :return: None
+        """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.list = MassListCrtl(self, wx.NewId(), size=(210, 380), style=wx.LC_REPORT)
@@ -77,6 +118,15 @@ class MassListCtrlPanel(wx.Panel):
 
 class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
     def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+        """
+        Create a 5 column list ctrl.
+        :param parent: Passed to wx.ListCrtl
+        :param id_value: Passed to wx.ListCrtl
+        :param pos: Passed to wx.ListCrtl
+        :param size: Passed to wx.ListCrtl
+        :param style: Passed to wx.ListCrtl
+        :return: None
+        """
         wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.TextEditMixin.__init__(self)
@@ -97,10 +147,18 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click_oligolist, self)
 
     def clear(self):
+        """
+        Clear the list.
+        :return: None
+        """
         self.DeleteAllItems()
         self.index = 0
 
     def add_line(self):
+        """
+        Add a blank line to the list.
+        :return: None
+        """
         index = self.InsertStringItem(sys.maxint, str(0))
         self.SetStringItem(index, 1, str(0))
         self.SetStringItem(index, 2, str(0))
@@ -109,6 +167,11 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
         self.index += 1
 
     def populate(self, data):
+        """
+        Populate from an N x 4 or N x 5 array into the listctrl.
+        :param data: Array
+        :return: None
+        """
         self.DeleteAllItems()
         # for normal, simple columns, you can add them like this:
         for i in range(0, len(data)):
@@ -128,6 +191,10 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
                 # self.SetItemData(index, i)
 
     def get_list(self):
+        """
+        Return the values on the apanel as a nested list.
+        :return: List of values in N x 5 format.
+        """
         count = self.GetItemCount()
         list_out = []
         for i in range(0, count):
@@ -138,12 +205,22 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
         return list_out
 
     def on_right_click_oligolist(self, event):
+        """
+        Open a right click menu
+        :param event: Unused event
+        :return: None
+        """
         menu = wx.Menu()
         menu.Append(self.popupID2, "Delete")
         self.PopupMenu(menu)
         menu.Destroy()
 
     def on_oligo_delete(self, event):
+        """
+        Delete the selected item.
+        :param event: Unused event
+        :return: None
+        """
         item = self.GetFirstSelected()
         num = self.GetSelectedItemCount()
         selection = [item]
@@ -156,6 +233,11 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
 
 class OligomerListCrtlPanel(wx.Panel):
     def __init__(self, parent):
+        """
+        ListCtrlPanel for the Oligomer list
+        :param parent: Parent panel or window
+        :return: None
+        """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.list = OligomerListCtrl(self, wx.NewId(), size=(500, 200), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
@@ -165,8 +247,16 @@ class OligomerListCrtlPanel(wx.Panel):
 
 
 class MatchListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
-    def __init__(self, parent, id_value, pos=wx.DefaultPosition,
-                 size=wx.DefaultSize, style=0):
+    def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+        """
+        Create a four column uneditable list control.
+        :param parent: Parent panel or window
+        :param id_value: Passed to wx.ListCtrl
+        :param pos: Passed to wx.ListCtrl
+        :param size: Passed to wx.ListCtrl
+        :param style: Passed to wx.ListCtrl
+        :return: None
+        """
         wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.TextEditMixin.__init__(self)
@@ -181,10 +271,22 @@ class MatchListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
         self.index = 0
 
     def clear(self):
+        """
+        Clear the list
+        :return: None
+        """
         self.DeleteAllItems()
         self.index = 0
 
     def populate(self, data1, data2, data3, data4):
+        """
+        Populate the list of matches from four arrays
+        :param data1: The first column, the measured mass
+        :param data2: The second column, the simulated mass
+        :param data3: The third column, the error between measured and simulated.
+        :param data4: The fourth column, the match name.
+        :return: None
+        """
         self.DeleteAllItems()
         # for normal, simple columns, you can add them like this:
         for i in range(0, len(data1)):
@@ -209,6 +311,11 @@ class MatchListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
 
 class MatchListCrtlPanel(wx.Panel):
     def __init__(self, parent):
+        """
+        ListCtrlPanel for the Match list
+        :param parent: Parent panel or window
+        :return: None
+        """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.list = MatchListCrtl(self, wx.NewId(), size=(500, 200), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
@@ -219,6 +326,12 @@ class MatchListCrtlPanel(wx.Panel):
 
 class MassSelection(wx.Dialog):
     def __init__(self, *args, **kwargs):
+        """
+        Initialize the dialog
+        :param args: Passed to wx.Dialog
+        :param kwargs: Passed to wx.Dialog
+        :return: None
+        """
         wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
         self.SetSize((800, 700))
         self.SetTitle("Mass and Oligomer Tools")
@@ -232,6 +345,13 @@ class MassSelection(wx.Dialog):
         self.matchlistbox = None
 
     def init_dialog(self, config, pks, massdat=None):
+        """
+        Creates the dialog window and displays it.
+        :param config: UniDecConfig object
+        :param pks: Peaks object
+        :param massdat: Mass distribution
+        :return: None
+        """
         # massbins = config.massbins
         self.massdat = massdat
         self.config = config
@@ -358,6 +478,13 @@ class MassSelection(wx.Dialog):
         self.CenterOnParent()
 
     def on_simulate(self, e):
+        """
+        Replaces the peaks in self.pks with the masses defined in the self.masslistbox.
+        The intensity information comes from interpolating the mass distribution in self.massdat.
+        It flags self.pks.changes as 1, which is picked up downstream to say that these new peaks should be replotted.
+        :param e: Unused event
+        :return: None
+        """
         newmasslist = self.masslistbox.list.get_list()
         newpeaks = []
         f = interp1d(self.massdat[:, 0], self.massdat[:, 1], bounds_error=False, fill_value=0)
@@ -371,18 +498,37 @@ class MassSelection(wx.Dialog):
         self.pks.changed = 1
 
     def on_autocorr_window(self, e):
+        """
+        Opens up an autocorrelation window for the purpose of figuring out mass differences.
+        :param e: Unused event
+        :return: None
+        """
         if not ud.isempty(self.massdat):
             dlg = AutocorrWindow(self)
             dlg.initalize_dialog(self.config, self.massdat)
             dlg.ShowModal()
 
     def on_match_isolated(self, e):
+        """
+        Match the peaks in self.pks to possible combination of isolated rows of oligomers in the oligomerlist.
+        Uses ud.make_isolated_match function.
+        Populated the matchlistbox with the results of the matching.
+        :param e: Unused event
+        :return: None
+        """
         oligos = self.oligomerlistbox.list.get_list()
         oligomasslist, oligonames = ud.make_isolated_match(oligos)
         matchlist = ud.match(self.pks, oligomasslist, oligonames)
         self.matchlistbox.list.populate(matchlist[0], matchlist[1], matchlist[2], matchlist[3])
 
     def on_match_all(self, e):
+        """
+        Match the peaks in self.pks to all possible combination of oligomers in the oligomerlist.
+        Uses ud.make_all_matches function.
+        Populated the matchlistbox with the results of the matching.
+        :param e: Unused event
+        :return: None
+        """
         oligos = self.oligomerlistbox.list.get_list()
         oligomasslist, oligonames = ud.make_all_matches(oligos)
         matchlist = ud.match(self.pks, oligomasslist, oligonames)

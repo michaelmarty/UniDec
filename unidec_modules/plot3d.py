@@ -1,4 +1,5 @@
 import numpy as np
+from copy import deepcopy
 from matplotlib.ticker import MaxNLocator
 
 from unidec_modules.PlottingWindow import PlottingWindow
@@ -169,9 +170,9 @@ class CubePlot(PlottingWindow):
         xlen = self.xlen
         ylen = self.ylen
         zlen = self.zlen
-        xtics = self.xticloc
-        ytics = self.yticloc
-        ztics = self.zticloc
+        xtics = deepcopy(self.xticloc)
+        ytics = deepcopy(self.yticloc)
+        ztics = deepcopy(self.zticloc)
 
         x_range = np.arange(0., xlen) / float(xlen - 1)
         y_range = np.arange(0., ylen) / float(ylen - 1)
@@ -188,6 +189,7 @@ class CubePlot(PlottingWindow):
         ticlen = 0.03
         cutmax = 0.95
         cutmin = 0.05
+
         for i in range(0, xticlen):
             if cutmin <= xtics[xticlen - i - 1] <= cutmax:
                 iso = self.isometric_projection(0, y_range[0], xtics[xticlen - i - 1])
@@ -249,9 +251,9 @@ class CubePlot(PlottingWindow):
         xlen = self.xlen
         ylen = self.ylen
         zlen = self.zlen
-        xtics = self.xticloc
-        ytics = self.yticloc
-        ztics = self.zticloc
+        xtics = deepcopy(self.xticloc)
+        ytics = deepcopy(self.yticloc)
+        ztics = deepcopy(self.zticloc)
 
         x_range = np.arange(0., xlen) / float(xlen - 1)
         y_range = np.arange(0., ylen) / float(ylen - 1)
@@ -267,6 +269,7 @@ class CubePlot(PlottingWindow):
         ticlen = 0.03
         cutmin = 0.05
         cutmax = 0.95
+
         for i in range(0, xticlen):
             if cutmin <= xtics[xticlen - i - 1] <= cutmax:
                 iso2 = self.isometric_projection(0, y_range[0] - ticlen, xtics[xticlen - i - 1])

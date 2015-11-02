@@ -344,6 +344,12 @@ class ManualSelection(wx.Dialog):
         pass
 
     def on_import(self, e):
+        """
+        Open a file dialog and import a N x 3 (MS) or N x 5 (IMMS) array of manual assignment.
+        Add the array to the listctrl.
+        :param e: Unused event
+        :return: None
+        """
         truncfilename = FileDialogs.open_file_dialog("Open File", file_types="*.*")
         if truncfilename is not None:
             importtrunc = np.loadtxt(truncfilename)

@@ -7,7 +7,7 @@ import nativez
 
 __author__ = 'Michael.Marty'
 
-
+# TODO: The 100% line on the color bar doesn't come right up to the top. Fix it so it is square.
 class Plot2d(PlottingWindow):
     """
     Plotting class for 2D contour plots

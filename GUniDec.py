@@ -101,9 +101,11 @@ class UniDecApp(object):
         if True and platform.node() == "RobMike":
             # fname = "HSPCID.txt"
             fname = "0.txt"
+            fname = "250313_AQPZ_POPC_100_imraw.txt"
             newdir = "C:\\cprog\\UniDecDemo"
             self.on_open_file(fname, newdir)
-            # self.on_auto(0)
+            self.on_auto(0)
+            self.make_cube_plot(0)
             # self.on_plot_peaks(0)
 
     # ..............................
