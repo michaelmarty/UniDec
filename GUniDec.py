@@ -1185,7 +1185,7 @@ class UniDecApp(object):
         :return: None
         """
         dlg = miscwindows.AdditionalParameters(self.view)
-        dlg.InitUI(self.eng.config)
+        dlg.initialize_interface(self.eng.config)
         dlg.ShowModal()
         self.export_config(self.eng.config.confname)
 
@@ -1223,7 +1223,7 @@ class UniDecApp(object):
         :return: None
         """
         dlg = miscwindows.FileNameDialog(self.view)
-        dlg.InitUI(self.eng.config)
+        dlg.initialize_interface(self.eng.config)
         dlg.ShowModal()
         pass
 

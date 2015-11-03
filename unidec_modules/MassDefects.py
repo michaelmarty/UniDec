@@ -346,7 +346,7 @@ class MassDefectWindow(wx.Frame):
         :return: None
         """
         dialog = miscwindows.SingleInputDialog(self)
-        dialog.InitUI(title="Add Line", message="Add Line at Defect Value: ")
+        dialog.initialize_interface(title="Add Line", message="Add Line at Defect Value: ")
         dialog.ShowModal()
 
         try:

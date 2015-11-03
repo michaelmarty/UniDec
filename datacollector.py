@@ -918,7 +918,7 @@ class DataCollector(wx.Frame):
     def on_animate2(self, e):
         self.update_get(e)
         dlg = miscwindows.SingleInputDialog(self)
-        dlg.InitUI(title="Set Compression", message="Number of x values to compress:", defaultvalue="10")
+        dlg.initialize_interface(title="Set Compression", message="Number of x values to compress:", defaultvalue="10")
         dlg.ShowModal()
         try:
             compress = int(dlg.value)

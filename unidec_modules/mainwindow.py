@@ -1603,7 +1603,7 @@ class Mainwindow(wx.Frame):
         defaultrect = np.array([0.1, 0.1, 0.8, 0.8])
 
         dlg = miscwindows.SaveFigureDialog(self)
-        dlg.InitUI(self.config)
+        dlg.initialize_interface(self.config)
         code = dlg.ShowModal()
         if code == 0:
             directory = dlg.directory
