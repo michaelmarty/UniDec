@@ -995,7 +995,7 @@ class DataCollector(wx.Frame):
     def on_defect(self, e):
         self.yvals = np.array(self.yvals)
         MassDefects.MassDefectWindow(self, self.grid, self.config, yvals=self.yvals[:, 1],
-                                     dir=self.directory, value=self.molig)
+                                     directory=self.directory, value=self.molig)
         pass
 
     def on_autocorr(self, e):

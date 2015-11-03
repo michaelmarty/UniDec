@@ -6,11 +6,9 @@ import subprocess
 import zipfile
 import fnmatch
 import string
-
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy import signal
-
 from unidec_modules import unidecstructure, peakstructure, MassFitter
 import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
@@ -267,8 +265,8 @@ class UniDec:
         else:
             tstart2 = time.clock()
             mz, dt, i3 = IM_func.process_data_2d(self.data.rawdata3[:, 0], self.data.rawdata3[:, 1],
-                                             self.data.rawdata3[:, 2],
-                                             self.config)
+                                                 self.data.rawdata3[:, 2],
+                                                 self.config)
             tend = time.clock()
             if "silent" not in kwargs or not kwargs["silent"]:
                 print "Time: %.2gs" % (tend - tstart2)
@@ -441,7 +439,7 @@ class UniDec:
         if massdat is None:
             massdat = self.data.massdat
         # corr=np.correlate(self.data.massdat[:,1],self.data.massdat[:,1],mode="same")
-        self.data.autocorr,cpeaks=ud.autocorr(massdat,self.config)
+        self.data.autocorr, cpeaks = ud.autocorr(massdat, self.config)
         self.autopeaks = peakstructure.Peaks()
         self.autopeaks.add_peaks(cpeaks)
         self.autopeaks.default_params()
@@ -484,58 +482,16 @@ class UniDec:
             self.config.kendrickmass = self.config.molig
         if self.config.kendrickmass > 0:
 
-            # Calculate Defects for Deconvolved Masses
-            xaxis = self.data.massdat[:, 0]
-            kmass = np.array(xaxis) / float(self.config.kendrickmass)
-            if centermode == 0:
-                nominalkmass = np.floor(kmass)
-            else:
-                nominalkmass = np.round(kmass)
-            kmdefectexact = kmass - nominalkmass
-            # Linearize
-            defects = np.linspace(np.amin(kmdefectexact), np.amax(kmdefectexact), nbins, endpoint=True)
-            nominal = np.unique(nominalkmass)
-            m1grid, m2grid = np.meshgrid(nominal, defects, indexing='ij')
-
-            # Get Intensities
-            igrid = np.zeros((len(nominal), len(defects)))
-            if transformmode == 0:
-                # Interpolation
-                f = interp1d(self.data.massdat[:, 0], self.data.massdat[:, 0], bounds_error=False, fill_value=0)
-                for j in xrange(0, len(nominal)):
-                    for k in xrange(0, len(defects)):
-                        nommass = nominal[j]
-                        defect = defects[k]
-                        mass = (nommass + defect) * self.config.kendrickmass
-                        intensity = f(mass)
-                        igrid[j, k] = intensity
-            else:
-                # Integration
-                for j in xrange(0, len(kmass)):
-                    nommass = nominalkmass[j]
-                    defect = kmdefectexact[j]
-                    pos = ud.nearest(defects, defect)
-                    pos2 = ud.nearest(nominal, nommass)
-                    try:
-                        intensity = self.data.massdat[j, 1]
-                    except IndexError:
-                        intensity = 0
-                    igrid[pos2, pos] += intensity
-            igrid /= np.amax(igrid)
-
-            # Write Outputs
-            if xaxistype == 0:
-                factor = 1
-            else:
-                factor = self.config.kendrickmass
-            dat = np.transpose([np.ravel(m1grid) * factor, np.ravel(m2grid), np.ravel(igrid)])
-            outfile = os.path.join(self.config.outfname + "_2D_Mass_Defects.txt")
-            np.savetxt(outfile, dat)
-            print "Saved Kendrick:", outfile
-            dat = np.transpose([np.unique(m2grid), np.sum(igrid, axis=0)])
-            outfile = os.path.join(self.config.outfname + "_1D_Mass_Defects.txt")
-            np.savetxt(outfile, dat)
-
+            data1, data2, m1grid, m2grid, igrid = ud.kendrick_analysis(self.data.massdat, self.config.kendrickmass,
+                                                                       centermode=centermode, nbins=nbins,
+                                                                       transformmode=transformmode,
+                                                                       xaxistype=xaxistype)
+            # Write outputs
+            outfile2 = os.path.join(self.config.outfname + "_2D_Mass_Defects.txt")
+            outfile1 = os.path.join(self.config.outfname + "_1D_Mass_Defects.txt")
+            np.savetxt(outfile2, data2)
+            np.savetxt(outfile1, data1)
+            print "Saved Kendrick:", outfile2, outfile1
             return m1grid, m2grid, igrid
         else:
             print "Need non-zero Kendrick mass"
@@ -585,7 +541,7 @@ class UniDec:
             massdat = self.data.massdat
         else:
             massdat = np.transpose([self.data.massdat[:, 0], data])
-        integral, intdat = ud.integrate(massdat,limits[0],limits[1])
+        integral, intdat = ud.integrate(massdat, limits[0], limits[1])
         return integral, intdat
 
     def autointegrate(self, ztab=None):
@@ -630,9 +586,9 @@ class UniDec:
 
     def get_auto_peak_width(self):
         fwhm, psfun, mid = ud.auto_peak_width(self.data.data2)
-        self.config.psfun=psfun
-        self.config.mzsig=fwhm
-        print "Automatic Peak Width:",fwhm
+        self.config.psfun = psfun
+        self.config.mzsig = fwhm
+        print "Automatic Peak Width:", fwhm
 
     def export_params(self, e):
         """
@@ -726,7 +682,7 @@ class UniDec:
             com = np.average(data[:, 0], weights=data[:, 1])
             std = ud.weighted_std(data[:, 0], data[:, 1])
         else:
-            com, std = ud.center_of_mass(data,limits[0],limits[1])
+            com, std = ud.center_of_mass(data, limits[0], limits[1])
         return com, std
 
     def fit_all_masses(self):
@@ -1005,10 +961,10 @@ class UniDec:
             if i == 0:
                 aligned.append(dat)
             else:
-                dat1=deepcopy(dat)
-                if len(aligned[0])<len(dat):
-                    f=interp1d(aligned[0][:,0],aligned[0][:,1],fill_value=0,bounds_error=False)
-                    aligned[0]=np.transpose([dat[:,0],f(dat[:,0])])
+                dat1 = deepcopy(dat)
+                if len(aligned[0]) < len(dat):
+                    f = interp1d(aligned[0][:, 0], aligned[0][:, 1], fill_value=0, bounds_error=False)
+                    aligned[0] = np.transpose([dat[:, 0], f(dat[:, 0])])
                 # TODO: Problem when len (aligned[[0]) < len (dat)
                 corr = np.correlate(dat[:, 1], aligned[0][:, 1], mode="same")
                 move = np.argmax(corr) - np.argmax(dat[:, 1])
@@ -1155,8 +1111,8 @@ class UniDec:
         return areas, means, stds
 
     def get_errors(self, **kwargs):
-        kwargs2=deepcopy(kwargs)
-        kwargs2["plot_corr"]=False
+        kwargs2 = deepcopy(kwargs)
+        kwargs2["plot_corr"] = False
         self.get_peaks_scores(**kwargs2)
         self.fit_isolated_peaks(**kwargs)
         self.correlate_intensities(window=self.config.peakwindow, **kwargs)
@@ -1223,6 +1179,7 @@ class UniDec:
         # TODO: Lengths in data container
         # TODO: Get massavg from peaks or fits in m/z
         # TODO: Get Noise Right
+
 
 # Optional Run
 if __name__ == "__main__":

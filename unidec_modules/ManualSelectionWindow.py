@@ -14,7 +14,23 @@ import unidec_modules.unidectools as ud
 __author__ = 'Michael.Marty'
 
 
+"""
+Window for defining the manual assignments.
+"""
+
+
 def closest(x, y, manlist):
+    """
+    For manlist of manual assignments and an (x,y) point, finds the nearest manual assignment.
+    Used in correcting overlapping rectanges.
+    :param x: Float
+    :param y: Float
+    :param manlist: Array of manual assignment for IMMS (N x 5)
+    :return: out, pos
+
+    out is the line in manlist that is closest.
+    pos is the position of the line in manlist.
+    """
     u = np.array([x, y])
     mindist = sys.maxint
     out = None
@@ -31,6 +47,13 @@ def closest(x, y, manlist):
 
 # NEED FIXING
 def correctassignments(manlist, xdat, ydat):
+    """
+    Correct the manual assignments so that they are not overlapping in IM-MS.
+    :param manlist: List of manual assignments in (N x 5) array.
+    :param xdat: x-axis (m/z)
+    :param ydat: y-axis (arrival time)
+    :return: manlist3, a new array of values corrected to eliminate overlap.
+    """
     manlist2 = []
     for l in manlist:
         row = [l[0], l[0], l[2], l[2], l[4]]
@@ -59,14 +82,33 @@ def correctassignments(manlist, xdat, ydat):
 
 
 def range_overlap(a_min, a_max, b_min, b_max):
+    """
+    Checks whether two specific ranges of [a_min,a_max] and [b_min,b_max] overlap.
+    :param a_min:
+    :param a_max:
+    :param b_min:
+    :param b_max:
+    :return: True if overlapping, False if not.
+    """
     return not ((a_min > b_max) or (b_min > a_max))
 
 
 def checkoverlap(l1, l2):
+    """
+    Check whether two lines of manual assignments are overlapping.
+    :param l1: Line 1 (1 x 5)
+    :param l2: Line 2 (1 x 5)
+    :return: True if overlapping, False if not.
+    """
     return range_overlap(l1[0], l1[1], l2[0], l2[1]) and range_overlap(l1[2], l1[3], l2[2], l2[3])
 
 
 def detectoverlap(manlist):
+    """
+    For a list of IM-MS manual assignments, check if any of the rectangles are overlapping.
+    :param manlist: Array of manual assignments (N x 5)
+    :return: True if overlapping, False if not.
+    """
     manlist2 = []
     for l in manlist:
         row = [l[0] - l[1], l[0] + l[1], l[2] - l[3], l[2] + l[3], l[4]]
@@ -84,6 +126,16 @@ def detectoverlap(manlist):
 
 class ManualListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
     def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0, imflag=0):
+        """
+        Create a listctrl with either three or five columns depending on whether it is IM or MS mode.
+        :param parent: Passed to wx.ListCtrl
+        :param id_value: Passed to wx.ListCtrl
+        :param pos: Passed to wx.ListCtrl
+        :param size: Passed to wx.ListCtrl
+        :param style: Passed to wx.ListCtrl
+        :param imflag: Whether the listctrl should have 3 columns for MS (0) or 5 columns for IMMS (1)
+        :return: None
+        """
         wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)
         self.imflag = imflag
         listmix.ListCtrlAutoWidthMixin.__init__(self)
@@ -108,9 +160,18 @@ class ManualListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
             self.SetColumnWidth(4, 75)
 
     def clear(self):
+        """
+        Clear the list.
+        :return: None
+        """
         self.DeleteAllItems()
 
     def add_line(self, line=None):
+        """
+        Insert a new line into the listctrl.
+        :param line: Optional list of values for the new line. Default is [0,0,0,0]
+        :return: None
+        """
         if not line:
             line = [0, 0, 0, 0]
         index = self.InsertStringItem(sys.maxint, str(line[0]))
@@ -121,6 +182,12 @@ class ManualListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
             self.SetStringItem(index, 4, str(0))
 
     def populate(self, data, colors=None):
+        """
+        Add data from an array to the listctrl.
+        :param data: Data array to be added
+        :param colors: Optional list of background colors.
+        :return: None
+        """
         self.DeleteAllItems()
         for i in range(0, len(data)):
             index = self.InsertStringItem(sys.maxint, str(data[i][0]))
@@ -135,6 +202,10 @@ class ManualListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
                 self.SetItemBackgroundColour(index, col=color)
 
     def get_list(self):
+        """
+        Return a nested list of the values in the listctrl.
+        :return: Nested list of the outputs.
+        """
         count = self.GetItemCount()
         list_out = []
         for i in range(0, count):
@@ -151,6 +222,12 @@ class ManualListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
 
 class ManualListCtrlPanel(wx.Panel):
     def __init__(self, parent, imflag=0):
+        """
+        Create the panel for the ManualListCtrl. Binds right click options.
+        :param parent: Parent window or panel.
+        :param imflag: Whether it should be IM-MS mode (1) or just MS (0).
+        :return: None
+        """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.list = ManualListCrtl(self, wx.NewId(), size=(300 + 100 * imflag, 150), style=wx.LC_REPORT, imflag=imflag)
@@ -163,6 +240,11 @@ class ManualListCtrlPanel(wx.Panel):
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
 
     def on_right_click(self, e=None):
+        """
+        Open right click menu.
+        :param e: Unused event
+        :return: None
+        """
         if hasattr(self, "popupID1"):
             menu = wx.Menu()
             menu.Append(self.popupID1, "Delete")
@@ -170,6 +252,11 @@ class ManualListCtrlPanel(wx.Panel):
             menu.Destroy()
 
     def on_popup_one(self, e=None):
+        """
+        Delete the selected items.
+        :param e: Unused event
+        :return: None
+        """
         # Delete
         item = self.list.GetFirstSelected()
         num = self.list.GetSelectedItemCount()
@@ -184,21 +271,29 @@ class ManualListCtrlPanel(wx.Panel):
 
 class ManualSelection(wx.Dialog):
     def __init__(self, *args, **kwargs):
+        """
+        Create the initial dialog.
+        :param args: Passed to wx.Dialog
+        :param kwargs: Passed to wx.Dialog
+        :return: None
+        """
         wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
         self.SetTitle("Manually Assign Masses")
-        self.newtrunclist = []
         self.config = None
-        self.defaulttrunclist = []
         self.data = []
         self.plot1 = None
         self.masslistbox = None
 
     def initiate_dialog(self, config, data):
+        """
+        Initiate the dialog window, lay everything out, and plot the intial results
+        :param config: UniDecConfig object
+        :param data: Data to plot (either MS or IM-MS)
+        :return: None
+        """
         self.data = data
-        self.SetSize((550 + config.imflag * 50, 600))
+        self.SetSize((550 + config.imflag * 50, 650))
         self.config = config
-        self.defaulttrunclist = deepcopy(self.config.manuallist)
-        self.newtrunclist = deepcopy(self.defaulttrunclist)
 
         panel = wx.Panel(self)
 
@@ -262,23 +357,24 @@ class ManualSelection(wx.Dialog):
         okbutton.Bind(wx.EVT_BUTTON, self.on_close)
         closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
 
-        self.masslistbox.list.populate(self.defaulttrunclist)
-        if self.config.imflag == 0:
-            self.plot1.plotrefreshtop(self.data[:, 0], self.data[:, 1], "", "m/z (Th)", "Normalized Intensity", "Data",
-                                      self.config)
-        else:
-            self.plot1.contourplot(self.data, self.config, xlab="m/z (Th)", ylab="Arrival Time (ms)", title="")
+        self.masslistbox.list.populate(self.config.manuallist)
+        self.on_plot(0)
         self.CenterOnParent()
 
     def on_close(self, e):
-        self.newtrunclist = self.masslistbox.list.get_list()
-        if not ud.isempty(self.newtrunclist):
-            self.newtrunclist = np.array(self.newtrunclist)
-            self.newtrunclist = self.newtrunclist[np.any([self.newtrunclist != 0], axis=2)[0], :]
+        """
+        Get manuallist from listctrl, clean up, write it to self.config.manuallist, and then destroy the window.
+        :param e: Unused event
+        :return: None
+        """
+        manuallist = self.masslistbox.list.get_list()
+        if not ud.isempty(manuallist):
+            manuallist = np.array(manuallist)
+            manuallist = manuallist[np.any([manuallist != 0], axis=2)[0], :]
 
-        if self.newtrunclist != "":
-            if len(self.newtrunclist) > 0:
-                self.config.manuallist = self.newtrunclist
+        if manuallist != "":
+            if len(manuallist) > 0:
+                self.config.manuallist = manuallist
             else:
                 self.config.manuallist = []
         else:
@@ -288,17 +384,36 @@ class ManualSelection(wx.Dialog):
         self.EndModal(0)
 
     def on_close_cancel(self, e):
-        self.newtrunclist = self.defaulttrunclist
+        """
+        Destroy the dialog without updating the manual assignment list in UniDecConfig.
+        :param e: Unused event
+        :return: None
+        """
         self.Destroy()
         self.EndModal(1)
 
     def on_clear(self, e):
+        """
+        Clear the listctrl.
+        :param e: Unused event
+        :return: None
+        """
         self.masslistbox.list.clear()
 
     def on_add(self, e):
+        """
+        Add a new blank line to the listctrl.
+        :param e: Unused event
+        :return: None
+        """
         self.masslistbox.list.add_line()
 
     def on_add_from_plot(self, e):
+        """
+        Grab the limits of the plot and make that the limits of the manual assignment.
+        :param e: Unused event
+        :return: None
+        """
         x0, x1 = self.plot1.subplot1.get_xlim()
         xwin = (x1 - x0) / 2.
         if self.config.imflag == 0:
@@ -311,25 +426,37 @@ class ManualSelection(wx.Dialog):
         pass
 
     def on_plot(self, e):
+        """
+        Attempts to correct and plot the manual assignments.
+        :param e: Unused event
+        :return: None
+        """
+        # Make initial plot
         if self.config.imflag == 0:
             self.plot1.plotrefreshtop(self.data[:, 0], self.data[:, 1], "", "m/z (Th)", "Normalized Intensity", "Data",
                                       self.config)
         else:
             self.plot1.contourplot(self.data, self.config, xlab="m/z (Th)", ylab="Arrival Time (ms)", title="")
-        self.newtrunclist = self.masslistbox.list.get_list()
-        if not ud.isempty(self.newtrunclist):
-            self.newtrunclist = np.array(self.newtrunclist)
-            self.newtrunclist = self.newtrunclist[np.any([self.newtrunclist != 0], axis=2)[0], :]
-            colormap = cm.get_cmap('rainbow', len(self.newtrunclist))
-            xcolors = colormap(np.arange(len(self.newtrunclist)))
+
+        # Get manual assignments from list
+        manuallist = self.masslistbox.list.get_list()
+        if not ud.isempty(manuallist):
+            # Clean up list to remove empties
+            manuallist = np.array(manuallist)
+            manuallist = manuallist[np.any([manuallist != 0], axis=2)[0], :]
+            # Make the color map
+            colormap = cm.get_cmap('rainbow', len(manuallist))
+            xcolors = colormap(np.arange(len(manuallist)))
             if self.config.imflag == 1:
+                # Try to correct for overlapping regions in IM-MS.
                 try:
-                    if detectoverlap(self.newtrunclist):
-                        self.newtrunclist = correctassignments(self.newtrunclist, np.unique(self.data[:, 0]),
+                    if detectoverlap(manuallist):
+                        manuallist = correctassignments(manuallist, np.unique(self.data[:, 0]),
                                                                np.unique(self.data[:, 1]))
                 except Exception, e:
                     print "Error with overlapping assignments. Try making sure regions don't intersect.", e
-            for i, l in enumerate(self.newtrunclist):
+            # Plot the appropriate regions on the plot.
+            for i, l in enumerate(manuallist):
                 if self.config.imflag == 0:
                     y0 = np.amin(self.data[:, 1])
                     ywidth = np.amax(self.data[:, 1]) - y0
@@ -340,7 +467,8 @@ class ManualSelection(wx.Dialog):
                     Rectangle((l[0] - l[1], y0), l[1] * 2., ywidth, alpha=0.5, facecolor=xcolors[i], edgecolor='black',
                               fill=True))
             self.plot1.repaint()
-            self.masslistbox.list.populate(self.newtrunclist, colors=xcolors)
+            # Refill the list with the corrected values
+            self.masslistbox.list.populate(manuallist, colors=xcolors)
         pass
 
     def on_import(self, e):
@@ -350,9 +478,9 @@ class ManualSelection(wx.Dialog):
         :param e: Unused event
         :return: None
         """
-        truncfilename = FileDialogs.open_file_dialog("Open File", file_types="*.*")
-        if truncfilename is not None:
-            importtrunc = np.loadtxt(truncfilename)
+        import_file_name = FileDialogs.open_file_dialog("Open File", file_types="*.*")
+        if import_file_name is not None:
+            importtrunc = np.loadtxt(import_file_name)
             if self.config.imflag == 0:
                 if importtrunc.shape == (3,):
                     importtrunc = [importtrunc]

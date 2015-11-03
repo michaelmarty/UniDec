@@ -57,12 +57,11 @@ else:
                 dllpath = testpath
             else:
                 # print testpath
-                print "Unable to find file"
+                print "Unable to find file", testpath
 
 try:
     libs = cdll.LoadLibrary(dllpath)
-except OSError:
-    print dllpath
+except (OSError, NameError):
     print "Failed to load libmypfunc, convolutions in nonlinear mode might be slow"
 
 
@@ -339,6 +338,59 @@ def data_extract(data, x, extract_method, window=None):
     return val
 
 
+def kendrick_analysis(massdat, kendrickmass, centermode=0, nbins=50, transformmode=0, xaxistype=1):
+    # Calculate Defects for Deconvolved Masses
+    xaxis = massdat[:, 0]
+    kmass = np.array(xaxis) / float(kendrickmass)
+    if centermode == 1:
+        nominalkmass = np.floor(kmass)
+    else:
+        nominalkmass = np.round(kmass)
+    kmdefectexact = kmass - nominalkmass
+    # Linearize
+    defects = np.linspace(np.amin(kmdefectexact), np.amax(kmdefectexact), nbins, endpoint=True)
+    nominal = np.unique(nominalkmass)
+    m1grid, m2grid = np.meshgrid(nominal, defects, indexing='ij')
+
+    # Get Intensities
+    igrid = np.zeros((len(nominal), len(defects)))
+    if transformmode == 1:
+        # Interpolation
+        f = interp1d(massdat[:, 0], massdat[:, 1], bounds_error=False, fill_value=0)
+        for j in xrange(0, len(nominal)):
+            for k in xrange(0, len(defects)):
+                nommass = nominal[j]
+                defect = defects[k]
+                mass = (nommass + defect) * kendrickmass
+                intensity = f(mass)
+                igrid[j, k] = intensity
+    else:
+        # Integration
+        for j in xrange(0, len(kmass)):
+            nommass = nominalkmass[j]
+            defect = kmdefectexact[j]
+            pos = nearest(defects, defect)
+            pos2 = nearest(nominal, nommass)
+            try:
+                intensity = massdat[j, 1]
+            except IndexError:
+                intensity = 0
+            igrid[pos2, pos] += intensity
+    igrid /= np.amax(igrid)
+
+    # Write Outputs
+    if xaxistype == 0:
+        factor = 1
+    else:
+        factor = kendrickmass
+
+    m1grid *= factor
+    data2 = np.transpose([np.ravel(m1grid), np.ravel(m2grid), np.ravel(igrid)])
+    data1 = np.transpose([np.unique(m2grid), np.sum(igrid, axis=0)])
+
+    return data1, data2, m1grid, m2grid, igrid
+
+
 # ............................
 #
 # File manipulation
@@ -368,7 +420,7 @@ def header_test(path):
                         break
         if header > 0:
             print "Header Length:", header
-    except (ImportError, WindowsError, AttributeError, IOError):
+    except (ImportError, OSError, AttributeError, IOError):
         print "Failed header test"
         header = 0
     return header
@@ -1008,7 +1060,7 @@ def makeconvspecies(processed_data, pks, config):
     else:
         try:
             stickdat = [cconvolve(xvals, p.mztab, config.mzsig, config.psfun) for p in pks.peaks]
-        except (WindowsError, TypeError, NameError, AttributeError):
+        except (OSError, TypeError, NameError, AttributeError):
             stickdat = [nonlinstickconv(xvals, p.mztab, config.mzsig, config.psfun) for p in pks.peaks]
 
     pks.composite = np.zeros(xlen)

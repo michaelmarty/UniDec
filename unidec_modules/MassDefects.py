@@ -3,7 +3,6 @@ from copy import deepcopy
 import numpy as np
 import wx
 from scipy.interpolate import interp1d
-
 from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows
 import unidec_modules.unidectools as ud
 
@@ -11,37 +10,30 @@ __author__ = 'Michael.Marty'
 
 
 class MassDefectWindow(wx.Frame):
-    def __init__(self, parent, datalist, config=None, yvals=None, pks=None, value=None, dir=None, show=True, *args,
-                 **kwargs):
+    def __init__(self, parent, data_list, config=None, yvals=None, pks=None, value=None, directory=None):
+        """
+        Creates a window for visualizing high-mass mass defects.
+        :param parent: Passed to wx.Frame
+        :param data_list: List of mass distribution data.
+        :param config: UniDecConfig object
+        :param yvals: List of titles for each mass distribution in data_list
+        :param pks: Peaks object
+        :param value: Kendrick reference mass (default is 760.076, the mass of POPC)
+        :param directory: Directory to save files to (default is os.getcwd())
+        :return: None
+        """
         wx.Frame.__init__(self, parent, title="Mass Defect")  # ,size=(-1,-1))
-        if dir is None:
+
+        # Setup initial values
+        if directory is None:
             self.directory = os.getcwd()
         else:
-            self.directory = dir
+            self.directory = directory
 
         self.parent = parent
-        defaultvalue = deepcopy(value)
-        if defaultvalue is None:
-            defaultvalue = 760.076
-
-        self.filemenu = wx.Menu()
-
-        self.menuSaveFigPNG = self.filemenu.Append(wx.ID_ANY, "Save Figures as PNG",
-                                                   "Save all figures as PNG in central directory")
-        self.menuSaveFigPDF = self.filemenu.Append(wx.ID_ANY, "Save Figures as PDF",
-                                                   "Save all figures as PDF in central directory")
-        self.Bind(wx.EVT_MENU, self.on_save_fig, self.menuSaveFigPNG)
-        self.Bind(wx.EVT_MENU, self.on_save_figPDF, self.menuSaveFigPDF)
-
-        self.plotmenu = wx.Menu()
-        self.menuaddline = self.plotmenu.Append(wx.ID_ANY, "Add Horizontal Line",
-                                                "Add Horizontal Line at Specific Y Value")
-        self.Bind(wx.EVT_MENU, self.on_add_line, self.menuaddline)
-
-        self.menuBar = wx.MenuBar()
-        self.menuBar.Append(self.filemenu, "&File")
-        self.menuBar.Append(self.plotmenu, "Plot")
-        self.SetMenuBar(self.menuBar)
+        self.m0 = deepcopy(value)
+        if self.m0 is None:
+            self.m0 = 760.076
 
         if config is None:
             self.config = unidecstructure.UniDecConfig()
@@ -52,217 +44,247 @@ class MassDefectWindow(wx.Frame):
             self.config = config
 
         self.config.publicationmode = 0
-
-        self.datalist = datalist
         self.pos = -1
         self.yvals = yvals
+        self.ylab = "Normalized Mass Defect"
+        self.nbins = 50
+        self.transformmode = 1
+        self.centermode = 1
+        self.xtype = 1
+        self.factor = 1
+        self.xlab = ""
 
-        self.panel = wx.Panel(self)
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.plot1 = plot1d.Plot1d(self.panel)
-        self.plot2 = plot2d.Plot2d(self.panel)
-        self.sizer.Add(self.plot1, 1, wx.EXPAND)
-        self.sizer.Add(self.plot2, 1, wx.EXPAND)
+        self.datalist = [data_list[0]]
+        for i in range(1, len(data_list)):
+            self.datalist.append(ud.mergedata(data_list[0], data_list[i]))
+        self.datalist = np.array(self.datalist)
+        print "Data list shape:", self.datalist.shape
 
-        self.controlsizer = wx.BoxSizer(wx.HORIZONTAL)
+        # Make the menu
+        filemenu = wx.Menu()
+        menu_save_fig_png = filemenu.Append(wx.ID_ANY, "Save Figures as PNG",
+                                            "Save all figures as PNG in central directory")
+        menu_save_fig_pdf = filemenu.Append(wx.ID_ANY, "Save Figures as PDF",
+                                            "Save all figures as PDF in central directory")
+        self.Bind(wx.EVT_MENU, self.on_save_fig, menu_save_fig_png)
+        self.Bind(wx.EVT_MENU, self.on_save_fig_pdf, menu_save_fig_pdf)
 
-        self.ctlm0 = wx.TextCtrl(self.panel, value=str(defaultvalue))
-        self.ctlwindow = wx.TextCtrl(self.panel, value="50")
-        self.controlsizer.Add(wx.StaticText(self.panel, label="Kendrick Mass"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.controlsizer.Add(self.ctlm0, 0, wx.ALIGN_CENTER_VERTICAL)
-        self.controlsizer.Add(wx.StaticText(self.panel, label="Number of Defect Bins"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.controlsizer.Add(self.ctlwindow, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.plotmenu = wx.Menu()
+        self.menuaddline = self.plotmenu.Append(wx.ID_ANY, "Add Horizontal Line",
+                                                "Add Horizontal Line at Specific Y Value")
+        self.Bind(wx.EVT_MENU, self.on_add_line, self.menuaddline)
 
-        self.controlsizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        if len(datalist) > 1:
+        menu_bar = wx.MenuBar()
+        menu_bar.Append(filemenu, "&File")
+        menu_bar.Append(self.plotmenu, "Plot")
+        self.SetMenuBar(menu_bar)
+
+        # Setup the GUI
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.plot1 = plot1d.Plot1d(panel)
+        self.plot2 = plot2d.Plot2d(panel)
+        sizer.Add(self.plot1, 1, wx.EXPAND)
+        sizer.Add(self.plot2, 1, wx.EXPAND)
+
+        controlsizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.ctlm0 = wx.TextCtrl(panel, value=str(self.m0))
+        self.ctlwindow = wx.TextCtrl(panel, value=str(self.nbins))
+        controlsizer.Add(wx.StaticText(panel, label="Kendrick Mass"), 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer.Add(self.ctlm0, 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer.Add(wx.StaticText(panel, label="Number of Defect Bins"), 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer.Add(self.ctlwindow, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        controlsizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        if len(data_list) > 1:
             label = "Back"
         else:
             label = "Replot"
-        self.backbutton = wx.Button(self.panel, label=label)
-        self.controlsizer2.Add(self.backbutton, 0, wx.EXPAND)
-        self.Bind(wx.EVT_BUTTON, self.on_back, self.backbutton)
-        if len(datalist) > 1:
-            self.nextbutton = wx.Button(self.panel, label="Next")
-            self.controlsizer2.Add(self.nextbutton, 0, wx.EXPAND)
-            self.Bind(wx.EVT_BUTTON, self.on_next, self.nextbutton)
-            self.totalbutton = wx.Button(self.panel, label="Total")
-            self.controlsizer2.Add(self.totalbutton, 0, wx.EXPAND)
-            self.Bind(wx.EVT_BUTTON, self.on_total, self.totalbutton)
+        backbutton = wx.Button(panel, label=label)
+        controlsizer2.Add(backbutton, 0, wx.EXPAND)
+        self.Bind(wx.EVT_BUTTON, self.on_back, backbutton)
+        if len(data_list) > 1:
+            nextbutton = wx.Button(panel, label="Next")
+            controlsizer2.Add(nextbutton, 0, wx.EXPAND)
+            self.Bind(wx.EVT_BUTTON, self.on_next, nextbutton)
+            totalbutton = wx.Button(panel, label="Total")
+            controlsizer2.Add(totalbutton, 0, wx.EXPAND)
+            self.Bind(wx.EVT_BUTTON, self.makeplottotal, totalbutton)
         else:
             if not ud.isempty(pks):
                 self.pks = pks
-                self.peaksbutton = wx.Button(self.panel, label="Plot Peaks")
-                self.controlsizer2.Add(self.peaksbutton, 0, wx.EXPAND)
-                self.Bind(wx.EVT_BUTTON, self.on_peaks, self.peaksbutton)
+                peaksbutton = wx.Button(panel, label="Plot Peaks")
+                controlsizer2.Add(peaksbutton, 0, wx.EXPAND)
+                self.Bind(wx.EVT_BUTTON, self.on_peaks, peaksbutton)
 
-        self.radiobox = wx.RadioBox(self.panel, choices=["Integrate", "Interpolate"], label="Type of Transform")
-        self.controlsizer.Add(self.radiobox, 0, wx.EXPAND)
-        self.radiobox.SetSelection(1)
+        self.radiobox = wx.RadioBox(panel, choices=["Integrate", "Interpolate"], label="Type of Transform")
+        controlsizer.Add(self.radiobox, 0, wx.EXPAND)
+        self.radiobox.SetSelection(self.transformmode)
 
-        self.radiobox2 = wx.RadioBox(self.panel, choices=["-0.5:0.5", "0:1"], label="Range")
-        self.controlsizer.Add(self.radiobox2, 0, wx.EXPAND)
-        self.radiobox2.SetSelection(1)
+        self.radiobox2 = wx.RadioBox(panel, choices=["-0.5:0.5", "0:1"], label="Range")
+        controlsizer.Add(self.radiobox2, 0, wx.EXPAND)
+        self.radiobox2.SetSelection(self.centermode)
 
-        self.radiobox3 = wx.RadioBox(self.panel, choices=["Mass Number", "Mass"], label="X-Axis")
-        self.controlsizer.Add(self.radiobox3, 0, wx.EXPAND)
-        self.radiobox3.SetSelection(1)
+        self.radiobox3 = wx.RadioBox(panel, choices=["Mass Number", "Mass"], label="X-Axis")
+        controlsizer.Add(self.radiobox3, 0, wx.EXPAND)
+        self.radiobox3.SetSelection(self.xtype)
 
-        self.sizer.Add(self.controlsizer, 0, wx.EXPAND)
-        self.sizer.Add(self.controlsizer2, 0, wx.EXPAND)
+        sizer.Add(controlsizer, 0, wx.EXPAND)
+        sizer.Add(controlsizer2, 0, wx.EXPAND)
 
-        self.panel.SetSizer(self.sizer)
-        self.sizer.Fit(self)
+        panel.SetSizer(sizer)
+        sizer.Fit(self)
 
-        self.Bind(wx.EVT_CLOSE, self.OnClose)
+        self.Bind(wx.EVT_CLOSE, self.on_close)
 
-        self.ylab = "Normalized Mass Defect"
         try:
-            self.on_total(0)
+            self.makeplottotal(0)
         except Exception, e:
             self.on_next(0)
         self.Centre()
         # self.MakeModal(True)
-        self.Show(show)
+        self.Show(True)
 
-    def OnClose(self, e):
+    def on_close(self, e):
+        """
+        Close the window. Will try to set self.config.molig as self.m0.
+        :param e: Unused event
+        :return: None
+        """
         try:
-            self.parent.molig = self.m0
+            self.config.molig = self.m0
         except AttributeError:
             pass
         self.Destroy()
         # self.MakeModal(False)
 
     def getfromgui(self):
+        """
+        Update parameters from GUI.
+        :return: None
+        """
         try:
             self.m0 = float(self.ctlm0.GetValue())
             try:
-                self.window = float(self.ctlwindow.GetValue())
+                self.nbins = float(self.ctlwindow.GetValue())
             except ValueError:
-                self.window = 0
+                self.nbins = 0
         except ValueError:
             print "Failed to get from gui"
-        self.ktype = self.radiobox3.GetSelection()
-        if self.ktype == 0:
+        self.transformmode = self.radiobox.GetSelection()
+        self.centermode = self.radiobox2.GetSelection()
+        self.xtype = self.radiobox3.GetSelection()
+        if self.xtype == 0:
             self.factor = 1
             self.xlab = "Nominal Mass Number"
         else:
             self.factor = self.m0
             self.xlab = "Mass"
 
-    def makegrid(self):
-        self.xaxis = self.datalist[0][:, 0]
-        self.kmass = self.xaxis * 1. / float(self.m0)
-        flag = self.radiobox2.GetSelection()
-        if flag == 1:
-            self.nominalkmass = np.floor(self.kmass)
-        else:
-            self.nominalkmass = np.round(self.kmass)
-        self.kmdefectexact = self.kmass - self.nominalkmass
-        self.defects = np.linspace(np.amin(self.kmdefectexact), np.amax(self.kmdefectexact), self.window, endpoint=True)
-        self.nominal = np.unique(self.nominalkmass)
-        self.m1grid, self.m2grid = np.meshgrid(self.nominal, self.defects, indexing='ij')
-
-    def extractall(self):
-        self.igrid = np.zeros((len(self.datalist), len(self.nominal), len(self.defects)))
-        flag = self.radiobox.GetSelection()
-        for i, data in enumerate(self.datalist):
-            if flag == 1:
-                # Interpolation
-                f = interp1d(data[:, 0], data[:, 1], bounds_error=False, fill_value=0)
-                for j in xrange(0, len(self.nominal)):
-                    for k in xrange(0, len(self.defects)):
-                        nommass = self.nominal[j]
-                        defect = self.defects[k]
-                        mass = (nommass + defect) * self.m0
-                        intensity = f(mass)
-                        self.igrid[i, j, k] = intensity
-            else:
-                # Integration
-                for j in xrange(0, len(self.kmass)):
-                    nommass = self.nominalkmass[j]
-                    defect = self.kmdefectexact[j]
-                    pos = ud.nearest(self.defects, defect)
-                    pos2 = ud.nearest(self.nominal, nommass)
-                    try:
-                        intensity = data[j, 1]
-                    except (TypeError, IndexError):
-                        intensity = 0
-                    self.igrid[i, pos2, pos] += intensity
-
-        self.igrid = self.igrid / np.amax(self.igrid)
-
     def makeplot(self):
-        i = self.pos
-        maxval = np.amax(self.igrid[i])
-        dat = np.transpose(
-            [np.ravel(self.m1grid) * self.factor, np.ravel(self.m2grid), np.ravel(self.igrid[i]) / maxval])
-
+        """
+        Runs the kendrick analysis on a single of the mass distributions in self.datalist set by self.pos.
+        Plots the results in 1D and 2D.
+        :return: None
+        """
+        self.getfromgui()
+        data1d, data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(self.datalist[self.pos], self.m0,
+                                                                     centermode=self.centermode,
+                                                                     nbins=self.nbins,
+                                                                     transformmode=self.transformmode,
+                                                                     xaxistype=self.xtype)
         if self.yvals is not None:
-            title = str(self.yvals[i])
+            title = str(self.yvals[self.pos])
         else:
             title = ""
         try:
-            self.plot2.contourplot(dat, self.config, xlab=self.xlab, ylab=self.ylab, title=title, normflag=1)
+            self.plot2.contourplot(data2d, self.config, xlab=self.xlab, ylab=self.ylab, title=title, normflag=1)
         except Exception, e:
             self.plot2.clear_plot()
             print "Failed Plot2", e
         try:
-            self.plot1.plotrefreshtop(np.unique(self.m2grid), np.sum(self.igrid[i], axis=0), title, "Mass Defect",
+            self.plot1.plotrefreshtop(data1d[:, 0], data1d[:, 1], title, "Mass Defect",
                                       "Total Intensity", "", self.config)
         except Exception, e:
             self.plot1.clear_plot()
             print "Failed Plot1", e
 
-    def makeplottotal(self):
-        grid = np.sum(self.igrid, axis=0)
-        maxval = np.amax(grid)
-        dat = np.transpose([np.ravel(self.m1grid) * self.factor, np.ravel(self.m2grid), np.ravel(grid) / maxval])
+    def makeplottotal(self, e=None):
+        """
+        Runs the kendrick analysis on all of the mass distributions in self.datalist.
+        Assumes they are all the same dimensions, which is why we run mergedata when it is loaded.
+        Sums the results and plots the sums in 1D and 2D.
+        :param e: Unused event
+        :return: None
+        """
+        self.getfromgui()
+        # Run on all
+        igrids = []
+        m1grid, m2grid = None, None
+        for i, dat in enumerate(self.datalist):
+            data1d, data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(dat, self.m0,
+                                                                         centermode=self.centermode,
+                                                                         nbins=self.nbins,
+                                                                         transformmode=self.transformmode,
+                                                                         xaxistype=self.xtype)
+            igrids.append(igrid)
+        # Sum and reshape
+        igrids = np.array(igrids)
+        igrids /= np.amax(igrids)
+        sumgrid = np.sum(igrids, axis=0)
+        data2d = np.transpose([np.ravel(m1grid), np.ravel(m2grid), np.ravel(sumgrid) / np.amax(sumgrid)])
+        data1d = np.transpose([np.unique(m2grid), np.sum(sumgrid, axis=0)])
+        # Save Results
+        save_path2d = os.path.join(self.directory, "Total_2D_Mass_Defects.txt")
+        np.savetxt(save_path2d, data2d)
+        save_path1d = os.path.join(self.directory, "Total_1D_Mass_Defects.txt")
+        np.savetxt(save_path1d, data1d)
+        print 'Saved: ', save_path2d, save_path1d
+        # Plots
         try:
-            self.plot2.contourplot(dat, self.config, xlab=self.xlab, ylab=self.ylab, title="Total", normflag=1)
-            path = os.path.join(self.directory, "Total_2D_Mass_Defects.txt")
-            np.savetxt(path, dat)
-            print 'Saved: ', path
+            self.plot2.contourplot(data2d, self.config, xlab=self.xlab, ylab=self.ylab, title="Total", normflag=1)
         except Exception, e:
             self.plot2.clear_plot()
             print "Failed Plot2", e
         try:
-            self.plot1.plotrefreshtop(np.unique(self.m2grid), np.sum(grid, axis=0), "Total Projection", "Mass Defect",
-                                      "Total Intensity", "", self.config)
-
-            outputdata = np.transpose([np.unique(self.m2grid), np.sum(grid, axis=0)])
-            outfile = os.path.join(self.directory, "Total_1D_Mass_Defects.txt")
-            np.savetxt(outfile, outputdata)
+            self.plot1.plotrefreshtop(data1d[:, 0], data1d[:, 1], "Total Projection", "Mass Defect", "Total Intensity",
+                                      "", self.config)
         except Exception, e:
             self.plot1.clear_plot()
             print "Failed Plot1", e
 
     def on_back(self, e):
-        self.getfromgui()
+        """
+        Plot the mass defect of the previous thing in the mass defect list.
+        :param e: Unused event
+        :return: None
+        """
         self.pos += -1
-        self.pos = self.pos % len(self.datalist)
-        self.makegrid()
-        self.extractall()
+        self.pos %= len(self.datalist)
         self.makeplot()
 
     def on_next(self, e):
-        self.getfromgui()
+        """
+        Plot the mass defect of the next thing in the mass defect list.
+        :param e: Unused event
+        :return: None
+        """
         self.pos += 1
-        self.pos = self.pos % len(self.datalist)
-        self.makegrid()
-        self.extractall()
+        self.pos %= len(self.datalist)
         self.makeplot()
 
-    def on_total(self, e):
-        self.getfromgui()
-        self.makegrid()
-        self.extractall()
-        self.makeplottotal()
-
     def on_peaks(self, e):
-
+        """
+        For each peak in self.pks, get the mass defects and plot them.
+        :param e: Unused event
+        :return: None
+        """
         self.getfromgui()
         flag = self.radiobox2.GetSelection()
         self.pks.get_mass_defects(self.m0, mode=flag)
+
+        # Plot the mass defect peaks
         self.plot1.clear_plot()
         xvals = []
         yvals = []
@@ -276,22 +298,22 @@ class MassDefectWindow(wx.Frame):
                 self.plot1.plotadddot(x, y, p.color, p.marker)
             xvals.append(x)
             yvals.append(y)
-        # self.plot1.subplot1.set_xlim((np.amin(xvals)-1,np.amax(xvals)+1))
-        # self.plot1.subplot1.set_ylim((-0.5,0.5))
         datalims = [np.amin(xvals), np.amin(yvals), np.amax(xvals), np.amax(yvals)]
         self.plot1.setup_zoom([self.plot1.subplot1], "box", data_lims=datalims)
         self.plot1.subplot1.set_ylim(self.plot2.subplot1.get_ylim())
         self.plot1.subplot1.set_xlim(self.plot2.subplot1.get_xlim())
         self.plot1.repaint()
 
-        pdat = np.transpose([xvals, yvals])
-        path = os.path.join(self.directory, "Total_2D_Mass_Defects.txt")
-        np.savetxt(path, pdat)
-        highmassdefects = pdat[pdat[:, 0] > 80000, 1]
-        print np.average(highmassdefects), np.std(highmassdefects)
+        # Save to txt file output
+        save_path = os.path.join(self.directory, "Total_2D_Mass_Defects.txt")
+        np.savetxt(save_path, np.transpose([xvals, yvals]))
 
     def on_save_fig(self, e):
-
+        """
+        Saves the figures in self.directory as PNGs.
+        :param e: Unused event
+        :return: None
+        """
         name1 = os.path.join(self.directory, "MassDefectFigure1.png")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)
@@ -301,8 +323,12 @@ class MassDefectWindow(wx.Frame):
             self.plot2.on_save_fig(e, name2)
             print name2
 
-    def on_save_figPDF(self, e):
-
+    def on_save_fig_pdf(self, e):
+        """
+        Saves the figures in self.directory as PDFs.
+        :param e: Unused event
+        :return: None
+        """
         name1 = os.path.join(self.directory, "MassDefectFigure1.pdf")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)
@@ -313,6 +339,12 @@ class MassDefectWindow(wx.Frame):
             print name2
 
     def on_add_line(self, e):
+        """
+        Add a horizontal line to the plot to visualize a predicted mass defect.
+        Opens a dialog to input the value. Can be called more than once to add multiple lines.
+        :param e: Unused event
+        :return: None
+        """
         dialog = miscwindows.SingleInputDialog(self)
         dialog.InitUI(title="Add Line", message="Add Line at Defect Value: ")
         dialog.ShowModal()
@@ -320,7 +352,7 @@ class MassDefectWindow(wx.Frame):
         try:
             vval = float(dialog.value)
             xlim = self.plot2.subplot1.get_xlim()
-            self.plot2.subplot1.plot((xlim[0], xlim[1]), (vval, vval), color=self.plot2.ticcol)
+            self.plot2.subplot1.plot((xlim[0], xlim[1]), (vval, vval), color=self.plot2.tickcolor)
             self.plot2.repaint()
         except Exception, e:
             print "Failed: ", dialog.value, e
