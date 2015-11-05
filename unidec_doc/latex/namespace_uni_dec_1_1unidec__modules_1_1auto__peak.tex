@@ -1,0 +1,178 @@
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak}{}\section{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak Namespace Reference}
+\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak}\index{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak@{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak}}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+string \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a4ac9c8672c4aae9cb4a8b70086fb8dbf}{\+\_\+\+\_\+author\+\_\+\+\_\+} = \textquotesingle{}Michael.\+Marty\textquotesingle{}
+\item 
+string \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aed4928bf8418274fa1155d36675f0b3c}{file} = \char`\"{}C\+:\textbackslash{}\textbackslash{}cprog\textbackslash{}\textbackslash{}\+Uni\+Dec\+Demo\textbackslash{}\textbackslash{}\+M\+T\+M\+\_\+\+A\+D\+H\+\_\+5\+\_\+rawdata.\+txt\char`\"{}
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a31996c2b129f976b613fb06f3ccf43a2}{data} = np.\+loadtxt(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aed4928bf8418274fa1155d36675f0b3c}{file}, skiprows=10)
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a3d3935c25cf2fd153cca4973142a6b42}{thresh} = auto\+\_\+noise\+\_\+level(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a31996c2b129f976b613fb06f3ccf43a2}{data})
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a27d98cd4621bb435387b8f6063413108}{avgbs} = average\+\_\+bin\+\_\+size(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a31996c2b129f976b613fb06f3ccf43a2}{data})
+\item 
+int \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ac99568789a44a90c12609fcdfde18bef}{window} = fwhm/\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a27d98cd4621bb435387b8f6063413108}{avgbs}/4
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ab2f41ee4c2753756fa96017905742239}{cwtdat} = np.\+transpose(\mbox{[}\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a31996c2b129f976b613fb06f3ccf43a2}{data}\mbox{[}\+:, 0\mbox{]}, cwt\mbox{]})
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a1aeb6bedf7b442825235781343e0ad63}{peaks} = peakdetect(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ab2f41ee4c2753756fa96017905742239}{cwtdat}, None, \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ac99568789a44a90c12609fcdfde18bef}{window} $\ast$ 2., \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a3d3935c25cf2fd153cca4973142a6b42}{thresh})
+\item 
+int \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aec6037c920102c5579f10f9223895812}{zm} = 1
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a2699125346e68ca4c90870ea069b8787}{ivals} = \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a1aeb6bedf7b442825235781343e0ad63}{peaks}\mbox{[}\+:, 1\mbox{]}
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa1271ed0c52de711ceb3edd7c7c86fc2}{maxpos} = np.\+argmax(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a2699125346e68ca4c90870ea069b8787}{ivals})
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa5c84accca704faf0ebfa46a121cf222}{mins} = \mbox{[}$\,$\mbox{]}
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_abc1d33a8ad225f476c035155a8b56834}{x} = np.\+abs(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aec6037c920102c5579f10f9223895812}{zm} -\/ \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aec6037c920102c5579f10f9223895812}{zm}\mbox{[}\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa1271ed0c52de711ceb3edd7c7c86fc2}{maxpos}\mbox{]})
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a62ff64d63d5be230f7ff5b24fa4b28c2}{diffs} = np.\+diff(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_abc1d33a8ad225f476c035155a8b56834}{x})
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aea52bb0d9341cc952d79c5464b3fd778}{minpos} = np.\+argmin(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a62ff64d63d5be230f7ff5b24fa4b28c2}{diffs})
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a6c83046c326aa8752478e63621ddc9b5}{minval} = np.\+average(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_abc1d33a8ad225f476c035155a8b56834}{x}\mbox{[}minpos\+:minpos + 2\mbox{]})
+\item 
+int \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a153536ddca04f0c53b777b0e1958375b}{mass} = 1
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a4bff8397ff493d413e68befa2f1a6144}{mz} = \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a1aeb6bedf7b442825235781343e0ad63}{peaks}\mbox{[}\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa1271ed0c52de711ceb3edd7c7c86fc2}{maxpos}, 0\mbox{]}
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a0b8fb630219ca26395b19245cb509a45}{charge} = np.\+round(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a153536ddca04f0c53b777b0e1958375b}{mass} / \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a4bff8397ff493d413e68befa2f1a6144}{mz})
+\item 
+\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a12f26a811655cd3245ef8b852fb1b753}{tolerance} = \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a0b8fb630219ca26395b19245cb509a45}{charge}$\ast$fwhm
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_adeb45617daaa2b308f5578545c0e9bf6}{vec} = np.\+array(\mbox{[}\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a153536ddca04f0c53b777b0e1958375b}{mass}, \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a2699125346e68ca4c90870ea069b8787}{ivals}\mbox{[}\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa1271ed0c52de711ceb3edd7c7c86fc2}{maxpos}\mbox{]}, \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a4bff8397ff493d413e68befa2f1a6144}{mz}, \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a0b8fb630219ca26395b19245cb509a45}{charge}, \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a62ff64d63d5be230f7ff5b24fa4b28c2}{diffs}\mbox{[}\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aea52bb0d9341cc952d79c5464b3fd778}{minpos}\mbox{]}, \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a12f26a811655cd3245ef8b852fb1b753}{tolerance}, \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aec6037c920102c5579f10f9223895812}{zm}\mbox{[}\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa1271ed0c52de711ceb3edd7c7c86fc2}{maxpos}\mbox{]}, False\mbox{]})
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ac4c4908409d6935e791315b11227f7d4}{sindex} = np.\+argsort(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa5c84accca704faf0ebfa46a121cf222}{mins}\mbox{[}\+:, 4\mbox{]})
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa3d1172615a2681b4101a61729d97d81}{peakassignments} = \mbox{[}$\,$\mbox{]}
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a13d2f412a89100f208af25a2b712344d}{row} = \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa5c84accca704faf0ebfa46a121cf222}{mins}\mbox{[}i\mbox{]}
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ac6d69cb34df1b718a92c7df1c08d4bb7}{swaps} = \mbox{[}$\,$\mbox{]}
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a56352c73bb6345e6e0f69ca4f52b51b5}{topmass} = \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a13d2f412a89100f208af25a2b712344d}{row}\mbox{[}0\mbox{]}
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a6dc5ec6f6bd5b013251fcfa171b2490b}{topcharge} = \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a13d2f412a89100f208af25a2b712344d}{row}\mbox{[}3\mbox{]}
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a34ea9485406d53f96e5c08b45eaaaa3e}{zms} = np.\+abs(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a13d2f412a89100f208af25a2b712344d}{row}\mbox{[}6\mbox{]} -\/ \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa5c84accca704faf0ebfa46a121cf222}{mins}\mbox{[}\+:, 6\mbox{]})
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a9f8403b68415bcbc4936cc3a716f5acc}{newmass} = \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa5c84accca704faf0ebfa46a121cf222}{mins}\mbox{[}j, 2\mbox{]}
+\item 
+int \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a4f4393937b3965dc99e10450c7e74343}{newspot} = 0
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_af831c155b745bb9261506dac81f6f29b}{swaprows} = deepcopy(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa5c84accca704faf0ebfa46a121cf222}{mins}\mbox{[}newspot\+:j\mbox{]})
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a462e1b8069c0c53c6aab58904bafb7c5}{boo1} = \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa5c84accca704faf0ebfa46a121cf222}{mins}\mbox{[}\+:, 7\mbox{]}
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a0ba2e98c339056b40fbed6c28f680c68}{y} = \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa5c84accca704faf0ebfa46a121cf222}{mins}\mbox{[}\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a462e1b8069c0c53c6aab58904bafb7c5}{boo1}, 4\mbox{]}
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ad7cb65ad0913bddbcef144c3fc384bd3}{m} = np.\+array(m)
+\end{DoxyCompactItemize}
+
+
+\subsection{Variable Documentation}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a4ac9c8672c4aae9cb4a8b70086fb8dbf}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!\+\_\+\+\_\+author\+\_\+\+\_\+@{\+\_\+\+\_\+author\+\_\+\+\_\+}}
+\index{\+\_\+\+\_\+author\+\_\+\+\_\+@{\+\_\+\+\_\+author\+\_\+\+\_\+}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{\+\_\+\+\_\+author\+\_\+\+\_\+}]{\setlength{\rightskip}{0pt plus 5cm}string Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+\_\+\+\_\+author\+\_\+\+\_\+ = \textquotesingle{}Michael.\+Marty\textquotesingle{}}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a4ac9c8672c4aae9cb4a8b70086fb8dbf}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a27d98cd4621bb435387b8f6063413108}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!avgbs@{avgbs}}
+\index{avgbs@{avgbs}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{avgbs}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+avgbs = average\+\_\+bin\+\_\+size({\bf data})}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a27d98cd4621bb435387b8f6063413108}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a462e1b8069c0c53c6aab58904bafb7c5}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!boo1@{boo1}}
+\index{boo1@{boo1}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{boo1}]{\setlength{\rightskip}{0pt plus 5cm}list Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+boo1 = {\bf mins}\mbox{[}\+:, 7\mbox{]}}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a462e1b8069c0c53c6aab58904bafb7c5}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a0b8fb630219ca26395b19245cb509a45}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!charge@{charge}}
+\index{charge@{charge}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{charge}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+charge = np.\+round({\bf mass} / {\bf mz})}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a0b8fb630219ca26395b19245cb509a45}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ab2f41ee4c2753756fa96017905742239}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!cwtdat@{cwtdat}}
+\index{cwtdat@{cwtdat}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{cwtdat}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+cwtdat = np.\+transpose(\mbox{[}{\bf data}\mbox{[}\+:, 0\mbox{]}, cwt\mbox{]})}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ab2f41ee4c2753756fa96017905742239}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a31996c2b129f976b613fb06f3ccf43a2}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!data@{data}}
+\index{data@{data}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{data}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+data = np.\+loadtxt({\bf file}, skiprows=10)}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a31996c2b129f976b613fb06f3ccf43a2}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a62ff64d63d5be230f7ff5b24fa4b28c2}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!diffs@{diffs}}
+\index{diffs@{diffs}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{diffs}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+diffs = np.\+diff({\bf x})}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a62ff64d63d5be230f7ff5b24fa4b28c2}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aed4928bf8418274fa1155d36675f0b3c}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!file@{file}}
+\index{file@{file}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{file}]{\setlength{\rightskip}{0pt plus 5cm}string Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+file = \char`\"{}C\+:\textbackslash{}\textbackslash{}cprog\textbackslash{}\textbackslash{}\+Uni\+Dec\+Demo\textbackslash{}\textbackslash{}\+M\+T\+M\+\_\+\+A\+D\+H\+\_\+5\+\_\+rawdata.\+txt\char`\"{}}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aed4928bf8418274fa1155d36675f0b3c}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a2699125346e68ca4c90870ea069b8787}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!ivals@{ivals}}
+\index{ivals@{ivals}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{ivals}]{\setlength{\rightskip}{0pt plus 5cm}list Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+ivals = {\bf peaks}\mbox{[}\+:, 1\mbox{]}}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a2699125346e68ca4c90870ea069b8787}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ad7cb65ad0913bddbcef144c3fc384bd3}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!m@{m}}
+\index{m@{m}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{m}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+m = np.\+array(m)}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ad7cb65ad0913bddbcef144c3fc384bd3}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a153536ddca04f0c53b777b0e1958375b}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!mass@{mass}}
+\index{mass@{mass}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{mass}]{\setlength{\rightskip}{0pt plus 5cm}int Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+mass = 1}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a153536ddca04f0c53b777b0e1958375b}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa1271ed0c52de711ceb3edd7c7c86fc2}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!maxpos@{maxpos}}
+\index{maxpos@{maxpos}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{maxpos}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+maxpos = np.\+argmax({\bf ivals})}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa1271ed0c52de711ceb3edd7c7c86fc2}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aea52bb0d9341cc952d79c5464b3fd778}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!minpos@{minpos}}
+\index{minpos@{minpos}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{minpos}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+minpos = np.\+argmin({\bf diffs})}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aea52bb0d9341cc952d79c5464b3fd778}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa5c84accca704faf0ebfa46a121cf222}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!mins@{mins}}
+\index{mins@{mins}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{mins}]{\setlength{\rightskip}{0pt plus 5cm}list Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+mins = \mbox{[}$\,$\mbox{]}}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa5c84accca704faf0ebfa46a121cf222}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a6c83046c326aa8752478e63621ddc9b5}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!minval@{minval}}
+\index{minval@{minval}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{minval}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+minval = np.\+average({\bf x}\mbox{[}minpos\+:minpos + 2\mbox{]})}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a6c83046c326aa8752478e63621ddc9b5}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a4bff8397ff493d413e68befa2f1a6144}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!mz@{mz}}
+\index{mz@{mz}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{mz}]{\setlength{\rightskip}{0pt plus 5cm}list Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+mz = {\bf peaks}\mbox{[}{\bf maxpos}, 0\mbox{]}}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a4bff8397ff493d413e68befa2f1a6144}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a9f8403b68415bcbc4936cc3a716f5acc}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!newmass@{newmass}}
+\index{newmass@{newmass}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{newmass}]{\setlength{\rightskip}{0pt plus 5cm}list Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+newmass = {\bf mins}\mbox{[}j, 2\mbox{]}}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a9f8403b68415bcbc4936cc3a716f5acc}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a4f4393937b3965dc99e10450c7e74343}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!newspot@{newspot}}
+\index{newspot@{newspot}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{newspot}]{\setlength{\rightskip}{0pt plus 5cm}Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+newspot = 0}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a4f4393937b3965dc99e10450c7e74343}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa3d1172615a2681b4101a61729d97d81}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!peakassignments@{peakassignments}}
+\index{peakassignments@{peakassignments}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{peakassignments}]{\setlength{\rightskip}{0pt plus 5cm}list Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+peakassignments = \mbox{[}$\,$\mbox{]}}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa3d1172615a2681b4101a61729d97d81}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a1aeb6bedf7b442825235781343e0ad63}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!peaks@{peaks}}
+\index{peaks@{peaks}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{peaks}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+peaks = peakdetect({\bf cwtdat}, None, {\bf window} $\ast$ 2., {\bf thresh})}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a1aeb6bedf7b442825235781343e0ad63}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a13d2f412a89100f208af25a2b712344d}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!row@{row}}
+\index{row@{row}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{row}]{\setlength{\rightskip}{0pt plus 5cm}list Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+row = {\bf mins}\mbox{[}i\mbox{]}}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a13d2f412a89100f208af25a2b712344d}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ac4c4908409d6935e791315b11227f7d4}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!sindex@{sindex}}
+\index{sindex@{sindex}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{sindex}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+sindex = np.\+argsort({\bf mins}\mbox{[}\+:, 4\mbox{]})}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ac4c4908409d6935e791315b11227f7d4}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_af831c155b745bb9261506dac81f6f29b}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!swaprows@{swaprows}}
+\index{swaprows@{swaprows}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{swaprows}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+swaprows = deepcopy({\bf mins}\mbox{[}newspot\+:j\mbox{]})}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_af831c155b745bb9261506dac81f6f29b}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ac6d69cb34df1b718a92c7df1c08d4bb7}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!swaps@{swaps}}
+\index{swaps@{swaps}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{swaps}]{\setlength{\rightskip}{0pt plus 5cm}list Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+swaps = \mbox{[}$\,$\mbox{]}}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ac6d69cb34df1b718a92c7df1c08d4bb7}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a3d3935c25cf2fd153cca4973142a6b42}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!thresh@{thresh}}
+\index{thresh@{thresh}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{thresh}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+thresh = auto\+\_\+noise\+\_\+level({\bf data})}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a3d3935c25cf2fd153cca4973142a6b42}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a12f26a811655cd3245ef8b852fb1b753}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!tolerance@{tolerance}}
+\index{tolerance@{tolerance}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{tolerance}]{\setlength{\rightskip}{0pt plus 5cm}list Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+tolerance = {\bf charge}$\ast$fwhm}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a12f26a811655cd3245ef8b852fb1b753}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a6dc5ec6f6bd5b013251fcfa171b2490b}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!topcharge@{topcharge}}
+\index{topcharge@{topcharge}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{topcharge}]{\setlength{\rightskip}{0pt plus 5cm}list Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+topcharge = {\bf row}\mbox{[}3\mbox{]}}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a6dc5ec6f6bd5b013251fcfa171b2490b}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a56352c73bb6345e6e0f69ca4f52b51b5}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!topmass@{topmass}}
+\index{topmass@{topmass}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{topmass}]{\setlength{\rightskip}{0pt plus 5cm}list Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+topmass = {\bf row}\mbox{[}0\mbox{]}}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a56352c73bb6345e6e0f69ca4f52b51b5}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_adeb45617daaa2b308f5578545c0e9bf6}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!vec@{vec}}
+\index{vec@{vec}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{vec}]{\setlength{\rightskip}{0pt plus 5cm}int Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+vec = np.\+array(\mbox{[}{\bf mass}, {\bf ivals}\mbox{[}{\bf maxpos}\mbox{]}, {\bf mz}, {\bf charge}, {\bf diffs}\mbox{[}{\bf minpos}\mbox{]}, {\bf tolerance}, {\bf zm}\mbox{[}{\bf maxpos}\mbox{]}, False\mbox{]})}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_adeb45617daaa2b308f5578545c0e9bf6}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ac99568789a44a90c12609fcdfde18bef}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!window@{window}}
+\index{window@{window}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{window}]{\setlength{\rightskip}{0pt plus 5cm}int Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+window = fwhm/{\bf avgbs}/4}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ac99568789a44a90c12609fcdfde18bef}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_abc1d33a8ad225f476c035155a8b56834}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!x@{x}}
+\index{x@{x}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{x}]{\setlength{\rightskip}{0pt plus 5cm}list Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+x = np.\+abs({\bf zm} -\/ {\bf zm}\mbox{[}{\bf maxpos}\mbox{]})}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_abc1d33a8ad225f476c035155a8b56834}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a0ba2e98c339056b40fbed6c28f680c68}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!y@{y}}
+\index{y@{y}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{y}]{\setlength{\rightskip}{0pt plus 5cm}list Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+y = {\bf mins}\mbox{[}{\bf boo1}, 4\mbox{]}}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a0ba2e98c339056b40fbed6c28f680c68}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aec6037c920102c5579f10f9223895812}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!zm@{zm}}
+\index{zm@{zm}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{zm}]{\setlength{\rightskip}{0pt plus 5cm}int Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+zm = 1}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aec6037c920102c5579f10f9223895812}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a34ea9485406d53f96e5c08b45eaaaa3e}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}!zms@{zms}}
+\index{zms@{zms}!Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak@{Uni\+Dec\+::unidec\+\_\+modules\+::auto\+\_\+peak}}
+\subsubsection[{zms}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+zms = np.\+abs({\bf row}\mbox{[}6\mbox{]} -\/ {\bf mins}\mbox{[}\+:, 6\mbox{]})}\label{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a34ea9485406d53f96e5c08b45eaaaa3e}

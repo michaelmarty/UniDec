@@ -1,0 +1,278 @@
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions}{}\section{Uni\+Dec.\+unidec\+\_\+modules.\+I\+M\+\_\+functions Namespace Reference}
+\label{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions}\index{Uni\+Dec.\+unidec\+\_\+modules.\+I\+M\+\_\+functions@{Uni\+Dec.\+unidec\+\_\+modules.\+I\+M\+\_\+functions}}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a647c252cc5c54674e66a9a35855603f7}{smooth\+\_\+2d} (igrid, smooth, smoothdt)
+\item 
+def \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a2bec3500904e16600d07773a322d15f7}{min\+\_\+array} (igrid, xwidth, ywidth)
+\item 
+def \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_ae378dee414a93ecd80c14f8f39a85602}{intensitythresh} (igrid, thresh)
+\item 
+def \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_acd6eaa7e6a91227ba450a315f30767d4}{subtract\+\_\+complex\+\_\+2d} (igrid, config)
+\item 
+def \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_abd3fa830e3fabb0ade11fa94040d6261}{compress\+\_\+2d} (xgrid, ygrid, zgrid, num)
+\item 
+def \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a9fbc0d46d22e363eef9489a505d7de6b}{linearize\+\_\+2d} (xvals, yvals, igrid, binsize)
+\item 
+def \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a3ee8c9aac2bc952cf0f7e6aef3184754}{detectoreff\+\_\+2d} (igrid, xgrid, va)
+\item 
+def \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a1ae0d69acb8dbada964f301a111c6eac}{process\+\_\+data\+\_\+2d} (xgrid, ygrid, igrid, config)
+\item 
+def \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_af7491ae6fb976956b24daf285328a496}{calc\+\_\+twave\+\_\+dt} (mass, z, ccs, config)
+\item 
+def \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a83d8acfa182a7341a31567d5ab42a458}{calc\+\_\+linear\+\_\+dt} (mass, z, ccs, config)
+\item 
+def \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_ac4398d0f6c884010d1053bf39e01f79a}{calc\+\_\+native\+\_\+ccs} (mass, gasmass)
+\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+string \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a03a162fd108a0ced54b838cc57542925}{\+\_\+\+\_\+author\+\_\+\+\_\+} = \textquotesingle{}Michael.\+Marty\textquotesingle{}
+\end{DoxyCompactItemize}
+
+
+\subsection{Function Documentation}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a83d8acfa182a7341a31567d5ab42a458}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}!calc\+\_\+linear\+\_\+dt@{calc\+\_\+linear\+\_\+dt}}
+\index{calc\+\_\+linear\+\_\+dt@{calc\+\_\+linear\+\_\+dt}!Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}}
+\subsubsection[{calc\+\_\+linear\+\_\+dt(mass, z, ccs, config)}]{\setlength{\rightskip}{0pt plus 5cm}def Uni\+Dec.\+unidec\+\_\+modules.\+I\+M\+\_\+functions.\+calc\+\_\+linear\+\_\+dt (
+\begin{DoxyParamCaption}
+\item[{}]{mass, }
+\item[{}]{z, }
+\item[{}]{ccs, }
+\item[{}]{config}
+\end{DoxyParamCaption}
+)}\label{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a83d8acfa182a7341a31567d5ab42a458}
+\begin{DoxyVerb}Calculate drift time in a linear cell
+:param mass: Mass in Da
+:param z: Charge
+:param ccs: CCS in Angstrom^2
+:param config: UniDecConfig object (carries the key parameters of temp, pressure, etc)
+:return: Drift time (ms)
+\end{DoxyVerb}
+ 
+
+Here is the caller graph for this function\+:
+% FIG 0
+
+
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_ac4398d0f6c884010d1053bf39e01f79a}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}!calc\+\_\+native\+\_\+ccs@{calc\+\_\+native\+\_\+ccs}}
+\index{calc\+\_\+native\+\_\+ccs@{calc\+\_\+native\+\_\+ccs}!Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}}
+\subsubsection[{calc\+\_\+native\+\_\+ccs(mass, gasmass)}]{\setlength{\rightskip}{0pt plus 5cm}def Uni\+Dec.\+unidec\+\_\+modules.\+I\+M\+\_\+functions.\+calc\+\_\+native\+\_\+ccs (
+\begin{DoxyParamCaption}
+\item[{}]{mass, }
+\item[{}]{gasmass}
+\end{DoxyParamCaption}
+)}\label{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_ac4398d0f6c884010d1053bf39e01f79a}
+\begin{DoxyVerb}Predict native CCS value for a particular mass in a given mass
+:param mass: Mass of protein in Da
+:param gasmass: Mass of IM background gas in Da
+:return: Predicted CCS in Angstroms^2
+\end{DoxyVerb}
+ \hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_af7491ae6fb976956b24daf285328a496}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}!calc\+\_\+twave\+\_\+dt@{calc\+\_\+twave\+\_\+dt}}
+\index{calc\+\_\+twave\+\_\+dt@{calc\+\_\+twave\+\_\+dt}!Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}}
+\subsubsection[{calc\+\_\+twave\+\_\+dt(mass, z, ccs, config)}]{\setlength{\rightskip}{0pt plus 5cm}def Uni\+Dec.\+unidec\+\_\+modules.\+I\+M\+\_\+functions.\+calc\+\_\+twave\+\_\+dt (
+\begin{DoxyParamCaption}
+\item[{}]{mass, }
+\item[{}]{z, }
+\item[{}]{ccs, }
+\item[{}]{config}
+\end{DoxyParamCaption}
+)}\label{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_af7491ae6fb976956b24daf285328a496}
+\begin{DoxyVerb}Calculate drift time in a T-wave cell
+:param mass: Mass in Da
+:param z: Charge
+:param ccs: CCS in Angstrom^2
+:param config: UniDecConfig object (carries the key parameters of calibration)
+:return: Drift time (ms)
+\end{DoxyVerb}
+ 
+
+Here is the caller graph for this function\+:
+% FIG 1
+
+
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_abd3fa830e3fabb0ade11fa94040d6261}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}!compress\+\_\+2d@{compress\+\_\+2d}}
+\index{compress\+\_\+2d@{compress\+\_\+2d}!Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}}
+\subsubsection[{compress\+\_\+2d(xgrid, ygrid, zgrid, num)}]{\setlength{\rightskip}{0pt plus 5cm}def Uni\+Dec.\+unidec\+\_\+modules.\+I\+M\+\_\+functions.\+compress\+\_\+2d (
+\begin{DoxyParamCaption}
+\item[{}]{xgrid, }
+\item[{}]{ygrid, }
+\item[{}]{zgrid, }
+\item[{}]{num}
+\end{DoxyParamCaption}
+)}\label{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_abd3fa830e3fabb0ade11fa94040d6261}
+\begin{DoxyVerb}Compresses a 2D grid in to smaller grids by merging n data points in the x dimension together as their average.
+:param xgrid: 2D numpy array
+:param ygrid: 2D numpy array
+:param zgrid: 2D numpy array
+:param num: number of consecutive data points in the x-dimension to average together
+:return: x, y, and z grids compressed along the x dimension to a new size
+\end{DoxyVerb}
+ \hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a3ee8c9aac2bc952cf0f7e6aef3184754}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}!detectoreff\+\_\+2d@{detectoreff\+\_\+2d}}
+\index{detectoreff\+\_\+2d@{detectoreff\+\_\+2d}!Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}}
+\subsubsection[{detectoreff\+\_\+2d(igrid, xgrid, va)}]{\setlength{\rightskip}{0pt plus 5cm}def Uni\+Dec.\+unidec\+\_\+modules.\+I\+M\+\_\+functions.\+detectoreff\+\_\+2d (
+\begin{DoxyParamCaption}
+\item[{}]{igrid, }
+\item[{}]{xgrid, }
+\item[{}]{va}
+\end{DoxyParamCaption}
+)}\label{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a3ee8c9aac2bc952cf0f7e6aef3184754}
+\begin{DoxyVerb}Corrects for Q-TOF detector efficiency
+:param igrid: Intensity 2D numpy array
+:param xgrid: 2D numpy array of m/z values
+:param va: TOF acceleration voltage
+:return: igrid corrected for detector efficiency
+\end{DoxyVerb}
+ 
+
+Here is the caller graph for this function\+:
+% FIG 2
+
+
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_ae378dee414a93ecd80c14f8f39a85602}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}!intensitythresh@{intensitythresh}}
+\index{intensitythresh@{intensitythresh}!Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}}
+\subsubsection[{intensitythresh(igrid, thresh)}]{\setlength{\rightskip}{0pt plus 5cm}def Uni\+Dec.\+unidec\+\_\+modules.\+I\+M\+\_\+functions.\+intensitythresh (
+\begin{DoxyParamCaption}
+\item[{}]{igrid, }
+\item[{}]{thresh}
+\end{DoxyParamCaption}
+)}\label{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_ae378dee414a93ecd80c14f8f39a85602}
+\begin{DoxyVerb}Intensity threshold for 2D grid
+:param igrid: 2D numpy array
+:param thresh: Threshold
+:return: igrid with all elements below thresh set to 0
+\end{DoxyVerb}
+ 
+
+Here is the caller graph for this function\+:
+% FIG 3
+
+
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a9fbc0d46d22e363eef9489a505d7de6b}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}!linearize\+\_\+2d@{linearize\+\_\+2d}}
+\index{linearize\+\_\+2d@{linearize\+\_\+2d}!Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}}
+\subsubsection[{linearize\+\_\+2d(xvals, yvals, igrid, binsize)}]{\setlength{\rightskip}{0pt plus 5cm}def Uni\+Dec.\+unidec\+\_\+modules.\+I\+M\+\_\+functions.\+linearize\+\_\+2d (
+\begin{DoxyParamCaption}
+\item[{}]{xvals, }
+\item[{}]{yvals, }
+\item[{}]{igrid, }
+\item[{}]{binsize}
+\end{DoxyParamCaption}
+)}\label{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a9fbc0d46d22e363eef9489a505d7de6b}
+\begin{DoxyVerb}Linearize the x-axis of a 2D grid
+:param xvals: 2D numpy array (x values)
+:param yvals: 2D numpy array (y values)
+:param igrid: 2D numpy array (intensity values)
+:param binsize: difference between consecutive linear x points
+:return: x, y, and z grid linearized along the x-axis
+\end{DoxyVerb}
+ 
+
+Here is the caller graph for this function\+:
+% FIG 4
+
+
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a2bec3500904e16600d07773a322d15f7}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}!min\+\_\+array@{min\+\_\+array}}
+\index{min\+\_\+array@{min\+\_\+array}!Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}}
+\subsubsection[{min\+\_\+array(igrid, xwidth, ywidth)}]{\setlength{\rightskip}{0pt plus 5cm}def Uni\+Dec.\+unidec\+\_\+modules.\+I\+M\+\_\+functions.\+min\+\_\+array (
+\begin{DoxyParamCaption}
+\item[{}]{igrid, }
+\item[{}]{xwidth, }
+\item[{}]{ywidth}
+\end{DoxyParamCaption}
+)}\label{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a2bec3500904e16600d07773a322d15f7}
+\begin{DoxyVerb}Creates an array of local minimum values in a neighborhood of +/- width
+:param igrid: 2D numpy array
+:param xwidth: width in x direction
+:param ywidth: width in y direction
+:return: array of local minimum values in the same dimensions as igrid
+\end{DoxyVerb}
+ 
+
+Here is the caller graph for this function\+:
+% FIG 5
+
+
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a1ae0d69acb8dbada964f301a111c6eac}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}!process\+\_\+data\+\_\+2d@{process\+\_\+data\+\_\+2d}}
+\index{process\+\_\+data\+\_\+2d@{process\+\_\+data\+\_\+2d}!Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}}
+\subsubsection[{process\+\_\+data\+\_\+2d(xgrid, ygrid, igrid, config)}]{\setlength{\rightskip}{0pt plus 5cm}def Uni\+Dec.\+unidec\+\_\+modules.\+I\+M\+\_\+functions.\+process\+\_\+data\+\_\+2d (
+\begin{DoxyParamCaption}
+\item[{}]{xgrid, }
+\item[{}]{ygrid, }
+\item[{}]{igrid, }
+\item[{}]{config}
+\end{DoxyParamCaption}
+)}\label{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a1ae0d69acb8dbada964f301a111c6eac}
+\begin{DoxyVerb}Process IM-MS raw data.
+
+1. Chop data to defined limits
+2. Linearize
+3. Smooth
+4. Subtract background
+5. Detector efficiency correction
+6. Normalize
+:param xgrid: 2D numpy array (x values)
+:param ygrid: 2D numpy array (y values)
+:param igrid: 2D numpy array (intensity values values)
+:param config: UniDecConfig object carrying parameters for processing
+:return: x, y, and z grids of processed data
+\end{DoxyVerb}
+ 
+
+Here is the call graph for this function\+:
+% FIG 6
+
+
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a647c252cc5c54674e66a9a35855603f7}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}!smooth\+\_\+2d@{smooth\+\_\+2d}}
+\index{smooth\+\_\+2d@{smooth\+\_\+2d}!Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}}
+\subsubsection[{smooth\+\_\+2d(igrid, smooth, smoothdt)}]{\setlength{\rightskip}{0pt plus 5cm}def Uni\+Dec.\+unidec\+\_\+modules.\+I\+M\+\_\+functions.\+smooth\+\_\+2d (
+\begin{DoxyParamCaption}
+\item[{}]{igrid, }
+\item[{}]{smooth, }
+\item[{}]{smoothdt}
+\end{DoxyParamCaption}
+)}\label{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a647c252cc5c54674e66a9a35855603f7}
+\begin{DoxyVerb}Gaussian smooth of 2D grid
+:param igrid: 2D numpy array
+:param smooth: width in x dimension (in data points)
+:param smoothdt: width in y dimension (in data points)
+:return: smoothed 2D numpy array
+\end{DoxyVerb}
+ 
+
+Here is the caller graph for this function\+:
+% FIG 7
+
+
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_acd6eaa7e6a91227ba450a315f30767d4}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}!subtract\+\_\+complex\+\_\+2d@{subtract\+\_\+complex\+\_\+2d}}
+\index{subtract\+\_\+complex\+\_\+2d@{subtract\+\_\+complex\+\_\+2d}!Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}}
+\subsubsection[{subtract\+\_\+complex\+\_\+2d(igrid, config)}]{\setlength{\rightskip}{0pt plus 5cm}def Uni\+Dec.\+unidec\+\_\+modules.\+I\+M\+\_\+functions.\+subtract\+\_\+complex\+\_\+2d (
+\begin{DoxyParamCaption}
+\item[{}]{igrid, }
+\item[{}]{config}
+\end{DoxyParamCaption}
+)}\label{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_acd6eaa7e6a91227ba450a315f30767d4}
+\begin{DoxyVerb}Subtract a complex curved baseline.
+Creates a baseline using min_array, smooths it using smooth_2d, and subtracts it.
+:param igrid: 2D numpy array
+:param config: UniDecConfig object specifying width parameters in x and y dimensions
+:return: igrid with background subtraction applied
+\end{DoxyVerb}
+ 
+
+Here is the call graph for this function\+:
+% FIG 8
+
+
+
+
+Here is the caller graph for this function\+:
+% FIG 9
+
+
+
+
+\subsection{Variable Documentation}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a03a162fd108a0ced54b838cc57542925}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}!\+\_\+\+\_\+author\+\_\+\+\_\+@{\+\_\+\+\_\+author\+\_\+\+\_\+}}
+\index{\+\_\+\+\_\+author\+\_\+\+\_\+@{\+\_\+\+\_\+author\+\_\+\+\_\+}!Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions@{Uni\+Dec\+::unidec\+\_\+modules\+::\+I\+M\+\_\+functions}}
+\subsubsection[{\+\_\+\+\_\+author\+\_\+\+\_\+}]{\setlength{\rightskip}{0pt plus 5cm}string Uni\+Dec.\+unidec\+\_\+modules.\+I\+M\+\_\+functions.\+\_\+\+\_\+author\+\_\+\+\_\+ = \textquotesingle{}Michael.\+Marty\textquotesingle{}}\label{namespace_uni_dec_1_1unidec__modules_1_1_i_m__functions_a03a162fd108a0ced54b838cc57542925}

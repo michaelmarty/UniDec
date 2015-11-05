@@ -1,0 +1,13 @@
+<map id="UniDec.unidec.UniDec.run_unidec" name="UniDec.unidec.UniDec.run_unidec">
+<area shape="rect" id="node2" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a08242f9b9df1f340dd55cc21a3badb54" title="UniDec.unidec_tests.UniDec\lTest.test_spectra" alt="" coords="228,300,416,341"/>
+<area shape="rect" id="node3" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a3a7bc444baa2261883a289040543ad23" title="UniDec.unidec_tests.UniDec\lTest.test_width" alt="" coords="464,5,652,47"/>
+<area shape="rect" id="node4" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a6a017fbc9b8072f208e7c46bacdf8d66" title="UniDec.unidec_tests.UniDec\lTest.test_noise" alt="" coords="464,71,652,112"/>
+<area shape="rect" id="node5" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#ae022c73aa884c79e4c17f48ac67fa3d1" title="UniDec.unidec_tests.UniDec\lTest.test_zwidth" alt="" coords="464,136,652,177"/>
+<area shape="rect" id="node6" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#adc49f889bc5a4861ddf5c4b30f661581" title="UniDec.unidec_tests.UniDec\lTest.test_baseline" alt="" coords="464,201,652,243"/>
+<area shape="rect" id="node7" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#ab578ac2a5f0a210fee631b70e3a53373" title="UniDec.unidec_tests.UniDec\lTest.test_ambiguity" alt="" coords="464,267,652,308"/>
+<area shape="rect" id="node8" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a465e17d26a5d0f7b2efd779deb232fb4" title="UniDec.unidec_tests.UniDec\lTest.test_density" alt="" coords="464,332,652,373"/>
+<area shape="rect" id="node9" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a661ad3a27086e8a2ac1b512a86c0f4d3" title="UniDec.unidec_tests.UniDec\lTest.test_psfun" alt="" coords="464,397,652,439"/>
+<area shape="rect" id="node10" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a17497d7c058ecb982108ecd07eea55ac" title="UniDec.unidec_tests.UniDec\lTest.test_widths" alt="" coords="464,463,652,504"/>
+<area shape="rect" id="node11" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a34808b3417fbfe04fd514907371c1822" title="UniDec.unidec_tests.UniDec\lTest.test_sigs" alt="" coords="464,528,652,569"/>
+<area shape="rect" id="node12" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a80f4b1c8258f43c765d9f0832c5bac91" title="UniDec.unidec_tests.UniDec\lTest.test_repeat" alt="" coords="464,593,652,635"/>
+</map>

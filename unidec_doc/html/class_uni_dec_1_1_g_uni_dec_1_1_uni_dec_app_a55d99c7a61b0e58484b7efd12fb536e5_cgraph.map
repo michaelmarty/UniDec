@@ -1,0 +1,12 @@
+<map id="UniDec.GUniDec.UniDecApp.on_replot" name="UniDec.GUniDec.UniDecApp.on_replot">
+<area shape="rect" id="node2" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a0cb3bacc29fcc5279c546f38f5cfc556" title="UniDec.GUniDec.UniDecApp.export\l_config" alt="" coords="573,47,803,88"/>
+<area shape="rect" id="node3" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#ad23bf7755ca52368d7e5c5ffb3527d6d" title="UniDec.GUniDec.UniDecApp.make\l_im_plots" alt="" coords="274,220,499,262"/>
+<area shape="rect" id="node4" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a461a31aa2caf2d9d8f3133221ca476a8" title="UniDec.GUniDec.UniDecApp.makeplot1" alt="" coords="561,125,815,152"/>
+<area shape="rect" id="node5" href="$class_uni_dec_1_1datacollector_1_1_data_collector.html#a32fcfc547079586b05676930b20dbbb3" title="UniDec.datacollector.Data\lCollector.makeplot2" alt="" coords="601,202,775,243"/>
+<area shape="rect" id="node6" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a4c8b6f6f71e623fa509d0fc1fcd8ff88" title="UniDec.GUniDec.UniDecApp.makeplot2" alt="" coords="561,277,815,304"/>
+<area shape="rect" id="node7" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#ac224a74a698b3844f578ffe240fc8f8d" title="UniDec.GUniDec.UniDecApp.makeplot5" alt="" coords="561,333,815,360"/>
+<area shape="rect" id="node8" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a700decfef27e11fce17d2507edd1ca9a" title="UniDec.GUniDec.UniDecApp.makeplot3" alt="" coords="561,384,815,410"/>
+<area shape="rect" id="node9" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a961667da7677e34308f337c01c8f6e82" title="UniDec.GUniDec.UniDecApp.makeplot4" alt="" coords="260,438,513,465"/>
+<area shape="rect" id="node10" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#aa77986a59a171850595dc4d2636203c1" title="UniDec.GUniDec.UniDecApp.makeplot6" alt="" coords="260,489,513,516"/>
+<area shape="rect" id="node11" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#ae3e59e695d4511bc8fe8e932caeaf512" title="UniDec.GUniDec.UniDecApp.make\l_cube_plot" alt="" coords="274,52,499,94"/>
+</map>

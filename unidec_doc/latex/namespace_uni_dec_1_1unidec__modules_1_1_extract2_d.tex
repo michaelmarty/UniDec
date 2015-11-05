@@ -1,0 +1,63 @@
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d}{}\section{Uni\+Dec.\+unidec\+\_\+modules.\+Extract2\+D Namespace Reference}
+\label{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d}\index{Uni\+Dec.\+unidec\+\_\+modules.\+Extract2\+D@{Uni\+Dec.\+unidec\+\_\+modules.\+Extract2\+D}}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{class_uni_dec_1_1unidec__modules_1_1_extract2_d_1_1_extract2_d_plot}{Extract2\+D\+Plot}
+\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+string \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a80dd2d3d98987c97d9dd4790a9b5030a}{\+\_\+\+\_\+author\+\_\+\+\_\+} = \textquotesingle{}Michael.\+Marty\textquotesingle{}
+\item 
+string \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_ae4fa189fb1312a286a48ff9b8002148b}{dir\+\_\+name} = \char`\"{}C\+:\textbackslash{}\textbackslash{}\+Mass\+Lynx\textbackslash{}\textbackslash{}\+Mike.\+P\+R\+O\textbackslash{}\+Data\textbackslash{}\textbackslash{}150521\textbackslash{}\textbackslash{}mz\+M\+L\textbackslash{}\textbackslash{}\+Aqpz\+\_\+05\+\_\+\+Ramp3\textbackslash{}\textbackslash{}\+M\+T\+M\+\_\+150521\+\_\+\+Aqp\+Z\+\_\+05\+\_\+\+P\+O\+P\+C\+\_\+\+Ramp\+\_\+1-\/5pbar\+\_\+20mit100\+\_\+unidecfiles\char`\"{}
+\item 
+string \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a11fa49d078dcdcfd6bb2a3b139f4bddc}{file\+\_\+name} = \char`\"{}M\+T\+M\+\_\+150521\+\_\+\+Aqp\+Z\+\_\+05\+\_\+\+P\+O\+P\+C\+\_\+\+Ramp\+\_\+1-\/5pbar\+\_\+20mit100\+\_\+mass.\+txt\char`\"{}
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a1901d7e3d20730f812e42060a3ac79d1}{path} = os.\+path.\+join(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_ae4fa189fb1312a286a48ff9b8002148b}{dir\+\_\+name}, \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a11fa49d078dcdcfd6bb2a3b139f4bddc}{file\+\_\+name})
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a631595b08dc933d757bb574ffb81c40b}{data} = np.\+loadtxt(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a1901d7e3d20730f812e42060a3ac79d1}{path})
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a784c0733bdfc7664522f4424544dd1cc}{data2} = np.\+loadtxt(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a1901d7e3d20730f812e42060a3ac79d1}{path})
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a38e0fa19d93aef729352bba636150691}{data3} = np.\+loadtxt(\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a1901d7e3d20730f812e42060a3ac79d1}{path})
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_afd604f25bfa553644a3b6016f99b0afa}{datalist} = \mbox{[}\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a631595b08dc933d757bb574ffb81c40b}{data}, \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a784c0733bdfc7664522f4424544dd1cc}{data2}, \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a38e0fa19d93aef729352bba636150691}{data3}\mbox{]}
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_ae557cbf7acc5ff9d6e476464517ce2a8}{app} = wx.\+App(False)
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a82d38bf33b7bc117d5dfb661a8513458}{frame} = \hyperlink{class_uni_dec_1_1unidec__modules_1_1_extract2_d_1_1_extract2_d_plot}{Extract2\+D\+Plot}(None, \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_afd604f25bfa553644a3b6016f99b0afa}{datalist}, yvals=np.\+array(\mbox{[}100., 120., 180.\mbox{]}))
+\end{DoxyCompactItemize}
+
+
+\subsection{Variable Documentation}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a80dd2d3d98987c97d9dd4790a9b5030a}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}!\+\_\+\+\_\+author\+\_\+\+\_\+@{\+\_\+\+\_\+author\+\_\+\+\_\+}}
+\index{\+\_\+\+\_\+author\+\_\+\+\_\+@{\+\_\+\+\_\+author\+\_\+\+\_\+}!Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}}
+\subsubsection[{\+\_\+\+\_\+author\+\_\+\+\_\+}]{\setlength{\rightskip}{0pt plus 5cm}string Uni\+Dec.\+unidec\+\_\+modules.\+Extract2\+D.\+\_\+\+\_\+author\+\_\+\+\_\+ = \textquotesingle{}Michael.\+Marty\textquotesingle{}}\label{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a80dd2d3d98987c97d9dd4790a9b5030a}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_ae557cbf7acc5ff9d6e476464517ce2a8}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}!app@{app}}
+\index{app@{app}!Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}}
+\subsubsection[{app}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+Extract2\+D.\+app = wx.\+App(False)}\label{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_ae557cbf7acc5ff9d6e476464517ce2a8}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a631595b08dc933d757bb574ffb81c40b}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}!data@{data}}
+\index{data@{data}!Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}}
+\subsubsection[{data}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+Extract2\+D.\+data = np.\+loadtxt({\bf path})}\label{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a631595b08dc933d757bb574ffb81c40b}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a784c0733bdfc7664522f4424544dd1cc}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}!data2@{data2}}
+\index{data2@{data2}!Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}}
+\subsubsection[{data2}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+Extract2\+D.\+data2 = np.\+loadtxt({\bf path})}\label{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a784c0733bdfc7664522f4424544dd1cc}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a38e0fa19d93aef729352bba636150691}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}!data3@{data3}}
+\index{data3@{data3}!Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}}
+\subsubsection[{data3}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+Extract2\+D.\+data3 = np.\+loadtxt({\bf path})}\label{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a38e0fa19d93aef729352bba636150691}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_afd604f25bfa553644a3b6016f99b0afa}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}!datalist@{datalist}}
+\index{datalist@{datalist}!Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}}
+\subsubsection[{datalist}]{\setlength{\rightskip}{0pt plus 5cm}list Uni\+Dec.\+unidec\+\_\+modules.\+Extract2\+D.\+datalist = \mbox{[}{\bf data}, {\bf data2}, {\bf data3}\mbox{]}}\label{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_afd604f25bfa553644a3b6016f99b0afa}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_ae4fa189fb1312a286a48ff9b8002148b}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}!dir\+\_\+name@{dir\+\_\+name}}
+\index{dir\+\_\+name@{dir\+\_\+name}!Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}}
+\subsubsection[{dir\+\_\+name}]{\setlength{\rightskip}{0pt plus 5cm}string Uni\+Dec.\+unidec\+\_\+modules.\+Extract2\+D.\+dir\+\_\+name = \char`\"{}C\+:\textbackslash{}\textbackslash{}\+Mass\+Lynx\textbackslash{}\textbackslash{}\+Mike.\+P\+R\+O\textbackslash{}\+Data\textbackslash{}\textbackslash{}150521\textbackslash{}\textbackslash{}mz\+M\+L\textbackslash{}\textbackslash{}\+Aqpz\+\_\+05\+\_\+\+Ramp3\textbackslash{}\textbackslash{}\+M\+T\+M\+\_\+150521\+\_\+\+Aqp\+Z\+\_\+05\+\_\+\+P\+O\+P\+C\+\_\+\+Ramp\+\_\+1-\/5pbar\+\_\+20mit100\+\_\+unidecfiles\char`\"{}}\label{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_ae4fa189fb1312a286a48ff9b8002148b}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a11fa49d078dcdcfd6bb2a3b139f4bddc}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}!file\+\_\+name@{file\+\_\+name}}
+\index{file\+\_\+name@{file\+\_\+name}!Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}}
+\subsubsection[{file\+\_\+name}]{\setlength{\rightskip}{0pt plus 5cm}string Uni\+Dec.\+unidec\+\_\+modules.\+Extract2\+D.\+file\+\_\+name = \char`\"{}M\+T\+M\+\_\+150521\+\_\+\+Aqp\+Z\+\_\+05\+\_\+\+P\+O\+P\+C\+\_\+\+Ramp\+\_\+1-\/5pbar\+\_\+20mit100\+\_\+mass.\+txt\char`\"{}}\label{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a11fa49d078dcdcfd6bb2a3b139f4bddc}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a82d38bf33b7bc117d5dfb661a8513458}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}!frame@{frame}}
+\index{frame@{frame}!Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}}
+\subsubsection[{frame}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+Extract2\+D.\+frame = {\bf Extract2\+D\+Plot}(None, {\bf datalist}, yvals=np.\+array(\mbox{[}100., 120., 180.\mbox{]}))}\label{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a82d38bf33b7bc117d5dfb661a8513458}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a1901d7e3d20730f812e42060a3ac79d1}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}!path@{path}}
+\index{path@{path}!Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Extract2\+D}}
+\subsubsection[{path}]{\setlength{\rightskip}{0pt plus 5cm}tuple Uni\+Dec.\+unidec\+\_\+modules.\+Extract2\+D.\+path = os.\+path.\+join({\bf dir\+\_\+name}, {\bf file\+\_\+name})}\label{namespace_uni_dec_1_1unidec__modules_1_1_extract2_d_a1901d7e3d20730f812e42060a3ac79d1}

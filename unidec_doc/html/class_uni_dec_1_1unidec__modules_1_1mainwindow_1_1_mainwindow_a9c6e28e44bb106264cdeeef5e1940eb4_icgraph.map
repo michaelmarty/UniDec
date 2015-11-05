@@ -1,0 +1,5 @@
+<map id="UniDec.unidec_modules.mainwindow.Mainwindow.save_all_figures" name="UniDec.unidec_modules.mainwindow.Mainwindow.save_all_figures">
+<area shape="rect" id="node2" href="$class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#abad47b8da6289af4cc9b15a170199f09" title="UniDec.unidec_modules.mainwindow.\lMainwindow.on_save_figure_eps" alt="" coords="293,5,533,47"/>
+<area shape="rect" id="node3" href="$class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#a00205ac38f519c15d768a220e4fba525" title="UniDec.unidec_modules.mainwindow.\lMainwindow.on_save_figure_pdf" alt="" coords="293,71,533,112"/>
+<area shape="rect" id="node4" href="$class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#a351dc8045c34e798ff853adc4f88f145" title="UniDec.unidec_modules.mainwindow.\lMainwindow.on_save_figure_small" alt="" coords="293,136,533,177"/>
+</map>

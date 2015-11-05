@@ -1,0 +1,5 @@
+<map id="UniDec.unidec_modules.ManualSelectionWindow.ManualSelection.on_plot" name="UniDec.unidec_modules.ManualSelectionWindow.ManualSelection.on_plot">
+<area shape="rect" id="node2" href="$class_uni_dec_1_1unidec__modules_1_1_manual_selection_window_1_1_manual_selection.html#afa02dfc1280aaa02726090091052b1d8" title="UniDec.unidec_modules.Manual\lSelectionWindow.ManualSelection.initiate_dialog" alt="" coords="321,5,627,47"/>
+<area shape="rect" id="node3" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools1d.html#aab4d0213defd2f32205e05e64c5be717" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools1d.initialize_interface" alt="" coords="346,71,602,112"/>
+<area shape="rect" id="node4" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools2d.html#a8054bfcf237653422c51eb694d85853f" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools2d.initialize_interface" alt="" coords="346,136,602,177"/>
+</map>

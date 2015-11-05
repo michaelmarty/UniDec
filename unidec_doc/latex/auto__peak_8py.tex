@@ -1,0 +1,78 @@
+\hypertarget{auto__peak_8py}{}\section{C\+:/\+Python/\+Uni\+Dec/unidec\+\_\+modules/auto\+\_\+peak.py File Reference}
+\label{auto__peak_8py}\index{C\+:/\+Python/\+Uni\+Dec/unidec\+\_\+modules/auto\+\_\+peak.\+py@{C\+:/\+Python/\+Uni\+Dec/unidec\+\_\+modules/auto\+\_\+peak.\+py}}
+\subsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak}
+\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+string \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a4ac9c8672c4aae9cb4a8b70086fb8dbf}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+\_\+\+\_\+author\+\_\+\+\_\+} = \textquotesingle{}Michael.\+Marty\textquotesingle{}
+\item 
+string \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aed4928bf8418274fa1155d36675f0b3c}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+file} = \char`\"{}C\+:\textbackslash{}\textbackslash{}cprog\textbackslash{}\textbackslash{}\+Uni\+Dec\+Demo\textbackslash{}\textbackslash{}\+M\+T\+M\+\_\+\+A\+D\+H\+\_\+5\+\_\+rawdata.\+txt\char`\"{}
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a31996c2b129f976b613fb06f3ccf43a2}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+data} = np.\+loadtxt(file, skiprows=10)
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a3d3935c25cf2fd153cca4973142a6b42}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+thresh} = auto\+\_\+noise\+\_\+level(data)
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a27d98cd4621bb435387b8f6063413108}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+avgbs} = average\+\_\+bin\+\_\+size(data)
+\item 
+int \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ac99568789a44a90c12609fcdfde18bef}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+window} = fwhm/avgbs/4
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ab2f41ee4c2753756fa96017905742239}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+cwtdat} = np.\+transpose(\mbox{[}data\mbox{[}\+:, 0\mbox{]}, cwt\mbox{]})
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a1aeb6bedf7b442825235781343e0ad63}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+peaks} = peakdetect(cwtdat, None, window $\ast$ 2., thresh)
+\item 
+int \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aec6037c920102c5579f10f9223895812}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+zm} = 1
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a2699125346e68ca4c90870ea069b8787}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+ivals} = peaks\mbox{[}\+:, 1\mbox{]}
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa1271ed0c52de711ceb3edd7c7c86fc2}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+maxpos} = np.\+argmax(ivals)
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa5c84accca704faf0ebfa46a121cf222}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+mins} = \mbox{[}$\,$\mbox{]}
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_abc1d33a8ad225f476c035155a8b56834}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+x} = np.\+abs(zm -\/ zm\mbox{[}maxpos\mbox{]})
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a62ff64d63d5be230f7ff5b24fa4b28c2}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+diffs} = np.\+diff(x)
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aea52bb0d9341cc952d79c5464b3fd778}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+minpos} = np.\+argmin(diffs)
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a6c83046c326aa8752478e63621ddc9b5}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+minval} = np.\+average(x\mbox{[}minpos\+:minpos + 2\mbox{]})
+\item 
+int \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a153536ddca04f0c53b777b0e1958375b}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+mass} = 1
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a4bff8397ff493d413e68befa2f1a6144}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+mz} = peaks\mbox{[}maxpos, 0\mbox{]}
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a0b8fb630219ca26395b19245cb509a45}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+charge} = np.\+round(mass / mz)
+\item 
+\hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a12f26a811655cd3245ef8b852fb1b753}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+tolerance} = charge$\ast$fwhm
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_adeb45617daaa2b308f5578545c0e9bf6}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+vec} = np.\+array(\mbox{[}mass, ivals\mbox{[}maxpos\mbox{]}, mz, charge, diffs\mbox{[}minpos\mbox{]}, tolerance, zm\mbox{[}maxpos\mbox{]}, False\mbox{]})
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ac4c4908409d6935e791315b11227f7d4}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+sindex} = np.\+argsort(mins\mbox{[}\+:, 4\mbox{]})
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_aa3d1172615a2681b4101a61729d97d81}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+peakassignments} = \mbox{[}$\,$\mbox{]}
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a13d2f412a89100f208af25a2b712344d}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+row} = mins\mbox{[}i\mbox{]}
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ac6d69cb34df1b718a92c7df1c08d4bb7}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+swaps} = \mbox{[}$\,$\mbox{]}
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a56352c73bb6345e6e0f69ca4f52b51b5}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+topmass} = row\mbox{[}0\mbox{]}
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a6dc5ec6f6bd5b013251fcfa171b2490b}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+topcharge} = row\mbox{[}3\mbox{]}
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a34ea9485406d53f96e5c08b45eaaaa3e}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+zms} = np.\+abs(row\mbox{[}6\mbox{]} -\/ mins\mbox{[}\+:, 6\mbox{]})
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a9f8403b68415bcbc4936cc3a716f5acc}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+newmass} = mins\mbox{[}j, 2\mbox{]}
+\item 
+int \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a4f4393937b3965dc99e10450c7e74343}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+newspot} = 0
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_af831c155b745bb9261506dac81f6f29b}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+swaprows} = deepcopy(mins\mbox{[}newspot\+:j\mbox{]})
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a462e1b8069c0c53c6aab58904bafb7c5}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+boo1} = mins\mbox{[}\+:, 7\mbox{]}
+\item 
+list \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_a0ba2e98c339056b40fbed6c28f680c68}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+y} = mins\mbox{[}boo1, 4\mbox{]}
+\item 
+tuple \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1auto__peak_ad7cb65ad0913bddbcef144c3fc384bd3}{Uni\+Dec.\+unidec\+\_\+modules.\+auto\+\_\+peak.\+m} = np.\+array(m)
+\end{DoxyCompactItemize}

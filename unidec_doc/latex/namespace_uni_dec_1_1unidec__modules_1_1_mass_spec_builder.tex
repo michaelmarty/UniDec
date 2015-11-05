@@ -1,0 +1,157 @@
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder}{}\section{Uni\+Dec.\+unidec\+\_\+modules.\+Mass\+Spec\+Builder Namespace Reference}
+\label{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder}\index{Uni\+Dec.\+unidec\+\_\+modules.\+Mass\+Spec\+Builder@{Uni\+Dec.\+unidec\+\_\+modules.\+Mass\+Spec\+Builder}}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_a065f332d5df64bdcee00227f0f5db534}{make\+\_\+mass\+\_\+spectrum} (array, zrange=(10, 50, mzrange=(2000, 10000, mz\+\_\+bin\+\_\+size=1, adductmass=1.\+00727647, psfun=0, noise=0, baseline=0, kwargs)
+\item 
+def \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_a71e3130f804b35d4c9b3f174eb05d48e}{get\+\_\+zrange} (params)
+\item 
+def \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_a3d7d68f7f63f8344acc84173a111dee5}{get\+\_\+mzrange} (params)
+\item 
+def \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_a68a56f7d194609098c629337a8fee292}{simple\+\_\+params} (masslist, intlist=None, resolution=1000, zwidth=2, rlist=None, kwargs)
+\item 
+def \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_a4887a91443775a45b8a6be793aa8d7cd}{simple\+\_\+spectrum} (masslist, kwargs)
+\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+string \hyperlink{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_ac1c801065364ed30a987ed27282bae77}{\+\_\+\+\_\+author\+\_\+\+\_\+} = \textquotesingle{}Michael.\+Marty\textquotesingle{}
+\end{DoxyCompactItemize}
+
+
+\subsection{Function Documentation}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_a3d7d68f7f63f8344acc84173a111dee5}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder}!get\+\_\+mzrange@{get\+\_\+mzrange}}
+\index{get\+\_\+mzrange@{get\+\_\+mzrange}!Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder}}
+\subsubsection[{get\+\_\+mzrange(params)}]{\setlength{\rightskip}{0pt plus 5cm}def Uni\+Dec.\+unidec\+\_\+modules.\+Mass\+Spec\+Builder.\+get\+\_\+mzrange (
+\begin{DoxyParamCaption}
+\item[{}]{params}
+\end{DoxyParamCaption}
+)}\label{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_a3d7d68f7f63f8344acc84173a111dee5}
+\begin{DoxyVerb}From paramaters defining mass spectrum, pick a reasonable m/z range.
+:param params: P x 5 array of parameters [mass, mass fwhm, z avg, z std dev, intensity]
+:return: m/z range [min m/z , max m/z]
+\end{DoxyVerb}
+ 
+
+Here is the call graph for this function\+:
+% FIG 0
+
+
+
+
+Here is the caller graph for this function\+:
+% FIG 1
+
+
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_a71e3130f804b35d4c9b3f174eb05d48e}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder}!get\+\_\+zrange@{get\+\_\+zrange}}
+\index{get\+\_\+zrange@{get\+\_\+zrange}!Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder}}
+\subsubsection[{get\+\_\+zrange(params)}]{\setlength{\rightskip}{0pt plus 5cm}def Uni\+Dec.\+unidec\+\_\+modules.\+Mass\+Spec\+Builder.\+get\+\_\+zrange (
+\begin{DoxyParamCaption}
+\item[{}]{params}
+\end{DoxyParamCaption}
+)}\label{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_a71e3130f804b35d4c9b3f174eb05d48e}
+\begin{DoxyVerb}From paramaters defining mass spectrum, pick a reasonable charge state range.
+:param params: P x 5 array of parameters [mass, mass fwhm, z avg, z std dev, intensity]
+:return: charge state range [min z , max z]
+\end{DoxyVerb}
+ 
+
+Here is the caller graph for this function\+:
+% FIG 2
+
+
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_a065f332d5df64bdcee00227f0f5db534}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder}!make\+\_\+mass\+\_\+spectrum@{make\+\_\+mass\+\_\+spectrum}}
+\index{make\+\_\+mass\+\_\+spectrum@{make\+\_\+mass\+\_\+spectrum}!Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder}}
+\subsubsection[{make\+\_\+mass\+\_\+spectrum(array, zrange=(10, 50, mzrange=(2000, 10000, mz\+\_\+bin\+\_\+size=1, adductmass=1.\+00727647, psfun=0, noise=0, baseline=0, kwargs)}]{\setlength{\rightskip}{0pt plus 5cm}def Uni\+Dec.\+unidec\+\_\+modules.\+Mass\+Spec\+Builder.\+make\+\_\+mass\+\_\+spectrum (
+\begin{DoxyParamCaption}
+\item[{}]{array, }
+\item[{}]{zrange = {\ttfamily (10,~50}, }
+\item[{}]{mzrange = {\ttfamily (2000,~10000}, }
+\item[{}]{mz\+\_\+bin\+\_\+size = {\ttfamily 1}, }
+\item[{}]{adductmass = {\ttfamily 1.00727647}, }
+\item[{}]{psfun = {\ttfamily 0}, }
+\item[{}]{noise = {\ttfamily 0}, }
+\item[{}]{baseline = {\ttfamily 0}, }
+\item[{}]{kwargs}
+\end{DoxyParamCaption}
+)}\label{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_a065f332d5df64bdcee00227f0f5db534}
+\begin{DoxyVerb}Create a new mass spectrum.
+
+First, create the mzaxis from mzrange and the possible charge states from zrange.
+Then, add in peaks at the appropriate mz values for the parameters defined in array.
+Then, normalize and add optional background and noise.
+Finally, renormalize.
+
+:param array: P x 5 array of parameters [mass, mass fwhm, z avg, z std dev, intensity]
+:param zrange: Tuple of list define range of allowed charge states
+:param mzrange: Tuple or list defining range of m/z values
+:param mz_bin_size: delta mz of mzaxis
+:param adductmass: Mass of electrospray adduct species
+:param psfun: Peak shape function integer code
+:param noise: Std deviation of random Gaussian noise to be added to normalized spectrum
+:param baseline: Peak intensity of sinusoidal baseline to be added to normalized spectrum
+:param kwargs: Keyword catcher
+:return: Spectrum, ztab (new spectrum in N x 2 (m/z, intensity) and charge states allowed)
+\end{DoxyVerb}
+ 
+
+Here is the caller graph for this function\+:
+% FIG 3
+
+
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_a68a56f7d194609098c629337a8fee292}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder}!simple\+\_\+params@{simple\+\_\+params}}
+\index{simple\+\_\+params@{simple\+\_\+params}!Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder}}
+\subsubsection[{simple\+\_\+params(masslist, intlist=\+None, resolution=1000, zwidth=2, rlist=\+None, kwargs)}]{\setlength{\rightskip}{0pt plus 5cm}def Uni\+Dec.\+unidec\+\_\+modules.\+Mass\+Spec\+Builder.\+simple\+\_\+params (
+\begin{DoxyParamCaption}
+\item[{}]{masslist, }
+\item[{}]{intlist = {\ttfamily None}, }
+\item[{}]{resolution = {\ttfamily 1000}, }
+\item[{}]{zwidth = {\ttfamily 2}, }
+\item[{}]{rlist = {\ttfamily None}, }
+\item[{}]{kwargs}
+\end{DoxyParamCaption}
+)}\label{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_a68a56f7d194609098c629337a8fee292}
+\begin{DoxyVerb}Set simple parameters [mass, mass fwhm, z avg, z std dev, intensity] for a mass list and optional arguments.
+Average charge is defined as the native charge state. Other parameters are defaults.
+
+:param masslist: list of masses in Da
+:param intlist: list of intensities (default is None which gives all as 1)
+:param resolution: Mass resolution (delta m/m), Overridden if rlist is not None
+:param zwidth: Standard deviation of charge state distribution
+:param rlist: List of resolution values for each corresponding mass.
+If None, will use a single resolution for all defined by resolution.
+:param kwargs: Extra keywords
+:return: P x 5 array of parameters [mass, mass fwhm, z avg, z std dev, intensity]
+\end{DoxyVerb}
+ 
+
+Here is the caller graph for this function\+:
+% FIG 4
+
+
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_a4887a91443775a45b8a6be793aa8d7cd}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder}!simple\+\_\+spectrum@{simple\+\_\+spectrum}}
+\index{simple\+\_\+spectrum@{simple\+\_\+spectrum}!Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder}}
+\subsubsection[{simple\+\_\+spectrum(masslist, kwargs)}]{\setlength{\rightskip}{0pt plus 5cm}def Uni\+Dec.\+unidec\+\_\+modules.\+Mass\+Spec\+Builder.\+simple\+\_\+spectrum (
+\begin{DoxyParamCaption}
+\item[{}]{masslist, }
+\item[{}]{kwargs}
+\end{DoxyParamCaption}
+)}\label{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_a4887a91443775a45b8a6be793aa8d7cd}
+\begin{DoxyVerb}For a mass list, create the parameters and ranges for a simple default spectrum.
+:param masslist: Mass values
+:param kwargs: Keywords of parameters to pass to simple_params and make_mass_spectrum
+:return: N x 2 spectrum (m/z, intensity)
+\end{DoxyVerb}
+ 
+
+Here is the call graph for this function\+:
+% FIG 5
+
+
+
+
+\subsection{Variable Documentation}
+\hypertarget{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_ac1c801065364ed30a987ed27282bae77}{}\index{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder}!\+\_\+\+\_\+author\+\_\+\+\_\+@{\+\_\+\+\_\+author\+\_\+\+\_\+}}
+\index{\+\_\+\+\_\+author\+\_\+\+\_\+@{\+\_\+\+\_\+author\+\_\+\+\_\+}!Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder@{Uni\+Dec\+::unidec\+\_\+modules\+::\+Mass\+Spec\+Builder}}
+\subsubsection[{\+\_\+\+\_\+author\+\_\+\+\_\+}]{\setlength{\rightskip}{0pt plus 5cm}string Uni\+Dec.\+unidec\+\_\+modules.\+Mass\+Spec\+Builder.\+\_\+\+\_\+author\+\_\+\+\_\+ = \textquotesingle{}Michael.\+Marty\textquotesingle{}}\label{namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder_ac1c801065364ed30a987ed27282bae77}

@@ -1,0 +1,7 @@
+<map id="UniDec.unidec_modules.tims_import_wizard.data_importer.auto_from_wizard" name="UniDec.unidec_modules.tims_import_wizard.data_importer.auto_from_wizard">
+<area shape="rect" id="node2" href="$namespace_uni_dec_1_1unidec__modules_1_1tims__import__wizard_1_1data__importer.html#a3881a2196f34ab41d775c92863eaca23" title="UniDec.unidec_modules.tims\l_import_wizard.data_importer.split\l_and_strip" alt="" coords="286,5,506,61"/>
+<area shape="rect" id="node3" href="$namespace_uni_dec_1_1unidec__modules_1_1tims__import__wizard_1_1data__importer.html#aafb3cfd6fa59c2ea370175f68d9c4dc3" title="UniDec.unidec_modules.tims\l_import_wizard.data_importer.process\l_from_wizard" alt="" coords="275,85,517,141"/>
+<area shape="rect" id="node6" href="$namespace_uni_dec_1_1unidec__modules_1_1tims__import__wizard_1_1data__importer.html#a2695b9bd34bd44c6d0f196397e1d56dc" title="UniDec.unidec_modules.tims\l_import_wizard.data_importer.mp\l_process_from_wizard" alt="" coords="289,165,503,221"/>
+<area shape="rect" id="node4" href="$namespace_uni_dec_1_1unidec__modules_1_1tims__import__wizard_1_1data__importer.html#a4e7722f0a03d7be059a801de76aeab25" title="UniDec.unidec_modules.tims\l_import_wizard.data_importer.run\l_get_data" alt="" coords="565,85,780,141"/>
+<area shape="rect" id="node5" href="$namespace_uni_dec_1_1unidec__modules_1_1tims__import__wizard_1_1data__importer.html#aefee170ad54f29851e2f7a217e5d9e31" title="UniDec.unidec_modules.tims\l_import_wizard.data_importer.Make\lUniDecConfig" alt="" coords="828,85,1056,141"/>
+</map>

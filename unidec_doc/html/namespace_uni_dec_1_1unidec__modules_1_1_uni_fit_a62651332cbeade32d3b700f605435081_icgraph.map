@@ -1,0 +1,11 @@
+<map id="UniDec.unidec_modules.UniFit.MakeGrid" name="UniDec.unidec_modules.UniFit.MakeGrid">
+<area shape="rect" id="node2" href="$namespace_uni_dec_1_1unidec__modules_1_1_uni_fit.html#a03cd7441589921dfd2a6417a5fe6c374" title="UniDec.unidec_modules.Uni\lFit.GetError" alt="" coords="239,5,424,47"/>
+<area shape="rect" id="node4" href="$namespace_uni_dec_1_1unidec__modules_1_1_uni_fit.html#abe6c0e9b2bf5b4fcef64ea61d4aa2e1c" title="UniDec.unidec_modules.Uni\lFit.GetFree" alt="" coords="239,71,424,112"/>
+<area shape="rect" id="node5" href="$namespace_uni_dec_1_1unidec__modules_1_1_uni_fit.html#ac18908ccc855bdf98e93ff79422b36fe" title="UniDec.unidec_modules.Uni\lFit.GetDegenKD" alt="" coords="239,136,424,177"/>
+<area shape="rect" id="node10" href="$class_uni_dec_1_1unidec__modules_1_1_uni_fit_1_1_k_dmodel.html#a716ee30b7e996d6f008d819f0fcd8a1d" title="UniDec.unidec_modules.Uni\lFit.KDmodel.MakeFitGrid" alt="" coords="239,201,424,243"/>
+<area shape="rect" id="node3" href="$namespace_uni_dec_1_1unidec__modules_1_1_uni_fit.html#a8747bda6a52229ab1e7172368d3d286f" title="UniDec.unidec_modules.Uni\lFit.MinFreeError" alt="" coords="472,5,657,47"/>
+<area shape="rect" id="node6" href="$namespace_uni_dec_1_1unidec__modules_1_1_uni_fit.html#a20d2c96a6a3ce74770c41fa49ca270bf" title="UniDec.unidec_modules.Uni\lFit.Minimize" alt="" coords="472,136,657,177"/>
+<area shape="rect" id="node7" href="$namespace_uni_dec_1_1unidec__modules_1_1_uni_fit.html#a7f5dfc20dc5f0e03356e189298a83584" title="UniDec.unidec_modules.Uni\lFit.BootMin" alt="" coords="705,103,891,144"/>
+<area shape="rect" id="node9" href="$namespace_uni_dec_1_1unidec__modules_1_1_uni_fit.html#a0a803eb205609cc27b027d37135d8b31" title="UniDec.unidec_modules.Uni\lFit.BootMinWorker" alt="" coords="705,168,891,209"/>
+<area shape="rect" id="node8" href="$class_uni_dec_1_1unidec__modules_1_1_uni_fit_1_1_k_dmodel.html#ac5e05a1c678541c2db951d6dda8450bc" title="UniDec.unidec_modules.Uni\lFit.KDmodel.Bootstrap" alt="" coords="939,103,1124,144"/>
+</map>

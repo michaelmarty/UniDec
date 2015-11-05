@@ -1,0 +1,6 @@
+<map id="UniDec.unidec_modules.MassDefects.MassDefectWindow.on_next" name="UniDec.unidec_modules.MassDefects.MassDefectWindow.on_next">
+<area shape="rect" id="node2" href="$class_uni_dec_1_1unidec__modules_1_1_extract2_d_1_1_extract2_d_plot.html#a0318f7ce9ea336b3eec6212891af1236" title="UniDec.unidec_modules.Extract2\lD.Extract2DPlot.makeplot" alt="" coords="302,5,517,47"/>
+<area shape="rect" id="node3" href="$class_uni_dec_1_1unidec__modules_1_1_mass_defects_1_1_mass_defect_window.html#a94573d37d64c826e9fb7ef98eec7b0c0" title="UniDec.unidec_modules.Mass\lDefects.MassDefectWindow.makeplot" alt="" coords="288,71,531,112"/>
+<area shape="rect" id="node4" href="$class_uni_dec_1_1unidec__modules_1_1_extract2_d_1_1_extract2_d_plot.html#a9d0fc6253f6e451c31001496e4e4f3af" title="UniDec.unidec_modules.Extract2\lD.Extract2DPlot.getfromgui" alt="" coords="596,37,811,79"/>
+<area shape="rect" id="node5" href="$class_uni_dec_1_1unidec__modules_1_1_mass_defects_1_1_mass_defect_window.html#ae13b14a55176c3948e790ce3f14bb491" title="UniDec.unidec_modules.Mass\lDefects.MassDefectWindow.getfromgui" alt="" coords="579,103,828,144"/>
+</map>
