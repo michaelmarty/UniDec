@@ -443,6 +443,11 @@ def load_mz_file(path, config):
     :param config: UniDecConfig object
     :return: Data array
     """
+    if not os.path.isfile(path):
+        print "Attempted to open:", path
+        print "\t but I couldn't find the file..."
+        raise IOError
+
     if config.extension.lower() == ".txt":
         data = np.loadtxt(path, skiprows=header_test(path))
     elif config.extension.lower() == ".mzml":
@@ -453,7 +458,7 @@ def load_mz_file(path, config):
     else:
         try:
             data = np.loadtxt(path, skiprows=header_test(path))
-        except (ImportError, IOError):
+        except IOError:
             print"Failed to open:", path
             data = None
     return data

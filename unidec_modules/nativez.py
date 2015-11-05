@@ -257,10 +257,9 @@ class NativeZ(wx.Dialog):
                                title="Mass vs. Charge", test_kda=True)
         try:
             for zoff in self.zoffs:
-                zwidth = zoff.extractwidth
                 eshape = self.ctlfilt.GetSelection()
-                self.plot7.plot_native_z(zoff.offset, np.array(zoff.color) / 255, self.massaxis, width=zwidth,
-                                         alpha=0.5, shape=eshape)
+                self.plot7.plot_native_z(zoff.offset, np.array(zoff.color) / 255, self.massaxis,
+                                         width=zoff.extractwidth, alpha=0.5, shape=eshape)
         except Exception, e:
             print "Failed to plot", e
             pass
@@ -330,7 +329,6 @@ class NativeZ(wx.Dialog):
             index = z.index
             self.zlistctrl.ultimateList.SetStringItem(index, 0, str(z.offset))
             self.zlistctrl.ultimateList.SetStringItem(index, 1, str(z.intensity))
-            self.zlistctrl.ultimateList.SetStringItem(index, 2, str(z.width))
             self.zlistctrl.ultimateList.SetStringItem(index, 2, str(z.width))
 
     def populate_list(self, e):
@@ -429,7 +427,7 @@ class NativeZ(wx.Dialog):
         tstart = time.clock()
         for i, z in enumerate(self.zoffs):
             # Extract mass v. intensity values for the offsets in self.zoffs
-            intensity = self.fast_extract(z.offset, z.width, eshape)
+            intensity = self.fast_extract(z.offset, z.extractwidth, eshape)
             z.extract = np.transpose([self.massaxis + z.nstate * self.massoffset, np.sum(intensity, axis=1)])
             # Update plot2
             if not self.plot2.flag:
@@ -468,7 +466,7 @@ class NativeZ(wx.Dialog):
         if xvals is not None:
             # Extraction
             for i, z in enumerate(self.zoffs):
-                for j, p in enumerate(self.pks):
+                for j, p in enumerate(self.pks.peaks):
                     x = z.extract[:, 0]
                     y = z.extract[:, 1]
                     index = ud.nearest(x, p.mass)
@@ -487,22 +485,25 @@ class NativeZ(wx.Dialog):
             # Plots
             # Create height extraction line plot
             sum1 = np.sum(peakextracts, axis=0)
-            self.plot3.plotrefreshtop(xvals, sum1, title="Extracted Heights", xlabel=label, ylabel="Intensity",
-                                      integerticks=True, test_kda=True)
-            for i, z in enumerate(self.zoffs):
-                self.plot3.plotadd(xvals, peakextracts[i], np.array(z.color) / 255., str(i))
-            self.plot3.repaint()
+            if np.amax(sum1) != 0:
+                sum1 /= np.amax(sum1)
+                self.plot3.plotrefreshtop(xvals, sum1, title="Extracted Heights", xlabel=label, ylabel="Intensity",
+                                          integerticks=True, test_kda=True)
+                for i, z in enumerate(self.zoffs):
+                    self.plot3.plotadd(xvals, peakextracts[i], np.array(z.color) / 255., str(i))
+                self.plot3.repaint()
 
-            # Create height extraction bar chart
-            xvals2 = np.arange(0, len(sum1))
-            colormap = cm.get_cmap(self.config.peakcmap, len(xvals))
-            peakcolors = colormap(np.arange(len(xvals)))
-            self.plot5.barplottop(xvals2, sum1 / np.amax(sum1), [int(i) for i in xvals], peakcolors, label,
-                                  "Normalized Intensity", "Extracted Total Peak Heights")
+                # Create height extraction bar chart
+                xvals2 = np.arange(0, len(sum1))
+                colormap = cm.get_cmap(self.config.peakcmap, len(xvals))
+                peakcolors = colormap(np.arange(len(xvals)))
+                self.plot5.barplottop(xvals2, sum1, [int(i) for i in xvals], peakcolors, label,
+                                      "Normalized Intensity", "Extracted Total Peak Heights")
 
             # Make Plots for Integrals
             sum2 = np.sum(peakextractsarea, axis=0)
             if np.amax(sum2) != 0:
+                sum2 /= np.amax(sum2)
                 # Make line plots
                 self.plot4.plotrefreshtop(xvals, sum2, title="Extracted Areas", xlabel=label, ylabel="Area",
                                           integerticks=True, test_kda=True)
@@ -510,7 +511,7 @@ class NativeZ(wx.Dialog):
                     self.plot4.plotadd(xvals, peakextractsarea[i], np.array(z.color) / 255., str(i))
                 self.plot4.repaint()
                 # Make bar charts
-                self.plot6.barplottop(xvals2, sum2 / np.amax(sum2), [int(i) for i in xvals], peakcolors, label,
+                self.plot6.barplottop(xvals2, sum2, [int(i) for i in xvals], peakcolors, label,
                                       "Normalized Intensity", "Extracted Total Peak Areas")
             else:
                 print "No integration provided"
@@ -519,11 +520,11 @@ class NativeZ(wx.Dialog):
             try:
                 np.savetxt(self.config.outfname + "_extracted_heights.txt", peakextracts)
                 np.savetxt(self.config.outfname + "_total_extracted_heights.txt",
-                           np.transpose([self.pks.masses, xvals, sum1 / np.amax(sum1)]))
+                           np.transpose([self.pks.masses, xvals, sum1]))
                 if np.amax(sum2) != 0:
                     np.savetxt(self.config.outfname + "_extracted_areas.txt", peakextractsarea)
                     np.savetxt(self.config.outfname + "_total_extracted_areas.txt",
-                               np.transpose([self.pks.masses, xvals, sum2 / np.amax(sum2)]))
+                               np.transpose([self.pks.masses, xvals, sum2]))
             except Exception, e:
                 print "Error saving files", e
 

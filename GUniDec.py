@@ -106,6 +106,7 @@ class UniDecApp(object):
             newdir = "C:\\cprog\\UniDecDemo"
             self.on_open_file(fname, newdir)
             self.on_auto(0)
+            self.on_integrate()
             # self.make_cube_plot(0)
             # self.on_plot_peaks(0)
 
@@ -432,7 +433,8 @@ class UniDecApp(object):
         if self.eng.config.rawflag == 3:
             self.eng.config.rawflag = 1
         if self.eng.config.procflag == 0:
-            self.warn("Need to process data first.")
+            # self.warn("Need to process data first.")
+            self.on_dataprep_button()
         self.export_config(self.eng.config.confname)
         self.view.SetStatusText("UniDec Run", number=5)
 

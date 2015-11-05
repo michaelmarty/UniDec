@@ -47,7 +47,7 @@ class UniDec:
 
         :return: None
         """
-        print "\nUniDec Engine v.0.3"
+        print "\nUniDec Engine v.0.4"
         self.config = None
         self.data = None
         self.pks = None
@@ -255,6 +255,17 @@ class UniDec:
         except ValueError:
             self.config.maxmz = np.amax(self.data.rawdata[:, 0])
 
+        if self.config.imflag == 1:
+            try:
+                float(self.config.mindt)
+            except ValueError:
+                self.config.mindt = np.amin(self.data.rawdata3[:, 1])
+
+            try:
+                float(self.config.maxdt)
+            except ValueError:
+                self.config.maxdt = np.amax(self.data.rawdata3[:, 1])
+
         if self.check_badness() == 1:
             print "Badness found, aborting data prep"
             return 1
@@ -297,7 +308,8 @@ class UniDec:
         """
         # Check to make sure everything is in order
         if self.config.procflag == 0:
-            print "Need to process data first."
+            print "Need to process data first..."
+            self.process_data()
         if self.check_badness() == 1:
             print "Badness found, aborting UniDec run"
             return 1
@@ -417,6 +429,14 @@ class UniDec:
         :return: None
         """
         ud.makeconvspecies(self.data.data2, self.pks, self.config)
+
+    def autorun(self):
+        self.process_data()
+        self.get_auto_peak_width()
+        self.run_unidec()
+        self.pick_peaks()
+        self.autointegrate()
+        self.export_params(0)
 
     def check_badness(self):
         """
@@ -585,10 +605,13 @@ class UniDec:
         return np.array(zarea)
 
     def get_auto_peak_width(self):
-        fwhm, psfun, mid = ud.auto_peak_width(self.data.data2)
-        self.config.psfun = psfun
-        self.config.mzsig = fwhm
-        print "Automatic Peak Width:", fwhm
+        try:
+            fwhm, psfun, mid = ud.auto_peak_width(self.data.data2)
+            self.config.psfun = psfun
+            self.config.mzsig = fwhm
+            print "Automatic Peak Width:", fwhm
+        except Exception, e:
+            print "Failed Automatic Peak Width:", e
 
     def export_params(self, e):
         """

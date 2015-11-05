@@ -2,7 +2,6 @@ import string
 import math
 import matplotlib.cm as cm
 import numpy as np
-
 from unidec_modules import unidectools as ud
 
 __author__ = 'Michael.Marty'
@@ -12,6 +11,7 @@ class Peak:
     """
     Class for a single peak. Contains all key parameters for describing and plotting the peak.
     """
+
     def __init__(self):
         """
         Initialize all parameters for the peak to defaults
@@ -47,7 +47,7 @@ class Peak:
         self.fitmasserr = 0
         self.fitarea = 0
         self.fitareaerr = 0
-        self.diff=0
+        self.diff = 0
 
 
 class Peaks:

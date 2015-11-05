@@ -290,156 +290,157 @@ class UniDecConfig:
             self.manualfileflag = 0
             self.mfileflag = 0
             for line in f:
-                if line.startswith("minmz"):
-                    self.minmz = ud.string_to_value(line.split()[1])
-                if line.startswith("maxmz"):
-                    self.maxmz = ud.string_to_value(line.split()[1])
-                if line.startswith("mindt"):
-                    self.mindt = ud.string_to_value(line.split()[1])
-                if line.startswith("maxdt"):
-                    self.maxdt = ud.string_to_value(line.split()[1])
-                if self.batchflag == 0:
-                    '''
-                    if (line.startswith("input")):
-                        self.infname = line.split()[1]
-                    if (line.startswith("output")):
-                        self.outfname = line.split()[1]
-                    '''
-                    if line.startswith("numit"):
-                        self.numit = ud.string_to_int(line.split()[1])
-                    if line.startswith("numz"):
-                        self.numz = ud.string_to_int(line.split()[1])
-                    if line.startswith("endz"):
-                        self.endz = ud.string_to_int(line.split()[1])
-                    if line.startswith("startz"):
-                        self.startz = ud.string_to_int(line.split()[1])
-                    if line.startswith("zzsig"):
-                        self.zzsig = ud.string_to_value(line.split()[1])
-                    if line.startswith("mzsig"):
-                        self.mzsig = ud.string_to_value(line.split()[1])
-                    if line.startswith("psfun"):
-                        self.psfun = ud.string_to_int(line.split()[1])
-                    if line.startswith("discreteplot"):
-                        self.discreteplot = ud.string_to_int(line.split()[1])
-                    if line.startswith("massub"):
-                        self.massub = ud.string_to_value(line.split()[1])
-                    if line.startswith("masslb"):
-                        self.masslb = ud.string_to_value(line.split()[1])
-                    if line.startswith("msig"):
-                        self.msig = ud.string_to_value(line.split()[1])
-                    if line.startswith("molig"):
-                        self.molig = ud.string_to_value(line.split()[1])
-                    if line.startswith("massbins"):
-                        self.massbins = ud.string_to_value(line.split()[1])
-                    if line.startswith("mtabsig"):
-                        self.mtabsig = ud.string_to_value(line.split()[1])
-                    if line.startswith("mfile"):
-                        # self.mfile = line.split()[1]
-                        self.mfileflag = True
-                    if line.startswith("manualfile"):
-                        # self.manualfile = line.split()[1]
-                        self.manualfileflag = True
-                    if line.startswith("subbuff"):
-                        self.subbuff = ud.string_to_value(line.split()[1])
-                        if self.subbuff < 0:
-                            self.subtype = 2
-                            self.subbuff = abs(self.subbuff)
-                    if line.startswith("subtype"):
-                        self.subtype = ud.string_to_int(line.split()[1])
-                    if line.startswith("smooth") and not line.startswith("smoothdt"):
-                        self.smooth = ud.string_to_value(line.split()[1])
-                    if line.startswith("mzbins"):
-                        self.mzbins = ud.string_to_value(line.split()[1])
-                    if line.startswith("peakwindow"):
-                        self.peakwindow = ud.string_to_value(line.split()[1])
-                    if line.startswith("peakthresh"):
-                        self.peakthresh = ud.string_to_value(line.split()[1])
-                    if line.startswith("peakplotthresh"):
-                        self.peakplotthresh = ud.string_to_value(line.split()[1])
-                    if line.startswith("plotsep"):
-                        self.separation = ud.string_to_value(line.split()[1])
-                    if line.startswith("intthresh"):
-                        self.intthresh = ud.string_to_value(line.split()[1])
-                    if line.startswith("aggressive"):
-                        self.aggressiveflag = ud.string_to_int(line.split()[1])
-                    if line.startswith("rawflag"):
-                        self.rawflag = ud.string_to_int(line.split()[1])
-                    if line.startswith("adductmass"):
-                        self.adductmass = ud.string_to_value(line.split()[1])
-                    if line.startswith("nativezub"):
-                        self.nativezub = ud.string_to_value(line.split()[1])
-                    if line.startswith("nativezlb"):
-                        self.nativezlb = ud.string_to_value(line.split()[1])
-                    if line.startswith("poolflag"):
-                        self.poolflag = ud.string_to_int(line.split()[1])
-                    if line.startswith("accvol"):
-                        self.detectoreffva = ud.string_to_value(line.split()[1])
-                    if line.startswith("peakshapeinflate"):
-                        self.inflate = ud.string_to_value(line.split()[1])
-                    if line.startswith("damp"):
-                        self.damp = ud.string_to_value(line.split()[1])
-                    if line.startswith("linflag"):
-                        self.linflag = ud.string_to_int(line.split()[1])
-                    if line.startswith("cmap"):
-                        self.cmap = str(line.split()[1])
-                    if line.startswith("peakcmap"):
-                        self.peakcmap = str(line.split()[1])
-                    if line.startswith("publicationmode"):
-                        self.publicationmode = ud.string_to_int(line.split()[1])
-                    if line.startswith("isotopemode"):
-                        self.isotopemode = ud.string_to_int(line.split()[1])
-                    if line.startswith("integratelb"):
-                        self.integratelb = ud.string_to_value(line.split()[1])
-                    if line.startswith("integrateub"):
-                        self.integrateub = ud.string_to_value(line.split()[1])
-                    if line.startswith("peaknorm"):
-                        self.peaknorm = ud.string_to_value(line.split()[1])
-                    if line.startswith("suppression"):
-                        self.suppression = ud.string_to_value(line.split()[1])
+                if len(line.split()) > 1:
+                    if line.startswith("minmz"):
+                        self.minmz = ud.string_to_value(line.split()[1])
+                    if line.startswith("maxmz"):
+                        self.maxmz = ud.string_to_value(line.split()[1])
+                    if line.startswith("mindt"):
+                        self.mindt = ud.string_to_value(line.split()[1])
+                    if line.startswith("maxdt"):
+                        self.maxdt = ud.string_to_value(line.split()[1])
+                    if self.batchflag == 0:
+                        '''
+                        if (line.startswith("input")):
+                            self.infname = line.split()[1]
+                        if (line.startswith("output")):
+                            self.outfname = line.split()[1]
+                        '''
+                        if line.startswith("numit"):
+                            self.numit = ud.string_to_int(line.split()[1])
+                        if line.startswith("numz"):
+                            self.numz = ud.string_to_int(line.split()[1])
+                        if line.startswith("endz"):
+                            self.endz = ud.string_to_int(line.split()[1])
+                        if line.startswith("startz"):
+                            self.startz = ud.string_to_int(line.split()[1])
+                        if line.startswith("zzsig"):
+                            self.zzsig = ud.string_to_value(line.split()[1])
+                        if line.startswith("mzsig"):
+                            self.mzsig = ud.string_to_value(line.split()[1])
+                        if line.startswith("psfun"):
+                            self.psfun = ud.string_to_int(line.split()[1])
+                        if line.startswith("discreteplot"):
+                            self.discreteplot = ud.string_to_int(line.split()[1])
+                        if line.startswith("massub"):
+                            self.massub = ud.string_to_value(line.split()[1])
+                        if line.startswith("masslb"):
+                            self.masslb = ud.string_to_value(line.split()[1])
+                        if line.startswith("msig"):
+                            self.msig = ud.string_to_value(line.split()[1])
+                        if line.startswith("molig"):
+                            self.molig = ud.string_to_value(line.split()[1])
+                        if line.startswith("massbins"):
+                            self.massbins = ud.string_to_value(line.split()[1])
+                        if line.startswith("mtabsig"):
+                            self.mtabsig = ud.string_to_value(line.split()[1])
+                        if line.startswith("mfile"):
+                            # self.mfile = line.split()[1]
+                            self.mfileflag = True
+                        if line.startswith("manualfile"):
+                            # self.manualfile = line.split()[1]
+                            self.manualfileflag = True
+                        if line.startswith("subbuff"):
+                            self.subbuff = ud.string_to_value(line.split()[1])
+                            if self.subbuff < 0:
+                                self.subtype = 2
+                                self.subbuff = abs(self.subbuff)
+                        if line.startswith("subtype"):
+                            self.subtype = ud.string_to_int(line.split()[1])
+                        if line.startswith("smooth") and not line.startswith("smoothdt"):
+                            self.smooth = ud.string_to_value(line.split()[1])
+                        if line.startswith("mzbins"):
+                            self.mzbins = ud.string_to_value(line.split()[1])
+                        if line.startswith("peakwindow"):
+                            self.peakwindow = ud.string_to_value(line.split()[1])
+                        if line.startswith("peakthresh"):
+                            self.peakthresh = ud.string_to_value(line.split()[1])
+                        if line.startswith("peakplotthresh"):
+                            self.peakplotthresh = ud.string_to_value(line.split()[1])
+                        if line.startswith("plotsep"):
+                            self.separation = ud.string_to_value(line.split()[1])
+                        if line.startswith("intthresh"):
+                            self.intthresh = ud.string_to_value(line.split()[1])
+                        if line.startswith("aggressive"):
+                            self.aggressiveflag = ud.string_to_int(line.split()[1])
+                        if line.startswith("rawflag"):
+                            self.rawflag = ud.string_to_int(line.split()[1])
+                        if line.startswith("adductmass"):
+                            self.adductmass = ud.string_to_value(line.split()[1])
+                        if line.startswith("nativezub"):
+                            self.nativezub = ud.string_to_value(line.split()[1])
+                        if line.startswith("nativezlb"):
+                            self.nativezlb = ud.string_to_value(line.split()[1])
+                        if line.startswith("poolflag"):
+                            self.poolflag = ud.string_to_int(line.split()[1])
+                        if line.startswith("accvol"):
+                            self.detectoreffva = ud.string_to_value(line.split()[1])
+                        if line.startswith("peakshapeinflate"):
+                            self.inflate = ud.string_to_value(line.split()[1])
+                        if line.startswith("damp"):
+                            self.damp = ud.string_to_value(line.split()[1])
+                        if line.startswith("linflag"):
+                            self.linflag = ud.string_to_int(line.split()[1])
+                        if line.startswith("cmap"):
+                            self.cmap = str(line.split()[1])
+                        if line.startswith("peakcmap"):
+                            self.peakcmap = str(line.split()[1])
+                        if line.startswith("publicationmode"):
+                            self.publicationmode = ud.string_to_int(line.split()[1])
+                        if line.startswith("isotopemode"):
+                            self.isotopemode = ud.string_to_int(line.split()[1])
+                        if line.startswith("integratelb"):
+                            self.integratelb = ud.string_to_value(line.split()[1])
+                        if line.startswith("integrateub"):
+                            self.integrateub = ud.string_to_value(line.split()[1])
+                        if line.startswith("peaknorm"):
+                            self.peaknorm = ud.string_to_value(line.split()[1])
+                        if line.startswith("suppression"):
+                            self.suppression = ud.string_to_value(line.split()[1])
 
-                    # IM Imports
-                    if line.startswith("ccsub"):
-                        self.ccsub = ud.string_to_value(line.split()[1])
-                    if line.startswith("ccslb"):
-                        self.ccslb = ud.string_to_value(line.split()[1])
-                    if line.startswith("dtsig"):
-                        self.dtsig = ud.string_to_value(line.split()[1])
-                    if line.startswith("csig"):
-                        self.csig = ud.string_to_value(line.split()[1])
-                    if line.startswith("ccsbins"):
-                        self.ccsbins = ud.string_to_value(line.split()[1])
-                    if line.startswith("subbufdt"):
-                        self.subbufdt = ud.string_to_value(line.split()[1])
-                    if line.startswith("smoothdt"):
-                        self.smoothdt = ud.string_to_value(line.split()[1])
-                    if line.startswith("temp"):
-                        self.temp = ud.string_to_value(line.split()[1])
-                    if line.startswith("pressure"):
-                        self.pressure = ud.string_to_value(line.split()[1])
-                    if line.startswith("volt"):
-                        self.volt = ud.string_to_value(line.split()[1])
-                    if line.startswith("gasmass"):
-                        self.gasmass = ud.string_to_value(line.split()[1])
-                    if (line.startswith("to")) or (line.startswith("tnaught")):
-                        self.to = ud.string_to_value(line.split()[1])
-                    if line.startswith("driftlength"):
-                        self.driftlength = ud.string_to_value(line.split()[1])
-                    if line.startswith("tcal1"):
-                        self.tcal1 = ud.string_to_value(line.split()[1])
-                    if line.startswith("tcal2"):
-                        self.tcal2 = ud.string_to_value(line.split()[1])
-                    if line.startswith("edc"):
-                        self.edc = ud.string_to_value(line.split()[1])
-                    if line.startswith("twaveflag"):
-                        self.twaveflag = ud.string_to_int(line.split()[1])
-                    if line.startswith("pusher"):
-                        self.pusher = ud.string_to_value(line.split()[1])
-                    if line.startswith("zout"):
-                        self.zout = ud.string_to_value(line.split()[1])
-                    if line.startswith("nativeccsub") or line.startswith("ubnativeccs"):
-                        self.nativeccsub = ud.string_to_value(line.split()[1])
-                    if line.startswith("nativeccslb") or line.startswith("lbnativeccs"):
-                        self.nativeccslb = ud.string_to_value(line.split()[1])
+                        # IM Imports
+                        if line.startswith("ccsub"):
+                            self.ccsub = ud.string_to_value(line.split()[1])
+                        if line.startswith("ccslb"):
+                            self.ccslb = ud.string_to_value(line.split()[1])
+                        if line.startswith("dtsig"):
+                            self.dtsig = ud.string_to_value(line.split()[1])
+                        if line.startswith("csig"):
+                            self.csig = ud.string_to_value(line.split()[1])
+                        if line.startswith("ccsbins"):
+                            self.ccsbins = ud.string_to_value(line.split()[1])
+                        if line.startswith("subbufdt"):
+                            self.subbufdt = ud.string_to_value(line.split()[1])
+                        if line.startswith("smoothdt"):
+                            self.smoothdt = ud.string_to_value(line.split()[1])
+                        if line.startswith("temp"):
+                            self.temp = ud.string_to_value(line.split()[1])
+                        if line.startswith("pressure"):
+                            self.pressure = ud.string_to_value(line.split()[1])
+                        if line.startswith("volt"):
+                            self.volt = ud.string_to_value(line.split()[1])
+                        if line.startswith("gasmass"):
+                            self.gasmass = ud.string_to_value(line.split()[1])
+                        if (line.startswith("to")) or (line.startswith("tnaught")):
+                            self.to = ud.string_to_value(line.split()[1])
+                        if line.startswith("driftlength"):
+                            self.driftlength = ud.string_to_value(line.split()[1])
+                        if line.startswith("tcal1"):
+                            self.tcal1 = ud.string_to_value(line.split()[1])
+                        if line.startswith("tcal2"):
+                            self.tcal2 = ud.string_to_value(line.split()[1])
+                        if line.startswith("edc"):
+                            self.edc = ud.string_to_value(line.split()[1])
+                        if line.startswith("twaveflag"):
+                            self.twaveflag = ud.string_to_int(line.split()[1])
+                        if line.startswith("pusher"):
+                            self.pusher = ud.string_to_value(line.split()[1])
+                        if line.startswith("zout"):
+                            self.zout = ud.string_to_value(line.split()[1])
+                        if line.startswith("nativeccsub") or line.startswith("ubnativeccs"):
+                            self.nativeccsub = ud.string_to_value(line.split()[1])
+                        if line.startswith("nativeccslb") or line.startswith("lbnativeccs"):
+                            self.nativeccslb = ud.string_to_value(line.split()[1])
             f.close()
             self.endz = self.startz + self.numz - 1
 

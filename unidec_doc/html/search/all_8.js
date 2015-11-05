@@ -1,4 +1,14 @@
 var searchData=
 [
+  ['hbox1',['hbox1',['../class_uni_dec_1_1unidec__modules_1_1isolated__packages_1_1twitter__interface_1_1_twitter_window.html#abda806ff7c8f33838bcb0798831e906a',1,'UniDec::unidec_modules::isolated_packages::twitter_interface::TwitterWindow']]],
+  ['hbox2',['hbox2',['../class_uni_dec_1_1unidec__modules_1_1isolated__packages_1_1twitter__interface_1_1_twitter_window.html#a8725a18f526cadabd5540281da5628fb',1,'UniDec::unidec_modules::isolated_packages::twitter_interface::TwitterWindow']]],
+  ['hbox3',['hbox3',['../class_uni_dec_1_1unidec__modules_1_1isolated__packages_1_1twitter__interface_1_1_twitter_window.html#a3df4315ade9e07f35f2d842492dbe25b',1,'UniDec::unidec_modules::isolated_packages::twitter_interface::TwitterWindow']]],
+  ['hbox4',['hbox4',['../class_uni_dec_1_1unidec__modules_1_1isolated__packages_1_1twitter__interface_1_1_twitter_window.html#a8fc6eb26cc4fe879d187729e066fa981',1,'UniDec::unidec_modules::isolated_packages::twitter_interface::TwitterWindow']]],
+  ['hbox5',['hbox5',['../class_uni_dec_1_1unidec__modules_1_1isolated__packages_1_1twitter__interface_1_1_twitter_window.html#ae800767f01ae1f98bc2c17283389107b',1,'UniDec::unidec_modules::isolated_packages::twitter_interface::TwitterWindow']]],
+  ['header',['header',['../class_uni_dec_1_1unidec__modules_1_1_extract2_d_1_1_extract2_d_plot.html#a5abb810200144b2f878a4b732c603c30',1,'UniDec.unidec_modules.Extract2D.Extract2DPlot.header()'],['../class_uni_dec_1_1unidec__modules_1_1miscwindows_1_1_save_figure_dialog.html#ae03badc4cfa8c48067cebd720ac52454',1,'UniDec.unidec_modules.miscwindows.SaveFigureDialog.header()'],['../class_uni_dec_1_1unidec__modules_1_1_uni_fit_1_1_k_dmodel.html#ad358568cc86759b98301505e4269dca5',1,'UniDec.unidec_modules.UniFit.KDmodel.header()'],['../namespace_uni_dec_1_1unidec__modules_1_1_uni_fit.html#a860b66bfa0196156348351a1d21ea83f',1,'UniDec.unidec_modules.UniFit.header()']]],
+  ['header_5fdesc',['header_desc',['../namespace_uni_dec_1_1unidec__modules_1_1tims__import__wizard_1_1data__importer.html#ac65c9bfacf104c7fb18df5fd005cf4db',1,'UniDec::unidec_modules::tims_import_wizard::data_importer']]],
+  ['header_5ftest',['header_test',['../namespace_uni_dec_1_1unidec__modules_1_1unidectools.html#afe8dbcb3b651deb9e9ee8823b4ce4579',1,'UniDec::unidec_modules::unidectools']]],
+  ['headerbox',['headerbox',['../class_uni_dec_1_1unidec__modules_1_1miscwindows_1_1_save_figure_dialog.html#a38f5e4a385c43fc9e5696db20f62f65a',1,'UniDec::unidec_modules::miscwindows::SaveFigureDialog']]],
+  ['height',['height',['../class_uni_dec_1_1unidec__modules_1_1peakstructure_1_1_peak.html#af1b26bf064a148d18e46dbda41ffdb9d',1,'UniDec::unidec_modules::peakstructure::Peak']]],
   ['histogram',['histogram',['../class_uni_dec_1_1unidec__modules_1_1plot1d_1_1_plot1d.html#a9b0bbb26eed816cd99fc3ee7fcef7312',1,'UniDec::unidec_modules::plot1d::Plot1d']]]
 ];

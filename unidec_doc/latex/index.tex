@@ -1,10 +1,10 @@
-Uni\+Dec is a Bayesian deconvolution program for deconvolution of mass spectra and ion mobility-\/mass spectra.
+\hyperlink{namespace_uni_dec}{Uni\+Dec} is a Bayesian deconvolution program for deconvolution of mass spectra and ion mobility-\/mass spectra.
 
 It was orignally published in\+: \href{http://pubs.acs.org/doi/abs/10.1021/acs.analchem.5b00140}{\tt M. T. Marty, A. J. Baldwin, E. G. Marklund, G. K. A. Hochberg, J. L. P. Benesch, C. V. Robinson, Anal. Chem. 2015, 87, 4370-\/4376.}
 
-Detailed descriptions of the algorithm are provided in the paper. Please cite us if you use Uni\+Dec in your research.
+Detailed descriptions of the algorithm are provided in the paper. Please cite us if you use \hyperlink{namespace_uni_dec}{Uni\+Dec} in your research.
 
-Uni\+Dec may be downloaded from \href{http://unidec.chem.ox.ac.uk/}{\tt unidec.\+chem.\+ox.\+ac.\+uk}.
+\hyperlink{namespace_uni_dec}{Uni\+Dec} may be downloaded from \href{http://unidec.chem.ox.ac.uk/}{\tt unidec.\+chem.\+ox.\+ac.\+uk}.
 
 Please contact \href{mailto:michael.marty@chem.ox.ac.uk}{\tt michael.\+marty@chem.\+ox.\+ac.\+uk} for questions, suggestions, or with any bugs.
 
@@ -12,7 +12,7 @@ Please contact \href{mailto:michael.marty@chem.ox.ac.uk}{\tt michael.\+marty@che
 
 \subsubsection*{Python}
 
-There are several python libraries that Uni\+Dec will depend on.
+There are several python libraries that \hyperlink{namespace_uni_dec}{Uni\+Dec} will depend on.
 
 matplotlib numpy scipy wxpython natsort twython pymzml networkx
 
@@ -34,25 +34,25 @@ If you want to convert Waters .Raw files, you will also need to add cdt.\+dll (f
 
 I have binaries built for Mac and Linux as well. They are a bit slower than the Windows version because they are compiled with gcc rather than the Intel C Compiler, but they are perfectly functional and still pretty darn fast. I can send these to you on request.
 
-\subsection*{Uni\+Dec Documentation}
+\subsection*{\hyperlink{namespace_uni_dec}{Uni\+Dec} Documentation}
 
 This documentation is for the Python engine and G\+U\+I.
 
-My goal is that this documentation will allow you to utilize the power of the Uni\+Dec python engine for scripting data analysis routines and performing custom analysis. Also, it will allow you to add new modules to the Uni\+Dec G\+U\+I.
+My goal is that this documentation will allow you to utilize the power of the \hyperlink{namespace_uni_dec}{Uni\+Dec} python engine for scripting data analysis routines and performing custom analysis. Also, it will allow you to add new modules to the \hyperlink{namespace_uni_dec}{Uni\+Dec} G\+U\+I.
 
 I\textquotesingle{}m still working on documenting some of the windows and extensions, but the core features should be here.
 
 The C code is proprietary and not open source. The copyright is owned by the University of Oxford. If you are interested in the C source code, please contact me. It should be possible to share with appropriate licensing or research agreements.
 
-\subsection*{Uni\+Dec Architecture}
+\subsection*{\hyperlink{namespace_uni_dec}{Uni\+Dec} Architecture}
 
-Uni\+Dec is bilingual. The core of the algorithm is written in C and compiled as a binary. It can be run independently as a command line program fed by a configuration file.
+\hyperlink{namespace_uni_dec}{Uni\+Dec} is bilingual. The core of the algorithm is written in C and compiled as a binary. It can be run independently as a command line program fed by a configuration file.
 
 The Python engine and G\+U\+I serve as a very extensive wrapper for the C core.
 
-The engine (unidec.\+py) can be operated by independently of the G\+U\+I. This allows scripting of Uni\+Dec analysis for more complex and high-\/throughput analysis than is possible with the G\+U\+I. The engine contains three major subclasses, a config, data, and peaks object.
+The engine (\hyperlink{unidec_8py}{unidec.\+py}) can be operated by independently of the G\+U\+I. This allows scripting of \hyperlink{namespace_uni_dec}{Uni\+Dec} analysis for more complex and high-\/throughput analysis than is possible with the G\+U\+I. The engine contains three major subclasses, a config, data, and peaks object.
 
-The G\+U\+I is organized with a Model-\/\+Presenter-\/\+View architecture. The main App is the presenter (G\+Uni\+Dec.\+py). The presenter contains a model (the Uni\+Dec engine at unidec.\+py) and a view (mainwindow.\+py). The presenter coordinates transfer between the G\+U\+I and the engine.
+The G\+U\+I is organized with a Model-\/\+Presenter-\/\+View architecture. The main App is the presenter (\hyperlink{_g_uni_dec_8py}{G\+Uni\+Dec.\+py}). The presenter contains a model (the \hyperlink{namespace_uni_dec}{Uni\+Dec} engine at \hyperlink{unidec_8py}{unidec.\+py}) and a view (\hyperlink{mainwindow_8py}{mainwindow.\+py}). The presenter coordinates transfer between the G\+U\+I and the engine.
 
 \subsection*{Getting Started}
 
@@ -75,7 +75,7 @@ In reading the documentation, it is perhaps best to start with the unidec.\+Uni\
 
 \subsection*{Licensing}
 
-Uni\+Dec is free for noncommercial use under the \href{http://unidec.chem.ox.ac.uk/12116_UniDec_Academic%20Use%20Licence.pdf}{\tt Uni\+Dec Academic License}
+\hyperlink{namespace_uni_dec}{Uni\+Dec} is free for noncommercial use under the \href{http://unidec.chem.ox.ac.uk/12116_UniDec_Academic%20Use%20Licence.pdf}{\tt Uni\+Dec Academic License}
 
 Commercial licensing is available. Details are provided at the bottom of the Academic License.
 
