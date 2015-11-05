@@ -16,7 +16,6 @@ from scipy import stats
 from scipy import signal
 from scipy import special
 import matplotlib.cm as cm
-
 import mzMLimporter
 
 is_64bits = sys.maxsize > 2 ** 32
@@ -217,6 +216,11 @@ def predict_charge(mass):
     return nativez
 
 
+def simchargefit(x2):
+    fit = [predict_charge(i) for i in x2]
+    return np.array(fit)
+
+
 def get_tvalue(dof, ci=0.99):
     """
     Get t-value for a given degrees of freedom and confidence interval
@@ -293,6 +297,12 @@ def localmaxpos(data, start, end):
         return 0
 
 
+def localmax2(array, index, window):
+    start = index - window
+    end = index + window
+    return localmax(array, start, end)
+
+
 def data_extract(data, x, extract_method, window=None):
     if extract_method == 0:
         index = np.argmin(np.abs(data[:, 0] - x))
@@ -338,7 +348,7 @@ def data_extract(data, x, extract_method, window=None):
     return val
 
 
-def kendrick_analysis(massdat, kendrickmass, centermode=0, nbins=50, transformmode=0, xaxistype=1):
+def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmode=1, xaxistype=1):
     # Calculate Defects for Deconvolved Masses
     xaxis = massdat[:, 0]
     kmass = np.array(xaxis) / float(kendrickmass)
@@ -459,7 +469,7 @@ def zipdir(path, zip_handle):
     files = os.listdir(path)
     for f in files:
         if os.path.isfile(f):
-            zip_handle.write(f)
+            zip_handle.write(f) # compress_type=zipfile.ZIP_DEFLATED)
 
 
 def zip_folder(save_path):
@@ -1154,6 +1164,7 @@ def lengths(array):
         top.append(end + 1 - start)
     return top
 
+
 # TODO: Merge into make_isolated_matches
 def combine(array2):
     lens = lengths(array2)
@@ -1249,8 +1260,6 @@ def match(pks, oligomasslist, oligonames):
         names.append(name)
     matchlist = [peaks, matches, error, names]
     return matchlist
-
-
 
 
 # ......................................................

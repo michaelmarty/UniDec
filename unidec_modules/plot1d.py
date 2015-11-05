@@ -184,7 +184,7 @@ class Plot1d(PlottingWindow):
         self.setup_zoom([self.subplot1], 'box')
         self.repaint()
 
-    def barplottop(self, xarr, yarr, peakval, colortab, xlabel="", ylabel="", title="", zoom="box", repaint=False):
+    def barplottop(self, xarr, yarr, peakval, colortab, xlabel="", ylabel="", title="", zoom="box", repaint=True):
         """
         Create a bar plot.
         :param xarr: x value array

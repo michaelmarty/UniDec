@@ -138,7 +138,7 @@ class UniDec:
             dtaxis = np.unique(self.data.rawdata[:, 1])
             intgrid = np.zeros((len(mzaxis), len(dtaxis)))
             if len(self.data.rawdata[:, 2]) == len(np.ravel(intgrid)):
-                intgrid = self.data.rawdata.reshape((len(mzaxis), len(dtaxis)))
+                intgrid = self.data.rawdata[:, 2].reshape((len(mzaxis), len(dtaxis)))
             else:
                 for x, y, z in self.data.rawdata:
                     intgrid[np.where(mzaxis == x)[0][0], np.where(dtaxis == y)[0][0]] = z

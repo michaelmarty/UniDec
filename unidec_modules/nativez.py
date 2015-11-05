@@ -4,8 +4,7 @@ import wx
 import numpy as np
 import matplotlib.cm as cm
 from scipy.interpolate import interp1d
-from wx.lib.agw import ultimatelistctrl as ULC
-
+from wx.lib.agw import ultimatelistctrl as ulc
 import unidectools as ud
 import plot1d
 import plot2d
@@ -14,40 +13,33 @@ import MassFitter
 __author__ = 'Michael.Marty'
 
 
-def f0(x, array):
-    # s2=s/2.35482
-    out = 0
-    for i in xrange(0, len(array) / 3):
-        m = array[i * 3]
-        s2 = array[i * 3 + 1]
-        out += np.exp(-(x - m) * (x - m) / (2 * s2 * s2))
-    return out
-
-
-def simchargefit(x2):
-    fit = [ud.predict_charge(i) for i in x2]
-    return np.array(fit)
-
-
-def localmax(Y, index, window):
-    start = np.amax([0, index - window])
-    end = np.amin([len(Y), index + window])
-    return np.amax(Y[start:end])
-
-
-class zoffset:
-    def __init__(self, *args):
+class Zoffset:
+    def __init__(self):
+        """
+        A simple class for defining a charge offset species.
+        :return: None
+        """
         self.offset = 0
         self.intensity = 0
         self.index = 0
-        self.color = [255, 255, 255, 255]
+        self.color = [255, 255, 0, 255]
         self.marker = "."
         self.id = 0
         self.width = 0
         self.nstate = 0
         self.extractwidth = 1
+        self.extract = []
 
-    def Make(self, offset, intensity, index, color, marker):
+    def make(self, offset, intensity, index, color, marker):
+        """
+        Add details to the charge offset species.
+        :param offset: Charge offset value
+        :param intensity: Intensity
+        :param index: Index in the list
+        :param color: Color
+        :param marker: Marker for the plot
+        :return: None
+        """
         self.offset = offset
         self.intensity = intensity
         self.index = index
@@ -57,127 +49,196 @@ class zoffset:
 
 class NativeZ(wx.Dialog):
     def __init__(self, *args, **kwargs):
-        super(NativeZ, self).__init__(*args, **kwargs)
-        self.SetSize((1400, 1000))
+        """
+        Create a dialog for examining the native charge/mass relationship and extraction specific CID states.
+        Tries to create a big window, but will rescale to smaller if the screen is too small.
+        :param args: Passed to wx.Dialog
+        :param kwargs: Passed to wx.Dialog
+        :return: None
+        """
+        wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
+        defaultsize = [1400, 1000]
+        displaysize = wx.GetDisplaySize()
+        self.figsize = (5.5, 3.75)
+        if defaultsize[0] > displaysize[0]:
+            defaultsize[0] = np.round(displaysize[0] * 0.9)
+            self.figsize = (3, 2)
+        if defaultsize[1] > displaysize[1]:
+            defaultsize[1] = np.round(displaysize[1] * 0.9)
+            self.figsize = (3, 2)
+        print defaultsize, displaysize
+        self.SetSize(defaultsize)
+
         self.SetTitle("Native Charge Tools")
 
-    def InitUI(self, xvals, yvals, zdat, config, pks):
+        self.config = None
+        self.pks = None
+        self.zoffs = []
+        self.massoffset = 0
+        self.massaxis = None
+        self.chargeaxis = None
+        self.igrid = None
+        self.offset_totals = None
+        self.offset_grid = None
+
+        self.plot1 = None
+        self.plot2 = None
+        self.plot3 = None
+        self.plot4 = None
+        self.plot5 = None
+        self.plot6 = None
+        self.plot7 = None
+        self.zlistctrl = None
+        self.ctlmassoffset = None
+        self.ctlfilt = None
+
+    def initialize_interface(self, massaxis, chargeaxis, igrid, config, pks):
+        """
+        Initialize the parameters, setup the GUI, and plot the intial results.
+        :param massaxis: Mass axis values
+        :param chargeaxis: Charge axis value
+        :param igrid: Intensities at each mass and charge point
+        :param config: UniDecConfig object
+        :param pks: Peaks object
+        :return: None
+        """
+        # Initialize the parameters
         self.config = config
         self.pks = pks
-        self.xlen = len(xvals)
-        self.ylen = len(yvals)
-        self.xvals = np.array(xvals)
-        self.yvals = np.array(yvals)
-        self.newgrid = np.reshape(zdat, (self.xlen, self.ylen))
 
-        self.pnl = wx.Panel(self)
-        self.vbox = wx.BoxSizer(wx.VERTICAL)
+        self.massaxis = np.array(massaxis)
+        self.chargeaxis = np.array(chargeaxis)
+        self.igrid = np.reshape(igrid, (len(massaxis), len(chargeaxis)))
 
-        self.sb = wx.StaticBox(self.pnl, label='Set Parameters to Plot Native Z')
-        self.sbs = wx.StaticBoxSizer(self.sb, orient=wx.VERTICAL)
+        # Setup the GUI
+        pnl = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
 
-        self.hbox0 = wx.BoxSizer(wx.HORIZONTAL)
-        size = (5.5, 3.75)
-        self.plot1 = plot1d.Plot1d(self.pnl, figsize=size)
-        self.plot2 = plot1d.Plot1d(self.pnl, figsize=size)
-        self.plot3 = plot1d.Plot1d(self.pnl, figsize=size)
-        self.plot4 = plot1d.Plot1d(self.pnl, figsize=size)
-        self.plot5 = plot1d.Plot1d(self.pnl, figsize=size)
-        self.plot6 = plot1d.Plot1d(self.pnl, figsize=size)
-        self.plot7 = plot2d.Plot2d(self.pnl, figsize=size)
-        self.hbox0.Add(self.plot1, 0)
-        self.hbox0.Add(self.plot3, 0)
-        self.hbox0.Add(self.plot4, 0)
+        sb = wx.StaticBox(pnl, label='Set Parameters to Plot Native Z')
+        sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 
-        self.hbox1 = wx.BoxSizer(wx.HORIZONTAL)
-        self.addbutton = wx.Button(self.pnl, label="Add Line")
-        self.fitbutton = wx.Button(self.pnl, label="Fit")
-        self.resetbutton = wx.Button(self.pnl, label="Reset to Default")
-        self.extractbutton = wx.Button(self.pnl, label="Extract")
-        self.massoffset = wx.TextCtrl(self.pnl, value="0", size=(50, -1))
-        self.ctlfilt = wx.RadioBox(self.pnl, label="Extract Shape", choices=["Box", "Gaussian"])
-        self.savefigbutt = wx.Button(self.pnl, label="Save Figures")
-        self.replotbutton = wx.Button(self.pnl, label="Replot")
-        self.hbox1.Add(self.addbutton, 0)
-        self.hbox1.Add(self.replotbutton, 0)
-        self.hbox1.Add(self.resetbutton, 0)
-        self.hbox1.Add(wx.StaticText(self.pnl, label="     "), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.plot1 = plot1d.Plot1d(pnl, figsize=self.figsize)
+        self.plot2 = plot1d.Plot1d(pnl, figsize=self.figsize)
+        self.plot3 = plot1d.Plot1d(pnl, figsize=self.figsize)
+        self.plot4 = plot1d.Plot1d(pnl, figsize=self.figsize)
+        self.plot5 = plot1d.Plot1d(pnl, figsize=self.figsize)
+        self.plot6 = plot1d.Plot1d(pnl, figsize=self.figsize)
+        self.plot7 = plot2d.Plot2d(pnl, figsize=self.figsize)
 
-        self.hbox1.Add(self.fitbutton, 0)
-        self.hbox1.Add(self.extractbutton, 0)
-        self.hbox1.Add(wx.StaticText(self.pnl, label="     Monomer Mass: "), 0)  # , wx.ALIGN_CENTER_VERTICAL)
-        self.hbox1.Add(self.massoffset, 0)
-        self.hbox1.Add(self.ctlfilt, 0)
+        hbox0 = wx.BoxSizer(wx.HORIZONTAL)
+        hbox0.Add(self.plot1, 0, wx.EXPAND)
+        hbox0.Add(self.plot3, 0, wx.EXPAND)
+        hbox0.Add(self.plot4, 0, wx.EXPAND)
 
-        self.hbox1.Add(self.savefigbutt, 0)
+        hbox2 = wx.BoxSizer(wx.HORIZONTAL)
+        hbox2.Add(self.plot2, 0, wx.EXPAND)
+        hbox2.Add(self.plot5, 0, wx.EXPAND)
+        hbox2.Add(self.plot6, 0, wx.EXPAND)
 
-        self.hbox2 = wx.BoxSizer(wx.HORIZONTAL)
-        self.hbox2.Add(self.plot2, 0)
-        self.hbox2.Add(self.plot5, 0)
-        self.hbox2.Add(self.plot6, 0)
+        sbs.Add(hbox0, 0, wx.EXPAND)
+        sbs.Add(hbox2, 0, wx.EXPAND)
 
-        self.list = ColorList(self.pnl)
+        hbox1 = wx.BoxSizer(wx.HORIZONTAL)
+        addbutton = wx.Button(pnl, label="Add Line")
+        fitbutton = wx.Button(pnl, label="Fit")
+        resetbutton = wx.Button(pnl, label="Reset to Default")
+        extractbutton = wx.Button(pnl, label="Extract")
+        self.ctlmassoffset = wx.TextCtrl(pnl, value=str(self.config.massoffset), size=(50, -1))
+        self.ctlfilt = wx.RadioBox(pnl, label="Extract Shape", choices=["Box", "Gaussian"])
+        self.ctlfilt.SetSelection(self.config.extractshape)
+        savefigbutton = wx.Button(pnl, label="Save Figures")
+        replotbutton = wx.Button(pnl, label="Replot")
+        hbox1.Add(addbutton, 0)
+        hbox1.Add(replotbutton, 0)
+        hbox1.Add(resetbutton, 0)
+        hbox1.Add(wx.StaticText(pnl, label="     "), 0, wx.ALIGN_CENTER_VERTICAL)
 
-        self.sbs.Add(self.hbox0, 0, wx.EXPAND)
-        self.sbs.Add(self.hbox2, 0, wx.EXPAND)
-        self.sbs.Add(self.hbox1, 0, wx.EXPAND)
+        hbox1.Add(fitbutton, 0)
+        hbox1.Add(extractbutton, 0)
+        hbox1.Add(wx.StaticText(pnl, label="     Monomer Mass: "), 0)  # , wx.ALIGN_CENTER_VERTICAL)
+        hbox1.Add(self.ctlmassoffset, 0)
+        hbox1.Add(self.ctlfilt, 0)
 
-        self.hbox3 = wx.BoxSizer(wx.HORIZONTAL)
-        self.hbox3.Add(self.list, 1, wx.EXPAND)
-        self.hbox3.Add(self.plot7, 0)
+        hbox1.Add(savefigbutton, 0)
+        sbs.Add(hbox1, 0, wx.EXPAND)
 
-        self.sbs.Add(self.hbox3, 0, wx.EXPAND)
+        hbox3 = wx.BoxSizer(wx.HORIZONTAL)
+        self.zlistctrl = ColorList(pnl)
+        hbox3.Add(self.zlistctrl, 1, wx.EXPAND)
+        hbox3.Add(self.plot7, 0)
+        sbs.Add(hbox3, 0, wx.EXPAND)
 
-        self.pnl.SetSizer(self.sbs)
+        pnl.SetSizer(sbs)
 
         hboxend = wx.BoxSizer(wx.HORIZONTAL)
-        okButton = wx.Button(self, label='Ok')
-        closeButton = wx.Button(self, label='Cancel')
-        hboxend.Add(okButton)
-        hboxend.Add(closeButton, flag=wx.LEFT, border=5)
+        okbutton = wx.Button(self, label='Ok')
+        closebutton = wx.Button(self, label='Cancel')
+        hboxend.Add(okbutton)
+        hboxend.Add(closebutton, flag=wx.LEFT, border=5)
 
-        self.vbox.Add(self.pnl, proportion=1,
-                      flag=wx.ALL | wx.EXPAND, border=5)
-        self.vbox.Add(hboxend,
-                      flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=10)
+        vbox.Add(pnl, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
+        vbox.Add(hboxend, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=10)
 
-        self.SetSizer(self.vbox)
-
-        self.list.ultimateList.Bind(wx.EVT_BUTTON, self.on_delete)
-        self.list.ultimateList.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.update)
-        # self.list.ultimateList.Bind(ULC.EVT_LIST_END_LABEL_EDIT,self.on_edit)
-        self.fitbutton.Bind(wx.EVT_BUTTON, self.fit)
-        self.addbutton.Bind(wx.EVT_BUTTON, self.onadd)
-        self.resetbutton.Bind(wx.EVT_BUTTON, self.OnReset)
-        self.extractbutton.Bind(wx.EVT_BUTTON, self.Extract)
-        self.savefigbutt.Bind(wx.EVT_BUTTON, self.SaveFig)
-        self.replotbutton.Bind(wx.EVT_BUTTON, self.OnReplot)
-
+        self.SetSizer(vbox)
         self.Center()
 
-        # Set Range Here
+        # Bind events
+        self.zlistctrl.ultimateList.Bind(wx.EVT_BUTTON, self.on_delete)
+        self.zlistctrl.ultimateList.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.update)
+
+        fitbutton.Bind(wx.EVT_BUTTON, self.fit)
+        addbutton.Bind(wx.EVT_BUTTON, self.on_add)
+        resetbutton.Bind(wx.EVT_BUTTON, self.on_reset)
+        extractbutton.Bind(wx.EVT_BUTTON, self.extract)
+        savefigbutton.Bind(wx.EVT_BUTTON, self.save_figures)
+        replotbutton.Bind(wx.EVT_BUTTON, self.on_replot)
+        okbutton.Bind(wx.EVT_BUTTON, self.on_close)
+        closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
+
+        # Set Range Here and plot the initial results
         tstart = time.clock()
-        self.MakeFArray(-50, 15)
+        self.make_f_array(-50, 15)
         tend = time.clock()
         print "F Array Time: %.2gs" % (tend - tstart)
         if self.config.zoffs == []:
-            self.GetMaxima()
-            print self.maxes
+            self.get_maxima()
         else:
             self.zoffs = self.config.zoffs
-            self.PlotZoffs()
-        self.PopulateList(0)
+            self.plot_zoffs()
+        self.populate_list(0)
 
-        okButton.Bind(wx.EVT_BUTTON, self.OnClose)
-        closeButton.Bind(wx.EVT_BUTTON, self.OnCloseCancel)
+    def update(self, e):
+        """
+        Update self.zoffs from the self.zlistctrl. Update the intensities for each zoffset value.
+        :param e:
+        :return:
+        """
+        self.zoffs = self.zlistctrl.return_data()
+        zfunction = interp1d(self.offset_totals[:, 0], self.offset_totals[:, 1])
+        for z in self.zoffs:
+            if np.amin(self.offset_totals[:, 0]) <= z.offset <= np.amax(self.offset_totals[:, 0]):
+                z.intensity = zfunction(z.offset)
+            else:
+                z.intensity = 0
+            self.zlistctrl.ultimateList.SetStringItem(z.index, 1, str(z.intensity))
 
-    def OnReplot(self, e):
+    def on_replot(self, e):
+        """
+        Update the parameters and replot the results.
+        :param e: Unused event
+        :return: None
+        """
         self.update(e)
-        self.PlotZoffs()
-        self.UpdateList()
+        self.plot_zoffs()
+        self.update_list()
 
-    def PlotZoffs(self):
-        self.plot1.plotrefreshtop(self.ftot[:, 0], self.ftot[:, 1], title="Native Z Offset", xlabel="Offset",
+    def plot_zoffs(self):
+        """
+        Plot the total charge offsets along with fits. Call self.make_plot_7.
+        :return: None
+        """
+        self.plot1.plotrefreshtop(self.offset_totals[:, 0], self.offset_totals[:, 1], title="Native Z Offset",
+                                  xlabel="Offset",
                                   ylabel="Intensity", zoom="span")
         for i in xrange(0, len(self.zoffs)):
             self.plot1.plotadddot(self.zoffs[i].offset, self.zoffs[i].intensity,
@@ -186,42 +247,54 @@ class NativeZ(wx.Dialog):
         self.make_plot_7(0)
 
     def make_plot_7(self, e):
-        self.plot7.contourplot(xvals=self.xvals, yvals=self.yvals, zgrid=self.newgrid, config=self.config,
+        """
+        Plot the 2D mass v. charge plot.
+        Add colored charge offset bands on top of the plot.
+        :param e: Unused event
+        :return: None
+        """
+        self.plot7.contourplot(xvals=self.massaxis, yvals=self.chargeaxis, zgrid=self.igrid, config=self.config,
                                title="Mass vs. Charge", test_kda=True)
-
         try:
             for zoff in self.zoffs:
                 zwidth = zoff.extractwidth
-                self.eshape = self.ctlfilt.GetSelection()
-                self.plot7.plot_native_z(zoff.offset, np.array(zoff.color) / 255, self.xvals, width=zwidth, alpha=0.5,
-                                         shape=self.eshape)
+                eshape = self.ctlfilt.GetSelection()
+                self.plot7.plot_native_z(zoff.offset, np.array(zoff.color) / 255, self.massaxis, width=zwidth,
+                                         alpha=0.5, shape=eshape)
         except Exception, e:
-            "Failed to plot", e
+            print "Failed to plot", e
             pass
 
-    def on_edit(self, event):
-        index = self.list.ultimateList.GetFirstSelected()
-        self.list.ultimateList.SetStringItem(index, 1, str(0))
-
     def on_delete(self, event):
-        self.list.ReturnData()
+        """
+        Delete item from the list ctrl.
+        :param event: wx.Button event
+        :return: None
+        """
+        self.zlistctrl.return_data()
         btn = event.GetId()
-        ids = [int(p.id) for p in self.list.zoffouts]
+        ids = [int(p.id) for p in self.zlistctrl.zoffouts]
         # i=ids.index(int(btn))
         i = [i for i, j in enumerate(ids) if j == btn][0]
-        index = self.list.zoffouts[i].index
+        index = self.zlistctrl.zoffouts[i].index
         # print "click",index,ids,btn
-        self.list.ultimateList.DeleteItem(index)
+        self.zlistctrl.ultimateList.DeleteItem(index)
         # print "Deleted Test!!!"
         self.update(0)
 
     def fit(self, e):
+        """
+        Fit the offset totals to a series of overlapping Gaussians.
+        Update the plots and listctrl from the result.
+        :param e: Unused event
+        :return: None
+        """
         self.update(e)
         guess = []
         for z in self.zoffs:
             guess.append([z.offset, z.intensity * 1 / (0.5 * np.sqrt(2 * np.pi))])
         guess = np.array(guess)
-        mf = MassFitter.MassFitter(self.ftot, guess, 0, "smallguess")
+        mf = MassFitter.MassFitter(self.offset_totals, guess, 0, "smallguess")
         fitspec, fitres = mf.perform_fit("nonorm", "smallguess")
         print "Output", fitres
 
@@ -230,262 +303,236 @@ class NativeZ(wx.Dialog):
             self.zoffs[i].offset = fit[0]
             self.zoffs[i].width = fit[1]
             self.zoffs[i].intensity = fit[2] * 1 / (fit[1] * np.sqrt(2 * np.pi))
-        self.UpdateList()
-        self.PlotZoffs()
+        self.update_list()
+        self.plot_zoffs()
         for z in self.zoffs:
-            yvals = ud.ndis_std(z.offset, self.ftot[:, 0], z.width, a=z.intensity, norm_area=False)
-            self.plot1.plotadd(self.ftot[:, 0], yvals, np.array(z.color) / 255, "Fit")
+            yvals = ud.ndis_std(z.offset, self.offset_totals[:, 0], z.width, a=z.intensity, norm_area=False)
+            self.plot1.plotadd(self.offset_totals[:, 0], yvals, np.array(z.color) / 255, "Fit")
         self.plot1.repaint()
 
-    def update(self, e):
-        self.zoffs = self.list.ReturnData()
-        for z in self.zoffs:
-            if z.offset >= np.amin(self.ftot[:, 0]) and z.offset <= np.amax(self.ftot[:, 0]):
-                z.intensity = self.f(z.offset)
-            else:
-                z.intensity = 0
-            self.list.ultimateList.SetStringItem(z.index, 1, str(z.intensity))
+    def on_reset(self, e):
+        """
+        Reset the listctrl and plots to the default states.
+        :param e: Unused event
+        :return: None
+        """
+        self.get_maxima()
+        self.plot_zoffs()
+        self.zlistctrl.super_delete()
+        self.populate_list(e)
 
-    def OnReset(self, e):
-        self.GetMaxima()
-        self.PlotZoffs()
-        self.list.SuperDelete()
-        self.PopulateList(e)
-
-    def UpdateList(self):
+    def update_list(self):
+        """
+        Update self.zlistctrl from self.zoffs.
+        :return: None
+        """
         for z in self.zoffs:
             index = z.index
-            self.list.ultimateList.SetStringItem(index, 1, str(z.intensity))
-            self.list.ultimateList.SetStringItem(index, 0, str(z.offset))
-            self.list.ultimateList.SetStringItem(index, 2, str(z.width))
+            self.zlistctrl.ultimateList.SetStringItem(index, 0, str(z.offset))
+            self.zlistctrl.ultimateList.SetStringItem(index, 1, str(z.intensity))
+            self.zlistctrl.ultimateList.SetStringItem(index, 2, str(z.width))
+            self.zlistctrl.ultimateList.SetStringItem(index, 2, str(z.width))
 
-    def PopulateList(self, e):
+    def populate_list(self, e):
+        """
+        Add data from self.zoffs to self.zlistctrl.
+        :param e: Unused event
+        :return: None
+        """
         for i in self.zoffs:
-            self.list.AddLine(i)
+            self.zlistctrl.add_line(i)
 
-    def onadd(self, e):
-        self.list.AddLineEmpty()
+    def on_add(self, e):
+        """
+        Add a blank line to self.zlistctrl.
+        :param e: Unused event
+        :return: None
+        """
+        self.zlistctrl.add_empty_line()
 
-    def MakeFArray(self, min, max):
-        zwidth = 1
-        frange = np.arange(min, max, 0.5)
+    def make_f_array(self, minval, maxval, zwidth=1):
+        """
+        Get the global offset parameters for the massaxis and chargeaxis.
+        Create a grid of mass and charge value.
+        Calculate the charge offset at each point and store it at self.offset_grid.
+        Calculate the total intensity for each charge offset value +/- zwidth (default is 1).
+        :param minval: Minimum charge offset value
+        :param maxval: Maximum charge offset value
+        :param zwidth: Tolerance window for the offset to be summed.
+        :return: None
+        """
+        frange = np.arange(minval, maxval, 0.5)
+        mgrid, zgrid = np.meshgrid(self.massaxis, self.chargeaxis, indexing='ij')
+        self.offset_grid = ud.get_z_offset(mgrid, zgrid)
         ftot = []
-
-        mgrid, zgrid = np.meshgrid(self.xvals, self.yvals, indexing='ij')
-        self.offsetgrid = ud.get_z_offset(mgrid, zgrid)
         for f in frange:
-            bool1 = self.offsetgrid >= f - zwidth
-            bool2 = self.offsetgrid < f + zwidth
+            bool1 = self.offset_grid >= f - zwidth
+            bool2 = self.offset_grid < f + zwidth
             bool3 = np.all([bool1, bool2], axis=0)
-            ftot.append([f, np.sum(self.newgrid[bool3])])
-        '''
-        zvals=[simchargefit(self.xvals)+F for F in frange]
-        for f in xrange(0,len(zvals)):
-            intensity=0;
-            for x in xrange(0,len(zvals[f])):
-                zind=ud.nearest(self.yvals,zvals[f][x])
-                start=np.amax([0,zind-zwidth])
-                end=np.amin([zind+zwidth+1,self.ylen])
-                for i in xrange(start,end):
-                    intensity+=self.newgrid[x,i]
-            ftot.append([frange[f],intensity])
-        print ftot
-        '''
-        self.ftot = np.array(ftot)
-        self.f = interp1d(self.ftot[:, 0], self.ftot[:, 1])
+            ftot.append([f, np.sum(self.igrid[bool3])])
+        self.offset_totals = np.array(ftot)
 
-    def fastextract(self, f, width):
-        bool1 = self.offsetgrid >= f - width
-        bool2 = self.offsetgrid < f + width
+    def fast_extract(self, f, width, eshape):
+        """
+        Extract the intensity data for a specific charge offset from self.igrid. Mask all of the other data.
+        :param f: Charge offset
+        :param width: Width of the extraction (+/- from charge offset)
+        :param eshape: Shape of the extraction
+        0 = Box (+/- is a hard cutoff)
+        1 = Gaussian (+/- is std deviation of Gaussian)
+        :return: masked intensity values from self.igrid for a specific charge offset
+        """
+        if eshape == 1:
+            width *= 3.
+        bool1 = self.offset_grid >= f - width
+        bool2 = self.offset_grid < f + width
         bool3 = np.all([bool1, bool2], axis=0)
-        out = self.newgrid * bool3
-        if self.eshape == 1:
-            wgrid = np.exp(-((self.offsetgrid - f) ** 2.) / (2. * width * width))
+        out = self.igrid * bool3
+        if eshape == 1:
+            wgrid = np.exp(-((self.offset_grid - f) ** 2.) / (2. * width * width))
             out = out * wgrid
         return out
 
-    def Extract(self, e):
-        self.zoffs = self.list.ReturnData()
-        self.eshape = self.ctlfilt.GetSelection()
-        self.make_plot_7(e)
+    def get_maxima(self):
+        """
+        Detect peaks in self.offset_totals (the total extracted intensitites) and set default parameters.
+        Plot the results.
+        :return: None
+        """
+        defaultcolors = [[255, 0, 0, 255], [0, 0, 255, 255], [0, 255, 0, 255], [255, 0, 255, 255]]
+        defaultmarkers = ['o', 'v', '^', '>', 's', 'd', '*']
+
+        peaks = ud.peakdetect(self.offset_totals, window=2, threshold=0.1)
+        print peaks
+        self.zoffs = []
+        for p in peaks:
+            i = ud.nearest(self.offset_totals[:, 0], p[0])
+            zoff = Zoffset()
+            zoff.make(p[0], p[1], i, defaultcolors[len(self.zoffs) % len(defaultcolors)],
+                      defaultmarkers[len(self.zoffs)])
+            self.zoffs.append(zoff)
+        self.plot_zoffs()
+
+    def extract(self, e):
+        """
+        Extract the mass distribution at each offset value, plot it, and write the outputs.
+        Call self.peak_extract
+        :param e: Unused event
+        :return: None
+        """
+        # Update the parameters and plots
+        self.on_replot(e)
+        self.plot2.clear_plot("nopaint")
+        eshape = self.ctlfilt.GetSelection()
+        self.massoffset = float(self.ctlmassoffset.GetValue())
 
         tstart = time.clock()
-        frange = [z.offset for z in self.zoffs]
-        colors = [z.color for z in self.zoffs]
-        widths = [z.extractwidth for z in self.zoffs]
-        zvals = [simchargefit(self.xvals) + F for F in frange]
-
-        print frange
-        offsetnum = [z.nstate for z in self.zoffs]
-        self.offsetvalue = float(self.massoffset.GetValue())
-
-        extracts = []
-        extract = []
-        f = 0
-
-        for i, f in enumerate(frange):
-            zwidth = widths[i]
-            if self.eshape == 1:
-                zbuff = zwidth * 3
+        for i, z in enumerate(self.zoffs):
+            # Extract mass v. intensity values for the offsets in self.zoffs
+            intensity = self.fast_extract(z.offset, z.width, eshape)
+            z.extract = np.transpose([self.massaxis + z.nstate * self.massoffset, np.sum(intensity, axis=1)])
+            # Update plot2
+            if not self.plot2.flag:
+                self.plot2.plotrefreshtop(z.extract[:, 0], z.extract[:, 1], title="Extracted Intensities",
+                                          xlabel="Mass (Da)", ylabel="Intensity", color=np.array(z.color) / 255,
+                                          nticks=5, test_kda=True)
             else:
-                zbuff = zwidth
-            intensity = self.fastextract(f, zwidth)
-            extract = np.transpose([self.xvals + offsetnum[i] * self.offsetvalue, np.sum(intensity, axis=1)])
-            extracts.append(extract)
-        extracts = np.array(extracts)
-        f = 0
-        print extracts.shape
-
-        self.plot2.plotrefreshtop(extracts[0, :, 0], extracts[0, :, 1], title="Extracted Intensities",
-                                  xlabel="Mass (Da)",
-                                  ylabel="Intensity", color=np.array(colors[f]) / 255, nticks=5, test_kda=True)
-        for f in xrange(1, len(frange)):
-            self.plot2.plotadd(extracts[f, :, 0], extracts[f, :, 1], np.array(colors[f]) / 255, "Offset=" + str(f))
-        '''
-        for x in xrange(0,len(zvals[f])):
-            intensity=0;
-            zind=ud.nearest(self.yvals,zvals[f][x])
-            zwidth=widths[f]
-            if self.eshape==1:
-                zbuff=zwidth*3
-            else:
-                zbuff=zwidth
-            start=max(0,zind-zbuff)
-            end=min(zind+zbuff+1,self.ylen)
-            zrange=xrange(start,end)
-            weights=np.ones(len(zrange))
-
-            for i,z in enumerate(zrange):
-                if self.eshape==1:
-                    weights[i]=np.exp(-((z-zind)**2.)/(2.*zwidth*zwidth))
-                intensity+=weights[i]*self.newgrid[x,z]
-            extract.append([self.xvals[x]+offsetnum[f]*self.offsetvalue,intensity])
-        extract=np.array(extract)
-        extracts.append(extract)
-        self.plot2.plotrefreshtopbox(extract[:,0],extract[:,1], "Extracted Intensities", "Mass (Da)","Intensity",color=np.array(colors[f])/255,bins=5)
-        for f in xrange(1,len(zvals)):
-            extract=[]
-            zwidth=widths[f]
-            for x in xrange(0,len(zvals[f])):
-                intensity=0;
-                zind=ud.nearest(self.yvals,zvals[f][x])
-                if self.eshape==1:
-                    zbuff=zwidth*3
-                else:
-                    zbuff=zwidth
-                start=max(0,zind-zbuff)
-                end=min(zind+zbuff+1,self.ylen)
-                zrange=xrange(start,end)
-                weights=np.ones(len(zrange))
-                for i,z in enumerate(zrange):
-                    if self.eshape==1:
-                        weights[i]=np.exp(-((z-zind)**2.)/(2.*zwidth*zwidth))
-                    intensity+=weights[i]*self.newgrid[x,z]
-                extract.append([self.xvals[x]+offsetnum[f]*self.offsetvalue,intensity])
-            extract=np.array(extract)
-            extracts.append(extract)
-            self.plot2.plotadd(extract[:,0],extract[:,1],np.array(colors[f])/255,"Offset="+str(f))
-        '''
-        self.extracts = np.array(extracts)
+                self.plot2.plotadd(z.extract[:, 0], z.extract[:, 1], np.array(z.color) / 255, "Offset=" + str(z.offset))
+            # Write each extract out
+            fileout = self.config.outfname + "_extracted_intensities" + str(i) + ".txt"
+            np.savetxt(fileout, z.extract)
         tend = time.clock()
         print "Extraction Time: %.2gs" % (tend - tstart)
         self.plot2.repaint()
-        for f in xrange(0, len(zvals)):
-            fileout = self.config.outfname + "_extracted_intensities" + str(offsetnum[f]) + ".txt"
-            np.savetxt(fileout, self.extracts[f])
-        self.PeakExtract()
 
-    def GetMaxima(self):
-        max = []
-        window = 2
-        threshold = 0.1
-        defaultcolors = [[255, 0, 0, 255], [0, 0, 255, 255], [0, 255, 0, 255], [255, 0, 255, 255]]
-        defaultmarkers = ['o', 'v', '^', '>', 's', 'd', '*']
-        self.zoffs = []
-        for i in xrange(len(self.ftot) - window - 1, window - 1, -1):
-            if self.ftot[i, 1] > np.amax(
-                    [np.amax(self.ftot[i - window:i, 1]), np.amax(self.ftot[i + 1:i + window + 1, 1])]):
-                if self.ftot[i, 1] > np.amax(self.ftot[:, 1]) * threshold:
-                    max.append([i, self.ftot[i, 0], self.ftot[i, 1]])
-                    zoff = zoffset()
-                    zoff.Make(self.ftot[i, 0], self.ftot[i, 1], i, defaultcolors[len(self.zoffs) % len(defaultcolors)],
-                              defaultmarkers[len(self.zoffs)])
-                    self.zoffs.append(zoff)
-        self.maxes = np.array(max)
-        self.PlotZoffs()
+        # Extract Peaks
+        self.peak_extract()
 
-    def PeakExtract(self):
-        self.peakextracts = np.zeros((len(self.extracts), self.pks.plen))
-        self.peakextractsarea = np.zeros((len(self.extracts), self.pks.plen))
+    def peak_extract(self):
+        """
+        Extract the values for local max (height) and area for peaks in pks from each zoff.extract.
+        Plot the results.
+        Write the results to files.
+        :return: None
+        """
+        # TODO: Add extra peaks here to compensate for shifts in the peaks.
+        peakextracts = np.zeros((len(self.zoffs), self.pks.plen))
+        peakextractsarea = np.zeros((len(self.zoffs), self.pks.plen))
+
         try:
             xvals = self.pks.masses
         except AttributeError:
             print "No Peaks to Extract"
-            xvals = None
-        if xvals is not None:
-            for i in xrange(0, len(self.extracts)):
-                for j in xrange(0, self.pks.plen):
-                    p = self.pks.peaks[j]
-                    extract = self.extracts[i]
-                    x = extract[:, 0]
-                    y = extract[:, 1]
-                    index = ud.nearest(x, p.mass)
-                    self.peakextracts[i, j] = localmax(y, index, int(self.config.peakwindow / self.config.massbins))
-                    if not ud.isempty(p.integralrange):
-                        boo1 = x < p.integralrange[1]
-                        boo2 = x > p.integralrange[0]
-                        intdat = extract[np.all([boo1, boo2], axis=0)]
-                        integral = np.trapz(intdat[:, 1], x=intdat[:, 0])
-                        self.peakextractsarea[i, j] = integral
-            try:
-                np.savetxt(self.config.outfname + "_extracted_heights.txt", self.peakextracts)
-                np.savetxt(self.config.outfname + "_extracted_areas.txt", self.peakextractsarea)
-            except Exception, e:
-                print "Error saving files", e
+            return None
 
-            if self.offsetvalue > 0:
-                xvals = np.round(xvals / self.offsetvalue)
+        if xvals is not None:
+            # Extraction
+            for i, z in enumerate(self.zoffs):
+                for j, p in enumerate(self.pks):
+                    x = z.extract[:, 0]
+                    y = z.extract[:, 1]
+                    index = ud.nearest(x, p.mass)
+                    peakextracts[i, j] = ud.localmax2(y, index, int(self.config.peakwindow / self.config.massbins))
+                    if not ud.isempty(p.integralrange):
+                        integral, intdat = ud.integrate(z.extract, p.integralrange[0], p.integralrange[1])
+                        peakextractsarea[i, j] = integral
+
+            # Switch to subunit numbers
+            if self.massoffset > 0:
+                xvals = np.round(xvals / self.massoffset)
                 label = "Subunit Number"
             else:
                 label = "Mass (Da)"
-            sum1 = np.sum(self.peakextracts, axis=0)
-            print xvals.shape,sum1.shape, self.peakextracts.shape
+
+            # Plots
+            # Create height extraction line plot
+            sum1 = np.sum(peakextracts, axis=0)
             self.plot3.plotrefreshtop(xvals, sum1, title="Extracted Heights", xlabel=label, ylabel="Intensity",
                                       integerticks=True, test_kda=True)
-            for i in xrange(0, len(self.extracts)):
-                self.plot3.plotadd(xvals, self.peakextracts[i], np.array(self.zoffs[i].color) / 255., str(i))
+            for i, z in enumerate(self.zoffs):
+                self.plot3.plotadd(xvals, peakextracts[i], np.array(z.color) / 255., str(i))
             self.plot3.repaint()
-            sum2 = np.sum(self.peakextractsarea, axis=0)
 
+            # Create height extraction bar chart
             xvals2 = np.arange(0, len(sum1))
-            cmap = self.config.peakcmap
-            colormap = cm.get_cmap(cmap, len(xvals))
+            colormap = cm.get_cmap(self.config.peakcmap, len(xvals))
             peakcolors = colormap(np.arange(len(xvals)))
             self.plot5.barplottop(xvals2, sum1 / np.amax(sum1), [int(i) for i in xvals], peakcolors, label,
                                   "Normalized Intensity", "Extracted Total Peak Heights")
-            self.plot5.repaint()
+
+            # Make Plots for Integrals
+            sum2 = np.sum(peakextractsarea, axis=0)
             if np.amax(sum2) != 0:
+                # Make line plots
                 self.plot4.plotrefreshtop(xvals, sum2, title="Extracted Areas", xlabel=label, ylabel="Area",
                                           integerticks=True, test_kda=True)
-                for i in xrange(0, len(self.extracts)):
-                    self.plot4.plotadd(xvals, self.peakextractsarea[i], np.array(self.zoffs[i].color) / 255., str(i))
+                for i, z in enumerate(self.zoffs):
+                    self.plot4.plotadd(xvals, peakextractsarea[i], np.array(z.color) / 255., str(i))
                 self.plot4.repaint()
+                # Make bar charts
                 self.plot6.barplottop(xvals2, sum2 / np.amax(sum2), [int(i) for i in xvals], peakcolors, label,
                                       "Normalized Intensity", "Extracted Total Peak Areas")
-                self.plot6.repaint()
             else:
                 print "No integration provided"
 
+            # Save total outputs for extracted peaks
             try:
+                np.savetxt(self.config.outfname + "_extracted_heights.txt", peakextracts)
                 np.savetxt(self.config.outfname + "_total_extracted_heights.txt",
                            np.transpose([self.pks.masses, xvals, sum1 / np.amax(sum1)]))
                 if np.amax(sum2) != 0:
+                    np.savetxt(self.config.outfname + "_extracted_areas.txt", peakextractsarea)
                     np.savetxt(self.config.outfname + "_total_extracted_areas.txt",
                                np.transpose([self.pks.masses, xvals, sum2 / np.amax(sum2)]))
             except Exception, e:
-                print "Error saving total files", e
+                print "Error saving files", e
 
-    def SaveFig(self, e):
+    def save_figures(self, e):
+        """
+        Save the figures as pdfs in the unidec folder.
+        :param e: Unused event
+        :return: None
+        """
         extraheader = "_NativeZ"
         name1 = self.config.outfname + extraheader + "_Figure1.pdf"
         if self.plot1.flag:
@@ -508,36 +555,45 @@ class NativeZ(wx.Dialog):
         name7 = self.config.outfname + extraheader + "_Figure7.pdf"
         if self.plot7.flag:
             self.plot7.on_save_fig(e, name7)
+        print "Saved to:", self.config.outfname + extraheader
 
-    def OnClose(self, e):
+    def on_close(self, e):
+        """
+        Close the window and update the parameters
+        :param e:
+        :return:
+        """
         self.update(e)
-        self.zoffouts = self.zoffs
+        self.config.zoffs = self.zoffs
+        self.config.massoffset = self.massoffset
+        self.config.extractshape = self.ctlfilt.GetSelection()
         self.Destroy()
         self.EndModal(0)
 
-    def OnCloseCancel(self, e):
-        self.zoffouts = []
+    def on_close_cancel(self, e):
+        """
+        Close the window but do not update the parameters.
+        :param e: Unused event
+        :return: None
+        """
         self.Destroy()
         self.EndModal(1)
 
 
 class ColorList(wx.Panel):
     def __init__(self, parent):
-        """Constructor"""
+        """
+        Create an ulitimape list control panel.
+        :param parent: Parent passed to wx.Panel
+        :return: None
+        """
         wx.Panel.__init__(self, parent)
+        self.ultimateList = ulc.UltimateListCtrl(self, size=(500, 200),
+                                                 agwStyle=wx.LC_REPORT | wx.LC_VRULES | wx.LC_EDIT_LABELS | wx.LC_HRULES
+                                                          | ulc.ULC_USER_ROW_HEIGHT | ulc.ULC_HAS_VARIABLE_ROW_HEIGHT
+                                                          | ulc.ULC_EDIT_LABELS)
 
-        # font = wx.SystemSettings_GetFont(wx.SYS_DEFAULT_GUI_FONT)
-        # boldfont = wx.SystemSettings_GetFont(wx.SYS_DEFAULT_GUI_FONT)
-        # boldfont.SetWeight(wx.BOLD)
-        # boldfont.SetPointSize(12)
-
-        self.ultimateList = ULC.UltimateListCtrl(self, size=(500, 310), agwStyle=wx.LC_REPORT
-                                                                                 | wx.LC_VRULES | wx.LC_EDIT_LABELS
-                                                                                 | wx.LC_HRULES | ULC.ULC_USER_ROW_HEIGHT
-                                                                                 | ULC.ULC_HAS_VARIABLE_ROW_HEIGHT
-                                                                                 | ULC.ULC_EDIT_LABELS)
-
-        info = ULC.UltimateListItem()
+        info = ulc.UltimateListItem()
         info._mask = wx.LIST_MASK_TEXT | wx.LIST_MASK_IMAGE | wx.LIST_MASK_FORMAT
         info._image = []
         info._format = 0
@@ -545,59 +601,52 @@ class ColorList(wx.Panel):
         info._text = "Native Z Offset"
         self.ultimateList.InsertColumnInfo(0, info)
 
-        info = ULC.UltimateListItem()
+        info = ulc.UltimateListItem()
         info._format = wx.LIST_FORMAT_RIGHT
-        info._mask = wx.LIST_MASK_TEXT | wx.LIST_MASK_IMAGE | wx.LIST_MASK_FORMAT | ULC.ULC_MASK_CHECK
+        info._mask = wx.LIST_MASK_TEXT | wx.LIST_MASK_IMAGE | wx.LIST_MASK_FORMAT | ulc.ULC_MASK_CHECK
         info._image = []
         info._text = "Intensity"
-        # info._font = boldfont
         self.ultimateList.InsertColumnInfo(1, info)
 
-        info = ULC.UltimateListItem()
+        info = ulc.UltimateListItem()
         info._format = wx.LIST_FORMAT_RIGHT
-        info._mask = wx.LIST_MASK_TEXT | wx.LIST_MASK_IMAGE | wx.LIST_MASK_FORMAT | ULC.ULC_MASK_CHECK
+        info._mask = wx.LIST_MASK_TEXT | wx.LIST_MASK_IMAGE | wx.LIST_MASK_FORMAT | ulc.ULC_MASK_CHECK
         info._image = []
         info._text = "Width"
-        # info._font = boldfont
         self.ultimateList.InsertColumnInfo(2, info)
 
-        info = ULC.UltimateListItem()
+        info = ulc.UltimateListItem()
         info._mask = wx.LIST_MASK_TEXT | wx.LIST_MASK_IMAGE | wx.LIST_MASK_FORMAT
         info._format = 0
         info._text = "Color"
-        # info._font = font
         info._image = []
         self.ultimateList.InsertColumnInfo(3, info)
 
-        info = ULC.UltimateListItem()
+        info = ulc.UltimateListItem()
         info._mask = wx.LIST_MASK_TEXT | wx.LIST_MASK_IMAGE | wx.LIST_MASK_FORMAT
         info._format = 0
         info._text = "ID"
-        # info._font = font
         info._image = []
         self.ultimateList.InsertColumnInfo(4, info)
 
-        info = ULC.UltimateListItem()
+        info = ulc.UltimateListItem()
         info._mask = wx.LIST_MASK_TEXT | wx.LIST_MASK_IMAGE | wx.LIST_MASK_FORMAT
         info._format = 0
         info._text = ""
-        # info._font = font
         info._image = []
         self.ultimateList.InsertColumnInfo(5, info)
 
-        info = ULC.UltimateListItem()
+        info = ulc.UltimateListItem()
         info._mask = wx.LIST_MASK_TEXT | wx.LIST_MASK_IMAGE | wx.LIST_MASK_FORMAT
         info._format = 0
         info._text = "N"
-        # info._font = font
         info._image = []
         self.ultimateList.InsertColumnInfo(6, info)
 
-        info = ULC.UltimateListItem()
+        info = ulc.UltimateListItem()
         info._mask = wx.LIST_MASK_TEXT | wx.LIST_MASK_IMAGE | wx.LIST_MASK_FORMAT
         info._format = 0
         info._text = "Z Width"
-        # info._font = font
         info._image = []
         self.ultimateList.InsertColumnInfo(7, info)
 
@@ -616,23 +665,19 @@ class ColorList(wx.Panel):
         self.SetSizer(sizer)
         self.buttontot = 0
 
-    def AddLineEmpty(self):
-        index = self.ultimateList.InsertStringItem(sys.maxint, str(0))
-        self.ultimateList.SetStringItem(index, 1, str(0))
-        self.ultimateList.SetStringItem(index, 2, str(0))
-        size = (50, 10)
-        self.colorbox = wx.ColourPickerCtrl(self.ultimateList, size=size)
-        self.ultimateList.SetItemWindow(index, col=3, wnd=self.colorbox, expand=True)
-        self.ultimateList.SetStringItem(index, 4, str(self.buttontot))
-        deletebutton = wx.Button(self.ultimateList, label="Delete", id=self.buttontot)
-        self.ultimateList.SetItemWindow(index, col=5, wnd=deletebutton, expand=True)
-        self.buttontot += 1
-        textinput = wx.TextCtrl(self.ultimateList, value="0")
-        self.ultimateList.SetItemWindow(index, col=6, wnd=textinput, expand=True)
-        textinput2 = wx.TextCtrl(self.ultimateList, value="1")
-        self.ultimateList.SetItemWindow(index, col=7, wnd=textinput2, expand=True)
+    def add_empty_line(self):
+        """
+        Add an empty line by adding a default Zoffset object.
+        :return: None
+        """
+        self.add_line(Zoffset())
 
-    def AddLine(self, zoff):
+    def add_line(self, zoff):
+        """
+        Adds a new line from a Zoffset object.
+        :param zoff: Zoffset object.
+        :return:
+        """
         index = self.ultimateList.InsertStringItem(sys.maxint, str(zoff.offset))
         self.ultimateList.SetStringItem(index, 1, str(zoff.intensity))
         self.ultimateList.SetStringItem(index, 2, str(zoff.width))
@@ -640,26 +685,29 @@ class ColorList(wx.Panel):
         colorarray = list(zoff.color)
         if len(colorarray) < 4:
             colorarray.append(255)
-        self.colorbox = wx.ColourPickerCtrl(self.ultimateList, size=size,
-                                            col=wx.Colour(colorarray[0], colorarray[1], colorarray[2],
-                                                          alpha=colorarray[3]))
-        self.ultimateList.SetItemWindow(index, col=3, wnd=self.colorbox, expand=True)
+        colorbox = wx.ColourPickerCtrl(self.ultimateList, size=size,
+                                       col=wx.Colour(colorarray[0], colorarray[1], colorarray[2], alpha=colorarray[3]))
+        self.ultimateList.SetItemWindow(index, col=3, wnd=colorbox, expand=True)
         self.ultimateList.SetStringItem(index, 4, str(self.buttontot))
         deletebutton = wx.Button(self.ultimateList, label="Delete", id=self.buttontot)
         self.ultimateList.SetItemWindow(index, col=5, wnd=deletebutton, expand=True)
         self.buttontot += 1
         textinput = wx.TextCtrl(self.ultimateList, value=str(zoff.nstate))
         self.ultimateList.SetItemWindow(index, col=6, wnd=textinput, expand=True)
-        textinput2 = wx.TextCtrl(self.ultimateList, value="1")
+        textinput2 = wx.TextCtrl(self.ultimateList, value=str(zoff.extractwidth))
         self.ultimateList.SetItemWindow(index, col=7, wnd=textinput2, expand=True)
 
-    def ReturnData(self):
+    def return_data(self):
+        """
+        Make each line from the listctrl into a Zoffset object and return the list.
+        :return: List of Zoffset objects
+        """
         count = self.ultimateList.GetItemCount()
-        self.zoffouts = []
+        zoffouts = []
         # print "Count",count
         defaultmarkers = ['o', 'v', '^', '>', 's', 'd', '*']
         for index in xrange(0, count):
-            zout = zoffset()
+            zout = Zoffset()
             zout.index = index
             # print index
             colorwindow = self.ultimateList.GetItemWindow(index, col=3)
@@ -668,15 +716,19 @@ class ColorList(wx.Panel):
             zout.width = float(self.ultimateList.GetItem(index, col=2).GetText())
             # zout.intensity=float(self.ultimateList.GetItem(index,col=1).GetText())
             zout.id = int(self.ultimateList.GetItem(index, col=4).GetText())
-            zout.marker = defaultmarkers[len(self.zoffouts)]
+            zout.marker = defaultmarkers[len(zoffouts)]
             inputbox = self.ultimateList.GetItemWindow(index, col=6)
             zout.nstate = int(inputbox.GetValue())
             inputbox = self.ultimateList.GetItemWindow(index, col=7)
             zout.extractwidth = int(inputbox.GetValue())
-            self.zoffouts.append(zout)
-        return self.zoffouts
+            zoffouts.append(zout)
+        return zoffouts
 
-    def SuperDelete(self):
+    def super_delete(self):
+        """
+        Delete all items in the ultimate list control.
+        :return: None
+        """
         count = self.ultimateList.GetItemCount()
         topcount = count
         num = 0
@@ -688,5 +740,6 @@ class ColorList(wx.Panel):
                 num += 1
             except Exception, e:
                 num += 1
+                print "Delete Failed:", e
                 pass
         self.ultimateList.DeleteAllItems()

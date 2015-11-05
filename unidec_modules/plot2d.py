@@ -3,7 +3,7 @@ from matplotlib.ticker import MaxNLocator
 import numpy as np
 
 from unidec_modules.PlottingWindow import PlottingWindow
-import nativez
+import unidectools as ud
 
 __author__ = 'Michael.Marty'
 
@@ -139,7 +139,7 @@ class Plot2d(PlottingWindow):
         :return: None
         """
         x1, x2, y1, y2 = self.subplot1.axis()
-        yvals = nativez.simchargefit(xvals) + offset
+        yvals = ud.simchargefit(xvals) + offset
         self.subplot1.plot(xvals, yvals, color=col)
         if width > 0 and shape == 0:
             self.subplot1.fill_between(xvals / self.kdnorm, yvals - width, yvals + width, color=col, alpha=alpha)

@@ -1359,16 +1359,19 @@ class Mainwindow(wx.Frame):
         self.plot4.clear_plot()
         self.plot5.clear_plot()
         self.plot6.clear_plot()
-        if self.config.imflag == 1:
-            if flag == 1:
-                self.plot1im.clear_plot()
-            self.plot1fit.clear_plot()
-            self.plot2ccs.clear_plot()
-            self.plot3color.clear_plot()
-            self.plot5ccsz.clear_plot()
-            self.plot5mccs.clear_plot()
-            self.plot9.clear_plot()
-            self.plot10.clear_plot()
+        try:
+            if self.config.imflag == 1:
+                if flag == 1:
+                    self.plot1im.clear_plot()
+                self.plot1fit.clear_plot()
+                self.plot2ccs.clear_plot()
+                self.plot3color.clear_plot()
+                self.plot5ccsz.clear_plot()
+                self.plot5mccs.clear_plot()
+                self.plot9.clear_plot()
+                self.plot10.clear_plot()
+        except AttributeError:
+            pass
 
     def on_motion(self, xpos, ypos):
         """

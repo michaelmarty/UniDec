@@ -136,6 +136,8 @@ class UniDecConfig:
         self.oligomerlist = []
         self.manuallist = []
         self.zoffs = []
+        self.massoffset = 0
+        self.extractshape = 0
         self.gridparams = None
 
         self.default_colormaps()
