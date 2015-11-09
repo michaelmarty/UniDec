@@ -1,15 +1,16 @@
 <map id="UniDec.unidec.UniDec.check_badness" name="UniDec.unidec.UniDec.check_badness">
-<area shape="rect" id="node2" href="$class_uni_dec_1_1unidec_1_1_uni_dec.html#a1e43dac7bb38b562281861c2cdb28e82" title="UniDec.unidec.UniDec.process_data" alt="" coords="244,278,479,305"/>
-<area shape="rect" id="node14" href="$class_uni_dec_1_1unidec_1_1_uni_dec.html#aff9d0eeef0d285c72fd5eb06e454df88" title="UniDec.unidec.UniDec.run\l_unidec" alt="" coords="274,329,449,371"/>
-<area shape="rect" id="node3" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a08242f9b9df1f340dd55cc21a3badb54" title="UniDec.unidec_tests.UniDec\lTest.test_spectra" alt="" coords="527,300,715,341"/>
-<area shape="rect" id="node4" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a3a7bc444baa2261883a289040543ad23" title="UniDec.unidec_tests.UniDec\lTest.test_width" alt="" coords="763,5,951,47"/>
-<area shape="rect" id="node5" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a6a017fbc9b8072f208e7c46bacdf8d66" title="UniDec.unidec_tests.UniDec\lTest.test_noise" alt="" coords="763,71,951,112"/>
-<area shape="rect" id="node6" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#ae022c73aa884c79e4c17f48ac67fa3d1" title="UniDec.unidec_tests.UniDec\lTest.test_zwidth" alt="" coords="763,136,951,177"/>
-<area shape="rect" id="node7" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#adc49f889bc5a4861ddf5c4b30f661581" title="UniDec.unidec_tests.UniDec\lTest.test_baseline" alt="" coords="763,201,951,243"/>
-<area shape="rect" id="node8" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#ab578ac2a5f0a210fee631b70e3a53373" title="UniDec.unidec_tests.UniDec\lTest.test_ambiguity" alt="" coords="763,267,951,308"/>
-<area shape="rect" id="node9" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a465e17d26a5d0f7b2efd779deb232fb4" title="UniDec.unidec_tests.UniDec\lTest.test_density" alt="" coords="763,332,951,373"/>
-<area shape="rect" id="node10" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a661ad3a27086e8a2ac1b512a86c0f4d3" title="UniDec.unidec_tests.UniDec\lTest.test_psfun" alt="" coords="763,397,951,439"/>
-<area shape="rect" id="node11" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a17497d7c058ecb982108ecd07eea55ac" title="UniDec.unidec_tests.UniDec\lTest.test_widths" alt="" coords="763,463,951,504"/>
-<area shape="rect" id="node12" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a34808b3417fbfe04fd514907371c1822" title="UniDec.unidec_tests.UniDec\lTest.test_sigs" alt="" coords="763,528,951,569"/>
-<area shape="rect" id="node13" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a80f4b1c8258f43c765d9f0832c5bac91" title="UniDec.unidec_tests.UniDec\lTest.test_repeat" alt="" coords="763,593,951,635"/>
+<area shape="rect" id="node2" href="$class_uni_dec_1_1unidec_1_1_uni_dec.html#a1e43dac7bb38b562281861c2cdb28e82" title="UniDec.unidec.UniDec.process_data" alt="" coords="244,351,479,378"/>
+<area shape="rect" id="node3" href="$class_uni_dec_1_1unidec_1_1_uni_dec.html#aff9d0eeef0d285c72fd5eb06e454df88" title="UniDec.unidec.UniDec.run\l_unidec" alt="" coords="527,287,701,328"/>
+<area shape="rect" id="node4" href="$class_uni_dec_1_1unidec_1_1_uni_dec.html#a22e2911f9077bd9af8dc7931a1daca07" title="UniDec.unidec.UniDec.autorun" alt="" coords="749,378,948,405"/>
+<area shape="rect" id="node5" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a08242f9b9df1f340dd55cc21a3badb54" title="UniDec.unidec_tests.UniDec\lTest.test_spectra" alt="" coords="755,300,943,341"/>
+<area shape="rect" id="node6" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a3a7bc444baa2261883a289040543ad23" title="UniDec.unidec_tests.UniDec\lTest.test_width" alt="" coords="996,5,1184,47"/>
+<area shape="rect" id="node7" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a6a017fbc9b8072f208e7c46bacdf8d66" title="UniDec.unidec_tests.UniDec\lTest.test_noise" alt="" coords="996,71,1184,112"/>
+<area shape="rect" id="node8" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#ae022c73aa884c79e4c17f48ac67fa3d1" title="UniDec.unidec_tests.UniDec\lTest.test_zwidth" alt="" coords="996,136,1184,177"/>
+<area shape="rect" id="node9" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#adc49f889bc5a4861ddf5c4b30f661581" title="UniDec.unidec_tests.UniDec\lTest.test_baseline" alt="" coords="996,201,1184,243"/>
+<area shape="rect" id="node10" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#ab578ac2a5f0a210fee631b70e3a53373" title="UniDec.unidec_tests.UniDec\lTest.test_ambiguity" alt="" coords="996,267,1184,308"/>
+<area shape="rect" id="node11" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a465e17d26a5d0f7b2efd779deb232fb4" title="UniDec.unidec_tests.UniDec\lTest.test_density" alt="" coords="996,332,1184,373"/>
+<area shape="rect" id="node12" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a661ad3a27086e8a2ac1b512a86c0f4d3" title="UniDec.unidec_tests.UniDec\lTest.test_psfun" alt="" coords="996,397,1184,439"/>
+<area shape="rect" id="node13" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a17497d7c058ecb982108ecd07eea55ac" title="UniDec.unidec_tests.UniDec\lTest.test_widths" alt="" coords="996,463,1184,504"/>
+<area shape="rect" id="node14" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a34808b3417fbfe04fd514907371c1822" title="UniDec.unidec_tests.UniDec\lTest.test_sigs" alt="" coords="996,528,1184,569"/>
+<area shape="rect" id="node15" href="$class_uni_dec_1_1unidec__tests_1_1_uni_dec_test.html#a80f4b1c8258f43c765d9f0832c5bac91" title="UniDec.unidec_tests.UniDec\lTest.test_repeat" alt="" coords="996,593,1184,635"/>
 </map>

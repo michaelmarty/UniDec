@@ -15,6 +15,8 @@ from scipy.optimize import curve_fit
 from scipy import stats
 from scipy import signal
 from scipy import special
+from scipy import fftpack
+# import pyfftw
 import matplotlib.cm as cm
 import mzMLimporter
 
@@ -474,7 +476,7 @@ def zipdir(path, zip_handle):
     files = os.listdir(path)
     for f in files:
         if os.path.isfile(f):
-            zip_handle.write(f) # compress_type=zipfile.ZIP_DEFLATED)
+            zip_handle.write(f)  # compress_type=zipfile.ZIP_DEFLATED)
 
 
 def zip_folder(save_path):
@@ -1673,20 +1675,101 @@ def isolated_peak_fit(xvals, yvals, psfun, **kwargs):
     return np.transpose([fit, err]), fitdat
 
 
-def fft_diff(data, diffrange=[500., 1000.]):
+def fft(data):
+    # X-axis
     massdif = data[1, 0] - data[0, 0]
-    fft = np.fft.rfft(data[:, 1])
+    fvals = np.fft.fftfreq(len(data), d=massdif)
+    #fvals = fftpack.fftfreq(len(data), d=massdif)
+    # Y-axis
+    # fft = np.fft.fft(data[:, 1])
+    fft = fftpack.fft(data[:, 1])
+    #fft = pyfftw.interfaces.numpy_fft.fft(data[:,1])
     aft = np.abs(fft)
-    fvals = np.fft.rfftfreq(len(data), d=massdif)
+    # Cleanup
     aftdat = np.transpose([fvals, aft])
     aftdat[:, 1] /= np.amax(aftdat[:, 1])
+    return aftdat
+
+
+def fft_diff(data, diffrange=[500., 1000.]):
+    fftdat = fft(data)
     ftrange = [1. / diffrange[1], 1. / diffrange[0]]
-    boo1 = fvals < ftrange[1]
-    boo2 = fvals > ftrange[0]
+    boo1 = fftdat[:, 0] < ftrange[1]
+    boo2 = fftdat[:, 0] > ftrange[0]
     boo3 = np.all([boo1, boo2], axis=0)
-    ftext = aftdat[boo3]
+    ftext = fftdat[boo3]
     fit, err, fitdat = voigt_fit(ftext[:, 0], ftext[:, 1], np.average(ftrange), np.average(ftrange) / 10., 0, 1, 0)
     return 1. / fit[0]
+
+
+def pad_data(linear_mzdata, pad_until=50000):
+    mzdiff = linear_mzdata[1, 0] - linear_mzdata[0, 0]
+    maxmz = np.amax(linear_mzdata[:, 0])
+    paddedmz = np.arange(maxmz + mzdiff, pad_until, mzdiff)
+    paddedint = np.zeros(len(paddedmz))
+    paddat = np.transpose([paddedmz, paddedint])
+    return np.concatenate((linear_mzdata, paddat))
+
+
+def pad_two_power(data):
+    mzdiff = data[1, 0] - data[0, 0]
+    maxmz = np.amax(data[:, 0])
+    n_original = len(data)
+    n_power_of_2 = 2 ** int(math.ceil(math.log(n_original, 2)))
+    n_pad = n_power_of_2 - n_original
+    z = np.zeros(n_pad)
+    x = np.arange(n_pad) * mzdiff + maxmz
+    padding = np.transpose([x, z])
+    return np.concatenate((data, padding))
+
+
+def double_fft_diff(mzdata, diffrange=None, binsize=0.1, pad=None):
+    import time
+    tstart = time.clock()
+    if diffrange is None:
+        diffrange = [600, 900]
+    mzdata = linearize(mzdata, binsize, 3)
+    mzdata = pad_two_power(mzdata)
+    if pad is not None:
+        mzdata = pad_data(mzdata, pad_until=pad)
+    #window = np.bartlett(len(mzdata))
+    #mzdata[:, 1] = mzdata[:, 1] * window
+    fftdat = fft(mzdata)
+    fftdat[:, 1] = fftdat[:, 1]
+    fft2 = fft(fftdat)
+    print "Run Time: %.2gs" % (time.clock() - tstart)
+
+    maxpos = localmaxpos(fft2, diffrange[0], diffrange[1])
+    # width = 2
+    # diffrange[0] = maxpos - width
+    # diffrange[1] = maxpos + width
+
+    boo1 = fft2[:, 0] < diffrange[1]
+    boo2 = fft2[:, 0] > diffrange[0]
+    boo3 = np.all([boo1, boo2], axis=0)
+    ftext2 = fft2[boo3]
+
+    if False:
+        print len(mzdata), len(fftdat), len(fft2)
+        import matplotlib.pyplot as plt
+        plt.figure()
+        plt.plot(fftdat[:, 0], fftdat[:, 1])
+        ztab = np.arange(1, 30)
+        zdiff = maxpos / ztab
+        zfreq = 1. / zdiff
+        for i in xrange(0, len(zfreq)):
+            plt.vlines(zfreq[i], 0, 0.1)
+            plt.text(zfreq[i], 0.15, str(ztab[i]))
+        plt.show()
+
+    # Fit the peak
+    try:
+        fit, err, fitdat = voigt_fit(ftext2[:, 0], ftext2[:, 1], maxpos, maxpos * 0.001, 0, np.amax(ftext2[:, 1]),
+                                     np.amin(ftext2[:, 1]))
+    except:
+        fitdat = ftext2[:, 1]
+        fit = [maxpos]
+    return maxpos, fit[0], ftext2, fitdat
 
 
 def correlation_integration(dat1, dat2, alpha=0.01, plot_corr=False, **kwargs):

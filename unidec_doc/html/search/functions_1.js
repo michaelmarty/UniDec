@@ -19,5 +19,6 @@ var searchData=
   ['autocorr',['autocorr',['../namespace_uni_dec_1_1unidec__modules_1_1unidectools.html#a3e23d73557b7c1c3a59cab70cca8f448',1,'UniDec::unidec_modules::unidectools']]],
   ['autocorrelation',['autocorrelation',['../class_uni_dec_1_1unidec_1_1_uni_dec.html#a96d9669620e211583231040caab21aac',1,'UniDec::unidec::UniDec']]],
   ['autointegrate',['autointegrate',['../class_uni_dec_1_1unidec_1_1_uni_dec.html#afb6b4140d46c4a50f72089c4547acc33',1,'UniDec::unidec::UniDec']]],
+  ['autorun',['autorun',['../class_uni_dec_1_1unidec_1_1_uni_dec.html#a22e2911f9077bd9af8dc7931a1daca07',1,'UniDec::unidec::UniDec']]],
   ['average_5fbin_5fsize',['average_bin_size',['../namespace_uni_dec_1_1unidec__modules_1_1unidectools.html#a623c91ae287426fc236fef0fe5608c0d',1,'UniDec::unidec_modules::unidectools']]]
 ];

@@ -35,6 +35,7 @@ var searchData=
   ['plotanimations',['PlotAnimations',['../namespace_uni_dec_1_1unidec__modules_1_1_plot_animations.html',1,'UniDec::unidec_modules']]],
   ['plottingwindow',['PlottingWindow',['../namespace_uni_dec_1_1unidec__modules_1_1_plotting_window.html',1,'UniDec::unidec_modules']]],
   ['tagtypes',['TagTypes',['../namespace_uni_dec_1_1unidec__modules_1_1tims__import__wizard_1_1_tag_types.html',1,'UniDec::unidec_modules::tims_import_wizard']]],
+  ['test_5funidec',['test_UniDec',['../namespace_uni_dec_1_1test___uni_dec.html',1,'UniDec']]],
   ['texmaker',['texmaker',['../namespace_uni_dec_1_1unidec__modules_1_1isolated__packages_1_1texmaker.html',1,'UniDec::unidec_modules::isolated_packages']]],
   ['tims_5fimport_5fwizard',['tims_import_wizard',['../namespace_uni_dec_1_1unidec__modules_1_1tims__import__wizard.html',1,'UniDec::unidec_modules']]],
   ['twitter_5finterface',['twitter_interface',['../namespace_uni_dec_1_1unidec__modules_1_1isolated__packages_1_1twitter__interface.html',1,'UniDec::unidec_modules::isolated_packages']]],

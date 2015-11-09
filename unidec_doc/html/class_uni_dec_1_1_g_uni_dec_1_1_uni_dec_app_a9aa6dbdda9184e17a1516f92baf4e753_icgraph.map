@@ -1,6 +1,7 @@
 <map id="UniDec.GUniDec.UniDecApp.on_dataprep_button" name="UniDec.GUniDec.UniDecApp.on_dataprep_button">
-<area shape="rect" id="node2" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a6d427a89d37b4edc75a4e2a62c3c53fd" title="UniDec.GUniDec.UniDecApp.on_auto" alt="" coords="260,5,499,32"/>
-<area shape="rect" id="node4" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a628cf3842ec5ada6f5b60e5ea68c66b8" title="UniDec.GUniDec.UniDecApp.on\l_batch" alt="" coords="276,57,483,98"/>
-<area shape="rect" id="node3" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#aacb45ae084252b7d1c780f5fd247aeae" title="UniDec.GUniDec.UniDecApp.init" alt="" coords="547,5,757,32"/>
-<area shape="rect" id="node5" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a1bfc387d15073c8dd2ff45c1ceb5fbaa" title="UniDec.GUniDec.UniDecApp.on\l_batch2" alt="" coords="549,57,755,98"/>
+<area shape="rect" id="node2" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#ab201aef8fed8d975d1687e5b06f5e777" title="UniDec.GUniDec.UniDecApp.on\l_unidec_button" alt="" coords="260,27,467,69"/>
+<area shape="rect" id="node3" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a6d427a89d37b4edc75a4e2a62c3c53fd" title="UniDec.GUniDec.UniDecApp.on_auto" alt="" coords="515,5,753,32"/>
+<area shape="rect" id="node5" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a628cf3842ec5ada6f5b60e5ea68c66b8" title="UniDec.GUniDec.UniDecApp.on\l_batch" alt="" coords="531,71,737,113"/>
+<area shape="rect" id="node4" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#aacb45ae084252b7d1c780f5fd247aeae" title="UniDec.GUniDec.UniDecApp.init" alt="" coords="801,5,1012,32"/>
+<area shape="rect" id="node6" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a1bfc387d15073c8dd2ff45c1ceb5fbaa" title="UniDec.GUniDec.UniDecApp.on\l_batch2" alt="" coords="803,71,1010,113"/>
 </map>

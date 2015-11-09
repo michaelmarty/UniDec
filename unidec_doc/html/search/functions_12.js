@@ -22,6 +22,7 @@ var searchData=
   ['setup_5ftab_5fbox',['setup_tab_box',['../namespace_uni_dec_1_1unidec__modules_1_1miscwindows.html#a2302760926d9a82cd4e3d1689388a9c2',1,'UniDec::unidec_modules::miscwindows']]],
   ['setup_5ftool_5ftips',['setup_tool_tips',['../class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#a2cdfbd7e7b4b22f820eeb25dadb3052a',1,'UniDec::unidec_modules::mainwindow::Mainwindow']]],
   ['setup_5fzoom',['setup_zoom',['../class_uni_dec_1_1unidec__modules_1_1_plotting_window_1_1_plotting_window.html#a6a42c2d68210567e7afbd4110577f7b8',1,'UniDec::unidec_modules::PlottingWindow::PlottingWindow']]],
+  ['setupclass',['setUpClass',['../class_uni_dec_1_1test___uni_dec_1_1_test_uni_dec.html#a77107cec16990092b29ff93ce4537609',1,'UniDec::test_UniDec::TestUniDec']]],
   ['setupmodel',['SetupModel',['../class_uni_dec_1_1unidec__modules_1_1_uni_fit_1_1_k_dmodel.html#af9db0fb748a66e4d46ea16278f6fdc0e',1,'UniDec::unidec_modules::UniFit::KDmodel']]],
   ['showpopupmenu',['showPopupMenu',['../class_uni_dec_1_1unidec__modules_1_1tims__import__wizard_1_1import__wizard__grid_1_1_wizard_grid.html#adafb468bee25b4ea11a8816302e7b76e',1,'UniDec::unidec_modules::tims_import_wizard::import_wizard_grid::WizardGrid']]],
   ['shrink_5fall_5ffigures',['shrink_all_figures',['../class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#a7666329ec63ae8b1d543c45ab2d4c287',1,'UniDec::unidec_modules::mainwindow::Mainwindow']]],

@@ -41,6 +41,7 @@ var searchData=
   ['autocorrwindow_2epy',['AutocorrWindow.py',['../_autocorr_window_8py.html',1,'']]],
   ['autointegrate',['autointegrate',['../class_uni_dec_1_1unidec_1_1_uni_dec.html#afb6b4140d46c4a50f72089c4547acc33',1,'UniDec::unidec::UniDec']]],
   ['autopeaks',['autopeaks',['../class_uni_dec_1_1unidec_1_1_uni_dec.html#a06b503d2d3afacf60b5348e1a8ccd0ae',1,'UniDec::unidec::UniDec']]],
+  ['autorun',['autorun',['../class_uni_dec_1_1unidec_1_1_uni_dec.html#a22e2911f9077bd9af8dc7931a1daca07',1,'UniDec::unidec::UniDec']]],
   ['average_5fbin_5fsize',['average_bin_size',['../namespace_uni_dec_1_1unidec__modules_1_1unidectools.html#a623c91ae287426fc236fef0fe5608c0d',1,'UniDec::unidec_modules::unidectools']]],
   ['avgbs',['avgbs',['../namespace_uni_dec_1_1unidec__modules_1_1auto__peak.html#a27d98cd4621bb435387b8f6063413108',1,'UniDec::unidec_modules::auto_peak']]],
   ['axes',['axes',['../class_uni_dec_1_1datacollector_1_1_network_frame.html#a4b34258aa9734e3af509f9a076afc459',1,'UniDec.datacollector.NetworkFrame.axes()'],['../class_uni_dec_1_1unidec__modules_1_1isolated__packages_1_1_zoom_box_1_1_zoom_box.html#a1a867e93ae744b37f0f50cd19b0d14a4',1,'UniDec.unidec_modules.isolated_packages.ZoomBox.ZoomBox.axes()'],['../class_uni_dec_1_1unidec__modules_1_1isolated__packages_1_1_zoom_span_1_1_zoom_span.html#af6af08a3bcbf220c15dd8ae804906d35',1,'UniDec.unidec_modules.isolated_packages.ZoomSpan.ZoomSpan.axes()']]]
