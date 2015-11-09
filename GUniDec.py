@@ -1111,6 +1111,7 @@ class UniDecApp(object):
         :param e:
         :return:
         """
+        # TODO: Rewrite this so that it doesn't need to fake open the window
         self.on_mass_tools(0, show=False)
 
     def on_mass_tools(self, e=None, show=True):
@@ -1126,12 +1127,13 @@ class UniDecApp(object):
         dlg = masstools.MassSelection(self.view)
         dlg.init_dialog(self.eng.config, self.eng.pks, massdat=self.eng.data.massdat)
         if show:
-            dlg.ShowModal()
+            result = dlg.ShowModal()
         else:
+            result = 0
             dlg.on_match_all(0)
             dlg.on_close(0)
-
-        if self.eng.config.matchlist != []:
+        # TODO: Rewrite so p.match isn't overwritten somehow if cancel is selected
+        if self.eng.config.matchlist != [] and result == 0:
             if len(self.eng.config.matchlist[3]) == self.eng.pks.plen:
                 self.view.SetStatusText("Matching", number=5)
                 np.savetxt(self.eng.config.matchfile, np.transpose(self.eng.config.matchlist), fmt='%s', delimiter=",")
@@ -1150,6 +1152,7 @@ class UniDecApp(object):
             self.makeplot4(1)
             self.eng.pks.changed = 0
             self.on_plot_peaks(0)
+        self.export_config(self.eng.config.confname)
         self.view.SetStatusText("Match Done", number=5)
         pass
 

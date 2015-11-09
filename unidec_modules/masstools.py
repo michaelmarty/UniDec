@@ -665,6 +665,7 @@ class MassSelection(wx.Dialog):
         :param e: Unused event
         :return: None
         """
+        # TODO: This fails when the output ofile isn't square (some are unnamed and other are named)
         ofilename = FileDialogs.open_file_dialog("Open Oligomer File (ofile)", file_types="*.*")
         if ofilename is not None:
             importolig = np.genfromtxt(ofilename, dtype='str')
