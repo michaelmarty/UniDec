@@ -1573,9 +1573,9 @@ class UniDecApp(object):
         textmarkertab = [p.textmarker for p in self.eng.pks.peaks]
         peaklabels = [p.label for p in self.eng.pks.peaks]
         peakcolors = [p.color for p in self.eng.pks.peaks]
-        peaks = np.array([p.mass, p.height] for p in self.eng.pks.peaks)
+        peaks = np.array([[p.mass, p.height] for p in self.eng.pks.peaks])
         if self.eng.config.imflag == 0:
-            texmaker.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config, self.eng.config.dirnew,
+            texmaker.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config, self.eng.config.dirname,
                                    peaks, textmarkertab, peaklabels, peakcolors, figureflags)
             self.view.SetStatusText("TeX file Written", number=5)
             try:
