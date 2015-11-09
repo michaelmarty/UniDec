@@ -776,24 +776,21 @@ class UniDec:
                     imfile = file_path
 
         # Set file and extension
-        file_path = None
+        header = None
         if imfile is not None:
             if msfile is None or self.config.imflag == 1:
-                file_path = imfile
+                header = imfile[:-10]
                 extension = "_imraw."
         elif msfile is not None:
             if imfile is None or self.config.imflag == 0:
-                file_path = msfile
+                header = msfile[:-12]
                 extension = "_rawdata."
         else:
             print "Broken Save File. Unable to find _rawdata or _imraw"
             return False
 
         # Get directory, filename, and header
-
-        self.config.dirname, file_name = os.path.split(load_path)
-
-        header = os.path.splitext(file_name)[0]
+        self.config.dirname = os.path.split(load_path)[0]
         self.config.outfname = string.rsplit(header, sep="_", maxsplit=1)[0]
         print "Header:", self.config.outfname
 
