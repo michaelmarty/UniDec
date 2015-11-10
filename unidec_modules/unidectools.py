@@ -250,13 +250,21 @@ def integrate(data, start, end):
     return integral, intdat
 
 
-def center_of_mass(data, start, end):
-    boo1 = data[:, 0] < end
-    boo2 = data[:, 0] > start
-    cutdat = data[np.all([boo1, boo2], axis=0)]
-    weightedavg = np.average(cutdat[:, 0], weights=cutdat[:, 1])
-    weightstd = weighted_std(cutdat[:, 0], cutdat[:, 1])
-    return weightedavg, weightstd
+def center_of_mass(data, start=None, end=None):
+    if start is not None and end is not None:
+        boo1 = data[:, 0] < end
+        boo2 = data[:, 0] > start
+        cutdat = data[np.all([boo1, boo2], axis=0)]
+    else:
+        cutdat = data
+    try:
+        weightedavg = np.average(cutdat[:, 0], weights=cutdat[:, 1])
+        weightstd = weighted_std(cutdat[:, 0], cutdat[:, 1])
+        return weightedavg, weightstd
+    except ZeroDivisionError:
+        print "Error in center of mass determination. Check the limits:", start, end
+        return None, None
+
 
 
 def stepmax(array, index):
@@ -352,6 +360,9 @@ def data_extract(data, x, extract_method, window=None):
 
 def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmode=1, xaxistype=1):
     # Calculate Defects for Deconvolved Masses
+    if kendrickmass == 0:
+        print "Error: Kendrick mass is 0."
+        return None, None, None, None, None
     xaxis = massdat[:, 0]
     kmass = np.array(xaxis) / float(kendrickmass)
     if centermode == 1:
@@ -1679,11 +1690,11 @@ def fft(data):
     # X-axis
     massdif = data[1, 0] - data[0, 0]
     fvals = np.fft.fftfreq(len(data), d=massdif)
-    #fvals = fftpack.fftfreq(len(data), d=massdif)
+    # fvals = fftpack.fftfreq(len(data), d=massdif)
     # Y-axis
     # fft = np.fft.fft(data[:, 1])
     fft = fftpack.fft(data[:, 1])
-    #fft = pyfftw.interfaces.numpy_fft.fft(data[:,1])
+    # fft = pyfftw.interfaces.numpy_fft.fft(data[:,1])
     aft = np.abs(fft)
     # Cleanup
     aftdat = np.transpose([fvals, aft])
@@ -1732,8 +1743,8 @@ def double_fft_diff(mzdata, diffrange=None, binsize=0.1, pad=None):
     mzdata = pad_two_power(mzdata)
     if pad is not None:
         mzdata = pad_data(mzdata, pad_until=pad)
-    #window = np.bartlett(len(mzdata))
-    #mzdata[:, 1] = mzdata[:, 1] * window
+    # window = np.bartlett(len(mzdata))
+    # mzdata[:, 1] = mzdata[:, 1] * window
     fftdat = fft(mzdata)
     fftdat[:, 1] = fftdat[:, 1]
     fft2 = fft(fftdat)

@@ -372,11 +372,11 @@ class Extract2DPlot(wx.Frame):
         name1 = os.path.join(self.directory, "Extract2DFigure1.png")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)
-            print name1
+            # print name1
         name2 = os.path.join(self.directory, "Extract2DFigure2.png")
         if self.plot2.flag:
             self.plot2.on_save_fig(e, name2)
-            print name2
+            # print name2
 
     # noinspection PyPep8Naming
     def on_save_figPDF(self, e):
@@ -388,11 +388,11 @@ class Extract2DPlot(wx.Frame):
         name1 = os.path.join(self.directory, "Extract2DFigure1.pdf")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)
-            print name1
+            # print name1
         name2 = os.path.join(self.directory, "Extract2DFigure2.pdf")
         if self.plot2.flag:
             self.plot2.on_save_fig(e, name2)
-            print name2
+            # print name2
 
 
 # Main App Execution

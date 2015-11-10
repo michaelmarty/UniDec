@@ -174,7 +174,7 @@ class UniDecApp(object):
         # print self.view.imflag, self.eng.config.imflag
         if self.view.imflag != self.eng.config.imflag:
             print "Changing Modes"
-            self.view.on_flip_mode(0)
+            self.on_flip_mode(0)
         self.view.SetStatusText("Data Length: " + str(len(self.eng.data.data2)), number=2)
         self.view.SetStatusText(u"R\u00B2 ", number=3)
         # Update view with data limits
@@ -419,7 +419,7 @@ class UniDecApp(object):
         self.view.SetStatusText(u"R\u00B2 ", number=3)
         self.view.SetStatusText("Data Prep Done", number=5)
         tend = time.clock()
-        print "Data Prep Done. Time: %.2gs" % (tend - tstart)
+        # print "Data Prep Done. Time: %.2gs" % (tend - tstart)
         pass
 
     def on_unidec_button(self, e=None):
@@ -1057,6 +1057,9 @@ class UniDecApp(object):
         self.view.plot2.repaint()
         self.makeplot4(0)
         self.makeplot6(0)
+        cavg, cstd = ud.center_of_mass(cdat)
+        print "Weighted average charge state:", cavg
+        print "Weighted standard deviation:", cstd
 
     # ..................................
     #
@@ -1382,7 +1385,7 @@ class UniDecApp(object):
         if not ud.isempty(self.eng.data.massdat):
             limits = self.view.plot2.subplot1.get_xlim()
             limits = np.array(limits) * self.view.plot2.kdnorm
-            print "limits", limits
+            # print "limits", limits
             com, std = self.eng.center_of_mass(limits=limits)
             print "Center of Mass over region", limits, ":", com
             self.view.plot2.addtext(str(com), com, 0.99 * np.amax(self.eng.data.massdat[:, 1]))
@@ -1591,6 +1594,67 @@ class UniDecApp(object):
             print "PDF Figures written."
         pass
 
+    def on_flip_mode(self, e):
+        """
+        Flips between MS and IM-MS mode
+        :param e: wx event or anything (will flip if not 0)
+        :return: None
+        """
+        if e is not 0:
+            self.eng.config.imflag = (self.eng.config.imflag + 1) % 2
+        self.remake_mainwindow(self.view.tabbed)
+
+        self.view.import_config_to_gui()
+        if self.eng.config.imflag == 1:
+            print "Ion Mobility Mode"
+        elif self.eng.config.imflag == 0:
+            print "Mass Spec Mode"
+
+    def on_flip_tabbed(self, e):
+        """
+        Flips between tabbed plots and a single window of plots
+        :param e: wx Event or anything (will flip if not 0)
+        :return: None
+        """
+        if e is not 0:
+            tabbed = (self.view.tabbed + 1) % 2
+        else:
+            tabbed = self.view.tabbed
+        self.remake_mainwindow(tabbed=tabbed)
+        try:
+            self.on_replot(e)
+            self.view.peakpanel.add_data(self.eng.pks)
+        except Exception, exc:
+            print "Failed to replot when making window:", exc
+        if self.view.tabbed == 1:
+            print "Tabbed Mode"
+        elif self.view.tabbed == 0:
+            print "Single Plot Window Mode"
+
+    def on_flip_twave(self, e):
+        """
+        Flips between T-Wave and Linear IM-MS
+        :param e: wx Event or anything (will get value from Selection if not 0)
+        :return: None
+        """
+        if e is not 0:
+            self.eng.config.twaveflag = self.view.ctltwave.GetSelection()
+        self.remake_mainwindow(self.view.tabbed)
+        if self.eng.config.twaveflag == 0:
+            self.eng.config.gasmass = 4.002602
+            print "Using Linear Cell"
+        elif self.eng.config.twaveflag == 1:
+            self.eng.config.gasmass = 28.0134
+            print "Using Travelling Wave"
+        self.view.ctltwave.SetSelection(self.eng.config.twaveflag)
+        self.view.import_config_to_gui()
+
+    def remake_mainwindow(self, tabbed=None):
+        iconfile = self.view.icon_path
+        self.view.Destroy()
+        self.view = mainwindow.Mainwindow(self, "UniDec", self.eng.config, iconfile=iconfile, tabbed=tabbed)
+        self.view.Show()
+        self.view.import_config_to_gui()
 
 if __name__ == '__main__':
     # app2 = Shell()

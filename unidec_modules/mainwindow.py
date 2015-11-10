@@ -1,11 +1,7 @@
 import os
-
 import wx
-
 import numpy as np
-
 from unidec_modules import ColorPlot, plot3d, plot1d, plot2d, peaklistsort, miscwindows
-
 # import wx.lib.inspection
 import unidec_modules.unidectools as ud
 import wx.lib.scrolledpanel as scrolled
@@ -23,7 +19,7 @@ class Mainwindow(wx.Frame):
     Main UniDec GUI Window.
     """
 
-    def __init__(self, parent, title, config):
+    def __init__(self, parent, title, config, iconfile="logo.ico", tabbed=None):
         """
         initialize window and feed in links to presenter and config.
 
@@ -36,12 +32,15 @@ class Mainwindow(wx.Frame):
         # Set presenter and config
         self.pres = parent
         self.config = config
+        self.title = title
 
         # Set Icon File
-        iconfile = "logo.ico"
         if os.path.isfile(iconfile):
             favicon = wx.Icon(iconfile, wx.BITMAP_TYPE_ANY)
             wx.Frame.SetIcon(self, favicon)
+            self.icon_path = os.path.abspath(iconfile)
+        else:
+            self.icon_path = None
 
         # Get a few tool bar icons
         tsize = (16, 16)
@@ -51,7 +50,7 @@ class Mainwindow(wx.Frame):
             self.report_bmp = wx.ArtProvider.GetBitmap(wx.ART_LIST_VIEW, wx.ART_TOOLBAR, tsize)
             self.A_bmp = wx.ArtProvider.GetBitmap(wx.ART_HELP_SETTINGS, wx.ART_TOOLBAR, tsize)
             try:
-                self.ud_bmp = wx.BitmapFromImage(wx.Image("logo.ico").Rescale(tsize[0], tsize[1]))
+                self.ud_bmp = wx.BitmapFromImage(wx.Image(iconfile).Rescale(tsize[0], tsize[1]))
             except Exception, ex:
                 self.ud_bmp = wx.ArtProvider.GetBitmap(wx.ART_HELP_SETTINGS, wx.ART_TOOLBAR, tsize)
                 print ex
@@ -70,10 +69,15 @@ class Mainwindow(wx.Frame):
         # Get display size and intelligently reshape
         self.system = platform.system()
         self.displaysize = wx.GetDisplaySize()
-        print "Display Size ", self.displaysize
-        self.tabbed = 0
-        if self.displaysize[0] < 1800:
-            self.tabbed = 1
+
+        if tabbed is None:
+            # If tabbed isn't specified, use the display size to decide what is best
+            print "Display Size ", self.displaysize
+            self.tabbed = 0
+            if self.displaysize[0] < 1800:
+                self.tabbed = 1
+        else:
+            self.tabbed = tabbed
 
         self.imflag = self.config.imflag
         self.twave = self.config.twaveflag
@@ -130,6 +134,10 @@ class Mainwindow(wx.Frame):
 
         self.menuLoadState = self.filemenu.Append(wx.ID_ANY, "Load State\tCtrl+L", "Load state from folder")
         self.menuSaveState = self.filemenu.Append(wx.ID_ANY, "Save State\tCtrl+S", "Save program state to fresh folder")
+        self.filemenu.AppendSeparator()
+
+        self.menupastespectrum = self.filemenu.Append(wx.ID_ANY, "Get Spectrum From Clipboard\tCtrl+G",
+                                                      "Pastes the spectrum, formats, and loads")
         self.filemenu.AppendSeparator()
 
         self.menuLoad = self.filemenu.Append(wx.ID_ANY, "Load External Config File", "Load in a configuration file")
@@ -304,10 +312,6 @@ class Mainwindow(wx.Frame):
                                                             "Apply smoothing, background subtraction, and intensity threshold to zero-charge mass spectrum")
         self.experimentalmenu.AppendSeparator()
 
-        self.menupastespectrum = self.experimentalmenu.Append(wx.ID_ANY, "Get Spectrum From Clipboard\tCtrl+G",
-                                                              "Pastes the spectrum, formats, and loads")
-        self.experimentalmenu.AppendSeparator()
-
         self.menuerrors = self.experimentalmenu.Append(wx.ID_ANY, "Get Errors")
 
         # Setting Menu Bar
@@ -321,8 +325,8 @@ class Mainwindow(wx.Frame):
 
         # Set Events for Menu Bar
         self.Bind(wx.EVT_MENU, self.pres.on_peak_errors, self.menuerrors)
-        self.Bind(wx.EVT_MENU, self.on_flip_tabbed, self.menufliptabbed)
-        self.Bind(wx.EVT_MENU, self.on_flip_mode, self.menuflipmode)
+        self.Bind(wx.EVT_MENU, self.pres.on_flip_tabbed, self.menufliptabbed)
+        self.Bind(wx.EVT_MENU, self.pres.on_flip_mode, self.menuflipmode)
         self.Bind(wx.EVT_MENU, self.pres.on_open, self.menuOpen)
         self.Bind(wx.EVT_MENU, self.pres.on_raw_open, self.menuOpenRaw)
         self.Bind(wx.EVT_MENU, self.pres.on_reset, self.menuReset)
@@ -396,8 +400,8 @@ class Mainwindow(wx.Frame):
         panelp = wx.Panel(splitterwindow2, -1)
         panel = wx.Panel(splitterwindow2, -1)
         splitterwindow2.SplitVertically(panelp, panel, sashPosition=-250 - self.config.imflag * 20)
-        splitterwindow2.SetMinimumPaneSize(10)
-        splitterwindow.SetMinimumPaneSize(20)
+        splitterwindow2.SetMinimumPaneSize(175)
+        splitterwindow.SetMinimumPaneSize(175)
         # splitterwindow.SetMinSize((0,0))
         # splitterwindow2.SetMinSize((0,0))
 
@@ -718,7 +722,7 @@ class Mainwindow(wx.Frame):
             gbox1c = wx.GridBagSizer(wx.VERTICAL)
 
             self.ctltwave = wx.RadioBox(panel1c, label="", choices=["Linear Cell", "Travelling Wave"])
-            self.Bind(wx.EVT_RADIOBOX, self.on_flip_twave, self.ctltwave)
+            self.Bind(wx.EVT_RADIOBOX, self.pres.on_flip_twave, self.ctltwave)
             gbox1c.Add(self.ctltwave, (0, 0), span=(1, 2))
 
             if self.config.twaveflag == 0:
@@ -1151,7 +1155,7 @@ class Mainwindow(wx.Frame):
         """
         if self.config.batchflag == 0:
             if self.config.imflag == 1 and self.twave != self.config.twaveflag:
-                self.on_flip_twave(0)
+                self.pres.on_flip_twave(0)
             self.ctlmassbins.SetValue(str(self.config.massbins))
             self.ctlstartz.SetValue(str(self.config.startz))
             self.ctlendz.SetValue(str(self.config.endz))
@@ -1383,56 +1387,6 @@ class Mainwindow(wx.Frame):
         if xpos is not None and ypos is not None:
             self.SetStatusText("x=%.2f y=%.2f" % (xpos, ypos), number=6)
         pass
-
-    def on_flip_mode(self, e):
-        """
-        Flips between MS and IM-MS mode
-        :param e: wx event or anything (will flip if not 0)
-        :return: None
-        """
-        if e is not 0:
-            self.config.imflag = (self.config.imflag + 1) % 2
-        self.setup_menu()
-        self.setup_main_panel()
-        self.import_config_to_gui()
-        if self.config.imflag == 1:
-            print "Ion Mobility Mode"
-        elif self.config.imflag == 0:
-            print "Mass Spec Mode"
-
-    def on_flip_tabbed(self, e):
-        """
-        Flips between tabbed plots and a single window of plots
-        :param e: wx Event or anything (will flip if not 0)
-        :return: None
-        """
-        if e is not 0:
-            self.tabbed = (self.tabbed + 1) % 2
-        self.setup_menu()
-        self.setup_main_panel()
-        self.import_config_to_gui()
-        if self.tabbed == 1:
-            print "Tabbed Mode"
-        elif self.tabbed == 0:
-            print "Single Plot Window Mode"
-
-    def on_flip_twave(self, e):
-        """
-        Flips between T-Wave and Linear IM-MS
-        :param e: wx Event or anything (will get value from Selection if not 0)
-        :return: None
-        """
-        if e is not 0:
-            self.config.twaveflag = self.ctltwave.GetSelection()
-        self.setup_main_panel()
-        if self.config.twaveflag == 0:
-            self.config.gasmass = 4.002602
-            print "Using Linear Cell"
-        elif self.config.twaveflag == 1:
-            self.config.gasmass = 28.0134
-            print "Using Travelling Wave"
-        self.ctltwave.SetSelection(self.config.twaveflag)
-        self.import_config_to_gui()
 
     # .......................................................
     #

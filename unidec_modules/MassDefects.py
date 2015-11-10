@@ -196,8 +196,18 @@ class MassDefectWindow(wx.Frame):
                                                                      xaxistype=self.xtype)
         if self.yvals is not None:
             title = str(self.yvals[self.pos])
+            spacer = "_"
         else:
             title = ""
+            spacer = ""
+        try:
+            save_path2d = os.path.join(self.directory, title + spacer + "2D_Mass_Defects.txt")
+            np.savetxt(save_path2d, data2d)
+            save_path1d = os.path.join(self.directory, title + spacer + "1D_Mass_Defects.txt")
+            np.savetxt(save_path1d, data1d)
+            print 'Saved: ', save_path2d, save_path1d
+        except Exception, e:
+            print "Failed save", e
         try:
             self.plot2.contourplot(data2d, self.config, xlab=self.xlab, ylab=self.ylab, title=title, normflag=1)
         except Exception, e:
@@ -305,7 +315,7 @@ class MassDefectWindow(wx.Frame):
         self.plot1.repaint()
 
         # Save to txt file output
-        save_path = os.path.join(self.directory, "Total_2D_Mass_Defects.txt")
+        save_path = os.path.join(self.directory, "Peaks_Mass_Defects.txt")
         np.savetxt(save_path, np.transpose([xvals, yvals]))
 
     def on_save_fig(self, e):
@@ -317,11 +327,11 @@ class MassDefectWindow(wx.Frame):
         name1 = os.path.join(self.directory, "MassDefectFigure1.png")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)
-            print name1
+            # print name1
         name2 = os.path.join(self.directory, "MassDefectFigure2.png")
         if self.plot2.flag:
             self.plot2.on_save_fig(e, name2)
-            print name2
+            # print name2
 
     def on_save_fig_pdf(self, e):
         """
@@ -332,11 +342,11 @@ class MassDefectWindow(wx.Frame):
         name1 = os.path.join(self.directory, "MassDefectFigure1.pdf")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)
-            print name1
+            # print name1
         name2 = os.path.join(self.directory, "MassDefectFigure2.pdf")
         if self.plot2.flag:
             self.plot2.on_save_fig(e, name2)
-            print name2
+            # print name2
 
     def on_add_line(self, e):
         """
@@ -354,6 +364,11 @@ class MassDefectWindow(wx.Frame):
             xlim = self.plot2.subplot1.get_xlim()
             self.plot2.subplot1.plot((xlim[0], xlim[1]), (vval, vval), color=self.plot2.tickcolor)
             self.plot2.repaint()
+
+            xlim2 = self.plot1.subplot1.get_xlim()
+            if xlim2[1] > 1:
+                self.plot1.subplot1.plot((xlim[0], xlim[1]), (vval, vval), color=self.plot1.tickcolor)
+                self.plot1.repaint()
         except Exception, e:
             print "Failed: ", dialog.value, e
             pass

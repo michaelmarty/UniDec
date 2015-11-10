@@ -270,15 +270,12 @@ class NativeZ(wx.Dialog):
         :param event: wx.Button event
         :return: None
         """
-        self.zlistctrl.return_data()
+        self.update(event)
         btn = event.GetId()
-        ids = [int(p.id) for p in self.zlistctrl.zoffouts]
-        # i=ids.index(int(btn))
+        ids = [int(p.id) for p in self.zoffs]
         i = [i for i, j in enumerate(ids) if j == btn][0]
-        index = self.zlistctrl.zoffouts[i].index
-        # print "click",index,ids,btn
+        index = self.zoffs[i].index
         self.zlistctrl.ultimateList.DeleteItem(index)
-        # print "Deleted Test!!!"
         self.update(0)
 
     def fit(self, e):
@@ -485,12 +482,13 @@ class NativeZ(wx.Dialog):
             # Plots
             # Create height extraction line plot
             sum1 = np.sum(peakextracts, axis=0)
+            smax1 = np.amax(sum1)
             if np.amax(sum1) != 0:
-                sum1 /= np.amax(sum1)
+                sum1 /= smax1
                 self.plot3.plotrefreshtop(xvals, sum1, title="Extracted Heights", xlabel=label, ylabel="Intensity",
                                           integerticks=True, test_kda=True)
                 for i, z in enumerate(self.zoffs):
-                    self.plot3.plotadd(xvals, peakextracts[i], np.array(z.color) / 255., str(i))
+                    self.plot3.plotadd(xvals, peakextracts[i] / smax1, np.array(z.color) / 255., str(i))
                 self.plot3.repaint()
 
                 # Create height extraction bar chart
@@ -502,13 +500,14 @@ class NativeZ(wx.Dialog):
 
             # Make Plots for Integrals
             sum2 = np.sum(peakextractsarea, axis=0)
+            smax2 = np.amax(sum2)
             if np.amax(sum2) != 0:
-                sum2 /= np.amax(sum2)
+                sum2 /= smax2
                 # Make line plots
                 self.plot4.plotrefreshtop(xvals, sum2, title="Extracted Areas", xlabel=label, ylabel="Area",
                                           integerticks=True, test_kda=True)
                 for i, z in enumerate(self.zoffs):
-                    self.plot4.plotadd(xvals, peakextractsarea[i], np.array(z.color) / 255., str(i))
+                    self.plot4.plotadd(xvals, peakextractsarea[i] / smax2, np.array(z.color) / 255., str(i))
                 self.plot4.repaint()
                 # Make bar charts
                 self.plot6.barplottop(xvals2, sum2, [int(i) for i in xvals], peakcolors, label,
