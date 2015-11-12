@@ -225,7 +225,10 @@ class Extract2DPlot(wx.Frame):
                         else:
                             intensity = 0
                     self.igrid[i, j, k] = intensity
-        self.igrid /= np.amax(self.igrid)
+        try:
+            self.igrid /= np.amax(self.igrid)
+        except Exception, e:
+            print e
 
     def makeplot(self):
         """

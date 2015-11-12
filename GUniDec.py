@@ -99,10 +99,10 @@ class UniDecApp(object):
 
         self.on_load_default(0)
 
-        if True and platform.node() == "RobMike":
+        if False and platform.node() == "RobMike":
             # fname = "HSPCID.txt"
-            # fname = "0.txt"
-            fname = "250313_AQPZ_POPC_100_imraw_input.dat"
+            fname = "0.txt"
+            # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
             newdir = "C:\\cprog\\UniDecDemo"
             self.on_open_file(fname, newdir)
             self.on_auto(0)
@@ -1265,7 +1265,7 @@ class UniDecApp(object):
         if not ud.isempty(self.eng.data.data3):
             self.export_config(None)
             if self.eng.config.imflag == 1:
-                dlg = IM_wind.IMTools(self)
+                dlg = IM_wind.IMTools(self.view)
                 dlg.initialize_interface(self.eng.data.data3, self.eng.config)
                 dlg.ShowModal()
                 self.eng.config = dlg.defaultconfig
@@ -1288,7 +1288,7 @@ class UniDecApp(object):
             self.eng.config.zout = -1
             self.export_config(self.eng.config.confname)
             ud.unidec_call(self.eng.config.UniDecIMPath, self.eng.config.confname)
-            dlg = IM_wind.IMToolExtract(self)
+            dlg = IM_wind.IMToolExtract(self.view)
             dlg.initialize_interface(self.eng.data.massdat, self.eng.data.ccsdata, self.eng.data.massccs,
                                      self.eng.config,
                                      self.eng.pks)

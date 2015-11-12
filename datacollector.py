@@ -9,7 +9,6 @@ from matplotlib import rcParams
 # from wx.lib.pubsub import setupkwargs
 from wx.lib.pubsub import pub
 import multiprocessing
-
 from unidec_modules import UniFit, Extract2D, unidecstructure, PlotAnimations, plot1d, plot2d, miscwindows, \
     MassDefects, nativez, IM_functions
 from unidec_modules.PlottingWindow import PlottingWindow
@@ -500,7 +499,6 @@ class DataCollector(wx.Frame):
         self.ctlprot.SetValue(str(maxes[0]))
         self.ctllig.SetValue(str(maxes[1]))
 
-
     def on_save(self, e):
         self.update_get(e)
         try:
@@ -762,7 +760,8 @@ class DataCollector(wx.Frame):
                 data[:, 1] = data[:, 1] * vals[k]
             self.data.append(data)
             if not self.plot1.flag:
-                self.plot1.plotrefreshtop(data[:, 0], data[:, 1], "Extracted Data", "", "", filename, None, nopaint=True,
+                self.plot1.plotrefreshtop(data[:, 0], data[:, 1], "Extracted Data", "", "", filename, None,
+                                          nopaint=True,
                                           color=fcolor, test_kda=True)
                 self.grid.append(data)
             else:
@@ -827,7 +826,7 @@ class DataCollector(wx.Frame):
             color = self.xcolors[i]
             if not self.plot2.flag:
                 self.plot2.plotrefreshtop(self.var1, self.extract[:, i], title="Extracted Data"
-                                          , color=color, test_kda=True)
+                                          , color=color, test_kda=False)
                 self.plot2.plotadddot(self.var1, self.extract[:, i], color, "o")
             else:
                 self.plot2.plotadd(self.var1, self.extract[:, i], color, file)
@@ -956,8 +955,19 @@ class DataCollector(wx.Frame):
                     startz = int(line.split()[1])
                 if line.startswith("endz"):
                     endz = int(line.split()[1])
+                if line.startswith("numz"):
+                    numz = int(line.split()[1])
             f.close()
-            zlength = endz - startz + 1
+            try:
+                zlength = endz - startz + 1
+            except Exception, e1:
+                try:
+                    zlength = numz
+                    endz = startz + numz - 1
+                except Exception, e2:
+                    print e1
+                    print e2
+
             massgrid = np.reshape(massgrid, (len(data), zlength))
             ztab = np.arange(startz, endz + 1)
             mgrid, zgrid = np.meshgrid(data[:, 0], ztab, indexing='ij')

@@ -9,7 +9,6 @@ from unidec_modules import plot1d, plot2d
 
 __author__ = 'Michael.Marty'
 
-
 """
 This file contains two windows for manipulating IM-MS data.
 IMTools is used for plotting predicted m/z and arrival time for a given set of parameters.
@@ -35,6 +34,10 @@ class IMListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMi
         self.InsertColumn(1, u"CCS (\u212B\u00B2)")
         self.SetColumnWidth(0, 100)
         self.SetColumnWidth(1, 100)
+
+        self.popupID1 = wx.NewId()
+        self.Bind(wx.EVT_MENU, self.on_delete, id=self.popupID1)
+        self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click, self)
 
     def clear_list(self):
         """
@@ -80,6 +83,33 @@ class IMListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMi
             list_out.append(sublist)
         return list_out
 
+    def on_right_click(self, event):
+        """
+        Create a right click menu.
+        :param event: Unused event
+        :return: None
+        """
+        if hasattr(self, "popupID1"):
+            menu = wx.Menu()
+            menu.Append(self.popupID1, "Delete")
+            self.PopupMenu(menu)
+            menu.Destroy()
+
+    def on_delete(self, event):
+        """
+        Delete the selected item.
+        :param event: Unused event.
+        :return: None
+        """
+        item = self.GetFirstSelected()
+        num = self.GetSelectedItemCount()
+        selection = [item]
+        for i in range(1, num):
+            item = self.GetNextSelected(item)
+            selection.append(item)
+        for i in range(0, num):
+            self.DeleteItem(selection[num - i - 1])
+
 
 class IMListCtrlPanel(wx.Panel):
     def __init__(self, parent, size=(200, 200)):
@@ -106,7 +136,8 @@ class IMTools(wx.Dialog):
         :param kwargs: Passed to wx.Dialog
         :return: None
         """
-        super(IMTools, self).__init__(*args, **kwargs)
+        # super(IMTools, self).__init__(*args, **kwargs)
+        wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
         self.SetSize((600, 800))
         self.SetTitle("Ion Mobility Tools")
         self.pnl = None
@@ -240,7 +271,8 @@ class IMTools(wx.Dialog):
         okbutton.Bind(wx.EVT_BUTTON, self.on_close)
         closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
         hboxend.Add(okbutton)
-        hboxend.Add(closebutton, flag=wx.LEFT, border=5)
+        hboxend.Add(closebutton , flag=wx.LEFT, border=5)
+        # TODO: There is a strange bug whereby the closebutton is not drawn when the window is flipped...
         self.pnl2.SetSizer(hboxend)
 
         vbox.Add(self.pnl, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
@@ -372,7 +404,8 @@ class IMToolExtract(wx.Dialog):
         :param kwargs: Passed to wx.Dialog
         :return: None
         """
-        super(IMToolExtract, self).__init__(*args, **kwargs)
+        # super(IMToolExtract, self).__init__(*args, **kwargs)
+        wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
         self.SetSize((800, 800))
         self.SetTitle("Ion Mobility Extraction Tools")
         self.plot1 = None
