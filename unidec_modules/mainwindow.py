@@ -313,6 +313,11 @@ class Mainwindow(wx.Frame):
         self.experimentalmenu.AppendSeparator()
 
         self.menuerrors = self.experimentalmenu.Append(wx.ID_ANY, "Get Errors")
+        self.menufft = self.experimentalmenu.Append(wx.ID_ANY, "FFT Window")
+        self.Bind(wx.EVT_MENU, self.pres.on_fft_window, self.menufft)
+
+        self.menucal = self.experimentalmenu.Append(wx.ID_ANY, "Apply Calibration")
+        self.Bind(wx.EVT_MENU, self.pres.on_calibrate, self.menucal)
 
         # Setting Menu Bar
         self.menuBar = wx.MenuBar()
@@ -725,6 +730,7 @@ class Mainwindow(wx.Frame):
             self.Bind(wx.EVT_RADIOBOX, self.pres.on_flip_twave, self.ctltwave)
             gbox1c.Add(self.ctltwave, (0, 0), span=(1, 2))
 
+
             if self.config.twaveflag == 0:
 
                 self.ctlvolt = wx.TextCtrl(panel1c, value="", size=size1)
@@ -777,6 +783,7 @@ class Mainwindow(wx.Frame):
 
                 self.twave = 1
 
+            self.ctltwave.SetSelection(self.twave)
             panel1c.SetSizer(gbox1c)
             gbox1c.Fit(panel1c)
 

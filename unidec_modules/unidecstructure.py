@@ -3,6 +3,7 @@ import numpy as np
 import unidectools as ud
 import platform
 import matplotlib.cm as cm
+from matplotlib.pyplot import colormaps
 
 __author__ = 'Michael.Marty'
 
@@ -148,7 +149,9 @@ class UniDecConfig:
         problems.
         :return: None
         """
+        # TODO: Add in viridis. Works fine for everythign except get_cmap
         m = [i for i in cm.datad]
+        #m = colormaps()
         m = sorted(m)
         self.cmaps = []
         for mp in m:

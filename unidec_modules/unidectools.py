@@ -3,6 +3,7 @@ import platform
 import sys
 import math
 import subprocess
+import time
 from bisect import bisect_left
 from ctypes import *
 from copy import deepcopy
@@ -264,7 +265,6 @@ def center_of_mass(data, start=None, end=None):
     except ZeroDivisionError:
         print "Error in center of mass determination. Check the limits:", start, end
         return None, None
-
 
 
 def stepmax(array, index):
@@ -582,6 +582,14 @@ def auto_noise_level(datatop, buffer=10):
 def average_bin_size(datatop):
     diffs = np.diff(datatop[:, 0])
     return np.average(diffs)
+
+
+def cal_data(datatop, poly_coeff=None):
+    if poly_coeff is None:
+        poly_coeff = [1.54101412e-08, 1.00077531e+00, 1.86397570e-02]
+        # This is a default value for when our neg mode went crazy
+    datatop[:, 0] = np.polyval(poly_coeff, datatop[:, 0])
+    return datatop
 
 
 def datachop(datatop, newmin, newmax):
@@ -1689,15 +1697,14 @@ def isolated_peak_fit(xvals, yvals, psfun, **kwargs):
 def fft(data):
     # X-axis
     massdif = data[1, 0] - data[0, 0]
-    fvals = np.fft.fftfreq(len(data), d=massdif)
-    # fvals = fftpack.fftfreq(len(data), d=massdif)
+    # fvals = np.fft.fftfreq(len(data), d=massdif)
+    fvals = fftpack.fftfreq(len(data), d=massdif)
     # Y-axis
     # fft = np.fft.fft(data[:, 1])
     fft = fftpack.fft(data[:, 1])
     # fft = pyfftw.interfaces.numpy_fft.fft(data[:,1])
-    aft = np.abs(fft)
     # Cleanup
-    aftdat = np.transpose([fvals, aft])
+    aftdat = np.transpose([fvals, np.abs(fft)])
     aftdat[:, 1] /= np.amax(aftdat[:, 1])
     return aftdat
 
@@ -1734,21 +1741,19 @@ def pad_two_power(data):
     return np.concatenate((data, padding))
 
 
-def double_fft_diff(mzdata, diffrange=None, binsize=0.1, pad=None):
-    import time
+def double_fft_diff(mzdata, diffrange=None, binsize=0.1, pad=None, preprocessed=False):
     tstart = time.clock()
     if diffrange is None:
         diffrange = [600, 900]
-    mzdata = linearize(mzdata, binsize, 3)
-    mzdata = pad_two_power(mzdata)
-    if pad is not None:
-        mzdata = pad_data(mzdata, pad_until=pad)
-    # window = np.bartlett(len(mzdata))
-    # mzdata[:, 1] = mzdata[:, 1] * window
+    if not preprocessed:
+        mzdata = linearize(mzdata, binsize, 3)
+        mzdata = pad_two_power(mzdata)
+        if pad is not None:
+            mzdata = pad_data(mzdata, pad_until=pad)
+
     fftdat = fft(mzdata)
-    fftdat[:, 1] = fftdat[:, 1]
     fft2 = fft(fftdat)
-    print "Run Time: %.2gs" % (time.clock() - tstart)
+    # print "Run Time: %.2gs" % (time.clock() - tstart)
 
     maxpos = localmaxpos(fft2, diffrange[0], diffrange[1])
     # width = 2
@@ -1774,13 +1779,54 @@ def double_fft_diff(mzdata, diffrange=None, binsize=0.1, pad=None):
         plt.show()
 
     # Fit the peak
-    try:
-        fit, err, fitdat = voigt_fit(ftext2[:, 0], ftext2[:, 1], maxpos, maxpos * 0.001, 0, np.amax(ftext2[:, 1]),
-                                     np.amin(ftext2[:, 1]))
-    except:
-        fitdat = ftext2[:, 1]
-        fit = [maxpos]
-    return maxpos, fit[0], ftext2, fitdat
+    # try:
+    #    fit, err, fitdat = voigt_fit(ftext2[:, 0], ftext2[:, 1], maxpos, maxpos * 0.001, 0, np.amax(ftext2[:, 1]),
+    #                                 np.amin(ftext2[:, 1]))
+    # except:
+    #    fitdat = ftext2[:, 1]
+    #    fit = [maxpos]
+    return maxpos, ftext2
+
+
+def windowed_fft(data, mean, sigma, diffrange=None):
+    if diffrange is None:
+        diffrange = [740, 770]
+    window = ndis_std(data[:, 0], mean, sigma)
+    newdata = deepcopy(data)
+    newdata[:, 1] = newdata[:, 1] * window
+    maxpos, fft2 = double_fft_diff(newdata, diffrange=diffrange, preprocessed=True)
+    fft2[:, 1] -= np.amin(fft2[:, 1])
+    return maxpos, fft2
+
+
+def win_fft_grid(rawdata, binsize, wbin, window_fwhm, diffrange):
+    # Prepare data
+    mindat = np.amin(rawdata[:, 0])
+    maxdat = np.amax(rawdata[:, 0])
+
+    mzdata = linearize(rawdata, binsize, 3)
+    mzdata = pad_two_power(mzdata)
+
+    xvals = np.arange(mindat, maxdat, wbin)
+
+    results = np.array([windowed_fft(mzdata, x, window_fwhm, diffrange=diffrange)[1] for x in xvals])
+
+    intdat = results[:, :, 1]
+    yvals = np.unique(results[:, :, 0])
+    xgrid, ygrid = np.meshgrid(xvals, yvals, indexing="ij")
+    out = np.transpose([np.ravel(xgrid), np.ravel(ygrid), np.ravel(intdat)])
+    return out
+
+
+def win_fft_diff(rawdata, binsize=0.05, sigma=1000, diffrange=None):
+    smoothdata = deepcopy(rawdata)
+    smoothdata = gsmooth(smoothdata, 1000)
+    mzdata = linearize(rawdata, binsize, 3)
+    mzdata = pad_two_power(mzdata)
+    maxpos = smoothdata[np.argmax(smoothdata[:, 1]), 0]
+    maxdiff, fftdat = windowed_fft(mzdata, maxpos, sigma, diffrange=diffrange)
+    print "Difference:", maxdiff
+    return maxdiff, fftdat
 
 
 def correlation_integration(dat1, dat2, alpha=0.01, plot_corr=False, **kwargs):

@@ -10,7 +10,7 @@ from wx.lib.pubsub import pub
 import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 from unidec_modules import Extract2D, peakwidthtools, masstools, miscwindows, \
-    MassDefects, mainwindow, nativez, ManualSelectionWindow, AutocorrWindow
+    MassDefects, mainwindow, nativez, ManualSelectionWindow, AutocorrWindow, fft_window
 from unidec_modules.isolated_packages import FileDialogs, texmaker, twitter_interface
 import datacollector
 import import_wizard
@@ -101,8 +101,8 @@ class UniDecApp(object):
 
         if True and platform.node() == "RobMike":
             # fname = "HSPCID.txt"
-            fname = "0.txt"
-            # fname = "250313_AQPZ_POPC_100_imraw.txt"
+            # fname = "0.txt"
+            fname = "250313_AQPZ_POPC_100_imraw_input.dat"
             newdir = "C:\\cprog\\UniDecDemo"
             self.on_open_file(fname, newdir)
             self.on_auto(0)
@@ -403,7 +403,7 @@ class UniDecApp(object):
         self.import_config()
         self.view.clear_all_plots()
         self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data Sent to UniDec",
-                                       "m/z (Th)", "Normalize Intensity", "Data", self.eng.config)
+                                       "m/z (Th)", "Normalized Intensity", "Data", self.eng.config)
         if self.eng.config.intthresh != 0 and self.eng.config.imflag == 0:
             self.view.plot1.plotadd(self.eng.data.data2[:, 0],
                                     np.zeros_like(self.eng.data.data2[:, 1]) + self.eng.config.intthresh, "red",
@@ -898,6 +898,7 @@ class UniDecApp(object):
         self.on_integrate(plot=False)
         self.eng.get_peaks_scores()
         self.makeplot2(1)
+        # TODO: Take away black background on colored lines
         for p in self.eng.pks.peaks:
             if not ud.isempty(p.integralrange):
                 limits = p.integralrange
@@ -1018,7 +1019,7 @@ class UniDecApp(object):
         self.view.clear_all_plots()
         self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data Sent to UniDec",
                                        "m/z (Th)",
-                                       "Normalize Intensity", "Data", self.eng.config)
+                                       "Normalized Intensity", "Data", self.eng.config)
         if self.eng.config.intthresh != 0:
             self.view.plot1.plotadd(self.eng.data.data2[:, 0],
                                     np.zeros_like(self.eng.data.data2[:, 1]) + self.eng.config.intthresh, "red",
@@ -1372,6 +1373,25 @@ class UniDecApp(object):
         self.eng.process_mass_data()
         self.makeplot2(0)
 
+    def on_calibrate(self, e=None):
+        # Launch window to input calibration parameters
+        dialog = miscwindows.SingleInputDialog(self.view)
+        dialog.initialize_interface(title="Calibration Parameters",
+                                    message="Polynomical Coefficents (order=n n-1 ... 0): ")
+        dialog.ShowModal()
+
+        try:
+            result = dialog.value
+            if result != "None":
+                coeff = np.array(result.split())
+                coeff = coeff.astype(np.float)
+            else:
+                coeff = None
+            self.eng.data.rawdata = ud.cal_data(self.eng.data.rawdata, coeff)
+            print "Calibration Success! Polynomial Coefficients (order = n to 0):", coeff
+        except Exception, e:
+            print "Calibration failed:", e
+
     def on_center_of_mass(self, e=None):
         """
         Determines the center of mass for the region zoomed on plot2.
@@ -1462,10 +1482,11 @@ class UniDecApp(object):
         """
         batchfiles = FileDialogs.open_multiple_files_dialog(message="Select Files To Process With Current Parameters",
                                                             file_type="Text (.txt)|*.txt|Any Type|*.*")
-        self.view.clear_all_plots()
+
         self.eng.config.batchflag = 1 + flag
         tstarttop = time.clock()
         if batchfiles is not None:
+            self.view.clear_all_plots()
             for i, path in enumerate(batchfiles):
                 print path
                 tstart = time.clock()
@@ -1594,6 +1615,11 @@ class UniDecApp(object):
             print "PDF Figures written."
         pass
 
+    def on_fft_window(self, e):
+        print "FFT window..."
+        fft_window.FFTWindow(self.view, self.eng.data.rawdata, self.eng.config)
+        pass
+
     def on_flip_mode(self, e):
         """
         Flips between MS and IM-MS mode
@@ -1655,6 +1681,7 @@ class UniDecApp(object):
         self.view = mainwindow.Mainwindow(self, "UniDec", self.eng.config, iconfile=iconfile, tabbed=tabbed)
         self.view.Show()
         self.view.import_config_to_gui()
+
 
 if __name__ == '__main__':
     # app2 = Shell()
