@@ -1,0 +1,8 @@
+<map id="UniDec.unidec_modules.UniFit.KDmodel.Bootstrap" name="UniDec.unidec_modules.UniFit.KDmodel.Bootstrap">
+<area shape="rect" id="node2" href="$namespace_uni_dec_1_1unidec__modules_1_1_uni_fit.html#a7f5dfc20dc5f0e03356e189298a83584" title="UniDec.unidec_modules.Uni\lFit.BootMin" alt="" coords="239,39,424,80"/>
+<area shape="rect" id="node7" href="$class_uni_dec_1_1unidec__modules_1_1_uni_fit_1_1_k_dmodel.html#a95b405be8cbe687bd1be30daae5016be" title="UniDec.unidec_modules.Uni\lFit.KDmodel.OutlierTest" alt="" coords="239,104,424,145"/>
+<area shape="rect" id="node3" href="$namespace_uni_dec_1_1unidec__modules_1_1_uni_fit.html#a20d2c96a6a3ce74770c41fa49ca270bf" title="UniDec.unidec_modules.Uni\lFit.Minimize" alt="" coords="472,39,657,80"/>
+<area shape="rect" id="node4" href="$namespace_uni_dec_1_1unidec__modules_1_1_uni_fit.html#ac18908ccc855bdf98e93ff79422b36fe" title="UniDec.unidec_modules.Uni\lFit.GetDegenKD" alt="" coords="705,39,891,80"/>
+<area shape="rect" id="node5" href="$namespace_uni_dec_1_1unidec__modules_1_1_uni_fit.html#ae66f9cd08cf008e944fd544ec548421a" title="UniDec.unidec_modules.Uni\lFit.MinFree" alt="" coords="939,5,1124,47"/>
+<area shape="rect" id="node6" href="$namespace_uni_dec_1_1unidec__modules_1_1_uni_fit.html#a62651332cbeade32d3b700f605435081" title="UniDec.unidec_modules.Uni\lFit.MakeGrid" alt="" coords="939,71,1124,112"/>
+</map>

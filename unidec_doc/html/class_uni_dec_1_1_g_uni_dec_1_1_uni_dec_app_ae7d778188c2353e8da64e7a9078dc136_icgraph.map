@@ -1,0 +1,10 @@
+<map id="UniDec.GUniDec.UniDecApp.on_open_file" name="UniDec.GUniDec.UniDecApp.on_open_file">
+<area shape="rect" id="node2" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#aacb45ae084252b7d1c780f5fd247aeae" title="UniDec.GUniDec.UniDecApp.init" alt="" coords="276,5,487,32"/>
+<area shape="rect" id="node3" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a50e2e6eea1c7932107cc9cd1e54c49f8" title="UniDec.GUniDec.UniDecApp.on_open" alt="" coords="260,56,503,83"/>
+<area shape="rect" id="node4" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#ab9b63fda6708bd74b56019d7993693eb" title="UniDec.GUniDec.UniDecApp.on\l_load_state" alt="" coords="278,107,485,149"/>
+<area shape="rect" id="node5" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#aecd7f5ba68d6d7df19e7c3651d5d6798" title="UniDec.GUniDec.UniDecApp.on\l_raw_open" alt="" coords="278,173,485,214"/>
+<area shape="rect" id="node6" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a4edf6b2579e9952a0f56609d5641de9e" title="UniDec.GUniDec.UniDecApp.on\l_paste_spectrum" alt="" coords="278,238,485,279"/>
+<area shape="rect" id="node7" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a6682b98bc5de5ee5b8a12e69a6039f7f" title="UniDec.GUniDec.UniDecApp.on\l_zerocharge_mass" alt="" coords="278,303,485,345"/>
+<area shape="rect" id="node8" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a628cf3842ec5ada6f5b60e5ea68c66b8" title="UniDec.GUniDec.UniDecApp.on\l_batch" alt="" coords="278,369,485,410"/>
+<area shape="rect" id="node9" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a1bfc387d15073c8dd2ff45c1ceb5fbaa" title="UniDec.GUniDec.UniDecApp.on\l_batch2" alt="" coords="551,369,757,410"/>
+</map>

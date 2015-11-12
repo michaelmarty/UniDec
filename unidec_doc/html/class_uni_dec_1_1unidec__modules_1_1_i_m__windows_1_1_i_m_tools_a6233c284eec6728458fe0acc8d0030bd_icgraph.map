@@ -1,0 +1,12 @@
+<map id="UniDec.unidec_modules.IM_windows.IMTools.load_to_gui" name="UniDec.unidec_modules.IM_windows.IMTools.load_to_gui">
+<area shape="rect" id="node2" href="$class_uni_dec_1_1unidec__modules_1_1_i_m__windows_1_1_i_m_tools.html#af01ce179a348d24ba81a26ed1d31cf50" title="UniDec.unidec_modules.IM\l_windows.IMTools.setup_panel" alt="" coords="251,123,452,165"/>
+<area shape="rect" id="node3" href="$class_uni_dec_1_1unidec__modules_1_1_i_m__windows_1_1_i_m_tools.html#a63e053e60197a95fb6c161f9f376ac5e" title="UniDec.unidec_modules.IM\l_windows.IMTools.initialize\l_interface" alt="" coords="513,43,693,99"/>
+<area shape="rect" id="node4" href="$class_uni_dec_1_1unidec__modules_1_1_i_m__windows_1_1_i_m_tools.html#a5ae4fc7b85cb254823e1103e420ab232" title="UniDec.unidec_modules.IM\l_windows.IMTools.on_flip_twave" alt="" coords="500,123,707,165"/>
+<area shape="rect" id="node5" href="$class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#adfd43ae134824504a3e14d49c59717f7" title="UniDec.unidec_modules.mainwindow.\lMainwindow.setup_main_panel" alt="" coords="1331,94,1571,135"/>
+<area shape="rect" id="node11" href="$class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#a8900e969df680403ab3c8f7c0aa3e12a" title="UniDec.unidec_modules.mainwindow.\lMainwindow.import_config_to_gui" alt="" coords="755,94,995,135"/>
+<area shape="rect" id="node6" href="$class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#ab854ca6e4c994de7f2ef52256112cd64" title="UniDec.unidec_modules.mainwindow.\lMainwindow.__init__" alt="" coords="2195,127,2435,169"/>
+<area shape="rect" id="node7" href="$class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#abf8fafe7c899f6b9102cb1633967d4e8" title="UniDec.unidec_modules.mainwindow.\lMainwindow.on_flip_mode" alt="" coords="1619,94,1859,135"/>
+<area shape="rect" id="node9" href="$class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#aeb0756c06d6f9b6a30f82dd3a6fd9f54" title="UniDec.unidec_modules.mainwindow.\lMainwindow.on_flip_tabbed" alt="" coords="2195,49,2435,90"/>
+<area shape="rect" id="node10" href="$class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#a86ea9e9528c40c61eb34f249f2cc9cec" title="UniDec.unidec_modules.mainwindow.\lMainwindow.on_flip_twave" alt="" coords="1043,94,1283,135"/>
+<area shape="rect" id="node8" href="$class_uni_dec_1_1unidec__modules_1_1mainwindow_1_1_mainwindow.html#aab7b2d8e0d75d20040f2d036123a5473" title="UniDec.unidec_modules.mainwindow.\lMainwindow.setup_menu" alt="" coords="1907,94,2147,135"/>
+</map>

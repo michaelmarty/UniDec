@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.10"/>
-<title>UniDec: readme</title>
+<title>UniDec: UniDec: Universal Deconvolution of Mass and Ion Mobility Spectra</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -77,28 +77,54 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div><!-- top -->
 <div class="header">
   <div class="headertitle">
-<div class="title">readme </div>  </div>
+<div class="title">UniDec: Universal Deconvolution of Mass and Ion Mobility Spectra </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>#UniDec: Universal Deconvolution of Mass and Ion Mobility Spectra {#mainpage}</p>
-<p>UniDec is a Bayesian deconvolution program for deconvolution of mass spectra and ion mobility-mass spectra.</p>
-<p>It was orignally published in: <a href="http://pubs.acs.org/doi/abs/10.1021/acs.analchem.5b00140">M. T. Marty, A. J. Baldwin, E. G. Marklund, G. K. A. Hochberg, J. L. P. Benesch, C. V. Robinson, *Anal. Chem.* **2015**, 87, 4370-4376.</a></p>
+<div class="textblock"><p>UniDec is a Bayesian deconvolution program for deconvolution of mass spectra and ion mobility-mass spectra.</p>
+<p>It was orignally published in: <a href="http://pubs.acs.org/doi/abs/10.1021/acs.analchem.5b00140">M. T. Marty, A. J. Baldwin, E. G. Marklund, G. K. A. Hochberg, J. L. P. Benesch, C. V. Robinson, Anal. Chem. 2015, 87, 4370-4376.</a></p>
 <p>Detailed descriptions of the algorithm are provided in the paper. Please cite us if you use UniDec in your research.</p>
 <p>UniDec may be downloaded from <a href="http://unidec.chem.ox.ac.uk/">unidec.chem.ox.ac.uk</a>.</p>
 <p>Please contact <a href="#" onclick="location.href='mai'+'lto:'+'mic'+'ha'+'el.'+'ma'+'rty'+'@c'+'hem'+'.o'+'x.a'+'c.'+'uk'; return false;">micha<span style="display: none;">.nosp@m.</span>el.m<span style="display: none;">.nosp@m.</span>arty@<span style="display: none;">.nosp@m.</span>chem<span style="display: none;">.nosp@m.</span>.ox.a<span style="display: none;">.nosp@m.</span>c.uk</a> for questions, suggestions, or with any bugs.</p>
+<h2>Installing</h2>
+<h3>Python</h3>
+<p>There are several python libraries that UniDec will depend on.</p>
+<p>matplotlib numpy scipy wxpython natsort twython pymzml networkx</p>
+<p>With the exception of wxpython, which can be installed from the <a href="http://wxpython.org/">web</a>, all of these can be installed from the command line with (for example): </p><pre class="fragment">pip install natsort
+</pre><p>Note: I would highly recommend setting up 64-bit Python as the default. MS data works fine with 32-bit, but IM-MS data is prone to crash the memory. If you are getting memory errors, the first thing to try is to upgrade the bit level to 64.</p>
+<h3>Downloading the Binaries</h3>
+<p>As described below, the Python code presented here relies on two critical binaries, UniDec.exe and UniDecIM.exe.</p>
+<p>These binaries are available for download at <a href="http://unidec.chem.ox.ac.uk/">unidec.chem.ox.ac.uk</a>.</p>
+<p>These binaries should be deposited in the /unidec_bin directory once downloaded.</p>
+<p>If you want to convert Waters .Raw files, you will also need to add cdt.dll (for IM-MS) and MassLynxRaw.dll (for MS) to the same directory. These files can be found <a href="http://www.waters.com/waters/supportList.htm?cid=511442&amp;locale=en_GB&amp;filter=documenttype|DWNL&amp;locale=en_GB">here</a> with support numbers DWNL134825112 and DWNL134815627. Unfortunately, the libraries provided by Waters do not work on certain instruments, such as the G2-Si.</p>
+<p>I have binaries built for Mac and Linux as well. They are a bit slower than the Windows version because they are compiled with gcc rather than the Intel C Compiler, but they are perfectly functional and still pretty darn fast. I can send these to you on request.</p>
 <h2>UniDec Documentation</h2>
 <p>This documentation is for the Python engine and GUI.</p>
 <p>My goal is that this documentation will allow you to utilize the power of the UniDec python engine for scripting data analysis routines and performing custom analysis. Also, it will allow you to add new modules to the UniDec GUI.</p>
 <p>I'm still working on documenting some of the windows and extensions, but the core features should be here.</p>
-<p>The C code is proprietary and not open source. The copyright is owned by the University of Oxford. If you are interested in the C source code, please contact me. It should be possible to share with appropriate licensing and research agreements.</p>
+<p>The C code is proprietary and not open source. The copyright is owned by the University of Oxford. If you are interested in the C source code, please contact me. It should be possible to share with appropriate licensing or research agreements.</p>
 <h2>UniDec Architecture</h2>
 <p>UniDec is bilingual. The core of the algorithm is written in C and compiled as a binary. It can be run independently as a command line program fed by a configuration file.</p>
 <p>The Python engine and GUI serve as a very extensive wrapper for the C core.</p>
 <p>The engine (unidec.py) can be operated by independently of the GUI. This allows scripting of UniDec analysis for more complex and high-throughput analysis than is possible with the GUI. The engine contains three major subclasses, a config, data, and peaks object.</p>
 <p>The GUI is organized with a Model-Presenter-View architecture. The main App is the presenter (GUniDec.py). The presenter contains a model (the UniDec engine at unidec.py) and a view (mainwindow.py). The presenter coordinates transfer between the GUI and the engine.</p>
+<h2>Getting Started</h2>
+<p>Here is some sample code for how to use the engine. </p><pre class="fragment">import unidec
+
+file_name="test.txt"
+folder="C:\\data"
+
+eng=unidec.UniDec()
+
+eng.open_file(file_name, folder)
+
+eng.process_data()
+eng.run_unidec(silent=True)
+eng.pick_peaks()
+</pre><p>In reading the documentation, it is perhaps best to start with the unidec.UniDec class. The main GUI class is GUniDec.UniDecApp.</p>
 <h2>Licensing</h2>
 <p>UniDec is free for noncommercial use under the <a href="http://unidec.chem.ox.ac.uk/12116_UniDec_Academic%20Use%20Licence.pdf">UniDec Academic License</a></p>
-<p>Commercial licensing is available. Details are provided at the bottom of the Academic License. </p>
+<p>Commercial licensing is available. Details are provided at the bottom of the Academic License.</p>
+<p>The Python GUI and engine are licensed under the <a href="http://www.gnu.org/licenses/gpl-3.0.en.html">GNU Public License (v.3)</a>. </p>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

@@ -1,0 +1,8 @@
+<map id="UniDec.unidec_modules.ManualSelectionWindow.range_overlap" name="UniDec.unidec_modules.ManualSelectionWindow.range_overlap">
+<area shape="rect" id="node2" href="$namespace_uni_dec_1_1unidec__modules_1_1_manual_selection_window.html#a3dd3d7b539a377240773b49968d7d7fb" title="UniDec.unidec_modules.Manual\lSelectionWindow.checkoverlap" alt="" coords="261,71,469,112"/>
+<area shape="rect" id="node3" href="$namespace_uni_dec_1_1unidec__modules_1_1_manual_selection_window.html#a2ebf78cc6dcfefc590bfea08bcba9130" title="UniDec.unidec_modules.Manual\lSelectionWindow.detectoverlap" alt="" coords="517,71,725,112"/>
+<area shape="rect" id="node4" href="$class_uni_dec_1_1unidec__modules_1_1_manual_selection_window_1_1_manual_selection.html#a995272c81357845ca2fb21a702d7c185" title="UniDec.unidec_modules.Manual\lSelectionWindow.ManualSelection.on_plot" alt="" coords="773,71,1041,112"/>
+<area shape="rect" id="node5" href="$class_uni_dec_1_1unidec__modules_1_1_manual_selection_window_1_1_manual_selection.html#afa02dfc1280aaa02726090091052b1d8" title="UniDec.unidec_modules.Manual\lSelectionWindow.ManualSelection.initiate_dialog" alt="" coords="1089,5,1395,47"/>
+<area shape="rect" id="node6" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools1d.html#aab4d0213defd2f32205e05e64c5be717" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools1d.initialize_interface" alt="" coords="1114,71,1370,112"/>
+<area shape="rect" id="node7" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools2d.html#a8054bfcf237653422c51eb694d85853f" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools2d.initialize_interface" alt="" coords="1114,136,1370,177"/>
+</map>

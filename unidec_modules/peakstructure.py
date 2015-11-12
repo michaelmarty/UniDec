@@ -1,0 +1,160 @@
+import string
+import math
+import matplotlib.cm as cm
+import numpy as np
+from unidec_modules import unidectools as ud
+
+__author__ = 'Michael.Marty'
+
+
+class Peak:
+    """
+    Class for a single peak. Contains all key parameters for describing and plotting the peak.
+    """
+
+    def __init__(self):
+        """
+        Initialize all parameters for the peak to defaults
+        """
+        self.mass = 0
+        self.height = 0
+        self.ccs = 0
+        self.area = ""
+        self.color = [1, 1, 1]
+        self.label = ""
+        self.marker = "."
+        self.textmarker = "."
+        self.ignore = 0
+        self.match = 0
+        self.matcherror = 0
+        self.integral = 0
+        self.integralrange = []
+        self.mztab = []
+        self.mztab2 = []
+        self.stickdat = []
+        self.kendricknum = 0
+        self.kendrickdefect = 0
+        self.kmass = 0
+        self.score = 0
+        self.corrint = 0
+        self.correrr = 0
+        self.mztabi = []
+        self.massavg = 0
+        self.masserr = 0
+        self.tval = 0
+        self.peakmasses = []
+        self.fitmassavg = 0
+        self.fitmasserr = 0
+        self.fitarea = 0
+        self.fitareaerr = 0
+        self.diff = 0
+
+
+class Peaks:
+    """
+    Class containing all useful data about peaks.
+
+    The peaks themselves are of the Peak class and contained within the self.peaks list.
+    """
+
+    def __init__(self):
+        """
+        Initialize Peaks class and set empty values
+        :return: None
+        """
+        self.peaks = []
+        self.plen = 0
+        self.changed = 0
+        self.masses = []
+        self.convolved = False
+        self.composite = None
+        self.peakcolors = []
+        self.markers = []
+        self.colormap = []
+        self.textmarkers = []
+        self.marklen = 0
+
+    def add_peaks(self, parray):
+        """
+        Create peak objects from an array
+        :param parray: N x 2 array containing (mass, height) of each peak.
+        :return: None
+        """
+        for p in parray:
+            newpeak = Peak()
+            newpeak.mass = p[0]
+            newpeak.height = p[1]
+            self.peaks.append(newpeak)
+        self.masses = np.array([p.mass for p in self.peaks])
+        self.plen = len(self.peaks)
+        self.convolved = False
+        self.composite = None
+
+    def default_params(self, cmap="rainbow"):
+        """
+        Set default parameters for peaks, such as color, label, and marker
+        :param cmap: Colormap from matplotlib.cm
+        :return: None
+        """
+        self.colormap = cm.get_cmap(cmap, len(self.peaks))
+        if self.colormap is None:
+            self.colormap = cm.get_cmap("rainbow", len(self.peaks))
+        self.peakcolors = self.colormap(np.arange(len(self.peaks)))
+        self.markers = ['o', 'v', '^', '>', 's', 'd', '*']
+        self.textmarkers = [u'\u25CB', u'\u25BD', u'\u25B3', u'\u25B7', u'\u25A2', u'\u2662', u'\u2606']
+        self.marklen = len(self.markers)
+        for i in xrange(0, len(self.peaks)):
+            self.peaks[i].marker = self.markers[i % self.marklen]
+            self.peaks[i].textmarker = self.textmarkers[i % self.marklen]
+            self.peaks[i].color = self.peakcolors[i]
+            if i >= 26:
+                self.peaks[i].label = string.uppercase[i % 26] + str(int(math.floor(i / 26) + 1))
+            else:
+                self.peaks[i].label = string.uppercase[i % 26]
+
+    def get_mass_defects(self, kendrickmass, mode=0):
+        """
+        Get the mass defects and mass number for each peak
+        :param kendrickmass: Kendrick reference mass
+        :param mode: Select range of defects 1=(0,1), 0=(-0.5,0.5)
+        :return: None
+        """
+        for p in self.peaks:
+            p.kmass = p.mass / float(kendrickmass)
+            if mode == 1:
+                p.kendricknum = np.floor(p.kmass)
+                p.kendrickdefect = p.kmass - np.floor(p.kmass)
+            else:
+                p.kendricknum = np.round(p.kmass)
+                p.kendrickdefect = p.kmass - np.round(p.kmass)
+
+    def score_peaks(self, thresh=0, ci=0.99):
+        """
+        For each peak, assign a score of the fractional number of charge states observed.
+        :param thresh: Optional threshold to define a noise floor.
+        :return: None
+        """
+        for p in self.peaks:
+            boo1 = p.mztab[:, 1] > thresh
+            boo2 = p.mztab2[:, 1] > 0
+            booi = p.mztabi[:, 0] > 0
+            boo3 = np.all([boo1, boo2, booi], axis=0)
+            try:
+                p.score = np.sum((np.ones_like(p.mztab[boo3, 1]) - np.clip(
+                    np.abs((p.mztab[boo3, 1] - p.mztab2[boo3, 1])) / p.mztab2[boo3, 1], 0, 1)))
+            except ZeroDivisionError:
+                p.score = 0
+
+            try:
+                dof = p.score - 1
+                if dof < 0:
+                    tval = 0
+                else:
+                    tval = ud.get_tvalue(dof, ci=ci)
+                p.massavg = np.average(p.peakmasses)
+                p.masserr = tval * np.std(p.peakmasses, ddof=1) / np.sqrt(p.score)
+                p.tval = tval
+            except (ValueError, ZeroDivisionError, RuntimeWarning, RuntimeError):
+                p.massavg = 0
+                p.masserr = 0
+                p.tval = 0

@@ -1,0 +1,6 @@
+<map id="UniDec.unidec_modules.MassSpecBuilder.simple_spectrum" name="UniDec.unidec_modules.MassSpecBuilder.simple_spectrum">
+<area shape="rect" id="node2" href="$namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder.html#a68a56f7d194609098c629337a8fee292" title="UniDec.unidec_modules.Mass\lSpecBuilder.simple_params" alt="" coords="267,5,465,47"/>
+<area shape="rect" id="node3" href="$namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder.html#a71e3130f804b35d4c9b3f174eb05d48e" title="UniDec.unidec_modules.Mass\lSpecBuilder.get_zrange" alt="" coords="528,93,727,135"/>
+<area shape="rect" id="node4" href="$namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder.html#a3d7d68f7f63f8344acc84173a111dee5" title="UniDec.unidec_modules.Mass\lSpecBuilder.get_mzrange" alt="" coords="267,123,465,164"/>
+<area shape="rect" id="node5" href="$namespace_uni_dec_1_1unidec__modules_1_1_mass_spec_builder.html#a065f332d5df64bdcee00227f0f5db534" title="UniDec.unidec_modules.Mass\lSpecBuilder.make_mass_spectrum" alt="" coords="252,188,480,229"/>
+</map>

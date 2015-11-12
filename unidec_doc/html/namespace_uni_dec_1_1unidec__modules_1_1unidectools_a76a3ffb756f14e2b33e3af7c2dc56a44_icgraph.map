@@ -1,0 +1,10 @@
+<map id="UniDec.unidec_modules.unidectools.voigt" name="UniDec.unidec_modules.unidectools.voigt">
+<area shape="rect" id="node2" href="$namespace_uni_dec_1_1unidec__modules_1_1unidectools.html#a771895b7e321281646f860cb93cc11fa" title="UniDec.unidec_modules.unidectools.voigt_fit" alt="" coords="316,107,595,134"/>
+<area shape="rect" id="node3" href="$namespace_uni_dec_1_1unidec__modules_1_1unidectools.html#a01e7da6945fc3ff376ccdd6b6c839dd5" title="UniDec.unidec_modules.unidectools.isolated\l_peak_fit" alt="" coords="643,71,924,112"/>
+<area shape="rect" id="node9" href="$namespace_uni_dec_1_1unidec__modules_1_1unidectools.html#a1f8ae9ae2eb6dd58a87e67da3a7050b7" title="UniDec.unidec_modules.unidectools.fft_diff" alt="" coords="649,137,918,163"/>
+<area shape="rect" id="node4" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools1d.html#a0d8e55db672bf54c7d0bfe5b99194916" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools1d.on_fit" alt="" coords="975,5,1231,47"/>
+<area shape="rect" id="node7" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools2d.html#a0a9e1a99cb7c056e6f917af85c4d2fa1" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools2d.on_fit" alt="" coords="975,71,1231,112"/>
+<area shape="rect" id="node8" href="$namespace_uni_dec_1_1unidec__modules_1_1unidectools.html#ad6a5bf9ec469d3c576c5d7f0af0fd8a7" title="UniDec.unidec_modules.unidectools.auto\l_peak_width" alt="" coords="972,136,1233,177"/>
+<area shape="rect" id="node5" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools1d.html#aab4d0213defd2f32205e05e64c5be717" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools1d.initialize_interface" alt="" coords="1281,5,1537,47"/>
+<area shape="rect" id="node6" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools2d.html#a8054bfcf237653422c51eb694d85853f" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools2d.initialize_interface" alt="" coords="1281,71,1537,112"/>
+</map>

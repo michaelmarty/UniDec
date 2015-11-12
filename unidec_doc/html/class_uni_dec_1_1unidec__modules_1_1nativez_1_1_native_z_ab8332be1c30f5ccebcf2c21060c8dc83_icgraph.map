@@ -1,0 +1,7 @@
+<map id="UniDec.unidec_modules.nativez.NativeZ.populate_list" name="UniDec.unidec_modules.nativez.NativeZ.populate_list">
+<area shape="rect" id="node2" href="$class_uni_dec_1_1unidec__modules_1_1nativez_1_1_native_z.html#a14f588747a9be5a3ece7f15195762e58" title="UniDec.unidec_modules.nativez.\lNativeZ.initialize_interface" alt="" coords="545,5,756,47"/>
+<area shape="rect" id="node3" href="$class_uni_dec_1_1unidec__modules_1_1nativez_1_1_native_z.html#a4ff55763b323e074d1db52f43a130c36" title="UniDec.unidec_modules.nativez.\lNativeZ.on_reset" alt="" coords="264,71,475,112"/>
+<area shape="rect" id="node4" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools1d.html#aab4d0213defd2f32205e05e64c5be717" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools1d.initialize_interface" alt="" coords="523,71,779,112"/>
+<area shape="rect" id="node5" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools2d.html#a8054bfcf237653422c51eb694d85853f" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools2d.initialize_interface" alt="" coords="827,159,1083,200"/>
+<area shape="rect" id="node6" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools2d.html#ae9044104817f6bfeb11d7c364152b496" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools2d.on_flip" alt="" coords="523,188,779,229"/>
+</map>
