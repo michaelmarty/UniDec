@@ -686,7 +686,7 @@ class DataCollector(wx.Frame):
         self.var1 = []
         self.grid = []
         ycolors = []
-
+        print "Directory:", self.directory
         for k, l in enumerate(self.yvals):
             filename = l[0]
             header = os.path.splitext(filename)[0]
