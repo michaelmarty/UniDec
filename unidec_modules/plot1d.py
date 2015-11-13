@@ -1,6 +1,5 @@
 from matplotlib.ticker import MaxNLocator
 import numpy as np
-
 from unidec_modules.PlottingWindow import PlottingWindow
 
 
@@ -8,6 +7,7 @@ class Plot1d(PlottingWindow):
     """
     Class for 1D plots.
     """
+
     def __init__(self, *args, **kwargs):
         """
         Inherit from PlottingWindow
@@ -16,6 +16,9 @@ class Plot1d(PlottingWindow):
         :return:
         """
         PlottingWindow.__init__(self, *args, **kwargs)
+        self.mlist = []
+        self.x1, self.x2 = None, None
+        self.colors = []
 
     def plotrefreshtop(self, xvals, yvals, title="", xlabel="", ylabel="", label="", config=None, color="black",
                        marker=None, zoom="box", nopaint=False, test_kda=False, integerticks=False, **kwargs):
@@ -80,6 +83,9 @@ class Plot1d(PlottingWindow):
         if not nopaint:
             self.repaint()
         self.flag = True
+        self.mlist = []
+        self.x1, self.x2 = None, None
+        self.colors = []
 
     def plotadd(self, xvals, yvals, colval="black", newlabel="", nopaint=True):
         """
@@ -96,31 +102,35 @@ class Plot1d(PlottingWindow):
         if not nopaint:
             self.repaint()
 
-    def addtext(self, txt, x, y, **kwargs):
+    def addtext(self, txt, x, y, vlines=True, color="k", **kwargs):
         """
         Adds text and lines. Puts things that have been added in self.lines and self.text lists.
         :param txt: String of text to add
         :param x: x position for where to add
         :param y: y position for where to add
+        :param vlines: Whether to add vertical lines to the text as well.
+        :param color: Color of text and lines
         :param kwargs: Keywords
         If range=(a,b) is specified, adds a line from a to b and vertical lines at a and b.
         :return: None
         """
-        text = self.subplot1.text(np.array(x) / self.kdnorm, y, txt, horizontalalignment="center", verticalalignment="top")
+        text = self.subplot1.text(np.array(x) / self.kdnorm, y, txt, horizontalalignment="center",
+                                  verticalalignment="top", color=color)
         self.text.append(text)
-        if "range" in kwargs:
-            line_range = kwargs["range"]
-            line = self.subplot1.vlines(line_range[0] / self.kdnorm, 0, y * 0.6)
-            self.lines.append(line)
-            line = self.subplot1.vlines(line_range[1] / self.kdnorm, 0, y * 0.6)
-            self.lines.append(line)
-            line = self.subplot1.hlines(y * 0.3, line_range[0] / self.kdnorm, line_range[1] / self.kdnorm,
-                                        linestyles="dashed")
-            self.lines.append(line)
-            pass
-        else:
-            line = self.subplot1.vlines(np.array(x) / self.kdnorm, 0, 0.95 * y, linestyles="dashed")
-            self.lines.append(line)
+        if vlines:
+            if "range" in kwargs:
+                line_range = kwargs["range"]
+                line = self.subplot1.vlines(line_range[0] / self.kdnorm, 0, y * 0.6, color=color)
+                self.lines.append(line)
+                line = self.subplot1.vlines(line_range[1] / self.kdnorm, 0, y * 0.6, color=color)
+                self.lines.append(line)
+                line = self.subplot1.hlines(y * 0.3, line_range[0] / self.kdnorm, line_range[1] / self.kdnorm,
+                                            linestyles="dashed", color=color)
+                self.lines.append(line)
+                pass
+            else:
+                line = self.subplot1.vlines(np.array(x) / self.kdnorm, 0, 0.95 * y, linestyles="dashed", color=color)
+                self.lines.append(line)
         self.repaint()
 
     def textremove(self):
