@@ -102,7 +102,8 @@ class UniDecApp(object):
 
         self.on_load_default(0)
 
-        if True and platform.node() == "RobMike":
+        # For testing, load up a spectrum at startup. Used only on MTM's computer.
+        if False and platform.node() == "RobMike":
             # fname = "HSPCID.txt"
             fname = "0.txt"
             # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
@@ -1462,7 +1463,7 @@ class UniDecApp(object):
         self.view.peakpanel.add_data(self.eng.pks)
         self.on_export_params("PostFit")
 
-    def on_batch(self, e=None, flag=0):
+    def on_batch(self, e=None, flag=0, batchfiles=None):
         """
         Batch processing!
 
@@ -1480,11 +1481,14 @@ class UniDecApp(object):
         If batchflag is 2 (flag=1),
             all key paramters are kept, but the data ranges are refreshed from the individual files.
         :param e: event passed to some function (unused)
-        :param flag:
+        :param flag: flag added to self.eng.config.batchflag
+        :param batchfiles: List of files to run in batch. If None, will open dialog.
         :return:
         """
-        batchfiles = FileDialogs.open_multiple_files_dialog(message="Select Files To Process With Current Parameters",
-                                                            file_type="Text (.txt)|*.txt|Any Type|*.*")
+        if batchfiles is None:
+            batchfiles = FileDialogs.open_multiple_files_dialog(
+                message="Select Files To Process With Current Parameters",
+                file_type="Text (.txt)|*.txt|Any Type|*.*")
 
         self.eng.config.batchflag = 1 + flag
         tstarttop = time.clock()
@@ -1637,7 +1641,7 @@ class UniDecApp(object):
             # print "x=%.2f y=%.2f" % (xpos, ypos)
             # Determine the limits for local max determination
             limits = self.view.plot1.subplot1.get_xlim()
-            limdiff = abs(limits[1]-limits[0])
+            limdiff = abs(limits[1] - limits[0])
             window = limdiff * 0.01
 
             # Find the local max near the clicked position
@@ -1660,7 +1664,7 @@ class UniDecApp(object):
                 mass, z1, z2 = ud.solve_for_mass(self.x1, self.x2)
                 # Reset and write out values
                 self.x1, self.x2 = None, None
-                outstring="Mass=%.2f z=%d, %d" % (mass, z1, z2)
+                outstring = "Mass=%.2f z=%d, %d" % (mass, z1, z2)
                 print outstring
                 self.view.SetStatusText(outstring, number=5)
         pass

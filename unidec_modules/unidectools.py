@@ -1719,6 +1719,7 @@ def fft(data):
     # Cleanup
     aftdat = np.transpose([fvals, np.abs(fft)])
     aftdat[:, 1] /= np.amax(aftdat[:, 1])
+    # phases = np.arctan2(fft.imag,fft.real)
     return aftdat
 
 
