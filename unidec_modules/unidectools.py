@@ -167,6 +167,18 @@ def interp_pos(array, target):
     return out
 
 
+def interp_val(data, target):
+    """
+    On a given array, interpolate the value of the target
+    :param array: data
+    :param target: Value
+    :return: Interpolated index of value in array.
+    """
+    f = interp1d(data[:, 0], data[:, 1])
+    out = f(target)
+    return out
+
+
 def nearestunsorted(array, target):
     """
     In an unsorted array, find the position of the element closest to the target.
@@ -424,7 +436,7 @@ def solve_for_mass(mz1, mz2, adductmass=1.007276467):
     """
     z2 = np.round((mz1 - adductmass) / (mz2 - mz1))
     mass = z2 * mz2
-    return mass, z2-1, z2
+    return mass, z2 + 1, z2
 
 
 # ............................

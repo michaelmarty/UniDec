@@ -62,8 +62,6 @@ class UniDecApp(object):
         self.twittercodes = None
         self.init(*args, **kwargs)
 
-        self.x1, self.x2 = None, None
-
     def start(self):
         """
         Launch view and start MainLoop
@@ -103,7 +101,7 @@ class UniDecApp(object):
         self.on_load_default(0)
 
         # For testing, load up a spectrum at startup. Used only on MTM's computer.
-        if False and platform.node() == "RobMike":
+        if True and platform.node() == "RobMike":
             # fname = "HSPCID.txt"
             fname = "0.txt"
             # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
@@ -1636,12 +1634,12 @@ class UniDecApp(object):
         :param ypos: y position fed from event
         :return: None
         """
-
+        plot = True
         if xpos is not None and ypos is not None:
             # print "x=%.2f y=%.2f" % (xpos, ypos)
             # Determine the limits for local max determination
-            limits = self.view.plot1.subplot1.get_xlim()
-            limdiff = abs(limits[1] - limits[0])
+            xlimits = self.view.plot1.subplot1.get_xlim()
+            limdiff = abs(xlimits[1] - xlimits[0])
             window = limdiff * 0.01
 
             # Find the local max near the clicked position
@@ -1650,23 +1648,51 @@ class UniDecApp(object):
                 # If a suitable local max was found, use it.
                 xpos = newxpos
 
-            if self.x1 is None or xpos == self.x1:
+            if self.view.plot1.x1 is None or xpos == self.view.plot1.x1:
                 # Store the first value
-                self.x1 = xpos
+                self.view.plot1.x1 = xpos
             else:
                 # Store the second value
-                self.x2 = xpos
+                self.view.plot1.x2 = xpos
                 # Switch them if mixed up
-                if self.x2 < self.x1:
-                    self.x1, self.x2 = self.x2, self.x1
-                print "m/z values:", self.x1, self.x2
+                if self.view.plot1.x2 < self.view.plot1.x1:
+                    self.view.plot1.x1, self.view.plot1.x2 = self.view.plot1.x2, self.view.plot1.x1
+                print "m/z values:", self.view.plot1.x1, self.view.plot1.x2
                 # Solve for the mass and charges
-                mass, z1, z2 = ud.solve_for_mass(self.x1, self.x2)
-                # Reset and write out values
-                self.x1, self.x2 = None, None
+                mass, z1, z2 = ud.solve_for_mass(self.view.plot1.x1, self.view.plot1.x2)
                 outstring = "Mass=%.2f z=%d, %d" % (mass, z1, z2)
-                print outstring
+
+                if np.all(np.abs(np.array(self.view.plot1.mlist) - mass) > window * z1 * 0.0) and plot:
+                    self.view.plot1.mlist.append(mass)
+
+                    newcolor = 'ybgrcmk'[len(self.view.plot1.mlist) % 6]
+                    self.view.plot1.colors.append(newcolor)
+
+                    try:
+                        self.view.plot1.subplot1.legend_.remove()
+                    except AttributeError:
+                        pass
+                    # Add new things
+                    maxy = np.amax(self.eng.data.data2[:, 1])
+                    self.view.plot1.addtext(str(mass), np.amax(self.eng.data.data2[:, 0]) * 0.97,
+                                            maxy - 0.05 * len(self.view.plot1.mlist) * maxy, vlines=False,
+                                            color=newcolor)
+                elif plot:
+                    index = ud.nearestunsorted(np.array(self.view.plot1.mlist), mass)
+                    newcolor = self.view.plot1.colors[index]
+
+                if plot:
+                    # Add the charge state assignments to the plot
+                    pad = 0.05 * np.amax(self.eng.data.data2[:, 1])
+                    y1 = ud.interp_val(self.eng.data.data2, self.view.plot1.x1) + pad
+                    y2 = ud.interp_val(self.eng.data.data2, self.view.plot1.x2) + pad
+                    self.view.plot1.addtext(str(int(z1)), self.view.plot1.x1, y1, color=newcolor)
+                    self.view.plot1.addtext(str(int(z2)), self.view.plot1.x2, y2, color=newcolor)
+                    # Remove the legend
+
+                # Reset and write out values
                 self.view.SetStatusText(outstring, number=5)
+                self.view.plot1.x1, self.view.plot1.x2 = None, None
         pass
 
     def on_flip_mode(self, e):
