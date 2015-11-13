@@ -47,7 +47,7 @@ class UniDec:
 
         :return: None
         """
-        self.version = "1.0.1"
+        self.version = "1.0.2"
         print "\nUniDec Engine v."+self.version
         self.config = None
         self.data = None
