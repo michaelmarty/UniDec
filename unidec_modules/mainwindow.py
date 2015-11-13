@@ -411,7 +411,8 @@ class Mainwindow(wx.Frame):
         splitterwindow.SetMinimumPaneSize(175)
         # splitterwindow.SetMinSize((0,0))
         # splitterwindow2.SetMinSize((0,0))
-
+        file_drop_target = MyFileDropTarget(self)
+        splitterwindow.SetDropTarget(file_drop_target)
         # .................................
         #
         #    Layout the Plots
@@ -1673,3 +1674,28 @@ class Mainwindow(wx.Frame):
             self.pres.on_mass_tools(e)
             if len(self.config.masslist) < 1:
                 self.ctlmasslistflag.SetValue(False)
+
+
+class MyFileDropTarget(wx.FileDropTarget):
+    """"""
+
+    def __init__(self, window):
+        """Constructor"""
+        wx.FileDropTarget.__init__(self)
+        self.window = window
+
+    def OnDropFiles(self, x, y, filenames):
+        """
+        When files are dropped, either open a single file or run in batch.
+        """
+        if len(filenames) == 1:
+            # Open a single file
+            path = filenames[0]
+            directory, fname = os.path.split(path)
+            self.window.pres.on_open_file(fname, directory)
+            # self.window.pres.on_auto() # Run the whole thing
+        elif len(filenames) > 1:
+            # Batch process the files that were dropped
+            self.window.pres.on_batch(batchfiles=filenames)
+        else:
+            print "Error in file drop", filenames

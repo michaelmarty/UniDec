@@ -104,6 +104,10 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
+v. 1.0.1
+
+Added **drag and drop** on the main window. Drag a single file into the plotting area to open it. Drag multiple files to run them in batch mode.
+
 v. 1.0
 
 Total rewrite of the program to separate the GUI and engine. 
