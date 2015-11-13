@@ -62,6 +62,8 @@ class UniDecApp(object):
         self.twittercodes = None
         self.init(*args, **kwargs)
 
+        self.x1, self.x2 = None, None
+
     def start(self):
         """
         Launch view and start MainLoop
@@ -96,10 +98,11 @@ class UniDecApp(object):
         pub.subscribe(self.on_integrate, 'integrate')
         pub.subscribe(self.on_smash, 'smash')
         pub.subscribe(self.on_get_mzlimits, 'mzlimits')
+        pub.subscribe(self.on_left_click, 'left_click')
 
         self.on_load_default(0)
 
-        if False and platform.node() == "RobMike":
+        if True and platform.node() == "RobMike":
             # fname = "HSPCID.txt"
             fname = "0.txt"
             # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
@@ -1618,6 +1621,48 @@ class UniDecApp(object):
     def on_fft_window(self, e):
         print "FFT window..."
         fft_window.FFTWindow(self.view, self.eng.data.rawdata, self.eng.config)
+        pass
+
+    def on_left_click(self, xpos, ypos):
+        """
+        Triggered by pubsub from plot windows.
+        Gets a m/z peak near the click, stores it, and waits for another click.
+        When two clicks has been performed, it tries to calculate the mass from their m/z value.
+        :param xpos: x position fed from event
+        :param ypos: y position fed from event
+        :return: None
+        """
+
+        if xpos is not None and ypos is not None:
+            # print "x=%.2f y=%.2f" % (xpos, ypos)
+            # Determine the limits for local max determination
+            limits = self.view.plot1.subplot1.get_xlim()
+            limdiff = abs(limits[1]-limits[0])
+            window = limdiff * 0.01
+
+            # Find the local max near the clicked position
+            newxpos = ud.localmaxpos(self.eng.data.data2, xpos - window, xpos + window)
+            if newxpos > 0:
+                # If a suitable local max was found, use it.
+                xpos = newxpos
+
+            if self.x1 is None or xpos == self.x1:
+                # Store the first value
+                self.x1 = xpos
+            else:
+                # Store the second value
+                self.x2 = xpos
+                # Switch them if mixed up
+                if self.x2 < self.x1:
+                    self.x1, self.x2 = self.x2, self.x1
+                print "m/z values:", self.x1, self.x2
+                # Solve for the mass and charges
+                mass, z1, z2 = ud.solve_for_mass(self.x1, self.x2)
+                # Reset and write out values
+                self.x1, self.x2 = None, None
+                outstring="Mass=%.2f z=%d, %d" % (mass, z1, z2)
+                print outstring
+                self.view.SetStatusText(outstring, number=5)
         pass
 
     def on_flip_mode(self, e):

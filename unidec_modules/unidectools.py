@@ -414,6 +414,19 @@ def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmo
     return data1, data2, m1grid, m2grid, igrid
 
 
+def solve_for_mass(mz1, mz2, adductmass=1.007276467):
+    """
+    Simple function to solve for mass from two adjacent charge state peaks in m/z.
+    :param mz1: Smaller m/z value (charge = z1)
+    :param mz2: Larger m/z value (charge = z2 = z1 + 1)
+    :param adductmass: Mass of electrospray adduct (default = Hydrogen)
+    :return: mass, z1, z2
+    """
+    z2 = np.round((mz1 - adductmass) / (mz2 - mz1))
+    mass = z2 * mz2
+    return mass, z2-1, z2
+
+
 # ............................
 #
 # File manipulation

@@ -22,6 +22,9 @@ rcParams['ps.fonttype'] = 42
 rcParams['pdf.fonttype'] = 42
 
 
+# TODO: Rewrite this code to clean it up...
+
+
 class XValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
     def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
         wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)

@@ -3,6 +3,7 @@ from wx.lib.pubsub import setupkwargs
 # from wx.lib.pubsub import setupkwargs
 from wx.lib.pubsub import pub
 import numpy as np
+import wx
 
 
 def GetMaxes(axes, xmin=None, xmax=None):
@@ -215,7 +216,7 @@ class ZoomBox:
          2 = center mouse button (scroll wheel)
          3 = right mouse button
         """
-        self.crossoverpercent = 0.04
+        self.crossoverpercent = 0.06
 
         self.axes = None
         self.canvas = None
@@ -353,7 +354,11 @@ class ZoomBox:
 
         # left-click in place resets the x-axis or y-axis
         if self.eventpress.xdata == event.xdata and self.eventpress.ydata == event.ydata:
-
+            if event.button == 1 and self.smash == 1:
+                pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
+            if wx.GetKeyState(wx.WXK_CONTROL):
+                # Ignore the resize if the control key is down
+                return
             # x0,y0,x1,y1=GetMaxes(event.inaxes)
             # print GetMaxes(event.inaxes)
 

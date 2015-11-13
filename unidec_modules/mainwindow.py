@@ -489,6 +489,7 @@ class Mainwindow(wx.Frame):
             plotwindow.AddPage(tab6, "Bar Chart")
         # Scrolled panel view of plots
         else:
+            # TODO: Line up plots on left hand side so that they share an m/z axis
             plotwindow = scrolled.ScrolledPanel(splitterwindow)
             splitterwindow.SplitVertically(plotwindow, splitterwindow2, sashPosition=-550)
             sizerplot = wx.GridBagSizer()
