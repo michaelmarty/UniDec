@@ -47,7 +47,8 @@ class UniDec:
 
         :return: None
         """
-        print "\nUniDec Engine v.0.4"
+        self.version = "1.0"
+        print "\nUniDec Engine v."+self.version
         self.config = None
         self.data = None
         self.pks = None
@@ -985,7 +986,7 @@ class UniDec:
                 if len(aligned[0]) < len(dat):
                     f = interp1d(aligned[0][:, 0], aligned[0][:, 1], fill_value=0, bounds_error=False)
                     aligned[0] = np.transpose([dat[:, 0], f(dat[:, 0])])
-                # TODO: Problem when len (aligned[[0]) < len (dat)
+                # TODO: Problem when len (aligned[[0]) < len (dat) (Fixed?)
                 corr = np.correlate(dat[:, 1], aligned[0][:, 1], mode="same")
                 move = np.argmax(corr) - np.argmax(dat[:, 1])
                 y = np.roll(self.data.massdat[:, 1], -move)[boo3]
@@ -1192,7 +1193,6 @@ class UniDec:
         # TODO: Batch Process of Various Types
         # TODO: Automatch
         # TODO: 2D Grid Extraction
-        # TODO: Run all from the top
         # TODO: Test for whether integrated or not
 
         # TODO: Series of tests on specific files

@@ -34,6 +34,8 @@ class Mainwindow(wx.Frame):
         self.config = config
         self.title = title
 
+        self.version = self.pres.eng.version
+
         # Set Icon File
         if os.path.isfile(iconfile):
             favicon = wx.Icon(iconfile, wx.BITMAP_TYPE_ANY)
@@ -489,6 +491,7 @@ class Mainwindow(wx.Frame):
             plotwindow.AddPage(tab6, "Bar Chart")
         # Scrolled panel view of plots
         else:
+            # TODO: Line up plots on left hand side so that they share an m/z axis
             plotwindow = scrolled.ScrolledPanel(splitterwindow)
             splitterwindow.SplitVertically(plotwindow, splitterwindow2, sashPosition=-550)
             sizerplot = wx.GridBagSizer()
@@ -729,7 +732,6 @@ class Mainwindow(wx.Frame):
             self.ctltwave = wx.RadioBox(panel1c, label="", choices=["Linear Cell", "Travelling Wave"])
             self.Bind(wx.EVT_RADIOBOX, self.pres.on_flip_twave, self.ctltwave)
             gbox1c.Add(self.ctltwave, (0, 0), span=(1, 2))
-
 
             if self.config.twaveflag == 0:
 
@@ -1408,8 +1410,8 @@ class Mainwindow(wx.Frame):
         :return:
         """
         dlg = wx.MessageDialog(self,
-                               "UniDec GUI\n"
-                               "Please contact michael.marty@chem.ox.ac.uk with any questions, bugs, or features to add.\n"
+                               "UniDec GUI version " + self.version +
+                               "\nPlease contact michael.marty@chem.ox.ac.uk with any questions, bugs, or features to add.\n"
                                "The latest version may be found at unidec.chem.ox.ac.uk.\n"
                                "If used in publication, please cite Marty et Al. Anal. Chem. 2015, DOI: 10.1021/acs.analchem.5b00140 ",
                                "About UniDec", wx.OK | wx.CENTER)

@@ -19,6 +19,10 @@ __author__ = 'Michael.Marty'
 warnings.filterwarnings('ignore', 'The iteration is not making good progress')
 
 
+# TODO: Clean up this code...
+# TODO: Allow simple monomer/dimer with no ligands
+
+
 def safedivide(a, b):
     c = deepcopy(a)
     if b != 0:
@@ -757,9 +761,6 @@ class KDmodel:
         startt = time.clock()
 
         try:
-            # job_server=pp.Server()
-            # jobs=[job_server.submit(BootMin,(self.data,self.kdargs,hists[i]),(Minimize,MinFreeError,MakeGrid,GetDegenKD,MinFree,GetFree,GetError),("numpy as np","scipy.optimize as opt")) for i in xrange(0,numpts)]
-            # self.randfit=np.array([job() for job in jobs])
             self.randfit = []
             queue = multiprocessing.Queue()
             results_queue = multiprocessing.Queue()
