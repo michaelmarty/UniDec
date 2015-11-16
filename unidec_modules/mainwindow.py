@@ -1692,10 +1692,19 @@ class MyFileDropTarget(wx.FileDropTarget):
             # Open a single file
             path = filenames[0]
             directory, fname = os.path.split(path)
-            self.window.pres.on_open_file(fname, directory)
-            # self.window.pres.on_auto() # Run the whole thing
+            if os.path.splitext(fname)[1] == ".raw":
+                print "Opening .raw file:", fname
+                self.window.pres.on_raw_open(0, path)
+            else:
+                self.window.pres.on_open_file(fname, directory)
+                # self.window.pres.on_auto() # Run the whole thing
         elif len(filenames) > 1:
             # Batch process the files that were dropped
-            self.window.pres.on_batch(batchfiles=filenames)
+            if os.path.splitext(filenames[0])[1] == ".raw":
+                print "Batch converting raw to txt"
+                self.window.pres.on_batch_raw(0, filenames, clip=False)
+            else:
+                print "Running batch mode"
+                self.window.pres.on_batch(batchfiles=filenames)
         else:
             print "Error in file drop", filenames

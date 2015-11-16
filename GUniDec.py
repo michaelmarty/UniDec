@@ -101,7 +101,7 @@ class UniDecApp(object):
         self.on_load_default(0)
 
         # For testing, load up a spectrum at startup. Used only on MTM's computer.
-        if True and platform.node() == "RobMike":
+        if False and platform.node() == "RobMike":
             # fname = "HSPCID.txt"
             fname = "0.txt"
             # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
@@ -261,13 +261,16 @@ class UniDecApp(object):
             self.view.SetStatusText("Ready", number=5)
         pass
 
-    def on_raw_open(self, e=None):
+    def on_raw_open(self, e=None, dirname=None):
         """
         Opens a file dialog for opening a raw file. Runs self.eng.raw_process and then opens the processed file.
         :param e: unused space for event
         :return:
         """
-        self.eng.config.dirname = FileDialogs.open_single_dir_dialog("Choose a raw file", '')
+        if dirname is None:
+            self.eng.config.dirname = FileDialogs.open_single_dir_dialog("Choose a raw file", '')
+        else:
+            self.eng.config.dirname = dirname
 
         if self.eng.config.imflag == 1:
             if int(self.view.ctlconvertflag.GetValue()) == 1:
@@ -1070,7 +1073,7 @@ class UniDecApp(object):
     #
     # .................................................
 
-    def on_batch_raw(self, e=None):
+    def on_batch_raw(self, e=None, dirs=None, clip=True):
         """
         Batch process Waters .Raw files into .txt files.
         Opens a multiple directory dialog and then sends the results to self.eng.raw_process
@@ -1083,11 +1086,13 @@ class UniDecApp(object):
             # self.eng.config.dirname="C:\\MassLynx\\"
             # if(not os.path.isdir(self.eng.config.dirname)):
         self.eng.config.dirname = ''
-        dirs = FileDialogs.open_multiple_dir_dialog("Select Raw Folders", self.eng.config.dirname)
+        if dirs is None:
+            dirs = FileDialogs.open_multiple_dir_dialog("Select Raw Folders", self.eng.config.dirname)
         print dirs
         if dirs is not None:
             for d in dirs:
-                d = 'C:\\' + d[15:]
+                if clip:
+                    d = 'C:\\' + d[15:]
                 self.eng.raw_process(d, False)
 
         print "Batch Converted"

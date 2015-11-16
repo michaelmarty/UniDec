@@ -104,9 +104,13 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
+v. 1.0.3
+
+Added Waters .raw file open and .raw to .txt batch conversion to drag and drop.
+
 v. 1.0.2
 
-Bug fix on KD fit parallel processing
+Bug fix on KD fit parallel processing.
 
 v. 1.0.1
 
