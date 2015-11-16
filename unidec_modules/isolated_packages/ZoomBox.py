@@ -356,6 +356,7 @@ class ZoomBox:
         if self.eventpress.xdata == event.xdata and self.eventpress.ydata == event.ydata:
             if event.button == 1 and self.smash == 1:
                 pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
+            # TODO: Zoom out is registered as a click
             if wx.GetKeyState(wx.WXK_CONTROL):
                 # Ignore the resize if the control key is down
                 return
