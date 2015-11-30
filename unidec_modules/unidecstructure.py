@@ -150,8 +150,9 @@ class UniDecConfig:
         :return: None
         """
         # TODO: Add in viridis. Works fine for everythign except get_cmap
+        # TODO: Write function to test whether cmap is viable and then raise and error if not.
         m = [i for i in cm.datad]
-        #m = colormaps()
+        # m = colormaps()
         m = sorted(m)
         self.cmaps = []
         for mp in m:

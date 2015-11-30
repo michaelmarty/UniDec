@@ -354,9 +354,10 @@ class ZoomBox:
 
         # left-click in place resets the x-axis or y-axis
         if self.eventpress.xdata == event.xdata and self.eventpress.ydata == event.ydata:
+
             if event.button == 1 and self.smash == 1:
                 pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
-            # TODO: Zoom out is registered as a click
+            # TODO: Zoom out is not registered as a click
             if wx.GetKeyState(wx.WXK_CONTROL):
                 # Ignore the resize if the control key is down
                 return
@@ -419,6 +420,14 @@ class ZoomBox:
         if xproblems or yproblems:
             """Box too small"""  # check if drawed distance (if it exists) is
             return  # not to small in neither x nor y-direction
+
+        if wx.GetKeyState(wx.WXK_CONTROL):
+            # TODO: Send this signal up and drop it in a main GUI
+            # if the ctrl key is down, print out the difference and a guess for the Nanodisc mass assuming POPC
+            lmass = 760.076
+            charge = lmass/spanx
+            print spanx, charge, charge * xmax
+            return
 
         for axes in self.axes:
             axes.set_xlim((xmin, xmax))

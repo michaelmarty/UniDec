@@ -238,7 +238,7 @@ class DataCollector(wx.Frame):
         if "directory" in kwargs:
             self.directory = kwargs["directory"]
         else:
-            self.directory = None
+            self.directory = ""
 
         self.config = config
         self.pks = pks
@@ -250,8 +250,8 @@ class DataCollector(wx.Frame):
             print "Using Empty Structure"
             self.config.publicationmode = 1
             try:
-                # import option_d
-                # self.config.cmap=option_d.viridis
+                #from unidec_modules.isolated_packages.option_d import viridis
+                #self.config.cmap = viridis
                 self.config.cmap = "jet"
             except ImportError:
                 pass
@@ -485,8 +485,8 @@ class DataCollector(wx.Frame):
 
                 # self.load(os.path.join(self.directory,"AmtB_04_test.json"))
 
-                self.directory = "C:\\cprog\\Jon\\Jon Titration data\\Man9 141015"
-                self.load(os.path.join(self.directory, "collection1.json"))
+                # self.directory = "C:\\cprog\\Jon\\Jon Titration data\\Man9 141015"
+                # self.load(os.path.join(self.directory, "collection1.json"))
                 # self.on_run(0)
                 # self.on_kd_fit(0)
                 # self.on_animate2(0)
@@ -594,11 +594,8 @@ class DataCollector(wx.Frame):
         self.localpath = 0
 
     def on_choose_dir(self, e):
-        if self.directory is not None:
-            dlg = wx.DirDialog(None, "Choose Top Directory", "",
-                               wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)  # ,defaultPath=self.directory)
-        else:
-            dlg = wx.DirDialog(None, "Choose Top Directory", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+
+        dlg = wx.DirDialog(None, "Choose Top Directory", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
         if dlg.ShowModal() == wx.ID_OK:
             self.directory = dlg.GetPath()
             self.dirinput.SetValue(self.directory)
@@ -690,8 +687,9 @@ class DataCollector(wx.Frame):
         for k, l in enumerate(self.yvals):
             filename = l[0]
             header = os.path.splitext(filename)[0]
-            if self.localpath == 1:
+            if self.localpath == 1 or not os.path.isabs(filename):
                 header = os.path.join(self.directory, header)
+                filename = os.path.join(self.directory, filename)
             print "Loading:", filename
             subheader = os.path.split(header)[1]
             self.var1.append(l[1])
