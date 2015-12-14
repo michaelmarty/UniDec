@@ -19,6 +19,7 @@ import unidec_modules.IM_windows as IM_wind
 from copy import deepcopy
 import wx.py as py
 import platform
+import multiprocessing
 
 # import FileDialog  # Needed for pyinstaller
 
@@ -1765,6 +1766,6 @@ class UniDecApp(object):
 
 if __name__ == '__main__':
     # app2 = Shell()
-
+    multiprocessing.freeze_support()
     app = UniDecApp()
     app.start()
