@@ -121,7 +121,7 @@ class TreeCtrlPanel(wx.Panel):
                         add_lines += line# + '\n'
 
                 if add_lines is '':
-                    print 'May not have selected raw folder'
+                    print "add_lines is blank"
 
                 self.link.desc.SetValue(add_lines)
 

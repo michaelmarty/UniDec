@@ -1,6 +1,6 @@
 import os
 import threading
-
+import multiprocessing
 import wx
 
 from unidec_modules.tims_import_wizard import import_wizard_grid, import_wizard_treectrl, ImporterProgressGauge, \
@@ -9,15 +9,13 @@ from unidec_modules.isolated_packages import FileDialogs
 
 
 class ImportWizard(wx.Frame):
-
     def __init__(self, parent, dir=None):
         wx.Frame.__init__(self, parent, size=(1000, 900))
         self.setup_frame()
         if dir is not None:
-            self.exedir=dir
+            self.exedir = dir
         else:
-            self.exedir=os.getcwd()
-
+            self.exedir = os.path.dirname(os.path.abspath(__file__))
 
     def setup_frame(self):
         self.CreateStatusBar()
@@ -40,8 +38,8 @@ class ImportWizard(wx.Frame):
 
         # Mode which to import
         self.rb = wx.RadioBox(panel, wx.ID_ANY, "Type of Drift Cell",
-                         wx.DefaultPosition, wx.DefaultSize,
-                         ['Linear', 'T-wave','MS Only'], 2)
+                              wx.DefaultPosition, wx.DefaultSize,
+                              ['Linear', 'T-wave', 'MS Only'], 2)
         self.rb.SetToolTip(wx.ToolTip("Select type of drift cell in your ion mobility mass spectrometer"))
 
         # folder path stuff
@@ -52,23 +50,23 @@ class ImportWizard(wx.Frame):
         box.Add(hb02)
 
         hb01.Add(self.rb, 0, wx.ALL, border=5)
-        hb01.Add(box , 0, wx.ALL, border=5)
+        hb01.Add(box, 0, wx.ALL, border=5)
 
         # add my grid
-        panel2=wx.Panel(panel)
+        panel2 = wx.Panel(panel)
         self.my_grid = import_wizard_grid.WizardGrid(panel, self)
         self.my_tree = import_wizard_treectrl.TreeCtrlPanel(panel, self)
         self.tree = self.my_tree.tree
 
         hb04.Add(self.my_tree)
         hb04.Add(wx.StaticText(panel, wx.ID_ANY, ''))
-        #now make comobox for various files
+        # now make comobox for various files
         self.desc = wx.TextCtrl(panel, wx.ID_ANY, '', size=(600, 300), style=wx.TE_MULTILINE)
         hb04.Add(self.desc, wx.ALL, border=10)
 
         # make buttons to add, auto, clear all
         hb05.Add(wx.Button(panel, 2, 'Add'), 0, wx.ALL, border=5)
-        #hb05.Add(wx.Button(panel, 3, 'Auto'), wx.ALL | wx.ALIGN_LEFT | wx.TOP, 10)
+        # hb05.Add(wx.Button(panel, 3, 'Auto'), wx.ALL | wx.ALIGN_LEFT | wx.TOP, 10)
         hb05.Add(wx.Button(panel, 4, 'Clear All'), 0, wx.TOP | wx.BOTTOM | wx.RIGHT, border=5)
 
         # make a box around the tree ctrl
@@ -84,8 +82,8 @@ class ImportWizard(wx.Frame):
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(hb01, 0, wx.ALL, border=0)
         sizer.Add(box2, 1, wx.ALL, border=5)
-        #sizer.Add(self.my_grid, 0, wx.EXPAND , border=5)
-        #sizer.Add(wx.StaticText(panel, wx.ID_ANY, ''))
+        # sizer.Add(self.my_grid, 0, wx.EXPAND , border=5)
+        # sizer.Add(wx.StaticText(panel, wx.ID_ANY, ''))
         sizer.Add(bottom_btn_sizer, 0, wx.ALIGN_RIGHT | wx.ALL, border=0)
 
         # bind events
@@ -116,23 +114,21 @@ class ImportWizard(wx.Frame):
     def on_folder_path_change(self, evt):
         self.my_tree.populate_tree()
 
-
     def add_file(self, evt):
         # scan through selected folders
         for item in self.tree.GetSelections():
             file_path = self.my_tree.tree.GetPyData(item)
-            sel=self.rb.GetSelection()
-            if  sel== 0:
+            sel = self.rb.GetSelection()
+            if sel == 0:
                 exp_type = 'linear'
-            elif sel==2:
+            elif sel == 2:
                 exp_type = "ms"
             else:
                 exp_type = 't-wave'
 
-            output = data_importer.parse_file(file_path, exp_type=exp_type,dir=self.exedir)
+            output = data_importer.parse_file(file_path, exp_type=exp_type, dir=self.exedir)
             if output is not None:
                 self.my_grid.add_dataset(output)
-
 
     def export_then_load(self, evt):
         ''' save file then load it '''
@@ -173,10 +169,10 @@ class ImportWizard(wx.Frame):
 
         self.Close()
         self.auto(evt=None, filtered_lines=import_data)
-        #self.Close()
+        # self.Close()
 
     def auto(self, evt, file_path=None, filtered_lines=None):
-        if file_path is None and (filtered_lines is None or len(filtered_lines)<=2):
+        if file_path is None and (filtered_lines is None or len(filtered_lines) <= 2):
             file_path = FileDialogs.open_file_dialog("Open File", "*.csv")
             filtered_lines = []
 
@@ -194,13 +190,14 @@ class ImportWizard(wx.Frame):
 
                 filtered_lines.append(line)
 
-        if filtered_lines is not None and len(filtered_lines) > 2: # i.e. more than just hopefully the two header lines
-            t = threading.Thread(target=data_importer.auto_from_wizard, args=(filtered_lines,self.exedir))
+        if filtered_lines is not None and len(filtered_lines) > 2:  # i.e. more than just hopefully the two header lines
+            t = threading.Thread(target=data_importer.auto_from_wizard, args=(filtered_lines, self.exedir))
             t.start()
-            #gauge=ImporterProgressGauge.ProgressDialog()
-            #gauge.progress_dialog(self,"Importing raw file(s)","Importing file %s of %s, please wait..." % (1, len(filtered_lines) - 2),len(filtered_lines) - 2)
-            ImporterProgressGauge.progress_dialog(self, "Importing raw file(s)", "Importing file %s of %s, please wait..." % (1, len(filtered_lines) - 2),len(filtered_lines) - 2)
-
+            # gauge=ImporterProgressGauge.ProgressDialog()
+            # gauge.progress_dialog(self,"Importing raw file(s)","Importing file %s of %s, please wait..." % (1, len(filtered_lines) - 2),len(filtered_lines) - 2)
+            ImporterProgressGauge.progress_dialog(self, "Importing raw file(s)",
+                                                  "Importing file %s of %s, please wait..." % (
+                                                      1, len(filtered_lines) - 2), len(filtered_lines) - 2)
 
     def export_file(self, evt):
         '''
@@ -249,13 +246,14 @@ class ImportWizard(wx.Frame):
             # don't forget to close the file
             f.close()
 
-            return file_path # + '_ionMS_import.csv'
+            return file_path  # + '_ionMS_import.csv'
 
     def close(self, evt):
         self.Close()
 
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     app = wx.App(False)
     frame = ImportWizard(None)
     frame.Show()

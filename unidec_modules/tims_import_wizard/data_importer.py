@@ -154,7 +154,8 @@ def run_get_data(job_kwargs):
                                                       job_kwargs[tt.PUSHER],
                                                       job_kwargs[tt.FUNCTION],
                                                       scan_start,
-                                                      scan_end, dir=job_kwargs['exedir'])
+                                                      scan_end,
+                                                      dir=job_kwargs['exedir'])
 
         # A = [i[0] for i in X]
         # B = [i.sum() for i in C]
@@ -176,7 +177,9 @@ def run_get_data(job_kwargs):
                                                 job_kwargs[tt.FILE_PATH],
                                                 job_kwargs[tt.FUNCTION],
                                                 scan_start,
-                                                scan_end, dir=job_kwargs['exedir'])
+                                                scan_end,
+                                                dir=job_kwargs['exedir'])
+
         job_kwargs['1D'] = (A, B)
 
 

@@ -250,9 +250,9 @@ class DataCollector(wx.Frame):
             print "Using Empty Structure"
             self.config.publicationmode = 1
             try:
-                #from unidec_modules.isolated_packages.option_d import viridis
-                #self.config.cmap = viridis
-                self.config.cmap = "jet"
+                from unidec_modules.isolated_packages.option_d import viridis
+                self.config.cmap = viridis
+                #self.config.cmap = "jet"
             except ImportError:
                 pass
                 self.config.cmap = "jet"
@@ -496,11 +496,14 @@ class DataCollector(wx.Frame):
                 pass
 
     def load_x_from_peaks(self, e):
-        if not ud.isempty(self.pks.peaks):
-            for p in self.pks.peaks:
-                maxes = self.xpanel.list.add_line(val=p.mass)
-        self.ctlprot.SetValue(str(maxes[0]))
-        self.ctllig.SetValue(str(maxes[1]))
+        try:
+            if not ud.isempty(self.pks.peaks):
+                for p in self.pks.peaks:
+                    maxes = self.xpanel.list.add_line(val=p.mass)
+            self.ctlprot.SetValue(str(maxes[0]))
+            self.ctllig.SetValue(str(maxes[1]))
+        except Exception, ex:
+            print "Unable to detect max # protein and ligands", ex
 
     def on_save(self, e):
         self.update_get(e)
