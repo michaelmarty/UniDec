@@ -104,6 +104,10 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
+v. 1.0.4
+
+Fixed bugs in parallel processing for Data Collector Utility and Import Wizard.
+
 v. 1.0.3
 
 Added Waters .raw file open and .raw to .txt batch conversion to drag and drop.
