@@ -104,6 +104,12 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
+v. 1.0.5
+
+Added directory name to file names window.
+Added smarter labeling of plots in data collector.
+Added ability to specify Variable 1 units in data collector and add this as an axis label.
+
 v. 1.0.4
 
 Fixed bugs in parallel processing for Data Collector Utility and Import Wizard.
