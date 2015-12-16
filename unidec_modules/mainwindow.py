@@ -970,8 +970,9 @@ class Mainwindow(wx.Frame):
         gbox3b.Add(wx.StaticText(panel3b, label='Peaks Color Map: '), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         self.ctlpeakcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
 
-        for mp in self.config.cmaps:
+        for mp in self.config.cmaps2:
             self.ctl2dcm.Append(mp)
+        for mp in self.config.cmaps:
             self.ctlpeakcm.Append(mp)
 
         gbox3b.Add(self.ctl2dcm, (0, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -1202,8 +1203,17 @@ class Mainwindow(wx.Frame):
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlrawflag.SetSelection(self.config.rawflag)
 
-            self.ctl2dcm.SetSelection(self.config.cmaps.index(self.config.cmap))
-            self.ctlpeakcm.SetSelection(self.config.cmaps.index(self.config.peakcmap))
+            try:
+                self.ctl2dcm.SetSelection(self.config.cmaps2.index(self.config.cmap))
+                self.ctlpeakcm.SetSelection(self.config.cmaps.index(self.config.peakcmap))
+            except ValueError:
+                print "Could not find the specified color map. Try upgrading to the latest version of matplotlib."
+                import matplotlib
+                print "Current version:", matplotlib.__version__
+                # Revert to the defaults
+                self.ctl2dcm.SetSelection(self.config.cmaps.index("spectral"))
+                self.ctlpeakcm.SetSelection(self.config.cmaps.index("rainbow"))
+
 
             if self.config.imflag == 1:
                 self.ctlpusher.SetValue(str(self.config.pusher))

@@ -488,7 +488,7 @@ class UniDecApp(object):
         :return: None
         """
         self.view.SetStatusText("Detecting Peaks", number=5)
-        self.export_config(None)
+        self.export_config(self.eng.config.confname)
         self.eng.pick_peaks()
         self.view.SetStatusText("Plotting Peaks", number=5)
 
@@ -788,7 +788,7 @@ class UniDecApp(object):
         :param e: unused event
         :return: None
         """
-        self.export_config(None)
+        self.export_config(self.eng.config.confname)
         if self.eng.config.imflag == 1:
             self.make_im_plots()
             self.makeplot4(1)
@@ -809,7 +809,7 @@ class UniDecApp(object):
         :param e: unused event
         :return: None
         """
-        self.export_config(None)
+        self.export_config(self.eng.config.confname)
         try:
             starttime = time.clock()
             self.view.plot9.cubeplot(np.unique(self.eng.data.data3[:, 0]), np.unique(self.eng.data.data3[:, 1]),

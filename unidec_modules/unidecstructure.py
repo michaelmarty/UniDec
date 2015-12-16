@@ -145,19 +145,17 @@ class UniDecConfig:
 
     def default_colormaps(self):
         """
-        Get default matplotlib colormaps and set names to self.cmaps. Ignores CMRmap and CMRmap_r because the caused
-        problems.
+        Get default matplotlib colormaps and set names to self.cmaps.
+        A more list is set as self.cmaps2. For some reason, matplotlib v.1.5.0 allows viridis and other new colormaps
+        with the colormaps() but not cm.datad. Even weirder, they work for some things and not others. Solution, two
+        lists, one for the 2D plots and the other for the linear colors.
         :return: None
         """
-        # TODO: Add in viridis. Works fine for everythign except get_cmap
-        # TODO: Write function to test whether cmap is viable and then raise and error if not.
         m = [i for i in cm.datad]
-        # m = colormaps()
-        m = sorted(m)
-        self.cmaps = []
-        for mp in m:
-            if mp is not "CMRmap" and mp is not "CMRmap_r":
-                self.cmaps.append(mp)
+        self.cmaps = sorted(m)
+
+        m2 = colormaps()
+        self.cmaps2 = sorted(m2)
 
     def config_export(self, name):
         """

@@ -5,6 +5,7 @@ import wx
 import wx.lib.mixins.listctrl as listmix
 import numpy as np
 import matplotlib.cm as cm
+from matplotlib.pyplot import colormaps
 from matplotlib import rcParams
 # from wx.lib.pubsub import setupkwargs
 from wx.lib.pubsub import pub
@@ -250,12 +251,9 @@ class DataCollector(wx.Frame):
             self.config.initialize()
             print "Using Empty Structure"
             self.config.publicationmode = 1
-            try:
-                from unidec_modules.isolated_packages.option_d import viridis
-                self.config.cmap = viridis
-                # self.config.cmap = "jet"
-            except ImportError:
-                pass
+            if "viridis" in colormaps():
+                self.config.cmap = "viridis"
+            else:
                 self.config.cmap = "jet"
 
         self.CreateStatusBar(2)
@@ -837,7 +835,7 @@ class DataCollector(wx.Frame):
             ylabel = self.xlabel
 
         self.plot2.clear_plot()
-        self.plot2._axes= [0.15, 0.1, 0.75, 0.8]
+        self.plot2._axes = [0.15, 0.1, 0.75, 0.8]
         for i in xrange(0, len(self.xvals)):
             color = self.xcolors[i]
             if not self.plot2.flag:

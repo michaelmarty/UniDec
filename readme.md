@@ -109,6 +109,7 @@ v. 1.0.5
 Added directory name to file names window.
 Added smarter labeling of plots in data collector.
 Added ability to specify Variable 1 units in data collector and add this as an axis label.
+Added support for viridis and other new color maps in matplotlib 1.5.0.
 
 v. 1.0.4
 
