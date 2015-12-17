@@ -325,29 +325,53 @@ def localmax2(array, index, window):
     return localmax(array, start, end)
 
 
-def data_extract(data, x, extract_method, window=None):
-    if extract_method == 0:
-        index = np.argmin(np.abs(data[:, 0] - x))
-        val = data[index, 1]
-    elif extract_method == 1:
-        index = np.argmin(np.abs(data[:, 0] - x))
-        if window is not None:
-            start = np.argmin(np.abs(data[:, 0] - (x - window)))
-            end = np.argmin(np.abs(data[:, 0] - (x + window)))
-            val = localmax(data[:, 1], start, end)
+def simple_extract(data, x, zero_edge=True):
+    index = nearest(data[:, 0], x)
+    if zero_edge:
+        if index != 0 and index != len(data) - 1:
+            val = data[index, 1]
         else:
+            val = 0
+    else:
+        val = data[index, 1]
+    return val
+
+
+def data_extract(data, x, extract_method, window=None,**kwargs):
+    """
+    Assumes a sorted array in data[:,0]
+    :param data:
+    :param x:
+    :param extract_method:
+    :param window:
+    :return:
+    """
+    if extract_method == 0:
+        val = simple_extract(data, x, **kwargs)
+
+    elif extract_method == 1:
+        if window is not None:
+            if window == 0:
+                val = simple_extract(data, x, **kwargs)
+            else:
+                start = nearest(data[:, 0],(x - window))
+                end = nearest(data[:, 0],(x + window))
+                val = localmax(data[:, 1], start, end)
+        else:
+            index = nearest(data[:, 0], x)
             val = stepmax(data[:, 1], index)
+
     elif extract_method == 2:
-        index = np.argmin(np.abs(data[:, 0] - x))
         if window is not None:
             start = x - window
             end = x + window
             val, junk = integrate(data, start, end)
         else:
+            index = nearest(data[:, 0], x)
             val = data[index, 1]
             print "NEED TO SET INTEGRAL WINDOW!\nUsing Peak Height Instead"
+
     elif extract_method == 3:
-        # index = np.argmin(np.abs(data[:, 0] - x))
         if window is not None:
             start = x - window
             end = x + window
@@ -355,8 +379,8 @@ def data_extract(data, x, extract_method, window=None):
         else:
             val, junk = center_of_mass(data, data[0, 0], data[len(data) - 1, 0])
             print "No window set for center of mass!\nUsing entire data range...."
+
     elif extract_method == 4:
-        # index = np.argmin(np.abs(data[:, 0] - x))
         if window is not None:
             start = x - window
             end = x + window
@@ -368,6 +392,16 @@ def data_extract(data, x, extract_method, window=None):
         val = 0
         print "Undefined extraction choice"
     return val
+
+
+def data_extract_grid(data, xarray, extract_method=1, window=0):
+    igrid = np.zeros_like(xarray)
+    dims = igrid.shape
+    for j in xrange(0, dims[0]):
+        for k in xrange(0, dims[1]):
+            x = xarray[j, k]
+            igrid[ j, k] = data_extract(data, x, extract_method=extract_method, window=window)
+    return igrid
 
 
 def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmode=1, xaxistype=1):

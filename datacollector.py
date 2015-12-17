@@ -1,10 +1,12 @@
 import os
 import sys
 import json
+import time
 import wx
 import wx.lib.mixins.listctrl as listmix
 import numpy as np
 import matplotlib.cm as cm
+from matplotlib.pyplot import colormaps
 from matplotlib import rcParams
 # from wx.lib.pubsub import setupkwargs
 from wx.lib.pubsub import pub
@@ -226,6 +228,7 @@ class NetworkFrame(PlottingWindow):
 
 datachoices = {0: "Raw Data", 1: "Processed Data", 2: "Zero Charge Mass Spectrum"}
 extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position"}
+extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "mass", 4: "mass"}
 modelchoices = {"Simple Single KD": "one", "Parallel KD's Chained": "parallel", "All KD's Free": "free",
                 "Test for Best Model": "test", "Series KD's Chained": "series"}
 
@@ -249,12 +252,9 @@ class DataCollector(wx.Frame):
             self.config.initialize()
             print "Using Empty Structure"
             self.config.publicationmode = 1
-            try:
-                from unidec_modules.isolated_packages.option_d import viridis
-                self.config.cmap = viridis
-                #self.config.cmap = "jet"
-            except ImportError:
-                pass
+            if "viridis" in colormaps():
+                self.config.cmap = "viridis"
+            else:
                 self.config.cmap = "jet"
 
         self.CreateStatusBar(2)
@@ -294,10 +294,13 @@ class DataCollector(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_absolute_path, self.menuabsolutepath)
         self.menumsmsnorm = self.experimentalmenu.Append(wx.ID_ANY, "Normalize to MSMS",
                                                          "Normalizes mass deconvolutions to MS1 scan for variable 1 +/- variable 2")
-        self.Bind(wx.EVT_MENU, self.on_MSMS_norm, self.menumsmsnorm)
+        self.Bind(wx.EVT_MENU, self.on_msms_norm, self.menumsmsnorm)
         self.menuautocorr = self.experimentalmenu.Append(wx.ID_ANY, "View Autocorrelation of Sum",
                                                          "Shows autocorelation plot of sum")
         self.Bind(wx.EVT_MENU, self.on_autocorr, self.menuautocorr)
+        self.toolsmenu.AppendSeparator()
+        self.menuylabel = self.toolsmenu.Append(wx.ID_ANY, "Specify Var. 1 Label", "Adds Var. 1 axis label to plot")
+        self.Bind(wx.EVT_MENU, self.on_ylabel, self.menuylabel)
 
         self.menuBar = wx.MenuBar()
         self.menuBar.Append(self.filemenu, "&File")
@@ -464,6 +467,7 @@ class DataCollector(wx.Frame):
         self.grid = []
         self.var1 = []
         self.xlabel = "Mass"
+        self.ylabel = ""
 
         self.Centre()
         self.Show(True)
@@ -657,7 +661,7 @@ class DataCollector(wx.Frame):
 
     def update_set(self, e):
         self.ctlprotmodel.SetValue(
-            next((label for label, flag in modelchoices.items() if flag == self.protflag), "test"))
+                next((label for label, flag in modelchoices.items() if flag == self.protflag), "test"))
         self.ctlligmodel.SetValue(next((label for label, flag in modelchoices.items() if flag == self.ligflag), "test"))
         self.dirinput.SetValue(self.directory)
         self.xpanel.list.populate(self.xvals)
@@ -676,7 +680,7 @@ class DataCollector(wx.Frame):
             self.ctlmax.SetValue(str(self.range[1]))
 
     def on_run(self, e, vals=None):
-
+        tstart = time.clock()
         self.update_get(e)
         # os.chdir(self.directory)
         self.data = []
@@ -787,7 +791,9 @@ class DataCollector(wx.Frame):
             self.extract.append(xext)
         self.ypanel.list.populate(self.yvals, colors=ycolors)
         self.plot1.repaint()
-
+        tend = time.clock()
+        print "Extraction time: %.2gs" % (tend - tstart)
+        print "Plotting..."
         self.extract = np.array(self.extract)
         if len(self.xvals) != 0:
             if self.normflag2 == 1:
@@ -801,9 +807,12 @@ class DataCollector(wx.Frame):
             # print np.mean(self.extract,axis=0)
             np.savetxt(os.path.join(self.directory, "extracts.txt"), self.extract)
             self.xpanel.list.populate(self.xvals, colors=self.xcolors)
-            self.plot2.repaint()
-        self.grid = np.array(self.grid)
 
+        self.make_grid_plots(e)
+        print "Extraction Complete"
+
+    def make_grid_plots(self, e):
+        self.grid = np.array(self.grid)
         if not ud.isempty(self.grid):
             try:
                 self.plot4.plotrefreshtop(np.unique(self.grid[0, :, 0]), np.sum(self.grid[:, :, 1], axis=0), "Total",
@@ -816,27 +825,33 @@ class DataCollector(wx.Frame):
             try:
                 x, y = np.meshgrid(self.grid[0, :, 0], self.var1, indexing='ij')
                 dat = np.transpose([np.ravel(x), np.ravel(y), np.ravel(np.transpose(self.grid[:, :, 1]))])
-                self.plot2d.contourplot(dat, self.config, xlab=self.xlabel, ylab="", title="Extracted Data")
+                self.plot2d.contourplot(dat, self.config, xlab=self.xlabel, ylab=self.ylabel, title="Extracted Data")
                 self.on_export(e)
             except (ValueError, TypeError, AttributeError):
                 print "Failed to make 2D plot"
                 self.plot2d.clear_plot()
 
-        print "Extraction Complete"
-
     def makeplot2(self):
+        # This is a bit funny but the ylabel from this plot is actually the xlabel from the others or the intensity...
+        ylabel = extractlabels[self.extractchoice]
+        if ylabel is "mass":
+            ylabel = self.xlabel
+
         self.plot2.clear_plot()
+        self.plot2._axes = [0.15, 0.1, 0.75, 0.8]
         for i in xrange(0, len(self.xvals)):
             color = self.xcolors[i]
             if not self.plot2.flag:
-                self.plot2.plotrefreshtop(self.var1, self.extract[:, i], title="Extracted Data"
-                                          , color=color, test_kda=False)
+
+                self.plot2.plotrefreshtop(self.var1, self.extract[:, i], title="Extracted Data", xlabel=self.ylabel
+                                          , ylabel=ylabel, color=color, test_kda=False)
                 self.plot2.plotadddot(self.var1, self.extract[:, i], color, "o")
             else:
                 self.plot2.plotadd(self.var1, self.extract[:, i], color, file)
                 self.plot2.plotadddot(self.var1, self.extract[:, i], color, "o")
         if self.normflag2 == 1:
             self.plot2.subplot1.set_ylim([0, 1])
+        self.plot2.repaint()
 
     def on_save_fig(self, e):
         name1 = os.path.join(self.directory, "Figure1.png")
@@ -1050,7 +1065,7 @@ class DataCollector(wx.Frame):
         else:
             print "Grid is empty"
 
-    def on_MSMS_norm(self, e):
+    def on_msms_norm(self, e):
         dlg = wx.FileDialog(self, "Choose MS1 data file in x y list format", '', "", "*.*", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetFilename()
@@ -1082,6 +1097,22 @@ class DataCollector(wx.Frame):
             vals /= np.amax(vals)
             print vals
             self.on_run(0, vals=vals)
+
+    def on_ylabel(self, e):
+        dlg = miscwindows.SingleInputDialog(self)
+        dlg.initialize_interface(title="Set Variable 1 Label", message="Variable 1 axis label:", defaultvalue="")
+        dlg.ShowModal()
+        self.ylabel = dlg.value
+        print "New  var. 1 axis label:", self.ylabel
+        try:
+            self.make_grid_plots(e)
+        except Exception, ex:
+            print "Could not plot grid:", ex
+        try:
+            self.makeplot2()
+        except Exception, ex:
+            print "Could not plot extract:", ex
+        pass
 
 
 # Main App Execution

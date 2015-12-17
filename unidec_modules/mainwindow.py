@@ -315,11 +315,16 @@ class Mainwindow(wx.Frame):
         self.experimentalmenu.AppendSeparator()
 
         self.menuerrors = self.experimentalmenu.Append(wx.ID_ANY, "Get Errors")
+        self.menucal = self.experimentalmenu.Append(wx.ID_ANY, "Apply Calibration")
+        self.Bind(wx.EVT_MENU, self.pres.on_calibrate, self.menucal)
+        self.experimentalmenu.AppendSeparator()
         self.menufft = self.experimentalmenu.Append(wx.ID_ANY, "FFT Window")
         self.Bind(wx.EVT_MENU, self.pres.on_fft_window, self.menufft)
 
-        self.menucal = self.experimentalmenu.Append(wx.ID_ANY, "Apply Calibration")
-        self.Bind(wx.EVT_MENU, self.pres.on_calibrate, self.menucal)
+
+
+        self.menugriddecon = self.experimentalmenu.Append(wx.ID_ANY, "Grid Deconvolution")
+        self.Bind(wx.EVT_MENU, self.pres.on_grid_decon, self.menugriddecon)
 
         # Setting Menu Bar
         self.menuBar = wx.MenuBar()
@@ -970,8 +975,9 @@ class Mainwindow(wx.Frame):
         gbox3b.Add(wx.StaticText(panel3b, label='Peaks Color Map: '), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         self.ctlpeakcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
 
-        for mp in self.config.cmaps:
+        for mp in self.config.cmaps2:
             self.ctl2dcm.Append(mp)
+        for mp in self.config.cmaps:
             self.ctlpeakcm.Append(mp)
 
         gbox3b.Add(self.ctl2dcm, (0, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -1202,8 +1208,17 @@ class Mainwindow(wx.Frame):
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlrawflag.SetSelection(self.config.rawflag)
 
-            self.ctl2dcm.SetSelection(self.config.cmaps.index(self.config.cmap))
-            self.ctlpeakcm.SetSelection(self.config.cmaps.index(self.config.peakcmap))
+            try:
+                self.ctl2dcm.SetSelection(self.config.cmaps2.index(self.config.cmap))
+                self.ctlpeakcm.SetSelection(self.config.cmaps.index(self.config.peakcmap))
+            except ValueError:
+                print "Could not find the specified color map. Try upgrading to the latest version of matplotlib."
+                import matplotlib
+                print "Current version:", matplotlib.__version__
+                # Revert to the defaults
+                self.ctl2dcm.SetSelection(self.config.cmaps.index("spectral"))
+                self.ctlpeakcm.SetSelection(self.config.cmaps.index("rainbow"))
+
 
             if self.config.imflag == 1:
                 self.ctlpusher.SetValue(str(self.config.pusher))

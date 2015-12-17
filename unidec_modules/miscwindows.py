@@ -26,7 +26,7 @@ class SingleInputDialog(wx.Dialog):
         :return: None
         """
         wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
-        # self.SetSize((400, 200))
+        self.SetSize((400, 200))
         self.value = None
         self.inputbox = None
 
@@ -42,7 +42,7 @@ class SingleInputDialog(wx.Dialog):
         pnl = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        self.inputbox = wx.TextCtrl(pnl, value=defaultvalue)
+        self.inputbox = wx.TextCtrl(pnl, value=defaultvalue, size=(175, 25))
         hbox.Add(wx.StaticText(pnl, label=message), 0, wx.ALIGN_CENTER_VERTICAL)
         hbox.Add(self.inputbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
         pnl.SetSizer(hbox)
@@ -319,10 +319,11 @@ class FileNameDialog(wx.Dialog):
         :return: None
         """
         wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
-        self.SetSize((250, 300))
+        self.SetSize((250, 350))
         self.SetTitle("Change File Names")
         self.config = None
         self.inputbox = None
+        self.dirbox = None
         self.confbox = None
         self.outputbox = None
         self.massbox = None
@@ -347,53 +348,59 @@ class FileNameDialog(wx.Dialog):
 
         hbox1 = wx.BoxSizer(wx.HORIZONTAL)
         self.inputbox = wx.TextCtrl(pnl, value=self.config.infname)
-        hbox1.Add(wx.StaticText(pnl, label='Input File Name: '), wx.ALIGN_CENTER_VERTICAL)
-        hbox1.Add(self.inputbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
+        hbox1.Add(wx.StaticText(pnl, label='Input File Name: '), 0, wx.ALIGN_CENTER_VERTICAL)
+        hbox1.Add(self.inputbox, 1, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
         sbs.Add(hbox1, 0, wx.EXPAND)
 
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
         self.confbox = wx.TextCtrl(pnl, value=self.config.confname)
-        hbox2.Add(wx.StaticText(pnl, label='Configuration File Name: '), wx.ALIGN_CENTER_VERTICAL)
-        hbox2.Add(self.confbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
+        hbox2.Add(wx.StaticText(pnl, label='Configuration File Name: '), 0, wx.ALIGN_CENTER_VERTICAL)
+        hbox2.Add(self.confbox, 1, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
         sbs.Add(hbox2, 0, wx.EXPAND)
 
         hbox3 = wx.BoxSizer(wx.HORIZONTAL)
         self.outputbox = wx.TextCtrl(pnl, value=self.config.outfname)
-        hbox3.Add(wx.StaticText(pnl, label='Output File Headers: '), wx.ALIGN_CENTER_VERTICAL)
-        hbox3.Add(self.outputbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
+        hbox3.Add(wx.StaticText(pnl, label='Output File Headers: '), 0, wx.ALIGN_CENTER_VERTICAL)
+        hbox3.Add(self.outputbox, 1, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
         sbs.Add(hbox3, 0, wx.EXPAND)
 
         hbox4 = wx.BoxSizer(wx.HORIZONTAL)
         self.massbox = wx.TextCtrl(pnl, value=self.config.mfile)
-        hbox4.Add(wx.StaticText(pnl, label='Mass List File Name: '), wx.ALIGN_CENTER_VERTICAL)
-        hbox4.Add(self.massbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
+        hbox4.Add(wx.StaticText(pnl, label='Mass List File Name: '), 0, wx.ALIGN_CENTER_VERTICAL)
+        hbox4.Add(self.massbox, 1, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
         sbs.Add(hbox4, 0, wx.EXPAND)
 
         hbox5 = wx.BoxSizer(wx.HORIZONTAL)
         self.manualbox = wx.TextCtrl(pnl, value=self.config.manualfile)
-        hbox5.Add(wx.StaticText(pnl, label='Manual File Name: '), wx.ALIGN_CENTER_VERTICAL)
-        hbox5.Add(self.manualbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
+        hbox5.Add(wx.StaticText(pnl, label='Manual File Name: '), 0, wx.ALIGN_CENTER_VERTICAL)
+        hbox5.Add(self.manualbox, 1, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
         sbs.Add(hbox5, 0, wx.EXPAND)
 
         hbox6 = wx.BoxSizer(wx.HORIZONTAL)
         self.obox = wx.TextCtrl(pnl, value=self.config.ofile)
-        hbox6.Add(wx.StaticText(pnl, label='Oligomer File Name: '), wx.ALIGN_CENTER_VERTICAL)
-        hbox6.Add(self.obox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
+        hbox6.Add(wx.StaticText(pnl, label='Oligomer File Name: '), 0, wx.ALIGN_CENTER_VERTICAL)
+        hbox6.Add(self.obox, 1, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
         sbs.Add(hbox6, 0, wx.EXPAND)
 
         hbox6b = wx.BoxSizer(wx.HORIZONTAL)
         self.matchbox = wx.TextCtrl(pnl, value=self.config.matchfile)
-        hbox6b.Add(wx.StaticText(pnl, label='Match File Name: '), wx.ALIGN_CENTER_VERTICAL)
-        hbox6b.Add(self.matchbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
+        hbox6b.Add(wx.StaticText(pnl, label='Match File Name: '), 0, wx.ALIGN_CENTER_VERTICAL)
+        hbox6b.Add(self.matchbox, 1, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
         sbs.Add(hbox6b, 0, wx.EXPAND)
 
         hbox8 = wx.BoxSizer(wx.HORIZONTAL)
         self.peakbox = wx.TextCtrl(pnl, value=self.config.peaksfile)
-        hbox8.Add(wx.StaticText(pnl, label='Peak File Name: '), wx.ALIGN_CENTER_VERTICAL)
-        hbox8.Add(self.peakbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
+        hbox8.Add(wx.StaticText(pnl, label='Peak File Name: '), 0, wx.ALIGN_CENTER_VERTICAL)
+        hbox8.Add(self.peakbox, 1, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
         sbs.Add(hbox8, 0, wx.EXPAND)
 
-        pnl.SetSizer(sbs)
+        hbox9 = wx.BoxSizer(wx.HORIZONTAL)
+        self.dirbox = wx.TextCtrl(pnl, value=self.config.dirname)
+        hbox9.Add(wx.StaticText(pnl, label='Working Directory: '), 0, wx.ALIGN_CENTER_VERTICAL)
+        hbox9.Add(self.dirbox, 1, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
+        sbs.Add(hbox9, 0, wx.EXPAND)
+
+        pnl.SetSizerAndFit(sbs)
 
         hboxend = wx.BoxSizer(wx.HORIZONTAL)
         okbutton = wx.Button(self, label='Ok')
@@ -427,6 +434,7 @@ class FileNameDialog(wx.Dialog):
         ofileval = self.obox.GetValue()
         matchfileval = self.matchbox.GetValue()
         peaksfileval = self.peakbox.GetValue()
+        dirval = self.dirbox.GetValue(0)
         if inboxval != "":
             self.config.infname = inboxval
             print inboxval
@@ -451,6 +459,10 @@ class FileNameDialog(wx.Dialog):
         if ofileval != "":
             self.config.ofile = ofileval
             print ofileval
+        if dirval != "":
+            self.config.dirname = dirval
+            print dirval
+            os.chdir(dirval)
         self.Destroy()
         self.EndModal(0)
 

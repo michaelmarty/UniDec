@@ -104,6 +104,19 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
+v. 1.0.6
+
+Added an experimental window for grid deconvolution.
+    This was the original implementation of UniDec back when it was a Nanodisc-only script in Mathematica (see Marty, et. al. JASMS 2014).
+    It has come a long way, but it is still pretty crude.
+
+v. 1.0.5
+
+Added directory name to file names window.
+Added smarter labeling of plots in data collector.
+Added ability to specify Variable 1 units in data collector and add this as an axis label.
+Added support for viridis and other new color maps in matplotlib 1.5.0.
+
 v. 1.0.4
 
 Fixed bugs in parallel processing for Data Collector Utility and Import Wizard.

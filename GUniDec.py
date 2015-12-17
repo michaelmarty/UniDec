@@ -10,7 +10,7 @@ from wx.lib.pubsub import pub
 import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 from unidec_modules import Extract2D, peakwidthtools, masstools, miscwindows, \
-    MassDefects, mainwindow, nativez, ManualSelectionWindow, AutocorrWindow, fft_window
+    MassDefects, mainwindow, nativez, ManualSelectionWindow, AutocorrWindow, fft_window, GridDecon
 from unidec_modules.isolated_packages import FileDialogs, texmaker, twitter_interface
 import datacollector
 import import_wizard
@@ -102,7 +102,7 @@ class UniDecApp(object):
         self.on_load_default(0)
 
         # For testing, load up a spectrum at startup. Used only on MTM's computer.
-        if False and platform.node() == "RobMike":
+        if True and platform.node() == "RobMike":
             # fname = "HSPCID.txt"
             fname = "0.txt"
             # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
@@ -110,6 +110,7 @@ class UniDecApp(object):
             self.on_open_file(fname, newdir)
             self.on_auto(0)
             self.on_integrate()
+            self.on_grid_decon(0)
             # self.make_cube_plot(0)
             # self.on_plot_peaks(0)
 
@@ -488,7 +489,7 @@ class UniDecApp(object):
         :return: None
         """
         self.view.SetStatusText("Detecting Peaks", number=5)
-        self.export_config(None)
+        self.export_config(self.eng.config.confname)
         self.eng.pick_peaks()
         self.view.SetStatusText("Plotting Peaks", number=5)
 
@@ -788,7 +789,7 @@ class UniDecApp(object):
         :param e: unused event
         :return: None
         """
-        self.export_config(None)
+        self.export_config(self.eng.config.confname)
         if self.eng.config.imflag == 1:
             self.make_im_plots()
             self.makeplot4(1)
@@ -809,7 +810,7 @@ class UniDecApp(object):
         :param e: unused event
         :return: None
         """
-        self.export_config(None)
+        self.export_config(self.eng.config.confname)
         try:
             starttime = time.clock()
             self.view.plot9.cubeplot(np.unique(self.eng.data.data3[:, 0]), np.unique(self.eng.data.data3[:, 1]),
@@ -1385,7 +1386,7 @@ class UniDecApp(object):
         # Launch window to input calibration parameters
         dialog = miscwindows.SingleInputDialog(self.view)
         dialog.initialize_interface(title="Calibration Parameters",
-                                    message="Polynomical Coefficents (order=n n-1 ... 0): ")
+                                    message="Polynomial Coefficents (order=n n-1 ... 0): ")
         dialog.ShowModal()
 
         try:
@@ -1700,6 +1701,9 @@ class UniDecApp(object):
                 self.view.SetStatusText(outstring, number=5)
                 self.view.plot1.x1, self.view.plot1.x2 = None, None
         pass
+
+    def on_grid_decon(self, e):
+        GridDecon.GridDeconWindow(self.view, self.eng.data.data2, config=self.eng.config)
 
     def on_flip_mode(self, e):
         """
