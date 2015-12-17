@@ -104,11 +104,15 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
+v. 1.0.7
+
+Added a **mass tolerance on matching**. Now, matches that fail to come within a certain tolerance will be ignored. 
+
 v. 1.0.6
 
 Added an experimental window for grid deconvolution.
-    This was the original implementation of UniDec back when it was a Nanodisc-only script in Mathematica (see Marty, et. al. JASMS 2014).
-    It has come a long way, but it is still pretty crude.
+This is close to the original implementation of UniDec back when it was a Nanodisc-only script in Mathematica (see Marty, et. al. JASMS 2014).
+It has come a long way, but it is still pretty crude.
 
 v. 1.0.5
 
