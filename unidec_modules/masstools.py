@@ -419,11 +419,18 @@ class MassSelection(wx.Dialog):
         buttonbox.Add(clearbutt2, 0, wx.EXPAND)
         buttonbox.Add(plotbutton, 0, wx.EXPAND)
         hbox3.Add(buttonbox)
+        textbox = wx.BoxSizer(wx.VERTICAL)
         text = wx.StaticText(panel,
-                             label="  For i from Min # to Max #:\n      Mass(i)=Base Offset + Monomer Mass * i ")
+                             label="  For i from Min # to Max #:\n      Mass(i)=Base Offset + Monomer Mass * i \n")
         font = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False)
         text.SetFont(font)
-        hbox3.Add(text)
+        textbox.Add(text)
+
+        self.ctlmatcherror = wx.TextCtrl(panel, value=str(self.config.matchtolerance))
+        textbox.Add(wx.StaticText(panel, label="Error Tolerance for Matching (Da)"), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
+        textbox.Add(self.ctlmatcherror, 0, wx.ALIGN_RIGHT)
+
+        hbox3.Add(textbox)
         sbs2.Add(hbox3, 0, wx.EXPAND)
 
         self.oligomerlistbox = OligomerListCrtlPanel(panel)
@@ -517,8 +524,12 @@ class MassSelection(wx.Dialog):
         :return: None
         """
         oligos = self.oligomerlistbox.list.get_list()
+        try:
+            tolerance = float(self.ctlmatcherror.GetValue())
+        except ValueError:
+            tolerance = None
         oligomasslist, oligonames = ud.make_isolated_match(oligos)
-        matchlist = ud.match(self.pks, oligomasslist, oligonames)
+        matchlist = ud.match(self.pks, oligomasslist, oligonames, tolerance=tolerance)
         self.matchlistbox.list.populate(matchlist[0], matchlist[1], matchlist[2], matchlist[3])
 
     def on_match_all(self, e):
@@ -530,8 +541,12 @@ class MassSelection(wx.Dialog):
         :return: None
         """
         oligos = self.oligomerlistbox.list.get_list()
+        try:
+            tolerance = float(self.ctlmatcherror.GetValue())
+        except ValueError:
+            tolerance = None
         oligomasslist, oligonames = ud.make_all_matches(oligos)
-        matchlist = ud.match(self.pks, oligomasslist, oligonames)
+        matchlist = ud.match(self.pks, oligomasslist, oligonames, tolerance=tolerance)
         self.matchlistbox.list.populate(matchlist[0], matchlist[1], matchlist[2], matchlist[3])
 
     def on_close(self, e):
@@ -544,6 +559,12 @@ class MassSelection(wx.Dialog):
         :param e: Unused event
         :return: None
         """
+        try:
+            tolerance = float(self.ctlmatcherror.GetValue())
+        except ValueError:
+            tolerance = None
+        self.config.matchtolerance = tolerance
+
         newmasslist = self.masslistbox.list.get_list()
         # print newmasslist
         if not ud.isempty(newmasslist):

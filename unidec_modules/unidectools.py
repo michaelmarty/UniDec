@@ -1325,9 +1325,9 @@ def make_all_matches(oligos):
     return oligomasslist, oligonames
 
 
-def match(pks, oligomasslist, oligonames):
+def match(pks, oligomasslist, oligonames, tolerance=None):
     matches = []
-    error = []
+    errors = []
     peaks = []
     names = []
     for i in range(0, pks.plen):
@@ -1335,15 +1335,20 @@ def match(pks, oligomasslist, oligonames):
         target = p.mass
         nearpt = nearestunsorted(oligomasslist, target)
         match = oligomasslist[nearpt]
-        name = oligonames[nearpt]
+        error = target - match
+        if tolerance is None or np.abs(error) < tolerance:
+            name = oligonames[nearpt]
+        else:
+            name = ""
+
         p.label = name
         p.match = match
-        p.matcherror = target - match
+        p.matcherror = error
         matches.append(match)
-        error.append(target - match)
+        errors.append(error)
         peaks.append(target)
         names.append(name)
-    matchlist = [peaks, matches, error, names]
+    matchlist = [peaks, matches, errors, names]
     return matchlist
 
 

@@ -141,6 +141,7 @@ class UniDecConfig:
         self.extractshape = 0
         self.gridparams = None
         self.griddecon = None
+        self.matchtolerance = 1000
 
         self.default_colormaps()
 
