@@ -140,6 +140,7 @@ class UniDecConfig:
         self.massoffset = 0
         self.extractshape = 0
         self.gridparams = None
+        self.griddecon = None
 
         self.default_colormaps()
 

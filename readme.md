@@ -104,6 +104,12 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
+v. 1.0.6
+
+Added an experimental window for grid deconvolution.
+    This was the original implementation of UniDec back when it was a Nanodisc-only script in Mathematica (see Marty, et. al. JASMS 2014).
+    It has come a long way, but it is still pretty crude.
+
 v. 1.0.5
 
 Added directory name to file names window.

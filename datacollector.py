@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import time
 import wx
 import wx.lib.mixins.listctrl as listmix
 import numpy as np
@@ -679,7 +680,7 @@ class DataCollector(wx.Frame):
             self.ctlmax.SetValue(str(self.range[1]))
 
     def on_run(self, e, vals=None):
-
+        tstart = time.clock()
         self.update_get(e)
         # os.chdir(self.directory)
         self.data = []
@@ -790,7 +791,9 @@ class DataCollector(wx.Frame):
             self.extract.append(xext)
         self.ypanel.list.populate(self.yvals, colors=ycolors)
         self.plot1.repaint()
-
+        tend = time.clock()
+        print "Extraction time: %.2gs" % (tend - tstart)
+        print "Plotting..."
         self.extract = np.array(self.extract)
         if len(self.xvals) != 0:
             if self.normflag2 == 1:

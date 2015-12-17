@@ -203,28 +203,10 @@ class Extract2DPlot(wx.Frame):
         Extract intensity values from self.datalist for mass values in self.massgrid.
         :return: None
         """
-        # TODO: Remove this functionality to unidectools to merge with datacollector.
         # TODO: Optimize function. It currently preforms the extraction on all every time but doesn't need to...
         self.igrid = np.zeros((len(self.datalist), len(self.m1range), len(self.m2range)))
         for i, data in enumerate(self.datalist):
-            for j in xrange(0, len(self.m1range)):
-                for k in xrange(0, len(self.m2range)):
-                    mass = self.massgrid[j, k]
-                    if not self.params[7] > 0:
-                        pos = ud.nearest(data[:, 0], mass)
-                        if pos != 0 and pos != len(data) - 1:
-                            intensity = data[pos, 1]
-                        else:
-                            intensity = 0
-                    else:
-                        mtest = np.abs(data[:, 0] - mass)
-                        btest = mtest < self.params[7]
-                        pint = data[btest]
-                        if not ud.isempty(pint):
-                            intensity = np.amax(pint[:, 1])
-                        else:
-                            intensity = 0
-                    self.igrid[i, j, k] = intensity
+            self.igrid[i] = ud.data_extract_grid(data, self.massgrid, extract_method=1, window=self.params[7])
         try:
             self.igrid /= np.amax(self.igrid)
         except Exception, e:

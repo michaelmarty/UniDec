@@ -10,7 +10,7 @@ from wx.lib.pubsub import pub
 import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 from unidec_modules import Extract2D, peakwidthtools, masstools, miscwindows, \
-    MassDefects, mainwindow, nativez, ManualSelectionWindow, AutocorrWindow, fft_window
+    MassDefects, mainwindow, nativez, ManualSelectionWindow, AutocorrWindow, fft_window, GridDecon
 from unidec_modules.isolated_packages import FileDialogs, texmaker, twitter_interface
 import datacollector
 import import_wizard
@@ -110,6 +110,7 @@ class UniDecApp(object):
             self.on_open_file(fname, newdir)
             self.on_auto(0)
             self.on_integrate()
+            self.on_grid_decon(0)
             # self.make_cube_plot(0)
             # self.on_plot_peaks(0)
 
@@ -1700,6 +1701,9 @@ class UniDecApp(object):
                 self.view.SetStatusText(outstring, number=5)
                 self.view.plot1.x1, self.view.plot1.x2 = None, None
         pass
+
+    def on_grid_decon(self, e):
+        GridDecon.GridDeconWindow(self.view, self.eng.data.data2, config=self.eng.config)
 
     def on_flip_mode(self, e):
         """

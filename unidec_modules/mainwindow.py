@@ -315,11 +315,16 @@ class Mainwindow(wx.Frame):
         self.experimentalmenu.AppendSeparator()
 
         self.menuerrors = self.experimentalmenu.Append(wx.ID_ANY, "Get Errors")
+        self.menucal = self.experimentalmenu.Append(wx.ID_ANY, "Apply Calibration")
+        self.Bind(wx.EVT_MENU, self.pres.on_calibrate, self.menucal)
+        self.experimentalmenu.AppendSeparator()
         self.menufft = self.experimentalmenu.Append(wx.ID_ANY, "FFT Window")
         self.Bind(wx.EVT_MENU, self.pres.on_fft_window, self.menufft)
 
-        self.menucal = self.experimentalmenu.Append(wx.ID_ANY, "Apply Calibration")
-        self.Bind(wx.EVT_MENU, self.pres.on_calibrate, self.menucal)
+
+
+        self.menugriddecon = self.experimentalmenu.Append(wx.ID_ANY, "Grid Deconvolution")
+        self.Bind(wx.EVT_MENU, self.pres.on_grid_decon, self.menugriddecon)
 
         # Setting Menu Bar
         self.menuBar = wx.MenuBar()
