@@ -104,6 +104,10 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
+v. 1.0.9
+
+Cleaned up single click mass calculations on the raw data plot so that a zoom out is not registered as a click. Control + click will register a click without zooming out.
+
 v. 1.0.8
 
 **Fixed Waters IM-MS conversion errors!** 
