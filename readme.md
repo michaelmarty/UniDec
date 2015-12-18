@@ -104,6 +104,12 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
+v. 1.0.8
+
+**Fixed Waters IM-MS conversion errors!** 
+Thanks to Tim Allison for teaming up to track down the source of these problems.
+It should now work for any IM-MS file, but it will require 64-bit in everything.
+
 v. 1.0.7
 
 Added a **mass tolerance on matching**. Now, matches that fail to come within a certain tolerance will be ignored. 
