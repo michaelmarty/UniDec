@@ -415,7 +415,7 @@ class UniDec:
             peaks[:, 1] = peaks[:, 1] / norm
             self.data.massdat[:, 1] = self.data.massdat[:, 1] / norm
         self.pks = peakstructure.Peaks()
-        self.pks.add_peaks(peaks)
+        self.pks.add_peaks(peaks, massbins=self.config.massbins)
         self.pks.default_params(cmap=self.config.peakcmap)
         ud.dataexport(peaks, self.config.peaksfile)
         # Generate Intensities of Each Charge State for Each Peak
@@ -462,7 +462,7 @@ class UniDec:
         # corr=np.correlate(self.data.massdat[:,1],self.data.massdat[:,1],mode="same")
         self.data.autocorr, cpeaks = ud.autocorr(massdat, self.config)
         self.autopeaks = peakstructure.Peaks()
-        self.autopeaks.add_peaks(cpeaks)
+        self.autopeaks.add_peaks(cpeaks, massbins=self.config.massbins)
         self.autopeaks.default_params()
         print "Autocorrelation:", [p.mass for p in self.autopeaks.peaks]
         return self.autopeaks.peaks[0].mass
@@ -741,7 +741,7 @@ class UniDec:
             np.savetxt(self.config.outfname + "_chargepeaks.txt", cpeaks)
             # com, std = self.center_of_mass(data=cpeaks)
             self.pks = peakstructure.Peaks()
-            self.pks.add_peaks(cpeaks)
+            self.pks.add_peaks(cpeaks, massbins=1)
             self.pks.default_params(self.config.peakcmap)
             for i, p in enumerate(self.pks.peaks):
                 p.stickdat = newgrid[:, i]

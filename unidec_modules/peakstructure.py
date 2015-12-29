@@ -73,11 +73,13 @@ class Peaks:
         self.colormap = []
         self.textmarkers = []
         self.marklen = 0
+        self.massbins = 0
 
-    def add_peaks(self, parray):
+    def add_peaks(self, parray, massbins=0):
         """
         Create peak objects from an array
         :param parray: N x 2 array containing (mass, height) of each peak.
+        :param massbins: Describes the precision of the mass inputs by describing the bin size on the mass axis.
         :return: None
         """
         for p in parray:
@@ -89,6 +91,7 @@ class Peaks:
         self.plen = len(self.peaks)
         self.convolved = False
         self.composite = None
+        self.massbins = massbins
 
     def default_params(self, cmap="rainbow"):
         """
@@ -141,7 +144,7 @@ class Peaks:
             boo3 = np.all([boo1, boo2, booi], axis=0)
             try:
                 p.score = np.sum((np.ones_like(p.mztab[boo3, 1]) - np.clip(
-                    np.abs((p.mztab[boo3, 1] - p.mztab2[boo3, 1])) / p.mztab2[boo3, 1], 0, 1)))
+                        np.abs((p.mztab[boo3, 1] - p.mztab2[boo3, 1])) / p.mztab2[boo3, 1], 0, 1)))
             except ZeroDivisionError:
                 p.score = 0
 

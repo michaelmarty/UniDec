@@ -106,6 +106,8 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 v. 1.0.9
 
+Small change in C code so that the peaks are now multiples of the mass bin size. Will need the updated [binary](http://unidec.chem.ox.ac.uk/).
+
 Cleaned up single click mass calculations on the raw data plot so that a zoom out is not registered as a click. Control + click will register a click without zooming out.
 
 v. 1.0.8
