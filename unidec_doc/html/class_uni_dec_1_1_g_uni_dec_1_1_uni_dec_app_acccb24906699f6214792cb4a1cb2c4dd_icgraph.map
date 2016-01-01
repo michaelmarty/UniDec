@@ -1,9 +1,0 @@
-<map id="UniDec.GUniDec.UniDecApp.on_reset" name="UniDec.GUniDec.UniDecApp.on_reset">
-<area shape="rect" id="node2" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#ab9b63fda6708bd74b56019d7993693eb" title="UniDec.GUniDec.UniDecApp.on\l_load_state" alt="" coords="285,5,491,47"/>
-<area shape="rect" id="node3" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a63e4c1c1ccd5f3b087249fee214ecd6a" title="UniDec.GUniDec.UniDecApp.on\l_load_default" alt="" coords="285,71,491,112"/>
-<area shape="rect" id="node5" href="$class_uni_dec_1_1unidec__modules_1_1nativez_1_1_native_z.html#a14f588747a9be5a3ece7f15195762e58" title="UniDec.unidec_modules.nativez.\lNativeZ.initialize_interface" alt="" coords="283,136,493,177"/>
-<area shape="rect" id="node6" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools1d.html#aab4d0213defd2f32205e05e64c5be717" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools1d.initialize_interface" alt="" coords="260,201,516,243"/>
-<area shape="rect" id="node7" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools2d.html#a8054bfcf237653422c51eb694d85853f" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools2d.initialize_interface" alt="" coords="564,289,820,331"/>
-<area shape="rect" id="node8" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools2d.html#ae9044104817f6bfeb11d7c364152b496" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools2d.on_flip" alt="" coords="260,319,516,360"/>
-<area shape="rect" id="node4" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#aacb45ae084252b7d1c780f5fd247aeae" title="UniDec.GUniDec.UniDecApp.init" alt="" coords="587,78,797,105"/>
-</map>

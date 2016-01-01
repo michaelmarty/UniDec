@@ -1,7 +1,0 @@
-<map id="UniDec.unidec_modules.ManualSelectionWindow.ManualSelection.on_plot" name="UniDec.unidec_modules.ManualSelectionWindow.ManualSelection.on_plot">
-<area shape="rect" id="node2" href="$namespace_uni_dec_1_1unidec__modules_1_1_manual_selection_window.html#a2ebf78cc6dcfefc590bfea08bcba9130" title="UniDec.unidec_modules.Manual\lSelectionWindow.detectoverlap" alt="" coords="337,5,545,47"/>
-<area shape="rect" id="node5" href="$namespace_uni_dec_1_1unidec__modules_1_1_manual_selection_window.html#a52191e29e8da2b32ac2d2890e7c0e0be" title="UniDec.unidec_modules.Manual\lSelectionWindow.correctassignments" alt="" coords="321,71,561,112"/>
-<area shape="rect" id="node3" href="$namespace_uni_dec_1_1unidec__modules_1_1_manual_selection_window.html#a3dd3d7b539a377240773b49968d7d7fb" title="UniDec.unidec_modules.Manual\lSelectionWindow.checkoverlap" alt="" coords="609,5,817,47"/>
-<area shape="rect" id="node4" href="$namespace_uni_dec_1_1unidec__modules_1_1_manual_selection_window.html#a72f7382612ffac89a3f83d9df7f264a8" title="UniDec.unidec_modules.Manual\lSelectionWindow.range_overlap" alt="" coords="865,5,1073,47"/>
-<area shape="rect" id="node6" href="$namespace_uni_dec_1_1unidec__modules_1_1_manual_selection_window.html#a4bfa801df2ec7a3553d4be14cc00f311" title="UniDec.unidec_modules.Manual\lSelectionWindow.closest" alt="" coords="609,71,817,112"/>
-</map>

@@ -1,8 +1,0 @@
-<map id="UniDec.unidec_modules.unidectools.data_extract" name="UniDec.unidec_modules.unidectools.data_extract">
-<area shape="rect" id="node2" href="$namespace_uni_dec_1_1unidec__modules_1_1unidectools.html#a845d05d10f0dcd45a75adb0f775739a1" title="UniDec.unidec_modules.unidectools.localmax" alt="" coords="325,5,613,32"/>
-<area shape="rect" id="node3" href="$namespace_uni_dec_1_1unidec__modules_1_1unidectools.html#a1086320e30d8e3878d620f7a76501c5e" title="UniDec.unidec_modules.unidectools.stepmax" alt="" coords="326,56,613,83"/>
-<area shape="rect" id="node4" href="$namespace_uni_dec_1_1unidec__modules_1_1unidectools.html#a1aef6306f6859a0c072307f5d5ba2eac" title="UniDec.unidec_modules.unidectools.integrate" alt="" coords="326,107,613,133"/>
-<area shape="rect" id="node5" href="$namespace_uni_dec_1_1unidec__modules_1_1unidectools.html#a38e7c269c0defeaba523b587f858746d" title="UniDec.unidec_modules.unidectools.center\l_of_mass" alt="" coords="333,158,605,199"/>
-<area shape="rect" id="node7" href="$namespace_uni_dec_1_1unidec__modules_1_1unidectools.html#a457ab122ec9601016ab45c6e8f29f477" title="UniDec.unidec_modules.unidectools.localmaxpos" alt="" coords="315,224,624,251"/>
-<area shape="rect" id="node6" href="$namespace_uni_dec_1_1unidec__modules_1_1unidectools.html#a62d89448acdebf10747cd8a8007e9efb" title="UniDec.unidec_modules.unidectools.weighted_std" alt="" coords="672,165,984,192"/>
-</map>

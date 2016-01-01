@@ -1,7 +1,0 @@
-<map id="UniDec.unidec.UniDec.process_data" name="UniDec.unidec.UniDec.process_data">
-<area shape="rect" id="node2" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#a0cb3bacc29fcc5279c546f38f5cfc556" title="UniDec.GUniDec.UniDecApp.export\l_config" alt="" coords="288,5,517,47"/>
-<area shape="rect" id="node3" href="$class_uni_dec_1_1unidec_1_1_uni_dec.html#a154034708376d04d9ba9e2bab7289bea" title="UniDec.unidec.UniDec.export\l_config" alt="" coords="307,71,499,112"/>
-<area shape="rect" id="node4" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#ace2a88369920c956fbe673b940d5a506" title="UniDec.GUniDec.UniDecApp.check\l_badness" alt="" coords="289,136,517,177"/>
-<area shape="rect" id="node6" href="$class_uni_dec_1_1unidec_1_1_uni_dec.html#a586e618101c3538ae5397a250e012e63" title="UniDec.unidec.UniDec.check\l_badness" alt="" coords="307,201,498,243"/>
-<area shape="rect" id="node5" href="$class_uni_dec_1_1_g_uni_dec_1_1_uni_dec_app.html#afae2a6fb8eb66efb62d5ba4b6f293030" title="UniDec.GUniDec.UniDecApp.warn" alt="" coords="565,143,785,170"/>
-</map>

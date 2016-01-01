@@ -1,8 +1,0 @@
-<map id="UniDec.unidec_modules.unidectools.simp_string_to_value" name="UniDec.unidec_modules.unidectools.simp_string_to_value">
-<area shape="rect" id="node2" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools1d.html#a64462abb39406b5c3edfd6e034e062de" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools1d.on_close" alt="" coords="317,5,573,47"/>
-<area shape="rect" id="node5" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools1d.html#a673259de93d13667df3c70768e3e153c" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools1d.on_plot" alt="" coords="317,71,573,112"/>
-<area shape="rect" id="node6" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools2d.html#a95c586611db7fa19815344e6a402e8b0" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools2d.on_close" alt="" coords="317,136,573,177"/>
-<area shape="rect" id="node7" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools2d.html#ae38a6e18bd8ec0c0bf0f6ad3747e5f6b" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools2d.on_plot" alt="" coords="317,201,573,243"/>
-<area shape="rect" id="node3" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools1d.html#aab4d0213defd2f32205e05e64c5be717" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools1d.initialize_interface" alt="" coords="621,23,877,64"/>
-<area shape="rect" id="node4" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools2d.html#a8054bfcf237653422c51eb694d85853f" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools2d.initialize_interface" alt="" coords="621,120,877,161"/>
-</map>

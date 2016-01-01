@@ -1,9 +1,0 @@
-<map id="UniDec.unidec_modules.PlottingWindow.PlottingWindow.clear_plot" name="UniDec.unidec_modules.PlottingWindow.PlottingWindow.clear_plot">
-<area shape="rect" id="node2" href="$class_uni_dec_1_1unidec__modules_1_1plot1d_1_1_plot1d.html#adbb157c158fd9d26712fba380b5eb382" title="UniDec.unidec_modules.plot1d.\lPlot1d.plotrefreshtop" alt="" coords="276,5,481,47"/>
-<area shape="rect" id="node4" href="$class_uni_dec_1_1unidec__modules_1_1plot1d_1_1_plot1d.html#a9b0bbb26eed816cd99fc3ee7fcef7312" title="UniDec.unidec_modules.plot1d.\lPlot1d.histogram" alt="" coords="276,71,481,112"/>
-<area shape="rect" id="node5" href="$class_uni_dec_1_1unidec__modules_1_1plot1d_1_1_plot1d.html#a0d4ecb314395fb6d845521d770878fac" title="UniDec.unidec_modules.plot1d.\lPlot1d.barplottop" alt="" coords="276,136,481,177"/>
-<area shape="rect" id="node6" href="$class_uni_dec_1_1unidec__modules_1_1plot2d_1_1_plot2d.html#ae38cd5ad1cd12fd0ef940a8345c1908d" title="UniDec.unidec_modules.plot2d.\lPlot2d.contourplot" alt="" coords="276,201,481,243"/>
-<area shape="rect" id="node8" href="$class_uni_dec_1_1unidec__modules_1_1plot3d_1_1_cube_plot.html#a8c02b303139191d97f0ee5235d792e4d" title="UniDec.unidec_modules.plot3d.\lCubePlot.cubeplot" alt="" coords="276,267,481,308"/>
-<area shape="rect" id="node3" href="$class_uni_dec_1_1unidec__modules_1_1plot1d_1_1_plot1d.html#a7a1a69f6af55c446f938af82b9fb96c8" title="UniDec.unidec_modules.plot1d.\lPlot1d.__init__" alt="" coords="529,5,735,47"/>
-<area shape="rect" id="node7" href="$class_uni_dec_1_1unidec__modules_1_1plot2d_1_1_plot2d.html#ac66b98ae8813e973ed3d018bf6d81fd4" title="UniDec.unidec_modules.plot2d.\lPlot2d.__init__" alt="" coords="529,201,735,243"/>
-</map>

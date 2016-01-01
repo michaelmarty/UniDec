@@ -1,6 +1,0 @@
-<map id="UniDec.unidec_modules.PlotAnimations.AnimationWindow.update" name="UniDec.unidec_modules.PlotAnimations.AnimationWindow.update">
-<area shape="rect" id="node2" href="$class_uni_dec_1_1unidec__modules_1_1isolated__packages_1_1_zoom_span_1_1_zoom_span.html#aaf3c1b1025ceb8425a37f4591bc249ff" title="UniDec.unidec_modules.isolated\l_packages.ZoomSpan.ZoomSpan.onmove" alt="" coords="292,5,557,47"/>
-<area shape="rect" id="node4" href="$class_uni_dec_1_1unidec__modules_1_1_plot_animations_1_1_animation_window.html#a032cc6e24a7f1c17cf42899f9b294ad8" title="UniDec.unidec_modules.Plot\lAnimations.AnimationWindow.init" alt="" coords="317,71,533,112"/>
-<area shape="rect" id="node5" href="$class_uni_dec_1_1unidec__modules_1_1_plot_animations_1_1_animation_window.html#a21dd1b45ace7a65f8ebd4868b453bef1" title="UniDec.unidec_modules.Plot\lAnimations.AnimationWindow.update\l_framerate" alt="" coords="305,137,544,193"/>
-<area shape="rect" id="node3" href="$class_uni_dec_1_1unidec__modules_1_1isolated__packages_1_1_zoom_span_1_1_zoom_span.html#a3fe762d8c2638929ccec209a8dc5ada7" title="UniDec.unidec_modules.isolated\l_packages.ZoomSpan.ZoomSpan.new_axes" alt="" coords="605,5,884,47"/>
-</map>
