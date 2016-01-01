@@ -65,7 +65,7 @@ We utilize [pymzML](http://pymzml.github.io/intro.html#general-information) for 
 
 ##UniDec Documentation
 
-This documentation is for the Python engine and GUI.
+Documentation is for the Python engine and GUI and can be found at http://michaelmarty.github.io/UniDecDocumentation/.
 
 My goal is that this documentation will allow you to utilize the power of the UniDec python engine for scripting data analysis routines and performing custom analysis. Also, it will allow you to add new modules to the UniDec GUI.
 
