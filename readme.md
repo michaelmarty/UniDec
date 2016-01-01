@@ -41,11 +41,27 @@ These binaries are available for download at [unidec.chem.ox.ac.uk](http://unide
 
 These binaries should be deposited in the /unidec_bin directory once downloaded. 
  
-If you want to convert Waters .Raw files, you will also need to add cdt.dll (for IM-MS) and MassLynxRaw.dll (for MS) to the same directory.
-These files can be found [here](http://www.waters.com/waters/supportList.htm?cid=511442&locale=en_GB&filter=documenttype|DWNL&locale=en_GB) with support numbers DWNL134825112 and DWNL134815627.
-Unfortunately, the libraries provided by Waters do not work on certain instruments, such as the G2-Si. 
+If you want to convert Waters .Raw files, you will also need to add cdt.dll (for IM-MS) and MassLynxRaw.dll (for MS) to the same directory. These files can be found [here](http://www.waters.com/waters/supportList.htm?cid=511442&locale=en_GB&filter=documenttype|DWNL&locale=en_GB) with support numbers DWNL134825112 and DWNL134815627. See below for more specifics. 
 
 I have binaries built for Mac and Linux as well. They are a bit slower than the Windows version because they are compiled with gcc rather than the Intel C Compiler, but they are perfectly functional and still pretty darn fast. I can send these to you on request.
+
+## Compatible File Types
+
+UniDec is built to open .txt files using [numpy.loadtxt](http://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.loadtxt.html). 
+
+For MS data, it opens a two-column either a tab or space delimited list of m/z and intensity values.
+
+For IM-MS, it will open a three-column tab or space delminated list of m/z, arrival time (or bin), and intensity values. Sparse matrices are fine for IM-MS. 
+
+Recent versions are compatible with a text header at the beginning of the file. It will skip lines until it reaches the start of the data.
+
+For Water's .raw files, UniDec is bundled with converters (CDCReader.exe and rawreader.exe) to convert the data to .txt. It will compress the retention time dimension into a single spectrum. A single file can be opened directly, or mulitiple files can be converted using Tools > Simple Batch Process Raw to Txt. For a fancier conversion such as extracting specific functions or scans, try Tools > Raw to Txt Conversion Wizard.
+
+Water's converters will need [MassLynxRaw.dll](https://www.waters.com/waters/support.htm?locale=en_GB&lid=134815627&cid=511442&type=DWNL) (32-bit, for MS) and/or [cdt.dll](https://www.waters.com/waters/support.htm?locale=en_GB&lid=134825112&cid=511442&type=DWNL) (64-bit, for IM-MS) in the same directory as the converter executables (the unidec_bin folder or the top directory).
+
+For Thermo .raw files, we do not currently have the conversion libraries built in (an enterprising developer should take this on...). 
+The best way to load these files is to convert to mzML using [Proteowizard](http://proteowizard.sourceforge.net/). UniDec will open mzML file as if they are a text file.
+We utilize [pymzML](http://pymzml.github.io/intro.html#general-information) for this. Cite them at: *Bald, T., Barth, J., Niehues, A., Specht, M., Hippler, M., and Fufezan, C. (2012) pymzML - Python module for high throughput bioinformatics on mass spectrometry data, Bioinformatics, doi: 10.1093/bioinformatics/bts066.*
 
 ##UniDec Documentation
 
@@ -103,6 +119,10 @@ Commercial licensing is available. Details are provided at the bottom of the Aca
 The Python GUI and engine are licensed under the [GNU Public License (v.3)](http://www.gnu.org/licenses/gpl-3.0.en.html).
 
 ## Change Log
+
+v. 1.0.10
+
+Added preset defaults for the **Exactive EMR** under "High-resolution Native". The previous high-resolution preset is now "Isotopic Resolution". 
 
 v. 1.0.9
 

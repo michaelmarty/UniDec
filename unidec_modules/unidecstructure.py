@@ -567,8 +567,27 @@ class UniDecConfig:
         :return: None
         """
         # Interpolate Spectrum at higher resolution
-        self.mzbins = 0.05
-        self.linflag = 3
+        self.mzbins = 0
+        self.linflag = 2
+        self.adductmass = 1.007276467
+        # Narrow Charge and Mass Range
+        self.startz = 1
+        self.endz = 50
+        self.massub = 500000
+        self.masslb = 1000
+        # Increase mass resolution and lower peak shape
+        self.massbins = 10
+        self.mzsig = 5
+        self.psfun = 0
+
+    def default_isotopic_res(self):
+        """
+        Sets some defaults for isotopic resolution spectra. Leaves other values unchanged.
+        :return: None
+        """
+        # Interpolate Spectrum at higher resolution
+        self.mzbins = 0
+        self.linflag = 2
         self.adductmass = 1.007276467
         # Narrow Charge and Mass Range
         self.startz = 1
@@ -579,6 +598,7 @@ class UniDecConfig:
         self.massbins = 0.1
         self.mzsig = 0.1
         self.psfun = 0
+        self.isotopemode = 1
 
     def default_zero_charge(self):
         """

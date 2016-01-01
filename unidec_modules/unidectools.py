@@ -337,7 +337,7 @@ def simple_extract(data, x, zero_edge=True):
     return val
 
 
-def data_extract(data, x, extract_method, window=None,**kwargs):
+def data_extract(data, x, extract_method, window=None, **kwargs):
     """
     Assumes a sorted array in data[:,0]
     :param data:
@@ -354,8 +354,8 @@ def data_extract(data, x, extract_method, window=None,**kwargs):
             if window == 0:
                 val = simple_extract(data, x, **kwargs)
             else:
-                start = nearest(data[:, 0],(x - window))
-                end = nearest(data[:, 0],(x + window))
+                start = nearest(data[:, 0], (x - window))
+                end = nearest(data[:, 0], (x + window))
                 val = localmax(data[:, 1], start, end)
         else:
             index = nearest(data[:, 0], x)
@@ -400,7 +400,7 @@ def data_extract_grid(data, xarray, extract_method=1, window=0):
     for j in xrange(0, dims[0]):
         for k in xrange(0, dims[1]):
             x = xarray[j, k]
-            igrid[ j, k] = data_extract(data, x, extract_method=extract_method, window=window)
+            igrid[j, k] = data_extract(data, x, extract_method=extract_method, window=window)
     return igrid
 
 
@@ -705,6 +705,116 @@ def datacompsub(datatop, buff):
     return datatop
 
 
+def calc_local_mins(data, w):
+    start = np.amin(data[:, 0])
+    stop = np.amax(data[:, 0])
+    windows = np.arange(start, stop, step=w)
+
+    localmins = []
+    for winstart in windows:
+        chopdata = datachop(data, winstart, winstart + w)
+        localmin = np.amin(chopdata[:, 1])
+        localminpos = chopdata[np.argmin(chopdata[:, 1]), 0]
+        localmins.append([localminpos, localmin])
+    return np.array(localmins)
+
+
+def polynomial_background_subtract(datatop, polynomial_order=4, width=20, cutoff_percent=0.25):
+    starting_max = np.amax(datatop[:, 1])
+
+    mindat = calc_local_mins(datatop, width)
+    coeff = np.polyfit(mindat[:, 0], mindat[:, 1], polynomial_order)
+    fitdat = np.polyval(coeff, mindat[:, 0])
+    sse = (mindat[:, 1] - fitdat) / fitdat
+    good = sse < cutoff_percent
+    bad = np.logical_not(good)
+    baddat = mindat[bad]
+    gooddat = mindat[good]
+    while len(baddat) > 1:
+        coeff = np.polyfit(gooddat[:, 0], gooddat[:, 1], polynomial_order)
+        fitdat = np.polyval(coeff, gooddat[:, 0])
+        sse = (gooddat[:, 1] - fitdat) / fitdat
+        good = sse < cutoff_percent
+        bad = sse >= cutoff_percent
+        baddat = gooddat[bad]
+        gooddat = gooddat[good]
+    coeff = np.polyfit(gooddat[:, 0], gooddat[:, 1], polynomial_order)
+    background = np.clip(np.polyval(coeff, datatop[:, 0]), 0, starting_max)
+    datatop[:, 1] = np.clip(datatop[:, 1] - background, 0, starting_max)
+    return datatop
+
+
+def savgol(ydata, window=None, order=2):
+    # Perform a series of checks to make sure we have enough data points and a sufficient window
+    if len(ydata) < 2:
+        return ydata
+    if len(ydata) < int(order) * 2 + 1:
+        order = round((len(ydata) - 1) / 2)
+        window = None
+    if window is None or window < order:
+        window = int(order) * 2 + 1
+    else:
+        window = round((window - 1) / 2.) * 2 + 1
+    # Execute the filter
+    return signal.savgol_filter(ydata, window, order)
+
+
+def savgol_background_subtract(datatop, width, cutoff_percent=0.25):
+    starting_max = np.amax(datatop[:, 1])
+    sgorder = 2
+    buff = sgorder * 2 + 1
+
+    datatop[:, 1] = savgol(datatop[:, 1], window=buff, order=sgorder)
+
+    meddat = calc_local_mins(datatop, width)
+    # It is important to keep the end values to allow for interpolation in the end
+    firstpoint = [datatop[0]]
+    lastpoint = [datatop[len(datatop) - 1]]
+    if firstpoint not in meddat:
+        meddat = np.concatenate((firstpoint, meddat))
+    if lastpoint not in meddat:
+        meddat = np.concatenate((meddat, lastpoint))
+
+    def keep_the_extremes(good, bad):
+        good[0] = True
+        bad[0] = False
+        good[len(good) - 1] = True
+        bad[len(good) - 1] = False
+
+    sgsmooth = savgol(meddat[:, 1], window=buff, order=sgorder)
+    sse = (meddat[:, 1] - sgsmooth) / sgsmooth
+    good = sse < cutoff_percent
+    bad = np.logical_not(good)
+    keep_the_extremes(good, bad)
+    baddat = meddat[bad]
+    gooddat = meddat[good]
+
+    # import matplotlib.pyplot as plt
+    # plt.plot(datatop[:, 0], datatop[:, 1])
+    # plt.plot(gooddat[:, 0], gooddat[:, 1], marker="o", linestyle="", color="k")
+    while len(baddat) > 1 and len(gooddat) > int(buff):
+        sgsmooth = savgol(gooddat[:, 1], window=buff, order=sgorder)
+        sse = (gooddat[:, 1] - sgsmooth) / sgsmooth
+        good = sse < cutoff_percent
+        bad = sse >= cutoff_percent
+        keep_the_extremes(good, bad)
+        baddat = gooddat[bad]
+        gooddat = gooddat[good]
+        # plt.plot(gooddat[:,0],gooddat[:,1],marker="o",linestyle="")
+    sgsmooth = savgol(gooddat[:, 1], window=buff, order=sgorder)
+    f = interp1d(gooddat[:, 0], sgsmooth, kind="linear", fill_value=0, bounds_error=True)
+    background = f(datatop[:, 0])
+    background = savgol(background, window=buff, order=sgorder)
+    background = np.clip(background, 0, starting_max)
+    datatop[:, 1] = np.clip(datatop[:, 1] - background, 0, starting_max)
+    # plt.plot(datatop[:, 0], background, color="r")
+    # plt.plot(gooddat[:, 0], sgsmooth, color="r", marker="o", linestyle="")
+    # plt.plot(datatop[:, 0], datatop[:, 1],color = "k")
+    # plt.show()
+
+    return datatop
+
+
 def intensitythresh(datatop, thresh):
     """
     Sets an intensity threshold. Everything below the threshold is set to 0.
@@ -958,6 +1068,12 @@ def dataprep(datatop, config):
         data2 = datacompsub(data2, buff)
     elif subtype == 0 and buff != 0:
         data2[:, 1] = data2[:, 1] - np.amin(data2[:, 1])
+    elif subtype == 4 and buff != 0:
+        data2 = polynomial_background_subtract(data2, buff)
+    elif subtype == 3 and buff != 0:
+        data2 = savgol_background_subtract(data2, buff)
+    else:
+        print "Background subtraction code unsupported"
 
     # Normalization
     data2 = normalize(data2)

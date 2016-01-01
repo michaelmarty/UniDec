@@ -84,6 +84,9 @@ class Mainwindow(wx.Frame):
         self.imflag = self.config.imflag
         self.twave = self.config.twaveflag
 
+        self.backgroundchoices = ["Subtract Minimum", "Subtract Line",
+                                  "Subtract Curved"]  # , "Subtract SavGol","Subtract Polynomial"]
+
         pub.subscribe(self.on_motion, 'newxy')
 
         self.setup_menu()
@@ -150,9 +153,12 @@ class Mainwindow(wx.Frame):
 
         # Default Submenu
         self.defaultmenu = wx.Menu()
-        self.menuDefault1 = self.defaultmenu.Append(1000, "High Resolution", "Defaults for high resolution data.")
+        self.menuDefault1 = self.defaultmenu.Append(1000, "High-resolution Native",
+                                                    "Defaults for high-resolution data (Exactive EMR).")
         self.menuDefault2 = self.defaultmenu.Append(1001, "Zero-Charge Mass Deisotoping",
                                                     "Defaults for loading zero-charge mass spectrum as output")
+        self.menuDefault3 = self.defaultmenu.Append(1002, "Isotopic Resolution",
+                                                    "Defaults for isotopically resolved data.")
         self.filemenu.AppendMenu(wx.ID_ANY, "Presets", self.defaultmenu)
         self.filemenu.AppendSeparator()
 
@@ -321,8 +327,6 @@ class Mainwindow(wx.Frame):
         self.menufft = self.experimentalmenu.Append(wx.ID_ANY, "FFT Window")
         self.Bind(wx.EVT_MENU, self.pres.on_fft_window, self.menufft)
 
-
-
         self.menugriddecon = self.experimentalmenu.Append(wx.ID_ANY, "Grid Deconvolution")
         self.Bind(wx.EVT_MENU, self.pres.on_grid_decon, self.menugriddecon)
 
@@ -381,6 +385,7 @@ class Mainwindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.pres.on_manual, self.menuManualFile)
         self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault1)
         self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault2)
+        self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault3)
         self.Bind(wx.EVT_MENU, self.on_save_figure_dialog, self.menufigdialog)
         self.Bind(wx.EVT_MENU, self.pres.on_import_wizard, self.menuImportWizard)
         pass
@@ -396,6 +401,8 @@ class Mainwindow(wx.Frame):
             self.config.default_high_res()
         elif nid == 1:
             self.config.default_zero_charge()
+        elif nid == 2:
+            self.config.default_isotopic_res()
         self.pres.import_config(None)
 
     # noinspection PyPep8,PyPep8
@@ -664,7 +671,7 @@ class Mainwindow(wx.Frame):
         else:
             self.imflag = 0
 
-        self.subtypectl = wx.Choice(panel1, -1, choices=["Subtract Minimum", "Subtract Line", "Subtract Curved"])
+        self.subtypectl = wx.Choice(panel1, -1, choices=self.backgroundchoices)
         self.dataprepbutton = wx.Button(panel1, -1, "Process Data")
         self.Bind(wx.EVT_BUTTON, self.pres.on_dataprep_button, self.dataprepbutton)
         self.ctlbuff = wx.TextCtrl(panel1, value="", size=size1)
@@ -1063,45 +1070,45 @@ class Mainwindow(wx.Frame):
         :return: None
         """
         self.ctlthresh2.SetToolTip(wx.ToolTip(
-            "Set threshold for peaks to be plotted in m/z. Peak at given charge state must be greater than threshold * maximum m/z intensity."))
+                "Set threshold for peaks to be plotted in m/z. Peak at given charge state must be greater than threshold * maximum m/z intensity."))
         self.ctlsep.SetToolTip(wx.ToolTip("Set distance between isolated peak m/z plots."))
         self.ctlwindow.SetToolTip(
-            wx.ToolTip("Peak detection window. Peak must be maximum in a +/- window range in mass (Da)."))
+                wx.ToolTip("Peak detection window. Peak must be maximum in a +/- window range in mass (Da)."))
         self.ctlthresh.SetToolTip(wx.ToolTip(
-            "Peak detection threshold. Peak's intensity must be great than threshold times maximum mass intensity."))
+                "Peak detection threshold. Peak's intensity must be great than threshold times maximum mass intensity."))
         self.plotbutton.SetToolTip(wx.ToolTip("Pick peaks and plot. (Ctrl+P)"))
         self.plotbutton2.SetToolTip(wx.ToolTip("Plot individual peak species in m/z. (Ctrl+K)"))
         self.ctlmasslistflag.SetToolTip(wx.ToolTip(
-            "Limit deconvolution to specific masses +/- some window.\nDefine in Tools>Oligomer and Mass Tools."))
+                "Limit deconvolution to specific masses +/- some window.\nDefine in Tools>Oligomer and Mass Tools."))
         self.ctlmtabsig.SetToolTip(
-            wx.ToolTip("Set window for mass limitations. Setting to 0 will force only listed masses."))
+                wx.ToolTip("Set window for mass limitations. Setting to 0 will force only listed masses."))
         self.ctlpsfun.SetToolTip(wx.ToolTip("Expected peak shape.\nSee Tools>Peak Width Tool for more tools."))
         self.rununidec.SetToolTip(wx.ToolTip("Write Configuration File, Run UniDec, and Plot Results. (Ctrl+R)"))
         self.ctlmzsig.SetToolTip(wx.ToolTip(
-            "Expected peak FWHM in m/z (Th).\nFor nonlinear mode, minimum FWHM\nSee Tools>Peak Width Tool for more tools."))
+                "Expected peak FWHM in m/z (Th).\nFor nonlinear mode, minimum FWHM\nSee Tools>Peak Width Tool for more tools."))
         self.ctlzzsig.SetToolTip(wx.ToolTip(
-            "Parameter for defining the width of the charge state smooth.\nUniDec will use a mean filter of width 2n+1 on log_e of the charge distribution"))
+                "Parameter for defining the width of the charge state smooth.\nUniDec will use a mean filter of width 2n+1 on log_e of the charge distribution"))
         self.ctlmassub.SetToolTip(wx.ToolTip(
-            "Maximum allowed mass in deconvolution.\nTip: A negative value will force the axis to the absolute value."))
+                "Maximum allowed mass in deconvolution.\nTip: A negative value will force the axis to the absolute value."))
         self.ctlmassbins.SetToolTip(wx.ToolTip("Sets the resolution of the zero-charge mass spectrum"))
         self.ctlmasslb.SetToolTip(wx.ToolTip(
-            "Minimum allowed mass in deconvolution.\nTip: A negative value will force the axis to the absolute value."))
+                "Minimum allowed mass in deconvolution.\nTip: A negative value will force the axis to the absolute value."))
         self.ctlstartz.SetToolTip(wx.ToolTip("Minimum allowed charge state in deconvolution."))
         self.ctlendz.SetToolTip(wx.ToolTip("Maximum allowed charge state in deconvolution."))
         self.ctlsmooth.SetToolTip(wx.ToolTip("Gaussian smooth sigma in units of data point number."))
         self.ctlbinsize.SetToolTip(wx.ToolTip(
-            "Controls Linearization.\nConstant bin size (Th) for Linear m/z\nMinimum bin size (Th) for Linear Resolution\nNumber of data points compressed together for Nonlinear"))
+                "Controls Linearization.\nConstant bin size (Th) for Linear m/z\nMinimum bin size (Th) for Linear Resolution\nNumber of data points compressed together for Nonlinear"))
         self.ctlintthresh.SetToolTip(
-            wx.ToolTip("Set intensity threshold. Data points below threshold are excluded from deconvolution."))
+                wx.ToolTip("Set intensity threshold. Data points below threshold are excluded from deconvolution."))
         self.ctlbuff.SetToolTip(wx.ToolTip(
-            "Background subtraction parameters.\nMinimum: 0=off 1=on\nLine: The first and last n data points will be averaged;\n a line between the two averages will be subtracted.\nCurved: Width of smoothed background"))
+                "Background subtraction parameters.\nMinimum: 0=off 1=on\nLine: The first and last n data points will be averaged;\n a line between the two averages will be subtracted.\nCurved: Width of smoothed background"))
         self.ctlminmz.SetToolTip(wx.ToolTip("Set minimum m/z of data"))
         self.ctlmaxmz.SetToolTip(wx.ToolTip("Set maximum m/z of data"))
         self.dataprepbutton.SetToolTip(
-            wx.ToolTip("Subtract, linearize, smooth, threshold, and write data to file. (Ctrl+D)"))
+                wx.ToolTip("Subtract, linearize, smooth, threshold, and write data to file. (Ctrl+D)"))
         self.ctladductmass.SetToolTip(wx.ToolTip("Mass of charge carrying adduct;\ntypically the mass of a proton"))
         self.ctlaccelvolt.SetToolTip(
-            wx.ToolTip("QToF Acceleration Voltage: When set, will correct data for detector efficiency"))
+                wx.ToolTip("QToF Acceleration Voltage: When set, will correct data for detector efficiency"))
         self.ctlmsig.SetToolTip(wx.ToolTip("Width of Mass Smooth Filter"))
         self.ctlmolig.SetToolTip(wx.ToolTip("Mass difference used for Mass Smooth Filter"))
         self.ctlminnativez.SetToolTip(wx.ToolTip("Minimum offset from a native charge state"))
@@ -1110,21 +1117,22 @@ class Mainwindow(wx.Frame):
             self.ctlisotopemode.SetToolTip(wx.ToolTip("Use isotopic distributions in deconvolution"))
             self.ctlmanualassign.SetToolTip(wx.ToolTip("Use manual assignments. See Tools>Manual Assignment"))
             self.ctlbintype.SetToolTip(wx.ToolTip(
-                "Sets how to bin the data\nValue set by above with Bin Every\nLinear bins with linear m/z axis\nLinear Resolution bins with m/z axis that has a constant resolution\nNonlinear merges adjacent data points\nInterpolation uses the same axes but with interpolation instead of integration"))
+                    "Sets how to bin the data\nValue set by above with Bin Every\nLinear bins with linear m/z axis\nLinear Resolution bins with m/z axis that has a constant resolution\nNonlinear merges adjacent data points\nInterpolation uses the same axes but with interpolation instead of integration"))
         self.ctlnumit.SetToolTip(wx.ToolTip(
-            "Maximum number of iterations. Note: Deconvolution will stop automically before this if it converges."))
+                "Maximum number of iterations. Note: Deconvolution will stop automically before this if it converges."))
         self.ctldiscrete.SetToolTip(wx.ToolTip("Set 2D plots to discrete rather than continuous"))
         self.ctlpublicationmode.SetToolTip(wx.ToolTip("Set plots to look good for publication rather than utility"))
         self.ctlrawflag.SetToolTip(
-            wx.ToolTip("Decide whether to outputs should be reconvolved with the peak shape or the raw deconvolution"))
+                wx.ToolTip(
+                        "Decide whether to outputs should be reconvolved with the peak shape or the raw deconvolution"))
         self.ctl2dcm.SetToolTip(wx.ToolTip("Set 2D plot color function"))
         self.ctlpeakcm.SetToolTip(wx.ToolTip("Set the color function for the peaks"))
         self.ctlintlb.SetToolTip(wx.ToolTip(
-            "Controls range for integration.\nDefault is +/- Peak Detection Window.\nUses these boxes to manually set - and +"))
+                "Controls range for integration.\nDefault is +/- Peak Detection Window.\nUses these boxes to manually set - and +"))
         self.ctlintub.SetToolTip(wx.ToolTip(
-            "Controls range for integration.\nDefault is +/- Peak Detection Window.\nUses these boxes to manually set - and +"))
+                "Controls range for integration.\nDefault is +/- Peak Detection Window.\nUses these boxes to manually set - and +"))
         self.ctlnorm.SetToolTip(wx.ToolTip(
-            "Sets normalization of mass data.\nMaximum will normalize so that the maximum value is %100.\nTotal will normalize so that the sum of all peaks is %100"))
+                "Sets normalization of mass data.\nMaximum will normalize so that the maximum value is %100.\nTotal will normalize so that the sum of all peaks is %100"))
         self.replotbutton.SetToolTip(wx.ToolTip("Replot some of the plots. (Ctrl+N)"))
         self.compositebutton.SetToolTip(wx.ToolTip("Plot composite of simulated spectra from selected peaks. (Ctrl+C)"))
         self.openbutton.SetToolTip(wx.ToolTip("Open .txt or .mzML file (Ctrl+O)"))
@@ -1139,7 +1147,8 @@ class Mainwindow(wx.Frame):
             self.ctlsubbuffdt.SetToolTip(wx.ToolTip("Same as for m/z but in the arrival time dimension"))
             self.ctlsmoothdt.SetToolTip(wx.ToolTip("Same as for m/z but in the arrival time dimension"))
             self.ctlpusher.SetToolTip(
-                wx.ToolTip("Pusher interval to convert ion mobility bin number into arrival time.\nAT=Pusher*Bin/1000"))
+                    wx.ToolTip(
+                            "Pusher interval to convert ion mobility bin number into arrival time.\nAT=Pusher*Bin/1000"))
             self.ctltwave.SetToolTip(wx.ToolTip("Change between Linear Cell and Travelling Wave"))
             if self.twave == 0:
                 self.ctlvolt.SetToolTip(wx.ToolTip("Linear voltage across drift cell."))
@@ -1161,7 +1170,7 @@ class Mainwindow(wx.Frame):
             self.ctlnativeccslb.SetToolTip(wx.ToolTip("Sets lower bound on offset from native CCS."))
             self.ctlnativeccsub.SetToolTip(wx.ToolTip("Sets upper bound on offset from native CCS."))
         self.ctlpoolflag.SetToolTip(wx.ToolTip(
-            "Sets type of conversion from m/z to mass.\nIntegration:\n\tEach m/z bin goes to the nearest mass bin\n\tBest for undersampled masses\nInterpolation:\n\tEach mass value interpolates its value in m/z space\n\tBest for oversampled mass data"))
+                "Sets type of conversion from m/z to mass.\nIntegration:\n\tEach m/z bin goes to the nearest mass bin\n\tBest for undersampled masses\nInterpolation:\n\tEach mass value interpolates its value in m/z space\n\tBest for oversampled mass data"))
         pass
 
     def import_config_to_gui(self):
@@ -1219,7 +1228,6 @@ class Mainwindow(wx.Frame):
                 self.ctl2dcm.SetSelection(self.config.cmaps.index("spectral"))
                 self.ctlpeakcm.SetSelection(self.config.cmaps.index("rainbow"))
 
-
             if self.config.imflag == 1:
                 self.ctlpusher.SetValue(str(self.config.pusher))
                 self.ctlsubbuffdt.SetValue(str(self.config.subbufdt))
@@ -1262,7 +1270,8 @@ class Mainwindow(wx.Frame):
 
             if self.config.msig > 0:
                 self.SetStatusText(
-                    "Oligomer Blur Mass: " + str(self.config.molig) + " Std Dev: " + str(self.config.msig), number=4)
+                        "Oligomer Blur Mass: " + str(self.config.molig) + " Std Dev: " + str(self.config.msig),
+                        number=4)
             else:
                 self.SetStatusText(" ", number=4)
         # If the batchflag is not 1, it will import the data range as well
