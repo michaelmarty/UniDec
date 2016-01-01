@@ -1,6 +1,0 @@
-<map id="UniDec.unidec_modules.UniFit.GetDegenKD" name="UniDec.unidec_modules.UniFit.GetDegenKD">
-<area shape="rect" id="node2" href="$namespace_uni_dec_1_1unidec__modules_1_1_uni_fit.html#a20d2c96a6a3ce74770c41fa49ca270bf" title="UniDec.unidec_modules.Uni\lFit.Minimize" alt="" coords="239,39,424,80"/>
-<area shape="rect" id="node3" href="$namespace_uni_dec_1_1unidec__modules_1_1_uni_fit.html#a7f5dfc20dc5f0e03356e189298a83584" title="UniDec.unidec_modules.Uni\lFit.BootMin" alt="" coords="472,5,657,47"/>
-<area shape="rect" id="node5" href="$namespace_uni_dec_1_1unidec__modules_1_1_uni_fit.html#a0a803eb205609cc27b027d37135d8b31" title="UniDec.unidec_modules.Uni\lFit.BootMinWorker" alt="" coords="472,71,657,112"/>
-<area shape="rect" id="node4" href="$class_uni_dec_1_1unidec__modules_1_1_uni_fit_1_1_k_dmodel.html#ac5e05a1c678541c2db951d6dda8450bc" title="UniDec.unidec_modules.Uni\lFit.KDmodel.Bootstrap" alt="" coords="705,5,891,47"/>
-</map>

@@ -1,7 +1,0 @@
-<map id="UniDec.unidec_modules.PlottingWindow.PlottingWindow.__init__" name="UniDec.unidec_modules.PlottingWindow.PlottingWindow.__init__">
-<area shape="rect" id="node2" href="$class_uni_dec_1_1unidec__modules_1_1_plotting_window_1_1_plotting_window.html#af6f9629a25afdf1e33eb5ff3d4bc3cdf" title="UniDec.unidec_modules.Plotting\lWindow.PlottingWindow.size\l_handler" alt="" coords="268,5,479,61"/>
-<area shape="rect" id="node3" href="$class_uni_dec_1_1unidec__modules_1_1_plotting_window_1_1_plotting_window.html#a2fd1d7778aa78d24f7fd57e0738a4992" title="UniDec.unidec_modules.Plotting\lWindow.PlottingWindow.set_color" alt="" coords="264,86,483,127"/>
-<area shape="rect" id="node4" href="$class_uni_dec_1_1unidec__modules_1_1_plotting_window_1_1_plotting_window.html#a489b9099201ad5e4f8b0e5d19fa1cc31" title="UniDec.unidec_modules.Plotting\lWindow.PlottingWindow.on\l_release" alt="" coords="268,152,479,208"/>
-<area shape="rect" id="node5" href="$class_uni_dec_1_1unidec__modules_1_1_plotting_window_1_1_plotting_window.html#a56c3f25dbe279e28ae984371b8dfa6d5" title="UniDec.unidec_modules.Plotting\lWindow.PlottingWindow.on\l_save_fig_dialog" alt="" coords="531,152,741,208"/>
-<area shape="rect" id="node6" href="$class_uni_dec_1_1unidec__modules_1_1_plotting_window_1_1_plotting_window.html#a86189b26c84844d7501a6c539d58d342" title="UniDec.unidec_modules.Plotting\lWindow.PlottingWindow.save_figure" alt="" coords="789,159,1020,201"/>
-</map>

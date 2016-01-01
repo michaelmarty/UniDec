@@ -1,7 +1,0 @@
-<map id="UniDec.unidec_modules.tims_import_wizard.data_importer.parse_file" name="UniDec.unidec_modules.tims_import_wizard.data_importer.parse_file">
-<area shape="rect" id="node2" href="$namespace_uni_dec_1_1unidec__modules_1_1tims__import__wizard_1_1data__importer.html#ac65c9bfacf104c7fb18df5fd005cf4db" title="UniDec.unidec_modules.tims\l_import_wizard.data_importer.header_desc" alt="" coords="308,5,579,47"/>
-<area shape="rect" id="node3" href="$namespace_uni_dec_1_1unidec__modules_1_1tims__import__wizard_1_1data__importer.html#a87e7d011f1b873060ab0d61791806948" title="UniDec.unidec_modules.tims\l_import_wizard.data_importer.search_extern" alt="" coords="304,71,583,112"/>
-<area shape="rect" id="node4" href="$namespace_uni_dec_1_1unidec__modules_1_1tims__import__wizard_1_1data__importer.html#a23b17b616d5068e66ec5283c0bf526f3" title="UniDec.unidec_modules.tims\l_import_wizard.data_importer.get\l_stat_code" alt="" coords="336,137,551,193"/>
-<area shape="rect" id="node5" href="$namespace_uni_dec_1_1unidec__modules_1_1tims__import__wizard_1_1data__importer.html#a210d3453f7c58045f40db538275ae672" title="UniDec.unidec_modules.tims\l_import_wizard.data_importer.Get\lStartEndMass" alt="" coords="335,217,552,273"/>
-<area shape="rect" id="node6" href="$namespace_uni_dec_1_1unidec__modules_1_1tims__import__wizard_1_1data__importer.html#a8d809539cbc02ccf10df62fc15907482" title="UniDec.unidec_modules.tims\l_import_wizard.data_importer.GetLines" alt="" coords="631,224,879,265"/>
-</map>

@@ -1,7 +1,0 @@
-<map id="UniDec.unidec_modules.IM_windows.IMToolExtract.get_from_gui" name="UniDec.unidec_modules.IM_windows.IMToolExtract.get_from_gui">
-<area shape="rect" id="node2" href="$class_uni_dec_1_1unidec__modules_1_1_i_m__windows_1_1_i_m_tool_extract.html#ab1c3f61ba86865f04a1d875e3197e6cb" title="UniDec.unidec_modules.IM\l_windows.IMToolExtract.on_plot" alt="" coords="237,119,445,161"/>
-<area shape="rect" id="node3" href="$class_uni_dec_1_1unidec__modules_1_1_i_m__windows_1_1_i_m_tool_extract.html#a941e5422e19960dc212e06ed35a77575" title="UniDec.unidec_modules.IM\l_windows.IMToolExtract.initialize\l_interface" alt="" coords="539,5,753,61"/>
-<area shape="rect" id="node4" href="$class_uni_dec_1_1unidec__modules_1_1_manual_selection_window_1_1_manual_selection.html#afa02dfc1280aaa02726090091052b1d8" title="UniDec.unidec_modules.Manual\lSelectionWindow.ManualSelection.initiate_dialog" alt="" coords="493,86,799,127"/>
-<area shape="rect" id="node5" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools1d.html#aab4d0213defd2f32205e05e64c5be717" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools1d.initialize_interface" alt="" coords="518,151,774,193"/>
-<area shape="rect" id="node6" href="$class_uni_dec_1_1unidec__modules_1_1peakwidthtools_1_1_peak_tools2d.html#a8054bfcf237653422c51eb694d85853f" title="UniDec.unidec_modules.peakwidthtools.\lPeakTools2d.initialize_interface" alt="" coords="518,217,774,258"/>
-</map>
