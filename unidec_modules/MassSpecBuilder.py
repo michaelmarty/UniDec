@@ -109,7 +109,7 @@ def simple_params(masslist, intlist=None, resolution=1000, zwidth=2, rlist=None,
     if rlist is None:
         rlist = np.ones(len(masslist)) * resolution
     params = np.array(
-        [[m, m / float(rlist[i]), ud.predict_charge(m), zwidth, intlist[i]] for i, m in enumerate(masslist)])
+            [[m, m / float(rlist[i]), ud.predict_charge(m), zwidth, intlist[i]] for i, m in enumerate(masslist)])
     return params
 
 

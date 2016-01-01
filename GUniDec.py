@@ -108,8 +108,9 @@ class UniDecApp(object):
             # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
             newdir = "C:\\cprog\\UniDecDemo"
             self.on_open_file(fname, newdir)
+            #self.on_dataprep_button(0)
             self.on_auto(0)
-            self.on_integrate()
+            #self.on_integrate()
             # self.on_grid_decon(0)
             # self.make_cube_plot(0)
             # self.on_plot_peaks(0)

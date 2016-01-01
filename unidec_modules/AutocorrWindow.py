@@ -141,7 +141,7 @@ class AutocorrWindow(wx.Dialog):
         corr, peaks = ud.autocorr(self.massdat, self.config)
         self.plot1.plotrefreshtop(corr[:, 0], corr[:, 1], "Autocorrelation", "Mass Difference", "", "", self.config)
         pks2 = peakstructure.Peaks()
-        pks2.add_peaks(peaks)
+        pks2.add_peaks(peaks, self.config.massbins)
         pks2.default_params()
         if pks2.plen > 0:
             for p in pks2.peaks:

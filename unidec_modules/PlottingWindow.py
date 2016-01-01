@@ -223,7 +223,6 @@ class PlottingWindow(wx.Window):
         Sets tick colors based on the colormap set at self.cmap
         :return: None
         """
-        # TODO: Better determination of cmaps and Viridis
 
         output = cm.ScalarMappable(norm=None, cmap=self.cmap).to_rgba(0)
         if sum(output[:2]) > 0.9:

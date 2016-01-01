@@ -355,11 +355,10 @@ class ZoomBox:
         # left-click in place resets the x-axis or y-axis
         if self.eventpress.xdata == event.xdata and self.eventpress.ydata == event.ydata:
 
-            if event.button == 1 and self.smash == 1:
-                pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
-            # TODO: Zoom out is not registered as a click
             if wx.GetKeyState(wx.WXK_CONTROL):
                 # Ignore the resize if the control key is down
+                if event.button == 1 and self.smash == 1:
+                    pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
                 return
             # x0,y0,x1,y1=GetMaxes(event.inaxes)
             # print GetMaxes(event.inaxes)
@@ -370,6 +369,17 @@ class ZoomBox:
             # assure that x and y values are not equal
             if xmin == xmax: xmax = xmin * 1.0001
             if ymin == ymax: ymax = ymin * 1.0001
+
+            # Check if a zoom out is necessary
+            zoomout = False
+            for axes in self.axes:
+                if axes.get_xlim() != (xmin, xmax) and axes.get_ylim() != (ymin, ymax):
+                    zoomout = True
+            # Register a click if zoomout was not necessary
+            if not zoomout:
+                if event.button == 1 and self.smash == 1:
+                    pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
+
             for axes in self.axes:
                 axes.set_xlim(xmin, xmax)
                 axes.set_ylim(ymin, ymax)
@@ -425,7 +435,7 @@ class ZoomBox:
             # TODO: Send this signal up and drop it in a main GUI
             # if the ctrl key is down, print out the difference and a guess for the Nanodisc mass assuming POPC
             lmass = 760.076
-            charge = lmass/spanx
+            charge = lmass / spanx
             print spanx, charge, charge * xmax
             return
 

@@ -9,6 +9,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
     """
     Creates a list control panel for displaying and interacting with Peaks object
     """
+
     def __init__(self, parent):
         """
         Initialize list_ctrl, bind events, and setup events to be broadcast back.
@@ -99,6 +100,13 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             p = pks.peaks[i]
             self.list_ctrl.InsertStringItem(i, p.textmarker)
             self.list_ctrl.SetStringItem(i, 1, str(p.mass))
+            # TODO: Proper decimal places on this
+            '''
+            if self.pks.massbins < 1:
+                self.list_ctrl.SetStringItem(i, 1, str(p.mass))
+            else:
+                self.list_ctrl.SetStringItem(i, 1, "{:,}".format(p.mass))
+            '''
             self.list_ctrl.SetStringItem(i, 2, "%.2f" % p.height)
             try:
                 if show == "area":
