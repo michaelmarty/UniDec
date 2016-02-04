@@ -120,6 +120,12 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
+v. 1.0.11
+
+Thanks to Tim for bug fixes on CDCReader.exe (the binary that converts Water's IMMS files to text files).
+
+Updates to UniDecIM.exe to change how the twaveflag is determined and handled. Will now accept multiple possible twaveflags to allow for alternative calibration strategies in the future. Contact me with your function of interest.
+
 v. 1.0.10
 
 Added preset defaults for the **Exactive EMR** under "High-resolution Native". The previous high-resolution preset is now "Isotopic Resolution". 

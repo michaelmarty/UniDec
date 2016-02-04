@@ -108,9 +108,9 @@ class UniDecApp(object):
             # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
             newdir = "C:\\cprog\\UniDecDemo"
             self.on_open_file(fname, newdir)
-            #self.on_dataprep_button(0)
+            # self.on_dataprep_button(0)
             self.on_auto(0)
-            #self.on_integrate()
+            # self.on_integrate()
             # self.on_grid_decon(0)
             # self.make_cube_plot(0)
             # self.on_plot_peaks(0)
@@ -1751,19 +1751,23 @@ class UniDecApp(object):
         """
         if e is not 0:
             self.eng.config.twaveflag = self.view.ctltwave.GetSelection()
-        self.remake_mainwindow(self.view.tabbed)
+
         if self.eng.config.twaveflag == 0:
             self.eng.config.gasmass = 4.002602
             print "Using Linear Cell"
-        elif self.eng.config.twaveflag == 1:
+        elif self.eng.config.twaveflag > 0:
             self.eng.config.gasmass = 28.0134
             print "Using Travelling Wave"
-        self.view.ctltwave.SetSelection(self.eng.config.twaveflag)
-        self.view.import_config_to_gui()
+        else:
+            print "Error: Unsupported twaveflag.", self.eng.config.twaveflag
+        self.remake_mainwindow(self.view.tabbed)
+        # self.view.ctltwave.SetSelection(self.eng.config.twaveflag)
+        # self.view.import_config_to_gui()
 
     def remake_mainwindow(self, tabbed=None):
         iconfile = self.view.icon_path
         self.view.Destroy()
+        self.view = []
         self.view = mainwindow.Mainwindow(self, "UniDec", self.eng.config, iconfile=iconfile, tabbed=tabbed)
         self.view.Show()
         self.view.import_config_to_gui()

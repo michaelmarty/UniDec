@@ -143,6 +143,8 @@ class UniDecConfig:
         self.griddecon = None
         self.matchtolerance = 1000
 
+        self.twavedict = {1: "Logarithmic"}
+
         self.default_colormaps()
 
     def default_colormaps(self):
@@ -257,7 +259,7 @@ class UniDecConfig:
                 f.write("tnaught " + str(self.to) + "\n")
                 f.write("driftlength " + str(self.driftlength) + "\n")
 
-            if self.twaveflag == 1:  # and (self.tcal1!=0 or self.tcal2!=0 or self.edc!=0):
+            if self.twaveflag > 0:  # and (self.tcal1!=0 or self.tcal2!=0 or self.edc!=0):
                 f.write("tcal1 " + str(self.tcal1) + "\n")
                 f.write("tcal2 " + str(self.tcal2) + "\n")
                 f.write("edc " + str(self.edc) + "\n")
@@ -555,7 +557,7 @@ class UniDecConfig:
                 self.warning = "Pressure and Cell Length must be nonzero for Linear Cell"
                 self.badtest = 1
 
-            if self.twaveflag == 1 and (self.tcal1 == 0 or self.tcal2 == 0 or self.edc == 0):
+            if self.twaveflag > 0 and (self.tcal1 == 0 or self.tcal2 == 0 or self.edc == 0):
                 self.warning = "Note: One or more T-wave calibration parameters has been set to 0" \
                                "\nCheck to make sure this is correct"
 
