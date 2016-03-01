@@ -4,6 +4,7 @@ import wx
 from wx.lib.pubsub import setupkwargs
 from wx.lib.pubsub import pub
 
+
 dlg = None
 counter = 1
 maximum = 1

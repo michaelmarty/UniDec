@@ -787,7 +787,7 @@ class KDmodel:
         except Exception, e:
             print "Parallel Failed, using sequential...", e
 
-        #self.randfit = np.array([BootMin(self.data, self.kdargs, hists[i]) for i in xrange(0, numpts)])
+            self.randfit = np.array([BootMin(self.data, self.kdargs, hists[i]) for i in xrange(0, numpts)])
 
         print "Evaluation Time: ", time.clock() - startt
         if self.outlierflag:

@@ -1072,8 +1072,10 @@ def dataprep(datatop, config):
         data2 = polynomial_background_subtract(data2, buff)
     elif subtype == 3 and buff != 0:
         data2 = savgol_background_subtract(data2, buff)
+    elif buff == 0:
+        pass
     else:
-        print "Background subtraction code unsupported"
+        print "Background subtraction code unsupported", subtype, buff
 
     # Normalization
     data2 = normalize(data2)

@@ -6,8 +6,9 @@ from unidec_modules import ColorPlot, plot3d, plot1d, plot2d, peaklistsort, misc
 import unidec_modules.unidectools as ud
 import wx.lib.scrolledpanel as scrolled
 import platform
-# from wx.lib.pubsub import setupkwargs
+from wx.lib.pubsub import setupkwargs
 from wx.lib.pubsub import pub
+
 import wx.lib.agw.foldpanelbar as fpb
 
 __author__ = 'Michael.Marty'
@@ -1443,7 +1444,7 @@ class Mainwindow(wx.Frame):
         """
         dlg = wx.MessageDialog(self,
                                "UniDec GUI version " + self.version +
-                               "\nPlease contact michael.marty@chem.ox.ac.uk with any questions, bugs, or features to add.\n"
+                               "\nPlease contact mtmarty@email.arizona.edu with any questions, bugs, or features to add.\n"
                                "The latest version may be found at unidec.chem.ox.ac.uk.\n"
                                "If used in publication, please cite Marty et Al. Anal. Chem. 2015, DOI: 10.1021/acs.analchem.5b00140 ",
                                "About UniDec", wx.OK | wx.CENTER)

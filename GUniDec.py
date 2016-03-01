@@ -4,9 +4,10 @@ import thread
 import wx
 import numpy as np
 import unidec
-# from wx.lib.pubsub import setupkwargs
+from wx.lib.pubsub import setupkwargs
 # from wx.lib.pubsub import setupkwargs
 from wx.lib.pubsub import pub
+
 import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 from unidec_modules import Extract2D, peakwidthtools, masstools, miscwindows, \

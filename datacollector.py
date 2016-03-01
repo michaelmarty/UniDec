@@ -8,8 +8,9 @@ import numpy as np
 import matplotlib.cm as cm
 from matplotlib.pyplot import colormaps
 from matplotlib import rcParams
-# from wx.lib.pubsub import setupkwargs
+from wx.lib.pubsub import setupkwargs
 from wx.lib.pubsub import pub
+
 import multiprocessing
 from unidec_modules import UniFit, Extract2D, unidecstructure, PlotAnimations, plot1d, plot2d, miscwindows, \
     MassDefects, nativez, IM_functions
