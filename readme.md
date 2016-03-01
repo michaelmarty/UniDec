@@ -10,7 +10,7 @@ Detailed descriptions of the algorithm are provided in the paper. Please cite us
 
 UniDec may be downloaded from [unidec.chem.ox.ac.uk](http://unidec.chem.ox.ac.uk/).
 
-Please contact michael.marty@chem.ox.ac.uk for questions, suggestions, or with any bugs.
+Please contact mtmarty@email.arizona.edu for questions, suggestions, or with any bugs.
 
 ## Installing
 
@@ -119,6 +119,14 @@ Commercial licensing is available. Details are provided at the bottom of the Aca
 The Python GUI and engine are licensed under the [GNU Public License (v.3)](http://www.gnu.org/licenses/gpl-3.0.en.html).
 
 ## Change Log
+
+v. 1.0.11
+
+Thanks to Tim for bug fixes on CDCReader.exe (the binary that converts Water's IMMS files to text files).
+
+Updates to UniDecIM.exe to change how the twaveflag is determined and handled. Will now accept multiple possible twaveflags to allow for alternative calibration strategies in the future. Contact me with your function of interest.
+
+Updated contact email for MTM.
 
 v. 1.0.10
 

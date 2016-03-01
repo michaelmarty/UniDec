@@ -47,7 +47,7 @@ class UniDec:
 
         :return: None
         """
-        self.version = "1.0.10"
+        self.version = "1.0.11"
         print "\nUniDec Engine v."+self.version
         self.config = None
         self.data = None
@@ -291,6 +291,7 @@ class UniDec:
         tend = time.clock()
         if "silent" not in kwargs or not kwargs["silent"]:
             print "Data Prep Done. Time: %.2gs" % (tend - tstart)
+        #self.get_spectrum_peaks()
         pass
 
     def run_unidec(self, silent=False, efficiency=False):
@@ -1159,6 +1160,17 @@ class UniDec:
         self.open_file(fname, testdir, **kwargs)
         self.data.ztab = ztab
         pass
+
+    def get_spectrum_peaks(self, threshold=0.05, window=None):
+        if window is None:
+            window = self.config.mzsig
+
+        peaks = ud.peakdetect(self.data.data2, None, window, threshold)
+        self.data.data2=np.array(peaks)
+        ud.dataexport(self.data.data2, self.config.infname)
+
+        print self.config.dirname
+        return peaks
 
     def make_plot(self, massrange=None):
         import matplotlib.pyplot as plt

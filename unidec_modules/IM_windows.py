@@ -145,7 +145,7 @@ class IMTools(wx.Dialog):
         self.plot = None
         self.ctltwave = None
         self.masspanel = None
-        self.twave = 0
+        self.twave = False
         self.flag = 0
         self.data3 = []
         self.config = None
@@ -194,7 +194,9 @@ class IMTools(wx.Dialog):
         self.Bind(wx.EVT_RADIOBOX, self.on_flip_twave, self.ctltwave)
         gbox1c.Add(self.ctltwave, (0, 0), span=(1, 5))
 
-        if self.config.twaveflag == 0:
+        self.twave = self.config.twaveflag > 0
+        if not self.twave:
+            self.ctltwave.SetSelection(0)
             # Linear Mode controls
             self.ctlvolt = wx.TextCtrl(self.pnl, value="", size=size1)
             gbox1c.Add(self.ctlvolt, (1, 1), span=(1, 1))
@@ -223,9 +225,8 @@ class IMTools(wx.Dialog):
             gbox1c.Add(wx.StaticText(self.pnl, label="Drift Cell Length (m)"), (6, 0),
                        flag=wx.ALIGN_CENTER_VERTICAL)
 
-            self.twave = 0
-
         else:
+            self.ctltwave.SetSelection(1)
             # T-Wave Controls
             self.ctltcal1 = wx.TextCtrl(self.pnl, value="", size=size1)
             gbox1c.Add(self.ctltcal1, (1, 1), span=(1, 1))
@@ -245,7 +246,9 @@ class IMTools(wx.Dialog):
             gbox1c.Add(self.ctlgasmass, (4, 1), span=(1, 1))
             gbox1c.Add(wx.StaticText(self.pnl, label="Gas Mass (Da): "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
-            self.twave = 1
+            self.ctltwavecaltype = wx.Choice(self.pnl, -1, choices=self.config.twavedict.values())
+            gbox1c.Add(self.ctltwavecaltype, (5, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(self.pnl, label="Calibration Type: "), (5, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
         sbs2.Add(gbox1c, 0, wx.EXPAND)
         ctlsizer.Add(sbs2, 0, wx.EXPAND)
@@ -271,7 +274,7 @@ class IMTools(wx.Dialog):
         okbutton.Bind(wx.EVT_BUTTON, self.on_close)
         closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
         hboxend.Add(okbutton)
-        hboxend.Add(closebutton , flag=wx.LEFT, border=5)
+        hboxend.Add(closebutton, flag=wx.LEFT, border=5)
         # TODO: There is a strange bug whereby the closebutton is not drawn when the window is flipped...
         self.pnl2.SetSizer(hboxend)
 
@@ -309,8 +312,8 @@ class IMTools(wx.Dialog):
         :param e: Unused event
         :return: None
         """
-        self.ctltwave.SetSelection(self.config.twaveflag)
-        if self.config.twaveflag == 0:
+        if not self.twave:
+            self.ctltwave.SetSelection(0)
             self.ctlvolt.SetValue(str(self.config.volt))
             self.ctltemp.SetValue(str(self.config.temp))
             self.ctlpressure.SetValue(str(self.config.pressure))
@@ -318,10 +321,12 @@ class IMTools(wx.Dialog):
             self.ctlto.SetValue(str(self.config.to))
             self.ctldriftlength.SetValue(str(self.config.driftlength))
         else:
+            self.ctltwave.SetSelection(1)
             self.ctltcal1.SetValue(str(self.config.tcal1))
             self.ctltcal2.SetValue(str(self.config.tcal2))
             self.ctledc.SetValue(str(self.config.edc))
             self.ctlgasmass.SetValue(str(self.config.gasmass))
+            self.ctltwavecaltype.SetSelection(self.config.twavedict.keys().index(self.config.twaveflag))
 
     def get_from_gui(self, e):
         """
@@ -329,18 +334,19 @@ class IMTools(wx.Dialog):
         :param e: Unused event
         :return: None
         """
-        if self.config.twaveflag == 0:
+        if not self.twave:
             self.config.volt = ud.string_to_value(self.ctlvolt.GetValue())
             self.config.temp = ud.string_to_value(self.ctltemp.GetValue())
             self.config.pressure = ud.string_to_value(self.ctlpressure.GetValue())
             self.config.gasmass = ud.string_to_value(self.ctlgasmass.GetValue())
             self.config.to = ud.string_to_value(self.ctlto.GetValue())
             self.config.driftlength = ud.string_to_value(self.ctldriftlength.GetValue())
-        elif self.config.twaveflag == 1:
+        else:
             self.config.tcal1 = ud.string_to_value(self.ctltcal1.GetValue())
             self.config.tcal2 = ud.string_to_value(self.ctltcal2.GetValue())
             self.config.edc = ud.string_to_value(self.ctledc.GetValue())
             self.config.gasmass = ud.string_to_value(self.ctlgasmass.GetValue())
+            self.config.twaveflag = self.config.twavedict.keys()[self.ctltwavecaltype.GetSelection()]
 
     def on_add(self, e):
         """
@@ -367,8 +373,10 @@ class IMTools(wx.Dialog):
             mzvals = (mass + ztab * self.config.adductmass) / ztab
             if self.config.twaveflag == 0:
                 dts = np.array([calc_linear_dt(mass, z, ccs, self.config) for z in ztab])
-            else:
+            elif self.config.twaveflag == 1:
                 dts = np.array([calc_twave_dt(mass, z, ccs, self.config) for z in ztab])
+            else:
+                print "Error: twaveflat value not supported. Value was:", self.config.twaveflag
             dtdat = np.unique(self.data3[:, 1])
             maxdt = np.amax(dtdat)
             mindt = np.amin(dtdat)
@@ -389,11 +397,11 @@ class IMTools(wx.Dialog):
         if self.config.twaveflag == 0:
             self.config.gasmass = 4.002602
             print "Using Linear Cell"
-        elif self.config.twaveflag == 1:
+        elif self.config.twaveflag > 0:
             self.config.gasmass = 28.0134
             print "Using Travelling Wave"
         self.setup_panel()
-        self.ctltwave.SetSelection(self.config.twaveflag)
+        self.ctltwave.SetSelection(int(self.twave))
 
 
 class IMToolExtract(wx.Dialog):

@@ -2,6 +2,7 @@ from matplotlib.patches import Rectangle
 from wx.lib.pubsub import setupkwargs
 # from wx.lib.pubsub import setupkwargs
 from wx.lib.pubsub import pub
+
 import numpy as np
 import wx
 
