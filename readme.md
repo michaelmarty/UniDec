@@ -126,6 +126,8 @@ Thanks to Tim for bug fixes on CDCReader.exe (the binary that converts Water's I
 
 Updates to UniDecIM.exe to change how the twaveflag is determined and handled. Will now accept multiple possible twaveflags to allow for alternative calibration strategies in the future. Contact me with your function of interest.
 
+Updated contact email for MTM.
+
 v. 1.0.10
 
 Added preset defaults for the **Exactive EMR** under "High-resolution Native". The previous high-resolution preset is now "Isotopic Resolution". 
