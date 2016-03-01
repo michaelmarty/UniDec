@@ -120,10 +120,6 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
-v. 1.1.0
-
-Introducing: UniDecExpress....
-
 v. 1.0.11
 
 Thanks to Tim for bug fixes on CDCReader.exe (the binary that converts Water's IMMS files to text files).
