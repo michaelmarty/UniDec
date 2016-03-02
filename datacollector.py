@@ -316,6 +316,7 @@ class DataCollector(wx.Frame):
 
         self.ypanelsizer = wx.BoxSizer(wx.VERTICAL)
         self.ypanel = ListCtrlPanel(self.panel, list_type="Y", size=(600, 500))
+        self.ypanel.SetDropTarget(DCDropTarget(self))
         self.ypanelsizer2 = wx.BoxSizer(wx.HORIZONTAL)
         self.addybutton = wx.Button(self.panel, label="Add Files")
         self.Bind(wx.EVT_BUTTON, self.on_add_y, self.addybutton)
@@ -662,7 +663,7 @@ class DataCollector(wx.Frame):
 
     def update_set(self, e):
         self.ctlprotmodel.SetValue(
-                next((label for label, flag in modelchoices.items() if flag == self.protflag), "test"))
+            next((label for label, flag in modelchoices.items() if flag == self.protflag), "test"))
         self.ctlligmodel.SetValue(next((label for label, flag in modelchoices.items() if flag == self.ligflag), "test"))
         self.dirinput.SetValue(self.directory)
         self.xpanel.list.populate(self.xvals)
@@ -1114,6 +1115,35 @@ class DataCollector(wx.Frame):
         except Exception, ex:
             print "Could not plot extract:", ex
         pass
+
+
+class DCDropTarget(wx.FileDropTarget):
+    """"""
+
+    def __init__(self, window):
+        """Constructor"""
+        wx.FileDropTarget.__init__(self)
+        self.window = window
+
+    def OnDropFiles(self, x, y, filenames):
+        """
+        When files are dropped, either open a single file or run in batch.
+        """
+        if len(filenames) == 1:
+            # Open a single file
+            path = filenames[0]
+            directory, fname = os.path.split(path)
+            if os.path.splitext(fname)[1] == ".json":
+                print "Loading .json file:", fname
+                self.window.load(path)
+                return
+        elif len(filenames) > 1:
+            pass
+        else:
+            print "Error in file drop", filenames
+            return
+        for f in filenames:
+            self.window.ypanel.list.add_line(file_name=f)
 
 
 # Main App Execution

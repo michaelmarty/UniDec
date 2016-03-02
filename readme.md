@@ -120,6 +120,10 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
+v. 1.0.12
+
+Added drag and drop in the data collector utility. Can drop either text files to add them to the list or a JSON save file to load it.
+
 v. 1.0.11
 
 Thanks to Tim for bug fixes on CDCReader.exe (the binary that converts Water's IMMS files to text files).
