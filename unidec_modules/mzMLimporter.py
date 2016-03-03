@@ -5,6 +5,8 @@ import numpy as np
 import pymzml
 import unidectools as ud
 
+from copy import deepcopy
+
 __author__ = 'Michael.Marty'
 
 
@@ -50,6 +52,7 @@ class mzMLimporter:
     """
     Imports mzML data files.
     """
+
     def __init__(self, path, *args, **kwargs):
         """
         Imports mzML file, adds the chromatogram into a single spectrum.
@@ -69,21 +72,32 @@ class mzMLimporter:
             i += 1
         print "Number of scans:", i
         self.data = np.array(self.data)
-        if len(self.data) > 1:
-            try:
-                self.data = merge_spectra(self.data)
-            except Exception, e:
-                concat = np.concatenate(self.data)
-                sort = concat[concat[:, 0].argsort()]
-                self.data = ud.removeduplicates(sort)
-                print e
 
-    def get_data(self):
+    def get_data(self, scan_range=None):
         """
         Returns merged 1D MS data from mzML import
         :return: merged data
         """
-        return self.data
+        data = deepcopy(self.data)
+
+        if scan_range is not None:
+            data = data[scan_range[0]:scan_range[1]]
+
+        if len(data) > 1:
+            try:
+                data = merge_spectra(data)
+            except Exception, e:
+                concat = np.concatenate(data)
+                sort = concat[concat[:, 0].argsort()]
+                data = ud.removeduplicates(sort)
+                print e
+        else:
+            data = data[0]
+        return data
+
+    def get_tic(self):
+        return self.msrun["TIC"]
+
 
 
 if __name__ == "__main__":
@@ -94,7 +108,8 @@ if __name__ == "__main__":
     file = "20150429_ND_POPG_PG02_RF50_ETHMR_0_HCD_1_35000.mzML"
     # file="20150429_ND_POPG_PG02_RF50_ETHMR_0_HCD_24_35000.mzML"
     tstart = time.time()
-    data = mzMLimporter(os.path.join(dir, file)).get_data()
+    data = mzMLimporter(os.path.join(dir, file))
+
     tend = time.time()
     print data
     print "Done %.2gs" % float(tend - tstart)

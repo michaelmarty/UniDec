@@ -102,6 +102,12 @@ class UniDecApp(object):
 
         self.on_load_default(0)
 
+        if "path" in kwargs:
+            newdir, fname = os.path.split(kwargs["path"])
+            self.on_open_file(fname, newdir)
+            # self.on_dataprep_button(0)
+            self.on_auto(0)
+
         # For testing, load up a spectrum at startup. Used only on MTM's computer.
         if False and platform.node() == "RobMike":
             # fname = "HSPCID.txt"
