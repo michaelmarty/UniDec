@@ -113,14 +113,18 @@ class PlottingWindow(wx.Window):
         """
         Saves Figure to path.
         :param path: Path to save figure at.
-        :param kwargs: Keywords passed to matplotlib.figure.savefig
+        :param kwargs: Keywords passed to matplotlib.figure.savefig (note only specific ones are passed)
         :return: None
         """
         if "transparent" in kwargs:
             t = kwargs["transparent"]
         else:
             t = True
-        self.figure.savefig(path, transparent=t)
+        if "dpi" in kwargs:
+            dpi = kwargs["dpi"]
+        else:
+            dpi = None
+        self.figure.savefig(path, transparent=t, dpi=dpi)
         print "Saved Figure: ", path
 
     def kda_test(self, xvals):

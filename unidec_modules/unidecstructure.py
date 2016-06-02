@@ -30,7 +30,7 @@ class UniDecConfig:
         self.peaksfile = "peaks.dat"
         self.dirname = ''
         self.filename = ''
-        self.extension = ""
+        self.extension = ''
         self.imflag = 0
         self.initialize()
 
@@ -51,10 +51,14 @@ class UniDecConfig:
         self.mzbins = 1
         self.smooth = 0
         self.subbuff = 0
+        self.backgroundchoices = ["Subtract Minimum", "Subtract Line",
+                                   "Subtract Curved"]  # , "Subtract SavGol","Subtract Polynomial"]
         self.subtype = 0
         self.intthresh = 0
         self.minmz = ''
         self.maxmz = ''
+
+        self.intscale = "Linear"
 
         # UniDec
         self.numit = 100
@@ -631,18 +635,22 @@ class UniDecConfig:
         pathtofile = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.defaultUnidecDir = os.path.join(pathtofile, 'unidec_bin')
 
+
         if self.system == 'Windows':
             self.defaultUnidecName = "UniDec.exe"
             self.defaultIMName = "UniDecIM.exe"
+            self.opencommand = "start "
             print "Windows: ", self.defaultUnidecName
         elif self.system == 'Darwin':
             self.defaultUnidecName = "unidecmac"
             self.defaultIMName = "unidecmacIM"
             self.defaultUnidecDir = '/Applications/GUniDecMac.app/Contents/MacOS'
+            self.opencommand = "open "
             print "Mac:", self.defaultUnidecName
         else:
             self.defaultUnidecName = "unideclinux"
             self.defaultIMName = "unideclinuxIM"
+            self.opencommand = "gnome-open " #TODO: Test whether this is right
             print "Linux or other: unidec"
 
         self.UniDecPath = os.path.join(self.defaultUnidecDir, self.defaultUnidecName)

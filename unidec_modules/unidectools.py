@@ -154,6 +154,10 @@ def weighted_std(values, weights):
     return np.sqrt(variance)
 
 
+def weighted_avg(values, weights):
+    return np.average(values, weights=weights)
+
+
 def interp_pos(array, target):
     """
     On a given array, interpolate the position of the target
@@ -1013,6 +1017,11 @@ def detectoreff(datatop, va):
     return datatop
 
 
+def fake_log(data):
+    non_zero_min = np.amin(data[data > 0])
+    return np.log10(np.clip(data, non_zero_min, np.amax(data)))
+
+
 def dataprep(datatop, config):
     """
     Main function to process 1D MS data. The order is:
@@ -1077,12 +1086,20 @@ def dataprep(datatop, config):
     else:
         print "Background subtraction code unsupported", subtype, buff
 
-    # Normalization
-    data2 = normalize(data2)
-
     # Intensity Threshold
     data2 = intensitythresh(data2, 0)  # thresh
     # data2=data2[data2[:,1]>0]
+
+    # Scale Adjustment
+    if config.intscale is "Square Root":
+        data2[:, 1] = np.sqrt(data2[:, 1])
+    elif config.intscale is "Logarithmic":
+        data2[:, 1] = fake_log(data2[:, 1])
+        data2[:, 1] -= np.amin(data2[:, 1])
+
+    # Normalization
+    data2 = normalize(data2)
+
     return data2
 
 

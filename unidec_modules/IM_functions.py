@@ -177,7 +177,17 @@ def process_data_2d(xgrid, ygrid, igrid, config):
     # print "Time3: %.2gs" % (tend - tstart)
     if config.detectoreffva != 0:
         igrid = detectoreff_2d(igrid, xgrid, config.detectoreffva)
+
+    if config.intscale is "Square Root":
+        igrid = np.sqrt(igrid)
+    elif config.intscale is "Logarithmic":
+        igrid = ud.fake_log(igrid)
+        igrid -= np.amin(igrid)
+
     igrid /= np.amax(igrid)
+
+
+
     print "Shape of Processed Data: ", igrid.shape
     return xgrid, ygrid, igrid
 

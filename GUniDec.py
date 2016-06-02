@@ -1178,6 +1178,7 @@ class UniDecApp(object):
         pass
 
     def on_auto_peak_width(self, e=None):
+        self.export_config()
         if not ud.isempty(self.eng.data.data2):
             self.eng.get_auto_peak_width()
             self.import_config()
@@ -1190,6 +1191,7 @@ class UniDecApp(object):
         :param e: unused event
         :return: None
         """
+        self.export_config()
         if not ud.isempty(self.eng.data.data2):
             self.export_config(None)
             if self.eng.config.imflag == 0:
@@ -1279,6 +1281,7 @@ class UniDecApp(object):
         :param e: unused event
         :return: None
         """
+        self.export_config()
         if not ud.isempty(self.eng.data.data3):
             self.export_config(None)
             if self.eng.config.imflag == 1:
@@ -1441,6 +1444,7 @@ class UniDecApp(object):
         :param e: unused event
         :return: None
         """
+        self.export_config()
         massoutputfile = self.eng.config.outfname + "_mass.txt"
         self.eng.config.default_zero_charge()
         self.eng.config.minmz = np.amin(self.eng.data.massdat[:, 0])
