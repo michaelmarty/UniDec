@@ -147,7 +147,7 @@ class UniDecConfig:
         self.griddecon = None
         self.matchtolerance = 1000
 
-        self.twavedict = {1: "Logarithmic"}
+        self.twavedict = {1: "Logarithmic", 2: "Linear", 3: "Power Law"}
 
         self.default_colormaps()
 

@@ -186,13 +186,11 @@ def process_data_2d(xgrid, ygrid, igrid, config):
 
     igrid /= np.amax(igrid)
 
-
-
     print "Shape of Processed Data: ", igrid.shape
     return xgrid, ygrid, igrid
 
 
-def calc_twave_dt(mass, z, ccs, config):
+def calc_twave_dt_log(mass, z, ccs, config):
     """
     Calculate drift time in a T-wave cell
     :param mass: Mass in Da
@@ -204,6 +202,38 @@ def calc_twave_dt(mass, z, ccs, config):
     rmass = (mass * config.gasmass) / (mass + config.gasmass)
     rccs = ccs / (z * np.sqrt(1. / rmass))
     rdt = np.exp((np.log(rccs) - config.tcal2) / config.tcal1)
+    out = rdt + (config.edc * np.sqrt(mass / z) / 1000.)
+    return out
+
+
+def calc_twave_dt_linear(mass, z, ccs, config):
+    """
+    Calculate drift time in a T-wave cell
+    :param mass: Mass in Da
+    :param z: Charge
+    :param ccs: CCS in Angstrom^2
+    :param config: UniDecConfig object (carries the key parameters of calibration)
+    :return: Drift time (ms)
+    """
+    rmass = (mass * config.gasmass) / (mass + config.gasmass)
+    rccs = ccs / (z * np.sqrt(1. / rmass))
+    rdt = (rccs - config.tcal2) / config.tcal1
+    out = rdt + (config.edc * np.sqrt(mass / z) / 1000.)
+    return out
+
+
+def calc_twave_dt_power(mass, z, ccs, config):
+    """
+    Calculate drift time in a T-wave cell
+    :param mass: Mass in Da
+    :param z: Charge
+    :param ccs: CCS in Angstrom^2
+    :param config: UniDecConfig object (carries the key parameters of calibration)
+    :return: Drift time (ms)
+    """
+    rmass = (mass * config.gasmass) / (mass + config.gasmass)
+    rccs = ccs / (z * np.sqrt(1. / rmass))
+    rdt = (rccs / config.tcal1) ** (1. / config.tcal2)
     out = rdt + (config.edc * np.sqrt(mass / z) / 1000.)
     return out
 

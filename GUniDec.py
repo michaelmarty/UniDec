@@ -1287,9 +1287,11 @@ class UniDecApp(object):
             if self.eng.config.imflag == 1:
                 dlg = IM_wind.IMTools(self.view)
                 dlg.initialize_interface(self.eng.data.data3, self.eng.config)
-                dlg.ShowModal()
-                self.eng.config = dlg.defaultconfig
-            self.import_config(None)
+                out = dlg.ShowModal()
+                if out is 0:
+                    self.import_config(None)
+                else:
+                    self.export_config()
         else:
             print "Load Data First"
         pass
@@ -1310,8 +1312,7 @@ class UniDecApp(object):
             ud.unidec_call(self.eng.config.UniDecIMPath, self.eng.config.confname)
             dlg = IM_wind.IMToolExtract(self.view)
             dlg.initialize_interface(self.eng.data.massdat, self.eng.data.ccsdata, self.eng.data.massccs,
-                                     self.eng.config,
-                                     self.eng.pks)
+                                     self.eng.config, self.eng.pks)
             dlg.ShowModal()
             self.eng.config.zout = 0
         pass
