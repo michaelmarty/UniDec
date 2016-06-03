@@ -86,8 +86,7 @@ class Mainwindow(wx.Frame):
 
         self.twave = self.config.twaveflag > 0
 
-        self.backgroundchoices = ["Subtract Minimum", "Subtract Line",
-                                  "Subtract Curved"]  # , "Subtract SavGol","Subtract Polynomial"]
+        self.backgroundchoices = self.config.backgroundchoices
 
         pub.subscribe(self.on_motion, 'newxy')
 
@@ -265,6 +264,9 @@ class Mainwindow(wx.Frame):
         self.menuUnidecPath = self.advancedmenu.Append(wx.ID_FILE1, "UniDec File", "Find the UniDec executable file.")
         self.menuFileName = self.advancedmenu.Append(wx.ID_FILE2, "Rename Files",
                                                      "Rename the files into and out of UniDec.")
+        self.menuOpenDir = self.advancedmenu.Append(wx.ID_ANY, "Open Saved File Directory",
+                                                     "Opens the save directory in the file explorer")
+
 
         if self.config.imflag == 0:
             self.advancedmenu.AppendSeparator()
@@ -277,6 +279,19 @@ class Mainwindow(wx.Frame):
             self.Bind(wx.EVT_MENU, self.menu_401_403, id=403)
 
         self.advancedmenu.AppendSeparator()
+
+        self.scalemenu = wx.Menu()
+
+        self.scalemenu.Append(501, "Linear", "Normal linear intensity scale", wx.ITEM_RADIO)
+        self.scalemenu.Append(502, "Logarithmic", "Logarithmic intensity scale",
+                                 wx.ITEM_RADIO)
+        self.scalemenu.Append(503, "Square Root", "Square root intensity scale", wx.ITEM_RADIO)
+        self.Bind(wx.EVT_MENU, self.menu_501_503, id=501)
+        self.Bind(wx.EVT_MENU, self.menu_501_503, id=502)
+        self.Bind(wx.EVT_MENU, self.menu_501_503, id=503)
+        self.advancedmenu.AppendMenu(wx.ID_ANY, 'Intensity Scale', self.scalemenu)
+        self.advancedmenu.AppendSeparator()
+
         if self.config.imflag == 0:
             self.menuflipmode = self.advancedmenu.Append(wx.ID_ANY, "Switch to Ion Mobility Mode",
                                                          "Switch interface to IM-MS Mode.")
@@ -390,6 +405,7 @@ class Mainwindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault3)
         self.Bind(wx.EVT_MENU, self.on_save_figure_dialog, self.menufigdialog)
         self.Bind(wx.EVT_MENU, self.pres.on_import_wizard, self.menuImportWizard)
+        self.Bind(wx.EVT_MENU, self.on_open_dir, self.menuOpenDir)
         pass
 
     def on_defaults(self, e):
@@ -1394,6 +1410,21 @@ class Mainwindow(wx.Frame):
             self.config.aggressiveflag = 2
         print self.config.aggressiveflag
 
+    def menu_501_503(self, event):
+        """
+        Menu function to adjust the intensity scale.
+        :param event: wx Event
+        :return: None
+        """
+        event_id = event.GetId()
+        if event_id == 501:
+            self.config.intscale = "Linear"
+        if event_id == 502:
+            self.config.intscale = "Logarithmic"
+        if event_id == 503:
+            self.config.intscale = "Square Root"
+        print self.config.intscale
+
     def clear_all_plots(self, flag=0):
         """
         Clear All Plots
@@ -1609,6 +1640,13 @@ class Mainwindow(wx.Frame):
             header = dlg.header
             extension = dlg.extension
             transparent = dlg.transparent
+            dpi = dlg.dpi
+            try:
+                dpi = int(dpi)
+            except Exception, e:
+                print e, dpi
+                dpi = None
+
             path = os.path.join(directory, header)
             self.figsize = np.array(dlg.figsize)
             self.rect = np.array(dlg.rect)
@@ -1617,12 +1655,12 @@ class Mainwindow(wx.Frame):
                 plots = self.shrink_all_figures()
                 self.SetStatusText("Saving Figures", number=5)
                 figureflags, files = self.save_all_figures(extension, extension2="", header=path,
-                                                           transparent=transparent)
+                                                           transparent=transparent, dpi=dpi)
                 for plot in plots:
                     plot.resize = 1
                     plot.size_handler()
             else:
-                self.save_all_figures(extension, extension2="", header=path, transparent=transparent)
+                self.save_all_figures(extension, extension2="", header=path, transparent=transparent, dpi=dpi)
             # print self.directory
             self.SetStatusText("Saved Figures", number=5)
             # TODO: Remember Values from previous
@@ -1706,6 +1744,14 @@ class Mainwindow(wx.Frame):
             self.pres.on_mass_tools(e)
             if len(self.config.masslist) < 1:
                 self.ctlmasslistflag.SetValue(False)
+
+    def on_open_dir(self, e):
+        save_dir = os.getcwd()
+        print "Opening directory:", save_dir
+        try:
+            os.system(self.config.opencommand+save_dir)
+        except Exception, err:
+            print "Error opening directory", err
 
 
 class MyFileDropTarget(wx.FileDropTarget):

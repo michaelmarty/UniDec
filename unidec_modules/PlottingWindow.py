@@ -11,6 +11,7 @@ import numpy as np
 
 from unidec_modules.isolated_packages.ZoomSpan import ZoomSpan
 from unidec_modules.isolated_packages.ZoomBox import ZoomBox
+from unidec_modules.isolated_packages.NoZoomSpan import NoZoomSpan
 from unidec_modules.isolated_packages import FileDialogs
 
 interactive(True)
@@ -112,14 +113,18 @@ class PlottingWindow(wx.Window):
         """
         Saves Figure to path.
         :param path: Path to save figure at.
-        :param kwargs: Keywords passed to matplotlib.figure.savefig
+        :param kwargs: Keywords passed to matplotlib.figure.savefig (note only specific ones are passed)
         :return: None
         """
         if "transparent" in kwargs:
             t = kwargs["transparent"]
         else:
             t = True
-        self.figure.savefig(path, transparent=t)
+        if "dpi" in kwargs:
+            dpi = kwargs["dpi"]
+        else:
+            dpi = None
+        self.figure.savefig(path, transparent=t, dpi=dpi)
         print "Saved Figure: ", path
 
     def kda_test(self, xvals):
@@ -274,3 +279,11 @@ class PlottingWindow(wx.Window):
                 rectprops=dict(alpha=0.2, facecolor='yellow'),
                 data_lims=data_lims,
                 integrate=self.int, smash=self.smash)
+        if zoom == "fixed_span":
+            self.zoom = NoZoomSpan(
+                plots,
+                None,
+                minspan=0,
+                useblit=True,
+                onmove_callback=None,
+                rectprops=dict(alpha=0.2, facecolor='yellow'))

@@ -120,6 +120,17 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
+v. 1.0.13
+
+Added **log and square root intensity scales** under the advanced menu. Note, these don't save with the file but carry over from the session.
+Added DPI control for figure outputs in save figure dialog.
+Improved GUI to better save user input.
+Added an advanced menu item to **open the current save directory** in the file explore of the OS.
+
+v. 1.0.12
+
+Added drag and drop in the data collector utility. Can drop either text files to add them to the list or a JSON save file to load it.
+
 v. 1.0.11
 
 Thanks to Tim for bug fixes on CDCReader.exe (the binary that converts Water's IMMS files to text files).

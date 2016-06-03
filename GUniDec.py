@@ -102,6 +102,12 @@ class UniDecApp(object):
 
         self.on_load_default(0)
 
+        if "path" in kwargs:
+            newdir, fname = os.path.split(kwargs["path"])
+            self.on_open_file(fname, newdir)
+            # self.on_dataprep_button(0)
+            self.on_auto(0)
+
         # For testing, load up a spectrum at startup. Used only on MTM's computer.
         if False and platform.node() == "RobMike":
             # fname = "HSPCID.txt"
@@ -1172,6 +1178,7 @@ class UniDecApp(object):
         pass
 
     def on_auto_peak_width(self, e=None):
+        self.export_config()
         if not ud.isempty(self.eng.data.data2):
             self.eng.get_auto_peak_width()
             self.import_config()
@@ -1184,6 +1191,7 @@ class UniDecApp(object):
         :param e: unused event
         :return: None
         """
+        self.export_config()
         if not ud.isempty(self.eng.data.data2):
             self.export_config(None)
             if self.eng.config.imflag == 0:
@@ -1273,14 +1281,17 @@ class UniDecApp(object):
         :param e: unused event
         :return: None
         """
+        self.export_config()
         if not ud.isempty(self.eng.data.data3):
             self.export_config(None)
             if self.eng.config.imflag == 1:
                 dlg = IM_wind.IMTools(self.view)
                 dlg.initialize_interface(self.eng.data.data3, self.eng.config)
-                dlg.ShowModal()
-                self.eng.config = dlg.defaultconfig
-            self.import_config(None)
+                out = dlg.ShowModal()
+                if out is 0:
+                    self.import_config(None)
+                else:
+                    self.export_config()
         else:
             print "Load Data First"
         pass
@@ -1301,8 +1312,7 @@ class UniDecApp(object):
             ud.unidec_call(self.eng.config.UniDecIMPath, self.eng.config.confname)
             dlg = IM_wind.IMToolExtract(self.view)
             dlg.initialize_interface(self.eng.data.massdat, self.eng.data.ccsdata, self.eng.data.massccs,
-                                     self.eng.config,
-                                     self.eng.pks)
+                                     self.eng.config, self.eng.pks)
             dlg.ShowModal()
             self.eng.config.zout = 0
         pass
@@ -1435,6 +1445,7 @@ class UniDecApp(object):
         :param e: unused event
         :return: None
         """
+        self.export_config()
         massoutputfile = self.eng.config.outfname + "_mass.txt"
         self.eng.config.default_zero_charge()
         self.eng.config.minmz = np.amin(self.eng.data.massdat[:, 0])
