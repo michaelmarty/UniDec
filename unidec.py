@@ -47,7 +47,7 @@ class UniDec:
 
         :return: None
         """
-        self.version = "1.0.12"
+        self.version = "1.1.0"
         print "\nUniDec Engine v."+self.version
         self.config = None
         self.data = None
@@ -100,7 +100,7 @@ class UniDec:
         else:
             self.config.config_export(self.config.confname)
 
-    def open_file(self, file_name, file_directory, **kwargs):
+    def open_file(self, file_name, file_directory, *args, **kwargs):
         """
         Open text or mzML file. Will create _unidecfiles directory if it does not exist.
 
@@ -154,6 +154,8 @@ class UniDec:
 
         # Change paths to unidecfiles folder
         dirnew = self.config.outfname + "_unidecfiles"
+        if "clean" in kwargs and kwargs["clean"] and os.path.isdir(dirnew):
+            shutil.rmtree(dirnew)
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
         os.chdir(dirnew)

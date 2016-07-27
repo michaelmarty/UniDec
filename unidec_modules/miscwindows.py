@@ -176,6 +176,7 @@ class SaveFigureDialog(wx.Dialog):
         self.headerbox = None
         self.dirinput = None
         self.extbox = None
+        self.dpibox = None
         self.widebox = None
         self.tallbox = None
         self.tbox = None
@@ -188,6 +189,7 @@ class SaveFigureDialog(wx.Dialog):
         self.header = None
         self.extension = None
         self.transparent = None
+        self.dpi = None
         self.rect = None
         self.figsize = None
 
@@ -224,6 +226,9 @@ class SaveFigureDialog(wx.Dialog):
         self.extbox = wx.TextCtrl(pnl, value=str("png"))
         hbox6.Add(wx.StaticText(pnl, label='Extension: '), 0, wx.ALIGN_CENTER_VERTICAL)
         hbox6.Add(self.extbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.dpibox = wx.TextCtrl(pnl, value=str(""), size=(40, 20))
+        hbox6.Add(wx.StaticText(pnl, label='  DPI: '), 0, wx.ALIGN_CENTER_VERTICAL)
+        hbox6.Add(self.dpibox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
         self.tbox = wx.CheckBox(pnl, label=str("Transparent"))
         hbox6.Add(self.tbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
         sbs.Add(hbox6, 1, wx.ALIGN_CENTER_VERTICAL)
@@ -281,6 +286,7 @@ class SaveFigureDialog(wx.Dialog):
         self.header = self.headerbox.GetValue()
         self.extension = self.extbox.GetValue()
         self.transparent = self.tbox.GetValue()
+        self.dpi = self.dpibox.GetValue()
         self.rect = [float(self.b1.GetValue()), float(self.b2.GetValue()), float(self.b3.GetValue()),
                      float(self.b4.GetValue())]
         self.figsize = [float(self.widebox.GetValue()), float(self.tallbox.GetValue())]

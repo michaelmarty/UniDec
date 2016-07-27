@@ -30,8 +30,13 @@ class UniDecConfig:
         self.peaksfile = "peaks.dat"
         self.dirname = ''
         self.filename = ''
-        self.extension = ""
+        self.extension = ''
         self.imflag = 0
+
+        self.twavedict = {1: "Logarithmic", 2: "Linear", 3: "Power Law"}
+        self.backgroundchoices = ["Subtract Minimum", "Subtract Line",
+                                  "Subtract Curved"]  # , "Subtract SavGol","Subtract Polynomial"]
+
         self.initialize()
 
     def initialize(self):
@@ -47,14 +52,61 @@ class UniDecConfig:
         self.rawflag = 0
 
         # data prep
+        self.minmz = ''
+        self.maxmz = ''
+        self.intscale = "Linear"
+
+        # Results
+        self.error = 0
+        self.runtime = 0
+
+        # IM specific
+        self.mindt = ''
+        self.maxdt = ''
+        self.zout = 0
+        self.pusher = 0
+        self.temp = 25
+        self.pressure = 2
+        self.volt = 50
+        self.to = 0
+        self.driftlength = 0.18202
+        self.tcal1 = 0.3293
+        self.tcal2 = 6.3597
+        self.edc = 1.57
+        self.gasmass = 4.002602
+        self.twaveflag = 0
+
+        # Misc
+        self.batchflag = 0
+        self.procflag = 0
+        self.massdatnormtop = 0
+        self.mfileflag = False
+        self.manualfileflag = False
+        self.kendrickmass = None
+
+        self.masslist = []
+        self.matchlist = []
+        self.oligomerlist = []
+        self.manuallist = []
+        self.zoffs = []
+        self.massoffset = 0
+        self.extractshape = 0
+        self.gridparams = None
+        self.griddecon = None
+        self.matchtolerance = 1000
+
+        self.default_decon_params()
+
+        self.default_colormaps()
+
+    def default_decon_params(self):
+        # Data Prep
         self.detectoreffva = 0
         self.mzbins = 1
         self.smooth = 0
         self.subbuff = 0
         self.subtype = 0
         self.intthresh = 0
-        self.minmz = ''
-        self.maxmz = ''
 
         # UniDec
         self.numit = 100
@@ -75,16 +127,6 @@ class UniDecConfig:
         self.suppression = 0
         self.isotopemode = 0
 
-        # Peak Selection and plotting
-        self.peakwindow = 500
-        self.peakthresh = 0.1
-        self.peakplotthresh = 0.1
-        self.separation = 0.025
-        self.peaknorm = 1
-
-        # Results
-        self.error = 0
-
         # Other
         self.mtabsig = 0
         self.poolflag = 1
@@ -95,9 +137,14 @@ class UniDecConfig:
         self.integratelb = ""
         self.integrateub = ""
 
-        # IM specific
-        self.mindt = ''
-        self.maxdt = ''
+        # Peak Selection and plotting
+        self.peakwindow = 500
+        self.peakthresh = 0.1
+        self.peakplotthresh = 0.1
+        self.separation = 0.025
+        self.peaknorm = 1
+
+        # IM Specific
         self.smoothdt = 0
         self.subbufdt = 0
         self.ccslb = 100
@@ -107,45 +154,6 @@ class UniDecConfig:
         self.dtsig = 0.2
         self.ccsbins = 100
         self.csig = 0
-        self.pusher = 0
-        self.zout = 0
-
-        self.temp = 25
-        self.pressure = 2
-        self.volt = 50
-        self.to = 0
-        self.driftlength = 0.18202
-        self.tcal1 = 0.3293
-        self.tcal2 = 6.3597
-        self.edc = 1.57
-        self.gasmass = 4.002602
-        self.twaveflag = 0
-
-        # Misc
-        self.batchflag = 0
-        self.procflag = 0
-        self.runtime = 0
-        self.massdatnormtop = 0
-
-        self.mfileflag = False
-        self.manualfileflag = False
-
-        self.kendrickmass = None
-
-        self.masslist = []
-        self.matchlist = []
-        self.oligomerlist = []
-        self.manuallist = []
-        self.zoffs = []
-        self.massoffset = 0
-        self.extractshape = 0
-        self.gridparams = None
-        self.griddecon = None
-        self.matchtolerance = 1000
-
-        self.twavedict = {1: "Logarithmic"}
-
-        self.default_colormaps()
 
     def default_colormaps(self):
         """
@@ -631,18 +639,22 @@ class UniDecConfig:
         pathtofile = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.defaultUnidecDir = os.path.join(pathtofile, 'unidec_bin')
 
+
         if self.system == 'Windows':
             self.defaultUnidecName = "UniDec.exe"
             self.defaultIMName = "UniDecIM.exe"
+            self.opencommand = "start "
             print "Windows: ", self.defaultUnidecName
         elif self.system == 'Darwin':
             self.defaultUnidecName = "unidecmac"
             self.defaultIMName = "unidecmacIM"
             self.defaultUnidecDir = '/Applications/GUniDecMac.app/Contents/MacOS'
+            self.opencommand = "open "
             print "Mac:", self.defaultUnidecName
         else:
             self.defaultUnidecName = "unideclinux"
             self.defaultIMName = "unideclinuxIM"
+            self.opencommand = "gnome-open " #TODO: Test whether this is right
             print "Linux or other: unidec"
 
         self.UniDecPath = os.path.join(self.defaultUnidecDir, self.defaultUnidecName)

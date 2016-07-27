@@ -86,8 +86,7 @@ class Mainwindow(wx.Frame):
 
         self.twave = self.config.twaveflag > 0
 
-        self.backgroundchoices = ["Subtract Minimum", "Subtract Line",
-                                  "Subtract Curved"]  # , "Subtract SavGol","Subtract Polynomial"]
+        self.backgroundchoices = self.config.backgroundchoices
 
         pub.subscribe(self.on_motion, 'newxy')
 
@@ -155,6 +154,8 @@ class Mainwindow(wx.Frame):
 
         # Default Submenu
         self.defaultmenu = wx.Menu()
+        self.menuDefault0 = self.defaultmenu.Append(999, "Low-resolution Native",
+                                                    "General factory defaults for low-resolution native MS")
         self.menuDefault1 = self.defaultmenu.Append(1000, "High-resolution Native",
                                                     "Defaults for high-resolution data (Exactive EMR).")
         self.menuDefault2 = self.defaultmenu.Append(1001, "Zero-Charge Mass Deisotoping",
@@ -265,6 +266,8 @@ class Mainwindow(wx.Frame):
         self.menuUnidecPath = self.advancedmenu.Append(wx.ID_FILE1, "UniDec File", "Find the UniDec executable file.")
         self.menuFileName = self.advancedmenu.Append(wx.ID_FILE2, "Rename Files",
                                                      "Rename the files into and out of UniDec.")
+        self.menuOpenDir = self.advancedmenu.Append(wx.ID_ANY, "Open Saved File Directory",
+                                                    "Opens the save directory in the file explorer")
 
         if self.config.imflag == 0:
             self.advancedmenu.AppendSeparator()
@@ -277,6 +280,19 @@ class Mainwindow(wx.Frame):
             self.Bind(wx.EVT_MENU, self.menu_401_403, id=403)
 
         self.advancedmenu.AppendSeparator()
+
+        self.scalemenu = wx.Menu()
+
+        self.scalemenu.Append(501, "Linear", "Normal linear intensity scale", wx.ITEM_RADIO)
+        self.scalemenu.Append(502, "Logarithmic", "Logarithmic intensity scale",
+                              wx.ITEM_RADIO)
+        self.scalemenu.Append(503, "Square Root", "Square root intensity scale", wx.ITEM_RADIO)
+        self.Bind(wx.EVT_MENU, self.menu_501_503, id=501)
+        self.Bind(wx.EVT_MENU, self.menu_501_503, id=502)
+        self.Bind(wx.EVT_MENU, self.menu_501_503, id=503)
+        self.advancedmenu.AppendMenu(wx.ID_ANY, 'Intensity Scale', self.scalemenu)
+        self.advancedmenu.AppendSeparator()
+
         if self.config.imflag == 0:
             self.menuflipmode = self.advancedmenu.Append(wx.ID_ANY, "Switch to Ion Mobility Mode",
                                                          "Switch interface to IM-MS Mode.")
@@ -342,54 +358,68 @@ class Mainwindow(wx.Frame):
         self.SetMenuBar(self.menuBar)
 
         # Set Events for Menu Bar
-        self.Bind(wx.EVT_MENU, self.pres.on_peak_errors, self.menuerrors)
-        self.Bind(wx.EVT_MENU, self.pres.on_flip_tabbed, self.menufliptabbed)
-        self.Bind(wx.EVT_MENU, self.pres.on_flip_mode, self.menuflipmode)
+
+        #File Menu
         self.Bind(wx.EVT_MENU, self.pres.on_open, self.menuOpen)
         self.Bind(wx.EVT_MENU, self.pres.on_raw_open, self.menuOpenRaw)
-        self.Bind(wx.EVT_MENU, self.pres.on_reset, self.menuReset)
-        self.Bind(wx.EVT_MENU, self.pres.on_load_conf_file, self.menuLoad)
         self.Bind(wx.EVT_MENU, self.pres.on_load_state, self.menuLoadState)
         self.Bind(wx.EVT_MENU, self.pres.on_save_state, self.menuSaveState)
-        self.Bind(wx.EVT_MENU, self.on_about, self.menuAbout)
-        self.Bind(wx.EVT_MENU, self.on_exit, self.menuExit)
-        self.Bind(wx.EVT_MENU, self.pres.on_unidec_path, self.menuUnidecPath)
-        self.Bind(wx.EVT_MENU, self.pres.on_file_name, self.menuFileName)
+        self.Bind(wx.EVT_MENU, self.pres.on_paste_spectrum, self.menupastespectrum)
+        self.Bind(wx.EVT_MENU, self.pres.on_load_conf_file, self.menuLoad)
+        self.Bind(wx.EVT_MENU, self.pres.on_save_default, self.menuSaveDefault)
+        self.Bind(wx.EVT_MENU, self.pres.on_load_default, self.menuLoadDefault)
+        self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault0)
+        self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault1)
+        self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault2)
+        self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault3)
+        self.Bind(wx.EVT_MENU, self.on_save_figure_dialog, self.menufigdialog)
         self.Bind(wx.EVT_MENU, self.on_save_figure_pdf, self.menuSaveFigure0)
         self.Bind(wx.EVT_MENU, self.on_save_figure_eps, self.menuSaveFigure1)
         self.Bind(wx.EVT_MENU, self.on_save_figure_small, self.menuSaveFigure1s)
         self.Bind(wx.EVT_MENU, self.on_save_figure_png, self.menuSaveFigure2)
         self.Bind(wx.EVT_MENU, self.pres.on_pdf_report, self.menuSaveFigure4)
+        self.Bind(wx.EVT_MENU, self.on_about, self.menuAbout)
+        self.Bind(wx.EVT_MENU, self.on_exit, self.menuExit)
+
+        #Tools
+
+        self.Bind(wx.EVT_MENU, self.pres.on_import_wizard, self.menuImportWizard)
         self.Bind(wx.EVT_MENU, self.pres.on_mass_tools, self.menuMassFile)
         self.Bind(wx.EVT_MENU, self.pres.on_batch, self.menuBatch)
         self.Bind(wx.EVT_MENU, self.pres.on_batch2, self.menuBatch2)
         self.Bind(wx.EVT_MENU, self.pres.on_batch_raw, self.menuBatchRaw)
-        self.Bind(wx.EVT_MENU, self.pres.on_save_default, self.menuSaveDefault)
-        self.Bind(wx.EVT_MENU, self.pres.on_load_default, self.menuLoadDefault)
         self.Bind(wx.EVT_MENU, self.pres.on_peak_width_tool, self.menuWidth)
         self.Bind(wx.EVT_MENU, self.pres.on_auto_peak_width, self.menuAutoWidth)
+        self.Bind(wx.EVT_MENU, self.pres.on_manual, self.menuManualFile)
+
+        #Analysis
+        self.Bind(wx.EVT_MENU, self.pres.on_nativez_tools, self.menuPlotZ)
+        self.Bind(wx.EVT_MENU, self.pres.on_data_collector, self.menucollect)
         self.Bind(wx.EVT_MENU, self.pres.on_export_params, self.menuExport)
         self.Bind(wx.EVT_MENU, self.pres.on_fit_masses, self.menuFitNorm)
-        self.Bind(wx.EVT_MENU, self.pres.on_nativez_tools, self.menuPlotZ)
-        self.Bind(wx.EVT_MENU, self.pres.on_tweet, self.Tweet)
-        self.Bind(wx.EVT_MENU, self.pres.on_data_collector, self.menucollect)
-        self.Bind(wx.EVT_MENU, self.pres.on_super_batch, self.menusuperbatch)
-        self.Bind(wx.EVT_MENU, self.pres.on_mass_process, self.menumassprocess)
-        self.Bind(wx.EVT_MENU, self.pres.on_paste_spectrum, self.menupastespectrum)
         self.Bind(wx.EVT_MENU, self.pres.on_plot_offsets, self.menuoffset)
         self.Bind(wx.EVT_MENU, self.pres.on_charge_plot, self.menuchargeplot)
         self.Bind(wx.EVT_MENU, self.pres.on_center_of_mass, self.menucom)
-        self.Bind(wx.EVT_MENU, self.pres.on_match, self.menumatch)
         self.Bind(wx.EVT_MENU, self.pres.on_integrate, self.menuintegrate)
         self.Bind(wx.EVT_MENU, self.pres.on_2d_grid, self.menu2Dgrid)
         self.Bind(wx.EVT_MENU, self.pres.on_kendrick, self.menukendrick)
         self.Bind(wx.EVT_MENU, self.pres.on_autocorr_window, self.menuautocorr)
-        self.Bind(wx.EVT_MENU, self.pres.on_manual, self.menuManualFile)
-        self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault1)
-        self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault2)
-        self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault3)
-        self.Bind(wx.EVT_MENU, self.on_save_figure_dialog, self.menufigdialog)
-        self.Bind(wx.EVT_MENU, self.pres.on_import_wizard, self.menuImportWizard)
+        self.Bind(wx.EVT_MENU, self.pres.on_match, self.menumatch)
+
+        #Advanced
+        self.Bind(wx.EVT_MENU, self.pres.on_reset, self.menuReset)
+        self.Bind(wx.EVT_MENU, self.pres.on_unidec_path, self.menuUnidecPath)
+        self.Bind(wx.EVT_MENU, self.pres.on_file_name, self.menuFileName)
+        self.Bind(wx.EVT_MENU, self.on_open_dir, self.menuOpenDir)
+        self.Bind(wx.EVT_MENU, self.pres.on_flip_tabbed, self.menufliptabbed)
+        self.Bind(wx.EVT_MENU, self.pres.on_flip_mode, self.menuflipmode)
+
+
+        #Experimental
+        self.Bind(wx.EVT_MENU, self.pres.on_peak_errors, self.menuerrors)
+        self.Bind(wx.EVT_MENU, self.pres.on_tweet, self.Tweet)
+        self.Bind(wx.EVT_MENU, self.pres.on_mass_process, self.menumassprocess)
+        self.Bind(wx.EVT_MENU, self.pres.on_super_batch, self.menusuperbatch)
         pass
 
     def on_defaults(self, e):
@@ -405,6 +435,8 @@ class Mainwindow(wx.Frame):
             self.config.default_zero_charge()
         elif nid == 2:
             self.config.default_isotopic_res()
+        elif nid == 99:
+            self.config.default_decon_params()
         self.pres.import_config(None)
 
     # noinspection PyPep8,PyPep8
@@ -1394,6 +1426,21 @@ class Mainwindow(wx.Frame):
             self.config.aggressiveflag = 2
         print self.config.aggressiveflag
 
+    def menu_501_503(self, event):
+        """
+        Menu function to adjust the intensity scale.
+        :param event: wx Event
+        :return: None
+        """
+        event_id = event.GetId()
+        if event_id == 501:
+            self.config.intscale = "Linear"
+        if event_id == 502:
+            self.config.intscale = "Logarithmic"
+        if event_id == 503:
+            self.config.intscale = "Square Root"
+        print self.config.intscale
+
     def clear_all_plots(self, flag=0):
         """
         Clear All Plots
@@ -1609,6 +1656,13 @@ class Mainwindow(wx.Frame):
             header = dlg.header
             extension = dlg.extension
             transparent = dlg.transparent
+            dpi = dlg.dpi
+            try:
+                dpi = int(dpi)
+            except Exception, e:
+                print e, dpi
+                dpi = None
+
             path = os.path.join(directory, header)
             self.figsize = np.array(dlg.figsize)
             self.rect = np.array(dlg.rect)
@@ -1617,12 +1671,12 @@ class Mainwindow(wx.Frame):
                 plots = self.shrink_all_figures()
                 self.SetStatusText("Saving Figures", number=5)
                 figureflags, files = self.save_all_figures(extension, extension2="", header=path,
-                                                           transparent=transparent)
+                                                           transparent=transparent, dpi=dpi)
                 for plot in plots:
                     plot.resize = 1
                     plot.size_handler()
             else:
-                self.save_all_figures(extension, extension2="", header=path, transparent=transparent)
+                self.save_all_figures(extension, extension2="", header=path, transparent=transparent, dpi=dpi)
             # print self.directory
             self.SetStatusText("Saved Figures", number=5)
             # TODO: Remember Values from previous
@@ -1706,6 +1760,14 @@ class Mainwindow(wx.Frame):
             self.pres.on_mass_tools(e)
             if len(self.config.masslist) < 1:
                 self.ctlmasslistflag.SetValue(False)
+
+    def on_open_dir(self, e):
+        save_dir = os.getcwd()
+        print "Opening directory:", save_dir
+        try:
+            os.system(self.config.opencommand + save_dir)
+        except Exception, err:
+            print "Error opening directory", err
 
 
 class MyFileDropTarget(wx.FileDropTarget):

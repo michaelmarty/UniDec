@@ -158,8 +158,7 @@ class IMTools(wx.Dialog):
         :param config: UniDecConfig object
         :return: None
         """
-        self.defaultconfig = config
-        self.config = deepcopy(config)
+        self.config = config
         self.data3 = data3
 
         self.pnl = wx.Panel(self)
@@ -293,7 +292,6 @@ class IMTools(wx.Dialog):
         :return: None
         """
         self.get_from_gui(e)
-        self.defaultconfig = self.config
         self.Destroy()
         self.EndModal(0)
 
@@ -374,7 +372,11 @@ class IMTools(wx.Dialog):
             if self.config.twaveflag == 0:
                 dts = np.array([calc_linear_dt(mass, z, ccs, self.config) for z in ztab])
             elif self.config.twaveflag == 1:
-                dts = np.array([calc_twave_dt(mass, z, ccs, self.config) for z in ztab])
+                dts = np.array([calc_twave_dt_log(mass, z, ccs, self.config) for z in ztab])
+            elif self.config.twaveflag == 2:
+                dts = np.array([calc_twave_dt_linear(mass, z, ccs, self.config) for z in ztab])
+            elif self.config.twaveflag == 3:
+                dts = np.array([calc_twave_dt_power(mass, z, ccs, self.config) for z in ztab])
             else:
                 print "Error: twaveflat value not supported. Value was:", self.config.twaveflag
             dtdat = np.unique(self.data3[:, 1])

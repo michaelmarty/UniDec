@@ -6,6 +6,8 @@ from matplotlib import interactive
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
+#from matplotlib import rcParams
+#import matplotlib
 import matplotlib.cm as cm
 import numpy as np
 
@@ -14,7 +16,19 @@ from unidec_modules.isolated_packages.ZoomBox import ZoomBox
 from unidec_modules.isolated_packages.NoZoomSpan import NoZoomSpan
 from unidec_modules.isolated_packages import FileDialogs
 
+
+
 interactive(True)
+
+
+#rcParams['ps.useafm'] = True
+#rcParams['ps.fonttype'] = 42
+#rcParams['pdf.fonttype'] = 42
+# rcParams['lines.linewidth']=0.5
+# rcParams['axes.linewidth']=0.5
+# rcParams['font.size']=18
+#matplotlib.rc('font', family='sans-serif')
+#matplotlib.rc('font', serif='Helvetica')
 
 
 class PlottingWindow(wx.Window):
@@ -113,14 +127,18 @@ class PlottingWindow(wx.Window):
         """
         Saves Figure to path.
         :param path: Path to save figure at.
-        :param kwargs: Keywords passed to matplotlib.figure.savefig
+        :param kwargs: Keywords passed to matplotlib.figure.savefig (note only specific ones are passed)
         :return: None
         """
         if "transparent" in kwargs:
             t = kwargs["transparent"]
         else:
             t = True
-        self.figure.savefig(path, transparent=t)
+        if "dpi" in kwargs:
+            dpi = kwargs["dpi"]
+        else:
+            dpi = None
+        self.figure.savefig(path, transparent=t, dpi=dpi)
         print "Saved Figure: ", path
 
     def kda_test(self, xvals):
