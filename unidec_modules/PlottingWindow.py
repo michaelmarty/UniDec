@@ -6,6 +6,8 @@ from matplotlib import interactive
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
+#from matplotlib import rcParams
+#import matplotlib
 import matplotlib.cm as cm
 import numpy as np
 
@@ -14,7 +16,19 @@ from unidec_modules.isolated_packages.ZoomBox import ZoomBox
 from unidec_modules.isolated_packages.NoZoomSpan import NoZoomSpan
 from unidec_modules.isolated_packages import FileDialogs
 
+
+
 interactive(True)
+
+
+#rcParams['ps.useafm'] = True
+#rcParams['ps.fonttype'] = 42
+#rcParams['pdf.fonttype'] = 42
+# rcParams['lines.linewidth']=0.5
+# rcParams['axes.linewidth']=0.5
+# rcParams['font.size']=18
+#matplotlib.rc('font', family='sans-serif')
+#matplotlib.rc('font', serif='Helvetica')
 
 
 class PlottingWindow(wx.Window):

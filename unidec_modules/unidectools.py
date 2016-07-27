@@ -703,7 +703,7 @@ def datacompsub(datatop, buff):
     mins = range(0, length)
     indexes = range(0, length)
     for i in indexes:
-        mins[i] = np.amin(datatop[max([0, i - abs(buff)]):min([i + abs(buff), length]), 1])
+        mins[i] = np.amin(datatop[int(max([0, i - abs(buff)])):int(min([i + abs(buff), length])), 1])
     background = filt.gaussian_filter(mins, abs(buff) * 2)
     datatop[:, 1] = datatop[:, 1] - background
     return datatop
@@ -1165,7 +1165,7 @@ def peakdetect(data, config=None, window=10, threshold=0):
                 start = 0
             if end > length:
                 end = length
-            testmax = np.amax(data[start:end + 1, 1])
+            testmax = np.amax(data[int(start):int(end) + 1, 1])
             if data[i, 1] == testmax and data[i, 1] != data[i - 1, 1]:
                 peaks.append([data[i, 0], data[i, 1]])
     return np.array(peaks)
@@ -1263,7 +1263,7 @@ def make_peaks_mztab_spectrum(mzgrid, pks, data2, mztab):
     zlen = len(zvals)
     plen = pks.plen
     mztab2 = deepcopy(mztab)
-    mztab2[:, :, 1] = [[data2[pks.peaks[i].mztab[k, 2], 1] for k in range(0, zlen)] for i in range(0, plen)]
+    mztab2[:, :, 1] = [[data2[int(pks.peaks[i].mztab[k, 2]), 1] for k in range(0, zlen)] for i in range(0, plen)]
     for i in xrange(0, plen):
         pks.peaks[i].mztab2 = np.array(mztab2[i])
 

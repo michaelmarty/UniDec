@@ -1,4 +1,5 @@
 import time
+
 import os
 import thread
 import wx
@@ -21,6 +22,7 @@ from copy import deepcopy
 import wx.py as py
 import platform
 import multiprocessing
+
 
 # import FileDialog  # Needed for pyinstaller
 
@@ -109,14 +111,16 @@ class UniDecApp(object):
             self.on_auto(0)
 
         # For testing, load up a spectrum at startup. Used only on MTM's computer.
-        if False and platform.node() == "RobMike":
+        if False and platform.node() == "mtmacer":
             # fname = "HSPCID.txt"
             fname = "0.txt"
             # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
-            newdir = "C:\\cprog\\UniDecDemo"
+            newdir = os.path.join(os.getcwd(),"TestSpectra")
+            #newdir = "C:\\cprog\\UniDecDemo"
             self.on_open_file(fname, newdir)
+            # self.view.on_save_figure_eps(0)
             # self.on_dataprep_button(0)
-            self.on_auto(0)
+            # self.on_auto(0)
             # self.on_integrate()
             # self.on_grid_decon(0)
             # self.make_cube_plot(0)
@@ -166,7 +170,7 @@ class UniDecApp(object):
             self.on_open_file(self.eng.config.filename, self.eng.config.dirname)
         dlg.Destroy()
 
-    def on_open_file(self, filename, directory, skipengine=False):
+    def on_open_file(self, filename, directory, skipengine=False, **kwargs):
         """
         Opens a file. Run self.eng.open_file.
         :param filename: File name
@@ -179,7 +183,7 @@ class UniDecApp(object):
         self.view.clear_all_plots()
         if not skipengine:
             # Open File in Engine
-            self.eng.open_file(filename, directory)
+            self.eng.open_file(filename, directory, **kwargs)
 
         # Set Status Bar Text Values
         self.view.SetStatusText("File: " + filename, number=1)
@@ -224,15 +228,16 @@ class UniDecApp(object):
             self.view.SetStatusText("Saved", number=5)
         pass
 
-    def on_load_state(self, e=None):
+    def on_load_state(self, e=None, filenew=None):
         """
         Loads a saved file state by running self.eng.load_state and then updating self.view.
         Runs several engine components rather than importing.
         :param e: unused space for event
         :return: None
         """
-        filenew = FileDialogs.open_file_dialog(message="Select UniDec Zip File to Open", file_types="*.zip")
-        print filenew
+        if filenew is None:
+            filenew = FileDialogs.open_file_dialog(message="Select UniDec Zip File to Open", file_types="*.zip")
+            print filenew
         if filenew is not None:
             # Reset GUI
             self.on_reset(0)
@@ -654,7 +659,7 @@ class UniDecApp(object):
             if self.eng.config.isotopemode == 1:
                 try:
                     stickmax = np.amax(np.array([p.stickdat for p in self.eng.pks.peaks]))
-                except AttributeError:
+                except (AttributeError, ValueError):
                     stickmax = 1.0
             else:
                 stickmax = 1.0
@@ -771,7 +776,7 @@ class UniDecApp(object):
             self.view.plot5ccsz.contourplot(
                 np.transpose([np.ravel(ccsgrid2), np.ravel(zgrid2), np.ravel(self.eng.data.ccsz)]), self.eng.config,
                 xlab="Charge", ylab="CCS (${\AA}$$^2$)", title="CCS vs. Charge")
-
+            print "Made IM Plots"
             try:
                 self.view.plot3color.make_color_plot(self.eng.data.mztgrid, np.unique(self.eng.data.data3[:, 0]),
                                                      np.unique(self.eng.data.data3[:, 1]), self.eng.data.ztab)

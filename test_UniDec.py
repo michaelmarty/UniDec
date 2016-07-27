@@ -15,6 +15,7 @@ class TestUniDec(TestCase):
         cls.testimms = "imms.dat"
         cls.testmzml = "myo.mzML"
 
+    # Check
     def test_unidec_paths(self):
         """
         Test whether the paths specified actually have the correct files there.
@@ -50,6 +51,7 @@ class TestUniDec(TestCase):
         self.eng.load_config(self.eng.config.defaultconfig)
         self.assertNotEqual(self.eng.config.mzbins, 1000)
 
+    #Check
     def test_open_file(self):
         """
         Open several test spectra from various data types in self.testdir.
@@ -70,6 +72,7 @@ class TestUniDec(TestCase):
         with self.assertRaises(IOError):
             self.eng.open_file("junk.junk", self.testdir)
 
+    # Check
     def test_auto_MS(self):
         """
         Open a file, process the data, and pick the peaks.
@@ -79,14 +82,19 @@ class TestUniDec(TestCase):
         self.eng.open_file(self.testms, self.testdir)
         self.eng.config.startz = 25
         self.eng.config.endz = 40
+        self.eng.config.minmz = 5800
+        self.eng.config.maxmz = 7900
+        # self.eng.config.masslb = 211000
+        # self.eng.config.massub = 222000
         self.eng.autorun()
 
         intensities = [p.height for p in self.eng.pks.peaks]
         masses = [p.mass for p in self.eng.pks.peaks]
         maxmass = masses[np.argmax(intensities)]
 
-        self.assertAlmostEqual(maxmass, 211862, places=0)
+        self.assertAlmostEqual(int(50 * round(float(maxmass)/50)), 211850, places=0)
 
+    #Check
     def test_auto_IMMS(self):
         """
         Open a file, process the data, and pick the peaks.
@@ -106,10 +114,15 @@ class TestUniDec(TestCase):
 
     def test_save_load(self):
         self.eng.open_file(self.testms, self.testdir)
+        self.eng.autorun()
         savepath = os.path.join(self.testdir, self.eng.config.outfname + ".zip")
+        massdatlength1 = len(self.eng.data.massdat)
         self.eng.save_state(savepath)
         self.eng.data = DataContainer
         self.eng.load_state(savepath)
-        massdatlength = len(self.eng.data.massdat)
-        self.assertEqual(massdatlength, 7907)
+        massdatlength2 = len(self.eng.data.massdat)
+        self.assertEqual(massdatlength1, massdatlength2)
+
+
+
 
