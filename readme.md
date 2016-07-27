@@ -120,7 +120,6 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
-<<<<<<< HEAD
 v. 1.1.0
 
 **Added Linear and Power Law calibrations for T-Wave IM-MS.** These are highly untested so proceed with caution. Please let me know how they work.
@@ -133,8 +132,6 @@ Log: Reduced CCS = Exp(Calibration Parameter 1 * log(Reduced Drift Time) + Calib
 
 Dr. Tim Allison updated CDCReader.exe, which converts Waters Raw IMMS files into txt to perform more accurately with small bin sizes and with ending m/z cutoffs.
 
-=======
->>>>>>> 8dc132077731794c22e2bfe732d483ed2bb35496
 v. 1.0.13
 
 Added **log and square root intensity scales** under the advanced menu. Note, these don't save with the file but carry over from the session.

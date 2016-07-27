@@ -105,12 +105,8 @@ class UniDecConfig:
         self.mzbins = 1
         self.smooth = 0
         self.subbuff = 0
-        self.backgroundchoices = ["Subtract Minimum", "Subtract Line",
-                                   "Subtract Curved"]  # , "Subtract SavGol","Subtract Polynomial"]
         self.subtype = 0
         self.intthresh = 0
-
-        self.intscale = "Linear"
 
         # UniDec
         self.numit = 100
@@ -158,48 +154,6 @@ class UniDecConfig:
         self.dtsig = 0.2
         self.ccsbins = 100
         self.csig = 0
-<<<<<<< HEAD
-=======
-        self.pusher = 0
-        self.zout = 0
-
-        self.temp = 25
-        self.pressure = 2
-        self.volt = 50
-        self.to = 0
-        self.driftlength = 0.18202
-        self.tcal1 = 0.3293
-        self.tcal2 = 6.3597
-        self.edc = 1.57
-        self.gasmass = 4.002602
-        self.twaveflag = 0
-
-        # Misc
-        self.batchflag = 0
-        self.procflag = 0
-        self.runtime = 0
-        self.massdatnormtop = 0
-
-        self.mfileflag = False
-        self.manualfileflag = False
-
-        self.kendrickmass = None
-
-        self.masslist = []
-        self.matchlist = []
-        self.oligomerlist = []
-        self.manuallist = []
-        self.zoffs = []
-        self.massoffset = 0
-        self.extractshape = 0
-        self.gridparams = None
-        self.griddecon = None
-        self.matchtolerance = 1000
-
-        self.twavedict = {1: "Logarithmic", 2: "Linear", 3: "Power Law"}
-
-        self.default_colormaps()
->>>>>>> 8dc132077731794c22e2bfe732d483ed2bb35496
 
     def default_colormaps(self):
         """
