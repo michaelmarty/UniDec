@@ -267,7 +267,12 @@ class Mainwindow(wx.Frame):
         self.menuFileName = self.advancedmenu.Append(wx.ID_FILE2, "Rename Files",
                                                      "Rename the files into and out of UniDec.")
         self.menuOpenDir = self.advancedmenu.Append(wx.ID_ANY, "Open Saved File Directory",
+<<<<<<< HEAD
                                                     "Opens the save directory in the file explorer")
+=======
+                                                     "Opens the save directory in the file explorer")
+
+>>>>>>> 8dc132077731794c22e2bfe732d483ed2bb35496
 
         if self.config.imflag == 0:
             self.advancedmenu.AppendSeparator()
@@ -285,7 +290,11 @@ class Mainwindow(wx.Frame):
 
         self.scalemenu.Append(501, "Linear", "Normal linear intensity scale", wx.ITEM_RADIO)
         self.scalemenu.Append(502, "Logarithmic", "Logarithmic intensity scale",
+<<<<<<< HEAD
                               wx.ITEM_RADIO)
+=======
+                                 wx.ITEM_RADIO)
+>>>>>>> 8dc132077731794c22e2bfe732d483ed2bb35496
         self.scalemenu.Append(503, "Square Root", "Square root intensity scale", wx.ITEM_RADIO)
         self.Bind(wx.EVT_MENU, self.menu_501_503, id=501)
         self.Bind(wx.EVT_MENU, self.menu_501_503, id=502)
@@ -404,6 +413,7 @@ class Mainwindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.pres.on_2d_grid, self.menu2Dgrid)
         self.Bind(wx.EVT_MENU, self.pres.on_kendrick, self.menukendrick)
         self.Bind(wx.EVT_MENU, self.pres.on_autocorr_window, self.menuautocorr)
+<<<<<<< HEAD
         self.Bind(wx.EVT_MENU, self.pres.on_match, self.menumatch)
 
         #Advanced
@@ -420,6 +430,15 @@ class Mainwindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.pres.on_tweet, self.Tweet)
         self.Bind(wx.EVT_MENU, self.pres.on_mass_process, self.menumassprocess)
         self.Bind(wx.EVT_MENU, self.pres.on_super_batch, self.menusuperbatch)
+=======
+        self.Bind(wx.EVT_MENU, self.pres.on_manual, self.menuManualFile)
+        self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault1)
+        self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault2)
+        self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault3)
+        self.Bind(wx.EVT_MENU, self.on_save_figure_dialog, self.menufigdialog)
+        self.Bind(wx.EVT_MENU, self.pres.on_import_wizard, self.menuImportWizard)
+        self.Bind(wx.EVT_MENU, self.on_open_dir, self.menuOpenDir)
+>>>>>>> 8dc132077731794c22e2bfe732d483ed2bb35496
         pass
 
     def on_defaults(self, e):
@@ -1765,7 +1784,11 @@ class Mainwindow(wx.Frame):
         save_dir = os.getcwd()
         print "Opening directory:", save_dir
         try:
+<<<<<<< HEAD
             os.system(self.config.opencommand + save_dir)
+=======
+            os.system(self.config.opencommand+save_dir)
+>>>>>>> 8dc132077731794c22e2bfe732d483ed2bb35496
         except Exception, err:
             print "Error opening directory", err
 
