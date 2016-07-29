@@ -23,7 +23,6 @@ import wx.py as py
 import platform
 import multiprocessing
 
-
 # import FileDialog  # Needed for pyinstaller
 
 __author__ = 'Michael.Marty'
@@ -115,8 +114,8 @@ class UniDecApp(object):
             # fname = "HSPCID.txt"
             fname = "0.txt"
             # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
-            newdir = os.path.join(os.getcwd(),"TestSpectra")
-            #newdir = "C:\\cprog\\UniDecDemo"
+            newdir = os.path.join(os.getcwd(), "TestSpectra")
+            # newdir = "C:\\cprog\\UniDecDemo"
             self.on_open_file(fname, newdir)
             # self.view.on_save_figure_eps(0)
             # self.on_dataprep_button(0)
@@ -158,7 +157,7 @@ class UniDecApp(object):
         :param e: unused space for event
         :return: None
         """
-        dlg = wx.FileDialog(self.view, "Choose a data file in x y list format", '', "", "*.*", wx.OPEN)
+        dlg = wx.FileDialog(self.view, "Choose a data file in x y list format", '', "", "*.*")  # , wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.view.SetStatusText("Opening", number=5)
             self.eng.config.filename = dlg.GetFilename()
@@ -1732,12 +1731,13 @@ class UniDecApp(object):
         if e is not 0:
             self.eng.config.imflag = (self.eng.config.imflag + 1) % 2
         self.remake_mainwindow(self.view.tabbed)
-
-        self.view.import_config_to_gui()
         if self.eng.config.imflag == 1:
             print "Ion Mobility Mode"
+            self.eng.config.mzbins = 1
         elif self.eng.config.imflag == 0:
             print "Mass Spec Mode"
+        self.view.import_config_to_gui()
+
 
     def on_flip_tabbed(self, e):
         """
