@@ -132,6 +132,8 @@ Log: Reduced CCS = Exp(Calibration Parameter 1 * log(Reduced Drift Time) + Calib
 
 Dr. Tim Allison updated CDCReader.exe, which converts Waters Raw IMMS files into txt to perform more accurately with small bin sizes and with ending m/z cutoffs.
 
+**This version requires an updated binary of UniDecIM.exe to utilize the new calibrations. I am still working on the IP for this, so contact me if you need this binary.**
+
 v. 1.0.13
 
 Added **log and square root intensity scales** under the advanced menu. Note, these don't save with the file but carry over from the session.
