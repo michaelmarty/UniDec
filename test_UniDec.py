@@ -1,5 +1,6 @@
 from unittest import TestCase
-from unidec import UniDec, DataContainer
+from unidec import UniDec
+from unidec_modules.unidecstructure import DataContainer
 import os
 import numpy as np
 

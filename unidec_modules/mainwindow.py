@@ -77,8 +77,14 @@ class Mainwindow(wx.Frame):
             # If tabbed isn't specified, use the display size to decide what is best
             print "Display Size ", self.displaysize
             self.tabbed = 0
-            if self.displaysize[0] < 1800:
+            if self.displaysize[0] < 1400:
                 self.tabbed = 1
+            elif 1500 <= self.displaysize[0] < 1800:
+                self.config.figsize = (6, 5)
+            elif 1400 <= self.displaysize[0] < 1500:
+                self.config.figsize = (5, 4)
+            elif self.displaysize[0]>=1800:
+                self.config.figsize = (7, 5)
         else:
             self.tabbed = tabbed
 
@@ -108,11 +114,12 @@ class Mainwindow(wx.Frame):
                 ["O", self.pres.on_open], ["I", self.pres.on_integrate],
                 ["P", self.pres.on_pick_peaks], ["K", self.pres.on_plot_peaks],
                 ["C", self.pres.on_plot_composite], ["N", self.pres.on_replot],
-                ["F", self.pres.on_plot_offsets], ["Z", self.pres.on_charge_plot],
+                ["F", self.pres.on_plot_offsets],  # ["Z", self.pres.on_charge_plot],
                 ["L", self.pres.on_load_state], ["S", self.pres.on_save_state],
                 ["B", self.pres.on_batch], ["Q", self.on_exit],
                 ["T", self.pres.on_mass_tools], ["M", self.pres.on_match],
-                ["W", self.pres.on_auto_peak_width]]
+                ["W", self.pres.on_auto_peak_width],
+                ["Z", self.pres.on_undo], ["Y", self.pres.on_redo]]
         ids = [wx.NewId() for a in keys]
         tab = []
         for i, k in enumerate(keys):
@@ -162,6 +169,8 @@ class Mainwindow(wx.Frame):
                                                     "Defaults for loading zero-charge mass spectrum as output")
         self.menuDefault3 = self.defaultmenu.Append(1002, "Isotopic Resolution",
                                                     "Defaults for isotopically resolved data.")
+        self.menuDefault4 = self.defaultmenu.Append(1003, "Nanodiscs",
+                                                    "Defaults for POPC Nanodiscs.")
         self.filemenu.AppendMenu(wx.ID_ANY, "Presets", self.defaultmenu)
         self.filemenu.AppendSeparator()
 
@@ -187,6 +196,8 @@ class Mainwindow(wx.Frame):
         self.menuExit = self.filemenu.Append(wx.ID_EXIT, "E&xit\tCtrl+Q", " Terminate the Program")
 
         # Setting Up the Tools Menu
+
+
         self.menuBatch = self.toolsmenu.Append(wx.ID_ANY, "Batch Process\tCtrl+B",
                                                "Run these conditions on multiple samples")
         self.menuBatch2 = self.toolsmenu.Append(wx.ID_ANY, "Batch Process - Independent Data Ranges",
@@ -242,7 +253,7 @@ class Mainwindow(wx.Frame):
                                                 "Reports center of mass for the zoomed region of the zero-charge mass spectrum")
         self.analysismenu.AppendSeparator()
 
-        self.menuchargeplot = self.analysismenu.Append(wx.ID_ANY, "Plot By Charge\tCtrl+Z",
+        self.menuchargeplot = self.analysismenu.Append(wx.ID_ANY, "Plot By Charge",
                                                        "Plots Mass Distributions as a Function of Charge")
         self.menuoffset = self.analysismenu.Append(wx.ID_ANY, "Plot Charge Offsets\tCtrl+F",
                                                    "Plots Mass vs. Charge Offset in 2D Plot")
@@ -307,6 +318,11 @@ class Mainwindow(wx.Frame):
                                                            "Put plots in single large window.")
 
         # Experimental Menu
+        self.menuundo = self.experimentalmenu.Append(wx.ID_ANY, "Undo Parameter Change\tCtrl+Z",
+                                              "Go back to the previous set of parameters")
+        self.menuredo = self.experimentalmenu.Append(wx.ID_ANY, "Redo Parameter Change\tCtrl+Y",
+                                              "Go to the next set of parameters")
+        self.experimentalmenu.AppendSeparator()
         self.Tweet = self.experimentalmenu.Append(wx.ID_ANY, "Twitter", "Twitter Extension")
         if self.config.imflag == 0:
             self.experimentalmenu.AppendSeparator()
@@ -348,6 +364,9 @@ class Mainwindow(wx.Frame):
         self.menugriddecon = self.experimentalmenu.Append(wx.ID_ANY, "Grid Deconvolution")
         self.Bind(wx.EVT_MENU, self.pres.on_grid_decon, self.menugriddecon)
 
+        self.menuhdf5 = self.experimentalmenu.Append(wx.ID_ANY, "Write HDF5")
+        self.Bind(wx.EVT_MENU, self.pres.on_write_hdf5, self.menuhdf5)
+
         # Setting Menu Bar
         self.menuBar = wx.MenuBar()
         self.menuBar.Append(self.filemenu, "&File")
@@ -359,7 +378,7 @@ class Mainwindow(wx.Frame):
 
         # Set Events for Menu Bar
 
-        #File Menu
+        # File Menu
         self.Bind(wx.EVT_MENU, self.pres.on_open, self.menuOpen)
         self.Bind(wx.EVT_MENU, self.pres.on_raw_open, self.menuOpenRaw)
         self.Bind(wx.EVT_MENU, self.pres.on_load_state, self.menuLoadState)
@@ -372,6 +391,7 @@ class Mainwindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault1)
         self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault2)
         self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault3)
+        self.Bind(wx.EVT_MENU, self.on_defaults, self.menuDefault4)
         self.Bind(wx.EVT_MENU, self.on_save_figure_dialog, self.menufigdialog)
         self.Bind(wx.EVT_MENU, self.on_save_figure_pdf, self.menuSaveFigure0)
         self.Bind(wx.EVT_MENU, self.on_save_figure_eps, self.menuSaveFigure1)
@@ -381,7 +401,7 @@ class Mainwindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_about, self.menuAbout)
         self.Bind(wx.EVT_MENU, self.on_exit, self.menuExit)
 
-        #Tools
+        # Tools
 
         self.Bind(wx.EVT_MENU, self.pres.on_import_wizard, self.menuImportWizard)
         self.Bind(wx.EVT_MENU, self.pres.on_mass_tools, self.menuMassFile)
@@ -391,8 +411,10 @@ class Mainwindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.pres.on_peak_width_tool, self.menuWidth)
         self.Bind(wx.EVT_MENU, self.pres.on_auto_peak_width, self.menuAutoWidth)
         self.Bind(wx.EVT_MENU, self.pres.on_manual, self.menuManualFile)
+        self.Bind(wx.EVT_MENU, self.pres.on_undo, self.menuundo)
+        self.Bind(wx.EVT_MENU, self.pres.on_redo, self.menuredo)
 
-        #Analysis
+        # Analysis
         self.Bind(wx.EVT_MENU, self.pres.on_nativez_tools, self.menuPlotZ)
         self.Bind(wx.EVT_MENU, self.pres.on_data_collector, self.menucollect)
         self.Bind(wx.EVT_MENU, self.pres.on_export_params, self.menuExport)
@@ -406,7 +428,7 @@ class Mainwindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.pres.on_autocorr_window, self.menuautocorr)
         self.Bind(wx.EVT_MENU, self.pres.on_match, self.menumatch)
 
-        #Advanced
+        # Advanced
         self.Bind(wx.EVT_MENU, self.pres.on_reset, self.menuReset)
         self.Bind(wx.EVT_MENU, self.pres.on_unidec_path, self.menuUnidecPath)
         self.Bind(wx.EVT_MENU, self.pres.on_file_name, self.menuFileName)
@@ -414,8 +436,7 @@ class Mainwindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.pres.on_flip_tabbed, self.menufliptabbed)
         self.Bind(wx.EVT_MENU, self.pres.on_flip_mode, self.menuflipmode)
 
-
-        #Experimental
+        # Experimental
         self.Bind(wx.EVT_MENU, self.pres.on_peak_errors, self.menuerrors)
         self.Bind(wx.EVT_MENU, self.pres.on_tweet, self.Tweet)
         self.Bind(wx.EVT_MENU, self.pres.on_mass_process, self.menumassprocess)
@@ -435,6 +456,8 @@ class Mainwindow(wx.Frame):
             self.config.default_zero_charge()
         elif nid == 2:
             self.config.default_isotopic_res()
+        elif nid == 3:
+            self.config.default_nanodisc()
         elif nid == 99:
             self.config.default_decon_params()
         self.pres.import_config(None)
@@ -467,6 +490,7 @@ class Mainwindow(wx.Frame):
 
         # Tabbed view of plots
         if self.tabbed == 1:
+            figsize = (6, 5)
             plotwindow = wx.Notebook(splitterwindow)
             splitterwindow.SplitVertically(plotwindow, splitterwindow2, sashPosition=-550)
             tab1 = wx.Panel(plotwindow)
@@ -476,12 +500,12 @@ class Mainwindow(wx.Frame):
             tab5 = wx.Panel(plotwindow)
             tab6 = wx.Panel(plotwindow)
 
-            self.plot1 = plot1d.Plot1d(tab1, smash=1)
-            self.plot2 = plot1d.Plot1d(tab2, integrate=1)
-            self.plot3 = plot2d.Plot2d(tab3)
-            self.plot4 = plot1d.Plot1d(tab4)
-            self.plot5 = plot2d.Plot2d(tab5)
-            self.plot6 = plot1d.Plot1d(tab6)
+            self.plot1 = plot1d.Plot1d(tab1, smash=1, figsize=figsize)
+            self.plot2 = plot1d.Plot1d(tab2, integrate=1, figsize=figsize)
+            self.plot3 = plot2d.Plot2d(tab3, figsize=figsize)
+            self.plot4 = plot1d.Plot1d(tab4, figsize=figsize)
+            self.plot5 = plot2d.Plot2d(tab5, figsize=figsize)
+            self.plot6 = plot1d.Plot1d(tab6, figsize=figsize)
 
             miscwindows.setup_tab_box(tab1, self.plot1)
             miscwindows.setup_tab_box(tab2, self.plot2)
@@ -500,14 +524,14 @@ class Mainwindow(wx.Frame):
                 tab9 = wx.Panel(plotwindow)
                 tab10 = wx.Panel(plotwindow)
 
-                self.plot1im = plot2d.Plot2d(tab1im)
-                self.plot1fit = plot2d.Plot2d(tab1fit)
-                self.plot2ccs = plot1d.Plot1d(tab2ccs)
-                self.plot5mccs = plot2d.Plot2d(tab5mccs)
-                self.plot5ccsz = plot2d.Plot2d(tab5ccsz)
-                self.plot3color = ColorPlot.ColorPlot2D(tab3color)
-                self.plot9 = plot3d.CubePlot(tab9)
-                self.plot10 = plot3d.CubePlot(tab10)
+                self.plot1im = plot2d.Plot2d(tab1im, figsize=figsize)
+                self.plot1fit = plot2d.Plot2d(tab1fit, figsize=figsize)
+                self.plot2ccs = plot1d.Plot1d(tab2ccs, figsize=figsize)
+                self.plot5mccs = plot2d.Plot2d(tab5mccs, figsize=figsize)
+                self.plot5ccsz = plot2d.Plot2d(tab5ccsz, figsize=figsize)
+                self.plot3color = ColorPlot.ColorPlot2D(tab3color, figsize=figsize)
+                self.plot9 = plot3d.CubePlot(tab9, figsize=figsize)
+                self.plot10 = plot3d.CubePlot(tab10, figsize=figsize)
 
                 miscwindows.setup_tab_box(tab1im, self.plot1im)
                 miscwindows.setup_tab_box(tab1fit, self.plot1fit)
@@ -542,22 +566,23 @@ class Mainwindow(wx.Frame):
             plotwindow = scrolled.ScrolledPanel(splitterwindow)
             splitterwindow.SplitVertically(plotwindow, splitterwindow2, sashPosition=-550)
             sizerplot = wx.GridBagSizer()
-            self.plot1 = plot1d.Plot1d(plotwindow, smash=1)
-            self.plot2 = plot1d.Plot1d(plotwindow, integrate=1)
-            self.plot3 = plot2d.Plot2d(plotwindow)
-            self.plot4 = plot1d.Plot1d(plotwindow)
-            self.plot5 = plot2d.Plot2d(plotwindow)
-            self.plot6 = plot1d.Plot1d(plotwindow)
+            figsize = self.config.figsize
+            self.plot1 = plot1d.Plot1d(plotwindow, smash=1, figsize=figsize)
+            self.plot2 = plot1d.Plot1d(plotwindow, integrate=1, figsize=figsize)
+            self.plot3 = plot2d.Plot2d(plotwindow, figsize=figsize)
+            self.plot4 = plot1d.Plot1d(plotwindow, figsize=figsize)
+            self.plot5 = plot2d.Plot2d(plotwindow, figsize=figsize)
+            self.plot6 = plot1d.Plot1d(plotwindow, figsize=figsize)
 
             if self.config.imflag == 1:
-                self.plot1im = plot2d.Plot2d(plotwindow)
-                self.plot1fit = plot2d.Plot2d(plotwindow)
-                self.plot2ccs = plot1d.Plot1d(plotwindow)
-                self.plot5mccs = plot2d.Plot2d(plotwindow)
-                self.plot5ccsz = plot2d.Plot2d(plotwindow)
-                self.plot3color = ColorPlot.ColorPlot2D(plotwindow)
-                self.plot9 = plot3d.CubePlot(plotwindow)
-                self.plot10 = plot3d.CubePlot(plotwindow)
+                self.plot1im = plot2d.Plot2d(plotwindow, figsize=figsize)
+                self.plot1fit = plot2d.Plot2d(plotwindow, figsize=figsize)
+                self.plot2ccs = plot1d.Plot1d(plotwindow, figsize=figsize)
+                self.plot5mccs = plot2d.Plot2d(plotwindow, figsize=figsize)
+                self.plot5ccsz = plot2d.Plot2d(plotwindow, figsize=figsize)
+                self.plot3color = ColorPlot.ColorPlot2D(plotwindow, figsize=figsize)
+                self.plot9 = plot3d.CubePlot(plotwindow, figsize=figsize)
+                self.plot10 = plot3d.CubePlot(plotwindow, figsize=figsize)
 
             if self.config.imflag == 0:
                 sizerplot.Add(self.plot1, (0, 0), span=(1, 1), flag=wx.EXPAND)

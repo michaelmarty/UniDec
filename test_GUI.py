@@ -26,7 +26,7 @@ class TestGUI(unittest.TestCase):
     # Engine Tests
     def test_unidec_paths(self):
         self.assertTrue(os.path.isfile(self.app.eng.config.UniDecPath))
-        self.assertTrue(os.path.isfile(self.app.eng.config.UniDecIMPath))
+        #self.assertTrue(os.path.isfile(self.app.eng.config.UniDecIMPath))
         self.assertTrue(os.path.isfile(self.app.eng.config.rawreaderpath))
         self.assertTrue(os.path.isfile(self.app.eng.config.cdcreaderpath))
 
@@ -54,6 +54,8 @@ class TestGUI(unittest.TestCase):
 
         # Test Auto Peak Width
         self.app.on_auto_peak_width(0)
+        self.assertGreater(self.app.eng.config.mzsig,5)
+        self.assertLess(self.app.eng.config.mzsig, 15)
 
         # Test Auto Run
         self.app.on_auto(0)
@@ -108,6 +110,8 @@ class TestGUI(unittest.TestCase):
 
         self.app.eng.config.startz = 10
         self.app.eng.config.endz = 18
+        self.app.eng.config.mzbins = 4
+        # TODO: Fix so that error is raised or mzbins is fixed to not go below the minimum distance for IM.
         self.app.import_config()
         self.app.on_auto(0)
 

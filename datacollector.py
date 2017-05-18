@@ -228,8 +228,8 @@ class NetworkFrame(PlottingWindow):
 
 
 datachoices = {0: "Raw Data", 1: "Processed Data", 2: "Zero Charge Mass Spectrum"}
-extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position"}
-extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "mass", 4: "mass"}
+extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position", 5:"Center of Mass 50%",6: "Center of Mass 10%"}
+extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass",5:"Mass", 6:"Mass"}
 modelchoices = {"Simple Single KD": "one", "Parallel KD's Chained": "parallel", "All KD's Free": "free",
                 "Test for Best Model": "test", "Series KD's Chained": "series"}
 
@@ -484,6 +484,9 @@ class DataCollector(wx.Frame):
             # self.load(os.path.join(self.directory,"AmtB_04_test.json"))
             # self.directory = "C:\\Data\\AmtB_DMPC"
             # self.load(os.path.join(self.directory, "AmtB_07.json"))
+            self.directory = "C:\\Data\\Others"
+            self.load(os.path.join(self.directory,"collection1.json"))
+            self.on_kd_fit(0)
             try:
                 # self.directory="C:\\Data\\AmtB_POPC"
                 # self.directory="C:\\cprog\\Shane_ND3"
@@ -917,11 +920,16 @@ class DataCollector(wx.Frame):
             maxsites = int(self.maxsites)
         except (ValueError, TypeError):
             maxsites = 0
-        UniFit.KDmodel(self.numprot, self.numlig, np.transpose(self.extract), self.yvals[:, 2].astype(np.float64),
+        model=UniFit.KDmodel(self.numprot, self.numlig, np.transpose(self.extract), self.yvals[:, 2].astype(np.float64),
                        self.yvals[:, 1].astype(np.float64), nodelist, os.path.join(self.directory, "fits"),
                        removeoutliers=outlierflag, plot1=self.plot2.subplot1, plot2=self.plot3.axes,
                        plot3=self.plot3h, bootnum=self.bootstrap, prot=self.protflag, lig=self.ligflag,
                        maxsites=maxsites)
+        try:
+            if self.bootstrap>0:
+                np.savetxt(os.path.join(self.directory, "fits_boots.txt"), model.randfit)
+        except Exception, e:
+            print e
         self.plot2.repaint()
         self.plot2.flag = True
         datalim = [np.amin(nodelist[:, 1]) - 0.5, np.amin(nodelist[:, 0] - 0.5), np.amax(nodelist[:, 1] + 0.5),
