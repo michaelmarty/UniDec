@@ -110,7 +110,7 @@ class UniDecApp(object):
             self.on_auto(0)
 
         # For testing, load up a spectrum at startup. Used only on MTM's computer.
-        if False and platform.node() == "mtmacer":
+        if False and platform.node() == "DESKTOP-R236BN2":
             # fname = "HSPCID.txt"
             fname = "0.txt"
             # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
@@ -119,7 +119,7 @@ class UniDecApp(object):
             self.on_open_file(fname, newdir)
             # self.view.on_save_figure_eps(0)
             # self.on_dataprep_button(0)
-            # self.on_auto(0)
+            self.on_auto(0)
             # self.on_integrate()
             # self.on_grid_decon(0)
             # self.make_cube_plot(0)
@@ -1313,7 +1313,7 @@ class UniDecApp(object):
             print "Running UniDec to Generate Outputs"
             self.eng.config.zout = -1
             self.export_config(self.eng.config.confname)
-            ud.unidec_call(self.eng.config.UniDecIMPath, self.eng.config.confname)
+            ud.unidec_call(self.eng.config)
             dlg = IM_wind.IMToolExtract(self.view)
             dlg.initialize_interface(self.eng.data.massdat, self.eng.data.ccsdata, self.eng.data.massccs,
                                      self.eng.config, self.eng.pks)
@@ -1514,6 +1514,7 @@ class UniDecApp(object):
 
         self.eng.config.batchflag = 1 + flag
         tstarttop = time.clock()
+        print batchfiles
         if batchfiles is not None:
             self.view.clear_all_plots()
             for i, path in enumerate(batchfiles):
@@ -1525,10 +1526,11 @@ class UniDecApp(object):
                 self.on_unidec_button(e)
                 self.on_pick_peaks(e)
                 self.on_export_params(e)
-                outfile = os.path.join(dirname, self.eng.config.outfname + ".zip")
-                self.on_save_state(0, outfile)
+                # outfile = os.path.join(dirname, self.eng.config.outfname + ".zip")
+                # self.on_save_state(0, outfile)
+                # print "File saved to: " + str(outfile)
+                print "Completed: " + path
                 tend = time.clock()
-                print "File saved to: " + str(outfile)
                 print "Run Time: %.2gs" % (tend - tstart)
                 print "\n"
         self.eng.config.batchflag = 0
@@ -1583,10 +1585,9 @@ class UniDecApp(object):
 
                 # Write New Config and Run It
                 self.export_config(self.eng.config.confname)
-                if self.eng.config.imflag == 0:
-                    ud.unidec_call(self.eng.config.UniDecPath, self.eng.config.confname)
-                else:
-                    ud.unidec_call(self.eng.config.UniDecIMPath, self.eng.config.confname)
+
+                ud.unidec_call(self.eng.config)
+
                 tend = time.clock()
                 print "Run Time: %.2gs" % (tend - tstart)
                 print "\n"
@@ -1631,7 +1632,7 @@ class UniDecApp(object):
         peakcolors = [p.color for p in self.eng.pks.peaks]
         peaks = np.array([[p.mass, p.height] for p in self.eng.pks.peaks])
         if self.eng.config.imflag == 0:
-            texmaker.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config, self.eng.config.dirname,
+            texmaker.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config, self.eng.config.udir,
                                    peaks, textmarkertab, peaklabels, peakcolors, figureflags)
             self.view.SetStatusText("TeX file Written", number=5)
             try:
@@ -1733,11 +1734,11 @@ class UniDecApp(object):
         self.remake_mainwindow(self.view.tabbed)
         if self.eng.config.imflag == 1:
             print "Ion Mobility Mode"
-            self.eng.config.mzbins = 1
+            if self.eng.config.mzbins == 0:
+                self.eng.config.mzbins = 1
         elif self.eng.config.imflag == 0:
             print "Mass Spec Mode"
         self.view.import_config_to_gui()
-
 
     def on_flip_tabbed(self, e):
         """
@@ -1788,6 +1789,22 @@ class UniDecApp(object):
         self.view = mainwindow.Mainwindow(self, "UniDec", self.eng.config, iconfile=iconfile, tabbed=tabbed)
         self.view.Show()
         self.view.import_config_to_gui()
+
+    def on_undo(self, e=None):
+        self.view.export_gui_to_config()
+        self.eng.undo()
+        self.view.import_config_to_gui()
+        # print "Undo"
+
+    def on_redo(self, e=None):
+        self.view.export_gui_to_config()
+        self.eng.redo()
+        self.view.import_config_to_gui()
+        # print "Redo"
+
+    def on_write_hdf5(self,e=None):
+        self.eng.write_hdf5()
+        print "Wrote: ",self.eng.config.hdf_file
 
 
 if __name__ == '__main__':

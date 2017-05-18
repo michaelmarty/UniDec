@@ -26,6 +26,7 @@ natsort
 twython
 pymzml
 networkx
+h5py
 
 With the exception of wxpython, which can be installed from the [web](http://wxpython.org/), all of these can be installed from the command line with (for example):
     
@@ -35,15 +36,15 @@ Note: I would highly recommend setting up 64-bit Python as the default. MS data 
 
 ### Downloading the Binaries
 
-As described below, the Python code presented here relies on two critical binaries, UniDec.exe and UniDecIM.exe.
+As described below, the Python code presented here relies on one critical binary, UniDec.exe. UniDecIM.exe has been merged into UniDec.exe and is no longer used.
 
-These binaries are available for download at [unidec.chem.ox.ac.uk](http://unidec.chem.ox.ac.uk/). 
+This binary is available for download at [unidec.chem.ox.ac.uk](http://unidec.chem.ox.ac.uk/) as part of the main package. 
 
-These binaries should be deposited in the /unidec_bin directory once downloaded. 
+The binary should be deposited in the /unidec_bin directory once downloaded. 
  
 If you want to convert Waters .Raw files, you will also need to add cdt.dll (for IM-MS) and MassLynxRaw.dll (for MS) to the same directory. These files can be found [here](http://www.waters.com/waters/supportList.htm?cid=511442&locale=en_GB&filter=documenttype|DWNL&locale=en_GB) with support numbers DWNL134825112 and DWNL134815627. See below for more specifics. 
 
-I have binaries built for Mac and Linux as well. They are a bit slower than the Windows version because they are compiled with gcc rather than the Intel C Compiler, but they are perfectly functional and still pretty darn fast. I can send these to you on request.
+I have binary built for Mac and Linux as well. They are a bit slower than the Windows version because they are compiled with gcc rather than the Intel C Compiler, but they are perfectly functional and still pretty darn fast. I can send these to you on request. Note, due to low demand and my busy schedule, these may not always be available immediately in the latest version.
 
 ## Compatible File Types
 
@@ -120,11 +121,52 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
+v. 1.2.6
+
+Updated preset configs and added a Nanodisc preset.
+
+Removed zip save file creation from batch processing. Let me know if you would like this brought back, but it seems to be just creating unnecessary files.
+
+v. 1.2.5
+
+Fixed glitch with speedy flag. Removed it entirely from Python code. Linflag will now import and overwrite the speedy option in UniDec.exe if present in config file.
+
+v. 1.2.4
+
+Updated builds for MacOS and Linux. Updated commandline printout.
+
+v. 1.2.3
+
+Improvements to automatic peak width detection for nonlinear data.
+
+v. 1.2.2
+
+Tweaks to the resolution settings to adjust for different monitor size. Slightly increased default figure size.
+
+Minor fixes and improvements.
+
+v. 1.2.1
+
+**Added Undo/Redo buttons and keyboard shortcuts to Experimental Menu.**
+
+New extraction modes on DataCollector (50% and 10% Thresholded Center of Mass).
+
+Fixed major bug in Load State, potential bug in PDF report, and other random bugs.
+
+v. 1.2.0
+
+Largely behind the scenes changes. Added HDF5 integration for C and Python but haven't committed to this as a save file yet.
+
+Merged C code for UniDecIM.exe into UniDec.exe, so there is a single executable for both 1D and 2D.
+
+A number of other bug fixes, updates, and subtle improvements.
+
 v. 1.1.0
 
 **Added Linear and Power Law calibrations for T-Wave IM-MS.** These are highly untested so proceed with caution. Please let me know how they work.
 
 Linear: Reduced CCS = Calibration Parameter 1 * Reduced Drift Time + Calibration Parameter 2
+
 Power Law: Reduced CCS = Calibration Parameter 1 * (Reduced Drift Time ^ Calibration Parameter 2)
 
 (For reference, the previous log calibration was and is)
