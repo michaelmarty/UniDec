@@ -13,7 +13,7 @@ default_dir=""
 def save_file_dialog(message="Save File", file_types="*.*", default_file=""):
     global default_dir
 
-    dlg = wx.FileDialog(None, message, default_dir, default_file, file_types, wx.SAVE | wx.FD_OVERWRITE_PROMPT)
+    dlg = wx.FileDialog(None, message, default_dir, default_file, file_types, wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
     path = None
     if dlg.ShowModal() == wx.ID_OK:
         path = dlg.GetPath()
@@ -24,10 +24,12 @@ def save_file_dialog(message="Save File", file_types="*.*", default_file=""):
 
 
 # opens a dialog to choose a single file
-def open_file_dialog(message="Open File", file_types="*.*"):
+def open_file_dialog(message="Open File", file_types="*.*", default=None):
     global default_dir
-
-    dlg = wx.FileDialog(None, message, default_dir, "", file_types, wx.OPEN | wx.FD_FILE_MUST_EXIST)
+    if default is None:
+        dlg = wx.FileDialog(None, message, default_dir, "", file_types, wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+    else:
+        dlg = wx.FileDialog(None, message, "", default, file_types, wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
     path = None
     if dlg.ShowModal() == wx.ID_OK:
         path = dlg.GetPath()
@@ -41,7 +43,7 @@ def open_file_dialog(message="Open File", file_types="*.*"):
 def open_multiple_files_dialog(message="Open Files", file_type="*.*"):
     default_dir=""
 
-    dlg = wx.FileDialog(None, message, default_dir, "", file_type, wx.OPEN | wx.FD_MULTIPLE | wx.FD_FILE_MUST_EXIST)
+    dlg = wx.FileDialog(None, message, default_dir, "", file_type, wx.FD_OPEN | wx.FD_MULTIPLE | wx.FD_FILE_MUST_EXIST)
     path = None
     file_names = None
     if dlg.ShowModal() == wx.ID_OK:

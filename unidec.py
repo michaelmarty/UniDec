@@ -13,32 +13,12 @@ from unidec_modules import unidecstructure, peakstructure, MassFitter
 import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 import unidec_modules.MassSpecBuilder as MSBuild
+from unidec_modules.unidec_enginebase import UniDecEngine
 
 __author__ = 'Michael.Marty'
 
 
-class DataContainer:
-    def __init__(self):
-        """
-        Initialize DataContainer with empty arrays.
-        :return: None
-        """
-        self.fitdat = np.array([])
-        self.fitdat2d = np.array([])
-        self.rawdata = np.array([])
-        self.rawdata3 = np.array([])
-        self.data2 = np.array([])
-        self.data3 = np.array([])
-        self.massdat = np.array([])
-        self.mzgrid = np.array([])
-        self.massgrid = np.array([])
-        self.ztab = np.array([])
-        self.massccs = np.array([])
-        self.ccsz = np.array([])
-        self.ccsdata = np.array([])
-
-
-class UniDec:
+class UniDec(UniDecEngine):
     def __init__(self):
         """
         UniDec Engine
@@ -47,60 +27,15 @@ class UniDec:
 
         :return: None
         """
-        self.version = "1.1.0"
-        print "\nUniDec Engine v."+self.version
-        self.config = None
-        self.data = None
-        self.pks = None
+        UniDecEngine.__init__(self)
         self.autopeaks = None
         self.peakparams = None
         self.massfit = None
         self.massfitdat = None
         self.errorgrid = None
-        self.initialize()
         pass
 
-    def initialize(self):
-        """
-        Initialize Config, DataContainer, and Peaks
-        :return: None
-        """
-        self.config = unidecstructure.UniDecConfig()
-        self.config.initialize_system_paths()
-        self.reset_config()
-        self.data = DataContainer()
-        self.pks = peakstructure.Peaks()
-
-    def reset_config(self):
-        """
-        Resets UniDec config to default. Should not reset paths or filenames.
-        :return: None
-        """
-        self.config.initialize()
-
-    def load_config(self, f_name):
-        """
-        Import UniDec Configuration File
-        :param f_name: File name
-        :return: None
-        """
-        if f_name is not None:
-            self.config.config_import(f_name)
-        else:
-            print "Load Config Error: No file provided."
-
-    def export_config(self, f_name=None):
-        """
-        Export UniDec Configuration File
-        :param f_name: File name, Default of None will using config.confname
-        :return: None
-        """
-        if f_name is not None:
-            self.config.config_export(f_name)
-        else:
-            self.config.config_export(self.config.confname)
-
-    def open_file(self, file_name, file_directory, *args, **kwargs):
+    def open_file(self, file_name, file_directory=None, *args, **kwargs):
         """
         Open text or mzML file. Will create _unidecfiles directory if it does not exist.
 
@@ -111,12 +46,16 @@ class UniDec:
 
         :param file_name: Name of file to open. May be in  x y or x y z text format or in mzML format.
                 May be tab or space delimited
-        :param file_directory: Directory in which filename is located
+        :param file_directory: Directory in which filename is located. Default is current directory.
         :return: None
         """
+        if file_directory is None:
+            file_directory = os.path.dirname(file_name)
+            file_name = os.path.basename(file_name)
+
         tstart = time.clock()
         self.pks = peakstructure.Peaks()
-        self.data = DataContainer()
+        self.data = unidecstructure.DataContainer()
 
         # Handle Paths
         self.config.filename = file_name
@@ -159,6 +98,7 @@ class UniDec:
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
         os.chdir(dirnew)
+        self.config.udir = os.getcwd()
         if self.config.imflag == 0:
             newname = os.path.join(os.getcwd(), self.config.outfname + "_rawdata.txt")
         else:
@@ -293,7 +233,7 @@ class UniDec:
         tend = time.clock()
         if "silent" not in kwargs or not kwargs["silent"]:
             print "Data Prep Done. Time: %.2gs" % (tend - tstart)
-        #self.get_spectrum_peaks()
+        # self.get_spectrum_peaks()
         pass
 
     def run_unidec(self, silent=False, efficiency=False):
@@ -320,10 +260,9 @@ class UniDec:
         # Export Config and Call
         self.export_config()
         tstart = time.clock()
-        if self.config.imflag == 0:
-            out = ud.unidec_call(self.config.UniDecPath, self.config.confname, silent=silent)
-        else:
-            out = ud.unidec_call(self.config.UniDecIMPath, self.config.confname, silent=silent)
+
+        out = ud.unidec_call(self.config, silent=silent)
+
         tend = time.clock()
         self.config.runtime = (tend - tstart)
         if not silent:
@@ -353,7 +292,15 @@ class UniDec:
             self.data.massgrid = np.fromfile(self.config.outfname + "_massgrid.bin", dtype=float)
 
             self.data.fitdat = np.fromfile(self.config.outfname + "_fitdat.bin", dtype=float)
-            self.data.fitdat = np.clip(self.data.fitdat, 0.0, np.amax(self.data.fitdat))
+            try:
+                if self.config.aggressiveflag != 0:
+                    self.data.baseline = np.fromfile(self.config.outfname + "_baseline.bin", dtype=float)
+                else:
+                    self.data.baseline = np.array([])
+            except Exception, e:
+                self.data.baseline = np.array([])
+                pass
+
             if self.config.imflag == 1:
                 self.data.fitdat2d = deepcopy(self.data.data3)
                 self.data.fitdat2d[:, 2] = self.data.fitdat
@@ -372,6 +319,7 @@ class UniDec:
                 xv, yv = np.meshgrid(self.data.ztab, self.data.data2[:, 0])
                 xv = np.c_[np.ravel(yv), np.ravel(xv)]
                 self.data.mzgrid = np.c_[xv, self.data.mzgrid]
+
         else:
             # Calculate Error
             self.config.error = float(runstats[1])
@@ -442,16 +390,6 @@ class UniDec:
         self.autointegrate()
         self.export_params(0)
 
-    def check_badness(self):
-        """
-        Check for problematic variables, such as upper bounds less than lower bounds and raise warning if found.
-        :return:
-        """
-        badness, warning = self.config.check_badness()
-        if warning is not "":
-            print warning
-        return badness
-
     def autocorrelation(self, massdat=None):
         """
         Performs autocorrelation on mass data. Result is stored as self.data.autocorr.
@@ -520,20 +458,6 @@ class UniDec:
         else:
             print "Need non-zero Kendrick mass"
             return None, None, None
-
-    def save_default(self):
-        """
-        Saves existing config in default location set at self.config.defaultconfig
-        :return: None
-        """
-        self.config.config_export(self.config.defaultconfig)
-
-    def load_default(self):
-        """
-        Loads config from default location set at self.config.defaultconfig
-        :return: None
-        """
-        self.config.config_import(self.config.defaultconfig)
 
     def mass_grid_to_f_grid(self):
         """
@@ -607,15 +531,6 @@ class UniDec:
 
         self.normalize_peaks()
         return np.array(zarea)
-
-    def get_auto_peak_width(self):
-        try:
-            fwhm, psfun, mid = ud.auto_peak_width(self.data.data2)
-            self.config.psfun = psfun
-            self.config.mzsig = fwhm
-            print "Automatic Peak Width:", fwhm
-        except Exception, e:
-            print "Failed Automatic Peak Width:", e
 
     def export_params(self, e):
         """
@@ -783,11 +698,11 @@ class UniDec:
         header = None
         if imfile is not None:
             if msfile is None or self.config.imflag == 1:
-                header = imfile[:-10]
+                header = imfile[:-8]
                 extension = "_imraw."
         elif msfile is not None:
             if imfile is None or self.config.imflag == 0:
-                header = msfile[:-12]
+                header = msfile[:-10]
                 extension = "_rawdata."
         else:
             print "Broken Save File. Unable to find _rawdata or _imraw"
@@ -810,8 +725,8 @@ class UniDec:
 
         # Copy data file from unidecfiles to directory above it
         file_name = self.config.outfname + extension + "txt"
-        if not os.path.isfile(file_name):
-            file_name = self.config.outfname + extension + "dat"
+        # if not os.path.isfile(file_name):
+        #    file_name = self.config.outfname + extension + "dat"
         filename2 = self.config.outfname + ".txt"
         load_path = os.path.join(self.config.dirname, filename2)
         print "Data file:", file_name, load_path
@@ -865,7 +780,8 @@ class UniDec:
                 # Select one of k-fold
                 # testdata = ud.dataprep(self.data.rawdata[i::numcross], self.config)
                 ud.dataexport(traindata, self.config.infname)
-                ud.unidec_call(self.config.UniDecPath, self.config.confname, silent=True)
+
+                ud.unidec_call(self.config, silent=True)
 
                 massdat = np.loadtxt(self.config.outfname + "_mass.txt")
                 try:
@@ -1168,7 +1084,7 @@ class UniDec:
             window = self.config.mzsig
 
         peaks = ud.peakdetect(self.data.data2, None, window, threshold)
-        self.data.data2=np.array(peaks)
+        self.data.data2 = np.array(peaks)
         ud.dataexport(self.data.data2, self.config.infname)
 
         print self.config.dirname
@@ -1204,6 +1120,7 @@ class UniDec:
         plt.show()
         pass
 
+
         # TODO: Batch Process of Various Types
         # TODO: Automatch
         # TODO: 2D Grid Extraction
@@ -1221,17 +1138,17 @@ if __name__ == "__main__":
 
     print "MSTest"
     filename = "0.txt"
-    path = "C:\\cprog\\UniDecDemo"
+    path = "C:\\Python\\UniDec\\TestSpectra"
     # files=["150611_ND_AmtB_05_100.txt"]
     files = ["0.txt"]  # ,"250313_AQPZ_POPC_100_imraw.txt"]
     # path=os.getcwd()
     # files=["Traptavidin_20mer+B4F_new_40Colli.txt"]
-    for filename in files:
-        print filename
-        eng.open_file(filename, path)
-        # eng.config.massbins=50
-        # eng.config.psfun=2
-        # eng.config.peakwindow=2000.
-        eng.process_data()
-        eng.run_unidec(silent=True)
-        eng.pick_peaks()
+    eng.read_hdf5_config()
+    eng.config.mzbins = 1;
+    # eng.config.psfun=2
+    # eng.config.peakwindow=2000.
+    # eng.process_data()
+    # eng.run_unidec(silent=False)
+
+    # eng.pick_peaks()
+    # eng.write_hdf5()

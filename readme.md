@@ -26,6 +26,8 @@ natsort
 twython
 pymzml
 networkx
+h5py
+multiplierz (Windows only, for Thermo RAW imports)
 
 With the exception of wxpython, which can be installed from the [web](http://wxpython.org/), all of these can be installed from the command line with (for example):
     
@@ -35,17 +37,17 @@ Note: I would highly recommend setting up 64-bit Python as the default. MS data 
 
 ### Downloading the Binaries
 
-As described below, the Python code presented here relies on two critical binaries, UniDec.exe and UniDecIM.exe.
+As described below, the Python code presented here relies on one critical binary, UniDec.exe. UniDecIM.exe has been merged into UniDec.exe and is no longer used.
 
-These binaries are available for download at [unidec.chem.ox.ac.uk](http://unidec.chem.ox.ac.uk/). 
+This binary is available for download at [unidec.chem.ox.ac.uk](http://unidec.chem.ox.ac.uk/) as part of the main package. 
 
-These binaries should be deposited in the /unidec_bin directory once downloaded. 
+The binary should be deposited in the /unidec_bin directory once downloaded. 
  
 If you want to convert Waters .Raw files, you will also need to add cdt.dll (for IM-MS) and MassLynxRaw.dll (for MS) to the same directory. These files can be found [here](http://www.waters.com/waters/supportList.htm?cid=511442&locale=en_GB&filter=documenttype|DWNL&locale=en_GB) with support numbers DWNL134825112 and DWNL134815627. See below for more specifics. 
 
-I have binaries built for Mac and Linux as well. They are a bit slower than the Windows version because they are compiled with gcc rather than the Intel C Compiler, but they are perfectly functional and still pretty darn fast. I can send these to you on request.
+I have binary built for Mac and Linux as well. They are a bit slower than the Windows version because they are compiled with gcc rather than the Intel C Compiler, but they are perfectly functional and still pretty darn fast. I can send these to you on request. Note, due to low demand and my busy schedule, these may not always be available immediately in the latest version.
 
-## Compatible File Types
+## UniDec Compatible File Types
 
 UniDec is built to open .txt files using [numpy.loadtxt](http://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.loadtxt.html). 
 
@@ -59,9 +61,16 @@ For Water's .raw files, UniDec is bundled with converters (CDCReader.exe and raw
 
 Water's converters will need [MassLynxRaw.dll](https://www.waters.com/waters/support.htm?locale=en_GB&lid=134815627&cid=511442&type=DWNL) (32-bit, for MS) and/or [cdt.dll](https://www.waters.com/waters/support.htm?locale=en_GB&lid=134825112&cid=511442&type=DWNL) (64-bit, for IM-MS) in the same directory as the converter executables (the unidec_bin folder or the top directory).
 
-For Thermo .raw files, we do not currently have the conversion libraries built in (an enterprising developer should take this on...). 
-The best way to load these files is to convert to mzML using [Proteowizard](http://proteowizard.sourceforge.net/). UniDec will open mzML file as if they are a text file.
+Thermo .raw files can be read as you would a text file on Windows thanks to multiplierz (https://github.com/BlaisProteomics/multiplierz). You will need [MSFileReader](https://thermo.flexnetoperations.com/control/thmo/download?element=6306677) installed. Please cite them (http://onlinelibrary.wiley.com/doi/10.1002/pmic.201700091/abstract). It will compress all scans together unless parsed with MetaUniDec. 
+
+Finally, many vendor formats can be converted mzML using [Proteowizard](http://proteowizard.sourceforge.net/). UniDec will open mzML file as if they are a text file, and this format should be cross platform.
 We utilize [pymzML](http://pymzml.github.io/intro.html#general-information) for this. Cite them at: *Bald, T., Barth, J., Niehues, A., Specht, M., Hippler, M., and Fufezan, C. (2012) pymzML - Python module for high throughput bioinformatics on mass spectrometry data, Bioinformatics, doi: 10.1093/bioinformatics/bts066.*
+
+## MetaUniDec File Types
+
+With MetaUniDec, everything is stored in a single HDF5 files. There are a few automated tools to parse chromagrams into HDF5 files if you have all the data chromatograms with predictable scans or times. Otherwise, you need to load the data in. First, create a new HDF5 using New File. Then, use Add Data Files to add text files, Thermo RAW, or mzML files into the HDF5 file. You can select multiple files at once here. You can also just copy the data from XCalibur or MassLynx and then use Add Data From Clipboard. That is probably the easiest way to get started and then you can work on optimizing the workflow from there. You can use the Waters converter if you need to get waters data into text files, and I use proteowizard to convert Thermo files to mzML.
+
+
 
 ##UniDec Documentation
 
@@ -69,9 +78,9 @@ Documentation is for the Python engine and GUI and can be found at http://michae
 
 My goal is that this documentation will allow you to utilize the power of the UniDec python engine for scripting data analysis routines and performing custom analysis. Also, it will allow you to add new modules to the UniDec GUI.
 
-I'm still working on documenting some of the windows and extensions, but the core features should be here.
+I'm still working on documenting some of the windows and extensions (including MetaUniDec), but the core features should be here.
 
-The C code is proprietary and not open source. The copyright is owned by the University of Oxford. 
+The C code is proprietary and not open source. The copyright is owned by the University of Oxford and University of Arizona. 
 If you are interested in the C source code, please contact me. 
 It should be possible to share with appropriate licensing or research agreements.
 
@@ -89,6 +98,8 @@ The GUI is organized with a Model-Presenter-View architecture.
 The main App is the presenter (GUniDec.py).
 The presenter contains a model (the UniDec engine at unidec.py) and a view (mainwindow.py). 
 The presenter coordinates transfer between the GUI and the engine.
+
+MetaUniDec has a similar structure with a presenter (mudpres.py), engine (mudeng.py), and view (mudview.py).
 
 ##Getting Started
 
@@ -120,11 +131,84 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
+v. 2.1.1
+
+Added fitting to exponential decay, line, or sigmoid in MetaUniDec and UltraMeta.
+
+v. 2.1.0
+
+**Added support for native opening of Thermo Raw files** using multiplierz (https://github.com/BlaisProteomics/multiplierz).
+You should now be able to open RAW files directly as you would a text file and to parse the chromatograms with MetaUniDec. 
+Other file types from other vendors should be possible if you send me an example file to test.
+
+v. 2.0.0
+
+**MetaUniDec** added with a number of tools for batch processing. This is a whole new program dedicated to expand the UniDec core to high-throughput dataset processing and visualization. It is twice as fast as conventional batch processing with UniDec and combines the dataset into a single HDF5 file.
+
+**Launcher** added to manage the various tools. 
+
+**UltraMeta** data collector added to analyze sets of datasets produced by MetaUniDec.
+
+Numerous behinds the scenes changes to simplify code and make compatible with MetaUniDec. Other bug fixes and improvements.
+
+v. 1.4.0
+
+Added common masses table and features to Oligomer and Mass Tools.
+
+v. 1.3.1 
+
+Experimental peak fitting in mass defect window.
+
+v. 1.3.0
+
+Added automatic baseline feature in crude form. 
+
+v. 1.2.6
+
+Updated preset configs and added a Nanodisc preset.
+
+Removed zip save file creation from batch processing. Let me know if you would like this brought back, but it seems to be just creating unnecessary files.
+
+v. 1.2.5
+
+Fixed glitch with speedy flag. Removed it entirely from Python code. Linflag will now import and overwrite the speedy option in UniDec.exe if present in config file.
+
+v. 1.2.4
+
+Updated builds for MacOS and Linux. Updated commandline printout.
+
+v. 1.2.3
+
+Improvements to automatic peak width detection for nonlinear data.
+
+v. 1.2.2
+
+Tweaks to the resolution settings to adjust for different monitor size. Slightly increased default figure size.
+
+Minor fixes and improvements.
+
+v. 1.2.1
+
+**Added Undo/Redo buttons and keyboard shortcuts to Experimental Menu.**
+
+New extraction modes on DataCollector (50% and 10% Thresholded Center of Mass).
+
+Fixed major bug in Load State, potential bug in PDF report, and other random bugs.
+
+v. 1.2.0
+
+Largely behind the scenes changes. Added HDF5 integration for C and Python but haven't committed to this as a save file yet.
+
+Merged C code for UniDecIM.exe into UniDec.exe, so there is a single executable for both 1D and 2D.
+
+A number of other bug fixes, updates, and subtle improvements.
+
 v. 1.1.0
 
 **Added Linear and Power Law calibrations for T-Wave IM-MS.** These are highly untested so proceed with caution. Please let me know how they work.
 
 Linear: Reduced CCS = Calibration Parameter 1 * Reduced Drift Time + Calibration Parameter 2
+
 Power Law: Reduced CCS = Calibration Parameter 1 * (Reduced Drift Time ^ Calibration Parameter 2)
 
 (For reference, the previous log calibration was and is)

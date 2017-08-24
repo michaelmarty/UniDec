@@ -17,6 +17,8 @@ from unidec_modules import UniFit, Extract2D, unidecstructure, PlotAnimations, p
 from unidec_modules.PlottingWindow import PlottingWindow
 import unidec_modules.unidectools as ud
 from unidec_modules.AutocorrWindow import AutocorrWindow
+import h5py
+from unidec_modules.hdf5_tools import replace_dataset, get_dataset
 
 __author__ = 'michael.marty'
 
@@ -128,7 +130,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def add_line(self, file_name="file.txt", var1="count", var2=0):
         if var1 == "count":
             var1 = self.GetItemCount()
-        index = self.InsertStringItem(sys.maxint, file_name)
+        index = self.InsertStringItem(sys.maxint, str(file_name))
         self.SetStringItem(index, 1, str(var1))
         self.SetStringItem(index, 2, str(var2))
         self.SetStringItem(index, 3, str("All"))
@@ -228,8 +230,9 @@ class NetworkFrame(PlottingWindow):
 
 
 datachoices = {0: "Raw Data", 1: "Processed Data", 2: "Zero Charge Mass Spectrum"}
-extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position"}
-extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "mass", 4: "mass"}
+extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position",
+                  5: "Center of Mass 50%", 6: "Center of Mass 10%"}
+extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass", 5: "Mass", 6: "Mass"}
 modelchoices = {"Simple Single KD": "one", "Parallel KD's Chained": "parallel", "All KD's Free": "free",
                 "Test for Best Model": "test", "Series KD's Chained": "series"}
 
@@ -263,19 +266,25 @@ class DataCollector(wx.Frame):
         pub.subscribe(self.on_motion, 'newxy')
 
         self.filemenu = wx.Menu()
+
         self.menuSave = self.filemenu.Append(wx.ID_SAVE, "Save", "Save Parameters")
         self.menuLoad = self.filemenu.Append(wx.ID_ANY, "Load", "Load Parameters")
         self.filemenu.AppendSeparator()
+
         self.menuSaveFigPNG = self.filemenu.Append(wx.ID_ANY, "Save Figures as PNG",
                                                    "Save all figures as PNG in central directory")
         self.menuSaveFigPDF = self.filemenu.Append(wx.ID_ANY, "Save Figures as PDF",
                                                    "Save all figures as PDF in central directory")
+
         self.Bind(wx.EVT_MENU, self.on_save, self.menuSave)
         self.Bind(wx.EVT_MENU, self.on_load, self.menuLoad)
         self.Bind(wx.EVT_MENU, self.on_save_fig, self.menuSaveFigPNG)
         self.Bind(wx.EVT_MENU, self.on_save_figPDF, self.menuSaveFigPDF)
         self.toolsmenu = wx.Menu()
         self.experimentalmenu = wx.Menu()
+        self.menuOpen = self.experimentalmenu.Append(wx.ID_ANY, "Open HDF5 File", "Open HDF5 file from MetaUniDec")
+        self.Bind(wx.EVT_MENU, self.on_hdf5_open, self.menuOpen)
+        self.experimentalmenu.AppendSeparator()
         self.menuAnimation = self.experimentalmenu.Append(wx.ID_ANY, "Animate Spectra",
                                                           "Animation from spectra in list")
         self.Bind(wx.EVT_MENU, self.on_animate, self.menuAnimation)
@@ -454,7 +463,7 @@ class DataCollector(wx.Frame):
         self.normflag2 = True
         self.protflag = "free"
         self.ligflag = "free"
-        self.datachoice = 0
+        self.datachoice = 2
         self.numprot = 0
         self.numlig = 0
         self.bootstrap = 0
@@ -470,9 +479,15 @@ class DataCollector(wx.Frame):
         self.var1 = []
         self.xlabel = "Mass"
         self.ylabel = ""
-
+        self.hdf5_file = ""
+        self.filetype = 0
+        self.update_set(0)
         self.Centre()
         self.Show(True)
+
+        if "hdf_file" in kwargs:
+            self.open_hdf5(kwargs["hdf_file"])
+
         try:
             self.load_x_from_peaks(0)
         except (ValueError, TypeError, AttributeError):
@@ -484,7 +499,13 @@ class DataCollector(wx.Frame):
             # self.load(os.path.join(self.directory,"AmtB_04_test.json"))
             # self.directory = "C:\\Data\\AmtB_DMPC"
             # self.load(os.path.join(self.directory, "AmtB_07.json"))
+            # self.directory = "C:\\Data\\Others"
+            # self.load(os.path.join(self.directory,"collection1.json"))
+            # self.on_kd_fit(0)
             try:
+                testdir = "C:\Python\UniDec\unidec_src\UniDec\\x64\Release"
+                testfile = "JAW.hdf5"
+                self.open_hdf5(os.path.join(testdir, testfile))
                 # self.directory="C:\\Data\\AmtB_POPC"
                 # self.directory="C:\\cprog\\Shane_ND3"
                 # self.directory="C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3"
@@ -501,6 +522,7 @@ class DataCollector(wx.Frame):
                 print e
                 pass
 
+
     def load_x_from_peaks(self, e):
         try:
             if not ud.isempty(self.pks.peaks):
@@ -510,6 +532,53 @@ class DataCollector(wx.Frame):
             self.ctllig.SetValue(str(maxes[1]))
         except Exception, ex:
             print "Unable to detect max # protein and ligands", ex
+
+    def on_hdf5_open(self, e):
+        dlg = wx.FileDialog(self, "Open HDF5 File", self.directory, self.hdf5_file, "*.hdf5", wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.hdf5_file = dlg.GetPath()
+            self.open_hdf5(self.hdf5_file)
+        dlg.Destroy()
+
+    def open_hdf5(self, path):
+        self.topname = "ms_dataset"
+        self.hdf5_file = path
+        self.hdf = h5py.File(path)
+        self.msdata = self.hdf.require_group(self.topname)
+        keys = self.msdata.keys()
+        self.indexes = []
+        for k in keys:
+            try:
+                self.indexes.append(int(k))
+            except:
+                pass
+        self.indexes = np.array(self.indexes)
+        self.indexes = sorted(self.indexes)
+        self.len = len(self.indexes)
+
+        for f in self.indexes:
+            self.msdata = self.hdf.get(self.topname + "/" + str(f))
+            self.attrs = dict(self.msdata.attrs.items())
+            if "var1" in self.attrs.keys():
+                var1 = self.attrs["var1"]
+            elif "collision_voltage" in self.attrs.keys():
+                var1 = self.attrs["collision_voltage"]
+            else:
+                var1 = f
+            self.ypanel.list.add_line(file_name=f, var1=str(var1))
+
+        pdataset = self.hdf.require_group("/peaks")
+        peaks = get_dataset(pdataset, "peakdata")
+        for p in peaks:
+            maxes = self.xpanel.list.add_line(val=p[0])
+        self.ctlprot.SetValue(str(maxes[0]))
+        self.ctllig.SetValue(str(maxes[1]))
+
+        self.hdf.close()
+        self.update_get(0)
+        self.directory = os.path.join(os.path.split(path)[0], "UniDec_Figures_and_Files")
+        self.update_set(0)
+        self.filetype = 1
 
     def on_save(self, e):
         self.update_get(e)
@@ -525,7 +594,7 @@ class DataCollector(wx.Frame):
                    "numprot": self.numprot, "numlig": self.numlig, "bootstrap": self.bootstrap, "extract": exout,
                    "protflag": self.protflag,
                    "ligflag": self.ligflag, "maxsites": self.maxsites, "gridparams": self.gridparams,
-                   "molig": self.molig}
+                   "molig": self.molig, "filetype": self.filetype}
 
         dlg = wx.FileDialog(self, "Save Collection in JSON Format", self.directory, self.savename, "*.json", wx.SAVE)
         if dlg.ShowModal() == wx.ID_OK:
@@ -580,6 +649,10 @@ class DataCollector(wx.Frame):
             # print "Loaded: ",self.gridparams
         if "molig" in indict:
             self.molig = indict["molig"]
+        if "filetype" in indict:
+            self.filetype = indict["filetype"]
+        else:
+            self.filetype = 0
         self.update_set(0)
         print "Loaded: ", savename
         self.on_run(0)
@@ -599,11 +672,11 @@ class DataCollector(wx.Frame):
             filenames = dlg.GetPaths()
             for f in filenames:
                 self.ypanel.list.add_line(file_name=f)
+            self.filetype = 0
         dlg.Destroy()
         self.localpath = 0
 
     def on_choose_dir(self, e):
-
         dlg = wx.DirDialog(None, "Choose Top Directory", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
         if dlg.ShowModal() == wx.ID_OK:
             self.directory = dlg.GetPath()
@@ -691,9 +764,14 @@ class DataCollector(wx.Frame):
         self.plot2.clear_plot()
         self.var1 = []
         self.grid = []
+        if self.filetype == 1:
+            self.hdf = h5py.File(self.hdf5_file)
         ycolors = []
         print "Directory:", self.directory
         for k, l in enumerate(self.yvals):
+            if self.filetype == 1:
+                self.msdata = self.hdf.get(self.topname + "/" + str(l[0]))
+
             filename = l[0]
             header = os.path.splitext(filename)[0]
             if self.localpath == 1 or not os.path.isabs(filename):
@@ -705,17 +783,26 @@ class DataCollector(wx.Frame):
             ycolors.append(l[4:7])
             fcolor = np.array(l[4:7])
             if self.datachoice == 0:
-                data = np.loadtxt(filename)
+                if self.filetype == 1:
+                    data = get_dataset(self.msdata, "raw_data")
+                else:
+                    data = np.loadtxt(filename)
                 self.xlabel = "m/z (Th)"
             elif self.datachoice == 1:
                 filename = os.path.join(header + "_unidecfiles", subheader + "_input.dat")
-                data = np.loadtxt(filename)
+                if self.filetype == 1:
+                    data = get_dataset(self.msdata, "processed_data")
+                else:
+                    data = np.loadtxt(filename)
                 self.xlabel = "m/z (Th)"
             elif self.datachoice == 2:
                 self.xlabel = "Mass (Da)"
                 zstate = l[3]
                 filename = os.path.join(header + "_unidecfiles", subheader + "_mass.txt")
-                data = np.loadtxt(filename)
+                if self.filetype == 1:
+                    data = get_dataset(self.msdata, "mass_data")
+                else:
+                    data = np.loadtxt(filename)
                 if not zstate == 'All':
                     try:
                         filename = os.path.join(header + "_unidecfiles", subheader + "_massgrid.bin")
@@ -811,6 +898,8 @@ class DataCollector(wx.Frame):
             self.xpanel.list.populate(self.xvals, colors=self.xcolors)
 
         self.make_grid_plots(e)
+        if self.filetype == 1:
+            self.hdf.close()
         print "Extraction Complete"
 
     def make_grid_plots(self, e):
@@ -917,11 +1006,17 @@ class DataCollector(wx.Frame):
             maxsites = int(self.maxsites)
         except (ValueError, TypeError):
             maxsites = 0
-        UniFit.KDmodel(self.numprot, self.numlig, np.transpose(self.extract), self.yvals[:, 2].astype(np.float64),
-                       self.yvals[:, 1].astype(np.float64), nodelist, os.path.join(self.directory, "fits"),
-                       removeoutliers=outlierflag, plot1=self.plot2.subplot1, plot2=self.plot3.axes,
-                       plot3=self.plot3h, bootnum=self.bootstrap, prot=self.protflag, lig=self.ligflag,
-                       maxsites=maxsites)
+        model = UniFit.KDmodel(self.numprot, self.numlig, np.transpose(self.extract),
+                               self.yvals[:, 2].astype(np.float64),
+                               self.yvals[:, 1].astype(np.float64), nodelist, os.path.join(self.directory, "fits"),
+                               removeoutliers=outlierflag, plot1=self.plot2.subplot1, plot2=self.plot3.axes,
+                               plot3=self.plot3h, bootnum=self.bootstrap, prot=self.protflag, lig=self.ligflag,
+                               maxsites=maxsites)
+        try:
+            if self.bootstrap > 0:
+                np.savetxt(os.path.join(self.directory, "fits_boots.txt"), model.randfit)
+        except Exception, e:
+            print e
         self.plot2.repaint()
         self.plot2.flag = True
         datalim = [np.amin(nodelist[:, 1]) - 0.5, np.amin(nodelist[:, 0] - 0.5), np.amax(nodelist[:, 1] + 0.5),

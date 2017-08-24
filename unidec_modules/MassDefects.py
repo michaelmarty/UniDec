@@ -3,8 +3,10 @@ from copy import deepcopy
 import numpy as np
 import wx
 from scipy.interpolate import interp1d
+from scipy.optimize import curve_fit
 from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows
 import unidec_modules.unidectools as ud
+from MassFitter import MassFitter
 
 __author__ = 'Michael.Marty'
 
@@ -72,7 +74,10 @@ class MassDefectWindow(wx.Frame):
         self.plotmenu = wx.Menu()
         self.menuaddline = self.plotmenu.Append(wx.ID_ANY, "Add Horizontal Line",
                                                 "Add Horizontal Line at Specific Y Value")
+        self.menufit = self.plotmenu.Append(wx.ID_ANY, "Fit Peaks",
+                                            "Fit total mass defect peaks")
         self.Bind(wx.EVT_MENU, self.on_add_line, self.menuaddline)
+        self.Bind(wx.EVT_MENU, self.on_fit, self.menufit)
 
         menu_bar = wx.MenuBar()
         menu_bar.Append(filemenu, "&File")
@@ -189,11 +194,11 @@ class MassDefectWindow(wx.Frame):
         :return: None
         """
         self.getfromgui()
-        data1d, data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(self.datalist[self.pos], self.m0,
-                                                                     centermode=self.centermode,
-                                                                     nbins=self.nbins,
-                                                                     transformmode=self.transformmode,
-                                                                     xaxistype=self.xtype)
+        self.data1d, data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(self.datalist[self.pos], self.m0,
+                                                                          centermode=self.centermode,
+                                                                          nbins=self.nbins,
+                                                                          transformmode=self.transformmode,
+                                                                          xaxistype=self.xtype)
         if self.yvals is not None:
             title = str(self.yvals[self.pos])
             spacer = "_"
@@ -204,7 +209,7 @@ class MassDefectWindow(wx.Frame):
             save_path2d = os.path.join(self.directory, title + spacer + "2D_Mass_Defects.txt")
             np.savetxt(save_path2d, data2d)
             save_path1d = os.path.join(self.directory, title + spacer + "1D_Mass_Defects.txt")
-            np.savetxt(save_path1d, data1d)
+            np.savetxt(save_path1d, self.data1d)
             print 'Saved: ', save_path2d, save_path1d
         except Exception, e:
             print "Failed save", e
@@ -214,7 +219,7 @@ class MassDefectWindow(wx.Frame):
             self.plot2.clear_plot()
             print "Failed Plot2", e
         try:
-            self.plot1.plotrefreshtop(data1d[:, 0], data1d[:, 1], title, "Mass Defect",
+            self.plot1.plotrefreshtop(self.data1d[:, 0], self.data1d[:, 1], title, "Mass Defect",
                                       "Total Intensity", "", self.config)
         except Exception, e:
             self.plot1.clear_plot()
@@ -233,23 +238,23 @@ class MassDefectWindow(wx.Frame):
         igrids = []
         m1grid, m2grid = None, None
         for i, dat in enumerate(self.datalist):
-            data1d, data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(dat, self.m0,
-                                                                         centermode=self.centermode,
-                                                                         nbins=self.nbins,
-                                                                         transformmode=self.transformmode,
-                                                                         xaxistype=self.xtype)
+            self.data1d, data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(dat, self.m0,
+                                                                              centermode=self.centermode,
+                                                                              nbins=self.nbins,
+                                                                              transformmode=self.transformmode,
+                                                                              xaxistype=self.xtype)
             igrids.append(igrid)
         # Sum and reshape
         igrids = np.array(igrids)
         igrids /= np.amax(igrids)
         sumgrid = np.sum(igrids, axis=0)
         data2d = np.transpose([np.ravel(m1grid), np.ravel(m2grid), np.ravel(sumgrid) / np.amax(sumgrid)])
-        data1d = np.transpose([np.unique(m2grid), np.sum(sumgrid, axis=0)])
+        self.data1d = np.transpose([np.unique(m2grid), np.sum(sumgrid, axis=0)])
         # Save Results
         save_path2d = os.path.join(self.directory, "Total_2D_Mass_Defects.txt")
         np.savetxt(save_path2d, data2d)
         save_path1d = os.path.join(self.directory, "Total_1D_Mass_Defects.txt")
-        np.savetxt(save_path1d, data1d)
+        np.savetxt(save_path1d, self.data1d)
         print 'Saved: ', save_path2d, save_path1d
         # Plots
         try:
@@ -258,7 +263,8 @@ class MassDefectWindow(wx.Frame):
             self.plot2.clear_plot()
             print "Failed Plot2", e
         try:
-            self.plot1.plotrefreshtop(data1d[:, 0], data1d[:, 1], "Total Projection", "Mass Defect", "Total Intensity",
+            self.plot1.plotrefreshtop(self.data1d[:, 0], self.data1d[:, 1], "Total Projection", "Mass Defect",
+                                      "Total Intensity",
                                       "", self.config)
         except Exception, e:
             self.plot1.clear_plot()
@@ -373,23 +379,32 @@ class MassDefectWindow(wx.Frame):
             print "Failed: ", dialog.value, e
             pass
 
+    def on_fit(self, e):
+        peaks = ud.peakdetect(self.data1d, window=5)
+        print "Peaks:", peaks[:,0]
+        peaks = np.concatenate((peaks, [[0, np.amin(self.data1d[:, 1])]]))
+        fitdat, fits = MassFitter(self.data1d, peaks, 3, "microguess").perform_fit()
+        print "Fits:", fits[:,0]
+
+        self.plot1.plotadd(self.data1d[:, 0], fitdat, "green", nopaint=False)
+
 
 # Main App Execution
 if __name__ == "__main__":
-    dir = "C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3\\MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit100_unidecfiles"
-    file = "MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit100_mass.txt"
+    dir = "C:\\Python\\UniDec\\TestSpectra\\60_unidecfiles"
+    file = "60_mass.txt"
 
     path = os.path.join(dir, file)
 
     data = np.loadtxt(path)
 
-    dir = "C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3\\MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit120_unidecfiles"
-    file = "MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit120_mass.txt"
+    # dir = "C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3\\MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit120_unidecfiles"
+    # file = "MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit120_mass.txt"
 
-    path = os.path.join(dir, file)
+    # path = os.path.join(dir, file)
 
-    data2 = np.loadtxt(path)
-    datalist = [data, data2]
+    # data2 = np.loadtxt(path)
+    datalist = [data]  # , data2]
 
     app = wx.App(False)
     frame = MassDefectWindow(None, datalist)

@@ -10,22 +10,24 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
     Creates a list control panel for displaying and interacting with Peaks object
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, meta=False):
         """
         Initialize list_ctrl, bind events, and setup events to be broadcast back.
         :param parent: Parent of panel that will be created
         :return: None
         """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
-
+        self.meta=meta
         self.index = 0
-
         self.list_ctrl = wx.ListCtrl(self, pos=wx.DefaultPosition, size=(300, 1100),
                                      style=wx.LC_REPORT | wx.BORDER_SUNKEN)
         self.list_ctrl.InsertColumn(0, " ", width=25)
         self.list_ctrl.InsertColumn(1, "Mass (Da)", wx.LIST_FORMAT_RIGHT, width=70)
         self.list_ctrl.InsertColumn(2, "Intensity", width=65)
-        self.list_ctrl.InsertColumn(3, "Area", width=45)
+        if meta:
+            self.list_ctrl.InsertColumn(3, "", width=45)
+        else:
+            self.list_ctrl.InsertColumn(3, "Area", width=45)
         self.list_ctrl.InsertColumn(4, "Name", width=80)
 
         listmix.ColumnSorterMixin.__init__(self, 5)
@@ -84,7 +86,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.pks = pks
 
         col = self.list_ctrl.GetColumn(3)
-        col.SetText("Area")
+        if not self.meta:
+            col.SetText("Area")
         self.list_ctrl.SetColumn(3, col)
         self.list_ctrl.SetColumnWidth(3, 50)
 
@@ -142,12 +145,14 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         """
         if hasattr(self, "popupID1"):
             menu = wx.Menu()
-            menu.Append(self.popupID1, "Delete")
+            menu.Append(self.popupID1, "Ignore")
             menu.Append(self.popupID2, "Isolate")
             menu.Append(self.popupID3, "Repopulate")
+            menu.AppendSeparator()
             menu.Append(self.popupID4, "Label Charge States")
-            menu.Append(self.popupID5, "Color Select")
             menu.Append(self.popupID6, "Display Differences")
+            menu.AppendSeparator()
+            menu.Append(self.popupID5, "Color Select")
             self.PopupMenu(menu)
             menu.Destroy()
 
@@ -288,7 +293,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.list_ctrl.SetItemBackgroundColour(item, col=colout)
         peak = float(self.list_ctrl.GetItem(item, col=1).GetText())
         i = ud.nearest(self.pks.masses, peak)
-        self.pks.peaks[i].color = ([colout[0] / 255., colout[1] / 255., colout[2] / 255])
+        self.pks.peaks[i].color = ([colout[0] / 255., colout[1] / 255., colout[2] / 255.])
         newevent = wx.PyCommandEvent(self.EVT_DELETE_SELECTION_2._getEvtType(), self.GetId())
         self.GetEventHandler().ProcessEvent(newevent)
 

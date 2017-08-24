@@ -26,14 +26,14 @@ class TestGUI(unittest.TestCase):
     # Engine Tests
     def test_unidec_paths(self):
         self.assertTrue(os.path.isfile(self.app.eng.config.UniDecPath))
-        self.assertTrue(os.path.isfile(self.app.eng.config.UniDecIMPath))
+        #self.assertTrue(os.path.isfile(self.app.eng.config.UniDecIMPath))
         self.assertTrue(os.path.isfile(self.app.eng.config.rawreaderpath))
         self.assertTrue(os.path.isfile(self.app.eng.config.cdcreaderpath))
 
     # Open Files
     def test_mzml(self):
         self.app.on_open_file(self.testmzml, testdir, clean=True)
-        self.assertEqual(self.app.eng.data.rawdata.shape, (177703L, 2L))
+        self.assertEqual(self.app.eng.data.rawdata.shape, (94540L, 2L))
 
         with self.assertRaises(IOError):
             self.app.on_open_file("junk.junk", testdir)
@@ -54,6 +54,8 @@ class TestGUI(unittest.TestCase):
 
         # Test Auto Peak Width
         self.app.on_auto_peak_width(0)
+        self.assertGreater(self.app.eng.config.mzsig,5)
+        self.assertLess(self.app.eng.config.mzsig, 15)
 
         # Test Auto Run
         self.app.on_auto(0)
@@ -108,6 +110,8 @@ class TestGUI(unittest.TestCase):
 
         self.app.eng.config.startz = 10
         self.app.eng.config.endz = 18
+        self.app.eng.config.mzbins = 4
+        # TODO: Fix so that error is raised or mzbins is fixed to not go below the minimum distance for IM.
         self.app.import_config()
         self.app.on_auto(0)
 
@@ -124,13 +128,13 @@ class TestGUI(unittest.TestCase):
         self.app.make_cube_plot(0)
 
     def test_presets_resets(self):
-        self.app.view.on_defaults(self.app.view.menuDefault2)
+        self.app.view.on_defaults(self.app.view.menu.menuDefault2)
         self.assertEqual(self.app.eng.config.endz, 1)
-        self.app.view.on_defaults(self.app.view.menuDefault0)
+        self.app.view.on_defaults(self.app.view.menu.menuDefault0)
         self.assertEqual(self.app.eng.config.endz, 100)
-        self.app.view.on_defaults(self.app.view.menuDefault3)
+        self.app.view.on_defaults(self.app.view.menu.menuDefault3)
         self.assertEqual(self.app.eng.config.endz, 30)
-        self.app.view.on_defaults(self.app.view.menuDefault1)
+        self.app.view.on_defaults(self.app.view.menu.menuDefault1)
         self.assertEqual(self.app.eng.config.endz, 50)
         self.app.on_save_default(0)
         self.app.on_reset(0)

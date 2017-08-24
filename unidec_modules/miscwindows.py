@@ -106,6 +106,7 @@ class AdditionalParameters(wx.Dialog):
         hbox5.Add(wx.StaticText(pnl, label=' x Peak Shape '), 0, wx.ALIGN_CENTER_VERTICAL)
         sbs.Add(hbox5, 1, wx.ALIGN_CENTER_VERTICAL)
 
+        """
         hbox6 = wx.BoxSizer(wx.HORIZONTAL)
         self.inputbox6 = wx.TextCtrl(pnl, value=str(self.config.damp))
         hbox6.Add(wx.StaticText(pnl, label='Damping Parameter: '), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -122,6 +123,7 @@ class AdditionalParameters(wx.Dialog):
         hbox6b.Add(self.inputbox6b, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
         hbox6b.Add(wx.StaticText(pnl, label=' Be careful...'), 0, wx.ALIGN_CENTER_VERTICAL)
         sbs.Add(hbox6b, 1, wx.ALIGN_CENTER_VERTICAL)
+        """
 
         pnl.SetSizer(sbs)
 
@@ -145,9 +147,9 @@ class AdditionalParameters(wx.Dialog):
         :param e: Unused Event
         :return: None
         """
-        self.config.suppression = ud.string_to_int(self.inputbox6b.GetSelection())
+        #self.config.suppression = ud.string_to_int(self.inputbox6b.GetSelection())
         self.config.inflate = ud.string_to_value(self.inputbox5.GetValue())
-        self.config.damp = ud.string_to_value(self.inputbox6.GetValue())
+        #self.config.damp = ud.string_to_value(self.inputbox6.GetValue())
         self.Destroy()
         self.EndModal(0)
 

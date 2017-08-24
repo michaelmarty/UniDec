@@ -83,6 +83,8 @@ class AnimationWindow(wx.Frame):
 
         self.ctlautoscale = wx.CheckBox(panel, label="Autoscale")
         controlsizer.Add(self.ctlautoscale, 0, wx.EXPAND)
+        if self.mode == 2:
+            self.ctlautoscale.SetValue(True)
 
         sizer.Add(controlsizer, 0, wx.EXPAND)
 
@@ -157,6 +159,7 @@ class AnimationWindow(wx.Frame):
                 if not autoflag:
                     self.plot.subplot1.set_xlim(xlim)
                     self.plot.subplot1.set_ylim(ylim)
+                self.plot.add_title(title)
                 self.plot.repaint()
         except Exception, e:
             self.animation._stop()
@@ -199,6 +202,7 @@ class AnimationWindow(wx.Frame):
                                      test_kda=True)
         else:
             self.plot.contourplot(newdata, self.config, xlab="", title=title)
+            self.plot.add_title(title)
 
     def on_next(self, e):
         """

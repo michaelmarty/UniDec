@@ -48,6 +48,7 @@ class Peak:
         self.fitarea = 0
         self.fitareaerr = 0
         self.diff = 0
+        self.extracts = []
 
 
 class Peaks:
@@ -74,6 +75,7 @@ class Peaks:
         self.textmarkers = []
         self.marklen = 0
         self.massbins = 0
+        self.norm = 1
 
     def add_peaks(self, parray, massbins=0):
         """
@@ -144,7 +146,7 @@ class Peaks:
             boo3 = np.all([boo1, boo2, booi], axis=0)
             try:
                 p.score = np.sum((np.ones_like(p.mztab[boo3, 1]) - np.clip(
-                        np.abs((p.mztab[boo3, 1] - p.mztab2[boo3, 1])) / p.mztab2[boo3, 1], 0, 1)))
+                    np.abs((p.mztab[boo3, 1] - p.mztab2[boo3, 1])) / p.mztab2[boo3, 1], 0, 1)))
             except ZeroDivisionError:
                 p.score = 0
 
@@ -161,3 +163,12 @@ class Peaks:
                 p.massavg = 0
                 p.masserr = 0
                 p.tval = 0
+
+    def get_bool(self):
+        boo1=[]
+        for p in self.peaks:
+            if p.ignore == 0:
+                boo1.append(True)
+            else:
+                boo1.append(False)
+        return np.array(boo1)

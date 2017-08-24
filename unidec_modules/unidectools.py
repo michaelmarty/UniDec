@@ -20,6 +20,11 @@ from scipy import fftpack
 # import pyfftw
 import matplotlib.cm as cm
 import mzMLimporter
+try:
+    import data_reader
+except:
+    print "Could not import data reader: unidectools"
+import fnmatch
 
 is_64bits = sys.maxsize > 2 ** 32
 
@@ -72,6 +77,14 @@ except (OSError, NameError):
 # Utility Functions
 #
 # ..................................
+
+
+def match_files(directory, string):
+    files=[]
+    for file in os.listdir(directory):
+        if fnmatch.fnmatch(file, string):
+            files.append(file)
+    return np.array(files)
 
 
 def isempty(thing):
@@ -279,8 +292,8 @@ def center_of_mass(data, start=None, end=None):
         weightstd = weighted_std(cutdat[:, 0], cutdat[:, 1])
         return weightedavg, weightstd
     except ZeroDivisionError:
-        print "Error in center of mass determination. Check the limits:", start, end
-        return None, None
+        # print "Error in center of mass determination. Check the limits:", start, end
+        return 0, 0
 
 
 def stepmax(array, index):
@@ -341,6 +354,13 @@ def simple_extract(data, x, zero_edge=True):
     return val
 
 
+def limit_data(data, start, end):
+    boo1 = data[:, 0] < end
+    boo2 = data[:, 0] >= start
+    intdat = data[np.all([boo1, boo2], axis=0)]
+    return intdat
+
+
 def data_extract(data, x, extract_method, window=None, **kwargs):
     """
     Assumes a sorted array in data[:,0]
@@ -392,6 +412,35 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
         else:
             val = localmaxpos(data, data[0, 0], data[len(data) - 1, 0])
             print "No window set for local max position!\nUsing entire data range...."
+
+    elif extract_method == 5:
+        # Remove data points that fall below 50% threshold
+        maxval = np.amax(data[:, 1])
+        boo2 = data[:, 1] > maxval * 0.5
+        cutdat = data[boo2]
+        # Extract from thresholded data
+        if window is not None:
+            start = x - window
+            end = x + window
+            val, junk = center_of_mass(cutdat, start, end)
+        else:
+            val, junk = center_of_mass(cutdat, data[0, 0], data[len(data) - 1, 0])
+            print "No window set for center of mass!\nUsing entire data range...."
+
+    elif extract_method == 6:
+        # Remove data points that fall below 10% threshold
+        maxval = np.amax(data[:, 1])
+        boo2 = data[:, 1] > maxval * 0.1
+        cutdat = data[boo2]
+        # Extract from thresholded data
+        if window is not None:
+            start = x - window
+            end = x + window
+            val, junk = center_of_mass(cutdat, start, end)
+        else:
+            val, junk = center_of_mass(cutdat, data[0, 0], data[len(data) - 1, 0])
+            print "No window set for center of mass!\nUsing entire data range...."
+
     else:
         val = 0
         print "Undefined extraction choice"
@@ -512,7 +561,7 @@ def header_test(path):
     return header
 
 
-def load_mz_file(path, config):
+def load_mz_file(path, config=None):
     """
     Loads a text or mzml file
     :param path: File path to load
@@ -523,12 +572,21 @@ def load_mz_file(path, config):
         print "Attempted to open:", path
         print "\t but I couldn't find the file..."
         raise IOError
+    if config is None:
+        extension = os.path.splitext(path)[1]
+    else:
+        extension = config.extension.lower()
 
-    if config.extension.lower() == ".txt":
+    if  extension == ".txt":
         data = np.loadtxt(path, skiprows=header_test(path))
-    elif config.extension.lower() == ".mzml":
+    elif extension == ".mzml":
         data = mzMLimporter.mzMLimporter(path).get_data()
         txtname = path[:-5] + ".txt"
+        np.savetxt(txtname, data)
+        print "Saved to:", txtname
+    elif extension.lower() == ".raw":
+        data = data_reader.DataImporter(path).get_data()
+        txtname = path[:-4] + ".txt"
         np.savetxt(txtname, data)
         print "Saved to:", txtname
     else:
@@ -613,24 +671,29 @@ def mergedata2d(x1, y1, x2, y2, z2):
 # ..........................................................
 
 
-def auto_peak_width(datatop):
+def auto_peak_width(datatop, psfun=None):
     maxpos = np.argmax(datatop[:, 1])
     maxval = datatop[maxpos, 0]
 
+    # TODO: This is potentially dangerous if nonlinear!
     ac, cpeaks = autocorr(datatop)
-    sig = cpeaks[0, 0] / 4.
+    if not isempty(cpeaks):
+        sig = cpeaks[0, 0] / 2.
+        boo1 = datatop[:, 0] < maxval + sig
+        boo2 = datatop[:, 0] > maxval - sig
+        boo3 = np.all([boo1, boo2], axis=0)
+        isodat = datatop[boo3]
 
-    boo1 = datatop[:, 0] < maxval + sig
-    boo2 = datatop[:, 0] > maxval - sig
-    boo3 = np.all([boo1, boo2], axis=0)
+        fits = np.array([isolated_peak_fit(isodat[:, 0], isodat[:, 1], i) for i in xrange(0, 3)])
 
-    isodat = datatop[boo3]
-    fits = np.array([isolated_peak_fit(isodat[:, 0], isodat[:, 1], i) for i in xrange(0, 3)])
+        errors = [np.sum(np.array(isodat[:, 1] - f) ** 2.) for f in fits[:, 1]]
+        if psfun is None:
+            psfun = np.argmin(errors)
+        fit, fitdat = fits[psfun]
 
-    errors = [np.sum(np.array(isodat[:, 1] - f) ** 2.) for f in fits[:, 1]]
-    psfun = np.argmin(errors)
-    fit, fitdat = fits[psfun]
-    fwhm = fit[0, 0]
+        fwhm = fit[0, 0]
+    else:
+        fwhm = 0
 
     return fwhm, psfun, maxval
 
@@ -678,6 +741,7 @@ def datasimpsub(datatop, buff):
     :return: Subtracted data
     """
     length = len(datatop)
+    buff=int(buff)
     frontpart = np.mean(datatop[:buff, 1])
     backpart = np.mean(datatop[length - buff - 1:length - 1, 1])
     background = frontpart + (backpart - frontpart) / length * np.arange(length)
@@ -817,6 +881,18 @@ def savgol_background_subtract(datatop, width, cutoff_percent=0.25):
     # plt.show()
 
     return datatop
+
+
+def gaussian_backgroud_subtract(datatop, sig):
+    background=deepcopy(datatop)
+    #background[:,1]=np.log(background[:,1])
+    gsmooth(background,sig)
+    datatop[:,1]-=background[:,1]
+    normalize(datatop)
+    datatop[datatop[:,1]<0,1]=0
+    return datatop
+
+
 
 
 def intensitythresh(datatop, thresh):
@@ -1022,6 +1098,16 @@ def fake_log(data):
     return np.log10(np.clip(data, non_zero_min, np.amax(data)))
 
 
+def remove_middle_zeros(data):
+    boo1=data[1:len(data)-1,1]!=0
+    boo2=data[:len(data)-2,1]!=0
+    boo3=data[2:len(data),1] != 0
+    boo4=np.logical_or(boo1,boo2)
+    boo5=np.logical_or(boo3,boo4)
+    boo6=np.concatenate(([True],boo5,[True]))
+    return data[boo6]
+
+
 def dataprep(datatop, config):
     """
     Main function to process 1D MS data. The order is:
@@ -1060,14 +1146,17 @@ def dataprep(datatop, config):
     if smooth > 0:
         data2 = gsmooth(data2, smooth)
 
+
     # Remove Duplicate Data Points
     data2 = removeduplicates(data2)
+
     # Linearize Data
     if binsize > 0:
         if linflag != 2:
             data2 = linearize(data2, binsize, linflag)
         else:
             data2 = nonlinearize(data2, binsize)
+
 
     # Baseline Subtraction
     buff = abs(buff)
@@ -1079,8 +1168,11 @@ def dataprep(datatop, config):
         data2[:, 1] = data2[:, 1] - np.amin(data2[:, 1])
     elif subtype == 4 and buff != 0:
         data2 = polynomial_background_subtract(data2, buff)
-    elif subtype == 3 and buff != 0:
+    elif subtype == 5 and buff != 0:
         data2 = savgol_background_subtract(data2, buff)
+    elif subtype == 3 and buff != 0:
+        data2 = gaussian_background_subtract(data2, buff)
+        pass
     elif buff == 0:
         pass
     else:
@@ -1097,6 +1189,10 @@ def dataprep(datatop, config):
         data2[:, 1] = fake_log(data2[:, 1])
         data2[:, 1] -= np.amin(data2[:, 1])
 
+    if linflag==2:
+        data2 = remove_middle_zeros(data2)
+        pass
+
     # Normalization
     data2 = normalize(data2)
 
@@ -1110,7 +1206,7 @@ def dataprep(datatop, config):
 # ............................................................................
 
 
-def unidec_call(exepath, configfile, silent=False, **kwargs):
+def unidec_call(config, silent=False, **kwargs):
     """
     Run the UniDec binary specified by exepath with the configuration file specified by configfile.
     If silent is False (default), the output from exepath will be printed to the standard out.
@@ -1126,15 +1222,19 @@ def unidec_call(exepath, configfile, silent=False, **kwargs):
     :param kwargs:
     :return: Standard error of exepath execution
     """
+
+    call = [config.UniDecPath, str(config.confname)]
+
     if "kill" in kwargs:
         killnum = kwargs["kill"]
         # print "Killing Peak:",killnum
-        out = subprocess.call([exepath, configfile, "-kill", str(killnum)], stdout=subprocess.PIPE)
+        call.append("-kill")
+        call.append(str(killnum))
+
+    if silent:
+        out = subprocess.call(call, stdout=subprocess.PIPE)
     else:
-        if silent:
-            out = subprocess.call([exepath, configfile], stdout=subprocess.PIPE)
-        else:
-            out = subprocess.call([exepath, configfile])
+        out = subprocess.call(call)
     return out
 
 
@@ -1642,6 +1742,56 @@ def voigt(x, mu=0, sigma=1, gamma=1, amp=1, background=0):
         v += background
     return v
 
+def exp_decay(x, gamma=1, a=1, background=0):
+    return np.exp(-gamma*x)*a+background
+
+
+def exp_fit(xvals, yvals, gguess=None, aguess=None,bguess=None):
+    """
+    Simple exponential fitting function.
+    """
+    xvals=np.array(xvals)
+    if gguess is None:
+        gguess = 2./np.mean(xvals)
+    if aguess is None:
+        aguess = np.amax(yvals)
+    if bguess is None:
+        print "test"
+        guess = [gguess, aguess]
+    else:
+        guess = [gguess, aguess, bguess]
+    fits = curve_fit(exp_decay, xvals, yvals, p0=guess, maxfev=1000000)[0]
+    if bguess is None:
+        fitdat=exp_decay(xvals,gamma=fits[0],a=fits[1])#, background=fits[2])
+    else:
+        fitdat = exp_decay(xvals, gamma=fits[0], a=fits[1], background=fits[2])
+    return fits, fitdat
+
+def lin_fit(xvals, yvals):
+    xvals=np.array(xvals)
+    outputs = stats.linregress(xvals, yvals)
+    slope, intercept, rvalue, pvalue, slope_std_error = outputs
+    fitdat=xvals*slope + intercept
+    return np.array([slope,intercept]),fitdat
+
+def logistic(x, mid, slope, aspan, ymin):
+    """Logistic function
+    """
+    y = (aspan / (1 + np.exp(-slope * (x - mid)))) + ymin
+    return y
+
+
+def sig_fit(xvals, yvals):
+    xvals=np.array(xvals)
+    yguess=np.amin(yvals)
+    Aguess=np.amax(yvals)-np.amin(yvals)
+    mguess=np.mean(xvals)
+    sguess=(yvals[len(yvals)-1]-yvals[0])/(xvals[len(xvals)-1]-xvals[0])/Aguess
+    guess=[mguess,sguess,Aguess,yguess]
+    fits = curve_fit(logistic, xvals, yvals, p0=guess, maxfev=1000000)[0]
+    fitdat=logistic(xvals,fits[0],fits[1],fits[2],fits[3])
+    return fits, fitdat
+
 
 # ...........................................................
 #
@@ -1662,6 +1812,13 @@ def cconv(a, b):
     return signal.fftconvolve(a, np.roll(b, (len(b)) / 2 - 1 + len(b) % 2), mode="same")
 
 
+def FD_gauss_wavelet(length, width):
+    xvals = np.arange(0, length).astype(np.float)
+    mu = np.round(length / 2)
+    sigma = width
+    return [stats.norm.pdf(x, mu, sigma) * (mu - x) / sigma ** 2 for x in xvals]
+
+
 def single_cwt(a, width, wavelet_type="Ricker"):
     """
     Perform a continuous wavelet transform at a single defined width.
@@ -1673,6 +1830,8 @@ def single_cwt(a, width, wavelet_type="Ricker"):
     """
     if wavelet_type is "Morlet":
         wdat = signal.morlet(len(a), width)
+    elif wavelet_type is "1DG":
+        wdat = FD_gauss_wavelet(len(a), width)
     else:
         wdat = signal.ricker(len(a), width)
     return continuous_wavelet_transform(a, [width], wavelet_type=wavelet_type)[0], wdat
@@ -1688,20 +1847,36 @@ def continuous_wavelet_transform(a, widths, wavelet_type="Ricker"):
     """
     if wavelet_type is "Morlet":
         wavelet = signal.morlet
+    elif wavelet_type is "1DG":
+        wavelet = FD_gauss_wavelet
     else:
         wavelet = signal.ricker
     return signal.cwt(a, wavelet, widths)
 
 
 def autocorr(datatop, config=None):
+    """
+    Note: ASSUMES LINEARIZED DATA
+    :param datatop: 1D data
+    :param config: Config file (optional file)
+    :return: Autocorr spectrum, peaks in autocorrelation.
+    """
     corry = signal.fftconvolve(datatop[:, 1], datatop[:, 1][::-1], mode='same')
     corry /= np.amax(corry)
-    xdiff = datatop[1, 0] - datatop[0, 0]
+    maxpos1 = np.argmax(datatop[:, 1])
+    start = np.amax([maxpos1 - len(datatop) / 10, 0])
+    end = np.amin([len(datatop) - 1, maxpos1 + len(datatop) / 10])
+    cutdat = datatop[start:end]
+    if len(cutdat) < 20:
+        cutdat = datatop
+    # cutdat=datatop # Other old
+    xdiff = np.mean(cutdat[1:, 0] - cutdat[:len(cutdat) - 1, 0])  # Less dangerous but still dangerous when non-linear
+    # xdiff = datatop[1, 0] - datatop[0, 0] #OLD
     corrx = np.arange(0.0, len(corry)) * xdiff
     maxpos = np.argmax(corry)
     corrx = corrx - corrx[maxpos]
     autocorr = np.transpose([corrx, corry])
-    boo1 = autocorr[:, 0] > 0
+    boo1 = autocorr[:, 0] > xdiff
     cpeaks = peakdetect(autocorr[boo1], config)
     return autocorr, cpeaks
 
@@ -1775,6 +1950,8 @@ def make_peak_shape(xaxis, psfun, fwhm, mid, norm_area=False):
         kernel = ldis(xaxis, mid, fwhm, norm_area=norm_area)
     elif psfun == 2:
         kernel = splitdis(xaxis, mid, fwhm, norm_area=norm_area)
+    elif psfun == 3:
+        kernel = ndis(xaxis, mid, fwhm, norm_area=norm_area)
     else:
         kernel = xaxis * 0
     return kernel
@@ -1893,6 +2070,15 @@ def isolated_peak_fit(xvals, yvals, psfun, **kwargs):
     return np.transpose([fit, err]), fitdat
 
 
+def poly_fit(datatop, degree=1, weights=None):
+    x = datatop[:, 0]
+    y = datatop[:, 1]
+    fit = np.polyfit(x, y, degree, w=weights)
+    p = np.poly1d(fit)
+    fitdat = p(x)
+    return fit, fitdat
+
+
 def fft(data):
     # X-axis
     massdif = data[1, 0] - data[0, 0]
@@ -1916,8 +2102,9 @@ def fft_diff(data, diffrange=[500., 1000.]):
     boo2 = fftdat[:, 0] > ftrange[0]
     boo3 = np.all([boo1, boo2], axis=0)
     ftext = fftdat[boo3]
-    fit, err, fitdat = voigt_fit(ftext[:, 0], ftext[:, 1], np.average(ftrange), np.average(ftrange) / 10., 0, 1, 0)
-    return 1. / fit[0]
+    maxpos = localmaxpos(ftext, ftrange[0], ftrange[1])
+    # fit, err, fitdat = voigt_fit(ftext[:, 0], ftext[:, 1], np.average(ftrange), np.average(ftrange) / 10., 0, 1, 0)
+    return 1. / maxpos, ftext
 
 
 def pad_data(linear_mzdata, pad_until=50000):
@@ -1953,40 +2140,35 @@ def double_fft_diff(mzdata, diffrange=None, binsize=0.1, pad=None, preprocessed=
 
     fftdat = fft(mzdata)
     fft2 = fft(fftdat)
-    # print "Run Time: %.2gs" % (time.clock() - tstart)
 
     maxpos = localmaxpos(fft2, diffrange[0], diffrange[1])
-    # width = 2
-    # diffrange[0] = maxpos - width
-    # diffrange[1] = maxpos + width
-
     boo1 = fft2[:, 0] < diffrange[1]
     boo2 = fft2[:, 0] > diffrange[0]
     boo3 = np.all([boo1, boo2], axis=0)
     ftext2 = fft2[boo3]
 
-    if False:
-        print len(mzdata), len(fftdat), len(fft2)
-        import matplotlib.pyplot as plt
-        plt.figure()
-        plt.plot(fftdat[:, 0], fftdat[:, 1])
-        ztab = np.arange(1, 30)
-        zdiff = maxpos / ztab
-        zfreq = 1. / zdiff
-        for i in xrange(0, len(zfreq)):
-            plt.vlines(zfreq[i], 0, 0.1)
-            plt.text(zfreq[i], 0.15, str(ztab[i]))
-        plt.show()
-
-    # Fit the peak
-    # try:
-    #    fit, err, fitdat = voigt_fit(ftext2[:, 0], ftext2[:, 1], maxpos, maxpos * 0.001, 0, np.amax(ftext2[:, 1]),
-    #                                 np.amin(ftext2[:, 1]))
-    # except:
-    #    fitdat = ftext2[:, 1]
-    #    fit = [maxpos]
     return maxpos, ftext2
 
+def fft_process(mzdata, diffrange=None, binsize=0.1, pad=None, preprocessed=False):
+    tstart = time.clock()
+    if diffrange is None:
+        diffrange = [600, 900]
+    if not preprocessed:
+        mzdata = linearize(mzdata, binsize, 3)
+        mzdata = pad_two_power(mzdata)
+        if pad is not None:
+            mzdata = pad_data(mzdata, pad_until=pad)
+
+    fftdat = fft(mzdata)
+    fft2 = fft(fftdat)
+
+    maxpos = localmaxpos(fft2, diffrange[0], diffrange[1])
+    boo1 = fft2[:, 0] < diffrange[1]
+    boo2 = fft2[:, 0] > diffrange[0]
+    boo3 = np.all([boo1, boo2], axis=0)
+    ftext2 = fft2[boo3]
+
+    return maxpos, ftext2, fftdat,fft2
 
 def windowed_fft(data, mean, sigma, diffrange=None):
     if diffrange is None:
@@ -1995,6 +2177,17 @@ def windowed_fft(data, mean, sigma, diffrange=None):
     newdata = deepcopy(data)
     newdata[:, 1] = newdata[:, 1] * window
     maxpos, fft2 = double_fft_diff(newdata, diffrange=diffrange, preprocessed=True)
+    fft2[:, 1] -= np.amin(fft2[:, 1])
+    return maxpos, fft2
+
+
+def windowed_fft_single(data, mean, sigma, diffrange=None):
+    if diffrange is None:
+        diffrange = [0, 10]
+    window = ndis_std(data[:, 0], mean, sigma)
+    newdata = deepcopy(data)
+    newdata[:, 1] = newdata[:, 1] * window
+    maxpos, fft2 = fft_diff(newdata, diffrange=diffrange)
     fft2[:, 1] -= np.amin(fft2[:, 1])
     return maxpos, fft2
 
@@ -2018,6 +2211,25 @@ def win_fft_grid(rawdata, binsize, wbin, window_fwhm, diffrange):
     return out
 
 
+def win_fft_grid_single(rawdata, binsize, wbin, window_fwhm, diffrange):
+    # Prepare data
+    mindat = np.amin(rawdata[:, 0])
+    maxdat = np.amax(rawdata[:, 0])
+
+    mzdata = linearize(rawdata, binsize, 3)
+    mzdata = pad_two_power(mzdata)
+
+    xvals = np.arange(mindat, maxdat, wbin)
+
+    results = np.array([windowed_fft_single(mzdata, x, window_fwhm, diffrange=diffrange)[1] for x in xvals])
+
+    intdat = results[:, :, 1]
+    yvals = np.unique(results[:, :, 0])
+    xgrid, ygrid = np.meshgrid(xvals, yvals, indexing="ij")
+    out = np.transpose([np.ravel(xgrid), np.ravel(ygrid), np.ravel(intdat)])
+    return out
+
+
 def win_fft_diff(rawdata, binsize=0.05, sigma=1000, diffrange=None):
     smoothdata = deepcopy(rawdata)
     smoothdata = gsmooth(smoothdata, 1000)
@@ -2027,6 +2239,36 @@ def win_fft_diff(rawdata, binsize=0.05, sigma=1000, diffrange=None):
     maxdiff, fftdat = windowed_fft(mzdata, maxpos, sigma, diffrange=diffrange)
     print "Difference:", maxdiff
     return maxdiff, fftdat
+
+
+def windowed_autocorr(data, mean, sigma, diffrange=None):
+    if diffrange is None:
+        diffrange = [0, 500]
+    window = ndis_std(data[:, 0], mean, sigma)
+    newdata = deepcopy(data)
+    newdata[:, 1] = newdata[:, 1] * window
+    acdat, acpeaks = autocorr(newdata)
+    acdat = limit_data(acdat, diffrange[0], diffrange[1])
+    return acpeaks, acdat
+
+
+def win_autocorr_grid(rawdata, binsize, wbin, window_fwhm, diffrange):
+    # Prepare data
+    mindat = np.amin(rawdata[:, 0])
+    maxdat = np.amax(rawdata[:, 0])
+
+    mzdata = linearize(rawdata, binsize, 3)
+    mzdata = pad_two_power(mzdata)
+
+    xvals = np.arange(mindat, maxdat, wbin)
+
+    results = np.array([windowed_autocorr(mzdata, x, x * window_fwhm, diffrange=diffrange)[1] for x in xvals])
+
+    intdat = results[:, :, 1]
+    yvals = np.unique(results[:, :, 0])
+    xgrid, ygrid = np.meshgrid(xvals, yvals, indexing="ij")
+    out = np.transpose([np.ravel(xgrid), np.ravel(ygrid), np.ravel(intdat)])
+    return out
 
 
 def correlation_integration(dat1, dat2, alpha=0.01, plot_corr=False, **kwargs):
@@ -2136,4 +2378,12 @@ def broaden(aligned):
 
 
 if __name__ == "__main__":
+    x=[0.,1.,2.,3.,4.]
+    y=[1,0.7,0.5,0.4,0.3]
+    import matplotlib.pyplot as plt
+    y=logistic(np.array(x),2,-10,1,1)
+    plt.plot(x,y)
+    plt.show()
+    #fit=sig_fit(x,y)
+    #print fit
     pass

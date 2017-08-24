@@ -44,6 +44,11 @@ class Plot1d(PlottingWindow):
         self.xlabel = xlabel
         self.ylabel = ylabel
         self.zoomtype = zoom
+        if "nticks" in kwargs:
+            nticks=kwargs["nticks"]
+            del kwargs['nticks']
+        else:
+            nticks=None
 
         if test_kda:
             self.kda_test(xvals)
@@ -55,12 +60,12 @@ class Plot1d(PlottingWindow):
 
         if pubflag == 0:
             self.subplot1 = self.figure.add_axes(self._axes)
-            self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=color, label=label, marker=marker)
+            self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=color, label=label, marker=marker, **kwargs)
             self.subplot1.set_ylabel(self.ylabel)
             self.subplot1.set_title(title)
         else:
             self.subplot1 = self.figure.add_axes(self._axes)
-            self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=color, label=label, marker=marker)
+            self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=color, label=label, marker=marker, **kwargs)
             self.subplot1.spines['top'].set_visible(False)
             self.subplot1.spines['right'].set_visible(False)
             self.subplot1.get_xaxis().tick_bottom()
@@ -73,8 +78,8 @@ class Plot1d(PlottingWindow):
             else:
                 self.subplot1.set_ylabel("Relative Intensity")
 
-        if "nticks" in kwargs:
-            self.subplot1.xaxis.set_major_locator(MaxNLocator(nbins=kwargs["nticks"]))
+        if nticks is not None:
+            self.subplot1.xaxis.set_major_locator(MaxNLocator(nbins=nticks))
         if integerticks:
             self.subplot1.xaxis.set_major_locator(MaxNLocator(integer=True))
 
@@ -87,7 +92,7 @@ class Plot1d(PlottingWindow):
         self.x1, self.x2 = None, None
         self.colors = []
 
-    def plotadd(self, xvals, yvals, colval="black", newlabel="", nopaint=True):
+    def plotadd(self, xvals, yvals, colval="black", newlabel="", nopaint=True, **kwargs):
         """
         Adds a plot.
         :param xvals: x values
@@ -97,12 +102,19 @@ class Plot1d(PlottingWindow):
         :param nopaint: Boolean, whether to repaint or not
         :return: None
         """
-        self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=colval, label=newlabel)  # ,clip_on=False)
+        self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=colval, label=newlabel, **kwargs)
         self.setup_zoom([self.subplot1], self.zoomtype)
         if not nopaint:
             self.repaint()
 
-    def addtext(self, txt, x, y, vlines=True, color="k", **kwargs):
+    def errorbars(self, xvals, yvals, xerr=None, yerr=None, color="black",newlabel="", nopaint=True, **kwargs):
+        self.subplot1.errorbar(np.array(xvals) / self.kdnorm, yvals, xerr=xerr, yerr=yerr, color=color, label=newlabel,
+                               **kwargs)
+        self.setup_zoom([self.subplot1], self.zoomtype)
+        if not nopaint:
+            self.repaint()
+
+    def addtext(self, txt, x, y, vlines=True, color="k", ymin=0, **kwargs):
         """
         Adds text and lines. Puts things that have been added in self.lines and self.text lists.
         :param txt: String of text to add
@@ -120,16 +132,16 @@ class Plot1d(PlottingWindow):
         if vlines:
             if "range" in kwargs:
                 line_range = kwargs["range"]
-                line = self.subplot1.vlines(line_range[0] / self.kdnorm, 0, y * 0.6, color=color)
+                line = self.subplot1.vlines(line_range[0] / self.kdnorm, ymin, y * 0.6, color=color)
                 self.lines.append(line)
-                line = self.subplot1.vlines(line_range[1] / self.kdnorm, 0, y * 0.6, color=color)
+                line = self.subplot1.vlines(line_range[1] / self.kdnorm, ymin, y * 0.6, color=color)
                 self.lines.append(line)
                 line = self.subplot1.hlines(y * 0.3, line_range[0] / self.kdnorm, line_range[1] / self.kdnorm,
                                             linestyles="dashed", color=color)
                 self.lines.append(line)
                 pass
             else:
-                line = self.subplot1.vlines(np.array(x) / self.kdnorm, 0, 0.95 * y, linestyles="dashed", color=color)
+                line = self.subplot1.vlines(np.array(x) / self.kdnorm, ymin, 0.95 * y, linestyles="dashed", color=color)
                 self.lines.append(line)
         self.repaint()
 

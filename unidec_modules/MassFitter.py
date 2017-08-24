@@ -101,6 +101,10 @@ class MassFitter:
             if "smallguess" in args:
                 self.initguess = np.array(
                     [[self.finarray[i, 0], 0.5, self.finarray[i, 1]] for i in xrange(0, len(self.finarray))])
+            elif "microguess" in args:
+                self.initguess = np.array(
+                    [[self.finarray[i, 0], 0.1, self.finarray[i, 1]] for i in xrange(0, len(self.finarray))])
+                self.initguess[len(self.initguess)-1,1]=10
             else:
                 self.initguess = np.array(
                     [[self.finarray[i, 0], 500., self.finarray[i, 1]] for i in xrange(0, len(self.finarray))])

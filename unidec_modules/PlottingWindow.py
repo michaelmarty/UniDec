@@ -6,8 +6,8 @@ from matplotlib import interactive
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
-#from matplotlib import rcParams
-#import matplotlib
+# from matplotlib import rcParams
+# import matplotlib
 import matplotlib.cm as cm
 import numpy as np
 
@@ -16,19 +16,17 @@ from unidec_modules.isolated_packages.ZoomBox import ZoomBox
 from unidec_modules.isolated_packages.NoZoomSpan import NoZoomSpan
 from unidec_modules.isolated_packages import FileDialogs
 
-
-
 interactive(True)
 
 
-#rcParams['ps.useafm'] = True
-#rcParams['ps.fonttype'] = 42
-#rcParams['pdf.fonttype'] = 42
+# rcParams['ps.useafm'] = True
+# rcParams['ps.fonttype'] = 42
+# rcParams['pdf.fonttype'] = 42
 # rcParams['lines.linewidth']=0.5
 # rcParams['axes.linewidth']=0.5
 # rcParams['font.size']=18
-#matplotlib.rc('font', family='sans-serif')
-#matplotlib.rc('font', serif='Helvetica')
+# matplotlib.rc('font', family='sans-serif')
+# matplotlib.rc('font', serif='Helvetica')
 
 
 class PlottingWindow(wx.Window):
@@ -50,12 +48,18 @@ class PlottingWindow(wx.Window):
         :return:
         """
         if "figsize" in kwargs:
-            self.figure = Figure(figsize=kwargs["figsize"])  # , dpi=200)
+            figsize = kwargs["figsize"]
             del kwargs["figsize"]
+        else:
+            figsize = (8, 6)
+
+        self.figure = Figure(figsize=figsize)  # , dpi=
+
+        if figsize[0] < 5:
             self._axes = [0.2, 0.2, 0.7, 0.7]
         else:
-            self.figure = Figure()
-            self._axes = [0.1, 0.1, 0.8, 0.8]
+            self._axes = [0.11, 0.1, 0.8, 0.8]
+        self.figsize=figsize
 
         if "integrate" in kwargs:
             self.int = kwargs["integrate"]
@@ -223,6 +227,10 @@ class PlottingWindow(wx.Window):
             self.subplot1.legend(handles, labels, loc=location)
         self.repaint()
 
+    def add_title(self,title=""):
+        self.subplot1.set_title(title)
+        self.repaint()
+
     def set_color(self, rgbtuple=None):
         """
         Sets background color
@@ -235,7 +243,7 @@ class PlottingWindow(wx.Window):
         col = [c / 255.0 for c in rgbtuple]
         self.figure.set_facecolor(col)
         self.figure.set_edgecolor(col)
-        self.canvas.SetBackgroundColour(wx.Colour(*rgbtuple))
+        #self.canvas.SetBackgroundColour(wx.Colour(*rgbtuple))
 
     def set_tickcolor(self):
         """

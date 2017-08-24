@@ -19,33 +19,17 @@ import import_wizard
 import unidec_modules.IM_windows as IM_wind
 # import UniMin
 from copy import deepcopy
-import wx.py as py
 import platform
 import multiprocessing
+from unidec_modules.unidec_presbase import UniDecPres
+import Launcher
 
 # import FileDialog  # Needed for pyinstaller
 
 __author__ = 'Michael.Marty'
 
-
-# noinspection PyUnusedLocal
-class Shell(object):
-    def __init__(self, *args, **kwargs):
-        self.__wx_app = wx.App(redirect=True)
-
-        self.shell = py.shell.Shell(wx.Frame(None))
-
-        self.shellwindow = py.shell.ShellFrame(self.shell, title="UniDecShell").Show()
-
-        self.shell.Execute('app=UniDecApp()')
-        # self.shell.Execute('app.start()')
-        # self.shellwindow.Center()
-        # self.shell.setFocus()
-        self.__wx_app.MainLoop()
-
-
 # noinspection,PyBroadException,PyUnusedLocal,PyBroadException,PyBroadException,PyBroadException,PyBroadException,PyBroadException,PyBroadException,PyUnusedLocal,PyBroadException
-class UniDecApp(object):
+class UniDecApp(UniDecPres):
     """
     Main UniDec GUI Application.
 
@@ -59,27 +43,9 @@ class UniDecApp(object):
         :param kwargs:
         :return: UniDecApp object
         """
-        self.__wx_app = wx.App(redirect=False)
-        self.eng = None
-        self.view = None
+        UniDecPres.__init__(self, *args, **kwargs)
         self.twittercodes = None
         self.init(*args, **kwargs)
-
-    def start(self):
-        """
-        Launch view and start MainLoop
-        :return:
-        """
-        self.view.Show()
-        self.__wx_app.MainLoop()
-
-    def on_end_session(self):
-        wx.CallAfter(self.quit_application, force=True)
-
-    def quit_application(self):
-        self.__wx_app.ProcessIdle()
-        self.__wx_app.ExitMainLoop()
-        return True
 
     def init(self, *args, **kwargs):
         """
@@ -92,9 +58,6 @@ class UniDecApp(object):
         self.twittercodes = None
 
         self.view = mainwindow.Mainwindow(self, "UniDec", self.eng.config)
-        self.__wx_app.SetTopWindow(self.view)
-        self.__wx_app.SetAppName("GUniDec")
-        self.__wx_app.SetVendorName("Michael Marty - University of Oxford")
 
         pub.subscribe(self.on_integrate, 'integrate')
         pub.subscribe(self.on_smash, 'smash')
@@ -110,7 +73,7 @@ class UniDecApp(object):
             self.on_auto(0)
 
         # For testing, load up a spectrum at startup. Used only on MTM's computer.
-        if False and platform.node() == "mtmacer":
+        if False and platform.node() == "DESKTOP-R236BN2":
             # fname = "HSPCID.txt"
             fname = "0.txt"
             # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
@@ -119,7 +82,7 @@ class UniDecApp(object):
             self.on_open_file(fname, newdir)
             # self.view.on_save_figure_eps(0)
             # self.on_dataprep_button(0)
-            # self.on_auto(0)
+            self.on_auto(0)
             # self.on_integrate()
             # self.on_grid_decon(0)
             # self.make_cube_plot(0)
@@ -131,33 +94,13 @@ class UniDecApp(object):
     #
     # ........................................
 
-    def import_config(self, file_name=None):
-        """
-        Import configuration from file to engine (if file_name is specified) and from engine to GUI.
-        :param file_name: Path of file to import
-        :return: None
-        """
-        if file_name is not None:
-            self.eng.config.config_import(file_name)
-        self.view.import_config_to_gui()
-
-    def export_config(self, file_name=None):
-        """
-        Get configuration from GUI and (if file_name is specified) write from engine to file_name
-        :param file_name: Path of file to save config to
-        :return: None
-        """
-        self.view.export_gui_to_config()
-        if file_name is not None:
-            self.eng.config.config_export(file_name)
-
     def on_open(self, e=None):
         """
         Open dialog for file opening
         :param e: unused space for event
         :return: None
         """
-        dlg = wx.FileDialog(self.view, "Choose a data file in x y list format", '', "", "*.*")  # , wx.OPEN)
+        dlg = wx.FileDialog(self.view, "Choose a data file in x y list, mzML, or Thermo Raw format", '', "", "*.*")  # , wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.view.SetStatusText("Opening", number=5)
             self.eng.config.filename = dlg.GetFilename()
@@ -194,16 +137,16 @@ class UniDecApp(object):
         self.view.SetStatusText(u"R\u00B2 ", number=3)
         # Update view with data limits
         if self.eng.config.batchflag != 1:
-            self.view.ctlminmz.SetValue(str(np.amin(self.eng.data.data2[:, 0])))
-            self.view.ctlmaxmz.SetValue(str(np.amax(self.eng.data.data2[:, 0])))
+            self.view.controls.ctlminmz.SetValue(str(np.amin(self.eng.data.data2[:, 0])))
+            self.view.controls.ctlmaxmz.SetValue(str(np.amax(self.eng.data.data2[:, 0])))
         # Plot 1D
         if self.eng.config.batchflag == 0:
             self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data", "m/z",
                                            "Intensity", "Data", self.eng.config)
         # IM Loading and Plotting
         if self.eng.config.imflag == 1 and self.eng.config.batchflag != 1:
-            self.view.ctlmindt.SetValue(str(np.amin(self.eng.data.data3[:, 1])))
-            self.view.ctlmaxdt.SetValue(str(np.amax(self.eng.data.data3[:, 1])))
+            self.view.controls.ctlmindt.SetValue(str(np.amin(self.eng.data.data3[:, 1])))
+            self.view.controls.ctlmaxdt.SetValue(str(np.amax(self.eng.data.data3[:, 1])))
             if self.eng.config.batchflag == 0:
                 self.view.plot1im.contourplot(self.eng.data.rawdata3, self.eng.config, xlab="m/z (Th)",
                                               ylab="Arrival Time (ms)", title="IM-MS Data")
@@ -287,8 +230,8 @@ class UniDecApp(object):
             self.eng.config.dirname = dirname
 
         if self.eng.config.imflag == 1:
-            if int(self.view.ctlconvertflag.GetValue()) == 1:
-                binsize = str(ud.string_to_value(self.view.ctlbinsize.GetValue()))
+            if int(self.view.controls.ctlconvertflag.GetValue()) == 1:
+                binsize = str(ud.string_to_value(self.view.controls.ctlbinsize.GetValue()))
                 print "Converting at resolution of: " + binsize
             else:
                 binsize = "0"
@@ -306,49 +249,6 @@ class UniDecApp(object):
                 self.on_open_file(self.eng.config.filename, self.eng.config.dirname)
         pass
 
-    def on_load_conf_file(self, e=None):
-        """
-        Opens a file dialog and then imports a new _conf.dat config file
-        :param e: unused space for event
-        :return: None
-        """
-        cfilename = FileDialogs.open_file_dialog("Open Configuration File (_conf.dat)", file_types="*.*")
-        if cfilename is not None:
-            self.import_config(cfilename)
-        pass
-
-    def on_save_default(self, e=None):
-        """
-        Saves the default config file to self.eng.config.defaultconfig
-        :param e: unused space for event
-        :return: None
-        """
-        print "Saved: ", self.eng.config.defaultconfig
-        self.export_config(self.eng.config.defaultconfig)
-        pass
-
-    def on_load_default(self, e=None):
-        """
-        Resets the configuration then loads the default config file from self.eng.config.defaultconfig.
-        Ignores min and max data cutoffs.
-        :param e: unused space for event
-        :return: None
-        """
-        self.on_reset(e)
-        if os.path.isfile(self.eng.config.defaultconfig):
-            try:
-                self.import_config(self.eng.config.defaultconfig)
-                if not ud.isempty(self.eng.data.rawdata):
-                    self.view.ctlminmz.SetValue(str(np.amin(self.eng.data.rawdata[:, 0])))
-                    self.view.ctlmaxmz.SetValue(str(np.amax(self.eng.data.rawdata[:, 0])))
-                    if self.eng.config.imflag == 1:
-                        self.view.ctlmindt.SetValue(str(np.amin(self.eng.data.rawdata3[:, 1])))
-                        self.view.ctlmaxdt.SetValue(str(np.amax(self.eng.data.rawdata3[:, 1])))
-                print "Loaded: ", self.eng.config.defaultconfig
-            except (ValueError, IndexError, TypeError):
-                print "Failed to Load: ", self.eng.config.defaultconfig
-        self.view.SetStatusText("Loaded Default", number=5)
-        pass
 
     def on_paste_spectrum(self, e=None):
         """
@@ -392,16 +292,6 @@ class UniDecApp(object):
         except Exception, e:
             print e
             wx.MessageBox("Unable to open the clipboard", "Error")
-
-    def on_reset(self, e=None):
-        """
-        Resets UniDecConfig to default and then loads to self.view.
-        :param e: unused space for event
-        :return:
-        """
-        self.eng.reset_config()
-        self.import_config(None)
-        self.view.SetStatusText("Reset", number=5)
 
     # ..........................
     #
@@ -552,29 +442,7 @@ class UniDecApp(object):
             masserr /= self.view.plot2.kdnorm
 
             self.view.plot2.subplot1.errorbar(mass, p.corrint, xerr=masserr, yerr=p.correrr, color=p.color)
-
         self.view.plot2.repaint()
-
-    def check_badness(self):
-        """
-        Check for any bad parameters and warn the user if something is off.
-        :return: code (see unidecstructure.check_badness)
-        """
-        badness, warning = self.eng.config.check_badness()
-        if warning is not "":
-            self.warn(warning)
-        return badness
-
-    def warn(self, message, caption='Warning!'):
-        """
-        Send the user a message box.
-        :param message: Message string
-        :param caption: Caption string
-        :return: None
-        """
-        dlg = wx.MessageDialog(self.view, message, caption, wx.OK | wx.ICON_WARNING)
-        dlg.ShowModal()
-        dlg.Destroy()
 
     def on_auto(self, e=None):
         """
@@ -606,6 +474,8 @@ class UniDecApp(object):
             self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data and UniDec Fit",
                                            "m/z (Th)", "Normalized Intensity", "Data", self.eng.config, nopaint=True)
             self.view.plot1.plotadd(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "Fit Data")
+            if self.eng.config.aggressiveflag != 0 and len(self.eng.data.baseline) == len(self.eng.data.fitdat):
+                self.view.plot1.plotadd(self.eng.data.data2[:, 0], self.eng.data.baseline, 'blue', "Baseline")
             self.view.plot1.add_legend()
             tend = time.clock()
             print "Plot 1: %.2gs" % (tend - tstart)
@@ -896,9 +766,9 @@ class UniDecApp(object):
         self.view.plot2.textremove()
         for i, d in enumerate(peakdiff):
             if d != 0:
-                self.view.plot2.addtext(str(d), pmasses[i], np.amax(self.eng.data.massdat[:, 1]) * 0.99)
+                self.view.plot2.addtext(str(d), pmasses[i], np.amax(self.eng.data.massdat[:, 1]) * 0.99-(i%7)*0.05)
             else:
-                self.view.plot2.addtext("0", pmasses[i], np.amax(self.eng.data.massdat[:, 1]) * 0.99)
+                self.view.plot2.addtext("0", pmasses[i], np.amax(self.eng.data.massdat[:, 1]) * 0.99-(i%7)*0.05)
 
     def on_plot_offsets(self, e=None):
         """
@@ -1051,12 +921,6 @@ class UniDecApp(object):
         self.warn(message)
         pass
 
-    def on_get_mzlimits(self):
-        limits = self.view.plot1.subplot1.get_xlim()
-        self.view.ctlminmz.SetValue(str(limits[0]))
-        self.view.ctlmaxmz.SetValue(str(limits[1]))
-        print "New m/z limits:", limits
-
     def on_charge_plot(self, e=None):
         """
         Change peaks and plots so that the total charge distribution is plotted in plot2.
@@ -1112,33 +976,6 @@ class UniDecApp(object):
         print "Batch Converted"
         pass
 
-    def on_manual(self, e=None):
-        """
-        Opens window for setting manual assignments. Window directly modifies self.eng.config.
-        :param e: unused event
-        :return: None
-        """
-        dlg = ManualSelectionWindow.ManualSelection(self.view)
-        if self.eng.config.imflag == 0:
-            dlg.initiate_dialog(self.eng.config, self.eng.data.data2)
-        else:
-            dlg.initiate_dialog(self.eng.config, self.eng.data.data3)
-        dlg.ShowModal()
-
-    def on_match(self, e=None):
-        """
-        Automatic matching to present oligomer list.
-
-        Opens masstools window but doesn't make it visible.
-        Matches results to any combination of oligomers.
-        Hits ok and plots results.
-
-        :param e:
-        :return:
-        """
-        # TODO: Rewrite this so that it doesn't need to fake open the window
-        self.on_mass_tools(0, show=False)
-
     def on_mass_tools(self, e=None, show=True):
         """
         Opens masstools window.
@@ -1181,35 +1018,6 @@ class UniDecApp(object):
         self.view.SetStatusText("Match Done", number=5)
         pass
 
-    def on_auto_peak_width(self, e=None):
-        self.export_config()
-        if not ud.isempty(self.eng.data.data2):
-            self.eng.get_auto_peak_width()
-            self.import_config()
-        else:
-            print "Need to process data first"
-
-    def on_peak_width_tool(self, e=None):
-        """
-        Open peak width tool window. After it has returned, update the GUI to reflect the new peak widths.
-        :param e: unused event
-        :return: None
-        """
-        self.export_config()
-        if not ud.isempty(self.eng.data.data2):
-            self.export_config(None)
-            if self.eng.config.imflag == 0:
-                dlg = peakwidthtools.PeakTools1d(self.view)
-                dlg.initialize_interface(self.eng.config, self.eng.data.data2)
-            else:
-                dlg = peakwidthtools.PeakTools2d(self.view)
-                dlg.initialize_interface(self.eng.data.data3, self.eng.data.data2, self.eng.config)
-            dlg.ShowModal()
-            self.import_config(None)
-        else:
-            print "Need to process data first"
-        pass
-
     def on_additional_parameters(self, e=None):
         """
         Open additional data parameter window, which hads some of the experimental and obscure variables.
@@ -1222,16 +1030,6 @@ class UniDecApp(object):
         dlg.initialize_interface(self.eng.config)
         dlg.ShowModal()
         self.export_config(self.eng.config.confname)
-
-    def on_autocorr_window(self, e=None):
-        """
-        Opens the autocorrelation window. Feed the config and massdat from the engine.
-        :param e: Unused event
-        :return: None
-        """
-        dlg = AutocorrWindow.AutocorrWindow(self.view)
-        dlg.initalize_dialog(self.eng.config, self.eng.data.massdat)
-        dlg.ShowModal()
 
     def on_unidec_path(self, e=None):
         """
@@ -1313,7 +1111,7 @@ class UniDecApp(object):
             print "Running UniDec to Generate Outputs"
             self.eng.config.zout = -1
             self.export_config(self.eng.config.confname)
-            ud.unidec_call(self.eng.config.UniDecIMPath, self.eng.config.confname)
+            ud.unidec_call(self.eng.config)
             dlg = IM_wind.IMToolExtract(self.view)
             dlg.initialize_interface(self.eng.data.massdat, self.eng.data.ccsdata, self.eng.data.massccs,
                                      self.eng.config, self.eng.pks)
@@ -1514,6 +1312,7 @@ class UniDecApp(object):
 
         self.eng.config.batchflag = 1 + flag
         tstarttop = time.clock()
+        print batchfiles
         if batchfiles is not None:
             self.view.clear_all_plots()
             for i, path in enumerate(batchfiles):
@@ -1525,15 +1324,16 @@ class UniDecApp(object):
                 self.on_unidec_button(e)
                 self.on_pick_peaks(e)
                 self.on_export_params(e)
-                outfile = os.path.join(dirname, self.eng.config.outfname + ".zip")
-                self.on_save_state(0, outfile)
+                # outfile = os.path.join(dirname, self.eng.config.outfname + ".zip")
+                # self.on_save_state(0, outfile)
+                # print "File saved to: " + str(outfile)
+                print "Completed: " + path
                 tend = time.clock()
-                print "File saved to: " + str(outfile)
                 print "Run Time: %.2gs" % (tend - tstart)
                 print "\n"
         self.eng.config.batchflag = 0
         tend = time.clock()
-        print "\nTotal Batch Run Time: %.2gs" % (tend - tstarttop)
+        print "\nTotal Batch Run Time: %.3gs" % (tend - tstarttop)
 
     def on_batch2(self, e=None):
         """
@@ -1583,10 +1383,9 @@ class UniDecApp(object):
 
                 # Write New Config and Run It
                 self.export_config(self.eng.config.confname)
-                if self.eng.config.imflag == 0:
-                    ud.unidec_call(self.eng.config.UniDecPath, self.eng.config.confname)
-                else:
-                    ud.unidec_call(self.eng.config.UniDecIMPath, self.eng.config.confname)
+
+                ud.unidec_call(self.eng.config)
+
                 tend = time.clock()
                 print "Run Time: %.2gs" % (tend - tstart)
                 print "\n"
@@ -1631,7 +1430,7 @@ class UniDecApp(object):
         peakcolors = [p.color for p in self.eng.pks.peaks]
         peaks = np.array([[p.mass, p.height] for p in self.eng.pks.peaks])
         if self.eng.config.imflag == 0:
-            texmaker.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config, self.eng.config.dirname,
+            texmaker.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config, self.eng.config.udir,
                                    peaks, textmarkertab, peaklabels, peakcolors, figureflags)
             self.view.SetStatusText("TeX file Written", number=5)
             try:
@@ -1733,11 +1532,11 @@ class UniDecApp(object):
         self.remake_mainwindow(self.view.tabbed)
         if self.eng.config.imflag == 1:
             print "Ion Mobility Mode"
-            self.eng.config.mzbins = 1
+            if self.eng.config.mzbins == 0:
+                self.eng.config.mzbins = 1
         elif self.eng.config.imflag == 0:
             print "Mass Spec Mode"
         self.view.import_config_to_gui()
-
 
     def on_flip_tabbed(self, e):
         """
@@ -1767,7 +1566,7 @@ class UniDecApp(object):
         :return: None
         """
         if e is not 0:
-            self.eng.config.twaveflag = self.view.ctltwave.GetSelection()
+            self.eng.config.twaveflag = self.view.controls.ctltwave.GetSelection()
 
         if self.eng.config.twaveflag == 0:
             self.eng.config.gasmass = 4.002602
@@ -1789,9 +1588,28 @@ class UniDecApp(object):
         self.view.Show()
         self.view.import_config_to_gui()
 
+    def on_undo(self, e=None):
+        self.view.export_gui_to_config()
+        self.eng.undo()
+        self.view.import_config_to_gui()
+        # print "Undo"
+
+    def on_redo(self, e=None):
+        self.view.export_gui_to_config()
+        self.eng.redo()
+        self.view.import_config_to_gui()
+        # print "Redo"
+
+    def on_write_hdf5(self, e=None):
+        self.eng.write_hdf5()
+        print "Wrote: ", self.eng.config.hdf_file
+
+    def on_launcher(self, e=None):
+        #self.view.Destroy()
+        launcher=Launcher.UniDecLauncher()
+        launcher.start()
 
 if __name__ == '__main__':
-    # app2 = Shell()
     multiprocessing.freeze_support()
     app = UniDecApp()
     app.start()
