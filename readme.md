@@ -64,13 +64,12 @@ Water's converters will need [MassLynxRaw.dll](https://www.waters.com/waters/sup
 Thermo .raw files can be read as you would a text file on Windows thanks to multiplierz (https://github.com/BlaisProteomics/multiplierz). You will need [MSFileReader](https://thermo.flexnetoperations.com/control/thmo/download?element=6306677) installed. Please cite them (http://onlinelibrary.wiley.com/doi/10.1002/pmic.201700091/abstract). It will compress all scans together unless parsed with MetaUniDec. 
 
 Finally, many vendor formats can be converted mzML using [Proteowizard](http://proteowizard.sourceforge.net/). UniDec will open mzML file as if they are a text file, and this format should be cross platform.
-We utilize [pymzML](http://pymzml.github.io/intro.html#general-information) for this. Cite them at: *Bald, T., Barth, J., Niehues, A., Specht, M., Hippler, M., and Fufezan, C. (2012) pymzML - Python module for high throughput bioinformatics on mass spectrometry data, Bioinformatics, doi: 10.1093/bioinformatics/bts066.*
+We utilize [pymzML](http://pymzml.github.io/intro.html#general-information) for this. Cite them at: *Bald, T., Barth, J., Niehues, A., Specht, M., Hippler, M., and Fufezan, C. (2012) pymzML - Python module for high throughput bioinformatics on mass spectrometry data, Bioinformatics, doi: 10.1093/bioinformatics/bts066*.
+
 
 ## MetaUniDec File Types
 
 With MetaUniDec, everything is stored in a single HDF5 files. There are a few automated tools to parse chromagrams into HDF5 files if you have all the data chromatograms with predictable scans or times. Otherwise, you need to load the data in. First, create a new HDF5 using New File. Then, use Add Data Files to add text files, Thermo RAW, or mzML files into the HDF5 file. You can select multiple files at once here. You can also just copy the data from XCalibur or MassLynx and then use Add Data From Clipboard. That is probably the easiest way to get started and then you can work on optimizing the workflow from there. You can use the Waters converter if you need to get waters data into text files, and I use proteowizard to convert Thermo files to mzML.
-
-
 
 ##UniDec Documentation
 
@@ -162,8 +161,6 @@ Experimental peak fitting in mass defect window.
 v. 1.3.0
 
 Added automatic baseline feature in crude form. 
-
-v. 1.2.6
 
 Updated preset configs and added a Nanodisc preset.
 
