@@ -74,6 +74,7 @@ With MetaUniDec, everything is stored in a single HDF5 files. There are a few au
 
 ##UniDec Documentation
 
+
 Documentation is for the Python engine and GUI and can be found at http://michaelmarty.github.io/UniDecDocumentation/.
 
 My goal is that this documentation will allow you to utilize the power of the UniDec python engine for scripting data analysis routines and performing custom analysis. Also, it will allow you to add new modules to the UniDec GUI.
@@ -84,8 +85,8 @@ The C code is proprietary and not open source. The copyright is owned by the Uni
 If you are interested in the C source code, please contact me. 
 It should be possible to share with appropriate licensing or research agreements.
 
-
 ##UniDec Architecture
+
 
 UniDec is bilingual. The core of the algorithm is written in C and compiled as a binary.
 It can be run independently as a command line program fed by a configuration file.
