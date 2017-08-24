@@ -71,6 +71,7 @@ We utilize [pymzML](http://pymzml.github.io/intro.html#general-information) for 
 
 With MetaUniDec, everything is stored in a single HDF5 files. There are a few automated tools to parse chromagrams into HDF5 files if you have all the data chromatograms with predictable scans or times. Otherwise, you need to load the data in. First, create a new HDF5 using New File. Then, use Add Data Files to add text files, Thermo RAW, or mzML files into the HDF5 file. You can select multiple files at once here. You can also just copy the data from XCalibur or MassLynx and then use Add Data From Clipboard. That is probably the easiest way to get started and then you can work on optimizing the workflow from there. You can use the Waters converter if you need to get waters data into text files, and I use proteowizard to convert Thermo files to mzML.
 
+
 ##UniDec Documentation
 
 Documentation is for the Python engine and GUI and can be found at http://michaelmarty.github.io/UniDecDocumentation/.
@@ -82,6 +83,7 @@ I'm still working on documenting some of the windows and extensions (including M
 The C code is proprietary and not open source. The copyright is owned by the University of Oxford and University of Arizona. 
 If you are interested in the C source code, please contact me. 
 It should be possible to share with appropriate licensing or research agreements.
+
 
 ##UniDec Architecture
 
