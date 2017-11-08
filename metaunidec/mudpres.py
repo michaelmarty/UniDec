@@ -1,5 +1,7 @@
 import time
 import os
+import subprocess
+import atexit
 import wx
 import wx.html
 import numpy as np
@@ -18,6 +20,7 @@ import multiprocessing
 import unidec_modules.mzmlparse_auto as automzml
 from unidec_modules.unidec_presbase import UniDecPres
 import ultrameta
+from mudhelp import *
 
 # import FileDialog  # Needed for pyinstaller
 
@@ -40,6 +43,8 @@ class UniDecApp(UniDecPres):
         """
         UniDecPres.__init__(self, *args, **kwargs)
         self.init(*args, **kwargs)
+
+        atexit.register(self.repack_hdf5)
 
         try:
             if False:
@@ -408,7 +413,16 @@ class UniDecApp(UniDecPres):
         """
         self.export_config()
         self.eng.data.import_grids_and_peaks()
-        self.plot_sums()
+
+        if not ud.isempty(self.eng.data.massdat):
+            self.view.plot2.plotrefreshtop(self.eng.data.massdat[:, 0], self.eng.data.massdat[:, 1], title="Zero-Charge Mass Spectrum",
+                                           xlabel="Mass (Da)",
+                                           ylabel="Intensity", label="Sum", config=self.eng.config,
+                                           color="Black",
+                                           test_kda=True,
+                                           nopaint=True)
+
+        self.view.plot2.repaint()
         pass
 
     def plot_sums(self):
@@ -705,7 +719,7 @@ class UniDecApp(UniDecPres):
         :return:
         """
         paths = FileDialogs.open_multiple_files_dialog(message="Choose ramp data files mzml or Thermo Raw format",
-                                                       file_type="Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML|All Files|*.*")
+                                                       file_type="Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML|All Files|*.* ")
         if paths is not None:
             dlg = miscwindows.SingleInputDialog(self.view)
             dlg.initialize_interface("Timestep", "Enter ramp timestep to compress in minutes:", defaultvalue=str(1.0))
@@ -728,7 +742,63 @@ class UniDecApp(UniDecPres):
             scanstep = dlg.value
             self.import_mzml(paths, scanstep=scanstep)
 
-    def import_mzml(self, paths, timestep=1, scanstep=None):
+
+    def on_import_multiple_times(self, e):
+        """
+        Manual Test - Passed 2 RAW's, 2 mzml
+        :param e:
+        :return:
+        """
+        paths = FileDialogs.open_multiple_files_dialog(message="Choose ramp data files mzml or Thermo Raw format",
+                                                       file_type="Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML|All Files|*.*")
+        if paths is not None:
+            dlg = miscwindows.SingleInputDialog(self.view)
+            dlg.initialize_interface("Time point", "Enter ramp timestep in minutes:", defaultvalue=str(1.0))
+            dlg.ShowModal()
+            timestep = dlg.value
+            dlg = miscwindows.SingleInputDialog(self.view)
+            dlg.initialize_interface("Time point", "Enter start time point desired:", defaultvalue=str(1.0))
+            dlg.ShowModal()
+            starttp = dlg.value
+            dlg = miscwindows.SingleInputDialog(self.view)
+            dlg.initialize_interface("Time point", "Enter end time point desired\n (choose same time point if 1 time "
+                                                   "point is desired):", defaultvalue=str(1.0))
+            dlg.ShowModal()
+            endtp = dlg.value
+            #Needed for for loop range later on
+            endtp = float(endtp) + float(timestep)
+            dlg = miscwindows.SingleInputDialog(self.view)
+            dlg.initialize_interface("Name", "Enter name of final file (.hdf5 not required):", defaultvalue="")
+            dlg.ShowModal()
+            name = dlg.value
+            #Dummy checks
+            if float(endtp) < float(starttp) or float(endtp) < 0 or float(starttp) < 0 or float(timestep) <= 0:
+                print "Bad values inputted"
+            else:
+                self.import_mzml(paths, timestep=float(timestep), name=name, starttp=float(starttp), endtp=float(endtp))
+
+    def on_import_multiple_scans(self, e):
+        paths = FileDialogs.open_multiple_files_dialog(message="Choose ramp data files mzml or Thermo Raw format",
+                                                       file_type="Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML|All Files|*.*")
+        if paths is not None:
+            dlg = miscwindows.SingleInputDialog(self.view)
+            dlg.initialize_interface("Scan Start", "Enter starting scan desired:", defaultvalue=str(1))
+            dlg.ShowModal()
+            startscan = dlg.value
+            dlg = miscwindows.SingleInputDialog(self.view)
+            dlg.initialize_interface("Scan End", "Enter ending scan desired:", defaultvalue=str(1))
+            dlg.ShowModal()
+            endscan = dlg.value
+            dlg = miscwindows.SingleInputDialog(self.view)
+            dlg = miscwindows.SingleInputDialog(self.view)
+            dlg.initialize_interface("Name", "Enter name of final file (.hdf5 not required):", defaultvalue="")
+            dlg.ShowModal()
+            name = dlg.value
+            #+ 1 including the endscan
+            self.import_mzml(paths, startscan=int(startscan), endscan=(int(endscan) + 1), name=name)
+
+    def import_mzml(self, paths, timestep=1.0, scanstep=None, starttp=None, endtp=None, name=None,
+                    startscan=None, endscan=None):
         """
         Tested
         :param paths:
@@ -736,19 +806,24 @@ class UniDecApp(UniDecPres):
         :return:
         """
         errors = []
-        for p in paths:
-            try:
-                if scanstep is None:
-                    self.parse_file(p, timestep=float(timestep))
-                else:
-                    self.parse_file(p, scanstep=scanstep)
-            except Exception, e:
-                errors.append(p)
-                print e
-        if not ud.isempty(errors):
-            print "Errors:", errors
+        if starttp is not None:
+            self.parse_multiple_files(paths, starttp=starttp, endtp=endtp, timestep=timestep, name=name)
+        elif startscan is not None:
+            self.parse_multiple_files(paths, startscan=startscan, endscan=endscan, name=name)
+        else:
+            for p in paths:
+                try:
+                    if scanstep is not None:
+                        self.parse_file(p, scanstep=scanstep)
+                    else:
+                        self.parse_file(p, timestep=float(timestep))
+                except Exception, e:
+                    errors.append(p)
+                    print e
+            if not ud.isempty(errors):
+                print "Errors:", errors
 
-    def parse_file(self, p, timestep=1.0, scanstep=None):
+    def parse_file(self, p, timestep=None, scanstep=None, timepoint=None):
         """
         Tested
         :param p:
@@ -757,11 +832,25 @@ class UniDecApp(UniDecPres):
         """
         dirname = os.path.dirname(p)
         filename = os.path.basename(p)
-        if scanstep is None:
-            automzml.extract(filename, dirname, timestep, "hdf5")
-        else:
+        if scanstep is not None:
             automzml.extract_scans(filename, dirname, scanstep, "hdf5")
+        else:
+            automzml.extract(filename, dirname, timestep, "hdf5")
         pass
+
+    def parse_multiple_files(self, paths, starttp=None, endtp=None, timestep=1.0, name=None,
+                             startscan=None, endscan=None, scanstep=None):
+        dirs = []
+        files = []
+        print "Parsing multiple files"
+        for p in paths:
+            dirs.append(os.path.dirname(p))
+            files.append(os.path.basename(p))
+        if startscan is not None:
+            automzml.extract_scans_multiple_files(files, dirs, startscan, endscan, name)
+        else:
+            automzml.extract_timepoints(files, dirs, starttp, endtp, timestep, outputname=name)
+
 
     def on_new_file(self, e=None):
         """
@@ -950,7 +1039,10 @@ class UniDecApp(UniDecPres):
         :param index:
         :return:
         """
-        spectra = self.eng.data.get_spectra()
+        try:
+            spectra = self.eng.data.get_spectra()
+        except:
+            spectra = self.eng.data.spectra
         data = spectra[index].data2
         fft_window.FFTWindow(self.view, data, self.eng.config)
 
@@ -1248,162 +1340,81 @@ class UniDecApp(UniDecPres):
         helpDlg = HelpDlg(9)
         helpDlg.Show()
 
-class HelpDlg(wx.Frame):
-    def __init__(self, num):
-        if(num == 1):
-            self.get_started()
-        elif(num == 2):
-            self.import_window()
-        elif(num == 3):
-            self.plot_window()
-        elif(num == 4):
-            self.peak_window()
-        elif(num == 5):
-            self.data_processing()
-        elif(num == 6):
-            self.unidec_parameters()
-        elif(num == 7):
-            self.additional_filters()
-        elif(num == 8):
-            self.peak_selection()
-        elif(num == 9):
-            self.additional_plotting()
-        else:
-            html = wx.html.HtmlWindow(self)
-            html.SetPage("<html><body>You shouldn't see this!!! ERROR!!!!</body></html>")
+    def on_auto_import_help(self, e=None):
+        helpDlg = HelpDlg(10)
+        helpDlg.Show()
 
-    def get_started(self):
-        wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(600, 400))
-        html = wx.html.HtmlWindow(self)
-        html.SetPage(
-            "<html><body>"
-            "<h1>Welcome to MetaUniDec!</h1>"
-            "<p>UniDec is a lightweight, robust, and flexible software package "
-            "used for the deconvolution of mass spectra and ion mobility-mass spectra. "
-            "It relies on a Iterative Bayesian Deconvolution algorithm described in:</p>"
-            "<h2>Loading Data</h2>"
-            "<p>To open files with MetaUniDec, just drag and drop the HDF5 file into MetaUniDec, "
-            "or go to File->Open File.</p>"
-            "<h2>Analyzing data</h2>"
-            "<table style=\"width:100%\"><tr><td>For basic data processing, deconvolution, and peak selection, simply "
-            "hit the \"All\" button in the top right corner. For more rigorous analysis, see the other help guides.</td>"
-            "<td><img src=\"/images/allButton.png\" alt=\"PNG Icon\"></td></table>"
-            "<h2>Saving Figures</h2>"
-            "<p>There are 2 ways to save your figures. File->Save Figure As will allow you to select the directory "
-            "and file name header, along with the extension and image dimensions. File->Save Figure Presets will save "
-            "your figures as .pdf/.png/.pdf thumbnails to the default location, which is the location of the original "
-            ".HDF5 file. Ex: C:/HDF5-location/UniDec_Figures_and_Files/Fig1.pdf<\p>"
-            "</body></html>"
-        )
+    def on_presets_help(self, e=None):
+        helpDlg = HelpDlg(11)
+        helpDlg.Show()
 
-    #TODO: Figure out what Make top does
-    def import_window(self):
-        wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(500, 400))
-        html = wx.html.HtmlWindow(self)
-        html.SetPage(
-            "<html><body>"
-            "<h1>Importing and Loading Data</h1><p>This page will teach you how to load your data into MetaUniDec, "
-            "along with how the data table on the left side works.</p>"
-            "<h2>Loading Data</h2>"
-            "<p>To open files with MetaUniDec, just drag and drop the HDF5 file into MetaUniDec, "
-            "or go to File->Open File. File->Load External Config will load a _conf.dat file from a previous run. CAN'T"
-            "FIND WHERE THEY ARE! Advanced->Reset Factory Default will restore all settings to the program defaults. "
-            "File->Import Chromatograms allows you to import a RAW file and creates a complementary HDF5 file in the "
-            "same location. You will need to load the new HDF5 file to display in MetaUniDec. "
-            "Note: For import chromatograms, need msfilereader and multiplierz if not running the .exe</p>"
-            "<h2>Right Click Options</h2>"
-            "<img src=\"/images/rightClick.png\" alt=\"PNG Icon\">"
-            "<table style=\"width:100%\">"
-            "<tr><td>Ignore</td><td>Hides the sample on the graphs and table.</td></tr>"
-            "<tr><td>Isolate</td><td>Singles out the selected sample on the graphs and table. Hides others.</td></tr>"
-            "<tr><td>Repopulate</td><td>Brings back samples hidden by ignore/isolate to the graphs and table.</td></tr>"
-            "<tr><td>Ignore</td><td>Hides the sample on the graphs and table.</td></tr>"
-            "<tr><td>Analysis Tools</td><td>Does autocorrelation or FFT analysis on a single sample. "
-            "See Help->Menu Bar->Analysis for a description of these tools.</td></tr>"
-            "<tr><td>Change Color</td><td>Changes the color of a sample</td></tr>"
-            "<tr><td>Make Top</td><td>Moves sample to the top of the table.</td></tr>"
-            "<tr><td>Fill Down Variable 2</td><td>Changes all Variable 2 values to the selected sample's "
-            "Variable 2 value.</td></tr>"
-            "<tr><td>Delete</td><td>Deletes the sample. WARNING: This deletes the sample from the HDF5 file.</td></tr>"
-            "</body></html>"
-        )
+    def on_batch_help(self, e=None):
+        helpDlg = HelpDlg(12)
+        helpDlg.Show()
 
-    def plot_window(self):
-        wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(400, 400))
-        html = wx.html.HtmlWindow(self)
-        html.SetPage(
-            "<html><body>"
-            "<h1>Plot Window</h1><p>This page will teach you what each plot shows and how to manipulate the plots. "
-            "Note: The plot window relies heavily on the controls described in Help->UniDec Controls.</p>"
-            "<h2>Plot Types</h2>"
-            "<table style=\"width:100%\">"
-            "<tr><td>MS Data</td><td>Plot of m/z vs. intensity. The highest peak shown will be set at intensity=1 and "
-            "the rest of the peak's height will be normalized according to that intensity value.</td></tr>"
-            "<tr><td>Charge Distributions</td><td>Plot of charge vs. intensity.</td></tr>"
-            "<tr><td>Mass Distributions</td><td>Plot of mass vs. intensity. After running \"Peak Detection/Extraction\""
-            ", a black line will appear representing AVERAGE?? and the peaks will be marked with the shape labels."
-            "</td></tr>"
-            "<tr><td>Extracts Line Plot</td><td>Plot of collision voltage vs. intensity for the extracted peaks. This "
-            "plot only shows data after running \"Peak Detection/Extraction\".</td></tr>"
-            "<tr><td>Extracts Grid Plot</td><td>Heatmap of collision voltage vs. intensity (color represents intensity)"
-            " for the extracted peaks. This plot only shows data after running \"Peak Detection/Extraction\".</td></tr>"
-            "<tr><td>Bar Chart</td><td>Plot of species (the inputted samples) vs. intensity for the extracted peaks. "
-            "This plot only shows data after running \"Peak Detection/Extraction\".</td></tr>"
-            "<tr><td>m/z Grid</td><td>Plot of m/z vs. collision voltage (color represents intensity). "
-            "This plot only shows data after running \"Plot 2D Grids\".</td></tr>"
-            "<tr><td>Mass vs. Charge</td><td>Plot of mass vs. collision voltage (color represents intensity). "
-            "This plot only shows data after running \"Plot 2D Grids\".</td></tr>"
-            "</body></html>"
-        )
+    def on_peak_width_tool_help(self, e=None):
+        helpDlg = HelpDlg(13)
+        helpDlg.Show()
 
-    def peak_window(self):
-        wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(400, 400))
-        html = wx.html.HtmlWindow(self)
-        html.SetPage("<html><body>Hello, world for peak window!</body></html>")
+    def on_oligomer_help(self, e=None):
+        helpDlg = HelpDlg(14)
+        helpDlg.Show()
 
-    def data_processing(self):
-        wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(400, 400))
-        html = wx.html.HtmlWindow(self)
-        html.SetPage("<html><body>Hello, world for data processing!</body></html>")
+    def on_auto_match_help(self, e=None):
+        helpDlg = HelpDlg(15)
+        helpDlg.Show()
 
-    def unidec_parameters(self):
-        wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(400, 400))
-        html = wx.html.HtmlWindow(self)
-        html.SetPage("<html><body>Hello, world for UniDec Parameters!</body></html>")
+    def on_animate_help(self, e=None):
+        helpDlg = HelpDlg(16)
+        helpDlg.Show()
 
-    def additional_filters(self):
-        wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(400, 400))
-        html = wx.html.HtmlWindow(self)
-        html.SetPage("<html><body>Hello, world for additional filters!</body></html>")
+    def on_autocorr_help(self, e=None):
+        helpDlg = HelpDlg(17)
+        helpDlg.Show()
 
-    def peak_selection(self):
-        wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(400, 400))
-        html = wx.html.HtmlWindow(self)
-        html.SetPage("<html><body>Hello, world for peak selection!</body></html>")
+    def on_fft_help(self, e=None):
+        helpDlg = HelpDlg(18)
+        helpDlg.Show()
 
-    def additional_plotting(self):
-        wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(400, 400))
-        html = wx.html.HtmlWindow(self)
-        html.SetPage("<html><body>Hello, world for additional plotting!</body></html>")
+    def on_baseline_help(self, e=None):
+        helpDlg = HelpDlg(19)
+        helpDlg.Show()
 
-    # TODO: add menu bar help stuff
+
+    def repack_hdf5(self, e=None):
+        if self.eng.config.hdf_file != 'default.hdf5':
+            new_path = self.eng.config.hdf_file.replace(".hdf5", "temp.hdf5")
+            if 0 == subprocess.call("\"" + self.eng.config.h5repackfile + "\" \"" + self.eng.config.hdf_file + "\" \"" + new_path + "\"") and os.path.isfile(new_path):
+                os.remove(self.eng.config.hdf_file)
+                os.rename(new_path, self.eng.config.hdf_file)
+
+    def recursive_repack_hdf5(self, e=None):
+        repack_dir = FileDialogs.open_dir_dialog(message="Select directory to repack")
+        if repack_dir:
+            for root, dirs, files in os.walk(repack_dir):
+                for name in files:
+                    if name.endswith('.hdf5'):
+                        name = os.path.join(root, name)
+                        new_path = name.replace(".hdf5", "temp.hdf5")
+                        if 0 == subprocess.call("\"" + self.eng.config.h5repackfile + "\" \"" + name + "\" \"" + new_path + "\"") and os.path.isfile(new_path):
+                            os.remove(name)
+                            os.rename(new_path, name)
 
 
 # Critical
 # TODO: Thorough testing
-# TODO: Tutorial
 
-#Important
-# TODO: Parse the same minutes from multiple files into HDF5
-# TODO: Show readme under HELP
-# TODO: Batch All (Assigne, Run, Extract)
+# TODO: Tutorial
+# TODO: Better tuning and control of autobaseline
+
+# SCOTT
 # TODO: UltraMeta Extract Specific Peaks
-# TODO: Fix legend in UltraMeta
 # TODO: Better preset manager, potentially with external preset folder
 
 # Serious work
 # TODO: Weighted average of charge states to calculate mass error
-# TODO: Better tuning and control of autobaseline
+# TODO: Error as FWHM of peak
+# TODO: Average charge state as extraction parameter
 
 # Next
 # TODO: Make Launcher Fancier
@@ -1413,6 +1424,8 @@ class HelpDlg(wx.Frame):
 # Not critical
 # TODO: Better MUD with data collector
 # TODO: Light grey background for some list ctrls in MetaUniDec
+# TODO: A notice that pops up when trying to open RAW files without multiplierz or MSFileReader
+
 
 
 if __name__ == '__main__':

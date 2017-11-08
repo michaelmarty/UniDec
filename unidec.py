@@ -371,6 +371,9 @@ class UniDec(UniDecEngine):
         ud.dataexport(peaks, self.config.peaksfile)
         # Generate Intensities of Each Charge State for Each Peak
         mztab = ud.make_peaks_mztab(self.data.mzgrid, self.pks, self.config.adductmass)
+        #Calculate errors for peaks with FWHM
+        ud.peaks_error_FWHM(self.pks, self.data.massdat)
+        ud.peaks_error_mean(self.pks, self.data.massgrid, self.data.ztab, self.data.massdat, self.config)
         if self.config.batchflag == 0:
             ud.make_peaks_mztab_spectrum(self.data.mzgrid, self.pks, self.data.data2, mztab)
             self.export_config()

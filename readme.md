@@ -8,7 +8,7 @@ It was orignally published in: [M. T. Marty, A. J. Baldwin, E. G. Marklund, G. K
 
 Detailed descriptions of the algorithm are provided in the paper. Please cite us if you use UniDec in your research.
 
-UniDec may be downloaded from [unidec.chem.ox.ac.uk](http://unidec.chem.ox.ac.uk/).
+UniDec may be downloaded from [https://github.com/michaelmarty/UniDec/releases](https://github.com/michaelmarty/UniDec/releases).
 
 Please contact mtmarty@email.arizona.edu for questions, suggestions, or with any bugs.
 
@@ -24,7 +24,7 @@ scipy
 wxpython
 natsort
 twython
-pymzml
+pymzmlm
 networkx
 h5py
 multiplierz (Windows only, for Thermo RAW imports)
@@ -37,7 +37,8 @@ Note: I would highly recommend setting up 64-bit Python as the default. MS data 
 
 ### Downloading the Binaries
 
-As described below, the Python code presented here relies on one critical binary, UniDec.exe. UniDecIM.exe has been merged into UniDec.exe and is no longer used.
+As described below, the Python code presented here relies on one critical binary, UniDec.exe. 
+UniDecIM.exe has been merged into UniDec.exe and is no longer used.
 
 This binary is available for download at [unidec.chem.ox.ac.uk](http://unidec.chem.ox.ac.uk/) as part of the main package. 
 
@@ -69,7 +70,7 @@ We utilize [pymzML](http://pymzml.github.io/intro.html#general-information) for 
 
 ## MetaUniDec File Types
 
-With MetaUniDec, everything is stored in a single HDF5 files. There are a few automated tools to parse chromagrams into HDF5 files if you have all the data chromatograms with predictable scans or times. Otherwise, you need to load the data in. First, create a new HDF5 using New File. Then, use Add Data Files to add text files, Thermo RAW, or mzML files into the HDF5 file. You can select multiple files at once here. You can also just copy the data from XCalibur or MassLynx and then use Add Data From Clipboard. That is probably the easiest way to get started and then you can work on optimizing the workflow from there. You can use the Waters converter if you need to get waters data into text files, and I use proteowizard to convert Thermo files to mzML.
+With MetaUniDec, everything is stored in a single HDF5 files. There are a few automated tools to parse chromatograms into HDF5 files if you have all the data chromatograms with predictable scans or times. Otherwise, you need to load the data in. First, create a new HDF5 using New File. Then, use Add Data Files to add text files, Thermo RAW, or mzML files into the HDF5 file. You can select multiple files at once here. You can also just copy the data from XCalibur or MassLynx and then use Add Data From Clipboard. That is probably the easiest way to get started and then you can work on optimizing the workflow from there. You can use the Waters converter if you need to get waters data into text files, and I use proteowizard to convert Thermo files to mzML.
 
 
 ##UniDec Documentation
@@ -125,13 +126,65 @@ The main GUI class is GUniDec.UniDecApp.
 
 ##Licensing
 
-UniDec is free for noncommercial use under the [UniDec Academic License](http://unidec.chem.ox.ac.uk/12116_UniDec_Academic%20Use%20Licence.pdf)
+We have recently converted to a completely open source license. Our hope is that this allows UniDec to be
+more widely used. If you are interested in including UniDec in another academic or commercial software distribution, 
+you are welcome to email mtmarty@email.arizona.edu for more information. 
 
-Commercial licensing is available. Details are provided at the bottom of the Academic License.
+UniDec source code and compiled binaries are released under a modified BSD License as described below. Note, we ask
+that you cite us in any publications. Quantitative citation metrics will help grant applications to support future development.
 
-The Python GUI and engine are licensed under the [GNU Public License (v.3)](http://www.gnu.org/licenses/gpl-3.0.en.html).
+UniDec License:
+
+Copyright (c) 2016, University of Oxford
+              2017, University of Arizona
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions, and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions, and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+3. Neither the name of the copyright holders nor the
+   names of its contributors may be used to endorse or promote products
+   derived from this software without specific prior written permission.
+4. Any publications that result from use of the software must cite Marty
+   et al. Anal. Chem. 2015. DOI: 10.1021/acs.analchem.5b00140.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ''AS IS'' AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## Change Log
+
+v. 2.2.1
+
+Public Release Candidate
+
+v. 2.2.0
+
+Added help documentation to MetaUniDec. These should be useful for learning how MetaUniDec and its tools work.
+
+Added importing multiple chromatograms by range of times or scans. This allows you to compile certain timepoints/scans from multiple files into 1 HDF5 file easily.
+
+Added errors for peaks. Three types of error have been added: FWHM (both), duplicates (MetaUniDec), and mean (UniDec).
+
+Added bar graphs to visualize the different parameters for exponential decay, line, or sigmoid fitting in UltraMeta.
+
+Added a compare tool to the FFT Window. Once clicked, you drag boxes around the regions you want to compare, and then hit the compare button again to plot the regions.
+
+Adjusted how baselines are calculated. UniDec has parameters added under Experimental->Additional Parameters which allow you to adjust the baseline calculation.
+
+Added a repack tool to fix a known problem with HDF5 files. If you were to use Data Processing or UniDec Parameters that made the HDF5 very large, changing the parameters to values that would usually make the HDF5 small would not result in a shrinking of the HDF5 file. The Repack Directory tool will recursively repack all HDF5 files in a directory to their current size.
+
 
 v. 2.1.1
 

@@ -230,7 +230,66 @@ class Plot1d(PlottingWindow):
         self.subplot1.set_xlabel(xlabel)
         self.subplot1.set_ylabel(ylabel)
         self.subplot1.set_title(title)
+
+
+    #TODO make the axes work for negative and positive bars
+    def barplottoperrors(self, xarr, yarr, peakval, colortab, xlabel="", ylabel="", title="", zoom="box", repaint=True,
+                   xerr=0, yerr=0):
+        """
+        Create a bar plot.
+        :param xarr: x value array
+        :param yarr: y value array
+        :param peakval: Bar labels to be listed below bars
+        :param colortab: List of colors for the various bars
+        :param xlabel: Label for x axis
+        :param ylabel: Label for y axis
+        :param title: Plot title
+        :param zoom: Type of zoom ('box' or 'span)
+        :param repaint: Boolean, whether to repaint or not when done.
+        :param xerr: for error bars
+        :param yerr: for error bars
+        :return: None
+        """
+        self.clear_plot("nopaint")
+        self.zoomtype = zoom
+        xticloc = np.array(xarr) + 0.5
+        peaklab = [str(p) for p in peakval]
+        self.subplot1 = self.figure.add_axes(self._axes, xticks=xticloc, ymargin=1)
+        self.subplot1.set_xticklabels(peaklab, rotation=90, fontsize=8)
+        self.subplot1.bar(xarr, yarr, color=colortab, label="Intensities", width=1, xerr=xerr, yerr=yerr)
+        self.subplot1.set_xlabel(xlabel)
+        self.subplot1.set_ylabel(ylabel)
+        self.subplot1.set_title(title)
+        #Adjust axes for error bars
+        #Negative bars
+        if np.amin(np.asarray(yarr)) < 0 and np.amax(np.asarray(yarr)) <= 0:
+            minindex = 0
+            for x in range(len(yarr)):
+                if yarr[x] - yerr[x] < yarr[minindex] - yerr[minindex]:
+                    minindex = x
+            left = yarr[minindex] - yerr[minindex]
+            right = np.amax(np.asarray(yarr))
+        #Positive bars
+        elif np.amax(np.asarray(yarr)) > 0 and np.amin(np.asarray(yarr)) >= 0:
+            maxindex = 0
+            for x in range(len(yarr)):
+                if yarr[x] + yerr[x] > yarr[maxindex] + yerr[maxindex]:
+                    maxindex = x
+            left = np.amin(np.asarray(yarr))
+            right = yarr[maxindex] + yerr[maxindex]
+        #Negative and positive bars
+        else:
+            maxindex = 0
+            minindex = 0
+            for x in range(len(yarr)):
+                if yarr[x] + yerr[x] > yarr[maxindex] + yerr[maxindex]:
+                    maxindex = x
+                if yarr[x] - yerr[x] < yarr[minindex] - yerr[minindex]:
+                    minindex = x
+            left = yarr[minindex] - yerr[minindex]
+            right = yarr[maxindex] + yerr[maxindex]
         self.setup_zoom([self.subplot1], self.zoomtype)
         self.flag = True
+        self.subplot1.set_ylim(left, right)
         if repaint:
             self.repaint()

@@ -143,7 +143,7 @@ class TestGUI(unittest.TestCase):
         self.assertEqual(self.app.eng.config.endz, 50)
 
     def test_open_raw_ms(self):
-        self.rawfile = os.path.join(testdir,"test_ms.raw")
+        self.rawfile = os.path.join(testdir,"test_imms.raw")
         self.app.on_raw_open(0, self.rawfile)
         print "Removing:",self.app.eng.config.filename
         print os.getcwd()

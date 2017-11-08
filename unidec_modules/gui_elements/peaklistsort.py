@@ -46,6 +46,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.selection = []
         self.selection2 = []
         self.pks = None
+        self.errorsdisplayed = False
 
         self.popupID1 = wx.NewId()
         self.popupID2 = wx.NewId()
@@ -53,6 +54,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.popupID4 = wx.NewId()
         self.popupID5 = wx.NewId()
         self.popupID6 = wx.NewId()
+        self.popupID7 = wx.NewId()
+        self.popupID8 = wx.NewId()
 
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)
@@ -60,6 +63,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.Bind(wx.EVT_MENU, self.on_popup_four, id=self.popupID4)
         self.Bind(wx.EVT_MENU, self.on_popup_five, id=self.popupID5)
         self.Bind(wx.EVT_MENU, self.on_popup_six, id=self.popupID6)
+        self.Bind(wx.EVT_MENU, self.on_popup_seven, id=self.popupID7)
+        self.Bind(wx.EVT_MENU, self.on_popup_eight, id=self.popupID8)
 
     def clear_list(self):
         """
@@ -143,18 +148,35 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         :param event: Unused Event
         :return: None
         """
-        if hasattr(self, "popupID1"):
-            menu = wx.Menu()
-            menu.Append(self.popupID1, "Ignore")
-            menu.Append(self.popupID2, "Isolate")
-            menu.Append(self.popupID3, "Repopulate")
-            menu.AppendSeparator()
-            menu.Append(self.popupID4, "Label Charge States")
-            menu.Append(self.popupID6, "Display Differences")
-            menu.AppendSeparator()
-            menu.Append(self.popupID5, "Color Select")
-            self.PopupMenu(menu)
-            menu.Destroy()
+        if self.errorsdisplayed is False:
+            if hasattr(self, "popupID1"):
+                menu = wx.Menu()
+                menu.Append(self.popupID1, "Ignore")
+                menu.Append(self.popupID2, "Isolate")
+                menu.Append(self.popupID3, "Repopulate")
+                menu.AppendSeparator()
+                menu.Append(self.popupID4, "Label Charge States")
+                menu.Append(self.popupID6, "Display Differences")
+                menu.Append(self.popupID7, "Display Errors")
+                menu.AppendSeparator()
+                menu.Append(self.popupID5, "Color Select")
+                self.PopupMenu(menu)
+                menu.Destroy()
+        else:
+            if hasattr(self, "popupID1"):
+                menu = wx.Menu()
+                menu.Append(self.popupID1, "Ignore")
+                menu.Append(self.popupID2, "Isolate")
+                menu.Append(self.popupID3, "Repopulate")
+                menu.AppendSeparator()
+                menu.Append(self.popupID4, "Label Charge States")
+                menu.Append(self.popupID6, "Display Differences")
+                menu.Append(self.popupID8, "Hide Errors")
+                menu.AppendSeparator()
+                menu.Append(self.popupID5, "Color Select")
+                self.PopupMenu(menu)
+                menu.Destroy()
+
 
     def on_popup_one(self, event=None):
         """
@@ -231,7 +253,12 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         col.SetText("Diff.")
         self.list_ctrl.SetColumn(3, col)
         self.list_ctrl.SetColumnWidth(3, 65)
+        if self.errorsdisplayed is True:
+            col = self.list_ctrl.GetColumn(4)
+            col.SetText("Name")
+            self.list_ctrl.SetColumn(4, col)
 
+        self.errorsdisplayed = False
         newevent = wx.PyCommandEvent(self.EVT_DIFFERENCES._getEvtType(), self.GetId())
         self.GetEventHandler().ProcessEvent(newevent)
 
@@ -296,5 +323,54 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.pks.peaks[i].color = ([colout[0] / 255., colout[1] / 255., colout[2] / 255.])
         newevent = wx.PyCommandEvent(self.EVT_DELETE_SELECTION_2._getEvtType(), self.GetId())
         self.GetEventHandler().ProcessEvent(newevent)
+
+    def on_popup_seven(self, event=None):
+        """
+        Replaces the third and fourth columns with the FWHM and mean errors.
+        :param event:
+        :return:
+        """
+        col = self.list_ctrl.GetColumn(3)
+        col.SetText("FWHM Error")
+        self.list_ctrl.SetColumn(3, col)
+        first = 1
+        for i in xrange(0, self.pks.plen):
+            p = self.pks.peaks[i]
+            self.list_ctrl.SetStringItem(i, 3, str(p.errorFWHM))
+            if p.errormean == -1:
+                self.list_ctrl.SetStringItem(i, 4, str(p.errorreplicate))
+                if first == 1:
+                    col = self.list_ctrl.GetColumn(4)
+                    col.SetText("Duplicate Error")
+                    self.list_ctrl.SetColumn(4, col)
+                    first = 0
+            else:
+                self.list_ctrl.SetStringItem(i, 4, str(p.errormean))
+        if first == 1:
+            col = self.list_ctrl.GetColumn(4)
+            col.SetText("Mean Error")
+            self.list_ctrl.SetColumn(4, col)
+        self.errorsdisplayed = True
+
+    def on_popup_eight(self, event=None):
+        """
+        Hides the error stuff brought up by on_popup_seven
+        :param event:
+        :return:
+        """
+        col = self.list_ctrl.GetColumn(3)
+        if self.meta:
+            col.SetText("")
+        else:
+            col.SetText("Area")
+        self.list_ctrl.SetColumn(3, col)
+        col = self.list_ctrl.GetColumn(4)
+        col.SetText("Name")
+        self.list_ctrl.SetColumn(4, col)
+        for i in xrange(0, self.pks.plen):
+            p = self.pks.peaks[i]
+            self.list_ctrl.SetStringItem(i, 3, str(p.area))
+            self.list_ctrl.SetStringItem(i, 4, str(p.label))
+        self.errorsdisplayed = False
 
 # TODO: Add in a column label drop down or some other way to select which information of self.pks is displayed

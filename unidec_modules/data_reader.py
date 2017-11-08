@@ -3,6 +3,8 @@ from mzMLimporter import merge_spectra
 from copy import deepcopy
 import unidectools as ud
 import numpy as np
+#import sys
+#import wx
 
 
 class DataImporter:
@@ -18,6 +20,16 @@ class DataImporter:
         :param kwargs: keywords (unused)
         :return: mzMLimporter object
         """
+        #TODO make this work
+        """
+        del sys.modules[mzFile]
+        print "Breaking"
+        if mzFile not in sys.modules or merge_spectra not in sys.module:
+            dlg = dlg = wx.MessageDialog(parent=None, message='Please install multiplierz and MSFileReader',
+                               caption='Error', style=wx.OK)
+            dlg.ShowModal()
+            return
+            """
         print "Reading Data:", path
         self.msrun = mzFile(path)
         self.scanrange = self.msrun.scan_range()
@@ -100,9 +112,9 @@ class DataImporter:
 
 
 if __name__ == "__main__":
-    test = "C:\\Data\\test.RAW"
-    d = DataImporter(test)
-
+    test = "Z:\Group Share\Scott\\test.RAW"
+    d = DataImporter(test).get_data()
+    exit()
     print d.get_times_from_scans([15, 30])
 
     exit()

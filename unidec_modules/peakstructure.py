@@ -49,7 +49,9 @@ class Peak:
         self.fitareaerr = 0
         self.diff = 0
         self.extracts = []
-
+        self.errorFWHM = 0
+        self.errormean = -1
+        self.errorreplicate = 0
 
 class Peaks:
     """

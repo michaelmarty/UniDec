@@ -1,6 +1,7 @@
 import os
 import time
-
+import scipy
+import matplotlib.pyplot as plt
 import numpy as np
 import pymzml
 import unidectools as ud
@@ -8,7 +9,6 @@ import unidectools as ud
 from copy import deepcopy
 
 __author__ = 'Michael.Marty'
-
 
 def get_resolution(testdata):
     """
@@ -18,11 +18,24 @@ def get_resolution(testdata):
     """
     diffs = np.transpose([testdata[1:, 0], np.diff(testdata[:, 0])])
     resolutions = ud.safedivide(diffs[:, 0], diffs[:, 1])
+    # popt, pcov = scipy.optimize.curve_fit(fit_line, diffs[:, 0], resolutions, maxfev=1000000)
+    # fitLine = fit_line(diffs[:, 0], *popt)
+    # fitMax = np.max(fitLine)
+    # fitMin = np.min(fitLine)
+    # diffs_new = diffs[(1.2 * fitMin < resolutions) & (resolutions < 1.2 * fitMax)]
+    # resolutions_new = resolutions[(1.2 * fitMin < resolutions) & (resolutions < 1.2 * fitMax)]
+    # popt2, pcov2 = scipy.optimize.curve_fit(fit_line, diffs_new[:, 0], resolutions_new, maxfev=1000000)
     # plt.figure()
-    # plt.plot(diffs[:,0],resolutions)
+    # plt.plot(diffs[:,0], resolutions)
+    # plt.plot(diffs[:, 0], fit_line(diffs[:, 0], *popt2), 'r-')
     # plt.show()
+    # Currently use A * m ^1.5 (0.5?)
+    # Maybe use a*M^b
+    # return popt2
     return np.median(resolutions)
 
+def fit_line(x, a, b):
+    return a*x**b
 
 def merge_spectra(datalist):
     """
@@ -35,17 +48,34 @@ def merge_spectra(datalist):
     resolution = get_resolution(datalist[0])
     concat = np.concatenate(datalist)
     # xvals = concat[:, 0]
-    print "Median Resolution:", resolution
+    # print "Median Resolution:", resolution
+    # axis = nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
     axis = ud.nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
     template = np.transpose([axis, np.zeros_like(axis)])
     print "Length merge axis:", len(template)
-
     for d in datalist:
         if len(d) > 1:
             newdat = ud.mergedata(template, d)
             # newdat=ud.lintegrate(d,axis)
             template[:, 1] += newdat[:, 1]
     return template
+
+def nonlinear_axis(start, end, res):
+    """
+    Creates a nonlinear axis with the m/z values spaced with a defined and constant resolution.
+    :param start: Minimum m/z value
+    :param end: Maximum m/z value
+    :param res: Resolution of the axis ( m / delta m)
+    :return: One dimensional array of the nonlinear axis.
+    """
+    axis = []
+    i = start
+    axis.append(i)
+    i += i / fit_line(i, res[0], res[1])
+    while i < end:
+        axis.append(i)
+        i += i / fit_line(i, res[0], res[1])
+    return np.array(axis)
 
 
 class mzMLimporter:
@@ -105,6 +135,9 @@ class mzMLimporter:
             data = data[0]
         else:
             data = data
+        #plt.figure()
+        #plt.plot(data)
+        #plt.show()
         return data
 
     def get_tic(self):
@@ -142,8 +175,8 @@ class mzMLimporter:
 
 
 if __name__ == "__main__":
-    test = "C:\\Data\\test.mzML"
-    d = mzMLimporter(test)
-    print d.get_times_from_scans([15, 30])
+    test = "Z:\Group Share\Scott\\test.mzML"
+    d = mzMLimporter(test).get_data()
+    #print d.get_times_from_scans([15, 30])
 
 

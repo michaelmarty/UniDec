@@ -30,6 +30,10 @@ class meta_menu(wx.Menu):
                                                "Import mzML or Thermo RAW Ramps to HDF5 files")
         self.importmenu2 = self.filemenu.Append(wx.ID_ANY, "Auto Import Chromatogram By Scans",
                                                "Import mzML or Thermo RAW Ramps to HDF5 files")
+        self.importmenu3 = self.filemenu.Append(wx.ID_ANY, "Auto Import Multiple Chromatograms By Range of Times",
+                                               "Import mzML or Thermo RAW Ramps to HDF5 files")
+        self.importmenu4 = self.filemenu.Append(wx.ID_ANY, "Auto Import Multiple Chromatograms By Range of Scans",
+                                                "Import mzML or Thermo RAW Ramps to HDF5 files")
         self.filemenu.AppendSeparator()
 
         # Default Submenu
@@ -140,6 +144,9 @@ class meta_menu(wx.Menu):
         self.advancedmenu.AppendSeparator()
         self.menuOpenDir = self.advancedmenu.Append(wx.ID_ANY, "Open Saved File Directory",
                                                     "Opens the save directory in the file explorer")
+        self.advancedmenu.AppendSeparator()
+        self.repackDirectory = self.advancedmenu.Append(wx.ID_ANY, "Repack Directory",
+                                                        "Repack a directory that contains HDF5 files")
 
         if self.config.imflag == 0:
             self.advancedmenu.AppendSeparator()
@@ -190,7 +197,21 @@ class meta_menu(wx.Menu):
         self.peakselection = self.contmenu.Append(wx.ID_ANY, "Peak Selection, Extraction, and Plotting")
         self.additionalplotting = self.contmenu.Append(wx.ID_ANY, "Additional Plotting Parameters")
         self.helpmenu.AppendMenu(wx.ID_ANY, "UniDec Controls", self.contmenu)
-
+        self.additionaltoolsmenu = wx.Menu()
+        self.autoimport = self.additionaltoolsmenu.Append(wx.ID_ANY, "Auto Import Chromatograms")
+        self.presets = self.additionaltoolsmenu.Append(wx.ID_ANY, "Presets")
+        self.additionaltoolsmenu.AppendSeparator()
+        self.batch = self.additionaltoolsmenu.Append(wx.ID_ANY, "Batch")
+        self.peakwidthtool = self.additionaltoolsmenu.Append(wx.ID_ANY, "Peak Width Tool")
+        self.oligomer = self.additionaltoolsmenu.Append(wx.ID_ANY, "Oligomer and Mass Tools")
+        self.automatch = self.additionaltoolsmenu.Append(wx.ID_ANY, "Auto Match Peaks")
+        self.additionaltoolsmenu.AppendSeparator()
+        self.animate = self.additionaltoolsmenu.Append(wx.ID_ANY, "Animate")
+        self.autocorr = self.additionaltoolsmenu.Append(wx.ID_ANY, "Autocorrelation")
+        self.fft = self.additionaltoolsmenu.Append(wx.ID_ANY, "FFT Window")
+        self.additionaltoolsmenu.AppendSeparator()
+        self.baseline = self.additionaltoolsmenu.Append(wx.ID_ANY, "Baseline")
+        self.helpmenu.AppendMenu(wx.ID_ANY, "Other Useful Tools", self.additionaltoolsmenu)
         # Set Events for Menu Bar
 
         # File Menu
@@ -199,6 +220,8 @@ class meta_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_open, self.openmenu)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_import_mzml, self.importmenu)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_import_mzml_scans, self.importmenu2)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_import_multiple_times, self.importmenu3)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_import_multiple_scans, self.importmenu4)
 
         self.parent.Bind(wx.EVT_MENU, self.pres.rename_var1, self.menuvar1name)
         self.parent.Bind(wx.EVT_MENU, self.pres.rename_var2, self.menuvar2name)
@@ -252,6 +275,7 @@ class meta_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.parent.on_open_dir, self.menuOpenDir)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_export_params, self.menuExport)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_flip_tabbed, self.menufliptabbed)
+        self.parent.Bind(wx.EVT_MENU, self.pres.recursive_repack_hdf5, self.repackDirectory)
 
         # Experimental
         self.parent.Bind(wx.EVT_MENU, self.pres.on_undo, self.menuundo)
@@ -267,6 +291,16 @@ class meta_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_additional_filters, self.additionalfilters)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_peak_selection, self.peakselection)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_additional_plotting, self.additionalplotting)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_auto_import_help, self.autoimport)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_presets_help, self.presets)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_batch_help, self.batch)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_peak_width_tool_help, self.peakwidthtool)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_oligomer_help, self.oligomer)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_auto_match_help, self.automatch)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_animate_help, self.animate)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_autocorr_help, self.autocorr)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_fft_help, self.fft)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_baseline_help, self.baseline)
 
         # Setting Menu Bar
         self.menuBar = wx.MenuBar()

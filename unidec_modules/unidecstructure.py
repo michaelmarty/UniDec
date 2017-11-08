@@ -142,6 +142,8 @@ class UniDecConfig(object):
         self.linflag = 0
         self.integratelb = ""
         self.integrateub = ""
+        self.filterwidth = 20
+        self.zerolog = -12
 
         # Peak Selection and plotting
         self.peakwindow = 500
@@ -251,6 +253,8 @@ class UniDecConfig(object):
             except ValueError:
                 print "Failed to write integation areas:", self.integratelb, self.integrateub
                 pass
+        f.write("filterwidth " + str(self.filterwidth) + "\n")
+        f.write("zerolog " + str(self.zerolog) + "\n")
 
         if self.mindt != '' or self.maxdt != '':
             f.write("zout " + str(self.zout) + "\n")
@@ -415,6 +419,10 @@ class UniDecConfig(object):
                             self.integratelb = ud.string_to_value(line.split()[1])
                         if line.startswith("integrateub"):
                             self.integrateub = ud.string_to_value(line.split()[1])
+                        if line.startswith("filterwidth"):
+                            self.filterwidth = ud.string_to_value(line.split()[1])
+                        if line.startswith("zerolog"):
+                            self.zerolog = ud.string_to_value(line.split()[1])
                         if line.startswith("peaknorm"):
                             self.peaknorm = ud.string_to_value(line.split()[1])
                         if line.startswith("baselineflag"):
@@ -531,7 +539,7 @@ class UniDecConfig(object):
             "temp": self.temp, "pressure": self.pressure, "volt": self.volt,
             "tnaught": self.to, "driftlength": self.driftlength, "tcal1": self.tcal1, "tcal2": self.tcal2,
             "edc": self.edc, "gasmass": self.gasmass, "integratelb": self.integratelb,
-            "integrateub": self.integrateub,
+            "integrateub": self.integrateub, "filterwidth": self.filterwidth, "zerolog": self.zerolog,
             "manualfileflag": self.manualfileflag, "mfileflag": self.mfileflag, "imflag": self.imflag,
             "exwindow": self.exwindow, "exchoice": self.exchoice, "exnorm": self.exnorm, "metamode": self.metamode,
             "datanorm":self.datanorm
@@ -638,6 +646,8 @@ class UniDecConfig(object):
 
         self.integratelb = self.read_attr(self.integratelb, "integratelb", self.config)
         self.integrateub = self.read_attr(self.integrateub, "integrateub", self.config)
+        self.filterwidth = self.read_attr(self.filterwidth, "filterwidth", self.config)
+        self.zerolog = self.read_attr(self.zerolog, "zerolog, self.config", self.config)
         self.mfileflag = self.read_attr(self.mfileflag, "mfileflag", self.config)
         self.manualfileflag = self.read_attr(self.manualfileflag, "manualfileflag", self.config)
         self.imflag = self.read_attr(self.imflag, "imflag", self.config)
@@ -850,15 +860,18 @@ class UniDecConfig(object):
 
         if self.system == 'Windows':
             self.defaultUnidecName = "UniDec.exe"
+            self.h5repackfile = "h5repack.exe"
             self.opencommand = "start "
             print "Windows: ", self.defaultUnidecName
         elif self.system == 'Darwin':
             self.defaultUnidecName = "unidecmac"
+            self.h5repackfile = "h5repack"
             # self.defaultUnidecDir = '/Applications/GUniDecMac.app/Contents/MacOS'
             self.opencommand = "open "
             print "Mac:", self.defaultUnidecName
         else:
             self.defaultUnidecName = "unideclinux"
+            self.h5repackfile = "h5repack"
             self.opencommand = "gnome-open "  # TODO: Test whether this is right
             print "Linux or other: unidec"
 
@@ -888,6 +901,7 @@ class UniDecConfig(object):
         self.cdcreaderpath = os.path.join(self.UniDecDir, "CDCreader.exe")
         self.defaultconfig = os.path.join(self.UniDecDir, "default_conf.dat")
         self.masstablefile = os.path.join(self.UniDecDir, "mass_table.csv")
+        self.h5repackfile = os.path.join(self.UniDecDir, self.h5repackfile)
 
         print "UniDec Path:", self.UniDecPath
 

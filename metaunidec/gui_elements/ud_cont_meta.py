@@ -618,8 +618,11 @@ class main_controls(wx.Panel):
             "\n\tBest for undersampled masses\nInterpolation:\n\tEach mass value interpolates its value in m/z space"
             "\n\tBest for oversampled mass data"))
         self.ctlnorm2.SetToolTip(wx.ToolTip(
-            "Sets normalization of extraction.\nMaximum will normalize so that the maximum value is 100%."
-            "\nTotal will normalize so that the sum of all peaks is 100%."))
+            "Sets normalization of extraction.\nMaximum will normalize so that the maximum value of a timepoint is 100%."
+            "\nSum will normalize so that the sum of all peaks of a timepoint is 100%."
+            "\nPeak Max sets each peak's intensity to 100% (useful for measuring decay rates)."
+            "\nPeak Sum sets the sum of each peak to 100%."
+            "\n"))
         self.ctlextractwindow.SetToolTip(wx.ToolTip(
             "Sets window required for some extraction methods.\nFull window is +/- value."
             "\nExtraction methods that require window are marked in tooltip with Y=Yes, M=Maybe, N=No."))

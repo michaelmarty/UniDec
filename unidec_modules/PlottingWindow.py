@@ -55,11 +55,15 @@ class PlottingWindow(wx.Window):
 
         self.figure = Figure(figsize=figsize)  # , dpi=
 
-        if figsize[0] < 5:
-            self._axes = [0.2, 0.2, 0.7, 0.7]
+        if "axes" in kwargs:
+            self._axes = kwargs["axes"]
+            del kwargs["axes"]
         else:
-            self._axes = [0.11, 0.1, 0.8, 0.8]
-        self.figsize=figsize
+            if figsize[0] < 5:
+                self._axes = [0.2, 0.2, 0.7, 0.7]
+            else:
+                self._axes = [0.11, 0.1, 0.8, 0.8]
+        self.figsize = figsize
 
         if "integrate" in kwargs:
             self.int = kwargs["integrate"]
@@ -214,20 +218,22 @@ class PlottingWindow(wx.Window):
             self.subplot1.xaxis.set_major_locator(MaxNLocator(nbins=bins))
         self.repaint()
 
-    def add_legend(self, location=1):
+    def add_legend(self, location=1, anchor=None):
         """
         Adds a legend to the plot.
         :param location: Integer code for location
         :return: None
         """
         handles, labels = self.subplot1.get_legend_handles_labels()
+        if anchor is None:
+            anchor = (1, 1)
         if location == 1:
-            self.subplot1.legend(handles, labels, loc=location, bbox_to_anchor=(1, 1))
+            self.subplot1.legend(handles, labels, loc=location, bbox_to_anchor=anchor)
         else:
             self.subplot1.legend(handles, labels, loc=location)
         self.repaint()
 
-    def add_title(self,title=""):
+    def add_title(self, title=""):
         self.subplot1.set_title(title)
         self.repaint()
 
@@ -243,7 +249,7 @@ class PlottingWindow(wx.Window):
         col = [c / 255.0 for c in rgbtuple]
         self.figure.set_facecolor(col)
         self.figure.set_edgecolor(col)
-        #self.canvas.SetBackgroundColour(wx.Colour(*rgbtuple))
+        # self.canvas.SetBackgroundColour(wx.Colour(*rgbtuple))
 
     def set_tickcolor(self):
         """

@@ -1,3 +1,5 @@
+from unidec_modules import plot2d
+import wx
 import os
 import platform
 import sys
@@ -2375,6 +2377,92 @@ def broaden(aligned):
     combined = np.transpose([aligned[0, :, 0], alignedsum])
 
     return combined, aligned
+
+
+def peaks_error_FWHM(pks, data):
+    """
+    Calculates the error of each peak in pks using FWHM.
+    Looks for the left and right point of the peak that is 1/2 the peaks max intensity, rightmass - leftmass = error
+    :param pks:
+    :param data: self.data.massdat
+    :return:
+    """
+    pmax = np.amax([p.height for p in pks.peaks])
+    datamax = np.amax(np.asarray(data)[:, 1])
+    div = datamax / pmax
+    for pk in pks.peaks:
+        int = pk.height
+        index = nearest(data[:, 0], pk.mass)
+        leftwidth = 0
+        rightwidth = 0
+        counter = 1
+        leftfound = False
+        rightfound = False
+        while rightfound is False and leftfound is False:
+            if leftfound is False:
+                if data[index - counter, 1] <= (int * div) / 2:
+                    leftfound = True
+                else:
+                    leftwidth += 1
+            if rightfound is False:
+                if data[index + counter, 1] <= (int * div) / 2:
+                    rightfound = True
+                else:
+                    rightwidth += 1
+            counter += 1
+        pk.errorFWHM = data[index + rightwidth, 0] - data[index - leftwidth, 0]
+
+
+def peaks_error_mean(pks, data, ztab, massdat, config):
+    """
+    Calculates error using the masses at different charge states.
+    For each peak, finds the local max of the peak at each charge state, and does a weighted mean and weighted std. dev.
+    :param pks:
+    :param data: self.data.massgrid
+    :param ztab: self.data.ztab
+    :param massdat: self.data.massdat
+    :param config: self.config
+    :return:
+    """
+    length = len(data) / len(ztab)
+    for pk in pks.peaks:
+        index = nearest(massdat[:, 0], pk.mass)
+        masses = []
+        ints = []
+        zgrid = []
+        startindmass = nearest(massdat[:, 0], massdat[index, 0] - config.peakwindow)
+        endindmass = nearest(massdat[:, 0], massdat[index, 0] + config.peakwindow)
+        #plotmasses = massdat[startindmass:endindmass, 0]
+        for z in range(0, len(ztab)):
+            startind = startindmass + (z * length)
+            endind = endindmass + (z * length)
+            tmparr = data[startind:endind]
+            ind = np.argmax(tmparr)
+            ints.append(tmparr[ind])
+            #print massdat[startindmass + ind, 0]
+            masses.append(massdat[startindmass + ind, 0])
+            #zgrid.extend(tmparr)
+        mean = np.average(masses, weights=ints)
+        #Calculate weighted standard deviation
+        sum = 0
+        denom = 0
+        for w, m in enumerate(masses):
+            sum += ints[w] * pow(m - mean, 2)
+            denom += ints[w]
+        denom *= (len(ztab)-1)
+        std = sum / denom
+        std = std / len(ztab)
+        std = std**0.5
+        print mean
+        print std
+        #tab = wx.Frame(None, title="Test", size=(500, 500))
+        #plot = plot2d.Plot2d(tab, figsize=(500, 500))
+        #plot.contourplot(xvals=np.asarray(plotmasses), yvals=ztab, zgrid=np.asarray(zgrid),
+        #                 config=config, title="Mass vs. Charge", xlab="Mass (Da)",
+        #                 normflag=1, test_kda=False, repaint=False)
+        #tab.Show()
+        pk.errormean = std
+        #pks.peaks[count].errormean = abs(sums[count] - pks.peaks[count].mass)
 
 
 if __name__ == "__main__":

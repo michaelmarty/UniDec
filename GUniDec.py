@@ -104,7 +104,7 @@ class UniDecApp(UniDecPres):
         if dlg.ShowModal() == wx.ID_OK:
             self.view.SetStatusText("Opening", number=5)
             self.eng.config.filename = dlg.GetFilename()
-            print "Openening: ", self.eng.config.filename
+            print "Opening: ", self.eng.config.filename
             if os.path.splitext(self.eng.config.filename)[1] == ".zip":
                 print "Can't open zip, try Load State."
                 return
@@ -473,7 +473,10 @@ class UniDecApp(UniDecPres):
                                                ylab="Arrival Time (ms)", title="IM-MS Fit")
             self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data and UniDec Fit",
                                            "m/z (Th)", "Normalized Intensity", "Data", self.eng.config, nopaint=True)
-            self.view.plot1.plotadd(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "Fit Data")
+            try:
+                self.view.plot1.plotadd(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "Fit Data")
+            except:
+                pass
             if self.eng.config.aggressiveflag != 0 and len(self.eng.data.baseline) == len(self.eng.data.fitdat):
                 self.view.plot1.plotadd(self.eng.data.data2[:, 0], self.eng.data.baseline, 'blue', "Baseline")
             self.view.plot1.add_legend()
@@ -1608,6 +1611,8 @@ class UniDecApp(UniDecPres):
         #self.view.Destroy()
         launcher=Launcher.UniDecLauncher()
         launcher.start()
+
+#TODO: Charge state distributions of each peak
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()

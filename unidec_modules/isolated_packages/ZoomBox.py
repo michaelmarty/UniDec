@@ -237,6 +237,9 @@ class ZoomBox:
 
         self.integrate = integrate
         self.smash = smash
+        self.comparemode = False
+        self.comparexvals = []
+        self.compareyvals = []
 
         if button is None or isinstance(button, list):
             self.validButtons = button
@@ -342,133 +345,150 @@ class ZoomBox:
         for to_draw in self.to_draw:
             to_draw.set_visible(self.visible)
         self.eventpress = event
+        if self.comparemode is True:
+            self.comparexvals.append(event.xdata)
+            self.compareyvals.append(event.ydata)
         return False
 
     def release(self, event):
         'on button release event'
         if self.eventpress is None or (self.ignore(event) and not self.buttonDown): return
+        #Do compare mode stuff
         self.buttonDown = False
+        if self.comparemode is True:
+            if event.xdata is None:
+                self.comparexvals.append(self.prev[0])
+                self.compareyvals.append(self.prev[1])
+            else:
+                self.comparexvals.append(event.xdata)
+                self.compareyvals.append(event.ydata)
+            self.eventpress = None  # reset the variables to their
+            self.eventrelease = None  # inital values
+            for to_draw in self.to_draw:
+                to_draw.set_visible(False)
+            return False
+        else:
 
-        # make the box/line invisible again
-        for to_draw in self.to_draw:
-            to_draw.set_visible(False)
+            # make the box/line invisible again
+            for to_draw in self.to_draw:
+                to_draw.set_visible(False)
 
-        # left-click in place resets the x-axis or y-axis
-        if self.eventpress.xdata == event.xdata and self.eventpress.ydata == event.ydata:
+            # left-click in place resets the x-axis or y-axis
+            if self.eventpress.xdata == event.xdata and self.eventpress.ydata == event.ydata:
 
-            if wx.GetKeyState(wx.WXK_CONTROL):
-                # Ignore the resize if the control key is down
-                if event.button == 1 and self.smash == 1:
-                    pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
+                if wx.GetKeyState(wx.WXK_CONTROL):
+                    # Ignore the resize if the control key is down
+                    if event.button == 1 and self.smash == 1:
+                        pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
+                    return
+                # x0,y0,x1,y1=GetMaxes(event.inaxes)
+                # print GetMaxes(event.inaxes)
+
+                xmin, ymin, xmax, ymax = self.data_lims
+                if xmin > xmax: xmin, xmax = xmax, xmin
+                if ymin > ymax: ymin, ymax = ymax, ymin
+                # assure that x and y values are not equal
+                if xmin == xmax: xmax = xmin * 1.0001
+                if ymin == ymax: ymax = ymin * 1.0001
+
+                # Check if a zoom out is necessary
+                zoomout = False
+                for axes in self.axes:
+                    if axes.get_xlim() != (xmin, xmax) and axes.get_ylim() != (ymin, ymax):
+                        zoomout = True
+                # Register a click if zoomout was not necessary
+                if not zoomout:
+                    if event.button == 1 and self.smash == 1:
+                        pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
+
+                for axes in self.axes:
+                    axes.set_xlim(xmin, xmax)
+                    axes.set_ylim(ymin, ymax)
+                    ResetVisible(axes)
+
+                self.canvas.draw()
                 return
-            # x0,y0,x1,y1=GetMaxes(event.inaxes)
-            # print GetMaxes(event.inaxes)
 
-            xmin, ymin, xmax, ymax = self.data_lims
+            self.canvas.draw()
+            # release coordinates, button, ...
+            self.eventrelease = event
+
+            if self.spancoords == 'data':
+                xmin, ymin = self.eventpress.xdata, self.eventpress.ydata
+                # xmax, ymax = self.eventrelease.xdata, self.eventrelease.ydata
+                # fix for if drag outside axes boundaries
+                xmax, ymax = self.eventrelease.xdata or self.prev[0], self.eventrelease.ydata or self.prev[1]
+            elif self.spancoords == 'pixels':
+                xmin, ymin = self.eventpress.x, self.eventpress.y
+                xmax, ymax = self.eventrelease.x, self.eventrelease.y
+            else:
+                raise ValueError('spancoords must be "data" or "pixels"')
+
+            # assure that min<max values
             if xmin > xmax: xmin, xmax = xmax, xmin
             if ymin > ymax: ymin, ymax = ymax, ymin
             # assure that x and y values are not equal
             if xmin == xmax: xmax = xmin * 1.0001
             if ymin == ymax: ymax = ymin * 1.0001
 
-            # Check if a zoom out is necessary
-            zoomout = False
-            for axes in self.axes:
-                if axes.get_xlim() != (xmin, xmax) and axes.get_ylim() != (ymin, ymax):
-                    zoomout = True
-            # Register a click if zoomout was not necessary
-            if not zoomout:
-                if event.button == 1 and self.smash == 1:
-                    pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
+            # Switch to span if a small delta y is used
+            try:
+                y0, y1 = event.inaxes.get_ylim()
+            except Exception, e:
+                y0, y1 = self.data_lims[1], self.data_lims[3]
+            if ymax - ymin < (y1 - y0) * self.crossoverpercent:
+                # print ymax,ymin,ymax-ymin,(y1-y0)*self.crossoverpercent
+                ymax = y1
+                ymin = y0
+                spanflag = 1
+            else:
+                spanflag = 0
+
+            spanx = xmax - xmin
+            spany = ymax - ymin
+            xproblems = self.minspanx is not None and spanx < self.minspanx
+            yproblems = self.minspany is not None and spany < self.minspany
+            if xproblems or yproblems:
+                """Box too small"""  # check if drawed distance (if it exists) is
+                return  # not to small in neither x nor y-direction
+
+            if wx.GetKeyState(wx.WXK_CONTROL):
+                # TODO: Send this signal up and drop it in a main GUI
+                # if the ctrl key is down, print out the difference and a guess for the Nanodisc mass assuming POPC
+                lmass = 760.076
+                charge = lmass / spanx
+                print spanx, charge, charge * xmax
+                return
 
             for axes in self.axes:
-                axes.set_xlim(xmin, xmax)
-                axes.set_ylim(ymin, ymax)
-                ResetVisible(axes)
+                axes.set_xlim((xmin, xmax))
+                if spanflag == 1:
+                    xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=xmin, xmax=xmax)
+                axes.set_ylim((ymin, ymax))
 
             self.canvas.draw()
-            return
 
-        self.canvas.draw()
-        # release coordinates, button, ...
-        self.eventrelease = event
+            value = 0.0
+            if self.onselect is not None and event.inaxes.lines != []:
+                # gather the values to report in a selection event
+                value = []
+                x0, y0, x1, y1 = event.inaxes.dataLim.bounds
+                dat = event.inaxes.lines[0].get_ydata()
+                npts = len(dat)
+                indx = int(round((npts - 1) * (event.xdata - x0) / (x1 - x0)))
+                if indx > (npts - 1): indx = npts - 1
+                if indx < 0: indx = 0
+                for line in event.inaxes.lines:
+                    dat = line.get_ydata()
+                    if indx < len(dat):
+                        value.append(dat[indx])
+                if value == []: value = 0.0
 
-        if self.spancoords == 'data':
-            xmin, ymin = self.eventpress.xdata, self.eventpress.ydata
-            # xmax, ymax = self.eventrelease.xdata, self.eventrelease.ydata
-            # fix for if drag outside axes boundaries
-            xmax, ymax = self.eventrelease.xdata or self.prev[0], self.eventrelease.ydata or self.prev[1]
-        elif self.spancoords == 'pixels':
-            xmin, ymin = self.eventpress.x, self.eventpress.y
-            xmax, ymax = self.eventrelease.x, self.eventrelease.y
-        else:
-            raise ValueError('spancoords must be "data" or "pixels"')
+                self.onselect(xmin, xmax, value, ymin, ymax)  # zeros are for consistency with box zoom
 
-        # assure that min<max values
-        if xmin > xmax: xmin, xmax = xmax, xmin
-        if ymin > ymax: ymin, ymax = ymax, ymin
-        # assure that x and y values are not equal
-        if xmin == xmax: xmax = xmin * 1.0001
-        if ymin == ymax: ymax = ymin * 1.0001
-
-        # Switch to span if a small delta y is used
-        try:
-            y0, y1 = event.inaxes.get_ylim()
-        except Exception, e:
-            y0, y1 = self.data_lims[1], self.data_lims[3]
-        if ymax - ymin < (y1 - y0) * self.crossoverpercent:
-            # print ymax,ymin,ymax-ymin,(y1-y0)*self.crossoverpercent
-            ymax = y1
-            ymin = y0
-            spanflag = 1
-        else:
-            spanflag = 0
-
-        spanx = xmax - xmin
-        spany = ymax - ymin
-        xproblems = self.minspanx is not None and spanx < self.minspanx
-        yproblems = self.minspany is not None and spany < self.minspany
-        if xproblems or yproblems:
-            """Box too small"""  # check if drawed distance (if it exists) is
-            return  # not to small in neither x nor y-direction
-
-        if wx.GetKeyState(wx.WXK_CONTROL):
-            # TODO: Send this signal up and drop it in a main GUI
-            # if the ctrl key is down, print out the difference and a guess for the Nanodisc mass assuming POPC
-            lmass = 760.076
-            charge = lmass / spanx
-            print spanx, charge, charge * xmax
-            return
-
-        for axes in self.axes:
-            axes.set_xlim((xmin, xmax))
-            if spanflag == 1:
-                xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=xmin, xmax=xmax)
-            axes.set_ylim((ymin, ymax))
-
-        self.canvas.draw()
-
-        value = 0.0
-        if self.onselect is not None and event.inaxes.lines != []:
-            # gather the values to report in a selection event
-            value = []
-            x0, y0, x1, y1 = event.inaxes.dataLim.bounds
-            dat = event.inaxes.lines[0].get_ydata()
-            npts = len(dat)
-            indx = int(round((npts - 1) * (event.xdata - x0) / (x1 - x0)))
-            if indx > (npts - 1): indx = npts - 1
-            if indx < 0: indx = 0
-            for line in event.inaxes.lines:
-                dat = line.get_ydata()
-                if indx < len(dat):
-                    value.append(dat[indx])
-            if value == []: value = 0.0
-
-            self.onselect(xmin, xmax, value, ymin, ymax)  # zeros are for consistency with box zoom
-
-        self.eventpress = None  # reset the variables to their
-        self.eventrelease = None  # inital values
-        return False
+            self.eventpress = None  # reset the variables to their
+            self.eventrelease = None  # inital values
+            return False
 
     def update(self):
         'draw using newfangled blit or oldfangled draw depending on useblit'
