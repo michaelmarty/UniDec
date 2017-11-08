@@ -9,14 +9,14 @@ Detailed descriptions of the algorithm are provided in the paper. Please cite us
 
 Please contact mtmarty@email.arizona.edu for questions, suggestions, or with any bugs.
 
-##Installation
+## Installation
 
 UniDec may be downloaded from [https://github.com/michaelmarty/UniDec/releases](https://github.com/michaelmarty/UniDec/releases).
 
 This compiled version is compatible with 64-bit Windows. It a portable binary, so it does not need a conventional installation.
 Just unzip the folder, put it somewhere convenient, and click the GUI_UniDec.exe file in the folder to launch.
 
-##Licensing
+## Licensing
 
 We have recently converted to a completely open source license. Our hope is that this allows UniDec to be
 more widely used. If you are interested in including UniDec in another academic or commercial software distribution, 
@@ -129,7 +129,7 @@ It can be easily compiled with other compilers but will show a significant perfo
 If you are interested in binaries for Mac and Linux, they are also in the unidec_bin directory as unidecmac and unideclinux.
 However, we do not build these regularly, so I would recommend building them yourself using the scripts in the unidec_src/UniDec directory.
 
-##UniDec Documentation
+## UniDec Documentation
 
 
 Documentation is for the Python engine and GUI and can be found at http://michaelmarty.github.io/UniDecDocumentation/.
@@ -139,7 +139,7 @@ My goal is that this documentation will allow you to utilize the power of the Un
 I'm still working on documenting some of the windows and extensions (including MetaUniDec and C code), 
 but the core features should be here.
 
-##UniDec Architecture
+## UniDec Architecture
 
 
 UniDec is bilingual. The core of the algorithm is written in C and compiled as a binary.
@@ -160,7 +160,7 @@ MetaUniDec has a similar structure with a presenter (mudpres.py), engine (mudeng
  and analyze data. It relies less heavily on the Python API.
 
 
-##Getting Started
+## Getting Started
 
 
 Here is some sample code for how to use the engine. 
