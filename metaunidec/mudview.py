@@ -1,14 +1,11 @@
 import os
-import platform
 
 import numpy as np
 import wx
-# import wx.lib.inspection
 import wx.lib.scrolledpanel as scrolled
-from wx.lib.pubsub import pub
 from matplotlib import rcParams
 
-from unidec_modules import ColorPlot, plot3d, plot1d, plot2d, miscwindows
+from unidec_modules import plot1d, plot2d, miscwindows
 from unidec_modules.gui_elements import peaklistsort, mainwindow_base
 from gui_elements.list_ctrls import ListCtrlPanel
 from gui_elements.ud_cont_meta import main_controls
@@ -38,7 +35,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
         """
         mainwindow_base.MainwindowBase.__init__(self, parent, title, config, iconfile, tabbed)
 
-        self.config.figsize = (6.5, 5)
+        self.config.figsize = (5, 4)
         if tabbed is None:
             # If tabbed isn't specified, use the display size to decide what is best
             print "Display Size ", self.displaysize
@@ -46,10 +43,14 @@ class Mainwindow(mainwindow_base.MainwindowBase):
 
             if self.displaysize[0] < 1600:
                 self.tabbed = 1
-                # elif 1800 <= self.displaysize[0]:
-                #    self.config.figsize = (6.5, 5)
-                # elif 1600 <= self.displaysize[0] < 1800:
-                #    self.config.figsize = (5, 3.5)
+            elif 1600 <= self.displaysize[0] < 1800:
+                self.config.figsize = (5, 4)
+            elif 1800 <= self.displaysize[0] < 2100:
+                self.config.figsize = (5, 4)
+            elif 2100 <= self.displaysize[0] < 3600:
+                self.config.figsize = (8, 6)
+            elif self.displaysize[0] >= 3600:
+                self.config.figsize = (12, 6)
 
         else:
             self.tabbed = tabbed

@@ -95,7 +95,7 @@ class Plot2d(PlottingWindow):
         if speedplot == 0:
             # Slow contour plot that interpolates grid
             cax = self.subplot1.contourf(xvals / self.kdnorm, yvals, np.transpose(newgrid), 100, cmap=self.cmap,
-                                         antialiasing=True, norm=norm)
+                                         norm=norm)
             datalims = [np.amin(xvals) / self.kdnorm, np.amin(yvals), np.amax(xvals) / self.kdnorm, np.amax(yvals)]
         else:
             # Fast discrete plot using imshow
@@ -131,10 +131,12 @@ class Plot2d(PlottingWindow):
             self.subplot1.xaxis.set_major_locator(FixedLocator(ticloc))
             self.subplot1.set_xticklabels(ticlab, rotation=90, fontsize=8)
 
+        '''
         for line in self.subplot1.xaxis.get_ticklines():
             line.set_color(self.tickcolor)
         for line in self.subplot1.yaxis.get_ticklines():
             line.set_color(self.tickcolor)
+        '''
         # Setup zoom and repaint
         self.setup_zoom([self.subplot1], 'box', data_lims=datalims)
         if repaint:

@@ -1,11 +1,8 @@
 import os
-import platform
 
 import numpy as np
 import wx
-# import wx.lib.inspection
 import wx.lib.scrolledpanel as scrolled
-from wx.lib.pubsub import pub
 
 from gui_elements import ud_controls
 from gui_elements import ud_menu
@@ -40,11 +37,15 @@ class Mainwindow(MainwindowBase):
             if self.displaysize[0] < 1400:
                 self.tabbed = 1
             elif 1500 <= self.displaysize[0] < 1800:
-                self.config.figsize = (6, 5)
-            elif 1400 <= self.displaysize[0] < 1500:
                 self.config.figsize = (5, 4)
-            elif self.displaysize[0] >= 1800:
-                self.config.figsize = (8, 5)
+            elif 1400 <= self.displaysize[0] < 1500:
+                self.config.figsize = (4, 3)
+            elif 1800 <= self.displaysize[0] < 2200:
+                self.config.figsize = (6.5, 4.5)
+            elif 2200 <= self.displaysize[0] < 3600:
+                self.config.figsize = (9, 6)
+            elif self.displaysize[0] >= 3600:
+                self.config.figsize = (12, 6)
         else:
             self.tabbed = tabbed
 

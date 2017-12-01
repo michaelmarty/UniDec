@@ -5,8 +5,8 @@ import wx.lib.mixins.listctrl as listmix
 import numpy as np
 import matplotlib.cm as cm
 
-from wx.lib.pubsub import setupkwargs
-from wx.lib.pubsub import pub
+
+from pubsub import pub
 
 import unidec_modules.unidectools as ud
 
@@ -33,21 +33,21 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
             colors = peakcolors
         for i in range(0, dataset.len):
             s = dataset.spectra[i]
-            index = self.InsertStringItem(sys.maxint, str(s.index))
+            index = self.InsertItem(sys.maxint, str(s.index))
             try:
-                self.SetStringItem(index, 1, str(s.var1))
+                self.SetItem(index, 1, str(s.var1))
             except:
-                self.SetStringItem(index, 1, str(i))
+                self.SetItem(index, 1, str(i))
 
             try:
-                self.SetStringItem(index, 2, str(s.var2))
+                self.SetItem(index, 2, str(s.var2))
             except:
-                self.SetStringItem(index, 2, str(0))
-            self.SetStringItem(index, 3, s.name)
+                self.SetItem(index, 2, str(0))
+            self.SetItem(index, 3, s.name)
             self.SetItemData(index, i)
             if colors is not None:
-                color = wx.Colour(round(colors[i][0] * 255), round(colors[i][1] * 255), round(colors[i][2] * 255),
-                                  alpha=255)
+                color = wx.Colour(int(round(colors[i][0] * 255)), int(round(colors[i][1] * 255)),
+                                  int(round(colors[i][2] * 255)), alpha=255)
                 self.SetItemBackgroundColour(index, col=color)
                 s.color = colors[i]
         self.data = dataset
@@ -61,10 +61,10 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def add_line(self, var1="count", var2=0):
         if var1 == "count":
             var1 = self.GetItemCount()
-        index = self.InsertStringItem(sys.maxint, str(self.GetItemCount()))
-        self.SetStringItem(index, 1, str(var1))
-        self.SetStringItem(index, 2, str(var2))
-        self.SetStringItem(index, 3, str(""))
+        index = self.InsertItem(sys.maxint, str(self.GetItemCount()))
+        self.SetItem(index, 1, str(var1))
+        self.SetItem(index, 2, str(var2))
+        self.SetItem(index, 3, str(""))
 
     def get_list(self):
         count = self.GetItemCount()
@@ -123,7 +123,6 @@ class ListCtrlPanel(wx.Panel):
         self.Bind(wx.EVT_MENU, self.on_popup_ten, id=self.popupID10)
         self.Bind(wx.EVT_MENU, self.on_popup_eleven, id=self.popupID11)
 
-
     def on_right_click(self, event):
         if hasattr(self, "popupID1"):
             menu = wx.Menu()
@@ -135,7 +134,7 @@ class ListCtrlPanel(wx.Panel):
 
             menu2.Append(self.popupID10, "Autocorrelation")
             menu2.Append(self.popupID11, "FFT Window")
-            menu.AppendMenu(wx.ID_ANY, "Analysis Tools", menu2)
+            menu.Append(wx.ID_ANY, "Analysis Tools", menu2)
             menu.AppendSeparator()
             menu.Append(self.popupID7, "Change Color")
             menu.Append(self.popupID2, "Make Top")
@@ -168,7 +167,7 @@ class ListCtrlPanel(wx.Panel):
         val = self.list.GetItem(item, col=2).GetText()
         count = self.list.GetItemCount()
         for i in range(0, count):
-            self.list.SetStringItem(i, 2, val)
+            self.list.SetItem(i, 2, val)
 
     def on_popup_four(self, event):
         item = self.list.GetFirstSelected()
@@ -211,7 +210,7 @@ class ListCtrlPanel(wx.Panel):
         item = self.list.GetFirstSelected()
         col = self.list.GetItemBackgroundColour(item)
         print "Color In:", col
-        col = wx.Colour(col[0], col[1], col[2], alpha=col.alpha)
+        col = wx.Colour(int(col[0]), int(col[1]), int(col[2]), alpha=int(col.alpha))
         col2 = wx.ColourData()
         col2.SetColour(col)
         colout = col2

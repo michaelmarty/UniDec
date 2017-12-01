@@ -21,7 +21,7 @@ class main_controls(wx.Panel):
             self.report_bmp = wx.ArtProvider.GetBitmap(wx.ART_LIST_VIEW, wx.ART_TOOLBAR, tsize)
             self.A_bmp = wx.ArtProvider.GetBitmap(wx.ART_HELP_SETTINGS, wx.ART_TOOLBAR, tsize)
             try:
-                self.ud_bmp = wx.BitmapFromImage(wx.Image(iconfile).Rescale(tsize[0], tsize[1]))
+                self.ud_bmp = wx.Bitmap(wx.Image(iconfile).Rescale(tsize[0], tsize[1]))
             except Exception, ex:
                 self.ud_bmp = wx.ArtProvider.GetBitmap(wx.ART_HELP_SETTINGS, wx.ART_TOOLBAR, tsize)
                 print ex
@@ -579,7 +579,7 @@ class main_controls(wx.Panel):
                 import matplotlib
                 print "Current version:", matplotlib.__version__
                 # Revert to the defaults
-                self.ctl2dcm.SetSelection(self.config.cmaps.index("spectral"))
+                self.ctl2dcm.SetSelection(self.config.cmaps.index("nipy_spectral"))
                 self.ctlpeakcm.SetSelection(self.config.cmaps.index("rainbow"))
 
             if self.config.imflag == 1:

@@ -42,7 +42,7 @@ class meta_menu(wx.Menu):
         self.menuvar2name = self.varmenu.Append(wx.ID_ANY, "Rename Variable 2", "Rename Variable 1")
         self.menuvar1import = self.varmenu.Append(wx.ID_ANY, "Import Variable Metadata", "Import Variable Metadata")
         self.menuvar1export = self.varmenu.Append(wx.ID_ANY, "Export Variable Metadata", "Export Variable Metadata")
-        self.filemenu.AppendMenu(wx.ID_ANY, "Variables", self.varmenu)
+        self.filemenu.Append(wx.ID_ANY, "Variables", self.varmenu)
         self.filemenu.AppendSeparator()
 
         self.menuLoad = self.filemenu.Append(wx.ID_ANY, "Load External Config File", "Load in a configuration file")
@@ -62,7 +62,7 @@ class meta_menu(wx.Menu):
                                                     "Defaults for isotopically resolved data.")
         self.menuDefault4 = self.defaultmenu.Append(1003, "Nanodiscs",
                                                     "Defaults for POPC Nanodiscs.")
-        self.filemenu.AppendMenu(wx.ID_ANY, "Presets", self.defaultmenu)
+        self.filemenu.Append(wx.ID_ANY, "Presets", self.defaultmenu)
         self.filemenu.AppendSeparator()
 
         self.menufigdialog = self.filemenu.Append(wx.ID_ANY, "Save Figure As",
@@ -76,7 +76,7 @@ class meta_menu(wx.Menu):
         self.menuSaveFigure1 = self.figmenu.Append(wx.ID_ANY, "Save Figures as .eps", "Save all figures to .eps format")
         self.menuSaveFigure2 = self.figmenu.Append(wx.ID_ANY, "Save Figures as .png", "Save all figures to .png format")
 
-        self.filemenu.AppendMenu(wx.ID_ANY, 'Save Figure Presets', self.figmenu)
+        self.filemenu.Append(wx.ID_ANY, 'Save Figure Presets', self.figmenu)
         self.filemenu.AppendSeparator()
 
         self.menuAbout = self.filemenu.Append(wx.ID_ABOUT, "&About", " Information about this program")
@@ -120,7 +120,7 @@ class meta_menu(wx.Menu):
                                                      "Animate 2D plots of mass vs. charge")
         self.menuanimate4 = self.animatemenu.Append(wx.ID_ANY, "Animate m/z v. Charge Grid",
                                                      "Animate 1D plots of m/z vs charge")
-        self.analysismenu.AppendMenu(wx.ID_ANY, "Animate", self.animatemenu)
+        self.analysismenu.Append(wx.ID_ANY, "Animate", self.animatemenu)
         self.analysismenu.AppendSeparator()
         self.menukendrick = self.analysismenu.Append(wx.ID_ANY, "Kendrick Mass Tools", "Kendrick Mass Analysis")
         self.menu2Dgrid = self.analysismenu.Append(wx.ID_ANY, "2D Grid Analysis", "2D Grid Analysis")
@@ -196,7 +196,7 @@ class meta_menu(wx.Menu):
         self.additionalfilters = self.contmenu.Append(wx.ID_ANY, "Additional Filters/Restraints")
         self.peakselection = self.contmenu.Append(wx.ID_ANY, "Peak Selection, Extraction, and Plotting")
         self.additionalplotting = self.contmenu.Append(wx.ID_ANY, "Additional Plotting Parameters")
-        self.helpmenu.AppendMenu(wx.ID_ANY, "UniDec Controls", self.contmenu)
+        self.helpmenu.Append(wx.ID_ANY, "UniDec Controls", self.contmenu)
         self.additionaltoolsmenu = wx.Menu()
         self.autoimport = self.additionaltoolsmenu.Append(wx.ID_ANY, "Auto Import Chromatograms")
         self.presets = self.additionaltoolsmenu.Append(wx.ID_ANY, "Presets")
@@ -211,7 +211,7 @@ class meta_menu(wx.Menu):
         self.fft = self.additionaltoolsmenu.Append(wx.ID_ANY, "FFT Window")
         self.additionaltoolsmenu.AppendSeparator()
         self.baseline = self.additionaltoolsmenu.Append(wx.ID_ANY, "Baseline")
-        self.helpmenu.AppendMenu(wx.ID_ANY, "Other Useful Tools", self.additionaltoolsmenu)
+        self.helpmenu.Append(wx.ID_ANY, "Other Useful Tools", self.additionaltoolsmenu)
         # Set Events for Menu Bar
 
         # File Menu

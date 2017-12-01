@@ -7,9 +7,9 @@ import wx.html
 import numpy as np
 import mudview
 import mudeng
-from wx.lib.pubsub import setupkwargs
-# from wx.lib.pubsub import setupkwargs
-from wx.lib.pubsub import pub
+
+#
+from pubsub import pub
 
 import unidec_modules.unidectools as ud
 from unidec_modules import Extract2D, masstools, miscwindows, \
@@ -80,7 +80,7 @@ class UniDecApp(UniDecPres):
         :param e:
         :return:
         """
-        dlg = wx.FileDialog(self.view, "Choose a data file in HDF5 format", '', "", "*.hdf5*")  # , wx.OPEN)
+        dlg = wx.FileDialog(self.view, "Choose a data file in HDF5 format", '', "", "*.hdf5*")
         if dlg.ShowModal() == wx.ID_OK:
             self.view.SetStatusText("Opening", number=5)
             filename = dlg.GetFilename()
@@ -219,7 +219,7 @@ class UniDecApp(UniDecPres):
                         if p.ignore == 0:
                             e = p.extracts[i]
                             num += 1
-                            self.view.plot6.plotadddot(num - 0.5, e, p.color, p.marker)
+                            self.view.plot6.plotadddot(num - 1, e, p.color, p.marker)
             self.view.plot6.repaint()
 
     def makeplot7(self, fitgrid=None):
@@ -236,7 +236,7 @@ class UniDecApp(UniDecPres):
 
             ylabel = self.view.extractlabels[self.eng.config.exchoice]
             self.view.plot7.clear_plot()
-            self.view.plot7._axes = [0.15, 0.1, 0.75, 0.8]
+            self.view.plot7._axes = [0.2, 0.12, 0.75, 0.8]
             for i, p in enumerate(self.eng.pks.peaks):
                 if p.ignore == 0:
                     color = p.color
@@ -267,6 +267,7 @@ class UniDecApp(UniDecPres):
             for p in self.eng.pks.peaks:
                 if p.ignore == 0:
                     xvals.append(p.label)
+            self.view.plot8._axes = [0.12, 0.12, 0.75, 0.8]
             self.view.plot8.contourplot(xvals=np.arange(0, len(xvals)), yvals=np.array(self.eng.data.var1)[ignore],
                                         zgrid=zdat, normflag=0,
                                         normrange=[0, np.amax(zdat)],
@@ -413,16 +414,18 @@ class UniDecApp(UniDecPres):
         """
         self.export_config()
         self.eng.data.import_grids_and_peaks()
-
         if not ud.isempty(self.eng.data.massdat):
-            self.view.plot2.plotrefreshtop(self.eng.data.massdat[:, 0], self.eng.data.massdat[:, 1], title="Zero-Charge Mass Spectrum",
+            self.view.plot2.clear_plot()
+
+            self.view.plot2.plotrefreshtop(self.eng.data.massdat[:, 0],self.eng.data.massdat[:, 1],
+                                           title="Zero-Charge Mass Spectrum",
                                            xlabel="Mass (Da)",
                                            ylabel="Intensity", label="Sum", config=self.eng.config,
-                                           color="Black",
+                                           color="black",
                                            test_kda=True,
                                            nopaint=True)
 
-        self.view.plot2.repaint()
+            self.view.plot2.repaint()
         pass
 
     def plot_sums(self):
@@ -719,7 +722,7 @@ class UniDecApp(UniDecPres):
         :return:
         """
         paths = FileDialogs.open_multiple_files_dialog(message="Choose ramp data files mzml or Thermo Raw format",
-                                                       file_type="Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML|All Files|*.* ")
+                                                       file_type="Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML|All Files|*.*")
         if paths is not None:
             dlg = miscwindows.SingleInputDialog(self.view)
             dlg.initialize_interface("Timestep", "Enter ramp timestep to compress in minutes:", defaultvalue=str(1.0))
@@ -1278,7 +1281,8 @@ class UniDecApp(UniDecPres):
         :return:
         """
         iconfile = self.view.icon_path
-        self.view.Destroy()
+        wx.Yield()
+        self.view.on_exit()
         self.view = []
         self.view = mudview.Mainwindow(self, "MetaUniDec", self.eng.config, iconfile=iconfile, tabbed=tabbed)
         self.view.Show()
@@ -1404,17 +1408,22 @@ class UniDecApp(UniDecPres):
 # Critical
 # TODO: Thorough testing
 
+# MATT
 # TODO: Tutorial
+# TODO: Show readme under HELP
+# TODO: Parse the same minutes from multiple files into HDF5
 # TODO: Better tuning and control of autobaseline
 
 # SCOTT
 # TODO: UltraMeta Extract Specific Peaks
+# TODO: Fix legend in UltraMeta
 # TODO: Better preset manager, potentially with external preset folder
 
 # Serious work
 # TODO: Weighted average of charge states to calculate mass error
 # TODO: Error as FWHM of peak
 # TODO: Average charge state as extraction parameter
+
 
 # Next
 # TODO: Make Launcher Fancier

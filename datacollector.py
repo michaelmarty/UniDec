@@ -8,8 +8,8 @@ import numpy as np
 import matplotlib.cm as cm
 from matplotlib.pyplot import colormaps
 from matplotlib import rcParams
-from wx.lib.pubsub import setupkwargs
-from wx.lib.pubsub import pub
+
+from pubsub import pub
 
 import multiprocessing
 from unidec_modules import UniFit, Extract2D, unidecstructure, PlotAnimations, plot1d, plot2d, miscwindows, \
@@ -48,17 +48,17 @@ class XValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         listctrldata = np.array(listctrldata)
         for i in range(0, len(listctrldata)):
             try:
-                index = self.InsertStringItem(sys.maxint, str(listctrldata[i, 0]))
-                self.SetStringItem(index, 1, str(listctrldata[i, 1]))
-                self.SetStringItem(index, 2, str(listctrldata[i, 2]))
+                index = self.InsertItem(sys.maxint, str(listctrldata[i, 0]))
+                self.SetItem(index, 1, str(listctrldata[i, 1]))
+                self.SetItem(index, 2, str(listctrldata[i, 2]))
                 self.SetItemData(index, i)
             except (ValueError, TypeError):
-                index = self.InsertStringItem(sys.maxint, str(listctrldata[i]))
+                index = self.InsertItem(sys.maxint, str(listctrldata[i]))
 
             if colors is not None:
                 # print listctrldata[i],colors[i]
-                color = wx.Colour(round(colors[i][0] * 255), round(colors[i][1] * 255), round(colors[i][2] * 255),
-                                  alpha=255)
+                color = wx.Colour(int(round(colors[i][0] * 255)), int(round(colors[i][1] * 255)),
+                                  int(round(colors[i][2] * 255)), alpha=255)
                 self.SetItemBackgroundColour(index, col=color)
             self.SetItemData(index, i)
         self.currentItem = 0
@@ -69,9 +69,9 @@ class XValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         return self.get_maxes()
 
     def add_line(self, val=0):
-        index = self.InsertStringItem(sys.maxint, str(val))
-        self.SetStringItem(index, 1, str(1))
-        self.SetStringItem(index, 2, str(self.GetItemCount() - 1))
+        index = self.InsertItem(sys.maxint, str(val))
+        self.SetItem(index, 1, str(1))
+        self.SetItem(index, 2, str(self.GetItemCount() - 1))
         return self.get_maxes()
 
     def get_list(self):
@@ -111,17 +111,17 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def populate(self, listctrldata, colors=None):
         self.DeleteAllItems()
         for i in range(0, len(listctrldata)):
-            index = self.InsertStringItem(sys.maxint, str(listctrldata[i][0]))
-            self.SetStringItem(index, 1, str(listctrldata[i][1]))
-            self.SetStringItem(index, 2, str(listctrldata[i][2]))
+            index = self.InsertItem(sys.maxint, str(listctrldata[i][0]))
+            self.SetItem(index, 1, str(listctrldata[i][1]))
+            self.SetItem(index, 2, str(listctrldata[i][2]))
             try:
-                self.SetStringItem(index, 3, str(listctrldata[i][3]))
+                self.SetItem(index, 3, str(listctrldata[i][3]))
             except (ValueError, TypeError):
-                self.SetStringItem(index, 3, "All")
+                self.SetItem(index, 3, "All")
             self.SetItemData(index, i)
             if colors is not None:
-                color = wx.Colour(round(colors[i][0] * 255), round(colors[i][1] * 255), round(colors[i][2] * 255),
-                                  alpha=255)
+                color = wx.Colour(int(round(colors[i][0] * 255)), int(round(colors[i][1] * 255)),
+                                  int(round(colors[i][2] * 255)) , alpha=255)
                 self.SetItemBackgroundColour(index, col=color)
 
     def clear_list(self):
@@ -130,10 +130,10 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def add_line(self, file_name="file.txt", var1="count", var2=0):
         if var1 == "count":
             var1 = self.GetItemCount()
-        index = self.InsertStringItem(sys.maxint, str(file_name))
-        self.SetStringItem(index, 1, str(var1))
-        self.SetStringItem(index, 2, str(var2))
-        self.SetStringItem(index, 3, str("All"))
+        index = self.InsertItem(sys.maxint, str(file_name))
+        self.SetItem(index, 1, str(var1))
+        self.SetItem(index, 2, str(var2))
+        self.SetItem(index, 3, str("All"))
 
     def get_list(self):
         count = self.GetItemCount()
@@ -207,14 +207,14 @@ class ListCtrlPanel(wx.Panel):
         val = self.list.GetItem(item, col=2).GetText()
         count = self.list.GetItemCount()
         for i in range(0, count):
-            self.list.SetStringItem(i, 2, val)
+            self.list.SetItem(i, 2, val)
 
     def on_popup_four(self, event):
         item = self.list.GetFirstSelected()
         val = self.list.GetItem(item, col=3).GetText()
         count = self.list.GetItemCount()
         for i in range(0, count):
-            self.list.SetStringItem(i, 3, val)
+            self.list.SetItem(i, 3, val)
 
 
 class NetworkFrame(PlottingWindow):
@@ -499,13 +499,14 @@ class DataCollector(wx.Frame):
             # self.load(os.path.join(self.directory,"AmtB_04_test.json"))
             # self.directory = "C:\\Data\\AmtB_DMPC"
             # self.load(os.path.join(self.directory, "AmtB_07.json"))
-            # self.directory = "C:\\Data\\Others"
-            # self.load(os.path.join(self.directory,"collection1.json"))
-            # self.on_kd_fit(0)
+            if False:
+                self.directory = "C:\\Data\\Others\\Miranda"
+                self.load(os.path.join(self.directory, "collection1.json"))
+                self.on_kd_fit(0)
             try:
-                testdir = "C:\Python\UniDec\unidec_src\UniDec\\x64\Release"
-                testfile = "JAW.hdf5"
-                self.open_hdf5(os.path.join(testdir, testfile))
+                # testdir = "C:\Python\UniDec\unidec_src\UniDec\\x64\Release"
+                # testfile = "JAW.hdf5"
+                # self.open_hdf5(os.path.join(testdir, testfile))
                 # self.directory="C:\\Data\\AmtB_POPC"
                 # self.directory="C:\\cprog\\Shane_ND3"
                 # self.directory="C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3"
@@ -522,7 +523,6 @@ class DataCollector(wx.Frame):
                 print e
                 pass
 
-
     def load_x_from_peaks(self, e):
         try:
             if not ud.isempty(self.pks.peaks):
@@ -534,7 +534,7 @@ class DataCollector(wx.Frame):
             print "Unable to detect max # protein and ligands", ex
 
     def on_hdf5_open(self, e):
-        dlg = wx.FileDialog(self, "Open HDF5 File", self.directory, self.hdf5_file, "*.hdf5", wx.OPEN)
+        dlg = wx.FileDialog(self, "Open HDF5 File", self.directory, self.hdf5_file, "*.hdf5")
         if dlg.ShowModal() == wx.ID_OK:
             self.hdf5_file = dlg.GetPath()
             self.open_hdf5(self.hdf5_file)
@@ -596,7 +596,7 @@ class DataCollector(wx.Frame):
                    "ligflag": self.ligflag, "maxsites": self.maxsites, "gridparams": self.gridparams,
                    "molig": self.molig, "filetype": self.filetype}
 
-        dlg = wx.FileDialog(self, "Save Collection in JSON Format", self.directory, self.savename, "*.json", wx.SAVE)
+        dlg = wx.FileDialog(self, "Save Collection in JSON Format", self.directory, self.savename, "*.json")
         if dlg.ShowModal() == wx.ID_OK:
             self.savename = dlg.GetPath()
             with open(self.savename, "w") as outfile:
@@ -605,7 +605,7 @@ class DataCollector(wx.Frame):
         dlg.Destroy()
 
     def on_load(self, e):
-        dlg = wx.FileDialog(self, "Load JSON Collection", self.directory, self.savename, "*.json", wx.OPEN)
+        dlg = wx.FileDialog(self, "Load JSON Collection", self.directory, self.savename, "*.json")
         if dlg.ShowModal() == wx.ID_OK:
             self.savename = dlg.GetPath()
             self.load(self.savename)
@@ -1163,7 +1163,7 @@ class DataCollector(wx.Frame):
             print "Grid is empty"
 
     def on_msms_norm(self, e):
-        dlg = wx.FileDialog(self, "Choose MS1 data file in x y list format", '', "", "*.*", wx.OPEN)
+        dlg = wx.FileDialog(self, "Choose MS1 data file in x y list format", '', "", "*.*",)
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetFilename()
             dirname = dlg.GetDirectory()

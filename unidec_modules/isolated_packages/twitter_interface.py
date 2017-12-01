@@ -76,7 +76,7 @@ class TwitterWindow(wx.Dialog):
         self.hbox4 = wx.BoxSizer(wx.HORIZONTAL)
         self.emptyimg = wx.EmptyImage(self.previewsize, self.previewsize)
         self.emptyimg.Replace(0, 0, 0, 255, 255, 255)
-        self.imageCtrl = StaticBitmap(self.pnl, wx.ID_ANY, wx.BitmapFromImage(self.emptyimg))
+        self.imageCtrl = StaticBitmap(self.pnl, wx.ID_ANY, wx.Bitmap(self.emptyimg))
         self.hbox4.Add(self.imageCtrl, 0)
         self.sbs.Add(self.hbox4, 1, wx.ALIGN_CENTER_HORIZONTAL)
 
@@ -135,7 +135,7 @@ class TwitterWindow(wx.Dialog):
         choice = self.imagechoice.GetSelection()
         print choice
         self.imageFile = None
-        self.imageCtrl.SetBitmap(wx.BitmapFromImage(self.emptyimg))
+        self.imageCtrl.SetBitmap(wx.Bitmap(self.emptyimg))
         if choice is not 0:
             for i in self.pngs:
                 if i[0] == choice:
@@ -152,7 +152,7 @@ class TwitterWindow(wx.Dialog):
                     NewH = self.previewsize
                     NewW = self.previewsize * W / H
                 image = image.Scale(NewW, NewH)
-                btm = wx.BitmapFromImage(image)
+                btm = wx.Bitmap(image)
                 self.imageCtrl.SetBitmap(btm)
 
         pass

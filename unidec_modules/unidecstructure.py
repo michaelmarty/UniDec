@@ -52,7 +52,7 @@ class UniDecConfig(object):
         # plotting
         self.publicationmode = 0
         self.discreteplot = 0
-        self.cmap = "spectral"
+        self.cmap = "nipy_spectral"
         self.peakcmap = "rainbow"
         self.rawflag = 0
 
@@ -176,9 +176,9 @@ class UniDecConfig(object):
         :return: None
         """
         m = [i for i in cm.datad]
-        self.cmaps = sorted(m)
-
         m2 = colormaps()
+
+        self.cmaps = sorted(m2)
         self.cmaps2 = sorted(m2)
 
     def config_export(self, name):

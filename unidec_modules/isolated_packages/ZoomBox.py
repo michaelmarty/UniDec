@@ -1,7 +1,7 @@
 from matplotlib.patches import Rectangle
-from wx.lib.pubsub import setupkwargs
-# from wx.lib.pubsub import setupkwargs
-from wx.lib.pubsub import pub
+
+from pubsub import setupkwargs
+from pubsub import pub
 
 import numpy as np
 import wx
@@ -11,7 +11,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
     yvals = []
     xvals = []
     for line in axes.lines:
-        ydat = line.get_ydata()
+        ydat = np.array(line.get_ydata())
         xdat = line.get_xdata()
 
         if xmin is not None and xmax is not None:
@@ -177,7 +177,7 @@ class ZoomBox:
                  spancoords='data',
                  button=None,
                  data_lims=None,
-                 integrate=0, smash=0):
+                 integrate=0, smash=0, pad=0):
 
         """
         Create a selector in axes.  When a selection is made, clear
@@ -218,6 +218,7 @@ class ZoomBox:
          3 = right mouse button
         """
         self.crossoverpercent = 0.06
+        self.pad=pad
 
         self.axes = None
         self.canvas = None
@@ -265,8 +266,10 @@ class ZoomBox:
         if xmin == xmax: xmax = xmin * 1.0001
         if ymin == ymax: ymax = ymin * 1.0001
         for axes in self.axes:
-            axes.set_xlim(xmin, xmax)
-            axes.set_ylim(ymin, ymax)
+            xspan=xmax-xmin
+            yspan=ymax-ymin
+            axes.set_xlim(xmin-xspan*self.pad, xmax+xspan*self.pad)
+            axes.set_ylim(ymin-yspan*self.pad, ymax+yspan*self.pad)
             # print self.data_lims
 
     def new_axes(self, axes, rectprops=None):
@@ -280,7 +283,7 @@ class ZoomBox:
             self.cids.append(self.canvas.mpl_connect('button_press_event', self.press))
             self.cids.append(self.canvas.mpl_connect('button_release_event', self.release))
             self.cids.append(self.canvas.mpl_connect('draw_event', self.update_background))
-            self.cids.append(self.canvas.mpl_connect('motion_notify_event', self.onmove))
+            # self.cids.append(self.canvas.mpl_connect('motion_notify_event', self.onmove))
 
         if rectprops is None:
             rectprops = dict(facecolor='white',
@@ -402,8 +405,10 @@ class ZoomBox:
                         pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
 
                 for axes in self.axes:
-                    axes.set_xlim(xmin, xmax)
-                    axes.set_ylim(ymin, ymax)
+                    xspan = xmax - xmin
+                    yspan = ymax - ymin
+                    axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
+                    axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
                     ResetVisible(axes)
 
                 self.canvas.draw()

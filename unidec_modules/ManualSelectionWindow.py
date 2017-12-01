@@ -13,7 +13,6 @@ import unidec_modules.unidectools as ud
 
 __author__ = 'Michael.Marty'
 
-
 """
 Window for defining the manual assignments.
 """
@@ -174,12 +173,12 @@ class ManualListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         """
         if not line:
             line = [0, 0, 0, 0]
-        index = self.InsertStringItem(sys.maxint, str(line[0]))
-        self.SetStringItem(index, 1, str(line[1]))
-        self.SetStringItem(index, 2, str(line[2]))
+        index = self.InsertItem(sys.maxint, str(line[0]))
+        self.SetItem(index, 1, str(line[1]))
+        self.SetItem(index, 2, str(line[2]))
         if self.imflag == 1:
-            self.SetStringItem(index, 3, str(line[3]))
-            self.SetStringItem(index, 4, str(0))
+            self.SetItem(index, 3, str(line[3]))
+            self.SetItem(index, 4, str(0))
 
     def populate(self, data, colors=None):
         """
@@ -190,15 +189,16 @@ class ManualListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         """
         self.DeleteAllItems()
         for i in range(0, len(data)):
-            index = self.InsertStringItem(sys.maxint, str(data[i][0]))
-            self.SetStringItem(index, 1, str(data[i][1]))
-            self.SetStringItem(index, 2, str(data[i][2]))
+            index = self.InsertItem(sys.maxint, str(data[i][0]))
+            self.SetItem(index, 1, str(data[i][1]))
+            self.SetItem(index, 2, str(data[i][2]))
             if self.imflag == 1:
-                self.SetStringItem(index, 3, str(data[i][3]))
-                self.SetStringItem(index, 4, str(data[i][4]))
+                self.SetItem(index, 3, str(data[i][3]))
+                self.SetItem(index, 4, str(data[i][4]))
             if colors is not None:
                 color = colors[i]
-                color = wx.Colour(round(color[0] * 255), round(color[1] * 255), round(color[2] * 255), alpha=255)
+                color = wx.Colour(int(round(color[0] * 255)), int(round(color[1] * 255)), int(round(color[2] * 255)),
+                                  alpha=255)
                 self.SetItemBackgroundColour(index, col=color)
 
     def get_list(self):
@@ -299,7 +299,7 @@ class ManualSelection(wx.Dialog):
 
         vbox = wx.BoxSizer(wx.VERTICAL)
 
-        size = (7, 4.5)
+        size = (7, 4)
         vbox2 = wx.BoxSizer(wx.VERTICAL)
         if self.config.imflag == 0:
             self.plot1 = plot1d.Plot1d(panel, figsize=size)
@@ -452,7 +452,7 @@ class ManualSelection(wx.Dialog):
                 try:
                     if detectoverlap(manuallist):
                         manuallist = correctassignments(manuallist, np.unique(self.data[:, 0]),
-                                                               np.unique(self.data[:, 1]))
+                                                        np.unique(self.data[:, 1]))
                 except Exception, e:
                     print "Error with overlapping assignments. Try making sure regions don't intersect.", e
             # Plot the appropriate regions on the plot.

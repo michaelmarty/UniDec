@@ -17,7 +17,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         :return: None
         """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
-        self.meta=meta
+        self.meta = meta
         self.index = 0
         self.list_ctrl = wx.ListCtrl(self, pos=wx.DefaultPosition, size=(300, 1100),
                                      style=wx.LC_REPORT | wx.BORDER_SUNKEN)
@@ -106,30 +106,31 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
 
         for i in xrange(0, self.pks.plen):
             p = pks.peaks[i]
-            self.list_ctrl.InsertStringItem(i, p.textmarker)
-            self.list_ctrl.SetStringItem(i, 1, str(p.mass))
+            self.list_ctrl.InsertItem(i, p.textmarker)
+            self.list_ctrl.SetItem(i, 1, str(p.mass))
             # TODO: Proper decimal places on this
             '''
             if self.pks.massbins < 1:
-                self.list_ctrl.SetStringItem(i, 1, str(p.mass))
+                self.list_ctrl.SetItem(i, 1, str(p.mass))
             else:
-                self.list_ctrl.SetStringItem(i, 1, "{:,}".format(p.mass))
+                self.list_ctrl.SetItem(i, 1, "{:,}".format(p.mass))
             '''
-            self.list_ctrl.SetStringItem(i, 2, "%.2f" % p.height)
+            self.list_ctrl.SetItem(i, 2, "%.2f" % p.height)
             try:
                 if show == "area":
-                    self.list_ctrl.SetStringItem(i, 3, str(p.area))
+                    self.list_ctrl.SetItem(i, 3, str(p.area))
                 elif show == "integral":
-                    self.list_ctrl.SetStringItem(i, 3, "%.2f" % p.integral)
+                    self.list_ctrl.SetItem(i, 3, "%.2f" % p.integral)
                 elif show == "diff":
-                    self.list_ctrl.SetStringItem(i, 3, str(p.diff))
+                    self.list_ctrl.SetItem(i, 3, str(p.diff))
                 else:
-                    self.list_ctrl.SetStringItem(i, 3, "")
+                    self.list_ctrl.SetItem(i, 3, "")
             except (ValueError, AttributeError, TypeError):
-                self.list_ctrl.SetStringItem(i, 3, "")
-            self.list_ctrl.SetStringItem(i, 4, str(p.label))
+                self.list_ctrl.SetItem(i, 3, "")
+            self.list_ctrl.SetItem(i, 4, str(p.label))
             self.list_ctrl.SetItemData(i, i)
-            color = wx.Colour(round(p.color[0] * 255), round(p.color[1] * 255), round(p.color[2] * 255), alpha=255)
+            color = wx.Colour(int(round(p.color[0] * 255)), int(round(p.color[1] * 255)), int(round(p.color[2] * 255)),
+                              alpha=255)
             self.list_ctrl.SetItemBackgroundColour(i, col=color)
         self.remove = []
         listmix.ColumnSorterMixin.__init__(self, 4)
@@ -176,7 +177,6 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                 menu.Append(self.popupID5, "Color Select")
                 self.PopupMenu(menu)
                 menu.Destroy()
-
 
     def on_popup_one(self, event=None):
         """
@@ -307,7 +307,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         item = self.list_ctrl.GetFirstSelected()
         col = self.list_ctrl.GetItemBackgroundColour(item)
         print "Color In:", col
-        col = wx.Colour(col[0], col[1], col[2], alpha=col.alpha)
+        col = wx.Colour(int(col[0]), int(col[1]), int(col[2]), alpha=int(col.alpha))
         col2 = wx.ColourData()
         col2.SetColour(col)
         colout = col2
@@ -336,16 +336,16 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         first = 1
         for i in xrange(0, self.pks.plen):
             p = self.pks.peaks[i]
-            self.list_ctrl.SetStringItem(i, 3, str(p.errorFWHM))
+            self.list_ctrl.SetItem(i, 3, str(p.errorFWHM))
             if p.errormean == -1:
-                self.list_ctrl.SetStringItem(i, 4, str(p.errorreplicate))
+                self.list_ctrl.SetItem(i, 4, str(p.errorreplicate))
                 if first == 1:
                     col = self.list_ctrl.GetColumn(4)
                     col.SetText("Duplicate Error")
                     self.list_ctrl.SetColumn(4, col)
                     first = 0
             else:
-                self.list_ctrl.SetStringItem(i, 4, str(p.errormean))
+                self.list_ctrl.SetItem(i, 4, str(p.errormean))
         if first == 1:
             col = self.list_ctrl.GetColumn(4)
             col.SetText("Mean Error")
@@ -369,8 +369,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.list_ctrl.SetColumn(4, col)
         for i in xrange(0, self.pks.plen):
             p = self.pks.peaks[i]
-            self.list_ctrl.SetStringItem(i, 3, str(p.area))
-            self.list_ctrl.SetStringItem(i, 4, str(p.label))
+            self.list_ctrl.SetItem(i, 3, str(p.area))
+            self.list_ctrl.SetItem(i, 4, str(p.label))
         self.errorsdisplayed = False
 
 # TODO: Add in a column label drop down or some other way to select which information of self.pks is displayed

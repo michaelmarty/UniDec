@@ -1,6 +1,5 @@
 import wx
 
-
 class HelpDlg(wx.Frame):
     def __init__(self, num):
         if num == 1:
@@ -51,36 +50,34 @@ class HelpDlg(wx.Frame):
         html.SetPage(
             "<html><body>"
             "<h1>Welcome to MetaUniDec!</h1>"
-            "<p>UniDec is a fast, robust, and flexible software package "
-            " for deconvolution and analysis of mass spectra and ion mobility-mass spectra.</p>"
+            "<p>UniDec is a lightweight, robust, and flexible software package "
+            "used for the deconvolution of mass spectra and ion mobility-mass spectra.</p>"
             "<h2>MetaUniDec File Types</h2>"
             "With MetaUniDec, everything is stored in a single HDF5 files. There are a few automated tools to parse "
             "chromatograms into HDF5 files if you have all the data chromatograms with predictable scans or times "
             "(Auto Import CHromatograms). "
             "Otherwise, you need to load the data in. First, create a new HDF5 using New File. Then, use Add Data "
             "Files to add text files, Thermo RAW, or mzML files into the HDF5 file. You can select multiple files at "
-            "once here. Waters .RAW data can be converted to .txt using the Import Wizard in UniDec. "
-            "You can also copy the data from XCalibur or MassLynx and then use Add Data From Clipboard. That"
-            " is probably the easiest way to get started, and you can work on optimizing the import workflow from there."
-            "<h2>Loading HDF5 Files</h2>"
+            "once here. You can also copy the data from XCalibur or MassLynx and then use Add Data From Clipboard. That"
+            " is probably the easiest way to get started and then you can work on optimizing the workflow from there."
+            "<h2>Loading Data</h2>"
             "<p>To open files with MetaUniDec, just drag and drop the HDF5 file into MetaUniDec, "
             "or go to File->Open File.</p>"
             "<h2>Analyzing data</h2>"
-            "<table style=\"width:100%\"><tr><td>After choosing some starting data processing, deconvolution, "
-            "and peak selection parameters from File -> Presets, simply "
+            "<table style=\"width:100%\"><tr><td>For basic data processing, deconvolution, and peak selection, simply "
             "hit the \"All\" button in the top right corner. For more rigorous analysis, see the other help guides.</td>"
             "<td><img src=\"/images/allButton.png\" alt=\"PNG Icon\"></td></table>"
             "<h2>Saving Figures</h2>"
             "<p>There are 3 ways to save your figures. To save an individual plot, middle-click the plot and a dialog "
-            "window will pop up that allows you to save it. The type of file can be specified in the extension."
-            " The other methods save all available plots. "
+            "window will pop up that allows you to save it. The other methods save all available plots. "
             " File->Save Figure As will allow you to select the directory "
             "and file name header, along with the extension and image dimensions. File->Save Figure Presets will save "
             "your figures as .pdf/.png/.pdf thumbnails to the default location, which is the location of the original "
-            ".HDF5 file: [HDF5-location]/UniDec_Figures_and_Files/<\p>"
+            ".HDF5 file. Ex: C:/HDF5-location/UniDec_Figures_and_Files/Fig1.pdf<\p>"
             "</body></html>"
         )
 
+    #TODO: Figure out what Make top does
     def import_window(self):
         wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(500, 400))
         html = wx.html.HtmlWindow(self)
@@ -90,10 +87,11 @@ class HelpDlg(wx.Frame):
             "along with how to interact with your data in the data table on the left side.</p>"
             "<h2>Loading Data</h2>"
             "<p>To open files with MetaUniDec, just drag and drop the HDF5 file into MetaUniDec, "
-            "or go to File->Open File. File->Load External Config will load the parameters from a previous HDF5 or _conf.dat file. "
+            "or go to File->Open File. File->Load External Config will load a _conf.dat file from a previous run. CAN'T"
+            "FIND WHERE THEY ARE! Advanced->Reset Factory Default will restore all settings to the program defaults. "
             "File->Import Chromatograms allows you to import a RAW file and creates a complementary HDF5 file in the "
-            "same location. You will need to load the new HDF5 file to display in MetaUniDec.<br><br> "
-            "Note: For importing Thermo Raw Files, you need MSFileReader from Thermo (and multiplierz if running the Python).</p>"
+            "same location. You will need to load the new HDF5 file to display in MetaUniDec. "
+            "Note: For import chromatograms, you need msfilereader and multiplierz if not running the .exe</p>"
             "<h2>Right Click Options</h2>"
             "<img src=\"/images/rightClick.png\" alt=\"PNG Icon\">"
             "<table style=\"width:100%\">"
@@ -104,14 +102,10 @@ class HelpDlg(wx.Frame):
             "<tr><td>Analysis Tools</td><td>Does autocorrelation or FFT analysis on a single sample. "
             "See Help->Menu Bar->Analysis for a description of these tools.</td></tr>"
             "<tr><td>Change Color</td><td>Changes the color of a sample</td></tr>"
-            "<tr><td>Make Top</td><td>Makes the spectrum the primary spectrum for peak fitting.</td></tr>"
+            "<tr><td>Make Top</td><td>Moves sample to the top of the table.</td></tr>"
             "<tr><td>Fill Down Variable 2</td><td>Changes all Variable 2 values to the selected sample's "
             "Variable 2 value.</td></tr>"
             "<tr><td>Delete</td><td>Deletes the sample. WARNING: This deletes the sample from the HDF5 file.</td></tr>"
-            "<h2>Meta Data (Variables 1 and 2)</h2>"
-            "<p>Variable 1 and 2 can be manually adjusted from the table. "
-            "File->Variables allows the variables to be renamed, imported, and exported.<p>  "
-
             "</body></html>"
         )
 
@@ -129,28 +123,25 @@ class HelpDlg(wx.Frame):
             "rectangle. To undo the zoom, simply left click on the plot once.</p>"
             "<h4>Clicking on the plot (MS Data plot only!)</h4><p>On the unzoomed plot, single left click at two "
             "different spots on the plot and numbers will appear at those spots of the same color (indicate the "
-            "charge), along with a number in the top right corner (indicates the mass). "
-            "Holding the conrol key will allow the same actions on a zoomed window.</p><br><br>"
-            "</p> Right clicking on this plot when zoomed will set the m/z range for data processing.</p>"
+            "charge), along with a number in the top right corner (indicates the mass).</p>"
             "<h2>Plot Types</h2>"
             "<table style=\"width:100%\">"
-            "<tr><td>MS Data</td><td>Plot of m/z vs. intensity. "
-            "The highest peak shown will be set at intensity=1 if Normalize Data is checked and "
+            "<tr><td>MS Data</td><td>Plot of m/z vs. intensity. The highest peak shown will be set at intensity=1 and "
             "the rest of the peak's height will be normalized according to that intensity value.</td></tr>"
-            "<tr><td>Charge Distributions</td><td>Plot of summed charge vs. intensity. This plot only shows data after running"
+            "<tr><td>Charge Distributions</td><td>Plot of charge vs. intensity. This plot only shows data after running"
             " \"Run UniDec\".</td></tr>"
-            "<tr><td>Mass Distributions</td><td>Plot of summed mass vs. intensity. This plot only shows data after running"
+            "<tr><td>Mass Distributions</td><td>Plot of mass vs. intensity. This plot only shows data after running"
             " \"Run UniDec\". After running \"Peak Detection/Extraction\", a black line will appear representing "
-            "average mass distribution. Peaks will be picked from this distribution and marked with the shape labels.</td></tr>"
-            "<tr><td>Extracts Line Plot</td><td>Plot of variable 1 vs. intensity for the extracted peaks. This "
+            "AVERAGE?? and the peaks will be marked with the shape labels.</td></tr>"
+            "<tr><td>Extracts Line Plot</td><td>Plot of collision voltage vs. intensity for the extracted peaks. This "
             "plot only shows data after running \"Peak Detection/Extraction\".</td></tr>"
-            "<tr><td>Extracts Grid Plot</td><td>Heatmap of variable 1 vs. intensity (color represents intensity)"
+            "<tr><td>Extracts Grid Plot</td><td>Heatmap of collision voltage vs. intensity (color represents intensity)"
             " for the extracted peaks. This plot only shows data after running \"Peak Detection/Extraction\".</td></tr>"
-            "<tr><td>Bar Chart</td><td>Plot of intensity of each species (the peaks) at each variable 1. "
+            "<tr><td>Bar Chart</td><td>Plot of species (the inputted samples) vs. intensity for the extracted peaks. "
             "This plot only shows data after running \"Peak Detection/Extraction\".</td></tr>"
-            "<tr><td>m/z Grid</td><td>Plot of m/z vs. variable 1 (color represents intensity). "
+            "<tr><td>m/z Grid</td><td>Plot of m/z vs. collision voltage (color represents intensity). "
             "This plot only shows data after running \"Plot 2D Grids\".</td></tr>"
-            "<tr><td>Mass vs. Charge</td><td>Plot of mass vs. variable 1(color represents intensity). "
+            "<tr><td>Mass vs. Charge</td><td>Plot of mass vs. collision voltage (color represents intensity). "
             "This plot only shows data after running \"Plot 2D Grids\".</td></tr></table>"
             "</body></html>"
         )
@@ -186,14 +177,14 @@ class HelpDlg(wx.Frame):
             "<h1>Data Processing</h1><p>Note: Hovering over the buttons/text fields will show helpful tooltips.</p>"
             "<table style=\"width:100%\">"
             "<tr><td>m/z Range</td><td>Limits the m/z range shown/analyzed.</td></tr>"
-            "<tr><td>Baseline Subtraction</td><td>Uses the curved baseline option in UniDec. If the baseline intensity isn't 0, you can use this to "
-            "subtract down to the desired baseline. Smaller numbers mean a more aggressive baseline subtraction. </td></tr>"
+            "<tr><td>Baseline Subtraction</td><td>NOT SURE??? If the baseline intensity isn't ~0, you can use this to "
+            "subtract down to the desired baseline.</td></tr>"
             "<tr><td>Bin Every</td><td>Averages <i>n</i> data points together. Can help smooth noisy data and reduces "
             "the number of data points. Since the speed of the UniDec algorithm depends mostly on # of data points and "
             "allowed charge states, binning can significantly increase the speed of the algorithm.</td></tr>"
             "<tr><td>Normalize Data</td><td>Selects whether your results will be normalized or not. Checking the box "
             "normalizes your data to a maximum intensity of one.</td></tr>"
-            "<tr><td>Process Data Button</td><td>Processes the data according to how you filled out the above fields "
+            "<tr><td>Process Data Button</td><td>Processes the data according to how you filled out the above fields, "
             "and displays the new plots when done.</td></tr></table>"
             "</body></html>"
         )
@@ -207,10 +198,10 @@ class HelpDlg(wx.Frame):
             "<table style=\"width:100%\">"
             "<tr><td>Charge Range</td><td>Set the min and max charges for the deconvolution algorithm.</td></tr>"
             "<tr><td>Mass Range</td><td>Set the min and max masses for the deconvolution algorithm</td></tr>"
-            "<tr><td>Sample Mass Every</td><td>Sets the distance between data points in the Mass Distribution plot."
-            "<tr><td>Peak FWHM (Full Width Half Max)</td><td>FWHM of an expected peak. "
-            "The Automatic Peak Width (Tools or Ctrl+W) will set this automatically. "
-            "Tools->Peak Width Tools provides a fitting of the top spectrum.</td></tr>"
+            "<tr><td>Sample Mass Every</td><td>Sets the resolution of the Mass Distribution plot"
+            ". Similar to binning in the Data Process section I THINK???</td></tr>"
+            "<tr><td>Peak FWHM (Full Width Half Max)</td><td>Used by the peak shape function to help identify peaks. "
+            "May have to try multiple values to find one that works for your peaks. NOT SURE???</td></tr>"
             "<tr><td>Peak Shape Function</td><td>Your expected peak shape. Split G/L is a Gaussian on the low m/z side "
             "and Lorentzian on the high m/z side to give a long tail at higher m/z.</td></tr>"
             "<tr><td>Run UniDec</td><td>Runs the deconvolution algorithm according to how you filled out the above "
@@ -260,7 +251,7 @@ class HelpDlg(wx.Frame):
             "<tr><td>How to Extract Peaks</td><td>Select your method of extracting peaks. See tooltip for description "
             "of each type of extraction method.</td></tr>"
             "<tr><td>Extraction Window</td><td>See tooltip.</td></tr>"
-            "<tr><td>Extract Normalization</td><td>Set how to normalize the extraction.</td></tr>"
+            "<tr><td>Extract Normalization</td><td>Set how to normalize the extraction. TOOLTIP IS BROKEN</td></tr>"
             "<tr><td>Peak Detection/Extraction</td><td>Clicking this button will find and extract peaks according to "
             "the above values. THis button will make data appear in the Extracts Lines Plot, Extracts Grid Plot, and "
             "Bar Chart.</td></tr>"
@@ -281,21 +272,20 @@ class HelpDlg(wx.Frame):
             "<tr><td>2D Color Map</td><td>Selects color function for the m/z Grid and Mass vs. Charge plots.</td></tr>"
             "<tr><td>Peaks Color Map</td><td>Selects color function for the Extracts Line and Bar Chart plots, and "
             "changes the color of the peaks in the peak window.</td></tr>"
-            "<tr><td>Discrete Plot</td><td>Uses discrete rectangles for the 2D plots."
-            " This speeds up 2D plots but makes them less visually appealing.</td></tr>"
+            "<tr><td>Discrete Plot</td><td>NOT SURE</td></tr>"
             "<tr><td>Publication Mode</td><td>Cleans up the plots and axes for publication.</td></tr>"
             "<tr><td>Reconvolved/Raw Results</td><td>See tooltip.</td></tr>"
             "<tr><td>Marker Threshold</td><td>Adds markers to peaks that are above this threshold.</td></tr>"
             "<tr><td>Species Separation</td><td>Set the amount of space separating different species in the MS Data, "
             "Charge Distributions, and Mass Distribution plots.</td></tr>"
             "<tr><td>Integration Range</td><td>Will integrate from peak-min to peak+max.</td></tr>"
-            "<tr><td>Replot</td><td>Replot some of the plots. </td></tr>"
-            "<tr><td>Plot Composite</td><td>Plots only the average mass distribution."
+            "<tr><td>Replot</td><td>Replot some of the plots. POTENTIALLY BROKEN</td></tr>"
+            "<tr><td>Plot Composite</td><td>Sums all of the curves and plots it as a blue composite spectrum NOT SURE."
             "</td></tr></table></body></html>"
         )
 
-    #TODO: Finish these
 
+    #TODO Finish these
     def auto_import_help(self):
         wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(400, 400))
         html = wx.html.HtmlWindow(self)
@@ -311,7 +301,7 @@ class HelpDlg(wx.Frame):
             "1.0 minutes, voltage step of 5 corresponds to 0.25 minutes, etc. Will create a HDF5 file with the same "
             "name.</p>"
             "<h3>Auto Import Chromatogram By Scans</h3>"
-            "<p>This function compressed your chromatogram by averaging <i>x</i> number of scans into 1 data "
+            "<p>This function compressed your chromatogram by averaging <i>x</i> number of data points into 1 data "
             "point, where <i>x</i> is the number you input. Select a file and enter a number to bin your file with.</p>"
             "<h3>Auto Import Multiple Chromatograms By Range of Times</h3>"
             "<p>This function takes multiple chromatograms and takes out an inputted time range from each file and "
@@ -330,7 +320,7 @@ class HelpDlg(wx.Frame):
         html.SetPage(
             "<html><body><h1>Presets</h1>"
             "<p>The presets will change the Data Processing, UniDec Parameters, and Additional Filters/Restraints "
-            "values to presets based on the type of mass spec being done. Additional adjustmets are likely necessary "
+            "values to presets based on the type of mass spec being done. Should generally work, may need tweaking "
             "based on individual samples.</p>"
             "</body></html>"
         )
@@ -339,22 +329,14 @@ class HelpDlg(wx.Frame):
         wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(400, 400))
         html = wx.html.HtmlWindow(self)
         html.SetPage(
-            "<html><body>There are several options for batch processing multiple HDF5 files with "
-            "MetaUniDec. Batch Assign Configs simply applies the current config as defined by"
-            " the controls on the right to all selected files. Batch Run will perform data processing "
-            "and deconvolution on each file. Batch Extract will extract the peak information from each of the "
-            "files provided the deconvolution has already been performed. "
-            "Batch Assign/Run/Extract will do all of these at once.</body></html>"
+            "<html><body>Batch help</body></html>"
         )
 
     def peak_width_tool_help(self):
         wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(400, 400))
         html = wx.html.HtmlWindow(self)
         html.SetPage(
-            "<html><body>The Peak Width Tool allows fitting of the \"top\" spectrum, which by default is"
-            " the first on the list of spectra. You can right click a spectrum and select \"Make Top\""
-            " to make it the spectrum applied. Hitting Ok will update the main controls with the"
-            " fit peak shape. Automatic Peak Width (Ctrl+W) will do this automatically.</body></html>"
+            "<html><body>Auto peak width help</body></html>"
         )
 
     def oligomer_help(self):
@@ -368,11 +350,11 @@ class HelpDlg(wx.Frame):
             "File button. File should be in a .csv file with the format Name, Mass, Type (column headers not "
             "required). Select your species, right click, and select Add to Oligomer Builder. In the Oligomer List, you"
             " can select the min/max # of oligomers for each species. You can also add your own oligomers with the "
-            "Import from File button or Add Oligomer Species, which allows you to manually add the "
+            "Import from File button (WHAT FILE TYPE) or Add Oligomer Species, which allows you to manually add the "
             "information about the oligomer. You can then click the Match to Isolated Oligomers button, which will try "
             "to match a peak to individual oligomers, or the Match to Mixed Oligomers, which will mix and match "
             "different oligomers together while trying to find a complementary peak. All peaks will have have the "
-            "closest oligomer(s) compared to it, along with the error. Simulate Masses is unsupported in MetaUniDec.</p>"
+            "closest oligomer(s) compared to it, along with the error. WHAT DOES SIMULATE MASSES DO???</p>"
             "</body></html>"
         )
 
@@ -399,28 +381,27 @@ class HelpDlg(wx.Frame):
             "</body></html>"
         )
 
+
     def autocorr_help(self):
         wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(400, 400))
         html = wx.html.HtmlWindow(self)
         html.SetPage(
-            "<html><body>Performs an autocorrelation of the zero-charge mass spectrum to idenfity repeating mass units.</body></html>"
+            "<html><body>Autocorrelation help</body></html>"
         )
 
     def fft_help(self):
         wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(400, 400))
         html = wx.html.HtmlWindow(self)
         html.SetPage(
-            "<html><body>Performs two sequential Fast Fourier Transforms on the m/z spectrum to identify repeating units.</body></html>"
+            "<html><body>FFT help</body></html>"
         )
 
     def baseline_help(self):
         wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(400, 400))
         html = wx.html.HtmlWindow(self)
         html.SetPage(
-            "<html><body>Under the Advanced menu, an experimental feature can be activated to determine "
-            "the baseline automatically during the course of deconvolution."
-            "</body></html>"
+            "<html><body>Baseline help</body></html>"
         )
 
 
-        # TODO: add menu bar help stuff
+    # TODO: add menu bar help stuff

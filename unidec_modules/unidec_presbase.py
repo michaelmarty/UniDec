@@ -36,7 +36,7 @@ class UniDecPres(object):
         wx.CallAfter(self.quit_application, force=True)
 
     def quit_application(self):
-        self.wx_app.ProcessIdle()
+        # self.wx_app.ProcessIdle()
         self.wx_app.ExitMainLoop()
         return True
 

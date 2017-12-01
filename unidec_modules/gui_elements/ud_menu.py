@@ -47,7 +47,7 @@ class main_menu(wx.Menu):
                                                     "Defaults for isotopically resolved data.")
         self.menuDefault4 = self.defaultmenu.Append(1003, "Nanodiscs",
                                                     "Defaults for POPC Nanodiscs.")
-        self.filemenu.AppendMenu(wx.ID_ANY, "Presets", self.defaultmenu)
+        self.filemenu.Append(wx.ID_ANY, "Presets", self.defaultmenu)
         self.filemenu.AppendSeparator()
 
         self.menufigdialog = self.filemenu.Append(wx.ID_ANY, "Save Figure As",
@@ -65,7 +65,7 @@ class main_menu(wx.Menu):
         else:
             self.menuSaveFigure4 = self.figmenu.Append(wx.ID_ANY, "Save Figures as .pdf",
                                                        "Save all figures to .pdf format")
-        self.filemenu.AppendMenu(wx.ID_ANY, 'Save Figure Presets', self.figmenu)
+        self.filemenu.Append(wx.ID_ANY, 'Save Figure Presets', self.figmenu)
         self.filemenu.AppendSeparator()
 
         self.menuAbout = self.filemenu.Append(wx.ID_ABOUT, "&About", " Information about this program")
@@ -178,7 +178,7 @@ class main_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.menu_501_503, id=502)
         self.parent.Bind(wx.EVT_MENU, self.menu_501_503, id=503)
 
-        self.advancedmenu.AppendMenu(wx.ID_ANY, 'Intensity Scale', self.scalemenu)
+        self.advancedmenu.Append(wx.ID_ANY, 'Intensity Scale', self.scalemenu)
         self.advancedmenu.AppendSeparator()
 
         if self.config.imflag == 0:

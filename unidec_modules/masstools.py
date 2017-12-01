@@ -46,7 +46,7 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         """
         self.DeleteAllItems()
         for i in range(0, len(listctrldata)):
-            index = self.InsertStringItem(sys.maxint, str(listctrldata[i]))
+            index = self.InsertItem(sys.maxint, str(listctrldata[i]))
             self.SetItemData(index, i)
 
     def clear(self):
@@ -61,7 +61,7 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         Add a new line, default of 0.
         :return: None
         """
-        self.InsertStringItem(sys.maxint, str(0))
+        self.InsertItem(sys.maxint, str(0))
 
     def get_list(self):
         """
@@ -160,13 +160,13 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
         Add a blank line to the list.
         :return: None
         """
-        index = self.InsertStringItem(sys.maxint, str(a))
+        index = self.InsertItem(sys.maxint, str(a))
         if e is None:
             e = string.uppercase[self.index]
-        self.SetStringItem(index, 1, str(b))
-        self.SetStringItem(index, 2, str(c))
-        self.SetStringItem(index, 3, str(d))
-        self.SetStringItem(index, 4, e)
+        self.SetItem(index, 1, str(b))
+        self.SetItem(index, 2, str(c))
+        self.SetItem(index, 3, str(d))
+        self.SetItem(index, 4, e)
         self.index += 1
 
     def populate(self, data):
@@ -178,19 +178,19 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
         self.DeleteAllItems()
         # for normal, simple columns, you can add them like this:
         for i in range(0, len(data)):
-            index = self.InsertStringItem(sys.maxint, str(data[i][0]))
+            index = self.InsertItem(sys.maxint, str(data[i][0]))
             try:
-                self.SetStringItem(index, 1, str(data[i][1]))
-                self.SetStringItem(index, 2, str(data[i][2]))
-                self.SetStringItem(index, 3, str(data[i][3]))
+                self.SetItem(index, 1, str(data[i][1]))
+                self.SetItem(index, 2, str(data[i][2]))
+                self.SetItem(index, 3, str(data[i][3]))
             except (ValueError, IndexError):
-                self.SetStringItem(index, 1, "")
-                self.SetStringItem(index, 2, "")
-                self.SetStringItem(index, 3, "")
+                self.SetItem(index, 1, "")
+                self.SetItem(index, 2, "")
+                self.SetItem(index, 3, "")
             try:
-                self.SetStringItem(index, 4, str(data[i][4]))
+                self.SetItem(index, 4, str(data[i][4]))
             except (ValueError, IndexError):
-                self.SetStringItem(index, 4, "")
+                self.SetItem(index, 4, "")
                 # self.SetItemData(index, i)
 
     def get_list(self):
@@ -293,10 +293,10 @@ class MatchListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
         self.DeleteAllItems()
         # for normal, simple columns, you can add them like this:
         for i in range(0, len(data1)):
-            index = self.InsertStringItem(sys.maxint, str(data1[i]))
-            self.SetStringItem(index, 1, str(data2[i]))
-            self.SetStringItem(index, 2, str(data3[i]))
-            self.SetStringItem(index, 3, str(data4[i]))
+            index = self.InsertItem(sys.maxint, str(data1[i]))
+            self.SetItem(index, 1, str(data2[i]))
+            self.SetItem(index, 2, str(data3[i]))
+            self.SetItem(index, 3, str(data4[i]))
             # self.SetItemData(index, i)
 
     def get_list(self):
@@ -424,9 +424,9 @@ class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
         self.DeleteAllItems()
         # for normal, simple columns, you can add them like this:
         for i in range(0, len(data1)):
-            index = self.InsertStringItem(sys.maxint, str(data1[i]))
-            self.SetStringItem(index, 1, str(data2[i]))
-            self.SetStringItem(index, 2, str(data3[i]))
+            index = self.InsertItem(sys.maxint, str(data1[i]))
+            self.SetItem(index, 1, str(data2[i]))
+            self.SetItem(index, 2, str(data3[i]))
 
     def get_list(self):
         """
@@ -459,9 +459,9 @@ class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
         Add a blank line to the list.
         :return: None
         """
-        index = self.InsertStringItem(sys.maxint, string.uppercase[self.index])
-        self.SetStringItem(index, 1, str(0))
-        self.SetStringItem(index, 2, "User")
+        index = self.InsertItem(sys.maxint, string.uppercase[self.index])
+        self.SetItem(index, 1, str(0))
+        self.SetItem(index, 2, "User")
         self.index += 1
 
     def repopulate(self, e):

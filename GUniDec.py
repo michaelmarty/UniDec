@@ -5,9 +5,9 @@ import thread
 import wx
 import numpy as np
 import unidec
-from wx.lib.pubsub import setupkwargs
-# from wx.lib.pubsub import setupkwargs
-from wx.lib.pubsub import pub
+
+#
+from pubsub import pub
 
 import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
@@ -23,7 +23,6 @@ import platform
 import multiprocessing
 from unidec_modules.unidec_presbase import UniDecPres
 import Launcher
-
 # import FileDialog  # Needed for pyinstaller
 
 __author__ = 'Michael.Marty'
@@ -82,11 +81,12 @@ class UniDecApp(UniDecPres):
             self.on_open_file(fname, newdir)
             # self.view.on_save_figure_eps(0)
             # self.on_dataprep_button(0)
-            self.on_auto(0)
+            # self.on_auto(0)
             # self.on_integrate()
             # self.on_grid_decon(0)
             # self.make_cube_plot(0)
             # self.on_plot_peaks(0)
+            self.on_flip_tabbed(None)
 
     # ..............................
     #
@@ -100,7 +100,7 @@ class UniDecApp(UniDecPres):
         :param e: unused space for event
         :return: None
         """
-        dlg = wx.FileDialog(self.view, "Choose a data file in x y list, mzML, or Thermo Raw format", '', "", "*.*")  # , wx.OPEN)
+        dlg = wx.FileDialog(self.view, "Choose a data file in x y list, mzML, or Thermo Raw format", '', "", "*.*")
         if dlg.ShowModal() == wx.ID_OK:
             self.view.SetStatusText("Opening", number=5)
             self.eng.config.filename = dlg.GetFilename()
@@ -390,6 +390,7 @@ class UniDecApp(UniDecPres):
         :param e: unused space for event
         :return: None
         """
+        print "Peak Picking"
         self.view.SetStatusText("Detecting Peaks", number=5)
         self.export_config(self.eng.config.confname)
         self.eng.pick_peaks()
@@ -402,7 +403,6 @@ class UniDecApp(UniDecPres):
             self.makeplot4(1)
 
         self.view.SetStatusText("Peak Pick Done", number=5)
-        print "Peak Picking"
         pass
 
     def on_plot_peaks(self, e=None):
@@ -607,7 +607,7 @@ class UniDecApp(UniDecPres):
                         y = p.integral
                     else:
                         y = 0
-                    self.view.plot6.plotadddot(i + 0.5, y, p.color, p.marker)
+                    self.view.plot6.plotadddot(i, y, p.color, p.marker)
             self.view.plot6.repaint()
 
     def on_plot_composite(self, e=None):
@@ -764,7 +764,7 @@ class UniDecApp(UniDecPres):
         peaksel = self.view.peakpanel.selection2
         pmasses = np.array([p.mass for p in self.eng.pks.peaks])
         peakdiff = pmasses - peaksel
-        print peakdiff
+        # print peakdiff
 
         self.view.plot2.textremove()
         for i, d in enumerate(peakdiff):
@@ -1042,7 +1042,7 @@ class UniDecApp(UniDecPres):
         :param e: unused event
         :return: None
         """
-        dlg = wx.FileDialog(self.view, "Locate the UniDec Executable", self.eng.config.UniDecDir, "", "*.*", wx.OPEN)
+        dlg = wx.FileDialog(self.view, "Locate the UniDec Executable", self.eng.config.UniDecDir, "", "*.*")
         if dlg.ShowModal() == wx.ID_OK:
             self.eng.config.UniDecName = dlg.GetFilename()
             self.eng.config.UniDecDir = dlg.GetDirectory()
@@ -1585,7 +1585,10 @@ class UniDecApp(UniDecPres):
 
     def remake_mainwindow(self, tabbed=None):
         iconfile = self.view.icon_path
-        self.view.Destroy()
+        # evt=EventManager()
+        # print evt.GetStats()
+        wx.Yield()
+        self.view.on_exit()
         self.view = []
         self.view = mainwindow.Mainwindow(self, "UniDec", self.eng.config, iconfile=iconfile, tabbed=tabbed)
         self.view.Show()

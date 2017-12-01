@@ -59,7 +59,7 @@ class NativeZ(wx.Dialog):
         wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
         defaultsize = [1400, 1000]
         displaysize = wx.GetDisplaySize()
-        self.figsize = (5.5, 3.75)
+        self.figsize = (4.75, 3)
         if defaultsize[0] > displaysize[0]:
             defaultsize[0] = np.round(displaysize[0] * 0.9)
             self.figsize = (3, 2)
@@ -165,7 +165,7 @@ class NativeZ(wx.Dialog):
         hbox3 = wx.BoxSizer(wx.HORIZONTAL)
         self.zlistctrl = ColorList(pnl)
         hbox3.Add(self.zlistctrl, 1, wx.EXPAND)
-        hbox3.Add(self.plot7, 0)
+        hbox3.Add(self.plot7, 0, wx.EXPAND)
         sbs.Add(hbox3, 0, wx.EXPAND)
 
         pnl.SetSizer(sbs)
@@ -686,7 +686,7 @@ class ColorList(wx.Panel):
         if len(colorarray) < 4:
             colorarray.append(255)
         colorbox = wx.ColourPickerCtrl(self.ultimateList, size=size,
-                                       col=wx.Colour(colorarray[0], colorarray[1], colorarray[2], alpha=colorarray[3]))
+                                       colour=wx.Colour(int(colorarray[0]), int(colorarray[1]), int(colorarray[2]), alpha=int(colorarray[3])))
         self.ultimateList.SetItemWindow(index, col=3, wnd=colorbox, expand=True)
         self.ultimateList.SetStringItem(index, 4, str(self.buttontot))
         deletebutton = wx.Button(self.ultimateList, label="Delete", id=self.buttontot)

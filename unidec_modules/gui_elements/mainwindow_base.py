@@ -1,8 +1,9 @@
 import wx
 import platform, os
-from wx.lib.pubsub import pub
+from pubsub import pub
 import numpy as np
 import unidec_modules.miscwindows as miscwindows
+
 
 class MainwindowBase(wx.Frame):
     """
@@ -24,8 +25,8 @@ class MainwindowBase(wx.Frame):
         self.config = config
         self.title = title
         self.controls = None
-        self.plots=[]
-        self.plotnames=[]
+        self.plots = []
+        self.plotnames = []
 
         self.version = self.pres.eng.version
 
@@ -133,8 +134,8 @@ class MainwindowBase(wx.Frame):
             name1 = header + "_" + self.plotnames[i] + "." + extension
             if plot.flag:
                 plot.on_save_fig(e, name1, **kwargs)
-                figureflags.append(1)
-                files.append([1, name1])
+                figureflags.append(i + 1)
+                files.append([i + 1, name1])
         return figureflags, files
 
     def on_save_figure_eps(self, e):
@@ -227,7 +228,7 @@ class MainwindowBase(wx.Frame):
             plot.resize = 0
             plot.canvas.SetSize(figsize2)
             plot.canvas.draw()
-            #plot.set_nticks(5)
+            # plot.set_nticks(5)
             plot.subplot1.set_position(self.rect)
             if plot.cbar is not None:
                 plot.cbar.ax.set_position([0.85, 0.2, 0.05, 0.7])
@@ -274,10 +275,11 @@ class MainwindowBase(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
 
-    def on_exit(self, e):
+    def on_exit(self, e=None):
         """
         Exit the Program
         :param e: Dummy wx event
         :return: None
         """
+        pub.unsubAll()
         self.Close(True)

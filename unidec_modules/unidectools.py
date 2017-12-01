@@ -1,5 +1,3 @@
-from unidec_modules import plot2d
-import wx
 import os
 import platform
 import sys
@@ -22,6 +20,7 @@ from scipy import fftpack
 # import pyfftw
 import matplotlib.cm as cm
 import mzMLimporter
+
 try:
     import data_reader
 except:
@@ -82,7 +81,7 @@ except (OSError, NameError):
 
 
 def match_files(directory, string):
-    files=[]
+    files = []
     for file in os.listdir(directory):
         if fnmatch.fnmatch(file, string):
             files.append(file)
@@ -579,7 +578,7 @@ def load_mz_file(path, config=None):
     else:
         extension = config.extension.lower()
 
-    if  extension == ".txt":
+    if extension == ".txt":
         data = np.loadtxt(path, skiprows=header_test(path))
     elif extension == ".mzml":
         data = mzMLimporter.mzMLimporter(path).get_data()
@@ -743,7 +742,7 @@ def datasimpsub(datatop, buff):
     :return: Subtracted data
     """
     length = len(datatop)
-    buff=int(buff)
+    buff = int(buff)
     frontpart = np.mean(datatop[:buff, 1])
     backpart = np.mean(datatop[length - buff - 1:length - 1, 1])
     background = frontpart + (backpart - frontpart) / length * np.arange(length)
@@ -886,15 +885,13 @@ def savgol_background_subtract(datatop, width, cutoff_percent=0.25):
 
 
 def gaussian_backgroud_subtract(datatop, sig):
-    background=deepcopy(datatop)
-    #background[:,1]=np.log(background[:,1])
-    gsmooth(background,sig)
-    datatop[:,1]-=background[:,1]
+    background = deepcopy(datatop)
+    # background[:,1]=np.log(background[:,1])
+    gsmooth(background, sig)
+    datatop[:, 1] -= background[:, 1]
     normalize(datatop)
-    datatop[datatop[:,1]<0,1]=0
+    datatop[datatop[:, 1] < 0, 1] = 0
     return datatop
-
-
 
 
 def intensitythresh(datatop, thresh):
@@ -1101,12 +1098,12 @@ def fake_log(data):
 
 
 def remove_middle_zeros(data):
-    boo1=data[1:len(data)-1,1]!=0
-    boo2=data[:len(data)-2,1]!=0
-    boo3=data[2:len(data),1] != 0
-    boo4=np.logical_or(boo1,boo2)
-    boo5=np.logical_or(boo3,boo4)
-    boo6=np.concatenate(([True],boo5,[True]))
+    boo1 = data[1:len(data) - 1, 1] != 0
+    boo2 = data[:len(data) - 2, 1] != 0
+    boo3 = data[2:len(data), 1] != 0
+    boo4 = np.logical_or(boo1, boo2)
+    boo5 = np.logical_or(boo3, boo4)
+    boo6 = np.concatenate(([True], boo5, [True]))
     return data[boo6]
 
 
@@ -1148,7 +1145,6 @@ def dataprep(datatop, config):
     if smooth > 0:
         data2 = gsmooth(data2, smooth)
 
-
     # Remove Duplicate Data Points
     data2 = removeduplicates(data2)
 
@@ -1158,7 +1154,6 @@ def dataprep(datatop, config):
             data2 = linearize(data2, binsize, linflag)
         else:
             data2 = nonlinearize(data2, binsize)
-
 
     # Baseline Subtraction
     buff = abs(buff)
@@ -1191,7 +1186,7 @@ def dataprep(datatop, config):
         data2[:, 1] = fake_log(data2[:, 1])
         data2[:, 1] -= np.amin(data2[:, 1])
 
-    if linflag==2:
+    if linflag == 2:
         data2 = remove_middle_zeros(data2)
         pass
 
@@ -1744,17 +1739,18 @@ def voigt(x, mu=0, sigma=1, gamma=1, amp=1, background=0):
         v += background
     return v
 
+
 def exp_decay(x, gamma=1, a=1, background=0):
-    return np.exp(-gamma*x)*a+background
+    return np.exp(-gamma * x) * a + background
 
 
-def exp_fit(xvals, yvals, gguess=None, aguess=None,bguess=None):
+def exp_fit(xvals, yvals, gguess=None, aguess=None, bguess=None):
     """
     Simple exponential fitting function.
     """
-    xvals=np.array(xvals)
+    xvals = np.array(xvals)
     if gguess is None:
-        gguess = 2./np.mean(xvals)
+        gguess = 2. / np.mean(xvals)
     if aguess is None:
         aguess = np.amax(yvals)
     if bguess is None:
@@ -1764,17 +1760,19 @@ def exp_fit(xvals, yvals, gguess=None, aguess=None,bguess=None):
         guess = [gguess, aguess, bguess]
     fits = curve_fit(exp_decay, xvals, yvals, p0=guess, maxfev=1000000)[0]
     if bguess is None:
-        fitdat=exp_decay(xvals,gamma=fits[0],a=fits[1])#, background=fits[2])
+        fitdat = exp_decay(xvals, gamma=fits[0], a=fits[1])  # , background=fits[2])
     else:
         fitdat = exp_decay(xvals, gamma=fits[0], a=fits[1], background=fits[2])
     return fits, fitdat
 
+
 def lin_fit(xvals, yvals):
-    xvals=np.array(xvals)
+    xvals = np.array(xvals)
     outputs = stats.linregress(xvals, yvals)
     slope, intercept, rvalue, pvalue, slope_std_error = outputs
-    fitdat=xvals*slope + intercept
-    return np.array([slope,intercept]),fitdat
+    fitdat = xvals * slope + intercept
+    return np.array([slope, intercept]), fitdat
+
 
 def logistic(x, mid, slope, aspan, ymin):
     """Logistic function
@@ -1784,14 +1782,14 @@ def logistic(x, mid, slope, aspan, ymin):
 
 
 def sig_fit(xvals, yvals):
-    xvals=np.array(xvals)
-    yguess=np.amin(yvals)
-    Aguess=np.amax(yvals)-np.amin(yvals)
-    mguess=np.mean(xvals)
-    sguess=(yvals[len(yvals)-1]-yvals[0])/(xvals[len(xvals)-1]-xvals[0])/Aguess
-    guess=[mguess,sguess,Aguess,yguess]
+    xvals = np.array(xvals)
+    yguess = np.amin(yvals)
+    Aguess = np.amax(yvals) - np.amin(yvals)
+    mguess = np.mean(xvals)
+    sguess = (yvals[len(yvals) - 1] - yvals[0]) / (xvals[len(xvals) - 1] - xvals[0]) / Aguess
+    guess = [mguess, sguess, Aguess, yguess]
     fits = curve_fit(logistic, xvals, yvals, p0=guess, maxfev=1000000)[0]
-    fitdat=logistic(xvals,fits[0],fits[1],fits[2],fits[3])
+    fitdat = logistic(xvals, fits[0], fits[1], fits[2], fits[3])
     return fits, fitdat
 
 
@@ -2151,6 +2149,7 @@ def double_fft_diff(mzdata, diffrange=None, binsize=0.1, pad=None, preprocessed=
 
     return maxpos, ftext2
 
+
 def fft_process(mzdata, diffrange=None, binsize=0.1, pad=None, preprocessed=False):
     tstart = time.clock()
     if diffrange is None:
@@ -2170,7 +2169,8 @@ def fft_process(mzdata, diffrange=None, binsize=0.1, pad=None, preprocessed=Fals
     boo3 = np.all([boo1, boo2], axis=0)
     ftext2 = fft2[boo3]
 
-    return maxpos, ftext2, fftdat,fft2
+    return maxpos, ftext2, fftdat, fft2
+
 
 def windowed_fft(data, mean, sigma, diffrange=None):
     if diffrange is None:
@@ -2432,46 +2432,47 @@ def peaks_error_mean(pks, data, ztab, massdat, config):
         zgrid = []
         startindmass = nearest(massdat[:, 0], massdat[index, 0] - config.peakwindow)
         endindmass = nearest(massdat[:, 0], massdat[index, 0] + config.peakwindow)
-        #plotmasses = massdat[startindmass:endindmass, 0]
+        # plotmasses = massdat[startindmass:endindmass, 0]
         for z in range(0, len(ztab)):
             startind = startindmass + (z * length)
             endind = endindmass + (z * length)
             tmparr = data[startind:endind]
             ind = np.argmax(tmparr)
             ints.append(tmparr[ind])
-            #print massdat[startindmass + ind, 0]
+            # print massdat[startindmass + ind, 0]
             masses.append(massdat[startindmass + ind, 0])
-            #zgrid.extend(tmparr)
+            # zgrid.extend(tmparr)
         mean = np.average(masses, weights=ints)
-        #Calculate weighted standard deviation
+        # Calculate weighted standard deviation
         sum = 0
         denom = 0
         for w, m in enumerate(masses):
             sum += ints[w] * pow(m - mean, 2)
             denom += ints[w]
-        denom *= (len(ztab)-1)
+        denom *= (len(ztab) - 1)
         std = sum / denom
         std = std / len(ztab)
-        std = std**0.5
-        print mean
-        print std
-        #tab = wx.Frame(None, title="Test", size=(500, 500))
-        #plot = plot2d.Plot2d(tab, figsize=(500, 500))
-        #plot.contourplot(xvals=np.asarray(plotmasses), yvals=ztab, zgrid=np.asarray(zgrid),
+        std = std ** 0.5
+        # print mean
+        # print std
+        # tab = wx.Frame(None, title="Test", size=(500, 500))
+        # plot = plot2d.Plot2d(tab, figsize=(500, 500))
+        # plot.contourplot(xvals=np.asarray(plotmasses), yvals=ztab, zgrid=np.asarray(zgrid),
         #                 config=config, title="Mass vs. Charge", xlab="Mass (Da)",
         #                 normflag=1, test_kda=False, repaint=False)
-        #tab.Show()
+        # tab.Show()
         pk.errormean = std
-        #pks.peaks[count].errormean = abs(sums[count] - pks.peaks[count].mass)
+        # pks.peaks[count].errormean = abs(sums[count] - pks.peaks[count].mass)
 
 
 if __name__ == "__main__":
-    x=[0.,1.,2.,3.,4.]
-    y=[1,0.7,0.5,0.4,0.3]
+    x = [0., 1., 2., 3., 4.]
+    y = [1, 0.7, 0.5, 0.4, 0.3]
     import matplotlib.pyplot as plt
-    y=logistic(np.array(x),2,-10,1,1)
-    plt.plot(x,y)
+
+    y = logistic(np.array(x), 2, -10, 1, 1)
+    plt.plot(x, y)
     plt.show()
-    #fit=sig_fit(x,y)
-    #print fit
+    # fit=sig_fit(x,y)
+    # print fit
     pass

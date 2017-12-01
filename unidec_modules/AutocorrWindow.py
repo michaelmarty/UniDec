@@ -6,7 +6,6 @@ import unidec_modules.unidectools as ud
 
 __author__ = 'Michael.Marty'
 
-
 '''
 Window for viewing autocorrleation results
 '''
@@ -16,6 +15,7 @@ class CorrListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
     """
     Class for the list control of peak values
     """
+
     def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
         """
         Create a two column list control
@@ -44,9 +44,10 @@ class CorrListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         self.DeleteAllItems()
         for i in range(0, pks.plen):
             p = pks.peaks[i]
-            self.InsertStringItem(i, p.textmarker)
-            self.SetStringItem(i, 1, str(p.mass))
-            color = wx.Colour(round(p.color[0] * 255), round(p.color[1] * 255), round(p.color[2] * 255), alpha=255)
+            self.InsertItem(i, p.textmarker)
+            self.SetItem(i, 1, str(p.mass))
+            color = wx.Colour(int(round(p.color[0] * 255)), int(round(p.color[1] * 255)), int(round(p.color[2] * 255)),
+                              alpha=255)
             self.SetItemBackgroundColour(i, col=color)
 
     def clear_list(self):
@@ -61,6 +62,7 @@ class CorrListCtrlPanel(wx.Panel):
     """
     Panel for the ListCtrl
     """
+
     def __init__(self, parent):
         """
         Creates the panel.
@@ -79,6 +81,7 @@ class AutocorrWindow(wx.Dialog):
     """
     Dialog window for autocorrelation.
     """
+
     def __init__(self, *args, **kwargs):
         """
         Creates a dialog.

@@ -23,9 +23,9 @@ class TreeCtrlPanel(wx.Panel):
 
         isz = (16, 16)
         il = wx.ImageList(isz[0], isz[1])
-        self.fldridx = il.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, isz))
-        self.fldropenidx = il.Add(wx.ArtProvider_GetBitmap(wx.ART_FILE_OPEN, wx.ART_OTHER, isz))
-        self.fileidx = il.Add(wx.ArtProvider_GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, isz))
+        self.fldridx = il.Add(wx.ArtProvider.GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, isz))
+        self.fldropenidx = il.Add(wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN, wx.ART_OTHER, isz))
+        self.fileidx = il.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, isz))
 
         self.tree.SetImageList(il)
         self.il = il
@@ -127,8 +127,8 @@ class TreeCtrlPanel(wx.Panel):
 
 
     def OnSize(self, event):
-        w, h = self.GetClientSizeTuple()
-        self.tree.SetDimensions(0, 0, w, h)
+        w, h = self.GetClientSize()
+        self.tree.SetSize(0, 0, w, h)
 
 
     def on_selected_changed(self, event):

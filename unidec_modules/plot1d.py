@@ -110,7 +110,7 @@ class Plot1d(PlottingWindow):
     def errorbars(self, xvals, yvals, xerr=None, yerr=None, color="black",newlabel="", nopaint=True, **kwargs):
         self.subplot1.errorbar(np.array(xvals) / self.kdnorm, yvals, xerr=xerr, yerr=yerr, color=color, label=newlabel,
                                **kwargs)
-        self.setup_zoom([self.subplot1], self.zoomtype)
+        self.setup_zoom([self.subplot1], self.zoomtype, pad=0.02)
         if not nopaint:
             self.repaint()
 
@@ -222,7 +222,7 @@ class Plot1d(PlottingWindow):
         """
         self.clear_plot("nopaint")
         self.zoomtype = zoom
-        xticloc = np.array(xarr) + 0.5
+        xticloc = np.array(xarr)
         peaklab = [str(p) for p in peakval]
         self.subplot1 = self.figure.add_axes(self._axes, xticks=xticloc)
         self.subplot1.set_xticklabels(peaklab, rotation=90, fontsize=8)
@@ -230,6 +230,8 @@ class Plot1d(PlottingWindow):
         self.subplot1.set_xlabel(xlabel)
         self.subplot1.set_ylabel(ylabel)
         self.subplot1.set_title(title)
+        self.subplot1.spines['top'].set_visible(False)
+        self.subplot1.spines['right'].set_visible(False)
 
 
     #TODO make the axes work for negative and positive bars
@@ -252,7 +254,7 @@ class Plot1d(PlottingWindow):
         """
         self.clear_plot("nopaint")
         self.zoomtype = zoom
-        xticloc = np.array(xarr) + 0.5
+        xticloc = np.array(xarr)
         peaklab = [str(p) for p in peakval]
         self.subplot1 = self.figure.add_axes(self._axes, xticks=xticloc, ymargin=1)
         self.subplot1.set_xticklabels(peaklab, rotation=90, fontsize=8)
@@ -291,5 +293,7 @@ class Plot1d(PlottingWindow):
         self.setup_zoom([self.subplot1], self.zoomtype)
         self.flag = True
         self.subplot1.set_ylim(left, right)
+        self.subplot1.spines['top'].set_visible(False)
+        self.subplot1.spines['right'].set_visible(False)
         if repaint:
             self.repaint()
