@@ -7,6 +7,8 @@ import unidecstructure
 import plot2d
 import plot1d
 import unidectools as ud
+from MassFitter import MassFitter
+from unidec_modules import miscwindows
 
 __author__ = 'Michael.Marty'
 
@@ -51,8 +53,23 @@ class Extract2DPlot(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_save_fig, self.menuSaveFigPNG)
         self.Bind(wx.EVT_MENU, self.on_save_figPDF, self.menuSaveFigPDF)
 
+        self.plotmenu = wx.Menu()
+        self.menufit = self.plotmenu.Append(wx.ID_ANY, "Fit Gaussians",
+                                            "Fit total distribution to a series of Gaussians")
+        self.menufit2 = self.plotmenu.Append(wx.ID_ANY, "Fit Poisson",
+                                             "Fit total distribution to a Poisson Distribution")
+        self.menufit3 = self.plotmenu.Append(wx.ID_ANY, "Fit Binomial",
+                                             "Fit total distribution to a Binomial Distribution")
+        self.menufit4 = self.plotmenu.Append(wx.ID_ANY, "Fit Multiple Poissons",
+                                             "Fit total distribution to multiple Poisson distributions")
+        self.Bind(wx.EVT_MENU, self.on_fit, self.menufit)
+        self.Bind(wx.EVT_MENU, self.on_fit2, self.menufit2)
+        self.Bind(wx.EVT_MENU, self.on_fit3, self.menufit3)
+        self.Bind(wx.EVT_MENU, self.on_fit4, self.menufit4)
+
         self.menuBar = wx.MenuBar()
         self.menuBar.Append(self.filemenu, "&File")
+        self.menuBar.Append(self.plotmenu, "Plot")
         self.SetMenuBar(self.menuBar)
         # Initialize Parameters
         if config is None:
@@ -74,6 +91,7 @@ class Extract2DPlot(wx.Frame):
 
         if params is None:
             self.params = [98868, 760.076, 22044, 0, 90, 0, 2, 0]
+            self.params = [0, 4493, 678, 1, 20, 0, 30, 10]
         else:
             self.params = params
 
@@ -231,6 +249,7 @@ class Extract2DPlot(wx.Frame):
         try:
             self.plot1.plotrefreshtop(np.unique(self.m1grid), np.sum(self.igrid[i], axis=1), title, "mass 1",
                                       "Total Intensity", "", self.config, test_kda=False, nopaint=False)
+            self.data1d = np.transpose([np.unique(self.m1grid), np.sum(self.igrid[i], axis=1)])
         except Exception, e:
             self.plot1.clear_plot()
             print "Failed Plot1", e
@@ -257,6 +276,7 @@ class Extract2DPlot(wx.Frame):
             self.plot1.plotrefreshtop(np.unique(self.m1grid), np.sum(grid, axis=1), "Total Projection", "mass 1",
                                       "Total Intensity", "", self.config, test_kda=False, nopaint=False)
             outputdata = np.transpose([np.unique(self.m1grid), np.sum(grid, axis=1)])
+            self.data1d = outputdata
             outfile = os.path.join(self.directory, self.header + "_total_2D_Extract.txt")
             np.savetxt(outfile, outputdata)
         except Exception, e:
@@ -284,6 +304,7 @@ class Extract2DPlot(wx.Frame):
             self.plot1.plotrefreshtop(np.unique(self.m1grid), np.average(grid, axis=1), "Average Projection", "mass 1",
                                       "Average Position", "", self.config, test_kda=False, nopaint=False)
             outputdata = np.transpose([np.unique(self.m1grid), np.average(grid, axis=1)])
+            self.data1d = outputdata
             outfile = os.path.join(self.directory, self.header + "_WAP_2D_Extract.txt")
             np.savetxt(outfile, outputdata)
         except Exception, e:
@@ -379,28 +400,56 @@ class Extract2DPlot(wx.Frame):
             self.plot2.on_save_fig(e, name2)
             # print name2
 
+    def on_fit(self, e):
+        peaks = ud.peakdetect(self.data1d, window=5)
+        print "Peaks:", peaks[:, 0]
+        peaks = np.concatenate((peaks, [[0, np.amin(self.data1d[:, 1])]]))
+        fitdat, fits = MassFitter(self.data1d, peaks, 3, "microguess").perform_fit()
+        print "Fits:", fits[:, 0]
+
+        self.plot1.plotadd(self.data1d[:, 0], fitdat, "green", nopaint=False)
+        self.plot1.repaint()
+
+    def on_fit2(self, e):
+        fits, fitdat = ud.poisson_fit(self.data1d[:, 0], self.data1d[:, 1])
+        print "Fits:", fits
+        self.plot1.plotadd(self.data1d[:, 0], fitdat, "green", nopaint=False)
+        self.plot1.repaint()
+
+    def on_fit3(self, e):
+        fits, fitdat = ud.binomial_fit(self.data1d[:, 0], self.data1d[:, 1])
+        print "Fits:", fits
+        self.plot1.plotadd(self.data1d[:, 0], fitdat, "green", nopaint=False)
+        self.plot1.repaint()
+
+    def on_fit4(self, e):
+        dialog = miscwindows.SingleInputDialog(self)
+        dialog.initialize_interface(title="Possible Oligomers", message="Potential Oligomers (comma separated): ")
+        dialog.ShowModal()
+        self.run_multip(dialog.value)
+
+    def run_multip(self, string):
+        try:
+            array = string.split(",")
+            array = np.array(array).astype(np.int)
+            fits, fitdat, i1, i2 = ud.complex_poisson(self.data1d, array, background=True)
+            print "Fits:", fits
+            self.plot1.plotadd(self.data1d[:, 0], fitdat, "green", nopaint=False)
+            self.plot1.subplot1.bar(array, i2 / np.amax(i2) * np.amax(self.data1d[:, 1]))
+            self.plot1.subplot1.set_ylim(0, np.amax(self.data1d[:, 1]))
+            self.plot1.repaint()
+        except Exception, e:
+            print e
+
 
 # Main App Execution
 if __name__ == "__main__":
-    dir_name = "C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3\\MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit100_unidecfiles"
-    file_name = "MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit100_mass.txt"
+    data3 = np.loadtxt(
+        "C:\UniDecPastedSpectra\PastedSpectrum_2017_Dec_11_11_30_45_unidecfiles\PastedSpectrum_2017_Dec_11_11_30_45_mass.txt")
 
-    path = os.path.join(dir_name, file_name)
-
-    data = np.loadtxt(path)
-
-    dir_name = "C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3\\MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit120_unidecfiles"
-    file_name = "MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit120_mass.txt"
-    path = os.path.join(dir_name, file_name)
-    data2 = np.loadtxt(path)
-
-    dir_name = "C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3\\MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit180_unidecfiles"
-    file_name = "MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit180_mass.txt"
-    path = os.path.join(dir_name, file_name)
-    data3 = np.loadtxt(path)
-
-    datalist = [data, data2, data3]
+    datalist = [data3]
 
     app = wx.App(False)
-    frame = Extract2DPlot(None, datalist, yvals=np.array([100., 120., 180.]))
+    frame = Extract2DPlot(None, datalist)
+    frame.run_multip("1,2,3,4,5,6")
     app.MainLoop()

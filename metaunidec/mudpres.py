@@ -641,6 +641,8 @@ class UniDecApp(UniDecPres):
         for i, l in enumerate(listdat):
             self.eng.data.var1[i] = l[1]
             self.eng.data.var2[i] = l[2]
+            self.eng.data.spectra[i].var1 = l[1]
+            self.eng.data.spectra[i].var2 = l[2]
         self.eng.data.export_hdf5()
 
     def on_left_click(self, xpos, ypos):
