@@ -371,7 +371,7 @@ double extract_switch(Config config, const double peak, const double *xvals, con
 }
 
 
-void peak_extracts(Config config, const double *peakx, hid_t file_id, const char *dtype, int plen)
+void peak_extracts(Config config, const double *peakx, hid_t file_id, const char *dtype, int plen, int ultra)
 {
 	char dataset[1024];
 	char outdat[1024];
@@ -458,14 +458,17 @@ void peak_extracts(Config config, const double *peakx, hid_t file_id, const char
 
 	strcpy(dataset, "/peaks");
 	makegroup(file_id, dataset);
-	strjoin(dataset, "/extracts", outdat);
+	if (ultra)
+		strjoin(dataset, "/ultraextracts", outdat);
+	else
+		strjoin(dataset, "/extracts", outdat);
 	printf("\tWriting Extracts to: %s\t%d %d %f\n", outdat, config.exchoice, config.exnorm, config.exwindow);
 	mh5writefile2d_grid(file_id, outdat, num, plen, extracts);
 
 	free(extracts);
 }
 
-void get_peaks(int argc, char *argv[], Config config)
+void get_peaks(int argc, char *argv[], Config config, int ultra)
 {
 
 	hid_t file_id;
@@ -475,6 +478,7 @@ void get_peaks(int argc, char *argv[], Config config)
 
 	file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 
+	if (!ultra){
 	//Read In Data
 	strcpy(dataset, "/ms_dataset");
 	strjoin(dataset, "/mass_axis", outdat);
@@ -511,11 +515,31 @@ void get_peaks(int argc, char *argv[], Config config)
 	printf("\tWriting %d Peaks to: %s\n", plen, outdat);
 	mh5writefile2d(file_id, outdat, plen, peakx, peaky);
 
-	peak_extracts(config, peakx, file_id, "/mass_data", plen);
+	
+	peak_extracts(config, peakx, file_id, "/mass_data", plen, 0);
 
 	free(peakx);
 	free(peaky);
 	free(massaxis);
 	free(masssum);
+	}
+	else {
+		strcpy(dataset, "/peaks");
+		strjoin(dataset, "/ultrapeakdata", outdat);
+		printf("Importing Peaks: %s\n", outdat);
+
+		int plen = mh5getfilelength(file_id, outdat);
+		double *peakx = NULL;
+		peakx = calloc(plen, sizeof(double));
+		mh5readfile1d(file_id, outdat, peakx);
+
+		peak_extracts(config, peakx, file_id, "/mass_data", plen, 1);
+
+		free(peakx);
+
+	}
+	//CLOSE THE FILE HERE
 }
 
+// peak_extracts() extracts for each row in /peakdata and writes to /extracts
+//TODO: in peak_extracts() find way to only search for masses from the ultra mass list

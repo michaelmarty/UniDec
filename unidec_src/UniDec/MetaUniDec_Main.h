@@ -30,6 +30,7 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 		else if (strcmp(argv[2], "-grids") == 0) { mode = 3; }
 		else if (strcmp(argv[2], "-all") == 0) { mode = 4; }
 		else if (strcmp(argv[2], "-extract") == 0) { mode = 5; }
+		else if (strcmp(argv[2], "-ultraextract") == 0) { mode = 6; }
 	}
 
 
@@ -63,14 +64,20 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 		printf("Making Merged Grids\n");
 		make_grid(argc, argv, config, "/mass_data", "/mass_grid", "/mass_axis", "/mass_sum");
 		make_grid(argc, argv, config, "/processed_data", "/mz_grid", "/mz_axis", "/mz_sum");
-		get_peaks(argc, argv, config);
+		get_peaks(argc, argv, config, 0);
 		//get_peak_widths(argc, argv, config);
 	}
 
 	if (mode == 5)
 	{
 		printf("Extracting Data\n");
-		get_peaks(argc, argv, config);
+		get_peaks(argc, argv, config, 0);
+	}
+
+	if (mode == 6)
+	{
+		printf("Extracting Data ULTRA\n");
+		get_peaks(argc, argv, config, 1);
 	}
 
 	return 0;
