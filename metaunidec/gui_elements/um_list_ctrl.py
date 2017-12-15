@@ -21,22 +21,22 @@ class XValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         self.DeleteAllItems()
         for i in range(0, len(listctrldata)):
             try:
-                index = self.InsertStringItem(sys.maxint, listctrldata[i][0])
-                self.SetStringItem(index, 1, listctrldata[i][1])
+                index = self.InsertItem(sys.maxint, listctrldata[i][0])
+                self.SetItem(index, 1, listctrldata[i][1])
                 self.SetItemData(index, i)
             except (ValueError, TypeError):
-                index = self.InsertStringItem(sys.maxint, listctrldata[i])
+                index = self.InsertItem(sys.maxint, listctrldata[i])
 
     def clear_list(self):
         self.DeleteAllItems()
 
     def add_line(self, val=0, marker=u'\u25CB'):
         try:
-            index = self.InsertStringItem(sys.maxint, marker)
-            self.SetStringItem(index, 1, str(int(val)))
+            index = self.InsertItem(sys.maxint, marker)
+            self.SetItem(index, 1, str(int(val)))
         except:
-            index = self.InsertStringItem(sys.maxint, str(u'\u25CB'))
-            self.SetStringItem(index, 1, str(0))
+            index = self.InsertItem(sys.maxint, str(u'\u25CB'))
+            self.SetItem(index, 1, str(0))
 
     def get_list(self):
         count = self.GetItemCount()
@@ -65,17 +65,17 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def populate(self, listctrldata, colors=None):
         self.DeleteAllItems()
         for i in range(0, len(listctrldata)):
-            index = self.InsertStringItem(sys.maxint, str(listctrldata[i][0]))
-            self.SetStringItem(index, 1, str(listctrldata[i][1]))
-            self.SetStringItem(index, 2, str(listctrldata[i][2]))
+            index = self.InsertItem(sys.maxint, str(listctrldata[i][0]))
+            self.SetItem(index, 1, str(listctrldata[i][1]))
+            self.SetItem(index, 2, str(listctrldata[i][2]))
             try:
-                self.SetStringItem(index, 3, str(listctrldata[i][3]))
+                self.SetItem(index, 3, str(listctrldata[i][3]))
             except (ValueError, TypeError):
-                self.SetStringItem(index, 3, "")
+                self.SetItem(index, 3, "")
             self.SetItemData(index, i)
             if colors is not None:
-                color = wx.Colour(round(colors[i][0] * 255), round(colors[i][1] * 255), round(colors[i][2] * 255),
-                                  alpha=255)
+                color = wx.Colour(int(round(colors[i][0] * 255)), int(round(colors[i][1] * 255)),
+                                  int(round(colors[i][2] * 255)), alpha=255)
                 self.SetItemBackgroundColour(index, col=color)
 
     def clear_list(self):
@@ -84,10 +84,10 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def add_line(self, file_name="file.txt", var1=None, var2="-"):
         if var1 is None:
             var1 = "k"
-        index = self.InsertStringItem(sys.maxint, str(file_name))
-        self.SetStringItem(index, 1, str(var1))
-        self.SetStringItem(index, 2, str(var2))
-        self.SetStringItem(index, 3, str(""))
+        index = self.InsertItem(sys.maxint, str(file_name))
+        self.SetItem(index, 1, str(var1))
+        self.SetItem(index, 2, str(var2))
+        self.SetItem(index, 3, str(""))
 
     def get_list(self):
         count = self.GetItemCount()
@@ -173,7 +173,7 @@ class ListCtrlPanel(wx.Panel):
         num = self.list.GetSelectedItemCount()
         for i in range(1, num):
             item = self.list.GetNextSelected(item)
-            self.list.SetStringItem(item, 1, val)
+            self.list.SetItem(item, 1, val)
 
     def on_popup_four(self, event):
         item = self.list.GetFirstSelected()
@@ -181,7 +181,7 @@ class ListCtrlPanel(wx.Panel):
         num = self.list.GetSelectedItemCount()
         for i in range(1, num):
             item = self.list.GetNextSelected(item)
-            self.list.SetStringItem(item, 2, val)
+            self.list.SetItem(item, 2, val)
 
     def on_popup_five(self, event):
         item = self.list.GetFirstSelected()
@@ -189,7 +189,7 @@ class ListCtrlPanel(wx.Panel):
         num = self.list.GetSelectedItemCount()
         for i in range(1, num):
             item = self.list.GetNextSelected(item)
-            self.list.SetStringItem(item, 3, val)
+            self.list.SetItem(item, 3, val)
 
     def on_popup_six(self, event):
         item = self.list.GetFirstSelected()

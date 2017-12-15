@@ -134,6 +134,10 @@ The Python GUI and engine are licensed under the [GNU Public License (v.3)](http
 
 ## Change Log
 
+v. 2.4.0
+
+Update to Ultrameta Data Collector to specify the location of the peaks explicitly.
+
 v. 2.3.0
 
 Compatibility upgrades to support the most recent version of many of the major packages. Upgrade to wxpython 4.0, matplotlib 2.1, and scipy 1.0.

@@ -538,7 +538,7 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 		free(peakx);
 
 	}
-	//CLOSE THE FILE HERE
+	H5Fclose(file_id);
 }
 
 // peak_extracts() extracts for each row in /peakdata and writes to /extracts

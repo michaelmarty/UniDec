@@ -8,8 +8,8 @@ import numpy as np
 import matplotlib.cm as cm
 from matplotlib.pyplot import colormaps
 from matplotlib import rcParams
-from wx.lib.pubsub import setupkwargs
-from wx.lib.pubsub import pub
+
+from pubsub import pub
 import wx.lib.scrolledpanel as scrolled
 import multiprocessing
 from unidec_modules import UniFit, Extract2D, unidecstructure, PlotAnimations, plot1d, plot2d, miscwindows, \
@@ -137,11 +137,11 @@ class DataCollector(wx.Frame):
         self.runsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.runsizer.Add(self.xpanelsizer, 0, wx.EXPAND)
         self.ctlnorm = wx.RadioBox(self.panel, label="Extract Normalization",
-                                    choices=["None", "Max", "Sum", "Peak Max", "Peak Sum"], majorDimension=1,
-                                    style=wx.RA_SPECIFY_COLS)
+                                   choices=["None", "Max", "Sum", "Peak Max", "Peak Sum"], majorDimension=1,
+                                   style=wx.RA_SPECIFY_COLS)
         self.ctlextractwindow = wx.TextCtrl(self.panel, value="", size=(100, 20))
         self.ctlextract = wx.ComboBox(self.panel, value="Height", size=(150, 30), choices=extractchoices.values(),
-                                     style=wx.CB_READONLY)
+                                      style=wx.CB_READONLY)
         self.ctlextractwindow.SetValue("0")
         self.runbutton = wx.Button(self.panel, label="Run Extraction", size=(200, 200))
         self.runbutton.SetBackgroundColour((0, 200, 0))
@@ -158,8 +158,10 @@ class DataCollector(wx.Frame):
         self.inputsizer.Add(self.ypanelsizer, 0, wx.EXPAND)
         self.sizer.Add(self.inputsizer, 1, wx.EXPAND)
 
-        self.plot1 = plot1d.Plot1d(self.panel)
-        self.plot2 = plot1d.Plot1d(self.panel)
+        figsize = (7, 5)
+        axes = [0.12, 0.12, 0.65, 0.8]
+        self.plot1 = plot1d.Plot1d(self.panel, figsize=figsize, axes=axes)
+        self.plot2 = plot1d.Plot1d(self.panel, figsize=figsize, axes=axes)
         self.plotsizer = wx.BoxSizer(wx.VERTICAL)
         self.plotsizer.Add(self.plot1, 0, wx.EXPAND)
         self.plotsizer.Add(self.plot2, 0, wx.EXPAND)
@@ -188,16 +190,11 @@ class DataCollector(wx.Frame):
         self.Centre()
         self.Show(True)
 
-        try:
-            self.load_x_from_peaks(0)
-        except (ValueError, TypeError, AttributeError):
-            print "Failed to load from peak list"
-
         if __name__ == "__main__":
             # testdir = "C:\Python\UniDec\unidec_src\UniDec\\x64\Release"
             try:
                 testdir = "Z:\\Group Share\\Deseree\\Ciara\\Test"
-                testfile = "collection1.json"
+                testfile = "collection2.json"
                 testdir = "C:\\Data\\Triplicate Data"
                 self.load(os.path.join(testdir, testfile))
                 pass
@@ -211,24 +208,44 @@ class DataCollector(wx.Frame):
             y = self.yvals[index]
             path = y[0]
             if os.path.isfile(path):
+                print path
                 self.hdf5_file = path
                 self.hdf = h5py.File(path, 'r')
                 pdataset = self.hdf.require_group("/peaks")
-                peaks = get_dataset(pdataset, "peakdata")
+                ultrapeaks = get_dataset(pdataset, "ultrapeakdata")
+                peaks = get_dataset(pdataset, "peakdata")[:, 0]
+                self.hdf.close()
+                if not ud.isempty(ultrapeaks):
+                    peaks = ultrapeaks
                 indexes = np.arange(0, len(peaks))
                 self.xpanel.list.clear_list()
                 if not ud.isempty(indexes):
                     for i in indexes:
                         marker = mdkeys[i % len(mdkeys)]
-                        self.xpanel.list.add_line(val=i, marker=marker)
+                        self.xpanel.list.add_line(val=peaks[i], marker=marker)
         except Exception, ex:
             print "Unable to detect peaks", ex
+        self.load_params_from_hdf5()
+
+    def load_params_from_hdf5(self, e=None, index=0):
+        y = self.yvals[index]
+        path = y[0]
+        self.hdf5_file = path
+        self.hdf = h5py.File(path)
+        self.config.hdf_file = path
+        self.update_config()
+        h5_config = self.hdf.require_group("config")
+        self.config.exnorm = h5_config.attrs["exnorm"]
+        self.config.exchoice = h5_config.attrs["exchoice"]
+        self.config.exwindow = h5_config.attrs["exwindow"]
+        self.hdf.close()
+        self.update_gui()
 
     def on_save(self, e):
         self.update_get(e)
         # print "Saved: ",self.gridparams
         outdict = {"x": self.xvals, "y": self.yvals, "dir": self.directory}
-        dlg = wx.FileDialog(self, "Save Collection in JSON Format", self.directory, self.savename, "*.json", wx.SAVE)
+        dlg = wx.FileDialog(self, "Save Collection in JSON Format", self.directory, self.savename, "*.json")
         if dlg.ShowModal() == wx.ID_OK:
             self.savename = dlg.GetPath()
             with open(self.savename, "w") as outfile:
@@ -237,7 +254,7 @@ class DataCollector(wx.Frame):
         dlg.Destroy()
 
     def on_load(self, e):
-        dlg = wx.FileDialog(self, "Load JSON Collection", self.directory, self.savename, "*.json", wx.OPEN)
+        dlg = wx.FileDialog(self, "Load JSON Collection", self.directory, self.savename, "*.json")
         if dlg.ShowModal() == wx.ID_OK:
             self.savename = dlg.GetPath()
             self.load(self.savename)
@@ -253,6 +270,7 @@ class DataCollector(wx.Frame):
         if "dir" in indict:
             self.directory = indict["dir"]
         self.update_set(0)
+        self.load_x_from_peaks(0)
         print "Loaded: ", savename
         self.on_run(0)
 
@@ -297,6 +315,7 @@ class DataCollector(wx.Frame):
     runs the Unidec.exe -extract functions on the data. Then, plots the peaks from the hdf5
     extracts group. If the labels are the same on multiple files, then error bars are displayed.
     """
+
     def on_run(self, e=None, fit=None):
         tstart = time.clock()
         self.plot1.clear_plot()
@@ -307,6 +326,7 @@ class DataCollector(wx.Frame):
         labels = np.array(self.yvals)[:, 3]
         uniquelabels = np.unique(labels)
         output = []
+
         if ud.isempty(self.xvals):
             self.xvals = [[u'\u25CB', 0]]
 
@@ -316,7 +336,7 @@ class DataCollector(wx.Frame):
             if self.localpath == 1:
                 path = os.path.join(self.directory, path)
             self.hdf5_file = path
-            self.hdf = h5py.File(path, "r+")
+            self.hdf = h5py.File(path)
 
             self.config.hdf_file = path
             self.update_config()
@@ -324,14 +344,14 @@ class DataCollector(wx.Frame):
             h5_config.attrs.modify("exnorm", self.config.exnorm)
             h5_config.attrs.modify("exchoice", self.config.exchoice)
             h5_config.attrs.modify("exwindow", self.config.exwindow)
+
             pdataset = self.hdf.require_group("/peaks")
             ultrapeakdata = np.array([int(x[1]) for x in self.xvals])
             replace_dataset(pdataset, "ultrapeakdata", data=ultrapeakdata)
             self.hdf.close()
-            self.hdf = h5py.File(path, "r+")
-            mudeng.metaunidec_call(self.config, "-ultraextract")
-            self.hdf.close()
 
+            out = mudeng.metaunidec_call(self.config, "-ultraextract")
+            # exit()
         for x in self.xvals:
             try:
                 index = int(x[1])
@@ -469,7 +489,6 @@ class DataCollector(wx.Frame):
                                 tmp.append(np.std(errors[x]))
                             bargrapherrors.append(tmp)
 
-
                         if not self.plot1.flag:
                             self.plot1.plotrefreshtop(xvals, fitdat, "Mass Extracts", self.ylabel, "Mass", None, None,
                                                       nopaint=True, color=color, test_kda=False, linestyle=linestyle)
@@ -485,13 +504,13 @@ class DataCollector(wx.Frame):
                             self.plot2.plotadd(xvals, zfitdat, color, None, linestyle=linestyle)
 
                         if fit == "sig":
-                            self.plot1.addtext("", fits[0], (fits[3]+fits[2]) / 0.95, ymin=fits[3], color=color)
-                            self.plot2.addtext("", zfits[0], (zfits[3]+zfits[2]) / 0.95, ymin=zfits[3], color=color)
+                            self.plot1.addtext("", fits[0], (fits[3] + fits[2]) / 0.95, ymin=fits[3], color=color)
+                            self.plot2.addtext("", zfits[0], (zfits[3] + zfits[2]) / 0.95, ymin=zfits[3], color=color)
 
                     self.plot1.errorbars(xvals, avg, yerr=std, color=color, newlabel=lab, linestyle=" ", marker=marker)
 
                     self.plot2.errorbars(xvals, zdat, yerr=zstd, color=color, newlabel=lab, linestyle=" ",
-                                            marker=marker)
+                                         marker=marker)
                     out = [[lab], xvals, avg, std, zdat, zstd, fits, zfits]
                     output.append(out)
 
@@ -518,8 +537,8 @@ class DataCollector(wx.Frame):
         except Exception, ex:
             print "Failed to Export Output:", ex
 
-        self.plot1.add_legend()
-        self.plot2.add_legend()
+        self.plot1.add_legend(anchor=(1.35, 1))
+        self.plot2.add_legend(anchor=(1.35, 1))
         self.plot2.repaint()
         self.plot1.repaint()
 
@@ -615,10 +634,15 @@ class DataCollector(wx.Frame):
         except ValueError:
             self.config.exwindow = 0
 
+    def update_gui(self):
+        self.ctlnorm.SetSelection(self.config.exnorm)
+        self.ctlextract.SetSelection(self.config.exchoice)
+        self.ctlextractwindow.SetValue(str(self.config.exwindow))
+
 
 class BarGraphWindow(wx.Frame):
     def __init__(self, parent, title, *args, **kwargs):
-        wx.Frame.__init__(self, parent, size=(700,700), title=title)  # ,size=(200,-1))
+        wx.Frame.__init__(self, parent, size=(700, 700), title=title)  # ,size=(200,-1))
 
     def on_exp_plot(self, fits=None, labels=None, errors=None):
         self.setup_window(2)
@@ -654,9 +678,9 @@ class BarGraphWindow(wx.Frame):
         num += 1
         xvals = range(0, num)
         self.p1.barplottoperrors(xarr=xvals, yarr=midpoint, yerr=midpointerr,
-                           peakval=barlabels, colortab=plotcols, title="Rate")
+                                 peakval=barlabels, colortab=plotcols, title="Rate")
         self.p2.barplottoperrors(xarr=xvals, yarr=slope, yerr=slopeerr,
-                           peakval=barlabels, colortab=plotcols, title="Amplitude")
+                                 peakval=barlabels, colortab=plotcols, title="Amplitude")
         self.p1.repaint()
         self.p2.repaint()
         self.Show()
@@ -695,9 +719,9 @@ class BarGraphWindow(wx.Frame):
         num += 1
         xvals = range(0, num)
         self.p1.barplottoperrors(xarr=xvals, yarr=midpoint, yerr=midpointerr,
-                           peakval=barlabels, colortab=plotcols, title="Slope")
+                                 peakval=barlabels, colortab=plotcols, title="Slope")
         self.p2.barplottoperrors(xarr=xvals, yarr=slope, yerr=slopeerr,
-                           peakval=barlabels, colortab=plotcols, title="Intercept")
+                                 peakval=barlabels, colortab=plotcols, title="Intercept")
         self.p1.repaint()
         self.p2.repaint()
         self.Show()
@@ -752,13 +776,13 @@ class BarGraphWindow(wx.Frame):
         num += 1
         xvals = range(0, num)
         self.p1.barplottoperrors(xarr=xvals, yarr=midpoint, yerr=midpointerr,
-                           peakval=barlabels, colortab=plotcols, title="Midpoint")
+                                 peakval=barlabels, colortab=plotcols, title="Midpoint")
         self.p2.barplottoperrors(xarr=xvals, yarr=slope, yerr=slopeerr,
-                           peakval=barlabels, colortab=plotcols, title="Slope Parameter")
+                                 peakval=barlabels, colortab=plotcols, title="Slope Parameter")
         self.p3.barplottoperrors(xarr=xvals, yarr=amplitude, yerr=amplitudeerr,
-                           peakval=barlabels, colortab=plotcols, title="Amplitude")
+                                 peakval=barlabels, colortab=plotcols, title="Amplitude")
         self.p4.barplottoperrors(xarr=xvals, yarr=baseline, yerr=baselineerr,
-                           peakval=barlabels, colortab=plotcols, title="Baseline")
+                                 peakval=barlabels, colortab=plotcols, title="Baseline")
         self.p1.repaint()
         self.p2.repaint()
         self.p3.repaint()
@@ -766,7 +790,7 @@ class BarGraphWindow(wx.Frame):
         self.Show()
 
     def setup_window(self, numplots=2):
-        #self.panel = wx.Panel(self)
+        # self.panel = wx.Panel(self)
         self.panel = wx.lib.scrolledpanel.ScrolledPanel(self)
         self.panel.SetupScrolling()
         plotsizer = wx.GridBagSizer()

@@ -48,7 +48,7 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 			printf("Processing\n");
 			process_data(argc, argv, config);
 		}
-		else if (mode == 3 || mode == 5)
+		else if (mode == 3 || mode == 5 || mode == 6)
 		{
 
 		}
