@@ -62,7 +62,11 @@ For Water's .raw files, UniDec is bundled with converters (CDCReader.exe and raw
 
 Water's converters will need [MassLynxRaw.dll](https://www.waters.com/waters/support.htm?locale=en_GB&lid=134815627&cid=511442&type=DWNL) (32-bit, for MS) and/or [cdt.dll](https://www.waters.com/waters/support.htm?locale=en_GB&lid=134825112&cid=511442&type=DWNL) (64-bit, for IM-MS) in the same directory as the converter executables (the unidec_bin folder or the top directory).
 
-Thermo .raw files can be read as you would a text file on Windows thanks to multiplierz (https://github.com/BlaisProteomics/multiplierz). You will need [MSFileReader](https://thermo.flexnetoperations.com/control/thmo/download?element=6306677) installed. Please cite them (http://onlinelibrary.wiley.com/doi/10.1002/pmic.201700091/abstract). It will compress all scans together unless parsed with MetaUniDec. 
+Thermo .raw files can be read as you would a text file on Windows thanks to multiplierz (https://github.com/BlaisProteomics/multiplierz). 
+You will need [MSFileReader](https://thermo.flexnetoperations.com/control/thmo/download?element=6306677) installed. 
+Please cite them (http://onlinelibrary.wiley.com/doi/10.1002/pmic.201700091/abstract). 
+It will compress all scans together unless parsed with MetaUniDec. 
+If you are having issues with importing Thermo RAW files, please follow the troubleshooting guide [here](https://github.com/BlaisProteomics/multiplierz/wiki/multiplierz.mzAPI).
 
 Finally, many vendor formats can be converted mzML using [Proteowizard](http://proteowizard.sourceforge.net/). UniDec will open mzML file as if they are a text file, and this format should be cross platform.
 We utilize [pymzML](http://pymzml.github.io/intro.html#general-information) for this. Please [cite them](https://www.ncbi.nlm.nih.gov/pubmed/22302572).
