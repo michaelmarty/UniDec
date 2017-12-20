@@ -99,6 +99,9 @@ class DataCollector(wx.Frame):
         self.menusigfit = self.toolsmenu.Append(wx.ID_ANY, "Logistic Fit",
                                                 "Fit all plots to logistic equation")
         self.Bind(wx.EVT_MENU, self.on_sig_fit, self.menusigfit)
+        self.toolsmenu.AppendSeparator()
+        self.menuplots1 = self.toolsmenu.Append(wx.ID_ANY, "Plot Mass Distributions", "Plots Mass Distributions of All")
+        self.Bind(wx.EVT_MENU, self.on_plot_all, self.menuplots1)
 
         self.menuBar = wx.MenuBar()
         self.menuBar.Append(self.filemenu, "&File")
@@ -193,10 +196,13 @@ class DataCollector(wx.Frame):
         if __name__ == "__main__":
             # testdir = "C:\Python\UniDec\unidec_src\UniDec\\x64\Release"
             try:
-                testdir = "Z:\\Group Share\\Deseree\\Ciara\\Test"
-                testfile = "collection2.json"
-                testdir = "C:\\Data\\Triplicate Data"
+                # testdir = "Z:\\Group Share\\Deseree\\Ciara\\Test"
+                # testfile = "collection2.json"
+                # testdir = "C:\\Data\\Triplicate Data"
+                testdir = "C:\Data\Guozhi"
+                testfile = "collection1.json"
                 self.load(os.path.join(testdir, testfile))
+                self.on_plot_all()
                 pass
             except Exception, e:
                 print e
@@ -207,6 +213,8 @@ class DataCollector(wx.Frame):
         try:
             y = self.yvals[index]
             path = y[0]
+            if self.localpath == 1:
+                path = os.path.join(self.directory, path)
             if os.path.isfile(path):
                 print path
                 self.hdf5_file = path
@@ -230,6 +238,8 @@ class DataCollector(wx.Frame):
     def load_params_from_hdf5(self, e=None, index=0):
         y = self.yvals[index]
         path = y[0]
+        if self.localpath == 1:
+            path = os.path.join(self.directory, path)
         self.hdf5_file = path
         self.hdf = h5py.File(path)
         self.config.hdf_file = path
@@ -245,7 +255,7 @@ class DataCollector(wx.Frame):
         self.update_get(e)
         # print "Saved: ",self.gridparams
         outdict = {"x": self.xvals, "y": self.yvals, "dir": self.directory}
-        dlg = wx.FileDialog(self, "Save Collection in JSON Format", self.directory, self.savename, "*.json")
+        dlg = wx.FileDialog(self, "Save Collection in JSON Format", self.directory, self.savename, "*.json", wx.FD_SAVE)
         if dlg.ShowModal() == wx.ID_OK:
             self.savename = dlg.GetPath()
             with open(self.savename, "w") as outfile:
@@ -254,7 +264,7 @@ class DataCollector(wx.Frame):
         dlg.Destroy()
 
     def on_load(self, e):
-        dlg = wx.FileDialog(self, "Load JSON Collection", self.directory, self.savename, "*.json")
+        dlg = wx.FileDialog(self, "Load JSON Collection", self.directory, self.savename, "*.json", wx.FD_OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.savename = dlg.GetPath()
             self.load(self.savename)
@@ -283,12 +293,14 @@ class DataCollector(wx.Frame):
 
     def on_add_y(self, e):
         self.update_get(e)
-        dlg = wx.FileDialog(self, "Load Files", self.directory, "", "*.hdf5", wx.MULTIPLE)
+        dlg = wx.FileDialog(self, "Load Files", self.directory, "", "*.hdf5", wx.FD_MULTIPLE)
         if dlg.ShowModal() == wx.ID_OK:
             filenames = dlg.GetPaths()
             for f in filenames:
                 self.ypanel.list.add_line(file_name=f)
         dlg.Destroy()
+        if len(self.yvals) == 0:
+            self.load_x_from_peaks()
         self.localpath = 0
 
     def update_get(self, e=None):
@@ -310,6 +322,24 @@ class DataCollector(wx.Frame):
     def on_sig_fit(self, e=None):
         self.on_run(fit="sig")
 
+    def update_hdf5(self, path):
+        self.hdf5_file = path
+        self.hdf = h5py.File(path)
+
+        self.config.hdf_file = path
+
+        h5_config = self.hdf.require_group("config")
+        h5_config.attrs.modify("exnorm", self.config.exnorm)
+        h5_config.attrs.modify("exchoice", self.config.exchoice)
+        h5_config.attrs.modify("exwindow", self.config.exwindow)
+
+        pdataset = self.hdf.require_group("/peaks")
+        ultrapeakdata = np.array([int(x[1]) for x in self.xvals])
+        replace_dataset(pdataset, "ultrapeakdata", data=ultrapeakdata)
+        self.hdf.close()
+
+        out = mudeng.metaunidec_call(self.config, "-ultraextract")
+
     """
     Gets called when "Run Extraction" button gets clicked. For each file given in the list,
     runs the Unidec.exe -extract functions on the data. Then, plots the peaks from the hdf5
@@ -317,6 +347,7 @@ class DataCollector(wx.Frame):
     """
 
     def on_run(self, e=None, fit=None):
+        self.update_config()
         tstart = time.clock()
         self.plot1.clear_plot()
         self.plot2.clear_plot()
@@ -331,27 +362,13 @@ class DataCollector(wx.Frame):
             self.xvals = [[u'\u25CB', 0]]
 
         # run extraction on all files with parameters
-        for y in self.yvals:
-            path = y[0]
-            if self.localpath == 1:
-                path = os.path.join(self.directory, path)
-            self.hdf5_file = path
-            self.hdf = h5py.File(path)
+        if fit is None:
+            for y in self.yvals:
+                path = y[0]
+                if self.localpath == 1:
+                    path = os.path.join(self.directory, path)
+                self.update_hdf5(path)
 
-            self.config.hdf_file = path
-            self.update_config()
-            h5_config = self.hdf.require_group("config")
-            h5_config.attrs.modify("exnorm", self.config.exnorm)
-            h5_config.attrs.modify("exchoice", self.config.exchoice)
-            h5_config.attrs.modify("exwindow", self.config.exwindow)
-
-            pdataset = self.hdf.require_group("/peaks")
-            ultrapeakdata = np.array([int(x[1]) for x in self.xvals])
-            replace_dataset(pdataset, "ultrapeakdata", data=ultrapeakdata)
-            self.hdf.close()
-
-            out = mudeng.metaunidec_call(self.config, "-ultraextract")
-            # exit()
         for x in self.xvals:
             try:
                 index = int(x[1])
@@ -407,11 +424,19 @@ class DataCollector(wx.Frame):
                                 pass
                             zdat.append(ud.center_of_mass(zdata)[0])
                             xvals.append(var1)
-                        zexts.append(zdat)
-                        # Get the peaks back in
+
                         pdataset = self.hdf.require_group("/peaks")
+                        # Get the peaks back in
                         ultrapeaks = get_dataset(pdataset, "ultrapeakdata")
                         peak = np.argwhere(ultrapeaks == index)[0][0]
+
+                        try:
+                            exz = get_dataset(pdataset, "ultrazextracts")[:, peak]
+                        except Exception, e:
+                            print e
+                            exz = zdat
+                        zexts.append(exz)
+
                         ex = get_dataset(pdataset, "ultraextracts")[:, peak]
                         extracts.append(ex)
                         self.hdf.close()
@@ -442,6 +467,7 @@ class DataCollector(wx.Frame):
                         else:
                             self.plot2.plotadd(xvals, zdat, color, None, linestyle=linestyle)
                     else:
+                        print zdat, zexts, avg
                         if fit == "exp":
                             fits, fitdat = ud.exp_fit(xvals, avg)
                             zfits, zfitdat = ud.exp_fit(xvals, zdat)
@@ -489,6 +515,8 @@ class DataCollector(wx.Frame):
                                 tmp.append(np.std(errors[x]))
                             bargrapherrors.append(tmp)
 
+
+
                         if not self.plot1.flag:
                             self.plot1.plotrefreshtop(xvals, fitdat, "Mass Extracts", self.ylabel, "Mass", None, None,
                                                       nopaint=True, color=color, test_kda=False, linestyle=linestyle)
@@ -514,7 +542,8 @@ class DataCollector(wx.Frame):
                     out = [[lab], xvals, avg, std, zdat, zstd, fits, zfits]
                     output.append(out)
 
-            self.on_bar_graphs(bargraphfits, bargraphlabels, bargrapherrors, fit=fit)
+            if fit is not None:
+                self.on_bar_graphs(bargraphfits, bargraphlabels, bargrapherrors, fit=fit)
 
         output = np.array(output)
         self.data = output
@@ -615,13 +644,13 @@ class DataCollector(wx.Frame):
 
     def on_bar_graphs(self, fits=None, labels=None, errors=None, fit=None):
         if fit == "exp":
-            bargraph = BarGraphWindow(self, title="Exponential Decay Fit")
+            bargraph = BarGraphWindow(self, title="Exponential Decay Fit", directory=self.directory)
             bargraph.on_exp_plot(fits, labels, errors)
         elif fit == "lin":
-            bargraph = BarGraphWindow(self, title="Linear Fit")
+            bargraph = BarGraphWindow(self, title="Linear Fit", directory=self.directory)
             bargraph.on_lin_plot(fits, labels, errors)
         elif fit == "sig":
-            bargraph = BarGraphWindow(self, title="Logistic Fit")
+            bargraph = BarGraphWindow(self, title="Logistic Fit", directory=self.directory)
             bargraph.on_sig_plot(fits, labels, errors)
         else:
             print "Error: bad fit given"
@@ -639,10 +668,116 @@ class DataCollector(wx.Frame):
         self.ctlextract.SetSelection(self.config.exchoice)
         self.ctlextractwindow.SetValue(str(self.config.exwindow))
 
+    def on_plot_all(self, e=None, type="dist"):
+        tstart = time.clock()
+        self.update_get(e)
+        print "Running Plot All"
+        # print self.yvals
+        self.yvals = np.array(self.yvals)
+        labels = self.yvals[:, 3]
+        uniquelabels = np.unique(labels)
+        linestyles = self.yvals[:, 2]
+        uniquelinestyles = np.unique(linestyles)
+        colors = self.yvals[:, 1]
+        uniquecolors = np.unique(colors)
+        output = []
+
+        xdim = len(uniquelinestyles)
+        ydim = len(uniquecolors)
+
+        plotwindow = BarGraphWindow(self, title="Plots", directory=self.directory)
+        plotwindow.setup_window_generic(xdim, ydim)
+        # run extraction on all files with parameters
+        for y in self.yvals:
+            path = y[0]
+            if self.localpath == 1:
+                path = os.path.join(self.directory, path)
+            self.hdf5_file = path
+            self.config.hdf_file = path
+            out = mudeng.metaunidec_call(self.config, "-grids")
+
+        for u in uniquelabels:
+            extracts = []
+            gridextracts = []
+            xvals = []
+            for y in self.yvals:
+                label = y[3]
+                if label == u:
+
+                    path = y[0]
+                    if self.localpath == 1:
+                        path = os.path.join(self.directory, path)
+                    color = y[1]
+                    linestyle = y[2]
+                    print path, u, linestyle
+                    self.hdf5_file = path
+                    self.hdf = h5py.File(path, "r")
+                    self.msdata = self.hdf.require_group(self.topname)
+                    self.len = self.msdata.attrs["num"]
+
+                    # Get the x values
+                    xvals = []
+                    for f in np.arange(0, self.len):
+                        self.msdata = self.hdf.get(self.topname + "/" + str(f))
+                        self.attrs = dict(self.msdata.attrs.items())
+                        if "var1" in self.attrs.keys():
+                            var1 = self.attrs["var1"]
+                        elif "collision_voltage" in self.attrs.keys():
+                            var1 = self.attrs["collision_voltage"]
+                            if self.ylabel == "":
+                                self.ylabel = "Collision Voltage"
+                        elif "Collision Voltage" in self.attrs.keys():
+                            var1 = self.attrs["Collision Voltage"]
+                            if self.ylabel == "":
+                                self.ylabel = "Collision Voltage"
+                        else:
+                            var1 = f
+                        xvals.append(var1)
+
+                    # Get the peaks back in
+                    msdataset = self.hdf.require_group("/ms_dataset")
+                    massaxis = get_dataset(msdataset, "mass_axis")
+                    masssum = get_dataset(msdataset, "mass_sum")
+                    massgrid = get_dataset(msdataset, "mass_grid")
+                    extracts.append(np.transpose([massaxis, masssum]))
+                    gridextracts.append(massgrid)
+                    self.hdf.close()
+
+            if not ud.isempty(xvals) and not ud.isempty(extracts):
+                extracts = np.array(extracts)
+                print np.shape(extracts)
+                xvals = np.array(xvals)
+                # avg = np.mean(extracts, axis=0)
+                # std = np.std(extracts, axis=0)
+
+                edat = extracts[0]
+                ypos = np.where(uniquecolors == color)[0][0]
+                xpos = np.where(uniquelinestyles == linestyle)[0][0]
+                plotwindow.plots[xpos][ypos].plotrefreshtop(
+                    edat[:, 0], edat[:, 1], u,
+                    self.ylabel,
+                    "Mass", None, None,
+                    nopaint=False, color=color, test_kda=True,
+                    linestyle=linestyle)
+
+        plotwindow.Show()
+
 
 class BarGraphWindow(wx.Frame):
-    def __init__(self, parent, title, *args, **kwargs):
+    def __init__(self, parent, title, directory, *args, **kwargs):
         wx.Frame.__init__(self, parent, size=(700, 700), title=title)  # ,size=(200,-1))
+        self.directory=directory
+        self.plotname=None
+        self.plotmenu = wx.Menu()
+
+        self.menuPNG = self.plotmenu.Append(wx.ID_ANY, "Save Figures as PNG", "Save Figures as PNG")
+        self.menuPDF = self.plotmenu.Append(wx.ID_ANY, "Save Figures as PDF", "Save Figures as PDF")
+        self.Bind(wx.EVT_MENU, self.on_save_figure_png, self.menuPNG)
+        self.Bind(wx.EVT_MENU, self.on_save_figure_pdf, self.menuPDF)
+
+        self.menuBar = wx.MenuBar()
+        self.menuBar.Append(self.plotmenu, "Plot")
+        self.SetMenuBar(self.menuBar)
 
     def on_exp_plot(self, fits=None, labels=None, errors=None):
         self.setup_window(2)
@@ -683,6 +818,7 @@ class BarGraphWindow(wx.Frame):
                                  peakval=barlabels, colortab=plotcols, title="Amplitude")
         self.p1.repaint()
         self.p2.repaint()
+        self.plotname="Exp_Fit"
         self.Show()
 
     def on_lin_plot(self, fits=None, labels=None, errors=None):
@@ -724,6 +860,7 @@ class BarGraphWindow(wx.Frame):
                                  peakval=barlabels, colortab=plotcols, title="Intercept")
         self.p1.repaint()
         self.p2.repaint()
+        self.plotname="Lin_Fit"
         self.Show()
 
     def on_sig_plot(self, fits=None, labels=None, errors=None):
@@ -787,6 +924,7 @@ class BarGraphWindow(wx.Frame):
         self.p2.repaint()
         self.p3.repaint()
         self.p4.repaint()
+        self.plotname="Sig_Fit"
         self.Show()
 
     def setup_window(self, numplots=2):
@@ -795,17 +933,79 @@ class BarGraphWindow(wx.Frame):
         self.panel.SetupScrolling()
         plotsizer = wx.GridBagSizer()
         figsize = (6, 5)
+        self.plots=[]
         self.p1 = plot1d.Plot1d(self.panel, figsize=figsize)
         self.p2 = plot1d.Plot1d(self.panel, figsize=figsize)
+        self.plots.append(self.p1)
+        self.plots.append(self.p2)
         plotsizer.Add(self.p1, (0, 0), span=(1, 1), flag=wx.EXPAND)
         plotsizer.Add(self.p2, (0, 1), span=(1, 1), flag=wx.EXPAND)
         if numplots == 4:
             self.p3 = plot1d.Plot1d(self.panel, figsize=figsize)
             self.p4 = plot1d.Plot1d(self.panel, figsize=figsize)
+            self.plots.append(self.p3)
+            self.plots.append(self.p4)
             plotsizer.Add(self.p3, (1, 0), span=(1, 1), flag=wx.EXPAND)
             plotsizer.Add(self.p4, (1, 1), span=(1, 1), flag=wx.EXPAND)
         self.panel.SetSizer(plotsizer)
         plotsizer.Fit(self)
+
+    def setup_window_generic(self, xdim=1, ydim=1):
+        # self.panel = wx.Panel(self)
+        self.panel = wx.Panel(self)  # wx.lib.scrolledpanel.ScrolledPanel(self)
+        # self.panel.SetupScrolling()
+        plotsizer = wx.GridBagSizer()
+        figsize = (18 / ydim, 10 / xdim)
+        self.plots = []
+        for x in xrange(0, xdim):
+            ptemp = []
+            for y in xrange(0, ydim):
+                p = plot1d.Plot1d(self.panel, figsize=figsize)
+                plotsizer.Add(p, (x, y), span=(1, 1), flag=wx.EXPAND)
+                ptemp.append(p)
+            self.plots.append(ptemp)
+        self.panel.SetSizer(plotsizer)
+        self.plotname="Plot"
+        plotsizer.Fit(self)
+
+    def save_all_figures(self, extension, e=0, header=None, **kwargs):
+        """
+        Save All of the Figures. Will name as header+extension2+_FigureX.+exetension
+        :param extension: Figure type (pdf, eps, png). Anything accepted by matplotlib
+        :param extension2: Additional text to include in the figure header.
+        :param e: Dummy wx Event
+        :param header: Option to add different header. Default of none yields self.outfname as the path header
+        :param kwargs: Any keywards to pass to the matplotlib savefig command such as Transparent or DPI
+        :return: figureflags, files (the figures that were successfully saved and the files that they were saved to)
+        """
+        figureflags = []
+        files = []
+        if header is None:
+            header =  self.plotname
+        else:
+            header += self.plotname
+
+        for i, plot in enumerate(np.ravel(self.plots)):
+            name1 = header + "_" + str(i) + "." + extension
+            path=os.path.join(self.directory, name1)
+            if plot.flag:
+                plot.on_save_fig(e, path, **kwargs)
+                figureflags.append(i + 1)
+                files.append([i + 1, name1])
+        return figureflags, files
+
+    def on_save_figure_png(self, e, **kwargs):
+        """
+        Save all figures as PNG
+        :param e: Dummy wx event
+        :param kwargs: keywards to pass to matplotlib savefig
+        :return: None
+        """
+        self.save_all_figures("png", **kwargs)
+        pass
+
+    def on_save_figure_pdf(self, e):
+        self.save_all_figures("pdf")
 
 
 # Main App Execution

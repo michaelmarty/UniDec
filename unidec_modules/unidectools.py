@@ -1018,10 +1018,10 @@ def linearize(datatop, binsize, linflag):
 
     if linflag < 2:
         newdat = lintegrate(datatop, intx)
-        print "Integrating"
+        #print "Integrating"
     else:
         newdat = linterpolate(datatop, intx)
-        print "Interpolating"
+        #print "Interpolating"
     return newdat
 
 
@@ -1768,6 +1768,7 @@ def fft_diff(data, diffrange=[500., 1000.]):
     boo3 = np.all([boo1, boo2], axis=0)
     ftext = fftdat[boo3]
     maxpos = localmaxpos(ftext, ftrange[0], ftrange[1])
+
     # fit, err, fitdat = voigt_fit(ftext[:, 0], ftext[:, 1], np.average(ftrange), np.average(ftrange) / 10., 0, 1, 0)
     return 1. / maxpos, ftext
 
@@ -1866,6 +1867,7 @@ def win_fft_grid(rawdata, binsize, wbin, window_fwhm, diffrange):
 
     mzdata = linearize(rawdata, binsize, 3)
     mzdata = pad_two_power(mzdata)
+
 
     xvals = np.arange(mindat, maxdat, wbin)
 

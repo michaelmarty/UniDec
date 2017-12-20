@@ -701,6 +701,22 @@ double min1d(double *blur, int lengthmz) {
 	return blurmin;
 }
 
+int argmax(double *blur, int lengthmz)
+{
+	double max = blur[0];
+	int pos = 0;
+	unsigned int i;
+	for (i = 0; i<lengthmz; i++)
+	{
+		if (blur[i]>max)
+		{
+			max = blur[i];
+			pos = i;
+		}
+	}
+	return pos;
+}
+
 //Convolution of neighborhood function with gaussian filter.
 void blur_it(const int lengthmz,
                     const int numz,

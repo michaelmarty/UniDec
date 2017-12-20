@@ -15,9 +15,17 @@
 #include <stdlib.h>
 #include <math.h>
 
+int check_group(hid_t file_id, char *dataname)
+{
+	int status = H5Lexists(file_id, dataname, H5P_DEFAULT);
+	if (status == 0) { printf("Dataset %s does not exist. Error.\n", dataname); exit(12); }
+	return status;
+}
+
 
 int mh5getfilelength(hid_t file_id, char *dataname)
 {
+	check_group(file_id, dataname);
 	hsize_t     dims[2];
 	H5LTget_dataset_info(file_id, dataname, dims, NULL, NULL);
 	// printf("%d %d\n", dims[0], dims[1]);
@@ -26,6 +34,7 @@ int mh5getfilelength(hid_t file_id, char *dataname)
 
 void mh5readfile2d(hid_t file_id, char *dataname, int lengthmz, double *dataMZ, double *dataInt)
 {
+	check_group(file_id, dataname);
 	int i, j;
 	double *data;
 	data = calloc(lengthmz * 2, sizeof(double));
@@ -40,6 +49,7 @@ void mh5readfile2d(hid_t file_id, char *dataname, int lengthmz, double *dataMZ, 
 
 void mh5readfile3d(hid_t file_id, char *dataname, int lengthmz, double *dataMZ, double *dataInt, double *data3)
 {
+	check_group(file_id, dataname);
 	int i, j;
 	double *data;
 	data = calloc(lengthmz * 3, sizeof(double));
@@ -55,6 +65,7 @@ void mh5readfile3d(hid_t file_id, char *dataname, int lengthmz, double *dataMZ, 
 
 void mh5readfile1d(hid_t file_id, char *dataname, double *data)
 {
+	check_group(file_id, dataname);
 	H5LTread_dataset_double(file_id, dataname, data);
 }
 
@@ -232,3 +243,17 @@ void makegroup(hid_t file_id, char *dataset)
 	}
 }
 
+void set_needs_grids(hid_t file_id)
+{
+	write_attr_int(file_id, "/config", "gridsflag", 0);
+}
+
+void set_got_grids(hid_t file_id)
+{
+	write_attr_int(file_id, "/config", "gridsflag", 1);
+}
+
+int question_grids(hid_t file_id)
+{
+	return int_attr(file_id, "/config", "gridsflag", 0);
+}

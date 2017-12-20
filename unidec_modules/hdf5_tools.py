@@ -42,3 +42,10 @@ def get_metadata(f, key):
         out.append(g2.attrs[key])
     hdf.close()
     return np.array(out)
+
+def get_num(f):
+    hdf = h5py.File(f)
+    g = hdf.require_group("ms_dataset")
+    num = g.attrs["num"]
+    hdf.close()
+    return num

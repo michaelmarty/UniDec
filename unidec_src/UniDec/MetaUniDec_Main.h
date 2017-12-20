@@ -12,6 +12,7 @@
 //
 #include "UD_dataproc.h"
 #include "UD_analysis.h"
+#include "UD_charge.h"
 #include "UD_peak_width.h"
 
 int run_metaunidec(int argc, char *argv[], Config config) {
@@ -31,6 +32,7 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 		else if (strcmp(argv[2], "-all") == 0) { mode = 4; }
 		else if (strcmp(argv[2], "-extract") == 0) { mode = 5; }
 		else if (strcmp(argv[2], "-ultraextract") == 0) { mode = 6; }
+		else if (strcmp(argv[2], "-charges") == 0) { mode = 7; }
 	}
 
 
@@ -48,7 +50,7 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 			printf("Processing\n");
 			process_data(argc, argv, config);
 		}
-		else if (mode == 3 || mode == 5 || mode == 6)
+		else if (mode == 3 || mode >= 5)
 		{
 
 		}
@@ -62,8 +64,17 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 	if ( mode ==3 || mode == 4)
 	{
 		printf("Making Merged Grids\n");
-		make_grid(argc, argv, config, "/mass_data", "/mass_grid", "/mass_axis", "/mass_sum");
-		make_grid(argc, argv, config, "/processed_data", "/mz_grid", "/mz_axis", "/mz_sum");
+		hid_t file_id;
+		file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
+		if (question_grids(file_id)) { printf("Grids Already Made\n"); H5Fclose(file_id); } //Checks to see if grids are already made
+		else{
+			H5Fclose(file_id);
+			make_grid(argc, argv, config, "/mass_data", "/mass_grid", "/mass_axis", "/mass_sum");
+			make_grid(argc, argv, config, "/processed_data", "/mz_grid", "/mz_axis", "/mz_sum");
+			file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
+			set_got_grids(file_id);
+			H5Fclose(file_id);
+		}
 		get_peaks(argc, argv, config, 0);
 		//get_peak_widths(argc, argv, config);
 	}
@@ -78,6 +89,13 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 	{
 		printf("Extracting Data ULTRA\n");
 		get_peaks(argc, argv, config, 1);
+		charge_peak_extracts(argc, argv, config, 1);
+	}
+
+	if (mode == 7)
+	{
+		printf("Extracting Charges\n");
+		charge_peak_extracts(argc, argv, config, 0);
 	}
 
 	return 0;

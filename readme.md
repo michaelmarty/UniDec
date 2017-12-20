@@ -24,7 +24,7 @@ scipy
 wxpython
 natsort
 twython
-pymzmlm
+pymzml==0.7.6
 networkx
 h5py
 pypubsub==3.3

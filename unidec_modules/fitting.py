@@ -197,7 +197,6 @@ def exp_fit(xvals, yvals, gguess=None, aguess=None, bguess=None):
     if aguess is None:
         aguess = np.amax(yvals)
     if bguess is None:
-        print "test"
         guess = [gguess, aguess]
     else:
         guess = [gguess, aguess, bguess]

@@ -777,6 +777,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 		write_attr_double(file_id, dataset, "cutoff", config.cutoff);
 		write_attr_int(file_id, dataset, "length_mz", lengthmz);
 		write_attr_int(file_id, dataset, "length_mass", maaxle);
+		set_needs_grids(file_id);
 		H5Fclose(file_id);
 	}
 
