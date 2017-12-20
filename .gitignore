@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 *.pyc
 *.map
 *.png
@@ -50,3 +51,6 @@ metaunidec/Extracts.hdf5
 metaunidec/test_MUD.py
 test_GUI.py
 test_UniDec.py
+=======
+.DS_Store
+>>>>>>> 0631aa9ae72150304a7845543e0844f97ecf07e5
