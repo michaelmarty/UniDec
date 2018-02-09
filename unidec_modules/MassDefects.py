@@ -380,7 +380,7 @@ class MassDefectWindow(wx.Frame):
             pass
 
     def on_fit(self, e):
-        peaks = ud.peakdetect(self.data1d, window=5)
+        peaks = ud.peakdetect(self.data1d, window=3)
         print "Peaks:", peaks[:,0]
         peaks = np.concatenate((peaks, [[0, np.amin(self.data1d[:, 1])]]))
         fitdat, fits = MassFitter(self.data1d, peaks, 3, "microguess").perform_fit()

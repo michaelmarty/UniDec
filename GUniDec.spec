@@ -33,6 +33,7 @@ else:
     print "Internal Release Mode"
     distmode = False
 
+
 # Create names of files and directories
 exename = 'GUI_UniDec'
 if system == "Windows":
@@ -79,9 +80,9 @@ if system == "Windows":
 
     for file in os.listdir('unidec_bin'):
         if fnmatch.fnmatch(file, 'api*'):
-            add = [(file, os.path.join('unidec_bin', file), 'DATA')]
+            add = [(file, 'unidec_bin\\'+file, 'DATA')]
             a.datas += add
-            print add
+            #print add
 
     if not distmode:
         a.datas += [('MassLynxRaw.dll', 'unidec_bin\\MassLynxRaw.dll', 'DATA')]
@@ -107,6 +108,7 @@ a.datas.extend(dir_files(os.path.join(os.path.dirname(pymzml.__file__),
 # a.datas.extend([(os.path.join('lib2to3','Grammar.txt'),grammar,'DATA')])
 # grammar=os.path.join(os.path.dirname(lib2to3.__file__),'PatternGrammar.txt')
 # a.datas.extend([(os.path.join('lib2to3','PatternGrammar.txt'),grammar,'DATA')])
+
 
 # Assemble and build
 pyz = PYZ(a.pure)

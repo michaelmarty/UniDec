@@ -6,6 +6,8 @@ import GUniDec
 import datacollector
 from metaunidec import mudpres
 from import_wizard import ImportWizard
+from metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard as HDF5Wizard
+from metaunidec.ultrameta import DataCollector as UMDC
 import wx.py as py
 
 class UniDecLauncher(UniDecPres):
@@ -41,18 +43,24 @@ class Lview(wx.Frame):
         button3 = wx.Button(panel, -1, "Import Wizard\n\nBatch convert Waters Raw to Txt")
         button4 = wx.Button(panel, -1, "MetaUniDec\n\nBatch process and visualize MS spectra")
         button5 = wx.Button(panel, -1, "UniDec API Shell\n\nScript UniDec processing using command line interface")
+        button6 = wx.Button(panel, -1, "HDF5 Import Wizard\n\nImport Data into HDF5 for MetaUniDec")
+        button7 = wx.Button(panel, -1, "UltraMeta Data Collector\n\nVisualize Multiple HDF5 Data Sets\nFit Trends")
 
         sizer.Add(button1, (0,0),flag=wx.EXPAND)
         sizer.Add(button2, (1,0),flag=wx.EXPAND)
-        sizer.Add(button3, (1,1),flag=wx.EXPAND)
+        sizer.Add(button3, (2,0),flag=wx.EXPAND)
         sizer.Add(button4, (0,1),flag=wx.EXPAND)
-        sizer.Add(button5, (2,0),span=(1,2),flag=wx.EXPAND)
+        sizer.Add(button6, (2, 1), flag=wx.EXPAND)
+        sizer.Add(button7, (1, 1), flag=wx.EXPAND)
+        sizer.Add(button5, (3,0),span=(1,2),flag=wx.EXPAND)
 
         self.Bind(wx.EVT_BUTTON, self.button1, button1)
         self.Bind(wx.EVT_BUTTON, self.button2, button2)
         self.Bind(wx.EVT_BUTTON, self.button3, button3)
         self.Bind(wx.EVT_BUTTON, self.button4, button4)
         self.Bind(wx.EVT_BUTTON, self.button5, button5)
+        self.Bind(wx.EVT_BUTTON, self.button6, button6)
+        self.Bind(wx.EVT_BUTTON, self.button7, button7)
 
         panel.SetSizer(sizer)
         sizer.Fit(self)
@@ -87,6 +95,19 @@ class Lview(wx.Frame):
         print "Launching Scripting Shell"
         app = Shell()
         app.start()
+
+    def button6(self, e=None):
+        print "Launching HDF5 Import Wizard"
+        app = wx.App(False)
+        frame = HDF5Wizard(None)
+        frame.Show()
+        app.MainLoop()
+
+    def button7(self,e=None):
+        print "Launching UltraMeta Data Collector"
+        app = wx.App(False)
+        frame = UMDC(None, "UltraMeta Data Collector")
+        app.MainLoop()
 
 
 class Shell(object):

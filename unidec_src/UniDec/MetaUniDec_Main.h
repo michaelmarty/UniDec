@@ -87,9 +87,13 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 
 	if (mode == 6)
 	{
+		//clock_t starttime = clock();
 		printf("Extracting Data ULTRA\n");
 		get_peaks(argc, argv, config, 1);
 		charge_peak_extracts(argc, argv, config, 1);
+		//clock_t end = clock();
+		//double totaltime = (double)(end - starttime) / CLOCKS_PER_SEC;
+		//printf("\nFinished in %f seconds\n",totaltime);
 	}
 
 	if (mode == 7)

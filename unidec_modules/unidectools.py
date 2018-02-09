@@ -17,6 +17,8 @@ from scipy import fftpack
 import matplotlib.cm as cm
 import mzMLimporter
 from fitting import *
+import unidecstructure
+import tempfile
 
 try:
     import data_reader
@@ -559,6 +561,20 @@ def header_test(path):
     return header
 
 
+def waters_convert(path, config=None):
+    if config is None:
+        config=unidecstructure.UniDecConfig()
+        config.initialize_system_paths()
+        print config.rawreaderpath
+
+    t=os.path.join(path,"converted_rawdata.txt")
+    call = [config.rawreaderpath, "-i", path, "-o", t]
+    result = subprocess.call(call)
+    print "Conversion Stderr:", result
+    data=np.loadtxt(t)
+    return data
+
+
 def load_mz_file(path, config=None):
     """
     Loads a text or mzml file
@@ -566,33 +582,43 @@ def load_mz_file(path, config=None):
     :param config: UniDecConfig object
     :return: Data array
     """
-    if not os.path.isfile(path):
-        print "Attempted to open:", path
-        print "\t but I couldn't find the file..."
-        raise IOError
     if config is None:
         extension = os.path.splitext(path)[1]
     else:
         extension = config.extension.lower()
 
-    if extension == ".txt":
-        data = np.loadtxt(path, skiprows=header_test(path))
-    elif extension == ".mzml":
-        data = mzMLimporter.mzMLimporter(path).get_data()
-        txtname = path[:-5] + ".txt"
-        np.savetxt(txtname, data)
-        print "Saved to:", txtname
-    elif extension.lower() == ".raw":
-        data = data_reader.DataImporter(path).get_data()
-        txtname = path[:-4] + ".txt"
-        np.savetxt(txtname, data)
-        print "Saved to:", txtname
+    if not os.path.isfile(path):
+        if os.path.isdir(path) and os.path.splitext(path)[1].lower() == ".raw":
+            try:
+                print "Trying to convert Waters File"
+                data=waters_convert(path, config)
+            except:
+                print "Attempted to convert Waters Raw file but failed"
+                raise IOError
+        else:
+            print "Attempted to open:", path
+            print "\t but I couldn't find the file..."
+            raise IOError
     else:
-        try:
+
+        if extension == ".txt":
             data = np.loadtxt(path, skiprows=header_test(path))
-        except IOError:
-            print"Failed to open:", path
-            data = None
+        elif extension == ".mzml":
+            data = mzMLimporter.mzMLimporter(path).get_data()
+            txtname = path[:-5] + ".txt"
+            np.savetxt(txtname, data)
+            print "Saved to:", txtname
+        elif extension.lower() == ".raw":
+            data = data_reader.DataImporter(path).get_data()
+            txtname = path[:-4] + ".txt"
+            np.savetxt(txtname, data)
+            print "Saved to:", txtname
+        else:
+            try:
+                data = np.loadtxt(path, skiprows=header_test(path))
+            except IOError:
+                print"Failed to open:", path
+                data = None
     return data
 
 
@@ -1018,10 +1044,10 @@ def linearize(datatop, binsize, linflag):
 
     if linflag < 2:
         newdat = lintegrate(datatop, intx)
-        #print "Integrating"
+        # print "Integrating"
     else:
         newdat = linterpolate(datatop, intx)
-        #print "Interpolating"
+        # print "Interpolating"
     return newdat
 
 
@@ -1580,6 +1606,7 @@ def match(pks, oligomasslist, oligonames, tolerance=None):
     matchlist = [peaks, matches, errors, names]
     return matchlist
 
+
 # ...........................................................
 #
 # Peak Shape Tools
@@ -1868,7 +1895,6 @@ def win_fft_grid(rawdata, binsize, wbin, window_fwhm, diffrange):
     mzdata = linearize(rawdata, binsize, 3)
     mzdata = pad_two_power(mzdata)
 
-
     xvals = np.arange(mindat, maxdat, wbin)
 
     results = np.array([windowed_fft(mzdata, x, window_fwhm, diffrange=diffrange)[1] for x in xvals])
@@ -2133,6 +2159,12 @@ def peaks_error_mean(pks, data, ztab, massdat, config):
 
 
 if __name__ == "__main__":
+
+    testfile="C:\Python\UniDec\TestSpectra\\test_imms.raw"
+    waters_convert(testfile)
+
+    exit()
+
     x = [0., 1., 2., 3., 4.]
     y = [1, 0.7, 0.5, 0.4, 0.3]
     import matplotlib.pyplot as plt

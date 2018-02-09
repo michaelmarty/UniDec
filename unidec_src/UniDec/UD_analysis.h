@@ -481,49 +481,49 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 	file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 
 	if (!ultra){
-	//Read In Data
-	strcpy(dataset, "/ms_dataset");
-	strjoin(dataset, "/mass_axis", outdat);
-	printf("Processing HDF5 Data: %s\n", outdat);
+		//Read In Data
+		strcpy(dataset, "/ms_dataset");
+		strjoin(dataset, "/mass_axis", outdat);
+		printf("Processing HDF5 Data: %s\n", outdat);
 
-	int mlen = mh5getfilelength(file_id, outdat);
+		int mlen = mh5getfilelength(file_id, outdat);
 
-	double *massaxis = NULL;
-	double *masssum = NULL;
+		double *massaxis = NULL;
+		double *masssum = NULL;
 
-	massaxis = calloc(mlen, sizeof(double));
-	masssum = calloc(mlen, sizeof(double));
+		massaxis = calloc(mlen, sizeof(double));
+		masssum = calloc(mlen, sizeof(double));
 
-	mh5readfile1d(file_id, outdat, massaxis);
-	strcpy(dataset, "/ms_dataset");
-	strjoin(dataset, "/mass_sum", outdat);
-	mh5readfile1d(file_id, outdat, masssum);
+		mh5readfile1d(file_id, outdat, massaxis);
+		strcpy(dataset, "/ms_dataset");
+		strjoin(dataset, "/mass_sum", outdat);
+		mh5readfile1d(file_id, outdat, masssum);
 
-	double *peakx=NULL;
-	double *peaky=NULL;
-	peakx = calloc(mlen, sizeof(double));
-	peaky = calloc(mlen, sizeof(double));
+		double *peakx=NULL;
+		double *peaky=NULL;
+		peakx = calloc(mlen, sizeof(double));
+		peaky = calloc(mlen, sizeof(double));
 
-	int plen = peak_detect(massaxis, masssum, mlen, config.peakwin, config.peakthresh, peakx, peaky);
+		int plen = peak_detect(massaxis, masssum, mlen, config.peakwin, config.peakthresh, peakx, peaky);
 
-	peakx = realloc(peakx, plen*sizeof(double));
-	peaky = realloc(peaky, plen*sizeof(double));
+		peakx = realloc(peakx, plen*sizeof(double));
+		peaky = realloc(peaky, plen*sizeof(double));
 
-	peak_norm(peaky, plen, config.peaknorm);
+		peak_norm(peaky, plen, config.peaknorm);
 
-	strcpy(dataset, "/peaks");
-	makegroup(file_id, dataset);
-	strjoin(dataset, "/peakdata", outdat);
-	printf("\tWriting %d Peaks to: %s\n", plen, outdat);
-	mh5writefile2d(file_id, outdat, plen, peakx, peaky);
+		strcpy(dataset, "/peaks");
+		makegroup(file_id, dataset);
+		strjoin(dataset, "/peakdata", outdat);
+		printf("\tWriting %d Peaks to: %s\n", plen, outdat);
+		mh5writefile2d(file_id, outdat, plen, peakx, peaky);
 
 	
-	peak_extracts(config, peakx, file_id, "/mass_data", plen, 0);
+		peak_extracts(config, peakx, file_id, "/mass_data", plen, 0);
 
-	free(peakx);
-	free(peaky);
-	free(massaxis);
-	free(masssum);
+		free(peakx);
+		free(peaky);
+		free(massaxis);
+		free(masssum);
 	}
 	else {
 		strcpy(dataset, "/peaks");

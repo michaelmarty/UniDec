@@ -2,14 +2,11 @@ import os
 from copy import deepcopy
 import numpy as np
 import wx
-from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows
-from unidectools import win_fft_grid, nearest
+from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows, fitting
+from unidectools import win_fft_grid, nearest, peakdetect
 import matplotlib.cm as cm
 
 __author__ = 'Michael.Marty'
-
-
-
 
 
 class FFTWindow(wx.Frame):
@@ -55,6 +52,10 @@ class FFTWindow(wx.Frame):
                                                 "Add Horizontal Line at Specific Y Value")
         self.Bind(wx.EVT_MENU, self.on_add_line, self.menuaddline)
 
+        self.menupeaks = self.plotmenu.Append(wx.ID_ANY, "Get Peaks",
+                                              "Get Peaks from Spectrum")
+        self.Bind(wx.EVT_MENU, self.on_get_peaks, self.menupeaks)
+
         menu_bar = wx.MenuBar()
         menu_bar.Append(filemenu, "&File")
         menu_bar.Append(self.plotmenu, "Plot")
@@ -66,8 +67,8 @@ class FFTWindow(wx.Frame):
         sizer = wx.BoxSizer(wx.VERTICAL)
         plotpanel1 = wx.BoxSizer(wx.HORIZONTAL)
         plotpanel2 = wx.BoxSizer(wx.HORIZONTAL)
-        if displaysize[0] < 1500:
-            figsize = (3, 2)
+        if displaysize[0] < 1700:
+            figsize = (4, 3)
         else:
             figsize = (5, 4)
         self.plot1 = plot1d.Plot1d(panel, figsize=figsize)
@@ -99,8 +100,6 @@ class FFTWindow(wx.Frame):
         controlsizer2.Add(self.ctlmin, 0, wx.ALIGN_CENTER_VERTICAL)
         controlsizer2.Add(wx.StaticText(panel, label=" Max Difference:"), 0, wx.ALIGN_CENTER_VERTICAL)
         controlsizer2.Add(self.ctlmax, 0, wx.ALIGN_CENTER_VERTICAL)
-
-
 
         label = "Replot"
         replotbutton = wx.Button(panel, label=label)
@@ -200,7 +199,8 @@ class FFTWindow(wx.Frame):
                 rowsums.append(sum)
                 rowdiff.append(self.diffrange[0] + self.binsize + (self.binsize * row))
             maxsum = np.amax(np.asarray(rowsums))
-            tmp = [x/maxsum for x in rowsums]
+            tmp = [x / maxsum for x in rowsums]
+            self.diffdat = np.transpose([rowdiff, tmp])
             self.plot3.plotrefreshtop(rowdiff, tmp, xlabel="Mass Difference", ylabel="Intensity")
         except Exception, e:
             self.plot3.clear_plot()
@@ -248,7 +248,6 @@ class FFTWindow(wx.Frame):
         if self.plot4.flag:
             self.plot4.on_save_fig(e, name4)
 
-
     def on_add_line(self, e):
         """
         Add a horizontal line to the plot to visualize a predicted mass defect.
@@ -270,26 +269,39 @@ class FFTWindow(wx.Frame):
             print "Failed: ", dialog.value, e
             pass
 
+    def on_get_peaks(self, e=None, data=None):
+        if data is None:
+            data=self.diffdat
+        print "Data range", np.amin(data[:,0]), "to", np.amax(data[:,0])
+        peaks = peakdetect(data, window=1000.)[:, 0]
+        for p in peaks:
+            index = nearest(data[:, 0], p)
+            idiff = int(3 / self.binsize)
+            print "Peak value:", p
+            fit, fitdat = fitting.isolated_peak_fit(data[index - idiff:index + idiff, 0],
+                                                    data[index - idiff:index + idiff, 1], psfun=0)
+            print "Peak Fit:", fit[1, 0], "+/-", fit[1, 1]
+
     def on_compare_regions(self, e=None):
-        #First click
+        # First click
         if self.compareclicks == 0:
             self.plot2.zoom.comparemode = True
             self.compareclicks += 1
-            self.comparetext.SetLabel("Compare Mode Activated")
-        #Turn off if no boxes were drawn
+            self.comparetext.SetLabel("Drag box(es) and click again to compare")
+        # Turn off if no boxes were drawn
         elif self.compareclicks == 1 and len(self.plot2.zoom.comparexvals) == 0:
             self.compareclicks = 0
             self.plot2.zoom.comparexvals = []
             self.plot2.zoom.compareyvals = []
             self.comparetext.SetLabel("Compare Mode Deactivated")
             self.plot2.zoom.comparemode = False
-        #Admonish user for not using it correctly
+        # Admonish user for not using it correctly
         elif len(self.plot2.zoom.comparexvals) % 2 != 0:
             self.comparetext.SetLabel("Please select 2 or more regions to compare")
             self.compareclicks = 1
             self.plot2.zoom.comparexvals = []
             self.plot2.zoom.compareyvals = []
-        #2 boxes drawn, 2 clicks
+        # 2 boxes drawn, 2 clicks
         elif len(self.plot2.zoom.comparexvals) % 2 == 0:
             ret = self.createcompareplot()
             if ret == 1:
@@ -298,7 +310,7 @@ class FFTWindow(wx.Frame):
             self.plot2.zoom.compareyvals = []
             self.plot2.zoom.comparexvals = []
             self.plot2.zoom.comparemode = False
-        #Case i dont know
+        # Case i dont know
         else:
             self.comparetext.SetLabel("Unknown case found")
 
@@ -307,13 +319,13 @@ class FFTWindow(wx.Frame):
         yvals = self.plot2.zoom.compareyvals
         data2d = win_fft_grid(self.rawdata, self.binsize, self.wbin, self.window_fwhm, self.diffrange)
         for x in range(0, len(xvals) / 2):
-            if xvals[x*2] > xvals[x*2+1]: xvals[x*2], xvals[x*2+1] = xvals[x*2+1], xvals[x*2]
-            if yvals[x*2] > yvals[x*2+1]: yvals[x*2], yvals[x*2+1] = yvals[x*2+1], yvals[x*2]
+            if xvals[x * 2] > xvals[x * 2 + 1]: xvals[x * 2], xvals[x * 2 + 1] = xvals[x * 2 + 1], xvals[x * 2]
+            if yvals[x * 2] > yvals[x * 2 + 1]: yvals[x * 2], yvals[x * 2 + 1] = yvals[x * 2 + 1], yvals[x * 2]
             # assure that x and y values are not equal
-            if xvals[x*2] == xvals[x*2+1] or yvals[x*2] == yvals[x*2+1]:
+            if xvals[x * 2] == xvals[x * 2 + 1] or yvals[x * 2] == yvals[x * 2 + 1]:
                 self.comparetext.SetLabel("Line or point drawn, please try again.")
                 return 0
-        #Round to nearest value, find index for that value
+        # Round to nearest value, find index for that value
         nearestxvalind = []
         for val in xvals:
             roundedval = self.wbin * round(val / self.wbin)
@@ -323,16 +335,16 @@ class FFTWindow(wx.Frame):
         for val in yvals:
             roundedval = self.binsize * round(val / self.binsize)
             nearestyvalind.append(nearest(data2d[0:int(indexdiff), 1], roundedval))
-        #Sum up the rows in each box
+        # Sum up the rows in each box
         boxsums = []
         rowdiffs = []
         maxsum = 0
         for x in range(0, len(xvals) / 2):
             rowsums = []
             tmpdiff = []
-            for row in range(nearestyvalind[x*2], nearestyvalind[x*2+1]):
+            for row in range(nearestyvalind[x * 2], nearestyvalind[x * 2 + 1]):
                 sum = 0
-                for col in range(nearestxvalind[x*2], nearestxvalind[x*2+1], int(indexdiff)):
+                for col in range(nearestxvalind[x * 2], nearestxvalind[x * 2 + 1], int(indexdiff)):
                     sum += data2d[int(col + row), 2]
                 rowsums.append(sum)
                 tmpdiff.append(self.diffrange[0] + self.binsize + (self.binsize * row))
@@ -343,10 +355,12 @@ class FFTWindow(wx.Frame):
         colormap = cm.get_cmap('rainbow', len(xvals) / 2)
         cols = colormap(np.arange(len(xvals) / 2))
         tmp = [y / maxsum for y in boxsums[0]]
+        self.on_get_peaks(data=np.transpose([rowdiffs[0],tmp]))
         self.plot4.plotrefreshtop(rowdiffs[0], tmp, color=cols[0],
                                   xlabel="Mass Difference", ylabel="Intensity", linestyle="solid")
         for x in range(1, len(xvals) / 2):
             tmp = [y / maxsum for y in boxsums[x]]
+            self.on_get_peaks(data=np.transpose([rowdiffs[x], tmp]))
             self.plot4.plotadd(rowdiffs[x], tmp, cols[x], None)
         self.plot4.repaint()
         return 1
@@ -354,10 +368,12 @@ class FFTWindow(wx.Frame):
 
 # Main App Execution
 if __name__ == "__main__":
-    datfile = "C:\\NDData\\PG25\\CG_07\\150820_CG_07_ramp90.txt"
+    datfile = "C:\Data\New\POPC_D1T0-2m_ISTRAP\\20170207_P1D_POPC_ND_D1T0-2m_ISTRAP_RAMP_0_275_25_1_200.0.txt"
 
     data2 = np.loadtxt(datfile)
 
     app = wx.App(False)
     frame = FFTWindow(None, data2)
+
+    frame.on_get_peaks()
     app.MainLoop()

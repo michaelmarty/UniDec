@@ -69,7 +69,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
                 ["R", self.pres.on_unidec_button], ["D", self.pres.on_dataprep_button],
                 ["O", self.pres.on_open],  # ["I", self.pres.on_integrate],
                 ["P", self.pres.on_pick_peaks],  # ["K", self.pres.on_plot_peaks],
-                ["C", self.pres.on_plot_composite], ["N", self.pres.on_new_file],
+                ["C", self.pres.on_plot_composite], ["N", self.pres.on_wizard],
                 # ["F", self.pres.on_plot_offsets],  # ["Z", self.pres.on_charge_plot],
                 # ["L", self.pres.on_load_state], ["S", self.pres.on_save_state],
                 ["B", self.pres.on_batch_run],

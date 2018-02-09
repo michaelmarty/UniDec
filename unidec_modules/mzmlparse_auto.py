@@ -237,7 +237,7 @@ def extract_timepoints(files, directories, starttp=None, endtp=None, timestep=1.
     parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr, outputname)
 
 
-def extract_scans_multiple_files(files, dirs, startscan=1.0, endscan=1.0, outputname="Combined"):
+def extract_scans_multiple_files(files, dirs, startscan=1.0, endscan=1.0, outputname="Combined", existing_path=None):
     paths = []
     names = []
     startscan = int(float(startscan))
@@ -250,10 +250,14 @@ def extract_scans_multiple_files(files, dirs, startscan=1.0, endscan=1.0, output
         paths.append(path)
         names.append(name)
     outfile = outputname + ".hdf5"
-    outpath = os.path.join(newdir, outfile)
+    if existing_path is None:
+        outpath = os.path.join(newdir, outfile)
+    else:
+        outpath = existing_path
     hdf = h5py.File(outpath, "a")
     try:
-        del hdf["ms_dataset"]
+        if existing_path is None:
+            del hdf["ms_dataset"]
     except:
         pass
     msdataset = hdf.require_group("ms_dataset")

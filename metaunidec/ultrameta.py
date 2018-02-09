@@ -12,15 +12,13 @@ from matplotlib import rcParams
 from pubsub import pub
 import wx.lib.scrolledpanel as scrolled
 import multiprocessing
-from unidec_modules import UniFit, Extract2D, unidecstructure, PlotAnimations, plot1d, plot2d, miscwindows, \
-    MassDefects, nativez, IM_functions
-from unidec_modules.PlottingWindow import PlottingWindow
+from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows
 import unidec_modules.unidectools as ud
 import h5py
 from unidec_modules.hdf5_tools import replace_dataset, get_dataset
 from gui_elements.um_list_ctrl import *
 import mudeng
-import pickle
+import threading
 
 __author__ = 'michael.marty'
 
@@ -60,8 +58,8 @@ class DataCollector(wx.Frame):
             else:
                 self.config.cmap = "jet"
 
-        self.CreateStatusBar(2)
-        self.SetStatusWidths([-1, 150])
+        self.CreateStatusBar(3)
+        self.SetStatusWidths([-1, 150,400])
         pub.subscribe(self.on_motion, 'newxy')
 
         self.filemenu = wx.Menu()
@@ -202,7 +200,7 @@ class DataCollector(wx.Frame):
                 testdir = "C:\Data\Guozhi"
                 testfile = "collection1.json"
                 self.load(os.path.join(testdir, testfile))
-                self.on_plot_all()
+                # self.on_plot_all()
                 pass
             except Exception, e:
                 print e
@@ -323,22 +321,27 @@ class DataCollector(wx.Frame):
         self.on_run(fit="sig")
 
     def update_hdf5(self, path):
-        self.hdf5_file = path
-        self.hdf = h5py.File(path)
+        try:
+            hdf = h5py.File(path)
+            h5_config = hdf.require_group("config")
+            h5_config.attrs.modify("exnorm", self.config.exnorm)
+            h5_config.attrs.modify("exchoice", self.config.exchoice)
+            h5_config.attrs.modify("exwindow", self.config.exwindow)
 
-        self.config.hdf_file = path
+            pdataset = hdf.require_group("/peaks")
+            ultrapeakdata = np.array([int(x[1]) for x in self.xvals])
+            replace_dataset(pdataset, "ultrapeakdata", data=ultrapeakdata)
+            hdf.close()
+            self.run_hdf5(path)
+        except:
+            self.SetStatusText("ERROR with File: " + path, number=2)
+            print "ERROR Python: File", path
 
-        h5_config = self.hdf.require_group("config")
-        h5_config.attrs.modify("exnorm", self.config.exnorm)
-        h5_config.attrs.modify("exchoice", self.config.exchoice)
-        h5_config.attrs.modify("exwindow", self.config.exwindow)
-
-        pdataset = self.hdf.require_group("/peaks")
-        ultrapeakdata = np.array([int(x[1]) for x in self.xvals])
-        replace_dataset(pdataset, "ultrapeakdata", data=ultrapeakdata)
-        self.hdf.close()
-
-        out = mudeng.metaunidec_call(self.config, "-ultraextract")
+    def run_hdf5(self,path):
+        out = mudeng.metaunidec_call(self.config, "-ultraextract", path=path)
+        if out is not 0:
+            self.SetStatusText("ERROR with File: " + path, number=2)
+            print "ERROR C: File", path, out
 
     """
     Gets called when "Run Extraction" button gets clicked. For each file given in the list,
@@ -352,7 +355,7 @@ class DataCollector(wx.Frame):
         self.plot1.clear_plot()
         self.plot2.clear_plot()
         self.update_get(e)
-        print "Running"
+        print "Running\n"
         # print self.yvals
         labels = np.array(self.yvals)[:, 3]
         uniquelabels = np.unique(labels)
@@ -362,13 +365,32 @@ class DataCollector(wx.Frame):
             self.xvals = [[u'\u25CB', 0]]
 
         # run extraction on all files with parameters
-        if fit is None:
-            for y in self.yvals:
-                path = y[0]
-                if self.localpath == 1:
-                    path = os.path.join(self.directory, path)
-                self.update_hdf5(path)
 
+        paths = []
+        for y in self.yvals:
+            path = y[0]
+            if self.localpath == 1:
+                path = os.path.join(self.directory, path)
+            paths.append(path)
+
+        if fit is None:
+            if True:
+                try:
+                    threads = []
+                    for p in paths:
+                        t = threading.Thread(target=self.update_hdf5, args=(p,))
+                        threads.append(t)
+                        t.start()
+                    for t in threads:
+                        t.join()
+                except:
+                    "Error in Threads. Switching to Sequential"
+                    for p in paths:
+                        self.update_hdf5(p)
+            else:
+                for p in paths:
+                    self.update_hdf5(p)
+        print "Execution Time: %.2gs" % (time.clock() - tstart)
         for x in self.xvals:
             try:
                 index = int(x[1])
@@ -514,8 +536,6 @@ class DataCollector(wx.Frame):
                             for x in range(0, 2):
                                 tmp.append(np.std(errors[x]))
                             bargrapherrors.append(tmp)
-
-
 
                         if not self.plot1.flag:
                             self.plot1.plotrefreshtop(xvals, fitdat, "Mass Extracts", self.ylabel, "Mass", None, None,
@@ -766,8 +786,8 @@ class DataCollector(wx.Frame):
 class BarGraphWindow(wx.Frame):
     def __init__(self, parent, title, directory, *args, **kwargs):
         wx.Frame.__init__(self, parent, size=(700, 700), title=title)  # ,size=(200,-1))
-        self.directory=directory
-        self.plotname=None
+        self.directory = directory
+        self.plotname = None
         self.plotmenu = wx.Menu()
 
         self.menuPNG = self.plotmenu.Append(wx.ID_ANY, "Save Figures as PNG", "Save Figures as PNG")
@@ -818,7 +838,7 @@ class BarGraphWindow(wx.Frame):
                                  peakval=barlabels, colortab=plotcols, title="Amplitude")
         self.p1.repaint()
         self.p2.repaint()
-        self.plotname="Exp_Fit"
+        self.plotname = "Exp_Fit"
         self.Show()
 
     def on_lin_plot(self, fits=None, labels=None, errors=None):
@@ -860,7 +880,7 @@ class BarGraphWindow(wx.Frame):
                                  peakval=barlabels, colortab=plotcols, title="Intercept")
         self.p1.repaint()
         self.p2.repaint()
-        self.plotname="Lin_Fit"
+        self.plotname = "Lin_Fit"
         self.Show()
 
     def on_sig_plot(self, fits=None, labels=None, errors=None):
@@ -924,7 +944,7 @@ class BarGraphWindow(wx.Frame):
         self.p2.repaint()
         self.p3.repaint()
         self.p4.repaint()
-        self.plotname="Sig_Fit"
+        self.plotname = "Sig_Fit"
         self.Show()
 
     def setup_window(self, numplots=2):
@@ -933,7 +953,7 @@ class BarGraphWindow(wx.Frame):
         self.panel.SetupScrolling()
         plotsizer = wx.GridBagSizer()
         figsize = (6, 5)
-        self.plots=[]
+        self.plots = []
         self.p1 = plot1d.Plot1d(self.panel, figsize=figsize)
         self.p2 = plot1d.Plot1d(self.panel, figsize=figsize)
         self.plots.append(self.p1)
@@ -965,7 +985,7 @@ class BarGraphWindow(wx.Frame):
                 ptemp.append(p)
             self.plots.append(ptemp)
         self.panel.SetSizer(plotsizer)
-        self.plotname="Plot"
+        self.plotname = "Plot"
         plotsizer.Fit(self)
 
     def save_all_figures(self, extension, e=0, header=None, **kwargs):
@@ -981,13 +1001,13 @@ class BarGraphWindow(wx.Frame):
         figureflags = []
         files = []
         if header is None:
-            header =  self.plotname
+            header = self.plotname
         else:
             header += self.plotname
 
         for i, plot in enumerate(np.ravel(self.plots)):
             name1 = header + "_" + str(i) + "." + extension
-            path=os.path.join(self.directory, name1)
+            path = os.path.join(self.directory, name1)
             if plot.flag:
                 plot.on_save_fig(e, path, **kwargs)
                 figureflags.append(i + 1)

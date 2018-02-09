@@ -28,7 +28,7 @@ Config ImportConfig(int argc, char * argv[], Config config)
 			config.filetype = 1;
 			file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 			config = mh5LoadConfig(config, file_id);
-			printf("Using HDF5 mode\n");
+			//printf("Using HDF5 mode\n");
 			H5Fclose(file_id);
 		}
 		else {

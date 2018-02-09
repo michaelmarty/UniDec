@@ -853,7 +853,7 @@ class UniDecConfig(object):
         :return: None
         """
 
-        print "\nInitial File Locations..."
+        #print "\nInitial File Locations..."
         self.system = platform.system()
         pathtofile = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.defaultUnidecDir = os.path.join(pathtofile, 'unidec_bin')
@@ -862,18 +862,18 @@ class UniDecConfig(object):
             self.defaultUnidecName = "UniDec.exe"
             self.h5repackfile = "h5repack.exe"
             self.opencommand = "start "
-            print "Windows: ", self.defaultUnidecName
+            #print "Windows: ", self.defaultUnidecName
         elif self.system == 'Darwin':
             self.defaultUnidecName = "unidecmac"
             self.h5repackfile = "h5repack"
             # self.defaultUnidecDir = '/Applications/GUniDecMac.app/Contents/MacOS'
             self.opencommand = "open "
-            print "Mac:", self.defaultUnidecName
+            #print "Mac:", self.defaultUnidecName
         else:
             self.defaultUnidecName = "unideclinux"
             self.h5repackfile = "h5repack"
             self.opencommand = "gnome-open "  # TODO: Test whether this is right
-            print "Linux or other: unidec"
+            #print "Linux or other: unidec"
 
         def giveup():
             self.defaultUnidecDir = ""
@@ -903,7 +903,7 @@ class UniDecConfig(object):
         self.masstablefile = os.path.join(self.UniDecDir, "mass_table.csv")
         self.h5repackfile = os.path.join(self.UniDecDir, self.h5repackfile)
 
-        print "UniDec Path:", self.UniDecPath
+        print "\nUniDec Path:", self.UniDecPath
 
     def check_new(self, other):
         flag = False

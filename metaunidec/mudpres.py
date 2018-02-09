@@ -17,10 +17,10 @@ from unidec_modules import Extract2D, masstools, miscwindows, \
 from unidec_modules.isolated_packages import FileDialogs
 import datacollector
 import multiprocessing
-import unidec_modules.mzmlparse_auto as automzml
 from unidec_modules.unidec_presbase import UniDecPres
 import ultrameta
 from mudhelp import *
+from meta_import_wizard.meta_import_wizard import ImportWizard
 
 # import FileDialog  # Needed for pyinstaller
 
@@ -730,7 +730,7 @@ class UniDecApp(UniDecPres):
             dlg.initialize_interface("Timestep", "Enter ramp timestep to compress in minutes:", defaultvalue=str(1.0))
             dlg.ShowModal()
             timestep = dlg.value
-            self.import_mzml(paths, timestep=timestep)
+            self.eng.import_mzml(paths, timestep=timestep)
 
     def on_import_mzml_scans(self, e):
         """
@@ -745,7 +745,7 @@ class UniDecApp(UniDecPres):
             dlg.initialize_interface("Scan Step", "Enter number of scans to compress:", defaultvalue=str(1.0))
             dlg.ShowModal()
             scanstep = dlg.value
-            self.import_mzml(paths, scanstep=scanstep)
+            self.eng.import_mzml(paths, scanstep=scanstep)
 
 
     def on_import_multiple_times(self, e):
@@ -780,7 +780,7 @@ class UniDecApp(UniDecPres):
             if float(endtp) < float(starttp) or float(endtp) < 0 or float(starttp) < 0 or float(timestep) <= 0:
                 print "Bad values inputted"
             else:
-                self.import_mzml(paths, timestep=float(timestep), name=name, starttp=float(starttp), endtp=float(endtp))
+                self.eng.import_mzml(paths, timestep=float(timestep), name=name, starttp=float(starttp), endtp=float(endtp))
 
     def on_import_multiple_scans(self, e):
         paths = FileDialogs.open_multiple_files_dialog(message="Choose ramp data files mzml or Thermo Raw format",
@@ -800,62 +800,14 @@ class UniDecApp(UniDecPres):
             dlg.ShowModal()
             name = dlg.value
             #+ 1 including the endscan
-            self.import_mzml(paths, startscan=int(startscan), endscan=(int(endscan) + 1), name=name)
+            self.eng.import_mzml(paths, startscan=int(startscan), endscan=(int(endscan) + 1), name=name)
 
-    def import_mzml(self, paths, timestep=1.0, scanstep=None, starttp=None, endtp=None, name=None,
-                    startscan=None, endscan=None):
-        """
-        Tested
-        :param paths:
-        :param timestep:
-        :return:
-        """
-        errors = []
-        if starttp is not None:
-            self.parse_multiple_files(paths, starttp=starttp, endtp=endtp, timestep=timestep, name=name)
-        elif startscan is not None:
-            self.parse_multiple_files(paths, startscan=startscan, endscan=endscan, name=name)
-        else:
-            for p in paths:
-                try:
-                    if scanstep is not None:
-                        self.parse_file(p, scanstep=scanstep)
-                    else:
-                        self.parse_file(p, timestep=float(timestep))
-                except Exception, e:
-                    errors.append(p)
-                    print e
-            if not ud.isempty(errors):
-                print "Errors:", errors
-
-    def parse_file(self, p, timestep=None, scanstep=None, timepoint=None):
-        """
-        Tested
-        :param p:
-        :param timestep:
-        :return:
-        """
-        dirname = os.path.dirname(p)
-        filename = os.path.basename(p)
-        if scanstep is not None:
-            automzml.extract_scans(filename, dirname, scanstep, "hdf5")
-        else:
-            automzml.extract(filename, dirname, timestep, "hdf5")
-        pass
-
-    def parse_multiple_files(self, paths, starttp=None, endtp=None, timestep=1.0, name=None,
-                             startscan=None, endscan=None, scanstep=None):
-        dirs = []
-        files = []
-        print "Parsing multiple files"
-        for p in paths:
-            dirs.append(os.path.dirname(p))
-            files.append(os.path.basename(p))
-        if startscan is not None:
-            automzml.extract_scans_multiple_files(files, dirs, startscan, endscan, name)
-        else:
-            automzml.extract_timepoints(files, dirs, starttp, endtp, timestep, outputname=name)
-
+    def on_wizard(self, e=None):
+        print "Launching Waters Converter Wizard"
+        app = wx.App(False)
+        frame = ImportWizard(None)
+        frame.Show()
+        app.MainLoop()
 
     def on_new_file(self, e=None):
         """
@@ -1410,22 +1362,17 @@ class UniDecApp(UniDecPres):
 # Critical
 # TODO: Thorough testing
 
-# MATT
 # TODO: Tutorial
-# TODO: Show readme under HELP
-# TODO: Parse the same minutes from multiple files into HDF5
 # TODO: Better tuning and control of autobaseline
 
 # SCOTT
 # TODO: UltraMeta Extract Specific Peaks
-# TODO: Fix legend in UltraMeta
 # TODO: Better preset manager, potentially with external preset folder
 
 # Serious work
 # TODO: Weighted average of charge states to calculate mass error
 # TODO: Error as FWHM of peak
 # TODO: Average charge state as extraction parameter
-
 
 # Next
 # TODO: Make Launcher Fancier

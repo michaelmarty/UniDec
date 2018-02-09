@@ -58,7 +58,7 @@ class TreeCtrlPanel(wx.Panel):
             returns root object
         '''
         root = self.tree.AddRoot(name)
-        self.tree.SetPyData(root, data)
+        self.tree.SetItemData(root, data)
         self.tree.SetItemImage(root, self.fldridx, wx.TreeItemIcon_Normal)
         self.tree.SetItemImage(root, self.fldropenidx, wx.TreeItemIcon_Expanded)
         return root
@@ -76,7 +76,7 @@ class TreeCtrlPanel(wx.Panel):
                    not folder.startswith('_'):
                     if os.path.isdir(new_path):
                         child = self.tree.AppendItem(parent, os.path.basename(new_path))
-                        self.tree.SetPyData(child, new_path)
+                        self.tree.SetItemData(child, new_path)
                         self.tree.SetItemImage(child, self.fldridx, wx.TreeItemIcon_Normal)
                         self.tree.SetItemImage(child, self.fldropenidx, wx.TreeItemIcon_Expanded)
                         if depth_limit > 0:
@@ -134,7 +134,7 @@ class TreeCtrlPanel(wx.Panel):
     def on_selected_changed(self, event):
         self.item = event.GetItem()
         if self.item:
-            self.raw_file_info(self.tree.GetPyData(self.item))
+            self.raw_file_info(self.tree.GetItemData(self.item))
         event.Skip()
 
 
@@ -145,7 +145,7 @@ class TreeCtrlPanel(wx.Panel):
             else:
                 # remove any existing children:
                 self.tree.DeleteChildren(self.item)
-                self.add_children(self.item, self.tree.GetPyData(self.item), 1)
+                self.add_children(self.item, self.tree.GetItemData(self.item), 1)
                 self.tree.Expand(self.item)
 
 
@@ -154,4 +154,4 @@ class TreeCtrlPanel(wx.Panel):
         if self.item:
             # remove any existing children:
             self.tree.DeleteChildren(self.item)
-            self.add_children(self.item, self.tree.GetPyData(self.item), 1)
+            self.add_children(self.item, self.tree.GetItemData(self.item), 1)

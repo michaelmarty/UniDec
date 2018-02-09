@@ -667,7 +667,7 @@ class DataCollector(wx.Frame):
 
     def on_add_y(self, e):
         self.update_get(e)
-        dlg = wx.FileDialog(self, "Load Files", self.directory, "", "*.*", wx.MULTIPLE)
+        dlg = wx.FileDialog(self, "Load Files", self.directory, "", "*.*", wx.FD_MULTIPLE)
         if dlg.ShowModal() == wx.ID_OK:
             filenames = dlg.GetPaths()
             for f in filenames:

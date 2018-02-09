@@ -117,7 +117,7 @@ class ImportWizard(wx.Frame):
     def add_file(self, evt):
         # scan through selected folders
         for item in self.tree.GetSelections():
-            file_path = self.my_tree.tree.GetPyData(item)
+            file_path = self.my_tree.tree.GetItemData(item)
             sel = self.rb.GetSelection()
             if sel == 0:
                 exp_type = 'linear'

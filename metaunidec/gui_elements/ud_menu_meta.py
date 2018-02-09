@@ -18,22 +18,28 @@ class meta_menu(wx.Menu):
         # File Menu
         self.openmenu = self.filemenu.Append(wx.ID_ANY, "Open File\tCtrl+O", "Open HDF5 file")
         self.filemenu.AppendSeparator()
-        self.newmenu = self.filemenu.Append(wx.ID_ANY, "New File\tCtrl+N", "Create New Blank HDF5 file")
-        self.addmenu = self.filemenu.Append(wx.ID_ANY, "Add Data Files",
-                                            "Add data from individual text, mzml, or Thermo RAW files to current HDF5 file")
-        self.menupastespectrum = self.filemenu.Append(wx.ID_ANY, "Add Data From Clipboard",
-                                                      "Add copied data from clipboard to current HDF5 file")
-        self.menuexportdata = self.filemenu.Append(wx.ID_ANY, "Export HDF5 to Text",
-                                                      "Export data in HDF5 to individual text files")
+        self.wizardmenu=self.filemenu.Append(wx.ID_ANY, "Import Wizard\tCtrl+N", "Import Data Into HDF5 File")
         self.filemenu.AppendSeparator()
-        self.importmenu = self.filemenu.Append(wx.ID_ANY, "Auto Import Chromatogram By Time",
+        self.filemenu2 = wx.Menu()
+        self.newmenu = self.filemenu2.Append(wx.ID_ANY, "New File", "Create New Blank HDF5 file")
+        self.addmenu = self.filemenu2.Append(wx.ID_ANY, "Add Data Files",
+                                            "Add data from individual text, mzml, or Thermo RAW files to current HDF5 file")
+        self.menupastespectrum = self.filemenu2.Append(wx.ID_ANY, "Add Data From Clipboard",
+                                                      "Add copied data from clipboard to current HDF5 file")
+        self.menuexportdata = self.filemenu2.Append(wx.ID_ANY, "Export HDF5 to Text",
+                                                      "Export data in HDF5 to individual text files")
+        self.filemenu.Append(wx.ID_ANY, "Manual File Operations", self.filemenu2)
+        self.filemenu.AppendSeparator()
+        self.filemenu3 = wx.Menu()
+        self.importmenu = self.filemenu3.Append(wx.ID_ANY, "Auto Import Chromatogram By Time",
                                                "Import mzML or Thermo RAW Ramps to HDF5 files")
-        self.importmenu2 = self.filemenu.Append(wx.ID_ANY, "Auto Import Chromatogram By Scans",
+        self.importmenu2 = self.filemenu3.Append(wx.ID_ANY, "Auto Import Chromatogram By Scans",
                                                "Import mzML or Thermo RAW Ramps to HDF5 files")
-        self.importmenu3 = self.filemenu.Append(wx.ID_ANY, "Auto Import Multiple Chromatograms By Range of Times",
+        self.importmenu3 = self.filemenu3.Append(wx.ID_ANY, "Auto Import Multiple Chromatograms By Range of Times",
                                                "Import mzML or Thermo RAW Ramps to HDF5 files")
-        self.importmenu4 = self.filemenu.Append(wx.ID_ANY, "Auto Import Multiple Chromatograms By Range of Scans",
+        self.importmenu4 = self.filemenu3.Append(wx.ID_ANY, "Auto Import Multiple Chromatograms By Range of Scans",
                                                 "Import mzML or Thermo RAW Ramps to HDF5 files")
+        self.filemenu.Append(wx.ID_ANY, "Automated Chromatogram Parsing", self.filemenu3)
         self.filemenu.AppendSeparator()
 
         # Default Submenu
@@ -139,6 +145,9 @@ class meta_menu(wx.Menu):
                                                 "Fit all plots to logistic equation")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_sig_fit, self.menusigfit)
 
+        self.analysismenu.AppendSeparator()
+        self.menuUM = self.analysismenu.Append(wx.ID_ANY, "Ultra Meta Data Collector")
+
         # Setting up the Advanced Menu
         self.menuReset = self.advancedmenu.Append(wx.ID_ANY, "Reset To Factory Default", "Reset Parameters to Default")
         self.advancedmenu.AppendSeparator()
@@ -173,7 +182,7 @@ class meta_menu(wx.Menu):
         self.experimentalmenu.AppendSeparator()
         #self.analysismenu.AppendSeparator()
         self.menuDC = self.experimentalmenu.Append(wx.ID_ANY, "Data Collector and KD Fitting")
-        self.menuUM = self.experimentalmenu.Append(wx.ID_ANY, "Ultra Meta Data Collector")
+
         # self.Tweet = self.experimentalmenu.Append(wx.ID_ANY, "Twitter", "Twitter Extension")
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_tweet, self.Tweet)
         # self.experimentalmenu.AppendSeparator()
@@ -187,7 +196,7 @@ class meta_menu(wx.Menu):
 
         #Help Menu
         self.getstarted = self.helpmenu.Append(wx.ID_ANY, "Getting Started")
-        self.listconts = self.helpmenu.Append(wx.ID_ANY, "Importing and Loading Data")
+        self.listconts = self.helpmenu.Append(wx.ID_ANY, "The Spectra Table")
         self.plotwindow = self.helpmenu.Append(wx.ID_ANY, "Plot Window")
         self.peakwindow = self.helpmenu.Append(wx.ID_ANY, "Peak Window")
         self.contmenu = wx.Menu()
@@ -216,6 +225,7 @@ class meta_menu(wx.Menu):
 
         # File Menu
         self.parent.Bind(wx.EVT_MENU, self.pres.on_new_file, self.newmenu)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_wizard, self.wizardmenu)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_add_file, self.addmenu)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_open, self.openmenu)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_import_mzml, self.importmenu)

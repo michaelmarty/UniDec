@@ -12,6 +12,7 @@ from scipy import signal
 import unidec_modules.unidectools as ud
 from unidec_modules import unidecstructure, peakstructure, unidec_enginebase
 from mudstruct import MetaDataSet
+import unidec_modules.mzmlparse_auto as automzml
 
 __author__ = 'Michael.Marty'
 
@@ -224,6 +225,60 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
             self.data.fitgrid.append(fitdat)
             self.data.fits.append(fits)
         self.data.export_fits()
+
+    def import_mzml(self, paths, timestep=1.0, scanstep=None, starttp=None, endtp=None, name=None,
+                    startscan=None, endscan=None):
+        """
+        Tested
+        :param paths:
+        :param timestep:
+        :return:
+        """
+        errors = []
+        if starttp is not None:
+            self.parse_multiple_files(paths, starttp=starttp, endtp=endtp, timestep=timestep, name=name)
+        elif startscan is not None:
+            self.parse_multiple_files(paths, startscan=startscan, endscan=endscan, name=name)
+        else:
+            for p in paths:
+                try:
+                    if scanstep is not None:
+                        self.parse_file(p, scanstep=scanstep)
+                    else:
+                        self.parse_file(p, timestep=float(timestep))
+                except Exception, e:
+                    errors.append(p)
+                    print e
+            if not ud.isempty(errors):
+                print "Errors:", errors
+
+    def parse_file(self, p, timestep=None, scanstep=None, timepoint=None):
+        """
+        Tested
+        :param p:
+        :param timestep:
+        :return:
+        """
+        dirname = os.path.dirname(p)
+        filename = os.path.basename(p)
+        if scanstep is not None:
+            automzml.extract_scans(filename, dirname, scanstep, "hdf5")
+        else:
+            automzml.extract(filename, dirname, timestep, "hdf5")
+        pass
+
+    def parse_multiple_files(self, paths, starttp=None, endtp=None, timestep=1.0, name=None,
+                             startscan=None, endscan=None, scanstep=None):
+        dirs = []
+        files = []
+        print "Parsing multiple files"
+        for p in paths:
+            dirs.append(os.path.dirname(p))
+            files.append(os.path.basename(p))
+        if startscan is not None:
+            automzml.extract_scans_multiple_files(files, dirs, startscan, endscan, name)
+        else:
+            automzml.extract_timepoints(files, dirs, starttp, endtp, timestep, outputname=name)
 
 if __name__ == '__main__':
 

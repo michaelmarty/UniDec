@@ -114,6 +114,8 @@ class main_menu(wx.Menu):
         self.analysismenu.AppendSeparator()
 
         self.menukendrick = self.analysismenu.Append(wx.ID_ANY, "Kendrick Mass Tools", "Kendrick Mass Analysis")
+        self.menufft = self.analysismenu.Append(wx.ID_ANY, "FFT Window")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_fft_window, self.menufft)
         self.menu2Dgrid = self.analysismenu.Append(wx.ID_ANY, "2D Grid Analysis", "2D Grid Analysis")
         self.menuautocorr = self.analysismenu.Append(wx.ID_ANY, "Autocorrelation",
                                                      "Autocorrelation of Mass Distribution")
@@ -235,8 +237,6 @@ class main_menu(wx.Menu):
         self.menucal = self.experimentalmenu.Append(wx.ID_ANY, "Apply Calibration")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_calibrate, self.menucal)
         self.experimentalmenu.AppendSeparator()
-        self.menufft = self.experimentalmenu.Append(wx.ID_ANY, "FFT Window")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_fft_window, self.menufft)
 
         self.menugriddecon = self.experimentalmenu.Append(wx.ID_ANY, "Grid Deconvolution")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_grid_decon, self.menugriddecon)

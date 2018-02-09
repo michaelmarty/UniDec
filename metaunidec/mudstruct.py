@@ -26,8 +26,8 @@ class MetaDataSet:
         self.v2name = "Variable 2"
         self.len = 0
         self.eng = engine
-        self.fitgrid=[]
-        self.fits=[]
+        self.fitgrid = []
+        self.fits = []
         pass
 
     def import_hdf5(self, file=None):
@@ -35,8 +35,8 @@ class MetaDataSet:
             file = self.filename
         else:
             self.filename = file
-        self.hdf = h5py.File(file)
-        self.msdata = self.hdf.require_group(self.topname)
+        hdf = h5py.File(file)
+        self.msdata = hdf.require_group(self.topname)
         keys = self.msdata.keys()
         self.indexes = []
         for k in keys:
@@ -47,7 +47,7 @@ class MetaDataSet:
         self.indexes = np.array(self.indexes)
         self.indexes = sorted(self.indexes)
         self.len = len(self.indexes)
-        self.hdf.close()
+        hdf.close()
         if ud.isempty(self.spectra):
             for i in self.indexes:
                 s = Spectrum(self.topname, i, self.eng)
@@ -89,7 +89,7 @@ class MetaDataSet:
             self.var2.append(s.var2)
             s.write_hdf5(self.filename)
         self.var1 = np.array(self.var1)
-        print self.var1
+        print "Variable 1:", self.var1
         self.var2 = np.array(self.var2)
         self.len = len(self.spectra)
 
@@ -154,20 +154,22 @@ class MetaDataSet:
         if os.path.isfile(path):
             os.remove(path)
         self.filename = path
-        self.hdf = h5py.File(self.filename)
-        self.msdata = self.hdf.require_group(self.topname)
-        self.config = self.hdf.require_group("config")
+        hdf = h5py.File(self.filename)
+        self.msdata = hdf.require_group(self.topname)
+        self.config = hdf.require_group("config")
         self.config.attrs["metamode"] = -1
+        hdf.close()
 
-    def add_file(self, filename, dirname):
-        path = os.path.join(dirname, filename)
+    def add_file(self, filename=None, dirname=None, path=None):
+        if path is None:
+            path = os.path.join(dirname, filename)
         data = ud.load_mz_file(path)
         self.add_data(data, name=filename)
 
     def add_data(self, data, name=""):
         snew = Spectrum(self.topname, self.len, self.eng)
         snew.rawdata = data
-        snew.data2 = data
+        snew.data2 = deepcopy(data)
         if self.eng.config.datanorm == 1:
             try:
                 snew.data2[:, 1] /= np.amax(snew.data2[:, 1])
@@ -201,8 +203,8 @@ class MetaDataSet:
         return np.array(bool_array)
 
     def import_vars(self, get_vnames=True):
-        self.hdf = h5py.File(self.filename)
-        self.msdata = self.hdf.require_group(self.topname)
+        hdf = h5py.File(self.filename)
+        self.msdata = hdf.require_group(self.topname)
         if get_vnames:
             try:
                 self.v1name = self.msdata.attrs["v1name"]
@@ -215,7 +217,7 @@ class MetaDataSet:
         else:
             self.msdata.attrs["v1name"] = self.v1name
             self.msdata.attrs["v2name"] = self.v2name
-        self.hdf.close()
+        hdf.close()
         self.var1 = []
         self.var2 = []
         for i in range(0, self.len):
@@ -263,8 +265,8 @@ class Spectrum:
             file = self.filename
         else:
             self.filename = file
-        self.hdf = h5py.File(file)
-        self.msdata = self.hdf.require_group(self.topname + "/" + str(self.index))
+        hdf = h5py.File(file)
+        self.msdata = hdf.require_group(self.topname + "/" + str(self.index))
         replace_dataset(self.msdata, "raw_data", self.rawdata)
         replace_dataset(self.msdata, "fit_data", self.fitdat)
         replace_dataset(self.msdata, "processed_data", self.data2)
@@ -275,15 +277,15 @@ class Spectrum:
         replace_dataset(self.msdata, "charge_data", self.zdata)
         for key, value in self.attrs.items():
             self.msdata.attrs[key] = value
-        self.hdf.close()
+        hdf.close()
 
     def read_hdf5(self, file=None):
         if file is None:
             file = self.filename
         else:
             self.filename = file
-        self.hdf = h5py.File(file)
-        self.msdata = self.hdf.get(self.topname + "/" + str(self.index))
+        hdf = h5py.File(file)
+        self.msdata = hdf.get(self.topname + "/" + str(self.index))
         self.rawdata = get_dataset(self.msdata, "raw_data")
         self.fitdat = get_dataset(self.msdata, "fit_data")
         self.data2 = get_dataset(self.msdata, "processed_data")
@@ -312,4 +314,4 @@ class Spectrum:
             pass
         self.baseline = get_dataset(self.msdata, "baseline")
         self.attrs = dict(self.msdata.attrs.items())
-        self.hdf.close()
+        hdf.close()
