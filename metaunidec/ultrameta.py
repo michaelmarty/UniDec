@@ -39,7 +39,6 @@ mdkeys = [u'\u25CB', u'\u25BD', u'\u25B3', u'\u25B7', u'\u25A2', u'\u2662', u'\u
 class DataCollector(wx.Frame):
     def __init__(self, parent, title, config=None, *args, **kwargs):
         wx.Frame.__init__(self, parent, title=title)  # ,size=(200,-1))
-
         if "directory" in kwargs:
             self.directory = kwargs["directory"]
         else:
@@ -59,8 +58,10 @@ class DataCollector(wx.Frame):
                 self.config.cmap = "jet"
 
         self.CreateStatusBar(3)
-        self.SetStatusWidths([-1, 150,400])
-        pub.subscribe(self.on_motion, 'newxy')
+        self.SetStatusWidths([-1, 150, 400])
+
+        pub.subscribe(self.on_motion2, 'newxy')
+
 
         self.filemenu = wx.Menu()
 
@@ -337,7 +338,7 @@ class DataCollector(wx.Frame):
             self.SetStatusText("ERROR with File: " + path, number=2)
             print "ERROR Python: File", path
 
-    def run_hdf5(self,path):
+    def run_hdf5(self, path):
         out = mudeng.metaunidec_call(self.config, "-ultraextract", path=path)
         if out is not 0:
             self.SetStatusText("ERROR with File: " + path, number=2)
@@ -657,10 +658,12 @@ class DataCollector(wx.Frame):
             # print self.directory
         dlg.Destroy()
 
-    def on_motion(self, xpos, ypos):
-        'Finished'
-        if xpos is not None and ypos is not None:
-            self.SetStatusText("x=%.4f y=%.2f" % (xpos, ypos), number=1)
+    def on_motion2(self, xpos, ypos):
+        try:
+            if xpos is not None and ypos is not None:
+                self.SetStatusText("x=%.4f y=%.2f" % (xpos, ypos), number=1)
+        except:
+            pass
 
     def on_bar_graphs(self, fits=None, labels=None, errors=None, fit=None):
         if fit == "exp":
@@ -1026,6 +1029,8 @@ class BarGraphWindow(wx.Frame):
 
     def on_save_figure_pdf(self, e):
         self.save_all_figures("pdf")
+
+
 
 
 # Main App Execution

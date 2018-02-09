@@ -685,9 +685,11 @@ class DataCollector(wx.Frame):
         dlg.Destroy()
 
     def on_motion(self, xpos, ypos):
-        if xpos is not None and ypos is not None:
-            self.SetStatusText("x=%.4f y=%.2f" % (xpos, ypos), number=1)
-        pass
+        try:
+            if xpos is not None and ypos is not None:
+                self.SetStatusText("x=%.4f y=%.2f" % (xpos, ypos), number=1)
+        except:
+            pass
 
     def update_get(self, e):
         self.xvals = self.xpanel.list.get_list()

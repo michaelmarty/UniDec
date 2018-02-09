@@ -1,3 +1,6 @@
+import warnings
+warnings.simplefilter(action="ignore",category=FutureWarning)
+
 import wx
 from unidec_modules.unidec_presbase import UniDecPres
 from unidec_modules.unidec_enginebase import UniDecEngine
@@ -9,6 +12,7 @@ from import_wizard import ImportWizard
 from metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard as HDF5Wizard
 from metaunidec.ultrameta import DataCollector as UMDC
 import wx.py as py
+
 
 class UniDecLauncher(UniDecPres):
     """

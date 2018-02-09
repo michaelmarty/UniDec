@@ -41,7 +41,6 @@ class MainwindowBase(wx.Frame):
         # Get display size and intelligently reshape
         self.system = platform.system()
         self.displaysize = wx.GetDisplaySize()
-
         pub.subscribe(self.on_motion, 'newxy')
 
     def launch(self):
@@ -76,9 +75,11 @@ class MainwindowBase(wx.Frame):
         :param ypos: y position fed from event
         :return: None
         """
-        if xpos is not None and ypos is not None:
-            self.SetStatusText("x=%.2f y=%.2f" % (xpos, ypos), number=6)
-        pass
+        try:
+            if xpos is not None and ypos is not None:
+                self.SetStatusText("x=%.2f y=%.2f" % (xpos, ypos), number=6)
+        except:
+            pass
 
     def on_open_dir(self, e):
         save_dir = os.getcwd()
