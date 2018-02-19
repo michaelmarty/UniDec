@@ -155,6 +155,8 @@ class UniDecConfig(object):
         self.exchoice = 0
         self.exnorm = 1
         self.datanorm = 1
+        self.numtot = 20
+        self.crossover = 100
 
         # IM Specific
         self.smoothdt = 0

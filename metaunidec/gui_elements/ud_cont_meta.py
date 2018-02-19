@@ -331,13 +331,23 @@ class main_controls(wx.Panel):
         sbs2.Add(wx.StaticText(panel3b, label=' Da '), 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
         gbox3b.Add(sbs2, (6, 0), span=(1, 2), flag=wx.EXPAND)
 
+        sb3 = wx.StaticBox(panel3b, label='Limits on # of Spectra')
+        sbs3 = wx.StaticBoxSizer(sb3, orient=wx.HORIZONTAL)
+        self.ctlcrossover = wx.TextCtrl(panel3b, value='', size=(75, -1))
+        self.ctlnumtot = wx.TextCtrl(panel3b, value='', size=(75, -1))
+        sbs3.Add(wx.StaticText(panel3b, label='If over'), 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
+        sbs3.Add(self.ctlcrossover, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
+        sbs3.Add(wx.StaticText(panel3b, label=' plot only'), 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
+        sbs3.Add(self.ctlnumtot, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
+        gbox3b.Add(sbs3, (7, 0), span=(1, 2), flag=wx.EXPAND)
+
         self.replotbutton = wx.Button(panel3b, -1, "Replot")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_replot, self.replotbutton)
-        gbox3b.Add(self.replotbutton, (7, 0), span=(1, 1), flag=wx.EXPAND)
+        gbox3b.Add(self.replotbutton, (8, 0), span=(1, 1), flag=wx.EXPAND)
 
         self.compositebutton = wx.Button(panel3b, -1, "Plot Composite")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_plot_composite, self.compositebutton)
-        gbox3b.Add(self.compositebutton, (7, 1), span=(1, 1), flag=wx.EXPAND)
+        gbox3b.Add(self.compositebutton, (8, 1), span=(1, 1), flag=wx.EXPAND)
 
         panel3b.SetSizer(gbox3b)
         gbox3b.Fit(panel3b)
@@ -427,6 +437,14 @@ class main_controls(wx.Panel):
             except (ValueError, TypeError):
                 self.ctlintlb.SetValue("")
                 self.ctlintub.SetValue("")
+
+            try:
+                self.ctlcrossover.SetValue(str(self.config.crossover))
+                self.ctlnumtot.SetValue(str(self.config.numtot))
+            except (ValueError, TypeError):
+                self.ctlcrossover.SetValue("")
+                self.ctlnumtot.SetValue("")
+
             if self.config.imflag == 0:
                 try:
                     if self.config.aggressiveflag == 1:
@@ -485,6 +503,9 @@ class main_controls(wx.Panel):
         self.config.nativezub = ud.string_to_value(self.ctlmaxnativez.GetValue())
         self.config.integratelb = ud.string_to_value(self.ctlintlb.GetValue())
         self.config.integrateub = ud.string_to_value(self.ctlintub.GetValue())
+
+        self.config.crossover = ud.string_to_value(self.ctlcrossover.GetValue())
+        self.config.numtot = ud.string_to_value(self.ctlnumtot.GetValue())
 
         self.config.isotopemode = int(self.ctlisotopemode.GetValue())
         self.config.datanorm = int(self.ctldatanorm.GetValue())
@@ -605,6 +626,12 @@ class main_controls(wx.Panel):
         self.ctlnorm.SetToolTip(wx.ToolTip(
             "Sets normalization of mass data.\nMaximum will normalize so that the maximum value is 100%."
             "\nTotal will normalize so that the sum of all peaks is 100%"))
+        self.ctlcrossover.SetToolTip(wx.ToolTip(
+            "When the number of spectra exceeds this value, only a subset of plots will be displayed."
+            "\nThis greatly improves speed for very large data sets."))
+        self.ctlnumtot.SetToolTip(wx.ToolTip(
+            "When the max number of plots is reached, plot this many representative spectra."
+            "\nThis greatly improves speed for very large data sets."))
         self.replotbutton.SetToolTip(wx.ToolTip("Replot some of the plots. (Ctrl+N)"))
         self.compositebutton.SetToolTip(
             wx.ToolTip("Plot composite of simulated spectra from selected peaks. (Ctrl+C)"))

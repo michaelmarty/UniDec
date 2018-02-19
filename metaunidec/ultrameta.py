@@ -443,9 +443,13 @@ class DataCollector(wx.Frame):
                             zdata = get_dataset(self.msdata, "charge_data")
                             try:
                                 zdata[:, 1] /= np.amax(zdata[:, 1])
+                                zdat.append(ud.center_of_mass(zdata)[0])
                             except:
+                                print "ERROR with Zdata"
+                                print zdata
+                                zdat.append(0)
                                 pass
-                            zdat.append(ud.center_of_mass(zdata)[0])
+
                             xvals.append(var1)
 
                         pdataset = self.hdf.require_group("/peaks")

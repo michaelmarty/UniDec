@@ -13,6 +13,7 @@ import unidec_modules.unidectools as ud
 from unidec_modules import unidecstructure, peakstructure, unidec_enginebase
 from mudstruct import MetaDataSet
 import unidec_modules.mzmlparse_auto as automzml
+import time
 
 __author__ = 'Michael.Marty'
 
@@ -31,9 +32,11 @@ def metaunidec_call(config, *args, **kwargs):
         for key in kwargs.keys():
             call.append("-" + str(key))
             call.append(kwargs[key])
-
+    tstart = time.clock()
     out = subprocess.call(call)
+    tend = time.clock()
     print call, out
+    print "Execution Time:", (tend - tstart)
     return out
 
 
@@ -144,17 +147,19 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         for x in range(0, len(pks.peaks)):
             peakvals.append([])
         for i, pk in enumerate(pks.peaks):
+            ints=[]
             for spec in spectra:
                 index = ud.nearest(spec.massdat[:, 0], pk.mass)
                 startindmass = ud.nearest(spec.massdat[:, 0], spec.massdat[index, 0] - config.peakwindow)
                 endindmass = ud.nearest(spec.massdat[:, 0], spec.massdat[index, 0] + config.peakwindow)
                 maxind = index
                 for x in range(startindmass, endindmass+1):
-                    if spec.massdat[x, 0] > spec.massdat[maxind, 0]:
+                    if spec.massdat[x, 1] > spec.massdat[maxind, 1]:
                         maxind = x
                 peakvals[i].append(spec.massdat[maxind, 0])
-            print peakvals[i]
-            pk.errorreplicate = np.std(peakvals[i])
+                ints.append(spec.massdat[maxind,1])
+            print peakvals[i], ints
+            pk.errorreplicate = ud.weighted_std(peakvals[i], ints)
 
 
 

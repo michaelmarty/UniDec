@@ -114,11 +114,14 @@ class MetaDataSet:
         sum = get_dataset(self.msdataset, "mz_sum")
         grid = get_dataset(self.msdataset, "mz_grid")
         self.mzdat = np.transpose([axis, sum])
-        num = len(grid) / len(sum)
-        grid = grid.reshape((num, len(sum))).transpose()
-        grid2 = np.transpose([axis for n in xrange(num)])
-        grid3 = [grid2, grid]
-        self.mzgrid = np.transpose(grid3)
+        try:
+            num = len(grid) / len(sum)
+            grid = grid.reshape((num, len(sum))).transpose()
+            grid2 = np.transpose([axis for n in xrange(num)])
+            grid3 = [grid2, grid]
+            self.mzgrid = np.transpose(grid3)
+        except:
+            print grid.shape, sum.shape
         hdf.close()
         return num
 

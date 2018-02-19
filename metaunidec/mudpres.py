@@ -106,8 +106,11 @@ class UniDecApp(UniDecPres):
             path = self.eng.config.hdf_file
         print "Opening:", path
         self.eng.open(path)
+        #print "1"
         self.import_config()
+        #print "2"
         self.view.ypanel.list.populate(self.eng.data)
+        #print "3"
         self.makeplot1()
         self.makeplot2()
         self.view.SetStatusText("File: " + self.eng.config.hdf_file, number=1)
@@ -119,7 +122,12 @@ class UniDecApp(UniDecPres):
         :return:
         """
         spectra = self.eng.data.get_spectra()
-        for i, s in enumerate(spectra):
+        if len(spectra)>self.eng.config.crossover:
+            mult=int(len(spectra)/self.eng.config.numtot)
+            self.view.SetStatusText("Displaying subset of data", number=2)
+        else:
+            mult=1
+        for i, s in enumerate(spectra[::mult]):
             if i == 0:
                 self.view.plot1.plotrefreshtop(s.data2[:, 0], s.data2[:, 1], title="Processed Data", xlabel="m/z (Th)",
                                                ylabel="Intensity", label=s.name, config=self.eng.config, color=s.color,
@@ -140,7 +148,12 @@ class UniDecApp(UniDecPres):
         :return:
         """
         spectra = self.eng.data.get_spectra()
-        for i, s in enumerate(spectra):
+        if len(spectra)>self.eng.config.crossover:
+            mult=int(len(spectra)/self.eng.config.numtot)
+            self.view.SetStatusText("Displaying subset of data", number=2)
+        else:
+            mult=1
+        for i, s in enumerate(spectra[::mult]):
             if not ud.isempty(s.massdat):
                 if i == 0:
                     self.view.plot2.plotrefreshtop(s.massdat[:, 0], s.massdat[:, 1], title="Zero-Charge Mass Spectrum",
@@ -162,7 +175,11 @@ class UniDecApp(UniDecPres):
         :return:
         """
         spectra = self.eng.data.get_spectra()
-        for i, s in enumerate(spectra):
+        if len(spectra)>self.eng.config.crossover:
+            mult=int(len(spectra)/self.eng.config.numtot)
+        else:
+            mult=1
+        for i, s in enumerate(spectra[::mult]):
             if not ud.isempty(s.zdata):
                 if i == 0:
                     self.view.plot9.plotrefreshtop(s.zdata[:, 0], s.zdata[:, 1], title="Total Charge Spectrum",
@@ -191,7 +208,13 @@ class UniDecApp(UniDecPres):
             cols = []
             labs = []
 
-            for i, s in enumerate(self.eng.data.spectra):
+            spectra = self.eng.data.get_spectra()
+            if len(spectra) > self.eng.config.crossover:
+                mult = int(len(spectra) / self.eng.config.numtot)
+            else:
+                mult = 1
+
+            for i, s in enumerate(self.eng.data.spectra[::mult]):
                 if s.ignore == 0:
                     num += 1
                     ints.append(0.0000000001)
@@ -212,7 +235,7 @@ class UniDecApp(UniDecPres):
             self.view.plot6.barplottop(range(0, num), ints, labs, cols, "Species", "Intensity",
                                        "Peak Intensities", repaint=False)
             num = 0
-            for i, s in enumerate(self.eng.data.spectra):
+            for i, s in enumerate(self.eng.data.spectra[::mult]):
                 if s.ignore == 0:
                     num += 1
                     for p in self.eng.pks.peaks:
@@ -356,6 +379,7 @@ class UniDecApp(UniDecPres):
         self.eng.config.runtime = (tend - tstart)
         self.makeplot1()
         self.makeplot2()
+        print "Run Time:", self.eng.config.runtime
         self.view.SetStatusText("UniDec Done %.2gs" % self.eng.config.runtime, number=5)
         pass
 

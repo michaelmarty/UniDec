@@ -101,13 +101,12 @@ class DataImporter:
         boo1 = self.scans >= scan_range[0]
         boo2 = self.scans < scan_range[1]
         boo3 = np.logical_and(boo1, boo2)
+        min = np.amin(self.times[boo1])
+        max = np.amax(self.times[boo2])
         try:
-            min = np.amin(self.times[boo1])
-            max = np.amax(self.times[boo2])
             avg = np.mean(self.times[boo3])
         except:
-            min = -1
-            max = -1
+            avg = min
         return [min, avg, max]
 
 

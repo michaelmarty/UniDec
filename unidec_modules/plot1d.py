@@ -1,6 +1,9 @@
 from matplotlib.ticker import MaxNLocator
 import numpy as np
 from unidec_modules.PlottingWindow import PlottingWindow
+from matplotlib.collections import LineCollection
+import matplotlib.colorbar as colorbar
+import matplotlib.colors as colors
 
 
 class Plot1d(PlottingWindow):
@@ -45,10 +48,10 @@ class Plot1d(PlottingWindow):
         self.ylabel = ylabel
         self.zoomtype = zoom
         if "nticks" in kwargs:
-            nticks=kwargs["nticks"]
+            nticks = kwargs["nticks"]
             del kwargs['nticks']
         else:
-            nticks=None
+            nticks = None
 
         if test_kda:
             self.kda_test(xvals)
@@ -107,7 +110,7 @@ class Plot1d(PlottingWindow):
         if not nopaint:
             self.repaint()
 
-    def errorbars(self, xvals, yvals, xerr=None, yerr=None, color="black",newlabel="", nopaint=True, **kwargs):
+    def errorbars(self, xvals, yvals, xerr=None, yerr=None, color="black", newlabel="", nopaint=True, **kwargs):
         self.subplot1.errorbar(np.array(xvals) / self.kdnorm, yvals, xerr=xerr, yerr=yerr, color=color, label=newlabel,
                                **kwargs)
         self.setup_zoom([self.subplot1], self.zoomtype, pad=0.02)
@@ -233,10 +236,9 @@ class Plot1d(PlottingWindow):
         self.subplot1.spines['top'].set_visible(False)
         self.subplot1.spines['right'].set_visible(False)
 
-
-    #TODO make the axes work for negative and positive bars
+    # TODO make the axes work for negative and positive bars
     def barplottoperrors(self, xarr, yarr, peakval, colortab, xlabel="", ylabel="", title="", zoom="box", repaint=True,
-                   xerr=0, yerr=0):
+                         xerr=0, yerr=0):
         """
         Create a bar plot.
         :param xarr: x value array
@@ -262,8 +264,8 @@ class Plot1d(PlottingWindow):
         self.subplot1.set_xlabel(xlabel)
         self.subplot1.set_ylabel(ylabel)
         self.subplot1.set_title(title)
-        #Adjust axes for error bars
-        #Negative bars
+        # Adjust axes for error bars
+        # Negative bars
         if np.amin(np.asarray(yarr)) < 0 and np.amax(np.asarray(yarr)) <= 0:
             minindex = 0
             for x in range(len(yarr)):
@@ -271,7 +273,7 @@ class Plot1d(PlottingWindow):
                     minindex = x
             left = yarr[minindex] - yerr[minindex]
             right = np.amax(np.asarray(yarr))
-        #Positive bars
+        # Positive bars
         elif np.amax(np.asarray(yarr)) > 0 and np.amin(np.asarray(yarr)) >= 0:
             maxindex = 0
             for x in range(len(yarr)):
@@ -279,7 +281,7 @@ class Plot1d(PlottingWindow):
                     maxindex = x
             left = np.amin(np.asarray(yarr))
             right = yarr[maxindex] + yerr[maxindex]
-        #Negative and positive bars
+        # Negative and positive bars
         else:
             maxindex = 0
             minindex = 0
@@ -297,3 +299,74 @@ class Plot1d(PlottingWindow):
         self.subplot1.spines['right'].set_visible(False)
         if repaint:
             self.repaint()
+
+    def colorplotMD(self, xvals, yvals, cvals, title="", xlabel="", ylabel="", label="", cmap="hsv", config=None,
+                    color="black",
+                    marker=None, zoom="box", nopaint=False, test_kda=False, integerticks=False, **kwargs):
+        self._axes = [0.11, 0.1, 0.64, 0.8]
+        self.clear_plot("nopaint")
+        self.xlabel = xlabel
+        self.ylabel = ylabel
+        self.zoomtype = zoom
+        if "nticks" in kwargs:
+            nticks = kwargs["nticks"]
+            del kwargs['nticks']
+        else:
+            nticks = None
+
+        if test_kda:
+            self.kda_test(xvals)
+
+        pubflag = 0
+        if config is not None:
+            if config.publicationmode is not 0:
+                pubflag = 1
+
+        self.subplot1 = self.figure.add_axes(self._axes)
+
+        points = np.array([xvals, yvals]).T.reshape(-1, 1, 2)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+        # print segments
+        t = cvals  # np.linspace(0, 1, len(xvals), endpoint=True)
+        lc = LineCollection(segments, cmap=cmap)
+        lc.set_array(t)
+        lc.set_clim(0,1)
+        self.subplot1.add_collection(lc)
+
+        if pubflag == 0:
+            self.subplot1.set_ylabel(self.ylabel)
+            self.subplot1.set_title(title)
+        else:
+
+            self.subplot1.spines['top'].set_visible(False)
+            self.subplot1.spines['right'].set_visible(False)
+            self.subplot1.get_xaxis().tick_bottom()
+            self.subplot1.get_yaxis().tick_left()
+            self.subplot1.get_yaxis().set_tick_params(direction='out')
+            self.subplot1.get_xaxis().set_tick_params(direction='out')
+            if config.peaknorm is not 2:
+                self.subplot1.get_yaxis().set_ticks([0, np.amax(yvals) / 2, np.amax(yvals)])
+                self.subplot1.get_yaxis().set_ticklabels(["0", '%', "100"])
+            else:
+                self.subplot1.set_ylabel("Relative Intensity")
+
+        if nticks is not None:
+            self.subplot1.xaxis.set_major_locator(MaxNLocator(nbins=nticks))
+        if integerticks:
+            self.subplot1.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+        self.subplot1.set_xlabel(self.xlabel)
+        cax = self.figure.add_axes([0.77, 0.1, 0.04, 0.8])
+        self.cbar = colorbar.ColorbarBase(cax, cmap=cmap, orientation="vertical",
+                                          ticks=np.linspace(0., 1., 11, endpoint=True))
+        self.cbar.set_label("Normalized Mass Defect")
+
+        self.setup_zoom([self.subplot1], self.zoomtype,
+                        data_lims=[np.amin(xvals), np.amin(yvals), np.max(xvals), np.amax(yvals)])
+
+        if not nopaint:
+            self.repaint()
+        self.flag = True
+        self.mlist = []
+        self.x1, self.x2 = None, None
+        self.colors = []

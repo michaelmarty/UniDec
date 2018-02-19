@@ -35,12 +35,12 @@ def parse(path, times, timestep, volts, outputheader, directory, output="txt"):
             config.attrs["metamode"] = -1
 
         num = 0
-
+        if os.path.splitext(path)[1] == ".mzML":
+            d = mzMLimporter(path)
+        else:
+            d = DataImporter(path)
         for v, time in enumerate(times):
-            if os.path.splitext(path)[1] == ".mzML":
-                data = mzMLimporter(path).get_data(time_range=(time, time + timestep))
-            else:
-                data = DataImporter(path).get_data(time_range=(time, time + timestep))
+            data = d.get_data(time_range=(time, time + timestep))
             if not ud.isempty(data):
                 if output == "txt":
                     if volts is not None:
@@ -93,11 +93,12 @@ def parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr=None, outpu
     print starttp, endtp, timestep
     for path in paths:
         if os.path.isfile(path):
+            if os.path.splitext(path)[1] == ".mzML":
+                d = mzMLimporter(path)
+            else:
+                d = DataImporter(path)
             for t in np.arange(starttp, endtp, timestep):
-                if os.path.splitext(path)[1] == ".mzML":
-                    data = mzMLimporter(path).get_data(time_range=(t, t + timestep))
-                else:
-                    data = DataImporter(path).get_data(time_range=(t, t + timestep))
+                data = d.get_data(time_range=(t, t + timestep))
                 if not ud.isempty(data):
                     group = msdataset.require_group(str(num))
                     replace_dataset(group, "raw_data", data=data)
@@ -149,19 +150,26 @@ def extract_scans(file, directory, scanbins=1, output="txt"):
     print file
     scanbins = int(float(scanbins))
     path = os.path.join(directory, file)
-    name = os.path.splitext(file)[0]
-    newdir = os.path.join(directory, name)
-    if output == "hdf5":
-        newdir = directory
-    if os.path.splitext(file)[1] == ".mzML":
-        maxtime = mzMLimporter(path).get_max_time()
-        maxscans = mzMLimporter(path).get_max_scans()
-    else:
-        maxtime = DataImporter(path).get_max_time()
-        maxscans = DataImporter(path).get_max_scans()
-    print maxscans
-    scans = np.arange(0, maxscans, scanbins)
+
     if os.path.isfile(path):
+        if os.path.splitext(path)[1] == ".mzML":
+            d = mzMLimporter(path)
+        else:
+            d = DataImporter(path)
+
+        name = os.path.splitext(file)[0]
+        newdir = os.path.join(directory, name)
+        if output == "hdf5":
+            newdir = directory
+        if os.path.splitext(file)[1] == ".mzML":
+            maxtime = d.get_max_time()
+            maxscans = d.get_max_scans()
+        else:
+            maxtime = d.get_max_time()
+            maxscans = d.get_max_scans()
+        print maxscans
+        scans = np.arange(0, maxscans, scanbins)
+
         if output == "hdf5":
             outfile = name + ".hdf5"
             outpath = os.path.join(newdir, outfile)
@@ -175,12 +183,8 @@ def extract_scans(file, directory, scanbins=1, output="txt"):
             config = hdf.require_group("config")
             config.attrs["metamode"] = -1
         num = 0
-        for v, scan in enumerate(scans):
-            if os.path.splitext(path)[1] == ".mzML":
-                d = mzMLimporter(path)
-            else:
-                d = DataImporter(path)
 
+        for v, scan in enumerate(scans):
             data = d.get_data(scan_range=(scan, scan + scanbins))
 
             if not ud.isempty(data):
@@ -205,6 +209,7 @@ def extract_scans(file, directory, scanbins=1, output="txt"):
         if output == "hdf5":
             msdataset.attrs["num"] = num
             hdf.close()
+            print outpath
     else:
         print "File not found:", path
 

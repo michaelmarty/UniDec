@@ -231,6 +231,17 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v. 2.6.2
+
+Cool new plots on the Mass Defect Tools.
+
+v. 2.6.1
+
+Added limits to the number of plots MetaUniDec will plot before it will plot only a representative number.
+This significantly speeds up plots for very large data sets.
+
+Sped up raw and mzML file imports.
+
 v. 2.6.0
 
 HDF5 Import Wizard Built for MetaUniDec. Waters can be easily imported directly through the HDF5 Import Wizard.
