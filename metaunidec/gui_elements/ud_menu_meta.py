@@ -120,8 +120,12 @@ class meta_menu(wx.Menu):
         self.animatemenu = wx.Menu()
 
         self.menuanimate1 = self.animatemenu.Append(wx.ID_ANY, "Animate Zero-Charge Spectra", "Animate 1D plots of zero-charge spectra")
+        self.menuanimate15 = self.animatemenu.Append(wx.ID_ANY, "Animate Annotated Zero-Charge Spectra",
+                                                     "Animate 1D plots of zero-charge mass spectra with markers")
         self.menuanimate2 = self.animatemenu.Append(wx.ID_ANY, "Animate Mass Spectra",
                                                      "Animate 1D plots of mass spectra")
+        self.menuanimate25 = self.animatemenu.Append(wx.ID_ANY, "Animate Annotated Mass Spectra",
+                                                    "Animate 1D plots of mass spectra with markers")
         self.menuanimate3 = self.animatemenu.Append(wx.ID_ANY, "Animate Mass v. Charge Grid",
                                                      "Animate 2D plots of mass vs. charge")
         self.menuanimate4 = self.animatemenu.Append(wx.ID_ANY, "Animate m/z v. Charge Grid",
@@ -182,10 +186,10 @@ class meta_menu(wx.Menu):
         self.experimentalmenu.AppendSeparator()
         #self.analysismenu.AppendSeparator()
         self.menuDC = self.experimentalmenu.Append(wx.ID_ANY, "Data Collector and KD Fitting")
+        self.experimentalmenu.AppendSeparator()
+        self.autoformat = self.experimentalmenu.Append(wx.ID_ANY, "Auto Format Monomer/Dimer", "Mark matched monomers and dimers automatically")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_autoformat, self.autoformat)
 
-        # self.Tweet = self.experimentalmenu.Append(wx.ID_ANY, "Twitter", "Twitter Extension")
-        # self.parent.Bind(wx.EVT_MENU, self.pres.on_tweet, self.Tweet)
-        # self.experimentalmenu.AppendSeparator()
         #self.menuAdditionalParameters = self.experimentalmenu.Append(wx.ID_ANY, "Additional Parameters",
         #                                                             "Adjust some experimental parameters")
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_additional_parameters, self.menuAdditionalParameters)
@@ -277,6 +281,8 @@ class meta_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_ultra_meta, self.menuUM)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_animate_mass, self.menuanimate1)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_animate_mz, self.menuanimate2)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_animate_annotated_mz, self.menuanimate25)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_animate_annotated_mass, self.menuanimate15)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_animate_2d_mass, self.menuanimate3)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_animate_2d_mz, self.menuanimate4)
 

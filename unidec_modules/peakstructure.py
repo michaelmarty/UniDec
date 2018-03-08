@@ -53,6 +53,7 @@ class Peak:
         self.errormean = -1
         self.errorreplicate = 0
 
+
 class Peaks:
     """
     Class containing all useful data about peaks.
@@ -167,10 +168,47 @@ class Peaks:
                 p.tval = 0
 
     def get_bool(self):
-        boo1=[]
+        boo1 = []
         for p in self.peaks:
             if p.ignore == 0:
                 boo1.append(True)
             else:
                 boo1.append(False)
         return np.array(boo1)
+
+    def auto_format(self):
+
+        colors = np.array([[[1, 0, 0], [1, 0, 0]], [[0, 0.7, 0], [1, 1, 0]], [[0, 0.5, 1], [1, 0, 1]]])
+
+        newmarkers = [[0, 0], [1, 5], [4, 6]]
+
+        # note = [[0, 1], [1, 1], [2, 1]]
+        # self.markers = ['o', 'v', '^', '>', 's', 'd', '*']
+        # self.textmarkers = [u'\u25CB', u'\u25BD', u'\u25B3', u'\u25B7', u'\u25A2', u'\u2662', u'\u2606']
+
+        for p in self.peaks:
+            n = p.label
+            splits = n.split("[")
+
+            try:
+                n1 = int(splits[0])
+            except:
+                n1 = 0
+
+            try:
+                n2 = int(splits[1].split("]")[1])
+            except:
+                n2 = 0
+            try:
+                newcolor = colors[n1][n2]
+                newmarker = self.markers[newmarkers[n1][n2]]
+                newtextmarker = self.textmarkers[newmarkers[n1][n2]]
+            except:
+                newcolor = [0.5, 0.5, 1]
+                newmarker = self.markers[6]
+                newtextmarker = self.textmarkers[6]
+
+            p.color = newcolor
+            p.marker = newmarker
+            p.textmarker = newtextmarker
+            # print n1, n2, newcolor, newmarker, newtextmarker

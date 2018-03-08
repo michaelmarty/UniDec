@@ -20,10 +20,10 @@ __author__ = 'Michael.Marty'
 
 def metaunidec_call(config, *args, **kwargs):
     if "path" in kwargs:
-        path=kwargs["path"]
+        path = kwargs["path"]
         del kwargs["path"]
     else:
-        path=config.hdf_file
+        path = config.hdf_file
     call = [config.UniDecPath, str(path)]
     if len(args) > 0:
         for arg in args:
@@ -78,7 +78,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
     def process_data(self):
         self.pks.peaks = []
         self.config.write_hdf5()
-        self.out=metaunidec_call(self.config, "-proc")
+        self.out = metaunidec_call(self.config, "-proc")
         self.data.import_hdf5()
         self.update_history()
 
@@ -86,12 +86,12 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         if not self.check_badness():
             self.pks.peaks = []
             self.config.write_hdf5()
-            self.out =metaunidec_call(self.config)
+            self.out = metaunidec_call(self.config)
             self.data.import_hdf5()
             self.update_history()
 
     def make_grids(self):
-        self.out =metaunidec_call(self.config,"-grids")
+        self.out = metaunidec_call(self.config, "-grids")
 
     def sum_masses(self):
         self.data.import_grids_and_peaks()
@@ -104,10 +104,30 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.pks.default_params(cmap=self.config.peakcmap)
         self.peaks_error_FWHM(self.pks, self.data.massdat)
         self.peaks_error_replicates(self.pks, self.data.spectra, self.config)
-        for i,p in enumerate(self.pks.peaks):
+        for i, p in enumerate(self.pks.peaks):
             p.extracts = self.data.exgrid[i]
         self.update_history()
         self.export_params()
+
+    def peaks_heights(self):
+        self.sum_masses()
+        for p in self.pks.peaks:
+            p.mztab = []
+            p.mztab2 = []
+
+        for i, s in enumerate(self.data.spectra):
+
+            data2 = s.data2
+            mgrid, zgrid = np.meshgrid(s.data2[:, 0], s.ztab, indexing='ij')
+            mzgrid = np.transpose([np.ravel(mgrid), np.ravel(zgrid), s.mzgrid])
+
+            mztab = ud.make_peaks_mztab(mzgrid, self.pks, self.config.adductmass, index=i)
+
+            ud.make_peaks_mztab_spectrum(mzgrid, self.pks, data2, mztab, index=i)
+        for p in self.pks.peaks:
+            p.mztab = np.array(p.mztab)
+            p.mztab2 = np.array(p.mztab2)
+
 
     def peaks_error_FWHM(self, pks, data):
         """
@@ -117,7 +137,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         :param data: self.data.massdat
         :return:
         """
-        pmax=np.amax([p.height for p in pks.peaks])
+        pmax = np.amax([p.height for p in pks.peaks])
         datamax = np.amax(np.asarray(data)[:, 1])
         div = datamax / pmax
         for pk in pks.peaks:
@@ -147,22 +167,19 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         for x in range(0, len(pks.peaks)):
             peakvals.append([])
         for i, pk in enumerate(pks.peaks):
-            ints=[]
+            ints = []
             for spec in spectra:
                 index = ud.nearest(spec.massdat[:, 0], pk.mass)
                 startindmass = ud.nearest(spec.massdat[:, 0], spec.massdat[index, 0] - config.peakwindow)
                 endindmass = ud.nearest(spec.massdat[:, 0], spec.massdat[index, 0] + config.peakwindow)
                 maxind = index
-                for x in range(startindmass, endindmass+1):
+                for x in range(startindmass, endindmass + 1):
                     if spec.massdat[x, 1] > spec.massdat[maxind, 1]:
                         maxind = x
                 peakvals[i].append(spec.massdat[maxind, 0])
-                ints.append(spec.massdat[maxind,1])
+                ints.append(spec.massdat[maxind, 1])
             print peakvals[i], ints
             pk.errorreplicate = ud.weighted_std(peakvals[i], ints)
-
-
-
 
     def export_params(self, e=None):
         peakparams = []
@@ -171,16 +188,16 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         outfile = self.config.outfname + "_peaks.txt"
         np.savetxt(outfile, np.array(peakparams), delimiter=",", fmt="%s")
 
-        peakexts=[]
+        peakexts = []
         for p in self.pks.peaks:
-            peakexts.append(np.concatenate(([p.mass],p.extracts)))
+            peakexts.append(np.concatenate(([p.mass], p.extracts)))
         outfile = self.config.outfname + "_extracts.txt"
         np.savetxt(outfile, np.array(peakexts))
         print "Peak info saved to:", outfile
 
     def export_spectra(self, e=None):
         for s in self.data.spectra:
-            outfile = self.config.outfname + "_" +str(s.var1)+".txt"
+            outfile = self.config.outfname + "_" + str(s.var1) + ".txt"
             np.savetxt(outfile, s.rawdata)
             print outfile
             self.config.config_export(self.config.outfname + "_config.dat")
@@ -189,20 +206,20 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         for p in paths:
             try:
                 self.config.write_hdf5(p)
-                print "Assigned Config to:",p
+                print "Assigned Config to:", p
             except Exception, e:
                 print e
 
     def batch_run_unidec(self, paths):
         for p in paths:
             try:
-                tstart=time.clock()
-                metaunidec_call(self.config,"-all", path=p)
+                tstart = time.clock()
+                metaunidec_call(self.config, "-all", path=p)
                 print "Run:", p, " Time:  %.3gs" % (time.clock() - tstart)
             except Exception, e:
                 print e
 
-    def batch_extract(self,paths):
+    def batch_extract(self, paths):
         for p in paths:
             try:
                 print "Extracting:", p
@@ -285,8 +302,8 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         else:
             automzml.extract_timepoints(files, dirs, starttp, endtp, timestep, outputname=name)
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     eng = MetaUniDec()
     '''
     testpath = "C:\Python\UniDec\unidec_src\UniDec\\x64\Release\\test.hdf5"

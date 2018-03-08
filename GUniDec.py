@@ -81,12 +81,12 @@ class UniDecApp(UniDecPres):
             self.on_open_file(fname, newdir)
             # self.view.on_save_figure_eps(0)
             # self.on_dataprep_button(0)
-            # self.on_auto(0)
+            self.on_auto(0)
             # self.on_integrate()
             # self.on_grid_decon(0)
             # self.make_cube_plot(0)
             # self.on_plot_peaks(0)
-            self.on_flip_tabbed(None)
+            # self.on_flip_tabbed(None)
 
     # ..............................
     #
@@ -720,6 +720,11 @@ class UniDecApp(UniDecPres):
         except Exception, ex:
             print "Failed final cube", ex
             pass
+
+    def on_autoformat(self,e=None):
+        self.eng.pks.auto_format()
+        self.on_delete()
+        self.view.peakpanel.add_data(self.eng.pks)
 
     def on_delete(self, e=None):
         """

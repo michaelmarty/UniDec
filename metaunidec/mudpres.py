@@ -48,8 +48,8 @@ class UniDecApp(UniDecPres):
 
         try:
             if False:
-                testdir = "C:\Python\UniDec\unidec_src\UniDec\\x64\Release"
-                testfile = "JAW.hdf5"
+                testdir = "C:\Data\Others\UniDec test data set"
+                testfile = "test.hdf5"
                 # testdir="C:\\Data\\New"
                 # testfile="20170209_P0B_dPOPC_POPC_ND_D1T0m_pos_ISTRAP_RAMP_0_275_25_1.hdf5"
                 testpath = os.path.join(testdir, testfile)
@@ -57,8 +57,12 @@ class UniDecApp(UniDecPres):
                 self.open_file(testpath)
                 self.on_pick_peaks()
 
+                # self.on_match()
+                # self.on_autoformat()
+
         except:
             pass
+        #self.on_animate_annotated_mass()
 
     def init(self, *args, **kwargs):
         """
@@ -106,11 +110,11 @@ class UniDecApp(UniDecPres):
             path = self.eng.config.hdf_file
         print "Opening:", path
         self.eng.open(path)
-        #print "1"
+        # print "1"
         self.import_config()
-        #print "2"
+        # print "2"
         self.view.ypanel.list.populate(self.eng.data)
-        #print "3"
+        # print "3"
         self.makeplot1()
         self.makeplot2()
         self.view.SetStatusText("File: " + self.eng.config.hdf_file, number=1)
@@ -122,11 +126,11 @@ class UniDecApp(UniDecPres):
         :return:
         """
         spectra = self.eng.data.get_spectra()
-        if len(spectra)>self.eng.config.crossover:
-            mult=int(len(spectra)/self.eng.config.numtot)
+        if len(spectra) > self.eng.config.crossover:
+            mult = int(len(spectra) / self.eng.config.numtot)
             self.view.SetStatusText("Displaying subset of data", number=2)
         else:
-            mult=1
+            mult = 1
         for i, s in enumerate(spectra[::mult]):
             if i == 0:
                 self.view.plot1.plotrefreshtop(s.data2[:, 0], s.data2[:, 1], title="Processed Data", xlabel="m/z (Th)",
@@ -148,11 +152,11 @@ class UniDecApp(UniDecPres):
         :return:
         """
         spectra = self.eng.data.get_spectra()
-        if len(spectra)>self.eng.config.crossover:
-            mult=int(len(spectra)/self.eng.config.numtot)
+        if len(spectra) > self.eng.config.crossover:
+            mult = int(len(spectra) / self.eng.config.numtot)
             self.view.SetStatusText("Displaying subset of data", number=2)
         else:
-            mult=1
+            mult = 1
         for i, s in enumerate(spectra[::mult]):
             if not ud.isempty(s.massdat):
                 if i == 0:
@@ -175,10 +179,10 @@ class UniDecApp(UniDecPres):
         :return:
         """
         spectra = self.eng.data.get_spectra()
-        if len(spectra)>self.eng.config.crossover:
-            mult=int(len(spectra)/self.eng.config.numtot)
+        if len(spectra) > self.eng.config.crossover:
+            mult = int(len(spectra) / self.eng.config.numtot)
         else:
-            mult=1
+            mult = 1
         for i, s in enumerate(spectra[::mult]):
             if not ud.isempty(s.zdata):
                 if i == 0:
@@ -250,54 +254,60 @@ class UniDecApp(UniDecPres):
         Tested
         :return:
         """
-        if fitgrid is None:
-            fitgrid=self.eng.data.exgrid
-        self.view.plot7.clear_plot()
-        if not ud.isempty(self.eng.data.exgrid):
-            ignore = self.eng.data.get_bool()
-            var1 = np.array(self.eng.data.var1)[ignore]
-
-            ylabel = self.view.extractlabels[self.eng.config.exchoice]
+        try:
+            if fitgrid is None:
+                fitgrid = self.eng.data.exgrid
             self.view.plot7.clear_plot()
-            self.view.plot7._axes = [0.2, 0.12, 0.75, 0.8]
-            for i, p in enumerate(self.eng.pks.peaks):
-                if p.ignore == 0:
-                    color = p.color
-                    if not self.view.plot7.flag:
-                        self.view.plot7.plotrefreshtop(var1, fitgrid[i][ignore],
-                                                       title="Extracted Data", xlabel=self.eng.data.v1name
-                                                       , ylabel=ylabel, color=color, test_kda=False)
-                        self.view.plot7.plotadddot(var1, self.eng.data.exgrid[i][ignore], color, p.marker)
-                    else:
-                        self.view.plot7.plotadd(var1, fitgrid[i][ignore], color)
-                        self.view.plot7.plotadddot(var1, self.eng.data.exgrid[i][ignore], color, p.marker)
-            if self.eng.config.exnorm == 1:
-                self.view.plot7.subplot1.set_ylim([0, 1])
-            self.view.plot7.repaint()
+            if not ud.isempty(self.eng.data.exgrid):
+                ignore = self.eng.data.get_bool()
+                var1 = np.array(self.eng.data.var1)[ignore]
+
+                ylabel = self.view.extractlabels[self.eng.config.exchoice]
+                self.view.plot7.clear_plot()
+                self.view.plot7._axes = [0.2, 0.12, 0.75, 0.8]
+                for i, p in enumerate(self.eng.pks.peaks):
+                    if p.ignore == 0:
+                        color = p.color
+
+                        if not self.view.plot7.flag:
+                            self.view.plot7.plotrefreshtop(var1, fitgrid[i][ignore],
+                                                           title="Extracted Data", xlabel=self.eng.data.v1name
+                                                           , ylabel=ylabel, color=color, test_kda=False)
+                            self.view.plot7.plotadddot(var1, self.eng.data.exgrid[i][ignore], color, p.marker)
+                        else:
+                            self.view.plot7.plotadd(var1, fitgrid[i][ignore], color)
+                            self.view.plot7.plotadddot(var1, self.eng.data.exgrid[i][ignore], color, p.marker)
+                if self.eng.config.exnorm == 1:
+                    self.view.plot7.subplot1.set_ylim([0, 1])
+                self.view.plot7.repaint()
+        except:
+            pass
 
     def makeplot8(self):
         """
         Tested
         :return:
         """
-        self.view.plot8.clear_plot()
-        if self.eng.pks.plen > 0:
-            ignore = self.eng.data.get_bool()
-            ignore2 = self.eng.pks.get_bool()
-            zdat = self.eng.data.exgrid[ignore2, :]
-            zdat = zdat[:, ignore]
-            xvals = []
-            for p in self.eng.pks.peaks:
-                if p.ignore == 0:
-                    xvals.append(p.label)
-            self.view.plot8._axes = [0.12, 0.12, 0.75, 0.8]
-            self.view.plot8.contourplot(xvals=np.arange(0, len(xvals)), yvals=np.array(self.eng.data.var1)[ignore],
-                                        zgrid=zdat, normflag=0,
-                                        normrange=[0, np.amax(zdat)],
-                                        xlab="Peaks", ylab=self.eng.data.v1name, discrete=1,
-                                        ticloc=np.arange(0, len(xvals)),
-                                        ticlab=xvals)
-        pass
+        try:
+            self.view.plot8.clear_plot()
+            if self.eng.pks.plen > 0:
+                ignore = self.eng.data.get_bool()
+                ignore2 = self.eng.pks.get_bool()
+                zdat = self.eng.data.exgrid[ignore2, :]
+                zdat = zdat[:, ignore]
+                xvals = []
+                for p in self.eng.pks.peaks:
+                    if p.ignore == 0:
+                        xvals.append(p.label)
+                self.view.plot8._axes = [0.12, 0.12, 0.75, 0.8]
+                self.view.plot8.contourplot(xvals=np.arange(0, len(xvals)), yvals=np.array(self.eng.data.var1)[ignore],
+                                            zgrid=zdat, normflag=0,
+                                            normrange=[0, np.amax(zdat)],
+                                            xlab="Peaks", ylab=self.eng.data.v1name, discrete=1,
+                                            ticloc=np.arange(0, len(xvals)),
+                                            ticlab=xvals)
+        except:
+            pass
 
     def make2dplots(self, e=None):
         """
@@ -441,7 +451,7 @@ class UniDecApp(UniDecPres):
         if not ud.isempty(self.eng.data.massdat):
             self.view.plot2.clear_plot()
 
-            self.view.plot2.plotrefreshtop(self.eng.data.massdat[:, 0],self.eng.data.massdat[:, 1],
+            self.view.plot2.plotrefreshtop(self.eng.data.massdat[:, 0], self.eng.data.massdat[:, 1],
                                            title="Zero-Charge Mass Spectrum",
                                            xlabel="Mass (Da)",
                                            ylabel="Intensity", label="Sum", config=self.eng.config,
@@ -771,7 +781,6 @@ class UniDecApp(UniDecPres):
             scanstep = dlg.value
             self.eng.import_mzml(paths, scanstep=scanstep)
 
-
     def on_import_multiple_times(self, e):
         """
         Manual Test - Passed 2 RAW's, 2 mzml
@@ -794,17 +803,18 @@ class UniDecApp(UniDecPres):
                                                    "point is desired):", defaultvalue=str(1.0))
             dlg.ShowModal()
             endtp = dlg.value
-            #Needed for for loop range later on
+            # Needed for for loop range later on
             endtp = float(endtp) + float(timestep)
             dlg = miscwindows.SingleInputDialog(self.view)
             dlg.initialize_interface("Name", "Enter name of final file (.hdf5 not required):", defaultvalue="")
             dlg.ShowModal()
             name = dlg.value
-            #Dummy checks
+            # Dummy checks
             if float(endtp) < float(starttp) or float(endtp) < 0 or float(starttp) < 0 or float(timestep) <= 0:
                 print "Bad values inputted"
             else:
-                self.eng.import_mzml(paths, timestep=float(timestep), name=name, starttp=float(starttp), endtp=float(endtp))
+                self.eng.import_mzml(paths, timestep=float(timestep), name=name, starttp=float(starttp),
+                                     endtp=float(endtp))
 
     def on_import_multiple_scans(self, e):
         paths = FileDialogs.open_multiple_files_dialog(message="Choose ramp data files mzml or Thermo Raw format",
@@ -823,7 +833,7 @@ class UniDecApp(UniDecPres):
             dlg.initialize_interface("Name", "Enter name of final file (.hdf5 not required):", defaultvalue="")
             dlg.ShowModal()
             name = dlg.value
-            #+ 1 including the endscan
+            # + 1 including the endscan
             self.eng.import_mzml(paths, startscan=int(startscan), endscan=(int(endscan) + 1), name=name)
 
     def on_wizard(self, e=None):
@@ -1048,14 +1058,39 @@ class UniDecApp(UniDecPres):
         self.eng.sum_masses()
         PlotAnimations.AnimationWindow(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1)
 
-    def on_animate_mz(self, e):
+    def on_animate_annotated_mass(self, e=None):
         """
         Manual Test - Passed
         :param e:
         :return:
         """
         self.eng.sum_masses()
-        PlotAnimations.AnimationWindow(self.view, self.eng.data.mzgrid, self.eng.config, yvals=self.eng.data.var1)
+        PlotAnimations.AnimationWindow(self.view, self.eng.data.massgrid, self.eng.config, pks=self.eng.pks,
+                                       pksmode="mass", yvals=self.eng.data.var1)
+
+    def on_animate_mz(self, e):
+        """
+        Manual Test - Passed
+        :param e:
+        :return:
+        """
+        # self.eng.sum_masses()
+        newgrid = []
+        for s in self.eng.data.spectra:
+            newgrid.append(s.data2)
+
+        PlotAnimations.AnimationWindow(self.view, newgrid, self.eng.config, yvals=self.eng.data.var1)
+
+    def on_animate_annotated_mz(self, e=None):
+        """
+        :return:
+        """
+        newgrid = []
+        for s in self.eng.data.spectra:
+            newgrid.append(s.data2)
+        self.eng.peaks_heights()
+        PlotAnimations.AnimationWindow(self.view, newgrid, self.eng.config, yvals=self.eng.data.var1,
+                                       pks=self.eng.pks)
 
     def on_animate_2d(self, e=None, type="mass"):
         """
@@ -1145,7 +1180,6 @@ class UniDecApp(UniDecPres):
     def on_fit(self, fit="sig"):
         self.eng.fit_data(fit)
         self.makeplot7(fitgrid=self.eng.data.fitgrid)
-
 
     def on_ultra_meta(self, e=None):
         """
@@ -1362,11 +1396,18 @@ class UniDecApp(UniDecPres):
         helpDlg = HelpDlg(19)
         helpDlg.Show()
 
+    def on_autoformat(self, e=None):
+        self.on_match()
+        self.eng.pks.auto_format()
+        self.on_delete()
+        self.view.peakpanel.add_data(self.eng.pks)
 
     def repack_hdf5(self, e=None):
         if self.eng.config.hdf_file != 'default.hdf5':
             new_path = self.eng.config.hdf_file.replace(".hdf5", "temp.hdf5")
-            if 0 == subprocess.call("\"" + self.eng.config.h5repackfile + "\" \"" + self.eng.config.hdf_file + "\" \"" + new_path + "\"") and os.path.isfile(new_path):
+            if 0 == subprocess.call(
+                    "\"" + self.eng.config.h5repackfile + "\" \"" + self.eng.config.hdf_file + "\" \"" + new_path + "\"") and os.path.isfile(
+                new_path):
                 os.remove(self.eng.config.hdf_file)
                 os.rename(new_path, self.eng.config.hdf_file)
 
@@ -1378,7 +1419,9 @@ class UniDecApp(UniDecPres):
                     if name.endswith('.hdf5'):
                         name = os.path.join(root, name)
                         new_path = name.replace(".hdf5", "temp.hdf5")
-                        if 0 == subprocess.call("\"" + self.eng.config.h5repackfile + "\" \"" + name + "\" \"" + new_path + "\"") and os.path.isfile(new_path):
+                        if 0 == subprocess.call(
+                                "\"" + self.eng.config.h5repackfile + "\" \"" + name + "\" \"" + new_path + "\"") and os.path.isfile(
+                            new_path):
                             os.remove(name)
                             os.rename(new_path, name)
 
@@ -1407,7 +1450,6 @@ class UniDecApp(UniDecPres):
 # TODO: Better MUD with data collector
 # TODO: Light grey background for some list ctrls in MetaUniDec
 # TODO: A notice that pops up when trying to open RAW files without multiplierz or MSFileReader
-
 
 
 if __name__ == '__main__':

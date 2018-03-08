@@ -11,6 +11,8 @@ Global
 		Debug|x64 = Debug|x64
 		Release|Win32 = Release|Win32
 		Release|x64 = Release|x64
+		ReleasePGI|Win32 = ReleasePGI|Win32
+		ReleasePGI|x64 = ReleasePGI|x64
 		ReleaseStatic|Win32 = ReleaseStatic|Win32
 		ReleaseStatic|x64 = ReleaseStatic|x64
 	EndGlobalSection
@@ -23,6 +25,10 @@ Global
 		{8B5805FC-0D39-4326-A95E-A82CD5D2BADF}.Release|Win32.Build.0 = Release|Win32
 		{8B5805FC-0D39-4326-A95E-A82CD5D2BADF}.Release|x64.ActiveCfg = Release|x64
 		{8B5805FC-0D39-4326-A95E-A82CD5D2BADF}.Release|x64.Build.0 = Release|x64
+		{8B5805FC-0D39-4326-A95E-A82CD5D2BADF}.ReleasePGI|Win32.ActiveCfg = ReleasePGI|Win32
+		{8B5805FC-0D39-4326-A95E-A82CD5D2BADF}.ReleasePGI|Win32.Build.0 = ReleasePGI|Win32
+		{8B5805FC-0D39-4326-A95E-A82CD5D2BADF}.ReleasePGI|x64.ActiveCfg = ReleasePGI|x64
+		{8B5805FC-0D39-4326-A95E-A82CD5D2BADF}.ReleasePGI|x64.Build.0 = ReleasePGI|x64
 		{8B5805FC-0D39-4326-A95E-A82CD5D2BADF}.ReleaseStatic|Win32.ActiveCfg = ReleaseStatic|Win32
 		{8B5805FC-0D39-4326-A95E-A82CD5D2BADF}.ReleaseStatic|Win32.Build.0 = ReleaseStatic|Win32
 		{8B5805FC-0D39-4326-A95E-A82CD5D2BADF}.ReleaseStatic|x64.ActiveCfg = ReleaseStatic|x64

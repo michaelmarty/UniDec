@@ -15,6 +15,8 @@ from unidec_modules.isolated_packages.ZoomSpan import ZoomSpan
 from unidec_modules.isolated_packages.ZoomBox import ZoomBox
 from unidec_modules.isolated_packages.NoZoomSpan import NoZoomSpan
 from unidec_modules.isolated_packages import FileDialogs
+from unidec_modules.miscwindows import DoubleInputDialog
+
 # import matplotlib.style as mplstyle
 # mplstyle.use('fast')
 
@@ -23,11 +25,14 @@ interactive(True)
 rcParams['ps.useafm'] = True
 rcParams['ps.fonttype'] = 42
 rcParams['pdf.fonttype'] = 42
-rcParams['lines.linewidth']= 1
+rcParams['lines.linewidth'] = 1
 rcParams['errorbar.capsize'] = 3
 rcParams['patch.force_edgecolor'] = True
 rcParams['patch.facecolor'] = 'b'
-#rcParams['axes.linewidth']=1
+rcParams['lines.markersize'] = 7
+
+
+# rcParams['axes.linewidth']=1
 # rcParams['font.size']=18
 # matplotlib.rc('font', family='sans-serif')
 # matplotlib.rc('font', serif='Helvetica')
@@ -56,10 +61,9 @@ class PlottingWindow(wx.Window):
             figsize = kwargs["figsize"]
             del kwargs["figsize"]
         else:
-            figsize = (6.*0.9, 5.*0.9)
+            figsize = (6. * 0.9, 5. * 0.9)
 
         self.figure = Figure(figsize=figsize)  # , dpi=
-
 
         if "axes" in kwargs:
             self._axes = kwargs["axes"]
@@ -69,7 +73,7 @@ class PlottingWindow(wx.Window):
                 self._axes = [0.2, 0.2, 0.7, 0.7]
             else:
                 self._axes = [0.11, 0.11, 0.8, 0.8]
-        self.figsize=figsize
+        self.figsize = figsize
 
         if "integrate" in kwargs:
             self.int = kwargs["integrate"]
@@ -114,7 +118,17 @@ class PlottingWindow(wx.Window):
         :return: None
         """
         if event.button == 2:
-            self.on_save_fig_dialog(event)
+            if wx.GetKeyState(wx.WXK_CONTROL):
+                dlg = DoubleInputDialog(self)
+                dlg.initialize_interface("Matplotlib RC Parameters", "RC Param Name:", 'lines.markersize',
+                                         "Value:", "6")
+                dlg.ShowModal()
+                rcname = dlg.value
+                rcval= dlg.value2
+                print rcname, rcval
+                rcParams[rcname] = rcval
+            else:
+                self.on_save_fig_dialog(event)
 
     def on_save_fig_dialog(self, evt):
         """
@@ -188,7 +202,7 @@ class PlottingWindow(wx.Window):
         :return: None
         """
         self.subplot1.plot(np.array(x) / self.kdnorm, y, color=colval, marker=markval, linestyle='None', clip_on=False
-                           ,markeredgecolor="k")
+                           , markeredgecolor="k")
 
     def repaint(self):
         """

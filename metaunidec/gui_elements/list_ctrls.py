@@ -5,10 +5,10 @@ import wx.lib.mixins.listctrl as listmix
 import numpy as np
 import matplotlib.cm as cm
 
-
 from pubsub import pub
 
 import unidec_modules.unidectools as ud
+from copy import deepcopy
 
 
 class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
@@ -43,7 +43,10 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
                 self.SetItem(index, 2, str(s.var2))
             except:
                 self.SetItem(index, 2, str(0))
-            self.SetItem(index, 3, s.name)
+            try:
+                self.SetItem(index, 3, s.name)
+            except:
+                self.SetItem(index, 3, "")
             self.SetItemData(index, i)
             if colors is not None:
                 color = wx.Colour(int(round(colors[i][0] * 255)), int(round(colors[i][1] * 255)),
@@ -217,7 +220,7 @@ class ListCtrlPanel(wx.Panel):
         dlg = wx.ColourDialog(None, data=col2)
         if dlg.ShowModal() == wx.ID_OK:
             colout = dlg.GetColourData()
-            colout = colout.GetColour()
+            colout = deepcopy(colout.GetColour())
             print "Color Out", colout
         dlg.Destroy()
         self.list.SetItemBackgroundColour(item, col=colout)

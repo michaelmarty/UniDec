@@ -775,6 +775,9 @@ class MassSelection(wx.Dialog):
         except ValueError:
             tolerance = None
         oligomasslist, oligonames = ud.make_all_matches(oligos)
+        if ud.isempty(oligomasslist):
+            print "ERROR: Need to specify the Potential Oligomers"
+            return
         matchlist = ud.match(self.pks, oligomasslist, oligonames, tolerance=tolerance)
         self.matchlistbox.list.populate(matchlist[0], matchlist[1], matchlist[2], matchlist[3])
 

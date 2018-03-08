@@ -543,9 +543,9 @@ class DataCollector(wx.Frame):
     def open_hdf5(self, path):
         self.topname = "ms_dataset"
         self.hdf5_file = path
-        self.hdf = h5py.File(path)
-        self.msdata = self.hdf.require_group(self.topname)
-        keys = self.msdata.keys()
+        hdf = h5py.File(path)
+        msdata = hdf.require_group(self.topname)
+        keys = msdata.keys()
         self.indexes = []
         for k in keys:
             try:
@@ -557,8 +557,8 @@ class DataCollector(wx.Frame):
         self.len = len(self.indexes)
 
         for f in self.indexes:
-            self.msdata = self.hdf.get(self.topname + "/" + str(f))
-            self.attrs = dict(self.msdata.attrs.items())
+            msdata = hdf.get(self.topname + "/" + str(f))
+            self.attrs = dict(msdata.attrs.items())
             if "var1" in self.attrs.keys():
                 var1 = self.attrs["var1"]
             elif "collision_voltage" in self.attrs.keys():
@@ -567,14 +567,14 @@ class DataCollector(wx.Frame):
                 var1 = f
             self.ypanel.list.add_line(file_name=f, var1=str(var1))
 
-        pdataset = self.hdf.require_group("/peaks")
+        pdataset = hdf.require_group("/peaks")
         peaks = get_dataset(pdataset, "peakdata")
         for p in peaks:
             maxes = self.xpanel.list.add_line(val=p[0])
         self.ctlprot.SetValue(str(maxes[0]))
         self.ctllig.SetValue(str(maxes[1]))
 
-        self.hdf.close()
+        hdf.close()
         self.update_get(0)
         self.directory = os.path.join(os.path.split(path)[0], "UniDec_Figures_and_Files")
         self.update_set(0)
@@ -767,12 +767,12 @@ class DataCollector(wx.Frame):
         self.var1 = []
         self.grid = []
         if self.filetype == 1:
-            self.hdf = h5py.File(self.hdf5_file)
+            hdf = h5py.File(self.hdf5_file)
         ycolors = []
         print "Directory:", self.directory
         for k, l in enumerate(self.yvals):
             if self.filetype == 1:
-                self.msdata = self.hdf.get(self.topname + "/" + str(l[0]))
+                msdata = hdf.get(self.topname + "/" + str(l[0]))
 
             filename = l[0]
             header = os.path.splitext(filename)[0]
@@ -786,14 +786,14 @@ class DataCollector(wx.Frame):
             fcolor = np.array(l[4:7])
             if self.datachoice == 0:
                 if self.filetype == 1:
-                    data = get_dataset(self.msdata, "raw_data")
+                    data = get_dataset(msdata, "raw_data")
                 else:
                     data = np.loadtxt(filename)
                 self.xlabel = "m/z (Th)"
             elif self.datachoice == 1:
                 filename = os.path.join(header + "_unidecfiles", subheader + "_input.dat")
                 if self.filetype == 1:
-                    data = get_dataset(self.msdata, "processed_data")
+                    data = get_dataset(msdata, "processed_data")
                 else:
                     data = np.loadtxt(filename)
                 self.xlabel = "m/z (Th)"
@@ -802,7 +802,7 @@ class DataCollector(wx.Frame):
                 zstate = l[3]
                 filename = os.path.join(header + "_unidecfiles", subheader + "_mass.txt")
                 if self.filetype == 1:
-                    data = get_dataset(self.msdata, "mass_data")
+                    data = get_dataset(msdata, "mass_data")
                 else:
                     data = np.loadtxt(filename)
                 if not zstate == 'All':
@@ -901,7 +901,7 @@ class DataCollector(wx.Frame):
 
         self.make_grid_plots(e)
         if self.filetype == 1:
-            self.hdf.close()
+            hdf.close()
         print "Extraction Complete"
 
     def make_grid_plots(self, e):

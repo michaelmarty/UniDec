@@ -40,7 +40,7 @@ todo.txt
 unidec_bin/Other_builds/
 unidec_src/Old
 test_GUI.py
-test_UniDec.py
+Scripts/MTM/test_UniDec.py
 build.bat
 metaunidec/test_MUD.py
 unidec_bin/CDCReaderOld.exe

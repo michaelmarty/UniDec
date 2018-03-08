@@ -245,6 +245,11 @@ class main_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_write_hdf5, self.menuhdf5)
 
         self.experimentalmenu.AppendSeparator()
+        self.autoformat = self.experimentalmenu.Append(wx.ID_ANY, "Auto Format Monomer/Dimer",
+                                                       "Mark matched monomers and dimers automatically")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_autoformat, self.autoformat)
+
+        self.experimentalmenu.AppendSeparator()
         self.menulauncher = self.experimentalmenu.Append(wx.ID_ANY, "Launcher")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_launcher, self.menulauncher)
 

@@ -8,6 +8,7 @@ import platform
 import zipfile
 import time
 import fnmatch
+import comtypes
 
 
 def dir_files(path, rel):
@@ -33,7 +34,6 @@ else:
     print "Internal Release Mode"
     distmode = False
 
-
 # Create names of files and directories
 exename = 'GUI_UniDec'
 if system == "Windows":
@@ -46,16 +46,18 @@ zipdirectory = outputdir + "_" + date + ".zip"
 # Analysis of packages
 a = Analysis(['Launcher.py'],
              pathex=[os.getcwd()],
-             excludes=['pandas', 'IPython', 'Cython', 'statsmodels','pyopenms',
+             excludes=['pandas', 'IPython', 'Cython', 'statsmodels', 'pyopenms',
                        'GdkPixbuf', 'PIL', 'pyQT4', 'pygobject', 'pygtk', 'pyside'],
              hiddenimports=[  # 'plotly',
                  'scipy.special._ufuncs_cxx', 'scipy.linalg.cython_blas', 'scipy.linalg.cython_lapack',
                  'scipy._lib.messagestream',
                  'FileDialog', 'Dialog',
                  'packaging', 'packaging.version', 'packaging.specifiers',
+                 'comtypes', "multiplierz", "comtypes.gen", "comtypes.gen._E7C70870_676C_47EB_A791_D5DA6D31B224_0_1_0",
+                 "comtypes.gen.UIAutomationClient","comtypes.gen.RawReader",
                  # 'wx.lib.pubsub','wx.lib.pubsub.core', 'wx.lib.pubsub.core.kwargs','wx.lib.pubsub.core.publisher',
                  'pubsub', 'pubsub.core.publisherbase', 'pubsub.core.kwargs', 'pubsub.core.kwargs.publisher',
-                 'pubsub.core.kwargs.listenerimpl','pubsub.core.kwargs.publishermixin',
+                 'pubsub.core.kwargs.listenerimpl', 'pubsub.core.kwargs.publishermixin',
                  'pubsub.core.listenerbase', 'pubsub.core', 'pubsub.core.kwargs.topicargspecimpl',
                  'pubsub.core.kwargs.topicmgrimpl',
                  'Tkinter', 'FixTk', '_tkinter', 'Tkconstants', 'FileDialog', 'Dialog', 'six',
@@ -80,9 +82,9 @@ if system == "Windows":
 
     for file in os.listdir('unidec_bin'):
         if fnmatch.fnmatch(file, 'api*'):
-            add = [(file, 'unidec_bin\\'+file, 'DATA')]
+            add = [(file, 'unidec_bin\\' + file, 'DATA')]
             a.datas += add
-            #print add
+            # print add
 
     if not distmode:
         a.datas += [('MassLynxRaw.dll', 'unidec_bin\\MassLynxRaw.dll', 'DATA')]

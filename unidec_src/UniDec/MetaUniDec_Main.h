@@ -33,9 +33,10 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 		else if (strcmp(argv[2], "-extract") == 0) { mode = 5; }
 		else if (strcmp(argv[2], "-ultraextract") == 0) { mode = 6; }
 		else if (strcmp(argv[2], "-charges") == 0) { mode = 7; }
+		else if (strcmp(argv[2], "-peaks") == 0) { mode = 8; }
 	}
 
-
+	//printf("%d\n\n", mode);
 	//Iterate through files
 	for (int i = 0; i < num; i++)
 	{
@@ -101,6 +102,10 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 		printf("Extracting Charges\n");
 		charge_peak_extracts(argc, argv, config, 0);
 	}
-
+	if (mode == 8)
+	{
+		printf("Picking Peaks\n");
+		get_all_peaks(argc, argv, config);
+	}
 	return 0;
 }

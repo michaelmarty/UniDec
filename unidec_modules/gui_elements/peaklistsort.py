@@ -1,6 +1,7 @@
 import wx
 import wx.lib.mixins.listctrl as listmix
 import numpy as np
+from copy import deepcopy
 
 from unidec_modules import unidectools as ud
 
@@ -56,6 +57,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.popupID6 = wx.NewId()
         self.popupID7 = wx.NewId()
         self.popupID8 = wx.NewId()
+        self.popupID9 = wx.NewId()
 
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)
@@ -65,6 +67,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.Bind(wx.EVT_MENU, self.on_popup_six, id=self.popupID6)
         self.Bind(wx.EVT_MENU, self.on_popup_seven, id=self.popupID7)
         self.Bind(wx.EVT_MENU, self.on_popup_eight, id=self.popupID8)
+        self.Bind(wx.EVT_MENU, self.on_popup_nine, id=self.popupID9)
 
     def clear_list(self):
         """
@@ -161,6 +164,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                 menu.Append(self.popupID7, "Display Errors")
                 menu.AppendSeparator()
                 menu.Append(self.popupID5, "Color Select")
+                menu.Append(self.popupID9, "Marker Select")
                 self.PopupMenu(menu)
                 menu.Destroy()
         else:
@@ -175,6 +179,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                 menu.Append(self.popupID8, "Hide Errors")
                 menu.AppendSeparator()
                 menu.Append(self.popupID5, "Color Select")
+                menu.Append(self.popupID9, "Marker Select")
                 self.PopupMenu(menu)
                 menu.Destroy()
 
@@ -313,10 +318,14 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         colout = col2
         dlg = wx.ColourDialog(None, data=col2)
         if dlg.ShowModal() == wx.ID_OK:
-            colout = dlg.GetColourData()
-            colout = colout.GetColour()
+            coloutdlg = dlg.GetColourData()
+            colout = deepcopy(coloutdlg.GetColour())
             print "Color Out", colout
-        dlg.Destroy()
+            dlg.Destroy()
+        else:
+            dlg.Destroy()
+            return
+
         self.list_ctrl.SetItemBackgroundColour(item, col=colout)
         peak = float(self.list_ctrl.GetItem(item, col=1).GetText())
         i = ud.nearest(self.pks.masses, peak)
@@ -373,4 +382,69 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             self.list_ctrl.SetItem(i, 4, str(p.label))
         self.errorsdisplayed = False
 
+    def on_popup_nine(self, e=None):
+        item = self.list_ctrl.GetFirstSelected()
+        peak = float(self.list_ctrl.GetItem(item, col=1).GetText())
+        i = ud.nearest(self.pks.masses, peak)
+        dlg = SelectMarker(self)
+        dlg.initialize_interface(self.pks, i)
+        self.list_ctrl.SetItem(i, 0, self.pks.peaks[i].textmarker)
+        newevent = wx.PyCommandEvent(self.EVT_DELETE_SELECTION_2._getEvtType(), self.GetId())
+        self.GetEventHandler().ProcessEvent(newevent)
+
+
 # TODO: Add in a column label drop down or some other way to select which information of self.pks is displayed
+
+class SelectMarker(wx.Dialog):
+    def __init__(self, *args, **kwargs):
+        """
+        Create a dialog for setting some obscure additional parameters.
+        :param args: Passed to wx.Dialog
+        :param kwargs: Passed to wx.Dialog
+        :return: None
+        """
+        wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
+        self.SetSize((285, 125))
+        self.SetTitle("Pick the Peak Marker")
+
+    def initialize_interface(self, pks, index):
+        """
+        :return: None
+        """
+        self.pks = pks
+        self.index = index
+
+        pnl = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        sb = wx.StaticBox(pnl, label='Marker Type')
+        sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
+
+        hbox5 = wx.BoxSizer(wx.HORIZONTAL)
+
+        for i, m in enumerate(self.pks.textmarkers):
+            button = wx.Button(pnl, i, m, size=(35, 35))
+            hbox5.Add(button, 0)
+            button.Bind(wx.EVT_BUTTON, self.on_close)
+
+        sbs.Add(hbox5, 0)
+
+        pnl.SetSizer(sbs)
+
+        vbox.Add(pnl, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
+        self.SetSizer(vbox)
+        self.ShowModal()
+
+    def on_close(self, e):
+        """
+        Close the window.
+        :param e:  Event
+        :return: None
+        """
+        id = e.GetId()
+        marker = self.pks.markers[id]
+        textmarker = self.pks.textmarkers[id]
+        self.pks.peaks[self.index].marker = marker
+        self.pks.peaks[self.index].textmarker = textmarker
+        self.Destroy()
+        self.EndModal(0)

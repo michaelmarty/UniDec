@@ -231,6 +231,24 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.2.6.5
+
+Added Ctrl+Click on any plot window to bring up a dialog to change the rcParams from matplotlib (https://matplotlib.org/users/customizing.html).
+Added -peaks flag in UniDec.exe to get peaks for each individual spectrum in an HDF5 file.
+
+v. 2.6.4
+
+A few bug fixes.
+Added file name as metadata from Import Wizard.
+Added automatic monomer dimer assign for the Wysocki Group.
+Added annotated m/z and mass animations for MetaUniDec.
+Added ability to save figures automatically from animation.
+
+v. 2.6.3
+
+Added new Marker Selector to Peak List right click menu.
+Fixed color selection bug.
+
 v. 2.6.2
 
 Cool new plots on the Mass Defect Tools.

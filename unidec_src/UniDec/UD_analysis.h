@@ -470,6 +470,61 @@ void peak_extracts(Config config, const double *peakx, hid_t file_id, const char
 	free(extracts);
 }
 
+
+void get_all_peaks(int argc, char *argv[], Config config)
+{
+	hid_t file_id;
+	char dataset[1024];
+	char outdat[1024];
+	char strval[1024];
+
+	file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
+	int num = 0;
+	num = int_attr(file_id, "/ms_dataset", "num", num);
+
+	for (int i = 0; i < num; i++) {
+		//Read In Data
+		strcpy(dataset, "/ms_dataset");
+		sprintf(strval, "/%d", i);
+		strcat(dataset, strval);
+
+		strjoin(dataset, "/mass_data", outdat);
+		printf("Processing HDF5 Data: %s\n", outdat);
+
+		int mlen = mh5getfilelength(file_id, outdat);
+
+		double *massaxis = NULL;
+		double *masssum = NULL;
+
+		massaxis = calloc(mlen, sizeof(double));
+		masssum = calloc(mlen, sizeof(double));
+
+		mh5readfile2d(file_id, outdat, mlen, massaxis, masssum);
+
+		double *peakx = NULL;
+		double *peaky = NULL;
+		peakx = calloc(mlen, sizeof(double));
+		peaky = calloc(mlen, sizeof(double));
+
+		int plen = peak_detect(massaxis, masssum, mlen, config.peakwin, config.peakthresh, peakx, peaky);
+
+		peakx = realloc(peakx, plen * sizeof(double));
+		peaky = realloc(peaky, plen * sizeof(double));
+
+		peak_norm(peaky, plen, config.peaknorm);
+
+		strjoin(dataset, "/peakdata", outdat);
+		printf("\tWriting %d Peaks to: %s\n", plen, outdat);
+		mh5writefile2d(file_id, outdat, plen, peakx, peaky);
+
+		free(peakx);
+		free(peaky);
+		free(massaxis);
+		free(masssum);
+	}
+	H5Fclose(file_id);
+}
+
 void get_peaks(int argc, char *argv[], Config config, int ultra)
 {
 
@@ -516,7 +571,6 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 		strjoin(dataset, "/peakdata", outdat);
 		printf("\tWriting %d Peaks to: %s\n", plen, outdat);
 		mh5writefile2d(file_id, outdat, plen, peakx, peaky);
-
 	
 		peak_extracts(config, peakx, file_id, "/mass_data", plen, 0);
 

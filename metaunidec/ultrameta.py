@@ -20,6 +20,18 @@ from gui_elements.um_list_ctrl import *
 import mudeng
 import threading
 
+
+def read_attr(thing, string, config):
+    if string in config.attrs.keys():
+        val = config.attrs.get(string)
+        if isinstance(val, np.ndarray):
+            return val[0]
+        else:
+            return val
+    else:
+        return thing
+
+
 __author__ = 'michael.marty'
 
 rcParams['ps.useafm'] = True
@@ -62,7 +74,6 @@ class DataCollector(wx.Frame):
 
         pub.subscribe(self.on_motion2, 'newxy')
 
-
         self.filemenu = wx.Menu()
 
         self.menuSave = self.filemenu.Append(wx.ID_SAVE, "Save", "Save Parameters")
@@ -101,6 +112,8 @@ class DataCollector(wx.Frame):
         self.toolsmenu.AppendSeparator()
         self.menuplots1 = self.toolsmenu.Append(wx.ID_ANY, "Plot Mass Distributions", "Plots Mass Distributions of All")
         self.Bind(wx.EVT_MENU, self.on_plot_all, self.menuplots1)
+        self.menuplots2 = self.toolsmenu.Append(wx.ID_ANY, "Plot Mass Defects", "Plots Mass Defects of All")
+        self.Bind(wx.EVT_MENU, self.on_plot_all_MD, self.menuplots2)
 
         self.menuBar = wx.MenuBar()
         self.menuBar.Append(self.filemenu, "&File")
@@ -198,7 +211,8 @@ class DataCollector(wx.Frame):
                 # testdir = "Z:\\Group Share\\Deseree\\Ciara\\Test"
                 # testfile = "collection2.json"
                 # testdir = "C:\\Data\\Triplicate Data"
-                testdir = "C:\Data\Guozhi"
+                # testdir = "C:\Data\Guozhi"
+                testdir = "Z:\Group Share\James Rohrbough\Peptide nanodiscs\D1T0 Mellitin\DMPC"
                 testfile = "collection1.json"
                 self.load(os.path.join(testdir, testfile))
                 # self.on_plot_all()
@@ -217,11 +231,13 @@ class DataCollector(wx.Frame):
             if os.path.isfile(path):
                 print path
                 self.hdf5_file = path
-                self.hdf = h5py.File(path, 'r')
-                pdataset = self.hdf.require_group("/peaks")
+
+                hdf = h5py.File(path, 'r')
+                pdataset = hdf.require_group("/peaks")
                 ultrapeaks = get_dataset(pdataset, "ultrapeakdata")
                 peaks = get_dataset(pdataset, "peakdata")[:, 0]
-                self.hdf.close()
+                hdf.close()
+
                 if not ud.isempty(ultrapeaks):
                     peaks = ultrapeaks
                 indexes = np.arange(0, len(peaks))
@@ -240,14 +256,16 @@ class DataCollector(wx.Frame):
         if self.localpath == 1:
             path = os.path.join(self.directory, path)
         self.hdf5_file = path
-        self.hdf = h5py.File(path)
-        self.config.hdf_file = path
         self.update_config()
-        h5_config = self.hdf.require_group("config")
+
+        hdf = h5py.File(path)
+        self.config.hdf_file = path
+        h5_config = hdf.require_group("config")
         self.config.exnorm = h5_config.attrs["exnorm"]
         self.config.exchoice = h5_config.attrs["exchoice"]
         self.config.exwindow = h5_config.attrs["exwindow"]
-        self.hdf.close()
+        hdf.close()
+
         self.update_gui()
 
     def on_save(self, e):
@@ -333,6 +351,7 @@ class DataCollector(wx.Frame):
             ultrapeakdata = np.array([int(x[1]) for x in self.xvals])
             replace_dataset(pdataset, "ultrapeakdata", data=ultrapeakdata)
             hdf.close()
+
             self.run_hdf5(path)
         except:
             self.SetStatusText("ERROR with File: " + path, number=2)
@@ -376,22 +395,17 @@ class DataCollector(wx.Frame):
 
         if fit is None:
             if True:
-                try:
-                    threads = []
-                    for p in paths:
-                        t = threading.Thread(target=self.update_hdf5, args=(p,))
-                        threads.append(t)
-                        t.start()
-                    for t in threads:
-                        t.join()
-                except:
-                    "Error in Threads. Switching to Sequential"
-                    for p in paths:
-                        self.update_hdf5(p)
+                threads = []
+                for p in paths:
+                    t = threading.Thread(target=self.update_hdf5, args=(p,))
+                    threads.append(t)
+                    t.start()
+                for t in threads:
+                    t.join()
             else:
                 for p in paths:
                     self.update_hdf5(p)
-        print "Execution Time: %.2gs" % (time.clock() - tstart)
+        print "Total Execution Time: %.2gs" % (time.clock() - tstart)
         for x in self.xvals:
             try:
                 index = int(x[1])
@@ -403,6 +417,7 @@ class DataCollector(wx.Frame):
             bargraphfits = []
             bargraphlabels = []
             bargrapherrors = []
+
             for u in uniquelabels:
                 extracts = []
                 zexts = []
@@ -417,16 +432,16 @@ class DataCollector(wx.Frame):
                         linestyle = y[2]
                         print path, u, index, marker, linestyle
                         self.hdf5_file = path
-                        self.hdf = h5py.File(path, "r")
+                        hdf = h5py.File(path, "r")
 
-                        self.msdata = self.hdf.require_group(self.topname)
-                        self.len = self.msdata.attrs["num"]
+                        msdata1 = hdf.require_group(self.topname)
+                        self.len = msdata1.attrs["num"]
 
                         xvals = []
                         zdat = []
                         for f in np.arange(0, self.len):
-                            self.msdata = self.hdf.get(self.topname + "/" + str(f))
-                            self.attrs = dict(self.msdata.attrs.items())
+                            msdata = hdf.get(self.topname + "/" + str(f))
+                            self.attrs = dict(msdata.attrs.items())
                             if "var1" in self.attrs.keys():
                                 var1 = self.attrs["var1"]
                             elif "collision_voltage" in self.attrs.keys():
@@ -440,7 +455,7 @@ class DataCollector(wx.Frame):
                             else:
                                 var1 = f
 
-                            zdata = get_dataset(self.msdata, "charge_data")
+                            zdata = get_dataset(msdata, "charge_data")
                             try:
                                 zdata[:, 1] /= np.amax(zdata[:, 1])
                                 zdat.append(ud.center_of_mass(zdata)[0])
@@ -452,7 +467,7 @@ class DataCollector(wx.Frame):
 
                             xvals.append(var1)
 
-                        pdataset = self.hdf.require_group("/peaks")
+                        pdataset = hdf.require_group("/peaks")
                         # Get the peaks back in
                         ultrapeaks = get_dataset(pdataset, "ultrapeakdata")
                         peak = np.argwhere(ultrapeaks == index)[0][0]
@@ -466,7 +481,7 @@ class DataCollector(wx.Frame):
 
                         ex = get_dataset(pdataset, "ultraextracts")[:, peak]
                         extracts.append(ex)
-                        self.hdf.close()
+                        hdf.close()
 
                 if not ud.isempty(xvals) and not ud.isempty(extracts):
                     extracts = np.array(extracts)
@@ -569,6 +584,7 @@ class DataCollector(wx.Frame):
 
             if fit is not None:
                 self.on_bar_graphs(bargraphfits, bargraphlabels, bargrapherrors, fit=fit)
+        print "Plotting Done"
 
         output = np.array(output)
         self.data = output
@@ -590,7 +606,7 @@ class DataCollector(wx.Frame):
             # outfile.close()
         except Exception, ex:
             print "Failed to Export Output:", ex
-
+        print "Exports Done"
         self.plot1.add_legend(anchor=(1.35, 1))
         self.plot2.add_legend(anchor=(1.35, 1))
         self.plot2.repaint()
@@ -713,7 +729,11 @@ class DataCollector(wx.Frame):
         ydim = len(uniquecolors)
 
         plotwindow = BarGraphWindow(self, title="Plots", directory=self.directory)
-        plotwindow.setup_window_generic(xdim, ydim)
+        if type == "massdefect":
+            plotwindow.setup_window_generic(xdim, ydim, type="2D")
+        else:
+            plotwindow.setup_window_generic(xdim, ydim)
+
         # run extraction on all files with parameters
         for y in self.yvals:
             path = y[0]
@@ -738,15 +758,18 @@ class DataCollector(wx.Frame):
                     linestyle = y[2]
                     print path, u, linestyle
                     self.hdf5_file = path
-                    self.hdf = h5py.File(path, "r")
-                    self.msdata = self.hdf.require_group(self.topname)
-                    self.len = self.msdata.attrs["num"]
+                    hdf = h5py.File(path, "r")
+                    msdata1 = hdf.require_group(self.topname)
+                    config = hdf.get("config")
+                    molig = read_attr(0, "molig", config)
+
+                    self.len = msdata1.attrs["num"]
 
                     # Get the x values
                     xvals = []
                     for f in np.arange(0, self.len):
-                        self.msdata = self.hdf.get(self.topname + "/" + str(f))
-                        self.attrs = dict(self.msdata.attrs.items())
+                        msdata = hdf.get(self.topname + "/" + str(f))
+                        self.attrs = dict(msdata.attrs.items())
                         if "var1" in self.attrs.keys():
                             var1 = self.attrs["var1"]
                         elif "collision_voltage" in self.attrs.keys():
@@ -762,15 +785,16 @@ class DataCollector(wx.Frame):
                         xvals.append(var1)
 
                     # Get the peaks back in
-                    msdataset = self.hdf.require_group("/ms_dataset")
+                    msdataset = hdf.require_group("/ms_dataset")
                     massaxis = get_dataset(msdataset, "mass_axis")
                     masssum = get_dataset(msdataset, "mass_sum")
                     massgrid = get_dataset(msdataset, "mass_grid")
                     extracts.append(np.transpose([massaxis, masssum]))
                     gridextracts.append(massgrid)
-                    self.hdf.close()
+                    hdf.close()
 
             if not ud.isempty(xvals) and not ud.isempty(extracts):
+
                 extracts = np.array(extracts)
                 print np.shape(extracts)
                 xvals = np.array(xvals)
@@ -780,14 +804,27 @@ class DataCollector(wx.Frame):
                 edat = extracts[0]
                 ypos = np.where(uniquecolors == color)[0][0]
                 xpos = np.where(uniquelinestyles == linestyle)[0][0]
-                plotwindow.plots[xpos][ypos].plotrefreshtop(
-                    edat[:, 0], edat[:, 1], u,
-                    self.ylabel,
-                    "Mass", None, None,
-                    nopaint=False, color=color, test_kda=True,
-                    linestyle=linestyle)
+
+                if type == "massdefect":
+                    data1d, data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(edat, molig)
+
+                    plotwindow.plots[xpos][ypos].contourplot(data2d, self.config, xlab="Mass", ylab="Mass Defect",
+                                                             normflag=1, title=u, test_kda=True)
+                    plotwindow.plots[xpos][ypos].subplot1.set_title(u)
+                    plotwindow.plots[xpos][ypos].setup_zoom([plotwindow.plots[xpos][ypos].subplot1], 'box')
+                    print u
+                else:
+                    plotwindow.plots[xpos][ypos].plotrefreshtop(
+                        edat[:, 0], edat[:, 1], u,
+                        self.ylabel,
+                        "Mass", None, None,
+                        nopaint=False, color=color, test_kda=True,
+                        linestyle=linestyle)
 
         plotwindow.Show()
+
+    def on_plot_all_MD(self, e=None):
+        self.on_plot_all(type="massdefect")
 
 
 class BarGraphWindow(wx.Frame):
@@ -977,7 +1014,7 @@ class BarGraphWindow(wx.Frame):
         self.panel.SetSizer(plotsizer)
         plotsizer.Fit(self)
 
-    def setup_window_generic(self, xdim=1, ydim=1):
+    def setup_window_generic(self, xdim=1, ydim=1, type="1D"):
         # self.panel = wx.Panel(self)
         self.panel = wx.Panel(self)  # wx.lib.scrolledpanel.ScrolledPanel(self)
         # self.panel.SetupScrolling()
@@ -987,7 +1024,10 @@ class BarGraphWindow(wx.Frame):
         for x in xrange(0, xdim):
             ptemp = []
             for y in xrange(0, ydim):
-                p = plot1d.Plot1d(self.panel, figsize=figsize)
+                if type == "2D":
+                    p = plot2d.Plot2d(self.panel, figsize=figsize)
+                else:
+                    p = plot1d.Plot1d(self.panel, figsize=figsize)
                 plotsizer.Add(p, (x, y), span=(1, 1), flag=wx.EXPAND)
                 ptemp.append(p)
             self.plots.append(ptemp)
@@ -1033,8 +1073,6 @@ class BarGraphWindow(wx.Frame):
 
     def on_save_figure_pdf(self, e):
         self.save_all_figures("pdf")
-
-
 
 
 # Main App Execution

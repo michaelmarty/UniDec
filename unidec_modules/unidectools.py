@@ -563,15 +563,15 @@ def header_test(path):
 
 def waters_convert(path, config=None):
     if config is None:
-        config=unidecstructure.UniDecConfig()
+        config = unidecstructure.UniDecConfig()
         config.initialize_system_paths()
         print config.rawreaderpath
 
-    t=os.path.join(path,"converted_rawdata.txt")
+    t = os.path.join(path, "converted_rawdata.txt")
     call = [config.rawreaderpath, "-i", path, "-o", t]
     result = subprocess.call(call)
     print "Conversion Stderr:", result
-    data=np.loadtxt(t)
+    data = np.loadtxt(t)
     return data
 
 
@@ -591,7 +591,7 @@ def load_mz_file(path, config=None):
         if os.path.isdir(path) and os.path.splitext(path)[1].lower() == ".raw":
             try:
                 print "Trying to convert Waters File"
-                data=waters_convert(path, config)
+                data = waters_convert(path, config)
             except:
                 print "Attempted to convert Waters Raw file but failed"
                 raise IOError
@@ -1315,7 +1315,7 @@ def mergepeaks(peaks1, peaks2, window):
     return newpeaks
 
 
-def make_peaks_mztab(mzgrid, pks, adductmass):
+def make_peaks_mztab(mzgrid, pks, adductmass, index=None):
     """
     For each peak in pks, get the charge state distribution.
 
@@ -1338,8 +1338,12 @@ def make_peaks_mztab(mzgrid, pks, adductmass):
     ftab = [interp1d(xvals, newgrid[:, k]) for k in xrange(0, ylen)]
     mztab = [[makespecfun(i, k, pks.masses, adductmass, yvals, xvals, ftab, xmax, xmin) for k in xrange(0, ylen)] for i
              in xrange(0, plen)]
-    for i in xrange(0, plen):
-        pks.peaks[i].mztab = np.array(mztab[i])
+    if index is None:
+        for i in xrange(0, plen):
+            pks.peaks[i].mztab = np.array(mztab[i])
+    else:
+        for i in xrange(0, plen):
+            pks.peaks[i].mztab.append(np.array(mztab[i]))
     return np.array(mztab)
 
 
@@ -1367,7 +1371,7 @@ def makespecfun(i, k, peaks_masses, adductmass, charges, xvals, ftab, xmax, xmin
     return np.array([intx, inty, pos])
 
 
-def make_peaks_mztab_spectrum(mzgrid, pks, data2, mztab):
+def make_peaks_mztab_spectrum(mzgrid, pks, data2, mztab, index=None):
     """
     Used for plotting the dots in plot 4.
 
@@ -1383,9 +1387,16 @@ def make_peaks_mztab_spectrum(mzgrid, pks, data2, mztab):
     zlen = len(zvals)
     plen = pks.plen
     mztab2 = deepcopy(mztab)
-    mztab2[:, :, 1] = [[data2[int(pks.peaks[i].mztab[k, 2]), 1] for k in range(0, zlen)] for i in range(0, plen)]
-    for i in xrange(0, plen):
-        pks.peaks[i].mztab2 = np.array(mztab2[i])
+
+    if index is None:
+        mztab2[:, :, 1] = [[data2[int(pks.peaks[i].mztab[k, 2]), 1] for k in range(0, zlen)] for i in range(0, plen)]
+        for i in xrange(0, plen):
+            pks.peaks[i].mztab2 = np.array(mztab2[i])
+    else:
+        mztab2[:, :, 1] = [[data2[int(pks.peaks[i].mztab[index][k, 2]), 1] for k in range(0, zlen)] for i in
+                           range(0, plen)]
+        for i in xrange(0, plen):
+            pks.peaks[i].mztab2.append(np.array(mztab2[i]))
 
     return mztab2
 
@@ -1540,7 +1551,7 @@ def combine_all(array2):
         for i in range(0, len(index)):
             val = index[i] + startindex[i]
             if val > 0:
-                name = name + str(val) + "" + names[i] + " "
+                name = name + str(val) + "[" + names[i] + "] "
             else:
                 pass
         total = np.sum((index + startindex) * omass + basemass)
@@ -1562,7 +1573,7 @@ def make_isolated_match(oligos):
             if newmass > 0:
                 oligomasslist.append(newmass)
                 if j > 0 or oligos[i][4] == "":
-                    oligonames.append(str(j) + "" + oligos[i][4])
+                    oligonames.append(str(j) + "[" + oligos[i][4]) + "]"
                 else:
                     oligonames.append("")
                     # self.oligonames.append(str(j)+""+oligos[i][4])
@@ -2159,8 +2170,7 @@ def peaks_error_mean(pks, data, ztab, massdat, config):
 
 
 if __name__ == "__main__":
-
-    testfile="C:\Python\UniDec\TestSpectra\\test_imms.raw"
+    testfile = "C:\Python\UniDec\TestSpectra\\test_imms.raw"
     waters_convert(testfile)
 
     exit()

@@ -31,13 +31,10 @@ def auto_from_wizard(data, filename, mode):
     # print data
     eng = mudeng.MetaUniDec()
     eng.data.new_file(filename)
-    v1s = []
-    v2s = []
     for i, d in enumerate(data):
         v1 = d[1]
         v2 = d[2]
-        v1s.append(v1)
-        v2s.append(v2)
+        f=d[0]
         try:
             start = float(d[3])
         except:
@@ -63,6 +60,7 @@ def auto_from_wizard(data, filename, mode):
             eng.data.add_data(data, path)
         eng.data.spectra[-1].var1 = v1
         eng.data.spectra[-1].var2 = v2
+        eng.data.spectra[-1].name = f
     eng.data.export_hdf5()
 
 

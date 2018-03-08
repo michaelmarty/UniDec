@@ -36,8 +36,8 @@ class MetaDataSet:
         else:
             self.filename = file
         hdf = h5py.File(file)
-        self.msdata = hdf.require_group(self.topname)
-        keys = self.msdata.keys()
+        msdata = hdf.require_group(self.topname)
+        keys = msdata.keys()
         self.indexes = []
         for k in keys:
             try:
@@ -48,6 +48,7 @@ class MetaDataSet:
         self.indexes = sorted(self.indexes)
         self.len = len(self.indexes)
         hdf.close()
+
         if ud.isempty(self.spectra):
             for i in self.indexes:
                 s = Spectrum(self.topname, i, self.eng)
@@ -79,12 +80,14 @@ class MetaDataSet:
         config = hdf.require_group("config")
         config.attrs["metamode"] = -1
         hdf.close()
+
         self.var1 = []
         self.var2 = []
         for i, s in enumerate(self.spectra):
             s.index = str(i)
             s.attrs[self.v1name] = s.var1
             s.attrs[self.v2name] = s.var2
+            s.attrs["name"] = s.name
             self.var1.append(s.var1)
             self.var2.append(s.var2)
             s.write_hdf5(self.filename)
@@ -95,11 +98,11 @@ class MetaDataSet:
 
     def import_grids(self):
         hdf = h5py.File(self.filename)
-        self.msdataset = hdf.require_group(self.topname)
+        msdataset = hdf.require_group(self.topname)
         # Mass Space
-        axis = get_dataset(self.msdataset, "mass_axis")
-        sum = get_dataset(self.msdataset, "mass_sum")
-        grid = get_dataset(self.msdataset, "mass_grid")
+        axis = get_dataset(msdataset, "mass_axis")
+        sum = get_dataset(msdataset, "mass_sum")
+        grid = get_dataset(msdataset, "mass_grid")
         self.massdat = np.transpose([axis, sum])
         try:
             num = len(grid) / len(sum)
@@ -110,9 +113,9 @@ class MetaDataSet:
         except:
             print grid.shape, sum.shape
         # MZ Space
-        axis = get_dataset(self.msdataset, "mz_axis")
-        sum = get_dataset(self.msdataset, "mz_sum")
-        grid = get_dataset(self.msdataset, "mz_grid")
+        axis = get_dataset(msdataset, "mz_axis")
+        sum = get_dataset(msdataset, "mz_sum")
+        grid = get_dataset(msdataset, "mz_grid")
         self.mzdat = np.transpose([axis, sum])
         try:
             num = len(grid) / len(sum)
@@ -158,9 +161,9 @@ class MetaDataSet:
             os.remove(path)
         self.filename = path
         hdf = h5py.File(self.filename)
-        self.msdata = hdf.require_group(self.topname)
-        self.config = hdf.require_group("config")
-        self.config.attrs["metamode"] = -1
+        msdata = hdf.require_group(self.topname)
+        config = hdf.require_group("config")
+        config.attrs["metamode"] = -1
         hdf.close()
 
     def add_file(self, filename=None, dirname=None, path=None):
@@ -207,20 +210,21 @@ class MetaDataSet:
 
     def import_vars(self, get_vnames=True):
         hdf = h5py.File(self.filename)
-        self.msdata = hdf.require_group(self.topname)
+        msdata = hdf.require_group(self.topname)
         if get_vnames:
             try:
-                self.v1name = self.msdata.attrs["v1name"]
+                self.v1name = msdata.attrs["v1name"]
             except:
-                self.msdata.attrs["v1name"] = self.v1name
+                msdata.attrs["v1name"] = self.v1name
             try:
-                self.v2name = self.msdata.attrs["v2name"]
+                self.v2name = msdata.attrs["v2name"]
             except:
-                self.msdata.attrs["v2name"] = self.v2name
+                msdata.attrs["v2name"] = self.v2name
         else:
-            self.msdata.attrs["v1name"] = self.v1name
-            self.msdata.attrs["v2name"] = self.v2name
+            msdata.attrs["v1name"] = self.v1name
+            msdata.attrs["v2name"] = self.v2name
         hdf.close()
+
         self.var1 = []
         self.var2 = []
         for i in range(0, self.len):
@@ -233,6 +237,12 @@ class MetaDataSet:
                 s.var2 = s.attrs[self.v2name]
             except:
                 s.var2 = 0
+            try:
+                s.name = s.attrs["name"]
+            except:
+                s.name = ""
+            if s.var1 is None or s.var1 == "None":
+                s.var1 = i
             self.var1.append(s.var1)
             self.var2.append(s.var2)
         self.var1 = np.array(self.var1)
@@ -268,18 +278,19 @@ class Spectrum:
             file = self.filename
         else:
             self.filename = file
+
         hdf = h5py.File(file)
-        self.msdata = hdf.require_group(self.topname + "/" + str(self.index))
-        replace_dataset(self.msdata, "raw_data", self.rawdata)
-        replace_dataset(self.msdata, "fit_data", self.fitdat)
-        replace_dataset(self.msdata, "processed_data", self.data2)
-        replace_dataset(self.msdata, "mass_data", self.massdat)
-        replace_dataset(self.msdata, "mz_grid", self.mzgrid)
-        replace_dataset(self.msdata, "mass_grid", self.massgrid)
-        replace_dataset(self.msdata, "baseline", self.baseline)
-        replace_dataset(self.msdata, "charge_data", self.zdata)
+        msdata = hdf.require_group(self.topname + "/" + str(self.index))
+        replace_dataset(msdata, "raw_data", self.rawdata)
+        replace_dataset(msdata, "fit_data", self.fitdat)
+        replace_dataset(msdata, "processed_data", self.data2)
+        replace_dataset(msdata, "mass_data", self.massdat)
+        replace_dataset(msdata, "mz_grid", self.mzgrid)
+        replace_dataset(msdata, "mass_grid", self.massgrid)
+        replace_dataset(msdata, "baseline", self.baseline)
+        replace_dataset(msdata, "charge_data", self.zdata)
         for key, value in self.attrs.items():
-            self.msdata.attrs[key] = value
+            msdata.attrs[key] = value
         hdf.close()
 
     def read_hdf5(self, file=None):
@@ -288,14 +299,14 @@ class Spectrum:
         else:
             self.filename = file
         hdf = h5py.File(file)
-        self.msdata = hdf.get(self.topname + "/" + str(self.index))
-        self.rawdata = get_dataset(self.msdata, "raw_data")
-        self.fitdat = get_dataset(self.msdata, "fit_data")
-        self.data2 = get_dataset(self.msdata, "processed_data")
+        msdata = hdf.get(self.topname + "/" + str(self.index))
+        self.rawdata = get_dataset(msdata, "raw_data")
+        self.fitdat = get_dataset(msdata, "fit_data")
+        self.data2 = get_dataset(msdata, "processed_data")
         if ud.isempty(self.data2) and not ud.isempty(self.rawdata):
             self.data2 = deepcopy(self.rawdata)
-        self.massdat = get_dataset(self.msdata, "mass_data")
-        self.zdata = get_dataset(self.msdata, "charge_data")
+        self.massdat = get_dataset(msdata, "mass_data")
+        self.zdata = get_dataset(msdata, "charge_data")
         if self.eng.config.datanorm == 1:
             try:
                 self.data2[:, 1] /= np.amax(self.data2[:, 1])
@@ -309,12 +320,12 @@ class Spectrum:
                 self.zdata[:, 1] /= np.amax(self.zdata[:, 1])
             except:
                 pass
-        self.mzgrid = get_dataset(self.msdata, "mz_grid")
-        self.massgrid = get_dataset(self.msdata, "mass_grid")
+        self.mzgrid = get_dataset(msdata, "mz_grid")
+        self.massgrid = get_dataset(msdata, "mass_grid")
         try:
             self.ztab = self.zdata[:, 0]
         except:
             pass
-        self.baseline = get_dataset(self.msdata, "baseline")
-        self.attrs = dict(self.msdata.attrs.items())
+        self.baseline = get_dataset(msdata, "baseline")
+        self.attrs = dict(msdata.attrs.items())
         hdf.close()
