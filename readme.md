@@ -234,17 +234,17 @@ The main GUI class is GUniDec.UniDecApp.
 v.2.6.7
 
 *Space+Middle Click* on any line plot will now automatically add peak annotation. Simply Space+Middle Click again to turn it off.
-For those on a laptop, Alt+Left Click will also toggle between labelling and not. build.
+For those on a laptop, Alt+Left Click will also toggle between labelling and not. 
 
 v.2.6.6
 
-*Shift+Middle Click* on any plot will now spawn a window to specify the x range manually.
-*Alt+Middle Click* on any plot will now spawn a window to specify the y range manually.
+*Shift+Middle Click* on any plot will now spawn a window to specify the y range manually.
+*Alt+Middle Click* on any plot will now spawn a window to specify the x range manually.
 Fixed legend in UltraMeta. 
 
 v.2.6.5
 
-Added Ctrl+Click on any plot window to bring up a dialog to change the rcParams from matplotlib (https://matplotlib.org/users/customizing.html).
+Added *Ctrl+ Middle Click* on any plot window to bring up a dialog to change the rcParams from matplotlib (https://matplotlib.org/users/customizing.html).
 Added -peaks flag in UniDec.exe to get peaks for each individual spectrum in an HDF5 file.
 
 v. 2.6.4

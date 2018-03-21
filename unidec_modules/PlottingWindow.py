@@ -133,7 +133,7 @@ class PlottingWindow(wx.Window):
                 rcval = dlg.value2
                 print rcname, rcval
                 rcParams[rcname] = rcval
-            elif wx.GetKeyState(wx.WXK_SHIFT):
+            elif wx.GetKeyState(wx.WXK_ALT):
                 dlg = DoubleInputDialog(self)
                 dlg.initialize_interface("Set Plot X Range", "Min:", '',
                                          "Max:", "")
@@ -148,7 +148,7 @@ class PlottingWindow(wx.Window):
                     print "Manually Set Zoom:", minval, maxval
                 except:
                     print "Error converting string to float:", minval, maxval
-            elif wx.GetKeyState(wx.WXK_ALT):
+            elif wx.GetKeyState(wx.WXK_SHIFT):
                 dlg = DoubleInputDialog(self)
                 dlg.initialize_interface("Set Plot Y Range", "Min:", '',
                                          "Max:", "")
