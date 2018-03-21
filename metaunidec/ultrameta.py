@@ -211,8 +211,8 @@ class DataCollector(wx.Frame):
                 # testdir = "Z:\\Group Share\\Deseree\\Ciara\\Test"
                 # testfile = "collection2.json"
                 # testdir = "C:\\Data\\Triplicate Data"
-                # testdir = "C:\Data\Guozhi"
-                testdir = "Z:\Group Share\James Rohrbough\Peptide nanodiscs\D1T0 Mellitin\DMPC"
+                testdir = "C:\Data\Guozhi"
+                # testdir = "Z:\Group Share\James Rohrbough\Peptide nanodiscs\D1T0 Mellitin\DMPC"
                 testfile = "collection1.json"
                 self.load(os.path.join(testdir, testfile))
                 # self.on_plot_all()
@@ -497,17 +497,19 @@ class DataCollector(wx.Frame):
 
                     if fit is None:
                         if not self.plot1.flag:
-                            self.plot1.plotrefreshtop(xvals, avg, "Mass Extracts", self.ylabel, "Mass", None, None,
+                            self.plot1.plotrefreshtop(xvals, avg, "Mass Extracts", self.ylabel, "Mass",
+                                                      label=lab, marker=marker,
                                                       nopaint=True, color=color, test_kda=False, linestyle=linestyle)
                             pass
                         else:
-                            self.plot1.plotadd(xvals, avg, color, None, linestyle=linestyle)
+                            self.plot1.plotadd(xvals, avg, color, linestyle=linestyle, newlabel=lab, marker=marker)
                             pass
                         if not self.plot2.flag:
-                            self.plot2.plotrefreshtop(xvals, zdat, "Charge Extracts", self.ylabel, "Charge", None, None,
+                            self.plot2.plotrefreshtop(xvals, zdat, "Charge Extracts", self.ylabel, "Charge",
+                                                      label=lab, marker=marker,
                                                       nopaint=True, color=color, test_kda=False, linestyle=linestyle)
                         else:
-                            self.plot2.plotadd(xvals, zdat, color, None, linestyle=linestyle)
+                            self.plot2.plotadd(xvals, zdat, color,linestyle=linestyle, newlabel=lab, marker=marker)
                     else:
                         print zdat, zexts, avg
                         if fit == "exp":
@@ -558,26 +560,29 @@ class DataCollector(wx.Frame):
                             bargrapherrors.append(tmp)
 
                         if not self.plot1.flag:
-                            self.plot1.plotrefreshtop(xvals, fitdat, "Mass Extracts", self.ylabel, "Mass", None, None,
-                                                      nopaint=True, color=color, test_kda=False, linestyle=linestyle)
+                            self.plot1.plotrefreshtop(xvals, fitdat, "Mass Extracts", self.ylabel, "Mass",
+                                                      nopaint=True, color=color, test_kda=False, label=lab,
+                                                      marker=marker, linestyle=linestyle)
                             pass
                         else:
-                            self.plot1.plotadd(xvals, fitdat, color, None, linestyle=linestyle)
+                            self.plot1.plotadd(xvals, fitdat, color, linestyle=linestyle, newlabel=lab,
+                                               marker=marker)
                             pass
                         if not self.plot2.flag:
-                            self.plot2.plotrefreshtop(xvals, zfitdat, "Charge Extracts", self.ylabel, "Charge", None,
-                                                      None,
+                            self.plot2.plotrefreshtop(xvals, zfitdat, "Charge Extracts", self.ylabel, "Charge",
+                                                      label=lab, marker=marker,
                                                       nopaint=True, color=color, test_kda=False, linestyle=linestyle)
                         else:
-                            self.plot2.plotadd(xvals, zfitdat, color, None, linestyle=linestyle)
+                            self.plot2.plotadd(xvals, zfitdat, color, linestyle=linestyle, newlabel=lab,
+                                               marker=marker)
 
                         if fit == "sig":
                             self.plot1.addtext("", fits[0], (fits[3] + fits[2]) / 0.95, ymin=fits[3], color=color)
                             self.plot2.addtext("", zfits[0], (zfits[3] + zfits[2]) / 0.95, ymin=zfits[3], color=color)
 
-                    self.plot1.errorbars(xvals, avg, yerr=std, color=color, newlabel=lab, linestyle=" ", marker=marker)
+                    self.plot1.errorbars(xvals, avg, yerr=std, color=color, linestyle=" ", marker=marker)
 
-                    self.plot2.errorbars(xvals, zdat, yerr=zstd, color=color, newlabel=lab, linestyle=" ",
+                    self.plot2.errorbars(xvals, zdat, yerr=zstd, color=color, linestyle=" ",
                                          marker=marker)
                     out = [[lab], xvals, avg, std, zdat, zstd, fits, zfits]
                     output.append(out)

@@ -72,7 +72,7 @@ class UniDecApp(UniDecPres):
             self.on_auto(0)
 
         # For testing, load up a spectrum at startup. Used only on MTM's computer.
-        if False and platform.node() == "DESKTOP-R236BN2":
+        if True and platform.node() == "DESKTOP-R236BN2":
             # fname = "HSPCID.txt"
             fname = "0.txt"
             # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
@@ -81,7 +81,7 @@ class UniDecApp(UniDecPres):
             self.on_open_file(fname, newdir)
             # self.view.on_save_figure_eps(0)
             # self.on_dataprep_button(0)
-            self.on_auto(0)
+            #self.on_auto(0)
             # self.on_integrate()
             # self.on_grid_decon(0)
             # self.make_cube_plot(0)

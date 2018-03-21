@@ -231,6 +231,17 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.2.6.7
+
+*Space+Middle Click* on any line plot will now automatically add peak annotation. Simply Space+Middle Click again to turn it off.
+For those on a laptop, Alt+Left Click will also toggle between labelling and not. build.
+
+v.2.6.6
+
+*Shift+Middle Click* on any plot will now spawn a window to specify the x range manually.
+*Alt+Middle Click* on any plot will now spawn a window to specify the y range manually.
+Fixed legend in UltraMeta. 
+
 v.2.6.5
 
 Added Ctrl+Click on any plot window to bring up a dialog to change the rcParams from matplotlib (https://matplotlib.org/users/customizing.html).

@@ -117,6 +117,12 @@ class PlottingWindow(wx.Window):
         :param event: wx.Event
         :return: None
         """
+        if event.button == 1:
+            if wx.GetKeyState(wx.WXK_ALT):
+                try:
+                    self.zoom.switch_label()
+                except:
+                    print "Could not switch on labels"
         if event.button == 2:
             if wx.GetKeyState(wx.WXK_CONTROL):
                 dlg = DoubleInputDialog(self)
@@ -124,9 +130,44 @@ class PlottingWindow(wx.Window):
                                          "Value:", "6")
                 dlg.ShowModal()
                 rcname = dlg.value
-                rcval= dlg.value2
+                rcval = dlg.value2
                 print rcname, rcval
                 rcParams[rcname] = rcval
+            elif wx.GetKeyState(wx.WXK_SHIFT):
+                dlg = DoubleInputDialog(self)
+                dlg.initialize_interface("Set Plot X Range", "Min:", '',
+                                         "Max:", "")
+                dlg.ShowModal()
+                minval = dlg.value
+                maxval = dlg.value2
+
+                try:
+                    minval = float(minval)
+                    maxval = float(maxval)
+                    self.zoom.set_manual(minval, maxval)
+                    print "Manually Set Zoom:", minval, maxval
+                except:
+                    print "Error converting string to float:", minval, maxval
+            elif wx.GetKeyState(wx.WXK_ALT):
+                dlg = DoubleInputDialog(self)
+                dlg.initialize_interface("Set Plot Y Range", "Min:", '',
+                                         "Max:", "")
+                dlg.ShowModal()
+                minval = dlg.value
+                maxval = dlg.value2
+
+                try:
+                    minval = float(minval)
+                    maxval = float(maxval)
+                    self.zoom.set_manual_y(minval, maxval)
+                    print "Manually Set Zoom:", minval, maxval
+                except:
+                    print "Error converting string to float:", minval, maxval
+            elif wx.GetKeyState(wx.WXK_SPACE):
+                try:
+                    self.zoom.switch_label()
+                except:
+                    print "Could not switch on labels"
             else:
                 self.on_save_fig_dialog(event)
 

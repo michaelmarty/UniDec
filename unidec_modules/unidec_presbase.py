@@ -97,10 +97,13 @@ class UniDecPres(object):
         dlg.Destroy()
 
     def on_get_mzlimits(self):
-        limits = self.view.plot1.subplot1.get_xlim()
-        self.view.controls.ctlminmz.SetValue(str(limits[0]))
-        self.view.controls.ctlmaxmz.SetValue(str(limits[1]))
-        print "New m/z limits:", limits
+        try:
+            limits = self.view.plot1.subplot1.get_xlim()
+            self.view.controls.ctlminmz.SetValue(str(limits[0]))
+            self.view.controls.ctlmaxmz.SetValue(str(limits[1]))
+            print "New m/z limits:", limits
+        except Exception, e:
+            print e
 
     def on_load_conf_file(self, e=None):
         """
