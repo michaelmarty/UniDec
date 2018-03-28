@@ -1210,7 +1210,10 @@ def dataprep(datatop, config):
         data2[:, 1] -= np.amin(data2[:, 1])
 
     if linflag == 2:
-        data2 = remove_middle_zeros(data2)
+        try:
+            data2 = remove_middle_zeros(data2)
+        except:
+            pass
         pass
 
     # Normalization
