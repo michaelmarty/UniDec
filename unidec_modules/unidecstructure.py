@@ -5,19 +5,12 @@ import platform
 import matplotlib.cm as cm
 from matplotlib.pyplot import colormaps
 import h5py
+from hdf5_tools import *
 
 __author__ = 'Michael.Marty'
 
-
-def replace_dataset(group, name, data):
-    if name in group.keys():
-        del group[name]
-    group.create_dataset(name, data=data)
-    pass
-
-
 # noinspection PyAttributeOutsideInit
-class UniDecConfig:
+class UniDecConfig(object):
     """
     Class containing all options and configurations for UniDec GUI and Program. Contains methods to export and import
     config to text file for running UniDec core binaries and for storing parameters for GUI.
@@ -33,7 +26,7 @@ class UniDecConfig:
         self.mfile = "mass.dat"
         self.manualfile = "man.dat"
         self.confname = "conf.dat"
-        self.hdf_file = "savedata.hdf5"
+        self.hdf_file = "default.hdf5"
         self.ofile = "ofile.dat"
         self.matchfile = "match.csv"
         self.peaksfile = "peaks.dat"
@@ -42,10 +35,12 @@ class UniDecConfig:
         self.filename = ''
         self.extension = ''
         self.imflag = 0
+        self.metamode = -2
+        self.filetype = 0
 
         self.twavedict = {1: "Logarithmic", 2: "Linear", 3: "Power Law"}
         self.backgroundchoices = ["Subtract Minimum", "Subtract Line",
-                                  "Subtract Curved"]  # , "Subtract SavGol","Subtract Polynomial"]
+                                  "Subtract Curved"]  # , "Subtract Gaussian"]  # , "Subtract SavGol","Subtract Polynomial"]
         self.figsize = (6, 5)
         self.initialize()
 
@@ -57,7 +52,7 @@ class UniDecConfig:
         # plotting
         self.publicationmode = 0
         self.discreteplot = 0
-        self.cmap = "spectral"
+        self.cmap = "nipy_spectral"
         self.peakcmap = "rainbow"
         self.rawflag = 0
 
@@ -90,8 +85,8 @@ class UniDecConfig:
         self.batchflag = 0
         self.procflag = 0
         self.massdatnormtop = 0
-        self.mfileflag = False
-        self.manualfileflag = False
+        self.mfileflag = 0
+        self.manualfileflag = 0
         self.kendrickmass = None
 
         self.masslist = []
@@ -126,16 +121,17 @@ class UniDecConfig:
         self.numz = 100
         self.mzsig = 20
         self.psfun = 0
-        self.massub = 5000000
+        self.massub = 1000000
         self.masslb = 100
         self.msig = 0
         self.molig = 0
         self.massbins = 100
         self.adductmass = 1.007276467
-        self.damp = 0
+        self.baselineflag = 1
         self.aggressiveflag = 0
-        self.suppression = 0
+        self.noiseflag = 0
         self.isotopemode = 0
+        self.orbimode = 0
 
         # Other
         self.mtabsig = 0
@@ -146,6 +142,8 @@ class UniDecConfig:
         self.linflag = 0
         self.integratelb = ""
         self.integrateub = ""
+        self.filterwidth = 20
+        self.zerolog = -12
 
         # Peak Selection and plotting
         self.peakwindow = 500
@@ -153,6 +151,12 @@ class UniDecConfig:
         self.peakplotthresh = 0.1
         self.separation = 0.025
         self.peaknorm = 1
+        self.exwindow = 0
+        self.exchoice = 0
+        self.exnorm = 1
+        self.datanorm = 1
+        self.numtot = 20
+        self.crossover = 100
 
         # IM Specific
         self.smoothdt = 0
@@ -174,9 +178,9 @@ class UniDecConfig:
         :return: None
         """
         m = [i for i in cm.datad]
-        self.cmaps = sorted(m)
-
         m2 = colormaps()
+
+        self.cmaps = sorted(m2)
         self.cmaps2 = sorted(m2)
 
     def config_export(self, name):
@@ -235,14 +239,15 @@ class UniDecConfig:
         f.write("poolflag " + str(self.poolflag) + "\n")
         f.write("accvol " + str(self.detectoreffva) + "\n")
         f.write("peakshapeinflate " + str(self.inflate) + "\n")
-        f.write("damp " + str(self.damp) + "\n")
+        f.write("noiseflag " + str(self.noiseflag) + "\n")
         f.write("linflag " + str(self.linflag) + "\n")
         f.write("cmap " + str(self.cmap) + "\n")
         f.write("peakcmap " + str(self.peakcmap) + "\n")
         f.write("publicationmode " + str(self.publicationmode) + "\n")
         f.write("isotopemode " + str(self.isotopemode) + "\n")
         f.write("peaknorm " + str(self.peaknorm) + "\n")
-        f.write("suppression " + str(self.suppression) + "\n")
+        f.write("baselineflag " + str(self.baselineflag) + "\n")
+        f.write("orbimode " + str(self.orbimode) + "\n")
         if self.integratelb != "" and self.integrateub != "":
             try:
                 f.write("integratelb " + str(self.integratelb) + "\n")
@@ -250,6 +255,8 @@ class UniDecConfig:
             except ValueError:
                 print "Failed to write integation areas:", self.integratelb, self.integrateub
                 pass
+        f.write("filterwidth " + str(self.filterwidth) + "\n")
+        f.write("zerolog " + str(self.zerolog) + "\n")
 
         if self.mindt != '' or self.maxdt != '':
             f.write("zout " + str(self.zout) + "\n")
@@ -357,10 +364,10 @@ class UniDecConfig:
                             self.mtabsig = ud.string_to_value(line.split()[1])
                         if line.startswith("mfile"):
                             # self.mfile = line.split()[1]
-                            self.mfileflag = True
+                            self.mfileflag = 1
                         if line.startswith("manualfile"):
                             # self.manualfile = line.split()[1]
-                            self.manualfileflag = True
+                            self.manualfileflag = 1
                         if line.startswith("subbuff"):
                             self.subbuff = ud.string_to_value(line.split()[1])
                             if self.subbuff < 0:
@@ -398,8 +405,8 @@ class UniDecConfig:
                             self.detectoreffva = ud.string_to_value(line.split()[1])
                         if line.startswith("peakshapeinflate"):
                             self.inflate = ud.string_to_value(line.split()[1])
-                        if line.startswith("damp"):
-                            self.damp = ud.string_to_value(line.split()[1])
+                        if line.startswith("noiseflag"):
+                            self.noiseflag = ud.string_to_value(line.split()[1])
                         if line.startswith("linflag"):
                             self.linflag = ud.string_to_int(line.split()[1])
                         if line.startswith("cmap"):
@@ -414,10 +421,16 @@ class UniDecConfig:
                             self.integratelb = ud.string_to_value(line.split()[1])
                         if line.startswith("integrateub"):
                             self.integrateub = ud.string_to_value(line.split()[1])
+                        if line.startswith("filterwidth"):
+                            self.filterwidth = ud.string_to_value(line.split()[1])
+                        if line.startswith("zerolog"):
+                            self.zerolog = ud.string_to_value(line.split()[1])
                         if line.startswith("peaknorm"):
                             self.peaknorm = ud.string_to_value(line.split()[1])
-                        if line.startswith("suppression"):
-                            self.suppression = ud.string_to_value(line.split()[1])
+                        if line.startswith("baselineflag"):
+                            self.baselineflag = ud.string_to_value(line.split()[1])
+                        if line.startswith("orbimode"):
+                            self.orbimode = ud.string_to_value(line.split()[1])
 
                         # IM Imports
                         if line.startswith("ccsub"):
@@ -490,120 +503,167 @@ class UniDecConfig:
             else:
                 self.manuallist = np.array([])
 
-    def write_hdf5(self, file_name):
-        self.hdf = h5py.File(file_name)
-        self.config = self.hdf.require_group("config")
+    def write_hdf5(self, file_name=None):
+        if file_name is None:
+            file_name = self.hdf_file
+        hdf = h5py.File(file_name)
+        config_group = hdf.require_group("config")
 
-        cdict = {"input": self.infname, "output": self.outfname, "numit": self.numit,
-                 "endz": self.endz, "startz": self.startz, "zzsig": self.zzsig, "mzsig": self.mzsig,
-                 "psfun": self.psfun, "discreteplot": self.discreteplot, "massub": self.massub, "masslb": self.masslb,
-                 "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
-                 "minmz": self.minmz, "maxmz": self.maxmz, "subbuff": self.subbuff, "smooth": self.smooth,
-                 "mzbins": self.mzbins, "peakwindow": self.peakwindow, "peakthresh": self.peakthresh,
-                 "peakplotthresh": self.peakplotthresh, "plotsep": self.separation, "intthresh": self.intthresh,
-                 "aggressive": self.aggressiveflag, "rawflag": self.rawflag, "adductmass": self.adductmass,
-                 "nativezub": self.nativezub, "nativezlb": self.nativezlb, "poolflag": self.poolflag,
-                 "accvol": self.detectoreffva, "peakshapeinflate": self.inflate, "damp": self.damp,
-                 "linflag": self.linflag, "cmap": self.cmap, "peakcmap": self.peakcmap,
-                 "publicationmode": self.publicationmode, "isotopemode": self.isotopemode, "peaknorm": self.peaknorm,
-                 "suppression": self.suppression, "zout": self.zout, "pusher": self.pusher, "mindt": self.mindt,
-                 "maxdt": self.maxdt, "ccsub": self.ccsub, "ccslb": self.ccslb, "dtsig": self.dtsig, "csig": self.csig,
-                 "ccsbins": self.ccsbins, "subbufdt": self.subbufdt, "smoothdt": self.smoothdt,
-                 "ubnativeccs": self.nativeccsub, "lbnativeccs": self.nativeccslb, "twaveflag": self.twaveflag,
-                 "temp": self.temp, "pressure": self.pressure, "volt": self.volt,
-                 "tnaught": self.to, "driftlength": self.driftlength, "tcal1": self.tcal1, "tcal2": self.tcal2,
-                 "edc": self.edc, "gasmass": self.gasmass, "integratelb": self.integratelb,
-                 "integrateub": self.integrateub, "mfile": self.mfile, "manualfile": self.manualfile,
-                 "manualfileflag": self.manualfileflag, "mfileflag": self.mfileflag, "imflag": self.imflag}
+        if self.metamode != -2:
+            self.linflag = 2
+        try:
+            self.maxmz = float(self.maxmz)
+        except:
+            self.maxmz = 1000000
+        try:
+            self.minmz = float(self.minmz)
+        except:
+            self.minmz = 0
+
+        cdict = {  # "input": self.infname, "output": self.outfname,
+            "numit": self.numit,
+            "endz": self.endz, "startz": self.startz, "zzsig": self.zzsig, "mzsig": self.mzsig,
+            "psfun": self.psfun, "discreteplot": self.discreteplot, "massub": self.massub, "masslb": self.masslb,
+            "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
+            "minmz": self.minmz, "maxmz": self.maxmz, "subbuff": self.subbuff, "smooth": self.smooth,
+            "mzbins": self.mzbins, "peakwindow": self.peakwindow, "peakthresh": self.peakthresh,
+            "peakplotthresh": self.peakplotthresh, "plotsep": self.separation, "intthresh": self.intthresh,
+            "aggressive": self.aggressiveflag, "rawflag": self.rawflag, "adductmass": self.adductmass,
+            "nativezub": self.nativezub, "nativezlb": self.nativezlb, "poolflag": self.poolflag,
+            "accvol": self.detectoreffva, "peakshapeinflate": self.inflate, "noiseflag": self.noiseflag,
+            "linflag": self.linflag, "cmap": self.cmap, "peakcmap": self.peakcmap,
+            "publicationmode": self.publicationmode, "isotopemode": self.isotopemode, "peaknorm": self.peaknorm,
+            "baselineflag": self.baselineflag, "orbimode": self.orbimode, "zout": self.zout, "pusher": self.pusher,
+            "mindt": self.mindt,
+            "maxdt": self.maxdt, "ccsub": self.ccsub, "ccslb": self.ccslb, "dtsig": self.dtsig, "csig": self.csig,
+            "ccsbins": self.ccsbins, "subbufdt": self.subbufdt, "smoothdt": self.smoothdt,
+            "ubnativeccs": self.nativeccsub, "lbnativeccs": self.nativeccslb, "twaveflag": self.twaveflag,
+            "temp": self.temp, "pressure": self.pressure, "volt": self.volt,
+            "tnaught": self.to, "driftlength": self.driftlength, "tcal1": self.tcal1, "tcal2": self.tcal2,
+            "edc": self.edc, "gasmass": self.gasmass, "integratelb": self.integratelb,
+            "integrateub": self.integrateub, "filterwidth": self.filterwidth, "zerolog": self.zerolog,
+            "manualfileflag": self.manualfileflag, "mfileflag": self.mfileflag, "imflag": self.imflag,
+            "exwindow": self.exwindow, "exchoice": self.exchoice, "exnorm": self.exnorm, "metamode": self.metamode,
+            "datanorm":self.datanorm
+        }
 
         for key, value in cdict.iteritems():
-            self.config.attrs[key] = value
+            try:
+                config_group.attrs[key] = value
+            except:
+                print "Error with key, value:", key, value
 
-        replace_dataset(self.config, "masslist", data=self.masslist)
-        replace_dataset(self.config, "manuallist", data=self.manuallist)
-        replace_dataset(self.config, "oligomerlist", data=self.oligomerlist)
+        if not ud.isempty(self.masslist):
+            replace_dataset(config_group, "masslist", data=self.masslist)
+        if not ud.isempty(self.manuallist):
+            replace_dataset(config_group, "manuallist", data=self.manuallist)
+        if not ud.isempty(self.oligomerlist):
+            replace_dataset(config_group, "oligomerlist", data=self.oligomerlist.astype(np.str))
 
-        self.hdf.close()
+        hdf.close()
         pass
 
-    def read_hdf5(self, file_name):
+    def read_attr(self, thing, string, config):
+        if string in config.attrs.keys():
+            val = config.attrs.get(string)
+            if isinstance(val, np.ndarray):
+                return val[0]
+            else:
+                return val
+        else:
+            return thing
 
-        self.hdf = h5py.File(file_name)
-        self.config = self.hdf.get("config")
+    def read_hdf5(self, file_name=None):
+        if file_name is None:
+            file_name = self.hdf_file
+        hdf = h5py.File(file_name)
+        config_group = hdf.get("config")
+        # self.infname = self.read_attr(self.infname, "input", config_group)
+        self.maxmz = self.read_attr(self.maxmz, "maxmz", config_group)
+        self.minmz = self.read_attr(self.minmz, "minmz", config_group)
+        self.metamode = self.read_attr(self.metamode, "metamode", config_group)
+        # self.outfname = self.read_attr(self.outfname, "output", config_group)
+        self.numit = self.read_attr(self.numit, "numit", config_group)
+        self.endz = self.read_attr(self.endz, "endz", config_group)
+        self.startz = self.read_attr(self.startz, "startz", config_group)
+        self.zzsig = self.read_attr(self.zzsig, "zzsig", config_group)
+        self.mzsig = self.read_attr(self.mzsig, "mzsig", config_group)
+        self.psfun = self.read_attr(self.psfun, "psfun", config_group)
+        self.discreteplot = self.read_attr(self.discreteplot, "discreteplot", config_group)
+        self.massub = self.read_attr(self.massub, "massub", config_group)
+        self.masslb = self.read_attr(self.masslb, "masslb", config_group)
+        self.molig = self.read_attr(self.molig, "molig", config_group)
+        self.msig = self.read_attr(self.msig, "msig", config_group)
+        self.massbins = self.read_attr(self.massbins, "massbins", config_group)
+        self.mtabsig = self.read_attr(self.mtabsig, "mtabsig", config_group)
+        self.subbuff = self.read_attr(self.subbuff, "subbuff", config_group)
+        self.smooth = self.read_attr(self.smooth, "smooth", config_group)
+        self.mzbins = self.read_attr(self.mzbins, "mzbins", config_group)
+        self.peakwindow = self.read_attr(self.peakwindow, "peakwindow", config_group)
+        self.peakthresh = self.read_attr(self.peakthresh, "peakthresh", config_group)
+        self.peakplotthresh = self.read_attr(self.peakplotthresh, "peakplotthresh", config_group)
+        self.separation = self.read_attr(self.separation, "separation", config_group)
+        self.intthresh = self.read_attr(self.intthresh, "intthresh", config_group)
+        self.aggressiveflag = self.read_attr(self.aggressiveflag, "aggressiveflag", config_group)
+        self.rawflag = self.read_attr(self.rawflag, "rawflag", config_group)
+        self.adductmass = self.read_attr(self.adductmass, "adductmass", config_group)
+        self.nativezub = self.read_attr(self.nativezub, "nativezub", config_group)
+        self.nativezlb = self.read_attr(self.nativezlb, "nativezlb", config_group)
+        self.poolflag = self.read_attr(self.poolflag, "poolflag", config_group)
+        self.detectoreffva = self.read_attr(self.detectoreffva, "accvol", config_group)
+        self.inflate = self.read_attr(self.inflate, "peakshapeinflate", config_group)
+        self.noiseflag = self.read_attr(self.noiseflag, "noiseflag", config_group)
+        self.linflag = self.read_attr(self.linflag, "linflag", config_group)
+        self.cmap = self.read_attr(self.cmap, "cmap", config_group)
+        self.peakcmap = self.read_attr(self.peakcmap, "peakcmap", config_group)
+        self.publicationmode = self.read_attr(self.publicationmode, "publicationmode", config_group)
+        self.isotopemode = self.read_attr(self.isotopemode, "isotopemode", config_group)
+        self.peaknorm = self.read_attr(self.peaknorm, "peaknorm", config_group)
+        self.baselineflag = self.read_attr(self.baselineflag, "baselineflag", config_group)
+        self.orbimode = self.read_attr(self.orbimode, "orbimode", config_group)
+        self.zout = self.read_attr(self.zout, "zout", config_group)
 
-        self.infname = self.config.attrs["input"]
-        self.outfname = self.config.attrs["output"]
-        self.numit = self.config.attrs["numit"]
-        self.endz = self.config.attrs["endz"]
-        self.startz = self.config.attrs["startz"]
-        self.zzsig = self.config.attrs["zzsig"]
-        self.mzsig = self.config.attrs["mzsig"]
-        self.psfun = self.config.attrs["psfun"]
-        self.discreteplot = self.config.attrs["discreteplot"]
-        self.massub = self.config.attrs["massub"]
-        self.masslb = self.config.attrs["masslb"]
-        self.msig = self.config.attrs["msig"]
-        self.molig = self.config.attrs["molig"]
-        self.massbins = self.config.attrs["massbins"]
-        self.mtabsig = self.config.attrs["mtabsig"]
-        self.minmz = self.config.attrs["minmz"]
-        self.maxmz = self.config.attrs["maxmz"]
-        self.subbuff = self.config.attrs["subbuff"]
-        self.smooth = self.config.attrs["smooth"]
-        self.mzbins = self.config.attrs["mzbins"]
-        self.peakwindow = self.config.attrs["peakwindow"]
-        self.peakthresh = self.config.attrs["peakthresh"]
-        self.peakplotthresh = self.config.attrs["peakplotthresh"]
-        self.separation = self.config.attrs["plotsep"]
-        self.intthresh = self.config.attrs["intthresh"]
-        self.aggressiveflag = self.config.attrs["aggressive"]
-        self.rawflag = self.config.attrs["rawflag"]
-        self.adductmass = self.config.attrs["adductmass"]
-        self.nativezub = self.config.attrs["nativezub"]
-        self.nativezlb = self.config.attrs["nativezlb"]
-        self.poolflag = self.config.attrs["poolflag"]
-        self.detectoreffva = self.config.attrs["accvol"]
-        self.inflat = self.config.attrs["peakshapeinflate"]
-        self.damp = self.config.attrs["damp"]
-        self.linflag = self.config.attrs["linflag"]
-        self.cmap = self.config.attrs["cmap"]
-        self.peakcmap = self.config.attrs["peakcmap"]
-        self.publicationmode = self.config.attrs["publicationmode"]
-        self.isotopemode = self.config.attrs["isotopemode"]
-        self.peaknorm = self.config.attrs["peaknorm"]
-        self.suppression = self.config.attrs["suppression"]
-        self.zout = self.config.attrs["zout"]
-        self.pusher = self.config.attrs["pusher"]
-        self.mindt = self.config.attrs["mindt"]
-        self.maxdt = self.config.attrs["maxdt"]
-        self.ccsub = self.config.attrs["ccsub"]
-        self.ccslb = self.config.attrs["ccslb"]
-        self.dtsig = self.config.attrs["dtsig"]
-        self.csig = self.config.attrs["csig"]
-        self.ccsbins = self.config.attrs["ccsbins"]
-        self.subbufdt = self.config.attrs["subbufdt"]
-        self.smoothdt = self.config.attrs["smoothdt"]
-        self.nativeccsub = self.config.attrs["ubnativeccs"]
-        self.nativeccslb = self.config.attrs["lbnativeccs"]
-        self.twaveflag = self.config.attrs["twaveflag"]
-        self.temp = self.config.attrs["temp"]
-        self.pressure = self.config.attrs["pressure"]
-        self.volt = self.config.attrs["volt"]
-        self.to = self.config.attrs["tnaught"]
-        self.driftlength = self.config.attrs["driftlength"]
-        self.tcal1 = self.config.attrs["tcal1"]
-        self.tcal2 = self.config.attrs["tcal2"]
-        self.edc = self.config.attrs["edc"]
-        self.gasmass = self.config.attrs["gasmass"]
-        self.integratelb = self.config.attrs["integratelb"]
-        self.integrateub = self.config.attrs["integrateub"]
-        self.mfile = self.config.attrs["mfile"]
-        self.manualfile = self.config.attrs["manualfile"]
-        self.manualfileflag = self.config.attrs["manualfileflag"]
-        self.mfileflag = self.config.attrs["mfileflag"]
-        self.imflag = self.config.attrs["imflag"]
+        self.pusher = self.read_attr(self.pusher, "pusher", config_group)
+        self.mindt = self.read_attr(self.mindt, "mindt", config_group)
+        self.maxdt = self.read_attr(self.maxdt, "maxdt", config_group)
+        self.ccsub = self.read_attr(self.ccsub, "ccsub", config_group)
+        self.ccslb = self.read_attr(self.ccslb, "ccslb", config_group)
+        self.dtsig = self.read_attr(self.dtsig, "dtsig", config_group)
+        self.csig = self.read_attr(self.csig, "csig", config_group)
+        self.ccsbins = self.read_attr(self.ccsbins, "ccsbins", config_group)
+        self.subbufdt = self.read_attr(self.subbufdt, "subbufdt", config_group)
+        self.smoothdt = self.read_attr(self.smoothdt, "smoothdt", config_group)
+        self.nativeccsub = self.read_attr(self.nativeccsub, "nativeccsub", config_group)
+        self.nativeccslb = self.read_attr(self.nativeccslb, "nativeccslb", config_group)
+        self.twaveflag = self.read_attr(self.twaveflag, "twaveflag", config_group)
+        self.temp = self.read_attr(self.temp, "temp", config_group)
+        self.pressure = self.read_attr(self.pressure, "pressure", config_group)
+        self.volt = self.read_attr(self.volt, "volt", config_group)
+        self.to = self.read_attr(self.to, "tnaught", config_group)
+        self.driftlength = self.read_attr(self.driftlength, "driftlength", config_group)
+        self.tcal1 = self.read_attr(self.tcal1, "tcal1", config_group)
+        self.tcal2 = self.read_attr(self.tcal2, "tcal2", config_group)
+        self.edc = self.read_attr(self.edc, "edc", config_group)
+        self.gasmass = self.read_attr(self.gasmass, "gasmass", config_group)
 
-        self.hdf.close()
+        self.integratelb = self.read_attr(self.integratelb, "integratelb", config_group)
+        self.integrateub = self.read_attr(self.integrateub, "integrateub", config_group)
+        self.filterwidth = self.read_attr(self.filterwidth, "filterwidth", config_group)
+        self.zerolog = self.read_attr(self.zerolog, "zerolog, config_group", config_group)
+        self.mfileflag = self.read_attr(self.mfileflag, "mfileflag", config_group)
+        self.manualfileflag = self.read_attr(self.manualfileflag, "manualfileflag", config_group)
+        self.imflag = self.read_attr(self.imflag, "imflag", config_group)
+
+        self.exchoice = self.read_attr(self.exchoice, "exchoice", config_group)
+        self.exnorm = self.read_attr(self.exnorm, "exnorm", config_group)
+        self.datanorm = self.read_attr(self.datanorm, "datanorm", config_group)
+        self.exwindow = self.read_attr(self.exwindow, "exwindow", config_group)
+
+        self.masslist = get_dataset(config_group, "masslist")
+        self.manuallist = get_dataset(config_group, "manuallist")
+        self.oligomerlist = get_dataset(config_group, "oligomerlist")
+
+        hdf.close()
 
     def print_config(self):
         """
@@ -627,7 +687,8 @@ class UniDecConfig:
         self.ofile = self.outfname + "_ofile.dat"
         self.matchfile = self.outfname + "_match.dat"
         self.peaksfile = self.outfname + "_peaks.dat"
-        self.hdf_file = self.outfname + ".hdf5"
+        if self.filetype == 0:
+            self.hdf_file = self.outfname + ".hdf5"
 
     def check_badness(self):
         """
@@ -640,6 +701,15 @@ class UniDecConfig:
         """
         self.badtest = 0
         self.warning = ""
+
+        try:
+            x = float(self.maxmz)
+        except:
+            self.maxmz = 100000
+        try:
+            x = float(self.minmz)
+        except:
+            self.minmz = 0
 
         # Check that mz min and max are not reversed
         if self.maxmz <= self.minmz:
@@ -716,6 +786,7 @@ class UniDecConfig:
         self.molig = 0
         self.msig = 0
         self.numit = 50
+        self.zsig = 1
 
     def default_nanodisc(self):
         """
@@ -738,6 +809,7 @@ class UniDecConfig:
         self.molig = 760
         self.msig = 1
         self.zsig = 1
+        self.isotopemode = 0
 
     def default_isotopic_res(self):
         """
@@ -783,24 +855,27 @@ class UniDecConfig:
         :return: None
         """
 
-        print "\nInitial File Locations..."
+        #print "\nInitial File Locations..."
         self.system = platform.system()
         pathtofile = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.defaultUnidecDir = os.path.join(pathtofile, 'unidec_bin')
 
         if self.system == 'Windows':
             self.defaultUnidecName = "UniDec.exe"
+            self.h5repackfile = "h5repack.exe"
             self.opencommand = "start "
-            print "Windows: ", self.defaultUnidecName
+            #print "Windows: ", self.defaultUnidecName
         elif self.system == 'Darwin':
             self.defaultUnidecName = "unidecmac"
+            self.h5repackfile = "h5repack"
             # self.defaultUnidecDir = '/Applications/GUniDecMac.app/Contents/MacOS'
             self.opencommand = "open "
-            print "Mac:", self.defaultUnidecName
+            #print "Mac:", self.defaultUnidecName
         else:
             self.defaultUnidecName = "unideclinux"
+            self.h5repackfile = "h5repack"
             self.opencommand = "gnome-open "  # TODO: Test whether this is right
-            print "Linux or other: unidec"
+            #print "Linux or other: unidec"
 
         def giveup():
             self.defaultUnidecDir = ""
@@ -827,8 +902,10 @@ class UniDecConfig:
         self.rawreaderpath = os.path.join(self.UniDecDir, "rawreader.exe")
         self.cdcreaderpath = os.path.join(self.UniDecDir, "CDCreader.exe")
         self.defaultconfig = os.path.join(self.UniDecDir, "default_conf.dat")
+        self.masstablefile = os.path.join(self.UniDecDir, "mass_table.csv")
+        self.h5repackfile = os.path.join(self.UniDecDir, self.h5repackfile)
 
-        print "UniDec Path:", self.UniDecPath
+        print "\nUniDec Path:", self.UniDecPath
 
     def check_new(self, other):
         flag = False
@@ -836,9 +913,16 @@ class UniDecConfig:
             for item in self.__dict__:
                 value = self.__dict__[item]
                 value2 = other.__dict__[item]
-                if value != value2:
-                    flag = True
-                    break
+                try:
+                    try:
+                        if value != value2:
+                            flag = True
+                            break
+                    except RuntimeWarning, e:
+                        print e
+                        print value, value2
+                except:
+                    pass
         except KeyError:
             flag = True
         return flag  # not self.__dict__ == other.__dict__
@@ -851,6 +935,7 @@ class DataContainer:
         :return: None
         """
         self.fitdat = np.array([])
+        self.baseline = np.array([])
         self.fitdat2d = np.array([])
         self.rawdata = np.array([])
         self.rawdata3 = np.array([])
@@ -865,42 +950,44 @@ class DataContainer:
         self.ccsdata = np.array([])
 
     def write_hdf5(self, file_name):
-        self.hdf = h5py.File(file_name)
-        self.msdata = self.hdf.require_group("ms_data")
-        self.immsdata = self.hdf.require_group("imms_data")
-        replace_dataset(self.msdata, "raw_data_ms", data=self.rawdata)
-        replace_dataset(self.immsdata, "raw_data_imms", data=self.rawdata3)
-        replace_dataset(self.msdata, "fit_data", data=self.fitdat)
-        replace_dataset(self.immsdata, "fit_data_2d", data=self.fitdat2d)
-        replace_dataset(self.msdata, "processed_data", data=self.data2)
-        replace_dataset(self.immsdata, "processed_data_2d", data=self.data3)
-        replace_dataset(self.msdata, "mass_data", data=self.massdat)
-        replace_dataset(self.msdata, "mz_grid", data=self.mzgrid)
-        replace_dataset(self.msdata, "mass_grid", data=self.massgrid)
-        replace_dataset(self.msdata, "charges", data=self.ztab)
-        replace_dataset(self.immsdata, "mass_ccs_grid", data=self.massccs)
-        replace_dataset(self.immsdata, "ccs_charge_grid", data=self.ccsz)
-        replace_dataset(self.immsdata, "ccs_data", data=self.ccsdata)
-        self.hdf.close()
+        hdf = h5py.File(file_name)
+        config_group = hdf.require_group("ms_data")
+        immsdata = hdf.require_group("imms_data")
+        replace_dataset(config_group, "raw_data_ms", data=self.rawdata)
+        replace_dataset(immsdata, "raw_data_imms", data=self.rawdata3)
+        replace_dataset(config_group, "fit_data", data=self.fitdat)
+        replace_dataset(immsdata, "fit_data_2d", data=self.fitdat2d)
+        replace_dataset(config_group, "processed_data", data=self.data2)
+        replace_dataset(immsdata, "processed_data_2d", data=self.data3)
+        replace_dataset(config_group, "mass_data", data=self.massdat)
+        replace_dataset(config_group, "mz_grid", data=self.mzgrid)
+        replace_dataset(config_group, "mass_grid", data=self.massgrid)
+        replace_dataset(config_group, "charges", data=self.ztab)
+        replace_dataset(immsdata, "mass_ccs_grid", data=self.massccs)
+        replace_dataset(immsdata, "ccs_charge_grid", data=self.ccsz)
+        replace_dataset(immsdata, "ccs_data", data=self.ccsdata)
+        replace_dataset(config_group, "baseline", data=self.baseline)
+        hdf.close()
 
     def read_hdf5(self, file_name):
-        self.hdf = h5py.File(file_name)
-        self.msdata = self.hdf.get("ms_data")
-        self.immsdata = self.hdf.get("imms_data")
-        self.rawdata = self.msdata.get("raw_data_ms")
-        self.rawdata3 = self.immsdata.get("raw_data_imms")
-        self.fitdat = self.msdata.get("fit_data")
-        self.fitdat2d = self.immsdata.get("fit_data_2d")
-        self.data2 = self.msdata.get("processed_data")
-        self.data3 = self.immsdata.get("processed_data_2d")
-        self.massdat = self.msdata.get("mass_data")
-        self.mzgrid = self.msdata.get("mz_grid")
-        self.massgrid = self.msdata.get("mass_grid")
-        self.ztab = self.msdata.get("charges")
-        self.massccs = self.immsdata.get("mass_ccs_grid")
-        self.ccsz = self.immsdata.get("ccs_charge_grid")
-        self.ccsdata = self.immsdata.get("ccs_data")
-        self.hdf.close()
+        hdf = h5py.File(file_name)
+        config_group = hdf.get("ms_data")
+        immsdata = hdf.get("imms_data")
+        self.rawdata = config_group.get("raw_data_ms")
+        self.rawdata3 = immsdata.get("raw_data_imms")
+        self.fitdat = config_group.get("fit_data")
+        self.fitdat2d = immsdata.get("fit_data_2d")
+        self.data2 = config_group.get("processed_data")
+        self.data3 = immsdata.get("processed_data_2d")
+        self.massdat = config_group.get("mass_data")
+        self.mzgrid = config_group.get("mz_grid")
+        self.massgrid = config_group.get("mass_grid")
+        self.ztab = config_group.get("charges")
+        self.massccs = immsdata.get("mass_ccs_grid")
+        self.ccsz = immsdata.get("ccs_charge_grid")
+        self.ccsdata = immsdata.get("ccs_data")
+        self.baseline = config_group.get("baseline")
+        hdf.close()
 
 
 if __name__ == '__main__':

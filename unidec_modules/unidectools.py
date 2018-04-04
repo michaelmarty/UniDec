@@ -12,14 +12,19 @@ import numpy as np
 import scipy.ndimage.filters as filt
 from scipy.interpolate import interp1d
 from scipy.interpolate import griddata
-from scipy.optimize import curve_fit
-from scipy import stats
 from scipy import signal
-from scipy import special
 from scipy import fftpack
-# import pyfftw
 import matplotlib.cm as cm
 import mzMLimporter
+from fitting import *
+import unidecstructure
+import tempfile
+
+try:
+    import data_reader
+except:
+    print "Could not import data reader: unidectools"
+import fnmatch
 
 is_64bits = sys.maxsize > 2 ** 32
 
@@ -72,6 +77,14 @@ except (OSError, NameError):
 # Utility Functions
 #
 # ..................................
+
+
+def match_files(directory, string):
+    files = []
+    for file in os.listdir(directory):
+        if fnmatch.fnmatch(file, string):
+            files.append(file)
+    return np.array(files)
 
 
 def isempty(thing):
@@ -279,8 +292,8 @@ def center_of_mass(data, start=None, end=None):
         weightstd = weighted_std(cutdat[:, 0], cutdat[:, 1])
         return weightedavg, weightstd
     except ZeroDivisionError:
-        print "Error in center of mass determination. Check the limits:", start, end
-        return None, None
+        # print "Error in center of mass determination. Check the limits:", start, end
+        return 0, 0
 
 
 def stepmax(array, index):
@@ -548,31 +561,64 @@ def header_test(path):
     return header
 
 
-def load_mz_file(path, config):
+def waters_convert(path, config=None):
+    if config is None:
+        config = unidecstructure.UniDecConfig()
+        config.initialize_system_paths()
+        print config.rawreaderpath
+
+    t = os.path.join(path, "converted_rawdata.txt")
+    call = [config.rawreaderpath, "-i", path, "-o", t]
+    result = subprocess.call(call)
+    print "Conversion Stderr:", result
+    data = np.loadtxt(t)
+    return data
+
+
+def load_mz_file(path, config=None):
     """
     Loads a text or mzml file
     :param path: File path to load
     :param config: UniDecConfig object
     :return: Data array
     """
-    if not os.path.isfile(path):
-        print "Attempted to open:", path
-        print "\t but I couldn't find the file..."
-        raise IOError
-
-    if config.extension.lower() == ".txt":
-        data = np.loadtxt(path, skiprows=header_test(path))
-    elif config.extension.lower() == ".mzml":
-        data = mzMLimporter.mzMLimporter(path).get_data()
-        txtname = path[:-5] + ".txt"
-        np.savetxt(txtname, data)
-        print "Saved to:", txtname
+    if config is None:
+        extension = os.path.splitext(path)[1]
     else:
-        try:
+        extension = config.extension.lower()
+
+    if not os.path.isfile(path):
+        if os.path.isdir(path) and os.path.splitext(path)[1].lower() == ".raw":
+            try:
+                print "Trying to convert Waters File"
+                data = waters_convert(path, config)
+            except:
+                print "Attempted to convert Waters Raw file but failed"
+                raise IOError
+        else:
+            print "Attempted to open:", path
+            print "\t but I couldn't find the file..."
+            raise IOError
+    else:
+
+        if extension == ".txt":
             data = np.loadtxt(path, skiprows=header_test(path))
-        except IOError:
-            print"Failed to open:", path
-            data = None
+        elif extension == ".mzml":
+            data = mzMLimporter.mzMLimporter(path).get_data()
+            txtname = path[:-5] + ".txt"
+            np.savetxt(txtname, data)
+            print "Saved to:", txtname
+        elif extension.lower() == ".raw":
+            data = data_reader.DataImporter(path).get_data()
+            txtname = path[:-4] + ".txt"
+            np.savetxt(txtname, data)
+            print "Saved to:", txtname
+        else:
+            try:
+                data = np.loadtxt(path, skiprows=header_test(path))
+            except IOError:
+                print"Failed to open:", path
+                data = None
     return data
 
 
@@ -719,6 +765,7 @@ def datasimpsub(datatop, buff):
     :return: Subtracted data
     """
     length = len(datatop)
+    buff = int(buff)
     frontpart = np.mean(datatop[:buff, 1])
     backpart = np.mean(datatop[length - buff - 1:length - 1, 1])
     background = frontpart + (backpart - frontpart) / length * np.arange(length)
@@ -860,6 +907,16 @@ def savgol_background_subtract(datatop, width, cutoff_percent=0.25):
     return datatop
 
 
+def gaussian_backgroud_subtract(datatop, sig):
+    background = deepcopy(datatop)
+    # background[:,1]=np.log(background[:,1])
+    gsmooth(background, sig)
+    datatop[:, 1] -= background[:, 1]
+    normalize(datatop)
+    datatop[datatop[:, 1] < 0, 1] = 0
+    return datatop
+
+
 def intensitythresh(datatop, thresh):
     """
     Sets an intensity threshold. Everything below the threshold is set to 0.
@@ -987,10 +1044,10 @@ def linearize(datatop, binsize, linflag):
 
     if linflag < 2:
         newdat = lintegrate(datatop, intx)
-        print "Integrating"
+        # print "Integrating"
     else:
         newdat = linterpolate(datatop, intx)
-        print "Interpolating"
+        # print "Interpolating"
     return newdat
 
 
@@ -1063,6 +1120,16 @@ def fake_log(data):
     return np.log10(np.clip(data, non_zero_min, np.amax(data)))
 
 
+def remove_middle_zeros(data):
+    boo1 = data[1:len(data) - 1, 1] != 0
+    boo2 = data[:len(data) - 2, 1] != 0
+    boo3 = data[2:len(data), 1] != 0
+    boo4 = np.logical_or(boo1, boo2)
+    boo5 = np.logical_or(boo3, boo4)
+    boo6 = np.concatenate(([True], boo5, [True]))
+    return data[boo6]
+
+
 def dataprep(datatop, config):
     """
     Main function to process 1D MS data. The order is:
@@ -1103,6 +1170,7 @@ def dataprep(datatop, config):
 
     # Remove Duplicate Data Points
     data2 = removeduplicates(data2)
+
     # Linearize Data
     if binsize > 0:
         if linflag != 2:
@@ -1120,8 +1188,11 @@ def dataprep(datatop, config):
         data2[:, 1] = data2[:, 1] - np.amin(data2[:, 1])
     elif subtype == 4 and buff != 0:
         data2 = polynomial_background_subtract(data2, buff)
-    elif subtype == 3 and buff != 0:
+    elif subtype == 5 and buff != 0:
         data2 = savgol_background_subtract(data2, buff)
+    # elif subtype == 3 and buff != 0:
+    #   data2 = gaussian_background_subtract(data2, buff)
+    #    pass
     elif buff == 0:
         pass
     else:
@@ -1137,6 +1208,13 @@ def dataprep(datatop, config):
     elif config.intscale is "Logarithmic":
         data2[:, 1] = fake_log(data2[:, 1])
         data2[:, 1] -= np.amin(data2[:, 1])
+
+    if linflag == 2:
+        try:
+            data2 = remove_middle_zeros(data2)
+        except:
+            pass
+        pass
 
     # Normalization
     data2 = normalize(data2)
@@ -1240,7 +1318,7 @@ def mergepeaks(peaks1, peaks2, window):
     return newpeaks
 
 
-def make_peaks_mztab(mzgrid, pks, adductmass):
+def make_peaks_mztab(mzgrid, pks, adductmass, index=None):
     """
     For each peak in pks, get the charge state distribution.
 
@@ -1263,8 +1341,12 @@ def make_peaks_mztab(mzgrid, pks, adductmass):
     ftab = [interp1d(xvals, newgrid[:, k]) for k in xrange(0, ylen)]
     mztab = [[makespecfun(i, k, pks.masses, adductmass, yvals, xvals, ftab, xmax, xmin) for k in xrange(0, ylen)] for i
              in xrange(0, plen)]
-    for i in xrange(0, plen):
-        pks.peaks[i].mztab = np.array(mztab[i])
+    if index is None:
+        for i in xrange(0, plen):
+            pks.peaks[i].mztab = np.array(mztab[i])
+    else:
+        for i in xrange(0, plen):
+            pks.peaks[i].mztab.append(np.array(mztab[i]))
     return np.array(mztab)
 
 
@@ -1292,7 +1374,7 @@ def makespecfun(i, k, peaks_masses, adductmass, charges, xvals, ftab, xmax, xmin
     return np.array([intx, inty, pos])
 
 
-def make_peaks_mztab_spectrum(mzgrid, pks, data2, mztab):
+def make_peaks_mztab_spectrum(mzgrid, pks, data2, mztab, index=None):
     """
     Used for plotting the dots in plot 4.
 
@@ -1308,9 +1390,16 @@ def make_peaks_mztab_spectrum(mzgrid, pks, data2, mztab):
     zlen = len(zvals)
     plen = pks.plen
     mztab2 = deepcopy(mztab)
-    mztab2[:, :, 1] = [[data2[int(pks.peaks[i].mztab[k, 2]), 1] for k in range(0, zlen)] for i in range(0, plen)]
-    for i in xrange(0, plen):
-        pks.peaks[i].mztab2 = np.array(mztab2[i])
+
+    if index is None:
+        mztab2[:, :, 1] = [[data2[int(pks.peaks[i].mztab[k, 2]), 1] for k in range(0, zlen)] for i in range(0, plen)]
+        for i in xrange(0, plen):
+            pks.peaks[i].mztab2 = np.array(mztab2[i])
+    else:
+        mztab2[:, :, 1] = [[data2[int(pks.peaks[i].mztab[index][k, 2]), 1] for k in range(0, zlen)] for i in
+                           range(0, plen)]
+        for i in xrange(0, plen):
+            pks.peaks[i].mztab2.append(np.array(mztab2[i]))
 
     return mztab2
 
@@ -1465,7 +1554,7 @@ def combine_all(array2):
         for i in range(0, len(index)):
             val = index[i] + startindex[i]
             if val > 0:
-                name = name + str(val) + "" + names[i] + " "
+                name = name + str(val) + "[" + names[i] + "] "
             else:
                 pass
         total = np.sum((index + startindex) * omass + basemass)
@@ -1487,7 +1576,7 @@ def make_isolated_match(oligos):
             if newmass > 0:
                 oligomasslist.append(newmass)
                 if j > 0 or oligos[i][4] == "":
-                    oligonames.append(str(j) + "" + oligos[i][4])
+                    oligonames.append(str(j) + "[" + oligos[i][4]) + "]"
                 else:
                     oligonames.append("")
                     # self.oligonames.append(str(j)+""+oligos[i][4])
@@ -1530,162 +1619,6 @@ def match(pks, oligomasslist, oligonames, tolerance=None):
         names.append(name)
     matchlist = [peaks, matches, errors, names]
     return matchlist
-
-
-# ......................................................
-#
-# Peak Shape Function
-#
-# ........................................................................
-
-
-def ndis_std(x, mid, sig, a=1, norm_area=False):
-    """
-    Normal Gaussian function normalized to the max of 1.
-    :param x: x values
-    :param mid: Mean of Gaussian
-    :param sig: Standard Deviation
-    :param a: Maximum amplitude (default is 1)
-    :param norm_area: Boolean, Whether to normalize so that the area under the distribution is 1.
-    :return: Gaussian distribution at x values
-    """
-    if norm_area:
-        a *= 1 / (sig * np.sqrt(2 * np.pi))
-    return a * np.exp(-(x - mid) * (x - mid) / (2.0 * sig * sig))
-
-
-def ndis(x, mid, fwhm, **kwargs):
-    """
-    Gaussian function normalized to a max of 1.
-
-    Note: x and mid are interchangable. At least one should be a single float. The other may be an array.
-    :param x: x values
-    :param mid: Mean
-    :param fwhm: Full Width at Half Max (2.35482 * standard deviation)
-    :param kwargs: Allows norm_area flag to be passed
-    :return: Gaussian distribution at x values
-    """
-    sig = fwhm / 2.35482
-    return ndis_std(x, mid, sig, **kwargs)
-
-
-def ndis_fit(x, s, m, a, b):
-    """
-    Function for fitting normal distribution to peak.
-    Adds a background to ndis.
-    Prevents negative background, amplitude, and standard deviation.
-    :param x: x value
-    :param s: full width half max
-    :param m: mean
-    :param a: amplitude
-    :param b: linear background
-    :return: peak shape
-    """
-    if b < 0 or a < 0 or s < 0:
-        return x * 0
-    return ndis(x, m, s, a=a, norm_area=True) + b
-
-
-def ldis(x, mid, fwhm, a=1, norm_area=False):
-    """
-    Lorentzian function normalized to a max of 1.
-    Note: x and mid are interchangable. At least one should be a single float. The other may be an array.
-    :param x: x values
-    :param mid: Mean
-    :param fwhm: Full Width at Half Max
-    :param a: Amplitude (default is 1)
-    :param norm_area: Boolean, Whether to normalize so that the area under the distribution is 1.
-    :return: Lorentzian distribution at x values
-    """
-    if norm_area:
-        a *= ((1 / np.pi) * (fwhm / 2.))
-    else:
-        a *= ((fwhm / 2.0) * (fwhm / 2.0))
-    return a / ((x - mid) * (x - mid) + (fwhm / 2.0) * (fwhm / 2.0))
-
-
-def ldis_fit(x, s, m, a, b):
-    """
-    Function for fitting Lorentzian distribution to peak.
-    Adds a background to ldis.
-    Prevents negative background, amplitude, and standard deviation.
-    :param x: x value
-    :param s: full width half max
-    :param m: mean
-    :param a: amplitude
-    :param b: linear background
-    :return: peak shape
-    """
-    if b < 0 or a < 0 or s < 0:
-        return x * 0
-    return ldis(x, m, s, a=a, norm_area=True) + b
-
-
-def splitdis(x, mid, fwhm, a=1, norm_area=False):
-    """
-    Split Gaussain/Lorentzian function normalized to a max of 1.
-
-    Gaussian < mid. Lorentzian > mid.
-
-    :param mid: Mid point (point of peak intensity)
-    :param x: x value or values
-    :param fwhm: Full Width at Half Max
-    :return: Split Gaussian/Lorentzian distribution at x value
-    """
-    sig2 = fwhm / (2 * np.sqrt(2 * np.log(2)))
-    if norm_area:
-        a1 = a * ((1 / np.pi) / (fwhm / 2.)) / 0.83723895067
-        a2 = a * 2. / (fwhm * np.pi) / 0.83723895067
-    else:
-        a1 = a
-        a2 = a
-    try:
-        if mid < x:
-            return ldis(x, mid, fwhm, a=a1)
-        else:
-            return ndis_std(x, mid, sig2, a=a2)
-    except ValueError:
-        output = np.zeros(len(x))
-        output[x > mid] = ldis(x[x > mid], mid, fwhm, a=a1)
-        output[x <= mid] = ndis_std(x[x <= mid], mid, sig2, a=a2)
-        return output
-
-
-def splitdis_fit(x, s, m, a, b):
-    """
-    Function for fitting Split G/L distribution to peak.
-    Adds a background to splitdis.
-    Prevents negative background, amplitude, and standard deviation.
-    :param x: x value
-    :param s: full width half max
-    :param m: mean
-    :param a: amplitude
-    :param b: linear background
-    :return: peak shape
-    """
-    if b < 0 or a < 0 or s < 0:
-        return x * 0
-    return splitdis(x, m, s, a=a, norm_area=True) + b
-
-
-def voigt(x, mu=0, sigma=1, gamma=1, amp=1, background=0):
-    """\
-    voigt profile
-
-    V(x,sig,gam) = Re(w(z))/(sig*sqrt(2*pi))
-    z = (x+i*gam)/(sig*sqrt(2))
-    """
-    if sigma == 0:
-        return ldis(x, mu, gamma * 2., amp) + background
-    elif gamma == 0:
-        return ndis_std(x, mu, sigma, amp) + background
-    else:
-        z = (x - mu + 1j * gamma) / (sigma * np.sqrt(2))
-        w = special.wofz(z)
-        v = w.real / (sigma * np.sqrt(2 * np.pi))
-        v *= (amp / np.amax(v))
-        v += background
-    return v
 
 
 # ...........................................................
@@ -1845,131 +1778,11 @@ def make_peak_shape(xaxis, psfun, fwhm, mid, norm_area=False):
         kernel = ldis(xaxis, mid, fwhm, norm_area=norm_area)
     elif psfun == 2:
         kernel = splitdis(xaxis, mid, fwhm, norm_area=norm_area)
+    elif psfun == 3:
+        kernel = ndis(xaxis, mid, fwhm, norm_area=norm_area)
     else:
         kernel = xaxis * 0
     return kernel
-
-
-def gaussfit(xvals, yvals, mguess=None, sguess=0.1, aguess=None, cleanup=True):
-    """
-    Simple gaussian fitting function.
-    :param xvals: X values
-    :param yvals: Y values
-    :param mguess: Guess for midpoint
-    :param sguess: Guess for standard deviation
-    :param aguess: Guess for amplitude
-    :param cleanup: Boolean Flag, if True, will clean up data to remove background and normalize
-    :return: Gaussian fit parameters [mid, sig, amp]
-    """
-    if cleanup:
-        yvals -= np.amin(yvals)
-        yvals /= np.amax(yvals)
-    if mguess is None:
-        mguess = xvals[np.argmax(yvals)]
-    if aguess is None:
-        aguess = np.amax(yvals)
-    guess = [mguess, sguess, aguess]
-    fits = curve_fit(ndis_std, xvals, yvals, p0=guess, maxfev=1000000)[0]
-    print fits
-    return fits
-
-
-def psfit(x, s, m, a, b, psfun):
-    """
-    Make peak shape from fit
-    :param x: x values
-    :param s: fwhm
-    :param m: max position
-    :param a: amplitude
-    :param b: background
-    :param psfun: peak shape function integer code
-    :return: peak shape fit data
-    """
-    if psfun == 0:
-        return ndis_fit(x, s, m, a, b)
-    elif psfun == 1:
-        return ldis_fit(x, s, m, a, b)
-    elif psfun == 2:
-        return splitdis_fit(x, s, m, a, b)
-
-
-def voigt_fit(xvals, yvals, mguess=0, sguess=0.1, gguess=0, aguess=0, bguess=0):
-    """
-
-    """
-    guess = [mguess, sguess, gguess, aguess, bguess]
-    popt, pcov = curve_fit(voigt, xvals, yvals, p0=guess, maxfev=1000000)
-    fitdat = voigt(xvals, popt[0], popt[1], popt[2], popt[3], popt[4])
-    return popt, np.sqrt(np.diag(pcov)), fitdat
-
-
-def fit_peak(xvals, yvals, psfun, midguess, fwhmguess, aguess, bguess):
-    """
-    Fit peak from xvals and yvals data to defined peak shape function.
-    :param xvals: x values of data
-    :param yvals: y values of data
-    :param psfun: peak shape function integer code
-    :param midguess: midpoint guess
-    :param fwhmguess: fwhm guess
-    :param aguess: amplitude guess
-    :param bguess: background guess
-    :return: popt, perr, fitdat (optimized parameters [fwhm, mid, a, b], std error of parameters, fit to data)
-    """
-    guess = [fwhmguess, midguess, aguess, bguess]
-
-    if psfun == 0:
-        popt, pcov = curve_fit(ndis_fit, xvals, yvals, p0=guess)
-    elif psfun == 1:
-        popt, pcov = curve_fit(ldis_fit, xvals, yvals, p0=guess)
-    elif psfun == 2:
-        popt, pcov = curve_fit(splitdis_fit, xvals, yvals, p0=guess)
-    else:
-        popt = guess
-        pcov = np.ones((len(guess), len(guess)))
-        print "Failed"
-
-    fitdat = psfit(xvals, popt[0], popt[1], popt[2], popt[3], psfun)
-    return popt, np.sqrt(np.diag(pcov)), fitdat
-
-
-def isolated_peak_fit(xvals, yvals, psfun, **kwargs):
-    """
-    Fit an isolated peak to the peak shape model.
-    :param xvals: x values of data
-    :param yvals: y values of data
-    :param psfun: peak shape function integer code
-    :param kwargs: keywords (unused)
-    :return: fit_array, fit_data (4 x 2 array of (fit, error) for [fwhm,mid,amp,background],fit to data)
-    """
-    midguess = xvals[np.argmax(yvals)]
-    bguess = np.amin(yvals)
-    sigguess = weighted_std(xvals, yvals - bguess) * 1
-    # Two rounds to guess at area
-    if psfun < 3:
-        testdat = psfit(xvals, sigguess, midguess, 1, bguess, psfun)
-        aguess = np.amax(yvals) / np.amax(testdat)
-        testdat = psfit(xvals, sigguess, midguess, aguess, bguess, psfun)
-        aguess = aguess * np.amax(yvals) / np.amax(testdat)
-    else:
-        testdat = psfit(xvals, sigguess, midguess, 1, bguess, 0)
-        aguess = np.amax(yvals) / np.amax(testdat)
-        testdat = psfit(xvals, sigguess, midguess, aguess, bguess, 0)
-        aguess = aguess * np.amax(yvals) / np.amax(testdat)
-    # Fit it
-    if psfun < 3:
-        fit, err, fitdat = fit_peak(xvals, yvals, psfun, midguess, sigguess, aguess, bguess)
-    else:
-        fit, err, fitdat = voigt_fit(xvals, yvals, midguess, sigguess, 0, aguess, bguess)
-    return np.transpose([fit, err]), fitdat
-
-
-def poly_fit(datatop, degree=1, weights=None):
-    x = datatop[:, 0]
-    y = datatop[:, 1]
-    fit = np.polyfit(x, y, degree, w=weights)
-    p = np.poly1d(fit)
-    fitdat = p(x)
-    return fit, fitdat
 
 
 def fft(data):
@@ -1996,6 +1809,7 @@ def fft_diff(data, diffrange=[500., 1000.]):
     boo3 = np.all([boo1, boo2], axis=0)
     ftext = fftdat[boo3]
     maxpos = localmaxpos(ftext, ftrange[0], ftrange[1])
+
     # fit, err, fitdat = voigt_fit(ftext[:, 0], ftext[:, 1], np.average(ftrange), np.average(ftrange) / 10., 0, 1, 0)
     return 1. / maxpos, ftext
 
@@ -2042,6 +1856,7 @@ def double_fft_diff(mzdata, diffrange=None, binsize=0.1, pad=None, preprocessed=
 
     return maxpos, ftext2
 
+
 def fft_process(mzdata, diffrange=None, binsize=0.1, pad=None, preprocessed=False):
     tstart = time.clock()
     if diffrange is None:
@@ -2061,7 +1876,8 @@ def fft_process(mzdata, diffrange=None, binsize=0.1, pad=None, preprocessed=Fals
     boo3 = np.all([boo1, boo2], axis=0)
     ftext2 = fft2[boo3]
 
-    return maxpos, ftext2, fftdat,fft2
+    return maxpos, ftext2, fftdat, fft2
+
 
 def windowed_fft(data, mean, sigma, diffrange=None):
     if diffrange is None:
@@ -2270,5 +2086,105 @@ def broaden(aligned):
     return combined, aligned
 
 
+def peaks_error_FWHM(pks, data):
+    """
+    Calculates the error of each peak in pks using FWHM.
+    Looks for the left and right point of the peak that is 1/2 the peaks max intensity, rightmass - leftmass = error
+    :param pks:
+    :param data: self.data.massdat
+    :return:
+    """
+    pmax = np.amax([p.height for p in pks.peaks])
+    datamax = np.amax(np.asarray(data)[:, 1])
+    div = datamax / pmax
+    for pk in pks.peaks:
+        int = pk.height
+        index = nearest(data[:, 0], pk.mass)
+        leftwidth = 0
+        rightwidth = 0
+        counter = 1
+        leftfound = False
+        rightfound = False
+        while rightfound is False and leftfound is False:
+            if leftfound is False:
+                if data[index - counter, 1] <= (int * div) / 2:
+                    leftfound = True
+                else:
+                    leftwidth += 1
+            if rightfound is False:
+                if data[index + counter, 1] <= (int * div) / 2:
+                    rightfound = True
+                else:
+                    rightwidth += 1
+            counter += 1
+        pk.errorFWHM = data[index + rightwidth, 0] - data[index - leftwidth, 0]
+
+
+def peaks_error_mean(pks, data, ztab, massdat, config):
+    """
+    Calculates error using the masses at different charge states.
+    For each peak, finds the local max of the peak at each charge state, and does a weighted mean and weighted std. dev.
+    :param pks:
+    :param data: self.data.massgrid
+    :param ztab: self.data.ztab
+    :param massdat: self.data.massdat
+    :param config: self.config
+    :return:
+    """
+    length = len(data) / len(ztab)
+    for pk in pks.peaks:
+        index = nearest(massdat[:, 0], pk.mass)
+        masses = []
+        ints = []
+        zgrid = []
+        startindmass = nearest(massdat[:, 0], massdat[index, 0] - config.peakwindow)
+        endindmass = nearest(massdat[:, 0], massdat[index, 0] + config.peakwindow)
+        # plotmasses = massdat[startindmass:endindmass, 0]
+        for z in range(0, len(ztab)):
+            startind = startindmass + (z * length)
+            endind = endindmass + (z * length)
+            tmparr = data[startind:endind]
+            ind = np.argmax(tmparr)
+            ints.append(tmparr[ind])
+            # print massdat[startindmass + ind, 0]
+            masses.append(massdat[startindmass + ind, 0])
+            # zgrid.extend(tmparr)
+        mean = np.average(masses, weights=ints)
+        # Calculate weighted standard deviation
+        sum = 0
+        denom = 0
+        for w, m in enumerate(masses):
+            sum += ints[w] * pow(m - mean, 2)
+            denom += ints[w]
+        denom *= (len(ztab) - 1)
+        std = sum / denom
+        std = std / len(ztab)
+        std = std ** 0.5
+        # print mean
+        # print std
+        # tab = wx.Frame(None, title="Test", size=(500, 500))
+        # plot = plot2d.Plot2d(tab, figsize=(500, 500))
+        # plot.contourplot(xvals=np.asarray(plotmasses), yvals=ztab, zgrid=np.asarray(zgrid),
+        #                 config=config, title="Mass vs. Charge", xlab="Mass (Da)",
+        #                 normflag=1, test_kda=False, repaint=False)
+        # tab.Show()
+        pk.errormean = std
+        # pks.peaks[count].errormean = abs(sums[count] - pks.peaks[count].mass)
+
+
 if __name__ == "__main__":
+    testfile = "C:\Python\UniDec\TestSpectra\\test_imms.raw"
+    waters_convert(testfile)
+
+    exit()
+
+    x = [0., 1., 2., 3., 4.]
+    y = [1, 0.7, 0.5, 0.4, 0.3]
+    import matplotlib.pyplot as plt
+
+    y = logistic(np.array(x), 2, -10, 1, 1)
+    plt.plot(x, y)
+    plt.show()
+    # fit=sig_fit(x,y)
+    # print fit
     pass

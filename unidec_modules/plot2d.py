@@ -1,11 +1,13 @@
 import matplotlib.cm as cm
 from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import FixedLocator
 import numpy as np
 
 from unidec_modules.PlottingWindow import PlottingWindow
 import unidectools as ud
 
 __author__ = 'Michael.Marty'
+
 
 # TODO: The 100% line on the color bar doesn't come right up to the top. Fix it so it is square.
 class Plot2d(PlottingWindow):
@@ -23,7 +25,8 @@ class Plot2d(PlottingWindow):
         PlottingWindow.__init__(self, *args, **kwargs)
 
     def contourplot(self, dat=None, config=None, xvals=None, yvals=None, zgrid=None, xlab='m/z (Th)', ylab="Charge",
-                    title='', normflag=1, normrange=[0, 1], repaint=True, nticks=None, test_kda=False):
+                    title='', normflag=1, normrange=[0, 1], repaint=True, nticks=None, test_kda=False, discrete=None,
+                    ticloc=None, ticlab=None):
         """
         Make 2D plot.
 
@@ -60,6 +63,9 @@ class Plot2d(PlottingWindow):
             speedplot = 0
             publicationmode = 0
             self.cmap = "jet"
+
+        if discrete is not None:
+            speedplot = discrete
         # Set Tick colors
         self.set_tickcolor()
 
@@ -89,12 +95,16 @@ class Plot2d(PlottingWindow):
         if speedplot == 0:
             # Slow contour plot that interpolates grid
             cax = self.subplot1.contourf(xvals / self.kdnorm, yvals, np.transpose(newgrid), 100, cmap=self.cmap,
-                                         antialiasing=True, norm=norm)
+                                         norm=norm)
             datalims = [np.amin(xvals) / self.kdnorm, np.amin(yvals), np.amax(xvals) / self.kdnorm, np.amax(yvals)]
         else:
             # Fast discrete plot using imshow
-            xdiff = (xvals[1] - xvals[0]) / self.kdnorm
-            ydiff = yvals[1] - yvals[0]
+            try:
+                xdiff = (xvals[1] - xvals[0]) / self.kdnorm
+                ydiff = yvals[1] - yvals[0]
+            except:
+                xdiff=1
+                ydiff=1
             extent = (np.amin(xvals) / self.kdnorm - 0.5 * xdiff, np.amax(xvals) / self.kdnorm + 0.5 * xdiff,
                       np.amin(yvals) - 0.5 * ydiff, np.amax(yvals) + 0.5 * ydiff)
             cax = self.subplot1.imshow(np.transpose(newgrid), origin="lower", cmap=self.cmap, extent=extent,
@@ -117,10 +127,16 @@ class Plot2d(PlottingWindow):
         # Change tick colors
         if nticks is not None:
             self.subplot1.xaxis.set_major_locator(MaxNLocator(nbins=nticks))
+        if ticloc is not None and ticlab is not None:
+            self.subplot1.xaxis.set_major_locator(FixedLocator(ticloc))
+            self.subplot1.set_xticklabels(ticlab, rotation=90, fontsize=8)
+
+        '''
         for line in self.subplot1.xaxis.get_ticklines():
             line.set_color(self.tickcolor)
         for line in self.subplot1.yaxis.get_ticklines():
             line.set_color(self.tickcolor)
+        '''
         # Setup zoom and repaint
         self.setup_zoom([self.subplot1], 'box', data_lims=datalims)
         if repaint:

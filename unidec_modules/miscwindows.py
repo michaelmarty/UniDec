@@ -69,6 +69,54 @@ class SingleInputDialog(wx.Dialog):
         return self.value
 
 
+class DoubleInputDialog(wx.Dialog):
+    def __init__(self, *args, **kwargs):
+        """
+        Simple dialog for a two textctrl inputs.
+        :param args: Passed to wx.Dialog.
+        :param kwargs: Passed to wx.Dialog.
+        :return: None
+        """
+        wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
+        self.SetSize((500, 200))
+        self.value = None
+        self.inputbox = None
+
+    def initialize_interface(self, title="", message="", defaultvalue="", message2="", default2=""):
+        """
+        """
+        self.SetTitle(title)
+        pnl = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        self.inputbox = wx.TextCtrl(pnl, value=defaultvalue, size=(175, 25))
+        self.inputbox2 = wx.TextCtrl(pnl, value=default2, size=(175, 25))
+        hbox.Add(wx.StaticText(pnl, label=message), 0, wx.ALIGN_CENTER_VERTICAL)
+        hbox.Add(self.inputbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
+        hbox.Add(wx.StaticText(pnl, label=message2), 0, wx.ALIGN_CENTER_VERTICAL)
+        hbox.Add(self.inputbox2, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
+        pnl.SetSizer(hbox)
+
+        hboxend = wx.BoxSizer(wx.HORIZONTAL)
+        okbutton = wx.Button(self, label='Ok')
+        hboxend.Add(okbutton)
+
+        vbox.Add(pnl, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
+        vbox.Add(hboxend, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=10)
+        self.SetSizer(vbox)
+
+        okbutton.Bind(wx.EVT_BUTTON, self.on_close)
+
+    def on_close(self, e):
+        """
+        """
+        self.value = self.inputbox.GetValue()
+        self.value2 = self.inputbox2.GetValue()
+        self.Destroy()
+        self.EndModal(0)
+        return self.value, self.value2
+
+
 class AdditionalParameters(wx.Dialog):
     def __init__(self, *args, **kwargs):
         """
@@ -84,6 +132,8 @@ class AdditionalParameters(wx.Dialog):
         self.inputbox5 = None
         self.inputbox6 = None
         self.inputbox6b = None
+        self.inputbox7 = None
+        self.inputbox8 = None
 
     def initialize_interface(self, config):
         """
@@ -106,6 +156,21 @@ class AdditionalParameters(wx.Dialog):
         hbox5.Add(wx.StaticText(pnl, label=' x Peak Shape '), 0, wx.ALIGN_CENTER_VERTICAL)
         sbs.Add(hbox5, 1, wx.ALIGN_CENTER_VERTICAL)
 
+        hbox7 = wx.BoxSizer(wx.HORIZONTAL)
+        self.inputbox7 = wx.TextCtrl(pnl, value=str(self.config.filterwidth))
+        hbox7.Add(wx.StaticText(pnl, label='# of data points binned for filtering: '), 0, wx.ALIGN_CENTER_VERTICAL)
+        hbox7.Add(self.inputbox7, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
+        sbs.Add(hbox7, 1, wx.ALIGN_CENTER_VERTICAL)
+
+        hbox8 = wx.BoxSizer(wx.HORIZONTAL)
+        self.inputbox8 = wx.TextCtrl(pnl, value=str(self.config.zerolog))
+        hbox8.Add(
+            wx.StaticText(pnl, label='Value to approximate log(0) or log(negative number) to\n(should be negative): ')
+            , 0, wx.ALIGN_CENTER_VERTICAL)
+        hbox8.Add(self.inputbox8, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
+        sbs.Add(hbox8, 1, wx.ALIGN_CENTER_VERTICAL)
+
+        """
         hbox6 = wx.BoxSizer(wx.HORIZONTAL)
         self.inputbox6 = wx.TextCtrl(pnl, value=str(self.config.damp))
         hbox6.Add(wx.StaticText(pnl, label='Damping Parameter: '), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -122,6 +187,7 @@ class AdditionalParameters(wx.Dialog):
         hbox6b.Add(self.inputbox6b, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
         hbox6b.Add(wx.StaticText(pnl, label=' Be careful...'), 0, wx.ALIGN_CENTER_VERTICAL)
         sbs.Add(hbox6b, 1, wx.ALIGN_CENTER_VERTICAL)
+        """
 
         pnl.SetSizer(sbs)
 
@@ -145,9 +211,11 @@ class AdditionalParameters(wx.Dialog):
         :param e: Unused Event
         :return: None
         """
-        self.config.suppression = ud.string_to_int(self.inputbox6b.GetSelection())
+        # self.config.suppression = ud.string_to_int(self.inputbox6b.GetSelection())
         self.config.inflate = ud.string_to_value(self.inputbox5.GetValue())
-        self.config.damp = ud.string_to_value(self.inputbox6.GetValue())
+        self.config.filterwidth = ud.string_to_value(self.inputbox7.GetValue())
+        self.config.zerolog = ud.string_to_value(self.inputbox8.GetValue())
+        # self.config.damp = ud.string_to_value(self.inputbox6.GetValue())
         self.Destroy()
         self.EndModal(0)
 

@@ -6,7 +6,7 @@ from matplotlib import interactive
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
-# from matplotlib import rcParams
+from matplotlib import rcParams
 # import matplotlib
 import matplotlib.cm as cm
 import numpy as np
@@ -15,15 +15,24 @@ from unidec_modules.isolated_packages.ZoomSpan import ZoomSpan
 from unidec_modules.isolated_packages.ZoomBox import ZoomBox
 from unidec_modules.isolated_packages.NoZoomSpan import NoZoomSpan
 from unidec_modules.isolated_packages import FileDialogs
+from unidec_modules.miscwindows import DoubleInputDialog
+
+# import matplotlib.style as mplstyle
+# mplstyle.use('fast')
 
 interactive(True)
 
+rcParams['ps.useafm'] = True
+rcParams['ps.fonttype'] = 42
+rcParams['pdf.fonttype'] = 42
+rcParams['lines.linewidth'] = 1
+rcParams['errorbar.capsize'] = 3
+rcParams['patch.force_edgecolor'] = True
+rcParams['patch.facecolor'] = 'b'
+rcParams['lines.markersize'] = 7
 
-# rcParams['ps.useafm'] = True
-# rcParams['ps.fonttype'] = 42
-# rcParams['pdf.fonttype'] = 42
-# rcParams['lines.linewidth']=0.5
-# rcParams['axes.linewidth']=0.5
+
+# rcParams['axes.linewidth']=1
 # rcParams['font.size']=18
 # matplotlib.rc('font', family='sans-serif')
 # matplotlib.rc('font', serif='Helvetica')
@@ -47,18 +56,24 @@ class PlottingWindow(wx.Window):
         :param kwargs: Keywords
         :return:
         """
+        self.displaysize = wx.GetDisplaySize()
         if "figsize" in kwargs:
             figsize = kwargs["figsize"]
             del kwargs["figsize"]
         else:
-            figsize = (8, 6)
+            figsize = (6. * 0.9, 5. * 0.9)
 
         self.figure = Figure(figsize=figsize)  # , dpi=
 
-        if figsize[0] < 5:
-            self._axes = [0.2, 0.2, 0.7, 0.7]
+        if "axes" in kwargs:
+            self._axes = kwargs["axes"]
+            del kwargs["axes"]
         else:
-            self._axes = [0.1, 0.1, 0.8, 0.8]
+            if figsize[0] < 5:
+                self._axes = [0.2, 0.2, 0.7, 0.7]
+            else:
+                self._axes = [0.11, 0.11, 0.8, 0.8]
+        self.figsize = figsize
 
         if "integrate" in kwargs:
             self.int = kwargs["integrate"]
@@ -102,8 +117,59 @@ class PlottingWindow(wx.Window):
         :param event: wx.Event
         :return: None
         """
+        if event.button == 1:
+            if wx.GetKeyState(wx.WXK_ALT):
+                try:
+                    self.zoom.switch_label()
+                except:
+                    print "Could not switch on labels"
         if event.button == 2:
-            self.on_save_fig_dialog(event)
+            if wx.GetKeyState(wx.WXK_CONTROL):
+                dlg = DoubleInputDialog(self)
+                dlg.initialize_interface("Matplotlib RC Parameters", "RC Param Name:", 'lines.markersize',
+                                         "Value:", "6")
+                dlg.ShowModal()
+                rcname = dlg.value
+                rcval = dlg.value2
+                print rcname, rcval
+                rcParams[rcname] = rcval
+            elif wx.GetKeyState(wx.WXK_ALT):
+                dlg = DoubleInputDialog(self)
+                dlg.initialize_interface("Set Plot X Range", "Min:", '',
+                                         "Max:", "")
+                dlg.ShowModal()
+                minval = dlg.value
+                maxval = dlg.value2
+
+                try:
+                    minval = float(minval)
+                    maxval = float(maxval)
+                    self.zoom.set_manual(minval, maxval)
+                    print "Manually Set Zoom:", minval, maxval
+                except:
+                    print "Error converting string to float:", minval, maxval
+            elif wx.GetKeyState(wx.WXK_SHIFT):
+                dlg = DoubleInputDialog(self)
+                dlg.initialize_interface("Set Plot Y Range", "Min:", '',
+                                         "Max:", "")
+                dlg.ShowModal()
+                minval = dlg.value
+                maxval = dlg.value2
+
+                try:
+                    minval = float(minval)
+                    maxval = float(maxval)
+                    self.zoom.set_manual_y(minval, maxval)
+                    print "Manually Set Zoom:", minval, maxval
+                except:
+                    print "Error converting string to float:", minval, maxval
+            elif wx.GetKeyState(wx.WXK_SPACE):
+                try:
+                    self.zoom.switch_label()
+                except:
+                    print "Could not switch on labels"
+            else:
+                self.on_save_fig_dialog(event)
 
     def on_save_fig_dialog(self, evt):
         """
@@ -176,7 +242,8 @@ class PlottingWindow(wx.Window):
         :param markval: Marker
         :return: None
         """
-        self.subplot1.plot(np.array(x) / self.kdnorm, y, color=colval, marker=markval, linestyle='None', clip_on=False)
+        self.subplot1.plot(np.array(x) / self.kdnorm, y, color=colval, marker=markval, linestyle='None', clip_on=False
+                           , markeredgecolor="k")
 
     def repaint(self):
         """
@@ -213,17 +280,23 @@ class PlottingWindow(wx.Window):
             self.subplot1.xaxis.set_major_locator(MaxNLocator(nbins=bins))
         self.repaint()
 
-    def add_legend(self, location=1):
+    def add_legend(self, location=1, anchor=None):
         """
         Adds a legend to the plot.
         :param location: Integer code for location
         :return: None
         """
         handles, labels = self.subplot1.get_legend_handles_labels()
+        if anchor is None:
+            anchor = (1, 1)
         if location == 1:
-            self.subplot1.legend(handles, labels, loc=location, bbox_to_anchor=(1, 1))
+            self.subplot1.legend(handles, labels, loc=location, bbox_to_anchor=anchor)
         else:
             self.subplot1.legend(handles, labels, loc=location)
+        self.repaint()
+
+    def add_title(self, title=""):
+        self.subplot1.set_title(title)
         self.repaint()
 
     def set_color(self, rgbtuple=None):
@@ -238,7 +311,7 @@ class PlottingWindow(wx.Window):
         col = [c / 255.0 for c in rgbtuple]
         self.figure.set_facecolor(col)
         self.figure.set_edgecolor(col)
-        self.canvas.SetBackgroundColour(wx.Colour(*rgbtuple))
+        # self.canvas.SetBackgroundColour(wx.Colour(*rgbtuple))
 
     def set_tickcolor(self):
         """
@@ -268,7 +341,7 @@ class PlottingWindow(wx.Window):
         if self.resize == 1:
             self.canvas.SetSize(self.GetSize())
 
-    def setup_zoom(self, plots, zoom, data_lims=None):
+    def setup_zoom(self, plots, zoom, data_lims=None, pad=0):
         """
         Set up zoom on axes.
         :param plots: Axes objects to setup
@@ -295,7 +368,7 @@ class PlottingWindow(wx.Window):
                 spancoords='data',
                 rectprops=dict(alpha=0.2, facecolor='yellow'),
                 data_lims=data_lims,
-                integrate=self.int, smash=self.smash)
+                integrate=self.int, smash=self.smash, pad=pad)
         if zoom == "fixed_span":
             self.zoom = NoZoomSpan(
                 plots,

@@ -48,6 +48,10 @@ class Peak:
         self.fitarea = 0
         self.fitareaerr = 0
         self.diff = 0
+        self.extracts = []
+        self.errorFWHM = 0
+        self.errormean = -1
+        self.errorreplicate = 0
 
 
 class Peaks:
@@ -74,6 +78,7 @@ class Peaks:
         self.textmarkers = []
         self.marklen = 0
         self.massbins = 0
+        self.norm = 1
 
     def add_peaks(self, parray, massbins=0):
         """
@@ -144,7 +149,7 @@ class Peaks:
             boo3 = np.all([boo1, boo2, booi], axis=0)
             try:
                 p.score = np.sum((np.ones_like(p.mztab[boo3, 1]) - np.clip(
-                        np.abs((p.mztab[boo3, 1] - p.mztab2[boo3, 1])) / p.mztab2[boo3, 1], 0, 1)))
+                    np.abs((p.mztab[boo3, 1] - p.mztab2[boo3, 1])) / p.mztab2[boo3, 1], 0, 1)))
             except ZeroDivisionError:
                 p.score = 0
 
@@ -161,3 +166,49 @@ class Peaks:
                 p.massavg = 0
                 p.masserr = 0
                 p.tval = 0
+
+    def get_bool(self):
+        boo1 = []
+        for p in self.peaks:
+            if p.ignore == 0:
+                boo1.append(True)
+            else:
+                boo1.append(False)
+        return np.array(boo1)
+
+    def auto_format(self):
+
+        colors = np.array([[[1, 0, 0], [1, 0, 0]], [[0, 0.7, 0], [1, 1, 0]], [[0, 0.5, 1], [1, 0, 1]]])
+
+        newmarkers = [[0, 0], [1, 5], [4, 6]]
+
+        # note = [[0, 1], [1, 1], [2, 1]]
+        # self.markers = ['o', 'v', '^', '>', 's', 'd', '*']
+        # self.textmarkers = [u'\u25CB', u'\u25BD', u'\u25B3', u'\u25B7', u'\u25A2', u'\u2662', u'\u2606']
+
+        for p in self.peaks:
+            n = p.label
+            splits = n.split("[")
+
+            try:
+                n1 = int(splits[0])
+            except:
+                n1 = 0
+
+            try:
+                n2 = int(splits[1].split("]")[1])
+            except:
+                n2 = 0
+            try:
+                newcolor = colors[n1][n2]
+                newmarker = self.markers[newmarkers[n1][n2]]
+                newtextmarker = self.textmarkers[newmarkers[n1][n2]]
+            except:
+                newcolor = [0.5, 0.5, 1]
+                newmarker = self.markers[6]
+                newtextmarker = self.textmarkers[6]
+
+            p.color = newcolor
+            p.marker = newmarker
+            p.textmarker = newtextmarker
+            # print n1, n2, newcolor, newmarker, newtextmarker

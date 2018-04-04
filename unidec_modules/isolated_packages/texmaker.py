@@ -8,7 +8,7 @@ import subprocess
 import time
 import string
 import numpy as np
-
+import os
 
 # import os
 def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags):
@@ -124,4 +124,8 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags)
 
 
 def PDFTexReport(fname):
-    subprocess.call(["pdflatex", fname, "-halt-on-error"])
+    path="C:\\Program Files (x86)\\MiKTeX 2.9\\miktex\\bin\\pdflatex.exe"
+    if os.path.isfile(path):
+        subprocess.call([path,fname,"-halt-on-error"])
+    else:
+        subprocess.call(["pdflatex", fname, "-halt-on-error"])

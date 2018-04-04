@@ -8,8 +8,8 @@ import subprocess
 from multiprocessing import Process, Queue, cpu_count
 import sys
 import platform
-from wx.lib.pubsub import pub
-from wx.lib.pubsub import setupkwargs
+from pubsub import pub
+
 import TagTypes as tt
 from unidec_modules.tims_import_wizard import get_data_wrapper
 

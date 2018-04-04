@@ -13,10 +13,12 @@ from unidec_modules import unidecstructure, peakstructure, MassFitter
 import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 import unidec_modules.MassSpecBuilder as MSBuild
+from unidec_modules.unidec_enginebase import UniDecEngine
 
 __author__ = 'Michael.Marty'
 
-class UniDec:
+
+class UniDec(UniDecEngine):
     def __init__(self):
         """
         UniDec Engine
@@ -25,65 +27,13 @@ class UniDec:
 
         :return: None
         """
-        self.version = "1.2.6"
-        print "\nUniDec Engine v." + self.version
-        self.config = None
-        self.config_history = []
-        self.config_count = 0
-        self.data = None
-        self.pks = None
+        UniDecEngine.__init__(self)
         self.autopeaks = None
         self.peakparams = None
         self.massfit = None
         self.massfitdat = None
         self.errorgrid = None
-        self.initialize()
         pass
-
-    def initialize(self):
-        """
-        Initialize Config, DataContainer, and Peaks
-        :return: None
-        """
-        self.config = unidecstructure.UniDecConfig()
-        self.clear_history()
-        self.config.initialize_system_paths()
-        self.reset_config()
-        self.data = unidecstructure.DataContainer()
-        self.pks = peakstructure.Peaks()
-
-    def reset_config(self):
-        """
-        Resets UniDec config to default. Should not reset paths or filenames.
-        :return: None
-        """
-        self.config.initialize()
-        self.update_history()
-
-    def load_config(self, f_name):
-        """
-        Import UniDec Configuration File
-        :param f_name: File name
-        :return: None
-        """
-        if f_name is not None:
-            self.config.config_import(f_name)
-            self.update_history()
-
-        else:
-            print "Load Config Error: No file provided."
-
-    def export_config(self, f_name=None):
-        """
-        Export UniDec Configuration File
-        :param f_name: File name, Default of None will using config.confname
-        :return: None
-        """
-        self.update_history()
-        if f_name is not None:
-            self.config.config_export(f_name)
-        else:
-            self.config.config_export(self.config.confname)
 
     def open_file(self, file_name, file_directory=None, *args, **kwargs):
         """
@@ -101,7 +51,7 @@ class UniDec:
         """
         if file_directory is None:
             file_directory = os.path.dirname(file_name)
-            file_name=os.path.basename(file_name)
+            file_name = os.path.basename(file_name)
 
         tstart = time.clock()
         self.pks = peakstructure.Peaks()
@@ -342,6 +292,14 @@ class UniDec:
             self.data.massgrid = np.fromfile(self.config.outfname + "_massgrid.bin", dtype=float)
 
             self.data.fitdat = np.fromfile(self.config.outfname + "_fitdat.bin", dtype=float)
+            try:
+                if self.config.aggressiveflag != 0:
+                    self.data.baseline = np.fromfile(self.config.outfname + "_baseline.bin", dtype=float)
+                else:
+                    self.data.baseline = np.array([])
+            except Exception, e:
+                self.data.baseline = np.array([])
+                pass
 
             if self.config.imflag == 1:
                 self.data.fitdat2d = deepcopy(self.data.data3)
@@ -413,6 +371,9 @@ class UniDec:
         ud.dataexport(peaks, self.config.peaksfile)
         # Generate Intensities of Each Charge State for Each Peak
         mztab = ud.make_peaks_mztab(self.data.mzgrid, self.pks, self.config.adductmass)
+        #Calculate errors for peaks with FWHM
+        ud.peaks_error_FWHM(self.pks, self.data.massdat)
+        ud.peaks_error_mean(self.pks, self.data.massgrid, self.data.ztab, self.data.massdat, self.config)
         if self.config.batchflag == 0:
             ud.make_peaks_mztab_spectrum(self.data.mzgrid, self.pks, self.data.data2, mztab)
             self.export_config()
@@ -431,16 +392,6 @@ class UniDec:
         self.pick_peaks()
         self.autointegrate()
         self.export_params(0)
-
-    def check_badness(self):
-        """
-        Check for problematic variables, such as upper bounds less than lower bounds and raise warning if found.
-        :return:
-        """
-        badness, warning = self.config.check_badness()
-        if warning is not "":
-            print warning
-        return badness
 
     def autocorrelation(self, massdat=None):
         """
@@ -510,20 +461,6 @@ class UniDec:
         else:
             print "Need non-zero Kendrick mass"
             return None, None, None
-
-    def save_default(self):
-        """
-        Saves existing config in default location set at self.config.defaultconfig
-        :return: None
-        """
-        self.config.config_export(self.config.defaultconfig)
-
-    def load_default(self):
-        """
-        Loads config from default location set at self.config.defaultconfig
-        :return: None
-        """
-        self.config.config_import(self.config.defaultconfig)
 
     def mass_grid_to_f_grid(self):
         """
@@ -597,15 +534,6 @@ class UniDec:
 
         self.normalize_peaks()
         return np.array(zarea)
-
-    def get_auto_peak_width(self):
-        try:
-            fwhm, psfun, mid = ud.auto_peak_width(self.data.data2)
-            self.config.psfun = psfun
-            self.config.mzsig = fwhm
-            print "Automatic Peak Width:", fwhm
-        except Exception, e:
-            print "Failed Automatic Peak Width:", e
 
     def export_params(self, e):
         """
@@ -1195,13 +1123,6 @@ class UniDec:
         plt.show()
         pass
 
-    def write_hdf5(self):
-        self.config.write_hdf5(self.config.hdf_file)
-        self.data.write_hdf5(self.config.hdf_file)
-
-    def read_hdf5_config(self):
-        self.config.read_hdf5(self.config.hdf_file)
-        # self.data.read_hdf5(self.config.hdf_file)
 
         # TODO: Batch Process of Various Types
         # TODO: Automatch
@@ -1212,49 +1133,6 @@ class UniDec:
         # TODO: Lengths in data container
         # TODO: Get massavg from peaks or fits in m/z
         # TODO: Get Noise Right
-
-    def update_history(self):
-        try:
-            if self.config_count > 0 and self.config.check_new(self.config_history[len(self.config_history) - 1]):
-                self.config_history.append(deepcopy(self.config))
-                self.config_count = len(self.config_history)
-                # print "Updated History", self.config_count
-            elif self.config_count == 0:
-                self.clear_history()
-                # else:
-                # print "No changes"
-        except:
-            self.clear_history()
-        pass
-
-    def clear_history(self):
-        self.config_history = [deepcopy(self.config)]
-        self.config_count = 1
-        pass
-
-    def undo(self):
-        if self.config_count > 1:
-            self.config_count -= 1
-            new = self.config_history[self.config_count - 1]
-            old = self.config
-            for item in new.__dict__:
-                try:
-                    old.__dict__[item] = new.__dict__[item]
-                except KeyError, e:
-                    print e
-        pass
-
-    def redo(self):
-        if self.config_count < len(self.config_history):
-            self.config_count += 1
-            new = self.config_history[self.config_count - 1]
-            old = self.config
-            for item in new.__dict__:
-                try:
-                    old.__dict__[item] = new.__dict__[item]
-                except KeyError, e:
-                    print e
-        pass
 
 
 # Optional Run

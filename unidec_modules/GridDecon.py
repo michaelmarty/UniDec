@@ -16,11 +16,6 @@ import unidectools as ud
 
 __author__ = 'Michael.Marty'
 
-"""
-Window for extracting intensity values from data to make 2D plots and 1D plots.
-"""
-
-
 def make_pmat(mzgrid, fwhm):
     vec = np.ravel(mzgrid)
     g1, g2 = np.meshgrid(vec, vec)

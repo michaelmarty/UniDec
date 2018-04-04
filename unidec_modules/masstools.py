@@ -13,6 +13,7 @@ import unidec_modules.unidectools as ud
 Module for window defining the oligomers, the expected masses, and for matching peaks to the defined oligomers.
 '''
 
+
 # TODO: Inherit a subclass with basic list control functions like delete
 
 
@@ -45,7 +46,7 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         """
         self.DeleteAllItems()
         for i in range(0, len(listctrldata)):
-            index = self.InsertStringItem(sys.maxint, str(listctrldata[i]))
+            index = self.InsertItem(sys.maxint, str(listctrldata[i]))
             self.SetItemData(index, i)
 
     def clear(self):
@@ -60,7 +61,7 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         Add a new line, default of 0.
         :return: None
         """
-        self.InsertStringItem(sys.maxint, str(0))
+        self.InsertItem(sys.maxint, str(0))
 
     def get_list(self):
         """
@@ -154,16 +155,18 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
         self.DeleteAllItems()
         self.index = 0
 
-    def add_line(self):
+    def add_line(self, a=0, b=0, c=0, d=1, e=None):
         """
         Add a blank line to the list.
         :return: None
         """
-        index = self.InsertStringItem(sys.maxint, str(0))
-        self.SetStringItem(index, 1, str(0))
-        self.SetStringItem(index, 2, str(0))
-        self.SetStringItem(index, 3, str(1))
-        self.SetStringItem(index, 4, string.uppercase[self.index])
+        index = self.InsertItem(sys.maxint, str(a))
+        if e is None:
+            e = string.uppercase[self.index]
+        self.SetItem(index, 1, str(b))
+        self.SetItem(index, 2, str(c))
+        self.SetItem(index, 3, str(d))
+        self.SetItem(index, 4, e)
         self.index += 1
 
     def populate(self, data):
@@ -175,19 +178,19 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
         self.DeleteAllItems()
         # for normal, simple columns, you can add them like this:
         for i in range(0, len(data)):
-            index = self.InsertStringItem(sys.maxint, str(data[i][0]))
+            index = self.InsertItem(sys.maxint, str(data[i][0]))
             try:
-                self.SetStringItem(index, 1, str(data[i][1]))
-                self.SetStringItem(index, 2, str(data[i][2]))
-                self.SetStringItem(index, 3, str(data[i][3]))
+                self.SetItem(index, 1, str(data[i][1]))
+                self.SetItem(index, 2, str(data[i][2]))
+                self.SetItem(index, 3, str(data[i][3]))
             except (ValueError, IndexError):
-                self.SetStringItem(index, 1, "")
-                self.SetStringItem(index, 2, "")
-                self.SetStringItem(index, 3, "")
+                self.SetItem(index, 1, "")
+                self.SetItem(index, 2, "")
+                self.SetItem(index, 3, "")
             try:
-                self.SetStringItem(index, 4, str(data[i][4]))
+                self.SetItem(index, 4, str(data[i][4]))
             except (ValueError, IndexError):
-                self.SetStringItem(index, 4, "")
+                self.SetItem(index, 4, "")
                 # self.SetItemData(index, i)
 
     def get_list(self):
@@ -290,10 +293,10 @@ class MatchListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
         self.DeleteAllItems()
         # for normal, simple columns, you can add them like this:
         for i in range(0, len(data1)):
-            index = self.InsertStringItem(sys.maxint, str(data1[i]))
-            self.SetStringItem(index, 1, str(data2[i]))
-            self.SetStringItem(index, 2, str(data3[i]))
-            self.SetStringItem(index, 3, str(data4[i]))
+            index = self.InsertItem(sys.maxint, str(data1[i]))
+            self.SetItem(index, 1, str(data2[i]))
+            self.SetItem(index, 2, str(data3[i]))
+            self.SetItem(index, 3, str(data4[i]))
             # self.SetItemData(index, i)
 
     def get_list(self):
@@ -324,6 +327,177 @@ class MatchListCrtlPanel(wx.Panel):
         self.SetAutoLayout(True)
 
 
+class DummyPanel(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
+        self.parent = parent
+
+
+class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
+                   listmix.TextEditMixin, listmix.ColumnSorterMixin):
+    def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+        """
+        Create a four column uneditable list control.
+        :param parent: Parent panel or window
+        :param id_value: Passed to wx.ListCtrl
+        :param pos: Passed to wx.ListCtrl
+        :param size: Passed to wx.ListCtrl
+        :param style: Passed to wx.ListCtrl
+        :return: None
+        """
+        self.parent = parent
+        wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)
+        # listmix.ListCtrlAutoWidthMixin.__init__(self)
+        listmix.TextEditMixin.__init__(self)
+        listmix.ColumnSorterMixin.__init__(self, 3)
+        self.InsertColumn(0, "Name")
+        self.InsertColumn(1, "Mass")
+        self.InsertColumn(2, "Type")
+        self.SetColumnWidth(0, 200)
+        self.SetColumnWidth(1, 100)
+        self.SetColumnWidth(2, 100)
+        self.index = 0
+
+        self.data = []
+
+        self.popupID1 = wx.NewId()
+        self.popupID2 = wx.NewId()
+        self.popupID3 = wx.NewId()
+        self.popupID4 = wx.NewId()
+        self.Bind(wx.EVT_MENU, self.on_transfer, id=self.popupID1)
+        self.Bind(wx.EVT_MENU, self.on_delete, id=self.popupID2)
+        self.Bind(wx.EVT_MENU, self.clear, id=self.popupID3)
+        self.Bind(wx.EVT_MENU, self.repopulate, id=self.popupID4)
+        self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click, self)
+
+    def on_right_click(self, event):
+        """
+        Open a right click menu
+        :param event: Unused event
+        :return: None
+        """
+        menu = wx.Menu()
+        menu.Append(self.popupID1, "Add to Oligomer Builder")
+        menu.Append(self.popupID2, "Delete")
+        menu.Append(self.popupID3, "Delete All")
+        menu.Append(self.popupID4, "Repopulate")
+        self.PopupMenu(menu)
+        menu.Destroy()
+
+    def on_transfer(self, e):
+        self.parent.parent.parent.on_common_to_oligo(e)
+
+    def clear(self, e=None):
+        """
+        Clear the list
+        :return: None
+        """
+        self.DeleteAllItems()
+        self.index = 0
+        self.data = []
+        self.itemDataMap = self.data
+
+    def on_delete(self, event):
+        """
+        Delete the selected item.
+        :param event: Unused event.
+        :return: None
+        """
+        item = self.GetFirstSelected()
+        num = self.GetSelectedItemCount()
+        selection = [item]
+        for i in range(1, num):
+            item = self.GetNextSelected(item)
+            selection.append(item)
+        for i in range(0, num):
+            self.DeleteItem(selection[num - i - 1])
+
+    def populate(self, data1, data2, data3):
+        """
+        Populate the list of matches from four arrays
+        :param data1: The first column, the measured mass
+        :param data2: The second column, the simulated mass
+        :param data3: The third column, the error between measured and simulated.
+        :param data4: The fourth column, the match name.
+        :return: None
+        """
+        self.DeleteAllItems()
+        # for normal, simple columns, you can add them like this:
+        for i in range(0, len(data1)):
+            index = self.InsertItem(sys.maxint, str(data1[i]))
+            self.SetItem(index, 1, str(data2[i]))
+            self.SetItem(index, 2, str(data3[i]))
+
+    def get_list(self):
+        """
+        :return: List items in a nested list
+        """
+        count = self.GetItemCount()
+        list_out = []
+        for i in range(0, count):
+            sublist = [str(self.GetItem(i, col=0).GetText()), str(self.GetItem(i, col=1).GetText()),
+                       str(self.GetItem(i, col=2).GetText())]
+            list_out.append(sublist)
+        return np.array(list_out)
+
+    def get_selection(self):
+        i = self.GetFirstSelected()
+        num = self.GetSelectedItemCount()
+        list_out = []
+        sublist = [str(self.GetItem(i, col=0).GetText()), str(self.GetItem(i, col=1).GetText()),
+                   str(self.GetItem(i, col=2).GetText())]
+        list_out.append(sublist)
+        for j in range(1, num):
+            i = self.GetNextSelected(i)
+            sublist = [str(self.GetItem(i, col=0).GetText()), str(self.GetItem(i, col=1).GetText()),
+                       str(self.GetItem(i, col=2).GetText())]
+            list_out.append(sublist)
+        return np.array(list_out)
+
+    def add_line(self):
+        """
+        Add a blank line to the list.
+        :return: None
+        """
+        index = self.InsertItem(sys.maxint, string.uppercase[self.index])
+        self.SetItem(index, 1, str(0))
+        self.SetItem(index, 2, "User")
+        self.index += 1
+
+    def repopulate(self, e):
+        self.populate(self.parent.parent.parent.commonmasses[:, 0], self.parent.parent.parent.commonmasses[:, 1],
+                      self.parent.parent.parent.commonmasses[:, 2])
+        pass
+
+    def GetListCtrl(self):
+        # Used by the ColumnSorterMixin, see wx/lib/mixins/listctrl.py
+        count = self.GetItemCount()
+        self.data = []
+        for i in range(0, count):
+            self.SetItemData(i, i)
+            sublist = [str(self.GetItem(i, col=0).GetText()), float(self.GetItem(i, col=1).GetText()),
+                       str(self.GetItem(i, col=2).GetText())]
+            self.data.append(sublist)
+        self.itemDataMap = self.data
+        return self
+
+
+class CommonMassesPanel(wx.Panel):
+    def __init__(self, parent):
+        """
+        ListCtrlPanel for the Match list
+        :param parent: Parent panel or window
+        :return: None
+        """
+        wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.parent = parent
+        self.list = CommonMasses(self, wx.NewId(), size=(400, 500), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
+        sizer.Add(self.list, 1, wx.EXPAND)
+        self.SetSizer(sizer)
+        self.SetAutoLayout(True)
+
+
 class MassSelection(wx.Dialog):
     def __init__(self, *args, **kwargs):
         """
@@ -333,12 +507,13 @@ class MassSelection(wx.Dialog):
         :return: None
         """
         wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
-        self.SetSize((800, 700))
+        self.SetSize((1200, 700))
         self.SetTitle("Mass and Oligomer Tools")
 
         self.pks = None
         self.config = None
         self.massdat = None
+        self.commonmasses = None
 
         self.masslistbox = None
         self.oligomerlistbox = None
@@ -357,7 +532,7 @@ class MassSelection(wx.Dialog):
         self.config = config
         self.pks = pks
 
-        panel = wx.Panel(self)
+        panel = DummyPanel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
@@ -427,7 +602,8 @@ class MassSelection(wx.Dialog):
         textbox.Add(text)
 
         self.ctlmatcherror = wx.TextCtrl(panel, value=str(self.config.matchtolerance))
-        textbox.Add(wx.StaticText(panel, label="Error Tolerance for Matching (Da)"), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
+        textbox.Add(wx.StaticText(panel, label="Error Tolerance for Matching (Da)"), 0,
+                    wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
         textbox.Add(self.ctlmatcherror, 0, wx.ALIGN_RIGHT)
 
         hbox3.Add(textbox)
@@ -458,6 +634,28 @@ class MassSelection(wx.Dialog):
         sbs2.Add(sbs4)
         hbox.Add(sbs2)
 
+        sb5 = wx.StaticBox(panel, label='Common Masses')
+        sbs5 = wx.StaticBoxSizer(sb5, orient=wx.VERTICAL)
+
+        importbutton2 = wx.Button(panel, label="Import from File")
+        self.Bind(wx.EVT_BUTTON, self.on_load_common_masses, importbutton2)
+
+        savecommonbutton = wx.Button(panel, label="Save Common Masses")
+        self.Bind(wx.EVT_BUTTON, self.on_save_common_masses, savecommonbutton)
+
+        addbutton4 = wx.Button(panel, label="Manual Add Species")
+        self.Bind(wx.EVT_BUTTON, self.on_add_new_common_mass, addbutton4)
+
+        sbs5.Add(importbutton2, 0, wx.EXPAND)
+        sbs5.Add(savecommonbutton, 0, wx.EXPAND)
+        sbs5.Add(addbutton4, 0, wx.EXPAND)
+        self.commonmassespanel = CommonMassesPanel(panel)
+
+        sbs5.Add(wx.StaticText(panel, label="Common Masses List"))
+        sbs5.Add(self.commonmassespanel)
+
+        hbox.Add(sbs5)
+
         panel.SetSizer(hbox)
 
         hboxend = wx.BoxSizer(wx.HORIZONTAL)
@@ -481,8 +679,39 @@ class MassSelection(wx.Dialog):
         if len(defaultmatchlist) == 4:
             self.matchlistbox.list.populate(defaultmatchlist[0], defaultmatchlist[1], defaultmatchlist[2],
                                             defaultmatchlist[3])
-
+        try:
+            self.load_common_masses(self.config.masstablefile)
+        except:
+            print "Unable to load common masses"
         self.CenterOnParent()
+
+    def on_common_to_oligo(self, e):
+        outdata = self.commonmassespanel.list.get_selection()
+        print outdata
+        for o in outdata:
+            print o
+            self.oligomerlistbox.list.add_line(0, o[1], 0, 1, o[0])
+
+    def on_add_new_common_mass(self, e):
+        self.commonmassespanel.list.add_line()
+
+    def on_save_common_masses(self, e):
+        outdata = self.commonmassespanel.list.get_list()
+        cmfilename = FileDialogs.save_file_dialog("Save Common Masses File", "*.csv*", self.config.masstablefile)
+        if cmfilename is not None:
+            np.savetxt(cmfilename, outdata, delimiter=",", fmt="%s")
+        print "Saving Common Masses to:", cmfilename
+
+    def on_load_common_masses(self, e):
+        cmfilename = FileDialogs.open_file_dialog("Open Common Masses File", file_types="*.csv*",
+                                                  default=self.config.masstablefile)
+        if cmfilename is not None:
+            self.load_common_masses(cmfilename)
+
+    def load_common_masses(self, file):
+        print "Loading Common Masses From File:", file
+        self.commonmasses = np.genfromtxt(file, delimiter=',', usecols=(0, 1, 2), dtype=str, skip_header=1)
+        self.commonmassespanel.list.populate(self.commonmasses[:, 0], self.commonmasses[:, 1], self.commonmasses[:, 2])
 
     def on_simulate(self, e):
         """
@@ -546,6 +775,9 @@ class MassSelection(wx.Dialog):
         except ValueError:
             tolerance = None
         oligomasslist, oligonames = ud.make_all_matches(oligos)
+        if ud.isempty(oligomasslist):
+            print "ERROR: Need to specify the Potential Oligomers"
+            return
         matchlist = ud.match(self.pks, oligomasslist, oligonames, tolerance=tolerance)
         self.matchlistbox.list.populate(matchlist[0], matchlist[1], matchlist[2], matchlist[3])
 
@@ -693,3 +925,15 @@ class MassSelection(wx.Dialog):
             if np.shape(importolig) == (5,) or np.shape(importolig) == (4,):
                 importolig = [importolig]
             self.oligomerlistbox.list.populate(importolig)
+
+
+# Main App Execution
+if __name__ == "__main__":
+    import unidec
+
+    eng = unidec.UniDec()
+    app = wx.App(False)
+    frame = MassSelection(None)
+    frame.init_dialog(eng.config, eng.pks, massdat=None)
+    frame.ShowModal()
+    app.MainLoop()

@@ -1,0 +1,64 @@
+Tris,121.14,Buffer
+Glycerol,92.09382,Buffer
+DMSO,78.13,Buffer
+Heme,616.487,Cofactor
+ATP,507.18,Cofactor
+ADP,427.201,Cofactor
+Tween 20,1228,Detergent
+Triton X-100,647,Detergent
+Sodium Deoxycholate,414.6,Detergent
+Sodium Cholate,430.6,Detergent
+OG,292.4,Detergent
+NP-40,603,Detergent
+Deoxycholate,392.572,Detergent
+DDM,510.6,Detergent
+Cholate ion ,408.5714,Detergent
+C8E4,306.5,Detergent
+CHAPS,614.88,Detergent
+Zn,65.38,Ion
+Na+,21.981944,Ion
+K+,37.955588,Ion
+Cu,61.921776,Ion
+2*Na+,43.963888,Ion
+2*K+,75.911176,Ion
+POPG,749.008,Lipid
+POPE,717.996,Lipid
+POPC,760.076,Lipid
+Cholesterol,386.6,Lipid
+Sulphation,80.0624,PTM
+Stearoylation,266.4674,PTM
+Pyroglutamic acid formed from Gln,-17.0306,PTM
+Pyridylethyleysteine (PE-Cys) from Cys (4-vinylpyridine),105.1393,PTM
+Pyridoxal phosphate (Schiff Base formed to lysine),231.1449,PTM
+Phosphorylation,79.9799,PTM
+Pentoses (Ara/Rib/Xyl),132.1161,PTM
+Retinylidene,266.42,PTM
+Palmitoylation,238.4136,PTM
+Oxidation of Met,15.9994,PTM
+N-glycolylneuraminic acid (NeuGc),307.2573,PTM
+N-acetylneuraminic acid (Sialic acid/NeuAc/NANA/SA),291.2579,PTM
+N-acetylhexosamines (GalNAc/GlcNAc),203.195,PTM
+Myristoylation,210.3598,PTM
+Methylation,14.0269,PTM
+Methionine Loss,-131.040485,PTM
+Lipoic acid (amide bond to lysine),188.3147,PTM
+Hydroxylation,15.9994,PTM
+Hexoses (Fru/Gal/Glc/Man),162.1424,PTM
+Hexosamines (GalN/GlcN),161.1577,PTM
+Gluthathionylation,305.3117,PTM
+Geranylgeranylation,272.4741,PTM
+Formylation,28.0104,PTM
+Farnesylation,204.3556,PTM
+Disulphide bond formation,-2.0159,PTM
+Deoxyhexoses (Fuc/Rha),146.143,PTM
+Deamidation of Asn and Gln,-0.9847,PTM
+Cysteinylation,119.1442,PTM
+C-terminal amide formed from Gly,-0.9847,PTM
+Carboxymethylcysteine (Cme) from Cys (iodoacetic acid),58.0367,PTM
+Carboxylation of Asp and Glu,44.0098,PTM
+Carboxyamidomethylcysteine (Cam) from Cys (iodoacetamide),57.052,PTM
+Biotinylation (amide bond to lysine),226.2994,PTM
+ADP-ribosylation (from NAD),541.3052,PTM
+Acetylation,42.0373,PTM
+5'-Adenosylation,329.2091,PTM
+4'-Phosphopantetheine,339.3294,PTM
