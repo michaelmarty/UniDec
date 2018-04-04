@@ -103,9 +103,12 @@ def parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr=None, outpu
                     group = msdataset.require_group(str(num))
                     replace_dataset(group, "raw_data", data=data)
                     # group=msdataset.require_group(str(v))
-                    if voltsarr[v] is not None:
-                        temp = int(t / timestep)
-                        group.attrs["Collision Voltage"] = voltsarr[v][temp]
+                    try:
+                        if voltsarr[v] is not None:
+                            temp = int(t / timestep)
+                            group.attrs["Collision Voltage"] = voltsarr[v][temp]
+                    except:
+                        pass
                     group.attrs["timestart"] = t
                     group.attrs["timeend"] = t + timestep
                     splits = string.split(path, sep="\\")
