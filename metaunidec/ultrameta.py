@@ -207,19 +207,20 @@ class DataCollector(wx.Frame):
 
         if __name__ == "__main__":
             # testdir = "C:\Python\UniDec\unidec_src\UniDec\\x64\Release"
-            try:
-                # testdir = "Z:\\Group Share\\Deseree\\Ciara\\Test"
-                # testfile = "collection2.json"
-                # testdir = "C:\\Data\\Triplicate Data"
-                testdir = "C:\Data\Guozhi"
-                # testdir = "Z:\Group Share\James Rohrbough\Peptide nanodiscs\D1T0 Mellitin\DMPC"
-                testfile = "collection1.json"
-                self.load(os.path.join(testdir, testfile))
-                # self.on_plot_all()
-                pass
-            except Exception, e:
-                print e
-                pass
+            if False:
+                try:
+                    # testdir = "Z:\\Group Share\\Deseree\\Ciara\\Test"
+                    # testfile = "collection2.json"
+                    # testdir = "C:\\Data\\Triplicate Data"
+                    testdir = "C:\Data\Guozhi"
+                    # testdir = "Z:\Group Share\James Rohrbough\Peptide nanodiscs\D1T0 Mellitin\DMPC"
+                    testfile = "collection1.json"
+                    self.load(os.path.join(testdir, testfile))
+                    # self.on_plot_all()
+                    pass
+                except Exception, e:
+                    print e
+                    pass
 
     def load_x_from_peaks(self, e=None, index=0):
         self.update_get(e)

@@ -231,6 +231,10 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.2.6.8
+
+Fixed bug with matching spectra in Oligomer and Mass Tools.
+
 v.2.6.7
 
 *Space+Middle Click* on any line plot will now automatically add peak annotation. Simply Space+Middle Click again to turn it off.

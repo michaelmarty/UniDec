@@ -1554,7 +1554,10 @@ def combine_all(array2):
         for i in range(0, len(index)):
             val = index[i] + startindex[i]
             if val > 0:
-                name = name + str(val) + "[" + names[i] + "] "
+                if names[i] == "":
+                    name = name + str(val)
+                else:
+                    name = name + str(val) + "[" + names[i] + "] "
             else:
                 pass
         total = np.sum((index + startindex) * omass + basemass)
@@ -1576,7 +1579,10 @@ def make_isolated_match(oligos):
             if newmass > 0:
                 oligomasslist.append(newmass)
                 if j > 0 or oligos[i][4] == "":
-                    oligonames.append(str(j) + "[" + oligos[i][4]) + "]"
+                    if oligos[i][4] == "":
+                        oligonames.append(str(j))
+                    else:
+                        oligonames.append(str(j) + "[" + oligos[i][4] + "]")
                 else:
                     oligonames.append("")
                     # self.oligonames.append(str(j)+""+oligos[i][4])
