@@ -72,6 +72,7 @@ Tools > Simple Batch Process Raw to Txt. For a fancier conversion such as extrac
 try Tools > Raw to Txt Conversion Wizard.
 
 Water's converters will need [MassLynxRaw.dll](https://www.waters.com/waters/support.htm?locale=en_GB&lid=134815627&cid=511442&type=DWNL) (32-bit, for MS) and/or [cdt.dll](https://www.waters.com/waters/support.htm?locale=en_GB&lid=134825112&cid=511442&type=DWNL) (64-bit, for IM-MS) in the same directory as the converter executables (the unidec_bin folder or the top directory).
+Note: Recent versions of these files may not work. I'm working on a fix, but in the meantime, please contact me for working files.
 
 Thermo .raw files can be read as you would a text file on Windows thanks to [multiplierz](https://github.com/BlaisProteomics/multiplierz). You will need [MSFileReader](https://thermo.flexnetoperations.com/control/thmo/download?element=6306677) installed. Please cite them (http://onlinelibrary.wiley.com/doi/10.1002/pmic.201700091/abstract). It will compress all scans together unless parsed with MetaUniDec. 
 
