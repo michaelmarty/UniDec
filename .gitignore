@@ -50,3 +50,4 @@ unidec_modules/fft_test.py
 unidec_src/UniDec/compilewin.bat
 unidec_src/UniDec/UniDec.pdb
 unidec_src/UniDec/compilewinpgcc.bat
+/unidec_modules/GridDecon2.py

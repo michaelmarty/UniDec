@@ -176,7 +176,10 @@ class Extract2DPlot(wx.Frame):
         try:
             self.on_total(0)
         except Exception, e:
-            self.on_next(0)
+            try:
+                self.on_next(0)
+            except:
+                pass
             print e
         self.Centre()
         self.Show(True)
@@ -444,12 +447,13 @@ class Extract2DPlot(wx.Frame):
 
 # Main App Execution
 if __name__ == "__main__":
+    #data3 = np.loadtxt(
+    #    "C:\UniDecPastedSpectra\PastedSpectrum_2017_Dec_11_11_30_45_unidecfiles\PastedSpectrum_2017_Dec_11_11_30_45_mass.txt")
     data3 = np.loadtxt(
-        "C:\UniDecPastedSpectra\PastedSpectrum_2017_Dec_11_11_30_45_unidecfiles\PastedSpectrum_2017_Dec_11_11_30_45_mass.txt")
-
+        "C:\Data\Others\Miranda\sample_data\MC_20170904_1to1_aB_C137S_11000_520_HCD300_CAL_unidecfiles\CorrectedMassData.txt")
     datalist = [data3]
 
     app = wx.App(False)
     frame = Extract2DPlot(None, datalist)
-    frame.run_multip("1,2,3,4,5,6")
+    #frame.run_multip("1,2,3,4,5,6")
     app.MainLoop()
