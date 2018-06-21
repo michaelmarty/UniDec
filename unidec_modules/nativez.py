@@ -474,7 +474,7 @@ class NativeZ(wx.Dialog):
 
             # Switch to subunit numbers
             if self.massoffset > 0:
-                xvals = np.round(xvals / self.massoffset)
+                xvals = np.round(np.array(xvals) / self.massoffset)
                 label = "Subunit Number"
             else:
                 label = "Mass (Da)"

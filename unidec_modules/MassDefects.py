@@ -7,6 +7,7 @@ from scipy.optimize import curve_fit
 from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows
 import unidec_modules.unidectools as ud
 from MassFitter import MassFitter
+import matplotlib.cm as cm
 
 __author__ = 'Michael.Marty'
 
@@ -42,6 +43,8 @@ class MassDefectWindow(wx.Frame):
             self.config.initialize()
             self.config.discreteplot = 0
             self.config.cmap = "jet"
+            self.config.peakcmap = "rainbow"
+            self.config.separation = 0.025
         else:
             self.config = config
 
@@ -92,13 +95,28 @@ class MassDefectWindow(wx.Frame):
         self.plot2 = plot2d.Plot2d(panel)
         self.plot3 = plot1d.Plot1d(panel)
         self.plot4 = plot1d.Plot1d(panel)
+
+        if self.datalist.shape[0] > 1:
+            self.flag2 = True
+            self.plot5 = plot1d.Plot1d(panel)
+            self.plot6 = plot2d.Plot2d(panel)
+        else:
+            self.flag2 = False
+            self.plot5 = None
+            self.plot6 = None
+
         sizer = wx.BoxSizer(wx.VERTICAL)
         plotsizer1 = wx.BoxSizer(wx.HORIZONTAL)
         plotsizer2 = wx.BoxSizer(wx.HORIZONTAL)
         plotsizer1.Add(self.plot1, 2, wx.EXPAND)
         plotsizer1.Add(self.plot4, 0, wx.EXPAND)
+
         plotsizer2.Add(self.plot2, 2, wx.EXPAND)
         plotsizer2.Add(self.plot3, 0, wx.EXPAND)
+
+        if self.flag2:
+            plotsizer1.Add(self.plot5, 0, wx.EXPAND)
+            plotsizer2.Add(self.plot6, 0, wx.EXPAND)
         sizer.Add(plotsizer1, 1, wx.EXPAND)
         sizer.Add(plotsizer2, 1, wx.EXPAND)
 
@@ -157,9 +175,11 @@ class MassDefectWindow(wx.Frame):
             self.makeplottotal(0)
         except Exception, e:
             self.on_next(0)
+
         self.Centre()
         # self.MakeModal(True)
         self.Show(True)
+        self.Raise()
 
     def on_close(self, e):
         """
@@ -196,6 +216,46 @@ class MassDefectWindow(wx.Frame):
         else:
             self.factor = self.m0
             self.xlab = "Mass"
+
+    def make_list_plots(self):
+        print self.igrids.shape
+        self.colormap = cm.get_cmap(self.config.peakcmap, len(self.datalist))
+        if self.colormap is None:
+            self.colormap = cm.get_cmap("rainbow", len(self.datalist))
+        self.peakcolors = self.colormap(np.arange(len(self.datalist)))
+
+        dat3=[]
+        for i, dat in enumerate(self.igrids):
+            dat2 = np.sum(dat, axis=0)
+            dat2=dat2-np.amin(dat2)
+            dat2/=np.amax(dat2)
+            dat3.append(dat2)
+            try:
+                if i == 0:
+                    self.plot5.plotrefreshtop(self.data1d[:, 0], dat2-self.config.separation*i, "All Data", "Mass Defect",
+                                              "Total Intensity", "", color=self.peakcolors[i], config=self.config)
+                else:
+                    self.plot5.plotadd(self.data1d[:, 0], dat2-self.config.separation*i, colval=self.peakcolors[i])
+            except Exception, e:
+                self.plot5.clear_plot()
+                print "Failed Plot 5", e
+        self.plot5.repaint()
+
+        dat3=np.array(dat3)
+        if self.yvals is None:
+            yvals=np.arange(0,len(self.datalist))
+        else:
+            yvals=self.yvals
+
+        m1grid, m2grid = np.meshgrid(self.data1d[:,0], yvals, indexing='ij')
+        data2 = np.transpose([np.ravel(m1grid), np.ravel(m2grid), np.ravel(dat3.transpose())])
+        try:
+            self.plot6.contourplot(data2, self.config, xlab="Mass Defect", ylab="Individual Spectra", title="", normflag=1)
+        except Exception, e:
+            self.plot6.clear_plot()
+            print "Failed Plot2", e
+
+        pass
 
     def makeplot(self):
         """
@@ -276,6 +336,7 @@ class MassDefectWindow(wx.Frame):
         igrids = np.array(igrids)
         igrids /= np.amax(igrids)
         sumgrid = np.sum(igrids, axis=0)
+        self.igrids = igrids
         data2d = np.transpose([np.ravel(m1grid), np.ravel(m2grid), np.ravel(sumgrid) / np.amax(sumgrid)])
         self.data1d = np.transpose([np.unique(m2grid), np.sum(sumgrid, axis=0)])
         # Save Results
@@ -311,6 +372,9 @@ class MassDefectWindow(wx.Frame):
         except Exception, e:
             self.plot4.clear_plot()
             print "Failed Plot 4", e
+
+        if self.flag2:
+            self.make_list_plots()
 
     def on_back(self, e):
         """
@@ -456,13 +520,13 @@ if __name__ == "__main__":
 
     data = np.loadtxt(path)
 
-    # dir = "C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3\\MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit120_unidecfiles"
-    # file = "MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit120_mass.txt"
+    dir = "C:\Python\UniDec\TestSpectra\\180_unidecfiles"
+    file = "180_mass.txt"
 
-    # path = os.path.join(dir, file)
+    path = os.path.join(dir, file)
 
-    # data2 = np.loadtxt(path)
-    datalist = [data]  # , data2]
+    data2 = np.loadtxt(path)
+    datalist = [data]#, data2]
 
     app = wx.App(False)
     frame = MassDefectWindow(None, datalist)

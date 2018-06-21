@@ -123,6 +123,7 @@ class TreeCtrlPanel(wx.Panel):
                 if add_lines is '':
                     print "add_lines is blank"
 
+                add_lines = unicode(add_lines, errors='ignore')
                 self.link.desc.SetValue(add_lines)
 
 
@@ -134,7 +135,10 @@ class TreeCtrlPanel(wx.Panel):
     def on_selected_changed(self, event):
         self.item = event.GetItem()
         if self.item:
-            self.raw_file_info(self.tree.GetItemData(self.item))
+            try:
+                self.raw_file_info(self.tree.GetItemData(self.item))
+            except Exception, e:
+                print "Error in file header decoding: ", e
         event.Skip()
 
 

@@ -232,6 +232,14 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.2.7.1
+
+Fixed Bug in Waters Import Wizard and UltraMeta Mass Defect plots.
+
+v.2.7.0
+
+Added 2D plots in Mass Defect tools for MetaUniDec.
+
 v.2.6.8
 
 Fixed bug with matching spectra in Oligomer and Mass Tools.
