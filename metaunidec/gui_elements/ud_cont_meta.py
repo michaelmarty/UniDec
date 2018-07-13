@@ -22,16 +22,16 @@ class main_controls(wx.Panel):
             self.A_bmp = wx.ArtProvider.GetBitmap(wx.ART_HELP_SETTINGS, wx.ART_TOOLBAR, tsize)
             try:
                 self.ud_bmp = wx.Bitmap(wx.Image(iconfile).Rescale(tsize[0], tsize[1]))
-            except Exception, ex:
+            except Exception as ex:
                 self.ud_bmp = wx.ArtProvider.GetBitmap(wx.ART_HELP_SETTINGS, wx.ART_TOOLBAR, tsize)
-                print ex
-        except Exception, ex:
+                print(ex)
+        except Exception as ex:
             self.open_bmp = None
             self.next_bmp = None
             self.report_bmp = None
             self.A_bmp = None
             self.ud_bmp = None
-            print ex
+            print(ex)
 
         # ..........................
         #
@@ -255,10 +255,12 @@ class main_controls(wx.Panel):
         self.ctlwindow = wx.TextCtrl(panel3, value="", size=size1)
         self.ctlthresh = wx.TextCtrl(panel3, value="", size=size1)
         self.ctlnorm = wx.RadioBox(panel3, label="Peak Normalization", choices=["None", "Max", "Total"])
-        self.ctlnorm2 = wx.RadioBox(panel3, label="Extract Normalization", choices=["None", "Max", "Sum","Peak Max","Peak Sum"], majorDimension=3, style=wx.RA_SPECIFY_COLS)
+        self.ctlnorm2 = wx.RadioBox(panel3, label="Extract Normalization",
+                                    choices=["None", "Max", "Sum", "Peak Max", "Peak Sum"], majorDimension=3,
+                                    style=wx.RA_SPECIFY_COLS)
         self.ctlextractwindow = wx.TextCtrl(panel3, value="", size=size1)
 
-        self.ctlextract = wx.ComboBox(panel3, value="Height", choices=self.parent.extractchoices.values(),
+        self.ctlextract = wx.ComboBox(panel3, value="Height", choices=list(self.parent.extractchoices.values()),
                                       style=wx.CB_READONLY)
 
         self.plotbutton = wx.Button(panel3, -1, "Peak Detection/Extraction")
@@ -422,12 +424,13 @@ class main_controls(wx.Panel):
                 self.ctl2dcm.SetSelection(self.config.cmaps2.index(self.config.cmap))
                 self.ctlpeakcm.SetSelection(self.config.cmaps.index(self.config.peakcmap))
             except ValueError:
-                print "Could not find the specified color map. Try upgrading to the latest version of matplotlib."
+                print("Could not find the specified color map. Try upgrading to the latest version of matplotlib.",
+                      self.config.cmap, self.config.peakcmap)
                 import matplotlib
-                print "Current version:", matplotlib.__version__
+                print("Current version:", matplotlib.__version__)
                 # Revert to the defaults
-                self.ctl2dcm.SetSelection(self.config.cmaps.index("nipy_spectral"))
-                self.ctlpeakcm.SetSelection(self.config.cmaps.index("rainbow"))
+                self.ctl2dcm.SetSelection(self.config.cmaps.index(u"nipy_spectral"))
+                self.ctlpeakcm.SetSelection(self.config.cmaps.index(u"rainbow"))
 
             try:
                 x = float(self.config.integratelb)
@@ -454,13 +457,17 @@ class main_controls(wx.Panel):
                     else:
                         self.parent.menu.advancedmenu.Check(id=401, check=True)
                 except:
-                    print "No Menu Found"
+                    print("No Menu Found")
 
-            if self.config.msig > 0:
-                self.parent.SetStatusText(
-                    "Oligomer Blur Mass: " + str(self.config.molig) + " Std Dev: " + str(self.config.msig),
-                    number=4)
-            else:
+            try:
+                self.config.msig = float(self.config.msig)
+                if self.config.msig > 0:
+                    self.parent.SetStatusText(
+                        "Oligomer Blur Mass: " + str(self.config.molig) + " Std Dev: " + str(self.config.msig),
+                        number=4)
+                else:
+                    self.parent.SetStatusText(" ", number=4)
+            except:
                 self.parent.SetStatusText(" ", number=4)
         # If the batchflag is not 1, it will import the data range as well
         if self.config.batchflag != 1:
@@ -518,9 +525,8 @@ class main_controls(wx.Panel):
         self.config.discreteplot = int(self.ctldiscrete.GetValue())
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
         self.config.rawflag = self.ctlrawflag.GetSelection()
-
-        self.config.cmap = self.ctl2dcm.GetStringSelection().encode('ascii')
-        self.config.peakcmap = self.ctlpeakcm.GetStringSelection().encode('ascii')
+        self.config.cmap = str(self.ctl2dcm.GetStringSelection())
+        self.config.peakcmap = str(self.ctlpeakcm.GetStringSelection())
         self.config.poolflag = self.ctlpoolflag.GetSelection()
 
         self.config.exnorm = self.ctlnorm2.GetSelection()
@@ -538,13 +544,16 @@ class main_controls(wx.Panel):
             self.config.minmz = 0
             self.config.maxmz = 1000000
 
-        if self.config.msig > 0:
-            self.parent.SetStatusText(
-                "Oligomer Blur Mass: " + str(self.config.molig) + " Std Dev: " + str(self.config.msig),
-                number=4)
-        else:
+        try:
+            self.config.msig = float(self.config.msig)
+            if self.config.msig > 0:
+                self.parent.SetStatusText(
+                    "Oligomer Blur Mass: " + str(self.config.molig) + " Std Dev: " + str(self.config.msig),
+                    number=4)
+            else:
+                self.parent.SetStatusText(" ", number=4)
+        except:
             self.parent.SetStatusText(" ", number=4)
-
 
         # noinspection PyPep8
 

@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 # base class for all plotting windows used in UniDec
 # contains basic setup functionality
 
@@ -122,7 +123,7 @@ class PlottingWindow(wx.Window):
                 try:
                     self.zoom.switch_label()
                 except:
-                    print "Could not switch on labels"
+                    print("Could not switch on labels")
         if event.button == 2:
             if wx.GetKeyState(wx.WXK_CONTROL):
                 dlg = DoubleInputDialog(self)
@@ -131,7 +132,7 @@ class PlottingWindow(wx.Window):
                 dlg.ShowModal()
                 rcname = dlg.value
                 rcval = dlg.value2
-                print rcname, rcval
+                print(rcname, rcval)
                 rcParams[rcname] = rcval
             elif wx.GetKeyState(wx.WXK_ALT):
                 dlg = DoubleInputDialog(self)
@@ -145,9 +146,9 @@ class PlottingWindow(wx.Window):
                     minval = float(minval)
                     maxval = float(maxval)
                     self.zoom.set_manual(minval, maxval)
-                    print "Manually Set Zoom:", minval, maxval
+                    print("Manually Set Zoom:", minval, maxval)
                 except:
-                    print "Error converting string to float:", minval, maxval
+                    print("Error converting string to float:", minval, maxval)
             elif wx.GetKeyState(wx.WXK_SHIFT):
                 dlg = DoubleInputDialog(self)
                 dlg.initialize_interface("Set Plot Y Range", "Min:", '',
@@ -160,14 +161,14 @@ class PlottingWindow(wx.Window):
                     minval = float(minval)
                     maxval = float(maxval)
                     self.zoom.set_manual_y(minval, maxval)
-                    print "Manually Set Zoom:", minval, maxval
+                    print("Manually Set Zoom:", minval, maxval)
                 except:
-                    print "Error converting string to float:", minval, maxval
+                    print("Error converting string to float:", minval, maxval)
             elif wx.GetKeyState(wx.WXK_SPACE):
                 try:
                     self.zoom.switch_label()
                 except:
-                    print "Could not switch on labels"
+                    print("Could not switch on labels")
             else:
                 self.on_save_fig_dialog(event)
 
@@ -208,7 +209,7 @@ class PlottingWindow(wx.Window):
         else:
             dpi = None
         self.figure.savefig(path, transparent=t, dpi=dpi)
-        print "Saved Figure: ", path
+        print("Saved Figure: ", path)
 
     def kda_test(self, xvals):
         """
@@ -318,12 +319,19 @@ class PlottingWindow(wx.Window):
         Sets tick colors based on the colormap set at self.cmap
         :return: None
         """
+        if self.cmap[:2] == "b'":
+            self.cmap = self.cmap[2:-1]
+        try:
+            self.cmap = str(self.cmap, encoding="utf-8")
+        except:
+            pass
 
-        output = cm.ScalarMappable(norm=None, cmap=self.cmap).to_rgba(0)
+        output = cm.ScalarMappable(norm=None, cmap=str(self.cmap)).to_rgba(0)
+
         if sum(output[:2]) > 0.9:
-            self.tickcolor = "black"
+            self.tickcolor = u"black"
         else:
-            self.tickcolor = "white"
+            self.tickcolor = u"white"
         '''
         if self.cmap[-1] == "r":
             self.tickcolor = "black"

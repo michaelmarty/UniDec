@@ -18,17 +18,17 @@ class meta_menu(wx.Menu):
         # File Menu
         self.openmenu = self.filemenu.Append(wx.ID_ANY, "Open File\tCtrl+O", "Open HDF5 file")
         self.filemenu.AppendSeparator()
-        self.wizardmenu=self.filemenu.Append(wx.ID_ANY, "Import Wizard\tCtrl+N", "Import Data Into HDF5 File")
+        self.wizardmenu = self.filemenu.Append(wx.ID_ANY, "Import Wizard\tCtrl+N", "Import Data Into HDF5 File")
         self.filemenu.AppendSeparator()
         self.filemenu2 = wx.Menu()
         self.newmenu = self.filemenu2.Append(wx.ID_ANY, "New File", "Create New Blank HDF5 file")
         self.addmenu = self.filemenu2.Append(wx.ID_ANY, "Add Data Files",
-                                            "Add data from individual text, mzml, or Thermo RAW files to current HDF5 file")
+                                             "Add data from individual text, mzml, or Thermo RAW files to current HDF5 file")
         self.menupastespectrum = self.filemenu2.Append(wx.ID_ANY, "Add Data From Clipboard",
                                                       "Add copied data from clipboard to current HDF5 file")
         self.menuexportdata = self.filemenu2.Append(wx.ID_ANY, "Export HDF5 to Text",
                                                       "Export data in HDF5 to individual text files")
-        self.filemenu.Append(wx.ID_ANY, "Manual File Operations", self.filemenu2)
+        self.filemenu.AppendSubMenu(self.filemenu2, "Manual File Operations")
         self.filemenu.AppendSeparator()
         self.filemenu3 = wx.Menu()
         self.importmenu = self.filemenu3.Append(wx.ID_ANY, "Auto Import Chromatogram By Time",
@@ -39,7 +39,7 @@ class meta_menu(wx.Menu):
                                                "Import mzML or Thermo RAW Ramps to HDF5 files")
         self.importmenu4 = self.filemenu3.Append(wx.ID_ANY, "Auto Import Multiple Chromatograms By Range of Scans",
                                                 "Import mzML or Thermo RAW Ramps to HDF5 files")
-        self.filemenu.Append(wx.ID_ANY, "Automated Chromatogram Parsing", self.filemenu3)
+        self.filemenu.AppendSubMenu(self.filemenu3, "Automated Chromatogram Parsing")
         self.filemenu.AppendSeparator()
 
         # Default Submenu
@@ -48,7 +48,7 @@ class meta_menu(wx.Menu):
         self.menuvar2name = self.varmenu.Append(wx.ID_ANY, "Rename Variable 2", "Rename Variable 1")
         self.menuvar1import = self.varmenu.Append(wx.ID_ANY, "Import Variable Metadata", "Import Variable Metadata")
         self.menuvar1export = self.varmenu.Append(wx.ID_ANY, "Export Variable Metadata", "Export Variable Metadata")
-        self.filemenu.Append(wx.ID_ANY, "Variables", self.varmenu)
+        self.filemenu.AppendSubMenu(self.varmenu, "Variables")
         self.filemenu.AppendSeparator()
 
         self.menuLoad = self.filemenu.Append(wx.ID_ANY, "Load External Config File", "Load in a configuration file")
@@ -68,7 +68,7 @@ class meta_menu(wx.Menu):
                                                     "Defaults for isotopically resolved data.")
         self.menuDefault4 = self.defaultmenu.Append(1003, "Nanodiscs",
                                                     "Defaults for POPC Nanodiscs.")
-        self.filemenu.Append(wx.ID_ANY, "Presets", self.defaultmenu)
+        self.filemenu.AppendSubMenu(self.defaultmenu, "Presets")
         self.filemenu.AppendSeparator()
 
         self.menufigdialog = self.filemenu.Append(wx.ID_ANY, "Save Figure As",
@@ -82,7 +82,7 @@ class meta_menu(wx.Menu):
         self.menuSaveFigure1 = self.figmenu.Append(wx.ID_ANY, "Save Figures as .eps", "Save all figures to .eps format")
         self.menuSaveFigure2 = self.figmenu.Append(wx.ID_ANY, "Save Figures as .png", "Save all figures to .png format")
 
-        self.filemenu.Append(wx.ID_ANY, 'Save Figure Presets', self.figmenu)
+        self.filemenu.AppendSubMenu(self.figmenu, 'Save Figure Presets')
         self.filemenu.AppendSeparator()
 
         self.menuAbout = self.filemenu.Append(wx.ID_ABOUT, "&About", " Information about this program")
@@ -119,7 +119,8 @@ class meta_menu(wx.Menu):
         # Setting up Analysis Menu
         self.animatemenu = wx.Menu()
 
-        self.menuanimate1 = self.animatemenu.Append(wx.ID_ANY, "Animate Zero-Charge Spectra", "Animate 1D plots of zero-charge spectra")
+        self.menuanimate1 = self.animatemenu.Append(wx.ID_ANY, "Animate Zero-Charge Spectra",
+                                                    "Animate 1D plots of zero-charge spectra")
         self.menuanimate15 = self.animatemenu.Append(wx.ID_ANY, "Animate Annotated Zero-Charge Spectra",
                                                      "Animate 1D plots of zero-charge mass spectra with markers")
         self.menuanimate2 = self.animatemenu.Append(wx.ID_ANY, "Animate Mass Spectra",
@@ -130,7 +131,7 @@ class meta_menu(wx.Menu):
                                                      "Animate 2D plots of mass vs. charge")
         self.menuanimate4 = self.animatemenu.Append(wx.ID_ANY, "Animate m/z v. Charge Grid",
                                                      "Animate 1D plots of m/z vs charge")
-        self.analysismenu.Append(wx.ID_ANY, "Animate", self.animatemenu)
+        self.analysismenu.AppendSubMenu(self.animatemenu, "Animate")
         self.analysismenu.AppendSeparator()
         self.menukendrick = self.analysismenu.Append(wx.ID_ANY, "Kendrick Mass Tools\tCtrl+K", "Kendrick Mass Analysis")
         self.menu2Dgrid = self.analysismenu.Append(wx.ID_ANY, "2D Grid Analysis", "2D Grid Analysis")
@@ -166,7 +167,8 @@ class meta_menu(wx.Menu):
             self.advancedmenu.Append(401, "Best Mode", "Best UniDec Deconvolution Algorithm", wx.ITEM_RADIO)
             self.advancedmenu.Append(402, "Auto Baseline", "Experimental version with automatic baseline fitting",
                                      wx.ITEM_RADIO)
-            self.advancedmenu.Append(403, "Auto Baseline Subtract", "Experimental Version with automatic baseline subtraction", wx.ITEM_RADIO)
+            self.advancedmenu.Append(403, "Auto Baseline Subtract",
+                                     "Experimental Version with automatic baseline subtraction", wx.ITEM_RADIO)
             self.parent.Bind(wx.EVT_MENU, self.menu_401_403, id=401)
             self.parent.Bind(wx.EVT_MENU, self.menu_401_403, id=402)
             self.parent.Bind(wx.EVT_MENU, self.menu_401_403, id=403)
@@ -187,7 +189,8 @@ class meta_menu(wx.Menu):
         #self.analysismenu.AppendSeparator()
         self.menuDC = self.experimentalmenu.Append(wx.ID_ANY, "Data Collector and KD Fitting")
         self.experimentalmenu.AppendSeparator()
-        self.autoformat = self.experimentalmenu.Append(wx.ID_ANY, "Auto Format Monomer/Dimer", "Mark matched monomers and dimers automatically")
+        self.autoformat = self.experimentalmenu.Append(wx.ID_ANY, "Auto Format Monomer/Dimer",
+                                                       "Mark matched monomers and dimers automatically")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_autoformat, self.autoformat)
 
         #self.menuAdditionalParameters = self.experimentalmenu.Append(wx.ID_ANY, "Additional Parameters",
@@ -209,7 +212,7 @@ class meta_menu(wx.Menu):
         self.additionalfilters = self.contmenu.Append(wx.ID_ANY, "Additional Filters/Restraints")
         self.peakselection = self.contmenu.Append(wx.ID_ANY, "Peak Selection, Extraction, and Plotting")
         self.additionalplotting = self.contmenu.Append(wx.ID_ANY, "Additional Plotting Parameters")
-        self.helpmenu.Append(wx.ID_ANY, "UniDec Controls", self.contmenu)
+        self.helpmenu.AppendSubMenu(self.contmenu, "UniDec Controls")
         self.additionaltoolsmenu = wx.Menu()
         self.autoimport = self.additionaltoolsmenu.Append(wx.ID_ANY, "Auto Import Chromatograms")
         self.presets = self.additionaltoolsmenu.Append(wx.ID_ANY, "Presets")
@@ -224,7 +227,7 @@ class meta_menu(wx.Menu):
         self.fft = self.additionaltoolsmenu.Append(wx.ID_ANY, "FFT Window")
         self.additionaltoolsmenu.AppendSeparator()
         self.baseline = self.additionaltoolsmenu.Append(wx.ID_ANY, "Baseline")
-        self.helpmenu.Append(wx.ID_ANY, "Other Useful Tools", self.additionaltoolsmenu)
+        self.helpmenu.AppendSubMenu(self.additionaltoolsmenu, "Other Useful Tools")
         # Set Events for Menu Bar
 
         # File Menu
@@ -365,4 +368,4 @@ class meta_menu(wx.Menu):
             self.config.aggressiveflag = 1
         if event_id == 403:
             self.config.aggressiveflag = 2
-        print self.config.aggressiveflag
+        print(self.config.aggressiveflag)

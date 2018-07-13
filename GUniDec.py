@@ -1,7 +1,7 @@
 import time
 
 import os
-import thread
+import _thread
 import wx
 import numpy as np
 import unidec
@@ -75,6 +75,7 @@ class UniDecApp(UniDecPres):
         if False and platform.node() == "DESKTOP-R236BN2":
             # fname = "HSPCID.txt"
             fname = "0.txt"
+            fname = "test.raw"
             # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
             newdir = os.path.join(os.getcwd(), "TestSpectra")
             # newdir = "C:\\cprog\\UniDecDemo"
@@ -104,9 +105,9 @@ class UniDecApp(UniDecPres):
         if dlg.ShowModal() == wx.ID_OK:
             self.view.SetStatusText("Opening", number=5)
             self.eng.config.filename = dlg.GetFilename()
-            print "Opening: ", self.eng.config.filename
+            print("Opening: ", self.eng.config.filename)
             if os.path.splitext(self.eng.config.filename)[1] == ".zip":
-                print "Can't open zip, try Load State."
+                print("Can't open zip, try Load State.")
                 return
             self.eng.config.dirname = dlg.GetDirectory()
             self.on_open_file(self.eng.config.filename, self.eng.config.dirname)
@@ -131,10 +132,10 @@ class UniDecApp(UniDecPres):
         self.view.SetStatusText("File: " + filename, number=1)
         # print self.view.imflag, self.eng.config.imflag
         if self.view.imflag != self.eng.config.imflag:
-            print "Changing Modes"
+            print("Changing Modes")
             self.on_flip_mode(0)
         self.view.SetStatusText("Data Length: " + str(len(self.eng.data.data2)), number=2)
-        self.view.SetStatusText(u"R\u00B2 ", number=3)
+        self.view.SetStatusText("R\u00B2 ", number=3)
         # Update view with data limits
         if self.eng.config.batchflag != 1:
             self.view.controls.ctlminmz.SetValue(str(np.amin(self.eng.data.data2[:, 0])))
@@ -179,15 +180,15 @@ class UniDecApp(UniDecPres):
         """
         if filenew is None:
             filenew = FileDialogs.open_file_dialog(message="Select UniDec Zip File to Open", file_types="*.zip")
-            print filenew
+            print(filenew)
         if filenew is not None:
             # Reset GUI
             self.on_reset(0)
             self.view.SetStatusText("Loading", number=5)
-            tstart = time.clock()
+            tstart = time.perf_counter()
             dirname, filename = os.path.split(filenew)
             self.view.SetStatusText("File: " + filename, number=1)
-            self.view.SetStatusText(u"R\u00B2 ", number=3)
+            self.view.SetStatusText("R\u00B2 ", number=3)
             self.view.SetStatusText("Data Length: ", number=2)
             # Load Into Engine and Presenter
             self.eng.load_state(filenew)
@@ -213,8 +214,8 @@ class UniDecApp(UniDecPres):
                 self.eng.config.matchlist = np.transpose(
                     np.genfromtxt(self.eng.config.matchfile, dtype='str', delimiter=","))
 
-            tend = time.clock()
-            print "Loading Time: %.2gs" % (tend - tstart)
+            tend = time.perf_counter()
+            print("Loading Time: %.2gs" % (tend - tstart))
             self.view.SetStatusText("Ready", number=5)
         pass
 
@@ -232,17 +233,17 @@ class UniDecApp(UniDecPres):
         if self.eng.config.imflag == 1:
             if int(self.view.controls.ctlconvertflag.GetValue()) == 1:
                 binsize = str(ud.string_to_value(self.view.controls.ctlbinsize.GetValue()))
-                print "Converting at resolution of: " + binsize
+                print("Converting at resolution of: " + binsize)
             else:
                 binsize = "0"
-                print "Converting using full resolution"
+                print("Converting using full resolution")
         else:
             binsize = None
 
         if self.eng.config.dirname is not None:
             self.view.SetStatusText("Converting", number=5)
             self.eng.config.dirname = os.path.abspath(self.eng.config.dirname)
-            print "Loading Raw File: ", self.eng.config.dirname
+            print("Loading Raw File: ", self.eng.config.dirname)
             self.eng.config.filename, self.eng.config.dirname = self.eng.raw_process(self.eng.config.dirname, True,
                                                                                      binsize=binsize)
             if self.eng.config.filename is not None:
@@ -285,12 +286,12 @@ class UniDecApp(UniDecPres):
                 os.chdir(newdir)
                 fname = "PastedSpectrum_" + str(time.strftime("%Y_%b_%d_%H_%M_%S")) + ".txt"
                 np.savetxt(fname, data)
-                print "Saved Pasted Spectrum as File:", fname, " in directory:", newdir
+                print("Saved Pasted Spectrum as File:", fname, " in directory:", newdir)
                 self.on_open_file(fname, newdir)
             else:
-                print "Paste failed, got: ", data
-        except Exception, e:
-            print e
+                print("Paste failed, got: ", data)
+        except Exception as e:
+            print(e)
             wx.MessageBox("Unable to open the clipboard", "Error")
 
     # ..........................
@@ -305,7 +306,7 @@ class UniDecApp(UniDecPres):
         :param e: unused space for event
         :return: None
         """
-        tstart = time.clock()
+        tstart = time.perf_counter()
         self.view.SetStatusText("Data Prep", number=5)
         self.export_config(self.eng.config.confname)
         self.eng.process_data()
@@ -325,9 +326,9 @@ class UniDecApp(UniDecPres):
         self.view.plot1.repaint()
 
         self.view.SetStatusText("Data Length: " + str(len(self.eng.data.data2)), number=2)
-        self.view.SetStatusText(u"R\u00B2 ", number=3)
+        self.view.SetStatusText("R\u00B2 ", number=3)
         self.view.SetStatusText("Data Prep Done", number=5)
-        tend = time.clock()
+        tend = time.perf_counter()
         # print "Data Prep Done. Time: %.2gs" % (tend - tstart)
         pass
 
@@ -353,7 +354,7 @@ class UniDecApp(UniDecPres):
             self.view.SetStatusText("UniDec Done %.2gs" % self.eng.config.runtime, number=5)
         else:
             self.view.SetStatusText("Error %.0g" % out, number=5)
-            print "Error ", out
+            print("Error ", out)
             self.warn("Error %.0g" % out)
         pass
 
@@ -370,15 +371,15 @@ class UniDecApp(UniDecPres):
                 self.makeplot3(1)
                 self.makeplot5(1)
             else:
-                thread.start_new_thread(self.makeplot3, (1,))
-                thread.start_new_thread(self.makeplot5, (1,))
+                _thread.start_new_thread(self.makeplot3, (1,))
+                _thread.start_new_thread(self.makeplot5, (1,))
                 self.makeplot1(1)
                 self.makeplot2(1)
         else:
             self.view.SetStatusText("UniDec Plot", number=5)
             self.make_im_plots()
 
-        self.view.SetStatusText(u"R\u00B2: " + str(self.eng.config.error), number=3)
+        self.view.SetStatusText("R\u00B2: " + str(self.eng.config.error), number=3)
 
         self.view.plot4.clear_plot()
         self.view.plot6.clear_plot()
@@ -390,7 +391,7 @@ class UniDecApp(UniDecPres):
         :param e: unused space for event
         :return: None
         """
-        print "Peak Picking"
+        print("Peak Picking")
         self.view.SetStatusText("Detecting Peaks", number=5)
         self.export_config(self.eng.config.confname)
         self.eng.pick_peaks()
@@ -413,15 +414,15 @@ class UniDecApp(UniDecPres):
         """
         self.view.SetStatusText("Convolving", number=5)
         self.export_config(None)
-        tstart = time.clock()
+        tstart = time.perf_counter()
         self.eng.convolve_peaks()
-        tend = time.clock()
-        print "Convolving: %.2gs" % (tend - tstart)
+        tend = time.perf_counter()
+        print("Convolving: %.2gs" % (tend - tstart))
         self.view.SetStatusText("Plotting", number=5)
         self.makeplot4(1)
         self.export_config(self.eng.config.confname)
         self.view.SetStatusText("Peak Plot Done", number=5)
-        print "peak plotting"
+        print("peak plotting")
         pass
 
     def on_peak_errors(self, e=None):
@@ -430,7 +431,7 @@ class UniDecApp(UniDecPres):
         :param e: unused space for event
         :return: None
         """
-        print "Getting Errors"
+        print("Getting Errors")
         self.eng.get_errors()
         for p in self.eng.pks.peaks:
 
@@ -467,7 +468,7 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         if self.eng.config.batchflag == 0:
-            tstart = time.clock()
+            tstart = time.perf_counter()
             if self.eng.config.imflag == 1:
                 self.view.plot1fit.contourplot(self.eng.data.fitdat2d, self.eng.config, xlab="m/z (Th)",
                                                ylab="Arrival Time (ms)", title="IM-MS Fit")
@@ -480,8 +481,8 @@ class UniDecApp(UniDecPres):
             if self.eng.config.aggressiveflag != 0 and len(self.eng.data.baseline) == len(self.eng.data.fitdat):
                 self.view.plot1.plotadd(self.eng.data.data2[:, 0], self.eng.data.baseline, 'blue', "Baseline")
             self.view.plot1.add_legend()
-            tend = time.clock()
-            print "Plot 1: %.2gs" % (tend - tstart)
+            tend = time.perf_counter()
+            print("Plot 1: %.2gs" % (tend - tstart))
 
     def makeplot2(self, e=None):
         """
@@ -490,7 +491,7 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         if self.eng.config.batchflag == 0:
-            tstart = time.clock()
+            tstart = time.perf_counter()
             self.view.plot2.plotrefreshtop(self.eng.data.massdat[:, 0], self.eng.data.massdat[:, 1],
                                            "Zero-charge Mass Spectrum", "Mass (Da)",
                                            "Intensity", "Mass Distribution", self.eng.config, test_kda=True)
@@ -499,8 +500,8 @@ class UniDecApp(UniDecPres):
                     if p.ignore == 0:
                         self.view.plot2.plotadddot(p.mass, p.height, p.color, p.marker)
             self.view.plot2.repaint()
-            tend = time.clock()
-            print "Plot 2: %.2gs" % (tend - tstart)
+            tend = time.perf_counter()
+            print("Plot 2: %.2gs" % (tend - tstart))
 
     def makeplot3(self, e=None):
         """
@@ -509,10 +510,10 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         if self.eng.config.batchflag == 0:
-            tstart = time.clock()
+            tstart = time.perf_counter()
             self.view.plot3.contourplot(self.eng.data.mzgrid, self.eng.config)
-            tend = time.clock()
-            print "Plot 3: %.2gs" % (tend - tstart)
+            tend = time.perf_counter()
+            print("Plot 3: %.2gs" % (tend - tstart))
 
     def makeplot4(self, e=None):
         """
@@ -523,7 +524,7 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         if self.eng.config.batchflag == 0:
-            tstart = time.clock()
+            tstart = time.perf_counter()
             self.view.plot4.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1],
                                            "Data with Offset Isolated Species", "m/z (Th)",
                                            "Normalized and Offset Intensity", "Data", self.eng.config, nopaint=True)
@@ -555,8 +556,8 @@ class UniDecApp(UniDecPres):
                             num + 1) * self.eng.config.separation, p.color, "useless label")
                     num += 1
             self.view.plot4.repaint()
-            tend = time.clock()
-            print "Plot 4: %.2gs" % (tend - tstart)
+            tend = time.perf_counter()
+            print("Plot 4: %.2gs" % (tend - tstart))
 
     def makeplot5(self, e=None):
         """
@@ -565,12 +566,12 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         if self.eng.config.batchflag == 0:
-            tstart = time.clock()
+            tstart = time.perf_counter()
             self.view.plot5.contourplot(
                 xvals=self.eng.data.massdat[:, 0], yvals=self.eng.data.ztab, zgrid=self.eng.data.massgrid,
                 config=self.eng.config, title="Mass vs. Charge", test_kda=True)
-            tend = time.clock()
-            print "Plot 5: %.2gs" % (tend - tstart)
+            tend = time.perf_counter()
+            print("Plot 5: %.2gs" % (tend - tstart))
 
     def makeplot6(self, e=None, show="height"):
         """
@@ -596,7 +597,7 @@ class UniDecApp(UniDecPres):
                             ints.append(p.integral)
                         cols.append(p.color)
                         labs.append(p.label)
-                self.view.plot6.barplottop(range(0, num), ints, labs, cols, "Species", "Intensity", "Peak Intensities",
+                self.view.plot6.barplottop(list(range(0, num)), ints, labs, cols, "Species", "Intensity", "Peak Intensities",
                                            repaint=False)
             for i in range(0, self.eng.pks.plen):
                 p = self.eng.pks.peaks[i]
@@ -618,14 +619,14 @@ class UniDecApp(UniDecPres):
         """
         try:
             self.eng.pks.composite = np.zeros(len(self.eng.data.data2))
-            for i in xrange(0, self.eng.pks.plen):
+            for i in range(0, self.eng.pks.plen):
                 if self.eng.pks.peaks[i].ignore == 0:
                     self.eng.pks.composite += self.eng.pks.peaks[i].stickdat
 
             self.view.plot4.plotadd(self.eng.data.data2[:, 0], self.eng.pks.composite, "b", "useless label")
             self.view.plot4.repaint()
         except ValueError:
-            print "Need to hit Plot Species button first"
+            print("Need to hit Plot Species button first")
 
     def make_im_plots(self):
         """
@@ -648,12 +649,12 @@ class UniDecApp(UniDecPres):
             self.view.plot5ccsz.contourplot(
                 np.transpose([np.ravel(ccsgrid2), np.ravel(zgrid2), np.ravel(self.eng.data.ccsz)]), self.eng.config,
                 xlab="Charge", ylab="CCS (${\AA}$$^2$)", title="CCS vs. Charge")
-            print "Made IM Plots"
+            print("Made IM Plots")
             try:
                 self.view.plot3color.make_color_plot(self.eng.data.mztgrid, np.unique(self.eng.data.data3[:, 0]),
                                                      np.unique(self.eng.data.data3[:, 1]), self.eng.data.ztab)
-            except Exception, e:
-                print "Color Plot Error", e
+            except Exception as e:
+                print("Color Plot Error", e)
 
     def on_plot_nativeccs(self, e=None):
         """
@@ -666,7 +667,7 @@ class UniDecApp(UniDecPres):
             self.view.plot5mccs.subplot1.plot(self.eng.data.massdat[:, 0] / self.view.plot5mccs.kdnorm, ccses,
                                               color="r")
             self.view.plot5mccs.repaint()
-            print "Plotted predicted native CCS values"
+            print("Plotted predicted native CCS values")
 
     def on_replot(self, e=None):
         """
@@ -697,28 +698,28 @@ class UniDecApp(UniDecPres):
         """
         self.export_config(self.eng.config.confname)
         try:
-            starttime = time.clock()
+            starttime = time.perf_counter()
             self.view.plot9.cubeplot(np.unique(self.eng.data.data3[:, 0]), np.unique(self.eng.data.data3[:, 1]),
                                      self.eng.data.ztab, np.sum(self.eng.data.mztgrid, axis=2),
                                      np.sum(self.eng.data.mztgrid, axis=1), np.sum(self.eng.data.mztgrid, axis=0),
                                      xlab="m/z (Th)", ylab="Arrival Time (ms)", zlab="Charge",
                                      cmap=self.eng.config.cmap)
-            endtime = time.clock()
-            print "Finished m/z Cube in: ", (endtime - starttime), " s"
-        except Exception, ex:
-            print "Failed m/z cube", ex
+            endtime = time.perf_counter()
+            print("Finished m/z Cube in: ", (endtime - starttime), " s")
+        except Exception as ex:
+            print("Failed m/z cube", ex)
             pass
         try:
-            starttime = time.clock()
+            starttime = time.perf_counter()
             self.view.plot10.cubeplot(self.eng.data.massdat[:, 0], self.eng.data.ccsdata[:, 0], self.eng.data.ztab,
                                       self.eng.data.massccs, self.eng.data.massgrid.reshape(
                     (len(self.eng.data.massdat), len(self.eng.data.ztab))), self.eng.data.ccsz.transpose(),
                                       xlab="Mass (Da)",
                                       ylab="CCS (${\AA}$$^2$)", zlab="Charge", cmap=self.eng.config.cmap)
-            endtime = time.clock()
-            print "Finished Final Cube in: ", (endtime - starttime), " s"
-        except Exception, ex:
-            print "Failed final cube", ex
+            endtime = time.perf_counter()
+            print("Finished Final Cube in: ", (endtime - starttime), " s")
+        except Exception as ex:
+            print("Failed final cube", ex)
             pass
 
     def on_autoformat(self,e=None):
@@ -784,9 +785,9 @@ class UniDecApp(UniDecPres):
         :param e: unused event
         :return: None
         """
-        print "Tranforming charge to charge offset..."
+        print("Tranforming charge to charge offset...")
         oaxis, outgrid = self.eng.mass_grid_to_f_grid()
-        print "Plotting offsets"
+        print("Plotting offsets")
         self.view.plot5.contourplot(xvals=self.eng.data.massdat[:, 0], yvals=oaxis, zgrid=outgrid,
                                     config=self.eng.config,
                                     ylab="Charge Offset", title="Mass vs. Charge Offset", test_kda=True)
@@ -849,7 +850,7 @@ class UniDecApp(UniDecPres):
 
         # Run Integration
         if limits[0] <= np.amin(self.eng.data.massdat[:, 0]) and limits[1] >= np.amax(self.eng.data.massdat[:, 0]):
-            print "Auto Integrating"
+            print("Auto Integrating")
             self.eng.autointegrate()
         else:
             integral = self.eng.integrate(limits)
@@ -865,7 +866,7 @@ class UniDecApp(UniDecPres):
                 i = np.argmin((self.eng.pks.masses - peak) ** 2)
                 self.eng.pks.peaks[i].integral = integral
                 self.eng.pks.peaks[i].integralrange = limits
-                print "Differences: ", limits - self.eng.pks.peaks[i].mass
+                print("Differences: ", limits - self.eng.pks.peaks[i].mass)
 
             else:
                 boo1 = self.eng.data.massdat[:, 0] < limits[1]
@@ -893,8 +894,8 @@ class UniDecApp(UniDecPres):
             self.view.peakpanel.add_data(self.eng.pks, show="integral")
             try:
                 self.makeplot6(1, show="integral")
-            except Exception, ex:
-                print "Didn't update bar chart", ex
+            except Exception as ex:
+                print("Didn't update bar chart", ex)
                 pass
         pass
 
@@ -904,7 +905,7 @@ class UniDecApp(UniDecPres):
         Smashes the zoomed region to 0. Used to eliminate unwanted peaks.
         :return: None
         """
-        print "Smashing!"
+        print("Smashing!")
         self.export_config(None)
         limits = self.view.plot1.subplot1.get_xlim()
         bool1 = self.eng.data.data2[:, 0] > limits[0]
@@ -924,7 +925,7 @@ class UniDecApp(UniDecPres):
             self.view.plot1.add_legend()
         self.view.plot1.repaint()
 
-        self.view.SetStatusText(u"R\u00B2 ", number=3)
+        self.view.SetStatusText("R\u00B2 ", number=3)
         message = "Smashing peaks from " + str(limits[0]) + " to " + str(limits[1]) + "\nReprocess data to undo"
         self.warn(message)
         pass
@@ -950,8 +951,8 @@ class UniDecApp(UniDecPres):
         self.makeplot4(0)
         self.makeplot6(0)
         cavg, cstd = ud.center_of_mass(cdat)
-        print "Weighted average charge state:", cavg
-        print "Weighted standard deviation:", cstd
+        print("Weighted average charge state:", cavg)
+        print("Weighted standard deviation:", cstd)
 
     # ..................................
     #
@@ -967,21 +968,21 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         if not (self.eng.config.system == "Windows"):
-            print "Sorry. Waters Raw file converter only works on windows. Convert to txt file on a seperate machine."
+            print("Sorry. Waters Raw file converter only works on windows. Convert to txt file on a seperate machine.")
             return None
             # self.eng.config.dirname="C:\\MassLynx\\"
             # if(not os.path.isdir(self.eng.config.dirname)):
         self.eng.config.dirname = ''
         if dirs is None:
             dirs = FileDialogs.open_multiple_dir_dialog("Select Raw Folders", self.eng.config.dirname)
-        print dirs
+        print(dirs)
         if dirs is not None:
             for d in dirs:
                 if clip:
                     d = 'C:\\' + d[15:]
                 self.eng.raw_process(d, False)
 
-        print "Batch Converted"
+        print("Batch Converted")
         pass
 
     def on_mass_tools(self, e=None, show=True):
@@ -1013,7 +1014,7 @@ class UniDecApp(UniDecPres):
                 self.eng.config.matchlist = []
 
         if self.eng.pks.changed == 1:
-            print "Simulating Peaks"
+            print("Simulating Peaks")
             mztab = ud.make_peaks_mztab(self.eng.data.mzgrid, self.eng.pks, self.eng.config.adductmass)
             ud.make_peaks_mztab_spectrum(self.eng.data.mzgrid, self.eng.pks, self.eng.data.data2, mztab)
             self.view.peakpanel.add_data(self.eng.pks)
@@ -1052,7 +1053,7 @@ class UniDecApp(UniDecPres):
             self.eng.config.UniDecName = dlg.GetFilename()
             self.eng.config.UniDecDir = dlg.GetDirectory()
             self.eng.config.UniDecPath = os.path.join(self.eng.config.UniDecDir, self.eng.config.UniDecName)
-            print "New Path:", self.eng.config.UnIDecPath
+            print("New Path:", self.eng.config.UnIDecPath)
         dlg.Destroy()
 
     def on_file_name(self, e=None):
@@ -1103,7 +1104,7 @@ class UniDecApp(UniDecPres):
                 else:
                     self.export_config()
         else:
-            print "Load Data First"
+            print("Load Data First")
         pass
 
     def on_im_extract(self, e=None):
@@ -1116,7 +1117,7 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         if not ud.isempty(self.eng.data.ccsdata):
-            print "Running UniDec to Generate Outputs"
+            print("Running UniDec to Generate Outputs")
             self.eng.config.zout = -1
             self.export_config(self.eng.config.confname)
             ud.unidec_call(self.eng.config)
@@ -1143,10 +1144,10 @@ class UniDecApp(UniDecPres):
         """
         try:
             self.view.on_save_figure_png(e, transparent=False)
-        except Exception, ex:
-            print "Couldn't make figures for Twitter", ex
+        except Exception as ex:
+            print("Couldn't make figures for Twitter", ex)
         os.environ['REQUESTS_CA_BUNDLE'] = os.path.join(self.eng.config.UniDecDir, 'cacert.pem')
-        print "Will look for file: ", os.path.join(self.eng.config.UniDecDir, 'cacert.pem')
+        print("Will look for file: ", os.path.join(self.eng.config.UniDecDir, 'cacert.pem'))
         tweetwindow = twitter_interface.TwitterWindow(self.view, pngs=self.view.pngs, codes=self.twittercodes,
                                                       imflag=self.eng.config.imflag)
         tweetwindow.ShowModal()
@@ -1219,9 +1220,9 @@ class UniDecApp(UniDecPres):
             else:
                 coeff = None
             self.eng.data.rawdata = ud.cal_data(self.eng.data.rawdata, coeff)
-            print "Calibration Success! Polynomial Coefficients (order = n to 0):", coeff
-        except Exception, e:
-            print "Calibration failed:", e
+            print("Calibration Success! Polynomial Coefficients (order = n to 0):", coeff)
+        except Exception as e:
+            print("Calibration failed:", e)
 
     def on_center_of_mass(self, e=None):
         """
@@ -1238,11 +1239,11 @@ class UniDecApp(UniDecPres):
             limits = np.array(limits) * self.view.plot2.kdnorm
             # print "limits", limits
             com, std = self.eng.center_of_mass(limits=limits)
-            print "Center of Mass over region", limits, ":", com
+            print("Center of Mass over region", limits, ":", com)
             self.view.plot2.addtext(str(com), com, 0.99 * np.amax(self.eng.data.massdat[:, 1]))
             self.view.plot2.repaint()
         else:
-            print "Need to get zero-charge mass spectrum first."
+            print("Need to get zero-charge mass spectrum first.")
 
     def on_zerocharge_mass(self, e=None):
         """
@@ -1277,15 +1278,15 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         self.on_export_params(e)
-        print "Fitting Zero-charge Mass Spectra to Peak Shapes"
+        print("Fitting Zero-charge Mass Spectra to Peak Shapes")
         massfitdat, massfit = self.eng.fit_all_masses()
-        print "Fit: ", massfit
+        print("Fit: ", massfit)
         self.makeplot2(1)
         self.view.plot2.plotadd(self.eng.data.massdat[:, 0],
                                 massfitdat / np.amax(massfitdat) * np.amax(self.eng.data.massdat[:, 1]), "green",
                                 "Minimization")
         self.view.plot2.repaint()
-        for i in xrange(0, self.eng.pks.plen):
+        for i in range(0, self.eng.pks.plen):
             p = self.eng.pks.peaks[i]
             p.area = "%.2f" % float(massfit[i, 2] / np.sum(massfit[:, 2]))
         self.view.peakpanel.add_data(self.eng.pks)
@@ -1319,13 +1320,13 @@ class UniDecApp(UniDecPres):
                 file_type="Text (.txt)|*.txt|Any Type|*.*")
 
         self.eng.config.batchflag = 1 + flag
-        tstarttop = time.clock()
-        print batchfiles
+        tstarttop = time.perf_counter()
+        print(batchfiles)
         if batchfiles is not None:
             self.view.clear_all_plots()
             for i, path in enumerate(batchfiles):
-                print path
-                tstart = time.clock()
+                print(path)
+                tstart = time.perf_counter()
                 dirname, filename = os.path.split(path)
                 self.on_open_file(filename, dirname)
                 self.on_dataprep_button(e)
@@ -1335,13 +1336,13 @@ class UniDecApp(UniDecPres):
                 # outfile = os.path.join(dirname, self.eng.config.outfname + ".zip")
                 # self.on_save_state(0, outfile)
                 # print "File saved to: " + str(outfile)
-                print "Completed: " + path
-                tend = time.clock()
-                print "Run Time: %.2gs" % (tend - tstart)
-                print "\n"
+                print("Completed: " + path)
+                tend = time.perf_counter()
+                print("Run Time: %.2gs" % (tend - tstart))
+                print("\n")
         self.eng.config.batchflag = 0
-        tend = time.clock()
-        print "\nTotal Batch Run Time: %.3gs" % (tend - tstarttop)
+        tend = time.perf_counter()
+        print("\nTotal Batch Run Time: %.3gs" % (tend - tstarttop))
 
     def on_batch2(self, e=None):
         """
@@ -1373,10 +1374,10 @@ class UniDecApp(UniDecPres):
                                                             file_type="Text (.txt)|*.txt|Any Type|*.*")
         if batchfiles is not None:
             self.view.SetStatusText("Speedy Batch Run", number=5)
-            tstarttop = time.clock()
+            tstarttop = time.perf_counter()
             for i, path in enumerate(batchfiles):
-                print path
-                tstart = time.clock()
+                print(path)
+                tstart = time.perf_counter()
                 # Open File Stripped
                 self.eng.config.dirname, self.eng.config.filename = os.path.split(path)
                 self.view.SetStatusText("File: " + self.eng.config.filename, number=1)
@@ -1385,7 +1386,7 @@ class UniDecApp(UniDecPres):
                 os.chdir(self.eng.config.dirname)
                 dirnew = self.eng.config.outfname + "_unidecfiles"
                 if not os.path.isdir(dirnew):
-                    print "Error: Need to process data in advance for Speed Batch Mode"
+                    print("Error: Need to process data in advance for Speed Batch Mode")
                     return False
                 os.chdir(dirnew)
 
@@ -1394,11 +1395,11 @@ class UniDecApp(UniDecPres):
 
                 ud.unidec_call(self.eng.config)
 
-                tend = time.clock()
-                print "Run Time: %.2gs" % (tend - tstart)
-                print "\n"
-            tend = time.clock()
-            print "\nTotal Speedy Batch Run Time: %.2gs" % (tend - tstarttop)
+                tend = time.perf_counter()
+                print("Run Time: %.2gs" % (tend - tstart))
+                print("\n")
+            tend = time.perf_counter()
+            print("\nTotal Speedy Batch Run Time: %.2gs" % (tend - tstarttop))
 
     def on_cross_validate(self, e=None):
         """
@@ -1411,7 +1412,7 @@ class UniDecApp(UniDecPres):
         :param e: unused event
         :return: None
         """
-        print "Cross Validation"
+        print("Cross Validation")
         self.export_config(self.eng.config.confname)
         mean, stddev = self.eng.cross_validate()
         norm = np.amax(self.eng.data.massdat[:, 1]) / np.amax(mean)
@@ -1444,15 +1445,15 @@ class UniDecApp(UniDecPres):
             try:
                 texmaker.PDFTexReport(self.eng.config.outfname + '_report.tex')
                 self.view.SetStatusText("PDF Report Finished", number=5)
-            except Exception, ex:
+            except Exception as ex:
                 self.view.SetStatusText("PDF Report Failed", number=5)
-                print "PDF Report Failed to Generate. Check LaTeX installation.Need pdflatex in path.", ex
+                print("PDF Report Failed to Generate. Check LaTeX installation.Need pdflatex in path.", ex)
         else:
-            print "PDF Figures written."
+            print("PDF Figures written.")
         pass
 
     def on_fft_window(self, e):
-        print "FFT window..."
+        print("FFT window...")
         fft_window.FFTWindow(self.view, self.eng.data.rawdata, self.eng.config)
         pass
 
@@ -1488,7 +1489,7 @@ class UniDecApp(UniDecPres):
                 # Switch them if mixed up
                 if self.view.plot1.x2 < self.view.plot1.x1:
                     self.view.plot1.x1, self.view.plot1.x2 = self.view.plot1.x2, self.view.plot1.x1
-                print "m/z values:", self.view.plot1.x1, self.view.plot1.x2
+                print("m/z values:", self.view.plot1.x1, self.view.plot1.x2)
                 # Solve for the mass and charges
                 mass, z1, z2 = ud.solve_for_mass(self.view.plot1.x1, self.view.plot1.x2)
                 outstring = "Mass=%.2f z=%d, %d" % (mass, z1, z2)
@@ -1539,11 +1540,11 @@ class UniDecApp(UniDecPres):
             self.eng.config.imflag = (self.eng.config.imflag + 1) % 2
         self.remake_mainwindow(self.view.tabbed)
         if self.eng.config.imflag == 1:
-            print "Ion Mobility Mode"
+            print("Ion Mobility Mode")
             if self.eng.config.mzbins == 0:
                 self.eng.config.mzbins = 1
         elif self.eng.config.imflag == 0:
-            print "Mass Spec Mode"
+            print("Mass Spec Mode")
         self.view.import_config_to_gui()
 
     def on_flip_tabbed(self, e):
@@ -1560,12 +1561,12 @@ class UniDecApp(UniDecPres):
         try:
             self.on_replot(e)
             self.view.peakpanel.add_data(self.eng.pks)
-        except Exception, exc:
-            print "Failed to replot when making window:", exc
+        except Exception as exc:
+            print("Failed to replot when making window:", exc)
         if self.view.tabbed == 1:
-            print "Tabbed Mode"
+            print("Tabbed Mode")
         elif self.view.tabbed == 0:
-            print "Single Plot Window Mode"
+            print("Single Plot Window Mode")
 
     def on_flip_twave(self, e):
         """
@@ -1578,12 +1579,12 @@ class UniDecApp(UniDecPres):
 
         if self.eng.config.twaveflag == 0:
             self.eng.config.gasmass = 4.002602
-            print "Using Linear Cell"
+            print("Using Linear Cell")
         elif self.eng.config.twaveflag > 0:
             self.eng.config.gasmass = 28.0134
-            print "Using Travelling Wave"
+            print("Using Travelling Wave")
         else:
-            print "Error: Unsupported twaveflag.", self.eng.config.twaveflag
+            print("Error: Unsupported twaveflag.", self.eng.config.twaveflag)
         self.remake_mainwindow(self.view.tabbed)
         # self.view.ctltwave.SetSelection(self.eng.config.twaveflag)
         # self.view.import_config_to_gui()
@@ -1613,7 +1614,7 @@ class UniDecApp(UniDecPres):
 
     def on_write_hdf5(self, e=None):
         self.eng.write_hdf5()
-        print "Wrote: ", self.eng.config.hdf_file
+        print("Wrote: ", self.eng.config.hdf_file)
 
     def on_launcher(self, e=None):
         #self.view.Destroy()

@@ -3,11 +3,11 @@ from copy import deepcopy
 import numpy as np
 import wx
 
-import unidecstructure
-import plot2d
-import plot1d
-import unidectools as ud
-from MassFitter import MassFitter
+from unidec_modules import unidecstructure
+from unidec_modules import plot2d
+from unidec_modules import plot1d
+from unidec_modules import unidectools as ud
+from unidec_modules.MassFitter import MassFitter
 from unidec_modules import miscwindows
 
 __author__ = 'Michael.Marty'
@@ -175,12 +175,12 @@ class Extract2DPlot(wx.Frame):
         # Run initial extraction
         try:
             self.on_total(0)
-        except Exception, e:
+        except Exception as e:
             try:
                 self.on_next(0)
             except:
                 pass
-            print e
+            print(e)
         self.Centre()
         self.Show(True)
         self.normflag = 1
@@ -207,7 +207,7 @@ class Extract2DPlot(wx.Frame):
             except (ValueError, AttributeError):
                 self.normflag = 1
         except ValueError:
-            print "Failed to get from gui"
+            print("Failed to get from gui")
 
     def makegrid(self):
         """
@@ -230,8 +230,8 @@ class Extract2DPlot(wx.Frame):
             self.igrid[i] = ud.data_extract_grid(data, self.massgrid, extract_method=1, window=self.params[7])
         try:
             self.igrid /= np.amax(self.igrid)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
 
     def makeplot(self):
         """
@@ -246,16 +246,16 @@ class Extract2DPlot(wx.Frame):
         try:
             self.plot2.contourplot(dat, self.config, xlab="mass 1", ylab="mass 2", title=title, normflag=self.normflag,
                                    normrange=[0, 1])
-        except Exception, e:
+        except Exception as e:
             self.plot2.clear_plot()
-            print "Failed Plot2", e
+            print("Failed Plot2", e)
         try:
             self.plot1.plotrefreshtop(np.unique(self.m1grid), np.sum(self.igrid[i], axis=1), title, "mass 1",
                                       "Total Intensity", "", self.config, test_kda=False, nopaint=False)
             self.data1d = np.transpose([np.unique(self.m1grid), np.sum(self.igrid[i], axis=1)])
-        except Exception, e:
+        except Exception as e:
             self.plot1.clear_plot()
-            print "Failed Plot1", e
+            print("Failed Plot1", e)
 
     def makeplottotal(self):
         """
@@ -272,9 +272,9 @@ class Extract2DPlot(wx.Frame):
                                    normrange=[np.amin(grid), np.amax(grid)])
             outfile = os.path.join(self.directory, self.header + "_grid_2D_Extract.txt")
             np.savetxt(outfile, dat)
-        except Exception, e:
+        except Exception as e:
             self.plot2.clear_plot()
-            print "Failed Plot2", e
+            print("Failed Plot2", e)
         try:
             self.plot1.plotrefreshtop(np.unique(self.m1grid), np.sum(grid, axis=1), "Total Projection", "mass 1",
                                       "Total Intensity", "", self.config, test_kda=False, nopaint=False)
@@ -282,9 +282,9 @@ class Extract2DPlot(wx.Frame):
             self.data1d = outputdata
             outfile = os.path.join(self.directory, self.header + "_total_2D_Extract.txt")
             np.savetxt(outfile, outputdata)
-        except Exception, e:
+        except Exception as e:
             self.plot1.clear_plot()
-            print "Failed Plot1", e
+            print("Failed Plot1", e)
 
     def makeplotwap(self):
         """
@@ -293,16 +293,16 @@ class Extract2DPlot(wx.Frame):
         :return: None
         """
         grid = np.zeros((len(self.m1range), len(self.m2range)))
-        for j in xrange(0, len(self.m1range)):
-            for k in xrange(0, len(self.m2range)):
+        for j in range(0, len(self.m1range)):
+            for k in range(0, len(self.m2range)):
                 grid[j, k] = np.average(self.yvals, weights=self.igrid[:, j, k])
         dat = np.transpose([np.ravel(self.m1grid), np.ravel(self.m2grid), np.ravel(grid)])
         try:
             self.plot2.contourplot(dat, self.config, xlab="mass 1", ylab="mass 2", title="Weighted Average of Position",
                                    normflag=0, normrange=[np.amin(grid), np.amax(grid)])
-        except Exception, e:
+        except Exception as e:
             self.plot2.clear_plot()
-            print "Failed Plot2", e
+            print("Failed Plot2", e)
         try:
             self.plot1.plotrefreshtop(np.unique(self.m1grid), np.average(grid, axis=1), "Average Projection", "mass 1",
                                       "Average Position", "", self.config, test_kda=False, nopaint=False)
@@ -310,9 +310,9 @@ class Extract2DPlot(wx.Frame):
             self.data1d = outputdata
             outfile = os.path.join(self.directory, self.header + "_WAP_2D_Extract.txt")
             np.savetxt(outfile, outputdata)
-        except Exception, e:
+        except Exception as e:
             self.plot1.clear_plot()
-            print "Failed Plot1", e
+            print("Failed Plot1", e)
 
     def on_close(self, e=None):
         """
@@ -320,7 +320,7 @@ class Extract2DPlot(wx.Frame):
         :param e:
         :return:
         """
-        print "Closing"
+        print("Closing")
         self.config.discreteplot = self.storediscrete
         self.Destroy()
 
@@ -405,23 +405,23 @@ class Extract2DPlot(wx.Frame):
 
     def on_fit(self, e):
         peaks = ud.peakdetect(self.data1d, window=5)
-        print "Peaks:", peaks[:, 0]
+        print("Peaks:", peaks[:, 0])
         peaks = np.concatenate((peaks, [[0, np.amin(self.data1d[:, 1])]]))
         fitdat, fits = MassFitter(self.data1d, peaks, 3, "microguess").perform_fit()
-        print "Fits:", fits[:, 0]
+        print("Fits:", fits[:, 0])
 
         self.plot1.plotadd(self.data1d[:, 0], fitdat, "green", nopaint=False)
         self.plot1.repaint()
 
     def on_fit2(self, e):
         fits, fitdat = ud.poisson_fit(self.data1d[:, 0], self.data1d[:, 1])
-        print "Fits:", fits
+        print("Fits:", fits)
         self.plot1.plotadd(self.data1d[:, 0], fitdat, "green", nopaint=False)
         self.plot1.repaint()
 
     def on_fit3(self, e):
         fits, fitdat = ud.binomial_fit(self.data1d[:, 0], self.data1d[:, 1])
-        print "Fits:", fits
+        print("Fits:", fits)
         self.plot1.plotadd(self.data1d[:, 0], fitdat, "green", nopaint=False)
         self.plot1.repaint()
 
@@ -436,13 +436,13 @@ class Extract2DPlot(wx.Frame):
             array = string.split(",")
             array = np.array(array).astype(np.int)
             fits, fitdat, i1, i2 = ud.complex_poisson(self.data1d, array, background=True)
-            print "Fits:", fits
+            print("Fits:", fits)
             self.plot1.plotadd(self.data1d[:, 0], fitdat, "green", nopaint=False)
             self.plot1.subplot1.bar(array, i2 / np.amax(i2) * np.amax(self.data1d[:, 1]))
             self.plot1.subplot1.set_ylim(0, np.amax(self.data1d[:, 1]))
             self.plot1.repaint()
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
 
 
 # Main App Execution

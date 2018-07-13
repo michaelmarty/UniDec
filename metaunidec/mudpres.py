@@ -5,8 +5,8 @@ import atexit
 import wx
 import wx.html
 import numpy as np
-import mudview
-import mudeng
+from metaunidec import mudview
+from metaunidec import mudeng
 
 #
 from pubsub import pub
@@ -18,9 +18,9 @@ from unidec_modules.isolated_packages import FileDialogs
 import datacollector
 import multiprocessing
 from unidec_modules.unidec_presbase import UniDecPres
-import ultrameta
-from mudhelp import *
-from meta_import_wizard.meta_import_wizard import ImportWizard
+from metaunidec import ultrameta
+from metaunidec.mudhelp import *
+from metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard
 
 # import FileDialog  # Needed for pyinstaller
 
@@ -45,10 +45,10 @@ class UniDecApp(UniDecPres):
         self.init(*args, **kwargs)
 
         atexit.register(self.repack_hdf5)
-
+        #self.on_open(0)
         try:
             if False:
-                testdir = "C:\Data\Others\UniDec test data set"
+                testdir = "C:\Data\Others\\UniDec test data set"
                 testfile = "test.hdf5"
                 # testdir="C:\\Data\\New"
                 # testfile="20170209_P0B_dPOPC_POPC_ND_D1T0m_pos_ISTRAP_RAMP_0_275_25_1.hdf5"
@@ -84,13 +84,14 @@ class UniDecApp(UniDecPres):
         :param e:
         :return:
         """
+        print("Opening")
         dlg = wx.FileDialog(self.view, "Choose a data file in HDF5 format", '', "", "*.hdf5*")
         if dlg.ShowModal() == wx.ID_OK:
             self.view.SetStatusText("Opening", number=5)
             filename = dlg.GetFilename()
-            print "Openening: ", filename
+            print("Openening: ", filename)
             if os.path.splitext(filename)[1] != ".hdf5":
-                print "Need HDF5 file"
+                print("Need HDF5 file")
                 return
             dirname = dlg.GetDirectory()
             self.eng.config.dirname = dirname
@@ -108,7 +109,7 @@ class UniDecApp(UniDecPres):
         self.view.clear_plots()
         if path is None:
             path = self.eng.config.hdf_file
-        print "Opening:", path
+        print("Opening:", path)
         self.eng.open(path)
         # print "1"
         self.import_config()
@@ -126,7 +127,7 @@ class UniDecApp(UniDecPres):
         :return:
         """
         spectra = self.eng.data.get_spectra()
-        if len(spectra) > self.eng.config.crossover:
+        if len(spectra) > int(self.eng.config.crossover):
             mult = int(len(spectra) / self.eng.config.numtot)
             self.view.SetStatusText("Displaying subset of data", number=2)
         else:
@@ -236,7 +237,7 @@ class UniDecApp(UniDecPres):
             ints.append(0.0000000001)
             cols.append([1, 1, 1, 1])
             labs.append("")
-            self.view.plot6.barplottop(range(0, num), ints, labs, cols, "Species", "Intensity",
+            self.view.plot6.barplottop(list(range(0, num)), ints, labs, cols, "Species", "Intensity",
                                        "Peak Intensities", repaint=False)
             num = 0
             for i, s in enumerate(self.eng.data.spectra[::mult]):
@@ -328,7 +329,7 @@ class UniDecApp(UniDecPres):
         """
         self.view.plot3.clear_plot()
         if not ud.isempty(self.eng.data.mzgrid):
-            tstart = time.clock()
+            tstart = time.perf_counter()
             ignore = self.eng.data.get_bool()
             self.view.plot3.contourplot(
                 xvals=self.eng.data.mzdat[:, 0], yvals=np.array(self.eng.data.var1)[ignore],
@@ -336,8 +337,8 @@ class UniDecApp(UniDecPres):
                 config=self.eng.config, title="m/z vs. " + self.eng.data.v1name, test_kda=False, xlab="m/z (Th)",
                 ylab=self.eng.data.v1name)
             self.view.plot3.repaint()
-            tend = time.clock()
-            print "Plot 3: %.2gs" % (tend - tstart)
+            tend = time.perf_counter()
+            print("Plot 3: %.2gs" % (tend - tstart))
             pass
 
     def makeplot5(self):
@@ -347,15 +348,15 @@ class UniDecApp(UniDecPres):
         """
         self.view.plot5.clear_plot()
         if not ud.isempty(self.eng.data.massgrid):
-            tstart = time.clock()
+            tstart = time.perf_counter()
             ignore = self.eng.data.get_bool()
             self.view.plot5.contourplot(
                 xvals=self.eng.data.massdat[:, 0], yvals=np.array(self.eng.data.var1)[ignore],
                 zgrid=self.eng.data.massgrid[ignore, :, 1].transpose(),
                 config=self.eng.config, title="Mass vs. " + self.eng.data.v1name, test_kda=True, xlab="Mass (Da)",
                 ylab=self.eng.data.v1name)
-            tend = time.clock()
-            print "Plot 5: %.2gs" % (tend - tstart)
+            tend = time.perf_counter()
+            print("Plot 5: %.2gs" % (tend - tstart))
             pass
 
     def on_dataprep_button(self, e=None):
@@ -381,15 +382,15 @@ class UniDecApp(UniDecPres):
         """
         self.view.SetStatusText("Running UniDec...", number=5)
         self.view.clear_plots()
-        tstart = time.clock()
+        tstart = time.perf_counter()
         self.export_config()
         self.check_badness()
         self.eng.run_unidec()
-        tend = time.clock()
+        tend = time.perf_counter()
         self.eng.config.runtime = (tend - tstart)
         self.makeplot1()
         self.makeplot2()
-        print "Run Time:", self.eng.config.runtime
+        print("Run Time:", self.eng.config.runtime)
         self.view.SetStatusText("UniDec Done %.2gs" % self.eng.config.runtime, number=5)
         pass
 
@@ -528,7 +529,7 @@ class UniDecApp(UniDecPres):
         peaksel = self.view.peakpanel.selection2
         pmasses = np.array([p.mass for p in self.eng.pks.peaks])
         peakdiff = pmasses - peaksel
-        print peakdiff
+        print(peakdiff)
         self.view.plot2.textremove()
         for i, d in enumerate(peakdiff):
             if d != 0:
@@ -544,7 +545,7 @@ class UniDecApp(UniDecPres):
         :param index:
         :return:
         """
-        print "Top index is now:", index
+        print("Top index is now:", index)
         self.eng.data.data2 = self.eng.data.spectra[index].data2
 
     def on_ignore(self, indexes):
@@ -553,7 +554,7 @@ class UniDecApp(UniDecPres):
         :param indexes:
         :return:
         """
-        print "Ignoring:", indexes
+        print("Ignoring:", indexes)
         spectra = self.eng.data.get_spectra()
         for i in indexes:
             spectra[i].ignore = 1
@@ -565,7 +566,7 @@ class UniDecApp(UniDecPres):
         :param indexes:
         :return:
         """
-        print "Isolating:", indexes
+        print("Isolating:", indexes)
         spectra = self.eng.data.get_spectra()
         for i, s in enumerate(spectra):
             if np.any(np.array(indexes) == i):
@@ -575,7 +576,7 @@ class UniDecApp(UniDecPres):
         try:
             self.make_top(indexes[0])
         except:
-            print "Failed to make top"
+            print("Failed to make top")
         self.on_replot(plotsums=False)
 
     def on_repopulate(self):
@@ -712,11 +713,11 @@ class UniDecApp(UniDecPres):
                 # Switch them if mixed up
                 if self.view.plot1.x2 < self.view.plot1.x1:
                     self.view.plot1.x1, self.view.plot1.x2 = self.view.plot1.x2, self.view.plot1.x1
-                print "m/z values:", self.view.plot1.x1, self.view.plot1.x2
+                print("m/z values:", self.view.plot1.x1, self.view.plot1.x2)
                 # Solve for the mass and charges
                 mass, z1, z2 = ud.solve_for_mass(self.view.plot1.x1, self.view.plot1.x2)
                 outstring = "Mass=%.2f z=%d, %d" % (mass, z1, z2)
-                print outstring
+                print(outstring)
 
                 if np.all(np.abs(np.array(self.view.plot1.mlist) - mass) > window * z1 * 0.0) and plot:
                     self.view.plot1.mlist.append(mass)
@@ -811,7 +812,7 @@ class UniDecApp(UniDecPres):
             name = dlg.value
             # Dummy checks
             if float(endtp) < float(starttp) or float(endtp) < 0 or float(starttp) < 0 or float(timestep) <= 0:
-                print "Bad values inputted"
+                print("Bad values inputted")
             else:
                 self.eng.import_mzml(paths, timestep=float(timestep), name=name, starttp=float(starttp),
                                      endtp=float(endtp))
@@ -837,7 +838,7 @@ class UniDecApp(UniDecPres):
             self.eng.import_mzml(paths, startscan=int(startscan), endscan=(int(endscan) + 1), name=name)
 
     def on_wizard(self, e=None):
-        print "Launching Waters Converter Wizard"
+        print("Launching Waters Converter Wizard")
         app = wx.App(False)
         frame = ImportWizard(None)
         frame.Show()
@@ -895,9 +896,9 @@ class UniDecApp(UniDecPres):
                 self.view.ypanel.list.populate(self.eng.data)
                 self.makeplot1()
             else:
-                print "Paste failed, got: ", data
-        except Exception, e:
-            print e
+                print("Paste failed, got: ", data)
+        except Exception as e:
+            print(e)
             wx.MessageBox("Unable to open the clipboard", "Error")
 
     def add_files(self, paths):
@@ -922,7 +923,7 @@ class UniDecApp(UniDecPres):
         """
         paths = FileDialogs.open_multiple_files_dialog(message="Choose data files in txt or mzml format")
         if paths is not None:
-            print "Openening: ", paths
+            print("Openening: ", paths)
             self.add_files(paths)
 
     def on_delete_spectrum(self, indexes=None):
@@ -1106,12 +1107,12 @@ class UniDecApp(UniDecPres):
         try:
             compress = int(dlg.value)
             if compress > 1:
-                print "Compressing Data by:", compress
+                print("Compressing Data by:", compress)
         except (ValueError, TypeError, AttributeError):
-            print "Unrecognized compression value"
+            print("Unrecognized compression value")
             compress = 0
 
-        print "Loading 2D Data..."
+        print("Loading 2D Data...")
         data2 = []
         for i, s in enumerate(self.eng.data.spectra):
             if type is "mz":
@@ -1129,9 +1130,9 @@ class UniDecApp(UniDecPres):
             else:
                 dat = np.transpose([np.ravel(mgrid), np.ravel(zgrid), np.ravel(igrid)])
             data2.append(dat)
-            print i,
+            print(i, end=' ')
         data2 = np.array(data2)
-        print "Loaded 2D Data", data2.shape
+        print("Loaded 2D Data", data2.shape)
         PlotAnimations.AnimationWindow(self.view, data2, self.eng.config, mode="2D", yvals=self.eng.data.var1)
 
     def on_animate_2d_mass(self, e=None):
@@ -1313,12 +1314,12 @@ class UniDecApp(UniDecPres):
         self.remake_mainwindow(tabbed=tabbed)
         try:
             self.on_replot(e)
-        except Exception, exc:
-            print "Failed to replot when making window:", exc
+        except Exception as exc:
+            print("Failed to replot when making window:", exc)
         if self.view.tabbed == 1:
-            print "Tabbed Mode"
+            print("Tabbed Mode")
         elif self.view.tabbed == 0:
-            print "Single Plot Window Mode"
+            print("Single Plot Window Mode")
 
     def on_getting_started(self, e=None):
         helpDlg = HelpDlg(1)

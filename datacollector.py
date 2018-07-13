@@ -48,12 +48,12 @@ class XValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         listctrldata = np.array(listctrldata)
         for i in range(0, len(listctrldata)):
             try:
-                index = self.InsertItem(sys.maxint, str(listctrldata[i, 0]))
+                index = self.InsertItem(sys.maxsize, str(listctrldata[i, 0]))
                 self.SetItem(index, 1, str(listctrldata[i, 1]))
                 self.SetItem(index, 2, str(listctrldata[i, 2]))
                 self.SetItemData(index, i)
             except (ValueError, TypeError):
-                index = self.InsertItem(sys.maxint, str(listctrldata[i]))
+                index = self.InsertItem(sys.maxsize, str(listctrldata[i]))
 
             if colors is not None:
                 # print listctrldata[i],colors[i]
@@ -69,7 +69,7 @@ class XValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         return self.get_maxes()
 
     def add_line(self, val=0):
-        index = self.InsertItem(sys.maxint, str(val))
+        index = self.InsertItem(sys.maxsize, str(val))
         self.SetItem(index, 1, str(1))
         self.SetItem(index, 2, str(self.GetItemCount() - 1))
         return self.get_maxes()
@@ -111,7 +111,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def populate(self, listctrldata, colors=None):
         self.DeleteAllItems()
         for i in range(0, len(listctrldata)):
-            index = self.InsertItem(sys.maxint, str(listctrldata[i][0]))
+            index = self.InsertItem(sys.maxsize, str(listctrldata[i][0]))
             self.SetItem(index, 1, str(listctrldata[i][1]))
             self.SetItem(index, 2, str(listctrldata[i][2]))
             try:
@@ -130,7 +130,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def add_line(self, file_name="file.txt", var1="count", var2=0):
         if var1 == "count":
             var1 = self.GetItemCount()
-        index = self.InsertItem(sys.maxint, str(file_name))
+        index = self.InsertItem(sys.maxsize, str(file_name))
         self.SetItem(index, 1, str(var1))
         self.SetItem(index, 2, str(var2))
         self.SetItem(index, 3, str("All"))
@@ -160,7 +160,7 @@ class ListCtrlPanel(wx.Panel):
         elif list_type == "Y":
             self.list = YValueListCtrl(self, id_value, size=size, style=wx.LC_REPORT | wx.BORDER_NONE)
         else:
-            print "Error making ListCtrlPanel"
+            print("Error making ListCtrlPanel")
             exit()
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)
@@ -254,12 +254,12 @@ class DataCollector(wx.Frame):
         if self.config is None:
             self.config = unidecstructure.UniDecConfig()
             self.config.initialize()
-            print "Using Empty Structure"
+            print("Using Empty Structure")
             self.config.publicationmode = 1
             if "viridis" in colormaps():
-                self.config.cmap = "viridis"
+                self.config.cmap = u"viridis"
             else:
-                self.config.cmap = "jet"
+                self.config.cmap = u"jet"
 
         self.CreateStatusBar(2)
         self.SetStatusWidths([-1, 150])
@@ -384,7 +384,7 @@ class DataCollector(wx.Frame):
 
         self.runsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.runsizer.Add(wx.StaticText(self.panel, label=" What to extract: "), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.ctldata = wx.ComboBox(self.panel, value="Raw Data", choices=datachoices.values(), style=wx.CB_READONLY)
+        self.ctldata = wx.ComboBox(self.panel, value="Raw Data", choices=list(datachoices.values()), style=wx.CB_READONLY)
         self.runsizer.Add(self.ctldata, 0, wx.EXPAND)
 
         self.runsizer.Add(wx.StaticText(self.panel, label=" Range:"), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -402,7 +402,7 @@ class DataCollector(wx.Frame):
         self.ctlnorm2 = wx.CheckBox(self.panel, label="Normalize Extraction")
         self.runsizer.Add(self.ctlnorm2, 0, wx.EXPAND)
         self.runsizer.Add(wx.StaticText(self.panel, label=" How to extract: "), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.ctlextract = wx.ComboBox(self.panel, value="Height", choices=extractchoices.values(), style=wx.CB_READONLY)
+        self.ctlextract = wx.ComboBox(self.panel, value="Height", choices=list(extractchoices.values()), style=wx.CB_READONLY)
         self.runsizer.Add(self.ctlextract, 0, wx.EXPAND)
         self.runsizer.Add(wx.StaticText(self.panel, label=" Window:"), 0, wx.ALIGN_CENTER_VERTICAL)
         self.ctlwindow = wx.TextCtrl(self.panel, value="", size=(50, 20))
@@ -491,7 +491,7 @@ class DataCollector(wx.Frame):
         try:
             self.load_x_from_peaks(0)
         except (ValueError, TypeError, AttributeError):
-            print "Failed to load from peak list"
+            print("Failed to load from peak list")
 
         if __name__ == "__main__":
             # self.directory="C:\\cprog\\Georg"
@@ -519,8 +519,8 @@ class DataCollector(wx.Frame):
                 # self.on_kd_fit(0)
                 # self.on_animate2(0)
                 pass
-            except Exception, e:
-                print e
+            except Exception as e:
+                print(e)
                 pass
 
     def load_x_from_peaks(self, e):
@@ -530,8 +530,8 @@ class DataCollector(wx.Frame):
                     maxes = self.xpanel.list.add_line(val=p.mass)
             self.ctlprot.SetValue(str(maxes[0]))
             self.ctllig.SetValue(str(maxes[1]))
-        except Exception, ex:
-            print "Unable to detect max # protein and ligands", ex
+        except Exception as ex:
+            print("Unable to detect max # protein and ligands", ex)
 
     def on_hdf5_open(self, e):
         dlg = wx.FileDialog(self, "Open HDF5 File", self.directory, self.hdf5_file, "*.hdf5")
@@ -545,7 +545,7 @@ class DataCollector(wx.Frame):
         self.hdf5_file = path
         hdf = h5py.File(path)
         msdata = hdf.require_group(self.topname)
-        keys = msdata.keys()
+        keys = list(msdata.keys())
         self.indexes = []
         for k in keys:
             try:
@@ -558,10 +558,10 @@ class DataCollector(wx.Frame):
 
         for f in self.indexes:
             msdata = hdf.get(self.topname + "/" + str(f))
-            self.attrs = dict(msdata.attrs.items())
-            if "var1" in self.attrs.keys():
+            self.attrs = dict(list(msdata.attrs.items()))
+            if "var1" in list(self.attrs.keys()):
                 var1 = self.attrs["var1"]
-            elif "collision_voltage" in self.attrs.keys():
+            elif "collision_voltage" in list(self.attrs.keys()):
                 var1 = self.attrs["collision_voltage"]
             else:
                 var1 = f
@@ -601,7 +601,7 @@ class DataCollector(wx.Frame):
             self.savename = dlg.GetPath()
             with open(self.savename, "w") as outfile:
                 json.dump(outdict, outfile)
-            print "Saved: ", self.savename
+            print("Saved: ", self.savename)
         dlg.Destroy()
 
     def on_load(self, e):
@@ -654,7 +654,7 @@ class DataCollector(wx.Frame):
         else:
             self.filetype = 0
         self.update_set(0)
-        print "Loaded: ", savename
+        print("Loaded: ", savename)
         self.on_run(0)
 
     def on_add_x(self, e):
@@ -663,7 +663,7 @@ class DataCollector(wx.Frame):
             self.ctlprot.SetValue(str(maxes[0]))
             self.ctllig.SetValue(str(maxes[1]))
         except (ValueError, TypeError):
-            print "Failed to autoupdate total # of protein and ligand, update manually in boxes."
+            print("Failed to autoupdate total # of protein and ligand, update manually in boxes.")
 
     def on_add_y(self, e):
         self.update_get(e)
@@ -698,7 +698,7 @@ class DataCollector(wx.Frame):
             self.ctlprot.SetValue(str(maxes[0]))
             self.ctllig.SetValue(str(maxes[1]))
         except (ValueError, TypeError):
-            print "Failed to autoupdate total # of protein and ligand, update manually in boxes."
+            print("Failed to autoupdate total # of protein and ligand, update manually in boxes.")
         self.yvals = self.ypanel.list.get_list()
         self.directory = self.dirinput.GetValue()
         self.normflag = self.ctlnorm.GetValue()
@@ -738,8 +738,8 @@ class DataCollector(wx.Frame):
 
     def update_set(self, e):
         self.ctlprotmodel.SetValue(
-            next((label for label, flag in modelchoices.items() if flag == self.protflag), "test"))
-        self.ctlligmodel.SetValue(next((label for label, flag in modelchoices.items() if flag == self.ligflag), "test"))
+            next((label for label, flag in list(modelchoices.items()) if flag == self.protflag), "test"))
+        self.ctlligmodel.SetValue(next((label for label, flag in list(modelchoices.items()) if flag == self.ligflag), "test"))
         self.dirinput.SetValue(self.directory)
         self.xpanel.list.populate(self.xvals)
         self.ypanel.list.populate(self.yvals)
@@ -757,7 +757,7 @@ class DataCollector(wx.Frame):
             self.ctlmax.SetValue(str(self.range[1]))
 
     def on_run(self, e, vals=None):
-        tstart = time.clock()
+        tstart = time.perf_counter()
         self.update_get(e)
         # os.chdir(self.directory)
         self.data = []
@@ -769,7 +769,7 @@ class DataCollector(wx.Frame):
         if self.filetype == 1:
             hdf = h5py.File(self.hdf5_file)
         ycolors = []
-        print "Directory:", self.directory
+        print("Directory:", self.directory)
         for k, l in enumerate(self.yvals):
             if self.filetype == 1:
                 msdata = hdf.get(self.topname + "/" + str(l[0]))
@@ -779,7 +779,7 @@ class DataCollector(wx.Frame):
             if self.localpath == 1 or not os.path.isabs(filename):
                 header = os.path.join(self.directory, header)
                 filename = os.path.join(self.directory, filename)
-            print "Loading:", filename
+            print("Loading:", filename)
             subheader = os.path.split(header)[1]
             self.var1.append(l[1])
             ycolors.append(l[4:7])
@@ -840,8 +840,8 @@ class DataCollector(wx.Frame):
                         else:
                             zindex = int(zstate) - startz
                             data[:, 1] = massgrid[:, zindex]
-                    except Exception, e:
-                        print "FAILED TO EXTRACT CHARGE STATE\nUsing total for all charge states\n", e
+                    except Exception as e:
+                        print("FAILED TO EXTRACT CHARGE STATE\nUsing total for all charge states\n", e)
                         l[3] = "All"
                         try:
                             self.ypanel.list.populate(self.yvals, colors=ycolors)
@@ -868,10 +868,10 @@ class DataCollector(wx.Frame):
                 try:
                     self.grid.append(ud.mergedata(self.grid[0], data))
                 except (ValueError, TypeError, AttributeError):
-                    print "Error combining data"
+                    print("Error combining data")
 
             xext = []
-            for i in xrange(0, len(self.xvals)):
+            for i in range(0, len(self.xvals)):
                 s = self.xvals[i][0]
                 try:
                     window = float(self.window)
@@ -882,14 +882,14 @@ class DataCollector(wx.Frame):
             self.extract.append(xext)
         self.ypanel.list.populate(self.yvals, colors=ycolors)
         self.plot1.repaint()
-        tend = time.clock()
-        print "Extraction time: %.2gs" % (tend - tstart)
-        print "Plotting..."
+        tend = time.perf_counter()
+        print("Extraction time: %.2gs" % (tend - tstart))
+        print("Plotting...")
         self.extract = np.array(self.extract)
         if len(self.xvals) != 0:
             if self.normflag2 == 1:
                 sums = np.sum(self.extract, axis=1)
-                self.extract = [self.extract[i] / sums[i] for i in xrange(0, len(self.yvals))]
+                self.extract = [self.extract[i] / sums[i] for i in range(0, len(self.yvals))]
                 self.extract = np.array(self.extract)
 
             colormap = cm.get_cmap('rainbow', len(self.xvals))
@@ -902,7 +902,7 @@ class DataCollector(wx.Frame):
         self.make_grid_plots(e)
         if self.filetype == 1:
             hdf.close()
-        print "Extraction Complete"
+        print("Extraction Complete")
 
     def make_grid_plots(self, e):
         self.grid = np.array(self.grid)
@@ -913,7 +913,7 @@ class DataCollector(wx.Frame):
                 np.savetxt(os.path.join(self.directory, "sums.txt"),
                            np.transpose([np.unique(self.grid[0, :, 0]), np.sum(self.grid[:, :, 1], axis=0)]))
             except (ValueError, TypeError, AttributeError):
-                print "Failed total plot"
+                print("Failed total plot")
                 self.plot4.clear_plot()
             try:
                 x, y = np.meshgrid(self.grid[0, :, 0], self.var1, indexing='ij')
@@ -921,7 +921,7 @@ class DataCollector(wx.Frame):
                 self.plot2d.contourplot(dat, self.config, xlab=self.xlabel, ylab=self.ylabel, title="Extracted Data")
                 self.on_export(e)
             except (ValueError, TypeError, AttributeError):
-                print "Failed to make 2D plot"
+                print("Failed to make 2D plot")
                 self.plot2d.clear_plot()
 
     def makeplot2(self):
@@ -932,7 +932,7 @@ class DataCollector(wx.Frame):
 
         self.plot2.clear_plot()
         self.plot2._axes = [0.15, 0.1, 0.75, 0.8]
-        for i in xrange(0, len(self.xvals)):
+        for i in range(0, len(self.xvals)):
             color = self.xcolors[i]
             if not self.plot2.flag:
 
@@ -950,45 +950,45 @@ class DataCollector(wx.Frame):
         name1 = os.path.join(self.directory, "Figure1.png")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)
-            print name1
+            print(name1)
         name2 = os.path.join(self.directory, "Figure2.png")
         if self.plot2.flag:
             self.plot2.on_save_fig(e, name2)
-            print name2
+            print(name2)
         name3 = os.path.join(self.directory, "Figure3.png")
         if self.plot3.flag:
             self.plot3.on_save_fig(e, name3)
-            print name3
+            print(name3)
         name1 = os.path.join(self.directory, "Figure1_2D.png")
         if self.plot2d.flag:
             self.plot2d.on_save_fig(e, name1)
-            print name1
+            print(name1)
         name3 = os.path.join(self.directory, "Figure4.png")
         if self.plot4.flag:
             self.plot4.on_save_fig(e, name3)
-            print name3
+            print(name3)
 
     def on_save_figPDF(self, e):
         name1 = os.path.join(self.directory, "Figure1.pdf")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)
-            print name1
+            print(name1)
         name2 = os.path.join(self.directory, "Figure2.pdf")
         if self.plot2.flag:
             self.plot2.on_save_fig(e, name2)
-            print name2
+            print(name2)
         name3 = os.path.join(self.directory, "Figure3.pdf")
         if self.plot3.flag:
             self.plot3.on_save_fig(e, name3)
-            print name3
+            print(name3)
         name1 = os.path.join(self.directory, "Figure4.pdf")
         if self.plot4.flag:
             self.plot4.on_save_fig(e, name1)
-            print name1
+            print(name1)
         name1 = os.path.join(self.directory, "Figure1_2D.pdf")
         if self.plot2d.flag:
             self.plot2d.on_save_fig(e, name1)
-            print name1
+            print(name1)
 
     def on_kd_fit(self, e):
         outlierflag = self.ctloutliers.GetValue()
@@ -996,10 +996,10 @@ class DataCollector(wx.Frame):
         self.plot3.clear_frame()
         # self.makeplot2()
         nodelist = []
-        for i in xrange(0, len(self.xvals)):
+        for i in range(0, len(self.xvals)):
             nodelist.append([self.xvals[i][1], self.xvals[i][2]])
         nodelist = np.array(nodelist)
-        print "Nodes: ", nodelist
+        print("Nodes: ", nodelist)
         self.yvals = np.array(self.yvals)
         self.plot2.clear_plot()
         # noinspection PyProtectedMember
@@ -1017,8 +1017,8 @@ class DataCollector(wx.Frame):
         try:
             if self.bootstrap > 0:
                 np.savetxt(os.path.join(self.directory, "fits_boots.txt"), model.randfit)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
         self.plot2.repaint()
         self.plot2.flag = True
         datalim = [np.amin(nodelist[:, 1]) - 0.5, np.amin(nodelist[:, 0] - 0.5), np.amax(nodelist[:, 1] + 0.5),
@@ -1040,12 +1040,12 @@ class DataCollector(wx.Frame):
         try:
             compress = int(dlg.value)
             if compress > 1:
-                print "Compressing Data by:", compress
+                print("Compressing Data by:", compress)
         except (ValueError, TypeError, AttributeError):
-            print "Unrecognized compression value"
+            print("Unrecognized compression value")
             compress = 0
 
-        print "Loading 2D Data..."
+        print("Loading 2D Data...")
         data2 = []
         for i, l in enumerate(self.yvals):
             filename = l[0]
@@ -1063,7 +1063,7 @@ class DataCollector(wx.Frame):
 
             else:
                 file2 = filename
-                print "Undefined choice for data type"
+                print("Undefined choice for data type")
             data = np.loadtxt(file2)
             massgrid = np.fromfile(filename, dtype=float)
             configfile = os.path.join(header + "_unidecfiles", subheader + "_conf.dat")
@@ -1078,13 +1078,13 @@ class DataCollector(wx.Frame):
             f.close()
             try:
                 zlength = endz - startz + 1
-            except Exception, e1:
+            except Exception as e1:
                 try:
                     zlength = numz
                     endz = startz + numz - 1
-                except Exception, e2:
-                    print e1
-                    print e2
+                except Exception as e2:
+                    print(e1)
+                    print(e2)
 
             massgrid = np.reshape(massgrid, (len(data), zlength))
             ztab = np.arange(startz, endz + 1)
@@ -1107,11 +1107,11 @@ class DataCollector(wx.Frame):
                 dat = np.transpose([np.ravel(mgrid), np.ravel(zgrid), np.ravel(massgrid)])
 
             data2.append(dat)
-            print i,
-        print "Loaded 2D Data"
+            print(i, end=' ')
+        print("Loaded 2D Data")
         self.yvals = np.array(self.yvals)
         data2 = np.array(data2)
-        print data2.shape
+        print(data2.shape)
         PlotAnimations.AnimationWindow(self, data2, self.config, mode="2D", yvals=self.yvals[:, 1])
 
     def on_2dgrid(self, e):
@@ -1128,7 +1128,7 @@ class DataCollector(wx.Frame):
 
     def on_autocorr(self, e):
         masssum = np.transpose([np.unique(self.grid[0, :, 0]), np.sum(self.grid[:, :, 1], axis=0)])
-        print "Sum shape:", masssum.shape
+        print("Sum shape:", masssum.shape)
         autocorrwindow = AutocorrWindow(self)
         autocorrwindow.initalize_dialog(self.config, masssum)
         autocorrwindow.ShowModal()
@@ -1158,11 +1158,11 @@ class DataCollector(wx.Frame):
                 dat = np.transpose([np.ravel(x), np.ravel(y), np.ravel(np.transpose(self.grid[:, :, 1]))])
                 path = os.path.join(self.directory, "ExtractFull2D_" + self.xlabel[-3:-1] + ".txt")
                 np.savetxt(path, dat)
-                print "Saved to: ", path
+                print("Saved to: ", path)
             except (ValueError, TypeError):
-                print "Failed to export data"
+                print("Failed to export data")
         else:
-            print "Grid is empty"
+            print("Grid is empty")
 
     def on_msms_norm(self, e):
         dlg = wx.FileDialog(self, "Choose MS1 data file in x y list format", '', "", "*.*",)
@@ -1172,7 +1172,7 @@ class DataCollector(wx.Frame):
             path = os.path.join(dirname, filename)
 
             dlg.Destroy()
-            print "Openening: ", path
+            print("Openening: ", path)
             msdat = np.loadtxt(path)
             mids = np.array([y[1] for y in self.yvals]).astype(np.float)
             wins = np.array([y[2] for y in self.yvals]).astype(np.float)
@@ -1194,7 +1194,7 @@ class DataCollector(wx.Frame):
                 vals.append(val)
             vals = np.array(vals)
             vals /= np.amax(vals)
-            print vals
+            print(vals)
             self.on_run(0, vals=vals)
 
     def on_ylabel(self, e):
@@ -1202,15 +1202,15 @@ class DataCollector(wx.Frame):
         dlg.initialize_interface(title="Set Variable 1 Label", message="Variable 1 axis label:", defaultvalue="")
         dlg.ShowModal()
         self.ylabel = dlg.value
-        print "New  var. 1 axis label:", self.ylabel
+        print("New  var. 1 axis label:", self.ylabel)
         try:
             self.make_grid_plots(e)
-        except Exception, ex:
-            print "Could not plot grid:", ex
+        except Exception as ex:
+            print("Could not plot grid:", ex)
         try:
             self.makeplot2()
-        except Exception, ex:
-            print "Could not plot extract:", ex
+        except Exception as ex:
+            print("Could not plot extract:", ex)
         pass
 
 
@@ -1231,13 +1231,13 @@ class DCDropTarget(wx.FileDropTarget):
             path = filenames[0]
             directory, fname = os.path.split(path)
             if os.path.splitext(fname)[1] == ".json":
-                print "Loading .json file:", fname
+                print("Loading .json file:", fname)
                 self.window.load(path)
                 return
         elif len(filenames) > 1:
             pass
         else:
-            print "Error in file drop", filenames
+            print("Error in file drop", filenames)
             return
         for f in filenames:
             self.window.ypanel.list.add_line(file_name=f)

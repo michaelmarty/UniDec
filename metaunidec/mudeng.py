@@ -1,17 +1,10 @@
 import os
-import time
-import shutil
-from copy import deepcopy
 import subprocess
-import zipfile
-import fnmatch
-import string
 import numpy as np
-from scipy.interpolate import interp1d
-from scipy import signal
+
 import unidec_modules.unidectools as ud
-from unidec_modules import unidecstructure, peakstructure, unidec_enginebase
-from mudstruct import MetaDataSet
+from unidec_modules import peakstructure, unidec_enginebase
+from metaunidec.mudstruct import MetaDataSet
 import unidec_modules.mzmlparse_auto as automzml
 import time
 
@@ -29,14 +22,14 @@ def metaunidec_call(config, *args, **kwargs):
         for arg in args:
             call.append(arg)
     if len(kwargs) > 0:
-        for key in kwargs.keys():
+        for key in list(kwargs.keys()):
             call.append("-" + str(key))
             call.append(kwargs[key])
-    tstart = time.clock()
+    tstart = time.perf_counter()
     out = subprocess.call(call)
-    tend = time.clock()
-    print call, out
-    print "Execution Time:", (tend - tstart)
+    tend = time.perf_counter()
+    print(call, out)
+    print("Execution Time:", (tend - tstart))
     return out
 
 
@@ -178,7 +171,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
                         maxind = x
                 peakvals[i].append(spec.massdat[maxind, 0])
                 ints.append(spec.massdat[maxind, 1])
-            print peakvals[i], ints
+            print(peakvals[i], ints)
             pk.errorreplicate = ud.weighted_std(peakvals[i], ints)
 
     def export_params(self, e=None):
@@ -193,43 +186,43 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
             peakexts.append(np.concatenate(([p.mass], p.extracts)))
         outfile = self.config.outfname + "_extracts.txt"
         np.savetxt(outfile, np.array(peakexts))
-        print "Peak info saved to:", outfile
+        print("Peak info saved to:", outfile)
 
     def export_spectra(self, e=None):
         for s in self.data.spectra:
             outfile = self.config.outfname + "_" + str(s.var1) + ".txt"
             np.savetxt(outfile, s.rawdata)
-            print outfile
+            print(outfile)
             self.config.config_export(self.config.outfname + "_config.dat")
 
     def batch_set_config(self, paths):
         for p in paths:
             try:
                 self.config.write_hdf5(p)
-                print "Assigned Config to:", p
-            except Exception, e:
-                print e
+                print("Assigned Config to:", p)
+            except Exception as e:
+                print(e)
 
     def batch_run_unidec(self, paths):
         for p in paths:
             try:
-                tstart = time.clock()
+                tstart = time.perf_counter()
                 metaunidec_call(self.config, "-all", path=p)
-                print "Run:", p, " Time:  %.3gs" % (time.clock() - tstart)
-            except Exception, e:
-                print e
+                print("Run:", p, " Time:  %.3gs" % (time.perf_counter() - tstart))
+            except Exception as e:
+                print(e)
 
     def batch_extract(self, paths):
         for p in paths:
             try:
-                print "Extracting:", p
+                print("Extracting:", p)
                 self.open(p)
                 self.pick_peaks()
-            except Exception, e:
-                print e
+            except Exception as e:
+                print(e)
 
     def fit_data(self, fit="sig"):
-        print "Fitting: ", fit
+        print("Fitting: ", fit)
         xvals = self.data.var1
         self.data.fitgrid = []
         self.data.fits = []
@@ -241,9 +234,9 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
             elif fit == "sig":
                 fits, fitdat = ud.sig_fit(xvals, y)
             else:
-                print "ERROR: Unsupported fit type"
+                print("ERROR: Unsupported fit type")
                 break
-            print fits
+            print(fits)
             self.data.fitgrid.append(fitdat)
             self.data.fits.append(fits)
         self.data.export_fits()
@@ -268,11 +261,11 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
                         self.parse_file(p, scanstep=scanstep)
                     else:
                         self.parse_file(p, timestep=float(timestep))
-                except Exception, e:
+                except Exception as e:
                     errors.append(p)
-                    print e
+                    print(e)
             if not ud.isempty(errors):
-                print "Errors:", errors
+                print("Errors:", errors)
 
     def parse_file(self, p, timestep=None, scanstep=None, timepoint=None):
         """
@@ -293,7 +286,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
                              startscan=None, endscan=None, scanstep=None):
         dirs = []
         files = []
-        print "Parsing multiple files"
+        print("Parsing multiple files")
         for p in paths:
             dirs.append(os.path.dirname(p))
             files.append(os.path.basename(p))
@@ -306,7 +299,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
 if __name__ == '__main__':
     eng = MetaUniDec()
     '''
-    testpath = "C:\Python\UniDec\unidec_src\UniDec\\x64\Release\\test.hdf5"
+    testpath = "C:\Python\\UniDec\\unidec_src\\UniDec\\x64\Release\\test.hdf5"
     eng.data.new_file(testpath)
     data1 = [1, 2, 3]
     data2 = [4, 5, 6]
@@ -318,7 +311,7 @@ if __name__ == '__main__':
     exit()
     '''
 
-    testdir = "C:\Python\UniDec\unidec_src\UniDec\\x64\Release"
+    testdir = "C:\Python\\UniDec\\unidec_src\\UniDec\\x64\Release"
     testfile = "JAW.hdf5"
     testpath = os.path.join(testdir, testfile)
     eng.open(testpath)

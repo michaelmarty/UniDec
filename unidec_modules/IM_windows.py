@@ -31,7 +31,7 @@ class IMListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMi
         listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.TextEditMixin.__init__(self)
         self.InsertColumn(0, "Mass (Da)")
-        self.InsertColumn(1, u"CCS (\u212B\u00B2)")
+        self.InsertColumn(1, "CCS (\u212B\u00B2)")
         self.SetColumnWidth(0, 100)
         self.SetColumnWidth(1, 100)
 
@@ -52,7 +52,7 @@ class IMListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMi
         :param val: Value for the first column. Default is 0. Default for second column is 0.
         :return: None
         """
-        index = self.InsertItem(sys.maxint, str(val))
+        index = self.InsertItem(sys.maxsize, str(val))
         self.SetItem(index, 1, str(0))
 
     def populate(self, data, colors=None):
@@ -64,7 +64,7 @@ class IMListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMi
         """
         self.DeleteAllItems()
         for i in range(0, len(data)):
-            index = self.InsertItem(sys.maxint, str(data[i][0]))
+            index = self.InsertItem(sys.maxsize, str(data[i][0]))
             self.SetItem(index, 1, str(data[i][1]))
             if colors is not None:
                 color = colors[i]
@@ -208,7 +208,7 @@ class IMTools(wx.Dialog):
 
             self.ctltemp = wx.TextCtrl(self.pnl, value='', size=size1)
             gbox1c.Add(self.ctltemp, (3, 1), span=(1, 1))
-            gbox1c.Add(wx.StaticText(self.pnl, label=u"Temperature (\u00B0C): "), (3, 0),
+            gbox1c.Add(wx.StaticText(self.pnl, label="Temperature (\u00B0C): "), (3, 0),
                        flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.ctlgasmass = wx.TextCtrl(self.pnl, value='', size=size1)
@@ -217,7 +217,7 @@ class IMTools(wx.Dialog):
 
             self.ctlto = wx.TextCtrl(self.pnl, value='', size=size1)
             gbox1c.Add(self.ctlto, (5, 1), span=(1, 1))
-            gbox1c.Add(wx.StaticText(self.pnl, label=u"Dead Time (t\u2080 in ms): "), (5, 0),
+            gbox1c.Add(wx.StaticText(self.pnl, label="Dead Time (t\u2080 in ms): "), (5, 0),
                        flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.ctldriftlength = wx.TextCtrl(self.pnl, value='', size=size1)
@@ -246,7 +246,7 @@ class IMTools(wx.Dialog):
             gbox1c.Add(self.ctlgasmass, (4, 1), span=(1, 1))
             gbox1c.Add(wx.StaticText(self.pnl, label="Gas Mass (Da): "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
-            self.ctltwavecaltype = wx.Choice(self.pnl, -1, choices=self.config.twavedict.values())
+            self.ctltwavecaltype = wx.Choice(self.pnl, -1, choices=list(self.config.twavedict.values()))
             gbox1c.Add(self.ctltwavecaltype, (5, 1), span=(1, 1))
             gbox1c.Add(wx.StaticText(self.pnl, label="Calibration Type: "), (5, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
@@ -325,7 +325,7 @@ class IMTools(wx.Dialog):
             self.ctltcal2.SetValue(str(self.config.tcal2))
             self.ctledc.SetValue(str(self.config.edc))
             self.ctlgasmass.SetValue(str(self.config.gasmass))
-            self.ctltwavecaltype.SetSelection(self.config.twavedict.keys().index(self.config.twaveflag))
+            self.ctltwavecaltype.SetSelection(list(self.config.twavedict.keys()).index(self.config.twaveflag))
 
     def get_from_gui(self, e):
         """
@@ -345,7 +345,7 @@ class IMTools(wx.Dialog):
             self.config.tcal2 = ud.string_to_value(self.ctltcal2.GetValue())
             self.config.edc = ud.string_to_value(self.ctledc.GetValue())
             self.config.gasmass = ud.string_to_value(self.ctlgasmass.GetValue())
-            self.config.twaveflag = self.config.twavedict.keys()[self.ctltwavecaltype.GetSelection()]
+            self.config.twaveflag = list(self.config.twavedict.keys())[self.ctltwavecaltype.GetSelection()]
 
     def on_add(self, e):
         """
@@ -366,7 +366,7 @@ class IMTools(wx.Dialog):
         ztab = np.arange(float(self.config.startz), float(self.config.endz + 1))
         self.plot.clear_plot()
         self.plot.contourplot(self.data3, self.config, xlab="m/z (Th)", ylab="Arrival Time (ms)", title="IM-MS Data")
-        for i in xrange(0, len(outs)):
+        for i in range(0, len(outs)):
             mass = outs[i, 0]
             ccs = outs[i, 1]
             mzvals = (mass + ztab * self.config.adductmass) / ztab
@@ -379,12 +379,12 @@ class IMTools(wx.Dialog):
             elif self.config.twaveflag == 3:
                 dts = np.array([calc_twave_dt_power(mass, z, ccs, self.config) for z in ztab])
             else:
-                print "Error: twaveflat value not supported. Value was:", self.config.twaveflag
+                print("Error: twaveflat value not supported. Value was:", self.config.twaveflag)
             dtdat = np.unique(self.data3[:, 1])
             maxdt = np.amax(dtdat)
             mindt = np.amin(dtdat)
             clipped = np.clip(dts, mindt, maxdt)
-            print mass, np.array([ztab, dts])
+            print(mass, np.array([ztab, dts]))
             if np.amin(clipped) == maxdt or np.amax(clipped) == mindt:
                 dts = clipped
             self.plot.subplot1.plot(mzvals, dts, marker="o")
@@ -399,10 +399,10 @@ class IMTools(wx.Dialog):
         self.config.twaveflag = self.ctltwave.GetSelection()
         if self.config.twaveflag == 0:
             self.config.gasmass = 4.002602
-            print "Using Linear Cell"
+            print("Using Linear Cell")
         elif self.config.twaveflag > 0:
             self.config.gasmass = 28.0134
-            print "Using Travelling Wave"
+            print("Using Travelling Wave")
         self.setup_panel()
         self.ctltwave.SetSelection(int(self.twave))
 
@@ -540,7 +540,7 @@ class IMToolExtract(wx.Dialog):
         """
         try:
             self.zout = int(self.ctlzout.GetStringSelection())
-            print "Charge State: ", self.zout
+            print("Charge State: ", self.zout)
         except ValueError:
             self.zout = 0
 

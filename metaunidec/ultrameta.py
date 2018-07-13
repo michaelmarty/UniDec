@@ -16,13 +16,13 @@ from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows
 import unidec_modules.unidectools as ud
 import h5py
 from unidec_modules.hdf5_tools import replace_dataset, get_dataset
-from gui_elements.um_list_ctrl import *
-import mudeng
+from metaunidec.gui_elements.um_list_ctrl import *
+from metaunidec import mudeng
 import threading
 
 
 def read_attr(thing, string, config):
-    if string in config.attrs.keys():
+    if string in list(config.attrs.keys()):
         val = config.attrs.get(string)
         if isinstance(val, np.ndarray):
             return val[0]
@@ -42,9 +42,9 @@ extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4
                   5: "Center of Mass 50%", 6: "Center of Mass 10%"}
 extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass", 5: "Mass", 6: "Mass"}
 
-markdict = {u'\u25CB': 'o', u'\u25BD': 'v', u'\u25B3': '^', u'\u25B7': '>', u'\u25A2': 's', u'\u2662': 'd',
-            u'\u2606': '*'}
-mdkeys = [u'\u25CB', u'\u25BD', u'\u25B3', u'\u25B7', u'\u25A2', u'\u2662', u'\u2606']
+markdict = {'\u25CB': 'o', '\u25BD': 'v', '\u25B3': '^', '\u25B7': '>', '\u25A2': 's', '\u2662': 'd',
+            '\u2606': '*'}
+mdkeys = ['\u25CB', '\u25BD', '\u25B3', '\u25B7', '\u25A2', '\u2662', '\u2606']
 
 
 # noinspection PyNoneFunctionAssignment,PyNoneFunctionAssignment,PyArgumentList
@@ -62,12 +62,12 @@ class DataCollector(wx.Frame):
             self.config = unidecstructure.UniDecConfig()
             self.config.initialize()
             self.config.initialize_system_paths()
-            print "Using Empty Structure"
+            print("Using Empty Structure")
             self.config.publicationmode = 1
             if "viridis" in colormaps():
-                self.config.cmap = "viridis"
+                self.config.cmap = u"viridis"
             else:
-                self.config.cmap = "jet"
+                self.config.cmap = u"jet"
 
         self.CreateStatusBar(3)
         self.SetStatusWidths([-1, 150, 400])
@@ -125,7 +125,7 @@ class DataCollector(wx.Frame):
 
         self.inputsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.displaysize = wx.GetDisplaySize()
-        print self.displaysize
+        print(self.displaysize)
         self.ypanelsizer = wx.BoxSizer(wx.VERTICAL)
         self.ypanel = ListCtrlPanel(self.panel, pres=self, list_type="Y", size=(700, self.displaysize[1] - 300))
         self.ypanel.SetDropTarget(DCDropTarget(self))
@@ -155,7 +155,7 @@ class DataCollector(wx.Frame):
                                    choices=["None", "Max", "Sum", "Peak Max", "Peak Sum"], majorDimension=1,
                                    style=wx.RA_SPECIFY_COLS)
         self.ctlextractwindow = wx.TextCtrl(self.panel, value="", size=(100, 20))
-        self.ctlextract = wx.ComboBox(self.panel, value="Height", size=(150, 30), choices=extractchoices.values(),
+        self.ctlextract = wx.ComboBox(self.panel, value="Height", size=(150, 30), choices=list(extractchoices.values()),
                                       style=wx.CB_READONLY)
         self.ctlextractwindow.SetValue("0")
         self.runbutton = wx.Button(self.panel, label="Run Extraction", size=(200, 200))
@@ -218,8 +218,8 @@ class DataCollector(wx.Frame):
                     self.load(os.path.join(testdir, testfile))
                     # self.on_plot_all()
                     pass
-                except Exception, e:
-                    print e
+                except Exception as e:
+                    print(e)
                     pass
 
     def load_x_from_peaks(self, e=None, index=0):
@@ -230,7 +230,7 @@ class DataCollector(wx.Frame):
             if self.localpath == 1:
                 path = os.path.join(self.directory, path)
             if os.path.isfile(path):
-                print path
+                print(path)
                 self.hdf5_file = path
 
                 hdf = h5py.File(path, 'r')
@@ -247,8 +247,8 @@ class DataCollector(wx.Frame):
                     for i in indexes:
                         marker = mdkeys[i % len(mdkeys)]
                         self.xpanel.list.add_line(val=peaks[i], marker=marker)
-        except Exception, ex:
-            print "Unable to detect peaks", ex
+        except Exception as ex:
+            print("Unable to detect peaks", ex)
         self.load_params_from_hdf5()
 
     def load_params_from_hdf5(self, e=None, index=0):
@@ -278,7 +278,7 @@ class DataCollector(wx.Frame):
             self.savename = dlg.GetPath()
             with open(self.savename, "w") as outfile:
                 json.dump(outdict, outfile)
-            print "Saved: ", self.savename
+            print("Saved: ", self.savename)
         dlg.Destroy()
 
     def on_load(self, e):
@@ -299,13 +299,13 @@ class DataCollector(wx.Frame):
             self.directory = indict["dir"]
         self.update_set(0)
         self.load_x_from_peaks(0)
-        print "Loaded: ", savename
+        print("Loaded: ", savename)
         self.on_run(0)
 
     def on_add_x(self, e):
         self.update_get()
         index = len(self.xvals)
-        print index, self.xvals
+        print(index, self.xvals)
         marker = mdkeys[index % len(mdkeys)]
         self.xpanel.list.add_line(val=index, marker=marker)
 
@@ -356,13 +356,13 @@ class DataCollector(wx.Frame):
             self.run_hdf5(path)
         except:
             self.SetStatusText("ERROR with File: " + path, number=2)
-            print "ERROR Python: File", path
+            print("ERROR Python: File", path)
 
     def run_hdf5(self, path):
         out = mudeng.metaunidec_call(self.config, "-ultraextract", path=path)
         if out is not 0:
             self.SetStatusText("ERROR with File: " + path, number=2)
-            print "ERROR C: File", path, out
+            print("ERROR C: File", path, out)
 
     """
     Gets called when "Run Extraction" button gets clicked. For each file given in the list,
@@ -372,18 +372,18 @@ class DataCollector(wx.Frame):
 
     def on_run(self, e=None, fit=None):
         self.update_config()
-        tstart = time.clock()
+        tstart = time.perf_counter()
         self.plot1.clear_plot()
         self.plot2.clear_plot()
         self.update_get(e)
-        print "Running\n"
+        print("Running\n")
         # print self.yvals
         labels = np.array(self.yvals)[:, 3]
         uniquelabels = np.unique(labels)
         output = []
 
         if ud.isempty(self.xvals):
-            self.xvals = [[u'\u25CB', 0]]
+            self.xvals = [['\u25CB', 0]]
 
         # run extraction on all files with parameters
 
@@ -406,13 +406,13 @@ class DataCollector(wx.Frame):
             else:
                 for p in paths:
                     self.update_hdf5(p)
-        print "Total Execution Time: %.2gs" % (time.clock() - tstart)
+        print("Total Execution Time: %.2gs" % (time.perf_counter() - tstart))
         for x in self.xvals:
             try:
                 index = int(x[1])
                 marker = markdict[x[0]]
             except:
-                print "Error with peak index:", x
+                print("Error with peak index:", x)
                 index = 0
                 marker = "o"
             bargraphfits = []
@@ -431,7 +431,7 @@ class DataCollector(wx.Frame):
                             path = os.path.join(self.directory, path)
                         color = y[1]
                         linestyle = y[2]
-                        print path, u, index, marker, linestyle
+                        print(path, u, index, marker, linestyle)
                         self.hdf5_file = path
                         hdf = h5py.File(path, "r")
 
@@ -442,14 +442,14 @@ class DataCollector(wx.Frame):
                         zdat = []
                         for f in np.arange(0, self.len):
                             msdata = hdf.get(self.topname + "/" + str(f))
-                            self.attrs = dict(msdata.attrs.items())
-                            if "var1" in self.attrs.keys():
+                            self.attrs = dict(list(msdata.attrs.items()))
+                            if "var1" in list(self.attrs.keys()):
                                 var1 = self.attrs["var1"]
-                            elif "collision_voltage" in self.attrs.keys():
+                            elif "collision_voltage" in list(self.attrs.keys()):
                                 var1 = self.attrs["collision_voltage"]
                                 if self.ylabel == "":
                                     self.ylabel = "Collision Voltage"
-                            elif "Collision Voltage" in self.attrs.keys():
+                            elif "Collision Voltage" in list(self.attrs.keys()):
                                 var1 = self.attrs["Collision Voltage"]
                                 if self.ylabel == "":
                                     self.ylabel = "Collision Voltage"
@@ -461,8 +461,8 @@ class DataCollector(wx.Frame):
                                 zdata[:, 1] /= np.amax(zdata[:, 1])
                                 zdat.append(ud.center_of_mass(zdata)[0])
                             except:
-                                print "ERROR with Zdata"
-                                print zdata
+                                print("ERROR with Zdata")
+                                print(zdata)
                                 zdat.append(0)
                                 pass
 
@@ -475,8 +475,8 @@ class DataCollector(wx.Frame):
 
                         try:
                             exz = get_dataset(pdataset, "ultrazextracts")[:, peak]
-                        except Exception, e:
-                            print e
+                        except Exception as e:
+                            print(e)
                             exz = zdat
                         zexts.append(exz)
 
@@ -512,7 +512,7 @@ class DataCollector(wx.Frame):
                         else:
                             self.plot2.plotadd(xvals, zdat, color,linestyle=linestyle, newlabel=lab, marker=marker)
                     else:
-                        print zdat, zexts, avg
+                        print(zdat, zexts, avg)
                         if fit == "exp":
                             fits, fitdat = ud.exp_fit(xvals, avg)
                             zfits, zfitdat = ud.exp_fit(xvals, zdat)
@@ -523,11 +523,11 @@ class DataCollector(wx.Frame):
                             fits, fitdat = ud.sig_fit(xvals, avg)
                             zfits, zfitdat = ud.sig_fit(xvals, zdat)
                         else:
-                            print "ERROR: Unsupported fit type"
+                            print("ERROR: Unsupported fit type")
                             break
 
-                        print "Fits:", fits
-                        print "Charge Fits:", zfits
+                        print("Fits:", fits)
+                        print("Charge Fits:", zfits)
 
                         bargraphfits.append(fits)
                         bargraphlabels.append(u)
@@ -590,7 +590,7 @@ class DataCollector(wx.Frame):
 
             if fit is not None:
                 self.on_bar_graphs(bargraphfits, bargraphlabels, bargrapherrors, fit=fit)
-        print "Plotting Done"
+        print("Plotting Done")
 
         output = np.array(output)
         self.data = output
@@ -598,7 +598,7 @@ class DataCollector(wx.Frame):
             hdf = h5py.File(os.path.join(self.directory, "Extracts.hdf5"))
             for l in output:
                 dataset = hdf.require_group("/" + l[0][0])
-                data = np.array([l[i] for i in xrange(1, 6)])
+                data = np.array([l[i] for i in range(1, 6)])
                 fits = l[6]
                 zfits = l[7]
                 replace_dataset(dataset, "ultraextracts", data)
@@ -610,9 +610,9 @@ class DataCollector(wx.Frame):
             # outfile = open(os.path.join(self.directory, "Extracts.pkl"), "wb")
             # pickle.dump(output, outfile)
             # outfile.close()
-        except Exception, ex:
-            print "Failed to Export Output:", ex
-        print "Exports Done"
+        except Exception as ex:
+            print("Failed to Export Output:", ex)
+        print("Exports Done")
         self.plot1.add_legend(anchor=(1.35, 1))
         self.plot2.add_legend(anchor=(1.35, 1))
         self.plot2.repaint()
@@ -624,11 +624,11 @@ class DataCollector(wx.Frame):
         name1 = os.path.join(self.directory, "Figure1.png")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)
-            print name1
+            print(name1)
         name2 = os.path.join(self.directory, "Figure2.png")
         if self.plot2.flag:
             self.plot2.on_save_fig(e, name2)
-            print name2
+            print(name2)
 
     def on_save_figPDF(self, e):
         "Finished"
@@ -636,11 +636,11 @@ class DataCollector(wx.Frame):
         name1 = os.path.join(self.directory, "Figure1.pdf")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)
-            print name1
+            print(name1)
         name2 = os.path.join(self.directory, "Figure2.pdf")
         if self.plot2.flag:
             self.plot2.on_save_fig(e, name2)
-            print name2
+            print(name2)
 
     def on_local_path(self, e):
         "Finished"
@@ -668,11 +668,11 @@ class DataCollector(wx.Frame):
         dlg.initialize_interface(title="Set Variable 1 Label", message="Variable 1 axis label:", defaultvalue="")
         dlg.ShowModal()
         self.ylabel = dlg.value
-        print "New  var. 1 axis label:", self.ylabel
+        print("New  var. 1 axis label:", self.ylabel)
         try:
             self.on_run()
-        except Exception, ex:
-            print "Could not plot extract:", ex
+        except Exception as ex:
+            print("Could not plot extract:", ex)
         pass
 
     def on_choose_dir(self, e):
@@ -702,7 +702,7 @@ class DataCollector(wx.Frame):
             bargraph = BarGraphWindow(self, title="Logistic Fit", directory=self.directory)
             bargraph.on_sig_plot(fits, labels, errors)
         else:
-            print "Error: bad fit given"
+            print("Error: bad fit given")
 
     def update_config(self):
         self.config.exnorm = self.ctlnorm.GetSelection()
@@ -718,9 +718,9 @@ class DataCollector(wx.Frame):
         self.ctlextractwindow.SetValue(str(self.config.exwindow))
 
     def on_plot_all(self, e=None, type="dist"):
-        tstart = time.clock()
+        tstart = time.perf_counter()
         self.update_get(e)
-        print "Running Plot All"
+        print("Running Plot All")
         # print self.yvals
         self.yvals = np.array(self.yvals)
         labels = self.yvals[:, 3]
@@ -762,7 +762,7 @@ class DataCollector(wx.Frame):
                         path = os.path.join(self.directory, path)
                     color = y[1]
                     linestyle = y[2]
-                    print path, u, linestyle
+                    print(path, u, linestyle)
                     self.hdf5_file = path
                     hdf = h5py.File(path, "r")
                     msdata1 = hdf.require_group(self.topname)
@@ -775,14 +775,14 @@ class DataCollector(wx.Frame):
                     xvals = []
                     for f in np.arange(0, self.len):
                         msdata = hdf.get(self.topname + "/" + str(f))
-                        self.attrs = dict(msdata.attrs.items())
-                        if "var1" in self.attrs.keys():
+                        self.attrs = dict(list(msdata.attrs.items()))
+                        if "var1" in list(self.attrs.keys()):
                             var1 = self.attrs["var1"]
-                        elif "collision_voltage" in self.attrs.keys():
+                        elif "collision_voltage" in list(self.attrs.keys()):
                             var1 = self.attrs["collision_voltage"]
                             if self.ylabel == "":
                                 self.ylabel = "Collision Voltage"
-                        elif "Collision Voltage" in self.attrs.keys():
+                        elif "Collision Voltage" in list(self.attrs.keys()):
                             var1 = self.attrs["Collision Voltage"]
                             if self.ylabel == "":
                                 self.ylabel = "Collision Voltage"
@@ -802,7 +802,7 @@ class DataCollector(wx.Frame):
             if not ud.isempty(xvals) and not ud.isempty(extracts):
 
                 extracts = np.array(extracts)
-                print np.shape(extracts)
+                print(np.shape(extracts))
                 xvals = np.array(xvals)
                 # avg = np.mean(extracts, axis=0)
                 # std = np.std(extracts, axis=0)
@@ -881,7 +881,7 @@ class BarGraphWindow(wx.Frame):
         barlabels.append("")
         plotcols.append("black")
         num += 1
-        xvals = range(0, num)
+        xvals = list(range(0, num))
         self.p1.barplottoperrors(xarr=xvals, yarr=midpoint, yerr=midpointerr,
                                  peakval=barlabels, colortab=plotcols, title="Rate")
         self.p2.barplottoperrors(xarr=xvals, yarr=slope, yerr=slopeerr,
@@ -923,7 +923,7 @@ class BarGraphWindow(wx.Frame):
         barlabels.append("")
         plotcols.append("black")
         num += 1
-        xvals = range(0, num)
+        xvals = list(range(0, num))
         self.p1.barplottoperrors(xarr=xvals, yarr=midpoint, yerr=midpointerr,
                                  peakval=barlabels, colortab=plotcols, title="Slope")
         self.p2.barplottoperrors(xarr=xvals, yarr=slope, yerr=slopeerr,
@@ -981,7 +981,7 @@ class BarGraphWindow(wx.Frame):
         barlabels.append("")
         plotcols.append("black")
         num += 1
-        xvals = range(0, num)
+        xvals = list(range(0, num))
         self.p1.barplottoperrors(xarr=xvals, yarr=midpoint, yerr=midpointerr,
                                  peakval=barlabels, colortab=plotcols, title="Midpoint")
         self.p2.barplottoperrors(xarr=xvals, yarr=slope, yerr=slopeerr,
@@ -1027,9 +1027,9 @@ class BarGraphWindow(wx.Frame):
         plotsizer = wx.GridBagSizer()
         figsize = (18 / ydim, 10 / xdim)
         self.plots = []
-        for x in xrange(0, xdim):
+        for x in range(0, xdim):
             ptemp = []
-            for y in xrange(0, ydim):
+            for y in range(0, ydim):
                 if type == "2D":
                     p = plot2d.Plot2d(self.panel, figsize=figsize)
                 else:

@@ -1,6 +1,6 @@
 import wx
 import wx.grid
-import TagTypes as tt
+from unidec_modules.tims_import_wizard import TagTypes as tt
 
 class WizardGrid(wx.grid.Grid):
     '''
@@ -200,5 +200,5 @@ class WizardGrid(wx.grid.Grid):
     def remove_row(self, evt):
         rows = self.GetSelectedRows()
         if rows != []:
-            print rows
+            print(rows)
 

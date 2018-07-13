@@ -1,14 +1,11 @@
-import os
-import time
-import scipy
-import matplotlib.pyplot as plt
 import numpy as np
 import pymzml
-import unidectools as ud
+from unidec_modules import unidectools as ud
 
 from copy import deepcopy
 
 __author__ = 'Michael.Marty'
+
 
 def get_resolution(testdata):
     """
@@ -34,8 +31,10 @@ def get_resolution(testdata):
     # return popt2
     return np.median(resolutions)
 
+
 def fit_line(x, a, b):
-    return a*x**b
+    return a * x ** b
+
 
 def merge_spectra(datalist):
     """
@@ -52,13 +51,14 @@ def merge_spectra(datalist):
     # axis = nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
     axis = ud.nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
     template = np.transpose([axis, np.zeros_like(axis)])
-    print "Length merge axis:", len(template)
+    print("Length merge axis:", len(template))
     for d in datalist:
         if len(d) > 1:
             newdat = ud.mergedata(template, d)
             # newdat=ud.lintegrate(d,axis)
             template[:, 1] += newdat[:, 1]
     return template
+
 
 def nonlinear_axis(start, end, res):
     """
@@ -91,20 +91,20 @@ class mzMLimporter:
         :param kwargs: keywords (unused)
         :return: mzMLimporter object
         """
-        print "Reading mzML:", path
+        print("Reading mzML:", path)
         self.msrun = pymzml.run.Reader(path)
         self.data = []
         self.scans = []
         self.times = []
         for i, spectrum in enumerate(self.msrun):
-            if 'scan start time' in spectrum.keys():
+            if '_scan_time' in list(spectrum.__dict__.keys()):
                 impdat = np.transpose([spectrum.mz, spectrum.i])
                 impdat = impdat[impdat[:, 0] > 10]
                 self.data.append(impdat)
                 self.times.append(float(spectrum['scan start time']))
                 self.scans.append(i)
-        self.times=np.array(self.times)
-        self.scans=np.array(self.scans)
+        self.times = np.array(self.times)
+        self.scans = np.array(self.scans)
         self.data = np.array(self.data)
 
     def get_data(self, scan_range=None, time_range=None):
@@ -114,30 +114,30 @@ class mzMLimporter:
         """
         data = deepcopy(self.data)
         if time_range is not None:
-            scan_range=self.get_scans_from_times(time_range)
-            print "Getting times:", time_range
+            scan_range = self.get_scans_from_times(time_range)
+            print("Getting times:", time_range)
 
         if scan_range is not None:
             data = data[int(scan_range[0]):int(scan_range[1])]
-            print "Getting scans:", scan_range
+            print("Getting scans:", scan_range)
         else:
-            print "Getting all scans, length:", len(self.scans), data.shape
+            print("Getting all scans, length:", len(self.scans), data.shape)
 
         if len(data) > 1:
             try:
                 data = merge_spectra(data)
-            except Exception, e:
+            except Exception as e:
                 concat = np.concatenate(data)
                 sort = concat[concat[:, 0].argsort()]
                 data = ud.removeduplicates(sort)
-                print e
+                print(e)
         elif len(data) == 1:
             data = data[0]
         else:
             data = data
-        #plt.figure()
-        #plt.plot(data)
-        #plt.show()
+        # plt.figure()
+        # plt.plot(data)
+        # plt.show()
         return data
 
     def get_tic(self):
@@ -154,7 +154,7 @@ class mzMLimporter:
             max = -1
         return [min, max]
 
-    def get_times_from_scans(self,scan_range):
+    def get_times_from_scans(self, scan_range):
         boo1 = self.scans >= scan_range[0]
         boo2 = self.scans < scan_range[1]
         boo3 = np.logical_and(boo1, boo2)
@@ -174,8 +174,6 @@ class mzMLimporter:
 
 
 if __name__ == "__main__":
-    test = "Z:\Group Share\Scott\\test.mzML"
+    test = u"C:\Python\\UniDec\TestSpectra\JAW.mzML"
     d = mzMLimporter(test).get_data()
-    #print d.get_times_from_scans([15, 30])
-
-
+    # print d.get_times_from_scans([15, 30])

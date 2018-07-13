@@ -1,6 +1,6 @@
 import wx
 import wx.grid
-import MetaTagTypes as tt
+from metaunidec.meta_import_wizard import MetaTagTypes as tt
 
 
 class WizardGrid(wx.grid.Grid):
@@ -165,7 +165,7 @@ class WizardGrid(wx.grid.Grid):
     def remove_row(self, evt):
         rows = self.GetSelectedRows()
         if rows != []:
-            print rows
+            print(rows)
 
     def get_data(self, e=None):
         import_data = []

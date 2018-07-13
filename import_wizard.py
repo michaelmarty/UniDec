@@ -141,7 +141,7 @@ class ImportWizard(wx.Frame):
         elif self.rb.GetSelection() == 2:
             import_data.append("ionMS import wizard,MS,")
         else:
-            print "No valid drift tube selected"
+            print("No valid drift tube selected")
 
         # this really needs to be factorised
 

@@ -25,11 +25,11 @@ if False:
     plt.show()
 
 fwhm, psfun, mid = auto_peak_width(data)
-print fwhm
+print(fwhm)
 thresh = auto_noise_level(data) + 0.01
 avgbs = average_bin_size(data)
 window = fwhm / avgbs / 4.
-print window, avgbs
+print(window, avgbs)
 
 cwt, wav = single_cwt(data[:, 1], window)
 
@@ -44,7 +44,7 @@ zm = 1. / peaks[:, 0]
 ivals = peaks[:, 1]
 maxpos = np.argmax(ivals)
 mins = []
-for maxpos in xrange(0, len(ivals)):
+for maxpos in range(0, len(ivals)):
     x = np.abs(zm - zm[maxpos])
     x = np.sort(x)
     diffs = np.diff(x)
@@ -61,7 +61,7 @@ for maxpos in xrange(0, len(ivals)):
         vec = vec * 0
     mins.append(vec)
     if False:
-        print vec
+        print(vec)
         plt.scatter(x, ivals)
         plt.plot(x[:-1], diffs)
         plt.xlim((np.amin(x), np.amax(x)))
@@ -72,14 +72,14 @@ sindex = np.argsort(mins[:, 4])
 mins = mins[sindex]
 
 peakassignments = []
-for i in xrange(0, len(mins)):
+for i in range(0, len(mins)):
     row = mins[i]
     swaps = []
     if row[0] > 0:
         topmass = row[0]
         topcharge = row[3]
         tolerance = row[5]
-        print tolerance
+        print(tolerance)
         # print topmass,topcharge
         zms = np.abs(row[6] - mins[:, 6])
         for j, zm in enumerate(zms):
@@ -96,7 +96,7 @@ for i in xrange(0, len(mins)):
                     mins[j, 7] = True
                     mins[j, 6] = charge / newmass
 
-                    print topmass, newmass
+                    print(topmass, newmass)
 
                     if not row[7]:
                         peakassignments.append([row, mins[j]])
@@ -120,7 +120,7 @@ for i in xrange(0, len(mins)):
                 swaprows = deepcopy(mins[newspot:j])
                 mins[newspot] = mins[j]
                 mins[newspot + 1:j + 1] = swaprows
-                print "swap", i, newspot, j
+                print("swap", i, newspot, j)
 
                 # print i,j
 
@@ -157,7 +157,7 @@ for m in peakassignments:
     sindex = np.argsort(x)
     x = x[sindex]
     y = y[sindex]
-    print np.average(m[:, 0]), x, y
+    print(np.average(m[:, 0]), x, y)
     plt.plot(x, y, marker="o")
 
 # plt.plot(data[:, 0], fitdat)

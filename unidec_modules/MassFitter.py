@@ -20,9 +20,9 @@ def make_mass_list(massdat, arrayin, psfun, startarray, *args):
     length = len(massdat)
     output = np.zeros(length)
     num = len(arrayin.flatten()) / 3
-    array = np.reshape(arrayin, (num, 3))
+    array = np.reshape(arrayin, (int(num), 3))
 
-    for i in xrange(0, len(array)):
+    for i in range(0, len(array)):
         output += ud.make_peak_shape(massdat[:, 0], psfun, array[i, 1], array[i, 0], norm_area=True) * array[i, 2]
     if np.amax(output) != 0 and "nonorm" in args:
         output = output / np.amax(output) * np.amax(massdat[:, 1])
@@ -61,7 +61,7 @@ def least_squares_minimize(massdat, array, psfun, *args):
     """
     fit = opt.leastsq(error_function, np.ravel(array), args=(massdat, psfun, array, args))[0]
     num = len(array.flatten()) / 3
-    fit = np.reshape(fit, (num, 3))
+    fit = np.reshape(fit, (int(num), 3))
     return fit
 
 
@@ -96,19 +96,19 @@ class MassFitter:
         try:
             self.initguess = np.array([[self.finarray[i, 0], self.finarray[i, 1] * 1,
                                         self.finarray[i, 4] * self.finarray[i, 1] * 1 * np.sqrt(2 * np.pi)] for i in
-                                       xrange(0, len(self.finarray))])
+                                       range(0, len(self.finarray))])
         except IndexError:
             if "smallguess" in args:
                 self.initguess = np.array(
-                    [[self.finarray[i, 0], 0.5, self.finarray[i, 1]] for i in xrange(0, len(self.finarray))])
+                    [[self.finarray[i, 0], 0.5, self.finarray[i, 1]] for i in range(0, len(self.finarray))])
             elif "microguess" in args:
                 self.initguess = np.array(
-                    [[self.finarray[i, 0], 0.1, self.finarray[i, 1]] for i in xrange(0, len(self.finarray))])
+                    [[self.finarray[i, 0], 0.1, self.finarray[i, 1]] for i in range(0, len(self.finarray))])
                 self.initguess[len(self.initguess)-1,1]=10
             else:
                 self.initguess = np.array(
-                    [[self.finarray[i, 0], 500., self.finarray[i, 1]] for i in xrange(0, len(self.finarray))])
-        print "Inital Guess: ", self.initguess
+                    [[self.finarray[i, 0], 500., self.finarray[i, 1]] for i in range(0, len(self.finarray))])
+        print("Inital Guess: ", self.initguess)
 
     def perform_fit(self, *args):
         """

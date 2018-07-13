@@ -458,7 +458,7 @@ class PeakTools2d(wx.Dialog):
         self.fitsig = fitout[0]
 
         # Show the results
-        print self.fitmid, self.fitsig
+        print(self.fitmid, self.fitsig)
         if self.flipflag == 0:
             self.outmzsig.SetValue(str(fitout[0]))
         else:

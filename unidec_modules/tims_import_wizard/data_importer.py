@@ -10,7 +10,7 @@ import sys
 import platform
 from pubsub import pub
 
-import TagTypes as tt
+from unidec_modules.tims_import_wizard import TagTypes as tt
 from unidec_modules.tims_import_wizard import get_data_wrapper
 
 param_file_cache = {}
@@ -91,8 +91,8 @@ def auto_from_wizard(lines, exedir):
                 if mapper[index] is not '':
                     try:
                         parse[conv[mapper[index]]] = l[index]
-                    except Exception, e:
-                        print "Unable to import: ", index, mapper[index], l[index], e
+                    except Exception as e:
+                        print("Unable to import: ", index, mapper[index], l[index], e)
 
             # fix range
             parse[tt.RANGE] = (parse[tt.START], parse[tt.END])
@@ -246,7 +246,7 @@ def mp_process_from_wizard(job_list):
     core_worker = 1
     try:
         core_worker = cpu_count() - 1
-    except Exception, e:
+    except Exception as e:
         pass
 
     workers = [Process(target=data_import_worker, args=(worker_queue, result_queue)) for i in range(core_worker)]
@@ -266,7 +266,7 @@ def mp_process_from_wizard(job_list):
             break
         try:
             job_kwargs = result_queue.get()
-        except Exception, e:  # Queue.Empty:
+        except Exception as e:  # Queue.Empty:
             break
         pub.sendMessage('RAW DATA ADDED TO MODEL')
         result_count += 1
@@ -280,7 +280,7 @@ def data_import_worker(worker_queue, result_queue):
         try:
             # false means it does not block waiting for more items
             job_kwargs = worker_queue.get(False)
-        except Exception, e:  # Queue.Empty:
+        except Exception as e:  # Queue.Empty:
             break
 
         run_get_data(job_kwargs)
@@ -372,7 +372,7 @@ def parse_file(file_path, exp_type='linear', collision=None, debug=False, dir=No
                 # print des.split()
                 out[tt.DRIFT_PRESSURE] = str(float(des.split()[2]))
                 out[tt.TEMP] = str(float(des.split()[4]))
-            except Exception, e:
+            except Exception as e:
                 # modified for jon's format
                 des = des.replace("=", " ")
                 weird_des = des.split()
@@ -442,7 +442,7 @@ def parse_file(file_path, exp_type='linear', collision=None, debug=False, dir=No
 
         if debug:
             for key in out:
-                print key, out[key]
+                print(key, out[key])
 
         return out
     return None
@@ -456,7 +456,7 @@ def GetLines(InputFileName):
         Lines = InputFile.read().splitlines()  # string of lines from pdb file
         InputFile.close()
     else:
-        print "Could not find file: ", InputFileName
+        print("Could not find file: ", InputFileName)
         return []
     return Lines
 
@@ -495,8 +495,8 @@ def get_stat_code(raw_file, stat_code, dir=None):
     if not os.path.isfile(rawreader_path):
         rawreader_path = os.path.join(path, "unidec_bin", 'rawreadertim.exe')
         if not os.path.isfile(rawreader_path):
-            print "Unable to find rawreadertim.exe"
-            print rawreader_path
+            print("Unable to find rawreadertim.exe")
+            print(rawreader_path)
             return None
     # default/hard coded to function 0, odd, 0 is for rawreader and 1 is for CDCReader
     process = subprocess.Popen([rawreader_path, raw_file, '--fn=0', '--stat=' + str(stat_code)],

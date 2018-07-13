@@ -120,7 +120,7 @@ class TwitterWindow(wx.Dialog):
         twitter = Twython(self.APP_KEY, self.APP_SECRET,
                           self.OAUTH_TOKEN, self.OAUTH_TOKEN_SECRET)
         self.screen_name = twitter.verify_credentials()["screen_name"]
-        print "Logged in successfully as: ", self.screen_name
+        print("Logged in successfully as: ", self.screen_name)
         self.userbox.SetValue("@" + self.screen_name)
 
     def OnClose(self, e):
@@ -133,14 +133,14 @@ class TwitterWindow(wx.Dialog):
 
     def OnPreview(self, e):
         choice = self.imagechoice.GetSelection()
-        print choice
+        print(choice)
         self.imageFile = None
         self.imageCtrl.SetBitmap(wx.Bitmap(self.emptyimg))
         if choice is not 0:
             for i in self.pngs:
                 if i[0] == choice:
                     self.imageFile = i[1]
-                    print self.imageFile
+                    print(self.imageFile)
             if self.imageFile is not None:
                 image = wx.Image(self.imageFile, wx.BITMAP_TYPE_ANY)
                 W = image.GetWidth()
@@ -191,7 +191,7 @@ class TwitterWindow(wx.Dialog):
             self.LoadScreenName()
 
         else:
-            print "No pin provided"
+            print("No pin provided")
 
     def Tweet(self, e):
         if self.codes is not None:
@@ -200,13 +200,13 @@ class TwitterWindow(wx.Dialog):
             twitter = Twython(self.APP_KEY, self.APP_SECRET,
                               self.OAUTH_TOKEN, self.OAUTH_TOKEN_SECRET)
             tweet = self.inputbox2.GetValue()
-            print "Tweeting: ", tweet
+            print("Tweeting: ", tweet)
             choice = self.imagechoice.GetSelection()
             self.imageFile = None
             if choice is not 0:
                 self.OnPreview(e)
                 # self.imageFile=os.path.join(os.getcwd(),self.imageFile)
-                print "\twith image: ", self.imageFile
+                print("\twith image: ", self.imageFile)
                 photo = open(self.imageFile, "rb")
                 # result=twitter.upload_media(media=photo)
                 # id=result['media_id']
@@ -216,7 +216,7 @@ class TwitterWindow(wx.Dialog):
                 twitter.update_status(status=tweet)
                 pass
         else:
-            print "Need to log in to Twitter"
+            print("Need to log in to Twitter")
         self.OnClose(e)
 
 

@@ -17,7 +17,7 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags)
     error = config.error
     confname = config.confname
 
-    textdict = dict(np.transpose([[u'\u25CB', u'\u25BD', u'\u25B3', u'\u25B7', u'\u25A2', u'\u2662', u'\u2606'],
+    textdict = dict(np.transpose([['\u25CB', '\u25BD', '\u25B3', '\u25B7', '\u25A2', '\u2662', '\u2606'],
                                   ['$\\bigcirc$', '$\\bigtriangledown$', '$\\bigtriangleup$', '$\\triangleright$',
                                    '$\\square$', '$\\lozenge$', '$\\bigstar$']]))
 
@@ -37,7 +37,7 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags)
 
     f.write("\\noindent\n")
     f.write("Time: " + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()) + "\\\\\n")
-    rawfilename = string.replace(rawfilename, '_', '\\_')
+    rawfilename = rawfilename.replace('_', '\\_')
     f.write("File Name: " + rawfilename + "\\\\\n")
     f.write("Error: " + str(error) + "\\\\\n")
     # f.write("\\columnratio{0.5}\n")
@@ -112,8 +112,8 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags)
     # conf.readline()
     for line in conf:
         linestr = line.rstrip()
-        linestr = string.replace(linestr, '_', '\\_')
-        linestr = string.replace(linestr, ' ', ': ')
+        linestr = linestr.replace( '_', '\\_')
+        linestr = linestr.replace( ' ', ': ')
         # print linestr
         f.write("\\text{" + linestr + "}\\\\\n")
     conf.close()

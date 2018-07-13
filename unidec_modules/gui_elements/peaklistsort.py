@@ -49,15 +49,15 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.pks = None
         self.errorsdisplayed = False
 
-        self.popupID1 = wx.NewId()
-        self.popupID2 = wx.NewId()
-        self.popupID3 = wx.NewId()
-        self.popupID4 = wx.NewId()
-        self.popupID5 = wx.NewId()
-        self.popupID6 = wx.NewId()
-        self.popupID7 = wx.NewId()
-        self.popupID8 = wx.NewId()
-        self.popupID9 = wx.NewId()
+        self.popupID1 = wx.ID_ANY
+        self.popupID2 = wx.ID_ANY
+        self.popupID3 = wx.ID_ANY
+        self.popupID4 = wx.ID_ANY
+        self.popupID5 = wx.ID_ANY
+        self.popupID6 = wx.ID_ANY
+        self.popupID7 = wx.ID_ANY
+        self.popupID8 = wx.ID_ANY
+        self.popupID9 = wx.ID_ANY
 
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)
@@ -104,10 +104,10 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             col.SetText(collab1)
             self.list_ctrl.SetColumn(1, col)
             self.list_ctrl.SetColumnWidth(1, -2)
-        except Exception, e:
+        except Exception as e:
             pass
 
-        for i in xrange(0, self.pks.plen):
+        for i in range(0, self.pks.plen):
             p = pks.peaks[i]
             self.list_ctrl.InsertItem(i, p.textmarker)
             self.list_ctrl.SetItem(i, 1, str(p.mass))
@@ -311,7 +311,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         # Change Color
         item = self.list_ctrl.GetFirstSelected()
         col = self.list_ctrl.GetItemBackgroundColour(item)
-        print "Color In:", col
+        print("Color In:", col)
         col = wx.Colour(int(col[0]), int(col[1]), int(col[2]), alpha=int(col.alpha))
         col2 = wx.ColourData()
         col2.SetColour(col)
@@ -320,7 +320,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         if dlg.ShowModal() == wx.ID_OK:
             coloutdlg = dlg.GetColourData()
             colout = deepcopy(coloutdlg.GetColour())
-            print "Color Out", colout
+            print("Color Out", colout)
             dlg.Destroy()
         else:
             dlg.Destroy()
@@ -343,7 +343,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         col.SetText("FWHM Error")
         self.list_ctrl.SetColumn(3, col)
         first = 1
-        for i in xrange(0, self.pks.plen):
+        for i in range(0, self.pks.plen):
             p = self.pks.peaks[i]
             self.list_ctrl.SetItem(i, 3, str(p.errorFWHM))
             if p.errormean == -1:
@@ -376,7 +376,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         col = self.list_ctrl.GetColumn(4)
         col.SetText("Name")
         self.list_ctrl.SetColumn(4, col)
-        for i in xrange(0, self.pks.plen):
+        for i in range(0, self.pks.plen):
             p = self.pks.peaks[i]
             self.list_ctrl.SetItem(i, 3, str(p.area))
             self.list_ctrl.SetItem(i, 4, str(p.label))

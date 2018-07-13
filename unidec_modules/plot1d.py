@@ -186,7 +186,7 @@ class Plot1d(PlottingWindow):
 
         ymax = 0
         xmax = 0
-        for i in xrange(0, len(xarray)):
+        for i in range(0, len(xarray)):
             if labels is not None:
                 label = "KD" + str(labels[i])
             else:

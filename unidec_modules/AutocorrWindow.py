@@ -151,7 +151,7 @@ class AutocorrWindow(wx.Dialog):
                 if p.ignore == 0:
                     self.plot1.plotadddot(p.mass, p.height, p.color, p.marker)
             self.plot1.repaint()
-        print peaks
+        print(peaks)
         self.listpanel.list.populate(pks2)
 
     def on_close(self, e):

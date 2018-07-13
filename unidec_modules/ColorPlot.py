@@ -7,7 +7,7 @@ import matplotlib.colors as colors
 import matplotlib.colorbar as colorbar
 
 from unidec_modules.PlottingWindow import PlottingWindow
-from unidectools import color_map_array
+from unidec_modules.unidectools import color_map_array
 
 __author__ = 'Michael.Marty'
 
@@ -44,7 +44,7 @@ class ColorPlot2D(PlottingWindow):
 
         zlen = len(ztab)
         ztot = np.sum(mzgrid, axis=(0, 1))
-        zind = np.array(range(0, zlen))
+        zind = np.array(list(range(0, zlen)))
         ztab = ztab
         avg = np.average(zind, weights=ztot)
         std = math.sqrt(np.average(np.array(zind - avg) ** 2, weights=ztot))

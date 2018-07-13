@@ -53,14 +53,14 @@ class UniDec(UniDecEngine):
             file_directory = os.path.dirname(file_name)
             file_name = os.path.basename(file_name)
 
-        tstart = time.clock()
+        tstart = time.perf_counter()
         self.pks = peakstructure.Peaks()
         self.data = unidecstructure.DataContainer()
 
         # Handle Paths
         self.config.filename = file_name
         if "silent" not in kwargs or not kwargs["silent"]:
-            print "Opening File: ", self.config.filename
+            print("Opening File: ", self.config.filename)
         self.config.outfname = os.path.splitext(self.config.filename)[0]
         self.config.extension = os.path.splitext(self.config.filename)[1]
         self.config.default_file_names()
@@ -110,9 +110,9 @@ class UniDec(UniDecEngine):
         if os.path.isfile(self.config.confname) == True:
             self.load_config(self.config.confname)
 
-        tend = time.clock()
+        tend = time.perf_counter()
         if "silent" not in kwargs or not kwargs["silent"]:
-            print "Loading Time: %.2gs" % (tend - tstart)
+            print("Loading Time: %.2gs" % (tend - tstart))
 
     def raw_process(self, dirname, inflag=False, binsize=1):
         """
@@ -135,9 +135,9 @@ class UniDec(UniDecEngine):
         self.config.filename = os.path.split(self.config.dirname)[1]
         self.config.outfname = os.path.splitext(self.config.filename)[0]
 
-        print "Openening: ", self.config.filename
+        print("Openening: ", self.config.filename)
         if os.path.splitext(self.config.filename)[1] == ".zip":
-            print "Can't open zip, try Load State."
+            print("Can't open zip, try Load State.")
             return None, None
         if os.path.splitext(self.config.filename)[1] == ".raw" and self.config.system == "Windows":
             self.config.outfname = os.path.splitext(self.config.filename)[0]
@@ -152,7 +152,7 @@ class UniDec(UniDecEngine):
 
             if os.path.isfile(newfilepath):
                 self.config.filename = newfilename
-                print "Data already converted"
+                print("Data already converted")
             else:
                 if self.config.system == "Windows":
                     if self.config.imflag == 0:
@@ -167,12 +167,12 @@ class UniDec(UniDecEngine):
                         result = subprocess.call(call)
                         self.config.filename = newfilename
                     if result == 0 and os.path.isfile(newfilepath):
-                        print "Converted data from raw to txt"
+                        print("Converted data from raw to txt")
                     else:
-                        print "Failed conversion to txt file. ", result, newfilepath
+                        print("Failed conversion to txt file. ", result, newfilepath)
                         return None, None
                 else:
-                    print "Sorry. Waters Raw converter only works on windows. Convert to txt file first."
+                    print("Sorry. Waters Raw converter only works on windows. Convert to txt file first.")
                     return None, None
         return self.config.filename, self.config.dirname
         pass
@@ -185,7 +185,7 @@ class UniDec(UniDecEngine):
         Will accept silent=True kwarg to suppress printing.
         :return: None
         """
-        tstart = time.clock()
+        tstart = time.perf_counter()
         self.export_config()
 
         try:
@@ -210,29 +210,29 @@ class UniDec(UniDecEngine):
                 self.config.maxdt = np.amax(self.data.rawdata3[:, 1])
 
         if self.check_badness() == 1:
-            print "Badness found, aborting data prep"
+            print("Badness found, aborting data prep")
             return 1
 
         if self.config.imflag == 0:
             self.data.data2 = ud.dataprep(self.data.rawdata, self.config)
             ud.dataexport(self.data.data2, self.config.infname)
         else:
-            tstart2 = time.clock()
+            tstart2 = time.perf_counter()
             mz, dt, i3 = IM_func.process_data_2d(self.data.rawdata3[:, 0], self.data.rawdata3[:, 1],
                                                  self.data.rawdata3[:, 2],
                                                  self.config)
-            tend = time.clock()
+            tend = time.perf_counter()
             if "silent" not in kwargs or not kwargs["silent"]:
-                print "Time: %.2gs" % (tend - tstart2)
+                print("Time: %.2gs" % (tend - tstart2))
             self.data.data3 = np.transpose([np.ravel(mz), np.ravel(dt), np.ravel(i3)])
             self.data.data2 = np.transpose([np.unique(mz), np.sum(i3, axis=1)])
             ud.dataexport(self.data.data3, self.config.infname)
             pass
 
         self.config.procflag = 1
-        tend = time.clock()
+        tend = time.perf_counter()
         if "silent" not in kwargs or not kwargs["silent"]:
-            print "Data Prep Done. Time: %.2gs" % (tend - tstart)
+            print("Data Prep Done. Time: %.2gs" % (tend - tstart))
         # self.get_spectrum_peaks()
         pass
 
@@ -252,29 +252,29 @@ class UniDec(UniDecEngine):
         """
         # Check to make sure everything is in order
         if self.config.procflag == 0:
-            print "Need to process data first..."
+            print("Need to process data first...")
             self.process_data()
         if self.check_badness() == 1:
-            print "Badness found, aborting UniDec run"
+            print("Badness found, aborting UniDec run")
             return 1
         # Export Config and Call
         self.export_config()
-        tstart = time.clock()
+        tstart = time.perf_counter()
 
         out = ud.unidec_call(self.config, silent=silent)
 
-        tend = time.clock()
+        tend = time.perf_counter()
         self.config.runtime = (tend - tstart)
         if not silent:
-            print "UniDec run %.2gs" % self.config.runtime
+            print("UniDec run %.2gs" % self.config.runtime)
         # Import Results if Successful
         if out == 0:
             self.unidec_imports(efficiency)
             if not silent:
-                print "File Name: ", self.config.filename, "R Sqaured: ", self.config.error
+                print("File Name: ", self.config.filename, "R Sqaured: ", self.config.error)
             return out
         else:
-            print "UniDec Run Error:", out
+            print("UniDec Run Error:", out)
             return out
 
     def unidec_imports(self, efficiency=False):
@@ -297,7 +297,7 @@ class UniDec(UniDecEngine):
                     self.data.baseline = np.fromfile(self.config.outfname + "_baseline.bin", dtype=float)
                 else:
                     self.data.baseline = np.array([])
-            except Exception, e:
+            except Exception as e:
                 self.data.baseline = np.array([])
                 pass
 
@@ -408,7 +408,7 @@ class UniDec(UniDecEngine):
         self.autopeaks = peakstructure.Peaks()
         self.autopeaks.add_peaks(cpeaks, massbins=self.config.massbins)
         self.autopeaks.default_params()
-        print "Autocorrelation:", [p.mass for p in self.autopeaks.peaks]
+        print("Autocorrelation:", [p.mass for p in self.autopeaks.peaks])
         return self.autopeaks.peaks[0].mass
 
     def kendrick_peaks(self, kmass=None, centermode=1):
@@ -427,7 +427,7 @@ class UniDec(UniDecEngine):
             self.pks.get_mass_defects(self.config.kendrickmass, mode=centermode)
             return np.array([[p.mass, p.kendrickdefect] for p in self.pks.peaks])
         else:
-            print "Need non-zero Kendrick mass"
+            print("Need non-zero Kendrick mass")
             return None
 
     def kendrick_continuous(self, ref_mass=None, centermode=0, nbins=50, transformmode=0, xaxistype=1):
@@ -456,10 +456,10 @@ class UniDec(UniDecEngine):
             outfile1 = os.path.join(self.config.outfname + "_1D_Mass_Defects.txt")
             np.savetxt(outfile2, data2)
             np.savetxt(outfile1, data1)
-            print "Saved Kendrick:", outfile2, outfile1
+            print("Saved Kendrick:", outfile2, outfile1)
             return m1grid, m2grid, igrid
         else:
-            print "Need non-zero Kendrick mass"
+            print("Need non-zero Kendrick mass")
             return None, None, None
 
     def mass_grid_to_f_grid(self):
@@ -525,7 +525,7 @@ class UniDec(UniDecEngine):
             p.integral = self.integrate(p.integralrange)[0]
             zlist = []
             if ztab is not None:
-                for i in xrange(0, len(ztab)):
+                for i in range(0, len(ztab)):
                     integral = self.integrate(p.integralrange,
                                               data=np.reshape(self.data.massgrid, (len(self.data.massdat), len(ztab)))[
                                                    :, i])[0]
@@ -545,7 +545,7 @@ class UniDec(UniDecEngine):
             # Export Peaks Height by Charge Grid
             mztab = np.array([p.mztab for p in self.pks.peaks])
             ud.dataexport(mztab[:, :, 1], self.config.outfname + "_chargedata.dat")
-            print "Exported data to " + self.config.outfname + "_chargedata.dat"
+            print("Exported data to " + self.config.outfname + "_chargedata.dat")
 
             # Export Peaks Integral by Charge Grid
             if self.config.batchflag == 0:
@@ -553,7 +553,7 @@ class UniDec(UniDecEngine):
                     chargeareas = self.autointegrate(ztab=self.data.ztab)
                     ud.dataexport(chargeareas, self.config.outfname + "_chargedata_areas.dat")
                 except (IndexError, ValueError, AttributeError, ZeroDivisionError):
-                    print "Unable to autointegrate"
+                    print("Unable to autointegrate")
 
             # Get Params
             peaks = np.array([[p.mass, p.height] for p in self.pks.peaks])
@@ -562,7 +562,7 @@ class UniDec(UniDecEngine):
                 areas = [p.integral for p in self.pks.peaks]
             except (IndexError, ValueError, AttributeError, ZeroDivisionError):
                 areas = peaks[:, 1]
-                print "Failed to integrate. Substituting heights for areas."
+                print("Failed to integrate. Substituting heights for areas.")
 
             peakparams = []
             for i in range(0, len(peaks)):
@@ -576,15 +576,15 @@ class UniDec(UniDecEngine):
                     peakparams.append([peaks[i, 0], self.config.mzsig * avg, avg, std, peaks[i, 1], areas[i]])
             self.peakparams = np.array(peakparams)
 
-            print "Mass MassStdGuess AvgCharge StdDevCharge Height Area"
+            print("Mass MassStdGuess AvgCharge StdDevCharge Height Area")
             np.set_printoptions(precision=2, formatter={'float': '{: 0.2f}'.format})
-            print self.peakparams
+            print(self.peakparams)
             np.set_printoptions()
             outfile = self.config.outfname + "_peakparam.dat"
             ud.dataexport(self.peakparams, outfile)
-            print "Peak Parameters (Saved To", outfile, ")"
+            print("Peak Parameters (Saved To", outfile, ")")
         else:
-            print "Pick Peaks First"
+            print("Pick Peaks First")
 
             # TODO: Streamline to remove multiple integration steps
             # TODO: Rework params into peakstructure
@@ -669,7 +669,7 @@ class UniDec(UniDecEngine):
                 p.label = str(int(self.data.ztab[i]))
             return cpeaks
         else:
-            print "Error: no m/z grid."
+            print("Error: no m/z grid.")
             return None
 
     def save_state(self, file_name):
@@ -708,13 +708,13 @@ class UniDec(UniDecEngine):
                 header = msfile[:-10]
                 extension = "_rawdata."
         else:
-            print "Broken Save File. Unable to find _rawdata or _imraw"
+            print("Broken Save File. Unable to find _rawdata or _imraw")
             return False
 
         # Get directory, filename, and header
         self.config.dirname = os.path.split(load_path)[0]
-        self.config.outfname = string.rsplit(header, sep="_", maxsplit=1)[0]
-        print "Header:", self.config.outfname
+        self.config.outfname = header.rsplit(sep="_", maxsplit=1)[0]
+        print("Header:", self.config.outfname)
 
         # Setup default file names, unidecfile directory, and extract there
         self.config.default_file_names()
@@ -732,7 +732,7 @@ class UniDec(UniDecEngine):
         #    file_name = self.config.outfname + extension + "dat"
         filename2 = self.config.outfname + ".txt"
         load_path = os.path.join(self.config.dirname, filename2)
-        print "Data file:", file_name, load_path
+        print("Data file:", file_name, load_path)
         shutil.copy(file_name, load_path)
 
         # Open File
@@ -770,14 +770,14 @@ class UniDec(UniDecEngine):
         """
         data2archive = deepcopy(self.data.data2)
 
-        tstart = time.clock()
+        tstart = time.perf_counter()
         massdatavg = []
         peakdatavg = []
         toppeaks = ud.peakdetect(self.data.massdat, self.config)
-        for j in xrange(2, numcrosstot + 1):
+        for j in range(2, numcrosstot + 1):
             numcross = j
 
-            for i in xrange(0, numcross):
+            for i in range(0, numcross):
                 # Delete one of k-fold
                 traindata = ud.dataprep(np.delete(self.data.rawdata, np.s_[i::numcross], 0), self.config)
                 # Select one of k-fold
@@ -792,15 +792,15 @@ class UniDec(UniDecEngine):
                     peaks = ud.mergepeaks(toppeaks, peaks, self.config.peakwindow)
                     peakdatavg.append(peaks)
                 except (ValueError, TypeError, IndexError, ZeroDivisionError):
-                    print "No peaks selected"
+                    print("No peaks selected")
                     pass
                 massdat = ud.mergedata(self.data.massdat, massdat)
                 massdatavg.append(massdat[:, 1])
 
-            tend = time.clock()
+            tend = time.perf_counter()
             mean = np.mean(np.array(massdatavg), axis=0)
             stddev = np.std(np.array(massdatavg), axis=0)
-            print j, "Total CV Time:", (tend - tstart), "STD:", np.mean(stddev)
+            print(j, "Total CV Time:", (tend - tstart), "STD:", np.mean(stddev))
 
         self.data.data2 = deepcopy(data2archive)
         ud.dataexport(self.data.data2, self.config.infname)
@@ -810,9 +810,9 @@ class UniDec(UniDecEngine):
                 i = np.where(self.data.massdat[:, 0] == peak[0])
                 peaksvert.append([peak[0], mean[i], stddev[i], stddev[i] / mean[i] * 100])
             peaksvert = np.array(peaksvert)
-            print "\nIntensity Variation at Fixed Mass: "
-            print "Mass Int.Mean Int.Std Int.%Std"
-            print peaksvert
+            print("\nIntensity Variation at Fixed Mass: ")
+            print("Mass Int.Mean Int.Std Int.%Std")
+            print(peaksvert)
 
             ud.dataexport(peaksvert, self.config.outfname + "_peakcvinterr.dat")
 
@@ -826,12 +826,12 @@ class UniDec(UniDecEngine):
                      peakstd[:, 1], peakstd[:, 1] / peakmean[:, 1] * 100.]
             # Output format: Mass: Mean, Std Dev, % Std Dev  Intensity: Mean, Std Dev, %Std Dev
             peaks = np.transpose(np.array(peaks))
-            print "\nMass and Intensity Variation for Fresh Peaks Each Round:"
-            print "MassMean MassStd Mass%Std Int.Mean Int.Std Int.%Std"
-            print peaks
+            print("\nMass and Intensity Variation for Fresh Peaks Each Round:")
+            print("MassMean MassStd Mass%Std Int.Mean Int.Std Int.%Std")
+            print(peaks)
             ud.dataexport(peaks, self.config.outfname + "_peakcverr.dat")
         except (IndexError, ValueError, ZeroDivisionError, TypeError, AttributeError):
-            print "No peaks in cross validation..."
+            print("No peaks in cross validation...")
         return mean, stddev
 
     def normalize_peaks(self):
@@ -1090,7 +1090,7 @@ class UniDec(UniDecEngine):
         self.data.data2 = np.array(peaks)
         ud.dataexport(self.data.data2, self.config.infname)
 
-        print self.config.dirname
+        print(self.config.dirname)
         return peaks
 
     def make_plot(self, massrange=None):
@@ -1114,7 +1114,7 @@ class UniDec(UniDecEngine):
                 plt.errorbar(p.massavg, p.corrint, xerr=p.masserr, yerr=p.correrr, label="Corr", linestyle="",
                              color="b")
         except AttributeError:
-            print "Failed to Plot Error Bars"
+            print("Failed to Plot Error Bars")
             pass
 
         if massrange is not None:
@@ -1139,7 +1139,7 @@ class UniDec(UniDecEngine):
 if __name__ == "__main__":
     eng = UniDec()
 
-    print "MSTest"
+    print("MSTest")
     filename = "0.txt"
     path = "C:\\Python\\UniDec\\TestSpectra"
     # files=["150611_ND_AmtB_05_100.txt"]

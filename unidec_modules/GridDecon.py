@@ -9,10 +9,10 @@ import scipy.spatial.distance as distance
 from scipy.sparse import csr_matrix
 from scipy.signal import savgol_filter
 
-import unidecstructure
-import plot2d
-import plot1d
-import unidectools as ud
+from unidec_modules import unidecstructure
+from unidec_modules import plot2d
+from unidec_modules import plot1d
+from unidec_modules import unidectools as ud
 
 __author__ = 'Michael.Marty'
 
@@ -54,14 +54,14 @@ def grid_unidec(mzgrid, igrid, numit=1000, fwhm=5, mode=0, msig=0, zsig=1):
         elif mode == 2:
             b *= conv(ud.safedivide(igrid, conv(b, pmat)), pmat)
         else:
-            print "Mode is invalid:", mode
+            print("Mode is invalid:", mode)
             exit()
         # Convergence Test
         b /= np.amax(b)
         diff = np.sum((b2 - b) ** 2.)
         i += 1
         b2 = b
-    print "Interations:", i
+    print("Interations:", i)
     return b
     pass
 
@@ -96,7 +96,7 @@ class GridDeconWindow(wx.Frame):
         if self.config is None:
             self.config = unidecstructure.UniDecConfig()
             self.config.initialize()
-            self.config.cmap="viridis"
+            self.config.cmap=u"viridis"
             if directory is None:
                 self.directory = os.getcwd()
         else:
@@ -214,7 +214,7 @@ class GridDeconWindow(wx.Frame):
             except ValueError:
                 self.params[6] = 0
         except ValueError:
-            print "Failed to get from gui"
+            print("Failed to get from gui")
 
     def extract(self, e):
         self.getfromgui()
@@ -233,10 +233,10 @@ class GridDeconWindow(wx.Frame):
         self.igrid = ud.data_extract_grid(self.data, self.mzgrid, window=self.params[6])
 
     def deconvolve(self, e):
-        tstart = time.clock()
+        tstart = time.perf_counter()
         self.igrid = grid_unidec(self.mzgrid, self.igrid, fwhm=self.params[7], msig=self.params[8], zsig=self.params[9])
-        tend = time.clock()
-        print "Deconvolution time: %.2gs" % (tend - tstart)
+        tend = time.perf_counter()
+        print("Deconvolution time: %.2gs" % (tend - tstart))
         self.makeplot(title="Deconvolved Data")
         pass
 
@@ -251,15 +251,15 @@ class GridDeconWindow(wx.Frame):
         try:
             self.plot2.contourplot(dat, self.config, xlab="Oligomer Number", ylab="Charge", title=title, normflag=True,
                                    normrange=[0, 1])
-        except Exception, e:
+        except Exception as e:
             self.plot2.clear_plot()
-            print "Failed Plot2", e
+            print("Failed Plot2", e)
         try:
             self.plot1.plotrefreshtop(np.unique(self.mgrid), np.sum(self.igrid, axis=1), title, "Oligomer Number",
                                       "Total Intensity", "", self.config, test_kda=False, nopaint=False)
-        except Exception, e:
+        except Exception as e:
             self.plot1.clear_plot()
-            print "Failed Plot1", e
+            print("Failed Plot1", e)
 
     def on_close(self, e=None):
         """
@@ -267,7 +267,7 @@ class GridDeconWindow(wx.Frame):
         :param e:
         :return:
         """
-        print "Closing"
+        print("Closing")
         self.config.discreteplot = self.storediscrete
         self.Destroy()
 
