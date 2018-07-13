@@ -51,3 +51,4 @@ unidec_src/UniDec/compilewin.bat
 unidec_src/UniDec/UniDec.pdb
 unidec_src/UniDec/compilewinpgcc.bat
 /unidec_modules/GridDecon2.py
+/unidec_bin/multiplierz/

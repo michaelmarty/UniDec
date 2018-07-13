@@ -132,7 +132,7 @@ class meta_menu(wx.Menu):
                                                      "Animate 1D plots of m/z vs charge")
         self.analysismenu.Append(wx.ID_ANY, "Animate", self.animatemenu)
         self.analysismenu.AppendSeparator()
-        self.menukendrick = self.analysismenu.Append(wx.ID_ANY, "Kendrick Mass Tools", "Kendrick Mass Analysis")
+        self.menukendrick = self.analysismenu.Append(wx.ID_ANY, "Kendrick Mass Tools\tCtrl+K", "Kendrick Mass Analysis")
         self.menu2Dgrid = self.analysismenu.Append(wx.ID_ANY, "2D Grid Analysis", "2D Grid Analysis")
         self.menuautocorr = self.analysismenu.Append(wx.ID_ANY, "Autocorrelation",
                                                      "Autocorrelation of Mass Distribution")

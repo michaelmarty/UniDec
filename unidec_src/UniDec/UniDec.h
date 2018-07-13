@@ -1113,7 +1113,7 @@ double deconvolve_iteration_speedy(const int lengthmz, const int numz,const int 
 	deltas=calloc(lengthmz,sizeof(double));
 	denom=calloc(lengthmz,sizeof(double));
 
-	if (aggressiveflag==1) {
+	if (aggressiveflag==1 && mzsig!=0) {
 		blur_baseline(baseline, lengthmz, dataMZ, mzsig, 0, filterwidth);
 		//blur_baseline(baseline, lengthmz, 10);
 		//blur_noise(noise, lengthmz); 
@@ -1122,8 +1122,15 @@ double deconvolve_iteration_speedy(const int lengthmz, const int numz,const int 
 	//Sum deltas
 	sum_deltas(lengthmz, numz, blur, barr, isolength, isotopepos, isotopeval, deltas);
 
-	//Convolve with peak shape
-	convolve_simp(lengthmz, maxlength, starttab, endtab, mzdist, deltas, denom, speedyflag);	
+	if (mzsig != 0)
+	{
+		//Convolve with peak shape
+		convolve_simp(lengthmz, maxlength, starttab, endtab, mzdist, deltas, denom, speedyflag);
+	}
+	else
+	{
+		memcpy(denom, deltas, sizeof(double)*lengthmz);
+	}
 	
 	if (aggressiveflag == 1)
 	{
@@ -1207,7 +1214,15 @@ double getfitdatspeedy(double *fitdat, double *blur, int lengthmz,int numz,int m
 		}
 
 	}
-	convolve_simp(lengthmz, maxlength, starttab, endtab, mzdist, deltas, fitdat, speedyflag);
+	if (maxlength != 0)
+	{
+		convolve_simp(lengthmz, maxlength, starttab, endtab, mzdist, deltas, fitdat, speedyflag);
+	}
+	else
+	{
+		memcpy(fitdat, deltas, sizeof(double)*lengthmz);
+	}
+
 	free(deltas);
 	double fitmax=0;
 	//#pragma omp parallel for private (i), schedule(dynamic)
@@ -2026,4 +2041,32 @@ void charge_scaling(double *blur, const int *nztab, const int lengthmz, const in
 		}
 	}
 	return; 
+}
+
+
+void charge_smoothing(double *blur, const int lengthmz, const int numz, const int width)
+{
+	double *newblur;
+	newblur = calloc(lengthmz*numz, sizeof(double));
+	memcpy(newblur, blur, lengthmz*numz * sizeof(double));
+	#pragma omp parallel for schedule(dynamic)
+	for (int i = 0; i < lengthmz; i++)
+	{
+		for (int j = 0; j < numz; j++)
+		{
+			int low = i - width;
+			if (low < 0) { low = 0; }
+			int high = i + width+1;
+			if (high > lengthmz) { high = lengthmz; }
+
+			double sum = 0;
+			for (int k = low; k < high; k++)
+			{
+				sum += newblur[index2D(numz, k, j)];
+			}
+
+			blur[index2D(numz, i, j)]=sum/((float) 1+ 2*width);
+		}
+	}
+	return;
 }

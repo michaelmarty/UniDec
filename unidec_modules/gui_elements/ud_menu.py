@@ -113,7 +113,7 @@ class main_menu(wx.Menu):
                                                     "Fits masses and reports normalized and relative peak intensities")
         self.analysismenu.AppendSeparator()
 
-        self.menukendrick = self.analysismenu.Append(wx.ID_ANY, "Kendrick Mass Tools", "Kendrick Mass Analysis")
+        self.menukendrick = self.analysismenu.Append(wx.ID_ANY, "Kendrick Mass Tools\tCtrl+K", "Kendrick Mass Analysis")
         self.menufft = self.analysismenu.Append(wx.ID_ANY, "FFT Window")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_fft_window, self.menufft)
         self.menu2Dgrid = self.analysismenu.Append(wx.ID_ANY, "2D Grid Analysis", "2D Grid Analysis")
