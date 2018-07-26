@@ -13,7 +13,7 @@ import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 from unidec_modules import Extract2D, peakwidthtools, masstools, miscwindows, \
     MassDefects, mainwindow, nativez, ManualSelectionWindow, AutocorrWindow, fft_window, GridDecon
-from unidec_modules.isolated_packages import FileDialogs, texmaker, twitter_interface
+from unidec_modules.isolated_packages import FileDialogs, texmaker
 import datacollector
 import import_wizard
 import unidec_modules.IM_windows as IM_wind
@@ -23,9 +23,12 @@ import platform
 import multiprocessing
 from unidec_modules.unidec_presbase import UniDecPres
 import Launcher
+from iFAMS.wxiFAMS import iFAMS_Window
+
 # import FileDialog  # Needed for pyinstaller
 
 __author__ = 'Michael.Marty'
+
 
 # noinspection,PyBroadException,PyUnusedLocal,PyBroadException,PyBroadException,PyBroadException,PyBroadException,PyBroadException,PyBroadException,PyUnusedLocal,PyBroadException
 class UniDecApp(UniDecPres):
@@ -82,7 +85,7 @@ class UniDecApp(UniDecPres):
             self.on_open_file(fname, newdir)
             # self.view.on_save_figure_eps(0)
             # self.on_dataprep_button(0)
-            #self.on_auto(0)
+            # self.on_auto(0)
             # self.on_integrate()
             # self.on_grid_decon(0)
             # self.make_cube_plot(0)
@@ -249,7 +252,6 @@ class UniDecApp(UniDecPres):
             if self.eng.config.filename is not None:
                 self.on_open_file(self.eng.config.filename, self.eng.config.dirname)
         pass
-
 
     def on_paste_spectrum(self, e=None):
         """
@@ -553,7 +555,7 @@ class UniDecApp(UniDecPres):
                         self.view.plot4.plotadddot(np.array(list1), np.array(list2), p.color, p.marker)
                     if not ud.isempty(p.stickdat):
                         self.view.plot4.plotadd(self.eng.data.data2[:, 0], np.array(p.stickdat) / stickmax - (
-                            num + 1) * self.eng.config.separation, p.color, "useless label")
+                                num + 1) * self.eng.config.separation, p.color, "useless label")
                     num += 1
             self.view.plot4.repaint()
             tend = time.perf_counter()
@@ -597,7 +599,8 @@ class UniDecApp(UniDecPres):
                             ints.append(p.integral)
                         cols.append(p.color)
                         labs.append(p.label)
-                self.view.plot6.barplottop(list(range(0, num)), ints, labs, cols, "Species", "Intensity", "Peak Intensities",
+                self.view.plot6.barplottop(list(range(0, num)), ints, labs, cols, "Species", "Intensity",
+                                           "Peak Intensities",
                                            repaint=False)
             for i in range(0, self.eng.pks.plen):
                 p = self.eng.pks.peaks[i]
@@ -722,7 +725,7 @@ class UniDecApp(UniDecPres):
             print("Failed final cube", ex)
             pass
 
-    def on_autoformat(self,e=None):
+    def on_autoformat(self, e=None):
         self.eng.pks.auto_format()
         self.on_delete()
         self.view.peakpanel.add_data(self.eng.pks)
@@ -775,9 +778,10 @@ class UniDecApp(UniDecPres):
         self.view.plot2.textremove()
         for i, d in enumerate(peakdiff):
             if d != 0:
-                self.view.plot2.addtext(str(d), pmasses[i], np.amax(self.eng.data.massdat[:, 1]) * 0.99-(i%7)*0.05)
+                self.view.plot2.addtext(str(d), pmasses[i],
+                                        np.amax(self.eng.data.massdat[:, 1]) * 0.99 - (i % 7) * 0.05)
             else:
-                self.view.plot2.addtext("0", pmasses[i], np.amax(self.eng.data.massdat[:, 1]) * 0.99-(i%7)*0.05)
+                self.view.plot2.addtext("0", pmasses[i], np.amax(self.eng.data.massdat[:, 1]) * 0.99 - (i % 7) * 0.05)
 
     def on_plot_offsets(self, e=None):
         """
@@ -1128,6 +1132,7 @@ class UniDecApp(UniDecPres):
             self.eng.config.zout = 0
         pass
 
+    '''
     def on_tweet(self, e=None):
         """
         Opens Twitter Extension Window.
@@ -1153,6 +1158,7 @@ class UniDecApp(UniDecPres):
         tweetwindow.ShowModal()
         self.twittercodes = tweetwindow.codes
         # print "Tweet"
+    '''
 
     def on_kendrick(self, e=None):
         """
@@ -1162,6 +1168,9 @@ class UniDecApp(UniDecPres):
         """
         MassDefects.MassDefectWindow(self.view, [self.eng.data.massdat], config=self.eng.config,
                                      pks=self.eng.pks, value=self.eng.config.molig)
+
+    def on_iFAMS(self, e=None):
+        iFAMS_Window(self.view, self.eng.data.data2, config=self.eng.config, directory=os.getcwd())
 
     def on_2d_grid(self, e=None):
         """
@@ -1617,11 +1626,12 @@ class UniDecApp(UniDecPres):
         print("Wrote: ", self.eng.config.hdf_file)
 
     def on_launcher(self, e=None):
-        #self.view.Destroy()
-        launcher=Launcher.UniDecLauncher()
+        # self.view.Destroy()
+        launcher = Launcher.UniDecLauncher()
         launcher.start()
 
-#TODO: Charge state distributions of each peak
+
+# TODO: Charge state distributions of each peak
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()

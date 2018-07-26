@@ -52,7 +52,7 @@ class IMListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMi
         :param val: Value for the first column. Default is 0. Default for second column is 0.
         :return: None
         """
-        index = self.InsertItem(sys.maxsize, str(val))
+        index = self.InsertItem(10000, str(val))
         self.SetItem(index, 1, str(0))
 
     def populate(self, data, colors=None):
@@ -64,7 +64,7 @@ class IMListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMi
         """
         self.DeleteAllItems()
         for i in range(0, len(data)):
-            index = self.InsertItem(sys.maxsize, str(data[i][0]))
+            index = self.InsertItem(i, str(data[i][0]))
             self.SetItem(index, 1, str(data[i][1]))
             if colors is not None:
                 color = colors[i]

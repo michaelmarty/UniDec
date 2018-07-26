@@ -46,7 +46,7 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         """
         self.DeleteAllItems()
         for i in range(0, len(listctrldata)):
-            index = self.InsertItem(sys.maxsize, str(listctrldata[i]))
+            index = self.InsertItem(i, str(listctrldata[i]))
             self.SetItemData(index, i)
 
     def clear(self):
@@ -61,7 +61,7 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         Add a new line, default of 0.
         :return: None
         """
-        self.InsertItem(sys.maxsize, str(0))
+        self.InsertItem(10000, str(0))
 
     def get_list(self):
         """
@@ -160,7 +160,7 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
         Add a blank line to the list.
         :return: None
         """
-        index = self.InsertItem(sys.maxsize, str(a))
+        index = self.InsertItem(10000, str(a))
         if e is None:
             e = string.ascii_uppercase[self.index]
         self.SetItem(index, 1, str(b))
@@ -178,7 +178,7 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
         self.DeleteAllItems()
         # for normal, simple columns, you can add them like this:
         for i in range(0, len(data)):
-            index = self.InsertItem(sys.maxsize, str(data[i][0]))
+            index = self.InsertItem(i, str(data[i][0]))
             try:
                 self.SetItem(index, 1, str(data[i][1]))
                 self.SetItem(index, 2, str(data[i][2]))
@@ -293,7 +293,7 @@ class MatchListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
         self.DeleteAllItems()
         # for normal, simple columns, you can add them like this:
         for i in range(0, len(data1)):
-            index = self.InsertItem(sys.maxsize, str(data1[i]))
+            index = self.InsertItem(i, str(data1[i]))
             self.SetItem(index, 1, str(data2[i]))
             self.SetItem(index, 2, str(data3[i]))
             self.SetItem(index, 3, str(data4[i]))
@@ -424,7 +424,7 @@ class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
         self.DeleteAllItems()
         # for normal, simple columns, you can add them like this:
         for i in range(0, len(data1)):
-            index = self.InsertItem(sys.maxsize, str(data1[i]))
+            index = self.InsertItem(i, str(data1[i]))
             self.SetItem(index, 1, str(data2[i]))
             self.SetItem(index, 2, str(data3[i]))
 
@@ -459,7 +459,7 @@ class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
         Add a blank line to the list.
         :return: None
         """
-        index = self.InsertItem(sys.maxsize, string.ascii_uppercase[self.index])
+        index = self.InsertItem(10000, string.ascii_uppercase[self.index])
         self.SetItem(index, 1, str(0))
         self.SetItem(index, 2, "User")
         self.index += 1
@@ -683,6 +683,7 @@ class MassSelection(wx.Dialog):
             self.load_common_masses(self.config.masstablefile)
         except:
             print("Unable to load common masses")
+        self.load_common_masses(self.config.masstablefile)
         self.CenterOnParent()
 
     def on_common_to_oligo(self, e):

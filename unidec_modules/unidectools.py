@@ -78,6 +78,12 @@ except (OSError, NameError):
 #
 # ..................................
 
+def smartdecode(string):
+    try:
+        string=string.decode()
+    except:
+        pass
+    return string
 
 def match_files(directory, string):
     files = []
@@ -555,10 +561,10 @@ def header_test(path):
                         break
         if header > 0:
             print("Header Length:", header)
-    except (ImportError, OSError, AttributeError, IOError):
-        print("Failed header test")
+    except (ImportError, OSError, AttributeError, IOError) as e:
+        print("Failed header test", e)
         header = 0
-    return header
+    return int(header)
 
 
 def waters_convert(path, config=None):

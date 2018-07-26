@@ -49,15 +49,16 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.pks = None
         self.errorsdisplayed = False
 
-        self.popupID1 = wx.ID_ANY
-        self.popupID2 = wx.ID_ANY
-        self.popupID3 = wx.ID_ANY
-        self.popupID4 = wx.ID_ANY
-        self.popupID5 = wx.ID_ANY
-        self.popupID6 = wx.ID_ANY
-        self.popupID7 = wx.ID_ANY
-        self.popupID8 = wx.ID_ANY
-        self.popupID9 = wx.ID_ANY
+        self.popupID1 = wx.NewId()
+        self.popupID2 = wx.NewId()
+        self.popupID3 = wx.NewId()
+        self.popupID4 = wx.NewId()
+        self.popupID5 = wx.NewId()
+        self.popupID6 = wx.NewId()
+        self.popupID7 = wx.NewId()
+        self.popupID8 = wx.NewId()
+        self.popupID9 = wx.NewId()
+
 
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)

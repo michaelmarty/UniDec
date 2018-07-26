@@ -64,7 +64,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def add_line(self, var1="count", var2=0):
         if var1 == "count":
             var1 = self.GetItemCount()
-        index = self.InsertItem(sys.maxsize, str(self.GetItemCount()))
+        index = self.InsertItem(10000, str(self.GetItemCount()))
         self.SetItem(index, 1, str(var1))
         self.SetItem(index, 2, str(var2))
         self.SetItem(index, 3, str(""))
@@ -106,15 +106,15 @@ class ListCtrlPanel(wx.Panel):
         self.SetAutoLayout(True)
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click, self.list)
 
-        self.popupID1 = wx.ID_ANY
-        self.popupID2 = wx.ID_ANY
-        self.popupID3 = wx.ID_ANY
-        self.popupID4 = wx.ID_ANY
-        self.popupID5 = wx.ID_ANY
-        self.popupID6 = wx.ID_ANY
-        self.popupID7 = wx.ID_ANY
-        self.popupID10 = wx.ID_ANY
-        self.popupID11 = wx.ID_ANY
+        self.popupID1 = wx.NewId()
+        self.popupID2 = wx.NewId()
+        self.popupID3 = wx.NewId()
+        self.popupID4 = wx.NewId()
+        self.popupID5 = wx.NewId()
+        self.popupID6 = wx.NewId()
+        self.popupID7 = wx.NewId()
+        self.popupID10 = wx.NewId()
+        self.popupID11 = wx.NewId()
 
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)

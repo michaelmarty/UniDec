@@ -3,12 +3,15 @@
 
 import wx, os
 import wx.lib.agw.multidirdialog as MDD
+import unidec_modules.unidectools as ud
 
 # setup a default path
 default_dir = os.path.abspath(os.path.join(os.getcwd(), os.path.pardir, 'data/'))
 if not os.path.exists(default_dir):
     default_dir = os.getcwd()
-default_dir=""
+default_dir = ""
+
+
 # opens a dialog to save a file
 def save_file_dialog(message="Save File", file_types="*.*", default_file=""):
     global default_dir
@@ -16,8 +19,8 @@ def save_file_dialog(message="Save File", file_types="*.*", default_file=""):
     dlg = wx.FileDialog(None, message, default_dir, default_file, file_types, wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
     path = None
     if dlg.ShowModal() == wx.ID_OK:
-        path = dlg.GetPath()
-        default_dir = os.path.dirname(path)
+        path = ud.smartdecode(dlg.GetPath())
+        default_dir = ud.smartdecode(os.path.dirname(path))
 
     dlg.Destroy()
     return path
@@ -32,8 +35,8 @@ def open_file_dialog(message="Open File", file_types="*.*", default=None):
         dlg = wx.FileDialog(None, message, "", default, file_types, wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
     path = None
     if dlg.ShowModal() == wx.ID_OK:
-        path = dlg.GetPath()
-        default_dir = os.path.dirname(path)
+        path = ud.smartdecode(dlg.GetPath())
+        default_dir = ud.smartdecode(os.path.dirname(path))
 
     dlg.Destroy()
     return path
@@ -41,7 +44,7 @@ def open_file_dialog(message="Open File", file_types="*.*", default=None):
 
 # opens a dialog to choose multiple files
 def open_multiple_files_dialog(message="Open Files", file_type="*.*"):
-    default_dir=""
+    default_dir = ""
 
     dlg = wx.FileDialog(None, message, default_dir, "", file_type, wx.FD_OPEN | wx.FD_MULTIPLE | wx.FD_FILE_MUST_EXIST)
     path = None
@@ -49,9 +52,10 @@ def open_multiple_files_dialog(message="Open Files", file_type="*.*"):
     if dlg.ShowModal() == wx.ID_OK:
         path = dlg.GetPath()
         if path is not None:
-            file_names = [os.path.join(os.path.dirname(path.encode('ascii')), f.encode('ascii')) for f in dlg.GetFilenames()]
+            file_names = [ud.smartdecode(os.path.join(os.path.dirname(path.encode('utf-8')), f.encode('utf-8'))) for f
+                          in dlg.GetFilenames()]
             default_dir = os.path.dirname(path)
-
+            print("TESTING:", file_names)
     dlg.Destroy()
     return file_names
 
@@ -62,28 +66,31 @@ def open_dir_dialog(message="Select a Folder"):
     dlg = wx.DirDialog(None, message, default_dir)
     path = None
     if dlg.ShowModal() == wx.ID_OK:
-        path = dlg.GetPath()
+        path = ud.smartdecode(dlg.GetPath())
         default_dir = path
 
     dlg.Destroy()
     return path
 
-def open_multiple_dir_dialog(message,default):
-    dlg=MDD.MultiDirDialog(None,message=message,defaultPath=default,agwStyle=MDD.DD_MULTIPLE | MDD.DD_DIR_MUST_EXIST)
-    dirs=None
+
+def open_multiple_dir_dialog(message, default):
+    dlg = MDD.MultiDirDialog(None, message=message, defaultPath=default,
+                             agwStyle=MDD.DD_MULTIPLE | MDD.DD_DIR_MUST_EXIST)
+    dirs = None
     if dlg.ShowModal() == wx.ID_OK:
-        dirs = dlg.GetPaths()
+        dirs = ud.smartdecode(dlg.GetPaths())
     dlg.Destroy()
     return dirs
 
-def open_single_dir_dialog(message,default):
+
+def open_single_dir_dialog(message, default):
     global default_dir
     dlg = wx.DirDialog(None, message, default)
-    #dlg=MDD.MultiDirDialog(None,message=message,defaultPath=default,agwStyle=MDD.DD_NEW_DIR_BUTTON)
-    dir=None
+    # dlg=MDD.MultiDirDialog(None,message=message,defaultPath=default,agwStyle=MDD.DD_NEW_DIR_BUTTON)
+    dir = None
     if dlg.ShowModal() == wx.ID_OK:
-        dir = dlg.GetPath()
-        default_dir=dir
+        dir = ud.smartdecode(dlg.GetPath())
+        default_dir = dir
     dlg.Destroy()
     return dir
 

@@ -202,7 +202,7 @@ class main_menu(wx.Menu):
         self.menuredo = self.experimentalmenu.Append(wx.ID_ANY, "Redo Parameter Change\tCtrl+Y",
                                                      "Go to the next set of parameters")
         self.experimentalmenu.AppendSeparator()
-        self.Tweet = self.experimentalmenu.Append(wx.ID_ANY, "Twitter", "Twitter Extension")
+        #self.Tweet = self.experimentalmenu.Append(wx.ID_ANY, "Twitter", "Twitter Extension")
         if self.config.imflag == 0:
             self.experimentalmenu.AppendSeparator()
             self.menuAdditionalParameters = self.experimentalmenu.Append(wx.ID_ANY, "Additional Parameters",
@@ -248,6 +248,10 @@ class main_menu(wx.Menu):
         self.autoformat = self.experimentalmenu.Append(wx.ID_ANY, "Auto Format Monomer/Dimer",
                                                        "Mark matched monomers and dimers automatically")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_autoformat, self.autoformat)
+
+        self.experimentalmenu.AppendSeparator()
+        self.menuifams = self.experimentalmenu.Append(wx.ID_ANY, "iFAMS")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_iFAMS, self.menuifams)
 
         self.experimentalmenu.AppendSeparator()
         self.menulauncher = self.experimentalmenu.Append(wx.ID_ANY, "Launcher")
@@ -315,7 +319,6 @@ class main_menu(wx.Menu):
 
         # Experimental
         self.parent.Bind(wx.EVT_MENU, self.pres.on_peak_errors, self.menuerrors)
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_tweet, self.Tweet)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_mass_process, self.menumassprocess)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_super_batch, self.menusuperbatch)
 

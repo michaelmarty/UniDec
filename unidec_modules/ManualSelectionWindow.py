@@ -173,7 +173,7 @@ class ManualListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         """
         if not line:
             line = [0, 0, 0, 0]
-        index = self.InsertItem(sys.maxsize, str(line[0]))
+        index = self.InsertItem(10000, str(line[0]))
         self.SetItem(index, 1, str(line[1]))
         self.SetItem(index, 2, str(line[2]))
         if self.imflag == 1:
@@ -189,7 +189,7 @@ class ManualListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         """
         self.DeleteAllItems()
         for i in range(0, len(data)):
-            index = self.InsertItem(sys.maxsize, str(data[i][0]))
+            index = self.InsertItem(i, str(data[i][0]))
             self.SetItem(index, 1, str(data[i][1]))
             self.SetItem(index, 2, str(data[i][2]))
             if self.imflag == 1:

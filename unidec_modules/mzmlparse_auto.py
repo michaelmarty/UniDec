@@ -129,6 +129,7 @@ def extract(file, directory, timestep=1.0, output="txt"):
     newdir = os.path.join(directory, name)
     if output == "hdf5":
         newdir = directory
+    #name=ud.smartdecode(name)
     splits = name.split(sep="_")
     for i, s in enumerate(splits):
         if s.lower() == "ramp":

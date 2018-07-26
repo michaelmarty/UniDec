@@ -105,26 +105,26 @@ class MetaDataSet:
         grid = get_dataset(msdataset, "mass_grid")
         self.massdat = np.transpose([axis, sum])
         try:
-            num = len(grid) / len(sum)
-            grid = grid.reshape((num, len(sum))).transpose()
+            num = int(len(grid) / len(sum))
+            grid = grid.reshape((int(num), len(sum))).transpose()
             grid2 = np.transpose([axis for n in range(num)])
             grid3 = [grid2, grid]
             self.massgrid = np.transpose(grid3)
         except:
-            print(grid.shape, sum.shape)
+            print("Mass Grid Warning:", grid.shape, sum.shape, len(grid)/len(sum))
         # MZ Space
         axis = get_dataset(msdataset, "mz_axis")
         sum = get_dataset(msdataset, "mz_sum")
         grid = get_dataset(msdataset, "mz_grid")
         self.mzdat = np.transpose([axis, sum])
         try:
-            num = len(grid) / len(sum)
-            grid = grid.reshape((num, len(sum))).transpose()
+            num = int(len(grid) / len(sum))
+            grid = grid.reshape((int(num), len(sum))).transpose()
             grid2 = np.transpose([axis for n in range(num)])
             grid3 = [grid2, grid]
             self.mzgrid = np.transpose(grid3)
         except:
-            print(grid.shape, sum.shape)
+            print("mz grid Warning:", grid.shape, sum.shape, len(grid)/len(sum))
         hdf.close()
         return num
 
@@ -213,17 +213,18 @@ class MetaDataSet:
         msdata = hdf.require_group(self.topname)
         if get_vnames:
             try:
-                self.v1name = msdata.attrs["v1name"]
+                self.v1name = ud.smartdecode(msdata.attrs["v1name"])
             except:
                 msdata.attrs["v1name"] = self.v1name
             try:
-                self.v2name = msdata.attrs["v2name"]
+                self.v2name = ud.smartdecode(msdata.attrs["v2name"])
             except:
                 msdata.attrs["v2name"] = self.v2name
         else:
-            msdata.attrs["v1name"] = self.v1name
-            msdata.attrs["v2name"] = self.v2name
+            msdata.attrs["v1name"] = str(self.v1name)
+            msdata.attrs["v2name"] = str(self.v2name)
         hdf.close()
+
 
         self.var1 = []
         self.var2 = []

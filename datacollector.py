@@ -48,12 +48,12 @@ class XValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         listctrldata = np.array(listctrldata)
         for i in range(0, len(listctrldata)):
             try:
-                index = self.InsertItem(sys.maxsize, str(listctrldata[i, 0]))
+                index = self.InsertItem(i, str(listctrldata[i, 0]))
                 self.SetItem(index, 1, str(listctrldata[i, 1]))
                 self.SetItem(index, 2, str(listctrldata[i, 2]))
                 self.SetItemData(index, i)
             except (ValueError, TypeError):
-                index = self.InsertItem(sys.maxsize, str(listctrldata[i]))
+                index = self.InsertItem(i, str(listctrldata[i]))
 
             if colors is not None:
                 # print listctrldata[i],colors[i]
@@ -69,7 +69,7 @@ class XValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         return self.get_maxes()
 
     def add_line(self, val=0):
-        index = self.InsertItem(sys.maxsize, str(val))
+        index = self.InsertItem(10000, str(val))
         self.SetItem(index, 1, str(1))
         self.SetItem(index, 2, str(self.GetItemCount() - 1))
         return self.get_maxes()
@@ -111,7 +111,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def populate(self, listctrldata, colors=None):
         self.DeleteAllItems()
         for i in range(0, len(listctrldata)):
-            index = self.InsertItem(sys.maxsize, str(listctrldata[i][0]))
+            index = self.InsertItem(i, str(listctrldata[i][0]))
             self.SetItem(index, 1, str(listctrldata[i][1]))
             self.SetItem(index, 2, str(listctrldata[i][2]))
             try:
@@ -130,7 +130,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def add_line(self, file_name="file.txt", var1="count", var2=0):
         if var1 == "count":
             var1 = self.GetItemCount()
-        index = self.InsertItem(sys.maxsize, str(file_name))
+        index = self.InsertItem(10000, str(file_name))
         self.SetItem(index, 1, str(var1))
         self.SetItem(index, 2, str(var2))
         self.SetItem(index, 3, str("All"))
@@ -940,7 +940,7 @@ class DataCollector(wx.Frame):
                                           , ylabel=ylabel, color=color, test_kda=False)
                 self.plot2.plotadddot(self.var1, self.extract[:, i], color, "o")
             else:
-                self.plot2.plotadd(self.var1, self.extract[:, i], color, file)
+                self.plot2.plotadd(self.var1, self.extract[:, i], color)
                 self.plot2.plotadddot(self.var1, self.extract[:, i], color, "o")
         if self.normflag2 == 1:
             self.plot2.subplot1.set_ylim([0, 1])

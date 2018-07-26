@@ -9,7 +9,8 @@ import zipfile
 import time
 import fnmatch
 import comtypes
-
+import encodings
+import zipimport
 
 def dir_files(path, rel):
     ret = []
@@ -29,9 +30,9 @@ date = datetime.date.today().strftime("%y%m%d")
 # Determine if this is a distribution run or internal
 if "-distribution" in sys.argv:
     distmode = True
-    print "Distribution Release Mode"
+    print("Distribution Release Mode")
 else:
-    print "Internal Release Mode"
+    print("Internal Release Mode")
     distmode = False
 
 # Create names of files and directories
@@ -47,11 +48,11 @@ zipdirectory = outputdir + "_" + date + ".zip"
 a = Analysis(['Launcher.py'],
              pathex=[os.getcwd()],
              excludes=['pandas', 'IPython', 'Cython', 'statsmodels', 'pyopenms',
-                       'GdkPixbuf', 'PIL', 'pyQT4', 'pygobject', 'pygtk', 'pyside'],
+                       'GdkPixbuf', 'PIL', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PyQt5'],
              hiddenimports=[  # 'plotly',
                  'scipy.special._ufuncs_cxx', 'scipy.linalg.cython_blas', 'scipy.linalg.cython_lapack',
                  'scipy._lib.messagestream',
-                 'FileDialog', 'Dialog',
+                 'FileDialog', 'Dialog','encodings', 'encodings.__init__',
                  'packaging', 'packaging.version', 'packaging.specifiers',
                  'comtypes', "multiplierz", "comtypes.gen", "comtypes.gen._E7C70870_676C_47EB_A791_D5DA6D31B224_0_1_0",
                  "comtypes.gen.UIAutomationClient","comtypes.gen.RawReader", "multiplierz.mzAPI.management",
@@ -133,7 +134,7 @@ coll = COLLECT(exe,
                upx=False,
                name=outputdir)
 
-print "Zipping..."
+print("Zipping...")
 # Zip up the final file
 os.chdir("dist")
 
@@ -142,13 +143,13 @@ for root, dirs, files in os.walk(outputdir):
     for file in files:
         zipf.write(os.path.join(root, file), compress_type=zipfile.ZIP_DEFLATED)
 zipf.close()
-print "Zipped to", zipdirectory, "from", outputdir
+print("Zipped to", zipdirectory, "from", outputdir)
 
 # Final Print
 if distmode:
-    print "Distribution Release Mode"
+    print("Distribution Release Mode")
 else:
-    print "Internal Release Mode"
+    print("Internal Release Mode")
 
 tend = time.clock()
-print "Build Time: %.2gm" % ((tend - tstart) / 60.0)
+print("Build Time: %.2gm" % ((tend - tstart) / 60.0))

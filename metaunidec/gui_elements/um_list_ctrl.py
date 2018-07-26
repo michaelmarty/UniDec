@@ -21,21 +21,21 @@ class XValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         self.DeleteAllItems()
         for i in range(0, len(listctrldata)):
             try:
-                index = self.InsertItem(sys.maxsize, listctrldata[i][0])
+                index = self.InsertItem(10000, listctrldata[i][0])
                 self.SetItem(index, 1, listctrldata[i][1])
                 self.SetItemData(index, i)
             except (ValueError, TypeError):
-                index = self.InsertItem(sys.maxsize, listctrldata[i])
+                index = self.InsertItem(10000, listctrldata[i])
 
     def clear_list(self):
         self.DeleteAllItems()
 
     def add_line(self, val=0, marker='\u25CB'):
         try:
-            index = self.InsertItem(sys.maxsize, marker)
+            index = self.InsertItem(10000, marker)
             self.SetItem(index, 1, str(int(val)))
         except:
-            index = self.InsertItem(sys.maxsize, str('\u25CB'))
+            index = self.InsertItem(10000, str('\u25CB'))
             self.SetItem(index, 1, str(0))
 
     def get_list(self):
@@ -65,7 +65,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def populate(self, listctrldata, colors=None):
         self.DeleteAllItems()
         for i in range(0, len(listctrldata)):
-            index = self.InsertItem(sys.maxsize, str(listctrldata[i][0]))
+            index = self.InsertItem(i, str(listctrldata[i][0]))
             self.SetItem(index, 1, str(listctrldata[i][1]))
             self.SetItem(index, 2, str(listctrldata[i][2]))
             try:
@@ -84,7 +84,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def add_line(self, file_name="file.txt", var1=None, var2="-"):
         if var1 is None:
             var1 = "k"
-        index = self.InsertItem(sys.maxsize, str(file_name))
+        index = self.InsertItem(10000, str(file_name))
         self.SetItem(index, 1, str(var1))
         self.SetItem(index, 2, str(var2))
         self.SetItem(index, 3, str(""))

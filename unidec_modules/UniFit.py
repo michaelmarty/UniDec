@@ -141,8 +141,8 @@ def findpaths(reactions):
 
 def GetError(data, pfree, lfree, ureact, prottab, ligtab, paths, kds, weights, nodelist, nfactors):
     intgrid = MakeGrid(pfree, lfree, ureact, prottab, ligtab, paths, kds, nfactors)[0]
-    extract = [intgrid[row[0], row[1]] for row in nodelist]
-    if np.any(extract < 0) or np.any(kds < 0):
+    extract = np.array([intgrid[row[0], row[1]] for row in nodelist])
+    if np.any(extract < 0.) or np.any(kds < 0.):
         # extract=extract*0
         return sys.maxsize
     summed = np.sum(extract)
