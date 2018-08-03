@@ -218,7 +218,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 		ManualAssign(config.manualfile, lengthmz, config.numz, dataMZ, barr, nztab, file_id, config);
 	}
 
-	if (config.killmass != 0)
+	if (config.killmass != 0 && config.mzsig!=0)
 	{
 		KillMass(config.killmass, lengthmz, config.numz, barr, nztab, config.adductmass, dataMZ, config.psfun, config.mzsig);
 	}
@@ -245,45 +245,52 @@ int run_unidec(int argc, char *argv[], Config config) {
 	starttab = calloc(lengthmz, sizeof(int));
 	endtab = calloc(lengthmz, sizeof(int));
 	int maxlength = 1;
-	for (i = 0; i<lengthmz; i++)
-	{
-		double point = dataMZ[i] - threshold;
-		int start, end;
-		if (point < dataMZ[0] && config.speedyflag == 0) { start = (int)((point - dataMZ[0]) / (dataMZ[1] - dataMZ[0])); }
-		else {
-			start = nearfast(dataMZ, point, lengthmz);
+	if(config.mzsig!=0){
+		for (i = 0; i<lengthmz; i++)
+		{
+			double point = dataMZ[i] - threshold;
+			int start, end;
+			if (point < dataMZ[0] && config.speedyflag == 0) { start = (int)((point - dataMZ[0]) / (dataMZ[1] - dataMZ[0])); }
+			else {
+				start = nearfast(dataMZ, point, lengthmz);
+			}
+
+			starttab[i] = start;
+			point = dataMZ[i] + threshold;
+			if (point > dataMZ[lengthmz - 1] && config.speedyflag == 0) { end = lengthmz - 1 + (int)((point - dataMZ[lengthmz - 1]) / (dataMZ[lengthmz - 1] - dataMZ[lengthmz - 2])); }
+			else {
+				end = nearfast(dataMZ, point, lengthmz);
+			}
+			endtab[i] = end;
+			if (end - start>maxlength) { maxlength = end - start; }
 		}
+		printf("maxlength %d\n", maxlength);
 
-		starttab[i] = start;
-		point = dataMZ[i] + threshold;
-		if (point > dataMZ[lengthmz - 1] && config.speedyflag == 0) { end = lengthmz - 1 + (int)((point - dataMZ[lengthmz - 1]) / (dataMZ[lengthmz - 1] - dataMZ[lengthmz - 2])); }
-		else {
-			end = nearfast(dataMZ, point, lengthmz);
+
+		//Changes dimensions of the peak shape function. 1D for speedy and 2D otherwise
+		int pslen = lengthmz;
+		if (config.speedyflag == 0) { pslen = lengthmz*maxlength; }
+		mzdist = calloc(pslen, sizeof(double));
+		memset(mzdist, 0, pslen * sizeof(double));
+
+
+		//Calculates the distance between mz values as a 2D or 3D matrix
+		if (config.speedyflag == 0)
+		{
+			MakePeakShape2D(lengthmz, maxlength, starttab, endtab, dataMZ, config.mzsig*config.peakshapeinflate, config.psfun, config.speedyflag, mzdist);
 		}
-		endtab[i] = end;
-		if (end - start>maxlength) { maxlength = end - start; }
-	}
-	printf("maxlength %d\n", maxlength);
-
-
-	//Changes dimensions of the peak shape function. 1D for speedy and 2D otherwise
-	int pslen = lengthmz;
-	if (config.speedyflag == 0) { pslen = lengthmz*maxlength; }
-	mzdist = calloc(pslen, sizeof(double));
-	memset(mzdist, 0, pslen * sizeof(double));
-
-
-	//Calculates the distance between mz values as a 2D or 3D matrix
-	if (config.speedyflag == 0)
-	{
-		MakePeakShape2D(lengthmz, maxlength, starttab, endtab, dataMZ, config.mzsig*config.peakshapeinflate, config.psfun, config.speedyflag, mzdist);
+		else
+		{
+			//Calculates peak shape as a 1D list centered at the first element for circular convolutions
+			MakePeakShape1D(dataMZ, threshold, lengthmz, config.speedyflag, config.mzsig*config.peakshapeinflate, config.psfun, mzdist);
+		}
+		printf("mzdist set: %f\n", mzdist[0]);
 	}
 	else
 	{
-		//Calculates peak shape as a 1D list centered at the first element for circular convolutions
-		MakePeakShape1D(dataMZ, threshold, lengthmz, config.speedyflag, config.mzsig*config.peakshapeinflate, config.psfun, mzdist);
+		mzdist = calloc(0, sizeof(double));
+		maxlength = 0;
 	}
-	printf("mzdist set: %f\n", mzdist[0]);
 
 	//....................................................
 	//
@@ -292,6 +299,9 @@ int run_unidec(int argc, char *argv[], Config config) {
 	//......................................................
 
 	//sets some parameters regarding the neighborhood blur function
+	int chargewidth = 0;
+	if (config.zsig > 1) { chargewidth = config.zsig; config.zsig = 1; }
+	if (config.msig > 1) { chargewidth = config.msig; config.msig = 1; }
 	if (config.zsig >= 0) {
 		zlength = 1 + 2 * (int)config.zsig;
 		mlength = 1 + 2 * (int)config.msig;
@@ -419,21 +429,29 @@ int run_unidec(int argc, char *argv[], Config config) {
 	memcpy(dataInt2, dataInt, sizeof(double)*lengthmz);
 	if (config.baselineflag == 1)
 	{
-		deconvolve_baseline(lengthmz, dataMZ, dataInt, baseline, config.mzsig);
-		if (config.aggressiveflag == 2)
+		if(config.mzsig!=0)
 		{
-			for (int i = 0; i < 10; i++)
+			deconvolve_baseline(lengthmz, dataMZ, dataInt, baseline, config.mzsig);
+			if (config.aggressiveflag == 2)
 			{
-				deconvolve_baseline(lengthmz, dataMZ, dataInt, baseline, config.mzsig);
-			}
-			for (int i = 0; i < lengthmz; i++)
-			{
-				if(baseline[i]>0){
-					dataInt2[i] -= baseline[i];
+				for (int i = 0; i < 10; i++)
+				{
+					deconvolve_baseline(lengthmz, dataMZ, dataInt, baseline, config.mzsig);
 				}
+				for (int i = 0; i < lengthmz; i++)
+				{
+					if (baseline[i]>0) {
+						dataInt2[i] -= baseline[i];
+					}
+				}
+				//memcpy(baseline, dataInt2, sizeof(double)*lengthmz);
 			}
-			//memcpy(baseline, dataInt2, sizeof(double)*lengthmz);
 		}
+		else
+		{
+			printf("Ignoring baseline subtraction because peak width is 0\n");
+		}
+		
 	}
 	
 
@@ -443,6 +461,12 @@ int run_unidec(int argc, char *argv[], Config config) {
 	printf("Iterating\n\n");
 	for (iterations = 0; iterations<abs(config.numit); iterations++)
 	{
+		if (chargewidth > 0 && iterations>20)
+		{
+			charge_smoothing(blur, lengthmz, config.numz, chargewidth - 1);
+			//printf("Charge Smoothed %d\n", chargewidth - 1);
+		}
+
 		if (config.zsig >= 0) {
 			blur_it_mean(lengthmz,
 				config.numz,
@@ -463,12 +487,15 @@ int run_unidec(int argc, char *argv[], Config config) {
 				blur,
 				barr);
 		}
+		
 				
 		deconvolve_iteration_speedy(lengthmz, config.numz, maxlength,
 			newblur, blur, barr, config.aggressiveflag, dataInt2,
 			isolength, isotopepos, isotopeval, starttab, endtab, mzdist, config.speedyflag,
 			config.baselineflag, baseline,noise,config.mzsig,dataMZ, config.filterwidth);
 		
+		
+
 		//Determine the metrics for conversion. Only do this every 10% to speed up.
 		if ((config.numit<10 || iterations % 10 == 0 || iterations % 10 == 1 || iterations>0.9*config.numit)) {
 			double diff = 0;
@@ -502,7 +529,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 	//...............................................................
 
 	//Reset the peak shape if it was inflated
-	if (config.peakshapeinflate != 1) {
+	if (config.peakshapeinflate != 1 && config.mzsig!=0) {
 		if (config.speedyflag == 0)
 		{
 			MakePeakShape2D(lengthmz, maxlength, starttab, endtab, dataMZ, config.mzsig, config.psfun, config.speedyflag, mzdist);
@@ -585,8 +612,14 @@ int run_unidec(int argc, char *argv[], Config config) {
 
 	//newblur is repurposed as the convolution of blur by the mz peaks shape
 	double newblurmax = blurmax;
-	if (config.rawflag == 0 || config.rawflag == 2) {
-		newblurmax = Reconvolve(lengthmz, config.numz, maxlength, starttab, endtab, mzdist, blur, newblur, config.speedyflag);
+	if ((config.rawflag == 0 || config.rawflag == 2)) {
+		if (config.mzsig != 0) {
+			newblurmax = Reconvolve(lengthmz, config.numz, maxlength, starttab, endtab, mzdist, blur, newblur, config.speedyflag);
+		}
+		else
+		{
+			memcpy(newblur, blur, lengthmz*config.numz * sizeof(double));
+		}
 	}
 
 	//Writes the convolved m/z grid in binary format

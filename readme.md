@@ -232,6 +232,25 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.2.7.3
+
+Added experimental features for charge state smoothing when Charge or Mass Smooth Width is greater than 1. 
+Added experimental feature to allow for zero peak width.
+Added Kendrick Mass Defect shortcut with Ctrl+K. Switched previous Ctrl+K shortcut (plot peaks) to Ctrl+J.
+
+v.2.7.2
+
+Adding registerInterfaces command in when multiplierz fails for Thermo file direct reads.
+For this to work, UniDec may need to be run as an administrator. 
+
+v.2.7.1
+
+Fixed Bug in Waters Import Wizard and UltraMeta Mass Defect plots.
+
+v.2.7.0
+
+Added 2D plots in Mass Defect tools for MetaUniDec.
+
 v.2.6.8
 
 Fixed bug with matching spectra in Oligomer and Mass Tools.

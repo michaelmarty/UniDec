@@ -54,7 +54,7 @@ a = Analysis(['Launcher.py'],
                  'FileDialog', 'Dialog',
                  'packaging', 'packaging.version', 'packaging.specifiers',
                  'comtypes', "multiplierz", "comtypes.gen", "comtypes.gen._E7C70870_676C_47EB_A791_D5DA6D31B224_0_1_0",
-                 "comtypes.gen.UIAutomationClient","comtypes.gen.RawReader",
+                 "comtypes.gen.UIAutomationClient","comtypes.gen.RawReader", "multiplierz.mzAPI.management",
                  # 'wx.lib.pubsub','wx.lib.pubsub.core', 'wx.lib.pubsub.core.kwargs','wx.lib.pubsub.core.publisher',
                  'pubsub', 'pubsub.core.publisherbase', 'pubsub.core.kwargs', 'pubsub.core.kwargs.publisher',
                  'pubsub.core.kwargs.listenerimpl', 'pubsub.core.kwargs.publishermixin',
@@ -102,8 +102,11 @@ a.datas += [('Images/allButton.png', 'metaunidec\\images\\allButton.png', 'DATA'
 a.datas += [('Images/peakRightClick.png', 'metaunidec\\images\\peakRightClick.png', 'DATA')]
 a.datas += [('Images/rightClick.png', 'metaunidec\\images\\rightClick.png', 'DATA')]
 
+
 a.datas.extend(dir_files(os.path.join(os.path.dirname(pymzml.__file__),
                                       'obo'), 'obo'))  # os.path.join('pymzml', 'obo')))
+
+a.datas.extend(dir_files("unidec_bin\\multiplierz", 'multiplierz'))
 
 # Can't remember why I needed these...
 # grammar=os.path.join(os.path.dirname(lib2to3.__file__),'Grammar.txt')

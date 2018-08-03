@@ -76,7 +76,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
                 ["Q", self.on_exit],
                 ["T", self.pres.on_mass_tools], ["M", self.pres.on_match],
                 ["W", self.pres.on_auto_peak_width],
-                ["Z", self.pres.on_undo], ["Y", self.pres.on_redo]
+                ["Z", self.pres.on_undo], ["Y", self.pres.on_redo], ["K", self.pres.on_kendrick]
                 ]
         self.setup_shortcuts(keys)
 

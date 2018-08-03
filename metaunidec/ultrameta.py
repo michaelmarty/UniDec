@@ -815,10 +815,10 @@ class DataCollector(wx.Frame):
                     data1d, data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(edat, molig)
 
                     plotwindow.plots[xpos][ypos].contourplot(data2d, self.config, xlab="Mass", ylab="Mass Defect",
-                                                             normflag=1, title=u, test_kda=True)
-                    plotwindow.plots[xpos][ypos].subplot1.set_title(u)
+                                                             normflag=1, title=u, test_kda=True, repaint=False)
                     plotwindow.plots[xpos][ypos].setup_zoom([plotwindow.plots[xpos][ypos].subplot1], 'box')
-                    print u
+                    plotwindow.plots[xpos][ypos].subplot1.set_title(u)
+                    plotwindow.plots[xpos][ypos].repaint()
                 else:
                     plotwindow.plots[xpos][ypos].plotrefreshtop(
                         edat[:, 0], edat[:, 1], u,

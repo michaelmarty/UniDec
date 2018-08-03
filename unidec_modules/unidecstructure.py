@@ -736,9 +736,9 @@ class UniDecConfig(object):
             self.badtest = 1
 
         # Check peak width
-        if self.mzsig == 0:
-            self.warning = "Peak width is zero\nFix peak width to be positive number"
-            self.badtest = 1
+        #if self.mzsig == 0:
+        #    self.warning = "Peak width is zero\nFix peak width to be positive number"
+        #    self.badtest = 1
 
         if self.imflag == 1:
             if self.nativeccsub <= self.nativeccslb:

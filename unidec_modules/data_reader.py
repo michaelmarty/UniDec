@@ -31,7 +31,12 @@ class DataImporter:
             return
             """
         print "Reading Data:", path
-        self.msrun = mzFile(path)
+        try:
+            self.msrun = mzFile(path)
+        except:
+            from multiplierz.mzAPI.management import registerInterfaces
+            registerInterfaces()
+            self.msrun = mzFile(path)
         self.scanrange = self.msrun.scan_range()
         self.scans = np.arange(self.scanrange[0], self.scanrange[1] + 1)
         self.times = []

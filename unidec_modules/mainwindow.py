@@ -60,14 +60,15 @@ class Mainwindow(MainwindowBase):
         keys = [["E", self.pres.on_auto], ["G", self.pres.on_paste_spectrum],
                 ["R", self.pres.on_unidec_button], ["D", self.pres.on_dataprep_button],
                 ["O", self.pres.on_open], ["I", self.pres.on_integrate],
-                ["P", self.pres.on_pick_peaks], ["K", self.pres.on_plot_peaks],
+                ["P", self.pres.on_pick_peaks], ["J", self.pres.on_plot_peaks],
                 ["C", self.pres.on_plot_composite], ["N", self.pres.on_replot],
                 ["F", self.pres.on_plot_offsets],  # ["Z", self.pres.on_charge_plot],
                 ["L", self.pres.on_load_state], ["S", self.pres.on_save_state],
                 ["B", self.pres.on_batch], ["Q", self.on_exit],
                 ["T", self.pres.on_mass_tools], ["M", self.pres.on_match],
                 ["W", self.pres.on_auto_peak_width],
-                ["Z", self.pres.on_undo], ["Y", self.pres.on_redo]]
+                ["Z", self.pres.on_undo], ["Y", self.pres.on_redo],
+                ["K", self.pres.on_kendrick]]
         self.setup_shortcuts(keys)
 
         self.launch()
