@@ -506,7 +506,6 @@ class MassDefectWindow(wx.Frame):
         except:
             pass
 
-
     def on_add_line(self, e):
         """
         Add a horizontal line to the plot to visualize a predicted mass defect.
@@ -524,10 +523,13 @@ class MassDefectWindow(wx.Frame):
             self.plot2.subplot1.plot((xlim[0], xlim[1]), (vval, vval), color=self.plot2.tickcolor)
             self.plot2.repaint()
 
-            xlim2 = self.plot3.subplot1.get_xlim()
-            if xlim2[1] > 1:
-                self.plot3.subplot1.plot((xlim[0], xlim[1]), (vval, vval), color=self.plot3.tickcolor)
-                self.plot3.repaint()
+            ylim4 = self.plot3.subplot1.get_ylim()
+            self.plot3.subplot1.plot((vval, vval), (ylim4[0], ylim4[1]), color=self.plot3.tickcolor)
+            self.plot3.repaint()
+
+            ylim4 = self.plot4.subplot1.get_ylim()
+            self.plot4.subplot1.plot((vval, vval), (ylim4[0], ylim4[1]), color=self.plot4.tickcolor)
+            self.plot4.repaint()
         except Exception as e:
             print("Failed: ", dialog.value, e)
             pass
@@ -538,6 +540,10 @@ class MassDefectWindow(wx.Frame):
                 ylim = self.plot6.subplot1.get_ylim()
                 self.plot6.subplot1.plot((xval, xval), (ylim[0], ylim[1]), color=self.plot2.tickcolor)
                 self.plot6.repaint()
+
+                ylim4 = self.plot5.subplot1.get_ylim()
+                self.plot5.subplot1.plot((xval, xval), (ylim4[0], ylim4[1]), color=self.plot5.tickcolor)
+                self.plot5.repaint()
             except Exception as e:
                 print("Failed: ", dialog.value, e)
                 pass
@@ -567,7 +573,7 @@ if __name__ == "__main__":
     path = os.path.join(dir, file)
 
     data2 = np.loadtxt(path)
-    datalist = [data , data2]
+    datalist = [data, data2]
 
     app = wx.App(False)
     frame = MassDefectWindow(None, datalist)

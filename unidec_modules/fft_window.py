@@ -318,7 +318,7 @@ class FFTWindow(wx.Frame):
         xvals = self.plot2.zoom.comparexvals
         yvals = self.plot2.zoom.compareyvals
         data2d = win_fft_grid(self.rawdata, self.binsize, self.wbin, self.window_fwhm, self.diffrange)
-        for x in range(0, len(xvals) / 2):
+        for x in range(0, len(xvals) // 2):
             if xvals[x * 2] > xvals[x * 2 + 1]: xvals[x * 2], xvals[x * 2 + 1] = xvals[x * 2 + 1], xvals[x * 2]
             if yvals[x * 2] > yvals[x * 2 + 1]: yvals[x * 2], yvals[x * 2 + 1] = yvals[x * 2 + 1], yvals[x * 2]
             # assure that x and y values are not equal
@@ -339,7 +339,7 @@ class FFTWindow(wx.Frame):
         boxsums = []
         rowdiffs = []
         maxsum = 0
-        for x in range(0, len(xvals) / 2):
+        for x in range(0, len(xvals) // 2):
             rowsums = []
             tmpdiff = []
             for row in range(nearestyvalind[x * 2], nearestyvalind[x * 2 + 1]):
@@ -358,7 +358,7 @@ class FFTWindow(wx.Frame):
         self.on_get_peaks(data=np.transpose([rowdiffs[0],tmp]))
         self.plot4.plotrefreshtop(rowdiffs[0], tmp, color=cols[0],
                                   xlabel="Mass Difference", ylabel="Intensity", linestyle="solid")
-        for x in range(1, len(xvals) / 2):
+        for x in range(1, len(xvals) // 2):
             tmp = [y / maxsum for y in boxsums[x]]
             self.on_get_peaks(data=np.transpose([rowdiffs[x], tmp]))
             self.plot4.plotadd(rowdiffs[x], tmp, cols[x], None)
