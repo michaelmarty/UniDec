@@ -71,25 +71,31 @@ A single file can be opened directly, or mulitiple files can be converted using
 Tools > Simple Batch Process Raw to Txt. For a fancier conversion such as extracting specific functions or scans, 
 try Tools > Raw to Txt Conversion Wizard.
 
-Water's converters will need [MassLynxRaw.dll](https://www.waters.com/waters/support.htm?locale=en_GB&lid=134815627&cid=511442&type=DWNL) (32-bit, for MS) and/or [cdt.dll](https://www.waters.com/waters/support.htm?locale=en_GB&lid=134825112&cid=511442&type=DWNL) (64-bit, for IM-MS) in the same directory as the converter executables (the unidec_bin folder or the top directory).
-Note: Recent versions of these files may not work. I'm working on a fix, but in the meantime, please contact me for working files.
+Water's converters will need [MassLynxRaw.dll](https://interface.waters.com/masslynx/developers-area/sdks/) (32-bit, x86, Version 1.0.0.0 for MS) and/or [cdt.dll](https://interface.waters.com/masslynx/developers-area/sdks/) (64-bit, x64, Version 4.4.0.0 for IM-MS) in the same directory as the converter executables (the unidec_bin folder or the top directory).
+Note: We have had issues with these DLLs that seem to be fixed now. Please contact me for working files if you can't get them to work.
 
 Thermo .raw files can be read as you would a text file on Windows thanks to [multiplierz](https://github.com/BlaisProteomics/multiplierz). You will need [MSFileReader](https://thermo.flexnetoperations.com/control/thmo/download?element=6306677) installed. Please cite them (http://onlinelibrary.wiley.com/doi/10.1002/pmic.201700091/abstract). It will compress all scans together unless parsed with MetaUniDec. 
 
 Finally, many vendor formats can be converted mzML using [Proteowizard](http://proteowizard.sourceforge.net/). UniDec will open mzML file as if they are a text file, and this format should be cross platform.
 We utilize [pymzML](http://pymzml.github.io/intro.html#general-information) for this. Please [cite them](https://www.ncbi.nlm.nih.gov/pubmed/22302572).
 
-## MetaUniDec File Types
+## MetaUniDec File Types and Importing
 
 With MetaUniDec, everything is stored in a single HDF5 files. 
-There are a few automated tools to parse chromatograms into HDF5 files if you have all the 
-data chromatograms with predictable scans or times. Otherwise, you need to load the data in. 
-First, create a new HDF5 using New File. Then, use Add Data Files to add text files, Thermo RAW, 
-or mzML files into the HDF5 file. You can select multiple files at once here. 
+The HDF5 Import Wizard allows you to import a range of different file types directly into a single HDF5 file.
+Thermo RAW and mzML files are supported fully, which means that either the scan or time range can be specified.
+Text and Waters RAW files are supported for file import. Text files must be a single m/z spectrum.
+Waters RAW files will have all scans summed into a single m/z spectrum upon import. 
+The File>Waters Conversion Wizard tool allows specific scans to be converted into text files for importing.
+
+In addition to the Import Wizard, there are several Manual File options, which will allow you to create blank HDF5 
+(New File) and load data into it (Add File). Note, Add Data will sum all scans together, and Waters data is not supported.
+You can select multiple files at once here. 
 You can also just copy the data from XCalibur or MassLynx and then use Add Data From Clipboard. 
-That is probably the easiest way to get started and then you can work on optimizing the workflow from there. 
-You can use the Waters converter if you need to get waters data into text files, 
-and proteowizard can convert a variety of vendor files to mzML.
+
+There are a few automated tools to parse single chromatograms directly into HDF5 files if you have all the data chromatograms 
+with predictable scans or times. You can batch process multiple files at once. 
+Only mzML and Thermo RAW files are supported for automated chromatogram import.
 
 ## Installing the Source Code
 
@@ -131,55 +137,11 @@ It can be easily compiled with other compilers but will show a significant perfo
 If you are interested in binaries for Mac and Linux, they are also in the unidec_bin directory as unidecmac and unideclinux.
 However, we do not build these regularly, so I would recommend building them yourself using the scripts in the unidec_src/UniDec directory.
 
- 
-If you want to convert Waters .Raw files, you will also need to add cdt.dll (for IM-MS) and MassLynxRaw.dll (for MS) to the same directory. These files can be found [here](http://www.waters.com/waters/supportList.htm?cid=511442&locale=en_GB&filter=documenttype|DWNL&locale=en_GB) with support numbers DWNL134825112 and DWNL134815627. See below for more specifics. 
+If you want to convert Waters .Raw files, you will also need to add cdt.dll (for IM-MS) and MassLynxRaw.dll (for MS) to the same directory. See above for links. 
 
 I have binary built for Mac and Linux as well. They are a bit slower than the Windows version because they are compiled with gcc rather than the Intel C Compiler, but they are perfectly functional and still pretty darn fast. I can send these to you on request. Note, due to low demand and my busy schedule, these may not always be available immediately in the latest version.
 
-## UniDec Compatible File Types
-
-UniDec is built to open .txt files using [numpy.loadtxt](http://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.loadtxt.html). 
-
-For MS data, it opens a two-column either a tab or space delimited list of m/z and intensity values.
-
-For IM-MS, it will open a three-column tab or space delminated list of m/z, arrival time (or bin), and intensity values. Sparse matrices are fine for IM-MS. 
-
-Recent versions are compatible with a text header at the beginning of the file. It will skip lines until it reaches the start of the data.
-
-For Water's .raw files, UniDec is bundled with converters (CDCReader.exe and rawreader.exe) to convert the data to .txt. It will compress the retention time dimension into a single spectrum. A single file can be opened directly, or mulitiple files can be converted using Tools > Simple Batch Process Raw to Txt. For a fancier conversion such as extracting specific functions or scans, try Tools > Raw to Txt Conversion Wizard.
-
-Water's converters will need [MassLynxRaw.dll](https://www.waters.com/waters/support.htm?locale=en_GB&lid=134815627&cid=511442&type=DWNL) (32-bit, for MS) and/or [cdt.dll](https://www.waters.com/waters/support.htm?locale=en_GB&lid=134825112&cid=511442&type=DWNL) (64-bit, for IM-MS) in the same directory as the converter executables (the unidec_bin folder or the top directory).
-
-Thermo .raw files can be read as you would a text file on Windows thanks to multiplierz (https://github.com/BlaisProteomics/multiplierz). 
-You will need [MSFileReader](https://thermo.flexnetoperations.com/control/thmo/download?element=6306677) installed. 
-Please cite them (http://onlinelibrary.wiley.com/doi/10.1002/pmic.201700091/abstract). 
-It will compress all scans together unless parsed with MetaUniDec. 
-If you are having issues with importing Thermo RAW files, please follow the troubleshooting guide [here](https://github.com/BlaisProteomics/multiplierz/wiki/multiplierz.mzAPI).
-
-Finally, many vendor formats can be converted mzML using [Proteowizard](http://proteowizard.sourceforge.net/). UniDec will open mzML file as if they are a text file, and this format should be cross platform.
-We utilize [pymzML](http://pymzml.github.io/intro.html#general-information) for this. Please [cite them](https://www.ncbi.nlm.nih.gov/pubmed/22302572).
-
-
-## MetaUniDec File Types and Importing
-
-With MetaUniDec, everything is stored in a single HDF5 files. 
-The HDF5 Import Wizard allows you to import a range of different file types directly into a single HDF5 file.
-Thermo RAW and mzML files are supported fully, which means that either the scan or time range can be specified.
-Text and Waters RAW files are supported for file import. Text files must be a single m/z spectrum.
-Waters RAW files will have all scans summed into a single m/z spectrum upon import. 
-The File>Waters Conversion Wizard tool allows specific scans to be converted into text files for importing.
-
-In addition to the Import Wizard, there are several Manual File options, which will allow you to create blank HDF5 
-(New File) and load data into it (Add File). Note, Add Data will sum all scans together, and Waters data is not supported.
-You can select multiple files at once here. 
-You can also just copy the data from XCalibur or MassLynx and then use Add Data From Clipboard. 
-
-There are a few automated tools to parse single chromatograms directly into HDF5 files if you have all the data chromatograms 
-with predictable scans or times. You can batch process multiple files at once. 
-Only mzML and Thermo RAW files are supported for automated chromatogram import.
-
 ## UniDec Documentation
-
 
 Documentation is for the Python engine and GUI and can be found at http://michaelmarty.github.io/UniDecDocumentation/.
 
