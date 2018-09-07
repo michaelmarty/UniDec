@@ -467,7 +467,7 @@ class main_controls(wx.Panel):
         gbox3b.Add(self.ctldiscrete, (2, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         self.ctlpublicationmode = wx.CheckBox(panel3b, label="Publication Mode")
         gbox3b.Add(self.ctlpublicationmode, (2, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved", "Raw Results"])
+        self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved/Profile", "Raw/Centroid"])
         gbox3b.Add(self.ctlrawflag, (3, 0), span=(1, 2), flag=wx.EXPAND)
 
         gbox3b.Add(wx.StaticText(panel3b, label="Marker Threshold: "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)

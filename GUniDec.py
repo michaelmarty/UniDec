@@ -78,19 +78,20 @@ class UniDecApp(UniDecPres):
         if False and platform.node() == "DESKTOP-R236BN2":
             # fname = "HSPCID.txt"
             fname = "0.txt"
-            fname = "test.raw"
+            # fname = "test.raw"
             # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
             newdir = os.path.join(os.getcwd(), "TestSpectra")
             # newdir = "C:\\cprog\\UniDecDemo"
             self.on_open_file(fname, newdir)
             # self.view.on_save_figure_eps(0)
             # self.on_dataprep_button(0)
-            # self.on_auto(0)
+            self.on_auto(0)
             # self.on_integrate()
             # self.on_grid_decon(0)
             # self.make_cube_plot(0)
             # self.on_plot_peaks(0)
             # self.on_flip_tabbed(None)
+            self.on_label_max_charge_states(0)
 
     # ..............................
     #
@@ -750,6 +751,10 @@ class UniDecApp(UniDecPres):
         :param e: unused event
         :return: None
         """
+        if self.eng.config.adductmass > 0:
+            sign = "+"
+        else:
+            sign = "-"
         charges = np.arange(self.eng.config.startz, self.eng.config.endz + 1)
         peaksel = self.view.peakpanel.selection2[0]
         peakpos = (peaksel + charges * self.eng.config.adductmass) / charges
@@ -759,7 +764,7 @@ class UniDecApp(UniDecPres):
         index = 0
         self.view.plot4.textremove()
         for i in charges:
-            self.view.plot4.addtext(str(i), peakpos[index], np.amax(self.eng.data.data2[:, 1]) * 0.99)
+            self.view.plot4.addtext(sign + str(i), peakpos[index], np.amax(self.eng.data.data2[:, 1]) * 0.99)
             index += 1
 
     def on_differences(self, e=None):
@@ -1538,6 +1543,28 @@ class UniDecApp(UniDecPres):
 
     def on_grid_decon(self, e):
         GridDecon.GridDeconWindow(self.view, self.eng.data.data2, config=self.eng.config)
+
+    def on_label_max_charge_states(self, e):
+        charges = np.arange(self.eng.config.startz, self.eng.config.endz + 1)
+        if self.eng.config.adductmass > 0:
+            sign = "+"
+        else:
+            sign = "-"
+
+        self.view.plot4.textremove()
+        for i in range(0, self.eng.pks.plen):
+            p = self.eng.pks.peaks[i]
+            if p.ignore == 0:
+                if (not ud.isempty(p.mztab)) and (not ud.isempty(p.mztab2)):
+                    mztab = np.array(p.mztab)
+                    mztab2 = np.array(p.mztab2)
+                    maxval = np.amax(mztab[:, 1])
+                    for k in range(0, len(mztab)):
+                        if mztab[k, 1] == maxval:
+                            self.view.plot4.addtext(sign + str(charges[k]), mztab2[k, 0],
+                                                    mztab2[k, 1] + 0.075 * np.amax(self.eng.data.data2[:, 1]),
+                                                    vlines=False, color=p.color)
+        self.view.plot4.repaint()
 
     def on_flip_mode(self, e):
         """

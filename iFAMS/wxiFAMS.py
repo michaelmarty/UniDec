@@ -11,13 +11,12 @@ from iFAMS import iFAMSfun
 
 
 class iFAMS_Window(wx.Frame):
-    def __init__(self, parent, config=None, directory=""):
+    def __init__(self, parent, inputdata=None, config=None, directory=""):
         wx.Frame.__init__(self, parent, title="iFAMS")  # ,size=(-1,-1))
 
         self.parent = parent
 
-
-        self.directory=directory
+        self.directory = directory
 
         # Set up the config file
         if config is None:
@@ -99,13 +98,9 @@ class iFAMS_Window(wx.Frame):
         controlsizer5.Add(wx.StaticText(panel, label="subunit mass"), 0, wx.ALIGN_RIGHT)
         controlsizer5.Add(self.mansub, 0, wx.ALIGN_RIGHT)
 
-
-
-
         recalcbutton = wx.Button(panel, label="Recalc. Maxima Finder")
         controlsizer2.Add(recalcbutton, 0, wx.EXPAND)
         self.Bind(wx.EVT_BUTTON, self.on_calc, recalcbutton)
-
 
         iFAMSbutton = wx.Button(panel, label="Run iFAMS analysis")
         controlsizer.Add(iFAMSbutton, 0, wx.EXPAND)
@@ -119,16 +114,13 @@ class iFAMS_Window(wx.Frame):
         controlsizer3.Add(havgbutton, 0, wx.EXPAND)
         self.Bind(wx.EVT_BUTTON, self.on_harm_average, havgbutton)
 
-        self.realdatasel = wx.CheckBox(panel,label="plot real data")
+        self.realdatasel = wx.CheckBox(panel, label="plot real data")
         controlsizer.Add(self.realdatasel, 0, wx.EXPAND)
         self.Bind(wx.EVT_CHECKBOX, self.onChecked)
 
         mancalcbutton = wx.Button(panel, label="Man Calc Subunit and Charge")
         controlsizer5.Add(mancalcbutton, 0, wx.EXPAND)
         self.Bind(wx.EVT_BUTTON, self.on_man_calc, mancalcbutton)
-
-
-
 
         sizer.Add(controlsizer, 0, wx.EXPAND)
         sizer.Add(controlsizer2, 0, wx.EXPAND)
@@ -146,7 +138,9 @@ class iFAMS_Window(wx.Frame):
         self.Show(True)
         self.Raise()
 
-
+        if inputdata is not None:
+            self.data = inputdata
+            self.makeplot()
 
     def on_close(self, e):
         self.Destroy()
@@ -165,6 +159,7 @@ class iFAMS_Window(wx.Frame):
                 self.nbins = 0
         except ValueError:
             print("Failed to get from gui")
+
     def on_load_spectrum(self, e=None):
         """
         Loads a spectrum from a .txt file
@@ -176,9 +171,8 @@ class iFAMS_Window(wx.Frame):
         openFileDialog.ShowModal()
         name = openFileDialog.GetPath()
         namestr = str(name)
-        self.data=np.loadtxt(namestr)
+        self.data = np.loadtxt(namestr)
         self.makeplot()
-
 
     def makeplot(self):
         """
@@ -197,8 +191,9 @@ class iFAMS_Window(wx.Frame):
 
     def on_fft(self, e=None):
         self.getfromgui()
-        self.colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'b', 'g', 'r', 'c', 'm', 'y', 'k', 'b', 'g', 'r', 'c', 'm', 'y',
-                  'k','b', 'g', 'r', 'c', 'm', 'y', 'k', 'b', 'g', 'r', 'c', 'm', 'y', 'k']
+        self.colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'b', 'g', 'r', 'c', 'm', 'y', 'k', 'b', 'g', 'r', 'c', 'm',
+                       'y',
+                       'k', 'b', 'g', 'r', 'c', 'm', 'y', 'k', 'b', 'g', 'r', 'c', 'm', 'y', 'k']
 
         self.yfull, self.expandedspan, self.xnew, self.ftspacing, self.paddedxnew, self.ynew = iFAMSfun.plot_function(
             self.xdata, self.ydata)
@@ -207,7 +202,7 @@ class iFAMS_Window(wx.Frame):
         self.ftx, self.ABFT, self.FT = iFAMSfun.Fourier(self, self.maxfreq, self.yfull)
         self.refmaxtab = iFAMSfun.findmax(self.expandedspan, self.ABFT, self.ftx, 0.001, 5, 10)
         self.plot2.plotrefreshtop(self.ftx, self.ABFT, "FFT", "Frequency", "Amplitude", color='k', config=self.config)
-        self.plot2.plotadddot(np.array(self.refmaxtab)[:, 0], np.array(self.refmaxtab)[:, 1],"r","o")
+        self.plot2.plotadddot(np.array(self.refmaxtab)[:, 0], np.array(self.refmaxtab)[:, 1], "r", "o")
         self.plot2.repaint()
 
     def on_calc(self, e=None):
@@ -225,10 +220,8 @@ class iFAMS_Window(wx.Frame):
         self.refmaxtab = iFAMSfun.findmax(self.expandedspan, self.ABFT, self.ftx, lowend, delta, pctpkht)
 
         self.plot2.plotrefreshtop(self.ftx, self.ABFT, "FFT", "Frequency", "Amplitude", color='k', config=self.config)
-        self.plot2.plotadddot(np.array(self.refmaxtab)[:, 0], np.array(self.refmaxtab)[:, 1],"b","o")
+        self.plot2.plotadddot(np.array(self.refmaxtab)[:, 0], np.array(self.refmaxtab)[:, 1], "b", "o")
         self.plot2.repaint()
-
-
 
     def on_SubAndCharCalc(self, e=None):
         """
@@ -249,31 +242,49 @@ class iFAMS_Window(wx.Frame):
         for i in range(0, len(self.chargestatesr)):
             self.newcalcX.append(self.refmaxtabCalc[i, 0])
             self.newcalcY.append(self.refmaxtabCalc[i, 1])
-        self.submass, self.stdevmass  = iFAMSfun.subunit(self.refmaxtab,self.numchar,self.omega,self.chargestates,
-                                                         self.chargestatesr,self.ftx,self.ABFT)
-        self.submassr = round(self.submass,2)
+        self.submass, self.stdevmass = iFAMSfun.subunit(self.refmaxtab, self.numchar, self.omega, self.chargestates,
+                                                        self.chargestatesr, self.ftx, self.ABFT)
+        self.submassr = round(self.submass, 2)
 
         newtext = "the subunit mass is " + str(self.submassr) + " +/- " \
-                  + str(round(self.stdevmass,2)) + "\n with charge states" + str(self.chargestatesr)
-        self.plot2.plotrefreshtop(self.ftx, self.ABFT, "FFT", "Frequency", "Amplitude",label=newtext, color='k', config=self.config)
-        self.plot2.plotadddot(np.array(self.newcalcX), np.array(self.newcalcY),"g","o")
-        self.plot2.addtext(newtext,(max(self.ftx)/2),max(self.ABFT),vlines=False)
+                  + str(round(self.stdevmass, 2)) + "\n with charge states" + str(self.chargestatesr)
+        self.plot2.plotrefreshtop(self.ftx, self.ABFT, "FFT", "Frequency", "Amplitude", label=newtext, color='k',
+                                  config=self.config)
+        self.plot2.plotadddot(np.array(self.newcalcX), np.array(self.newcalcY), "g", "o")
+        self.plot2.addtext(newtext, (max(self.ftx) / 2), max(self.ABFT), vlines=False)
         self.plot2.repaint()
 
+        ############################### things you may need!!!!! #############################################
 
-
+        print(self.chargestates)  # This is a list with the calculated charge states
+        print(self.chargestatesr)  # This is the same list as above, only with the numbers rounded
+        print(self.submass)  # This is the calculated subunit mass
 
         ############################### things you may need!!!!! #############################################
 
-        print(self.chargestates)# This is a list with the calculated charge states
-        print(self.chargestatesr)# This is the same list as above, only with the numbers rounded
-        print(self.submass)# This is the calculated subunit mass
+        try:
+            self.config.molig = self.submass  # Set the parameter for the repeating unit
 
-        ############################### things you may need!!!!! #############################################
+            # Setting the charge state upper and lower bounds
+            # I added in some quality controls on charges to prevent downstream errors if things go weird
+            # I also added a buffer of +/- 2 charges. UniDec likes to have some empty charge states at the edges sometimes.
+            chargeupperbound = int(np.amax(self.chargestatesr) + 2)
+            chargelowerbound = int(np.amin(self.chargestatesr) - 2)
+            print(chargelowerbound, chargeupperbound)
+            if chargeupperbound < 1000:
+                self.config.endz = chargeupperbound
+            if chargelowerbound > 0:
+                self.config.startz = chargelowerbound
+            else:
+                self.config.startz = 1
+            # Update the main GUI
+            self.parent.pres.import_config()  # Note self.parent.pres is the top class for the main GUniDec.py
+        except Exception as e:
+            print(e)
 
         self.on_envelope_fun()
 
-    def on_envelope_fun(self,e=None):
+    def on_envelope_fun(self, e=None):
         """
         This function will inverse Fourier transform specific peaks in
         the Fourier domain.  It works by using the charge states and
@@ -287,17 +298,19 @@ class iFAMS_Window(wx.Frame):
         :return:
         """
 
-        self.ABIFT = iFAMSfun.envelope_calc(self.chargestatesr,self.expandedspan,self.submass,self.ftx,self.ftspacing,
-                                            self.FT,self.ydata)
+        self.ABIFT = iFAMSfun.envelope_calc(self.chargestatesr, self.expandedspan, self.submass, self.ftx,
+                                            self.ftspacing,
+                                            self.FT, self.ydata)
         self.plot1.plotrefreshtop(self.xdata, self.ydata, "Data", "m/z (Th)",
-                                  "Intensity",label= "mass spectrum", color="k", config=self.config)
-        for i in range(0,len(self.chargestatesr)):
-            self.plot1.plotadd(self.xnew, self.ABIFT[i][0:int(len(self.xnew))], self.colors[i],newlabel=str(self.chargestatesr[i]))
+                                  "Intensity", label="mass spectrum", color="k", config=self.config)
+        for i in range(0, len(self.chargestatesr)):
+            self.plot1.plotadd(self.xnew, self.ABIFT[i][0:int(len(self.xnew))], self.colors[i],
+                               newlabel=str(self.chargestatesr[i]))
             self.plot1.repaint()
         self.plot1.add_legend(anchor=(1, 1))
         self.zero_charge()
 
-    def zero_charge(self,e=None):
+    def zero_charge(self, e=None):
         """
         This will calculate a zero charge spectrum based on the charge states
         and envelope functions from the previous python function.
@@ -305,12 +318,13 @@ class iFAMS_Window(wx.Frame):
         :return:
         """
         self.xrange, self.yfinal, self.yrangespec = iFAMSfun.zerocharge(self.ABIFT, self.xnew, self.chargestatesr)
-        self.plot3.plotrefreshtop(self.xrange,self.yfinal, "Zero-Charge", "mass (Da)",
+        self.plot3.plotrefreshtop(self.xrange, self.yfinal, "Zero-Charge", "mass (Da)",
                                   "Intensity", "zero charge", color="k", config=self.config)
-        for i in range(0,len(self.yrangespec)):
-            self.plot3.plotadd(self.xrange,self.yrangespec[i],self.colors[i],newlabel=str(self.chargestatesr[i]))
+        for i in range(0, len(self.yrangespec)):
+            self.plot3.plotadd(self.xrange, self.yrangespec[i], self.colors[i], newlabel=str(self.chargestatesr[i]))
             self.plot3.repaint()
-        self.plot3.add_legend(anchor=(1,1))
+        self.plot3.add_legend(anchor=(1, 1))
+
     def on_fourier_fil(self, e=None):
 
         """
@@ -333,29 +347,38 @@ class iFAMS_Window(wx.Frame):
         zeropointlabel = "zero frequency data"
         Fourierfilterlab = "Fourier filtered data"
         baselinelabel = "subtracted zero freq data"
-        self.reconstspec, self.reconstbaseline = iFAMSfun.FFTFilter(self.expandedspan,self.submass,ZFreqData,self.ftx,
-                                                                  self.ftspacing,self.FT,self.chargestatesr,OTnum)
-        self.plot4.plotrefreshtop(self.xdata,self.ydata,"Fourier Filter", "m/z (Th)",
+        self.reconstspec, self.reconstbaseline = iFAMSfun.FFTFilter(self.expandedspan, self.submass, ZFreqData,
+                                                                    self.ftx,
+                                                                    self.ftspacing, self.FT, self.chargestatesr, OTnum)
+        self.plot4.plotrefreshtop(self.xdata, self.ydata, "Fourier Filter", "m/z (Th)",
                                   "Intensity", "", color="k", config=self.config)
-        self.plot4.plotadd(self.xnew,self.reconstspec[0:int(len(self.xnew))],'r',newlabel=Fourierfilterlab)
-        self.plot4.plotadd(self.xnew,self.reconstbaseline[0:int(len(self.xnew))],'g',newlabel=zeropointlabel)
-        self.plot4.plotadd(self.xnew,self.ynew-self.reconstbaseline[0:int(len(self.xnew))],'b',newlabel=baselinelabel)
-        self.plot4.add_legend(anchor=(1,1))
+        self.plot4.plotadd(self.xnew, self.reconstspec[0:int(len(self.xnew))], 'r', newlabel=Fourierfilterlab)
+        self.plot4.plotadd(self.xnew, self.reconstbaseline[0:int(len(self.xnew))], 'g', newlabel=zeropointlabel)
+        self.plot4.plotadd(self.xnew, self.ynew - self.reconstbaseline[0:int(len(self.xnew))], 'b',
+                           newlabel=baselinelabel)
+        self.plot4.add_legend(anchor=(1, 1))
         self.plot4.repaint()
-
-
 
         ############################### things you may need!!!!! #############################################
         """ currently have the x and y part as separate lists for the fourier filtered spectrum
          Wouldn't be too hard to make this one list if you prefer"""
         self.filtspecY = self.reconstspec[0:int(len(self.xnew))]
-        print(len(self.xnew)) # x data for the filtered spectrum
-        print(len(self.filtspecY)) # y data for the filtered spectrum
+        print(len(self.xnew))  # x data for the filtered spectrum
+        print(len(self.filtspecY))  # y data for the filtered spectrum
         ############################### things you may need!!!!! #############################################
 
+        # Hacking in the code to process this into data UniDec can use.
+        # Mostly, the data prep is making sure there are no negative values.
+        try:
+            print(len(self.parent.pres.eng.data.data2))
+            self.parent.pres.eng.data.data2 = ud.dataprep(np.transpose([self.xnew, self.filtspecY]), self.config)
+            ud.dataexport(self.parent.pres.eng.data.data2, self.config.infname)
+            self.config.procflag = 1
+            self.parent.pres.makeplot1()
+        except Exception as e:
+            print(e)
 
-
-    def on_harm_average(self,e=None):
+    def on_harm_average(self, e=None):
         """
         This function will calculate a "Harmonic Average" for the envelope functions.
         This means that iFAMS will calculate multiple envelope functions for each charge
@@ -369,30 +392,33 @@ class iFAMS_Window(wx.Frame):
         self.plot1.plotrefreshtop(self.xdata, self.ydata, "Data", "m/z (Th)",
                                   "Intensity", "", color="k", config=self.config)
         self.chargestateints = [int(self.chargestatesr[i]) for i in range(0, len(self.chargestatesr))]
-        ov =  int(self.harmavg.GetLineText(lineNo=0))
-        self.ABIFT = iFAMSfun.AverageHarmFun(self.chargestatesr, self.expandedspan,self.submass,self.ftx,self.ftspacing,
-                                             self.FT, self.paddedxnew,self.xnew, self.ynew,self.ydata,ov)
-        for i in range(0,len(self.chargestatesr)):
+        ov = int(self.harmavg.GetLineText(lineNo=0))
+        self.ABIFT = iFAMSfun.AverageHarmFun(self.chargestatesr, self.expandedspan, self.submass, self.ftx,
+                                             self.ftspacing,
+                                             self.FT, self.paddedxnew, self.xnew, self.ynew, self.ydata, ov)
+        for i in range(0, len(self.chargestatesr)):
             self.plot1.plotadd(self.xnew, self.ABIFT[i][0:int(len(self.xnew))], self.colors[i])
             self.plot1.repaint()
         self.zero_charge()
 
     def onChecked(self, e=None):
 
-        if self.realdatasel.GetValue():#here you check if it is true or not
-            self.ABIFT = iFAMSfun.realdata(self.chargestatesr,self.expandedspan,self.submass,self.ftx,self.ftspacing,
-                                                self.FT,self.ydata)
+        if self.realdatasel.GetValue():  # here you check if it is true or not
+            self.ABIFT = iFAMSfun.realdata(self.chargestatesr, self.expandedspan, self.submass, self.ftx,
+                                           self.ftspacing,
+                                           self.FT, self.ydata)
             self.plot1.plotrefreshtop(self.xdata, self.ydata, "Data", "m/z (Th)",
                                       "Intensity", "mass spectrum", color="k", config=self.config)
-            for i in range(0,len(self.chargestatesr)):
+            for i in range(0, len(self.chargestatesr)):
                 self.plot1.plotadd(self.xnew, self.ABIFT[i][0:int(len(self.xnew))],
-                                   self.colors[i],newlabel=str(self.chargestatesr[i]))
+                                   self.colors[i], newlabel=str(self.chargestatesr[i]))
                 self.plot1.repaint()
-            self.plot1.add_legend(anchor=(1,1))
+            self.plot1.add_legend(anchor=(1, 1))
             self.zero_charge()
-        else: self.on_envelope_fun()
+        else:
+            self.on_envelope_fun()
 
-    def on_man_calc(self,e=None):
+    def on_man_calc(self, e=None):
         """
         This function allows the user to manually put in the charge states
         and subunit mass, in case the maxima finder has trouble picking
@@ -402,12 +428,9 @@ class iFAMS_Window(wx.Frame):
         lowcharge = int(self.lowcharge.GetLineText(lineNo=0))
         highcharge = int(self.highcharge.GetLineText(lineNo=0))
         self.submass = float(self.mansub.GetLineText(lineNo=0))
-        self.chargestatesr = np.arange(lowcharge,highcharge+1)
-        self.refmaxtab = iFAMSfun.inputmax(self.chargestatesr,self.submass,self.ABFT,self.ftx)
+        self.chargestatesr = np.arange(lowcharge, highcharge + 1)
+        self.refmaxtab = iFAMSfun.inputmax(self.chargestatesr, self.submass, self.ABFT, self.ftx)
         self.on_SubAndCharCalc()
-
-
-
 
     def on_save_fig(self, e):
         """
@@ -458,7 +481,6 @@ class iFAMS_Window(wx.Frame):
 
 # Main App Execution
 if __name__ == "__main__":
-
     app = wx.App(False)
     frame = iFAMS_Window(None)
     app.MainLoop()

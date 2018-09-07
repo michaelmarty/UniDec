@@ -249,6 +249,10 @@ class main_menu(wx.Menu):
                                                        "Mark matched monomers and dimers automatically")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_autoformat, self.autoformat)
 
+        self.maxcharge = self.experimentalmenu.Append(wx.ID_ANY, "Label Max Charge States",
+                                                       "Labels the maximum charge state in each distribution")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_label_max_charge_states, self.maxcharge)
+
         self.experimentalmenu.AppendSeparator()
         self.menuifams = self.experimentalmenu.Append(wx.ID_ANY, "iFAMS")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_iFAMS, self.menuifams)

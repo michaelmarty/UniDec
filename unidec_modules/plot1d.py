@@ -156,7 +156,10 @@ class Plot1d(PlottingWindow):
         if len(self.text) > 0:
             for i in range(0, len(self.text)):
                 self.text[i].remove()
-                self.lines[i].remove()
+                try:
+                    self.lines[i].remove()
+                except:
+                    print(self.text[i])
         self.text = []
         self.lines = []
         self.repaint()
