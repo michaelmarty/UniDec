@@ -192,6 +192,12 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.3.0.0
+
+**Updated everything to Python 3.6.**
+
+Improvements to Mass Defect window, including new extractor.
+
 v.2.7.3
 
 Added experimental features for charge state smoothing when Charge or Mass Smooth Width is greater than 1. 

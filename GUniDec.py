@@ -988,7 +988,12 @@ class UniDecApp(UniDecPres):
         if dirs is not None:
             for d in dirs:
                 if clip:
-                    d = 'C:\\' + d[15:]
+                    if "(C:)\\" in d:
+                        d = "C:\\" + d.split("(C:)\\")[1]
+                    elif "C:\\" in d:
+                        d = "C:\\" + d.split("C:\\")[1]
+                    else:
+                        d = 'C:\\' + d[15:]
                 self.eng.raw_process(d, False)
 
         print("Batch Converted")

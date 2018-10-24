@@ -99,7 +99,7 @@ class TreeCtrlPanel(wx.Panel):
                 des_path = os.path.join(path, '_HEADER.TXT')
                 if os.path.isfile(des_path):
                     # get description from header
-                    f = open(des_path, 'r', encoding="utf-8")
+                    f = open(des_path, 'r')#, encoding="utf-8")
                     lines = f.readlines()
                     f.close()
                     for line in lines:
@@ -135,6 +135,7 @@ class TreeCtrlPanel(wx.Panel):
     def on_selected_changed(self, event):
         self.item = event.GetItem()
         if self.item:
+            self.raw_file_info(self.tree.GetItemData(self.item))
             try:
                 self.raw_file_info(self.tree.GetItemData(self.item))
             except Exception as e:

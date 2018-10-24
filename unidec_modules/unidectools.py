@@ -80,10 +80,11 @@ except (OSError, NameError):
 
 def smartdecode(string):
     try:
-        string=string.decode()
+        string = string.decode()
     except:
         pass
     return string
+
 
 def match_files(directory, string):
     files = []
@@ -461,6 +462,33 @@ def data_extract_grid(data, xarray, extract_method=1, window=0):
             x = xarray[j, k]
             igrid[j, k] = data_extract(data, x, extract_method=extract_method, window=window)
     return igrid
+
+
+def normalize_extracts(grid, norm_method=0):
+    xlen, ylen = grid.shape
+    xarray = range(0, xlen)
+    yarray = range(0, ylen)
+    # Max
+    if norm_method == 1:
+        for j in yarray:
+            grid[:, j] /= np.amax(grid[:, j])
+
+    # Sum
+    if norm_method == 2:
+        for j in yarray:
+            grid[:, j] /= np.sum(grid[:, j])
+
+    # Peak Max
+    if norm_method == 3:
+        for j in xarray:
+            grid[j] /= np.amax(grid[j])
+
+    # Peak Sum
+    if norm_method == 4:
+        for j in xarray:
+            grid[j] /= np.sum(grid[j])
+
+    return grid
 
 
 def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmode=1, xaxistype=1):
@@ -1209,11 +1237,14 @@ def dataprep(datatop, config):
     # data2=data2[data2[:,1]>0]
 
     # Scale Adjustment
-    if config.intscale is "Square Root":
+    print(config.intscale, config.intscale == "Square Root")
+    if config.intscale == "Square Root":
         data2[:, 1] = np.sqrt(data2[:, 1])
+        print("Square Root Scale")
     elif config.intscale is "Logarithmic":
         data2[:, 1] = fake_log(data2[:, 1])
         data2[:, 1] -= np.amin(data2[:, 1])
+        print("Log Scale")
 
     if linflag == 2:
         try:

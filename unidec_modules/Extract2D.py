@@ -151,18 +151,18 @@ class Extract2DPlot(wx.Frame):
             totalbutton = wx.Button(panel, label="Total")
         else:
             totalbutton = wx.Button(panel, label="Replot")
-        wapbutton = wx.Button(panel, label="WAP")
+        #wapbutton = wx.Button(panel, label="WAP")
         if self.dlen > 1:
             controlsizer2.Add(backbutton, 0, wx.EXPAND)
             controlsizer2.Add(nextbutton, 0, wx.EXPAND)
         controlsizer2.Add(totalbutton, 0, wx.EXPAND)
-        if self.dlen > 1:
-            controlsizer2.Add(wapbutton, 0, wx.EXPAND)
+        #if self.dlen > 1:
+            #controlsizer2.Add(wapbutton, 0, wx.EXPAND)
 
         self.Bind(wx.EVT_BUTTON, self.on_back, backbutton)
         self.Bind(wx.EVT_BUTTON, self.on_next, nextbutton)
         self.Bind(wx.EVT_BUTTON, self.on_total, totalbutton)
-        self.Bind(wx.EVT_BUTTON, self.on_wap, wapbutton)
+        #self.Bind(wx.EVT_BUTTON, self.on_wap, wapbutton)
 
         sizer.Add(controlsizer, 0, wx.EXPAND)
         sizer.Add(controlsizer1, 0, wx.EXPAND)
@@ -404,7 +404,7 @@ class Extract2DPlot(wx.Frame):
             # print name2
 
     def on_fit(self, e):
-        peaks = ud.peakdetect(self.data1d, window=5)
+        peaks = ud.peakdetect(self.data1d, window=2)
         print("Peaks:", peaks[:, 0])
         peaks = np.concatenate((peaks, [[0, np.amin(self.data1d[:, 1])]]))
         fitdat, fits = MassFitter(self.data1d, peaks, 3, "microguess").perform_fit()

@@ -1,6 +1,7 @@
 import warnings
 warnings.simplefilter(action="ignore",category=FutureWarning)
 
+
 import wx
 from unidec_modules.unidec_presbase import UniDecPres
 from unidec_modules.unidec_enginebase import UniDecEngine

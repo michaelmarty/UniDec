@@ -18,7 +18,7 @@ Module for window defining the oligomers, the expected masses, and for matching 
 
 
 class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
-    def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+    def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0, coltitle="Mass (Da)"):
         """
         Create the mass list ctrl with one column.
         :param parent: Passed to wx.ListCtrl
@@ -31,7 +31,7 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.TextEditMixin.__init__(self)
-        self.InsertColumn(0, "Mass (Da)")
+        self.InsertColumn(0, coltitle)
         self.SetColumnWidth(0, width=190)  # , wx.LIST_AUTOSIZE)
 
         self.popupID1 = wx.NewId()
@@ -103,7 +103,7 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
 
 
 class MassListCtrlPanel(wx.Panel):
-    def __init__(self, parent):
+    def __init__(self, parent, columntitle="Mass (Da)", size=(210, 380)):
         """
         ListCtrlPanel for the Mass list
         :param parent: Parent panel or window
@@ -111,7 +111,7 @@ class MassListCtrlPanel(wx.Panel):
         """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self.list = MassListCrtl(self, wx.NewId(), size=(210, 380), style=wx.LC_REPORT)
+        self.list = MassListCrtl(self, wx.NewId(), coltitle=columntitle, size=size, style=wx.LC_REPORT)
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
@@ -418,6 +418,7 @@ class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
         :param data1: The first column, the measured mass
         :param data2: The second column, the simulated mass
         :param data3: The third column, the error between measured and simulated.
+
         :param data4: The fourth column, the match name.
         :return: None
         """
@@ -683,7 +684,7 @@ class MassSelection(wx.Dialog):
             self.load_common_masses(self.config.masstablefile)
         except:
             print("Unable to load common masses")
-        self.load_common_masses(self.config.masstablefile)
+        # self.load_common_masses(self.config.masstablefile)
         self.CenterOnParent()
 
     def on_common_to_oligo(self, e):

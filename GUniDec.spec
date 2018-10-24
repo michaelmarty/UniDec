@@ -98,11 +98,12 @@ elif system == "Linux":
 
 a.datas += [('cacert.pem', os.path.join('unidec_bin', 'cacert.pem'), 'DATA')]
 a.datas += [('Images/logo.ico', 'logo.ico', 'DATA')]
+a.datas += [('metaunidec/logo.ico', 'logo.ico', 'DATA')]
 a.datas += [('logo.ico', 'logo.ico', 'DATA')]
 a.datas += [('mass_table.csv', 'unidec_bin\\mass_table.csv', 'DATA')]
-a.datas += [('Images/allButton.png', 'metaunidec\\images\\allButton.png', 'DATA')]
-a.datas += [('Images/peakRightClick.png', 'metaunidec\\images\\peakRightClick.png', 'DATA')]
-a.datas += [('Images/rightClick.png', 'metaunidec\\images\\rightClick.png', 'DATA')]
+a.datas += [('metaunidec/images/allButton.png', 'metaunidec\\images\\allButton.png', 'DATA')]
+a.datas += [('metaunidec/images/peakRightClick.png', 'metaunidec\\images\\peakRightClick.png', 'DATA')]
+a.datas += [('metaunidec/images/rightClick.png', 'metaunidec\\images\\rightClick.png', 'DATA')]
 
 
 a.datas.extend(dir_files(os.path.join(os.path.dirname(pymzml.__file__),

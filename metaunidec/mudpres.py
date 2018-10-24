@@ -1233,6 +1233,7 @@ class UniDecApp(UniDecPres):
             self.eng.batch_extract(paths)
             self.view.SetStatusText("Batch Extract Done", number=5)
 
+    '''
     def on_batch_cre(self, e=None):
         """
         Manual Test
@@ -1249,6 +1250,7 @@ class UniDecApp(UniDecPres):
             self.view.SetStatusText("Batch Extracting...", number=5)
             self.eng.batch_extract(paths)
             self.view.SetStatusText("Batch Extract Done", number=5)
+    '''
 
     def on_batch_cre(self, e=None):
         """
@@ -1285,7 +1287,7 @@ class UniDecApp(UniDecPres):
         self.export_config()
         self.eng.redo()
         self.import_config()
-        # print "Redo"
+        # print("Redo")
 
     def remake_mainwindow(self, tabbed=None):
         """
@@ -1434,7 +1436,6 @@ class UniDecApp(UniDecPres):
 # TODO: Better tuning and control of autobaseline
 
 # SCOTT
-# TODO: UltraMeta Extract Specific Peaks
 # TODO: Better preset manager, potentially with external preset folder
 
 # Serious work

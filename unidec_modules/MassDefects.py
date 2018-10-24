@@ -4,7 +4,7 @@ import numpy as np
 import wx
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
-from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows
+from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows, MassDefectExtractor
 import unidec_modules.unidectools as ud
 from unidec_modules.MassFitter import MassFitter
 import matplotlib.cm as cm
@@ -51,6 +51,7 @@ class MassDefectWindow(wx.Frame):
         self.config.publicationmode = 0
         self.pos = -1
         self.yvals = yvals
+
         self.ylab = "Normalized Mass Defect"
         self.nbins = 50
         self.transformmode = 1
@@ -58,6 +59,9 @@ class MassDefectWindow(wx.Frame):
         self.xtype = 1
         self.factor = 1
         self.xlab = ""
+        self.outfname = os.path.splitext(self.config.filename)[0]
+        if self.outfname is not "":
+            self.outfname += "_"
 
         try:
             self.datalist = [data_list[0]]
@@ -67,15 +71,29 @@ class MassDefectWindow(wx.Frame):
         for i in range(1, len(data_list)):
             self.datalist.append(ud.mergedata(data_list[0], data_list[i]))
         self.datalist = np.array(self.datalist)
+
+        if self.yvals is not None:
+            try:
+                self.yvals = np.array(self.yvals, dtype="float")
+            except:
+                self.yvals = np.arange(0, len(self.datalist))
+
         self.datasum = np.transpose([self.datalist[0, :, 0], np.sum(self.datalist[:, :, 1], axis=0)])
         print("Data list shape:", self.datalist.shape)
 
         # Make the menu
         filemenu = wx.Menu()
+        if self.datalist.shape[0] > 1:
+            extractwindow = filemenu.Append(wx.ID_ANY, "Extract Mass Defect Values",
+                                            "Open Window to Extract Mass Defect Values")
+            self.Bind(wx.EVT_MENU, self.on_extract_window, extractwindow)
+            filemenu.AppendSeparator()
+
         menu_save_fig_png = filemenu.Append(wx.ID_ANY, "Save Figures as PNG",
                                             "Save all figures as PNG in central directory")
         menu_save_fig_pdf = filemenu.Append(wx.ID_ANY, "Save Figures as PDF",
                                             "Save all figures as PDF in central directory")
+
         self.Bind(wx.EVT_MENU, self.on_save_fig, menu_save_fig_png)
         self.Bind(wx.EVT_MENU, self.on_save_fig_pdf, menu_save_fig_pdf)
 
@@ -247,13 +265,22 @@ class MassDefectWindow(wx.Frame):
         self.plot5.repaint()
 
         dat3 = np.array(dat3)
+        self.dat3 = dat3
         if self.yvals is None:
             yvals = np.arange(0, len(self.datalist))
+            self.yvals = yvals
         else:
             yvals = self.yvals
 
         m1grid, m2grid = np.meshgrid(self.data1d[:, 0], yvals, indexing='ij')
         data2 = np.transpose([np.ravel(m1grid), np.ravel(m2grid), np.ravel(dat3.transpose())])
+        try:
+            save_path2d = os.path.join(self.directory, self.outfname + "Mass_Defect_Grid.txt")
+            np.savetxt(save_path2d, dat3)
+            print('Saved: ', save_path2d)
+        except Exception as e:
+            print("Failed Data Export 6", e)
+
         try:
             self.plot6.contourplot(data2, self.config, xlab="Mass Defect", ylab="Individual Spectra", title="",
                                    normflag=1)
@@ -276,10 +303,10 @@ class MassDefectWindow(wx.Frame):
                                                                           transformmode=self.transformmode,
                                                                           xaxistype=self.xtype)
         if self.yvals is not None:
-            title = str(self.yvals[self.pos])
+            title = self.outfname + str(self.yvals[self.pos])
             spacer = "_"
         else:
-            title = ""
+            title = self.outfname
             spacer = ""
         try:
             save_path2d = os.path.join(self.directory, title + spacer + "2D_Mass_Defects.txt")
@@ -346,9 +373,9 @@ class MassDefectWindow(wx.Frame):
         data2d = np.transpose([np.ravel(m1grid), np.ravel(m2grid), np.ravel(sumgrid) / np.amax(sumgrid)])
         self.data1d = np.transpose([np.unique(m2grid), np.sum(sumgrid, axis=0)])
         # Save Results
-        save_path2d = os.path.join(self.directory, "Total_2D_Mass_Defects.txt")
+        save_path2d = os.path.join(self.directory, self.outfname + "Total_2D_Mass_Defects.txt")
         np.savetxt(save_path2d, data2d)
-        save_path1d = os.path.join(self.directory, "Total_1D_Mass_Defects.txt")
+        save_path1d = os.path.join(self.directory, self.outfname + "Total_1D_Mass_Defects.txt")
         np.savetxt(save_path1d, self.data1d)
         print('Saved: ', save_path2d, save_path1d)
         # Plots
@@ -436,35 +463,41 @@ class MassDefectWindow(wx.Frame):
         save_path = os.path.join(self.directory, "Peaks_Mass_Defects.txt")
         np.savetxt(save_path, np.transpose([xvals, yvals]))
 
+    def on_extract_window(self, e=None):
+        print(self.yvals)
+        self.config.kendrickmass = self.m0
+        frame = MassDefectExtractor.MassDefectExtractorWindow(self, self.dat3, self.data1d[:, 0], self.yvals,
+                                                              config=self.config)
+
     def on_save_fig(self, e):
         """
         Saves the figures in self.directory as PNGs.
         :param e: Unused event
         :return: None
         """
-        name1 = os.path.join(self.directory, "MassDefectFigure1.png")
+        name1 = os.path.join(self.directory, self.outfname + "MassDefectFigure1.png")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)
             # print name1
-        name2 = os.path.join(self.directory, "MassDefectFigure2.png")
+        name2 = os.path.join(self.directory, self.outfname + "MassDefectFigure2.png")
         if self.plot2.flag:
             self.plot2.on_save_fig(e, name2)
             # print name2
-        name1 = os.path.join(self.directory, "MassDefectFigure3.png")
+        name1 = os.path.join(self.directory, self.outfname + "MassDefectFigure3.png")
         if self.plot3.flag:
             self.plot3.on_save_fig(e, name1)
             # print name1
-        name2 = os.path.join(self.directory, "MassDefectFigure4.png")
+        name2 = os.path.join(self.directory, self.outfname + "MassDefectFigure4.png")
         if self.plot4.flag:
             self.plot4.on_save_fig(e, name2)
             # print name2
 
         try:
-            name1 = os.path.join(self.directory, "MassDefectFigure5.png")
+            name1 = os.path.join(self.directory, self.outfname + "MassDefectFigure5.png")
             if self.plot5.flag:
                 self.plot5.on_save_fig(e, name1)
                 # print name1
-            name2 = os.path.join(self.directory, "MassDefectFigure6.png")
+            name2 = os.path.join(self.directory, self.outfname + "MassDefectFigure6.png")
             if self.plot6.flag:
                 self.plot6.on_save_fig(e, name2)
                 # print name2
@@ -477,29 +510,29 @@ class MassDefectWindow(wx.Frame):
         :param e: Unused event
         :return: None
         """
-        name1 = os.path.join(self.directory, "MassDefectFigure1.pdf")
+        name1 = os.path.join(self.directory, self.outfname + "MassDefectFigure1.pdf")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)
             # print name1
-        name2 = os.path.join(self.directory, "MassDefectFigure2.pdf")
+        name2 = os.path.join(self.directory, self.outfname + "MassDefectFigure2.pdf")
         if self.plot2.flag:
             self.plot2.on_save_fig(e, name2)
             # print name2
-        name1 = os.path.join(self.directory, "MassDefectFigure3.pdf")
+        name1 = os.path.join(self.directory, self.outfname + "MassDefectFigure3.pdf")
         if self.plot3.flag:
             self.plot3.on_save_fig(e, name1)
             # print name1
-        name2 = os.path.join(self.directory, "MassDefectFigure4.pdf")
+        name2 = os.path.join(self.directory, self.outfname + "MassDefectFigure4.pdf")
         if self.plot4.flag:
             self.plot4.on_save_fig(e, name2)
             # print name2
 
         try:
-            name1 = os.path.join(self.directory, "MassDefectFigure5.pdf")
+            name1 = os.path.join(self.directory, self.outfname + "MassDefectFigure5.pdf")
             if self.plot5.flag:
                 self.plot5.on_save_fig(e, name1)
                 # print name1
-            name2 = os.path.join(self.directory, "MassDefectFigure6.pdf")
+            name2 = os.path.join(self.directory, self.outfname + "MassDefectFigure6.pdf")
             if self.plot6.flag:
                 self.plot6.on_save_fig(e, name2)
                 # print name2
@@ -562,6 +595,7 @@ class MassDefectWindow(wx.Frame):
 if __name__ == "__main__":
     dir = "C:\\Python\\UniDec\\TestSpectra\\60_unidecfiles"
     file = "60_mass.txt"
+    file = "60_input.dat"
 
     path = os.path.join(dir, file)
 
@@ -573,7 +607,8 @@ if __name__ == "__main__":
     path = os.path.join(dir, file)
 
     data2 = np.loadtxt(path)
-    datalist = [data, data2]
+    # datalist = [data, data2]
+    datalist = [data]
 
     app = wx.App(False)
     frame = MassDefectWindow(None, datalist)

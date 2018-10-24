@@ -83,11 +83,13 @@ class UniDecEngine:
         self.config.config_import(self.config.defaultconfig)
 
     def write_hdf5(self):
+        self.update_history()
         self.config.write_hdf5(self.config.hdf_file)
         # self.data.write_hdf5(self.config.hdf_file)
 
-    def read_hdf5_config(self):
+    def read_hdf5(self):
         self.config.read_hdf5(self.config.hdf_file)
+        self.update_history()
         # self.data.read_hdf5(self.config.hdf_file)
 
     def update_history(self):
@@ -128,6 +130,7 @@ class UniDecEngine:
         pass
 
     def redo(self):
+        # print(self.config_count, len(self.config_history))
         if self.config_count < len(self.config_history):
             self.config_count += 1
             new = self.config_history[self.config_count - 1]

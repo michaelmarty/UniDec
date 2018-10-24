@@ -81,7 +81,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
                 ["M", self.pres.on_match, self.menu.menumatch],
                 ["W", self.pres.on_auto_peak_width, self.menu.menuAutoWidth],
                 ["Z", self.pres.on_undo, self.menu.menuundo],
-                ["Y", self.pres.on_redo, self.menu.menuredo],
+                #["Y", self.pres.on_redo, self.menu.menuredo],
                 ["K", self.pres.on_kendrick, self.menu.menukendrick]
                 ]
         self.setup_shortcuts(keys)

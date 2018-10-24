@@ -65,7 +65,7 @@ class main_menu(wx.Menu):
         else:
             self.menuSaveFigure4 = self.figmenu.Append(wx.ID_ANY, "Save Figures as .pdf",
                                                        "Save all figures to .pdf format")
-        self.filemenu.AppendSubMenu( self.figmenu, 'Save Figure Presets')
+        self.filemenu.AppendSubMenu(self.figmenu, 'Save Figure Presets')
         self.filemenu.AppendSeparator()
 
         self.menuAbout = self.filemenu.Append(wx.ID_ABOUT, "&About", " Information about this program")
@@ -201,8 +201,8 @@ class main_menu(wx.Menu):
                                                      "Go back to the previous set of parameters")
         self.menuredo = self.experimentalmenu.Append(wx.ID_ANY, "Redo Parameter Change\tCtrl+Y",
                                                      "Go to the next set of parameters")
-        self.experimentalmenu.AppendSeparator()
-        #self.Tweet = self.experimentalmenu.Append(wx.ID_ANY, "Twitter", "Twitter Extension")
+        # self.experimentalmenu.AppendSeparator()
+        # self.Tweet = self.experimentalmenu.Append(wx.ID_ANY, "Twitter", "Twitter Extension")
         if self.config.imflag == 0:
             self.experimentalmenu.AppendSeparator()
             self.menuAdditionalParameters = self.experimentalmenu.Append(wx.ID_ANY, "Additional Parameters",
@@ -233,7 +233,7 @@ class main_menu(wx.Menu):
                                                             "Apply smoothing, background subtraction, and intensity threshold to zero-charge mass spectrum")
         self.experimentalmenu.AppendSeparator()
 
-        self.menuerrors = self.experimentalmenu.Append(wx.ID_ANY, "Get Errors")
+        # self.menuerrors = self.experimentalmenu.Append(wx.ID_ANY, "Get Errors")
         self.menucal = self.experimentalmenu.Append(wx.ID_ANY, "Apply Calibration")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_calibrate, self.menucal)
         self.experimentalmenu.AppendSeparator()
@@ -241,8 +241,8 @@ class main_menu(wx.Menu):
         self.menugriddecon = self.experimentalmenu.Append(wx.ID_ANY, "Grid Deconvolution")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_grid_decon, self.menugriddecon)
 
-        self.menuhdf5 = self.experimentalmenu.Append(wx.ID_ANY, "Write HDF5")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_write_hdf5, self.menuhdf5)
+        # self.menuhdf5 = self.experimentalmenu.Append(wx.ID_ANY, "Write HDF5")
+        # self.parent.Bind(wx.EVT_MENU, self.pres.on_write_hdf5, self.menuhdf5)
 
         self.experimentalmenu.AppendSeparator()
         self.autoformat = self.experimentalmenu.Append(wx.ID_ANY, "Auto Format Monomer/Dimer",
@@ -250,12 +250,12 @@ class main_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_autoformat, self.autoformat)
 
         self.maxcharge = self.experimentalmenu.Append(wx.ID_ANY, "Label Max Charge States",
-                                                       "Labels the maximum charge state in each distribution")
+                                                      "Labels the maximum charge state in each distribution")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_label_max_charge_states, self.maxcharge)
 
         self.experimentalmenu.AppendSeparator()
-        self.menuifams = self.experimentalmenu.Append(wx.ID_ANY, "iFAMS")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_iFAMS, self.menuifams)
+        #self.menuifams = self.experimentalmenu.Append(wx.ID_ANY, "iFAMS")
+        #self.parent.Bind(wx.EVT_MENU, self.pres.on_iFAMS, self.menuifams)
 
         self.experimentalmenu.AppendSeparator()
         self.menulauncher = self.experimentalmenu.Append(wx.ID_ANY, "Launcher")
@@ -322,7 +322,7 @@ class main_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_flip_mode, self.menuflipmode)
 
         # Experimental
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_peak_errors, self.menuerrors)
+        # self.parent.Bind(wx.EVT_MENU, self.pres.on_peak_errors, self.menuerrors)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_mass_process, self.menumassprocess)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_super_batch, self.menusuperbatch)
 
@@ -333,11 +333,11 @@ class main_menu(wx.Menu):
         self.menuBar.Append(self.analysismenu, "Analysis")
         self.menuBar.Append(self.advancedmenu, "Advanced")
         self.menuBar.Append(self.experimentalmenu, "Experimental")
-        #self.Append(self.filemenu, "&File")
-        #self.Append(self.toolsmenu, "Tools")
-        #self.Append(self.analysismenu, "Analysis")
-        #self.Append(self.advancedmenu, "Advanced")
-        #self.Append(self.experimentalmenu, "Experimental")
+        # self.Append(self.filemenu, "&File")
+        # self.Append(self.toolsmenu, "Tools")
+        # self.Append(self.analysismenu, "Analysis")
+        # self.Append(self.advancedmenu, "Advanced")
+        # self.Append(self.experimentalmenu, "Experimental")
 
         pass
 

@@ -178,7 +178,7 @@ def process_data_2d(xgrid, ygrid, igrid, config):
     if config.detectoreffva != 0:
         igrid = detectoreff_2d(igrid, xgrid, config.detectoreffva)
 
-    if config.intscale is "Square Root":
+    if config.intscale == "Square Root":
         igrid = np.sqrt(igrid)
     elif config.intscale is "Logarithmic":
         igrid = ud.fake_log(igrid)

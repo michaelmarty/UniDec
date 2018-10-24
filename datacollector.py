@@ -154,6 +154,7 @@ class ListCtrlPanel(wx.Panel):
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         id_value = wx.NewId()
         self.selection = []
+        self.list_type=list_type
         sizer = wx.BoxSizer(wx.VERTICAL)
         if list_type == "X":
             self.list = XValueListCtrl(self, id_value, size=size, style=wx.LC_REPORT | wx.BORDER_NONE)
@@ -169,21 +170,24 @@ class ListCtrlPanel(wx.Panel):
 
         self.popupID1 = wx.NewId()
         self.popupID2 = wx.NewId()
-        self.popupID3 = wx.NewId()
-        self.popupID4 = wx.NewId()
+        if list_type == "Y":
+            self.popupID3 = wx.NewId()
+            self.popupID4 = wx.NewId()
 
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)
-        self.Bind(wx.EVT_MENU, self.on_popup_three, id=self.popupID3)
-        self.Bind(wx.EVT_MENU, self.on_popup_four, id=self.popupID4)
+        if list_type == "Y":
+            self.Bind(wx.EVT_MENU, self.on_popup_three, id=self.popupID3)
+            self.Bind(wx.EVT_MENU, self.on_popup_four, id=self.popupID4)
 
     def on_right_click(self, event):
         if hasattr(self, "popupID1"):
             menu = wx.Menu()
             menu.Append(self.popupID1, "Delete")
             menu.Append(self.popupID2, "Delete All")
-            menu.Append(self.popupID3, "Fill Down Variable 2")
-            menu.Append(self.popupID4, "Fill Down Charge State")
+            if self.list_type == "Y":
+                menu.Append(self.popupID3, "Fill Down Variable 2")
+                menu.Append(self.popupID4, "Fill Down Charge State")
             self.PopupMenu(menu)
             menu.Destroy()
 

@@ -183,8 +183,8 @@ class meta_menu(wx.Menu):
         # Experimental Menu
         self.menuundo = self.experimentalmenu.Append(wx.ID_ANY, "Undo Parameter Change\tCtrl+Z",
                                                      "Go back to the previous set of parameters")
-        self.menuredo = self.experimentalmenu.Append(wx.ID_ANY, "Redo Parameter Change\tCtrl+Y",
-                                                     "Go to the next set of parameters")
+        #self.menuredo = self.experimentalmenu.Append(wx.ID_ANY, "Redo Parameter Change\tCtrl+Y",
+        #                                             "Go to the next set of parameters")
         self.experimentalmenu.AppendSeparator()
         #self.analysismenu.AppendSeparator()
         self.menuDC = self.experimentalmenu.Append(wx.ID_ANY, "Data Collector and KD Fitting")
@@ -298,7 +298,7 @@ class meta_menu(wx.Menu):
 
         # Experimental
         self.parent.Bind(wx.EVT_MENU, self.pres.on_undo, self.menuundo)
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_redo, self.menuredo)
+        #self.parent.Bind(wx.EVT_MENU, self.pres.on_redo, self.menuredo)
 
         # Help
         self.parent.Bind(wx.EVT_MENU, self.pres.on_getting_started, self.getstarted)

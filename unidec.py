@@ -1146,7 +1146,7 @@ if __name__ == "__main__":
     files = ["0.txt"]  # ,"250313_AQPZ_POPC_100_imraw.txt"]
     # path=os.getcwd()
     # files=["Traptavidin_20mer+B4F_new_40Colli.txt"]
-    eng.read_hdf5_config()
+    eng.read_hdf5()
     eng.config.mzbins = 1;
     # eng.config.psfun=2
     # eng.config.peakwindow=2000.

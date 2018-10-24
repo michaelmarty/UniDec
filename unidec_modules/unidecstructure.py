@@ -23,7 +23,7 @@ class UniDecConfig(object):
         :return: UniDecConfig object
         """
         self.infname = "input.dat"
-        self.outfname = "output"
+        self.outfname = ""
         self.mfile = "mass.dat"
         self.manualfile = "man.dat"
         self.confname = "conf.dat"
@@ -51,7 +51,7 @@ class UniDecConfig(object):
         :return: None
         """
         # plotting
-        self.publicationmode = 0
+        self.publicationmode = 1
         self.discreteplot = 0
         self.cmap = u"nipy_spectral"
         self.peakcmap = u"rainbow"
@@ -565,7 +565,7 @@ class UniDecConfig(object):
         if not ud.isempty(self.manuallist):
             replace_dataset(config_group, "manuallist", data=self.manuallist)
         if not ud.isempty(self.oligomerlist):
-            replace_dataset(config_group, "oligomerlist", data=self.oligomerlist.astype(np.str))
+            replace_dataset(config_group, "oligomerlist", data=self.oligomerlist.astype(np.string_))
 
         hdf.close()
         pass
@@ -671,7 +671,7 @@ class UniDecConfig(object):
 
         self.masslist = get_dataset(config_group, "masslist")
         self.manuallist = get_dataset(config_group, "manuallist")
-        self.oligomerlist = get_dataset(config_group, "oligomerlist")
+        self.oligomerlist = get_dataset(config_group, "oligomerlist").astype(np.unicode_)
 
         hdf.close()
 

@@ -238,6 +238,7 @@ class Plot1d(PlottingWindow):
         self.subplot1.set_title(title)
         self.subplot1.spines['top'].set_visible(False)
         self.subplot1.spines['right'].set_visible(False)
+        self.flag = True
 
     # TODO make the axes work for negative and positive bars
     def barplottoperrors(self, xarr, yarr, peakval, colortab, xlabel="", ylabel="", title="", zoom="box", repaint=True,
