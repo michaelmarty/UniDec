@@ -5,10 +5,10 @@ import numpy as np
 import matplotlib.cm as cm
 from scipy.interpolate import interp1d
 from wx.lib.agw import ultimatelistctrl as ulc
-import unidectools as ud
-import plot1d
-import plot2d
-import MassFitter
+from unidec_modules import unidectools as ud
+from unidec_modules import plot1d
+from unidec_modules import plot2d
+from unidec_modules import MassFitter
 
 __author__ = 'Michael.Marty'
 
@@ -66,7 +66,7 @@ class NativeZ(wx.Dialog):
         if defaultsize[1] > displaysize[1]:
             defaultsize[1] = np.round(displaysize[1] * 0.9)
             self.figsize = (3, 2)
-        print defaultsize, displaysize
+        print(defaultsize, displaysize)
         self.SetSize(defaultsize)
 
         self.SetTitle("Native Charge Tools")
@@ -196,10 +196,10 @@ class NativeZ(wx.Dialog):
         closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
 
         # Set Range Here and plot the initial results
-        tstart = time.clock()
+        tstart = time.perf_counter()
         self.make_f_array(-50, 15)
-        tend = time.clock()
-        print "F Array Time: %.2gs" % (tend - tstart)
+        tend = time.perf_counter()
+        print("F Array Time: %.2gs" % (tend - tstart))
         if self.config.zoffs == []:
             self.get_maxima()
         else:
@@ -240,7 +240,7 @@ class NativeZ(wx.Dialog):
         self.plot1.plotrefreshtop(self.offset_totals[:, 0], self.offset_totals[:, 1], title="Native Z Offset",
                                   xlabel="Offset",
                                   ylabel="Intensity", zoom="span")
-        for i in xrange(0, len(self.zoffs)):
+        for i in range(0, len(self.zoffs)):
             self.plot1.plotadddot(self.zoffs[i].offset, self.zoffs[i].intensity,
                                   np.array(self.zoffs[i].color[:3]) / 255, self.zoffs[i].marker)
         self.plot1.repaint()
@@ -260,8 +260,8 @@ class NativeZ(wx.Dialog):
                 eshape = self.ctlfilt.GetSelection()
                 self.plot7.plot_native_z(zoff.offset, np.array(zoff.color) / 255, self.massaxis,
                                          width=zoff.extractwidth, alpha=0.5, shape=eshape)
-        except Exception, e:
-            print "Failed to plot", e
+        except Exception as e:
+            print("Failed to plot", e)
             pass
 
     def on_delete(self, event):
@@ -292,9 +292,9 @@ class NativeZ(wx.Dialog):
         guess = np.array(guess)
         mf = MassFitter.MassFitter(self.offset_totals, guess, 0, "smallguess")
         fitspec, fitres = mf.perform_fit("nonorm", "smallguess")
-        print "Output", fitres
+        print("Output", fitres)
 
-        for i in xrange(0, len(self.zoffs)):
+        for i in range(0, len(self.zoffs)):
             fit = fitres[i]
             self.zoffs[i].offset = fit[0]
             self.zoffs[i].width = fit[1]
@@ -398,7 +398,7 @@ class NativeZ(wx.Dialog):
         defaultmarkers = ['o', 'v', '^', '>', 's', 'd', '*']
 
         peaks = ud.peakdetect(self.offset_totals, window=2, threshold=0.1)
-        print peaks
+        print(peaks)
         self.zoffs = []
         for p in peaks:
             i = ud.nearest(self.offset_totals[:, 0], p[0])
@@ -421,7 +421,7 @@ class NativeZ(wx.Dialog):
         eshape = self.ctlfilt.GetSelection()
         self.massoffset = float(self.ctlmassoffset.GetValue())
 
-        tstart = time.clock()
+        tstart = time.perf_counter()
         for i, z in enumerate(self.zoffs):
             # Extract mass v. intensity values for the offsets in self.zoffs
             intensity = self.fast_extract(z.offset, z.extractwidth, eshape)
@@ -436,8 +436,8 @@ class NativeZ(wx.Dialog):
             # Write each extract out
             fileout = self.config.outfname + "_extracted_intensities" + str(i) + ".txt"
             np.savetxt(fileout, z.extract)
-        tend = time.clock()
-        print "Extraction Time: %.2gs" % (tend - tstart)
+        tend = time.perf_counter()
+        print("Extraction Time: %.2gs" % (tend - tstart))
         self.plot2.repaint()
 
         # Extract Peaks
@@ -457,7 +457,7 @@ class NativeZ(wx.Dialog):
         try:
             xvals = self.pks.masses
         except AttributeError:
-            print "No Peaks to Extract"
+            print("No Peaks to Extract")
             return None
 
         if xvals is not None:
@@ -513,7 +513,7 @@ class NativeZ(wx.Dialog):
                 self.plot6.barplottop(xvals2, sum2, [int(i) for i in xvals], peakcolors, label,
                                       "Normalized Intensity", "Extracted Total Peak Areas")
             else:
-                print "No integration provided"
+                print("No integration provided")
 
             # Save total outputs for extracted peaks
             try:
@@ -524,8 +524,8 @@ class NativeZ(wx.Dialog):
                     np.savetxt(self.config.outfname + "_extracted_areas.txt", peakextractsarea)
                     np.savetxt(self.config.outfname + "_total_extracted_areas.txt",
                                np.transpose([self.pks.masses, xvals, sum2]))
-            except Exception, e:
-                print "Error saving files", e
+            except Exception as e:
+                print("Error saving files", e)
 
     def save_figures(self, e):
         """
@@ -555,7 +555,7 @@ class NativeZ(wx.Dialog):
         name7 = self.config.outfname + extraheader + "_Figure7.pdf"
         if self.plot7.flag:
             self.plot7.on_save_fig(e, name7)
-        print "Saved to:", self.config.outfname + extraheader
+        print("Saved to:", self.config.outfname + extraheader)
 
     def on_close(self, e):
         """
@@ -678,7 +678,7 @@ class ColorList(wx.Panel):
         :param zoff: Zoffset object.
         :return:
         """
-        index = self.ultimateList.InsertStringItem(sys.maxint, str(zoff.offset))
+        index = self.ultimateList.InsertStringItem(sys.maxsize, str(zoff.offset))
         self.ultimateList.SetStringItem(index, 1, str(zoff.intensity))
         self.ultimateList.SetStringItem(index, 2, str(zoff.width))
         size = (50, 10)
@@ -706,7 +706,7 @@ class ColorList(wx.Panel):
         zoffouts = []
         # print "Count",count
         defaultmarkers = ['o', 'v', '^', '>', 's', 'd', '*']
-        for index in xrange(0, count):
+        for index in range(0, count):
             zout = Zoffset()
             zout.index = index
             # print index
@@ -738,8 +738,8 @@ class ColorList(wx.Panel):
                 self.ultimateList.DeleteItem(0)
                 count = self.ultimateList.GetItemCount()
                 num += 1
-            except Exception, e:
+            except Exception as e:
                 num += 1
-                print "Delete Failed:", e
+                print("Delete Failed:", e)
                 pass
         self.ultimateList.DeleteAllItems()

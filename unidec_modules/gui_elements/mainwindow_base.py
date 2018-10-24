@@ -54,7 +54,7 @@ class MainwindowBase(wx.Frame):
         :return: None
         """
 
-        ids = [wx.NewId() for a in keys]
+        ids = [k[2].GetId() for k in keys]
         tab = []
         for i, k in enumerate(keys):
             self.Bind(wx.EVT_MENU, k[1], id=ids[i])
@@ -83,11 +83,11 @@ class MainwindowBase(wx.Frame):
 
     def on_open_dir(self, e):
         save_dir = os.getcwd()
-        print "Opening directory:", save_dir
+        print("Opening directory:", save_dir)
         try:
             os.system(self.config.opencommand + save_dir)
-        except Exception, err:
-            print "Error opening directory", err
+        except Exception as err:
+            print("Error opening directory", err)
 
     def clear_all_plots(self, flag=0):
         """
@@ -195,8 +195,8 @@ class MainwindowBase(wx.Frame):
             dpi = dlg.dpi
             try:
                 dpi = int(dpi)
-            except Exception, e:
-                print e, dpi
+            except Exception as e:
+                print(e, dpi)
                 dpi = None
 
             path = os.path.join(directory, header)

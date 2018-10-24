@@ -22,16 +22,16 @@ class main_controls(wx.Panel):
             self.A_bmp = wx.ArtProvider.GetBitmap(wx.ART_HELP_SETTINGS, wx.ART_TOOLBAR, tsize)
             try:
                 self.ud_bmp = wx.Bitmap(wx.Image(iconfile).Rescale(tsize[0], tsize[1]))
-            except Exception, ex:
+            except Exception as ex:
                 self.ud_bmp = wx.ArtProvider.GetBitmap(wx.ART_HELP_SETTINGS, wx.ART_TOOLBAR, tsize)
-                print ex
-        except Exception, ex:
+                print(ex)
+        except Exception as ex:
             self.open_bmp = None
             self.next_bmp = None
             self.report_bmp = None
             self.A_bmp = None
             self.ud_bmp = None
-            print ex
+            print(ex)
 
         # ..........................
         #
@@ -165,7 +165,7 @@ class main_controls(wx.Panel):
         if self.config.imflag == 1:
             self.ctlpusher = wx.TextCtrl(panel1b, value="", size=size1)
             gbox1b.Add(self.ctlpusher, (0, 1))
-            gbox1b.Add(wx.StaticText(panel1b, label=u"Pusher Interval (\u03BCs)"), (0, 0),
+            gbox1b.Add(wx.StaticText(panel1b, label="Pusher Interval (\u03BCs)"), (0, 0),
                        flag=wx.ALIGN_CENTER_VERTICAL)
 
         self.ctlintthresh = wx.TextCtrl(panel1b, value="", size=size1)
@@ -184,8 +184,8 @@ class main_controls(wx.Panel):
                    flag=wx.ALIGN_CENTER_VERTICAL)
         if self.config.imflag == 0:
             self.ctlbintype = wx.Choice(panel1b, -1, size=(240, 50),
-                                        choices=["Linear m/z (Constant " + u'\N{GREEK CAPITAL LETTER DELTA}' + "m/z)",
-                                                 "Linear resolution (Constant (m/z)/(" + u'\N{GREEK CAPITAL LETTER DELTA}' + "m/z))",
+                                        choices=["Linear m/z (Constant " + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z)",
+                                                 "Linear resolution (Constant (m/z)/(" + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z))",
                                                  "Nonlinear", "Linear Interpolated", "Linear Resolution Interpolated"])
             gbox1b.Add(self.ctlbintype, (3 + self.config.imflag, 0), span=(1, 2))
 
@@ -224,7 +224,7 @@ class main_controls(wx.Panel):
 
                 self.ctltemp = wx.TextCtrl(panel1c, value='', size=size1)
                 gbox1c.Add(self.ctltemp, (3, 1), span=(1, 1))
-                gbox1c.Add(wx.StaticText(panel1c, label=u"Temperature (\u00B0C): "), (3, 0),
+                gbox1c.Add(wx.StaticText(panel1c, label="Temperature (\u00B0C): "), (3, 0),
                            flag=wx.ALIGN_CENTER_VERTICAL)
 
                 self.ctlgasmass = wx.TextCtrl(panel1c, value='', size=size1)
@@ -233,7 +233,7 @@ class main_controls(wx.Panel):
 
                 self.ctlto = wx.TextCtrl(panel1c, value='', size=size1)
                 gbox1c.Add(self.ctlto, (5, 1), span=(1, 1))
-                gbox1c.Add(wx.StaticText(panel1c, label=u"Dead Time (t\u2080 in ms): "), (5, 0),
+                gbox1c.Add(wx.StaticText(panel1c, label="Dead Time (t\u2080 in ms): "), (5, 0),
                            flag=wx.ALIGN_CENTER_VERTICAL)
 
                 self.ctldriftlength = wx.TextCtrl(panel1c, value='', size=size1)
@@ -261,7 +261,7 @@ class main_controls(wx.Panel):
                 gbox1c.Add(self.ctlgasmass, (4, 1), span=(1, 1))
                 gbox1c.Add(wx.StaticText(panel1c, label="Gas Mass (Da): "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
-                self.ctltwavecaltype = wx.Choice(panel1c, -1, choices=self.config.twavedict.values())
+                self.ctltwavecaltype = wx.Choice(panel1c, -1, choices=list(self.config.twavedict.values()))
                 gbox1c.Add(self.ctltwavecaltype, (5, 1), span=(1, 1))
                 gbox1c.Add(wx.StaticText(panel1c, label="Calibration Type: "), (5, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
@@ -302,12 +302,12 @@ class main_controls(wx.Panel):
             ccsrange.Add(self.ctlccslb)
             ccsrange.Add(wx.StaticText(panel2, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
             ccsrange.Add(self.ctlccsub)
-            ccsrange.Add(wx.StaticText(panel2, label=u" \u212B\u00B2  "), 0, wx.ALIGN_CENTER_VERTICAL)
+            ccsrange.Add(wx.StaticText(panel2, label=" \u212B\u00B2  "), 0, wx.ALIGN_CENTER_VERTICAL)
             sizercontrol2.Add(ccsrange, (2, 0), span=(1, 2))
 
             self.ctlccsbins = wx.TextCtrl(panel2, value="", size=size1)
             sizercontrol2.Add(self.ctlccsbins, (4, 1), span=(1, 2))
-            sizercontrol2.Add(wx.StaticText(panel2, label=u"Sample CCS Every (\u212B\u00B2): "), (4, 0),
+            sizercontrol2.Add(wx.StaticText(panel2, label="Sample CCS Every (\u212B\u00B2): "), (4, 0),
                               flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.ctldtsig = wx.TextCtrl(panel2, value="", size=size1)
@@ -406,7 +406,7 @@ class main_controls(wx.Panel):
             sbs2.Add(self.ctlnativeccslb, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
             sbs2.Add(wx.StaticText(panel2b, label=' to '), 0, wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
             sbs2.Add(self.ctlnativeccsub, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
-            sbs2.Add(wx.StaticText(panel2b, label=u" \u212B\u00B2 "), 0, wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
+            sbs2.Add(wx.StaticText(panel2b, label=" \u212B\u00B2 "), 0, wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
             gbox2b.Add(sbs2, (9, 0), span=(1, 2), flag=wx.EXPAND)
 
         panel2b.SetSizer(gbox2b)
@@ -467,7 +467,7 @@ class main_controls(wx.Panel):
         gbox3b.Add(self.ctldiscrete, (2, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         self.ctlpublicationmode = wx.CheckBox(panel3b, label="Publication Mode")
         gbox3b.Add(self.ctlpublicationmode, (2, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved", "Raw Results"])
+        self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved/Profile", "Raw/Centroid"])
         gbox3b.Add(self.ctlrawflag, (3, 0), span=(1, 2), flag=wx.EXPAND)
 
         gbox3b.Add(wx.StaticText(panel3b, label="Marker Threshold: "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -575,9 +575,9 @@ class main_controls(wx.Panel):
                 self.ctl2dcm.SetSelection(self.config.cmaps2.index(self.config.cmap))
                 self.ctlpeakcm.SetSelection(self.config.cmaps.index(self.config.peakcmap))
             except ValueError:
-                print "Could not find the specified color map. Try upgrading to the latest version of matplotlib."
+                print("Could not find the specified color map. Try upgrading to the latest version of matplotlib.")
                 import matplotlib
-                print "Current version:", matplotlib.__version__
+                print("Current version:", matplotlib.__version__)
                 # Revert to the defaults
                 self.ctl2dcm.SetSelection(self.config.cmaps.index("nipy_spectral"))
                 self.ctlpeakcm.SetSelection(self.config.cmaps.index("rainbow"))
@@ -605,7 +605,7 @@ class main_controls(wx.Panel):
                     self.ctltcal2.SetValue(str(self.config.tcal2))
                     self.ctledc.SetValue(str(self.config.edc))
                     self.ctlgasmass.SetValue(str(self.config.gasmass))
-                    self.ctltwavecaltype.SetSelection(self.config.twavedict.keys().index(self.config.twaveflag))
+                    self.ctltwavecaltype.SetSelection(list(self.config.twavedict.keys()).index(self.config.twaveflag))
 
             try:
                 x = float(self.config.integratelb)
@@ -624,7 +624,7 @@ class main_controls(wx.Panel):
                     else:
                         self.parent.menu.advancedmenu.Check(id=401, check=True)
                 except:
-                    print "No Menu Found"
+                    print("No Menu Found")
 
             if self.config.msig > 0:
                 self.parent.SetStatusText(
@@ -688,8 +688,8 @@ class main_controls(wx.Panel):
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
         self.config.rawflag = self.ctlrawflag.GetSelection()
 
-        self.config.cmap = self.ctl2dcm.GetStringSelection().encode('ascii')
-        self.config.peakcmap = self.ctlpeakcm.GetStringSelection().encode('ascii')
+        self.config.cmap = str(self.ctl2dcm.GetStringSelection())
+        self.config.peakcmap = str(self.ctlpeakcm.GetStringSelection())
         self.config.poolflag = self.ctlpoolflag.GetSelection()
 
         if self.config.imflag == 1:
@@ -718,7 +718,7 @@ class main_controls(wx.Panel):
                 self.config.tcal2 = ud.string_to_value(self.ctltcal2.GetValue())
                 self.config.edc = ud.string_to_value(self.ctledc.GetValue())
                 self.config.gasmass = ud.string_to_value(self.ctlgasmass.GetValue())
-                self.config.twaveflag = self.config.twavedict.keys()[self.ctltwavecaltype.GetSelection()]
+                self.config.twaveflag = list(self.config.twavedict.keys())[self.ctltwavecaltype.GetSelection()]
 
             if not self.config.mindt and not ud.isempty(self.pres.eng.data.rawdata3):
                 self.config.mindt = np.amin(self.pres.eng.data.rawdata3[:, 1])

@@ -1,6 +1,6 @@
 from matplotlib.transforms import blended_transform_factory
 
-from ZoomBox import *
+from unidec_modules.isolated_packages.ZoomBox import *
 
 class NoZoomSpan:
     """
@@ -140,7 +140,7 @@ class NoZoomSpan:
         if vmin > vmax: vmin, vmax = vmax, vmin
         span = vmax - vmin
 
-        print vmin, vmax, span
+        print(vmin, vmax, span)
         pub.sendMessage('scans_selected', min=vmin, max=vmax)
         if self.minspan is not None and span <= self.minspan:
             self.canvas.draw()

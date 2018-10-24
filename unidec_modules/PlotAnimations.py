@@ -1,10 +1,10 @@
 import numpy as np
 from matplotlib.animation import FuncAnimation
 import wx
-import plot2d
-import plot1d
+from unidec_modules import plot2d
+from unidec_modules import plot1d
 from unidec_modules import unidecstructure
-import unidectools as ud
+from unidec_modules import unidectools as ud
 from unidec_modules.isolated_packages import FileDialogs
 import os
 
@@ -41,7 +41,7 @@ class AnimationWindow(wx.Frame):
         self.pksmode = pksmode
         self.yvals = yvals
         if self.yvals is None:
-            self.yvals = range(0, len(data_list))
+            self.yvals = list(range(0, len(data_list)))
 
         self.dim = 1
         self.pos = -1
@@ -119,7 +119,7 @@ class AnimationWindow(wx.Frame):
         :param e: Unused event
         :return: None
         """
-        print "Closing"
+        print("Closing")
         try:
             self.animation._stop()
         except:
@@ -185,9 +185,9 @@ class AnimationWindow(wx.Frame):
                     self.plot.subplot1.set_ylim(ylim)
                 self.plot.add_title(title)
                 self.plot.repaint()
-        except Exception, e:
+        except Exception as e:
             self.animation._stop()
-            print e
+            print(e)
 
     def init(self):
         """
@@ -303,13 +303,13 @@ class AnimationWindow(wx.Frame):
         base, ext = os.path.splitext(path)
         #self.init()
         #self.save_fig(base,ext)
-        for i in xrange(0,len(self.datalist)):
+        for i in range(0,len(self.datalist)):
             self.on_next(None)
             self.save_fig(base, ext)
 
     def save_fig(self, base, ext):
         path=base+str(self.pos)+ext
-        print self.pos, path
+        print(self.pos, path)
         self.plot.save_figure(path)
 
 

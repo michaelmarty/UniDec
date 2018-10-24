@@ -33,7 +33,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
             colors = peakcolors
         for i in range(0, dataset.len):
             s = dataset.spectra[i]
-            index = self.InsertItem(sys.maxint, str(s.index))
+            index = self.InsertItem(dataset.len, str(s.index))
             try:
                 self.SetItem(index, 1, str(s.var1))
             except:
@@ -64,7 +64,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def add_line(self, var1="count", var2=0):
         if var1 == "count":
             var1 = self.GetItemCount()
-        index = self.InsertItem(sys.maxint, str(self.GetItemCount()))
+        index = self.InsertItem(10000, str(self.GetItemCount()))
         self.SetItem(index, 1, str(var1))
         self.SetItem(index, 2, str(var2))
         self.SetItem(index, 3, str(""))
@@ -94,7 +94,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
 class ListCtrlPanel(wx.Panel):
     def __init__(self, parent, pres, size=(200, 400)):
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
-        id_value = wx.NewId()
+        id_value = wx.ID_ANY
         self.selection = []
         self.pres = pres
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -212,7 +212,7 @@ class ListCtrlPanel(wx.Panel):
         # Change Color
         item = self.list.GetFirstSelected()
         col = self.list.GetItemBackgroundColour(item)
-        print "Color In:", col
+        print("Color In:", col)
         col = wx.Colour(int(col[0]), int(col[1]), int(col[2]), alpha=int(col.alpha))
         col2 = wx.ColourData()
         col2.SetColour(col)
@@ -221,7 +221,7 @@ class ListCtrlPanel(wx.Panel):
         if dlg.ShowModal() == wx.ID_OK:
             colout = dlg.GetColourData()
             colout = deepcopy(colout.GetColour())
-            print "Color Out", colout
+            print("Color Out", colout)
         dlg.Destroy()
         self.list.SetItemBackgroundColour(item, col=colout)
         colout = colout.Get(includeAlpha=True)

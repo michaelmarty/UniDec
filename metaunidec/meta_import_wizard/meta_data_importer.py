@@ -1,5 +1,5 @@
 import os
-import MetaTagTypes as tt
+from metaunidec.meta_import_wizard import MetaTagTypes as tt
 import metaunidec.mudeng as mudeng
 import unidec_modules.mzmlparse_auto as mzparse
 from unidec_modules.mzMLimporter import *
@@ -7,7 +7,7 @@ from unidec_modules.mzMLimporter import *
 try:
     from unidec_modules.data_reader import *
 except:
-    print "Could not import data reader: meta_data_importer"
+    print("Could not import data reader: meta_data_importer")
 
 
 def parse_file(file_path, exp_type='Time', collision=None, dir=None):
@@ -48,7 +48,7 @@ def auto_from_wizard(data, filename, mode):
         if start is None or stop is None:
             eng.data.add_file(path=path)
         else:
-            print start, stop
+            print(start, stop)
             if os.path.splitext(path)[1] == ".mzML":
                 d = mzMLimporter(path)
             else:

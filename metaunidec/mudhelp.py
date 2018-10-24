@@ -1,8 +1,13 @@
 import wx
+import os
 
 
 class HelpDlg(wx.Frame):
     def __init__(self, num):
+        pathtofile = os.path.dirname(os.path.abspath(__file__))
+        self.imagepath = os.path.join(pathtofile, "images")
+        # print(pathtofile)
+        # print(self.imagepath)
         if num == 1:
             self.get_started()
         elif num == 2:
@@ -60,7 +65,7 @@ class HelpDlg(wx.Frame):
             "Text and Waters RAW files are supported for file import. Text files must be a single m/z spectrum."
             "Waters RAW files will have all scans summed into a single m/z spectrum upon import."
             "The File>Waters Conversion Wizard tool allows specific scans to be converted into text files for importing.<p>"
-    
+
             "<p>In addition to the Import Wizard, there are several Manual File options, which will allow you to create blank HDF5"
             "(New File) and load data into it (Add File). Note, Add Data will sum all scans together, and Waters data is not supported."
             "You can select multiple files at once here."
@@ -69,31 +74,31 @@ class HelpDlg(wx.Frame):
             "<p>There are a few automated tools to parse single chromatograms directly into HDF5 files if you have all the data chromatograms"
             "with predictable scans or times. You can batch process multiple files at once."
             "Only mzML and Thermo RAW files are supported for automated chromatogram import.<p>"
-            
+
             "<p>Note: For import Thermo RAW Data, you need msfilereader (and multiplierz if not running the .exe).</p>"
-            
+
             "<h2>Loading Data</h2>"
             "<p>To open files with MetaUniDec, just drag and drop the HDF5 file into MetaUniDec, "
             "or go to File->Open File. You can also drag and drop and HDF5 file into the main window.</p>"
             "<h2>Analyzing data</h2>"
             "<table style=\"width:100%\"><tr><td>For basic data processing, deconvolution, and peak selection, simply "
             "hit the \"All\" button in the top right corner. For more rigorous analysis, see the other help guides.</td>"
-            "<td><img src=\"/images/allButton.png\" alt=\"PNG Icon\"></td></table>"
-            "<h2>Saving Figures</h2>"
-            "<p>There are 3 ways to save your figures. To save an individual plot, middle-click the plot and a dialog "
-            "window will pop up that allows you to save it. The other methods save all available plots. "
-            " File->Save Figure As will allow you to select the directory "
-            "and file name header, along with the extension and image dimensions. File->Save Figure Presets will save "
-            "your figures as .pdf/.png/.pdf thumbnails to the default location, which is the location of the original "
-            ".HDF5 file. Ex: C:/HDF5-location/UniDec_Figures_and_Files/Fig1.pdf<\p>"
-            "<h2>Importing Configs</h2>"
-            "<p>File->Load External Config will load the parameters from a previous run."
-            " This can either be a _conf.dat file from UniDec of an HDF5 file from MetaUniDec.  "
-            "Advanced->Reset Factory Default will restore all settings to the program defaults.<p>"
-            "</body></html>"
+            "<td><img src=\"" + self.imagepath + "/allButton.png\" alt=\"PNG Icon\"></td></table>"
+                                                 "<h2>Saving Figures</h2>"
+                                                 "<p>There are 3 ways to save your figures. To save an individual plot, middle-click the plot and a dialog "
+                                                 "window will pop up that allows you to save it. The other methods save all available plots. "
+                                                 " File->Save Figure As will allow you to select the directory "
+                                                 "and file name header, along with the extension and image dimensions. File->Save Figure Presets will save "
+                                                 "your figures as .pdf/.png/.pdf thumbnails to the default location, which is the location of the original "
+                                                 ".HDF5 file. Ex: C:/HDF5-location/UniDec_Figures_and_Files/Fig1.pdf<\p>"
+                                                 "<h2>Importing Configs</h2>"
+                                                 "<p>File->Load External Config will load the parameters from a previous run."
+                                                 " This can either be a _conf.dat file from UniDec of an HDF5 file from MetaUniDec.  "
+                                                 "Advanced->Reset Factory Default will restore all settings to the program defaults.<p>"
+                                                 "</body></html>"
         )
 
-    #TODO: Figure out what Make top does
+    # TODO: Figure out what Make top does
     def import_window(self):
         wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(500, 400))
         html = wx.html.HtmlWindow(self)
@@ -102,24 +107,24 @@ class HelpDlg(wx.Frame):
             "<h1>The Spectra Table</h1><p>This page will teach you how to work with spectra within MetaUniDec, "
             "in the data table on the left side.</p>"
             "<h2>Right Click Options for the Spectra Table</h2>"
-            "<img src=\"/images/rightClick.png\" alt=\"PNG Icon\">"
-            "<table style=\"width:100%\">"
-            "<tr><td>Ignore</td><td>Hides the sample on the graphs and table.</td></tr>"
-            "<tr><td>Isolate</td><td>Singles out the selected sample on the graphs and table. Hides others.</td></tr>"
-            "<tr><td>Repopulate</td><td>Brings back samples hidden by ignore/isolate to the graphs and table.</td></tr>"
-            "<tr><td>Ignore</td><td>Hides the sample on the graphs and table.</td></tr>"
-            "<tr><td>Analysis Tools</td><td>Does autocorrelation or FFT analysis on a single sample. "
-            "See Help->Menu Bar->Analysis for a description of these tools.</td></tr>"
-            "<tr><td>Change Color</td><td>Changes the color of a sample</td></tr>"
-            "<tr><td>Make Top</td><td>Makes the spectrum the primary spectrum for peak fitting.</td></tr>"
-            "<tr><td>Fill Down Variable 2</td><td>Changes all Variable 2 values to the selected sample's "
-            "Variable 2 value.</td></tr>"
-            "<tr><td>Delete</td><td>Deletes the sample. WARNING: This deletes the sample from the HDF5 file.</td></tr>"
-            "<h2>Meta Data (Variables 1 and 2)</h2>"
-            "<p>Variable 1 and 2 can be manually adjusted from the table. "
-            "File->Variables allows the variables to be renamed, imported, and exported.<p>  "
+            "<img src=\"" + self.imagepath + "/rightClick.png\" alt=\"PNG Icon\">"
+                                             "<table style=\"width:100%\">"
+                                             "<tr><td>Ignore</td><td>Hides the sample on the graphs and table.</td></tr>"
+                                             "<tr><td>Isolate</td><td>Singles out the selected sample on the graphs and table. Hides others.</td></tr>"
+                                             "<tr><td>Repopulate</td><td>Brings back samples hidden by ignore/isolate to the graphs and table.</td></tr>"
+                                             "<tr><td>Ignore</td><td>Hides the sample on the graphs and table.</td></tr>"
+                                             "<tr><td>Analysis Tools</td><td>Does autocorrelation or FFT analysis on a single sample. "
+                                             "See Help->Menu Bar->Analysis for a description of these tools.</td></tr>"
+                                             "<tr><td>Change Color</td><td>Changes the color of a sample</td></tr>"
+                                             "<tr><td>Make Top</td><td>Makes the spectrum the primary spectrum for peak fitting.</td></tr>"
+                                             "<tr><td>Fill Down Variable 2</td><td>Changes all Variable 2 values to the selected sample's "
+                                             "Variable 2 value.</td></tr>"
+                                             "<tr><td>Delete</td><td>Deletes the sample. WARNING: This deletes the sample from the HDF5 file.</td></tr>"
+                                             "<h2>Meta Data (Variables 1 and 2)</h2>"
+                                             "<p>Variable 1 and 2 can be manually adjusted from the table. "
+                                             "File->Variables allows the variables to be renamed, imported, and exported.<p>  "
 
-            "</body></html>"
+                                             "</body></html>"
         )
 
     def plot_window(self):
@@ -172,17 +177,17 @@ class HelpDlg(wx.Frame):
             "When you first load data into MetaUniDec, nothing will appear there. For data to appear in the peak "
             "window, you have to run \"All\" or \"Peak Detection/Extraction\".</p>"
             "<h2>Right Click Options</h2>"
-            "<img src=\"/images/peakRightClick.png\" alt=\"PNG Icon\">"
-            "<table style=\"width:100%\">"
-            "<tr><td>Ignore</td><td>Hides the peak on the plots and table.</td></tr>"
-            "<tr><td>Isolate</td><td>Singles out the selected peak on the plots and table. Hides others.</td></tr>"
-            "<tr><td>Repopulate</td><td>Brings back peaks hidden by Ignore/Isolate.</td></tr>"
-            "<tr><td>Label Charge States</td><td>On the MS Data plot, labels the different charge states for the "
-            "selected sample with dashed-black lines.</td></tr>"
-            "<tr><td>Display Differences</td><td>For the selected peak, gets the difference between it's mass and "
-            "all of the other peak's masses. Will display these masses on Mass Distribution plot.</td></td>"
-            "<tr><td>Color Select</td><td>Allows you to choose the color of the selected peak</td></tr></table>"
-            "</body></html>"
+            "<img src=\"" + self.imagepath + "/peakRightClick.png\" alt=\"PNG Icon\">"
+                                             "<table style=\"width:100%\">"
+                                             "<tr><td>Ignore</td><td>Hides the peak on the plots and table.</td></tr>"
+                                             "<tr><td>Isolate</td><td>Singles out the selected peak on the plots and table. Hides others.</td></tr>"
+                                             "<tr><td>Repopulate</td><td>Brings back peaks hidden by Ignore/Isolate.</td></tr>"
+                                             "<tr><td>Label Charge States</td><td>On the MS Data plot, labels the different charge states for the "
+                                             "selected sample with dashed-black lines.</td></tr>"
+                                             "<tr><td>Display Differences</td><td>For the selected peak, gets the difference between it's mass and "
+                                             "all of the other peak's masses. Will display these masses on Mass Distribution plot.</td></td>"
+                                             "<tr><td>Color Select</td><td>Allows you to choose the color of the selected peak</td></tr></table>"
+                                             "</body></html>"
         )
 
     def data_processing(self):
@@ -301,7 +306,7 @@ class HelpDlg(wx.Frame):
             "</td></tr></table></body></html>"
         )
 
-    #TODO: Finish these
+    # TODO: Finish these
 
     def auto_import_help(self):
         wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(400, 400))
@@ -428,6 +433,5 @@ class HelpDlg(wx.Frame):
             "the baseline automatically during the course of deconvolution."
             "</body></html>"
         )
-
 
         # TODO: add menu bar help stuff

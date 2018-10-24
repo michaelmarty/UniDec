@@ -21,21 +21,21 @@ class XValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         self.DeleteAllItems()
         for i in range(0, len(listctrldata)):
             try:
-                index = self.InsertItem(sys.maxint, listctrldata[i][0])
+                index = self.InsertItem(10000, listctrldata[i][0])
                 self.SetItem(index, 1, listctrldata[i][1])
                 self.SetItemData(index, i)
             except (ValueError, TypeError):
-                index = self.InsertItem(sys.maxint, listctrldata[i])
+                index = self.InsertItem(10000, listctrldata[i])
 
     def clear_list(self):
         self.DeleteAllItems()
 
-    def add_line(self, val=0, marker=u'\u25CB'):
+    def add_line(self, val=0, marker='\u25CB'):
         try:
-            index = self.InsertItem(sys.maxint, marker)
+            index = self.InsertItem(10000, marker)
             self.SetItem(index, 1, str(int(val)))
         except:
-            index = self.InsertItem(sys.maxint, str(u'\u25CB'))
+            index = self.InsertItem(10000, str('\u25CB'))
             self.SetItem(index, 1, str(0))
 
     def get_list(self):
@@ -65,7 +65,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def populate(self, listctrldata, colors=None):
         self.DeleteAllItems()
         for i in range(0, len(listctrldata)):
-            index = self.InsertItem(sys.maxint, str(listctrldata[i][0]))
+            index = self.InsertItem(i, str(listctrldata[i][0]))
             self.SetItem(index, 1, str(listctrldata[i][1]))
             self.SetItem(index, 2, str(listctrldata[i][2]))
             try:
@@ -84,7 +84,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def add_line(self, file_name="file.txt", var1=None, var2="-"):
         if var1 is None:
             var1 = "k"
-        index = self.InsertItem(sys.maxint, str(file_name))
+        index = self.InsertItem(10000, str(file_name))
         self.SetItem(index, 1, str(var1))
         self.SetItem(index, 2, str(var2))
         self.SetItem(index, 3, str(""))
@@ -116,7 +116,7 @@ class ListCtrlPanel(wx.Panel):
         elif list_type == "Y":
             self.list = YValueListCtrl(self, id_value, size=size, style=wx.LC_REPORT | wx.BORDER_NONE)
         else:
-            print "Error making ListCtrlPanel"
+            print("Error making ListCtrlPanel")
             exit()
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)
@@ -213,13 +213,13 @@ class DCDropTarget(wx.FileDropTarget):
             path = filenames[0]
             directory, fname = os.path.split(path)
             if os.path.splitext(fname)[1] == ".json":
-                print "Loading .json file:", fname
+                print("Loading .json file:", fname)
                 self.window.load(path)
                 return
         elif len(filenames) > 1:
             pass
         else:
-            print "Error in file drop", filenames
+            print("Error in file drop", filenames)
             return
         for f in filenames:
             self.window.ypanel.list.add_line(file_name=f)

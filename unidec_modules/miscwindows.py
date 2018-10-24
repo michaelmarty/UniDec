@@ -511,31 +511,31 @@ class FileNameDialog(wx.Dialog):
         dirval = self.dirbox.GetValue(0)
         if inboxval != "":
             self.config.infname = inboxval
-            print inboxval
+            print(inboxval)
         if outboxval != "":
             self.config.outfname = outboxval
-            print outboxval
+            print(outboxval)
         if confboxval != "":
             self.config.confname = confboxval
-            print confboxval
+            print(confboxval)
         if massfileval != "":
             self.config.mfile = massfileval
-            print massfileval
+            print(massfileval)
         if manualval != "":
             self.config.manualfile = manualval
-            print manualval
+            print(manualval)
         if peaksfileval != "":
             self.config.peaksfile = peaksfileval
-            print peaksfileval
+            print(peaksfileval)
         if matchfileval != "":
             self.config.matchfile = matchfileval
-            print matchfileval
+            print(matchfileval)
         if ofileval != "":
             self.config.ofile = ofileval
-            print ofileval
+            print(ofileval)
         if dirval != "":
             self.config.dirname = dirval
-            print dirval
+            print(dirval)
             os.chdir(dirval)
         self.Destroy()
         self.EndModal(0)

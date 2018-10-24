@@ -7,9 +7,9 @@ from matplotlib import rcParams
 
 from unidec_modules import plot1d, plot2d, miscwindows
 from unidec_modules.gui_elements import peaklistsort, mainwindow_base
-from gui_elements.list_ctrls import ListCtrlPanel
-from gui_elements.ud_cont_meta import main_controls
-from gui_elements.ud_menu_meta import meta_menu
+from metaunidec.gui_elements.list_ctrls import ListCtrlPanel
+from metaunidec.gui_elements.ud_cont_meta import main_controls
+from metaunidec.gui_elements.ud_menu_meta import meta_menu
 
 __author__ = 'Michael.Marty'
 
@@ -38,7 +38,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
         self.config.figsize = (5, 4)
         if tabbed is None:
             # If tabbed isn't specified, use the display size to decide what is best
-            print "Display Size ", self.displaysize
+            print("Display Size ", self.displaysize)
             self.tabbed = 0
 
             if self.displaysize[0] < 1600:
@@ -65,18 +65,24 @@ class Mainwindow(mainwindow_base.MainwindowBase):
         self.menu = meta_menu(self, self.config, self.pres)
         self.SetMenuBar(self.menu.menuBar)
 
-        keys = [["E", self.pres.on_auto], ["G", self.pres.on_paste_spectrum],
-                ["R", self.pres.on_unidec_button], ["D", self.pres.on_dataprep_button],
-                ["O", self.pres.on_open],  # ["I", self.pres.on_integrate],
-                ["P", self.pres.on_pick_peaks],  # ["K", self.pres.on_plot_peaks],
-                ["C", self.pres.on_plot_composite], ["N", self.pres.on_wizard],
+        keys = [["E", self.pres.on_auto, self.controls.autobutton],
+                ["G", self.pres.on_paste_spectrum, self.menu.menupastespectrum],
+                ["R", self.pres.on_unidec_button, self.controls.udbutton],
+                ["D", self.pres.on_dataprep_button, self.controls.dataprepbutton],
+                ["O", self.pres.on_open, self.menu.openmenu],  # ["I", self.pres.on_integrate],
+                ["P", self.pres.on_pick_peaks, self.controls.plotbutton],  # ["K", self.pres.on_plot_peaks],
+                ["C", self.pres.on_plot_composite, self.controls.compositebutton],
+                ["N", self.pres.on_wizard, self.menu.wizardmenu],
                 # ["F", self.pres.on_plot_offsets],  # ["Z", self.pres.on_charge_plot],
                 # ["L", self.pres.on_load_state], ["S", self.pres.on_save_state],
-                ["B", self.pres.on_batch_run],
-                ["Q", self.on_exit],
-                ["T", self.pres.on_mass_tools], ["M", self.pres.on_match],
-                ["W", self.pres.on_auto_peak_width],
-                ["Z", self.pres.on_undo], ["Y", self.pres.on_redo], ["K", self.pres.on_kendrick]
+                ["B", self.pres.on_batch_run, self.menu.menubatchrun],
+                ["Q", self.on_exit, self.menu.menuExit],
+                ["T", self.pres.on_mass_tools, self.menu.menuMassFile],
+                ["M", self.pres.on_match, self.menu.menumatch],
+                ["W", self.pres.on_auto_peak_width, self.menu.menuAutoWidth],
+                ["Z", self.pres.on_undo, self.menu.menuundo],
+                #["Y", self.pres.on_redo, self.menu.menuredo],
+                ["K", self.pres.on_kendrick, self.menu.menukendrick]
                 ]
         self.setup_shortcuts(keys)
 
@@ -219,7 +225,7 @@ class MyFileDropTarget(wx.FileDropTarget):
         path = filenames[0]
         directory, fname = os.path.split(path)
         if os.path.splitext(fname)[1] == ".hdf5":
-            print "Opening .hdf5 file:", fname
+            print("Opening .hdf5 file:", fname)
             self.window.pres.open_file(path)
         else:
             self.window.pres.add_files(filenames)

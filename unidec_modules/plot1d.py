@@ -156,7 +156,10 @@ class Plot1d(PlottingWindow):
         if len(self.text) > 0:
             for i in range(0, len(self.text)):
                 self.text[i].remove()
-                self.lines[i].remove()
+                try:
+                    self.lines[i].remove()
+                except:
+                    print(self.text[i])
         self.text = []
         self.lines = []
         self.repaint()
@@ -186,7 +189,7 @@ class Plot1d(PlottingWindow):
 
         ymax = 0
         xmax = 0
-        for i in xrange(0, len(xarray)):
+        for i in range(0, len(xarray)):
             if labels is not None:
                 label = "KD" + str(labels[i])
             else:
@@ -235,6 +238,7 @@ class Plot1d(PlottingWindow):
         self.subplot1.set_title(title)
         self.subplot1.spines['top'].set_visible(False)
         self.subplot1.spines['right'].set_visible(False)
+        self.flag = True
 
     # TODO make the axes work for negative and positive bars
     def barplottoperrors(self, xarr, yarr, peakval, colortab, xlabel="", ylabel="", title="", zoom="box", repaint=True,

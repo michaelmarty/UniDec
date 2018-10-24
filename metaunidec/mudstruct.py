@@ -37,7 +37,7 @@ class MetaDataSet:
             self.filename = file
         hdf = h5py.File(file)
         msdata = hdf.require_group(self.topname)
-        keys = msdata.keys()
+        keys = list(msdata.keys())
         self.indexes = []
         for k in keys:
             try:
@@ -92,7 +92,7 @@ class MetaDataSet:
             self.var2.append(s.var2)
             s.write_hdf5(self.filename)
         self.var1 = np.array(self.var1)
-        print "Variable 1:", self.var1
+        print("Variable 1:", self.var1)
         self.var2 = np.array(self.var2)
         self.len = len(self.spectra)
 
@@ -105,26 +105,26 @@ class MetaDataSet:
         grid = get_dataset(msdataset, "mass_grid")
         self.massdat = np.transpose([axis, sum])
         try:
-            num = len(grid) / len(sum)
-            grid = grid.reshape((num, len(sum))).transpose()
-            grid2 = np.transpose([axis for n in xrange(num)])
+            num = int(len(grid) / len(sum))
+            grid = grid.reshape((int(num), len(sum))).transpose()
+            grid2 = np.transpose([axis for n in range(num)])
             grid3 = [grid2, grid]
             self.massgrid = np.transpose(grid3)
         except:
-            print grid.shape, sum.shape
+            print("Mass Grid Warning:", grid.shape, sum.shape, len(grid)/len(sum))
         # MZ Space
         axis = get_dataset(msdataset, "mz_axis")
         sum = get_dataset(msdataset, "mz_sum")
         grid = get_dataset(msdataset, "mz_grid")
         self.mzdat = np.transpose([axis, sum])
         try:
-            num = len(grid) / len(sum)
-            grid = grid.reshape((num, len(sum))).transpose()
-            grid2 = np.transpose([axis for n in xrange(num)])
+            num = int(len(grid) / len(sum))
+            grid = grid.reshape((int(num), len(sum))).transpose()
+            grid2 = np.transpose([axis for n in range(num)])
             grid3 = [grid2, grid]
             self.mzgrid = np.transpose(grid3)
         except:
-            print grid.shape, sum.shape
+            print("mz grid Warning:", grid.shape, sum.shape, len(grid)/len(sum))
         hdf.close()
         return num
 
@@ -190,7 +190,7 @@ class MetaDataSet:
         for i in sorted(indexes, reverse=True):
             del self.spectra[i]
         self.export_hdf5()
-        print "Removed"
+        print("Removed")
 
     def get_spectra(self):
         spectra = []
@@ -213,17 +213,18 @@ class MetaDataSet:
         msdata = hdf.require_group(self.topname)
         if get_vnames:
             try:
-                self.v1name = msdata.attrs["v1name"]
+                self.v1name = ud.smartdecode(msdata.attrs["v1name"])
             except:
                 msdata.attrs["v1name"] = self.v1name
             try:
-                self.v2name = msdata.attrs["v2name"]
+                self.v2name = ud.smartdecode(msdata.attrs["v2name"])
             except:
                 msdata.attrs["v2name"] = self.v2name
         else:
-            msdata.attrs["v1name"] = self.v1name
-            msdata.attrs["v2name"] = self.v2name
+            msdata.attrs["v1name"] = str(self.v1name)
+            msdata.attrs["v2name"] = str(self.v2name)
         hdf.close()
+
 
         self.var1 = []
         self.var2 = []
@@ -247,7 +248,7 @@ class MetaDataSet:
             self.var2.append(s.var2)
         self.var1 = np.array(self.var1)
         self.var2 = np.array(self.var2)
-        print "Variable 1:", self.var1
+        print("Variable 1:", self.var1)
 
 
 class Spectrum:
@@ -289,7 +290,7 @@ class Spectrum:
         replace_dataset(msdata, "mass_grid", self.massgrid)
         replace_dataset(msdata, "baseline", self.baseline)
         replace_dataset(msdata, "charge_data", self.zdata)
-        for key, value in self.attrs.items():
+        for key, value in list(self.attrs.items()):
             msdata.attrs[key] = value
         hdf.close()
 
@@ -327,5 +328,5 @@ class Spectrum:
         except:
             pass
         self.baseline = get_dataset(msdata, "baseline")
-        self.attrs = dict(msdata.attrs.items())
+        self.attrs = dict(list(msdata.attrs.items()))
         hdf.close()

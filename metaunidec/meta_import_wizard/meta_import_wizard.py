@@ -3,8 +3,7 @@ import threading
 import multiprocessing
 import wx
 import numpy as np
-
-import meta_import_wizard_grid, meta_import_wizard_treectrl, meta_data_importer
+from metaunidec.meta_import_wizard import meta_import_wizard_grid, meta_import_wizard_treectrl, meta_data_importer
 from unidec_modules.isolated_packages import FileDialogs
 from import_wizard import ImportWizard as IW
 
@@ -125,7 +124,7 @@ class ImportWizard(wx.Frame):
         self.my_tree.populate_tree()
 
     def on_conversion_wizard(self, evt=None):
-        print "Launching Waters Converter Wizard"
+        print("Launching Waters Converter Wizard")
         app = wx.App(False)
         frame = IW(None)
         frame.Show()
@@ -142,7 +141,7 @@ class ImportWizard(wx.Frame):
                 exp_type = "Scans"
 
             output = meta_data_importer.parse_file(file_path, exp_type=exp_type, dir=self.exedir)
-            print output
+            print(output)
             if output is not None:
                 self.my_grid.add_dataset(output)
 
@@ -167,16 +166,16 @@ class ImportWizard(wx.Frame):
 
             type = lines[0].split(",")[1]
             if type.lower() == "scans":
-                print "Type Scans:", type
+                print("Type Scans:", type)
                 self.rb.SetSelection(1)
                 self.my_grid.EvtDriftType(1)
             else:
-                print "Type Time:", type
+                print("Type Time:", type)
                 self.rb.SetSelection(0)
                 self.my_grid.EvtDriftType(0)
 
             data = np.genfromtxt(file_path, delimiter=",", skip_header=2, dtype=np.str)
-            print "Data:", data
+            print("Data:", data)
 
             self.my_grid.load_data(data)
 

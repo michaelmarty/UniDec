@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import string
 import math
 import matplotlib.cm as cm
@@ -104,21 +105,28 @@ class Peaks:
         :param cmap: Colormap from matplotlib.cm
         :return: None
         """
+        if cmap[:2] == "b'":
+            cmap=cmap[2:-1]
+        try:
+            cmap = str(cmap, encoding="utf-8")
+        except:
+            pass
+
         self.colormap = cm.get_cmap(cmap, len(self.peaks))
         if self.colormap is None:
-            self.colormap = cm.get_cmap("rainbow", len(self.peaks))
+            self.colormap = cm.get_cmap(u"rainbow", len(self.peaks))
         self.peakcolors = self.colormap(np.arange(len(self.peaks)))
         self.markers = ['o', 'v', '^', '>', 's', 'd', '*']
-        self.textmarkers = [u'\u25CB', u'\u25BD', u'\u25B3', u'\u25B7', u'\u25A2', u'\u2662', u'\u2606']
+        self.textmarkers = ['\u25CB', '\u25BD', '\u25B3', '\u25B7', '\u25A2', '\u2662', '\u2606']
         self.marklen = len(self.markers)
-        for i in xrange(0, len(self.peaks)):
+        for i in range(0, len(self.peaks)):
             self.peaks[i].marker = self.markers[i % self.marklen]
             self.peaks[i].textmarker = self.textmarkers[i % self.marklen]
             self.peaks[i].color = self.peakcolors[i]
             if i >= 26:
-                self.peaks[i].label = string.uppercase[i % 26] + str(int(math.floor(i / 26) + 1))
+                self.peaks[i].label = string.ascii_uppercase[i % 26] + str(int(math.floor(i / 26) + 1))
             else:
-                self.peaks[i].label = string.uppercase[i % 26]
+                self.peaks[i].label = string.ascii_uppercase[i % 26]
 
     def get_mass_defects(self, kendrickmass, mode=0):
         """

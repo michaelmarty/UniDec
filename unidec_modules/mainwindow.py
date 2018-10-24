@@ -4,8 +4,8 @@ import numpy as np
 import wx
 import wx.lib.scrolledpanel as scrolled
 
-from gui_elements import ud_controls
-from gui_elements import ud_menu
+from unidec_modules.gui_elements import ud_controls
+from unidec_modules.gui_elements import ud_menu
 from unidec_modules import ColorPlot, plot3d, plot1d, plot2d, miscwindows
 from unidec_modules.gui_elements import peaklistsort
 from unidec_modules.gui_elements.mainwindow_base import MainwindowBase
@@ -32,7 +32,7 @@ class Mainwindow(MainwindowBase):
 
         if tabbed is None:
             # If tabbed isn't specified, use the display size to decide what is best
-            print "Display Size ", self.displaysize
+            print("Display Size ", self.displaysize)
             self.tabbed = 0
             if self.displaysize[0] < 1400:
                 self.tabbed = 1
@@ -57,20 +57,29 @@ class Mainwindow(MainwindowBase):
         self.SetMenuBar(self.menu.menuBar)
 
         self.setup_main_panel()
-        keys = [["E", self.pres.on_auto], ["G", self.pres.on_paste_spectrum],
-                ["R", self.pres.on_unidec_button], ["D", self.pres.on_dataprep_button],
-                ["O", self.pres.on_open], ["I", self.pres.on_integrate],
-                ["P", self.pres.on_pick_peaks], ["J", self.pres.on_plot_peaks],
-                ["C", self.pres.on_plot_composite], ["N", self.pres.on_replot],
-                ["F", self.pres.on_plot_offsets],  # ["Z", self.pres.on_charge_plot],
-                ["L", self.pres.on_load_state], ["S", self.pres.on_save_state],
-                ["B", self.pres.on_batch], ["Q", self.on_exit],
-                ["T", self.pres.on_mass_tools], ["M", self.pres.on_match],
-                ["W", self.pres.on_auto_peak_width],
-                ["Z", self.pres.on_undo], ["Y", self.pres.on_redo],
-                ["K", self.pres.on_kendrick]]
-        self.setup_shortcuts(keys)
 
+        keys = [["O", self.pres.on_open, self.menu.menuOpen],
+                ["G", self.pres.on_paste_spectrum, self.menu.menupastespectrum],
+                ["I", self.pres.on_integrate, self.menu.menuintegrate],
+                ["E", self.pres.on_auto, self.controls.autobutton],
+                ["R", self.pres.on_unidec_button, self.controls.udbutton],
+                ["D", self.pres.on_dataprep_button, self.controls.dataprepbutton],
+                ["P", self.pres.on_pick_peaks, self.controls.ppbutton],
+                ["K", self.pres.on_kendrick, self.menu.menukendrick],
+                ["C", self.pres.on_plot_composite, self.controls.compositebutton],
+                ["N", self.pres.on_replot, self.controls.replotbutton],
+                ["F", self.pres.on_plot_offsets, self.menu.menuoffset],  # ["Z", self.pres.on_charge_plot],
+                ["L", self.pres.on_load_state, self.menu.menuLoadState],
+                ["S", self.pres.on_save_state, self.menu.menuSaveState],
+                ["B", self.pres.on_batch, self.menu.menuBatch],
+                ["Q", self.on_exit, self.menu.menuExit],
+                ["T", self.pres.on_mass_tools, self.menu.menuMassFile],
+                ["M", self.pres.on_match, self.menu.menumatch],
+                ["W", self.pres.on_auto_peak_width, self.menu.menuAutoWidth],
+                ["Z", self.pres.on_undo, self.menu.menuundo],
+                ["Y", self.pres.on_redo, self.menu.menuredo]
+                ]
+        self.setup_shortcuts(keys)
         self.launch()
         pass
 
@@ -298,7 +307,7 @@ class MyFileDropTarget(wx.FileDropTarget):
             path = filenames[0]
             directory, fname = os.path.split(path)
             if os.path.splitext(fname)[1] == ".raw" and os.path.isdir(fname):
-                print "Opening .raw file:", fname
+                print("Opening .raw file:", fname)
                 self.window.pres.on_raw_open(0, path)
             else:
                 self.window.pres.on_open_file(fname, directory)
@@ -306,10 +315,10 @@ class MyFileDropTarget(wx.FileDropTarget):
         elif len(filenames) > 1:
             # Batch process the files that were dropped
             if os.path.splitext(filenames[0])[1] == ".raw" and os.path.isdir(filenames[0]):
-                print "Batch converting raw to txt"
+                print("Batch converting raw to txt")
                 self.window.pres.on_batch_raw(0, filenames, clip=False)
             else:
-                print "Running batch mode"
+                print("Running batch mode")
                 self.window.pres.on_batch(batchfiles=filenames)
         else:
-            print "Error in file drop", filenames
+            print("Error in file drop", filenames)

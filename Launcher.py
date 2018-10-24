@@ -1,6 +1,7 @@
 import warnings
 warnings.simplefilter(action="ignore",category=FutureWarning)
 
+
 import wx
 from unidec_modules.unidec_presbase import UniDecPres
 from unidec_modules.unidec_enginebase import UniDecEngine
@@ -73,42 +74,42 @@ class Lview(wx.Frame):
         self.Show(True)
 
     def button1(self, e=None):
-        print "Launching UniDec"
+        print("Launching UniDec")
         app = GUniDec.UniDecApp()
         app.start()
 
     def button2(self,e=None):
-        print "Launching Data Collector"
+        print("Launching Data Collector")
         app = wx.App(False)
         frame = datacollector.DataCollector(None, "Collect Data")
         app.MainLoop()
 
     def button3(self, e=None):
-        print "Launching Waters Converter Wizard"
+        print("Launching Waters Converter Wizard")
         app = wx.App(False)
         frame = ImportWizard(None)
         frame.Show()
         app.MainLoop()
 
     def button4(self,e=None):
-        print "Launching MetaUniDec"
+        print("Launching MetaUniDec")
         app = mudpres.UniDecApp()
         app.start()
 
     def button5(self,e=None):
-        print "Launching Scripting Shell"
+        print("Launching Scripting Shell")
         app = Shell()
         app.start()
 
     def button6(self, e=None):
-        print "Launching HDF5 Import Wizard"
+        print("Launching HDF5 Import Wizard")
         app = wx.App(False)
         frame = HDF5Wizard(None)
         frame.Show()
         app.MainLoop()
 
     def button7(self,e=None):
-        print "Launching UltraMeta Data Collector"
+        print("Launching UltraMeta Data Collector")
         app = wx.App(False)
         frame = UMDC(None, "UltraMeta Data Collector")
         app.MainLoop()

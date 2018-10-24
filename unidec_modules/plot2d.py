@@ -4,7 +4,7 @@ from matplotlib.ticker import FixedLocator
 import numpy as np
 
 from unidec_modules.PlottingWindow import PlottingWindow
-import unidectools as ud
+from unidec_modules import unidectools as ud
 
 __author__ = 'Michael.Marty'
 
@@ -62,7 +62,7 @@ class Plot2d(PlottingWindow):
         else:
             speedplot = 0
             publicationmode = 0
-            self.cmap = "jet"
+            self.cmap = u"jet"
 
         if discrete is not None:
             speedplot = discrete
@@ -163,8 +163,8 @@ class Plot2d(PlottingWindow):
             zbuff = width * 3
             start = -zbuff
             end = zbuff + 1
-            zrange = xrange(start, end)
-            for i in xrange(1, len(zrange)):
+            zrange = range(start, end)
+            for i in range(1, len(zrange)):
                 weight = np.exp(-(zrange[i]) ** 2 / (2. * width * width))
                 self.subplot1.fill_between(xvals / self.kdnorm, yvals + zrange[i - 1] + 0.5, yvals + zrange[i] + 0.5,
                                            color=col, alpha=alpha * weight, linewidth=0.0)

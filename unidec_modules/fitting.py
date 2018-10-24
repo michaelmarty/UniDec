@@ -255,7 +255,7 @@ def gaussfit(xvals, yvals, mguess=None, sguess=0.1, aguess=None, cleanup=True):
         aguess = np.amax(yvals)
     guess = [mguess, sguess, aguess]
     fits = curve_fit(ndis_std, xvals, yvals, p0=guess, maxfev=1000000)[0]
-    print fits
+    print(fits)
     return fits
 
 
@@ -311,7 +311,7 @@ def fit_peak(xvals, yvals, psfun, midguess, fwhmguess, aguess, bguess):
     else:
         popt = guess
         pcov = np.ones((len(guess), len(guess)))
-        print "Failed"
+        print("Failed")
 
     fitdat = psfit(xvals, popt[0], popt[1], popt[2], popt[3], psfun)
     return popt, np.sqrt(np.diag(pcov)), fitdat
@@ -378,7 +378,7 @@ def poisson_mono_di(datatop):
     evens[:, 1] = evens[:, 1] - fitdat[bool1]
     fit2, fitdata2 = poisson_fit(evens[:, 0], evens[:, 1])
     fitdatatot = fitdat + poisson(datatop[:, 0], fit2[0], fit2[1]) * bool1
-    print fit[1], fit2[1]
+    print(fit[1], fit2[1])
     return fit, fit2, fitdatatot
 
 
@@ -387,7 +387,7 @@ def multipoisson(array, datatop, oarray, background=False):
     fitdat = np.zeros_like(datatop[:, 1])
     integrals = np.empty_like(oarray).astype(np.float)
     integrals2 = np.empty_like(oarray).astype(np.float)
-    for i in xrange(0, l):
+    for i in range(0, l):
         oligomer = oarray[i]
         mu = array[i * 2]
         A = array[i * 2 + 1]
@@ -404,7 +404,7 @@ def multipoisson(array, datatop, oarray, background=False):
 def mpinit(datatop, oarray, background=False):
     l = len(oarray)
     array = []
-    for i in xrange(0, l):
+    for i in range(0, l):
         oligomer = oarray[i]
         bool1 = datatop[:, 0] % oligomer == 0
         data = datatop[bool1]
@@ -429,15 +429,15 @@ def mperror(array, datatop, oarray, background):
 
 def complex_poisson(datatop, oarray=[1, 2], background=False):
     array = mpinit(datatop, oarray, background)
-    print array
+    print(array)
     fit = opt.leastsq(mperror, array, args=(datatop, oarray, background))[0]
     fitdat, integrals, integrals2 = multipoisson(fit, datatop, oarray, background)
     return fit, fitdat, integrals, integrals2
 
 
 if __name__ == "__main__":
-    path = "C:\UniDecPastedSpectra\PastedSpectrum_2017_Dec_11_09_02_49_unidecfiles\Extract_total_2D_Extract.txt"
-    path = "C:\UniDecPastedSpectra\PastedSpectrum_2017_Dec_11_11_30_45_unidecfiles\Extract_total_2D_Extract.txt"
+    path = "C:\\UniDecPastedSpectra\PastedSpectrum_2017_Dec_11_09_02_49_unidecfiles\Extract_total_2D_Extract.txt"
+    path = "C:\\UniDecPastedSpectra\PastedSpectrum_2017_Dec_11_11_30_45_unidecfiles\Extract_total_2D_Extract.txt"
     data = np.loadtxt(path)[1:18]
     data[:, 1] -= np.amin(data[:, 1])
 
@@ -445,8 +445,8 @@ if __name__ == "__main__":
 
     oarray = [1, 2, 3, 4, 5,6, 8]
     fits, fitdat, integrals, integrals2 = complex_poisson(data, oarray=oarray, background=False)
-    print fits
-    print integrals, integrals2
+    print(fits)
+    print(integrals, integrals2)
     amps = integrals2  # fits[1::2]
 
     plt.bar(oarray, amps / np.amax(amps))

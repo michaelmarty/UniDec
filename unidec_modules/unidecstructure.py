@@ -1,13 +1,14 @@
 import os
 import numpy as np
-import unidectools as ud
+from unidec_modules import unidectools as ud
 import platform
 import matplotlib.cm as cm
 from matplotlib.pyplot import colormaps
 import h5py
-from hdf5_tools import *
+from unidec_modules.hdf5_tools import *
 
 __author__ = 'Michael.Marty'
+
 
 # noinspection PyAttributeOutsideInit
 class UniDecConfig(object):
@@ -22,7 +23,7 @@ class UniDecConfig(object):
         :return: UniDecConfig object
         """
         self.infname = "input.dat"
-        self.outfname = "output"
+        self.outfname = ""
         self.mfile = "mass.dat"
         self.manualfile = "man.dat"
         self.confname = "conf.dat"
@@ -50,16 +51,16 @@ class UniDecConfig(object):
         :return: None
         """
         # plotting
-        self.publicationmode = 0
+        self.publicationmode = 1
         self.discreteplot = 0
-        self.cmap = "nipy_spectral"
-        self.peakcmap = "rainbow"
+        self.cmap = u"nipy_spectral"
+        self.peakcmap = u"rainbow"
         self.rawflag = 0
 
         # data prep
         self.minmz = ''
         self.maxmz = ''
-        self.intscale = "Linear"
+        self.intscale = u"Linear"
 
         # Results
         self.error = 0
@@ -214,12 +215,12 @@ class UniDecConfig(object):
             if not ud.isempty(self.masslist):
                 f.write("mfile " + str(self.mfile) + "\n")
             else:
-                print "Need to specify mass list. Running without mass list."
+                print("Need to specify mass list. Running without mass list.")
         if self.manualfileflag:
             if not ud.isempty(self.manuallist):
                 f.write("manualfile " + str(self.manualfile) + "\n")
             else:
-                print "Need to specify manual assignments. Running without assignments."
+                print("Need to specify manual assignments. Running without assignments.")
         f.write("minmz " + str(self.minmz) + "\n")
         f.write("maxmz " + str(self.maxmz) + "\n")
         f.write("subbuff " + str(self.subbuff) + "\n")
@@ -253,7 +254,7 @@ class UniDecConfig(object):
                 f.write("integratelb " + str(self.integratelb) + "\n")
                 f.write("integrateub " + str(self.integrateub) + "\n")
             except ValueError:
-                print "Failed to write integation areas:", self.integratelb, self.integrateub
+                print("Failed to write integation areas:", self.integratelb, self.integrateub)
                 pass
         f.write("filterwidth " + str(self.filterwidth) + "\n")
         f.write("zerolog " + str(self.zerolog) + "\n")
@@ -296,14 +297,14 @@ class UniDecConfig(object):
                 if self.manuallist.shape[1] == 3:
                     ud.dataexport(self.manuallist, self.manualfile)
                 else:
-                    print "Manual List Shape is wrong. Try using manual list tool again."
-                    print self.manuallist.shape
+                    print("Manual List Shape is wrong. Try using manual list tool again.")
+                    print(self.manuallist.shape)
             else:
                 if self.manuallist.shape[1] == 5:
                     ud.dataexport(self.manuallist, self.manualfile)
                 else:
-                    print "Manual List Shape is wrong. Try using manual list tool again."
-                    print self.manuallist.shape
+                    print("Manual List Shape is wrong. Try using manual list tool again.")
+                    print(self.manuallist.shape)
         if not ud.isempty(self.oligomerlist):
             np.savetxt(self.ofile, self.oligomerlist, fmt='%s')
 
@@ -314,7 +315,7 @@ class UniDecConfig(object):
         :return: None
         """
         if self.batchflag != 1:
-            f = open(name, 'r')
+            f = open(name, 'r', encoding="utf-8")
             self.manualfileflag = 0
             self.mfileflag = 0
             for line in f:
@@ -410,9 +411,15 @@ class UniDecConfig(object):
                         if line.startswith("linflag"):
                             self.linflag = ud.string_to_int(line.split()[1])
                         if line.startswith("cmap"):
-                            self.cmap = str(line.split()[1])
+                            try:
+                                self.cmap = str(line.split()[1], encoding="utf-8")
+                            except:
+                                self.cmap = str(line.split()[1])
                         if line.startswith("peakcmap"):
-                            self.peakcmap = str(line.split()[1])
+                            try:
+                                self.peakcmap = str(line.split()[1], encoding="utf-8")
+                            except:
+                                self.peakcmap = str(line.split()[1])
                         if line.startswith("publicationmode"):
                             self.publicationmode = ud.string_to_int(line.split()[1])
                         if line.startswith("isotopemode"):
@@ -547,30 +554,33 @@ class UniDecConfig(object):
             "datanorm":self.datanorm
         }
 
-        for key, value in cdict.iteritems():
+        for key, value in cdict.items():
             try:
                 config_group.attrs[key] = value
             except:
-                print "Error with key, value:", key, value
+                print("Error with key, value:", key, value)
 
         if not ud.isempty(self.masslist):
             replace_dataset(config_group, "masslist", data=self.masslist)
         if not ud.isempty(self.manuallist):
             replace_dataset(config_group, "manuallist", data=self.manuallist)
         if not ud.isempty(self.oligomerlist):
-            replace_dataset(config_group, "oligomerlist", data=self.oligomerlist.astype(np.str))
+            replace_dataset(config_group, "oligomerlist", data=self.oligomerlist.astype(np.string_))
 
         hdf.close()
         pass
 
     def read_attr(self, thing, string, config):
-        if string in config.attrs.keys():
-            val = config.attrs.get(string)
-            if isinstance(val, np.ndarray):
-                return val[0]
+        try:
+            if string in list(config.attrs.keys()):
+                val = config.attrs.get(string)
+                if isinstance(val, np.ndarray):
+                    return val[0]
+                else:
+                    return val
             else:
-                return val
-        else:
+                return thing
+        except:
             return thing
 
     def read_hdf5(self, file_name=None):
@@ -661,7 +671,7 @@ class UniDecConfig(object):
 
         self.masslist = get_dataset(config_group, "masslist")
         self.manuallist = get_dataset(config_group, "manuallist")
-        self.oligomerlist = get_dataset(config_group, "oligomerlist")
+        self.oligomerlist = get_dataset(config_group, "oligomerlist").astype(np.unicode_)
 
         hdf.close()
 
@@ -671,7 +681,7 @@ class UniDecConfig(object):
         :return: None
         """
         f = open(self.confname)
-        print f.read()
+        print(f.read())
         f.close()
 
     def default_file_names(self):
@@ -880,7 +890,7 @@ class UniDecConfig(object):
         def giveup():
             self.defaultUnidecDir = ""
             self.UniDecPath = self.defaultUnidecName
-            print "Assuming " + self.defaultUnidecName + " is in system path."
+            print("Assuming " + self.defaultUnidecName + " is in system path.")
 
         self.UniDecPath = os.path.join(self.defaultUnidecDir, self.defaultUnidecName)
         if not os.path.isfile(self.UniDecPath):
@@ -905,7 +915,7 @@ class UniDecConfig(object):
         self.masstablefile = os.path.join(self.UniDecDir, "mass_table.csv")
         self.h5repackfile = os.path.join(self.UniDecDir, self.h5repackfile)
 
-        print "\nUniDec Path:", self.UniDecPath
+        print("\nUniDec Path:", self.UniDecPath)
 
     def check_new(self, other):
         flag = False
@@ -915,12 +925,12 @@ class UniDecConfig(object):
                 value2 = other.__dict__[item]
                 try:
                     try:
-                        if value != value2:
+                        if not np.array_equal(value, value2):
                             flag = True
                             break
-                    except RuntimeWarning, e:
-                        print e
-                        print value, value2
+                    except RuntimeWarning as e:
+                        print(e)
+                        print(value, value2)
                 except:
                     pass
         except KeyError:

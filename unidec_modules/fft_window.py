@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 import wx
 from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows, fitting
-from unidectools import win_fft_grid, nearest, peakdetect
+from unidec_modules.unidectools import win_fft_grid, nearest, peakdetect
 import matplotlib.cm as cm
 
 __author__ = 'Michael.Marty'
@@ -164,7 +164,7 @@ class FFTWindow(wx.Frame):
             except ValueError:
                 pass
         except ValueError:
-            print "Failed to get from gui"
+            print("Failed to get from gui")
 
     def makeplot(self, e=None):
         """
@@ -174,20 +174,20 @@ class FFTWindow(wx.Frame):
         """
         self.getfromgui()
         data2d = win_fft_grid(self.rawdata, self.binsize, self.wbin, self.window_fwhm, self.diffrange)
-        self.config.cmap = 'jet'
+        self.config.cmap = u'jet'
         try:
             self.plot2.contourplot(data2d, self.config, xlab="m/z (Th)", ylab="Mass Difference", title="", normflag=1)
             self.plot2.subplot1.set_xlim(self.xlims)
-        except Exception, e:
+        except Exception as e:
             self.plot2.clear_plot()
-            print "Failed Plot2", e
+            print("Failed Plot2", e)
         try:
             self.plot1.plotrefreshtop(self.rawdata[:, 0], self.rawdata[:, 1], "", "m/z (Th)",
                                       "Intensity", "", self.config)
             self.plot1.subplot1.set_xlim(self.xlims)
-        except Exception, e:
+        except Exception as e:
             self.plot1.clear_plot()
-            print "Failed Plot1", e
+            print("Failed Plot1", e)
         try:
             indexdiff = ((self.diffrange[1] - self.diffrange[0]) / self.binsize) - 1
             rowsums = []
@@ -202,9 +202,9 @@ class FFTWindow(wx.Frame):
             tmp = [x / maxsum for x in rowsums]
             self.diffdat = np.transpose([rowdiff, tmp])
             self.plot3.plotrefreshtop(rowdiff, tmp, xlabel="Mass Difference", ylabel="Intensity")
-        except Exception, e:
+        except Exception as e:
             self.plot3.clear_plot()
-            print "Failed Plot3", e
+            print("Failed Plot3", e)
 
     def on_save_fig(self, e):
         """
@@ -264,23 +264,23 @@ class FFTWindow(wx.Frame):
             xlim = self.plot2.subplot1.get_xlim()
             self.plot2.subplot1.plot((xlim[0], xlim[1]), (vval, vval), color=self.plot2.tickcolor)
             self.plot2.repaint()
-            print xlim, vval
-        except Exception, e:
-            print "Failed: ", dialog.value, e
+            print(xlim, vval)
+        except Exception as e:
+            print("Failed: ", dialog.value, e)
             pass
 
     def on_get_peaks(self, e=None, data=None):
         if data is None:
             data=self.diffdat
-        print "Data range", np.amin(data[:,0]), "to", np.amax(data[:,0])
+        print("Data range", np.amin(data[:,0]), "to", np.amax(data[:,0]))
         peaks = peakdetect(data, window=1000.)[:, 0]
         for p in peaks:
             index = nearest(data[:, 0], p)
             idiff = int(3 / self.binsize)
-            print "Peak value:", p
+            print("Peak value:", p)
             fit, fitdat = fitting.isolated_peak_fit(data[index - idiff:index + idiff, 0],
                                                     data[index - idiff:index + idiff, 1], psfun=0)
-            print "Peak Fit:", fit[1, 0], "+/-", fit[1, 1]
+            print("Peak Fit:", fit[1, 0], "+/-", fit[1, 1])
 
     def on_compare_regions(self, e=None):
         # First click
@@ -318,7 +318,7 @@ class FFTWindow(wx.Frame):
         xvals = self.plot2.zoom.comparexvals
         yvals = self.plot2.zoom.compareyvals
         data2d = win_fft_grid(self.rawdata, self.binsize, self.wbin, self.window_fwhm, self.diffrange)
-        for x in range(0, len(xvals) / 2):
+        for x in range(0, len(xvals) // 2):
             if xvals[x * 2] > xvals[x * 2 + 1]: xvals[x * 2], xvals[x * 2 + 1] = xvals[x * 2 + 1], xvals[x * 2]
             if yvals[x * 2] > yvals[x * 2 + 1]: yvals[x * 2], yvals[x * 2 + 1] = yvals[x * 2 + 1], yvals[x * 2]
             # assure that x and y values are not equal
@@ -339,7 +339,7 @@ class FFTWindow(wx.Frame):
         boxsums = []
         rowdiffs = []
         maxsum = 0
-        for x in range(0, len(xvals) / 2):
+        for x in range(0, len(xvals) // 2):
             rowsums = []
             tmpdiff = []
             for row in range(nearestyvalind[x * 2], nearestyvalind[x * 2 + 1]):
@@ -358,7 +358,7 @@ class FFTWindow(wx.Frame):
         self.on_get_peaks(data=np.transpose([rowdiffs[0],tmp]))
         self.plot4.plotrefreshtop(rowdiffs[0], tmp, color=cols[0],
                                   xlabel="Mass Difference", ylabel="Intensity", linestyle="solid")
-        for x in range(1, len(xvals) / 2):
+        for x in range(1, len(xvals) // 2):
             tmp = [y / maxsum for y in boxsums[x]]
             self.on_get_peaks(data=np.transpose([rowdiffs[x], tmp]))
             self.plot4.plotadd(rowdiffs[x], tmp, cols[x], None)
@@ -368,7 +368,7 @@ class FFTWindow(wx.Frame):
 
 # Main App Execution
 if __name__ == "__main__":
-    datfile = "C:\Data\New\POPC_D1T0-2m_ISTRAP\\20170207_P1D_POPC_ND_D1T0-2m_ISTRAP_RAMP_0_275_25_1_200.0.txt"
+    datfile = "C:\\Data\\New\POPC_D1T0-2m_ISTRAP\\20170207_P1D_POPC_ND_D1T0-2m_ISTRAP_RAMP_0_275_25_1_200.0.txt"
 
     data2 = np.loadtxt(datfile)
 

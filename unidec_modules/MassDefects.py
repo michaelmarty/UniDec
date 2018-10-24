@@ -4,9 +4,9 @@ import numpy as np
 import wx
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
-from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows
+from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows, MassDefectExtractor
 import unidec_modules.unidectools as ud
-from MassFitter import MassFitter
+from unidec_modules.MassFitter import MassFitter
 import matplotlib.cm as cm
 
 __author__ = 'Michael.Marty'
@@ -42,8 +42,8 @@ class MassDefectWindow(wx.Frame):
             self.config = unidecstructure.UniDecConfig()
             self.config.initialize()
             self.config.discreteplot = 0
-            self.config.cmap = "jet"
-            self.config.peakcmap = "rainbow"
+            self.config.cmap = u"jet"
+            self.config.peakcmap = u"rainbow"
             self.config.separation = 0.025
         else:
             self.config = config
@@ -51,6 +51,7 @@ class MassDefectWindow(wx.Frame):
         self.config.publicationmode = 0
         self.pos = -1
         self.yvals = yvals
+
         self.ylab = "Normalized Mass Defect"
         self.nbins = 50
         self.transformmode = 1
@@ -58,20 +59,41 @@ class MassDefectWindow(wx.Frame):
         self.xtype = 1
         self.factor = 1
         self.xlab = ""
+        self.outfname = os.path.splitext(self.config.filename)[0]
+        if self.outfname is not "":
+            self.outfname += "_"
 
-        self.datalist = [data_list[0]]
+        try:
+            self.datalist = [data_list[0]]
+        except:
+            self.datalist = data_list[0]
+
         for i in range(1, len(data_list)):
             self.datalist.append(ud.mergedata(data_list[0], data_list[i]))
         self.datalist = np.array(self.datalist)
+
+        if self.yvals is not None:
+            try:
+                self.yvals = np.array(self.yvals, dtype="float")
+            except:
+                self.yvals = np.arange(0, len(self.datalist))
+
         self.datasum = np.transpose([self.datalist[0, :, 0], np.sum(self.datalist[:, :, 1], axis=0)])
-        print "Data list shape:", self.datalist.shape
+        print("Data list shape:", self.datalist.shape)
 
         # Make the menu
         filemenu = wx.Menu()
+        if self.datalist.shape[0] > 1:
+            extractwindow = filemenu.Append(wx.ID_ANY, "Extract Mass Defect Values",
+                                            "Open Window to Extract Mass Defect Values")
+            self.Bind(wx.EVT_MENU, self.on_extract_window, extractwindow)
+            filemenu.AppendSeparator()
+
         menu_save_fig_png = filemenu.Append(wx.ID_ANY, "Save Figures as PNG",
                                             "Save all figures as PNG in central directory")
         menu_save_fig_pdf = filemenu.Append(wx.ID_ANY, "Save Figures as PDF",
                                             "Save all figures as PDF in central directory")
+
         self.Bind(wx.EVT_MENU, self.on_save_fig, menu_save_fig_png)
         self.Bind(wx.EVT_MENU, self.on_save_fig_pdf, menu_save_fig_pdf)
 
@@ -173,7 +195,7 @@ class MassDefectWindow(wx.Frame):
 
         try:
             self.makeplottotal(0)
-        except Exception, e:
+        except Exception as e:
             self.on_next(0)
 
         self.Centre()
@@ -206,7 +228,7 @@ class MassDefectWindow(wx.Frame):
             except ValueError:
                 self.nbins = 0
         except ValueError:
-            print "Failed to get from gui"
+            print("Failed to get from gui")
         self.transformmode = self.radiobox.GetSelection()
         self.centermode = self.radiobox2.GetSelection()
         self.xtype = self.radiobox3.GetSelection()
@@ -218,42 +240,53 @@ class MassDefectWindow(wx.Frame):
             self.xlab = "Mass"
 
     def make_list_plots(self):
-        print self.igrids.shape
-        self.colormap = cm.get_cmap(self.config.peakcmap, len(self.datalist))
+        print(self.igrids.shape)
+        self.colormap = cm.get_cmap(ud.smartdecode(self.config.peakcmap), len(self.datalist))
         if self.colormap is None:
-            self.colormap = cm.get_cmap("rainbow", len(self.datalist))
+            self.colormap = cm.get_cmap(u"rainbow", len(self.datalist))
         self.peakcolors = self.colormap(np.arange(len(self.datalist)))
 
-        dat3=[]
+        dat3 = []
         for i, dat in enumerate(self.igrids):
             dat2 = np.sum(dat, axis=0)
-            dat2=dat2-np.amin(dat2)
-            dat2/=np.amax(dat2)
+            dat2 = dat2 - np.amin(dat2)
+            dat2 /= np.amax(dat2)
             dat3.append(dat2)
             try:
                 if i == 0:
-                    self.plot5.plotrefreshtop(self.data1d[:, 0], dat2-self.config.separation*i, "All Data", "Mass Defect",
+                    self.plot5.plotrefreshtop(self.data1d[:, 0], dat2 - self.config.separation * i, "All Data",
+                                              "Mass Defect",
                                               "Total Intensity", "", color=self.peakcolors[i], config=self.config)
                 else:
-                    self.plot5.plotadd(self.data1d[:, 0], dat2-self.config.separation*i, colval=self.peakcolors[i])
-            except Exception, e:
+                    self.plot5.plotadd(self.data1d[:, 0], dat2 - self.config.separation * i, colval=self.peakcolors[i])
+            except Exception as e:
                 self.plot5.clear_plot()
-                print "Failed Plot 5", e
+                print("Failed Plot 5", e)
         self.plot5.repaint()
 
-        dat3=np.array(dat3)
+        dat3 = np.array(dat3)
+        self.dat3 = dat3
         if self.yvals is None:
-            yvals=np.arange(0,len(self.datalist))
+            yvals = np.arange(0, len(self.datalist))
+            self.yvals = yvals
         else:
-            yvals=self.yvals
+            yvals = self.yvals
 
-        m1grid, m2grid = np.meshgrid(self.data1d[:,0], yvals, indexing='ij')
+        m1grid, m2grid = np.meshgrid(self.data1d[:, 0], yvals, indexing='ij')
         data2 = np.transpose([np.ravel(m1grid), np.ravel(m2grid), np.ravel(dat3.transpose())])
         try:
-            self.plot6.contourplot(data2, self.config, xlab="Mass Defect", ylab="Individual Spectra", title="", normflag=1)
-        except Exception, e:
+            save_path2d = os.path.join(self.directory, self.outfname + "Mass_Defect_Grid.txt")
+            np.savetxt(save_path2d, dat3)
+            print('Saved: ', save_path2d)
+        except Exception as e:
+            print("Failed Data Export 6", e)
+
+        try:
+            self.plot6.contourplot(data2, self.config, xlab="Mass Defect", ylab="Individual Spectra", title="",
+                                   normflag=1)
+        except Exception as e:
             self.plot6.clear_plot()
-            print "Failed Plot2", e
+            print("Failed Plot2", e)
 
         pass
 
@@ -270,30 +303,30 @@ class MassDefectWindow(wx.Frame):
                                                                           transformmode=self.transformmode,
                                                                           xaxistype=self.xtype)
         if self.yvals is not None:
-            title = str(self.yvals[self.pos])
+            title = self.outfname + str(self.yvals[self.pos])
             spacer = "_"
         else:
-            title = ""
+            title = self.outfname
             spacer = ""
         try:
             save_path2d = os.path.join(self.directory, title + spacer + "2D_Mass_Defects.txt")
             np.savetxt(save_path2d, data2d)
             save_path1d = os.path.join(self.directory, title + spacer + "1D_Mass_Defects.txt")
             np.savetxt(save_path1d, self.data1d)
-            print 'Saved: ', save_path2d, save_path1d
-        except Exception, e:
-            print "Failed save", e
+            print('Saved: ', save_path2d, save_path1d)
+        except Exception as e:
+            print("Failed save", e)
         try:
             self.plot2.contourplot(data2d, self.config, xlab=self.xlab, ylab=self.ylab, title=title, normflag=1)
-        except Exception, e:
+        except Exception as e:
             self.plot2.clear_plot()
-            print "Failed Plot2", e
+            print("Failed Plot2", e)
         try:
             self.plot3.plotrefreshtop(self.data1d[:, 0], self.data1d[:, 1], title, "Mass Defect",
                                       "Total Intensity", "", self.config)
-        except Exception, e:
+        except Exception as e:
             self.plot3.clear_plot()
-            print "Failed Plot 3", e
+            print("Failed Plot 3", e)
         try:
             if self.m0 == 0:
                 return
@@ -301,17 +334,17 @@ class MassDefectWindow(wx.Frame):
                                    self.datalist[self.pos, :, 0] / float(self.m0) % 1.0,
                                    title="Zero-Charge Mass Spectrum",
                                    xlabel="Mass", ylabel="Intensity")
-        except Exception, e:
+        except Exception as e:
             self.plot1.clear_plot()
-            print "Failed Plot1", e
+            print("Failed Plot1", e)
 
         try:
             self.plot4.colorplotMD(self.data1d[:, 0], self.data1d[:, 1], self.data1d[:, 0] % 1.0,
                                    title="Total Projection Color", xlabel="Mass Defect", cmap="hsv",
                                    ylabel="Total Intensity", config=self.config)
-        except Exception, e:
+        except Exception as e:
             self.plot4.clear_plot()
-            print "Failed Plot 4", e
+            print("Failed Plot 4", e)
 
     def makeplottotal(self, e=None):
         """
@@ -340,38 +373,38 @@ class MassDefectWindow(wx.Frame):
         data2d = np.transpose([np.ravel(m1grid), np.ravel(m2grid), np.ravel(sumgrid) / np.amax(sumgrid)])
         self.data1d = np.transpose([np.unique(m2grid), np.sum(sumgrid, axis=0)])
         # Save Results
-        save_path2d = os.path.join(self.directory, "Total_2D_Mass_Defects.txt")
+        save_path2d = os.path.join(self.directory, self.outfname + "Total_2D_Mass_Defects.txt")
         np.savetxt(save_path2d, data2d)
-        save_path1d = os.path.join(self.directory, "Total_1D_Mass_Defects.txt")
+        save_path1d = os.path.join(self.directory, self.outfname + "Total_1D_Mass_Defects.txt")
         np.savetxt(save_path1d, self.data1d)
-        print 'Saved: ', save_path2d, save_path1d
+        print('Saved: ', save_path2d, save_path1d)
         # Plots
         try:
             self.plot2.contourplot(data2d, self.config, xlab=self.xlab, ylab=self.ylab, title="Total", normflag=1)
-        except Exception, e:
+        except Exception as e:
             self.plot2.clear_plot()
-            print "Failed Plot2", e
+            print("Failed Plot2", e)
         try:
             self.plot1.colorplotMD(self.datasum[:, 0], self.datasum[:, 1], self.datasum[:, 0] / float(self.m0) % 1.0,
                                    title="Zero-Charge Mass Spectrum",
                                    xlabel="Mass", ylabel="Intensity")
-        except Exception, e:
+        except Exception as e:
             self.plot1.clear_plot()
-            print "Failed Plot1", e
+            print("Failed Plot1", e)
         try:
             self.plot3.plotrefreshtop(self.data1d[:, 0], self.data1d[:, 1], "Total Projection Black", "Mass Defect",
                                       "Total Intensity", "", self.config)
-        except Exception, e:
+        except Exception as e:
             self.plot3.clear_plot()
-            print "Failed Plot 3", e
+            print("Failed Plot 3", e)
 
         try:
             self.plot4.colorplotMD(self.data1d[:, 0], self.data1d[:, 1], self.data1d[:, 0] % 1.0,
                                    title="Total Projection Color", xlabel="Mass Defect", cmap="hsv",
                                    ylabel="Total Intensity", config=self.config)
-        except Exception, e:
+        except Exception as e:
             self.plot4.clear_plot()
-            print "Failed Plot 4", e
+            print("Failed Plot 4", e)
 
         if self.flag2:
             self.make_list_plots()
@@ -430,28 +463,46 @@ class MassDefectWindow(wx.Frame):
         save_path = os.path.join(self.directory, "Peaks_Mass_Defects.txt")
         np.savetxt(save_path, np.transpose([xvals, yvals]))
 
+    def on_extract_window(self, e=None):
+        print(self.yvals)
+        self.config.kendrickmass = self.m0
+        frame = MassDefectExtractor.MassDefectExtractorWindow(self, self.dat3, self.data1d[:, 0], self.yvals,
+                                                              config=self.config)
+
     def on_save_fig(self, e):
         """
         Saves the figures in self.directory as PNGs.
         :param e: Unused event
         :return: None
         """
-        name1 = os.path.join(self.directory, "MassDefectFigure1.png")
+        name1 = os.path.join(self.directory, self.outfname + "MassDefectFigure1.png")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)
             # print name1
-        name2 = os.path.join(self.directory, "MassDefectFigure2.png")
+        name2 = os.path.join(self.directory, self.outfname + "MassDefectFigure2.png")
         if self.plot2.flag:
             self.plot2.on_save_fig(e, name2)
             # print name2
-        name1 = os.path.join(self.directory, "MassDefectFigure3.png")
+        name1 = os.path.join(self.directory, self.outfname + "MassDefectFigure3.png")
         if self.plot3.flag:
             self.plot3.on_save_fig(e, name1)
             # print name1
-        name2 = os.path.join(self.directory, "MassDefectFigure4.png")
+        name2 = os.path.join(self.directory, self.outfname + "MassDefectFigure4.png")
         if self.plot4.flag:
             self.plot4.on_save_fig(e, name2)
             # print name2
+
+        try:
+            name1 = os.path.join(self.directory, self.outfname + "MassDefectFigure5.png")
+            if self.plot5.flag:
+                self.plot5.on_save_fig(e, name1)
+                # print name1
+            name2 = os.path.join(self.directory, self.outfname + "MassDefectFigure6.png")
+            if self.plot6.flag:
+                self.plot6.on_save_fig(e, name2)
+                # print name2
+        except:
+            pass
 
     def on_save_fig_pdf(self, e):
         """
@@ -459,22 +510,34 @@ class MassDefectWindow(wx.Frame):
         :param e: Unused event
         :return: None
         """
-        name1 = os.path.join(self.directory, "MassDefectFigure1.pdf")
+        name1 = os.path.join(self.directory, self.outfname + "MassDefectFigure1.pdf")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)
             # print name1
-        name2 = os.path.join(self.directory, "MassDefectFigure2.pdf")
+        name2 = os.path.join(self.directory, self.outfname + "MassDefectFigure2.pdf")
         if self.plot2.flag:
             self.plot2.on_save_fig(e, name2)
             # print name2
-        name1 = os.path.join(self.directory, "MassDefectFigure3.pdf")
+        name1 = os.path.join(self.directory, self.outfname + "MassDefectFigure3.pdf")
         if self.plot3.flag:
             self.plot3.on_save_fig(e, name1)
             # print name1
-        name2 = os.path.join(self.directory, "MassDefectFigure4.pdf")
+        name2 = os.path.join(self.directory, self.outfname + "MassDefectFigure4.pdf")
         if self.plot4.flag:
             self.plot4.on_save_fig(e, name2)
             # print name2
+
+        try:
+            name1 = os.path.join(self.directory, self.outfname + "MassDefectFigure5.pdf")
+            if self.plot5.flag:
+                self.plot5.on_save_fig(e, name1)
+                # print name1
+            name2 = os.path.join(self.directory, self.outfname + "MassDefectFigure6.pdf")
+            if self.plot6.flag:
+                self.plot6.on_save_fig(e, name2)
+                # print name2
+        except:
+            pass
 
     def on_add_line(self, e):
         """
@@ -493,20 +556,37 @@ class MassDefectWindow(wx.Frame):
             self.plot2.subplot1.plot((xlim[0], xlim[1]), (vval, vval), color=self.plot2.tickcolor)
             self.plot2.repaint()
 
-            xlim2 = self.plot3.subplot1.get_xlim()
-            if xlim2[1] > 1:
-                self.plot3.subplot1.plot((xlim[0], xlim[1]), (vval, vval), color=self.plot3.tickcolor)
-                self.plot3.repaint()
-        except Exception, e:
-            print "Failed: ", dialog.value, e
+            ylim4 = self.plot3.subplot1.get_ylim()
+            self.plot3.subplot1.plot((vval, vval), (ylim4[0], ylim4[1]), color=self.plot3.tickcolor)
+            self.plot3.repaint()
+
+            ylim4 = self.plot4.subplot1.get_ylim()
+            self.plot4.subplot1.plot((vval, vval), (ylim4[0], ylim4[1]), color=self.plot4.tickcolor)
+            self.plot4.repaint()
+        except Exception as e:
+            print("Failed: ", dialog.value, e)
             pass
+
+        if len(self.datalist) > 1:
+            try:
+                xval = float(dialog.value)
+                ylim = self.plot6.subplot1.get_ylim()
+                self.plot6.subplot1.plot((xval, xval), (ylim[0], ylim[1]), color=self.plot2.tickcolor)
+                self.plot6.repaint()
+
+                ylim4 = self.plot5.subplot1.get_ylim()
+                self.plot5.subplot1.plot((xval, xval), (ylim4[0], ylim4[1]), color=self.plot5.tickcolor)
+                self.plot5.repaint()
+            except Exception as e:
+                print("Failed: ", dialog.value, e)
+                pass
 
     def on_fit(self, e):
         peaks = ud.peakdetect(self.data1d, window=3)
-        print "Peaks:", peaks[:, 0]
+        print("Peaks:", peaks[:, 0])
         peaks = np.concatenate((peaks, [[0, np.amin(self.data1d[:, 1])]]))
         fitdat, fits = MassFitter(self.data1d, peaks, 3, "microguess").perform_fit()
-        print "Fits:", fits[:, 0]
+        print("Fits:", fits[:, 0])
 
         self.plot3.plotadd(self.data1d[:, 0], fitdat, "green", nopaint=False)
 
@@ -515,18 +595,20 @@ class MassDefectWindow(wx.Frame):
 if __name__ == "__main__":
     dir = "C:\\Python\\UniDec\\TestSpectra\\60_unidecfiles"
     file = "60_mass.txt"
+    file = "60_input.dat"
 
     path = os.path.join(dir, file)
 
     data = np.loadtxt(path)
 
-    dir = "C:\Python\UniDec\TestSpectra\\180_unidecfiles"
+    dir = "C:\Python\\UniDec\TestSpectra\\180_unidecfiles"
     file = "180_mass.txt"
 
     path = os.path.join(dir, file)
 
     data2 = np.loadtxt(path)
-    datalist = [data]#, data2]
+    # datalist = [data, data2]
+    datalist = [data]
 
     app = wx.App(False)
     frame = MassDefectWindow(None, datalist)

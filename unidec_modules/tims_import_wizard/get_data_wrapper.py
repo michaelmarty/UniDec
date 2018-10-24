@@ -12,15 +12,15 @@ def new_get_data(start, end, im_bin_size, raw_file, pusher, function_no, scan_st
     if not os.path.isfile(cdcexe):
         cdcexe = os.path.join(cdcreader_path, 'unidec_bin', 'CDCReader.exe')
         if not os.path.isfile(cdcexe):
-            print "Unable to find CDCReader.exe"
-            print cdcexe
+            print(u"Unable to find CDCReader.exe")
+            print(cdcexe)
             sys.exit()
 
     if os.path.isfile(cdcexe):
         immsfile = os.path.splitext(raw_file)[0] + '_' + str(function_no) + '_imms.txt'
         msfile = os.path.splitext(raw_file)[0] + '_' + str(function_no) + '_ms.txt'
-        print "IMMS Processing: ", raw_file
-        print "Outputs:\n\t", immsfile, "\n\t", msfile
+        print("IMMS Processing: ", raw_file)
+        print("Outputs:\n\t", immsfile, "\n\t", msfile)
 
         call_params = [cdcexe,
                        "-r", raw_file,
@@ -46,8 +46,8 @@ def new_get_data(start, end, im_bin_size, raw_file, pusher, function_no, scan_st
         p = subprocess.call(call_params, shell=False)  # , stdout=devnull, shell=False)
 
         if p != 0:
-            print "CONVERSION ERROR! Call Parameters:", call_params
-            print "Std out", p
+            print("CONVERSION ERROR! Call Parameters:", call_params)
+            print("Std out", p)
 
         try:
             '''
@@ -85,9 +85,9 @@ def new_get_data(start, end, im_bin_size, raw_file, pusher, function_no, scan_st
             return A, B, X, Y, C
             '''
             return None, None, None, None, None
-        except Exception, e:
-            print "ERROR"
-            print e
+        except Exception as e:
+            print("ERROR")
+            print(e)
             return None, None, None, None, None
 
 
@@ -102,13 +102,13 @@ def new_get_data_MS(start, end, bin_size, raw_file, function_no, scan_start, sca
     if not os.path.isfile(rawexe):
         rawexe = os.path.join(reader_path, "unidec_bin", 'rawreadertim.exe')
         if not os.path.isfile(rawexe):
-            print "Unable to find rawreadertim.exe"
-            print rawexe
+            print("Unable to find rawreadertim.exe")
+            print(rawexe)
             sys.exit()
 
     if os.path.isfile(rawexe):
         msfile = os.path.splitext(raw_file)[0] + '_' + str(function_no) + '_ms.txt'
-        print "MS Processing: ", raw_file, "to", msfile
+        print("MS Processing: ", raw_file, "to", msfile)
 
         call_params = [rawexe,
                        "-r", raw_file,
@@ -133,8 +133,8 @@ def new_get_data_MS(start, end, bin_size, raw_file, function_no, scan_start, sca
         p = subprocess.call(call_params, shell=False)
 
         if p != 0:
-            print "CONVERSION ERROR! Call Parameters:", call_params
-            print "Std out", p
+            print("CONVERSION ERROR! Call Parameters:", call_params)
+            print("Std out", p)
 
         try:
             '''
@@ -147,6 +147,6 @@ def new_get_data_MS(start, end, bin_size, raw_file, function_no, scan_start, sca
             '''
             return None, None
 
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
             return None, None

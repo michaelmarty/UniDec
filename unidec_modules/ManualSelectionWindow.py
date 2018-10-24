@@ -31,7 +31,7 @@ def closest(x, y, manlist):
     pos is the position of the line in manlist.
     """
     u = np.array([x, y])
-    mindist = sys.maxint
+    mindist = sys.maxsize
     out = None
     pos = 0
     for i, l in enumerate(manlist):
@@ -117,8 +117,8 @@ def detectoverlap(manlist):
     for l1 in manlist2:
         for l2 in manlist2:
             if np.all(np.array(l1) != np.array(l2)) and checkoverlap(l1, l2):
-                print "Overlap of rectangles detected"
-                print l1, l2
+                print("Overlap of rectangles detected")
+                print(l1, l2)
                 return True
     return False
 
@@ -173,7 +173,7 @@ class ManualListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         """
         if not line:
             line = [0, 0, 0, 0]
-        index = self.InsertItem(sys.maxint, str(line[0]))
+        index = self.InsertItem(10000, str(line[0]))
         self.SetItem(index, 1, str(line[1]))
         self.SetItem(index, 2, str(line[2]))
         if self.imflag == 1:
@@ -189,7 +189,7 @@ class ManualListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         """
         self.DeleteAllItems()
         for i in range(0, len(data)):
-            index = self.InsertItem(sys.maxint, str(data[i][0]))
+            index = self.InsertItem(i, str(data[i][0]))
             self.SetItem(index, 1, str(data[i][1]))
             self.SetItem(index, 2, str(data[i][2]))
             if self.imflag == 1:
@@ -453,8 +453,8 @@ class ManualSelection(wx.Dialog):
                     if detectoverlap(manuallist):
                         manuallist = correctassignments(manuallist, np.unique(self.data[:, 0]),
                                                         np.unique(self.data[:, 1]))
-                except Exception, e:
-                    print "Error with overlapping assignments. Try making sure regions don't intersect.", e
+                except Exception as e:
+                    print("Error with overlapping assignments. Try making sure regions don't intersect.", e)
             # Plot the appropriate regions on the plot.
             for i, l in enumerate(manuallist):
                 if self.config.imflag == 0:

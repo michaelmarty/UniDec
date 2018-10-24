@@ -9,7 +9,6 @@ class main_menu(wx.Menu):
         self.parent = parent
         self.tabbed = tabbed
 
-
         self.filemenu = wx.Menu()
         self.toolsmenu = wx.Menu()
         self.analysismenu = wx.Menu()
@@ -17,7 +16,8 @@ class main_menu(wx.Menu):
         self.experimentalmenu = wx.Menu()
 
         # File Menu
-        self.menuOpen = self.filemenu.Append(wx.ID_OPEN, "Open File\tCtrl+O", " Open a Text File in x y text, mzML, or Thermo RAW format")
+        self.menuOpen = self.filemenu.Append(wx.ID_OPEN, "Open File\tCtrl+O",
+                                             " Open a Text File in x y text, mzML, or Thermo RAW format")
         self.menuOpenRaw = self.filemenu.Append(wx.ID_ANY, "Open Waters Raw File", " Open a Waters .Raw File")
         self.filemenu.AppendSeparator()
 
@@ -47,7 +47,7 @@ class main_menu(wx.Menu):
                                                     "Defaults for isotopically resolved data.")
         self.menuDefault4 = self.defaultmenu.Append(1003, "Nanodiscs",
                                                     "Defaults for POPC Nanodiscs.")
-        self.filemenu.Append(wx.ID_ANY, "Presets", self.defaultmenu)
+        self.filemenu.AppendSubMenu(self.defaultmenu, "Presets")
         self.filemenu.AppendSeparator()
 
         self.menufigdialog = self.filemenu.Append(wx.ID_ANY, "Save Figure As",
@@ -65,14 +65,13 @@ class main_menu(wx.Menu):
         else:
             self.menuSaveFigure4 = self.figmenu.Append(wx.ID_ANY, "Save Figures as .pdf",
                                                        "Save all figures to .pdf format")
-        self.filemenu.Append(wx.ID_ANY, 'Save Figure Presets', self.figmenu)
+        self.filemenu.AppendSubMenu(self.figmenu, 'Save Figure Presets')
         self.filemenu.AppendSeparator()
 
         self.menuAbout = self.filemenu.Append(wx.ID_ABOUT, "&About", " Information about this program")
         self.menuExit = self.filemenu.Append(wx.ID_EXIT, "E&xit\tCtrl+Q", " Terminate the Program")
 
         # Setting Up the Tools Menu
-
 
         self.menuBatch = self.toolsmenu.Append(wx.ID_ANY, "Batch Process\tCtrl+B",
                                                "Run these conditions on multiple samples")
@@ -163,7 +162,8 @@ class main_menu(wx.Menu):
             self.advancedmenu.Append(401, "Best Mode", "Best UniDec Deconvolution Algorithm", wx.ITEM_RADIO)
             self.advancedmenu.Append(402, "Auto Baseline", "Experimental version with automatic baseline fitting",
                                      wx.ITEM_RADIO)
-            self.advancedmenu.Append(403, "Auto Baseline Subtract", "Experimental version with automatic baseline subtraction", wx.ITEM_RADIO)
+            self.advancedmenu.Append(403, "Auto Baseline Subtract",
+                                     "Experimental version with automatic baseline subtraction", wx.ITEM_RADIO)
             self.parent.Bind(wx.EVT_MENU, self.menu_401_403, id=401)
             self.parent.Bind(wx.EVT_MENU, self.menu_401_403, id=402)
             self.parent.Bind(wx.EVT_MENU, self.menu_401_403, id=403)
@@ -180,7 +180,7 @@ class main_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.menu_501_503, id=502)
         self.parent.Bind(wx.EVT_MENU, self.menu_501_503, id=503)
 
-        self.advancedmenu.Append(wx.ID_ANY, 'Intensity Scale', self.scalemenu)
+        self.advancedmenu.AppendSubMenu(self.scalemenu, 'Intensity Scale')
         self.advancedmenu.AppendSeparator()
 
         if self.config.imflag == 0:
@@ -201,8 +201,8 @@ class main_menu(wx.Menu):
                                                      "Go back to the previous set of parameters")
         self.menuredo = self.experimentalmenu.Append(wx.ID_ANY, "Redo Parameter Change\tCtrl+Y",
                                                      "Go to the next set of parameters")
-        self.experimentalmenu.AppendSeparator()
-        self.Tweet = self.experimentalmenu.Append(wx.ID_ANY, "Twitter", "Twitter Extension")
+        # self.experimentalmenu.AppendSeparator()
+        # self.Tweet = self.experimentalmenu.Append(wx.ID_ANY, "Twitter", "Twitter Extension")
         if self.config.imflag == 0:
             self.experimentalmenu.AppendSeparator()
             self.menuAdditionalParameters = self.experimentalmenu.Append(wx.ID_ANY, "Additional Parameters",
@@ -233,7 +233,7 @@ class main_menu(wx.Menu):
                                                             "Apply smoothing, background subtraction, and intensity threshold to zero-charge mass spectrum")
         self.experimentalmenu.AppendSeparator()
 
-        self.menuerrors = self.experimentalmenu.Append(wx.ID_ANY, "Get Errors")
+        # self.menuerrors = self.experimentalmenu.Append(wx.ID_ANY, "Get Errors")
         self.menucal = self.experimentalmenu.Append(wx.ID_ANY, "Apply Calibration")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_calibrate, self.menucal)
         self.experimentalmenu.AppendSeparator()
@@ -241,13 +241,21 @@ class main_menu(wx.Menu):
         self.menugriddecon = self.experimentalmenu.Append(wx.ID_ANY, "Grid Deconvolution")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_grid_decon, self.menugriddecon)
 
-        self.menuhdf5 = self.experimentalmenu.Append(wx.ID_ANY, "Write HDF5")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_write_hdf5, self.menuhdf5)
+        # self.menuhdf5 = self.experimentalmenu.Append(wx.ID_ANY, "Write HDF5")
+        # self.parent.Bind(wx.EVT_MENU, self.pres.on_write_hdf5, self.menuhdf5)
 
         self.experimentalmenu.AppendSeparator()
         self.autoformat = self.experimentalmenu.Append(wx.ID_ANY, "Auto Format Monomer/Dimer",
                                                        "Mark matched monomers and dimers automatically")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_autoformat, self.autoformat)
+
+        self.maxcharge = self.experimentalmenu.Append(wx.ID_ANY, "Label Max Charge States",
+                                                      "Labels the maximum charge state in each distribution")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_label_max_charge_states, self.maxcharge)
+
+        self.experimentalmenu.AppendSeparator()
+        #self.menuifams = self.experimentalmenu.Append(wx.ID_ANY, "iFAMS")
+        #self.parent.Bind(wx.EVT_MENU, self.pres.on_iFAMS, self.menuifams)
 
         self.experimentalmenu.AppendSeparator()
         self.menulauncher = self.experimentalmenu.Append(wx.ID_ANY, "Launcher")
@@ -314,8 +322,7 @@ class main_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_flip_mode, self.menuflipmode)
 
         # Experimental
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_peak_errors, self.menuerrors)
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_tweet, self.Tweet)
+        # self.parent.Bind(wx.EVT_MENU, self.pres.on_peak_errors, self.menuerrors)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_mass_process, self.menumassprocess)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_super_batch, self.menusuperbatch)
 
@@ -326,11 +333,12 @@ class main_menu(wx.Menu):
         self.menuBar.Append(self.analysismenu, "Analysis")
         self.menuBar.Append(self.advancedmenu, "Advanced")
         self.menuBar.Append(self.experimentalmenu, "Experimental")
-        #self.Append(self.filemenu, "&File")
-        #self.Append(self.toolsmenu, "Tools")
-        #self.Append(self.analysismenu, "Analysis")
-        #self.Append(self.advancedmenu, "Advanced")
-        #self.Append(self.experimentalmenu, "Experimental")
+        # self.Append(self.filemenu, "&File")
+        # self.Append(self.toolsmenu, "Tools")
+        # self.Append(self.analysismenu, "Analysis")
+        # self.Append(self.advancedmenu, "Advanced")
+        # self.Append(self.experimentalmenu, "Experimental")
+
         pass
 
     def on_defaults(self, e):
@@ -365,7 +373,7 @@ class main_menu(wx.Menu):
             self.config.aggressiveflag = 1
         if event_id == 403:
             self.config.aggressiveflag = 2
-        print self.config.aggressiveflag
+        print(self.config.aggressiveflag)
 
     def menu_501_503(self, event):
         """
@@ -380,4 +388,4 @@ class main_menu(wx.Menu):
             self.config.intscale = "Logarithmic"
         if event_id == 503:
             self.config.intscale = "Square Root"
-        print self.config.intscale
+        print(self.config.intscale)

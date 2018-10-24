@@ -1,6 +1,6 @@
 from matplotlib.transforms import blended_transform_factory
 
-from ZoomBox import *
+from unidec_modules.isolated_packages.ZoomBox import *
 
 
 class ZoomSpan:

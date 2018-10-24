@@ -62,4 +62,4 @@ def format_tag_name(tag_type):
     try:
         return tag_type_formatting[tag_type]
     except KeyError:
-        print 'Unknown tag_type: ' + str(tag_type)
+        print('Unknown tag_type: ' + str(tag_type))

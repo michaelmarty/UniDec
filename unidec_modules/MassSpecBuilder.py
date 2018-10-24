@@ -1,4 +1,4 @@
-from __future__ import division
+
 
 import numpy as np
 
@@ -48,7 +48,7 @@ def make_mass_spectrum(array, zrange=(10, 50), mzrange=(2000, 10000), mz_bin_siz
         mzvals = (mmid + adductmass * ztab) / ztab
         mzsigs = msig / ztab
 
-        for j in xrange(0, len(ztab)):
+        for j in range(0, len(ztab)):
             output += ud.make_peak_shape(mzaxis, psfun, mzsigs[j], mzvals[j], norm_area=True) * zint[j] * inten
     output /= np.amax(output)
 

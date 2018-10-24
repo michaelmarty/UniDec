@@ -102,7 +102,7 @@ class CubePlot(PlottingWindow):
         try:
             self.repaint()
         except MemoryError:
-            print "Memory Error: Not updating 2D plot"
+            print("Memory Error: Not updating 2D plot")
         self.flag = True
 
     def make_isomatrices(self):

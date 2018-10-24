@@ -111,11 +111,9 @@ numpy
 scipy
 wxpython
 natsort
-twython
-pymzml==0.7.6
+pymzml
 networkx
 h5py
-pypubsub==3.3
 multiplierz (Windows only, for Thermo RAW imports)
 
 All of these can be installed from the command line with (for example):
@@ -193,6 +191,12 @@ In reading the documentation, it is perhaps best to start with the unidec.UniDec
 The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
+
+v.3.0.0
+
+**Updated everything to Python 3.6.**
+
+Improvements to Mass Defect window, including new extractor.
 
 v.2.7.3
 

@@ -18,7 +18,7 @@ Module for window defining the oligomers, the expected masses, and for matching 
 
 
 class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
-    def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+    def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0, coltitle="Mass (Da)"):
         """
         Create the mass list ctrl with one column.
         :param parent: Passed to wx.ListCtrl
@@ -31,7 +31,7 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.TextEditMixin.__init__(self)
-        self.InsertColumn(0, "Mass (Da)")
+        self.InsertColumn(0, coltitle)
         self.SetColumnWidth(0, width=190)  # , wx.LIST_AUTOSIZE)
 
         self.popupID1 = wx.NewId()
@@ -46,7 +46,7 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         """
         self.DeleteAllItems()
         for i in range(0, len(listctrldata)):
-            index = self.InsertItem(sys.maxint, str(listctrldata[i]))
+            index = self.InsertItem(i, str(listctrldata[i]))
             self.SetItemData(index, i)
 
     def clear(self):
@@ -61,7 +61,7 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         Add a new line, default of 0.
         :return: None
         """
-        self.InsertItem(sys.maxint, str(0))
+        self.InsertItem(10000, str(0))
 
     def get_list(self):
         """
@@ -103,7 +103,7 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
 
 
 class MassListCtrlPanel(wx.Panel):
-    def __init__(self, parent):
+    def __init__(self, parent, columntitle="Mass (Da)", size=(210, 380)):
         """
         ListCtrlPanel for the Mass list
         :param parent: Parent panel or window
@@ -111,7 +111,7 @@ class MassListCtrlPanel(wx.Panel):
         """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self.list = MassListCrtl(self, wx.NewId(), size=(210, 380), style=wx.LC_REPORT)
+        self.list = MassListCrtl(self, wx.NewId(), coltitle=columntitle, size=size, style=wx.LC_REPORT)
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
@@ -160,9 +160,9 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
         Add a blank line to the list.
         :return: None
         """
-        index = self.InsertItem(sys.maxint, str(a))
+        index = self.InsertItem(10000, str(a))
         if e is None:
-            e = string.uppercase[self.index]
+            e = string.ascii_uppercase[self.index]
         self.SetItem(index, 1, str(b))
         self.SetItem(index, 2, str(c))
         self.SetItem(index, 3, str(d))
@@ -178,7 +178,7 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
         self.DeleteAllItems()
         # for normal, simple columns, you can add them like this:
         for i in range(0, len(data)):
-            index = self.InsertItem(sys.maxint, str(data[i][0]))
+            index = self.InsertItem(i, str(data[i][0]))
             try:
                 self.SetItem(index, 1, str(data[i][1]))
                 self.SetItem(index, 2, str(data[i][2]))
@@ -293,7 +293,7 @@ class MatchListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
         self.DeleteAllItems()
         # for normal, simple columns, you can add them like this:
         for i in range(0, len(data1)):
-            index = self.InsertItem(sys.maxint, str(data1[i]))
+            index = self.InsertItem(i, str(data1[i]))
             self.SetItem(index, 1, str(data2[i]))
             self.SetItem(index, 2, str(data3[i]))
             self.SetItem(index, 3, str(data4[i]))
@@ -418,13 +418,14 @@ class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
         :param data1: The first column, the measured mass
         :param data2: The second column, the simulated mass
         :param data3: The third column, the error between measured and simulated.
+
         :param data4: The fourth column, the match name.
         :return: None
         """
         self.DeleteAllItems()
         # for normal, simple columns, you can add them like this:
         for i in range(0, len(data1)):
-            index = self.InsertItem(sys.maxint, str(data1[i]))
+            index = self.InsertItem(i, str(data1[i]))
             self.SetItem(index, 1, str(data2[i]))
             self.SetItem(index, 2, str(data3[i]))
 
@@ -459,7 +460,7 @@ class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
         Add a blank line to the list.
         :return: None
         """
-        index = self.InsertItem(sys.maxint, string.uppercase[self.index])
+        index = self.InsertItem(10000, string.ascii_uppercase[self.index])
         self.SetItem(index, 1, str(0))
         self.SetItem(index, 2, "User")
         self.index += 1
@@ -682,14 +683,15 @@ class MassSelection(wx.Dialog):
         try:
             self.load_common_masses(self.config.masstablefile)
         except:
-            print "Unable to load common masses"
+            print("Unable to load common masses")
+        # self.load_common_masses(self.config.masstablefile)
         self.CenterOnParent()
 
     def on_common_to_oligo(self, e):
         outdata = self.commonmassespanel.list.get_selection()
-        print outdata
+        print(outdata)
         for o in outdata:
-            print o
+            print(o)
             self.oligomerlistbox.list.add_line(0, o[1], 0, 1, o[0])
 
     def on_add_new_common_mass(self, e):
@@ -700,7 +702,7 @@ class MassSelection(wx.Dialog):
         cmfilename = FileDialogs.save_file_dialog("Save Common Masses File", "*.csv*", self.config.masstablefile)
         if cmfilename is not None:
             np.savetxt(cmfilename, outdata, delimiter=",", fmt="%s")
-        print "Saving Common Masses to:", cmfilename
+        print("Saving Common Masses to:", cmfilename)
 
     def on_load_common_masses(self, e):
         cmfilename = FileDialogs.open_file_dialog("Open Common Masses File", file_types="*.csv*",
@@ -709,7 +711,7 @@ class MassSelection(wx.Dialog):
             self.load_common_masses(cmfilename)
 
     def load_common_masses(self, file):
-        print "Loading Common Masses From File:", file
+        print("Loading Common Masses From File:", file)
         self.commonmasses = np.genfromtxt(file, delimiter=',', usecols=(0, 1, 2), dtype=str, skip_header=1)
         self.commonmassespanel.list.populate(self.commonmasses[:, 0], self.commonmasses[:, 1], self.commonmasses[:, 2])
 
@@ -776,7 +778,7 @@ class MassSelection(wx.Dialog):
             tolerance = None
         oligomasslist, oligonames = ud.make_all_matches(oligos)
         if ud.isempty(oligomasslist):
-            print "ERROR: Need to specify the Potential Oligomers"
+            print("ERROR: Need to specify the Potential Oligomers")
             return
         matchlist = ud.match(self.pks, oligomasslist, oligonames, tolerance=tolerance)
         self.matchlistbox.list.populate(matchlist[0], matchlist[1], matchlist[2], matchlist[3])
@@ -823,7 +825,7 @@ class MassSelection(wx.Dialog):
         self.Destroy()
         try:
             self.EndModal(0)
-        except Exception, e:
+        except Exception as e:
             pass
 
     def on_close_cancel(self, e):
@@ -844,7 +846,7 @@ class MassSelection(wx.Dialog):
         try:
             self.masslistbox.list.populate(self.pks.masses)
         except AttributeError:
-            print "Pick peaks first"
+            print("Pick peaks first")
 
     def pop_oligo_iso(self, e):
         """

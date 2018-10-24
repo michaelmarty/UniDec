@@ -24,7 +24,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
         try:
             yvals.append([np.amin(ydat), np.amax(ydat)])
             xvals.append([np.amin(xdat), np.amax(xdat)])
-        except Exception, e:
+        except Exception as e:
             pass
 
     for p in axes.collections:
@@ -43,7 +43,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
         try:
             yvals.append([np.amin(ydat), np.amax(ydat)])
             xvals.append([np.amin(xdat), np.amax(xdat)])
-        except Exception, e:
+        except Exception as e:
             pass
 
     for patch in axes.patches:
@@ -60,9 +60,9 @@ def GetMaxes(axes, xmin=None, xmax=None):
                     try:
                         yvals.append([np.amin(ydat), np.amax(ydat)])
                         xvals.append([np.amin(xdat), np.amax(xdat)])
-                    except Exception, e:
+                    except Exception as e:
                         pass
-        except Exception, e:
+        except Exception as e:
             try:
                 xys = patch.xy
                 ydat = xys[:, 1]
@@ -73,7 +73,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
 
                 yvals.append([np.amin(ydat), np.amax(ydat)])
                 xvals.append([np.amin(xdat), np.amax(xdat)])
-            except Exception, e:
+            except Exception as e:
                 pass
 
     for t in axes.texts:
@@ -442,7 +442,7 @@ class ZoomBox:
             # Switch to span if a small delta y is used
             try:
                 y0, y1 = event.inaxes.get_ylim()
-            except Exception, e:
+            except Exception as e:
                 y0, y1 = self.data_lims[1], self.data_lims[3]
             if ymax - ymin < (y1 - y0) * self.crossoverpercent:
                 # print ymax,ymin,ymax-ymin,(y1-y0)*self.crossoverpercent
@@ -465,7 +465,7 @@ class ZoomBox:
                 # if the ctrl key is down, print out the difference and a guess for the Nanodisc mass assuming POPC
                 lmass = 760.076
                 charge = lmass / spanx
-                print spanx, charge, charge * xmax
+                print(spanx, charge, charge * xmax)
                 return
 
             for axes in self.axes:
@@ -597,7 +597,7 @@ class ZoomBox:
 
     def switch_label(self):
         self.lflag = (self.lflag + 1) % 2
-        print "Plot Labels Switched to:", self.lflag
+        print("Plot Labels Switched to:", self.lflag)
 
     def label(self):
         self.texts = []

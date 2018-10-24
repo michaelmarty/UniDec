@@ -11,7 +11,7 @@ from unidec_modules.hdf5_tools import *
 try:
     from unidec_modules.data_reader import *
 except:
-    print "Could not import data reader: mzmlparse_auto"
+    print("Could not import data reader: mzmlparse_auto")
 
 
 def parse(path, times, timestep, volts, outputheader, directory, output="txt"):
@@ -51,7 +51,7 @@ def parse(path, times, timestep, volts, outputheader, directory, output="txt"):
                         os.mkdir(directory)
                     outpath = os.path.join(directory, outfile)
                     np.savetxt(outpath, data)
-                    print "Saved:", outpath
+                    print("Saved:", outpath)
                 elif output == "hdf5":
                     group = msdataset.require_group(str(v))
                     replace_dataset(group, "raw_data", data=data)
@@ -66,7 +66,7 @@ def parse(path, times, timestep, volts, outputheader, directory, output="txt"):
             msdataset.attrs["num"] = num
             hdf.close()
     else:
-        print "File not found:", path
+        print("File not found:", path)
 
 
 def parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr=None, outputname=None):
@@ -90,7 +90,7 @@ def parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr=None, outpu
 
     num = 0
     v = 0
-    print starttp, endtp, timestep
+    print(starttp, endtp, timestep)
     for path in paths:
         if os.path.isfile(path):
             if os.path.splitext(path)[1] == ".mzML":
@@ -111,25 +111,26 @@ def parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr=None, outpu
                         pass
                     group.attrs["timestart"] = t
                     group.attrs["timeend"] = t + timestep
-                    splits = string.split(path, sep="\\")
+                    splits = path.split(sep="\\")
                     group.attrs["Original File"] = splits[len(splits)-1]
                     num += 1
                     pass
             v += 1
         else:
-            print "File not found: ", path
+            print("File not found: ", path)
     msdataset.attrs["num"] = num
     hdf.close()
 
 
 def extract(file, directory, timestep=1.0, output="txt"):
-    print file
+    print(file)
     path = os.path.join(directory, file)
     name = os.path.splitext(file)[0]
     newdir = os.path.join(directory, name)
     if output == "hdf5":
         newdir = directory
-    splits = string.split(name, sep="_")
+    #name=ud.smartdecode(name)
+    splits = name.split(sep="_")
     for i, s in enumerate(splits):
         if s.lower() == "ramp":
             start = float(splits[i + 1])
@@ -137,7 +138,7 @@ def extract(file, directory, timestep=1.0, output="txt"):
             step = float(splits[i + 3])
             volts = np.arange(start, end + step, step)
             times = np.arange(0.0, len(volts) * timestep, timestep)
-            print "Ramp:", times, volts
+            print("Ramp:", times, volts)
             parse(path, times, timestep, volts, name, newdir, output=output)
             return True
     if os.path.splitext(file)[1] == ".mzML":
@@ -150,7 +151,7 @@ def extract(file, directory, timestep=1.0, output="txt"):
 
 
 def extract_scans(file, directory, scanbins=1, output="txt"):
-    print file
+    print(file)
     scanbins = int(float(scanbins))
     path = os.path.join(directory, file)
 
@@ -170,7 +171,7 @@ def extract_scans(file, directory, scanbins=1, output="txt"):
         else:
             maxtime = d.get_max_time()
             maxscans = d.get_max_scans()
-        print maxscans
+        print(maxscans)
         scans = np.arange(0, maxscans, scanbins)
 
         if output == "hdf5":
@@ -197,7 +198,7 @@ def extract_scans(file, directory, scanbins=1, output="txt"):
                         os.mkdir(newdir)
                     outpath = os.path.join(newdir, outfile)
                     np.savetxt(outpath, data)
-                    print "Saved:", outpath
+                    print("Saved:", outpath)
                 elif output == "hdf5":
                     group = msdataset.require_group(str(v))
                     replace_dataset(group, "raw_data", data=data)
@@ -212,9 +213,9 @@ def extract_scans(file, directory, scanbins=1, output="txt"):
         if output == "hdf5":
             msdataset.attrs["num"] = num
             hdf.close()
-            print outpath
+            print(outpath)
     else:
-        print "File not found:", path
+        print("File not found:", path)
 
 
 def extract_timepoints(files, directories, starttp=None, endtp=None, timestep=1.0, outputname="Combined"):
@@ -229,7 +230,7 @@ def extract_timepoints(files, directories, starttp=None, endtp=None, timestep=1.
         names.append(name)
     voltsarr = []
     for n in names:
-        splits = string.split(n, sep="_")
+        splits = n.split(sep="_")
         found = 0
         for i, s in enumerate(splits):
             if s.lower() == "ramp":
@@ -241,7 +242,7 @@ def extract_timepoints(files, directories, starttp=None, endtp=None, timestep=1.
                 voltsarr.append(volts)
                 break
         if not found:
-            print "File didn't have ramp"
+            print("File didn't have ramp")
     parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr, outputname)
 
 
@@ -290,11 +291,11 @@ def extract_scans_multiple_files(files, dirs, startscan=1.0, endscan=1.0, output
                 group.attrs["timemid"] = times[1]
                 group.attrs["scanstart"] = startscan
                 group.attrs["scanend"] = endscan
-                splits = string.split(path, sep="\\")
+                splits = path.split(sep="\\")
                 group.attrs["Original File"] = splits[len(splits)-1]
                 num += 1
         else:
-            print "File not found: ", path
+            print("File not found: ", path)
     msdataset.attrs["num"] = num
     hdf.close()
 

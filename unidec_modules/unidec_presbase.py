@@ -101,9 +101,9 @@ class UniDecPres(object):
             limits = self.view.plot1.subplot1.get_xlim()
             self.view.controls.ctlminmz.SetValue(str(limits[0]))
             self.view.controls.ctlmaxmz.SetValue(str(limits[1]))
-            print "New m/z limits:", limits
-        except Exception, e:
-            print e
+            print("New m/z limits:", limits)
+        except Exception as e:
+            print(e)
 
     def on_load_conf_file(self, e=None):
         """
@@ -122,7 +122,7 @@ class UniDecPres(object):
         :param e: unused space for event
         :return: None
         """
-        print "Saved: ", self.eng.config.defaultconfig
+        print("Saved: ", self.eng.config.defaultconfig)
         self.export_config(self.eng.config.defaultconfig)
         pass
 
@@ -146,9 +146,9 @@ class UniDecPres(object):
                             self.view.controls.ctlmaxdt.SetValue(str(np.amax(self.eng.data.rawdata3[:, 1])))
                 except:
                     pass
-                print "Loaded: ", self.eng.config.defaultconfig
+                print("Loaded: ", self.eng.config.defaultconfig)
             except (ValueError, IndexError, TypeError):
-                print "Failed to Load: ", self.eng.config.defaultconfig
+                print("Failed to Load: ", self.eng.config.defaultconfig)
         self.view.SetStatusText("Loaded Default", number=5)
         pass
 
@@ -168,7 +168,7 @@ class UniDecPres(object):
             self.eng.get_auto_peak_width()
             self.import_config()
         else:
-            print "Need to process data first"
+            print("Need to process data first")
 
     def on_peak_width_tool(self, e=None):
         """
@@ -188,7 +188,7 @@ class UniDecPres(object):
             dlg.ShowModal()
             self.import_config(None)
         else:
-            print "Need to process data first"
+            print("Need to process data first")
         pass
 
     def on_manual(self, e=None):

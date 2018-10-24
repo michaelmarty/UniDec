@@ -9,7 +9,8 @@ import zipfile
 import time
 import fnmatch
 import comtypes
-
+import encodings
+import zipimport
 
 def dir_files(path, rel):
     ret = []
@@ -29,9 +30,9 @@ date = datetime.date.today().strftime("%y%m%d")
 # Determine if this is a distribution run or internal
 if "-distribution" in sys.argv:
     distmode = True
-    print "Distribution Release Mode"
+    print("Distribution Release Mode")
 else:
-    print "Internal Release Mode"
+    print("Internal Release Mode")
     distmode = False
 
 # Create names of files and directories
@@ -47,11 +48,11 @@ zipdirectory = outputdir + "_" + date + ".zip"
 a = Analysis(['Launcher.py'],
              pathex=[os.getcwd()],
              excludes=['pandas', 'IPython', 'Cython', 'statsmodels', 'pyopenms',
-                       'GdkPixbuf', 'PIL', 'pyQT4', 'pygobject', 'pygtk', 'pyside'],
+                       'GdkPixbuf', 'PIL', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PyQt5'],
              hiddenimports=[  # 'plotly',
                  'scipy.special._ufuncs_cxx', 'scipy.linalg.cython_blas', 'scipy.linalg.cython_lapack',
                  'scipy._lib.messagestream',
-                 'FileDialog', 'Dialog',
+                 'FileDialog', 'Dialog','encodings', 'encodings.__init__',
                  'packaging', 'packaging.version', 'packaging.specifiers',
                  'comtypes', "multiplierz", "comtypes.gen", "comtypes.gen._E7C70870_676C_47EB_A791_D5DA6D31B224_0_1_0",
                  "comtypes.gen.UIAutomationClient","comtypes.gen.RawReader", "multiplierz.mzAPI.management",
@@ -79,6 +80,7 @@ if system == "Windows":
     a.datas += [('rawreadertim.exe', 'unidec_bin\\rawreadertim.exe', 'DATA')]
     a.datas += [('CDCReader.exe', 'unidec_bin\\CDCReader.exe', 'DATA')]
     a.datas += [('h5repack.exe', 'unidec_bin\\h5repack.exe', 'DATA')]
+    a.datas += [('pymzml\\version.txt', 'C:\\Python36\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
 
     for file in os.listdir('unidec_bin'):
         if fnmatch.fnmatch(file, 'api*'):
@@ -96,11 +98,12 @@ elif system == "Linux":
 
 a.datas += [('cacert.pem', os.path.join('unidec_bin', 'cacert.pem'), 'DATA')]
 a.datas += [('Images/logo.ico', 'logo.ico', 'DATA')]
+a.datas += [('metaunidec/logo.ico', 'logo.ico', 'DATA')]
 a.datas += [('logo.ico', 'logo.ico', 'DATA')]
 a.datas += [('mass_table.csv', 'unidec_bin\\mass_table.csv', 'DATA')]
-a.datas += [('Images/allButton.png', 'metaunidec\\images\\allButton.png', 'DATA')]
-a.datas += [('Images/peakRightClick.png', 'metaunidec\\images\\peakRightClick.png', 'DATA')]
-a.datas += [('Images/rightClick.png', 'metaunidec\\images\\rightClick.png', 'DATA')]
+a.datas += [('metaunidec/images/allButton.png', 'metaunidec\\images\\allButton.png', 'DATA')]
+a.datas += [('metaunidec/images/peakRightClick.png', 'metaunidec\\images\\peakRightClick.png', 'DATA')]
+a.datas += [('metaunidec/images/rightClick.png', 'metaunidec\\images\\rightClick.png', 'DATA')]
 
 
 a.datas.extend(dir_files(os.path.join(os.path.dirname(pymzml.__file__),
@@ -133,7 +136,7 @@ coll = COLLECT(exe,
                upx=False,
                name=outputdir)
 
-print "Zipping..."
+print("Zipping...")
 # Zip up the final file
 os.chdir("dist")
 
@@ -142,13 +145,13 @@ for root, dirs, files in os.walk(outputdir):
     for file in files:
         zipf.write(os.path.join(root, file), compress_type=zipfile.ZIP_DEFLATED)
 zipf.close()
-print "Zipped to", zipdirectory, "from", outputdir
+print("Zipped to", zipdirectory, "from", outputdir)
 
 # Final Print
 if distmode:
-    print "Distribution Release Mode"
+    print("Distribution Release Mode")
 else:
-    print "Internal Release Mode"
+    print("Internal Release Mode")
 
 tend = time.clock()
-print "Build Time: %.2gm" % ((tend - tstart) / 60.0)
+print("Build Time: %.2gm" % ((tend - tstart) / 60.0))

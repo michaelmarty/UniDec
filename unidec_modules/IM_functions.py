@@ -77,9 +77,9 @@ def compress_2d(xgrid, ygrid, zgrid, num):
     :return: x, y, and z grids compressed along the x dimension to a new size
     """
     # Assumes all are in grid form
-    x2 = np.array([np.average(xgrid[i:i + num], axis=0) for i in xrange(0, len(xgrid), num)])
-    y2 = np.array([np.average(ygrid[i:i + num], axis=0) for i in xrange(0, len(ygrid), num)])
-    z2 = np.array([np.average(zgrid[i:i + num], axis=0) for i in xrange(0, len(zgrid), num)])
+    x2 = np.array([np.average(xgrid[i:i + num], axis=0) for i in range(0, len(xgrid), num)])
+    y2 = np.array([np.average(ygrid[i:i + num], axis=0) for i in range(0, len(ygrid), num)])
+    z2 = np.array([np.average(zgrid[i:i + num], axis=0) for i in range(0, len(zgrid), num)])
     return x2, y2, z2
 
 
@@ -97,7 +97,7 @@ def linearize_2d(xvals, yvals, igrid, binsize):
     intx = np.arange(firstpoint, lastpoint, binsize)
     iout = np.zeros((len(intx), len(yvals)))
     shape = igrid.shape
-    for i in xrange(0, shape[0]):
+    for i in range(0, shape[0]):
         if intx[0] < xvals[i] < intx[len(intx) - 1]:
             index = ud.nearest(intx, xvals[i])
             # iout[index]+=C[i]
@@ -147,7 +147,7 @@ def process_data_2d(xgrid, ygrid, igrid, config):
     :param config: UniDecConfig object carrying parameters for processing
     :return: x, y, and z grids of processed data
     """
-    # tstart = time.clock()
+    # tstart = time.perf_counter()
     if config.pusher != 0:
         ygrid = np.array(ygrid) * config.pusher * 0.001
     boo1 = xgrid > config.minmz
@@ -167,18 +167,18 @@ def process_data_2d(xgrid, ygrid, igrid, config):
     igrid = igrid.reshape((xlen, ylen))
     if config.mzbins != 0:
         xgrid, ygrid, igrid = linearize_2d(xvals, yvals, igrid, config.mzbins)
-    # tend = time.clock()
+    # tend = time.perf_counter()
     # print "Time2: %.2gs" % (tend - tstart)
     if config.smooth != 0 or config.smoothdt != 0:
         igrid = smooth_2d(igrid, config.smooth, config.smoothdt)
     if config.subbuff != 0 or config.subbufdt != 0:
         igrid = subtract_complex_2d(igrid, config)
-    # tend = time.clock()
+    # tend = time.perf_counter()
     # print "Time3: %.2gs" % (tend - tstart)
     if config.detectoreffva != 0:
         igrid = detectoreff_2d(igrid, xgrid, config.detectoreffva)
 
-    if config.intscale is "Square Root":
+    if config.intscale == "Square Root":
         igrid = np.sqrt(igrid)
     elif config.intscale is "Logarithmic":
         igrid = ud.fake_log(igrid)
@@ -186,7 +186,7 @@ def process_data_2d(xgrid, ygrid, igrid, config):
 
     igrid /= np.amax(igrid)
 
-    print "Shape of Processed Data: ", igrid.shape
+    print("Shape of Processed Data: ", igrid.shape)
     return xgrid, ygrid, igrid
 
 
