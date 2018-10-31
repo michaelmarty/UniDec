@@ -257,6 +257,9 @@ class main_menu(wx.Menu):
         #self.menuifams = self.experimentalmenu.Append(wx.ID_ANY, "iFAMS")
         #self.parent.Bind(wx.EVT_MENU, self.pres.on_iFAMS, self.menuifams)
 
+        self.menuisotopes = self.experimentalmenu.Append(wx.ID_ANY, "Plot Averagine Isotope Distributions")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_plot_isotope_distribution, self.menuisotopes)
+
         self.experimentalmenu.AppendSeparator()
         self.menulauncher = self.experimentalmenu.Append(wx.ID_ANY, "Launcher")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_launcher, self.menulauncher)

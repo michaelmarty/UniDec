@@ -12,7 +12,7 @@ from pubsub import pub
 import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 from unidec_modules import Extract2D, peakwidthtools, masstools, miscwindows, \
-    MassDefects, mainwindow, nativez, ManualSelectionWindow, AutocorrWindow, fft_window, GridDecon
+    MassDefects, mainwindow, nativez, ManualSelectionWindow, AutocorrWindow, fft_window, GridDecon, isotopetools
 from unidec_modules.isolated_packages import FileDialogs, texmaker
 import datacollector
 import import_wizard
@@ -1570,6 +1570,16 @@ class UniDecApp(UniDecPres):
                                                     mztab2[k, 1] + 0.075 * np.amax(self.eng.data.data2[:, 1]),
                                                     vlines=False, color=p.color)
         self.view.plot4.repaint()
+
+    def on_plot_isotope_distribution(self, e=0):
+        for i in range(0, self.eng.pks.plen):
+            p = self.eng.pks.peaks[i]
+            if p.ignore == 0:
+                #print(p.mass)
+                dist = isotopetools.calc_averagine_isotope_dist(p.mass)
+                dist[:, 1] *= p.height / np.amax(dist[:, 1])
+                self.view.plot2.plotadd(dist[:, 0], dist[:, 1], colval=p.color)
+        self.view.plot2.repaint()
 
     def on_flip_mode(self, e):
         """

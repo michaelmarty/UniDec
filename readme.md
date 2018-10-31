@@ -192,6 +192,10 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.3.0.1
+
+Added averagine isotope distribution calculator for peaks in Experimental. Thanks to Jim Prell for developing the Fourier isotope distribution calculation function.
+
 v.3.0.0
 
 **Updated everything to Python 3.6.**
