@@ -99,6 +99,7 @@ class UniDecConfig(object):
         self.extractshape = 0
         self.gridparams = None
         self.griddecon = None
+        self.defectparams = None
         self.matchtolerance = 1000
 
         self.default_decon_params()
@@ -108,25 +109,26 @@ class UniDecConfig(object):
     def default_decon_params(self):
         # Data Prep
         self.detectoreffva = 0
-        self.mzbins = 1
+        self.mzbins = 0
         self.smooth = 0
         self.subbuff = 0
-        self.subtype = 0
+        self.subtype = 2
         self.intthresh = 0
 
         # UniDec
         self.numit = 100
         self.zzsig = 1
+        self.psig = 1
         self.startz = 1
-        self.endz = 100
-        self.numz = 100
-        self.mzsig = 20
+        self.endz = 50
+        self.numz = 50
+        self.mzsig = 0
         self.psfun = 0
-        self.massub = 1000000
-        self.masslb = 100
+        self.massub = 500000
+        self.masslb = 5000
         self.msig = 0
         self.molig = 0
-        self.massbins = 100
+        self.massbins = 10
         self.adductmass = 1.007276467
         self.baselineflag = 1
         self.aggressiveflag = 0
@@ -140,7 +142,7 @@ class UniDecConfig(object):
         self.nativezub = 100
         self.nativezlb = -100
         self.inflate = 1
-        self.linflag = 0
+        self.linflag = 2
         self.integratelb = ""
         self.integrateub = ""
         self.filterwidth = 20
@@ -202,6 +204,7 @@ class UniDecConfig(object):
         f.write("endz " + str(self.endz) + "\n")
         f.write("startz " + str(self.startz) + "\n")
         f.write("zzsig " + str(self.zzsig) + "\n")
+        f.write("psig " + str(self.psig) + "\n")
         f.write("mzsig " + str(self.mzsig) + "\n")
         f.write("psfun " + str(self.psfun) + "\n")
         f.write("discreteplot " + str(self.discreteplot) + "\n")
@@ -345,6 +348,8 @@ class UniDecConfig(object):
                             self.startz = ud.string_to_int(line.split()[1])
                         if line.startswith("zzsig"):
                             self.zzsig = ud.string_to_value(line.split()[1])
+                        if line.startswith("psig"):
+                            self.psig = ud.string_to_value(line.split()[1])
                         if line.startswith("mzsig"):
                             self.mzsig = ud.string_to_value(line.split()[1])
                         if line.startswith("psfun"):
@@ -529,7 +534,7 @@ class UniDecConfig(object):
 
         cdict = {  # "input": self.infname, "output": self.outfname,
             "numit": self.numit,
-            "endz": self.endz, "startz": self.startz, "zzsig": self.zzsig, "mzsig": self.mzsig,
+            "endz": self.endz, "startz": self.startz, "zzsig": self.zzsig, "psig": self.psig, "mzsig": self.mzsig,
             "psfun": self.psfun, "discreteplot": self.discreteplot, "massub": self.massub, "masslb": self.masslb,
             "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
             "minmz": self.minmz, "maxmz": self.maxmz, "subbuff": self.subbuff, "smooth": self.smooth,
@@ -551,7 +556,7 @@ class UniDecConfig(object):
             "integrateub": self.integrateub, "filterwidth": self.filterwidth, "zerolog": self.zerolog,
             "manualfileflag": self.manualfileflag, "mfileflag": self.mfileflag, "imflag": self.imflag,
             "exwindow": self.exwindow, "exchoice": self.exchoice, "exnorm": self.exnorm, "metamode": self.metamode,
-            "datanorm":self.datanorm
+            "datanorm": self.datanorm
         }
 
         for key, value in cdict.items():
@@ -597,6 +602,7 @@ class UniDecConfig(object):
         self.endz = self.read_attr(self.endz, "endz", config_group)
         self.startz = self.read_attr(self.startz, "startz", config_group)
         self.zzsig = self.read_attr(self.zzsig, "zzsig", config_group)
+        self.psig = self.read_attr(self.psig, "psig", config_group)
         self.mzsig = self.read_attr(self.mzsig, "mzsig", config_group)
         self.psfun = self.read_attr(self.psfun, "psfun", config_group)
         self.discreteplot = self.read_attr(self.discreteplot, "discreteplot", config_group)
@@ -746,7 +752,7 @@ class UniDecConfig(object):
             self.badtest = 1
 
         # Check peak width
-        #if self.mzsig == 0:
+        # if self.mzsig == 0:
         #    self.warning = "Peak width is zero\nFix peak width to be positive number"
         #    self.badtest = 1
 
@@ -790,13 +796,39 @@ class UniDecConfig(object):
         self.masslb = 1000
         # Increase mass resolution and lower peak shape
         self.massbins = 10
-        self.mzsig = 5
+        self.mzsig = 1
         self.psfun = 0
         self.isotopemode = 0
         self.molig = 0
         self.msig = 0
         self.numit = 50
-        self.zsig = 1
+        self.zzsig = 1
+        self.psig = 1
+
+    def adefault_low_res(self):
+        """
+        Sets some defaults for high resolution spectra. Leaves other values unchanged.
+        :return: None
+        """
+        # Interpolate Spectrum at higher resolution
+        self.mzbins = 1
+        self.linflag = 0
+        self.adductmass = 1.007276467
+        # Narrow Charge and Mass Range
+        self.startz = 1
+        self.endz = 100
+        self.massub = 1000000
+        self.masslb = 10000
+        # Increase mass resolution and lower peak shape
+        self.massbins = 100
+        self.mzsig = 10
+        self.psfun = 2
+        self.isotopemode = 0
+        self.molig = 0
+        self.msig = 0
+        self.numit = 50
+        self.zzsig = 1
+        self.psig = 1
 
     def default_nanodisc(self):
         """
@@ -818,7 +850,8 @@ class UniDecConfig(object):
         self.psfun = 0
         self.molig = 760
         self.msig = 1
-        self.zsig = 1
+        self.zzsig = 1
+        self.psig = 1
         self.isotopemode = 0
 
     def default_isotopic_res(self):
@@ -837,9 +870,10 @@ class UniDecConfig(object):
         self.masslb = 100
         # Increase mass resolution and lower peak shape
         self.massbins = 0.1
-        self.mzsig = 0.1
+        self.mzsig = 0
         self.psfun = 0
         self.isotopemode = 1
+        self.psig = 0
 
     def default_zero_charge(self):
         """
@@ -865,7 +899,7 @@ class UniDecConfig(object):
         :return: None
         """
 
-        #print "\nInitial File Locations..."
+        # print "\nInitial File Locations..."
         self.system = platform.system()
         pathtofile = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.defaultUnidecDir = os.path.join(pathtofile, 'unidec_bin')
@@ -874,18 +908,18 @@ class UniDecConfig(object):
             self.defaultUnidecName = "UniDec.exe"
             self.h5repackfile = "h5repack.exe"
             self.opencommand = "start "
-            #print "Windows: ", self.defaultUnidecName
+            # print "Windows: ", self.defaultUnidecName
         elif self.system == 'Darwin':
             self.defaultUnidecName = "unidecmac"
             self.h5repackfile = "h5repack"
             # self.defaultUnidecDir = '/Applications/GUniDecMac.app/Contents/MacOS'
             self.opencommand = "open "
-            #print "Mac:", self.defaultUnidecName
+            # print "Mac:", self.defaultUnidecName
         else:
             self.defaultUnidecName = "unideclinux"
             self.h5repackfile = "h5repack"
             self.opencommand = "gnome-open "  # TODO: Test whether this is right
-            #print "Linux or other: unidec"
+            # print "Linux or other: unidec"
 
         def giveup():
             self.defaultUnidecDir = ""
@@ -914,6 +948,7 @@ class UniDecConfig(object):
         self.defaultconfig = os.path.join(self.UniDecDir, "default_conf.dat")
         self.masstablefile = os.path.join(self.UniDecDir, "mass_table.csv")
         self.h5repackfile = os.path.join(self.UniDecDir, self.h5repackfile)
+        self.presetdir = os.path.join(self.UniDecDir, "Presets")
 
         print("\nUniDec Path:", self.UniDecPath)
 
@@ -936,6 +971,27 @@ class UniDecConfig(object):
         except KeyError:
             flag = True
         return flag  # not self.__dict__ == other.__dict__
+
+    def get_colors(self, n, cmap=None):
+        if cmap is None:
+            cmap = self.peakcmap
+        if cmap[:2] == "b'":
+            cmap = cmap[2:-1]
+        try:
+            cmap = str(cmap, encoding="utf-8")
+        except:
+            pass
+
+        colormap = cm.get_cmap(cmap, n)
+        if colormap is None:
+            colormap = cm.get_cmap(u"rainbow", n)
+        colors = colormap(np.arange(n))
+        return colors
+
+    def get_preset_list(self):
+        for dirpath, dirnames, files in os.walk(self.presetdir):
+            print(files)
+
 
 
 class DataContainer:
@@ -1004,7 +1060,9 @@ if __name__ == '__main__':
     fname = "test.hdf5"
     data = DataContainer()
     config = UniDecConfig()
-    config.write_hdf5(fname)
-    data.write_hdf5(fname)
-    config.read_hdf5(fname)
-    data.read_hdf5(fname)
+    config.initialize_system_paths()
+    config.get_preset_list()
+    #config.write_hdf5(fname)
+    #data.write_hdf5(fname)
+    #config.read_hdf5(fname)
+    #data.read_hdf5(fname)

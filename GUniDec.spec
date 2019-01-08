@@ -106,10 +106,11 @@ a.datas += [('metaunidec/images/peakRightClick.png', 'metaunidec\\images\\peakRi
 a.datas += [('metaunidec/images/rightClick.png', 'metaunidec\\images\\rightClick.png', 'DATA')]
 
 
-a.datas.extend(dir_files(os.path.join(os.path.dirname(pymzml.__file__),
-                                      'obo'), 'obo'))  # os.path.join('pymzml', 'obo')))
+a.datas.extend(dir_files(os.path.join(os.path.dirname(pymzml.__file__), 'obo'), 'obo'))
 
 a.datas.extend(dir_files("unidec_bin\\multiplierz", 'multiplierz'))
+
+a.datas.extend(dir_files("unidec_bin\\Presets", 'Presets'))
 
 # Can't remember why I needed these...
 # grammar=os.path.join(os.path.dirname(lib2to3.__file__),'Grammar.txt')

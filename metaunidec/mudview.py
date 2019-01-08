@@ -81,7 +81,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
                 ["M", self.pres.on_match, self.menu.menumatch],
                 ["W", self.pres.on_auto_peak_width, self.menu.menuAutoWidth],
                 ["Z", self.pres.on_undo, self.menu.menuundo],
-                #["Y", self.pres.on_redo, self.menu.menuredo],
+                # ["Y", self.pres.on_redo, self.menu.menuredo],
                 ["K", self.pres.on_kendrick, self.menu.menukendrick]
                 ]
         self.setup_shortcuts(keys)
@@ -185,23 +185,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
         self.SetStatusWidths([-1, 600, 120, 0, 230, 250, 130])
 
     def on_defaults(self, e):
-        """
-        Resets the configuration to a default predefined in the unidecstructure file.
-        :param e: Menu event
-        :return: None
-        """
-        nid = e.GetId() % 100
-        if nid == 0:
-            self.config.default_high_res()
-        elif nid == 1:
-            self.config.default_zero_charge()
-        elif nid == 2:
-            self.config.default_isotopic_res()
-        elif nid == 3:
-            self.config.default_nanodisc()
-        elif nid == 99:
-            self.config.default_decon_params()
-        self.pres.import_config(None)
+        self.menu.on_defaults(e)
 
     def import_config_to_gui(self):
         self.controls.import_config_to_gui()

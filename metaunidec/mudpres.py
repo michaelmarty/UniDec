@@ -6,7 +6,7 @@ import wx
 import wx.html
 import numpy as np
 from metaunidec import mudview
-from metaunidec import mudeng
+from metaunidec import mudeng, metafft
 
 #
 from pubsub import pub
@@ -45,24 +45,24 @@ class UniDecApp(UniDecPres):
         self.init(*args, **kwargs)
 
         atexit.register(self.repack_hdf5)
-        #self.on_open(0)
+        # self.on_open(0)
         try:
             if False:
-                #testdir = "C:\Data\Others\\UniDec test data set"
-                #testfile = "test.hdf5"
-                testdir="C:\\Data\\New"
-                testfile="20170209_P0B_dPOPC_POPC_ND_D1T0m_pos_ISTRAP_RAMP_0_275_25_1.hdf5"
+                # testdir = "C:\Data\Others\\UniDec test data set"
+                # testfile = "test.hdf5"
+                testdir = "C:\\Data\\New"
+                testfile = "20170209_P0B_dPOPC_POPC_ND_D1T0m_pos_ISTRAP_RAMP_0_275_25_1.hdf5"
                 testpath = os.path.join(testdir, testfile)
 
                 self.open_file(testpath)
-                #self.on_pick_peaks()
+                # self.on_pick_peaks()
 
                 # self.on_match()
                 # self.on_autoformat()
 
         except:
             pass
-        #self.on_animate_annotated_mass()
+        # self.on_animate_annotated_mass()
 
     def init(self, *args, **kwargs):
         """
@@ -792,29 +792,24 @@ class UniDecApp(UniDecPres):
                                                        file_type="Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML|All Files|*.*")
         if paths is not None:
             dlg = miscwindows.SingleInputDialog(self.view)
-            dlg.initialize_interface("Time point", "Enter ramp timestep in minutes:", defaultvalue=str(1.0))
-            dlg.ShowModal()
-            timestep = dlg.value
-            dlg = miscwindows.SingleInputDialog(self.view)
-            dlg.initialize_interface("Time point", "Enter start time point desired:", defaultvalue=str(1.0))
+            dlg.initialize_interface("Time point", "Enter start time point:", defaultvalue=str(0.0))
             dlg.ShowModal()
             starttp = dlg.value
             dlg = miscwindows.SingleInputDialog(self.view)
-            dlg.initialize_interface("Time point", "Enter end time point desired\n (choose same time point if 1 time "
-                                                   "point is desired):", defaultvalue=str(1.0))
+            dlg.initialize_interface("Time point", "Enter end time point:", defaultvalue=str(1.0))
             dlg.ShowModal()
             endtp = dlg.value
-            # Needed for for loop range later on
-            endtp = float(endtp) + float(timestep)
+
             dlg = miscwindows.SingleInputDialog(self.view)
             dlg.initialize_interface("Name", "Enter name of final file (.hdf5 not required):", defaultvalue="")
             dlg.ShowModal()
             name = dlg.value
             # Dummy checks
-            if float(endtp) < float(starttp) or float(endtp) < 0 or float(starttp) < 0 or float(timestep) <= 0:
+            if float(endtp) < float(starttp) or float(endtp) < 0 or float(starttp) < 0:
                 print("Bad values inputted")
             else:
-                self.eng.import_mzml(paths, timestep=float(timestep), name=name, starttp=float(starttp),
+                timestep = float(endtp) - float(starttp)
+                self.eng.import_mzml(paths, timestep=timestep, name=name, starttp=float(starttp),
                                      endtp=float(endtp))
 
     def on_import_multiple_scans(self, e):
@@ -1021,8 +1016,8 @@ class UniDecApp(UniDecPres):
         :param e:
         :return:
         """
-        self.eng.sum_masses()
-        fft_window.FFTWindow(self.view, self.eng.data.mzdat, self.eng.config)
+        rawdatalist = [s.rawdata for s in self.eng.data.spectra]
+        metafft.FFTWindow(self.view, rawdatalist, self.eng.data.var1, self.eng.config)
         pass
 
     def on_fft_window2(self, index):

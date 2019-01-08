@@ -1,5 +1,6 @@
 import wx
-
+import numpy as np
+import unidec_modules.isolated_packages.preset_manager as pm
 
 class meta_menu(wx.Menu):
     def __init__(self, parent, config, pres):
@@ -58,16 +59,25 @@ class meta_menu(wx.Menu):
                                                     "Save default configuration file")
         # Default Submenu
         self.defaultmenu = wx.Menu()
+        self.menuDefault2 = self.defaultmenu.Append(1001, "UniDec Default",
+                                                    "General Default. Similar to High-Resolution Native.")
         self.menuDefault0 = self.defaultmenu.Append(999, "Low-resolution Native",
-                                                    "General factory defaults for low-resolution native MS")
+                                                    "General defaults for low-resolution native MS")
         self.menuDefault1 = self.defaultmenu.Append(1000, "High-resolution Native",
                                                     "Defaults for high-resolution data (Exactive EMR).")
-        self.menuDefault2 = self.defaultmenu.Append(1001, "Zero-Charge Mass Deisotoping",
-                                                    "Defaults for loading zero-charge mass spectrum as output")
+
         self.menuDefault3 = self.defaultmenu.Append(1002, "Isotopic Resolution",
                                                     "Defaults for isotopically resolved data.")
         self.menuDefault4 = self.defaultmenu.Append(1003, "Nanodiscs",
                                                     "Defaults for POPC Nanodiscs.")
+
+        # Custom Presets
+        self.custommenu, self.masterd = pm.make_preset_menu()
+        self.defaultmenu.AppendSubMenu(self.custommenu, "Custom")
+        for i, path, item in self.masterd:
+            self.parent.Bind(wx.EVT_MENU, self.on_custom_defaults, item)
+        # ..............
+
         self.filemenu.AppendSubMenu(self.defaultmenu, "Presets")
         self.filemenu.AppendSeparator()
 
@@ -346,13 +356,13 @@ class meta_menu(wx.Menu):
         if nid == 0:
             self.config.default_high_res()
         elif nid == 1:
-            self.config.default_zero_charge()
+            self.config.default_decon_params()
         elif nid == 2:
             self.config.default_isotopic_res()
         elif nid == 3:
             self.config.default_nanodisc()
         elif nid == 99:
-            self.config.default_decon_params()
+            self.config.default_low_res()
         self.pres.import_config(None)
 
     def menu_401_403(self, event):
@@ -369,3 +379,16 @@ class meta_menu(wx.Menu):
         if event_id == 403:
             self.config.aggressiveflag = 2
         print(self.config.aggressiveflag)
+
+    def on_custom_defaults(self, e):
+        # print("Clicked", e)
+        try:
+            nid = e.GetId()
+            ids = self.masterd[:, 0].astype(np.float)
+            pos = np.argmin(np.abs(ids - nid))
+            path = self.masterd[pos, 1]
+            print("Opening Path:", path)
+            #self.pres.eng.load_config(path)
+            self.pres.import_config(path)
+        except Exception as e:
+            print(e)

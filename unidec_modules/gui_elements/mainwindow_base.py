@@ -30,12 +30,18 @@ class MainwindowBase(wx.Frame):
 
         self.version = self.pres.eng.version
 
+        if iconfile is None:
+            iconfile = "logo.ico"
         # Set Icon File
-        if os.path.isfile(iconfile):
-            favicon = wx.Icon(iconfile, wx.BITMAP_TYPE_ANY)
-            wx.Frame.SetIcon(self, favicon)
-            self.icon_path = os.path.abspath(iconfile)
-        else:
+        try:
+            if os.path.isfile(iconfile):
+                favicon = wx.Icon(iconfile, wx.BITMAP_TYPE_ANY)
+                wx.Frame.SetIcon(self, favicon)
+                self.icon_path = os.path.abspath(iconfile)
+            else:
+                self.icon_path = None
+        except Exception as e:
+            print(e)
             self.icon_path = None
 
         # Get display size and intelligently reshape

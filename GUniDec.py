@@ -1575,7 +1575,7 @@ class UniDecApp(UniDecPres):
         for i in range(0, self.eng.pks.plen):
             p = self.eng.pks.peaks[i]
             if p.ignore == 0:
-                #print(p.mass)
+                # print(p.mass)
                 dist = isotopetools.calc_averagine_isotope_dist(p.mass)
                 dist[:, 1] *= p.height / np.amax(dist[:, 1])
                 self.view.plot2.plotadd(dist[:, 0], dist[:, 1], colval=p.color)

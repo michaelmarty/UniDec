@@ -119,7 +119,7 @@ class DataImporter:
 
 
 if __name__ == "__main__":
-    test = "Z:\Group Share\Scott\\test.RAW"
+    test = "Z:\Group Share\Group\\Archive\\Scott\\test.RAW"
     d = DataImporter(test).get_data()
     exit()
     print(d.get_times_from_scans([15, 30]))
