@@ -164,6 +164,7 @@ Config mh5LoadConfig(Config config, hid_t file_id)
 	config.mflag = int_attr(file_id, "/config", "mfileflag", config.mflag);
 
 	config.zsig=double_attr(file_id, "/config", "zzsig", config.zsig);
+	config.psig = double_attr(file_id, "/config", "psig", config.psig);
 	config.mzsig=double_attr(file_id, "/config", "mzsig", config.mzsig);
 	config.msig=double_attr(file_id, "/config", "msig", config.msig);
 	config.molig=double_attr(file_id, "/config", "molig", config.molig);

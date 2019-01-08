@@ -32,6 +32,7 @@ struct Config
 	int endz;
 	int startz;
 	double zsig;
+	double psig;
 	double mzsig;
 	double msig;
 	double molig;
@@ -111,6 +112,7 @@ Config SetDefaultConfig()
 	config.endz = 100;
 	config.startz = 1;
 	config.zsig = 1;
+	config.psig = 1;
 	config.mzsig = 15;
 	config.msig = 0;
 	config.molig = 0;
@@ -123,10 +125,10 @@ Config SetDefaultConfig()
 	config.limitflag = 0;
 	config.cutoff = 0;
 	config.psthresh = 6;
-	config.speedyflag = 1;
+	config.speedyflag = 0;
 	config.aggressiveflag = 0;
-	config.adductmass = 0;
-	config.rawflag = 0;
+	config.adductmass = 1.007276467;
+	config.rawflag = 1;
 	config.nativezub = 100;
 	config.nativezlb = -200;
 	config.poolflag = 1;
@@ -248,6 +250,7 @@ Config LoadConfig(Config config,const char *filename)
 			if (strstr(x, "startz") != NULL){ config.startz = atoi(y); printf(" startz"); }
 			if (strstr(x, "endz") != NULL) { config.endz = atoi(y); printf(" endz"); }
 			if (strstr(x, "zzsig") != NULL){ config.zsig = atof(y); printf(" zzsig"); }
+			if (strstr(x, "psig") != NULL) { config.psig = atof(y); printf(" psig"); }
 			if (strstr(x, "mzsig") != NULL){ config.mzsig = atof(y); printf(" mzsig"); }
 			if (strstr(x, "msig") != NULL){ config.msig = atof(y); printf(" msig"); }
 			if (strstr(x, "molig") != NULL){ config.molig = atof(y); printf(" molig"); }
@@ -327,6 +330,7 @@ void PrintHelp()
 	printf("\t\"mzsig\" \tPeak Full-Width at Half Max\n");
 	printf("\t\"psfun\" \tPeak shape function\n\t\t\t\t0=Gaussian\n\t\t\t\t1=Lorentzian\n\t\t\t\t2=Split Gaussian\\Lorentzian\n");
 	printf("\t\"zzsig\" \tCharge state smoothing width parameter\n");
+	printf("\t\"psig\" \tPoint smoothing width parameter\n");
 	printf("\t\"molig\" \tMass to be included in smooth\n");
 	printf("\t\"msig\"   \tWidth of mass smoothing\n");
 	printf("\t\"mfile\" \tText file list of limiting masses\n");
@@ -375,7 +379,7 @@ void PrintHelp()
 	printf("\t\t\t\t\t Reduced CCS = P1 * Reduced Drift Time + P2\n");
 	printf("\t\t\t\t3=T-Wave Power Law Calibration\n");
 	printf("\t\t\t\t\tReduced CCS =P1 * (Reduced Drift Time ^ P2)\n");
-	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) v.811.\n");
+	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) v.989.\n");
 	//printf("\nsize of: %d",sizeof(char));
 }
 

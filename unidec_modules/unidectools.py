@@ -287,7 +287,7 @@ def integrate(data, start, end):
     return integral, intdat
 
 
-def center_of_mass(data, start=None, end=None):
+def center_of_mass(data, start=None, end=None, power=1.):
     if start is not None and end is not None:
         boo1 = data[:, 0] < end
         boo2 = data[:, 0] > start
@@ -295,8 +295,8 @@ def center_of_mass(data, start=None, end=None):
     else:
         cutdat = data
     try:
-        weightedavg = np.average(cutdat[:, 0], weights=cutdat[:, 1])
-        weightstd = weighted_std(cutdat[:, 0], cutdat[:, 1])
+        weightedavg = np.average(cutdat[:, 0], weights=np.power(cutdat[:, 1], float(power)))
+        weightstd = weighted_std(cutdat[:, 0], np.power(cutdat[:, 1], float(power)))
         return weightedavg, weightstd
     except ZeroDivisionError:
         # print "Error in center of mass determination. Check the limits:", start, end
@@ -368,6 +368,11 @@ def limit_data(data, start, end):
     return intdat
 
 
+extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position",
+                  5: "Center of Mass 50%", 6: "Center of Mass 10%", 7: "Center of Mass Squares",
+                  8: "Center of Mass Cubes", 9: "Center of Mass 50% Squares", 10: "Center of Mass 50% Cubes"}
+
+
 def data_extract(data, x, extract_method, window=None, **kwargs):
     """
     Assumes a sorted array in data[:,0]
@@ -431,7 +436,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             end = x + window
             val, junk = center_of_mass(cutdat, start, end)
         else:
-            val, junk = center_of_mass(cutdat, data[0, 0], data[len(data) - 1, 0])
+            val, junk = center_of_mass(cutdat, cutdat[0, 0], cutdat[len(data) - 1, 0])
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 6:
@@ -445,7 +450,53 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             end = x + window
             val, junk = center_of_mass(cutdat, start, end)
         else:
-            val, junk = center_of_mass(cutdat, data[0, 0], data[len(data) - 1, 0])
+            val, junk = center_of_mass(cutdat, cutdat[0, 0], cutdat[len(data) - 1, 0])
+            print("No window set for center of mass!\nUsing entire data range....")
+
+    elif extract_method == 7:
+        if window is not None:
+            start = x - window
+            end = x + window
+            val, junk = center_of_mass(data, start, end, power=2)
+        else:
+            val, junk = center_of_mass(data, data[0, 0], data[len(data) - 1, 0], power=2)
+            print("No window set for center of mass!\nUsing entire data range....")
+
+    elif extract_method == 8:
+        if window is not None:
+            start = x - window
+            end = x + window
+            val, junk = center_of_mass(data, start, end, power=3)
+        else:
+            val, junk = center_of_mass(data, data[0, 0], data[len(data) - 1, 0], power=3)
+            print("No window set for center of mass!\nUsing entire data range....")
+
+    elif extract_method == 9:
+        # Remove data points that fall below 50% threshold
+        maxval = np.amax(data[:, 1])
+        boo2 = data[:, 1] > maxval * 0.5
+        cutdat = data[boo2]
+        # Extract from thresholded data
+        if window is not None:
+            start = x - window
+            end = x + window
+            val, junk = center_of_mass(cutdat, start, end, power=2)
+        else:
+            val, junk = center_of_mass(cutdat, cutdat[0, 0], cutdat[len(data) - 1, 0], power=2)
+            print("No window set for center of mass!\nUsing entire data range....")
+
+    elif extract_method == 10:
+        # Remove data points that fall below 50% threshold
+        maxval = np.amax(data[:, 1])
+        boo2 = data[:, 1] > maxval * 0.5
+        cutdat = data[boo2]
+        # Extract from thresholded data
+        if window is not None:
+            start = x - window
+            end = x + window
+            val, junk = center_of_mass(cutdat, start, end, power=3)
+        else:
+            val, junk = center_of_mass(cutdat, cutdat[0, 0], cutdat[len(data) - 1, 0], power=3)
             print("No window set for center of mass!\nUsing entire data range....")
 
     else:
@@ -2148,19 +2199,24 @@ def peaks_error_FWHM(pks, data):
         counter = 1
         leftfound = False
         rightfound = False
-        while rightfound is False and leftfound is False:
+        while rightfound is False or leftfound is False:
             if leftfound is False:
-                if data[index - counter, 1] <= (int * div) / 2:
+                if data[index - counter, 1] <= (int * div) / 2.:
                     leftfound = True
                 else:
                     leftwidth += 1
             if rightfound is False:
-                if data[index + counter, 1] <= (int * div) / 2:
+                if data[index + counter, 1] <= (int * div) / 2.:
                     rightfound = True
                 else:
                     rightwidth += 1
             counter += 1
         pk.errorFWHM = data[index + rightwidth, 0] - data[index - leftwidth, 0]
+        pk.intervalFWHM = [data[index - leftwidth, 0], data[index + rightwidth, 0]]
+        start = pk.intervalFWHM[0]
+        end = pk.intervalFWHM[1]
+        pk.centroid = center_of_mass(data, start, end)[0]
+        print("Apex:", pk.mass, "Centroid:", pk.centroid, "FWHM Range:", pk.intervalFWHM)
 
 
 def peaks_error_mean(pks, data, ztab, massdat, config):

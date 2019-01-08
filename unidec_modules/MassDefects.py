@@ -53,10 +53,17 @@ class MassDefectWindow(wx.Frame):
         self.yvals = yvals
 
         self.ylab = "Normalized Mass Defect"
-        self.nbins = 50
-        self.transformmode = 1
-        self.centermode = 1
-        self.xtype = 1
+        if self.config.defectparams is not None:
+            p = self.config.defectparams
+            self.nbins = p[0]
+            self.transformmode = p[1]
+            self.centermode = p[2]
+            self.xtype = p[3]
+        else:
+            self.nbins = 50
+            self.transformmode = 1
+            self.centermode = 1
+            self.xtype = 1
         self.factor = 1
         self.xlab = ""
         self.outfname = os.path.splitext(self.config.filename)[0]
@@ -238,6 +245,7 @@ class MassDefectWindow(wx.Frame):
         else:
             self.factor = self.m0
             self.xlab = "Mass"
+        self.config.defectparams = [self.nbins, self.transformmode, self.centermode, self.xtype]
 
     def make_list_plots(self):
         print(self.igrids.shape)

@@ -299,9 +299,6 @@ int run_unidec(int argc, char *argv[], Config config) {
 	//......................................................
 
 	//sets some parameters regarding the neighborhood blur function
-	int chargewidth = 0;
-	if (config.zsig > 1) { chargewidth = config.zsig; config.zsig = 1; }
-	if (config.msig > 1) { chargewidth = config.msig; config.msig = 1; }
 	if (config.zsig >= 0) {
 		zlength = 1 + 2 * (int)config.zsig;
 		mlength = 1 + 2 * (int)config.msig;
@@ -461,10 +458,10 @@ int run_unidec(int argc, char *argv[], Config config) {
 	printf("Iterating\n\n");
 	for (iterations = 0; iterations<abs(config.numit); iterations++)
 	{
-		if (chargewidth > 0 && iterations>20)
+		if (config.psig > 0 && iterations>0)
 		{
-			charge_smoothing(blur, lengthmz, config.numz, chargewidth - 1);
-			//printf("Charge Smoothed %d\n", chargewidth - 1);
+			charge_smoothing(blur, lengthmz, config.numz, (int) config.psig);
+			//printf("Charge Smoothed %f\n", config.psig);
 		}
 
 		if (config.zsig >= 0) {

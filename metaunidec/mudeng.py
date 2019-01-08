@@ -95,7 +95,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.pks = peakstructure.Peaks()
         self.pks.add_peaks(self.data.peaks, massbins=self.config.massbins)
         self.pks.default_params(cmap=self.config.peakcmap)
-        self.peaks_error_FWHM(self.pks, self.data.massdat)
+        ud.peaks_error_FWHM(self.pks, self.data.massdat)
         self.peaks_error_replicates(self.pks, self.data.spectra, self.config)
         for i, p in enumerate(self.pks.peaks):
             p.extracts = self.data.exgrid[i]
@@ -121,39 +121,6 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
             p.mztab = np.array(p.mztab)
             p.mztab2 = np.array(p.mztab2)
 
-
-    def peaks_error_FWHM(self, pks, data):
-        """
-        Calculates the error of each peak in pks using FWHM.
-        Looks for the left and right point of the peak that is 1/2 the peaks max intensity, rightmass - leftmass = error
-        :param pks:
-        :param data: self.data.massdat
-        :return:
-        """
-        pmax = np.amax([p.height for p in pks.peaks])
-        datamax = np.amax(np.asarray(data)[:, 1])
-        div = datamax / pmax
-        for pk in pks.peaks:
-            int = pk.height
-            index = ud.nearest(data[:, 0], pk.mass)
-            leftwidth = 0
-            rightwidth = 0
-            counter = 1
-            leftfound = False
-            rightfound = False
-            while rightfound is False and leftfound is False:
-                if leftfound is False:
-                    if data[index - counter, 1] <= (int * div) / 2:
-                        leftfound = True
-                    else:
-                        leftwidth += 1
-                if rightfound is False:
-                    if data[index + counter, 1] <= (int * div) / 2:
-                        rightfound = True
-                    else:
-                        rightwidth += 1
-                counter += 1
-            pk.errorFWHM = data[index + rightwidth, 0] - data[index - leftwidth, 0]
 
     def peaks_error_replicates(self, pks, spectra, config):
         peakvals = []

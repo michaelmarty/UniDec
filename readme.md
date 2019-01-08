@@ -192,9 +192,31 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.3.1.0
+
+Added new parameter for Point Width Smooth. 
+
+Changed the right control panels to streamline the key parameters. 
+
+Updated the default parameters to make them more universal.
+
+Note: Several background changes to the algorithm (MS-only) have allowed the use of more general settings, such as a peak width of 0 (v.2.7.3) and a point smooth width of 1, which adds an additional smooth of +/- 1 data point. We hope that these defaults and changes to the layout will allow new users to more easily access the software. Power users will still have access to these parameters in the advanced settings windows. 
+
+v.3.0.2
+
+Modified the FFT window tool on MetaUniDec to be the dual FFT of each spectum rather than the sum. Indiviual spectra FFT windows are still available by right clicking the spectra in the list on the left. 
+
+Added button for Negative Ion Mode in Additional Deconvolution Parameters. This simply switches the adduct mass (typically a proton) to negative when clicked. 
+
+Bug fixes to MetaUniDec and UltraMeta.
+
 v.3.0.1
 
 Added averagine isotope distribution calculator for peaks in Experimental. Thanks to Jim Prell for developing the Fourier isotope distribution calculation function.
+
+Fixed bug with FWHM calculation.
+
+Added in peak centroid for intensity within FWHM when FWHM is calculated.
 
 v.3.0.0
 

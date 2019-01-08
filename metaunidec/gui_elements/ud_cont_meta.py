@@ -159,22 +159,17 @@ class main_controls(wx.Panel):
         massrange.Add(wx.StaticText(panel2, label=" Da  "), 0, wx.ALIGN_CENTER_VERTICAL)
 
         self.ctlmassbins = wx.TextCtrl(panel2, value="", size=size1)
-        self.ctlmzsig = wx.TextCtrl(panel2, value="", size=size1)
-        self.ctlpsfun = wx.RadioBox(panel2, label="Peak Shape Function",
-                                    choices=["Gaussian", "Lorentzian", "Split G/L"])
+
         self.rununidec = wx.Button(panel2, -1, "Run UniDec")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_unidec_button, self.rununidec)
 
         sizercontrol2.Add(zrange, (0, 0), span=(1, 2))
         sizercontrol2.Add(massrange, (1, 0), span=(1, 2))
-        sizercontrol2.Add(self.ctlmassbins, (2 + self.config.imflag, 1), span=(1, 2))
-        sizercontrol2.Add(self.ctlmzsig, (3 + self.config.imflag * 2, 1), span=(1, 2))
-        sizercontrol2.Add(wx.StaticText(panel2, label="Sample Mass Every (Da): "), (2 + self.config.imflag, 0),
+        sizercontrol2.Add(self.ctlmassbins, (2, 1), span=(1, 2))
+        sizercontrol2.Add(wx.StaticText(panel2, label="Sample Mass Every (Da): "), (2, 0),
                           flag=wx.ALIGN_CENTER_VERTICAL)
-        sizercontrol2.Add(wx.StaticText(panel2, label="Peak FWHM (Th): "), (3 + self.config.imflag * 2, 0),
-                          flag=wx.ALIGN_CENTER_VERTICAL)
-        sizercontrol2.Add(self.ctlpsfun, (4 + self.config.imflag * 3, 0), span=(1, 2))
-        sizercontrol2.Add(self.rununidec, (5 + self.config.imflag * 3, 0), span=(1, 2), flag=wx.EXPAND)
+
+        sizercontrol2.Add(self.rununidec, (3, 0), span=(1, 2), flag=wx.EXPAND)
 
         panel2.SetSizer(sizercontrol2)
         sizercontrol2.Fit(panel2)
@@ -182,55 +177,42 @@ class main_controls(wx.Panel):
         self.foldpanels.AddFoldPanelWindow(foldpanel2, wx.StaticText(foldpanel2, -1, " "), fpb.FPB_ALIGN_WIDTH)
 
         # Panel for Additional Restraints
-        foldpanel2b = self.foldpanels.AddFoldPanel(caption="Additional Filters/Restraints", collapsed=True,
+        foldpanel2b = self.foldpanels.AddFoldPanel(caption="Additional Deconvolution Parameters", collapsed=True,
                                                    cbstyle=style2b)
         panel2b = wx.Panel(foldpanel2b, -1)
         gbox2b = wx.GridBagSizer(wx.VERTICAL)
 
-        self.ctlzzsig = wx.TextCtrl(panel2b, value="", size=size1)
-        gbox2b.Add(wx.StaticText(panel2b, label="Charge Smooth Width: "), (0, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox2b.Add(self.ctlzzsig, (0, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i = 0
+        self.ctlmzsig = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(self.ctlmzsig, (i, 1), span=(1, 2))
+        gbox2b.Add(wx.StaticText(panel2b, label="Peak FWHM (Th): "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
-        self.ctlmolig = wx.TextCtrl(panel2b, value="", size=size1)
-        gbox2b.Add(wx.StaticText(panel2b, label="Mass Difference (Da): "), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox2b.Add(self.ctlmolig, (1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlpsfun = wx.RadioBox(panel2b, label="Peak Shape Function",
+                                    choices=["Gaussian", "Lorentzian", "Split G/L"])
+        gbox2b.Add(self.ctlpsfun, (i, 0), span=(1, 2))
+        i += 1
+
+        self.ctlzzsig = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Charge Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlzzsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlpsig = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Point Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlpsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         self.ctlmsig = wx.TextCtrl(panel2b, value="", size=size1)
-        gbox2b.Add(wx.StaticText(panel2b, label="Mass Smooth Width: "), (2, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox2b.Add(self.ctlmsig, (2, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(wx.StaticText(panel2b, label="Mass Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlmsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
-        self.ctlnumit = wx.TextCtrl(panel2b, value='', size=size1)
-        gbox2b.Add(wx.StaticText(panel2b, label='Maximum # of Iterations: '), (8, 0),
-                   flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox2b.Add(self.ctlnumit, (8, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-
-        self.ctlpoolflag = wx.RadioBox(panel2b, label="m/z to Mass Transformation",
-                                       choices=["Integration", "Interpolation"])
-        gbox2b.Add(self.ctlpoolflag, (7, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
-
-        self.ctlorbimode = wx.CheckBox(panel2b, label="Charge Scaling Mode")
-        gbox2b.Add(self.ctlorbimode, (5, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-
-        self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
-        gbox2b.Add(self.ctlisotopemode, (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-
-        self.ctlmanualassign = wx.CheckBox(panel2b, label="Manual Mode")
-        self.parent.Bind(wx.EVT_CHECKBOX, self.on_check_manual, self.ctlmanualassign)
-        gbox2b.Add(self.ctlmanualassign, (4, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-
-        self.ctladductmass = wx.TextCtrl(panel2b, value='', size=size1)
-        gbox2b.Add(self.ctladductmass, (9, 1), span=(1, 1))
-        gbox2b.Add(wx.StaticText(panel2b, label="Adduct Mass (Da): "), (9, 0),
-                   flag=wx.ALIGN_CENTER_VERTICAL)
-
-        mlsizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.ctlmasslistflag = wx.CheckBox(panel2b, label="Mass List Window:")
-        self.parent.Bind(wx.EVT_CHECKBOX, self.on_mass_list, self.ctlmasslistflag)
-        self.ctlmtabsig = wx.TextCtrl(panel2b, value="", size=(60, -1))
-        mlsizer.Add(self.ctlmasslistflag, 0, wx.ALIGN_CENTER_VERTICAL)
-        mlsizer.Add(self.ctlmtabsig, 0, wx.ALIGN_CENTER_VERTICAL)
-        mlsizer.Add(wx.StaticText(panel2b, label=" Da "), 0, wx.ALIGN_CENTER_VERTICAL)
-        gbox2b.Add(mlsizer, (6, 0), span=(1, 2))
+        self.ctlmolig = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Mass Difference (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlmolig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         sb = wx.StaticBox(panel2b, label='Native Charge Offset Range')
         sbs = wx.StaticBoxSizer(sb, orient=wx.HORIZONTAL)
@@ -239,7 +221,51 @@ class main_controls(wx.Panel):
         sbs.Add(self.ctlminnativez, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
         sbs.Add(wx.StaticText(panel2b, label=' to '), 0, wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
         sbs.Add(self.ctlmaxnativez, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
-        gbox2b.Add(sbs, (3, 0), span=(1, 2), flag=wx.EXPAND)
+        gbox2b.Add(sbs, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+
+        self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
+        gbox2b.Add(self.ctlisotopemode, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+
+        self.ctlmanualassign = wx.CheckBox(panel2b, label="Manual Mode")
+        self.parent.Bind(wx.EVT_CHECKBOX, self.on_check_manual, self.ctlmanualassign)
+        gbox2b.Add(self.ctlmanualassign, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlorbimode = wx.CheckBox(panel2b, label="Charge Scaling")
+        gbox2b.Add(self.ctlorbimode, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+
+        self.ctlnegmode = wx.CheckBox(panel2b, label="Negative Mode")
+        gbox2b.Add(self.ctlnegmode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.parent.Bind(wx.EVT_CHECKBOX, self.export_gui_to_config, self.ctlnegmode)
+        i += 1
+
+        mlsizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.ctlmasslistflag = wx.CheckBox(panel2b, label="Mass List Window:")
+        self.parent.Bind(wx.EVT_CHECKBOX, self.on_mass_list, self.ctlmasslistflag)
+        self.ctlmtabsig = wx.TextCtrl(panel2b, value="", size=(60, -1))
+        mlsizer.Add(self.ctlmasslistflag, 0, wx.ALIGN_CENTER_VERTICAL)
+        mlsizer.Add(self.ctlmtabsig, 0, wx.ALIGN_CENTER_VERTICAL)
+        mlsizer.Add(wx.StaticText(panel2b, label=" Da "), 0, wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(mlsizer, (i, 0), span=(1, 2))
+        i += 1
+
+        self.ctlpoolflag = wx.RadioBox(panel2b, label="m/z to Mass Transformation",
+                                       choices=["Integration", "Interpolation"])
+        gbox2b.Add(self.ctlpoolflag, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlnumit = wx.TextCtrl(panel2b, value='', size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label='Maximum # of Iterations: '), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlnumit, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctladductmass = wx.TextCtrl(panel2b, value='', size=size1)
+        gbox2b.Add(self.ctladductmass, (i, 1), span=(1, 1))
+        gbox2b.Add(wx.StaticText(panel2b, label="Adduct Mass (Da): "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         panel2b.SetSizer(gbox2b)
         gbox2b.Fit(panel2b)
@@ -383,6 +409,7 @@ class main_controls(wx.Panel):
             self.ctlstartz.SetValue(str(self.config.startz))
             self.ctlendz.SetValue(str(self.config.endz))
             self.ctlzzsig.SetValue(str(self.config.zzsig))
+            self.ctlpsig.SetValue(str(self.config.psig))
             self.ctlmzsig.SetValue(str(self.config.mzsig))
             self.ctlpsfun.SetSelection(self.config.psfun)
             self.ctlnorm.SetSelection(self.config.peaknorm)
@@ -419,6 +446,11 @@ class main_controls(wx.Panel):
             self.ctlnorm2.SetSelection(self.config.exnorm)
             self.ctlextractwindow.SetValue(str(self.config.exwindow))
             self.ctlextract.SetSelection(self.config.exchoice)
+
+            if self.config.adductmass < 0:
+                self.ctlnegmode.SetValue(1)
+            else:
+                self.ctlnegmode.SetValue(0)
 
             try:
                 self.ctl2dcm.SetSelection(self.config.cmaps2.index(self.config.cmap))
@@ -474,7 +506,7 @@ class main_controls(wx.Panel):
             self.ctlminmz.SetValue(str(self.config.minmz))
             self.ctlmaxmz.SetValue(str(self.config.maxmz))
 
-    def export_gui_to_config(self):
+    def export_gui_to_config(self, e=None):
         """
         Exports parameters from the GUI to the config object.
         :return: None
@@ -490,6 +522,7 @@ class main_controls(wx.Panel):
         self.config.endz = ud.string_to_int(self.ctlendz.GetValue())
         self.config.startz = ud.string_to_int(self.ctlstartz.GetValue())
         self.config.zzsig = ud.string_to_value(self.ctlzzsig.GetValue())
+        self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
         self.config.mzsig = ud.string_to_value(self.ctlmzsig.GetValue())
         self.config.massub = ud.string_to_value(self.ctlmassub.GetValue())
         self.config.masslb = ud.string_to_value(self.ctlmasslb.GetValue())
@@ -531,6 +564,18 @@ class main_controls(wx.Panel):
 
         self.config.exnorm = self.ctlnorm2.GetSelection()
         self.config.exchoice = self.ctlextract.GetSelection()
+
+        if self.ctlnegmode.GetValue() == 1:
+            # print("Negative Ion Mode")
+            if (self.config.adductmass > 0):
+                self.config.adductmass *= -1
+                self.ctladductmass.SetValue(str(self.config.adductmass))
+        else:
+            # print("Positive Ion Mode")
+            if (self.config.adductmass < 0):
+                self.config.adductmass *= -1
+                self.ctladductmass.SetValue(str(self.config.adductmass))
+
         try:
             self.config.exwindow = float(self.ctlextractwindow.GetValue())
         except ValueError:
@@ -582,6 +627,8 @@ class main_controls(wx.Panel):
         self.ctlzzsig.SetToolTip(wx.ToolTip(
             "Parameter for defining the width of the charge state smooth."
             "\nUniDec will use a mean filter of width 2n+1 on log_e of the charge distribution"))
+        self.ctlpsig.SetToolTip(wx.ToolTip(
+            "Parameter for defining the width of the data point smooth.\nUniDec will weight +/- n data points to have the same charge state."))
         self.ctlmassub.SetToolTip(wx.ToolTip(
             "Maximum allowed mass in deconvolution.\nTip: A negative value will force the axis to the absolute value."))
         self.ctlmassbins.SetToolTip(wx.ToolTip("Sets the resolution of the zero-charge mass spectrum"))

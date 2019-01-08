@@ -562,29 +562,29 @@ class DataCollector(wx.Frame):
 
                         if not self.plot1.flag:
                             self.plot1.plotrefreshtop(xvals, fitdat, "Mass Extracts", self.ylabel, "Mass",
-                                                      nopaint=True, color=color, test_kda=False, label=lab,
-                                                      marker=marker, linestyle=linestyle)
+                                                      nopaint=True, color=color, test_kda=False, label=None,
+                                                      marker=None, linestyle=linestyle)
                             pass
                         else:
-                            self.plot1.plotadd(xvals, fitdat, color, linestyle=linestyle, newlabel=lab,
-                                               marker=marker)
+                            self.plot1.plotadd(xvals, fitdat, color, linestyle=linestyle, newlabel=None,
+                                               marker=None)
                             pass
                         if not self.plot2.flag:
                             self.plot2.plotrefreshtop(xvals, zfitdat, "Charge Extracts", self.ylabel, "Charge",
-                                                      label=lab, marker=marker,
+                                                      label=None, marker=None,
                                                       nopaint=True, color=color, test_kda=False, linestyle=linestyle)
                         else:
-                            self.plot2.plotadd(xvals, zfitdat, color, linestyle=linestyle, newlabel=lab,
-                                               marker=marker)
+                            self.plot2.plotadd(xvals, zfitdat, color, linestyle=linestyle, newlabel=None,
+                                               marker=None)
 
                         if fit == "sig":
                             self.plot1.addtext("", fits[0], (fits[3] + fits[2]) / 0.95, ymin=fits[3], color=color)
                             self.plot2.addtext("", zfits[0], (zfits[3] + zfits[2]) / 0.95, ymin=zfits[3], color=color)
 
-                    self.plot1.errorbars(xvals, avg, yerr=std, color=color, linestyle=" ", marker=marker)
+                    self.plot1.errorbars(xvals, avg, yerr=std, color=color, linestyle=" ", marker=marker, newlabel=lab)
 
                     self.plot2.errorbars(xvals, zdat, yerr=zstd, color=color, linestyle=" ",
-                                         marker=marker)
+                                         marker=marker, newlabel=lab)
                     out = [[lab], xvals, avg, std, zdat, zstd, fits, zfits]
                     output.append(out)
 

@@ -107,7 +107,9 @@ class main_controls(wx.Panel):
         mzrange.Add(wx.StaticText(panel1, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
         mzrange.Add(self.ctlmaxmz)
         mzrange.Add(wx.StaticText(panel1, label=" Th "), 0, wx.ALIGN_CENTER_VERTICAL)
-        sizercontrol1.Add(mzrange, (0, 0), span=(1, 5))
+        i = 0
+        sizercontrol1.Add(mzrange, (i, 0), span=(1, 5))
+        i += 1
 
         if self.config.imflag == 1:
             self.ctlmindt = wx.TextCtrl(panel1, value="", size=(50, -1))
@@ -118,38 +120,37 @@ class main_controls(wx.Panel):
             dtrange.Add(wx.StaticText(panel1, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
             dtrange.Add(self.ctlmaxdt)
             dtrange.Add(wx.StaticText(panel1, label=" ms "), 0, wx.ALIGN_CENTER_VERTICAL)
-            sizercontrol1.Add(dtrange, (1, 0), span=(1, 5))
-
-            self.ctlsmoothdt = wx.TextCtrl(panel1, value="", size=size1)
-            self.ctlsubbuffdt = wx.TextCtrl(panel1, value="", size=size1)
-            sizercontrol1.Add(self.ctlsubbuffdt, (3, 1))
-            sizercontrol1.Add(self.ctlsmoothdt, (5, 1))
-
-            sizercontrol1.Add(wx.StaticText(panel1, label=" m/z"), (2, 2), flag=wx.ALIGN_CENTER_VERTICAL)
-            sizercontrol1.Add(wx.StaticText(panel1, label=" m/z"), (4, 2), flag=wx.ALIGN_CENTER_VERTICAL)
-            sizercontrol1.Add(wx.StaticText(panel1, label=" A.T."), (3, 2), flag=wx.ALIGN_CENTER_VERTICAL)
-            sizercontrol1.Add(wx.StaticText(panel1, label=" A.T."), (5, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+            sizercontrol1.Add(dtrange, (i, 0), span=(1, 5))
+            i += 1
 
             self.imflag = 1
         else:
             self.imflag = 0
 
         self.subtypectl = wx.Choice(panel1, -1, choices=self.backgroundchoices)
+        self.ctlbuff = wx.TextCtrl(panel1, value="", size=size1)
+        self.subtypectl.SetSelection(2)
+        sizercontrol1.Add(self.subtypectl, (i, 0))
+        sizercontrol1.Add(self.ctlbuff, (i, 1))
+        i += 1
+
+        if self.imflag == 1:
+            sizercontrol1.Add(wx.StaticText(panel1, label=" m/z"), (i - 1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+
+            self.ctlsubbuffdt = wx.TextCtrl(panel1, value="", size=size1)
+            sizercontrol1.Add(self.ctlsubbuffdt, (i, 1))
+            sizercontrol1.Add(wx.StaticText(panel1, label=" A.T."), (i, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+        self.ctlbinsize = wx.TextCtrl(panel1, value="", size=size1)
+        sizercontrol1.Add(self.ctlbinsize, (i, 1))
+        sizercontrol1.Add(wx.StaticText(panel1, label="Bin Every: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
         self.dataprepbutton = wx.Button(panel1, -1, "Process Data")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_dataprep_button, self.dataprepbutton)
-        self.ctlbuff = wx.TextCtrl(panel1, value="", size=size1)
-        self.ctlsmooth = wx.TextCtrl(panel1, value="", size=size1)
-        self.ctlbinsize = wx.TextCtrl(panel1, value="", size=size1)
-
-        sizercontrol1.Add(self.subtypectl, (1 + self.config.imflag, 0))
-        sizercontrol1.Add(self.ctlbuff, (1 + self.config.imflag, 1))
-        sizercontrol1.Add(self.ctlsmooth, (2 + self.config.imflag * 2, 1))
-        sizercontrol1.Add(wx.StaticText(panel1, label="Gaussian Smoothing: "), (2 + self.config.imflag * 2, 0),
-                          flag=wx.ALIGN_CENTER_VERTICAL)
-        sizercontrol1.Add(self.ctlbinsize, (3 + self.config.imflag * 3, 1))
-        sizercontrol1.Add(wx.StaticText(panel1, label="Bin Every: "), (3 + self.config.imflag * 3, 0),
-                          flag=wx.ALIGN_CENTER_VERTICAL)
-        sizercontrol1.Add(self.dataprepbutton, (4 + self.config.imflag * 3, 0), span=(1, 2), flag=wx.EXPAND)
+        sizercontrol1.Add(self.dataprepbutton, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
 
         panel1.SetSizer(sizercontrol1)
         sizercontrol1.Fit(panel1)
@@ -162,41 +163,58 @@ class main_controls(wx.Panel):
         panel1b = wx.Panel(foldpanel1b, -1)
         gbox1b = wx.GridBagSizer(wx.VERTICAL)
 
-        if self.config.imflag == 1:
+        self.ctlsmooth = wx.TextCtrl(panel1b, value="", size=size1)
+        i = 0
+        gbox1b.Add(self.ctlsmooth, (i, 1))
+        gbox1b.Add(wx.StaticText(panel1b, label="Gaussian Smoothing: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        if self.imflag == 1:
+            gbox1b.Add(wx.StaticText(panel1b, label=" m/z"), (i - 1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1b.Add(wx.StaticText(panel1b, label=" A.T."), (i, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+            self.ctlsmoothdt = wx.TextCtrl(panel1b, value="", size=size1)
+            gbox1b.Add(self.ctlsmoothdt, (i, 1))
+            i += 1
+
             self.ctlpusher = wx.TextCtrl(panel1b, value="", size=size1)
-            gbox1b.Add(self.ctlpusher, (0, 1))
-            gbox1b.Add(wx.StaticText(panel1b, label="Pusher Interval (\u03BCs)"), (0, 0),
-                       flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1b.Add(self.ctlpusher, (i, 1))
+            gbox1b.Add(wx.StaticText(panel1b, label="Pusher Interval (\u03BCs)"), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
 
         self.ctlintthresh = wx.TextCtrl(panel1b, value="", size=size1)
-        gbox1b.Add(self.ctlintthresh, (0 + self.config.imflag, 1), span=(1, 1))
-        gbox1b.Add(wx.StaticText(panel1b, label="Intensity Threshold: "), (0 + self.config.imflag, 0),
-                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox1b.Add(self.ctlintthresh, (i, 1), span=(1, 1))
+        gbox1b.Add(wx.StaticText(panel1b, label="Intensity Threshold: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         self.ctladductmass = wx.TextCtrl(panel1b, value='', size=size1)
-        gbox1b.Add(self.ctladductmass, (1 + self.config.imflag, 1), span=(1, 1))
-        gbox1b.Add(wx.StaticText(panel1b, label="Adduct Mass (Da): "), (1 + self.config.imflag, 0),
-                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox1b.Add(self.ctladductmass, (i, 1), span=(1, 1))
+        gbox1b.Add(wx.StaticText(panel1b, label="Adduct Mass (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         self.ctlaccelvolt = wx.TextCtrl(panel1b, value='', size=size1)
-        gbox1b.Add(self.ctlaccelvolt, (2 + self.config.imflag, 1), span=(1, 1))
-        gbox1b.Add(wx.StaticText(panel1b, label="Acceleration Voltage (kV): "), (2 + self.config.imflag, 0),
-                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox1b.Add(self.ctlaccelvolt, (i, 1), span=(1, 1))
+        gbox1b.Add(wx.StaticText(panel1b, label="Acceleration Voltage (kV): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
         if self.config.imflag == 0:
             self.ctlbintype = wx.Choice(panel1b, -1, size=(240, 50),
                                         choices=["Linear m/z (Constant " + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z)",
                                                  "Linear resolution (Constant (m/z)/(" + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z))",
                                                  "Nonlinear", "Linear Interpolated", "Linear Resolution Interpolated"])
-            gbox1b.Add(self.ctlbintype, (3 + self.config.imflag, 0), span=(1, 2))
+            gbox1b.Add(self.ctlbintype, (i, 0), span=(1, 2))
+            i += 1
 
         else:
             self.ctlconvertflag = wx.CheckBox(panel1b, label="Compress when converting to .txt")
             self.ctlconvertflag.SetValue(True)
-            gbox1b.Add(self.ctlconvertflag, (3 + self.config.imflag, 0), span=(1, 2))
+            gbox1b.Add(self.ctlconvertflag, (i, 0), span=(1, 2))
+            i += 1
 
         panel1b.SetSizer(gbox1b)
         gbox1b.Fit(panel1b)
+
         self.foldpanels.AddFoldPanelWindow(foldpanel1b, panel1b, fpb.FPB_ALIGN_WIDTH)
+
         if self.config.imflag == 1:
             self.foldpanels.AddFoldPanelWindow(foldpanel1b, wx.StaticText(foldpanel1b, -1, " "), fpb.FPB_ALIGN_WIDTH)
 
@@ -294,6 +312,12 @@ class main_controls(wx.Panel):
         massrange.Add(self.ctlmassub)
         massrange.Add(wx.StaticText(panel2, label=" Da  "), 0, wx.ALIGN_CENTER_VERTICAL)
 
+        i = 0
+        sizercontrol2.Add(zrange, (i, 0), span=(1, 2))
+        i += 1
+        sizercontrol2.Add(massrange, (i, 0), span=(1, 2))
+        i += 1
+
         if self.config.imflag == 1:
             self.ctlccslb = wx.TextCtrl(panel2, value="", size=(60, -1))
             self.ctlccsub = wx.TextCtrl(panel2, value="", size=(70, -1))
@@ -303,34 +327,25 @@ class main_controls(wx.Panel):
             ccsrange.Add(wx.StaticText(panel2, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
             ccsrange.Add(self.ctlccsub)
             ccsrange.Add(wx.StaticText(panel2, label=" \u212B\u00B2  "), 0, wx.ALIGN_CENTER_VERTICAL)
-            sizercontrol2.Add(ccsrange, (2, 0), span=(1, 2))
+            sizercontrol2.Add(ccsrange, (i, 0), span=(1, 2))
+            i += 1
 
             self.ctlccsbins = wx.TextCtrl(panel2, value="", size=size1)
-            sizercontrol2.Add(self.ctlccsbins, (4, 1), span=(1, 2))
-            sizercontrol2.Add(wx.StaticText(panel2, label="Sample CCS Every (\u212B\u00B2): "), (4, 0),
+            sizercontrol2.Add(self.ctlccsbins, (i, 1), span=(1, 2))
+            sizercontrol2.Add(wx.StaticText(panel2, label="Sample CCS Every (\u212B\u00B2): "), (i, 0),
                               flag=wx.ALIGN_CENTER_VERTICAL)
-
-            self.ctldtsig = wx.TextCtrl(panel2, value="", size=size1)
-            sizercontrol2.Add(self.ctldtsig, (6, 1), span=(1, 2))
-            sizercontrol2.Add(wx.StaticText(panel2, label="Peak FWHM (ms): "), (6, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
 
         self.ctlmassbins = wx.TextCtrl(panel2, value="", size=size1)
-        self.ctlmzsig = wx.TextCtrl(panel2, value="", size=size1)
-        self.ctlpsfun = wx.RadioBox(panel2, label="Peak Shape Function",
-                                    choices=["Gaussian", "Lorentzian", "Split G/L"])
+        sizercontrol2.Add(self.ctlmassbins, (i, 1), span=(1, 2))
+        sizercontrol2.Add(wx.StaticText(panel2, label="Sample Mass Every (Da): "), (i, 0),
+                          flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
         self.rununidec = wx.Button(panel2, -1, "Run UniDec")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_unidec_button, self.rununidec)
-
-        sizercontrol2.Add(zrange, (0, 0), span=(1, 2))
-        sizercontrol2.Add(massrange, (1, 0), span=(1, 2))
-        sizercontrol2.Add(self.ctlmassbins, (2 + self.config.imflag, 1), span=(1, 2))
-        sizercontrol2.Add(self.ctlmzsig, (3 + self.config.imflag * 2, 1), span=(1, 2))
-        sizercontrol2.Add(wx.StaticText(panel2, label="Sample Mass Every (Da): "), (2 + self.config.imflag, 0),
-                          flag=wx.ALIGN_CENTER_VERTICAL)
-        sizercontrol2.Add(wx.StaticText(panel2, label="Peak FWHM (Th): "), (3 + self.config.imflag * 2, 0),
-                          flag=wx.ALIGN_CENTER_VERTICAL)
-        sizercontrol2.Add(self.ctlpsfun, (4 + self.config.imflag * 3, 0), span=(1, 2))
-        sizercontrol2.Add(self.rununidec, (5 + self.config.imflag * 3, 0), span=(1, 2), flag=wx.EXPAND)
+        sizercontrol2.Add(self.rununidec, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
 
         panel2.SetSizer(sizercontrol2)
         sizercontrol2.Fit(panel2)
@@ -338,47 +353,81 @@ class main_controls(wx.Panel):
         self.foldpanels.AddFoldPanelWindow(foldpanel2, wx.StaticText(foldpanel2, -1, " "), fpb.FPB_ALIGN_WIDTH)
 
         # Panel for Additional Restraints
-        foldpanel2b = self.foldpanels.AddFoldPanel(caption="Additional Filters/Restraints", collapsed=True,
+        foldpanel2b = self.foldpanels.AddFoldPanel(caption="Additional Deconvolution Parameters", collapsed=True,
                                                    cbstyle=style2b)
         panel2b = wx.Panel(foldpanel2b, -1)
         gbox2b = wx.GridBagSizer(wx.VERTICAL)
 
-        self.ctlzzsig = wx.TextCtrl(panel2b, value="", size=size1)
-        gbox2b.Add(wx.StaticText(panel2b, label="Charge Smooth Width: "), (0, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox2b.Add(self.ctlzzsig, (0, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlmzsig = wx.TextCtrl(panel2b, value="", size=size1)
+        self.ctlpsfun = wx.RadioBox(panel2b, label="Peak Shape Function",
+                                    choices=["Gaussian", "Lorentzian", "Split G/L"])
+        i = 0
+        gbox2b.Add(self.ctlmzsig, (i, 1), span=(1, 2))
+        gbox2b.Add(wx.StaticText(panel2b, label="Peak FWHM (Th): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+        gbox2b.Add(self.ctlpsfun, (i, 0), span=(1, 2))
+        i += 1
 
-        self.ctlmolig = wx.TextCtrl(panel2b, value="", size=size1)
-        gbox2b.Add(wx.StaticText(panel2b, label="Mass Difference (Da): "), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox2b.Add(self.ctlmolig, (1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        if self.config.imflag == 1:
+            self.ctldtsig = wx.TextCtrl(panel2b, value="", size=size1)
+            gbox2b.Add(self.ctldtsig, (i, 1), span=(1, 2))
+            gbox2b.Add(wx.StaticText(panel2b, label="Peak FWHM (ms): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+        self.ctlzzsig = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Charge Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlzzsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        if self.config.imflag == 0:
+            self.ctlpsig = wx.TextCtrl(panel2b, value="", size=size1)
+            gbox2b.Add(wx.StaticText(panel2b, label="Point Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctlpsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
 
         self.ctlmsig = wx.TextCtrl(panel2b, value="", size=size1)
-        gbox2b.Add(wx.StaticText(panel2b, label="Mass Smooth Width: "), (2, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox2b.Add(self.ctlmsig, (2, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(wx.StaticText(panel2b, label="Mass Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlmsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlmolig = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Mass Difference (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlmolig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         if self.config.imflag == 1:
             self.ctlcsig = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="CCS Smooth Width: "), (3, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctlcsig, (3, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(wx.StaticText(panel2b, label="CCS Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctlcsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
 
         self.ctlnumit = wx.TextCtrl(panel2b, value='', size=size1)
-        gbox2b.Add(wx.StaticText(panel2b, label='Maximum # of Iterations: '), (3 + self.config.imflag, 0),
+        gbox2b.Add(wx.StaticText(panel2b, label='Maximum # of Iterations: '), (i, 0),
                    flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox2b.Add(self.ctlnumit, (3 + self.config.imflag, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlnumit, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         self.ctlpoolflag = wx.RadioBox(panel2b, label="m/z to Mass Transformation",
                                        choices=["Integration", "Interpolation"])
-        gbox2b.Add(self.ctlpoolflag, (4 + self.config.imflag, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlpoolflag, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         if self.config.imflag == 0:
             self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
-            gbox2b.Add(self.ctlisotopemode, (5 + self.config.imflag, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctlisotopemode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.ctlorbimode = wx.CheckBox(panel2b, label="Charge Scaling")
-            gbox2b.Add(self.ctlorbimode, (6 + self.config.imflag, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctlorbimode, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+        self.ctlnegmode = wx.CheckBox(panel2b, label="Negative Mode")
+        gbox2b.Add(self.ctlnegmode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.parent.Bind(wx.EVT_CHECKBOX, self.export_gui_to_config, self.ctlnegmode)
 
         self.ctlmanualassign = wx.CheckBox(panel2b, label="Manual Mode")
         self.parent.Bind(wx.EVT_CHECKBOX, self.on_check_manual, self.ctlmanualassign)
-        gbox2b.Add(self.ctlmanualassign, (5 + self.config.imflag, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlmanualassign, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         mlsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.ctlmasslistflag = wx.CheckBox(panel2b, label="Mass List Window:")
@@ -387,7 +436,8 @@ class main_controls(wx.Panel):
         mlsizer.Add(self.ctlmasslistflag, 0, wx.ALIGN_CENTER_VERTICAL)
         mlsizer.Add(self.ctlmtabsig, 0, wx.ALIGN_CENTER_VERTICAL)
         mlsizer.Add(wx.StaticText(panel2b, label=" Da "), 0, wx.ALIGN_CENTER_VERTICAL)
-        gbox2b.Add(mlsizer, (7, 0), span=(1, 2))
+        gbox2b.Add(mlsizer, (i, 0), span=(1, 2))
+        i += 1
 
         sb = wx.StaticBox(panel2b, label='Native Charge Offset Range')
         sbs = wx.StaticBoxSizer(sb, orient=wx.HORIZONTAL)
@@ -396,7 +446,8 @@ class main_controls(wx.Panel):
         sbs.Add(self.ctlminnativez, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
         sbs.Add(wx.StaticText(panel2b, label=' to '), 0, wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
         sbs.Add(self.ctlmaxnativez, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
-        gbox2b.Add(sbs, (8, 0), span=(1, 2), flag=wx.EXPAND)
+        gbox2b.Add(sbs, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
 
         if self.config.imflag == 1:
             sb2 = wx.StaticBox(panel2b, label='Native CCS Offset Range')
@@ -407,7 +458,7 @@ class main_controls(wx.Panel):
             sbs2.Add(wx.StaticText(panel2b, label=' to '), 0, wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
             sbs2.Add(self.ctlnativeccsub, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
             sbs2.Add(wx.StaticText(panel2b, label=" \u212B\u00B2 "), 0, wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
-            gbox2b.Add(sbs2, (9, 0), span=(1, 2), flag=wx.EXPAND)
+            gbox2b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
 
         panel2b.SetSizer(gbox2b)
         gbox2b.Fit(panel2b)
@@ -422,7 +473,6 @@ class main_controls(wx.Panel):
         sizercontrol3 = wx.GridBagSizer(wx.VERTICAL)
         self.ctlwindow = wx.TextCtrl(panel3, value="", size=size1)
         self.ctlthresh = wx.TextCtrl(panel3, value="", size=size1)
-        self.ctlnorm = wx.RadioBox(panel3, label="Peak Normalization", choices=["None", "Max", "Total"])
 
         self.plotbutton = wx.Button(panel3, -1, "Peak Detection")
         self.plotbutton2 = wx.Button(panel3, -1, "Plot Peaks")
@@ -435,9 +485,9 @@ class main_controls(wx.Panel):
         sizercontrol3.Add(self.ctlthresh, (1, 1))
         sizercontrol3.Add(wx.StaticText(panel3, label="Peak Detection Threshold: "), (1, 0),
                           flag=wx.ALIGN_CENTER_VERTICAL)
-        sizercontrol3.Add(self.ctlnorm, (2, 0), span=(1, 2), flag=wx.EXPAND)
-        sizercontrol3.Add(self.plotbutton, (3, 0), span=(1, 1), flag=wx.EXPAND)
-        sizercontrol3.Add(self.plotbutton2, (3, 1), span=(1, 1), flag=wx.EXPAND)
+
+        sizercontrol3.Add(self.plotbutton, (2, 0), span=(1, 1), flag=wx.EXPAND)
+        sizercontrol3.Add(self.plotbutton2, (2, 1), span=(1, 1), flag=wx.EXPAND)
 
         panel3.SetSizer(sizercontrol3)
         sizercontrol3.Fit(panel3)
@@ -450,9 +500,14 @@ class main_controls(wx.Panel):
         panel3b = wx.Panel(foldpanel3b, -1)
 
         gbox3b = wx.GridBagSizer(wx.VERTICAL)
-        gbox3b.Add(wx.StaticText(panel3b, label='2D Color Map: '), (0, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+
+        i = 0
+        self.ctlnorm = wx.RadioBox(panel3b, label="Peak Normalization", choices=["None", "Max", "Total"])
+        gbox3b.Add(self.ctlnorm, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+
         self.ctl2dcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
-        gbox3b.Add(wx.StaticText(panel3b, label='Peaks Color Map: '), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+
         self.ctlpeakcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
 
         for mp in self.config.cmaps2:
@@ -460,22 +515,35 @@ class main_controls(wx.Panel):
         for mp in self.config.cmaps:
             self.ctlpeakcm.Append(mp)
 
-        gbox3b.Add(self.ctl2dcm, (0, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox3b.Add(self.ctlpeakcm, (1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox3b.Add(self.ctl2dcm, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox3b.Add(wx.StaticText(panel3b, label='2D Color Map: '), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        gbox3b.Add(self.ctlpeakcm, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox3b.Add(wx.StaticText(panel3b, label='Peaks Color Map: '), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         self.ctldiscrete = wx.CheckBox(panel3b, label="Discrete Plot")
-        gbox3b.Add(self.ctldiscrete, (2, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        self.ctlpublicationmode = wx.CheckBox(panel3b, label="Publication Mode")
-        gbox3b.Add(self.ctlpublicationmode, (2, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved/Profile", "Raw/Centroid"])
-        gbox3b.Add(self.ctlrawflag, (3, 0), span=(1, 2), flag=wx.EXPAND)
+        gbox3b.Add(self.ctldiscrete, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
-        gbox3b.Add(wx.StaticText(panel3b, label="Marker Threshold: "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox3b.Add(wx.StaticText(panel3b, label="Species Separation: "), (5, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlpublicationmode = wx.CheckBox(panel3b, label="Publication Mode")
+        gbox3b.Add(self.ctlpublicationmode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved/Profile", "Raw/Centroid"])
+        gbox3b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+
         self.ctlthresh2 = wx.TextCtrl(panel3b, value="", size=size1)
+        gbox3b.Add(wx.StaticText(panel3b, label="Marker Threshold: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox3b.Add(self.ctlthresh2, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
         self.ctlsep = wx.TextCtrl(panel3b, value="", size=size1)
-        gbox3b.Add(self.ctlthresh2, (4, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox3b.Add(self.ctlsep, (5, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox3b.Add(wx.StaticText(panel3b, label="Species Separation: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox3b.Add(self.ctlsep, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         sb2 = wx.StaticBox(panel3b, label='Integration Range')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.HORIZONTAL)
@@ -485,20 +553,23 @@ class main_controls(wx.Panel):
         sbs2.Add(wx.StaticText(panel3b, label=' to '), 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
         sbs2.Add(self.ctlintub, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
         sbs2.Add(wx.StaticText(panel3b, label=' Da '), 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
-        gbox3b.Add(sbs2, (6, 0), span=(1, 2), flag=wx.EXPAND)
+        gbox3b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
 
         self.replotbutton = wx.Button(panel3b, -1, "Replot")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_replot, self.replotbutton)
-        gbox3b.Add(self.replotbutton, (7, 0), span=(1, 1), flag=wx.EXPAND)
+        gbox3b.Add(self.replotbutton, (i, 0), span=(1, 1), flag=wx.EXPAND)
 
         self.compositebutton = wx.Button(panel3b, -1, "Plot Composite")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_plot_composite, self.compositebutton)
-        gbox3b.Add(self.compositebutton, (7, 1), span=(1, 1), flag=wx.EXPAND)
+        gbox3b.Add(self.compositebutton, (i, 1), span=(1, 1), flag=wx.EXPAND)
+        i += 1
 
         if self.config.imflag == 1:
             self.cubeplotbutton = wx.Button(panel3b, -1, "Plot Cubes")
             self.parent.Bind(wx.EVT_BUTTON, self.pres.make_cube_plot, self.cubeplotbutton)
-            gbox3b.Add(self.cubeplotbutton, (8, 0), span=(1, 2), flag=wx.EXPAND)
+            gbox3b.Add(self.cubeplotbutton, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1
 
         panel3b.SetSizer(gbox3b)
         gbox3b.Fit(panel3b)
@@ -567,9 +638,15 @@ class main_controls(wx.Panel):
                 self.ctlisotopemode.SetValue(self.config.isotopemode)
                 self.ctlorbimode.SetValue(self.config.orbimode)
                 self.ctlbintype.SetSelection(int(self.config.linflag))
+                self.ctlpsig.SetValue(str(self.config.psig))
             self.ctldiscrete.SetValue(self.config.discreteplot)
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlrawflag.SetSelection(self.config.rawflag)
+
+            if self.config.adductmass < 0:
+                self.ctlnegmode.SetValue(1)
+            else:
+                self.ctlnegmode.SetValue(0)
 
             try:
                 self.ctl2dcm.SetSelection(self.config.cmaps2.index(self.config.cmap))
@@ -640,7 +717,7 @@ class main_controls(wx.Panel):
                 self.ctlmindt.SetValue(str(self.config.mindt))
                 self.ctlmaxdt.SetValue(str(self.config.maxdt))
 
-    def export_gui_to_config(self):
+    def export_gui_to_config(self, e=None):
         """
         Exports parameters from the GUI to the config object.
         :return: None
@@ -679,6 +756,7 @@ class main_controls(wx.Panel):
         if self.config.imflag == 0:
             self.config.isotopemode = int(self.ctlisotopemode.GetValue())
             self.config.orbimode = int(self.ctlorbimode.GetValue())
+            self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
             self.config.manualfileflag = int(self.ctlmanualassign.GetValue())
             self.config.linflag = self.ctlbintype.GetSelection()
             if self.config.mzbins == 0:
@@ -687,6 +765,17 @@ class main_controls(wx.Panel):
         self.config.discreteplot = int(self.ctldiscrete.GetValue())
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
         self.config.rawflag = self.ctlrawflag.GetSelection()
+
+        if self.ctlnegmode.GetValue() == 1:
+            # print("Negative Ion Mode")
+            if (self.config.adductmass > 0):
+                self.config.adductmass *= -1
+                self.ctladductmass.SetValue(str(self.config.adductmass))
+        else:
+            # print("Positive Ion Mode")
+            if (self.config.adductmass < 0):
+                self.config.adductmass *= -1
+                self.ctladductmass.SetValue(str(self.config.adductmass))
 
         self.config.cmap = str(self.ctl2dcm.GetStringSelection())
         self.config.peakcmap = str(self.ctlpeakcm.GetStringSelection())
@@ -794,6 +883,8 @@ class main_controls(wx.Panel):
             self.ctlmanualassign.SetToolTip(wx.ToolTip("Use manual assignments. See Tools>Manual Assignment"))
             self.ctlbintype.SetToolTip(wx.ToolTip(
                 "Sets how to bin the data\nValue set by above with Bin Every\nLinear bins with linear m/z axis\nLinear Resolution bins with m/z axis that has a constant resolution\nNonlinear merges adjacent data points\nInterpolation uses the same axes but with interpolation instead of integration"))
+            self.ctlpsig.SetToolTip(wx.ToolTip(
+                "Parameter for defining the width of the data point smooth.\nUniDec will weight +/- n data points to have the same charge state."))
         self.ctlnumit.SetToolTip(wx.ToolTip(
             "Maximum number of iterations. Note: Deconvolution will stop automically before this if it converges."))
         self.ctldiscrete.SetToolTip(wx.ToolTip("Set 2D plots to discrete rather than continuous"))

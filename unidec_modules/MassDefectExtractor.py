@@ -6,6 +6,7 @@ import unidec_modules.unidectools as ud
 import unidec_modules.masstools as masstools
 import matplotlib.cm as cm
 from unidec_modules.isolated_packages import FileDialogs
+from matplotlib.ticker import FixedLocator
 
 __author__ = 'Michael.Marty'
 
@@ -39,11 +40,11 @@ class MassDefectExtractorWindow(wx.Frame):
         if self.outfname is not "":
             self.outfname += "_"
 
-        self.window = 0.1
+        self.window = 0.05
         self.data = datalist
         self.xdat = xarray
         self.ydat = yarray
-        defaultexchoice = "Area"
+        defaultexchoice = "Local Max"
 
         # Make the menu
         filemenu = wx.Menu()
@@ -57,25 +58,24 @@ class MassDefectExtractorWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_save_fig, menu_save_fig_png)
         self.Bind(wx.EVT_MENU, self.on_save_fig_pdf, menu_save_fig_pdf)
 
-        '''
         self.plotmenu = wx.Menu()
         self.menuaddline = self.plotmenu.Append(wx.ID_ANY, "Add Horizontal Line",
                                                 "Add Horizontal Line at Specific Y Value")
-        self.menufit = self.plotmenu.Append(wx.ID_ANY, "Fit Peaks",
-                                            "Fit total mass defect peaks")
+        # self.menufit = self.plotmenu.Append(wx.ID_ANY, "Fit Peaks",
+        #                                    "Fit total mass defect peaks")
         self.Bind(wx.EVT_MENU, self.on_add_line, self.menuaddline)
-        self.Bind(wx.EVT_MENU, self.on_fit, self.menufit)
-        '''
+        # self.Bind(wx.EVT_MENU, self.on_fit, self.menufit)
+
         menu_bar = wx.MenuBar()
         menu_bar.Append(filemenu, "&File")
-        # menu_bar.Append(self.plotmenu, "Plot")
+        menu_bar.Append(self.plotmenu, "Plot")
         self.SetMenuBar(menu_bar)
 
         # Setup the GUI
         panel = wx.Panel(self)
 
         self.plot1 = plot1d.Plot1d(panel)
-        # self.plot2 = plot2d.Plot2d(panel)
+        self.plot2 = plot2d.Plot2d(panel)
         self.plot5 = plot1d.Plot1d(panel)
         self.plot6 = plot2d.Plot2d(panel)
 
@@ -105,11 +105,12 @@ class MassDefectExtractorWindow(wx.Frame):
         plotsizer1 = wx.BoxSizer(wx.VERTICAL)
         plotsizer2 = wx.BoxSizer(wx.VERTICAL)
         plotsizer1.Add(self.plot1, 2, wx.EXPAND)
-        # plotsizer1.Add(self.plot2, 2, wx.EXPAND)
-        plotsizer1.Add(sbs, 2)
+        plotsizer1.Add(self.plot2, 2, wx.EXPAND)
+
         plotsizer2.Add(self.plot5, 0, wx.EXPAND)
         plotsizer2.Add(self.plot6, 0, wx.EXPAND)
 
+        hbox.Add(sbs, 0)
         hbox.Add(plotsizer1, 1, wx.EXPAND)
         hbox.Add(plotsizer2, 1, wx.EXPAND)
 
@@ -132,7 +133,9 @@ class MassDefectExtractorWindow(wx.Frame):
 
         self.ctlnorm = wx.RadioBox(panel, label="Extract Normalization",
                                    choices=["None", "Max", "Sum", "Peak Max", "Peak Sum"])
+        self.ctlnorm.SetSelection(2)
         # , majorDimension=3,style=wx.RA_SPECIFY_COLS)
+        self.ctlnorm.SetSelection(2)
         controlsizer.Add(self.ctlnorm, 0, wx.ALIGN_CENTER_VERTICAL)
 
         sizer.Add(controlsizer, 0, wx.EXPAND)
@@ -148,9 +151,9 @@ class MassDefectExtractorWindow(wx.Frame):
         self.Raise()
         self.make_list_plots()
 
-        #defaultmdlist = [0.0, 0.25, 0.55]
-        #self.masslistbox.list.populate(defaultmdlist)
-        #self.on_extract()
+        # defaultmdlist = [0.0, 0.25, 0.55]
+        # self.masslistbox.list.populate(defaultmdlist)
+        # self.on_extract()
 
     def on_extract(self, e=None):
         print("Extracting...")
@@ -172,7 +175,8 @@ class MassDefectExtractorWindow(wx.Frame):
         ud.normalize_extracts(self.grid, self.norm)
         try:
             save_path2d = os.path.join(self.directory, self.outfname + "Mass_Defect_Extracts.txt")
-            np.savetxt(save_path2d, np.concatenate([np.array([self.ydat], dtype=np.float), self.grid]))
+            np.savetxt(save_path2d, self.grid)
+            np.savetxt(os.path.join(self.directory, self.outfname + "Mass_Defect_Extracts_xvals.txt"), self.ydat)
             print('Saved: ', save_path2d)
         except Exception as e:
             print("Failed Data Export Extracts", e)
@@ -200,6 +204,26 @@ class MassDefectExtractorWindow(wx.Frame):
                 self.plot1.clear_plot()
                 print("Failed Plot Ext1", e)
         self.plot1.add_legend()
+
+        try:
+            self.make_2d_plot()
+        except Exception as e:
+            print(e)
+
+    def make_2d_plot(self):
+        iarray = np.arange(0, len(self.mdlist))
+        m1grid, m2grid = np.meshgrid(self.ydat, iarray, indexing='ij')
+        data2 = np.transpose([np.ravel(m1grid), np.ravel(m2grid), np.ravel(self.grid.transpose())])
+        try:
+            self.plot2.contourplot(data2, self.config, xlab="Variable 1", ylab="Extracts", title="",
+                                   normflag=1, discrete=True)
+            self.plot2.subplot1.yaxis.set_major_locator(FixedLocator(iarray))
+            self.plot2.subplot1.set_yticklabels(self.mdlist)  # , rotation=90)
+            self.plot2.repaint()
+        except Exception as e:
+            self.plot2.clear_plot()
+            print("Failed Plot 2", e)
+        pass
 
     def make_list_plots(self):
         self.colormap = cm.get_cmap(ud.smartdecode(self.config.peakcmap), len(self.ydat))
@@ -230,6 +254,28 @@ class MassDefectExtractorWindow(wx.Frame):
             self.plot6.clear_plot()
             print("Failed Plot Ext6", e)
         pass
+
+    def on_add_line(self, e):
+        """
+        Add a horizontal line to the plot to visualize a predicted mass defect.
+        Opens a dialog to input the value. Can be called more than once to add multiple lines.
+        :param e: Unused event
+        :return: None
+        """
+
+        for x in self.mdlist:
+            #print(x)
+            try:
+                ylim = self.plot6.subplot1.get_ylim()
+                self.plot6.subplot1.plot((x, x), (ylim[0], ylim[1]), color=self.plot2.tickcolor)
+                self.plot6.repaint()
+
+                ylim4 = self.plot5.subplot1.get_ylim()
+                self.plot5.subplot1.plot((x, x), (ylim4[0], ylim4[1]), color=self.plot5.tickcolor)
+                self.plot5.repaint()
+            except Exception as e:
+                print("Failed: ", x, e)
+                pass
 
     def on_oligomer_tools(self, e):
         dlg = masstools.MassSelection(self)
@@ -306,6 +352,10 @@ class MassDefectExtractorWindow(wx.Frame):
         if self.plot6.flag:
             self.plot6.on_save_fig(e, name2)
             # print name2
+        name2 = os.path.join(self.directory, self.outfname + "MassDefectExtract4.png")
+        if self.plot2.flag:
+            self.plot2.on_save_fig(e, name2)
+            # print name2
 
     def on_save_fig_pdf(self, e):
         """
@@ -326,6 +376,10 @@ class MassDefectExtractorWindow(wx.Frame):
         if self.plot6.flag:
             self.plot6.on_save_fig(e, name2)
             # print name2
+        name2 = os.path.join(self.directory, self.outfname + "MassDefectExtract4.pdf")
+        if self.plot2.flag:
+            self.plot2.on_save_fig(e, name2)
+            # print name2
 
 
 # Main App Execution
@@ -340,5 +394,8 @@ if __name__ == "__main__":
 
     app = wx.App(False)
     frame = MassDefectExtractorWindow(None, data, xarray, yarray)
-    frame.config.kendrickmass=760
+    frame.mdlist = [0.0, 0.1, 0.2, 0.3]
+    frame.masslistbox.list.populate(frame.mdlist)
+    frame.on_extract()
+    frame.make_2d_plot()
     app.MainLoop()

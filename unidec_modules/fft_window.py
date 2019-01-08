@@ -32,7 +32,7 @@ class FFTWindow(wx.Frame):
         self.window_fwhm = 500
         self.binsize = 0.5
         self.wbin = 200
-        self.diffrange = [740, 770]
+        self.diffrange = [700, 800]
 
         self.rawdata = data
         self.rawdata[:, 1] /= np.amax(self.rawdata[:, 1])

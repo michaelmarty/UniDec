@@ -20,6 +20,7 @@ class Peak:
         self.mass = 0
         self.height = 0
         self.ccs = 0
+        self.centroid = 0
         self.area = ""
         self.color = [1, 1, 1]
         self.label = ""
@@ -51,6 +52,7 @@ class Peak:
         self.diff = 0
         self.extracts = []
         self.errorFWHM = 0
+        self.intervalFWHM = [0, 0]
         self.errormean = -1
         self.errorreplicate = 0
 
@@ -106,7 +108,7 @@ class Peaks:
         :return: None
         """
         if cmap[:2] == "b'":
-            cmap=cmap[2:-1]
+            cmap = cmap[2:-1]
         try:
             cmap = str(cmap, encoding="utf-8")
         except:
