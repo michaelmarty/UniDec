@@ -805,7 +805,7 @@ class UniDecConfig(object):
         self.zzsig = 1
         self.psig = 1
 
-    def adefault_low_res(self):
+    def default_low_res(self):
         """
         Sets some defaults for high resolution spectra. Leaves other values unchanged.
         :return: None
