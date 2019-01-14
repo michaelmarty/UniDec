@@ -7,6 +7,7 @@ import unidec_modules.masstools as masstools
 import matplotlib.cm as cm
 from unidec_modules.isolated_packages import FileDialogs
 from matplotlib.ticker import FixedLocator
+from unidec_modules.isolated_packages import spreadsheet
 
 __author__ = 'Michael.Marty'
 
@@ -181,6 +182,13 @@ class MassDefectExtractorWindow(wx.Frame):
         except Exception as e:
             print("Failed Data Export Extracts", e)
         self.make_ext_plots()
+        #self.fill_grid()
+
+    def fill_grid(self):
+        print(self.grid.shape)
+        self.ss = spreadsheet.Spreadsheet(len(self.mdlist), len(self.ydat) + 1)
+
+
 
     def make_ext_plots(self):
         self.colormap = cm.get_cmap(ud.smartdecode(self.config.peakcmap), len(self.mdlist))

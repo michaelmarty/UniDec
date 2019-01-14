@@ -1004,6 +1004,7 @@ class UniDecApp(UniDecPres):
         :param e:
         :return:
         """
+        self.eng.data.import_grids_and_peaks()
         dirnew = os.path.split(self.eng.config.outfname)[0]
         exwindow = Extract2D.Extract2DPlot(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1,
                                            params=self.eng.config.gridparams,

@@ -109,8 +109,11 @@ class MassDefectWindow(wx.Frame):
                                                 "Add Horizontal Line at Specific Y Value")
         self.menufit = self.plotmenu.Append(wx.ID_ANY, "Fit Peaks",
                                             "Fit total mass defect peaks")
+        self.menupeaks = self.plotmenu.Append(wx.ID_ANY, "Label Peaks",
+                                              "Label peaks")
         self.Bind(wx.EVT_MENU, self.on_add_line, self.menuaddline)
         self.Bind(wx.EVT_MENU, self.on_fit, self.menufit)
+        self.Bind(wx.EVT_MENU, self.on_label_peaks, self.menupeaks)
 
         menu_bar = wx.MenuBar()
         menu_bar.Append(filemenu, "&File")
@@ -598,12 +601,27 @@ class MassDefectWindow(wx.Frame):
 
         self.plot3.plotadd(self.data1d[:, 0], fitdat, "green", nopaint=False)
 
+        for f in fits[:, 0]:
+            if np.amin(self.data1d[:, 0]) <= f <= np.amax(self.data1d[:, 0]):
+                y = np.amax(self.data1d[ud.nearest(self.data1d[:, 0], f), 1])
+                self.plot3.addtext(str(np.round(f, 3)), f + 0.075, y * 0.95, vlines=False)
+                self.plot3.addtext("", f, y, vlines=True)
+
+    def on_label_peaks(self, e=None):
+        peaks = ud.peakdetect(self.data1d, window=3)
+        print("Peaks:", peaks[:, 0])
+
+        for p in peaks:
+            y = p[1]
+            self.plot3.addtext(str(np.round(p[0], 3)), p[0] + 0.075, y * 0.95, vlines=False)
+            self.plot3.addtext("", p[0], y, vlines=True)
+
 
 # Main App Execution
 if __name__ == "__main__":
     dir = "C:\\Python\\UniDec\\TestSpectra\\60_unidecfiles"
     file = "60_mass.txt"
-    file = "60_input.dat"
+    # file = "60_input.dat"
 
     path = os.path.join(dir, file)
 
@@ -620,4 +638,5 @@ if __name__ == "__main__":
 
     app = wx.App(False)
     frame = MassDefectWindow(None, datalist)
+    frame.on_label_peaks(0)
     app.MainLoop()

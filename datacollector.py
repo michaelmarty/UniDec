@@ -233,7 +233,7 @@ class NetworkFrame(PlottingWindow):
         self.repaint()
 
 
-datachoices = {0: "Raw Data", 1: "Processed Data", 2: "Zero Charge Mass Spectrum"}
+datachoices = {0: "Raw Data", 1: "Processed Data", 2: "Zero Charge Mass Spectrum", 3: "CCS (Experimental)"}
 extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position",
                   5: "Center of Mass 50%", 6: "Center of Mass 10%"}
 extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass", 5: "Mass", 6: "Mass"}
@@ -852,6 +852,14 @@ class DataCollector(wx.Frame):
                         except (ValueError, TypeError, AttributeError):
                             self.ypanel.list.populate(self.yvals)
 
+            elif self.datachoice == 3:
+                filename = os.path.join(header + "_unidecfiles", subheader + "_ccs.txt")
+                if self.filetype == 1:
+                    print("ERROR: HDF5 Files not supported with IMMS data")
+                else:
+                    data = np.loadtxt(filename)
+                self.xlabel = "CCS (A^2)"
+
             if not ud.isempty(self.range):
                 bool1 = data[:, 0] >= self.range[0]
                 bool2 = data[:, 0] <= self.range[1]
@@ -1064,6 +1072,10 @@ class DataCollector(wx.Frame):
             elif self.datachoice == 2:
                 filename = os.path.join(header + "_unidecfiles", subheader + "_massgrid.bin")
                 file2 = os.path.join(header + "_unidecfiles", subheader + "_mass.txt")
+
+            if self.datachoice == 3:
+                filename = os.path.join(header + "_unidecfiles", subheader + "_massccs.bin")
+                file2 = os.path.join(header + "_unidecfiles", subheader + "_ccs.txt")
 
             else:
                 file2 = filename
