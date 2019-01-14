@@ -200,6 +200,8 @@ Changed the right control panels to streamline the key parameters.
 
 Updated the default parameters to make them more universal.
 
+Added custom presets. You can drop any _conf.dat file in the Presets folder and it will add a custom preset for it. This folder can be organized into subfolders to collect your presets. A few custom presets from the Marty Lab are included. Feel free to send me yours if you would like them uploaded to the public distribution.
+
 Note: Several background changes to the algorithm (MS-only) have allowed the use of more general settings, such as a peak width of 0 (v.2.7.3) and a point smooth width of 1, which adds an additional smooth of +/- 1 data point. We hope that these defaults and changes to the layout will allow new users to more easily access the software. Power users will still have access to these parameters in the advanced settings windows. 
 
 v.3.0.2

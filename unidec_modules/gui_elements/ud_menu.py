@@ -52,7 +52,7 @@ class main_menu(wx.Menu):
                                                     "Defaults for POPC Nanodiscs.")
 
         # Custom Presets
-        self.custommenu, self.masterd = pm.make_preset_menu()
+        self.custommenu, self.masterd = pm.make_preset_menu(self.config.presetdir)
         self.defaultmenu.AppendSubMenu(self.custommenu, "Custom")
         for i, path, item in self.masterd:
             self.parent.Bind(wx.EVT_MENU, self.on_custom_defaults, item)

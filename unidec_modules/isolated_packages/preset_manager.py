@@ -11,45 +11,48 @@ def make_preset_menu(toppath=None):
     masterd = []
     i = 0
     topi = 1500
-    for p in os.listdir(toppath):
-        path = os.path.join(toppath, p)
-        if os.path.isfile(path):
-            mitem = opmenu.Append(topi + i, p)
-            masterd.append([topi + i, path, mitem])
-            i += 1
-            # print(p)
-        if os.path.isdir(path):
-            opmenu2 = wx.Menu()
-            opmenu.AppendSubMenu(opmenu2, p)
-            for p in os.listdir(path):
-                path2 = os.path.join(path, p)
-                if os.path.isfile(path2):
-                    mitem = opmenu2.Append(topi + i, p)
-                    masterd.append([topi + i, path2, mitem])
-                    i += 1
-                    # print(p)
-                if os.path.isdir(path2):
-                    opmenu3 = wx.Menu()
-                    opmenu2.AppendSubMenu(opmenu3, p)
-                    for p in os.listdir(path2):
-                        path3 = os.path.join(path2, p)
-                        if os.path.isfile(path3):
-                            mitem = opmenu3.Append(topi + i, p)
-                            masterd.append([topi + i, path3, mitem])
-                            i += 1
-                            # print(p)
-                        if os.path.isdir(path3):
-                            opmenu4 = wx.Menu()
-                            opmenu3.AppendSubMenu(opmenu4, p)
-                            for p in os.listdir(path3):
-                                path4 = os.path.join(path3, p)
-                                if os.path.isfile(path4):
-                                    mitem = opmenu4.Append(topi + i, p)
-                                    masterd.append([topi + i, path4, mitem])
-                                    i += 1
-                                    # print(p)
-                                if os.path.isdir(path4):
-                                    print("Error: Reached Max Recursion Depth in Presents Folder")
+    try:
+        for p in os.listdir(toppath):
+            path = os.path.join(toppath, p)
+            if os.path.isfile(path):
+                mitem = opmenu.Append(topi + i, p)
+                masterd.append([topi + i, path, mitem])
+                i += 1
+                # print(p)
+            if os.path.isdir(path):
+                opmenu2 = wx.Menu()
+                opmenu.AppendSubMenu(opmenu2, p)
+                for p in os.listdir(path):
+                    path2 = os.path.join(path, p)
+                    if os.path.isfile(path2):
+                        mitem = opmenu2.Append(topi + i, p)
+                        masterd.append([topi + i, path2, mitem])
+                        i += 1
+                        # print(p)
+                    if os.path.isdir(path2):
+                        opmenu3 = wx.Menu()
+                        opmenu2.AppendSubMenu(opmenu3, p)
+                        for p in os.listdir(path2):
+                            path3 = os.path.join(path2, p)
+                            if os.path.isfile(path3):
+                                mitem = opmenu3.Append(topi + i, p)
+                                masterd.append([topi + i, path3, mitem])
+                                i += 1
+                                # print(p)
+                            if os.path.isdir(path3):
+                                opmenu4 = wx.Menu()
+                                opmenu3.AppendSubMenu(opmenu4, p)
+                                for p in os.listdir(path3):
+                                    path4 = os.path.join(path3, p)
+                                    if os.path.isfile(path4):
+                                        mitem = opmenu4.Append(topi + i, p)
+                                        masterd.append([topi + i, path4, mitem])
+                                        i += 1
+                                        # print(p)
+                                    if os.path.isdir(path4):
+                                        print("Error: Reached Max Recursion Depth in Presents Folder")
+    except Exception as e:
+        print("Problem with preset manager: ", e)
     masterd = np.array(masterd)
     # print(masterd)
     return custommenu, masterd
