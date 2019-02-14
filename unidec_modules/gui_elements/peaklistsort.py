@@ -96,6 +96,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         col = self.list_ctrl.GetColumn(3)
         if not self.meta:
             col.SetText("Area")
+        if show == "avgcharge":
+            col.SetText("Avg. Charge")
         self.list_ctrl.SetColumn(3, col)
         self.list_ctrl.SetColumnWidth(3, 50)
 
@@ -126,6 +128,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                     self.list_ctrl.SetItem(i, 3, "%.2f" % p.integral)
                 elif show == "diff":
                     self.list_ctrl.SetItem(i, 3, str(p.diff))
+                elif show == "avgcharge":
+                    self.list_ctrl.SetItem(i, 3, str(p.avgcharge))
                 else:
                     self.list_ctrl.SetItem(i, 3, "")
             except (ValueError, AttributeError, TypeError):

@@ -192,6 +192,10 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.3.1.1
+
+Added an experimental feature to plot average charge state for peaks in UniDec. 
+
 v.3.1.0
 
 Added new parameter for Point Width Smooth. 

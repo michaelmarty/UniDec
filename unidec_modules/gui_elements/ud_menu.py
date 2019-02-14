@@ -264,6 +264,10 @@ class main_menu(wx.Menu):
                                                       "Labels the maximum charge state in each distribution")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_label_max_charge_states, self.maxcharge)
 
+        self.maxcharge = self.experimentalmenu.Append(wx.ID_ANY, "Label Average Charge States",
+                                                      "Labels the average charge state in each distribution")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_label_avg_charge_states, self.maxcharge)
+
         self.experimentalmenu.AppendSeparator()
         self.menuifams = self.experimentalmenu.Append(wx.ID_ANY, "iFAMS")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_iFAMS, self.menuifams)

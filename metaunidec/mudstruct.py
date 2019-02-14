@@ -111,7 +111,7 @@ class MetaDataSet:
             grid3 = [grid2, grid]
             self.massgrid = np.transpose(grid3)
         except:
-            print("Mass Grid Warning:", grid.shape, sum.shape, len(grid)/len(sum))
+            print("Mass Grid Warning:", grid.shape, sum.shape)#, len(grid)/len(sum))
         # MZ Space
         axis = get_dataset(msdataset, "mz_axis")
         sum = get_dataset(msdataset, "mz_sum")
@@ -124,7 +124,7 @@ class MetaDataSet:
             grid3 = [grid2, grid]
             self.mzgrid = np.transpose(grid3)
         except:
-            print("mz grid Warning:", grid.shape, sum.shape, len(grid)/len(sum))
+            print("mz grid Warning:", grid.shape, sum.shape)#, len(grid)/len(sum))
         hdf.close()
         return num
 

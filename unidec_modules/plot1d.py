@@ -305,7 +305,7 @@ class Plot1d(PlottingWindow):
             self.repaint()
 
     def colorplotMD(self, xvals, yvals, cvals, title="", xlabel="", ylabel="", label="", cmap="hsv", config=None,
-                    color="black",
+                    color="black", max=1,
                     marker=None, zoom="box", nopaint=False, test_kda=False, integerticks=False, **kwargs):
         self._axes = [0.11, 0.1, 0.64, 0.8]
         self.clear_plot("nopaint")
@@ -334,7 +334,8 @@ class Plot1d(PlottingWindow):
         t = cvals  # np.linspace(0, 1, len(xvals), endpoint=True)
         lc = LineCollection(segments, cmap=cmap)
         lc.set_array(t)
-        lc.set_clim(0,1)
+        lc.set_clim(0, max)
+        # print(max, np.amax(t))
         self.subplot1.add_collection(lc)
 
         if pubflag == 0:
@@ -361,9 +362,17 @@ class Plot1d(PlottingWindow):
 
         self.subplot1.set_xlabel(self.xlabel)
         cax = self.figure.add_axes([0.77, 0.1, 0.04, 0.8])
-        self.cbar = colorbar.ColorbarBase(cax, cmap=cmap, orientation="vertical",
-                                          ticks=np.linspace(0., 1., 11, endpoint=True))
-        self.cbar.set_label("Normalized Mass Defect")
+        ticks = np.linspace(0., 1., 11, endpoint=True)
+
+        self.cbar = colorbar.ColorbarBase(cax, cmap=cmap, orientation="vertical", ticks=ticks)
+        ticks = ticks * max
+        if max > 10:
+            ticks = np.round(ticks).astype(np.int)
+        else:
+            ticks = np.round(ticks, 1)
+        ticks = ticks.astype(str)
+        self.cbar.set_ticklabels(ticks)
+        self.cbar.set_label("Mass Defect")
 
         self.setup_zoom([self.subplot1], self.zoomtype,
                         data_lims=[np.amin(xvals), np.amin(yvals), np.max(xvals), np.amax(yvals)])

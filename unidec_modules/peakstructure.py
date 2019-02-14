@@ -55,6 +55,7 @@ class Peak:
         self.intervalFWHM = [0, 0]
         self.errormean = -1
         self.errorreplicate = 0
+        self.avgcharge = 0
 
 
 class Peaks:

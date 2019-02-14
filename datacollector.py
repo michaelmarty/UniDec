@@ -121,7 +121,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
             self.SetItemData(index, i)
             if colors is not None:
                 color = wx.Colour(int(round(colors[i][0] * 255)), int(round(colors[i][1] * 255)),
-                                  int(round(colors[i][2] * 255)) , alpha=255)
+                                  int(round(colors[i][2] * 255)), alpha=255)
                 self.SetItemBackgroundColour(index, col=color)
 
     def clear_list(self):
@@ -154,7 +154,7 @@ class ListCtrlPanel(wx.Panel):
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         id_value = wx.NewId()
         self.selection = []
-        self.list_type=list_type
+        self.list_type = list_type
         sizer = wx.BoxSizer(wx.VERTICAL)
         if list_type == "X":
             self.list = XValueListCtrl(self, id_value, size=size, style=wx.LC_REPORT | wx.BORDER_NONE)
@@ -388,7 +388,8 @@ class DataCollector(wx.Frame):
 
         self.runsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.runsizer.Add(wx.StaticText(self.panel, label=" What to extract: "), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.ctldata = wx.ComboBox(self.panel, value="Raw Data", choices=list(datachoices.values()), style=wx.CB_READONLY)
+        self.ctldata = wx.ComboBox(self.panel, value="Raw Data", choices=list(datachoices.values()),
+                                   style=wx.CB_READONLY)
         self.runsizer.Add(self.ctldata, 0, wx.EXPAND)
 
         self.runsizer.Add(wx.StaticText(self.panel, label=" Range:"), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -406,7 +407,8 @@ class DataCollector(wx.Frame):
         self.ctlnorm2 = wx.CheckBox(self.panel, label="Normalize Extraction")
         self.runsizer.Add(self.ctlnorm2, 0, wx.EXPAND)
         self.runsizer.Add(wx.StaticText(self.panel, label=" How to extract: "), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.ctlextract = wx.ComboBox(self.panel, value="Height", choices=list(extractchoices.values()), style=wx.CB_READONLY)
+        self.ctlextract = wx.ComboBox(self.panel, value="Height", choices=list(extractchoices.values()),
+                                      style=wx.CB_READONLY)
         self.runsizer.Add(self.ctlextract, 0, wx.EXPAND)
         self.runsizer.Add(wx.StaticText(self.panel, label=" Window:"), 0, wx.ALIGN_CENTER_VERTICAL)
         self.ctlwindow = wx.TextCtrl(self.panel, value="", size=(50, 20))
@@ -743,7 +745,8 @@ class DataCollector(wx.Frame):
     def update_set(self, e):
         self.ctlprotmodel.SetValue(
             next((label for label, flag in list(modelchoices.items()) if flag == self.protflag), "test"))
-        self.ctlligmodel.SetValue(next((label for label, flag in list(modelchoices.items()) if flag == self.ligflag), "test"))
+        self.ctlligmodel.SetValue(
+            next((label for label, flag in list(modelchoices.items()) if flag == self.ligflag), "test"))
         self.dirinput.SetValue(self.directory)
         self.xpanel.list.populate(self.xvals)
         self.ypanel.list.populate(self.yvals)
@@ -1020,12 +1023,12 @@ class DataCollector(wx.Frame):
             maxsites = int(self.maxsites)
         except (ValueError, TypeError):
             maxsites = 0
-        model = UniFit.KDmodel(self.numprot, self.numlig, np.transpose(self.extract),
-                               self.yvals[:, 2].astype(np.float64),
+        model = UniFit.KDmodel(np.transpose(self.extract), self.yvals[:, 2].astype(np.float64),
                                self.yvals[:, 1].astype(np.float64), nodelist, os.path.join(self.directory, "fits"),
-                               removeoutliers=outlierflag, plot1=self.plot2.subplot1, plot2=self.plot3.axes,
-                               plot3=self.plot3h, bootnum=self.bootstrap, prot=self.protflag, lig=self.ligflag,
-                               maxsites=maxsites)
+                               numtotprot=self.numprot, numtotlig=self.numlig, removeoutliers=outlierflag,
+                               plot1=self.plot2.subplot1,
+                               plot2=self.plot3.axes, plot3=self.plot3h, bootnum=self.bootstrap, maxsites=maxsites,
+                               prot=self.protflag, lig=self.ligflag)
         try:
             if self.bootstrap > 0:
                 np.savetxt(os.path.join(self.directory, "fits_boots.txt"), model.randfit)
@@ -1181,7 +1184,7 @@ class DataCollector(wx.Frame):
             print("Grid is empty")
 
     def on_msms_norm(self, e):
-        dlg = wx.FileDialog(self, "Choose MS1 data file in x y list format", '', "", "*.*",)
+        dlg = wx.FileDialog(self, "Choose MS1 data file in x y list format", '', "", "*.*", )
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetFilename()
             dirname = dlg.GetDirectory()

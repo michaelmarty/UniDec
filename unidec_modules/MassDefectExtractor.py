@@ -18,9 +18,10 @@ markers = ['o', 'v', '^', '>', 's', 'd', '*']
 
 
 class MassDefectExtractorWindow(wx.Frame):
-    def __init__(self, parent, datalist, xarray, yarray, config=None):
+    def __init__(self, parent, datalist, xarray, yarray, config=None, xtype=0):
         wx.Frame.__init__(self, parent, title="Mass Defect")  # ,size=(-1,-1))
 
+        self.xtype=xtype
         if config is None:
             self.config = unidecstructure.UniDecConfig()
             self.config.initialize()
@@ -182,13 +183,11 @@ class MassDefectExtractorWindow(wx.Frame):
         except Exception as e:
             print("Failed Data Export Extracts", e)
         self.make_ext_plots()
-        #self.fill_grid()
+        # self.fill_grid()
 
     def fill_grid(self):
         print(self.grid.shape)
         self.ss = spreadsheet.Spreadsheet(len(self.mdlist), len(self.ydat) + 1)
-
-
 
     def make_ext_plots(self):
         self.colormap = cm.get_cmap(ud.smartdecode(self.config.peakcmap), len(self.mdlist))
@@ -272,7 +271,7 @@ class MassDefectExtractorWindow(wx.Frame):
         """
 
         for x in self.mdlist:
-            #print(x)
+            # print(x)
             try:
                 ylim = self.plot6.subplot1.get_ylim()
                 self.plot6.subplot1.plot((x, x), (ylim[0], ylim[1]), color=self.plot2.tickcolor)
@@ -302,6 +301,11 @@ class MassDefectExtractorWindow(wx.Frame):
             else:
                 nominalkmass = np.round(kmass)
             kmdefect = kmass - nominalkmass
+            if self.xtype == 0:
+                factor = 1.0
+            else:
+                factor = self.config.kendrickmass
+            kmdefect *= factor
             print(kmdefect)
             self.masslistbox.list.populate(kmdefect)
 
