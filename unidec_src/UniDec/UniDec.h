@@ -346,7 +346,7 @@ void PrintHelp()
 	printf("\t\"nativezlb\" \tLimits to native charge - this lower bound.\n");
 	printf("\t\"manualfile\" \tManual assignments file: M/Zvalue window charge\n");
 	printf("\t\"intthresh\" \tLimits to m/z values with intensities > threshold \n");
-	printf("\t\"isotopemode\" \t0=off 1=on: Uses isotope distributions in deconvolution (MS Only)\n");
+	printf("\t\"isotopemode\" \t0=off 1=monoisotopic 2=average: Uses isotope distributions in deconvolution (MS Only)\n");
 	printf("\t\"orbimode\" \t0=off 1=on: Uses charge scaling by 1/z to scale intensities based on charge (MS Only)\n");
 	printf("\t\"poolflag\" \tSpecifies how to transform from m/z to mass axis\n");
 	printf("\t\t\t\t0=Integration\n");
@@ -1527,6 +1527,30 @@ void MakePeakShape1D(double *dataMZ,double threshold,int lengthmz,int speedyflag
 		mzdist[indexmod(lengthmz,0,n)]=mzpeakshape(0,n*binsize,mzsig,psfun);
 	}
 	printf("\nNotice: Assuming linearized data. \n\n");
+}
+
+
+void monotopic_to_average(const int lengthmz, const int numz, double *blur, const char *barr, int isolength, const int *__restrict isotopepos, const float *__restrict isotopeval)
+{
+	double *newblur = NULL;
+	newblur = calloc(lengthmz*numz, sizeof(double));
+	unsigned int i, j, k;
+	for (i = 0; i < lengthmz; i++)
+	{
+		for (j = 0; j < numz; j++)
+		{
+			if (barr[index2D(numz, i, j)] == 1) {
+				double topval = blur[index2D(numz, i, j)];
+				for (k = 0; k < isolength; k++)
+				{
+					int pos = isotopepos[index3D(numz, isolength, i, j, k)];
+					float val = isotopeval[index3D(numz, isolength, i, j, k)];
+					newblur[index2D(numz, pos, j)] += topval* (double)val;
+				}
+			}
+		}
+	}
+	memcpy(blur, newblur, sizeof(double)*lengthmz*numz);
 }
 
 

@@ -64,4 +64,5 @@ unidec_modules/0_2D_Mass_Defects.txt
 unidec_modules/1_1D_Mass_Defects.txt
 unidec_modules/1_2D_Mass_Defects.txt
 unidec_modules/isolated_packages/spreadsheet.py
+unidec_src/UniDec/UniDec.VC.VC.opendb
 

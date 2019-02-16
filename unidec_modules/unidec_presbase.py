@@ -32,8 +32,8 @@ class UniDecPres(object):
         self.view.Show()
         self.wx_app.MainLoop()
 
-    def on_end_session(self):
-        wx.CallAfter(self.quit_application, force=True)
+    #def on_end_session(self):
+    #    wx.CallAfter(self.quit_application, force=True)
 
     def quit_application(self):
         # self.wx_app.ProcessIdle()

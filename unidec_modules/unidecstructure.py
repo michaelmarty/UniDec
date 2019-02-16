@@ -42,6 +42,7 @@ class UniDecConfig(object):
         self.twavedict = {1: "Logarithmic", 2: "Linear", 3: "Power Law"}
         self.backgroundchoices = ["Subtract Minimum", "Subtract Line",
                                   "Subtract Curved"]  # , "Subtract Gaussian"]  # , "Subtract SavGol","Subtract Polynomial"]
+        self.isotopechoices = ["Isotopes: Off", "Isotopes: Mono", "Isotopes: Average"]
         self.figsize = (6, 5)
         self.initialize()
 

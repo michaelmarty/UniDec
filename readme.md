@@ -194,7 +194,11 @@ The main GUI class is GUniDec.UniDecApp.
 
 v.3.1.1
 
+Expanded isotope mode to either output monoisotopic masses or average masses. 
+
 Added an experimental feature to plot average charge state for peaks in UniDec. 
+
+Bug fixes.
 
 v.3.1.0
 

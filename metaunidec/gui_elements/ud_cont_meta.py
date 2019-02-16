@@ -224,7 +224,8 @@ class main_controls(wx.Panel):
         gbox2b.Add(sbs, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
-        self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
+        #self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
+        self.ctlisotopemode = wx.Choice(panel2b, -1, size=(100, -1), choices=self.config.isotopechoices)
         gbox2b.Add(self.ctlisotopemode, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
         self.ctlmanualassign = wx.CheckBox(panel2b, label="Manual Mode")
@@ -435,7 +436,7 @@ class main_controls(wx.Panel):
             self.ctlmaxnativez.SetValue(str(self.config.nativezub))
             self.ctlpoolflag.SetSelection(self.config.poolflag)
             self.ctlmanualassign.SetValue(self.config.manualfileflag)
-            self.ctlisotopemode.SetValue(self.config.isotopemode)
+            self.ctlisotopemode.SetSelection(self.config.isotopemode)
             self.ctldatanorm.SetValue(self.config.datanorm)
             self.ctlorbimode.SetValue(self.config.orbimode)
             # self.ctlbintype.SetSelection(int(self.config.linflag))
@@ -547,7 +548,7 @@ class main_controls(wx.Panel):
         self.config.crossover = ud.string_to_value(self.ctlcrossover.GetValue())
         self.config.numtot = ud.string_to_value(self.ctlnumtot.GetValue())
 
-        self.config.isotopemode = int(self.ctlisotopemode.GetValue())
+        self.config.isotopemode = int(self.ctlisotopemode.GetSelection())
         self.config.datanorm = int(self.ctldatanorm.GetValue())
         self.config.orbimode = int(self.ctlorbimode.GetValue())
         self.config.manualfileflag = int(self.ctlmanualassign.GetValue())
@@ -658,7 +659,7 @@ class main_controls(wx.Panel):
         self.ctlminnativez.SetToolTip(wx.ToolTip("Minimum offset from a native charge state"))
         self.ctlmaxnativez.SetToolTip(wx.ToolTip("Maximum offset from a native charge state"))
 
-        self.ctlisotopemode.SetToolTip(wx.ToolTip("Use isotopic distributions in deconvolution"))
+        self.ctlisotopemode.SetToolTip(wx.ToolTip("Use isotopic distributions in deconvolution.\nOutput either monoisotopic or average masses."))
         self.ctldatanorm.SetToolTip(wx.ToolTip("Normalize Data and Results"))
         self.ctlorbimode.SetToolTip(wx.ToolTip("Scale the intensity by dividing by the charge state"))
         self.ctlmanualassign.SetToolTip(wx.ToolTip("Use manual assignments. See Tools>Manual Assignment"))
