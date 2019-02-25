@@ -45,7 +45,6 @@ Scripts/MTM/test_UniDec.py
 build.bat
 metaunidec/test_MUD.py
 unidec_bin/CDCReaderOld.exe
-unidec_modules/NanodiscBuilder.py
 unidec_modules/fft_test.py
 unidec_src/UniDec/compilewin.bat
 unidec_src/UniDec/UniDec.pdb
@@ -59,3 +58,10 @@ unidec_modules/Mass_Defect_Grid.txt
 unidec_modules/Total_1D_Mass_Defects.txt
 unidec_modules/Total_2D_Mass_Defects.txt
 unidec_modules/Mass_Defect_Extracts_xvals.txt
+unidec_modules/0_1D_Mass_Defects.txt
+unidec_modules/0_2D_Mass_Defects.txt
+unidec_modules/1_1D_Mass_Defects.txt
+unidec_modules/1_2D_Mass_Defects.txt
+unidec_modules/isolated_packages/spreadsheet.py
+unidec_src/UniDec/UniDec.VC.VC.opendb
+

@@ -591,7 +591,8 @@ def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmo
     else:
         factor = kendrickmass
 
-    m1grid *= factor
+    m1grid *= kendrickmass
+    m2grid *= factor
     data2 = np.transpose([np.ravel(m1grid), np.ravel(m2grid), np.ravel(igrid)])
     data1 = np.transpose([np.unique(m2grid), np.sum(igrid, axis=0)])
 

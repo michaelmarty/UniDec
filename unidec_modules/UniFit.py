@@ -144,7 +144,7 @@ def GetError(data, pfree, lfree, ureact, prottab, ligtab, paths, kds, weights, n
     extract = np.array([intgrid[row[0], row[1]] for row in nodelist])
     if np.any(extract < 0.) or np.any(kds < 0.):
         # extract=extract*0
-        return sys.maxsize
+        return sys.maxsize * weights
     summed = np.sum(extract)
     if summed > 0:
         return (weights * (extract / summed - data)) ** 2
@@ -174,11 +174,20 @@ def MakeGrid(pfree, lfree, ureact, prottab, ligtab, paths, kds, nfactors):
     intgrid = np.zeros_like(prottab)
     intgrid[1, 0] = pfree
     intgrid[0, 1] = lfree
+    h = 1
+    for i in range(0, len(ureact)):
+        if len(ureact[i, 2]) > 2:
+            nump = ureact[i, 2, 0]
+            numl = ureact[i, 2, 1]
+            numa = ureact[i, 2, 2]
+            if numa == 2 and nump == 0 and numl == 0:
+                # print(kds[i])
+                h = kds[i]
     for i in range(0, len(ureact)):
         nump = ureact[i, 2, 0]
         numl = ureact[i, 2, 1]
         denom = np.product([kds[j] for j in paths[i]])
-        intgrid[nump, numl] = (pfree ** nump) * (lfree ** numl) / denom
+        intgrid[nump, numl] += (pfree ** nump) * (lfree ** (numl * h)) / denom
     if nfactors is not None:
         intgrid = nfactors * intgrid
     sumprot = np.sum(prottab * intgrid)
@@ -188,8 +197,9 @@ def MakeGrid(pfree, lfree, ureact, prottab, ligtab, paths, kds, nfactors):
 
 def draw_graph_structure(graph1, graph2, kdmap, ax=None):
     # extract nodes from graph
+    # print(graph1)
     nodes = set([n1 for n1, n2 in graph1] + [n2 for n1, n2 in graph1])
-
+    # print(nodes)
     # create networkx graph
     G = nx.Graph()
     G2 = nx.Graph()
@@ -197,9 +207,30 @@ def draw_graph_structure(graph1, graph2, kdmap, ax=None):
     r = re.compile("([a-zA-Z]+)([0-9]+)")
     # add nodes
     for node in nodes:
-        split1 = node.split("L")
-        split2 = split1[0].split("P")
-        coord = [int(split1[1]), int(split2[1])]
+        if "*" in node:
+            split1 = node.split("*")
+            split2 = split1[0].split("L")
+            split3 = split2[0].split("P")
+            z = int(split3[1])  # P
+            x = int(split2[1])  # L
+            y = int(split1[1])  # *
+            if z < 1:
+                if x > 1:
+                    coord = [-0.5, x]
+                else:
+                    coord = [-0.5, y]
+            else:
+                if x < 1:
+                    coord = [0, 1]
+                else:
+                    coord = [x, y]
+        else:
+            split1 = node.split("L")
+            split2 = split1[0].split("P")
+            coord = [int(split1[1]), int(split2[1])]
+
+        # print(node)
+
         G.add_node(node)
         G2.add_node(node)
         p.update({node: coord})
@@ -245,9 +276,28 @@ def draw_graph(graph1, graph2, kds, errors, kdmap, header, ax=None):
     r = re.compile("([a-zA-Z]+)([0-9]+)")
     # add nodes
     for node in nodes:
-        split1 = node.split("L")
-        split2 = split1[0].split("P")
-        coord = [int(split1[1]), int(split2[1])]
+        if "*" in node:
+            split1 = node.split("*")
+            split2 = split1[0].split("L")
+            split3 = split2[0].split("P")
+            z = int(split3[1])  # P
+            x = int(split2[1])  # L
+            y = int(split1[1])  # *
+            if z < 1:
+                if x > 1:
+                    coord = [-0.5, x]
+                else:
+                    coord = [-0.5, y]
+            else:
+                if x < 1:
+                    coord = [0, 1]
+                else:
+                    coord = [x, y]
+        else:
+            split1 = node.split("L")
+            split2 = split1[0].split("P")
+            coord = [int(split1[1]), int(split2[1])]
+
         G.add_node(node)
         G2.add_node(node)
         p.update({node: coord})
@@ -290,6 +340,13 @@ def MinFreeError(kds, data, weights, kdargs):
     out = np.array(out)
     kdargs.pfrees = out[:, 0]
     kdargs.lfrees = out[:, 1]
+    if np.any(kdargs.pfrees == 0) or np.any(kdargs.lfrees[1:] == 0):
+        out = [
+            MinFree(kdargs.pconc[i], kdargs.lconc[i], kdargs.ureact, kdargs.nprottab, kdargs.nligtab, kdargs.paths, kds,
+                    kdargs.pfrees[i], kdargs.lfrees[i], kdargs.nfactors) for i in range(0, len(kdargs.lconc))]
+        out = np.array(out)
+        kdargs.pfrees = out[:, 0]
+        kdargs.lfrees = out[:, 1]
     errors = np.ravel([GetError(data[:, i], kdargs.pfrees[i], kdargs.lfrees[i], kdargs.ureact, kdargs.nprottab,
                                 kdargs.nligtab, kdargs.paths, kds, weights[:, i], kdargs.nodelist, kdargs.nfactors) for
                        i in range(0, len(kdargs.lconc))])
@@ -310,8 +367,12 @@ def GetDegenKD(kds, kdargs):
             grid = MakeGrid(pfrees[i], lfrees[i], kdargs.ureact, kdargs.nprottab, kdargs.nligtab, kdargs.paths, kds,
                             kdargs.nfactors)[0]
             for react in kdargs.degen[:, 1]:
-                degenkd.append(
-                    grid[react[0, 0], react[0, 1]] * grid[react[1, 0], react[1, 1]] / grid[react[2, 0], react[2, 1]])
+                if grid[react[2, 0], react[2, 1]] != 0:
+                    val = grid[react[0, 0], react[0, 1]] * grid[react[1, 0], react[1, 1]] / grid[
+                        react[2, 0], react[2, 1]]
+                else:
+                    val = 0
+                degenkd.append(val)
             dktot.append(degenkd)
         dktot = np.array(dktot)
         degenkd = np.mean(dktot, axis=0)
@@ -348,6 +409,15 @@ def BootMinWorker(queue, results_queue):
     return
 
 
+def make_graph_agg(reactions):
+    graph = [("P" + str(int(reactions[i, 0, 0])) + "L" + str(int(reactions[i, 0, 1])) + "*" + str(
+        int(reactions[i, 0, 2])),
+              "P" + str(int(reactions[i, 2, 0])) + "L" + str(int(reactions[i, 2, 1])) + "*" + str(
+                  int(reactions[i, 2, 2]))) for i in
+             range(0, len(reactions))]
+    return graph
+
+
 class kdstruct:
     def __init__(self):
         self.pconc = []
@@ -367,8 +437,8 @@ class kdstruct:
 
 
 class KDmodel:
-    def __init__(self, numtotprot, numtotlig, data, pconc, lconc, nodelist, header, removeoutliers=False, plot1=None,
-                 plot2=None, plot3=None, bootnum=1, maxsites=0, **kwargs):
+    def __init__(self, data, pconc, lconc, nodelist=None, header=None, numtotprot=0, numtotlig=0, removeoutliers=False,
+                 plot1=None, plot2=None, plot3=None, bootnum=1, maxsites=0, maxligagg=1, hill=False, **kwargs):
         self.outlierflag = removeoutliers
         self.plot1 = plot1
         self.plot2 = plot2
@@ -377,28 +447,36 @@ class KDmodel:
         self.ligflag = 0
         self.mode = 0
         self.header = header
+        if self.header is None:
+            self.header = os.getcwd()
         self.maxsites = maxsites
         self.kdargs = kdstruct()
         self.randfit = None
         self.bootnum = bootnum
+        self.ligaggmode = False
+        self.hill = hill
+        if self.hill:
+            self.ligaggmode = True
 
         # Setting up the model
+        if numtotprot == 0:
+            numtotprot = 1
+            numtotlig = len(data) - 1
         self.numtotprot = numtotprot
         self.numtotlig = numtotlig
-        self.kdargs.nodelist = np.array(nodelist)
         self.nprot = np.arange(0, self.numtotprot + 1, dtype=float)
         self.nlig = np.arange(0, self.numtotlig + 1, dtype=float)
         self.kdargs.nprottab, self.kdargs.nligtab = np.meshgrid(self.nprot, self.nlig, indexing="ij")
-        if "preview" in kwargs:
-            preview = kwargs["preview"]
-            if preview:
-                self.SetupModel(**kwargs)
-                sys.exit()
+
+        if nodelist is None:
+            nprot = np.ones(numtotlig + 1)
+            nodelist = np.transpose([nprot, self.nlig]).astype(np.int)
+        self.kdargs.nodelist = np.array(nodelist)
 
         # Getting in the experimenatl data
         self.data = np.array(data)
-        self.kdargs.pconc = pconc
-        self.kdargs.lconc = lconc
+        self.kdargs.pconc = np.array(pconc)
+        self.kdargs.lconc = np.array(lconc)
         self.kdargs.weights = np.ones_like(self.data)
         # Normalize each line to a sum of 1
         for i in range(0, len(self.data[0])):
@@ -410,8 +488,11 @@ class KDmodel:
 
         self.fixedligmodel = None
         self.fixedprotmodel = None
+        self.fixedaggmodel = None
         self.findmodelflag = False
         if "prot" in kwargs:
+            if "agg" in kwargs:
+                print("Note: The agg or prot model keywords could be undefined depending on the mode")
             key = kwargs["prot"]
             # Key Should be free, parallel, one
             if key == "test":
@@ -427,14 +508,50 @@ class KDmodel:
                 self.findmodelflag = True
             else:
                 self.fixedligmodel = key
-        if self.findmodelflag:
-            self.plotflag = 0
-            self.protmodel, self.ligmodel = self.FindBestModel(self.fixedprotmodel, self.fixedligmodel)
-            self.plotflag = 1
-            self.RunKDFit(prot=self.protmodel, lig=self.ligmodel)
-        else:
+        if "agg" in kwargs:
+            key = kwargs["agg"]
+            # Key Should be free, parallel, one
+            if key == "test":
+                self.fixedaggmodel = None
+                self.findmodelflag = True
+            else:
+                self.fixedaggmodel = key
+
+        self.maxligagg = maxligagg
+        if self.maxligagg == -1:
+            self.maxligagg = self.numtotlig
+        if self.maxligagg > 1:
+            self.ligaggmode = True
+        if self.ligaggmode and self.numtotprot > 1:
+            print("ERROR: Simultaneous free protein and free ligand aggregation are not supported")
+            print("\tSet either maxligagg or numtotprot to 1.")
+            return 0
+
+        if self.ligaggmode:
+            print("Ligand Aggregation Mode")
+            if "preview" in kwargs:
+                preview = kwargs["preview"]
+                if preview:
+                    self.SetupModelAgg(**kwargs)
+                    sys.exit()
             self.plotflag = 1
             self.RunKDFit(**kwargs)
+
+        else:
+            if "preview" in kwargs:
+                preview = kwargs["preview"]
+                if preview:
+                    self.SetupModel(**kwargs)
+                    sys.exit()
+
+            if self.findmodelflag:
+                self.plotflag = 0
+                self.protmodel, self.ligmodel = self.FindBestModel(self.fixedprotmodel, self.fixedligmodel)
+                self.plotflag = 1
+                self.RunKDFit(prot=self.protmodel, lig=self.ligmodel)
+            else:
+                self.plotflag = 1
+                self.RunKDFit(**kwargs)
 
     def FindBestModel(self, fixedprotmodel, fixedligmodel):
         print("\n\nAutomatic Determination of Best Model\n\n")
@@ -481,21 +598,42 @@ class KDmodel:
         return bestmodel
 
     def RunKDFit(self, **kwargs):
-        # Setup Model
-        self.SetupModel(**kwargs)
-        # Initial guess for KD
-        self.kdargs.kds = [np.mean(self.kdargs.lconc) for i in range(0, self.numkd)]
 
-        # Calculate Statistical Factors
-        if self.maxsites != 0 and self.maxsites is not None:
-            self.kdargs.maxsites = self.maxsites
-            narr = self.kdargs.nprottab * self.maxsites
-            iarr = self.kdargs.nligtab
-            niarr = np.clip(narr - iarr, 0, sys.maxsize)
-            self.kdargs.nfactors = scipy.misc.factorial(narr) / (
-                    scipy.misc.factorial(niarr) * scipy.misc.factorial(iarr))
+        if "plot" in kwargs:
+            self.plotflag = kwargs["plot"]
+
+        # Setup Model
+        if self.ligaggmode:
+            self.SetupModelAgg(**kwargs)
+            # Initial guess for KD
+            self.kdargs.kds = np.array([np.mean(self.kdargs.lconc) for i in range(0, self.numkd)])
+            if self.hill:
+                self.kdargs.kds[0] = 1
         else:
-            self.kdargs.nfactors = None
+            self.SetupModel(**kwargs)
+            # Initial guess for KD
+            self.kdargs.kds = np.array([np.mean(self.kdargs.lconc) for i in range(0, self.numkd)])
+            # print(self.kdargs.kds)
+
+        if "model" in kwargs:
+            if kwargs["model"] == 1:
+                self.stddevs = None  # np.zeros_like(np.concatenate(self.fit))
+                self.fit = np.array([self.kdargs.kds, GetDegenKD(self.kdargs.kds, self.kdargs)])
+                self.MakeFitGrid()
+                self.GraphPlot(ax=self.plot2)
+
+                plt.figure()
+                ax = plt.subplot(121)
+                self.PlotTrace(topax=ax)
+
+                self.fit = np.array([self.kdargs.kds, GetDegenKD(self.kdargs.kds, self.kdargs)])
+                self.MakeFitGrid()
+                ax = plt.subplot(122)
+                self.PlotTrace(topax=ax)
+                mng = plt.get_current_fig_manager()
+                mng.window.state('zoomed')
+                plt.show()
+                exit()
 
         # Minimization
         self.fit = Minimize(self.data, self.kdargs)
@@ -558,20 +696,20 @@ class KDmodel:
         # Defining the potential nodes and reactions
         # Note: the nodes are species that are experimentally measured.
         self.reactions = []
-        self.nodes = []
+        # self.nodes = []
         for i in range(1, self.numtotprot + 1):
             for j in self.nlig:
                 if j + 1 <= self.numtotlig and [i, j] != [0, 0] and (
                         (j + 1 <= i * self.maxsites and j <= i * self.maxsites) or self.maxsites == 0):
-                    self.nodes.append(tuple([int(i), int(j)]))
-                    self.nodes.append(tuple([int(i), int(j + 1)]))
+                    # self.nodes.append(tuple([int(i), int(j)]))
+                    # self.nodes.append(tuple([int(i), int(j + 1)]))
                     self.reactions.append([[int(i), int(j)], [0, 1], [int(i), int(j + 1)]])
                 if i + 1 <= self.numtotprot and [i, j] != [0, 0] and (j <= i * self.maxsites or self.maxsites == 0):
-                    self.nodes.append(tuple([int(i), int(j)]))
-                    self.nodes.append(tuple([int(i + 1), int(j)]))
+                    # self.nodes.append(tuple([int(i), int(j)]))
+                    # self.nodes.append(tuple([int(i + 1), int(j)]))
                     self.reactions.append([[int(i), int(j)], [1, 0], [int(i + 1), int(j)]])
-        self.nodes = np.vstack([tuple(row) for row in self.nodes])
-        self.nodes = sortarray(self.nodes)
+        # self.nodes = np.vstack([tuple(row) for row in self.nodes])
+        # self.nodes = sortarray(self.nodes)
         self.reactions = np.array(self.reactions)
 
         # Fishing out degenerate KD values
@@ -615,8 +753,20 @@ class KDmodel:
         self.ugraph = [("P" + str(int(self.kdargs.ureact[i, 0, 0])) + "L" + str(int(self.kdargs.ureact[i, 0, 1])),
                         "P" + str(int(self.kdargs.ureact[i, 2, 0])) + "L" + str(int(self.kdargs.ureact[i, 2, 1]))) for i
                        in range(0, len(self.kdargs.ureact))]
-        self.nodenames = ["P" + str(int(self.nodes[i, 0])) + "L" + str(int(self.nodes[i, 1])) for i in
-                          range(0, len(self.nodes))]
+        self.nodenames = ["P" + str(int(self.kdargs.nodelist[i, 0])) + "L" + str(int(self.kdargs.nodelist[i, 1])) for i
+                          in
+                          range(0, len(self.kdargs.nodelist))]
+
+        # Calculate Statistical Factors
+        if self.maxsites != 0 and self.maxsites is not None:
+            self.kdargs.maxsites = self.maxsites
+            narr = self.kdargs.nprottab * self.maxsites
+            iarr = self.kdargs.nligtab
+            niarr = np.clip(narr - iarr, 0, sys.maxsize)
+            self.kdargs.nfactors = scipy.misc.factorial(narr) / (
+                    scipy.misc.factorial(niarr) * scipy.misc.factorial(iarr))
+        else:
+            self.kdargs.nfactors = None
         # Quick Plot to test structure. Note: exits the program without fitting.
         if "preview" in kwargs:
             preview = kwargs["preview"]
@@ -728,6 +878,15 @@ class KDmodel:
         out = np.array(out)
         kdargs.pfrees = out[:, 0]
         kdargs.lfrees = out[:, 1]
+        if np.any(kdargs.pfrees == 0) or np.any(kdargs.lfrees[1:] == 0):
+            out = [
+                MinFree(kdargs.pconc[i], kdargs.lconc[i], kdargs.ureact, kdargs.nprottab, kdargs.nligtab, kdargs.paths,
+                        kdargs.kds, kdargs.pfrees[i], kdargs.lfrees[i], kdargs.nfactors) for i in
+                range(0, len(kdargs.lconc))]
+            out = np.array(out)
+            kdargs.pfrees = out[:, 0]
+            kdargs.lfrees = out[:, 1]
+
         out2 = [[MakeGrid(kdargs.pfrees[i], kdargs.lfrees[i], kdargs.ureact, kdargs.nprottab, kdargs.nligtab,
                           kdargs.paths, kdargs.kds, kdargs.nfactors)[0][row[0], row[1]] for row in kdargs.nodelist] for
                 i in range(0, len(kdargs.lconc))]
@@ -830,8 +989,8 @@ class KDmodel:
                 ax.plot(xvals, self.fitgrid[i], '--', color=colors[i])
 
         if topax is None:
-            plt.legend(bbox_to_anchor=(1., 0.5, 0.25, 0.5), loc=1, numpoints=1)
-            plt.tight_layout(rect=(0.05, 0.05, 0.85, 1))
+            plt.legend(bbox_to_anchor=(1.0, 0.5, 0.25, 0.5), loc=1, numpoints=1)
+            plt.tight_layout(rect=(0.05, 0.05, 1.05, 1))
             plt.xlabel("Ligand Concentration")
             plt.ylabel("Relative Intensity")
             # plt.savefig(header+".png")
@@ -848,6 +1007,213 @@ class KDmodel:
             plot.histogram(np.log10(self.randfit.transpose()), labels=self.kdmap, xlab=xlab, ylab="histogram",
                            title="KD Distribution")
 
+    def SetupModelAgg(self, **kwargs):
+        # Define path favoring ligand addition->0 or protein addition->1
+        if "agg" in kwargs:
+            key = kwargs["agg"]
+            # Key Should be free, parallel, one
+            if key == "free":
+                self.mode = 0
+                self.protflag = 0
+            elif key == "parallel":
+                self.mode = 1
+                self.protflag = 3
+            elif key == "one":
+                self.mode = 1
+                self.protflag = 2
+            elif key == "series":
+                self.protflag = 1
+                self.mode = 1
+
+        if "lig" in kwargs:
+            key = kwargs["lig"]
+            # Key Should be free, parallel, one
+            if key == "free":
+                self.ligflag = 0
+            elif key == "parallel":
+                self.ligflag = 3
+            elif key == "one":
+                self.mode = 0
+                self.ligflag = 2
+            elif key == "series":
+                self.ligflag = 1
+
+        # Defining the potential nodes and reactions
+        # Note: the nodes are species that are experimentally measured.
+        self.reactions = []
+
+        if self.hill:
+            self.reactions.append([[0, 0, 1], [0, 0, 1], [0, 0, 2]])
+        for i in range(1, self.maxligagg + 1):
+            i = int(i)
+            # if i + 1 <= self.maxligagg:
+            #    self.reactions.append([[0, i, i], [0, 1, 1], [0, i + 1, i + 1]])
+            for j in self.nlig:
+                j = int(j)
+                if i + 1 <= self.maxligagg and j >= i + 1:
+                    self.reactions.append([[1, j, i], [0, 0, 1], [1, j, i + 1]])
+                if j + 1 <= self.numtotlig and (j + 1 <= self.maxsites or self.maxsites == 0) and (
+                        j >= i or i == 1):
+                    self.reactions.append([[1, j, i], [0, 1, 0], [1, j + 1, i]])
+        self.reactions = np.array(self.reactions)
+        # print(self.reactions)
+
+        # Fishing out degenerate KD values
+        self.kdargs.degen = []
+        for i in self.reactions:
+            for j in self.reactions:
+                if np.all(i[[2]] == j[[2]]):
+                    if self.mode == 0:
+                        if np.all(i[[1]] == [0, 1, 0]) and np.all(j[[1]] == [0, 0, 1]):
+                            self.kdargs.degen.append([i, j])
+                    else:
+                        if np.all(i[[1]] == [0, 0, 1]) and np.all(j[[1]] == [0, 1, 0]):
+                            self.kdargs.degen.append([i, j])
+        self.kdargs.degen = np.array(self.kdargs.degen)
+        # print("Degen:", self.kdargs.degen)
+
+        # Deleting degenate KD values to get number of unique KDs
+        self.kdargs.ureact = []
+        for i in self.reactions:
+            if len(self.kdargs.degen) != 0:
+                if not np.any([np.all(i == j) for j in self.kdargs.degen[:, 1]]):
+                    self.kdargs.ureact.append(i)
+            else:
+                self.kdargs.ureact.append(i)
+        self.kdargs.ureact = np.array(self.kdargs.ureact)
+        self.kdmap = list(range(0, len(self.kdargs.ureact)))
+
+        # Finding the path to each KD. Will be used for calculating the grid.
+        self.kdargs.paths = findpaths(self.kdargs.ureact)
+        # print(self.kdargs.paths)
+        self.ModPathsAgg()
+        self.kdmap, self.kdargs.paths = fixlists(self.kdmap, self.kdargs.paths)
+        self.numkd = len(np.unique(np.concatenate(self.kdargs.paths)))
+        if len(self.kdargs.degen > 0):
+            self.reactions = np.concatenate([self.kdargs.ureact, self.kdargs.degen[:, 1]])
+            self.kdmap = np.concatenate(
+                [np.array(self.kdmap), np.arange(self.numkd, self.numkd + len(self.kdargs.degen[:, 1]))])
+        # Set up graph data for plot
+        self.graph = make_graph_agg(self.reactions)
+        self.ugraph = make_graph_agg(self.kdargs.ureact)
+        self.nodenames = ["P" + str(int(self.kdargs.nodelist[i, 0])) + "L" + str(int(self.kdargs.nodelist[i, 1])) for i
+                          in
+                          range(0, len(self.kdargs.nodelist))]
+
+        # Calculate Statistical Factors
+        if self.maxsites != 0 and self.maxsites is not None:
+            self.kdargs.maxsites = self.maxsites
+            narr = self.kdargs.nprottab * self.maxsites
+            iarr = self.kdargs.nligtab
+            niarr = np.clip(narr - iarr, 0, sys.maxsize)
+            self.kdargs.nfactors = scipy.misc.factorial(narr) / (
+                    scipy.misc.factorial(niarr) * scipy.misc.factorial(iarr))
+        else:
+            self.kdargs.nfactors = None
+
+        # Quick Plot to test structure. Note: exits the program without fitting.
+        if "preview" in kwargs:
+            preview = kwargs["preview"]
+            if preview:
+                draw_graph_structure(self.graph, self.ugraph, self.kdmap, ax=self.plot2)
+                sys.exit()
+
+    def ModPathsAgg(self):
+        # All ligand binding reactions have the same KD
+        if self.ligflag == 2:
+            for i in range(0, len(self.kdargs.paths)):
+                if (len(self.kdargs.paths[i]) == 1 and np.all(
+                        self.kdargs.ureact[self.kdargs.paths[i][0], 1] == [0, 1, 0])):
+                    onepath = self.kdargs.paths[i][0]
+            for i in range(0, len(self.kdargs.paths)):
+                for j in range(0, len(self.kdargs.paths[i])):
+                    if np.all(self.kdargs.ureact[self.kdargs.paths[i][j], 1] == [0, 1, 0]):
+                        self.kdmap[self.kdargs.paths[i][j]] = onepath
+                        self.kdargs.paths[i][j] = onepath
+        # All protein binding reactions have the same KD
+        if self.protflag == 2:
+            for i in range(0, len(self.kdargs.paths)):
+                if (len(self.kdargs.paths[i]) == 1 and np.all(
+                        self.kdargs.ureact[self.kdargs.paths[i][0], 1] == [0, 0, 1])):
+                    onepath = self.kdargs.paths[i][0]
+            for i in range(0, len(self.kdargs.paths)):
+                for j in range(0, len(self.kdargs.paths[i])):
+                    if np.all(self.kdargs.ureact[self.kdargs.paths[i][j], 1] == [0, 0, 1]):
+                        self.kdmap[self.kdargs.paths[i][j]] = onepath
+                        self.kdargs.paths[i][j] = onepath
+        # For a given ligand number, all protein binding reactions have the same KD
+        if self.protflag == 1:
+            ulig = []
+            ufirst = []
+            for i in range(0, len(self.kdargs.paths)):
+                for j in range(0, len(self.kdargs.paths[i])):
+                    if np.all(self.kdargs.ureact[self.kdargs.paths[i][j], 1] == [0, 0, 1]):
+                        testlig = self.kdargs.ureact[self.kdargs.paths[i][j], 1][1]
+                        if testlig not in ulig:
+                            ulig.append(testlig)
+                            ufirst.append(self.kdargs.paths[i][j])
+            for i in range(0, len(self.kdargs.paths)):
+                for j in range(0, len(self.kdargs.paths[i])):
+                    if np.all(self.kdargs.ureact[self.kdargs.paths[i][j], 1] == [0, 0, 1]):
+                        testlig = self.kdargs.ureact[self.kdargs.paths[i][j], 1][1]
+                        onepath = ufirst[ulig.index(testlig)]
+                        self.kdmap[self.kdargs.paths[i][j]] = onepath
+                        self.kdargs.paths[i][j] = onepath
+        # For a given protein association reaction, the KD is the same across all ligand bound states
+        if self.protflag == 3:
+            ulig = []
+            ufirst = []
+            for i in range(0, len(self.kdargs.paths)):
+                for j in range(0, len(self.kdargs.paths[i])):
+                    if np.all(self.kdargs.ureact[self.kdargs.paths[i][j], 1] == [0, 0, 1]):
+                        testlig = self.kdargs.ureact[self.kdargs.paths[i][j], 2][0]
+                        if testlig not in ulig:
+                            ulig.append(testlig)
+                            ufirst.append(self.kdargs.paths[i][j])
+            for i in range(0, len(self.kdargs.paths)):
+                for j in range(0, len(self.kdargs.paths[i])):
+                    if np.all(self.kdargs.ureact[self.kdargs.paths[i][j], 1] == [0, 0, 1]):
+                        testlig = self.kdargs.ureact[self.kdargs.paths[i][j], 2][0]
+                        onepath = ufirst[ulig.index(testlig)]
+                        self.kdmap[self.kdargs.paths[i][j]] = onepath
+                        self.kdargs.paths[i][j] = onepath
+        # For a given protein number, all ligand binding reactions have the same KD
+        if self.ligflag == 1:
+            ulig = []
+            ufirst = []
+            for i in range(0, len(self.kdargs.paths)):
+                for j in range(0, len(self.kdargs.paths[i])):
+                    if np.all(self.kdargs.ureact[self.kdargs.paths[i][j], 1] == [0, 1, 0]):
+                        testlig = self.kdargs.ureact[self.kdargs.paths[i][j], 0][0]
+                        if testlig not in ulig:
+                            ulig.append(testlig)
+                            ufirst.append(self.kdargs.paths[i][j])
+            for i in range(0, len(self.kdargs.paths)):
+                for j in range(0, len(self.kdargs.paths[i])):
+                    if np.all(self.kdargs.ureact[self.kdargs.paths[i][j], 1] == [0, 1, 0]):
+                        testlig = self.kdargs.ureact[self.kdargs.paths[i][j], 0][0]
+                        onepath = ufirst[ulig.index(testlig)]
+                        self.kdmap[self.kdargs.paths[i][j]] = onepath
+                        self.kdargs.paths[i][j] = onepath
+        # For a given ligand binding reaction, the KD is the same across all protein states
+        if self.ligflag == 3:
+            ulig = []
+            ufirst = []
+            for i in range(0, len(self.kdargs.paths)):
+                for j in range(0, len(self.kdargs.paths[i])):
+                    if np.all(self.kdargs.ureact[self.kdargs.paths[i][j], 1] == [0, 1, 0]):
+                        testlig = self.kdargs.ureact[self.kdargs.paths[i][j], 2][1]
+                        if testlig not in ulig:
+                            ulig.append(testlig)
+                            ufirst.append(self.kdargs.paths[i][j])
+            for i in range(0, len(self.kdargs.paths)):
+                for j in range(0, len(self.kdargs.paths[i])):
+                    if np.all(self.kdargs.ureact[self.kdargs.paths[i][j], 1] == [0, 1, 0]):
+                        testlig = self.kdargs.ureact[self.kdargs.paths[i][j], 2][1]
+                        onepath = ufirst[ulig.index(testlig)]
+                        self.kdmap[self.kdargs.paths[i][j]] = onepath
+                        self.kdargs.paths[i][j] = onepath
+
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
@@ -861,7 +1227,7 @@ if __name__ == "__main__":
         pconc = data[0]
         lconc = data[1]
         data = data[2:]
-        header = file_name.split( ".")[0]
+        header = file_name.split(".")[0]
         nprot = 1
         nlig = 4
         maxsites = 4
@@ -875,7 +1241,7 @@ if __name__ == "__main__":
         pconc = data[0]
         lconc = data[1]
         data = data[2:6]
-        header = file_name.split( ".")[0]
+        header = file_name.split(".")[0]
         nprot = 1
         nlig = 3
         maxsites = 3
@@ -889,27 +1255,28 @@ if __name__ == "__main__":
         pconc = data[0]
         lconc = data[1]
         data = data[2:5]
-        header = file_name.split( ".")[0]
+        header = file_name.split(".")[0]
         nprot = 1
         nlig = 2
         maxsites = 2
         nodelist = [[1, j] for j in range(0, nlig + 1)]
     else:
         path = "C:\\cprog\\PaperData\\Ben_1D_2D"
+        path = "Z:\\mtmarty\\Archive\\PostDoc\\LargeBackup\\Archive-Done\\PaperData\\Ben_1D_2D"
         file_name = "PeptideBinding1D.txt"
         os.chdir(path)
         data = np.loadtxt(file_name)
         dims = data.shape
         pconc = [5. for i in range(0, dims[1])]
         lconc = [4., 8., 16., 32., 64., 128.]
-        header = file_name.split( ".")[0]
+        header = file_name.split(".")[0]
         nprot = 2
         nlig = 2
         maxsites = 1
         nodelist = [[1, 0], [1, 1], [2, 0], [2, 1], [2, 2]]
 
-    KDmodel(3, 3, None, None, None, None, None, preview=True, prot="free", lig="free")
+    # KDmodel(None, None, None, None, None, 3, 3, preview=True, prot="free", lig="free")
 
-    fit = KDmodel(nprot, nlig, data, pconc, lconc, nodelist, header, prot="free", lig="parallel", bootnum=0,
-                  maxsites=maxsites)
+    fit = KDmodel(data, pconc, lconc, nodelist, header, nprot, nlig, bootnum=0, maxsites=maxsites, prot="free",
+                  lig="parallel")
     # fit.RunBootstrap()

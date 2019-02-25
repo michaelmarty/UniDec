@@ -1571,6 +1571,31 @@ class UniDecApp(UniDecPres):
                                                     vlines=False, color=p.color)
         self.view.plot4.repaint()
 
+    def on_label_avg_charge_states(self, e):
+        charges = np.arange(self.eng.config.startz, self.eng.config.endz + 1)
+        if self.eng.config.adductmass > 0:
+            sign = "+"
+        else:
+            sign = "-"
+
+        self.view.plot4.textremove()
+        for i in range(0, self.eng.pks.plen):
+            p = self.eng.pks.peaks[i]
+            if p.ignore == 0:
+                if (not ud.isempty(p.mztab)) and (not ud.isempty(p.mztab2)):
+                    mztab = np.array(p.mztab)
+                    avgcharge = ud.weighted_avg(charges, mztab[:, 1])
+                    p.avgcharge = avgcharge
+                    pos = (p.mass + self.eng.config.adductmass * avgcharge) / avgcharge
+
+                    print("Mass:", p.mass, "Average Charge:", avgcharge)
+                    mztab = ud.datachop(mztab, np.amin(self.eng.data.data2[:, 0]), np.amax(self.eng.data.data2[:, 0]))
+                    self.view.plot4.plotadd(mztab[:, 0], mztab[:, 1], p.color)
+                    self.view.plot4.addtext(sign + str(np.round(avgcharge, 2)), pos, np.amax(mztab[:, 1]) + 0.07,
+                                            vlines=True, color=p.color)
+        self.view.plot4.repaint()
+        self.view.peakpanel.add_data(self.eng.pks, show="avgcharge")
+
     def on_plot_isotope_distribution(self, e=0):
         for i in range(0, self.eng.pks.plen):
             p = self.eng.pks.peaks[i]

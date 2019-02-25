@@ -1,6 +1,6 @@
 import warnings
-warnings.simplefilter(action="ignore",category=FutureWarning)
 
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 import wx
 from unidec_modules.unidec_presbase import UniDecPres
@@ -13,6 +13,7 @@ from import_wizard import ImportWizard
 from metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard as HDF5Wizard
 from metaunidec.ultrameta import DataCollector as UMDC
 import wx.py as py
+import sys
 
 
 class UniDecLauncher(UniDecPres):
@@ -34,6 +35,12 @@ class UniDecLauncher(UniDecPres):
 
     def init(self, *args, **kwargs):
         self.view = Lview(self)
+        self.view.Bind(wx.EVT_CLOSE, self.on_close)
+
+    def on_close(self, e=None):
+        self.quit_application()
+        self.view.Destroy()
+        sys.exit()
 
 
 class Lview(wx.Frame):
@@ -51,13 +58,13 @@ class Lview(wx.Frame):
         button6 = wx.Button(panel, -1, "HDF5 Import Wizard\n\nImport Data into HDF5 for MetaUniDec")
         button7 = wx.Button(panel, -1, "UltraMeta Data Collector\n\nVisualize Multiple HDF5 Data Sets\nFit Trends")
 
-        sizer.Add(button1, (0,0),flag=wx.EXPAND)
-        sizer.Add(button2, (1,0),flag=wx.EXPAND)
-        sizer.Add(button3, (2,0),flag=wx.EXPAND)
-        sizer.Add(button4, (0,1),flag=wx.EXPAND)
+        sizer.Add(button1, (0, 0), flag=wx.EXPAND)
+        sizer.Add(button2, (1, 0), flag=wx.EXPAND)
+        sizer.Add(button3, (2, 0), flag=wx.EXPAND)
+        sizer.Add(button4, (0, 1), flag=wx.EXPAND)
         sizer.Add(button6, (2, 1), flag=wx.EXPAND)
         sizer.Add(button7, (1, 1), flag=wx.EXPAND)
-        sizer.Add(button5, (3,0),span=(1,2),flag=wx.EXPAND)
+        sizer.Add(button5, (3, 0), span=(1, 2), flag=wx.EXPAND)
 
         self.Bind(wx.EVT_BUTTON, self.button1, button1)
         self.Bind(wx.EVT_BUTTON, self.button2, button2)
@@ -78,7 +85,7 @@ class Lview(wx.Frame):
         app = GUniDec.UniDecApp()
         app.start()
 
-    def button2(self,e=None):
+    def button2(self, e=None):
         print("Launching Data Collector")
         app = wx.App(False)
         frame = datacollector.DataCollector(None, "Collect Data")
@@ -91,12 +98,12 @@ class Lview(wx.Frame):
         frame.Show()
         app.MainLoop()
 
-    def button4(self,e=None):
+    def button4(self, e=None):
         print("Launching MetaUniDec")
         app = mudpres.UniDecApp()
         app.start()
 
-    def button5(self,e=None):
+    def button5(self, e=None):
         print("Launching Scripting Shell")
         app = Shell()
         app.start()
@@ -108,7 +115,7 @@ class Lview(wx.Frame):
         frame.Show()
         app.MainLoop()
 
-    def button7(self,e=None):
+    def button7(self, e=None):
         print("Launching UltraMeta Data Collector")
         app = wx.App(False)
         frame = UMDC(None, "UltraMeta Data Collector")
@@ -123,11 +130,12 @@ class Shell(object):
 
         self.shellwindow = py.shell.ShellFrame(self.shell, title="UniDecShell").Show()
 
-        #self.shell.Execute('app=UniDecApp()')
+        # self.shell.Execute('app=UniDecApp()')
         # self.shell.Execute('app.start()')
         # self.shellwindow.Center()
         # self.shell.setFocus()
         self.__wx_app.MainLoop()
+
 
 if __name__ == '__main__':
     # app2 = Shell()

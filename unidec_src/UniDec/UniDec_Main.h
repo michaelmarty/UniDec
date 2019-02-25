@@ -356,7 +356,8 @@ int run_unidec(int argc, char *argv[], Config config) {
 	printf("Number of Charges blurred: %d\n", zlength);
 
 	int isolength = 0;
-	if (config.isotopemode == 1)
+	printf("Isotope Mode: %d\n", config.isotopemode);
+	if (config.isotopemode > 0)
 	{
 		isolength = setup_isotopes(isoparams, isotopepos, isotopeval, mtab, nztab, barr, dataMZ, lengthmz, config.numz);
 
@@ -605,6 +606,11 @@ int run_unidec(int argc, char *argv[], Config config) {
 		charge_scaling(blur, nztab, lengthmz, config.numz);
 		simp_norm(lengthmz*config.numz,blur);
 		printf("Done\n");
+	}
+
+	if (config.isotopemode == 2)
+	{
+		monotopic_to_average(lengthmz, config.numz, blur, barr, isolength, isotopepos, isotopeval);
 	}
 
 	//newblur is repurposed as the convolution of blur by the mz peaks shape

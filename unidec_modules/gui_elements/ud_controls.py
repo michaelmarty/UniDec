@@ -413,7 +413,8 @@ class main_controls(wx.Panel):
         i += 1
 
         if self.config.imflag == 0:
-            self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
+            # self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
+            self.ctlisotopemode = wx.Choice(panel2b, -1, size=(100, -1), choices=self.config.isotopechoices)
             gbox2b.Add(self.ctlisotopemode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.ctlorbimode = wx.CheckBox(panel2b, label="Charge Scaling")
@@ -525,7 +526,6 @@ class main_controls(wx.Panel):
 
         self.ctldiscrete = wx.CheckBox(panel3b, label="Discrete Plot")
         gbox3b.Add(self.ctldiscrete, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
 
         self.ctlpublicationmode = wx.CheckBox(panel3b, label="Publication Mode")
         gbox3b.Add(self.ctlpublicationmode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -635,7 +635,7 @@ class main_controls(wx.Panel):
             self.ctlpoolflag.SetSelection(self.config.poolflag)
             if self.config.imflag == 0:
                 self.ctlmanualassign.SetValue(self.config.manualfileflag)
-                self.ctlisotopemode.SetValue(self.config.isotopemode)
+                self.ctlisotopemode.SetSelection(self.config.isotopemode)
                 self.ctlorbimode.SetValue(self.config.orbimode)
                 self.ctlbintype.SetSelection(int(self.config.linflag))
                 self.ctlpsig.SetValue(str(self.config.psig))
@@ -754,7 +754,7 @@ class main_controls(wx.Panel):
         self.config.integratelb = ud.string_to_value(self.ctlintlb.GetValue())
         self.config.integrateub = ud.string_to_value(self.ctlintub.GetValue())
         if self.config.imflag == 0:
-            self.config.isotopemode = int(self.ctlisotopemode.GetValue())
+            self.config.isotopemode = int(self.ctlisotopemode.GetSelection())
             self.config.orbimode = int(self.ctlorbimode.GetValue())
             self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
             self.config.manualfileflag = int(self.ctlmanualassign.GetValue())
@@ -878,7 +878,8 @@ class main_controls(wx.Panel):
         self.ctlminnativez.SetToolTip(wx.ToolTip("Minimum offset from a native charge state"))
         self.ctlmaxnativez.SetToolTip(wx.ToolTip("Maximum offset from a native charge state"))
         if self.config.imflag == 0:
-            self.ctlisotopemode.SetToolTip(wx.ToolTip("Use isotopic distributions in deconvolution"))
+            self.ctlisotopemode.SetToolTip(wx.ToolTip(
+                "Use isotopic distributions in deconvolution.\nOutput either monoisotopic or average masses"))
             self.ctlorbimode.SetToolTip(wx.ToolTip("Scale intensities by 1/z to compensate for induced charge effects"))
             self.ctlmanualassign.SetToolTip(wx.ToolTip("Use manual assignments. See Tools>Manual Assignment"))
             self.ctlbintype.SetToolTip(wx.ToolTip(

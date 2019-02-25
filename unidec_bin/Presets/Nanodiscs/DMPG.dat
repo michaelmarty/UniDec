@@ -4,6 +4,7 @@ numz 21
 endz 25
 startz 5
 zzsig 1.0
+psig 0
 mzsig 10
 psfun 0
 discreteplot 0

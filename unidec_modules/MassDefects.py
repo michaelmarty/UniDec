@@ -63,7 +63,7 @@ class MassDefectWindow(wx.Frame):
             self.nbins = 50
             self.transformmode = 1
             self.centermode = 1
-            self.xtype = 1
+            self.xtype = 0
         self.factor = 1
         self.xlab = ""
         self.outfname = os.path.splitext(self.config.filename)[0]
@@ -191,7 +191,7 @@ class MassDefectWindow(wx.Frame):
         controlsizer.Add(self.radiobox2, 0, wx.EXPAND)
         self.radiobox2.SetSelection(self.centermode)
 
-        self.radiobox3 = wx.RadioBox(panel, choices=["Mass Number", "Mass"], label="X-Axis")
+        self.radiobox3 = wx.RadioBox(panel, choices=["Normalized", "Mass (Da)"], label="Mass Defect Units")
         controlsizer.Add(self.radiobox3, 0, wx.EXPAND)
         self.radiobox3.SetSelection(self.xtype)
 
@@ -244,10 +244,12 @@ class MassDefectWindow(wx.Frame):
         self.xtype = self.radiobox3.GetSelection()
         if self.xtype == 0:
             self.factor = 1
-            self.xlab = "Nominal Mass Number"
+            self.xlab = "Mass"
+            self.ylab = "Normalized Mass Defect"
         else:
             self.factor = self.m0
             self.xlab = "Mass"
+            self.ylab = "Mass Defect (Da)"
         self.config.defectparams = [self.nbins, self.transformmode, self.centermode, self.xtype]
 
     def make_list_plots(self):
@@ -266,7 +268,7 @@ class MassDefectWindow(wx.Frame):
             try:
                 if i == 0:
                     self.plot5.plotrefreshtop(self.data1d[:, 0], dat2 - self.config.separation * i, "All Data",
-                                              "Mass Defect",
+                                              self.ylab,
                                               "Total Intensity", "", color=self.peakcolors[i], config=self.config)
                 else:
                     self.plot5.plotadd(self.data1d[:, 0], dat2 - self.config.separation * i, colval=self.peakcolors[i])
@@ -293,7 +295,7 @@ class MassDefectWindow(wx.Frame):
             print("Failed Data Export 6", e)
 
         try:
-            self.plot6.contourplot(data2, self.config, xlab="Mass Defect", ylab="Individual Spectra", title="",
+            self.plot6.contourplot(data2, self.config, xlab=self.ylab, ylab="Individual Spectra", title="",
                                    normflag=1)
         except Exception as e:
             self.plot6.clear_plot()
@@ -313,6 +315,11 @@ class MassDefectWindow(wx.Frame):
                                                                           nbins=self.nbins,
                                                                           transformmode=self.transformmode,
                                                                           xaxistype=self.xtype)
+        if self.xtype == 0:
+            factor = 1.0
+        else:
+            factor = self.m0
+
         if self.yvals is not None:
             title = self.outfname + str(self.yvals[self.pos])
             spacer = "_"
@@ -333,7 +340,7 @@ class MassDefectWindow(wx.Frame):
             self.plot2.clear_plot()
             print("Failed Plot2", e)
         try:
-            self.plot3.plotrefreshtop(self.data1d[:, 0], self.data1d[:, 1], title, "Mass Defect",
+            self.plot3.plotrefreshtop(self.data1d[:, 0], self.data1d[:, 1], title, self.ylab,
                                       "Total Intensity", "", self.config)
         except Exception as e:
             self.plot3.clear_plot()
@@ -342,7 +349,7 @@ class MassDefectWindow(wx.Frame):
             if self.m0 == 0:
                 return
             self.plot1.colorplotMD(self.datalist[self.pos, :, 0], self.datalist[self.pos, :, 1],
-                                   self.datalist[self.pos, :, 0] / float(self.m0) % 1.0,
+                                   self.datalist[self.pos, :, 0] / float(self.m0) % 1.0 * factor, max=factor,
                                    title="Zero-Charge Mass Spectrum",
                                    xlabel="Mass", ylabel="Intensity")
         except Exception as e:
@@ -350,8 +357,8 @@ class MassDefectWindow(wx.Frame):
             print("Failed Plot1", e)
 
         try:
-            self.plot4.colorplotMD(self.data1d[:, 0], self.data1d[:, 1], self.data1d[:, 0] % 1.0,
-                                   title="Total Projection Color", xlabel="Mass Defect", cmap="hsv",
+            self.plot4.colorplotMD(self.data1d[:, 0], self.data1d[:, 1], self.data1d[:, 0],
+                                   title="Total Projection Color", xlabel=self.ylab, cmap="hsv", max=factor,
                                    ylabel="Total Intensity", config=self.config)
         except Exception as e:
             self.plot4.clear_plot()
@@ -376,6 +383,10 @@ class MassDefectWindow(wx.Frame):
                                                                               transformmode=self.transformmode,
                                                                               xaxistype=self.xtype)
             igrids.append(igrid)
+        if self.xtype == 0:
+            factor = 1.0
+        else:
+            factor = self.m0
         # Sum and reshape
         igrids = np.array(igrids)
         igrids /= np.amax(igrids)
@@ -396,22 +407,22 @@ class MassDefectWindow(wx.Frame):
             self.plot2.clear_plot()
             print("Failed Plot2", e)
         try:
-            self.plot1.colorplotMD(self.datasum[:, 0], self.datasum[:, 1], self.datasum[:, 0] / float(self.m0) % 1.0,
-                                   title="Zero-Charge Mass Spectrum",
+            self.plot1.colorplotMD(self.datasum[:, 0], self.datasum[:, 1], self.datasum[:, 0] / float(self.m0) % 1.0 * factor,
+                                   title="Zero-Charge Mass Spectrum", max=factor,
                                    xlabel="Mass", ylabel="Intensity")
         except Exception as e:
             self.plot1.clear_plot()
             print("Failed Plot1", e)
         try:
-            self.plot3.plotrefreshtop(self.data1d[:, 0], self.data1d[:, 1], "Total Projection Black", "Mass Defect",
+            self.plot3.plotrefreshtop(self.data1d[:, 0], self.data1d[:, 1], "Total Projection Black", self.ylab,
                                       "Total Intensity", "", self.config)
         except Exception as e:
             self.plot3.clear_plot()
             print("Failed Plot 3", e)
 
         try:
-            self.plot4.colorplotMD(self.data1d[:, 0], self.data1d[:, 1], self.data1d[:, 0] % 1.0,
-                                   title="Total Projection Color", xlabel="Mass Defect", cmap="hsv",
+            self.plot4.colorplotMD(self.data1d[:, 0], self.data1d[:, 1], self.data1d[:, 0],
+                                   title="Total Projection Color", xlabel=self.ylab, cmap="hsv", max=factor,
                                    ylabel="Total Intensity", config=self.config)
         except Exception as e:
             self.plot4.clear_plot()
@@ -478,7 +489,7 @@ class MassDefectWindow(wx.Frame):
         print(self.yvals)
         self.config.kendrickmass = self.m0
         frame = MassDefectExtractor.MassDefectExtractorWindow(self, self.dat3, self.data1d[:, 0], self.yvals,
-                                                              config=self.config)
+                                                              config=self.config, xtype=self.xtype)
 
     def on_save_fig(self, e):
         """
@@ -633,8 +644,8 @@ if __name__ == "__main__":
     path = os.path.join(dir, file)
 
     data2 = np.loadtxt(path)
-    # datalist = [data, data2]
-    datalist = [data]
+    datalist = [data, data2]
+    #datalist = [data]
 
     app = wx.App(False)
     frame = MassDefectWindow(None, datalist)
