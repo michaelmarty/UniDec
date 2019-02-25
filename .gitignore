@@ -45,7 +45,6 @@ Scripts/MTM/test_UniDec.py
 build.bat
 metaunidec/test_MUD.py
 unidec_bin/CDCReaderOld.exe
-unidec_modules/NanodiscBuilder.py
 unidec_modules/fft_test.py
 unidec_src/UniDec/compilewin.bat
 unidec_src/UniDec/UniDec.pdb

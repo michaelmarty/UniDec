@@ -379,7 +379,7 @@ void PrintHelp()
 	printf("\t\t\t\t\t Reduced CCS = P1 * Reduced Drift Time + P2\n");
 	printf("\t\t\t\t3=T-Wave Power Law Calibration\n");
 	printf("\t\t\t\t\tReduced CCS =P1 * (Reduced Drift Time ^ P2)\n");
-	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) v.989.\n");
+	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) v.1021.\n");
 	//printf("\nsize of: %d",sizeof(char));
 }
 
