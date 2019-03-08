@@ -14,7 +14,7 @@ from metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard as HDF
 from metaunidec.ultrameta import DataCollector as UMDC
 import wx.py as py
 import sys
-
+import os
 
 class UniDecLauncher(UniDecPres):
     """
@@ -58,6 +58,19 @@ class Lview(wx.Frame):
         button6 = wx.Button(panel, -1, "HDF5 Import Wizard\n\nImport Data into HDF5 for MetaUniDec")
         button7 = wx.Button(panel, -1, "UltraMeta Data Collector\n\nVisualize Multiple HDF5 Data Sets\nFit Trends")
 
+        html = wx.html.HtmlWindow(panel, -1, size=(330,260))
+        pathtofile = os.path.dirname(os.path.abspath(__file__))
+        self.imagepath = os.path.join(pathtofile, "UniDecLogoMR.png")
+        #print(self.imagepath)
+        html.SetPage(
+            "<html><body>"
+            #"<h1>UniDec</h1>"
+            "<img src=\"" + self.imagepath +"\" alt=\"PNG Icon\" height=\"200\" width=\"290\">"
+            "<p>Please Cite: Marty et al. Anal. Chem. 2015. " 
+            "DOI: 10.1021/acs.analchem.5b00140.</p>"
+            "</body></html>"
+        )
+
         sizer.Add(button1, (0, 0), flag=wx.EXPAND)
         sizer.Add(button2, (1, 0), flag=wx.EXPAND)
         sizer.Add(button3, (2, 0), flag=wx.EXPAND)
@@ -65,6 +78,7 @@ class Lview(wx.Frame):
         sizer.Add(button6, (2, 1), flag=wx.EXPAND)
         sizer.Add(button7, (1, 1), flag=wx.EXPAND)
         sizer.Add(button5, (3, 0), span=(1, 2), flag=wx.EXPAND)
+        sizer.Add(html, (0, 2), span=(4, 2))
 
         self.Bind(wx.EVT_BUTTON, self.button1, button1)
         self.Bind(wx.EVT_BUTTON, self.button2, button2)

@@ -2212,8 +2212,16 @@ def peaks_error_FWHM(pks, data):
                 else:
                     rightwidth += 1
             counter += 1
-        pk.errorFWHM = data[index + rightwidth, 0] - data[index - leftwidth, 0]
-        pk.intervalFWHM = [data[index - leftwidth, 0], data[index + rightwidth, 0]]
+
+        indexstart = index - leftwidth
+        indexend = index + rightwidth
+        if indexstart < 0:
+            indexstart = 0
+        if indexend >= len(data):
+            indexend = len(data) - 1
+
+        pk.errorFWHM = data[indexend, 0] - data[indexstart, 0]
+        pk.intervalFWHM = [data[indexstart, 0], data[indexend, 0]]
         start = pk.intervalFWHM[0]
         end = pk.intervalFWHM[1]
         pk.centroid = center_of_mass(data, start, end)[0]
