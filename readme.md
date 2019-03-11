@@ -192,6 +192,16 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.3.2
+
+Added a logo to the start screen.
+
+Update to the latest mzML specification.
+
+Build update to Python 3.7 and latest libraries.
+
+Bug fixes.
+
 v.3.1.1
 
 Expanded isotope mode to either output monoisotopic masses or average masses. 

@@ -1,6 +1,6 @@
 from matplotlib.patches import Rectangle
 
-from pubsub import setupkwargs
+#from pubsub import setupkwargs
 from pubsub import pub
 
 import numpy as np
