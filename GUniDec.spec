@@ -28,7 +28,7 @@ system = platform.system()
 date = datetime.date.today().strftime("%y%m%d")
 
 # Determine if this is a distribution run or internal
-if "-distribution" in sys.argv:
+if "-nowaters" in sys.argv:
     distmode = True
     print("Distribution Release Mode")
 else:
