@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 # contains basic setup functionality
 
 import wx
+import tempfile, os
 from matplotlib import interactive
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.figure import Figure
@@ -110,6 +111,7 @@ class PlottingWindow(wx.Window):
         self.zoomtype = "box"
         self.tickcolor = "black"
         self.canvas.mpl_connect('button_release_event', self.on_release)
+        self.canvas.mpl_connect('key_press_event', self.on_key)
 
     def on_release(self, event):
         """
@@ -171,6 +173,11 @@ class PlottingWindow(wx.Window):
                     print("Could not switch on labels")
             else:
                 self.on_save_fig_dialog(event)
+
+    def on_key(self, evt):
+        # print("you pressed", evt.key)
+        if evt.key == "ctrl+c":
+            self.copy_to_clipboard()
 
     def on_save_fig_dialog(self, evt):
         """
@@ -348,6 +355,20 @@ class PlottingWindow(wx.Window):
         """
         if self.resize == 1:
             self.canvas.SetSize(self.GetSize())
+
+    def copy_to_clipboard(self, *args, **kwargs):
+        obj = tempfile.NamedTemporaryFile(delete=False)
+        self.canvas.print_figure(obj, format="png", dpi=300)
+        obj.close()
+        img = wx.Image(obj.name)
+        btm = wx.Bitmap(img)
+        bobj = wx.BitmapDataObject(btm)
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(bobj)
+            #wx.TheClipboard.SetData(wx.TextDataObject("Test"))
+            wx.TheClipboard.Close()
+            print("Image Copied")
+        os.remove(obj.name)
 
     def setup_zoom(self, plots, zoom, data_lims=None, pad=0):
         """

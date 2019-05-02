@@ -290,3 +290,5 @@ class MainwindowBase(wx.Frame):
         """
         pub.unsubAll()
         self.Close(True)
+
+

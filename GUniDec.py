@@ -85,13 +85,14 @@ class UniDecApp(UniDecPres):
             self.on_open_file(fname, newdir)
             # self.view.on_save_figure_eps(0)
             # self.on_dataprep_button(0)
-            self.on_auto(0)
+            # self.on_auto(0)
             # self.on_integrate()
             # self.on_grid_decon(0)
             # self.make_cube_plot(0)
             # self.on_plot_peaks(0)
             # self.on_flip_tabbed(None)
-            self.on_label_max_charge_states(0)
+            # self.on_label_max_charge_states(0)
+            # self.view.plot1.copy_to_clipboard()
 
     # ..............................
     #
@@ -1420,6 +1421,7 @@ class UniDecApp(UniDecPres):
             tend = time.perf_counter()
             print("\nTotal Speedy Batch Run Time: %.2gs" % (tend - tstarttop))
 
+    '''
     def on_cross_validate(self, e=None):
         """
         Experimental...
@@ -1439,7 +1441,7 @@ class UniDecApp(UniDecPres):
         self.view.plot2.plotadd(self.eng.data.massdat[:, 0], (mean + stddev) * norm, 'y', 'Mean+STD')
         self.view.plot2.plotadd(self.eng.data.massdat[:, 0], (mean - stddev) * norm, 'y', 'Mean-STD')
         self.view.plot2.repaint()
-        pass
+        pass'''
 
     def on_pdf_report(self, e=None):
         """
@@ -1606,7 +1608,10 @@ class UniDecApp(UniDecPres):
                 self.view.plot2.plotadd(dist[:, 0], dist[:, 1], colval=p.color)
         self.view.plot2.repaint()
 
-    def on_flip_mode(self, e):
+    #def on_remove_noise_points(self, e=0):
+    #    self.on_dataprep_button(removenoise=True)
+
+    def on_flip_mode(self, e=None):
         """
         Flips between MS and IM-MS mode
         :param e: wx event or anything (will flip if not 0)

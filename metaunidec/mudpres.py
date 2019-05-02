@@ -127,11 +127,14 @@ class UniDecApp(UniDecPres):
         :return:
         """
         spectra = self.eng.data.get_spectra()
-        if len(spectra) > int(self.eng.config.crossover):
-            mult = int(len(spectra) / self.eng.config.numtot)
-            self.view.SetStatusText("Displaying subset of data", number=2)
-        else:
-            mult = 1
+        try:
+            if len(spectra) > int(self.eng.config.crossover):
+                mult = int(len(spectra) / self.eng.config.numtot)
+                self.view.SetStatusText("Displaying subset of data", number=2)
+            else:
+                mult = 1
+        except:
+            mult=1
         for i, s in enumerate(spectra[::mult]):
             if i == 0:
                 self.view.plot1.plotrefreshtop(s.data2[:, 0], s.data2[:, 1], title="Processed Data", xlabel="m/z (Th)",

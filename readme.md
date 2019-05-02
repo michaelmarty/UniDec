@@ -3,9 +3,9 @@ UniDec: Universal Deconvolution of Mass and Ion Mobility Spectra
 
 UniDec is a Bayesian deconvolution program for deconvolution of mass spectra and ion mobility-mass spectra.
 
-It was orignally published in: [M. T. Marty, A. J. Baldwin, E. G. Marklund, G. K. A. Hochberg, J. L. P. Benesch, C. V. Robinson, Anal. Chem. 2015, 87, 4370-4376.](http://pubs.acs.org/doi/abs/10.1021/acs.analchem.5b00140)
+It was originally published in: [M. T. Marty, A. J. Baldwin, E. G. Marklund, G. K. A. Hochberg, J. L. P. Benesch, C. V. Robinson, Anal. Chem. 2015, 87, 4370-4376.](http://pubs.acs.org/doi/abs/10.1021/acs.analchem.5b00140)
 
-Detailed descriptions of the algorithm are provided in the paper. Please cite us if you use UniDec in your research.
+Detailed descriptions of the algorithm are provided in the paper and subsequent papers. Please cite us if you use UniDec in your research.
 
 Please contact mtmarty@email.arizona.edu for questions, suggestions, or with any bugs.
 
@@ -18,17 +18,17 @@ Just unzip the folder, put it somewhere convenient, and click the GUI_UniDec.exe
 
 ## Licensing
 
-We have recently converted to a completely open source license. Our hope is that this allows UniDec to be
+UniDec is distributed under a completely open source license. Our hope is that this allows UniDec to be
 more widely used. If you are interested in including UniDec in another academic or commercial software distribution, 
 you are welcome to email mtmarty@email.arizona.edu for more information. 
 
 UniDec source code and compiled binaries are released under a modified BSD License as described below. Note, we ask
 that you cite us in any publications. Quantitative citation metrics will help grant applications to support future development.
 
-UniDec License:
+###UniDec License:
 
 Copyright (c) 2016, University of Oxford
-              2017, University of Arizona
+              2017-2019, University of Arizona
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,8 +41,7 @@ modification, are permitted provided that the following conditions are met:
 3. Neither the name of the copyright holders nor the
    names of its contributors may be used to endorse or promote products
    derived from this software without specific prior written permission.
-4. Any publications that result from use of the software must cite Marty
-   et al. Anal. Chem. 2015. DOI: 10.1021/acs.analchem.5b00140.
+4. Any publications that result from use of the software should cite Marty et al. Anal. Chem. 2015. DOI: 10.1021/acs.analchem.5b00140. If UniDec is redistributed or incorporated into other software, it must be clearly indicated to the end user that UniDec is being used, and the request to cite Marty et al. Anal. Chem. 2015. DOI: 10.1021/acs.analchem.5b00140 must be passed on to the end user.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ''AS IS'' AND ANY
 EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -55,26 +54,29 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+### Third Party Licenses
+
+Waters DLLs are distributed under the Waters MassLynxSDK EULA license. By downloading and using these DLLs, you are accepting that license. Info on other licenses are provided below.
+
 ## UniDec Compatible File Types
 
 UniDec is built to open .txt files using [numpy.loadtxt](http://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.loadtxt.html). 
 
 For MS data, it opens a two-column either a tab or space delimited list of m/z and intensity values.
 
-For IM-MS, it will open a three-column tab or space delminated list of m/z, arrival time (or bin), and intensity values. Sparse matrices are fine for IM-MS. 
+For IM-MS, it will open a three-column tab or space delimited list of m/z, arrival time (or bin), and intensity values. Sparse matrices are fine for IM-MS. 
 
-Recent versions are compatible with a text header at the beginning of the file. It will skip lines until it reaches the start of the data.
+It is compatible with a text header at the beginning of the file. It will skip lines until it reaches the start of the data.
 
-For Water's .raw files, UniDec is bundled with converters (CDCReader.exe and rawreader.exe) to 
+For Water's .raw files, UniDec is bundled with converters (CDCReader.exe) to 
 convert the data to .txt. It will compress the retention time dimension into a single spectrum. 
-A single file can be opened directly, or mulitiple files can be converted using 
+A single file can be opened directly, or multiple files can be converted using 
 Tools > Simple Batch Process Raw to Txt. For a fancier conversion such as extracting specific functions or scans, 
-try Tools > Raw to Txt Conversion Wizard.
-
-Water's converters will need [MassLynxRaw.dll](https://interface.waters.com/masslynx/developers-area/sdks/) (32-bit, x86, Version 1.0.0.0 for MS) and/or [cdt.dll](https://interface.waters.com/masslynx/developers-area/sdks/) (64-bit, x64, Version 4.4.0.0 for IM-MS) in the same directory as the converter executables (the unidec_bin folder or the top directory).
-Note: We have had issues with these DLLs that seem to be fixed now. Please contact me for working files if you can't get them to work.
+try Tools > Raw to Txt Conversion Wizard. Note: rawreader.exe has been replaced with the MassLynxSDK 4.5 Python library. Water's converters will need MassLynxRaw.dll and/or cdt.dll in the same directory as the converter executables (the unidec_bin folder or the top directory). These are now bundled with the software and are distributed under the Waters MassLynxSDK EULA license. By downloading and using these DLLs, you are accepting that license. 
 
 Thermo .raw files can be read as you would a text file on Windows thanks to [multiplierz](https://github.com/BlaisProteomics/multiplierz). You will need [MSFileReader](https://thermo.flexnetoperations.com/control/thmo/download?element=6306677) installed. Please cite them (http://onlinelibrary.wiley.com/doi/10.1002/pmic.201700091/abstract). It will compress all scans together unless parsed with MetaUniDec. 
+
+Note: multiplierz is currently not compatible for Python 3. However, you can make it work by fixing the print and import commands. I can provide a modified version on request.
 
 Finally, many vendor formats can be converted mzML using [Proteowizard](http://proteowizard.sourceforge.net/). UniDec will open mzML file as if they are a text file, and this format should be cross platform.
 We utilize [pymzML](http://pymzml.github.io/intro.html#general-information) for this. Please [cite them](https://www.ncbi.nlm.nih.gov/pubmed/22302572).
@@ -115,6 +117,7 @@ pymzml
 networkx
 h5py
 multiplierz (Windows only, for Thermo RAW imports)
+pypubsub
 
 All of these can be installed from the command line with (for example):
     
@@ -124,20 +127,13 @@ Note: I would highly recommend setting up 64-bit Python as the default. MS data 
 
 ### The UniDec Binaries
 
-As described below, the Python code presented here relies on one critical binary, UniDec.exe. 
-UniDecIM.exe has been merged into UniDec.exe and is no longer used.
-The binary should be in the /unidec_bin directory. 
+As described below, the Python code presented here relies on one critical binary, UniDec.exe. The binary should be in the /unidec_bin directory. 
 
 If you are interested in building the binary or modifying the source code, the code and Visual Studio project files
-are in unidec_src/UniDec. It is currently configured for Visual Studio Community 2015 with HDF5 1.10.1 and Intel Parallel Studio 17.
+are in unidec_src/UniDec. It is currently configured for Visual Studio Community 2015 with HDF5 1.10.1 and Intel Parallel Studio 19.
 It can be easily compiled with other compilers but will show a significant performance loss without the Intel Compilers.
  
-If you are interested in binaries for Mac and Linux, they are also in the unidec_bin directory as unidecmac and unideclinux.
-However, we do not build these regularly, so I would recommend building them yourself using the scripts in the unidec_src/UniDec directory.
-
-If you want to convert Waters .Raw files, you will also need to add cdt.dll (for IM-MS) and MassLynxRaw.dll (for MS) to the same directory. See above for links. 
-
-I have binary built for Mac and Linux as well. They are a bit slower than the Windows version because they are compiled with gcc rather than the Intel C Compiler, but they are perfectly functional and still pretty darn fast. I can send these to you on request. Note, due to low demand and my busy schedule, these may not always be available immediately in the latest version.
+If you are interested in binaries for Mac and Linux, I would recommend building them yourself using the scripts in the unidec_src/UniDec directory. UniDec compiles easily and works fine with these operating systems, but I don't have the time to support them.
 
 ## UniDec Documentation
 
@@ -145,8 +141,7 @@ Documentation is for the Python engine and GUI and can be found at http://michae
 
 My goal is that this documentation will allow you to utilize the power of the UniDec python engine for scripting data analysis routines and performing custom analysis. Also, it will allow you to add new modules to the UniDec GUI.
 
-I'm still working on documenting some of the windows and extensions (including MetaUniDec and C code), 
-but the core features should be here.
+I'm still working on documenting some of the windows and extensions (including MetaUniDec and C code), but the core features should be here.
 
 ## UniDec Architecture
 
@@ -191,6 +186,26 @@ In reading the documentation, it is perhaps best to start with the unidec.UniDec
 The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
+
+v.4.0
+
+Added **Quick Controls** to the main panel. This should allow you to turn on and off features quickly without
+those pesky numbers. The advanced controls are still available as before. 
+
+A new experimental feature has been added based to use a SoftMax function (controlled by the parameter beta)
+to **suppress deconvolution artifacts**. The higher beta is, the more the algorithm with seek a single charge state assignment for each data point. Setting beta to zero will turn this off. This seems to work best when combined with other assumptions, such as peak width, point smoothing, and charge and mass smoothing. It also seems to work best when combined with background subtraction. Play around with it and let me know what you think. A minus flag applies the SoftMax to the entire data set rather than just a single column of the m/z vs charge matrix at once. 
+
+Changed the Waters MS import from rawreader.exe to the MassLynxSDK 4.5. **Waters DLLs are now included** and are distributed under the Waters MassLynxSDK EULA described above. Thanks to Waters for allowing us to distribute these. You should be able to directly open raw files now. 
+
+Added **Ctrl+C to copy out images from plots**. You should be able to paste these into other applications.
+
+Added **Data Reduction** data processing feature in UniDec for removing noise from large data sets. Basically, you set a percentage of the data you want to remove. UniDec then finds what intensity threshold is required to remove that much and takes out all data below that threshold. 
+
+Adjustments to the algorithm to improve speed and reliability.
+
+Changes to the Gaussian blur functions for charge and mass, which are activated by negative flags for mass and charge smooth width.
+
+Removed cross validation feature because I'm pretty sure no one was using it.
 
 v.3.2
 
@@ -537,6 +552,58 @@ Most changes are in the back end and will hopefully be invisible to people using
     * Get Errors: Working on a automated error determination...
 
 
+## Additional License Info
+
+h5py: http://docs.h5py.org/en/stable/licenses.html
+
+wxpython: https://wxpython.org/pages/license/index.html
+
+numpy: https://www.numpy.org/license.html
+
+scipy: https://www.scipy.org/scipylib/license.html
+
+matplotlib: https://matplotlib.org/users/license.html
+
+natsort: https://github.com/SethMMorton/natsort/blob/master/LICENSE
+
+pymzml: https://github.com/pymzml/pymzML/blob/master/LICENSE.txt
+
+networkx: https://networkx.github.io/documentation/networkx-1.10/reference/legal.html
+
+multiplierz: https://github.com/BlaisProteomics/multiplierz/blob/master/LICENSE
+
+pypubsub: https://pypubsub.readthedocs.io/en/v4.0.3/about.html#license
+
+License-Zoombox and Zoomspan:
+
+Copyright (c) 2010, Duke University and the United States Department of
+Veterans Affairs. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+   * Redistributions of source code must retain the above copyright notice,
+     this list of conditions and the following disclaimer.
+   * Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
+     documentation and/or other materials provided with the distribution.
+   * Neither the name of Duke University nor the United States Department
+     of Veterans Affairs may be used to endorse or promote products derived
+     from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ''AS
+IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
+
+For portions of this code, copyright and license information differs from
+the above. In these cases, copyright and/or license information is inline.
 
 
 

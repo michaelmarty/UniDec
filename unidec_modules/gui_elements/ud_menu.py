@@ -224,13 +224,17 @@ class main_menu(wx.Menu):
             self.menuDeisotope = self.experimentalmenu.Append(wx.ID_ANY, "Load Zero-Charge Mass Spectrum",
                                                               "Load Zero-Charge Mass as input spectrum. Useful for deisotoping.")
             self.experimentalmenu.AppendSeparator()
-            self.menuCrossValidate = self.experimentalmenu.Append(wx.ID_ANY, "Cross Validate",
-                                                                  "Estimate errors through cross validation.")
+            #self.menuCrossValidate = self.experimentalmenu.Append(wx.ID_ANY, "Cross Validate",
+            #                                                      "Estimate errors through cross validation.")
             self.experimentalmenu.AppendSeparator()
             self.menucolor1d = self.experimentalmenu.Append(wx.ID_ANY, "Color Plots",
                                                             "Make a Different Colored 1D Plot")
+
+            #self.menunoiseremover = self.experimentalmenu.Append(wx.ID_ANY, "Remove Noise Below Threshold",
+            #                                                "Remove data points below the mean")
+            #self.parent.Bind(wx.EVT_MENU, self.pres.on_remove_noise_points, self.menunoiseremover)
             self.parent.Bind(wx.EVT_MENU, self.pres.on_zerocharge_mass, self.menuDeisotope)
-            self.parent.Bind(wx.EVT_MENU, self.pres.on_cross_validate, self.menuCrossValidate)
+            #self.parent.Bind(wx.EVT_MENU, self.pres.on_cross_validate, self.menuCrossValidate)
             self.parent.Bind(wx.EVT_MENU, self.pres.on_additional_parameters, self.menuAdditionalParameters)
             self.parent.Bind(wx.EVT_MENU, self.pres.on_color_plot1d, self.menucolor1d)
             # self.parent.Bind(wx.EVT_MENU, self.pres.on_minimize, self.menuMinimize)

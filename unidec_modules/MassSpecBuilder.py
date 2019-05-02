@@ -128,6 +128,21 @@ def simple_spectrum(masslist, **kwargs):
     return spec
 
 
+def simple_spectrum2(masslist, **kwargs):
+    """
+    For a mass list, create the parameters and ranges for a simple default spectrum.
+    :param masslist: Mass values
+    :param kwargs: Keywords of parameters to pass to simple_params and make_mass_spectrum
+    :return: N x 2 spectrum (m/z, intensity)
+    """
+    params = simple_params(masslist, **kwargs)
+    zrange = get_zrange(params)
+    mzrange = get_mzrange(params)
+    spec = make_mass_spectrum(params, zrange=zrange, mzrange=mzrange, **kwargs)
+    return spec, params
+
+
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 

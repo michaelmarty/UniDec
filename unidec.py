@@ -104,7 +104,10 @@ class UniDec(UniDecEngine):
         else:
             newname = os.path.join(os.getcwd(), self.config.outfname + "_imraw.txt")
         if not os.path.isfile(newname):
-            shutil.copy(file_directory, newname)
+            try:
+                shutil.copy(file_directory, newname)
+            except Exception as e:
+                pass
 
         # Initialize Config
         if os.path.isfile(self.config.confname) == True:
@@ -117,8 +120,9 @@ class UniDec(UniDecEngine):
     def raw_process(self, dirname, inflag=False, binsize=1):
         """
         Processes Water's Raw files into .txt using external calls to:
-            self.config.rawreaderpath for MS
             self.config.cdcreaderpath for IM-MS
+
+        MS is processed by unidec_modules.waters_importer.Importer
 
         Default files are created with the header of the .raw file plus:
             _rawdata.txt for MS
@@ -156,9 +160,16 @@ class UniDec(UniDecEngine):
             else:
                 if self.config.system == "Windows":
                     if self.config.imflag == 0:
-                        result = subprocess.call(
-                            [self.config.rawreaderpath, "-i", self.config.dirname, "-o", newfilepath])
+                        #print("Testing: ", newfilepath)
+                        ud.waters_convert2(self.config.dirname, config=self.config, outfile=newfilepath)
+                        #result = subprocess.call(
+                        #    [self.config.rawreaderpath, "-i", self.config.dirname, "-o", newfilepath])
                         self.config.filename = newfilename
+                        if os.path.isfile(newfilepath):
+                            print("Converted data from raw to txt")
+                        else:
+                            print("Failed conversion to txt file. ", newfilepath)
+                            return None, None
                     else:
                         call = [self.config.cdcreaderpath, '-r', self.config.dirname, '-m',
                                 newfilepath[:-10] + "_msraw.txt", '-i', newfilepath, '--ms_bin', binsize,
@@ -166,11 +177,11 @@ class UniDec(UniDecEngine):
                                 "1"]
                         result = subprocess.call(call)
                         self.config.filename = newfilename
-                    if result == 0 and os.path.isfile(newfilepath):
-                        print("Converted data from raw to txt")
-                    else:
-                        print("Failed conversion to txt file. ", result, newfilepath)
-                        return None, None
+                        if result == 0 and os.path.isfile(newfilepath):
+                            print("Converted data from raw to txt")
+                        else:
+                            print("Failed conversion to txt file. ", result, newfilepath)
+                            return None, None
                 else:
                     print("Sorry. Waters Raw converter only works on windows. Convert to txt file first.")
                     return None, None
@@ -765,6 +776,7 @@ class UniDec(UniDecEngine):
         return True
         # TODO: Import Matches, others things in state?
 
+    '''
     def cross_validate(self, numcrosstot=5):
         """
         Experimental function to perform cross validation
@@ -835,7 +847,7 @@ class UniDec(UniDecEngine):
             ud.dataexport(peaks, self.config.outfname + "_peakcverr.dat")
         except (IndexError, ValueError, ZeroDivisionError, TypeError, AttributeError):
             print("No peaks in cross validation...")
-        return mean, stddev
+        return mean, stddev'''
 
     def normalize_peaks(self):
         """

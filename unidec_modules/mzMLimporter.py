@@ -36,20 +36,24 @@ def fit_line(x, a, b):
     return a * x ** b
 
 
-def merge_spectra(datalist):
+def merge_spectra(datalist, mzbins=None):
     """
     Merge together a list of data.
     Interpolates each data set in the lit to a new nonlinear axis with the median resolution of the first element.
+    Optionally, allows mzbins to create a linear axis with each point spaced by mzbins.
     Then, adds the interpolated data together to get the merged data.
     :param datalist: M x N x 2 list of data sets
     :return: Merged N x 2 data set
     """
-    resolution = get_resolution(datalist[0])
     concat = np.concatenate(datalist)
     # xvals = concat[:, 0]
     # print "Median Resolution:", resolution
     # axis = nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
-    axis = ud.nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
+    if mzbins is None or mzbins == 0:
+        resolution = get_resolution(datalist[0])
+        axis = ud.nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
+    else:
+        axis = np.arange(np.amin(concat[:, 0]), np.amax(concat[:, 0]), float(mzbins))
     template = np.transpose([axis, np.zeros_like(axis)])
     print("Length merge axis:", len(template))
     for d in datalist:

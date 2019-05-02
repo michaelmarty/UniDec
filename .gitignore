@@ -8,8 +8,6 @@ unidec_doc
 .gitignore
 .idea
 *.spec
-unidec_bin/MassLynxRaw.dll
-unidec_bin/cdt.dll
 *.sdf
 *.vcxproj.filters
 *.vcxproj.user
@@ -64,4 +62,13 @@ unidec_modules/1_1D_Mass_Defects.txt
 unidec_modules/1_2D_Mass_Defects.txt
 unidec_modules/isolated_packages/spreadsheet.py
 unidec_src/UniDec/UniDec.VC.VC.opendb
-
+unidec_src/UniDec/UD_sg.h
+unidec_src/UniDec/UniDec_Mainh-rev485.h
+unidec_src/UniDec/UniDech-rev511.h
+unidec_bin/old_waters/
+unidec_modules/Mass_Defect_Extracts_Total.txt
+UniDecPastedSpectra/
+iFAMS/test_unidecfiles/
+/unidec_modules/waters_importer/old/
+/unidec_modules/waters_importer/MassLynxLockMassProcessor.py
+/unidec_modules/waters_importer/MassLynxRaw.lib

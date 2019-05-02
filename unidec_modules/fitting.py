@@ -29,6 +29,7 @@ def binomial_fit(xvals, yvals):
     nguess = np.amax(xvals)
     pguess = float(xvals[np.argmax(yvals)]) / float(nguess)
     guess = [nguess, pguess, Aguess]
+    print(guess)
     fits = curve_fit(binomial, xvals, yvals, p0=guess, maxfev=1000000)[0]
     fitdat = binomial(xvals, fits[0], fits[1], fits[2])
     return fits, fitdat

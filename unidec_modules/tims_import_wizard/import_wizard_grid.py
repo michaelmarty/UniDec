@@ -117,7 +117,7 @@ class WizardGrid(wx.grid.Grid):
         menu = wx.Menu()
         # Show how to put an icon in the menu
         item = wx.MenuItem(menu, self.popupID1, "Fill Down")
-        menu.AppendItem(item)
+        menu.Append(item)
         #menu.Append(self.popupID1, "Fill Down")
         #menu.Append(self.popupID1, "Two")
         #menu.Append(self.popupID3, "Three")
@@ -141,8 +141,11 @@ class WizardGrid(wx.grid.Grid):
         self.AutoSizeColumns()
         #self.AutoSize()
 
-    def EvtDriftType(self, evt):
-        self.set_labels(evt.GetInt())
+    def EvtDriftType(self, evt=None, n=None):
+        if n is None:
+            self.set_labels(evt.GetInt())
+        else:
+            self.set_labels(n)
         self.ClearGrid()
 
     def clear_all(self, evt):

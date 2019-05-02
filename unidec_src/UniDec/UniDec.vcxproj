@@ -45,7 +45,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{8B5805FC-0D39-4326-A95E-A82CD5D2BADF}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -96,14 +96,17 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>Intel C++ Compiler 17.0</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 19.0</PlatformToolset>
     <UseIntelMKL>Parallel</UseIntelMKL>
     <UseIntelTBB>true</UseIntelTBB>
     <InstrumentIntelTBB>true</InstrumentIntelTBB>
     <UseOfMfc>Static</UseOfMfc>
     <UseOfAtl>false</UseOfAtl>
-    <BasePlatformToolset>v140</BasePlatformToolset>
     <InterproceduralOptimization>true</InterproceduralOptimization>
+    <UseIntelIPP>Parallel_Static</UseIntelIPP>
+    <UseILP64Interfaces>true</UseILP64Interfaces>
+    <UseIntelDAAL>Parallel_Static</UseIntelDAAL>
+    <BasePlatformToolset>v140</BasePlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleasePGI|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -400,18 +403,22 @@
       <OpenMP>GenerateParallelCode</OpenMP>
       <C99Support>true</C99Support>
       <EnablePREfast>false</EnablePREfast>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
       <UseProcessorExtensions>None</UseProcessorExtensions>
       <GenerateAlternateCodePaths>None</GenerateAlternateCodePaths>
-      <OffloadConstructs>Mandatory</OffloadConstructs>
+      <OffloadConstructs>Optional</OffloadConstructs>
       <GPUArch>Default</GPUArch>
       <InterproceduralOptimization>NoIPO</InterproceduralOptimization>
       <OptimizeForWindowsApplication>false</OptimizeForWindowsApplication>
       <UseIntelOptimizedHeaders>true</UseIntelOptimizedHeaders>
       <Parallelization>true</Parallelization>
+      <UseMSVC>false</UseMSVC>
+      <AdditionalIncludeDirectories>C:\Program Files %28x86%29\IntelSWTools\compilers_and_libraries_2019.3.203\windows\mkl\include\fftw;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -421,6 +428,8 @@
       <AdditionalDependencies>libszip.lib;libzlib.lib;libhdf5.lib;libhdf5_hl.lib;ucrt.lib;vcruntime.lib;msvcrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <ShowProgress>NotSet</ShowProgress>
+      <AdditionalLibraryDirectories>C:\Program Files %28x86%29\MSBuild\Microsoft.Cpp\v4.0\V140;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Message>Copy Exe</Message>
@@ -580,6 +589,7 @@
     <ClInclude Include="MetaUniDec_Main.h" />
     <ClInclude Include="UD_H5_IO.h" />
     <ClInclude Include="UD_peak_width.h" />
+    <ClInclude Include="UD_sg.h" />
     <ClInclude Include="UniDec.h" />
     <ClInclude Include="UniDecIM.h" />
     <ClInclude Include="UniDecIM_Main.h" />

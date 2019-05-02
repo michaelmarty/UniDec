@@ -115,15 +115,17 @@ class UniDecConfig(object):
         self.subbuff = 0
         self.subtype = 2
         self.intthresh = 0
+        self.reductionpercent = 0
 
         # UniDec
         self.numit = 100
         self.zzsig = 1
         self.psig = 1
+        self.beta = 0
         self.startz = 1
         self.endz = 50
         self.numz = 50
-        self.mzsig = 0
+        self.mzsig = 0.85
         self.psfun = 0
         self.massub = 500000
         self.masslb = 5000
@@ -206,6 +208,7 @@ class UniDecConfig(object):
         f.write("startz " + str(self.startz) + "\n")
         f.write("zzsig " + str(self.zzsig) + "\n")
         f.write("psig " + str(self.psig) + "\n")
+        f.write("beta " + str(self.beta) + "\n")
         f.write("mzsig " + str(self.mzsig) + "\n")
         f.write("psfun " + str(self.psfun) + "\n")
         f.write("discreteplot " + str(self.discreteplot) + "\n")
@@ -236,6 +239,7 @@ class UniDecConfig(object):
         f.write("peakplotthresh " + str(self.peakplotthresh) + "\n")
         f.write("plotsep " + str(self.separation) + "\n")
         f.write("intthresh " + str(self.intthresh) + "\n")
+        f.write("reductionpercent " + str(self.reductionpercent) + "\n")
         f.write("aggressive " + str(self.aggressiveflag) + "\n")
         f.write("rawflag " + str(self.rawflag) + "\n")
         f.write("adductmass " + str(self.adductmass) + "\n")
@@ -351,6 +355,8 @@ class UniDecConfig(object):
                             self.zzsig = ud.string_to_value(line.split()[1])
                         if line.startswith("psig"):
                             self.psig = ud.string_to_value(line.split()[1])
+                        if line.startswith("beta"):
+                            self.beta = ud.string_to_value(line.split()[1])
                         if line.startswith("mzsig"):
                             self.mzsig = ud.string_to_value(line.split()[1])
                         if line.startswith("psfun"):
@@ -396,6 +402,8 @@ class UniDecConfig(object):
                             self.separation = ud.string_to_value(line.split()[1])
                         if line.startswith("intthresh"):
                             self.intthresh = ud.string_to_value(line.split()[1])
+                        if line.startswith("reductionpercent"):
+                            self.reductionpercent = ud.string_to_value(line.split()[1])
                         if line.startswith("aggressive"):
                             self.aggressiveflag = ud.string_to_int(line.split()[1])
                         if line.startswith("rawflag"):
@@ -536,11 +544,13 @@ class UniDecConfig(object):
         cdict = {  # "input": self.infname, "output": self.outfname,
             "numit": self.numit,
             "endz": self.endz, "startz": self.startz, "zzsig": self.zzsig, "psig": self.psig, "mzsig": self.mzsig,
+            "beta": self.beta,
             "psfun": self.psfun, "discreteplot": self.discreteplot, "massub": self.massub, "masslb": self.masslb,
             "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
             "minmz": self.minmz, "maxmz": self.maxmz, "subbuff": self.subbuff, "smooth": self.smooth,
             "mzbins": self.mzbins, "peakwindow": self.peakwindow, "peakthresh": self.peakthresh,
             "peakplotthresh": self.peakplotthresh, "plotsep": self.separation, "intthresh": self.intthresh,
+            "reductionpercent": self.reductionpercent,
             "aggressive": self.aggressiveflag, "rawflag": self.rawflag, "adductmass": self.adductmass,
             "nativezub": self.nativezub, "nativezlb": self.nativezlb, "poolflag": self.poolflag,
             "accvol": self.detectoreffva, "peakshapeinflate": self.inflate, "noiseflag": self.noiseflag,
@@ -604,6 +614,7 @@ class UniDecConfig(object):
         self.startz = self.read_attr(self.startz, "startz", config_group)
         self.zzsig = self.read_attr(self.zzsig, "zzsig", config_group)
         self.psig = self.read_attr(self.psig, "psig", config_group)
+        self.beta = self.read_attr(self.beta, "beta", config_group)
         self.mzsig = self.read_attr(self.mzsig, "mzsig", config_group)
         self.psfun = self.read_attr(self.psfun, "psfun", config_group)
         self.discreteplot = self.read_attr(self.discreteplot, "discreteplot", config_group)
@@ -621,6 +632,7 @@ class UniDecConfig(object):
         self.peakplotthresh = self.read_attr(self.peakplotthresh, "peakplotthresh", config_group)
         self.separation = self.read_attr(self.separation, "separation", config_group)
         self.intthresh = self.read_attr(self.intthresh, "intthresh", config_group)
+        self.reductionpercent = self.read_attr(self.reductionpercent, "reductionpercent", config_group)
         self.aggressiveflag = self.read_attr(self.aggressiveflag, "aggressiveflag", config_group)
         self.rawflag = self.read_attr(self.rawflag, "rawflag", config_group)
         self.adductmass = self.read_attr(self.adductmass, "adductmass", config_group)
@@ -944,7 +956,7 @@ class UniDecConfig(object):
         self.UniDecName = self.defaultUnidecName
         self.UniDecDir = self.defaultUnidecDir
         self.UniDecPath = os.path.join(self.UniDecDir, self.UniDecName)
-        self.rawreaderpath = os.path.join(self.UniDecDir, "rawreader.exe")
+        # self.rawreaderpath = os.path.join(self.UniDecDir, "rawreader.exe")
         self.cdcreaderpath = os.path.join(self.UniDecDir, "CDCreader.exe")
         self.defaultconfig = os.path.join(self.UniDecDir, "default_conf.dat")
         self.masstablefile = os.path.join(self.UniDecDir, "mass_table.csv")
@@ -992,7 +1004,6 @@ class UniDecConfig(object):
     def get_preset_list(self):
         for dirpath, dirnames, files in os.walk(self.presetdir):
             print(files)
-
 
 
 class DataContainer:
@@ -1063,7 +1074,7 @@ if __name__ == '__main__':
     config = UniDecConfig()
     config.initialize_system_paths()
     config.get_preset_list()
-    #config.write_hdf5(fname)
-    #data.write_hdf5(fname)
-    #config.read_hdf5(fname)
-    #data.read_hdf5(fname)
+    # config.write_hdf5(fname)
+    # data.write_hdf5(fname)
+    # config.read_hdf5(fname)
+    # data.read_hdf5(fname)

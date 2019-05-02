@@ -19,7 +19,7 @@ class ImportWizard(wx.Frame):
 
     def setup_frame(self):
         self.CreateStatusBar()
-        self.Title = 'Data Conversion Wizard - By Tim Allison'
+        self.Title = 'Data Conversion Wizard - By Tim Allison with mods from MTM'
 
         panel = wx.Panel(self)
 
@@ -40,6 +40,8 @@ class ImportWizard(wx.Frame):
         self.rb = wx.RadioBox(panel, wx.ID_ANY, "Type of Drift Cell",
                               wx.DefaultPosition, wx.DefaultSize,
                               ['Linear', 'T-wave', 'MS Only'], 2)
+        defaultselection = 2
+        self.rb.SetSelection(defaultselection)
         self.rb.SetToolTip(wx.ToolTip("Select type of drift cell in your ion mobility mass spectrometer"))
 
         # folder path stuff
@@ -55,6 +57,7 @@ class ImportWizard(wx.Frame):
         # add my grid
         panel2 = wx.Panel(panel)
         self.my_grid = import_wizard_grid.WizardGrid(panel, self)
+        self.my_grid.EvtDriftType(n=defaultselection)
         self.my_tree = import_wizard_treectrl.TreeCtrlPanel(panel, self)
         self.tree = self.my_tree.tree
 

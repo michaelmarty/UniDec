@@ -71,7 +71,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
                 ["D", self.pres.on_dataprep_button, self.controls.dataprepbutton],
                 ["O", self.pres.on_open, self.menu.openmenu],  # ["I", self.pres.on_integrate],
                 ["P", self.pres.on_pick_peaks, self.controls.plotbutton],  # ["K", self.pres.on_plot_peaks],
-                ["C", self.pres.on_plot_composite, self.controls.compositebutton],
+                #["C", self.pres.on_plot_composite, self.controls.compositebutton],
                 ["N", self.pres.on_wizard, self.menu.wizardmenu],
                 # ["F", self.pres.on_plot_offsets],  # ["Z", self.pres.on_charge_plot],
                 # ["L", self.pres.on_load_state], ["S", self.pres.on_save_state],

@@ -66,7 +66,7 @@ class Mainwindow(MainwindowBase):
                 ["D", self.pres.on_dataprep_button, self.controls.dataprepbutton],
                 ["P", self.pres.on_pick_peaks, self.controls.ppbutton],
                 ["K", self.pres.on_kendrick, self.menu.menukendrick],
-                ["C", self.pres.on_plot_composite, self.controls.compositebutton],
+                #["C", self.pres.on_plot_composite, self.controls.compositebutton],
                 ["N", self.pres.on_replot, self.controls.replotbutton],
                 ["F", self.pres.on_plot_offsets, self.menu.menuoffset],  # ["Z", self.pres.on_charge_plot],
                 ["L", self.pres.on_load_state, self.menu.menuLoadState],
@@ -306,7 +306,7 @@ class MyFileDropTarget(wx.FileDropTarget):
             # Open a single file
             path = filenames[0]
             directory, fname = os.path.split(path)
-            if os.path.splitext(fname)[1] == ".raw" and os.path.isdir(fname):
+            if os.path.splitext(fname)[1] == ".raw" and os.path.isdir(path):
                 print("Opening .raw file:", fname)
                 self.window.pres.on_raw_open(0, path)
             else:

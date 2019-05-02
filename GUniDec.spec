@@ -71,16 +71,17 @@ a = Analysis(['Launcher.py'],
 # Add extra things
 if system == "Windows":
     a.datas += [('UniDec.exe', 'unidec_bin\\UniDec.exe', 'DATA')]
-    # a.datas += [('UniDecIM.exe', 'unidec_bin\\UniDecIM.exe', 'DATA')]
+    a.datas += [('readme.md', 'readme.md', 'DATA')]
+    a.datas += [('LICENSE', 'LICENSE', 'DATA')]
     a.datas += [('libiomp5md.dll', 'unidec_bin\\libiomp5md.dll', 'DATA')]
     a.datas += [('ucrtbase.dll', 'unidec_bin\\ucrtbase.dll', 'DATA')]
     a.datas += [('vcruntime140.dll', 'unidec_bin\\vcruntime140.dll', 'DATA')]
     a.datas += [('libmypfunc.dll', 'unidec_bin\\libmypfunc.dll', 'DATA')]
-    a.datas += [('rawreader.exe', 'unidec_bin\\rawreader.exe', 'DATA')]
-    a.datas += [('rawreadertim.exe', 'unidec_bin\\rawreadertim.exe', 'DATA')]
+    #a.datas += [('rawreader.exe', 'unidec_bin\\rawreader.exe', 'DATA')]
+    #a.datas += [('rawreadertim.exe', 'unidec_bin\\rawreadertim.exe', 'DATA')]
     a.datas += [('CDCReader.exe', 'unidec_bin\\CDCReader.exe', 'DATA')]
     a.datas += [('h5repack.exe', 'unidec_bin\\h5repack.exe', 'DATA')]
-    a.datas += [('pymzml\\version.txt', 'C:\\Python36\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
+    a.datas += [('pymzml\\version.txt', 'C:\\Python37\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
 
     for file in os.listdir('unidec_bin'):
         if fnmatch.fnmatch(file, 'api*'):
@@ -91,6 +92,7 @@ if system == "Windows":
     if not distmode:
         a.datas += [('MassLynxRaw.dll', 'unidec_bin\\MassLynxRaw.dll', 'DATA')]
         a.datas += [('cdt.dll', 'unidec_bin\\cdt.dll', 'DATA')]
+        a.datas += [('Waters_MassLynxSDK_EULA.txt', 'unidec_bin\\Waters_MassLynxSDK_EULA.txt', 'DATA')]
 elif system == "Linux":
     a.datas += [('unideclinux', 'unidec_bin/unideclinux', 'DATA')]
     # a.datas += [('unideclinuxIM', 'unidec_bin/unideclinuxIM', 'DATA')]
