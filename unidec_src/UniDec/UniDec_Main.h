@@ -45,6 +45,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 		*mdist = NULL,
 		*zdist = NULL,
 		*mzdist = NULL,
+		* rmzdist = NULL,
 		*mtab = NULL,
 		*blur = NULL,
 		*newblur = NULL,
@@ -287,18 +288,23 @@ int run_unidec(int argc, char *argv[], Config config) {
 		int pslen = lengthmz;
 		if (config.speedyflag == 0) { pslen = lengthmz*maxlength; }
 		mzdist = calloc(pslen, sizeof(double));
+		rmzdist = calloc(pslen, sizeof(double));
 		memset(mzdist, 0, pslen * sizeof(double));
+		memset(rmzdist, 0, pslen * sizeof(double));
+
+		int makereverse = 0;
+		if (config.psig < 0 || config.beta < 0) { makereverse = 1; }
 
 
 		//Calculates the distance between mz values as a 2D or 3D matrix
 		if (config.speedyflag == 0)
 		{
-			MakePeakShape2D(lengthmz, maxlength, starttab, endtab, dataMZ, config.mzsig*config.peakshapeinflate, config.psfun, config.speedyflag, mzdist);
+			MakePeakShape2D(lengthmz, maxlength, starttab, endtab, dataMZ, config.mzsig*config.peakshapeinflate, config.psfun, config.speedyflag, mzdist, rmzdist, makereverse);
 		}
 		else
 		{
 			//Calculates peak shape as a 1D list centered at the first element for circular convolutions
-			MakePeakShape1D(dataMZ, threshold, lengthmz, config.speedyflag, config.mzsig*config.peakshapeinflate, config.psfun, mzdist);
+			MakePeakShape1D(dataMZ, threshold, lengthmz, config.speedyflag, config.mzsig*config.peakshapeinflate, config.psfun, mzdist, rmzdist, makereverse);
 		}
 		printf("mzdist set: %f\n", mzdist[0]);
 	}
@@ -491,17 +497,19 @@ int run_unidec(int argc, char *argv[], Config config) {
 	
 	for (iterations = 0; iterations<abs(config.numit); iterations++)
 	{
-		//if (config.beta < 0) { beta = (double)iterations * (-config.beta) + 1; }
-		//else { beta = config.beta; }
-		if (config.beta != 0 && iterations > 0)
+		if (config.beta > 0 && iterations > 0)
 		{
 			softargmax(blur, lengthmz, config.numz, config.beta);
 			//printf("Beta %f\n", beta);
 		}
-
-		if (config.psig > 0 && iterations>0)
+		else if (config.beta < 0 && iterations >0)
 		{
-			point_smoothing(blur, barr, lengthmz, config.numz, (int) config.psig);
+			softargmax_transposed(blur, lengthmz, config.numz, fabs(config.beta), barr, maxlength, isolength, isotopepos, isotopeval, config.speedyflag, starttab, endtab, rmzdist, config.mzsig);
+		}
+		
+		if (fabs(config.psig) >= 1 && iterations>0)
+		{
+			point_smoothing(blur, barr, lengthmz, config.numz, abs((int) config.psig));
 			//printf("Point Smoothed %f\n", config.psig);
 		}
 
@@ -535,8 +543,8 @@ int run_unidec(int argc, char *argv[], Config config) {
 		//Run Richardson-Lucy Deconvolution
 		deconvolve_iteration_speedy(lengthmz, config.numz, maxlength,
 			newblur, blur, barr, config.aggressiveflag, dataInt2,
-			isolength, isotopepos, isotopeval, starttab, endtab, mzdist, config.speedyflag,
-			config.baselineflag, baseline,noise,config.mzsig,dataMZ, config.filterwidth);
+			isolength, isotopepos, isotopeval, starttab, endtab, mzdist, rmzdist, config.speedyflag,
+			config.baselineflag, baseline,noise,config.mzsig,dataMZ, config.filterwidth, config.psig);
 		
 
 		//Determine the metrics for conversion. Only do this every 10% to speed up.
@@ -567,11 +575,6 @@ int run_unidec(int argc, char *argv[], Config config) {
 	}
 	free(dataInt2);
 
-	if (beta != 0)
-	{
-		printf("Final Beta: %f\n", beta);
-	}
-
 	//................................................................
 	//
 	//     Writing and reporting the outputs
@@ -584,12 +587,12 @@ int run_unidec(int argc, char *argv[], Config config) {
 	if (config.peakshapeinflate != 1 && config.mzsig!=0) {
 		if (config.speedyflag == 0)
 		{
-			MakePeakShape2D(lengthmz, maxlength, starttab, endtab, dataMZ, config.mzsig, config.psfun, config.speedyflag, mzdist);
+			MakePeakShape2D(lengthmz, maxlength, starttab, endtab, dataMZ, config.mzsig, config.psfun, config.speedyflag, mzdist, rmzdist, 0);
 		}
 
 		else
 		{
-			MakePeakShape1D(dataMZ, threshold, lengthmz, config.speedyflag, config.mzsig, config.psfun, mzdist);
+			MakePeakShape1D(dataMZ, threshold, lengthmz, config.speedyflag, config.mzsig, config.psfun, mzdist, rmzdist, 0);
 		}
 		printf("mzdist reset: %f\n", config.mzsig);
 	}
@@ -875,7 +878,8 @@ int run_unidec(int argc, char *argv[], Config config) {
 
 	//Free memory
 	free(mtab);
-	free(mzdist);;
+	free(mzdist);
+	free(rmzdist);
 	free(closeval);
 	free(closemind);
 	free(closezind);

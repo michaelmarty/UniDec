@@ -72,3 +72,5 @@ iFAMS/test_unidecfiles/
 /unidec_modules/waters_importer/old/
 /unidec_modules/waters_importer/MassLynxLockMassProcessor.py
 /unidec_modules/waters_importer/MassLynxRaw.lib
+unidec_src/UniDec/UniDec.log
+unidec_src/UniDec/oldVS/

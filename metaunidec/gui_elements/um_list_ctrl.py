@@ -223,3 +223,4 @@ class DCDropTarget(wx.FileDropTarget):
             return
         for f in filenames:
             self.window.ypanel.list.add_line(file_name=f)
+        return 0

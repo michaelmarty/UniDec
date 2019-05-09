@@ -34,6 +34,7 @@ Loads initial dll called libmypfunc. Will speed up convolutions and a few functi
 If this isn't present, it will print a warning but use the pure python code later on.
 """
 dllname = "libmypfunc"
+protmass = 1.007276467
 
 if platform.system() == "Windows":
     if not is_64bits:
@@ -818,7 +819,7 @@ def auto_peak_width(datatop, psfun=None):
         fwhm = fit[0, 0]
     else:
         fwhm = 0
-
+    fwhm = np.round(fwhm, 5)
     return fwhm, psfun, maxval
 
 
@@ -1049,7 +1050,7 @@ def remove_noise(datatop, percent=None):
         # datatop = intensitythresh_del(datatop, cutoff)
     else:
         sdat = np.sort(datatop[:, 1])
-        index = round(l1 * percent/100.)
+        index = round(l1 * percent / 100.)
         cutoff = sdat[index]
     datatop = intensitythresh(datatop, cutoff)
     datatop = remove_middle_zeros(datatop)

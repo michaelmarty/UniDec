@@ -12,6 +12,7 @@ from metaunidec import mudpres
 from import_wizard import ImportWizard
 from metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard as HDF5Wizard
 from metaunidec.ultrameta import DataCollector as UMDC
+from UniChrom import ChromWindow
 import wx.py as py
 import sys
 import os
@@ -54,9 +55,10 @@ class Lview(wx.Frame):
         button2 = wx.Button(panel, -1, "Data Collector\n\nVisualize multiple spectra\nExtract Trends\nFit Kd's")
         button3 = wx.Button(panel, -1, "Import Wizard\n\nBatch convert Waters Raw to Txt")
         button4 = wx.Button(panel, -1, "MetaUniDec\n\nBatch process and visualize MS spectra")
-        button5 = wx.Button(panel, -1, "UniDec API Shell\n\nScript UniDec processing using command line interface")
+        button5 = wx.Button(panel, -1, "UniDec API Shell\n\nScript UniDec with console")
         button6 = wx.Button(panel, -1, "HDF5 Import Wizard\n\nImport Data into HDF5 for MetaUniDec")
         button7 = wx.Button(panel, -1, "UltraMeta Data Collector\n\nVisualize Multiple HDF5 Data Sets\nFit Trends")
+        button8 = wx.Button(panel, -1, "UniChrom\n\nVisualize Chromatogram TIC\nExport Chromatograms to Text")
 
         html = wx.html.HtmlWindow(panel, -1, size=(330,260))
         pathtofile = os.path.dirname(os.path.abspath(__file__))
@@ -77,7 +79,8 @@ class Lview(wx.Frame):
         sizer.Add(button4, (0, 1), flag=wx.EXPAND)
         sizer.Add(button6, (2, 1), flag=wx.EXPAND)
         sizer.Add(button7, (1, 1), flag=wx.EXPAND)
-        sizer.Add(button5, (3, 0), span=(1, 2), flag=wx.EXPAND)
+        sizer.Add(button5, (3, 0), flag=wx.EXPAND)
+        sizer.Add(button8, (3, 1), flag=wx.EXPAND)
         sizer.Add(html, (0, 2), span=(4, 2))
 
         self.Bind(wx.EVT_BUTTON, self.button1, button1)
@@ -87,6 +90,7 @@ class Lview(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.button5, button5)
         self.Bind(wx.EVT_BUTTON, self.button6, button6)
         self.Bind(wx.EVT_BUTTON, self.button7, button7)
+        self.Bind(wx.EVT_BUTTON, self.button8, button8)
 
         panel.SetSizer(sizer)
         sizer.Fit(self)
@@ -135,6 +139,11 @@ class Lview(wx.Frame):
         frame = UMDC(None, "UltraMeta Data Collector")
         app.MainLoop()
 
+    def button8(self, e=None):
+        print("Launching UniChrom")
+        app = wx.App(False)
+        frame = ChromWindow(None, "Chromatogram Viewer")
+        app.MainLoop()
 
 class Shell(object):
     def __init__(self, *args, **kwargs):

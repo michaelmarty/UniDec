@@ -388,9 +388,10 @@ void PrintHelp()
 	//printf("\nsize of: %d",sizeof(char));
 }
 
-double ndis(double x, double y, double sig) //zzzz
+double ndis(double x, double y, double sig) 
 {
-	return 1 / (sig*sqrt(2 * 3.14159265359))*exp(-(pow(x - y, 2.)) / (2. * sig*sig));
+	if (sig == 0) { return 0; }
+	return 1 / (sig*2.50663)*exp(-(pow(x - y, 2.)) / (2. * sig*sig));
 }
 
 //Actual Modulus operator rather than Remainder operator %
@@ -970,8 +971,9 @@ void blur_it_hybrid2(const int lengthmz,
 }
 
 //Second Derivative of a Gaussian
-double secderndis(double m, double s,double x) //zzzz
+double secderndis(double m, double s,double x)
 {
+	if (s == 0) { return 0; }
 	return s/2*(2*exp(-pow(m-x,2)/s))/s-(4*exp(-pow(m-x,2)/s)*pow(m-x,2))/pow(s,2);
 }
 
@@ -1129,7 +1131,7 @@ inline int fixk(int k, int lengthmz)
 	return k;
 }
 
-void convolve_simp(int lengthmz, int maxlength, int*starttab, int *endtab, double *mzdist, double *deltas, double *denom, int speedyflag)
+void convolve_simp(const int lengthmz, const int maxlength, const int*starttab, const int *endtab, const double *mzdist, const double *deltas, double *denom, const int speedyflag)
 {
 
 	unsigned int i, k;
@@ -1281,8 +1283,8 @@ void deconvolve_baseline(const int lengthmz, const double *dataMZ, const double 
 double deconvolve_iteration_speedy(const int lengthmz, const int numz,const int maxlength, const double * __restrict blur, double * __restrict blur2,
 						  const char * __restrict barr, const int aggressiveflag,const double * __restrict  dataInt,
 							const int isolength,const int *__restrict isotopepos,const float *__restrict isotopeval
-						  ,int*starttab, int *endtab, double *mzdist, int speedyflag,int baselineflag, double *baseline,
-							double *noise, const double mzsig, const double *dataMZ, const double filterwidth)
+						  ,const int*starttab, const int *endtab, const double *mzdist, const double* rmzdist, const int speedyflag,const int baselineflag, double *baseline,
+							double *noise, const double mzsig, const double *dataMZ, const double filterwidth, const double psig)
 {
 	unsigned int i,j,k;
 	double *deltas=NULL,*denom=NULL;
@@ -1322,6 +1324,25 @@ double deconvolve_iteration_speedy(const int lengthmz, const int numz,const int 
 	{
 		if (denom[i] != 0 && dataInt[i] >= 0) { denom[i] = dataInt[i] / denom[i]; }
 	}
+
+	if (psig < 0 && mzsig != 0)
+	{
+		//Real Richardson-Lucy Second Convolution
+		convolve_simp(lengthmz, maxlength, starttab, endtab, rmzdist, denom, deltas, speedyflag);
+		memcpy(denom, deltas, sizeof(double)*lengthmz);
+		/*
+		for (i = 0; i<lengthmz; i++)
+		{
+			deltas[lengthmz - 1 - i] = denom[i];
+		}
+		convolve_simp(lengthmz, maxlength, starttab, endtab, mzdist, deltas, denom, speedyflag);
+		for (i = 0; i<lengthmz; i++)
+		{
+			deltas[lengthmz - 1 - i] = denom[i];
+		}
+		memcpy(denom, deltas, sizeof(double)*lengthmz);*/
+	}
+
 	
 	//Multiply Ratio by prior
 	apply_ratios(lengthmz, numz, blur, barr, isolength, isotopepos, isotopeval, denom, blur2);
@@ -1752,7 +1773,7 @@ void MakeBlurM(int lengthmz, int numz, int numclose, char *barr, int *closemind,
 }
 
 
-void MakePeakShape2D(int lengthmz,int maxlength,int *starttab,int *endtab,double *dataMZ,double mzsig,int psfun,int speedyflag,double *mzdist)
+void MakePeakShape2D(int lengthmz,int maxlength,int *starttab,int *endtab,double *dataMZ,double mzsig,int psfun,int speedyflag,double *mzdist, double *rmzdist, int makereverse)
 {
 	unsigned int i,j;
 	#pragma omp parallel for private (i,j), schedule(auto)
@@ -1764,11 +1785,12 @@ void MakePeakShape2D(int lengthmz,int maxlength,int *starttab,int *endtab,double
 		  {	
 			  int j2 = fixk(j, lengthmz);
 			  mzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(dataMZ[i], dataMZ[j2], mzsig, psfun);
+			  if (makereverse == 1) { rmzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(dataMZ[j2], dataMZ[i], mzsig, psfun); }
 		  }
 	  }
 }
 
-void MakePeakShape1D(double *dataMZ,double threshold,int lengthmz,int speedyflag,double mzsig,int psfun,double *mzdist)
+void MakePeakShape1D(double *dataMZ,double threshold,int lengthmz,int speedyflag,double mzsig,int psfun,double *mzdist, double *rmzdist, int makereverse)
 {
 	double binsize=dataMZ[1]-dataMZ[0];
 	double newrange=threshold/binsize;
@@ -1776,6 +1798,7 @@ void MakePeakShape1D(double *dataMZ,double threshold,int lengthmz,int speedyflag
 	for(n=(int)-newrange;n<(int)newrange;n++)
 	{
 		mzdist[indexmod(lengthmz,0,n)]=mzpeakshape(0,n*binsize,mzsig,psfun);
+		if (makereverse == 1) { rmzdist[indexmod(lengthmz, 0, n)] = mzpeakshape(n * binsize, 0, mzsig, psfun); }
 	}
 	printf("\nNotice: Assuming linearized data. \n\n");
 }
@@ -2423,59 +2446,55 @@ void point_smoothing_sg(double *blur, const int lengthmz, const int numz, const 
 }
 */
 
-void softargmax_transposed(double *blur, const int lengthmz, const int numz, const double beta)
+void softargmax_transposed(double *blur, const int lengthmz, const int numz, const double beta, const char *barr, const int maxlength, 
+	const int isolength, const int* __restrict isotopepos, const float* __restrict isotopeval, const int speedyflag
+	, int* starttab, int* endtab, double* mzdist, const double mzsig)
 {
-	double *newblur;
+	double *newblur, *deltas, *deltas2, *denom, *denom2;
 	newblur = calloc(lengthmz*numz, sizeof(double));
+	deltas = calloc(lengthmz, sizeof(double));
+	deltas2 = calloc(lengthmz, sizeof(double));
+	denom = calloc(lengthmz, sizeof(double));
+	denom2 = calloc(lengthmz, sizeof(double));
 	memcpy(newblur, blur, lengthmz*numz * sizeof(double));
-#pragma omp parallel for schedule(auto)
-	for (int j = 0; j < numz; j++)
+
+	//Sum deltas
+	sum_deltas(lengthmz, numz, blur, barr, isolength, isotopepos, isotopeval, deltas);
+
+	if (mzsig != 0)//Convolve with peak shape
+	{convolve_simp(lengthmz, maxlength, starttab, endtab, mzdist, deltas, denom, speedyflag);}
+	else{memcpy(denom, deltas, sizeof(double) * lengthmz);}
+
+	#pragma omp parallel for schedule(auto)
+	for (int i = 0; i < lengthmz * numz; i++)
 	{
-		//double sum2 = 0;
-		//double sum1 = 0;
+		blur[i] = exp(beta * newblur[i])-1;
+	}
+
+	//Sum deltas
+	sum_deltas(lengthmz, numz, blur, barr, isolength, isotopepos, isotopeval, deltas2);
+
+	if (mzsig != 0)//Convolve with peak shape
+	{	convolve_simp(lengthmz, maxlength, starttab, endtab, mzdist, deltas2, denom2, speedyflag);}
+	else	{memcpy(denom2, deltas, sizeof(double) * lengthmz);}
+
+	#pragma omp parallel for schedule(auto)
+	for (int i = 0; i < lengthmz; i++)
+	{
 		double factor = 0;
-		double max1 = 0;
-		double max2 = 0;
-		double min2 = 1000000000000;
-		//double min1 = 1000000000000;
-		for (int i = 0; i < lengthmz; i++)
+		if (denom2[i] != 0) { factor = denom[i] / denom2[i]; };
+		for (int j = 0; j < numz; j++)
 		{
-			double d = newblur[index2D(numz, i, j)];
-			//sum1 += d;
-			//if (d < min1) { min1 = d; }
-			if (d > max1) { max1 = d; }
-			double e = exp(beta * d);
-			//if (beta > 0) { e = exp(beta * d); }
-			//else { e = pow(d, -beta); }
-			if (e < min2) { min2 = e; }
-			if (e > max2) { max2 = e; }
-			blur[index2D(numz, i, j)] = e;
-			//sum2 += e;
-		}
-		//double min = min2 - min1;
-		//if (beta < 0) { min = min2; } 
-		//double denom = (sum2 - min2*numz);
-		//if (denom != 0) { factor = sum1 / denom; };
-		double denom = (max2 - min2);
-		if (denom != 0) { factor = max1 / denom; };
-		//double sum3 = 0;
-		if (factor > 0) {
-			for (int i = 0; i < lengthmz; i++)
-			{
-				blur[index2D(numz, i, j)] -= min2;
-				blur[index2D(numz, i, j)] *= factor;
-				//sum3 += blur[index2D(numz, i, j)];
-			}
-		}
-		else {
-			for (int i = 0; i < lengthmz; i++)
-			{
-				blur[index2D(numz, i, j)] = 0;
-			}
+			//blur[index2D(numz, i, j)] -= 1;
+			blur[index2D(numz, i, j)] *= factor;
 		}
 		//printf("%f %f\n", sum1, sum3);
 	}
 	free(newblur);
+	free(deltas);
+	free(deltas2);
+	free(denom);
+	free(denom2);
 	return;
 }
 
@@ -2488,8 +2507,8 @@ void softargmax_everything(double *blur, const int lengthmz, const int numz, con
 	//double max2 = 0;
 	double sum2 = 0;
 	double sum1 = 0;
-	double min2 = 1000000000000;
-	#pragma omp parallel for schedule(auto), reduction(min:min2), reduction(+:sum1), reduction(+:sum2)
+	double min2 = 100000000000000000;
+	//#pragma omp parallel for schedule(auto), reduction(min:min2), reduction(+:sum1), reduction(+:sum2)
 	for (int i = 0; i < lengthmz*numz; i++)
 	{
 		double d = newblur[i];
@@ -2505,8 +2524,9 @@ void softargmax_everything(double *blur, const int lengthmz, const int numz, con
 	double factor = 0;
 	//double denom = (max2 - min2);
 	//if (denom != 0) { factor = max1 / denom; };
-	double denom = (sum2 - min2*numz*lengthmz);
+	double denom = (sum2 -min2*numz*lengthmz);
 	if (denom != 0) { factor = sum1 / denom; };
+	//if (sum2 != 0) { factor = sum1 / sum2; };
 	if (factor > 0) {
 		#pragma omp parallel for schedule(auto)
 		for (int i = 0; i < lengthmz*numz; i++)
@@ -2582,6 +2602,63 @@ void softargmax(double *blur, const int lengthmz, const int numz, const double b
 
 
 /*
+
+void softargmax_transposed(double *blur, const int lengthmz, const int numz, const double beta)
+{
+	double *newblur;
+	newblur = calloc(lengthmz*numz, sizeof(double));
+	memcpy(newblur, blur, lengthmz*numz * sizeof(double));
+#pragma omp parallel for schedule(auto)
+	for (int j = 0; j < numz; j++)
+	{
+		//double sum2 = 0;
+		//double sum1 = 0;
+		double factor = 0;
+		double max1 = 0;
+		double max2 = 0;
+		double min2 = 1000000000000;
+		//double min1 = 1000000000000;
+		for (int i = 0; i < lengthmz; i++)
+		{
+			double d = newblur[index2D(numz, i, j)];
+			//sum1 += d;
+			//if (d < min1) { min1 = d; }
+			if (d > max1) { max1 = d; }
+			double e = exp(beta * d);
+			//if (beta > 0) { e = exp(beta * d); }
+			//else { e = pow(d, -beta); }
+			if (e < min2) { min2 = e; }
+			if (e > max2) { max2 = e; }
+			blur[index2D(numz, i, j)] = e;
+			//sum2 += e;
+		}
+		//double min = min2 - min1;
+		//if (beta < 0) { min = min2; }
+		//double denom = (sum2 - min2*numz);
+		//if (denom != 0) { factor = sum1 / denom; };
+		double denom = (max2 - min2);
+		if (denom != 0) { factor = max1 / denom; };
+		//double sum3 = 0;
+		if (factor > 0) {
+			for (int i = 0; i < lengthmz; i++)
+			{
+				blur[index2D(numz, i, j)] -= min2;
+				blur[index2D(numz, i, j)] *= factor;
+				//sum3 += blur[index2D(numz, i, j)];
+			}
+		}
+		else {
+			for (int i = 0; i < lengthmz; i++)
+			{
+				blur[index2D(numz, i, j)] = 0;
+			}
+		}
+		//printf("%f %f\n", sum1, sum3);
+	}
+	free(newblur);
+	return;
+}
+
 void point_smoothing_iso(double *blur, const int lengthmz, const int numz, const int width)
 {
 	double *newblur;

@@ -201,7 +201,11 @@ Added **Ctrl+C to copy out images from plots**. You should be able to paste thes
 
 Added **Data Reduction** data processing feature in UniDec for removing noise from large data sets. Basically, you set a percentage of the data you want to remove. UniDec then finds what intensity threshold is required to remove that much and takes out all data below that threshold. 
 
-Adjustments to the algorithm to improve speed and reliability.
+Added **UniChrom** for quick viewing of chromatogram TICs. You can open mzML or Thermo .Raw files directly. Waters .Raw files can be opened by dragging and dropping it in the main window.
+
+Added drag and drop for _conf.dat files to UniDec to more easily import settings.
+
+Adjustments to the algorithm to improve speed and reliability. Switched build to Visual Studio 2019 and Intel Parallel Studio 19. 
 
 Changes to the Gaussian blur functions for charge and mass, which are activated by negative flags for mass and charge smooth width.
 

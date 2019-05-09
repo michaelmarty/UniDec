@@ -309,6 +309,9 @@ class MyFileDropTarget(wx.FileDropTarget):
             if os.path.splitext(fname)[1] == ".raw" and os.path.isdir(path):
                 print("Opening .raw file:", fname)
                 self.window.pres.on_raw_open(0, path)
+            elif fname[-9:] == "_conf.dat":
+                print("Importing Configuration File:", path)
+                self.window.pres.import_config(path)
             else:
                 self.window.pres.on_open_file(fname, directory)
                 # self.window.pres.on_auto() # Run the whole thing
@@ -322,3 +325,4 @@ class MyFileDropTarget(wx.FileDropTarget):
                 self.window.pres.on_batch(batchfiles=filenames)
         else:
             print("Error in file drop", filenames)
+        return 0

@@ -65,13 +65,14 @@ def isojim(isolist):
     return allift
 
 
-def calc_averagine_isotope_dist(mass):
+def calc_averagine_isotope_dist(mass, mono=False):
     formula, minmassint, isolist = makemass(mass)
     # print(isolist)
     intensities = isojim(isolist)
     masses = np.arange(0, len(intensities)) + minmassint
     dist = np.transpose([masses, intensities])
-    dist = correct_avg(dist, mass)
+    if not mono:
+        dist = correct_avg(dist, mass)
     # print(ms.calculate_mass(formula=formula, average=True))
     # print(np.average(dist[:, 0], weights=dist[:, 1]))
     # print(minmassint)
@@ -83,7 +84,6 @@ def correct_avg(dist, mass):
     avg = dist[np.argmax(dist[:, 1]), 0]  # np.average(dist[:, 0], weights=dist[:, 1])
     dist[:, 0] = dist[:, 0] - avg + mass
     return dist
-
 
 if __name__ == "__main__":
     mval = 1000000

@@ -107,9 +107,11 @@ class mzMLimporter:
                 self.data.append(impdat)
                 self.times.append(float(spectrum['scan start time']))
                 self.scans.append(i)
+                #print(i, end=" ")
         self.times = np.array(self.times)
         self.scans = np.array(self.scans)
         self.data = np.array(self.data)
+        #print("Reading Complete")
 
     def get_data(self, scan_range=None, time_range=None):
         """

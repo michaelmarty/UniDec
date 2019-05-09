@@ -213,3 +213,4 @@ class MyFileDropTarget(wx.FileDropTarget):
             self.window.pres.open_file(path)
         else:
             self.window.pres.add_files(filenames)
+        return 0
