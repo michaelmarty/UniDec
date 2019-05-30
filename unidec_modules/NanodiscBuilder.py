@@ -6,7 +6,8 @@ import scipy.stats as stats
 
 belts = {"T0": 22044., "G1": 22101., "T1": 22145., "R1": 22200., "T2": 22246., "MSP1D1(-)": 22044., }
 lipids = {"POPC": 760.076, "POPG": 749.02, "PGPC75": 757.312, "PGPC50": 754.548, "Chol": 386.65, "POPE": 717.996,
-          "DMPC": 677.9, "TMCL": 1241.6, "CHS": 486.73, "Erg": 396.66, "GM1": 1573, "DMPG": 667}
+          "DMPC": 677.9, "TMCL": 1241.6, "CHS": 486.73, "Erg": 396.66, "GM1": 1573, "DMPG": 667, "TOCL": 1458, "SM": 731.081,
+          "DPPC":734.039}
 
 
 def make_nanodiscs(array):
@@ -110,6 +111,6 @@ if __name__ == '__main__':
     # array = [[belts["T0"], lipids["POPC"], 140, 10, 100, 20, 1],
     #         [belts["T0"], lipids["DMPC"], 140, 10, 100, 20, 1]]
     # make_nanodiscs(array)
-    array = [[belts["T0"], 0.98, 140, 5, 100, 1, 0.0001, lipids["POPC"], lipids["DMPG"]]]  # ,
+    array = [[belts["T0"], 0.70, 140, 5, 200, 1, 0.0001, lipids["POPE"], lipids["POPG"]]]  # ,
     # [belts["T0"], 0.05, 140, 10, 100, 20, 1, lipids["POPC"], lipids["Chol"]]]
     make_mixed_nanodiscs(array)

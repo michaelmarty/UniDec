@@ -1,6 +1,7 @@
 import wx
 import unidec_modules.isolated_packages.preset_manager as pm
 import numpy as np
+import os
 
 
 class main_menu(wx.Menu):
@@ -55,6 +56,7 @@ class main_menu(wx.Menu):
         self.custommenu, self.masterd = pm.make_preset_menu(self.config.presetdir)
         self.defaultmenu.AppendSubMenu(self.custommenu, "Custom")
         for i, path, item in self.masterd:
+            # print(i, path, item)
             self.parent.Bind(wx.EVT_MENU, self.on_custom_defaults, item)
         # ..............
 
@@ -79,6 +81,15 @@ class main_menu(wx.Menu):
         self.filemenu.AppendSubMenu(self.figmenu, 'Save Figure Presets')
         self.filemenu.AppendSeparator()
 
+        # Example Data
+        self.examplemenu, self.masterd2 = pm.make_preset_menu(self.config.exampledatadir, exclude_dir="_unidecfiles",
+                                                              topi=2500, exclude_ext="hdf5")
+        self.filemenu.AppendSubMenu(self.examplemenu, "Load Example Data")
+        for i, path, item in self.masterd2:
+            # print(i, path, item)
+            self.parent.Bind(wx.EVT_MENU, self.on_example_data, item)
+        # ..............
+        self.filemenu.AppendSeparator()
         self.menuAbout = self.filemenu.Append(wx.ID_ABOUT, "&About", " Information about this program")
         self.menuExit = self.filemenu.Append(wx.ID_EXIT, "E&xit\tCtrl+Q", " Terminate the Program")
 
@@ -145,6 +156,13 @@ class main_menu(wx.Menu):
                                                        "Plots Mass Distributions as a Function of Charge")
         self.menuoffset = self.analysismenu.Append(wx.ID_ANY, "Plot Charge Offsets\tCtrl+F",
                                                    "Plots Mass vs. Charge Offset in 2D Plot")
+        self.maxcharge = self.analysismenu.Append(wx.ID_ANY, "Label Max Charge States",
+                                                  "Labels the maximum charge state in each distribution")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_label_max_charge_states, self.maxcharge)
+
+        self.maxcharge = self.analysismenu.Append(wx.ID_ANY, "Label Average Charge States",
+                                                  "Labels the average charge state in each distribution")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_label_avg_charge_states, self.maxcharge)
 
         if self.config.imflag == 1:
             self.analysismenu.AppendSeparator()
@@ -224,17 +242,17 @@ class main_menu(wx.Menu):
             self.menuDeisotope = self.experimentalmenu.Append(wx.ID_ANY, "Load Zero-Charge Mass Spectrum",
                                                               "Load Zero-Charge Mass as input spectrum. Useful for deisotoping.")
             self.experimentalmenu.AppendSeparator()
-            #self.menuCrossValidate = self.experimentalmenu.Append(wx.ID_ANY, "Cross Validate",
+            # self.menuCrossValidate = self.experimentalmenu.Append(wx.ID_ANY, "Cross Validate",
             #                                                      "Estimate errors through cross validation.")
-            self.experimentalmenu.AppendSeparator()
+            # self.experimentalmenu.AppendSeparator()
             self.menucolor1d = self.experimentalmenu.Append(wx.ID_ANY, "Color Plots",
                                                             "Make a Different Colored 1D Plot")
 
-            #self.menunoiseremover = self.experimentalmenu.Append(wx.ID_ANY, "Remove Noise Below Threshold",
+            # self.menunoiseremover = self.experimentalmenu.Append(wx.ID_ANY, "Remove Noise Below Threshold",
             #                                                "Remove data points below the mean")
-            #self.parent.Bind(wx.EVT_MENU, self.pres.on_remove_noise_points, self.menunoiseremover)
+            # self.parent.Bind(wx.EVT_MENU, self.pres.on_remove_noise_points, self.menunoiseremover)
             self.parent.Bind(wx.EVT_MENU, self.pres.on_zerocharge_mass, self.menuDeisotope)
-            #self.parent.Bind(wx.EVT_MENU, self.pres.on_cross_validate, self.menuCrossValidate)
+            # self.parent.Bind(wx.EVT_MENU, self.pres.on_cross_validate, self.menuCrossValidate)
             self.parent.Bind(wx.EVT_MENU, self.pres.on_additional_parameters, self.menuAdditionalParameters)
             self.parent.Bind(wx.EVT_MENU, self.pres.on_color_plot1d, self.menucolor1d)
             # self.parent.Bind(wx.EVT_MENU, self.pres.on_minimize, self.menuMinimize)
@@ -263,14 +281,6 @@ class main_menu(wx.Menu):
         self.autoformat = self.experimentalmenu.Append(wx.ID_ANY, "Auto Format Monomer/Dimer",
                                                        "Mark matched monomers and dimers automatically")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_autoformat, self.autoformat)
-
-        self.maxcharge = self.experimentalmenu.Append(wx.ID_ANY, "Label Max Charge States",
-                                                      "Labels the maximum charge state in each distribution")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_label_max_charge_states, self.maxcharge)
-
-        self.maxcharge = self.experimentalmenu.Append(wx.ID_ANY, "Label Average Charge States",
-                                                      "Labels the average charge state in each distribution")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_label_avg_charge_states, self.maxcharge)
 
         self.experimentalmenu.AppendSeparator()
         self.menuifams = self.experimentalmenu.Append(wx.ID_ANY, "iFAMS")
@@ -422,8 +432,22 @@ class main_menu(wx.Menu):
             ids = self.masterd[:, 0].astype(np.float)
             pos = np.argmin(np.abs(ids - nid))
             path = self.masterd[pos, 1]
-            print("Opening Path:", path)
-            #self.pres.eng.load_config(path)
+            print("Opening Config:", path)
+            # self.pres.eng.load_config(path)
             self.pres.import_config(path)
+        except Exception as e:
+            print(e)
+
+    def on_example_data(self, e):
+        # print("Clicked", e)
+        try:
+            nid = e.GetId()
+            ids = self.masterd2[:, 0].astype(np.float)
+            pos = np.argmin(np.abs(ids - nid))
+            path = self.masterd2[pos, 1]
+            dir = os.path.dirname(path)
+            file = os.path.split(path)[1]
+            print("Opening Path:", path, file, dir)
+            self.pres.on_open_file(file, dir)
         except Exception as e:
             print(e)

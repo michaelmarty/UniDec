@@ -1292,15 +1292,15 @@ double deconvolve_iteration_speedy(const int lengthmz, const int numz,const int 
 	denom=calloc(lengthmz,sizeof(double));
 
 	if (aggressiveflag==1 && mzsig!=0) {
-		blur_baseline(baseline, lengthmz, dataMZ, mzsig, 0, filterwidth);
+		blur_baseline(baseline, lengthmz, dataMZ, fabs(mzsig), 0, filterwidth);
 		//blur_baseline(baseline, lengthmz, 10);
 		//blur_noise(noise, lengthmz); 
 	}
-
+	
 	//Sum deltas
 	sum_deltas(lengthmz, numz, blur, barr, isolength, isotopepos, isotopeval, deltas);
 
-	if (mzsig != 0)
+	if (mzsig != 0 && psig>=0)
 	{
 		//Convolve with peak shape
 		convolve_simp(lengthmz, maxlength, starttab, endtab, mzdist, deltas, denom, speedyflag);
@@ -1325,7 +1325,7 @@ double deconvolve_iteration_speedy(const int lengthmz, const int numz,const int 
 		if (denom[i] != 0 && dataInt[i] >= 0) { denom[i] = dataInt[i] / denom[i]; }
 	}
 
-	if (psig < 0 && mzsig != 0)
+	if ( mzsig < 0)
 	{
 		//Real Richardson-Lucy Second Convolution
 		convolve_simp(lengthmz, maxlength, starttab, endtab, rmzdist, denom, deltas, speedyflag);
@@ -1351,7 +1351,7 @@ double deconvolve_iteration_speedy(const int lengthmz, const int numz,const int 
 	if (aggressiveflag ==1)
 	{
 		//memcpy(deltas, denom, sizeof(double)*lengthmz);
-		blur_baseline(denom, lengthmz, dataMZ, mzsig, 0, filterwidth);
+		blur_baseline(denom, lengthmz, dataMZ, fabs(mzsig), 0, filterwidth);
 		//blur_baseline(denom, lengthmz, 10);
 		//blur_noise(deltas, lengthmz);
 		#pragma omp parallel for private(i), schedule(auto)
@@ -1829,7 +1829,7 @@ void monotopic_to_average(const int lengthmz, const int numz, double *blur, cons
 }
 
 
-double Reconvolve(int lengthmz, int numz, int maxlength,int *starttab, int *endtab, double *mzdist,double *blur, double *newblur,int speedyflag)
+double Reconvolve(const int lengthmz, const int numz, const int maxlength,const int *starttab,const int *endtab,const double *mzdist, const double *blur, double *newblur, const int speedyflag, const char *barr)
 {
 	double newblurmax=0;
 	unsigned int i,j,k;
@@ -1841,13 +1841,15 @@ double Reconvolve(int lengthmz, int numz, int maxlength,int *starttab, int *endt
 			{
 
 				double cv = 0;
-				for (k = starttab[i]; k <= endtab[i]; k++)
-				{
-					int k2 = fixk(k, lengthmz);
-					if (blur[index2D(numz, k2, j)] != 0)
+				if (barr[index2D(numz, i, j)] == 1) {
+					for (k = starttab[i]; k <= endtab[i]; k++)
 					{
-						int start = starttab[k2];
-						cv += blur[index2D(numz, k2, j)] * mzdist[index2D(maxlength, k2, i-start)];
+						int k2 = fixk(k, lengthmz);
+						if (blur[index2D(numz, k2, j)] != 0)
+						{
+							int start = starttab[k2];
+							cv += blur[index2D(numz, k2, j)] * mzdist[index2D(maxlength, k2, i - start)];
+						}
 					}
 				}
 				newblur[index2D(numz, i, j)] = cv;
@@ -1866,12 +1868,13 @@ double Reconvolve(int lengthmz, int numz, int maxlength,int *starttab, int *endt
 			{
 
 				double cv = 0;
-				
-				for (k = starttab[i]; k <= endtab[i]; k++)
-				{
-					if (blur[index2D(numz, k, j)] != 0)
+				if (barr[index2D(numz, i, j)] == 1) {
+					for (k = starttab[i]; k <= endtab[i]; k++)
 					{
-						cv += blur[index2D(numz, k, j)] * mzdist[indexmod(lengthmz, k, i)];
+						if (blur[index2D(numz, k, j)] != 0)
+						{
+							cv += blur[index2D(numz, k, j)] * mzdist[indexmod(lengthmz, k, i)];
+						}
 					}
 				}
 			newblur[index2D(numz, i, j)] = cv;
@@ -2402,6 +2405,15 @@ void point_smoothing(double *blur, const char * barr, const int lengthmz, const 
 		}
 	}
 	free(newblur);
+	return;
+}
+
+void point_smoothing_peak_width(const int lengthmz, const int numz, const int maxlength, const int* starttab, const int* endtab, const double* mzdist, double* blur, const int speedyflag, const char *barr)
+{
+	double* newblur;
+	newblur = calloc(lengthmz * numz, sizeof(double));
+	memcpy(newblur, blur, lengthmz * numz * sizeof(double));
+	Reconvolve(lengthmz, numz, maxlength, starttab, endtab, mzdist, newblur, blur, speedyflag, barr);
 	return;
 }
 

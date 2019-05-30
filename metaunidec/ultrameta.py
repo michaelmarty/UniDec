@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.cm as cm
 from matplotlib.pyplot import colormaps
 from matplotlib import rcParams
+from matplotlib import colors as mplcol
 
 from pubsub import pub
 import wx.lib.scrolledpanel as scrolled
@@ -142,7 +143,7 @@ class DataCollector(wx.Frame):
         self.ypanelsizer.Add(self.ypanelsizer2, 0, wx.EXPAND)
         self.ypanelsizer.Add(self.ypanel, 0, wx.EXPAND)
 
-        self.xpanel = ListCtrlPanel(self.panel, list_type="X", size=(300, 200))
+        self.xpanel = ListCtrlPanel(self.panel, pres = self, markers = mdkeys, list_type="X", size=(400, 200))
         self.xpanelsizer = wx.BoxSizer(wx.VERTICAL)
         self.addxbutton = wx.Button(self.panel, label="Add X Value")
         self.Bind(wx.EVT_BUTTON, self.on_add_x, self.addxbutton)
@@ -163,10 +164,17 @@ class DataCollector(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.on_run, self.runbutton)
         self.runsizer.Add(self.runbutton, 0, wx.EXPAND)
         self.runsizer.Add(self.ctlnorm, 0, wx.EXPAND)
-        self.runsizer.Add(wx.StaticText(self.panel, label="Extraction Window: "), wx.FIXED_MINSIZE)
-        self.runsizer.Add(self.ctlextractwindow, 0, wx.FIXED_MINSIZE)
-        self.runsizer.Add(wx.StaticText(self.panel, label="How to Extract Peaks: "), wx.FIXED_MINSIZE)
-        self.runsizer.Add(self.ctlextract, 0, wx.FIXED_MINSIZE)
+        self.runsizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        self.runsizer2.Add(wx.StaticText(self.panel, label="Extraction Window: "), wx.FIXED_MINSIZE)
+        self.runsizer2.Add(self.ctlextractwindow, 0, wx.FIXED_MINSIZE)
+        self.runsizer3 = wx.BoxSizer(wx.HORIZONTAL)
+        self.runsizer3.Add(wx.StaticText(self.panel, label="How to Extract Peaks: "), wx.FIXED_MINSIZE)
+        self.runsizer3.Add(self.ctlextract, 0, wx.FIXED_MINSIZE)
+        self.runsizer4 = wx.BoxSizer(wx.VERTICAL)
+        self.runsizer4.Add(self.runsizer2)
+        self.runsizer4.Add(wx.StaticText(self.panel, label=" "), wx.FIXED_MINSIZE)
+        self.runsizer4.Add(self.runsizer3)
+        self.runsizer.Add(self.runsizer4)
 
         self.ypanelsizer.Add(self.runsizer, 0, wx.EXPAND)
 
@@ -197,6 +205,7 @@ class DataCollector(wx.Frame):
         self.var1 = []
         self.xlabel = "Mass"
         self.ylabel = ""
+        self.v1name = "Variable 1"
         self.hdf5_file = ""
         self.topname = "ms_dataset"
         self.configname = "config"
@@ -265,6 +274,12 @@ class DataCollector(wx.Frame):
         self.config.exnorm = h5_config.attrs["exnorm"]
         self.config.exchoice = h5_config.attrs["exchoice"]
         self.config.exwindow = h5_config.attrs["exwindow"]
+        try:
+            msdata = hdf.require_group("ms_dataset")
+            self.v1name = msdata.attrs["v1name"]
+        except:
+            self.v1name = "Variable 1"
+            pass
         hdf.close()
 
         self.update_gui()
@@ -298,7 +313,7 @@ class DataCollector(wx.Frame):
         if "dir" in indict:
             self.directory = indict["dir"]
         self.update_set(0)
-        self.load_x_from_peaks(0)
+        #self.load_x_from_peaks(0)
         print("Loaded: ", savename)
         self.on_run(0)
 
@@ -316,10 +331,11 @@ class DataCollector(wx.Frame):
             filenames = dlg.GetPaths()
             for f in filenames:
                 self.ypanel.list.add_line(file_name=f)
+            if len(self.yvals) == 0:
+                self.load_x_from_peaks()
+            self.localpath = 0
         dlg.Destroy()
-        if len(self.yvals) == 0:
-            self.load_x_from_peaks()
-        self.localpath = 0
+
 
     def update_get(self, e=None):
         self.xvals = self.xpanel.list.get_list()
@@ -383,7 +399,7 @@ class DataCollector(wx.Frame):
         output = []
 
         if ud.isempty(self.xvals):
-            self.xvals = [['\u25CB', 0]]
+            self.xvals = [['\u25CB', 0, "0", "From File"]]
 
         # run extraction on all files with parameters
 
@@ -408,6 +424,7 @@ class DataCollector(wx.Frame):
                     self.update_hdf5(p)
         print("Total Execution Time: %.2gs" % (time.perf_counter() - tstart))
         for x in self.xvals:
+            print(x)
             try:
                 index = int(x[1])
                 marker = markdict[x[0]]
@@ -415,6 +432,19 @@ class DataCollector(wx.Frame):
                 print("Error with peak index:", x)
                 index = 0
                 marker = "o"
+            try:
+                xlabel = str(x[2])
+            except:
+                xlabel = str(index)
+
+            try:
+                if mplcol.is_color_like(x[3]):
+                    xcolor = x[3]
+                else:
+                    xcolor = None
+            except:
+                xcolor = None
+
             bargraphfits = []
             bargraphlabels = []
             bargrapherrors = []
@@ -443,8 +473,13 @@ class DataCollector(wx.Frame):
                         for f in np.arange(0, self.len):
                             msdata = hdf.get(self.topname + "/" + str(f))
                             self.attrs = dict(list(msdata.attrs.items()))
-                            if "var1" in list(self.attrs.keys()):
+                            if self.v1name in list(self.attrs.keys()):
+                                var1 = self.attrs[self.v1name]
+                                self.ylabel = self.v1name
+                            elif "var1" in list(self.attrs.keys()):
                                 var1 = self.attrs["var1"]
+                            elif "Variable 1" in list(self.attrs.keys()):
+                                var1 = self.attrs["Variable 1"]
                             elif "collision_voltage" in list(self.attrs.keys()):
                                 var1 = self.attrs["collision_voltage"]
                                 if self.ylabel == "":
@@ -454,6 +489,11 @@ class DataCollector(wx.Frame):
                                 if self.ylabel == "":
                                     self.ylabel = "Collision Voltage"
                             else:
+                                var1 = f
+
+                            try:
+                                var1 = float(var1)
+                            except:
                                 var1 = f
 
                             zdata = get_dataset(msdata, "charge_data")
@@ -492,9 +532,16 @@ class DataCollector(wx.Frame):
                     std = np.std(extracts, axis=0)
                     zdat = np.mean(zexts, axis=0)
                     zstd = np.std(zexts, axis=0)
-                    lab = u + " " + str(index)
+                    lab = u + " " + xlabel
                     fits = []
                     zfits = []
+
+                    if xcolor is not None:
+                        color = xcolor
+                        elab = None
+                    else:
+                        elab = lab
+                        lab = None
 
                     if fit is None:
                         if not self.plot1.flag:
@@ -562,29 +609,29 @@ class DataCollector(wx.Frame):
 
                         if not self.plot1.flag:
                             self.plot1.plotrefreshtop(xvals, fitdat, "Mass Extracts", self.ylabel, "Mass",
-                                                      nopaint=True, color=color, test_kda=False, label=None,
+                                                      nopaint=True, color=color, test_kda=False, label=lab,
                                                       marker=None, linestyle=linestyle)
                             pass
                         else:
-                            self.plot1.plotadd(xvals, fitdat, color, linestyle=linestyle, newlabel=None,
+                            self.plot1.plotadd(xvals, fitdat, color, linestyle=linestyle, newlabel=lab,
                                                marker=None)
                             pass
                         if not self.plot2.flag:
                             self.plot2.plotrefreshtop(xvals, zfitdat, "Charge Extracts", self.ylabel, "Charge",
-                                                      label=None, marker=None,
+                                                      label=lab, marker=None,
                                                       nopaint=True, color=color, test_kda=False, linestyle=linestyle)
                         else:
-                            self.plot2.plotadd(xvals, zfitdat, color, linestyle=linestyle, newlabel=None,
+                            self.plot2.plotadd(xvals, zfitdat, color, linestyle=linestyle, newlabel=lab,
                                                marker=None)
 
                         if fit == "sig":
                             self.plot1.addtext("", fits[0], (fits[3] + fits[2]) / 0.95, ymin=fits[3], color=color)
                             self.plot2.addtext("", zfits[0], (zfits[3] + zfits[2]) / 0.95, ymin=zfits[3], color=color)
 
-                    self.plot1.errorbars(xvals, avg, yerr=std, color=color, linestyle=" ", marker=marker, newlabel=lab)
+                    self.plot1.errorbars(xvals, avg, yerr=std, color=color, linestyle=" ", marker=marker, newlabel=elab)
 
                     self.plot2.errorbars(xvals, zdat, yerr=zstd, color=color, linestyle=" ",
-                                         marker=marker, newlabel=lab)
+                                         marker=marker, newlabel=elab)
                     out = [[lab], xvals, avg, std, zdat, zstd, fits, zfits]
                     output.append(out)
 
@@ -813,12 +860,15 @@ class DataCollector(wx.Frame):
 
                 if type == "massdefect":
                     data1d, data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(edat, molig)
-
-                    plotwindow.plots[xpos][ypos].contourplot(data2d, self.config, xlab="Mass", ylab="Mass Defect",
-                                                             normflag=1, title=u, test_kda=True, repaint=False)
-                    plotwindow.plots[xpos][ypos].setup_zoom([plotwindow.plots[xpos][ypos].subplot1], 'box')
-                    plotwindow.plots[xpos][ypos].subplot1.set_title(u)
-                    plotwindow.plots[xpos][ypos].repaint()
+                    if molig != 0:
+                        plotwindow.plots[xpos][ypos].contourplot(data2d, self.config, xlab="Mass", ylab="Mass Defect",
+                                                                 normflag=1, title=u, test_kda=True, repaint=False)
+                        plotwindow.plots[xpos][ypos].setup_zoom([plotwindow.plots[xpos][ypos].subplot1], 'box')
+                        plotwindow.plots[xpos][ypos].subplot1.set_title(u)
+                        plotwindow.plots[xpos][ypos].repaint()
+                    else:
+                        print("Could not create mass defect plots, oligomer mass is 0.")
+                        print("To define oligomer mass, reopen the HDF5 files and set the Mass Difference.")
                 else:
                     plotwindow.plots[xpos][ypos].plotrefreshtop(
                         edat[:, 0], edat[:, 1], u,

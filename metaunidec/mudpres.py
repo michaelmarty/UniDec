@@ -134,7 +134,7 @@ class UniDecApp(UniDecPres):
             else:
                 mult = 1
         except:
-            mult=1
+            mult = 1
         for i, s in enumerate(spectra[::mult]):
             if i == 0:
                 self.view.plot1.plotrefreshtop(s.data2[:, 0], s.data2[:, 1], title="Processed Data", xlabel="m/z (Th)",
@@ -265,6 +265,12 @@ class UniDecApp(UniDecPres):
             if not ud.isempty(self.eng.data.exgrid):
                 ignore = self.eng.data.get_bool()
                 var1 = np.array(self.eng.data.var1)[ignore]
+                try:
+                    var1 = var1.astype(float)
+                    xlabel = self.eng.data.v1name
+                except:
+                    var1 = np.arange(0, len(self.eng.data.var1))[ignore]
+                    xlabel = "Index"
 
                 ylabel = self.view.extractlabels[self.eng.config.exchoice]
                 self.view.plot7.clear_plot()
@@ -275,7 +281,7 @@ class UniDecApp(UniDecPres):
 
                         if not self.view.plot7.flag:
                             self.view.plot7.plotrefreshtop(var1, fitgrid[i][ignore],
-                                                           title="Extracted Data", xlabel=self.eng.data.v1name
+                                                           title="Extracted Data", xlabel=xlabel
                                                            , ylabel=ylabel, color=color, test_kda=False)
                             self.view.plot7.plotadddot(var1, self.eng.data.exgrid[i][ignore], color, p.marker)
                         else:
@@ -284,8 +290,8 @@ class UniDecApp(UniDecPres):
                 if self.eng.config.exnorm == 1:
                     self.view.plot7.subplot1.set_ylim([0, 1])
                 self.view.plot7.repaint()
-        except:
-            pass
+        except Exception as e:
+            print(e)
 
     def makeplot8(self):
         """
@@ -304,14 +310,22 @@ class UniDecApp(UniDecPres):
                     if p.ignore == 0:
                         xvals.append(p.label)
                 self.view.plot8._axes = [0.12, 0.12, 0.75, 0.8]
-                self.view.plot8.contourplot(xvals=np.arange(0, len(xvals)), yvals=np.array(self.eng.data.var1)[ignore],
+                var1 = np.array(self.eng.data.var1)[ignore]
+                try:
+                    var1 = var1.astype(float)
+                    ylabel = self.eng.data.v1name
+                except:
+                    var1 = np.arange(0, len(self.eng.data.var1))[ignore]
+                    ylabel = "Index"
+
+                self.view.plot8.contourplot(xvals=np.arange(0, len(xvals)), yvals=var1,
                                             zgrid=zdat, normflag=0,
                                             normrange=[0, np.amax(zdat)],
-                                            xlab="Peaks", ylab=self.eng.data.v1name, discrete=1,
+                                            xlab="Peaks", ylab=ylabel, discrete=1,
                                             ticloc=np.arange(0, len(xvals)),
                                             ticlab=xvals)
-        except:
-            pass
+        except Exception as e:
+            print(e)
 
     def make2dplots(self, e=None):
         """
@@ -1056,7 +1070,8 @@ class UniDecApp(UniDecPres):
         :return:
         """
         self.eng.sum_masses()
-        PlotAnimations.AnimationWindow(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1)
+        PlotAnimations.AnimationWindow(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1,
+                                       pksmode="mass")
 
     def on_animate_annotated_mass(self, e=None):
         """
@@ -1132,7 +1147,8 @@ class UniDecApp(UniDecPres):
             print(i, end=' ')
         data2 = np.array(data2)
         print("Loaded 2D Data", data2.shape)
-        PlotAnimations.AnimationWindow(self.view, data2, self.eng.config, mode="2D", yvals=self.eng.data.var1)
+        PlotAnimations.AnimationWindow(self.view, data2, self.eng.config, mode="2D", yvals=self.eng.data.var1,
+                                       pksmode=type)
 
     def on_animate_2d_mass(self, e=None):
         """

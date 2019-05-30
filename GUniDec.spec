@@ -114,6 +114,7 @@ a.datas.extend(dir_files(os.path.join(os.path.dirname(pymzml.__file__), 'obo'), 
 a.datas.extend(dir_files("unidec_bin\\multiplierz", 'multiplierz'))
 
 a.datas.extend(dir_files("unidec_bin\\Presets", 'Presets'))
+a.datas.extend(dir_files("unidec_bin\\Example Data", 'Example Data'))
 
 # Can't remember why I needed these...
 # grammar=os.path.join(os.path.dirname(lib2to3.__file__),'Grammar.txt')

@@ -25,6 +25,8 @@ you are welcome to email mtmarty@email.arizona.edu for more information.
 UniDec source code and compiled binaries are released under a modified BSD License as described below. Note, we ask
 that you cite us in any publications. Quantitative citation metrics will help grant applications to support future development.
 
+By downloading UniDec, you are agreeing to the UniDec and any third party licensing agreements and all term therein. 
+
 ###UniDec License:
 
 Copyright (c) 2016, University of Oxford
@@ -199,9 +201,13 @@ Changed the Waters MS import from rawreader.exe to the MassLynxSDK 4.5. **Waters
 
 Added **Ctrl+C to copy out images from plots**. You should be able to paste these into other applications.
 
+Added **Example Data**, which can be quickly loaded from the File menu. You can also add data to this by dropping your own files in the Example Data folder. It works in the same was as the custom presets.
+
 Added **Data Reduction** data processing feature in UniDec for removing noise from large data sets. Basically, you set a percentage of the data you want to remove. UniDec then finds what intensity threshold is required to remove that much and takes out all data below that threshold. 
 
 Added **UniChrom** for quick viewing of chromatogram TICs. You can open mzML or Thermo .Raw files directly. Waters .Raw files can be opened by dragging and dropping it in the main window.
+
+Added more functionality for UltraMeta.
 
 Added drag and drop for _conf.dat files to UniDec to more easily import settings.
 

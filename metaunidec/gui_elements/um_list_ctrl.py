@@ -14,8 +14,13 @@ class XValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         listmix.TextEditMixin.__init__(self)
         self.InsertColumn(0, "Marker")
         self.InsertColumn(1, "Peak Mass")
+        self.InsertColumn(2, "Label")
+        self.InsertColumn(3, "Color")
         self.SetColumnWidth(0, width=50)  # , wx.LIST_AUTOSIZE)
         self.SetColumnWidth(1, width=100)  # , wx.LIST_AUTOSIZE)
+        self.SetColumnWidth(2, width=150)  # , wx.LIST_AUTOSIZE)
+        self.SetColumnWidth(3, width=100)  # , wx.LIST_AUTOSIZE)
+        self.parent = parent
 
     def populate(self, listctrldata, colors=None):
         self.DeleteAllItems()
@@ -23,6 +28,11 @@ class XValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
             try:
                 index = self.InsertItem(10000, listctrldata[i][0])
                 self.SetItem(index, 1, listctrldata[i][1])
+                try:
+                    self.SetItem(index, 2, listctrldata[i][2])
+                    self.SetItem(index, 3, listctrldata[i][3])
+                except:
+                    pass
                 self.SetItemData(index, i)
             except (ValueError, TypeError):
                 index = self.InsertItem(10000, listctrldata[i])
@@ -34,15 +44,20 @@ class XValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         try:
             index = self.InsertItem(10000, marker)
             self.SetItem(index, 1, str(int(val)))
+            self.SetItem(index, 2, str(int(val)))
+            self.SetItem(index, 3, "From File Above")
         except:
             index = self.InsertItem(10000, str('\u25CB'))
             self.SetItem(index, 1, str(0))
+            self.SetItem(index, 2, str(0))
+            self.SetItem(index, 3, "From File Above")
 
     def get_list(self):
         count = self.GetItemCount()
         list_output = []
         for i in range(0, count):
-            sublist = [self.GetItem(i, col=0).GetText(), self.GetItem(i, col=1).GetText()]
+            sublist = [self.GetItem(i, col=0).GetText(), self.GetItem(i, col=1).GetText(),
+                       self.GetItem(i, col=2).GetText(),  self.GetItem(i, col=3).GetText()]
             if sublist[0] != "":
                 list_output.append(sublist)
         return list_output
@@ -104,12 +119,13 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
 
 
 class ListCtrlPanel(wx.Panel):
-    def __init__(self, parent, pres=None, list_type="X", size=(200, 300)):
+    def __init__(self, parent, pres=None, markers = None, list_type="X", size=(200, 300)):
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         id_value = wx.NewId()
         self.list_type = list_type
         self.parent = parent
         self.pres = pres
+        self.markers = markers
         sizer = wx.BoxSizer(wx.VERTICAL)
         if list_type == "X":
             self.list = XValueListCtrl(self, id_value, size=size, style=wx.LC_REPORT | wx.BORDER_NONE)
@@ -129,6 +145,7 @@ class ListCtrlPanel(wx.Panel):
         self.popupID4 = wx.NewId()
         self.popupID5 = wx.NewId()
         self.popupID6 = wx.NewId()
+        self.popupID7 = wx.NewId()
 
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)
@@ -136,6 +153,7 @@ class ListCtrlPanel(wx.Panel):
         self.Bind(wx.EVT_MENU, self.on_popup_four, id=self.popupID4)
         self.Bind(wx.EVT_MENU, self.on_popup_five, id=self.popupID5)
         self.Bind(wx.EVT_MENU, self.on_popup_six, id=self.popupID6)
+        self.Bind(wx.EVT_MENU, self.on_popup_seven, id=self.popupID7)
 
     def on_right_click(self, event):
         if hasattr(self, "popupID1"):
@@ -146,6 +164,9 @@ class ListCtrlPanel(wx.Panel):
                 menu.Append(self.popupID5, "Fill Down Label")
                 menu.AppendSeparator()
                 menu.Append(self.popupID6, "Get Peak Indexes")
+                menu.AppendSeparator()
+            if self.list_type == "X":
+                menu.Append(self.popupID7, "Change Marker")
                 menu.AppendSeparator()
             menu.Append(self.popupID1, "Delete")
             menu.Append(self.popupID2, "Delete All")
@@ -195,6 +216,18 @@ class ListCtrlPanel(wx.Panel):
         item = self.list.GetFirstSelected()
         self.pres.load_x_from_peaks(index=item)
 
+    def on_popup_seven(self, event):
+        item = self.list.GetFirstSelected()
+        dlg = SelectMarker(self)
+        dlg.initialize_interface(self.markers)
+        self.list.SetItem(item, 0, dlg.textmarker)
+        num = self.list.GetSelectedItemCount()
+        for i in range(1, num):
+            item = self.list.GetNextSelected(item)
+            self.list.SetItem(item, 0, dlg.textmarker)
+
+        self.pres.on_run()
+
 
 class DCDropTarget(wx.FileDropTarget):
     """"""
@@ -215,12 +248,63 @@ class DCDropTarget(wx.FileDropTarget):
             if os.path.splitext(fname)[1] == ".json":
                 print("Loading .json file:", fname)
                 self.window.load(path)
-                return
+                return 0
         elif len(filenames) > 1:
             pass
         else:
             print("Error in file drop", filenames)
-            return
+            return 1
         for f in filenames:
             self.window.ypanel.list.add_line(file_name=f)
         return 0
+
+
+class SelectMarker(wx.Dialog):
+    def __init__(self, *args, **kwargs):
+        """
+        Create a dialog for setting some obscure additional parameters.
+        :param args: Passed to wx.Dialog
+        :param kwargs: Passed to wx.Dialog
+        :return: None
+        """
+        wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
+        self.SetSize((285, 125))
+        self.SetTitle("Pick the Peak Marker")
+
+    def initialize_interface(self, mdkeys):
+        """
+        :return: None
+        """
+        pnl = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        self.mdkeys = mdkeys
+
+        sb = wx.StaticBox(pnl, label='Marker Type')
+        sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
+
+        hbox5 = wx.BoxSizer(wx.HORIZONTAL)
+
+        for i, m in enumerate(mdkeys):
+            button = wx.Button(pnl, i, m, size=(35, 35))
+            hbox5.Add(button, 0)
+            button.Bind(wx.EVT_BUTTON, self.on_close)
+
+        sbs.Add(hbox5, 0)
+
+        pnl.SetSizer(sbs)
+
+        vbox.Add(pnl, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
+        self.SetSizer(vbox)
+        self.ShowModal()
+
+    def on_close(self, e):
+        """
+        Close the window.
+        :param e:  Event
+        :return: None
+        """
+        id = e.GetId()
+        self.textmarker = self.mdkeys[id]
+        self.Destroy()
+        self.EndModal(0)

@@ -962,6 +962,7 @@ class UniDecConfig(object):
         self.masstablefile = os.path.join(self.UniDecDir, "mass_table.csv")
         self.h5repackfile = os.path.join(self.UniDecDir, self.h5repackfile)
         self.presetdir = os.path.join(self.UniDecDir, "Presets")
+        self.exampledatadir = os.path.join(self.UniDecDir, "Example Data")
 
         print("\nUniDec Path:", self.UniDecPath)
 

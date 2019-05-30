@@ -55,6 +55,8 @@ class Plot1d(PlottingWindow):
 
         if test_kda:
             self.kda_test(xvals)
+        else:
+            self.kdnorm = 1
 
         pubflag = 0
         if config is not None:

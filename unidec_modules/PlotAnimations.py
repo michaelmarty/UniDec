@@ -39,6 +39,17 @@ class AnimationWindow(wx.Frame):
         self.datalist = data_list
         self.pks = pks
         self.pksmode = pksmode
+
+        if self.pksmode == "mz":
+            self.xlabel = "m/z (Th)"
+            self.testkda = False
+        elif self.pksmode == "CCS":
+            self.xlabel = "CCS"
+            self.testkda = False
+        else:
+            self.xlabel = "Mass (Da)"
+            self.testkda = True
+
         self.yvals = yvals
         if self.yvals is None:
             self.yvals = list(range(0, len(data_list)))
@@ -178,7 +189,7 @@ class AnimationWindow(wx.Frame):
                 # 2D plot
                 xlim = self.plot.subplot1.get_xlim()
                 ylim = self.plot.subplot1.get_ylim()
-                self.plot.contourplot(newdata, self.config, xlab="", title=title, repaint=False)
+                self.plot.contourplot(newdata, self.config, xlab=self.xlabel, title=title, repaint=False)
                 autoflag = self.ctlautoscale.GetValue()
                 if not autoflag:
                     self.plot.subplot1.set_xlim(xlim)
@@ -222,12 +233,13 @@ class AnimationWindow(wx.Frame):
         title = str(self.yvals[self.pos])
 
         if self.mode == 1:
-            self.plot.plotrefreshtop(newdata[:, 0], newdata[:, 1], title, "", "", "junk", self.config,
-                                     test_kda=True)
+            self.plot.plotrefreshtop(newdata[:, 0], newdata[:, 1], title, self.xlabel, "Intensity", "", self.config,
+                                     test_kda=self.testkda)
+            self.plot.add_title(title)
             if self.pks is not None:
                 self.add_peaks()
         else:
-            self.plot.contourplot(newdata, self.config, xlab="", title=title)
+            self.plot.contourplot(newdata, self.config, xlab=self.xlabel, title=title)
             self.plot.add_title(title)
 
     def on_next(self, e):

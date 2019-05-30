@@ -112,6 +112,7 @@ class MetaDataSet:
             self.massgrid = np.transpose(grid3)
         except:
             print("Mass Grid Warning:", grid.shape, sum.shape)#, len(grid)/len(sum))
+            num = 0
         # MZ Space
         axis = get_dataset(msdataset, "mz_axis")
         sum = get_dataset(msdataset, "mz_sum")
@@ -248,6 +249,14 @@ class MetaDataSet:
             self.var2.append(s.var2)
         self.var1 = np.array(self.var1)
         self.var2 = np.array(self.var2)
+        try:
+            self.var1 = self.var1.astype(float)
+        except:
+            pass
+        try:
+            self.var2 = self.var2.astype(float)
+        except:
+            pass
         print("Variable 1:", self.var1)
 
 

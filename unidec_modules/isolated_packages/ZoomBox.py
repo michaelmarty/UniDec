@@ -270,8 +270,10 @@ class ZoomBox:
         for axes in self.axes:
             xspan = xmax - xmin
             yspan = ymax - ymin
-            axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
-            axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
+            if xspan != 0:
+                axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
+            if yspan != 0:
+                axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
             # print self.data_lims
 
     def new_axes(self, axes, rectprops=None):
@@ -623,7 +625,8 @@ class ZoomBox:
                 peaks = self.peakdetect(cutdat, window=window, threshold=thresh)
 
                 for p in peaks:
-                    text = self.axes[0].text(p[0], p[1] + 0.1 * ymax, str(p[0]), horizontalalignment="center",
+                    val = round(p[0], 3)
+                    text = self.axes[0].text(p[0], p[1] + 0.1 * ymax, str(val), horizontalalignment="center",
                                              verticalalignment="top")
                     line = self.axes[0].vlines(p[0], p[1], p[1] + 0.05 * ymax, linestyles="dashed")
                     self.texts.append(text)

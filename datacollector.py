@@ -1045,7 +1045,15 @@ class DataCollector(wx.Frame):
 
     def on_animate(self, e):
         self.yvals = np.array(self.yvals)
-        PlotAnimations.AnimationWindow(self, self.grid, self.config, yvals=self.yvals[:, 1])
+
+        if self.datachoice == 2:
+            mode = "Mass"
+        elif self.datachoice == 3:
+            mode = "CCS"
+        else:
+            mode = "mz"
+
+        PlotAnimations.AnimationWindow(self, self.grid, self.config, yvals=self.yvals[:, 1], pksmode = mode)
 
     def on_animate2(self, e):
         self.update_get(e)
@@ -1071,18 +1079,15 @@ class DataCollector(wx.Frame):
             if self.datachoice < 2:
                 filename = os.path.join(header + "_unidecfiles", subheader + "_grid.bin")
                 file2 = os.path.join(header + "_unidecfiles", subheader + "_input.dat")
-
             elif self.datachoice == 2:
                 filename = os.path.join(header + "_unidecfiles", subheader + "_massgrid.bin")
                 file2 = os.path.join(header + "_unidecfiles", subheader + "_mass.txt")
-
-            if self.datachoice == 3:
+            elif self.datachoice == 3:
                 filename = os.path.join(header + "_unidecfiles", subheader + "_massccs.bin")
                 file2 = os.path.join(header + "_unidecfiles", subheader + "_ccs.txt")
-
             else:
                 file2 = filename
-                print("Undefined choice for data type")
+                print("Undefined choice for data type", self.datachoice, type(self.datachoice))
             data = np.loadtxt(file2)
             massgrid = np.fromfile(filename, dtype=float)
             configfile = os.path.join(header + "_unidecfiles", subheader + "_conf.dat")
@@ -1131,7 +1136,15 @@ class DataCollector(wx.Frame):
         self.yvals = np.array(self.yvals)
         data2 = np.array(data2)
         print(data2.shape)
-        PlotAnimations.AnimationWindow(self, data2, self.config, mode="2D", yvals=self.yvals[:, 1])
+
+        if self.datachoice == 2:
+            mode = "Mass"
+        elif self.datachoice == 3:
+            mode = "CCS"
+        else:
+            mode = "mz"
+
+        PlotAnimations.AnimationWindow(self, data2, self.config, mode="2D", yvals=self.yvals[:, 1], pksmode = mode)
 
     def on_2dgrid(self, e):
         self.yvals = np.array(self.yvals)
@@ -1252,12 +1265,12 @@ class DCDropTarget(wx.FileDropTarget):
             if os.path.splitext(fname)[1] == ".json":
                 print("Loading .json file:", fname)
                 self.window.load(path)
-                return
+                return 0
         elif len(filenames) > 1:
             pass
         else:
             print("Error in file drop", filenames)
-            return
+            return 1
         for f in filenames:
             self.window.ypanel.list.add_line(file_name=f)
         return 0
