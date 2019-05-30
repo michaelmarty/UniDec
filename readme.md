@@ -25,7 +25,7 @@ you are welcome to email mtmarty@email.arizona.edu for more information.
 UniDec source code and compiled binaries are released under a modified BSD License as described below. Note, we ask
 that you cite us in any publications. Quantitative citation metrics will help grant applications to support future development.
 
-By downloading UniDec, you are agreeing to the UniDec and any third party licensing agreements and all term therein. 
+By downloading UniDec, you are agreeing to the UniDec and any third party licensing agreements and all terms therein. 
 
 ###UniDec License:
 
@@ -74,7 +74,7 @@ For Water's .raw files, UniDec is bundled with converters (CDCReader.exe) to
 convert the data to .txt. It will compress the retention time dimension into a single spectrum. 
 A single file can be opened directly, or multiple files can be converted using 
 Tools > Simple Batch Process Raw to Txt. For a fancier conversion such as extracting specific functions or scans, 
-try Tools > Raw to Txt Conversion Wizard. Note: rawreader.exe has been replaced with the MassLynxSDK 4.5 Python library. Water's converters will need MassLynxRaw.dll and/or cdt.dll in the same directory as the converter executables (the unidec_bin folder or the top directory). These are now bundled with the software and are distributed under the Waters MassLynxSDK EULA license. By downloading and using these DLLs, you are accepting that license. 
+try Tools > Raw to Txt Conversion Wizard. Note: rawreader.exe has been replaced with the MassLynxSDK 4.5 Python library. Water's converters will need MassLynxRaw.dll and/or cdt.dll in the same directory as the converter executables (the unidec_bin folder or the top directory). 
 
 Thermo .raw files can be read as you would a text file on Windows thanks to [multiplierz](https://github.com/BlaisProteomics/multiplierz). You will need [MSFileReader](https://thermo.flexnetoperations.com/control/thmo/download?element=6306677) installed. Please cite them (http://onlinelibrary.wiley.com/doi/10.1002/pmic.201700091/abstract). It will compress all scans together unless parsed with MetaUniDec. 
 
@@ -197,7 +197,7 @@ those pesky numbers. The advanced controls are still available as before.
 A new experimental feature has been added based to use a SoftMax function (controlled by the parameter beta)
 to **suppress deconvolution artifacts**. The higher beta is, the more the algorithm with seek a single charge state assignment for each data point. Setting beta to zero will turn this off. This seems to work best when combined with other assumptions, such as peak width, point smoothing, and charge and mass smoothing. It also seems to work best when combined with background subtraction. Play around with it and let me know what you think. A minus flag applies the SoftMax to the entire data set rather than just a single column of the m/z vs charge matrix at once. 
 
-Changed the Waters MS import from rawreader.exe to the MassLynxSDK 4.5. **Waters DLLs are now included** and are distributed under the Waters MassLynxSDK EULA described above. Thanks to Waters for allowing us to distribute these. You should be able to directly open raw files now. 
+Changed the Waters MS import from rawreader.exe to the MassLynxSDK 4.5. You may need to download new MassLynxRaw.dll files from Waters. I am working with Waters to get approval to distribute the DLL files bundled with UniDec, but it isn't final yet. Because I used the Waters API, I am not releasing the source code for the Waters Importer until I have that agreement in place. I will do this as soon as I can. In the mean time, Waters import features will work on the compiled binary version but not from the Python source code. You can keep using v.3.2 in the mean time. Stay tuned...
 
 Added **Ctrl+C to copy out images from plots**. You should be able to paste these into other applications.
 
