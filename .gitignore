@@ -119,3 +119,7 @@ unidec_src/UniDec/oldVS/
 /unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_input.dat
 /unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_fitdat.bin
 /unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_peaks.dat
+/unidec_modules/waters_importer/
+*MassLynxRaw.dll
+*Waters_MassLynxSDK_EULA.txt
+*cdt.dll
