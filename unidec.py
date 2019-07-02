@@ -364,6 +364,7 @@ class UniDec(UniDecEngine):
         self.export_config()
         # Detect Peaks and Normalize
         peaks = ud.peakdetect(self.data.massdat, self.config)
+        print(peaks)
         if self.config.peaknorm == 1:
             norm = np.amax(peaks[:, 1]) / 100.
             peaks[:, 1] = peaks[:, 1] / norm

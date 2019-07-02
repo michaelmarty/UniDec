@@ -182,7 +182,21 @@ class MetaDataSet:
                 snew.data2[:, 1] /= np.amax(snew.data2[:, 1])
             except:
                 pass
-        snew.name = ""
+        snew.name = name
+
+        if "CID" in name or "SID" in name:
+            print(name)
+            name = os.path.splitext(name)[0]
+            splits = name.split("_")
+            for i, s in enumerate(splits):
+                if s == "CID" or s == "SID":
+                    try:
+                        snew.var1 = float(splits[i+1])
+                    except Exception as e:
+                        print(splits, e)
+
+                    self.v1name = "Collision Voltage"
+
         self.spectra.append(snew)
         self.len = len(self.spectra)
         self.export_hdf5()

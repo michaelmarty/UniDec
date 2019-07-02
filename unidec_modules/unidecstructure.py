@@ -920,7 +920,7 @@ class UniDecConfig(object):
         if self.system == 'Windows':
             self.defaultUnidecName = "UniDec.exe"
             self.h5repackfile = "h5repack.exe"
-            self.opencommand = "start "
+            self.opencommand = "start \"\" "
             # print "Windows: ", self.defaultUnidecName
         elif self.system == 'Darwin':
             self.defaultUnidecName = "unidecmac"

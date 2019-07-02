@@ -335,7 +335,7 @@ class MassDefectWindow(wx.Frame):
         except Exception as e:
             print("Failed save", e)
         try:
-            self.plot2.contourplot(data2d, self.config, xlab=self.xlab, ylab=self.ylab, title=title, normflag=1)
+            self.plot2.contourplot(data2d, self.config, xlab=self.xlab, ylab=self.ylab, title=title, normflag=1, test_kda=True)
         except Exception as e:
             self.plot2.clear_plot()
             print("Failed Plot2", e)
@@ -351,7 +351,7 @@ class MassDefectWindow(wx.Frame):
             self.plot1.colorplotMD(self.datalist[self.pos, :, 0], self.datalist[self.pos, :, 1],
                                    self.datalist[self.pos, :, 0] / float(self.m0) % 1.0 * factor, max=factor,
                                    title="Zero-Charge Mass Spectrum",
-                                   xlabel="Mass", ylabel="Intensity")
+                                   xlabel="Mass", ylabel="Intensity", test_kda=True)
         except Exception as e:
             self.plot1.clear_plot()
             print("Failed Plot1", e)
@@ -402,14 +402,15 @@ class MassDefectWindow(wx.Frame):
         print('Saved: ', save_path2d, save_path1d)
         # Plots
         try:
-            self.plot2.contourplot(data2d, self.config, xlab=self.xlab, ylab=self.ylab, title="Total", normflag=1)
+            self.plot2.contourplot(data2d, self.config, xlab=self.xlab, ylab=self.ylab, title="Total", normflag=1, test_kda=True)
         except Exception as e:
             self.plot2.clear_plot()
             print("Failed Plot2", e)
         try:
-            self.plot1.colorplotMD(self.datasum[:, 0], self.datasum[:, 1], self.datasum[:, 0] / float(self.m0) % 1.0 * factor,
+            self.plot1.colorplotMD(self.datasum[:, 0], self.datasum[:, 1],
+                                   self.datasum[:, 0] / float(self.m0) % 1.0 * factor,
                                    title="Zero-Charge Mass Spectrum", max=factor,
-                                   xlabel="Mass", ylabel="Intensity")
+                                   xlabel="Mass", ylabel="Intensity", test_kda=True)
         except Exception as e:
             self.plot1.clear_plot()
             print("Failed Plot1", e)
@@ -645,7 +646,7 @@ if __name__ == "__main__":
 
     data2 = np.loadtxt(path)
     datalist = [data, data2]
-    #datalist = [data]
+    # datalist = [data]
 
     app = wx.App(False)
     frame = MassDefectWindow(None, datalist)

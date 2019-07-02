@@ -146,6 +146,7 @@ class ListCtrlPanel(wx.Panel):
         self.popupID5 = wx.NewId()
         self.popupID6 = wx.NewId()
         self.popupID7 = wx.NewId()
+        self.popupID8 = wx.NewId()
 
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)
@@ -154,6 +155,7 @@ class ListCtrlPanel(wx.Panel):
         self.Bind(wx.EVT_MENU, self.on_popup_five, id=self.popupID5)
         self.Bind(wx.EVT_MENU, self.on_popup_six, id=self.popupID6)
         self.Bind(wx.EVT_MENU, self.on_popup_seven, id=self.popupID7)
+        self.Bind(wx.EVT_MENU, self.on_popup_eight, id=self.popupID8)
 
     def on_right_click(self, event):
         if hasattr(self, "popupID1"):
@@ -164,6 +166,8 @@ class ListCtrlPanel(wx.Panel):
                 menu.Append(self.popupID5, "Fill Down Label")
                 menu.AppendSeparator()
                 menu.Append(self.popupID6, "Get Peak Indexes")
+                menu.AppendSeparator()
+                menu.Append(self.popupID8, "Open File in MetaUniDec")
                 menu.AppendSeparator()
             if self.list_type == "X":
                 menu.Append(self.popupID7, "Change Marker")
@@ -228,6 +232,9 @@ class ListCtrlPanel(wx.Panel):
 
         self.pres.on_run()
 
+    def on_popup_eight(self, event):
+        item = self.list.GetFirstSelected()
+        self.pres.open_file_in_meta(index=item)
 
 class DCDropTarget(wx.FileDropTarget):
     """"""

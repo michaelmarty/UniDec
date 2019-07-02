@@ -123,3 +123,5 @@ unidec_src/UniDec/oldVS/
 *MassLynxRaw.dll
 *Waters_MassLynxSDK_EULA.txt
 *cdt.dll
+unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_Total_1D_Mass_Defects.txt
+unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_Total_2D_Mass_Defects.txt

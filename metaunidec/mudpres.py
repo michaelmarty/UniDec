@@ -320,7 +320,7 @@ class UniDecApp(UniDecPres):
 
                 self.view.plot8.contourplot(xvals=np.arange(0, len(xvals)), yvals=var1,
                                             zgrid=zdat, normflag=0,
-                                            normrange=[0, np.amax(zdat)],
+                                            normrange=[0, np.amax(zdat)], config=self.eng.config,
                                             xlab="Peaks", ylab=ylabel, discrete=1,
                                             ticloc=np.arange(0, len(xvals)),
                                             ticlab=xvals)
@@ -334,6 +334,7 @@ class UniDecApp(UniDecPres):
         :return:
         """
         self.view.SetStatusText("Making 2D Plots...", number=5)
+        self.export_config()
         self.eng.data.import_grids_and_peaks()
         self.makeplot3()
         self.makeplot5()
@@ -555,6 +556,30 @@ class UniDecApp(UniDecPres):
             else:
                 self.view.plot2.addtext("0", pmasses[i], np.amax(self.eng.data.massdat[:, 1]) * 0.99 - (i % 7) * 0.05)
         pass
+
+    def on_label_masses(self, e=None):
+        """
+        Triggered by right click "Label Masses" on self.view.peakpanel.
+        Plots a line with text listing the mass of each specific peak.
+        Updates the peakpanel to show the masses.
+        :param e: unused event
+        :return: None
+        """
+        peaksel = self.view.peakpanel.selection2
+        pmasses = np.array([p.mass for p in self.eng.pks.peaks])
+        pint = np.array([p.height for p in self.eng.pks.peaks])
+        mval = np.amax(self.eng.data.massdat[:, 1])
+
+        self.view.plot2.textremove()
+        for i, d in enumerate(pmasses):
+            if d in peaksel:
+                if self.eng.config.massbins < 1:
+                    label = str(d)
+                else:
+                    if d == round(d):
+                        d = int(d)
+                    label = "{:,}".format(d)
+                self.view.plot2.addtext(label, pmasses[i], mval * 0.13 + pint[i], vlines=False)
 
     def make_top(self, index=0):
         """
@@ -873,7 +898,7 @@ class UniDecApp(UniDecPres):
         :param path:
         :return:
         """
-        self.eng = mudeng.MetaUniDec()
+        # self.eng = mudeng.MetaUniDec()
         # self.import_config()
         self.view.clear_plots()
         self.eng.data.new_file(path)

@@ -189,6 +189,18 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.4.0.1
+
+Improved the peak panel by switching to white text when the background gets dark, adding commas to the masses (hopefully it will be easier to read), and **adding new right click features to label masses**. 
+
+Added a check box to ignore zero values in UltraMeta and fixed the bar charts on UltraMeta to have the same colors as the main window. Also, I added the ability to right click on a file and open it in MetaUniDec.
+
+Mass Defect plots will now switch to kDa from Da if appropriate.
+
+When adding data to HDF5 files, having CID_n or SID_n in the file name will import n as the collision voltage. 
+
+Fixed several bugs/issues to make everything run more smoothly.
+
 v.4.0
 
 Added **Quick Controls** to the main panel. This should allow you to turn on and off features quickly without

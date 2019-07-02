@@ -269,7 +269,11 @@ class UniDecApp(UniDecPres):
             text = do.GetText()
             text = text.splitlines()
             data = []
+            fname = "PastedSpectrum_" + str(time.strftime("%Y_%b_%d_%H_%M_%S")) + ".txt"
             for t in text:
+                if ".RAW" in t:
+                    print(t)
+                    fname = os.path.splitext(t)[0]+".txt"
                 line = t.split()
                 if len(line) == 2:
                     try:
@@ -288,7 +292,6 @@ class UniDecApp(UniDecPres):
                 if not os.path.isdir(newdir):
                     os.mkdir(newdir)
                 os.chdir(newdir)
-                fname = "PastedSpectrum_" + str(time.strftime("%Y_%b_%d_%H_%M_%S")) + ".txt"
                 np.savetxt(fname, data)
                 print("Saved Pasted Spectrum as File:", fname, " in directory:", newdir)
                 self.on_open_file(fname, newdir)
@@ -779,15 +782,39 @@ class UniDecApp(UniDecPres):
         peaksel = self.view.peakpanel.selection2
         pmasses = np.array([p.mass for p in self.eng.pks.peaks])
         peakdiff = pmasses - peaksel
+        mval = np.amax(self.eng.data.massdat[:, 1])
         # print peakdiff
 
         self.view.plot2.textremove()
         for i, d in enumerate(peakdiff):
             if d != 0:
-                self.view.plot2.addtext(str(d), pmasses[i],
-                                        np.amax(self.eng.data.massdat[:, 1]) * 0.99 - (i % 7) * 0.05)
+                self.view.plot2.addtext(str(d), pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
             else:
-                self.view.plot2.addtext("0", pmasses[i], np.amax(self.eng.data.massdat[:, 1]) * 0.99 - (i % 7) * 0.05)
+                self.view.plot2.addtext("0", pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
+
+    def on_label_masses(self, e=None):
+        """
+        Triggered by right click "Label Masses" on self.view.peakpanel.
+        Plots a line with text listing the mass of each specific peak.
+        Updates the peakpanel to show the masses.
+        :param e: unused event
+        :return: None
+        """
+        peaksel = self.view.peakpanel.selection2
+        pmasses = np.array([p.mass for p in self.eng.pks.peaks])
+        pint = np.array([p.height for p in self.eng.pks.peaks])
+        mval = np.amax(self.eng.data.massdat[:, 1])
+
+        self.view.plot2.textremove()
+        for i, d in enumerate(pmasses):
+            if d in peaksel:
+                if self.eng.config.massbins < 1:
+                    label=str(d)
+                else:
+                    if d == round(d):
+                        d = int(d)
+                    label =  "{:,}".format(d)
+                self.view.plot2.addtext(label, pmasses[i], mval * 0.06 + pint[i], vlines=False)
 
     def on_plot_offsets(self, e=None):
         """
@@ -1608,7 +1635,7 @@ class UniDecApp(UniDecPres):
                 self.view.plot2.plotadd(dist[:, 0], dist[:, 1], colval=p.color)
         self.view.plot2.repaint()
 
-    #def on_remove_noise_points(self, e=0):
+    # def on_remove_noise_points(self, e=0):
     #    self.on_dataprep_button(removenoise=True)
 
     def on_flip_mode(self, e=None):

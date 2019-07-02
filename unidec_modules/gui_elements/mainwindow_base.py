@@ -91,7 +91,7 @@ class MainwindowBase(wx.Frame):
         save_dir = os.getcwd()
         print("Opening directory:", save_dir)
         try:
-            os.system(self.config.opencommand + save_dir)
+            os.system(self.config.opencommand + "\"" + save_dir + "\"")
         except Exception as err:
             print("Error opening directory", err)
 

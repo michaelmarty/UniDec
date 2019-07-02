@@ -18,7 +18,7 @@ import unidec_modules.unidectools as ud
 import h5py
 from unidec_modules.hdf5_tools import replace_dataset, get_dataset
 from metaunidec.gui_elements.um_list_ctrl import *
-from metaunidec import mudeng
+from metaunidec import mudeng, mudpres
 import threading
 
 
@@ -58,6 +58,7 @@ class DataCollector(wx.Frame):
             self.directory = ""
 
         self.config = config
+        self.mudwin = None
 
         if self.config is None:
             self.config = unidecstructure.UniDecConfig()
@@ -116,6 +117,11 @@ class DataCollector(wx.Frame):
         self.menuplots2 = self.toolsmenu.Append(wx.ID_ANY, "Plot Mass Defects", "Plots Mass Defects of All")
         self.Bind(wx.EVT_MENU, self.on_plot_all_MD, self.menuplots2)
 
+        self.toolsmenu.AppendSeparator()
+        self.menulabframe = self.toolsmenu.Append(wx.ID_ANY, "Multiply X-axis by Average Charge State",
+                                                  "Multiply the X-axis (Collision Voltage) by the average charge state to get the lab frame of energy")
+        self.Bind(wx.EVT_MENU, self.on_lab_frame, self.menulabframe)
+
         self.menuBar = wx.MenuBar()
         self.menuBar.Append(self.filemenu, "&File")
         self.menuBar.Append(self.toolsmenu, "Tools")
@@ -143,7 +149,7 @@ class DataCollector(wx.Frame):
         self.ypanelsizer.Add(self.ypanelsizer2, 0, wx.EXPAND)
         self.ypanelsizer.Add(self.ypanel, 0, wx.EXPAND)
 
-        self.xpanel = ListCtrlPanel(self.panel, pres = self, markers = mdkeys, list_type="X", size=(400, 200))
+        self.xpanel = ListCtrlPanel(self.panel, pres=self, markers=mdkeys, list_type="X", size=(400, 200))
         self.xpanelsizer = wx.BoxSizer(wx.VERTICAL)
         self.addxbutton = wx.Button(self.panel, label="Add X Value")
         self.Bind(wx.EVT_BUTTON, self.on_add_x, self.addxbutton)
@@ -174,6 +180,9 @@ class DataCollector(wx.Frame):
         self.runsizer4.Add(self.runsizer2)
         self.runsizer4.Add(wx.StaticText(self.panel, label=" "), wx.FIXED_MINSIZE)
         self.runsizer4.Add(self.runsizer3)
+        self.runsizer4.Add(wx.StaticText(self.panel, label=" "), wx.FIXED_MINSIZE)
+        self.ctlzeros = wx.CheckBox(self.panel, label="Remove Zero Points")
+        self.runsizer4.Add(self.ctlzeros)
         self.runsizer.Add(self.runsizer4)
 
         self.ypanelsizer.Add(self.runsizer, 0, wx.EXPAND)
@@ -209,6 +218,7 @@ class DataCollector(wx.Frame):
         self.hdf5_file = ""
         self.topname = "ms_dataset"
         self.configname = "config"
+        self.removezeros = False
 
         self.update_set(0)
         self.Centre()
@@ -230,6 +240,24 @@ class DataCollector(wx.Frame):
                 except Exception as e:
                     print(e)
                     pass
+
+    def open_file_in_meta(self, e=None, index=0):
+        y = self.yvals[index]
+        path = y[0]
+        if self.localpath == 1:
+            path = os.path.join(self.directory, path)
+        if os.path.isfile(path):
+            print(path)
+            if self.mudwin is None:
+                self.mudwin = mudpres.UniDecApp()
+            try:
+                self.mudwin.open_file(path)
+            except:
+                try:
+                    self.mudwin = mudpres.UniDecApp()
+                    self.mudwin.open_file(path)
+                except Exception as e:
+                    print("ERROR: MetaUniDec:", e)
 
     def load_x_from_peaks(self, e=None, index=0):
         self.update_get(e)
@@ -287,7 +315,7 @@ class DataCollector(wx.Frame):
     def on_save(self, e):
         self.update_get(e)
         # print "Saved: ",self.gridparams
-        outdict = {"x": self.xvals, "y": self.yvals, "dir": self.directory}
+        outdict = {"x": self.xvals, "y": self.yvals, "dir": self.directory, "zeros":self.removezeros}
         dlg = wx.FileDialog(self, "Save Collection in JSON Format", self.directory, self.savename, "*.json", wx.FD_SAVE)
         if dlg.ShowModal() == wx.ID_OK:
             self.savename = dlg.GetPath()
@@ -312,8 +340,11 @@ class DataCollector(wx.Frame):
             self.yvals = indict["y"]
         if "dir" in indict:
             self.directory = indict["dir"]
+        if "zeros" in indict:
+            self.removezeros = indict["zeros"]
         self.update_set(0)
-        #self.load_x_from_peaks(0)
+        # self.load_x_from_peaks(0)
+        self.load_params_from_hdf5()
         print("Loaded: ", savename)
         self.on_run(0)
 
@@ -336,16 +367,17 @@ class DataCollector(wx.Frame):
             self.localpath = 0
         dlg.Destroy()
 
-
     def update_get(self, e=None):
         self.xvals = self.xpanel.list.get_list()
         self.yvals = self.ypanel.list.get_list()
         self.directory = self.dirinput.GetValue()
+        self.removezeros = self.ctlzeros.GetValue()
 
     def update_set(self, e):
         self.dirinput.SetValue(self.directory)
         self.xpanel.list.populate(self.xvals)
         self.ypanel.list.populate(self.yvals)
+        self.ctlzeros.SetValue(self.removezeros)
 
     def on_exp_fit(self, e=None):
         self.on_run(fit="exp")
@@ -386,7 +418,7 @@ class DataCollector(wx.Frame):
     extracts group. If the labels are the same on multiple files, then error bars are displayed.
     """
 
-    def on_run(self, e=None, fit=None):
+    def on_run(self, e=None, fit=None, labframe=False):
         self.update_config()
         tstart = time.perf_counter()
         self.plot1.clear_plot()
@@ -448,6 +480,7 @@ class DataCollector(wx.Frame):
             bargraphfits = []
             bargraphlabels = []
             bargrapherrors = []
+            bargraphcolors = []
 
             for u in uniquelabels:
                 extracts = []
@@ -499,13 +532,14 @@ class DataCollector(wx.Frame):
                             zdata = get_dataset(msdata, "charge_data")
                             try:
                                 zdata[:, 1] /= np.amax(zdata[:, 1])
-                                zdat.append(ud.center_of_mass(zdata)[0])
+                                zval = ud.center_of_mass(zdata)[0]
+
                             except:
                                 print("ERROR with Zdata")
                                 print(zdata)
-                                zdat.append(0)
+                                zval = 0
                                 pass
-
+                            zdat.append(zval)
                             xvals.append(var1)
 
                         pdataset = hdf.require_group("/peaks")
@@ -536,6 +570,10 @@ class DataCollector(wx.Frame):
                     fits = []
                     zfits = []
 
+                    if labframe:
+                        xvals = xvals * zdat
+                        self.ylabel = "Collision Energy (eV)"
+
                     if xcolor is not None:
                         color = xcolor
                         elab = None
@@ -543,9 +581,18 @@ class DataCollector(wx.Frame):
                         elab = lab
                         lab = None
 
+
                     if fit is None:
+                        if self.removezeros:
+                            boo1 = avg > 0
+                            xvals = xvals[boo1]
+                            avg = avg[boo1]
+                            zdat = zdat[boo1]
+                            std = std[boo1]
+                            zstd = zstd[boo1]
+
                         if not self.plot1.flag:
-                            self.plot1.plotrefreshtop(xvals, avg, "Mass Extracts", self.ylabel, "Mass",
+                            self.plot1.plotrefreshtop(xvals, avg, "Mass Extracts", self.ylabel, self.ylabel2,
                                                       label=lab, marker=marker,
                                                       nopaint=True, color=color, test_kda=False, linestyle=linestyle)
                             pass
@@ -557,7 +604,7 @@ class DataCollector(wx.Frame):
                                                       label=lab, marker=marker,
                                                       nopaint=True, color=color, test_kda=False, linestyle=linestyle)
                         else:
-                            self.plot2.plotadd(xvals, zdat, color,linestyle=linestyle, newlabel=lab, marker=marker)
+                            self.plot2.plotadd(xvals, zdat, color, linestyle=linestyle, newlabel=lab, marker=marker)
                     else:
                         print(zdat, zexts, avg)
                         if fit == "exp":
@@ -578,6 +625,7 @@ class DataCollector(wx.Frame):
 
                         bargraphfits.append(fits)
                         bargraphlabels.append(u)
+                        bargraphcolors.append(color)
 
                         errors = [[], [], [], []]
                         sums = [0, 0, 0, 0]
@@ -607,8 +655,9 @@ class DataCollector(wx.Frame):
                                 tmp.append(np.std(errors[x]))
                             bargrapherrors.append(tmp)
 
+
                         if not self.plot1.flag:
-                            self.plot1.plotrefreshtop(xvals, fitdat, "Mass Extracts", self.ylabel, "Mass",
+                            self.plot1.plotrefreshtop(xvals, fitdat, "Mass Extracts", self.ylabel, self.ylabel2,
                                                       nopaint=True, color=color, test_kda=False, label=lab,
                                                       marker=None, linestyle=linestyle)
                             pass
@@ -628,6 +677,14 @@ class DataCollector(wx.Frame):
                             self.plot1.addtext("", fits[0], (fits[3] + fits[2]) / 0.95, ymin=fits[3], color=color)
                             self.plot2.addtext("", zfits[0], (zfits[3] + zfits[2]) / 0.95, ymin=zfits[3], color=color)
 
+                    if self.removezeros:
+                        boo1 = avg > 0
+                        xvals = xvals[boo1]
+                        avg = avg[boo1]
+                        zdat = zdat[boo1]
+                        std = std[boo1]
+                        zstd = zstd[boo1]
+
                     self.plot1.errorbars(xvals, avg, yerr=std, color=color, linestyle=" ", marker=marker, newlabel=elab)
 
                     self.plot2.errorbars(xvals, zdat, yerr=zstd, color=color, linestyle=" ",
@@ -636,7 +693,7 @@ class DataCollector(wx.Frame):
                     output.append(out)
 
             if fit is not None:
-                self.on_bar_graphs(bargraphfits, bargraphlabels, bargrapherrors, fit=fit)
+                self.on_bar_graphs(bargraphfits, bargraphlabels, bargrapherrors, fit=fit, colors=bargraphcolors)
         print("Plotting Done")
 
         output = np.array(output)
@@ -738,22 +795,24 @@ class DataCollector(wx.Frame):
         except:
             pass
 
-    def on_bar_graphs(self, fits=None, labels=None, errors=None, fit=None):
+    def on_bar_graphs(self, fits=None, labels=None, errors=None, fit=None, colors=None):
         if fit == "exp":
             bargraph = BarGraphWindow(self, title="Exponential Decay Fit", directory=self.directory)
-            bargraph.on_exp_plot(fits, labels, errors)
+            bargraph.on_exp_plot(fits, labels, errors, colors=colors)
         elif fit == "lin":
-            bargraph = BarGraphWindow(self, title="Linear Fit", directory=self.directory)
-            bargraph.on_lin_plot(fits, labels, errors)
+            bargraph = BarGraphWindow(self, title="Linear Fit", directory=self.directory, colors=colors)
+            bargraph.on_lin_plot(fits, labels, errors, colors)
         elif fit == "sig":
-            bargraph = BarGraphWindow(self, title="Logistic Fit", directory=self.directory)
-            bargraph.on_sig_plot(fits, labels, errors)
+            bargraph = BarGraphWindow(self, title="Logistic Fit", directory=self.directory, colors=colors)
+            bargraph.on_sig_plot(fits, labels, errors, colors)
         else:
             print("Error: bad fit given")
 
     def update_config(self):
         self.config.exnorm = self.ctlnorm.GetSelection()
         self.config.exchoice = self.ctlextract.GetSelection()
+        self.ylabel2 = extractlabels[self.config.exchoice]
+        self.removezeros = self.ctlzeros.GetValue()
         try:
             self.config.exwindow = float(self.ctlextractwindow.GetValue())
         except ValueError:
@@ -763,6 +822,7 @@ class DataCollector(wx.Frame):
         self.ctlnorm.SetSelection(self.config.exnorm)
         self.ctlextract.SetSelection(self.config.exchoice)
         self.ctlextractwindow.SetValue(str(self.config.exwindow))
+        self.ctlzeros.SetValue(self.removezeros)
 
     def on_plot_all(self, e=None, type="dist"):
         tstart = time.perf_counter()
@@ -882,6 +942,9 @@ class DataCollector(wx.Frame):
     def on_plot_all_MD(self, e=None):
         self.on_plot_all(type="massdefect")
 
+    def on_lab_frame(self, e=None):
+        self.on_run(labframe=True)
+
 
 class BarGraphWindow(wx.Frame):
     def __init__(self, parent, title, directory, *args, **kwargs):
@@ -889,6 +952,8 @@ class BarGraphWindow(wx.Frame):
         self.directory = directory
         self.plotname = None
         self.plotmenu = wx.Menu()
+        self.parent = parent
+
 
         self.menuPNG = self.plotmenu.Append(wx.ID_ANY, "Save Figures as PNG", "Save Figures as PNG")
         self.menuPDF = self.plotmenu.Append(wx.ID_ANY, "Save Figures as PDF", "Save Figures as PDF")
@@ -899,14 +964,19 @@ class BarGraphWindow(wx.Frame):
         self.menuBar.Append(self.plotmenu, "Plot")
         self.SetMenuBar(self.menuBar)
 
-    def on_exp_plot(self, fits=None, labels=None, errors=None):
+    def on_exp_plot(self, fits=None, labels=None, errors=None, colors=None):
         self.setup_window(2)
+        self.colors = colors
         barlabels = []
         midpoint = []
         slope = []
         num = 0
-        colormap = cm.get_cmap('rainbow', len(fits))
-        cols = colormap(np.arange(len(fits)))
+        if self.colors is None:
+            colormap = cm.get_cmap('rainbow', len(fits))
+            cols = colormap(np.arange(len(fits)))
+        else:
+            cols = self.colors
+            print(self.colors)
         midpointerr = []
         slopeerr = []
         plotcols = []
@@ -941,14 +1011,18 @@ class BarGraphWindow(wx.Frame):
         self.plotname = "Exp_Fit"
         self.Show()
 
-    def on_lin_plot(self, fits=None, labels=None, errors=None):
+    def on_lin_plot(self, fits=None, labels=None, errors=None, colors=None):
         self.setup_window(2)
         barlabels = []
         midpoint = []
         slope = []
         num = 0
-        colormap = cm.get_cmap('rainbow', len(fits))
-        cols = colormap(np.arange(len(fits)))
+        if colors is None:
+            colormap = cm.get_cmap('rainbow', len(fits))
+            cols = colormap(np.arange(len(fits)))
+        else:
+            cols = colors
+
         midpointerr = []
         slopeerr = []
         plotcols = []
@@ -983,7 +1057,7 @@ class BarGraphWindow(wx.Frame):
         self.plotname = "Lin_Fit"
         self.Show()
 
-    def on_sig_plot(self, fits=None, labels=None, errors=None):
+    def on_sig_plot(self, fits=None, labels=None, errors=None, colors=None):
         self.setup_window(4)
         barlabels = []
         baseline = []
@@ -991,8 +1065,11 @@ class BarGraphWindow(wx.Frame):
         amplitude = []
         midpoint = []
         num = 0
-        colormap = cm.get_cmap('rainbow', len(fits))
-        cols = colormap(np.arange(len(fits)))
+        if colors is None:
+            colormap = cm.get_cmap('rainbow', len(fits))
+            cols = colormap(np.arange(len(fits)))
+        else:
+            cols = colors
         midpointerr = []
         slopeerr = []
         amplitudeerr = []

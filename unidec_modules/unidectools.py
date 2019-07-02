@@ -87,6 +87,17 @@ def smartdecode(string):
     return string
 
 
+def get_luminance(color, type=2):
+    r = color.Red()
+    g = color.Green()
+    b = color.Blue()
+    l1 = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    l2 = 0.299 * r + 0.587 * g + 0.114 * b
+    l3 = np.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b)
+    larray = [l1, l2, l3]
+    return larray[type]
+
+
 def match_files(directory, string):
     files = []
     for file in os.listdir(directory):
