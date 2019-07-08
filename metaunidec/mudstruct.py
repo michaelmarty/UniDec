@@ -67,6 +67,10 @@ class MetaDataSet:
         else:
             self.filename = file
 
+        if file is None:
+            print("Error: No HDF5 file present. Please create an HDF5 file first")
+            return
+
         # Clear Group
         hdf = h5py.File(file)
         try:
@@ -170,6 +174,9 @@ class MetaDataSet:
     def add_file(self, filename=None, dirname=None, path=None):
         if path is None:
             path = os.path.join(dirname, filename)
+        else:
+            dirname, filename = os.path.split(path)
+
         data = ud.load_mz_file(path)
         self.add_data(data, name=filename)
 
@@ -184,18 +191,22 @@ class MetaDataSet:
                 pass
         snew.name = name
 
-        if "CID" in name or "SID" in name:
-            print(name)
-            name = os.path.splitext(name)[0]
-            splits = name.split("_")
-            for i, s in enumerate(splits):
-                if s == "CID" or s == "SID":
-                    try:
-                        snew.var1 = float(splits[i+1])
-                    except Exception as e:
-                        print(splits, e)
+        try:
+            if "CID" in name or "SID" in name:
+                print(name)
+                name = os.path.splitext(name)[0]
+                splits = name.split("_")
+                for i, s in enumerate(splits):
+                    if s == "CID" or s == "SID":
+                        try:
+                            snew.var1 = float(splits[i+1])
+                        except Exception as e:
+                            print(splits, e)
 
-                    self.v1name = "Collision Voltage"
+                        self.v1name = "Collision Voltage"
+        except Exception as e:
+            print("Error in parsing collision voltage:", e)
+            print(name)
 
         self.spectra.append(snew)
         self.len = len(self.spectra)

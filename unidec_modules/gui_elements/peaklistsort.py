@@ -390,7 +390,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.list_ctrl.SetItemBackgroundColour(item, col=colout)
 
         luminance = ud.get_luminance(wx.Colour(colout), type=2)
-        print(wx.Colour(colout), luminance)
+        #print(wx.Colour(colout), luminance)
         if luminance < luminance_cutoff:
             self.list_ctrl.SetItemTextColour(item, col=white_text)
         else:

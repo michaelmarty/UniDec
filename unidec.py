@@ -583,15 +583,18 @@ class UniDec(UniDecEngine):
             for i in range(0, len(peaks)):
                 avg = np.average(self.data.ztab, weights=mztab[i, :, 1])
                 std = np.sqrt(np.average((np.array(self.data.ztab) - avg) ** 2, weights=mztab[i, :, 1]))
+                p = self.pks.peaks[i]
                 if e == "PostFit":
                     peakparams.append(
                         [peaks[i, 0], self.config.mzsig * avg, avg, std, peaks[i, 1] / np.sum(peaks[:, 1]),
-                         self.massfit[i, 1], self.massfit[i, 2] / np.sum(self.massfit[:, 2])])
+                         self.massfit[i, 1], self.massfit[i, 2] / np.sum(self.massfit[:, 2]),
+                         p.centroid, p.errorFWHM, p.errorreplicate])
                 else:
-                    peakparams.append([peaks[i, 0], self.config.mzsig * avg, avg, std, peaks[i, 1], areas[i]])
+                    peakparams.append([peaks[i, 0], self.config.mzsig * avg, avg, std, peaks[i, 1], areas[i],
+                                       p.centroid, p.errorFWHM, p.errormean])
             self.peakparams = np.array(peakparams)
 
-            print("Mass MassStdGuess AvgCharge StdDevCharge Height Area")
+            print("Mass MassStdGuess AvgCharge StdDevCharge Height Area MassCentroid MassFWHM MassErrorBetweenZ")
             np.set_printoptions(precision=2, formatter={'float': '{: 0.2f}'.format})
             print(self.peakparams)
             np.set_printoptions()

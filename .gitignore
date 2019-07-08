@@ -125,3 +125,8 @@ unidec_src/UniDec/oldVS/
 *cdt.dll
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_Total_1D_Mass_Defects.txt
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_Total_2D_Mass_Defects.txt
+unidec_bin/Example Data/BSA_unidecfiles/BSA_chargedata.dat
+unidec_bin/Example Data/BSA_unidecfiles/BSA_chargedata_areas.dat
+unidec_bin/Example Data/BSA_unidecfiles/BSA_peakparam.dat
+
+

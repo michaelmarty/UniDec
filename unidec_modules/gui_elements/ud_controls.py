@@ -129,24 +129,9 @@ class main_controls(wx.Panel):
         else:
             self.imflag = 0
 
-        self.subtypectl = wx.Choice(panel1, -1, choices=self.backgroundchoices)
-        self.ctlbuff = wx.TextCtrl(panel1, value="", size=size1)
-        self.subtypectl.SetSelection(2)
-        sizercontrol1.Add(self.subtypectl, (i, 0))
-        sizercontrol1.Add(self.ctlbuff, (i, 1))
-        i += 1
-
-        if self.imflag == 1:
-            sizercontrol1.Add(wx.StaticText(panel1, label=" m/z"), (i - 1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
-
-            self.ctlsubbuffdt = wx.TextCtrl(panel1, value="", size=size1)
-            sizercontrol1.Add(self.ctlsubbuffdt, (i, 1))
-            sizercontrol1.Add(wx.StaticText(panel1, label=" A.T."), (i, 2), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
-
-        self.ctlbinsize = wx.TextCtrl(panel1, value="", size=size1)
-        sizercontrol1.Add(self.ctlbinsize, (i, 1))
-        sizercontrol1.Add(wx.StaticText(panel1, label="Bin Every: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlbackcheck = wx.CheckBox(panel1, label="Use Background Subtraction", style=wx.CHK_3STATE)
+        self.parent.Bind(wx.EVT_CHECKBOX, self.on_backcheck, self.ctlbackcheck)
+        sizercontrol1.Add(self.ctlbackcheck, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
         self.dataprepbutton = wx.Button(panel1, -1, "Process Data")
@@ -164,13 +149,12 @@ class main_controls(wx.Panel):
                                                    cbstyle=style1b)
         panel1b = wx.Panel(foldpanel1b, -1)
         gbox1b = wx.GridBagSizer(wx.VERTICAL)
+        i = 0
 
         self.ctlsmooth = wx.TextCtrl(panel1b, value="", size=size1)
-        i = 0
         gbox1b.Add(self.ctlsmooth, (i, 1))
         gbox1b.Add(wx.StaticText(panel1b, label="Gaussian Smoothing: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
-
         if self.imflag == 1:
             gbox1b.Add(wx.StaticText(panel1b, label=" m/z"), (i - 1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
             gbox1b.Add(wx.StaticText(panel1b, label=" A.T."), (i, 2), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -181,6 +165,24 @@ class main_controls(wx.Panel):
             self.ctlpusher = wx.TextCtrl(panel1b, value="", size=size1)
             gbox1b.Add(self.ctlpusher, (i, 1))
             gbox1b.Add(wx.StaticText(panel1b, label="Pusher Interval (\u03BCs)"), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+        self.ctlbinsize = wx.TextCtrl(panel1b, value="", size=size1)
+        gbox1b.Add(self.ctlbinsize, (i, 1))
+        gbox1b.Add(wx.StaticText(panel1b, label="Bin Every: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.subtypectl = wx.Choice(panel1b, -1, choices=self.backgroundchoices)
+        self.ctlbuff = wx.TextCtrl(panel1b, value="", size=size1)
+        self.subtypectl.SetSelection(2)
+        gbox1b.Add(self.subtypectl, (i, 0))
+        gbox1b.Add(self.ctlbuff, (i, 1))
+        i += 1
+        if self.imflag == 1:
+            gbox1b.Add(wx.StaticText(panel1b, label=" m/z"), (i - 1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+            self.ctlsubbuffdt = wx.TextCtrl(panel1b, value="", size=size1)
+            gbox1b.Add(self.ctlsubbuffdt, (i, 1))
+            gbox1b.Add(wx.StaticText(panel1b, label=" A.T."), (i, 2), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
         self.ctlintthresh = wx.TextCtrl(panel1b, value="", size=size1)
@@ -199,21 +201,16 @@ class main_controls(wx.Panel):
         i += 1
 
         if self.config.imflag == 0:
-
             self.ctldatareductionpercent = wx.TextCtrl(panel1b, value="", size=size1)
             gbox1b.Add(self.ctldatareductionpercent, (i, 1), span=(1, 1))
             gbox1b.Add(wx.StaticText(panel1b, label="Data Reduction (%): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
-
             self.ctlbintype = wx.Choice(panel1b, -1, size=(240, 50),
                                         choices=["Linear m/z (Constant " + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z)",
                                                  "Linear resolution (Constant (m/z)/(" + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z))",
                                                  "Nonlinear", "Linear Interpolated", "Linear Resolution Interpolated"])
             gbox1b.Add(self.ctlbintype, (i, 0), span=(1, 2))
             i += 1
-
-
-
         else:
             self.ctlconvertflag = wx.CheckBox(panel1b, label="Compress when converting to .txt")
             self.ctlconvertflag.SetValue(True)
@@ -1080,6 +1077,16 @@ class main_controls(wx.Panel):
             self.ctlzzsig.SetValue("0")
         self.export_gui_to_config()
 
+    def on_backcheck(self, e):
+        value = self.ctlbackcheck.Get3StateValue()
+        if value == 1:
+            self.ctlbuff.SetValue("100")
+            self.subtypectl.SetSelection(2)
+        elif value == 0:
+            self.ctlbuff.SetValue("0")
+        self.export_gui_to_config()
+        self.update_quick_controls()
+
     def on_m_smooth(self, e):
         value = self.ctlmsmoothcheck.Get3StateValue()
         if value == 1:
@@ -1110,12 +1117,28 @@ class main_controls(wx.Panel):
         self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlzzsig)
         self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlmsig)
         self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlmzsig)
+        self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlbuff)
+        self.parent.Bind(wx.EVT_CHOICE, self.update_quick_controls, self.subtypectl)
         self.parent.Bind(wx.EVT_RADIOBOX, self.update_quick_controls, self.ctlpsfun)
         if self.config.imflag == 0:
             self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlbeta)
             self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlpsig)
 
     def update_quick_controls(self, e=None):
+
+        # Background Subtraction
+        try:
+            value = float(self.ctlbuff.GetValue())
+        except:
+            value = -1
+        selection = self.subtypectl.GetSelection()
+        if value == 100 and selection == 2:
+            self.ctlbackcheck.Set3StateValue(1)
+        elif value == 0:
+            self.ctlbackcheck.Set3StateValue(0)
+        else:
+            self.ctlbackcheck.Set3StateValue(2)
+
         # Z Box
         try:
             value = float(self.ctlzzsig.GetValue())

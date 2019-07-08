@@ -910,6 +910,9 @@ class UniDecApp(UniDecPres):
         :param e:
         :return:
         """
+        if self.eng.data.filename is None:
+            self.on_new_file()
+
         try:
             wx.TheClipboard.Open()
             do = wx.TextDataObject()
@@ -958,6 +961,9 @@ class UniDecApp(UniDecPres):
         :param e:
         :return:
         """
+        if self.eng.data.filename is None:
+            self.on_new_file()
+
         paths = FileDialogs.open_multiple_files_dialog(message="Choose data files in txt or mzml format")
         if paths is not None:
             print("Openening: ", paths)

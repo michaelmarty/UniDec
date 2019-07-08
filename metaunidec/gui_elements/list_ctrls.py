@@ -11,6 +11,10 @@ import unidec_modules.unidectools as ud
 from copy import deepcopy
 
 
+luminance_cutoff = 135
+white_text = wx.Colour(250, 250, 250)
+black_text = wx.Colour(0,0,0)
+
 class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
     def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
         wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)
@@ -52,6 +56,14 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
                 color = wx.Colour(int(round(colors[i][0] * 255)), int(round(colors[i][1] * 255)),
                                   int(round(colors[i][2] * 255)), alpha=255)
                 self.SetItemBackgroundColour(index, col=color)
+
+                luminance = ud.get_luminance(color, type=2)
+                # print(wx.Colour(colout), luminance)
+                if luminance < luminance_cutoff:
+                    self.SetItemTextColour(index, col=white_text)
+                else:
+                    self.SetItemTextColour(index, col=black_text)
+
                 s.color = colors[i]
         self.data = dataset
         self.colors = colors
@@ -225,7 +237,14 @@ class ListCtrlPanel(wx.Panel):
         dlg.Destroy()
         self.list.SetItemBackgroundColour(item, col=colout)
         colout = colout.Get(includeAlpha=True)
+        luminance = ud.get_luminance(wx.Colour(colout), type=2)
         colout = ([colout[0] / 255., colout[1] / 255., colout[2] / 255., colout[3] / 255.])
+
+        if luminance < luminance_cutoff:
+            self.list.SetItemTextColour(item, col=white_text)
+        else:
+            self.list.SetItemTextColour(item, col=black_text)
+
         self.pres.on_color_change(item, colout)
 
     def on_popup_ten(self, event=None):

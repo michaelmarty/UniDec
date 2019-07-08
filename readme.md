@@ -191,7 +191,11 @@ The main GUI class is GUniDec.UniDecApp.
 
 v.4.0.1
 
-Improved the peak panel by switching to white text when the background gets dark, adding commas to the masses (hopefully it will be easier to read), and **adding new right click features to label masses**. 
+Improved the peak panel by switching to white text when the background gets dark, adding commas to the masses (hopefully it will be easier to read), and **adding new right click features to label masses**. Also fixed text colors on MetaUniDec spectrum panel.
+
+Moved the Bin Every and Background Subtraction parameters from the main Data Processing tab to the Advanced Data Processing Parameters tab. **Added a Backround Subtraction check box** to turn on background subtraction with a curved background set to 100. 
+
+Added peak centroids, FWHM, and error between charge states to the _peakparams.dat output.
 
 Added a check box to ignore zero values in UltraMeta and fixed the bar charts on UltraMeta to have the same colors as the main window. Also, I added the ability to right click on a file and open it in MetaUniDec.
 
