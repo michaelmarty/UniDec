@@ -210,12 +210,13 @@
       <OptimizeForWindowsApplication>false</OptimizeForWindowsApplication>
       <FlushDenormalResultsToZero>false</FlushDenormalResultsToZero>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <UseProcessorExtensions>None</UseProcessorExtensions>
       <OffloadArch>Default</OffloadArch>
       <Mtune>No</Mtune>
       <RecognizeRestrictKeyword>false</RecognizeRestrictKeyword>
       <CompileAs>CompileAsC</CompileAs>
+      <FloatingPointExceptions>false</FloatingPointExceptions>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
     </ClCompile>
     <Link>
       <AdditionalDependencies>libszip.lib;libzlib.lib;libhdf5.lib;libhdf5_hl.lib;ucrt.lib;vcruntime.lib;msvcrt.lib;%(AdditionalDependencies)</AdditionalDependencies>

@@ -205,11 +205,11 @@ Added peak centroids, FWHM, and error between charge states to the _peakparams.d
 
 Added a check box to ignore zero values in UltraMeta and fixed the bar charts on UltraMeta to have the same colors as the main window. 
 
-Added the ability to right click on a file and open it in MetaUniDec.
+Added the ability in UltraMeta to right click on a file and open it in MetaUniDec.
 
 Added the ability to reorder spectra in MetaUniDec by editing the indexes. 
 
-Added new extraction choices for area of peaks above a threshold in UltraMeta and Meta.
+Added new extraction choices for area of peaks above a threshold in UltraMeta and MetaUniDec.
 
 UltraMeta will now be tolerant of different files having different x values when creating error bars. It will only plot and average consensus data points. 
 
