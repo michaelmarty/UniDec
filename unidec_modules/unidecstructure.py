@@ -159,7 +159,10 @@ class UniDecConfig(object):
         self.peaknorm = 1
         self.exwindow = 0
         self.exchoice = 0
+        self.exchoicez = 1
+        self.exthresh = 10
         self.exnorm = 1
+        self.exnormz = 0
         self.datanorm = 1
         self.numtot = 20
         self.crossover = 100
@@ -566,7 +569,9 @@ class UniDecConfig(object):
             "edc": self.edc, "gasmass": self.gasmass, "integratelb": self.integratelb,
             "integrateub": self.integrateub, "filterwidth": self.filterwidth, "zerolog": self.zerolog,
             "manualfileflag": self.manualfileflag, "mfileflag": self.mfileflag, "imflag": self.imflag,
-            "exwindow": self.exwindow, "exchoice": self.exchoice, "exnorm": self.exnorm, "metamode": self.metamode,
+            "exwindow": self.exwindow, "exchoice": self.exchoice, "exchoicez": self.exchoicez,
+            "exthresh": self.exthresh,
+            "exnorm": self.exnorm, "exnormz": self.exnormz, "metamode": self.metamode,
             "datanorm": self.datanorm
         }
 
@@ -684,7 +689,10 @@ class UniDecConfig(object):
         self.imflag = self.read_attr(self.imflag, "imflag", config_group)
 
         self.exchoice = self.read_attr(self.exchoice, "exchoice", config_group)
+        self.exchoicez = self.read_attr(self.exchoicez, "exchoicez", config_group)
+        self.exthresh = self.read_attr(self.exthresh, "exthresh", config_group)
         self.exnorm = self.read_attr(self.exnorm, "exnorm", config_group)
+        self.exnormz = self.read_attr(self.exnormz, "exnormz", config_group)
         self.datanorm = self.read_attr(self.datanorm, "datanorm", config_group)
         self.exwindow = self.read_attr(self.exwindow, "exwindow", config_group)
 

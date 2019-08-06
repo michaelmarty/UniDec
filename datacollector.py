@@ -298,7 +298,7 @@ class DataCollector(wx.Frame):
         self.menu2dGrid = self.experimentalmenu.Append(wx.ID_ANY, "2D Grid Extraction",
                                                        "Extract a 2d Grid of intensities")
         self.Bind(wx.EVT_MENU, self.on_2dgrid, self.menu2dGrid)
-        self.menudefect = self.experimentalmenu.Append(wx.ID_ANY, "Kendrick Mass Tools", "Mass Defect Analysis")
+        self.menudefect = self.experimentalmenu.Append(wx.ID_ANY, "Mass Defect Tools", "Mass Defect Analysis")
         self.Bind(wx.EVT_MENU, self.on_defect, self.menudefect)
         self.menulocalpath = self.toolsmenu.Append(wx.ID_ANY, "Convert to Local Path",
                                                    "Change file name to reflect local path for portability")

@@ -87,6 +87,14 @@ def smartdecode(string):
     return string
 
 
+def commonprefix(args):
+    if platform.system() == "Windows":
+        sep = "\\"
+    else:
+        sep = "/"
+    return os.path.commonprefix(args).rpartition(sep)[0]
+
+
 def get_luminance(color, type=2):
     r = color.Red()
     g = color.Green()
@@ -172,6 +180,13 @@ def safedivide(a, b):
     c = deepcopy(b)
     c[b != 0] = a[b != 0] / b[b != 0]
     return c
+
+
+def safedivide1(a, b):
+    if b != 0:
+        return a / b
+    else:
+        return 0
 
 
 def weighted_std(values, weights):
@@ -649,6 +664,7 @@ def header_test(path):
                     try:
                         float(sin)
                     except ValueError:
+                        #print(sin, line)
                         header += 1
                         break
         if header > 0:
@@ -707,6 +723,16 @@ def load_mz_file(path, config=None):
             except:
                 print("Attempted to convert Waters Raw file but failed")
                 raise IOError
+        elif os.path.isdir(path) and os.path.splitext(path)[1].lower() == ".d":
+            try:
+                print("Trying to convert Agilent File:", path)
+                data = data_reader.DataImporter(path).get_data()
+                txtname = path[:-2] + ".txt"
+                np.savetxt(txtname, data)
+                print("Saved to:", txtname)
+            except:
+                print("Attempted to convert Waters Raw file but failed")
+                raise IOError
         else:
             print("Attempted to open:", path)
             print("\t but I couldn't find the file...")
@@ -715,6 +741,9 @@ def load_mz_file(path, config=None):
 
         if extension == ".txt":
             data = np.loadtxt(path, skiprows=header_test(path))
+                #data = np.loadtxt(path, skiprows=header_test(path, delimiter=","), delimiter=",")
+        elif extension == ".csv":
+            data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0,1))
         elif extension == ".mzml":
             data = mzMLimporter.mzMLimporter(path).get_data()
             txtname = path[:-5] + ".txt"
@@ -2295,7 +2324,10 @@ def peaks_error_FWHM(pks, data):
     :return:
     """
     pmax = np.amax([p.height for p in pks.peaks])
-    datamax = np.amax(np.asarray(data)[:, 1])
+    try:
+        datamax = np.amax(np.asarray(data)[:, 1])
+    except:
+        datamax = 0
     div = datamax / pmax
     for pk in pks.peaks:
         int = pk.height

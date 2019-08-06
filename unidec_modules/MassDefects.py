@@ -156,7 +156,7 @@ class MassDefectWindow(wx.Frame):
 
         self.ctlm0 = wx.TextCtrl(panel, value=str(self.m0))
         self.ctlwindow = wx.TextCtrl(panel, value=str(self.nbins))
-        controlsizer.Add(wx.StaticText(panel, label="Kendrick Mass"), 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer.Add(wx.StaticText(panel, label="Reference Mass"), 0, wx.ALIGN_CENTER_VERTICAL)
         controlsizer.Add(self.ctlm0, 0, wx.ALIGN_CENTER_VERTICAL)
         controlsizer.Add(wx.StaticText(panel, label="Number of Defect Bins"), 0, wx.ALIGN_CENTER_VERTICAL)
         controlsizer.Add(self.ctlwindow, 0, wx.ALIGN_CENTER_VERTICAL)

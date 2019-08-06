@@ -5,7 +5,7 @@ numit 50
 numz 31
 endz 35
 startz 5
-zzsig 1.0
+zzsig -1.0
 psig 10.0
 beta 500.0
 mzsig 16.44881
@@ -24,7 +24,7 @@ subtype 2
 smooth 0.0
 mzbins 0.0
 peakwindow 500.0
-peakthresh 0.025
+peakthresh 0.1
 peakplotthresh 0.1
 plotsep 0.025
 intthresh 0.0
@@ -46,5 +46,7 @@ isotopemode 0
 peaknorm 1
 baselineflag 1.0
 orbimode 0
+integratelb -1000.0
+integrateub 1000.0
 filterwidth 20.0
 zerolog -12.0

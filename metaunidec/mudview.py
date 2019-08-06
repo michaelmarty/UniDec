@@ -56,9 +56,8 @@ class Mainwindow(mainwindow_base.MainwindowBase):
             self.tabbed = tabbed
 
         self.datachoices = {0: "Raw Data", 1: "Processed Data", 2: "Zero Charge Mass Spectrum"}
-        self.extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position",
-                               5: "Center of Mass 50%", 6: "Center of Mass 10%"}
-        self.extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass", 5: "Mass", 6: "Mass"}
+        self.extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position"}
+        self.extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass"}
 
         self.setupmainpanel()
 
@@ -71,7 +70,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
                 ["D", self.pres.on_dataprep_button, self.controls.dataprepbutton],
                 ["O", self.pres.on_open, self.menu.openmenu],  # ["I", self.pres.on_integrate],
                 ["P", self.pres.on_pick_peaks, self.controls.plotbutton],  # ["K", self.pres.on_plot_peaks],
-                #["C", self.pres.on_plot_composite, self.controls.compositebutton],
+                # ["C", self.pres.on_plot_composite, self.controls.compositebutton],
                 ["N", self.pres.on_wizard, self.menu.wizardmenu],
                 # ["F", self.pres.on_plot_offsets],  # ["Z", self.pres.on_charge_plot],
                 # ["L", self.pres.on_load_state], ["S", self.pres.on_save_state],
@@ -193,6 +192,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
 
     def export_gui_to_config(self):
         self.controls.export_gui_to_config()
+        self.pres.export_vars()
 
 
 class MyFileDropTarget(wx.FileDropTarget):

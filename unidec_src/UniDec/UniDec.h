@@ -95,7 +95,10 @@ struct Config
 	double peakthresh;
 	double exwindow;
 	int exchoice;
+	int exchoicez;
+	double exthresh;
 	int exnorm;
+	int exnormz;
 	int peaknorm;
 	int orbimode;
 	int datanorm;
@@ -173,7 +176,10 @@ Config SetDefaultConfig()
 	config.peakwin = 500;
 	config.peakthresh = 0.1;
 	config.exchoice = 0;
+	config.exchoicez = 1;
+	config.exthresh = 10;
 	config.exnorm = 0;
+	config.exnormz = 0;
 	config.peaknorm = 1;
 	config.exwindow = 0;
 	config.orbimode = 0;
@@ -384,7 +390,7 @@ void PrintHelp()
 	printf("\t\t\t\t\t Reduced CCS = P1 * Reduced Drift Time + P2\n");
 	printf("\t\t\t\t3=T-Wave Power Law Calibration\n");
 	printf("\t\t\t\t\tReduced CCS =P1 * (Reduced Drift Time ^ P2)\n");
-	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) v.1021.\n");
+	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) v.1135.\n");
 	//printf("\nsize of: %d",sizeof(char));
 }
 
@@ -811,6 +817,44 @@ void blur_it_mean(const int lengthmz,
   }
 }
 
+
+//Charge state smooth using a mean filter of the log
+void blur_it_geometric_mean(const int lengthmz,
+	const int numz,
+	const int numclose,
+	const int* __restrict closeind,
+	double* __restrict newblur,
+	const double* __restrict blur,
+	const char* __restrict barr,
+	const double zerolog)
+{	
+	double mult = 10;
+	if (numclose == 1)
+	{
+		memcpy(newblur, blur, lengthmz * numz * sizeof(double));
+	}
+	else {
+#		pragma omp parallel for schedule(auto)
+		for (int i = 0; i < lengthmz * numz; i++)
+		{
+			double temp = 0;
+			if (barr[i] == 1)
+			{
+				for (int k = 0; k < numclose; k++)
+				{
+					double temp2 = 0;
+					if (closeind[index2D(numclose, i, k)] != -1)
+					{
+						temp2 = pow(blur[closeind[index2D(numclose, i, k)]], mult);
+					}
+					temp += temp2;
+				}
+				temp = pow(temp, 1/mult)/ (double)numclose;
+			}
+			newblur[i] = temp;
+		}
+	}
+}
 
 //Convolution of neighborhood function with gaussian filter.
 void blur_it_hybrid1(const int lengthmz,

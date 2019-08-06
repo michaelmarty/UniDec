@@ -229,9 +229,13 @@ def sig_fit(xvals, yvals):
     yguess = np.amin(yvals)
     Aguess = np.amax(yvals) - np.amin(yvals)
     mguess = np.mean(xvals)
-    sguess = (yvals[len(yvals) - 1] - yvals[0]) / (xvals[len(xvals) - 1] - xvals[0]) / Aguess
+    if Aguess != 0:
+        sguess = (yvals[len(yvals) - 1] - yvals[0]) / (xvals[len(xvals) - 1] - xvals[0]) / Aguess
+    else:
+        Aguess = 1
+        sguess = 1
     guess = [mguess, sguess, Aguess, yguess]
-    fits = curve_fit(logistic, xvals, yvals, p0=guess, maxfev=1000000)[0]
+    fits = curve_fit(logistic, xvals, yvals, p0=guess, maxfev=10000000)[0]
     fitdat = logistic(xvals, fits[0], fits[1], fits[2], fits[3])
     return fits, fitdat
 
@@ -315,7 +319,11 @@ def fit_peak(xvals, yvals, psfun, midguess, fwhmguess, aguess, bguess):
         print("Failed")
 
     fitdat = psfit(xvals, popt[0], popt[1], popt[2], popt[3], psfun)
-    return popt, np.sqrt(np.diag(pcov)), fitdat
+    try:
+        out2 = np.sqrt(np.diag(pcov))
+    except:
+        out2 = 0
+    return popt, out2, fitdat
 
 
 def weighted_std_2(values, weights):
@@ -422,8 +430,8 @@ def mpinit(datatop, oarray, background=False):
 
 
 def mperror(array, datatop, oarray, background):
-    bool1=array<-1
-    array[bool1]=0
+    bool1 = array < -1
+    array[bool1] = 0
     error = (datatop[:, 1] - multipoisson(array, datatop, oarray, background)[0]) ** 2.
     return error
 
@@ -444,7 +452,7 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
 
-    oarray = [1, 2, 3, 4, 5,6, 8]
+    oarray = [1, 2, 3, 4, 5, 6, 8]
     fits, fitdat, integrals, integrals2 = complex_poisson(data, oarray=oarray, background=False)
     print(fits)
     print(integrals, integrals2)

@@ -16,6 +16,10 @@ UniDec may be downloaded from [https://github.com/michaelmarty/UniDec/releases](
 This compiled version is compatible with 64-bit Windows. It a portable binary, so it does not need a conventional installation.
 Just unzip the folder, put it somewhere convenient, and click the GUI_UniDec.exe file in the folder to launch.
 
+## Tutorial
+
+You can watch a video tutorial on how to use UniDec here: [https://www.youtube.com/watch?v=e33JxgY6CJY](https://www.youtube.com/watch?v=e33JxgY6CJY).
+
 ## Licensing
 
 UniDec is distributed under a completely open source license. Our hope is that this allows UniDec to be
@@ -191,13 +195,23 @@ The main GUI class is GUniDec.UniDecApp.
 
 v.4.0.1
 
+Added experimental support for **Agilent .D** files. Please test it and let me know how it works. You may need to run UniDec as an administrator first to get it to register all the DLLs correctly.
+
 Improved the peak panel by switching to white text when the background gets dark, adding commas to the masses (hopefully it will be easier to read), and **adding new right click features to label masses**. Also fixed text colors on MetaUniDec spectrum panel.
 
 Moved the Bin Every and Background Subtraction parameters from the main Data Processing tab to the Advanced Data Processing Parameters tab. **Added a Backround Subtraction check box** to turn on background subtraction with a curved background set to 100. 
 
 Added peak centroids, FWHM, and error between charge states to the _peakparams.dat output.
 
-Added a check box to ignore zero values in UltraMeta and fixed the bar charts on UltraMeta to have the same colors as the main window. Also, I added the ability to right click on a file and open it in MetaUniDec.
+Added a check box to ignore zero values in UltraMeta and fixed the bar charts on UltraMeta to have the same colors as the main window. 
+
+Added the ability to right click on a file and open it in MetaUniDec.
+
+Added the ability to reorder spectra in MetaUniDec by editing the indexes. 
+
+Added new extraction choices for area of peaks above a threshold in UltraMeta and Meta.
+
+UltraMeta will now be tolerant of different files having different x values when creating error bars. It will only plot and average consensus data points. 
 
 Mass Defect plots will now switch to kDa from Da if appropriate.
 

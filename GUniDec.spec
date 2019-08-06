@@ -11,6 +11,14 @@ import fnmatch
 import comtypes
 import encodings
 import zipimport
+from PyInstaller.utils.hooks import collect_data_files
+from sklearn.decomposition import PCA
+import sklearn.decomposition
+import sklearn
+from multiprocessing import freeze_support
+
+freeze_support()
+
 
 def dir_files(path, rel):
     ret = []
@@ -48,14 +56,17 @@ zipdirectory = outputdir + "_" + date + ".zip"
 a = Analysis(['Launcher.py'],
              pathex=[os.getcwd()],
              excludes=['pandas', 'IPython', 'Cython', 'statsmodels', 'pyopenms',
-                       'GdkPixbuf', 'PIL', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PyQt5'],
-             hiddenimports=[  # 'plotly',
+                       'GdkPixbuf', 'PIL', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2', 'PyQt5'],
+             hiddenimports=[  # 'plotly','
+                 'sklearn', 'sklearn.decomposition', 'sklearn.preprocessing', 'sklearn.utils', 'pytest', 'pluggy',
+                 'sklearn.utils.testing', 'sklearn.utils._cython_blas',
                  'scipy.special._ufuncs_cxx', 'scipy.linalg.cython_blas', 'scipy.linalg.cython_lapack',
                  'scipy._lib.messagestream',
-                 'FileDialog', 'Dialog','encodings', 'encodings.__init__',
+                 'FileDialog', 'Dialog', 'encodings', 'encodings.__init__',
                  'packaging', 'packaging.version', 'packaging.specifiers',
                  'comtypes', "multiplierz", "comtypes.gen", "comtypes.gen._E7C70870_676C_47EB_A791_D5DA6D31B224_0_1_0",
-                 "comtypes.gen.UIAutomationClient","comtypes.gen.RawReader", "multiplierz.mzAPI.management",
+                 'comtypes.gen._18A9D1D8_42BC_4A5D_AD59_590F4049A5B5_0_8_0',
+                 "comtypes.gen.UIAutomationClient", "comtypes.gen.RawReader", "multiplierz.mzAPI.management",
                  # 'wx.lib.pubsub','wx.lib.pubsub.core', 'wx.lib.pubsub.core.kwargs','wx.lib.pubsub.core.publisher',
                  'pubsub', 'pubsub.core.publisherbase', 'pubsub.core.kwargs', 'pubsub.core.kwargs.publisher',
                  'pubsub.core.kwargs.listenerimpl', 'pubsub.core.kwargs.publishermixin',
@@ -77,8 +88,8 @@ if system == "Windows":
     a.datas += [('ucrtbase.dll', 'unidec_bin\\ucrtbase.dll', 'DATA')]
     a.datas += [('vcruntime140.dll', 'unidec_bin\\vcruntime140.dll', 'DATA')]
     a.datas += [('libmypfunc.dll', 'unidec_bin\\libmypfunc.dll', 'DATA')]
-    #a.datas += [('rawreader.exe', 'unidec_bin\\rawreader.exe', 'DATA')]
-    #a.datas += [('rawreadertim.exe', 'unidec_bin\\rawreadertim.exe', 'DATA')]
+    # a.datas += [('rawreader.exe', 'unidec_bin\\rawreader.exe', 'DATA')]
+    # a.datas += [('rawreadertim.exe', 'unidec_bin\\rawreadertim.exe', 'DATA')]
     a.datas += [('CDCReader.exe', 'unidec_bin\\CDCReader.exe', 'DATA')]
     a.datas += [('h5repack.exe', 'unidec_bin\\h5repack.exe', 'DATA')]
     a.datas += [('pymzml\\version.txt', 'C:\\Python37\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
@@ -107,7 +118,6 @@ a.datas += [('metaunidec/images/allButton.png', 'metaunidec\\images\\allButton.p
 a.datas += [('metaunidec/images/peakRightClick.png', 'metaunidec\\images\\peakRightClick.png', 'DATA')]
 a.datas += [('metaunidec/images/rightClick.png', 'metaunidec\\images\\rightClick.png', 'DATA')]
 a.datas += [('UniDecLogoMR.png', 'UniDecLogoMR.png', 'DATA')]
-
 
 a.datas.extend(dir_files(os.path.join(os.path.dirname(pymzml.__file__), 'obo'), 'obo'))
 
@@ -140,6 +150,14 @@ coll = COLLECT(exe,
                strip=None,
                upx=False,
                name=outputdir)
+
+path = "C:\\Python\\UniDec3\\dist\\UniDec_Windows\\GUI_UniDec.exe"
+import subprocess
+
+out = subprocess.call(path)
+
+if out != 0:
+    exit()
 
 print("Zipping...")
 # Zip up the final file

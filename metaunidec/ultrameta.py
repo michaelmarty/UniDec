@@ -39,9 +39,9 @@ rcParams['ps.useafm'] = True
 rcParams['ps.fonttype'] = 42
 rcParams['pdf.fonttype'] = 42
 
-extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position",
-                  5: "Center of Mass 50%", 6: "Center of Mass 10%"}
-extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass", 5: "Mass", 6: "Mass"}
+extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position"}
+extractchoicesz = {0: "Maximum", 1: "Weighted Average"}
+extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass"}
 
 markdict = {'\u25CB': 'o', '\u25BD': 'v', '\u25B3': '^', '\u25B7': '>', '\u25A2': 's', '\u2662': 'd',
             '\u2606': '*'}
@@ -158,28 +158,47 @@ class DataCollector(wx.Frame):
 
         self.runsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.runsizer.Add(self.xpanelsizer, 0, wx.EXPAND)
-        self.ctlnorm = wx.RadioBox(self.panel, label="Extract Normalization",
+        self.ctlnorm = wx.RadioBox(self.panel, label="Mass/Intensity Normalization",
+                                   choices=["None", "Max", "Sum", "Peak Max", "Peak Sum"], majorDimension=1,
+                                   style=wx.RA_SPECIFY_COLS)
+        self.ctlnormz = wx.RadioBox(self.panel, label="Charge Normalization",
                                    choices=["None", "Max", "Sum", "Peak Max", "Peak Sum"], majorDimension=1,
                                    style=wx.RA_SPECIFY_COLS)
         self.ctlextractwindow = wx.TextCtrl(self.panel, value="", size=(100, 20))
+        self.ctlextractthresh = wx.TextCtrl(self.panel, value="", size=(100, 20))
         self.ctlextract = wx.ComboBox(self.panel, value="Height", size=(150, 30), choices=list(extractchoices.values()),
                                       style=wx.CB_READONLY)
+        self.ctlextractz = wx.ComboBox(self.panel, value="Weighted Average", size=(150, 30), choices=list(extractchoicesz.values()),
+                                      style=wx.CB_READONLY)
         self.ctlextractwindow.SetValue("0")
-        self.runbutton = wx.Button(self.panel, label="Run Extraction", size=(200, 200))
+        self.ctlextractthresh.SetValue("10")
+        self.runbutton = wx.Button(self.panel, label="Run Extraction", size=(150, 200))
         self.runbutton.SetBackgroundColour((0, 200, 0))
         self.Bind(wx.EVT_BUTTON, self.on_run, self.runbutton)
         self.runsizer.Add(self.runbutton, 0, wx.EXPAND)
         self.runsizer.Add(self.ctlnorm, 0, wx.EXPAND)
+        self.runsizer.Add(self.ctlnormz, 0, wx.EXPAND)
         self.runsizer2 = wx.BoxSizer(wx.HORIZONTAL)
         self.runsizer2.Add(wx.StaticText(self.panel, label="Extraction Window: "), wx.FIXED_MINSIZE)
         self.runsizer2.Add(self.ctlextractwindow, 0, wx.FIXED_MINSIZE)
+
+        self.runsizer2b = wx.BoxSizer(wx.HORIZONTAL)
+        self.runsizer2b.Add(wx.StaticText(self.panel, label="Intensity Threshold: "), wx.FIXED_MINSIZE)
+        self.runsizer2b.Add(self.ctlextractthresh, 0, wx.FIXED_MINSIZE)
+        self.runsizer2b.Add(wx.StaticText(self.panel, label="%"), wx.FIXED_MINSIZE)
+
         self.runsizer3 = wx.BoxSizer(wx.HORIZONTAL)
-        self.runsizer3.Add(wx.StaticText(self.panel, label="How to Extract Peaks: "), wx.FIXED_MINSIZE)
+        self.runsizer3.Add(wx.StaticText(self.panel, label="How to Extract Mass/Intensity: "), wx.FIXED_MINSIZE)
         self.runsizer3.Add(self.ctlextract, 0, wx.FIXED_MINSIZE)
+        self.runsizer3b = wx.BoxSizer(wx.HORIZONTAL)
+        self.runsizer3b.Add(wx.StaticText(self.panel, label="How to Extract Charge: "), wx.FIXED_MINSIZE)
+        self.runsizer3b.Add(self.ctlextractz, 0, wx.FIXED_MINSIZE)
         self.runsizer4 = wx.BoxSizer(wx.VERTICAL)
         self.runsizer4.Add(self.runsizer2)
+        self.runsizer4.Add(self.runsizer2b)
         self.runsizer4.Add(wx.StaticText(self.panel, label=" "), wx.FIXED_MINSIZE)
         self.runsizer4.Add(self.runsizer3)
+        self.runsizer4.Add(self.runsizer3b)
         self.runsizer4.Add(wx.StaticText(self.panel, label=" "), wx.FIXED_MINSIZE)
         self.ctlzeros = wx.CheckBox(self.panel, label="Remove Zero Points")
         self.runsizer4.Add(self.ctlzeros)
@@ -296,12 +315,35 @@ class DataCollector(wx.Frame):
         self.hdf5_file = path
         self.update_config()
 
+        if not os.path.isfile(path):
+            print("Error1: File Not Found", path)
+            self.update_gui()
+            return
+
         hdf = h5py.File(path)
         self.config.hdf_file = path
         h5_config = hdf.require_group("config")
         self.config.exnorm = h5_config.attrs["exnorm"]
+        try:
+            self.config.exnormz = h5_config.attrs["exnormz"]
+        except:
+
+            self.config.exnormz = 0
+
         self.config.exchoice = h5_config.attrs["exchoice"]
+
+        try:
+            self.config.exchoicez = h5_config.attrs["exchoicez"]
+        except:
+            self.config.exchoicez = 1
+
         self.config.exwindow = h5_config.attrs["exwindow"]
+
+        try:
+            self.config.exthresh = h5_config.attrs["exthresh"]
+        except:
+            self.config.exthresh = 10
+
         try:
             msdata = hdf.require_group("ms_dataset")
             self.v1name = msdata.attrs["v1name"]
@@ -315,7 +357,7 @@ class DataCollector(wx.Frame):
     def on_save(self, e):
         self.update_get(e)
         # print "Saved: ",self.gridparams
-        outdict = {"x": self.xvals, "y": self.yvals, "dir": self.directory, "zeros":self.removezeros}
+        outdict = {"x": self.xvals, "y": self.yvals, "dir": self.directory, "zeros": self.removezeros}
         dlg = wx.FileDialog(self, "Save Collection in JSON Format", self.directory, self.savename, "*.json", wx.FD_SAVE)
         if dlg.ShowModal() == wx.ID_OK:
             self.savename = dlg.GetPath()
@@ -340,6 +382,8 @@ class DataCollector(wx.Frame):
             self.yvals = indict["y"]
         if "dir" in indict:
             self.directory = indict["dir"]
+            if not os.path.isdir(self.directory):
+                self.directory = os.path.dirname(savename)
         if "zeros" in indict:
             self.removezeros = indict["zeros"]
         self.update_set(0)
@@ -390,11 +434,17 @@ class DataCollector(wx.Frame):
 
     def update_hdf5(self, path):
         try:
+            if not os.path.isfile(path):
+                print("Error2: File Not Found:", path)
+                return
             hdf = h5py.File(path)
             h5_config = hdf.require_group("config")
             h5_config.attrs.modify("exnorm", self.config.exnorm)
+            h5_config.attrs.modify("exnormz", self.config.exnormz)
             h5_config.attrs.modify("exchoice", self.config.exchoice)
+            h5_config.attrs.modify("exchoicez", self.config.exchoicez)
             h5_config.attrs.modify("exwindow", self.config.exwindow)
+            h5_config.attrs.modify("exthresh", self.config.exthresh)
 
             pdataset = hdf.require_group("/peaks")
             ultrapeakdata = np.array([int(x[1]) for x in self.xvals])
@@ -407,6 +457,9 @@ class DataCollector(wx.Frame):
             print("ERROR Python: File", path)
 
     def run_hdf5(self, path):
+        if not os.path.isfile(path):
+            print("Error3: File Not Found:", path)
+            return
         out = mudeng.metaunidec_call(self.config, "-ultraextract", path=path)
         if out is not 0:
             self.SetStatusText("ERROR with File: " + path, number=2)
@@ -427,7 +480,9 @@ class DataCollector(wx.Frame):
         print("Running\n")
         # print self.yvals
         labels = np.array(self.yvals)[:, 3]
-        uniquelabels = np.unique(labels)
+        temp, indexes = np.unique(labels, return_index=True)
+        uniquelabels = labels[np.sort(indexes)]
+
         output = []
 
         if ud.isempty(self.xvals):
@@ -485,17 +540,27 @@ class DataCollector(wx.Frame):
             for u in uniquelabels:
                 extracts = []
                 zexts = []
-                xvals = []
+                xvalsall = []
                 for y in self.yvals:
                     label = y[3]
                     if label == u:
                         path = y[0]
                         if self.localpath == 1:
                             path = os.path.join(self.directory, path)
+                        if not os.path.isfile(path):
+                            path2 = os.path.join(self.directory, path)
+                            if os.path.isfile(path2):
+                                path = path2
+                                self.localpath = 1
+                                print("Switching to local path mode")
+                            else:
+                                print("Error4: File Not Found:", path)
+                                return
                         color = y[1]
                         linestyle = y[2]
                         print(path, u, index, marker, linestyle)
                         self.hdf5_file = path
+
                         hdf = h5py.File(path, "r")
 
                         msdata1 = hdf.require_group(self.topname)
@@ -541,7 +606,7 @@ class DataCollector(wx.Frame):
                                 pass
                             zdat.append(zval)
                             xvals.append(var1)
-
+                        xvalsall.append(xvals)
                         pdataset = hdf.require_group("/peaks")
                         # Get the peaks back in
                         ultrapeaks = get_dataset(pdataset, "ultrapeakdata")
@@ -558,10 +623,28 @@ class DataCollector(wx.Frame):
                         extracts.append(ex)
                         hdf.close()
 
-                if not ud.isempty(xvals) and not ud.isempty(extracts):
+                if not ud.isempty(xvalsall) and not ud.isempty(extracts):
                     extracts = np.array(extracts)
                     zexts = np.array(zexts)
-                    xvals = np.array(xvals)
+                    # xvals = np.array(xvals)
+                    xvalsall = np.array(xvalsall)
+                    l = len(xvalsall)
+                    unix, counts = np.unique(np.hstack(xvalsall), return_counts=True)
+                    b1 = counts == l
+                    unix = unix[b1]
+
+                    for i, x in enumerate(xvalsall):
+                        x = np.array(x)
+                        b2 = np.in1d(x, unix)
+                        test = np.all(b2)
+                        if not test:
+                            print("Removing some data points to take only consensus x values")
+                            print("X Values:", x)
+                            print("Consensus:", unix)
+                            extracts[i] = extracts[i][b2]
+                            zexts[i] = zexts[i][b2]
+                    xvals = unix
+
                     avg = np.mean(extracts, axis=0)
                     std = np.std(extracts, axis=0)
                     zdat = np.mean(zexts, axis=0)
@@ -580,7 +663,6 @@ class DataCollector(wx.Frame):
                     else:
                         elab = lab
                         lab = None
-
 
                     if fit is None:
                         if self.removezeros:
@@ -655,7 +737,6 @@ class DataCollector(wx.Frame):
                                 tmp.append(np.std(errors[x]))
                             bargrapherrors.append(tmp)
 
-
                         if not self.plot1.flag:
                             self.plot1.plotrefreshtop(xvals, fitdat, "Mass Extracts", self.ylabel, self.ylabel2,
                                                       nopaint=True, color=color, test_kda=False, label=lab,
@@ -700,8 +781,13 @@ class DataCollector(wx.Frame):
         self.data = output
         try:
             hdf = h5py.File(os.path.join(self.directory, "Extracts.hdf5"))
-            for l in output:
-                dataset = hdf.require_group("/" + l[0][0])
+            for n, l in enumerate(output):
+                name = l[0][0]
+                try:
+                    name = str(name)
+                except:
+                    name = str(n)
+                dataset = hdf.require_group("/" + name)
                 data = np.array([l[i] for i in range(1, 6)])
                 fits = l[6]
                 zfits = l[7]
@@ -749,9 +835,11 @@ class DataCollector(wx.Frame):
     def on_local_path(self, e):
         "Finished"
         self.update_get(0)
+        paths = [l[0] for l in self.yvals]
         for i, l in enumerate(self.yvals):
             filename = l[0]
-            localpath = os.path.relpath(filename, self.directory)
+            toppath = ud.commonprefix(paths)
+            localpath = os.path.relpath(filename, toppath)  # self.directory)
             l[0] = localpath
         self.update_set(0)
         self.localpath = 1
@@ -810,18 +898,34 @@ class DataCollector(wx.Frame):
 
     def update_config(self):
         self.config.exnorm = self.ctlnorm.GetSelection()
+        self.config.exnormz = self.ctlnormz.GetSelection()
         self.config.exchoice = self.ctlextract.GetSelection()
+        self.config.exchoicez = self.ctlextractz.GetSelection()
         self.ylabel2 = extractlabels[self.config.exchoice]
         self.removezeros = self.ctlzeros.GetValue()
         try:
             self.config.exwindow = float(self.ctlextractwindow.GetValue())
         except ValueError:
             self.config.exwindow = 0
+        try:
+            self.config.exthresh = float(self.ctlextractthresh.GetValue())
+        except ValueError:
+            self.config.exthresh = 0
 
     def update_gui(self):
         self.ctlnorm.SetSelection(self.config.exnorm)
+        self.ctlnormz.SetSelection(self.config.exnormz)
+        if self.config.exchoice > len(extractchoices):
+            if self.config.exchoice == 5:
+                self.config.exchoice = 3
+                self.config.exthresh = 50
+            if self.config.exchoice == 6:
+                self.config.exchoice = 3
+                self.config.exthresh = 10
         self.ctlextract.SetSelection(self.config.exchoice)
+        self.ctlextractz.SetSelection(self.config.exchoicez)
         self.ctlextractwindow.SetValue(str(self.config.exwindow))
+        self.ctlextractthresh.SetValue(str(self.config.exthresh))
         self.ctlzeros.SetValue(self.removezeros)
 
     def on_plot_all(self, e=None, type="dist"):
@@ -953,7 +1057,6 @@ class BarGraphWindow(wx.Frame):
         self.plotname = None
         self.plotmenu = wx.Menu()
         self.parent = parent
-
 
         self.menuPNG = self.plotmenu.Append(wx.ID_ANY, "Save Figures as PNG", "Save Figures as PNG")
         self.menuPDF = self.plotmenu.Append(wx.ID_ANY, "Save Figures as PDF", "Save Figures as PDF")

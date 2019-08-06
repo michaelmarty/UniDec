@@ -56,6 +56,16 @@ class Peak:
         self.errormean = -1
         self.errorreplicate = 0
         self.avgcharge = 0
+        self.zstack = []
+        self.mzstack = []
+        self.pca_score = 0
+        self.uni_score = 0
+        self.z_score = 0
+        self.rsquared = 0
+        self.fwhm_score = 0
+        self.dscore = 0
+        self.pca_mdist = None
+        self.pca_zdist = None
 
 
 class Peaks:
@@ -83,6 +93,7 @@ class Peaks:
         self.marklen = 0
         self.massbins = 0
         self.norm = 1
+        self.aps = 0
 
     def add_peaks(self, parray, massbins=0):
         """

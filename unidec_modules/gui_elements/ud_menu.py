@@ -21,7 +21,7 @@ class main_menu(wx.Menu):
         # File Menu
         self.menuOpen = self.filemenu.Append(wx.ID_OPEN, "Open File\tCtrl+O",
                                              " Open a Text File in x y text, mzML, or Thermo RAW format")
-        self.menuOpenRaw = self.filemenu.Append(wx.ID_ANY, "Open Waters Raw File", " Open a Waters .Raw File")
+        self.menuOpenRaw = self.filemenu.Append(wx.ID_ANY, "Open Waters or Agilent File", " Open a Waters .Raw or Agilent .D File")
         self.filemenu.AppendSeparator()
 
         self.menuLoadState = self.filemenu.Append(wx.ID_ANY, "Load State\tCtrl+L", "Load state from folder")
@@ -134,7 +134,7 @@ class main_menu(wx.Menu):
                                                     "Fits masses and reports normalized and relative peak intensities")
         self.analysismenu.AppendSeparator()
 
-        self.menukendrick = self.analysismenu.Append(wx.ID_ANY, "Kendrick Mass Tools\tCtrl+K", "Kendrick Mass Analysis")
+        self.menukendrick = self.analysismenu.Append(wx.ID_ANY, "Mass Defect Tools\tCtrl+K", "Mass Defect Analysis")
         self.menufft = self.analysismenu.Append(wx.ID_ANY, "FFT Window")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_fft_window, self.menufft)
         self.menu2Dgrid = self.analysismenu.Append(wx.ID_ANY, "2D Grid Analysis", "2D Grid Analysis")
@@ -236,6 +236,10 @@ class main_menu(wx.Menu):
             self.experimentalmenu.AppendSeparator()
             self.menuAdditionalParameters = self.experimentalmenu.Append(wx.ID_ANY, "Additional Parameters",
                                                                          "Adjust some experimental parameters")
+            self.experimentalmenu.AppendSeparator()
+
+            self.menuscore = self.experimentalmenu.Append(wx.ID_ANY, "Filter Peak Scores", "Filter Peak Scores")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_score2, self.menuscore)
             self.experimentalmenu.AppendSeparator()
             # self.menuMinimize = self.experimentalmenu.Append(wx.ID_ANY, "Minimize", "Minimize Peak List")
             # self.experimentalmenu.AppendSeparator()

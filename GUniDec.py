@@ -160,6 +160,13 @@ class UniDecApp(UniDecPres):
         self.import_config()
         self.view.SetStatusText("Ready", number=5)
 
+        if False:
+            try:
+                self.eng.unidec_imports(everything=True)
+                self.after_unidec_run()
+            except:
+                pass
+
     def on_save_state(self, e=None, filenew=None):
         """
         Saves the state by running self.eng.save_state. If no file is specified, opens a file dialog.
@@ -273,7 +280,7 @@ class UniDecApp(UniDecPres):
             for t in text:
                 if ".RAW" in t:
                     print(t)
-                    fname = os.path.splitext(t)[0]+".txt"
+                    fname = os.path.splitext(t)[0] + ".txt"
                 line = t.split()
                 if len(line) == 2:
                     try:
@@ -411,6 +418,7 @@ class UniDecApp(UniDecPres):
             self.makeplot4(1)
 
         self.view.SetStatusText("Peak Pick Done", number=5)
+        #self.on_score()
         pass
 
     def on_plot_peaks(self, e=None):
@@ -809,11 +817,11 @@ class UniDecApp(UniDecPres):
         for i, d in enumerate(pmasses):
             if d in peaksel:
                 if self.eng.config.massbins < 1:
-                    label=str(d)
+                    label = str(d)
                 else:
                     if d == round(d):
                         d = int(d)
-                    label =  "{:,}".format(d)
+                    label = "{:,}".format(d)
                 self.view.plot2.addtext(label, pmasses[i], mval * 0.06 + pint[i], vlines=False)
 
     def on_plot_offsets(self, e=None):
@@ -1634,6 +1642,23 @@ class UniDecApp(UniDecPres):
                 dist[:, 1] *= p.height / np.amax(dist[:, 1])
                 self.view.plot2.plotadd(dist[:, 0], dist[:, 1], colval=p.color)
         self.view.plot2.repaint()
+
+    def on_score(self, e=0):
+        self.eng.dscore()
+        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
+        self.view.SetStatusText("Average Peaks Score: " + str(round(self.eng.pks.aps * 100, 2)), number=3)
+
+    def on_score2(self, e=0):
+        self.eng.filter_peaks()
+        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
+        self.view.SetStatusText("Average Peaks Score: " + str(round(self.eng.pks.aps * 100, 2)), number=3)
+        self.makeplot2()
+        self.makeplot4()
+        self.makeplot6()
+        self.on_score_window()
+
+    def on_score_window(self, e=0):
+        pass
 
     # def on_remove_noise_points(self, e=0):
     #    self.on_dataprep_button(removenoise=True)

@@ -32,12 +32,12 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                                      style=wx.LC_REPORT | wx.BORDER_SUNKEN)
         self.list_ctrl.InsertColumn(0, " ", width=25)
         self.list_ctrl.InsertColumn(1, "Mass (Da)", wx.LIST_FORMAT_RIGHT, width=70)
-        self.list_ctrl.InsertColumn(2, "Intensity", width=65)
+        self.list_ctrl.InsertColumn(2, "Intensity", width=60)
         if meta:
             self.list_ctrl.InsertColumn(3, "", width=45)
         else:
-            self.list_ctrl.InsertColumn(3, "Area", width=45)
-        self.list_ctrl.InsertColumn(4, "Name", width=80)
+            self.list_ctrl.InsertColumn(3, "Area", width=50)
+        self.list_ctrl.InsertColumn(4, "Name", width=75)
 
         listmix.ColumnSorterMixin.__init__(self, 5)
         self.Bind(wx.EVT_LIST_COL_CLICK, self.on_column_click, self.list_ctrl)
@@ -115,8 +115,10 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             col.SetText("Area")
         if show == "avgcharge":
             col.SetText("Avg. Charge")
+        if "score" in show:
+            col.SetText("DScore")
         self.list_ctrl.SetColumn(3, col)
-        self.list_ctrl.SetColumnWidth(3, 50)
+        self.list_ctrl.SetColumnWidth(3, 65)
 
         try:
             col = self.list_ctrl.GetColumn(1)
@@ -147,6 +149,10 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                     self.list_ctrl.SetItem(i, 3, str(p.diff))
                 elif show == "avgcharge":
                     self.list_ctrl.SetItem(i, 3, str(p.avgcharge))
+                elif show == "pca_score":
+                    self.list_ctrl.SetItem(i, 3, str(np.round(p.pca_score*100, 2)))
+                elif show == "dscore":
+                    self.list_ctrl.SetItem(i, 3, str(np.round(p.dscore*100, 2)))
                 else:
                     self.list_ctrl.SetItem(i, 3, "")
             except (ValueError, AttributeError, TypeError):

@@ -219,7 +219,6 @@ class main_controls(wx.Panel):
         self.foldpanels.AddFoldPanelWindow(foldpanel2a, panel2a, fpb.FPB_ALIGN_WIDTH)
         self.foldpanels.AddFoldPanelWindow(foldpanel2a, wx.StaticText(foldpanel2a, -1, " "), fpb.FPB_ALIGN_WIDTH)
 
-
         # Panel for Additional Restraints
         foldpanel2b = self.foldpanels.AddFoldPanel(caption="Additional Deconvolution Parameters", collapsed=True,
                                                    cbstyle=style2b)
@@ -258,10 +257,10 @@ class main_controls(wx.Panel):
         gbox2b.Add(self.ctlmsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
-        #self.ctlmolig = wx.TextCtrl(panel2b, value="", size=size1)
-        #gbox2b.Add(wx.StaticText(panel2b, label="Mass Difference (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        #gbox2b.Add(self.ctlmolig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        #i += 1
+        # self.ctlmolig = wx.TextCtrl(panel2b, value="", size=size1)
+        # gbox2b.Add(wx.StaticText(panel2b, label="Mass Difference (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        # gbox2b.Add(self.ctlmolig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        # i += 1
 
         sb = wx.StaticBox(panel2b, label='Native Charge Offset Range')
         sbs = wx.StaticBoxSizer(sb, orient=wx.HORIZONTAL)
@@ -273,7 +272,7 @@ class main_controls(wx.Panel):
         gbox2b.Add(sbs, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
-        #self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
+        # self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
         self.ctlisotopemode = wx.Choice(panel2b, -1, size=(100, -1), choices=self.config.isotopechoices)
         gbox2b.Add(self.ctlisotopemode, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
@@ -335,6 +334,7 @@ class main_controls(wx.Panel):
                                     choices=["None", "Max", "Sum", "Peak Max", "Peak Sum"], majorDimension=3,
                                     style=wx.RA_SPECIFY_COLS)
         self.ctlextractwindow = wx.TextCtrl(panel3, value="", size=size1)
+        self.ctlextractthresh = wx.TextCtrl(panel3, value="", size=size1)
 
         self.ctlextract = wx.ComboBox(panel3, value="Height", choices=list(self.parent.extractchoices.values()),
                                       style=wx.CB_READONLY)
@@ -344,22 +344,36 @@ class main_controls(wx.Panel):
         self.parent.Bind(wx.EVT_BUTTON, self.pres.make2dplots, self.plotbutton2)
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_pick_peaks, self.plotbutton)
 
-        sizercontrol3.Add(self.ctlwindow, (0, 1))
-        sizercontrol3.Add(wx.StaticText(panel3, label="Picking Range (Da): "), (0, 0),
+        i = 0
+        sizercontrol3.Add(self.ctlwindow, (i, 1))
+        sizercontrol3.Add(wx.StaticText(panel3, label="Picking Range (Da): "), (i, 0),
                           flag=wx.ALIGN_CENTER_VERTICAL)
-        sizercontrol3.Add(self.ctlthresh, (1, 1))
-        sizercontrol3.Add(wx.StaticText(panel3, label="Picking Threshold: "), (1, 0),
+        i += 1
+        sizercontrol3.Add(self.ctlthresh, (i, 1))
+        sizercontrol3.Add(wx.StaticText(panel3, label="Picking Threshold: "), (i, 0),
                           flag=wx.ALIGN_CENTER_VERTICAL)
-        sizercontrol3.Add(self.ctlnorm, (2, 0), span=(1, 2), flag=wx.EXPAND)
-        sizercontrol3.Add(wx.StaticText(panel3, label="How to Extract Peaks: "), (3, 0),
+        i += 1
+        sizercontrol3.Add(self.ctlnorm, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+        sizercontrol3.Add(wx.StaticText(panel3, label="How to Extract Peaks: "), (i, 0),
                           flag=wx.ALIGN_CENTER_VERTICAL)
-        sizercontrol3.Add(self.ctlextract, (3, 1), span=(1, 1), flag=wx.EXPAND)
-        sizercontrol3.Add(self.ctlnorm2, (5, 0), span=(1, 2), flag=wx.EXPAND)
-        sizercontrol3.Add(wx.StaticText(panel3, label="Extraction Window: "), (4, 0),
+        sizercontrol3.Add(self.ctlextract, (i, 1), span=(1, 1), flag=wx.EXPAND)
+        i += 1
+
+        sizercontrol3.Add(wx.StaticText(panel3, label="Extraction Window: "), (i, 0),
                           flag=wx.ALIGN_CENTER_VERTICAL)
-        sizercontrol3.Add(self.ctlextractwindow, (4, 1), span=(1, 1))
-        sizercontrol3.Add(self.plotbutton, (6, 0), span=(1, 2), flag=wx.EXPAND)
-        sizercontrol3.Add(self.plotbutton2, (7, 0), span=(1, 2), flag=wx.EXPAND)
+        sizercontrol3.Add(self.ctlextractwindow, (i, 1), span=(1, 1))
+        i += 1
+        sizercontrol3.Add(wx.StaticText(panel3, label="Ext. Threshold (%): "), (i, 0),
+                          flag=wx.ALIGN_CENTER_VERTICAL)
+        sizercontrol3.Add(self.ctlextractthresh, (i, 1), span=(1, 1))
+        i += 1
+
+        sizercontrol3.Add(self.ctlnorm2, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+        sizercontrol3.Add(self.plotbutton, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+        sizercontrol3.Add(self.plotbutton2, (i, 0), span=(1, 2), flag=wx.EXPAND)
 
         panel3.SetSizer(sizercontrol3)
         sizercontrol3.Fit(panel3)
@@ -498,6 +512,7 @@ class main_controls(wx.Panel):
 
             self.ctlnorm2.SetSelection(self.config.exnorm)
             self.ctlextractwindow.SetValue(str(self.config.exwindow))
+            self.ctlextractthresh.SetValue(str(self.config.exthresh))
             self.ctlextract.SetSelection(self.config.exchoice)
 
             if self.config.adductmass < 0:
@@ -639,6 +654,12 @@ class main_controls(wx.Panel):
             self.config.exwindow = float(self.ctlextractwindow.GetValue())
         except ValueError:
             self.config.exwindow = 0
+
+        try:
+            self.config.exthresh = float(self.ctlextractthresh.GetValue())
+        except ValueError:
+            self.config.exthresh = 0
+
         try:
             if not self.config.minmz and not ud.isempty(self.pres.eng.data.spectra[0].rawdata):
                 self.config.minmz = np.amin(self.pres.eng.data.spectra[0].rawdata[:, 0])
@@ -719,7 +740,8 @@ class main_controls(wx.Panel):
         self.ctlminnativez.SetToolTip(wx.ToolTip("Minimum offset from a native charge state"))
         self.ctlmaxnativez.SetToolTip(wx.ToolTip("Maximum offset from a native charge state"))
 
-        self.ctlisotopemode.SetToolTip(wx.ToolTip("Use isotopic distributions in deconvolution.\nOutput either monoisotopic or average masses."))
+        self.ctlisotopemode.SetToolTip(
+            wx.ToolTip("Use isotopic distributions in deconvolution.\nOutput either monoisotopic or average masses."))
         self.ctldatanorm.SetToolTip(wx.ToolTip("Normalize Data and Results"))
         self.ctlorbimode.SetToolTip(wx.ToolTip("Scale the intensity by dividing by the charge state"))
         self.ctlmanualassign.SetToolTip(wx.ToolTip("Use manual assignments. See Tools>Manual Assignment"))
@@ -770,6 +792,8 @@ class main_controls(wx.Panel):
         self.ctlextractwindow.SetToolTip(wx.ToolTip(
             "Sets window required for some extraction methods.\nFull window is +/- value."
             "\nExtraction methods that require window are marked in tooltip with Y=Yes, M=Maybe, N=No."))
+        self.ctlextractthresh.SetToolTip(wx.ToolTip(
+            "Sets threshold for area and center of mass extraction methods in percent relative to the maximum"))
         self.ctlextract.SetToolTip(wx.ToolTip(
             "Sets type of extraction.\nHeight: Intensity at exact value (N)"
             "\nLocal Max: Nearest maximum either within window or simple hill climbing (M)"
@@ -821,7 +845,6 @@ class main_controls(wx.Panel):
             self.pres.on_mass_tools(e)
             if len(self.config.masslist) < 1:
                 self.ctlmasslistflag.SetValue(False)
-
 
     def on_z_smooth(self, e):
         value = self.ctlzsmoothcheck.Get3StateValue()

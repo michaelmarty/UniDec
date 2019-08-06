@@ -207,7 +207,7 @@ int peak_detect(const double *dataMZ, const double *dataInt, const int lengthmz,
 	{
 		if (is_peak(dataMZ, dataInt, lengthmz, window, thresh*max, i) == 1)
 		{
-			printf("Peak %d: %f %f\n", plen, dataMZ[i], dataInt[i]);
+			//printf("Peak %d: %f %f\n", plen, dataMZ[i], dataInt[i]);//
 			peakx[plen] = dataMZ[i];
 			peaky[plen] = dataInt[i];
 			plen++;
@@ -274,10 +274,17 @@ double extract_localmax_position(Config config, const double peak, const double 
 	return xvals[localmaxpos];
 }
 
-double extract_integral(Config config, const double peak, const double *xvals, const double *yvals, const int length)
+double extract_integral(Config config, const double peak, const double *xvals, const double *yvals, const int length, const double thresh)
 {
 	if (peak < xvals[0]) { return 0; }
 	if (peak > xvals[length - 1]) { return 0; }
+
+	double thresh2 = 0;
+	if (thresh > 0) {
+		double max = Max(yvals, length);
+		thresh2 = thresh * max;
+	}
+	//printf("thresh %f\n", thresh2);
 
 	int pos1 = nearfast(xvals, peak - config.exwindow, length);
 	int pos2 = nearfast(xvals, peak + config.exwindow, length);
@@ -289,16 +296,26 @@ double extract_integral(Config config, const double peak, const double *xvals, c
 		double a = xvals[i - 1];
 		double fb = yvals[i];
 		double fa = yvals[i - 1];
-		integral += (b - a)*((fa + fb) / 2.0);
+		if (fa > thresh2 && fb > thresh2) {
+			integral += (b - a) * ((fa + fb) / 2.0);
+		}
 	}
 
 	return integral;
 }
 
-double extract_center_of_mass(Config config, const double peak, const double *xvals, const double *yvals, const int length, double thresh)
+
+double extract_center_of_mass(Config config, const double peak, const double *xvals, const double *yvals, const int length, const double thresh)
 {
 	if (peak < xvals[0]) { return 0; }
 	if (peak > xvals[length - 1]) { return 0; }
+		
+	double thresh2 = 0;
+	if (thresh > 0) {
+		double max = Max(yvals, length);
+		thresh2 = thresh * max;
+	}
+	//printf("thresh %f\n", thresh2);
 
 	int pos1 = nearfast(xvals, peak - config.exwindow, length);
 	int pos2 = nearfast(xvals, peak + config.exwindow, length);
@@ -308,7 +325,7 @@ double extract_center_of_mass(Config config, const double peak, const double *xv
 	{
 		double x = xvals[i];
 		double y = yvals[i];
-		if (y > thresh)
+		if (y > thresh2)
 		{
 			sum_masses += y;
 			sum += x*y;
@@ -320,20 +337,12 @@ double extract_center_of_mass(Config config, const double peak, const double *xv
 }
 
 
-double extract_switch(Config config, const double peak, const double *xvals, const double *yvals, const int length)
+double extract_switch(Config config, const double peak, const double* xvals, const double* yvals, const int length)
 {
 	double output = 0;
 	if (config.exwindow == 0) { config.exchoice = 0; }
-
-	double max = 0;
-	if (config.exchoice == 5 || config.exchoice == 6)
-	{
-		for (int i = 0; i < length; i++)
-		{
-			if (yvals[i] > max) { max = yvals[i]; }
-		}
-	}
-		
+	
+	double thresh = config.exthresh / 100;
 
 	switch (config.exchoice)
 	{
@@ -347,16 +356,17 @@ double extract_switch(Config config, const double peak, const double *xvals, con
 		break;
 	case 2:
 		//printf("Extracting Integral. Window: %f\n", config.exwindow);
-		output = extract_integral(config, peak, xvals, yvals, length);
+		output = extract_integral(config, peak, xvals, yvals, length, thresh);
 		break;
 	case 3:
 		//printf("Extracting Center of Mass 0. Window: %f\n", config.exwindow);
-		output = extract_center_of_mass(config, peak, xvals, yvals, length, 0);
+		output = extract_center_of_mass(config, peak, xvals, yvals, length, thresh);
 		break;
 	case 4:
 		//printf("Extracting Local Max. Window: %f\n", config.exwindow);
 		output = extract_localmax_position(config, peak, xvals, yvals, length);
 		break;
+	/*
 	case 5:
 		//printf("Extracting Center of Mass 50. Window: %f\n", config.exwindow);
 		output = extract_center_of_mass(config, peak, xvals, yvals, length, 0.5*max);
@@ -365,8 +375,28 @@ double extract_switch(Config config, const double peak, const double *xvals, con
 		//printf("Extracting Center of Mass 10. Window: %f\n", config.exwindow);
 		output = extract_center_of_mass(config, peak, xvals, yvals, length, 0.1*max);
 		break;
+	case 7:
+		//printf("Extracting Integral. Window: %f\n", config.exwindow);
+		output = extract_integral(config, peak, xvals, yvals, length, 0.5 * max);
+		break;
+	case 8:
+		//printf("Extracting Integral. Window: %f\n", config.exwindow);
+		output = extract_integral(config, peak, xvals, yvals, length, 0.1 * max);
+		break;
+	case 9:
+		//printf("Extracting Integral. Window: %f\n", config.exwindow);
+		output = extract_integral(config, peak, xvals, yvals, length, 0.05 * max);
+	   	break;
+	case 10:
+		//printf("Extracting Integral. Window: %f\n", config.exwindow);
+		output = extract_integral(config, peak, xvals, yvals, length, 0.025 * max);
+		break;
+	case 11:
+		//printf("Extracting Integral. Window: %f\n", config.exwindow);
+		output = extract_integral(config, peak, xvals, yvals, length, 0.01 * max);
+		break;*/
 	default:
-		//printf("Invalid Extraction Choice: %d\n", config.exchoice);
+		printf("Invalid Extraction Choice: %d\n", config.exchoice);
 		output = 0;
 	}
 	return output;
@@ -464,7 +494,7 @@ void peak_extracts(Config config, const double *peakx, hid_t file_id, const char
 		strjoin(dataset, "/ultraextracts", outdat);
 	else
 		strjoin(dataset, "/extracts", outdat);
-	printf("\tWriting Extracts to: %s\t%d %d %f\n", outdat, config.exchoice, config.exnorm, config.exwindow);
+	printf("\tWriting Extracts to: %s\t%d %d %f %f\n", outdat, config.exchoice, config.exnorm, config.exwindow, config.exthresh);
 	mh5writefile2d_grid(file_id, outdat, num, plen, extracts);
 
 	free(extracts);

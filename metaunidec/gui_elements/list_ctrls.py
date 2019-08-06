@@ -10,10 +10,10 @@ from pubsub import pub
 import unidec_modules.unidectools as ud
 from copy import deepcopy
 
-
 luminance_cutoff = 135
 white_text = wx.Colour(250, 250, 250)
-black_text = wx.Colour(0,0,0)
+black_text = wx.Colour(0, 0, 0)
+
 
 class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
     def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
@@ -83,15 +83,46 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
 
     def get_list(self):
         count = self.GetItemCount()
-        colormap = cm.get_cmap('rainbow', count)
-        peakcolors = colormap(np.arange(count))
+        #colormap = cm.get_cmap('rainbow', count)
+        #peakcolors = colormap(np.arange(count))
+        peakcolors = self.get_colors()
         list_output = []
         for i in range(0, count):
-            sublist = [int(self.GetItem(i, col=0).GetText()), float(self.GetItem(i, col=1).GetText()),
-                       float(self.GetItem(i, col=2).GetText()), self.GetItem(i, col=3).GetText(), peakcolors[i][0],
+            it1 = self.GetItem(i, col=1).GetText()
+            it2 = self.GetItem(i, col=2).GetText()
+            try:
+                it1 = float(it1)
+            except:
+                pass
+            try:
+                it2 = float(it2)
+            except:
+                pass
+
+            sublist = [int(self.GetItem(i, col=0).GetText()), it1, it2, self.GetItem(i, col=3).GetText(),
+                       peakcolors[i][0],
                        peakcolors[i][1], peakcolors[i][2]]
             list_output.append(sublist)
+
+        indexes = np.array([i[0] for i in list_output])
+        if np.any(indexes != np.arange(0, len(list_output))):
+            list_output = self.reorder(list_output)
         return list_output
+
+    def reorder(self, list):
+        newlist = []
+        indexes = np.array([i[0] for i in list])
+        sind = np.sort(indexes)
+        newspectra = []
+        for i in sind:
+            index = ud.nearestunsorted(indexes, i)
+            s = self.data.spectra[index]
+            s.index = i
+            newspectra.append(s)
+            newlist.append(list[index])
+        self.data.spectra = newspectra
+        self.repopulate()
+        return newlist
 
     def repopulate(self):
         self.populate(self.data, self.colors)
@@ -101,6 +132,14 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         col = self.GetColumn(num)
         col.SetText(text)
         self.SetColumn(num, col)
+
+    def get_colors(self):
+        colors = []
+        count = self.GetItemCount()
+        for i in range(0, count):
+            c = self.GetItemBackgroundColour(i)
+            colors.append(c)
+        return colors
 
 
 class ListCtrlPanel(wx.Panel):

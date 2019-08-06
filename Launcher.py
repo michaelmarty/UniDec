@@ -17,6 +17,7 @@ import wx.py as py
 import sys
 import os
 
+
 class UniDecLauncher(UniDecPres):
     """
     Main UniDec GUI Application.
