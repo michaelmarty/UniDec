@@ -34,6 +34,7 @@ Loads initial dll called libmypfunc. Will speed up convolutions and a few functi
 If this isn't present, it will print a warning but use the pure python code later on.
 """
 dllname = "libmypfunc"
+protmass = 1.007276467
 
 if platform.system() == "Windows":
     if not is_64bits:
@@ -84,6 +85,25 @@ def smartdecode(string):
     except:
         pass
     return string
+
+
+def commonprefix(args):
+    if platform.system() == "Windows":
+        sep = "\\"
+    else:
+        sep = "/"
+    return os.path.commonprefix(args).rpartition(sep)[0]
+
+
+def get_luminance(color, type=2):
+    r = color.Red()
+    g = color.Green()
+    b = color.Blue()
+    l1 = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    l2 = 0.299 * r + 0.587 * g + 0.114 * b
+    l3 = np.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b)
+    larray = [l1, l2, l3]
+    return larray[type]
 
 
 def match_files(directory, string):
@@ -162,6 +182,13 @@ def safedivide(a, b):
     return c
 
 
+def safedivide1(a, b):
+    if b != 0:
+        return a / b
+    else:
+        return 0
+
+
 def weighted_std(values, weights):
     """
     Calculate weighted standard deviation.
@@ -212,7 +239,7 @@ def nearestunsorted(array, target):
     :param target: Value
     :return: np.argmin(np.abs(array - target))
     """
-    return np.argmin(np.abs(array - target))
+    return np.argmin(np.abs(np.array(array) - target))
 
 
 def nearest(array, target):
@@ -637,6 +664,7 @@ def header_test(path):
                     try:
                         float(sin)
                     except ValueError:
+                        #print(sin, line)
                         header += 1
                         break
         if header > 0:
@@ -647,17 +675,30 @@ def header_test(path):
     return int(header)
 
 
-def waters_convert(path, config=None):
+'''
+def waters_convert(path, config=None, outfile=None):
     if config is None:
         config = unidecstructure.UniDecConfig()
         config.initialize_system_paths()
         print(config.rawreaderpath)
-
-    t = os.path.join(path, "converted_rawdata.txt")
-    call = [config.rawreaderpath, "-i", path, "-o", t]
+    print(outfile)
+    if outfile is None:
+        outfile = os.path.join(path, "converted_rawdata.txt")
+    call = [config.rawreaderpath, "-i", path, "-o", outfile]
+    print(call)
     result = subprocess.call(call)
     print("Conversion Stderr:", result)
-    data = np.loadtxt(t)
+    data = np.loadtxt(outfile)
+    return data'''
+
+
+def waters_convert2(path, config=None, outfile=None):
+    from unidec_modules.waters_importer.Importer import WatersDataImporter as WDI
+    data = WDI(path).get_data()
+
+    if outfile is None:
+        outfile = os.path.join(path, "converted_rawdata.txt")
+    np.savetxt(outfile, data)
     return data
 
 
@@ -676,8 +717,19 @@ def load_mz_file(path, config=None):
     if not os.path.isfile(path):
         if os.path.isdir(path) and os.path.splitext(path)[1].lower() == ".raw":
             try:
-                print("Trying to convert Waters File")
-                data = waters_convert(path, config)
+                outfile = os.path.splitext(path)[0] + "_rawdata.txt"
+                print("Trying to convert Waters File:", outfile)
+                data = waters_convert2(path, config, outfile=outfile)
+            except:
+                print("Attempted to convert Waters Raw file but failed")
+                raise IOError
+        elif os.path.isdir(path) and os.path.splitext(path)[1].lower() == ".d":
+            try:
+                print("Trying to convert Agilent File:", path)
+                data = data_reader.DataImporter(path).get_data()
+                txtname = path[:-2] + ".txt"
+                np.savetxt(txtname, data)
+                print("Saved to:", txtname)
             except:
                 print("Attempted to convert Waters Raw file but failed")
                 raise IOError
@@ -689,6 +741,9 @@ def load_mz_file(path, config=None):
 
         if extension == ".txt":
             data = np.loadtxt(path, skiprows=header_test(path))
+                #data = np.loadtxt(path, skiprows=header_test(path, delimiter=","), delimiter=",")
+        elif extension == ".csv":
+            data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0,1))
         elif extension == ".mzml":
             data = mzMLimporter.mzMLimporter(path).get_data()
             txtname = path[:-5] + ".txt"
@@ -804,7 +859,7 @@ def auto_peak_width(datatop, psfun=None):
         fwhm = fit[0, 0]
     else:
         fwhm = 0
-
+    fwhm = np.round(fwhm, 5)
     return fwhm, psfun, maxval
 
 
@@ -1015,6 +1070,34 @@ def intensitythresh(datatop, thresh):
     return datatop
 
 
+def intensitythresh_del(datatop, thresh):
+    """
+    Sets an intensity threshold. Everything below the threshold is set to 0.
+    :param datatop: Data array
+    :param thresh: Threshold value
+    :return: Thresholded array.
+    """
+    above = datatop[:, 1] > thresh
+    datatop = datatop[above]
+    return datatop
+
+
+def remove_noise(datatop, percent=None):
+    l1 = len(datatop)
+    if percent is None:
+        cutoff = np.average(datatop[:, 1]) * 2
+        print("Removing points below the mean intensity times 2:", cutoff)
+        # datatop = intensitythresh_del(datatop, cutoff)
+    else:
+        sdat = np.sort(datatop[:, 1])
+        index = round(l1 * percent / 100.)
+        cutoff = sdat[index]
+    datatop = intensitythresh(datatop, cutoff)
+    datatop = remove_middle_zeros(datatop)
+    print(l1, len(datatop))
+    return datatop
+
+
 def gsmooth(datatop, sig):
     """
     Smooths the data with a Gaussian filter of width sig.
@@ -1216,7 +1299,7 @@ def remove_middle_zeros(data):
     return data[boo6]
 
 
-def dataprep(datatop, config):
+def dataprep(datatop, config, removenoise=False):
     """
     Main function to process 1D MS data. The order is:
 
@@ -1242,6 +1325,7 @@ def dataprep(datatop, config):
     subtype = config.subtype
     va = config.detectoreffva
     linflag = config.linflag
+    redper = config.reductionpercent
     # Crop Data
     data2 = datachop(datatop, newmin, newmax)
 
@@ -1298,7 +1382,9 @@ def dataprep(datatop, config):
         data2[:, 1] -= np.amin(data2[:, 1])
         print("Log Scale")
 
-    if linflag == 2:
+    if redper > 0:
+        data2 = remove_noise(data2, redper)
+    elif linflag == 2:
         try:
             data2 = remove_middle_zeros(data2)
         except:
@@ -1506,15 +1592,18 @@ def makeconvspecies(processed_data, pks, config):
     xvals = processed_data[:, 0]
     xlen = len(xvals)
 
-    if config.linflag != 2:
-        peakwidth = config.mzsig / config.mzbins
-        kernel = conv_peak_shape_kernel(xvals, config.psfun, peakwidth)
-        stickdat = [stickconv(p.mztab, kernel) for p in pks.peaks]
+    if config.mzsig == 0:
+        stickdat = [sticks_only(p.mztab, xvals) for p in pks.peaks]
     else:
-        try:
-            stickdat = [cconvolve(xvals, p.mztab, config.mzsig, config.psfun) for p in pks.peaks]
-        except (OSError, TypeError, NameError, AttributeError):
-            stickdat = [nonlinstickconv(xvals, p.mztab, config.mzsig, config.psfun) for p in pks.peaks]
+        if config.linflag != 2:
+            peakwidth = config.mzsig / config.mzbins
+            kernel = conv_peak_shape_kernel(xvals, config.psfun, peakwidth)
+            stickdat = [stickconv(p.mztab, kernel) for p in pks.peaks]
+        else:
+            try:
+                stickdat = [cconvolve(xvals, p.mztab, config.mzsig, config.psfun) for p in pks.peaks]
+            except (OSError, TypeError, NameError, AttributeError):
+                stickdat = [nonlinstickconv(xvals, p.mztab, config.mzsig, config.psfun) for p in pks.peaks]
 
     pks.composite = np.zeros(xlen)
     for i in range(0, pks.plen):
@@ -1557,6 +1646,19 @@ def stickconv(mztab, kernel):
     temp = np.zeros(xlen)
     temp[np.array(mztab[:, 2]).astype(np.int)] = mztab[:, 1]
     return cconv(temp, kernel)
+
+
+def sticks_only(mztab, kernel):
+    """
+    Make stick spectrum and then convolves with kernel.
+    :param mztab: mztab from make_peaks_mztab
+    :param kernel: peak shape kernel
+    :return: Convolved output
+    """
+    xlen = len(kernel)
+    temp = np.zeros(xlen)
+    temp[np.array(mztab[:, 2]).astype(np.int)] = mztab[:, 1]
+    return temp
 
 
 def make_alpha_cmap(rgb_tuple, alpha):
@@ -2181,6 +2283,38 @@ def broaden(aligned):
     return combined, aligned
 
 
+def calc_FWHM(peak, data):
+    index = nearest(data[:, 0], peak)
+    int = data[index, 1]
+    leftwidth = 0
+    rightwidth = 0
+    counter = 1
+    leftfound = False
+    rightfound = False
+    while rightfound is False or leftfound is False:
+        if leftfound is False:
+            if data[index - counter, 1] <= (int) / 2.:
+                leftfound = True
+            else:
+                leftwidth += 1
+        if rightfound is False:
+            if data[index + counter, 1] <= (int) / 2.:
+                rightfound = True
+            else:
+                rightwidth += 1
+        counter += 1
+
+    indexstart = index - leftwidth
+    indexend = index + rightwidth
+    if indexstart < 0:
+        indexstart = 0
+    if indexend >= len(data):
+        indexend = len(data) - 1
+
+    FWHM = data[indexend, 0] - data[indexstart, 0]
+    return FWHM
+
+
 def peaks_error_FWHM(pks, data):
     """
     Calculates the error of each peak in pks using FWHM.
@@ -2190,7 +2324,10 @@ def peaks_error_FWHM(pks, data):
     :return:
     """
     pmax = np.amax([p.height for p in pks.peaks])
-    datamax = np.amax(np.asarray(data)[:, 1])
+    try:
+        datamax = np.amax(np.asarray(data)[:, 1])
+    except:
+        datamax = 0
     div = datamax / pmax
     for pk in pks.peaks:
         int = pk.height
@@ -2282,7 +2419,10 @@ def peaks_error_mean(pks, data, ztab, massdat, config):
 
 if __name__ == "__main__":
     testfile = "C:\Python\\UniDec\TestSpectra\\test_imms.raw"
-    waters_convert(testfile)
+    # data = waters_convert(testfile)
+    # print(np.amax(data))
+    data = waters_convert2(testfile)
+    print(np.amax(data))
 
     exit()
 

@@ -21,7 +21,7 @@ class MassDefectExtractorWindow(wx.Frame):
     def __init__(self, parent, datalist, xarray, yarray, config=None, xtype=0):
         wx.Frame.__init__(self, parent, title="Mass Defect")  # ,size=(-1,-1))
 
-        self.xtype=xtype
+        self.xtype = xtype
         if config is None:
             self.config = unidecstructure.UniDecConfig()
             self.config.initialize()
@@ -47,6 +47,8 @@ class MassDefectExtractorWindow(wx.Frame):
         self.xdat = xarray
         self.ydat = yarray
         defaultexchoice = "Local Max"
+        self.totgrid=[]
+        self.grid=[]
 
         # Make the menu
         filemenu = wx.Menu()
@@ -63,10 +65,11 @@ class MassDefectExtractorWindow(wx.Frame):
         self.plotmenu = wx.Menu()
         self.menuaddline = self.plotmenu.Append(wx.ID_ANY, "Add Horizontal Line",
                                                 "Add Horizontal Line at Specific Y Value")
-        # self.menufit = self.plotmenu.Append(wx.ID_ANY, "Fit Peaks",
-        #                                    "Fit total mass defect peaks")
+        self.plotmenu.AppendSeparator()
+        self.menutotal = self.plotmenu.Append(wx.ID_ANY, "Plot Total Bound vs. Unbound",
+                                              "Assumes the first value is the unbound and each other is 1, 2, 3, and so on bound ligands.")
         self.Bind(wx.EVT_MENU, self.on_add_line, self.menuaddline)
-        # self.Bind(wx.EVT_MENU, self.on_fit, self.menufit)
+        self.Bind(wx.EVT_MENU, self.on_total, self.menutotal)
 
         menu_bar = wx.MenuBar()
         menu_bar.Append(filemenu, "&File")
@@ -184,6 +187,28 @@ class MassDefectExtractorWindow(wx.Frame):
             print("Failed Data Export Extracts", e)
         self.make_ext_plots()
         # self.fill_grid()
+
+    def on_total(self, e=None):
+        zeros = self.grid[0]
+        sum = zeros * 0
+        for i in range(1, len(self.grid)):
+            sum += self.grid[i] * i
+        print(zeros)
+        print(sum)
+        self.totgrid = np.array([zeros, sum])
+        ud.normalize_extracts(self.totgrid, self.norm)
+
+        save_path2d = os.path.join(self.directory, self.outfname + "Mass_Defect_Extracts_Total.txt")
+        np.savetxt(save_path2d, self.totgrid)
+        print('Saved: ', save_path2d)
+        print(self.totgrid)
+        self.plot1.plotrefreshtop(self.ydat, self.totgrid[0], title="Extracted Data",
+                                  xlabel="Variable 1",
+                                  ylabel=extractlabels[self.extractchoice],
+                                  marker="o",
+                                  label="Unbound", color="b", config=self.config)
+        self.plot1.plotadd(self.ydat, self.totgrid[1], newlabel="Bound", marker="v", colval="r")
+        self.plot1.add_legend()
 
     def fill_grid(self):
         print(self.grid.shape)

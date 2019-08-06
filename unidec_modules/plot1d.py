@@ -4,6 +4,7 @@ from unidec_modules.PlottingWindow import PlottingWindow
 from matplotlib.collections import LineCollection
 import matplotlib.colorbar as colorbar
 import matplotlib.colors as colors
+import matplotlib.cm as cm
 
 
 class Plot1d(PlottingWindow):
@@ -55,6 +56,8 @@ class Plot1d(PlottingWindow):
 
         if test_kda:
             self.kda_test(xvals)
+        else:
+            self.kdnorm = 1
 
         pubflag = 0
         if config is not None:
@@ -117,7 +120,7 @@ class Plot1d(PlottingWindow):
         if not nopaint:
             self.repaint()
 
-    def addtext(self, txt, x, y, vlines=True, color="k", ymin=0, **kwargs):
+    def addtext(self, txt, x, y, vlines=True, color="k", ymin=0, ymax=None, **kwargs):
         """
         Adds text and lines. Puts things that have been added in self.lines and self.text lists.
         :param txt: String of text to add
@@ -129,6 +132,8 @@ class Plot1d(PlottingWindow):
         If range=(a,b) is specified, adds a line from a to b and vertical lines at a and b.
         :return: None
         """
+        if ymax is None:
+            ymax = y
         text = self.subplot1.text(np.array(x) / self.kdnorm, y, txt, horizontalalignment="center",
                                   verticalalignment="top", color=color)
         self.text.append(text)
@@ -144,7 +149,8 @@ class Plot1d(PlottingWindow):
                 self.lines.append(line)
                 pass
             else:
-                line = self.subplot1.vlines(np.array(x) / self.kdnorm, ymin, 0.95 * y, linestyles="dashed", color=color)
+                line = self.subplot1.vlines(np.array(x) / self.kdnorm, ymin, y - 0.05 * ymax, linestyles="dashed",
+                                            color=color)
                 self.lines.append(line)
         self.repaint()
 
@@ -320,6 +326,7 @@ class Plot1d(PlottingWindow):
 
         if test_kda:
             self.kda_test(xvals)
+            xvals = xvals / self.kdnorm
 
         pubflag = 0
         if config is not None:
@@ -364,7 +371,8 @@ class Plot1d(PlottingWindow):
         cax = self.figure.add_axes([0.77, 0.1, 0.04, 0.8])
         ticks = np.linspace(0., 1., 11, endpoint=True)
 
-        self.cbar = colorbar.ColorbarBase(cax, cmap=cmap, orientation="vertical", ticks=ticks)
+        cmap2 = cm.get_cmap(cmap)
+        self.cbar = colorbar.ColorbarBase(cax, cmap=cmap2, orientation="vertical", ticks=ticks)
         ticks = ticks * max
         if max > 10:
             ticks = np.round(ticks).astype(np.int)

@@ -1,4 +1,5 @@
 import wx
+import os
 import numpy as np
 import unidec_modules.isolated_packages.preset_manager as pm
 
@@ -72,7 +73,7 @@ class meta_menu(wx.Menu):
                                                     "Defaults for POPC Nanodiscs.")
 
         # Custom Presets
-        self.custommenu, self.masterd = pm.make_preset_menu(self.config.presetdir)
+        self.custommenu, self.masterd = pm.make_preset_menu(self.config.presetdir, topi=3500)
         self.defaultmenu.AppendSubMenu(self.custommenu, "Custom")
         for i, path, item in self.masterd:
             self.parent.Bind(wx.EVT_MENU, self.on_custom_defaults, item)
@@ -93,6 +94,15 @@ class meta_menu(wx.Menu):
         self.menuSaveFigure2 = self.figmenu.Append(wx.ID_ANY, "Save Figures as .png", "Save all figures to .png format")
 
         self.filemenu.AppendSubMenu(self.figmenu, 'Save Figure Presets')
+        self.filemenu.AppendSeparator()
+
+        # Example Data
+        self.examplemenu, self.masterd2 = pm.make_preset_menu(self.config.exampledatadir, exclude_dir="_unidecfiles",
+                                                              topi=2500, ext="hdf5")
+        self.filemenu.AppendSubMenu(self.examplemenu, "Load Example Data")
+        for i, path, item in self.masterd2:
+            # print(i, path, item)
+            self.parent.Bind(wx.EVT_MENU, self.on_example_data, item)
         self.filemenu.AppendSeparator()
 
         self.menuAbout = self.filemenu.Append(wx.ID_ABOUT, "&About", " Information about this program")
@@ -143,7 +153,7 @@ class meta_menu(wx.Menu):
                                                      "Animate 1D plots of m/z vs charge")
         self.analysismenu.AppendSubMenu(self.animatemenu, "Animate")
         self.analysismenu.AppendSeparator()
-        self.menukendrick = self.analysismenu.Append(wx.ID_ANY, "Kendrick Mass Tools\tCtrl+K", "Kendrick Mass Analysis")
+        self.menukendrick = self.analysismenu.Append(wx.ID_ANY, "Mass Defect Tools\tCtrl+K", "Mass Defect Analysis")
         self.menu2Dgrid = self.analysismenu.Append(wx.ID_ANY, "2D Grid Analysis", "2D Grid Analysis")
         self.menuautocorr = self.analysismenu.Append(wx.ID_ANY, "Autocorrelation",
                                                      "Autocorrelation of Mass Distribution")
@@ -387,8 +397,20 @@ class meta_menu(wx.Menu):
             ids = self.masterd[:, 0].astype(np.float)
             pos = np.argmin(np.abs(ids - nid))
             path = self.masterd[pos, 1]
-            print("Opening Path:", path)
+            print("Opening Config:", path)
             #self.pres.eng.load_config(path)
             self.pres.import_config(path)
+        except Exception as e:
+            print(e)
+
+    def on_example_data(self, e):
+        # print("Clicked", e)
+        try:
+            nid = e.GetId()
+            ids = self.masterd2[:, 0].astype(np.float)
+            pos = np.argmin(np.abs(ids - nid))
+            path = self.masterd2[pos, 1]
+            print("Opening Path:", path)
+            self.pres.open_file(path)
         except Exception as e:
             print(e)

@@ -34,10 +34,14 @@ class DataImporter:
         try:
             self.msrun = mzFile(path)
         except:
+            print("Trying to Register Interfaces...")
             from multiplierz.mzAPI.management import registerInterfaces
             try:
+                print("Registering...")
                 registerInterfaces()
-            except:
+            except Exception as e:
+                print("Failed Interface Registration:", e)
+                print("NOTE: TRY RUNNING AS ADMINISTRATOR")
                 pass
             self.msrun = mzFile(path)
         self.scanrange = self.msrun.scan_range()
@@ -48,7 +52,16 @@ class DataImporter:
             impdat = np.array(self.msrun.scan(s))
             impdat = impdat[impdat[:, 0] > 10]
             self.data.append(impdat)
-            self.times.append(self.msrun.scan_time_from_scan_name(s))
+            try:
+                self.times.append(self.msrun.scan_time_from_scan_name(s))
+            except Exception as e:
+                try:
+                    t = self.msrun.info[s][0]
+                    self.times.append(t)
+                except Exception as e2:
+                    print("Error getting scan times:", e, e2)
+                    print("Using Scan rather than Time)")
+                    self.times.append(s)
         self.times = np.array(self.times)
         self.data = np.array(self.data)
 
@@ -120,6 +133,7 @@ class DataImporter:
 
 if __name__ == "__main__":
     test = "Z:\Group Share\Group\\Archive\\Scott\\test.RAW"
+    test = "C:\Data\Others\Agilent\\2019_05_15_bsa_ccs_02.d"
     d = DataImporter(test).get_data()
     exit()
     print(d.get_times_from_scans([15, 30]))

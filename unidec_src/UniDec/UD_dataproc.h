@@ -21,6 +21,7 @@ int pool1d(double *oldmz, double *oldint, const int oldlen, const int mzbins)
 	{
 		double mz = 0;
 		double val = 0;
+		double bins = 0;
 		for(int j=0; j<mzbins; j++)
 		{
 			int index = i*mzbins + j;
@@ -28,10 +29,11 @@ int pool1d(double *oldmz, double *oldint, const int oldlen, const int mzbins)
 			{
 				mz += oldmz[index];
 				val += oldint[index];
+				bins += 1;
 			}
 		}
-		newmz[i] = mz / ((float)mzbins);
-		newint[i] = val/ ((float)mzbins);
+		newmz[i] = mz / bins;
+		newint[i] = val/ bins;
 	}
 
 	//Bookkeeping 
@@ -64,7 +66,7 @@ int chop1d(double *oldmz, double *oldint, int oldlen, const double min, const do
 	//get new length
 	for (int i = 0; i < oldlen; i++)
 	{
-		if (oldmz[i] >= min &&oldmz[i] <= max)
+		if (oldmz[i] >= min && oldmz[i] <= max)
 		{
 			newlen++;
 		}
@@ -299,6 +301,7 @@ void process_data(int argc, char *argv[], Config config)
 	dataInt = calloc(lengthmz, sizeof(double));
 	mh5readfile2d(file_id, outdat, lengthmz, dataMZ, dataInt);
 	printf("Length of Data: %d \n", lengthmz);
+
 
 	//Bin
 	if (config.mzbins > 1)

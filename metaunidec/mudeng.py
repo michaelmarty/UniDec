@@ -95,7 +95,9 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.pks = peakstructure.Peaks()
         self.pks.add_peaks(self.data.peaks, massbins=self.config.massbins)
         self.pks.default_params(cmap=self.config.peakcmap)
+
         ud.peaks_error_FWHM(self.pks, self.data.massdat)
+
         self.peaks_error_replicates(self.pks, self.data.spectra, self.config)
         for i, p in enumerate(self.pks.peaks):
             p.extracts = self.data.exgrid[i]

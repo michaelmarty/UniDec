@@ -12,6 +12,8 @@ class main_controls(wx.Panel):
         self.config = config
         self.pres = pres
         self.backgroundchoices = self.config.backgroundchoices
+        self.psigsettings = [0, 1, 10, 100]
+        self.betasettings = [0, 50, 500, 1000]
 
         # Get a few tool bar icons
         tsize = (16, 16)
@@ -127,24 +129,9 @@ class main_controls(wx.Panel):
         else:
             self.imflag = 0
 
-        self.subtypectl = wx.Choice(panel1, -1, choices=self.backgroundchoices)
-        self.ctlbuff = wx.TextCtrl(panel1, value="", size=size1)
-        self.subtypectl.SetSelection(2)
-        sizercontrol1.Add(self.subtypectl, (i, 0))
-        sizercontrol1.Add(self.ctlbuff, (i, 1))
-        i += 1
-
-        if self.imflag == 1:
-            sizercontrol1.Add(wx.StaticText(panel1, label=" m/z"), (i - 1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
-
-            self.ctlsubbuffdt = wx.TextCtrl(panel1, value="", size=size1)
-            sizercontrol1.Add(self.ctlsubbuffdt, (i, 1))
-            sizercontrol1.Add(wx.StaticText(panel1, label=" A.T."), (i, 2), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
-
-        self.ctlbinsize = wx.TextCtrl(panel1, value="", size=size1)
-        sizercontrol1.Add(self.ctlbinsize, (i, 1))
-        sizercontrol1.Add(wx.StaticText(panel1, label="Bin Every: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlbackcheck = wx.CheckBox(panel1, label="Use Background Subtraction", style=wx.CHK_3STATE)
+        self.parent.Bind(wx.EVT_CHECKBOX, self.on_backcheck, self.ctlbackcheck)
+        sizercontrol1.Add(self.ctlbackcheck, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
         self.dataprepbutton = wx.Button(panel1, -1, "Process Data")
@@ -162,13 +149,12 @@ class main_controls(wx.Panel):
                                                    cbstyle=style1b)
         panel1b = wx.Panel(foldpanel1b, -1)
         gbox1b = wx.GridBagSizer(wx.VERTICAL)
+        i = 0
 
         self.ctlsmooth = wx.TextCtrl(panel1b, value="", size=size1)
-        i = 0
         gbox1b.Add(self.ctlsmooth, (i, 1))
         gbox1b.Add(wx.StaticText(panel1b, label="Gaussian Smoothing: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
-
         if self.imflag == 1:
             gbox1b.Add(wx.StaticText(panel1b, label=" m/z"), (i - 1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
             gbox1b.Add(wx.StaticText(panel1b, label=" A.T."), (i, 2), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -179,6 +165,24 @@ class main_controls(wx.Panel):
             self.ctlpusher = wx.TextCtrl(panel1b, value="", size=size1)
             gbox1b.Add(self.ctlpusher, (i, 1))
             gbox1b.Add(wx.StaticText(panel1b, label="Pusher Interval (\u03BCs)"), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+        self.ctlbinsize = wx.TextCtrl(panel1b, value="", size=size1)
+        gbox1b.Add(self.ctlbinsize, (i, 1))
+        gbox1b.Add(wx.StaticText(panel1b, label="Bin Every: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.subtypectl = wx.Choice(panel1b, -1, choices=self.backgroundchoices)
+        self.ctlbuff = wx.TextCtrl(panel1b, value="", size=size1)
+        self.subtypectl.SetSelection(2)
+        gbox1b.Add(self.subtypectl, (i, 0))
+        gbox1b.Add(self.ctlbuff, (i, 1))
+        i += 1
+        if self.imflag == 1:
+            gbox1b.Add(wx.StaticText(panel1b, label=" m/z"), (i - 1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+            self.ctlsubbuffdt = wx.TextCtrl(panel1b, value="", size=size1)
+            gbox1b.Add(self.ctlsubbuffdt, (i, 1))
+            gbox1b.Add(wx.StaticText(panel1b, label=" A.T."), (i, 2), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
         self.ctlintthresh = wx.TextCtrl(panel1b, value="", size=size1)
@@ -197,13 +201,16 @@ class main_controls(wx.Panel):
         i += 1
 
         if self.config.imflag == 0:
+            self.ctldatareductionpercent = wx.TextCtrl(panel1b, value="", size=size1)
+            gbox1b.Add(self.ctldatareductionpercent, (i, 1), span=(1, 1))
+            gbox1b.Add(wx.StaticText(panel1b, label="Data Reduction (%): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
             self.ctlbintype = wx.Choice(panel1b, -1, size=(240, 50),
                                         choices=["Linear m/z (Constant " + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z)",
                                                  "Linear resolution (Constant (m/z)/(" + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z))",
                                                  "Nonlinear", "Linear Interpolated", "Linear Resolution Interpolated"])
             gbox1b.Add(self.ctlbintype, (i, 0), span=(1, 2))
             i += 1
-
         else:
             self.ctlconvertflag = wx.CheckBox(panel1b, label="Compress when converting to .txt")
             self.ctlconvertflag.SetValue(True)
@@ -352,6 +359,48 @@ class main_controls(wx.Panel):
         self.foldpanels.AddFoldPanelWindow(foldpanel2, panel2, fpb.FPB_ALIGN_WIDTH)
         self.foldpanels.AddFoldPanelWindow(foldpanel2, wx.StaticText(foldpanel2, -1, " "), fpb.FPB_ALIGN_WIDTH)
 
+        # Quick Access Panel
+        foldpanel2a = self.foldpanels.AddFoldPanel(caption="Quick Controls", collapsed=False, cbstyle=style2)
+        panel2a = wx.Panel(foldpanel2a, -1)
+        sizercontrol2a = wx.GridBagSizer(wx.VERTICAL)
+        i = 0
+
+        self.ctlzsmoothcheck = wx.CheckBox(panel2a, label="Smooth Charge States Distributions", style=wx.CHK_3STATE)
+        self.parent.Bind(wx.EVT_CHECKBOX, self.on_z_smooth, self.ctlzsmoothcheck)
+        sizercontrol2a.Add(self.ctlzsmoothcheck, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlpeakwidthcheck = wx.CheckBox(panel2a, label="Use Automatic m/z Peak Width", style=wx.CHK_3STATE)
+        self.parent.Bind(wx.EVT_CHECKBOX, self.on_pw_check, self.ctlpeakwidthcheck)
+        sizercontrol2a.Add(self.ctlpeakwidthcheck, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        if self.config.imflag == 0:
+            self.ctlpselect = wx.RadioBox(panel2a, label="Smooth Nearby Points",
+                                          choices=["None", "Some", "Lots", "Other"])
+            self.parent.Bind(wx.EVT_RADIOBOX, self.on_p_select, self.ctlpselect)
+            sizercontrol2a.Add(self.ctlpselect, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlbselect = wx.RadioBox(panel2a, label="Suppress Artifacts",
+                                          choices=["None", "Some", "Lots", "Other"])
+            self.parent.Bind(wx.EVT_RADIOBOX, self.on_b_select, self.ctlbselect)
+            sizercontrol2a.Add(self.ctlbselect, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+        self.ctlmolig = wx.TextCtrl(panel2a, value="", size=size1)
+        self.ctlmsmoothcheck = wx.CheckBox(panel2a, label="Mass Differences (Da): ", style=wx.CHK_3STATE)
+        self.parent.Bind(wx.EVT_CHECKBOX, self.on_m_smooth, self.ctlmsmoothcheck)
+        # sizercontrol2.Add(wx.StaticText(panel2, label="Mass Difference (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        sizercontrol2a.Add(self.ctlmsmoothcheck, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        sizercontrol2a.Add(self.ctlmolig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        panel2a.SetSizer(sizercontrol2a)
+        sizercontrol2a.Fit(panel2a)
+        self.foldpanels.AddFoldPanelWindow(foldpanel2a, panel2a, fpb.FPB_ALIGN_WIDTH)
+        self.foldpanels.AddFoldPanelWindow(foldpanel2a, wx.StaticText(foldpanel2a, -1, " "), fpb.FPB_ALIGN_WIDTH)
+
         # Panel for Additional Restraints
         foldpanel2b = self.foldpanels.AddFoldPanel(caption="Additional Deconvolution Parameters", collapsed=True,
                                                    cbstyle=style2b)
@@ -374,6 +423,12 @@ class main_controls(wx.Panel):
             gbox2b.Add(wx.StaticText(panel2b, label="Peak FWHM (ms): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
+        if self.config.imflag == 0:
+            self.ctlbeta = wx.TextCtrl(panel2b, value="", size=size1)
+            gbox2b.Add(wx.StaticText(panel2b, label="Beta: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctlbeta, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
         self.ctlzzsig = wx.TextCtrl(panel2b, value="", size=size1)
         gbox2b.Add(wx.StaticText(panel2b, label="Charge Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         gbox2b.Add(self.ctlzzsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -388,11 +443,6 @@ class main_controls(wx.Panel):
         self.ctlmsig = wx.TextCtrl(panel2b, value="", size=size1)
         gbox2b.Add(wx.StaticText(panel2b, label="Mass Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         gbox2b.Add(self.ctlmsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
-
-        self.ctlmolig = wx.TextCtrl(panel2b, value="", size=size1)
-        gbox2b.Add(wx.StaticText(panel2b, label="Mass Difference (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox2b.Add(self.ctlmolig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
         if self.config.imflag == 1:
@@ -583,6 +633,7 @@ class main_controls(wx.Panel):
             foldpanel1c.SetBackgroundColour(wx.Colour(bright, 255, bright))
 
         foldpanel2.SetBackgroundColour(wx.Colour(255, 255, bright))
+        foldpanel2a.SetBackgroundColour(wx.Colour(255, 255, bright))
         foldpanel2b.SetBackgroundColour(wx.Colour(255, 255, bright))
 
         foldpanel3.SetBackgroundColour(wx.Colour(255, bright, bright))
@@ -595,6 +646,7 @@ class main_controls(wx.Panel):
         self.SetSizer(sizercontrol)
         sizercontrol.Fit(self)
         self.setup_tool_tips()
+        self.bind_changes()
 
     def import_config_to_gui(self):
         """
@@ -634,11 +686,13 @@ class main_controls(wx.Panel):
             self.ctlmaxnativez.SetValue(str(self.config.nativezub))
             self.ctlpoolflag.SetSelection(self.config.poolflag)
             if self.config.imflag == 0:
+                self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
                 self.ctlmanualassign.SetValue(self.config.manualfileflag)
                 self.ctlisotopemode.SetSelection(self.config.isotopemode)
                 self.ctlorbimode.SetValue(self.config.orbimode)
                 self.ctlbintype.SetSelection(int(self.config.linflag))
                 self.ctlpsig.SetValue(str(self.config.psig))
+                self.ctlbeta.SetValue(str(self.config.beta))
             self.ctldiscrete.SetValue(self.config.discreteplot)
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlrawflag.SetSelection(self.config.rawflag)
@@ -717,6 +771,11 @@ class main_controls(wx.Panel):
                 self.ctlmindt.SetValue(str(self.config.mindt))
                 self.ctlmaxdt.SetValue(str(self.config.maxdt))
 
+        try:
+            self.update_quick_controls()
+        except Exception as e:
+            print("Error updating quick controls", e)
+
     def export_gui_to_config(self, e=None):
         """
         Exports parameters from the GUI to the config object.
@@ -754,9 +813,11 @@ class main_controls(wx.Panel):
         self.config.integratelb = ud.string_to_value(self.ctlintlb.GetValue())
         self.config.integrateub = ud.string_to_value(self.ctlintub.GetValue())
         if self.config.imflag == 0:
+            self.config.reductionpercent = ud.string_to_value(self.ctldatareductionpercent.GetValue())
             self.config.isotopemode = int(self.ctlisotopemode.GetSelection())
             self.config.orbimode = int(self.ctlorbimode.GetValue())
             self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
+            self.config.beta = ud.string_to_value(self.ctlbeta.GetValue())
             self.config.manualfileflag = int(self.ctlmanualassign.GetValue())
             self.config.linflag = self.ctlbintype.GetSelection()
             if self.config.mzbins == 0:
@@ -768,12 +829,12 @@ class main_controls(wx.Panel):
 
         if self.ctlnegmode.GetValue() == 1:
             # print("Negative Ion Mode")
-            if (self.config.adductmass > 0):
+            if self.config.adductmass > 0:
                 self.config.adductmass *= -1
                 self.ctladductmass.SetValue(str(self.config.adductmass))
         else:
             # print("Positive Ion Mode")
-            if (self.config.adductmass < 0):
+            if self.config.adductmass < 0:
                 self.config.adductmass *= -1
                 self.ctladductmass.SetValue(str(self.config.adductmass))
 
@@ -834,7 +895,8 @@ class main_controls(wx.Panel):
         :return: None
         """
         self.ctlthresh2.SetToolTip(wx.ToolTip(
-            "Set threshold for peaks to be plotted in m/z. Peak at given charge state must be greater than threshold * maximum m/z intensity."))
+            "Set threshold for peaks to be plotted in m/z. "
+            "Peak at given charge state must be greater than threshold * maximum m/z intensity."))
         self.ctlsep.SetToolTip(wx.ToolTip("Set distance between isolated peak m/z plots."))
         self.ctlwindow.SetToolTip(
             wx.ToolTip("Peak detection window. Peak must be maximum in a +/- window range in mass (Da)."))
@@ -849,9 +911,11 @@ class main_controls(wx.Panel):
         self.ctlpsfun.SetToolTip(wx.ToolTip("Expected peak shape.\nSee Tools>Peak Width Tool for more tools."))
         self.rununidec.SetToolTip(wx.ToolTip("Write Configuration File, Run UniDec, and Plot Results. (Ctrl+R)"))
         self.ctlmzsig.SetToolTip(wx.ToolTip(
-            "Expected peak FWHM in m/z (Th).\nFor nonlinear mode, minimum FWHM\nSee Tools>Peak Width Tool for more tools."))
+            "Expected peak FWHM in m/z (Th).\nFor nonlinear mode, minimum FWHM"
+            "\nSee Tools>Peak Width Tool for more tools."))
         self.ctlzzsig.SetToolTip(wx.ToolTip(
-            "Parameter for defining the width of the charge state smooth.\nUniDec will use a mean filter of width 2n+1 on log_e of the charge distribution"))
+            "Parameter for defining the width of the charge state smooth."
+            "\nUniDec will use a mean filter of width 2n+1 on log_e of the charge distribution"))
         self.ctlmassub.SetToolTip(wx.ToolTip(
             "Maximum allowed mass in deconvolution.\nTip: A negative value will force the axis to the absolute value."))
         self.ctlmassbins.SetToolTip(wx.ToolTip("Sets the resolution of the zero-charge mass spectrum"))
@@ -861,11 +925,15 @@ class main_controls(wx.Panel):
         self.ctlendz.SetToolTip(wx.ToolTip("Maximum allowed charge state in deconvolution."))
         self.ctlsmooth.SetToolTip(wx.ToolTip("Gaussian smooth sigma in units of data point number."))
         self.ctlbinsize.SetToolTip(wx.ToolTip(
-            "Controls Linearization.\nConstant bin size (Th) for Linear m/z\nMinimum bin size (Th) for Linear Resolution\nNumber of data points compressed together for Nonlinear"))
+            "Controls Linearization.\nConstant bin size (Th) for Linear m/z"
+            "\nMinimum bin size (Th) for Linear Resolution"
+            "\nNumber of data points compressed together for Nonlinear"))
         self.ctlintthresh.SetToolTip(
             wx.ToolTip("Set intensity threshold. Data points below threshold are excluded from deconvolution."))
         self.ctlbuff.SetToolTip(wx.ToolTip(
-            "Background subtraction parameters.\nMinimum: 0=off 1=on\nLine: The first and last n data points will be averaged;\n a line between the two averages will be subtracted.\nCurved: Width of smoothed background"))
+            "Background subtraction parameters.\nMinimum: 0=off 1=on"
+            "\nLine: The first and last n data points will be averaged;"
+            "\n a line between the two averages will be subtracted.\nCurved: Width of smoothed background"))
         self.ctlminmz.SetToolTip(wx.ToolTip("Set minimum m/z of data"))
         self.ctlmaxmz.SetToolTip(wx.ToolTip("Set maximum m/z of data"))
         self.dataprepbutton.SetToolTip(
@@ -878,14 +946,28 @@ class main_controls(wx.Panel):
         self.ctlminnativez.SetToolTip(wx.ToolTip("Minimum offset from a native charge state"))
         self.ctlmaxnativez.SetToolTip(wx.ToolTip("Maximum offset from a native charge state"))
         if self.config.imflag == 0:
+            self.ctldatareductionpercent.SetToolTip(
+                wx.ToolTip(
+                    "Reduces the amount of data by removing everything below a threshold.\nSets the threshold to fit the percentage of data to remove."))
             self.ctlisotopemode.SetToolTip(wx.ToolTip(
                 "Use isotopic distributions in deconvolution.\nOutput either monoisotopic or average masses"))
             self.ctlorbimode.SetToolTip(wx.ToolTip("Scale intensities by 1/z to compensate for induced charge effects"))
             self.ctlmanualassign.SetToolTip(wx.ToolTip("Use manual assignments. See Tools>Manual Assignment"))
             self.ctlbintype.SetToolTip(wx.ToolTip(
-                "Sets how to bin the data\nValue set by above with Bin Every\nLinear bins with linear m/z axis\nLinear Resolution bins with m/z axis that has a constant resolution\nNonlinear merges adjacent data points\nInterpolation uses the same axes but with interpolation instead of integration"))
+                "Sets how to bin the data\nValue set by above with Bin Every\nLinear bins with linear m/z axis"
+                "\nLinear Resolution bins with m/z axis that has a constant resolution"
+                "\nNonlinear merges adjacent data points"
+                "\nInterpolation uses the same axes but with interpolation instead of integration"))
             self.ctlpsig.SetToolTip(wx.ToolTip(
-                "Parameter for defining the width of the data point smooth.\nUniDec will weight +/- n data points to have the same charge state."))
+                "Parameter for defining the width of the data point smooth."
+                "\nUniDec will weight +/- n data points to have the same charge state."))
+            self.ctlbeta.SetToolTip(wx.ToolTip(
+                "Parameter for defining the degree of Softmax distribution applied to the charge state vectors."
+                "\n0 will shut it off."))
+            self.ctlpselect.SetToolTip(wx.ToolTip(
+                "Select whether to smooth nearby data points to have similar charge assignments"))
+            self.ctlbselect.SetToolTip(wx.ToolTip(
+                "Select whether to suppress deconvolution artifacts"))
         self.ctlnumit.SetToolTip(wx.ToolTip(
             "Maximum number of iterations. Note: Deconvolution will stop automically before this if it converges."))
         self.ctldiscrete.SetToolTip(wx.ToolTip("Set 2D plots to discrete rather than continuous"))
@@ -896,11 +978,14 @@ class main_controls(wx.Panel):
         self.ctl2dcm.SetToolTip(wx.ToolTip("Set 2D plot color function"))
         self.ctlpeakcm.SetToolTip(wx.ToolTip("Set the color function for the peaks"))
         self.ctlintlb.SetToolTip(wx.ToolTip(
-            "Controls range for integration.\nDefault is +/- Peak Detection Window.\nUses these boxes to manually set - and +"))
+            "Controls range for integration.\nDefault is +/- Peak Detection Window."
+            "\nUses these boxes to manually set - and +"))
         self.ctlintub.SetToolTip(wx.ToolTip(
-            "Controls range for integration.\nDefault is +/- Peak Detection Window.\nUses these boxes to manually set - and +"))
+            "Controls range for integration.\nDefault is +/- Peak Detection Window."
+            "\nUses these boxes to manually set - and +"))
         self.ctlnorm.SetToolTip(wx.ToolTip(
-            "Sets normalization of mass data.\nMaximum will normalize so that the maximum value is %100.\nTotal will normalize so that the sum of all peaks is %100"))
+            "Sets normalization of mass data.\nMaximum will normalize so that the maximum value is %100."
+            "\nTotal will normalize so that the sum of all peaks is %100"))
         self.replotbutton.SetToolTip(wx.ToolTip("Replot some of the plots. (Ctrl+N)"))
         self.compositebutton.SetToolTip(
             wx.ToolTip("Plot composite of simulated spectra from selected peaks. (Ctrl+C)"))
@@ -941,7 +1026,15 @@ class main_controls(wx.Panel):
             self.ctlnativeccslb.SetToolTip(wx.ToolTip("Sets lower bound on offset from native CCS."))
             self.ctlnativeccsub.SetToolTip(wx.ToolTip("Sets upper bound on offset from native CCS."))
         self.ctlpoolflag.SetToolTip(wx.ToolTip(
-            "Sets type of conversion from m/z to mass.\nIntegration:\n\tEach m/z bin goes to the nearest mass bin\n\tBest for undersampled masses\nInterpolation:\n\tEach mass value interpolates its value in m/z space\n\tBest for oversampled mass data"))
+            "Sets type of conversion from m/z to mass.\nIntegration:\n\tEach m/z bin goes to the nearest mass bin"
+            "\n\tBest for undersampled masses\nInterpolation:\n\tEach mass value interpolates its value in m/z space"
+            "\n\tBest for oversampled mass data"))
+        self.ctlmsmoothcheck.SetToolTip(
+            wx.ToolTip("Select whether to assume a smooth distribution spaced by a known mass difference"))
+        self.ctlzsmoothcheck.SetToolTip(
+            wx.ToolTip("Select whether to assume a smooth charge state distribution"))
+        self.ctlpeakwidthcheck.SetToolTip(
+            wx.ToolTip("Select whether to incorporated the automatic peak width in deconvolution"))
         pass
 
     # .......................................................
@@ -975,3 +1068,149 @@ class main_controls(wx.Panel):
             self.pres.on_mass_tools(e)
             if len(self.config.masslist) < 1:
                 self.ctlmasslistflag.SetValue(False)
+
+    def on_z_smooth(self, e):
+        value = self.ctlzsmoothcheck.Get3StateValue()
+        if value == 1:
+            self.ctlzzsig.SetValue("1")
+        elif value == 0:
+            self.ctlzzsig.SetValue("0")
+        self.export_gui_to_config()
+
+    def on_backcheck(self, e):
+        value = self.ctlbackcheck.Get3StateValue()
+        if value == 1:
+            self.ctlbuff.SetValue("100")
+            self.subtypectl.SetSelection(2)
+        elif value == 0:
+            self.ctlbuff.SetValue("0")
+        self.export_gui_to_config()
+        self.update_quick_controls()
+
+    def on_m_smooth(self, e):
+        value = self.ctlmsmoothcheck.Get3StateValue()
+        if value == 1:
+            self.ctlmsig.SetValue("1")
+        elif value == 0:
+            self.ctlmsig.SetValue("0")
+        self.export_gui_to_config()
+
+    def on_pw_check(self, e):
+        value = self.ctlpeakwidthcheck.Get3StateValue()
+        if value == 1:
+            self.pres.on_auto_peak_width()
+        elif value == 0:
+            self.ctlmzsig.SetValue("0")
+        self.export_gui_to_config()
+
+    def on_p_select(self, e):
+        value = self.ctlpselect.GetSelection()
+        self.ctlpsig.SetValue(str(self.psigsettings[value]))
+        self.export_gui_to_config()
+
+    def on_b_select(self, e):
+        value = self.ctlbselect.GetSelection()
+        self.ctlbeta.SetValue(str(self.betasettings[value]))
+        self.export_gui_to_config()
+
+    def bind_changes(self, e=None):
+        self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlzzsig)
+        self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlmsig)
+        self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlmzsig)
+        self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlbuff)
+        self.parent.Bind(wx.EVT_CHOICE, self.update_quick_controls, self.subtypectl)
+        self.parent.Bind(wx.EVT_RADIOBOX, self.update_quick_controls, self.ctlpsfun)
+        if self.config.imflag == 0:
+            self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlbeta)
+            self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlpsig)
+
+    def update_quick_controls(self, e=None):
+
+        # Background Subtraction
+        try:
+            value = float(self.ctlbuff.GetValue())
+        except:
+            value = -1
+        selection = self.subtypectl.GetSelection()
+        if value == 100 and selection == 2:
+            self.ctlbackcheck.Set3StateValue(1)
+        elif value == 0:
+            self.ctlbackcheck.Set3StateValue(0)
+        else:
+            self.ctlbackcheck.Set3StateValue(2)
+
+        # Z Box
+        try:
+            value = float(self.ctlzzsig.GetValue())
+        except:
+            value = -1
+        if value == 0:
+            self.ctlzsmoothcheck.Set3StateValue(0)
+        elif value == 1:
+            self.ctlzsmoothcheck.Set3StateValue(1)
+        else:
+            self.ctlzsmoothcheck.Set3StateValue(2)
+
+        # M box
+        try:
+            value = float(self.ctlmsig.GetValue())
+        except:
+            value = -1
+        if value == 0:
+            self.ctlmsmoothcheck.Set3StateValue(0)
+        elif value == 1:
+            self.ctlmsmoothcheck.Set3StateValue(1)
+        else:
+            self.ctlmsmoothcheck.Set3StateValue(2)
+
+        # PW box
+        try:
+            value = float(self.ctlmzsig.GetValue())
+        except:
+            value = -1
+        psval = self.ctlpsfun.GetSelection()
+        try:
+            fwhm, psfun, mid = ud.auto_peak_width(self.pres.eng.data.data2)
+        except:
+            fwhm = -1
+            psfun = -1
+        if value == 0:
+            self.ctlpeakwidthcheck.Set3StateValue(0)
+        elif value == fwhm and psval == psfun:
+            self.ctlpeakwidthcheck.Set3StateValue(1)
+        else:
+            self.ctlpeakwidthcheck.Set3StateValue(2)
+            pass
+
+        if self.config.imflag == 0:
+            # beta box
+            try:
+                value = float(self.ctlbeta.GetValue())
+            except:
+                valu = -1
+            if value == self.betasettings[0]:
+                self.ctlbselect.SetSelection(0)
+            elif value == self.betasettings[1]:
+                self.ctlbselect.SetSelection(1)
+            elif value == self.betasettings[2]:
+                self.ctlbselect.SetSelection(2)
+            else:
+                self.ctlbselect.SetSelection(3)
+                self.betasettings[3] = value
+                pass
+
+            # point box
+            try:
+                value = float(self.ctlpsig.GetValue())
+            except:
+                value = -1
+            if value == self.psigsettings[0]:
+                self.ctlpselect.SetSelection(0)
+            elif value == self.psigsettings[1]:
+                self.ctlpselect.SetSelection(1)
+            elif value == self.psigsettings[2]:
+                self.ctlpselect.SetSelection(2)
+            else:
+                self.ctlpselect.SetSelection(3)
+                self.psigsettings[3] = value
+                pass

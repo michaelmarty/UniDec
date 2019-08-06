@@ -127,10 +127,13 @@ class UniDecApp(UniDecPres):
         :return:
         """
         spectra = self.eng.data.get_spectra()
-        if len(spectra) > int(self.eng.config.crossover):
-            mult = int(len(spectra) / self.eng.config.numtot)
-            self.view.SetStatusText("Displaying subset of data", number=2)
-        else:
+        try:
+            if len(spectra) > int(self.eng.config.crossover):
+                mult = int(len(spectra) / self.eng.config.numtot)
+                self.view.SetStatusText("Displaying subset of data", number=2)
+            else:
+                mult = 1
+        except:
             mult = 1
         for i, s in enumerate(spectra[::mult]):
             if i == 0:
@@ -262,6 +265,12 @@ class UniDecApp(UniDecPres):
             if not ud.isempty(self.eng.data.exgrid):
                 ignore = self.eng.data.get_bool()
                 var1 = np.array(self.eng.data.var1)[ignore]
+                try:
+                    var1 = var1.astype(float)
+                    xlabel = self.eng.data.v1name
+                except:
+                    var1 = np.arange(0, len(self.eng.data.var1))[ignore]
+                    xlabel = "Index"
 
                 ylabel = self.view.extractlabels[self.eng.config.exchoice]
                 self.view.plot7.clear_plot()
@@ -272,7 +281,7 @@ class UniDecApp(UniDecPres):
 
                         if not self.view.plot7.flag:
                             self.view.plot7.plotrefreshtop(var1, fitgrid[i][ignore],
-                                                           title="Extracted Data", xlabel=self.eng.data.v1name
+                                                           title="Extracted Data", xlabel=xlabel
                                                            , ylabel=ylabel, color=color, test_kda=False)
                             self.view.plot7.plotadddot(var1, self.eng.data.exgrid[i][ignore], color, p.marker)
                         else:
@@ -281,8 +290,8 @@ class UniDecApp(UniDecPres):
                 if self.eng.config.exnorm == 1:
                     self.view.plot7.subplot1.set_ylim([0, 1])
                 self.view.plot7.repaint()
-        except:
-            pass
+        except Exception as e:
+            print(e)
 
     def makeplot8(self):
         """
@@ -301,14 +310,22 @@ class UniDecApp(UniDecPres):
                     if p.ignore == 0:
                         xvals.append(p.label)
                 self.view.plot8._axes = [0.12, 0.12, 0.75, 0.8]
-                self.view.plot8.contourplot(xvals=np.arange(0, len(xvals)), yvals=np.array(self.eng.data.var1)[ignore],
+                var1 = np.array(self.eng.data.var1)[ignore]
+                try:
+                    var1 = var1.astype(float)
+                    ylabel = self.eng.data.v1name
+                except:
+                    var1 = np.arange(0, len(self.eng.data.var1))[ignore]
+                    ylabel = "Index"
+
+                self.view.plot8.contourplot(xvals=np.arange(0, len(xvals)), yvals=var1,
                                             zgrid=zdat, normflag=0,
-                                            normrange=[0, np.amax(zdat)],
-                                            xlab="Peaks", ylab=self.eng.data.v1name, discrete=1,
+                                            normrange=[0, np.amax(zdat)], config=self.eng.config,
+                                            xlab="Peaks", ylab=ylabel, discrete=1,
                                             ticloc=np.arange(0, len(xvals)),
                                             ticlab=xvals)
-        except:
-            pass
+        except Exception as e:
+            print(e)
 
     def make2dplots(self, e=None):
         """
@@ -317,6 +334,7 @@ class UniDecApp(UniDecPres):
         :return:
         """
         self.view.SetStatusText("Making 2D Plots...", number=5)
+        self.export_config()
         self.eng.data.import_grids_and_peaks()
         self.makeplot3()
         self.makeplot5()
@@ -538,6 +556,30 @@ class UniDecApp(UniDecPres):
             else:
                 self.view.plot2.addtext("0", pmasses[i], np.amax(self.eng.data.massdat[:, 1]) * 0.99 - (i % 7) * 0.05)
         pass
+
+    def on_label_masses(self, e=None):
+        """
+        Triggered by right click "Label Masses" on self.view.peakpanel.
+        Plots a line with text listing the mass of each specific peak.
+        Updates the peakpanel to show the masses.
+        :param e: unused event
+        :return: None
+        """
+        peaksel = self.view.peakpanel.selection2
+        pmasses = np.array([p.mass for p in self.eng.pks.peaks])
+        pint = np.array([p.height for p in self.eng.pks.peaks])
+        mval = np.amax(self.eng.data.massdat[:, 1])
+
+        self.view.plot2.textremove()
+        for i, d in enumerate(pmasses):
+            if d in peaksel:
+                if self.eng.config.massbins < 1:
+                    label = str(d)
+                else:
+                    if d == round(d):
+                        d = int(d)
+                    label = "{:,}".format(d)
+                self.view.plot2.addtext(label, pmasses[i], mval * 0.13 + pint[i], vlines=False)
 
     def make_top(self, index=0):
         """
@@ -856,7 +898,7 @@ class UniDecApp(UniDecPres):
         :param path:
         :return:
         """
-        self.eng = mudeng.MetaUniDec()
+        # self.eng = mudeng.MetaUniDec()
         # self.import_config()
         self.view.clear_plots()
         self.eng.data.new_file(path)
@@ -868,6 +910,9 @@ class UniDecApp(UniDecPres):
         :param e:
         :return:
         """
+        if self.eng.data.filename is None:
+            self.on_new_file()
+
         try:
             wx.TheClipboard.Open()
             do = wx.TextDataObject()
@@ -916,6 +961,9 @@ class UniDecApp(UniDecPres):
         :param e:
         :return:
         """
+        if self.eng.data.filename is None:
+            self.on_new_file()
+
         paths = FileDialogs.open_multiple_files_dialog(message="Choose data files in txt or mzml format")
         if paths is not None:
             print("Openening: ", paths)
@@ -1053,7 +1101,8 @@ class UniDecApp(UniDecPres):
         :return:
         """
         self.eng.sum_masses()
-        PlotAnimations.AnimationWindow(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1)
+        PlotAnimations.AnimationWindow(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1,
+                                       pksmode="mass")
 
     def on_animate_annotated_mass(self, e=None):
         """
@@ -1129,7 +1178,8 @@ class UniDecApp(UniDecPres):
             print(i, end=' ')
         data2 = np.array(data2)
         print("Loaded 2D Data", data2.shape)
-        PlotAnimations.AnimationWindow(self.view, data2, self.eng.config, mode="2D", yvals=self.eng.data.var1)
+        PlotAnimations.AnimationWindow(self.view, data2, self.eng.config, mode="2D", yvals=self.eng.data.var1,
+                                       pksmode=type)
 
     def on_animate_2d_mass(self, e=None):
         """

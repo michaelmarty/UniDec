@@ -10,6 +10,10 @@ from pubsub import pub
 import unidec_modules.unidectools as ud
 from copy import deepcopy
 
+luminance_cutoff = 135
+white_text = wx.Colour(250, 250, 250)
+black_text = wx.Colour(0, 0, 0)
+
 
 class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
     def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
@@ -52,6 +56,14 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
                 color = wx.Colour(int(round(colors[i][0] * 255)), int(round(colors[i][1] * 255)),
                                   int(round(colors[i][2] * 255)), alpha=255)
                 self.SetItemBackgroundColour(index, col=color)
+
+                luminance = ud.get_luminance(color, type=2)
+                # print(wx.Colour(colout), luminance)
+                if luminance < luminance_cutoff:
+                    self.SetItemTextColour(index, col=white_text)
+                else:
+                    self.SetItemTextColour(index, col=black_text)
+
                 s.color = colors[i]
         self.data = dataset
         self.colors = colors
@@ -71,15 +83,46 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
 
     def get_list(self):
         count = self.GetItemCount()
-        colormap = cm.get_cmap('rainbow', count)
-        peakcolors = colormap(np.arange(count))
+        #colormap = cm.get_cmap('rainbow', count)
+        #peakcolors = colormap(np.arange(count))
+        peakcolors = self.get_colors()
         list_output = []
         for i in range(0, count):
-            sublist = [int(self.GetItem(i, col=0).GetText()), float(self.GetItem(i, col=1).GetText()),
-                       float(self.GetItem(i, col=2).GetText()), self.GetItem(i, col=3).GetText(), peakcolors[i][0],
+            it1 = self.GetItem(i, col=1).GetText()
+            it2 = self.GetItem(i, col=2).GetText()
+            try:
+                it1 = float(it1)
+            except:
+                pass
+            try:
+                it2 = float(it2)
+            except:
+                pass
+
+            sublist = [int(self.GetItem(i, col=0).GetText()), it1, it2, self.GetItem(i, col=3).GetText(),
+                       peakcolors[i][0],
                        peakcolors[i][1], peakcolors[i][2]]
             list_output.append(sublist)
+
+        indexes = np.array([i[0] for i in list_output])
+        if np.any(indexes != np.arange(0, len(list_output))):
+            list_output = self.reorder(list_output)
         return list_output
+
+    def reorder(self, list):
+        newlist = []
+        indexes = np.array([i[0] for i in list])
+        sind = np.sort(indexes)
+        newspectra = []
+        for i in sind:
+            index = ud.nearestunsorted(indexes, i)
+            s = self.data.spectra[index]
+            s.index = i
+            newspectra.append(s)
+            newlist.append(list[index])
+        self.data.spectra = newspectra
+        self.repopulate()
+        return newlist
 
     def repopulate(self):
         self.populate(self.data, self.colors)
@@ -89,6 +132,14 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         col = self.GetColumn(num)
         col.SetText(text)
         self.SetColumn(num, col)
+
+    def get_colors(self):
+        colors = []
+        count = self.GetItemCount()
+        for i in range(0, count):
+            c = self.GetItemBackgroundColour(i)
+            colors.append(c)
+        return colors
 
 
 class ListCtrlPanel(wx.Panel):
@@ -225,7 +276,14 @@ class ListCtrlPanel(wx.Panel):
         dlg.Destroy()
         self.list.SetItemBackgroundColour(item, col=colout)
         colout = colout.Get(includeAlpha=True)
+        luminance = ud.get_luminance(wx.Colour(colout), type=2)
         colout = ([colout[0] / 255., colout[1] / 255., colout[2] / 255., colout[3] / 255.])
+
+        if luminance < luminance_cutoff:
+            self.list.SetItemTextColour(item, col=white_text)
+        else:
+            self.list.SetItemTextColour(item, col=black_text)
+
         self.pres.on_color_change(item, colout)
 
     def on_popup_ten(self, event=None):

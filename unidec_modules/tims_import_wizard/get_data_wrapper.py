@@ -1,5 +1,11 @@
 import numpy
 import os, subprocess, sys
+try:
+    from unidec_modules.waters_importer.Importer import WatersDataImporter as WDI
+except Exception as e:
+    print("Error importing Waters Importer, get_data_wrapper.py", e)
+import unidec_modules.unidectools as ud
+import numpy as np
 
 
 def new_get_data(start, end, im_bin_size, raw_file, pusher, function_no, scan_start, scan_end, dir=None):
@@ -91,7 +97,8 @@ def new_get_data(start, end, im_bin_size, raw_file, pusher, function_no, scan_st
             return None, None, None, None, None
 
 
-def new_get_data_MS(start, end, bin_size, raw_file, function_no, scan_start, scan_end, dir=None):
+'''
+def new_get_data_MS_old(start, end, bin_size, raw_file, function_no, scan_start, scan_end, dir=None):
     if dir is None:
         reader_path = os.getcwd()
     else:
@@ -135,18 +142,30 @@ def new_get_data_MS(start, end, bin_size, raw_file, function_no, scan_start, sca
         if p != 0:
             print("CONVERSION ERROR! Call Parameters:", call_params)
             print("Std out", p)
+'''
 
-        try:
-            '''
-            # This allows the data to be imported if you wanted to use it
-            ms_data = numpy.loadtxt(msfile, dtype='float')
-            A = ms_data[:, 0]
-            B = ms_data[:, 1]
 
-            return A, B
-            '''
-            return None, None
+def new_get_data_MS(start, end, bin_size, raw_file, function_no, scan_start, scan_end, dir=None):
+    msfile = os.path.splitext(raw_file)[0] + '_' + str(function_no) + '_ms.txt'
+    print("MS Processing: ", raw_file, "to", msfile)
 
-        except Exception as e:
-            print(e)
-            return None, None
+    reader = WDI(raw_file, function=function_no)
+
+    if scan_start > 0. and scan_end is not None and scan_end > 0.:
+        scan_range = [scan_start, scan_end]
+    else:
+        scan_range = None
+
+    data = reader.get_data(scan_range=scan_range, mzbins=bin_size)
+
+    try:
+        start = float(start)
+        end = float(end)
+    except:
+        start = None
+        end = None
+
+    if start is not None and end is not None:
+        data = ud.datachop(data, start, end)
+
+    np.savetxt(msfile, data)

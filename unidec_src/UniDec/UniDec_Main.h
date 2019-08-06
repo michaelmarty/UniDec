@@ -45,6 +45,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 		*mdist = NULL,
 		*zdist = NULL,
 		*mzdist = NULL,
+		* rmzdist = NULL,
 		*mtab = NULL,
 		*blur = NULL,
 		*newblur = NULL,
@@ -173,8 +174,11 @@ int run_unidec(int argc, char *argv[], Config config) {
 	mtab = calloc(lengthmz*config.numz, sizeof(double));
 	barr = calloc(lengthmz*config.numz, sizeof(char));
 
+	//Tells the algorithm to ignore data that are equal to zero
+	ignorezeros(barr, dataInt, lengthmz, config.numz);
+
 	//Fills mztab from dataMZ, mtab by multiplying each mz by each z
-#pragma omp parallel for private (i,j), schedule(dynamic)
+	#pragma omp parallel for private (i,j), schedule(auto)
 	for (i = 0; i<lengthmz; i++)
 	{
 		for (j = 0; j<config.numz; j++)
@@ -182,6 +186,17 @@ int run_unidec(int argc, char *argv[], Config config) {
 			//mztab[index2D(config.numz, i, j)] = dataMZ[i];
 			mtab[index2D(config.numz, i, j)] = (dataMZ[i] * nztab[j] - config.adductmass*nztab[j]);
 		}
+	}
+
+	//Test to make sure no charge state is zero
+	for (j = 0; j < config.numz; j++)
+	{
+		if (nztab[j] == 0) { printf("Error: Charge state cannot be 0"); exit(100); }
+	}
+	//Test to make sure no two data points has the same x value
+	for (i = 0; i < lengthmz-1; i++)
+	{
+		if (dataMZ[i] == dataMZ[i+1]) { printf("Error: Two data points are identical"); exit(104); }
 	}
 
 	//Determines the indexes of each test mass from mfile in m/z space
@@ -220,7 +235,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 
 	if (config.killmass != 0 && config.mzsig!=0)
 	{
-		KillMass(config.killmass, lengthmz, config.numz, barr, nztab, config.adductmass, dataMZ, config.psfun, config.mzsig);
+		KillMass(config.killmass, lengthmz, config.numz, barr, nztab, config.adductmass, dataMZ, config.psfun, fabs(config.mzsig));
 	}
 
 	//Get max intensity
@@ -238,8 +253,11 @@ int run_unidec(int argc, char *argv[], Config config) {
 	//....................................................................
 
 
+	//Experimental correction. Not sure why this is necessary.
+	if (config.psig < 0) { config.mzsig /= 3; }
+
 	//Sets a threshold for m/z values to check. Things that are far away in m/z space don't need to be considered in the iterations.
-	double threshold = config.psthresh*config.mzsig*config.peakshapeinflate;
+	double threshold = config.psthresh*fabs(config.mzsig)*config.peakshapeinflate;
 	printf("Threshold: %f\n", threshold);
 	//Create a list of start and end values to box in arrays based on the above threshold
 	starttab = calloc(lengthmz, sizeof(int));
@@ -250,14 +268,16 @@ int run_unidec(int argc, char *argv[], Config config) {
 		{
 			double point = dataMZ[i] - threshold;
 			int start, end;
-			if (point < dataMZ[0] && config.speedyflag == 0) { start = (int)((point - dataMZ[0]) / (dataMZ[1] - dataMZ[0])); }
+			if (point < dataMZ[0] && config.speedyflag == 0) { 
+				start = (int)((point - dataMZ[0]) / (dataMZ[1] - dataMZ[0])); }
 			else {
 				start = nearfast(dataMZ, point, lengthmz);
 			}
 
 			starttab[i] = start;
 			point = dataMZ[i] + threshold;
-			if (point > dataMZ[lengthmz - 1] && config.speedyflag == 0) { end = lengthmz - 1 + (int)((point - dataMZ[lengthmz - 1]) / (dataMZ[lengthmz - 1] - dataMZ[lengthmz - 2])); }
+			if (point > dataMZ[lengthmz - 1] && config.speedyflag == 0) { 
+				end = lengthmz - 1 + (int)((point - dataMZ[lengthmz - 1]) / (dataMZ[lengthmz - 1] - dataMZ[lengthmz - 2])); }
 			else {
 				end = nearfast(dataMZ, point, lengthmz);
 			}
@@ -271,18 +291,23 @@ int run_unidec(int argc, char *argv[], Config config) {
 		int pslen = lengthmz;
 		if (config.speedyflag == 0) { pslen = lengthmz*maxlength; }
 		mzdist = calloc(pslen, sizeof(double));
+		rmzdist = calloc(pslen, sizeof(double));
 		memset(mzdist, 0, pslen * sizeof(double));
+		memset(rmzdist, 0, pslen * sizeof(double));
+
+		int makereverse = 0;
+		if (config.mzsig < 0 || config.beta < 0) { makereverse = 1; }
 
 
 		//Calculates the distance between mz values as a 2D or 3D matrix
 		if (config.speedyflag == 0)
 		{
-			MakePeakShape2D(lengthmz, maxlength, starttab, endtab, dataMZ, config.mzsig*config.peakshapeinflate, config.psfun, config.speedyflag, mzdist);
+			MakePeakShape2D(lengthmz, maxlength, starttab, endtab, dataMZ, fabs(config.mzsig)*config.peakshapeinflate, config.psfun, config.speedyflag, mzdist, rmzdist, makereverse);
 		}
 		else
 		{
 			//Calculates peak shape as a 1D list centered at the first element for circular convolutions
-			MakePeakShape1D(dataMZ, threshold, lengthmz, config.speedyflag, config.mzsig*config.peakshapeinflate, config.psfun, mzdist);
+			MakePeakShape1D(dataMZ, threshold, lengthmz, config.speedyflag, fabs(config.mzsig)*config.peakshapeinflate, config.psfun, mzdist, rmzdist, makereverse);
 		}
 		printf("mzdist set: %f\n", mzdist[0]);
 	}
@@ -299,33 +324,45 @@ int run_unidec(int argc, char *argv[], Config config) {
 	//......................................................
 
 	//sets some parameters regarding the neighborhood blur function
-	if (config.zsig >= 0) {
+	if (config.zsig >= 0 && config.msig >= 0) {
 		zlength = 1 + 2 * (int)config.zsig;
 		mlength = 1 + 2 * (int)config.msig;
 	}
 	else {
-		zlength = 1 + 2 * (int)(3 * fabs(config.zsig) + 0.5);
-		mlength = 1 + 2 * (int)(3 * fabs(config.msig) + 0.5);
+		if (config.zsig != 0){zlength = 1 + 2 * (int)(3 * fabs(config.zsig) + 0.5); }
+		else { zlength = 1; }
+		if (config.msig != 0) { mlength = 1 + 2 * (int)(3 * fabs(config.msig) + 0.5); }
+		else { mlength = 1; }
 	}
 	numclose = mlength*zlength;
 
 	//Sets up the blur function in oligomer mass and charge
 	mind = calloc(mlength, sizeof(int));
-	mdist = calloc(mlength, sizeof(double));
+	mdist = calloc(mlength, sizeof(double));	
+
 	for (i = 0; i<mlength; i++)
 	{
 		mind[i] = i - (mlength - 1) / 2;
-		mdist[i] = exp(-(pow((i - (mlength - 1) / 2.), 2)) / (2.0 * config.msig*config.msig));
+		//mind[i] = i;
+		if (config.msig != 0) { mdist[i] = exp(-(pow((i - (mlength - 1) / 2.), 2)) / (2.0 * config.msig*config.msig)); }
+		else { mdist[i] = 1; }
+		//mdist[i] = exp(-(double)i/fabs(config.msig));
 		//mdist[i]=secderndis((mlength-1)/2.,config.msig,i);
+		//mdist[i] = mc[mod(i - (mlength - 1) / 2, mlength)];
+		//mdist[i] = 1;
 	}
 
 	zind = calloc(zlength, sizeof(int));
 	zdist = calloc(zlength, sizeof(double));
-	for (i = 0; i<zlength; i++)
+	for (i = 0; i < zlength; i++)
 	{
 		zind[i] = i - (zlength - 1) / 2;
-		zdist[i] = exp(-(pow((i - (zlength - 1) / 2.), 2)) / (2.0 * config.zsig*config.zsig));
+		if (config.zsig != 0) { zdist[i] = exp(-(pow((i - (zlength - 1) / 2.), 2)) / (2.0 * config.zsig*config.zsig)); }
+		else { zdist[i] = 1; }
 		//zdist[i]=secderndis((zlength-1)/2.,zsig,i);
+		//zdist[i] = zc[mod(i - (zlength - 1) / 2, zlength)];
+		//zdist[i] = 1;
+		printf("%f\n", zdist[i]);
 	}
 
 	//Initializing memory
@@ -335,22 +372,26 @@ int run_unidec(int argc, char *argv[], Config config) {
 	closeind = calloc(numclose*lengthmz*config.numz, sizeof(double));
 
 	//Determines the indexes of things that are close as well as the values used in the neighborhood convolution
-	double norm = 0;
-	for (k = 0; k<numclose; k++)
-	{
-		norm += zdist[(int)k / mlength] * mdist[k%mlength];
-	}
-
 	for (k = 0; k<numclose; k++)
 	{
 		closemind[k] = mind[k%mlength];
 		closezind[k] = zind[(int)k / mlength];
-		closeval[k] = zdist[(int)k / mlength] * mdist[k%mlength] / norm;
+		closeval[k] = zdist[(int)k / mlength] * mdist[k%mlength];
 	}
+	simp_norm_sum(mlength, mdist);
+	simp_norm_sum(zlength, zdist);
+	simp_norm_sum(numclose, closeval);
 
 	//Set up blur
 	MakeBlur(lengthmz, config.numz, numclose, barr, closezind, closemind, mtab, config.molig, config.adductmass, nztab, dataMZ, closeind);
-	
+	/*
+	if(mlength!=0){ 
+		closemind = calloc(mlength*lengthmz*config.numz, sizeof(int));
+		MakeBlurM(lengthmz, config.numz, mlength, barr, mind, mtab, config.molig, config.adductmass, nztab, dataMZ, closemind); }
+	if (zlength!=0) { 
+		closezind = calloc(zlength*lengthmz*config.numz, sizeof(int));
+		MakeBlurZ(lengthmz, config.numz, zlength, barr, zind, mtab, config.adductmass, nztab, dataMZ, closezind); }
+	*/
 
 	printf("Number of Oligomers blurred: %d\n", mlength);
 	printf("Number of Charges blurred: %d\n", zlength);
@@ -392,7 +433,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 		noise = calloc(lengthmz, sizeof(double));
 	}
 
-	//#pragma omp parallel for private (i,j), schedule(dynamic)
+	//#pragma omp parallel for private (i,j), schedule(auto)
 	for (i = 0; i<lengthmz; i++)
 	{
 		double val = dataInt[i] / ((float)(config.numz+2));
@@ -420,7 +461,6 @@ int run_unidec(int argc, char *argv[], Config config) {
 	memcpy(newblur, blur, sizeof(double)*lengthmz*config.numz);
 
 	if (config.intthresh != 0) { KillB(dataInt, barr, config.intthresh, lengthmz, config.numz, isolength, isotopepos, isotopeval); }
-
 	
 	double *dataInt2 = NULL;
 	dataInt2 = calloc(lengthmz, sizeof(double));
@@ -429,12 +469,12 @@ int run_unidec(int argc, char *argv[], Config config) {
 	{
 		if(config.mzsig!=0)
 		{
-			deconvolve_baseline(lengthmz, dataMZ, dataInt, baseline, config.mzsig);
+			deconvolve_baseline(lengthmz, dataMZ, dataInt, baseline, fabs(config.mzsig));
 			if (config.aggressiveflag == 2)
 			{
 				for (int i = 0; i < 10; i++)
 				{
-					deconvolve_baseline(lengthmz, dataMZ, dataInt, baseline, config.mzsig);
+					deconvolve_baseline(lengthmz, dataMZ, dataInt, baseline, fabs(config.mzsig));
 				}
 				for (int i = 0; i < lengthmz; i++)
 				{
@@ -454,46 +494,67 @@ int run_unidec(int argc, char *argv[], Config config) {
 	
 
 	//Run the iteration
-	double blurmax = 0, conv = 0;
+	double blurmax = 0, conv = 0, beta=0;
 	int off = 0;
 	printf("Iterating\n\n");
+	
 	for (iterations = 0; iterations<abs(config.numit); iterations++)
 	{
-		if (config.psig > 0 && iterations>0)
+		if (config.beta > 0 && iterations > 0)
 		{
-			charge_smoothing(blur, lengthmz, config.numz, (int) config.psig);
-			//printf("Charge Smoothed %f\n", config.psig);
+			
+			softargmax(blur, lengthmz, config.numz, config.beta);
+			//printf("Beta %f\n", beta);
+		}
+		else if (config.beta < 0 && iterations >0)
+		{
+			softargmax_transposed(blur, lengthmz, config.numz, fabs(config.beta), barr, maxlength, isolength, isotopepos, isotopeval, config.speedyflag, starttab, endtab, rmzdist, config.mzsig);
+		}
+		
+		if (config.psig >= 1 && iterations>0)
+		{
+			point_smoothing(blur, barr, lengthmz, config.numz, abs((int) config.psig));
+			//printf("Point Smoothed %f\n", config.psig);
+		}
+		else if (config.psig < 0 && iterations >0)
+		{
+			point_smoothing_peak_width(lengthmz, config.numz, maxlength, starttab, endtab, mzdist, blur, config.speedyflag, barr);
 		}
 
-		if (config.zsig >= 0) {
-			blur_it_mean(lengthmz,
-				config.numz,
-				numclose,
-				closeind,
-				newblur,
-				blur,
-				barr,
-				config.zerolog);
+		
+		//Run Blurs
+		if (config.zsig >= 0 && config.msig >= 0) {
+			blur_it_mean(lengthmz,config.numz,numclose,closeind,newblur,blur,barr,config.zerolog);
+		}
+		else if (config.zsig > 0 && config.msig < 0)
+		{
+			blur_it_hybrid1(lengthmz, config.numz, zlength, mlength, closeind, closemind, closezind, mdist, zdist, newblur, blur, barr, config.zerolog);
+		}
+		else if (config.zsig < 0 && config.msig > 0)
+		{
+			blur_it_hybrid2(lengthmz, config.numz, zlength, mlength, closeind, closemind, closezind, mdist, zdist, newblur, blur, barr, config.zerolog);
 		}
 		else {
-			blur_it(lengthmz,
-				config.numz,
-				numclose,
-				closeind,
-				closeval,
-				newblur,
-				blur,
-				barr);
+			blur_it(lengthmz,config.numz,numclose,closeind,closeval,newblur,blur,barr);
 		}
-		
-				
+
+		/*
+		if (config.msig > 0) {
+			blur_it_mean(lengthmz, config.numz, mlength, closemind, newblur, blur, barr, config.zerolog);
+			memcpy(blur, newblur, lengthmz*config.numz * sizeof(double));}
+		if (config.msig < 0) {
+			blur_it(lengthmz, config.numz, mlength, closemind, mdist, newblur, blur, barr);
+			memcpy(blur, newblur, lengthmz*config.numz * sizeof(double));}
+		if (config.zsig > 0) {blur_it_mean(lengthmz,config.numz,zlength,closezind,newblur,blur,barr,config.zerolog);}
+		if (config.zsig < 0) {blur_it(lengthmz, config.numz, zlength, closezind, zdist, newblur, blur, barr);}
+		if (config.zsig == 0) {memcpy(newblur, blur, lengthmz*config.numz * sizeof(double));}*/
+
+		//Run Richardson-Lucy Deconvolution
 		deconvolve_iteration_speedy(lengthmz, config.numz, maxlength,
 			newblur, blur, barr, config.aggressiveflag, dataInt2,
-			isolength, isotopepos, isotopeval, starttab, endtab, mzdist, config.speedyflag,
-			config.baselineflag, baseline,noise,config.mzsig,dataMZ, config.filterwidth);
+			isolength, isotopepos, isotopeval, starttab, endtab, mzdist, rmzdist, config.speedyflag,
+			config.baselineflag, baseline,noise,config.mzsig,dataMZ, config.filterwidth, config.psig);
 		
-		
-
 		//Determine the metrics for conversion. Only do this every 10% to speed up.
 		if ((config.numit<10 || iterations % 10 == 0 || iterations % 10 == 1 || iterations>0.9*config.numit)) {
 			double diff = 0;
@@ -506,7 +567,8 @@ int run_unidec(int argc, char *argv[], Config config) {
 					tot += blur[i];
 				}
 			}
-			conv = (diff / tot);
+			if(tot!=0){ conv = (diff / tot); }
+			else { conv = 12345678; }
 
 			printf("Iteration: %d Convergence: %f\n", iterations, conv);
 			if (conv<0.000001) {
@@ -520,22 +582,25 @@ int run_unidec(int argc, char *argv[], Config config) {
 		}
 	}
 	free(dataInt2);
+
 	//................................................................
 	//
 	//     Writing and reporting the outputs
 	//
 	//...............................................................
 
+	
+
 	//Reset the peak shape if it was inflated
 	if (config.peakshapeinflate != 1 && config.mzsig!=0) {
 		if (config.speedyflag == 0)
 		{
-			MakePeakShape2D(lengthmz, maxlength, starttab, endtab, dataMZ, config.mzsig, config.psfun, config.speedyflag, mzdist);
+			MakePeakShape2D(lengthmz, maxlength, starttab, endtab, dataMZ, fabs(config.mzsig), config.psfun, config.speedyflag, mzdist, rmzdist, 0);
 		}
 
 		else
 		{
-			MakePeakShape1D(dataMZ, threshold, lengthmz, config.speedyflag, config.mzsig, config.psfun, mzdist);
+			MakePeakShape1D(dataMZ, threshold, lengthmz, config.speedyflag, fabs(config.mzsig), config.psfun, mzdist, rmzdist, 0);
 		}
 		printf("mzdist reset: %f\n", config.mzsig);
 	}
@@ -543,7 +608,9 @@ int run_unidec(int argc, char *argv[], Config config) {
 
 	//Determine the maximum intensity in the blur matrix
 	blurmax = Max(blur, lengthmz * config.numz);
-	config.cutoff = 0.0000001 / blurmax;
+	if(blurmax!=0){ config.cutoff = 0.0000001 / blurmax; }
+	else { config.cutoff = 0; }
+	
 	//Apply The Cutoff
 	ApplyCutoff1D(blur, blurmax*config.cutoff, lengthmz*config.numz);
 
@@ -557,7 +624,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 	
 	if (config.baselineflag == 1)
 	{
-		#pragma omp parallel for private(i), schedule(dynamic)
+		#pragma omp parallel for private(i), schedule(auto)
 		for (int i = 0; i<lengthmz; i++) {
 			fitdat[i] += baseline[i];// +noise[i];
 			//fitdat[i] = noise[i]+0.1;
@@ -617,7 +684,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 	double newblurmax = blurmax;
 	if ((config.rawflag == 0 || config.rawflag == 2)) {
 		if (config.mzsig != 0) {
-			newblurmax = Reconvolve(lengthmz, config.numz, maxlength, starttab, endtab, mzdist, blur, newblur, config.speedyflag);
+			newblurmax = Reconvolve(lengthmz, config.numz, maxlength, starttab, endtab, mzdist, blur, newblur, config.speedyflag, barr);
 		}
 		else
 		{
@@ -819,7 +886,8 @@ int run_unidec(int argc, char *argv[], Config config) {
 
 	//Free memory
 	free(mtab);
-	free(mzdist);;
+	free(mzdist);
+	free(rmzdist);
 	free(closeval);
 	free(closemind);
 	free(closezind);

@@ -11,7 +11,7 @@
 //
 //
 
-void z_slice(const double *ivals, const int mindex, double *zdat, const int zlen, double thresh)
+void z_slice(const double *ivals, const int mindex, double *zdat, const int zlen, const double thresh)
 {
 	for (int i = 0; i < zlen; i++)
 	{
@@ -21,7 +21,7 @@ void z_slice(const double *ivals, const int mindex, double *zdat, const int zlen
 	}
 }
 
-void z_slice_range(const double *ivals, const int mindex1, const int mindex2, double *zdat, const int zlen, double thresh)
+void z_slice_range(const double *ivals, const int mindex1, const int mindex2, double *zdat, const int zlen, const double thresh)
 {
 	for (int i = mindex1; i < mindex2; i++)
 	{
@@ -33,20 +33,24 @@ void z_slice_range(const double *ivals, const int mindex1, const int mindex2, do
 	}
 }
 
-double extract_zmax(Config config, const double peak, const double *xvals, const double *yvals, const double *zvals, const int mlen, const int zlen)
+double extract_zmax(Config config, const double peak, const double *xvals, const double *yvals, const double *zvals, const int mlen, const int zlen, const double thresh)
 {
 	if (peak < xvals[0]) { return 0; }
 	if (peak > xvals[mlen - 1]) { return 0; }
+
+	double thresh2 = thresh * Max(zvals, mlen * zlen);
+	//printf("thresh2 %f %f\n", thresh2, thresh);
+
 	double *zdat = NULL;
 	zdat = calloc(zlen, sizeof(double));
 	if(config.exwindow<=0){
 		int pos = nearfast(xvals, peak, mlen);
-		z_slice(zvals, pos, zdat, zlen, 0);
+		z_slice(zvals, pos, zdat, zlen, thresh2);
 	}
 	else {
 		int pos1 = nearfast(xvals, peak - config.exwindow, mlen);
 		int pos2 = nearfast(xvals, peak + config.exwindow, mlen);
-		z_slice_range(zvals, pos1, pos2, zdat, zlen, 0);
+		z_slice_range(zvals, pos1, pos2, zdat, zlen, thresh2);
 	}
 	int maxpos = argmax(zdat, zlen);
 	double maxval = yvals[maxpos];
@@ -54,11 +58,13 @@ double extract_zmax(Config config, const double peak, const double *xvals, const
 	return maxval;
 }
 
-double extract_zcom(Config config, const double peak, const double *xvals, const double *yvals, const double *zvals, const int mlen, const int zlen, double thresh)
+double extract_zcom(Config config, const double peak, const double *xvals, const double *yvals, const double *zvals, const int mlen, const int zlen, const double thresh)
 {
 	if (peak < xvals[0]) { return 0; }
 	if (peak > xvals[mlen - 1]) { return 0; }
+
 	double thresh2 = thresh*Max(zvals, mlen*zlen);
+	//printf("thresh2 %f %f\n", thresh2, thresh);
 	
 	int pos = nearfast(xvals, peak, mlen);
 	double *zdat = NULL;
@@ -94,22 +100,24 @@ double charge_extract_switch(const Config config, const double peak, const doubl
 	double output = 0;
 	//config.exwindow = 100000;
 	//config.exchoice = 2;
-	int swint = 2;
-	if (config.exchoice == 4) swint = 0;
-	if (config.exchoice == 3) swint = 1;
-	if (config.exchoice == 5) swint = 3;
+	int swint = config.exchoicez;
+	//if (config.exchoice == 4) swint = 0;
+	//if (config.exchoice == 3) swint = 1;
+	//if (config.exchoice == 5) swint = 3;
 	//if (config.exchoice == 6) swint = 2;
+	double thresh = config.exthresh/100;
 
 	switch (swint)
 	{
 	case 0:
 		//printf("Extracting Exact Z Max\n");
-		output = extract_zmax(config, peak, xvals, yvals, zvals, mlen, zlen);
+		output = extract_zmax(config, peak, xvals, yvals, zvals, mlen, zlen, thresh);
 		break;
 	case 1:
 		//printf("Extracting Exact Z COM\n");
-		output = extract_zcom(config, peak, xvals, yvals, zvals, mlen, zlen, 0);
+		output = extract_zcom(config, peak, xvals, yvals, zvals, mlen, zlen, thresh);
 		break;
+	/*
 	case 2:
 		//printf("Extracting Exact Z COM 10 \n");
 		output = extract_zcom(config, peak, xvals, yvals, zvals, mlen, zlen, 0.1);
@@ -118,8 +126,20 @@ double charge_extract_switch(const Config config, const double peak, const doubl
 		//printf("Extracting Exact Z COM 50\n");
 		output = extract_zcom(config, peak, xvals, yvals, zvals, mlen, zlen, 0.5);
 		break;
+	case 4:
+		//printf("Extracting Exact Z COM 5\n");
+		output = extract_zcom(config, peak, xvals, yvals, zvals, mlen, zlen, 0.05);
+		break;
+	case 5:
+		//printf("Extracting Exact Z COM 2.5\n");
+		output = extract_zcom(config, peak, xvals, yvals, zvals, mlen, zlen, 0.025);
+		break;
+	case 6:
+		//printf("Extracting Exact Z COM 1\n");
+		output = extract_zcom(config, peak, xvals, yvals, zvals, mlen, zlen, 0.01);
+		break;*/
 	default:
-		printf("Invalid Extraction Choice: %d\n", config.exchoice);
+		printf("Invalid Extraction Choice: %d\n", config.exchoicez);
 		output = 0;
 	}
 	//printf("test %f\n", output);
@@ -199,7 +219,7 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 			//printf("Extracts %d %d %f %f %f\n", i, j, max, val, sum);
 		}
 		//Normalize
-		if (max > 0 && config.exnorm == 1)
+		if (max > 0 && config.exnormz == 1)
 		{
 			for (int j = 0; j < plen; j++)
 			{
@@ -207,7 +227,7 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 				//printf("Extracts %d %d %f %f\n", i, j, extracts[index2D(plen, i, j)], max);
 			}
 		}
-		if (sum > 0 && config.exnorm == 2)
+		if (sum > 0 && config.exnormz == 2)
 		{
 			for (int j = 0; j < plen; j++)
 			{
@@ -221,7 +241,7 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 		
 	}
 	
-	if (config.exnorm == 3 || config.exnorm == 4)
+	if (config.exnormz == 3 || config.exnormz == 4)
 	{
 		for (int j = 0; j < plen; j++)
 		{
@@ -232,7 +252,7 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 				if (extracts[index2D(plen, i, j)] > max) { max = extracts[index2D(plen, i, j)]; }
 				sum += extracts[index2D(plen, i, j)];
 			}
-			if (config.exnorm == 4) { max = sum; }
+			if (config.exnormz == 4) { max = sum; }
 			if (max > 0)
 			{
 				for (int i = 0; i < num; i++)
@@ -249,7 +269,7 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 		strjoin(dataset, "/ultrazextracts", outdat);
 	else
 		strjoin(dataset, "/zextracts", outdat);
-	printf("\tWriting Charge Extracts to: %s\t%d %d %f\n", outdat, config.exchoice, config.exnorm, config.exwindow);
+	printf("\tWriting Charge Extracts to: %s\t%d %d %f %f\n", outdat, config.exchoicez, config.exnormz, config.exwindow, config.exthresh);
 	mh5writefile2d_grid(file_id, outdat, num, plen, extracts);
 	free(peakx);
 	free(extracts);

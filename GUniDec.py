@@ -85,13 +85,14 @@ class UniDecApp(UniDecPres):
             self.on_open_file(fname, newdir)
             # self.view.on_save_figure_eps(0)
             # self.on_dataprep_button(0)
-            self.on_auto(0)
+            # self.on_auto(0)
             # self.on_integrate()
             # self.on_grid_decon(0)
             # self.make_cube_plot(0)
             # self.on_plot_peaks(0)
             # self.on_flip_tabbed(None)
-            self.on_label_max_charge_states(0)
+            # self.on_label_max_charge_states(0)
+            # self.view.plot1.copy_to_clipboard()
 
     # ..............................
     #
@@ -158,6 +159,13 @@ class UniDecApp(UniDecPres):
         # Load Config to GUI
         self.import_config()
         self.view.SetStatusText("Ready", number=5)
+
+        if False:
+            try:
+                self.eng.unidec_imports(everything=True)
+                self.after_unidec_run()
+            except:
+                pass
 
     def on_save_state(self, e=None, filenew=None):
         """
@@ -268,7 +276,11 @@ class UniDecApp(UniDecPres):
             text = do.GetText()
             text = text.splitlines()
             data = []
+            fname = "PastedSpectrum_" + str(time.strftime("%Y_%b_%d_%H_%M_%S")) + ".txt"
             for t in text:
+                if ".RAW" in t:
+                    print(t)
+                    fname = os.path.splitext(t)[0] + ".txt"
                 line = t.split()
                 if len(line) == 2:
                     try:
@@ -287,7 +299,6 @@ class UniDecApp(UniDecPres):
                 if not os.path.isdir(newdir):
                     os.mkdir(newdir)
                 os.chdir(newdir)
-                fname = "PastedSpectrum_" + str(time.strftime("%Y_%b_%d_%H_%M_%S")) + ".txt"
                 np.savetxt(fname, data)
                 print("Saved Pasted Spectrum as File:", fname, " in directory:", newdir)
                 self.on_open_file(fname, newdir)
@@ -407,6 +418,7 @@ class UniDecApp(UniDecPres):
             self.makeplot4(1)
 
         self.view.SetStatusText("Peak Pick Done", number=5)
+        #self.on_score()
         pass
 
     def on_plot_peaks(self, e=None):
@@ -778,15 +790,39 @@ class UniDecApp(UniDecPres):
         peaksel = self.view.peakpanel.selection2
         pmasses = np.array([p.mass for p in self.eng.pks.peaks])
         peakdiff = pmasses - peaksel
+        mval = np.amax(self.eng.data.massdat[:, 1])
         # print peakdiff
 
         self.view.plot2.textremove()
         for i, d in enumerate(peakdiff):
             if d != 0:
-                self.view.plot2.addtext(str(d), pmasses[i],
-                                        np.amax(self.eng.data.massdat[:, 1]) * 0.99 - (i % 7) * 0.05)
+                self.view.plot2.addtext(str(d), pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
             else:
-                self.view.plot2.addtext("0", pmasses[i], np.amax(self.eng.data.massdat[:, 1]) * 0.99 - (i % 7) * 0.05)
+                self.view.plot2.addtext("0", pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
+
+    def on_label_masses(self, e=None):
+        """
+        Triggered by right click "Label Masses" on self.view.peakpanel.
+        Plots a line with text listing the mass of each specific peak.
+        Updates the peakpanel to show the masses.
+        :param e: unused event
+        :return: None
+        """
+        peaksel = self.view.peakpanel.selection2
+        pmasses = np.array([p.mass for p in self.eng.pks.peaks])
+        pint = np.array([p.height for p in self.eng.pks.peaks])
+        mval = np.amax(self.eng.data.massdat[:, 1])
+
+        self.view.plot2.textremove()
+        for i, d in enumerate(pmasses):
+            if d in peaksel:
+                if self.eng.config.massbins < 1:
+                    label = str(d)
+                else:
+                    if d == round(d):
+                        d = int(d)
+                    label = "{:,}".format(d)
+                self.view.plot2.addtext(label, pmasses[i], mval * 0.06 + pint[i], vlines=False)
 
     def on_plot_offsets(self, e=None):
         """
@@ -1420,6 +1456,7 @@ class UniDecApp(UniDecPres):
             tend = time.perf_counter()
             print("\nTotal Speedy Batch Run Time: %.2gs" % (tend - tstarttop))
 
+    '''
     def on_cross_validate(self, e=None):
         """
         Experimental...
@@ -1439,7 +1476,7 @@ class UniDecApp(UniDecPres):
         self.view.plot2.plotadd(self.eng.data.massdat[:, 0], (mean + stddev) * norm, 'y', 'Mean+STD')
         self.view.plot2.plotadd(self.eng.data.massdat[:, 0], (mean - stddev) * norm, 'y', 'Mean-STD')
         self.view.plot2.repaint()
-        pass
+        pass'''
 
     def on_pdf_report(self, e=None):
         """
@@ -1606,7 +1643,27 @@ class UniDecApp(UniDecPres):
                 self.view.plot2.plotadd(dist[:, 0], dist[:, 1], colval=p.color)
         self.view.plot2.repaint()
 
-    def on_flip_mode(self, e):
+    def on_score(self, e=0):
+        self.eng.dscore()
+        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
+        self.view.SetStatusText("Average Peaks Score: " + str(round(self.eng.pks.aps * 100, 2)), number=3)
+
+    def on_score2(self, e=0):
+        self.eng.filter_peaks()
+        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
+        self.view.SetStatusText("Average Peaks Score: " + str(round(self.eng.pks.aps * 100, 2)), number=3)
+        self.makeplot2()
+        self.makeplot4()
+        self.makeplot6()
+        self.on_score_window()
+
+    def on_score_window(self, e=0):
+        pass
+
+    # def on_remove_noise_points(self, e=0):
+    #    self.on_dataprep_button(removenoise=True)
+
+    def on_flip_mode(self, e=None):
         """
         Flips between MS and IM-MS mode
         :param e: wx event or anything (will flip if not 0)

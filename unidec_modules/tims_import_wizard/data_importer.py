@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-use_mp_import = True
+use_mp_import = False
 
 import os
 from math import floor
@@ -12,6 +12,10 @@ from pubsub import pub
 
 from unidec_modules.tims_import_wizard import TagTypes as tt
 from unidec_modules.tims_import_wizard import get_data_wrapper
+try:
+    from unidec_modules.waters_importer.Importer import WatersDataImporter as WDI
+except Exception as e:
+    print("Error importing Waters Importer, data_importer.py, ", e)
 
 param_file_cache = {}
 
@@ -172,16 +176,14 @@ def run_get_data(job_kwargs):
 
         MakeUniDecConfig(job_kwargs)
     else:
-        A, B = get_data_wrapper.new_get_data_MS(start,
-                                                end,
-                                                job_kwargs[tt.BIN],
-                                                job_kwargs[tt.FILE_PATH],
-                                                job_kwargs[tt.FUNCTION],
-                                                scan_start,
-                                                scan_end,
-                                                dir=job_kwargs['exedir'])
-
-        job_kwargs['1D'] = (A, B)
+        get_data_wrapper.new_get_data_MS(start,
+                                         end,
+                                         job_kwargs[tt.BIN],
+                                         job_kwargs[tt.FILE_PATH],
+                                         job_kwargs[tt.FUNCTION],
+                                         scan_start,
+                                         scan_end)
+        # job_kwargs['1D'] = (A, B)
 
 
 def MakeUniDecConfig(job_kwargs):
@@ -412,14 +414,16 @@ def parse_file(file_path, exp_type='linear', collision=None, debug=False, dir=No
 
         if out[tt.TYPE] is not 'ms':
             # try to grab the pusher frequency from the stat code
-            pusher = get_stat_code(file_path, 76, dir=exedir)
+            # pusher = get_stat_code(file_path, 76, dir=exedir)
+            pusher = get_stat_name(file_path, "Transport RF")
             if pusher is not None:
                 out[tt.PUSHER] = floor((1. / pusher) * 1000 * 1000)
         else:
             out[tt.FUNCTION] = "0"
 
         # try to grab the collision voltage from the stat code
-        cv = get_stat_code(file_path, 62, dir=exedir)
+        # cv = get_stat_code(file_path, 62, dir=exedir)
+        cv = get_stat_name(file_path, "Collision Energy")
         if cv is not None:
             out[tt.COLLISION_V] = cv
         if collision != None:
@@ -485,7 +489,8 @@ def GetStartEndMass(RawFile):
     return ce, s, e
 
 
-def get_stat_code(raw_file, stat_code, dir=None):
+'''
+def get_stat_code_old(raw_file, stat_code, dir=None):
     if dir is None:
         path = os.getcwd()
     else:
@@ -508,6 +513,29 @@ def get_stat_code(raw_file, stat_code, dir=None):
         if param > 0.:
             return param
     except ValueError:
+        return None
+'''
+
+
+def get_stat_code(raw_file, stat_code, dir=None):
+    param = WDI(raw_file, do_import=False).get_stat_code(stat_code)
+    # print(param)
+    try:
+        param = float(param)
+        # print(param)
+        return param
+    except Exception:
+        return None
+
+
+def get_stat_name(raw_file, stat_name):
+    param = WDI(raw_file, do_import=False).get_stat_name(stat_name)
+    # print(param)
+    try:
+        param = float(param)
+        # print(param)
+        return param
+    except Exception:
         return None
 
 

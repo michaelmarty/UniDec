@@ -14,6 +14,8 @@ import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 import unidec_modules.MassSpecBuilder as MSBuild
 from unidec_modules.unidec_enginebase import UniDecEngine
+from sklearn.decomposition import PCA
+import scipy.stats as stats
 
 __author__ = 'Michael.Marty'
 
@@ -104,7 +106,10 @@ class UniDec(UniDecEngine):
         else:
             newname = os.path.join(os.getcwd(), self.config.outfname + "_imraw.txt")
         if not os.path.isfile(newname):
-            shutil.copy(file_directory, newname)
+            try:
+                shutil.copy(file_directory, newname)
+            except Exception as e:
+                pass
 
         # Initialize Config
         if os.path.isfile(self.config.confname) == True:
@@ -117,8 +122,9 @@ class UniDec(UniDecEngine):
     def raw_process(self, dirname, inflag=False, binsize=1):
         """
         Processes Water's Raw files into .txt using external calls to:
-            self.config.rawreaderpath for MS
             self.config.cdcreaderpath for IM-MS
+
+        MS is processed by unidec_modules.waters_importer.Importer
 
         Default files are created with the header of the .raw file plus:
             _rawdata.txt for MS
@@ -139,7 +145,14 @@ class UniDec(UniDecEngine):
         if os.path.splitext(self.config.filename)[1] == ".zip":
             print("Can't open zip, try Load State.")
             return None, None
-        if os.path.splitext(self.config.filename)[1] == ".raw" and self.config.system == "Windows":
+
+        elif os.path.splitext(self.config.filename)[1].lower() == ".d" and self.config.system == "Windows":
+            print("Agilent Data")
+            self.config.dirname = os.path.split(self.config.dirname)[0]
+            self.open_file(self.config.filename, self.config.dirname)
+            return self.config.filename, self.config.dirname
+
+        elif os.path.splitext(self.config.filename)[1] == ".raw" and self.config.system == "Windows":
             self.config.outfname = os.path.splitext(self.config.filename)[0]
             newfilename = self.config.outfname + "_rawdata.txt"
             if self.config.imflag == 1:
@@ -156,9 +169,16 @@ class UniDec(UniDecEngine):
             else:
                 if self.config.system == "Windows":
                     if self.config.imflag == 0:
-                        result = subprocess.call(
-                            [self.config.rawreaderpath, "-i", self.config.dirname, "-o", newfilepath])
+                        # print("Testing: ", newfilepath)
+                        ud.waters_convert2(self.config.dirname, config=self.config, outfile=newfilepath)
+                        # result = subprocess.call(
+                        #    [self.config.rawreaderpath, "-i", self.config.dirname, "-o", newfilepath])
                         self.config.filename = newfilename
+                        if os.path.isfile(newfilepath):
+                            print("Converted data from raw to txt")
+                        else:
+                            print("Failed conversion to txt file. ", newfilepath)
+                            return None, None
                     else:
                         call = [self.config.cdcreaderpath, '-r', self.config.dirname, '-m',
                                 newfilepath[:-10] + "_msraw.txt", '-i', newfilepath, '--ms_bin', binsize,
@@ -166,15 +186,18 @@ class UniDec(UniDecEngine):
                                 "1"]
                         result = subprocess.call(call)
                         self.config.filename = newfilename
-                    if result == 0 and os.path.isfile(newfilepath):
-                        print("Converted data from raw to txt")
-                    else:
-                        print("Failed conversion to txt file. ", result, newfilepath)
-                        return None, None
+                        if result == 0 and os.path.isfile(newfilepath):
+                            print("Converted data from raw to txt")
+                        else:
+                            print("Failed conversion to txt file. ", result, newfilepath)
+                            return None, None
                 else:
                     print("Sorry. Waters Raw converter only works on windows. Convert to txt file first.")
                     return None, None
-        return self.config.filename, self.config.dirname
+            return self.config.filename, self.config.dirname
+
+        else:
+            print("Error in conversion or file type:", self.config.filename, self.config.dirname)
         pass
 
     def process_data(self, **kwargs):
@@ -277,12 +300,15 @@ class UniDec(UniDecEngine):
             print("UniDec Run Error:", out)
             return out
 
-    def unidec_imports(self, efficiency=False):
+    def unidec_imports(self, efficiency=False, everything=False):
         """
         Imports files output from the UniDec core executable into self.data.
         :param efficiency: If True, it will ignore the larger files to speed up the run.
         :return: None
         """
+        if everything:
+            self.data.data2 = np.loadtxt(self.config.infname)
+
         # Import Results
         self.pks = peakstructure.Peaks()
         self.data.massdat = np.loadtxt(self.config.outfname + "_mass.txt")
@@ -353,6 +379,10 @@ class UniDec(UniDecEngine):
         self.export_config()
         # Detect Peaks and Normalize
         peaks = ud.peakdetect(self.data.massdat, self.config)
+        print(peaks)
+        self.setup_peaks(peaks)
+
+    def setup_peaks(self, peaks):
         if self.config.peaknorm == 1:
             norm = np.amax(peaks[:, 1]) / 100.
             peaks[:, 1] = peaks[:, 1] / norm
@@ -371,7 +401,7 @@ class UniDec(UniDecEngine):
         ud.dataexport(peaks, self.config.peaksfile)
         # Generate Intensities of Each Charge State for Each Peak
         mztab = ud.make_peaks_mztab(self.data.mzgrid, self.pks, self.config.adductmass)
-        #Calculate errors for peaks with FWHM
+        # Calculate errors for peaks with FWHM
         try:
             ud.peaks_error_FWHM(self.pks, self.data.massdat)
             ud.peaks_error_mean(self.pks, self.data.massgrid, self.data.ztab, self.data.massdat, self.config)
@@ -459,7 +489,7 @@ class UniDec(UniDecEngine):
             outfile1 = os.path.join(self.config.outfname + "_1D_Mass_Defects.txt")
             np.savetxt(outfile2, data2)
             np.savetxt(outfile1, data1)
-            print("Saved Kendrick:", outfile2, outfile1)
+            print("Saved Mass Defects:", outfile2, outfile1)
             return m1grid, m2grid, igrid
         else:
             print("Need non-zero Kendrick mass")
@@ -571,15 +601,18 @@ class UniDec(UniDecEngine):
             for i in range(0, len(peaks)):
                 avg = np.average(self.data.ztab, weights=mztab[i, :, 1])
                 std = np.sqrt(np.average((np.array(self.data.ztab) - avg) ** 2, weights=mztab[i, :, 1]))
+                p = self.pks.peaks[i]
                 if e == "PostFit":
                     peakparams.append(
                         [peaks[i, 0], self.config.mzsig * avg, avg, std, peaks[i, 1] / np.sum(peaks[:, 1]),
-                         self.massfit[i, 1], self.massfit[i, 2] / np.sum(self.massfit[:, 2])])
+                         self.massfit[i, 1], self.massfit[i, 2] / np.sum(self.massfit[:, 2]),
+                         p.centroid, p.errorFWHM, p.errorreplicate])
                 else:
-                    peakparams.append([peaks[i, 0], self.config.mzsig * avg, avg, std, peaks[i, 1], areas[i]])
+                    peakparams.append([peaks[i, 0], self.config.mzsig * avg, avg, std, peaks[i, 1], areas[i],
+                                       p.centroid, p.errorFWHM, p.errormean])
             self.peakparams = np.array(peakparams)
 
-            print("Mass MassStdGuess AvgCharge StdDevCharge Height Area")
+            print("Mass MassStdGuess AvgCharge StdDevCharge Height Area MassCentroid MassFWHM MassErrorBetweenZ")
             np.set_printoptions(precision=2, formatter={'float': '{: 0.2f}'.format})
             print(self.peakparams)
             np.set_printoptions()
@@ -765,6 +798,7 @@ class UniDec(UniDecEngine):
         return True
         # TODO: Import Matches, others things in state?
 
+    '''
     def cross_validate(self, numcrosstot=5):
         """
         Experimental function to perform cross validation
@@ -835,7 +869,7 @@ class UniDec(UniDecEngine):
             ud.dataexport(peaks, self.config.outfname + "_peakcverr.dat")
         except (IndexError, ValueError, ZeroDivisionError, TypeError, AttributeError):
             print("No peaks in cross validation...")
-        return mean, stddev
+        return mean, stddev'''
 
     def normalize_peaks(self):
         """
@@ -1004,6 +1038,243 @@ class UniDec(UniDecEngine):
 
         self.pks.score_peaks(ci=ci)
 
+    def get_zstack(self, xfwhm=1):
+        zarr = np.reshape(self.data.massgrid, (len(self.data.massdat), len(self.data.ztab)))
+        zarr = zarr / np.amax(np.sum(zarr, axis=1)) * np.amax(self.data.massdat[:, 1])
+
+        for i, p in enumerate(self.pks.peaks):
+            fwhm = p.errorFWHM
+            if fwhm == 0:
+                fwhm = self.config.massbins
+            width = fwhm / 2. * xfwhm
+            interval = [p.mass - width, p.mass + width]
+            boo1 = self.data.massdat[:, 0] < interval[1]
+            boo2 = self.data.massdat[:, 0] > interval[0]
+            boo3 = np.all([boo1, boo2], axis=0)
+            top = self.data.massdat[boo3]
+
+            stack = [top[:, 0]]
+            for j, z in enumerate(self.data.ztab):
+                stack.append(zarr[boo3, j])
+            p.zstack = np.array(stack)
+
+    def pks_pca(self, xfwhm=3):
+        self.get_zstack(xfwhm=xfwhm)
+        for p in self.pks.peaks:
+            m = p.zstack[0]
+            ints = p.zstack[1:]
+            try:
+                pca = PCA(1)
+                svals = pca.fit_transform(ints)[:, 0]
+                coms = pca.components_
+                p.pca_score = pca.explained_variance_ratio_[0]
+                p.pca_mdist = np.transpose([m, coms[0] / np.amax(coms[0])])
+                p.pca_zdist = np.transpose([self.data.ztab, svals / np.amax(svals)])
+            except Exception as e:
+                print("Error in PCA:", e)
+                print(ints)
+                p.pca_score = -1
+                p.pca_zdist = np.sum(ints, axis=1)
+                p.pca_mdist = np.sum(ints, axis=0)
+            # print("Peak Mass:", p.mass, "PCA Score", p.pca_score)
+
+    def pks_zscore(self, xfwhm=3):
+        try:
+            if len(self.pks.peaks[0].zstack) < 1:
+                self.get_zstack(xfwhm=xfwhm)
+        except Exception as e:
+            print("Error in z score: Make sure you get peaks first", e)
+
+        for p in self.pks.peaks:
+            # ints = p.zstack[1:]
+            # sumz = np.sum(ints, axis=1)
+            # sumz /= np.amax(sumz)
+            sumz = deepcopy(p.pca_zdist[:, 1])
+            sumz -= np.amin(sumz)
+            zm = np.argmax(sumz)
+
+            zs = np.sum(sumz)
+            badarea = 0
+            l = len(sumz)
+
+            index = zm
+            low = sumz[zm]
+            while index < l - 1:
+                index += 1
+                val = sumz[index]
+                if val < low:
+                    low = val
+                else:
+                    badarea += val - low
+
+            index = zm
+            low = sumz[zm]
+            while index > 0:
+                index -= 1
+                val = sumz[index]
+                if val < low:
+                    low = val
+                else:
+                    badarea += val - low
+
+            p.z_score = 1 - ud.safedivide1(badarea, zs)
+            # print(badarea, zs, p.z_score)
+
+    def get_mzstack(self, xfwhm=1):
+        zarr = np.reshape(self.data.mzgrid[:, 2], (len(self.data.data2), len(self.data.ztab)))
+        zarr = zarr / np.amax(np.sum(zarr, axis=1)) * np.amax(self.data.data2[:, 1])
+        for i, p in enumerate(self.pks.peaks):
+            fwhm = p.errorFWHM
+            if fwhm == 0:
+                fwhm = self.config.massbins
+            width = fwhm / 2. * xfwhm
+            interval = np.array([p.mass - width, p.mass + width])
+            stack = []
+            bvals = []
+            for j, z in enumerate(self.data.ztab):
+                interval2 = (interval + z * self.config.adductmass) / z
+                boo1 = self.data.data2[:, 0] < interval2[1]
+                boo2 = self.data.data2[:, 0] > interval2[0]
+                boo3 = np.all([boo1, boo2], axis=0)
+                top = self.data.data2[boo3]
+                stack.append(np.transpose([top[:, 0], top[:, 1], zarr[boo3, j]]))
+                bvals.append(boo3)
+            btot = np.any(bvals, axis=0)
+            fit = self.data.fitdat[btot]
+            top = self.data.data2[btot]
+            sse = np.sum((fit - top[:, 1]) ** 2)
+            denom = np.sum((top[:, 1] - np.mean(top[:, 1])) ** 2)
+            p.rsquared = 1 - ud.safedivide1(sse, denom)
+            p.mzstack = np.array(stack)
+
+    def pks_uscore(self, xfwhm=3, pow=1):
+        self.get_mzstack(xfwhm=xfwhm)
+        for p in self.pks.peaks:
+            rats = []
+            weights = []
+            for i, z in enumerate(self.data.ztab):
+                v = p.mzstack[i]
+                y = v[:, 1]
+                z = v[:, 2]
+                sy = np.sum(y)
+                sz = np.sum(z)
+                # r = 1 - ud.safedivide1(np.abs(sy - sz), sy)
+                sse = np.sum(np.abs(y - z))  # ** 2)
+                r = 1 - ud.safedivide1(sse, sy)
+
+                # if len(y) > 0 and len(z) > 0 and np.amax(y) != 0 and np.amax(z) != 0:
+                # pae = 1 - ud.safedivide(np.abs(y - z), y)
+                # print(pae)
+                # r = ud.weighted_avg(pae, z)
+                # pr, pval = stats.pearsonr(y, z)
+                #    pr = ud.weighted_avg(perr, z)
+                # else:
+                # r = 0
+                # r = pr
+                # print(pr, r)
+                # r = ud.safedivide1(sz, sy)
+                rats.append(r)
+                weights.append(sz)
+            rats = np.array(rats)
+
+            weights = np.array(weights)
+            avg = ud.weighted_avg(rats, weights ** pow)
+            # print("Peak Mass:", p.mass, "Uniqueness Score", avg)
+            p.uni_score = avg
+
+    def fscore(self, height, min):
+        x2 = height
+        x1 = height / 2.
+        if min > x1:
+            y = 1 - (min - x1) / (x2 - x1)
+        else:
+            y = 1
+        return y
+
+    def pks_fwhmscore(self, thresh=0.8):
+        for p in self.pks.peaks:
+            fwhm = p.errorFWHM
+            interval = np.array(p.intervalFWHM)
+            diff = np.abs(interval - p.mass)
+            r = ud.safedivide1(diff, fwhm)
+            p.fwhm_score = 1
+            if np.any(r > thresh):
+                p.fwhm_score = 1 - (np.amax(r) - thresh) / (1 - thresh)
+
+            masses = self.pks.masses
+            lower = np.all([0 < p.mass - masses, p.mass - masses < p.errorFWHM], axis=0)
+            upper = np.all([0 < masses - p.mass, masses - p.mass < p.errorFWHM], axis=0)
+
+            if np.any(lower):
+                dcut1 = ud.datachop(self.data.massdat, np.amin(masses[lower]), p.mass)
+                lmin = np.amin(dcut1[:, 1])
+                fscore = self.fscore(p.height, lmin)
+                p.fwhm_score *= fscore
+
+            if np.any(upper):
+                dcut2 = ud.datachop(self.data.massdat, p.mass, np.amax(masses[upper]))
+                umin = np.amin(dcut2[:, 1])
+                fscore2 = self.fscore(p.height, umin)
+                p.fwhm_score *= fscore2
+
+    def dscore(self, xfwhm=3):
+        """
+        Combined score should include:
+
+        1) Fit to data -> Uniqueness Score
+        2) Background -> Uniqueness Score
+        3) Unique evidence for each peak -> Uniqueness Score
+        4) Noise -> PCA Score
+        5) Consistent peak shape -> PCA Score
+        6) Charge state distribution -> Z_Score
+        7) FWHM -> Penalties for poor FWHM
+
+        :return:
+        """
+
+        self.pks_pca(xfwhm=xfwhm)
+        self.pks_uscore(pow=2, xfwhm=xfwhm)
+        self.pks_zscore(xfwhm=xfwhm)
+        self.pks_fwhmscore()
+        tscores = []
+        ints = []
+        for p in self.pks.peaks:
+            scores = np.array([p.pca_score, p.uni_score, p.z_score, p.fwhm_score])  # p.rsquared,
+            p.dscore = np.product(scores)
+            tscores.append(p.dscore)
+            ints.append(p.height)
+            print("Mass:", p.mass,
+                  "PCA:", round(p.pca_score * 100, 2),
+                  "Uniqueness:", round(p.uni_score * 100, 2),
+                  # "Fitting R^2", round(p.rsquared * 100, 2),
+                  "Charge:", round(p.z_score * 100, 2),
+                  "FWHM:", round(p.fwhm_score * 100, 2),
+                  "Combined:", round(p.dscore * 100, 2))
+        self.pks.aps = ud.weighted_avg(tscores, ints)
+        print("Average Peaks Score:", self.pks.aps)
+
+    def filter_peaks(self, minscore=0.33):
+        w = deepcopy(self.config.peakwindow)
+        t = deepcopy(self.config.peakthresh)
+        self.config.peakwindow = 3 * self.config.massbins
+        self.config.peakthresh = 0.01
+        self.pick_peaks()
+        self.config.peakwindow = w
+        self.config.peakthresh = t
+        self.dscore()
+
+        newpeaks = []
+        for p in self.pks.peaks:
+            if p.dscore > minscore:
+                newpeaks.append([p.mass, p.height])
+        newpeaks = np.array(newpeaks)
+        if len(newpeaks) > 0:
+            self.setup_peaks(newpeaks)
+            self.dscore()
+        else:
+            print("No Peaks Found with Scores Above", minscore)
+            self.pks = peakstructure.Peaks()
+
     def fit_isolated_peaks(self, pmasses=None, x_range=None, window=None, norm=False, plot_fits=False, **kwargs):
         if x_range is None:
             if window is None:
@@ -1126,7 +1397,6 @@ class UniDec(UniDecEngine):
         plt.show()
         pass
 
-
         # TODO: Batch Process of Various Types
         # TODO: Automatch
         # TODO: 2D Grid Extraction
@@ -1150,7 +1420,7 @@ if __name__ == "__main__":
     # path=os.getcwd()
     # files=["Traptavidin_20mer+B4F_new_40Colli.txt"]
     eng.read_hdf5()
-    eng.config.mzbins = 1;
+    eng.config.mzbins = 1
     # eng.config.psfun=2
     # eng.config.peakwindow=2000.
     # eng.process_data()

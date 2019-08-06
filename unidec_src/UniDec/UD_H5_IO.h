@@ -165,6 +165,7 @@ Config mh5LoadConfig(Config config, hid_t file_id)
 
 	config.zsig=double_attr(file_id, "/config", "zzsig", config.zsig);
 	config.psig = double_attr(file_id, "/config", "psig", config.psig);
+	config.beta = double_attr(file_id, "/config", "beta", config.beta);
 	config.mzsig=double_attr(file_id, "/config", "mzsig", config.mzsig);
 	config.msig=double_attr(file_id, "/config", "msig", config.msig);
 	config.molig=double_attr(file_id, "/config", "molig", config.molig);
@@ -212,7 +213,10 @@ Config mh5LoadConfig(Config config, hid_t file_id)
 
 	config.exwindow = double_attr(file_id, "/config", "exwindow", config.exwindow);
 	config.exchoice = int_attr(file_id, "/config", "exchoice", config.exchoice);
+	config.exchoicez = int_attr(file_id, "/config", "exchoicez", config.exchoicez);
+	config.exthresh = double_attr(file_id, "/config", "exthresh", config.exthresh);
 	config.exnorm = int_attr(file_id, "/config", "exnorm", config.exnorm);
+	config.exnormz = int_attr(file_id, "/config", "exnormz", config.exnormz);
 	config.peaknorm = int_attr(file_id, "/config", "peaknorm", config.peaknorm);
 	config.datanorm = int_attr(file_id, "/config", "datanorm", config.datanorm);
 
@@ -256,5 +260,8 @@ void set_got_grids(hid_t file_id)
 
 int question_grids(hid_t file_id)
 {
+	//int status = check_group(file_id, "/ms_dataset/mass_axis");
+	int status = H5Lexists(file_id, "/ms_dataset/mass_axis", H5P_DEFAULT);
+	if (status == 0) { write_attr_int(file_id, "/config", "gridsflag", 0); }//printf("Grids not found %d\n", status);}
 	return int_attr(file_id, "/config", "gridsflag", 0);
 }

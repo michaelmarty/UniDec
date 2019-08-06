@@ -67,6 +67,10 @@ class MetaDataSet:
         else:
             self.filename = file
 
+        if file is None:
+            print("Error: No HDF5 file present. Please create an HDF5 file first")
+            return
+
         # Clear Group
         hdf = h5py.File(file)
         try:
@@ -112,6 +116,7 @@ class MetaDataSet:
             self.massgrid = np.transpose(grid3)
         except:
             print("Mass Grid Warning:", grid.shape, sum.shape)#, len(grid)/len(sum))
+            num = 0
         # MZ Space
         axis = get_dataset(msdataset, "mz_axis")
         sum = get_dataset(msdataset, "mz_sum")
@@ -169,6 +174,9 @@ class MetaDataSet:
     def add_file(self, filename=None, dirname=None, path=None):
         if path is None:
             path = os.path.join(dirname, filename)
+        else:
+            dirname, filename = os.path.split(path)
+
         data = ud.load_mz_file(path)
         self.add_data(data, name=filename)
 
@@ -181,7 +189,25 @@ class MetaDataSet:
                 snew.data2[:, 1] /= np.amax(snew.data2[:, 1])
             except:
                 pass
-        snew.name = ""
+        snew.name = name
+
+        try:
+            if "CID" in name or "SID" in name:
+                print(name)
+                name = os.path.splitext(name)[0]
+                splits = name.split("_")
+                for i, s in enumerate(splits):
+                    if s == "CID" or s == "SID":
+                        try:
+                            snew.var1 = float(splits[i+1])
+                        except Exception as e:
+                            print(splits, e)
+
+                        self.v1name = "Collision Voltage"
+        except Exception as e:
+            print("Error in parsing collision voltage:", e)
+            print(name)
+
         self.spectra.append(snew)
         self.len = len(self.spectra)
         self.export_hdf5()
@@ -248,6 +274,14 @@ class MetaDataSet:
             self.var2.append(s.var2)
         self.var1 = np.array(self.var1)
         self.var2 = np.array(self.var2)
+        try:
+            self.var1 = self.var1.astype(float)
+        except:
+            pass
+        try:
+            self.var2 = self.var2.astype(float)
+        except:
+            pass
         print("Variable 1:", self.var1)
 
 
