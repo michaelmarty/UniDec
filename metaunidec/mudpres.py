@@ -21,6 +21,7 @@ from unidec_modules.unidec_presbase import UniDecPres
 from metaunidec import ultrameta
 from metaunidec.mudhelp import *
 from metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard
+from unidec_modules.plot_waterfall import WaterfallFrame
 
 # import FileDialog  # Needed for pyinstaller
 
@@ -339,6 +340,12 @@ class UniDecApp(UniDecPres):
         self.makeplot3()
         self.makeplot5()
         self.view.SetStatusText("2D Plots Complete", number=5)
+
+    def make_waterfall_plots(self, e=None):
+        print("Making Waterfall Plots")
+        wt = WaterfallFrame(None)
+        wt.make_plot(self.eng.data)
+        #wt.draw()
 
     def makeplot3(self):
         """
@@ -721,6 +728,10 @@ class UniDecApp(UniDecPres):
             self.eng.data.spectra[i].var1 = l[1]
             self.eng.data.spectra[i].var2 = l[2]
         self.eng.data.export_hdf5()
+
+    def recolor_spectra(self):
+        self.view.ypanel.list.recolor()
+        self.on_replot()
 
     def on_left_click(self, xpos, ypos):
         """

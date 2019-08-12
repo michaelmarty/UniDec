@@ -56,6 +56,7 @@ class UniDecConfig(object):
         self.discreteplot = 0
         self.cmap = u"nipy_spectral"
         self.peakcmap = u"rainbow"
+        self.spectracmap = u"rainbow"
         self.rawflag = 0
 
         # data prep
@@ -255,6 +256,7 @@ class UniDecConfig(object):
         f.write("linflag " + str(self.linflag) + "\n")
         f.write("cmap " + str(self.cmap) + "\n")
         f.write("peakcmap " + str(self.peakcmap) + "\n")
+        f.write("spectracmap " + str(self.spectracmap) + "\n")
         f.write("publicationmode " + str(self.publicationmode) + "\n")
         f.write("isotopemode " + str(self.isotopemode) + "\n")
         f.write("peaknorm " + str(self.peaknorm) + "\n")
@@ -437,6 +439,11 @@ class UniDecConfig(object):
                                 self.peakcmap = str(line.split()[1], encoding="utf-8")
                             except:
                                 self.peakcmap = str(line.split()[1])
+                        if line.startswith("spectracmap"):
+                            try:
+                                self.spectracmap = str(line.split()[1], encoding="utf-8")
+                            except:
+                                self.spectracmap = str(line.split()[1])
                         if line.startswith("publicationmode"):
                             self.publicationmode = ud.string_to_int(line.split()[1])
                         if line.startswith("isotopemode"):
@@ -557,7 +564,7 @@ class UniDecConfig(object):
             "aggressive": self.aggressiveflag, "rawflag": self.rawflag, "adductmass": self.adductmass,
             "nativezub": self.nativezub, "nativezlb": self.nativezlb, "poolflag": self.poolflag,
             "accvol": self.detectoreffva, "peakshapeinflate": self.inflate, "noiseflag": self.noiseflag,
-            "linflag": self.linflag, "cmap": self.cmap, "peakcmap": self.peakcmap,
+            "linflag": self.linflag, "cmap": self.cmap, "peakcmap": self.peakcmap, "spectracmap":self.spectracmap,
             "publicationmode": self.publicationmode, "isotopemode": self.isotopemode, "peaknorm": self.peaknorm,
             "baselineflag": self.baselineflag, "orbimode": self.orbimode, "zout": self.zout, "pusher": self.pusher,
             "mindt": self.mindt,
@@ -650,6 +657,7 @@ class UniDecConfig(object):
         self.linflag = self.read_attr(self.linflag, "linflag", config_group)
         self.cmap = self.read_attr(self.cmap, "cmap", config_group)
         self.peakcmap = self.read_attr(self.peakcmap, "peakcmap", config_group)
+        self.spectracmap = self.read_attr(self.spectracmap, "spectracmap", config_group)
         self.publicationmode = self.read_attr(self.publicationmode, "publicationmode", config_group)
         self.isotopemode = self.read_attr(self.isotopemode, "isotopemode", config_group)
         self.peaknorm = self.read_attr(self.peaknorm, "peaknorm", config_group)

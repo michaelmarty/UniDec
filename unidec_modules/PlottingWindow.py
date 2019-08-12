@@ -228,7 +228,7 @@ class PlottingWindow(wx.Window):
         :return: None
         """
         try:
-            if xvals[int(len(xvals) / 2)] > 100000 or xvals[len(xvals) - 1] > 150000:
+            if xvals[int(len(xvals) / 2)] > 20000 or xvals[len(xvals) - 1] > 150000:
                 self.kdnorm = 1000.
                 self.xlabel = "Mass (kDa)"
                 self.kda = True

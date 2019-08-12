@@ -193,6 +193,14 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.4.0.2
+
+Added control of spectra color map on MetaUniDec.
+
+Added Waterfall Plots on Experimental Menu in MetaUniDec.
+
+Bug fix to PDF Report Generator.
+
 v.4.0.1
 
 Added experimental support for **Agilent .D** files. Please test it and let me know how it works. You may need to run UniDec as an administrator first to get it to register all the DLLs correctly.

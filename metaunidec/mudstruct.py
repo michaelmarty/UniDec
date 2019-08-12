@@ -96,7 +96,7 @@ class MetaDataSet:
             self.var2.append(s.var2)
             s.write_hdf5(self.filename)
         self.var1 = np.array(self.var1)
-        print("Variable 1:", self.var1)
+        #print("Variable 1:", self.var1)
         self.var2 = np.array(self.var2)
         self.len = len(self.spectra)
 
@@ -282,7 +282,7 @@ class MetaDataSet:
             self.var2 = self.var2.astype(float)
         except:
             pass
-        print("Variable 1:", self.var1)
+        #print("Variable 1:", self.var1)
 
 
 class Spectrum:

@@ -16,10 +16,11 @@ black_text = wx.Colour(0, 0, 0)
 
 
 class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
-    def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+    def __init__(self, parent, id_value, config=None, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
         wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.TextEditMixin.__init__(self)
+        self.config = config
         self.InsertColumn(0, "Index")
         self.InsertColumn(1, "Variable 1")
         self.InsertColumn(2, "Variable 2")
@@ -31,7 +32,11 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
 
     def populate(self, dataset, colors=None):
         self.DeleteAllItems()
-        colormap = cm.get_cmap('rainbow', dataset.len)
+        try:
+            colormap = cm.get_cmap(self.config.spectracmap, dataset.len)
+        except:
+            print("Failed to get spectra cmap", self.config)
+            colormap = cm.get_cmap('rainbow', dataset.len)
         peakcolors = colormap(np.arange(dataset.len))
         if colors is None:
             colors = peakcolors
@@ -70,6 +75,33 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         self.rename_column(1, dataset.v1name)
         self.rename_column(2, dataset.v2name)
 
+    def recolor(self):
+        dataset = self.data
+        try:
+            colormap = cm.get_cmap(self.config.spectracmap, dataset.len)
+        except:
+            print("Failed to get spectra cmap", self.config)
+            colormap = cm.get_cmap('rainbow', dataset.len)
+        peakcolors = colormap(np.arange(dataset.len))
+        colors = peakcolors
+        for i in range(0, dataset.len):
+            s = dataset.spectra[i]
+            index = int(s.index)
+            #print(s.index, s.var1)
+            if colors is not None:
+                color = wx.Colour(int(round(colors[i][0] * 255)), int(round(colors[i][1] * 255)),
+                                  int(round(colors[i][2] * 255)), alpha=255)
+                self.SetItemBackgroundColour(index, col=color)
+
+                luminance = ud.get_luminance(color, type=2)
+                # print(wx.Colour(colout), luminance)
+                if luminance < luminance_cutoff:
+                    self.SetItemTextColour(index, col=white_text)
+                else:
+                    self.SetItemTextColour(index, col=black_text)
+                s.color = colors[i]
+        self.colors = colors
+
     def clear_list(self):
         self.DeleteAllItems()
 
@@ -83,8 +115,8 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
 
     def get_list(self):
         count = self.GetItemCount()
-        #colormap = cm.get_cmap('rainbow', count)
-        #peakcolors = colormap(np.arange(count))
+        # colormap = cm.get_cmap('rainbow', count)
+        # peakcolors = colormap(np.arange(count))
         peakcolors = self.get_colors()
         list_output = []
         for i in range(0, count):
@@ -148,9 +180,10 @@ class ListCtrlPanel(wx.Panel):
         id_value = wx.ID_ANY
         self.selection = []
         self.pres = pres
+        self.config = self.pres.eng.config
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.list = YValueListCtrl(self, id_value, size=size, style=wx.LC_REPORT | wx.BORDER_NONE)
+        self.list = YValueListCtrl(self, id_value, config=self.config, size=size, style=wx.LC_REPORT | wx.BORDER_NONE)
 
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)

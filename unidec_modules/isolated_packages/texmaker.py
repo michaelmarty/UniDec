@@ -45,19 +45,19 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags)
     scale = 0.48
     f.write("\\begin{minipage}{3.5in}\n")
     if np.any(np.array(figureflags) == 1):
-        f.write("\\includegraphics[scale=" + str(scale) + "]{" + header + "_Figure" + str(1) + ".pdf}\\\\\n")
+        f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header + "_Figure" + str(1) + "}.pdf}\\\\\n")
     f.write("\\end{minipage}\n")
     f.write("\\switchcolumn\n")
     f.write("\\begin{minipage}{3.5in}\n")
     if np.any(np.array(figureflags) == 3):
-        f.write("\\includegraphics[scale=" + str(scale) + "]{" + header + "_Figure" + str(3) + ".pdf}\\\\\n")
+        f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header + "_Figure" + str(3) + "}.pdf}\\\\\n")
     f.write("\\end{minipage}\n")
     f.write("\\end{paracol}\n")
 
     f.write("\\begin{center}\n")
     scale = 0.85
     if np.any(np.array(figureflags) == 5):
-        f.write("\\includegraphics[scale=" + str(scale) + "]{" + header + "_Figure" + str(5) + ".pdf}\\\\\n")
+        f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header + "_Figure" + str(5) + "}.pdf}\\\\\n")
     f.write("\\end{center}\n")
 
     f.write("\\newpage\n")
@@ -75,7 +75,7 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags)
         #    f.write("\\includegraphics[scale="+str(scale)+"]{Luc_Figure"+str(i+1)+".pdf}&")
         if np.any(np.array(figureflags) == i):
             # print "Figure ",i
-            f.write("\\includegraphics[scale=" + str(scale) + "]{" + header + "_Figure" + str(i) + ".pdf}\\\\\n")
+            f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header + "_Figure" + str(i) + "}.pdf}\\\\\n")
 
     f.write("\\end{minipage}\n")
 

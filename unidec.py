@@ -92,7 +92,6 @@ class UniDec(UniDecEngine):
             self.config.imflag = 0
         self.data.data2 = self.data.rawdata
         self.config.procflag = 0
-
         # Change paths to unidecfiles folder
         dirnew = self.config.outfname + "_unidecfiles"
         if "clean" in kwargs and kwargs["clean"] and os.path.isdir(dirnew):

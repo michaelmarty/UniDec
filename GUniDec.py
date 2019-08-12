@@ -126,6 +126,8 @@ class UniDecApp(UniDecPres):
         :param skipengine: Boolean, Whether to skip running the engine (used when loading state)
         :return: None
         """
+        # tstart =time.perf_counter()
+
         # Clear other plots and panels
         self.view.peakpanel.clear_list()
         self.view.clear_all_plots()
@@ -145,6 +147,7 @@ class UniDecApp(UniDecPres):
         if self.eng.config.batchflag != 1:
             self.view.controls.ctlminmz.SetValue(str(np.amin(self.eng.data.data2[:, 0])))
             self.view.controls.ctlmaxmz.SetValue(str(np.amax(self.eng.data.data2[:, 0])))
+
         # Plot 1D
         if self.eng.config.batchflag == 0:
             self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data", "m/z",
@@ -156,16 +159,19 @@ class UniDecApp(UniDecPres):
             if self.eng.config.batchflag == 0:
                 self.view.plot1im.contourplot(self.eng.data.rawdata3, self.eng.config, xlab="m/z (Th)",
                                               ylab="Arrival Time (ms)", title="IM-MS Data")
+        #tstart = time.perf_counter()
         # Load Config to GUI
         self.import_config()
         self.view.SetStatusText("Ready", number=5)
-
+        #print("ImportConfig: %.2gs" % (time.perf_counter() - tstart))
         if False:
             try:
                 self.eng.unidec_imports(everything=True)
                 self.after_unidec_run()
             except:
                 pass
+
+        #print("4: %.2gs" % (time.perf_counter() - tstart))
 
     def on_save_state(self, e=None, filenew=None):
         """

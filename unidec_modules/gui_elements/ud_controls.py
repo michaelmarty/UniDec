@@ -653,6 +653,9 @@ class main_controls(wx.Panel):
         Imports parameters from the config object to the GUI.
         :return: None
         """
+        #import time
+        #tstart = time.perf_counter()
+
         if self.config.batchflag == 0:
 
             if self.config.imflag == 1 and self.twave != (self.config.twaveflag > 0):
@@ -697,6 +700,8 @@ class main_controls(wx.Panel):
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlrawflag.SetSelection(self.config.rawflag)
 
+            #print("1: %.2gs" % (time.perf_counter() - tstart))
+
             if self.config.adductmass < 0:
                 self.ctlnegmode.SetValue(1)
             else:
@@ -737,7 +742,7 @@ class main_controls(wx.Panel):
                     self.ctledc.SetValue(str(self.config.edc))
                     self.ctlgasmass.SetValue(str(self.config.gasmass))
                     self.ctltwavecaltype.SetSelection(list(self.config.twavedict.keys()).index(self.config.twaveflag))
-
+            #print("2: %.2gs" % (time.perf_counter() - tstart))
             try:
                 x = float(self.config.integratelb)
                 y = float(self.config.integrateub)
@@ -763,6 +768,9 @@ class main_controls(wx.Panel):
                     number=4)
             else:
                 self.parent.SetStatusText(" ", number=4)
+
+        #print("3: %.2gs" % (time.perf_counter() - tstart))
+
         # If the batchflag is not 1, it will import the data range as well
         if self.config.batchflag != 1:
             self.ctlminmz.SetValue(str(self.config.minmz))
@@ -770,11 +778,12 @@ class main_controls(wx.Panel):
             if self.config.imflag == 1:
                 self.ctlmindt.SetValue(str(self.config.mindt))
                 self.ctlmaxdt.SetValue(str(self.config.maxdt))
-
+        #print("4: %.2gs" % (time.perf_counter() - tstart))
         try:
             self.update_quick_controls()
         except Exception as e:
             print("Error updating quick controls", e)
+        #print("5: %.2gs" % (time.perf_counter() - tstart))
 
     def export_gui_to_config(self, e=None):
         """

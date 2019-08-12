@@ -738,10 +738,9 @@ def load_mz_file(path, config=None):
             print("\t but I couldn't find the file...")
             raise IOError
     else:
-
         if extension == ".txt":
             data = np.loadtxt(path, skiprows=header_test(path))
-                #data = np.loadtxt(path, skiprows=header_test(path, delimiter=","), delimiter=",")
+            #data = np.loadtxt(path, skiprows=header_test(path, delimiter=","), delimiter=",")
         elif extension == ".csv":
             data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0,1))
         elif extension == ".mzml":
@@ -760,6 +759,7 @@ def load_mz_file(path, config=None):
             except IOError:
                 print("Failed to open:", path)
                 data = None
+
     return data
 
 

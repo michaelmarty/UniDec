@@ -18,7 +18,7 @@ class meta_menu(wx.Menu):
         self.helpmenu = wx.Menu()
 
         # File Menu
-        self.openmenu = self.filemenu.Append(wx.ID_ANY, "Open File\tCtrl+O", "Open HDF5 file")
+        self.openmenu = self.filemenu.Append(wx.ID_ANY, "Open HDF5 File\tCtrl+O", "Open HDF5 file")
         self.filemenu.AppendSeparator()
         self.wizardmenu = self.filemenu.Append(wx.ID_ANY, "Import Wizard\tCtrl+N", "Import Data Into HDF5 File")
         self.filemenu.AppendSeparator()
@@ -212,6 +212,11 @@ class meta_menu(wx.Menu):
         self.autoformat = self.experimentalmenu.Append(wx.ID_ANY, "Auto Format Monomer/Dimer",
                                                        "Mark matched monomers and dimers automatically")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_autoformat, self.autoformat)
+
+        self.experimentalmenu.AppendSeparator()
+        self.menuwaterfall = self.experimentalmenu.Append(wx.ID_ANY, "Waterfall Plot",
+                                                       "Make 3D Waterfall plot with mass distributions")
+        self.parent.Bind(wx.EVT_MENU, self.pres.make_waterfall_plots, self.menuwaterfall)
 
         #self.menuAdditionalParameters = self.experimentalmenu.Append(wx.ID_ANY, "Additional Parameters",
         #                                                             "Adjust some experimental parameters")

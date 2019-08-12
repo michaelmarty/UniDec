@@ -5,7 +5,7 @@ import numpy as np
 import unidec_modules.unidectools as ud
 import unidec_modules.peakwidthtools as peakwidthtools
 from unidec_modules import ManualSelectionWindow, AutocorrWindow
-
+import time
 
 class UniDecPres(object):
     """
@@ -46,12 +46,14 @@ class UniDecPres(object):
         :param file_name: Path of file to import
         :return: None
         """
+        # tstart = time.perf_counter()
         if file_name is not None:
             extension = os.path.splitext(file_name)[1]
             if extension == ".hdf5":
                 self.eng.config.read_hdf5(file_name)
             else:
                 self.eng.config.config_import(file_name)
+
         self.view.import_config_to_gui()
         if self.eng.config.filetype == 1:
             self.eng.config.write_hdf5()

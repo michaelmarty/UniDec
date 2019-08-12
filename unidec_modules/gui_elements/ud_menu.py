@@ -19,7 +19,7 @@ class main_menu(wx.Menu):
         self.experimentalmenu = wx.Menu()
 
         # File Menu
-        self.menuOpen = self.filemenu.Append(wx.ID_OPEN, "Open File\tCtrl+O",
+        self.menuOpen = self.filemenu.Append(wx.ID_OPEN, "Open File (Text, mzML, or Thermo RAW)\tCtrl+O",
                                              " Open a Text File in x y text, mzML, or Thermo RAW format")
         self.menuOpenRaw = self.filemenu.Append(wx.ID_ANY, "Open Waters or Agilent File", " Open a Waters .Raw or Agilent .D File")
         self.filemenu.AppendSeparator()
