@@ -193,6 +193,20 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.4.0.2
+
+Switched UniDec to load processed data if it already exists.
+
+**Added Copy All Basic** to the peak panel, which copies the peak mass, height, and area to a format you can paste into excel. I can add additional copy modes easily now, so let me know what you would like to be able to copy out. 
+
+Added control of spectra color map on MetaUniDec.
+
+Added Waterfall Plots on Experimental Menu in MetaUniDec.
+
+Many Bug Fixes: Sped up quick control responses by only doing auto peak width when needed. Fixed memory leak with HDF5 files. Fixed bugs slowing down file imports. Fixed bug with PDF Report Generator. Fix bug with isolate/ignore/repopulate/reorder in MetaUniDec.
+
+Experimental features for peak scoring. More to come in future releases. 
+
 v.4.0.1
 
 Added experimental support for **Agilent .D** files. Please test it and let me know how it works. You may need to run UniDec as an administrator first to get it to register all the DLLs correctly.

@@ -19,9 +19,10 @@ class main_menu(wx.Menu):
         self.experimentalmenu = wx.Menu()
 
         # File Menu
-        self.menuOpen = self.filemenu.Append(wx.ID_OPEN, "Open File\tCtrl+O",
+        self.menuOpen = self.filemenu.Append(wx.ID_OPEN, "Open File (Text, mzML, or Thermo RAW)\tCtrl+O",
                                              " Open a Text File in x y text, mzML, or Thermo RAW format")
-        self.menuOpenRaw = self.filemenu.Append(wx.ID_ANY, "Open Waters or Agilent File", " Open a Waters .Raw or Agilent .D File")
+        self.menuOpenRaw = self.filemenu.Append(wx.ID_ANY, "Open Waters or Agilent File",
+                                                " Open a Waters .Raw or Agilent .D File")
         self.filemenu.AppendSeparator()
 
         self.menuLoadState = self.filemenu.Append(wx.ID_ANY, "Load State\tCtrl+L", "Load state from folder")
@@ -186,6 +187,8 @@ class main_menu(wx.Menu):
         self.menuOpenDir = self.advancedmenu.Append(wx.ID_ANY, "Open Saved File Directory",
                                                     "Opens the save directory in the file explorer")
 
+
+
         if self.config.imflag == 0:
             self.advancedmenu.AppendSeparator()
             self.advancedmenu.Append(401, "Best Mode", "Best UniDec Deconvolution Algorithm", wx.ITEM_RADIO)
@@ -237,6 +240,12 @@ class main_menu(wx.Menu):
             self.menuAdditionalParameters = self.experimentalmenu.Append(wx.ID_ANY, "Additional Parameters",
                                                                          "Adjust some experimental parameters")
             self.experimentalmenu.AppendSeparator()
+
+            self.menuscore1 = self.experimentalmenu.Append(wx.ID_ANY, "Show Peak Scores", "Show Peak Scores")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_score, self.menuscore1)
+
+            self.menuscore2 = self.experimentalmenu.Append(wx.ID_ANY, "Peak Scores Window", "Launch Peak Scores Window")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_score_window, self.menuscore2)
 
             self.menuscore = self.experimentalmenu.Append(wx.ID_ANY, "Filter Peak Scores", "Filter Peak Scores")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_score2, self.menuscore)
@@ -295,6 +304,12 @@ class main_menu(wx.Menu):
 
         # self.menucentroid = self.experimentalmenu.Append(wx.ID_ANY, "Get Centroid at FWHM")
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_centroid, self.menucentroid)
+
+        self.experimentalmenu.AppendSeparator()
+        self.menuRegister = self.experimentalmenu.Append(wx.ID_ANY, "Fix Thermo or Agilent Imports",
+                                                     "Registers the Thermo and Agilent Interfaces. "
+                                                     "MUST RUN AS ADMINISTRATOR")
+        self.parent.Bind(wx.EVT_MENU, self.pres.register, self.menuRegister)
 
         self.experimentalmenu.AppendSeparator()
         self.menulauncher = self.experimentalmenu.Append(wx.ID_ANY, "Launcher")

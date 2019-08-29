@@ -67,6 +67,19 @@ class Peak:
         self.pca_mdist = None
         self.pca_zdist = None
 
+    def line_out(self, type="Full"):
+        if type == "Full":
+            outputs = [self.mass, self.centroid, self.height, self.area, self.textmarker, self.match, self.matcherror,
+                       self.integral, self.diff, self.avgcharge, self.dscore]
+        elif type == "Basic":
+            outputs = [self.mass, self.height, self.integral]
+        else:
+            outputs = [self.mass, self.height]
+        outstring = ""
+        for o in outputs:
+            outstring += str(o) + "\t"
+        return outstring
+
 
 class Peaks:
     """
@@ -234,3 +247,10 @@ class Peaks:
             p.marker = newmarker
             p.textmarker = newtextmarker
             # print n1, n2, newcolor, newmarker, newtextmarker
+
+    def copy(self, type="Full"):
+        outstring = ""
+        for p in self.peaks:
+            outstring += p.line_out(type=type) + "\n"
+        return outstring
+

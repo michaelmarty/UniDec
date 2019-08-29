@@ -13,7 +13,7 @@ import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 from unidec_modules import Extract2D, peakwidthtools, masstools, miscwindows, \
     MassDefects, mainwindow, nativez, ManualSelectionWindow, AutocorrWindow, fft_window, GridDecon, isotopetools
-from unidec_modules.isolated_packages import FileDialogs, texmaker
+from unidec_modules.isolated_packages import FileDialogs, texmaker, score_window
 import datacollector
 import import_wizard
 import unidec_modules.IM_windows as IM_wind
@@ -126,6 +126,8 @@ class UniDecApp(UniDecPres):
         :param skipengine: Boolean, Whether to skip running the engine (used when loading state)
         :return: None
         """
+        # tstart =time.perf_counter()
+
         # Clear other plots and panels
         self.view.peakpanel.clear_list()
         self.view.clear_all_plots()
@@ -145,6 +147,7 @@ class UniDecApp(UniDecPres):
         if self.eng.config.batchflag != 1:
             self.view.controls.ctlminmz.SetValue(str(np.amin(self.eng.data.data2[:, 0])))
             self.view.controls.ctlmaxmz.SetValue(str(np.amax(self.eng.data.data2[:, 0])))
+
         # Plot 1D
         if self.eng.config.batchflag == 0:
             self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data", "m/z",
@@ -156,16 +159,19 @@ class UniDecApp(UniDecPres):
             if self.eng.config.batchflag == 0:
                 self.view.plot1im.contourplot(self.eng.data.rawdata3, self.eng.config, xlab="m/z (Th)",
                                               ylab="Arrival Time (ms)", title="IM-MS Data")
+        #tstart = time.perf_counter()
         # Load Config to GUI
         self.import_config()
         self.view.SetStatusText("Ready", number=5)
-
+        #print("ImportConfig: %.2gs" % (time.perf_counter() - tstart))
         if False:
             try:
-                self.eng.unidec_imports(everything=True)
+                self.eng.unidec_imports(everything=False)
                 self.after_unidec_run()
             except:
                 pass
+
+        #print("ImportData: %.2gs" % (time.perf_counter() - tstart))
 
     def on_save_state(self, e=None, filenew=None):
         """
@@ -301,7 +307,7 @@ class UniDecApp(UniDecPres):
                 os.chdir(newdir)
                 np.savetxt(fname, data)
                 print("Saved Pasted Spectrum as File:", fname, " in directory:", newdir)
-                self.on_open_file(fname, newdir)
+                self.on_open_file(fname, newdir, pasted=True)
             else:
                 print("Paste failed, got: ", data)
         except Exception as e:
@@ -324,6 +330,7 @@ class UniDecApp(UniDecPres):
         self.view.SetStatusText("Data Prep", number=5)
         self.export_config(self.eng.config.confname)
         self.eng.process_data()
+        self.eng.get_auto_peak_width(set=False)
         self.import_config()
         self.view.clear_all_plots()
         self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data Sent to UniDec",
@@ -343,7 +350,7 @@ class UniDecApp(UniDecPres):
         self.view.SetStatusText("R\u00B2 ", number=3)
         self.view.SetStatusText("Data Prep Done", number=5)
         tend = time.perf_counter()
-        # print "Data Prep Done. Time: %.2gs" % (tend - tstart)
+        print("Data Prep Done. Time: %.2gs" % (tend - tstart))
         pass
 
     def on_unidec_button(self, e=None):
@@ -491,6 +498,7 @@ class UniDecApp(UniDecPres):
                                            "m/z (Th)", "Normalized Intensity", "Data", self.eng.config, nopaint=True)
             try:
                 self.view.plot1.plotadd(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "Fit Data")
+                pass
             except:
                 pass
             if self.eng.config.aggressiveflag != 0 and len(self.eng.data.baseline) == len(self.eng.data.fitdat):
@@ -1658,6 +1666,9 @@ class UniDecApp(UniDecPres):
         self.on_score_window()
 
     def on_score_window(self, e=0):
+        self.on_score()
+        sw = score_window.ScoreFrame(self.view)
+        sw.populate(self.eng.pks)
         pass
 
     # def on_remove_noise_points(self, e=0):

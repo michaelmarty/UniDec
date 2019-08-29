@@ -90,8 +90,10 @@ class Plot1d(PlottingWindow):
             self.subplot1.xaxis.set_major_locator(MaxNLocator(integer=True))
 
         self.subplot1.set_xlabel(self.xlabel)
+
         self.setup_zoom([self.subplot1], self.zoomtype)
         if not nopaint:
+            #self.setup_zoom([self.subplot1], self.zoomtype)
             self.repaint()
         self.flag = True
         self.mlist = []
@@ -111,6 +113,7 @@ class Plot1d(PlottingWindow):
         self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=colval, label=newlabel, **kwargs)
         self.setup_zoom([self.subplot1], self.zoomtype)
         if not nopaint:
+            #self.setup_zoom([self.subplot1], self.zoomtype)
             self.repaint()
 
     def errorbars(self, xvals, yvals, xerr=None, yerr=None, color="black", newlabel="", nopaint=True, **kwargs):

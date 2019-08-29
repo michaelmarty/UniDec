@@ -14,6 +14,7 @@ class main_controls(wx.Panel):
         self.backgroundchoices = self.config.backgroundchoices
         self.psigsettings = [0, 1, 10, 100]
         self.betasettings = [0, 50, 500, 1000]
+        self.update_flag = True
 
         # Get a few tool bar icons
         tsize = (16, 16)
@@ -386,32 +387,50 @@ class main_controls(wx.Panel):
         panel3b = wx.Panel(foldpanel3b, -1)
 
         gbox3b = wx.GridBagSizer(wx.VERTICAL)
-        gbox3b.Add(wx.StaticText(panel3b, label='2D Color Map: '), (0, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+
         self.ctl2dcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
-        gbox3b.Add(wx.StaticText(panel3b, label='Peaks Color Map: '), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         self.ctlpeakcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
+        self.ctlspeccm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
+        self.parent.Bind(wx.EVT_COMBOBOX, self.on_spectra_color_change, self.ctlspeccm)
 
-        for mp in self.config.cmaps2:
-            self.ctl2dcm.Append(mp)
-        for mp in self.config.cmaps:
-            self.ctlpeakcm.Append(mp)
+        #for mp in self.config.cmaps2:
+        #    self.ctl2dcm.Append(mp)
+        #for mp in self.config.cmaps:
+        #    self.ctlpeakcm.Append(mp)
+        #    self.ctlspeccm.Append(mp)
+        self.ctl2dcm.AppendItems(self.config.cmaps2)
+        self.ctlpeakcm.AppendItems(self.config.cmaps)
+        self.ctlspeccm.AppendItems(self.config.cmaps)
 
-        gbox3b.Add(self.ctl2dcm, (0, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox3b.Add(self.ctlpeakcm, (1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+
+        i = 0
+        gbox3b.Add(wx.StaticText(panel3b, label='2D Color Map: '), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox3b.Add(self.ctl2dcm, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+        gbox3b.Add(wx.StaticText(panel3b, label='Peaks Color Map: '), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox3b.Add(self.ctlpeakcm, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+        gbox3b.Add(wx.StaticText(panel3b, label='Spectra Color Map: '), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox3b.Add(self.ctlspeccm, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         self.ctldiscrete = wx.CheckBox(panel3b, label="Discrete Plot")
-        gbox3b.Add(self.ctldiscrete, (2, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox3b.Add(self.ctldiscrete, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         self.ctlpublicationmode = wx.CheckBox(panel3b, label="Publication Mode")
-        gbox3b.Add(self.ctlpublicationmode, (2, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox3b.Add(self.ctlpublicationmode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
         self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved/Profile", "Raw/Centroid"])
-        gbox3b.Add(self.ctlrawflag, (3, 0), span=(1, 2), flag=wx.EXPAND)
+        gbox3b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
 
-        gbox3b.Add(wx.StaticText(panel3b, label="Marker Threshold: "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox3b.Add(wx.StaticText(panel3b, label="Species Separation: "), (5, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         self.ctlthresh2 = wx.TextCtrl(panel3b, value="", size=size1)
         self.ctlsep = wx.TextCtrl(panel3b, value="", size=size1)
-        gbox3b.Add(self.ctlthresh2, (4, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox3b.Add(self.ctlsep, (5, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox3b.Add(wx.StaticText(panel3b, label="Marker Threshold: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox3b.Add(self.ctlthresh2, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+        gbox3b.Add(wx.StaticText(panel3b, label="Species Separation: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox3b.Add(self.ctlsep, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         sb2 = wx.StaticBox(panel3b, label='Integration Range')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.HORIZONTAL)
@@ -421,7 +440,8 @@ class main_controls(wx.Panel):
         sbs2.Add(wx.StaticText(panel3b, label=' to '), 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
         sbs2.Add(self.ctlintub, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
         sbs2.Add(wx.StaticText(panel3b, label=' Da '), 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
-        gbox3b.Add(sbs2, (6, 0), span=(1, 2), flag=wx.EXPAND)
+        gbox3b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
 
         sb3 = wx.StaticBox(panel3b, label='Limits on # of Spectra')
         sbs3 = wx.StaticBoxSizer(sb3, orient=wx.HORIZONTAL)
@@ -431,15 +451,16 @@ class main_controls(wx.Panel):
         sbs3.Add(self.ctlcrossover, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
         sbs3.Add(wx.StaticText(panel3b, label=' plot only'), 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
         sbs3.Add(self.ctlnumtot, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
-        gbox3b.Add(sbs3, (7, 0), span=(1, 2), flag=wx.EXPAND)
+        gbox3b.Add(sbs3, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
 
         self.replotbutton = wx.Button(panel3b, -1, "Replot")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_replot, self.replotbutton)
-        gbox3b.Add(self.replotbutton, (8, 0), span=(1, 1), flag=wx.EXPAND)
+        gbox3b.Add(self.replotbutton, (i, 0), span=(1, 1), flag=wx.EXPAND)
 
         self.compositebutton = wx.Button(panel3b, -1, "Plot Composite")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_plot_composite, self.compositebutton)
-        gbox3b.Add(self.compositebutton, (8, 1), span=(1, 1), flag=wx.EXPAND)
+        gbox3b.Add(self.compositebutton, (i, 1), span=(1, 1), flag=wx.EXPAND)
 
         panel3b.SetSizer(gbox3b)
         gbox3b.Fit(panel3b)
@@ -470,6 +491,8 @@ class main_controls(wx.Panel):
         Imports parameters from the config object to the GUI.
         :return: None
         """
+        self.Freeze()
+        self.update_flag = False
         if self.config.batchflag == 0:
             self.ctlmassbins.SetValue(str(self.config.massbins))
             self.ctlstartz.SetValue(str(self.config.startz))
@@ -523,6 +546,7 @@ class main_controls(wx.Panel):
             try:
                 self.ctl2dcm.SetSelection(self.config.cmaps2.index(self.config.cmap))
                 self.ctlpeakcm.SetSelection(self.config.cmaps.index(self.config.peakcmap))
+                self.ctlspeccm.SetSelection(self.config.cmaps.index(self.config.spectracmap))
             except ValueError:
                 print("Could not find the specified color map. Try upgrading to the latest version of matplotlib.",
                       self.config.cmap, self.config.peakcmap)
@@ -531,6 +555,7 @@ class main_controls(wx.Panel):
                 # Revert to the defaults
                 self.ctl2dcm.SetSelection(self.config.cmaps.index(u"nipy_spectral"))
                 self.ctlpeakcm.SetSelection(self.config.cmaps.index(u"rainbow"))
+                self.ctlspeccm.SetSelection(self.config.cmaps.index(u"rainbow"))
 
             try:
                 x = float(self.config.integratelb)
@@ -573,11 +598,12 @@ class main_controls(wx.Panel):
         if self.config.batchflag != 1:
             self.ctlminmz.SetValue(str(self.config.minmz))
             self.ctlmaxmz.SetValue(str(self.config.maxmz))
-
+        self.update_flag = True
         try:
             self.update_quick_controls()
         except Exception as e:
             print("Error updating quick controls", e)
+        self.Thaw()
 
     def export_gui_to_config(self, e=None):
         """
@@ -634,6 +660,7 @@ class main_controls(wx.Panel):
         self.config.rawflag = self.ctlrawflag.GetSelection()
         self.config.cmap = str(self.ctl2dcm.GetStringSelection())
         self.config.peakcmap = str(self.ctlpeakcm.GetStringSelection())
+        self.config.spectracmap = str(self.ctlspeccm.GetStringSelection())
         self.config.poolflag = self.ctlpoolflag.GetSelection()
 
         self.config.exnorm = self.ctlnorm2.GetSelection()
@@ -646,9 +673,12 @@ class main_controls(wx.Panel):
                 self.ctladductmass.SetValue(str(self.config.adductmass))
         else:
             # print("Positive Ion Mode")
-            if self.config.adductmass < 0:
-                self.config.adductmass *= -1
-                self.ctladductmass.SetValue(str(self.config.adductmass))
+            try:
+                if self.config.adductmass < 0:
+                    self.config.adductmass *= -1
+                    self.ctladductmass.SetValue(str(self.config.adductmass))
+            except:
+                self.config.adductmass = 1.007276467
 
         try:
             self.config.exwindow = float(self.ctlextractwindow.GetValue())
@@ -756,6 +786,7 @@ class main_controls(wx.Panel):
                 "Decide whether to outputs should be reconvolved with the peak shape or the raw deconvolution"))
         self.ctl2dcm.SetToolTip(wx.ToolTip("Set 2D plot color function"))
         self.ctlpeakcm.SetToolTip(wx.ToolTip("Set the color function for the peaks"))
+        self.ctlspeccm.SetToolTip(wx.ToolTip("Set the color function for the spectra"))
         self.ctlintlb.SetToolTip(wx.ToolTip(
             "Controls range for integration.\nDefault is +/- Peak Detection Window."
             "\nUses these boxes to manually set - and +"))
@@ -865,7 +896,8 @@ class main_controls(wx.Panel):
     def on_pw_check(self, e):
         value = self.ctlpeakwidthcheck.Get3StateValue()
         if value == 1:
-            self.pres.on_auto_peak_width()
+            self.ctlmzsig.SetValue(str(self.config.automzsig))
+            self.ctlpsfun.SetSelection(self.config.autopsfun)
         elif value == 0:
             self.ctlmzsig.SetValue("0")
         self.export_gui_to_config()
@@ -880,6 +912,13 @@ class main_controls(wx.Panel):
         self.ctlbeta.SetValue(str(self.betasettings[value]))
         self.export_gui_to_config()
 
+    def on_spectra_color_change(self, e):
+        value = str(self.ctlspeccm.GetStringSelection())
+        if value != self.config.spectracmap:
+            self.export_gui_to_config()
+            self.pres.recolor_spectra()
+            print("Switch Spectra Color Map:", value)
+
     def bind_changes(self, e=None):
         self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlzzsig)
         self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlmsig)
@@ -890,50 +929,50 @@ class main_controls(wx.Panel):
             self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlpsig)
 
     def update_quick_controls(self, e=None):
-        # Z Box
-        try:
-            value = float(self.ctlzzsig.GetValue())
-        except:
-            value = -1
-        if value == 0:
-            self.ctlzsmoothcheck.Set3StateValue(0)
-        elif value == 1:
-            self.ctlzsmoothcheck.Set3StateValue(1)
-        else:
-            self.ctlzsmoothcheck.Set3StateValue(2)
+        if self.update_flag:
+            # Z Box
+            try:
+                value = float(self.ctlzzsig.GetValue())
+            except:
+                value = -1
+            if value == 0:
+                self.ctlzsmoothcheck.Set3StateValue(0)
+            elif value == 1:
+                self.ctlzsmoothcheck.Set3StateValue(1)
+            else:
+                self.ctlzsmoothcheck.Set3StateValue(2)
 
-        # M box
-        try:
-            value = float(self.ctlmsig.GetValue())
-        except:
-            value = -1
-        if value == 0:
-            self.ctlmsmoothcheck.Set3StateValue(0)
-        elif value == 1:
-            self.ctlmsmoothcheck.Set3StateValue(1)
-        else:
-            self.ctlmsmoothcheck.Set3StateValue(2)
+            # M box
+            try:
+                value = float(self.ctlmsig.GetValue())
+            except:
+                value = -1
+            if value == 0:
+                self.ctlmsmoothcheck.Set3StateValue(0)
+            elif value == 1:
+                self.ctlmsmoothcheck.Set3StateValue(1)
+            else:
+                self.ctlmsmoothcheck.Set3StateValue(2)
 
-        # PW box
-        try:
-            value = float(self.ctlmzsig.GetValue())
-        except:
-            value = -1
-        psval = self.ctlpsfun.GetSelection()
-        try:
-            fwhm, psfun, mid = ud.auto_peak_width(self.pres.eng.data.data2)
-        except:
-            fwhm = -1
-            psfun = -1
-        if value == 0:
-            self.ctlpeakwidthcheck.Set3StateValue(0)
-        elif value == fwhm and psval == psfun:
-            self.ctlpeakwidthcheck.Set3StateValue(1)
-        else:
-            self.ctlpeakwidthcheck.Set3StateValue(2)
-            pass
+            # PW box
+            try:
+                value = float(self.ctlmzsig.GetValue())
+            except:
+                value = -1
+            psval = self.ctlpsfun.GetSelection()
+            #try:
+            #    fwhm, psfun, mid = ud.auto_peak_width(self.pres.eng.data.data2)
+            #except:
+            #    fwhm = -1
+            #    psfun = -1
+            if value == 0:
+                self.ctlpeakwidthcheck.Set3StateValue(0)
+            elif value == self.config.automzsig and psval == self.config.autopsfun:
+                self.ctlpeakwidthcheck.Set3StateValue(1)
+            else:
+                self.ctlpeakwidthcheck.Set3StateValue(2)
+                pass
 
-        if self.config.imflag == 0:
             # beta box
             try:
                 value = float(self.ctlbeta.GetValue())

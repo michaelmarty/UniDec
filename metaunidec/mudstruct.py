@@ -61,7 +61,7 @@ class MetaDataSet:
             self.data2 = self.spectra[0].data2
             self.import_vars()
 
-    def export_hdf5(self, file=None):
+    def export_hdf5(self, file=None, vars_only=False):
         if file is None:
             file = self.filename
         else:
@@ -73,10 +73,12 @@ class MetaDataSet:
 
         # Clear Group
         hdf = h5py.File(file)
-        try:
-            del hdf["/" + self.topname]
-        except:
-            pass
+        # if not vars_only:
+        #    try:
+        #        del hdf["/" + self.topname]
+        #        pass
+        #    except:
+        #        pass
         group = hdf.require_group(self.topname)
         group.attrs["num"] = len(self.spectra)
         group.attrs["v1name"] = self.v1name
@@ -94,11 +96,17 @@ class MetaDataSet:
             s.attrs["name"] = s.name
             self.var1.append(s.var1)
             self.var2.append(s.var2)
-            s.write_hdf5(self.filename)
+            s.write_hdf5(self.filename, vars_only=vars_only)
         self.var1 = np.array(self.var1)
-        print("Variable 1:", self.var1)
+        # print("Variable 1:", self.var1)
         self.var2 = np.array(self.var2)
         self.len = len(self.spectra)
+
+    def export_vars(self, file=None):
+        for s in self.spectra:
+            if s.ignore == 1:
+                return
+        self.export_hdf5(vars_only=True)
 
     def import_grids(self):
         hdf = h5py.File(self.filename)
@@ -115,7 +123,7 @@ class MetaDataSet:
             grid3 = [grid2, grid]
             self.massgrid = np.transpose(grid3)
         except:
-            print("Mass Grid Warning:", grid.shape, sum.shape)#, len(grid)/len(sum))
+            print("Mass Grid Warning:", grid.shape, sum.shape)  # , len(grid)/len(sum))
             num = 0
         # MZ Space
         axis = get_dataset(msdataset, "mz_axis")
@@ -129,7 +137,7 @@ class MetaDataSet:
             grid3 = [grid2, grid]
             self.mzgrid = np.transpose(grid3)
         except:
-            print("mz grid Warning:", grid.shape, sum.shape)#, len(grid)/len(sum))
+            print("mz grid Warning:", grid.shape, sum.shape)  # , len(grid)/len(sum))
         hdf.close()
         return num
 
@@ -199,7 +207,7 @@ class MetaDataSet:
                 for i, s in enumerate(splits):
                     if s == "CID" or s == "SID":
                         try:
-                            snew.var1 = float(splits[i+1])
+                            snew.var1 = float(splits[i + 1])
                         except Exception as e:
                             print(splits, e)
 
@@ -251,10 +259,9 @@ class MetaDataSet:
             msdata.attrs["v2name"] = str(self.v2name)
         hdf.close()
 
-
         self.var1 = []
         self.var2 = []
-        for i in range(0, self.len):
+        for i in range(0, len(self.spectra)):
             s = self.spectra[i]
             try:
                 s.var1 = s.attrs[self.v1name]
@@ -282,7 +289,7 @@ class MetaDataSet:
             self.var2 = self.var2.astype(float)
         except:
             pass
-        print("Variable 1:", self.var1)
+        # print("Variable 1:", self.var1)
 
 
 class Spectrum:
@@ -308,7 +315,7 @@ class Spectrum:
         self.var2 = 0
         self.eng = eng
 
-    def write_hdf5(self, file=None):
+    def write_hdf5(self, file=None, vars_only=False):
         if file is None:
             file = self.filename
         else:
@@ -316,14 +323,15 @@ class Spectrum:
 
         hdf = h5py.File(file)
         msdata = hdf.require_group(self.topname + "/" + str(self.index))
-        replace_dataset(msdata, "raw_data", self.rawdata)
-        replace_dataset(msdata, "fit_data", self.fitdat)
-        replace_dataset(msdata, "processed_data", self.data2)
-        replace_dataset(msdata, "mass_data", self.massdat)
-        replace_dataset(msdata, "mz_grid", self.mzgrid)
-        replace_dataset(msdata, "mass_grid", self.massgrid)
-        replace_dataset(msdata, "baseline", self.baseline)
-        replace_dataset(msdata, "charge_data", self.zdata)
+        if not vars_only:
+            replace_dataset(msdata, "raw_data", self.rawdata)
+            replace_dataset(msdata, "fit_data", self.fitdat)
+            replace_dataset(msdata, "processed_data", self.data2)
+            replace_dataset(msdata, "mass_data", self.massdat)
+            replace_dataset(msdata, "mz_grid", self.mzgrid)
+            replace_dataset(msdata, "mass_grid", self.massgrid)
+            replace_dataset(msdata, "baseline", self.baseline)
+            replace_dataset(msdata, "charge_data", self.zdata)
         for key, value in list(self.attrs.items()):
             msdata.attrs[key] = value
         hdf.close()

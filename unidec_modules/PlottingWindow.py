@@ -228,7 +228,7 @@ class PlottingWindow(wx.Window):
         :return: None
         """
         try:
-            if xvals[int(len(xvals) / 2)] > 100000 or xvals[len(xvals) - 1] > 150000:
+            if xvals[int(len(xvals) / 2)] > 20000 or xvals[len(xvals) - 1] > 150000:
                 self.kdnorm = 1000.
                 self.xlabel = "Mass (kDa)"
                 self.kda = True
@@ -253,11 +253,13 @@ class PlottingWindow(wx.Window):
         self.subplot1.plot(np.array(x) / self.kdnorm, y, color=colval, marker=markval, linestyle='None', clip_on=False
                            , markeredgecolor="k")
 
-    def repaint(self):
+    def repaint(self, setupzoom=False):
         """
         Redraw and refresh the plot.
         :return: None
         """
+        if setupzoom:
+            self.setup_zoom([self.subplot1], self.zoomtype)
         self.canvas.draw()
 
     def clear_plot(self, *args):

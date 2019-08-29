@@ -105,6 +105,9 @@ struct Config
 	//Experimental Parameters
 	int filterwidth;
 	double zerolog;
+	int lengthmz;
+	int mlen;
+	int plen;
 };
 
 Config SetDefaultConfig()
@@ -187,6 +190,9 @@ Config SetDefaultConfig()
 	//Experimental
 	config.filterwidth = 20;
 	config.zerolog = -12;
+	config.lengthmz = 0;
+	config.mlen = 0;
+	config.plen = 0;
 	return config;
 }
 
@@ -309,6 +315,10 @@ Config LoadConfig(Config config,const char *filename)
 			//Experimental
 			if (strstr(x, "filterwidth") != NULL) { config.filterwidth = atoi(y); printf(" filterwidth"); }
 			if (strstr(x, "zerolog") != NULL) { config.zerolog = atof(y); printf(" zerolog"); }
+			//Peak Parameters
+			if (strstr(x, "peakwindow") != NULL) { config.peakwin = atof(y); printf(" peakwindow"); }
+			if (strstr(x, "peakthresh") != NULL) { config.peakthresh = atof(y); printf(" peakthresh"); }
+			if (strstr(x, "peaknorm") != NULL) { config.peaknorm = atoi(y); printf(" peaknorm"); }
 		}
 		printf("\n\n");
 	}
@@ -1991,7 +2001,7 @@ void PerfectTransform(int lengthmz, int numz, double *mtab, double massmax, doub
 }
 
 
-void IntegrateTransform(int lengthmz, int numz,double *mtab,double massmax, double massmin, int maaxle, double *massaxis,double *massaxisval,double*blur,double *massgrid)
+void IntegrateTransform(const int lengthmz, const int numz, const double *mtab, double massmax, double massmin, const int maaxle, double *massaxis,double *massaxisval, const double*blur,double *massgrid)
 {
 	for(int i=0;i<lengthmz;i++)
 		{
@@ -2030,7 +2040,7 @@ void IntegrateTransform(int lengthmz, int numz,double *mtab,double massmax, doub
 		}
 }
 
-void InterpolateTransform(int maaxle,int numz,int lengthmz, int *nztab,double *massaxis,double adductmass,double *dataMZ,double *dataInt,double *massgrid, double *massaxisval, double *blur)
+void InterpolateTransform(const int maaxle,const int numz,const int lengthmz, const int *nztab,double *massaxis,const double adductmass,const double *dataMZ,const double *dataInt,double *massgrid, double *massaxisval, const double *blur)
 {
 	double startmzval = dataMZ[0];
 	double endmzval = dataMZ[lengthmz - 1];

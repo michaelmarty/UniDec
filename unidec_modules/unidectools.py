@@ -731,17 +731,16 @@ def load_mz_file(path, config=None):
                 np.savetxt(txtname, data)
                 print("Saved to:", txtname)
             except:
-                print("Attempted to convert Waters Raw file but failed")
+                print("Attempted to convert Agilent Raw file but failed")
                 raise IOError
         else:
             print("Attempted to open:", path)
             print("\t but I couldn't find the file...")
             raise IOError
     else:
-
         if extension == ".txt":
             data = np.loadtxt(path, skiprows=header_test(path))
-                #data = np.loadtxt(path, skiprows=header_test(path, delimiter=","), delimiter=",")
+            #data = np.loadtxt(path, skiprows=header_test(path, delimiter=","), delimiter=",")
         elif extension == ".csv":
             data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0,1))
         elif extension == ".mzml":
@@ -760,6 +759,7 @@ def load_mz_file(path, config=None):
             except IOError:
                 print("Failed to open:", path)
                 data = None
+
     return data
 
 
@@ -848,6 +848,15 @@ def auto_peak_width(datatop, psfun=None):
         boo2 = datatop[:, 0] > maxval - sig
         boo3 = np.all([boo1, boo2], axis=0)
         isodat = datatop[boo3]
+
+        if len(isodat) < 6:
+            sig = cpeaks[1, 0]
+            boo1 = datatop[:, 0] < maxval + sig
+            boo2 = datatop[:, 0] > maxval - sig
+            boo3 = np.all([boo1, boo2], axis=0)
+            isodat = datatop[boo3]
+            if len(isodat) < 6:
+                print("Warning: Very small range selected for auto peaks width:", sig, isodat)
 
         fits = np.array([isolated_peak_fit(isodat[:, 0], isodat[:, 1], i) for i in range(0, 3)])
 
@@ -2295,11 +2304,13 @@ def calc_FWHM(peak, data):
         if leftfound is False:
             if data[index - counter, 1] <= (int) / 2.:
                 leftfound = True
+                leftwidth += 1
             else:
                 leftwidth += 1
         if rightfound is False:
             if data[index + counter, 1] <= (int) / 2.:
                 rightfound = True
+                rightwidth += 1
             else:
                 rightwidth += 1
         counter += 1
@@ -2341,11 +2352,13 @@ def peaks_error_FWHM(pks, data):
             if leftfound is False:
                 if data[index - counter, 1] <= (int * div) / 2.:
                     leftfound = True
+                    leftwidth += 1
                 else:
                     leftwidth += 1
             if rightfound is False:
                 if data[index + counter, 1] <= (int * div) / 2.:
                     rightfound = True
+                    rightwidth += 1
                 else:
                     rightwidth += 1
             counter += 1
