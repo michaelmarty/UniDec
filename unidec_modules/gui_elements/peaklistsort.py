@@ -69,7 +69,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.popupID9 = wx.NewId()
         self.popupID10 = wx.NewId()
         self.popupID11 = wx.NewId()
-        self.poppuID12 = wx.NewId()
+        self.popupID12 = wx.NewId()
+        self.popupID13 = wx.NewId()
 
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)
@@ -82,6 +83,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.Bind(wx.EVT_MENU, self.on_popup_nine, id=self.popupID9)
         self.Bind(wx.EVT_MENU, self.on_popup_ten, id=self.popupID10)
         self.Bind(wx.EVT_MENU, self.on_popup_eleven, id=self.popupID11)
+        self.Bind(wx.EVT_MENU, self.on_popup_twelve, id=self.popupID12)
 
     def clear_list(self):
         """
@@ -201,6 +203,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                 menu.AppendSeparator()
                 menu.Append(self.popupID5, "Color Select")
                 menu.Append(self.popupID9, "Marker Select")
+                menu.AppendSeparator()
+                menu.Append(self.popupID12, "Copy All Basic")
                 self.PopupMenu(menu)
                 menu.Destroy()
         else:
@@ -220,6 +224,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                 menu.AppendSeparator()
                 menu.Append(self.popupID5, "Color Select")
                 menu.Append(self.popupID9, "Marker Select")
+                menu.AppendSeparator()
+                menu.Append(self.popupID12, "Copy All Basic")
                 self.PopupMenu(menu)
                 menu.Destroy()
 
@@ -507,6 +513,24 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
 
         newevent = wx.PyCommandEvent(self.EVT_DELETE_SELECTION_2._getEvtType(), self.GetId())
         self.GetEventHandler().ProcessEvent(newevent)
+
+    def on_popup_twelve(self, e=None):
+        print("Copying...")
+        outstring=self.pks.copy(type="Basic")
+        print("Outputs:", outstring)
+
+        # Create text data object
+        clipboard = wx.TextDataObject()
+
+        # Set data object value
+        clipboard.SetText(outstring)
+
+        # Put the data in the clipboard
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(clipboard)
+            wx.TheClipboard.Close()
+        else:
+            wx.MessageBox("Can't open the clipboard", "Error")
 
 
 # TODO: Add in a column label drop down or some other way to select which information of self.pks is displayed

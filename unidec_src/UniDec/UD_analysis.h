@@ -11,6 +11,11 @@
 //
 //
 
+#include "UD_dataproc.h"
+
+#ifndef ANALYSIS_HEADER
+#define ANALYSIS_HEADER
+
 void interpolate_merge(const double *massaxis, double *outint, const double *tempaxis, const double *tempint, const int mlen, const int templen)
 {
 	double start = tempaxis[0];
@@ -180,7 +185,7 @@ int is_peak(const double *dataMZ, const double *dataInt, const int lengthmz, con
 	for (int i = 0; i < lengthmz; i++)
 	{
 		double temp = dataMZ[i];
-		if (fabs(temp - xval) < window)
+		if (fabs(temp - xval) <= window)
 		{
 			double tempy = dataInt[i];
 			//printf("%f %f %f %f\n", temp, tempy, xval, yval);
@@ -629,3 +634,5 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 
 // peak_extracts() extracts for each row in /peakdata and writes to /extracts
 //TODO: in peak_extracts() find way to only search for masses from the ultra mass list
+
+#endif

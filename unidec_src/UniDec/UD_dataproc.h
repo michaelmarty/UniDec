@@ -1,5 +1,18 @@
 #pragma once
+/*
+* UD_dataproc.h
+*
+* Author : Michael.Marty
+*/
 
+//
+// 
+// Copyright 2017 University of Arizona
+//
+//
+
+#ifndef DATAPROC_HEADER
+#define DATAPROC_HEADER
 
 //Pool data
 int pool1d(double *oldmz, double *oldint, const int oldlen, const int mzbins)
@@ -351,3 +364,5 @@ void process_data(int argc, char *argv[], Config config)
 	H5Fclose(file_id);
 	printf("Done\n");
 }
+
+#endif

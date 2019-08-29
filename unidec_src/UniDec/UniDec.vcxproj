@@ -217,6 +217,7 @@
       <CompileAs>CompileAsC</CompileAs>
       <FloatingPointExceptions>false</FloatingPointExceptions>
       <FunctionLevelLinking>false</FunctionLevelLinking>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>libszip.lib;libzlib.lib;libhdf5.lib;libhdf5_hl.lib;ucrt.lib;vcruntime.lib;msvcrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -237,12 +238,14 @@
     <ClCompile Include="UniDec.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="UD_headers.h" />
     <ClInclude Include="MetaUniDec_Main.h" />
     <ClInclude Include="UD_analysis.h" />
     <ClInclude Include="UD_charge.h" />
     <ClInclude Include="UD_dataproc.h" />
     <ClInclude Include="UD_H5_IO.h" />
     <ClInclude Include="UD_peak_width.h" />
+    <ClInclude Include="UD_score.h" />
     <ClInclude Include="UD_sg.h" />
     <ClInclude Include="UniDec.h" />
     <ClInclude Include="UniDech-rev511.h" />

@@ -6,6 +6,16 @@ import numpy as np
 #import sys
 #import wx
 
+def register():
+    print("Trying to Register Interfaces...")
+    from multiplierz.mzAPI.management import registerInterfaces
+    try:
+        print("Registering...")
+        registerInterfaces()
+    except Exception as e:
+        print("Failed Interface Registration:", e)
+        print("NOTE: TRY RUNNING AS ADMINISTRATOR")
+        pass
 
 class DataImporter:
     """
@@ -34,15 +44,7 @@ class DataImporter:
         try:
             self.msrun = mzFile(path)
         except:
-            print("Trying to Register Interfaces...")
-            from multiplierz.mzAPI.management import registerInterfaces
-            try:
-                print("Registering...")
-                registerInterfaces()
-            except Exception as e:
-                print("Failed Interface Registration:", e)
-                print("NOTE: TRY RUNNING AS ADMINISTRATOR")
-                pass
+            register()
             self.msrun = mzFile(path)
         self.scanrange = self.msrun.scan_range()
         self.scans = np.arange(self.scanrange[0], self.scanrange[1] + 1)

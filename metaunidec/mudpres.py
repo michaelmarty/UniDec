@@ -7,7 +7,7 @@ import wx.html
 import numpy as np
 from metaunidec import mudview
 from metaunidec import mudeng, metafft
-
+import time
 #
 from pubsub import pub
 
@@ -107,18 +107,23 @@ class UniDecApp(UniDecPres):
         :param path:
         :return:
         """
+        tstart = time.perf_counter()
         self.view.clear_plots()
         if path is None:
             path = self.eng.config.hdf_file
         print("Opening:", path)
         self.eng.open(path)
-        # print "1"
+        # print("1: %.2gs" % (time.perf_counter() - tstart))
         self.import_config()
-        # print "2"
+        # print("2: %.2gs" % (time.perf_counter() - tstart))
         self.view.ypanel.list.populate(self.eng.data)
-        # print "3"
+        # print("3: %.2gs" % (time.perf_counter() - tstart))
+        # self.on_auto_peak_width(set=False)
+        self.eng.get_auto_peak_width(set=False)
+        # print("4: %.2gs" % (time.perf_counter() - tstart))
         self.makeplot1()
         self.makeplot2()
+        print("Load Time: %.2gs" % (time.perf_counter() - tstart))
         self.view.SetStatusText("File: " + self.eng.config.hdf_file, number=1)
 
     def makeplot1(self, e=None):
@@ -345,7 +350,7 @@ class UniDecApp(UniDecPres):
         print("Making Waterfall Plots")
         wt = WaterfallFrame(None)
         wt.make_plot(self.eng.data)
-        #wt.draw()
+        # wt.draw()
 
     def makeplot3(self):
         """
@@ -395,6 +400,7 @@ class UniDecApp(UniDecPres):
         self.export_config()
         self.check_badness()
         self.eng.process_data()
+        self.on_auto_peak_width(set=False)
         self.makeplot1()
         self.view.SetStatusText("Data Prep Complete", number=5)
         pass
@@ -727,7 +733,7 @@ class UniDecApp(UniDecPres):
             self.eng.data.var2[i] = l[2]
             self.eng.data.spectra[i].var1 = l[1]
             self.eng.data.spectra[i].var2 = l[2]
-        self.eng.data.export_hdf5()
+        self.eng.data.export_vars()
 
     def recolor_spectra(self):
         self.view.ypanel.list.recolor()

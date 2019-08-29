@@ -93,7 +93,7 @@ class UniDecEngine:
         # self.data.read_hdf5(self.config.hdf_file)
 
     def update_history(self):
-        #print "Update"
+        # print "Update"
         try:
             if self.config_count > 0 and self.config.check_new(self.config_history[len(self.config_history) - 1]):
                 self.config_history.append(self.copy_config(self.config))
@@ -105,11 +105,11 @@ class UniDecEngine:
                 # print "No changes"
         except:
             self.clear_history()
-        #print self.config_count
+        # print self.config_count
         pass
 
     def copy_config(self, config):
-        #return deepcopy(config)
+        # return deepcopy(config)
         return type("UniDecConfig", (object,), dict(config.__dict__))
 
     def clear_history(self):
@@ -142,14 +142,18 @@ class UniDecEngine:
                     print(e)
         pass
 
-    def get_auto_peak_width(self):
+    def get_auto_peak_width(self, set=True):
         try:
             fwhm, psfun, mid = ud.auto_peak_width(self.data.data2)
-            self.config.psfun = psfun
-            self.config.mzsig = fwhm
+            self.config.automzsig = fwhm
+            self.config.autopsfun = psfun
+            if set:
+                self.config.psfun = psfun
+                self.config.mzsig = fwhm
             print("Automatic Peak Width:", fwhm)
         except Exception as e:
             print("Failed Automatic Peak Width:", e)
+            print(self.data.data2)
 
     def check_badness(self):
         """

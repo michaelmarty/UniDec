@@ -104,6 +104,8 @@ class UniDecConfig(object):
         self.defectparams = None
         self.matchtolerance = 1000
 
+        self.avgscore = 0
+
         self.default_decon_params()
 
         self.default_colormaps()
@@ -127,7 +129,9 @@ class UniDecConfig(object):
         self.endz = 50
         self.numz = 50
         self.mzsig = 0.85
+        self.automzsig = 0
         self.psfun = 0
+        self.autopsfun = 0
         self.massub = 500000
         self.masslb = 5000
         self.msig = 0
@@ -564,7 +568,7 @@ class UniDecConfig(object):
             "aggressive": self.aggressiveflag, "rawflag": self.rawflag, "adductmass": self.adductmass,
             "nativezub": self.nativezub, "nativezlb": self.nativezlb, "poolflag": self.poolflag,
             "accvol": self.detectoreffva, "peakshapeinflate": self.inflate, "noiseflag": self.noiseflag,
-            "linflag": self.linflag, "cmap": self.cmap, "peakcmap": self.peakcmap, "spectracmap":self.spectracmap,
+            "linflag": self.linflag, "cmap": self.cmap, "peakcmap": self.peakcmap, "spectracmap": self.spectracmap,
             "publicationmode": self.publicationmode, "isotopemode": self.isotopemode, "peaknorm": self.peaknorm,
             "baselineflag": self.baselineflag, "orbimode": self.orbimode, "zout": self.zout, "pusher": self.pusher,
             "mindt": self.mindt,

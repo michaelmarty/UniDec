@@ -90,8 +90,7 @@ class UniDec(UniDecEngine):
             self.data.data3 = self.data.rawdata3
         else:
             self.config.imflag = 0
-        self.data.data2 = self.data.rawdata
-        self.config.procflag = 0
+
         # Change paths to unidecfiles folder
         dirnew = self.config.outfname + "_unidecfiles"
         if "clean" in kwargs and kwargs["clean"] and os.path.isdir(dirnew):
@@ -109,6 +108,18 @@ class UniDec(UniDecEngine):
                 shutil.copy(file_directory, newname)
             except Exception as e:
                 pass
+
+        if "pasted" in kwargs and kwargs["pasted"]:
+            refresh = True
+        else:
+            refresh = False
+
+        if os.path.isfile(self.config.infname) and not refresh:
+            self.data.data2 = np.loadtxt(self.config.infname)
+            self.config.procflag = 1
+        else:
+            self.data.data2 = self.data.rawdata
+            self.config.procflag = 0
 
         # Initialize Config
         if os.path.isfile(self.config.confname) == True:
@@ -254,7 +265,7 @@ class UniDec(UniDecEngine):
         self.config.procflag = 1
         tend = time.perf_counter()
         if "silent" not in kwargs or not kwargs["silent"]:
-            print("Data Prep Done. Time: %.2gs" % (tend - tstart))
+            print("Data Prep Time: %.2gs" % (tend - tstart))
         # self.get_spectrum_peaks()
         pass
 
@@ -345,6 +356,10 @@ class UniDec(UniDecEngine):
                 xv = np.c_[np.ravel(yv), np.ravel(xv)]
                 self.data.mzgrid = np.c_[xv, self.data.mzgrid]
 
+            for r in runstats:
+                if r[0] == "avgscore":
+                    self.config.avgscore = float(r[2])
+
         else:
             # Calculate Error
             self.config.error = float(runstats[1])
@@ -378,7 +393,7 @@ class UniDec(UniDecEngine):
         self.export_config()
         # Detect Peaks and Normalize
         peaks = ud.peakdetect(self.data.massdat, self.config)
-        print(peaks)
+        # print(peaks)
         self.setup_peaks(peaks)
 
     def setup_peaks(self, peaks):
@@ -1039,14 +1054,22 @@ class UniDec(UniDecEngine):
 
     def get_zstack(self, xfwhm=1):
         zarr = np.reshape(self.data.massgrid, (len(self.data.massdat), len(self.data.ztab)))
-        zarr = zarr / np.amax(np.sum(zarr, axis=1)) * np.amax(self.data.massdat[:, 1])
+        #zarr = zarr / np.amax(np.sum(zarr, axis=1)) * np.amax(self.data.massdat[:, 1])
 
         for i, p in enumerate(self.pks.peaks):
-            fwhm = p.errorFWHM
-            if fwhm == 0:
-                fwhm = self.config.massbins
-            width = fwhm / 2. * xfwhm
-            interval = [p.mass - width, p.mass + width]
+            # fwhm = p.errorFWHM
+            # if fwhm == 0:
+            #    fwhm = self.config.massbins
+            # width = fwhm / 2. * xfwhm
+            # interval = [p.mass - width, p.mass + width]
+
+            interval = np.abs(np.array(p.intervalFWHM) - p.mass) * xfwhm
+            if interval[0] == 0:
+                interval[0] = self.config.massbins * xfwhm
+            if interval[1] == 0:
+                interval[1] = self.config.massbins * xfwhm
+            interval = np.array([p.mass - interval[0], p.mass + interval[1]])
+
             boo1 = self.data.massdat[:, 0] < interval[1]
             boo2 = self.data.massdat[:, 0] > interval[0]
             boo3 = np.all([boo1, boo2], axis=0)
@@ -1073,9 +1096,44 @@ class UniDec(UniDecEngine):
                 print("Error in PCA:", e)
                 print(ints)
                 p.pca_score = -1
-                p.pca_zdist = np.sum(ints, axis=1)
-                p.pca_mdist = np.sum(ints, axis=0)
+                msum = np.sum(ints, axis=1)
+                zsum = np.sum(ints, axis=0)
+                p.pca_mdist = np.transpose([m, msum / np.amax(msum)])
+                p.pca_zdist = np.transpose([self.data.ztab, zsum / np.amax(zsum)])
             # print("Peak Mass:", p.mass, "PCA Score", p.pca_score)
+        self.pks_mscore()
+
+    def pks_mscore(self, xfwhm=3, pow=2):
+        self.get_zstack(xfwhm=xfwhm)
+        for p in self.pks.peaks:
+            m = p.zstack[0]
+            ints = p.zstack[1:] #mzgrid
+            msum = np.sum(ints, axis=0)
+            zsum = np.sum(ints, axis=1)
+            msum /= np.amax(msum)
+            zsum /= np.amax(zsum)
+            p.pca_mdist = np.transpose([m, msum])
+            # mmax = np.argmax(msum)
+            # sumz = np.sum(ints, axis=1) # TODO: Switch to peak center only
+            # zsum = deepcopy(ints[:, mmax])
+            p.pca_zdist = np.transpose([self.data.ztab, zsum])
+
+            rats = []
+            weights = []
+            for i, z in enumerate(self.data.ztab):
+                y = ints[i] #mzgrid
+                sy = np.sum(y)
+                mdat = msum * sy / np.sum(msum) #summed decon
+                sz = np.sum(mdat)
+                sse = np.sum(np.abs(y - mdat))
+                r = 1 - ud.safedivide1(sse, sz)
+                rats.append(r)
+                weights.append(sy)
+            rats = np.array(rats)
+            weights = np.array(weights)
+            avg = ud.weighted_avg(rats, weights**pow)
+            print("Peak Mass:", p.mass, "Peak Shape Score", avg, p.pca_score)
+            p.pca_score = avg
 
     def pks_zscore(self, xfwhm=3):
         try:
@@ -1085,11 +1143,14 @@ class UniDec(UniDecEngine):
             print("Error in z score: Make sure you get peaks first", e)
 
         for p in self.pks.peaks:
-            # ints = p.zstack[1:]
-            # sumz = np.sum(ints, axis=1)
-            # sumz /= np.amax(sumz)
-            sumz = deepcopy(p.pca_zdist[:, 1])
-            sumz -= np.amin(sumz)
+            ints = p.zstack[1:]
+            msum = np.sum(ints, axis=0)
+            mmax = np.argmax(msum)
+            sumz = np.sum(ints, axis=1)
+            # sumz = deepcopy(ints[:, mmax]) # Switch to peak center only
+            sumz /= np.amax(sumz)
+            # sumz = deepcopy(p.pca_zdist[:, 1])
+            # sumz -= np.amin(sumz)
             zm = np.argmax(sumz)
 
             zs = np.sum(sumz)
@@ -1121,13 +1182,21 @@ class UniDec(UniDecEngine):
 
     def get_mzstack(self, xfwhm=1):
         zarr = np.reshape(self.data.mzgrid[:, 2], (len(self.data.data2), len(self.data.ztab)))
-        zarr = zarr / np.amax(np.sum(zarr, axis=1)) * np.amax(self.data.data2[:, 1])
+        #zarr = zarr / np.amax(np.sum(zarr, axis=1)) * np.amax(self.data.data2[:, 1])
         for i, p in enumerate(self.pks.peaks):
-            fwhm = p.errorFWHM
-            if fwhm == 0:
-                fwhm = self.config.massbins
-            width = fwhm / 2. * xfwhm
-            interval = np.array([p.mass - width, p.mass + width])
+            # fwhm = p.errorFWHM
+            # if fwhm == 0:
+            #    fwhm = self.config.massbins
+            # width = fwhm / 2. * xfwhm
+            # interval = np.array([p.mass - width, p.mass + width])
+
+            interval = np.abs(np.array(p.intervalFWHM) - p.mass) * xfwhm
+            if interval[0] == 0:
+                interval[0] = self.config.massbins * xfwhm
+            if interval[1] == 0:
+                interval[1] = self.config.massbins * xfwhm
+            interval = np.array([p.mass - interval[0], p.mass + interval[1]])
+
             stack = []
             bvals = []
             for j, z in enumerate(self.data.ztab):
@@ -1151,29 +1220,21 @@ class UniDec(UniDecEngine):
         for p in self.pks.peaks:
             rats = []
             weights = []
-            for i, z in enumerate(self.data.ztab):
+            for i, zval in enumerate(self.data.ztab):
                 v = p.mzstack[i]
-                y = v[:, 1]
-                z = v[:, 2]
+                y = v[:, 1] #spectrum
+                z = v[:, 2] #mzgrid
                 sy = np.sum(y)
                 sz = np.sum(z)
                 # r = 1 - ud.safedivide1(np.abs(sy - sz), sy)
                 sse = np.sum(np.abs(y - z))  # ** 2)
                 r = 1 - ud.safedivide1(sse, sy)
-
-                # if len(y) > 0 and len(z) > 0 and np.amax(y) != 0 and np.amax(z) != 0:
-                # pae = 1 - ud.safedivide(np.abs(y - z), y)
-                # print(pae)
-                # r = ud.weighted_avg(pae, z)
-                # pr, pval = stats.pearsonr(y, z)
-                #    pr = ud.weighted_avg(perr, z)
-                # else:
-                # r = 0
-                # r = pr
-                # print(pr, r)
-                # r = ud.safedivide1(sz, sy)
                 rats.append(r)
                 weights.append(sz)
+                #try:
+                #    print(sse, r, sz, sy, z[0], z[-1])
+                #except:
+                #//    print(z)
             rats = np.array(rats)
 
             weights = np.array(weights)
@@ -1192,6 +1253,7 @@ class UniDec(UniDecEngine):
 
     def pks_fwhmscore(self, thresh=0.8):
         for p in self.pks.peaks:
+            # Tests if the FWHM interval is highly asymetric
             fwhm = p.errorFWHM
             interval = np.array(p.intervalFWHM)
             diff = np.abs(interval - p.mass)
@@ -1199,7 +1261,7 @@ class UniDec(UniDecEngine):
             p.fwhm_score = 1
             if np.any(r > thresh):
                 p.fwhm_score = 1 - (np.amax(r) - thresh) / (1 - thresh)
-
+            # Test if the FWHM dip isn't low enough
             masses = self.pks.masses
             lower = np.all([0 < p.mass - masses, p.mass - masses < p.errorFWHM], axis=0)
             upper = np.all([0 < masses - p.mass, masses - p.mass < p.errorFWHM], axis=0)
@@ -1208,12 +1270,14 @@ class UniDec(UniDecEngine):
                 dcut1 = ud.datachop(self.data.massdat, np.amin(masses[lower]), p.mass)
                 lmin = np.amin(dcut1[:, 1])
                 fscore = self.fscore(p.height, lmin)
+                #print("Fscore2", fscore, lmin, p.height)
                 p.fwhm_score *= fscore
 
             if np.any(upper):
                 dcut2 = ud.datachop(self.data.massdat, p.mass, np.amax(masses[upper]))
                 umin = np.amin(dcut2[:, 1])
                 fscore2 = self.fscore(p.height, umin)
+                #print("Fscore3", fscore2, umin, p.height)
                 p.fwhm_score *= fscore2
 
     def dscore(self, xfwhm=3):

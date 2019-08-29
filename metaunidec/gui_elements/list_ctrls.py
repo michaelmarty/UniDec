@@ -29,6 +29,8 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         self.SetColumnWidth(1, width=75)
         self.SetColumnWidth(2, width=75)
         self.SetColumnWidth(3, width=75)
+        self.freeze_reorder = False
+        self.parent = parent
 
     def populate(self, dataset, colors=None):
         self.DeleteAllItems()
@@ -74,6 +76,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         self.colors = colors
         self.rename_column(1, dataset.v1name)
         self.rename_column(2, dataset.v2name)
+        self.freeze_reorder = False
 
     def recolor(self):
         dataset = self.data
@@ -87,7 +90,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         for i in range(0, dataset.len):
             s = dataset.spectra[i]
             index = int(s.index)
-            #print(s.index, s.var1)
+            # print(s.index, s.var1)
             if colors is not None:
                 color = wx.Colour(int(round(colors[i][0] * 255)), int(round(colors[i][1] * 255)),
                                   int(round(colors[i][2] * 255)), alpha=255)
@@ -104,6 +107,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
 
     def clear_list(self):
         self.DeleteAllItems()
+        self.freeze_reorder = False
 
     def add_line(self, var1="count", var2=0):
         if var1 == "count":
@@ -137,11 +141,12 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
             list_output.append(sublist)
 
         indexes = np.array([i[0] for i in list_output])
-        if np.any(indexes != np.arange(0, len(list_output))):
+        if np.any(indexes != np.arange(0, len(list_output))) and not self.freeze_reorder:
             list_output = self.reorder(list_output)
         return list_output
 
     def reorder(self, list):
+        print("Reordering...")
         newlist = []
         indexes = np.array([i[0] for i in list])
         sind = np.sort(indexes)
@@ -154,10 +159,12 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
             newlist.append(list[index])
         self.data.spectra = newspectra
         self.repopulate()
+        self.parent.pres.eng.data.export_hdf5()
         return newlist
 
     def repopulate(self):
         self.populate(self.data, self.colors)
+        self.freeze_reorder = False
         pass
 
     def rename_column(self, num, text):
@@ -266,7 +273,12 @@ class ListCtrlPanel(wx.Panel):
             self.selection.append(item)
         for i in range(0, num):
             self.list.DeleteItem(self.selection[num - i - 1])
+        self.list.freeze_reorder = True
         self.pres.on_ignore(self.selection)
+
+        if self.list.GetItemCount() < 1:
+            print("Ignored everything; repopulating...")
+            self.on_popup_six()
 
     def on_popup_five(self, event):
         item = self.list.GetFirstSelected()
@@ -280,9 +292,11 @@ class ListCtrlPanel(wx.Panel):
         for i in range(tot - 1, -1, -1):
             if not np.any(np.array(self.selection) == i):
                 self.list.DeleteItem(i)
+        self.list.freeze_reorder = True
         self.pres.on_isolate(self.selection)
 
-    def on_popup_six(self, event):
+    def on_popup_six(self, event=None):
+        self.list.get_list()
         self.list.repopulate()
         self.pres.on_repopulate()
 

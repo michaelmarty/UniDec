@@ -7,6 +7,7 @@ import unidec_modules.peakwidthtools as peakwidthtools
 from unidec_modules import ManualSelectionWindow, AutocorrWindow
 import time
 
+
 class UniDecPres(object):
     """
     Main UniDec GUI Application.
@@ -32,7 +33,7 @@ class UniDecPres(object):
         self.view.Show()
         self.wx_app.MainLoop()
 
-    #def on_end_session(self):
+    # def on_end_session(self):
     #    wx.CallAfter(self.quit_application, force=True)
 
     def quit_application(self):
@@ -70,11 +71,13 @@ class UniDecPres(object):
             extension = os.path.splitext(file_name)[1]
             if extension == ".hdf5":
                 self.eng.config.write_hdf5(file_name)
+                pass
             else:
                 self.eng.config.config_export(file_name)
         else:
             if self.eng.config.filetype == 1:
                 self.eng.config.write_hdf5()
+                pass
         self.eng.update_history()
 
     def check_badness(self):
@@ -168,10 +171,10 @@ class UniDecPres(object):
         self.import_config(None)
         self.view.SetStatusText("Reset", number=5)
 
-    def on_auto_peak_width(self, e=None):
+    def on_auto_peak_width(self, e=None, set=True):
         self.export_config()
         if not ud.isempty(self.eng.data.data2):
-            self.eng.get_auto_peak_width()
+            self.eng.get_auto_peak_width(set=set)
             self.import_config()
         else:
             print("Need to process data first")
@@ -233,3 +236,7 @@ class UniDecPres(object):
         dlg = AutocorrWindow.AutocorrWindow(self.view)
         dlg.initalize_dialog(self.eng.config, self.eng.data.massdat)
         dlg.ShowModal()
+
+    def register(self, e=None):
+        from unidec_modules.data_reader import register
+        register()

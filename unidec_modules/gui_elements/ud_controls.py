@@ -3,7 +3,7 @@ import wx.lib.agw.foldpanelbar as fpb
 import os
 import unidec_modules.unidectools as ud
 import numpy as np
-
+import time
 
 class main_controls(wx.Panel):
     def __init__(self, parent, config, pres, panel, iconfile):
@@ -14,6 +14,7 @@ class main_controls(wx.Panel):
         self.backgroundchoices = self.config.backgroundchoices
         self.psigsettings = [0, 1, 10, 100]
         self.betasettings = [0, 50, 500, 1000]
+        self.update_flag = True
 
         # Get a few tool bar icons
         tsize = (16, 16)
@@ -561,10 +562,12 @@ class main_controls(wx.Panel):
 
         self.ctlpeakcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
 
-        for mp in self.config.cmaps2:
-            self.ctl2dcm.Append(mp)
-        for mp in self.config.cmaps:
-            self.ctlpeakcm.Append(mp)
+        #for mp in self.config.cmaps2:
+        #    self.ctl2dcm.Append(mp)
+        #for mp in self.config.cmaps:
+        #    self.ctlpeakcm.Append(mp)
+        self.ctl2dcm.AppendItems(self.config.cmaps2)
+        self.ctlpeakcm.AppendItems(self.config.cmaps)
 
         gbox3b.Add(self.ctl2dcm, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         gbox3b.Add(wx.StaticText(panel3b, label='2D Color Map: '), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -653,9 +656,10 @@ class main_controls(wx.Panel):
         Imports parameters from the config object to the GUI.
         :return: None
         """
-        #import time
-        #tstart = time.perf_counter()
 
+        tstart = time.perf_counter()
+        self.Freeze()
+        self.update_flag = False
         if self.config.batchflag == 0:
 
             if self.config.imflag == 1 and self.twave != (self.config.twaveflag > 0):
@@ -700,8 +704,6 @@ class main_controls(wx.Panel):
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlrawflag.SetSelection(self.config.rawflag)
 
-            #print("1: %.2gs" % (time.perf_counter() - tstart))
-
             if self.config.adductmass < 0:
                 self.ctlnegmode.SetValue(1)
             else:
@@ -742,7 +744,7 @@ class main_controls(wx.Panel):
                     self.ctledc.SetValue(str(self.config.edc))
                     self.ctlgasmass.SetValue(str(self.config.gasmass))
                     self.ctltwavecaltype.SetSelection(list(self.config.twavedict.keys()).index(self.config.twaveflag))
-            #print("2: %.2gs" % (time.perf_counter() - tstart))
+
             try:
                 x = float(self.config.integratelb)
                 y = float(self.config.integrateub)
@@ -769,8 +771,6 @@ class main_controls(wx.Panel):
             else:
                 self.parent.SetStatusText(" ", number=4)
 
-        #print("3: %.2gs" % (time.perf_counter() - tstart))
-
         # If the batchflag is not 1, it will import the data range as well
         if self.config.batchflag != 1:
             self.ctlminmz.SetValue(str(self.config.minmz))
@@ -779,11 +779,13 @@ class main_controls(wx.Panel):
                 self.ctlmindt.SetValue(str(self.config.mindt))
                 self.ctlmaxdt.SetValue(str(self.config.maxdt))
         #print("4: %.2gs" % (time.perf_counter() - tstart))
+        self.update_flag = True
         try:
             self.update_quick_controls()
         except Exception as e:
             print("Error updating quick controls", e)
         #print("5: %.2gs" % (time.perf_counter() - tstart))
+        self.Thaw()
 
     def export_gui_to_config(self, e=None):
         """
@@ -1107,7 +1109,8 @@ class main_controls(wx.Panel):
     def on_pw_check(self, e):
         value = self.ctlpeakwidthcheck.Get3StateValue()
         if value == 1:
-            self.pres.on_auto_peak_width()
+            self.ctlmzsig.SetValue(str(self.config.automzsig))
+            self.ctlpsfun.SetSelection(self.config.autopsfun)
         elif value == 0:
             self.ctlmzsig.SetValue("0")
         self.export_gui_to_config()
@@ -1134,92 +1137,92 @@ class main_controls(wx.Panel):
             self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlpsig)
 
     def update_quick_controls(self, e=None):
-
-        # Background Subtraction
-        try:
-            value = float(self.ctlbuff.GetValue())
-        except:
-            value = -1
-        selection = self.subtypectl.GetSelection()
-        if value == 100 and selection == 2:
-            self.ctlbackcheck.Set3StateValue(1)
-        elif value == 0:
-            self.ctlbackcheck.Set3StateValue(0)
-        else:
-            self.ctlbackcheck.Set3StateValue(2)
-
-        # Z Box
-        try:
-            value = float(self.ctlzzsig.GetValue())
-        except:
-            value = -1
-        if value == 0:
-            self.ctlzsmoothcheck.Set3StateValue(0)
-        elif value == 1:
-            self.ctlzsmoothcheck.Set3StateValue(1)
-        else:
-            self.ctlzsmoothcheck.Set3StateValue(2)
-
-        # M box
-        try:
-            value = float(self.ctlmsig.GetValue())
-        except:
-            value = -1
-        if value == 0:
-            self.ctlmsmoothcheck.Set3StateValue(0)
-        elif value == 1:
-            self.ctlmsmoothcheck.Set3StateValue(1)
-        else:
-            self.ctlmsmoothcheck.Set3StateValue(2)
-
-        # PW box
-        try:
-            value = float(self.ctlmzsig.GetValue())
-        except:
-            value = -1
-        psval = self.ctlpsfun.GetSelection()
-        try:
-            fwhm, psfun, mid = ud.auto_peak_width(self.pres.eng.data.data2)
-        except:
-            fwhm = -1
-            psfun = -1
-        if value == 0:
-            self.ctlpeakwidthcheck.Set3StateValue(0)
-        elif value == fwhm and psval == psfun:
-            self.ctlpeakwidthcheck.Set3StateValue(1)
-        else:
-            self.ctlpeakwidthcheck.Set3StateValue(2)
-            pass
-
-        if self.config.imflag == 0:
-            # beta box
+        if self.update_flag:
+            # Background Subtraction
             try:
-                value = float(self.ctlbeta.GetValue())
-            except:
-                valu = -1
-            if value == self.betasettings[0]:
-                self.ctlbselect.SetSelection(0)
-            elif value == self.betasettings[1]:
-                self.ctlbselect.SetSelection(1)
-            elif value == self.betasettings[2]:
-                self.ctlbselect.SetSelection(2)
-            else:
-                self.ctlbselect.SetSelection(3)
-                self.betasettings[3] = value
-                pass
-
-            # point box
-            try:
-                value = float(self.ctlpsig.GetValue())
+                value = float(self.ctlbuff.GetValue())
             except:
                 value = -1
-            if value == self.psigsettings[0]:
-                self.ctlpselect.SetSelection(0)
-            elif value == self.psigsettings[1]:
-                self.ctlpselect.SetSelection(1)
-            elif value == self.psigsettings[2]:
-                self.ctlpselect.SetSelection(2)
+            selection = self.subtypectl.GetSelection()
+            if value == 100 and selection == 2:
+                self.ctlbackcheck.Set3StateValue(1)
+            elif value == 0:
+                self.ctlbackcheck.Set3StateValue(0)
             else:
-                self.ctlpselect.SetSelection(3)
-                self.psigsettings[3] = value
+                self.ctlbackcheck.Set3StateValue(2)
+
+            # Z Box
+            try:
+                value = float(self.ctlzzsig.GetValue())
+            except:
+                value = -1
+            if value == 0:
+                self.ctlzsmoothcheck.Set3StateValue(0)
+            elif value == 1:
+                self.ctlzsmoothcheck.Set3StateValue(1)
+            else:
+                self.ctlzsmoothcheck.Set3StateValue(2)
+
+            # M box
+            try:
+                value = float(self.ctlmsig.GetValue())
+            except:
+                value = -1
+            if value == 0:
+                self.ctlmsmoothcheck.Set3StateValue(0)
+            elif value == 1:
+                self.ctlmsmoothcheck.Set3StateValue(1)
+            else:
+                self.ctlmsmoothcheck.Set3StateValue(2)
+
+            # PW box
+            try:
+                value = float(self.ctlmzsig.GetValue())
+            except:
+                value = -1
+            psval = self.ctlpsfun.GetSelection()
+            #try:
+            #    fwhm, psfun, mid = ud.auto_peak_width(self.pres.eng.data.data2)
+            #except:
+            #    fwhm = -1
+            #    psfun = -1
+            if value == 0:
+                self.ctlpeakwidthcheck.Set3StateValue(0)
+            elif value == self.config.automzsig and psval == self.config.autopsfun:
+                self.ctlpeakwidthcheck.Set3StateValue(1)
+            else:
+                self.ctlpeakwidthcheck.Set3StateValue(2)
                 pass
+
+            if self.config.imflag == 0:
+                # beta box
+                try:
+                    value = float(self.ctlbeta.GetValue())
+                except:
+                    valu = -1
+                if value == self.betasettings[0]:
+                    self.ctlbselect.SetSelection(0)
+                elif value == self.betasettings[1]:
+                    self.ctlbselect.SetSelection(1)
+                elif value == self.betasettings[2]:
+                    self.ctlbselect.SetSelection(2)
+                else:
+                    self.ctlbselect.SetSelection(3)
+                    self.betasettings[3] = value
+                    pass
+
+                # point box
+                try:
+                    value = float(self.ctlpsig.GetValue())
+                except:
+                    value = -1
+                if value == self.psigsettings[0]:
+                    self.ctlpselect.SetSelection(0)
+                elif value == self.psigsettings[1]:
+                    self.ctlpselect.SetSelection(1)
+                elif value == self.psigsettings[2]:
+                    self.ctlpselect.SetSelection(2)
+                else:
+                    self.ctlpselect.SetSelection(3)
+                    self.psigsettings[3] = value
+                    pass

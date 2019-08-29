@@ -306,7 +306,6 @@ def fit_peak(xvals, yvals, psfun, midguess, fwhmguess, aguess, bguess):
     :return: popt, perr, fitdat (optimized parameters [fwhm, mid, a, b], std error of parameters, fit to data)
     """
     guess = [fwhmguess, midguess, aguess, bguess]
-
     if psfun == 0:
         popt, pcov = curve_fit(ndis_fit, xvals, yvals, p0=guess)
     elif psfun == 1:
