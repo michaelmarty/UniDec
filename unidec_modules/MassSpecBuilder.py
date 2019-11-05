@@ -1,7 +1,7 @@
 
 
 import numpy as np
-
+from scipy.stats import halfnorm
 from unidec_modules import unidectools as ud
 
 __author__ = 'Michael.Marty'
@@ -57,12 +57,18 @@ def make_mass_spectrum(array, zrange=(10, 50), mzrange=(2000, 10000), mz_bin_siz
         output = output + background
     if baseline < 0:
         output += np.abs(baseline)
+    output /= np.amax(output)
 
     if noise > 0:
         noisedat = np.random.normal(0, noise, size=len(output))
         output = np.abs(output + noisedat)
 
     output /= np.amax(output)
+
+    if "scramble" in kwargs:
+        if kwargs['scramble']:
+            np.random.shuffle(output)
+
     return np.transpose([mzaxis, output]), ztab
 
 

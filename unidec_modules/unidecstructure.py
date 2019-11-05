@@ -38,6 +38,7 @@ class UniDecConfig(object):
         self.imflag = 0
         self.metamode = -2
         self.filetype = 0
+        self.autotune = False
 
         self.twavedict = {1: "Logarithmic", 2: "Linear", 3: "Power Law"}
         self.backgroundchoices = ["Subtract Minimum", "Subtract Line",

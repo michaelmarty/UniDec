@@ -12,9 +12,6 @@ import comtypes
 import encodings
 import zipimport
 from PyInstaller.utils.hooks import collect_data_files
-from sklearn.decomposition import PCA
-import sklearn.decomposition
-import sklearn
 from multiprocessing import freeze_support
 
 freeze_support()
@@ -55,11 +52,11 @@ zipdirectory = outputdir + "_" + date + ".zip"
 # Analysis of packages
 a = Analysis(['Launcher.py'],
              pathex=[os.getcwd()],
-             excludes=['pandas', 'IPython', 'Cython', 'statsmodels', 'pyopenms',
+             excludes=['pandas', 'IPython', 'Cython', 'statsmodels', 'pyopenms', 'sklearn',
                        'GdkPixbuf', 'PIL', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2', 'PyQt5'],
              hiddenimports=[  # 'plotly','
-                 'sklearn', 'sklearn.decomposition', 'sklearn.preprocessing', 'sklearn.utils', 'pytest', 'pluggy',
-                 'sklearn.utils.testing', 'sklearn.utils._cython_blas',
+                 # 'sklearn', 'sklearn.decomposition', 'sklearn.preprocessing', 'sklearn.utils', 'pytest', 'pluggy',
+                 # 'sklearn.utils.testing', 'sklearn.utils._cython_blas',
                  'scipy.special._ufuncs_cxx', 'scipy.linalg.cython_blas', 'scipy.linalg.cython_lapack',
                  'scipy._lib.messagestream',
                  'FileDialog', 'Dialog', 'encodings', 'encodings.__init__',
@@ -85,6 +82,7 @@ if system == "Windows":
     a.datas += [('readme.md', 'readme.md', 'DATA')]
     a.datas += [('LICENSE', 'LICENSE', 'DATA')]
     a.datas += [('libiomp5md.dll', 'unidec_bin\\libiomp5md.dll', 'DATA')]
+    a.datas += [('mkl_intel_thread.dll', 'unidec_bin\\mkl_intel_thread.dll', 'DATA')]
     a.datas += [('ucrtbase.dll', 'unidec_bin\\ucrtbase.dll', 'DATA')]
     a.datas += [('vcruntime140.dll', 'unidec_bin\\vcruntime140.dll', 'DATA')]
     a.datas += [('libmypfunc.dll', 'unidec_bin\\libmypfunc.dll', 'DATA')]
@@ -132,6 +130,15 @@ a.datas.extend(dir_files("unidec_bin\\Example Data", 'Example Data'))
 # grammar=os.path.join(os.path.dirname(lib2to3.__file__),'PatternGrammar.txt')
 # a.datas.extend([(os.path.join('lib2to3','PatternGrammar.txt'),grammar,'DATA')])
 
+from os import listdir
+from PyInstaller import compat
+
+mkldir = compat.base_prefix + "/Lib/site-packages/numpy/DLLs"
+# a.datas.extend(dir_files(mkldir, ''))
+#a.datas.extend(
+#    [(mkldir + "/" + mkl, '', 'DATA') for mkl in listdir(mkldir) if mkl.startswith('mkl_') or mkl.startswith('libio')])
+# for b in binaries:
+#    a.datas += b
 
 # Assemble and build
 pyz = PYZ(a.pure)
@@ -153,6 +160,8 @@ coll = COLLECT(exe,
 
 path = "C:\\Python\\UniDec3\\dist\\UniDec_Windows\\GUI_UniDec.exe"
 import subprocess
+
+print("Testing Software...", path)
 
 out = subprocess.call(path)
 

@@ -11,6 +11,9 @@
 //
 //
 
+#ifndef UD_H5_IO
+#define UD_H5_IO
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -265,3 +268,6 @@ int question_grids(hid_t file_id)
 	if (status == 0) { write_attr_int(file_id, "/config", "gridsflag", 0); }//printf("Grids not found %d\n", status);}
 	return int_attr(file_id, "/config", "gridsflag", 0);
 }
+
+
+#endif

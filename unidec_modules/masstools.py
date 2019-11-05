@@ -6,7 +6,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 from unidec_modules.AutocorrWindow import AutocorrWindow
-from unidec_modules.isolated_packages import FileDialogs
+from unidec_modules.isolated_packages import FileDialogs, biopolymer_calculator
 import unidec_modules.unidectools as ud
 
 '''
@@ -35,7 +35,9 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         self.SetColumnWidth(0, width=190)  # , wx.LIST_AUTOSIZE)
 
         self.popupID1 = wx.NewId()
+        self.popupID3 = wx.NewId()
         self.Bind(wx.EVT_MENU, self.on_masslist_delete, id=self.popupID1)
+        self.Bind(wx.EVT_MENU, self.on_biopolymer, id=self.popupID3)
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click_masslist, self)
 
     def populate(self, listctrldata):
@@ -82,6 +84,7 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         """
         if hasattr(self, "popupID1"):
             menu = wx.Menu()
+            menu.Append(self.popupID3, "Calculate Mass from Sequence")
             menu.Append(self.popupID1, "Delete")
             self.PopupMenu(menu)
             menu.Destroy()
@@ -100,6 +103,21 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
             selection.append(item)
         for i in range(0, num):
             self.DeleteItem(selection[num - i - 1])
+
+    def on_biopolymer(self, e=0):
+        bp = biopolymer_calculator.BiopolymerFrame(self)
+        result = bp.ShowModal()
+        if result == 0:
+            print("Imported Mass from Sequence:", bp.mass)
+            calc_mass = 0
+            try:
+                calc_mass = float(bp.mass)
+                if calc_mass > 0:
+                    item = self.GetFirstSelected()
+                    self.SetItem(item, 0, str(calc_mass))
+            except:
+                pass
+        bp.Destroy()
 
 
 class MassListCtrlPanel(wx.Panel):
@@ -144,7 +162,9 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
         self.index = 0
 
         self.popupID2 = wx.NewId()
+        self.popupID3 = wx.NewId()
         self.Bind(wx.EVT_MENU, self.on_oligo_delete, id=self.popupID2)
+        self.Bind(wx.EVT_MENU, self.on_biopolymer, id=self.popupID3)
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click_oligolist, self)
 
     def clear(self):
@@ -214,6 +234,7 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
         :return: None
         """
         menu = wx.Menu()
+        menu.Append(self.popupID3, "Calculate Mass from Sequence")
         menu.Append(self.popupID2, "Delete")
         self.PopupMenu(menu)
         menu.Destroy()
@@ -232,6 +253,21 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
             selection.append(item)
         for i in range(0, num):
             self.DeleteItem(selection[num - i - 1])
+
+    def on_biopolymer(self, e=0):
+        bp = biopolymer_calculator.BiopolymerFrame(self)
+        result = bp.ShowModal()
+        if result == 0:
+            print("Imported Mass from Sequence:", bp.mass)
+            calc_mass = 0
+            try:
+                calc_mass = float(bp.mass)
+                if calc_mass > 0:
+                    item = self.GetFirstSelected()
+                    self.SetItem(item, 1, str(calc_mass))
+            except:
+                pass
+        bp.Destroy()
 
 
 class OligomerListCrtlPanel(wx.Panel):

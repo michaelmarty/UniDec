@@ -96,9 +96,14 @@ def commonprefix(args):
 
 
 def get_luminance(color, type=2):
-    r = color.Red()
-    g = color.Green()
-    b = color.Blue()
+    try:
+        r = color.Red()
+        g = color.Green()
+        b = color.Blue()
+    except:
+        r = color[0]
+        g = color[1]
+        b = color[2]
     l1 = 0.2126 * r + 0.7152 * g + 0.0722 * b
     l2 = 0.299 * r + 0.587 * g + 0.114 * b
     l3 = np.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b)
@@ -664,7 +669,7 @@ def header_test(path):
                     try:
                         float(sin)
                     except ValueError:
-                        #print(sin, line)
+                        # print(sin, line)
                         header += 1
                         break
         if header > 0:
@@ -740,9 +745,9 @@ def load_mz_file(path, config=None):
     else:
         if extension == ".txt":
             data = np.loadtxt(path, skiprows=header_test(path))
-            #data = np.loadtxt(path, skiprows=header_test(path, delimiter=","), delimiter=",")
+            # data = np.loadtxt(path, skiprows=header_test(path, delimiter=","), delimiter=",")
         elif extension == ".csv":
-            data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0,1))
+            data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0, 1))
         elif extension == ".mzml":
             data = mzMLimporter.mzMLimporter(path).get_data()
             txtname = path[:-5] + ".txt"
@@ -900,7 +905,7 @@ def datachop(datatop, newmin, newmax):
     :param newmax: Maximum value of chopped data
     :return: New data limited between the two bounds
     """
-    boo1 = np.logical_and(datatop[:, 0] < newmax, datatop[:, 0] > newmin)
+    boo1 = np.logical_and(datatop[:, 0] <= newmax, datatop[:, 0] >= newmin)
     return datatop[boo1]
 
 
@@ -1432,11 +1437,8 @@ def unidec_call(config, silent=False, **kwargs):
 
     call = [config.UniDecPath, str(config.confname)]
 
-    if "kill" in kwargs:
-        killnum = kwargs["kill"]
-        # print "Killing Peak:",killnum
-        call.append("-kill")
-        call.append(str(killnum))
+    if config.autotune:
+        call.append("-autotune")
 
     if silent:
         out = subprocess.call(call, stdout=subprocess.PIPE)
@@ -1472,9 +1474,12 @@ def peakdetect(data, config=None, window=10, threshold=0):
                 start = 0
             if end > length:
                 end = length
-            testmax = np.amax(data[int(start):int(end) + 1, 1])
-            if data[i, 1] == testmax and data[i, 1] != data[i - 1, 1]:
+            start = int(start)
+            end = int(end)+1
+            testmax = np.amax(data[start:end, 1])
+            if data[i, 1] == testmax and np.all(data[i, 1] != data[start:i, 1]):
                 peaks.append([data[i, 0], data[i, 1]])
+
     return np.array(peaks)
 
 
@@ -2340,27 +2345,32 @@ def peaks_error_FWHM(pks, data):
     except:
         datamax = 0
     div = datamax / pmax
-    for pk in pks.peaks:
-        int = pk.height
-        index = nearest(data[:, 0], pk.mass)
+    for p in pks.peaks:
+        int = p.height
+        index = nearest(data[:, 0], p.mass)
         leftwidth = 0
         rightwidth = 0
         counter = 1
         leftfound = False
         rightfound = False
+        val = (int * div) / 2.
         while rightfound is False or leftfound is False:
-            if leftfound is False:
-                if data[index - counter, 1] <= (int * div) / 2.:
+            if leftfound is False and index - counter >= 0:
+                if data[index - counter, 1] <= val:
                     leftfound = True
                     leftwidth += 1
                 else:
                     leftwidth += 1
-            if rightfound is False:
-                if data[index + counter, 1] <= (int * div) / 2.:
+            else:
+                leftfound = True
+            if rightfound is False and index + counter < len(data):
+                if data[index + counter, 1] <= val:
                     rightfound = True
                     rightwidth += 1
                 else:
                     rightwidth += 1
+            else:
+                rightfound = True
             counter += 1
 
         indexstart = index - leftwidth
@@ -2370,12 +2380,35 @@ def peaks_error_FWHM(pks, data):
         if indexend >= len(data):
             indexend = len(data) - 1
 
-        pk.errorFWHM = data[indexend, 0] - data[indexstart, 0]
-        pk.intervalFWHM = [data[indexstart, 0], data[indexend, 0]]
-        start = pk.intervalFWHM[0]
-        end = pk.intervalFWHM[1]
-        pk.centroid = center_of_mass(data, start, end)[0]
-        print("Apex:", pk.mass, "Centroid:", pk.centroid, "FWHM Range:", pk.intervalFWHM)
+        mlow = data[indexstart, 0]
+        mhigh = data[indexend, 0]
+
+        p.errorFWHM = mhigh - mlow
+        p.intervalFWHM = [mlow, mhigh]
+
+        diff = np.abs(np.array(p.intervalFWHM) - p.mass)
+        r = safedivide1(diff, p.errorFWHM)
+        #Check to make sure that the FWHM is symmetric. If not, flag it and bring things back.
+        cutoff = 0.75
+        if r[0] > cutoff:
+            mlow = p.mass - diff[1] * cutoff/(1-cutoff)
+            p.errorFWHM = mhigh - mlow
+            p.intervalFWHM = [mlow, mhigh]
+            p.badFWHM = True
+            pass
+        elif r[1] > cutoff:
+            mhigh = p.mass + diff[0] * cutoff/(1-cutoff)
+            p.errorFWHM = mhigh - mlow
+            p.intervalFWHM = [mlow, mhigh]
+            p.badFWHM = True
+            pass
+        else:
+            p.badFWHM = False
+
+        start = p.intervalFWHM[0]
+        end = p.intervalFWHM[1]
+        p.centroid = center_of_mass(data, start, end)[0]
+        print("Apex:", p.mass, "Centroid:", p.centroid, "FWHM Range:", p.intervalFWHM)
 
 
 def peaks_error_mean(pks, data, ztab, massdat, config):

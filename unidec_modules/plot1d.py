@@ -205,7 +205,7 @@ class Plot1d(PlottingWindow):
                 label = ""
 
             xvals = xarray[i]
-            n, bins, patches = self.subplot1.hist(xvals, label=label, histtype="stepfilled", alpha=0.4, normed=1)
+            n, bins, patches = self.subplot1.hist(xvals, label=label, histtype="stepfilled", alpha=0.4, density=1)
             ytempmax = np.amax(n)
             xtempmax = np.amax(bins)
             if ytempmax > ymax:
