@@ -238,7 +238,6 @@
     <ClCompile Include="UniDec.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="UD_headers.h" />
     <ClInclude Include="MetaUniDec_Main.h" />
     <ClInclude Include="UD_analysis.h" />
     <ClInclude Include="UD_charge.h" />

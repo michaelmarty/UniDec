@@ -151,8 +151,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                     self.list_ctrl.SetItem(i, 3, str(p.diff))
                 elif show == "avgcharge":
                     self.list_ctrl.SetItem(i, 3, str(p.avgcharge))
-                elif show == "pca_score":
-                    self.list_ctrl.SetItem(i, 3, str(np.round(p.pca_score*100, 2)))
+                elif show == "mscore":
+                    self.list_ctrl.SetItem(i, 3, str(np.round(p.mscore*100, 2)))
                 elif show == "dscore":
                     self.list_ctrl.SetItem(i, 3, str(np.round(p.dscore*100, 2)))
                 else:

@@ -159,11 +159,11 @@ class UniDecApp(UniDecPres):
             if self.eng.config.batchflag == 0:
                 self.view.plot1im.contourplot(self.eng.data.rawdata3, self.eng.config, xlab="m/z (Th)",
                                               ylab="Arrival Time (ms)", title="IM-MS Data")
-        #tstart = time.perf_counter()
+        # tstart = time.perf_counter()
         # Load Config to GUI
         self.import_config()
         self.view.SetStatusText("Ready", number=5)
-        #print("ImportConfig: %.2gs" % (time.perf_counter() - tstart))
+        # print("ImportConfig: %.2gs" % (time.perf_counter() - tstart))
         if False:
             try:
                 self.eng.unidec_imports(everything=False)
@@ -171,7 +171,7 @@ class UniDecApp(UniDecPres):
             except:
                 pass
 
-        #print("ImportData: %.2gs" % (time.perf_counter() - tstart))
+        # print("ImportData: %.2gs" % (time.perf_counter() - tstart))
 
     def on_save_state(self, e=None, filenew=None):
         """
@@ -425,7 +425,7 @@ class UniDecApp(UniDecPres):
             self.makeplot4(1)
 
         self.view.SetStatusText("Peak Pick Done", number=5)
-        #self.on_score()
+        self.on_score()
         pass
 
     def on_plot_peaks(self, e=None):
@@ -764,7 +764,7 @@ class UniDecApp(UniDecPres):
         self.makeplot6(1)
         self.view.SetStatusText("Peak Change Done", number=5)
 
-    def on_charge_states(self, e=None):
+    def on_charge_states(self, e=None, mass=None):
         """
         Triggered by right click "plot charge states" on self.view.peakpanel.
         Plots a line with text listing the charge states of a specific peak.
@@ -776,7 +776,10 @@ class UniDecApp(UniDecPres):
         else:
             sign = "-"
         charges = np.arange(self.eng.config.startz, self.eng.config.endz + 1)
-        peaksel = self.view.peakpanel.selection2[0]
+        if mass is None:
+            peaksel = self.view.peakpanel.selection2[0]
+        else:
+            peaksel = mass
         peakpos = (peaksel + charges * self.eng.config.adductmass) / charges
         boo1 = np.all([peakpos < self.eng.config.maxmz, peakpos > self.eng.config.minmz], axis=0)
         peakpos = peakpos[boo1]
@@ -1654,12 +1657,29 @@ class UniDecApp(UniDecPres):
     def on_score(self, e=0):
         self.eng.dscore()
         self.view.peakpanel.add_data(self.eng.pks, show="dscore")
-        self.view.SetStatusText("Average Peaks Score: " + str(round(self.eng.pks.aps * 100, 2)), number=3)
+        self.view.SetStatusText("UniScore: " + str(round(self.eng.pks.uniscore * 100, 2)), number=3)
 
     def on_score2(self, e=0):
-        self.eng.filter_peaks()
+        defaultvalue = "40"
+        try:
+            defaultvalue = str(self.eng.fdrs[0, 1] * 100)
+        except:
+            pass
+        dialog = miscwindows.SingleInputDialog(self.view)
+        dialog.initialize_interface(title="Minimum DScore", message="Set Minimum DScore Value (%): ",
+                                    defaultvalue=defaultvalue)
+        dialog.ShowModal()
+
+        try:
+            minval = float(dialog.value)/100.
+        except:
+            print("Error with Score Input:", dialog.value)
+            minval = 0.4
+
+        print("Using DScore Cutoff (%): ", minval*100)
+        self.eng.filter_peaks(minscore=minval)
         self.view.peakpanel.add_data(self.eng.pks, show="dscore")
-        self.view.SetStatusText("Average Peaks Score: " + str(round(self.eng.pks.aps * 100, 2)), number=3)
+        self.view.SetStatusText("UniScore: " + str(round(self.eng.pks.uniscore * 100, 2)), number=3)
         self.makeplot2()
         self.makeplot4()
         self.makeplot6()
@@ -1671,8 +1691,19 @@ class UniDecApp(UniDecPres):
         sw.populate(self.eng.pks)
         pass
 
+    def on_score_label(self, e=0):
+        self.on_score()
+        offset = 0.08 * np.amax(self.eng.data.massdat[:, 1])
+        for p in self.eng.pks.peaks:
+            text = str(int(round(p.dscore * 100)))
+            self.view.plot2.addtext(text, p.mass, p.height + offset, vlines=False)
+
     # def on_remove_noise_points(self, e=0):
     #    self.on_dataprep_button(removenoise=True)
+
+    def on_score_FDR(self, e=0):
+        self.eng.estimate_FDR()
+
 
     def on_flip_mode(self, e=None):
         """

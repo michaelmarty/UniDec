@@ -112,7 +112,7 @@ we have provided the source code for the GUI and API.
 
 ### Python
 
-UniDec is currently compatible only with Python 2.7. There are several Python libraries that UniDec will depend on. 
+UniDec is currently compatible only with Python 3. There are several Python libraries that UniDec will depend on. 
 
 matplotlib
 numpy
@@ -124,6 +124,7 @@ networkx
 h5py
 multiplierz (Windows only, for Thermo RAW imports)
 pypubsub
+tornado
 
 All of these can be installed from the command line with (for example):
     
@@ -192,6 +193,26 @@ In reading the documentation, it is perhaps best to start with the unidec.UniDec
 The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
+
+v.4.1.0
+
+Introduced **UniScore**. This will automatically score the quality of your peaks and the overall deconvolution. Various experimental features were also added with this to visualize and filter the scores. Some updates to the scoring algorithm from Version 4.0.2 to improve it.
+
+A good heuristic for UniScore and DScore values is:
+
+80-100: A (Excellent)
+
+60-80: B (Good)
+
+40-60: C (Fair)
+
+20-40: D (Poor)
+
+0-20: F (Almost certainly noise)
+
+Added **Calculator for getting masses from Protein/Peptide or RNA sequences**. This can be launched stand alone from the Experimental Menu or by right clicking on the Oligomer and Mass Tools Oligomer Builder box.  
+
+Fixed bug to now allow protein-protein oligomerization KD values to be measured with the Data Collector. Find out more on the [UniDec Wiki Page](https://github.com/michaelmarty/UniDec/wiki/Fitting-KDs-with-Data-Collector).
 
 v.4.0.2
 

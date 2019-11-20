@@ -173,7 +173,11 @@ def GetFree(pO, ptot, ltot, ureact, prottab, ligtab, paths, kds, nfactors):
 def MakeGrid(pfree, lfree, ureact, prottab, ligtab, paths, kds, nfactors):
     intgrid = np.zeros_like(prottab)
     intgrid[1, 0] = pfree
-    intgrid[0, 1] = lfree
+    try:
+        intgrid[0, 1] = lfree
+    except:
+        pass
+
     h = 1
     for i in range(0, len(ureact)):
         if len(ureact[i, 2]) > 2:

@@ -202,6 +202,11 @@ class main_menu(wx.Menu):
 
         self.advancedmenu.AppendSeparator()
 
+        self.advancedmenu.Append(4001, "Autotune", "Let UniDec find the best parameters", wx.ITEM_CHECK)
+        self.parent.Bind(wx.EVT_MENU, self.menu_4001, id=4001)
+
+        self.advancedmenu.AppendSeparator()
+
         self.scalemenu = wx.Menu()
 
         self.scalemenu.Append(501, "Linear", "Normal linear intensity scale", wx.ITEM_RADIO)
@@ -247,8 +252,15 @@ class main_menu(wx.Menu):
             self.menuscore2 = self.experimentalmenu.Append(wx.ID_ANY, "Peak Scores Window", "Launch Peak Scores Window")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_score_window, self.menuscore2)
 
+            self.menuscore3 = self.experimentalmenu.Append(wx.ID_ANY, "Label Peak Scores", "Label Peak Scores on Plot")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_score_label, self.menuscore3)
+
+            self.menuscoreFDR = self.experimentalmenu.Append(wx.ID_ANY, "Estimate FDR", "Estimate DScore Cutoff for a Fixed False Discovery Rate")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_score_FDR, self.menuscoreFDR)
+
             self.menuscore = self.experimentalmenu.Append(wx.ID_ANY, "Filter Peak Scores", "Filter Peak Scores")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_score2, self.menuscore)
+
             self.experimentalmenu.AppendSeparator()
             # self.menuMinimize = self.experimentalmenu.Append(wx.ID_ANY, "Minimize", "Minimize Peak List")
             # self.experimentalmenu.AppendSeparator()
@@ -299,8 +311,17 @@ class main_menu(wx.Menu):
         self.menuifams = self.experimentalmenu.Append(wx.ID_ANY, "iFAMS")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_iFAMS, self.menuifams)
 
+        self.experimentalmenu.AppendSeparator()
         self.menuisotopes = self.experimentalmenu.Append(wx.ID_ANY, "Plot Averagine Isotope Distributions")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_plot_isotope_distribution, self.menuisotopes)
+
+        self.experimentalmenu.AppendSeparator()
+        self.menubiocalc = self.experimentalmenu.Append(wx.ID_ANY, "Protein/RNA Mass Calculator")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_biopolymer, self.menubiocalc)
+
+        self.menutheomass = self.experimentalmenu.Append(wx.ID_ANY, "Plot Theoretical Mass")
+        self.parent.Bind(wx.EVT_MENU, self.pres.plot_theo_mass, self.menutheomass)
+
 
         # self.menucentroid = self.experimentalmenu.Append(wx.ID_ANY, "Get Centroid at FWHM")
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_centroid, self.menucentroid)
@@ -443,6 +464,9 @@ class main_menu(wx.Menu):
         if event_id == 503:
             self.config.intscale = "Square Root"
         print(self.config.intscale)
+
+    def menu_4001(self, event):
+        self.config.autotune=self.advancedmenu.IsChecked(4001)
 
     def on_custom_defaults(self, e):
         # print("Clicked", e)

@@ -10,6 +10,9 @@
 #define UNIDEC_H_
 #endif*/ /* UNIDEC_H_ */
 
+#ifndef UNIDEC_HEADER
+#define UNIDEC_HEADER
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -21,6 +24,98 @@
 
 void mh5readfile3d(hid_t file_id, char *dataname, int lengthmz, double *dataMZ, double *dataInt, double *data3);
 int mh5getfilelength(hid_t file_id, char *dataname);
+void strjoin(const char* s1, const char* s2, char* newstring);
+void mh5writefile1d(hid_t file_id, char* dataname, int length, double* data1);
+void mh5writefile2d(hid_t file_id, char* dataname, int length, double* data1, double* data2);
+
+typedef struct Input Input;
+
+struct Input {
+	double* dataMZ;
+	double* dataInt;
+	double* testmasses;
+	int* nztab;
+	double* mtab;
+	char* barr;
+	int* isotopepos;
+	float* isotopeval;
+};
+
+Input SetupInputs()
+{
+	Input inp;
+	inp.dataMZ = NULL;
+	inp.dataInt = NULL;
+	inp.testmasses = NULL;
+	inp.nztab = NULL;
+	inp.mtab = NULL;
+	inp.barr = NULL;
+	inp.isotopepos = NULL;
+	inp.isotopeval = NULL;
+	return inp;
+}
+
+void FreeInputs(Input inp)
+{
+	free(inp.dataMZ);
+	free(inp.dataInt);
+	free(inp.nztab);
+	free(inp.mtab);
+	free(inp.testmasses);
+	free(inp.barr);
+	free(inp.isotopepos);
+	free(inp.isotopeval);
+}
+
+typedef struct Decon Decon;
+
+struct Decon {
+	double* fitdat;
+	double* baseline;
+	double* noise;
+	double* massgrid;
+	double* massaxis;
+	double* massaxisval;
+	double* blur;
+	double* newblur;
+	double error;
+	int iterations;
+	double uniscore;
+	double conv;
+	double threshold;
+	int mlen;
+};
+
+Decon SetupDecon() {
+	Decon decon;
+	decon.fitdat = NULL;
+	decon.baseline = NULL;
+	decon.noise = NULL;
+	decon.massgrid = NULL;
+	decon.massaxis = NULL;
+	decon.massaxisval = NULL;
+	decon.blur = NULL;
+	decon.newblur = NULL;
+	decon.error = 0;
+	decon.iterations = 0;
+	decon.uniscore = 0;
+	decon.conv = 0;
+	decon.threshold = 0;
+	decon.mlen = 0;
+	return decon;
+}
+
+void FreeDecon(Decon decon)
+{
+	free(decon.fitdat);
+	free(decon.baseline);
+	free(decon.noise);
+	free(decon.massgrid);
+	free(decon.massaxis);
+	free(decon.massaxisval);
+	free(decon.blur);
+	free(decon.newblur);
+}
 
 typedef struct Config Config;
 
@@ -47,7 +142,6 @@ struct Config
 	int mflag;
 	double massbins;
 	int limitflag;
-	double cutoff;
 	double psthresh;
 	int speedyflag;
 	int linflag;
@@ -106,8 +200,9 @@ struct Config
 	int filterwidth;
 	double zerolog;
 	int lengthmz;
-	int mlen;
 	int plen;
+	int mfilelen;
+	int isolength;
 };
 
 Config SetDefaultConfig()
@@ -132,7 +227,6 @@ Config SetDefaultConfig()
 	config.mflag = 0;
 	config.massbins = 100;
 	config.limitflag = 0;
-	config.cutoff = 0;
 	config.psthresh = 6;
 	config.speedyflag = 0;
 	config.aggressiveflag = 0;
@@ -191,8 +285,9 @@ Config SetDefaultConfig()
 	config.filterwidth = 20;
 	config.zerolog = -12;
 	config.lengthmz = 0;
-	config.mlen = 0;
 	config.plen = 0;
+	config.mfilelen = 0;
+	config.isolength = 0;
 	return config;
 }
 
@@ -217,8 +312,8 @@ Config PostImport(Config config)
 	{
 		//Print inputs for check
 		printf("infile = %s\n", config.infile);
-		printf("outfile = %s\n", config.outfile);
-		printf("\n");
+		//printf("outfile = %s\n", config.outfile);
+		//printf("\n");
 	}
 
 	//Check to see if the mass axis should be fixed
@@ -253,74 +348,74 @@ Config LoadConfig(Config config,const char *filename)
 	{
 		char x[500];
 		char y[500];
-		printf("\nRead from file:");
+		//printf("\nRead from file:");
 		while (fscanf(file, "%s %500[^\n]", x, y) != EOF)
 		{
 			//printf( "read in: %s %s \n", x,y );
-			if (strstr(x, "input") != NULL){ strcpy(config.infile, y); printf(" input"); }
-			if (strstr(x, "output") != NULL){ strcpy(config.outfile, y); printf(" output"); }
-			if (strstr(x, "mfile") != NULL){ strcpy(config.mfile, y); config.mflag = 1;  printf(" mfile"); }
-			if (strstr(x, "numit") != NULL){ config.numit = atoi(y); printf(" numit"); }
+			if (strstr(x, "input") != NULL) { strcpy(config.infile, y); }// printf(" input");
+			if (strstr(x, "output") != NULL){ strcpy(config.outfile, y);}//  printf(" output"); }
+			if (strstr(x, "mfile") != NULL){ strcpy(config.mfile, y); config.mflag = 1;  }// printf(" mfile"); }
+			if (strstr(x, "numit") != NULL){ config.numit = atoi(y); }// printf(" numit"); }
 			//if (strstr(x, "numz") != NULL){ config.numz = atoi(y); printf(" numz"); }
-			if (strstr(x, "startz") != NULL){ config.startz = atoi(y); printf(" startz"); }
-			if (strstr(x, "endz") != NULL) { config.endz = atoi(y); printf(" endz"); }
-			if (strstr(x, "zzsig") != NULL){ config.zsig = atof(y); printf(" zzsig"); }
-			if (strstr(x, "psig") != NULL) { config.psig = atof(y); printf(" psig"); }
-			if (strstr(x, "beta") != NULL) { config.beta = atof(y); printf(" beta"); }
-			if (strstr(x, "mzsig") != NULL){ config.mzsig = atof(y); printf(" mzsig"); }
-			if (strstr(x, "msig") != NULL){ config.msig = atof(y); printf(" msig"); }
-			if (strstr(x, "molig") != NULL){ config.molig = atof(y); printf(" molig"); }
-			if (strstr(x, "massub") != NULL){ config.massub = atof(y); printf(" massub"); }
-			if (strstr(x, "masslb") != NULL){ config.masslb = atof(y); printf(" masslb"); }
-			if (strstr(x, "psfun") != NULL){ config.psfun = atoi(y); printf(" psfun"); }
-			if (strstr(x, "mtabsig") != NULL){ config.mtabsig = atof(y); printf(" mtabsig"); }
-			if (strstr(x, "massbins") != NULL){ config.massbins = atof(y); printf(" massbins"); }
-			if (strstr(x, "psthresh") != NULL){ config.psthresh = atof(y); printf(" psthresh"); }
-			if (strstr(x, "speedy") != NULL){ config.speedyflag = atoi(y); printf(" speedy"); }
-			if (strstr(x, "aggressive") != NULL){ config.aggressiveflag = atoi(y); printf(" aggressive"); }
-			if (strstr(x, "adductmass") != NULL){ config.adductmass = atof(y); printf(" adductmass"); }
-			if (strstr(x, "rawflag") != NULL){ config.rawflag = atoi(y); printf(" rawflag"); }
-			if (strstr(x, "nativezub") != NULL){ config.nativezub = atof(y); printf(" nativezub"); }
-			if (strstr(x, "nativezlb") != NULL){ config.nativezlb = atof(y); printf(" nativezlb"); }
-			if (strstr(x, "poolflag") != NULL){ config.poolflag = atoi(y); printf(" poolflag"); }
-			if (strstr(x, "manualfile") != NULL){ config.manualflag = 1; strcpy(config.manualfile, y); printf(" manualfile"); }
-			if (strstr(x, "intthresh") != NULL){ config.intthresh = atof(y); printf(" intthresh"); }
-			if (strstr(x, "peakshapeinflate") != NULL){ config.peakshapeinflate = atof(y); printf(" peakshapeinflate"); }
-			if (strstr(x, "killmass") != NULL){ config.killmass = atof(y); printf(" killmass"); }
-			if (strstr(x, "isotopemode") != NULL){ config.isotopemode = atoi(y); printf(" isotopemode"); }
-			if (strstr(x, "orbimode") != NULL) { config.orbimode = atoi(y); printf(" orbimode"); }
-			if (strstr(x, "imflag") != NULL) { config.imflag = atoi(y); printf(" imflag"); }
-			if (strstr(x, "linflag") != NULL) { config.linflag = atoi(y); printf(" linflag"); }
+			if (strstr(x, "startz") != NULL){ config.startz = atoi(y); }// printf(" startz"); }
+			if (strstr(x, "endz") != NULL) { config.endz = atoi(y); }// printf(" endz"); }
+			if (strstr(x, "zzsig") != NULL){ config.zsig = atof(y); }// printf(" zzsig"); }
+			if (strstr(x, "psig") != NULL) { config.psig = atof(y); }// printf(" psig"); }
+			if (strstr(x, "beta") != NULL) { config.beta = atof(y); }// printf(" beta"); }
+			if (strstr(x, "mzsig") != NULL){ config.mzsig = atof(y); }// printf(" mzsig"); }
+			if (strstr(x, "msig") != NULL){ config.msig = atof(y); }// printf(" msig"); }
+			if (strstr(x, "molig") != NULL){ config.molig = atof(y); }// printf(" molig"); }
+			if (strstr(x, "massub") != NULL){ config.massub = atof(y); }// printf(" massub"); }
+			if (strstr(x, "masslb") != NULL){ config.masslb = atof(y); }// printf(" masslb"); }
+			if (strstr(x, "psfun") != NULL){ config.psfun = atoi(y); }// printf(" psfun"); }
+			if (strstr(x, "mtabsig") != NULL){ config.mtabsig = atof(y); }// printf(" mtabsig"); }
+			if (strstr(x, "massbins") != NULL){ config.massbins = atof(y); }// printf(" massbins"); }
+			if (strstr(x, "psthresh") != NULL){ config.psthresh = atof(y); }// printf(" psthresh"); }
+			if (strstr(x, "speedy") != NULL){ config.speedyflag = atoi(y);}//  printf(" speedy"); }
+			if (strstr(x, "aggressive") != NULL){ config.aggressiveflag = atoi(y);}//  printf(" aggressive"); }
+			if (strstr(x, "adductmass") != NULL){ config.adductmass = atof(y);}//  printf(" adductmass"); }
+			if (strstr(x, "rawflag") != NULL){ config.rawflag = atoi(y); }// printf(" rawflag"); }
+			if (strstr(x, "nativezub") != NULL){ config.nativezub = atof(y); }// printf(" nativezub"); }
+			if (strstr(x, "nativezlb") != NULL){ config.nativezlb = atof(y); }// printf(" nativezlb"); }
+			if (strstr(x, "poolflag") != NULL){ config.poolflag = atoi(y); }// printf(" poolflag"); }
+			if (strstr(x, "manualfile") != NULL){ config.manualflag = 1; strcpy(config.manualfile, y);}//  printf(" manualfile"); }
+			if (strstr(x, "intthresh") != NULL){ config.intthresh = atof(y); }// printf(" intthresh"); }
+			if (strstr(x, "peakshapeinflate") != NULL){ config.peakshapeinflate = atof(y); }// printf(" peakshapeinflate"); }
+			if (strstr(x, "killmass") != NULL){ config.killmass = atof(y); }// printf(" killmass"); }
+			if (strstr(x, "isotopemode") != NULL){ config.isotopemode = atoi(y); }// printf(" isotopemode"); }
+			if (strstr(x, "orbimode") != NULL) { config.orbimode = atoi(y); }// printf(" orbimode"); }
+			if (strstr(x, "imflag") != NULL) { config.imflag = atoi(y); }// printf(" imflag"); }
+			if (strstr(x, "linflag") != NULL) { config.linflag = atoi(y); }// printf(" linflag"); }
 			//IM Parameters
-			if (strstr(x, "csig") != NULL) { config.csig = atof(y); printf(" csig"); }
-			if (strstr(x, "dtsig") != NULL) { config.dtsig = atof(y); printf(" dtsig"); }
-			if (strstr(x, "ccsub") != NULL) { config.ccsub = atof(y); printf(" ccsub"); }
-			if (strstr(x, "ccslb") != NULL) { config.ccslb = atof(y); printf(" ccslb"); }
-			if (strstr(x, "ccsbins") != NULL) { config.ccsbins = atof(y); printf(" ccsbins"); }
-			if (strstr(x, "temp") != NULL) { config.temp = atof(y); printf(" temp"); }
-			if (strstr(x, "pressure") != NULL) { config.press = atof(y); printf(" pressure"); }
-			if (strstr(x, "volt") != NULL) { config.volt = atof(y); printf(" volt"); }
-			if (strstr(x, "gasmass") != NULL) { config.hmass = atof(y); printf(" gasmass"); }
-			if (strstr(x, "tnaught") != NULL) { config.to = atof(y); printf(" to"); }
-			if (strstr(x, "tcal1") != NULL) { config.tcal1 = atof(y); printf(" tcal1"); }
-			if (strstr(x, "tcal2") != NULL) { config.tcal2 = atof(y); printf(" tcal2"); }
-			if (strstr(x, "edc") != NULL) { config.edc = atof(y); printf(" edc"); }
-			if (strstr(x, "zout") != NULL) { config.zout = atoi(y); printf(" zout"); }
-			if (strstr(x, "twaveflag") != NULL) { config.twaveflag = atoi(y); printf(" twaveflag"); }
-			if (strstr(x, "ubnativeccs") != NULL) { config.nativeccsub = atof(y); printf(" ubnativeccs"); }
-			if (strstr(x, "lbnativeccs") != NULL) { config.nativeccslb = atof(y); printf(" lbnativeccs"); }
-			if (strstr(x, "driftlength") != NULL) { config.len = atof(y); printf(" driftlength"); }
-			if (strstr(x, "baselineflag") != NULL) { config.baselineflag = atoi(y); printf(" baselineflag"); }
-			if (strstr(x, "noiseflag") != NULL) { config.noiseflag = atoi(y); printf(" noiseflag"); }
+			if (strstr(x, "csig") != NULL) { config.csig = atof(y); }// printf(" csig"); }
+			if (strstr(x, "dtsig") != NULL) { config.dtsig = atof(y); }// printf(" dtsig"); }
+			if (strstr(x, "ccsub") != NULL) { config.ccsub = atof(y); }// printf(" ccsub"); }
+			if (strstr(x, "ccslb") != NULL) { config.ccslb = atof(y); }// printf(" ccslb"); }
+			if (strstr(x, "ccsbins") != NULL) { config.ccsbins = atof(y); }// printf(" ccsbins"); }
+			if (strstr(x, "temp") != NULL) { config.temp = atof(y); }// printf(" temp"); }
+			if (strstr(x, "pressure") != NULL) { config.press = atof(y); }// printf(" pressure"); }
+			if (strstr(x, "volt") != NULL) { config.volt = atof(y); }// printf(" volt"); }
+			if (strstr(x, "gasmass") != NULL) { config.hmass = atof(y); }// printf(" gasmass"); }
+			if (strstr(x, "tnaught") != NULL) { config.to = atof(y); }// printf(" to"); }
+			if (strstr(x, "tcal1") != NULL) { config.tcal1 = atof(y); }// printf(" tcal1"); }
+			if (strstr(x, "tcal2") != NULL) { config.tcal2 = atof(y); }// printf(" tcal2"); }
+			if (strstr(x, "edc") != NULL) { config.edc = atof(y); }// printf(" edc"); }
+			if (strstr(x, "zout") != NULL) { config.zout = atoi(y); }// printf(" zout"); }
+			if (strstr(x, "twaveflag") != NULL) { config.twaveflag = atoi(y); }// printf(" twaveflag"); }
+			if (strstr(x, "ubnativeccs") != NULL) { config.nativeccsub = atof(y); }// printf(" ubnativeccs"); }
+			if (strstr(x, "lbnativeccs") != NULL) { config.nativeccslb = atof(y); }// printf(" lbnativeccs"); }
+			if (strstr(x, "driftlength") != NULL) { config.len = atof(y); }// printf(" driftlength"); }
+			if (strstr(x, "baselineflag") != NULL) { config.baselineflag = atoi(y); }// printf(" baselineflag"); }
+			if (strstr(x, "noiseflag") != NULL) { config.noiseflag = atoi(y); }// printf(" noiseflag"); }
 			//Experimental
-			if (strstr(x, "filterwidth") != NULL) { config.filterwidth = atoi(y); printf(" filterwidth"); }
-			if (strstr(x, "zerolog") != NULL) { config.zerolog = atof(y); printf(" zerolog"); }
+			if (strstr(x, "filterwidth") != NULL) { config.filterwidth = atoi(y); }// printf(" filterwidth"); }
+			if (strstr(x, "zerolog") != NULL) { config.zerolog = atof(y); }// printf(" zerolog"); }
 			//Peak Parameters
-			if (strstr(x, "peakwindow") != NULL) { config.peakwin = atof(y); printf(" peakwindow"); }
-			if (strstr(x, "peakthresh") != NULL) { config.peakthresh = atof(y); printf(" peakthresh"); }
-			if (strstr(x, "peaknorm") != NULL) { config.peaknorm = atoi(y); printf(" peaknorm"); }
+			if (strstr(x, "peakwindow") != NULL) { config.peakwin = atof(y); }// printf(" peakwindow"); }
+			if (strstr(x, "peakthresh") != NULL) { config.peakthresh = atof(y); }// printf(" peakthresh"); }
+			if (strstr(x, "peaknorm") != NULL) { config.peaknorm = atoi(y); }// printf(" peaknorm"); }
 		}
-		printf("\n\n");
+		//printf("\n\n");
 	}
 	fclose(file);
 
@@ -329,6 +424,7 @@ Config LoadConfig(Config config,const char *filename)
 	return config;
 
 }
+
 
 //Gives command line help options
 void PrintHelp()
@@ -506,7 +602,7 @@ int getfilelength(char *infile)
 
 	if (file_ptr == 0)
 	{
-		printf("TESTCould not open %s file\n", infile);
+		printf("Could not open %s file\n", infile);
 		exit(9);
 	}
 	else
@@ -1493,13 +1589,20 @@ double getfitdatspeedy(double *fitdat, double *blur, int lengthmz,int numz,int m
 	return fitmax;
 }
 
-double errfunspeedy(double *dataInt,double *fitdat, double *blur,int lengthmz,int numz,int maxlength,double maxint,
+double errfunspeedy(double *dataInt,double *fitdat, double *blur,int lengthmz,int numz,int maxlength,
 	int isolength, int *isotopepos, float *isotopeval, int*starttab, int *endtab, double *mzdist, int speedyflag)
 {
-    int i;
+	//Get max intensity
+	double maxint = 0;
+	for (int i = 0; i < lengthmz; i++)
+	{
+		if (dataInt[i] > maxint) { maxint = dataInt[i]; }
+	}
+
 	getfitdatspeedy(fitdat, blur,lengthmz, numz,maxlength, maxint,isolength, isotopepos, isotopeval,starttab,endtab,mzdist,speedyflag);
-    double error=0;
-    for(i=0;i<lengthmz;i++)
+    
+	double error=0;
+    for(int i=0;i<lengthmz;i++)
     {
         error+=pow((fitdat[i]-dataInt[i]),2);
     }
@@ -2001,7 +2104,8 @@ void PerfectTransform(int lengthmz, int numz, double *mtab, double massmax, doub
 }
 
 
-void IntegrateTransform(const int lengthmz, const int numz, const double *mtab, double massmax, double massmin, const int maaxle, double *massaxis,double *massaxisval, const double*blur,double *massgrid)
+void IntegrateTransform(const int lengthmz, const int numz, const double *mtab, double massmax, double massmin,
+	const int maaxle, double *massaxis,double *massaxisval, const double*blur,double *massgrid)
 {
 	for(int i=0;i<lengthmz;i++)
 		{
@@ -2040,7 +2144,8 @@ void IntegrateTransform(const int lengthmz, const int numz, const double *mtab, 
 		}
 }
 
-void InterpolateTransform(const int maaxle,const int numz,const int lengthmz, const int *nztab,double *massaxis,const double adductmass,const double *dataMZ,const double *dataInt,double *massgrid, double *massaxisval, const double *blur)
+void InterpolateTransform(const int maaxle,const int numz,const int lengthmz, const int *nztab,double *massaxis,
+	const double adductmass,const double *dataMZ,const double *dataInt,double *massgrid, double *massaxisval, const double *blur)
 {
 	double startmzval = dataMZ[0];
 	double endmzval = dataMZ[lengthmz - 1];
@@ -2755,3 +2860,183 @@ void point_smoothing_iso(double *blur, const int lengthmz, const int numz, const
 	free(newblur);
 	return;
 }*/
+
+void SetLimits(const Config config, Input *inp)
+{
+	//Determines the indexes of each test mass from mfile in m/z space
+	int* testmasspos = malloc(sizeof(double) * config.mfilelen * config.numz);
+	if (config.mflag == 1 && config.limitflag == 1) {
+		for (int i = 0; i < config.mfilelen; i++)
+		{
+			for (int j = 0; j < config.numz; j++)
+			{
+				double mztest = (inp->testmasses[i] + config.adductmass * inp->nztab[j]) / (double)inp->nztab[j];
+				testmasspos[index2D(config.numz, i, j)] = nearfast(inp->dataMZ, mztest, config.lengthmz);
+			}
+		}
+	}
+	
+	//If there is a mass file read, it will only allow masses close to those masses within some config.mtabsig window.
+	if (config.mflag == 1 && config.limitflag == 0)
+	{
+		TestMassListWindowed(config.lengthmz, config.numz, inp->barr, inp->mtab, config.nativezub, config.nativezlb, config.massub, config.masslb, inp->nztab, inp->testmasses, config.mfilelen, config.mtabsig);
+	}
+	//If there is a mass file read and the mass table window (config.mtabsig) is 0, it will only write intensities at the m/z values closest to the m/z values read in from the mfile.
+	else if (config.mflag == 1 && config.limitflag == 1)
+	{
+		TestMassListLimit(config.lengthmz, config.numz, inp->barr, inp->mtab, config.nativezub, config.nativezlb, config.massub, config.masslb, inp->nztab, testmasspos, config.mfilelen);
+	}
+	//Normally, write the intensity values if the values fall within the mass upperbound and lower bound
+	else
+	{
+		TestMass(config.lengthmz, config.numz, inp->barr, inp->mtab, config.nativezub, config.nativezlb, config.massub, config.masslb, inp->nztab);
+	}
+	free(testmasspos);
+}
+
+int SetStartsEnds(const Config config, const Input * inp, int *starttab, int *endtab, const double threshold) {
+	int maxlength = 1;
+	for (int i = 0; i < config.lengthmz; i++)
+	{
+		double point = inp->dataMZ[i] - threshold;
+		int start, end;
+		if (point < inp->dataMZ[0] && config.speedyflag == 0) {
+			start = (int)((point - inp->dataMZ[0]) / (inp->dataMZ[1] - inp->dataMZ[0]));
+		}
+		else {
+			start = nearfast(inp->dataMZ, point, config.lengthmz);
+		}
+
+		starttab[i] = start;
+		point = inp->dataMZ[i] + threshold;
+		if (point > inp->dataMZ[config.lengthmz - 1] && config.speedyflag == 0) {
+			end = config.lengthmz - 1 + (int)((point - inp->dataMZ[config.lengthmz - 1]) / (inp->dataMZ[config.lengthmz - 1] - inp->dataMZ[config.lengthmz - 2]));
+		}
+		else {
+			end = nearfast(inp->dataMZ, point, config.lengthmz);
+		}
+		endtab[i] = end;
+		if (end - start > maxlength) { maxlength = end - start; }
+	}
+	//printf("Max Length: %d\t", maxlength);
+	return maxlength;
+}
+
+void WriteDecon(const Config config, const Decon * decon, const Input * inp, const hid_t file_id, const char * dataset)
+{
+	char outdat[1024];
+	FILE* out_ptr = NULL;
+	//Write the fit data to a file.
+	if (config.rawflag >= 0) {
+		if (config.filetype == 0) {
+			char outstring2[500];
+			sprintf(outstring2, "%s_fitdat.bin", config.outfile);
+			out_ptr = fopen(outstring2, "wb");
+			fwrite(decon->fitdat, sizeof(double), config.lengthmz, out_ptr);
+			fclose(out_ptr);
+			printf("Fit: %s\t", outstring2);
+		}
+		else {
+			strjoin(dataset, "/fit_data", outdat);
+			mh5writefile1d(file_id, outdat, config.lengthmz, decon->fitdat);
+		}
+	}
+
+	//Write the baseline to a file.
+	if (config.rawflag >= 0 && config.baselineflag == 1) {
+		if (config.filetype == 0) {
+			char outstring2[500];
+			sprintf(outstring2, "%s_baseline.bin", config.outfile);
+			out_ptr = fopen(outstring2, "wb");
+			fwrite(decon->baseline, sizeof(double), config.lengthmz, out_ptr);
+			fclose(out_ptr);
+			printf("Background: %s\t", outstring2);
+		}
+		else {
+			strjoin(dataset, "/baseline", outdat);
+			mh5writefile1d(file_id, outdat, config.lengthmz, decon->baseline);
+		}
+	}
+
+	//Writes the convolved m/z grid in binary format
+	if (config.rawflag == 0 || config.rawflag == 1)
+	{
+		if (config.filetype == 0) {
+			char outstring9[500];
+			sprintf(outstring9, "%s_grid.bin", config.outfile);
+			out_ptr = fopen(outstring9, "wb");
+			if (config.rawflag == 0) { fwrite(decon->newblur, sizeof(double), config.lengthmz * config.numz, out_ptr); }
+			if (config.rawflag == 1) { fwrite(decon->blur, sizeof(double), config.lengthmz * config.numz, out_ptr); }
+			fclose(out_ptr);
+			printf("m/z grid: %s\t", outstring9);
+		}
+		else {
+			strjoin(dataset, "/mz_grid", outdat);
+			if (config.rawflag == 0) { mh5writefile1d(file_id, outdat, config.lengthmz * config.numz, decon->newblur); }
+			if (config.rawflag == 1) { mh5writefile1d(file_id, outdat, config.lengthmz * config.numz, decon->blur); }
+
+			strjoin(dataset, "/mz_grid", outdat);
+			double* chargedat = NULL;
+			chargedat = calloc(config.numz, sizeof(double));
+			double* chargeaxis = NULL;
+			chargeaxis = calloc(config.numz, sizeof(double));
+
+			for (int j = 0; j < config.numz; j++) {
+				double val = 0;
+				chargeaxis[j] = (double)inp->nztab[j];
+				for (int i = 0; i < config.lengthmz; i++) {
+
+					val += decon->newblur[index2D(config.numz, i, j)];
+				}
+				chargedat[j] = val;
+			}
+			strjoin(dataset, "/charge_data", outdat);
+			mh5writefile2d(file_id, outdat, config.numz, chargeaxis, chargedat);
+			free(chargedat);
+			free(chargeaxis);
+		}
+	}
+
+
+	//Writes the convolved mass grid in binary format
+	if (config.rawflag == 0 || config.rawflag == 1) {
+		if (config.filetype == 0) {
+			char outstring10[500];
+			sprintf(outstring10, "%s_massgrid.bin", config.outfile);
+			out_ptr = fopen(outstring10, "wb");
+			fwrite(decon->massgrid, sizeof(double), decon->mlen * config.numz, out_ptr);
+			fclose(out_ptr);
+			printf("Mass Grid: %s\t", outstring10);
+		}
+		else {
+			strjoin(dataset, "/mass_grid", outdat);
+			mh5writefile1d(file_id, outdat, decon->mlen * config.numz, decon->massgrid);
+		}
+	}
+
+	//Writes the mass values convolved with the peak shape
+	if (config.rawflag == 0 || config.rawflag == 1 || config.rawflag == 2 || config.rawflag == 3) {
+		if (config.filetype == 0) {
+			char outstring4[500];
+			sprintf(outstring4, "%s_mass.txt", config.outfile);
+			out_ptr = fopen(outstring4, "w");
+			for (int i = 0; i < decon->mlen; i++)
+			{
+				fprintf(out_ptr, "%f %f\n", decon->massaxis[i], decon->massaxisval[i]);
+			}
+			fclose(out_ptr);
+			printf("Masses: %s\n", outstring4);
+		}
+		else {
+			strjoin(dataset, "/mass_data", outdat);
+			mh5writefile2d(file_id, outdat, decon->mlen, decon->massaxis, decon->massaxisval);
+		}
+	}
+
+}
+
+
+
+
+
+#endif

@@ -129,6 +129,8 @@ unidec_bin/Example Data/BSA_unidecfiles/BSA_chargedata.dat
 unidec_bin/Example Data/BSA_unidecfiles/BSA_chargedata_areas.dat
 unidec_bin/Example Data/BSA_unidecfiles/BSA_peakparam.dat
  /__pycache__/
+ __pycache__/
 unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_peak_areas.dat
+unidec_bin/mkl_intel_thread.dll
 
 

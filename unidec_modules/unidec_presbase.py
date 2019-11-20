@@ -1,10 +1,11 @@
 import wx
 import unidec_modules.isolated_packages.FileDialogs as FileDialogs
+import unidec_modules.isolated_packages.biopolymer_calculator as biopolymer_calculator
 import os
 import numpy as np
 import unidec_modules.unidectools as ud
 import unidec_modules.peakwidthtools as peakwidthtools
-from unidec_modules import ManualSelectionWindow, AutocorrWindow
+from unidec_modules import ManualSelectionWindow, AutocorrWindow, miscwindows
 import time
 
 
@@ -236,6 +237,45 @@ class UniDecPres(object):
         dlg = AutocorrWindow.AutocorrWindow(self.view)
         dlg.initalize_dialog(self.eng.config, self.eng.data.massdat)
         dlg.ShowModal()
+
+    def on_biopolymer(self, e=0):
+        bp = biopolymer_calculator.BiopolymerFrame(self.view)
+        result = bp.Show()
+        '''
+        if result == 0:
+            print("Calculated Mass from Sequence:", bp.mass)
+            calc_mass = 0
+            try:
+                calc_mass = float(bp.mass)
+                if calc_mass > 0:
+                    label = bp.mass
+                    mval = np.amax(self.eng.data.massdat[:, 1])
+                    self.view.plot2.addtext(label, calc_mass, mval * 0.96, vlines=False)
+                    pass
+            except:
+                pass
+        bp.Destroy()'''
+
+    def plot_theo_mass(self, e=0):
+        dialog = miscwindows.SingleInputDialog(self.view)
+        dialog.initialize_interface(title="Theoretical Mass", message="Set Theoretical Mass to Plot (Da): ",
+                                    defaultvalue="")
+        dialog.ShowModal()
+
+        try:
+            mass = float(dialog.value)
+        except:
+            print("Error with theoretical mass input:", dialog.value)
+            mass = 0
+
+        if self.eng.config.massbins >= 1:
+            label = str(int(round(mass)))
+        else:
+            label = str(mass)
+        mval = np.amax(self.eng.data.massdat[:, 1])
+        self.view.plot2.addtext(label, mass, mval * 0.96, vlines=True)
+        self.on_charge_states(mass=mass)
+
 
     def register(self, e=None):
         from unidec_modules.data_reader import register

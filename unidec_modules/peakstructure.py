@@ -53,19 +53,20 @@ class Peak:
         self.extracts = []
         self.errorFWHM = 0
         self.intervalFWHM = [0, 0]
+        self.badFWHM=False
         self.errormean = -1
         self.errorreplicate = 0
         self.avgcharge = 0
         self.zstack = []
         self.mzstack = []
-        self.pca_score = 0
-        self.uni_score = 0
+        self.mscore = 0
+        self.uscore = 0
         self.z_score = 0
         self.rsquared = 0
-        self.fwhm_score = 0
+        self.fscore = 0
         self.dscore = 0
-        self.pca_mdist = None
-        self.pca_zdist = None
+        self.mdist = None
+        self.zdist = None
 
     def line_out(self, type="Full"):
         if type == "Full":
@@ -106,7 +107,7 @@ class Peaks:
         self.marklen = 0
         self.massbins = 0
         self.norm = 1
-        self.aps = 0
+        self.uniscore = 0
 
     def add_peaks(self, parray, massbins=0):
         """
