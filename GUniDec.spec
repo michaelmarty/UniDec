@@ -28,7 +28,7 @@ def dir_files(path, rel):
 
 
 # Some basics
-tstart = time.clock()
+tstart = time.perf_counter()
 system = platform.system()
 date = datetime.date.today().strftime("%y%m%d")
 
@@ -90,7 +90,7 @@ if system == "Windows":
     # a.datas += [('rawreadertim.exe', 'unidec_bin\\rawreadertim.exe', 'DATA')]
     a.datas += [('CDCReader.exe', 'unidec_bin\\CDCReader.exe', 'DATA')]
     a.datas += [('h5repack.exe', 'unidec_bin\\h5repack.exe', 'DATA')]
-    a.datas += [('pymzml\\version.txt', 'C:\\Python37\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
+    a.datas += [('pymzml\\version.txt', 'C:\\Python38\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
 
     for file in os.listdir('unidec_bin'):
         if fnmatch.fnmatch(file, 'api*'):
@@ -185,5 +185,5 @@ if distmode:
 else:
     print("Internal Release Mode")
 
-tend = time.clock()
+tend = time.perf_counter()
 print("Build Time: %.2gm" % ((tend - tstart) / 60.0))

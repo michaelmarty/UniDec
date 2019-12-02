@@ -1,6 +1,7 @@
 from unidec_modules import unidecstructure, peakstructure
 from copy import deepcopy
 from unidec_modules import unidectools as ud
+import numpy as np
 
 
 class UniDecEngine:
@@ -14,7 +15,7 @@ class UniDecEngine:
 
         :return: None
         """
-        self.version = "4.1.0"
+        self.version = "4.1.1"
         print("\nUniDec Engine v." + self.version)
         self.config = None
         self.config_history = []
@@ -161,6 +162,81 @@ class UniDecEngine:
         :return:
         """
         badness, warning = self.config.check_badness()
-        if warning is not "":
+        if warning != "":
             print(warning)
         return badness
+
+    def linear_regression_peaks(self):
+        print("Starting Linear Regression using a repeating mass of:", self.config.molig)
+        fit = [0, 0]
+        if self.config.molig != 0:
+            x = []
+            y = []
+            z = []
+            for p in self.pks.peaks:
+                y.append(p.mass)
+                z.append(p.height)
+                mnum = np.floor(p.mass / self.config.molig)
+                x.append(mnum)
+
+            x = np.array(x)
+            y = np.array(y)
+            z = np.array(z)
+
+            fit = np.polyfit(x, y, 1, w=z)
+            slope = fit[0]
+            intercept = fit[1]
+
+            fitdat = x * slope + intercept
+
+            sse = np.sum((fitdat - y) ** 2)
+            denom = np.sum((y - np.mean(y)) ** 2)
+            rsquared = 1 - ud.safedivide1(sse, denom)
+
+            print("Slope:", fit[0], "Intercept:", fit[1], "R-Squared:", rsquared)
+
+            residuals = np.abs(fitdat - y)
+            cutoff = self.config.molig * 0.1
+            boo1 = residuals > cutoff
+            if np.any(boo1):
+                print("Removing outliers with residuals greater than:", cutoff)
+                print(residuals)
+                boo2 = residuals < cutoff
+                fit = np.polyfit(x[boo2], y[boo2], 1, w=z[boo2])
+                slope = fit[0]
+                intercept = fit[1]
+                fitdat = x[boo2] * slope + intercept
+                sse = np.sum((fitdat - y[boo2]) ** 2)
+                denom = np.sum((y[boo2] - np.mean([boo2])) ** 2)
+                rsquared = 1 - ud.safedivide1(sse, denom)
+                print("New Slope:", fit[0], "New Intercept:", fit[1], "R-Squared:", rsquared)
+
+
+
+        else:
+            print("Need to set the mass difference/mass of oligomer")
+        return fit, rsquared
+
+    def oxidation_analysis(self, e=None):
+        data = self.data.massdat
+
+        maxindex = np.argmax(data[:, 1])
+        maxmass, maxint = data[maxindex]
+        nox = np.arange(0, 4)
+        oxmasses = maxmass +  nox* 16
+        areas = []
+        for i, m in enumerate(oxmasses):
+            low = m + self.config.integratelb
+            high = m + self.config.integrateub
+            print("Peak:", m, "Number of Oxidations:", nox[i], "Integration Range:", low, "to", high)
+            area, intdat = ud.integrate(data, low, high)
+            areas.append(area)
+        areas = np.array(areas)
+        areas /= np.amax(areas)
+        print("Relative Areas:", areas)
+
+        totox = np.sum(nox*areas)/np.sum(areas)
+        print("Total Oxidations:", totox)
+
+        return np.append(areas, totox)
+

@@ -140,7 +140,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
                         maxind = x
                 peakvals[i].append(spec.massdat[maxind, 0])
                 ints.append(spec.massdat[maxind, 1])
-            print(peakvals[i], ints)
+            #print(peakvals[i], ints)
             pk.errorreplicate = ud.weighted_std(peakvals[i], ints)
 
     def export_params(self, e=None):

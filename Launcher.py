@@ -44,7 +44,6 @@ class UniDecLauncher(UniDecPres):
         self.view.Destroy()
         sys.exit()
 
-
 class Lview(wx.Frame):
     def __init__(self, parent):
         self.eng = UniDecEngine()

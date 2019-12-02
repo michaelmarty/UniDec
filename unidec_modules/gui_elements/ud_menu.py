@@ -315,6 +315,9 @@ class main_menu(wx.Menu):
         self.menuisotopes = self.experimentalmenu.Append(wx.ID_ANY, "Plot Averagine Isotope Distributions")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_plot_isotope_distribution, self.menuisotopes)
 
+        self.menufpop = self.experimentalmenu.Append(wx.ID_ANY, "FPOP")
+        self.parent.Bind(wx.EVT_MENU, self.pres.fpop, self.menufpop)
+
         self.experimentalmenu.AppendSeparator()
         self.menubiocalc = self.experimentalmenu.Append(wx.ID_ANY, "Protein/RNA Mass Calculator")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_biopolymer, self.menubiocalc)
@@ -322,6 +325,9 @@ class main_menu(wx.Menu):
         self.menutheomass = self.experimentalmenu.Append(wx.ID_ANY, "Plot Theoretical Mass")
         self.parent.Bind(wx.EVT_MENU, self.pres.plot_theo_mass, self.menutheomass)
 
+        self.experimentalmenu.AppendSeparator()
+        self.menulinreg = self.experimentalmenu.Append(wx.ID_ANY, "Linear Regression")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_linreg, self.menulinreg)
 
         # self.menucentroid = self.experimentalmenu.Append(wx.ID_ANY, "Get Centroid at FWHM")
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_centroid, self.menucentroid)

@@ -542,7 +542,7 @@ class UniDecConfig(object):
     def write_hdf5(self, file_name=None):
         if file_name is None:
             file_name = self.hdf_file
-        hdf = h5py.File(file_name)
+        hdf = h5py.File(file_name, 'a')
         config_group = hdf.require_group("config")
 
         if self.metamode != -2:
@@ -619,7 +619,7 @@ class UniDecConfig(object):
     def read_hdf5(self, file_name=None):
         if file_name is None:
             file_name = self.hdf_file
-        hdf = h5py.File(file_name)
+        hdf = h5py.File(file_name, 'r')
         config_group = hdf.get("config")
         # self.infname = self.read_attr(self.infname, "input", config_group)
         self.maxmz = self.read_attr(self.maxmz, "maxmz", config_group)
