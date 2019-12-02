@@ -194,6 +194,18 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.4.1.1
+
+Added right click feature to color peaks by their scores.
+
+Improvements to Data Collector module to fit protein oligomerization KDs and improve customization. 
+
+Added experimental Linear Regression features for analysis of repeating mass units.
+
+Added experimental FPOP feature to print and copy average degree of oxidation.
+
+Various syntax optimizations to address deprecation warnings and library updates.
+
 v.4.1.0
 
 Introduced **UniScore**. This will automatically score the quality of your peaks and the overall deconvolution. Various experimental features were also added with this to visualize and filter the scores. Some updates to the scoring algorithm from Version 4.0.2 to improve it.

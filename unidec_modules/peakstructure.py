@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import string
 import math
 import matplotlib.cm as cm
+from matplotlib.colors import Normalize
 import numpy as np
 from unidec_modules import unidectools as ud
 
@@ -155,6 +156,15 @@ class Peaks:
                 self.peaks[i].label = string.ascii_uppercase[i % 26] + str(int(math.floor(i / 26) + 1))
             else:
                 self.peaks[i].label = string.ascii_uppercase[i % 26]
+
+    def color_by_score(self, e=0):
+        scores = np.array([p.dscore for p in self.peaks])
+        colormap = cm.get_cmap('RdYlGn')
+        norm = Normalize(vmin=0, vmax=1)
+        colors = colormap(norm(scores))
+        self.peakcolors = colors
+        for i in range(0, len(self.peaks)):
+            self.peaks[i].color = self.peakcolors[i]
 
     def get_mass_defects(self, kendrickmass, mode=0):
         """

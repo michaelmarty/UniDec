@@ -191,7 +191,8 @@ def MakeGrid(pfree, lfree, ureact, prottab, ligtab, paths, kds, nfactors):
         nump = ureact[i, 2, 0]
         numl = ureact[i, 2, 1]
         denom = np.product([kds[j] for j in paths[i]])
-        intgrid[nump, numl] += (pfree ** nump) * (lfree ** (numl * h)) / denom
+        if denom != 0:
+            intgrid[nump, numl] += (pfree ** nump) * (lfree ** (numl * h)) / denom
     if nfactors is not None:
         intgrid = nfactors * intgrid
     sumprot = np.sum(prottab * intgrid)
@@ -269,7 +270,7 @@ def draw_graph_structure(graph1, graph2, kdmap, ax=None):
         # ax.show()
 
 
-def draw_graph(graph1, graph2, kds, errors, kdmap, header, ax=None):
+def draw_graph(graph1, graph2, kds, errors, kdmap, header, ax=None, ulabel=""):
     # extract nodes from graph
     nodes = set([n1 for n1, n2 in graph1] + [n2 for n1, n2 in graph1])
 
@@ -319,6 +320,9 @@ def draw_graph(graph1, graph2, kds, errors, kdmap, header, ax=None):
             stringfin = string1 + string2
         else:
             stringfin = string1
+
+        if stringfin != "":
+            stringfin += " " + ulabel
         e.update({(edge[0], edge[1]): stringfin})
 
     for edge in graph2:
@@ -442,8 +446,11 @@ class kdstruct:
 
 class KDmodel:
     def __init__(self, data, pconc, lconc, nodelist=None, header=None, numtotprot=0, numtotlig=0, removeoutliers=False,
-                 plot1=None, plot2=None, plot3=None, bootnum=1, maxsites=0, maxligagg=1, hill=False, **kwargs):
+                 plot1=None, plot2=None, plot3=None, bootnum=1, maxsites=0, maxligagg=1, hill=False, label="",
+                 cmap='rainbow', **kwargs):
         self.outlierflag = removeoutliers
+        self.cmap=cmap
+        self.label = label
         self.plot1 = plot1
         self.plot2 = plot2
         self.plot3 = plot3
@@ -618,6 +625,13 @@ class KDmodel:
             # Initial guess for KD
             self.kdargs.kds = np.array([np.mean(self.kdargs.lconc) for i in range(0, self.numkd)])
             # print(self.kdargs.kds)
+
+        if np.any(self.kdargs.kds == 0):
+            print("Error in guessing KDs", self.kdargs.kds)
+            self.kdargs.kds = np.array([np.mean(self.kdargs.pconc) for i in range(0, self.numkd)])
+            if np.any(self.kdargs.kds == 0):
+                print("Error in guessing KDs again", self.kdargs.kds)
+                self.kdargs.kds = np.array([1 for i in range(0, self.numkd)])
 
         if "model" in kwargs:
             if kwargs["model"] == 1:
@@ -970,11 +984,12 @@ class KDmodel:
             np.savetxt(self.header + "_kds.txt", np.array([np.concatenate(self.fit)]))
 
     def GraphPlot(self, ax=None):
-        draw_graph(self.graph, self.ugraph, np.concatenate(self.fit), self.stddevs, self.kdmap, self.header, ax=ax)
+        draw_graph(self.graph, self.ugraph, np.concatenate(self.fit), self.stddevs, self.kdmap, self.header, ax=ax,
+                   ulabel=self.label)
 
     def PlotTrace(self, topax=None):
         dims = self.data.shape
-        colormap = cm.get_cmap('rainbow', dims[0])
+        colormap = cm.get_cmap(self.cmap, dims[0])
         colors = colormap(np.arange(dims[0]))
         if topax is None:
             fig = plt.figure()
@@ -985,6 +1000,8 @@ class KDmodel:
             # print data[i]
             # print fitgrid[:,i]
             xvals = self.kdargs.lconc
+            if np.all(xvals == 0):
+                xvals = self.kdargs.pconc
             try:
                 ax.plot(xvals, self.data[i], 'o', color=colors[i], linestyle="None", label=self.nodenames[i])
                 ax.plot(xvals, self.fitgrid[i], '--', color=colors[i])
@@ -992,6 +1009,7 @@ class KDmodel:
                 ax.plot(xvals, self.data[i], 'o', color=colors[i], linestyle="None", label="Unknown")
                 ax.plot(xvals, self.fitgrid[i], '--', color=colors[i])
 
+        ax.set_xlabel(self.label)
         if topax is None:
             plt.legend(bbox_to_anchor=(1.0, 0.5, 0.25, 0.5), loc=1, numpoints=1)
             plt.tight_layout(rect=(0.05, 0.05, 1.05, 1))

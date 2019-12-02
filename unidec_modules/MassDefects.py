@@ -67,7 +67,7 @@ class MassDefectWindow(wx.Frame):
         self.factor = 1
         self.xlab = ""
         self.outfname = os.path.splitext(self.config.filename)[0]
-        if self.outfname is not "":
+        if self.outfname != "":
             self.outfname += "_"
 
         try:
@@ -111,9 +111,12 @@ class MassDefectWindow(wx.Frame):
                                             "Fit total mass defect peaks")
         self.menupeaks = self.plotmenu.Append(wx.ID_ANY, "Label Peaks",
                                               "Label peaks")
+        self.menulinreg = self.plotmenu.Append(wx.ID_ANY, "Linear Regression",
+                                              "Linear Regression")
         self.Bind(wx.EVT_MENU, self.on_add_line, self.menuaddline)
         self.Bind(wx.EVT_MENU, self.on_fit, self.menufit)
         self.Bind(wx.EVT_MENU, self.on_label_peaks, self.menupeaks)
+        self.Bind(wx.EVT_MENU, self.on_linear_regression, self.menulinreg)
 
         menu_bar = wx.MenuBar()
         menu_bar.Append(filemenu, "&File")
@@ -310,7 +313,7 @@ class MassDefectWindow(wx.Frame):
         :return: None
         """
         self.getfromgui()
-        self.data1d, data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(self.datalist[self.pos], self.m0,
+        self.data1d, self.data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(self.datalist[self.pos], self.m0,
                                                                           centermode=self.centermode,
                                                                           nbins=self.nbins,
                                                                           transformmode=self.transformmode,
@@ -328,17 +331,21 @@ class MassDefectWindow(wx.Frame):
             spacer = ""
         try:
             save_path2d = os.path.join(self.directory, title + spacer + "2D_Mass_Defects.txt")
-            np.savetxt(save_path2d, data2d)
+            np.savetxt(save_path2d, self.data2d)
             save_path1d = os.path.join(self.directory, title + spacer + "1D_Mass_Defects.txt")
             np.savetxt(save_path1d, self.data1d)
             print('Saved: ', save_path2d, save_path1d)
         except Exception as e:
             print("Failed save", e)
+
+
         try:
-            self.plot2.contourplot(data2d, self.config, xlab=self.xlab, ylab=self.ylab, title=title, normflag=1, test_kda=True)
+            self.plot2.contourplot(self.data2d, self.config, xlab=self.xlab, ylab=self.ylab, title=title, normflag=1, test_kda=True)
         except Exception as e:
             self.plot2.clear_plot()
             print("Failed Plot2", e)
+
+
         try:
             self.plot3.plotrefreshtop(self.data1d[:, 0], self.data1d[:, 1], title, self.ylab,
                                       "Total Intensity", "", self.config)
@@ -352,6 +359,7 @@ class MassDefectWindow(wx.Frame):
                                    self.datalist[self.pos, :, 0] / float(self.m0) % 1.0 * factor, max=factor,
                                    title="Zero-Charge Mass Spectrum",
                                    xlabel="Mass", ylabel="Intensity", test_kda=True)
+            self.plotdat = self.datalist[self.pos]
         except Exception as e:
             self.plot1.clear_plot()
             print("Failed Plot1", e)
@@ -377,7 +385,7 @@ class MassDefectWindow(wx.Frame):
         igrids = []
         m1grid, m2grid = None, None
         for i, dat in enumerate(self.datalist):
-            self.data1d, data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(dat, self.m0,
+            self.data1d, self.data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(dat, self.m0,
                                                                               centermode=self.centermode,
                                                                               nbins=self.nbins,
                                                                               transformmode=self.transformmode,
@@ -392,17 +400,17 @@ class MassDefectWindow(wx.Frame):
         igrids /= np.amax(igrids)
         sumgrid = np.sum(igrids, axis=0)
         self.igrids = igrids
-        data2d = np.transpose([np.ravel(m1grid), np.ravel(m2grid), np.ravel(sumgrid) / np.amax(sumgrid)])
+        self.data2d = np.transpose([np.ravel(m1grid), np.ravel(m2grid), np.ravel(sumgrid) / np.amax(sumgrid)])
         self.data1d = np.transpose([np.unique(m2grid), np.sum(sumgrid, axis=0)])
         # Save Results
         save_path2d = os.path.join(self.directory, self.outfname + "Total_2D_Mass_Defects.txt")
-        np.savetxt(save_path2d, data2d)
+        np.savetxt(save_path2d, self.data2d)
         save_path1d = os.path.join(self.directory, self.outfname + "Total_1D_Mass_Defects.txt")
         np.savetxt(save_path1d, self.data1d)
         print('Saved: ', save_path2d, save_path1d)
         # Plots
         try:
-            self.plot2.contourplot(data2d, self.config, xlab=self.xlab, ylab=self.ylab, title="Total", normflag=1, test_kda=True)
+            self.plot2.contourplot(self.data2d, self.config, xlab=self.xlab, ylab=self.ylab, title="Total", normflag=1, test_kda=True)
         except Exception as e:
             self.plot2.clear_plot()
             print("Failed Plot2", e)
@@ -411,6 +419,7 @@ class MassDefectWindow(wx.Frame):
                                    self.datasum[:, 0] / float(self.m0) % 1.0 * factor,
                                    title="Zero-Charge Mass Spectrum", max=factor,
                                    xlabel="Mass", ylabel="Intensity", test_kda=True)
+            self.plotdat = self.datasum
         except Exception as e:
             self.plot1.clear_plot()
             print("Failed Plot1", e)
@@ -628,6 +637,44 @@ class MassDefectWindow(wx.Frame):
             self.plot3.addtext(str(np.round(p[0], 3)), p[0] + 0.075, y * 0.95, vlines=False)
             self.plot3.addtext("", p[0], y, vlines=True)
 
+    def on_linear_regression(self, e=None):
+        print("Starting Linear Regression")
+        dims = self.data2d.shape
+
+        x = np.unique(self.data2d[:,0])
+        y = np.unique(self.data2d[:,1])
+        xl = len(x)
+        yl = len(y)
+        z = self.data2d[:,2].reshape((xl, yl))
+
+        xlin = np.arange(0, xl)
+        ylin = np.array([np.argmax(d)/yl * self.m0 for d in z]) + xlin*self.m0
+        zlin = np.array([np.max(d) for d in z])
+
+        boo1 = zlin > self.config.peakthresh*np.amax(zlin)
+
+        xlin = xlin[boo1]
+        ylin = ylin[boo1]
+        zlin = zlin[boo1]
+
+        fit = np.polyfit(xlin, ylin, 1, w=zlin)
+        slope=fit[0]
+        intercept=fit[1]
+        print(fit)
+
+        #mnum=np.floor(self.plotdat[:,0]/self.m0)
+        #masses = self.plotdat[:,0]
+        #fit2 = np.polyfit(mnum, masses, 1, w=self.plotdat[:,1])
+        #print(fit2)
+
+        self.plot1.colorplotMD(xlin, ylin, zlin, max=np.amax(z), cmap="binary",
+                               title="Linear Regression Plot", clabel="Intensity",
+                               xlabel="Mass Number", ylabel="Mass", test_kda=False)
+
+        #self.plot1.plotadd(xlin, xlin*fit[0]+fit[1], colval="r")
+        sval = "Slope: "+str(np.round(slope,3)) + "\nIntercept: " + str(np.round(intercept,3)) \
+               + "\nInt./RefMass: " + str(np.round(intercept/self.m0,3))
+        self.plot1.addtext(sval, xl*0.7, np.amax(ylin)*0.2, vlines=False)
 
 # Main App Execution
 if __name__ == "__main__":
@@ -650,5 +697,5 @@ if __name__ == "__main__":
 
     app = wx.App(False)
     frame = MassDefectWindow(None, datalist)
-    frame.on_label_peaks(0)
+    frame.on_linear_regression(0)
     app.MainLoop()

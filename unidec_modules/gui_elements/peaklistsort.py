@@ -84,6 +84,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.Bind(wx.EVT_MENU, self.on_popup_ten, id=self.popupID10)
         self.Bind(wx.EVT_MENU, self.on_popup_eleven, id=self.popupID11)
         self.Bind(wx.EVT_MENU, self.on_popup_twelve, id=self.popupID12)
+        self.Bind(wx.EVT_MENU, self.on_popup_scorecolor, id=self.popupID13)
 
     def clear_list(self):
         """
@@ -95,6 +96,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
 
     def fix_text_color(self):
         print("test")
+        self.add_data(self.pks, show="dscore")
 
     def add_data(self, pks, show="area", collab1="Mass (Da)"):
         """
@@ -203,6 +205,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                 menu.AppendSeparator()
                 menu.Append(self.popupID5, "Color Select")
                 menu.Append(self.popupID9, "Marker Select")
+                if not self.meta:
+                    menu.Append(self.popupID13, "Color By Score")
                 menu.AppendSeparator()
                 menu.Append(self.popupID12, "Copy All Basic")
                 self.PopupMenu(menu)
@@ -224,6 +228,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                 menu.AppendSeparator()
                 menu.Append(self.popupID5, "Color Select")
                 menu.Append(self.popupID9, "Marker Select")
+                if not self.meta:
+                    menu.Append(self.popupID13, "Color By Score")
                 menu.AppendSeparator()
                 menu.Append(self.popupID12, "Copy All Basic")
                 self.PopupMenu(menu)
@@ -532,6 +538,12 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         else:
             wx.MessageBox("Can't open the clipboard", "Error")
 
+    def on_popup_scorecolor(self, e=None):
+        print("Coloring Peaks By Score")
+        self.pks.color_by_score()
+        self.fix_text_color()
+        newevent = wx.PyCommandEvent(self.EVT_DELETE_SELECTION_2._getEvtType(), self.GetId())
+        self.GetEventHandler().ProcessEvent(newevent)
 
 # TODO: Add in a column label drop down or some other way to select which information of self.pks is displayed
 

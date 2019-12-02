@@ -218,6 +218,9 @@ class meta_menu(wx.Menu):
                                                        "Make 3D Waterfall plot with mass distributions")
         self.parent.Bind(wx.EVT_MENU, self.pres.make_waterfall_plots, self.menuwaterfall)
 
+        self.experimentalmenu.AppendSeparator()
+        self.menulinreg = self.experimentalmenu.Append(wx.ID_ANY, "Linear Regression")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_linreg, self.menulinreg)
         #self.menuAdditionalParameters = self.experimentalmenu.Append(wx.ID_ANY, "Additional Parameters",
         #                                                             "Adjust some experimental parameters")
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_additional_parameters, self.menuAdditionalParameters)

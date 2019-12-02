@@ -87,7 +87,7 @@ class UniDecPres(object):
         :return: code (see unidecstructure.check_badness)
         """
         badness, warning = self.eng.config.check_badness()
-        if warning is not "":
+        if warning != "":
             self.warn(warning)
         return badness
 
@@ -276,7 +276,27 @@ class UniDecPres(object):
         self.view.plot2.addtext(label, mass, mval * 0.96, vlines=True)
         self.on_charge_states(mass=mass)
 
-
     def register(self, e=None):
         from unidec_modules.data_reader import register
         register()
+
+    def on_linreg(self, e=0):
+        fit, rsquared = self.eng.linear_regression_peaks()
+        message = "Slope: " + str(fit[0]) + "\nIntercept: " + str(fit[1]) + "\nR-Squared: " + str(rsquared)
+        self.warn(message, caption="Linear Regression Results")
+
+    def fpop(self, e=0):
+        output=self.eng.oxidation_analysis()
+        outstring = ""
+        for o in output:
+            outstring += str(o) + "\n"
+        # Create text data object
+        clipboard = wx.TextDataObject()
+
+        # Set data object value
+        clipboard.SetText(outstring)
+
+        # Put the data in the clipboard
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(clipboard)
+            wx.TheClipboard.Close()

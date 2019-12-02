@@ -313,7 +313,7 @@ class Plot1d(PlottingWindow):
         if repaint:
             self.repaint()
 
-    def colorplotMD(self, xvals, yvals, cvals, title="", xlabel="", ylabel="", label="", cmap="hsv", config=None,
+    def colorplotMD(self, xvals, yvals, cvals, title="", xlabel="", ylabel="", clabel="Mass Defect", cmap="hsv", config=None,
                     color="black", max=1,
                     marker=None, zoom="box", nopaint=False, test_kda=False, integerticks=False, **kwargs):
         self._axes = [0.11, 0.1, 0.64, 0.8]
@@ -383,7 +383,7 @@ class Plot1d(PlottingWindow):
             ticks = np.round(ticks, 1)
         ticks = ticks.astype(str)
         self.cbar.set_ticklabels(ticks)
-        self.cbar.set_label("Mass Defect")
+        self.cbar.set_label(clabel)
 
         self.setup_zoom([self.subplot1], self.zoomtype,
                         data_lims=[np.amin(xvals), np.amin(yvals), np.max(xvals), np.amax(yvals)])

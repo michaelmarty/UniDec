@@ -26,6 +26,9 @@ rcParams['ps.useafm'] = True
 rcParams['ps.fonttype'] = 42
 rcParams['pdf.fonttype'] = 42
 
+luminance_cutoff = 135
+white_text = wx.Colour(250, 250, 250)
+black_text = wx.Colour(0,0,0)
 
 # TODO: Rewrite this code to clean it up...
 
@@ -60,6 +63,13 @@ class XValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
                 color = wx.Colour(int(round(colors[i][0] * 255)), int(round(colors[i][1] * 255)),
                                   int(round(colors[i][2] * 255)), alpha=255)
                 self.SetItemBackgroundColour(index, col=color)
+
+                luminance = ud.get_luminance(color, type=2)
+                if luminance < luminance_cutoff:
+                    self.SetItemTextColour(index, col=white_text)
+                else:
+                    self.SetItemTextColour(index, col=black_text)
+
             self.SetItemData(index, i)
         self.currentItem = 0
         return self.get_maxes()
@@ -107,6 +117,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         self.SetColumnWidth(1, width=100)
         self.SetColumnWidth(2, width=100)
         self.SetColumnWidth(3, width=100)
+        self.parent = parent
 
     def populate(self, listctrldata, colors=None):
         self.DeleteAllItems()
@@ -124,6 +135,12 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
                                   int(round(colors[i][2] * 255)), alpha=255)
                 self.SetItemBackgroundColour(index, col=color)
 
+                luminance = ud.get_luminance(color, type=2)
+                if luminance < luminance_cutoff:
+                    self.SetItemTextColour(index, col=white_text)
+                else:
+                    self.SetItemTextColour(index, col=black_text)
+
     def clear_list(self):
         self.DeleteAllItems()
 
@@ -135,9 +152,9 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         self.SetItem(index, 2, str(var2))
         self.SetItem(index, 3, str("All"))
 
-    def get_list(self):
+    def get_list(self, fcmap='rainbow'):
         count = self.GetItemCount()
-        colormap = cm.get_cmap('rainbow', count)
+        colormap = cm.get_cmap(fcmap, count)
         peakcolors = colormap(np.arange(count))
         list_output = []
         for i in range(0, count):
@@ -155,6 +172,7 @@ class ListCtrlPanel(wx.Panel):
         id_value = wx.NewId()
         self.selection = []
         self.list_type = list_type
+        self.parent=parent
         sizer = wx.BoxSizer(wx.VERTICAL)
         if list_type == "X":
             self.list = XValueListCtrl(self, id_value, size=size, style=wx.LC_REPORT | wx.BORDER_NONE)
@@ -316,6 +334,28 @@ class DataCollector(wx.Frame):
         self.menuylabel = self.toolsmenu.Append(wx.ID_ANY, "Specify Var. 1 Label", "Adds Var. 1 axis label to plot")
         self.Bind(wx.EVT_MENU, self.on_ylabel, self.menuylabel)
 
+        self.toolsmenu.AppendSeparator()
+
+        ### CMap drop down menu
+        self.scalemenu = wx.Menu()
+        for i in range(0, len(self.config.cmaps)):
+            idval = 500 + i
+            self.scalemenu.Append(idval, self.config.cmaps[i], "", wx.ITEM_RADIO)
+            self.Bind(wx.EVT_MENU, self.menu_fcmaps, id=idval)
+            if i%20==19:
+                self.scalemenu.Break()
+        self.toolsmenu.AppendSubMenu(self.scalemenu, 'Files Color Map')
+
+        ### CMap drop down menu
+        self.scalemenu2 = wx.Menu()
+        for i in range(0, len(self.config.cmaps)):
+            idval = 1500 + i
+            self.scalemenu2.Append(idval, self.config.cmaps[i], "", wx.ITEM_RADIO)
+            self.Bind(wx.EVT_MENU, self.menu_xcmaps, id=idval)
+            if i%20==19:
+                self.scalemenu2.Break()
+        self.toolsmenu.AppendSubMenu(self.scalemenu2, 'X Value Color Map')
+
         self.menuBar = wx.MenuBar()
         self.menuBar.Append(self.filemenu, "&File")
         self.menuBar.Append(self.toolsmenu, "Tools")
@@ -357,9 +397,10 @@ class DataCollector(wx.Frame):
         self.tab2 = wx.Panel(self.plotwindow)
         self.tab3 = wx.Panel(self.plotwindow)
 
-        self.plot1 = plot1d.Plot1d(self.tab1)
-        self.plot2d = plot2d.Plot2d(self.tab2)
-        self.plot4 = plot1d.Plot1d(self.tab3)
+        size = [5, 4]
+        self.plot1 = plot1d.Plot1d(self.tab1, figsize=size)
+        self.plot2d = plot2d.Plot2d(self.tab2, figsize=size)
+        self.plot4 = plot1d.Plot1d(self.tab3, figsize=size)
 
         miscwindows.setup_tab_box(self.tab1, self.plot1)
         miscwindows.setup_tab_box(self.tab2, self.plot2d)
@@ -485,6 +526,9 @@ class DataCollector(wx.Frame):
         self.var1 = []
         self.xlabel = "Mass"
         self.ylabel = ""
+        self.fcmap = "rainbow"
+        self.xcmap = "rainbow"
+        self.check_cmaps()
         self.hdf5_file = ""
         self.filetype = 0
         self.update_set(0)
@@ -528,6 +572,27 @@ class DataCollector(wx.Frame):
             except Exception as e:
                 print(e)
                 pass
+
+    def check_cmaps(self):
+        for i in range(len(self.config.cmaps)):
+            if self.config.cmaps[i] == self.fcmap:
+                self.scalemenu.Check(id=500 + i, check=True)
+
+        for i in range(len(self.config.cmaps)):
+            if self.config.cmaps[i] == self.xcmap:
+                self.scalemenu2.Check(id=1500 + i, check=True)
+
+    def menu_fcmaps(self, event=0):
+        event_id = event.GetId() - 500
+        print(event_id)
+        self.fcmap = self.config.cmaps[event_id]
+        print(self.fcmap)
+
+    def menu_xcmaps(self, event=0):
+        event_id = event.GetId() - 1500
+        print(event_id)
+        self.xcmap = self.config.cmaps[event_id]
+        print(self.xcmap)
 
     def load_x_from_peaks(self, e):
         try:
@@ -705,7 +770,7 @@ class DataCollector(wx.Frame):
             self.ctllig.SetValue(str(maxes[1]))
         except (ValueError, TypeError):
             print("Failed to autoupdate total # of protein and ligand, update manually in boxes.")
-        self.yvals = self.ypanel.list.get_list()
+        self.yvals = self.ypanel.list.get_list(fcmap=self.fcmap)
         self.directory = self.dirinput.GetValue()
         self.normflag = self.ctlnorm.GetValue()
         self.normflag2 = self.ctlnorm2.GetValue()
@@ -788,7 +853,11 @@ class DataCollector(wx.Frame):
                 filename = os.path.join(self.directory, filename)
             print("Loading:", filename)
             subheader = os.path.split(header)[1]
-            self.var1.append(l[1])
+            if self.numlig == 0 and self.numprot > 1:
+                print("Using Variable 2 rather than Variable 1:", l[2])
+                self.var1.append(l[2])
+            else:
+                self.var1.append(l[1])
             ycolors.append(l[4:7])
             fcolor = np.array(l[4:7])
             if self.datachoice == 0:
@@ -907,7 +976,7 @@ class DataCollector(wx.Frame):
                 self.extract = [self.extract[i] / sums[i] for i in range(0, len(self.yvals))]
                 self.extract = np.array(self.extract)
 
-            colormap = cm.get_cmap('rainbow', len(self.xvals))
+            colormap = cm.get_cmap(self.xcmap, len(self.xvals))
             self.xcolors = colormap(np.arange(len(self.xvals)))
             self.makeplot2()
             # print np.mean(self.extract,axis=0)
@@ -942,7 +1011,7 @@ class DataCollector(wx.Frame):
     def makeplot2(self):
         # This is a bit funny but the ylabel from this plot is actually the xlabel from the others or the intensity...
         ylabel = extractlabels[self.extractchoice]
-        if ylabel is "mass":
+        if ylabel == "mass":
             ylabel = self.xlabel
 
         self.plot2.clear_plot()
@@ -1028,7 +1097,7 @@ class DataCollector(wx.Frame):
                                numtotprot=self.numprot, numtotlig=self.numlig, removeoutliers=outlierflag,
                                plot1=self.plot2.subplot1,
                                plot2=self.plot3.axes, plot3=self.plot3h, bootnum=self.bootstrap, maxsites=maxsites,
-                               prot=self.protflag, lig=self.ligflag)
+                               prot=self.protflag, lig=self.ligflag, label=self.ylabel, cmap=self.xcmap)
         try:
             if self.bootstrap > 0:
                 np.savetxt(os.path.join(self.directory, "fits_boots.txt"), model.randfit)
@@ -1053,7 +1122,7 @@ class DataCollector(wx.Frame):
         else:
             mode = "mz"
 
-        PlotAnimations.AnimationWindow(self, self.grid, self.config, yvals=self.yvals[:, 1], pksmode = mode)
+        PlotAnimations.AnimationWindow(self, self.grid, self.config, yvals=self.yvals[:, 1], pksmode=mode)
 
     def on_animate2(self, e):
         self.update_get(e)
@@ -1144,7 +1213,7 @@ class DataCollector(wx.Frame):
         else:
             mode = "mz"
 
-        PlotAnimations.AnimationWindow(self, data2, self.config, mode="2D", yvals=self.yvals[:, 1], pksmode = mode)
+        PlotAnimations.AnimationWindow(self, data2, self.config, mode="2D", yvals=self.yvals[:, 1], pksmode=mode)
 
     def on_2dgrid(self, e):
         self.yvals = np.array(self.yvals)
@@ -1274,6 +1343,7 @@ class DCDropTarget(wx.FileDropTarget):
         for f in filenames:
             self.window.ypanel.list.add_line(file_name=f)
         return 0
+
 
 # Main App Execution
 if __name__ == "__main__":

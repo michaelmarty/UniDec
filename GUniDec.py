@@ -1160,7 +1160,7 @@ class UniDecApp(UniDecPres):
                 dlg = IM_wind.IMTools(self.view)
                 dlg.initialize_interface(self.eng.data.data3, self.eng.config)
                 out = dlg.ShowModal()
-                if out is 0:
+                if out == 0:
                     self.import_config(None)
                 else:
                     self.export_config()
@@ -1711,7 +1711,7 @@ class UniDecApp(UniDecPres):
         :param e: wx event or anything (will flip if not 0)
         :return: None
         """
-        if e is not 0:
+        if e != 0:
             self.eng.config.imflag = (self.eng.config.imflag + 1) % 2
         self.remake_mainwindow(self.view.tabbed)
         if self.eng.config.imflag == 1:
@@ -1728,7 +1728,7 @@ class UniDecApp(UniDecPres):
         :param e: wx Event or anything (will flip if not 0)
         :return: None
         """
-        if e is not 0:
+        if e != 0:
             tabbed = (self.view.tabbed + 1) % 2
         else:
             tabbed = self.view.tabbed
@@ -1749,7 +1749,7 @@ class UniDecApp(UniDecPres):
         :param e: wx Event or anything (will get value from Selection if not 0)
         :return: None
         """
-        if e is not 0:
+        if e != 0:
             self.eng.config.twaveflag = self.view.controls.ctltwave.GetSelection()
 
         if self.eng.config.twaveflag == 0:

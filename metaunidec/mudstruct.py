@@ -35,7 +35,7 @@ class MetaDataSet:
             file = self.filename
         else:
             self.filename = file
-        hdf = h5py.File(file)
+        hdf = h5py.File(file, 'r')
         msdata = hdf.require_group(self.topname)
         keys = list(msdata.keys())
         self.indexes = []
@@ -72,7 +72,7 @@ class MetaDataSet:
             return
 
         # Clear Group
-        hdf = h5py.File(file)
+        hdf = h5py.File(file, 'a')
         # if not vars_only:
         #    try:
         #        del hdf["/" + self.topname]
@@ -109,7 +109,7 @@ class MetaDataSet:
         self.export_hdf5(vars_only=True)
 
     def import_grids(self):
-        hdf = h5py.File(self.filename)
+        hdf = h5py.File(self.filename, 'r')
         msdataset = hdf.require_group(self.topname)
         # Mass Space
         axis = get_dataset(msdataset, "mass_axis")
@@ -142,7 +142,7 @@ class MetaDataSet:
         return num
 
     def import_peaks(self):
-        hdf = h5py.File(self.filename)
+        hdf = h5py.File(self.filename, 'r')
         pdataset = hdf.require_group("/peaks")
         self.peaks = get_dataset(pdataset, "peakdata")
         self.exgrid = get_dataset(pdataset, "extracts").transpose()
@@ -150,7 +150,7 @@ class MetaDataSet:
         hdf.close()
 
     def export_fits(self):
-        hdf = h5py.File(self.filename)
+        hdf = h5py.File(self.filename, 'r+')
         pdataset = hdf.require_group("/peaks")
         replace_dataset(pdataset, "fit_extracts", self.fitgrid)
         replace_dataset(pdataset, "fits", self.fits)
@@ -173,7 +173,7 @@ class MetaDataSet:
         if os.path.isfile(path):
             os.remove(path)
         self.filename = path
-        hdf = h5py.File(self.filename)
+        hdf = h5py.File(self.filename, 'w')
         msdata = hdf.require_group(self.topname)
         config = hdf.require_group("config")
         config.attrs["metamode"] = -1
@@ -243,7 +243,7 @@ class MetaDataSet:
         return np.array(bool_array)
 
     def import_vars(self, get_vnames=True):
-        hdf = h5py.File(self.filename)
+        hdf = h5py.File(self.filename, 'r+')
         msdata = hdf.require_group(self.topname)
         if get_vnames:
             try:
@@ -321,7 +321,7 @@ class Spectrum:
         else:
             self.filename = file
 
-        hdf = h5py.File(file)
+        hdf = h5py.File(file, 'a')
         msdata = hdf.require_group(self.topname + "/" + str(self.index))
         if not vars_only:
             replace_dataset(msdata, "raw_data", self.rawdata)
@@ -341,7 +341,7 @@ class Spectrum:
             file = self.filename
         else:
             self.filename = file
-        hdf = h5py.File(file)
+        hdf = h5py.File(file, 'r')
         msdata = hdf.get(self.topname + "/" + str(self.index))
         self.rawdata = get_dataset(msdata, "raw_data")
         self.fitdat = get_dataset(msdata, "fit_data")

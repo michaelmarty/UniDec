@@ -1177,7 +1177,7 @@ class UniDecApp(UniDecPres):
         print("Loading 2D Data...")
         data2 = []
         for i, s in enumerate(self.eng.data.spectra):
-            if type is "mz":
+            if type == "mz":
                 igrid = s.mzgrid
                 mdat = s.data2[:, 0]
             else:
@@ -1372,7 +1372,7 @@ class UniDecApp(UniDecPres):
         :param e: wx Event or anything (will flip if not 0)
         :return: None
         """
-        if e is not 0:
+        if e != 0:
             tabbed = (self.view.tabbed + 1) % 2
         else:
             tabbed = self.view.tabbed

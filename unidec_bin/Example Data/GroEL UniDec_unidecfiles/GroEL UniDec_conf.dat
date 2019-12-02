@@ -41,6 +41,7 @@ noiseflag 0.0
 linflag 2
 cmap nipy_spectral
 peakcmap rainbow
+spectracmap rainbow
 publicationmode 1
 isotopemode 0
 peaknorm 1
