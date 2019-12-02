@@ -31,7 +31,7 @@ that you cite us in any publications. Quantitative citation metrics will help gr
 
 By downloading UniDec, you are agreeing to the UniDec and any third party licensing agreements and all terms therein. 
 
-###UniDec License:
+### UniDec License:
 
 Copyright (c) 2016, University of Oxford
               2017-2019, University of Arizona
