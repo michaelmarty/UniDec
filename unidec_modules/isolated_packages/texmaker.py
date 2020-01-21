@@ -21,7 +21,7 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags)
                                   ['$\\bigcirc$', '$\\bigtriangledown$', '$\\bigtriangleup$', '$\\triangleright$',
                                    '$\\square$', '$\\lozenge$', '$\\bigstar$']]))
 
-    f = open(fname, 'w')
+    f = open(fname, 'w+')
     f.write("\\documentclass{article}\n")
     f.write("\\usepackage{graphicx}\n")
     f.write("\\usepackage{amsmath}\n")

@@ -153,6 +153,11 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	if (silent == 0) { printf("Charges blurred: %d  Oligomers blurred: %d\n", zlength, mlength); }
 
 
+	//Determine the maximum intensity in the data
+	double dmax = Max(inp.dataInt, config.lengthmz);
+	double betafactor = 1;
+	if (dmax > 1) { betafactor=dmax; }
+
 	//...................................................
 	//
 	//  Setting up and running the iteration
@@ -243,12 +248,12 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 		if (config.beta > 0 && iterations > 0)
 		{
 
-			softargmax(decon.blur, config.lengthmz, config.numz, config.beta);
+			softargmax(decon.blur, config.lengthmz, config.numz, config.beta/betafactor);
 			//printf("Beta %f\n", beta);
 		}
 		else if (config.beta < 0 && iterations >0)
 		{
-			softargmax_transposed(decon.blur, config.lengthmz, config.numz, fabs(config.beta), barr, maxlength, config.isolength, inp.isotopepos, inp.isotopeval, config.speedyflag, starttab, endtab, rmzdist, config.mzsig);
+			softargmax_transposed(decon.blur, config.lengthmz, config.numz, fabs(config.beta/betafactor), barr, maxlength, config.isolength, inp.isotopepos, inp.isotopeval, config.speedyflag, starttab, endtab, rmzdist, config.mzsig);
 		}
 
 		if (config.psig >= 1 && iterations > 0)
@@ -310,6 +315,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 			memcpy(oldblur, decon.blur, config.lengthmz * config.numz * sizeof(double));
 		}
 	}
+
 	free(dataInt2);
 	free(oldblur);
 
@@ -343,17 +349,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 
 	//Calculate the fit data and error.
 	decon.fitdat = calloc(config.lengthmz, sizeof(double));
-	decon.error = errfunspeedy(inp.dataInt, decon.fitdat, decon.blur, config.lengthmz, config.numz, maxlength,
-		config.isolength, inp.isotopepos, inp.isotopeval, starttab, endtab, mzdist, config.speedyflag);
-	if (config.baselineflag == 1)
-	{
-#pragma omp parallel for schedule(auto)
-		for (int i = 0; i < config.lengthmz; i++) {
-			decon.fitdat[i] += decon.baseline[i];// +decon.noise[i];
-			//decon.fitdat[i] = decon.noise[i]+0.1;
-		}
-	}
-	ApplyCutoff1D(decon.fitdat, 0, config.lengthmz);
+	decon.error = errfunspeedy(config, decon, inp.dataInt, maxlength, inp.isotopepos, inp.isotopeval, starttab, endtab, mzdist, &decon.rsquared);
 
 	// Charge scaling (orbimode)
 	if (config.orbimode == 1)
@@ -470,7 +466,8 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	// .......................................
 
 	double scorethreshold = 0;
-	decon.uniscore = score(config, decon.mlen, inp.dataMZ, inp.dataInt, decon.newblur, decon.massaxis, decon.massaxisval, decon.massgrid, inp.nztab, scorethreshold);
+	decon.uniscore = score(config, decon, inp.dataMZ, inp.dataInt, decon.newblur, decon.massaxis, decon.massaxisval, decon.massgrid, inp.nztab, scorethreshold);
+
 
 	//Free Memory
 	free(mzdist);

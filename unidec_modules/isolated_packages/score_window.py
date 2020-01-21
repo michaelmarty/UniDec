@@ -19,7 +19,7 @@ def scr(score):
 
 
 def scr2(p):
-    scores = [p.dscore, p.uscore, p.mscore, p.z_score, p.fscore]
+    scores = [p.dscore, p.uscore, p.mscore, p.cs_score, p.fscore]
     strings = [scr(s) for s in scores]
     out = ""
     for s in strings:
@@ -40,7 +40,7 @@ def score_plots(eng):
         plt.figure()
         plt.subplot(131)
         plt.title(
-            "Combined Score: " + str(round(p.dscore * 100, 2)) + "\nCharge Score: " + str(round(p.z_score * 100, 2))
+            "Combined Score: " + str(round(p.dscore * 100, 2)) + "\nCharge Score: " + str(round(p.cs_score * 100, 2))
         )
         plt.plot(ztab, sumz)
         plt.plot(p.zdist[:, 0], p.zdist[:, 1], color="k")
@@ -147,7 +147,7 @@ class ScoreListCtrl(wx.grid.Grid):
         l = len(pks.peaks)
 
         collabels = ["Mass", "Intensity", "DScore", "Uniqueness/Fit", "Peak Shape",
-                     "Charge Dist.", "FWHM Penalties"]
+                     "Charge Dist.", "FWHM Penalties", "Limited Score (DScore without CSScore)"]
 
         cl = len(collabels)
         self.CreateGrid(l + 1, cl)
@@ -168,7 +168,7 @@ class ScoreListCtrl(wx.grid.Grid):
             self.SetCellFont(i, 0, wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
             self.SetCellValue(i, 1, str(p.height))
 
-            scores = [p.dscore, p.uscore, p.mscore, p.z_score, p.fscore]
+            scores = [p.dscore, p.uscore, p.mscore, p.cs_score, p.fscore, p.lscore]
             scores = deepcopy(scores)
             cindex = 2
             for s in scores:

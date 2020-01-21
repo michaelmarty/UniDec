@@ -243,9 +243,9 @@ double mscore(Config config, const int mlen, const double* massaxis, const doubl
 }
 
 
-double zscore(Config config, const int mlen, const double* massaxis, const double* masssum, const double* massgrid, const double mlow, const double mhigh, const double peak)
+double csscore(Config config, const int mlen, const double* massaxis, const double* masssum, const double* massgrid, const double mlow, const double mhigh, const double peak)
 {
-	double zscore = 0;
+	double csscore = 0;
 	
 	double* zvals = NULL;
 	zvals = calloc(config.numz, sizeof(double));
@@ -309,11 +309,11 @@ double zscore(Config config, const int mlen, const double* massaxis, const doubl
 
 		if (zsum != 0)
 		{
-			zscore = 1 - (badarea / zsum);
+			csscore = 1 - (badarea / zsum);
 		}
 
 	}
-	return zscore;
+	return csscore;
 }
 
 
@@ -392,17 +392,17 @@ double fscore(Config config, const int mlen, const double* massaxis, const doubl
 }
 
 
-double score(Config config, const int mlen, const double * dataMZ, const double * dataInt, const double *mzgrid, const double *massaxis, const double* masssum, const double *massgrid, const int *nztab, const double threshold)
+double score(Config config, Decon decon, const double * dataMZ, const double * dataInt, const double *mzgrid, const double *massaxis, const double* masssum, const double *massgrid, const int *nztab, const double threshold)
 {
 	//printf("Starting Score %f %f\n", config.peakwin, config.peakthresh);
 	double xfwhm = 2;
 
 	double* peakx = NULL;
 	double* peaky = NULL;
-	peakx = calloc(mlen, sizeof(double));
-	peaky = calloc(mlen, sizeof(double));
+	peakx = calloc(decon.mlen, sizeof(double));
+	peaky = calloc(decon.mlen, sizeof(double));
 
-	int plen = peak_detect(massaxis, masssum, mlen, config.peakwin, config.peakthresh, peakx, peaky);
+	int plen = peak_detect(massaxis, masssum, decon.mlen, config.peakwin, config.peakthresh, peakx, peaky);
 	config.plen = plen;
 
 	peakx = realloc(peakx, plen * sizeof(double));
@@ -417,7 +417,7 @@ double score(Config config, const int mlen, const double * dataMZ, const double 
 	fwhmhigh = calloc(plen, sizeof(double));
 	badfwhm = calloc(plen, sizeof(double));
 
-	get_fwhms(config, mlen, massaxis, masssum, peakx, fwhmlow, fwhmhigh, badfwhm);
+	get_fwhms(config, decon.mlen, massaxis, masssum, peakx, fwhmlow, fwhmhigh, badfwhm);
 
 	double numerator = 0;
 	double denominator = 0;
@@ -429,25 +429,27 @@ double score(Config config, const int mlen, const double * dataMZ, const double 
 		double ival = peaky[i];
 		double l = m - (m-fwhmlow[i])*xfwhm;
 		double h = m + (fwhmhigh[i]-m)*xfwhm;
-		int index = nearfast(massaxis, m, mlen);
+		int index = nearfast(massaxis, m, decon.mlen);
 		double height = masssum[index];
 		
 		double usc = uscore(config, dataMZ, dataInt, mzgrid, nztab, l, h, m);
-		double msc = mscore(config, mlen, massaxis, masssum, massgrid, l, h, m);
-		double zsc = zscore(config, mlen, massaxis, masssum, massgrid, l, h, m);
-		double fsc = fscore(config, mlen, massaxis, masssum, peakx, height, fwhmlow[i], fwhmhigh[i], m, badfwhm[i]);
+		double msc = mscore(config, decon.mlen, massaxis, masssum, massgrid, l, h, m);
+		double cssc = csscore(config, decon.mlen, massaxis, masssum, massgrid, l, h, m);
+		double fsc = fscore(config, decon.mlen, massaxis, masssum, peakx, height, fwhmlow[i], fwhmhigh[i], m, badfwhm[i]);
 
-		double dsc = usc * msc * zsc * fsc;
+		double dsc = usc * msc * cssc * fsc;
 		if (dsc > threshold)
 		{
-			printf("Peak: Mass:%f Int:%f M:%f U:%f Z:%f F:%f D: %f \n", peakx[i], peaky[i], msc, usc, zsc, fsc, dsc);
+			printf("Peak: Mass:%f Int:%f M:%f U:%f CS:%f F:%f D: %f \n", peakx[i], peaky[i], msc, usc, cssc, fsc, dsc);
 			numerator += ival * ival * dsc;
 			denominator += ival * ival;
 		}
 	}
 
-	if (denominator != 0) { uniscore = numerator / denominator; }
+	printf("R Squared: %f\n", decon.rsquared);
 
+	if (denominator != 0) { uniscore = decon.rsquared * numerator / denominator; }
+	
 	printf("Average Peaks Score (UniScore): %f\n", uniscore);
 	return uniscore;
 }

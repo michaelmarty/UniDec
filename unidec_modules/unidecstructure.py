@@ -206,8 +206,16 @@ class UniDecConfig(object):
         :param name: File name to write to.
         :return: None
         """
+
         self.numz = self.endz - self.startz + 1
-        f = open(name, 'w')
+        f = open(name, 'w+')
+        '''
+        except:
+            path = os.path.join(os.getcwd(), name)
+            path = "\\\\?\\%s" % path
+            print(path)
+            f = open(path, 'w+')
+            print("NOTE: Your path length might exceed the limit for Windows. Please shorten your file name.")'''
         f.write("imflag " + str(self.imflag) + "\n")
         f.write("input " + str(self.infname) + "\n")
         f.write("output " + str(self.outfname) + "\n")
@@ -265,6 +273,7 @@ class UniDecConfig(object):
         f.write("publicationmode " + str(self.publicationmode) + "\n")
         f.write("isotopemode " + str(self.isotopemode) + "\n")
         f.write("peaknorm " + str(self.peaknorm) + "\n")
+        f.write("datanorm " + str(self.datanorm) + "\n")
         f.write("baselineflag " + str(self.baselineflag) + "\n")
         f.write("orbimode " + str(self.orbimode) + "\n")
         if self.integratelb != "" and self.integrateub != "":
@@ -463,6 +472,8 @@ class UniDecConfig(object):
                             self.zerolog = ud.string_to_value(line.split()[1])
                         if line.startswith("peaknorm"):
                             self.peaknorm = ud.string_to_value(line.split()[1])
+                        if line.startswith("datanorm"):
+                            self.datanorm = ud.string_to_value(line.split()[1])
                         if line.startswith("baselineflag"):
                             self.baselineflag = ud.string_to_value(line.split()[1])
                         if line.startswith("orbimode"):
@@ -812,6 +823,12 @@ class UniDecConfig(object):
                 self.warning = "Note: One or more T-wave calibration parameters has been set to 0" \
                                "\nCheck to make sure this is correct"
 
+        path = os.path.join(os.getcwd(), self.confname)
+        if len(path) > 250:
+            self.badtest = 1
+            self.warning = "ERROR: PATH LENGTH TOO LONG: Windows sets a 260 character path length." \
+                           "\nPlease shorten your file and folder path lengths."
+
         return self.badtest, self.warning
 
     def default_high_res(self):
@@ -1048,6 +1065,7 @@ class DataContainer:
         self.massccs = np.array([])
         self.ccsz = np.array([])
         self.ccsdata = np.array([])
+        self.tscore = 0
 
     def write_hdf5(self, file_name):
         hdf = h5py.File(file_name)

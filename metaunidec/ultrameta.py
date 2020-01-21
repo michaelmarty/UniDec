@@ -361,7 +361,7 @@ class DataCollector(wx.Frame):
         dlg = wx.FileDialog(self, "Save Collection in JSON Format", self.directory, self.savename, "*.json", wx.FD_SAVE)
         if dlg.ShowModal() == wx.ID_OK:
             self.savename = dlg.GetPath()
-            with open(self.savename, "w") as outfile:
+            with open(self.savename, "w+") as outfile:
                 json.dump(outdict, outfile)
             print("Saved: ", self.savename)
         dlg.Destroy()
@@ -461,7 +461,7 @@ class DataCollector(wx.Frame):
             print("Error3: File Not Found:", path)
             return
         out = mudeng.metaunidec_call(self.config, "-ultraextract", path=path)
-        if out is not 0:
+        if out != 0:
             self.SetStatusText("ERROR with File: " + path, number=2)
             print("ERROR C: File", path, out)
 

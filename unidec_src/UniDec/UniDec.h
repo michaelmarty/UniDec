@@ -79,6 +79,7 @@ struct Decon {
 	double* blur;
 	double* newblur;
 	double error;
+	double rsquared;
 	int iterations;
 	double uniscore;
 	double conv;
@@ -97,6 +98,7 @@ Decon SetupDecon() {
 	decon.blur = NULL;
 	decon.newblur = NULL;
 	decon.error = 0;
+	decon.rsquared = 0;
 	decon.iterations = 0;
 	decon.uniscore = 0;
 	decon.conv = 0;
@@ -498,6 +500,20 @@ void PrintHelp()
 	printf("\t\t\t\t\tReduced CCS =P1 * (Reduced Drift Time ^ P2)\n");
 	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) v.1141.\n");
 	//printf("\nsize of: %d",sizeof(char));
+}
+
+
+//Calculate Average
+double Average(const int length, const double* xarray)
+{
+	double temp1 = 0;
+	double temp2 = (double) length;
+	for (int i = 0; i < length; i++)
+	{
+		temp1 += xarray[i];
+	}
+	if (temp2 == 0) { return 0; }
+	return temp1 / temp2;
 }
 
 double ndis(double x, double y, double sig) 
@@ -1527,8 +1543,8 @@ void ApplyCutoff1D(double *array, double cutoff, int lengthmz)
 	}
 }
 
-double getfitdatspeedy(double *fitdat, double *blur, int lengthmz,int numz,int maxlength,double maxint,
-	int isolength, int *isotopepos, float *isotopeval, int*starttab, int *endtab, double *mzdist, int speedyflag)
+double getfitdatspeedy(double *fitdat, const double *blur, const int lengthmz,const int numz,const int maxlength, const double maxint,
+	const int isolength, const int *isotopepos, const float *isotopeval, const int*starttab, const int *endtab, const double *mzdist, const int speedyflag)
 {
 	unsigned int i,j,k;
 	double *deltas=NULL;
@@ -1589,23 +1605,42 @@ double getfitdatspeedy(double *fitdat, double *blur, int lengthmz,int numz,int m
 	return fitmax;
 }
 
-double errfunspeedy(double *dataInt,double *fitdat, double *blur,int lengthmz,int numz,int maxlength,
-	int isolength, int *isotopepos, float *isotopeval, int*starttab, int *endtab, double *mzdist, int speedyflag)
+double errfunspeedy(Config config, Decon decon, const double *dataInt, const int maxlength,
+	const int *isotopepos, const float *isotopeval, const int*starttab, const int *endtab, const double *mzdist, double *rsquared)
 {
 	//Get max intensity
 	double maxint = 0;
-	for (int i = 0; i < lengthmz; i++)
+	for (int i = 0; i < config.lengthmz; i++)
 	{
 		if (dataInt[i] > maxint) { maxint = dataInt[i]; }
 	}
 
-	getfitdatspeedy(fitdat, blur,lengthmz, numz,maxlength, maxint,isolength, isotopepos, isotopeval,starttab,endtab,mzdist,speedyflag);
+	getfitdatspeedy(decon.fitdat, decon.blur, config.lengthmz, config.numz,maxlength,
+		maxint, config.isolength, isotopepos, isotopeval,starttab,endtab,mzdist,config.speedyflag);
     
+	if (config.baselineflag == 1)
+	{
+	#pragma omp parallel for schedule(auto)
+		for (int i = 0; i < config.lengthmz; i++) {
+			decon.fitdat[i] += decon.baseline[i];// +decon.noise[i];
+			//decon.fitdat[i] = decon.noise[i]+0.1;
+		}
+	}
+	ApplyCutoff1D(decon.fitdat, 0, config.lengthmz);
+
+	double fitmean = Average(config.lengthmz, dataInt);
+
 	double error=0;
-    for(int i=0;i<lengthmz;i++)
+	double sstot = 0;
+    for(int i=0;i< config.lengthmz;i++)
     {
-        error+=pow((fitdat[i]-dataInt[i]),2);
+        error+=pow((decon.fitdat[i]-dataInt[i]),2);
+		sstot += pow((dataInt[i] - fitmean), 2);
     }
+
+	//Calculate R-squared
+	if (sstot != 0) { *rsquared = 1 - (error / sstot); }
+
     return error;
 }
 
@@ -1627,20 +1662,7 @@ double nativecharge(double mass,double fudge)
 	return 0.0467*pow(mass,0.533)+fudge;
 }
 
-//Calculate Average
-double Average(int length,double *xarray)
-{
-	double temp1=0;
-	double temp2=0;
-	int i;
-	for(i=0;i<length;i++)
-	{
-		temp1+=xarray[i];
-		temp2+=1;
-	}
-	if (temp2 == 0) { return 0; }
-	return temp1/temp2;
-}
+
 
 //Calculate Standard Deviation
 double StdDev(int length,double *xarray,double wmean)

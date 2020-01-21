@@ -92,7 +92,7 @@ def auto_from_wizard(lines, exedir):
             for index in mapper:
                 if l[index] == "None":
                     l[index] = None
-                if mapper[index] is not '':
+                if mapper[index] != '':
                     try:
                         parse[conv[mapper[index]]] = l[index]
                     except Exception as e:
@@ -201,7 +201,7 @@ def MakeUniDecConfig(job_kwargs):
     else:
         twaveflag = 1
 
-    f = open(filename, 'w')
+    f = open(filename, 'w+')
     f.write("twaveflag " + str(twaveflag) + "\n")
     f.write("mzbins " + str(job_kwargs[tt.BIN]) + "\n")
     if job_kwargs[tt.PUSHER] is not None:
@@ -412,7 +412,7 @@ def parse_file(file_path, exp_type='linear', collision=None, debug=False, dir=No
 
             out[tt.DRIFT_V] = search_extern(file_path, 'Transfer Collision Energy')
 
-        if out[tt.TYPE] is not 'ms':
+        if out[tt.TYPE] != 'ms':
             # try to grab the pusher frequency from the stat code
             # pusher = get_stat_code(file_path, 76, dir=exedir)
             pusher = get_stat_name(file_path, "Transport RF")

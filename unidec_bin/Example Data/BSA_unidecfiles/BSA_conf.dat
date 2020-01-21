@@ -23,8 +23,8 @@ subbuff 0.0
 subtype 2
 smooth 0.0
 mzbins 0.0
-peakwindow 50.0
-peakthresh 0.025
+peakwindow 500.0
+peakthresh 0.01
 peakplotthresh 0.1
 plotsep 0.025
 intthresh 0.0
@@ -45,6 +45,7 @@ spectracmap rainbow
 publicationmode 1
 isotopemode 0
 peaknorm 1
+datanorm 1
 baselineflag 1.0
 orbimode 0
 integratelb -1000.0

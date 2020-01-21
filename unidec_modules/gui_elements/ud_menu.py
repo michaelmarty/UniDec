@@ -244,6 +244,13 @@ class main_menu(wx.Menu):
             self.experimentalmenu.AppendSeparator()
             self.menuAdditionalParameters = self.experimentalmenu.Append(wx.ID_ANY, "Additional Parameters",
                                                                          "Adjust some experimental parameters")
+
+            self.experimentalmenu.AppendSeparator()
+            self.menulinreg = self.experimentalmenu.Append(wx.ID_ANY, "Linear Regression")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_linreg, self.menulinreg)
+            self.menusubdiv = self.experimentalmenu.Append(wx.ID_ANY, "Subtract and Divide")
+            self.parent.Bind(wx.EVT_MENU, self.pres.sub_div, self.menusubdiv)
+
             self.experimentalmenu.AppendSeparator()
 
             self.menuscore1 = self.experimentalmenu.Append(wx.ID_ANY, "Show Peak Scores", "Show Peak Scores")
@@ -325,9 +332,7 @@ class main_menu(wx.Menu):
         self.menutheomass = self.experimentalmenu.Append(wx.ID_ANY, "Plot Theoretical Mass")
         self.parent.Bind(wx.EVT_MENU, self.pres.plot_theo_mass, self.menutheomass)
 
-        self.experimentalmenu.AppendSeparator()
-        self.menulinreg = self.experimentalmenu.Append(wx.ID_ANY, "Linear Regression")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_linreg, self.menulinreg)
+
 
         # self.menucentroid = self.experimentalmenu.Append(wx.ID_ANY, "Get Centroid at FWHM")
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_centroid, self.menucentroid)
