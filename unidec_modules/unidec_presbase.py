@@ -5,7 +5,7 @@ import os
 import numpy as np
 import unidec_modules.unidectools as ud
 import unidec_modules.peakwidthtools as peakwidthtools
-from unidec_modules import ManualSelectionWindow, AutocorrWindow, miscwindows
+from unidec_modules import ManualSelectionWindow, AutocorrWindow, miscwindows, peakstructure
 import time
 
 
@@ -290,6 +290,67 @@ class UniDecPres(object):
         outstring = ""
         for o in output:
             outstring += str(o) + "\n"
+        # Create text data object
+        clipboard = wx.TextDataObject()
+
+        # Set data object value
+        clipboard.SetText(outstring)
+
+        # Put the data in the clipboard
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(clipboard)
+            wx.TheClipboard.Close()
+
+    def sub_div(self, e=0):
+        try:
+            masses=[]
+            for p in self.eng.pks.peaks:
+                if p.ignore==0:
+                    masses.append(p.mass)
+            defaultsub = np.amin(masses)
+        except:
+            defaultsub = 44088
+
+        defaultdiv = self.eng.config.molig
+        dlg = miscwindows.DoubleInputDialog(self.view)
+        dlg.initialize_interface("Subtract and Divide", "Subtract:", str(defaultsub),
+                                 "Divide:", str(defaultdiv))
+        dlg.ShowModal()
+        try:
+            sub = float(dlg.value)
+            div = float(dlg.value2)
+        except:
+            print("Error with Subtract and Divide Inputs:", dlg.value, dlg.value2)
+            return 0
+
+        try:
+            sd_results = []
+            message= "Average Masses:\n\n"
+            outstring=""
+            for s in self.eng.data.spectra:
+                pks = peakstructure.Peaks()
+                peaks = ud.peakdetect(s.massdat, self.eng.config)
+                pks.add_peaks(peaks, massbins=self.eng.config.massbins)
+                sd_result = ud.subtract_and_divide(pks, sub, div)
+                sd_results.append(sd_result)
+
+                outstring += str(sd_result) + "\n"
+
+            avg = np.mean(sd_results)
+            message += outstring
+            message += "\nOverall Average: " + str(avg)
+            outstring += "\n" +str(avg)
+            self.copy_to_clipboard(outstring)
+            self.warn(message, caption="Subtract and Divide Results")
+
+        except:
+            sd_result = ud.subtract_and_divide(self.eng.pks, sub, div)
+            outstring= str(sd_result)
+            message = "Average Mass: " + outstring
+            self.copy_to_clipboard(outstring)
+            self.warn(message, caption="Subtract and Divide Results")
+
+    def copy_to_clipboard(self, outstring):
         # Create text data object
         clipboard = wx.TextDataObject()
 

@@ -62,17 +62,18 @@ class Peak:
         self.mzstack = []
         self.mscore = 0
         self.uscore = 0
-        self.z_score = 0
+        self.cs_score = 0
         self.rsquared = 0
         self.fscore = 0
         self.dscore = 0
+        self.lscore = 0
         self.mdist = None
         self.zdist = None
 
     def line_out(self, type="Full"):
         if type == "Full":
             outputs = [self.mass, self.centroid, self.height, self.area, self.textmarker, self.match, self.matcherror,
-                       self.integral, self.diff, self.avgcharge, self.dscore]
+                       self.integral, self.diff, self.avgcharge, self.dscore, self.lscore]
         elif type == "Basic":
             outputs = [self.mass, self.height, self.integral]
         else:

@@ -162,7 +162,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
             outfile = self.config.outfname + "_" + str(s.var1) + ".txt"
             np.savetxt(outfile, s.rawdata)
             print(outfile)
-            self.config.config_export(self.config.outfname + "_config.dat")
+            self.config.config_export(self.config.outfname + "_conf.dat")
 
     def batch_set_config(self, paths):
         for p in paths:

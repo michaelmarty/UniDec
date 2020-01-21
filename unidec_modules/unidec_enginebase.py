@@ -15,7 +15,7 @@ class UniDecEngine:
 
         :return: None
         """
-        self.version = "4.1.1"
+        self.version = "4.1.2"
         print("\nUniDec Engine v." + self.version)
         self.config = None
         self.config_history = []
@@ -174,16 +174,17 @@ class UniDecEngine:
             y = []
             z = []
             for p in self.pks.peaks:
-                y.append(p.mass)
-                z.append(p.height)
-                mnum = np.floor(p.mass / self.config.molig)
-                x.append(mnum)
+                if p.ignore == 0:
+                    y.append(p.mass)
+                    z.append(p.height)
+                    mnum = np.floor(p.mass / self.config.molig)
+                    x.append(mnum)
 
             x = np.array(x)
             y = np.array(y)
             z = np.array(z)
 
-            fit = np.polyfit(x, y, 1, w=z)
+            fit = np.polyfit(x, y, 1, w=z ** 2)
             slope = fit[0]
             intercept = fit[1]
 
@@ -202,7 +203,7 @@ class UniDecEngine:
                 print("Removing outliers with residuals greater than:", cutoff)
                 print(residuals)
                 boo2 = residuals < cutoff
-                fit = np.polyfit(x[boo2], y[boo2], 1, w=z[boo2])
+                fit = np.polyfit(x[boo2], y[boo2], 1, w=np.array(z[boo2]) ** 2)
                 slope = fit[0]
                 intercept = fit[1]
                 fitdat = x[boo2] * slope + intercept
@@ -217,13 +218,16 @@ class UniDecEngine:
             print("Need to set the mass difference/mass of oligomer")
         return fit, rsquared
 
+
+
+
     def oxidation_analysis(self, e=None):
         data = self.data.massdat
 
         maxindex = np.argmax(data[:, 1])
         maxmass, maxint = data[maxindex]
         nox = np.arange(0, 4)
-        oxmasses = maxmass +  nox* 16
+        oxmasses = maxmass + nox * 16
         areas = []
         for i, m in enumerate(oxmasses):
             low = m + self.config.integratelb
@@ -235,8 +239,7 @@ class UniDecEngine:
         areas /= np.amax(areas)
         print("Relative Areas:", areas)
 
-        totox = np.sum(nox*areas)/np.sum(areas)
+        totox = np.sum(nox * areas) / np.sum(areas)
         print("Total Oxidations:", totox)
 
         return np.append(areas, totox)
-

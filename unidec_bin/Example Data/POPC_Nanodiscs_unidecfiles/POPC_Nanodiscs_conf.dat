@@ -15,7 +15,7 @@ massub 160000.0
 masslb 80000.0
 msig 1.0
 molig 760.0
-massbins 10.0
+massbins 1.0
 mtabsig 0.0
 minmz 8761.430704083608
 maxmz 12864.965623887581

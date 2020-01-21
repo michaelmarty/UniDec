@@ -796,9 +796,23 @@ def zip_folder(save_path):
 
 
 def dataexport(datatop, fname):
-    np.savetxt(fname, datatop, fmt='%f')
+    try:
+        np.savetxt(fname, datatop, fmt='%f')
+    except:
+        path = os.path.join(os.getcwd(), fname)
+        path = "\\\\?\\%s" % path
+        np.savetxt(path, datatop, fmt='%f')
+        print("NOTE: Your path length might exceed the limit for Windows. Please shorten your file name.")
     pass
 
+def savetxt(fname, datatop):
+    try:
+        np.savetxt(fname, datatop)
+    except:
+        path = os.path.join(os.getcwd(), fname)
+        path = "\\\\?\\%s" % path
+        np.savetxt(path, datatop)
+        print("NOTE: Your path length might exceed the limit for Windows. Please shorten your file name.")
 
 def mergedata(data1, data2):
     """
@@ -1391,7 +1405,7 @@ def dataprep(datatop, config, removenoise=False):
     if config.intscale == "Square Root":
         data2[:, 1] = np.sqrt(data2[:, 1])
         print("Square Root Scale")
-    elif config.intscale is "Logarithmic":
+    elif config.intscale == "Logarithmic":
         data2[:, 1] = fake_log(data2[:, 1])
         data2[:, 1] -= np.amin(data2[:, 1])
         print("Log Scale")
@@ -1405,8 +1419,9 @@ def dataprep(datatop, config, removenoise=False):
             pass
         pass
 
-    # Normalization
-    data2 = normalize(data2)
+    if config.datanorm == 1:
+        # Normalization
+        data2 = normalize(data2)
 
     return data2
 
@@ -1867,9 +1882,9 @@ def single_cwt(a, width, wavelet_type="Ricker"):
     :return: cwt, wavelet
     Continous wavelet transform and wavelet of choice, both as numpy arrays of length N.
     """
-    if wavelet_type is "Morlet":
+    if wavelet_type == "Morlet":
         wdat = signal.morlet(len(a), width)
-    elif wavelet_type is "1DG":
+    elif wavelet_type == "1DG":
         wdat = FD_gauss_wavelet(len(a), width)
     else:
         wdat = signal.ricker(len(a), width)
@@ -1884,9 +1899,9 @@ def continuous_wavelet_transform(a, widths, wavelet_type="Ricker"):
     :param wavelet_type: Type of wavelet. Either "Ricker" (Mexican Hat) or "Morlet" (Gabor)
     :return: cwt_matrix (The continuous wavelet transform at the defined widths in a (W x N) array)
     """
-    if wavelet_type is "Morlet":
+    if wavelet_type == "Morlet":
         wavelet = signal.morlet
-    elif wavelet_type is "1DG":
+    elif wavelet_type == "1DG":
         wavelet = FD_gauss_wavelet
     else:
         wavelet = signal.ricker
@@ -2461,6 +2476,20 @@ def peaks_error_mean(pks, data, ztab, massdat, config):
         # tab.Show()
         pk.errormean = std
         # pks.peaks[count].errormean = abs(sums[count] - pks.peaks[count].mass)
+
+def subtract_and_divide(pks, basemass, refguess):
+    avgmass = []
+    ints = []
+    for p in pks.peaks:
+        if p.ignore==0:
+            mass = p.mass - basemass
+            num = np.round(mass/float(refguess))
+            if num!=0:
+                avg = mass/num
+                avgmass.append(avg)
+                ints.append(p.height)
+
+    return np.average(avgmass, weights=ints)
 
 
 if __name__ == "__main__":

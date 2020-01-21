@@ -310,7 +310,7 @@ class UniDec(UniDecEngine):
         if out == 0:
             self.unidec_imports(efficiency)
             if not silent:
-                print("File Name: ", self.config.filename, "R Sqaured: ", self.config.error)
+                print("File Name: ", self.config.filename, "R Squared: ", self.config.error)
             return out
         else:
             print("UniDec Run Error:", out)
@@ -1177,7 +1177,7 @@ class UniDec(UniDecEngine):
             # print("Peak Mass:", p.mass, "Peak Shape Score", avg, p.mscore)
             p.mscore = avg
 
-    def pks_zscore(self, xfwhm=2):
+    def pks_csscore(self, xfwhm=2):
         try:
             if len(self.pks.peaks[0].zstack) < 1:
                 self.get_zstack(xfwhm=xfwhm)
@@ -1219,8 +1219,8 @@ class UniDec(UniDecEngine):
                 else:
                     badarea += val - low
 
-            p.z_score = 1 - ud.safedivide1(badarea, zs)
-            # print(badarea, zs, p.z_score)
+            p.cs_score = 1 - ud.safedivide1(badarea, zs)
+            # print(badarea, zs, p.cs_score)
 
     def get_mzstack(self, xfwhm=2):
         zarr = np.reshape(self.data.mzgrid[:, 2], (len(self.data.data2), len(self.data.ztab)))
@@ -1344,6 +1344,15 @@ class UniDec(UniDecEngine):
                     fscore2 = self.score_minimum(height, umin)
                     # print("Fscore5", fscore2, umin, height)
                     p.fscore *= fscore2
+    '''
+    def tscore(self):
+        try:
+            tscore = 1 - np.sum(np.abs(self.data.fitdat - self.data.data2[:, 1])) / np.sum(self.data.data2[:, 1])
+        except Exception as e:
+            print("Error in Tscore: ", e)
+            tscore = 0
+        self.data.tscore = tscore
+        return tscore'''
 
     def dscore(self, xfwhm=2, pow=2):
         """
@@ -1362,26 +1371,31 @@ class UniDec(UniDecEngine):
 
         self.pks_mscore(xfwhm=xfwhm, pow=pow)
         self.pks_uscore(pow=pow, xfwhm=xfwhm)
-        self.pks_zscore(xfwhm=xfwhm)
+        self.pks_csscore(xfwhm=xfwhm)
         self.pks_fscore()
+        #self.tscore()
         tscores = []
         ints = []
         for p in self.pks.peaks:
-            scores = np.array([p.mscore, p.uscore, p.z_score, p.fscore])  # p.rsquared,
+            scores = np.array([p.mscore, p.uscore, p.fscore, p.cs_score])  # p.rsquared,
             p.dscore = np.product(scores)
+            p.lscore = np.product(scores[:-1])
             tscores.append(p.dscore)
             ints.append(p.height)
             print("Mass:", p.mass,
                   "Peak Shape:", round(p.mscore * 100, 2),
                   "Uniqueness:", round(p.uscore * 100, 2),
                   # "Fitting R^2", round(p.rsquared * 100, 2),
-                  "Charge:", round(p.z_score * 100, 2),
+                  "Charge:", round(p.cs_score * 100, 2),
                   "FWHM:", round(p.fscore * 100, 2),
                   "Combined:", round(p.dscore * 100, 2))
             # print(p.intervalFWHM)
         ints = np.array(ints)
-        self.pks.uniscore = ud.weighted_avg(tscores, ints ** pow)
+        self.pks.uniscore = ud.weighted_avg(tscores, ints ** pow) * self.config.error
+        print("R Squared:", self.config.error)
+        #print("TScore:", self.data.tscore)
         print("Average Peaks Score (UniScore):", self.pks.uniscore)
+
 
     def filter_peaks(self, minscore=0.4):
         # w = deepcopy(self.config.peakwindow)

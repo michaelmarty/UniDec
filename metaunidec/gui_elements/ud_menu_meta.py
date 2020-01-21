@@ -221,6 +221,8 @@ class meta_menu(wx.Menu):
         self.experimentalmenu.AppendSeparator()
         self.menulinreg = self.experimentalmenu.Append(wx.ID_ANY, "Linear Regression")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_linreg, self.menulinreg)
+        self.menusubdiv = self.experimentalmenu.Append(wx.ID_ANY, "Subtract and Divide")
+        self.parent.Bind(wx.EVT_MENU, self.pres.sub_div, self.menusubdiv)
         #self.menuAdditionalParameters = self.experimentalmenu.Append(wx.ID_ANY, "Additional Parameters",
         #                                                             "Adjust some experimental parameters")
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_additional_parameters, self.menuAdditionalParameters)

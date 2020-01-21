@@ -74,7 +74,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>Intel C++ Compiler 19.0</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 19.1</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <InterproceduralOptimization>true</InterproceduralOptimization>
     <UseIntelTBB>true</UseIntelTBB>
@@ -82,7 +82,7 @@
     <UseIntelMKL>Parallel</UseIntelMKL>
     <UseILP64Interfaces>true</UseILP64Interfaces>
     <UseIntelDAAL>Parallel_Static</UseIntelDAAL>
-    <UseIntelIPP>false</UseIntelIPP>
+    <UseIntelIPP>Parallel_Static</UseIntelIPP>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -218,6 +218,7 @@
       <FloatingPointExceptions>false</FloatingPointExceptions>
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <LlvmTransitionalOption>NextGenNone</LlvmTransitionalOption>
     </ClCompile>
     <Link>
       <AdditionalDependencies>libszip.lib;libzlib.lib;libhdf5.lib;libhdf5_hl.lib;ucrt.lib;vcruntime.lib;msvcrt.lib;%(AdditionalDependencies)</AdditionalDependencies>

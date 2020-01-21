@@ -194,6 +194,16 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.4.1.2
+
+**Added button in UniDec to turn off data normalization.** Note: the beta values will be automatically scaled to match this. 
+
+Renamed the parameter ZScore in the UniScore calculation to CSScore. Added R squared to the UniScore calculation.
+
+Added several experimental subtract and divide features. Tweaks to linear regression experimental feature. 
+
+Bug fixes and compatibility updates.
+
 v.4.1.1
 
 Added right click feature to color peaks by their scores.

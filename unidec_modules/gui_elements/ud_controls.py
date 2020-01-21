@@ -191,6 +191,8 @@ class main_controls(wx.Panel):
         gbox1b.Add(wx.StaticText(panel1b, label="Intensity Threshold: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
+
+
         self.ctladductmass = wx.TextCtrl(panel1b, value='', size=size1)
         gbox1b.Add(self.ctladductmass, (i, 1), span=(1, 1))
         gbox1b.Add(wx.StaticText(panel1b, label="Adduct Mass (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -202,16 +204,27 @@ class main_controls(wx.Panel):
         i += 1
 
         if self.config.imflag == 0:
+
+
             self.ctldatareductionpercent = wx.TextCtrl(panel1b, value="", size=size1)
             gbox1b.Add(self.ctldatareductionpercent, (i, 1), span=(1, 1))
             gbox1b.Add(wx.StaticText(panel1b, label="Data Reduction (%): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
+
+            self.ctldatanorm = wx.CheckBox(panel1b, label="Normalize Data")
+            self.ctldatanorm.SetValue(True)
+            gbox1b.Add(self.ctldatanorm, (i, 0), span=(1, 2))
+            i += 1
+
             self.ctlbintype = wx.Choice(panel1b, -1, size=(240, 50),
                                         choices=["Linear m/z (Constant " + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z)",
                                                  "Linear resolution (Constant (m/z)/(" + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z))",
                                                  "Nonlinear", "Linear Interpolated", "Linear Resolution Interpolated"])
             gbox1b.Add(self.ctlbintype, (i, 0), span=(1, 2))
             i += 1
+
+
+
         else:
             self.ctlconvertflag = wx.CheckBox(panel1b, label="Compress when converting to .txt")
             self.ctlconvertflag.SetValue(True)
@@ -697,6 +710,7 @@ class main_controls(wx.Panel):
                 self.ctlmanualassign.SetValue(self.config.manualfileflag)
                 self.ctlisotopemode.SetSelection(self.config.isotopemode)
                 self.ctlorbimode.SetValue(self.config.orbimode)
+                self.ctldatanorm.SetValue(self.config.datanorm)
                 self.ctlbintype.SetSelection(int(self.config.linflag))
                 self.ctlpsig.SetValue(str(self.config.psig))
                 self.ctlbeta.SetValue(str(self.config.beta))
@@ -827,6 +841,7 @@ class main_controls(wx.Panel):
             self.config.reductionpercent = ud.string_to_value(self.ctldatareductionpercent.GetValue())
             self.config.isotopemode = int(self.ctlisotopemode.GetSelection())
             self.config.orbimode = int(self.ctlorbimode.GetValue())
+            self.config.datanorm = int(self.ctldatanorm.GetValue())
             self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
             self.config.beta = ud.string_to_value(self.ctlbeta.GetValue())
             self.config.manualfileflag = int(self.ctlmanualassign.GetValue())
@@ -957,6 +972,7 @@ class main_controls(wx.Panel):
         self.ctlminnativez.SetToolTip(wx.ToolTip("Minimum offset from a native charge state"))
         self.ctlmaxnativez.SetToolTip(wx.ToolTip("Maximum offset from a native charge state"))
         if self.config.imflag == 0:
+            self.ctldatanorm.SetToolTip(wx.ToolTip("Normalize Data and Results"))
             self.ctldatareductionpercent.SetToolTip(
                 wx.ToolTip(
                     "Reduces the amount of data by removing everything below a threshold.\nSets the threshold to fit the percentage of data to remove."))

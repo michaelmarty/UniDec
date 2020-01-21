@@ -670,7 +670,7 @@ class DataCollector(wx.Frame):
         dlg = wx.FileDialog(self, "Save Collection in JSON Format", self.directory, self.savename, "*.json")
         if dlg.ShowModal() == wx.ID_OK:
             self.savename = dlg.GetPath()
-            with open(self.savename, "w") as outfile:
+            with open(self.savename, "w+") as outfile:
                 json.dump(outdict, outfile)
             print("Saved: ", self.savename)
         dlg.Destroy()
