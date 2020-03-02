@@ -46,6 +46,7 @@ spectracmap rainbow
 publicationmode 1
 isotopemode 0
 peaknorm 1
+datanorm 1
 baselineflag 1.0
 orbimode 0
 integratelb -1000.0

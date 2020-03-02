@@ -82,7 +82,8 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 			//Calculates peak shape as a 1D list centered at the first element for circular convolutions
 			MakePeakShape1D(inp.dataMZ, threshold, config.lengthmz, config.speedyflag, fabs(config.mzsig) * config.peakshapeinflate, config.psfun, mzdist, rmzdist, makereverse);
 		}
-		if (silent == 0) { printf("mzdist set: %f\t", mzdist[0]); }
+		if (silent == 0) { printf("mzdist set: %f\t maxlength: %f\n", mzdist[0], maxlength); }
+
 	}
 	else
 	{
@@ -134,7 +135,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	closemind = calloc(numclose, sizeof(int));
 	closezind = calloc(numclose, sizeof(int));
 	closeval = calloc(numclose, sizeof(double));
-	closeind = calloc(numclose * config.lengthmz * config.numz, sizeof(double));
+	closeind = calloc(numclose * config.lengthmz * config.numz, sizeof(int));
 
 	//Determines the indexes of things that are close as well as the values used in the neighborhood convolution
 	for (int k = 0; k < numclose; k++)
@@ -148,10 +149,10 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	simp_norm_sum(numclose, closeval);
 
 	//Set up blur
-	MakeBlur(config.lengthmz, config.numz, numclose, barr, closezind, closemind, inp.mtab, config.molig, config.adductmass, inp.nztab, inp.dataMZ, closeind);
+	MakeBlur(config.lengthmz, config.numz, numclose, barr, closezind, closemind, inp.mtab, config.molig, config.adductmass, inp.nztab, inp.dataMZ, closeind, threshold, config);
 
 	if (silent == 0) { printf("Charges blurred: %d  Oligomers blurred: %d\n", zlength, mlength); }
-
+	//IntPrint(closeind, numclose * config.lengthmz * config.numz);
 
 	//Determine the maximum intensity in the data
 	double dmax = Max(inp.dataInt, config.lengthmz);
@@ -629,6 +630,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 		}
 	}
 
+	//Allocates the memory for the boolean array of whether to test a value
 	inp.barr = calloc(config.lengthmz * config.numz, sizeof(char));
 	//Tells the algorithm to ignore data that are equal to zero
 	ignorezeros(inp.barr, inp.dataInt, config.lengthmz, config.numz);
@@ -656,8 +658,10 @@ int run_unidec(int argc, char *argv[], Config config) {
 		printf("Isotopes set up, Length: %d\n", config.isolength);
 	}
 
+	//Setup the Deconvolution
 	Decon decon=SetupDecon();
 
+	//Autotuning
 	if (autotune == 1) {
 		printf("Starting Autotune...\n");
 		double start_peakwindow = config.peakwin;
@@ -726,7 +730,9 @@ int run_unidec(int argc, char *argv[], Config config) {
 		printf("Best mzsig: %f zsig: %f beta: %f psig: %f Score:%f\n", start_mzsig, start_zsig, start_beta, start_psig, bestscore);
 		decon = MainDeconvolution(config, inp, 0);
 	}
-	else{ decon = MainDeconvolution(config, inp, 0); }
+	else{ 
+		//Run the main Deconvolution		
+		decon = MainDeconvolution(config, inp, 0); }
 
 	//................................................................
 	//

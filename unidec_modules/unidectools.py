@@ -202,7 +202,7 @@ def weighted_std(values, weights):
     :return: Weighted standard deviation.
     """
     average = np.average(values, weights=weights)
-    variance = np.average((np.array(values) - average) ** 2, weights=weights)  # Fast and numerically precise
+    variance = np.average(np.power((np.array(values) - average), 2), weights=weights)  # Fast and numerically precise
     return np.sqrt(variance)
 
 
@@ -278,6 +278,7 @@ def get_z_offset(mass, charge):
 def predict_charge(mass):
     """
     Give predicted native charge state of species of defined mass
+    https://www.pnas.org/content/107/5/2007.long
     :param mass: Mass in Da
     :return: Float, predicted average native charge state
     """
@@ -764,7 +765,6 @@ def load_mz_file(path, config=None):
             except IOError:
                 print("Failed to open:", path)
                 data = None
-
     return data
 
 
@@ -1356,7 +1356,8 @@ def dataprep(datatop, config, removenoise=False):
     redper = config.reductionpercent
     # Crop Data
     data2 = datachop(datatop, newmin, newmax)
-
+    if len(data2)==0:
+        print("Error: m/z range is too small. No data fits the range.")
     # correct for detector efficiency
     if va != 0:
         # data2=detectoreff(data2,9.1)
@@ -2011,7 +2012,7 @@ def make_peak_shape(xaxis, psfun, fwhm, mid, norm_area=False):
     return kernel
 
 
-def fft(data):
+def fft(data, phases=False):
     # X-axis
     massdif = data[1, 0] - data[0, 0]
     # fvals = np.fft.fftfreq(len(data), d=massdif)
@@ -2023,8 +2024,11 @@ def fft(data):
     # Cleanup
     aftdat = np.transpose([fvals, np.abs(fft)])
     aftdat[:, 1] /= np.amax(aftdat[:, 1])
-    # phases = np.arctan2(fft.imag,fft.real)
-    return aftdat
+    if not phases:
+        return aftdat
+    if phases:
+        phases = np.arctan2(fft.imag,fft.real)
+        return aftdat, phases
 
 
 def fft_diff(data, diffrange=[500., 1000.]):
@@ -2437,45 +2441,44 @@ def peaks_error_mean(pks, data, ztab, massdat, config):
     :param config: self.config
     :return:
     """
+    # Reshape the data
     length = len(data) / len(ztab)
+    data2 = data.reshape(int(length), len(ztab))
+    # Loop over each peak
     for pk in pks.peaks:
+        # Set the window as 2 x FWHM if possible
+        window = config.peakwindow
+        if pk.errorFWHM > 0:
+            window = 2* pk.errorFWHM
+
+        # Grab a slice of the data around the peak mass
         index = nearest(massdat[:, 0], pk.mass)
+        startindmass = nearest(massdat[:, 0], massdat[index, 0] - window)
+        endindmass = nearest(massdat[:, 0], massdat[index, 0] + window)
+        data3 = data2[startindmass:endindmass]
+
+        # Get the peak mass and intensity at each charge state
         masses = []
         ints = []
-        zgrid = []
-        startindmass = nearest(massdat[:, 0], massdat[index, 0] - config.peakwindow)
-        endindmass = nearest(massdat[:, 0], massdat[index, 0] + config.peakwindow)
-        # plotmasses = massdat[startindmass:endindmass, 0]
         for z in range(0, len(ztab)):
-            startind = startindmass + (z * length)
-            endind = endindmass + (z * length)
-            tmparr = data[int(startind):int(endind)]
-            ind = np.argmax(tmparr)
-            ints.append(tmparr[ind])
-            # print massdat[startindmass + ind, 0]
-            masses.append(massdat[startindmass + ind, 0])
-            # zgrid.extend(tmparr)
-        mean = np.average(masses, weights=ints)
+            tmparr = data3[:, z]
+            ints.append(np.amax(tmparr))
+            masses.append(massdat[startindmass + np.argmax(tmparr), 0])
+
+        # Convert to Arrays
+        ints = np.array(ints)
+        masses = np.array(masses)
+
+        # Set a 1% Threshold
+        b1 = ints > 0.01 * np.amax(ints)
         # Calculate weighted standard deviation
-        sum = 0
-        denom = 0
-        for w, m in enumerate(masses):
-            sum += ints[w] * pow(m - mean, 2)
-            denom += ints[w]
-        denom *= (len(ztab) - 1)
-        std = sum / denom
-        std = std / len(ztab)
-        std = std ** 0.5
-        # print mean
-        # print std
-        # tab = wx.Frame(None, title="Test", size=(500, 500))
-        # plot = plot2d.Plot2d(tab, figsize=(500, 500))
-        # plot.contourplot(xvals=np.asarray(plotmasses), yvals=ztab, zgrid=np.asarray(zgrid),
-        #                 config=config, title="Mass vs. Charge", xlab="Mass (Da)",
-        #                 normflag=1, test_kda=False, repaint=False)
-        # tab.Show()
+        std=weighted_std(masses[b1], ints[b1])
+
+        # Set the parameters
         pk.errormean = std
-        # pks.peaks[count].errormean = abs(sums[count] - pks.peaks[count].mass)
+        pk.errormasses = masses
+        pk.errorints = ints
+    pass
 
 def subtract_and_divide(pks, basemass, refguess):
     avgmass = []

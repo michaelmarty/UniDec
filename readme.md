@@ -194,6 +194,14 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.4.1.3
+
+Fix to bug in calculating the error from the weighted standard deviation of charge state masses. Fixed bug in Load and Save State with non-text files. 
+
+Added drag and drop for loading the state from a zip file.
+
+Upgraded pymzml version for improved mzML compatibility and fixed mzML import error.
+
 v.4.1.2
 
 **Added button in UniDec to turn off data normalization.** Note: the beta values will be automatically scaled to match this. 

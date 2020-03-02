@@ -502,6 +502,23 @@ void PrintHelp()
 	//printf("\nsize of: %d",sizeof(char));
 }
 
+//Print a double array
+void DoublePrint(const double* array, const int length)
+{
+	for (int i = 0; i < length; i++)
+	{
+		printf("%f\n", array[i]);
+	}
+}
+
+//Print an int array
+void IntPrint(const int* array, const int length)
+{
+	for (int i = 0; i < length; i++)
+	{
+		printf("%d\n", array[i]);
+	}
+}
 
 //Calculate Average
 double Average(const int length, const double* xarray)
@@ -1840,47 +1857,60 @@ void ManualAssign(char *manualfile, int lengthmz, int numz, double *dataMZ, char
 	printf("Using Manual Assignments for Some Peaks\n");
 }
 
-void MakeBlur(int lengthmz,int numz,int numclose,char *barr,int *closezind,int *closemind,double *mtab,double molig,double adductmass,int *nztab,double *dataMZ,int *closeind)
+void MakeBlur(const int lengthmz, const int numz, const int numclose, char *barr, const int *closezind,
+	const int *closemind, const double *mtab, const double molig, const double adductmass, const int *nztab, 
+	const double *dataMZ,int *closeind, const double threshold, const Config config)
 {
-	  unsigned int i,j,k;
-	  #pragma omp parallel for private (i,j,k), schedule(auto)
-	  for(i=0;i<lengthmz;i++)
+	//Reset the threshold if it is zero
+	double newthreshold = threshold;
+	if (newthreshold == 0) { newthreshold = config.massbins*3; }
+
+	  //#pragma omp parallel for schedule(auto)
+	  for(int i=0;i<lengthmz;i++)
 	    {
-	      for(j=0;j<numz;j++)
+	      for(int j=0;j<numz;j++)
 	        {
 	            if(barr[index2D(numz,i,j)]==1)
 	            {
-	              for(k=0;k<numclose;k++)
-	                {
-	                  int indz=(int)(j+closezind[k]);
-					  int ind;
-					  if (indz < 0 || indz >= numz || (nztab[j] + closezind[k])==0) { closeind[index3D(numz, numclose, i, j, k)] = -1; }
-	                  else
-	                  {
-	                      double point=(double)((mtab[index2D(numz, i, j)]+closemind[k]*molig+adductmass*(double)(nztab[j]+closezind[k]))/(double)(nztab[j]+closezind[k]));
-	                      if(point<dataMZ[0]||point>dataMZ[lengthmz-1]){ closeind[index3D(numz, numclose, i, j, k)] = -1; }
-						  else {
-							  ind = nearfast(dataMZ, point, lengthmz);
-							  int newind= index2D(numz, ind, indz);
-							  if (barr[newind] == 1) {
-								  closeind[index3D(numz, numclose, i, j, k)] = newind;
-							  }
-							  else { closeind[index3D(numz, numclose, i, j, k)] = -1; }
-						  }
-	                  }
-	                }
-	            }
-	            else
-	            {
-	                for (k=0;k<numclose;k++)
-	                {
+					int num = 0;
+					for(int k=0;k<numclose;k++)
+					{
+						//Find the z index and test if it is within the charge range
+						int indz=(int)(j+closezind[k]);
+						if (indz < 0 || indz >= numz || (nztab[j] + closezind[k])==0) { closeind[index3D(numz, numclose, i, j, k)] = -1; }
+						else
+						{
+							//Find the nearest m/z value and test if it is close enough to the predicted one and within appropriate ranges
+							double point=(double)((mtab[index2D(numz, i, j)]+closemind[k]*molig+adductmass*(double)(nztab[j]+closezind[k]))/(double)(nztab[j]+closezind[k]));
+							if(point<dataMZ[0]- newthreshold || point>dataMZ[lengthmz-1]+ newthreshold){ closeind[index3D(numz, numclose, i, j, k)] = -1; }
+							else {
+								int ind = nearfast(dataMZ, point, lengthmz);
+								double closepoint = dataMZ[ind];
+								int newind= index2D(numz, ind, indz);
+								if (barr[newind] == 1 && fabs(point- closepoint)< newthreshold) {
+									closeind[index3D(numz, numclose, i, j, k)] = newind;
+									num += 1;
+								}
+								else { closeind[index3D(numz, numclose, i, j, k)] = -1; }
+								//printf("%d %d %d %f %f %d\n", i, j, k, point, closepoint, closeind[index3D(numz, numclose, i, j, k)]);
+							}
+						  
+						}
+					}
+					if (num < 2 && config.isotopemode == 0) { barr[index2D(numz, i, j)] = 0; printf("%d %d \n", i, j); }
+				}
+				else
+				{
+					for (int k=0;k<numclose;k++)
+					{
 						closeind[index3D(numz, numclose, i, j, k)] = -1;
-	                }
-	            }
+					}
+				}
 	        }
 	    }
 }
 
+/*
 void MakeBlurZ(int lengthmz, int numz, int numclose, char *barr, int *closezind, double *mtab, double adductmass, int *nztab, double *dataMZ, int *closeind)
 {
 	unsigned int i, j, k;
@@ -1949,7 +1979,7 @@ void MakeBlurM(int lengthmz, int numz, int numclose, char *barr, int *closemind,
 			}
 		}
 	}
-}
+}*/
 
 
 void MakePeakShape2D(int lengthmz,int maxlength,int *starttab,int *endtab,double *dataMZ,double mzsig,int psfun,int speedyflag,double *mzdist, double *rmzdist, int makereverse)

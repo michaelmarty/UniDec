@@ -104,7 +104,8 @@ class UniDec(UniDecEngine):
             newname = os.path.join(os.getcwd(), self.config.outfname + "_imraw.txt")
         if not os.path.isfile(newname):
             try:
-                shutil.copy(file_directory, newname)
+                #shutil.copy(file_directory, newname)
+                np.savetxt(newname, self.data.rawdata)
             except Exception as e:
                 pass
 
@@ -1497,8 +1498,24 @@ class UniDec(UniDecEngine):
         np.savetxt(os.path.join(testdir, fname), data)
 
         self.open_file(fname, testdir, **kwargs)
+        self.config.maxmz, self.config.minmz = "", ""
         self.data.ztab = ztab
         pass
+
+    def pass_data_in(self, data, n=1, **kwargs):
+        testdir = os.path.join(self.config.UniDecDir, "TestSpectra")
+        if not os.path.isdir(testdir):
+            os.mkdir(testdir)
+
+        fname = "test_" + str(n) + ".txt"
+        path=os.path.join(testdir, fname)
+        print("Creating temp file:", path)
+        np.savetxt(path, data)
+
+        self.open_file(fname, testdir, **kwargs)
+        self.config.maxmz, self.config.minmz = "", ""
+        self.config.default_isotopic_res()
+
 
     def get_spectrum_peaks(self, threshold=0.05, window=None):
         if window is None:

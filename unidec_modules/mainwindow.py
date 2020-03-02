@@ -313,9 +313,13 @@ class MyFileDropTarget(wx.FileDropTarget):
             elif fname[-9:] == "_conf.dat":
                 print("Importing Configuration File:", path)
                 self.window.pres.import_config(path)
+            elif os.path.splitext(fname)[1] == ".zip":
+                print("Loading State:", fname)
+                self.window.pres.on_load_state(0, path)
             else:
                 self.window.pres.on_open_file(fname, directory)
                 # self.window.pres.on_auto() # Run the whole thing
+
         elif len(filenames) > 1:
             # Batch process the files that were dropped
             if os.path.splitext(filenames[0])[1] == ".raw" and os.path.isdir(filenames[0]):

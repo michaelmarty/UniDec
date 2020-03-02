@@ -113,10 +113,13 @@ class MassDefectWindow(wx.Frame):
                                               "Label peaks")
         self.menulinreg = self.plotmenu.Append(wx.ID_ANY, "Linear Regression",
                                               "Linear Regression")
+        self.menucom = self.plotmenu.Append(wx.ID_ANY, "Center of Mass",  "Center of Mass")
+
         self.Bind(wx.EVT_MENU, self.on_add_line, self.menuaddline)
         self.Bind(wx.EVT_MENU, self.on_fit, self.menufit)
         self.Bind(wx.EVT_MENU, self.on_label_peaks, self.menupeaks)
         self.Bind(wx.EVT_MENU, self.on_linear_regression, self.menulinreg)
+        self.Bind(wx.EVT_MENU, self.on_com, self.menucom)
 
         menu_bar = wx.MenuBar()
         menu_bar.Append(filemenu, "&File")
@@ -629,12 +632,13 @@ class MassDefectWindow(wx.Frame):
                 self.plot3.addtext("", f, y, vlines=True)
 
     def on_label_peaks(self, e=None):
-        peaks = ud.peakdetect(self.data1d, window=3)
-        print("Peaks:", peaks[:, 0])
+        self.peaks = ud.peakdetect(self.data1d, window=3)
+        print("Peaks:", self.peaks[:, 0])
 
-        for p in peaks:
+        for i, p in enumerate(self.peaks):
             y = p[1]
-            self.plot3.addtext(str(np.round(p[0], 3)), p[0] + 0.075, y * 0.95, vlines=False)
+            label=str(np.round(p[0], 3))
+            self.plot3.addtext(label, p[0] + 0.075, y * 0.95, vlines=False)
             self.plot3.addtext("", p[0], y, vlines=True)
 
     def on_linear_regression(self, e=None):
@@ -676,6 +680,49 @@ class MassDefectWindow(wx.Frame):
                + "\nInt./RefMass: " + str(np.round(intercept/self.m0,3))
         self.plot1.addtext(sval, xl*0.7, np.amax(ylin)*0.2, vlines=False)
 
+    def on_com(self, e=None):
+        print("Starting COM calculations")
+        dims = self.data2d.shape
+
+        x = np.unique(self.data2d[:, 0])
+        y = np.unique(self.data2d[:, 1])
+        xl = len(x)
+        yl = len(y)
+        z = self.data2d[:, 2].reshape((xl, yl))
+        zlin = np.array([np.max(d) for d in z])
+
+        self.on_label_peaks(e=0)
+
+        coms = []
+        for d in z.transpose():
+            data = np.transpose([x, d])
+            b1 = d > np.amax(d) * 0.1
+            com, std = ud.center_of_mass(data[b1])
+            coms.append(com)
+
+        for p in self.peaks:
+            index = ud.nearest(y, p[0])
+            c = coms[index]
+            carray = [c]
+            try:
+                carray.append(coms[index-1])
+            except:
+                pass
+            try:
+                carray.append(coms[index+1])
+            except:
+                pass
+
+            com = np.average(carray)
+            print(p[0],  com)
+
+        self.plot1.plotrefreshtop(y, coms, xlabel="Mass Defect", ylabel="Center of Mass (Da)")
+
+        #print(zlin)
+        #self.plot1.colorplotMD(y, coms, zlin, max=0, cmap="binary",
+        #                       title="Linear Regression Plot", clabel="Intensity",
+        #                       xlabel="Mass Number", ylabel="Mass", test_kda=False)
+
 # Main App Execution
 if __name__ == "__main__":
     dir = "C:\\Python\\UniDec\\TestSpectra\\60_unidecfiles"
@@ -697,5 +744,5 @@ if __name__ == "__main__":
 
     app = wx.App(False)
     frame = MassDefectWindow(None, datalist)
-    frame.on_linear_regression(0)
+    frame.on_com(0)
     app.MainLoop()
