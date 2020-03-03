@@ -135,5 +135,7 @@ __pycache__/
 unidec_bin/Example Data/ADH_unidecfiles/ADH_peak_areas.dat
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_1D_Mass_Defects.txt
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_2D_Mass_Defects.txt
+unidec_modules/thermo_reader/
+unidec_bin/Presets/Marius/
 
 

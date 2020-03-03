@@ -18,13 +18,13 @@ molig 0.0
 massbins 100.0
 mtabsig 0.0
 manualfile GroEL HCD UniDec_manualfile.dat
-minmz 1103.817162224038
-maxmz 28276.468057027887
+minmz 989.965273
+maxmz 40458.620204
 subbuff 0.0
 subtype 0
 smooth 0.0
 mzbins 0.0
-peakwindow 200.0
+peakwindow 500.0
 peakthresh 0.01
 peakplotthresh 0.1
 plotsep 0.025
@@ -35,7 +35,7 @@ rawflag 0
 adductmass 1.007276467
 nativezub 100.0
 nativezlb -100.0
-poolflag 1
+poolflag 2
 accvol 0.0
 peakshapeinflate 1.0
 noiseflag 0.0

@@ -425,6 +425,7 @@ class UniDecApp(UniDecPres):
             self.makeplot4(1)
 
         self.view.SetStatusText("Peak Pick Done", number=5)
+
         self.on_score()
         pass
 

@@ -194,13 +194,17 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
-v.4.1.3
+v.4.2.0
 
-Fix to bug in calculating the error from the weighted standard deviation of charge state masses. Fixed bug in Load and Save State with non-text files. 
+**Added Smart Transform**. From the beginning, UniDec has asked users to decide how it should perform the nonlinear transform from m/z to mass. Now, the Smart Transform decides for the user based on the density of the data. Where the data is sparse relative to the mass sampling, it will use interpolation to fill in the gaps. Where data is dense relative to the mass sampling, it will use integration to ensure that all the data in-between is accounted for.
 
 Added drag and drop for loading the state from a zip file.
 
-Upgraded pymzml version for improved mzML compatibility and fixed mzML import error.
+Upgraded pymzml version for improved mzML compatibility and made mzML import more error tolerant.
+
+Fix to bug in calculating the error from the weighted standard deviation of charge state masses. 
+
+Fixed bug in Load and Save State with non-text files. 
 
 v.4.1.2
 

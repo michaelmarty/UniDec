@@ -34,7 +34,7 @@ rawflag 0
 adductmass 1.007276467
 nativezub 100.0
 nativezlb -100.0
-poolflag 1
+poolflag 2
 accvol 0
 peakshapeinflate 1
 noiseflag 0

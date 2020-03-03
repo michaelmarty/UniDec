@@ -1311,33 +1311,32 @@ inline int fixk(int k, int lengthmz)
 {
 	k = abs(k);
 	if (k >= lengthmz){ k = 2 * lengthmz - k-2; }
+	//if (k < 0) { k = 0; }
 	return k;
 }
 
 void convolve_simp(const int lengthmz, const int maxlength, const int*starttab, const int *endtab, const double *mzdist, const double *deltas, double *denom, const int speedyflag)
 {
-
-	unsigned int i, k;
 	if (speedyflag == 0){
-		#pragma omp parallel for private (i,k), schedule(auto)
-		for (i = 0; i < lengthmz; i++)
+		#pragma omp parallel for schedule(auto)
+		for (int i = 0; i < lengthmz; i++)
 		{
 			double cv = 0;
-			for (k = starttab[i]; k <= endtab[i]; k++)
+			for (int k = starttab[i]; k <= endtab[i]; k++)
 			{
 				int k2 = fixk(k, lengthmz);
 				int start = starttab[k2];
-					cv += deltas[k2] * mzdist[index2D(maxlength, k2, i - start)];
+				cv += deltas[k2] * mzdist[index2D(maxlength, k2, i - start)];
 			}
 			denom[i] = cv;
 		}
 	}
 	else{
-		#pragma omp parallel for private (i,k), schedule(auto)
-		for (i = 0; i < lengthmz; i++)
+		#pragma omp parallel for schedule(auto)
+		for (int i = 0; i < lengthmz; i++)
 		{
 			double cv = 0;
-			for (k = starttab[i]; k <= endtab[i]; k++)
+			for (int k = starttab[i]; k <= endtab[i]; k++)
 			{
 				cv += deltas[k] * mzdist[indexmod(lengthmz,k, i)];
 			}
@@ -1479,10 +1478,10 @@ double deconvolve_iteration_speedy(const int lengthmz, const int numz,const int 
 		//blur_baseline(baseline, lengthmz, 10);
 		//blur_noise(noise, lengthmz); 
 	}
-	
+	//printf("1\n");
 	//Sum deltas
 	sum_deltas(lengthmz, numz, blur, barr, isolength, isotopepos, isotopeval, deltas);
-
+	//printf("2\n");
 	if (mzsig != 0 && psig>=0)
 	{
 		//Convolve with peak shape
@@ -1492,7 +1491,7 @@ double deconvolve_iteration_speedy(const int lengthmz, const int numz,const int 
 	{
 		memcpy(denom, deltas, sizeof(double)*lengthmz);
 	}
-	
+	//printf("3\n");
 	if (aggressiveflag == 1)
 	{
 		#pragma omp parallel for private(i), schedule(auto)
@@ -1500,14 +1499,14 @@ double deconvolve_iteration_speedy(const int lengthmz, const int numz,const int 
 			denom[i] += baseline[i];// +noise[i]);
 		}
 	}
-
+	//printf("4\n");
 	//Calculate Ratio
 	#pragma omp parallel for private(i), schedule(auto)
 	for (i = 0; i < lengthmz; i++)
 	{
 		if (denom[i] != 0 && dataInt[i] >= 0) { denom[i] = dataInt[i] / denom[i]; }
 	}
-
+	//printf("5\n");
 	if ( mzsig < 0)
 	{
 		//Real Richardson-Lucy Second Convolution
@@ -1526,11 +1525,11 @@ double deconvolve_iteration_speedy(const int lengthmz, const int numz,const int 
 		memcpy(denom, deltas, sizeof(double)*lengthmz);*/
 	}
 
-	
+	//printf("6\n");
 	//Multiply Ratio by prior
 	apply_ratios(lengthmz, numz, blur, barr, isolength, isotopepos, isotopeval, denom, blur2);
 
-
+	//printf("7\n");
 	if (aggressiveflag ==1)
 	{
 		//memcpy(deltas, denom, sizeof(double)*lengthmz);
@@ -1544,7 +1543,7 @@ double deconvolve_iteration_speedy(const int lengthmz, const int numz,const int 
 			//noise[i] = noise[i]*(deltas[i]);
 		}
 	}
-	
+	//printf("8\n");
  free(deltas);
  free(denom);
  return 0;
@@ -1865,7 +1864,7 @@ void MakeBlur(const int lengthmz, const int numz, const int numclose, char *barr
 	double newthreshold = threshold;
 	if (newthreshold == 0) { newthreshold = config.massbins*3; }
 
-	  //#pragma omp parallel for schedule(auto)
+	  #pragma omp parallel for schedule(auto)
 	  for(int i=0;i<lengthmz;i++)
 	    {
 	      for(int j=0;j<numz;j++)
@@ -1897,7 +1896,7 @@ void MakeBlur(const int lengthmz, const int numz, const int numclose, char *barr
 						  
 						}
 					}
-					if (num < 2 && config.isotopemode == 0) { barr[index2D(numz, i, j)] = 0; printf("%d %d \n", i, j); }
+					if (num < 2 && config.isotopemode == 0) { barr[index2D(numz, i, j)] = 0; }//printf("%d %d \n", i, j); }
 				}
 				else
 				{
@@ -1984,13 +1983,12 @@ void MakeBlurM(int lengthmz, int numz, int numclose, char *barr, int *closemind,
 
 void MakePeakShape2D(int lengthmz,int maxlength,int *starttab,int *endtab,double *dataMZ,double mzsig,int psfun,int speedyflag,double *mzdist, double *rmzdist, int makereverse)
 {
-	unsigned int i,j;
-	#pragma omp parallel for private (i,j), schedule(auto)
-	for(i=0;i<lengthmz;i++)
+	#pragma omp parallel for schedule(auto)
+	for(int i=0;i<lengthmz;i++)
 	  {
 		  int start = starttab[i];
 		  int end = endtab[i];
-		  for (j = start; j <= end; j++)
+		  for (int j = start; j <= end; j++)
 		  {	
 			  int j2 = fixk(j, lengthmz);
 			  mzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(dataMZ[i], dataMZ[j2], mzsig, psfun);
@@ -2041,17 +2039,16 @@ void monotopic_to_average(const int lengthmz, const int numz, double *blur, cons
 double Reconvolve(const int lengthmz, const int numz, const int maxlength,const int *starttab,const int *endtab,const double *mzdist, const double *blur, double *newblur, const int speedyflag, const char *barr)
 {
 	double newblurmax=0;
-	unsigned int i,j,k;
 	if (speedyflag == 0){
-		#pragma omp parallel for private (i,j,k), schedule(auto)
-		for (i = 0; i < lengthmz; i++)
+		#pragma omp parallel for schedule(auto)
+		for (int i = 0; i < lengthmz; i++)
 		{
-			for (j = 0; j < numz; j++)
+			for (int j = 0; j < numz; j++)
 			{
 
 				double cv = 0;
 				if (barr[index2D(numz, i, j)] == 1) {
-					for (k = starttab[i]; k <= endtab[i]; k++)
+					for (int k = starttab[i]; k <= endtab[i]; k++)
 					{
 						int k2 = fixk(k, lengthmz);
 						if (blur[index2D(numz, k2, j)] != 0)
@@ -2070,15 +2067,15 @@ double Reconvolve(const int lengthmz, const int numz, const int maxlength,const 
 		}
 	}
 	else{
-		#pragma omp parallel for private (i,j,k), schedule(auto)
-		for (i = 0; i<lengthmz; i++)
+		#pragma omp parallel for schedule(auto)
+		for (int i = 0; i<lengthmz; i++)
 		{
-			for (j = 0; j<numz; j++)
+			for (int j = 0; j<numz; j++)
 			{
 
 				double cv = 0;
 				if (barr[index2D(numz, i, j)] == 1) {
-					for (k = starttab[i]; k <= endtab[i]; k++)
+					for (int k = starttab[i]; k <= endtab[i]; k++)
 					{
 						if (blur[index2D(numz, k, j)] != 0)
 						{
@@ -2096,63 +2093,6 @@ double Reconvolve(const int lengthmz, const int numz, const int maxlength,const 
 
 	}
 	return newblurmax;
-}
-
-
-void PerfectTransform(int lengthmz, int numz, double *mtab, double massmax, double massmin, int maaxle, double *massaxis, double *massaxisval, double*blur, double *massgrid)
-{
-	int *indexes = NULL;
-	indexes = calloc(lengthmz*numz, sizeof(double));
-	int i, j;
-	#pragma omp parallel for private(i,j), schedule(auto)
-	for (i = 0; i < lengthmz; i++)
-	{
-		for (j = 0; j < numz; j++)
-		{
-			double testmass = mtab[index2D(numz, i, j)];
-			if (testmass<massmax&&testmass>massmin) {
-				indexes[index2D(numz, i, j)] = nearfast(massaxis, testmass, maaxle);
-			}
-		}
-	}
-	
-	for (i = 0; i<lengthmz; i++)
-	{
-		for (j = 0; j<numz; j++)
-		{
-			int index = indexes[index2D(numz, i, j)];
-			double testmass = mtab[index2D(numz, i, j)];
-			if (testmass<massmax&&testmass>massmin) {
-				int index = nearfast(massaxis, testmass, maaxle);
-				double newval = blur[index2D(numz, i, j)];
-				if (massaxis[index] == testmass) {
-					massaxisval[index] += newval;
-					massgrid[index2D(numz, index, j)] += newval;
-				}
-
-				if (massaxis[index] < testmass &&index<maaxle - 2)
-				{
-					int index2 = index + 1;
-					double interpos = LinearInterpolatePosition(massaxis[index], massaxis[index2], testmass);
-					massaxisval[index] += (1.0 - interpos)*newval;
-					massgrid[index2D(numz, index, j)] += (1.0 - interpos)*newval;
-					massaxisval[index2] += (interpos)*newval;
-					massgrid[index2D(numz, index2, j)] += (interpos)*newval;
-				}
-
-				if (massaxis[index] > testmass&&index>0)
-				{
-					int index2 = index - 1;
-					double interpos = LinearInterpolatePosition(massaxis[index], massaxis[index2], testmass);
-					massaxisval[index] += (1 - interpos)*newval;
-					massgrid[index2D(numz, index, j)] += (1 - interpos)*newval;
-					massaxisval[index2] += (interpos)*newval;
-					massgrid[index2D(numz, index2, j)] += (interpos)*newval;
-				}
-			}
-		}
-	}
-	free(indexes);
 }
 
 
@@ -2197,7 +2137,7 @@ void IntegrateTransform(const int lengthmz, const int numz, const double *mtab, 
 }
 
 void InterpolateTransform(const int maaxle,const int numz,const int lengthmz, const int *nztab,double *massaxis,
-	const double adductmass,const double *dataMZ,const double *dataInt,double *massgrid, double *massaxisval, const double *blur)
+	const double adductmass,const double *dataMZ, double *massgrid, double *massaxisval, const double *blur)
 {
 	double startmzval = dataMZ[0];
 	double endmzval = dataMZ[lengthmz - 1];
@@ -2205,9 +2145,10 @@ void InterpolateTransform(const int maaxle,const int numz,const int lengthmz, co
 	for(int i=0;i<maaxle;i++)
 	{
 		double val=0;
-		double newval=0;
+		
 		for(int j=0;j<numz;j++)
 		{
+			double newval = 0;
 			double mztest=(massaxis[i]+nztab[j]*adductmass)/(double)nztab[j];
 
 			if(mztest>startmzval&&mztest<endmzval)
@@ -2250,6 +2191,151 @@ void InterpolateTransform(const int maaxle,const int numz,const int lengthmz, co
 		massaxisval[i]=val;
 	}
 }
+
+void SmartTransform(const int maaxle, const int numz, const int lengthmz, const int* nztab, double* massaxis,
+	const double adductmass, const double* dataMZ, double* massgrid, double* massaxisval, const double* blur)
+{
+	double startmzval = dataMZ[0];
+	double endmzval = dataMZ[lengthmz - 1];
+	#pragma omp parallel for schedule(auto)
+	for (int i = 0; i < maaxle; i++)
+	{
+		double val = 0;
+		for (int j = 0; j < numz; j++)
+		{
+			double mztest = (massaxis[i] + nztab[j] * adductmass) / (double)nztab[j];
+
+			double mzlower;
+			if (i>0){
+				mzlower = (massaxis[i-1] + nztab[j] * adductmass) / (double)nztab[j];
+				//mzlower = (mzlower + mztest) / 2;
+			}
+			else { mzlower = mztest; }
+
+			double mzupper;
+			if (i < maaxle-1) {
+				mzupper = (massaxis[i + 1] + nztab[j] * adductmass) / (double)nztab[j]; 
+				//mzupper = (mzupper + mztest) / 2;
+			}
+			else { mzupper = mztest; }
+
+			double newval = 0;
+			if (mzupper > startmzval&& mzlower < endmzval)
+			{
+				int index = nearfast(dataMZ, mztest, lengthmz);
+				int index1 = nearfast(dataMZ, mzlower, lengthmz);
+				int index2 = nearfast(dataMZ, mzupper, lengthmz);
+				double imz = dataMZ[index];
+
+				if (index2-index1 < 5) { 
+					
+					if (imz == mztest)
+					{
+						newval = blur[index2D(numz, index, j)];
+						val += newval;
+						massgrid[index2D(numz, i, j)] = newval;
+						
+					}
+					else
+					{
+						int edge = 0;
+						index2 = index;
+						if (imz > mztest)
+						{
+							index = index - 1;
+						}
+						else if (imz < mztest)
+						{
+							index2 = index + 1;
+						}
+						
+						if (index < 1 || index2 >= lengthmz - 1)
+						{
+							edge = 1;
+						}
+						if (index < 0 || index2 >= lengthmz)
+						{
+							edge = 2;
+						}
+
+						
+						if (index2 > index && (dataMZ[index2] - dataMZ[index]) != 0 && edge ==0)
+						{
+							double mu = (mztest - dataMZ[index]) / (dataMZ[index2] - dataMZ[index]);
+							double y0 = blur[index2D(numz, index - 1, j)];
+							double y1 = blur[index2D(numz, index, j)];
+							double y2 = blur[index2D(numz, index2, j)];
+							double y3 = blur[index2D(numz, index2 + 1, j)];
+							newval = clip(CubicInterpolate(y0, y1, y2, y3, mu), 0);
+							//newval=clip(CRSplineInterpolate(y0,y1,y2,y3,mu), 0);
+							//newval=clip(LinearInterpolate(y1,y2,mu),0);
+							val += newval;
+							massgrid[index2D(numz, i, j)] = newval;
+							//printf("0\n");
+						}
+						else if (edge == 1 && (dataMZ[index2] - dataMZ[index]) != 0)
+						{
+							double mu = (mztest - dataMZ[index]) / (dataMZ[index2] - dataMZ[index]);
+							double y1 = blur[index2D(numz, index, j)];
+							double y2 = blur[index2D(numz, index2, j)];
+							newval=clip(LinearInterpolate(y1,y2,mu),0);
+							val += newval;
+							massgrid[index2D(numz, i, j)] = newval;
+							//printf("1 %d %d %f %f %f\n", index, index2, mztest, imz, newval, massaxis[i]);
+						}
+						else if (edge == 2 && (dataMZ[index2] - dataMZ[index]) != 0)
+						{
+							double factor = 1;
+							if (index2 == 0) { index = 0; index2 = 1; }
+							if (index == lengthmz - 1) { index = lengthmz - 1; index2 = lengthmz - 2; factor = -1; }
+							double mu = (mztest - dataMZ[index]) / (dataMZ[index] - dataMZ[index2]);
+							double y1 = blur[index2D(numz, index, j)];
+							double y2 = 0;
+							newval = clip(LinearInterpolate(y1, y2, mu), 0);
+							val += newval;
+							massgrid[index2D(numz, i, j)] = newval;
+							//printf("2\n");
+						}
+					}
+				}
+
+				else{
+					//printf("Integrating\n");
+					double num = 0;
+					for (int k = index1; k < index2+1; k++)
+					{
+						double kmz = dataMZ[k];
+						double scale = 1;
+						
+						if (mztest < kmz)
+						{
+							scale = LinearInterpolatePosition(mzupper, mztest, kmz);
+						}
+						else if (kmz < mztest)
+						{
+							scale = LinearInterpolatePosition(mzlower, mztest, kmz);
+						}
+
+						newval += scale * blur[index2D(numz, k, j)];
+						num += scale;
+
+						/*int k2 = k + 1;
+						double k2mz = dataMZ[k2];
+						double ki = blur[index2D(numz, k, j)];
+						double k2i = blur[index2D(numz, k2, j)];
+						newval += (k2mz - kmz) * (ki + k2i) / 2;*/
+					}
+					if (num != 0) { newval /= num; }
+					val += newval;
+					massgrid[index2D(numz, i, j)] = newval;
+				}
+			}
+		}
+		massaxisval[i] = val;
+	}
+}
+
+
 
 
 void ignorezeros(char *barr, const double * dataInt, const int lengthmz, const int numz)
@@ -2946,6 +3032,8 @@ void SetLimits(const Config config, Input *inp)
 	free(testmasspos);
 }
 
+//Sets the maxlength parameter and the start and end values for the m/z peak shape convolution
+//Convolution uses a reflection for the edges, so some care needs to be taken when things are over the edge.
 int SetStartsEnds(const Config config, const Input * inp, int *starttab, int *endtab, const double threshold) {
 	int maxlength = 1;
 	for (int i = 0; i < config.lengthmz; i++)
@@ -2953,22 +3041,25 @@ int SetStartsEnds(const Config config, const Input * inp, int *starttab, int *en
 		double point = inp->dataMZ[i] - threshold;
 		int start, end;
 		if (point < inp->dataMZ[0] && config.speedyflag == 0) {
-			start = (int)((point - inp->dataMZ[0]) / (inp->dataMZ[1] - inp->dataMZ[0]));
+			//start = (int)((point - inp->dataMZ[0]) / (inp->dataMZ[1] - inp->dataMZ[0]));
+			start = 0 - nearfast(inp->dataMZ, 2 * inp->dataMZ[0] - point, config.lengthmz);
 		}
 		else {
 			start = nearfast(inp->dataMZ, point, config.lengthmz);
 		}
-
 		starttab[i] = start;
+
 		point = inp->dataMZ[i] + threshold;
 		if (point > inp->dataMZ[config.lengthmz - 1] && config.speedyflag == 0) {
-			end = config.lengthmz - 1 + (int)((point - inp->dataMZ[config.lengthmz - 1]) / (inp->dataMZ[config.lengthmz - 1] - inp->dataMZ[config.lengthmz - 2]));
+			//end = config.lengthmz - 1 + (int)((point - inp->dataMZ[config.lengthmz - 1]) / (inp->dataMZ[config.lengthmz - 1] - inp->dataMZ[config.lengthmz - 2]));
+			end = config.lengthmz - 1 + nearfast(inp->dataMZ, 2 * inp->dataMZ[0] - point, config.lengthmz);
 		}
 		else {
 			end = nearfast(inp->dataMZ, point, config.lengthmz);
 		}
 		endtab[i] = end;
 		if (end - start > maxlength) { maxlength = end - start; }
+		//printf("%d %d\n", start, end);
 	}
 	//printf("Max Length: %d\t", maxlength);
 	return maxlength;

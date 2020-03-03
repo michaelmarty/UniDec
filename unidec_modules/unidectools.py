@@ -1349,7 +1349,7 @@ def dataprep(datatop, config, removenoise=False):
     buff = config.subbuff
     smooth = config.smooth
     binsize = config.mzbins
-    # thresh = config.intthresh
+    thresh = config.intthresh
     subtype = config.subtype
     va = config.detectoreffva
     linflag = config.linflag
@@ -1413,6 +1413,11 @@ def dataprep(datatop, config, removenoise=False):
 
     if redper > 0:
         data2 = remove_noise(data2, redper)
+
+    if redper < 0:
+        data2 = peakdetect(data2, window = -redper, threshold=thresh)
+        print(data2)
+
     elif linflag == 2:
         try:
             data2 = remove_middle_zeros(data2)
@@ -1482,7 +1487,7 @@ def peakdetect(data, config=None, window=10, threshold=0):
     peaks = []
     length = len(data)
     maxval = np.amax(data[:, 1])
-    for i in range(1, length):
+    for i in range(0, length):
         if data[i, 1] > maxval * threshold:
             start = i - window
             end = i + window

@@ -82,7 +82,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 			//Calculates peak shape as a 1D list centered at the first element for circular convolutions
 			MakePeakShape1D(inp.dataMZ, threshold, config.lengthmz, config.speedyflag, fabs(config.mzsig) * config.peakshapeinflate, config.psfun, mzdist, rmzdist, makereverse);
 		}
-		if (silent == 0) { printf("mzdist set: %f\t maxlength: %f\n", mzdist[0], maxlength); }
+		if (silent == 0) { printf("mzdist set: %f\t maxlength: %d\n", mzdist[0], maxlength); }
 
 	}
 	else
@@ -267,7 +267,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 			point_smoothing_peak_width(config.lengthmz, config.numz, maxlength, starttab, endtab, mzdist, decon.blur, config.speedyflag, barr);
 		}
 
-
+		
 		//Run Blurs
 		if (config.zsig >= 0 && config.msig >= 0) {
 			blur_it_mean(config.lengthmz, config.numz, numclose, closeind, decon.newblur, decon.blur, barr, config.zerolog);
@@ -289,7 +289,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 			decon.newblur, decon.blur, barr, config.aggressiveflag, dataInt2,
 			config.isolength, inp.isotopepos, inp.isotopeval, starttab, endtab, mzdist, rmzdist, config.speedyflag,
 			config.baselineflag, decon.baseline, decon.noise, config.mzsig, inp.dataMZ, config.filterwidth, config.psig);
-
+		
 		//Determine the metrics for conversion. Only do this every 10% to speed up.
 		if ((config.numit < 10 || iterations % 10 == 0 || iterations % 10 == 1 || iterations>0.9 * config.numit)) {
 			double diff = 0;
@@ -315,6 +315,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 			}
 			memcpy(oldblur, decon.blur, config.lengthmz * config.numz * sizeof(double));
 		}
+		
 	}
 
 	free(dataInt2);
@@ -343,7 +344,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	//Determine the maximum intensity in the blur matrix
 	blurmax = Max(decon.blur, config.lengthmz * config.numz);
 	double cutoff = 0;
-	if (blurmax != 0) { cutoff = 0.0000001 / blurmax; }
+	if (blurmax != 0) { cutoff = 0.0000001; }
 
 	//Apply The Cutoff
 	ApplyCutoff1D(decon.blur, blurmax * cutoff, config.lengthmz * config.numz);
@@ -396,19 +397,20 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 			{
 				if (decon.newblur[index2D(config.numz, i, j)] * barr[index2D(config.numz, i, j)] > newblurmax * cutoff)
 				{
-					if (inp.mtab[index2D(config.numz, i, j)] + threshold * inp.nztab[j] > massmax)
-					{
-						massmax = inp.mtab[index2D(config.numz, i, j)] + threshold * inp.nztab[j];
-					}
-					if (inp.mtab[index2D(config.numz, i, j)] - threshold * inp.nztab[j] < massmin)
-					{
-						massmin = inp.mtab[index2D(config.numz, i, j)] - threshold * inp.nztab[j];
-					}
+					double testmax = inp.mtab[index2D(config.numz, i, j)] + threshold * inp.nztab[j]+config.massbins;
+					double testmin = inp.mtab[index2D(config.numz, i, j)] - threshold * inp.nztab[j];
+
+					//To prevent really wierd decimals
+					testmin = round(testmin / config.massbins) * config.massbins;
+					testmax = round(testmax / config.massbins) * config.massbins;
+
+					if (testmax > massmax){	massmax = testmax;}
+					if (testmin < massmin){	massmin = testmin;}
 				}
 			}
 		}
-		printf("Massmax: %f  ", massmax);
 		printf("Massmin: %f  ", massmin);
+		printf("Massmax: %f  ", massmax);
 	}
 	else { massmax = config.massub; massmin = config.masslb; }
 
@@ -430,10 +432,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 		memset(decon.massgrid, 0, decon.mlen * config.numz * sizeof(double));
 		if (silent == 0) { printf("Mass axis length: %d\n", decon.mlen); }
 
-		//To prevent really wierd decimals
-		//Only do this if the axis isn't already fixed
-		if (config.fixedmassaxis == 0) { massmin = round(massmin / config.massbins) * config.massbins; }
-
+		
 		//Create the mass axis
 		for (int i = 0; i < decon.mlen; i++)
 		{
@@ -449,15 +448,29 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 				IntegrateTransform(config.lengthmz, config.numz, inp.mtab, massmax, massmin, decon.mlen, decon.massaxis, decon.massaxisval, decon.newblur, decon.massgrid);
 			}
 		}
-		else {
+		else if (config.poolflag == 1) {
 			if (config.rawflag == 1 || config.rawflag == 3) {
 				InterpolateTransform(decon.mlen, config.numz, config.lengthmz, inp.nztab, decon.massaxis, config.adductmass,
-					inp.dataMZ, inp.dataInt, decon.massgrid, decon.massaxisval, decon.blur);
+					inp.dataMZ, decon.massgrid, decon.massaxisval, decon.blur);
 			}
 			if (config.rawflag == 0 || config.rawflag == 2) {
 				InterpolateTransform(decon.mlen, config.numz, config.lengthmz, inp.nztab, decon.massaxis, config.adductmass,
-					inp.dataMZ, inp.dataInt, decon.massgrid, decon.massaxisval, decon.newblur);
+					inp.dataMZ, decon.massgrid, decon.massaxisval, decon.newblur);
 			}
+		}
+		else if (config.poolflag == 2) {
+			if (config.rawflag == 1 || config.rawflag == 3) {
+				SmartTransform(decon.mlen, config.numz, config.lengthmz, inp.nztab, decon.massaxis, config.adductmass,
+					inp.dataMZ, decon.massgrid, decon.massaxisval, decon.blur);
+			}
+			if (config.rawflag == 0 || config.rawflag == 2) {
+				SmartTransform(decon.mlen, config.numz, config.lengthmz, inp.nztab, decon.massaxis, config.adductmass,
+					inp.dataMZ, decon.massgrid, decon.massaxisval, decon.newblur);
+			}
+		}
+		else {
+			printf("Invalid poolflag %d\n", config.poolflag);
+			exit(1987);
 		}
 
 	}

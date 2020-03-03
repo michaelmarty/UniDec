@@ -301,7 +301,7 @@ class main_controls(wx.Panel):
         i += 1
 
         self.ctlpoolflag = wx.RadioBox(panel2b, label="m/z to Mass Transformation",
-                                       choices=["Integration", "Interpolation"])
+                                       choices=["Integrate", "Interpolate", "Smart"])
         gbox2b.Add(self.ctlpoolflag, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
@@ -813,7 +813,9 @@ class main_controls(wx.Panel):
         self.ctlpoolflag.SetToolTip(wx.ToolTip(
             "Sets type of conversion from m/z to mass.\nIntegration:\n\tEach m/z bin goes to the nearest mass bin"
             "\n\tBest for undersampled masses\nInterpolation:\n\tEach mass value interpolates its value in m/z space"
-            "\n\tBest for oversampled mass data"))
+            "\n\tBest for oversampled mass data"
+            "\nSmart:\n\tDetermines interpolation vs. integration automatically\n\tfrom the data and blends the two."
+            "\n\tUse Smart in most cases (default). "))
         self.ctlnorm2.SetToolTip(wx.ToolTip(
             "Sets normalization of extraction.\nMaximum will normalize so that the maximum value of a timepoint is 100%."
             "\nSum will normalize so that the sum of all peaks of a timepoint is 100%."
