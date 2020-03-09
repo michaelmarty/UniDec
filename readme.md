@@ -194,6 +194,28 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.4.2.0
+
+**Added Smart Transform**. From the beginning, UniDec has asked users to decide how it should perform the nonlinear transform from m/z to mass (Integration or Interpolation). Now, the Smart Transform decides for the user based on the density of the data. Where the data is sparse relative to the mass sampling, it will use interpolation to fill in the gaps. Where data is dense relative to the mass sampling, it will use integration to ensure that all the data in-between is accounted for. Smart Transform is located under the Additional Deconvolution Parameters tab and has now been made the default. In some preliminary testing, the Smart Transform showed more robust peak areas that were less sensitive to the mass sampling. The peak heights may change some, but the peak areas should be a lot more reliable (remember Ctrl+I to integrate). Note: you may not notice much difference, but using the Smart Transform should avoid some glitches that are hard to spot. Let me know how it goes!
+
+**Major improvements in 2D plotting speed** due to behind-the-scenes changes and optimzation of the plotting code.
+
+**Sparse data support**. Improvements to the algorithm to support sparse data, including just peak centroids. This fundamentally changes the underlying algorithm in minor ways. You may notice minor differences but likely will not. Let me know if it causes any problems.
+
+Better handling of click and zoom at the edges of the plot. Now, it will default to the edge if you go off the plot. 
+
+Added drag and drop for loading the state from a zip file.
+
+Upgraded pymzml version for improved mzML compatibility and made mzML import more error tolerant.
+
+Fixed issue with discrete plot and data that was non-uniformly sampled.
+
+Fix to bug in calculating the error from the weighted standard deviation of charge state masses. 
+
+Fixed bug in Load and Save State with non-text files.
+
+Fixed IM-MS plotting bugs.
+
 v.4.1.2
 
 **Added button in UniDec to turn off data normalization.** Note: the beta values will be automatically scaled to match this. 

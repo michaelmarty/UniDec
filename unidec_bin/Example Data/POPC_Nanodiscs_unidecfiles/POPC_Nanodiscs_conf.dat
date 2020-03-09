@@ -15,7 +15,7 @@ massub 160000.0
 masslb 80000.0
 msig 1.0
 molig 760.0
-massbins 1.0
+massbins 10.0
 mtabsig 0.0
 minmz 8761.430704083608
 maxmz 12864.965623887581
@@ -34,7 +34,7 @@ rawflag 0
 adductmass 1.007276467
 nativezub 100.0
 nativezlb -100.0
-poolflag 1
+poolflag 2
 accvol 0.0
 peakshapeinflate 1.0
 noiseflag 0.0
@@ -45,6 +45,7 @@ spectracmap rainbow
 publicationmode 1
 isotopemode 0
 peaknorm 1
+datanorm 1
 baselineflag 1.0
 orbimode 0
 integratelb -1000.0

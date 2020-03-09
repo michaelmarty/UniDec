@@ -105,7 +105,10 @@ class mzMLimporter:
                 impdat = np.transpose([spectrum.mz, spectrum.i])
                 impdat = impdat[impdat[:, 0] > 10]
                 self.data.append(impdat)
-                self.times.append(float(spectrum['scan start time']))
+                try:
+                    self.times.append(float(spectrum['scan start time']))
+                except:
+                    self.times.append(-1)
                 self.scans.append(i)
                 #print(i, end=" ")
         self.times = np.array(self.times)

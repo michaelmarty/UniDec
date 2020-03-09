@@ -1,6 +1,6 @@
 from matplotlib.patches import Rectangle
 
-#from pubsub import setupkwargs
+# from pubsub import setupkwargs
 from pubsub import pub
 
 import numpy as np
@@ -426,8 +426,27 @@ class ZoomBox:
             if self.spancoords == 'data':
                 xmin, ymin = self.eventpress.xdata, self.eventpress.ydata
                 # xmax, ymax = self.eventrelease.xdata, self.eventrelease.ydata
+
                 # fix for if drag outside axes boundaries
-                xmax, ymax = self.eventrelease.xdata or self.prev[0], self.eventrelease.ydata or self.prev[1]
+                offx = self.prev[0]
+                offy = self.prev[1]
+                try:
+                    xlims = self.axes[0].get_xlim()
+                    ylims = self.axes[0].get_ylim()
+                    if np.abs(self.prev[0] - xlims[0]) < np.abs(self.prev[0] - xlims[1]):
+                        offx = xlims[0]
+                    else:
+                        offx = xlims[1]
+
+                    if np.abs(self.prev[1] - ylims[0]) < np.abs(self.prev[1] - ylims[1]):
+                        offy = ylims[0]
+                    else:
+                        offy = ylims[1]
+                except:
+                    pass
+
+                xmax, ymax = self.eventrelease.xdata or offx, self.eventrelease.ydata or offy
+
             elif self.spancoords == 'pixels':
                 xmin, ymin = self.eventpress.x, self.eventpress.y
                 xmax, ymax = self.eventrelease.x, self.eventrelease.y
@@ -633,7 +652,6 @@ class ZoomBox:
                     self.lines.append(line)
             self.canvas.draw()
             return
-
 
     def kill_labels(self):
         try:

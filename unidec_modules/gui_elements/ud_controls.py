@@ -472,7 +472,7 @@ class main_controls(wx.Panel):
         i += 1
 
         self.ctlpoolflag = wx.RadioBox(panel2b, label="m/z to Mass Transformation",
-                                       choices=["Integration", "Interpolation"])
+                                       choices=["Integrate", "Interpolate", "Smart"])
         gbox2b.Add(self.ctlpoolflag, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
@@ -682,8 +682,8 @@ class main_controls(wx.Panel):
             self.ctlendz.SetValue(str(self.config.endz))
             self.ctlzzsig.SetValue(str(self.config.zzsig))
             self.ctlmzsig.SetValue(str(self.config.mzsig))
-            self.ctlpsfun.SetSelection(self.config.psfun)
-            self.ctlnorm.SetSelection(self.config.peaknorm)
+            self.ctlpsfun.SetSelection(int(self.config.psfun))
+            self.ctlnorm.SetSelection(int(self.config.peaknorm))
             self.ctlmasslb.SetValue(str(self.config.masslb))
             self.ctlmassub.SetValue(str(self.config.massub))
             self.ctlmasslistflag.SetValue(self.config.mfileflag)
@@ -709,8 +709,8 @@ class main_controls(wx.Panel):
                 self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
                 self.ctlmanualassign.SetValue(self.config.manualfileflag)
                 self.ctlisotopemode.SetSelection(self.config.isotopemode)
-                self.ctlorbimode.SetValue(self.config.orbimode)
-                self.ctldatanorm.SetValue(self.config.datanorm)
+                self.ctlorbimode.SetValue(int(self.config.orbimode))
+                self.ctldatanorm.SetValue(int(self.config.datanorm))
                 self.ctlbintype.SetSelection(int(self.config.linflag))
                 self.ctlpsig.SetValue(str(self.config.psig))
                 self.ctlbeta.SetValue(str(self.config.beta))
@@ -1055,7 +1055,9 @@ class main_controls(wx.Panel):
         self.ctlpoolflag.SetToolTip(wx.ToolTip(
             "Sets type of conversion from m/z to mass.\nIntegration:\n\tEach m/z bin goes to the nearest mass bin"
             "\n\tBest for undersampled masses\nInterpolation:\n\tEach mass value interpolates its value in m/z space"
-            "\n\tBest for oversampled mass data"))
+            "\n\tBest for oversampled mass data"
+            "\nSmart:\n\tDetermines interpolation vs. integration automatically\n\tfrom the data and blends the two."
+            "\n\tUse Smart in most cases (default). \n\tNot available for IM-MS data."))
         self.ctlmsmoothcheck.SetToolTip(
             wx.ToolTip("Select whether to assume a smooth distribution spaced by a known mass difference"))
         self.ctlzsmoothcheck.SetToolTip(

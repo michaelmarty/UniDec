@@ -2,6 +2,7 @@ import numpy as np
 import time
 from scipy import fftpack
 import matplotlib.pyplot as plt
+import unidec_modules.unidectools as ud
 
 # import pyteomics.mass as ms
 
@@ -19,20 +20,20 @@ def makemass(testmass):
     intnum = [int(round(n)) for n in num]
     minmassint = (intnum * isotopes[:, 0, 0]).sum()
     formula = ""
-    if intnum[0] is not 0:
+    if intnum[0] != 0:
         formula = formula + "C" + str(intnum[0])
-    if intnum[1] is not 0:
+    if intnum[1] != 0:
         formula = formula + "H" + str(intnum[1])
-    if intnum[2] is not 0:
+    if intnum[2] != 0:
         formula = formula + "N" + str(intnum[2])
-    if intnum[3] is not 0:
+    if intnum[3] != 0:
         formula = formula + "O" + str(intnum[3])
-    if intnum[4] is not 0:
+    if intnum[4] != 0:
         formula = formula + "S" + str(intnum[4])
     return formula, minmassint, intnum
 
 
-def isojim(isolist):
+def isojim(isolist, length=700):
     '''Thanks to Jim Prell for Sketching this Code'''
     numc = isolist[0]
     numh = isolist[1]
@@ -40,7 +41,7 @@ def isojim(isolist):
     numo = isolist[3]
     nums = isolist[4]
 
-    buffer = np.zeros(700)
+    buffer = np.zeros(length)
     h = np.array([1, 0.00015, 0, 0])
     c = np.array([1, 0.011, 0, 0])
     n = np.array([1, 0.0037, 0, 0])
@@ -65,7 +66,7 @@ def isojim(isolist):
     return allift
 
 
-def calc_averagine_isotope_dist(mass, mono=False):
+def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.007276467, crop=False):
     formula, minmassint, isolist = makemass(mass)
     # print(isolist)
     intensities = isojim(isolist)
@@ -76,6 +77,22 @@ def calc_averagine_isotope_dist(mass, mono=False):
     # print(ms.calculate_mass(formula=formula, average=True))
     # print(np.average(dist[:, 0], weights=dist[:, 1]))
     # print(minmassint)
+    z = None
+    if charge == "Auto":
+        z = ud.predict_charge(mass)
+    elif charge is not None:
+        try:
+            z = float(charge)
+        except Exception as e:
+            print("Could not convert charge to float. Try Auto, None, or a number", e)
+
+    if z is not None and z != 0:
+        dist[:, 0] = (dist[:, 0] + z * adductmass) / z
+
+    if crop:
+        b1 = dist[:, 1] > np.amax(dist[:, 1]) * 0.0001
+        dist = dist[b1]
+
     return np.array(dist)
 
 
@@ -84,6 +101,7 @@ def correct_avg(dist, mass):
     avg = dist[np.argmax(dist[:, 1]), 0]  # np.average(dist[:, 0], weights=dist[:, 1])
     dist[:, 0] = dist[:, 0] - avg + mass
     return dist
+
 
 if __name__ == "__main__":
     mval = 1000000

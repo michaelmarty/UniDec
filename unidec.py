@@ -104,7 +104,8 @@ class UniDec(UniDecEngine):
             newname = os.path.join(os.getcwd(), self.config.outfname + "_imraw.txt")
         if not os.path.isfile(newname):
             try:
-                shutil.copy(file_directory, newname)
+                # shutil.copy(file_directory, newname)
+                np.savetxt(newname, self.data.rawdata)
             except Exception as e:
                 pass
 
@@ -113,7 +114,7 @@ class UniDec(UniDecEngine):
         else:
             refresh = False
 
-        if os.path.isfile(self.config.infname) and not refresh:
+        if os.path.isfile(self.config.infname) and not refresh and self.config.imflag == 0:
             self.data.data2 = np.loadtxt(self.config.infname)
             self.config.procflag = 1
         else:
@@ -329,7 +330,11 @@ class UniDec(UniDecEngine):
         self.pks = peakstructure.Peaks()
         self.data.massdat = np.loadtxt(self.config.outfname + "_mass.txt")
         self.data.ztab = np.arange(self.config.startz, self.config.endz + 1)
-        self.config.massdatnormtop = np.amax(self.data.massdat[:, 1])
+        try:
+            self.config.massdatnormtop = np.amax(self.data.massdat[:, 1])
+        except:
+            self.data.massdat = np.array([self.data.massdat])
+            self.config.massdatnormtop = np.amax(self.data.massdat[:, 1])
         if not efficiency:
             self.data.massgrid = np.fromfile(self.config.outfname + "_massgrid.bin", dtype=float)
 
@@ -399,8 +404,11 @@ class UniDec(UniDecEngine):
         self.export_config()
         # Detect Peaks and Normalize
         peaks = ud.peakdetect(self.data.massdat, self.config)
-        # print(peaks)
-        self.setup_peaks(peaks)
+        if len(peaks) > 0:
+            self.setup_peaks(peaks)
+        else:
+            print("No peaks detected", peaks, self.config.peakwindow, self.config.peakthresh)
+            print("Mass Data:", self.data.massdat)
 
     def setup_peaks(self, peaks):
         if self.config.peaknorm == 1:
@@ -422,9 +430,12 @@ class UniDec(UniDecEngine):
         # Generate Intensities of Each Charge State for Each Peak
         mztab = ud.make_peaks_mztab(self.data.mzgrid, self.pks, self.config.adductmass)
         # Calculate errors for peaks with FWHM
-        ud.peaks_error_FWHM(self.pks, self.data.massdat)
         try:
-
+            ud.peaks_error_FWHM(self.pks, self.data.massdat)
+        except Exception as e:
+            print("Error in FWHM calculation:", e)
+            print(self.data.massdat)
+        try:
             ud.peaks_error_mean(self.pks, self.data.massgrid, self.data.ztab, self.data.massdat, self.config)
         except Exception as e:
             print("Error in error calculations:", e)
@@ -1344,6 +1355,7 @@ class UniDec(UniDecEngine):
                     fscore2 = self.score_minimum(height, umin)
                     # print("Fscore5", fscore2, umin, height)
                     p.fscore *= fscore2
+
     '''
     def tscore(self):
         try:
@@ -1368,34 +1380,35 @@ class UniDec(UniDecEngine):
 
         :return:
         """
-
-        self.pks_mscore(xfwhm=xfwhm, pow=pow)
-        self.pks_uscore(pow=pow, xfwhm=xfwhm)
-        self.pks_csscore(xfwhm=xfwhm)
-        self.pks_fscore()
-        #self.tscore()
-        tscores = []
-        ints = []
-        for p in self.pks.peaks:
-            scores = np.array([p.mscore, p.uscore, p.fscore, p.cs_score])  # p.rsquared,
-            p.dscore = np.product(scores)
-            p.lscore = np.product(scores[:-1])
-            tscores.append(p.dscore)
-            ints.append(p.height)
-            print("Mass:", p.mass,
-                  "Peak Shape:", round(p.mscore * 100, 2),
-                  "Uniqueness:", round(p.uscore * 100, 2),
-                  # "Fitting R^2", round(p.rsquared * 100, 2),
-                  "Charge:", round(p.cs_score * 100, 2),
-                  "FWHM:", round(p.fscore * 100, 2),
-                  "Combined:", round(p.dscore * 100, 2))
-            # print(p.intervalFWHM)
-        ints = np.array(ints)
-        self.pks.uniscore = ud.weighted_avg(tscores, ints ** pow) * self.config.error
-        print("R Squared:", self.config.error)
-        #print("TScore:", self.data.tscore)
-        print("Average Peaks Score (UniScore):", self.pks.uniscore)
-
+        if len(self.pks.peaks) > 0:
+            self.pks_mscore(xfwhm=xfwhm, pow=pow)
+            self.pks_uscore(pow=pow, xfwhm=xfwhm)
+            self.pks_csscore(xfwhm=xfwhm)
+            self.pks_fscore()
+            # self.tscore()
+            tscores = []
+            ints = []
+            for p in self.pks.peaks:
+                scores = np.array([p.mscore, p.uscore, p.fscore, p.cs_score])  # p.rsquared,
+                p.dscore = np.product(scores)
+                p.lscore = np.product(scores[:-1])
+                tscores.append(p.dscore)
+                ints.append(p.height)
+                print("Mass:", p.mass,
+                      "Peak Shape:", round(p.mscore * 100, 2),
+                      "Uniqueness:", round(p.uscore * 100, 2),
+                      # "Fitting R^2", round(p.rsquared * 100, 2),
+                      "Charge:", round(p.cs_score * 100, 2),
+                      "FWHM:", round(p.fscore * 100, 2),
+                      "Combined:", round(p.dscore * 100, 2))
+                # print(p.intervalFWHM)
+            ints = np.array(ints)
+            self.pks.uniscore = ud.weighted_avg(tscores, ints ** pow) * self.config.error
+            print("R Squared:", self.config.error)
+            # print("TScore:", self.data.tscore)
+            print("Average Peaks Score (UniScore):", self.pks.uniscore)
+        else:
+            print("No peaks present")
 
     def filter_peaks(self, minscore=0.4):
         # w = deepcopy(self.config.peakwindow)
@@ -1497,8 +1510,23 @@ class UniDec(UniDecEngine):
         np.savetxt(os.path.join(testdir, fname), data)
 
         self.open_file(fname, testdir, **kwargs)
+        self.config.maxmz, self.config.minmz = "", ""
         self.data.ztab = ztab
         pass
+
+    def pass_data_in(self, data, n=1, **kwargs):
+        testdir = os.path.join(self.config.UniDecDir, "TestSpectra")
+        if not os.path.isdir(testdir):
+            os.mkdir(testdir)
+
+        fname = "test_" + str(n) + ".txt"
+        path = os.path.join(testdir, fname)
+        print("Creating temp file:", path)
+        np.savetxt(path, data)
+
+        self.open_file(fname, testdir, **kwargs)
+        self.config.maxmz, self.config.minmz = "", ""
+        self.config.default_isotopic_res()
 
     def get_spectrum_peaks(self, threshold=0.05, window=None):
         if window is None:

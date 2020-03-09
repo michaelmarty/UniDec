@@ -241,7 +241,7 @@ class PlottingWindow(wx.Window):
             self.kdnorm = 1.
             self.kda = False
 
-    def plotadddot(self, x, y, colval, markval):
+    def plotadddot(self, x, y, colval, markval, label=""):
         """
         Adds a scatter plot to the figure. May be one or more.
         :param x: x values
@@ -251,7 +251,7 @@ class PlottingWindow(wx.Window):
         :return: None
         """
         self.subplot1.plot(np.array(x) / self.kdnorm, y, color=colval, marker=markval, linestyle='None', clip_on=False
-                           , markeredgecolor="k")
+                           , markeredgecolor="k", label=label)
 
     def repaint(self, setupzoom=False):
         """

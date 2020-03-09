@@ -45,6 +45,8 @@ class UniDecConfig(object):
                                   "Subtract Curved"]  # , "Subtract Gaussian"]  # , "Subtract SavGol","Subtract Polynomial"]
         self.isotopechoices = ["Isotopes: Off", "Isotopes: Mono", "Isotopes: Average"]
         self.figsize = (6, 5)
+        self.mass_proton = 1.007276467
+        self.mass_diff_carbon = 1.0033
         self.initialize()
 
     def initialize(self):
@@ -147,7 +149,7 @@ class UniDecConfig(object):
 
         # Other
         self.mtabsig = 0
-        self.poolflag = 1
+        self.poolflag = 2
         self.nativezub = 100
         self.nativezlb = -100
         self.inflate = 1
@@ -855,6 +857,7 @@ class UniDecConfig(object):
         self.numit = 50
         self.zzsig = 1
         self.psig = 1
+        self.poolflag = 2
 
     def default_low_res(self):
         """
@@ -880,6 +883,7 @@ class UniDecConfig(object):
         self.numit = 50
         self.zzsig = 1
         self.psig = 1
+        self.poolflag = 2
 
     def default_nanodisc(self):
         """
@@ -904,6 +908,7 @@ class UniDecConfig(object):
         self.zzsig = 1
         self.psig = 1
         self.isotopemode = 0
+        self.poolflag = 2
 
     def default_isotopic_res(self):
         """
@@ -925,6 +930,7 @@ class UniDecConfig(object):
         self.psfun = 0
         self.isotopemode = 1
         self.psig = 0
+        self.poolflag = 2
 
     def default_zero_charge(self):
         """
@@ -943,6 +949,7 @@ class UniDecConfig(object):
         self.adductmass = 0
         self.minmz = ''
         self.maxmz = ''
+        self.poolflag = 2
 
     def initialize_system_paths(self):
         """
