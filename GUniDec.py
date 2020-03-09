@@ -150,15 +150,14 @@ class UniDecApp(UniDecPres):
 
         # Plot 1D
         if self.eng.config.batchflag == 0:
-            self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data", "m/z",
-                                           "Intensity", "Data", self.eng.config)
+            self.makeplot1(imfit=False)
         # IM Loading and Plotting
         if self.eng.config.imflag == 1 and self.eng.config.batchflag != 1:
             self.view.controls.ctlmindt.SetValue(str(np.amin(self.eng.data.data3[:, 1])))
             self.view.controls.ctlmaxdt.SetValue(str(np.amax(self.eng.data.data3[:, 1])))
-            if self.eng.config.batchflag == 0:
-                self.view.plot1im.contourplot(self.eng.data.rawdata3, self.eng.config, xlab="m/z (Th)",
-                                              ylab="Arrival Time (ms)", title="IM-MS Data")
+            #if self.eng.config.batchflag == 0:
+            #    self.view.plot1im.contourplot(self.eng.data.rawdata3, self.eng.config, xlab="m/z (Th)",
+            #                                  ylab="Arrival Time (ms)", title="IM-MS Data")
         # tstart = time.perf_counter()
         # Load Config to GUI
         self.import_config()
@@ -332,7 +331,10 @@ class UniDecApp(UniDecPres):
         self.eng.process_data()
         self.eng.get_auto_peak_width(set=False)
         self.import_config()
+        #print("Data Prep Time1: %.2gs" % (time.perf_counter() - tstart))
         self.view.clear_all_plots()
+        self.makeplot1(imfit=False)
+        '''
         self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data Sent to UniDec",
                                        "m/z (Th)", "Normalized Intensity", "Data", self.eng.config)
         if self.eng.config.intthresh != 0 and self.eng.config.imflag == 0:
@@ -344,7 +346,7 @@ class UniDecApp(UniDecPres):
         if self.eng.config.imflag == 1:
             self.view.plot1im.contourplot(self.eng.data.data3, self.eng.config, xlab="m/z (Th)",
                                           ylab="Arrival Time (ms)", title="IM-MS Data")
-        self.view.plot1.repaint()
+        self.view.plot1.repaint()'''
 
         self.view.SetStatusText("Data Length: " + str(len(self.eng.data.data2)), number=2)
         self.view.SetStatusText("R\u00B2 ", number=3)
@@ -484,7 +486,7 @@ class UniDecApp(UniDecPres):
     #
     # ...........................................
 
-    def makeplot1(self, e=None):
+    def makeplot1(self, e=None, intthresh=False, imfit=True):
         """
         Plot data and fit in self.view.plot1 and optionally in plot1fit
         :param e: unused event
@@ -492,19 +494,60 @@ class UniDecApp(UniDecPres):
         """
         if self.eng.config.batchflag == 0:
             tstart = time.perf_counter()
+            leg = False
+
             if self.eng.config.imflag == 1:
-                self.view.plot1fit.contourplot(self.eng.data.fitdat2d, self.eng.config, xlab="m/z (Th)",
-                                               ylab="Arrival Time (ms)", title="IM-MS Fit")
-            self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data and UniDec Fit",
-                                           "m/z (Th)", "Normalized Intensity", "Data", self.eng.config, nopaint=True)
-            try:
-                self.view.plot1.plotadd(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "Fit Data")
-                pass
-            except:
-                pass
+                try:
+                    self.view.plot1im.contourplot(self.eng.data.data3, self.eng.config, xlab="m/z (Th)",
+                                                  ylab="Arrival Time (ms)", title="IM-MS Data")
+                except:
+                    pass
+                if imfit:
+                    try:
+                        self.view.plot1fit.contourplot(self.eng.data.fitdat2d, self.eng.config, xlab="m/z (Th)",
+                                                       ylab="Arrival Time (ms)", title="IM-MS Fit")
+                    except:
+                        pass
+
+            if self.eng.config.reductionpercent<0:
+                print("Making Dot Plot")
+                data2 = ud.dataprep(self.eng.data.rawdata, self.eng.config, peaks=False, intthresh=False)
+                self.view.plot1.plotrefreshtop(data2[:, 0], data2[:, 1],
+                                               "Data and UniDec Fit",
+                                               "m/z (Th)", "Normalized Intensity", "Data", self.eng.config,
+                                               nopaint=True)
+                self.view.plot1.plotadddot(self.eng.data.data2[:,0], self.eng.data.data2[:,1], 'blue', "o", "Peaks")
+
+                try:
+                    if len(self.eng.data.fitdat) > 0:
+                        self.view.plot1.plotadddot(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "s", "Fit Data")
+                        leg = True
+                    pass
+                except:
+                    pass
+
+            else:
+                self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data and UniDec Fit",
+                                               "m/z (Th)", "Normalized Intensity", "Data", self.eng.config, nopaint=True)
+
+                if self.eng.config.intthresh != 0 and self.eng.config.imflag == 0 and intthresh:
+                    self.view.plot1.plotadd(self.eng.data.data2[:, 0],
+                                            np.zeros_like(self.eng.data.data2[:, 1]) + self.eng.config.intthresh, "red",
+                                            "Noise Threshold")
+                    leg=True
+
+                try:
+                    if len(self.eng.data.fitdat) > 0:
+                        self.view.plot1.plotadd(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "Fit Data")
+                        leg = True
+                    pass
+                except:
+                    pass
             if self.eng.config.aggressiveflag != 0 and len(self.eng.data.baseline) == len(self.eng.data.fitdat):
                 self.view.plot1.plotadd(self.eng.data.data2[:, 0], self.eng.data.baseline, 'blue', "Baseline")
-            self.view.plot1.add_legend()
+            if leg:
+                self.view.plot1.add_legend()
+            self.view.plot1.repaint()
             tend = time.perf_counter()
             print("Plot 1: %.2gs" % (tend - tstart))
 

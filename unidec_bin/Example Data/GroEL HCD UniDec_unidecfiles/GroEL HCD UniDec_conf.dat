@@ -15,7 +15,7 @@ massub 1000000.0
 masslb 1000.0
 msig 0.0
 molig 0.0
-massbins 100.0
+massbins 10.0
 mtabsig 0.0
 manualfile GroEL HCD UniDec_manualfile.dat
 minmz 989.965273

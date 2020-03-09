@@ -2,7 +2,8 @@ import matplotlib.cm as cm
 from matplotlib.ticker import MaxNLocator
 from matplotlib.ticker import FixedLocator
 import numpy as np
-
+import scipy.ndimage.filters as filt
+from matplotlib.image import NonUniformImage
 from unidec_modules.PlottingWindow import PlottingWindow
 from unidec_modules import unidectools as ud
 
@@ -94,8 +95,24 @@ class Plot2d(PlottingWindow):
         # speedplot=0
         if speedplot == 0:
             # Slow contour plot that interpolates grid
-            cax = self.subplot1.contourf(xvals / self.kdnorm, yvals, np.transpose(newgrid), 100, cmap=self.cmap,
-                                         norm=norm)
+            try:
+                b1 = newgrid > 0.01 * np.amax(newgrid)
+                b1 = b1.astype(float)
+                b1 = filt.uniform_filter(b1, size=3) > 0
+                b1[0, 0] = True
+                b1[0, -1] = True
+                b1[-1, 0] = True
+                b1[-1, -1] = True
+                X2, Y2 = np.meshgrid(xvals, yvals, indexing="ij")
+                X2 = np.ravel(X2[b1])
+                Y2 = np.ravel(Y2[b1])
+                Z2 = np.ravel(newgrid[b1].transpose())
+                cax = self.subplot1.tricontourf(X2 / self.kdnorm, Y2, Z2, 100, cmap=self.cmap, norm=norm)
+            except Exception as e:
+                print("Error with fast tricontourf plot", e)
+                cax = self.subplot1.contourf(xvals / self.kdnorm, yvals, np.transpose(newgrid), 100, cmap=self.cmap,
+                                             norm=norm)
+
             datalims = [np.amin(xvals) / self.kdnorm, np.amin(yvals), np.amax(xvals) / self.kdnorm, np.amax(yvals)]
         else:
             # Fast discrete plot using imshow
@@ -103,13 +120,25 @@ class Plot2d(PlottingWindow):
                 xdiff = (xvals[1] - xvals[0]) / self.kdnorm
                 ydiff = yvals[1] - yvals[0]
             except:
-                xdiff=1
-                ydiff=1
+                xdiff = 1
+                ydiff = 1
             extent = (np.amin(xvals) / self.kdnorm - 0.5 * xdiff, np.amax(xvals) / self.kdnorm + 0.5 * xdiff,
                       np.amin(yvals) - 0.5 * ydiff, np.amax(yvals) + 0.5 * ydiff)
-            cax = self.subplot1.imshow(np.transpose(newgrid), origin="lower", cmap=self.cmap, extent=extent,
-                                       aspect='auto', norm=norm, interpolation='nearest')
+
+            try:
+                ax = self.subplot1
+                im = NonUniformImage(ax, interpolation="nearest", extent=extent, cmap=self.cmap, norm=norm,)
+                im.set_data(xvals / self.kdnorm, yvals, np.transpose(newgrid))
+                ax.images.append(im)
+                ax.set_xlim(extent[0], extent[1])
+                ax.set_ylim(extent[2], extent[3])
+                cax = im
+            except Exception as e:
+                print("Error in NonUniformImage:", e)
+                cax = self.subplot1.imshow(np.transpose(newgrid), origin="lower", cmap=self.cmap, extent=extent,
+                                           aspect='auto', norm=norm, interpolation='nearest')
             datalims = [extent[0], extent[2], extent[1], extent[3]]
+            print(newgrid.shape)
         # Set X and Y axis labels
         self.subplot1.set_xlabel(self.xlabel)
         self.subplot1.set_ylabel(self.ylabel)

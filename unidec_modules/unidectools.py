@@ -1121,7 +1121,7 @@ def remove_noise(datatop, percent=None):
         index = round(l1 * percent / 100.)
         cutoff = sdat[index]
     datatop = intensitythresh(datatop, cutoff)
-    datatop = remove_middle_zeros(datatop)
+    #datatop = remove_middle_zeros(datatop)
     print(l1, len(datatop))
     return datatop
 
@@ -1327,7 +1327,7 @@ def remove_middle_zeros(data):
     return data[boo6]
 
 
-def dataprep(datatop, config, removenoise=False):
+def dataprep(datatop, config, peaks=True, intthresh=True):
     """
     Main function to process 1D MS data. The order is:
 
@@ -1355,7 +1355,7 @@ def dataprep(datatop, config, removenoise=False):
     linflag = config.linflag
     redper = config.reductionpercent
     # Crop Data
-    data2 = datachop(datatop, newmin, newmax)
+    data2 = datachop(deepcopy(datatop), newmin, newmax)
     if len(data2)==0:
         print("Error: m/z range is too small. No data fits the range.")
     # correct for detector efficiency
@@ -1397,10 +1397,6 @@ def dataprep(datatop, config, removenoise=False):
     else:
         print("Background subtraction code unsupported", subtype, buff)
 
-    # Intensity Threshold
-    data2 = intensitythresh(data2, 0)  # thresh
-    # data2=data2[data2[:,1]>0]
-
     # Scale Adjustment
     print(config.intscale, config.intscale == "Square Root")
     if config.intscale == "Square Root":
@@ -1411,23 +1407,39 @@ def dataprep(datatop, config, removenoise=False):
         data2[:, 1] -= np.amin(data2[:, 1])
         print("Log Scale")
 
+    #Data Reduction
     if redper > 0:
         data2 = remove_noise(data2, redper)
 
-    if redper < 0:
+    if config.datanorm == 1:
+        # Normalization
+        data2 = normalize(data2)
+
+    # Intensity Threshold
+    if thresh > 0 and intthresh:
+        print(len(data2))
+        data2 = intensitythresh(data2, thresh)  # thresh
+        print("Intensity Threshold Applied:", thresh, len(data2), np.amax(data2[:, 1]))
+        # data2=data2[data2[:,1]>0]
+    else:
+        data2 = intensitythresh(data2, 0)  # thresh
+        # data2=data2[data2[:,1]>0]
+
+    if redper < 0 and peaks:
+        #widths = [1, 2, 4, 8, 16]
+        #peakind = signal.find_peaks_cwt(data2[:,1], widths)
+        #data2 = data2[peakind]
         data2 = peakdetect(data2, window = -redper, threshold=thresh)
         print(data2)
 
-    elif linflag == 2:
+    if linflag == 2:
         try:
             data2 = remove_middle_zeros(data2)
         except:
             pass
         pass
 
-    if config.datanorm == 1:
-        # Normalization
-        data2 = normalize(data2)
+
 
     return data2
 

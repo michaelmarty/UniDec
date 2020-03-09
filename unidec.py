@@ -114,7 +114,7 @@ class UniDec(UniDecEngine):
         else:
             refresh = False
 
-        if os.path.isfile(self.config.infname) and not refresh:
+        if os.path.isfile(self.config.infname) and not refresh and self.config.imflag == 0:
             self.data.data2 = np.loadtxt(self.config.infname)
             self.config.procflag = 1
         else:

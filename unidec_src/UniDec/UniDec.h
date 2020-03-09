@@ -778,7 +778,7 @@ double clip(double x,double cutoff)
 //Function for defining m/z peak shape. Other peak shape functions could be easily added her.
 double mzpeakshape(double x,double y,double sig,int psfun)
 {
-	if (sig == 0) { printf("Error: mzpeakshape sigma is 0"); exit(103); }
+	if (sig == 0) { printf("Error: mzpeakshape sigma is 0\n"); exit(103); }
     double result;
     if(psfun==0)
     {
@@ -889,7 +889,7 @@ void blur_it(const int lengthmz,
                     const int numz,
                     const int numclose,
                     const int * __restrict closeind,
-                    const double * __restrict closeval,
+                    const double * __restrict closearray,
                     double * __restrict newblur,
                     const double * __restrict blur,
 					const char * __restrict barr)
@@ -909,7 +909,7 @@ void blur_it(const int lengthmz,
 			{
 				if (closeind[index2D(numclose, i, k)] != -1)
 				{
-					temp += closeval[k] * blur[closeind[index2D(numclose, i, k)]];
+					temp += closearray[index2D(numclose, i, k)] * blur[closeind[index2D(numclose, i, k)]];
 				}
 			}
 		}
@@ -926,6 +926,7 @@ void blur_it_mean(const int lengthmz,
                     double * __restrict newblur,
                     const double * __restrict blur,
 					const char * __restrict barr,
+					const double * __restrict closearray,
 					const double zerolog)
 {
   if (numclose == 1)
@@ -944,7 +945,7 @@ void blur_it_mean(const int lengthmz,
 				double temp2 = 0;
 				if (closeind[index2D(numclose, i, k)] != -1)
 				{
-					temp2 = blur[closeind[index2D(numclose, i, k)]];
+					temp2 = blur[closeind[index2D(numclose, i, k)]] *closearray[index2D(numclose, i, k)];
 				}
 				if (temp2 > 0) { temp += log(temp2); }
 				else { temp += zerolog; }
@@ -956,7 +957,7 @@ void blur_it_mean(const int lengthmz,
   }
 }
 
-
+/*
 //Charge state smooth using a mean filter of the log
 void blur_it_geometric_mean(const int lengthmz,
 	const int numz,
@@ -993,10 +994,10 @@ void blur_it_geometric_mean(const int lengthmz,
 			newblur[i] = temp;
 		}
 	}
-}
-
+}*/
+/*
 //Convolution of neighborhood function with gaussian filter.
-void blur_it_hybrid1(const int lengthmz,
+void blur_it_hybrid1alt(const int lengthmz,
 	const int numz,
 	const int zlength,
 	const int mlength,
@@ -1008,6 +1009,7 @@ void blur_it_hybrid1(const int lengthmz,
 	double * __restrict newblur,
 	const double * __restrict blur,
 	const char * __restrict barr,
+	const double* __restrict closearray,
 	const double zerolog)
 {
 	int i, j, k, n;
@@ -1033,7 +1035,7 @@ void blur_it_hybrid1(const int lengthmz,
 							int m = index2D(mlength, k, n);
 							if (closeind[index3D(numz, numclose, i, j, m)] != -1)
 							{
-								temp2 += blur[closeind[index3D(numz, numclose, i, j, m)]]*mdist[n];
+								temp2 += blur[closeind[index3D(numz, numclose, i, j, m)]] * mdist[n] *closearray[index3D(numz, numclose, i, j, m)];
 							}
 						}
 						if (temp2 > 0) { temp += log(temp2); }
@@ -1045,10 +1047,10 @@ void blur_it_hybrid1(const int lengthmz,
 			}
 		}
 	}
-}
+}*/
 
 //Convolution of neighborhood function with gaussian filter.
-void blur_it_hybrid1alt(const int lengthmz,
+void blur_it_hybrid1(const int lengthmz,
 	const int numz,
 	const int zlength,
 	const int mlength,
@@ -1060,6 +1062,7 @@ void blur_it_hybrid1alt(const int lengthmz,
 	double * __restrict newblur,
 	const double * __restrict blur,
 	const char * __restrict barr,
+	const double* __restrict closearray,
 	const double zerolog)
 {
 	int i, j, k, n;
@@ -1086,7 +1089,7 @@ void blur_it_hybrid1alt(const int lengthmz,
 							double temp3 = 0;
 							if (closeind[index3D(numz, numclose, i, j, m)] != -1)
 							{
-								temp3 = blur[closeind[index3D(numz, numclose, i, j, m)]];
+								temp3 = blur[closeind[index3D(numz, numclose, i, j, m)]] *closearray[index3D(numz, numclose, i, j, m)];
 							}
 							if (temp3 > 0) { temp2 += log(temp3); }
 							else { temp2 += zerolog; }
@@ -1114,6 +1117,7 @@ void blur_it_hybrid2(const int lengthmz,
 	double * __restrict newblur,
 	const double * __restrict blur,
 	const char * __restrict barr,
+	const double* __restrict closearray,
 	const double zerolog)
 {
 	int i, j, k, n;
@@ -1139,7 +1143,7 @@ void blur_it_hybrid2(const int lengthmz,
 							int m = index2D(mlength, k, n);
 							if (closeind[index3D(numz, numclose, i, j, m)] != -1)
 							{
-								temp2 += blur[closeind[index3D(numz, numclose, i, j, m)]]*zdist[k];
+								temp2 += blur[closeind[index3D(numz, numclose, i, j, m)]]*zdist[k] * closearray[index3D(numz, numclose, i, j, m)];
 							}
 						}
 					if (temp2 > 0) { temp += log(temp2); }// / (double)mlength);}
@@ -1856,14 +1860,12 @@ void ManualAssign(char *manualfile, int lengthmz, int numz, double *dataMZ, char
 	printf("Using Manual Assignments for Some Peaks\n");
 }
 
+/*
 void MakeBlur(const int lengthmz, const int numz, const int numclose, char *barr, const int *closezind,
 	const int *closemind, const double *mtab, const double molig, const double adductmass, const int *nztab, 
 	const double *dataMZ,int *closeind, const double threshold, const Config config)
 {
-	//Reset the threshold if it is zero
-	double newthreshold = threshold;
-	if (newthreshold == 0) { newthreshold = config.massbins*3; }
-
+	
 	  #pragma omp parallel for schedule(auto)
 	  for(int i=0;i<lengthmz;i++)
 	    {
@@ -1871,6 +1873,10 @@ void MakeBlur(const int lengthmz, const int numz, const int numclose, char *barr
 	        {
 	            if(barr[index2D(numz,i,j)]==1)
 	            {
+					//Reset the threshold if it is zero
+					double newthreshold = threshold;
+					if (newthreshold == 0) { newthreshold = config.massbins * 3 / (double)nztab[j];}
+				
 					int num = 0;
 					for(int k=0;k<numclose;k++)
 					{
@@ -1896,7 +1902,7 @@ void MakeBlur(const int lengthmz, const int numz, const int numclose, char *barr
 						  
 						}
 					}
-					if (num < 2 && config.isotopemode == 0) { barr[index2D(numz, i, j)] = 0; }//printf("%d %d \n", i, j); }
+					if (num < 2 && config.isotopemode == 0) { barr[index2D(numz, i, j)] = 0; }// printf("%d %d \n", i, j);}
 				}
 				else
 				{
@@ -1907,6 +1913,86 @@ void MakeBlur(const int lengthmz, const int numz, const int numclose, char *barr
 				}
 	        }
 	    }
+}*/
+
+void MakeSparseBlur(const int numclose, char* barr, const int* closezind,
+	const int* closemind, const double* mtab, const int* nztab,
+	const double* dataMZ, int* closeind, double *closeval, double *closearray, const Config config)
+{
+	int lengthmz = config.lengthmz;
+	int numz = config.numz;
+	double molig = config.molig;
+	double adductmass = config.adductmass;
+
+	#pragma omp parallel for schedule(auto)
+	for (int i = 0; i < lengthmz; i++)
+	{
+		for (int j = 0; j < numz; j++)
+		{
+			if (barr[index2D(numz, i, j)] == 1)
+			{
+				int num = 0;
+
+				//Reset the threshold if it is zero
+				double mzsig = config.mzsig;
+				if (mzsig == 0) { 
+					int i1 = i - 1;
+					int i2 = i + 1;
+					if (i >= lengthmz - 1) { i2 = i; }
+					if (i == 0) { i1 = i; }
+					mzsig = 2*fabs(dataMZ[i2] - dataMZ[i1]);
+					if (mzsig > config.massbins || mzsig == 0) { mzsig = config.massbins*2; }
+				}
+				double newthreshold = mzsig * 2;
+
+				for (int k = 0; k < numclose; k++)
+				{
+					//Find the z index and test if it is within the charge range
+					int indz = (int)(j + closezind[k]);
+					if (indz < 0 || indz >= numz || (nztab[j] + closezind[k]) == 0) 
+					{ 
+						closeind[index3D(numz, numclose, i, j, k)] = -1; 
+						closearray[index3D(numz, numclose, i, j, k)] = 0;
+					}
+					else
+					{
+						//Find the nearest m/z value and test if it is close enough to the predicted one and within appropriate ranges
+						double point = (double)((mtab[index2D(numz, i, j)] + closemind[k] * molig + adductmass * (double)(nztab[j] + closezind[k])) / (double)(nztab[j] + closezind[k]));
+						if (point<dataMZ[0] - newthreshold || point>dataMZ[lengthmz - 1] + newthreshold) 
+						{ 
+							closeind[index3D(numz, numclose, i, j, k)] = -1;
+							closearray[index3D(numz, numclose, i, j, k)] = 0;
+						}
+						else {
+							int ind = nearfast(dataMZ, point, lengthmz);
+							double closepoint = dataMZ[ind];
+							int newind = index2D(numz, ind, indz);
+							if (barr[newind] == 1 && fabs(point - closepoint) < newthreshold) {
+								closeind[index3D(numz, numclose, i, j, k)] = newind;
+								closearray[index3D(numz, numclose, i, j, k)] = closeval[k] *mzpeakshape(point, closepoint, mzsig, config.psfun);
+								num += 1;
+							}
+							else { 
+								closeind[index3D(numz, numclose, i, j, k)] = -1;
+								closearray[index3D(numz, numclose, i, j, k)] = 0;
+							}
+							//printf("%d %d %d %f %f %d\n", i, j, k, point, closepoint, closeind[index3D(numz, numclose, i, j, k)]);
+						}
+
+					}
+				}
+				if (num < 2 && config.isotopemode == 0) { barr[index2D(numz, i, j)] = 0; }// printf("%d %d \n", i, j);}
+			}
+			else
+			{
+				for (int k = 0; k < numclose; k++)
+				{
+					closeind[index3D(numz, numclose, i, j, k)] = -1;
+					closearray[index3D(numz, numclose, i, j, k)] = 0;
+				}
+			}
+		}
+	}
 }
 
 /*
@@ -2231,7 +2317,7 @@ void SmartTransform(const int maaxle, const int numz, const int lengthmz, const 
 					
 					if (imz == mztest)
 					{
-						newval = blur[index2D(numz, index, j)];
+						newval = clip(blur[index2D(numz, index, j)],0);
 						val += newval;
 						massgrid[index2D(numz, i, j)] = newval;
 						
@@ -2326,6 +2412,7 @@ void SmartTransform(const int maaxle, const int numz, const int lengthmz, const 
 						newval += (k2mz - kmz) * (ki + k2i) / 2;*/
 					}
 					if (num != 0) { newval /= num; }
+					newval = clip(newval, 0);
 					val += newval;
 					massgrid[index2D(numz, i, j)] = newval;
 				}

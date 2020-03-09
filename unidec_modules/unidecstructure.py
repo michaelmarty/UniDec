@@ -45,6 +45,8 @@ class UniDecConfig(object):
                                   "Subtract Curved"]  # , "Subtract Gaussian"]  # , "Subtract SavGol","Subtract Polynomial"]
         self.isotopechoices = ["Isotopes: Off", "Isotopes: Mono", "Isotopes: Average"]
         self.figsize = (6, 5)
+        self.mass_proton = 1.007276467
+        self.mass_diff_carbon = 1.0033
         self.initialize()
 
     def initialize(self):

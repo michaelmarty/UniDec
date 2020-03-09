@@ -40,7 +40,8 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 		* mzdist = NULL,
 		* rmzdist = NULL,
 		* oldblur = NULL,
-		* closeval = NULL;
+		* closeval = NULL,
+		* closearray = NULL;
 
 	//...................................................................
 	//
@@ -136,6 +137,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	closezind = calloc(numclose, sizeof(int));
 	closeval = calloc(numclose, sizeof(double));
 	closeind = calloc(numclose * config.lengthmz * config.numz, sizeof(int));
+	closearray = calloc(numclose * config.lengthmz * config.numz, sizeof(double));
 
 	//Determines the indexes of things that are close as well as the values used in the neighborhood convolution
 	for (int k = 0; k < numclose; k++)
@@ -149,9 +151,18 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	simp_norm_sum(numclose, closeval);
 
 	//Set up blur
-	MakeBlur(config.lengthmz, config.numz, numclose, barr, closezind, closemind, inp.mtab, config.molig, config.adductmass, inp.nztab, inp.dataMZ, closeind, threshold, config);
+	//MakeBlur(config.lengthmz, config.numz, numclose, barr, closezind, closemind, inp.mtab, config.molig, config.adductmass, inp.nztab, inp.dataMZ, closeind, threshold, config);
+	MakeSparseBlur(numclose, barr, closezind, closemind, inp.mtab, inp.nztab, inp.dataMZ, closeind, closeval, closearray, config);
 
-	if (silent == 0) { printf("Charges blurred: %d  Oligomers blurred: %d\n", zlength, mlength); }
+	int badness = 1;
+	for (int i = 0; i < config.lengthmz * config.numz; i++)
+	{
+		if (barr[i] == 1) { badness = 0;}
+	}
+	if (badness == 1) { printf("ERROR: Setup is bad. No points are allowed\n"); exit(10); }
+
+	if (silent == 0) { printf("Charges blurred: %d  Masses blurred: %d\n", zlength, mlength); }
+	
 	//IntPrint(closeind, numclose * config.lengthmz * config.numz);
 
 	//Determine the maximum intensity in the data
@@ -270,18 +281,18 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 		
 		//Run Blurs
 		if (config.zsig >= 0 && config.msig >= 0) {
-			blur_it_mean(config.lengthmz, config.numz, numclose, closeind, decon.newblur, decon.blur, barr, config.zerolog);
+			blur_it_mean(config.lengthmz, config.numz, numclose, closeind, decon.newblur, decon.blur, barr, closearray, config.zerolog);
 		}
 		else if (config.zsig > 0 && config.msig < 0)
 		{
-			blur_it_hybrid1(config.lengthmz, config.numz, zlength, mlength, closeind, closemind, closezind, mdist, zdist, decon.newblur, decon.blur, barr, config.zerolog);
+			blur_it_hybrid1(config.lengthmz, config.numz, zlength, mlength, closeind, closemind, closezind, mdist, zdist, decon.newblur, decon.blur, barr, closearray, config.zerolog);
 		}
 		else if (config.zsig < 0 && config.msig > 0)
 		{
-			blur_it_hybrid2(config.lengthmz, config.numz, zlength, mlength, closeind, closemind, closezind, mdist, zdist, decon.newblur, decon.blur, barr, config.zerolog);
+			blur_it_hybrid2(config.lengthmz, config.numz, zlength, mlength, closeind, closemind, closezind, mdist, zdist, decon.newblur, decon.blur, barr, closearray, config.zerolog);
 		}
 		else {
-			blur_it(config.lengthmz, config.numz, numclose, closeind, closeval, decon.newblur, decon.blur, barr);
+			blur_it(config.lengthmz, config.numz, numclose, closeind, closearray, decon.newblur, decon.blur, barr);
 		}
 
 		//Run Richardson-Lucy Deconvolution
@@ -303,7 +314,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 				}
 			}
 			if (tot != 0) { decon.conv = (diff / tot); }
-			else { decon.conv = 12345678; }
+			else { decon.conv = 12345678; printf("m/z vs. charge grid is zero. Iteration: %d\n", iterations); }
 
 			//printf("Iteration: %d Convergence: %f\n", iterations, decon.conv);
 			if (decon.conv < 0.000001) {
@@ -414,13 +425,28 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	}
 	else { massmax = config.massub; massmin = config.masslb; }
 
-	//Performs an interpolation to get the zero charge mass values starting at config.masslb and going to config.massub in steps of config.massbins
+	//Checks to make sure the mass axis is good and makes a dummy axis if not
 	decon.mlen = (int)(massmax - massmin) / config.massbins;
 	if (decon.mlen < 1) {
 		printf("Bad mass axis length: %d\n", decon.mlen);
 		massmax = config.massub;
 		massmin = config.masslb;
 		decon.mlen = (int)(massmax - massmin) / config.massbins;
+
+		//Declare the memory
+		decon.massaxis = calloc(decon.mlen, sizeof(double));
+		decon.massaxisval = calloc(decon.mlen, sizeof(double));
+		decon.massgrid = calloc(decon.mlen * config.numz, sizeof(double));
+		memset(decon.massaxisval, 0, decon.mlen * sizeof(double));
+		memset(decon.massgrid, 0, decon.mlen * config.numz * sizeof(double));
+
+		//Create the mass axis
+		for (int i = 0; i < decon.mlen; i++)
+		{
+			decon.massaxis[i] = massmin + i * config.massbins;
+		}
+		decon.uniscore = 0;
+		printf("ERROR: No masses detected.\n");
 	}
 	else {
 
@@ -473,20 +499,24 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 			exit(1987);
 		}
 
-	}
-
 	//.....................................
 	// Scores
 	// .......................................
 
+	//Note this will not execute if the mass axis is bad
 	double scorethreshold = 0;
 	decon.uniscore = score(config, decon, inp.dataMZ, inp.dataInt, decon.newblur, decon.massaxis, decon.massaxisval, decon.massgrid, inp.nztab, scorethreshold);
+
+	}
+
+	
 
 
 	//Free Memory
 	free(mzdist);
 	free(rmzdist);
 	free(closeval);
+	free(closearray);
 	free(closemind);
 	free(closezind);
 	free(endtab);
