@@ -12,7 +12,7 @@ import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 from unidec_modules import Extract2D, peakwidthtools, masstools, miscwindows, \
     MassDefects, mainwindow, nativez, ManualSelectionWindow, AutocorrWindow, fft_window, GridDecon, isotopetools
-from unidec_modules.isolated_packages import FileDialogs, texmaker, score_window
+from unidec_modules.isolated_packages import FileDialogs, texmaker, score_window, texmaker_nmsgsb
 import datacollector
 import import_wizard
 import unidec_modules.IM_windows as IM_wind
@@ -23,6 +23,12 @@ import multiprocessing
 from unidec_modules.unidec_presbase import UniDecPres
 import Launcher
 from iFAMS.wxiFAMS import iFAMS_Window
+
+try:
+    import unidec_modules.thermo_reader.rawreader as rawreader
+except Exception as e:
+    print("Error importing Thermo Raw Reader, try installing MSFileReader from Thermo and pymsfilereader")
+    print(e)
 
 # import FileDialog  # Needed for pyinstaller
 
@@ -162,7 +168,7 @@ class UniDecApp(UniDecPres):
         self.import_config()
         self.view.SetStatusText("Ready", number=5)
         # print("ImportConfig: %.2gs" % (time.perf_counter() - tstart))
-        #if False:
+        # if False:
         #    try:
         #        self.eng.unidec_imports(everything=False)
         #        self.after_unidec_run()
@@ -424,20 +430,20 @@ class UniDecApp(UniDecPres):
         self.export_config(self.eng.config.confname)
         self.eng.pick_peaks()
         self.view.SetStatusText("Plotting Peaks", number=5)
-        #print("T1: %.2gs" % (time.perf_counter() - tstart))
+        # print("T1: %.2gs" % (time.perf_counter() - tstart))
         if self.eng.config.batchflag == 0:
             self.view.peakpanel.add_data(self.eng.pks)
-            #print("T2: %.2gs" % (time.perf_counter() - tstart))
+            # print("T2: %.2gs" % (time.perf_counter() - tstart))
             self.makeplot2(1)
-            #print("T3: %.2gs" % (time.perf_counter() - tstart))
+            # print("T3: %.2gs" % (time.perf_counter() - tstart))
             self.makeplot6(1)
-            #print("T4: %.2gs" % (time.perf_counter() - tstart))
+            # print("T4: %.2gs" % (time.perf_counter() - tstart))
             self.makeplot4(1)
-            #print("T5: %.2gs" % (time.perf_counter() - tstart))
+            # print("T5: %.2gs" % (time.perf_counter() - tstart))
         self.view.SetStatusText("Peak Pick Done", number=5)
 
         self.on_score()
-        #print("T6: %.2gs" % (time.perf_counter() - tstart))
+        # print("T6: %.2gs" % (time.perf_counter() - tstart))
         pass
 
     def on_plot_peaks(self, e=None):
@@ -573,7 +579,8 @@ class UniDecApp(UniDecPres):
             tstart = time.perf_counter()
             self.view.plot2.plotrefreshtop(self.eng.data.massdat[:, 0], self.eng.data.massdat[:, 1],
                                            "Zero-charge Mass Spectrum", "Mass (Da)",
-                                           "Intensity", "Mass Distribution", self.eng.config, test_kda=True, nopaint=True)
+                                           "Intensity", "Mass Distribution", self.eng.config, test_kda=True,
+                                           nopaint=True)
             if self.eng.pks.plen > 0:
                 for p in self.eng.pks.peaks:
                     if p.ignore == 0:
@@ -625,7 +632,7 @@ class UniDecApp(UniDecPres):
                         mztab2 = np.array(p.mztab2)
                         maxval = np.amax(mztab[:, 1])
                         b1 = mztab[:, 1] > self.eng.config.peakplotthresh * maxval
-                        self.view.plot4.plotadddot(mztab2[b1,0], mztab2[b1,1], p.color, p.marker)
+                        self.view.plot4.plotadddot(mztab2[b1, 0], mztab2[b1, 1], p.color, p.marker)
                     if not ud.isempty(p.stickdat):
                         self.view.plot4.plotadd(self.eng.data.data2[:, 0], np.array(p.stickdat) / stickmax - (
                                 num + 1) * self.eng.config.separation, p.color, "useless label")
@@ -678,7 +685,7 @@ class UniDecApp(UniDecPres):
                         marks.append(p.marker)
                 indexes = list(range(0, num))
                 self.view.plot6.barplottop(indexes, ints, labs, cols, "Species", "Intensity",
-                                           "Peak Intensities",repaint=False)
+                                           "Peak Intensities", repaint=False)
                 for i in indexes:
                     self.view.plot6.plotadddot(i, ints[i], cols[i], marks[i])
             self.view.plot6.repaint()
@@ -855,7 +862,7 @@ class UniDecApp(UniDecPres):
         self.view.plot2.textremove()
         for i, d in enumerate(peakdiff):
             if d != 0:
-                label=ud.decimal_formatter(d, self.eng.config.massbins)
+                label = ud.decimal_formatter(d, self.eng.config.massbins)
                 self.view.plot2.addtext(label, pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
             else:
                 self.view.plot2.addtext("0", pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
@@ -872,7 +879,7 @@ class UniDecApp(UniDecPres):
         pmasses = np.array([p.mass for p in self.eng.pks.peaks])
         pint = np.array([p.height for p in self.eng.pks.peaks])
         mval = np.amax(self.eng.data.massdat[:, 1])
-        #pint = ud.fix_textpos(pint, mval)
+        # pint = ud.fix_textpos(pint, mval)
 
         self.view.plot2.textremove()
         for i, d in enumerate(pmasses):
@@ -1573,7 +1580,54 @@ class UniDecApp(UniDecPres):
         pass
 
     def on_nmsgsb_report(self, e=0):
-        print("Test")
+
+        """
+        Creates PDF report for the Native MS Guided Structural Biology format.
+
+        First, writes figures to PDF.
+        Then sends results to texmaker, which creates a .tex file.
+        Finally, runs pdflatex as commandline subprocess to convert .tex to PDF.
+
+        :param e: event passed to self.view.on_save_figur_pdf
+        :return: None
+        """
+        path = os.path.join(self.eng.config.dirname, self.eng.config.filename)
+        print(path)
+        defaultvalue = ""
+        if os.path.splitext(path)[1] == ".raw":
+            defaultvalue = rawreader.get_raw_metadata(path)
+            # try:
+            #    rawoutput = rawreader.get_raw_metadata(path)
+            # except:
+            #    rawoutput = None
+
+        # Andrew - edit
+
+        dialog = miscwindows.SingleInputDialog(self.view)
+        dialog.initialize_interface(title="Report Info: Input1;Input2;...;InputN", message="Set Inputs Here: ",
+                                    defaultvalue=defaultvalue)
+        dialog.ShowModal()
+        output = dialog.value
+
+        figureflags, files = self.view.on_save_figure_pdf(e)
+        textmarkertab = [p.textmarker for p in self.eng.pks.peaks]
+        peaklabels = [p.label for p in self.eng.pks.peaks]
+        peakcolors = [p.color for p in self.eng.pks.peaks]
+        peaks = np.array([[p.mass, p.height] for p in self.eng.pks.peaks])
+        if self.eng.config.imflag == 0:
+            texmaker_nmsgsb.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config,
+                                          self.eng.config.udir,
+                                          peaks, textmarkertab, peaklabels, peakcolors, figureflags, output)
+            self.view.SetStatusText("TeX file Written", number=5)
+            try:
+                texmaker_nmsgsb.PDFTexReport(self.eng.config.outfname + '_report.tex')
+                self.view.SetStatusText("PDF Report Finished", number=5)
+            except Exception as ex:
+                self.view.SetStatusText("PDF Report Failed", number=5)
+                print("PDF Report Failed to Generate. Check LaTeX installation.Need pdflatex in path.", ex)
+        else:
+            print("PDF Figures written.")
+        pass
 
     def on_fft_window(self, e):
         print("FFT window...")
@@ -1762,7 +1816,7 @@ class UniDecApp(UniDecPres):
 
     def on_ex(self, e=0, pos=1):
         print("Loading Example Data")
-        #Load the example data from the event. If there is an error, grab the pos value and load that file.
+        # Load the example data from the event. If there is an error, grab the pos value and load that file.
         try:
             self.view.menu.on_example_data(e)
         except:

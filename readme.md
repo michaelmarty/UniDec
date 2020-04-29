@@ -206,7 +206,7 @@ Fixed issues with plotting and deconvolution with interpolation between sparse d
 
 Fixed issue with deleting spectra in MetaUniDec.
 
-Fixed issue where markers were clipped on the edges of plots. This introduces some issues with single data points not being clipped when spectra are zoomed in. I'm working to fix this for future versions.
+Fixed issue where markers were clipped on the edges of plots. This introduces some issues with single data points not being clipped. 
 
 Updates to add fitting to the Mass Defect Extractor.
 

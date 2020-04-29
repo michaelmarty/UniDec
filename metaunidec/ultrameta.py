@@ -737,6 +737,12 @@ class DataCollector(wx.Frame):
                                 tmp.append(np.std(errors[x]))
                             bargrapherrors.append(tmp)
 
+                        try:
+                            print("Standard Deviations of Fist:", bargrapherrors)
+                            print("Average Fits:", bargraphfits)
+                        except:
+                            pass
+
                         if not self.plot1.flag:
                             self.plot1.plotrefreshtop(xvals, fitdat, "Mass Extracts", self.ylabel, self.ylabel2,
                                                       nopaint=True, color=color, test_kda=False, label=lab,
@@ -765,6 +771,8 @@ class DataCollector(wx.Frame):
                         zdat = zdat[boo1]
                         std = std[boo1]
                         zstd = zstd[boo1]
+
+
 
                     self.plot1.errorbars(xvals, avg, yerr=std, color=color, linestyle=" ", marker=marker, newlabel=elab)
 
