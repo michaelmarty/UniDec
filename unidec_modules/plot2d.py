@@ -95,21 +95,26 @@ class Plot2d(PlottingWindow):
         # speedplot=0
         if speedplot == 0:
             # Slow contour plot that interpolates grid
-            try:
-                b1 = newgrid > 0.01 * np.amax(newgrid)
-                b1 = b1.astype(float)
-                b1 = filt.uniform_filter(b1, size=3) > 0
-                b1[0, 0] = True
-                b1[0, -1] = True
-                b1[-1, 0] = True
-                b1[-1, -1] = True
-                X2, Y2 = np.meshgrid(xvals, yvals, indexing="ij")
-                X2 = np.ravel(X2[b1])
-                Y2 = np.ravel(Y2[b1])
-                Z2 = np.ravel(newgrid[b1].transpose())
-                cax = self.subplot1.tricontourf(X2 / self.kdnorm, Y2, Z2, 100, cmap=self.cmap, norm=norm)
-            except Exception as e:
-                print("Error with fast tricontourf plot", e)
+            b1 = newgrid > 0.01 * np.amax(newgrid)
+            #If the data is sparse, use the tricontourf, otherwise, use the regular contourf
+            if np.sum(b1)/len(newgrid.ravel()) < 0.1:
+                try:
+                    b1 = b1.astype(float)
+                    b1 = filt.uniform_filter(b1, size=3) > 0
+                    b1[0, 0] = True
+                    b1[0, -1] = True
+                    b1[-1, 0] = True
+                    b1[-1, -1] = True
+                    X2, Y2 = np.meshgrid(xvals, yvals, indexing="ij")
+                    X2 = np.ravel(X2[b1])
+                    Y2 = np.ravel(Y2[b1])
+                    Z2 = np.ravel(newgrid[b1].transpose())
+                    cax = self.subplot1.tricontourf(X2 / self.kdnorm, Y2, Z2, 100, cmap=self.cmap, norm=norm)
+                except Exception as e:
+                    print("Error with fast tricontourf plot", e)
+                    cax = self.subplot1.contourf(xvals / self.kdnorm, yvals, np.transpose(newgrid), 100, cmap=self.cmap,
+                                                 norm=norm)
+            else:
                 cax = self.subplot1.contourf(xvals / self.kdnorm, yvals, np.transpose(newgrid), 100, cmap=self.cmap,
                                              norm=norm)
 

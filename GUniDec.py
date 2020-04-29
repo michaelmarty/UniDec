@@ -1,5 +1,4 @@
 import time
-
 import os
 import _thread
 import wx
@@ -155,7 +154,7 @@ class UniDecApp(UniDecPres):
         if self.eng.config.imflag == 1 and self.eng.config.batchflag != 1:
             self.view.controls.ctlmindt.SetValue(str(np.amin(self.eng.data.data3[:, 1])))
             self.view.controls.ctlmaxdt.SetValue(str(np.amax(self.eng.data.data3[:, 1])))
-            #if self.eng.config.batchflag == 0:
+            # if self.eng.config.batchflag == 0:
             #    self.view.plot1im.contourplot(self.eng.data.rawdata3, self.eng.config, xlab="m/z (Th)",
             #                                  ylab="Arrival Time (ms)", title="IM-MS Data")
         # tstart = time.perf_counter()
@@ -163,14 +162,19 @@ class UniDecApp(UniDecPres):
         self.import_config()
         self.view.SetStatusText("Ready", number=5)
         # print("ImportConfig: %.2gs" % (time.perf_counter() - tstart))
-        if False:
-            try:
-                self.eng.unidec_imports(everything=False)
-                self.after_unidec_run()
-            except:
-                pass
+        #if False:
+        #    try:
+        #        self.eng.unidec_imports(everything=False)
+        #        self.after_unidec_run()
+        #    except:
+        #        pass
 
         # print("ImportData: %.2gs" % (time.perf_counter() - tstart))
+
+    def on_load_everything(self, e=None):
+        self.eng.unidec_imports(everything=False)
+        self.after_unidec_run()
+        self.on_pick_peaks()
 
     def on_save_state(self, e=None, filenew=None):
         """
@@ -331,7 +335,7 @@ class UniDecApp(UniDecPres):
         self.eng.process_data()
         self.eng.get_auto_peak_width(set=False)
         self.import_config()
-        #print("Data Prep Time1: %.2gs" % (time.perf_counter() - tstart))
+        # print("Data Prep Time1: %.2gs" % (time.perf_counter() - tstart))
         self.view.clear_all_plots()
         self.makeplot1(imfit=False)
         '''
@@ -416,19 +420,24 @@ class UniDecApp(UniDecPres):
         """
         print("Peak Picking")
         self.view.SetStatusText("Detecting Peaks", number=5)
+        tstart = time.perf_counter()
         self.export_config(self.eng.config.confname)
         self.eng.pick_peaks()
         self.view.SetStatusText("Plotting Peaks", number=5)
-
+        #print("T1: %.2gs" % (time.perf_counter() - tstart))
         if self.eng.config.batchflag == 0:
             self.view.peakpanel.add_data(self.eng.pks)
+            #print("T2: %.2gs" % (time.perf_counter() - tstart))
             self.makeplot2(1)
+            #print("T3: %.2gs" % (time.perf_counter() - tstart))
             self.makeplot6(1)
+            #print("T4: %.2gs" % (time.perf_counter() - tstart))
             self.makeplot4(1)
-
+            #print("T5: %.2gs" % (time.perf_counter() - tstart))
         self.view.SetStatusText("Peak Pick Done", number=5)
 
         self.on_score()
+        #print("T6: %.2gs" % (time.perf_counter() - tstart))
         pass
 
     def on_plot_peaks(self, e=None):
@@ -509,32 +518,35 @@ class UniDecApp(UniDecPres):
                     except:
                         pass
 
-            if self.eng.config.reductionpercent<0:
+            if self.eng.config.reductionpercent < 0:
                 print("Making Dot Plot")
                 data2 = ud.dataprep(self.eng.data.rawdata, self.eng.config, peaks=False, intthresh=False)
                 self.view.plot1.plotrefreshtop(data2[:, 0], data2[:, 1],
                                                "Data and UniDec Fit",
                                                "m/z (Th)", "Normalized Intensity", "Data", self.eng.config,
                                                nopaint=True)
-                self.view.plot1.plotadddot(self.eng.data.data2[:,0], self.eng.data.data2[:,1], 'blue', "o", "Peaks")
+                self.view.plot1.plotadddot(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], 'blue', "o", "Peaks")
 
                 try:
                     if len(self.eng.data.fitdat) > 0:
-                        self.view.plot1.plotadddot(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "s", "Fit Data")
+                        self.view.plot1.plotadddot(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "s",
+                                                   "Fit Data")
                         leg = True
                     pass
                 except:
                     pass
 
             else:
-                self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data and UniDec Fit",
-                                               "m/z (Th)", "Normalized Intensity", "Data", self.eng.config, nopaint=True)
+                self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1],
+                                               "Data and UniDec Fit",
+                                               "m/z (Th)", "Normalized Intensity", "Data", self.eng.config,
+                                               nopaint=True)
 
                 if self.eng.config.intthresh != 0 and self.eng.config.imflag == 0 and intthresh:
                     self.view.plot1.plotadd(self.eng.data.data2[:, 0],
                                             np.zeros_like(self.eng.data.data2[:, 1]) + self.eng.config.intthresh, "red",
                                             "Noise Threshold")
-                    leg=True
+                    leg = True
 
                 try:
                     if len(self.eng.data.fitdat) > 0:
@@ -561,7 +573,7 @@ class UniDecApp(UniDecPres):
             tstart = time.perf_counter()
             self.view.plot2.plotrefreshtop(self.eng.data.massdat[:, 0], self.eng.data.massdat[:, 1],
                                            "Zero-charge Mass Spectrum", "Mass (Da)",
-                                           "Intensity", "Mass Distribution", self.eng.config, test_kda=True)
+                                           "Intensity", "Mass Distribution", self.eng.config, test_kda=True, nopaint=True)
             if self.eng.pks.plen > 0:
                 for p in self.eng.pks.peaks:
                     if p.ignore == 0:
@@ -612,12 +624,8 @@ class UniDecApp(UniDecPres):
                         mztab = np.array(p.mztab)
                         mztab2 = np.array(p.mztab2)
                         maxval = np.amax(mztab[:, 1])
-                        for k in range(0, len(mztab)):
-                            if mztab[k, 1] > self.eng.config.peakplotthresh * maxval:
-                                list1.append(mztab2[k, 0])
-                                list2.append(mztab2[k, 1])
-                                # print mztab[k]
-                        self.view.plot4.plotadddot(np.array(list1), np.array(list2), p.color, p.marker)
+                        b1 = mztab[:, 1] > self.eng.config.peakplotthresh * maxval
+                        self.view.plot4.plotadddot(mztab2[b1,0], mztab2[b1,1], p.color, p.marker)
                     if not ud.isempty(p.stickdat):
                         self.view.plot4.plotadd(self.eng.data.data2[:, 0], np.array(p.stickdat) / stickmax - (
                                 num + 1) * self.eng.config.separation, p.color, "useless label")
@@ -655,28 +663,24 @@ class UniDecApp(UniDecPres):
                 ints = []
                 cols = []
                 labs = []
-                for p in self.eng.pks.peaks:
+                marks = []
+                for i, p in enumerate(self.eng.pks.peaks):
                     if p.ignore == 0:
                         num += 1
                         if show == "height":
                             ints.append(p.height)
                         elif show == "integral":
                             ints.append(p.integral)
+                        else:
+                            ints.append(0)
                         cols.append(p.color)
                         labs.append(p.label)
-                self.view.plot6.barplottop(list(range(0, num)), ints, labs, cols, "Species", "Intensity",
-                                           "Peak Intensities",
-                                           repaint=False)
-            for i in range(0, self.eng.pks.plen):
-                p = self.eng.pks.peaks[i]
-                if p.ignore == 0:
-                    if show == "height":
-                        y = p.height
-                    elif show == "integral":
-                        y = p.integral
-                    else:
-                        y = 0
-                    self.view.plot6.plotadddot(i, y, p.color, p.marker)
+                        marks.append(p.marker)
+                indexes = list(range(0, num))
+                self.view.plot6.barplottop(indexes, ints, labs, cols, "Species", "Intensity",
+                                           "Peak Intensities",repaint=False)
+                for i in indexes:
+                    self.view.plot6.plotadddot(i, ints[i], cols[i], marks[i])
             self.view.plot6.repaint()
 
     def on_plot_composite(self, e=None):
@@ -851,7 +855,8 @@ class UniDecApp(UniDecPres):
         self.view.plot2.textremove()
         for i, d in enumerate(peakdiff):
             if d != 0:
-                self.view.plot2.addtext(str(d), pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
+                label=ud.decimal_formatter(d, self.eng.config.massbins)
+                self.view.plot2.addtext(label, pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
             else:
                 self.view.plot2.addtext("0", pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
 
@@ -867,16 +872,12 @@ class UniDecApp(UniDecPres):
         pmasses = np.array([p.mass for p in self.eng.pks.peaks])
         pint = np.array([p.height for p in self.eng.pks.peaks])
         mval = np.amax(self.eng.data.massdat[:, 1])
+        #pint = ud.fix_textpos(pint, mval)
 
         self.view.plot2.textremove()
         for i, d in enumerate(pmasses):
             if d in peaksel:
-                if self.eng.config.massbins < 1:
-                    label = str(d)
-                else:
-                    if d == round(d):
-                        d = int(d)
-                    label = "{:,}".format(d)
+                label = ud.decimal_formatter(d, self.eng.config.massbins)
                 self.view.plot2.addtext(label, pmasses[i], mval * 0.06 + pint[i], vlines=False)
 
     def on_plot_offsets(self, e=None):
@@ -1005,30 +1006,38 @@ class UniDecApp(UniDecPres):
         Smashes the zoomed region to 0. Used to eliminate unwanted peaks.
         :return: None
         """
-        print("Smashing!")
-        self.export_config(None)
-        limits = self.view.plot1.subplot1.get_xlim()
-        bool1 = self.eng.data.data2[:, 0] > limits[0]
-        bool2 = self.eng.data.data2[:, 0] < limits[1]
-        bool3 = np.all(np.array([bool1, bool2]), axis=0)
-        self.eng.data.data2[bool3, 1] = 0
-        ud.dataexport(self.eng.data.data2, self.eng.config.infname)
+        if wx.GetKeyState(wx.WXK_CONTROL):
+            print("Smashing!")
+            self.export_config(None)
+            limits = self.view.plot1.subplot1.get_xlim()
+            bool1 = self.eng.data.data2[:, 0] > limits[0]
+            bool2 = self.eng.data.data2[:, 0] < limits[1]
+            bool3 = np.all(np.array([bool1, bool2]), axis=0)
+            self.eng.data.data2[bool3, 1] = 0
+            ud.dataexport(self.eng.data.data2, self.eng.config.infname)
 
-        self.view.clear_all_plots()
-        self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data Sent to UniDec",
-                                       "m/z (Th)",
-                                       "Normalized Intensity", "Data", self.eng.config)
-        if self.eng.config.intthresh != 0:
-            self.view.plot1.plotadd(self.eng.data.data2[:, 0],
-                                    np.zeros_like(self.eng.data.data2[:, 1]) + self.eng.config.intthresh, "red",
-                                    "Noise Threshold")
-            self.view.plot1.add_legend()
-        self.view.plot1.repaint()
+            self.view.clear_all_plots()
+            self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data Sent to UniDec",
+                                           "m/z (Th)",
+                                           "Normalized Intensity", "Data", self.eng.config)
+            if self.eng.config.intthresh != 0:
+                self.view.plot1.plotadd(self.eng.data.data2[:, 0],
+                                        np.zeros_like(self.eng.data.data2[:, 1]) + self.eng.config.intthresh, "red",
+                                        "Noise Threshold")
+                self.view.plot1.add_legend()
+            self.view.plot1.repaint()
 
-        self.view.SetStatusText("R\u00B2 ", number=3)
-        message = "Smashing peaks from " + str(limits[0]) + " to " + str(limits[1]) + "\nReprocess data to undo"
-        self.warn(message)
-        pass
+            self.view.SetStatusText("R\u00B2 ", number=3)
+            message = "Smashing peaks from " + str(limits[0]) + " to " + str(limits[1]) + "\nReprocess data to undo"
+            self.warn(message)
+            pass
+
+    def on_full(self, e=None):
+        maxmz = np.amax(self.eng.data.rawdata[:, 0])
+        minmz = np.amin(self.eng.data.rawdata[:, 0])
+        self.view.controls.ctlminmz.SetValue(str(minmz))
+        self.view.controls.ctlmaxmz.SetValue(str(maxmz))
+        self.on_dataprep_button()
 
     def on_charge_plot(self, e=None):
         """
@@ -1563,6 +1572,9 @@ class UniDecApp(UniDecPres):
             print("PDF Figures written.")
         pass
 
+    def on_nmsgsb_report(self, e=0):
+        print("Test")
+
     def on_fft_window(self, e):
         print("FFT window...")
         fft_window.FFTWindow(self.view, self.eng.data.rawdata, self.eng.config)
@@ -1715,12 +1727,12 @@ class UniDecApp(UniDecPres):
         dialog.ShowModal()
 
         try:
-            minval = float(dialog.value)/100.
+            minval = float(dialog.value) / 100.
         except:
             print("Error with Score Input:", dialog.value)
             minval = 0.4
 
-        print("Using DScore Cutoff (%): ", minval*100)
+        print("Using DScore Cutoff (%): ", minval * 100)
         self.eng.filter_peaks(minscore=minval)
         self.view.peakpanel.add_data(self.eng.pks, show="dscore")
         self.view.SetStatusText("UniScore: " + str(round(self.eng.pks.uniscore * 100, 2)), number=3)
@@ -1748,6 +1760,18 @@ class UniDecApp(UniDecPres):
     def on_score_FDR(self, e=0):
         self.eng.estimate_FDR()
 
+    def on_ex(self, e=0, pos=1):
+        print("Loading Example Data")
+        #Load the example data from the event. If there is an error, grab the pos value and load that file.
+        try:
+            self.view.menu.on_example_data(e)
+        except:
+            self.view.menu.load_example_data(pos)
+
+        # If you hold down control, it will load everything
+        if wx.GetKeyState(wx.WXK_CONTROL):
+            self.on_load_everything()
+        pass
 
     def on_flip_mode(self, e=None):
         """

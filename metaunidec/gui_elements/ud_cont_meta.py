@@ -103,11 +103,15 @@ class main_controls(wx.Panel):
         self.ctlminmz = wx.TextCtrl(panel1, value="", size=(50, -1))
         self.ctlmaxmz = wx.TextCtrl(panel1, value="", size=(60, -1))
         mzrange = wx.BoxSizer(wx.HORIZONTAL)
-        mzrange.Add(wx.StaticText(panel1, label="m/z Range: "), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
+        mzrange.Add(wx.StaticText(panel1, label="m/z: "), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
         mzrange.Add(self.ctlminmz)
         mzrange.Add(wx.StaticText(panel1, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
         mzrange.Add(self.ctlmaxmz)
         mzrange.Add(wx.StaticText(panel1, label=" Th "), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.fullbutton = wx.Button(panel1, -1, "Full", size=(40, 25))
+        self.parent.Bind(wx.EVT_BUTTON, self.pres.on_full, self.fullbutton)
+        mzrange.Add(self.fullbutton)
+
         sizercontrol1.Add(mzrange, (0, 0), span=(1, 5))
 
         # self.subtypectl = wx.Choice(panel1, -1, choices=self.backgroundchoices)

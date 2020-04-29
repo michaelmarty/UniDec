@@ -188,7 +188,7 @@ class ImportWizard(wx.Frame):
             # strip lines beginning with # so can comment out lines
             # strip blank lines
             for line in lines:
-                if line.strip() is '' or line[0] is '#':
+                if line.strip() == '' or line[0] == '#':
                     continue
 
                 filtered_lines.append(line)

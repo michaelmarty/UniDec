@@ -6,6 +6,7 @@ import unidec_modules.unidectools as ud
 
 # import pyteomics.mass as ms
 
+mass_diff_c = 1.0033
 massavgine = 111.1254
 avgine = np.array([4.9384, 7.7583, 1.3577, 1.4773, 0.0417])
 isotopes = np.array([[[12., 98.90], [13.0033548, 1.10], [0, 0], [0, 0]],
@@ -70,6 +71,8 @@ def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.0072
     formula, minmassint, isolist = makemass(mass)
     # print(isolist)
     intensities = isojim(isolist)
+    if mono:
+        minmassint = mass
     masses = np.arange(0, len(intensities)) + minmassint
     dist = np.transpose([masses, intensities])
     if not mono:
@@ -102,8 +105,35 @@ def correct_avg(dist, mass):
     dist[:, 0] = dist[:, 0] - avg + mass
     return dist
 
+def get_apex_mono_diff(mass):
+    dist = calc_averagine_isotope_dist(mass)
+    apex = dist[np.argmax(dist[:,1]),0]
+    mono = dist[0,0]
+    diff = apex-mono
+    return diff
+
+def predict_apex_mono_diff(mass):
+    m= 0.00063139
+    b= -0.53143767
+    fit =m * mass + b
+    if fit<0:
+        fit=0
+    return round(fit)
 
 if __name__ == "__main__":
+
+    x = 10**np.arange(2, 6, 0.1)
+    y = [get_apex_mono_diff(m) for m in x]
+    fit = np.polyfit(x, y, 1)
+    print(fit)
+    fitdat = [predict_apex_mono_diff(m) for m in x]
+    import matplotlib.pyplot as plt
+
+    plt.plot(x, y)
+    plt.plot(x, fitdat)
+    plt.show()
+
+    exit()
     mval = 1000000
     startime = time.perf_counter()
     dist = calc_averagine_isotope_dist(mval)

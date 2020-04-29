@@ -8,8 +8,8 @@ startz 5
 zzsig 1.0
 psig 0.0
 beta 0.0
-mzsig 5.68202
-psfun 2
+mzsig 6.57968
+psfun 0
 discreteplot 0
 massub 160000.0
 masslb 80000.0
@@ -24,7 +24,7 @@ subtype 2
 smooth 0.0
 mzbins 0.0
 peakwindow 500.0
-peakthresh 0.5
+peakthresh 0.1
 peakplotthresh 0.1
 plotsep 0.025
 intthresh 0.0

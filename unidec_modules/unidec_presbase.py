@@ -104,14 +104,15 @@ class UniDecPres(object):
 
     def on_get_mzlimits(self):
         try:
-            limits = self.view.plot1.subplot1.get_xlim()
-            self.view.controls.ctlminmz.SetValue(str(limits[0]))
-            self.view.controls.ctlmaxmz.SetValue(str(limits[1]))
-            print("New m/z limits:", limits)
-            try:
-                self.on_dataprep_button()
-            except:
-                pass
+            if not wx.GetKeyState(wx.WXK_CONTROL):
+                limits = self.view.plot1.subplot1.get_xlim()
+                self.view.controls.ctlminmz.SetValue(str(limits[0]))
+                self.view.controls.ctlmaxmz.SetValue(str(limits[1]))
+                print("New m/z limits:", limits)
+                try:
+                    self.on_dataprep_button()
+                except:
+                    pass
         except Exception as e:
             print(e)
 

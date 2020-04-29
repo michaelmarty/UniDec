@@ -1563,7 +1563,7 @@ void ApplyCutoff1D(double *array, double cutoff, int lengthmz)
 	}
 }
 
-double getfitdatspeedy(double *fitdat, const double *blur, const int lengthmz,const int numz,const int maxlength, const double maxint,
+double getfitdatspeedy(double *fitdat, const double *blur, const char *barr, const int lengthmz,const int numz,const int maxlength, const double maxint,
 	const int isolength, const int *isotopepos, const float *isotopeval, const int*starttab, const int *endtab, const double *mzdist, const int speedyflag)
 {
 	unsigned int i,j,k;
@@ -1625,7 +1625,7 @@ double getfitdatspeedy(double *fitdat, const double *blur, const int lengthmz,co
 	return fitmax;
 }
 
-double errfunspeedy(Config config, Decon decon, const double *dataInt, const int maxlength,
+double errfunspeedy(Config config, Decon decon, const char *barr, const double *dataInt, const int maxlength,
 	const int *isotopepos, const float *isotopeval, const int*starttab, const int *endtab, const double *mzdist, double *rsquared)
 {
 	//Get max intensity
@@ -1635,7 +1635,7 @@ double errfunspeedy(Config config, Decon decon, const double *dataInt, const int
 		if (dataInt[i] > maxint) { maxint = dataInt[i]; }
 	}
 
-	getfitdatspeedy(decon.fitdat, decon.blur, config.lengthmz, config.numz,maxlength,
+	getfitdatspeedy(decon.fitdat, decon.blur, barr, config.lengthmz, config.numz,maxlength,
 		maxint, config.isolength, isotopepos, isotopeval,starttab,endtab,mzdist,config.speedyflag);
     
 	if (config.baselineflag == 1)

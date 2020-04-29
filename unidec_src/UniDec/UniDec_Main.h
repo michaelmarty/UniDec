@@ -176,6 +176,11 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	//
 	//.........................................................
 
+
+	//Applies the intensity threshold to kill peaks
+	if (config.intthresh != -1) { KillB(inp.dataInt, barr, config.intthresh, config.lengthmz, config.numz, config.isolength, inp.isotopepos, inp.isotopeval); }
+	
+
 	//Creates an intial probability matrix, decon.blur, of 1 for each element
 	decon.blur = calloc(config.lengthmz * config.numz, sizeof(double));
 	decon.newblur = calloc(config.lengthmz * config.numz, sizeof(double));
@@ -215,7 +220,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	memcpy(oldblur, decon.blur, sizeof(double) * config.lengthmz * config.numz);
 	memcpy(decon.newblur, decon.blur, sizeof(double) * config.lengthmz * config.numz);
 
-	if (config.intthresh != 0) { KillB(inp.dataInt, barr, config.intthresh, config.lengthmz, config.numz, config.isolength, inp.isotopepos, inp.isotopeval); }
+
 
 	double* dataInt2 = NULL;
 	dataInt2 = calloc(config.lengthmz, sizeof(double));
@@ -338,6 +343,8 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	//
 	//...............................................................
 
+	
+
 	//Reset the peak shape if it was inflated
 	if (config.peakshapeinflate != 1 && config.mzsig != 0) {
 		if (config.speedyflag == 0)
@@ -359,10 +366,27 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 
 	//Apply The Cutoff
 	ApplyCutoff1D(decon.blur, blurmax * cutoff, config.lengthmz * config.numz);
-
+	
+	
 	//Calculate the fit data and error.
 	decon.fitdat = calloc(config.lengthmz, sizeof(double));
-	decon.error = errfunspeedy(config, decon, inp.dataInt, maxlength, inp.isotopepos, inp.isotopeval, starttab, endtab, mzdist, &decon.rsquared);
+	decon.error = errfunspeedy(config, decon, barr, inp.dataInt, maxlength, inp.isotopepos, inp.isotopeval, starttab, endtab, mzdist, &decon.rsquared);
+
+	//Fix issues with fitdat and consecutive zero data points
+	//TODO: It might be possible to build this in to convolve_simp so that this isn't necessary but it would require a 1D barr.
+	if (config.intthresh != -1)
+	{
+		#pragma omp parallel for schedule(auto)
+		for (int i = 0; i < config.lengthmz-1; i++)
+		{
+			if (inp.dataInt[i] == 0 && inp.dataInt[i + 1] == 0)
+			{
+				decon.fitdat[i] = 0;
+				decon.fitdat[i + 1] = 0;
+			}
+		}
+	}
+	
 
 	// Charge scaling (orbimode)
 	if (config.orbimode == 1)

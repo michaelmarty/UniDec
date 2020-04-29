@@ -531,6 +531,13 @@ class UniDecApp(UniDecPres):
         self.plot_sums()
         pass
 
+    def on_full(self, e=None):
+        maxmz = np.amax(self.eng.data.spectra[0].rawdata[:, 0])
+        minmz = np.amin(self.eng.data.spectra[0].rawdata[:, 0])
+        self.view.controls.ctlminmz.SetValue(str(minmz))
+        self.view.controls.ctlmaxmz.SetValue(str(maxmz))
+        self.on_dataprep_button()
+
     def on_charge_states(self, e=None):
         """
         Manual Test - Pased

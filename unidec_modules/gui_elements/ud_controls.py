@@ -105,11 +105,14 @@ class main_controls(wx.Panel):
         mzrange = wx.BoxSizer(wx.HORIZONTAL)
         if self.config.imflag == 1:
             mzrange.Add(wx.StaticText(panel1, label="               "), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
-        mzrange.Add(wx.StaticText(panel1, label="m/z Range: "), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
+        mzrange.Add(wx.StaticText(panel1, label="m/z: "), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
         mzrange.Add(self.ctlminmz)
         mzrange.Add(wx.StaticText(panel1, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
         mzrange.Add(self.ctlmaxmz)
         mzrange.Add(wx.StaticText(panel1, label=" Th "), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.fullbutton = wx.Button(panel1, -1, "Full", size=(40,25))
+        self.parent.Bind(wx.EVT_BUTTON, self.pres.on_full, self.fullbutton)
+        mzrange.Add(self.fullbutton)
         i = 0
         sizercontrol1.Add(mzrange, (i, 0), span=(1, 5))
         i += 1
@@ -132,7 +135,7 @@ class main_controls(wx.Panel):
 
         self.ctlbackcheck = wx.CheckBox(panel1, label="Use Background Subtraction", style=wx.CHK_3STATE)
         self.parent.Bind(wx.EVT_CHECKBOX, self.on_backcheck, self.ctlbackcheck)
-        sizercontrol1.Add(self.ctlbackcheck, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+        sizercontrol1.Add(self.ctlbackcheck, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
         self.dataprepbutton = wx.Button(panel1, -1, "Process Data")

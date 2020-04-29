@@ -47,7 +47,7 @@ class WizardGrid(wx.grid.Grid):
         last_col = self.GetNumberCols() - 1
         combined_width = 0
         for col in range(last_col):
-            if col is not 0:
+            if col != 0:
                 combined_width += self.GetColSize(col)
 
         minSize = panel_width - combined_width - wx.SYS_VSCROLL_X - 27

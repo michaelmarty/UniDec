@@ -127,7 +127,7 @@ class TreeCtrlPanel(wx.Panel):
                     for line in lines:
                         add_lines += line# + '\n'
                 '''
-                if add_lines is '':
+                if add_lines == '':
                     print("add_lines is blank")
 
                 self.link.desc.SetValue(add_lines)

@@ -180,7 +180,7 @@ def process_data_2d(xgrid, ygrid, igrid, config):
 
     if config.intscale == "Square Root":
         igrid = np.sqrt(igrid)
-    elif config.intscale is "Logarithmic":
+    elif config.intscale == "Logarithmic":
         igrid = ud.fake_log(igrid)
         igrid -= np.amin(igrid)
 

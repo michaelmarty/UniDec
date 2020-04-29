@@ -1394,6 +1394,7 @@ class UniDec(UniDecEngine):
                 p.lscore = np.product(scores[:-1])
                 tscores.append(p.dscore)
                 ints.append(p.height)
+                '''
                 print("Mass:", p.mass,
                       "Peak Shape:", round(p.mscore * 100, 2),
                       "Uniqueness:", round(p.uscore * 100, 2),
@@ -1401,7 +1402,7 @@ class UniDec(UniDecEngine):
                       "Charge:", round(p.cs_score * 100, 2),
                       "FWHM:", round(p.fscore * 100, 2),
                       "Combined:", round(p.dscore * 100, 2))
-                # print(p.intervalFWHM)
+                # print(p.intervalFWHM)'''
             ints = np.array(ints)
             self.pks.uniscore = ud.weighted_avg(tscores, ints ** pow) * self.config.error
             print("R Squared:", self.config.error)
