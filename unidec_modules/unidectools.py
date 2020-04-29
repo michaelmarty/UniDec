@@ -4,6 +4,7 @@ import sys
 import math
 import subprocess
 import time
+import decimal
 from bisect import bisect_left
 from ctypes import *
 from copy import deepcopy
@@ -174,6 +175,29 @@ def string_to_int(s, default=False):
     except (ValueError, TypeError):
         return default
 
+def decimal_formatter(a, template):
+    dec = decimal.Decimal(str(template).rstrip("0"))
+    dec2 = dec.as_tuple().exponent
+    if dec2 == 0:
+        label = "{:,}".format(int(a))
+    else:
+        label = "%g" % round(a, -dec2)
+    return label
+
+def fix_textpos(pos, maxval):
+    cutoff=0.05 * maxval
+    posout=[]
+    for i, p in enumerate(pos):
+        newp = p
+        if i>0:
+            pastpos = posout[-1]
+            if np.abs(p-pastpos)<cutoff:
+                if p < pastpos:
+                    newp = p+2*cutoff
+                elif p>=pastpos:
+                    newp = p+cutoff
+        posout.append(newp)
+    return np.array(posout)
 
 def safedivide(a, b):
     """
@@ -868,14 +892,24 @@ def auto_peak_width(datatop, psfun=None):
         boo3 = np.all([boo1, boo2], axis=0)
         isodat = datatop[boo3]
 
+
         if len(isodat) < 6:
-            sig = cpeaks[1, 0]
+            sig = cpeaks[0, 0]
             boo1 = datatop[:, 0] < maxval + sig
             boo2 = datatop[:, 0] > maxval - sig
             boo3 = np.all([boo1, boo2], axis=0)
             isodat = datatop[boo3]
             if len(isodat) < 6:
-                print("Warning: Very small range selected for auto peaks width:", sig, isodat)
+                try:
+                    sig = cpeaks[1, 0]
+                    boo1 = datatop[:, 0] < maxval + sig
+                    boo2 = datatop[:, 0] > maxval - sig
+                    boo3 = np.all([boo1, boo2], axis=0)
+                    isodat = datatop[boo3]
+                except:
+                    pass
+                if len(isodat) < 6:
+                    print("Warning: Very small range selected for auto peaks width:", sig, isodat)
 
         fits = np.array([isolated_peak_fit(isodat[:, 0], isodat[:, 1], i) for i in range(0, 3)])
 
@@ -1625,6 +1659,13 @@ def make_peaks_mztab_spectrum(mzgrid, pks, data2, mztab, index=None):
 
     return mztab2
 
+def fix_double_zeros(processed_data, new_data):
+    for i in range(len(processed_data)-1):
+        if processed_data[i, 1]==0 and processed_data[i+1, 1]==0:
+            new_data[i]=0
+            new_data[i+1]=0
+    return new_data
+
 
 def makeconvspecies(processed_data, pks, config):
     """
@@ -1654,10 +1695,14 @@ def makeconvspecies(processed_data, pks, config):
 
     pks.composite = np.zeros(xlen)
     for i in range(0, pks.plen):
-        pks.peaks[i].stickdat = stickdat[i]
-        pks.composite += np.array(stickdat[i])
+        try:
+            sd = fix_double_zeros(processed_data,stickdat[i])
+        except:
+            sd = stickdat[i]
+        pks.peaks[i].stickdat = sd
+        pks.composite += np.array(sd)
     pks.convolved = True
-    return np.array(stickdat)
+    return np.array(stickdat) #Note: this is not processed with fix_double_zeros and may cause issues...
 
 
 def nonlinstickconv(xvals, mztab, fwhm, psfun):
@@ -2444,7 +2489,7 @@ def peaks_error_FWHM(pks, data):
         start = p.intervalFWHM[0]
         end = p.intervalFWHM[1]
         p.centroid = center_of_mass(data, start, end)[0]
-        print("Apex:", p.mass, "Centroid:", p.centroid, "FWHM Range:", p.intervalFWHM)
+        #print("Apex:", p.mass, "Centroid:", p.centroid, "FWHM Range:", p.intervalFWHM)
 
 
 def peaks_error_mean(pks, data, ztab, massdat, config):

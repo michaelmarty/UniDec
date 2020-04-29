@@ -8,6 +8,7 @@ import matplotlib.cm as cm
 from unidec_modules.isolated_packages import FileDialogs
 from matplotlib.ticker import FixedLocator
 from unidec_modules.isolated_packages import spreadsheet
+from unidec_modules.isolated_packages import MD_Fitter as mf
 
 __author__ = 'Michael.Marty'
 
@@ -19,7 +20,7 @@ markers = ['o', 'v', '^', '>', 's', 'd', '*']
 
 class MassDefectExtractorWindow(wx.Frame):
     def __init__(self, parent, datalist, xarray, yarray, config=None, xtype=0):
-        wx.Frame.__init__(self, parent, title="Mass Defect")  # ,size=(-1,-1))
+        wx.Frame.__init__(self, parent, title="Mass Defect Extractor")  # ,size=(-1,-1))
 
         self.xtype = xtype
         if config is None:
@@ -39,7 +40,7 @@ class MassDefectExtractorWindow(wx.Frame):
             self.directory = os.getcwd()
 
         self.outfname = os.path.splitext(self.config.filename)[0]
-        if self.outfname is not "":
+        if self.outfname != "":
             self.outfname += "_"
 
         self.window = 0.05
@@ -47,8 +48,10 @@ class MassDefectExtractorWindow(wx.Frame):
         self.xdat = xarray
         self.ydat = yarray
         defaultexchoice = "Local Max"
-        self.totgrid=[]
-        self.grid=[]
+        self.totgrid = []
+        self.grid = []
+        self.fitdats = None
+        self.fits = None
 
         # Make the menu
         filemenu = wx.Menu()
@@ -132,7 +135,7 @@ class MassDefectExtractorWindow(wx.Frame):
                                       style=wx.CB_READONLY | wx.ALIGN_CENTER_VERTICAL)
         controlsizer.Add(self.ctlextract, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
 
-        self.ctlwindow = wx.TextCtrl(panel, value=str(self.window))
+        self.ctlwindow = wx.TextCtrl(panel, value=str(self.window), size=(60, 23))
         controlsizer.Add(wx.StaticText(panel, label="Window:"), 0, wx.ALIGN_CENTER_VERTICAL)
         controlsizer.Add(self.ctlwindow, 0, wx.ALIGN_CENTER_VERTICAL)
 
@@ -142,6 +145,22 @@ class MassDefectExtractorWindow(wx.Frame):
         # , majorDimension=3,style=wx.RA_SPECIFY_COLS)
         self.ctlnorm.SetSelection(2)
         controlsizer.Add(self.ctlnorm, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        fitbutton = wx.Button(panel, label="Fit")
+        controlsizer.Add(fitbutton, 0, wx.EXPAND)
+        self.Bind(wx.EVT_BUTTON, self.on_fit, fitbutton)
+
+        self.ctlmaxshift = wx.TextCtrl(panel, value=str(0.05), size=(40, 23))
+        controlsizer.Add(wx.StaticText(panel, label="Max MD Shift:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer.Add(self.ctlmaxshift, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.ctlshiftguess = wx.TextCtrl(panel, value=str("None"), size=(40, 23))
+        controlsizer.Add(wx.StaticText(panel, label="Shift Guess:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer.Add(self.ctlshiftguess, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.ctlwidthguess = wx.TextCtrl(panel, value=str(0.05), size=(40, 23))
+        controlsizer.Add(wx.StaticText(panel, label="Width Guess:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer.Add(self.ctlwidthguess, 0, wx.ALIGN_CENTER_VERTICAL)
 
         sizer.Add(controlsizer, 0, wx.EXPAND)
 
@@ -160,14 +179,46 @@ class MassDefectExtractorWindow(wx.Frame):
         # self.masslistbox.list.populate(defaultmdlist)
         # self.on_extract()
 
-    def on_extract(self, e=None):
-        print("Extracting...")
+    def on_fit(self, e=None):
+        self.update()
+        grid = []
+        fitdats = []
+        fits = []
+        for i, d in enumerate(self.data):
+            data = np.transpose([self.xdat, d])
+            fit, fitdat = mf.MD_Fitter(data, mds=self.mdlist, maxshift=self.maxshift,
+                                       widthguess=self.widthguess, shiftguess=self.shiftguess)
+            grid.append(fit[:, -1])
+            fitdats.append(fitdat)
+            fits.append(fit)
+        self.grid = np.transpose(grid)
+        self.fits = np.array(fits)
+        self.fitdats = np.array(fitdats)
+
+        self.post_extract()
+
+    def update(self):
         self.extractchoice = self.ctlextract.GetSelection()
         self.norm = self.ctlnorm.GetSelection()
         self.mdlist = self.masslistbox.list.get_list()
         self.window = float(self.ctlwindow.GetValue())
-        print(self.extractchoice, self.window, self.norm, self.mdlist)
+        self.maxshift = float(self.ctlmaxshift.GetValue())
+        self.widthguess = float(self.ctlwidthguess.GetValue())
+        try:
+            self.shiftguess = float(self.ctlshiftguess.GetValue())
+        except:
+            self.shiftguess = None
+        if np.amin(self.xdat) < 0:
+            self.centermode = 0
+        else:
+            self.centermode = 1
+        #print(self.extractchoice, self.window, self.norm, self.mdlist)
+        self.fits = None
+        self.fitdats = None
 
+    def on_extract(self, e=None):
+        print("Extracting...")
+        self.update()
         grid = []
         for i, x in enumerate(self.mdlist):
             ext = []
@@ -177,6 +228,9 @@ class MassDefectExtractorWindow(wx.Frame):
                 ext.append(val)
             grid.append(ext)
         self.grid = np.array(grid)
+        self.post_extract()
+
+    def post_extract(self):
         ud.normalize_extracts(self.grid, self.norm)
         try:
             save_path2d = os.path.join(self.directory, self.outfname + "Mass_Defect_Extracts.txt")
@@ -186,6 +240,7 @@ class MassDefectExtractorWindow(wx.Frame):
         except Exception as e:
             print("Failed Data Export Extracts", e)
         self.make_ext_plots()
+        self.make_list_plots()
         # self.fill_grid()
 
     def on_total(self, e=None):
@@ -272,6 +327,9 @@ class MassDefectExtractorWindow(wx.Frame):
                                               "Total Intensity", "", color=self.peakcolors[i], config=self.config)
                 else:
                     self.plot5.plotadd(self.xdat, dat2 - self.config.separation * i, colval=self.peakcolors[i])
+                if self.fitdats is not None:
+                    self.plot5.plotadd(self.xdat, self.fitdats[i] - self.config.separation * i,
+                                       colval=self.peakcolors[i], linestyle="--")
             except Exception as e:
                 self.plot5.clear_plot()
                 print("Failed Plot Ext5", e)
@@ -431,8 +489,9 @@ if __name__ == "__main__":
 
     app = wx.App(False)
     frame = MassDefectExtractorWindow(None, data, xarray, yarray)
-    frame.mdlist = [0.0, 0.1, 0.2, 0.3]
+    frame.mdlist = [0.0, 0.25, 0.55, 0.99]
     frame.masslistbox.list.populate(frame.mdlist)
-    frame.on_extract()
-    frame.make_2d_plot()
+    # frame.on_extract()
+    # frame.make_2d_plot()
+    frame.on_fit()
     app.MainLoop()

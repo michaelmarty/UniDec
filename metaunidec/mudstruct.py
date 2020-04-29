@@ -61,7 +61,7 @@ class MetaDataSet:
             self.data2 = self.spectra[0].data2
             self.import_vars()
 
-    def export_hdf5(self, file=None, vars_only=False):
+    def export_hdf5(self, file=None, vars_only=False, delete=False):
         if file is None:
             file = self.filename
         else:
@@ -73,12 +73,12 @@ class MetaDataSet:
 
         # Clear Group
         hdf = h5py.File(file, 'a')
-        # if not vars_only:
-        #    try:
-        #        del hdf["/" + self.topname]
-        #        pass
-        #    except:
-        #        pass
+        if delete:
+            try:
+                del hdf["/" + self.topname]
+                pass
+            except:
+                pass
         group = hdf.require_group(self.topname)
         group.attrs["num"] = len(self.spectra)
         group.attrs["v1name"] = self.v1name
@@ -223,7 +223,7 @@ class MetaDataSet:
     def remove_data(self, indexes):
         for i in sorted(indexes, reverse=True):
             del self.spectra[i]
-        self.export_hdf5()
+        self.export_hdf5(delete=True)
         print("Removed")
 
     def get_spectra(self):

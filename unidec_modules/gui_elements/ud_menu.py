@@ -25,8 +25,10 @@ class main_menu(wx.Menu):
                                                 " Open a Waters .Raw or Agilent .D File")
         self.filemenu.AppendSeparator()
 
-        self.menuLoadState = self.filemenu.Append(wx.ID_ANY, "Load State\tCtrl+L", "Load state from folder")
-        self.menuSaveState = self.filemenu.Append(wx.ID_ANY, "Save State\tCtrl+S", "Save program state to fresh folder")
+        self.menuLoadEverything = self.filemenu.Append(wx.ID_ANY, "Load Prior State for Current File\tCtrl+L",
+                                                       "Load past deconvolution results from the current opened file")
+        self.menuLoadState = self.filemenu.Append(wx.ID_ANY, "Load Zip State File", "Load state from zip file")
+        self.menuSaveState = self.filemenu.Append(wx.ID_ANY, "Save Zip State File\tCtrl+S", "Save program state to fresh folder")
         self.filemenu.AppendSeparator()
 
         self.menupastespectrum = self.filemenu.Append(wx.ID_ANY, "Get Spectrum From Clipboard\tCtrl+G",
@@ -85,6 +87,13 @@ class main_menu(wx.Menu):
         # Example Data
         self.examplemenu, self.masterd2 = pm.make_preset_menu(self.config.exampledatadir, exclude_dir="_unidecfiles",
                                                               topi=2500, exclude_ext="hdf5")
+
+        keys = []
+        for i, d in enumerate(self.masterd2):
+            if i<10:
+                keys.append([str(i+1), self.pres.on_ex, d[2]])
+        self.menukeys=keys
+
         self.filemenu.AppendSubMenu(self.examplemenu, "Load Example Data")
         for i, path, item in self.masterd2:
             # print(i, path, item)
@@ -187,8 +196,6 @@ class main_menu(wx.Menu):
         self.menuOpenDir = self.advancedmenu.Append(wx.ID_ANY, "Open Saved File Directory",
                                                     "Opens the save directory in the file explorer")
 
-
-
         if self.config.imflag == 0:
             self.advancedmenu.AppendSeparator()
             self.advancedmenu.Append(401, "Best Mode", "Best UniDec Deconvolution Algorithm", wx.ITEM_RADIO)
@@ -262,7 +269,8 @@ class main_menu(wx.Menu):
             self.menuscore3 = self.experimentalmenu.Append(wx.ID_ANY, "Label Peak Scores", "Label Peak Scores on Plot")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_score_label, self.menuscore3)
 
-            self.menuscoreFDR = self.experimentalmenu.Append(wx.ID_ANY, "Estimate FDR", "Estimate DScore Cutoff for a Fixed False Discovery Rate")
+            self.menuscoreFDR = self.experimentalmenu.Append(wx.ID_ANY, "Estimate FDR",
+                                                             "Estimate DScore Cutoff for a Fixed False Discovery Rate")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_score_FDR, self.menuscoreFDR)
 
             self.menuscore = self.experimentalmenu.Append(wx.ID_ANY, "Filter Peak Scores", "Filter Peak Scores")
@@ -332,15 +340,13 @@ class main_menu(wx.Menu):
         self.menutheomass = self.experimentalmenu.Append(wx.ID_ANY, "Plot Theoretical Mass")
         self.parent.Bind(wx.EVT_MENU, self.pres.plot_theo_mass, self.menutheomass)
 
-
-
         # self.menucentroid = self.experimentalmenu.Append(wx.ID_ANY, "Get Centroid at FWHM")
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_centroid, self.menucentroid)
 
         self.experimentalmenu.AppendSeparator()
         self.menuRegister = self.experimentalmenu.Append(wx.ID_ANY, "Fix Thermo or Agilent Imports",
-                                                     "Registers the Thermo and Agilent Interfaces. "
-                                                     "MUST RUN AS ADMINISTRATOR")
+                                                         "Registers the Thermo and Agilent Interfaces. "
+                                                         "MUST RUN AS ADMINISTRATOR")
         self.parent.Bind(wx.EVT_MENU, self.pres.register, self.menuRegister)
 
         self.experimentalmenu.AppendSeparator()
@@ -353,6 +359,7 @@ class main_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_open, self.menuOpen)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_raw_open, self.menuOpenRaw)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_load_state, self.menuLoadState)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_load_everything, self.menuLoadEverything)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_save_state, self.menuSaveState)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_paste_spectrum, self.menupastespectrum)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_load_conf_file, self.menuLoad)
@@ -477,7 +484,7 @@ class main_menu(wx.Menu):
         print(self.config.intscale)
 
     def menu_4001(self, event):
-        self.config.autotune=self.advancedmenu.IsChecked(4001)
+        self.config.autotune = self.advancedmenu.IsChecked(4001)
 
     def on_custom_defaults(self, e):
         # print("Clicked", e)
@@ -498,10 +505,13 @@ class main_menu(wx.Menu):
             nid = e.GetId()
             ids = self.masterd2[:, 0].astype(np.float)
             pos = np.argmin(np.abs(ids - nid))
-            path = self.masterd2[pos, 1]
-            dir = os.path.dirname(path)
-            file = os.path.split(path)[1]
-            print("Opening Path:", path, file, dir)
-            self.pres.on_open_file(file, dir)
+            self.load_example_data(pos)
         except Exception as e:
             print(e)
+
+    def load_example_data(self, pos):
+        path = self.masterd2[pos, 1]
+        dir = os.path.dirname(path)
+        file = os.path.split(path)[1]
+        print("Opening Path:", path, file, dir)
+        self.pres.on_open_file(file, dir)

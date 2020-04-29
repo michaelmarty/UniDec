@@ -61,7 +61,7 @@ class Plot1d(PlottingWindow):
 
         pubflag = 0
         if config is not None:
-            if config.publicationmode is not 0:
+            if config.publicationmode != 0:
                 pubflag = 1
 
         if pubflag == 0:
@@ -78,7 +78,7 @@ class Plot1d(PlottingWindow):
             self.subplot1.get_yaxis().tick_left()
             self.subplot1.get_yaxis().set_tick_params(direction='out')
             self.subplot1.get_xaxis().set_tick_params(direction='out')
-            if config.peaknorm is not 2:
+            if config.peaknorm != 2:
                 self.subplot1.get_yaxis().set_ticks([0, np.amax(yvals) / 2, np.amax(yvals)])
                 self.subplot1.get_yaxis().set_ticklabels(["0", '%', "100"])
             else:
@@ -110,7 +110,7 @@ class Plot1d(PlottingWindow):
         :param nopaint: Boolean, whether to repaint or not
         :return: None
         """
-        self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=colval, label=newlabel, **kwargs)
+        self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=colval, label=newlabel,**kwargs)
         self.setup_zoom([self.subplot1], self.zoomtype)
         if not nopaint:
             #self.setup_zoom([self.subplot1], self.zoomtype)
@@ -247,6 +247,7 @@ class Plot1d(PlottingWindow):
         self.subplot1.set_title(title)
         self.subplot1.spines['top'].set_visible(False)
         self.subplot1.spines['right'].set_visible(False)
+        self.subplot1.set_clip_on(False)
         self.flag = True
 
     # TODO make the axes work for negative and positive bars
@@ -310,6 +311,7 @@ class Plot1d(PlottingWindow):
         self.subplot1.set_ylim(left, right)
         self.subplot1.spines['top'].set_visible(False)
         self.subplot1.spines['right'].set_visible(False)
+        self.subplot1.set_clip_on(False)
         if repaint:
             self.repaint()
 
@@ -333,7 +335,7 @@ class Plot1d(PlottingWindow):
 
         pubflag = 0
         if config is not None:
-            if config.publicationmode is not 0:
+            if config.publicationmode != 0:
                 pubflag = 1
 
         self.subplot1 = self.figure.add_axes(self._axes)
@@ -359,7 +361,7 @@ class Plot1d(PlottingWindow):
             self.subplot1.get_yaxis().tick_left()
             self.subplot1.get_yaxis().set_tick_params(direction='out')
             self.subplot1.get_xaxis().set_tick_params(direction='out')
-            if config.peaknorm is not 2:
+            if config.peaknorm != 2:
                 self.subplot1.get_yaxis().set_ticks([0, np.amax(yvals) / 2, np.amax(yvals)])
                 self.subplot1.get_yaxis().set_ticklabels(["0", '%', "100"])
             else:

@@ -17,7 +17,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
         if xmin is not None and xmax is not None:
             bool1 = np.all(np.array([xdat > xmin, xdat < xmax]), axis=0)
             ydat = ydat[bool1]
-            line.set_clip_on(True)
+            line.set_clip_on(False)
         else:
             pass
             # line.set_clip_on(False)
@@ -110,7 +110,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
 
 def ResetVisible(axes):
     for line in axes.lines:
-        line.set_clip_on(True)
+        line.set_clip_on(False)
     for t in axes.texts:
         t.set_visible(True)
 
@@ -428,9 +428,10 @@ class ZoomBox:
                 # xmax, ymax = self.eventrelease.xdata, self.eventrelease.ydata
 
                 # fix for if drag outside axes boundaries
-                offx = self.prev[0]
-                offy = self.prev[1]
+
                 try:
+                    offx = self.prev[0]
+                    offy = self.prev[1]
                     xlims = self.axes[0].get_xlim()
                     ylims = self.axes[0].get_ylim()
                     if np.abs(self.prev[0] - xlims[0]) < np.abs(self.prev[0] - xlims[1]):
@@ -457,8 +458,8 @@ class ZoomBox:
             if xmin > xmax: xmin, xmax = xmax, xmin
             if ymin > ymax: ymin, ymax = ymax, ymin
             # assure that x and y values are not equal
-            if xmin == xmax: xmax = xmin * 1.0001
-            if ymin == ymax: ymax = ymin * 1.0001
+            if xmin == xmax: xmax = xmin * 1.000001
+            if ymin == ymax: ymax = ymin * 1.000001
 
             # Switch to span if a small delta y is used
             try:
@@ -490,10 +491,10 @@ class ZoomBox:
                 return
 
             for axes in self.axes:
-                axes.set_xlim((xmin, xmax))
+                axes.set_xlim(xmin, xmax)
                 if spanflag == 1:
                     xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=xmin, xmax=xmax)
-                axes.set_ylim((ymin, ymax))
+                axes.set_ylim(ymin, ymax)
             self.kill_labels()
             self.canvas.draw()
 

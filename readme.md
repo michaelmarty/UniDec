@@ -194,6 +194,22 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.4.2.1
+
+**Added a Full button** to reset the m/z range to the full value.
+
+**Added menu item to "Load Prior State for Current File"**. This will load the past deconvolution results, so you don't have to click deconvolve again if you've already run the data. This now has taken the Ctrl + L keyboard shortcut, which was previously Load State. Load and Save State have been renames to Load and Save Zip State File for clarity.
+
+Improved reliability of auto peak width function for sparse data. 
+
+Fixed issues with plotting and deconvolution with interpolation between sparse data points.
+
+Fixed issue with deleting spectra in MetaUniDec.
+
+Fixed issue where markers were clipped on the edges of plots. This introduces some issues with single data points not being clipped. 
+
+Updates to add fitting to the Mass Defect Extractor.
+
 v.4.2.0
 
 **Added Smart Transform**. From the beginning, UniDec has asked users to decide how it should perform the nonlinear transform from m/z to mass (Integration or Interpolation). Now, the Smart Transform decides for the user based on the density of the data. Where the data is sparse relative to the mass sampling, it will use interpolation to fill in the gaps. Where data is dense relative to the mass sampling, it will use integration to ensure that all the data in-between is accounted for. Smart Transform is located under the Additional Deconvolution Parameters tab and has now been made the default. In some preliminary testing, the Smart Transform showed more robust peak areas that were less sensitive to the mass sampling. The peak heights may change some, but the peak areas should be a lot more reliable (remember Ctrl+I to integrate). Note: you may not notice much difference, but using the Smart Transform should avoid some glitches that are hard to spot. Let me know how it goes!

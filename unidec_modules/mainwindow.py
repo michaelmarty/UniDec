@@ -69,7 +69,7 @@ class Mainwindow(MainwindowBase):
                 #["C", self.pres.on_plot_composite, self.controls.compositebutton],
                 ["N", self.pres.on_replot, self.controls.replotbutton],
                 ["F", self.pres.on_plot_offsets, self.menu.menuoffset],  # ["Z", self.pres.on_charge_plot],
-                ["L", self.pres.on_load_state, self.menu.menuLoadState],
+                ["L", self.pres.on_load_everything, self.menu.menuLoadEverything],
                 ["S", self.pres.on_save_state, self.menu.menuSaveState],
                 ["B", self.pres.on_batch, self.menu.menuBatch],
                 ["Q", self.on_exit, self.menu.menuExit],
@@ -77,8 +77,10 @@ class Mainwindow(MainwindowBase):
                 ["M", self.pres.on_match, self.menu.menumatch],
                 ["W", self.pres.on_auto_peak_width, self.menu.menuAutoWidth],
                 ["Z", self.pres.on_undo, self.menu.menuundo],
-                ["Y", self.pres.on_redo, self.menu.menuredo]
+                ["Y", self.pres.on_redo, self.menu.menuredo],
                 ]
+
+        keys = keys + self.menu.menukeys
         self.setup_shortcuts(keys)
         self.launch()
         pass
