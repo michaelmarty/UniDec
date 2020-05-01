@@ -23,7 +23,7 @@ def get_raw_metadata(path):
     # Get the time of last modifation of the specified path since the epoch
     #modification_time = os.path.getmtime(path)
     # to local time
-    local_time = time.strftime("%a, %d %b %Y, %H:%M", time.gmtime(os.path.getmtime(path)))
+    local_time = time.strftime("%a, %d %b %Y, %H:%M", time.localtime(os.path.getmtime(path)))
     print(local_time)
 # Instrument:
     inst = rawfile.GetInstModel()
@@ -45,7 +45,7 @@ def get_raw_metadata(path):
 
 if __name__ == "__main__":
     dir = "C:\\Users\\norri\\OneDrive\\Desktop"
-    filename = "20200223_UHMR1_OBE_Yang_YH_c5-Hfuse_21.raw"
+    filename = "AN_20191122_UHMR_nESI_RedBeta_RB_01uM_A38_04uM_50AA.raw"
     path = os.path.join(dir, filename)
     get_raw_metadata(path)
 

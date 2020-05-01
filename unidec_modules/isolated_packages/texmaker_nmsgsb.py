@@ -52,7 +52,7 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
     #    f.write("\\text{" + linestr + "}\\\\\n")
     #conf.close()
     
-    f.write("Time Stamp: " + time.strftime("%a, %d %b %Y, %H:%M", time.gmtime()) + "\\\\\n")
+    f.write("Time Stamp: " + time.strftime("%a, %d %b %Y, %H:%M %Z", time.localtime()) + "\\\\\n")
     rawfilename = rawfilename.replace('_', '\\_')
     f.write("File Name: " + rawfilename + "\\\\\n")
     # f.write("\\columnratio{0.5}\n")
