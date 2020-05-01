@@ -166,6 +166,9 @@ class UniDecApp(UniDecPres):
         # tstart = time.perf_counter()
         # Load Config to GUI
         self.import_config()
+
+        #self.write_to_recent()
+
         self.view.SetStatusText("Ready", number=5)
         # print("ImportConfig: %.2gs" % (time.perf_counter() - tstart))
         # if False:
@@ -1594,7 +1597,8 @@ class UniDecApp(UniDecPres):
         path = os.path.join(self.eng.config.dirname, self.eng.config.filename)
         print(path)
         defaultvalue = ""
-        if os.path.splitext(path)[1] == ".raw":
+        if os.path.splitext(path)[1].lower() == ".raw":
+            print("Getting Raw Data")
             defaultvalue = rawreader.get_raw_metadata(path)
             # try:
             #    rawoutput = rawreader.get_raw_metadata(path)

@@ -1005,6 +1005,7 @@ class UniDecConfig(object):
         self.cdcreaderpath = os.path.join(self.UniDecDir, "CDCreader.exe")
         self.defaultconfig = os.path.join(self.UniDecDir, "default_conf.dat")
         self.masstablefile = os.path.join(self.UniDecDir, "mass_table.csv")
+        self.recentfile = os.path.join(self.UniDecDir, "recent.txt")
         self.h5repackfile = os.path.join(self.UniDecDir, self.h5repackfile)
         self.presetdir = os.path.join(self.UniDecDir, "Presets")
         self.exampledatadir = os.path.join(self.UniDecDir, "Example Data")

@@ -6,7 +6,7 @@ import time
 def get_raw_metadata(path):
     rawfile = MSFileReader(path)
 # Most are columns in the Xcalibur sequence editor
-# "Laboratory" - collaborator PI's name 
+# "Laboratory" - collaborator PI's name
     lab = rawfile.GetSeqRowUserLabel(index=2)
     lab1 = lab.replace('Laboratory', '')
     print(lab1)
@@ -14,11 +14,11 @@ def get_raw_metadata(path):
 # "Client" - collaborator's name.
     client = rawfile.GetSeqRowUserLabel(index=1)
     client1 = client.replace('Client', '')
-    print(client1)    
+    print(client1)
 # "Phone" - This will be "shipment date"
     phone = rawfile.GetSeqRowUserLabel(index=4)
     shipment = phone.replace('Phone', 'Shipment Date: ')
-    print(shipment)  
+    print(shipment)
 # Andrew - The date modified = "Data recorded" - this date is the end of the run.
     # Get the time of last modifation of the specified path since the epoch
     #modification_time = os.path.getmtime(path)
@@ -45,6 +45,7 @@ def get_raw_metadata(path):
 
 if __name__ == "__main__":
     dir = "C:\\Users\\norri\\OneDrive\\Desktop"
+    dir = "D:\\Data"
     filename = "AN_20191122_UHMR_nESI_RedBeta_RB_01uM_A38_04uM_50AA.raw"
     path = os.path.join(dir, filename)
     get_raw_metadata(path)
