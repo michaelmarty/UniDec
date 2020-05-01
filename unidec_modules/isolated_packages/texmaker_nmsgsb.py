@@ -33,7 +33,7 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
 
     f.write("\\begin{document}\n")
     f.write("\\begin{center}\n")
-    f.write("\\Large\\textbf{Baker Lab UniDec Deconvolution (Confidential)}\n")
+    f.write("\\Large\\textbf{UniDec Deconvolution}\n")
     # Andrew - Remove "Baker Lab" and just include in the report info string
     f.write("\\end{center}\n")
     f.write("\\noindent\n")
@@ -41,7 +41,8 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
     #Andrew - Use this for manual addtion of report information/MS details
     output1 = output.replace(';', '}\\\{')
     output2 = output1.replace('; ', '}\\\{')
-    f.write("\\text{" + output2 + "}\\\\\n")
+    output3 = output2.replace('_', '\\_')
+    f.write("\\text{" + output3 + "}\\\\\n")
 
     # Andrew - Below is what I used to include some info. This was just off of some code already in here. I imagine it could be better.
     # MSDetails.txt must always be included in the path folder
@@ -51,7 +52,7 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
     #    f.write("\\text{" + linestr + "}\\\\\n")
     #conf.close()
     
-    f.write("Time Stamp: " + time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()) + "\\\\\n")
+    f.write("Time Stamp: " + time.strftime("%a, %d %b %Y, %H:%M", time.gmtime()) + "\\\\\n")
     rawfilename = rawfilename.replace('_', '\\_')
     f.write("File Name: " + rawfilename + "\\\\\n")
     # f.write("\\columnratio{0.5}\n")
