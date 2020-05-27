@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.cm as cm
 from matplotlib.pyplot import colormaps
 from matplotlib import rcParams
-
+from matplotlib.patches import Rectangle
 from pubsub import pub
 
 import multiprocessing
@@ -169,7 +169,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
 class ListCtrlPanel(wx.Panel):
     def __init__(self, parent, list_type="X", size=(200, 400)):
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
-        id_value = wx.NewId()
+        id_value = wx.NewIdRef()
         self.selection = []
         self.list_type = list_type
         self.parent=parent
@@ -186,11 +186,11 @@ class ListCtrlPanel(wx.Panel):
         self.SetAutoLayout(True)
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click, self.list)
 
-        self.popupID1 = wx.NewId()
-        self.popupID2 = wx.NewId()
+        self.popupID1 = wx.NewIdRef()
+        self.popupID2 = wx.NewIdRef()
         if list_type == "Y":
-            self.popupID3 = wx.NewId()
-            self.popupID4 = wx.NewId()
+            self.popupID3 = wx.NewIdRef()
+            self.popupID4 = wx.NewIdRef()
 
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)
@@ -333,6 +333,9 @@ class DataCollector(wx.Frame):
         self.toolsmenu.AppendSeparator()
         self.menuylabel = self.toolsmenu.Append(wx.ID_ANY, "Specify Var. 1 Label", "Adds Var. 1 axis label to plot")
         self.Bind(wx.EVT_MENU, self.on_ylabel, self.menuylabel)
+
+        self.menuplotx = self.toolsmenu.Append(wx.ID_ANY, "Plot X Ranges", "Plot X Ranges")
+        self.Bind(wx.EVT_MENU, self.shade_plots, self.menuplotx)
 
         self.toolsmenu.AppendSeparator()
 
@@ -528,6 +531,7 @@ class DataCollector(wx.Frame):
         self.ylabel = ""
         self.fcmap = "rainbow"
         self.xcmap = "rainbow"
+        self.offsets = []
         self.check_cmaps()
         self.hdf5_file = ""
         self.filetype = 0
@@ -961,7 +965,14 @@ class DataCollector(wx.Frame):
                     window = float(self.window)
                 except (ValueError, TypeError):
                     window = None
-                val = ud.data_extract(data, float(s), self.extractchoice, window=window)
+
+                if ";" not in s:
+                    val = ud.data_extract(data, float(s), self.extractchoice, window=window)
+                else:
+                    xs = s.split(';')
+                    val = 0
+                    for xval in xs:
+                        val += ud.data_extract(data, float(xval), self.extractchoice, window=window)
                 xext.append(val)
             self.extract.append(xext)
         self.ypanel.list.populate(self.yvals, colors=ycolors)
@@ -987,6 +998,40 @@ class DataCollector(wx.Frame):
         if self.filetype == 1:
             hdf.close()
         print("Extraction Complete")
+
+    def shade_plots(self, e):
+        self.update_get(e)
+        for i in range(0, len(self.xvals)):
+            color = self.xcolors[i]
+
+            s = self.xvals[i][0]
+            try:
+                window = float(self.window)
+            except (ValueError, TypeError):
+                window = None
+
+            if ";" not in s:
+                val = float(s)
+                self.make_shade_plot(val, window, color)
+            else:
+                xs = s.split(';')
+                val = 0
+                for xval in xs:
+                    val += float(xval)
+                    self.make_shade_plot(val,  window, color)
+        self.plot1.repaint()
+
+    def make_shade_plot(self, val, window, color):
+        y0 = np.amin(self.data[0][:, 1])
+        ywidth = np.amax(self.data[0][:, 1]) - y0
+        if self.plot1.kdnorm == 1000:
+            val = val/self.plot1.kdnorm
+            window = window/self.plot1.kdnorm
+
+        print(val, window)
+        self.plot1.subplot1.add_patch(
+            Rectangle((val - window, y0), window * 2., ywidth, alpha=0.5, facecolor=color, edgecolor='black',
+                      fill=True))
 
     def make_grid_plots(self, e):
         self.grid = np.array(self.grid)

@@ -154,13 +154,13 @@ class AdditionalParameters(wx.Dialog):
         hbox5.Add(wx.StaticText(pnl, label='Peak Inflation Parameter: '), 0, wx.ALIGN_CENTER_VERTICAL)
         hbox5.Add(self.inputbox5, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
         hbox5.Add(wx.StaticText(pnl, label=' x Peak Shape '), 0, wx.ALIGN_CENTER_VERTICAL)
-        sbs.Add(hbox5, 1, wx.ALIGN_CENTER_VERTICAL)
+        sbs.Add(hbox5, 1)
 
         hbox7 = wx.BoxSizer(wx.HORIZONTAL)
         self.inputbox7 = wx.TextCtrl(pnl, value=str(self.config.filterwidth))
         hbox7.Add(wx.StaticText(pnl, label='# of data points binned for filtering: '), 0, wx.ALIGN_CENTER_VERTICAL)
         hbox7.Add(self.inputbox7, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
-        sbs.Add(hbox7, 1, wx.ALIGN_CENTER_VERTICAL)
+        sbs.Add(hbox7, 1)
 
         hbox8 = wx.BoxSizer(wx.HORIZONTAL)
         self.inputbox8 = wx.TextCtrl(pnl, value=str(self.config.zerolog))
@@ -168,7 +168,7 @@ class AdditionalParameters(wx.Dialog):
             wx.StaticText(pnl, label='Value to approximate log(0) or log(negative number) to\n(should be negative): ')
             , 0, wx.ALIGN_CENTER_VERTICAL)
         hbox8.Add(self.inputbox8, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
-        sbs.Add(hbox8, 1, wx.ALIGN_CENTER_VERTICAL)
+        sbs.Add(hbox8, 1)
 
         """
         hbox6 = wx.BoxSizer(wx.HORIZONTAL)

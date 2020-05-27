@@ -537,7 +537,7 @@ class UniDecApp(UniDecPres):
                 self.view.plot1.plotadddot(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], 'blue', "o", "Peaks")
 
                 try:
-                    if len(self.eng.data.fitdat) > 0:
+                    if len(self.eng.data.fitdat) > 0 and imfit:
                         self.view.plot1.plotadddot(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "s",
                                                    "Fit Data")
                         leg = True
@@ -558,7 +558,7 @@ class UniDecApp(UniDecPres):
                     leg = True
 
                 try:
-                    if len(self.eng.data.fitdat) > 0:
+                    if len(self.eng.data.fitdat) > 0 and imfit:
                         self.view.plot1.plotadd(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "Fit Data")
                         leg = True
                     pass

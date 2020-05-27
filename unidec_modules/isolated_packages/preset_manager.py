@@ -19,7 +19,7 @@ def make_preset_menu(toppath=None, exclude_dir=None, topi=1500, ext="", exclude_
         ext = ""
 
     never = "UniDec_Figures_and_Files"
-
+    
     try:
         for p in os.listdir(toppath):
             path = os.path.join(toppath, p)

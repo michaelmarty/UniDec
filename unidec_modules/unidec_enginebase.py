@@ -3,6 +3,7 @@ from copy import deepcopy
 from unidec_modules import unidectools as ud
 import numpy as np
 
+version = "4.2.2"
 
 class UniDecEngine:
     def __init__(self):
@@ -15,7 +16,8 @@ class UniDecEngine:
 
         :return: None
         """
-        self.version = "4.2.2"
+        self.version = version
+
         print("\nUniDec Engine v." + self.version)
         self.config = None
         self.config_history = []
@@ -169,6 +171,7 @@ class UniDecEngine:
     def linear_regression_peaks(self):
         print("Starting Linear Regression using a repeating mass of:", self.config.molig)
         fit = [0, 0]
+        rsquared = 0
         if self.config.molig != 0:
             x = []
             y = []

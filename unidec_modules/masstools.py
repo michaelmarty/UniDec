@@ -34,8 +34,8 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         self.InsertColumn(0, coltitle)
         self.SetColumnWidth(0, width=190)  # , wx.LIST_AUTOSIZE)
 
-        self.popupID1 = wx.NewId()
-        self.popupID3 = wx.NewId()
+        self.popupID1 = wx.NewIdRef()
+        self.popupID3 = wx.NewIdRef()
         self.Bind(wx.EVT_MENU, self.on_masslist_delete, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_biopolymer, id=self.popupID3)
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click_masslist, self)
@@ -129,7 +129,7 @@ class MassListCtrlPanel(wx.Panel):
         """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self.list = MassListCrtl(self, wx.NewId(), coltitle=columntitle, size=size, style=wx.LC_REPORT)
+        self.list = MassListCrtl(self, wx.NewIdRef(), coltitle=columntitle, size=size, style=wx.LC_REPORT)
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
@@ -161,8 +161,8 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
         self.SetColumnWidth(4, 60)
         self.index = 0
 
-        self.popupID2 = wx.NewId()
-        self.popupID3 = wx.NewId()
+        self.popupID2 = wx.NewIdRef()
+        self.popupID3 = wx.NewIdRef()
         self.Bind(wx.EVT_MENU, self.on_oligo_delete, id=self.popupID2)
         self.Bind(wx.EVT_MENU, self.on_biopolymer, id=self.popupID3)
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click_oligolist, self)
@@ -279,7 +279,7 @@ class OligomerListCrtlPanel(wx.Panel):
         """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self.list = OligomerListCtrl(self, wx.NewId(), size=(500, 200), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
+        self.list = OligomerListCtrl(self, wx.NewIdRef(), size=(500, 200), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
@@ -357,7 +357,7 @@ class MatchListCrtlPanel(wx.Panel):
         """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self.list = MatchListCrtl(self, wx.NewId(), size=(500, 200), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
+        self.list = MatchListCrtl(self, wx.NewIdRef(), size=(500, 200), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
@@ -396,10 +396,10 @@ class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
 
         self.data = []
 
-        self.popupID1 = wx.NewId()
-        self.popupID2 = wx.NewId()
-        self.popupID3 = wx.NewId()
-        self.popupID4 = wx.NewId()
+        self.popupID1 = wx.NewIdRef()
+        self.popupID2 = wx.NewIdRef()
+        self.popupID3 = wx.NewIdRef()
+        self.popupID4 = wx.NewIdRef()
         self.Bind(wx.EVT_MENU, self.on_transfer, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_delete, id=self.popupID2)
         self.Bind(wx.EVT_MENU, self.clear, id=self.popupID3)
@@ -529,7 +529,7 @@ class CommonMassesPanel(wx.Panel):
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.parent = parent
-        self.list = CommonMasses(self, wx.NewId(), size=(400, 500), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
+        self.list = CommonMasses(self, wx.NewIdRef(), size=(400, 500), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
@@ -639,8 +639,7 @@ class MassSelection(wx.Dialog):
         textbox.Add(text)
 
         self.ctlmatcherror = wx.TextCtrl(panel, value=str(self.config.matchtolerance))
-        textbox.Add(wx.StaticText(panel, label="Error Tolerance for Matching (Da)"), 0,
-                    wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
+        textbox.Add(wx.StaticText(panel, label="Error Tolerance for Matching (Da)"), 0, wx.ALIGN_RIGHT)
         textbox.Add(self.ctlmatcherror, 0, wx.ALIGN_RIGHT)
 
         hbox3.Add(textbox)

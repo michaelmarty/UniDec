@@ -90,13 +90,13 @@ class BiopolymerFrame(wx.Dialog):
         s2.Add(self.ctltyperna, 0, flag=wx.ALIGN_CENTER_VERTICAL)
         self.sizer.Add(s2, 0)
 
-        self.sizer.Add(wx.StaticText(self.panel, label="  Sequence: "), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.sizer.Add(wx.StaticText(self.panel, label="  Sequence: "))
         self.sizer.Add(self.ctlseq, 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL)
 
         self.sizer.Add(self.calcbutton, 0, flag=wx.ALIGN_CENTER_VERTICAL| wx.ALIGN_CENTER_HORIZONTAL)
 
-        self.sizer.Add(wx.StaticText(self.panel, label="\nCalculated Mass (Da): "), flag=wx.ALIGN_CENTER_VERTICAL)
-        self.sizer.Add(self.ctlmass, 0, flag=wx.ALIGN_CENTER_VERTICAL)
+        self.sizer.Add(wx.StaticText(self.panel, label="\nCalculated Mass (Da): "))
+        self.sizer.Add(self.ctlmass, 0)
 
         hboxend = wx.BoxSizer(wx.HORIZONTAL)
         okbutton = wx.Button(self.panel, label='Ok')
@@ -157,7 +157,7 @@ class BiopolymerFrame(wx.Dialog):
 if __name__ == "__main__":
     print(mass_HPO4 + mass_HPO4 - mass_O - mass_O + mass_H + mass_H)
     app = wx.App()
-    panel = BiopolymerFrame(None, modal=True)
+    panel = BiopolymerFrame(None)
     panel.Show()
     # panel.draw()
     app.MainLoop()

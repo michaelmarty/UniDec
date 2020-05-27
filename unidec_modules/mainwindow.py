@@ -240,6 +240,11 @@ class Mainwindow(MainwindowBase):
             else:
                 plotwindow.SetSizerAndFit(sizerplot)
             plotwindow.SetupScrolling()
+            self.plotpanel = plotwindow
+            plotwindow.SetFocus()
+            plotwindow.Bind(wx.EVT_SET_FOCUS, self.onFocus)
+
+
 
         self.plots = [self.plot1, self.plot2, self.plot3, self.plot4, self.plot5, self.plot6]
         if self.config.imflag == 1:

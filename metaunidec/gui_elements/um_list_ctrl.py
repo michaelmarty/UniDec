@@ -121,7 +121,7 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
 class ListCtrlPanel(wx.Panel):
     def __init__(self, parent, pres=None, markers = None, list_type="X", size=(200, 300)):
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
-        id_value = wx.NewId()
+        id_value = wx.NewIdRef()
         self.list_type = list_type
         self.parent = parent
         self.pres = pres
@@ -139,14 +139,14 @@ class ListCtrlPanel(wx.Panel):
         self.SetAutoLayout(True)
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click, self.list)
 
-        self.popupID1 = wx.NewId()
-        self.popupID2 = wx.NewId()
-        self.popupID3 = wx.NewId()
-        self.popupID4 = wx.NewId()
-        self.popupID5 = wx.NewId()
-        self.popupID6 = wx.NewId()
-        self.popupID7 = wx.NewId()
-        self.popupID8 = wx.NewId()
+        self.popupID1 = wx.NewIdRef()
+        self.popupID2 = wx.NewIdRef()
+        self.popupID3 = wx.NewIdRef()
+        self.popupID4 = wx.NewIdRef()
+        self.popupID5 = wx.NewIdRef()
+        self.popupID6 = wx.NewIdRef()
+        self.popupID7 = wx.NewIdRef()
+        self.popupID8 = wx.NewIdRef()
 
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)

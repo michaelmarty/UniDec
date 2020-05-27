@@ -35,7 +35,7 @@ class IMListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMi
         self.SetColumnWidth(0, 100)
         self.SetColumnWidth(1, 100)
 
-        self.popupID1 = wx.NewId()
+        self.popupID1 = wx.NewIdRef()
         self.Bind(wx.EVT_MENU, self.on_delete, id=self.popupID1)
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click, self)
 
@@ -121,7 +121,7 @@ class IMListCtrlPanel(wx.Panel):
         :return: None
         """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
-        tid = wx.NewId()
+        tid = wx.NewIdRef()
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.list = IMListCtrl(self, tid, size=size, style=wx.LC_REPORT)
         sizer.Add(self.list, 1, wx.EXPAND)

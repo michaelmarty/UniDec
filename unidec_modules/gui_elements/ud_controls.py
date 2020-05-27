@@ -104,8 +104,8 @@ class main_controls(wx.Panel):
         self.ctlmaxmz = wx.TextCtrl(panel1, value="", size=(60, -1))
         mzrange = wx.BoxSizer(wx.HORIZONTAL)
         if self.config.imflag == 1:
-            mzrange.Add(wx.StaticText(panel1, label="               "), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
-        mzrange.Add(wx.StaticText(panel1, label="m/z: "), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
+            mzrange.Add(wx.StaticText(panel1, label="               "), 0, wx.ALIGN_CENTER_VERTICAL)
+        mzrange.Add(wx.StaticText(panel1, label="m/z: "), 0, wx.ALIGN_CENTER_VERTICAL)
         mzrange.Add(self.ctlminmz)
         mzrange.Add(wx.StaticText(panel1, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
         mzrange.Add(self.ctlmaxmz)
@@ -511,9 +511,9 @@ class main_controls(wx.Panel):
         sbs = wx.StaticBoxSizer(sb, orient=wx.HORIZONTAL)
         self.ctlminnativez = wx.TextCtrl(panel2b, value='', size=(75, -1))
         self.ctlmaxnativez = wx.TextCtrl(panel2b, value='', size=(75, -1))
-        sbs.Add(self.ctlminnativez, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
-        sbs.Add(wx.StaticText(panel2b, label=' to '), 0, wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
-        sbs.Add(self.ctlmaxnativez, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
+        sbs.Add(self.ctlminnativez, flag=wx.LEFT | wx.EXPAND, border=5)
+        sbs.Add(wx.StaticText(panel2b, label=' to '), 0, wx.EXPAND)
+        sbs.Add(self.ctlmaxnativez, flag=wx.LEFT | wx.EXPAND, border=5)
         gbox2b.Add(sbs, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
@@ -522,10 +522,10 @@ class main_controls(wx.Panel):
             sbs2 = wx.StaticBoxSizer(sb2, orient=wx.HORIZONTAL)
             self.ctlnativeccslb = wx.TextCtrl(panel2b, value='', size=(75, -1))
             self.ctlnativeccsub = wx.TextCtrl(panel2b, value='', size=(75, -1))
-            sbs2.Add(self.ctlnativeccslb, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
-            sbs2.Add(wx.StaticText(panel2b, label=' to '), 0, wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
-            sbs2.Add(self.ctlnativeccsub, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
-            sbs2.Add(wx.StaticText(panel2b, label=" \u212B\u00B2 "), 0, wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
+            sbs2.Add(self.ctlnativeccslb, flag=wx.LEFT | wx.EXPAND, border=5)
+            sbs2.Add(wx.StaticText(panel2b, label=' to '), 0,  wx.EXPAND)
+            sbs2.Add(self.ctlnativeccsub, flag=wx.LEFT | wx.EXPAND, border=5)
+            sbs2.Add(wx.StaticText(panel2b, label=" \u212B\u00B2 "), 0, wx.EXPAND)
             gbox2b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
 
         panel2b.SetSizer(gbox2b)
@@ -618,10 +618,10 @@ class main_controls(wx.Panel):
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.HORIZONTAL)
         self.ctlintlb = wx.TextCtrl(panel3b, value='', size=(75, -1))
         self.ctlintub = wx.TextCtrl(panel3b, value='', size=(75, -1))
-        sbs2.Add(self.ctlintlb, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
-        sbs2.Add(wx.StaticText(panel3b, label=' to '), 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
-        sbs2.Add(self.ctlintub, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
-        sbs2.Add(wx.StaticText(panel3b, label=' Da '), 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
+        sbs2.Add(self.ctlintlb, flag=wx.LEFT  | wx.EXPAND, border=5)
+        sbs2.Add(wx.StaticText(panel3b, label=' to '), 0, flag= wx.EXPAND)
+        sbs2.Add(self.ctlintub, flag=wx.LEFT | wx.EXPAND, border=5)
+        sbs2.Add(wx.StaticText(panel3b, label=' Da '), 0, flag= wx.EXPAND)
         gbox3b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 

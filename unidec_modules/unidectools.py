@@ -2114,6 +2114,14 @@ def pad_data(linear_mzdata, pad_until=50000):
     paddat = np.transpose([paddedmz, paddedint])
     return np.concatenate((linear_mzdata, paddat))
 
+def pad_data_length(linear_mzdata, pad_until_length=50000):
+    mzdiff = linear_mzdata[1, 0] - linear_mzdata[0, 0]
+    maxmz = np.amax(linear_mzdata[:, 0])
+    paddedmz = np.arange(maxmz + mzdiff, maxmz + mzdiff * (pad_until_length - len(linear_mzdata)+ 1), mzdiff)
+    paddedint = np.zeros(len(paddedmz))
+    paddat = np.transpose([paddedmz, paddedint])
+    return np.concatenate((linear_mzdata, paddat))
+
 
 def pad_two_power(data):
     mzdiff = data[1, 0] - data[0, 0]

@@ -112,9 +112,9 @@ class CubePlot(PlottingWindow):
         """
         alpha = self.alpha * np.pi / 180.
         beta = self.beta * np.pi / 180.
-        a = np.matrix([[1., 0., 0.], [0., np.cos(alpha), np.sin(alpha)], [0., -np.sin(alpha), np.cos(alpha)]])
-        b = np.matrix([[np.cos(beta), 0., -np.sin(beta)], [0., 1., 0.], [np.sin(beta), 0., np.cos(beta)]])
-        p = np.matrix([[1., 0., 0.], [0., 1., 0.], [0., 0., 0.]])
+        a = np.array([[1., 0., 0.], [0., np.cos(alpha), np.sin(alpha)], [0., -np.sin(alpha), np.cos(alpha)]])
+        b = np.array([[np.cos(beta), 0., -np.sin(beta)], [0., 1., 0.], [np.sin(beta), 0., np.cos(beta)]])
+        p = np.array([[1., 0., 0.], [0., 1., 0.], [0., 0., 0.]])
         c = np.dot(a, b)
         self.pc = np.dot(p, c)
 
@@ -126,7 +126,7 @@ class CubePlot(PlottingWindow):
         :param z: z value (float)
         :return: o, isometric projection vector
         """
-        vec = np.matrix([[x], [y], [z]])
+        vec = np.array([[x], [y], [z]])
         o = np.dot(self.pc, vec)
         return o
 
