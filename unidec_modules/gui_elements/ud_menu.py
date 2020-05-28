@@ -17,18 +17,21 @@ class main_menu(wx.Menu):
         self.analysismenu = wx.Menu()
         self.advancedmenu = wx.Menu()
         self.experimentalmenu = wx.Menu()
+        self.menuOpenRecent = wx.Menu()
 
         # File Menu
         self.menuOpen = self.filemenu.Append(wx.ID_OPEN, "Open File (Text, mzML, or Thermo RAW)\tCtrl+O",
                                              " Open a Text File in x y text, mzML, or Thermo RAW format")
         self.menuOpenRaw = self.filemenu.Append(wx.ID_ANY, "Open Waters or Agilent File",
                                                 " Open a Waters .Raw or Agilent .D File")
+        self.filemenu.AppendSubMenu(self.menuOpenRecent, "Open Recent File")
         self.filemenu.AppendSeparator()
 
         self.menuLoadEverything = self.filemenu.Append(wx.ID_ANY, "Load Prior State for Current File\tCtrl+L",
                                                        "Load past deconvolution results from the current opened file")
         self.menuLoadState = self.filemenu.Append(wx.ID_ANY, "Load Zip State File", "Load state from zip file")
-        self.menuSaveState = self.filemenu.Append(wx.ID_ANY, "Save Zip State File\tCtrl+S", "Save program state to fresh folder")
+        self.menuSaveState = self.filemenu.Append(wx.ID_ANY, "Save Zip State File\tCtrl+S",
+                                                  "Save program state to fresh folder")
         self.filemenu.AppendSeparator()
 
         self.menupastespectrum = self.filemenu.Append(wx.ID_ANY, "Get Spectrum From Clipboard\tCtrl+G",
@@ -90,9 +93,9 @@ class main_menu(wx.Menu):
 
         keys = []
         for i, d in enumerate(self.masterd2):
-            if i<10:
-                keys.append([str(i+1), self.pres.on_ex, d[2]])
-        self.menukeys=keys
+            if i < 10:
+                keys.append([str(i + 1), self.pres.on_ex, d[2]])
+        self.menukeys = keys
 
         self.filemenu.AppendSubMenu(self.examplemenu, "Load Example Data")
         for i, path, item in self.masterd2:
@@ -322,9 +325,6 @@ class main_menu(wx.Menu):
                                                        "Mark matched monomers and dimers automatically")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_autoformat, self.autoformat)
 
-        self.menuNMS_Report = self.experimentalmenu.Append(wx.ID_ANY, "Generate NMSGSB PDF Report", "Generate PDF Report in NMSGSB format")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_nmsgsb_report, self.menuNMS_Report)
-
         self.experimentalmenu.AppendSeparator()
         self.menuifams = self.experimentalmenu.Append(wx.ID_ANY, "iFAMS")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_iFAMS, self.menuifams)
@@ -518,3 +518,21 @@ class main_menu(wx.Menu):
         file = os.path.split(path)[1]
         print("Opening Path:", path, file, dir)
         self.pres.on_open_file(file, dir)
+
+    def update_recent(self):
+        menu_list = self.menuOpenRecent.GetMenuItems()
+        for i in range(len(menu_list) - 1, -1, -1):  # clear menu
+            self.menuOpenRecent.DestroyItem(menu_list[i])
+
+        max_items = 5  # can be changed to whatever
+        for i in range(len(self.pres.recent_files)):
+            if i >= max_items:
+                break
+            self.add_to_recent(self.pres.recent_files[i])
+
+    def add_to_recent(self, file_path):
+        # This needs to be separate from update_recent() for binding to work
+        filename = os.path.basename(file_path)
+        dirname = os.path.dirname(file_path)
+        new_item = self.menuOpenRecent.Append(wx.ID_ANY, filename)
+        self.parent.Bind(wx.EVT_MENU, lambda e: self.pres.on_open_file(filename, dirname), new_item)
