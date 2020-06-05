@@ -529,10 +529,14 @@ class main_menu(wx.Menu):
             self.menuOpenRecent.DestroyItem(menu_list[i])
 
         max_items = 5  # can be changed to whatever
-        for i in range(len(self.pres.recent_files)):
-            if i >= max_items:
+        added = 0
+        for file_path in self.pres.recent_files:
+            if added >= max_items:
                 break
-            self.add_to_recent(self.pres.recent_files[i])
+            filename = os.path.basename(file_path)
+            if os.path.splitext(filename)[1] != ".hdf5":
+                self.add_to_recent(file_path)
+                added += 1
 
     def add_to_recent(self, file_path):
         # This needs to be separate from update_recent() for binding to work
