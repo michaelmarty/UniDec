@@ -79,6 +79,10 @@ class UniDecApp(UniDecPres):
 
         self.view = mudview.Mainwindow(self, "MetaUniDec", self.eng.config)
 
+        self.recent_files = self.read_recent()
+        self.cleanup_recent_file(self.recent_files)
+        self.view.menu.update_recent()
+
     def on_open(self, e):
         """
         Manual Test - Passed
@@ -125,6 +129,9 @@ class UniDecApp(UniDecPres):
         self.makeplot2()
         print("Load Time: %.2gs" % (time.perf_counter() - tstart))
         self.view.SetStatusText("File: " + self.eng.config.hdf_file, number=1)
+
+        self.write_to_recent(self.eng.config.hdf_file)
+        self.view.menu.update_recent()
 
     def makeplot1(self, e=None):
         """
