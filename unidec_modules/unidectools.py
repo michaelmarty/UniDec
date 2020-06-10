@@ -175,6 +175,7 @@ def string_to_int(s, default=False):
     except (ValueError, TypeError):
         return default
 
+
 def decimal_formatter(a, template):
     dec = decimal.Decimal(str(template).rstrip("0"))
     dec2 = dec.as_tuple().exponent
@@ -184,20 +185,22 @@ def decimal_formatter(a, template):
         label = "%g" % round(a, -dec2)
     return label
 
+
 def fix_textpos(pos, maxval):
-    cutoff=0.05 * maxval
-    posout=[]
+    cutoff = 0.05 * maxval
+    posout = []
     for i, p in enumerate(pos):
         newp = p
-        if i>0:
+        if i > 0:
             pastpos = posout[-1]
-            if np.abs(p-pastpos)<cutoff:
+            if np.abs(p - pastpos) < cutoff:
                 if p < pastpos:
-                    newp = p+2*cutoff
-                elif p>=pastpos:
-                    newp = p+cutoff
+                    newp = p + 2 * cutoff
+                elif p >= pastpos:
+                    newp = p + cutoff
         posout.append(newp)
     return np.array(posout)
+
 
 def safedivide(a, b):
     """
@@ -231,6 +234,8 @@ def weighted_std(values, weights):
 
 
 def weighted_avg(values, weights):
+    if np.sum(weights) == 0:
+        return 0
     return np.average(values, weights=weights)
 
 
@@ -829,6 +834,7 @@ def dataexport(datatop, fname):
         print("NOTE: Your path length might exceed the limit for Windows. Please shorten your file name.")
     pass
 
+
 def savetxt(fname, datatop):
     try:
         np.savetxt(fname, datatop)
@@ -837,6 +843,7 @@ def savetxt(fname, datatop):
         path = "\\\\?\\%s" % path
         np.savetxt(path, datatop)
         print("NOTE: Your path length might exceed the limit for Windows. Please shorten your file name.")
+
 
 def mergedata(data1, data2):
     """
@@ -891,7 +898,6 @@ def auto_peak_width(datatop, psfun=None):
         boo2 = datatop[:, 0] > maxval - sig
         boo3 = np.all([boo1, boo2], axis=0)
         isodat = datatop[boo3]
-
 
         if len(isodat) < 6:
             sig = cpeaks[0, 0]
@@ -1155,7 +1161,7 @@ def remove_noise(datatop, percent=None):
         index = round(l1 * percent / 100.)
         cutoff = sdat[index]
     datatop = intensitythresh(datatop, cutoff)
-    #datatop = remove_middle_zeros(datatop)
+    # datatop = remove_middle_zeros(datatop)
     print(l1, len(datatop))
     return datatop
 
@@ -1390,7 +1396,7 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
     redper = config.reductionpercent
     # Crop Data
     data2 = datachop(deepcopy(datatop), newmin, newmax)
-    if len(data2)==0:
+    if len(data2) == 0:
         print("Error: m/z range is too small. No data fits the range.")
     # correct for detector efficiency
     if va != 0:
@@ -1441,7 +1447,7 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
         data2[:, 1] -= np.amin(data2[:, 1])
         print("Log Scale")
 
-    #Data Reduction
+    # Data Reduction
     if redper > 0:
         data2 = remove_noise(data2, redper)
 
@@ -1460,10 +1466,10 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
         # data2=data2[data2[:,1]>0]
 
     if redper < 0 and peaks:
-        #widths = [1, 2, 4, 8, 16]
-        #peakind = signal.find_peaks_cwt(data2[:,1], widths)
-        #data2 = data2[peakind]
-        data2 = peakdetect(data2, window = -redper, threshold=thresh)
+        # widths = [1, 2, 4, 8, 16]
+        # peakind = signal.find_peaks_cwt(data2[:,1], widths)
+        # data2 = data2[peakind]
+        data2 = peakdetect(data2, window=-redper, threshold=thresh)
         print(data2)
 
     if linflag == 2:
@@ -1472,8 +1478,6 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
         except:
             pass
         pass
-
-
 
     return data2
 
@@ -1542,7 +1546,7 @@ def peakdetect(data, config=None, window=10, threshold=0):
             if end > length:
                 end = length
             start = int(start)
-            end = int(end)+1
+            end = int(end) + 1
             testmax = np.amax(data[start:end, 1])
             if data[i, 1] == testmax and np.all(data[i, 1] != data[start:i, 1]):
                 peaks.append([data[i, 0], data[i, 1]])
@@ -1659,11 +1663,12 @@ def make_peaks_mztab_spectrum(mzgrid, pks, data2, mztab, index=None):
 
     return mztab2
 
+
 def fix_double_zeros(processed_data, new_data):
-    for i in range(len(processed_data)-1):
-        if processed_data[i, 1]==0 and processed_data[i+1, 1]==0:
-            new_data[i]=0
-            new_data[i+1]=0
+    for i in range(len(processed_data) - 1):
+        if processed_data[i, 1] == 0 and processed_data[i + 1, 1] == 0:
+            new_data[i] = 0
+            new_data[i + 1] = 0
     return new_data
 
 
@@ -1696,13 +1701,13 @@ def makeconvspecies(processed_data, pks, config):
     pks.composite = np.zeros(xlen)
     for i in range(0, pks.plen):
         try:
-            sd = fix_double_zeros(processed_data,stickdat[i])
+            sd = fix_double_zeros(processed_data, stickdat[i])
         except:
             sd = stickdat[i]
         pks.peaks[i].stickdat = sd
         pks.composite += np.array(sd)
     pks.convolved = True
-    return np.array(stickdat) #Note: this is not processed with fix_double_zeros and may cause issues...
+    return np.array(stickdat)  # Note: this is not processed with fix_double_zeros and may cause issues...
 
 
 def nonlinstickconv(xvals, mztab, fwhm, psfun):
@@ -2089,7 +2094,7 @@ def fft(data, phases=False):
     if not phases:
         return aftdat
     if phases:
-        phases = np.arctan2(fft.imag,fft.real)
+        phases = np.arctan2(fft.imag, fft.real)
         return aftdat, phases
 
 
@@ -2114,10 +2119,11 @@ def pad_data(linear_mzdata, pad_until=50000):
     paddat = np.transpose([paddedmz, paddedint])
     return np.concatenate((linear_mzdata, paddat))
 
+
 def pad_data_length(linear_mzdata, pad_until_length=50000):
     mzdiff = linear_mzdata[1, 0] - linear_mzdata[0, 0]
     maxmz = np.amax(linear_mzdata[:, 0])
-    paddedmz = np.arange(maxmz + mzdiff, maxmz + mzdiff * (pad_until_length - len(linear_mzdata)+ 1), mzdiff)
+    paddedmz = np.arange(maxmz + mzdiff, maxmz + mzdiff * (pad_until_length - len(linear_mzdata) + 1), mzdiff)
     paddedint = np.zeros(len(paddedmz))
     paddat = np.transpose([paddedmz, paddedint])
     return np.concatenate((linear_mzdata, paddat))
@@ -2477,16 +2483,16 @@ def peaks_error_FWHM(pks, data):
 
         diff = np.abs(np.array(p.intervalFWHM) - p.mass)
         r = safedivide1(diff, p.errorFWHM)
-        #Check to make sure that the FWHM is symmetric. If not, flag it and bring things back.
+        # Check to make sure that the FWHM is symmetric. If not, flag it and bring things back.
         cutoff = 0.75
         if r[0] > cutoff:
-            mlow = p.mass - diff[1] * cutoff/(1-cutoff)
+            mlow = p.mass - diff[1] * cutoff / (1 - cutoff)
             p.errorFWHM = mhigh - mlow
             p.intervalFWHM = [mlow, mhigh]
             p.badFWHM = True
             pass
         elif r[1] > cutoff:
-            mhigh = p.mass + diff[0] * cutoff/(1-cutoff)
+            mhigh = p.mass + diff[0] * cutoff / (1 - cutoff)
             p.errorFWHM = mhigh - mlow
             p.intervalFWHM = [mlow, mhigh]
             p.badFWHM = True
@@ -2497,7 +2503,7 @@ def peaks_error_FWHM(pks, data):
         start = p.intervalFWHM[0]
         end = p.intervalFWHM[1]
         p.centroid = center_of_mass(data, start, end)[0]
-        #print("Apex:", p.mass, "Centroid:", p.centroid, "FWHM Range:", p.intervalFWHM)
+        # print("Apex:", p.mass, "Centroid:", p.centroid, "FWHM Range:", p.intervalFWHM)
 
 
 def peaks_error_mean(pks, data, ztab, massdat, config):
@@ -2519,7 +2525,7 @@ def peaks_error_mean(pks, data, ztab, massdat, config):
         # Set the window as 2 x FWHM if possible
         window = config.peakwindow
         if pk.errorFWHM > 0:
-            window = 2* pk.errorFWHM
+            window = 2 * pk.errorFWHM
 
         # Grab a slice of the data around the peak mass
         index = nearest(massdat[:, 0], pk.mass)
@@ -2542,7 +2548,7 @@ def peaks_error_mean(pks, data, ztab, massdat, config):
         # Set a 1% Threshold
         b1 = ints > 0.01 * np.amax(ints)
         # Calculate weighted standard deviation
-        std=weighted_std(masses[b1], ints[b1])
+        std = weighted_std(masses[b1], ints[b1])
 
         # Set the parameters
         pk.errormean = std
@@ -2550,15 +2556,16 @@ def peaks_error_mean(pks, data, ztab, massdat, config):
         pk.errorints = ints
     pass
 
+
 def subtract_and_divide(pks, basemass, refguess):
     avgmass = []
     ints = []
     for p in pks.peaks:
-        if p.ignore==0:
+        if p.ignore == 0:
             mass = p.mass - basemass
-            num = np.round(mass/float(refguess))
-            if num!=0:
-                avg = mass/num
+            num = np.round(mass / float(refguess))
+            if num != 0:
+                avg = mass / num
                 avgmass.append(avg)
                 ints.append(p.height)
 

@@ -17,10 +17,10 @@ def GetMaxes(axes, xmin=None, xmax=None):
         if xmin is not None and xmax is not None:
             bool1 = np.all(np.array([xdat > xmin, xdat < xmax]), axis=0)
             ydat = ydat[bool1]
-            #line.set_clip_on(True)
+            line.set_clip_on(True)
         else:
             pass
-            # line.set_clip_on(False)
+            line.set_clip_on(True)
         try:
             yvals.append([np.amin(ydat), np.amax(ydat)])
             xvals.append([np.amin(xdat), np.amax(xdat)])
@@ -107,23 +107,22 @@ def GetMaxes(axes, xmin=None, xmax=None):
         out = axes.dataLim.bounds
 
 
-    """
-    xlims = axes.get_xlim()
-    ylims = axes.get_ylim()
-    out2=Bbox(((xlims[0], ylims[0]),(xlims[1],ylims[1]*2)))
-    print(axes.transData.transform(xlims))
-    print(out, out2)
+    '''
+    #xlims = axes.get_xlim()
+    #ylims = axes.get_ylim()
+    #out2=Bbox(((xlims[0], ylims[0]),(xlims[1],ylims[1]*2)))
+    #print(axes.transData.transform(xlims))
+    #print(out, out2)
     for line in axes.lines:
-
-        #line.set_clip_on(True)
+        line.set_clip_on(True)
         #line.set_clip_box(out2)
         pass
 
-    #for o in axes.findobj():
-        #o.set_clip_on(True)
+    for o in axes.findobj():
+        o.set_clip_on(True)
         #o.set_clip_box(out2)
     #axes.set_clip_box(out2)
-    #axes.set_clip_on(True)"""
+    axes.set_clip_on(True)'''
 
     return out
 

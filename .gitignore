@@ -154,5 +154,8 @@ unidec_bin/recent.txt
 unidec_bin/Example Data/BSA_unidecfiles/BSA_chargepeaks.txt
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/Extract_grid_2D_Extract.txt
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/Extract_total_2D_Extract.txt
-
+ExtractFull2D_Da.txt
+extracts.txt
+sums.txt
+unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_chargepeaks.txt
 

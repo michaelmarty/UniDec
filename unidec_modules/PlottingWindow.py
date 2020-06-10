@@ -251,7 +251,7 @@ class PlottingWindow(wx.Window):
         :param markval: Marker
         :return: None
         """
-        self.subplot1.plot(np.array(x) / self.kdnorm, y, color=colval, marker=markval, linestyle='None', clip_on=False
+        self.subplot1.plot(np.array(x) / self.kdnorm, y, color=colval, marker=markval, linestyle='None', clip_on=True
                            , markeredgecolor="k", label=label)
 
     def repaint(self, setupzoom=False):
