@@ -51,7 +51,7 @@ class DataImporter:
         self.times = []
         self.data = []
         for s in self.scans:
-            impdat = np.array(self.msrun.scan(s))
+            impdat = np.array(self.msrun.scan(s)) #May want to test this.
             impdat = impdat[impdat[:, 0] > 10]
             self.data.append(impdat)
             try:

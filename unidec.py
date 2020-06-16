@@ -1527,7 +1527,7 @@ class UniDec(UniDecEngine):
 
         self.open_file(fname, testdir, **kwargs)
         self.config.maxmz, self.config.minmz = "", ""
-        self.config.default_isotopic_res()
+        #self.config.default_isotopic_res()
 
     def get_spectrum_peaks(self, threshold=0.05, window=None):
         if window is None:

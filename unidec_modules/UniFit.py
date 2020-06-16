@@ -449,7 +449,7 @@ class KDmodel:
                  plot1=None, plot2=None, plot3=None, bootnum=1, maxsites=0, maxligagg=1, hill=False, label="",
                  cmap='rainbow', **kwargs):
         self.outlierflag = removeoutliers
-        self.cmap=cmap
+        self.cmap = cmap
         self.label = label
         self.plot1 = plot1
         self.plot2 = plot2
@@ -624,7 +624,10 @@ class KDmodel:
             self.SetupModel(**kwargs)
             # Initial guess for KD
             self.kdargs.kds = np.array([np.mean(self.kdargs.lconc) for i in range(0, self.numkd)])
-            # print(self.kdargs.kds)
+
+        if np.mean(self.kdargs.lconc) == 0:
+            self.kdargs.kds = np.array([np.mean(self.kdargs.pconc)/2. for i in range(0, self.numkd)])
+        #print(self.kdargs.kds)
 
         if np.any(self.kdargs.kds == 0):
             print("Error in guessing KDs", self.kdargs.kds)

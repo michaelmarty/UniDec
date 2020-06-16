@@ -1,3 +1,4 @@
+version 4.2.2
 imflag 0
 input GroEL UniDec_input.dat
 output GroEL UniDec
@@ -11,7 +12,7 @@ beta 50.0
 mzsig 0.0
 psfun 0
 discreteplot 0
-massub 500000.0
+massub 5000000.0
 masslb 10000.0
 msig 0.0
 molig 0.0
