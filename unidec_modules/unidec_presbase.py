@@ -383,6 +383,9 @@ class UniDecPres(object):
                     if os.path.isfile(p):
                         lines.append(p)
         else:
+            self.eng.config.recentfile = os.path.join(self.eng.config.UniDecDir, "recent.txt")
+            with open(self.eng.config.recentfile, 'w') as file:
+                pass  # Create empty file
             return []
 
         if not ud.isempty(lines):

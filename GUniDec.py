@@ -1579,6 +1579,7 @@ class UniDecApp(UniDecPres):
         """
         path = os.path.join(self.eng.config.dirname, self.eng.config.filename)
         print(path)
+        rawsamplename = ""
         defaultvalue = ""
         if os.path.splitext(path)[1].lower() == ".raw":
             print("Getting Raw Data")
@@ -1587,7 +1588,7 @@ class UniDecApp(UniDecPres):
             #    rawoutput = rawreader.get_raw_metadata(path)
             # except:
             #    rawoutput = None
-
+            rawsamplename = rawreader.get_raw_samplename(path)
         # Andrew - edit
 
         dialog = miscwindows.SingleInputDialog(self.view)
@@ -1596,6 +1597,7 @@ class UniDecApp(UniDecPres):
         dialog.ShowModal()
         output = dialog.value
 
+        self.view.on_save_figure_eps(e)
         figureflags, files = self.view.on_save_figure_pdf(e)
         textmarkertab = [p.textmarker for p in self.eng.pks.peaks]
         peaklabels = [p.label for p in self.eng.pks.peaks]
@@ -1604,7 +1606,7 @@ class UniDecApp(UniDecPres):
         if self.eng.config.imflag == 0:
             texmaker_nmsgsb.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config,
                                           self.eng.config.udir,
-                                          peaks, textmarkertab, peaklabels, peakcolors, figureflags, output)
+                                          peaks, textmarkertab, peaklabels, peakcolors, figureflags, output, rawsamplename)
             self.view.SetStatusText("TeX file Written", number=5)
             try:
                 texmaker_nmsgsb.PDFTexReport(self.eng.config.outfname + '_report.tex')
