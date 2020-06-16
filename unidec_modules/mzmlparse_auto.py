@@ -60,6 +60,7 @@ def parse(path, times, timestep, volts, outputheader, directory, output="txt"):
                         group.attrs["Collision Voltage"] = volts[v]
                     group.attrs["timestart"] = time
                     group.attrs["timeend"] = time + timestep
+                    group.attrs["timemid"] = time + timestep*0.5
                     num += 1
                     pass
         if output == "hdf5":
@@ -111,6 +112,7 @@ def parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr=None, outpu
                         pass
                     group.attrs["timestart"] = t
                     group.attrs["timeend"] = t + timestep
+                    group.attrs["timemid"] = t + timestep * 0.5
                     splits = path.split(sep="\\")
                     group.attrs["Original File"] = splits[len(splits)-1]
                     num += 1

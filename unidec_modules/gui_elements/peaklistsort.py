@@ -58,19 +58,20 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.pks = None
         self.errorsdisplayed = False
 
-        self.popupID1 = wx.NewId()
-        self.popupID2 = wx.NewId()
-        self.popupID3 = wx.NewId()
-        self.popupID4 = wx.NewId()
-        self.popupID5 = wx.NewId()
-        self.popupID6 = wx.NewId()
-        self.popupID7 = wx.NewId()
-        self.popupID8 = wx.NewId()
-        self.popupID9 = wx.NewId()
-        self.popupID10 = wx.NewId()
-        self.popupID11 = wx.NewId()
-        self.popupID12 = wx.NewId()
-        self.popupID13 = wx.NewId()
+        self.popupID1 = wx.NewIdRef()
+        self.popupID2 = wx.NewIdRef()
+        self.popupID3 = wx.NewIdRef()
+        self.popupID4 = wx.NewIdRef()
+        self.popupID5 = wx.NewIdRef()
+        self.popupID6 = wx.NewIdRef()
+        self.popupID7 = wx.NewIdRef()
+        self.popupID8 = wx.NewIdRef()
+        self.popupID9 = wx.NewIdRef()
+        self.popupID10 = wx.NewIdRef()
+        self.popupID11 = wx.NewIdRef()
+        self.popupID12 = wx.NewIdRef()
+        self.popupID13 = wx.NewIdRef()
+        self.popupID14 = wx.NewIdRef()
 
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)
@@ -85,6 +86,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.Bind(wx.EVT_MENU, self.on_popup_eleven, id=self.popupID11)
         self.Bind(wx.EVT_MENU, self.on_popup_twelve, id=self.popupID12)
         self.Bind(wx.EVT_MENU, self.on_popup_scorecolor, id=self.popupID13)
+        self.Bind(wx.EVT_MENU, self.on_popup_twelve_full, id=self.popupID14)
 
     def clear_list(self):
         """
@@ -209,6 +211,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                     menu.Append(self.popupID13, "Color By Score")
                 menu.AppendSeparator()
                 menu.Append(self.popupID12, "Copy All Basic")
+                menu.Append(self.popupID14, "Copy All Full")
                 self.PopupMenu(menu)
                 menu.Destroy()
         else:
@@ -232,6 +235,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                     menu.Append(self.popupID13, "Color By Score")
                 menu.AppendSeparator()
                 menu.Append(self.popupID12, "Copy All Basic")
+                menu.Append(self.popupID14, "Copy All Full")
                 self.PopupMenu(menu)
                 menu.Destroy()
 
@@ -520,9 +524,9 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         newevent = wx.PyCommandEvent(self.EVT_DELETE_SELECTION_2._getEvtType(), self.GetId())
         self.GetEventHandler().ProcessEvent(newevent)
 
-    def on_popup_twelve(self, e=None):
+    def on_popup_twelve(self, e=None, type="Basic"):
         print("Copying...")
-        outstring=self.pks.copy(type="Basic")
+        outstring=self.pks.copy(type=type)
         print("Outputs:", outstring)
 
         # Create text data object
@@ -537,6 +541,9 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             wx.TheClipboard.Close()
         else:
             wx.MessageBox("Can't open the clipboard", "Error")
+
+    def on_popup_twelve_full(self, e=None):
+        self.on_popup_twelve(type="Full")
 
     def on_popup_scorecolor(self, e=None):
         print("Coloring Peaks By Score")

@@ -39,7 +39,6 @@ __author__ = 'Michael.Marty'
 class UniDecApp(UniDecPres):
     """
     Main UniDec GUI Application.
-
     Presenter contains UniDec engine at self.eng and main GUI window at self.view
     """
 
@@ -70,6 +69,10 @@ class UniDecApp(UniDecPres):
         pub.subscribe(self.on_smash, 'smash')
         pub.subscribe(self.on_get_mzlimits, 'mzlimits')
         pub.subscribe(self.on_left_click, 'left_click')
+
+        self.recent_files = self.read_recent()
+        self.cleanup_recent_file(self.recent_files)
+        self.view.menu.update_recent()
 
         self.on_load_default(0)
 
@@ -167,9 +170,13 @@ class UniDecApp(UniDecPres):
         # Load Config to GUI
         self.import_config()
 
-        #self.write_to_recent()
+        # self.write_to_recent()
 
         self.view.SetStatusText("Ready", number=5)
+
+        self.write_to_recent()
+        self.view.menu.update_recent()
+
         # print("ImportConfig: %.2gs" % (time.perf_counter() - tstart))
         # if False:
         #    try:
@@ -355,7 +362,6 @@ class UniDecApp(UniDecPres):
                                     np.zeros_like(self.eng.data.data2[:, 1]) + self.eng.config.intthresh, "red",
                                     "Noise Threshold")
             self.view.plot1.add_legend()
-
         if self.eng.config.imflag == 1:
             self.view.plot1im.contourplot(self.eng.data.data3, self.eng.config, xlab="m/z (Th)",
                                           ylab="Arrival Time (ms)", title="IM-MS Data")
@@ -537,7 +543,7 @@ class UniDecApp(UniDecPres):
                 self.view.plot1.plotadddot(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], 'blue', "o", "Peaks")
 
                 try:
-                    if len(self.eng.data.fitdat) > 0:
+                    if len(self.eng.data.fitdat) > 0 and imfit:
                         self.view.plot1.plotadddot(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "s",
                                                    "Fit Data")
                         leg = True
@@ -558,7 +564,7 @@ class UniDecApp(UniDecPres):
                     leg = True
 
                 try:
-                    if len(self.eng.data.fitdat) > 0:
+                    if len(self.eng.data.fitdat) > 0 and imfit:
                         self.view.plot1.plotadd(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "Fit Data")
                         leg = True
                     pass
@@ -943,12 +949,10 @@ class UniDecApp(UniDecPres):
     def on_integrate(self, plot=True, filled=True):
         """
         Triggered by right click on plot2. Integrates peaks.
-
         If plot2 is zoomed out, it will use self.eng.autointegrate() to integrate the peaks.
         If plot2 is zoomed in to a single peak, the integral for that peak is recalculated from the plot limits.
         If plot2 is zoomed in to more than one peak, the integral is not set for a single peak but simply printed on
             the plot
-
         :param plot: Boolean, whether to add filled areas to plot.
         :return: None
         """
@@ -1112,7 +1116,6 @@ class UniDecApp(UniDecPres):
     def on_mass_tools(self, e=None, show=True):
         """
         Opens masstools window.
-
         If a match was performed, it will update plot 6 and the peak panel.
         If the user decides to use simulated masses, it will make plot these new peaks.
         :param e: unused event
@@ -1256,14 +1259,10 @@ class UniDecApp(UniDecPres):
     def on_tweet(self, e=None):
         """
         Opens Twitter Extension Window.
-
         First makes PNG files of all the figures it can. Those are fed to the window.
-
         self.twittercodes is modified if the person has logged in, so that the person only has to log in once.
-
         Note: don't mess with self.twittercodes. It DOES NOT contain log in information such as user name or password,
         but it shouldn't be printed, which is why it lives in the memory only.
-
         :param e: event
         :return: None
         """
@@ -1356,7 +1355,6 @@ class UniDecApp(UniDecPres):
     def on_center_of_mass(self, e=None):
         """
         Determines the center of mass for the region zoomed on plot2.
-
         Get limits from plot2.
         Get Center of Mass from self.eng.center_of_mass
         Reports these as text on plot2.
@@ -1378,7 +1376,6 @@ class UniDecApp(UniDecPres):
         """
         The old switcheroo. Takes the mass output and makes it the m/z input.
         Then changes some of the deconvolution parameters to reflect this.
-
         The reason for this type of function is to separate deconvolution from deisotoping when isotope mode is on.
         Deconvolution can be performed to generate a zero-charge mass spectrum, which can then be loaded as a new
         spectrum and deisotoped with isotope mode. Still a bit experimental...
@@ -1397,7 +1394,6 @@ class UniDecApp(UniDecPres):
     def on_fit_masses(self, e=None):
         """
         Using the peaks as a starting guess, it will fit the zero-charge mass spectrum to a set of overlapping peaks.
-
         Gets guesses using self.on_export_params()
         Calls self.eng.fit_all_masses()
         Then, plots resulting fit.
@@ -1424,17 +1420,14 @@ class UniDecApp(UniDecPres):
     def on_batch(self, e=None, flag=0, batchfiles=None):
         """
         Batch processing!
-
         Spawns a directory to select multiple files.
         Feeds the file names into a loop that:
-
         Opens the file (self.on_open_file)
         Prepares the data (self.on_dataprep_button)
         Runs UniDec (self.unidec_button)
         Picks Peaks (self.on_pick_peaks)
         Exports Peak Parameters (self.on_export_params)
         Saves State (self.on_save_state)
-
         If uses self.eng.config.batchflag to prevent certain things from plotting and all key parameters from changing.
         If batchflag is 2 (flag=1),
             all key paramters are kept, but the data ranges are refreshed from the individual files.
@@ -1476,7 +1469,6 @@ class UniDecApp(UniDecPres):
     def on_batch2(self, e=None):
         """
         Runs batch processing without restricting the data ranges.
-
         The date range can be set ahead of time and will update independently for each file.
         Other parameters are fixed for the whole batch.
         :param e: unused event passed to self.on_batch
@@ -1487,15 +1479,12 @@ class UniDecApp(UniDecPres):
     def on_super_batch(self, e=None):
         """
         Speedy, minimal batch procssing. Data must be processed in advance.
-
         Does not load file or process data.
         Simply writes the configuration with updated defaults to a conf.dat file.
         Then runs the conf.dat file with UniDec binary.
         Does not do any post processing.
-
         This function is useful for largee data sets where you are using DataCollector or some other program to
         analyze the results outside of UniDec. It allows new parameters to be run with the maximum speed.
-
         :param e: unused event
         :return: None
         """
@@ -1534,9 +1523,7 @@ class UniDecApp(UniDecPres):
     def on_cross_validate(self, e=None):
         """
         Experimental...
-
         Run cross validation on spectrum by splitting the spectrum into subspectra and fitting each independently.
-
         Runs self.eng.cross_validate()
         Adds plots of mean and std deviation to plot2
         :param e: unused event
@@ -1555,11 +1542,9 @@ class UniDecApp(UniDecPres):
     def on_pdf_report(self, e=None):
         """
         Creates PDF report.
-
         First, writes figures to PDF.
         Then sends results to texmaker, which creates a .tex file.
         Finally, runs pdflatex as commandline subprocess to convert .tex to PDF.
-
         :param e: event passed to self.view.on_save_figur_pdf
         :return: None
         """
@@ -1586,11 +1571,9 @@ class UniDecApp(UniDecPres):
 
         """
         Creates PDF report for the Native MS Guided Structural Biology format.
-
         First, writes figures to PDF.
         Then sends results to texmaker, which creates a .tex file.
         Finally, runs pdflatex as commandline subprocess to convert .tex to PDF.
-
         :param e: event passed to self.view.on_save_figur_pdf
         :return: None
         """

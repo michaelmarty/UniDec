@@ -230,13 +230,13 @@ class ManualListCtrlPanel(wx.Panel):
         """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self.list = ManualListCrtl(self, wx.NewId(), size=(300 + 100 * imflag, 150), style=wx.LC_REPORT, imflag=imflag)
+        self.list = ManualListCrtl(self, wx.NewIdRef(), size=(300 + 100 * imflag, 150), style=wx.LC_REPORT, imflag=imflag)
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click, self.list)
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
         self.selection = []
-        self.popupID1 = wx.NewId()
+        self.popupID1 = wx.NewIdRef()
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
 
     def on_right_click(self, e=None):

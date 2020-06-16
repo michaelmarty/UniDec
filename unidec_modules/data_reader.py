@@ -61,9 +61,13 @@ class DataImporter:
                     t = self.msrun.info[s][0]
                     self.times.append(t)
                 except Exception as e2:
-                    print("Error getting scan times:", e, e2)
-                    print("Using Scan rather than Time)")
-                    self.times.append(s)
+                    try:
+                        t = self.msrun.scan_info()[s][0]
+                        self.times.append(t)
+                    except Exception as e3:
+                        print("Error getting scan times:", e, e2, e3)
+                        print("Using Scan rather than Time)")
+                        self.times.append(s)
         self.times = np.array(self.times)
         self.data = np.array(self.data)
 

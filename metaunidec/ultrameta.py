@@ -690,8 +690,8 @@ class DataCollector(wx.Frame):
                     else:
                         print(zdat, zexts, avg)
                         if fit == "exp":
-                            fits, fitdat = ud.exp_fit(xvals, avg)
-                            zfits, zfitdat = ud.exp_fit(xvals, zdat)
+                            fits, fitdat = ud.exp_fit(xvals-xvals[0], avg)
+                            zfits, zfitdat = ud.exp_fit(xvals-xvals[0], zdat)
                         elif fit == "lin":
                             fits, fitdat = ud.lin_fit(xvals, avg)
                             zfits, zfitdat = ud.lin_fit(xvals, zdat)

@@ -194,6 +194,12 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.4.2.2
+
+**Added Copy All Full** to copy paste a wide range of parameters from the peaks in the peak list. Let me know if there are additional parameters you would like added.
+
+Fixed bug with fits being plotted when process data is clicked.
+
 v.4.2.1
 
 **Added a Full button** to reset the m/z range to the full value.
@@ -206,7 +212,7 @@ Fixed issues with plotting and deconvolution with interpolation between sparse d
 
 Fixed issue with deleting spectra in MetaUniDec.
 
-Fixed issue where markers were clipped on the edges of plots. This introduces some issues with single data points not being clipped. 
+Fixed issue where markers were clipped on the edges of plots. This introduces some issues with single data points not being clipped when spectra are zoomed in. I'm working to fix this for future versions.
 
 Updates to add fitting to the Mass Defect Extractor.
 

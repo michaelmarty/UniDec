@@ -16,9 +16,11 @@ class meta_menu(wx.Menu):
         self.advancedmenu = wx.Menu()
         self.experimentalmenu = wx.Menu()
         self.helpmenu = wx.Menu()
+        self.menuOpenRecent = wx.Menu()
 
         # File Menu
         self.openmenu = self.filemenu.Append(wx.ID_ANY, "Open HDF5 File\tCtrl+O", "Open HDF5 file")
+        self.filemenu.AppendSubMenu(self.menuOpenRecent, "Open Recent File")
         self.filemenu.AppendSeparator()
         self.wizardmenu = self.filemenu.Append(wx.ID_ANY, "Import Wizard\tCtrl+N", "Import Data Into HDF5 File")
         self.filemenu.AppendSeparator()
@@ -424,3 +426,22 @@ class meta_menu(wx.Menu):
             self.pres.open_file(path)
         except Exception as e:
             print(e)
+
+    def update_recent(self):
+        menu_list = self.menuOpenRecent.GetMenuItems()
+        for i in range(len(menu_list) - 1, -1, -1):  # clear menu
+            self.menuOpenRecent.DestroyItem(menu_list[i])
+
+        max_items = 5  # can be changed to whatever
+        added = 0
+        for file_path in self.pres.recent_files:
+            if added >= max_items:
+                break
+            filename = os.path.basename(file_path)
+            if os.path.splitext(filename)[1] == ".hdf5":
+                self.add_to_recent(file_path)
+                added += 1
+
+    def add_to_recent(self, file_path):
+        new_item = self.menuOpenRecent.Append(wx.ID_ANY, os.path.basename(file_path))
+        self.parent.Bind(wx.EVT_MENU, lambda e: self.pres.open_file(file_path), new_item)

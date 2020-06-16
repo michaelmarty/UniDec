@@ -72,7 +72,7 @@ class Peak:
 
     def line_out(self, type="Full"):
         if type == "Full":
-            outputs = [self.mass, self.centroid, self.height, self.area, self.textmarker, self.match, self.matcherror,
+            outputs = [self.mass, self.centroid, self.height, self.area, self.match, self.matcherror,
                        self.integral, self.diff, self.avgcharge, self.dscore, self.lscore]
         elif type == "Basic":
             outputs = [self.mass, self.height, self.integral]
@@ -261,6 +261,11 @@ class Peaks:
             # print n1, n2, newcolor, newmarker, newtextmarker
 
     def copy(self, type="Full"):
+        if type == "Full":
+            print("Columns: mass, centroid, height, area, match, matcherror, integral, diff, avgcharge, dscore, lscore")
+        if type == "Basic":
+            print("Columns: mass, height, integral")
+
         outstring = ""
         for p in self.peaks:
             outstring += p.line_out(type=type) + "\n"

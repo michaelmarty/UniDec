@@ -11,7 +11,7 @@ import warnings
 from copy import deepcopy
 import sys
 import time
-import scipy.misc
+import scipy.special
 import multiprocessing
 
 __author__ = 'Michael.Marty'
@@ -781,8 +781,8 @@ class KDmodel:
             narr = self.kdargs.nprottab * self.maxsites
             iarr = self.kdargs.nligtab
             niarr = np.clip(narr - iarr, 0, sys.maxsize)
-            self.kdargs.nfactors = scipy.misc.factorial(narr) / (
-                    scipy.misc.factorial(niarr) * scipy.misc.factorial(iarr))
+            self.kdargs.nfactors = scipy.special.factorial(narr) / (
+                    scipy.special.factorial(niarr) * scipy.special.factorial(iarr))
         else:
             self.kdargs.nfactors = None
         # Quick Plot to test structure. Note: exits the program without fitting.
@@ -1128,8 +1128,8 @@ class KDmodel:
             narr = self.kdargs.nprottab * self.maxsites
             iarr = self.kdargs.nligtab
             niarr = np.clip(narr - iarr, 0, sys.maxsize)
-            self.kdargs.nfactors = scipy.misc.factorial(narr) / (
-                    scipy.misc.factorial(niarr) * scipy.misc.factorial(iarr))
+            self.kdargs.nfactors = scipy.special.factorial(narr) / (
+                    scipy.special.factorial(niarr) * scipy.special.factorial(iarr))
         else:
             self.kdargs.nfactors = None
 
