@@ -198,6 +198,12 @@ v.4.2.2
 
 **Added Copy All Full** to copy paste a wide range of parameters from the peaks in the peak list. Let me know if there are additional parameters you would like added.
 
+**Added Open Recent File** menu item.
+
+**Major upgrades to file mzML and Thermo file imports**. 
+
+
+
 Fixed bug with fits being plotted when process data is clicked.
 
 v.4.2.1

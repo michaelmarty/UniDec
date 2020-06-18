@@ -832,13 +832,16 @@ class UniDecApp(UniDecPres):
         :return:
         """
         paths = FileDialogs.open_multiple_files_dialog(message="Choose ramp data files mzml or Thermo Raw format",
-                                                       file_type="Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML|All Files|*.*")
+                                                       file_type="All Files|*.*| Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML")
         if paths is not None:
             dlg = miscwindows.SingleInputDialog(self.view)
             dlg.initialize_interface("Timestep", "Enter ramp timestep to compress in minutes:", defaultvalue=str(1.0))
             dlg.ShowModal()
             timestep = dlg.value
             self.eng.import_mzml(paths, timestep=timestep)
+
+            print("Opening Just Created File:", self.eng.outpath)
+            self.open_file(self.eng.outpath)
 
     def on_import_mzml_scans(self, e):
         """
@@ -847,13 +850,16 @@ class UniDecApp(UniDecPres):
         :return:
         """
         paths = FileDialogs.open_multiple_files_dialog(message="Choose ramp data files mzml or Thermo Raw format",
-                                                       file_type="Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML|All Files|*.*")
+                                                       file_type="All Files|*.*| Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML")
         if paths is not None:
             dlg = miscwindows.SingleInputDialog(self.view)
             dlg.initialize_interface("Scan Step", "Enter number of scans to compress:", defaultvalue=str(1.0))
             dlg.ShowModal()
             scanstep = dlg.value
             self.eng.import_mzml(paths, scanstep=scanstep)
+
+            print("Opening Just Created File:", self.eng.outpath)
+            self.open_file(self.eng.outpath)
 
     def on_import_multiple_times(self, e):
         """
@@ -862,7 +868,7 @@ class UniDecApp(UniDecPres):
         :return:
         """
         paths = FileDialogs.open_multiple_files_dialog(message="Choose ramp data files mzml or Thermo Raw format",
-                                                       file_type="Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML|All Files|*.*")
+                                                       file_type="All Files|*.*| Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML")
         if paths is not None:
             dlg = miscwindows.SingleInputDialog(self.view)
             dlg.initialize_interface("Time point", "Enter start time point:", defaultvalue=str(0.0))
@@ -885,9 +891,12 @@ class UniDecApp(UniDecPres):
                 self.eng.import_mzml(paths, timestep=timestep, name=name, starttp=float(starttp),
                                      endtp=float(endtp))
 
+            print("Opening Just Created File:", self.eng.outpath)
+            self.open_file(self.eng.outpath)
+
     def on_import_multiple_scans(self, e):
         paths = FileDialogs.open_multiple_files_dialog(message="Choose ramp data files mzml or Thermo Raw format",
-                                                       file_type="Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML|All Files|*.*")
+                                                       file_type="All Files|*.*| Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML")
         if paths is not None:
             dlg = miscwindows.SingleInputDialog(self.view)
             dlg.initialize_interface("Scan Start", "Enter starting scan desired:", defaultvalue=str(1))
@@ -904,6 +913,9 @@ class UniDecApp(UniDecPres):
             name = dlg.value
             # + 1 including the endscan
             self.eng.import_mzml(paths, startscan=int(startscan), endscan=(int(endscan) + 1), name=name)
+
+            print("Opening Just Created File:", self.eng.outpath)
+            self.open_file(self.eng.outpath)
 
     def on_wizard(self, e=None):
         print("Launching Waters Converter Wizard")

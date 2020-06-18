@@ -3,8 +3,10 @@ from unidec_modules.mzMLimporter import merge_spectra
 from copy import deepcopy
 from unidec_modules import unidectools as ud
 import numpy as np
-#import sys
-#import wx
+
+
+# import sys
+# import wx
 
 def register():
     print("Trying to Register Interfaces...")
@@ -16,6 +18,7 @@ def register():
         print("Failed Interface Registration:", e)
         print("NOTE: TRY RUNNING AS ADMINISTRATOR")
         pass
+
 
 class DataImporter:
     """
@@ -30,7 +33,7 @@ class DataImporter:
         :param kwargs: keywords (unused)
         :return: mzMLimporter object
         """
-        #TODO make this work
+        # TODO make this work
         """
         del sys.modules[mzFile]
         print "Breaking"
@@ -47,13 +50,11 @@ class DataImporter:
             register()
             self.msrun = mzFile(path)
         self.scanrange = self.msrun.scan_range()
+        # print(self.scanrange)
         self.scans = np.arange(self.scanrange[0], self.scanrange[1] + 1)
         self.times = []
-        self.data = []
+        self.data = None
         for s in self.scans:
-            impdat = np.array(self.msrun.scan(s)) #May want to test this.
-            impdat = impdat[impdat[:, 0] > 10]
-            self.data.append(impdat)
             try:
                 self.times.append(self.msrun.scan_time_from_scan_name(s))
             except Exception as e:
@@ -69,6 +70,14 @@ class DataImporter:
                         print("Using Scan rather than Time)")
                         self.times.append(s)
         self.times = np.array(self.times)
+        # print(len(self.data), len(self.times), len(self.scans))
+
+    def grab_data(self):
+        self.data = []
+        for s in self.scans:
+            impdat = np.array(self.msrun.scan(s))  # May want to test this.
+            impdat = impdat[impdat[:, 0] > 10]
+            self.data.append(impdat)
         self.data = np.array(self.data)
 
     def get_data(self, scan_range=None, time_range=None):
@@ -76,34 +85,63 @@ class DataImporter:
         Returns merged 1D MS data from mzML import
         :return: merged data
         """
-        data = deepcopy(self.data)
-        if time_range is not None:
-            scan_range = self.get_scans_from_times(time_range)
-            print("Getting times:", time_range)
+        try:
+            if scan_range is not None:
+                scan_range = np.array(scan_range, dtype=np.int)
+                scan_range = scan_range+1
+            if time_range is not None:
+                scan_range = self.get_scans_from_times(time_range)
+                print("Getting times:", time_range)
+            if scan_range is None:
+                scan_range = [np.amin(self.scans), np.amax(self.scans)]
+            scan_range = np.array(scan_range, dtype=np.int)
+            print("Scan Range:", scan_range)
 
-        if scan_range is not None:
-            data = data[scan_range[0]:scan_range[1]]
-            print("Getting scans:", scan_range)
-        else:
-            print("Getting all scans, length:", len(self.scans))
+            if scan_range[0] < np.amin(self.scans):
+                scan_range[0] = np.amin(self.scans)
+            if scan_range[1] > np.amax(self.scans):
+                scan_range[1] = np.amin(self.scans)
 
-        if len(data) > 1:
-            try:
-                data = merge_spectra(data)
-            except Exception as e:
-                concat = np.concatenate(data)
-                sort = concat[concat[:, 0].argsort()]
-                data = ud.removeduplicates(sort)
-                print(e)
-        elif len(data) == 1:
-            data = data[0]
-        else:
-            data = data
+            if scan_range[1]-scan_range[0] > 1:
+                data = np.array(list(self.msrun.average_scan(int(scan_range[0]), int(scan_range[1]), filter="Full")))
+            else:
+                impdat = np.array(self.msrun.scan(scan_range[0]))  # May want to test this.
+                impdat = impdat[impdat[:, 0] > 10]
+                data = impdat
+
+        except Exception as e:
+            print("Failed native raw averaging. Using Python averaging.")
+            if self.data is None:
+                self.grab_data()
+            data = deepcopy(self.data)
+            if time_range is not None:
+                scan_range = self.get_scans_from_times(time_range)
+                print("Getting times:", time_range)
+
+            if scan_range is not None:
+                data = data[scan_range[0]:scan_range[1]]
+                print("Getting scans:", scan_range)
+            else:
+                print("Getting all scans, length:", len(self.scans))
+
+            if len(data) > 1:
+                try:
+                    data = merge_spectra(data)
+                except Exception as e:
+                    concat = np.concatenate(data)
+                    sort = concat[concat[:, 0].argsort()]
+                    data = ud.removeduplicates(sort)
+                    print(e)
+            elif len(data) == 1:
+                data = data[0]
+            else:
+                data = data
 
         return data
 
     def get_tic(self):
-        return self.msrun.xic()
+        print(self.msrun.filters())
+        return self.msrun.xic(filter="Full")
 
     def get_max_time(self):
         times = self.msrun.time_range()
@@ -125,16 +163,20 @@ class DataImporter:
         return [min, max]
 
     def get_times_from_scans(self, scan_range):
-        boo1 = self.scans >= scan_range[0]
-        boo2 = self.scans < scan_range[1]
-        boo3 = np.logical_and(boo1, boo2)
-        min = np.amin(self.times[boo1])
-        max = np.amax(self.times[boo2])
-        try:
-            avg = np.mean(self.times[boo3])
-        except:
-            avg = min
-        return [min, avg, max]
+        if scan_range[1] - scan_range[0] > 1:
+            boo1 = self.scans >= scan_range[0]
+            boo2 = self.scans < scan_range[1]
+            boo3 = np.logical_and(boo1, boo2)
+            min = np.amin(self.times[boo1])
+            max = np.amax(self.times[boo2])
+            try:
+                avg = np.mean(self.times[boo3])
+            except:
+                avg = min
+            return [min, avg, max]
+        else:
+            t = self.times[scan_range[0]]
+            return [t, t, t]
 
 
 if __name__ == "__main__":
