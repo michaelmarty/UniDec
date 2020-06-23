@@ -779,12 +779,12 @@ def load_mz_file(path, config=None, time_range=None):
         elif extension == ".csv":
             data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0, 1))
         elif extension == ".mzml":
-            data = mzMLimporter.mzMLimporter(path).get_data()
+            data = mzMLimporter.mzMLimporter(path).get_data(time_range=time_range)
             txtname = path[:-5] + ".txt"
             np.savetxt(txtname, data)
             print("Saved to:", txtname)
         elif extension.lower() == ".raw":
-            data = data_reader.DataImporter(path).get_data()
+            data = data_reader.DataImporter(path).get_data(time_range=time_range)
             txtname = path[:-4] + ".txt"
             np.savetxt(txtname, data)
             print("Saved to:", txtname)
