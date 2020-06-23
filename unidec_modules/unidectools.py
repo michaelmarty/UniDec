@@ -737,7 +737,7 @@ def waters_convert2(path, config=None, outfile=None):
     return data
 
 
-def load_mz_file(path, config=None):
+def load_mz_file(path, config=None, time_range=None):
     """
     Loads a text or mzml file
     :param path: File path to load
@@ -761,7 +761,7 @@ def load_mz_file(path, config=None):
         elif os.path.isdir(path) and os.path.splitext(path)[1].lower() == ".d":
             try:
                 print("Trying to convert Agilent File:", path)
-                data = data_reader.DataImporter(path).get_data()
+                data = data_reader.DataImporter(path).get_data(time_range=time_range)
                 txtname = path[:-2] + ".txt"
                 np.savetxt(txtname, data)
                 print("Saved to:", txtname)
