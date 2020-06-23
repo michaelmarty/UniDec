@@ -11,6 +11,16 @@ from unidec_modules.unidec_enginebase import version as version
 __author__ = 'Michael.Marty'
 
 
+def ofile_reader(path):
+    oligos = []
+    for line in open(path):
+        a = np.array(line.split())
+        string = " ".join(a[4:])
+        oarray = np.array([a[0], a[1], a[2], a[3], string])
+        oligos.append(oarray)
+    return np.array(oligos)
+
+
 # noinspection PyAttributeOutsideInit
 class UniDecConfig(object):
     """
@@ -541,7 +551,7 @@ class UniDecConfig(object):
                 self.masslist = np.array([])
 
             if os.path.isfile(self.ofile):
-                self.oligomerlist = np.genfromtxt(self.ofile, dtype='str')
+                self.oligomerlist = ofile_reader(self.ofile)
                 if self.oligomerlist.shape == (4,) or self.oligomerlist.shape == (5,):
                     self.oligomerlist = np.array([self.oligomerlist])
             else:

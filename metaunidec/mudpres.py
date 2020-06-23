@@ -1385,7 +1385,7 @@ class UniDecApp(UniDecPres):
         :return:
         """
         iconfile = self.view.icon_path
-        wx.Yield()
+        wx.GetApp().Yield()
         self.view.on_exit()
         self.view = []
         self.view = mudview.Mainwindow(self, "MetaUniDec", self.eng.config, iconfile=iconfile, tabbed=tabbed)

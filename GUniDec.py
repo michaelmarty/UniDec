@@ -1879,7 +1879,7 @@ class UniDecApp(UniDecPres):
         iconfile = self.view.icon_path
         # evt=EventManager()
         # print evt.GetStats()
-        wx.Yield()
+        wx.GetApp().Yield()
         self.view.on_exit()
         self.view = []
         self.view = mainwindow.Mainwindow(self, "UniDec", self.eng.config, iconfile=iconfile, tabbed=tabbed)
