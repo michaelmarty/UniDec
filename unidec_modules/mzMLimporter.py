@@ -1,7 +1,7 @@
 import numpy as np
 import pymzml
 from unidec_modules import unidectools as ud
-
+import os
 from copy import deepcopy
 
 __author__ = 'Michael.Marty'
@@ -82,6 +82,12 @@ def nonlinear_axis(start, end, res):
     return np.array(axis)
 
 
+def get_data_from_spectrum(spectrum):
+    impdat = np.transpose([spectrum.mz, spectrum.i])
+    impdat = impdat[impdat[:, 0] > 10]
+    return impdat
+
+
 class mzMLimporter:
     """
     Imports mzML data files.
@@ -96,31 +102,63 @@ class mzMLimporter:
         :return: mzMLimporter object
         """
         print("Reading mzML:", path)
+        self.filesize = os.stat(path).st_size
         self.msrun = pymzml.run.Reader(path)
-        self.data = []
+        self.data=None
         self.scans = []
         self.times = []
+        for i, spectrum in enumerate(self.msrun):
+            if '_scan_time' in list(spectrum.__dict__.keys()):
+                try:
+                    t = spectrum.scan_time_in_minutes()
+                    self.times.append(float(t))
+                except Exception as e:
+                    self.times.append(-1)
+                    print("1", spectrum, e)
+                self.scans.append(i)
+                # print(i, end=" ")
+            else:
+                print("Scan time not found", i)
+        self.times = np.array(self.times)
+        self.scans = np.array(self.scans)
+        # print("Reading Complete")
+
+    def get_data_memory_safe(self, scan_range=None, time_range=None):
+        if time_range is not None:
+            scan_range = self.get_scans_from_times(time_range)
+            print("Getting times:", time_range)
+        if scan_range is None:
+            scan_range = [np.amin(self.scans), np.amax(self.scans)]
+        print("Scan Range:", scan_range)
+        data = get_data_from_spectrum(self.msrun[int(scan_range[0] + 1)])
+
+        resolution = get_resolution(data)
+        axis = ud.nonlinear_axis(np.amin(data[:, 0]), np.amax(data[:, 0]), resolution)
+        template = np.transpose([axis, np.zeros_like(axis)])
+        # print("Length merge axis:", len(template))
+        newdat = ud.mergedata(template, data)
+        template[:, 1] += newdat[:, 1]
+
+        for i in range(int(scan_range[0]) + 1, scan_range[1] + 1):
+            print("Importing Scan:", i)
+            data = get_data_from_spectrum(self.msrun[i + 1])
+            newdat = ud.mergedata(template, data)
+            template[:, 1] += newdat[:, 1]
+        return template
+
+    def grab_data(self):
+        self.data = []
         for i, spectrum in enumerate(self.msrun):
             if '_scan_time' in list(spectrum.__dict__.keys()):
                 impdat = np.transpose([spectrum.mz, spectrum.i])
                 impdat = impdat[impdat[:, 0] > 10]
                 self.data.append(impdat)
-                try:
-                    self.times.append(float(spectrum['scan start time']))
-                except:
-                    self.times.append(-1)
-                self.scans.append(i)
-                #print(i, end=" ")
-        self.times = np.array(self.times)
-        self.scans = np.array(self.scans)
         self.data = np.array(self.data)
-        #print("Reading Complete")
 
-    def get_data(self, scan_range=None, time_range=None):
-        """
-        Returns merged 1D MS data from mzML import
-        :return: merged data
-        """
+    def get_data_fast_memory_heavy(self, scan_range=None, time_range=None):
+        if self.data is None:
+            self.grab_data()
+
         data = deepcopy(self.data)
         if time_range is not None:
             scan_range = self.get_scans_from_times(time_range)
@@ -139,7 +177,7 @@ class mzMLimporter:
                 concat = np.concatenate(data)
                 sort = concat[concat[:, 0].argsort()]
                 data = ud.removeduplicates(sort)
-                print(e)
+                print("2", e)
         elif len(data) == 1:
             data = data[0]
         else:
@@ -147,6 +185,21 @@ class mzMLimporter:
         # plt.figure()
         # plt.plot(data)
         # plt.show()
+        return data
+
+    def get_data(self, scan_range=None, time_range=None):
+        """
+        Returns merged 1D MS data from mzML import
+        :return: merged data
+        """
+        if self.filesize>1000000000:
+            try:
+                data=self.get_data_memory_safe(scan_range, time_range)
+            except Exception as e:
+                print("Error in Memory Safe mzML, trying memory heavy metho")
+                data=self.get_data_fast_memory_heavy(scan_range, time_range)
+        else:
+            data=self.get_data_fast_memory_heavy(scan_range, time_range)
         return data
 
     def get_tic(self):
@@ -158,9 +211,10 @@ class mzMLimporter:
         try:
             min = np.amin(self.scans[boo1])
             max = np.amax(self.scans[boo2])
-        except:
+        except Exception as e:
             min = -1
             max = -1
+            print("3", e)
         return [min, max]
 
     def get_times_from_scans(self, scan_range):
@@ -171,8 +225,9 @@ class mzMLimporter:
         max = np.amax(self.times[boo2])
         try:
             avg = np.mean(self.times[boo3])
-        except:
+        except Exception as e:
             avg = min
+            print("4", e)
         return [min, avg, max]
 
     def get_max_time(self):

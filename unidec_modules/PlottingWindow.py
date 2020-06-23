@@ -6,6 +6,8 @@ import wx
 import tempfile, os
 from matplotlib import interactive
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
+#from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar
+#from matplotlib.backends.backend_wx import _load_bitmap
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from matplotlib import rcParams
@@ -65,8 +67,6 @@ class PlottingWindow(wx.Window):
         else:
             figsize = (6. * 0.9, 5. * 0.9)
 
-        self.figure = Figure(figsize=figsize)  # , dpi=
-
         if "axes" in kwargs:
             self._axes = kwargs["axes"]
             del kwargs["axes"]
@@ -87,8 +87,9 @@ class PlottingWindow(wx.Window):
             del kwargs["smash"]
         else:
             self.smash = 0
-        wx.Window.__init__(self, *args, **kwargs)
 
+        wx.Window.__init__(self, *args, **kwargs)
+        self.figure = Figure(figsize=figsize)  # , dpi=
         self.subplot1 = None
         self.zoom = None
         self.subplot1 = None
@@ -250,7 +251,7 @@ class PlottingWindow(wx.Window):
         :param markval: Marker
         :return: None
         """
-        self.subplot1.plot(np.array(x) / self.kdnorm, y, color=colval, marker=markval, linestyle='None', clip_on=False
+        self.subplot1.plot(np.array(x) / self.kdnorm, y, color=colval, marker=markval, linestyle='None', clip_on=True
                            , markeredgecolor="k", label=label)
 
     def repaint(self, setupzoom=False):
@@ -408,3 +409,37 @@ class PlottingWindow(wx.Window):
                 useblit=True,
                 onmove_callback=None,
                 rectprops=dict(alpha=0.2, facecolor='yellow'))
+    '''
+    def add_toolbar(self):
+        self.toolbar = MyNavigationToolbar(self.canvas, True)
+        self.toolbar.Realize()'''
+
+"""
+This technically could be used, but it didn't work well when I tried it.
+class MyNavigationToolbar(NavigationToolbar):
+    def __init__(self, canvas, cankill):
+        NavigationToolbar.__init__(self, canvas)
+
+        # for simplicity I'm going to reuse a bitmap from wx, you'll
+        # probably want to add your own.
+        tool = self.AddTool(wx.ID_ANY, 'Click me', _load_bitmap('back.png'),
+                            'Activate custom contol')
+        self.Bind(wx.EVT_TOOL, self._on_custom, id=tool.GetId())
+
+    def _on_custom(self, evt):
+        # add some text to the axes in a random location in axes (0,1)
+        # coords) with a random color
+
+        # get the axes
+        ax = self.canvas.figure.axes[0]
+
+        # generate a random location can color
+        x, y = np.random.rand(2)
+        rgb = np.random.rand(3)
+
+        # add the text and draw
+        ax.text(x, y, 'You clicked me',
+                transform=ax.transAxes,
+                color=rgb)
+        self.canvas.draw()
+        evt.Skip()"""

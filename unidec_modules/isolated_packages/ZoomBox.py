@@ -1,8 +1,8 @@
 from matplotlib.patches import Rectangle
-
+from matplotlib.transforms import Bbox
 # from pubsub import setupkwargs
 from pubsub import pub
-
+from copy import deepcopy
 import numpy as np
 import wx
 
@@ -17,10 +17,10 @@ def GetMaxes(axes, xmin=None, xmax=None):
         if xmin is not None and xmax is not None:
             bool1 = np.all(np.array([xdat > xmin, xdat < xmax]), axis=0)
             ydat = ydat[bool1]
-            line.set_clip_on(False)
+            line.set_clip_on(True)
         else:
             pass
-            # line.set_clip_on(False)
+            line.set_clip_on(True)
         try:
             yvals.append([np.amin(ydat), np.amax(ydat)])
             xvals.append([np.amin(xdat), np.amax(xdat)])
@@ -105,12 +105,36 @@ def GetMaxes(axes, xmin=None, xmax=None):
         out = [xmin, ymin, xmax, ymax]
     else:
         out = axes.dataLim.bounds
+
+
+    '''
+    #xlims = axes.get_xlim()
+    #ylims = axes.get_ylim()
+    #out2=Bbox(((xlims[0], ylims[0]),(xlims[1],ylims[1]*2)))
+    #print(axes.transData.transform(xlims))
+    #print(out, out2)
+    for line in axes.lines:
+        line.set_clip_on(True)
+        #line.set_clip_box(out2)
+        pass
+
+    for o in axes.findobj():
+        o.set_clip_on(True)
+        #o.set_clip_box(out2)
+    #axes.set_clip_box(out2)
+    axes.set_clip_on(True)'''
+
     return out
 
 
 def ResetVisible(axes):
+    #xlims = axes.get_xlim()
+    #ylims = axes.get_ylim()
+    #out2=Bbox(((xlims[0], ylims[0]),(xlims[1],ylims[1]*2)))
     for line in axes.lines:
-        line.set_clip_on(False)
+        #line.set_clip_box(out2)
+        line.set_clip_on(True)
+        pass
     for t in axes.texts:
         t.set_visible(True)
 
@@ -364,8 +388,12 @@ class ZoomBox:
         self.buttonDown = False
         if self.comparemode is True:
             if event.xdata is None:
-                self.comparexvals.append(self.prev[0])
-                self.compareyvals.append(self.prev[1])
+                try:
+                    self.comparexvals.append(self.prev[0])
+                    self.compareyvals.append(self.prev[1])
+                except:
+                    self.comparexvals.append(event.xdata)
+                    self.compareyvals.append(event.ydata)
             else:
                 self.comparexvals.append(event.xdata)
                 self.compareyvals.append(event.ydata)
@@ -396,8 +424,8 @@ class ZoomBox:
                 if xmin > xmax: xmin, xmax = xmax, xmin
                 if ymin > ymax: ymin, ymax = ymax, ymin
                 # assure that x and y values are not equal
-                if xmin == xmax: xmax = xmin * 1.0001
-                if ymin == ymax: ymax = ymin * 1.0001
+                if xmin == xmax: xmax = xmin * 1.01
+                if ymin == ymax: ymax = ymin * 1.01
 
                 # Check if a zoom out is necessary
                 zoomout = False
@@ -491,10 +519,15 @@ class ZoomBox:
                 return
 
             for axes in self.axes:
+                #clipbox = [[xmin, ymin], [xmax, ymax * 2]]
+                #print(clipbox)
+                #axes.set_clip_box(clipbox)
+
                 axes.set_xlim(xmin, xmax)
                 if spanflag == 1:
                     xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=xmin, xmax=xmax)
                 axes.set_ylim(ymin, ymax)
+
             self.kill_labels()
             self.canvas.draw()
 

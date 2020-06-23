@@ -1,3 +1,4 @@
+version 4.2.2
 imflag 0
 input GroEL UniDec_input.dat
 output GroEL UniDec
@@ -11,15 +12,15 @@ beta 50.0
 mzsig 0.0
 psfun 0
 discreteplot 0
-massub 1000000.0
-masslb 1000.0
+massub 5000000.0
+masslb 10000.0
 msig 0.0
 molig 0.0
 massbins 100.0
 mtabsig 0.0
 minmz 10079.027219759617
 maxmz 13777.256263028847
-subbuff 0.0
+subbuff 100.0
 subtype 2
 smooth 0.0
 mzbins 0.0
@@ -42,7 +43,7 @@ linflag 2
 cmap nipy_spectral
 peakcmap rainbow
 spectracmap rainbow
-publicationmode 1
+publicationmode 0
 isotopemode 0
 peaknorm 1
 datanorm 1

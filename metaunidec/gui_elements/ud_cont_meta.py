@@ -103,7 +103,7 @@ class main_controls(wx.Panel):
         self.ctlminmz = wx.TextCtrl(panel1, value="", size=(50, -1))
         self.ctlmaxmz = wx.TextCtrl(panel1, value="", size=(60, -1))
         mzrange = wx.BoxSizer(wx.HORIZONTAL)
-        mzrange.Add(wx.StaticText(panel1, label="m/z: "), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
+        mzrange.Add(wx.StaticText(panel1, label="m/z: "), 0, wx.ALIGN_CENTER_VERTICAL)
         mzrange.Add(self.ctlminmz)
         mzrange.Add(wx.StaticText(panel1, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
         mzrange.Add(self.ctlmaxmz)
@@ -271,9 +271,9 @@ class main_controls(wx.Panel):
         sbs = wx.StaticBoxSizer(sb, orient=wx.HORIZONTAL)
         self.ctlminnativez = wx.TextCtrl(panel2b, value='', size=(75, -1))
         self.ctlmaxnativez = wx.TextCtrl(panel2b, value='', size=(75, -1))
-        sbs.Add(self.ctlminnativez, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
-        sbs.Add(wx.StaticText(panel2b, label=' to '), 0, wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
-        sbs.Add(self.ctlmaxnativez, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
+        sbs.Add(self.ctlminnativez, flag=wx.LEFT | wx.EXPAND, border=5)
+        sbs.Add(wx.StaticText(panel2b, label=' to '), 0, wx.EXPAND)
+        sbs.Add(self.ctlmaxnativez, flag=wx.LEFT | wx.EXPAND, border=5)
         gbox2b.Add(sbs, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
@@ -397,15 +397,14 @@ class main_controls(wx.Panel):
         self.ctlspeccm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
         self.parent.Bind(wx.EVT_COMBOBOX, self.on_spectra_color_change, self.ctlspeccm)
 
-        #for mp in self.config.cmaps2:
+        # for mp in self.config.cmaps2:
         #    self.ctl2dcm.Append(mp)
-        #for mp in self.config.cmaps:
+        # for mp in self.config.cmaps:
         #    self.ctlpeakcm.Append(mp)
         #    self.ctlspeccm.Append(mp)
         self.ctl2dcm.AppendItems(self.config.cmaps2)
         self.ctlpeakcm.AppendItems(self.config.cmaps)
         self.ctlspeccm.AppendItems(self.config.cmaps)
-
 
         i = 0
         gbox3b.Add(wx.StaticText(panel3b, label='2D Color Map: '), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -440,10 +439,10 @@ class main_controls(wx.Panel):
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.HORIZONTAL)
         self.ctlintlb = wx.TextCtrl(panel3b, value='', size=(75, -1))
         self.ctlintub = wx.TextCtrl(panel3b, value='', size=(75, -1))
-        sbs2.Add(self.ctlintlb, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
-        sbs2.Add(wx.StaticText(panel3b, label=' to '), 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
-        sbs2.Add(self.ctlintub, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
-        sbs2.Add(wx.StaticText(panel3b, label=' Da '), 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
+        sbs2.Add(self.ctlintlb, flag=wx.LEFT | wx.EXPAND, border=5)
+        sbs2.Add(wx.StaticText(panel3b, label=' to '), 0, flag=wx.EXPAND)
+        sbs2.Add(self.ctlintub, flag=wx.LEFT | wx.EXPAND, border=5)
+        sbs2.Add(wx.StaticText(panel3b, label=' Da '), 0, flag=wx.EXPAND)
         gbox3b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
@@ -451,10 +450,10 @@ class main_controls(wx.Panel):
         sbs3 = wx.StaticBoxSizer(sb3, orient=wx.HORIZONTAL)
         self.ctlcrossover = wx.TextCtrl(panel3b, value='', size=(75, -1))
         self.ctlnumtot = wx.TextCtrl(panel3b, value='', size=(75, -1))
-        sbs3.Add(wx.StaticText(panel3b, label='If over'), 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
-        sbs3.Add(self.ctlcrossover, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
-        sbs3.Add(wx.StaticText(panel3b, label=' plot only'), 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.EXPAND)
-        sbs3.Add(self.ctlnumtot, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND, border=5)
+        sbs3.Add(wx.StaticText(panel3b, label='If over'), 0, flag=wx.EXPAND)
+        sbs3.Add(self.ctlcrossover, flag=wx.LEFT | wx.EXPAND, border=5)
+        sbs3.Add(wx.StaticText(panel3b, label=' plot only'), 0, flag=wx.EXPAND)
+        sbs3.Add(self.ctlnumtot, flag=wx.LEFT | wx.EXPAND, border=5)
         gbox3b.Add(sbs3, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
@@ -966,9 +965,9 @@ class main_controls(wx.Panel):
             except:
                 value = -1
             psval = self.ctlpsfun.GetSelection()
-            #try:
+            # try:
             #    fwhm, psfun, mid = ud.auto_peak_width(self.pres.eng.data.data2)
-            #except:
+            # except:
             #    fwhm = -1
             #    psfun = -1
             if value == 0:

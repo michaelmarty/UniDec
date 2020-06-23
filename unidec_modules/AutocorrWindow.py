@@ -71,7 +71,7 @@ class CorrListCtrlPanel(wx.Panel):
         """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self.list = CorrListCtrl(self, wx.NewId(), size=(200, 550), style=wx.LC_REPORT)
+        self.list = CorrListCtrl(self, wx.NewIdRef(), size=(200, 550), style=wx.LC_REPORT)
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)
         self.SetAutoLayout(True)

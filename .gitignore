@@ -135,7 +135,27 @@ __pycache__/
 unidec_bin/Example Data/ADH_unidecfiles/ADH_peak_areas.dat
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_1D_Mass_Defects.txt
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_2D_Mass_Defects.txt
-unidec_modules/thermo_reader/
+unidec_modules/thermo_reader/greparam.py
 unidec_bin/Presets/Marius/
-
+MANIFEST.in
+desktop.ini
+setup.py
+unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure1.pdf
+unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure2.pdf
+unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure3.pdf
+unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure4.pdf
+unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure5.pdf
+unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure6.pdf
+unidec_bin/Example Data/BSA_unidecfiles/BSA_manualfile.dat
+unidec_bin/Example Data/BSA_unidecfiles/BSA_report.aux
+unidec_bin/Example Data/BSA_unidecfiles/BSA_report.log
+unidec_bin/Example Data/BSA_unidecfiles/BSA_report.pdf
+unidec_bin/recent.txt
+unidec_bin/Example Data/BSA_unidecfiles/BSA_chargepeaks.txt
+unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/Extract_grid_2D_Extract.txt
+unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/Extract_total_2D_Extract.txt
+ExtractFull2D_Da.txt
+extracts.txt
+sums.txt
+unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_chargepeaks.txt
 

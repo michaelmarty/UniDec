@@ -16,7 +16,7 @@ class TreeCtrlPanel(wx.Panel):
 
         self.link = link
 
-        self.tree = TreeCtrl(self, wx.NewId(),
+        self.tree = TreeCtrl(self, wx.NewIdRef(),
                              wx.DefaultPosition,
                              (300, 300),
                              wx.TR_DEFAULT_STYLE | wx.TR_MULTIPLE)

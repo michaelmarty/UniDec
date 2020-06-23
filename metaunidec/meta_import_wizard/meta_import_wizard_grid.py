@@ -71,9 +71,9 @@ class WizardGrid(wx.grid.Grid):
         self.row, self.col = evt.GetRow(), evt.GetCol()
 
         if not hasattr(self, "popupID1"):
-            self.popupID1 = wx.NewId()
-            # self.popupID2 = wx.NewId()
-            # self.popupID3 = wx.NewId()
+            self.popupID1 = wx.NewIdRef()
+            # self.popupID2 = wx.NewIdRef()
+            # self.popupID3 = wx.NewIdRef()
             # make a menu
 
         menu = wx.Menu()

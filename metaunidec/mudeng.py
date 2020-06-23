@@ -219,17 +219,18 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         :return:
         """
         errors = []
+        self.outpath = None
         if starttp is not None:
-            self.parse_multiple_files(paths, starttp=starttp, endtp=endtp, timestep=timestep, name=name)
+            self.outpath = self.parse_multiple_files(paths, starttp=starttp, endtp=endtp, timestep=timestep, name=name)
         elif startscan is not None:
-            self.parse_multiple_files(paths, startscan=startscan, endscan=endscan, name=name)
+            self.outpath = self.parse_multiple_files(paths, startscan=startscan, endscan=endscan, name=name)
         else:
             for p in paths:
                 try:
                     if scanstep is not None:
-                        self.parse_file(p, scanstep=scanstep)
+                        self.outpath = self.parse_file(p, scanstep=scanstep)
                     else:
-                        self.parse_file(p, timestep=float(timestep))
+                        self.outpath = self.parse_file(p, timestep=float(timestep))
                 except Exception as e:
                     errors.append(p)
                     print(e)
@@ -246,10 +247,10 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         dirname = os.path.dirname(p)
         filename = os.path.basename(p)
         if scanstep is not None:
-            automzml.extract_scans(filename, dirname, scanstep, "hdf5")
+            self.outpath = automzml.extract_scans(filename, dirname, scanstep, "hdf5")
         else:
-            automzml.extract(filename, dirname, timestep, "hdf5")
-        pass
+            self.outpath = automzml.extract(filename, dirname, timestep, "hdf5")
+        return self.outpath
 
     def parse_multiple_files(self, paths, starttp=None, endtp=None, timestep=1.0, name=None,
                              startscan=None, endscan=None, scanstep=None):
@@ -260,9 +261,10 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
             dirs.append(os.path.dirname(p))
             files.append(os.path.basename(p))
         if startscan is not None:
-            automzml.extract_scans_multiple_files(files, dirs, startscan, endscan, name)
+            self.outpath = automzml.extract_scans_multiple_files(files, dirs, startscan, endscan, name)
         else:
-            automzml.extract_timepoints(files, dirs, starttp, endtp, timestep, outputname=name)
+            self.outpath = automzml.extract_timepoints(files, dirs, starttp, endtp, timestep, outputname=name)
+        return self.outpath
 
 
 if __name__ == '__main__':

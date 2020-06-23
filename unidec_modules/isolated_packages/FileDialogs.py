@@ -55,7 +55,7 @@ def open_multiple_files_dialog(message="Open Files", file_type="*.*"):
             file_names = [ud.smartdecode(os.path.join(os.path.dirname(path.encode('utf-8')), f.encode('utf-8'))) for f
                           in dlg.GetFilenames()]
             default_dir = os.path.dirname(path)
-            print("TESTING:", file_names)
+            # print("Files:", file_names)
     dlg.Destroy()
     return file_names
 

@@ -20,6 +20,7 @@ class UniDecPres(object):
         self.wx_app = wx.App(redirect=False)
         self.eng = None
         self.view = None
+        self.recent_files = []
         pass
 
     def start(self):
@@ -287,7 +288,7 @@ class UniDecPres(object):
         self.warn(message, caption="Linear Regression Results")
 
     def fpop(self, e=0):
-        output=self.eng.oxidation_analysis()
+        output = self.eng.oxidation_analysis()
         outstring = ""
         for o in output:
             outstring += str(o) + "\n"
@@ -304,9 +305,9 @@ class UniDecPres(object):
 
     def sub_div(self, e=0):
         try:
-            masses=[]
+            masses = []
             for p in self.eng.pks.peaks:
-                if p.ignore==0:
+                if p.ignore == 0:
                     masses.append(p.mass)
             defaultsub = np.amin(masses)
         except:
@@ -326,8 +327,8 @@ class UniDecPres(object):
 
         try:
             sd_results = []
-            message= "Average Masses:\n\n"
-            outstring=""
+            message = "Average Masses:\n\n"
+            outstring = ""
             for s in self.eng.data.spectra:
                 pks = peakstructure.Peaks()
                 peaks = ud.peakdetect(s.massdat, self.eng.config)
@@ -340,13 +341,13 @@ class UniDecPres(object):
             avg = np.mean(sd_results)
             message += outstring
             message += "\nOverall Average: " + str(avg)
-            outstring += "\n" +str(avg)
+            outstring += "\n" + str(avg)
             self.copy_to_clipboard(outstring)
             self.warn(message, caption="Subtract and Divide Results")
 
         except:
             sd_result = ud.subtract_and_divide(self.eng.pks, sub, div)
-            outstring= str(sd_result)
+            outstring = str(sd_result)
             message = "Average Mass: " + outstring
             self.copy_to_clipboard(outstring)
             self.warn(message, caption="Subtract and Divide Results")
@@ -362,3 +363,43 @@ class UniDecPres(object):
         if wx.TheClipboard.Open():
             wx.TheClipboard.SetData(clipboard)
             wx.TheClipboard.Close()
+
+    def write_to_recent(self, path=None):
+        if path is None:
+            path = os.path.join(self.eng.config.dirname, self.eng.config.filename)
+
+        with open(self.eng.config.recentfile, 'a') as file:
+            file.write(path + "\n")
+
+        self.recent_files = self.read_recent()
+        self.cleanup_recent_file(self.recent_files)
+
+    def read_recent(self):
+        if os.path.isfile(self.eng.config.recentfile):
+            with open(self.eng.config.recentfile, 'r') as file:
+                lines = []
+                for l in file:
+                    p = l.strip("\n")
+                    if os.path.isfile(p):
+                        lines.append(p)
+        else:
+            self.eng.config.recentfile = os.path.join(self.eng.config.UniDecDir, "recent.txt")
+            with open(self.eng.config.recentfile, 'w') as file:
+                pass  # Create empty file
+            return []
+
+        if not ud.isempty(lines):
+            lines = np.array(lines)
+            lines = lines[::-1][:10]
+            unique, indexes = np.unique(lines, return_index=True)
+            lines = np.array(unique[indexes.argsort()])
+        else:
+            lines = []
+        return lines
+
+    def cleanup_recent_file(self, recent_files):
+        with open(self.eng.config.recentfile, "r+") as f:
+            for p in recent_files[::-1]:
+                l = p + '\n'
+                f.write(l)
+            f.truncate()

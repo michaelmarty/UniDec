@@ -194,6 +194,26 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.4.2.2
+
+**Added Open Recent Files** menu item.
+
+**Added Copy All Full** to copy paste a wide range of parameters from the peaks in the peak list. Let me know if there are additional parameters you would like added.
+
+**Major upgrades to file mzML and Thermo file imports**. The Thermo files should now open and average faster. Both types should now allow large files to open without crashing the memory.
+
+Added ability to use a semicolon with the X values in the Data Collector to grab the sum of multiple states. Also, added a feature to Plot X Ranges to help to visualize the integration range.
+
+Added time midpoint to the mzML parsing.
+
+Added the version number to the config file for future use or reference.
+
+Added experimental DoubleDec feature to Data Collector. 
+
+Added experimental report generator for the Native MS Guided Structural Biology Center.
+
+Fixed bug with fits being plotted when process data is clicked. Fixed a number of additional bugs. Hopefully didn't create too many more...
+
 v.4.2.1
 
 **Added a Full button** to reset the m/z range to the full value.

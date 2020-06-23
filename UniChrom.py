@@ -201,7 +201,11 @@ class ChromWindow(wx.Frame):
         savefile = self.export_mz_file()
         if self.udwin is None:
             self.udwin = GUniDec.UniDecApp()
-        self.udwin.on_open_file(savefile, self.eng.dirname)
+        try:
+            self.udwin.on_open_file(savefile, self.eng.dirname)
+        except:
+            self.udwin = GUniDec.UniDecApp()
+            self.udwin.on_open_file(savefile, self.eng.dirname)
         pass
 
     def export_mz_file(self, e=None, append=None, directory=None):

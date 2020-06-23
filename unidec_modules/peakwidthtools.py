@@ -16,7 +16,7 @@ class PeakTools1d(wx.Dialog):
         :return: None
         """
         wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
-        self.SetSize((700, 700))
+        self.SetSize((700, 740))
         self.SetTitle("Peak Fitting Tools")
         self.config = None
         self.data = None
@@ -53,7 +53,7 @@ class PeakTools1d(wx.Dialog):
 
         self.plot1.plotrefreshtop(self.data[:, 0], self.data[:, 1], title="Data", xlabel="m/z (Th)",
                                   ylabel="Normalized Intensity", zoom="span")
-        sbs.Add(self.plot1, 1, wx.EXPAND)
+        sbs.Add(self.plot1, 0, wx.EXPAND)
 
         hbox11 = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -89,7 +89,7 @@ class PeakTools1d(wx.Dialog):
         hbox7.Add(self.resbox, flag=wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
         hbox9.Add(hbox7, 0, wx.ALIGN_RIGHT)
 
-        hbox11.Add(hbox9, 1, wx.ALIGN_RIGHT)
+        hbox11.Add(hbox9, 1, wx.EXPAND)
         sbs.Add(hbox11, 0, wx.EXPAND)
         pnl.SetSizer(sbs)
         # Create the bottom buttons

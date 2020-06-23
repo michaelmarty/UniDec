@@ -90,6 +90,7 @@ class Plot1d(PlottingWindow):
             self.subplot1.xaxis.set_major_locator(MaxNLocator(integer=True))
 
         self.subplot1.set_xlabel(self.xlabel)
+        self.subplot1.set_clip_on(True)
 
         self.setup_zoom([self.subplot1], self.zoomtype)
         if not nopaint:
@@ -248,6 +249,7 @@ class Plot1d(PlottingWindow):
         self.subplot1.spines['top'].set_visible(False)
         self.subplot1.spines['right'].set_visible(False)
         self.subplot1.set_clip_on(False)
+        self.setup_zoom([self.subplot1], self.zoomtype)
         self.flag = True
 
     # TODO make the axes work for negative and positive bars

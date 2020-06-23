@@ -267,6 +267,9 @@ class MainwindowBase(wx.Frame):
             plot.size_handler()
         pass
 
+    def onFocus(self, event):
+        self.plotpanel.SetFocus()
+
     def on_about(self, e):
         """
         Displays message about program

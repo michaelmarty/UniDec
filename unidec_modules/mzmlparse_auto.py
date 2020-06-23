@@ -60,6 +60,7 @@ def parse(path, times, timestep, volts, outputheader, directory, output="txt"):
                         group.attrs["Collision Voltage"] = volts[v]
                     group.attrs["timestart"] = time
                     group.attrs["timeend"] = time + timestep
+                    group.attrs["timemid"] = time + timestep*0.5
                     num += 1
                     pass
         if output == "hdf5":
@@ -67,6 +68,7 @@ def parse(path, times, timestep, volts, outputheader, directory, output="txt"):
             hdf.close()
     else:
         print("File not found:", path)
+    return outpath
 
 
 def parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr=None, outputname=None):
@@ -111,6 +113,7 @@ def parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr=None, outpu
                         pass
                     group.attrs["timestart"] = t
                     group.attrs["timeend"] = t + timestep
+                    group.attrs["timemid"] = t + timestep * 0.5
                     splits = path.split(sep="\\")
                     group.attrs["Original File"] = splits[len(splits)-1]
                     num += 1
@@ -120,6 +123,7 @@ def parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr=None, outpu
             print("File not found: ", path)
     msdataset.attrs["num"] = num
     hdf.close()
+    return outpath
 
 
 def extract(file, directory, timestep=1.0, output="txt"):
@@ -131,23 +135,27 @@ def extract(file, directory, timestep=1.0, output="txt"):
         newdir = directory
     #name=ud.smartdecode(name)
     splits = name.split(sep="_")
-    for i, s in enumerate(splits):
-        if s.lower() == "ramp":
-            start = float(splits[i + 1])
-            end = float(splits[i + 2])
-            step = float(splits[i + 3])
-            volts = np.arange(start, end + step, step)
-            times = np.arange(0.0, len(volts) * timestep, timestep)
-            print("Ramp:", times, volts)
-            parse(path, times, timestep, volts, name, newdir, output=output)
-            return True
+    try:
+        for i, s in enumerate(splits):
+            if s.lower() == "ramp":
+                start = float(splits[i + 1])
+                end = float(splits[i + 2])
+                step = float(splits[i + 3])
+                volts = np.arange(start, end + step, step)
+                times = np.arange(0.0, len(volts) * timestep, timestep)
+                print("Ramp:", times, volts)
+                parse(path, times, timestep, volts, name, newdir, output=output)
+                return True
+    except:
+        print("Error parsing ramp keyword. Ignoring.")
     if os.path.splitext(file)[1] == ".mzML":
         maxtime = mzMLimporter(path).get_max_time()
     else:
         maxtime = DataImporter(path).get_max_time()
 
     times = np.arange(0, maxtime, timestep)
-    parse(path, times, timestep, None, name, newdir, output=output)
+    outpath = parse(path, times, timestep, None, name, newdir, output=output)
+    return outpath
 
 
 def extract_scans(file, directory, scanbins=1, output="txt"):
@@ -170,7 +178,7 @@ def extract_scans(file, directory, scanbins=1, output="txt"):
             maxscans = d.get_max_scans()
         else:
             maxtime = d.get_max_time()
-            maxscans = d.get_max_scans()
+            maxscans = d.get_max_scans()-1
         print(maxscans)
         scans = np.arange(0, maxscans, scanbins)
 
@@ -214,8 +222,10 @@ def extract_scans(file, directory, scanbins=1, output="txt"):
             msdataset.attrs["num"] = num
             hdf.close()
             print(outpath)
+            return outpath
     else:
         print("File not found:", path)
+        return None
 
 
 def extract_timepoints(files, directories, starttp=None, endtp=None, timestep=1.0, outputname="Combined"):
@@ -235,15 +245,18 @@ def extract_timepoints(files, directories, starttp=None, endtp=None, timestep=1.
         for i, s in enumerate(splits):
             if s.lower() == "ramp":
                 found = 1
-                start = float(splits[i + 1])
-                end = float(splits[i + 2])
-                step = float(splits[i + 3])
-                volts = np.arange(start, end + step, step)
-                voltsarr.append(volts)
+                try:
+                    start = float(splits[i + 1])
+                    end = float(splits[i + 2])
+                    step = float(splits[i + 3])
+                    volts = np.arange(start, end + step, step)
+                    voltsarr.append(volts)
+                except:
+                    found = 0
                 break
         if not found:
             print("File didn't have ramp")
-    parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr, outputname)
+    return parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr, outputname)
 
 
 def extract_scans_multiple_files(files, dirs, startscan=1.0, endscan=1.0, outputname="Combined", existing_path=None):
@@ -298,6 +311,7 @@ def extract_scans_multiple_files(files, dirs, startscan=1.0, endscan=1.0, output
             print("File not found: ", path)
     msdataset.attrs["num"] = num
     hdf.close()
+    return outpath
 
 
 def get_files(directory, timestep=1.0, output="txt"):

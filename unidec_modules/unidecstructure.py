@@ -6,6 +6,7 @@ import matplotlib.cm as cm
 from matplotlib.pyplot import colormaps
 import h5py
 from unidec_modules.hdf5_tools import *
+from unidec_modules.unidec_enginebase import version as version
 
 __author__ = 'Michael.Marty'
 
@@ -22,6 +23,8 @@ class UniDecConfig(object):
         Initialize Everything. Set default paths and run self.initialize
         :return: UniDecConfig object
         """
+        self.version = version
+        self.inputversion = None
         self.infname = "input.dat"
         self.outfname = ""
         self.mfile = "mass.dat"
@@ -218,6 +221,7 @@ class UniDecConfig(object):
             print(path)
             f = open(path, 'w+')
             print("NOTE: Your path length might exceed the limit for Windows. Please shorten your file name.")'''
+        f.write("version " + str(self.version) + "\n")
         f.write("imflag " + str(self.imflag) + "\n")
         f.write("input " + str(self.infname) + "\n")
         f.write("output " + str(self.outfname) + "\n")
@@ -349,6 +353,8 @@ class UniDecConfig(object):
             self.mfileflag = 0
             for line in f:
                 if len(line.split()) > 1:
+                    if line.startswith("version"):
+                        self.inputversion = line.split()[1]
                     if line.startswith("minmz"):
                         self.minmz = ud.string_to_value(line.split()[1])
                     if line.startswith("maxmz"):
@@ -570,7 +576,7 @@ class UniDecConfig(object):
             self.minmz = 0
 
         cdict = {  # "input": self.infname, "output": self.outfname,
-            "numit": self.numit,
+            "numit": self.numit, "version": self.version,
             "endz": self.endz, "startz": self.startz, "zzsig": self.zzsig, "psig": self.psig, "mzsig": self.mzsig,
             "beta": self.beta,
             "psfun": self.psfun, "discreteplot": self.discreteplot, "massub": self.massub, "masslb": self.masslb,
@@ -635,6 +641,7 @@ class UniDecConfig(object):
         hdf = h5py.File(file_name, 'r')
         config_group = hdf.get("config")
         # self.infname = self.read_attr(self.infname, "input", config_group)
+        self.inputversion = self.read_attr(self.inputversion, "version", config_group)
         self.maxmz = self.read_attr(self.maxmz, "maxmz", config_group)
         self.minmz = self.read_attr(self.minmz, "minmz", config_group)
         self.metamode = self.read_attr(self.metamode, "metamode", config_group)
@@ -1005,6 +1012,7 @@ class UniDecConfig(object):
         self.cdcreaderpath = os.path.join(self.UniDecDir, "CDCreader.exe")
         self.defaultconfig = os.path.join(self.UniDecDir, "default_conf.dat")
         self.masstablefile = os.path.join(self.UniDecDir, "mass_table.csv")
+        self.recentfile = os.path.join(self.UniDecDir, "recent.txt")
         self.h5repackfile = os.path.join(self.UniDecDir, self.h5repackfile)
         self.presetdir = os.path.join(self.UniDecDir, "Presets")
         self.exampledatadir = os.path.join(self.UniDecDir, "Example Data")

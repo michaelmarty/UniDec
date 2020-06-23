@@ -1,3 +1,4 @@
+version 4.2.2
 imflag 0
 input POPC_Nanodiscs_input.dat
 output POPC_Nanodiscs
@@ -6,9 +7,9 @@ numz 16
 endz 20
 startz 5
 zzsig 1.0
-psig 0.0
+psig 2.0
 beta 0.0
-mzsig 6.57968
+mzsig 1.0
 psfun 0
 discreteplot 0
 massub 160000.0
@@ -17,15 +18,15 @@ msig 1.0
 molig 760.0
 massbins 10.0
 mtabsig 0.0
-minmz 8761.430704083608
-maxmz 12864.965623887581
+minmz 8762.296892
+maxmz 12864.620507
 subbuff 0.0
 subtype 2
 smooth 0.0
 mzbins 0.0
 peakwindow 500.0
 peakthresh 0.1
-peakplotthresh 0.1
+peakplotthresh 1.0
 plotsep 0.025
 intthresh 0.0
 reductionpercent 0.0

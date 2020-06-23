@@ -12,7 +12,7 @@ import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 from unidec_modules import Extract2D, peakwidthtools, masstools, miscwindows, \
     MassDefects, mainwindow, nativez, ManualSelectionWindow, AutocorrWindow, fft_window, GridDecon, isotopetools
-from unidec_modules.isolated_packages import FileDialogs, texmaker, score_window
+from unidec_modules.isolated_packages import FileDialogs, texmaker, score_window, texmaker_nmsgsb
 import datacollector
 import import_wizard
 import unidec_modules.IM_windows as IM_wind
@@ -24,6 +24,12 @@ from unidec_modules.unidec_presbase import UniDecPres
 import Launcher
 from iFAMS.wxiFAMS import iFAMS_Window
 
+try:
+    import unidec_modules.thermo_reader.rawreader as rawreader
+except Exception as e:
+    print("Error importing Thermo Raw Reader, try installing MSFileReader from Thermo and pymsfilereader")
+    print(e)
+
 # import FileDialog  # Needed for pyinstaller
 
 __author__ = 'Michael.Marty'
@@ -33,7 +39,6 @@ __author__ = 'Michael.Marty'
 class UniDecApp(UniDecPres):
     """
     Main UniDec GUI Application.
-
     Presenter contains UniDec engine at self.eng and main GUI window at self.view
     """
 
@@ -64,6 +69,10 @@ class UniDecApp(UniDecPres):
         pub.subscribe(self.on_smash, 'smash')
         pub.subscribe(self.on_get_mzlimits, 'mzlimits')
         pub.subscribe(self.on_left_click, 'left_click')
+
+        self.recent_files = self.read_recent()
+        self.cleanup_recent_file(self.recent_files)
+        self.view.menu.update_recent()
 
         self.on_load_default(0)
 
@@ -160,9 +169,16 @@ class UniDecApp(UniDecPres):
         # tstart = time.perf_counter()
         # Load Config to GUI
         self.import_config()
+
+        # self.write_to_recent()
+
         self.view.SetStatusText("Ready", number=5)
+
+        self.write_to_recent()
+        self.view.menu.update_recent()
+
         # print("ImportConfig: %.2gs" % (time.perf_counter() - tstart))
-        #if False:
+        # if False:
         #    try:
         #        self.eng.unidec_imports(everything=False)
         #        self.after_unidec_run()
@@ -346,7 +362,6 @@ class UniDecApp(UniDecPres):
                                     np.zeros_like(self.eng.data.data2[:, 1]) + self.eng.config.intthresh, "red",
                                     "Noise Threshold")
             self.view.plot1.add_legend()
-
         if self.eng.config.imflag == 1:
             self.view.plot1im.contourplot(self.eng.data.data3, self.eng.config, xlab="m/z (Th)",
                                           ylab="Arrival Time (ms)", title="IM-MS Data")
@@ -424,20 +439,20 @@ class UniDecApp(UniDecPres):
         self.export_config(self.eng.config.confname)
         self.eng.pick_peaks()
         self.view.SetStatusText("Plotting Peaks", number=5)
-        #print("T1: %.2gs" % (time.perf_counter() - tstart))
+        # print("T1: %.2gs" % (time.perf_counter() - tstart))
         if self.eng.config.batchflag == 0:
             self.view.peakpanel.add_data(self.eng.pks)
-            #print("T2: %.2gs" % (time.perf_counter() - tstart))
+            # print("T2: %.2gs" % (time.perf_counter() - tstart))
             self.makeplot2(1)
-            #print("T3: %.2gs" % (time.perf_counter() - tstart))
+            # print("T3: %.2gs" % (time.perf_counter() - tstart))
             self.makeplot6(1)
-            #print("T4: %.2gs" % (time.perf_counter() - tstart))
+            # print("T4: %.2gs" % (time.perf_counter() - tstart))
             self.makeplot4(1)
-            #print("T5: %.2gs" % (time.perf_counter() - tstart))
+            # print("T5: %.2gs" % (time.perf_counter() - tstart))
         self.view.SetStatusText("Peak Pick Done", number=5)
 
         self.on_score()
-        #print("T6: %.2gs" % (time.perf_counter() - tstart))
+        # print("T6: %.2gs" % (time.perf_counter() - tstart))
         pass
 
     def on_plot_peaks(self, e=None):
@@ -528,7 +543,7 @@ class UniDecApp(UniDecPres):
                 self.view.plot1.plotadddot(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], 'blue', "o", "Peaks")
 
                 try:
-                    if len(self.eng.data.fitdat) > 0:
+                    if len(self.eng.data.fitdat) > 0 and imfit:
                         self.view.plot1.plotadddot(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "s",
                                                    "Fit Data")
                         leg = True
@@ -549,7 +564,7 @@ class UniDecApp(UniDecPres):
                     leg = True
 
                 try:
-                    if len(self.eng.data.fitdat) > 0:
+                    if len(self.eng.data.fitdat) > 0 and imfit:
                         self.view.plot1.plotadd(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "Fit Data")
                         leg = True
                     pass
@@ -573,7 +588,8 @@ class UniDecApp(UniDecPres):
             tstart = time.perf_counter()
             self.view.plot2.plotrefreshtop(self.eng.data.massdat[:, 0], self.eng.data.massdat[:, 1],
                                            "Zero-charge Mass Spectrum", "Mass (Da)",
-                                           "Intensity", "Mass Distribution", self.eng.config, test_kda=True, nopaint=True)
+                                           "Intensity", "Mass Distribution", self.eng.config, test_kda=True,
+                                           nopaint=True)
             if self.eng.pks.plen > 0:
                 for p in self.eng.pks.peaks:
                     if p.ignore == 0:
@@ -625,7 +641,7 @@ class UniDecApp(UniDecPres):
                         mztab2 = np.array(p.mztab2)
                         maxval = np.amax(mztab[:, 1])
                         b1 = mztab[:, 1] > self.eng.config.peakplotthresh * maxval
-                        self.view.plot4.plotadddot(mztab2[b1,0], mztab2[b1,1], p.color, p.marker)
+                        self.view.plot4.plotadddot(mztab2[b1, 0], mztab2[b1, 1], p.color, p.marker)
                     if not ud.isempty(p.stickdat):
                         self.view.plot4.plotadd(self.eng.data.data2[:, 0], np.array(p.stickdat) / stickmax - (
                                 num + 1) * self.eng.config.separation, p.color, "useless label")
@@ -678,7 +694,7 @@ class UniDecApp(UniDecPres):
                         marks.append(p.marker)
                 indexes = list(range(0, num))
                 self.view.plot6.barplottop(indexes, ints, labs, cols, "Species", "Intensity",
-                                           "Peak Intensities",repaint=False)
+                                           "Peak Intensities", repaint=False)
                 for i in indexes:
                     self.view.plot6.plotadddot(i, ints[i], cols[i], marks[i])
             self.view.plot6.repaint()
@@ -855,7 +871,7 @@ class UniDecApp(UniDecPres):
         self.view.plot2.textremove()
         for i, d in enumerate(peakdiff):
             if d != 0:
-                label=ud.decimal_formatter(d, self.eng.config.massbins)
+                label = ud.decimal_formatter(d, self.eng.config.massbins)
                 self.view.plot2.addtext(label, pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
             else:
                 self.view.plot2.addtext("0", pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
@@ -872,7 +888,7 @@ class UniDecApp(UniDecPres):
         pmasses = np.array([p.mass for p in self.eng.pks.peaks])
         pint = np.array([p.height for p in self.eng.pks.peaks])
         mval = np.amax(self.eng.data.massdat[:, 1])
-        #pint = ud.fix_textpos(pint, mval)
+        # pint = ud.fix_textpos(pint, mval)
 
         self.view.plot2.textremove()
         for i, d in enumerate(pmasses):
@@ -933,12 +949,10 @@ class UniDecApp(UniDecPres):
     def on_integrate(self, plot=True, filled=True):
         """
         Triggered by right click on plot2. Integrates peaks.
-
         If plot2 is zoomed out, it will use self.eng.autointegrate() to integrate the peaks.
         If plot2 is zoomed in to a single peak, the integral for that peak is recalculated from the plot limits.
         If plot2 is zoomed in to more than one peak, the integral is not set for a single peak but simply printed on
             the plot
-
         :param plot: Boolean, whether to add filled areas to plot.
         :return: None
         """
@@ -1102,7 +1116,6 @@ class UniDecApp(UniDecPres):
     def on_mass_tools(self, e=None, show=True):
         """
         Opens masstools window.
-
         If a match was performed, it will update plot 6 and the peak panel.
         If the user decides to use simulated masses, it will make plot these new peaks.
         :param e: unused event
@@ -1246,14 +1259,10 @@ class UniDecApp(UniDecPres):
     def on_tweet(self, e=None):
         """
         Opens Twitter Extension Window.
-
         First makes PNG files of all the figures it can. Those are fed to the window.
-
         self.twittercodes is modified if the person has logged in, so that the person only has to log in once.
-
         Note: don't mess with self.twittercodes. It DOES NOT contain log in information such as user name or password,
         but it shouldn't be printed, which is why it lives in the memory only.
-
         :param e: event
         :return: None
         """
@@ -1346,7 +1355,6 @@ class UniDecApp(UniDecPres):
     def on_center_of_mass(self, e=None):
         """
         Determines the center of mass for the region zoomed on plot2.
-
         Get limits from plot2.
         Get Center of Mass from self.eng.center_of_mass
         Reports these as text on plot2.
@@ -1368,7 +1376,6 @@ class UniDecApp(UniDecPres):
         """
         The old switcheroo. Takes the mass output and makes it the m/z input.
         Then changes some of the deconvolution parameters to reflect this.
-
         The reason for this type of function is to separate deconvolution from deisotoping when isotope mode is on.
         Deconvolution can be performed to generate a zero-charge mass spectrum, which can then be loaded as a new
         spectrum and deisotoped with isotope mode. Still a bit experimental...
@@ -1387,7 +1394,6 @@ class UniDecApp(UniDecPres):
     def on_fit_masses(self, e=None):
         """
         Using the peaks as a starting guess, it will fit the zero-charge mass spectrum to a set of overlapping peaks.
-
         Gets guesses using self.on_export_params()
         Calls self.eng.fit_all_masses()
         Then, plots resulting fit.
@@ -1414,17 +1420,14 @@ class UniDecApp(UniDecPres):
     def on_batch(self, e=None, flag=0, batchfiles=None):
         """
         Batch processing!
-
         Spawns a directory to select multiple files.
         Feeds the file names into a loop that:
-
         Opens the file (self.on_open_file)
         Prepares the data (self.on_dataprep_button)
         Runs UniDec (self.unidec_button)
         Picks Peaks (self.on_pick_peaks)
         Exports Peak Parameters (self.on_export_params)
         Saves State (self.on_save_state)
-
         If uses self.eng.config.batchflag to prevent certain things from plotting and all key parameters from changing.
         If batchflag is 2 (flag=1),
             all key paramters are kept, but the data ranges are refreshed from the individual files.
@@ -1466,7 +1469,6 @@ class UniDecApp(UniDecPres):
     def on_batch2(self, e=None):
         """
         Runs batch processing without restricting the data ranges.
-
         The date range can be set ahead of time and will update independently for each file.
         Other parameters are fixed for the whole batch.
         :param e: unused event passed to self.on_batch
@@ -1477,15 +1479,12 @@ class UniDecApp(UniDecPres):
     def on_super_batch(self, e=None):
         """
         Speedy, minimal batch procssing. Data must be processed in advance.
-
         Does not load file or process data.
         Simply writes the configuration with updated defaults to a conf.dat file.
         Then runs the conf.dat file with UniDec binary.
         Does not do any post processing.
-
         This function is useful for largee data sets where you are using DataCollector or some other program to
         analyze the results outside of UniDec. It allows new parameters to be run with the maximum speed.
-
         :param e: unused event
         :return: None
         """
@@ -1524,9 +1523,7 @@ class UniDecApp(UniDecPres):
     def on_cross_validate(self, e=None):
         """
         Experimental...
-
         Run cross validation on spectrum by splitting the spectrum into subspectra and fitting each independently.
-
         Runs self.eng.cross_validate()
         Adds plots of mean and std deviation to plot2
         :param e: unused event
@@ -1545,11 +1542,9 @@ class UniDecApp(UniDecPres):
     def on_pdf_report(self, e=None):
         """
         Creates PDF report.
-
         First, writes figures to PDF.
         Then sends results to texmaker, which creates a .tex file.
         Finally, runs pdflatex as commandline subprocess to convert .tex to PDF.
-
         :param e: event passed to self.view.on_save_figur_pdf
         :return: None
         """
@@ -1573,7 +1568,55 @@ class UniDecApp(UniDecPres):
         pass
 
     def on_nmsgsb_report(self, e=0):
-        print("Test")
+
+        """
+        Creates PDF report for the Native MS Guided Structural Biology format.
+        First, writes figures to PDF.
+        Then sends results to texmaker, which creates a .tex file.
+        Finally, runs pdflatex as commandline subprocess to convert .tex to PDF.
+        :param e: event passed to self.view.on_save_figur_pdf
+        :return: None
+        """
+        path = os.path.join(self.eng.config.dirname, self.eng.config.filename)
+        print(path)
+        rawsamplename = ""
+        defaultvalue = ""
+        if os.path.splitext(path)[1].lower() == ".raw":
+            print("Getting Raw Data")
+            defaultvalue = rawreader.get_raw_metadata(path)
+            # try:
+            #    rawoutput = rawreader.get_raw_metadata(path)
+            # except:
+            #    rawoutput = None
+            rawsamplename = rawreader.get_raw_samplename(path)
+        # Andrew - edit
+
+        dialog = miscwindows.SingleInputDialog(self.view)
+        dialog.initialize_interface(title="Report Info: Input1;Input2;...;InputN", message="Set Inputs Here: ",
+                                    defaultvalue=defaultvalue)
+        dialog.ShowModal()
+        output = dialog.value
+
+        self.view.on_save_figure_eps(e)
+        figureflags, files = self.view.on_save_figure_pdf(e)
+        textmarkertab = [p.textmarker for p in self.eng.pks.peaks]
+        peaklabels = [p.label for p in self.eng.pks.peaks]
+        peakcolors = [p.color for p in self.eng.pks.peaks]
+        peaks = np.array([[p.mass, p.height] for p in self.eng.pks.peaks])
+        if self.eng.config.imflag == 0:
+            texmaker_nmsgsb.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config,
+                                          self.eng.config.udir,
+                                          peaks, textmarkertab, peaklabels, peakcolors, figureflags, output, rawsamplename)
+            self.view.SetStatusText("TeX file Written", number=5)
+            try:
+                texmaker_nmsgsb.PDFTexReport(self.eng.config.outfname + '_report.tex')
+                self.view.SetStatusText("PDF Report Finished", number=5)
+            except Exception as ex:
+                self.view.SetStatusText("PDF Report Failed", number=5)
+                print("PDF Report Failed to Generate. Check LaTeX installation.Need pdflatex in path.", ex)
+        else:
+            print("PDF Figures written.")
+        pass
 
     def on_fft_window(self, e):
         print("FFT window...")
@@ -1762,7 +1805,7 @@ class UniDecApp(UniDecPres):
 
     def on_ex(self, e=0, pos=1):
         print("Loading Example Data")
-        #Load the example data from the event. If there is an error, grab the pos value and load that file.
+        # Load the example data from the event. If there is an error, grab the pos value and load that file.
         try:
             self.view.menu.on_example_data(e)
         except:

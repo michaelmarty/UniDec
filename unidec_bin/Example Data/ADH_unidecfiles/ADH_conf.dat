@@ -1,3 +1,4 @@
+version 4.2.2
 imflag 0
 input ADH_input.dat
 output ADH
@@ -8,7 +9,7 @@ startz 5
 zzsig -1.0
 psig 10.0
 beta 500.0
-mzsig 17.1653
+mzsig 14.39626
 psfun 2
 discreteplot 0
 massub 180000.0
@@ -17,12 +18,12 @@ msig 0.0
 molig 0.0
 massbins 10.0
 mtabsig 0.0
-minmz 2967.7921153850643
-maxmz 17089.59750000366
+minmz 3078.5442307692306
+maxmz 16460.01346153846
 subbuff 100.0
 subtype 2
 smooth 0.0
-mzbins 0.1
+mzbins 1.0
 peakwindow 500.0
 peakthresh 0.1
 peakplotthresh 0.1

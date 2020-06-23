@@ -36,7 +36,7 @@ class UniDec(UniDecEngine):
         self.errorgrid = None
         pass
 
-    def open_file(self, file_name, file_directory=None, *args, **kwargs):
+    def open_file(self, file_name, file_directory=None, time_range=None, *args, **kwargs):
         """
         Open text or mzML file. Will create _unidecfiles directory if it does not exist.
 
@@ -70,7 +70,7 @@ class UniDec(UniDecEngine):
         os.chdir(self.config.dirname)
 
         # Import Data
-        self.data.rawdata = ud.load_mz_file(file_directory, self.config)
+        self.data.rawdata = ud.load_mz_file(file_directory, self.config, time_range)
         if self.data.rawdata.shape[1] == 3:
             self.config.imflag = 1
             self.config.discreteplot = 1
@@ -1527,7 +1527,7 @@ class UniDec(UniDecEngine):
 
         self.open_file(fname, testdir, **kwargs)
         self.config.maxmz, self.config.minmz = "", ""
-        self.config.default_isotopic_res()
+        #self.config.default_isotopic_res()
 
     def get_spectrum_peaks(self, threshold=0.05, window=None):
         if window is None:
