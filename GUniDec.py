@@ -50,7 +50,6 @@ class UniDecApp(UniDecPres):
         :return: UniDecApp object
         """
         UniDecPres.__init__(self, *args, **kwargs)
-        self.twittercodes = None
         self.init(*args, **kwargs)
 
     def init(self, *args, **kwargs):
@@ -61,7 +60,6 @@ class UniDecApp(UniDecPres):
         :return:
         """
         self.eng = unidec.UniDec()
-        self.twittercodes = None
 
         self.view = mainwindow.Mainwindow(self, "UniDec", self.eng.config)
 
@@ -354,19 +352,6 @@ class UniDecApp(UniDecPres):
         # print("Data Prep Time1: %.2gs" % (time.perf_counter() - tstart))
         self.view.clear_all_plots()
         self.makeplot1(imfit=False)
-        '''
-        self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data Sent to UniDec",
-                                       "m/z (Th)", "Normalized Intensity", "Data", self.eng.config)
-        if self.eng.config.intthresh != 0 and self.eng.config.imflag == 0:
-            self.view.plot1.plotadd(self.eng.data.data2[:, 0],
-                                    np.zeros_like(self.eng.data.data2[:, 1]) + self.eng.config.intthresh, "red",
-                                    "Noise Threshold")
-            self.view.plot1.add_legend()
-        if self.eng.config.imflag == 1:
-            self.view.plot1im.contourplot(self.eng.data.data3, self.eng.config, xlab="m/z (Th)",
-                                          ylab="Arrival Time (ms)", title="IM-MS Data")
-        self.view.plot1.repaint()'''
-
         self.view.SetStatusText("Data Length: " + str(len(self.eng.data.data2)), number=2)
         self.view.SetStatusText("R\u00B2 ", number=3)
         self.view.SetStatusText("Data Prep Done", number=5)
@@ -439,20 +424,13 @@ class UniDecApp(UniDecPres):
         self.export_config(self.eng.config.confname)
         self.eng.pick_peaks()
         self.view.SetStatusText("Plotting Peaks", number=5)
-        # print("T1: %.2gs" % (time.perf_counter() - tstart))
         if self.eng.config.batchflag == 0:
             self.view.peakpanel.add_data(self.eng.pks)
-            # print("T2: %.2gs" % (time.perf_counter() - tstart))
             self.makeplot2(1)
-            # print("T3: %.2gs" % (time.perf_counter() - tstart))
             self.makeplot6(1)
-            # print("T4: %.2gs" % (time.perf_counter() - tstart))
             self.makeplot4(1)
-            # print("T5: %.2gs" % (time.perf_counter() - tstart))
         self.view.SetStatusText("Peak Pick Done", number=5)
-
         self.on_score()
-        # print("T6: %.2gs" % (time.perf_counter() - tstart))
         pass
 
     def on_plot_peaks(self, e=None):
@@ -473,26 +451,6 @@ class UniDecApp(UniDecPres):
         self.view.SetStatusText("Peak Plot Done", number=5)
         print("peak plotting")
         pass
-
-    def on_peak_errors(self, e=None):
-        """
-        Get peak errors and plot on Plot2.
-        :param e: unused space for event
-        :return: None
-        """
-        print("Getting Errors")
-        self.eng.get_errors()
-        for p in self.eng.pks.peaks:
-
-            masserr = p.masserr
-            if masserr == 0:
-                masserr = np.array([[np.amin(self.eng.data.massdat[:, 0]), np.amax(self.eng.data.massdat[:, 0])]])
-
-            mass = p.massavg / self.view.plot2.kdnorm
-            masserr /= self.view.plot2.kdnorm
-
-            self.view.plot2.subplot1.errorbar(mass, p.corrint, xerr=masserr, yerr=p.correrr, color=p.color)
-        self.view.plot2.repaint()
 
     def on_auto(self, e=None):
         """
@@ -578,26 +536,6 @@ class UniDecApp(UniDecPres):
             tend = time.perf_counter()
             print("Plot 1: %.2gs" % (tend - tstart))
 
-    def makeplot2(self, e=None):
-        """
-        Plot mass data and peaks if possible in self.view.plot2
-        :param e: unused event
-        :return: None
-        """
-        if self.eng.config.batchflag == 0:
-            tstart = time.perf_counter()
-            self.view.plot2.plotrefreshtop(self.eng.data.massdat[:, 0], self.eng.data.massdat[:, 1],
-                                           "Zero-charge Mass Spectrum", "Mass (Da)",
-                                           "Intensity", "Mass Distribution", self.eng.config, test_kda=True,
-                                           nopaint=True)
-            if self.eng.pks.plen > 0:
-                for p in self.eng.pks.peaks:
-                    if p.ignore == 0:
-                        self.view.plot2.plotadddot(p.mass, p.height, p.color, p.marker)
-            self.view.plot2.repaint()
-            tend = time.perf_counter()
-            print("Plot 2: %.2gs" % (tend - tstart))
-
     def makeplot3(self, e=None):
         """
         Plot m/z vs charge grid.
@@ -609,46 +547,6 @@ class UniDecApp(UniDecPres):
             self.view.plot3.contourplot(self.eng.data.mzgrid, self.eng.config)
             tend = time.perf_counter()
             print("Plot 3: %.2gs" % (tend - tstart))
-
-    def makeplot4(self, e=None):
-        """
-        Plots isolated peaks against the data in self.view.plot4.
-        Will plot dots at peak positions.
-        If possible, will plot full isolated spectra.
-        :param e: unused event
-        :return: None
-        """
-        if self.eng.config.batchflag == 0:
-            tstart = time.perf_counter()
-            self.view.plot4.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1],
-                                           "Data with Offset Isolated Species", "m/z (Th)",
-                                           "Normalized and Offset Intensity", "Data", self.eng.config, nopaint=True)
-            num = 0
-            if self.eng.config.isotopemode == 1:
-                try:
-                    stickmax = np.amax(np.array([p.stickdat for p in self.eng.pks.peaks]))
-                except (AttributeError, ValueError):
-                    stickmax = 1.0
-            else:
-                stickmax = 1.0
-            for i in range(0, self.eng.pks.plen):
-                p = self.eng.pks.peaks[i]
-                if p.ignore == 0:
-                    list1 = []
-                    list2 = []
-                    if (not ud.isempty(p.mztab)) and (not ud.isempty(p.mztab2)):
-                        mztab = np.array(p.mztab)
-                        mztab2 = np.array(p.mztab2)
-                        maxval = np.amax(mztab[:, 1])
-                        b1 = mztab[:, 1] > self.eng.config.peakplotthresh * maxval
-                        self.view.plot4.plotadddot(mztab2[b1, 0], mztab2[b1, 1], p.color, p.marker)
-                    if not ud.isempty(p.stickdat):
-                        self.view.plot4.plotadd(self.eng.data.data2[:, 0], np.array(p.stickdat) / stickmax - (
-                                num + 1) * self.eng.config.separation, p.color, "useless label")
-                    num += 1
-            self.view.plot4.repaint()
-            tend = time.perf_counter()
-            print("Plot 4: %.2gs" % (tend - tstart))
 
     def makeplot5(self, e=None):
         """
@@ -828,73 +726,6 @@ class UniDecApp(UniDecPres):
         self.makeplot6(1)
         self.view.SetStatusText("Peak Change Done", number=5)
 
-    def on_charge_states(self, e=None, mass=None):
-        """
-        Triggered by right click "plot charge states" on self.view.peakpanel.
-        Plots a line with text listing the charge states of a specific peak.
-        :param e: unused event
-        :return: None
-        """
-        if self.eng.config.adductmass > 0:
-            sign = "+"
-        else:
-            sign = "-"
-        charges = np.arange(self.eng.config.startz, self.eng.config.endz + 1)
-        if mass is None:
-            peaksel = self.view.peakpanel.selection2[0]
-        else:
-            peaksel = mass
-        peakpos = (peaksel + charges * self.eng.config.adductmass) / charges
-        boo1 = np.all([peakpos < self.eng.config.maxmz, peakpos > self.eng.config.minmz], axis=0)
-        peakpos = peakpos[boo1]
-        charges = charges[boo1]
-        index = 0
-        self.view.plot4.textremove()
-        for i in charges:
-            self.view.plot4.addtext(sign + str(i), peakpos[index], np.amax(self.eng.data.data2[:, 1]) * 0.99)
-            index += 1
-
-    def on_differences(self, e=None):
-        """
-        Triggered by right click "Display Differences" on self.view.peakpanel.
-        Plots a line with text listing the difference between each mass and a specific peak.
-        Updates the peakpanel to show the differences.
-        :param e: unused event
-        :return: None
-        """
-        peaksel = self.view.peakpanel.selection2
-        pmasses = np.array([p.mass for p in self.eng.pks.peaks])
-        peakdiff = pmasses - peaksel
-        mval = np.amax(self.eng.data.massdat[:, 1])
-        # print peakdiff
-
-        self.view.plot2.textremove()
-        for i, d in enumerate(peakdiff):
-            if d != 0:
-                label = ud.decimal_formatter(d, self.eng.config.massbins)
-                self.view.plot2.addtext(label, pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
-            else:
-                self.view.plot2.addtext("0", pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
-
-    def on_label_masses(self, e=None):
-        """
-        Triggered by right click "Label Masses" on self.view.peakpanel.
-        Plots a line with text listing the mass of each specific peak.
-        Updates the peakpanel to show the masses.
-        :param e: unused event
-        :return: None
-        """
-        peaksel = self.view.peakpanel.selection2
-        pmasses = np.array([p.mass for p in self.eng.pks.peaks])
-        pint = np.array([p.height for p in self.eng.pks.peaks])
-        mval = np.amax(self.eng.data.massdat[:, 1])
-        # pint = ud.fix_textpos(pint, mval)
-
-        self.view.plot2.textremove()
-        for i, d in enumerate(pmasses):
-            if d in peaksel:
-                label = ud.decimal_formatter(d, self.eng.config.massbins)
-                self.view.plot2.addtext(label, pmasses[i], mval * 0.06 + pint[i], vlines=False)
 
     def on_plot_offsets(self, e=None):
         """
@@ -1255,30 +1086,6 @@ class UniDecApp(UniDecPres):
             self.eng.config.zout = 0
         pass
 
-    '''
-    def on_tweet(self, e=None):
-        """
-        Opens Twitter Extension Window.
-        First makes PNG files of all the figures it can. Those are fed to the window.
-        self.twittercodes is modified if the person has logged in, so that the person only has to log in once.
-        Note: don't mess with self.twittercodes. It DOES NOT contain log in information such as user name or password,
-        but it shouldn't be printed, which is why it lives in the memory only.
-        :param e: event
-        :return: None
-        """
-        try:
-            self.view.on_save_figure_png(e, transparent=False)
-        except Exception as ex:
-            print("Couldn't make figures for Twitter", ex)
-        os.environ['REQUESTS_CA_BUNDLE'] = os.path.join(self.eng.config.UniDecDir, 'cacert.pem')
-        print("Will look for file: ", os.path.join(self.eng.config.UniDecDir, 'cacert.pem'))
-        tweetwindow = twitter_interface.TwitterWindow(self.view, pngs=self.view.pngs, codes=self.twittercodes,
-                                                      imflag=self.eng.config.imflag)
-        tweetwindow.ShowModal()
-        self.twittercodes = tweetwindow.codes
-        # print "Tweet"
-    '''
-
     def on_kendrick(self, e=None):
         """
         Opens Kendrick Mass Defect Analysis window.
@@ -1519,25 +1326,6 @@ class UniDecApp(UniDecPres):
             tend = time.perf_counter()
             print("\nTotal Speedy Batch Run Time: %.2gs" % (tend - tstarttop))
 
-    '''
-    def on_cross_validate(self, e=None):
-        """
-        Experimental...
-        Run cross validation on spectrum by splitting the spectrum into subspectra and fitting each independently.
-        Runs self.eng.cross_validate()
-        Adds plots of mean and std deviation to plot2
-        :param e: unused event
-        :return: None
-        """
-        print("Cross Validation")
-        self.export_config(self.eng.config.confname)
-        mean, stddev = self.eng.cross_validate()
-        norm = np.amax(self.eng.data.massdat[:, 1]) / np.amax(mean)
-        self.view.plot2.plotadd(self.eng.data.massdat[:, 0], mean * norm, 'r', 'Mean')
-        self.view.plot2.plotadd(self.eng.data.massdat[:, 0], (mean + stddev) * norm, 'y', 'Mean+STD')
-        self.view.plot2.plotadd(self.eng.data.massdat[:, 0], (mean - stddev) * norm, 'y', 'Mean-STD')
-        self.view.plot2.repaint()
-        pass'''
 
     def on_pdf_report(self, e=None):
         """

@@ -27,9 +27,14 @@ def cconv2(a, b):
 
 
 def make_kernel(data):
-    loc = np.argmax(data[:, 1])
-    part1 = data[loc:, 1]
-    part2 = data[:loc, 1]
+    try:
+        loc = np.argmax(data[:, 1])
+        part1 = data[loc:, 1]
+        part2 = data[:loc, 1]
+    except:
+        loc = np.argmax(data)
+        part1 = data[loc:]
+        part2 = data[:loc]
     output = np.append(part1, part2, axis=0)
     output /= np.amax(output)
     return output
@@ -63,7 +68,10 @@ class DoubleDec:
         pass
 
     def dd_prep(self):
-        self.kernel[:, 1] /= np.amax(self.kernel[:, 1])
+        try:
+            self.kernel[:, 1] /= np.amax(self.kernel[:, 1])
+        except:
+            self.kernel /= np.amax(self.kernel)
         self.data[:, 1] /= np.amax(self.data[:, 1])
 
         if len(self.kernel) > len(self.data):

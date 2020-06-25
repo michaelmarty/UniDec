@@ -428,7 +428,10 @@ class UniDec(UniDecEngine):
         self.pks.default_params(cmap=self.config.peakcmap)
         ud.dataexport(peaks, self.config.peaksfile)
         # Generate Intensities of Each Charge State for Each Peak
-        mztab = ud.make_peaks_mztab(self.data.mzgrid, self.pks, self.config.adductmass)
+        try:
+            mztab = ud.make_peaks_mztab(self.data.mzgrid, self.pks, self.config.adductmass)
+        except:
+            pass
         # Calculate errors for peaks with FWHM
         try:
             ud.peaks_error_FWHM(self.pks, self.data.massdat)
@@ -440,8 +443,11 @@ class UniDec(UniDecEngine):
         except Exception as e:
             print("Error in error calculations:", e)
         if self.config.batchflag == 0:
-            ud.make_peaks_mztab_spectrum(self.data.mzgrid, self.pks, self.data.data2, mztab)
-            self.export_config()
+            try:
+                ud.make_peaks_mztab_spectrum(self.data.mzgrid, self.pks, self.data.data2, mztab)
+                self.export_config()
+            except:
+                pass
 
     def convolve_peaks(self):
         """

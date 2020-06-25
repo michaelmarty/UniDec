@@ -169,7 +169,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
 
         self.peakpanel = peaklistsort.PeakListCtrlPanel(panel, meta=True)
         self.Bind(self.peakpanel.EVT_DELETE_SELECTION_2, self.pres.on_delete, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_CHARGE_STATE, self.pres.on_charge_states, self.peakpanel)
+        self.Bind(self.peakpanel.EVT_CHARGE_STATE, self.pres.on_charge_states_mud, self.peakpanel)
         self.Bind(self.peakpanel.EVT_DIFFERENCES, self.pres.on_differences, self.peakpanel)
         self.Bind(self.peakpanel.EVT_MASSES, self.pres.on_label_masses, self.peakpanel)
         sizer.Add(self.peakpanel, 0, wx.EXPAND)

@@ -28,13 +28,59 @@ from unidec_modules.plot_waterfall import WaterfallFrame
 __author__ = 'Michael.Marty'
 
 
+class MetaUniDecBase(UniDecPres):
+    """
+    Class for MetaUniDec functions that might want to be shared with UniChrom
+    """
+    def __init__(self, *args, **kwargs):
+        UniDecPres.__init__(self, *args, **kwargs)
+        atexit.register(self.repack_hdf5)
+
+    def makeplot1(self, e=None):
+        """
+        Tested
+        :param e:
+        :return:
+        """
+        spectra = self.eng.data.get_spectra()
+        try:
+            if len(spectra) > int(self.eng.config.crossover):
+                mult = int(len(spectra) / self.eng.config.numtot)
+                self.view.SetStatusText("Displaying subset of data", number=2)
+            else:
+                mult = 1
+        except:
+            mult = 1
+        for i, s in enumerate(spectra[::mult]):
+            if i == 0:
+                self.view.plot1.plotrefreshtop(s.data2[:, 0], s.data2[:, 1], title="Processed Data", xlabel="m/z (Th)",
+                                               ylabel="Intensity", label=s.name, config=self.eng.config, color=s.color,
+                                               nopaint=True)
+            else:
+                self.view.plot1.plotadd(s.data2[:, 0], s.data2[:, 1] - i * self.eng.config.separation, colval=s.color,
+                                        newlabel=s.name)
+        self.view.plot1.repaint()
+        try:
+            self.view.SetStatusText("Data Length: " + str(len(self.eng.data.data2)), number=2)
+        except:
+            pass
+
+    def repack_hdf5(self, e=None):
+        if self.eng.config.hdf_file != 'default.hdf5':
+            new_path = self.eng.config.hdf_file.replace(".hdf5", "temp.hdf5")
+            if 0 == subprocess.call(
+                    "\"" + self.eng.config.h5repackfile + "\" \"" + self.eng.config.hdf_file + "\" \"" + new_path + "\"") and os.path.isfile(
+                new_path):
+                os.remove(self.eng.config.hdf_file)
+                os.rename(new_path, self.eng.config.hdf_file)
+
+
 class UniDecApp(UniDecPres):
     """
     Main UniDec GUI Application.
 
     Presenter contains UniDec engine at self.eng and main GUI window at self.view
     """
-
     def __init__(self, *args, **kwargs):
         """
         Initialize App, Tested
@@ -42,10 +88,10 @@ class UniDecApp(UniDecPres):
         :param kwargs:
         :return: UniDecApp object
         """
-        UniDecPres.__init__(self, *args, **kwargs)
+        MetaUniDecBase.__init__(self, *args, **kwargs)
         self.init(*args, **kwargs)
 
-        atexit.register(self.repack_hdf5)
+
         # self.on_open(0)
         try:
             if False:
@@ -126,43 +172,16 @@ class UniDecApp(UniDecPres):
         self.eng.get_auto_peak_width(set=False)
         # print("4: %.2gs" % (time.perf_counter() - tstart))
         self.makeplot1()
-        self.makeplot2()
+        self.makeplot2_mud()
         print("Load Time: %.2gs" % (time.perf_counter() - tstart))
         self.view.SetStatusText("File: " + self.eng.config.hdf_file, number=1)
 
         self.write_to_recent(self.eng.config.hdf_file)
         self.view.menu.update_recent()
 
-    def makeplot1(self, e=None):
-        """
-        Tested
-        :param e:
-        :return:
-        """
-        spectra = self.eng.data.get_spectra()
-        try:
-            if len(spectra) > int(self.eng.config.crossover):
-                mult = int(len(spectra) / self.eng.config.numtot)
-                self.view.SetStatusText("Displaying subset of data", number=2)
-            else:
-                mult = 1
-        except:
-            mult = 1
-        for i, s in enumerate(spectra[::mult]):
-            if i == 0:
-                self.view.plot1.plotrefreshtop(s.data2[:, 0], s.data2[:, 1], title="Processed Data", xlabel="m/z (Th)",
-                                               ylabel="Intensity", label=s.name, config=self.eng.config, color=s.color,
-                                               nopaint=True)
-            else:
-                self.view.plot1.plotadd(s.data2[:, 0], s.data2[:, 1] - i * self.eng.config.separation, colval=s.color,
-                                        newlabel=s.name)
-        self.view.plot1.repaint()
-        try:
-            self.view.SetStatusText("Data Length: " + str(len(self.eng.data.data2)), number=2)
-        except:
-            pass
 
-    def makeplot2(self, e=None):
+
+    def makeplot2_mud(self, e=None):
         """
         Tested
         :param e:
@@ -427,7 +446,7 @@ class UniDecApp(UniDecPres):
         tend = time.perf_counter()
         self.eng.config.runtime = (tend - tstart)
         self.makeplot1()
-        self.makeplot2()
+        self.makeplot2_mud()
         print("Run Time:", self.eng.config.runtime)
         self.view.SetStatusText("UniDec Done %.2gs" % self.eng.config.runtime, number=5)
         pass
@@ -442,7 +461,7 @@ class UniDecApp(UniDecPres):
         self.export_config()
         self.eng.pick_peaks()
         self.view.peakpanel.add_data(self.eng.pks)
-        self.makeplot2()
+        self.makeplot2_mud()
         self.plot_sums()
         self.makeplot6()
         self.makeplot7()
@@ -471,7 +490,7 @@ class UniDecApp(UniDecPres):
         self.view.SetStatusText("Replotting", number=5)
         self.export_config()
         self.makeplot1()
-        self.makeplot2()
+        self.makeplot2_mud()
         if plotsums:
             self.plot_sums()
         self.makeplot6()
@@ -531,7 +550,7 @@ class UniDecApp(UniDecPres):
         :return:
         """
         # self.eng.pick_peaks()
-        self.makeplot2()
+        self.makeplot2_mud()
         self.makeplot6()
         self.makeplot7()
         self.makeplot8()
@@ -545,68 +564,9 @@ class UniDecApp(UniDecPres):
         self.view.controls.ctlmaxmz.SetValue(str(maxmz))
         self.on_dataprep_button()
 
-    def on_charge_states(self, e=None):
-        """
-        Manual Test - Pased
-        :param e:
-        :return:
-        """
-        charges = np.arange(self.eng.config.startz, self.eng.config.endz + 1)
-        peaksel = self.view.peakpanel.selection2[0]
-        peakpos = (peaksel + charges * self.eng.config.adductmass) / charges.astype(np.float)
-        boo1 = np.all([peakpos < self.eng.config.maxmz, peakpos > self.eng.config.minmz], axis=0)
-        peakpos = peakpos[boo1]
-        charges = charges[boo1]
-        index = 0
-        self.view.plot1.textremove()
-        for i in charges:
-            self.view.plot1.addtext(str(i), peakpos[index], 0.99,
-                                    ymin=-(self.eng.data.len - 1) * self.eng.config.separation)
-            index += 1
-        pass
+    def on_charge_states_mud(self, e=None):
+        self.on_charge_states(plot=self.view.plot1)
 
-    def on_differences(self, e=None):
-        """
-        Manual Test - Passed
-        :param e:
-        :return:
-        """
-        peaksel = self.view.peakpanel.selection2
-        pmasses = np.array([p.mass for p in self.eng.pks.peaks])
-        peakdiff = pmasses - peaksel
-        print(peakdiff)
-        self.view.plot2.textremove()
-        for i, d in enumerate(peakdiff):
-            if d != 0:
-                self.view.plot2.addtext(str(d), pmasses[i],
-                                        np.amax(self.eng.data.massdat[:, 1]) * 0.99 - (i % 7) * 0.05)
-            else:
-                self.view.plot2.addtext("0", pmasses[i], np.amax(self.eng.data.massdat[:, 1]) * 0.99 - (i % 7) * 0.05)
-        pass
-
-    def on_label_masses(self, e=None):
-        """
-        Triggered by right click "Label Masses" on self.view.peakpanel.
-        Plots a line with text listing the mass of each specific peak.
-        Updates the peakpanel to show the masses.
-        :param e: unused event
-        :return: None
-        """
-        peaksel = self.view.peakpanel.selection2
-        pmasses = np.array([p.mass for p in self.eng.pks.peaks])
-        pint = np.array([p.height for p in self.eng.pks.peaks])
-        mval = np.amax(self.eng.data.massdat[:, 1])
-
-        self.view.plot2.textremove()
-        for i, d in enumerate(pmasses):
-            if d in peaksel:
-                if self.eng.config.massbins < 1:
-                    label = str(d)
-                else:
-                    if d == round(d):
-                        d = int(d)
-                    label = "{:,}".format(d)
-                self.view.plot2.addtext(label, pmasses[i], mval * 0.13 + pint[i], vlines=False)
 
     def make_top(self, index=0):
         """

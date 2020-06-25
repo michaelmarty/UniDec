@@ -194,6 +194,10 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.4.2.3
+
+Fixed bug with spaces in oligomer names when importing ofiles.
+
 v.4.2.2
 
 **Added Open Recent Files** menu item.
