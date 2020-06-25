@@ -65,6 +65,134 @@ class MetaUniDecBase(UniDecPres):
         except:
             pass
 
+    def make_top(self, index=0):
+        """
+        Tested
+        :param index:
+        :return:
+        """
+        print("Top index is now:", index)
+        self.eng.data.data2 = self.eng.data.spectra[index].data2
+
+    def on_ignore(self, indexes):
+        """
+        Partly tested - Passed
+        :param indexes:
+        :return:
+        """
+        print("Ignoring:", indexes)
+        spectra = self.eng.data.get_spectra()
+        for i in indexes:
+            spectra[i].ignore = 1
+        self.on_replot()
+
+    def on_isolate(self, indexes):
+        """
+        Partly tested - Passed
+        :param indexes:
+        :return:
+        """
+        print("Isolating:", indexes)
+        spectra = self.eng.data.get_spectra()
+        for i, s in enumerate(spectra):
+            if np.any(np.array(indexes) == i):
+                s.ignore = 0
+            else:
+                s.ignore = 1
+        try:
+            self.make_top(indexes[0])
+        except:
+            print("Failed to make top")
+        self.on_replot(plotsums=False)
+
+    def on_repopulate(self):
+        """
+        Partly tested - Passed
+        :return:
+        """
+        for s in self.eng.data.spectra:
+            s.ignore = 0
+        self.on_replot()
+
+    def on_color_change(self, item, color):
+        """
+        Manual Test - Passed
+        :param item:
+        :param color:
+        :return:
+        """
+        spectra = self.eng.data.get_spectra()
+        spectra[item].color = color
+        self.on_replot()
+
+    def rename_var1(self, e=None):
+        """
+        Manual Test - Passed
+        :param e:
+        :return:
+        """
+        dlg = miscwindows.SingleInputDialog(self.view)
+        dlg.initialize_interface("Variable 1 Name", "Enter Variable 1 name:", defaultvalue=str(self.eng.data.v1name))
+        dlg.ShowModal()
+        self.eng.data.v1name = dlg.value
+        self.view.ypanel.list.rename_column(1, self.eng.data.v1name)
+        self.on_replot()
+
+    def rename_var2(self, e=None):
+        """
+        Manual Test - Passed
+        :param e:
+        :return:
+        """
+        dlg = miscwindows.SingleInputDialog(self.view)
+        dlg.initialize_interface("Variable 2 Name", "Enter Variable 2 name:", defaultvalue=str(self.eng.data.v2name))
+        dlg.ShowModal()
+        self.eng.data.v2name = dlg.value
+        self.view.ypanel.list.rename_column(2, self.eng.data.v2name)
+        self.on_replot()
+
+    def on_autocorr2(self, index):
+        """
+        Manual Test - Passed
+        :param index:
+        :return:
+        """
+        spectra = self.eng.data.get_spectra()
+        data = spectra[index].massdat
+        dlg = AutocorrWindow.AutocorrWindow(self.view)
+        dlg.initalize_dialog(self.eng.config, data)
+        dlg.ShowModal()
+
+    def on_fft_window2(self, index):
+        """
+        Manual Test - Passed
+        :param index:
+        :return:
+        """
+        try:
+            spectra = self.eng.data.get_spectra()
+        except:
+            spectra = self.eng.data.spectra
+        data = spectra[index].data2
+        fft_window.FFTWindow(self.view, data, self.eng.config)
+
+    def on_delete_spectrum(self, indexes=None):
+        """
+        Tested
+        :param indexes:
+        :return:
+        """
+        if indexes is not None:
+            self.eng.data.remove_data(indexes)
+            self.eng.data.import_vars()
+            self.view.clear_plots()
+            self.view.ypanel.list.populate(self.eng.data)
+            try:
+                self.eng.pick_peaks()
+            except:
+                pass
+            self.on_replot()
+
     def repack_hdf5(self, e=None):
         if self.eng.config.hdf_file != 'default.hdf5':
             new_path = self.eng.config.hdf_file.replace(".hdf5", "temp.hdf5")
@@ -75,7 +203,7 @@ class MetaUniDecBase(UniDecPres):
                 os.rename(new_path, self.eng.config.hdf_file)
 
 
-class UniDecApp(UniDecPres):
+class UniDecApp(MetaUniDecBase):
     """
     Main UniDec GUI Application.
 
@@ -568,91 +696,7 @@ class UniDecApp(UniDecPres):
         self.on_charge_states(plot=self.view.plot1)
 
 
-    def make_top(self, index=0):
-        """
-        Tested
-        :param index:
-        :return:
-        """
-        print("Top index is now:", index)
-        self.eng.data.data2 = self.eng.data.spectra[index].data2
 
-    def on_ignore(self, indexes):
-        """
-        Partly tested - Passed
-        :param indexes:
-        :return:
-        """
-        print("Ignoring:", indexes)
-        spectra = self.eng.data.get_spectra()
-        for i in indexes:
-            spectra[i].ignore = 1
-        self.on_replot()
-
-    def on_isolate(self, indexes):
-        """
-        Partly tested - Passed
-        :param indexes:
-        :return:
-        """
-        print("Isolating:", indexes)
-        spectra = self.eng.data.get_spectra()
-        for i, s in enumerate(spectra):
-            if np.any(np.array(indexes) == i):
-                s.ignore = 0
-            else:
-                s.ignore = 1
-        try:
-            self.make_top(indexes[0])
-        except:
-            print("Failed to make top")
-        self.on_replot(plotsums=False)
-
-    def on_repopulate(self):
-        """
-        Partly tested - Passed
-        :return:
-        """
-        for s in self.eng.data.spectra:
-            s.ignore = 0
-        self.on_replot()
-
-    def on_color_change(self, item, color):
-        """
-        Manual Test - Passed
-        :param item:
-        :param color:
-        :return:
-        """
-        spectra = self.eng.data.get_spectra()
-        spectra[item].color = color
-        self.on_replot()
-
-    def rename_var1(self, e=None):
-        """
-        Manual Test - Passed
-        :param e:
-        :return:
-        """
-        dlg = miscwindows.SingleInputDialog(self.view)
-        dlg.initialize_interface("Variable 1 Name", "Enter Variable 1 name:", defaultvalue=str(self.eng.data.v1name))
-        dlg.ShowModal()
-        self.eng.data.v1name = dlg.value
-        self.view.ypanel.list.rename_column(1, self.eng.data.v1name)
-        self.on_replot()
-
-    def rename_var2(self, e=None):
-        """
-        Manual Test - Passed
-        :param e:
-        :return:
-        """
-        dlg = miscwindows.SingleInputDialog(self.view)
-        dlg.initialize_interface("Variable 2 Name", "Enter Variable 2 name:", defaultvalue=str(self.eng.data.v2name))
-        dlg.ShowModal()
-        self.eng.data.v2name = dlg.value
-        self.view.ypanel.list.rename_column(2, self.eng.data.v2name)
-        self.on_replot()
 
     def import_vars(self, e=None):
         """
@@ -972,22 +1016,6 @@ class UniDecApp(UniDecPres):
             print("Openening: ", paths)
             self.add_files(paths)
 
-    def on_delete_spectrum(self, indexes=None):
-        """
-        Tested
-        :param indexes:
-        :return:
-        """
-        if indexes is not None:
-            self.eng.data.remove_data(indexes)
-            self.eng.data.import_vars()
-            self.view.clear_plots()
-            self.view.ypanel.list.populate(self.eng.data)
-            try:
-                self.eng.pick_peaks()
-            except:
-                pass
-            self.on_replot()
 
     def on_additional_parameters(self, e=None):
         """
@@ -1071,31 +1099,6 @@ class UniDecApp(UniDecPres):
         rawdatalist = [s.rawdata for s in self.eng.data.spectra]
         metafft.FFTWindow(self.view, rawdatalist, self.eng.data.var1, self.eng.config)
         pass
-
-    def on_fft_window2(self, index):
-        """
-        Manual Test - Passed
-        :param index:
-        :return:
-        """
-        try:
-            spectra = self.eng.data.get_spectra()
-        except:
-            spectra = self.eng.data.spectra
-        data = spectra[index].data2
-        fft_window.FFTWindow(self.view, data, self.eng.config)
-
-    def on_autocorr2(self, index):
-        """
-        Manual Test - Passed
-        :param index:
-        :return:
-        """
-        spectra = self.eng.data.get_spectra()
-        data = spectra[index].massdat
-        dlg = AutocorrWindow.AutocorrWindow(self.view)
-        dlg.initalize_dialog(self.eng.config, data)
-        dlg.ShowModal()
 
     def on_animate_mass(self, e):
         """
