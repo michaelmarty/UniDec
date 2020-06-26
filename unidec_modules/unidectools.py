@@ -13,6 +13,7 @@ import numpy as np
 import scipy.ndimage.filters as filt
 from scipy.interpolate import interp1d
 from scipy.interpolate import griddata
+from scipy.optimize import curve_fit
 from scipy import signal
 from scipy import fftpack
 import matplotlib.cm as cm
@@ -561,6 +562,29 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             val, junk = center_of_mass(cutdat, cutdat[0, 0], cutdat[len(data) - 1, 0], power=3)
             print("No window set for center of mass!\nUsing entire data range....")
 
+    elif extract_method == 11:  # Estimate the peak area
+        if window is not None:
+            # Calculate height and FWHM
+            start = nearest(data[:, 0], (x - window))  # x values should be sorted
+            end = nearest(data[:, 0], (x + window))
+            data_slice = data[start:end]
+            max_index = np.argmax(data_slice[:, 1])
+            height = data_slice[max_index, 1]
+            # hm1 = data_slice[np.argmin(abs(data_slice[0:max_index, 1] - (height / 2))), 0]
+            # hm2 = data_slice[np.argmin(abs(data_slice[max_index:, 1] - (height / 2))) + max_index, 0]
+            # fwhm = hm2 - hm1
+            fwhm, psfun, mid = auto_peak_width(data_slice, singlepeak=True)
+            # Calculate estimated area
+            gauss_coeff = np.sqrt(np.pi / np.log(2)) / 2
+            adjusted_coeff = ((0.5 * gauss_coeff) + (np.pi / 4))
+            val = -1  # Error if -1 is returned
+            if psfun == 0:  # Gaussian
+                val = height * fwhm * gauss_coeff
+            elif psfun == 1:  # Lorentzian
+                val = height * fwhm * np.pi / 2
+            elif psfun == 2:  # Split G/L
+                val = height * fwhm * adjusted_coeff
+
     else:
         val = 0
         print("Undefined extraction choice")
@@ -886,36 +910,39 @@ def mergedata2d(x1, y1, x2, y2, z2):
 # ..........................................................
 
 
-def auto_peak_width(datatop, psfun=None):
+def auto_peak_width(datatop, psfun=None, singlepeak=False):
     maxpos = np.argmax(datatop[:, 1])
     maxval = datatop[maxpos, 0]
 
     # TODO: This is potentially dangerous if nonlinear!
     ac, cpeaks = autocorr(datatop)
-    if not isempty(cpeaks):
-        sig = cpeaks[0, 0] / 2.
-        boo1 = datatop[:, 0] < maxval + sig
-        boo2 = datatop[:, 0] > maxval - sig
-        boo3 = np.all([boo1, boo2], axis=0)
-        isodat = datatop[boo3]
-
-        if len(isodat) < 6:
-            sig = cpeaks[0, 0]
+    if singlepeak or not isempty(cpeaks):
+        if not singlepeak:
+            sig = cpeaks[0, 0] / 2.
             boo1 = datatop[:, 0] < maxval + sig
             boo2 = datatop[:, 0] > maxval - sig
             boo3 = np.all([boo1, boo2], axis=0)
             isodat = datatop[boo3]
+
             if len(isodat) < 6:
-                try:
-                    sig = cpeaks[1, 0]
-                    boo1 = datatop[:, 0] < maxval + sig
-                    boo2 = datatop[:, 0] > maxval - sig
-                    boo3 = np.all([boo1, boo2], axis=0)
-                    isodat = datatop[boo3]
-                except:
-                    pass
+                sig = cpeaks[0, 0]
+                boo1 = datatop[:, 0] < maxval + sig
+                boo2 = datatop[:, 0] > maxval - sig
+                boo3 = np.all([boo1, boo2], axis=0)
+                isodat = datatop[boo3]
                 if len(isodat) < 6:
-                    print("Warning: Very small range selected for auto peaks width:", sig, isodat)
+                    try:
+                        sig = cpeaks[1, 0]
+                        boo1 = datatop[:, 0] < maxval + sig
+                        boo2 = datatop[:, 0] > maxval - sig
+                        boo3 = np.all([boo1, boo2], axis=0)
+                        isodat = datatop[boo3]
+                    except:
+                        pass
+                    if len(isodat) < 6:
+                        print("Warning: Very small range selected for auto peaks width:", sig, isodat)
+        else:
+            isodat = datatop
 
         fits = np.array([isolated_peak_fit(isodat[:, 0], isodat[:, 1], i) for i in range(0, 3)])
 
