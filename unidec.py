@@ -1546,6 +1546,17 @@ class UniDec(UniDecEngine):
         print(self.config.dirname)
         return peaks
 
+    def estimate_areas(self):
+        gauss_coeff = np.sqrt(np.pi / np.log(2)) / 2
+        adjusted_coeff = ((0.5 * gauss_coeff) + (np.pi / 4))
+        for p in self.pks.peaks:
+            if self.config.psfun == 0:  # Gaussian
+                p.estimatedarea = p.height * p.errorFWHM * gauss_coeff
+            elif self.config.psfun == 1:  # Lorentzian
+                p.estimatedarea = p.height * p.errorFWHM * np.pi / 2
+            elif self.config.psfun == 2:  # Split G/L
+                p.estimatedarea = p.height * p.errorFWHM * adjusted_coeff
+
     def make_plot(self, massrange=None):
         import matplotlib.pyplot as plt
 
