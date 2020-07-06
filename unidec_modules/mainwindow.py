@@ -294,9 +294,6 @@ class Mainwindow(MainwindowBase):
         sizer.Fit(self)
         pass
 
-    def on_defaults(self, e):
-        self.menu.on_defaults(e)
-
 
 class MyFileDropTarget(wx.FileDropTarget):
     """"""

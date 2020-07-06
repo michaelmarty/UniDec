@@ -103,7 +103,7 @@ class DataImporter:
                 scan_range[1] = np.amin(self.scans)
 
             if scan_range[1]-scan_range[0] > 1:
-                data = np.array(list(self.msrun.average_scan(int(scan_range[0]), int(scan_range[1]), filter="Full")))
+                data = np.array(list(self.msrun.average_scan(int(scan_range[0]), int(scan_range[1]), filter="")))
             else:
                 impdat = np.array(self.msrun.scan(scan_range[0]))  # May want to test this.
                 impdat = impdat[impdat[:, 0] > 10]

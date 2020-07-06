@@ -74,6 +74,9 @@ class MainwindowBase(wx.Frame):
     def export_gui_to_config(self):
         self.controls.export_gui_to_config()
 
+    def on_defaults(self, e):
+        self.menu.on_defaults(e)
+
     def on_motion(self, xpos, ypos):
         """
         Triggered by pubsub from plot windows. Reports text in Status Bar.

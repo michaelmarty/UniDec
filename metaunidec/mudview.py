@@ -184,12 +184,6 @@ class Mainwindow(mainwindow_base.MainwindowBase):
         self.CreateStatusBar(7)
         self.SetStatusWidths([-1, 600, 120, 0, 230, 250, 130])
 
-    def on_defaults(self, e):
-        self.menu.on_defaults(e)
-
-    def import_config_to_gui(self):
-        self.controls.import_config_to_gui()
-
     def export_gui_to_config(self):
         self.controls.export_gui_to_config()
         self.pres.export_vars()

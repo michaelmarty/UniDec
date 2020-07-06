@@ -32,6 +32,7 @@ class MetaUniDecBase(UniDecPres):
     """
     Class for MetaUniDec functions that might want to be shared with UniChrom
     """
+
     def __init__(self, *args, **kwargs):
         UniDecPres.__init__(self, *args, **kwargs)
         atexit.register(self.repack_hdf5)
@@ -43,6 +44,10 @@ class MetaUniDecBase(UniDecPres):
         :return:
         """
         spectra = self.eng.data.get_spectra()
+        if self.eng.config.datanorm == 0:
+            sep = self.eng.config.separation * self.eng.data.get_max_data2()
+        else:
+            sep = self.eng.config.separation
         try:
             if len(spectra) > int(self.eng.config.crossover):
                 mult = int(len(spectra) / self.eng.config.numtot)
@@ -57,13 +62,205 @@ class MetaUniDecBase(UniDecPres):
                                                ylabel="Intensity", label=s.name, config=self.eng.config, color=s.color,
                                                nopaint=True)
             else:
-                self.view.plot1.plotadd(s.data2[:, 0], s.data2[:, 1] - i * self.eng.config.separation, colval=s.color,
+                self.view.plot1.plotadd(s.data2[:, 0], s.data2[:, 1] - i * sep, colval=s.color,
                                         newlabel=s.name)
         self.view.plot1.repaint()
         try:
             self.view.SetStatusText("Data Length: " + str(len(self.eng.data.data2)), number=2)
         except:
             pass
+
+    def makeplot2_mud(self, e=None):
+        """
+        Tested
+        :param e:
+        :return:
+        """
+        if self.eng.config.datanorm == 0:
+            sep = self.eng.config.separation * self.eng.data.get_max_data2()
+        else:
+            sep = self.eng.config.separation
+
+        spectra = self.eng.data.get_spectra()
+        if len(spectra) > self.eng.config.crossover:
+            mult = int(len(spectra) / self.eng.config.numtot)
+            self.view.SetStatusText("Displaying subset of data", number=2)
+        else:
+            mult = 1
+        for i, s in enumerate(spectra[::mult]):
+            if not ud.isempty(s.massdat):
+                if i == 0:
+                    self.view.plot2.plotrefreshtop(s.massdat[:, 0], s.massdat[:, 1], title="Zero-Charge Mass Spectrum",
+                                                   xlabel="Mass (Da)",
+                                                   ylabel="Intensity", label=s.name, config=self.eng.config,
+                                                   color=s.color,
+                                                   test_kda=True,
+                                                   nopaint=True)
+                else:
+                    self.view.plot2.plotadd(s.massdat[:, 0], s.massdat[:, 1] - i * sep,
+                                            colval=s.color, newlabel=s.name)
+        self.view.plot2.repaint()
+        try:
+            self.makeplot9()
+        except:
+            pass
+
+    def makeplot7(self, fitgrid=None):
+        """
+        Tested
+        :return:
+        """
+        try:
+            if fitgrid is None:
+                fitgrid = self.eng.data.exgrid
+            self.view.plot7.clear_plot()
+            if not ud.isempty(self.eng.data.exgrid):
+                ignore = self.eng.data.get_bool()
+                var1 = np.array(self.eng.data.var1)[ignore]
+                try:
+                    var1 = var1.astype(float)
+                    xlabel = self.eng.data.v1name
+                except:
+                    var1 = np.arange(0, len(self.eng.data.var1))[ignore]
+                    xlabel = "Index"
+
+                ylabel = self.view.extractlabels[self.eng.config.exchoice]
+                self.view.plot7.clear_plot()
+                self.view.plot7._axes = [0.2, 0.12, 0.75, 0.8]
+                for i, p in enumerate(self.eng.pks.peaks):
+                    if p.ignore == 0:
+                        color = p.color
+
+                        if not self.view.plot7.flag:
+                            self.view.plot7.plotrefreshtop(var1, fitgrid[i][ignore],
+                                                           title="Extracted Data", xlabel=xlabel
+                                                           , ylabel=ylabel, color=color, test_kda=False)
+                            self.view.plot7.plotadddot(var1, self.eng.data.exgrid[i][ignore], color, p.marker)
+                        else:
+                            self.view.plot7.plotadd(var1, fitgrid[i][ignore], color)
+                            self.view.plot7.plotadddot(var1, self.eng.data.exgrid[i][ignore], color, p.marker)
+                if self.eng.config.exnorm == 1:
+                    self.view.plot7.subplot1.set_ylim([0, 1])
+                self.view.plot7.repaint()
+        except Exception as e:
+            print(e)
+
+    def make_waterfall_plots(self, e=None):
+        print("Making Waterfall Plots")
+        wt = WaterfallFrame(None)
+        wt.make_plot(self.eng.data)
+        # wt.draw()
+
+    def on_plot_composite(self, e=None):
+        """
+        Tested
+        :param e:
+        :return:
+        """
+        self.export_config()
+        self.eng.data.import_grids_and_peaks()
+        if not ud.isempty(self.eng.data.massdat):
+            self.view.plot2.clear_plot()
+
+            self.view.plot2.plotrefreshtop(self.eng.data.massdat[:, 0], self.eng.data.massdat[:, 1],
+                                           title="Zero-Charge Mass Spectrum",
+                                           xlabel="Mass (Da)",
+                                           ylabel="Intensity", label="Sum", config=self.eng.config,
+                                           color="black",
+                                           test_kda=True,
+                                           nopaint=True)
+
+            self.view.plot2.repaint()
+        pass
+
+    def plot_sums(self):
+        """
+        Tested
+        :return:
+        """
+        try:
+            maxsums = np.amax(self.eng.data.massdat[:, 1])
+            maxpeaks = np.amax([p.height for p in self.eng.pks.peaks])
+            self.eng.pks.norm = maxsums / maxpeaks
+        except:
+            self.eng.pks.norm = 1
+
+        if self.eng.config.datanorm == 0:
+            sep = self.eng.config.separation * self.eng.data.get_max_data2()
+        else:
+            sep = self.eng.config.separation
+
+        if not ud.isempty(self.eng.data.massdat):
+            self.view.plot2.plotadd(self.eng.data.massdat[:, 0],
+                                    self.eng.data.massdat[:, 1] + sep,
+                                    colval="black", newlabel="Sum")
+            if self.eng.pks.plen > 0:
+                for p in self.eng.pks.peaks:
+                    if p.ignore == 0:
+                        self.view.plot2.plotadddot(p.mass, p.height * self.eng.pks.norm + sep,
+                                                   p.color, p.marker)
+            self.view.plot2.repaint()
+
+    def make2dplots(self, e=None):
+        """
+        Tested
+        :param e:
+        :return:
+        """
+        self.view.SetStatusText("Making 2D Plots...", number=5)
+        self.export_config()
+        self.eng.data.import_grids_and_peaks()
+        self.makeplot3()
+        self.makeplot5()
+        self.view.SetStatusText("2D Plots Complete", number=5)
+
+    def makeplot3(self):
+        """
+        Tested
+        :return:
+        """
+        self.view.plot3.clear_plot()
+        if not ud.isempty(self.eng.data.mzgrid):
+            tstart = time.perf_counter()
+            ignore = self.eng.data.get_bool()
+            self.view.plot3.contourplot(
+                xvals=self.eng.data.mzdat[:, 0], yvals=np.array(self.eng.data.var1)[ignore],
+                zgrid=self.eng.data.mzgrid[ignore, :, 1].transpose(),
+                config=self.eng.config, title="m/z vs. " + self.eng.data.v1name, test_kda=False, xlab="m/z (Th)",
+                ylab=self.eng.data.v1name)
+            self.view.plot3.repaint()
+            tend = time.perf_counter()
+            print("Plot 3: %.2gs" % (tend - tstart))
+            pass
+
+    def makeplot5(self):
+        """
+        Tested
+        :return:
+        """
+        self.view.plot5.clear_plot()
+        if not ud.isempty(self.eng.data.massgrid):
+            tstart = time.perf_counter()
+            ignore = self.eng.data.get_bool()
+            self.view.plot5.contourplot(
+                xvals=self.eng.data.massdat[:, 0], yvals=np.array(self.eng.data.var1)[ignore],
+                zgrid=self.eng.data.massgrid[ignore, :, 1].transpose(),
+                config=self.eng.config, title="Mass vs. " + self.eng.data.v1name, test_kda=True, xlab="Mass (Da)",
+                ylab=self.eng.data.v1name)
+            tend = time.perf_counter()
+            print("Plot 5: %.2gs" % (tend - tstart))
+            pass
+
+    def recolor_spectra(self):
+        self.view.ypanel.list.recolor()
+        self.on_replot()
+
+    def on_full(self, e=None):
+        maxmz = np.amax(self.eng.data.spectra[0].rawdata[:, 0])
+        minmz = np.amin(self.eng.data.spectra[0].rawdata[:, 0])
+        self.view.controls.ctlminmz.SetValue(str(minmz))
+        self.view.controls.ctlmaxmz.SetValue(str(maxmz))
+        self.on_dataprep_button()
 
     def make_top(self, index=0):
         """
@@ -151,6 +348,70 @@ class MetaUniDecBase(UniDecPres):
         self.view.ypanel.list.rename_column(2, self.eng.data.v2name)
         self.on_replot()
 
+    def export_vars(self):
+        """
+        Manual Test - Passed
+        :return:
+        """
+        listdat = self.view.ypanel.list.get_list()
+        for i, l in enumerate(listdat):
+            self.eng.data.var1[i] = l[1]
+            self.eng.data.var2[i] = l[2]
+            self.eng.data.spectra[i].var1 = l[1]
+            self.eng.data.spectra[i].var2 = l[2]
+        self.eng.data.export_vars()
+
+    def on_dataprep_button(self, e=None):
+        """
+        Tested
+        :param e:
+        :return:
+        """
+        self.view.SetStatusText("Preparing Data..", number=5)
+        self.view.clear_plots()
+        self.export_config()
+        self.check_badness()
+        self.eng.process_data()
+        self.on_auto_peak_width(set=False)
+        self.makeplot1()
+        self.view.SetStatusText("Data Prep Complete", number=5)
+        pass
+
+    def on_unidec_button(self, e=None):
+        """
+        Tested
+        :param e:
+        :return:
+        """
+        self.view.SetStatusText("Running UniDec...", number=5)
+        self.view.clear_plots()
+        tstart = time.perf_counter()
+        self.export_config()
+        self.check_badness()
+        self.eng.run_unidec()
+        tend = time.perf_counter()
+        self.eng.config.runtime = (tend - tstart)
+        self.makeplot1()
+        self.makeplot2_mud()
+        print("Run Time:", self.eng.config.runtime)
+        self.view.SetStatusText("UniDec Done %.2gs" % self.eng.config.runtime, number=5)
+        pass
+
+    def on_auto(self, e=None):
+        """
+        Tested
+        :param e:
+        :return:
+        """
+        self.export_config()
+        self.on_dataprep_button()
+        self.on_unidec_button()
+        self.on_pick_peaks()
+        pass
+
+    def on_charge_states_mud(self, e=None):
+        self.on_charge_states(plot=self.view.plot1)
+
     def on_autocorr2(self, index):
         """
         Manual Test - Passed
@@ -202,6 +463,28 @@ class MetaUniDecBase(UniDecPres):
                 os.remove(self.eng.config.hdf_file)
                 os.rename(new_path, self.eng.config.hdf_file)
 
+    def on_undo(self, e=None):
+        """
+        Manual Test
+        :param e:
+        :return:
+        """
+        self.export_config()
+        self.eng.undo()
+        self.import_config()
+        # print "Undo"
+
+    def on_redo(self, e=None):
+        """
+        Manual Test
+        :param e:
+        :return:
+        """
+        self.export_config()
+        self.eng.redo()
+        self.import_config()
+        # print("Redo")
+
 
 class UniDecApp(MetaUniDecBase):
     """
@@ -209,6 +492,7 @@ class UniDecApp(MetaUniDecBase):
 
     Presenter contains UniDec engine at self.eng and main GUI window at self.view
     """
+
     def __init__(self, *args, **kwargs):
         """
         Initialize App, Tested
@@ -218,7 +502,6 @@ class UniDecApp(MetaUniDecBase):
         """
         MetaUniDecBase.__init__(self, *args, **kwargs)
         self.init(*args, **kwargs)
-
 
         # self.on_open(0)
         try:
@@ -307,35 +590,6 @@ class UniDecApp(MetaUniDecBase):
         self.write_to_recent(self.eng.config.hdf_file)
         self.view.menu.update_recent()
 
-
-
-    def makeplot2_mud(self, e=None):
-        """
-        Tested
-        :param e:
-        :return:
-        """
-        spectra = self.eng.data.get_spectra()
-        if len(spectra) > self.eng.config.crossover:
-            mult = int(len(spectra) / self.eng.config.numtot)
-            self.view.SetStatusText("Displaying subset of data", number=2)
-        else:
-            mult = 1
-        for i, s in enumerate(spectra[::mult]):
-            if not ud.isempty(s.massdat):
-                if i == 0:
-                    self.view.plot2.plotrefreshtop(s.massdat[:, 0], s.massdat[:, 1], title="Zero-Charge Mass Spectrum",
-                                                   xlabel="Mass (Da)",
-                                                   ylabel="Intensity", label=s.name, config=self.eng.config,
-                                                   color=s.color,
-                                                   test_kda=True,
-                                                   nopaint=True)
-                else:
-                    self.view.plot2.plotadd(s.massdat[:, 0], s.massdat[:, 1] - i * self.eng.config.separation,
-                                            colval=s.color, newlabel=s.name)
-        self.view.plot2.repaint()
-        self.makeplot9()
-
     def makeplot9(self, e=None):
         """
         Tested
@@ -343,6 +597,12 @@ class UniDecApp(MetaUniDecBase):
         :return:
         """
         spectra = self.eng.data.get_spectra()
+
+        if self.eng.config.datanorm == 0:
+            sep = self.eng.config.separation * self.eng.data.get_max_data2()
+        else:
+            sep = self.eng.config.separation
+
         if len(spectra) > self.eng.config.crossover:
             mult = int(len(spectra) / self.eng.config.numtot)
         else:
@@ -357,7 +617,7 @@ class UniDecApp(MetaUniDecBase):
                                                    test_kda=False,
                                                    nopaint=True)
                 else:
-                    self.view.plot9.plotadd(s.zdata[:, 0], s.zdata[:, 1] - i * self.eng.config.separation,
+                    self.view.plot9.plotadd(s.zdata[:, 0], s.zdata[:, 1] - i * sep,
                                             colval=s.color, newlabel=s.name)
         self.view.plot9.repaint()
 
@@ -413,46 +673,6 @@ class UniDecApp(MetaUniDecBase):
                             self.view.plot6.plotadddot(num - 1, e, p.color, p.marker)
             self.view.plot6.repaint()
 
-    def makeplot7(self, fitgrid=None):
-        """
-        Tested
-        :return:
-        """
-        try:
-            if fitgrid is None:
-                fitgrid = self.eng.data.exgrid
-            self.view.plot7.clear_plot()
-            if not ud.isempty(self.eng.data.exgrid):
-                ignore = self.eng.data.get_bool()
-                var1 = np.array(self.eng.data.var1)[ignore]
-                try:
-                    var1 = var1.astype(float)
-                    xlabel = self.eng.data.v1name
-                except:
-                    var1 = np.arange(0, len(self.eng.data.var1))[ignore]
-                    xlabel = "Index"
-
-                ylabel = self.view.extractlabels[self.eng.config.exchoice]
-                self.view.plot7.clear_plot()
-                self.view.plot7._axes = [0.2, 0.12, 0.75, 0.8]
-                for i, p in enumerate(self.eng.pks.peaks):
-                    if p.ignore == 0:
-                        color = p.color
-
-                        if not self.view.plot7.flag:
-                            self.view.plot7.plotrefreshtop(var1, fitgrid[i][ignore],
-                                                           title="Extracted Data", xlabel=xlabel
-                                                           , ylabel=ylabel, color=color, test_kda=False)
-                            self.view.plot7.plotadddot(var1, self.eng.data.exgrid[i][ignore], color, p.marker)
-                        else:
-                            self.view.plot7.plotadd(var1, fitgrid[i][ignore], color)
-                            self.view.plot7.plotadddot(var1, self.eng.data.exgrid[i][ignore], color, p.marker)
-                if self.eng.config.exnorm == 1:
-                    self.view.plot7.subplot1.set_ylim([0, 1])
-                self.view.plot7.repaint()
-        except Exception as e:
-            print(e)
-
     def makeplot8(self):
         """
         Tested
@@ -487,98 +707,6 @@ class UniDecApp(MetaUniDecBase):
         except Exception as e:
             print(e)
 
-    def make2dplots(self, e=None):
-        """
-        Tested
-        :param e:
-        :return:
-        """
-        self.view.SetStatusText("Making 2D Plots...", number=5)
-        self.export_config()
-        self.eng.data.import_grids_and_peaks()
-        self.makeplot3()
-        self.makeplot5()
-        self.view.SetStatusText("2D Plots Complete", number=5)
-
-    def make_waterfall_plots(self, e=None):
-        print("Making Waterfall Plots")
-        wt = WaterfallFrame(None)
-        wt.make_plot(self.eng.data)
-        # wt.draw()
-
-    def makeplot3(self):
-        """
-        Tested
-        :return:
-        """
-        self.view.plot3.clear_plot()
-        if not ud.isempty(self.eng.data.mzgrid):
-            tstart = time.perf_counter()
-            ignore = self.eng.data.get_bool()
-            self.view.plot3.contourplot(
-                xvals=self.eng.data.mzdat[:, 0], yvals=np.array(self.eng.data.var1)[ignore],
-                zgrid=self.eng.data.mzgrid[ignore, :, 1].transpose(),
-                config=self.eng.config, title="m/z vs. " + self.eng.data.v1name, test_kda=False, xlab="m/z (Th)",
-                ylab=self.eng.data.v1name)
-            self.view.plot3.repaint()
-            tend = time.perf_counter()
-            print("Plot 3: %.2gs" % (tend - tstart))
-            pass
-
-    def makeplot5(self):
-        """
-        Tested
-        :return:
-        """
-        self.view.plot5.clear_plot()
-        if not ud.isempty(self.eng.data.massgrid):
-            tstart = time.perf_counter()
-            ignore = self.eng.data.get_bool()
-            self.view.plot5.contourplot(
-                xvals=self.eng.data.massdat[:, 0], yvals=np.array(self.eng.data.var1)[ignore],
-                zgrid=self.eng.data.massgrid[ignore, :, 1].transpose(),
-                config=self.eng.config, title="Mass vs. " + self.eng.data.v1name, test_kda=True, xlab="Mass (Da)",
-                ylab=self.eng.data.v1name)
-            tend = time.perf_counter()
-            print("Plot 5: %.2gs" % (tend - tstart))
-            pass
-
-    def on_dataprep_button(self, e=None):
-        """
-        Tested
-        :param e:
-        :return:
-        """
-        self.view.SetStatusText("Preparing Data..", number=5)
-        self.view.clear_plots()
-        self.export_config()
-        self.check_badness()
-        self.eng.process_data()
-        self.on_auto_peak_width(set=False)
-        self.makeplot1()
-        self.view.SetStatusText("Data Prep Complete", number=5)
-        pass
-
-    def on_unidec_button(self, e=None):
-        """
-        Tested
-        :param e:
-        :return:
-        """
-        self.view.SetStatusText("Running UniDec...", number=5)
-        self.view.clear_plots()
-        tstart = time.perf_counter()
-        self.export_config()
-        self.check_badness()
-        self.eng.run_unidec()
-        tend = time.perf_counter()
-        self.eng.config.runtime = (tend - tstart)
-        self.makeplot1()
-        self.makeplot2_mud()
-        print("Run Time:", self.eng.config.runtime)
-        self.view.SetStatusText("UniDec Done %.2gs" % self.eng.config.runtime, number=5)
-        pass
-
     def on_pick_peaks(self, e=None):
         """
         Tested
@@ -597,18 +725,6 @@ class UniDecApp(MetaUniDecBase):
         self.view.SetStatusText("Peak Detection and Extraction Complete", number=5)
         pass
 
-    def on_auto(self, e=None):
-        """
-        Tested
-        :param e:
-        :return:
-        """
-        self.export_config()
-        self.on_dataprep_button()
-        self.on_unidec_button()
-        self.on_pick_peaks()
-        pass
-
     def on_replot(self, e=None, plotsums=True):
         """
         Tested
@@ -625,51 +741,6 @@ class UniDecApp(MetaUniDecBase):
         self.makeplot7()
         self.makeplot8()
         pass
-
-    def on_plot_composite(self, e=None):
-        """
-        Tested
-        :param e:
-        :return:
-        """
-        self.export_config()
-        self.eng.data.import_grids_and_peaks()
-        if not ud.isempty(self.eng.data.massdat):
-            self.view.plot2.clear_plot()
-
-            self.view.plot2.plotrefreshtop(self.eng.data.massdat[:, 0], self.eng.data.massdat[:, 1],
-                                           title="Zero-Charge Mass Spectrum",
-                                           xlabel="Mass (Da)",
-                                           ylabel="Intensity", label="Sum", config=self.eng.config,
-                                           color="black",
-                                           test_kda=True,
-                                           nopaint=True)
-
-            self.view.plot2.repaint()
-        pass
-
-    def plot_sums(self):
-        """
-        Tested
-        :return:
-        """
-        try:
-            maxsums = np.amax(self.eng.data.massdat[:, 1])
-            maxpeaks = np.amax([p.height for p in self.eng.pks.peaks])
-            self.eng.pks.norm = maxsums / maxpeaks
-        except:
-            self.eng.pks.norm = 1
-
-        if not ud.isempty(self.eng.data.massdat):
-            self.view.plot2.plotadd(self.eng.data.massdat[:, 0],
-                                    self.eng.data.massdat[:, 1] + self.eng.config.separation,
-                                    colval="black", newlabel="Sum")
-            if self.eng.pks.plen > 0:
-                for p in self.eng.pks.peaks:
-                    if p.ignore == 0:
-                        self.view.plot2.plotadddot(p.mass, p.height * self.eng.pks.norm + self.eng.config.separation,
-                                                   p.color, p.marker)
-            self.view.plot2.repaint()
 
     def on_delete(self, e=None):
         """
@@ -691,12 +762,6 @@ class UniDecApp(MetaUniDecBase):
         self.view.controls.ctlminmz.SetValue(str(minmz))
         self.view.controls.ctlmaxmz.SetValue(str(maxmz))
         self.on_dataprep_button()
-
-    def on_charge_states_mud(self, e=None):
-        self.on_charge_states(plot=self.view.plot1)
-
-
-
 
     def import_vars(self, e=None):
         """
@@ -739,23 +804,6 @@ class UniDecApp(MetaUniDecBase):
         dlg.ShowModal()
         self.eng.data.v2name = dlg.value
         self.export_vars()
-
-    def export_vars(self):
-        """
-        Manual Test - Passed
-        :return:
-        """
-        listdat = self.view.ypanel.list.get_list()
-        for i, l in enumerate(listdat):
-            self.eng.data.var1[i] = l[1]
-            self.eng.data.var2[i] = l[2]
-            self.eng.data.spectra[i].var1 = l[1]
-            self.eng.data.spectra[i].var2 = l[2]
-        self.eng.data.export_vars()
-
-    def recolor_spectra(self):
-        self.view.ypanel.list.recolor()
-        self.on_replot()
 
     def on_left_click(self, xpos, ypos):
         """
@@ -1015,7 +1063,6 @@ class UniDecApp(MetaUniDecBase):
         if paths is not None:
             print("Openening: ", paths)
             self.add_files(paths)
-
 
     def on_additional_parameters(self, e=None):
         """
@@ -1285,25 +1332,6 @@ class UniDecApp(MetaUniDecBase):
             self.eng.batch_extract(paths)
             self.view.SetStatusText("Batch Extract Done", number=5)
 
-    '''
-    def on_batch_cre(self, e=None):
-        """
-        Manual Test
-        :param e:
-        :return:
-        """
-        paths = FileDialogs.open_multiple_files_dialog(message="Choose HDF5 files to apply current config to",
-                                                       file_type="*.hdf5")
-        if paths is not None:
-            self.view.SetStatusText("Batch Setting Config...", number=5)
-            self.eng.batch_set_config(paths)
-            self.view.SetStatusText("Batch Running...", number=5)
-            self.eng.batch_run_unidec(paths)
-            self.view.SetStatusText("Batch Extracting...", number=5)
-            self.eng.batch_extract(paths)
-            self.view.SetStatusText("Batch Extract Done", number=5)
-    '''
-
     def on_batch_cre(self, e=None):
         """
         Manual Test
@@ -1318,28 +1346,6 @@ class UniDecApp(MetaUniDecBase):
             self.view.SetStatusText("Batch Running and Extracting...", number=5)
             self.eng.batch_run_unidec(paths)
             self.view.SetStatusText("Batch Extract Done", number=5)
-
-    def on_undo(self, e=None):
-        """
-        Manual Test
-        :param e:
-        :return:
-        """
-        self.export_config()
-        self.eng.undo()
-        self.import_config()
-        # print "Undo"
-
-    def on_redo(self, e=None):
-        """
-        Manual Test
-        :param e:
-        :return:
-        """
-        self.export_config()
-        self.eng.redo()
-        self.import_config()
-        # print("Redo")
 
     def remake_mainwindow(self, tabbed=None):
         """

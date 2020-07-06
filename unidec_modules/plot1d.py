@@ -5,7 +5,7 @@ from matplotlib.collections import LineCollection
 import matplotlib.colorbar as colorbar
 import matplotlib.colors as colors
 import matplotlib.cm as cm
-
+from matplotlib.patches import Rectangle
 
 class Plot1d(PlottingWindow):
     """
@@ -183,6 +183,13 @@ class Plot1d(PlottingWindow):
         :return: None
         """
         self.subplot1.fill_between(np.array(x) / self.kdnorm, y, y2=0, facecolor=color, alpha=0.75)
+
+    def add_rect(self, xstart, ystart, xwidth, ywidth, alpha=0.5, facecolor="k", edgecolor='k', nopaint=False):
+        self.subplot1.add_patch(
+            Rectangle((xstart, ystart), xwidth, ywidth, alpha=alpha, facecolor=facecolor, edgecolor=edgecolor,
+                      fill=True))
+        if not nopaint:
+            self.repaint()
 
     def histogram(self, xarray, labels=None, xlab="", ylab="", title=""):
         """
