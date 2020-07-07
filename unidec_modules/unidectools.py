@@ -573,7 +573,11 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             # hm1 = data_slice[np.argmin(abs(data_slice[0:max_index, 1] - (height / 2))), 0]
             # hm2 = data_slice[np.argmin(abs(data_slice[max_index:, 1] - (height / 2))) + max_index, 0]
             # fwhm = hm2 - hm1
-            fwhm, psfun, mid = auto_peak_width(data_slice, singlepeak=True)
+            try:
+                fwhm, psfun, mid = auto_peak_width(data_slice, singlepeak=True)
+            except ValueError:
+                fwhm = 0
+                psfun = 0
             # Calculate estimated area
             gauss_coeff = np.sqrt(np.pi / np.log(2)) / 2
             adjusted_coeff = ((0.5 * gauss_coeff) + (np.pi / 4))
