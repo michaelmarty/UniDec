@@ -1,8 +1,12 @@
 from matplotlib.ticker import MaxNLocator
 import numpy as np
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from unidec_modules.isolated_packages.ZoomSpan import ZoomSpan
+
 from unidec_modules.PlottingWindow import PlottingWindow
 from matplotlib.collections import LineCollection
 import matplotlib.colorbar as colorbar
+import matplotlib as mpl
 import matplotlib.colors as colors
 import matplotlib.cm as cm
 
@@ -94,7 +98,7 @@ class Plot1d(PlottingWindow):
 
         self.setup_zoom([self.subplot1], self.zoomtype)
         if not nopaint:
-            #self.setup_zoom([self.subplot1], self.zoomtype)
+            # self.setup_zoom([self.subplot1], self.zoomtype)
             self.repaint()
         self.flag = True
         self.mlist = []
@@ -111,11 +115,43 @@ class Plot1d(PlottingWindow):
         :param nopaint: Boolean, whether to repaint or not
         :return: None
         """
-        self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=colval, label=newlabel,**kwargs)
+        self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=colval, label=newlabel, **kwargs)
         self.setup_zoom([self.subplot1], self.zoomtype)
         if not nopaint:
-            #self.setup_zoom([self.subplot1], self.zoomtype)
+            # self.setup_zoom([self.subplot1], self.zoomtype)
             self.repaint()
+
+    def insetplot(self, x, y, a, b):
+        self.subplot1 = self.figure.add_axes(self._axes)
+
+        self.axins = inset_axes(self.subplot1, width="40%", height="40%",
+                                bbox_to_anchor=(.65, .65, 1.0, 1.0),
+                                bbox_transform=self.subplot1.transAxes, loc=3)
+
+        mpl.rcParams['figure.dpi'] = 150
+        mpl.rcParams['lines.linewidth'] = 0.75
+
+        self.subplot1.plot(x, y)
+        self.subplot1.get_yaxis().set_ticks([0, 0.5 * max(y), max(y)])
+        self.subplot1.get_yaxis().set_ticklabels(["0", '%', "100"])
+        self.subplot1.set_ylim(min(y), max(y))
+        self.subplot1.set_xlim(min(x), max(x))
+        self.subplot1.set_xlabel("m/z")
+        self.subplot1.spines['top'].set_visible(False)
+        self.subplot1.spines['right'].set_visible(False)
+
+        self.axins.plot(a / 1000, b)
+        self.axins.get_yaxis().set_ticks([0, 0.5 * max(b), max(b)])
+        self.axins.get_yaxis().set_ticklabels(["0", '%', "100"])
+        self.axins.set_ylim(min(b), max(b))
+        self.axins.set_xlim(min(a) / 1000, max(a) / 1000)
+        self.axins.set_xlabel("Mass (KDa)")
+        self.axins.spines['top'].set_visible(False)
+        self.axins.spines['right'].set_visible(False)
+
+        self.setup_zoom([self.subplot1, self.axins], "box", link_axes=False)
+
+        self.repaint()
 
     def errorbars(self, xvals, yvals, xerr=None, yerr=None, color="black", newlabel="", nopaint=True, **kwargs):
         self.subplot1.errorbar(np.array(xvals) / self.kdnorm, yvals, xerr=xerr, yerr=yerr, color=color, label=newlabel,
@@ -317,7 +353,8 @@ class Plot1d(PlottingWindow):
         if repaint:
             self.repaint()
 
-    def colorplotMD(self, xvals, yvals, cvals, title="", xlabel="", ylabel="", clabel="Mass Defect", cmap="hsv", config=None,
+    def colorplotMD(self, xvals, yvals, cvals, title="", xlabel="", ylabel="", clabel="Mass Defect", cmap="hsv",
+                    config=None,
                     color="black", max=1,
                     marker=None, zoom="box", nopaint=False, test_kda=False, integerticks=False, **kwargs):
         self._axes = [0.11, 0.1, 0.64, 0.8]
