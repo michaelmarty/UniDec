@@ -174,7 +174,9 @@ class UniListWindow(MainwindowBase):
         self.plotsizer = wx.BoxSizer(wx.VERTICAL)
         self.plot4 = plot1d.Plot1d(self.panel)
         self.plot2 = plot1d.Plot1d(self.panel)
+        self.insetplot = plot1d.Plot1d(self.panel)
 
+        self.plotsizer.Add(self.insetplot)
         self.plotsizer.Add(self.plot4)
         self.plotsizer.Add(self.plot2)
 
@@ -237,11 +239,9 @@ class UniListApp(UniDecPres):
         # pub.subscribe(self.on_left_click, 'left_click')
 
         if True:
-            p1 = "D:\\Data\\WangLabAnalysis\\wanglabsample_protease_1.txt"
-            p2 = "D:\\Data\\WangLabAnalysis\\wanglabsample_protease_2.txt"
-            p3 = "D:\\Data\\WangLabAnalysis\\wanglabsample_protease_3.txt"
+            p1 = "C:\\Users\\margo\\Desktop\\Marty\\wanglabsample_protease_3.txt"
 
-            paths = [[p1], [p2], [p3]]
+            paths = [[p1], [p1]]
 
             self.populate_list(paths)
 
@@ -270,6 +270,11 @@ class UniListApp(UniDecPres):
         self.view.populate(self.listdat)
         self.paths = [l[0] for l in self.listdat]
         self.engs.append(self.single_eng(path))
+
+    def insetplot(self):
+        massdata = self.eng.data.massdat
+        mzdata = self.eng.data.data2
+        self.view.insetplot.insetplot(mzdata[:, 0], mzdata[:, 1], massdata[:, 0], massdata[:, 1])
 
     def populate_list(self, listdat):
         """
@@ -313,6 +318,8 @@ class UniListApp(UniDecPres):
         :param e: Event (unused)
         :return: None
         """
+
+        self.insetplot()
         self.makeplot4(0)
         self.makeplot2(0)
 

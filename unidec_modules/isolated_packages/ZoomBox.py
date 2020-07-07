@@ -192,6 +192,7 @@ class ZoomBox:
     """
 
     def __init__(self, axes, onselect, drawtype='box',
+                 link_axes=True,
                  minspanx=None,
                  minspany=None,
                  useblit=False,
@@ -276,6 +277,7 @@ class ZoomBox:
         assert (spancoords in ('data', 'pixels'))
 
         self.spancoords = spancoords
+        self.link_axes = link_axes
         self.eventpress = None  # will save the data (position at mouseclick)
         self.eventrelease = None  # will save the data (pos. at mouserelease)
 
@@ -292,13 +294,14 @@ class ZoomBox:
         if xmin == xmax: xmax = xmin * 1.0001
         if ymin == ymax: ymax = ymin * 1.0001
         for axes in self.axes:
-            xspan = xmax - xmin
-            yspan = ymax - ymin
-            if xspan != 0:
-                axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
-            if yspan != 0:
-                axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
-            # print self.data_lims
+            if self.link_axes is True:
+                xspan = xmax - xmin
+                yspan = ymax - ymin
+                if xspan != 0:
+                    axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
+                if yspan != 0:
+                    axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
+                # print self.data_lims
 
     def new_axes(self, axes, rectprops=None):
         self.axes = axes
@@ -381,7 +384,7 @@ class ZoomBox:
             self.compareyvals.append(event.ydata)
         return False
 
-    def release(self, event):
+    def release(self, event, link_axes=False):
         'on button release event'
         if self.eventpress is None or (self.ignore(event) and not self.buttonDown): return
         # Do compare mode stuff
@@ -430,22 +433,25 @@ class ZoomBox:
                 # Check if a zoom out is necessary
                 zoomout = False
                 for axes in self.axes:
-                    if axes.get_xlim() != (xmin, xmax) and axes.get_ylim() != (ymin, ymax):
-                        zoomout = True
+                    if self.link_axes is True or axes == event.inaxes:
+                        if axes.get_xlim() != (xmin, xmax) and axes.get_ylim() != (ymin, ymax):
+                            zoomout = True
                 # Register a click if zoomout was not necessary
                 if not zoomout:
                     if event.button == 1 and self.smash == 1:
                         pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
 
                 for axes in self.axes:
-                    xspan = xmax - xmin
-                    yspan = ymax - ymin
-                    axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
-                    axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
-                    ResetVisible(axes)
+                    if link_axes is True or axes == event.inaxes:
+                        xspan = xmax - xmin
+                        yspan = ymax - ymin
+                        axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
+                        axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
+                        ResetVisible(axes)
                 self.kill_labels()
                 self.canvas.draw()
                 return
+
 
             self.canvas.draw()
             # release coordinates, button, ...
@@ -460,8 +466,10 @@ class ZoomBox:
                 try:
                     offx = self.prev[0]
                     offy = self.prev[1]
-                    xlims = self.axes[0].get_xlim()
-                    ylims = self.axes[0].get_ylim()
+                    for axes in self.axes:
+                        if axes == event.inaxes:
+                            xlims = axes.get_xlim()
+                            ylims = axes.get_ylim()
                     if np.abs(self.prev[0] - xlims[0]) < np.abs(self.prev[0] - xlims[1]):
                         offx = xlims[0]
                     else:
@@ -519,14 +527,15 @@ class ZoomBox:
                 return
 
             for axes in self.axes:
-                #clipbox = [[xmin, ymin], [xmax, ymax * 2]]
-                #print(clipbox)
-                #axes.set_clip_box(clipbox)
+                if self.link_axes is True or axes == event.inaxes:
+                    #clipbox = [[xmin, ymin], [xmax, ymax * 2]]
+                    #print(clipbox)
+                    #axes.set_clip_box(clipbox)
 
-                axes.set_xlim(xmin, xmax)
-                if spanflag == 1:
-                    xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=xmin, xmax=xmax)
-                axes.set_ylim(ymin, ymax)
+                    axes.set_xlim(xmin, xmax)
+                    if spanflag == 1:
+                        xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=xmin, xmax=xmax)
+                    axes.set_ylim(ymin, ymax)
 
             self.kill_labels()
             self.canvas.draw()
@@ -581,7 +590,8 @@ class ZoomBox:
 
         # Changes from a yellow box to a colored line
         for axes in self.axes:
-            y0, y1 = axes.get_ylim()
+            if self.link_axes is True or axes == event.inaxes:
+                y0, y1 = axes.get_ylim()
         if abs(maxy - miny) < abs(y1 - y0) * self.crossoverpercent:
             # print self.to_draw
             # print miny,maxy,y
@@ -639,15 +649,17 @@ class ZoomBox:
 
     def set_manual(self, xmin, xmax):
         for axes in self.axes:
-            axes.set_xlim((xmin, xmax))
-            if True:
-                xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=xmin, xmax=xmax)
-                axes.set_ylim((ymin, ymax))
+            if self.link_axes is True:
+                axes.set_xlim((xmin, xmax))
+                if True:
+                    xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=xmin, xmax=xmax)
+                    axes.set_ylim((ymin, ymax))
         self.canvas.draw()
 
     def set_manual_y(self, ymin, ymax):
         for axes in self.axes:
-            axes.set_ylim((ymin, ymax))
+            if self.link_axes is True:
+                axes.set_ylim((ymin, ymax))
         self.canvas.draw()
 
     def switch_label(self):

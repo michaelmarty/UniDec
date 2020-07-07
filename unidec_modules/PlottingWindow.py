@@ -373,7 +373,7 @@ class PlottingWindow(wx.Window):
             print("Image Copied")
         os.remove(obj.name)
 
-    def setup_zoom(self, plots, zoom, data_lims=None, pad=0):
+    def setup_zoom(self, plots, zoom, data_lims=None, pad=0, link_axes=True):
         """
         Set up zoom on axes.
         :param plots: Axes objects to setup
@@ -393,6 +393,7 @@ class PlottingWindow(wx.Window):
             self.zoom = ZoomBox(
                 plots,
                 None,
+                link_axes=link_axes,
                 drawtype='box',
                 useblit=True,
                 button=1,  # so zoombox is left button
