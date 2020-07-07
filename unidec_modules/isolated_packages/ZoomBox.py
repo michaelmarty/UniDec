@@ -324,12 +324,10 @@ class ZoomBox:
         self.rectprops = rectprops
 
         for axes in self.axes:
-            if self.link_axes is True:
-                self.to_draw.append(Rectangle((0, 0), 0, 1, visible=False, **self.rectprops))
+            self.to_draw.append(Rectangle((0, 0), 0, 1, visible=False, **self.rectprops))
 
         for axes, to_draw in zip(self.axes, self.to_draw):
-            if self.link_axes is True:
-                axes.add_patch(to_draw)
+            axes.add_patch(to_draw)
 
     def update_background(self, event):
         'force an update of the background'
@@ -570,8 +568,7 @@ class ZoomBox:
             if self.background is not None:
                 self.canvas.restore_region(self.background)
             for axes, to_draw in zip(self.axes, self.to_draw):
-                if self.link_axes is True:
-                    axes.draw_artist(to_draw)
+                axes.draw_artist(to_draw)
             self.canvas.blit(self.canvas.figure.bbox)
         else:
             self.canvas.draw_idle()
