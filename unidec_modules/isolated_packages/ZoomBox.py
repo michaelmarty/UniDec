@@ -141,16 +141,19 @@ def ResetVisible(axes):
 
 def GetStart(axes):
     outputs = np.array([GetMaxes(axis) for axis in axes])
-    # print "Outputs",outputs
     xmin = np.amin(outputs[:, 0])
     ymin = np.amin(outputs[:, 1])
     xmax = np.amax(outputs[:, 2])
     ymax = np.amax(outputs[:, 3])
 
-    if xmin > xmax: xmin, xmax = xmax, xmin
-    if ymin > ymax: ymin, ymax = ymax, ymin
-    if xmin == xmax: xmax = xmin * 1.0001
-    if ymin == ymax: ymax = ymin * 1.0001
+    if xmin > xmax:
+        xmin, xmax = xmax, xmin
+    if ymin > ymax:
+        ymin, ymax = ymax, ymin
+    if xmin == xmax:
+        xmax = xmin * 1.0001
+    if ymin == ymax:
+        ymax = ymin * 1.0001
 
     out = [xmin, ymin, xmax, ymax]
     return out
@@ -284,15 +287,12 @@ class ZoomBox:
         self.new_axes(axes, rectprops)
         if data_lims is None:
             self.data_lims = GetStart(self.axes)
+            print("getting lims from GetStart")
         else:
             self.data_lims = data_lims
 
-        xmin, ymin, xmax, ymax = self.data_lims
-        if xmin > xmax: xmin, xmax = xmax, xmin
-        if ymin > ymax: ymin, ymax = ymax, ymin
-        # assure that x and y values are not equal
-        if xmin == xmax: xmax = xmin * 1.0001
-        if ymin == ymax: ymax = ymin * 1.0001
+        [xmin, ymin, xmax, ymax] = self.data_lims
+
         for axes in self.axes:
             if self.link_axes is True:
                 xspan = xmax - xmin
@@ -385,8 +385,9 @@ class ZoomBox:
         return False
 
     def release(self, event, link_axes=False):
-        'on button release event'
-        if self.eventpress is None or (self.ignore(event) and not self.buttonDown): return
+        """on button release event"""
+        if self.eventpress is None or (self.ignore(event) and not self.buttonDown):
+            return
         # Do compare mode stuff
         self.buttonDown = False
         if self.comparemode is True:
@@ -420,36 +421,25 @@ class ZoomBox:
                         pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
                     return
 
-                # x0,y0,x1,y1=GetMaxes(event.inaxes)
-                # print GetMaxes(event.inaxes)
-
-                xmin, ymin, xmax, ymax = self.data_lims
-                if xmin > xmax: xmin, xmax = xmax, xmin
-                if ymin > ymax: ymin, ymax = ymax, ymin
-                # assure that x and y values are not equal
-                if xmin == xmax: xmax = xmin * 1.01
-                if ymin == ymax: ymax = ymin * 1.01
-
-                # Check if a zoom out is necessary
-                zoomout = False
                 for axes in self.axes:
-                    if self.link_axes is True or axes == event.inaxes:
-                        if axes.get_xlim() != (xmin, xmax) and axes.get_ylim() != (ymin, ymax):
-                            zoomout = True
-                # Register a click if zoomout was not necessary
-                if not zoomout:
-                    if event.button == 1 and self.smash == 1:
-                        pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
+                    [xmin, ymin, xmax, ymax] = GetMaxes(axes)
+                    # Check if a zoom out is necessary
+                    zoomout = False
+                    if axes.get_xlim() != (xmin, xmax) and axes.get_ylim() != (ymin, ymax):
+                        zoomout = True
+                    # Register a click if zoomout was not necessary
+                    if not zoomout:
+                        if event.button == 1 and self.smash == 1:
+                            pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
 
-                for axes in self.axes:
                     if link_axes is True or axes == event.inaxes:
                         xspan = xmax - xmin
                         yspan = ymax - ymin
                         axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
                         axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
                         ResetVisible(axes)
-                self.kill_labels()
-                self.canvas.draw()
+                    self.kill_labels()
+                    self.canvas.draw()
                 return
 
 
