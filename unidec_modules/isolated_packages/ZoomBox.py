@@ -287,7 +287,6 @@ class ZoomBox:
         self.new_axes(axes, rectprops)
         if data_lims is None:
             self.data_lims = GetStart(self.axes)
-            print("getting lims from GetStart")
         else:
             self.data_lims = data_lims
 

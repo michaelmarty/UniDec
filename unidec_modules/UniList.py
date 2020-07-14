@@ -175,7 +175,9 @@ class UniListWindow(MainwindowBase):
         self.plot4 = plot1d.Plot1d(self.panel)
         self.plot2 = plot1d.Plot1d(self.panel)
         self.insetplot = plot1d.Plot1d(self.panel)
+        self.multiplot = plot1d.Plot1d(self.panel)
 
+        self.plotsizer.Add(self.multiplot)
         self.plotsizer.Add(self.insetplot)
         self.plotsizer.Add(self.plot4)
         self.plotsizer.Add(self.plot2)
@@ -271,6 +273,11 @@ class UniListApp(UniDecPres):
         self.paths = [l[0] for l in self.listdat]
         self.engs.append(self.single_eng(path))
 
+    def multiplot(self):
+        mzdata = self.eng.data.data2
+        massdata = self.eng.data.massdat
+        self.view.multiplot.multiplot(mzdata[:, 0], mzdata[:, 1], massdata[:, 0], massdata[:, 1])
+
     def insetplot(self):
         massdata = self.eng.data.massdat
         mzdata = self.eng.data.data2
@@ -319,6 +326,7 @@ class UniListApp(UniDecPres):
         :return: None
         """
 
+        self.multiplot()
         self.insetplot()
         self.makeplot4(0)
         self.makeplot2(0)
