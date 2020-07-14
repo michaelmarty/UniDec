@@ -192,6 +192,8 @@ class MainwindowBase(wx.Frame):
         dpi = wx.ScreenDC().GetPPI()
         defaultsize = np.array([figsize[0] / dpi[0], figsize[1] / dpi[1]])
         defaultrect = np.array([0.1, 0.1, 0.8, 0.8])
+        figureflags = []
+        files = []
 
         dlg = miscwindows.SaveFigureDialog(self)
         dlg.initialize_interface(self.config)
@@ -212,6 +214,7 @@ class MainwindowBase(wx.Frame):
             self.figsize = np.array(dlg.figsize)
             self.rect = np.array(dlg.rect)
 
+
             if not np.all(defaultsize == self.figsize) or not np.all(defaultrect == self.rect):
                 plots = self.shrink_all_figures()
                 self.SetStatusText("Saving Figures", number=5)
@@ -221,20 +224,23 @@ class MainwindowBase(wx.Frame):
                     plot.resize = 1
                     plot.size_handler()
             else:
-                self.save_all_figures(extension, extension2="", header=path, transparent=transparent, dpi=dpi)
+                figureflags, files = self.save_all_figures(extension, extension2="", header=path, transparent=transparent, dpi=dpi)
             # print self.directory
             self.SetStatusText("Saved Figures", number=5)
             # TODO: Remember Values from previous
+        return figureflags, files
 
-    def shrink_figure(self, plot):
+    def shrink_figure(self, plot, figsize=None):
         """
         Automatically shrinks the plot to a figure size in inches set in self.figsize.
         :param plot: Plot object to shrink
         :return: None
         """
+        if figsize is None:
+            figsize = self.figsize
         if plot.flag:
             dpi = wx.ScreenDC().GetPPI()
-            figsize2 = (int(self.figsize[0] * dpi[0]), int(self.figsize[1] * dpi[1]))
+            figsize2 = (int(figsize[0] * dpi[0]), int(figsize[1] * dpi[1]))
             plot.resize = 0
             plot.canvas.SetSize(figsize2)
             plot.canvas.draw()
@@ -244,13 +250,15 @@ class MainwindowBase(wx.Frame):
                 plot.cbar.ax.set_position([0.85, 0.2, 0.05, 0.7])
             plot.repaint()
 
-    def shrink_all_figures(self):
+    def shrink_all_figures(self, figsize=None):
         """
         Shrinks all figures to the size specified in self.figsize
         :return: A list of plot objects that we shrunk
         """
+        if figsize is None:
+            figsize = self.figsize
         for plot in self.plots:
-            self.shrink_figure(plot)
+            self.shrink_figure(plot, figsize=figsize)
         return self.plots
 
     def on_save_figure_small(self, e):
