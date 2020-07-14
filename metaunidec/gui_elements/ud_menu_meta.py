@@ -310,7 +310,7 @@ class meta_menu(wx.Menu):
         # Analysis
         self.parent.Bind(wx.EVT_MENU, self.pres.on_2d_grid, self.menu2Dgrid)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_kendrick, self.menukendrick)
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_autocorr_window, self.menuautocorr)
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_autocorr_window_mud, self.menuautocorr)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_fft_window, self.menufft)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_data_collector, self.menuDC)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_ultra_meta, self.menuUM)

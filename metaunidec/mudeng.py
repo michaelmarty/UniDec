@@ -54,19 +54,22 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         if path is None:
             path = self.config.hdf_file
         else:
-            self.config.hdf_file = path
-            self.config.filename = os.path.split(path)[1]
-            self.config.outfname = os.path.splitext(self.config.filename)[0]
-            self.config.outfname = os.path.join("UniDec_Figures_and_Files", self.config.outfname)
-            dir = os.path.dirname(path)
-            os.chdir(dir)
-            dirnew = os.path.split(self.config.outfname)[0]
-            if not os.path.isdir(dirnew):
-                os.mkdir(dirnew)
-            self.config.default_file_names()
+            self.setup_filenames(path)
         self.config.read_hdf5(path)
         self.data.import_hdf5(path)
         self.update_history()
+
+    def setup_filenames(self, path):
+        self.config.hdf_file = path
+        self.config.dirname, self.config.filename = os.path.split(path)
+        outfname = os.path.splitext(self.config.filename)[0]
+        dir = os.path.dirname(path)
+        #os.chdir(dir)
+        dirnew = os.path.join(dir, "UniDec_Figures_and_Files")
+        if not os.path.isdir(dirnew):
+            os.mkdir(dirnew)
+        self.config.outfname = os.path.join(dirnew, outfname)
+        self.config.default_file_names()
 
     def process_data(self):
         self.pks.peaks = []

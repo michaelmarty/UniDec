@@ -163,8 +163,8 @@ class UniDecConfig(object):
         # Other
         self.mtabsig = 0
         self.poolflag = 2
-        self.nativezub = 100
-        self.nativezlb = -100
+        self.nativezub = 1000
+        self.nativezlb = -1000
         self.inflate = 1
         self.linflag = 2
         self.integratelb = ""

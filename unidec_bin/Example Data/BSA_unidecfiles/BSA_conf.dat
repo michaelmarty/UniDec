@@ -1,4 +1,4 @@
-version 4.2.3
+version 4.3.0
 imflag 0
 input BSA_input.dat
 output BSA
@@ -7,8 +7,8 @@ numz 21
 endz 30
 startz 10
 zzsig 1.0
-psig 0.0
-beta 100.0
+psig 1.0
+beta 500.0
 mzsig 1.50166
 psfun 0
 discreteplot 0

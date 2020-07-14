@@ -188,7 +188,7 @@ class MetaDataSet:
         data = ud.load_mz_file(path)
         self.add_data(data, name=filename)
 
-    def add_data(self, data, name=""):
+    def add_data(self, data, name="", attrs=None, export=True):
         snew = Spectrum(self.topname, self.len, self.eng)
         snew.rawdata = data
         snew.data2 = deepcopy(data)
@@ -197,7 +197,10 @@ class MetaDataSet:
                 snew.data2[:, 1] /= np.amax(snew.data2[:, 1])
             except:
                 pass
+
         snew.name = name
+        if attrs is not None:
+            snew.attrs = attrs
 
         try:
             if "CID" in name or "SID" in name:
@@ -218,7 +221,8 @@ class MetaDataSet:
 
         self.spectra.append(snew)
         self.len = len(self.spectra)
-        self.export_hdf5()
+        if export:
+            self.export_hdf5()
 
     def remove_data(self, indexes):
         for i in sorted(indexes, reverse=True):
@@ -226,12 +230,20 @@ class MetaDataSet:
         self.export_hdf5(delete=True)
         print("Removed")
 
+    def clear(self):
+        self.spectra = []
+        self.export_hdf5(delete=True)
+
     def get_spectra(self):
         spectra = []
         for i, s in enumerate(self.spectra):
             if s.ignore == 0:
                 spectra.append(s)
         return spectra
+
+    def get_max_data2(self):
+        maxes = [np.amax(s.data2[:, 1]) for s in self.spectra]
+        return np.amax(maxes)
 
     def get_bool(self):
         bool_array = []
@@ -259,6 +271,9 @@ class MetaDataSet:
             msdata.attrs["v2name"] = str(self.v2name)
         hdf.close()
 
+        self.update_var_array()
+
+    def update_var_array(self):
         self.var1 = []
         self.var2 = []
         for i in range(0, len(self.spectra)):
