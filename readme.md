@@ -78,7 +78,7 @@ For Water's .raw files, UniDec is bundled with converters (CDCReader.exe) to
 convert the data to .txt. It will compress the retention time dimension into a single spectrum. 
 A single file can be opened directly, or multiple files can be converted using 
 Tools > Simple Batch Process Raw to Txt. For a fancier conversion such as extracting specific functions or scans, 
-try Tools > Raw to Txt Conversion Wizard. Note: rawreader.exe has been replaced with the MassLynxSDK 4.5 Python library. Water's converters will need MassLynxRaw.dll and/or cdt.dll in the same directory as the converter executables (the unidec_bin folder or the top directory). 
+try Tools > Raw to Txt Conversion Wizard. Note: rawreader.exe has been replaced with the MassLynxSDK 4.5 Python library. Water's converters will need MassLynxRaw.dll and/or cdt.dll in the same directory as the converter executables (the unidec_bin folder or the top directory). You can find these at: [https://interface.waters.com/masslynx/developers-area/sdks/](https://interface.waters.com/masslynx/developers-area/sdks/). 
 
 Thermo .raw files can be read as you would a text file on Windows thanks to [multiplierz](https://github.com/BlaisProteomics/multiplierz). You will need [MSFileReader](https://thermo.flexnetoperations.com/control/thmo/download?element=6306677) installed. Please cite them (http://onlinelibrary.wiley.com/doi/10.1002/pmic.201700091/abstract). It will compress all scans together unless parsed with MetaUniDec. 
 
@@ -196,7 +196,11 @@ The main GUI class is GUniDec.UniDecApp.
 
 v.4.2.3
 
+Major refactoring of the code to support ongoing development.
+
 Fixed bug with spaces in oligomer names when importing ofiles.
+
+Switched default native charge range to +/- 1000 from +/- 100 to work better with denatured data.
 
 v.4.2.2
 

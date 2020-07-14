@@ -424,6 +424,11 @@ class MetaUniDecBase(UniDecPres):
         dlg.initalize_dialog(self.eng.config, data)
         dlg.ShowModal()
 
+    def on_autocorr_window_mud(self, e=None):
+        if ud.isempty(self.eng.data.massdat):
+            self.eng.data.import_grids_and_peaks()
+        self.on_autocorr_window()
+
     def on_fft_window2(self, index):
         """
         Manual Test - Passed
@@ -1118,9 +1123,8 @@ class UniDecApp(MetaUniDecBase):
         :return:
         """
         self.eng.data.import_grids_and_peaks()
-        dirnew = os.path.split(self.eng.config.outfname)[0]
         MassDefects.MassDefectWindow(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1,
-                                     directory=os.path.join(self.eng.config.dirname, dirnew),
+                                     directory=os.path.split(self.eng.config.outfname)[0],
                                      value=self.eng.config.molig)
         pass
 
@@ -1131,10 +1135,9 @@ class UniDecApp(MetaUniDecBase):
         :return:
         """
         self.eng.data.import_grids_and_peaks()
-        dirnew = os.path.split(self.eng.config.outfname)[0]
         exwindow = Extract2D.Extract2DPlot(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1,
                                            params=self.eng.config.gridparams,
-                                           directory=os.path.join(self.eng.config.dirname, dirnew))
+                                           directory=os.path.split(self.eng.config.outfname)[0])
         self.eng.config.gridparams = exwindow.params
 
     def on_fft_window(self, e):

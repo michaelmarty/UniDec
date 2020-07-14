@@ -61,14 +61,14 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
 
     def setup_filenames(self, path):
         self.config.hdf_file = path
-        self.config.filename = os.path.split(path)[1]
-        self.config.outfname = os.path.splitext(self.config.filename)[0]
-        self.config.outfname = os.path.join("UniDec_Figures_and_Files", self.config.outfname)
+        self.config.dirname, self.config.filename = os.path.split(path)
+        outfname = os.path.splitext(self.config.filename)[0]
         dir = os.path.dirname(path)
-        os.chdir(dir)
-        dirnew = os.path.split(self.config.outfname)[0]
+        #os.chdir(dir)
+        dirnew = os.path.join(dir, "UniDec_Figures_and_Files")
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
+        self.config.outfname = os.path.join(dirnew, outfname)
         self.config.default_file_names()
 
     def process_data(self):

@@ -1290,7 +1290,7 @@ class UniDecApp(UniDecPres):
         Simply writes the configuration with updated defaults to a conf.dat file.
         Then runs the conf.dat file with UniDec binary.
         Does not do any post processing.
-        This function is useful for largee data sets where you are using DataCollector or some other program to
+        This function is useful for large data sets where you are using DataCollector or some other program to
         analyze the results outside of UniDec. It allows new parameters to be run with the maximum speed.
         :param e: unused event
         :return: None

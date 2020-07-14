@@ -197,7 +197,7 @@ class UniDec(UniDecEngine):
                         result = subprocess.call(call)
                         self.config.filename = newfilename
                         if result == 0 and os.path.isfile(newfilepath):
-                            print("Converted data from raw to txt")
+                            print("Converted IM data from raw to txt")
                         else:
                             print("Failed conversion to txt file. ", result, newfilepath)
                             return None, None
@@ -330,6 +330,7 @@ class UniDec(UniDecEngine):
         self.pks = peakstructure.Peaks()
         self.data.massdat = np.loadtxt(self.config.outfname + "_mass.txt")
         self.data.ztab = np.arange(self.config.startz, self.config.endz + 1)
+
         try:
             self.config.massdatnormtop = np.amax(self.data.massdat[:, 1])
         except:
