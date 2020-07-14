@@ -155,6 +155,11 @@ class main_controls(wx.Panel):
         gbox1b = wx.GridBagSizer(wx.VERTICAL)
         i = 0
 
+        self.ctladductmass = wx.TextCtrl(panel1b, value='', size=size1)
+        gbox1b.Add(self.ctladductmass, (i, 1), span=(1, 1))
+        gbox1b.Add(wx.StaticText(panel1b, label="Adduct Mass (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
         self.ctlsmooth = wx.TextCtrl(panel1b, value="", size=size1)
         gbox1b.Add(self.ctlsmooth, (i, 1))
         gbox1b.Add(wx.StaticText(panel1b, label="Gaussian Smoothing: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -171,10 +176,6 @@ class main_controls(wx.Panel):
             gbox1b.Add(wx.StaticText(panel1b, label="Pusher Interval (\u03BCs)"), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
-        self.ctlbinsize = wx.TextCtrl(panel1b, value="", size=size1)
-        gbox1b.Add(self.ctlbinsize, (i, 1))
-        gbox1b.Add(wx.StaticText(panel1b, label="Bin Every: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
 
         self.subtypectl = wx.Choice(panel1b, -1, choices=self.backgroundchoices)
         self.ctlbuff = wx.TextCtrl(panel1b, value="", size=size1)
@@ -189,25 +190,17 @@ class main_controls(wx.Panel):
             gbox1b.Add(wx.StaticText(panel1b, label=" A.T."), (i, 2), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
-        self.ctlintthresh = wx.TextCtrl(panel1b, value="", size=size1)
-        gbox1b.Add(self.ctlintthresh, (i, 1), span=(1, 1))
-        gbox1b.Add(wx.StaticText(panel1b, label="Intensity Threshold: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
-
-
-
-        self.ctladductmass = wx.TextCtrl(panel1b, value='', size=size1)
-        gbox1b.Add(self.ctladductmass, (i, 1), span=(1, 1))
-        gbox1b.Add(wx.StaticText(panel1b, label="Adduct Mass (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
-
         self.ctlaccelvolt = wx.TextCtrl(panel1b, value='', size=size1)
         gbox1b.Add(self.ctlaccelvolt, (i, 1), span=(1, 1))
         gbox1b.Add(wx.StaticText(panel1b, label="Acceleration Voltage (kV): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
-        if self.config.imflag == 0:
+        self.ctlintthresh = wx.TextCtrl(panel1b, value="", size=size1)
+        gbox1b.Add(self.ctlintthresh, (i, 1), span=(1, 1))
+        gbox1b.Add(wx.StaticText(panel1b, label="Intensity Threshold: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
+        if self.config.imflag == 0:
 
             self.ctldatareductionpercent = wx.TextCtrl(panel1b, value="", size=size1)
             gbox1b.Add(self.ctldatareductionpercent, (i, 1), span=(1, 1))
@@ -219,15 +212,18 @@ class main_controls(wx.Panel):
             gbox1b.Add(self.ctldatanorm, (i, 0), span=(1, 2))
             i += 1
 
+        self.ctlbinsize = wx.TextCtrl(panel1b, value="", size=size1)
+        gbox1b.Add(self.ctlbinsize, (i, 1))
+        gbox1b.Add(wx.StaticText(panel1b, label="Bin Every: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        if self.config.imflag == 0:
             self.ctlbintype = wx.Choice(panel1b, -1, size=(240, 50),
                                         choices=["Linear m/z (Constant " + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z)",
                                                  "Linear resolution (Constant (m/z)/(" + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z))",
                                                  "Nonlinear", "Linear Interpolated", "Linear Resolution Interpolated"])
             gbox1b.Add(self.ctlbintype, (i, 0), span=(1, 2))
             i += 1
-
-
-
         else:
             self.ctlconvertflag = wx.CheckBox(panel1b, label="Compress when converting to .txt")
             self.ctlconvertflag.SetValue(True)
