@@ -61,11 +61,12 @@ class PlottingWindow(wx.Window):
         :return:
         """
         self.displaysize = wx.GetDisplaySize()
+        self.defaultfigsize = (6. * 0.9, 5. * 0.9)
         if "figsize" in kwargs:
             figsize = kwargs["figsize"]
             del kwargs["figsize"]
         else:
-            figsize = (6. * 0.9, 5. * 0.9)
+            figsize = self.defaultfigsize
 
         if "axes" in kwargs:
             self._axes = kwargs["axes"]

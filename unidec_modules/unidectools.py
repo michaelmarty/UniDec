@@ -832,19 +832,20 @@ def zipdir(path, zip_handle):
     :param zip_handle: Handle of the zip file that is being created
     :return: None
     """
-    files = os.listdir(path)
+    files = os.scandir(path)
     for f in files:
-        if os.path.isfile(f):
-            zip_handle.write(f)  # compress_type=zipfile.ZIP_DEFLATED)
+        if f.is_file():
+            zip_handle.write(f.path, arcname = os.path.relpath(f.path, path))  # compress_type=zipfile.ZIP_DEFLATED)
 
 
-def zip_folder(save_path):
+def zip_folder(save_path, directory=None):
     """
     Zips a directory specified by save_path into a zip file for saving.
     :param save_path: Path to save to zip
     :return: None
     """
-    directory = os.getcwd()
+    if directory is None:
+        directory = os.getcwd()
     print("Zipping directory:", directory)
     zipf = zipfile.ZipFile(save_path, 'w')
     zipdir(directory, zipf)

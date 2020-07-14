@@ -64,10 +64,10 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.config.dirname, self.config.filename = os.path.split(path)
         outfname = os.path.splitext(self.config.filename)[0]
         dir = os.path.dirname(path)
-        #os.chdir(dir)
         dirnew = os.path.join(dir, "UniDec_Figures_and_Files")
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
+        self.config.udir = dirnew
         self.config.outfname = os.path.join(dirnew, outfname)
         self.config.default_file_names()
 

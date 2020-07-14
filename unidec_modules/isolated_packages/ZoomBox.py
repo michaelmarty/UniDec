@@ -383,7 +383,7 @@ class ZoomBox:
             self.compareyvals.append(event.ydata)
         return False
 
-    def release(self, event, link_axes=False):
+    def release(self, event):
         """on button release event"""
         if self.eventpress is None or (self.ignore(event) and not self.buttonDown):
             return
@@ -412,6 +412,7 @@ class ZoomBox:
                 to_draw.set_visible(False)
 
             # left-click in place resets the x-axis or y-axis
+            # This is where things zoomout
             if self.eventpress.xdata == event.xdata and self.eventpress.ydata == event.ydata:
 
                 if wx.GetKeyState(wx.WXK_CONTROL):
@@ -431,14 +432,14 @@ class ZoomBox:
                         if event.button == 1 and self.smash == 1:
                             pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
 
-                    if link_axes is True or axes == event.inaxes:
+                    if self.link_axes is True or axes == event.inaxes:
                         xspan = xmax - xmin
                         yspan = ymax - ymin
                         axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
                         axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
                         ResetVisible(axes)
                     self.kill_labels()
-                    self.canvas.draw()
+                self.canvas.draw()
                 return
 
 
@@ -520,7 +521,6 @@ class ZoomBox:
                     #clipbox = [[xmin, ymin], [xmax, ymax * 2]]
                     #print(clipbox)
                     #axes.set_clip_box(clipbox)
-
                     axes.set_xlim(xmin, xmax)
                     if spanflag == 1:
                         xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=xmin, xmax=xmax)

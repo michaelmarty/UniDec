@@ -536,7 +536,6 @@ class FileNameDialog(wx.Dialog):
         if dirval != "":
             self.config.dirname = dirval
             print(dirval)
-            os.chdir(dirval)
         self.Destroy()
         self.EndModal(0)
 

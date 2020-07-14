@@ -91,7 +91,7 @@ class MainwindowBase(wx.Frame):
             pass
 
     def on_open_dir(self, e):
-        save_dir = os.getcwd()
+        save_dir = self.config.udir
         print("Opening directory:", save_dir)
         try:
             os.system(self.config.opencommand + "\"" + save_dir + "\"")

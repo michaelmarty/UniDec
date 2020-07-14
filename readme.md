@@ -196,7 +196,7 @@ The main GUI class is GUniDec.UniDecApp.
 
 v.4.2.3
 
-Major refactoring of the code to support ongoing development.
+Major refactoring of the code to support ongoing development. For example, switched from local to absolute paths for most files in the engine.
 
 Fixed bug with spaces in oligomer names when importing ofiles.
 
