@@ -1,3 +1,4 @@
+from matplotlib import gridspec
 from matplotlib.ticker import MaxNLocator
 import numpy as np
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -10,6 +11,8 @@ import matplotlib as mpl
 import matplotlib.colors as colors
 import matplotlib.cm as cm
 from matplotlib.patches import Rectangle
+import matplotlib.pyplot as plt
+
 
 class Plot1d(PlottingWindow):
     """
@@ -120,6 +123,65 @@ class Plot1d(PlottingWindow):
         if not nopaint:
             # self.setup_zoom([self.subplot1], self.zoomtype)
             self.repaint()
+
+    def multiplot(self, x, y, a, b):
+
+        mpl.rcParams['ps.useafm'] = True
+        mpl.rcParams['ps.fonttype'] = 42
+        mpl.rcParams['pdf.fonttype'] = 42
+        mpl.rcParams['lines.linewidth'] = 0.75
+        mpl.rcParams['errorbar.capsize'] = 3
+        mpl.rcParams['patch.force_edgecolor'] = True
+        mpl.rcParams['patch.facecolor'] = 'b'
+        mpl.rcParams['lines.markersize'] = 7
+        mpl.rcParams['font.size'] = 8
+        mpl.rcParams['font.sans-serif'] = "Arial"
+
+        self.sp1 = self.figure.add_subplot(221)
+        self.sp2 = self.figure.add_subplot(222)
+        self.sp3 = self.figure.add_subplot(223)
+        self.sp4 = self.figure.add_subplot(224)
+
+        self.subplots = [self.sp1, self.sp2, self.sp3, self.sp4]
+
+        for subplots in self.subplots:
+            subplots.plot(x, y)
+            subplots.spines['top'].set_visible(False)
+            subplots.spines['right'].set_visible(False)
+            subplots.get_yaxis().set_ticks([0, 0.5 * max(y), max(y)])
+            subplots.get_yaxis().set_ticklabels(["0", '%', "100"])
+            subplots.set_ylim(min(y), max(y))
+            subplots.set_xlim(min(x), max(x))
+            subplots.set_xlabel("m/z")
+
+        self.axins1 = inset_axes(self.sp1, width="40%", height="40%",
+                                 bbox_to_anchor=(.65, .65, 1.0, 1.0),
+                                 bbox_transform=self.sp1.transAxes, loc=3)
+        self.axins2 = inset_axes(self.sp2, width="40%", height="40%",
+                                 bbox_to_anchor=(.65, .65, 1.0, 1.0),
+                                 bbox_transform=self.sp2.transAxes, loc=3)
+        self.axins3 = inset_axes(self.sp3, width="40%", height="40%",
+                                 bbox_to_anchor=(.65, .65, 1.0, 1.0),
+                                 bbox_transform=self.sp3.transAxes, loc=3)
+        self.axins4 = inset_axes(self.sp4, width="40%", height="40%",
+                                 bbox_to_anchor=(.65, .65, 1.0, 1.0),
+                                 bbox_transform=self.sp4.transAxes, loc=3)
+        self.insetaxes = [self.axins1, self.axins2, self.axins3, self.axins4]
+
+        for insetaxes in self.insetaxes:
+            insetaxes.plot(a / 1000, b)
+            insetaxes.spines['top'].set_visible(False)
+            insetaxes.spines['right'].set_visible(False)
+            insetaxes.get_yaxis().set_ticks([0, 0.5 * max(b), max(b)])
+            insetaxes.get_yaxis().set_ticklabels(["0", '%', "100"])
+            insetaxes.set_ylim(min(b), max(b))
+            insetaxes.set_xlim(min(a), max(a))
+            insetaxes.set_xlabel("Mass (kDa)")
+
+        self.setup_zoom(self.insetaxes, "box", link_axes=True)
+        self.setup_zoom(self.subplots, "box", link_axes=True)
+
+        self.repaint()
 
     def insetplot(self, x, y, a, b):
         self.subplot1 = self.figure.add_axes(self._axes)
