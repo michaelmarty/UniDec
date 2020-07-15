@@ -76,17 +76,16 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
     #    linestr = line.rstrip()
     #    f.write("\\text{" + linestr + "}\\\\\n")
     #conf.close()
-    
 
     f.write("\\columnratio{0.5}\n")
     f.write("\\begin{paracol}{2}\n")
     scale = 0.5
-    f.write("\\begin{minipage}{3.75in}\n")
+    f.write("\\begin{minipage}{3.5in}\n")
     if np.any(np.array(figureflags) == 4 ):
         f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header + "_Figure" + str(4) + "}.pdf}\\\\\n")
     f.write("\\end{minipage}\n")
     f.write("\\switchcolumn\n")
-    f.write("\\begin{minipage}{3.75in}\n")
+    f.write("\\begin{minipage}{3.5in}\n")
     if np.any(np.array(figureflags) == 2):
         f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header + "_Figure" + str(2) + "}.pdf}\\\\\n")
     f.write("\\end{minipage}\n")
@@ -104,7 +103,7 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
         f.write(
             "\\cellcolor[rgb]{" + "%.4f" % color[i][0] * a + "," + "%.4f" % color[i][1] * a + "," + "%.4f" % color[i][
                 2] * a + "}\n")
-        f.write(textdict[labels[i]] + '&$' + str(peaks[i][0]) + '$&$' + str(round(peaks[i][1],1)) + '$&$' + names[i] + '$&' "-" '\\\\\hline\n')
+        f.write(textdict[labels[i]] + '&$' + str(int(round(peaks[i][0]))) + '$&$' + str(int(round(peaks[i][1]))) + '$&$' + names[i] + '$&' "-" '\\\\\hline\n')
     f.write("\\hline\n")
     f.write("\\end{tabular}\n")
     f.write("\\end{table}\n")
