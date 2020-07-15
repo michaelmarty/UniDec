@@ -1404,8 +1404,10 @@ class UniDecApp(UniDecPres):
                 print("PDF Report Failed to Generate. Check LaTeX installation.Need pdflatex in path.", ex)
         else:
             print("PDF Figures written.")
-        #self.view.shrink_all_figures(figsize=(6*0.9, 5*0.9))
-        #self.on_replot(e)
+        #self.on_replot()
+        #self.view.shrink_all_figures(figsize=self.eng.config.figsize)
+        #print("Resetting Figure Sizes", self.eng.config.figsize)
+        #self.on_replot()
         self.on_flip_tabbed(e=0)
         pass
 

@@ -9,10 +9,21 @@ import time
 import string
 import numpy as np
 import os
+from copy import deepcopy
 
 def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags, output, rawsamplename):
-    rawfilename = config.filename
-    header = config.outfname
+    #rawfilename = config.filename
+    #header = config.outfname
+
+    rawfilename = deepcopy(config.filename)
+    # rawfilename = rawfilename.replace('\\', '\\\\')
+    # rawfilename = rawfilename.replace(' ', ': ')
+    rawfilename = rawfilename.replace('\\', '/')
+    rawfilename = rawfilename.replace('_', '\\_')
+
+    header = deepcopy(config.outfname)
+    header2 = os.path.split(header)[1]
+
     error = config.error
     confname = config.confname
     
@@ -52,7 +63,6 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
     f.write("\\text{" + output3 + "}\\\\\n")
     
     f.write("Time Stamp: " + time.strftime("%a, %d %b %Y, %H:%M %Z", time.localtime()) + "\\\\\n")
-    rawfilename = rawfilename.replace('_', '\\_')
     f.write("File Name: " + rawfilename + "\\\\\n")
 
     f.write("\\end{minipage}\n")
@@ -82,12 +92,12 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
     scale = 0.5
     f.write("\\begin{minipage}{3.5in}\n")
     if np.any(np.array(figureflags) == 4 ):
-        f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header + "_Figure" + str(4) + "}.pdf}\\\\\n")
+        f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header2 + "_Figure" + str(4) + "}.pdf}\\\\\n")
     f.write("\\end{minipage}\n")
     f.write("\\switchcolumn\n")
     f.write("\\begin{minipage}{3.5in}\n")
     if np.any(np.array(figureflags) == 2):
-        f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header + "_Figure" + str(2) + "}.pdf}\\\\\n")
+        f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header2 + "_Figure" + str(2) + "}.pdf}\\\\\n")
     f.write("\\end{minipage}\n")
     f.write("\\end{paracol}\n")
 
@@ -112,10 +122,32 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
 
     f.close()
 
-
-def PDFTexReport(fname):
+'''
+def PDFTexReportOld(fname):
     path="C:\\Program Files (x86)\\MiKTeX 2.9\\miktex\\bin\\pdflatex.exe"
     if os.path.isfile(path):
         subprocess.call([path,fname,"-halt-on-error"])
     else:
-        subprocess.call(["pdflatex", fname, "-halt-on-error"])
+        subprocess.call(["pdflatex", fname, "-halt-on-error"])'''
+
+def PDFTexReport(fname):
+    """
+    This new call adds in a change directory, which previously had been part of the UniDec code.
+    Note: I would like to remove this but can't figure out how to get LaTeX to work of absolute paths.
+    :param fname: File Name
+    :return: None
+    """
+    path = "C:\\Program Files (x86)\\MiKTeX 2.9\\miktex\\bin\\pdflatex.exe"
+    #print(path, fname)
+    oldpath = os.getcwd()
+    newpath = os.path.dirname(fname)
+    os.chdir(newpath)
+    if os.path.isfile(path):
+        call = [path, str(fname),"-halt-on-error"]
+        #print(call)
+        subprocess.call(call)
+    else:
+        call = ["pdflatex", str(fname), "-halt-on-error"]
+        #print(call)
+        subprocess.call(call)
+    os.chdir(oldpath)

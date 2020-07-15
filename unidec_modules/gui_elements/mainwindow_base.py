@@ -244,9 +244,11 @@ class MainwindowBase(wx.Frame):
             except:
                 rect = [0.1, 0.1, 0.8, 0.8]
                 self.rect = rect
+        print(self.rect)
         if plot.flag:
             dpi = wx.ScreenDC().GetPPI()
             figsize2 = (int(figsize[0] * dpi[0]), int(figsize[1] * dpi[1]))
+            print(figsize2, figsize)
             plot.resize = 0
             plot.canvas.SetSize(figsize2)
             plot.canvas.draw()
