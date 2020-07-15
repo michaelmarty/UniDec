@@ -9,11 +9,26 @@ import time
 import string
 import numpy as np
 import os
+from copy import deepcopy
+
 
 # import os
 def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags):
-    rawfilename = config.filename
-    header = config.outfname
+    rawfilename = deepcopy(config.filename)
+    # rawfilename = rawfilename.replace('\\', '\\\\')
+    # rawfilename = rawfilename.replace(' ', ': ')
+    rawfilename = rawfilename.replace('\\', '\\textbackslash ')
+    rawfilename = rawfilename.replace('_', '\\_')
+
+    header = deepcopy(config.outfname)
+    # header = header.replace('\\', '\\\\')
+    # header = header.replace('\\', '\\textbackslash ')
+    header = header.replace('_', '\\_')
+    header = header.replace(' ', ': ')
+    header2 = os.path.split(header)[1]
+
+    path = deepcopy(path)
+
     error = config.error
     confname = config.confname
 
@@ -37,27 +52,26 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags)
 
     f.write("\\noindent\n")
     f.write("Time: " + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()) + "\\\\\n")
-    rawfilename = rawfilename.replace('_', '\\_')
-    f.write("File Name: " + rawfilename + "\\\\\n")
+    f.write("File Name: {" + rawfilename + "}\\\\\n")
     f.write("Error: " + str(error) + "\\\\\n")
     # f.write("\\columnratio{0.5}\n")
     f.write("\\begin{paracol}{2}\n")
     scale = 0.48
     f.write("\\begin{minipage}{3.5in}\n")
     if np.any(np.array(figureflags) == 1):
-        f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header + "_Figure" + str(1) + "}.pdf}\\\\\n")
+        f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header2 + "_Figure" + str(1) + "}.pdf}\\\\\n")
     f.write("\\end{minipage}\n")
     f.write("\\switchcolumn\n")
     f.write("\\begin{minipage}{3.5in}\n")
     if np.any(np.array(figureflags) == 3):
-        f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header + "_Figure" + str(3) + "}.pdf}\\\\\n")
+        f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header2 + "_Figure" + str(3) + "}.pdf}\\\\\n")
     f.write("\\end{minipage}\n")
     f.write("\\end{paracol}\n")
 
     f.write("\\begin{center}\n")
     scale = 0.85
     if np.any(np.array(figureflags) == 5):
-        f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header + "_Figure" + str(5) + "}.pdf}\\\\\n")
+        f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header2 + "_Figure" + str(5) + "}.pdf}\\\\\n")
     f.write("\\end{center}\n")
 
     f.write("\\newpage\n")
@@ -75,7 +89,7 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags)
         #    f.write("\\includegraphics[scale="+str(scale)+"]{Luc_Figure"+str(i+1)+".pdf}&")
         if np.any(np.array(figureflags) == i):
             # print "Figure ",i
-            f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header + "_Figure" + str(i) + "}.pdf}\\\\\n")
+            f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header2 + "_Figure" + str(i) + "}.pdf}\\\\\n")
 
     f.write("\\end{minipage}\n")
 
@@ -112,10 +126,16 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags)
     # conf.readline()
     for line in conf:
         linestr = line.rstrip()
-        linestr = linestr.replace( '_', '\\_')
-        linestr = linestr.replace( ' ', ': ')
-        # print linestr
-        f.write("\\text{" + linestr + "}\\\\\n")
+        #linestr = linestr.replace('\\', '\\textbackspace ')
+        linestr = linestr.replace('_', '\\_')
+        linestr = linestr.replace(' ', ': ')
+        if "input" in linestr or "output" in linestr:
+            # f.write("\\text{" + linestr + "}\\\\\n")
+            # f.write("\\text{\detokenize{" + linestr + "}}\\\\\n")
+            pass
+        else:
+            # print linestr
+            f.write("\\text{" + linestr + "}\\\\\n")
     conf.close()
 
     f.write("\\end{document}\n")
@@ -124,8 +144,17 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags)
 
 
 def PDFTexReport(fname):
-    path="C:\\Program Files (x86)\\MiKTeX 2.9\\miktex\\bin\\pdflatex.exe"
+    path = "C:\\Program Files (x86)\\MiKTeX 2.9\\miktex\\bin\\pdflatex.exe"
+    print(path, fname)
+    oldpath = os.getcwd()
+    newpath = os.path.dirname(fname)
+    os.chdir(newpath)
     if os.path.isfile(path):
-        subprocess.call([path,fname,"-halt-on-error"])
+        call = [path, str(fname),"-halt-on-error"]
+        print(call)
+        subprocess.call(call)
     else:
-        subprocess.call(["pdflatex", fname, "-halt-on-error"])
+        call = ["pdflatex", str(fname), "-halt-on-error"]
+        print(call)
+        subprocess.call(call)
+    os.chdir(oldpath)
