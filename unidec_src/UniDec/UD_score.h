@@ -440,7 +440,7 @@ double score(Config config, Decon decon, const double * dataMZ, const double * d
 		double dsc = usc * msc * cssc * fsc;
 		if (dsc > threshold)
 		{
-			printf("Peak: Mass:%f Int:%f M:%f U:%f CS:%f F:%f D: %f \n", peakx[i], peaky[i], msc, usc, cssc, fsc, dsc);
+			//printf("Peak: Mass:%f Int:%f M:%f U:%f CS:%f F:%f D: %f \n", peakx[i], peaky[i], msc, usc, cssc, fsc, dsc);
 			numerator += ival * ival * dsc;
 			denominator += ival * ival;
 		}

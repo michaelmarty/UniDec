@@ -847,7 +847,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 	FreeInputs(inp);
 	FreeDecon(decon);
 
-	printf("\nError: %f\n", decon.error);
+	printf("\nError in the Fit: %f\n", decon.error);
 
 	//Final Check that iterations worked and a reporter of the time consumed
 	printf("\nFinished with %d iterations and %f convergence in %f seconds!\n\n", decon.iterations, decon.conv, totaltime);

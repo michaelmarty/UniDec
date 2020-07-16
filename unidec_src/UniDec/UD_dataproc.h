@@ -174,7 +174,7 @@ int remove_duplicates(double *oldmz, double *oldint, int oldlen)
 
 	//free(newmz);
 	//free(newint);
-	printf("Removed %d Duplicates\n", oldlen - newlen);
+	//printf("Removed %d Duplicates\n", oldlen - newlen);
 	return newlen;
 }
 
@@ -230,7 +230,7 @@ int remove_middle_zeros(double *oldmz, double *oldint, int oldlen)
 
 	//free(newmz);
 	//free(newint);
-	printf("Removed %d Middle Zeros\n", oldlen - newlen);
+	//printf("Removed %d Middle Zeros\n", oldlen - newlen);
 	return newlen;
 }
 
@@ -313,20 +313,20 @@ void process_data(int argc, char *argv[], Config config)
 	dataMZ = calloc(lengthmz, sizeof(double));
 	dataInt = calloc(lengthmz, sizeof(double));
 	mh5readfile2d(file_id, outdat, lengthmz, dataMZ, dataInt);
-	printf("Length of Data: %d \n", lengthmz);
+	//printf("Length of Data: %d \n", lengthmz);
 
 
 	//Bin
 	if (config.mzbins > 1)
 	{
-		printf("Binning data every %d data points\n", config.mzbins);
+		//printf("Binning data every %d data points\n", config.mzbins);
 		lengthmz = pool1d(dataMZ, dataInt, lengthmz, config.mzbins);
 	}
 
 	//Chop
 	if (config.minmz >= 0 && config.maxmz > 0)
 	{
-		printf("Chopping data to range: %f %f\n", config.minmz, config.maxmz);
+		//printf("Chopping data to range: %f %f\n", config.minmz, config.maxmz);
 		lengthmz=chop1d(dataMZ, dataInt, lengthmz, config.minmz, config.maxmz);
 	}
 
@@ -336,7 +336,7 @@ void process_data(int argc, char *argv[], Config config)
 
 	//Remove Duplicates
 	lengthmz = remove_duplicates(dataMZ, dataInt, lengthmz);
-	printf("New Length %d\n", lengthmz);
+	//printf("New Length %d\n", lengthmz);
 
 	//Background subtraction
 	if (config.bsub != 0)
@@ -347,7 +347,7 @@ void process_data(int argc, char *argv[], Config config)
 	//Normalize
 	if (config.datanorm == 1)
 	{
-		printf("Normalizing\n");
+		//printf("Normalizing\n");
 		norm1d(dataInt, lengthmz);
 	}
 
@@ -357,12 +357,12 @@ void process_data(int argc, char *argv[], Config config)
 	config.speedyflag = 0;
 	//Write data to processed_data
 	strjoin(dataset, "/processed_data", outdat);
-	printf("\tWriting to: %s...", outdat);
+	//printf("\tWriting to: %s...", outdat);
 	mh5writefile2d(file_id, outdat, lengthmz, dataMZ, dataInt);
 	free(dataMZ);
 	free(dataInt);
 	H5Fclose(file_id);
-	printf("Done\n");
+	//printf("Done\n");
 }
 
 #endif
