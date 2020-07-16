@@ -268,6 +268,7 @@ class SaveFigureDialog(wx.Dialog):
         :return: 
         """
         self.config = config
+        self.directory, self.header = os.path.split(self.config.outfname)
 
         pnl = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
@@ -277,18 +278,18 @@ class SaveFigureDialog(wx.Dialog):
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         hbox.Add(wx.StaticText(pnl, label="Directory:"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.dirinput = wx.TextCtrl(pnl, value=os.getcwd(), size=(300, 20))
+        self.dirinput = wx.TextCtrl(pnl, value=self.directory, size=(300, 20))
         hbox.Add(self.dirinput, 0, wx.EXPAND)
         dirbutton = wx.Button(pnl, label="...", size=(20, 20))
         hbox.Add(dirbutton, 1, wx.EXPAND)
         self.Bind(wx.EVT_BUTTON, self.on_choose_dir, dirbutton)
-        sbs.Add(hbox, 1, wx.ALIGN_CENTER_VERTICAL)
+        sbs.Add(hbox, 1)
 
         hbox5 = wx.BoxSizer(wx.HORIZONTAL)
-        self.headerbox = wx.TextCtrl(pnl, value=str(self.config.outfname), size=(300, 20))
+        self.headerbox = wx.TextCtrl(pnl, value=str(self.header), size=(300, 20))
         hbox5.Add(wx.StaticText(pnl, label='File Name Header: '), 0, wx.ALIGN_CENTER_VERTICAL)
         hbox5.Add(self.headerbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
-        sbs.Add(hbox5, 1, wx.ALIGN_CENTER_VERTICAL)
+        sbs.Add(hbox5, 1)
 
         hbox6 = wx.BoxSizer(wx.HORIZONTAL)
         self.extbox = wx.TextCtrl(pnl, value=str("png"))
@@ -299,7 +300,7 @@ class SaveFigureDialog(wx.Dialog):
         hbox6.Add(self.dpibox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
         self.tbox = wx.CheckBox(pnl, label=str("Transparent"))
         hbox6.Add(self.tbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
-        sbs.Add(hbox6, 1, wx.ALIGN_CENTER_VERTICAL)
+        sbs.Add(hbox6, 1)
 
         hbox6b = wx.BoxSizer(wx.HORIZONTAL)
         self.widebox = wx.TextCtrl(pnl, value=str(6), size=(40, 20))
@@ -309,7 +310,7 @@ class SaveFigureDialog(wx.Dialog):
         hbox6b.Add(wx.StaticText(pnl, label=' wide by '), 0, wx.ALIGN_CENTER_VERTICAL)
         hbox6b.Add(self.tallbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
         hbox6b.Add(wx.StaticText(pnl, label=' tall (inches) '), 0, wx.ALIGN_CENTER_VERTICAL)
-        sbs.Add(hbox6b, 1, wx.ALIGN_CENTER_VERTICAL)
+        sbs.Add(hbox6b, 1)
 
         hbox8 = wx.BoxSizer(wx.HORIZONTAL)
         size = (40, 20)
@@ -323,7 +324,7 @@ class SaveFigureDialog(wx.Dialog):
         hbox8.Add(self.b3, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
         hbox8.Add(self.b4, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
         hbox8.Add(wx.StaticText(pnl, label=' Left Bottom Width Height (%) '), 0, wx.ALIGN_CENTER_VERTICAL)
-        sbs.Add(hbox8, 1, wx.ALIGN_CENTER_VERTICAL)
+        sbs.Add(hbox8, 1)
 
         pnl.SetSizer(sbs)
 
