@@ -101,6 +101,80 @@ void get_fwhms(Config config, const int mlen, const double* massaxis, const doub
 	}
 }
 
+// To lower duplication, consider calling this in the loop of get_fwhms()?
+double single_fwhm(Config config, const int mlen, const double* massaxis, const double* masssum, const double peak, int index, double max)
+{
+	double halfmax = max / 2.0;
+	int lindex = index;
+	int hindex = index;
+
+	bool lfound = 0;
+	while (lfound == 0)
+	{
+		lindex -= 1;
+		if (lindex < 0)
+		{
+			lfound = 1;
+		}
+		else {
+			double lval = masssum[lindex];
+			if (lval <= halfmax)
+			{
+				lfound = 1;
+			}
+		}
+	}
+
+	bool hfound = 0;
+	while (hfound == 0)
+	{
+		hindex += 1;
+		if (hindex >= mlen)
+		{
+			hfound = 1;
+		}
+		else {
+			double hval = masssum[hindex];
+			if (hval <= halfmax)
+			{
+				hfound = 1;
+			}
+		}
+
+	}
+
+	double mlow = massaxis[lindex];
+	double mhigh = massaxis[hindex];
+
+	//Catch peaks that are too assymetric. Fix and flag them.
+	double highdiff = mhigh - peak;
+	double lowdiff = peak - mlow;
+	double fwhm = mhigh - mlow;
+
+	double threshold = 0.75;
+	double mult = threshold / (1 - threshold);
+	if (fwhm != 0) {
+		double rh = highdiff / fwhm;
+		double rl = lowdiff / fwhm;
+		if (rh > threshold)
+		{
+			mhigh = peak + lowdiff * mult;
+		}
+		else if (rl > threshold)
+		{
+			mlow = peak - highdiff * mult;
+		}
+	}
+	else
+	{
+		printf("Warning: FWHM was 0.\n");
+	}
+	fwhm = mhigh - mlow;
+	// printf("FWHM is %f\n", fwhm);
+
+	return fwhm;
+}
+
 double uscore(Config config, const double* dataMZ, const double* dataInt, const double* mzgrid, const int* nztab, 
 	const double mlow, const double mhigh, const double peak)
 {
