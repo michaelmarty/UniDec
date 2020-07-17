@@ -1124,7 +1124,7 @@ class UniDecApp(MetaUniDecBase):
         """
         self.eng.data.import_grids_and_peaks()
         MassDefects.MassDefectWindow(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1,
-                                     directory=os.path.split(self.eng.config.outfname)[0],
+                                     directory=self.eng.config.udir,
                                      value=self.eng.config.molig)
         pass
 

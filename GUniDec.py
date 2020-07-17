@@ -1091,7 +1091,7 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         MassDefects.MassDefectWindow(self.view, [self.eng.data.massdat], config=self.eng.config,
-                                     pks=self.eng.pks, value=self.eng.config.molig)
+                                     pks=self.eng.pks, value=self.eng.config.molig, directory=self.eng.config.udir)
 
     def on_iFAMS(self, e=None):
         iFAMS_Window(self.view, self.eng.data.data2, config=self.eng.config, directory=os.getcwd())
@@ -1383,7 +1383,7 @@ class UniDecApp(UniDecPres):
         dialog.ShowModal()
         output = dialog.value
 
-        self.view.shrink_all_figures(figsize = (6, 5))
+        self.view.shrink_all_figures(figsize=(6, 5))
         self.view.on_save_figure_eps(e)
         figureflags, files = self.view.on_save_figure_pdf(e)
         textmarkertab = [p.textmarker for p in self.eng.pks.peaks]
@@ -1404,10 +1404,10 @@ class UniDecApp(UniDecPres):
                 print("PDF Report Failed to Generate. Check LaTeX installation.Need pdflatex in path.", ex)
         else:
             print("PDF Figures written.")
-        #self.on_replot()
-        #self.view.shrink_all_figures(figsize=self.eng.config.figsize)
-        #print("Resetting Figure Sizes", self.eng.config.figsize)
-        #self.on_replot()
+        # self.on_replot()
+        # self.view.shrink_all_figures(figsize=self.eng.config.figsize)
+        # print("Resetting Figure Sizes", self.eng.config.figsize)
+        # self.on_replot()
         self.on_flip_tabbed(e=0)
         pass
 

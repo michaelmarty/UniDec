@@ -1,7 +1,7 @@
-version 4.2.2
+version 4.3.0
 imflag 0
-input POPC_Nanodiscs_input.dat
-output POPC_Nanodiscs
+input C:\Python\UniDec3\unidec_bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs_input.dat
+output C:\Python\UniDec3\unidec_bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs
 numit 100
 numz 21
 endz 25

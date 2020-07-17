@@ -32,6 +32,7 @@ class MassDefectWindow(wx.Frame):
             self.directory = os.getcwd()
         else:
             self.directory = directory
+        print(self.directory)
 
         self.parent = parent
         self.m0 = deepcopy(value)
@@ -66,10 +67,10 @@ class MassDefectWindow(wx.Frame):
             self.xtype = 0
         self.factor = 1
         self.xlab = ""
-        self.outfname = os.path.splitext(self.config.filename)[0]
+        self.outfname = self.config.outfname
         if self.outfname != "":
             self.outfname += "_"
-
+        print(self.outfname)
         try:
             self.datalist = [data_list[0]]
         except:
