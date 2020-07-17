@@ -43,12 +43,12 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 		config.metamode = i;
 		if(mode==1)
 		{			
-			printf("Deconvolving\n");
+			//printf("Deconvolving\n");
 			run_unidec(argc, argv, config);
 		}
 		else if (mode == 2)
 		{
-			printf("Processing\n");
+			//printf("Processing\n");
 			process_data(argc, argv, config);
 		}
 		else if (mode == 3 || mode >= 5)
@@ -64,7 +64,7 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 	
 	if ( mode ==3 || mode == 4)
 	{
-		printf("Making Merged Grids\n");
+		//printf("Making Merged Grids\n");
 		hid_t file_id;
 		file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 		if (question_grids(file_id)) { printf("Grids Already Made\n"); H5Fclose(file_id); } //Checks to see if grids are already made
@@ -82,7 +82,7 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 
 	if (mode == 5)
 	{
-		printf("Extracting Data\n");
+		//printf("Extracting Data\n");
 		get_peaks(argc, argv, config, 0);
 	}
 
@@ -104,7 +104,7 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 	}
 	if (mode == 8)
 	{
-		printf("Picking Peaks\n");
+		//printf("Picking Peaks\n");
 		get_all_peaks(argc, argv, config);
 	}
 	return 0;

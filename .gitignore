@@ -170,4 +170,5 @@ unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure4.eps
 unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure5.eps
 unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure6.eps
 unidec_bin/Example Data/BSA_unidecfiles/BSA_report.out
-
+unidec_modules/thermo_reader/RawFileReader
+unidec_modules/thermo_reader/RawFileReaderExample

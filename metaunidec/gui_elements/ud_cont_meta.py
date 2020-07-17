@@ -112,31 +112,41 @@ class main_controls(wx.Panel):
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_full, self.fullbutton)
         mzrange.Add(self.fullbutton)
 
-        sizercontrol1.Add(mzrange, (0, 0), span=(1, 5))
+        i=0
+        sizercontrol1.Add(mzrange, (i, 0), span=(1, 5))
+        i+=1
 
         # self.subtypectl = wx.Choice(panel1, -1, choices=self.backgroundchoices)
 
         self.ctlbuff = wx.TextCtrl(panel1, value="", size=size1)
         # self.ctlsmooth = wx.TextCtrl(panel1, value="", size=size1)
         self.ctlbinsize = wx.TextCtrl(panel1, value="", size=size1)
+        self.ctldatareductionpercent = wx.TextCtrl(panel1, value="", size=size1)
 
         # sizercontrol1.Add(self.subtypectl, (1 + self.config.imflag, 0))
-        sizercontrol1.Add(wx.StaticText(panel1, label="Background Subtraction: "), (1, 0),
+        sizercontrol1.Add(wx.StaticText(panel1, label="Background Subtraction: "), (i, 0),
                           flag=wx.ALIGN_CENTER_VERTICAL)
-        sizercontrol1.Add(self.ctlbuff, (1, 1))
+        sizercontrol1.Add(self.ctlbuff, (i, 1))
+        i += 1
         # sizercontrol1.Add(self.ctlsmooth, (2 + self.config.imflag * 2, 1))
         # sizercontrol1.Add(wx.StaticText(panel1, label="Gaussian Smoothing: "), (2 + self.config.imflag * 2, 0),
         #                  flag=wx.ALIGN_CENTER_VERTICAL)
-        sizercontrol1.Add(self.ctlbinsize, (2, 1))
-        sizercontrol1.Add(wx.StaticText(panel1, label="Bin Every: "), (2, 0),
+        sizercontrol1.Add(self.ctlbinsize, (i, 1))
+        sizercontrol1.Add(wx.StaticText(panel1, label="Bin Every: "), (i, 0),
                           flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        sizercontrol1.Add(self.ctldatareductionpercent, (i, 1), span=(1, 1))
+        sizercontrol1.Add(wx.StaticText(panel1, label="Data Reduction (%): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         self.ctldatanorm = wx.CheckBox(panel1, label="Normalize Data")
-        sizercontrol1.Add(self.ctldatanorm, (3, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        sizercontrol1.Add(self.ctldatanorm, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         self.dataprepbutton = wx.Button(panel1, -1, "Process Data")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_dataprep_button, self.dataprepbutton)
-        sizercontrol1.Add(self.dataprepbutton, (4, 0), span=(1, 2), flag=wx.EXPAND)
+        sizercontrol1.Add(self.dataprepbutton, (i, 0), span=(1, 2), flag=wx.EXPAND)
 
         panel1.SetSizer(sizercontrol1)
         sizercontrol1.Fit(panel1)
@@ -514,6 +524,7 @@ class main_controls(wx.Panel):
             # self.subtypectl.SetSelection(int(self.config.subtype))
             # self.ctlsmooth.SetValue(str(self.config.smooth))
             self.ctlbinsize.SetValue(str(self.config.mzbins))
+            self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
             self.ctlwindow.SetValue(str(self.config.peakwindow))
             self.ctlthresh.SetValue(str(self.config.peakthresh))
             self.ctlthresh2.SetValue(str(self.config.peakplotthresh))
@@ -617,6 +628,7 @@ class main_controls(wx.Panel):
         self.config.maxmz = ud.string_to_value(self.ctlmaxmz.GetValue())
         # self.config.smooth = ud.string_to_value(self.ctlsmooth.GetValue())
         self.config.mzbins = ud.string_to_value(self.ctlbinsize.GetValue())
+        self.config.reductionpercent = ud.string_to_value(self.ctldatareductionpercent.GetValue())
         self.config.subbuff = ud.string_to_value(self.ctlbuff.GetValue())
         # self.config.subtype = self.subtypectl.GetSelection()
         # self.config.intthresh = ud.string_to_value(self.ctlintthresh.GetValue())
@@ -756,6 +768,9 @@ class main_controls(wx.Panel):
             "Controls Linearization.\nConstant bin size (Th) for Linear m/z"
             "\nMinimum bin size (Th) for Linear Resolution"
             "\nNumber of data points compressed together for Nonlinear"))
+        self.ctldatareductionpercent.SetToolTip(
+            wx.ToolTip(
+                "Reduces the amount of data by removing everything below a threshold.\nSets the threshold based on this percentage of data to remove."))
         # self.ctlintthresh.SetToolTip(
         #    wx.ToolTip("Set intensity threshold. Data points below threshold are excluded from deconvolution."))
         self.ctlbuff.SetToolTip(wx.ToolTip(

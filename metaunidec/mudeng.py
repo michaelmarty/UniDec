@@ -28,7 +28,7 @@ def metaunidec_call(config, *args, **kwargs):
     tstart = time.perf_counter()
     out = subprocess.call(call)
     tend = time.perf_counter()
-    print(call, out)
+    #print(call, out)
     print("Execution Time:", (tend - tstart))
     return out
 
