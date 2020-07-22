@@ -53,6 +53,9 @@ class UniDecConfig(object):
         self.filetype = 0
         self.autotune = False
 
+        self.time_window = 2
+        self.chrom_peak_width = 2
+
         self.twavedict = {1: "Logarithmic", 2: "Linear", 3: "Power Law"}
         self.backgroundchoices = ["Subtract Minimum", "Subtract Line",
                                   "Subtract Curved"]  # , "Subtract Gaussian"]  # , "Subtract SavGol","Subtract Polynomial"]

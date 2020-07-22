@@ -738,7 +738,6 @@ def header_test(path):
     return int(header)
 
 
-
 def waters_convert(path, config=None, outfile=None):
     if config is None:
         config = unidecstructure.UniDecConfig()
@@ -835,7 +834,7 @@ def zipdir(path, zip_handle):
     files = os.scandir(path)
     for f in files:
         if f.is_file():
-            zip_handle.write(f.path, arcname = os.path.relpath(f.path, path))  # compress_type=zipfile.ZIP_DEFLATED)
+            zip_handle.write(f.path, arcname=os.path.relpath(f.path, path))  # compress_type=zipfile.ZIP_DEFLATED)
 
 
 def zip_folder(save_path, directory=None):
@@ -968,6 +967,16 @@ def auto_noise_level(datatop, buffer=10):
     std = np.std(ndat)
     mean = np.mean(ndat)
     return mean + 5 * std
+
+
+def noise_level2(ticdat, percent=0.75, number_stddevs=3):
+    sdat = np.sort(ticdat[:, 1])
+    index = round(len(sdat) * percent)
+    cutoff = sdat[index]
+    below = ticdat[:, 1] <= cutoff
+    noise = ticdat[below, 1]
+    noise = np.std(noise) * number_stddevs + np.mean(noise)
+    return noise
 
 
 def average_bin_size(datatop):
@@ -1581,6 +1590,38 @@ def peakdetect(data, config=None, window=10, threshold=0):
             end = int(end) + 1
             testmax = np.amax(data[start:end, 1])
             if data[i, 1] == testmax and np.all(data[i, 1] != data[start:i, 1]):
+                peaks.append([data[i, 0], data[i, 1]])
+
+    return np.array(peaks)
+
+
+def peakdetect_nonlinear(data, config=None, window=1, threshold=0):
+    """
+    Simple peak detection algorithm.
+
+    Detects a peak if a given data point is a local maximum within plus or minus config.peakwindow.
+    Peaks must also be above a threshold of config.peakthresh * max_data_intensity.
+
+    The mass and intensity of peaks meeting these criteria are output as a P x 2 array.
+
+    :param data: Mass data array (N x 2) (mass intensity)
+    :param config: UniDecConfig object
+    :return: Array of peaks positions and intensities (P x 2) (mass intensity)
+    """
+    if config is not None:
+        window = config.peakwindow
+        threshold = config.peakthresh
+    peaks = []
+    length = len(data)
+    maxval = np.amax(data[:, 1])
+    for i in range(0, length):
+        if data[i, 1] > maxval * threshold:
+            start = data[i, 0] - window
+            end = data[i, 0] + window
+            isodat = datachop(data, start, end)
+            testmax = np.amax(isodat[:, 1])
+            index = nearest(isodat[:,0], data[i,0])
+            if data[i, 1] == testmax and np.all(data[i, 1] != isodat[:index, 1]):
                 peaks.append([data[i, 0], data[i, 1]])
 
     return np.array(peaks)
@@ -2434,13 +2475,17 @@ def calc_FWHM(peak, data):
     rightfound = False
     while rightfound is False or leftfound is False:
         if leftfound is False:
-            if data[index - counter, 1] <= (int) / 2.:
+            if index - counter < 0:
+                leftfound = True
+            elif data[index - counter, 1] <= (int) / 2.:
                 leftfound = True
                 leftwidth += 1
             else:
                 leftwidth += 1
         if rightfound is False:
-            if data[index + counter, 1] <= (int) / 2.:
+            if index + counter >= len(data):
+                rightfound = True
+            elif data[index + counter, 1] <= (int) / 2.:
                 rightfound = True
                 rightwidth += 1
             else:
@@ -2455,7 +2500,7 @@ def calc_FWHM(peak, data):
         indexend = len(data) - 1
 
     FWHM = data[indexend, 0] - data[indexstart, 0]
-    return FWHM
+    return FWHM, [data[indexstart, 0], data[indexend, 0]]
 
 
 def peaks_error_FWHM(pks, data):
