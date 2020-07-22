@@ -194,9 +194,13 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
-v.4.2.3
+v.4.3.0
 
-Major refactoring of the code to support ongoing development. For example, switched from local to absolute paths for most files in the engine.
+**Added UniChrom2: UniDec for LC/MS data**. UniChrom is built on top of the MetaUniDec engine and uses HDF5 files and many of the same core tools. The primary additions are the ability to parse chromatography data into HDF5, visualize and interact with LC/MS data, and manually select and quickly deconvolve parts of the chromatogram.
+
+Major refactoring of the code to support UniChrom. For example, switched from local to absolute paths for most files in the engine.
+
+**Added Data Reduction in MetaUniDec and UniChrom**. This now mirrors the behavior of UniDec for processing data to remove a fixed percentage of the lowest intensity data.
 
 Added Estimated Area extraction to DataCollector and MetaUniDec. Here, it uses the peak height and FWHM to estimate the area based on the peak shape.
 
