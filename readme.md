@@ -198,6 +198,8 @@ v.4.2.3
 
 Major refactoring of the code to support ongoing development. For example, switched from local to absolute paths for most files in the engine.
 
+Added Estimated Area extraction to DataCollector and MetaUniDec. Here, it uses the peak height and FWHM to estimate the area based on the peak shape.
+
 Fixed bug with spaces in oligomer names when importing ofiles.
 
 Switched default native charge range to +/- 1000 from +/- 100 to work better with denatured data.

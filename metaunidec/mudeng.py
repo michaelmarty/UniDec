@@ -49,8 +49,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.config.linflag = 2
 
     def open(self, path):
-        self.data = MetaDataSet(self)
-        self.pks = peakstructure.Peaks()
+        self.clear()
         if path is None:
             path = self.config.hdf_file
         else:
@@ -58,6 +57,10 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.config.read_hdf5(path)
         self.data.import_hdf5(path)
         self.update_history()
+
+    def clear(self):
+        self.data = MetaDataSet(self)
+        self.pks = peakstructure.Peaks()
 
     def setup_filenames(self, path):
         self.config.hdf_file = path
@@ -164,7 +167,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         for s in self.data.spectra:
             outfile = self.config.outfname + "_" + str(s.var1) + ".txt"
             np.savetxt(outfile, s.rawdata)
-            print(outfile)
+            print("Writing HDF5 spctrum to text file:", outfile)
             self.config.config_export(self.config.outfname + "_conf.dat")
 
     def batch_set_config(self, paths):

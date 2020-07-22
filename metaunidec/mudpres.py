@@ -409,8 +409,86 @@ class MetaUniDecBase(UniDecPres):
         self.on_pick_peaks()
         pass
 
+    def import_vars(self, e=None):
+        """
+        Manual Test - Passed
+        :param e:
+        :return:
+        """
+        self.import_config()
+        dlg = miscwindows.SingleInputDialog(self.view)
+        dlg.initialize_interface("Variable 1 Metadata Name", "Enter Variable 1 Metadata Name:",
+                                 defaultvalue=str(self.eng.data.v1name))
+        dlg.ShowModal()
+        self.eng.data.v1name = dlg.value
+
+        dlg = miscwindows.SingleInputDialog(self.view)
+        dlg.initialize_interface("Variable 2 Metadata Name", "Enter Variable 2 Metadata Name:",
+                                 defaultvalue=str(self.eng.data.v2name))
+        dlg.ShowModal()
+        self.eng.data.v2name = dlg.value
+
+        self.eng.data.import_vars(get_vnames=False)
+        self.view.ypanel.list.populate(self.eng.data)
+        self.on_replot()
+
+    def export_vars_dialog(self, e=None):
+        """
+        Manual Test - Passed
+        :param e:
+        :return:
+        """
+        dlg = miscwindows.SingleInputDialog(self.view)
+        dlg.initialize_interface("Variable 1 Metadata Name", "Enter Variable 1 Metadata Name:",
+                                 defaultvalue=str(self.eng.data.v1name))
+        dlg.ShowModal()
+        self.eng.data.v1name = dlg.value
+
+        dlg = miscwindows.SingleInputDialog(self.view)
+        dlg.initialize_interface("Variable 2 Metadata Name", "Enter Variable 2 Metadata Name:",
+                                 defaultvalue=str(self.eng.data.v2name))
+        dlg.ShowModal()
+        self.eng.data.v2name = dlg.value
+        self.export_vars()
+
     def on_charge_states_mud(self, e=None):
         self.on_charge_states(plot=self.view.plot1)
+
+    def on_mass_tools(self, e=None, show=True):
+        """
+        Opens masstools window. Manual Test - Passed
+
+        If a match was performed, it will update plot 6 and the peak panel.
+        If the user decides to use simulated masses, it will make plot these new peaks.
+        :param e: unused event
+        :param show: Whether to thow the window (True) or simply match and return (False)
+        :return: None
+        """
+        dlg = masstools.MassSelection(self.view)
+        dlg.init_dialog(self.eng.config, self.eng.pks, massdat=self.eng.data.massdat)
+        if show:
+            result = dlg.ShowModal()
+        else:
+            result = 0
+            dlg.on_match_all(0)
+            dlg.on_close(0)
+        # TODO: Rewrite so p.match isn't overwritten somehow if cancel is selected
+        if not ud.isempty(self.eng.config.matchlist) and result == 0:
+            if len(self.eng.config.matchlist[3]) == self.eng.pks.plen:
+                self.view.SetStatusText("Matching", number=5)
+                np.savetxt(self.eng.config.matchfile, np.transpose(self.eng.config.matchlist), fmt='%s', delimiter=",")
+                self.view.peakpanel.add_data(self.eng.pks)
+                try:
+                    self.makeplot6()
+                    self.makeplot8()
+                except:
+                    pass
+            else:
+                self.eng.config.matchlist = []
+
+        self.export_config()
+        self.view.SetStatusText("Match Done", number=5)
+        pass
 
     def on_autocorr2(self, index):
         """
@@ -442,6 +520,143 @@ class MetaUniDecBase(UniDecPres):
         data = spectra[index].data2
         fft_window.FFTWindow(self.view, data, self.eng.config)
 
+    def on_kendrick(self, e):
+        """
+        Manual Test - Passed
+        :param e:
+        :return:
+        """
+        self.eng.data.import_grids_and_peaks()
+        MassDefects.MassDefectWindow(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1,
+                                     directory=self.eng.config.udir,
+                                     value=self.eng.config.molig)
+        pass
+
+    def on_2d_grid(self, e):
+        """
+        Manual test - Passed
+        :param e:
+        :return:
+        """
+        self.eng.data.import_grids_and_peaks()
+        exwindow = Extract2D.Extract2DPlot(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1,
+                                           params=self.eng.config.gridparams,
+                                           directory=os.path.split(self.eng.config.outfname)[0])
+        self.eng.config.gridparams = exwindow.params
+
+    def on_fft_window(self, e):
+        """
+        Manual test - Passed
+        :param e:
+        :return:
+        """
+        rawdatalist = [s.rawdata for s in self.eng.data.spectra]
+        metafft.FFTWindow(self.view, rawdatalist, self.eng.data.var1, self.eng.config)
+        pass
+
+    def on_animate_mass(self, e):
+        """
+        Manual Test - Passed
+        :param e:
+        :return:
+        """
+        self.eng.sum_masses()
+        PlotAnimations.AnimationWindow(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1,
+                                       pksmode="mass")
+
+    def on_animate_annotated_mass(self, e=None):
+        """
+        Manual Test - Passed
+        :param e:
+        :return:
+        """
+        self.eng.sum_masses()
+        PlotAnimations.AnimationWindow(self.view, self.eng.data.massgrid, self.eng.config, pks=self.eng.pks,
+                                       pksmode="mass", yvals=self.eng.data.var1)
+
+    def on_animate_mz(self, e):
+        """
+        Manual Test - Passed
+        :param e:
+        :return:
+        """
+        # self.eng.sum_masses()
+        newgrid = []
+        for s in self.eng.data.spectra:
+            newgrid.append(s.data2)
+
+        PlotAnimations.AnimationWindow(self.view, newgrid, self.eng.config, yvals=self.eng.data.var1)
+
+    def on_animate_annotated_mz(self, e=None):
+        """
+        :return:
+        """
+        newgrid = []
+        for s in self.eng.data.spectra:
+            newgrid.append(s.data2)
+        self.eng.peaks_heights()
+        PlotAnimations.AnimationWindow(self.view, newgrid, self.eng.config, yvals=self.eng.data.var1,
+                                       pks=self.eng.pks)
+
+    def on_animate_2d(self, e=None, type="mass"):
+        """
+        Manual Test - Passed
+        :param e:
+        :param type:
+        :return:
+        """
+        self.eng.sum_masses()
+        dlg = miscwindows.SingleInputDialog(self.view)
+        dlg.initialize_interface(title="Set Compression", message="Number of x values to compress:", defaultvalue="10")
+        dlg.ShowModal()
+        try:
+            compress = int(dlg.value)
+            if compress > 1:
+                print("Compressing Data by:", compress)
+        except (ValueError, TypeError, AttributeError):
+            print("Unrecognized compression value")
+            compress = 0
+
+        print("Loading 2D Data...")
+        data2 = []
+        for i, s in enumerate(self.eng.data.spectra):
+            if type == "mz":
+                igrid = s.mzgrid
+                mdat = s.data2[:, 0]
+            else:
+                igrid = s.massgrid
+                mdat = s.massdat[:, 0]
+            igrid /= np.amax(igrid)
+            mgrid, zgrid = np.meshgrid(mdat, s.ztab, indexing='ij')
+            if compress > 1:
+                igrid = np.reshape(igrid, mgrid.shape)
+                m, z, d = IM_functions.compress_2d(mgrid, zgrid, igrid, compress)
+                dat = np.transpose([np.ravel(m), np.ravel(z), np.ravel(d)])
+            else:
+                dat = np.transpose([np.ravel(mgrid), np.ravel(zgrid), np.ravel(igrid)])
+            data2.append(dat)
+            print(i, end=' ')
+        data2 = np.array(data2)
+        print("Loaded 2D Data", data2.shape)
+        PlotAnimations.AnimationWindow(self.view, data2, self.eng.config, mode="2D", yvals=self.eng.data.var1,
+                                       pksmode=type)
+
+    def on_animate_2d_mass(self, e=None):
+        """
+        Manual Test - Passed
+        :param e:
+        :return:
+        """
+        self.on_animate_2d(type="mass")
+
+    def on_animate_2d_mz(self, e=None):
+        """
+        Manual Test - Passed
+        :param e:
+        :return:
+        """
+        self.on_animate_2d(type="mz")
+
     def on_delete_spectrum(self, indexes=None):
         """
         Tested
@@ -459,6 +674,14 @@ class MetaUniDecBase(UniDecPres):
                 pass
             self.on_replot()
 
+    def on_export_params(self, e=None):
+        """
+        Runs self.eng.export_params(), which gets critical peak parameters and writes them to a file. Tested.
+        :param e: event or arguments passed to self.eng.export_params()
+        :return: None
+        """
+        self.eng.export_params(e)
+
     def repack_hdf5(self, e=None):
         if self.eng.config.hdf_file != 'default.hdf5':
             new_path = self.eng.config.hdf_file.replace(".hdf5", "temp.hdf5")
@@ -467,6 +690,20 @@ class MetaUniDecBase(UniDecPres):
                 new_path):
                 os.remove(self.eng.config.hdf_file)
                 os.rename(new_path, self.eng.config.hdf_file)
+
+    def recursive_repack_hdf5(self, e=None):
+        repack_dir = FileDialogs.open_dir_dialog(message="Select directory to repack")
+        if repack_dir:
+            for root, dirs, files in os.walk(repack_dir):
+                for name in files:
+                    if name.endswith('.hdf5'):
+                        name = os.path.join(root, name)
+                        new_path = name.replace(".hdf5", "temp.hdf5")
+                        if 0 == subprocess.call(
+                                "\"" + self.eng.config.h5repackfile + "\" \"" + name + "\" \"" + new_path + "\"") and os.path.isfile(
+                            new_path):
+                            os.remove(name)
+                            os.rename(new_path, name)
 
     def on_undo(self, e=None):
         """
@@ -761,54 +998,7 @@ class UniDecApp(MetaUniDecBase):
         self.plot_sums()
         pass
 
-    def on_full(self, e=None):
-        maxmz = np.amax(self.eng.data.spectra[0].rawdata[:, 0])
-        minmz = np.amin(self.eng.data.spectra[0].rawdata[:, 0])
-        self.view.controls.ctlminmz.SetValue(str(minmz))
-        self.view.controls.ctlmaxmz.SetValue(str(maxmz))
-        self.on_dataprep_button()
 
-    def import_vars(self, e=None):
-        """
-        Manual Test - Passed
-        :param e:
-        :return:
-        """
-        self.import_config()
-        dlg = miscwindows.SingleInputDialog(self.view)
-        dlg.initialize_interface("Variable 1 Metadata Name", "Enter Variable 1 Metadata Name:",
-                                 defaultvalue=str(self.eng.data.v1name))
-        dlg.ShowModal()
-        self.eng.data.v1name = dlg.value
-
-        dlg = miscwindows.SingleInputDialog(self.view)
-        dlg.initialize_interface("Variable 2 Metadata Name", "Enter Variable 2 Metadata Name:",
-                                 defaultvalue=str(self.eng.data.v2name))
-        dlg.ShowModal()
-        self.eng.data.v2name = dlg.value
-
-        self.eng.data.import_vars(get_vnames=False)
-        self.view.ypanel.list.populate(self.eng.data)
-        self.on_replot()
-
-    def export_vars_dialog(self, e=None):
-        """
-        Manual Test - Passed
-        :param e:
-        :return:
-        """
-        dlg = miscwindows.SingleInputDialog(self.view)
-        dlg.initialize_interface("Variable 1 Metadata Name", "Enter Variable 1 Metadata Name:",
-                                 defaultvalue=str(self.eng.data.v1name))
-        dlg.ShowModal()
-        self.eng.data.v1name = dlg.value
-
-        dlg = miscwindows.SingleInputDialog(self.view)
-        dlg.initialize_interface("Variable 2 Metadata Name", "Enter Variable 2 Metadata Name:",
-                                 defaultvalue=str(self.eng.data.v2name))
-        dlg.ShowModal()
-        self.eng.data.v2name = dlg.value
-        self.export_vars()
 
     def on_left_click(self, xpos, ypos):
         """
@@ -1083,184 +1273,6 @@ class UniDecApp(MetaUniDecBase):
         dlg.ShowModal()
         self.export_config(self.eng.config.confname)
 
-    def on_mass_tools(self, e=None, show=True):
-        """
-        Opens masstools window. Manual Test - Passed
-
-        If a match was performed, it will update plot 6 and the peak panel.
-        If the user decides to use simulated masses, it will make plot these new peaks.
-        :param e: unused event
-        :param show: Whether to thow the window (True) or simply match and return (False)
-        :return: None
-        """
-        dlg = masstools.MassSelection(self.view)
-        dlg.init_dialog(self.eng.config, self.eng.pks, massdat=self.eng.data.massdat)
-        if show:
-            result = dlg.ShowModal()
-        else:
-            result = 0
-            dlg.on_match_all(0)
-            dlg.on_close(0)
-        # TODO: Rewrite so p.match isn't overwritten somehow if cancel is selected
-        if not ud.isempty(self.eng.config.matchlist) and result == 0:
-            if len(self.eng.config.matchlist[3]) == self.eng.pks.plen:
-                self.view.SetStatusText("Matching", number=5)
-                np.savetxt(self.eng.config.matchfile, np.transpose(self.eng.config.matchlist), fmt='%s', delimiter=",")
-                self.view.peakpanel.add_data(self.eng.pks)
-                self.makeplot6()
-                self.makeplot8()
-            else:
-                self.eng.config.matchlist = []
-
-        self.export_config()
-        self.view.SetStatusText("Match Done", number=5)
-        pass
-
-    def on_kendrick(self, e):
-        """
-        Manual Test - Passed
-        :param e:
-        :return:
-        """
-        self.eng.data.import_grids_and_peaks()
-        MassDefects.MassDefectWindow(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1,
-                                     directory=self.eng.config.udir,
-                                     value=self.eng.config.molig)
-        pass
-
-    def on_2d_grid(self, e):
-        """
-        Manual test - Passed
-        :param e:
-        :return:
-        """
-        self.eng.data.import_grids_and_peaks()
-        exwindow = Extract2D.Extract2DPlot(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1,
-                                           params=self.eng.config.gridparams,
-                                           directory=os.path.split(self.eng.config.outfname)[0])
-        self.eng.config.gridparams = exwindow.params
-
-    def on_fft_window(self, e):
-        """
-        Manual test - Passed
-        :param e:
-        :return:
-        """
-        rawdatalist = [s.rawdata for s in self.eng.data.spectra]
-        metafft.FFTWindow(self.view, rawdatalist, self.eng.data.var1, self.eng.config)
-        pass
-
-    def on_animate_mass(self, e):
-        """
-        Manual Test - Passed
-        :param e:
-        :return:
-        """
-        self.eng.sum_masses()
-        PlotAnimations.AnimationWindow(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1,
-                                       pksmode="mass")
-
-    def on_animate_annotated_mass(self, e=None):
-        """
-        Manual Test - Passed
-        :param e:
-        :return:
-        """
-        self.eng.sum_masses()
-        PlotAnimations.AnimationWindow(self.view, self.eng.data.massgrid, self.eng.config, pks=self.eng.pks,
-                                       pksmode="mass", yvals=self.eng.data.var1)
-
-    def on_animate_mz(self, e):
-        """
-        Manual Test - Passed
-        :param e:
-        :return:
-        """
-        # self.eng.sum_masses()
-        newgrid = []
-        for s in self.eng.data.spectra:
-            newgrid.append(s.data2)
-
-        PlotAnimations.AnimationWindow(self.view, newgrid, self.eng.config, yvals=self.eng.data.var1)
-
-    def on_animate_annotated_mz(self, e=None):
-        """
-        :return:
-        """
-        newgrid = []
-        for s in self.eng.data.spectra:
-            newgrid.append(s.data2)
-        self.eng.peaks_heights()
-        PlotAnimations.AnimationWindow(self.view, newgrid, self.eng.config, yvals=self.eng.data.var1,
-                                       pks=self.eng.pks)
-
-    def on_animate_2d(self, e=None, type="mass"):
-        """
-        Manual Test - Passed
-        :param e:
-        :param type:
-        :return:
-        """
-        self.eng.sum_masses()
-        dlg = miscwindows.SingleInputDialog(self.view)
-        dlg.initialize_interface(title="Set Compression", message="Number of x values to compress:", defaultvalue="10")
-        dlg.ShowModal()
-        try:
-            compress = int(dlg.value)
-            if compress > 1:
-                print("Compressing Data by:", compress)
-        except (ValueError, TypeError, AttributeError):
-            print("Unrecognized compression value")
-            compress = 0
-
-        print("Loading 2D Data...")
-        data2 = []
-        for i, s in enumerate(self.eng.data.spectra):
-            if type == "mz":
-                igrid = s.mzgrid
-                mdat = s.data2[:, 0]
-            else:
-                igrid = s.massgrid
-                mdat = s.massdat[:, 0]
-            igrid /= np.amax(igrid)
-            mgrid, zgrid = np.meshgrid(mdat, s.ztab, indexing='ij')
-            if compress > 1:
-                igrid = np.reshape(igrid, mgrid.shape)
-                m, z, d = IM_functions.compress_2d(mgrid, zgrid, igrid, compress)
-                dat = np.transpose([np.ravel(m), np.ravel(z), np.ravel(d)])
-            else:
-                dat = np.transpose([np.ravel(mgrid), np.ravel(zgrid), np.ravel(igrid)])
-            data2.append(dat)
-            print(i, end=' ')
-        data2 = np.array(data2)
-        print("Loaded 2D Data", data2.shape)
-        PlotAnimations.AnimationWindow(self.view, data2, self.eng.config, mode="2D", yvals=self.eng.data.var1,
-                                       pksmode=type)
-
-    def on_animate_2d_mass(self, e=None):
-        """
-        Manual Test - Passed
-        :param e:
-        :return:
-        """
-        self.on_animate_2d(type="mass")
-
-    def on_animate_2d_mz(self, e=None):
-        """
-        Manual Test - Passed
-        :param e:
-        :return:
-        """
-        self.on_animate_2d(type="mz")
-
-    def on_export_params(self, e=None):
-        """
-        Runs self.eng.export_params(), which gets critical peak parameters and writes them to a file. Tested.
-        :param e: event or arguments passed to self.eng.export_params()
-        :return: None
-        """
-        self.eng.export_params(e)
-
     def on_data_collector(self, e=None):
         """
         Spawns separate DataCollector window.
@@ -1466,38 +1478,11 @@ class UniDecApp(MetaUniDecBase):
         self.on_delete()
         self.view.peakpanel.add_data(self.eng.pks)
 
-    def repack_hdf5(self, e=None):
-        if self.eng.config.hdf_file != 'default.hdf5':
-            new_path = self.eng.config.hdf_file.replace(".hdf5", "temp.hdf5")
-            if 0 == subprocess.call(
-                    "\"" + self.eng.config.h5repackfile + "\" \"" + self.eng.config.hdf_file + "\" \"" + new_path + "\"") and os.path.isfile(
-                new_path):
-                os.remove(self.eng.config.hdf_file)
-                os.rename(new_path, self.eng.config.hdf_file)
-
-    def recursive_repack_hdf5(self, e=None):
-        repack_dir = FileDialogs.open_dir_dialog(message="Select directory to repack")
-        if repack_dir:
-            for root, dirs, files in os.walk(repack_dir):
-                for name in files:
-                    if name.endswith('.hdf5'):
-                        name = os.path.join(root, name)
-                        new_path = name.replace(".hdf5", "temp.hdf5")
-                        if 0 == subprocess.call(
-                                "\"" + self.eng.config.h5repackfile + "\" \"" + name + "\" \"" + new_path + "\"") and os.path.isfile(
-                            new_path):
-                            os.remove(name)
-                            os.rename(new_path, name)
 
 
 # Critical
 # TODO: Thorough testing
-
-# TODO: Tutorial
 # TODO: Better tuning and control of autobaseline
-
-# SCOTT
-# TODO: Better preset manager, potentially with external preset folder
 
 # Serious work
 # TODO: Weighted average of charge states to calculate mass error

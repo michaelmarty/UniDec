@@ -117,10 +117,6 @@ unidec_src/UniDec/oldVS/
 /unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_input.dat
 /unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_fitdat.bin
 /unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_peaks.dat
-/unidec_modules/waters_importer/
-*MassLynxRaw.dll
-*Waters_MassLynxSDK_EULA.txt
-*cdt.dll
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_Total_1D_Mass_Defects.txt
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_Total_2D_Mass_Defects.txt
 unidec_bin/Example Data/BSA_unidecfiles/BSA_chargedata.dat

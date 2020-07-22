@@ -738,7 +738,7 @@ def header_test(path):
     return int(header)
 
 
-'''
+
 def waters_convert(path, config=None, outfile=None):
     if config is None:
         config = unidecstructure.UniDecConfig()
@@ -752,7 +752,7 @@ def waters_convert(path, config=None, outfile=None):
     result = subprocess.call(call)
     print("Conversion Stderr:", result)
     data = np.loadtxt(outfile)
-    return data'''
+    return data
 
 
 def waters_convert2(path, config=None, outfile=None):
