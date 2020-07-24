@@ -1,5 +1,6 @@
 __author__ = 'Michael.Marty'
 
+from unidec_modules.unidectools import get_importer
 from unidec_modules.mzMLimporter import *
 from unidec_modules.unidectools import removeduplicates
 import os
@@ -8,14 +9,9 @@ import string
 import h5py
 from unidec_modules.hdf5_tools import *
 
-try:
-    from unidec_modules.data_reader import *
-except:
-    print("Could not import data reader: mzmlparse_auto")
-
 
 def parse(path, times, timestep, volts, outputheader, directory, output="txt"):
-    if os.path.isfile(path):
+    if os.path.isfile(path) or os.path.isdir(path):
         if output == "hdf5":
             outfile = outputheader + ".hdf5"
             outpath = os.path.join(directory, outfile)
@@ -35,10 +31,7 @@ def parse(path, times, timestep, volts, outputheader, directory, output="txt"):
             config.attrs["metamode"] = -1
 
         num = 0
-        if os.path.splitext(path)[1] == ".mzML":
-            d = mzMLimporter(path)
-        else:
-            d = DataImporter(path)
+        d = get_importer(path)
         for v, time in enumerate(times):
             data = d.get_data(time_range=(time, time + timestep))
             if not ud.isempty(data):
@@ -94,11 +87,8 @@ def parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr=None, outpu
     v = 0
     print(starttp, endtp, timestep)
     for path in paths:
-        if os.path.isfile(path):
-            if os.path.splitext(path)[1] == ".mzML":
-                d = mzMLimporter(path)
-            else:
-                d = DataImporter(path)
+        if os.path.isfile(path) or os.path.isdir(path):
+            d = get_importer(path)
             for t in np.arange(starttp, endtp, timestep):
                 data = d.get_data(time_range=(t, t + timestep))
                 if not ud.isempty(data):
@@ -148,10 +138,9 @@ def extract(file, directory, timestep=1.0, output="txt"):
                 return True
     except:
         print("Error parsing ramp keyword. Ignoring.")
-    if os.path.splitext(file)[1] == ".mzML":
-        maxtime = mzMLimporter(path).get_max_time()
-    else:
-        maxtime = DataImporter(path).get_max_time()
+
+    d = get_importer(path)
+    maxtime = d.get_max_time()
 
     times = np.arange(0, maxtime, timestep)
     outpath = parse(path, times, timestep, None, name, newdir, output=output)
@@ -163,11 +152,8 @@ def extract_scans(file, directory, scanbins=1, output="txt"):
     scanbins = int(float(scanbins))
     path = os.path.join(directory, file)
 
-    if os.path.isfile(path):
-        if os.path.splitext(path)[1] == ".mzML":
-            d = mzMLimporter(path)
-        else:
-            d = DataImporter(path)
+    if os.path.isfile(path) or os.path.isdir(path):
+        d = get_importer(path)
 
         name = os.path.splitext(file)[0]
         newdir = os.path.join(directory, name)
@@ -179,7 +165,6 @@ def extract_scans(file, directory, scanbins=1, output="txt"):
         else:
             maxtime = d.get_max_time()
             maxscans = d.get_max_scans()-1
-        print(maxscans)
         scans = np.arange(0, maxscans, scanbins)
 
         if output == "hdf5":
@@ -290,15 +275,12 @@ def extract_scans_multiple_files(files, dirs, startscan=1.0, endscan=1.0, output
     num = 0
     for path in paths:
         if os.path.isfile(path):
-            if os.path.splitext(path)[1] == ".mzML":
-                d = mzMLimporter(path)
-            else:
-                d = DataImporter(path)
-            data = d.get_data(scan_range=(startscan, endscan))
+            importer = get_importer(path)
+            data = importer.get_data(scan_range=(startscan, endscan))
             if not ud.isempty(data):
                 group = msdataset.require_group(str(num))
                 replace_dataset(group, "raw_data", data=data)
-                times = d.get_times_from_scans([startscan, endscan])
+                times = importer.get_times_from_scans([startscan, endscan])
                 group.attrs["timestart"] = times[0]
                 group.attrs["timeend"] = times[2]
                 group.attrs["timemid"] = times[1]
@@ -325,6 +307,8 @@ if __name__ == '__main__':
     directory = "C:\\Data\\"
     directory = "Z:\\wresager\\Bleaching\\"
     file = "20170721_WCR_RHO_bleaching.RAW"
+    directory="C:\\Python\\UniDec3\\TestSpectra\\"
+    file = "test_ms.raw"
     timestep = 2.0
     # extract("test.mzML", directory, timestep, output="hdf5")
     extract_scans(file, directory, scanbins=100, output="hdf5")

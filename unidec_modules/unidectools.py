@@ -17,16 +17,29 @@ from scipy.optimize import curve_fit
 from scipy import signal
 from scipy import fftpack
 import matplotlib.cm as cm
-from unidec_modules import mzMLimporter
+from unidec_modules.mzMLimporter import mzMLimporter
 from unidec_modules.fitting import *
 from unidec_modules import unidecstructure
-import tempfile
+import fnmatch
 
+# import unidec_modules.data_reader as data_reader
 try:
     import unidec_modules.data_reader as data_reader
 except:
     print("Could not import data reader: unidectools")
-import fnmatch
+
+# from unidec_modules.waters_importer.WatersImporter import WatersDataImporter as WDI
+try:
+    from unidec_modules.waters_importer.WatersImporter import WatersDataImporter as WDI
+except:
+    print("Could not import Waters Data Importer")
+
+
+#from unidec_modules.thermo_reader.ThermoImporter import ThermoDataImporter
+try:
+    from unidec_modules.thermo_reader.ThermoImporter import ThermoDataImporter
+except:
+    print("Could not import Thermo Data Importer")
 
 is_64bits = sys.maxsize > 2 ** 32
 
@@ -73,6 +86,26 @@ try:
     libs = cdll.LoadLibrary(dllpath)
 except (OSError, NameError):
     print("Failed to load libmypfunc, convolutions in nonlinear mode might be slow")
+
+
+def get_importer(path):
+    if os.path.splitext(path)[1] == ".mzML":
+        # mzML file
+        d = mzMLimporter(path)
+    elif os.path.splitext(path)[1].lower() == ".raw" and not os.path.isdir(path):
+        # Thermo Raw File
+        try:
+            d = ThermoDataImporter(path)
+        except:
+            d = data_reader.DataImporter(path)
+    elif os.path.splitext(path)[1].lower() == ".raw" and os.path.isdir(path):
+        # Waters Raw Directory
+        d = WDI(path, do_import=False)
+    else:
+        # Some other file type
+        d = data_reader.DataImporter(path)
+
+    return d
 
 
 # ..........................
@@ -755,7 +788,6 @@ def waters_convert(path, config=None, outfile=None):
 
 
 def waters_convert2(path, config=None, outfile=None):
-    from unidec_modules.waters_importer.Importer import WatersDataImporter as WDI
     data = WDI(path).get_data()
 
     if outfile is None:
@@ -806,12 +838,12 @@ def load_mz_file(path, config=None, time_range=None):
         elif extension == ".csv":
             data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0, 1))
         elif extension == ".mzml":
-            data = mzMLimporter.mzMLimporter(path).get_data(time_range=time_range)
+            data = mzMLimporter(path).get_data(time_range=time_range)
             txtname = path[:-5] + ".txt"
             np.savetxt(txtname, data)
             print("Saved to:", txtname)
         elif extension.lower() == ".raw":
-            data = data_reader.DataImporter(path).get_data(time_range=time_range)
+            data = ThermoDataImporter(path).get_data(time_range=time_range)
             txtname = path[:-4] + ".txt"
             np.savetxt(txtname, data)
             print("Saved to:", txtname)

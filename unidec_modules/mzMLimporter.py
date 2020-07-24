@@ -207,7 +207,15 @@ class mzMLimporter:
         return data
 
     def get_tic(self):
-        return self.msrun["TIC"]
+        tic = self.msrun["TIC"]
+        try:
+            ticdat = np.transpose([tic.time, tic.i])
+        except:
+            print("Error getting TIC in mzML; trying to make it...")
+            t = self.times
+            tic = [np.sum(d[:, 1]) for d in self.data]
+            ticdat = np.transpose([t, tic])
+        return ticdat
 
     def get_scans_from_times(self, time_range):
         boo1 = self.times >= time_range[0]

@@ -6,16 +6,6 @@ from metaunidec.mudeng import MetaUniDec
 from unidec import UniDec
 from copy import deepcopy
 
-try:
-    from unidec_modules.data_reader import DataImporter
-except:
-    print("Could not open Data Reader")
-
-try:
-    from unidec_modules.waters_importer import Importer
-except:
-    print("Could not open Waters Importer")
-
 chrom_file_exts = [".mzML", ".raw", ".Raw", ".RAW", ".d"]
 
 
@@ -88,24 +78,11 @@ class ChromEngine(MetaUniDec):
             self.open(self.outpath)
 
         self.update_history()
-        if os.path.splitext(path)[1] == ".mzML":
-            self.chromdat = mzMLimporter(path)
-            try:
-                self.tic = self.chromdat.get_tic()
-                self.ticdat = np.transpose([self.tic.time, self.tic.i])
-            except:
-                print("Error getting TIC in mzML; trying to make it...")
-                t = self.chromdat.times
-                tic = [np.sum(d[:, 1]) for d in self.chromdat.data]
-                self.ticdat = np.transpose([t, tic])
-        elif os.path.splitext(path)[1] == ".raw" and os.path.isdir(path):
-            self.chromdat = Importer.WatersDataImporter(path, do_import=False)
-            self.tic = self.chromdat.get_tic()
-            self.ticdat = np.array(self.tic)
-        else:
-            self.chromdat = DataImporter(path)
-            self.tic = self.chromdat.get_tic()
-            self.ticdat = np.array(self.tic)
+
+        self.chromdat = ud.get_importer(path)
+        self.tic = self.chromdat.get_tic()
+        self.ticdat = np.array(self.tic)
+
         return hdf5
 
     def get_scans(self, scan_range=None):

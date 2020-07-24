@@ -298,7 +298,8 @@ class MainwindowBase(wx.Frame):
         dlg = wx.MessageDialog(self,
                                "UniDec GUI version " + self.version +
                                "\nPlease contact mtmarty@email.arizona.edu with any questions, bugs, or features to add.\n"
-                               "The latest version may be found at unidec.chem.ox.ac.uk.\n"
+                               "The latest version may be found at https://github.com/michaelmarty/UniDec/releases.\n"
+                               "RawFileReader reading tool. Copyright © 2016 by Thermo Fisher Scientific, Inc. All rights reserved.\n"
                                "If used in publication, please cite Marty et Al. Anal. Chem. 2015, DOI: 10.1021/acs.analchem.5b00140 ",
                                "About UniDec", wx.OK | wx.CENTER)
         dlg.ShowModal()

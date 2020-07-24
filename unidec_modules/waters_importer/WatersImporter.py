@@ -33,7 +33,6 @@ class WatersDataImporter:
         self.reader = MLRIR.MassLynxRawInfoReader(path)
         self.readerMS = MLRSR.MassLynxRawScanReader(path)
 
-
         self.nfunc = self.reader.GetNumberofFunctions()
         self.function = function
         try:
@@ -51,7 +50,8 @@ class WatersDataImporter:
                     raise (IOError)
                     return None
         print("Waters Data Type:", self.reader.GetFunctionTypeString(fn))
-        self.scanrange = [0, self.reader.GetScansInFunction(self.function)]
+        self.maxscans = self.reader.GetScansInFunction(self.function)
+        self.scanrange = [0, self.maxscans]
         self.scans = np.arange(self.scanrange[0], self.scanrange[1])
         self.times = []
         for s in self.scans:
@@ -97,9 +97,15 @@ class WatersDataImporter:
         return data
 
     def fast_get_data_scans(self, scan_range, mzbins=None):
+        scan_range=np.array(scan_range)
+        # if scan_range[0]<1:
+        #    scan_range[0]=1
+        if scan_range[1] > self.maxscans:
+            scan_range[1] = self.maxscans
+
         mzs, ivals = self.readerMS.CombineScan(self.function, np.arange(scan_range[0], scan_range[1]))
         data = np.transpose([mzs, ivals])
-        if mzbins is None or mzbins==0:
+        if mzbins is None or mzbins == 0:
             return data
         else:
             data = merge_spectra([data], mzbins=mzbins, type="Integrate")
@@ -220,14 +226,15 @@ if __name__ == "__main__":
     test = "D:\Data\Data_for_Mike\SYJMX160819_04.raw"
     tstart = time.perf_counter()
     d = WatersDataImporter(test, do_import=False)
-    #d1, d2 = d.readerMS.ReadScan(d.function, 1)
+    # d1, d2 = d.readerMS.ReadScan(d.function, 1)
     # d3, d4 = d.readerMS.CombineScan(d.function, np.arange(1,500))
-    data = d.get_data([1,10])
-    data = d.get_data([20,30])
+    data = d.get_data([1, 10])
+    data = d.get_data([20, 30])
     print("ImportData: %.2gs" % (time.perf_counter() - tstart))
 
     import matplotlib.pyplot as plt
-    plt.plot(data[:,0], data[:,1])
+
+    plt.plot(data[:, 0], data[:, 1])
     plt.show()
 
     # d.get_stats()

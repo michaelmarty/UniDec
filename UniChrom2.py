@@ -9,16 +9,6 @@ from unidec_modules.gui_elements.ChromWindow import ChromWindow
 from unidec_modules.isolated_packages import FileDialogs
 from unidec_modules.ChromEng import ChromEngine, chrom_file_exts
 
-try:
-    from unidec_modules.data_reader import DataImporter
-except:
-    print("Could not open Data Reader")
-
-try:
-    from unidec_modules.waters_importer import Importer
-except:
-    print("Could not open Waters Importer")
-
 
 class ChromApp(MetaUniDecBase):
     def __init__(self, *args, **kwargs):
@@ -58,8 +48,9 @@ class ChromApp(MetaUniDecBase):
     def on_open_dir(self, e=None):
         dirname = FileDialogs.open_single_dir_dialog("Choose a raw file", '')
         print("Opening Directory: ", dirname)
-        if os.path.splitext(dirname)[1] in chrom_file_exts:
-            self.open_file(dirname)
+        if dirname is not None:
+            if os.path.splitext(dirname)[1] in chrom_file_exts:
+                self.open_file(dirname)
 
     def open_file(self, path, skip_eng=False):
         self.view.clear_all_plots()
@@ -273,9 +264,25 @@ class ChromApp(MetaUniDecBase):
 
 
 if __name__ == "__main__":
+    '''
+    if False:
+        import clr
+        from System.Threading import ApartmentState, Thread, ThreadStart
+
+        def app_thread():
+            multiprocessing.freeze_support()
+            app = ChromApp()
+            app.start()
+
+        thread = Thread(ThreadStart(app_thread))
+        thread.SetApartmentState(ApartmentState.STA)
+        thread.Start()
+        thread.Join()'''
+
     multiprocessing.freeze_support()
     app = ChromApp()
     app.start()
+
 
 
 
