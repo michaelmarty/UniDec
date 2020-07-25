@@ -116,7 +116,7 @@ class Mainwindow(MainwindowBase):
 
         # Tabbed view of plots
         if self.tabbed == 1:
-            figsize = (6, 5)
+            figsize = self.config.figsize
             plotwindow = wx.Notebook(splitterwindow)
             splitterwindow.SplitVertically(plotwindow, splitterwindow2, sashPosition=-550)
             tab1 = wx.Panel(plotwindow)
@@ -240,11 +240,9 @@ class Mainwindow(MainwindowBase):
             else:
                 plotwindow.SetSizerAndFit(sizerplot)
             plotwindow.SetupScrolling()
-            self.plotpanel = plotwindow
             plotwindow.SetFocus()
             plotwindow.Bind(wx.EVT_SET_FOCUS, self.onFocus)
-
-
+        self.plotpanel = plotwindow
 
         self.plots = [self.plot1, self.plot2, self.plot3, self.plot4, self.plot5, self.plot6]
         if self.config.imflag == 1:

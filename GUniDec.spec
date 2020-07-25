@@ -58,7 +58,7 @@ a = Analysis(['Launcher.py'],
                  # 'sklearn', 'sklearn.decomposition', 'sklearn.preprocessing', 'sklearn.utils', 'pytest', 'pluggy',
                  # 'sklearn.utils.testing', 'sklearn.utils._cython_blas',
                  'scipy.special._ufuncs_cxx', 'scipy.linalg.cython_blas', 'scipy.linalg.cython_lapack',
-                 'scipy._lib.messagestream',
+                 'scipy._lib.messagestream','clr', 'pythonnet', 'Python.Runtime.dll',
                  'FileDialog', 'Dialog', 'encodings', 'encodings.__init__',
                  'packaging', 'packaging.version', 'packaging.specifiers',
                  'comtypes', "multiplierz", "comtypes.gen", "comtypes.gen._E7C70870_676C_47EB_A791_D5DA6D31B224_0_1_0",
@@ -97,6 +97,12 @@ if system == "Windows":
             add = [(file, 'unidec_bin\\' + file, 'DATA')]
             a.datas += add
             # print add
+
+    a.datas += [('RawFileReaderLicense.doc', 'unidec_modules\\thermo_reader\\RawFileReaderLicense.doc', 'DATA')]
+    a.datas += [('ThermoFisher.CommonCore.Data.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.Data.dll', 'DATA')]
+    a.datas += [('ThermoFisher.CommonCore.RawFileReader.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.RawFileReader.dll', 'DATA')]
+    a.datas += [('ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'DATA')]
+    a.datas += [('ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'DATA')]
 
     if not distmode:
         a.datas += [('MassLynxRaw.dll', 'unidec_bin\\MassLynxRaw.dll', 'DATA')]
@@ -164,7 +170,6 @@ import subprocess
 print("Testing Software...", path)
 
 out = subprocess.call(path)
-
 if out != 0:
     exit()
 

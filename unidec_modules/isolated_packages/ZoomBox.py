@@ -106,6 +106,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
     else:
         out = axes.dataLim.bounds
 
+
     '''
     #xlims = axes.get_xlim()
     #ylims = axes.get_ylim()
@@ -127,11 +128,11 @@ def GetMaxes(axes, xmin=None, xmax=None):
 
 
 def ResetVisible(axes):
-    # xlims = axes.get_xlim()
-    # ylims = axes.get_ylim()
-    # out2=Bbox(((xlims[0], ylims[0]),(xlims[1],ylims[1]*2)))
+    #xlims = axes.get_xlim()
+    #ylims = axes.get_ylim()
+    #out2=Bbox(((xlims[0], ylims[0]),(xlims[1],ylims[1]*2)))
     for line in axes.lines:
-        # line.set_clip_box(out2)
+        #line.set_clip_box(out2)
         line.set_clip_on(True)
         pass
     for t in axes.texts:
@@ -424,6 +425,7 @@ class ZoomBox:
                 to_draw.set_visible(False)
 
             # left-click in place resets the x-axis or y-axis
+            # This is where things zoomout
             if self.eventpress.xdata == event.xdata and self.eventpress.ydata == event.ydata:
 
                 if wx.GetKeyState(wx.WXK_CONTROL):

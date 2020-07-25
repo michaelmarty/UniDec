@@ -62,7 +62,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### Third Party Licenses
 
-Waters DLLs are distributed under the Waters MassLynxSDK EULA license. By downloading and using these DLLs, you are accepting that license. Info on other licenses are provided below.
+Waters DLLs are distributed under the Waters MassLynxSDK EULA license. The Thermo RawFileReader DLLs are distributed under the RawFileReader.doc license. By downloading and using these DLLs, you are accepting those licenses and these terms. Thermo and Waters are indemnified, defended, and held harmless from any claims, including attorneys’ fees, related to the distribution or use of this software. Redistribution of Waters and Thermo libraries is restricted as described in those licenses. Info on other licenses are provided below.
 
 ## UniDec Compatible File Types
 
@@ -122,9 +122,10 @@ natsort
 pymzml
 networkx
 h5py
-multiplierz (Windows only, for Thermo RAW imports)
 pypubsub
 tornado
+pythonnet
+multiplierz (Windows only, for Agilent imports)
 
 All of these can be installed from the command line with (for example):
     
@@ -194,9 +195,19 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
-v.4.2.3
+v.4.3.0
 
-Major refactoring of the code to support ongoing development.
+**Added UniChrom2: UniDec for LC/MS data**. UniChrom is built on top of the MetaUniDec engine and uses HDF5 files and many of the same core tools. The primary additions are the ability to parse chromatography data into HDF5, visualize and interact with LC/MS data, and manually select and quickly deconvolve parts of the chromatogram.
+
+**Added Data Reduction in MetaUniDec and UniChrom**. This now mirrors the behavior of UniDec for processing data to remove a fixed percentage of the lowest intensity data.
+
+**Added Native Combining of Waters Data**, which should dramatically speed up averaging Waters chromatograms by using the native MassLynx libraries.
+
+**Added Thermo RawFileReader libraries** to avoid having to install MSFileReader and to make opening native Thermo data faster and more robust.
+
+Major refactoring of the code to support UniChrom. For example, switched from local to absolute paths for most files in the engine.
+
+Added Estimated Area extraction to DataCollector and MetaUniDec. Here, it uses the peak height and FWHM to estimate the area based on the peak shape.
 
 Fixed bug with spaces in oligomer names when importing ofiles.
 

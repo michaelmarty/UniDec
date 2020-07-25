@@ -115,13 +115,13 @@ class UniDecApp(UniDecPres):
         dlg = wx.FileDialog(self.view, "Choose a data file in x y list, mzML, or Thermo Raw format", '', "", "*.*")
         if dlg.ShowModal() == wx.ID_OK:
             self.view.SetStatusText("Opening", number=5)
-            self.eng.config.filename = dlg.GetFilename()
-            print("Opening: ", self.eng.config.filename)
-            if os.path.splitext(self.eng.config.filename)[1] == ".zip":
+            filename = dlg.GetFilename()
+            print("Opening: ", filename)
+            if os.path.splitext(filename)[1] == ".zip":
                 print("Can't open zip, try Load State.")
                 return
-            self.eng.config.dirname = dlg.GetDirectory()
-            self.on_open_file(self.eng.config.filename, self.eng.config.dirname)
+            dirname = dlg.GetDirectory()
+            self.on_open_file(filename, dirname)
         dlg.Destroy()
 
     def on_open_file(self, filename, directory, skipengine=False, **kwargs):
@@ -238,7 +238,7 @@ class UniDecApp(UniDecPres):
                                                   ylab="Arrival Time (ms)", title="IM-MS Data")
                 self.view.SetStatusText("Data Length: " + str(len(self.eng.data.data2)), number=2)
             # Load UniDec Plots
-            if os.path.isfile(self.eng.config.outfname + "_error.txt"):
+            if os.path.isfile(self.eng.config.errorfile):
                 self.after_unidec_run()
             # RePick Peaks
             if os.path.isfile(self.eng.config.peaksfile):
@@ -321,8 +321,7 @@ class UniDecApp(UniDecPres):
                 newdir = os.path.join(topdir, "UniDecPastedSpectra")
                 if not os.path.isdir(newdir):
                     os.mkdir(newdir)
-                os.chdir(newdir)
-                np.savetxt(fname, data)
+                np.savetxt(os.path.join(newdir, fname), data)
                 print("Saved Pasted Spectrum as File:", fname, " in directory:", newdir)
                 self.on_open_file(fname, newdir, pasted=True)
             else:
@@ -726,7 +725,6 @@ class UniDecApp(UniDecPres):
         self.makeplot6(1)
         self.view.SetStatusText("Peak Change Done", number=5)
 
-
     def on_plot_offsets(self, e=None):
         """
         Transform the mass vs charge grid to a mass vs charge offset grid. Plot in self.view.plot5.
@@ -1093,7 +1091,7 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         MassDefects.MassDefectWindow(self.view, [self.eng.data.massdat], config=self.eng.config,
-                                     pks=self.eng.pks, value=self.eng.config.molig)
+                                     pks=self.eng.pks, value=self.eng.config.molig, directory=self.eng.config.udir)
 
     def on_iFAMS(self, e=None):
         iFAMS_Window(self.view, self.eng.data.data2, config=self.eng.config, directory=os.getcwd())
@@ -1190,7 +1188,7 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         self.export_config()
-        massoutputfile = self.eng.config.outfname + "_mass.txt"
+        massoutputfile = self.eng.config.massdatfile
         self.eng.config.default_zero_charge()
         self.eng.config.minmz = np.amin(self.eng.data.massdat[:, 0])
         self.eng.config.maxmz = np.amax(self.eng.data.massdat[:, 0])
@@ -1306,14 +1304,15 @@ class UniDecApp(UniDecPres):
                 # Open File Stripped
                 self.eng.config.dirname, self.eng.config.filename = os.path.split(path)
                 self.view.SetStatusText("File: " + self.eng.config.filename, number=1)
-                self.eng.config.outfname = os.path.splitext(self.eng.config.filename)[0]
-                self.eng.config.default_file_names()
-                os.chdir(self.eng.config.dirname)
-                dirnew = self.eng.config.outfname + "_unidecfiles"
+
+                basename = os.path.splitext(self.eng.config.filename)[0]
+
+                dirnew = os.path.join(self.eng.config.dirname, basename + "_unidecfiles")
                 if not os.path.isdir(dirnew):
                     print("Error: Need to process data in advance for Speed Batch Mode")
                     return False
-                os.chdir(dirnew)
+                self.eng.config.outfname = os.path.join(dirnew, basename)
+                self.eng.config.default_file_names()
 
                 # Write New Config and Run It
                 self.export_config(self.eng.config.confname)
@@ -1325,7 +1324,6 @@ class UniDecApp(UniDecPres):
                 print("\n")
             tend = time.perf_counter()
             print("\nTotal Speedy Batch Run Time: %.2gs" % (tend - tstarttop))
-
 
     def on_pdf_report(self, e=None):
         """
@@ -1385,6 +1383,7 @@ class UniDecApp(UniDecPres):
         dialog.ShowModal()
         output = dialog.value
 
+        self.view.shrink_all_figures(figsize=(6, 5))
         self.view.on_save_figure_eps(e)
         figureflags, files = self.view.on_save_figure_pdf(e)
         textmarkertab = [p.textmarker for p in self.eng.pks.peaks]
@@ -1394,7 +1393,8 @@ class UniDecApp(UniDecPres):
         if self.eng.config.imflag == 0:
             texmaker_nmsgsb.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config,
                                           self.eng.config.udir,
-                                          peaks, textmarkertab, peaklabels, peakcolors, figureflags, output, rawsamplename)
+                                          peaks, textmarkertab, peaklabels, peakcolors, figureflags, output,
+                                          rawsamplename)
             self.view.SetStatusText("TeX file Written", number=5)
             try:
                 texmaker_nmsgsb.PDFTexReport(self.eng.config.outfname + '_report.tex')
@@ -1404,6 +1404,11 @@ class UniDecApp(UniDecPres):
                 print("PDF Report Failed to Generate. Check LaTeX installation.Need pdflatex in path.", ex)
         else:
             print("PDF Figures written.")
+        # self.on_replot()
+        # self.view.shrink_all_figures(figsize=self.eng.config.figsize)
+        # print("Resetting Figure Sizes", self.eng.config.figsize)
+        # self.on_replot()
+        self.on_flip_tabbed(e=0)
         pass
 
     def on_fft_window(self, e):

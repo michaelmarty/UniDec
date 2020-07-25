@@ -12,7 +12,7 @@ from metaunidec import mudpres
 from import_wizard import ImportWizard
 from metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard as HDF5Wizard
 from metaunidec.ultrameta import DataCollector as UMDC
-from UniChrom import ChromWindow
+from UniChrom2 import ChromApp
 import wx.py as py
 import sys
 import os
@@ -58,7 +58,7 @@ class Lview(wx.Frame):
         button5 = wx.Button(panel, -1, "UniDec API Shell\n\nScript UniDec with console")
         button6 = wx.Button(panel, -1, "HDF5 Import Wizard\n\nImport Data into HDF5 for MetaUniDec")
         button7 = wx.Button(panel, -1, "UltraMeta Data Collector\n\nVisualize Multiple HDF5 Data Sets\nFit Trends")
-        button8 = wx.Button(panel, -1, "UniChrom\n\nVisualize Chromatogram TIC\nExport Chromatograms to Text")
+        button8 = wx.Button(panel, -1, "UniChrom2\n\nDeconvolution of Chromatograms\nUniDec for LC/MS Data")
 
         html = wx.html.HtmlWindow(panel, -1, size=(330,260))
         pathtofile = os.path.dirname(os.path.abspath(__file__))
@@ -140,10 +140,9 @@ class Lview(wx.Frame):
         app.MainLoop()
 
     def button8(self, e=None):
-        print("Launching UniChrom")
-        app = wx.App(False)
-        frame = ChromWindow(None, "Chromatogram Viewer")
-        app.MainLoop()
+        print("Launching UniChrom2")
+        app = ChromApp()
+        app.start()
 
 class Shell(object):
     def __init__(self, *args, **kwargs):

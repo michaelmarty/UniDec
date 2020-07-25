@@ -351,8 +351,8 @@ class main_menu(wx.Menu):
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_centroid, self.menucentroid)
 
         self.experimentalmenu.AppendSeparator()
-        self.menuRegister = self.experimentalmenu.Append(wx.ID_ANY, "Fix Thermo or Agilent Imports",
-                                                         "Registers the Thermo and Agilent Interfaces. "
+        self.menuRegister = self.experimentalmenu.Append(wx.ID_ANY, "Fix Agilent Imports",
+                                                         "Registers the Agilent Interfaces. "
                                                          "MUST RUN AS ADMINISTRATOR")
         self.parent.Bind(wx.EVT_MENU, self.pres.register, self.menuRegister)
 

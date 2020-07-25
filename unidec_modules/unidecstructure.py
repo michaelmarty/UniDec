@@ -53,6 +53,9 @@ class UniDecConfig(object):
         self.filetype = 0
         self.autotune = False
 
+        self.time_window = 2
+        self.chrom_peak_width = 2
+
         self.twavedict = {1: "Logarithmic", 2: "Linear", 3: "Power Law"}
         self.backgroundchoices = ["Subtract Minimum", "Subtract Line",
                                   "Subtract Curved"]  # , "Subtract Gaussian"]  # , "Subtract SavGol","Subtract Polynomial"]
@@ -767,6 +770,11 @@ class UniDecConfig(object):
         self.ofile = self.outfname + "_ofile.dat"
         self.matchfile = self.outfname + "_match.dat"
         self.peaksfile = self.outfname + "_peaks.dat"
+        self.massdatfile = self.outfname + "_mass.txt"
+        self.massgridfile = self.outfname + "_massgrid.bin"
+        self.fitdatfile = self.outfname + "_fitdat.bin"
+        self.errorfile = self.outfname + "_error.txt"
+        self.mzgridfile = self.outfname + "_grid.bin"
         if self.filetype == 0:
             self.hdf_file = self.outfname + ".hdf5"
 

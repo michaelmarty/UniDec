@@ -16,6 +16,8 @@
 #ifndef ANALYSIS_HEADER
 #define ANALYSIS_HEADER
 
+double single_fwhm(Config config, const int mlen, const double* massaxis, const double* masssum, const double peak, int index, double max);
+
 void interpolate_merge(const double *massaxis, double *outint, const double *tempaxis, const double *tempint, const int mlen, const int templen)
 {
 	double start = tempaxis[0];
@@ -342,6 +344,39 @@ double extract_center_of_mass(Config config, const double peak, const double *xv
 }
 
 
+double extract_estimated_area(Config config, const double peak, const double* xvals, const double* yvals, const int length)
+{
+	int pos1 = nearfast(xvals, peak - config.exwindow, length);
+	// printf("Position of left bound is %d\n", pos1);
+	int pos2 = nearfast(xvals, peak + config.exwindow, length);
+	// printf("Position of right bound is %d\n", pos2);
+	int mlen = pos2 - pos1 + 1;
+	const double* xwin = xvals + pos1;
+	// printf("xvals is %p, xwin is %p\n", xvals, xwin);
+	const double* ywin = yvals + pos1;
+
+	int index = nearfast(xwin, peak, mlen);
+	double height = ywin[index];
+	double fwhm = single_fwhm(config, mlen, xwin, ywin, peak, index, height);
+	
+	double pi = 3.14159265358979323846;
+	double gauss_coeff = sqrt(pi / log(2.0)) / 2.0;
+	double adjusted_coeff = ((0.5 * gauss_coeff) + (pi / 4.0));
+	double area = 0;
+	if (config.psfun == 0) { // Gaussian
+		area = height * fwhm * gauss_coeff;
+	}
+	else if (config.psfun == 1) { // Lorentzian
+		area = height * fwhm * pi / 2.0;
+	}
+	else if (config.psfun == 2) { // Split G/L
+		area = height * fwhm * adjusted_coeff;
+	}
+
+	return area;
+}
+
+
 double extract_switch(Config config, const double peak, const double* xvals, const double* yvals, const int length)
 {
 	double output = 0;
@@ -395,11 +430,11 @@ double extract_switch(Config config, const double peak, const double* xvals, con
 	case 10:
 		//printf("Extracting Integral. Window: %f\n", config.exwindow);
 		output = extract_integral(config, peak, xvals, yvals, length, 0.025 * max);
-		break;
-	case 11:
-		//printf("Extracting Integral. Window: %f\n", config.exwindow);
-		output = extract_integral(config, peak, xvals, yvals, length, 0.01 * max);
 		break;*/
+	case 5: // 11
+		// printf("Extracting Estimated Area. Window: %f\n", config.exwindow);
+		output = extract_estimated_area(config, peak, xvals, yvals, length);
+		break;
 	default:
 		printf("Invalid Extraction Choice: %d\n", config.exchoice);
 		output = 0;

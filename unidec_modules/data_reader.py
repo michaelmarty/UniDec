@@ -3,7 +3,7 @@ from unidec_modules.mzMLimporter import merge_spectra
 from copy import deepcopy
 from unidec_modules import unidectools as ud
 import numpy as np
-
+import time
 
 # import sys
 # import wx
@@ -51,7 +51,7 @@ class DataImporter:
             self.msrun = mzFile(path)
         self.scanrange = self.msrun.scan_range()
         # print(self.scanrange)
-        self.scans = np.arange(self.scanrange[0], self.scanrange[1] + 1)
+        self.scans = np.arange(self.scanrange[0], self.scanrange[1])
         self.times = []
         self.data = None
         for s in self.scans:
@@ -67,7 +67,7 @@ class DataImporter:
                         self.times.append(t)
                     except Exception as e3:
                         print("Error getting scan times:", e, e2, e3)
-                        print("Using Scan rather than Time)")
+                        print("Using Scan rather than Time")
                         self.times.append(s)
         self.times = np.array(self.times)
         # print(len(self.data), len(self.times), len(self.scans))
@@ -79,6 +79,7 @@ class DataImporter:
             impdat = impdat[impdat[:, 0] > 10]
             self.data.append(impdat)
         self.data = np.array(self.data)
+        return self.data
 
     def get_data(self, scan_range=None, time_range=None):
         """
@@ -140,7 +141,6 @@ class DataImporter:
         return data
 
     def get_tic(self):
-        print(self.msrun.filters())
         return self.msrun.xic(filter="Full")
 
     def get_max_time(self):
@@ -182,14 +182,14 @@ class DataImporter:
 if __name__ == "__main__":
     test = "Z:\Group Share\Group\\Archive\\Scott\\test.RAW"
     test = "C:\Data\Others\Agilent\\2019_05_15_bsa_ccs_02.d"
-    d = DataImporter(test).get_data()
-    exit()
-    print(d.get_times_from_scans([15, 30]))
+    test = u"C:\Python\\UniDec3\TestSpectra\\test.RAW"
+    #tstart = time.perf_counter()
 
-    exit()
+    #d = DataImporter(test)
+    #print(d.get_times_from_scans([0, 10]))
+    #d.get_data(time_range=(0, 10))
+    #print("ImportData: %.2gs" % (time.perf_counter() - tstart))
+    #import matplotlib.pyplot as plt
 
-    d = DataImporter(test).get_data(time_range=(0, 1))
-    import matplotlib.pyplot as plt
-
-    plt.plot(d[:, 0], d[:, 1])
-    plt.show()
+    #plt.plot(d[:, 0], d[:, 1])
+    #plt.show()

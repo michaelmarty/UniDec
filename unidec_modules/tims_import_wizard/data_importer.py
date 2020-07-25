@@ -13,7 +13,7 @@ from pubsub import pub
 from unidec_modules.tims_import_wizard import TagTypes as tt
 from unidec_modules.tims_import_wizard import get_data_wrapper
 try:
-    from unidec_modules.waters_importer.Importer import WatersDataImporter as WDI
+    from unidec_modules.waters_importer.WatersImporter import WatersDataImporter as WDI
 except Exception as e:
     print("Error importing Waters Importer, data_importer.py, ", e)
 

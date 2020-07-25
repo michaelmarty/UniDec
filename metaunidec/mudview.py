@@ -56,8 +56,9 @@ class Mainwindow(mainwindow_base.MainwindowBase):
             self.tabbed = tabbed
 
         self.datachoices = {0: "Raw Data", 1: "Processed Data", 2: "Zero Charge Mass Spectrum"}
-        self.extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position"}
-        self.extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass"}
+        self.extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position",
+                               5: "Estimated Area"}
+        self.extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass", 5: "Area"}
 
         self.setupmainpanel()
 

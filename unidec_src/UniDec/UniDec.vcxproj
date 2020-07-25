@@ -82,7 +82,7 @@
     <UseIntelMKL>Parallel</UseIntelMKL>
     <UseILP64Interfaces>true</UseILP64Interfaces>
     <UseIntelDAAL>Parallel_Static</UseIntelDAAL>
-    <UseIntelIPP>Parallel_Static</UseIntelIPP>
+    <UseIntelIPP>false</UseIntelIPP>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -124,8 +124,8 @@
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ICIncludeDir);C:\Program Files\HDF_Group\HDF5\1.10.1\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ICLibDir);$(LibraryPath);C:\Program Files\HDF_Group\HDF5\1.10.1\lib</LibraryPath>
+    <IncludePath>$(ICIncludeDir);C:\Program Files\HDF_Group\HDF5\1.12.0\include;$(MKLProductDir)\mkl\bin;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ICLibDir);$(LibraryPath);C:\Program Files\HDF_Group\HDF5\1.12.0\lib;$(MKLProductDir)\mkl\bin</LibraryPath>
     <LinkIncremental>false</LinkIncremental>
     <GenerateManifest>false</GenerateManifest>
     <EmbedManifest>false</EmbedManifest>
@@ -226,7 +226,7 @@
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalLibraryDirectories>C:\Program Files %28x86%29\MSBuild\Microsoft.Cpp\v4.0\V140;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Program Files %28x86%29\IntelSWTools\compilers_and_libraries_2020.1.216\windows\mkl\tools;$(MKLProductDir)\mkl\bin;$(MKLProductDir)\mkl\tools;C:\Program Files %28x86%29\IntelSWTools\compilers_and_libraries_2020.1.216\windows\mkl\bin;C:\Program Files %28x86%29\MSBuild\Microsoft.Cpp\v4.0\V140;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>.\copy.bat</Command>

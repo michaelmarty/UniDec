@@ -91,7 +91,7 @@ class MainwindowBase(wx.Frame):
             pass
 
     def on_open_dir(self, e):
-        save_dir = os.getcwd()
+        save_dir = self.config.udir
         print("Opening directory:", save_dir)
         try:
             os.system(self.config.opencommand + "\"" + save_dir + "\"")
@@ -244,9 +244,11 @@ class MainwindowBase(wx.Frame):
             except:
                 rect = [0.1, 0.1, 0.8, 0.8]
                 self.rect = rect
+        print(self.rect)
         if plot.flag:
             dpi = wx.ScreenDC().GetPPI()
             figsize2 = (int(figsize[0] * dpi[0]), int(figsize[1] * dpi[1]))
+            print(figsize2, figsize)
             plot.resize = 0
             plot.canvas.SetSize(figsize2)
             plot.canvas.draw()
@@ -296,7 +298,8 @@ class MainwindowBase(wx.Frame):
         dlg = wx.MessageDialog(self,
                                "UniDec GUI version " + self.version +
                                "\nPlease contact mtmarty@email.arizona.edu with any questions, bugs, or features to add.\n"
-                               "The latest version may be found at unidec.chem.ox.ac.uk.\n"
+                               "The latest version may be found at https://github.com/michaelmarty/UniDec/releases.\n"
+                               "RawFileReader reading tool. Copyright © 2016 by Thermo Fisher Scientific, Inc. All rights reserved.\n"
                                "If used in publication, please cite Marty et Al. Anal. Chem. 2015, DOI: 10.1021/acs.analchem.5b00140 ",
                                "About UniDec", wx.OK | wx.CENTER)
         dlg.ShowModal()
