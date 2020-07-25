@@ -241,9 +241,9 @@ class UniListApp(UniDecPres):
         # pub.subscribe(self.on_left_click, 'left_click')
 
         if True:
-            p1 = "D:\\Data\\WangLabAnalysis\\wanglabsample_protease_1.txt"
-            p2 = "D:\\Data\\WangLabAnalysis\\wanglabsample_protease_2.txt"
-            p3 = "D:\\Data\\WangLabAnalysis\\wanglabsample_protease_3.txt"
+            p1 = "C:\\Users\\margo\\Desktop\\Marty\\wanglabsample_protease_3.txt"
+            p2 = "C:\\Users\\margo\\Desktop\\Marty\\wanglabsample_protease_3.txt"
+            p3 = "C:\\Users\\margo\\Desktop\\Marty\\wanglabsample_protease_3.txt"
 
             paths = [[p1], [p2], [p3]]
 

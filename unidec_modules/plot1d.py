@@ -125,24 +125,13 @@ class Plot1d(PlottingWindow):
             self.repaint()
 
     def multiplot(self, x, y, a, b):
+        spec1 = gridspec.GridSpec(ncols=2, nrows=2, figure=self.figure)
+        self.f1_ax1 = self.figure.add_subplot(spec1[0, 0])
+        self.f1_ax2 = self.figure.add_subplot(spec1[0, 1])
+        self.f1_ax3 = self.figure.add_subplot(spec1[1, 0])
+        self.f1_ax4 = self.figure.add_subplot(spec1[1, 1])
 
-        mpl.rcParams['ps.useafm'] = True
-        mpl.rcParams['ps.fonttype'] = 42
-        mpl.rcParams['pdf.fonttype'] = 42
-        mpl.rcParams['lines.linewidth'] = 0.75
-        mpl.rcParams['errorbar.capsize'] = 3
-        mpl.rcParams['patch.force_edgecolor'] = True
-        mpl.rcParams['patch.facecolor'] = 'b'
-        mpl.rcParams['lines.markersize'] = 7
-        mpl.rcParams['font.size'] = 8
-        mpl.rcParams['font.sans-serif'] = "Arial"
-
-        self.sp1 = self.figure.add_subplot(221)
-        self.sp2 = self.figure.add_subplot(222)
-        self.sp3 = self.figure.add_subplot(223)
-        self.sp4 = self.figure.add_subplot(224)
-
-        self.subplots = [self.sp1, self.sp2, self.sp3, self.sp4]
+        self.subplots = [self.f1_ax1, self.f1_ax2, self.f1_ax3, self.f1_ax4]
 
         for subplots in self.subplots:
             subplots.plot(x, y)
@@ -154,18 +143,19 @@ class Plot1d(PlottingWindow):
             subplots.set_xlim(min(x), max(x))
             subplots.set_xlabel("m/z")
 
-        self.axins1 = inset_axes(self.sp1, width="40%", height="40%",
+        self.axins1 = inset_axes(self.f1_ax1, width="40%", height="40%",
                                  bbox_to_anchor=(.65, .65, 1.0, 1.0),
-                                 bbox_transform=self.sp1.transAxes, loc=3)
-        self.axins2 = inset_axes(self.sp2, width="40%", height="40%",
+                                 bbox_transform=self.f1_ax1.transAxes, loc=3)
+        self.axins2 = inset_axes(self.f1_ax2, width="40%", height="40%",
                                  bbox_to_anchor=(.65, .65, 1.0, 1.0),
-                                 bbox_transform=self.sp2.transAxes, loc=3)
-        self.axins3 = inset_axes(self.sp3, width="40%", height="40%",
+                                 bbox_transform=self.f1_ax2.transAxes, loc=3)
+        self.axins3 = inset_axes(self.f1_ax3, width="40%", height="40%",
                                  bbox_to_anchor=(.65, .65, 1.0, 1.0),
-                                 bbox_transform=self.sp3.transAxes, loc=3)
-        self.axins4 = inset_axes(self.sp4, width="40%", height="40%",
+                                 bbox_transform=self.f1_ax3.transAxes, loc=3)
+        self.axins4 = inset_axes(self.f1_ax4, width="40%", height="40%",
                                  bbox_to_anchor=(.65, .65, 1.0, 1.0),
-                                 bbox_transform=self.sp4.transAxes, loc=3)
+                                 bbox_transform=self.f1_ax4.transAxes, loc=3)
+
         self.insetaxes = [self.axins1, self.axins2, self.axins3, self.axins4]
 
         for insetaxes in self.insetaxes:
@@ -178,8 +168,10 @@ class Plot1d(PlottingWindow):
             insetaxes.set_xlim(min(a), max(a))
             insetaxes.set_xlabel("Mass (kDa)")
 
-        self.setup_zoom(self.insetaxes, "box", link_axes=True)
-        self.setup_zoom(self.subplots, "box", link_axes=True)
+        self.figure.tight_layout()
+        self.groups = [1, 1, 2, 2, 3, 3, 4, 4]
+        self.setup_zoom([self.f1_ax1, self.f1_ax2, self.f1_ax3, self.f1_ax4,
+                         self.axins1, self.axins2, self.axins3, self.axins4], "box", groups=self.groups)
 
         self.repaint()
 
@@ -211,7 +203,7 @@ class Plot1d(PlottingWindow):
         self.axins.spines['top'].set_visible(False)
         self.axins.spines['right'].set_visible(False)
 
-        self.setup_zoom([self.subplot1, self.axins], "box", link_axes=False)
+        self.setup_zoom([self.subplot1, self.axins], "box")
 
         self.repaint()
 
