@@ -523,6 +523,16 @@ class main_controls(wx.Panel):
             sbs2.Add(self.ctlnativeccsub, flag=wx.LEFT | wx.EXPAND, border=5)
             sbs2.Add(wx.StaticText(panel2b, label=" \u212B\u00B2 "), 0, wx.EXPAND)
             gbox2b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1  # Check
+
+        ddsizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.doubledecflag = wx.CheckBox(panel2b, label="Double Deconvolution")
+        self.parent.Bind(wx.EVT_CHECKBOX, self.on_double_dec, self.doubledecflag)
+        self.doubledecbutton = wx.Button(panel2b, label="Open kernel file")
+        self.parent.Bind(wx.EVT_BUTTON, self.on_open_kernel, self.doubledecbutton)
+        ddsizer.Add(self.doubledecflag, 0, wx.ALIGN_CENTER_VERTICAL)
+        ddsizer.Add(self.doubledecbutton, 0, wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(ddsizer, (i, 0), span=(1, 2))
 
         panel2b.SetSizer(gbox2b)
         gbox2b.Fit(panel2b)
@@ -686,6 +696,10 @@ class main_controls(wx.Panel):
             self.ctlmasslb.SetValue(str(self.config.masslb))
             self.ctlmassub.SetValue(str(self.config.massub))
             self.ctlmasslistflag.SetValue(self.config.mfileflag)
+            self.doubledecflag.SetValue(self.config.doubledec)  # DoubleDec config import
+            if self.config.kernel != "":
+                kernel_name = os.path.splitext(os.path.basename(self.config.kernel))[0]
+                self.doubledecbutton.SetLabel(kernel_name)
             self.ctlmtabsig.SetValue(str(self.config.mtabsig))
             self.ctlbuff.SetValue(str(self.config.subbuff))
             self.subtypectl.SetSelection(int(self.config.subtype))
@@ -823,6 +837,8 @@ class main_controls(wx.Panel):
         self.config.psfun = self.ctlpsfun.GetSelection()
         self.config.peaknorm = self.ctlnorm.GetSelection()
         self.config.mfileflag = int(self.ctlmasslistflag.GetValue())
+        self.config.doubledec = self.doubledecflag.GetValue()  # DoubleDec config export
+        # self.config.kernel =
         self.config.peakwindow = ud.string_to_value(self.ctlwindow.GetValue())
         self.config.peakthresh = ud.string_to_value(self.ctlthresh.GetValue())
         self.config.peakplotthresh = ud.string_to_value(self.ctlthresh2.GetValue())
@@ -1096,6 +1112,42 @@ class main_controls(wx.Panel):
             self.pres.on_mass_tools(e)
             if len(self.config.masslist) < 1:
                 self.ctlmasslistflag.SetValue(False)
+
+    def on_double_dec(self, e):
+        """
+        Sets the DoubleDec flag in the config to the appropriate value
+        :param e: Dummy wx event. Unused.
+        :return: None
+        """
+        self.config.doubledec = self.doubledecflag.GetValue()
+        print("DoubleDec mode is", self.config.doubledec)
+
+    def on_open_kernel(self, e):
+        """
+        Opens a kernel file and saves the path in the config. The button text is
+        also updated to match. Note that the user is supposed to select the raw
+        m/z file--the corresponding mass file will be found if it exists. This way,
+        possible file naming issues are avoided.
+        :param e: Triggering event. Unused.
+        :return: None
+        """
+        kernel_path = self.pres.on_open_kernel()
+        kernel_name = os.path.basename(kernel_path)
+        bare_name = os.path.splitext(kernel_name)[0]
+        # if kernel_name.split('_')[-1] == "mass.txt":  # Possible naming issues
+        #    self.doubledecbutton.SetLabel(bare_name)
+        #    self.config.kernel = kernel_path
+        # else:
+        kernel_path2 = os.path.dirname(kernel_path) + "\\" + bare_name + "_unidecfiles\\" + \
+            bare_name + "_mass.txt"
+        try:
+            with open(kernel_path2, "r") as f:
+                self.doubledecbutton.SetLabel(os.path.splitext(os.path.basename(kernel_path2))[0])
+                self.config.kernel = kernel_path2
+        except IOError:
+            print("Please deconvolve the m/z file [" + kernel_name + "] with UniDec first.")
+        print(self.config.kernel)
+        # TODO: Check that mass file is linear!
 
     def on_z_smooth(self, e):
         value = self.ctlzsmoothcheck.Get3StateValue()

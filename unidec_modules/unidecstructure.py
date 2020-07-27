@@ -202,6 +202,9 @@ class UniDecConfig(object):
         self.ccsbins = 100
         self.csig = 0
 
+        self.doubledec = False
+        self.kernel = ""
+
     def default_colormaps(self):
         """
         Get default matplotlib colormaps and set names to self.cmaps.
