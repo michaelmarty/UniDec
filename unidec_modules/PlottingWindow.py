@@ -374,15 +374,18 @@ class PlottingWindow(wx.Window):
             print("Image Copied")
         os.remove(obj.name)
 
-    def setup_zoom(self, plots, zoom, data_lims=None, pad=0, link_axes=True):
+    def setup_zoom(self, plots, zoom, data_lims=None, pad=0, groups=None):
         """
         Set up zoom on axes.
         :param plots: Axes objects to setup
         :param zoom: Type of zoom ('span' or 'box')
         :param data_lims: Optional manual description of the data limits (where to go when fully zoomed out)
+        :param groups: Group of axes to link zoom together for
         :return: None
         """
         # setup for zoom box
+        if groups is None:
+            groups = [1, 2, 3, 4, 5, 6, 7, 8]
         if zoom == 'span':
             self.zoom = ZoomSpan(
                 plots,
@@ -394,7 +397,7 @@ class PlottingWindow(wx.Window):
             self.zoom = ZoomBox(
                 plots,
                 None,
-                link_axes=link_axes,
+                groups=groups,
                 drawtype='box',
                 useblit=True,
                 button=1,  # so zoombox is left button

@@ -185,6 +185,21 @@ class UniDecApp(UniDecPres):
 
         # print("ImportData: %.2gs" % (time.perf_counter() - tstart))
 
+    def on_open_kernel(self):
+        """
+        Opens a kernel file for use in DoubleDec deconvolution.
+        :return: A string indicating the chosen file path
+        """
+        dlg = wx.FileDialog(self.view, "Open a kernel file")
+        if dlg.ShowModal() == wx.ID_CANCEL:
+            return
+        file_path = dlg.GetPath()
+        if os.path.splitext(os.path.basename(file_path))[1] == ".zip":
+            print("Can't open zip")
+            return
+        dlg.Destroy()
+        return file_path
+
     def on_load_everything(self, e=None):
         self.eng.unidec_imports(everything=False)
         self.after_unidec_run()
