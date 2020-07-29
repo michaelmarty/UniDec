@@ -155,11 +155,6 @@ class main_controls(wx.Panel):
         gbox1b = wx.GridBagSizer(wx.VERTICAL)
         i = 0
 
-        self.ctladductmass = wx.TextCtrl(panel1b, value='', size=size1)
-        gbox1b.Add(self.ctladductmass, (i, 1), span=(1, 1))
-        gbox1b.Add(wx.StaticText(panel1b, label="Adduct Mass (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
-
         self.ctlsmooth = wx.TextCtrl(panel1b, value="", size=size1)
         gbox1b.Add(self.ctlsmooth, (i, 1))
         gbox1b.Add(wx.StaticText(panel1b, label="Gaussian Smoothing: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -475,14 +470,10 @@ class main_controls(wx.Panel):
         gbox2b.Add(self.ctlpoolflag, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
-        if self.config.imflag == 0:
-            # self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
-            self.ctlisotopemode = wx.Choice(panel2b, -1, size=(100, -1), choices=self.config.isotopechoices)
-            gbox2b.Add(self.ctlisotopemode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-
-            self.ctlorbimode = wx.CheckBox(panel2b, label="Charge Scaling")
-            gbox2b.Add(self.ctlorbimode, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
+        self.ctladductmass = wx.TextCtrl(panel2b, value='', size=size1)
+        gbox2b.Add(self.ctladductmass, (i, 1), span=(1, 1))
+        gbox2b.Add(wx.StaticText(panel2b, label="Adduct Mass (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         self.ctlnegmode = wx.CheckBox(panel2b, label="Negative Mode")
         gbox2b.Add(self.ctlnegmode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -492,6 +483,15 @@ class main_controls(wx.Panel):
         self.parent.Bind(wx.EVT_CHECKBOX, self.on_check_manual, self.ctlmanualassign)
         gbox2b.Add(self.ctlmanualassign, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
+
+        if self.config.imflag == 0:
+            # self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
+            self.ctlisotopemode = wx.Choice(panel2b, -1, size=(100, -1), choices=self.config.isotopechoices)
+            gbox2b.Add(self.ctlisotopemode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+
+            self.ctlorbimode = wx.CheckBox(panel2b, label="Charge Scaling")
+            gbox2b.Add(self.ctlorbimode, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
 
         mlsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.ctlmasslistflag = wx.CheckBox(panel2b, label="Mass List Window:")

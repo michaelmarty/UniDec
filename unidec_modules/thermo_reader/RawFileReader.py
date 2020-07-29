@@ -37,7 +37,7 @@ from ThermoFisher.CommonCore.Data.FilterEnums import IonizationModeType, MSOrder
 from ThermoFisher.CommonCore.Data.Interfaces import IChromatogramSettings, IScanEventBase, IScanFilter, \
     RawFileClassification
 from ThermoFisher.CommonCore.MassPrecisionEstimator import PrecisionEstimate
-# from ThermoFisher.CommonCore.RawFileReader import RawFileReaderAdapter
+from ThermoFisher.CommonCore.RawFileReader import RawFileReaderAdapter, SequenceFileReader
 """"""
 '''
 APIs are similar to pymsfilereader(https://github.com/frallain/pymsfilereader), but some APIs have not be implemented yet."
@@ -519,10 +519,22 @@ class RawFileReader(object):
             print('Mass {:.5f}, mmu = {:.3f}, ppm = {:.2f}'.format(
                 result.Mass, result.MassAccuracyInMmu, result.MassAccuracyInPpm))
 
+    def GetSeqInfo(self):
+        """Returns the sequence row number for this sample in an acquired sequence. The numbering
+        starts at 1.
+        NOTE : XCALIBUR INTERFACE "View/Report/Sample Information" part
+        """
+        #result = c_long()
+        seq = SequenceFileReader.OpenSequence(self.filename)
+        print(seq.Samples)
+        #print(str(self.source.GetCompoundNames()))
+        #error = self.source.SequenceFileReader()
+        #if error:
+        #    raise IOError("GetSeqRowNumber error : ", error)
+        #return error
 
 if __name__ == "__main__":
     test = u"C:\Python\\UniDec3\TestSpectra\\test.RAW"
     rr = RawFileReader(test)
-    print(rr.ReadScanInformation())
-
+    rr.GetSeqInfo()
     rr.Close()
