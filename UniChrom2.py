@@ -30,7 +30,7 @@ class ChromApp(MetaUniDecBase):
         self.outputfile = None
         self.scans = None
         self.view.menu.update_recent()
-        if True:
+        if False:
             path = "D:\\Data\\ShortCourse\\strepme.RAW"
             #path = "D:\Data\ChromTest\SYJMX160819_04.hdf5"
             self.open_file(path)
