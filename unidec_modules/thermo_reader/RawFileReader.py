@@ -479,7 +479,6 @@ class RawFileReader(object):
                 [DotNetArrayToNPArray(centroidStream.Masses), DotNetArrayToNPArray(centroidStream.Intensities)])
         else:
             # Get the segmented (low res and profile) scan data
-            print(averageScan)
             segmentedScan = averageScan.SegmentedScan
             if outputData:
                 for i in range(segmentedScan.Positions.Length):
