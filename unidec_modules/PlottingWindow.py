@@ -6,8 +6,8 @@ import wx
 import tempfile, os
 from matplotlib import interactive
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
-#from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar
-#from matplotlib.backends.backend_wx import _load_bitmap
+# from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar
+# from matplotlib.backends.backend_wx import _load_bitmap
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from matplotlib import rcParams
@@ -255,6 +255,68 @@ class PlottingWindow(wx.Window):
         self.subplot1.plot(np.array(x) / self.kdnorm, y, color=colval, marker=markval, linestyle='None', clip_on=True
                            , markeredgecolor="k", label=label)
 
+    def addtext(self, txt, x, y, vlines=True, hlines=False, color="k", ymin=0, ymax=None, verticalalignment="top",
+                xmin=0, xmax=None, nopaint=False, **kwargs):
+        """
+        Adds text and lines. Puts things that have been added in self.lines and self.text lists.
+        :param txt: String of text to add
+        :param x: x position for where to add
+        :param y: y position for where to add
+        :param vlines: Whether to add vertical lines to the text as well.
+        :param color: Color of text and lines
+        :param kwargs: Keywords
+        If range=(a,b) is specified, adds a line from a to b and vertical lines at a and b.
+        :return: None
+        """
+        if ymax is None:
+            ymax = y
+        if xmax is None:
+            xmax = x
+
+        text = self.subplot1.text(np.array(x) / self.kdnorm, y, txt, horizontalalignment="center",
+                                  verticalalignment=verticalalignment, color=color)
+        self.text.append(text)
+        if vlines:
+            if "range" in kwargs:
+                line_range = kwargs["range"]
+                line = self.subplot1.vlines(line_range[0] / self.kdnorm, ymin, y * 0.6, color=color)
+                self.lines.append(line)
+                line = self.subplot1.vlines(line_range[1] / self.kdnorm, ymin, y * 0.6, color=color)
+                self.lines.append(line)
+                line = self.subplot1.hlines(y * 0.3, line_range[0] / self.kdnorm, line_range[1] / self.kdnorm,
+                                            linestyles="dashed", color=color)
+                self.lines.append(line)
+                pass
+            else:
+                line = self.subplot1.vlines(np.array(x) / self.kdnorm, ymin, y - 0.05 * ymax, linestyles="dashed",
+                                            color=color)
+                self.lines.append(line)
+
+        if hlines:
+            line = self.subplot1.hlines(y, xmin / self.kdnorm, xmax / self.kdnorm - 0.05 * xmax / self.kdnorm,
+                                        linestyles="dashed",
+                                        color=color)
+            self.lines.append(line)
+
+        if not nopaint:
+            self.repaint()
+
+    def textremove(self):
+        """
+        Remove text and lines previous placed in the self.text and self.lines containers
+        :return: None
+        """
+        if len(self.text) > 0:
+            for i in range(0, len(self.text)):
+                self.text[i].remove()
+                try:
+                    self.lines[i].remove()
+                except:
+                    print(self.text[i])
+        self.text = []
+        self.lines = []
+        self.repaint()
+
     def repaint(self, setupzoom=False):
         """
         Redraw and refresh the plot.
@@ -369,7 +431,7 @@ class PlottingWindow(wx.Window):
         bobj = wx.BitmapDataObject(btm)
         if wx.TheClipboard.Open():
             wx.TheClipboard.SetData(bobj)
-            #wx.TheClipboard.SetData(wx.TextDataObject("Test"))
+            # wx.TheClipboard.SetData(wx.TextDataObject("Test"))
             wx.TheClipboard.Close()
             print("Image Copied")
         os.remove(obj.name)
@@ -414,10 +476,12 @@ class PlottingWindow(wx.Window):
                 useblit=True,
                 onmove_callback=None,
                 rectprops=dict(alpha=0.2, facecolor='yellow'))
+
     '''
     def add_toolbar(self):
         self.toolbar = MyNavigationToolbar(self.canvas, True)
         self.toolbar.Realize()'''
+
 
 """
 This technically could be used, but it didn't work well when I tried it.

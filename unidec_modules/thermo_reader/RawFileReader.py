@@ -198,6 +198,11 @@ class RawFileReader(object):
     def scan_time_from_scan_name(self, scan):
         return self.source.RetentionTimeFromScanNumber(scan)
 
+    def GetFilters(self):
+        """Returns the list of unique scan filters for the raw file. This function is only supported for MS
+        device controllers."""
+        return list(self.source.GetFilters())
+
     def PrintInfo(self):
         # Get some information from the header portions of the RAW file and
         # display that information.  The information is general information
@@ -286,8 +291,9 @@ class RawFileReader(object):
         '''
         if scanrange is None:
             scanrange = [self.FirstSpectrumNumber, self.LastSpectrumNumber]
-        # Define the settings for getting the Base Peak chromatogram
-        settings = ChromatogramTraceSettings(TraceType.BasePeak)
+        # Define the settings for getting the Base Peak chromatogram #TraceType.BasePeak
+        # Define the settings for getting the TIC chromatogram #TraceType.TIC
+        settings = ChromatogramTraceSettings(TraceType.TIC)
         # Get the chromatogram from the RAW file.
         data = self.source.GetChromatogramData([settings], int(scanrange[0]), int(scanrange[1]))
         # Split the data into the chromatograms
@@ -416,7 +422,7 @@ class RawFileReader(object):
                 [DotNetArrayToNPArray(segmentedScan.Positions), DotNetArrayToNPArray(segmentedScan.Intensities)])
         return self.data
 
-    def GetAverageSpectrum(self, scanrange=None, outputData=False):
+    def GetAverageSpectrum(self, scanrange=None, outputData=False, filter="Full"):
         '''Gets the average spectrum from the RAW file.
 
         Args:
@@ -430,20 +436,25 @@ class RawFileReader(object):
         # Create the mass options object that will be used when averaging
         # the scans
         options = Extensions.DefaultMassOptions(self.source)
-
         options.ToleranceUnits = ToleranceUnits.ppm
         options.Tolerance = 5.0
 
         # Get the scan filter for the first scan.  This scan filter will be used to located
         # scans within the given scan range of the same type
-        scanFilter = IScanFilter(self.source.GetFilterForScanNumber(scanrange[0]))
+        if filter is None:
+            scanFilter = IScanFilter(self.source.GetFilterForScanNumber(scanrange[0]))
+        else:
+            filterhelper = Extensions.BuildFilterHelper(self.source, filter)
+            scanFilter=filterhelper.Filter
         scanStatistics = self.source.GetScanStatsForScanNumber(scanrange[0])
 
         # Get the average mass spectrum for the provided scan range. In addition to getting the
         # average scan using a scan range, the library also provides a similar method that takes
         # a time range.
+
         averageScan = Extensions.AverageScansInScanRange(
             self.source, scanrange[0], scanrange[1], scanFilter, options)
+
         # This example uses a different method to get the same average spectrum that was calculated in the
         # previous portion of this method.  Instead of passing the start and end scan, a list of scans will
         # be passed to the GetAveragedMassSpectrum function.
@@ -468,6 +479,7 @@ class RawFileReader(object):
                 [DotNetArrayToNPArray(centroidStream.Masses), DotNetArrayToNPArray(centroidStream.Intensities)])
         else:
             # Get the segmented (low res and profile) scan data
+            print(averageScan)
             segmentedScan = averageScan.SegmentedScan
             if outputData:
                 for i in range(segmentedScan.Positions.Length):

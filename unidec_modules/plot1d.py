@@ -214,56 +214,6 @@ class Plot1d(PlottingWindow):
         if not nopaint:
             self.repaint()
 
-    def addtext(self, txt, x, y, vlines=True, color="k", ymin=0, ymax=None, **kwargs):
-        """
-        Adds text and lines. Puts things that have been added in self.lines and self.text lists.
-        :param txt: String of text to add
-        :param x: x position for where to add
-        :param y: y position for where to add
-        :param vlines: Whether to add vertical lines to the text as well.
-        :param color: Color of text and lines
-        :param kwargs: Keywords
-        If range=(a,b) is specified, adds a line from a to b and vertical lines at a and b.
-        :return: None
-        """
-        if ymax is None:
-            ymax = y
-        text = self.subplot1.text(np.array(x) / self.kdnorm, y, txt, horizontalalignment="center",
-                                  verticalalignment="top", color=color)
-        self.text.append(text)
-        if vlines:
-            if "range" in kwargs:
-                line_range = kwargs["range"]
-                line = self.subplot1.vlines(line_range[0] / self.kdnorm, ymin, y * 0.6, color=color)
-                self.lines.append(line)
-                line = self.subplot1.vlines(line_range[1] / self.kdnorm, ymin, y * 0.6, color=color)
-                self.lines.append(line)
-                line = self.subplot1.hlines(y * 0.3, line_range[0] / self.kdnorm, line_range[1] / self.kdnorm,
-                                            linestyles="dashed", color=color)
-                self.lines.append(line)
-                pass
-            else:
-                line = self.subplot1.vlines(np.array(x) / self.kdnorm, ymin, y - 0.05 * ymax, linestyles="dashed",
-                                            color=color)
-                self.lines.append(line)
-        self.repaint()
-
-    def textremove(self):
-        """
-        Remove text and lines previous placed in the self.text and self.lines containers
-        :return: None
-        """
-        if len(self.text) > 0:
-            for i in range(0, len(self.text)):
-                self.text[i].remove()
-                try:
-                    self.lines[i].remove()
-                except:
-                    print(self.text[i])
-        self.text = []
-        self.lines = []
-        self.repaint()
-
     def filledplot(self, x, y, color="black"):
         """
         Creates a plot filled between the y values and the y axis

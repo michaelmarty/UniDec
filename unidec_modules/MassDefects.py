@@ -2,8 +2,6 @@ import os
 from copy import deepcopy
 import numpy as np
 import wx
-from scipy.interpolate import interp1d
-from scipy.optimize import curve_fit
 from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows, MassDefectExtractor
 import unidec_modules.unidectools as ud
 from unidec_modules.MassFitter import MassFitter
@@ -39,6 +37,8 @@ class MassDefectWindow(wx.Frame):
         if self.m0 is None:
             self.m0 = 760.076
 
+        self.defaultvalues = [44088, 3492, 0, 20, 1]
+
         if config is None:
             self.config = unidecstructure.UniDecConfig()
             self.config.initialize()
@@ -71,6 +71,8 @@ class MassDefectWindow(wx.Frame):
         if self.outfname != "":
             self.outfname += "_"
         print(self.outfname)
+        self.total = False
+        self.notchanged = False
         try:
             self.datalist = [data_list[0]]
         except:
@@ -108,15 +110,20 @@ class MassDefectWindow(wx.Frame):
         self.plotmenu = wx.Menu()
         self.menuaddline = self.plotmenu.Append(wx.ID_ANY, "Add Horizontal Line",
                                                 "Add Horizontal Line at Specific Y Value")
+
+        self.menuaddmultiline = self.plotmenu.Append(wx.ID_ANY, "Add Multiple Lines",
+                                                     "Add Multiple Horizontal Lines at Specific Y Values")
+
         self.menufit = self.plotmenu.Append(wx.ID_ANY, "Fit Peaks",
                                             "Fit total mass defect peaks")
         self.menupeaks = self.plotmenu.Append(wx.ID_ANY, "Label Peaks",
                                               "Label peaks")
         self.menulinreg = self.plotmenu.Append(wx.ID_ANY, "Linear Regression",
-                                              "Linear Regression")
-        self.menucom = self.plotmenu.Append(wx.ID_ANY, "Center of Mass",  "Center of Mass")
+                                               "Linear Regression")
+        self.menucom = self.plotmenu.Append(wx.ID_ANY, "Center of Mass", "Center of Mass")
 
         self.Bind(wx.EVT_MENU, self.on_add_line, self.menuaddline)
+        self.Bind(wx.EVT_MENU, self.on_add_multilines, self.menuaddmultiline)
         self.Bind(wx.EVT_MENU, self.on_fit, self.menufit)
         self.Bind(wx.EVT_MENU, self.on_label_peaks, self.menupeaks)
         self.Bind(wx.EVT_MENU, self.on_linear_regression, self.menulinreg)
@@ -238,6 +245,7 @@ class MassDefectWindow(wx.Frame):
         Update parameters from GUI.
         :return: None
         """
+        oldparams = deepcopy(self.config.defectparams)
         try:
             self.m0 = float(self.ctlm0.GetValue())
             try:
@@ -258,6 +266,7 @@ class MassDefectWindow(wx.Frame):
             self.xlab = "Mass"
             self.ylab = "Mass Defect (Da)"
         self.config.defectparams = [self.nbins, self.transformmode, self.centermode, self.xtype]
+        self.notchanged=np.all(oldparams == self.config.defectparams)
 
     def make_list_plots(self):
         print(self.igrids.shape)
@@ -318,20 +327,20 @@ class MassDefectWindow(wx.Frame):
         """
         self.getfromgui()
         self.data1d, self.data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(self.datalist[self.pos], self.m0,
-                                                                          centermode=self.centermode,
-                                                                          nbins=self.nbins,
-                                                                          transformmode=self.transformmode,
-                                                                          xaxistype=self.xtype)
+                                                                               centermode=self.centermode,
+                                                                               nbins=self.nbins,
+                                                                               transformmode=self.transformmode,
+                                                                               xaxistype=self.xtype)
         if self.xtype == 0:
             factor = 1.0
         else:
             factor = self.m0
 
         if self.yvals is not None:
-            title = self.outfname + str(self.yvals[self.pos])
+            title = str(self.yvals[self.pos])
             spacer = "_"
         else:
-            title = self.outfname
+            title = str(self.pos)#self.outfname
             spacer = ""
         try:
             save_path2d = os.path.join(self.directory, title + spacer + "2D_Mass_Defects.txt")
@@ -342,13 +351,12 @@ class MassDefectWindow(wx.Frame):
         except Exception as e:
             print("Failed save", e)
 
-
         try:
-            self.plot2.contourplot(self.data2d, self.config, xlab=self.xlab, ylab=self.ylab, title=title, normflag=1, test_kda=True)
+            self.plot2.contourplot(self.data2d, self.config, xlab=self.xlab, ylab=self.ylab, title=title, normflag=1,
+                                   test_kda=True)
         except Exception as e:
             self.plot2.clear_plot()
             print("Failed Plot2", e)
-
 
         try:
             self.plot3.plotrefreshtop(self.data1d[:, 0], self.data1d[:, 1], title, self.ylab,
@@ -376,6 +384,8 @@ class MassDefectWindow(wx.Frame):
             self.plot4.clear_plot()
             print("Failed Plot 4", e)
 
+        self.total=False
+
     def makeplottotal(self, e=None):
         """
         Runs the kendrick analysis on all of the mass distributions in self.datalist.
@@ -385,36 +395,44 @@ class MassDefectWindow(wx.Frame):
         :return: None
         """
         self.getfromgui()
-        # Run on all
-        igrids = []
-        m1grid, m2grid = None, None
-        for i, dat in enumerate(self.datalist):
-            self.data1d, self.data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(dat, self.m0,
-                                                                              centermode=self.centermode,
-                                                                              nbins=self.nbins,
-                                                                              transformmode=self.transformmode,
-                                                                              xaxistype=self.xtype)
-            igrids.append(igrid)
+
+        if not self.notchanged or not self.total:
+            # Run on all
+            igrids = []
+            m1grid, m2grid = None, None
+            for i, dat in enumerate(self.datalist):
+                self.data1d, self.data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(dat, self.m0,
+                                                                                       centermode=self.centermode,
+                                                                                       nbins=self.nbins,
+                                                                                       transformmode=self.transformmode,
+                                                                                       xaxistype=self.xtype)
+                igrids.append(igrid)
+            # Sum and reshape
+            igrids = np.array(igrids)
+            igrids /= np.amax(igrids)
+            sumgrid = np.sum(igrids, axis=0)
+            self.igrids = igrids
+            self.data2d = np.transpose([np.ravel(m1grid), np.ravel(m2grid), np.ravel(sumgrid) / np.amax(sumgrid)])
+            self.data1d = np.transpose([np.unique(m2grid), np.sum(sumgrid, axis=0)])
+            # Save Results
+            save_path2d = os.path.join(self.directory, self.outfname + "Total_2D_Mass_Defects.txt")
+            np.savetxt(save_path2d, self.data2d)
+            save_path1d = os.path.join(self.directory, self.outfname + "Total_1D_Mass_Defects.txt")
+            np.savetxt(save_path1d, self.data1d)
+            print('Saved: ', save_path2d, save_path1d)
+            self.total=True
+        else:
+            pass
+
+        # Plots
+
         if self.xtype == 0:
             factor = 1.0
         else:
             factor = self.m0
-        # Sum and reshape
-        igrids = np.array(igrids)
-        igrids /= np.amax(igrids)
-        sumgrid = np.sum(igrids, axis=0)
-        self.igrids = igrids
-        self.data2d = np.transpose([np.ravel(m1grid), np.ravel(m2grid), np.ravel(sumgrid) / np.amax(sumgrid)])
-        self.data1d = np.transpose([np.unique(m2grid), np.sum(sumgrid, axis=0)])
-        # Save Results
-        save_path2d = os.path.join(self.directory, self.outfname + "Total_2D_Mass_Defects.txt")
-        np.savetxt(save_path2d, self.data2d)
-        save_path1d = os.path.join(self.directory, self.outfname + "Total_1D_Mass_Defects.txt")
-        np.savetxt(save_path1d, self.data1d)
-        print('Saved: ', save_path2d, save_path1d)
-        # Plots
         try:
-            self.plot2.contourplot(self.data2d, self.config, xlab=self.xlab, ylab=self.ylab, title="Total", normflag=1, test_kda=True)
+            self.plot2.contourplot(self.data2d, self.config, xlab=self.xlab, ylab=self.ylab, title="Total", normflag=1,
+                                   test_kda=True)
         except Exception as e:
             self.plot2.clear_plot()
             print("Failed Plot2", e)
@@ -583,11 +601,15 @@ class MassDefectWindow(wx.Frame):
         :return: None
         """
         dialog = miscwindows.SingleInputDialog(self)
-        dialog.initialize_interface(title="Add Line", message="Add Line at Defect Value: ")
+        dialog.initialize_interface(title="Add Line", message="Add Line at Defect Value or Mass:")
         dialog.ShowModal()
 
         try:
             vval = float(dialog.value)
+
+            if (vval > 1 and self.xtype == 0) or (vval > self.m0 and self.xtype == 0):
+                vval = ud.simple_mass_defect(vval, refmass=self.m0, centermode=self.centermode, normtype=self.xtype)
+
             xlim = self.plot2.subplot1.get_xlim()
             self.plot2.subplot1.plot((xlim[0], xlim[1]), (vval, vval), color=self.plot2.tickcolor)
             self.plot2.repaint()
@@ -599,30 +621,123 @@ class MassDefectWindow(wx.Frame):
             ylim4 = self.plot4.subplot1.get_ylim()
             self.plot4.subplot1.plot((vval, vval), (ylim4[0], ylim4[1]), color=self.plot4.tickcolor)
             self.plot4.repaint()
+
+            if len(self.datalist) > 1:
+                try:
+                    ylim = self.plot6.subplot1.get_ylim()
+                    self.plot6.subplot1.plot((vval, vval), (ylim[0], ylim[1]), color=self.plot2.tickcolor)
+                    self.plot6.repaint()
+
+                    ylim4 = self.plot5.subplot1.get_ylim()
+                    self.plot5.subplot1.plot((vval, vval), (ylim4[0], ylim4[1]), color=self.plot5.tickcolor)
+                    self.plot5.repaint()
+                except Exception as e:
+                    print("Failed 1: ", dialog.value, e)
+                    pass
+
         except Exception as e:
-            print("Failed: ", dialog.value, e)
+            print("Failed 2: ", dialog.value, e)
             pass
 
-        if len(self.datalist) > 1:
-            try:
-                xval = float(dialog.value)
-                ylim = self.plot6.subplot1.get_ylim()
-                self.plot6.subplot1.plot((xval, xval), (ylim[0], ylim[1]), color=self.plot2.tickcolor)
-                self.plot6.repaint()
+    def on_add_multilines(self, e):
+        """
+        Add a horizontal line to the plot to visualize a predicted mass defect.
+        Opens a dialog to input the value. Can be called more than once to add multiple lines.
+        :param e: Unused event
+        :return: None
+        """
+        dialog = miscwindows.MultiInputDialog(self)
+        messages = ["Base Mass (Da):", "Oligomer Mass:", "Min #:", "Max #:", "# Step:"]
+        defaults = self.defaultvalues
+        dialog.initialize_interface(title="Add Lines For Oligomers", messages=messages, defaultvalues=defaults)
+        dialog.ShowModal()
 
-                ylim4 = self.plot5.subplot1.get_ylim()
-                self.plot5.subplot1.plot((xval, xval), (ylim4[0], ylim4[1]), color=self.plot5.tickcolor)
-                self.plot5.repaint()
+        if self.xtype == 0:
+            factor = 1.0
+        else:
+            factor = self.m0
+
+        try:
+            values = dialog.values
+            self.defaultvalues = values
+            basemass = float(values[0])
+            omass = float(values[1])
+            minnum = int(values[2])
+            maxnum = int(values[3])
+            step = int(values[4])
+
+            nums = np.arange(minnum, maxnum + 1, step=step)
+            masses = basemass + omass * nums
+
+        except:
+            print("No values returned")
+            return
+
+        vvals = []
+        for i, m in enumerate(masses):
+            try:
+                vval = float(m)
+
+                label = str(nums[i])
+
+                if (vval > 1 and self.xtype == 0) or (vval > self.m0 and self.xtype == 0):
+                    vval = ud.simple_mass_defect(vval, refmass=self.m0, centermode=self.centermode, normtype=self.xtype)
+
+                shift = 0.98
+                numclose = np.sum((np.abs(np.array(vvals) - vval)) < factor * 0.03)
+                print(numclose, np.array(vvals) - vval, factor)
+                if numclose > 0:
+                    shift = shift - numclose * 0.05
+
+                vvals.append(vval)
+
+                xlim = self.plot2.subplot1.get_xlim()
+                # self.plot2.subplot1.plot((xlim[0], xlim[1]), (vval, vval), color=self.plot2.tickcolor)
+                self.plot2.addtext(label, xlim[1] * shift * self.plot2.kdnorm, vval, color=self.plot2.tickcolor,
+                                   verticalalignment="center", vlines=False, hlines=True, nopaint=True)
+
+                ylim4 = self.plot3.subplot1.get_ylim()
+                # self.plot3.subplot1.plot((vval, vval), (ylim4[0], ylim4[1]), color=self.plot3.tickcolor)
+                self.plot3.addtext(label, vval, ylim4[1] * shift, color=self.plot3.tickcolor, nopaint=True)
+
+                ylim4 = self.plot4.subplot1.get_ylim()
+                # self.plot4.subplot1.plot((vval, vval), (ylim4[0], ylim4[1]), color=self.plot4.tickcolor)
+                self.plot4.addtext(label, vval, ylim4[1] * shift, color=self.plot4.tickcolor, nopaint=True)
+
+                if len(self.datalist) > 1:
+                    try:
+                        ylim = self.plot6.subplot1.get_ylim()
+                        # self.plot6.subplot1.plot((vval, vval), (ylim[0], ylim[1]), color=self.plot2.tickcolor)
+                        self.plot6.addtext(label, vval, ylim[1] * shift, color=self.plot6.tickcolor, vlines=True,
+                                           nopaint=True)
+
+                        ylim4 = self.plot5.subplot1.get_ylim()
+                        # self.plot5.subplot1.plot((vval, vval), (ylim4[0], ylim4[1]), color=self.plot5.tickcolor)
+                        self.plot5.addtext(label, vval, ylim4[1] * shift, color=self.plot5.tickcolor, nopaint=True)
+
+                    except Exception as e:
+                        print("Failed Multiline 1: ", m, e)
+                        pass
+
             except Exception as e:
-                print("Failed: ", dialog.value, e)
+                print("Failed Multiline 2: ", m, e)
                 pass
 
+        self.plot2.repaint()
+        self.plot3.repaint()
+        self.plot4.repaint()
+        if len(self.datalist) > 1:
+            self.plot6.repaint()
+            self.plot5.repaint()
+
     def on_fit(self, e):
+        minval = np.amin(self.data1d[:, 1])
+        self.data1d[:, 1] -= minval
         peaks = ud.peakdetect(self.data1d, window=3)
         print("Peaks:", peaks[:, 0])
         peaks = np.concatenate((peaks, [[0, np.amin(self.data1d[:, 1])]]))
         fitdat, fits = MassFitter(self.data1d, peaks, 3, "microguess").perform_fit()
-        print("Fits:", fits[:, 0])
+        print("Fits:", fits)
 
         self.plot3.plotadd(self.data1d[:, 0], fitdat, "green", nopaint=False)
 
@@ -638,7 +753,7 @@ class MassDefectWindow(wx.Frame):
 
         for i, p in enumerate(self.peaks):
             y = p[1]
-            label=str(np.round(p[0], 3))
+            label = str(np.round(p[0], 3))
             self.plot3.addtext(label, p[0] + 0.075, y * 0.95, vlines=False)
             self.plot3.addtext("", p[0], y, vlines=True)
 
@@ -646,40 +761,40 @@ class MassDefectWindow(wx.Frame):
         print("Starting Linear Regression")
         dims = self.data2d.shape
 
-        x = np.unique(self.data2d[:,0])
-        y = np.unique(self.data2d[:,1])
+        x = np.unique(self.data2d[:, 0])
+        y = np.unique(self.data2d[:, 1])
         xl = len(x)
         yl = len(y)
-        z = self.data2d[:,2].reshape((xl, yl))
+        z = self.data2d[:, 2].reshape((xl, yl))
 
         xlin = np.arange(0, xl)
-        ylin = np.array([np.argmax(d)/yl * self.m0 for d in z]) + xlin*self.m0
+        ylin = np.array([np.argmax(d) / yl * self.m0 for d in z]) + xlin * self.m0
         zlin = np.array([np.max(d) for d in z])
 
-        boo1 = zlin > self.config.peakthresh*np.amax(zlin)
+        boo1 = zlin > self.config.peakthresh * np.amax(zlin)
 
         xlin = xlin[boo1]
         ylin = ylin[boo1]
         zlin = zlin[boo1]
 
         fit = np.polyfit(xlin, ylin, 1, w=zlin)
-        slope=fit[0]
-        intercept=fit[1]
+        slope = fit[0]
+        intercept = fit[1]
         print(fit)
 
-        #mnum=np.floor(self.plotdat[:,0]/self.m0)
-        #masses = self.plotdat[:,0]
-        #fit2 = np.polyfit(mnum, masses, 1, w=self.plotdat[:,1])
-        #print(fit2)
+        # mnum=np.floor(self.plotdat[:,0]/self.m0)
+        # masses = self.plotdat[:,0]
+        # fit2 = np.polyfit(mnum, masses, 1, w=self.plotdat[:,1])
+        # print(fit2)
 
         self.plot1.colorplotMD(xlin, ylin, zlin, max=np.amax(z), cmap="binary",
                                title="Linear Regression Plot", clabel="Intensity",
                                xlabel="Mass Number", ylabel="Mass", test_kda=False)
 
-        #self.plot1.plotadd(xlin, xlin*fit[0]+fit[1], colval="r")
-        sval = "Slope: "+str(np.round(slope,3)) + "\nIntercept: " + str(np.round(intercept,3)) \
-               + "\nInt./RefMass: " + str(np.round(intercept/self.m0,3))
-        self.plot1.addtext(sval, xl*0.7, np.amax(ylin)*0.2, vlines=False)
+        # self.plot1.plotadd(xlin, xlin*fit[0]+fit[1], colval="r")
+        sval = "Slope: " + str(np.round(slope, 3)) + "\nIntercept: " + str(np.round(intercept, 3)) \
+               + "\nInt./RefMass: " + str(np.round(intercept / self.m0, 3))
+        self.plot1.addtext(sval, xl * 0.7, np.amax(ylin) * 0.2, vlines=False)
 
     def on_com(self, e=None):
         print("Starting COM calculations")
@@ -706,27 +821,28 @@ class MassDefectWindow(wx.Frame):
             c = coms[index]
             carray = [c]
             try:
-                carray.append(coms[index-1])
+                carray.append(coms[index - 1])
             except:
                 pass
             try:
-                carray.append(coms[index+1])
+                carray.append(coms[index + 1])
             except:
                 pass
 
             com = np.average(carray)
-            print(p[0],  com)
+            print(p[0], com)
 
         self.plot1.plotrefreshtop(y, coms, xlabel="Mass Defect", ylabel="Center of Mass (Da)")
 
-        #print(zlin)
-        #self.plot1.colorplotMD(y, coms, zlin, max=0, cmap="binary",
+        # print(zlin)
+        # self.plot1.colorplotMD(y, coms, zlin, max=0, cmap="binary",
         #                       title="Linear Regression Plot", clabel="Intensity",
         #                       xlabel="Mass Number", ylabel="Mass", test_kda=False)
 
+
 # Main App Execution
 if __name__ == "__main__":
-    dir = "C:\\Python\\UniDec\\TestSpectra\\60_unidecfiles"
+    dir = "C:\\Python\\UniDec3\\TestSpectra\\60_unidecfiles"
     file = "60_mass.txt"
     # file = "60_input.dat"
 
@@ -734,7 +850,7 @@ if __name__ == "__main__":
 
     data = np.loadtxt(path)
 
-    dir = "C:\Python\\UniDec\TestSpectra\\180_unidecfiles"
+    dir = "C:\Python\\UniDec3\TestSpectra\\180_unidecfiles"
     file = "180_mass.txt"
 
     path = os.path.join(dir, file)
@@ -745,5 +861,5 @@ if __name__ == "__main__":
 
     app = wx.App(False)
     frame = MassDefectWindow(None, datalist)
-    frame.on_com(0)
+    # frame.on_com(0)
     app.MainLoop()

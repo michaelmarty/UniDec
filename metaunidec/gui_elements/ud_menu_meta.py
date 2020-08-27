@@ -66,11 +66,11 @@ class meta_menu(wx.Menu):
             self.openmenu = self.filemenu.Append(wx.ID_ANY, "Open mzML or Thermo Raw File\tCtrl+O", "Open mzML or Thermo Raw File")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_open, self.openmenu)
 
-            self.openmenudir = self.filemenu.Append(wx.ID_ANY, "Open Waters or Agilent File\tCtrl+O",
+            self.openmenudir = self.filemenu.Append(wx.ID_ANY, "Open Waters or Agilent File",
                                                  "Open Waters or Agilent File")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_open_dir, self.openmenudir)
             self.filemenu.AppendSeparator()
-            self.menuopenhdf5 = self.filemenu.Append(wx.ID_ANY, "Open HDF5 File\tCtrl+O",
+            self.menuopenhdf5 = self.filemenu.Append(wx.ID_ANY, "Open HDF5 File",
                                                  "Open HDF5 File from Previous Deconvolution")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_open_hdf5, self.menuopenhdf5)
 

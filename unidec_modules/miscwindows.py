@@ -117,6 +117,64 @@ class DoubleInputDialog(wx.Dialog):
         return self.value, self.value2
 
 
+class MultiInputDialog(wx.Dialog):
+    def __init__(self, *args, **kwargs):
+        """
+        Simple dialog for a multiple textctrl inputs.
+        :param args: Passed to wx.Dialog.
+        :param kwargs: Passed to wx.Dialog.
+        :return: None
+        """
+        wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
+        self.SetSize((500, 200))
+        self.value = None
+        self.inputbox = None
+
+    def initialize_interface(self, messages, title="", defaultvalues=None):
+        """
+        """
+        self.SetTitle(title)
+        pnl = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        self.inputboxes = []
+        vbox2 = wx.GridBagSizer(wx.VERTICAL)
+        for i, m in enumerate(messages):
+            if defaultvalues is None:
+                d = ""
+            else:
+                d = defaultvalues[i]
+            inputbox = wx.TextCtrl(pnl, value=str(d), size=(175, 25))
+            vbox2.Add(wx.StaticText(pnl, label=m), (i,0), flag=wx.EXPAND)
+            vbox2.Add(inputbox, (i,1), flag=wx.EXPAND)
+            self.inputboxes.append(inputbox)
+
+        pnl.SetSizer(vbox2)
+        pnl.Fit()
+
+        hboxend = wx.BoxSizer(wx.HORIZONTAL)
+        okbutton = wx.Button(self, label='Ok')
+        hboxend.Add(okbutton)
+
+        vbox.Add(pnl, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
+        vbox.Add(hboxend, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=10)
+        self.SetSizer(vbox)
+        self.Fit()
+
+        okbutton.Bind(wx.EVT_BUTTON, self.on_close)
+
+    def on_close(self, e):
+        """
+        """
+        self.values = []
+        for inputbox in self.inputboxes:
+            value = inputbox.GetValue()
+            self.values.append(value)
+        self.Destroy()
+        self.EndModal(0)
+        return self.values
+
+
 class AdditionalParameters(wx.Dialog):
     def __init__(self, *args, **kwargs):
         """

@@ -119,7 +119,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
 
         figsize = (4.9, 3.5)
         self.plotc = plot1d.Plot1d(plotwindow, figsize=figsize) # Chromatogram
-        self.plotm = plot1d.Plot1d(plotwindow, smash=1, figsize=figsize) # Selection from chromatogram
+        self.plotm = plot1d.Plot1d(plotwindow, figsize=figsize) # Selection from chromatogram
         self.plot1 = plot1d.Plot1d(plotwindow, smash=1, figsize=figsize) # MUD Plot 1 m/z cascade
         self.plot2 = plot1d.Plot1d(plotwindow, figsize=figsize) # MUD Deconvolved Data
         self.plot7 = plot1d.Plot1d(plotwindow, figsize=figsize) # MUD Extraction
@@ -199,7 +199,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
     def on_motion(self, xpos, ypos):
         try:
             if xpos is not None and ypos is not None:
-                self.SetStatusText("x=%.4f y=%.2f" % (xpos, ypos), number=3)
+                self.SetStatusText("x=%.4f y=%.2f" % (xpos, ypos), number=6)
         except:
             pass
 

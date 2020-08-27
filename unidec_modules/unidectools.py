@@ -665,6 +665,20 @@ def normalize_extracts(grid, norm_method=0):
     return grid
 
 
+def simple_mass_defect(mass, refmass, centermode=1, normtype=1):
+    if refmass == 0:
+        print("Error: Reference Mass is 0.")
+        return None, None, None, None, None
+    kmass = float(mass) / float(refmass)
+    if centermode == 1:
+        nominalkmass = np.floor(kmass)
+    else:
+        nominalkmass = np.round(kmass)
+    md = kmass - nominalkmass
+    if normtype == 1:
+        md = md * refmass
+    return md
+
 def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmode=1, xaxistype=1):
     # Calculate Defects for Deconvolved Masses
     if kendrickmass == 0:
@@ -678,7 +692,7 @@ def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmo
         nominalkmass = np.round(kmass)
     kmdefectexact = kmass - nominalkmass
     # Linearize
-    defects = np.linspace(np.amin(kmdefectexact), np.amax(kmdefectexact), nbins, endpoint=True)
+    defects = np.linspace(np.amin(kmdefectexact), np.amax(kmdefectexact), int(nbins), endpoint=True)
     nominal = np.unique(nominalkmass)
     m1grid, m2grid = np.meshgrid(nominal, defects, indexing='ij')
 

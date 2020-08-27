@@ -107,6 +107,7 @@ class mzMLimporter:
         """
         print("Reading mzML:", path)
         self.filesize = os.stat(path).st_size
+        self.path = path
         self.msrun = pymzml.run.Reader(path)
         self.data = None
         self.scans = []
@@ -152,11 +153,9 @@ class mzMLimporter:
 
     def grab_data(self):
         self.data = []
-        for i, spectrum in enumerate(self.msrun):
-            if '_scan_time' in list(spectrum.__dict__.keys()):
-                impdat = np.transpose([spectrum.mz, spectrum.i])
-                impdat = impdat[impdat[:, 0] > 10]
-                self.data.append(impdat)
+        for s in self.scans:
+            impdat = get_data_from_spectrum(self.msrun[s+1])
+            self.data.append(impdat)
         self.data = np.array(self.data)
 
     def get_data_fast_memory_heavy(self, scan_range=None, time_range=None):

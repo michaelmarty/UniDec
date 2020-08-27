@@ -205,6 +205,8 @@ v.4.3.0
 
 **Added Thermo RawFileReader libraries** to avoid having to install MSFileReader and to make opening native Thermo data faster and more robust.
 
+The mass defect windows can now make horizontal lines from input mass values, not just input mass defect value. It will automatically calculate the mass defect from the input mass. 
+
 Major refactoring of the code to support UniChrom. For example, switched from local to absolute paths for most files in the engine.
 
 Added Estimated Area extraction to DataCollector and MetaUniDec. Here, it uses the peak height and FWHM to estimate the area based on the peak shape.

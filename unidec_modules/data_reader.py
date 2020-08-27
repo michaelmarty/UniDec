@@ -1,7 +1,7 @@
 from multiplierz.mzAPI import mzFile
+from unidec_modules import unidectools as ud
 from unidec_modules.mzMLimporter import merge_spectra
 from copy import deepcopy
-from unidec_modules import unidectools as ud
 import numpy as np
 import time
 
@@ -104,7 +104,7 @@ class DataImporter:
                 scan_range[1] = np.amin(self.scans)
 
             if scan_range[1]-scan_range[0] > 1:
-                data = np.array(list(self.msrun.average_scan(int(scan_range[0]), int(scan_range[1]), filter="")))
+                data = np.array(list(self.msrun.average_scan(int(scan_range[0]), int(scan_range[1]), filter="Full")))
             else:
                 impdat = np.array(self.msrun.scan(scan_range[0]))  # May want to test this.
                 impdat = impdat[impdat[:, 0] > 10]

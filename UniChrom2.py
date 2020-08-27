@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import wx
-
+from pubsub import pub
 import unidec_modules.unidectools as ud
 from metaunidec.mudpres import MetaUniDecBase
 import multiprocessing
@@ -26,12 +26,13 @@ class ChromApp(MetaUniDecBase):
         self.view = ChromWindow(self, "UniChrom", self.eng.config)
         self.import_config()
 
+        pub.subscribe(self.on_get_mzlimits, 'mzlimits')
         self.outputfile = None
         self.scans = None
         self.view.menu.update_recent()
-        if False:
+        if True:
             path = "D:\\Data\\ShortCourse\\strepme.RAW"
-            path = "D:\Data\ChromTest\SYJMX160819_04.hdf5"
+            #path = "D:\Data\ChromTest\SYJMX160819_04.hdf5"
             self.open_file(path)
 
     def on_open(self, e=None):
@@ -77,6 +78,10 @@ class ChromApp(MetaUniDecBase):
         self.view.ypanel.list.populate(self.eng.data)
         self.import_config()
         self.on_replot()
+        try:
+            self.on_auto_peak_width(set=False)
+        except:
+            pass
 
     def on_open_hdf5(self, e=None):
         """
@@ -240,6 +245,7 @@ class ChromApp(MetaUniDecBase):
                              plot=self.view.plot2s, dataobj=self.eng.unidec_eng.data)
 
     def on_replot(self, e=None, plotsums=True):
+        self.export_config()
         self.makeplot1()
         self.makeplot2_mud()
         self.plot_chrom_shading()
