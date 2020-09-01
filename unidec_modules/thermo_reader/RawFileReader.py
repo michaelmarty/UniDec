@@ -455,6 +455,11 @@ class RawFileReader(object):
         averageScan = Extensions.AverageScansInScanRange(
             self.source, scanrange[0], scanrange[1], scanFilter, options)
 
+        if averageScan is None:
+            filterhelper = Extensions.BuildFilterHelper(self.source, "FTMS")
+            scanFilter = filterhelper.Filter
+            averageScan = Extensions.AverageScansInScanRange(
+                self.source, scanrange[0], scanrange[1], scanFilter, options)
         # This example uses a different method to get the same average spectrum that was calculated in the
         # previous portion of this method.  Instead of passing the start and end scan, a list of scans will
         # be passed to the GetAveragedMassSpectrum function.

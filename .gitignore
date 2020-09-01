@@ -169,4 +169,3 @@ unidec_bin/Example Data/BSA_unidecfiles/BSA_report.out
 unidec_modules/thermo_reader/RawFileReader
 unidec_modules/thermo_reader/RawFileReaderExample
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/Peaks_Mass_Defects.txt
-iFAMS/pyqtgraph

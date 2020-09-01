@@ -27,6 +27,7 @@ class ThermoDataImporter:
             self.times.append(self.msrun.scan_time_from_scan_name(s))
         self.times = np.array(self.times)
         # print(len(self.data), len(self.times), len(self.scans))
+        # print(self.times)
 
     def grab_data(self):
         self.data = []
@@ -51,7 +52,7 @@ class ThermoDataImporter:
         if scan_range is None:
             scan_range = [np.amin(self.scans), np.amax(self.scans)]
         scan_range = np.array(scan_range, dtype=np.int)
-        print("Scan Range:", scan_range)
+        print("Thermo Scan Range:", scan_range)
 
         if scan_range[0] < np.amin(self.scans):
             scan_range[0] = np.amin(self.scans)
