@@ -134,8 +134,8 @@ def extract(file, directory, timestep=1.0, output="txt"):
                 volts = np.arange(start, end + step, step)
                 times = np.arange(0.0, len(volts) * timestep, timestep)
                 print("Ramp:", times, volts)
-                parse(path, times, timestep, volts, name, newdir, output=output)
-                return True
+                outpath = parse(path, times, timestep, volts, name, newdir, output=output)
+                return outpath
     except:
         print("Error parsing ramp keyword. Ignoring.")
 

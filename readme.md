@@ -211,9 +211,13 @@ Major refactoring of the code to support UniChrom. For example, switched from lo
 
 Added Estimated Area extraction to DataCollector and MetaUniDec. Here, it uses the peak height and FWHM to estimate the area based on the peak shape.
 
+Added experimental DoubleDec (Double Deconvolution) feature to the main UniDec window.
+
 Fixed bug with spaces in oligomer names when importing ofiles.
 
 Switched default native charge range to +/- 1000 from +/- 100 to work better with denatured data.
+
+Other bug fixes and minor changes.
 
 v.4.2.2
 

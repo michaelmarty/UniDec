@@ -52,12 +52,13 @@ zipdirectory = outputdir + "_" + date + ".zip"
 # Analysis of packages
 a = Analysis(['Launcher.py'],
              pathex=[os.getcwd()],
-             excludes=['pandas', 'IPython', 'Cython', 'statsmodels', 'pyopenms', 'sklearn',
+             excludes=['pandas', 'IPython', 'statsmodels', 'pyopenms', 'sklearn',
                        'GdkPixbuf', 'PIL', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2', 'PyQt5'],
              hiddenimports=[  # 'plotly','
                  # 'sklearn', 'sklearn.decomposition', 'sklearn.preprocessing', 'sklearn.utils', 'pytest', 'pluggy',
                  # 'sklearn.utils.testing', 'sklearn.utils._cython_blas',
                  'scipy.special._ufuncs_cxx', 'scipy.linalg.cython_blas', 'scipy.linalg.cython_lapack',
+                 'scipy.special.cython_special','numpy',
                  'scipy._lib.messagestream','clr', 'pythonnet', 'Python.Runtime.dll',
                  'FileDialog', 'Dialog', 'encodings', 'encodings.__init__',
                  'packaging', 'packaging.version', 'packaging.specifiers',
@@ -70,7 +71,8 @@ a = Analysis(['Launcher.py'],
                  'pubsub.core.listenerbase', 'pubsub.core', 'pubsub.core.kwargs.topicargspecimpl',
                  'pubsub.core.kwargs.topicmgrimpl',
                  'Tkinter', 'FixTk', '_tkinter', 'Tkconstants', 'FileDialog', 'Dialog', 'six',
-                 'pymzml.run', 'pymzml.plot', 'pymzml.obo'
+                 'pymzml.run', 'pymzml.plot', 'pymzml.obo',
+                 'pkg_resources.py2_warn'
                  # , 'requests.packages.chardet.sys', 'requests','urllib3.packages.ordered_dict'
              ],
              hookspath=None,
@@ -90,7 +92,7 @@ if system == "Windows":
     # a.datas += [('rawreadertim.exe', 'unidec_bin\\rawreadertim.exe', 'DATA')]
     a.datas += [('CDCReader.exe', 'unidec_bin\\CDCReader.exe', 'DATA')]
     a.datas += [('h5repack.exe', 'unidec_bin\\h5repack.exe', 'DATA')]
-    a.datas += [('pymzml\\version.txt', 'C:\\Python38\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
+    a.datas += [('pymzml\\version.txt', 'C:\\Python37\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
 
     for file in os.listdir('unidec_bin'):
         if fnmatch.fnmatch(file, 'api*'):
@@ -139,10 +141,10 @@ a.datas.extend(dir_files("unidec_bin\\Example Data", 'Example Data'))
 from os import listdir
 from PyInstaller import compat
 
-#mkldir = compat.base_prefix + "/Lib/site-packages/numpy/DLLs"
-#a.datas.extend(dir_files(mkldir, ''))
-#a.datas.extend(
-#    [(mkldir + "/" + mkl, '', 'DATA') for mkl in listdir(mkldir) if mkl.startswith('mkl_') or mkl.startswith('libio')])
+mkldir = compat.base_prefix + "/Lib/site-packages/numpy/DLLs"
+a.datas.extend(dir_files(mkldir, ''))
+a.datas.extend(
+    [(mkldir + "/" + mkl, '', 'DATA') for mkl in listdir(mkldir) if mkl.startswith('mkl_') or mkl.startswith('libio')])
 #for b in binaries:
 #    a.datas += b
 

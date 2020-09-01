@@ -252,6 +252,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         """
         dirname = os.path.dirname(p)
         filename = os.path.basename(p)
+        print("Parsing File:", p)
         if scanstep is not None:
             self.outpath = automzml.extract_scans(filename, dirname, scanstep, "hdf5")
         else:
