@@ -422,7 +422,7 @@ class RawFileReader(object):
                 [DotNetArrayToNPArray(segmentedScan.Positions), DotNetArrayToNPArray(segmentedScan.Intensities)])
         return self.data
 
-    def GetAverageSpectrum(self, scanrange=None, outputData=False, filter="Full"):
+    def GetAverageSpectrum(self, scanrange=None, outputData=False, filter="FTMS"):
         '''Gets the average spectrum from the RAW file.
 
         Args:
@@ -456,7 +456,7 @@ class RawFileReader(object):
             self.source, scanrange[0], scanrange[1], scanFilter, options)
 
         if averageScan is None:
-            filterhelper = Extensions.BuildFilterHelper(self.source, "FTMS")
+            filterhelper = Extensions.BuildFilterHelper(self.source, "Full")
             scanFilter = filterhelper.Filter
             averageScan = Extensions.AverageScansInScanRange(
                 self.source, scanrange[0], scanrange[1], scanFilter, options)
