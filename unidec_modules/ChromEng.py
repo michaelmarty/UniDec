@@ -85,9 +85,37 @@ class ChromEngine(MetaUniDec):
 
         return hdf5
 
-    def get_scans(self, scan_range=None):
+    def get_data_from_scans(self, scan_range=None):
         self.mzdata = self.chromdat.get_data(scan_range)
         return self.mzdata
+
+    def get_data_from_times(self, min, max):
+        minscan = ud.nearest(self.ticdat[:, 0], min)
+        if self.ticdat[minscan, 0] < min:
+            minscan += 1
+        maxscan = ud.nearest(self.ticdat[:, 0], max)
+        if self.ticdat[maxscan, 0] > max:
+            maxscan -= 1
+        if maxscan <= minscan:
+            maxscan = minscan + 1
+        self.scans = [minscan, maxscan, min, max]
+
+        attrs = {"timestart": min, "timeend": max,
+                 "timemid": (min+max) / 2.,
+                 "scanstart": minscan, "scanend": maxscan,
+                 "scanmid": (minscan+maxscan) / 2.}
+        self.attrs=attrs
+
+        self.get_data_from_scans([minscan, maxscan])
+        return self.mzdata
+
+    def get_times(self):
+        starts = []
+        ends = []
+        for s in self.data.spectra:
+            starts.append(s.attrs["timestart"])
+            ends.append(s.attrs["timeend"])
+        return np.array(starts), np.array(ends)
 
     def reset_vars(self, export=True):
         self.data.update_var_array()
@@ -140,3 +168,27 @@ class ChromEngine(MetaUniDec):
         self.chrompeaks = goodpeaks
         self.chrompeaks_tranges=tranges
         return goodpeaks, tranges
+
+    def add_manual_selection(self):
+        self.data.add_data(self.mzdata, name=str(self.scans[2]), attrs=self.attrs, export=False)
+
+    def add_regular_times(self):
+        times = np.arange(0, np.amax(self.ticdat[:, 0]), self.config.time_window)
+        self.data.clear()
+        for i, t in enumerate(times):
+            data = self.get_data_from_times(t, t + self.config.time_window)
+            self.data.add_data(data, name=str(t), attrs=self.attrs, export=False)
+
+    def add_chrom_peaks(self):
+        self.get_chrom_peaks()
+        times = self.chrompeaks_tranges
+        self.data.clear()
+        for i, t in enumerate(times):
+            data = self.get_data_from_times(t[0], t[1])
+            self.data.add_data(data, name=str(t[0]), attrs=self.attrs, export=False)
+
+    def add_list_times(self, starts, ends):
+        self.data.clear()
+        for i, t in enumerate(starts):
+            data = self.get_data_from_times(t, ends[i])
+            self.data.add_data(data, name=str(t[0]), attrs=self.attrs, export=False)

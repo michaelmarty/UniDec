@@ -99,6 +99,20 @@ class ChromApp(MetaUniDecBase):
         if result:
             self.open_file(newpath, skip_eng=True)
 
+    def on_batch_chrom1(self, e=None):
+        self.get_from_gui()
+        timestarts, timeends = self.eng.get_times()
+        print("Batch Run")
+        paths = FileDialogs.open_multiple_files_dialog(message="Choose files to batch process.",file_type="*.*")
+
+        for p in paths:
+            print(p) # SWITCH TO HDF5
+            self.eng.config.write_hdf5(p)
+            self.open_file(p)
+            self.on_list_add(timestarts, timeends)
+            self.on_auto()
+
+
     def get_from_gui(self):
         self.eng.config.time_window = float(self.view.ctlmin.GetValue())
         self.eng.config.chrom_peak_width = float(self.view.ctlcpeaks_param1.GetValue())
@@ -120,29 +134,17 @@ class ChromApp(MetaUniDecBase):
         self.makeplot4(plot=self.view.plotm, data=self.eng.mzdata, pks=self.eng.unidec_eng.pks)
 
     def on_selection(self, min, max, plot=True):
-        minscan = ud.nearest(self.eng.ticdat[:, 0], min)
-        if self.eng.ticdat[minscan, 0] < min:
-            minscan += 1
-        maxscan = ud.nearest(self.eng.ticdat[:, 0], max)
-        if self.eng.ticdat[maxscan, 0] > max:
-            maxscan -= 1
-        if maxscan <= minscan:
-            maxscan = minscan + 1
-        self.scans = [minscan, maxscan, min, max]
-        self.get_scan_data(plot=plot)
-        return self.eng.mzdata
-
-    def get_scan_data(self, plot=True):
         self.view.SetStatusText("Averaging Scans...", number=1)
         self.view.SetStatusText("Please wait...", number=2)
-        self.eng.get_scans(scan_range=self.scans[:2])
-        self.view.SetStatusText("Time: %.2f to %.2f" % (self.scans[2], self.scans[3]), number=1)
-        self.view.SetStatusText("Scans: " + str(self.scans[0]) + " to " + str(self.scans[1]), number=2)
+        self.eng.get_data_from_times(min, max)
+        self.view.SetStatusText("Time: %.2f to %.2f" % (self.eng.scans[2], self.eng.scans[3]), number=1)
+        self.view.SetStatusText("Scans: " + str(self.eng.scans[0]) + " to " + str(self.eng.scans[1]), number=2)
         if plot:
             try:
                 self.plot_single_mz()
             except (TypeError, IndexError):
                 print("Error Plotting Scans")
+        return self.eng.mzdata
 
     def on_unidec_run(self, e=None):
         self.export_config()
@@ -191,39 +193,25 @@ class ChromApp(MetaUniDecBase):
         self.update_hdf5()
 
     def on_manual_add(self, e=None):
-        attrs = {"timestart": self.scans[2], "timeend": self.scans[3], "timemid": (self.scans[2] + self.scans[3]) / 2.,
-                 "scanstart": self.scans[0], "scanend": self.scans[1],
-                 "scanmid": (self.scans[0] + self.scans[1]) / 2.}
-        self.eng.data.add_data(self.eng.mzdata, name=str(self.scans[2]), attrs=attrs, export=False)
+        self.eng.add_manual_selection()
         self.update_hdf5()
+
+    def on_list_add(self, starts, ends):
+        self.get_from_gui()
+        print(starts)
+        print(ends)
+        self.eng.add_list_times(starts,ends)
+        self.update_hdf5()
+        pass
 
     def on_timepart(self, e=None):
         self.get_from_gui()
-
-        times = np.arange(0, np.amax(self.eng.ticdat[:, 0]), self.eng.config.time_window)
-        self.eng.data.clear()
-        for i, t in enumerate(times):
-            data = self.on_selection(t, t + self.eng.config.time_window, plot=False)
-            attrs = {"timestart": t, "timeend": t + self.eng.config.time_window, "timemid": (t + t + self.eng.config.time_window) / 2.,
-                     "scanstart": self.scans[0], "scanend": self.scans[1],
-                     "scanmid": (self.scans[0] + self.scans[1]) / 2.}
-            self.eng.data.add_data(data, name=str(t), attrs=attrs, export=False)
-
+        self.eng.add_regular_times()
         self.update_hdf5()
 
     def on_chrom_peaks(self, e=None):
         self.get_from_gui()
-        self.eng.get_chrom_peaks()
-
-        times = self.eng.chrompeaks_tranges
-        self.eng.data.clear()
-        for i, t in enumerate(times):
-            data = self.on_selection(t[0], t[1], plot=False)
-            attrs = {"timestart": t[0], "timeend": t[1], "timemid": (t[0]+t[1]) / 2.,
-                     "scanstart": self.scans[0], "scanend": self.scans[1],
-                     "scanmid": (self.scans[0] + self.scans[1]) / 2.}
-            self.eng.data.add_data(data, name=str(t[0]), attrs=attrs, export=False)
-
+        self.eng.add_chrom_peaks()
         self.update_hdf5()
 
     def on_delete(self, e=None):

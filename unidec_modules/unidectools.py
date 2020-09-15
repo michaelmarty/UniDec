@@ -34,8 +34,7 @@ try:
 except:
     print("Could not import Waters Data Importer")
 
-
-#from unidec_modules.thermo_reader.ThermoImporter import ThermoDataImporter
+# from unidec_modules.thermo_reader.ThermoImporter import ThermoDataImporter
 try:
     from unidec_modules.thermo_reader.ThermoImporter import ThermoDataImporter
 except:
@@ -271,6 +270,17 @@ def weighted_avg(values, weights):
     if np.sum(weights) == 0:
         return 0
     return np.average(values, weights=weights)
+
+
+def mass_weighted_average(value, weights):
+    return np.sum(weights * np.power(value, 2)) / np.sum(weights * value)
+
+
+def polydispersity_index(massdat):
+    number_average_molar_mass = weighted_avg(massdat[:, 0], massdat[:, 1])
+    mass_average_molar_mass = mass_weighted_average(massdat[:, 0], massdat[:, 1])
+    pdi = mass_average_molar_mass/number_average_molar_mass
+    return pdi
 
 
 def interp_pos(array, target):
@@ -678,6 +688,7 @@ def simple_mass_defect(mass, refmass, centermode=1, normtype=1):
     if normtype == 1:
         md = md * refmass
     return md
+
 
 def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmode=1, xaxistype=1):
     # Calculate Defects for Deconvolved Masses
@@ -1666,7 +1677,7 @@ def peakdetect_nonlinear(data, config=None, window=1, threshold=0):
             end = data[i, 0] + window
             isodat = datachop(data, start, end)
             testmax = np.amax(isodat[:, 1])
-            index = nearest(isodat[:,0], data[i,0])
+            index = nearest(isodat[:, 0], data[i, 0])
             if data[i, 1] == testmax and np.all(data[i, 1] != isodat[:index, 1]):
                 peaks.append([data[i, 0], data[i, 1]])
 
