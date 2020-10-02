@@ -56,8 +56,9 @@ class Mainwindow(mainwindow_base.MainwindowBase):
             self.tabbed = tabbed
 
         self.datachoices = {0: "Raw Data", 1: "Processed Data", 2: "Zero Charge Mass Spectrum"}
-        self.extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position"}
-        self.extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass"}
+        self.extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position",
+                               5: "Estimated Area"}
+        self.extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass", 5: "Area"}
 
         self.setupmainpanel()
 
@@ -169,7 +170,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
 
         self.peakpanel = peaklistsort.PeakListCtrlPanel(panel, meta=True)
         self.Bind(self.peakpanel.EVT_DELETE_SELECTION_2, self.pres.on_delete, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_CHARGE_STATE, self.pres.on_charge_states, self.peakpanel)
+        self.Bind(self.peakpanel.EVT_CHARGE_STATE, self.pres.on_charge_states_mud, self.peakpanel)
         self.Bind(self.peakpanel.EVT_DIFFERENCES, self.pres.on_differences, self.peakpanel)
         self.Bind(self.peakpanel.EVT_MASSES, self.pres.on_label_masses, self.peakpanel)
         sizer.Add(self.peakpanel, 0, wx.EXPAND)
@@ -183,12 +184,6 @@ class Mainwindow(mainwindow_base.MainwindowBase):
 
         self.CreateStatusBar(7)
         self.SetStatusWidths([-1, 600, 120, 0, 230, 250, 130])
-
-    def on_defaults(self, e):
-        self.menu.on_defaults(e)
-
-    def import_config_to_gui(self):
-        self.controls.import_config_to_gui()
 
     def export_gui_to_config(self):
         self.controls.export_gui_to_config()

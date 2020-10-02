@@ -19,7 +19,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
     Creates a list control panel for displaying and interacting with Peaks object
     """
 
-    def __init__(self, parent, meta=False):
+    def __init__(self, parent, meta=False, size=(300, 1100)):
         """
         Initialize list_ctrl, bind events, and setup events to be broadcast back.
         :param parent: Parent of panel that will be created
@@ -28,7 +28,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         self.meta = meta
         self.index = 0
-        self.list_ctrl = wx.ListCtrl(self, pos=wx.DefaultPosition, size=(300, 1100),
+        self.list_ctrl = wx.ListCtrl(self, pos=wx.DefaultPosition, size=size,
                                      style=wx.LC_REPORT | wx.BORDER_SUNKEN)
         self.list_ctrl.InsertColumn(0, " ", width=25)
         self.list_ctrl.InsertColumn(1, "Mass (Da)", wx.LIST_FORMAT_RIGHT, width=70)

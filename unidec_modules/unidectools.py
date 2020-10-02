@@ -13,19 +13,32 @@ import numpy as np
 import scipy.ndimage.filters as filt
 from scipy.interpolate import interp1d
 from scipy.interpolate import griddata
+from scipy.optimize import curve_fit
 from scipy import signal
 from scipy import fftpack
 import matplotlib.cm as cm
-from unidec_modules import mzMLimporter
+from unidec_modules.mzMLimporter import mzMLimporter
 from unidec_modules.fitting import *
 from unidec_modules import unidecstructure
-import tempfile
+import fnmatch
 
+# import unidec_modules.data_reader as data_reader
 try:
     import unidec_modules.data_reader as data_reader
 except:
     print("Could not import data reader: unidectools")
-import fnmatch
+
+# from unidec_modules.waters_importer.WatersImporter import WatersDataImporter as WDI
+try:
+    from unidec_modules.waters_importer.WatersImporter import WatersDataImporter as WDI
+except:
+    print("Could not import Waters Data Importer")
+
+# from unidec_modules.thermo_reader.ThermoImporter import ThermoDataImporter
+try:
+    from unidec_modules.thermo_reader.ThermoImporter import ThermoDataImporter
+except:
+    print("Could not import Thermo Data Importer")
 
 is_64bits = sys.maxsize > 2 ** 32
 
@@ -72,6 +85,26 @@ try:
     libs = cdll.LoadLibrary(dllpath)
 except (OSError, NameError):
     print("Failed to load libmypfunc, convolutions in nonlinear mode might be slow")
+
+
+def get_importer(path):
+    if os.path.splitext(path)[1] == ".mzML":
+        # mzML file
+        d = mzMLimporter(path)
+    elif os.path.splitext(path)[1].lower() == ".raw" and not os.path.isdir(path):
+        # Thermo Raw File
+        try:
+            d = ThermoDataImporter(path)
+        except:
+            d = data_reader.DataImporter(path)
+    elif os.path.splitext(path)[1].lower() == ".raw" and os.path.isdir(path):
+        # Waters Raw Directory
+        d = WDI(path, do_import=False)
+    else:
+        # Some other file type
+        d = data_reader.DataImporter(path)
+
+    return d
 
 
 # ..........................
@@ -237,6 +270,17 @@ def weighted_avg(values, weights):
     if np.sum(weights) == 0:
         return 0
     return np.average(values, weights=weights)
+
+
+def mass_weighted_average(value, weights):
+    return np.sum(weights * np.power(value, 2)) / np.sum(weights * value)
+
+
+def polydispersity_index(massdat):
+    number_average_molar_mass = weighted_avg(massdat[:, 0], massdat[:, 1])
+    mass_average_molar_mass = mass_weighted_average(massdat[:, 0], massdat[:, 1])
+    pdi = mass_average_molar_mass/number_average_molar_mass
+    return pdi
 
 
 def interp_pos(array, target):
@@ -561,6 +605,33 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             val, junk = center_of_mass(cutdat, cutdat[0, 0], cutdat[len(data) - 1, 0], power=3)
             print("No window set for center of mass!\nUsing entire data range....")
 
+    elif extract_method == 11:  # Estimate the peak area
+        if window is not None:
+            # Calculate height and FWHM
+            start = nearest(data[:, 0], (x - window))  # x values should be sorted
+            end = nearest(data[:, 0], (x + window))
+            data_slice = data[start:end]
+            max_index = np.argmax(data_slice[:, 1])
+            height = data_slice[max_index, 1]
+            # hm1 = data_slice[np.argmin(abs(data_slice[0:max_index, 1] - (height / 2))), 0]
+            # hm2 = data_slice[np.argmin(abs(data_slice[max_index:, 1] - (height / 2))) + max_index, 0]
+            # fwhm = hm2 - hm1
+            try:
+                fwhm, psfun, mid = auto_peak_width(data_slice, singlepeak=True)
+            except ValueError:
+                fwhm = 0
+                psfun = 0
+            # Calculate estimated area
+            gauss_coeff = np.sqrt(np.pi / np.log(2)) / 2
+            adjusted_coeff = ((0.5 * gauss_coeff) + (np.pi / 4))
+            val = -1  # Error if -1 is returned
+            if psfun == 0:  # Gaussian
+                val = height * fwhm * gauss_coeff
+            elif psfun == 1:  # Lorentzian
+                val = height * fwhm * np.pi / 2
+            elif psfun == 2:  # Split G/L
+                val = height * fwhm * adjusted_coeff
+
     else:
         val = 0
         print("Undefined extraction choice")
@@ -604,6 +675,21 @@ def normalize_extracts(grid, norm_method=0):
     return grid
 
 
+def simple_mass_defect(mass, refmass, centermode=1, normtype=1):
+    if refmass == 0:
+        print("Error: Reference Mass is 0.")
+        return None, None, None, None, None
+    kmass = float(mass) / float(refmass)
+    if centermode == 1:
+        nominalkmass = np.floor(kmass)
+    else:
+        nominalkmass = np.round(kmass)
+    md = kmass - nominalkmass
+    if normtype == 1:
+        md = md * refmass
+    return md
+
+
 def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmode=1, xaxistype=1):
     # Calculate Defects for Deconvolved Masses
     if kendrickmass == 0:
@@ -617,7 +703,7 @@ def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmo
         nominalkmass = np.round(kmass)
     kmdefectexact = kmass - nominalkmass
     # Linearize
-    defects = np.linspace(np.amin(kmdefectexact), np.amax(kmdefectexact), nbins, endpoint=True)
+    defects = np.linspace(np.amin(kmdefectexact), np.amax(kmdefectexact), int(nbins), endpoint=True)
     nominal = np.unique(nominalkmass)
     m1grid, m2grid = np.meshgrid(nominal, defects, indexing='ij')
 
@@ -710,7 +796,6 @@ def header_test(path):
     return int(header)
 
 
-'''
 def waters_convert(path, config=None, outfile=None):
     if config is None:
         config = unidecstructure.UniDecConfig()
@@ -724,11 +809,10 @@ def waters_convert(path, config=None, outfile=None):
     result = subprocess.call(call)
     print("Conversion Stderr:", result)
     data = np.loadtxt(outfile)
-    return data'''
+    return data
 
 
 def waters_convert2(path, config=None, outfile=None):
-    from unidec_modules.waters_importer.Importer import WatersDataImporter as WDI
     data = WDI(path).get_data()
 
     if outfile is None:
@@ -779,12 +863,12 @@ def load_mz_file(path, config=None, time_range=None):
         elif extension == ".csv":
             data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0, 1))
         elif extension == ".mzml":
-            data = mzMLimporter.mzMLimporter(path).get_data(time_range=time_range)
+            data = mzMLimporter(path).get_data(time_range=time_range)
             txtname = path[:-5] + ".txt"
             np.savetxt(txtname, data)
             print("Saved to:", txtname)
         elif extension.lower() == ".raw":
-            data = data_reader.DataImporter(path).get_data(time_range=time_range)
+            data = ThermoDataImporter(path).get_data(time_range=time_range)
             txtname = path[:-4] + ".txt"
             np.savetxt(txtname, data)
             print("Saved to:", txtname)
@@ -804,19 +888,20 @@ def zipdir(path, zip_handle):
     :param zip_handle: Handle of the zip file that is being created
     :return: None
     """
-    files = os.listdir(path)
+    files = os.scandir(path)
     for f in files:
-        if os.path.isfile(f):
-            zip_handle.write(f)  # compress_type=zipfile.ZIP_DEFLATED)
+        if f.is_file():
+            zip_handle.write(f.path, arcname=os.path.relpath(f.path, path))  # compress_type=zipfile.ZIP_DEFLATED)
 
 
-def zip_folder(save_path):
+def zip_folder(save_path, directory=None):
     """
     Zips a directory specified by save_path into a zip file for saving.
     :param save_path: Path to save to zip
     :return: None
     """
-    directory = os.getcwd()
+    if directory is None:
+        directory = os.getcwd()
     print("Zipping directory:", directory)
     zipf = zipfile.ZipFile(save_path, 'w')
     zipdir(directory, zipf)
@@ -886,36 +971,39 @@ def mergedata2d(x1, y1, x2, y2, z2):
 # ..........................................................
 
 
-def auto_peak_width(datatop, psfun=None):
+def auto_peak_width(datatop, psfun=None, singlepeak=False):
     maxpos = np.argmax(datatop[:, 1])
     maxval = datatop[maxpos, 0]
 
     # TODO: This is potentially dangerous if nonlinear!
     ac, cpeaks = autocorr(datatop)
-    if not isempty(cpeaks):
-        sig = cpeaks[0, 0] / 2.
-        boo1 = datatop[:, 0] < maxval + sig
-        boo2 = datatop[:, 0] > maxval - sig
-        boo3 = np.all([boo1, boo2], axis=0)
-        isodat = datatop[boo3]
-
-        if len(isodat) < 6:
-            sig = cpeaks[0, 0]
+    if singlepeak or not isempty(cpeaks):
+        if not singlepeak:
+            sig = cpeaks[0, 0] / 2.
             boo1 = datatop[:, 0] < maxval + sig
             boo2 = datatop[:, 0] > maxval - sig
             boo3 = np.all([boo1, boo2], axis=0)
             isodat = datatop[boo3]
+
             if len(isodat) < 6:
-                try:
-                    sig = cpeaks[1, 0]
-                    boo1 = datatop[:, 0] < maxval + sig
-                    boo2 = datatop[:, 0] > maxval - sig
-                    boo3 = np.all([boo1, boo2], axis=0)
-                    isodat = datatop[boo3]
-                except:
-                    pass
+                sig = cpeaks[0, 0]
+                boo1 = datatop[:, 0] < maxval + sig
+                boo2 = datatop[:, 0] > maxval - sig
+                boo3 = np.all([boo1, boo2], axis=0)
+                isodat = datatop[boo3]
                 if len(isodat) < 6:
-                    print("Warning: Very small range selected for auto peaks width:", sig, isodat)
+                    try:
+                        sig = cpeaks[1, 0]
+                        boo1 = datatop[:, 0] < maxval + sig
+                        boo2 = datatop[:, 0] > maxval - sig
+                        boo3 = np.all([boo1, boo2], axis=0)
+                        isodat = datatop[boo3]
+                    except:
+                        pass
+                    if len(isodat) < 6:
+                        print("Warning: Very small range selected for auto peaks width:", sig, isodat)
+        else:
+            isodat = datatop
 
         fits = np.array([isolated_peak_fit(isodat[:, 0], isodat[:, 1], i) for i in range(0, 3)])
 
@@ -936,6 +1024,16 @@ def auto_noise_level(datatop, buffer=10):
     std = np.std(ndat)
     mean = np.mean(ndat)
     return mean + 5 * std
+
+
+def noise_level2(ticdat, percent=0.75, number_stddevs=3):
+    sdat = np.sort(ticdat[:, 1])
+    index = round(len(sdat) * percent)
+    cutoff = sdat[index]
+    below = ticdat[:, 1] <= cutoff
+    noise = ticdat[below, 1]
+    noise = np.std(noise) * number_stddevs + np.mean(noise)
+    return noise
 
 
 def average_bin_size(datatop):
@@ -1173,6 +1271,7 @@ def gsmooth(datatop, sig):
     :param sig: Width of Gaussian Array
     :return: Smoothed Data
     """
+    print(len(datatop), sig)
     datatop[:, 1] = filt.gaussian_filter(datatop[:, 1], sig)
     return datatop
 
@@ -1549,6 +1648,38 @@ def peakdetect(data, config=None, window=10, threshold=0):
             end = int(end) + 1
             testmax = np.amax(data[start:end, 1])
             if data[i, 1] == testmax and np.all(data[i, 1] != data[start:i, 1]):
+                peaks.append([data[i, 0], data[i, 1]])
+
+    return np.array(peaks)
+
+
+def peakdetect_nonlinear(data, config=None, window=1, threshold=0):
+    """
+    Simple peak detection algorithm.
+
+    Detects a peak if a given data point is a local maximum within plus or minus config.peakwindow.
+    Peaks must also be above a threshold of config.peakthresh * max_data_intensity.
+
+    The mass and intensity of peaks meeting these criteria are output as a P x 2 array.
+
+    :param data: Mass data array (N x 2) (mass intensity)
+    :param config: UniDecConfig object
+    :return: Array of peaks positions and intensities (P x 2) (mass intensity)
+    """
+    if config is not None:
+        window = config.peakwindow
+        threshold = config.peakthresh
+    peaks = []
+    length = len(data)
+    maxval = np.amax(data[:, 1])
+    for i in range(0, length):
+        if data[i, 1] > maxval * threshold:
+            start = data[i, 0] - window
+            end = data[i, 0] + window
+            isodat = datachop(data, start, end)
+            testmax = np.amax(isodat[:, 1])
+            index = nearest(isodat[:, 0], data[i, 0])
+            if data[i, 1] == testmax and np.all(data[i, 1] != isodat[:index, 1]):
                 peaks.append([data[i, 0], data[i, 1]])
 
     return np.array(peaks)
@@ -2402,13 +2533,17 @@ def calc_FWHM(peak, data):
     rightfound = False
     while rightfound is False or leftfound is False:
         if leftfound is False:
-            if data[index - counter, 1] <= (int) / 2.:
+            if index - counter < 0:
+                leftfound = True
+            elif data[index - counter, 1] <= (int) / 2.:
                 leftfound = True
                 leftwidth += 1
             else:
                 leftwidth += 1
         if rightfound is False:
-            if data[index + counter, 1] <= (int) / 2.:
+            if index + counter >= len(data):
+                rightfound = True
+            elif data[index + counter, 1] <= (int) / 2.:
                 rightfound = True
                 rightwidth += 1
             else:
@@ -2423,7 +2558,7 @@ def calc_FWHM(peak, data):
         indexend = len(data) - 1
 
     FWHM = data[indexend, 0] - data[indexstart, 0]
-    return FWHM
+    return FWHM, [data[indexstart, 0], data[indexend, 0]]
 
 
 def peaks_error_FWHM(pks, data):

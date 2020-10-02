@@ -62,7 +62,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### Third Party Licenses
 
-Waters DLLs are distributed under the Waters MassLynxSDK EULA license. By downloading and using these DLLs, you are accepting that license. Info on other licenses are provided below.
+Waters DLLs are distributed under the Waters MassLynxSDK EULA license. The Thermo RawFileReader DLLs are distributed under the RawFileReader.doc license. By downloading and using these DLLs, you are accepting those licenses and these terms. Thermo and Waters are indemnified, defended, and held harmless from any claims, including attorneys’ fees, related to the distribution or use of this software. Redistribution of Waters and Thermo libraries is restricted as described in those licenses. Info on other licenses are provided below.
 
 ## UniDec Compatible File Types
 
@@ -78,7 +78,7 @@ For Water's .raw files, UniDec is bundled with converters (CDCReader.exe) to
 convert the data to .txt. It will compress the retention time dimension into a single spectrum. 
 A single file can be opened directly, or multiple files can be converted using 
 Tools > Simple Batch Process Raw to Txt. For a fancier conversion such as extracting specific functions or scans, 
-try Tools > Raw to Txt Conversion Wizard. Note: rawreader.exe has been replaced with the MassLynxSDK 4.5 Python library. Water's converters will need MassLynxRaw.dll and/or cdt.dll in the same directory as the converter executables (the unidec_bin folder or the top directory). 
+try Tools > Raw to Txt Conversion Wizard. Note: rawreader.exe has been replaced with the MassLynxSDK 4.5 Python library. Water's converters will need MassLynxRaw.dll and/or cdt.dll in the same directory as the converter executables (the unidec_bin folder or the top directory). You can find these at: [https://interface.waters.com/masslynx/developers-area/sdks/](https://interface.waters.com/masslynx/developers-area/sdks/). 
 
 Thermo .raw files can be read as you would a text file on Windows thanks to [multiplierz](https://github.com/BlaisProteomics/multiplierz). You will need [MSFileReader](https://thermo.flexnetoperations.com/control/thmo/download?element=6306677) installed. Please cite them (http://onlinelibrary.wiley.com/doi/10.1002/pmic.201700091/abstract). It will compress all scans together unless parsed with MetaUniDec. 
 
@@ -122,9 +122,10 @@ natsort
 pymzml
 networkx
 h5py
-multiplierz (Windows only, for Thermo RAW imports)
 pypubsub
 tornado
+pythonnet
+multiplierz (Windows only, for Agilent imports)
 
 All of these can be installed from the command line with (for example):
     
@@ -193,6 +194,30 @@ In reading the documentation, it is perhaps best to start with the unidec.UniDec
 The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
+
+v.4.3.0
+
+**Added UniChrom2: UniDec for LC/MS data**. UniChrom is built on top of the MetaUniDec engine and uses HDF5 files and many of the same core tools. The primary additions are the ability to parse chromatography data into HDF5, visualize and interact with LC/MS data, and manually select and quickly deconvolve parts of the chromatogram.
+
+**Added Data Reduction in MetaUniDec and UniChrom**. This now mirrors the behavior of UniDec for processing data to remove a fixed percentage of the lowest intensity data.
+
+**Added Native Combining of Waters Data**, which should dramatically speed up averaging Waters chromatograms by using the native MassLynx libraries.
+
+**Added Thermo RawFileReader libraries** to avoid having to install MSFileReader and to make opening native Thermo data faster and more robust.
+
+The mass defect windows can now make horizontal lines from input mass values, not just input mass defect value. It will automatically calculate the mass defect from the input mass.
+
+Major refactoring of the code to support UniChrom. For example, switched from local to absolute paths for most files in the engine.
+
+Added Estimated Area extraction to DataCollector and MetaUniDec. Here, it uses the peak height and FWHM to estimate the area based on the peak shape.
+
+Added experimental DoubleDec (Double Deconvolution) feature to the main UniDec window.
+
+Fixed bug with spaces in oligomer names when importing ofiles.
+
+Switched default native charge range to +/- 1000 from +/- 100 to work better with denatured data.
+
+Other bug fixes and minor changes.
 
 v.4.2.2
 

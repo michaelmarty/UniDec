@@ -337,6 +337,11 @@ class main_menu(wx.Menu):
         self.menuisotopes = self.experimentalmenu.Append(wx.ID_ANY, "Plot Averagine Isotope Distributions")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_plot_isotope_distribution, self.menuisotopes)
 
+        self.menupdi = self.experimentalmenu.Append(wx.ID_ANY, "Print Polydispersity Index")
+        self.parent.Bind(wx.EVT_MENU, self.pres.eng.polydispersity_index, self.menupdi)
+
+        self.experimentalmenu.AppendSeparator()
+
         self.menufpop = self.experimentalmenu.Append(wx.ID_ANY, "FPOP")
         self.parent.Bind(wx.EVT_MENU, self.pres.fpop, self.menufpop)
 
@@ -351,8 +356,8 @@ class main_menu(wx.Menu):
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_centroid, self.menucentroid)
 
         self.experimentalmenu.AppendSeparator()
-        self.menuRegister = self.experimentalmenu.Append(wx.ID_ANY, "Fix Thermo or Agilent Imports",
-                                                         "Registers the Thermo and Agilent Interfaces. "
+        self.menuRegister = self.experimentalmenu.Append(wx.ID_ANY, "Fix Agilent Imports",
+                                                         "Registers the Agilent Interfaces. "
                                                          "MUST RUN AS ADMINISTRATOR")
         self.parent.Bind(wx.EVT_MENU, self.pres.register, self.menuRegister)
 

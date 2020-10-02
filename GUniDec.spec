@@ -52,13 +52,14 @@ zipdirectory = outputdir + "_" + date + ".zip"
 # Analysis of packages
 a = Analysis(['Launcher.py'],
              pathex=[os.getcwd()],
-             excludes=['pandas', 'IPython', 'Cython', 'statsmodels', 'pyopenms', 'sklearn',
+             excludes=['pandas', 'IPython', 'statsmodels', 'pyopenms', 'sklearn',
                        'GdkPixbuf', 'PIL', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2', 'PyQt5'],
              hiddenimports=[  # 'plotly','
                  # 'sklearn', 'sklearn.decomposition', 'sklearn.preprocessing', 'sklearn.utils', 'pytest', 'pluggy',
                  # 'sklearn.utils.testing', 'sklearn.utils._cython_blas',
                  'scipy.special._ufuncs_cxx', 'scipy.linalg.cython_blas', 'scipy.linalg.cython_lapack',
-                 'scipy._lib.messagestream',
+                 'scipy.special.cython_special','numpy',
+                 'scipy._lib.messagestream','clr', 'pythonnet', 'Python.Runtime.dll',
                  'FileDialog', 'Dialog', 'encodings', 'encodings.__init__',
                  'packaging', 'packaging.version', 'packaging.specifiers',
                  'comtypes', "multiplierz", "comtypes.gen", "comtypes.gen._E7C70870_676C_47EB_A791_D5DA6D31B224_0_1_0",
@@ -70,7 +71,8 @@ a = Analysis(['Launcher.py'],
                  'pubsub.core.listenerbase', 'pubsub.core', 'pubsub.core.kwargs.topicargspecimpl',
                  'pubsub.core.kwargs.topicmgrimpl',
                  'Tkinter', 'FixTk', '_tkinter', 'Tkconstants', 'FileDialog', 'Dialog', 'six',
-                 'pymzml.run', 'pymzml.plot', 'pymzml.obo'
+                 'pymzml.run', 'pymzml.plot', 'pymzml.obo',
+                 'pkg_resources.py2_warn'
                  # , 'requests.packages.chardet.sys', 'requests','urllib3.packages.ordered_dict'
              ],
              hookspath=None,
@@ -90,13 +92,19 @@ if system == "Windows":
     # a.datas += [('rawreadertim.exe', 'unidec_bin\\rawreadertim.exe', 'DATA')]
     a.datas += [('CDCReader.exe', 'unidec_bin\\CDCReader.exe', 'DATA')]
     a.datas += [('h5repack.exe', 'unidec_bin\\h5repack.exe', 'DATA')]
-    a.datas += [('pymzml\\version.txt', 'C:\\Python38\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
+    a.datas += [('pymzml\\version.txt', 'C:\\Python37\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
 
     for file in os.listdir('unidec_bin'):
         if fnmatch.fnmatch(file, 'api*'):
             add = [(file, 'unidec_bin\\' + file, 'DATA')]
             a.datas += add
             # print add
+
+    a.datas += [('RawFileReaderLicense.doc', 'unidec_modules\\thermo_reader\\RawFileReaderLicense.doc', 'DATA')]
+    a.datas += [('ThermoFisher.CommonCore.Data.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.Data.dll', 'DATA')]
+    a.datas += [('ThermoFisher.CommonCore.RawFileReader.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.RawFileReader.dll', 'DATA')]
+    a.datas += [('ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'DATA')]
+    a.datas += [('ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'DATA')]
 
     if not distmode:
         a.datas += [('MassLynxRaw.dll', 'unidec_bin\\MassLynxRaw.dll', 'DATA')]
@@ -133,12 +141,10 @@ a.datas.extend(dir_files("unidec_bin\\Example Data", 'Example Data'))
 from os import listdir
 from PyInstaller import compat
 
-#mkldir = compat.base_prefix + "/Lib/site-packages/numpy/DLLs"
-#a.datas.extend(dir_files(mkldir, ''))
-#a.datas.extend(
-#    [(mkldir + "/" + mkl, '', 'DATA') for mkl in listdir(mkldir) if mkl.startswith('mkl_') or mkl.startswith('libio')])
-#for b in binaries:
-#    a.datas += b
+mkldir = compat.base_prefix + "/Lib/site-packages/numpy/DLLs"
+a.datas.extend(dir_files(mkldir, ''))
+a.datas.extend(
+    [(mkldir + "/" + mkl, '', 'DATA') for mkl in listdir(mkldir) if mkl.startswith('mkl_') or mkl.startswith('libio')])
 
 # Assemble and build
 pyz = PYZ(a.pure)
@@ -164,7 +170,6 @@ import subprocess
 print("Testing Software...", path)
 
 out = subprocess.call(path)
-
 if out != 0:
     exit()
 

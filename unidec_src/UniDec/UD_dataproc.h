@@ -10,6 +10,7 @@
 // Copyright 2017 University of Arizona
 //
 //
+#include <stdlib.h>
 
 #ifndef DATAPROC_HEADER
 #define DATAPROC_HEADER
@@ -174,7 +175,7 @@ int remove_duplicates(double *oldmz, double *oldint, int oldlen)
 
 	//free(newmz);
 	//free(newint);
-	printf("Removed %d Duplicates\n", oldlen - newlen);
+	//printf("Removed %d Duplicates\n", oldlen - newlen);
 	return newlen;
 }
 
@@ -230,7 +231,7 @@ int remove_middle_zeros(double *oldmz, double *oldint, int oldlen)
 
 	//free(newmz);
 	//free(newint);
-	printf("Removed %d Middle Zeros\n", oldlen - newlen);
+	//printf("Removed %d Middle Zeros\n", oldlen - newlen);
 	return newlen;
 }
 
@@ -292,6 +293,75 @@ void background_subtract(double *dataInt, const double bsub, const int lengthmz)
 	free(gaussian);
 }
 
+// A comparator function used by qsort 
+inline int compare(const void* a, const void* b)
+{
+	return (*(double*)a - *(double*)b);
+}
+
+//Cut out the lowest x percent of the data
+int data_reduction(double* oldmz, double* oldint, int oldlen, const double redper)
+{
+	double* newmz, * newint, *sortint, cutoff;
+	int newlen = 0;
+	
+	//Create the sort array and load it with intensities
+	sortint = calloc(oldlen, sizeof(double));
+	memcpy(sortint, oldint, sizeof(double) * oldlen);
+	//Sort it
+	qsort(sortint, oldlen, sizeof(double), compare);
+	
+	//Find the index redper percent of the way through the list
+	int index = (int)redper * oldlen / 100.;
+	if (index < 0) { index = 0; }
+	if (index >= oldlen) { index = oldlen - 2; }
+	
+	// Get the cutoff at that index
+	cutoff = sortint[index];
+	//printf("Cutoff: %f\n", cutoff);
+	
+	//get new length
+	for (int i = 0; i < oldlen; i++)
+	{
+		if (oldint[i] >= cutoff)
+		{
+			newlen++;
+		}
+	}
+
+	//Some checks
+	if (newlen >= oldlen){return oldlen;}
+	if (newlen < 3) { printf("Warning: Aggressive Data Reduction!!! Lower the data reduction percentage\n\n"); }
+
+	//declare memory for new arrays
+	newmz = calloc(newlen, sizeof(double));
+	newint = calloc(newlen, sizeof(double));
+
+	//Fill new arrays
+	newlen = 0;
+	for (int i = 0; i < oldlen; i++)
+	{
+		if (oldint[i] >= cutoff)
+		{
+			newmz[newlen] = oldmz[i];
+			newint[newlen] = oldint[i];
+			newlen++;
+		}
+	}
+
+	//Bookkeeping 
+	realloc(oldmz, newlen * sizeof(double));
+	realloc(oldint, newlen * sizeof(double));
+
+	memcpy(oldmz, newmz, sizeof(double) * newlen);
+	memcpy(oldint, newint, sizeof(double) * newlen);
+
+	free(newmz);
+	free(newint);
+	free(sortint);
+	return newlen;
+}
+
 
 void process_data(int argc, char *argv[], Config config)
 {	
@@ -313,20 +383,20 @@ void process_data(int argc, char *argv[], Config config)
 	dataMZ = calloc(lengthmz, sizeof(double));
 	dataInt = calloc(lengthmz, sizeof(double));
 	mh5readfile2d(file_id, outdat, lengthmz, dataMZ, dataInt);
-	printf("Length of Data: %d \n", lengthmz);
+	//printf("Length of Data: %d \n", lengthmz);
 
 
 	//Bin
 	if (config.mzbins > 1)
 	{
-		printf("Binning data every %d data points\n", config.mzbins);
+		//printf("Binning data every %d data points\n", config.mzbins);
 		lengthmz = pool1d(dataMZ, dataInt, lengthmz, config.mzbins);
 	}
 
 	//Chop
 	if (config.minmz >= 0 && config.maxmz > 0)
 	{
-		printf("Chopping data to range: %f %f\n", config.minmz, config.maxmz);
+		//printf("Chopping data to range: %f %f\n", config.minmz, config.maxmz);
 		lengthmz=chop1d(dataMZ, dataInt, lengthmz, config.minmz, config.maxmz);
 	}
 
@@ -336,7 +406,7 @@ void process_data(int argc, char *argv[], Config config)
 
 	//Remove Duplicates
 	lengthmz = remove_duplicates(dataMZ, dataInt, lengthmz);
-	printf("New Length %d\n", lengthmz);
+	//printf("New Length %d\n", lengthmz);
 
 	//Background subtraction
 	if (config.bsub != 0)
@@ -344,10 +414,16 @@ void process_data(int argc, char *argv[], Config config)
 		background_subtract(dataInt, config.bsub, lengthmz);
 	}
 
+	if (config.datareduction != 0)
+	{
+		//printf("Data Reduction: %f\n", config.datareduction);
+		lengthmz = data_reduction(dataMZ, dataInt, lengthmz, config.datareduction);
+	}
+
 	//Normalize
 	if (config.datanorm == 1)
 	{
-		printf("Normalizing\n");
+		//printf("Normalizing\n");
 		norm1d(dataInt, lengthmz);
 	}
 
@@ -357,12 +433,12 @@ void process_data(int argc, char *argv[], Config config)
 	config.speedyflag = 0;
 	//Write data to processed_data
 	strjoin(dataset, "/processed_data", outdat);
-	printf("\tWriting to: %s...", outdat);
+	//printf("\tWriting to: %s...", outdat);
 	mh5writefile2d(file_id, outdat, lengthmz, dataMZ, dataInt);
 	free(dataMZ);
 	free(dataInt);
 	H5Fclose(file_id);
-	printf("Done\n");
+	//printf("Done\n");
 }
 
 #endif

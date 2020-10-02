@@ -1,14 +1,14 @@
-version 4.2.2
+version 4.3.0
 imflag 0
-input BSA_input.dat
-output BSA
+input C:\Python\UniDec3\unidec_bin\Example Data\BSA_unidecfiles\BSA_input.dat
+output C:\Python\UniDec3\unidec_bin\Example Data\BSA_unidecfiles\BSA
 numit 50
 numz 21
 endz 30
 startz 10
 zzsig 1.0
-psig 0.0
-beta 100.0
+psig 1.0
+beta 500.0
 mzsig 1.50166
 psfun 0
 discreteplot 0
@@ -16,7 +16,7 @@ massub 150000.0
 masslb 40000.0
 msig 0.0
 molig 0.0
-massbins 1.0
+massbins 10.0
 mtabsig 0.0
 minmz 2229.987476247107
 maxmz 7608.365676580418
@@ -24,7 +24,7 @@ subbuff 100.0
 subtype 2
 smooth 0.0
 mzbins 0.0
-peakwindow 5.0
+peakwindow 100.0
 peakthresh 0.01
 peakplotthresh 1.0
 plotsep 0.025

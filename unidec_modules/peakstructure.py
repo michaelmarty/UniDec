@@ -69,6 +69,7 @@ class Peak:
         self.lscore = 0
         self.mdist = None
         self.zdist = None
+        self.estimatedarea = 0
 
     def line_out(self, type="Full"):
         if type == "Full":

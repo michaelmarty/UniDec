@@ -1,7 +1,7 @@
-version 4.2.2
+version 4.3.0
 imflag 0
-input GroEL HCD UniDec_input.dat
-output GroEL HCD UniDec
+input C:\Python\UniDec3\unidec_bin\Example Data\GroEL HCD UniDec_unidecfiles\GroEL HCD UniDec_input.dat
+output C:\Python\UniDec3\unidec_bin\Example Data\GroEL HCD UniDec_unidecfiles\GroEL HCD UniDec
 numit 50
 numz 71
 endz 80
@@ -18,7 +18,7 @@ msig 0.0
 molig 0.0
 massbins 10.0
 mtabsig 0.0
-manualfile GroEL HCD UniDec_manualfile.dat
+manualfile C:\Python\UniDec3\unidec_bin\Example Data\GroEL HCD UniDec_unidecfiles\GroEL HCD UniDec_manualfile.dat
 minmz 989.965273
 maxmz 40458.620204
 subbuff 100.0
@@ -26,7 +26,7 @@ subtype 2
 smooth 0.0
 mzbins 0.0
 peakwindow 500.0
-peakthresh 0.01
+peakthresh 0.05
 peakplotthresh 0.1
 plotsep 0.025
 intthresh 0.0

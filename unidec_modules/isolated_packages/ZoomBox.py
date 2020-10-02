@@ -191,7 +191,7 @@ class ZoomBox:
         show()
     """
 
-    def __init__(self, axes, onselect, drawtype='box',
+    def __init__(self, axes, onselect, groups=None, drawtype='box',
                  minspanx=None,
                  minspany=None,
                  useblit=False,

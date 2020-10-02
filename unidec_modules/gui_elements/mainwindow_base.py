@@ -74,6 +74,9 @@ class MainwindowBase(wx.Frame):
     def export_gui_to_config(self):
         self.controls.export_gui_to_config()
 
+    def on_defaults(self, e):
+        self.menu.on_defaults(e)
+
     def on_motion(self, xpos, ypos):
         """
         Triggered by pubsub from plot windows. Reports text in Status Bar.
@@ -88,7 +91,7 @@ class MainwindowBase(wx.Frame):
             pass
 
     def on_open_dir(self, e):
-        save_dir = os.getcwd()
+        save_dir = self.config.udir
         print("Opening directory:", save_dir)
         try:
             os.system(self.config.opencommand + "\"" + save_dir + "\"")
@@ -189,6 +192,8 @@ class MainwindowBase(wx.Frame):
         dpi = wx.ScreenDC().GetPPI()
         defaultsize = np.array([figsize[0] / dpi[0], figsize[1] / dpi[1]])
         defaultrect = np.array([0.1, 0.1, 0.8, 0.8])
+        figureflags = []
+        files = []
 
         dlg = miscwindows.SaveFigureDialog(self)
         dlg.initialize_interface(self.config)
@@ -209,6 +214,7 @@ class MainwindowBase(wx.Frame):
             self.figsize = np.array(dlg.figsize)
             self.rect = np.array(dlg.rect)
 
+
             if not np.all(defaultsize == self.figsize) or not np.all(defaultrect == self.rect):
                 plots = self.shrink_all_figures()
                 self.SetStatusText("Saving Figures", number=5)
@@ -218,36 +224,49 @@ class MainwindowBase(wx.Frame):
                     plot.resize = 1
                     plot.size_handler()
             else:
-                self.save_all_figures(extension, extension2="", header=path, transparent=transparent, dpi=dpi)
+                figureflags, files = self.save_all_figures(extension, extension2="", header=path, transparent=transparent, dpi=dpi)
             # print self.directory
             self.SetStatusText("Saved Figures", number=5)
             # TODO: Remember Values from previous
+        return figureflags, files
 
-    def shrink_figure(self, plot):
+    def shrink_figure(self, plot, figsize=None, rect=None):
         """
         Automatically shrinks the plot to a figure size in inches set in self.figsize.
         :param plot: Plot object to shrink
         :return: None
         """
+        if figsize is None:
+            figsize = self.figsize
+        if rect is None:
+            try:
+                rect = self.rect
+            except:
+                rect = [0.1, 0.1, 0.8, 0.8]
+                self.rect = rect
+        print(self.rect)
         if plot.flag:
             dpi = wx.ScreenDC().GetPPI()
-            figsize2 = (int(self.figsize[0] * dpi[0]), int(self.figsize[1] * dpi[1]))
+            figsize2 = (int(figsize[0] * dpi[0]), int(figsize[1] * dpi[1]))
+            print(figsize2, figsize)
             plot.resize = 0
             plot.canvas.SetSize(figsize2)
             plot.canvas.draw()
             # plot.set_nticks(5)
-            plot.subplot1.set_position(self.rect)
+            plot.subplot1.set_position(rect)
             if plot.cbar is not None:
                 plot.cbar.ax.set_position([0.85, 0.2, 0.05, 0.7])
             plot.repaint()
 
-    def shrink_all_figures(self):
+    def shrink_all_figures(self, figsize=None, rect=None):
         """
         Shrinks all figures to the size specified in self.figsize
         :return: A list of plot objects that we shrunk
         """
+        if figsize is None:
+            figsize = self.figsize
         for plot in self.plots:
-            self.shrink_figure(plot)
+            self.shrink_figure(plot, figsize=figsize, rect=rect)
         return self.plots
 
     def on_save_figure_small(self, e):
@@ -279,7 +298,8 @@ class MainwindowBase(wx.Frame):
         dlg = wx.MessageDialog(self,
                                "UniDec GUI version " + self.version +
                                "\nPlease contact mtmarty@email.arizona.edu with any questions, bugs, or features to add.\n"
-                               "The latest version may be found at unidec.chem.ox.ac.uk.\n"
+                               "The latest version may be found at https://github.com/michaelmarty/UniDec/releases.\n"
+                               "RawFileReader reading tool. Copyright © 2016 by Thermo Fisher Scientific, Inc. All rights reserved.\n"
                                "If used in publication, please cite Marty et Al. Anal. Chem. 2015, DOI: 10.1021/acs.analchem.5b00140 ",
                                "About UniDec", wx.OK | wx.CENTER)
         dlg.ShowModal()

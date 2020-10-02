@@ -3,7 +3,7 @@ from copy import deepcopy
 from unidec_modules import unidectools as ud
 import numpy as np
 
-version = "4.2.2"
+version = "4.3.0"
 
 class UniDecEngine:
     def __init__(self):
@@ -222,7 +222,9 @@ class UniDecEngine:
         return fit, rsquared
 
 
-
+    def polydispersity_index(self, e=None):
+        pdi = ud.polydispersity_index(self.data.massdat)
+        print(pdi)
 
     def oxidation_analysis(self, e=None):
         data = self.data.massdat
@@ -235,8 +237,9 @@ class UniDecEngine:
         for i, m in enumerate(oxmasses):
             low = m + self.config.integratelb
             high = m + self.config.integrateub
-            print("Peak:", m, "Number of Oxidations:", nox[i], "Integration Range:", low, "to", high)
-            area, intdat = ud.integrate(data, low, high)
+            print("Peak:", m, "Number of Oxidations:", nox[i], "Range:", low, "to", high)
+            # area, intdat = ud.integrate(data, low, high) # Peak Area
+            area = ud.localmax(data[:, 1], low, high) # Peak Height
             areas.append(area)
         areas = np.array(areas)
         areas /= np.amax(areas)

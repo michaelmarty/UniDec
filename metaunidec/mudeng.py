@@ -28,7 +28,7 @@ def metaunidec_call(config, *args, **kwargs):
     tstart = time.perf_counter()
     out = subprocess.call(call)
     tend = time.perf_counter()
-    print(call, out)
+    #print(call, out)
     print("Execution Time:", (tend - tstart))
     return out
 
@@ -49,24 +49,30 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.config.linflag = 2
 
     def open(self, path):
-        self.data = MetaDataSet(self)
-        self.pks = peakstructure.Peaks()
+        self.clear()
         if path is None:
             path = self.config.hdf_file
         else:
-            self.config.hdf_file = path
-            self.config.filename = os.path.split(path)[1]
-            self.config.outfname = os.path.splitext(self.config.filename)[0]
-            self.config.outfname = os.path.join("UniDec_Figures_and_Files", self.config.outfname)
-            dir = os.path.dirname(path)
-            os.chdir(dir)
-            dirnew = os.path.split(self.config.outfname)[0]
-            if not os.path.isdir(dirnew):
-                os.mkdir(dirnew)
-            self.config.default_file_names()
+            self.setup_filenames(path)
         self.config.read_hdf5(path)
         self.data.import_hdf5(path)
         self.update_history()
+
+    def clear(self):
+        self.data = MetaDataSet(self)
+        self.pks = peakstructure.Peaks()
+
+    def setup_filenames(self, path):
+        self.config.hdf_file = path
+        self.config.dirname, self.config.filename = os.path.split(path)
+        outfname = os.path.splitext(self.config.filename)[0]
+        dir = os.path.dirname(path)
+        dirnew = os.path.join(dir, "UniDec_Figures_and_Files")
+        if not os.path.isdir(dirnew):
+            os.mkdir(dirnew)
+        self.config.udir = dirnew
+        self.config.outfname = os.path.join(dirnew, outfname)
+        self.config.default_file_names()
 
     def process_data(self):
         self.pks.peaks = []
@@ -161,7 +167,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         for s in self.data.spectra:
             outfile = self.config.outfname + "_" + str(s.var1) + ".txt"
             np.savetxt(outfile, s.rawdata)
-            print(outfile)
+            print("Writing HDF5 spctrum to text file:", outfile)
             self.config.config_export(self.config.outfname + "_conf.dat")
 
     def batch_set_config(self, paths):
@@ -246,6 +252,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         """
         dirname = os.path.dirname(p)
         filename = os.path.basename(p)
+        print("Parsing File:", p)
         if scanstep is not None:
             self.outpath = automzml.extract_scans(filename, dirname, scanstep, "hdf5")
         else:

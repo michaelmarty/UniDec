@@ -187,6 +187,7 @@ struct Config
 	double maxmz;
 	int mzbins;
 	double bsub;
+	double datareduction;
 	double peakwin;
 	double peakthresh;
 	double exwindow;
@@ -272,6 +273,7 @@ Config SetDefaultConfig()
 	config.maxmz = -1;
 	config.mzbins = 0;
 	config.bsub = 0;
+	config.datareduction = 0;
 	config.peakwin = 500;
 	config.peakthresh = 0.1;
 	config.exchoice = 0;

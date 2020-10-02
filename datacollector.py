@@ -253,8 +253,9 @@ class NetworkFrame(PlottingWindow):
 
 datachoices = {0: "Raw Data", 1: "Processed Data", 2: "Zero Charge Mass Spectrum", 3: "CCS (Experimental)", 4: "DoubleDec (Experimental)"}
 extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position",
-                  5: "Center of Mass 50%", 6: "Center of Mass 10%"}
-extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass", 5: "Mass", 6: "Mass"}
+                  5: "Center of Mass 50%", 6: "Center of Mass 10%", 11: "Estimated Area"}
+extractmethods = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 11}
+extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass", 5: "Mass", 6: "Mass", 11: "Area"}
 modelchoices = {"Simple Single KD": "one", "Parallel KD's Chained": "parallel", "All KD's Free": "free",
                 "Test for Best Model": "test", "Series KD's Chained": "series"}
 
@@ -980,12 +981,12 @@ class DataCollector(wx.Frame):
                     window = None
 
                 if ";" not in s:
-                    val = ud.data_extract(data, float(s), self.extractchoice, window=window)
+                    val = ud.data_extract(data, float(s), extractmethods[self.extractchoice], window=window)
                 else:
                     xs = s.split(';')
                     val = 0
                     for xval in xs:
-                        val += ud.data_extract(data, float(xval), self.extractchoice, window=window)
+                        val += ud.data_extract(data, float(xval), extractmethods[self.extractchoice], window=window)
                 xext.append(val)
             self.extract.append(xext)
         self.ypanel.list.populate(self.yvals, colors=ycolors)
@@ -1068,7 +1069,7 @@ class DataCollector(wx.Frame):
 
     def makeplot2(self):
         # This is a bit funny but the ylabel from this plot is actually the xlabel from the others or the intensity...
-        ylabel = extractlabels[self.extractchoice]
+        ylabel = extractlabels[extractmethods[self.extractchoice]]
         if ylabel == "mass":
             ylabel = self.xlabel
 

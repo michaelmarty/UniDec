@@ -210,6 +210,7 @@ Config mh5LoadConfig(Config config, hid_t file_id)
 	config.maxmz = double_attr(file_id, "/config", "maxmz", config.maxmz);
 	config.mzbins = int_attr(file_id, "/config", "mzbins", config.mzbins);
 	config.bsub = double_attr(file_id, "/config", "subbuff", config.bsub);
+	config.datareduction = double_attr(file_id, "/config", "reductionpercent", config.datareduction);
 
 	config.peakwin = double_attr(file_id, "/config", "peakwindow", config.peakwin);
 	config.peakthresh = double_attr(file_id, "/config", "peakthresh", config.peakthresh);

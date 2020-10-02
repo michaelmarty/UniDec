@@ -7,6 +7,7 @@ import unidec_modules.unidectools as ud
 import unidec_modules.peakwidthtools as peakwidthtools
 from unidec_modules import ManualSelectionWindow, AutocorrWindow, miscwindows, peakstructure
 import time
+from metaunidec.mudstruct import MetaDataSet
 
 
 class UniDecPres(object):
@@ -173,6 +174,173 @@ class UniDecPres(object):
         self.eng.reset_config()
         self.import_config(None)
         self.view.SetStatusText("Reset", number=5)
+
+    def makeplot2(self, e=None, plot=None, data=None, pks=None):
+        """
+        Plot mass data and peaks if possible in self.view.plot2
+        :param e: unused event
+        :param plot: Plot object. Default is None, which will set plot to self.view.plot2
+        :return: None
+        """
+        if plot is None:
+            plot = self.view.plot2
+        if data is None:
+            data = self.eng.data.massdat
+        if pks is None:
+            pks = self.eng.pks
+        if self.eng.config.batchflag == 0:
+            tstart = time.perf_counter()
+            plot.plotrefreshtop(data[:, 0], data[:, 1],
+                                "Zero-charge Mass Spectrum", "Mass (Da)",
+                                "Intensity", "Mass Distribution", self.eng.config, test_kda=True,
+                                nopaint=True)
+            if pks.plen > 0:
+                for p in pks.peaks:
+                    if p.ignore == 0:
+                        plot.plotadddot(p.mass, p.height, p.color, p.marker)
+            plot.repaint()
+            tend = time.perf_counter()
+            print("Plot 2: %.2gs" % (tend - tstart))
+
+    def makeplot4(self, e=None, plot=None, data=None, pks=None):
+        """
+        Plots isolated peaks against the data in self.view.plot4.
+        Will plot dots at peak positions.
+        If possible, will plot full isolated spectra.
+        :param e: unused event
+        :param plot: Plot object. Default is None, which will set plot to self.view.plot4
+        :return: None
+        """
+        if plot is None:
+            plot = self.view.plot4
+        if data is None:
+            data = self.eng.data.data2
+        if pks is None:
+            pks = self.eng.pks
+        if self.eng.config.batchflag == 0:
+            tstart = time.perf_counter()
+            plot.plotrefreshtop(data[:, 0], data[:, 1],
+                                           "Data with Offset Isolated Species", "m/z (Th)",
+                                           "Normalized and Offset Intensity", "Data", self.eng.config, nopaint=True)
+            num = 0
+            if self.eng.config.isotopemode == 1:
+                try:
+                    stickmax = np.amax(np.array([p.stickdat for p in pks.peaks]))
+                except (AttributeError, ValueError):
+                    stickmax = 1.0
+            else:
+                stickmax = 1.0
+            for i, p in enumerate(pks.peaks):
+                if p.ignore == 0:
+                    if (not ud.isempty(p.mztab)) and (not ud.isempty(p.mztab2)):
+                        mztab = np.array(p.mztab)
+                        mztab2 = np.array(p.mztab2)
+                        maxval = np.amax(mztab[:, 1])
+                        b1 = mztab[:, 1] > self.eng.config.peakplotthresh * maxval
+                        plot.plotadddot(mztab2[b1, 0], mztab2[b1, 1], p.color, p.marker)
+                    if not ud.isempty(p.stickdat):
+                        plot.plotadd(self.eng.data.data2[:, 0], np.array(p.stickdat) / stickmax - (
+                                num + 1) * self.eng.config.separation, p.color, "useless label")
+                    num += 1
+            plot.repaint()
+            tend = time.perf_counter()
+            print("Plot 4: %.2gs" % (tend - tstart))
+
+    def on_charge_states(self, e=None, mass=None, plot=None, peakpanel=None, data=None):
+        """
+        Triggered by right click "plot charge states" on self.view.peakpanel.
+        Plots a line with text listing the charge states of a specific peak.
+        :param e: unused event
+        :return: None
+        """
+        if plot is None:
+            plot = self.view.plot4
+
+        if self.eng.config.adductmass > 0:
+            sign = "+"
+        else:
+            sign = "-"
+        charges = np.arange(self.eng.config.startz, self.eng.config.endz + 1)
+        if mass is None:
+            if peakpanel is None:
+                peaksel = self.view.peakpanel.selection2[0]
+            else:
+                peaksel = peakpanel.selection2[0]
+        else:
+            peaksel = mass
+        peakpos = (peaksel + charges * self.eng.config.adductmass) / charges
+        boo1 = np.all([peakpos < self.eng.config.maxmz, peakpos > self.eng.config.minmz], axis=0)
+        peakpos = peakpos[boo1]
+        charges = charges[boo1]
+        index = 0
+        plot.textremove()
+        if data is None:
+            data = self.eng.data.data2
+        for i in charges:
+            plot.addtext(sign + str(i), peakpos[index], np.amax(data[:, 1]) * 0.99)
+            index += 1
+
+    def on_differences(self, e=None, peakpanel=None, pks=None, plot=None, massdat=None):
+        """
+        Triggered by right click "Display Differences" on self.view.peakpanel.
+        Plots a line with text listing the difference between each mass and a specific peak.
+        Updates the peakpanel to show the differences.
+        :param e: unused event
+        :return: None
+        """
+        if peakpanel is None:
+            peakpanel=self.view.peakpanel
+        if pks is None:
+            pks=self.eng.pks
+        if plot is None:
+            plot=self.view.plot2
+        if massdat is None:
+            massdat = self.eng.data.massdat
+
+        peaksel = peakpanel.selection2
+        pmasses = np.array([p.mass for p in pks.peaks])
+        peakdiff = pmasses - peaksel
+        mval = np.amax(massdat[:, 1])
+        # print peakdiff
+
+        plot.textremove()
+        for i, d in enumerate(peakdiff):
+            if d != 0:
+                label = ud.decimal_formatter(d, self.eng.config.massbins)
+                plot.addtext(label, pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
+            else:
+                plot.addtext("0", pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
+
+    def on_label_masses(self, e=None, peakpanel=None, pks=None, plot=None, dataobj=None):
+        """
+        Triggered by right click "Label Masses" on self.view.peakpanel.
+        Plots a line with text listing the mass of each specific peak.
+        Updates the peakpanel to show the masses.
+        :param e: unused event
+        :return: None
+        """
+        if peakpanel is None:
+            peakpanel=self.view.peakpanel
+        if pks is None:
+            pks = self.eng.pks
+        if plot is None:
+            plot=self.view.plot2
+        if dataobj is None:
+            dataobj = self.eng.data
+
+        peaksel = peakpanel.selection2
+        pmasses = np.array([p.mass for p in pks.peaks])
+        pint = np.array([p.height for p in pks.peaks])
+        mval = np.amax(dataobj.massdat[:, 1])
+
+        if isinstance(dataobj, MetaDataSet):
+            mval = (mval * 1.3 + self.eng.config.separation * dataobj.len)
+
+        plot.textremove()
+        for i, d in enumerate(pmasses):
+            if d in peaksel:
+                label = ud.decimal_formatter(d, self.eng.config.massbins)
+                plot.addtext(label, pmasses[i], mval * 0.06 + pint[i], vlines=False)
 
     def on_auto_peak_width(self, e=None, set=True):
         self.export_config()

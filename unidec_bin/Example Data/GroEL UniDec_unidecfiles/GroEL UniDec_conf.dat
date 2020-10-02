@@ -1,7 +1,7 @@
-version 4.2.2
+version 4.3.0
 imflag 0
-input GroEL UniDec_input.dat
-output GroEL UniDec
+input C:\Python\UniDec3\unidec_bin\Example Data\GroEL UniDec_unidecfiles\GroEL UniDec_input.dat
+output C:\Python\UniDec3\unidec_bin\Example Data\GroEL UniDec_unidecfiles\GroEL UniDec
 numit 50
 numz 16
 endz 75

@@ -11,6 +11,16 @@ from unidec_modules.unidec_enginebase import version as version
 __author__ = 'Michael.Marty'
 
 
+def ofile_reader(path):
+    oligos = []
+    for line in open(path):
+        a = np.array(line.split())
+        string = " ".join(a[4:])
+        oarray = np.array([a[0], a[1], a[2], a[3], string])
+        oligos.append(oarray)
+    return np.array(oligos)
+
+
 # noinspection PyAttributeOutsideInit
 class UniDecConfig(object):
     """
@@ -42,6 +52,9 @@ class UniDecConfig(object):
         self.metamode = -2
         self.filetype = 0
         self.autotune = False
+
+        self.time_window = 2
+        self.chrom_peak_width = 2
 
         self.twavedict = {1: "Logarithmic", 2: "Linear", 3: "Power Law"}
         self.backgroundchoices = ["Subtract Minimum", "Subtract Line",
@@ -153,8 +166,8 @@ class UniDecConfig(object):
         # Other
         self.mtabsig = 0
         self.poolflag = 2
-        self.nativezub = 100
-        self.nativezlb = -100
+        self.nativezub = 1000
+        self.nativezlb = -1000
         self.inflate = 1
         self.linflag = 2
         self.integratelb = ""
@@ -188,6 +201,9 @@ class UniDecConfig(object):
         self.dtsig = 0.2
         self.ccsbins = 100
         self.csig = 0
+
+        self.doubledec = False
+        self.kernel = ""
 
     def default_colormaps(self):
         """
@@ -541,7 +557,7 @@ class UniDecConfig(object):
                 self.masslist = np.array([])
 
             if os.path.isfile(self.ofile):
-                self.oligomerlist = np.genfromtxt(self.ofile, dtype='str')
+                self.oligomerlist = ofile_reader(self.ofile)
                 if self.oligomerlist.shape == (4,) or self.oligomerlist.shape == (5,):
                     self.oligomerlist = np.array([self.oligomerlist])
             else:
@@ -757,6 +773,11 @@ class UniDecConfig(object):
         self.ofile = self.outfname + "_ofile.dat"
         self.matchfile = self.outfname + "_match.dat"
         self.peaksfile = self.outfname + "_peaks.dat"
+        self.massdatfile = self.outfname + "_mass.txt"
+        self.massgridfile = self.outfname + "_massgrid.bin"
+        self.fitdatfile = self.outfname + "_fitdat.bin"
+        self.errorfile = self.outfname + "_error.txt"
+        self.mzgridfile = self.outfname + "_grid.bin"
         if self.filetype == 0:
             self.hdf_file = self.outfname + ".hdf5"
 

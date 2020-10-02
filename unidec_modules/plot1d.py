@@ -1,10 +1,17 @@
+from matplotlib import gridspec
 from matplotlib.ticker import MaxNLocator
 import numpy as np
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from unidec_modules.isolated_packages.ZoomSpan import ZoomSpan
+
 from unidec_modules.PlottingWindow import PlottingWindow
 from matplotlib.collections import LineCollection
 import matplotlib.colorbar as colorbar
+import matplotlib as mpl
 import matplotlib.colors as colors
 import matplotlib.cm as cm
+from matplotlib.patches import Rectangle
+import matplotlib.pyplot as plt
 
 
 class Plot1d(PlottingWindow):
@@ -94,7 +101,7 @@ class Plot1d(PlottingWindow):
 
         self.setup_zoom([self.subplot1], self.zoomtype)
         if not nopaint:
-            #self.setup_zoom([self.subplot1], self.zoomtype)
+            # self.setup_zoom([self.subplot1], self.zoomtype)
             self.repaint()
         self.flag = True
         self.mlist = []
@@ -111,11 +118,94 @@ class Plot1d(PlottingWindow):
         :param nopaint: Boolean, whether to repaint or not
         :return: None
         """
-        self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=colval, label=newlabel,**kwargs)
+        self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=colval, label=newlabel, **kwargs)
         self.setup_zoom([self.subplot1], self.zoomtype)
         if not nopaint:
-            #self.setup_zoom([self.subplot1], self.zoomtype)
+            # self.setup_zoom([self.subplot1], self.zoomtype)
             self.repaint()
+
+    def multiplot(self, x, y, a, b):
+        spec1 = gridspec.GridSpec(ncols=2, nrows=2, figure=self.figure)
+        self.f1_ax1 = self.figure.add_subplot(spec1[0, 0])
+        self.f1_ax2 = self.figure.add_subplot(spec1[0, 1])
+        self.f1_ax3 = self.figure.add_subplot(spec1[1, 0])
+        self.f1_ax4 = self.figure.add_subplot(spec1[1, 1])
+
+        self.subplots = [self.f1_ax1, self.f1_ax2, self.f1_ax3, self.f1_ax4]
+
+        for subplots in self.subplots:
+            subplots.plot(x, y)
+            subplots.spines['top'].set_visible(False)
+            subplots.spines['right'].set_visible(False)
+            subplots.get_yaxis().set_ticks([0, 0.5 * max(y), max(y)])
+            subplots.get_yaxis().set_ticklabels(["0", '%', "100"])
+            subplots.set_ylim(min(y), max(y))
+            subplots.set_xlim(min(x), max(x))
+            subplots.set_xlabel("m/z")
+
+        self.axins1 = inset_axes(self.f1_ax1, width="40%", height="40%",
+                                 bbox_to_anchor=(.65, .65, 1.0, 1.0),
+                                 bbox_transform=self.f1_ax1.transAxes, loc=3)
+        self.axins2 = inset_axes(self.f1_ax2, width="40%", height="40%",
+                                 bbox_to_anchor=(.65, .65, 1.0, 1.0),
+                                 bbox_transform=self.f1_ax2.transAxes, loc=3)
+        self.axins3 = inset_axes(self.f1_ax3, width="40%", height="40%",
+                                 bbox_to_anchor=(.65, .65, 1.0, 1.0),
+                                 bbox_transform=self.f1_ax3.transAxes, loc=3)
+        self.axins4 = inset_axes(self.f1_ax4, width="40%", height="40%",
+                                 bbox_to_anchor=(.65, .65, 1.0, 1.0),
+                                 bbox_transform=self.f1_ax4.transAxes, loc=3)
+
+        self.insetaxes = [self.axins1, self.axins2, self.axins3, self.axins4]
+
+        for insetaxes in self.insetaxes:
+            insetaxes.plot(a / 1000, b)
+            insetaxes.spines['top'].set_visible(False)
+            insetaxes.spines['right'].set_visible(False)
+            insetaxes.get_yaxis().set_ticks([0, 0.5 * max(b), max(b)])
+            insetaxes.get_yaxis().set_ticklabels(["0", '%', "100"])
+            insetaxes.set_ylim(min(b), max(b))
+            insetaxes.set_xlim(min(a), max(a))
+            insetaxes.set_xlabel("Mass (kDa)")
+
+        self.figure.tight_layout()
+        self.groups = [1, 1, 2, 2, 3, 3, 4, 4]
+        self.setup_zoom([self.f1_ax1, self.f1_ax2, self.f1_ax3, self.f1_ax4,
+                         self.axins1, self.axins2, self.axins3, self.axins4], "box", groups=self.groups)
+
+        self.repaint()
+
+    def insetplot(self, x, y, a, b):
+        self.subplot1 = self.figure.add_axes(self._axes)
+
+        self.axins = inset_axes(self.subplot1, width="40%", height="40%",
+                                bbox_to_anchor=(.65, .65, 1.0, 1.0),
+                                bbox_transform=self.subplot1.transAxes, loc=3)
+
+        mpl.rcParams['figure.dpi'] = 150
+        mpl.rcParams['lines.linewidth'] = 0.75
+
+        self.subplot1.plot(x, y)
+        self.subplot1.get_yaxis().set_ticks([0, 0.5 * max(y), max(y)])
+        self.subplot1.get_yaxis().set_ticklabels(["0", '%', "100"])
+        self.subplot1.set_ylim(min(y), max(y))
+        self.subplot1.set_xlim(min(x), max(x))
+        self.subplot1.set_xlabel("m/z")
+        self.subplot1.spines['top'].set_visible(False)
+        self.subplot1.spines['right'].set_visible(False)
+
+        self.axins.plot(a / 1000, b)
+        self.axins.get_yaxis().set_ticks([0, 0.5 * max(b), max(b)])
+        self.axins.get_yaxis().set_ticklabels(["0", '%', "100"])
+        self.axins.set_ylim(min(b), max(b))
+        self.axins.set_xlim(min(a) / 1000, max(a) / 1000)
+        self.axins.set_xlabel("Mass (KDa)")
+        self.axins.spines['top'].set_visible(False)
+        self.axins.spines['right'].set_visible(False)
+
+        self.setup_zoom([self.subplot1, self.axins], "box")
+
+        self.repaint()
 
     def errorbars(self, xvals, yvals, xerr=None, yerr=None, color="black", newlabel="", nopaint=True, **kwargs):
         self.subplot1.errorbar(np.array(xvals) / self.kdnorm, yvals, xerr=xerr, yerr=yerr, color=color, label=newlabel,
@@ -123,56 +213,6 @@ class Plot1d(PlottingWindow):
         self.setup_zoom([self.subplot1], self.zoomtype, pad=0.02)
         if not nopaint:
             self.repaint()
-
-    def addtext(self, txt, x, y, vlines=True, color="k", ymin=0, ymax=None, **kwargs):
-        """
-        Adds text and lines. Puts things that have been added in self.lines and self.text lists.
-        :param txt: String of text to add
-        :param x: x position for where to add
-        :param y: y position for where to add
-        :param vlines: Whether to add vertical lines to the text as well.
-        :param color: Color of text and lines
-        :param kwargs: Keywords
-        If range=(a,b) is specified, adds a line from a to b and vertical lines at a and b.
-        :return: None
-        """
-        if ymax is None:
-            ymax = y
-        text = self.subplot1.text(np.array(x) / self.kdnorm, y, txt, horizontalalignment="center",
-                                  verticalalignment="top", color=color)
-        self.text.append(text)
-        if vlines:
-            if "range" in kwargs:
-                line_range = kwargs["range"]
-                line = self.subplot1.vlines(line_range[0] / self.kdnorm, ymin, y * 0.6, color=color)
-                self.lines.append(line)
-                line = self.subplot1.vlines(line_range[1] / self.kdnorm, ymin, y * 0.6, color=color)
-                self.lines.append(line)
-                line = self.subplot1.hlines(y * 0.3, line_range[0] / self.kdnorm, line_range[1] / self.kdnorm,
-                                            linestyles="dashed", color=color)
-                self.lines.append(line)
-                pass
-            else:
-                line = self.subplot1.vlines(np.array(x) / self.kdnorm, ymin, y - 0.05 * ymax, linestyles="dashed",
-                                            color=color)
-                self.lines.append(line)
-        self.repaint()
-
-    def textremove(self):
-        """
-        Remove text and lines previous placed in the self.text and self.lines containers
-        :return: None
-        """
-        if len(self.text) > 0:
-            for i in range(0, len(self.text)):
-                self.text[i].remove()
-                try:
-                    self.lines[i].remove()
-                except:
-                    print(self.text[i])
-        self.text = []
-        self.lines = []
-        self.repaint()
 
     def filledplot(self, x, y, color="black"):
         """
@@ -183,6 +223,13 @@ class Plot1d(PlottingWindow):
         :return: None
         """
         self.subplot1.fill_between(np.array(x) / self.kdnorm, y, y2=0, facecolor=color, alpha=0.75)
+
+    def add_rect(self, xstart, ystart, xwidth, ywidth, alpha=0.5, facecolor="k", edgecolor='k', nopaint=False):
+        self.subplot1.add_patch(
+            Rectangle((xstart, ystart), xwidth, ywidth, alpha=alpha, facecolor=facecolor, edgecolor=edgecolor,
+                      fill=True))
+        if not nopaint:
+            self.repaint()
 
     def histogram(self, xarray, labels=None, xlab="", ylab="", title=""):
         """
@@ -317,7 +364,8 @@ class Plot1d(PlottingWindow):
         if repaint:
             self.repaint()
 
-    def colorplotMD(self, xvals, yvals, cvals, title="", xlabel="", ylabel="", clabel="Mass Defect", cmap="hsv", config=None,
+    def colorplotMD(self, xvals, yvals, cvals, title="", xlabel="", ylabel="", clabel="Mass Defect", cmap="hsv",
+                    config=None,
                     color="black", max=1,
                     marker=None, zoom="box", nopaint=False, test_kda=False, integerticks=False, **kwargs):
         self._axes = [0.11, 0.1, 0.64, 0.8]

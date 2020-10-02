@@ -1,14 +1,8 @@
 import os
 from metaunidec.meta_import_wizard import MetaTagTypes as tt
 import metaunidec.mudeng as mudeng
-import unidec_modules.mzmlparse_auto as mzparse
+from unidec_modules.unidectools import get_importer
 from unidec_modules.mzMLimporter import *
-
-try:
-    from unidec_modules.data_reader import *
-except:
-    print("Could not import data reader: meta_data_importer")
-
 
 def parse_file(file_path, exp_type='Time', collision=None, dir=None):
     file_name = os.path.split(file_path)[1]
@@ -49,14 +43,11 @@ def auto_from_wizard(data, filename, mode):
             eng.data.add_file(path=path)
         else:
             print(start, stop)
-            if os.path.splitext(path)[1] == ".mzML":
-                d = mzMLimporter(path)
-            else:
-                d = DataImporter(path)
+            importer = get_importer(path)
             if mode == 1:
-                data = d.get_data(scan_range=(start, stop))
+                data = importer.get_data(scan_range=(start, stop))
             elif mode == 0:
-                data = d.get_data(time_range=(start, stop))
+                data = importer.get_data(time_range=(start, stop))
             eng.data.add_data(data, path)
         eng.data.spectra[-1].var1 = v1
         eng.data.spectra[-1].var2 = v2

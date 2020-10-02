@@ -117,10 +117,6 @@ unidec_src/UniDec/oldVS/
 /unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_input.dat
 /unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_fitdat.bin
 /unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_peaks.dat
-/unidec_modules/waters_importer/
-*MassLynxRaw.dll
-*Waters_MassLynxSDK_EULA.txt
-*cdt.dll
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_Total_1D_Mass_Defects.txt
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_Total_2D_Mass_Defects.txt
 unidec_bin/Example Data/BSA_unidecfiles/BSA_chargedata.dat
@@ -158,4 +154,18 @@ ExtractFull2D_Da.txt
 extracts.txt
 sums.txt
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_chargepeaks.txt
-
+unidec_bin/Example Data/BSA_unidecfiles/BSA_peak_areas.dat
+ofile.dat
+BSA_report.aux
+BSA_report.log
+BSA_report.out
+unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure1.eps
+unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure2.eps
+unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure3.eps
+unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure4.eps
+unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure5.eps
+unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure6.eps
+unidec_bin/Example Data/BSA_unidecfiles/BSA_report.out
+unidec_modules/thermo_reader/RawFileReader
+unidec_modules/thermo_reader/RawFileReaderExample
+unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/Peaks_Mass_Defects.txt

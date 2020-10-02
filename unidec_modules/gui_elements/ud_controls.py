@@ -171,10 +171,6 @@ class main_controls(wx.Panel):
             gbox1b.Add(wx.StaticText(panel1b, label="Pusher Interval (\u03BCs)"), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
-        self.ctlbinsize = wx.TextCtrl(panel1b, value="", size=size1)
-        gbox1b.Add(self.ctlbinsize, (i, 1))
-        gbox1b.Add(wx.StaticText(panel1b, label="Bin Every: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
 
         self.subtypectl = wx.Choice(panel1b, -1, choices=self.backgroundchoices)
         self.ctlbuff = wx.TextCtrl(panel1b, value="", size=size1)
@@ -189,25 +185,17 @@ class main_controls(wx.Panel):
             gbox1b.Add(wx.StaticText(panel1b, label=" A.T."), (i, 2), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
-        self.ctlintthresh = wx.TextCtrl(panel1b, value="", size=size1)
-        gbox1b.Add(self.ctlintthresh, (i, 1), span=(1, 1))
-        gbox1b.Add(wx.StaticText(panel1b, label="Intensity Threshold: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
-
-
-
-        self.ctladductmass = wx.TextCtrl(panel1b, value='', size=size1)
-        gbox1b.Add(self.ctladductmass, (i, 1), span=(1, 1))
-        gbox1b.Add(wx.StaticText(panel1b, label="Adduct Mass (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
-
         self.ctlaccelvolt = wx.TextCtrl(panel1b, value='', size=size1)
         gbox1b.Add(self.ctlaccelvolt, (i, 1), span=(1, 1))
         gbox1b.Add(wx.StaticText(panel1b, label="Acceleration Voltage (kV): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
-        if self.config.imflag == 0:
+        self.ctlintthresh = wx.TextCtrl(panel1b, value="", size=size1)
+        gbox1b.Add(self.ctlintthresh, (i, 1), span=(1, 1))
+        gbox1b.Add(wx.StaticText(panel1b, label="Intensity Threshold: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
+        if self.config.imflag == 0:
 
             self.ctldatareductionpercent = wx.TextCtrl(panel1b, value="", size=size1)
             gbox1b.Add(self.ctldatareductionpercent, (i, 1), span=(1, 1))
@@ -219,15 +207,18 @@ class main_controls(wx.Panel):
             gbox1b.Add(self.ctldatanorm, (i, 0), span=(1, 2))
             i += 1
 
+        self.ctlbinsize = wx.TextCtrl(panel1b, value="", size=size1)
+        gbox1b.Add(self.ctlbinsize, (i, 1))
+        gbox1b.Add(wx.StaticText(panel1b, label="Bin Every: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        if self.config.imflag == 0:
             self.ctlbintype = wx.Choice(panel1b, -1, size=(240, 50),
                                         choices=["Linear m/z (Constant " + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z)",
                                                  "Linear resolution (Constant (m/z)/(" + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z))",
                                                  "Nonlinear", "Linear Interpolated", "Linear Resolution Interpolated"])
             gbox1b.Add(self.ctlbintype, (i, 0), span=(1, 2))
             i += 1
-
-
-
         else:
             self.ctlconvertflag = wx.CheckBox(panel1b, label="Compress when converting to .txt")
             self.ctlconvertflag.SetValue(True)
@@ -479,14 +470,10 @@ class main_controls(wx.Panel):
         gbox2b.Add(self.ctlpoolflag, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
-        if self.config.imflag == 0:
-            # self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
-            self.ctlisotopemode = wx.Choice(panel2b, -1, size=(100, -1), choices=self.config.isotopechoices)
-            gbox2b.Add(self.ctlisotopemode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-
-            self.ctlorbimode = wx.CheckBox(panel2b, label="Charge Scaling")
-            gbox2b.Add(self.ctlorbimode, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
+        self.ctladductmass = wx.TextCtrl(panel2b, value='', size=size1)
+        gbox2b.Add(self.ctladductmass, (i, 1), span=(1, 1))
+        gbox2b.Add(wx.StaticText(panel2b, label="Adduct Mass (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         self.ctlnegmode = wx.CheckBox(panel2b, label="Negative Mode")
         gbox2b.Add(self.ctlnegmode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -496,6 +483,15 @@ class main_controls(wx.Panel):
         self.parent.Bind(wx.EVT_CHECKBOX, self.on_check_manual, self.ctlmanualassign)
         gbox2b.Add(self.ctlmanualassign, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
+
+        if self.config.imflag == 0:
+            # self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
+            self.ctlisotopemode = wx.Choice(panel2b, -1, size=(100, -1), choices=self.config.isotopechoices)
+            gbox2b.Add(self.ctlisotopemode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+
+            self.ctlorbimode = wx.CheckBox(panel2b, label="Charge Scaling")
+            gbox2b.Add(self.ctlorbimode, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
 
         mlsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.ctlmasslistflag = wx.CheckBox(panel2b, label="Mass List Window:")
@@ -527,6 +523,16 @@ class main_controls(wx.Panel):
             sbs2.Add(self.ctlnativeccsub, flag=wx.LEFT | wx.EXPAND, border=5)
             sbs2.Add(wx.StaticText(panel2b, label=" \u212B\u00B2 "), 0, wx.EXPAND)
             gbox2b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1  # Check
+
+        ddsizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.doubledecflag = wx.CheckBox(panel2b, label="Double Deconvolution")
+        self.parent.Bind(wx.EVT_CHECKBOX, self.on_double_dec, self.doubledecflag)
+        self.doubledecbutton = wx.Button(panel2b, label="Open kernel file")
+        self.parent.Bind(wx.EVT_BUTTON, self.on_open_kernel, self.doubledecbutton)
+        ddsizer.Add(self.doubledecflag, 0, wx.ALIGN_CENTER_VERTICAL)
+        ddsizer.Add(self.doubledecbutton, 0, wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(ddsizer, (i, 0), span=(1, 2))
 
         panel2b.SetSizer(gbox2b)
         gbox2b.Fit(panel2b)
@@ -690,6 +696,10 @@ class main_controls(wx.Panel):
             self.ctlmasslb.SetValue(str(self.config.masslb))
             self.ctlmassub.SetValue(str(self.config.massub))
             self.ctlmasslistflag.SetValue(self.config.mfileflag)
+            self.doubledecflag.SetValue(self.config.doubledec)  # DoubleDec config import
+            if self.config.kernel != "":
+                kernel_name = os.path.splitext(os.path.basename(self.config.kernel))[0]
+                self.doubledecbutton.SetLabel(kernel_name)
             self.ctlmtabsig.SetValue(str(self.config.mtabsig))
             self.ctlbuff.SetValue(str(self.config.subbuff))
             self.subtypectl.SetSelection(int(self.config.subtype))
@@ -827,6 +837,8 @@ class main_controls(wx.Panel):
         self.config.psfun = self.ctlpsfun.GetSelection()
         self.config.peaknorm = self.ctlnorm.GetSelection()
         self.config.mfileflag = int(self.ctlmasslistflag.GetValue())
+        self.config.doubledec = self.doubledecflag.GetValue()  # DoubleDec config export
+        # self.config.kernel =
         self.config.peakwindow = ud.string_to_value(self.ctlwindow.GetValue())
         self.config.peakthresh = ud.string_to_value(self.ctlthresh.GetValue())
         self.config.peakplotthresh = ud.string_to_value(self.ctlthresh2.GetValue())
@@ -1100,6 +1112,42 @@ class main_controls(wx.Panel):
             self.pres.on_mass_tools(e)
             if len(self.config.masslist) < 1:
                 self.ctlmasslistflag.SetValue(False)
+
+    def on_double_dec(self, e):
+        """
+        Sets the DoubleDec flag in the config to the appropriate value
+        :param e: Dummy wx event. Unused.
+        :return: None
+        """
+        self.config.doubledec = self.doubledecflag.GetValue()
+        print("DoubleDec mode is", self.config.doubledec)
+
+    def on_open_kernel(self, e):
+        """
+        Opens a kernel file and saves the path in the config. The button text is
+        also updated to match. Note that the user is supposed to select the raw
+        m/z file--the corresponding mass file will be found if it exists. This way,
+        possible file naming issues are avoided.
+        :param e: Triggering event. Unused.
+        :return: None
+        """
+        kernel_path = self.pres.on_open_kernel()
+        kernel_name = os.path.basename(kernel_path)
+        bare_name = os.path.splitext(kernel_name)[0]
+        # if kernel_name.split('_')[-1] == "mass.txt":  # Possible naming issues
+        #    self.doubledecbutton.SetLabel(bare_name)
+        #    self.config.kernel = kernel_path
+        # else:
+        kernel_path2 = os.path.dirname(kernel_path) + "\\" + bare_name + "_unidecfiles\\" + \
+            bare_name + "_mass.txt"
+        try:
+            with open(kernel_path2, "r") as f:
+                self.doubledecbutton.SetLabel(os.path.splitext(os.path.basename(kernel_path2))[0])
+                self.config.kernel = kernel_path2
+        except IOError:
+            print("Please deconvolve the m/z file [" + kernel_name + "] with UniDec first.")
+        print(self.config.kernel)
+        # TODO: Check that mass file is linear!
 
     def on_z_smooth(self, e):
         value = self.ctlzsmoothcheck.Get3StateValue()
