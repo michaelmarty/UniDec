@@ -4,6 +4,7 @@
 import wx, os
 import wx.lib.agw.multidirdialog as MDD
 import unidec_modules.unidectools as ud
+from pathlib import Path
 
 # setup a default path
 default_dir = os.path.abspath(os.path.join(os.getcwd(), os.path.pardir, 'data/'))
@@ -74,11 +75,27 @@ def open_dir_dialog(message="Select a Folder"):
 
 
 def open_multiple_dir_dialog(message, default):
+    if default is None:
+        global default_dir
+        default = default_dir
     dlg = MDD.MultiDirDialog(None, message=message, defaultPath=default,
                              agwStyle=MDD.DD_MULTIPLE | MDD.DD_DIR_MUST_EXIST)
+    #dlg = wx.DirDialog(None, message, default, wx.DD_MULTIPLE)
     dirs = None
     if dlg.ShowModal() == wx.ID_OK:
         dirs = ud.smartdecode(dlg.GetPaths())
+        dirs2 = []
+        for d in dirs:
+            p = Path(d)
+            drive = p.parts[0]
+            if ")" in drive:
+                spot = drive.find(":")
+                drive_letter = drive[spot-1]
+                d=drive_letter+":\\"
+                d2 = os.path.join(*p.parts[1:])
+                d = os.path.join(d, d2)
+            dirs2.append(d)
+        dirs = dirs2
     dlg.Destroy()
     return dirs
 

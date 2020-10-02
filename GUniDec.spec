@@ -141,10 +141,10 @@ a.datas.extend(dir_files("unidec_bin\\Example Data", 'Example Data'))
 from os import listdir
 from PyInstaller import compat
 
-mkldir = compat.base_prefix + "/Lib/site-packages/numpy/DLLs"
-a.datas.extend(dir_files(mkldir, ''))
-a.datas.extend(
-    [(mkldir + "/" + mkl, '', 'DATA') for mkl in listdir(mkldir) if mkl.startswith('mkl_') or mkl.startswith('libio')])
+#mkldir = compat.base_prefix + "/Lib/site-packages/numpy/DLLs"
+#a.datas.extend(dir_files(mkldir, ''))
+#a.datas.extend(
+#    [(mkldir + "/" + mkl, '', 'DATA') for mkl in listdir(mkldir) if mkl.startswith('mkl_') or mkl.startswith('libio')])
 #for b in binaries:
 #    a.datas += b
 

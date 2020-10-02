@@ -1271,6 +1271,7 @@ def gsmooth(datatop, sig):
     :param sig: Width of Gaussian Array
     :return: Smoothed Data
     """
+    print(len(datatop), sig)
     datatop[:, 1] = filt.gaussian_filter(datatop[:, 1], sig)
     return datatop
 

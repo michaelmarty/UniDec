@@ -183,9 +183,13 @@ class meta_menu(wx.Menu):
             self.toolsmenu.AppendSeparator()
 
         else:
-            self.menubatchrun = self.toolsmenu.Append(wx.ID_ANY, "Batch Run",
+            self.menubatchrun = self.toolsmenu.Append(wx.ID_ANY, "Batch Run Files (Thermo/mzML/etc.)",
                                                       "Apply current config and time windows and run deconvolution for batch of  files")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_batch_chrom1, self.menubatchrun)
+
+            self.menubatchrun2 = self.toolsmenu.Append(wx.ID_ANY, "Batch Run Directories (Waters/Agilent)",
+                                                      "Apply current config and time windows and run deconvolution for batch of  files")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_batch_chrom_dirs, self.menubatchrun2)
 
         self.menuExport = self.toolsmenu.Append(wx.ID_ANY, "Export Peaks Parameters and Data",
                                                 "Export intensities of charge states, areas, average charge state, and other parameters for the peaks")

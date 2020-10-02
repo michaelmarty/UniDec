@@ -45,7 +45,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.ctlsizer = wx.BoxSizer(wx.VERTICAL)
         label = wx.StaticText(self.panel, label="Chromatogram Parsing Tools", size=(300, 30))
         label.SetFont(labelfont)
-        self.ctlsizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctlsizer.Add(label, 0)
 
         self.manual_add_button = wx.Button(self.panel, label="Add From Manual Selection")
         self.Bind(wx.EVT_BUTTON, self.pres.on_manual_add, self.manual_add_button)
@@ -79,7 +79,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
 
         label = wx.StaticText(self.panel, label="Parsed Spectra", size=(300, 30))
         label.SetFont(labelfont)
-        self.ctlsizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctlsizer.Add(label, 0)
 
         self.leftsizer.Add(self.ctlsizer)
 
@@ -89,7 +89,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.ctlsizer2 = wx.BoxSizer(wx.VERTICAL)
         label = wx.StaticText(self.panel, label="UniDec of Manual Selection", size=(300, 30))
         label.SetFont(labelfont)
-        self.ctlsizer2.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctlsizer2.Add(label, 0)
 
         self.run_ud_button = wx.Button(self.panel, label="Run UniDec On Selection")
         self.Bind(wx.EVT_BUTTON, self.pres.on_unidec_run, self.run_ud_button)
@@ -101,7 +101,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
 
         label = wx.StaticText(self.panel, label="Peaks for Manual Selection", size=(300, 30))
         label.SetFont(labelfont)
-        self.ctlsizer2.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctlsizer2.Add(label, 0)
 
         self.singlepeakpanel = peaklistsort.PeakListCtrlPanel(self.panel, meta=False, size=(300, 300))
         self.Bind(self.singlepeakpanel.EVT_DELETE_SELECTION_2, self.pres.on_single_delete, self.singlepeakpanel)
@@ -146,7 +146,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.sizer3 = wx.BoxSizer(wx.VERTICAL)
         label = wx.StaticText(self.panel, label=" Peaks for Parsed Spectra", size=(300, 30))
         label.SetFont(labelfont)
-        self.sizer3.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.sizer3.Add(label, 0)
         self.peakpanel = peaklistsort.PeakListCtrlPanel(self.panel, meta=True)
         self.Bind(self.peakpanel.EVT_DELETE_SELECTION_2, self.pres.on_delete, self.peakpanel)
         self.Bind(self.peakpanel.EVT_CHARGE_STATE, self.pres.on_charge_states_mud, self.peakpanel)

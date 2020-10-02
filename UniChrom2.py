@@ -32,7 +32,7 @@ class ChromApp(MetaUniDecBase):
         self.view.menu.update_recent()
         if False:
             path = "D:\\Data\\ShortCourse\\strepme.RAW"
-            #path = "D:\Data\ChromTest\SYJMX160819_04.hdf5"
+            # path = "D:\Data\ChromTest\SYJMX160819_04.hdf5"
             self.open_file(path)
 
     def on_open(self, e=None):
@@ -53,7 +53,7 @@ class ChromApp(MetaUniDecBase):
             if os.path.splitext(dirname)[1] in chrom_file_exts:
                 self.open_file(dirname)
 
-    def open_file(self, path, skip_eng=False):
+    def open_file(self, path, skip_eng=False, batch=False):
         self.view.clear_all_plots()
         self.view.ypanel.list.clear_list()
         if os.path.isfile(path) or os.path.isdir(path):
@@ -65,7 +65,7 @@ class ChromApp(MetaUniDecBase):
             self.view.SetStatusText(str(self.eng.filename), number=0)
             self.load_to_gui()
             self.makeplotc()
-            if load_hdf5:
+            if load_hdf5 and not batch:
                 self.update_hdf5()
             self.write_to_recent(self.eng.config.hdf_file)
             self.view.menu.update_recent()
@@ -100,18 +100,31 @@ class ChromApp(MetaUniDecBase):
             self.open_file(newpath, skip_eng=True)
 
     def on_batch_chrom1(self, e=None):
+        paths = FileDialogs.open_multiple_files_dialog(message="Choose files to batch process.", file_type="*.*")
+        print("Batch Run:", paths)
+        self.batch_run(paths)
+
+    def on_batch_chrom_dirs(self, e=None):
+        paths = FileDialogs.open_multiple_dir_dialog(message="Choose Waters or Agilent files to batch process.",
+                                                     default=None)
+        print("Batch Run Directories:", paths)
+        self.batch_run(paths)
+
+    def batch_run(self, paths):
         self.get_from_gui()
         timestarts, timeends = self.eng.get_times()
-        print("Batch Run")
-        paths = FileDialogs.open_multiple_files_dialog(message="Choose files to batch process.",file_type="*.*")
-
-        for p in paths:
-            print(p) # SWITCH TO HDF5
-            self.eng.config.write_hdf5(p)
-            self.open_file(p)
-            self.on_list_add(timestarts, timeends)
-            self.on_auto()
-
+        if paths is not None:
+            for p in paths:
+                name = os.path.splitext(p)[0]
+                outpath = name + ".hdf5"
+                self.eng.config.write_hdf5(outpath)
+                try:
+                    self.open_file(p, batch=True)
+                    self.on_list_add(timestarts, timeends)
+                    self.on_auto()
+                except Exception as e:
+                    print("Error with file:", p)
+                    print(e)
 
     def get_from_gui(self):
         self.eng.config.time_window = float(self.view.ctlmin.GetValue())
@@ -200,7 +213,7 @@ class ChromApp(MetaUniDecBase):
         self.get_from_gui()
         print(starts)
         print(ends)
-        self.eng.add_list_times(starts,ends)
+        self.eng.add_list_times(starts, ends)
         self.update_hdf5()
         pass
 
@@ -276,7 +289,3 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()
     app = ChromApp()
     app.start()
-
-
-
-

@@ -24,7 +24,7 @@ subbuff 100.0
 subtype 2
 smooth 0.0
 mzbins 0.0
-peakwindow 5.0
+peakwindow 100.0
 peakthresh 0.01
 peakplotthresh 1.0
 plotsep 0.025

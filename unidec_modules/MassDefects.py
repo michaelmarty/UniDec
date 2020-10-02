@@ -674,8 +674,9 @@ class MassDefectWindow(wx.Frame):
             return
 
         vvals = []
+        shifts = []
         for i, m in enumerate(masses):
-            try:
+            if True:
                 vval = float(m)
 
                 label = str(nums[i])
@@ -684,10 +685,15 @@ class MassDefectWindow(wx.Frame):
                     vval = ud.simple_mass_defect(vval, refmass=self.m0, centermode=self.centermode, normtype=self.xtype)
 
                 shift = 0.98
-                numclose = np.sum((np.abs(np.array(vvals) - vval)) < factor * 0.03)
-                print(numclose, np.array(vvals) - vval, factor)
+                boo1=(np.abs(np.array(vvals) - vval)) < factor * 0.05
+                numclose = np.sum(boo1)
                 if numclose > 0:
-                    shift = shift - numclose * 0.05
+                    sarray = np.array(shifts)
+                    pastshift = np.sum(sarray[boo1])
+                    shift = shift - 0.04 - pastshift
+                    shifts.append(0.04 + pastshift)
+                else:
+                    shifts.append(0)
 
                 vvals.append(vval)
 
@@ -719,9 +725,9 @@ class MassDefectWindow(wx.Frame):
                         print("Failed Multiline 1: ", m, e)
                         pass
 
-            except Exception as e:
-                print("Failed Multiline 2: ", m, e)
-                pass
+            #except Exception as e:
+            #    print("Failed Multiline 2: ", m, e)
+            #    pass
 
         self.plot2.repaint()
         self.plot3.repaint()

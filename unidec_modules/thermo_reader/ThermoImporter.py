@@ -38,6 +38,11 @@ class ThermoDataImporter:
         self.data = np.array(self.data)
         return self.data
 
+    def grab_scan_data(self, s):
+        impdat = np.array(self.msrun.GetSpectrum(s))  # May want to test this.
+        impdat = impdat[impdat[:, 0] > 10]
+        return impdat
+
     def get_data(self, scan_range=None, time_range=None):
         """
         Returns merged 1D MS data from mzML import

@@ -191,4 +191,4 @@ class ChromEngine(MetaUniDec):
         self.data.clear()
         for i, t in enumerate(starts):
             data = self.get_data_from_times(t, ends[i])
-            self.data.add_data(data, name=str(t[0]), attrs=self.attrs, export=False)
+            self.data.add_data(data, name=str(t), attrs=self.attrs, export=False)
