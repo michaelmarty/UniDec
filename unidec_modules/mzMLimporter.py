@@ -36,6 +36,11 @@ def fit_line(x, a, b):
     return a * x ** b
 
 
+def get_longest_index(datalist):
+    lengths = [len(x) for x in datalist]
+    return np.argmax(lengths)
+
+
 def merge_spectra(datalist, mzbins=None, type="Interpolate"):
     """
     Merge together a list of data.
@@ -46,18 +51,19 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
     :return: Merged N x 2 data set
     """
     concat = np.concatenate(datalist)
+    maxlenpos = get_longest_index(datalist)
     # xvals = concat[:, 0]
     # print "Median Resolution:", resolution
     # axis = nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
     if mzbins is None or mzbins == 0:
-        resolution = get_resolution(datalist[0])
+        resolution = get_resolution(datalist[maxlenpos])
         axis = ud.nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
     else:
         axis = np.arange(np.amin(concat[:, 0]), np.amax(concat[:, 0]), float(mzbins))
     template = np.transpose([axis, np.zeros_like(axis)])
     print("Length merge axis:", len(template))
     for d in datalist:
-        if len(d) > 1:
+        if len(d) > 2:
             if type == "Interpolate":
                 newdat = ud.mergedata(template, d)
             elif type == "Integrate":
@@ -154,9 +160,9 @@ class mzMLimporter:
     def grab_data(self):
         self.data = []
         for s in self.scans:
-            impdat = get_data_from_spectrum(self.msrun[s+1])
+            impdat = get_data_from_spectrum(self.msrun[s + 1])
             self.data.append(impdat)
-        self.data = np.array(self.data)
+        self.data = np.array(self.data, dtype="object")
 
     def get_data_fast_memory_heavy(self, scan_range=None, time_range=None):
         if self.data is None:
@@ -195,25 +201,34 @@ class mzMLimporter:
         Returns merged 1D MS data from mzML import
         :return: merged data
         """
-        if self.filesize > 1000000000:
+        if self.filesize > 1000000000 and self.data is None:
             try:
                 data = self.get_data_memory_safe(scan_range, time_range)
             except Exception as e:
-                print("Error in Memory Safe mzML, trying memory heavy metho")
+                print("Error in Memory Safe mzML, trying memory heavy method")
                 data = self.get_data_fast_memory_heavy(scan_range, time_range)
         else:
             data = self.get_data_fast_memory_heavy(scan_range, time_range)
         return data
 
     def get_tic(self):
-        tic = self.msrun["TIC"]
         try:
+            tic = self.msrun["TIC"]
             ticdat = np.transpose([tic.time, tic.i])
         except:
             print("Error getting TIC in mzML; trying to make it...")
             t = self.times
-            tic = [np.sum(d[:, 1]) for d in self.data]
+            tic = []
+            self.grab_data()
+            print("Imported Data. Constructing TIC")
+            for d in self.data:
+                try:
+                    tot = np.sum(d[:, 1])
+                except:
+                    tot = 0
+                tic.append(tot)
             ticdat = np.transpose([t, tic])
+            print("Done")
         return ticdat
 
     def get_scans_from_times(self, time_range):
