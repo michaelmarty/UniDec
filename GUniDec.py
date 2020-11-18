@@ -1259,7 +1259,7 @@ class UniDecApp(UniDecPres):
         if batchfiles is None:
             batchfiles = FileDialogs.open_multiple_files_dialog(
                 message="Select Files To Process With Current Parameters",
-                file_type="Text (.txt)|*.txt|Any Type|*.*")
+                file_type="Any Type|*.*|Text (.txt)|*.txt|Thermo (.raw)|*.raw|mzML (.mzML)|*.mzML")
 
         self.eng.config.batchflag = 1 + flag
         tstarttop = time.perf_counter()

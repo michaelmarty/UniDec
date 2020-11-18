@@ -4,24 +4,25 @@ import numpy as np
 import clr
 
 pathtothisfile = os.path.dirname(__file__)
-#print(pathtothisfile)
+# print(pathtothisfile)
 dlls = ['ThermoFisher.CommonCore.Data', 'ThermoFisher.CommonCore.RawFileReader',
         'ThermoFisher.CommonCore.BackgroundSubtraction', 'ThermoFisher.CommonCore.MassPrecisionEstimator']
 
 for dll in dlls:
     testpath = os.path.join(pathtothisfile, dll) + ".dll"
-    #print(testpath)
+    # print(testpath)
     if os.path.isfile(testpath):
-        #print("1")
+        # print("1")
         clr.AddReference(testpath)
     else:
         try:
-            #print("2")
+            # print("2")
             import sys
+
             sys.path.append(pathtothisfile)
             clr.AddReference(dll)
         except:
-            #print("3")
+            # print("3")
             clr.AddReference(dll)
 
 clr.AddReference('System.Collections')
@@ -38,11 +39,14 @@ from ThermoFisher.CommonCore.Data.Interfaces import IChromatogramSettings, IScan
     RawFileClassification
 from ThermoFisher.CommonCore.MassPrecisionEstimator import PrecisionEstimate
 from ThermoFisher.CommonCore.RawFileReader import RawFileReaderAdapter, SequenceFileReader
+
 """"""
 '''
 APIs are similar to pymsfilereader(https://github.com/frallain/pymsfilereader), but some APIs have not be implemented yet."
 Borrowed some code from pyRawRileReader from pDeep3: https://github.com/pFindStudio/pDeep3/blob/master/pDeep/pyRawFileReader/RawFileReader.py
 '''
+
+
 def DotNetArrayToNPArray(arr, dtype=np.float):
     return np.array(list(arr), dtype=dtype)
 
@@ -184,6 +188,28 @@ class RawFileReader(object):
         self.NumSpectra = self.source.RunHeaderEx.SpectraCount
         self.scanrange = [self.FirstSpectrumNumber, self.LastSpectrumNumber]
         self.timerange = [self.StartTime, self.EndTime]
+
+        try:
+            self.header = {}
+            extra_header_info = self.source.GetTrailerExtraHeaderInformation()
+            extra_header_values = self.source.GetTrailerExtraValues(2, True)
+            extra_header_values = DotNetArrayToNPArray(extra_header_values, dtype=str)
+            for i in range(len(extra_header_info)):
+                item = extra_header_info[i]
+                self.header[item.Label[:-1]] = extra_header_values[i]
+
+            try:
+                self.injection_time = float(self.Get_Header_Item('Ion Injection Time (ms)'))
+                self.resolution = float(self.Get_Header_Item('FT Resolution'))
+            except:
+                self.injection_time = None
+                self.resolution = None
+        except:
+            self.header = None
+            print("Error getting header")
+
+    def Get_Header_Item(self, item):
+        return self.header[item]
 
     def Close(self):
         '''Closes a raw file and frees the associated memory.'''
@@ -445,7 +471,7 @@ class RawFileReader(object):
             scanFilter = IScanFilter(self.source.GetFilterForScanNumber(scanrange[0]))
         else:
             filterhelper = Extensions.BuildFilterHelper(self.source, filter)
-            scanFilter=filterhelper.Filter
+            scanFilter = filterhelper.Filter
         scanStatistics = self.source.GetScanStatsForScanNumber(scanrange[0])
 
         # Get the average mass spectrum for the provided scan range. In addition to getting the
@@ -540,14 +566,15 @@ class RawFileReader(object):
         starts at 1.
         NOTE : XCALIBUR INTERFACE "View/Report/Sample Information" part
         """
-        #result = c_long()
+        # result = c_long()
         seq = SequenceFileReader.OpenSequence(self.filename)
         print(seq.Samples)
-        #print(str(self.source.GetCompoundNames()))
-        #error = self.source.SequenceFileReader()
-        #if error:
+        # print(str(self.source.GetCompoundNames()))
+        # error = self.source.SequenceFileReader()
+        # if error:
         #    raise IOError("GetSeqRowNumber error : ", error)
-        #return error
+        # return error
+
 
 if __name__ == "__main__":
     test = u"C:\Python\\UniDec3\TestSpectra\\test.RAW"

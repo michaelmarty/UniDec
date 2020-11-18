@@ -393,13 +393,19 @@ def integrate(data, start, end):
     return integral, intdat
 
 
-def center_of_mass(data, start=None, end=None, power=1.):
+def center_of_mass(data, start=None, end=None, relative_cutoff=None, power=1.):
     if start is not None and end is not None:
         boo1 = data[:, 0] < end
         boo2 = data[:, 0] > start
         cutdat = data[np.all([boo1, boo2], axis=0)]
     else:
         cutdat = data
+
+    if relative_cutoff is not None:
+        maxval = np.amax(cutdat[:,1])
+        boo3 = cutdat[:,1] > maxval * relative_cutoff
+        cutdat = cutdat[boo3]
+
     try:
         weightedavg = np.average(cutdat[:, 0], weights=np.power(cutdat[:, 1], float(power)))
         weightstd = weighted_std(cutdat[:, 0], np.power(cutdat[:, 1], float(power)))
