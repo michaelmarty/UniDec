@@ -296,7 +296,9 @@ class MatchListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
         :param style: Passed to wx.ListCtrl
         :return: None
         """
-        wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)
+        wx.ListCtrl.__init__(self, parent, id_value, pos, size, style=wx.LC_REPORT)
+        #wx.ListCtrl.__init__(self, pos=wx.DefaultPosition, size=size,
+                                     #style=wx.LC_REPORT | wx.BORDER_SUNKEN)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.TextEditMixin.__init__(self)
         self.InsertColumn(0, "Peak Mass (Da)")

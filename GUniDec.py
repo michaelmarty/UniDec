@@ -1405,11 +1405,24 @@ class UniDecApp(UniDecPres):
         peaklabels = [p.label for p in self.eng.pks.peaks]
         peakcolors = [p.color for p in self.eng.pks.peaks]
         peaks = np.array([[p.mass, p.height] for p in self.eng.pks.peaks])
+        uniscore = self.eng.pks.uniscore
+        #str(round(self.eng.pks.uniscore * 100, 2))
+        #oligos = np.array(oligos)
+        #match = np.array([[p.peaks, p.matches, p.errors, p.names] for p in self.eng.config.matchlist])
+        # match = np.transpose(self.eng.config.matchlist)
+        # match = self.eng.config.matchlist
+        #self.eng.config.matchlist = np.transpose(
+        #    np.genfromtxt(self.eng.config.matchfile, dtype='str', delimiter=","))
+
+        if os.path.isfile(self.eng.config.matchfile):
+            match = np.transpose(self.eng.config.matchlist)
+        else:
+            match = "-"
         if self.eng.config.imflag == 0:
             texmaker_nmsgsb.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config,
                                           self.eng.config.udir,
                                           peaks, textmarkertab, peaklabels, peakcolors, figureflags, output,
-                                          rawsamplename)
+                                          rawsamplename, match, uniscore)
             self.view.SetStatusText("TeX file Written", number=5)
             try:
                 texmaker_nmsgsb.PDFTexReport(self.eng.config.outfname + '_report.tex')
