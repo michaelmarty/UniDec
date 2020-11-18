@@ -1399,7 +1399,7 @@ class UniDecApp(UniDecPres):
         output = dialog.value
 
         self.view.shrink_all_figures(figsize=(6, 5))
-        self.view.on_save_figure_eps(e)
+        figureflags, files = self.view.on_save_figure_eps(e)
         figureflags, files = self.view.on_save_figure_pdf(e)
         textmarkertab = [p.textmarker for p in self.eng.pks.peaks]
         peaklabels = [p.label for p in self.eng.pks.peaks]

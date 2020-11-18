@@ -1183,7 +1183,7 @@ class UniDec(UniDecEngine):
             sse = np.sum((fit - top[:, 1]) ** 2)
             denom = np.sum((top[:, 1] - np.mean(top[:, 1])) ** 2)
             p.rsquared = 1 - ud.safedivide1(sse, denom)
-            p.mzstack = np.array(stack)
+            p.mzstack = np.array(stack, dtype='object')
 
     def pks_uscore(self, xfwhm=2, pow=1):
         self.get_mzstack(xfwhm=xfwhm)

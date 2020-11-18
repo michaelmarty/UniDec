@@ -121,8 +121,11 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
     for i in range(0, len(peaks)):
         if len(peaks) == len(match):
             match1 = str(match[i][1])
+            error = str(round(float(match[i][2])))
+            print("Error: ", error)
         else:
             match1 = "-"
+            error = "-"
         a = 1
         f.write(
             "\\cellcolor[rgb]{" + "%.4f" % color[i][0] * a + "," + "%.4f" % color[i][1] * a + "," + "%.4f" % color[i][
