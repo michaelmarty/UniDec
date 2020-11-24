@@ -61,7 +61,8 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
     output1 = output.replace(';', '}\\\{')
     output2 = output1.replace('; ', '}\\\{')
     output3 = output2.replace('_', '\\_')
-    f.write("\\text{" + output3 + "}\\\\\n")
+    output4 = output3.replace('%', '\%')
+    f.write("\\text{" + output4 + "}\\\\\n")
     
     f.write("Date Analyzed: " + time.strftime("%a, %d %b %Y, %H:%M %Z", time.localtime()) + "\\\\\n")
     f.write("File Name: " + header3 + "\\\\\n")
@@ -107,22 +108,18 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
     #print(match)
     #print(peaks)
     #print(uniscore)
-    #if match == all("-"):
-    #    match1 = "-"
-    #else:
-    #    match1 = str(match[i][1])
+    #print("Error: ", error)
     f.write("\\begin{center}\n")
     f.write("\\begin{table}[ht]\n")
     f.write("\\centering\n")
-    f.write("\\begin{tabular}{c c c c c}\n")
-    f.write("Symbol & Mass (Da) & Intensity\\tablefootnote{Intensity values should not be considered quantitative} & Expected (Da) & Name/Species/Oligomer \\\\\n")
+    f.write("\\begin{tabular}{c c c c c c}\n")
+    f.write("Symbol & Mass (Da) & Intensity\\tablefootnote{Intensity values should not be considered quantitative} & Expected & Difference (Da) & Name/Species/Oligomer \\\\\n")
     f.write("\\hline\n")
     f.write("\\hline\n")
     for i in range(0, len(peaks)):
         if len(peaks) == len(match):
-            match1 = str(match[i][1])
+            match1 = str(round(float(match[i][1])))
             error = str(round(float(match[i][2])))
-            print("Error: ", error)
         else:
             match1 = "-"
             error = "-"
@@ -130,7 +127,7 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
         f.write(
             "\\cellcolor[rgb]{" + "%.4f" % color[i][0] * a + "," + "%.4f" % color[i][1] * a + "," + "%.4f" % color[i][
                 2] * a + "}\n")
-        f.write(textdict[labels[i]] + '&$' + str(int(round(peaks[i][0]))) + '$&$' + str(int(round(peaks[i][1]))) + '$&$' + match1  + '$&' + names[i] + '\\\\\hline\n')
+        f.write(textdict[labels[i]] + '&$' + str(int(round(peaks[i][0]))) + '$&$' + str(int(round(peaks[i][1]))) + '$&$' + match1 + '$&$' + error  + '$&' + names[i] + '\\\\\hline\n')
     f.write("\\hline\n")
     f.write("\\end{tabular}\n")
     f.write("\\end{table}\n")
