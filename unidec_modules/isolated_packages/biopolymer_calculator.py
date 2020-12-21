@@ -8,7 +8,7 @@ aa_masses = {'A': 71.0788, 'C': 103.1388, 'D': 115.0886, 'E': 129.1155, 'F': 147
 
 rna_masses = {'A': 329.2, 'U': 306.2, 'C': 305.2, 'G': 345.2, 'T': 306.2}
 
-dna_masses = {'A': 313.2, 'T': 304.2, 'C': 289.2, 'G': 329.2}
+dna_masses = {'A': 313.2, 'T': 304.2, 'C': 289.2, 'G': 329.2, 'U': 304.2, }
 
 sequence = "testtest"
 s2 = "MKTVVLAVAVLFLTGSQARHFWQRDDPQTPWDRVKDFATVYVDAVKDSGREYVSQFETSALGKQLNLNLLENWDTLGSTVGRLQEQLGPVTQEFWDNLEKETEWLRREMNKDLEEVKAKVQPYLDQFQTKWQEEVALYRQKMEPLGAELRDGARQKLQELQEKLTPLGEDLRDRMRHHVDALRTKMTPYSDQMRDRLAERLAQLKDSPTLAEYHTKAADHLKAFGEKAKPALEDLRQGLMPVFESFKTRIMSMVEEASKKLNAQ"
@@ -38,6 +38,13 @@ def get_rna_mass(letter):
         print("Bad RNA Code:", letter)
         return 0
 
+def get_dna_mass(letter):
+    try:
+        return dna_masses[letter]
+    except:
+        print("Bad DNA Code:", letter)
+        return 0
+
 
 def calc_pep_mass(sequence):
     seq = sequence.upper()
@@ -61,6 +68,21 @@ def calc_rna_mass(sequence, threeend="OH", fiveend="MP"):
 
     return round(mass, 2)
 
+def calc_dna_mass(sequence, threeend="OH", fiveend="MP"):
+    seq = sequence.upper()
+    mass = np.sum([get_dna_mass(s) for s in seq])
+    if threeend == "OH":
+        mass += mass_OH
+
+    if fiveend == "OH":
+        mass -= mass_HPO4
+        mass += mass_OH
+    elif fiveend == "MP":
+        mass += mass_H
+    elif fiveend == "TP":
+        mass += mass_HPO4 + mass_HPO4 - mass_O - mass_O + mass_H
+
+    return round(mass, 2)
 
 class BiopolymerFrame(wx.Dialog):
     def __init__(self, parent):
@@ -72,8 +94,8 @@ class BiopolymerFrame(wx.Dialog):
 
         self.panel = wx.Panel(self)
 
-        self.ctltype = wx.RadioBox(self.panel, label="Type", choices=["Protein/Peptide", "RNA"])
-        self.ctltyperna = wx.RadioBox(self.panel, label="RNA 5' End", choices=["-OH", "MonoP", "TriP"])
+        self.ctltype = wx.RadioBox(self.panel, label="Type", choices=["Protein/Peptide", "RNA", "ssDNA", "dsDNA"])
+        self.ctltyperna = wx.RadioBox(self.panel, label="RNA or DNA 5' End", choices=["-OH", "MonoP", "TriP"])
         self.ctltype.SetSelection(self.type)
         self.ctltyperna.SetSelection(self.typerna)
 
@@ -85,10 +107,8 @@ class BiopolymerFrame(wx.Dialog):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
-        s2 = wx.BoxSizer(wx.HORIZONTAL)
-        s2.Add(self.ctltype, 0, flag=wx.ALIGN_CENTER_VERTICAL)
-        s2.Add(self.ctltyperna, 0, flag=wx.ALIGN_CENTER_VERTICAL)
-        self.sizer.Add(s2, 0)
+        self.sizer.Add(self.ctltype, 0, flag=wx.ALIGN_CENTER_VERTICAL)
+        self.sizer.Add(self.ctltyperna, 0, flag=wx.ALIGN_CENTER_VERTICAL)
 
         self.sizer.Add(wx.StaticText(self.panel, label="  Sequence: "))
         self.sizer.Add(self.ctlseq, 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL)
@@ -128,6 +148,10 @@ class BiopolymerFrame(wx.Dialog):
             self.mass = calc_pep_mass(self.seq)
         elif self.type == 1:
             self.mass = calc_rna_mass(self.seq, fiveend=fiveend)
+        elif self.type == 2:
+            self.mass = calc_dna_mass(self.seq, fiveend=fiveend)
+        elif self.type == 3:
+            self.mass = 2*calc_dna_mass(self.seq, fiveend=fiveend)
         print("Mass:", self.mass)
         self.ctlmass.SetValue(str(self.mass))
 

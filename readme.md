@@ -195,6 +195,28 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.4.3.1
+
+**Added Fast Profile and Fast Centroid** options for UniChrom2 and MetaUniDec. These will help speed up deconvolutions and limit file sizes by not adding the massgrid and mzgrid to each spectrum. The animate features will not work, and other things might not be available, but the basic settings should be consistent.
+
+**Major speed improvements to large mzML data files** by using gzip to compress the data prior to opening it. Thanks to the pymzML team for this.
+
+**Added Sliding Window to UniChrom**. You can now specify the width of the window (in minutes) and the offset between the start of the windows (in # of scans). The offset needs to be an integer greater than or equal to 1. Setting the window to 1 will start a window on each scan. Setting a window of 0 and an offset of 1 will give every scan separately, without averaging any of them together. 
+
+Added DNA to Biopolymer Calculator.
+
+Added a Mass Defect Comparison Tool to the Mass Defect Window.
+
+Added normalization option to FFT window, which really improves the results.
+
+Added "Subtract Constant" option to the UniDec baseline subtraction. The number in the box will specify the constant relative to the max intensity. For example, a value of 0.01 will subtract each intensity by 1% of the maximum.
+
+UniChrom2 manual selection now puts data out as text files in the UniDec Files and Figures folder rather than TestSpectra.
+
+Bug fixes to data import functions.
+
+Fixed bugs with figure saving and isolating peaks in UniChrom.
+
 v.4.3.0
 
 **Added UniChrom2: UniDec for LC/MS data**. UniChrom is built on top of the MetaUniDec engine and uses HDF5 files and many of the same core tools. The primary additions are the ability to parse chromatography data into HDF5, visualize and interact with LC/MS data, and manually select and quickly deconvolve parts of the chromatogram.

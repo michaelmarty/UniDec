@@ -35,7 +35,7 @@ class ThermoDataImporter:
             impdat = np.array(self.msrun.GetSpectrum(s))  # May want to test this.
             impdat = impdat[impdat[:, 0] > 10]
             self.data.append(impdat)
-        self.data = np.array(self.data, dtype="object")
+        self.data = np.array(self.data)
         return self.data
 
     def grab_scan_data(self, s):

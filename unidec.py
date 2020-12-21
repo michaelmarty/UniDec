@@ -82,6 +82,12 @@ class UniDec(UniDecEngine):
 
         # Import Data
         self.data.rawdata = ud.load_mz_file(self.config.filename, self.config, time_range)
+        if ud.isempty(self.data.rawdata):
+            print("Error: Data Array is Empty")
+            print("Likely an error with data conversion")
+            raise ImportError
+            return
+
         if self.data.rawdata.shape[1] == 3:
             self.config.imflag = 1
             self.config.discreteplot = 1
@@ -100,7 +106,6 @@ class UniDec(UniDecEngine):
             self.data.data3 = self.data.rawdata3
         else:
             self.config.imflag = 0
-
 
         if self.config.imflag == 0:
             newname = self.config.outfname + "_rawdata.txt"
@@ -886,7 +891,6 @@ class UniDec(UniDecEngine):
         return True
         # TODO: Import Matches, others things in state?
 
-
     def normalize_peaks(self):
         """
         Noamlize everything in the peaks accoring to the type set in self.config.peaknorm
@@ -1071,7 +1075,6 @@ class UniDec(UniDecEngine):
             for j, z in enumerate(self.data.ztab):
                 stack.append(zarr[boo3, j])
             p.zstack = np.array(stack)
-
 
     def pks_mscore(self, xfwhm=2, pow=2):
         self.get_zstack(xfwhm=xfwhm)
@@ -1432,19 +1435,30 @@ class UniDec(UniDecEngine):
         self.data.ztab = ztab
         pass
 
-    def pass_data_in(self, data, n=1, **kwargs):
-        testdir = os.path.join(self.config.UniDecDir, "TestSpectra")
+    def pass_data_in(self, data, n=1, dirname=None, fname=None, **kwargs):
+        # Specify the directory for the new file
+        # If one is not specified, then use the TestSpectra location
+        if dirname is None:
+            testdir = os.path.join(self.config.UniDecDir, "TestSpectra")
+        else:
+            testdir = dirname
+        # Create the directory if it doesn't exist
         if not os.path.isdir(testdir):
             os.mkdir(testdir)
 
-        fname = "test_" + str(n) + ".txt"
+        # If the fname is not passed in, create it.
+        if fname is None:
+            fname = "test_" + str(n) + ".txt"
+
+        # Create the file in the new path
         path = os.path.join(testdir, fname)
-        print("Creating temp file:", path)
+        print("Creating file:", path)
         np.savetxt(path, data)
 
+        # Open it
         self.open_file(fname, testdir, **kwargs)
         self.config.maxmz, self.config.minmz = "", ""
-        #self.config.default_isotopic_res()
+        # self.config.default_isotopic_res()
 
     def get_spectrum_peaks(self, threshold=0.05, window=None):
         if window is None:

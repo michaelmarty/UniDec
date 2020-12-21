@@ -591,6 +591,10 @@ class MetaUniDecBase(UniDecPres):
         """
         :return:
         """
+        if self.eng.config.rawflag > 1:
+            self.warn("Unable to Animate: Need to turn off Fast Profile or Fast Centroid")
+            return
+
         newgrid = []
         for s in self.eng.data.spectra:
             newgrid.append(s.data2)
@@ -605,6 +609,10 @@ class MetaUniDecBase(UniDecPres):
         :param type:
         :return:
         """
+        if self.eng.config.rawflag > 1:
+            self.warn("Unable to Animate: Need to turn off Fast Profile or Fast Centroid")
+            return
+
         self.eng.sum_masses()
         dlg = miscwindows.SingleInputDialog(self.view)
         dlg.initialize_interface(title="Set Compression", message="Number of x values to compress:", defaultvalue="10")
@@ -1080,6 +1088,7 @@ class UniDecApp(MetaUniDecBase):
         """
         paths = FileDialogs.open_multiple_files_dialog(message="Choose ramp data files mzml or Thermo Raw format",
                                                        file_type="All Files|*.*| Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML")
+        print("Paths:", paths)
         if paths is not None:
             dlg = miscwindows.SingleInputDialog(self.view)
             dlg.initialize_interface("Timestep", "Enter ramp timestep to compress in minutes:", defaultvalue=str(1.0))

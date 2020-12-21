@@ -129,11 +129,15 @@ class ChromApp(MetaUniDecBase):
     def get_from_gui(self):
         self.eng.config.time_window = float(self.view.ctlmin.GetValue())
         self.eng.config.chrom_peak_width = float(self.view.ctlcpeaks_param1.GetValue())
+        self.eng.config.sw_time_window = float(self.view.ctlswwin.GetValue())
+        self.eng.config.sw_scan_offset = float(self.view.ctlswoffset.GetValue())
         pass
 
     def load_to_gui(self):
         self.view.ctlmin.SetValue(str(self.eng.config.time_window))
         self.view.ctlcpeaks_param1.SetValue(str(self.eng.config.chrom_peak_width))
+        self.view.ctlswwin.SetValue(str(self.eng.config.sw_time_window))
+        self.view.ctlswoffset.SetValue(str(self.eng.config.sw_scan_offset))
         pass
 
     def plot_single_mz(self, e=None):
@@ -161,7 +165,8 @@ class ChromApp(MetaUniDecBase):
 
     def on_unidec_run(self, e=None):
         self.export_config()
-        self.eng.unidec_eng.pass_data_in(self.eng.mzdata)
+        fname = os.path.splitext(self.eng.filename)[0]+"_selection.txt"
+        self.eng.unidec_eng.pass_data_in(self.eng.mzdata, dirname=self.eng.config.udir, fname=fname)
         self.eng.config.config_export(self.eng.unidec_eng.config.confname)
         self.eng.unidec_eng.config.config_import(self.eng.unidec_eng.config.confname)
         self.eng.unidec_eng.process_data()
@@ -227,8 +232,15 @@ class ChromApp(MetaUniDecBase):
         self.eng.add_chrom_peaks()
         self.update_hdf5()
 
+    def on_sliding_window(self, e=None):
+        self.get_from_gui()
+        self.eng.add_sliding_window()
+        self.update_hdf5()
+
     def on_delete(self, e=None):
         self.makeplot2_mud()
+        self.makeplot7()
+        self.plot_sums()
 
     def on_single_delete(self, e=None):
         self.plot_single_pks()

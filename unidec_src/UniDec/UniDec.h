@@ -3169,8 +3169,8 @@ void WriteDecon(const Config config, const Decon * decon, const Input * inp, con
 			printf("Fit: %s\t", outstring2);
 		}
 		else {
-			strjoin(dataset, "/fit_data", outdat);
-			mh5writefile1d(file_id, outdat, config.lengthmz, decon->fitdat);
+			//strjoin(dataset, "/fit_data", outdat);
+			//mh5writefile1d(file_id, outdat, config.lengthmz, decon->fitdat);
 		}
 	}
 
@@ -3185,8 +3185,8 @@ void WriteDecon(const Config config, const Decon * decon, const Input * inp, con
 			printf("Background: %s\t", outstring2);
 		}
 		else {
-			strjoin(dataset, "/baseline", outdat);
-			mh5writefile1d(file_id, outdat, config.lengthmz, decon->baseline);
+			//strjoin(dataset, "/baseline", outdat);
+			//mh5writefile1d(file_id, outdat, config.lengthmz, decon->baseline);
 		}
 	}
 

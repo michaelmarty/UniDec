@@ -33,6 +33,7 @@ class FFTWindow(wx.Frame):
         self.binsize = 0.5
         self.wbin = 200
         self.diffrange = [700, 800]
+        self.norm=True
 
         self.rawdata = data
         self.rawdata[:, 1] /= np.amax(self.rawdata[:, 1])
@@ -87,12 +88,16 @@ class FFTWindow(wx.Frame):
         self.ctlfwhm = wx.TextCtrl(panel, value=str(self.window_fwhm))
         self.ctlwbin = wx.TextCtrl(panel, value=str(self.wbin))
         self.ctlbinsize = wx.TextCtrl(panel, value=str(self.binsize))
+        self.ctlnorm = wx.CheckBox(panel, label="Normalize FFT to Data")
+        self.ctlnorm.SetValue(self.norm)
         controlsizer.Add(wx.StaticText(panel, label=" Window FWHM:"), 0, wx.ALIGN_CENTER_VERTICAL)
         controlsizer.Add(self.ctlfwhm, 0, wx.ALIGN_CENTER_VERTICAL)
         controlsizer.Add(wx.StaticText(panel, label=" Window every:"), 0, wx.ALIGN_CENTER_VERTICAL)
         controlsizer.Add(self.ctlwbin, 0, wx.ALIGN_CENTER_VERTICAL)
         controlsizer.Add(wx.StaticText(panel, label=" Linearization Bin Size:"), 0, wx.ALIGN_CENTER_VERTICAL)
         controlsizer.Add(self.ctlbinsize, 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer.Add(self.ctlnorm, 0, wx.ALIGN_CENTER_VERTICAL)
+
 
         self.ctlmin = wx.TextCtrl(panel, value=str(self.diffrange[0]))
         self.ctlmax = wx.TextCtrl(panel, value=str(self.diffrange[1]))
@@ -163,6 +168,8 @@ class FFTWindow(wx.Frame):
                 self.diffrange[1] = float(self.ctlmax.GetValue())
             except ValueError:
                 pass
+
+            self.norm=self.ctlnorm.GetValue()
         except ValueError:
             print("Failed to get from gui")
 
@@ -173,7 +180,7 @@ class FFTWindow(wx.Frame):
         :return: None
         """
         self.getfromgui()
-        data2d = win_fft_grid(self.rawdata, self.binsize, self.wbin, self.window_fwhm, self.diffrange)
+        data2d = win_fft_grid(self.rawdata, self.binsize, self.wbin, self.window_fwhm, self.diffrange, norm=self.norm)
         self.config.cmap = u'jet'
         try:
             self.plot2.contourplot(data2d, self.config, xlab="m/z (Th)", ylab="Mass Difference", title="", normflag=1)
@@ -317,7 +324,7 @@ class FFTWindow(wx.Frame):
     def createcompareplot(self):
         xvals = self.plot2.zoom.comparexvals
         yvals = self.plot2.zoom.compareyvals
-        data2d = win_fft_grid(self.rawdata, self.binsize, self.wbin, self.window_fwhm, self.diffrange)
+        data2d = win_fft_grid(self.rawdata, self.binsize, self.wbin, self.window_fwhm, self.diffrange, norm=self.norm)
         for x in range(0, len(xvals) // 2):
             if xvals[x * 2] > xvals[x * 2 + 1]: xvals[x * 2], xvals[x * 2 + 1] = xvals[x * 2 + 1], xvals[x * 2]
             if yvals[x * 2] > yvals[x * 2 + 1]: yvals[x * 2], yvals[x * 2 + 1] = yvals[x * 2 + 1], yvals[x * 2]
@@ -369,6 +376,7 @@ class FFTWindow(wx.Frame):
 # Main App Execution
 if __name__ == "__main__":
     datfile = "C:\\Data\\New\POPC_D1T0-2m_ISTRAP\\20170207_P1D_POPC_ND_D1T0-2m_ISTRAP_RAMP_0_275_25_1_200.0.txt"
+    datfile = "C:\\Python\\UniDec3\\TestSpectra\\60.dat"
 
     data2 = np.loadtxt(datfile)
 
