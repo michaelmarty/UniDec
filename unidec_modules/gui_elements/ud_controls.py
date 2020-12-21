@@ -1131,15 +1131,20 @@ class main_controls(wx.Panel):
         :param e: Triggering event. Unused.
         :return: None
         """
-        kernel_path = self.pres.on_open_kernel()
+        kernel_path = self.pres.on_open_kernel()  # The file the user chose
+        kernel_path2 = kernel_path  # The _mass.txt file
         kernel_name = os.path.basename(kernel_path)
-        bare_name = os.path.splitext(kernel_name)[0]
-        # if kernel_name.split('_')[-1] == "mass.txt":  # Possible naming issues
-        #    self.doubledecbutton.SetLabel(bare_name)
-        #    self.config.kernel = kernel_path
-        # else:
-        kernel_path2 = os.path.dirname(kernel_path) + "\\" + bare_name + "_unidecfiles\\" + \
-            bare_name + "_mass.txt"
+
+        kernel_dat = np.loadtxt(kernel_path)
+        kernel_diff = np.diff(kernel_dat[:, 0])
+        if not np.all(kernel_diff == kernel_diff[0]):  # if not a mass file
+            bare_name = os.path.splitext(kernel_name)[0]
+            # if kernel_name.split('_')[-1] == "mass.txt":  # Possible naming issues
+            #    self.doubledecbutton.SetLabel(bare_name)
+            #    self.config.kernel = kernel_path
+            # else:
+            kernel_path2 = os.path.dirname(kernel_path) + "\\" + bare_name + "_unidecfiles\\" + \
+                bare_name + "_mass.txt"
         try:
             with open(kernel_path2, "r") as f:
                 self.doubledecbutton.SetLabel(os.path.splitext(os.path.basename(kernel_path2))[0])
