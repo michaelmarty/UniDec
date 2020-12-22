@@ -12,7 +12,7 @@ import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 from unidec_modules import Extract2D, peakwidthtools, masstools, miscwindows, \
     MassDefects, mainwindow, nativez, ManualSelectionWindow, AutocorrWindow, fft_window, GridDecon, isotopetools
-from unidec_modules.isolated_packages import FileDialogs, texmaker, score_window, texmaker_nmsgsb
+from unidec_modules.isolated_packages import FileDialogs, texmaker, score_window, texmaker_nmsgsb, navia_importer
 import datacollector
 import import_wizard
 import unidec_modules.IM_windows as IM_wind
@@ -1110,6 +1110,20 @@ class UniDecApp(UniDecPres):
 
     def on_iFAMS(self, e=None):
         iFAMS_Window(self.view, self.eng.data.data2, config=self.eng.config, directory=os.getcwd())
+
+    def on_navia(self, e=None):
+        with wx.FileDialog(self.view, "Open NaViA session", wildcard="XYZ files (*.navia)|*.navia",
+                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
+
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return     # the user changed their mind
+
+            # Proceed loading the file chosen by the user
+            pathname = fileDialog.GetPath()
+            newpath = navia_importer.navia_import(pathname)
+            newdir, newfile = os.path.split(newpath)
+            self.on_open_file(newfile, newdir)
+
 
     def on_2d_grid(self, e=None):
         """

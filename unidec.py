@@ -133,6 +133,8 @@ class UniDec(UniDecEngine):
         # Initialize Config
         if os.path.isfile(self.config.confname) == True:
             self.load_config(self.config.confname)
+        else:
+            self.export_config()
 
         tend = time.perf_counter()
         if "silent" not in kwargs or not kwargs["silent"]:
