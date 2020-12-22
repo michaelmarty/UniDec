@@ -3260,6 +3260,7 @@ void WriteDecon(const Config config, const Decon * decon, const Input * inp, con
 			printf("Masses: %s\n", outstring4);
 		}
 		else {
+			//int mlen = remove_middle_zeros(decon->massaxis, decon->massaxisval, decon->mlen); //Doesn't really work
 			strjoin(dataset, "/mass_data", outdat);
 			mh5writefile2d(file_id, outdat, decon->mlen, decon->massaxis, decon->massaxisval);
 		}

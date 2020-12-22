@@ -141,14 +141,22 @@ class ChromApp(MetaUniDecBase):
         pass
 
     def plot_single_mz(self, e=None):
-        self.makeplot4(plot=self.view.plotm, data=self.eng.mzdata)
+        if self.eng.procdata is not None:
+            data = self.eng.procdata
+        else:
+            data = self.eng.mzdata
+        self.makeplot4(plot=self.view.plotm, data=data)
 
     def plot_single_mass(self):
         self.makeplot2(plot=self.view.plot2s, data=self.eng.massdat)
 
     def plot_single_pks(self):
+        if self.eng.procdata is not None:
+            data = self.eng.procdata
+        else:
+            data = self.eng.mzdata
         self.makeplot2(plot=self.view.plot2s, data=self.eng.massdat, pks=self.eng.unidec_eng.pks)
-        self.makeplot4(plot=self.view.plotm, data=self.eng.mzdata, pks=self.eng.unidec_eng.pks)
+        self.makeplot4(plot=self.view.plotm, data=data, pks=self.eng.unidec_eng.pks)
 
     def on_selection(self, min, max, plot=True):
         self.view.SetStatusText("Averaging Scans...", number=1)
@@ -170,9 +178,9 @@ class ChromApp(MetaUniDecBase):
         self.eng.config.config_export(self.eng.unidec_eng.config.confname)
         self.eng.unidec_eng.config.config_import(self.eng.unidec_eng.config.confname)
         self.eng.unidec_eng.process_data()
-        self.eng.unidec_eng.run_unidec()
+        self.eng.unidec_eng.run_unidec(efficiency=True)
 
-        self.eng.mzdata = self.eng.unidec_eng.data.data2
+        self.eng.procdata = self.eng.unidec_eng.data.data2
         self.eng.massdat = self.eng.unidec_eng.data.massdat
 
         self.plot_single_mz()

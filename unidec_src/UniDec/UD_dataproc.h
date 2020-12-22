@@ -179,7 +179,7 @@ int remove_duplicates(double *oldmz, double *oldint, int oldlen)
 	return newlen;
 }
 
-//Remove duplicates
+//Remove middle zeros
 int remove_middle_zeros(double *oldmz, double *oldint, int oldlen)
 {
 	double *newmz, *newint;

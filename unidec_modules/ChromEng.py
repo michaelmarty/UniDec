@@ -24,6 +24,7 @@ class ChromEngine(MetaUniDec):
         self.spectra = None
         self.massdat = None
         self.mzdata = None
+        self.procdata = None
         self.config.default_high_res()
         self.unidec_eng = UniDec()
 
@@ -88,6 +89,7 @@ class ChromEngine(MetaUniDec):
 
     def get_data_from_scans(self, scan_range=None):
         self.mzdata = self.chromdat.get_data(scan_range)
+        self.procdata = None
         return self.mzdata
 
     def get_data_from_times(self, min, max):
