@@ -13,6 +13,7 @@
 #include "UD_dataproc.h"
 #include "UD_analysis.h"
 #include "UD_charge.h"
+#include "UniDecLC_Main.h"
 //#include "UD_peak_width.h"
 
 int run_metaunidec(int argc, char *argv[], Config config) {
@@ -34,6 +35,7 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 		else if (strcmp(argv[2], "-ultraextract") == 0) { mode = 6; }
 		else if (strcmp(argv[2], "-charges") == 0) { mode = 7; }
 		else if (strcmp(argv[2], "-peaks") == 0) { mode = 8; }
+		else if (strcmp(argv[2], "-LC") == 0) { mode = 9; }
 	}
 
 	//printf("%d\n\n", mode);
@@ -107,5 +109,19 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 		//printf("Picking Peaks\n");
 		get_all_peaks(argc, argv, config);
 	}
+
+	if (mode == 9)
+	{
+		printf("LC Mode. Under Construction...");
+		// Merge Data
+		make_grid(argc, argv, config, "/raw_data", "/raw_grid", "/raw_axis", "/raw_sum");
+
+		// Process Data
+		//process_data(argc, argv, config);
+
+		//Run UniDec LC
+		run_unidec_LC(argc, argv, config);
+	}
+
 	return 0;
 }

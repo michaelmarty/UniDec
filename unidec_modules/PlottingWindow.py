@@ -106,6 +106,7 @@ class PlottingWindow(wx.Window):
         self.lines = []
         self.cbar = None
         self.datalims = None
+        self.data = None
         self.cmap = None
         self.set_color()
         self.xlabel = ""
@@ -180,6 +181,8 @@ class PlottingWindow(wx.Window):
         # print("you pressed", evt.key)
         if evt.key == "ctrl+c":
             self.copy_to_clipboard()
+        if evt.key == "ctrl+u":
+            self.on_write_dialog(evt)
 
     def on_save_fig_dialog(self, evt):
         """
@@ -435,6 +438,25 @@ class PlottingWindow(wx.Window):
             wx.TheClipboard.Close()
             print("Image Copied")
         os.remove(obj.name)
+
+    def on_write_dialog(self, evt):
+        """
+        Open a save figure dialog for specified plot.
+        :param evt: wx.Event (unused)
+        :return: None
+        """
+        if self.data is not None:
+            path = FileDialogs.save_file_dialog()
+            if path is not None:
+                self.write_data(path)
+        else:
+            print("Data object empty. Plot likely unsupported for text file output.")
+
+    def write_data(self, path):
+        if self.data is not None:
+            print("Saving Data to", path)
+            print("Data Dimensions:", self.data.shape)
+            np.savetxt(path, self.data)
 
     def setup_zoom(self, plots, zoom, data_lims=None, pad=0, groups=None):
         """

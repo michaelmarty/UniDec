@@ -435,6 +435,7 @@ void process_data(int argc, char *argv[], Config config)
 	strjoin(dataset, "/processed_data", outdat);
 	//printf("\tWriting to: %s...", outdat);
 	mh5writefile2d(file_id, outdat, lengthmz, dataMZ, dataInt);
+	set_needs_grids(file_id);
 	free(dataMZ);
 	free(dataInt);
 	H5Fclose(file_id);

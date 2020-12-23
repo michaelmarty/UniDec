@@ -252,6 +252,7 @@
     <ClInclude Include="UniDech-rev511.h" />
     <ClInclude Include="UniDecIM.h" />
     <ClInclude Include="UniDecIM_Main.h" />
+    <ClInclude Include="UniDecLC_Main.h" />
     <ClInclude Include="UniDec_Main.h" />
     <ClInclude Include="UniDec_Mainh-rev485.h" />
   </ItemGroup>

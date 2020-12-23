@@ -197,13 +197,15 @@ The main GUI class is GUniDec.UniDecApp.
 
 v.4.3.1
 
-**Added Scroll Bar to Controls!!!** People have been asking for this for a while, and I could never figure out how to get it to work. Finally, I managed to find the answer and added it with some buttons on the bottom to help expand and collapse key parts.
+**Added Scroll Bar to Controls!** People have been asking for this for a while, and I could never figure out how to get it to work. Finally, I managed to find the answer and added it with some buttons on the bottom to help expand and collapse key parts.
 
 **Added Fast Profile and Fast Centroid** options for UniChrom2 and MetaUniDec. These will help speed up deconvolutions and limit file sizes by not adding the massgrid and mzgrid to each spectrum. The animate features will not work, and other things might not be available, but the basic settings should be consistent.
 
 **Major speed improvements to large mzML data files** by using gzip to compress the data prior to opening it. Thanks to the pymzML team for this.
 
-**Added Sliding Window to UniChrom**. You can now specify the width of the window (in minutes) and the offset between the start of the windows (in # of scans). The offset needs to be an integer greater than or equal to 1. Setting the window to 1 will start a window on each scan. Setting a window of 0 and an offset of 1 will give every scan separately, without averaging any of them together. 
+**Added Sliding Window to UniChrom**. You can now specify the width of the window (in minutes) and the offset between the start of the windows (in # of scans). The offset needs to be an integer greater than or equal to 1. Setting the window to 1 will start a window on each scan. Setting a window of 0 and an offset of 1 will give every scan separately, without averaging any of them together.
+
+**Hidden feature: Write data from plot to text file.** Clicking Ctrl+u on most plots will now give you a dialog to save the underlying data as a text file. Usually, this data was written somewhere behind the scenes, but this will give an easy way to export it.
 
 Added DNA to Biopolymer Calculator.
 

@@ -808,11 +808,12 @@ class UniDecApp(UniDecPres):
         limits = np.array(limits) * self.view.plot2.kdnorm
 
         # Run Integration
-        if limits[0] <= np.amin(self.eng.data.massdat[:, 0]) and limits[1] >= np.amax(self.eng.data.massdat[:, 0]):
+        if not ud.isempty(self.eng.pks.peaks) and limits[0] <= np.amin(self.eng.data.massdat[:, 0]) and limits[
+            1] >= np.amax(self.eng.data.massdat[:, 0]):
             print("Auto Integrating")
             self.eng.autointegrate()
         else:
-            integral = self.eng.integrate(limits)
+            integral, intdat = self.eng.integrate(limits)
             if self.eng.pks.plen > 0:
                 boo1 = self.eng.pks.masses < limits[1]
                 boo2 = self.eng.pks.masses > limits[0]
@@ -828,12 +829,9 @@ class UniDecApp(UniDecPres):
                 print("Differences: ", limits - self.eng.pks.peaks[i].mass)
 
             else:
-                boo1 = self.eng.data.massdat[:, 0] < limits[1]
-                boo2 = self.eng.data.massdat[:, 0] > limits[0]
-                intdat = self.eng.data.massdat[np.all([boo1, boo2], axis=0)]
-                self.view.plot2.addtext(str(integral), np.mean(np.array(olimits)),
+                self.view.plot2.addtext(str(integral), np.mean(np.array(limits)),
                                         np.amax(intdat[:, 1]) + 0.05 * np.amax(self.eng.data.massdat[:, 1]),
-                                        range=olimits)
+                                        range=limits)
                 return 0
 
         # Normalize and write
@@ -1114,16 +1112,14 @@ class UniDecApp(UniDecPres):
     def on_navia(self, e=None):
         with wx.FileDialog(self.view, "Open NaViA session", wildcard="XYZ files (*.navia)|*.navia",
                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
-
             if fileDialog.ShowModal() == wx.ID_CANCEL:
-                return     # the user changed their mind
+                return  # the user changed their mind
 
             # Proceed loading the file chosen by the user
             pathname = fileDialog.GetPath()
             newpath = navia_importer.navia_import(pathname)
             newdir, newfile = os.path.split(newpath)
             self.on_open_file(newfile, newdir)
-
 
     def on_2d_grid(self, e=None):
         """
@@ -1420,12 +1416,12 @@ class UniDecApp(UniDecPres):
         peakcolors = [p.color for p in self.eng.pks.peaks]
         peaks = np.array([[p.mass, p.height] for p in self.eng.pks.peaks])
         uniscore = self.eng.pks.uniscore
-        #str(round(self.eng.pks.uniscore * 100, 2))
-        #oligos = np.array(oligos)
-        #match = np.array([[p.peaks, p.matches, p.errors, p.names] for p in self.eng.config.matchlist])
+        # str(round(self.eng.pks.uniscore * 100, 2))
+        # oligos = np.array(oligos)
+        # match = np.array([[p.peaks, p.matches, p.errors, p.names] for p in self.eng.config.matchlist])
         # match = np.transpose(self.eng.config.matchlist)
         # match = self.eng.config.matchlist
-        #self.eng.config.matchlist = np.transpose(
+        # self.eng.config.matchlist = np.transpose(
         #    np.genfromtxt(self.eng.config.matchfile, dtype='str', delimiter=","))
 
         if os.path.isfile(self.eng.config.matchfile):

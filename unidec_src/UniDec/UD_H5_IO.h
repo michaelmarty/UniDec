@@ -270,5 +270,12 @@ int question_grids(hid_t file_id)
 	return int_attr(file_id, "/config", "gridsflag", 0);
 }
 
+int question_rawgrid(hid_t file_id)
+{
+	//int status = check_group(file_id, "/ms_dataset/mass_axis");
+	int status = H5Lexists(file_id, "/ms_dataset/raw_axis", H5P_DEFAULT);
+	if (status == 0) { write_attr_int(file_id, "/config", "gridsflag", 0); }//printf("Grids not found %d\n", status);}
+	return int_attr(file_id, "/config", "gridsflag", 0);
+}
 
 #endif
