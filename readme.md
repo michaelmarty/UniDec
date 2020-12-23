@@ -197,6 +197,8 @@ The main GUI class is GUniDec.UniDecApp.
 
 v.4.3.1
 
+**Added Scroll Bar to Controls!!!** People have been asking for this for a while, and I could never figure out how to get it to work. Finally, I managed to find the answer and added it with some buttons on the bottom to help expand and collapse key parts.
+
 **Added Fast Profile and Fast Centroid** options for UniChrom2 and MetaUniDec. These will help speed up deconvolutions and limit file sizes by not adding the massgrid and mzgrid to each spectrum. The animate features will not work, and other things might not be available, but the basic settings should be consistent.
 
 **Major speed improvements to large mzML data files** by using gzip to compress the data prior to opening it. Thanks to the pymzML team for this.
