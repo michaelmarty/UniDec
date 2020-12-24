@@ -3,12 +3,12 @@ imflag 0
 input C:\Python\UniDec3\unidec_bin\Example Data\ADH_unidecfiles\ADH_input.dat
 output C:\Python\UniDec3\unidec_bin\Example Data\ADH_unidecfiles\ADH
 numit 100
-numz 50
-endz 50
+numz 40
+endz 40
 startz 1
 zzsig 1.0
-psig 10.0
-beta 500.0
+psig 0.0
+beta 0.0
 mzsig 10.0
 psfun 0
 discreteplot 0
@@ -23,7 +23,7 @@ maxmz 20213.597994866224
 subbuff 0.0
 subtype 3
 smooth 0.0
-mzbins 0.0
+mzbins 0.1
 peakwindow 500.0
 peakthresh 0.1
 peakplotthresh 0.1
@@ -39,7 +39,7 @@ poolflag 2
 accvol 0.0
 peakshapeinflate 1.0
 noiseflag 0.0
-linflag 2
+linflag 3
 cmap nipy_spectral
 peakcmap rainbow
 spectracmap rainbow

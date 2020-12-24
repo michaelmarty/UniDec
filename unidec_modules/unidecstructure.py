@@ -35,6 +35,7 @@ class UniDecConfig(object):
         """
         self.version = version
         self.inputversion = None
+        self.dtype = np.single
         self.infname = "input.dat"
         self.outfname = ""
         self.mfile = "mass.dat"

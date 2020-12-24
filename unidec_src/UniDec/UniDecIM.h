@@ -25,7 +25,7 @@
 #include <fftw3.h>
 //#include <omp.h>
 
-void readfilemanual(char *infile, int lengthmz, double *array1, double *array2, double *array3, double *array4, double *array5)
+void readfilemanual(char *infile, int lengthmz, float *array1, float *array2, float *array3, float *array4, float *array5)
 {
 	FILE *file_ptr;
 	int i;
@@ -55,10 +55,10 @@ void readfilemanual(char *infile, int lengthmz, double *array1, double *array2, 
 	fclose(file_ptr);
 }
 
-int GetSize0(double *array, int lines)
+int GetSize0(float *array, int lines)
 {
 	int cnt = 1;
-	double test = array[0];
+	float test = array[0];
 	int i;
 	for (i = 1; i<lines; i++) //look for the number of times dH decrements
 	{
@@ -71,11 +71,11 @@ int GetSize0(double *array, int lines)
 	return cnt;
 }
 
-int GetSize1(double *array, int lines)
+int GetSize1(float *array, int lines)
 {
 	int cnt = 1;
 	int flag = 0;
-	double test = array[0];
+	float test = array[0];
 	int i;
 	for (i = 1; i<lines; i++)
 	{
@@ -91,7 +91,7 @@ int GetSize1(double *array, int lines)
 	return cnt;
 }
 
-void Extract(double *mzext, double *dtext, double *mzdat, double *dtdat, int *size)
+void Extract(float *mzext, float *dtext, float *mzdat, float *dtdat, int *size)
 {
 	int i;
 	//Extract mz data
@@ -109,19 +109,19 @@ void Extract(double *mzext, double *dtext, double *mzdat, double *dtdat, int *si
 	return;
 }
 
-double Gaus(double x, double x0, double sig)
+float Gaus(float x, float x0, float sig)
 {
 	return exp(-pow(x - x0, 2.) / (2.*sig*sig));
 }
 
 
 //function to return a gaussian at a specific point
-double Lorentz(double x, double x0, double sig)
+float Lorentz(float x, float x0, float sig)
 {
 	return pow(sig / 2, 2) / (pow(x - x0, 2) + pow(sig / 2, 2));
 }
 
-double SplitGL(double x, double y, double sig)
+float SplitGL(float x, float y, float sig)
 {
 	if (y<x)
 	{
@@ -134,7 +134,7 @@ double SplitGL(double x, double y, double sig)
 }
 
 //function to return a 2D peak value at a given point
-double Peak(double x1, double x2, double y1, double y2, double sig1, double sig2, int psfun)
+float Peak(float x1, float x2, float y1, float y2, float sig1, float sig2, int psfun)
 {
 	if (psfun == 0) {
 		return Gaus(x1, x2, sig1)*Gaus(y1, y2, sig2);
@@ -154,14 +154,14 @@ static int index4D(int *size, int r, int c, int d, int f)
 	return r*size[1] * size[2] * size[3] + c*size[2] * size[3] + d*size[3] + f;
 }
 
-void GetPeaks(double *peak, int *Size, double *dH, double *dC, double sig1, double sig2, int psfun)
+void GetPeaks(float *peak, int *Size, float *dH, float *dC, float sig1, float sig2, int psfun)
 {
 	int i, j;
-	double hmax = 2 * dH[Size[0] - 1] - dH[Size[0] - 2];
-	double cmax = 2 * dC[Size[1] - 1] - dC[Size[1] - 2];
-	double hmin = dH[0];
-	double cmin = dC[0];
-	double Hval, Cval, v1, v2, v3, v4, val;
+	float hmax = 2 * dH[Size[0] - 1] - dH[Size[0] - 2];
+	float cmax = 2 * dC[Size[1] - 1] - dC[Size[1] - 2];
+	float hmin = dH[0];
+	float cmin = dC[0];
+	float Hval, Cval, v1, v2, v3, v4, val;
 	#pragma omp parallel for private (i,j,Hval,Cval,v1,v2,v3,v4,val), schedule(dynamic)
 	for (i = 0; i<Size[0]; i++)
 	{
@@ -185,11 +185,11 @@ void GetPeaks(double *peak, int *Size, double *dH, double *dC, double sig1, doub
 	return;
 }
 
-void fftconvolve2D(double *corr, double *list1, double *list2, int *size)
+void fftconvolve2D(float *corr, float *list1, float *list2, int *size)
 {
 	fftw_complex *in1, *in2, *out1, *out2;
 	fftw_plan p1, p2, p3;
-	double a, b, c, d;
+	float a, b, c, d;
 	int i;
 	int length = size[0] * size[1];
 	in1 = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * length);
@@ -233,12 +233,12 @@ void fftconvolve2D(double *corr, double *list1, double *list2, int *size)
 	fftw_free(in1); fftw_free(in2); fftw_free(out1); fftw_free(out2);
 }
 
-void convolve3D(double *out, double *in, double *peakshape, int *size)
+void convolve3D(float *out, float *in, float *peakshape, int *size)
 {
 	//Initialize memory
-	double *temp = NULL, *tempout = NULL;
-	temp = calloc(size[0] * size[1], sizeof(double));
-	tempout = calloc(size[0] * size[1], sizeof(double));
+	float *temp = NULL, *tempout = NULL;
+	temp = calloc(size[0] * size[1], sizeof(float));
+	tempout = calloc(size[0] * size[1], sizeof(float));
 	int i, j, k;
 	//Convolve for each charge slice
 	for (k = 0; k<size[2]; k++)
@@ -269,94 +269,94 @@ void convolve3D(double *out, double *in, double *peakshape, int *size)
 	free(tempout);
 }
 
-double calcCCS(double mass, int z, double dt, double ccsconst, double hmass, double to)
+float calcCCS(float mass, int z, float dt, float ccsconst, float hmass, float to)
 {
-	double ac = 1.6605389E-27;
-	double rmass = ac*(mass*hmass) / (mass + hmass);
-	double td = (dt - to)*0.001;
-	double ccs = (double)z*(td)*sqrt(1 / rmass)*ccsconst;
+	float ac = 1.6605389E-27;
+	float rmass = ac*(mass*hmass) / (mass + hmass);
+	float td = (dt - to)*0.001;
+	float ccs = (float)z*(td)*sqrt(1 / rmass)*ccsconst;
 	return ccs;
 }
 
-double calcCCSTwaveLog(double mass, int z, double dt, double tcal1, double tcal2, double hmass, double edc)
+float calcCCSTwaveLog(float mass, int z, float dt, float tcal1, float tcal2, float hmass, float edc)
 {
-	double rdt = dt - (edc*sqrt(mass / z) / 1.000E3);
-	double rccs;
+	float rdt = dt - (edc*sqrt(mass / z) / 1.000E3);
+	float rccs;
 	if (rdt <= 0) { return 0; }
 	else { rccs = exp(tcal1*log(rdt) + tcal2); }
-	double rmass = (mass*hmass) / (mass + hmass);
+	float rmass = (mass*hmass) / (mass + hmass);
 	return rccs*z*sqrt(1 / rmass);
 }
 
-double calcCCSTwaveLinear(double mass, int z, double dt, double tcal1, double tcal2, double hmass, double edc)
+float calcCCSTwaveLinear(float mass, int z, float dt, float tcal1, float tcal2, float hmass, float edc)
 {
-	double rdt = dt - (edc*sqrt(mass / z) / 1.000E3);
-	double rccs;
+	float rdt = dt - (edc*sqrt(mass / z) / 1.000E3);
+	float rccs;
 	if (rdt <= 0) { return 0; }
 	else { rccs = tcal1*rdt + tcal2; }
-	double rmass = (mass*hmass) / (mass + hmass);
+	float rmass = (mass*hmass) / (mass + hmass);
 	return rccs*z*sqrt(1 / rmass);
 }
 
-double calcCCSTwavePower(double mass, int z, double dt, double tcal1, double tcal2, double hmass, double edc)
+float calcCCSTwavePower(float mass, int z, float dt, float tcal1, float tcal2, float hmass, float edc)
 {
-	double rdt = dt - (edc*sqrt(mass / z) / 1.000E3);
-	double rccs;
+	float rdt = dt - (edc*sqrt(mass / z) / 1.000E3);
+	float rccs;
 	if (rdt <= 0) { return 0; }
 	else { rccs = tcal1*pow(rdt, tcal2); }
-	double rmass = (mass*hmass) / (mass + hmass);
+	float rmass = (mass*hmass) / (mass + hmass);
 	return rccs*z*sqrt(1 / rmass);
 }
 
-double calcDtTwaveLog(double mass, int z, double ccs, double tcal1, double tcal2, double hmass, double edc)
+float calcDtTwaveLog(float mass, int z, float ccs, float tcal1, float tcal2, float hmass, float edc)
 {
-	//double ac=1.6605389E-27;
-	double rmass = (mass*hmass) / (mass + hmass);
-	double rccs = ccs / (z*sqrt(1 / rmass));
-	double rdt;
+	//float ac=1.6605389E-27;
+	float rmass = (mass*hmass) / (mass + hmass);
+	float rccs = ccs / (z*sqrt(1 / rmass));
+	float rdt;
 	if (rccs <= 0) { return 0; }
 	else { rdt = exp((log(rccs) - tcal2) / tcal1); }
 	return rdt + (edc*sqrt(mass / z) / 1000);
 }
 
-double calcDtTwaveLinear(double mass, int z, double ccs, double tcal1, double tcal2, double hmass, double edc)
+float calcDtTwaveLinear(float mass, int z, float ccs, float tcal1, float tcal2, float hmass, float edc)
 {
-	double rmass = (mass*hmass) / (mass + hmass);
-	double rccs = ccs / (z*sqrt(1 / rmass));
-	double rdt;
+	float rmass = (mass*hmass) / (mass + hmass);
+	float rccs = ccs / (z*sqrt(1 / rmass));
+	float rdt;
 	if (rccs <= 0) { return 0; }
 	else { rdt = (rccs - tcal2) / tcal1; }
 	return rdt + (edc*sqrt(mass / z) / 1000);
 }
 
-double calcDtTwavePower(double mass, int z, double ccs, double tcal1, double tcal2, double hmass, double edc)
+float calcDtTwavePower(float mass, int z, float ccs, float tcal1, float tcal2, float hmass, float edc)
 {
-	double rmass = (mass*hmass) / (mass + hmass);
-	double rccs = ccs / (z*sqrt(1 / rmass));
-	double rdt;
+	float rmass = (mass*hmass) / (mass + hmass);
+	float rccs = ccs / (z*sqrt(1 / rmass));
+	float rdt;
 	if (rccs <= 0) { return 0; }
 	else { rdt = pow(rccs / tcal1, 1.0 / tcal2); }
 	return rdt + (edc*sqrt(mass / z) / 1000);
 }
 
-double calcDt(double mass, int z, double ccs, double ccsconst, double hmass, double to)
+float calcDt(float mass, int z, float ccs, float ccsconst, float hmass, float to)
 {
 
-	double ac = 1.6605389E-27;
-	double rmass = ac*(mass*hmass) / (mass + hmass);
-	double td = ccs / (ccsconst*(double)z*sqrt(1 / rmass));
-	double dt = (td * 1000) + to;
+	float ac = 1.6605389E-27;
+	float rmass = ac*(mass*hmass) / (mass + hmass);
+	float td = ccs / (ccsconst*(float)z*sqrt(1 / rmass));
+	float dt = (td * 1000) + to;
 	return dt;
 }
 
-double calcMass(double mz, int z, double adductmass)
+float calcMass(float mz, int z, float adductmass)
 {
-	return mz*(double)z - adductmass*(double)z;
+	return mz*(float)z - adductmass*(float)z;
 }
 
-double calcMz(double mass, int z, double adductmass)
+float calcMz(float mass, int z, float adductmass)
 {
-	return (mass + z*adductmass) / (double)z;
+	return (mass + z*adductmass) / (float)z;
 }
 
 int nearint(int *array, int point, int numdat)
@@ -371,7 +371,7 @@ int nearint(int *array, int point, int numdat)
 	return temp;
 }
 
-int nearfastpoint(double *dataMZ, double point, int numdat)
+int nearfastpoint(float *dataMZ, float point, int numdat)
 {
 	int start = 0;
 	int length = numdat - 1;
@@ -408,16 +408,16 @@ int nearfastpoint(double *dataMZ, double point, int numdat)
 	return dataMZ[end];
 }
 
-double euclid(double a, double b, double c, double d)
+float euclid(float a, float b, float c, float d)
 {
 	return sqrt((a - b)*(a - b) + (c - d)*(c - d));
 }
 
 //Slow nearest unsorted.
-int nearunsorted_IM(double *testmasses, double *testtimes, double mz, double dt, int lengthtest)
+int nearunsorted_IM(float *testmasses, float *testtimes, float mz, float dt, int lengthtest)
 {
-	double minval = euclid(mz, testmasses[0], dt, testtimes[0]);
-	double difftest;
+	float minval = euclid(mz, testmasses[0], dt, testtimes[0]);
+	float difftest;
 	int pos = 0;
 	for (int i = 1; i<lengthtest; i++)
 	{
@@ -431,10 +431,10 @@ int nearunsorted_IM(double *testmasses, double *testtimes, double mz, double dt,
 	return pos;
 }
 
-void sum2D(int *size, double *sum, double *array, int axis)
+void sum2D(int *size, float *sum, float *array, int axis)
 {
 	int i, j, k;
-	double temp;
+	float temp;
 	if (axis == 2)
 	{
 		for (i = 0; i<size[0]; i++)
@@ -483,12 +483,12 @@ void sum2D(int *size, double *sum, double *array, int axis)
 	return;
 }
 
-void blur_it_IM(int *size, double *blur, double *newblur, int *closetab, int *barr, double csig)
+void blur_it_IM(int *size, float *blur, float *newblur, int *closetab, int *barr, float csig)
 {
 
 	if (csig < 0) {
-		double *mzzsumgrid = NULL;
-		mzzsumgrid = calloc(size[0] * size[2], sizeof(double));
+		float *mzzsumgrid = NULL;
+		mzzsumgrid = calloc(size[0] * size[2], sizeof(float));
 		sum2D(size, mzzsumgrid, blur, 1);
 #pragma omp parallel for schedule(dynamic)
 		for (int i = 0; i < size[0]; i++)
@@ -519,7 +519,7 @@ void blur_it_IM(int *size, double *blur, double *newblur, int *closetab, int *ba
 				{
 					if (barr[index3D(size[1], size[2], i, j, k)] == 1)
 					{
-						double junk2 = 0;
+						float junk2 = 0;
 						for (int l = 0; l<size[3]; l++)
 						{
 							int index = closetab[index4D(size, i, j, k, l)];
@@ -528,7 +528,7 @@ void blur_it_IM(int *size, double *blur, double *newblur, int *closetab, int *ba
 							}
 							else
 							{
-								double junk = blur[index];
+								float junk = blur[index];
 								if (junk>0) { junk2 += log(junk); }
 								else { junk2 += -12; }
 							}
@@ -545,7 +545,7 @@ void blur_it_IM(int *size, double *blur, double *newblur, int *closetab, int *ba
 	}
 
 	else {
-		double junk, junk2;
+		float junk, junk2;
 		int i, j, k, l, index;
 		int logswitch = 1;
 #pragma omp parallel for private (i,j,k,l,index,junk,junk2), schedule(dynamic)
@@ -588,10 +588,10 @@ void blur_it_IM(int *size, double *blur, double *newblur, int *closetab, int *ba
 	}
 }
 
-void sumdeltas(int *size, double *deltas, double *newblur)
+void sumdeltas(int *size, float *deltas, float *newblur)
 {
 	int i, j, k;
-	double temp;
+	float temp;
 #pragma omp parallel for private (i,j,temp), schedule(dynamic)
 	for (i = 0; i<size[0]; i++)
 	{
@@ -608,10 +608,10 @@ void sumdeltas(int *size, double *deltas, double *newblur)
 
 }
 
-void sum1D(int *size, double *sum, double *array, int axis)
+void sum1D(int *size, float *sum, float *array, int axis)
 {
 	int i, j, k;
-	double temp;
+	float temp;
 	if (axis == 0) {
 		for (i = 0; i<size[0]; i++)
 		{
@@ -667,7 +667,7 @@ void sum1D(int *size, double *sum, double *array, int axis)
 
 
 
-void bayes(int *size, double*denom, double *blur, double *newblur, double *dataInt, int *barr)
+void bayes(int *size, float*denom, float *blur, float *newblur, float *dataInt, int *barr)
 {
 	int i, j, k;
 #pragma omp parallel for private (i,j,k), schedule(dynamic)
@@ -691,7 +691,7 @@ void bayes(int *size, double*denom, double *blur, double *newblur, double *dataI
 	return;
 }
 
-void getranges(int *size, double *blur, double *masstab, double *ccstab, double *range, int *barr)
+void getranges(int *size, float *blur, float *masstab, float *ccstab, float *range, int *barr)
 {
 	int i, j, k;
 	int mass, ccs;
@@ -720,7 +720,7 @@ void getranges(int *size, double *blur, double *masstab, double *ccstab, double 
 	return;
 }
 
-void makeaxis(double *axis, int length, double min, double binsize)
+void makeaxis(float *axis, int length, float min, float binsize)
 {
 	int i;
 #pragma omp parallel for private (i), schedule(dynamic)
@@ -731,14 +731,14 @@ void makeaxis(double *axis, int length, double min, double binsize)
 	return;
 }
 
-void write1D(char *outfile, char *suffix, double *array, int length)
+void write1D(char *outfile, char *suffix, float *array, int length)
 {
 	char outstring[500];
 	int i;
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.bin", outfile, suffix);
 	out_ptr = fopen(outstring, "wb");
-	fwrite(array, sizeof(double), length, out_ptr);
+	fwrite(array, sizeof(float), length, out_ptr);
 
 	//sprintf(outstring,"%s_%s.txt",outfile,suffix);
 	//out_ptr=fopen(outstring,"w");
@@ -750,7 +750,7 @@ void write1D(char *outfile, char *suffix, double *array, int length)
 	printf("File written to: %s\n", outstring);
 }
 
-void write2D(char *outfile, char *suffix, double *array1, double *array2, int length)
+void write2D(char *outfile, char *suffix, float *array1, float *array2, int length)
 {
 	char outstring[500];
 	int i;
@@ -765,7 +765,7 @@ void write2D(char *outfile, char *suffix, double *array1, double *array2, int le
 	printf("File written to: %s\n", outstring);
 }
 
-void write3D(char *outfile, char *suffix, double *array1, double *array2, double *array3, int length)
+void write3D(char *outfile, char *suffix, float *array1, float *array2, float *array3, int length)
 {
 	char outstring[500];
 	int i;
@@ -780,7 +780,7 @@ void write3D(char *outfile, char *suffix, double *array1, double *array2, double
 	printf("File written to: %s\n", outstring);
 }
 
-void writemfileres(char *outfile, char *suffix, double *array1, double *array2, double *array3, double *array4, double *array5, double *array6, int length)
+void writemfileres(char *outfile, char *suffix, float *array1, float *array2, float *array3, float *array4, float *array5, float *array6, int length)
 {
 	char outstring[500];
 	int i;
@@ -796,7 +796,7 @@ void writemfileres(char *outfile, char *suffix, double *array1, double *array2, 
 	printf("File written to: %s\n", outstring);
 }
 
-void writemzgrid(char *outfile, char *suffix, double *mzext, double *dtext, int *ztab, double *blur, int *size)
+void writemzgrid(char *outfile, char *suffix, float *mzext, float *dtext, int *ztab, float *blur, int *size)
 {
 	char outstring[500];
 	//int i,j,k;
@@ -816,25 +816,25 @@ void writemzgrid(char *outfile, char *suffix, double *mzext, double *dtext, int 
 	}
 	}
 	*/
-	fwrite(blur, sizeof(double), size[0] * size[1] * size[2], out_ptr);
+	fwrite(blur, sizeof(float), size[0] * size[1] * size[2], out_ptr);
 	fclose(out_ptr);
 	printf("File written to: %s\n", outstring);
 }
 
-double errfun(int length, double *dataInt, double *fitdat)
+float errfun(int length, float *dataInt, float *fitdat)
 {
 	int i;
-	double tot = 0;
-	double mean;
+	float tot = 0;
+	float mean;
 
 	for (i = 0; i<length; i++)
 	{
 		tot += fitdat[i];
 	}
-	mean = tot / ((double)length);
+	mean = tot / ((float)length);
 
-	double error = 0;
-	double error2 = 0;
+	float error = 0;
+	float error2 = 0;
 	for (i = 0; i<length; i++)
 	{
 		error += pow((fitdat[i] - dataInt[i]), 2);
@@ -844,9 +844,9 @@ double errfun(int length, double *dataInt, double *fitdat)
 	return 1.0 - error / error2;
 }
 
-double getmax(int length, double *data)
+float getmax(int length, float *data)
 {
-	double max = 0;
+	float max = 0;
 	for (int i = 0; i<length; i++)
 	{
 		if (data[i]>max) { max = data[i]; }
@@ -854,7 +854,7 @@ double getmax(int length, double *data)
 	return max;
 }
 
-void normalize(int length, double *data, double norm)
+void normalize(int length, float *data, float norm)
 {
 	if (norm == 0) { printf("Tried to Normalize by Zero! Aborting!\n"); exit(50); }
 	#pragma omp parallel for schedule(dynamic)
@@ -865,15 +865,15 @@ void normalize(int length, double *data, double norm)
 	return;
 }
 
-void writezslice(int *size, char *outfile, char *suffix, double *massaxis, double *ccsaxis, int *ztab, double *array, int k)
+void writezslice(int *size, char *outfile, char *suffix, float *massaxis, float *ccsaxis, int *ztab, float *array, int k)
 {
 	int i, j;
 	char outstring[500];
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s_%d.bin", outfile, suffix, ztab[k]);
 	out_ptr = fopen(outstring, "wb");
-	double *temp = NULL;
-	temp = calloc(size[0] * size[1], sizeof(double));
+	float *temp = NULL;
+	temp = calloc(size[0] * size[1], sizeof(float));
 	for (i = 0; i<size[0]; i++)
 	{
 		for (j = 0; j<size[1]; j++)
@@ -882,16 +882,16 @@ void writezslice(int *size, char *outfile, char *suffix, double *massaxis, doubl
 			temp[index2D(size[1], i, j)] = array[index3D(size[1], size[2], i, j, k)];
 		}
 	}
-	fwrite(temp, sizeof(double), size[0] * size[1], out_ptr);
+	fwrite(temp, sizeof(float), size[0] * size[1], out_ptr);
 	fclose(out_ptr);
 	free(temp);
 	printf("File written to: %s\n", outstring);
 }
 
 
-double nativeCCS(double mass, double fudge, double gasmass)
+float nativeCCS(float mass, float fudge, float gasmass)
 {
-	double a, b;
+	float a, b;
 	if (gasmass<10)
 	{
 		a = 4.06739;
@@ -901,13 +901,13 @@ double nativeCCS(double mass, double fudge, double gasmass)
 		a = 5.33311;
 		b = 0.613072;
 	}
-	//double c=-1481.7;
+	//float c=-1481.7;
 	return a*pow(mass, b) + fudge;
 }
 
-double bilinearinterpolation(int *size, int indm, int indc, int k, double *mzext, double *dtext, double tempmz, double tempdt, int rawflag, double *newblur, double *blur)
+float bilinearinterpolation(int *size, int indm, int indc, int k, float *mzext, float *dtext, float tempmz, float tempdt, int rawflag, float *newblur, float *blur)
 {
-	double y11, y12, y21, y22, mu1, mu2;
+	float y11, y12, y21, y22, mu1, mu2;
 	int im1, im2, ic1, ic2;
 	if (mzext[indm]>tempmz) { im2 = indm; im1 = indm - 1; }
 	else { im1 = indm; im2 = indm + 1; }
@@ -931,11 +931,11 @@ double bilinearinterpolation(int *size, int indm, int indc, int k, double *mzext
 }
 
 //cubicInterpolate_IM and bicubicInterpolate_IM were taken from http://www.paulinternet.nl/?page=bicubic
-double cubicInterpolate_IM(double p[4], double x) {
+float cubicInterpolate_IM(float p[4], float x) {
 	return p[1] + 0.5 * x*(p[2] - p[0] + x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + x*(3.0*(p[1] - p[2]) + p[3] - p[0])));
 }
-double bicubicInterpolate_IM(double p[4][4], double x, double y) {
-	double arr[4];
+float bicubicInterpolate_IM(float p[4][4], float x, float y) {
+	float arr[4];
 	arr[0] = cubicInterpolate_IM(p[0], y);
 	arr[1] = cubicInterpolate_IM(p[1], y);
 	arr[2] = cubicInterpolate_IM(p[2], y);
@@ -943,10 +943,10 @@ double bicubicInterpolate_IM(double p[4][4], double x, double y) {
 	return cubicInterpolate_IM(arr, x);
 }
 
-double bicubicinterpolation(int *size, int indm, int indc, int k, double *mzext, double *dtext, double tempmz, double tempdt, int rawflag, double *newblur, double *blur)
+float bicubicinterpolation(int *size, int indm, int indc, int k, float *mzext, float *dtext, float tempmz, float tempdt, int rawflag, float *newblur, float *blur)
 {
-	double mu1, mu2;
-	double p[4][4];
+	float mu1, mu2;
+	float p[4][4];
 	int im[4], ic[4];
 	int i, j;
 	if (mzext[indm]>tempmz) { im[2] = indm; im[1] = indm - 1; im[0] = indm - 2; im[3] = indm + 1; }
@@ -966,10 +966,10 @@ double bicubicinterpolation(int *size, int indm, int indc, int k, double *mzext,
 	return clip(bicubicInterpolate_IM(p, mu1, mu2), 0);
 }
 
-double WeightedAverage(int length, double *xarray, double *warray)
+float WeightedAverage(int length, float *xarray, float *warray)
 {
-	double temp1 = 0;
-	double temp2 = 0;
+	float temp1 = 0;
+	float temp2 = 0;
 	int i;
 	for (i = 0; i<length; i++)
 	{
@@ -979,10 +979,10 @@ double WeightedAverage(int length, double *xarray, double *warray)
 	return temp1 / temp2;
 }
 
-double WeightedAverageInt(int length, int *xarray, double *warray)
+float WeightedAverageInt(int length, int *xarray, float *warray)
 {
-	double temp1 = 0;
-	double temp2 = 0;
+	float temp1 = 0;
+	float temp2 = 0;
 	int i;
 	for (i = 0; i<length; i++)
 	{
@@ -992,10 +992,10 @@ double WeightedAverageInt(int length, int *xarray, double *warray)
 	return temp1 / temp2;
 }
 
-double StdDev2(int length, double *xarray, double *warray, double wmean)
+float StdDev2(int length, float *xarray, float *warray, float wmean)
 {
-	double temp1 = 0;
-	double temp2 = 0;
+	float temp1 = 0;
+	float temp2 = 0;
 	int i;
 	for (i = 0; i<length; i++)
 	{
@@ -1005,10 +1005,10 @@ double StdDev2(int length, double *xarray, double *warray, double wmean)
 	return sqrt(temp1 / temp2);
 }
 
-double StdDev2Int(int length, int *xarray, double *warray, double wmean)
+float StdDev2Int(int length, int *xarray, float *warray, float wmean)
 {
-	double temp1 = 0;
-	double temp2 = 0;
+	float temp1 = 0;
+	float temp2 = 0;
 	int i;
 	for (i = 0; i<length; i++)
 	{
@@ -1019,7 +1019,7 @@ double StdDev2Int(int length, int *xarray, double *warray, double wmean)
 }
 
 
-void MFileInt(int mfilelen, double *massaxis, double *massaxisval, double *testmasses, double *testmassint, double maaxle)
+void MFileInt(int mfilelen, float *massaxis, float *massaxisval, float *testmasses, float *testmassint, float maaxle)
 {
 	int i, index;
 	for (i = 0; i<mfilelen; i++)
@@ -1030,12 +1030,12 @@ void MFileInt(int mfilelen, double *massaxis, double *massaxisval, double *testm
 }
 
 //Works for both CCS and Z to get weighted average and Standard Deviation.
-void MFileCCS(int mfilelen, double *massaxis, double *ccsaxis, double *massccsgrid, double *testmasses, double *testmassCCSavg, double *testmassCCSstddev, int maaxle, int ccaxle)
+void MFileCCS(int mfilelen, float *massaxis, float *ccsaxis, float *massccsgrid, float *testmasses, float *testmassCCSavg, float *testmassCCSstddev, int maaxle, int ccaxle)
 {
 	int i, j, index;
-	double *temp;
-	double wmean;
-	temp = calloc(ccaxle, sizeof(double));
+	float *temp;
+	float wmean;
+	temp = calloc(ccaxle, sizeof(float));
 	for (i = 0; i<mfilelen; i++)
 	{
 		index = nearfast(massaxis, testmasses[i], maaxle);
@@ -1050,12 +1050,12 @@ void MFileCCS(int mfilelen, double *massaxis, double *ccsaxis, double *massccsgr
 	free(temp);
 }
 
-void MFileZ(int mfilelen, double *massaxis, int *ztab, double *masszgrid, double *testmasses, double *testmassZavg, double *testmassZstddev, int maaxle, int numz)
+void MFileZ(int mfilelen, float *massaxis, int *ztab, float *masszgrid, float *testmasses, float *testmassZavg, float *testmassZstddev, int maaxle, int numz)
 {
 	int i, j, index;
-	double *temp;
-	double wmean;
-	temp = calloc(numz, sizeof(double));
+	float *temp;
+	float wmean;
+	temp = calloc(numz, sizeof(float));
 	for (i = 0; i<mfilelen; i++)
 	{
 		index = nearfast(massaxis, testmasses[i], maaxle);
@@ -1070,7 +1070,7 @@ void MFileZ(int mfilelen, double *massaxis, int *ztab, double *masszgrid, double
 	free(temp);
 }
 
-void KillB_IM(double *I, int *B, int * size, double intthresh)
+void KillB_IM(float *I, int *B, int * size, float intthresh)
 {
 	for (int i = 0; i<size[0]; i++)
 	{
@@ -1088,22 +1088,22 @@ void KillB_IM(double *I, int *B, int * size, double intthresh)
 
 
 
-void ManualAssign_IM(char *manualfile, int * size, double *mzdat, double * dtdat, int *ztab, int *barr)
+void ManualAssign_IM(char *manualfile, int * size, float *mzdat, float * dtdat, int *ztab, int *barr)
 {
 
 	//Manual Assignments
 	int manlength;
-	double *manmz = NULL,
+	float *manmz = NULL,
 		*manmzwin = NULL,
 		*mandt = NULL,
 		*mandtwin = NULL,
 		*mancharge = NULL;
 	manlength = getfilelength(manualfile);
-	manmz = calloc(manlength, sizeof(double));
-	manmzwin = calloc(manlength, sizeof(double));
-	mandt = calloc(manlength, sizeof(double));
-	mandtwin = calloc(manlength, sizeof(double));
-	mancharge = calloc(manlength, sizeof(double));
+	manmz = calloc(manlength, sizeof(float));
+	manmzwin = calloc(manlength, sizeof(float));
+	mandt = calloc(manlength, sizeof(float));
+	mandtwin = calloc(manlength, sizeof(float));
+	mancharge = calloc(manlength, sizeof(float));
 	readfilemanual(manualfile, manlength, manmz, manmzwin, mandt, mandtwin, mancharge);
 	printf("Read manual file of length: %d\n", manlength);
 
@@ -1112,8 +1112,8 @@ void ManualAssign_IM(char *manualfile, int * size, double *mzdat, double * dtdat
 	{
 		for (int j = 0; j<size[1]; j++)
 		{
-			double mz = mzdat[index2D(size[1], i, j)];
-			double dt = dtdat[index2D(size[1], i, j)];
+			float mz = mzdat[index2D(size[1], i, j)];
+			float dt = dtdat[index2D(size[1], i, j)];
 			int close = nearunsorted_IM(manmz, mandt, mz, dt, manlength);
 			int charge = mancharge[close];
 			if (fabs(manmz[close] - mz) < manmzwin[close] && fabs(mandt[close] - dt) < mandtwin[close])

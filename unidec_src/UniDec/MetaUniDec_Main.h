@@ -95,7 +95,7 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 		get_peaks(argc, argv, config, 1);
 		charge_peak_extracts(argc, argv, config, 1);
 		//clock_t end = clock();
-		//double totaltime = (double)(end - starttime) / CLOCKS_PER_SEC;
+		//float totaltime = (float)(end - starttime) / CLOCKS_PER_SEC;
 		//printf("\nFinished in %f seconds\n",totaltime);
 	}
 

@@ -49,5 +49,7 @@ peaknorm 1
 datanorm 1
 baselineflag 1.0
 orbimode 0
+integratelb -1000.0
+integrateub 1000.0
 filterwidth 20.0
 zerolog -12.0

@@ -356,12 +356,12 @@ class UniDec(UniDecEngine):
             self.data.massdat = np.array([self.data.massdat])
             self.config.massdatnormtop = np.amax(self.data.massdat[:, 1])
         if not efficiency:
-            self.data.massgrid = np.fromfile(self.config.massgridfile, dtype=float)
+            self.data.massgrid = np.fromfile(self.config.massgridfile, dtype=self.config.dtype)
 
-            self.data.fitdat = np.fromfile(self.config.fitdatfile, dtype=float)
+            self.data.fitdat = np.fromfile(self.config.fitdatfile, dtype=self.config.dtype)
             try:
                 if self.config.aggressiveflag != 0:
-                    self.data.baseline = np.fromfile(self.config.outfname + "_baseline.bin", dtype=float)
+                    self.data.baseline = np.fromfile(self.config.outfname + "_baseline.bin", dtype=self.config.dtype)
                 else:
                     self.data.baseline = np.array([])
             except Exception as e:
@@ -383,7 +383,7 @@ class UniDec(UniDecEngine):
             if not efficiency:
                 # Import Grid
                 try:
-                    self.data.mzgrid = np.fromfile(self.config.mzgridfile, dtype=float)
+                    self.data.mzgrid = np.fromfile(self.config.mzgridfile, dtype=self.config.dtype)
                     xv, yv = np.meshgrid(self.data.ztab, self.data.data2[:, 0])
                     xv = np.c_[np.ravel(yv), np.ravel(xv)]
                     self.data.mzgrid = np.c_[xv, self.data.mzgrid]
@@ -408,9 +408,9 @@ class UniDec(UniDecEngine):
                 ccslen = len(self.data.ccsdata)
                 zlen = len(self.data.ztab)
 
-                self.data.massccs = np.fromfile(self.config.outfname + "_massccs.bin", dtype=float)
-                self.data.ccsz = np.fromfile(self.config.outfname + "_ccsz.bin", dtype=float)
-                self.data.mztgrid = np.fromfile(self.config.outfname + "_mzgrid.bin", dtype=float)
+                self.data.massccs = np.fromfile(self.config.outfname + "_massccs.bin", dtype=self.config.dtype)
+                self.data.ccsz = np.fromfile(self.config.outfname + "_ccsz.bin", dtype=self.config.dtype)
+                self.data.mztgrid = np.fromfile(self.config.outfname + "_mzgrid.bin", dtype=self.config.dtype)
 
                 self.data.massccs = self.data.massccs.reshape((masslen, ccslen))
                 self.data.ccsz = self.data.ccsz.reshape((zlen, ccslen))
