@@ -966,7 +966,7 @@ class UniDecApp(MetaUniDecBase):
         self.view.SetStatusText("Picking Peaks...", number=5)
         self.export_config()
         self.eng.pick_peaks()
-        self.view.peakpanel.add_data(self.eng.pks)
+        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
         self.makeplot2_mud()
         self.plot_sums()
         self.makeplot6()

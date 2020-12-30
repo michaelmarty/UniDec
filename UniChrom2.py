@@ -206,7 +206,7 @@ class ChromApp(MetaUniDecBase):
         self.view.SetStatusText("Picking Peaks...", number=5)
         self.export_config()
         self.eng.pick_peaks()
-        self.view.peakpanel.add_data(self.eng.pks)
+        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
         self.view.peakpanel.meta = True
         self.makeplot2_mud()
         self.makeplot7()

@@ -99,7 +99,13 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.config.write_hdf5()
         self.sum_masses()
         self.pks = peakstructure.Peaks()
-        self.pks.add_peaks(self.data.peaks, massbins=self.config.massbins)
+        scores_included = False
+        try:
+            if len(self.data.peaks[0]) == 3:
+                scores_included = True
+        except:
+            pass
+        self.pks.add_peaks(self.data.peaks, massbins=self.config.massbins, scores_included=scores_included)
         self.pks.default_params(cmap=self.config.peakcmap)
 
         ud.peaks_error_FWHM(self.pks, self.data.massdat)
@@ -120,7 +126,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         combined_peaks = self.combine_scanpeaks()
 
         self.pks = peakstructure.Peaks()
-        self.pks.add_peaks(combined_peaks, massbins=self.config.massbins*0.1, scores_included=True)
+        self.pks.add_peaks(combined_peaks, massbins=self.config.massbins * 0.1, scores_included=True)
         self.pks.default_params(cmap=self.config.peakcmap)
 
         self.scanpeaks_extracts()
@@ -148,7 +154,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
 
                         weighted_mass = (p[1] * p[0] + allpeaks[index, 1] * allpeaks[index, 0]) / (
                                 p[1] + allpeaks[index, 1])
-                        weighted_mass = ud.round_to_nearest(weighted_mass, self.config.massbins*0.1)
+                        weighted_mass = ud.round_to_nearest(weighted_mass, self.config.massbins * 0.1)
                         allpeaks[index, 0] = weighted_mass
 
                     else:
@@ -158,6 +164,13 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
                     index = 0
                     allpeaks = np.array([p])
                 s.pks.peaks[i].index = index
+
+        if self.config.peaknorm == 1:
+            allpeaks[:, 1] /= np.amax(allpeaks[:, 1])
+
+        if self.config.peaknorm == 2:
+            allpeaks[:, 1] /= np.sum(allpeaks[:, 1])
+
         return allpeaks
 
     def scanpeaks_extracts(self):
@@ -169,8 +182,26 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
                     if p2.index == i:
                         ints += p2.height
                 self.data.exgrid[i, j] = ints
-            p.extracts = self.data.exgrid[i]
 
+        print(self.config.exnorm)
+        if self.config.exnorm == 3:
+            for i in range(0, len(self.data.exgrid)):
+                self.data.exgrid[i] /= np.amax(self.data.exgrid[i])
+
+        if self.config.exnorm == 4:
+            for i in range(0, len(self.data.exgrid)):
+                self.data.exgrid[i] /= np.sum(self.data.exgrid[i])
+
+        if self.config.exnorm == 1:
+            for i in range(0, len(self.data.exgrid[0])):
+                self.data.exgrid[:, i] /= np.amax(self.data.exgrid[:, i])
+
+        if self.config.exnorm == 2:
+            for i in range(0, len(self.data.exgrid[0])):
+                self.data.exgrid[:, i] /= np.sum(self.data.exgrid[:, i])
+
+        for i, p in enumerate(self.pks.peaks):
+            p.extracts = self.data.exgrid[i]
 
     def peaks_heights(self):
         self.sum_masses()

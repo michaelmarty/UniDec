@@ -467,8 +467,7 @@ float fscore(Config config, const int plen, const int mlen, const float* massaxi
 }
 
 
-float score_from_peaks(const int plen, const float *peakx, const float *peaky, float *dscores, Config config, const int mlen, const float rsquared, 
-	const float* dataMZ, const float* dataInt, const float* mzgrid, const float* massaxis, const float* masssum, const float* massgrid, const int* nztab, const float threshold) {
+float score_from_peaks(const int plen, const float *peakx, const float *peaky, float *dscores, const Config config, Decon *decon, const Input inp, const float threshold) {
 
 	float xfwhm = 2;
 	float* fwhmlow = NULL;
@@ -478,7 +477,7 @@ float score_from_peaks(const int plen, const float *peakx, const float *peaky, f
 	fwhmhigh = calloc(plen, sizeof(float));
 	badfwhm = calloc(plen, sizeof(float));
 
-	get_fwhms(config, plen, mlen, massaxis, masssum, peakx, fwhmlow, fwhmhigh, badfwhm);
+	get_fwhms(config, plen, decon->mlen, decon->massaxis, decon->massaxisval, peakx, fwhmlow, fwhmhigh, badfwhm);
 
 	float numerator = 0;
 	float denominator = 0;
@@ -490,13 +489,13 @@ float score_from_peaks(const int plen, const float *peakx, const float *peaky, f
 		float ival = peaky[i];
 		float l = m - (m - fwhmlow[i]) * xfwhm;
 		float h = m + (fwhmhigh[i] - m) * xfwhm;
-		int index = nearfast(massaxis, m, mlen);
-		float height = masssum[index];
+		int index = nearfast(decon->massaxis, m, decon->mlen);
+		float height = decon->massaxisval[index];
 
-		float usc = uscore(config, dataMZ, dataInt, mzgrid, nztab, l, h, m);
-		float msc = mscore(config, mlen, massaxis, masssum, massgrid, l, h, m);
-		float cssc = csscore(config, mlen, massaxis, masssum, massgrid, l, h, m);
-		float fsc = fscore(config, plen, mlen, massaxis, masssum, peakx, height, fwhmlow[i], fwhmhigh[i], m, badfwhm[i]);
+		float usc = uscore(config, inp.dataMZ, inp.dataInt, decon->newblur, inp.nztab, l, h, m);
+		float msc = mscore(config, decon->mlen, decon->massaxis, decon->massaxisval, decon->massgrid, l, h, m);
+		float cssc = csscore(config, decon->mlen, decon->massaxis, decon->massaxisval, decon->massgrid, l, h, m);
+		float fsc = fscore(config, plen, decon->mlen, decon->massaxis, decon->massaxisval, peakx, height, fwhmlow[i], fwhmhigh[i], m, badfwhm[i]);
 
 		float dsc = usc * msc * cssc * fsc;
 		dscores[i] = dsc;
@@ -508,9 +507,9 @@ float score_from_peaks(const int plen, const float *peakx, const float *peaky, f
 		}
 	}
 
-	//printf("R Squared: %f\n", decon.rsquared);
+	//printf("R Squared: %f\n", decon->rsquared);
 
-	if (denominator != 0) { uniscore = rsquared * numerator / denominator; }
+	if (denominator != 0) { uniscore = decon->rsquared * numerator / denominator; }
 	return uniscore;
 }
 
@@ -530,8 +529,7 @@ float score(Config config, Decon *decon, Input inp, const float threshold)
 
 	peak_norm(decon->peaky, plen, config.peaknorm);
 
-	float uniscore = score_from_peaks(plen, decon->peakx, decon->peaky, decon->dscores, config, decon->mlen, decon->rsquared,
-		inp.dataMZ, inp.dataInt, decon->newblur, decon->massaxis, decon->massaxisval, decon->massgrid, inp.nztab, threshold);
+	float uniscore = score_from_peaks(plen, decon->peakx, decon->peaky, decon->dscores, config, decon, inp, threshold);
 	printf("Average Peaks Score (UniScore): %f\n", uniscore);
 
 	return uniscore;
@@ -589,6 +587,6 @@ void get_scan_scores(int argc, char* argv[], Config config)
 		FreeInputs(inp);
 	}
 	H5Fclose(config.file_id);
-
-	
 }
+
+
