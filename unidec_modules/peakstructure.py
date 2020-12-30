@@ -39,17 +39,17 @@ class Peak:
         self.kendrickdefect = 0
         self.kmass = 0
         self.score = 0
-        self.corrint = 0
-        self.correrr = 0
+        #self.corrint = 0
+        #self.correrr = 0
         self.mztabi = []
         self.massavg = 0
         self.masserr = 0
-        self.tval = 0
+        #self.tval = 0
         self.peakmasses = []
-        self.fitmassavg = 0
-        self.fitmasserr = 0
-        self.fitarea = 0
-        self.fitareaerr = 0
+        #self.fitmassavg = 0
+        #self.fitmasserr = 0
+        #self.fitarea = 0
+        #self.fitareaerr = 0
         self.diff = 0
         self.extracts = []
         self.errorFWHM = 0
@@ -70,6 +70,7 @@ class Peak:
         self.mdist = None
         self.zdist = None
         self.estimatedarea = 0
+        self.index = 0
 
     def line_out(self, type="Full"):
         if type == "Full":
@@ -112,7 +113,7 @@ class Peaks:
         self.norm = 1
         self.uniscore = 0
 
-    def add_peaks(self, parray, massbins=0):
+    def add_peaks(self, parray, massbins=0, scores_included=False):
         """
         Create peak objects from an array
         :param parray: N x 2 array containing (mass, height) of each peak.
@@ -123,12 +124,15 @@ class Peaks:
             newpeak = Peak()
             newpeak.mass = p[0]
             newpeak.height = p[1]
+            if scores_included:
+                newpeak.dscore = p[2]
             self.peaks.append(newpeak)
         self.masses = np.array([p.mass for p in self.peaks])
         self.plen = len(self.peaks)
         self.convolved = False
         self.composite = None
         self.massbins = massbins
+
 
     def default_params(self, cmap="rainbow"):
         """
@@ -183,37 +187,6 @@ class Peaks:
             else:
                 p.kendricknum = np.round(p.kmass)
                 p.kendrickdefect = p.kmass - np.round(p.kmass)
-
-    def score_peaks(self, thresh=0, ci=0.99):
-        """
-        For each peak, assign a score of the fractional number of charge states observed.
-        :param thresh: Optional threshold to define a noise floor.
-        :return: None
-        """
-        for p in self.peaks:
-            boo1 = p.mztab[:, 1] > thresh
-            boo2 = p.mztab2[:, 1] > 0
-            booi = p.mztabi[:, 0] > 0
-            boo3 = np.all([boo1, boo2, booi], axis=0)
-            try:
-                p.score = np.sum((np.ones_like(p.mztab[boo3, 1]) - np.clip(
-                    np.abs((p.mztab[boo3, 1] - p.mztab2[boo3, 1])) / p.mztab2[boo3, 1], 0, 1)))
-            except ZeroDivisionError:
-                p.score = 0
-
-            try:
-                dof = p.score - 1
-                if dof < 0:
-                    tval = 0
-                else:
-                    tval = ud.get_tvalue(dof, ci=ci)
-                p.massavg = np.average(p.peakmasses)
-                p.masserr = tval * np.std(p.peakmasses, ddof=1) / np.sqrt(p.score)
-                p.tval = tval
-            except (ValueError, ZeroDivisionError, RuntimeWarning, RuntimeError):
-                p.massavg = 0
-                p.masserr = 0
-                p.tval = 0
 
     def get_bool(self):
         boo1 = []
@@ -271,4 +244,37 @@ class Peaks:
         for p in self.peaks:
             outstring += p.line_out(type=type) + "\n"
         return outstring
+
+    '''
+    def score_peaks(self, thresh=0, ci=0.99):
+        """
+        For each peak, assign a score of the fractional number of charge states observed.
+        :param thresh: Optional threshold to define a noise floor.
+        :return: None
+        """
+        for p in self.peaks:
+            boo1 = p.mztab[:, 1] > thresh
+            boo2 = p.mztab2[:, 1] > 0
+            booi = p.mztabi[:, 0] > 0
+            boo3 = np.all([boo1, boo2, booi], axis=0)
+            try:
+                p.score = np.sum((np.ones_like(p.mztab[boo3, 1]) - np.clip(
+                    np.abs((p.mztab[boo3, 1] - p.mztab2[boo3, 1])) / p.mztab2[boo3, 1], 0, 1)))
+            except ZeroDivisionError:
+                p.score = 0
+
+            try:
+                dof = p.score - 1
+                if dof < 0:
+                    tval = 0
+                else:
+                    tval = ud.get_tvalue(dof, ci=ci)
+                p.massavg = np.average(p.peakmasses)
+                p.masserr = tval * np.std(p.peakmasses, ddof=1) / np.sqrt(p.score)
+                p.tval = tval
+            except (ValueError, ZeroDivisionError, RuntimeWarning, RuntimeError):
+                p.massavg = 0
+                p.masserr = 0
+                p.tval = 0
+    '''
 

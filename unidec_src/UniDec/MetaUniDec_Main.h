@@ -36,6 +36,7 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 		else if (strcmp(argv[2], "-charges") == 0) { mode = 7; }
 		else if (strcmp(argv[2], "-peaks") == 0) { mode = 8; }
 		else if (strcmp(argv[2], "-LC") == 0) { mode = 9; }
+		else if (strcmp(argv[2], "-scanpeaks") == 0) { mode = 10; }
 	}
 
 	//printf("%d\n\n", mode);
@@ -121,6 +122,12 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 
 		//Run UniDec LC
 		run_unidec_LC(argc, argv, config);
+	}
+
+	if (mode == 10)
+	{
+		printf("Getting Scan Scores\n");
+		get_scan_scores(argc, argv, config);
 	}
 
 	return 0;

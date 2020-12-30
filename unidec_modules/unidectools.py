@@ -218,6 +218,9 @@ def decimal_formatter(a, template):
         label = "%g" % round(a, -dec2)
     return label
 
+def round_to_nearest(n, m):
+    r = n % m
+    return n + m - r if r + r >= m else n - r
 
 def fix_textpos(pos, maxval):
     cutoff = 0.05 * maxval
@@ -1253,6 +1256,7 @@ def intensitythresh_del(datatop, thresh):
     datatop = datatop[above]
     return datatop
 
+
 def intensitythresh_sub(datatop, thresh):
     """
     Sets an intensity threshold. Everything below the threshold is set to 0. Everything else is subtracted by threshold.
@@ -1260,10 +1264,11 @@ def intensitythresh_sub(datatop, thresh):
     :param thresh: Threshold value
     :return: Thresholded array.
     """
-    datatop[:,1] -= thresh*np.amax(datatop[:,1])
+    datatop[:, 1] -= thresh * np.amax(datatop[:, 1])
     belowint = datatop[:, 1] < 0
     datatop[belowint, 1] = 0
     return datatop
+
 
 def remove_noise(datatop, percent=None):
     l1 = len(datatop)

@@ -626,21 +626,9 @@ int run_unidec(int argc, char *argv[], Config config) {
 	clock_t starttime;
 	starttime = clock();
 
-	hid_t file_id;
-
 	Input inp = SetupInputs();
 
-	char dataset[1024];
-	char outdat[1024];
 	bool autotune = 0;
-
-	//Convert aggressiveflag to baselineflag
-	if (config.aggressiveflag == 1 || config.aggressiveflag == 2) { config.baselineflag = 1; }
-	else { config.baselineflag = 0; }
-
-	//Experimental correction. Not sure why this is necessary.
-	if (config.psig < 0) { config.mzsig /= 3; }
-
 	if (argc>2)
 	{
 		if (strcmp(argv[2], "-test") == 0)
@@ -651,23 +639,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 			exit(0);
 		}
 
-		if (strcmp(argv[2], "-autotune") == 0)
-		{
-			autotune = 1;
-		}
-	}
-
-	if (config.metamode != -2)
-	{
-		strcpy(dataset, "/ms_dataset");
-		char strval[1024];
-		sprintf(strval, "/%d", config.metamode);
-		strcat(dataset, strval);
-		printf("HDF5 Data Set: %s\n", dataset);
-	}
-	else
-	{
-		strcpy(dataset, "/ms_data");
+		if (strcmp(argv[2], "-autotune") == 0){autotune = 1;}
 	}
 
 	//..................................
@@ -678,67 +650,10 @@ int run_unidec(int argc, char *argv[], Config config) {
 
 	if (argc >= 2)
 	{
-		if (config.filetype == 1) {
-			file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
-			strjoin(dataset, "/processed_data", outdat);
-			config.lengthmz = mh5getfilelength(file_id, outdat);
-			inp.dataMZ = calloc(config.lengthmz, sizeof(float));
-			inp.dataInt = calloc(config.lengthmz, sizeof(float));
-			mh5readfile2d(file_id, outdat, config.lengthmz, inp.dataMZ, inp.dataInt);
-			printf("Length of Data: %d \n", config.lengthmz);
-
-			//Check the length of the mfile and then read it in.
-			if (config.mflag == 1)
-			{
-				config.mfilelen = mh5getfilelength(file_id, "/config/masslist");
-				printf("Length of mfile: %d \n", config.mfilelen);
-				inp.testmasses = malloc(sizeof(float)*config.mfilelen);
-				mh5readfile1d(file_id, "/config/masslist", inp.testmasses);
-			}
-			else {
-				inp.testmasses = malloc(sizeof(float)*config.mfilelen);
-			}
-		}
-		else {
-
-			//Calculate the length of the data file automatically
-			config.lengthmz = getfilelength(config.infile);
-			inp.dataMZ = calloc(config.lengthmz, sizeof(float));
-			inp.dataInt = calloc(config.lengthmz, sizeof(float));
-
-			readfile(config.infile, config.lengthmz, inp.dataMZ, inp.dataInt);//load up the data array
-			printf("Length of Data: %d \n", config.lengthmz);
-
-			//Check the length of the mfile and then read it in.
-
-			if (config.mflag == 1)
-			{
-				config.mfilelen = getfilelength(config.mfile);
-				printf("Length of mfile: %d \n", config.mfilelen);
-			}
-			inp.testmasses = malloc(sizeof(float)*config.mfilelen);
-			if (config.mflag == 1)
-			{
-				readmfile(config.mfile, config.mfilelen, inp.testmasses);//read in mass tab
-			}
-		}
+		ReadInputs(argc, argv, &config, &inp);
 	}
+	else{ exit(88); }
 
-	//This for loop creates a list of charge values
-	inp.nztab = calloc(config.numz, sizeof(int));
-	for (int i = 0; i<config.numz; i++) { inp.nztab[i] = i + config.startz; }
-	//printf("nzstart %d\n",inp.nztab[0]);
-
-	//Test to make sure no charge state is zero
-	for (int j = 0; j < config.numz; j++)
-	{
-		if (inp.nztab[j] == 0) { printf("Error: Charge state cannot be 0"); exit(100); }
-	}
-	//Test to make sure no two data points has the same x value
-	for (int i = 0; i < config.lengthmz - 1; i++)
-	{
-		if (inp.dataMZ[i] == inp.dataMZ[i + 1]) { printf("Error: Two data points are identical"); exit(104); }
-	}
 
 	//.............................................................
 	//
@@ -768,7 +683,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 	//Manual Assignments
 	if (config.manualflag == 1)
 	{
-		ManualAssign(config.manualfile, config.lengthmz, config.numz, inp.dataMZ, inp.barr, inp.nztab, file_id, config);
+		ManualAssign(inp.dataMZ, inp.barr, inp.nztab, config);
 	}
 
 	//Setup Isotope Distributions
@@ -801,7 +716,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 	//...................................................................
 
 	//Write Everything
-	WriteDecon(config, &decon, &inp, file_id, dataset);
+	WriteDecon(config, &decon, &inp);
 
 	//Writes a file with a number of key parameters such as error and number of significant parameters.
 	clock_t end = clock();
@@ -820,30 +735,31 @@ int run_unidec(int argc, char *argv[], Config config) {
 		fprintf(out_ptr, "beta = %f\n", config.beta);
 		fprintf(out_ptr, "psig = %f\n", config.psig);
 		fclose(out_ptr);
-		printf("Stats and Error written to: %s\n", outstring3);
+		//printf("Stats and Error written to: %s\n", outstring3);
 	}
 	else {
-		write_attr_float(file_id, dataset, "error", decon.error);
-		write_attr_int(file_id, dataset, "iterations", decon.iterations);
-		write_attr_float(file_id, dataset, "time", totaltime);
-		write_attr_int(file_id, dataset, "length_mz", config.lengthmz);
-		write_attr_int(file_id, dataset, "length_mass", decon.mlen);
-		write_attr_float(file_id, dataset, "uniscore", decon.uniscore);
-		write_attr_float(file_id, dataset, "mzsig", config.mzsig);
-		write_attr_float(file_id, dataset, "zsig", config.zsig);
-		write_attr_float(file_id, dataset, "psig", config.psig);
-		write_attr_float(file_id, dataset, "beta", config.beta);
-		set_needs_grids(file_id);
-		H5Fclose(file_id);
+		write_attr_float(config.file_id, config.dataset, "error", decon.error);
+		write_attr_int(config.file_id, config.dataset, "iterations", decon.iterations);
+		write_attr_float(config.file_id, config.dataset, "time", totaltime);
+		write_attr_int(config.file_id, config.dataset, "length_mz", config.lengthmz);
+		write_attr_int(config.file_id, config.dataset, "length_mass", decon.mlen);
+		write_attr_float(config.file_id, config.dataset, "uniscore", decon.uniscore);
+		write_attr_float(config.file_id, config.dataset, "rsquared", decon.rsquared);
+		write_attr_float(config.file_id, config.dataset, "mzsig", config.mzsig);
+		write_attr_float(config.file_id, config.dataset, "zsig", config.zsig);
+		write_attr_float(config.file_id, config.dataset, "psig", config.psig);
+		write_attr_float(config.file_id, config.dataset, "beta", config.beta);
+		set_needs_grids(config.file_id);
+		H5Fclose(config.file_id);
 	}
 
 	//Free memory
 	FreeInputs(inp);
 	FreeDecon(decon);
 
-	printf("\nError in the Fit: %f\n", decon.error);
+	//printf("Error in the Fit: %f\n", decon.error);
 
 	//Final Check that iterations worked and a reporter of the time consumed
-	printf("\nFinished with %d iterations and %f convergence in %f seconds!\n\n", decon.iterations, decon.conv, totaltime);
+	printf("Finished with %d iterations in %f seconds!\n\n", decon.iterations, totaltime);
 	return 0;
 }

@@ -214,6 +214,17 @@ class ChromApp(MetaUniDecBase):
         self.view.SetStatusText("Peak Detection and Extraction Complete", number=5)
         pass
 
+    def on_pick_scanpeaks(self, e=None):
+        self.view.SetStatusText("Picking Peaks by Scan...", number=5)
+        self.export_config()
+        self.eng.pick_scanpeaks()
+        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
+        self.view.peakpanel.meta = True
+        self.makeplot2_mud()
+        self.makeplot7()
+        self.plot_sums()
+        self.view.SetStatusText("ScanPeak Detection and Extraction Complete", number=5)
+
     def on_clear_spectra(self, e=None):
         self.eng.data.clear()
         self.update_hdf5()

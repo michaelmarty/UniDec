@@ -29,7 +29,7 @@ TestSpectra
 default_conf.dat
 unidec_src/cfunction/x64
 unidec_src/cfunction/libmypfunc32.dll
-unidec_tests.py
+Scripts/MTM/unidec_tests.py
 pyinstaller_64.bat
 pyinstaller_64_dist.bat
 /Scripts/MTM/fft_test.py
@@ -169,3 +169,5 @@ unidec_bin/Example Data/BSA_unidecfiles/BSA_report.out
 unidec_modules/thermo_reader/RawFileReader
 unidec_modules/thermo_reader/RawFileReaderExample
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/Peaks_Mass_Defects.txt
+*.diagsession
+unidec_src/UniDec/UniDec.common.settings

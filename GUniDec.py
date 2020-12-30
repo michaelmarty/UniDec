@@ -755,7 +755,7 @@ class UniDecApp(UniDecPres):
 
     def on_color_plot1d(self, e=None, filled=False):
         self.on_integrate(plot=False)
-        self.eng.get_peaks_scores()
+        # self.eng.get_peaks_scores()
         self.makeplot2(1)
         # TODO: Take away black background on colored lines
         for p in self.eng.pks.peaks:

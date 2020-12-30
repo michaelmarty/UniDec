@@ -23,6 +23,8 @@
 //#include "UD_sg.h"
 
 void mh5readfile3d(hid_t file_id, char *dataname, int lengthmz, float *dataMZ, float *dataInt, float *data3);
+void mh5readfile2d(hid_t file_id, char* dataname, int lengthmz, float* dataMZ, float* dataInt);
+void mh5readfile1d(hid_t file_id, char* dataname, float* data);
 int mh5getfilelength(hid_t file_id, char *dataname);
 void strjoin(const char* s1, const char* s2, char* newstring);
 void mh5writefile1d(hid_t file_id, char* dataname, int length, float* data1);
@@ -32,7 +34,6 @@ void mh5writefile2d_grid(hid_t file_id, char* dataname, int length1, int length2
 typedef struct Input Input;
 
 struct Input {
-
 	float* dataMZ;
 	float* dataInt;
 	float* testmasses;
@@ -223,6 +224,8 @@ struct Config
 	int lengthmz;
 	int mfilelen;
 	int isolength;
+	hid_t file_id;
+	char dataset[1024];
 };
 
 Config SetDefaultConfig()
@@ -308,6 +311,7 @@ Config SetDefaultConfig()
 	config.lengthmz = 0;
 	config.mfilelen = 0;
 	config.isolength = 0;
+	config.file_id = 0;
 	return config;
 }
 
@@ -349,6 +353,13 @@ Config PostImport(Config config)
 	if (config.msig == 0) { config.msig = 0.00001; }
 	if (config.zsig == 0) { config.zsig = 0.00001; }
 	if (config.massbins == 0) { config.massbins = 1; }
+
+	//Convert aggressiveflag to baselineflag
+	if (config.aggressiveflag == 1 || config.aggressiveflag == 2) { config.baselineflag = 1; }
+	else { config.baselineflag = 0; }
+
+	//Experimental correction. Not sure why this is necessary.
+	if (config.psig < 0) { config.mzsig /= 3; }
 
 	return config;
 }
@@ -1813,17 +1824,19 @@ void TestMass(int lengthmz, int numz, char *barr, float *mtab, float nativezub, 
 	}
 }
 
-void ManualAssign(char *manualfile, int lengthmz, int numz, float *dataMZ, char *barr, int *nztab, hid_t file_id, Config config)
+void ManualAssign(float *dataMZ, char *barr, int *nztab, Config config)
 {
 	unsigned int i, j,k;
 	int manlen = 0;
+	int lengthmz = config.lengthmz;
+	int numz = config.numz;
 	if (config.filetype == 1)
 	{
-		manlen = mh5getfilelength(file_id, "/config/manuallist");
+		manlen = mh5getfilelength(config.file_id, "/config/manuallist");
 	}
 	else
 	{
-		manlen = getfilelength(manualfile);
+		manlen = getfilelength(config.manualfile);
 	}
 	printf("Length of Manual List: %d \n", manlen);
 	float *manualmz = malloc(sizeof(float)*manlen);
@@ -1831,11 +1844,11 @@ void ManualAssign(char *manualfile, int lengthmz, int numz, float *dataMZ, char 
 	float *manualassign = malloc(sizeof(float)*manlen);
 	if (config.filetype == 1)
 	{
-		mh5readfile3d(file_id, "/config/manuallist", manlen, manualmz, manualwin, manualassign);
+		mh5readfile3d(config.file_id, "/config/manuallist", manlen, manualmz, manualwin, manualassign);
 	}
 	else
 	{
-		readfile3(manualfile, manlen, manualmz, manualwin, manualassign);
+		readfile3(config.manualfile, manlen, manualmz, manualwin, manualassign);
 	}
 	
 	for( i = 0; i < manlen; i++){
@@ -3189,8 +3202,26 @@ int SetStartsEnds(const Config config, const Input * inp, int *starttab, int *en
 	return maxlength;
 }
 
-void WriteDecon(const Config config, const Decon * decon, const Input * inp, const hid_t file_id, const char * dataset)
+void WritePeaks(const Config config, const Decon* decon) {
+	char outdat[1024];
+	strjoin(config.dataset, "/peaks", outdat);
+	float* ptemp = NULL;
+	ptemp = calloc(decon->plen * 3, sizeof(float));
+
+	for (int i = 0; i < decon->plen; i++) {
+		ptemp[i * 3] = decon->peakx[i];
+		ptemp[i * 3 + 1] = decon->peaky[i];
+		ptemp[i * 3 + 2] = decon->dscores[i];
+	}
+
+	mh5writefile2d_grid(config.file_id, outdat, decon->plen, 3, ptemp);
+	free(ptemp);
+}
+
+void WriteDecon(const Config config, const Decon * decon, const Input * inp)
 {
+	hid_t file_id = config.file_id;
+	
 	char outdat[1024];
 	FILE* out_ptr = NULL;
 	//Write the fit data to a file.
@@ -3201,7 +3232,7 @@ void WriteDecon(const Config config, const Decon * decon, const Input * inp, con
 			out_ptr = fopen(outstring2, "wb");
 			fwrite(decon->fitdat, sizeof(float), config.lengthmz, out_ptr);
 			fclose(out_ptr);
-			printf("Fit: %s\t", outstring2);
+			//printf("Fit: %s\t", outstring2);
 		}
 		else {
 			//strjoin(dataset, "/fit_data", outdat);
@@ -3217,7 +3248,7 @@ void WriteDecon(const Config config, const Decon * decon, const Input * inp, con
 			out_ptr = fopen(outstring2, "wb");
 			fwrite(decon->baseline, sizeof(float), config.lengthmz, out_ptr);
 			fclose(out_ptr);
-			printf("Background: %s\t", outstring2);
+			//printf("Background: %s\t", outstring2);
 		}
 		else {
 			//strjoin(dataset, "/baseline", outdat);
@@ -3228,6 +3259,10 @@ void WriteDecon(const Config config, const Decon * decon, const Input * inp, con
 	//Writes the convolved m/z grid in binary format
 	if (config.rawflag == 0 || config.rawflag == 1)
 	{
+		// Note to self
+		// rawflag=0 -> Reconvolved/Profile -> newblur
+		// rawflag=1 -> Raw/Centroid -> blur
+
 		if (config.filetype == 0) {
 			char outstring9[500];
 			sprintf(outstring9, "%s_grid.bin", config.outfile);
@@ -3235,14 +3270,14 @@ void WriteDecon(const Config config, const Decon * decon, const Input * inp, con
 			if (config.rawflag == 0) { fwrite(decon->newblur, sizeof(float), config.lengthmz * config.numz, out_ptr); }
 			if (config.rawflag == 1) { fwrite(decon->blur, sizeof(float), config.lengthmz * config.numz, out_ptr); }
 			fclose(out_ptr);
-			printf("m/z grid: %s\t", outstring9);
+			//printf("m/z grid: %s\t", outstring9);
 		}
 		else {
-			strjoin(dataset, "/mz_grid", outdat);
+			strjoin(config.dataset, "/mz_grid", outdat);
 			if (config.rawflag == 0) { mh5writefile1d(file_id, outdat, config.lengthmz * config.numz, decon->newblur); }
 			if (config.rawflag == 1) { mh5writefile1d(file_id, outdat, config.lengthmz * config.numz, decon->blur); }
 
-			strjoin(dataset, "/mz_grid", outdat);
+			strjoin(config.dataset, "/mz_grid", outdat);
 			float* chargedat = NULL;
 			chargedat = calloc(config.numz, sizeof(float));
 			float* chargeaxis = NULL;
@@ -3257,7 +3292,7 @@ void WriteDecon(const Config config, const Decon * decon, const Input * inp, con
 				}
 				chargedat[j] = val;
 			}
-			strjoin(dataset, "/charge_data", outdat);
+			strjoin(config.dataset, "/charge_data", outdat);
 			mh5writefile2d(file_id, outdat, config.numz, chargeaxis, chargedat);
 			free(chargedat);
 			free(chargeaxis);
@@ -3273,10 +3308,10 @@ void WriteDecon(const Config config, const Decon * decon, const Input * inp, con
 			out_ptr = fopen(outstring10, "wb");
 			fwrite(decon->massgrid, sizeof(float), decon->mlen * config.numz, out_ptr);
 			fclose(out_ptr);
-			printf("Mass Grid: %s\t", outstring10);
+			//printf("Mass Grid: %s\t", outstring10);
 		}
 		else {
-			strjoin(dataset, "/mass_grid", outdat);
+			strjoin(config.dataset, "/mass_grid", outdat);
 			mh5writefile1d(file_id, outdat, decon->mlen * config.numz, decon->massgrid);
 		}
 	}
@@ -3292,34 +3327,99 @@ void WriteDecon(const Config config, const Decon * decon, const Input * inp, con
 				fprintf(out_ptr, "%f %f\n", decon->massaxis[i], decon->massaxisval[i]);
 			}
 			fclose(out_ptr);
-			printf("Masses: %s\n", outstring4);
+			//printf("Masses: %s\n", outstring4);
 		}
 		else {
 			//int mlen = remove_middle_zeros(decon->massaxis, decon->massaxisval, decon->mlen); //Doesn't really work
-			strjoin(dataset, "/mass_data", outdat);
+			strjoin(config.dataset, "/mass_data", outdat);
 			mh5writefile2d(file_id, outdat, decon->mlen, decon->massaxis, decon->massaxisval);
 		}
 	}
 
 	if (config.filetype == 1 && decon->plen>0) {
-		strjoin(dataset, "/peaks", outdat);
-		float* ptemp = NULL;
-		ptemp = calloc(decon->plen * 3, sizeof(float));
-
-		for (int i = 0; i < decon->plen; i++) {
-			ptemp[i * 3] = decon->peakx[i];
-			ptemp[i * 3+1] = decon->peaky[i];
-			ptemp[i * 3+2] = decon->dscores[i];
-		}
-
-		mh5writefile2d_grid(file_id, outdat, decon->plen, 3, ptemp);
-		free(ptemp);
+		WritePeaks(config, decon);
 	}
 
 }
 
+void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
+{
+	if (config->filetype == 1) {
+		if (config->metamode != -2)
+		{
+			strcpy(config->dataset, "/ms_dataset");
+			char strval[1024];
+			sprintf(strval, "/%d", config->metamode);
+			strcat(config->dataset, strval);
+			printf("HDF5 Data Set: %s\n", config->dataset);
+		}
+		else
+		{
+			strcpy(config->dataset, "/ms_data");
+		}
+
+		char outdat[1024];
+		config->file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
+		strjoin(config->dataset, "/processed_data", outdat);
+		config->lengthmz = mh5getfilelength(config->file_id, outdat);
+		inp->dataMZ = calloc(config->lengthmz, sizeof(float));
+		inp->dataInt = calloc(config->lengthmz, sizeof(float));
+		mh5readfile2d(config->file_id, outdat, config->lengthmz, inp->dataMZ, inp->dataInt);
+		printf("Length of Data: %d \n", config->lengthmz);
+
+		//Check the length of the mfile and then read it in.
+		if (config->mflag == 1)
+		{
+			config->mfilelen = mh5getfilelength(config->file_id, "/config/masslist");
+			printf("Length of mfile: %d \n", config->mfilelen);
+			inp->testmasses = malloc(sizeof(float) * config->mfilelen);
+			mh5readfile1d(config->file_id, "/config/masslist", inp->testmasses);
+		}
+		else {
+			inp->testmasses = malloc(sizeof(float) * config->mfilelen);
+		}
+	}
+	else {
+
+		//Calculate the length of the data file automatically
+		config->lengthmz = getfilelength(config->infile);
+		inp->dataMZ = calloc(config->lengthmz, sizeof(float));
+		inp->dataInt = calloc(config->lengthmz, sizeof(float));
+
+		readfile(config->infile, config->lengthmz, inp->dataMZ, inp->dataInt);//load up the data array
+		printf("Length of Data: %d \n", config->lengthmz);
+
+		//Check the length of the mfile and then read it in.
+
+		if (config->mflag == 1)
+		{
+			config->mfilelen = getfilelength(config->mfile);
+			printf("Length of mfile: %d \n", config->mfilelen);
+		}
+		inp->testmasses = malloc(sizeof(float) * config->mfilelen);
+		if (config->mflag == 1)
+		{
+			readmfile(config->mfile, config->mfilelen, inp->testmasses);//read in mass tab
+		}
+	}
 
 
+	//This for loop creates a list of charge values
+	inp->nztab = calloc(config->numz, sizeof(int));
+	for (int i = 0; i < config->numz; i++) { inp->nztab[i] = i + config->startz; }
+	//printf("nzstart %d\n",inp.nztab[0]);
 
+	//Test to make sure no charge state is zero
+	for (int j = 0; j < config->numz; j++)
+	{
+		if (inp->nztab[j] == 0) { printf("Error: Charge state cannot be 0"); exit(100); }
+	}
+	//Test to make sure no two data points has the same x value
+	for (int i = 0; i < config->lengthmz - 1; i++)
+	{
+		if (inp->dataMZ[i] == inp->dataMZ[i + 1]) { printf("Error: Two data points are identical"); exit(104); }
+	}
+
+}
 
 #endif

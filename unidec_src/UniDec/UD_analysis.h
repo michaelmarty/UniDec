@@ -668,6 +668,5 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 }
 
 // peak_extracts() extracts for each row in /peakdata and writes to /extracts
-//TODO: in peak_extracts() find way to only search for masses from the ultra mass list
 
 #endif

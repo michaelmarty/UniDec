@@ -15,6 +15,7 @@
 //#include "UniDec.h"
 //#include "UD_peak_width.h"
 
+void WritePeaks(const Config config, const Decon* decon);
 
 
 void get_fwhms(Config config, const int plen, const int mlen, const float* massaxis, const float* masssum, const float* peakx, float* fwhmlow, float* fwhmhigh, float* badfwhm)
@@ -534,4 +535,60 @@ float score(Config config, Decon *decon, Input inp, const float threshold)
 	printf("Average Peaks Score (UniScore): %f\n", uniscore);
 
 	return uniscore;
+}
+
+void ReadDecon(Config* config, const Input inp, Decon* decon) 
+{
+	char outdat[1024];
+	char strval[1024];
+
+	//Import Rsquared
+	decon->rsquared = float_attr(config->file_id, config->dataset, "rsquared", decon->rsquared);
+
+	//Mass Data
+	strjoin(config->dataset, "/mass_data", outdat);
+	//printf("\tReading: %s\n", outdat);
+	decon->mlen = mh5getfilelength(config->file_id, outdat);
+	decon->massaxis = calloc(decon->mlen, sizeof(float));
+	decon->massaxisval = calloc(decon->mlen, sizeof(float));
+	mh5readfile2d(config->file_id, outdat, decon->mlen, decon->massaxis, decon->massaxisval);
+
+	//Mass Grid
+	strjoin(config->dataset, "/mass_grid", outdat);
+	//printf("\tReading: %s\n", outdat);
+	decon->massgrid = calloc(decon->mlen * config->numz, sizeof(float));
+	mh5readfile1d(config->file_id, outdat, decon->massgrid);
+
+	//MZ Grid
+	strjoin(config->dataset, "/mz_grid", outdat);
+	//printf("\tReading: %s\n", outdat);
+	decon->newblur = calloc(config->lengthmz * config->numz, sizeof(float));
+	mh5readfile1d(config->file_id, outdat, decon->newblur);
+
+}
+
+void get_scan_scores(int argc, char* argv[], Config config)
+{
+	config.file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
+	int num = 0;
+	num = int_attr(config.file_id, "/ms_dataset", "num", num);
+
+	for (int i = 0; i < num; i++) {
+		config.metamode = i;
+		
+		Decon decon = SetupDecon();
+		Input inp = SetupInputs();
+		ReadInputs(argc, argv, &config, &inp);
+		ReadDecon(&config, inp, &decon);
+
+		score(config, &decon, inp, 0);
+
+		WritePeaks(config, &decon);
+
+		FreeDecon(decon);
+		FreeInputs(inp);
+	}
+	H5Fclose(config.file_id);
+
+	
 }

@@ -4,7 +4,7 @@ import h5py
 import unidec_modules.unidectools as ud
 import os
 from copy import deepcopy
-
+from unidec_modules.peakstructure import Peaks
 
 class MetaDataSet:
     def __init__(self, engine):
@@ -20,6 +20,7 @@ class MetaDataSet:
         self.mzdat = []
         self.exgrid = []
         self.exvals = []
+        self.peaks = []
         self.var1 = []
         self.var2 = []
         self.v1name = "Variable 1"
@@ -333,6 +334,8 @@ class Spectrum:
         self.massgrid = np.array([])
         self.ztab = np.array([])
         self.zdata = np.array([])
+        self.peaks = np.array([])
+        self.pks = Peaks()
         self.index = index
         self.name = ""
         self.topname = topname
@@ -399,5 +402,13 @@ class Spectrum:
         except:
             pass
         # self.baseline = get_dataset(msdata, "baseline")
+        self.peaks = get_dataset(msdata, "peaks")
+        self.setup_peaks()
         self.attrs = dict(list(msdata.attrs.items()))
         hdf.close()
+
+    def setup_peaks(self):
+        self.pks.add_peaks(self.peaks, scores_included=True)
+        self.pks.default_params()
+        #print([[p.mass, p.height, p.dscore] for p in self.pks.peaks])
+
