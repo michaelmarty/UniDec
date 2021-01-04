@@ -536,7 +536,7 @@ float score(Config config, Decon *decon, Input inp, const float threshold)
 	return uniscore;
 }
 
-void ReadDecon(Config* config, const Input inp, Decon* decon) 
+int ReadDecon(Config* config, const Input inp, Decon* decon) 
 {
 	char outdat[1024];
 	char strval[1024];
@@ -552,18 +552,22 @@ void ReadDecon(Config* config, const Input inp, Decon* decon)
 	decon->massaxisval = calloc(decon->mlen, sizeof(float));
 	mh5readfile2d(config->file_id, outdat, decon->mlen, decon->massaxis, decon->massaxisval);
 
-	//Mass Grid
-	strjoin(config->dataset, "/mass_grid", outdat);
-	//printf("\tReading: %s\n", outdat);
-	decon->massgrid = calloc(decon->mlen * config->numz, sizeof(float));
-	mh5readfile1d(config->file_id, outdat, decon->massgrid);
-
 	//MZ Grid
 	strjoin(config->dataset, "/mz_grid", outdat);
+	int status = check_group_noexit(config->file_id, outdat);
+	if (status == 0) { return 0; }
 	//printf("\tReading: %s\n", outdat);
 	decon->newblur = calloc(config->lengthmz * config->numz, sizeof(float));
 	mh5readfile1d(config->file_id, outdat, decon->newblur);
 
+	//Mass Grid
+	strjoin(config->dataset, "/mass_grid", outdat);
+	status = check_group_noexit(config->file_id, outdat);
+	if (status == 0) { return 0; }
+	//printf("\tReading: %s\n", outdat);
+	decon->massgrid = calloc(decon->mlen * config->numz, sizeof(float));
+	mh5readfile1d(config->file_id, outdat, decon->massgrid);
+	return 1;
 }
 
 void get_scan_scores(int argc, char* argv[], Config config)
@@ -578,11 +582,18 @@ void get_scan_scores(int argc, char* argv[], Config config)
 		Decon decon = SetupDecon();
 		Input inp = SetupInputs();
 		ReadInputs(argc, argv, &config, &inp);
-		ReadDecon(&config, inp, &decon);
+		int status = ReadDecon(&config, inp, &decon);
 
+		if(status ==1){
 		score(config, &decon, inp, 0);
-
 		WritePeaks(config, &decon);
+		}
+		else
+		{
+			printf("Missing deconvolution outputs. Turn off Fast Profile/Fast Centroid and try deconvolving again.");
+		}
+
+		
 
 		FreeDecon(decon);
 		FreeInputs(inp);

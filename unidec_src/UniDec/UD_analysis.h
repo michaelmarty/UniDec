@@ -17,7 +17,7 @@
 #define ANALYSIS_HEADER
 
 float single_fwhm(Config config, const int mlen, const float* massaxis, const float* masssum, const float peak, int index, float max);
-void ReadDecon(Config* config, const Input inp, Decon* decon);
+int ReadDecon(Config* config, const Input inp, Decon* decon);
 float score_from_peaks(const int plen, const float* peakx, const float* peaky, float* dscores, const Config config, Decon* decon, const Input inp, const float threshold);
 float score(Config config, Decon* decon, Input inp, const float threshold);
 
@@ -655,20 +655,27 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 			Decon decon = SetupDecon();
 			Input inp = SetupInputs();
 			ReadInputs(argc, argv, &config, &inp);
-			ReadDecon(&config, inp, &decon);
+			int status = ReadDecon(&config, inp, &decon);
 
-			//Get the scores for each peak
-			//score(config, &decon, inp, 0);
-			score_from_peaks(plen, peakx, peaky, tempdscores, config, &decon, inp, 0);
+			//Check to make sure key deconvolution grids are there
+			if (status == 1) {
+				//Get the scores for each peak
+				//score(config, &decon, inp, 0);
+				score_from_peaks(plen, peakx, peaky, tempdscores, config, &decon, inp, 0);
 
-			//Average In Dscores
-			for (int j = 0; j < plen; j++)
+				//Average In Dscores
+				for (int j = 0; j < plen; j++)
+				{
+					//Get the peaky value locally
+					int index = nearfast(decon.massaxis, peakx[j], decon.mlen);
+					float yval = decon.massaxisval[index];
+					numerators[j] += yval * tempdscores[j];
+					denominators[j] += yval;
+				}
+			}
+			else
 			{
-				//Get the peaky value locally
-				int index = nearfast(decon.massaxis, peakx[j], decon.mlen);
-				float yval = decon.massaxisval[index];
-				numerators[j] += yval * tempdscores[j];
-				denominators[j] += yval;
+				printf("Missing deconvolution outputs. Turn off Fast Profile/Fast Centroid and try deconvolving again.");
 			}
 
 			//Free things

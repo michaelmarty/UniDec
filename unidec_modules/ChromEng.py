@@ -5,7 +5,7 @@ from metaunidec.mudeng import MetaUniDec
 from unidec import UniDec
 from copy import deepcopy
 
-chrom_file_exts = [".mzML.gz", ".mzML", ".raw", ".Raw", ".RAW", ".d"]
+chrom_file_exts = [".raw", ".Raw", ".RAW", ".d", ".mzML.gz", ".mzML" ]
 
 
 class ChromEngine(MetaUniDec):

@@ -25,6 +25,20 @@ int check_group(hid_t file_id, char *dataname)
 	return status;
 }
 
+int check_group_noexit(hid_t file_id, char* dataname)
+{
+	int status = H5Lexists(file_id, dataname, H5P_DEFAULT);
+	if (status == 0) { printf("Dataset %s does not exist. Error.\n", dataname);}
+	return status;
+}
+
+void delete_group(hid_t file_id, char* dataname)
+{
+	if (H5LTpath_valid(file_id, dataname, 1)) {
+		H5Ldelete(file_id, dataname, H5P_DEFAULT);
+	}
+}
+
 
 int mh5getfilelength(hid_t file_id, char *dataname)
 {

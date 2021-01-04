@@ -30,6 +30,7 @@ void strjoin(const char* s1, const char* s2, char* newstring);
 void mh5writefile1d(hid_t file_id, char* dataname, int length, float* data1);
 void mh5writefile2d(hid_t file_id, char* dataname, int length, float* data1, float* data2);
 void mh5writefile2d_grid(hid_t file_id, char* dataname, int length1, int length2, float* data1);
+void delete_group(hid_t file_id, char* dataname);
 
 typedef struct Input Input;
 
@@ -3276,8 +3277,7 @@ void WriteDecon(const Config config, const Decon * decon, const Input * inp)
 			strjoin(config.dataset, "/mz_grid", outdat);
 			if (config.rawflag == 0) { mh5writefile1d(file_id, outdat, config.lengthmz * config.numz, decon->newblur); }
 			if (config.rawflag == 1) { mh5writefile1d(file_id, outdat, config.lengthmz * config.numz, decon->blur); }
-
-			strjoin(config.dataset, "/mz_grid", outdat);
+			
 			float* chargedat = NULL;
 			chargedat = calloc(config.numz, sizeof(float));
 			float* chargeaxis = NULL;
@@ -3298,7 +3298,15 @@ void WriteDecon(const Config config, const Decon * decon, const Input * inp)
 			free(chargeaxis);
 		}
 	}
-
+	else if (config.filetype == 1) {
+		// If the rawfile flag not 1 or 2 and this is an HDF5 file, zero out these arrays.
+		strjoin(config.dataset, "/mz_grid", outdat);
+		delete_group(file_id, outdat);
+		strjoin(config.dataset, "/charge_data", outdat);
+		delete_group(file_id, outdat);
+		strjoin(config.dataset, "/mass_grid", outdat);
+		delete_group(file_id, outdat);
+	}
 
 	//Writes the convolved mass grid in binary format
 	if (config.rawflag == 0 || config.rawflag == 1) {
