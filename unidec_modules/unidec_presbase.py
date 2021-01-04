@@ -246,6 +246,27 @@ class UniDecPres(object):
             tend = time.perf_counter()
             print("Plot 4: %.2gs" % (tend - tstart))
 
+    def on_filter_peaks(self, e=None):
+        defaultvalue = "40"
+        try:
+            defaultvalue = str(self.eng.fdrs[0, 1] * 100)
+        except:
+            pass
+        dialog = miscwindows.SingleInputDialog(self.view)
+        dialog.initialize_interface(title="Minimum DScore", message="Set Minimum DScore Value (%): ",
+                                    defaultvalue=defaultvalue)
+        dialog.ShowModal()
+
+        try:
+            minval = float(dialog.value) / 100.
+        except:
+            print("Error with Score Input:", dialog.value)
+            minval = 0.4
+
+        print("Using DScore Cutoff (%): ", minval * 100)
+        self.eng.filter_peaks(minscore=minval)
+        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
+
     def on_charge_states(self, e=None, mass=None, plot=None, peakpanel=None, data=None):
         """
         Triggered by right click "plot charge states" on self.view.peakpanel.

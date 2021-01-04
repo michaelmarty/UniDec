@@ -1590,25 +1590,7 @@ class UniDecApp(UniDecPres):
         self.view.SetStatusText("UniScore: " + str(round(self.eng.pks.uniscore * 100, 2)), number=3)
 
     def on_score2(self, e=0):
-        defaultvalue = "40"
-        try:
-            defaultvalue = str(self.eng.fdrs[0, 1] * 100)
-        except:
-            pass
-        dialog = miscwindows.SingleInputDialog(self.view)
-        dialog.initialize_interface(title="Minimum DScore", message="Set Minimum DScore Value (%): ",
-                                    defaultvalue=defaultvalue)
-        dialog.ShowModal()
-
-        try:
-            minval = float(dialog.value) / 100.
-        except:
-            print("Error with Score Input:", dialog.value)
-            minval = 0.4
-
-        print("Using DScore Cutoff (%): ", minval * 100)
-        self.eng.filter_peaks(minscore=minval)
-        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
+        self.on_filter_peaks(e)
         self.view.SetStatusText("UniScore: " + str(round(self.eng.pks.uniscore * 100, 2)), number=3)
         self.makeplot2()
         self.makeplot4()

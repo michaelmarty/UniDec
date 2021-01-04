@@ -197,33 +197,10 @@ class ChromApp(MetaUniDecBase):
         self.view.singlepeakpanel.add_data(self.eng.unidec_eng.pks)
         pass
 
-    def on_pick_peaks(self, e=None):
-        """
-        Tested
-        :param e:
-        :return:
-        """
-        self.view.SetStatusText("Picking Peaks...", number=5)
-        self.export_config()
-        self.eng.pick_peaks()
-        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
-        self.view.peakpanel.meta = True
+    def peak_plots(self, e=None):
         self.makeplot2_mud()
         self.makeplot7()
         self.plot_sums()
-        self.view.SetStatusText("Peak Detection and Extraction Complete", number=5)
-        pass
-
-    def on_pick_scanpeaks(self, e=None):
-        self.view.SetStatusText("Picking Peaks by Scan...", number=5)
-        self.export_config()
-        self.eng.pick_scanpeaks()
-        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
-        self.view.peakpanel.meta = True
-        self.makeplot2_mud()
-        self.makeplot7()
-        self.plot_sums()
-        self.view.SetStatusText("ScanPeak Detection and Extraction Complete", number=5)
 
     def on_clear_spectra(self, e=None):
         self.eng.data.clear()

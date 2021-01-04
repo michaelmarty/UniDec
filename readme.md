@@ -203,6 +203,9 @@ v.4.3.1
 
 **Major speed improvements to large mzML data files** by using gzip to compress the data prior to opening it. Thanks to the pymzML team for this.
 
+**Added DScore to MetaUniDec and UniChrom**. This will now show the DScore for each peak. It calculates the DScore for each spectrum but then takes the average across all spectra weighted by the intensity of that peak in each spectrum. 
+Also, added Filter by Score to Experimental Menu.
+
 **Added Sliding Window to UniChrom**. You can now specify the width of the window (in minutes) and the offset between the start of the windows (in # of scans). The offset needs to be an integer greater than or equal to 1. Setting the window to 1 will start a window on each scan. Setting a window of 0 and an offset of 1 will give every scan separately, without averaging any of them together.
 
 **Hidden feature: Write data from plot to text file.** Clicking Ctrl+u on most plots will now give you a dialog to save the underlying data as a text file. Usually, this data was written somewhere behind the scenes, but this will give an easy way to export it.

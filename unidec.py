@@ -1218,13 +1218,7 @@ class UniDec(UniDecEngine):
             print("No peaks present")
 
     def filter_peaks(self, minscore=0.4):
-        # w = deepcopy(self.config.peakwindow)
-        # t = deepcopy(self.config.peakthresh)
-        # self.config.peakwindow = 3 * self.config.massbins
-        # self.config.peakthresh = 0.01
         self.pick_peaks()
-        # self.config.peakwindow = w
-        # self.config.peakthresh = t
         self.dscore()
 
         newpeaks = []

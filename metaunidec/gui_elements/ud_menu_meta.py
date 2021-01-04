@@ -337,6 +337,9 @@ class meta_menu(wx.Menu):
         self.menuscanpeaks = self.experimentalmenu.Append(wx.ID_ANY, "Get Scan Peaks")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_pick_scanpeaks, self.menuscanpeaks)
 
+        self.menufilterpeaks = self.experimentalmenu.Append(wx.ID_ANY, "Filter Peaks by Score")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_filter_peaks_MUD, self.menufilterpeaks)
+
         if self.type == "Meta":
             #Help Menu
             self.getstarted = self.helpmenu.Append(wx.ID_ANY, "Getting Started")
