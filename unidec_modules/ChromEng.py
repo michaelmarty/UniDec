@@ -56,7 +56,8 @@ class ChromEngine(MetaUniDec):
         print("Attempted to open: ", path)
         print("Unable to find chromatograph file matching the header: ", header)
         print("Please rename the files such that the raw data matches the HDF5 file name")
-        return False, header
+        raise FileNotFoundError
+        # return False, header
 
     def load_mzml(self, path, load_hdf5=True, *args, **kwargs):
         self.path = path

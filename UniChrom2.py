@@ -29,6 +29,8 @@ class ChromApp(MetaUniDecBase):
         pub.subscribe(self.on_get_mzlimits, 'mzlimits')
         self.outputfile = None
         self.scans = None
+        self.recent_files = self.read_recent()
+        self.cleanup_recent_file(self.recent_files)
         self.view.menu.update_recent()
         if False:
             path = "D:\\Data\\ShortCourse\\strepme.RAW"
