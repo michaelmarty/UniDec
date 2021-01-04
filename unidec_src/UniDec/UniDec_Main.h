@@ -393,7 +393,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	{
 		printf("Rescaling charge states and normalizing ");
 		charge_scaling(decon.blur, inp.nztab, config.lengthmz, config.numz);
-		simp_norm(config.lengthmz * config.numz, decon.blur);
+		//simp_norm(config.lengthmz * config.numz, decon.blur);
 		printf("Done\n");
 	}
 

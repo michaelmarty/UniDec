@@ -1083,6 +1083,8 @@ class UniDec(UniDecEngine):
                 v = p.mzstack[i]
                 X = v[:, 1]  # spectrum
                 Y = v[:, 2]  # mzgrid
+                if self.config.orbimode == 1:
+                    Y = Y * zval
                 sx = np.sum(X)
                 sy = np.sum(Y)
                 # r = 1 - ud.safedivide1(np.abs(sy - sz), sy)

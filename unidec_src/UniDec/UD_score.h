@@ -215,6 +215,7 @@ float uscore(Config config, const float* dataMZ, const float* dataInt, const flo
 			{
 				float data = dataInt[j];
 				float decon = mzgrid[index2D(config.numz, j, i)];
+				if (config.orbimode == 1) { decon *= z; }
 				sumerrors += fabs(data - decon);
 				sumdata += data;
 				sumdecon += decon;
@@ -501,7 +502,7 @@ float score_from_peaks(const int plen, const float *peakx, const float *peaky, f
 		dscores[i] = dsc;
 		if (dsc > threshold)
 		{
-			//printf("Peak: Mass:%f Int:%f M:%f U:%f CS:%f F:%f D: %f \n", peakx[i], peaky[i], msc, usc, cssc, fsc, dsc);
+			printf("Peak: Mass:%f Int:%f M:%f U:%f CS:%f F:%f D: %f \n", peakx[i], peaky[i], msc, usc, cssc, fsc, dsc);
 			numerator += ival * ival * dsc;
 			denominator += ival * ival;
 		}
