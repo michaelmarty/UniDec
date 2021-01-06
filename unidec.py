@@ -372,7 +372,13 @@ class UniDec(UniDecEngine):
         runstats = np.genfromtxt(self.config.errorfile, dtype='str')
         if self.config.imflag == 0:
             # Calculate Error
-            sse = float(runstats[0, 2])
+            try:
+                sse = float(runstats[0, 2])
+            except Exception as e:
+                print("Error in error import", e)
+                print(runstats)
+                sse = 1
+
             mean = np.mean(self.data.data2[:, 1])
             self.config.error = 1 - sse / np.sum((self.data.data2[:, 1] - mean) ** 2)
             if not efficiency:
