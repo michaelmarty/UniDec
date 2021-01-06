@@ -195,9 +195,11 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
-v.4.3.1
+v.4.4.0
 
 **Added Scroll Bar to Controls!** People have been asking for this for a while, and I could never figure out how to get it to work. Finally, I managed to find the answer and added it with some buttons on the bottom to help expand and collapse key parts.
+
+In a significant technical change, I switched all doubles in the C code to floats. For those who are interested, this sacrifices a little precision in calculations for improvements in speed and file size.
 
 **Added Fast Profile and Fast Centroid** options for UniChrom2 and MetaUniDec. These will help speed up deconvolutions and limit file sizes by not adding the massgrid and mzgrid to each spectrum. The animate features will not work, and other things might not be available, but the basic settings should be consistent.
 

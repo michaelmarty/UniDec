@@ -585,15 +585,13 @@ void get_scan_scores(int argc, char* argv[], Config config)
 		int status = ReadDecon(&config, inp, &decon);
 
 		if(status ==1){
-		score(config, &decon, inp, 0);
-		WritePeaks(config, &decon);
+			score(config, &decon, inp, 0);
+			WritePeaks(config, &decon);
 		}
 		else
 		{
 			printf("Missing deconvolution outputs. Turn off Fast Profile/Fast Centroid and try deconvolving again.");
 		}
-
-		
 
 		FreeDecon(decon);
 		FreeInputs(inp);

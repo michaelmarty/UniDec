@@ -3219,6 +3219,16 @@ void WritePeaks(const Config config, const Decon* decon) {
 	free(ptemp);
 }
 
+/*
+void ReadPeaks(const Config config, const char * dataset, float* peakx, float* peaky, float* dscores)
+{
+	//Unfinished
+	char outdat[1024];
+	strjoin(dataset, "/peaks", outdat);
+	float* ptemp = NULL;
+	//ptemp = calloc(decon->plen * 3, sizeof(float));
+}*/
+
 void WriteDecon(const Config config, const Decon * decon, const Input * inp)
 {
 	hid_t file_id = config.file_id;

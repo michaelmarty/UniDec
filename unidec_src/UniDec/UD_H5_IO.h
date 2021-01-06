@@ -28,7 +28,7 @@ int check_group(hid_t file_id, char *dataname)
 int check_group_noexit(hid_t file_id, char* dataname)
 {
 	int status = H5Lexists(file_id, dataname, H5P_DEFAULT);
-	if (status == 0) { printf("Dataset %s does not exist. Error.\n", dataname);}
+	if (status == 0) { printf("Dataset %s does not exist.\n", dataname);}
 	return status;
 }
 
@@ -48,6 +48,17 @@ int mh5getfilelength(hid_t file_id, char *dataname)
 	// printf("%d %d\n", dims[0], dims[1]);
 	return dims[0];
 }
+
+/*
+void mh5readfile2d_grid(hid_t file_id, char* dataname, int length1, int length2, float* data1)
+{
+	//Unfinished
+	const hsize_t length[2] = { length1 ,length2 };
+	if (H5LTpath_valid(file_id, dataname, 1)) {
+		H5Ldelete(file_id, dataname, H5P_DEFAULT);
+	}
+	H5LTmake_dataset_float(file_id, dataname, 2, length, data1);
+}*/
 
 void mh5readfile2d(hid_t file_id, char *dataname, int lengthmz, float *dataMZ, float *dataInt)
 {

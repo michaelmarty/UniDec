@@ -739,4 +739,117 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 
 // peak_extracts() extracts for each row in /peakdata and writes to /extracts
 
+/*
+int peak_combine(int argc, char* argv[], float* peakx, float* peaky, Config config)
+{
+	//Unfinished
+	char dataset[1024];
+	char outdat[1024];
+	char strval[1024];
+
+	config.file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
+
+	int plen = 1;
+	float* peakx = NULL;
+	float* peaky = NULL;
+	float* dscores = NULL;
+
+	peakx = calloc(plen, sizeof(float));
+	peaky = calloc(plen, sizeof(float));
+	dscores = calloc(plen, sizeof(float));
+	
+	float* numerators = NULL;
+	float* denominators = NULL;
+
+	//peakx = realloc(peakx, plen * sizeof(float));
+	//peaky = realloc(peaky, plen * sizeof(float));
+	
+	//numerators = calloc(plen, sizeof(float));
+	//denominators = calloc(plen, sizeof(float));
+
+	//peak_norm(peaky, plen, config.peaknorm);
+
+	int num = 0;
+	num = int_attr(config.file_id, "/ms_dataset", "num", num);
+
+	// Get the dscores by scoring the peak at each scan
+	for (int i = 0; i < num; i++) {
+		//Create a temp array
+		float* tempdscores = NULL;
+		tempdscores = calloc(plen, sizeof(float));
+
+		//Import everything
+		config.metamode = i;
+		Decon decon = SetupDecon();
+		Input inp = SetupInputs();
+		ReadInputs(argc, argv, &config, &inp);
+		int status = ReadDecon(&config, inp, &decon);
+
+		//Check to make sure key deconvolution grids are there
+		if (status == 1) {
+			//Get the scores for each peak
+			//score(config, &decon, inp, 0);
+			score_from_peaks(plen, peakx, peaky, tempdscores, config, &decon, inp, 0);
+
+			//Average In Dscores
+			for (int j = 0; j < plen; j++)
+			{
+				//Get the peaky value locally
+				int index = nearfast(decon.massaxis, peakx[j], decon.mlen);
+				float yval = decon.massaxisval[index];
+				numerators[j] += yval * tempdscores[j];
+				denominators[j] += yval;
+			}
+		}
+		else
+		{
+			printf("Missing deconvolution outputs. Turn off Fast Profile/Fast Centroid and try deconvolving again.");
+		}
+
+		//Free things
+		FreeDecon(decon);
+		FreeInputs(inp);
+		free(tempdscores);
+	}
+
+	//Average In Dscores
+	for (int j = 0; j < plen; j++)
+	{
+		if (denominators[j] != 0) { dscores[j] = numerators[j] / denominators[j]; }
+	}
+
+	//Write the outputs
+	strcpy(dataset, "/peaks");
+	makegroup(config.file_id, dataset);
+	strjoin(dataset, "/peakdata", outdat);
+	printf("\tWriting %d Peaks to: %s\n", plen, outdat);
+
+	float* ptemp = NULL;
+	ptemp = calloc(plen * 3, sizeof(float));
+
+	for (int i = 0; i < plen; i++) {
+		ptemp[i * 3] = peakx[i];
+		ptemp[i * 3 + 1] = peaky[i];
+		ptemp[i * 3 + 2] = dscores[i];
+	}
+
+	mh5writefile2d_grid(config.file_id, outdat, plen, 3, ptemp);
+	free(ptemp);
+	//mh5writefile2d(config.file_id, outdat, plen, peakx, peaky);
+
+	peak_extracts(config, peakx, config.file_id, "/mass_data", plen, 0);
+
+	free(peakx);
+	free(peaky);
+	free(massaxis);
+	free(masssum);
+	free(dscores);
+	free(numerators);
+	free(denominators);
+	
+	H5Fclose(config.file_id);
+}*/
+
+
+
 #endif
