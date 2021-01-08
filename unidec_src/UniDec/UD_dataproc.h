@@ -51,8 +51,8 @@ int pool1d(float *oldmz, float *oldint, const int oldlen, const int mzbins)
 	}
 
 	//Bookkeeping 
-	realloc(oldmz, newlen * sizeof(float));
-	realloc(oldint, newlen * sizeof(float));
+	oldmz = realloc(oldmz, newlen * sizeof(float));
+	oldint = realloc(oldint, newlen * sizeof(float));
 
 	memcpy(oldmz, newmz, sizeof(float)*newlen);
 	memcpy(oldint, newint, sizeof(float)*newlen);
@@ -72,6 +72,7 @@ int chop1d(float *oldmz, float *oldint, int oldlen, const float min, const float
 
 	float maxval = max1d(oldmz, oldlen);
 	float minval = min1d(oldmz, oldlen);
+	//printf("Test %f %f\n", maxval, minval);
 	if (maxval<max && minval>min)
 	{
 		return oldlen;
@@ -88,9 +89,10 @@ int chop1d(float *oldmz, float *oldint, int oldlen, const float min, const float
 
 	if (newlen >= oldlen)
 	{
+		
 		return oldlen;
 	}
-	
+	//printf("Test2 %d\n", newlen);
 	//declare memory for new arrays
 	newmz = calloc(newlen, sizeof(float));
 	newint = calloc(newlen, sizeof(float));
@@ -106,17 +108,17 @@ int chop1d(float *oldmz, float *oldint, int oldlen, const float min, const float
 			newlen++;
 		}
 	}
-	
+	//printf("Test3 %d\n", newlen);
 	//Bookkeeping 
-	realloc(oldmz, newlen * sizeof(float));
-	realloc(oldint, newlen * sizeof(float));
-	
+	oldmz = realloc(oldmz, newlen * sizeof(float));
+	oldint = realloc(oldint, newlen * sizeof(float));
+	//printf("Test3.5 %d\n", newlen);
 	memcpy(oldmz, newmz, sizeof(float)*newlen);
 	memcpy(oldint, newint, sizeof(float)*newlen);
-	
+	//printf("Test4 %d\n", newlen);
 	free(newmz);
 	free(newint);
-	
+	//printf("Test4 %d\n", newlen);
 	return newlen;	
 }
 
@@ -167,14 +169,14 @@ int remove_duplicates(float *oldmz, float *oldint, int oldlen)
 	newlen++;
 
 	//Bookkeeping 
-	realloc(oldmz, newlen * sizeof(float));
-	realloc(oldint, newlen * sizeof(float));
+	oldmz = realloc(oldmz, newlen * sizeof(float));
+	oldint = realloc(oldint, newlen * sizeof(float));
 
 	memcpy(oldmz, newmz, sizeof(float)*newlen);
 	memcpy(oldint, newint, sizeof(float)*newlen);
 
-	//free(newmz);
-	//free(newint);
+	free(newmz);
+	free(newint);
 	//printf("Removed %d Duplicates\n", oldlen - newlen);
 	return newlen;
 }
@@ -223,14 +225,14 @@ int remove_middle_zeros(float *oldmz, float *oldint, int oldlen)
 	newlen++;
 
 	//Bookkeeping 
-	realloc(oldmz, newlen * sizeof(float));
-	realloc(oldint, newlen * sizeof(float));
+	oldmz = realloc(oldmz, newlen * sizeof(float));
+	oldint = realloc(oldint, newlen * sizeof(float));
 
 	memcpy(oldmz, newmz, sizeof(float)*newlen);
 	memcpy(oldint, newint, sizeof(float)*newlen);
 
-	//free(newmz);
-	//free(newint);
+	free(newmz);
+	free(newint);
 	//printf("Removed %d Middle Zeros\n", oldlen - newlen);
 	return newlen;
 }
@@ -350,8 +352,8 @@ int data_reduction(float* oldmz, float* oldint, int oldlen, const float redper)
 	}
 
 	//Bookkeeping 
-	realloc(oldmz, newlen * sizeof(float));
-	realloc(oldint, newlen * sizeof(float));
+	oldmz = realloc(oldmz, newlen * sizeof(float));
+	oldint = realloc(oldint, newlen * sizeof(float));
 
 	memcpy(oldmz, newmz, sizeof(float) * newlen);
 	memcpy(oldint, newint, sizeof(float) * newlen);
@@ -380,50 +382,52 @@ void process_data(int argc, char *argv[], Config config)
 	file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 	strjoin(dataset, "/raw_data", outdat);
 	int lengthmz = mh5getfilelength(file_id, outdat);
-	dataMZ = calloc(lengthmz, sizeof(float));
-	dataInt = calloc(lengthmz, sizeof(float));
+	dataMZ = calloc(lengthmz*2, sizeof(float));
+	dataInt = calloc(lengthmz*2, sizeof(float));
 	mh5readfile2d(file_id, outdat, lengthmz, dataMZ, dataInt);
-	//printf("Length of Data: %d \n", lengthmz);
+	int silent = 1;
+	if (silent == 0) { printf("Length of Data: %d \n", lengthmz); }
 
 
 	//Bin
 	if (config.mzbins > 1)
 	{
-		//printf("Binning data every %d data points\n", config.mzbins);
+		if (silent == 0) { printf("Binning data every %d data points\n", config.mzbins); }
 		lengthmz = pool1d(dataMZ, dataInt, lengthmz, config.mzbins);
 	}
 
 	//Chop
 	if (config.minmz >= 0 && config.maxmz > 0)
 	{
-		//printf("Chopping data to range: %f %f\n", config.minmz, config.maxmz);
+		if (silent == 0) { printf("Chopping data to range: %f %f\n", config.minmz, config.maxmz); }
 		lengthmz=chop1d(dataMZ, dataInt, lengthmz, config.minmz, config.maxmz);
 	}
 
 	//Remove Zeros
-	//printf("Removing zeros %d\n", lengthmz);
+	if (silent == 0) { printf("Removing zeros %d\n", lengthmz); }
 	lengthmz = remove_middle_zeros(dataMZ, dataInt, lengthmz);
 
 	//Remove Duplicates
 	lengthmz = remove_duplicates(dataMZ, dataInt, lengthmz);
-	//printf("New Length %d\n", lengthmz);
+	if (silent == 0) { printf("New Length %d\n", lengthmz); }
 
 	//Background subtraction
 	if (config.bsub != 0)
 	{
+		if (silent == 0) { printf("Background Subtraction: %f\n", config.bsub); }
 		background_subtract(dataInt, config.bsub, lengthmz);
 	}
 
 	if (config.datareduction != 0)
 	{
-		//printf("Data Reduction: %f\n", config.datareduction);
+		if (silent == 0) { printf("Data Reduction: %f\n", config.datareduction); }
 		lengthmz = data_reduction(dataMZ, dataInt, lengthmz, config.datareduction);
 	}
 
 	//Normalize
 	if (config.datanorm == 1)
 	{
-		//printf("Normalizing\n");
+		if (silent == 0) { printf("Normalizing\n"); }
 		norm1d(dataInt, lengthmz);
 	}
 
@@ -433,13 +437,13 @@ void process_data(int argc, char *argv[], Config config)
 	config.speedyflag = 0;
 	//Write data to processed_data
 	strjoin(dataset, "/processed_data", outdat);
-	//printf("\tWriting to: %s...", outdat);
+	if (silent == 0) { printf("\tWriting to: %s...", outdat); }
 	mh5writefile2d(file_id, outdat, lengthmz, dataMZ, dataInt);
 	set_needs_grids(file_id);
 	free(dataMZ);
 	free(dataInt);
 	H5Fclose(file_id);
-	//printf("Done\n");
+	if (silent == 0) { printf("Done\n"); }
 }
 
 #endif

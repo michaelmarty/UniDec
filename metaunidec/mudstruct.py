@@ -356,14 +356,15 @@ class Spectrum:
         hdf = h5py.File(file, 'a')
         msdata = hdf.require_group(self.topname + "/" + str(self.index))
         if not vars_only:
-            replace_dataset(msdata, "raw_data", self.rawdata)
+            replace_dataset(msdata, "raw_data", self.rawdata.astype(self.eng.config.dtype))
+            # print(self.eng.config.dtype)
             # replace_dataset(msdata, "fit_data", self.fitdat)
-            replace_dataset(msdata, "processed_data", self.data2)
-            replace_dataset(msdata, "mass_data", self.massdat)
-            replace_dataset(msdata, "mz_grid", self.mzgrid)
-            replace_dataset(msdata, "mass_grid", self.massgrid)
+            replace_dataset(msdata, "processed_data", self.data2.astype(self.eng.config.dtype))
+            replace_dataset(msdata, "mass_data", self.massdat.astype(self.eng.config.dtype))
+            replace_dataset(msdata, "mz_grid", self.mzgrid.astype(self.eng.config.dtype))
+            replace_dataset(msdata, "mass_grid", self.massgrid.astype(self.eng.config.dtype))
             # replace_dataset(msdata, "baseline", self.baseline)
-            replace_dataset(msdata, "charge_data", self.zdata)
+            replace_dataset(msdata, "charge_data", self.zdata.astype(self.eng.config.dtype))
         for key, value in list(self.attrs.items()):
             msdata.attrs[key] = value
         hdf.close()
