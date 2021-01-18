@@ -191,6 +191,7 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -219,6 +220,7 @@
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LlvmTransitionalOption>NextGenNone</LlvmTransitionalOption>
+      <AdditionalIncludeDirectories>C:\Program Files\HDF_Group\HDF5\1.12.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>libszip.lib;libzlib.lib;libhdf5.lib;libhdf5_hl.lib;ucrt.lib;vcruntime.lib;msvcrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -226,7 +228,8 @@
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalLibraryDirectories>C:\Program Files %28x86%29\IntelSWTools\compilers_and_libraries_2020.1.216\windows\mkl\tools;$(MKLProductDir)\mkl\bin;$(MKLProductDir)\mkl\tools;C:\Program Files %28x86%29\IntelSWTools\compilers_and_libraries_2020.1.216\windows\mkl\bin;C:\Program Files %28x86%29\MSBuild\Microsoft.Cpp\v4.0\V140;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Program Files\HDF_Group\HDF5\1.12.0\lib;C:\Program Files %28x86%29\IntelSWTools\compilers_and_libraries_2020.1.216\windows\mkl\tools;$(MKLProductDir)\mkl\bin;$(MKLProductDir)\mkl\tools;C:\Program Files %28x86%29\IntelSWTools\compilers_and_libraries_2020.1.216\windows\mkl\bin;C:\Program Files %28x86%29\MSBuild\Microsoft.Cpp\v4.0\V140;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <Profile>false</Profile>
     </Link>
     <PostBuildEvent>
       <Command>.\copy.bat</Command>
@@ -248,11 +251,10 @@
     <ClInclude Include="UD_score.h" />
     <ClInclude Include="UD_sg.h" />
     <ClInclude Include="UniDec.h" />
-    <ClInclude Include="UniDech-rev511.h" />
     <ClInclude Include="UniDecIM.h" />
     <ClInclude Include="UniDecIM_Main.h" />
+    <ClInclude Include="UniDecLC_Main.h" />
     <ClInclude Include="UniDec_Main.h" />
-    <ClInclude Include="UniDec_Mainh-rev485.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

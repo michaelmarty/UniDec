@@ -42,7 +42,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 		*barr = NULL, *closetab = NULL;
 	int size[4];
 
-	double *mzdat = NULL,
+	float *mzdat = NULL,
 		*dtdat = NULL,
 		*dataInt = NULL,
 		*mzext = NULL,
@@ -65,31 +65,31 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	//Mass Limit File
 	if (config.mflag == 1) {
 		tmlen = getfilelength(config.mfile);
-		testmasses = calloc(tmlen, sizeof(double));
-		testmassvals = calloc(tmlen, sizeof(double));
-		testmassCCSavg = calloc(tmlen, sizeof(double));
-		testmassCCSstd = calloc(tmlen, sizeof(double));
-		testmassZavg = calloc(tmlen, sizeof(double));
-		testmassZstd = calloc(tmlen, sizeof(double));
+		testmasses = calloc(tmlen, sizeof(float));
+		testmassvals = calloc(tmlen, sizeof(float));
+		testmassCCSavg = calloc(tmlen, sizeof(float));
+		testmassCCSstd = calloc(tmlen, sizeof(float));
+		testmassZavg = calloc(tmlen, sizeof(float));
+		testmassZstd = calloc(tmlen, sizeof(float));
 		readmfile(config.mfile, tmlen, testmasses);
 		printf("Read mass file of length: %d\n", tmlen);
 	}
 
 	//CCS Constants
-	double e = 1.60217657E-19;
-	double kb = 1.3806488E-23;
-	double n = 2.6867774E25;
-	double po = 760;
-	double tempo = 273.15;
-	double pi = 3.14159265359;
+	float e = 1.60217657E-19;
+	float kb = 1.3806488E-23;
+	float n = 2.6867774E25;
+	float po = 760;
+	float tempo = 273.15;
+	float pi = 3.14159265359;
 	config.temp = config.temp + tempo;
-	double ccsconst = (sqrt(18 * pi) / 16)*(e / sqrt(kb*config.temp)) / n*(config.volt / pow(config.len, 2))*(po / config.press)*(config.temp / tempo)*1E20;
+	float ccsconst = (sqrt(18 * pi) / 16)*(e / sqrt(kb*config.temp)) / n*(config.volt / pow(config.len, 2))*(po / config.press)*(config.temp / tempo)*1E20;
 	if (config.twaveflag>0) { printf("Ridin' the T-Wave!\n"); }
 
 	//Reading In Data
-	mzdat = calloc(lines, sizeof(double));
-	dtdat = calloc(lines, sizeof(double));
-	dataInt = calloc(lines, sizeof(double));
+	mzdat = calloc(lines, sizeof(float));
+	dtdat = calloc(lines, sizeof(float));
+	dataInt = calloc(lines, sizeof(float));
 	readfile3(config.infile, lines, mzdat, dtdat, dataInt);
 
 	//Charge States
@@ -109,10 +109,10 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	if (totlen>155E6) { printf("Warning: May exceed system memory capacity"); }
 
 	//Extracting mz and dt ranges
-	mzext = calloc(size[0], sizeof(double));
-	dtext = calloc(size[1], sizeof(double));
+	mzext = calloc(size[0], sizeof(float));
+	dtext = calloc(size[1], sizeof(float));
 	Extract(mzext, dtext, mzdat, dtdat, size);
-	double mzranges[4];
+	float mzranges[4];
 	mzranges[0] = mzext[0];
 	mzranges[1] = mzext[size[0] - 1];
 	mzranges[2] = dtext[0];
@@ -120,13 +120,13 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	printf("MZ Range: %f config.to %f\n", mzranges[0], mzranges[1]);
 	printf("DT Range: %f config.to %f\n", mzranges[2], mzranges[3]);
 
-	peakshape = calloc(lines, sizeof(double));
+	peakshape = calloc(lines, sizeof(float));
 	GetPeaks(peakshape, size, mzext, dtext, config.mzsig, config.dtsig, config.psfun);
 	printf("Peak Shape Set\n");
 
 	//Filling the mass table
-	ccstab = calloc(totlen, sizeof(double));
-	masstab = calloc(size[0] * size[2], sizeof(double));
+	ccstab = calloc(totlen, sizeof(float));
+	masstab = calloc(size[0] * size[2], sizeof(float));
 	barr = calloc(totlen, sizeof(int));
 #pragma omp parallel for private (i,j), schedule(dynamic)
 	for (i = 0; i<size[0]; i++)
@@ -139,7 +139,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	//Fill CCS table and simultaneously set limit array
 
 
-	double tempmass, tempccs, testmassclose, zlimit, climit;
+	float tempmass, tempccs, testmassclose, zlimit, climit;
 #pragma omp parallel for private (i,j,k,tempmass,tempccs,testmassclose,zlimit,climit), schedule(dynamic)
 	for (i = 0; i<size[0]; i++)
 	{
@@ -230,7 +230,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	printf("Number of Blurs: %d\n", numclose);
 
 	int indm, indc, indz;
-	double  point2;
+	float  point2;
 #pragma omp parallel for private (indz,indc,indm,index,point2), schedule(dynamic)
 	for (int i = 0; i<size[0]; i++)
 	{
@@ -240,14 +240,14 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 			{
 				for (int l = 0; l<size[3]; l++)
 				{
-					double ccspt = ccstab[index3D(size[1], size[2], i, j, k)];
+					float ccspt = ccstab[index3D(size[1], size[2], i, j, k)];
 					ccspt = ccspt + closecind[l] * config.ccsbins;
 					indz = k + closezind[l];
 					int badflag = 0;
 					if (indz<0 || indz >= numz) { badflag = 1; }
 					else
 					{
-						double point = calcMz(masstab[index2D(size[2], i, k)] + closemind[l] * config.molig, ztab[k] + closezind[l], config.adductmass);
+						float point = calcMz(masstab[index2D(size[2], i, k)] + closemind[l] * config.molig, ztab[k] + closezind[l], config.adductmass);
 						if (point<mzranges[0] || point>mzranges[1]) { badflag = 1; }
 						else
 						{
@@ -275,8 +275,8 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	}
 	printf("Finished Blur\n");
 	//Setting Up the Iteration
-	blur = calloc(totlen, sizeof(double));
-	newblur = calloc(totlen, sizeof(double));
+	blur = calloc(totlen, sizeof(float));
+	newblur = calloc(totlen, sizeof(float));
 	//memset(barr,1,totlen);
 #pragma omp parallel for private (i,j,k), schedule(dynamic)
 	for (i = 0; i<size[0]; i++)
@@ -292,8 +292,8 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 
 	if (config.intthresh > 0) { KillB_IM(dataInt, barr, size, config.intthresh); }
 
-	denom = calloc(lines, sizeof(double));
-	deltas = calloc(lines, sizeof(double));
+	denom = calloc(lines, sizeof(float));
+	deltas = calloc(lines, sizeof(float));
 	printf("Iterating: \n");
 
 	//Iterating
@@ -315,15 +315,15 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	sumdeltas(size, deltas, blur);
 	fftconvolve2D(denom, deltas, peakshape, size);
 
-	double denommax = getmax(lines, denom);
-	double datamax = getmax(lines, dataInt);
+	float denommax = getmax(lines, denom);
+	float datamax = getmax(lines, dataInt);
 	normalize(lines, dataInt, datamax);
 	normalize(lines, denom, denommax);
 	ApplyCutoff1D(denom, 0, lines);
 	//printf("maxes: %f %f\n",denommax,datamax);
 	char *suffixfit = "fitdat";
 	write1D(config.outfile, suffixfit, denom, lines);
-	double error = errfun(lines, dataInt, denom);
+	float error = errfun(lines, dataInt, denom);
 
 	//Convolve the deltas with the peak shape and put that inconfig.to newblur
 	printf("Convolving...");
@@ -331,7 +331,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	printf("Done\n");
 
 	//Get Max and Min mass and ccs values
-	double ranges[4];
+	float ranges[4];
 	ranges[0] = config.masslb; ranges[1] = config.massub; ranges[2] = config.ccslb; ranges[3] = config.ccsub;
 	if (config.fixedmassaxis == 0) { getranges(size, newblur, masstab, ccstab, ranges, barr); }
 	printf("Mass Range: %f to %f  Mass Bins: %f Da\n", ranges[0], ranges[1], config.massbins);
@@ -344,14 +344,14 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	newsize[1] = ccaxle;
 	newsize[2] = numz;
 	printf("Dimensions of Output: %d m by %d ccs by %d z: %d total\n", newsize[0], newsize[1], newsize[2], newsize[0] * newsize[1] * newsize[2]);
-	double *massaxis = NULL, *massvals = NULL, *ccsaxis = NULL, *ccsvals = NULL, *newgrid = NULL;
-	if (newsize[0] * newsize[1] * newsize[2] * sizeof(double)>2E6) { printf("Warning: May exceed system memory capacity"); }
+	float *massaxis = NULL, *massvals = NULL, *ccsaxis = NULL, *ccsvals = NULL, *newgrid = NULL;
+	if (newsize[0] * newsize[1] * newsize[2] * sizeof(float)>2E6) { printf("Warning: May exceed system memory capacity"); }
 
-	massaxis = calloc(maaxle, sizeof(double));
-	massvals = calloc(maaxle, sizeof(double));
-	ccsaxis = calloc(ccaxle, sizeof(double));
-	ccsvals = calloc(ccaxle, sizeof(double));
-	newgrid = calloc(newsize[0] * newsize[1] * newsize[2], sizeof(double));
+	massaxis = calloc(maaxle, sizeof(float));
+	massvals = calloc(maaxle, sizeof(float));
+	ccsaxis = calloc(ccaxle, sizeof(float));
+	ccsvals = calloc(ccaxle, sizeof(float));
+	newgrid = calloc(newsize[0] * newsize[1] * newsize[2], sizeof(float));
 	memset(newgrid, 0, newsize[0] * newsize[1] * newsize[2]);
 	makeaxis(massaxis, maaxle, ranges[0], config.massbins);
 	makeaxis(ccsaxis, ccaxle, ranges[2], config.ccsbins);
@@ -374,7 +374,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 						//newgrid[index3D(newsize[1],newsize[2],indm,indc,k)]+=newblur[index3D(size[1],size[2],i,j,k)];}
 						//else{newgrid[index3D(newsize[1],newsize[2],indm,indc,k)]+=blur[index3D(size[1],size[2],i,j,k)];}
 
-						double val;
+						float val;
 						if (config.rawflag == 0) {
 							val = newblur[index3D(size[1], size[2], i, j, k)];
 						}
@@ -387,12 +387,12 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 						if (ccsaxis[indc] < tempccs) { indc2 = indc + 1; }
 						else { indc2 = indc - 1; }
 						if (indm2 >= 0 && indm2 < maaxle&&indc2 >= 0 && indc2 < ccaxle) {
-							double interposm = LinearInterpolatePosition(massaxis[indm], massaxis[indm2], tempmass);
-							double interposc = LinearInterpolatePosition(ccsaxis[indc], ccsaxis[indc2], tempccs);
-							double val1 = (1 - interposm)*(1 - interposc)*val;
-							double val2 = (1 - interposm)*(interposc)*val;
-							double val3 = (interposm)*(1 - interposc)*val;
-							double val4 = (interposm)*(interposc)*val;
+							float interposm = LinearInterpolatePosition(massaxis[indm], massaxis[indm2], tempmass);
+							float interposc = LinearInterpolatePosition(ccsaxis[indc], ccsaxis[indc2], tempccs);
+							float val1 = (1 - interposm)*(1 - interposc)*val;
+							float val2 = (1 - interposm)*(interposc)*val;
+							float val3 = (interposm)*(1 - interposc)*val;
+							float val4 = (interposm)*(interposc)*val;
 							newgrid[index3D(newsize[1], newsize[2], indm, indc, k)] += val1;
 							newgrid[index3D(newsize[1], newsize[2], indm, indc2, k)] += val2;
 							newgrid[index3D(newsize[1], newsize[2], indm2, indc, k)] += val3;
@@ -405,7 +405,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 		printf("Tranformed m/z and dt to mass and ccs by Integration\n");
 	}
 	else {
-		double tempmz, tempdt, endval;
+		float tempmz, tempdt, endval;
 #pragma omp parallel for private (i,j,k,tempmass,tempmz,endval,tempccs,indm,indc), schedule(dynamic)
 		for (i = 0; i<newsize[0]; i++)
 		{
@@ -447,10 +447,10 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	write2D(config.outfile, suffixccs, ccsaxis, ccsvals, ccaxle);
 
 	//Sum across charge and CCS
-	double *massccsgrid = NULL, *masszgrid = NULL, *ccszgrid = NULL;//,*ccsaxis=NULL,*ccsvals=NULL,*newgrid=NULL;
-	massccsgrid = calloc(maaxle*ccaxle, sizeof(double));
-	masszgrid = calloc(maaxle*numz, sizeof(double));
-	ccszgrid = calloc(ccaxle*numz, sizeof(double));
+	float *massccsgrid = NULL, *masszgrid = NULL, *ccszgrid = NULL;//,*ccsaxis=NULL,*ccsvals=NULL,*newgrid=NULL;
+	massccsgrid = calloc(maaxle*ccaxle, sizeof(float));
+	masszgrid = calloc(maaxle*numz, sizeof(float));
+	ccszgrid = calloc(ccaxle*numz, sizeof(float));
 	sum2D(newsize, massccsgrid, newgrid, 2);
 	sum2D(newsize, masszgrid, newgrid, 1);
 	sum2D(newsize, ccszgrid, newgrid, 0);

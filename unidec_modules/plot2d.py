@@ -79,6 +79,15 @@ class Plot2d(PlottingWindow):
         ylen = len(yvals)
         newgrid = np.reshape(zgrid, (xlen, ylen))
 
+        # Save Data
+        if dat is None:
+            X2, Y2 = np.meshgrid(xvals, yvals, indexing="ij")
+            X2 = np.ravel(X2)
+            Y2 = np.ravel(Y2)
+            Z2 = np.ravel(newgrid.transpose())
+            dat = np.transpose([X2, Y2, Z2])
+        self.data = dat
+
         # Test if we should plot kDa instead of Da
         if test_kda:
             self.kda_test(xvals)

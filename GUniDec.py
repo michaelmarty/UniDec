@@ -12,7 +12,7 @@ import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 from unidec_modules import Extract2D, peakwidthtools, masstools, miscwindows, \
     MassDefects, mainwindow, nativez, ManualSelectionWindow, AutocorrWindow, fft_window, GridDecon, isotopetools
-from unidec_modules.isolated_packages import FileDialogs, texmaker, score_window, texmaker_nmsgsb
+from unidec_modules.isolated_packages import FileDialogs, texmaker, score_window, texmaker_nmsgsb, navia_importer
 import datacollector
 import import_wizard
 import unidec_modules.IM_windows as IM_wind
@@ -755,7 +755,7 @@ class UniDecApp(UniDecPres):
 
     def on_color_plot1d(self, e=None, filled=False):
         self.on_integrate(plot=False)
-        self.eng.get_peaks_scores()
+        # self.eng.get_peaks_scores()
         self.makeplot2(1)
         # TODO: Take away black background on colored lines
         for p in self.eng.pks.peaks:
@@ -808,11 +808,12 @@ class UniDecApp(UniDecPres):
         limits = np.array(limits) * self.view.plot2.kdnorm
 
         # Run Integration
-        if limits[0] <= np.amin(self.eng.data.massdat[:, 0]) and limits[1] >= np.amax(self.eng.data.massdat[:, 0]):
+        if not ud.isempty(self.eng.pks.peaks) and limits[0] <= np.amin(self.eng.data.massdat[:, 0]) and limits[
+            1] >= np.amax(self.eng.data.massdat[:, 0]):
             print("Auto Integrating")
             self.eng.autointegrate()
         else:
-            integral = self.eng.integrate(limits)
+            integral, intdat = self.eng.integrate(limits)
             if self.eng.pks.plen > 0:
                 boo1 = self.eng.pks.masses < limits[1]
                 boo2 = self.eng.pks.masses > limits[0]
@@ -828,12 +829,9 @@ class UniDecApp(UniDecPres):
                 print("Differences: ", limits - self.eng.pks.peaks[i].mass)
 
             else:
-                boo1 = self.eng.data.massdat[:, 0] < limits[1]
-                boo2 = self.eng.data.massdat[:, 0] > limits[0]
-                intdat = self.eng.data.massdat[np.all([boo1, boo2], axis=0)]
-                self.view.plot2.addtext(str(integral), np.mean(np.array(olimits)),
+                self.view.plot2.addtext(str(integral), np.mean(np.array(limits)),
                                         np.amax(intdat[:, 1]) + 0.05 * np.amax(self.eng.data.massdat[:, 1]),
-                                        range=olimits)
+                                        range=limits)
                 return 0
 
         # Normalize and write
@@ -1111,6 +1109,18 @@ class UniDecApp(UniDecPres):
     def on_iFAMS(self, e=None):
         iFAMS_Window(self.view, self.eng.data.data2, config=self.eng.config, directory=os.getcwd())
 
+    def on_navia(self, e=None):
+        with wx.FileDialog(self.view, "Open NaViA session", wildcard="XYZ files (*.navia)|*.navia",
+                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return  # the user changed their mind
+
+            # Proceed loading the file chosen by the user
+            pathname = fileDialog.GetPath()
+            newpath = navia_importer.navia_import(pathname)
+            newdir, newfile = os.path.split(newpath)
+            self.on_open_file(newfile, newdir)
+
     def on_2d_grid(self, e=None):
         """
         Opens 2D grid extraction window. Grid extraction parameters are stored at self.eng.config.gridparams.
@@ -1259,7 +1269,7 @@ class UniDecApp(UniDecPres):
         if batchfiles is None:
             batchfiles = FileDialogs.open_multiple_files_dialog(
                 message="Select Files To Process With Current Parameters",
-                file_type="Text (.txt)|*.txt|Any Type|*.*")
+                file_type="Any Type|*.*|Text (.txt)|*.txt|Thermo (.raw)|*.raw|mzML (.mzML)|*.mzML")
 
         self.eng.config.batchflag = 1 + flag
         tstarttop = time.perf_counter()
@@ -1399,17 +1409,30 @@ class UniDecApp(UniDecPres):
         output = dialog.value
 
         self.view.shrink_all_figures(figsize=(6, 5))
-        self.view.on_save_figure_eps(e)
+        figureflags, files = self.view.on_save_figure_eps(e)
         figureflags, files = self.view.on_save_figure_pdf(e)
         textmarkertab = [p.textmarker for p in self.eng.pks.peaks]
         peaklabels = [p.label for p in self.eng.pks.peaks]
         peakcolors = [p.color for p in self.eng.pks.peaks]
         peaks = np.array([[p.mass, p.height] for p in self.eng.pks.peaks])
+        uniscore = self.eng.pks.uniscore
+        # str(round(self.eng.pks.uniscore * 100, 2))
+        # oligos = np.array(oligos)
+        # match = np.array([[p.peaks, p.matches, p.errors, p.names] for p in self.eng.config.matchlist])
+        # match = np.transpose(self.eng.config.matchlist)
+        # match = self.eng.config.matchlist
+        # self.eng.config.matchlist = np.transpose(
+        #    np.genfromtxt(self.eng.config.matchfile, dtype='str', delimiter=","))
+
+        if os.path.isfile(self.eng.config.matchfile):
+            match = np.transpose(self.eng.config.matchlist)
+        else:
+            match = "-"
         if self.eng.config.imflag == 0:
             texmaker_nmsgsb.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config,
                                           self.eng.config.udir,
                                           peaks, textmarkertab, peaklabels, peakcolors, figureflags, output,
-                                          rawsamplename)
+                                          rawsamplename, match, uniscore)
             self.view.SetStatusText("TeX file Written", number=5)
             try:
                 texmaker_nmsgsb.PDFTexReport(self.eng.config.outfname + '_report.tex')
@@ -1567,25 +1590,7 @@ class UniDecApp(UniDecPres):
         self.view.SetStatusText("UniScore: " + str(round(self.eng.pks.uniscore * 100, 2)), number=3)
 
     def on_score2(self, e=0):
-        defaultvalue = "40"
-        try:
-            defaultvalue = str(self.eng.fdrs[0, 1] * 100)
-        except:
-            pass
-        dialog = miscwindows.SingleInputDialog(self.view)
-        dialog.initialize_interface(title="Minimum DScore", message="Set Minimum DScore Value (%): ",
-                                    defaultvalue=defaultvalue)
-        dialog.ShowModal()
-
-        try:
-            minval = float(dialog.value) / 100.
-        except:
-            print("Error with Score Input:", dialog.value)
-            minval = 0.4
-
-        print("Using DScore Cutoff (%): ", minval * 100)
-        self.eng.filter_peaks(minscore=minval)
-        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
+        self.on_filter_peaks(e)
         self.view.SetStatusText("UniScore: " + str(round(self.eng.pks.uniscore * 100, 2)), number=3)
         self.makeplot2()
         self.makeplot4()

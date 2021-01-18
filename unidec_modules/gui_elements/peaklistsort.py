@@ -138,12 +138,11 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             p = pks.peaks[i]
             self.list_ctrl.InsertItem(i, p.textmarker)
             # self.list_ctrl.SetItem(i, 1, str(p.mass))
-            if self.pks.massbins < 1:
-                self.list_ctrl.SetItem(i, 1, str(p.mass))
+            if p.mass == round(p.mass):
+                p.mass = int(p.mass)
+                self.list_ctrl.SetItem(i, 1, f'{p.mass:,}')
             else:
-                if p.mass == round(p.mass):
-                    p.mass = int(p.mass)
-                self.list_ctrl.SetItem(i, 1, "{:,}".format(p.mass))
+                self.list_ctrl.SetItem(i, 1, f'{float(str(p.mass)):,}')
 
             self.list_ctrl.SetItem(i, 2, "%.2f" % p.height)
             try:
@@ -493,12 +492,11 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         for i in range(0, self.pks.plen):
             p = self.pks.peaks[i]
             # self.list_ctrl.SetItem(i, 1, str(p.mass))
-            if self.pks.massbins < 1:
-                self.list_ctrl.SetItem(i, 1, str(p.mass))
+            if p.mass == round(p.mass):
+                p.mass = int(p.mass)
+                self.list_ctrl.SetItem(i, 1, f'{p.mass:,}')
             else:
-                if p.mass == round(p.mass):
-                    p.mass = int(p.mass)
-                self.list_ctrl.SetItem(i, 1, "{:,}".format(p.mass))
+                self.list_ctrl.SetItem(i, 1, f'{float(str(p.mass)):,}')
             self.list_ctrl.SetItem(i, 3, str(p.area))
             self.list_ctrl.SetItem(i, 4, str(p.label))
         self.errorsdisplayed = False

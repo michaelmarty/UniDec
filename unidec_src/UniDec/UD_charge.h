@@ -11,38 +11,38 @@
 //
 //
 
-void z_slice(const double *ivals, const int mindex, double *zdat, const int zlen, const double thresh)
+void z_slice(const float *ivals, const int mindex, float *zdat, const int zlen, const float thresh)
 {
 	for (int i = 0; i < zlen; i++)
 	{
-		double val= ivals[index2D(zlen, mindex, i)];
+		float val= ivals[index2D(zlen, mindex, i)];
 		if (val > thresh) { zdat[i] = val; }
 		else {zdat[i] = 0;}
 	}
 }
 
-void z_slice_range(const double *ivals, const int mindex1, const int mindex2, double *zdat, const int zlen, const double thresh)
+void z_slice_range(const float *ivals, const int mindex1, const int mindex2, float *zdat, const int zlen, const float thresh)
 {
 	for (int i = mindex1; i < mindex2; i++)
 	{
 		for (int j = 0; j < zlen; j++)
 		{
-			double val = ivals[index2D(zlen, i, j)];
+			float val = ivals[index2D(zlen, i, j)];
 			if (val > thresh) { zdat[j] += val; }
 		}
 	}
 }
 
-double extract_zmax(Config config, const double peak, const double *xvals, const double *yvals, const double *zvals, const int mlen, const int zlen, const double thresh)
+float extract_zmax(Config config, const float peak, const float *xvals, const float *yvals, const float *zvals, const int mlen, const int zlen, const float thresh)
 {
 	if (peak < xvals[0]) { return 0; }
 	if (peak > xvals[mlen - 1]) { return 0; }
 
-	double thresh2 = thresh * Max(zvals, mlen * zlen);
+	float thresh2 = thresh * Max(zvals, mlen * zlen);
 	//printf("thresh2 %f %f\n", thresh2, thresh);
 
-	double *zdat = NULL;
-	zdat = calloc(zlen, sizeof(double));
+	float *zdat = NULL;
+	zdat = calloc(zlen, sizeof(float));
 	if(config.exwindow<=0){
 		int pos = nearfast(xvals, peak, mlen);
 		z_slice(zvals, pos, zdat, zlen, thresh2);
@@ -53,22 +53,22 @@ double extract_zmax(Config config, const double peak, const double *xvals, const
 		z_slice_range(zvals, pos1, pos2, zdat, zlen, thresh2);
 	}
 	int maxpos = argmax(zdat, zlen);
-	double maxval = yvals[maxpos];
+	float maxval = yvals[maxpos];
 	free(zdat);
 	return maxval;
 }
 
-double extract_zcom(Config config, const double peak, const double *xvals, const double *yvals, const double *zvals, const int mlen, const int zlen, const double thresh)
+float extract_zcom(Config config, const float peak, const float *xvals, const float *yvals, const float *zvals, const int mlen, const int zlen, const float thresh)
 {
 	if (peak < xvals[0]) { return 0; }
 	if (peak > xvals[mlen - 1]) { return 0; }
 
-	double thresh2 = thresh*Max(zvals, mlen*zlen);
+	float thresh2 = thresh*Max(zvals, mlen*zlen);
 	//printf("thresh2 %f %f\n", thresh2, thresh);
 	
 	int pos = nearfast(xvals, peak, mlen);
-	double *zdat = NULL;
-	zdat = calloc(zlen, sizeof(double));
+	float *zdat = NULL;
+	zdat = calloc(zlen, sizeof(float));
 	
 	if (config.exwindow <= 0) {
 		int pos = nearfast(xvals, peak, mlen);
@@ -79,13 +79,13 @@ double extract_zcom(Config config, const double peak, const double *xvals, const
 		int pos2 = nearfast(xvals, peak + config.exwindow, mlen);
 		z_slice_range(zvals, pos1, pos2, zdat, zlen, thresh2);
 	}
-	double sum = 0;
-	double sum_z = 0;
+	float sum = 0;
+	float sum_z = 0;
 	
 	for (int i = 0; i < zlen; i++)
 	{
-		double x = yvals[i];
-		double y = zdat[i];
+		float x = yvals[i];
+		float y = zdat[i];
 		//printf("Test\n x %f\n y %f\n", x, y);
 		sum_z += y;
 		sum += x*y;
@@ -95,9 +95,9 @@ double extract_zcom(Config config, const double peak, const double *xvals, const
 	return sum;
 }
 
-double charge_extract_switch(const Config config, const double peak, const double *xvals, const double *yvals, const double *zvals, const int mlen, const int zlen)
+float charge_extract_switch(const Config config, const float peak, const float *xvals, const float *yvals, const float *zvals, const int mlen, const int zlen)
 {
-	double output = 0;
+	float output = 0;
 	//config.exwindow = 100000;
 	//config.exchoice = 2;
 	int swint = config.exchoicez;
@@ -105,7 +105,7 @@ double charge_extract_switch(const Config config, const double peak, const doubl
 	//if (config.exchoice == 3) swint = 1;
 	//if (config.exchoice == 5) swint = 3;
 	//if (config.exchoice == 6) swint = 2;
-	double thresh = config.exthresh/100;
+	float thresh = config.exthresh/100;
 
 	switch (swint)
 	{
@@ -166,15 +166,15 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 	printf("Importing Charge Peaks: %s\n", poutdat);
 
 	int plen = mh5getfilelength(file_id, poutdat);
-	double *peakx = NULL;
-	peakx = calloc(plen, sizeof(double));
+	float *peakx = NULL;
+	peakx = calloc(plen, sizeof(float));
 	mh5readfile1d(file_id, poutdat, peakx);
 	
 	int num = 0;
 	num = int_attr(file_id, "/ms_dataset", "num", num);
 
-	double *extracts = NULL;
-	extracts = calloc(plen*num, sizeof(double));
+	float *extracts = NULL;
+	extracts = calloc(plen*num, sizeof(float));
 	
 	for (int i = 0; i < num; i++)
 	{
@@ -190,29 +190,29 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 		int zlen = mh5getfilelength(file_id, outdat2);
 		int glen = mh5getfilelength(file_id, outdat3);
 
-		double *mass_ints = NULL;
-		double *massaxis = NULL;
-		mass_ints = calloc(masslen, sizeof(double));
-		massaxis = calloc(masslen, sizeof(double));
+		float *mass_ints = NULL;
+		float *massaxis = NULL;
+		mass_ints = calloc(masslen, sizeof(float));
+		massaxis = calloc(masslen, sizeof(float));
 		mh5readfile2d(file_id, outdat, masslen, massaxis, mass_ints);
 		free(mass_ints);
 
-		double *zints = NULL;
-		double *zaxis = NULL;
-		zints = calloc(zlen, sizeof(double));
-		zaxis = calloc(zlen, sizeof(double));
+		float *zints = NULL;
+		float *zaxis = NULL;
+		zints = calloc(zlen, sizeof(float));
+		zaxis = calloc(zlen, sizeof(float));
 		mh5readfile2d(file_id, outdat2, zlen, zaxis, zints);
 		free(zints);
 
-		double *grid = NULL;
-		grid = calloc(glen, sizeof(double));
+		float *grid = NULL;
+		grid = calloc(glen, sizeof(float));
 		mh5readfile1d(file_id, outdat3, grid);
-		double sum = 0;
-		double max = 0;
+		float sum = 0;
+		float max = 0;
 		for (int j = 0; j < plen; j++)
 		{
-			double peak = peakx[j];
-			double val = charge_extract_switch(config, peak, massaxis, zaxis, grid, masslen, zlen);
+			float peak = peakx[j];
+			float val = charge_extract_switch(config, peak, massaxis, zaxis, grid, masslen, zlen);
 			extracts[index2D(plen, i, j)] = val;
 			sum += val;
 			if (val > max) { max = val; }
@@ -245,8 +245,8 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 	{
 		for (int j = 0; j < plen; j++)
 		{
-			double max = 0;
-			double sum = 0;
+			float max = 0;
+			float sum = 0;
 			for (int i = 0; i < num; i++)
 			{
 				if (extracts[index2D(plen, i, j)] > max) { max = extracts[index2D(plen, i, j)]; }

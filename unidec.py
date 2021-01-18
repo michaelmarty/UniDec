@@ -5,16 +5,12 @@ from copy import deepcopy
 import subprocess
 import zipfile
 import fnmatch
-import string
 import numpy as np
-from scipy.interpolate import interp1d
-from scipy import signal
 from unidec_modules import unidecstructure, peakstructure, MassFitter
 import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 import unidec_modules.MassSpecBuilder as MSBuild
 from unidec_modules.unidec_enginebase import UniDecEngine
-import scipy.stats as stats
 import unidec_modules.DoubleDec as dd
 
 __author__ = 'Michael.Marty'
@@ -82,6 +78,11 @@ class UniDec(UniDecEngine):
 
         # Import Data
         self.data.rawdata = ud.load_mz_file(self.config.filename, self.config, time_range)
+        if ud.isempty(self.data.rawdata):
+            print("Error: Data Array is Empty")
+            print("Likely an error with data conversion")
+            raise ImportError
+
         if self.data.rawdata.shape[1] == 3:
             self.config.imflag = 1
             self.config.discreteplot = 1
@@ -100,7 +101,6 @@ class UniDec(UniDecEngine):
             self.data.data3 = self.data.rawdata3
         else:
             self.config.imflag = 0
-
 
         if self.config.imflag == 0:
             newname = self.config.outfname + "_rawdata.txt"
@@ -128,6 +128,8 @@ class UniDec(UniDecEngine):
         # Initialize Config
         if os.path.isfile(self.config.confname) == True:
             self.load_config(self.config.confname)
+        else:
+            self.export_config()
 
         tend = time.perf_counter()
         if "silent" not in kwargs or not kwargs["silent"]:
@@ -349,12 +351,12 @@ class UniDec(UniDecEngine):
             self.data.massdat = np.array([self.data.massdat])
             self.config.massdatnormtop = np.amax(self.data.massdat[:, 1])
         if not efficiency:
-            self.data.massgrid = np.fromfile(self.config.massgridfile, dtype=float)
+            self.data.massgrid = np.fromfile(self.config.massgridfile, dtype=self.config.dtype)
 
-            self.data.fitdat = np.fromfile(self.config.fitdatfile, dtype=float)
+            self.data.fitdat = np.fromfile(self.config.fitdatfile, dtype=self.config.dtype)
             try:
                 if self.config.aggressiveflag != 0:
-                    self.data.baseline = np.fromfile(self.config.outfname + "_baseline.bin", dtype=float)
+                    self.data.baseline = np.fromfile(self.config.outfname + "_baseline.bin", dtype=self.config.dtype)
                 else:
                     self.data.baseline = np.array([])
             except Exception as e:
@@ -370,13 +372,19 @@ class UniDec(UniDecEngine):
         runstats = np.genfromtxt(self.config.errorfile, dtype='str')
         if self.config.imflag == 0:
             # Calculate Error
-            sse = float(runstats[0, 2])
+            try:
+                sse = float(runstats[0, 2])
+            except Exception as e:
+                print("Error in error import", e)
+                print(runstats)
+                sse = 1
+
             mean = np.mean(self.data.data2[:, 1])
             self.config.error = 1 - sse / np.sum((self.data.data2[:, 1] - mean) ** 2)
             if not efficiency:
                 # Import Grid
                 try:
-                    self.data.mzgrid = np.fromfile(self.config.mzgridfile, dtype=float)
+                    self.data.mzgrid = np.fromfile(self.config.mzgridfile, dtype=self.config.dtype)
                     xv, yv = np.meshgrid(self.data.ztab, self.data.data2[:, 0])
                     xv = np.c_[np.ravel(yv), np.ravel(xv)]
                     self.data.mzgrid = np.c_[xv, self.data.mzgrid]
@@ -401,9 +409,9 @@ class UniDec(UniDecEngine):
                 ccslen = len(self.data.ccsdata)
                 zlen = len(self.data.ztab)
 
-                self.data.massccs = np.fromfile(self.config.outfname + "_massccs.bin", dtype=float)
-                self.data.ccsz = np.fromfile(self.config.outfname + "_ccsz.bin", dtype=float)
-                self.data.mztgrid = np.fromfile(self.config.outfname + "_mzgrid.bin", dtype=float)
+                self.data.massccs = np.fromfile(self.config.outfname + "_massccs.bin", dtype=self.config.dtype)
+                self.data.ccsz = np.fromfile(self.config.outfname + "_ccsz.bin", dtype=self.config.dtype)
+                self.data.mztgrid = np.fromfile(self.config.outfname + "_mzgrid.bin", dtype=self.config.dtype)
 
                 self.data.massccs = self.data.massccs.reshape((masslen, ccslen))
                 self.data.ccsz = self.data.ccsz.reshape((zlen, ccslen))
@@ -886,7 +894,6 @@ class UniDec(UniDecEngine):
         return True
         # TODO: Import Matches, others things in state?
 
-
     def normalize_peaks(self):
         """
         Noamlize everything in the peaks accoring to the type set in self.config.peaknorm
@@ -897,23 +904,23 @@ class UniDec(UniDecEngine):
         """
         integrals = np.array([p.integral for p in self.pks.peaks])
         heights = np.array([p.height for p in self.pks.peaks])
-        corrints = np.array([p.corrint for p in self.pks.peaks])
-        fitareas = np.array([p.fitarea for p in self.pks.peaks])
+        # corrints = np.array([p.corrint for p in self.pks.peaks])
+        # fitareas = np.array([p.fitarea for p in self.pks.peaks])
         if self.config.peaknorm == 1:
             inorm = np.amax(integrals) / 100.
             hnorm = np.amax(heights) / 100.
-            cnorm = np.amax(corrints) / 100.
-            fnorm = np.amax(fitareas) / 100.
+            # cnorm = np.amax(corrints) / 100.
+            # fnorm = np.amax(fitareas) / 100.
         elif self.config.peaknorm == 2:
             inorm = np.sum(integrals) / 100.
             hnorm = np.sum(heights) / 100.
-            cnorm = np.sum(corrints) / 100.
-            fnorm = np.sum(fitareas) / 100.
+            # cnorm = np.sum(corrints) / 100.
+            # fnorm = np.sum(fitareas) / 100.
         else:
             inorm = 1.
             hnorm = 1.
-            cnorm = 1.
-            fnorm = 1.
+            # cnorm = 1.
+            # fnorm = 1.
 
         if inorm != 0:
             for p in self.pks.peaks:
@@ -923,126 +930,15 @@ class UniDec(UniDecEngine):
             for p in self.pks.peaks:
                 p.height /= hnorm
 
-        if cnorm != 0:
-            for p in self.pks.peaks:
-                p.corrint /= cnorm
-                p.correrr /= cnorm
+        # if cnorm != 0:
+        #    for p in self.pks.peaks:
+        #        p.corrint /= cnorm
+        #        p.correrr /= cnorm
 
-        if fnorm != 0:
-            for p in self.pks.peaks:
-                p.fitarea /= fnorm
-                p.fitareaerr /= fnorm
-
-    def align_peaks(self, pmasses=None, x_range=None, window=None, norm=False):
-        if x_range is None:
-            if window is None:
-                window = self.config.peakwindow * 1.
-            x_range = [-window, window]
-        if pmasses is None:
-            pmasses = [p.mass for p in self.pks.peaks]
-        # xaxis = np.arange(x_range[0], x_range[1], self.config.massbins)
-
-        aligned = []
-        for i, pm in enumerate(pmasses):
-            x = self.data.massdat[:, 0] - pm
-            boo1 = x > x_range[0]
-            boo2 = x < x_range[1]
-            boo3 = np.all([boo1, boo2], axis=0)
-            y = self.data.massdat[boo3, 1]
-            x = x[boo3]
-            # x2 = self.data.massdat[boo3, 0]
-            if norm:
-                y /= np.amax(y)
-            dat = np.transpose([x, y])
-            if i == 0:
-                aligned.append(dat)
-            else:
-                dat1 = deepcopy(dat)
-                if len(aligned[0]) < len(dat):
-                    f = interp1d(aligned[0][:, 0], aligned[0][:, 1], fill_value=0, bounds_error=False)
-                    aligned[0] = np.transpose([dat[:, 0], f(dat[:, 0])])
-                # TODO: Problem when len (aligned[[0]) < len (dat) (Fixed?)
-                corr = np.correlate(dat[:, 1], aligned[0][:, 1], mode="same")
-                move = np.argmax(corr) - np.argmax(dat[:, 1])
-                y = np.roll(self.data.massdat[:, 1], -move)[boo3]
-                if norm:
-                    y /= np.amax(y)
-                dat = np.transpose([x, y])
-
-                aligned.append(ud.mergedata(aligned[0], dat))
-        aligned = np.array(aligned)
-
-        combined, aligned = ud.broaden(aligned)
-
-        '''
-        # Realign on combined
-        aligned=[]
-        for i,pm in enumerate(pmasses):
-            x=self.data.massdat[:,0]-pm
-            boo1=x>x_range[0]
-            boo2=x<x_range[1]
-            boo3=np.all([boo1,boo2],axis=0)
-            y=self.data.massdat[boo3,1]
-            x=x[boo3]
-            x2=self.data.massdat[boo3,0]
-            if norm:
-                y=y/np.amax(y)
-            dat=np.transpose([x,y])
-            corr=signal.correlate(dat[:,1],combined[:,1],mode="same")
-            move=np.argmax(corr)-np.argmax(dat[:,1])
-            y=np.roll(self.data.massdat[:,1],-move)[boo3]
-            if norm:
-                y=y/np.amax(y)
-            dat=np.transpose([x,y])
-            aligned.append(ud.mergedata(combined,dat))
-        '''
-        return np.array(aligned), combined
-
-    def correlate_intensities(self, pmasses=None, x_range=None, window=None, ci=0.99, **kwargs):
-        aligned, combined = self.align_peaks(pmasses=pmasses, x_range=x_range, window=window, norm=False)
-        corrs = np.array([ud.correlation_integration(combined, spec, alpha=(1 - ci), **kwargs) for spec in aligned])
-
-        cmax = np.amax(corrs[:, 0])
-        norm = np.amax(self.data.massdat[:, 1]) / cmax
-        if pmasses is None:
-            self.get_peaks_scores(window=window, x_range=x_range, ci=ci)
-            for i, p in enumerate(self.pks.peaks):
-                plvl = corrs[i, 4]
-                if plvl < (1 - ci):
-                    p.corrint = corrs[i, 0] * norm
-                    p.correrr = p.tval * corrs[i, 3] / np.sqrt(p.score) * norm
-                else:
-                    p.corrint = 0
-                    p.correrr = 0
-
-        return corrs
-
-    def get_peaks_scores(self, window=None, x_range=None, ci=0.99, **kwargs):
-        if x_range is None:
-            if window is None:
-                window = self.config.peakwindow * 1.
-            x_range = [-window, window]
-        zarr = np.reshape(self.data.massgrid, (len(self.data.massdat), len(self.data.ztab)))
-        zarr = zarr / np.amax(np.sum(zarr, axis=1)) * np.amax(self.data.massdat[:, 1])
-        for i, p in enumerate(self.pks.peaks):
-            boo1 = self.data.massdat[:, 0] < p.mass + x_range[1]
-            boo2 = self.data.massdat[:, 0] > p.mass + x_range[0]
-            boo3 = np.all([boo1, boo2], axis=0)
-            top = self.data.massdat[boo3]
-            mztabi = []
-            peakmasses = []
-            for j, z in enumerate(self.data.ztab):
-                spec = np.transpose([top[:, 0], zarr[boo3, j]])
-                corr = ud.correlation_integration(top, spec, alpha=(1 - ci), **kwargs)
-                if corr[4] < (1 - ci):
-                    mztabi.append([corr[0], corr[3]])
-                    peakmasses.append(top[np.argmax(spec[:, 1]), 0])
-                else:
-                    mztabi.append([0, 0])
-            p.mztabi = np.array(mztabi)
-            p.peakmasses = np.array(peakmasses)
-
-        self.pks.score_peaks(ci=ci)
+        # if fnorm != 0:
+        #    for p in self.pks.peaks:
+        #        p.fitarea /= fnorm
+        #        p.fitareaerr /= fnorm
 
     def get_zstack(self, xfwhm=1):
         zarr = np.reshape(self.data.massgrid, (len(self.data.massdat), len(self.data.ztab)))
@@ -1071,7 +967,6 @@ class UniDec(UniDecEngine):
             for j, z in enumerate(self.data.ztab):
                 stack.append(zarr[boo3, j])
             p.zstack = np.array(stack)
-
 
     def pks_mscore(self, xfwhm=2, pow=2):
         self.get_zstack(xfwhm=xfwhm)
@@ -1183,7 +1078,7 @@ class UniDec(UniDecEngine):
             sse = np.sum((fit - top[:, 1]) ** 2)
             denom = np.sum((top[:, 1] - np.mean(top[:, 1])) ** 2)
             p.rsquared = 1 - ud.safedivide1(sse, denom)
-            p.mzstack = np.array(stack)
+            p.mzstack = np.array(stack, dtype='object')
 
     def pks_uscore(self, xfwhm=2, pow=1):
         self.get_mzstack(xfwhm=xfwhm)
@@ -1194,6 +1089,8 @@ class UniDec(UniDecEngine):
                 v = p.mzstack[i]
                 X = v[:, 1]  # spectrum
                 Y = v[:, 2]  # mzgrid
+                if self.config.orbimode == 1:
+                    Y = Y * zval
                 sx = np.sum(X)
                 sy = np.sum(Y)
                 # r = 1 - ud.safedivide1(np.abs(sy - sz), sy)
@@ -1303,13 +1200,13 @@ class UniDec(UniDecEngine):
             self.pks_csscore(xfwhm=xfwhm)
             self.pks_fscore()
             # self.tscore()
-            tscores = []
+            dscores = []
             ints = []
             for p in self.pks.peaks:
                 scores = np.array([p.mscore, p.uscore, p.fscore, p.cs_score])  # p.rsquared,
                 p.dscore = np.product(scores)
                 p.lscore = np.product(scores[:-1])
-                tscores.append(p.dscore)
+                dscores.append(p.dscore)
                 ints.append(p.height)
                 '''
                 print("Mass:", p.mass,
@@ -1321,7 +1218,7 @@ class UniDec(UniDecEngine):
                       "Combined:", round(p.dscore * 100, 2))
                 # print(p.intervalFWHM)'''
             ints = np.array(ints)
-            self.pks.uniscore = ud.weighted_avg(tscores, ints ** pow) * self.config.error
+            self.pks.uniscore = ud.weighted_avg(dscores, ints ** pow) * self.config.error
             print("R Squared:", self.config.error)
             # print("TScore:", self.data.tscore)
             print("Average Peaks Score (UniScore):", self.pks.uniscore)
@@ -1329,13 +1226,7 @@ class UniDec(UniDecEngine):
             print("No peaks present")
 
     def filter_peaks(self, minscore=0.4):
-        # w = deepcopy(self.config.peakwindow)
-        # t = deepcopy(self.config.peakthresh)
-        # self.config.peakwindow = 3 * self.config.massbins
-        # self.config.peakthresh = 0.01
         self.pick_peaks()
-        # self.config.peakwindow = w
-        # self.config.peakthresh = t
         self.dscore()
 
         newpeaks = []
@@ -1350,6 +1241,203 @@ class UniDec(UniDecEngine):
             print("No Peaks Found with Scores Above", minscore)
             self.pks = peakstructure.Peaks()
 
+    def open_test_spectrum(self, masslist=None, n=1, **kwargs):
+        data, ztab = MSBuild.simple_spectrum(masslist, **kwargs)
+        testdir = os.path.join(self.config.UniDecDir, "TestSpectra")
+        if not os.path.isdir(testdir):
+            os.mkdir(testdir)
+
+        fname = "test_" + str(n) + ".txt"
+        np.savetxt(os.path.join(testdir, fname), data)
+
+        self.open_file(fname, testdir, **kwargs)
+        self.config.maxmz, self.config.minmz = "", ""
+        self.data.ztab = ztab
+        pass
+
+    def pass_data_in(self, data, n=1, dirname=None, fname=None, **kwargs):
+        # Specify the directory for the new file
+        # If one is not specified, then use the TestSpectra location
+        if dirname is None:
+            testdir = os.path.join(self.config.UniDecDir, "TestSpectra")
+        else:
+            testdir = dirname
+        # Create the directory if it doesn't exist
+        if not os.path.isdir(testdir):
+            os.mkdir(testdir)
+
+        # If the fname is not passed in, create it.
+        if fname is None:
+            fname = "test_" + str(n) + ".txt"
+
+        # Create the file in the new path
+        path = os.path.join(testdir, fname)
+        print("Creating file:", path)
+        np.savetxt(path, data)
+
+        # Open it
+        self.open_file(fname, testdir, **kwargs)
+        self.config.maxmz, self.config.minmz = "", ""
+        # self.config.default_isotopic_res()
+
+    def get_spectrum_peaks(self, threshold=0.05, window=None):
+        if window is None:
+            window = self.config.mzsig
+
+        peaks = ud.peakdetect(self.data.data2, None, window, threshold)
+        self.data.data2 = np.array(peaks)
+        ud.dataexport(self.data.data2, self.config.infname)
+
+        print(self.config.dirname)
+        return peaks
+
+    def estimate_areas(self):
+        gauss_coeff = np.sqrt(np.pi / np.log(2)) / 2
+        adjusted_coeff = ((0.5 * gauss_coeff) + (np.pi / 4))
+        for p in self.pks.peaks:
+            if self.config.psfun == 0:  # Gaussian
+                p.estimatedarea = p.height * p.errorFWHM * gauss_coeff
+            elif self.config.psfun == 1:  # Lorentzian
+                p.estimatedarea = p.height * p.errorFWHM * np.pi / 2
+            elif self.config.psfun == 2:  # Split G/L
+                p.estimatedarea = p.height * p.errorFWHM * adjusted_coeff
+
+    def make_plot(self, massrange=None):
+        import matplotlib.pyplot as plt
+
+        plt.figure()
+        plt.subplot(121)
+        try:
+            plt.plot(self.data.data2[:, 0], self.data.data2[:, 1], color="k")
+        except (IndexError, AttributeError):
+            plt.plot(self.data.rawdata[:, 0], self.data.rawdata[:, 1], color="k")
+        plt.subplot(122)
+        try:
+            plt.plot(self.data.massdat[:, 0], self.data.massdat[:, 1], color="k")
+        except (IndexError, AttributeError):
+            pass
+
+        if massrange is not None:
+            plt.xlim(massrange)
+            pass
+        plt.show()
+        pass
+
+    '''
+    def align_peaks(self, pmasses=None, x_range=None, window=None, norm=False):
+        if x_range is None:
+            if window is None:
+                window = self.config.peakwindow * 1.
+            x_range = [-window, window]
+        if pmasses is None:
+            pmasses = [p.mass for p in self.pks.peaks]
+        # xaxis = np.arange(x_range[0], x_range[1], self.config.massbins)
+
+        aligned = []
+        for i, pm in enumerate(pmasses):
+            x = self.data.massdat[:, 0] - pm
+            boo1 = x > x_range[0]
+            boo2 = x < x_range[1]
+            boo3 = np.all([boo1, boo2], axis=0)
+            y = self.data.massdat[boo3, 1]
+            x = x[boo3]
+            # x2 = self.data.massdat[boo3, 0]
+            if norm:
+                y /= np.amax(y)
+            dat = np.transpose([x, y])
+            if i == 0:
+                aligned.append(dat)
+            else:
+                dat1 = deepcopy(dat)
+                if len(aligned[0]) < len(dat):
+                    f = interp1d(aligned[0][:, 0], aligned[0][:, 1], fill_value=0, bounds_error=False)
+                    aligned[0] = np.transpose([dat[:, 0], f(dat[:, 0])])
+                # TODO: Problem when len (aligned[[0]) < len (dat) (Fixed?)
+                corr = np.correlate(dat[:, 1], aligned[0][:, 1], mode="same")
+                move = np.argmax(corr) - np.argmax(dat[:, 1])
+                y = np.roll(self.data.massdat[:, 1], -move)[boo3]
+                if norm:
+                    y /= np.amax(y)
+                dat = np.transpose([x, y])
+
+                aligned.append(ud.mergedata(aligned[0], dat))
+        aligned = np.array(aligned)
+
+        combined, aligned = ud.broaden(aligned)
+        '''
+    '''
+        # Realign on combined
+        aligned=[]
+        for i,pm in enumerate(pmasses):
+            x=self.data.massdat[:,0]-pm
+            boo1=x>x_range[0]
+            boo2=x<x_range[1]
+            boo3=np.all([boo1,boo2],axis=0)
+            y=self.data.massdat[boo3,1]
+            x=x[boo3]
+            x2=self.data.massdat[boo3,0]
+            if norm:
+                y=y/np.amax(y)
+            dat=np.transpose([x,y])
+            corr=signal.correlate(dat[:,1],combined[:,1],mode="same")
+            move=np.argmax(corr)-np.argmax(dat[:,1])
+            y=np.roll(self.data.massdat[:,1],-move)[boo3]
+            if norm:
+                y=y/np.amax(y)
+            dat=np.transpose([x,y])
+            aligned.append(ud.mergedata(combined,dat))
+        '''
+    '''
+        return np.array(aligned), combined
+
+    
+    def correlate_intensities(self, pmasses=None, x_range=None, window=None, ci=0.99, **kwargs):
+        aligned, combined = self.align_peaks(pmasses=pmasses, x_range=x_range, window=window, norm=False)
+        corrs = np.array([ud.correlation_integration(combined, spec, alpha=(1 - ci), **kwargs) for spec in aligned])
+
+        cmax = np.amax(corrs[:, 0])
+        norm = np.amax(self.data.massdat[:, 1]) / cmax
+        if pmasses is None:
+            self.get_peaks_scores(window=window, x_range=x_range, ci=ci)
+            for i, p in enumerate(self.pks.peaks):
+                plvl = corrs[i, 4]
+                if plvl < (1 - ci):
+                    p.corrint = corrs[i, 0] * norm
+                    p.correrr = p.tval * corrs[i, 3] / np.sqrt(p.score) * norm
+                else:
+                    p.corrint = 0
+                    p.correrr = 0
+
+        return corrs
+
+    def get_peaks_scores(self, window=None, x_range=None, ci=0.99, **kwargs):
+        if x_range is None:
+            if window is None:
+                window = self.config.peakwindow * 1.
+            x_range = [-window, window]
+        zarr = np.reshape(self.data.massgrid, (len(self.data.massdat), len(self.data.ztab)))
+        zarr = zarr / np.amax(np.sum(zarr, axis=1)) * np.amax(self.data.massdat[:, 1])
+        for i, p in enumerate(self.pks.peaks):
+            boo1 = self.data.massdat[:, 0] < p.mass + x_range[1]
+            boo2 = self.data.massdat[:, 0] > p.mass + x_range[0]
+            boo3 = np.all([boo1, boo2], axis=0)
+            top = self.data.massdat[boo3]
+            mztabi = []
+            peakmasses = []
+            for j, z in enumerate(self.data.ztab):
+                spec = np.transpose([top[:, 0], zarr[boo3, j]])
+                corr = ud.correlation_integration(top, spec, alpha=(1 - ci), **kwargs)
+                if corr[4] < (1 - ci):
+                    mztabi.append([corr[0], corr[3]])
+                    peakmasses.append(top[np.argmax(spec[:, 1]), 0])
+                else:
+                    mztabi.append([0, 0])
+            p.mztabi = np.array(mztabi)
+            p.peakmasses = np.array(peakmasses)
+
+        self.pks.score_peaks(ci=ci)'''
+
+    '''
     def fit_isolated_peaks(self, pmasses=None, x_range=None, window=None, norm=False, plot_fits=False, **kwargs):
         if x_range is None:
             if window is None:
@@ -1396,9 +1484,9 @@ class UniDec(UniDecEngine):
         if pflag:
             for i, p in enumerate(self.pks.peaks):
                 p.fitarea = areas[i, 0]
-                p.fitareaerr = areas[i, 1] * p.tval  # / np.sqrt(p.score)
+                p.fitareaerr = areas[i, 1] #* p.tval  # / np.sqrt(p.score)
                 p.fitmassavg = means[i, 0]
-                p.fitmasserr = means[i, 1] * p.tval  # / np.sqrt(p.score)
+                p.fitmasserr = means[i, 1] #* p.tval  # / np.sqrt(p.score)
 
         return areas, means, stds
 
@@ -1406,8 +1494,8 @@ class UniDec(UniDecEngine):
         kwargs2 = deepcopy(kwargs)
         kwargs2["plot_corr"] = False
         self.get_peaks_scores(**kwargs2)
-        self.fit_isolated_peaks(**kwargs)
-        self.correlate_intensities(window=self.config.peakwindow, **kwargs)
+        #self.fit_isolated_peaks(**kwargs)
+        #self.correlate_intensities(window=self.config.peakwindow, **kwargs)
         self.normalize_peaks()
         try:
             errorgrid = []
@@ -1416,97 +1504,7 @@ class UniDec(UniDecEngine):
                                   [p.massavg, p.masserr, p.corrint, p.correrr]])
         except ValueError:
             errorgrid = []
-        self.errorgrid = np.array(errorgrid)
-
-    def open_test_spectrum(self, masslist=None, n=1, **kwargs):
-        data, ztab = MSBuild.simple_spectrum(masslist, **kwargs)
-        testdir = os.path.join(self.config.UniDecDir, "TestSpectra")
-        if not os.path.isdir(testdir):
-            os.mkdir(testdir)
-
-        fname = "test_" + str(n) + ".txt"
-        np.savetxt(os.path.join(testdir, fname), data)
-
-        self.open_file(fname, testdir, **kwargs)
-        self.config.maxmz, self.config.minmz = "", ""
-        self.data.ztab = ztab
-        pass
-
-    def pass_data_in(self, data, n=1, **kwargs):
-        testdir = os.path.join(self.config.UniDecDir, "TestSpectra")
-        if not os.path.isdir(testdir):
-            os.mkdir(testdir)
-
-        fname = "test_" + str(n) + ".txt"
-        path = os.path.join(testdir, fname)
-        print("Creating temp file:", path)
-        np.savetxt(path, data)
-
-        self.open_file(fname, testdir, **kwargs)
-        self.config.maxmz, self.config.minmz = "", ""
-        #self.config.default_isotopic_res()
-
-    def get_spectrum_peaks(self, threshold=0.05, window=None):
-        if window is None:
-            window = self.config.mzsig
-
-        peaks = ud.peakdetect(self.data.data2, None, window, threshold)
-        self.data.data2 = np.array(peaks)
-        ud.dataexport(self.data.data2, self.config.infname)
-
-        print(self.config.dirname)
-        return peaks
-
-    def estimate_areas(self):
-        gauss_coeff = np.sqrt(np.pi / np.log(2)) / 2
-        adjusted_coeff = ((0.5 * gauss_coeff) + (np.pi / 4))
-        for p in self.pks.peaks:
-            if self.config.psfun == 0:  # Gaussian
-                p.estimatedarea = p.height * p.errorFWHM * gauss_coeff
-            elif self.config.psfun == 1:  # Lorentzian
-                p.estimatedarea = p.height * p.errorFWHM * np.pi / 2
-            elif self.config.psfun == 2:  # Split G/L
-                p.estimatedarea = p.height * p.errorFWHM * adjusted_coeff
-
-    def make_plot(self, massrange=None):
-        import matplotlib.pyplot as plt
-
-        plt.figure()
-        plt.subplot(121)
-        try:
-            plt.plot(self.data.data2[:, 0], self.data.data2[:, 1], color="k")
-        except (IndexError, AttributeError):
-            plt.plot(self.data.rawdata[:, 0], self.data.rawdata[:, 1], color="k")
-        plt.subplot(122)
-        try:
-            plt.plot(self.data.massdat[:, 0], self.data.massdat[:, 1], color="k")
-        except (IndexError, AttributeError):
-            pass
-        try:
-            for p in self.pks.peaks:
-                plt.errorbar(p.fitmassavg, p.fitarea, yerr=p.fitareaerr, xerr=p.fitmasserr, label="Fit", linestyle="",
-                             color="r")
-                plt.errorbar(p.massavg, p.corrint, xerr=p.masserr, yerr=p.correrr, label="Corr", linestyle="",
-                             color="b")
-        except AttributeError:
-            print("Failed to Plot Error Bars")
-            pass
-
-        if massrange is not None:
-            plt.xlim(massrange)
-            pass
-        plt.show()
-        pass
-
-        # TODO: Batch Process of Various Types
-        # TODO: Automatch
-        # TODO: 2D Grid Extraction
-        # TODO: Test for whether integrated or not
-
-        # TODO: Series of tests on specific files
-        # TODO: Lengths in data container
-        # TODO: Get massavg from peaks or fits in m/z
-        # TODO: Get Noise Right
+        self.errorgrid = np.array(errorgrid)'''
 
 
 # Optional Run

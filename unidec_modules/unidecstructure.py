@@ -35,6 +35,7 @@ class UniDecConfig(object):
         """
         self.version = version
         self.inputversion = None
+        self.dtype = np.single
         self.infname = "input.dat"
         self.outfname = ""
         self.mfile = "mass.dat"
@@ -55,10 +56,12 @@ class UniDecConfig(object):
 
         self.time_window = 2
         self.chrom_peak_width = 2
+        self.sw_time_window = 1
+        self.sw_scan_offset = 10
 
         self.twavedict = {1: "Logarithmic", 2: "Linear", 3: "Power Law"}
         self.backgroundchoices = ["Subtract Minimum", "Subtract Line",
-                                  "Subtract Curved"]  # , "Subtract Gaussian"]  # , "Subtract SavGol","Subtract Polynomial"]
+                                  "Subtract Curved", "Subtract Constant"]  # , "Subtract SavGol","Subtract Polynomial"]
         self.isotopechoices = ["Isotopes: Off", "Isotopes: Mono", "Isotopes: Average"]
         self.figsize = (6, 5)
         self.mass_proton = 1.007276467
@@ -121,6 +124,7 @@ class UniDecConfig(object):
         self.gridparams = None
         self.griddecon = None
         self.defectparams = None
+        self.defectcomparefiles = [None, None]
         self.matchtolerance = 1000
 
         self.avgscore = 0
@@ -619,7 +623,8 @@ class UniDecConfig(object):
             "exwindow": self.exwindow, "exchoice": self.exchoice, "exchoicez": self.exchoicez,
             "exthresh": self.exthresh,
             "exnorm": self.exnorm, "exnormz": self.exnormz, "metamode": self.metamode,
-            "datanorm": self.datanorm
+            "datanorm": self.datanorm, "chrom_time_window": self.time_window, "chrom_peak_width": self.chrom_peak_width,
+            "sw_time_window": self.sw_time_window, "sw_scan_offset": self.sw_scan_offset
         }
 
         for key, value in cdict.items():
@@ -748,6 +753,11 @@ class UniDecConfig(object):
         self.masslist = get_dataset(config_group, "masslist")
         self.manuallist = get_dataset(config_group, "manuallist")
         self.oligomerlist = get_dataset(config_group, "oligomerlist").astype(np.unicode_)
+
+        self.time_window = self.read_attr(self.time_window, "chrom_time_window", config_group)
+        self.chrom_peak_width = self.read_attr(self.chrom_peak_width, "chrom_peak_width", config_group)
+        self.sw_time_window = self.read_attr(self.sw_time_window, "sw_time_window", config_group)
+        self.sw_scan_offset = self.read_attr(self.sw_scan_offset, "sw_scan_offset", config_group)
 
         hdf.close()
 

@@ -29,6 +29,8 @@ class ChromApp(MetaUniDecBase):
         pub.subscribe(self.on_get_mzlimits, 'mzlimits')
         self.outputfile = None
         self.scans = None
+        self.recent_files = self.read_recent()
+        self.cleanup_recent_file(self.recent_files)
         self.view.menu.update_recent()
         if False:
             path = "D:\\Data\\ShortCourse\\strepme.RAW"
@@ -129,22 +131,34 @@ class ChromApp(MetaUniDecBase):
     def get_from_gui(self):
         self.eng.config.time_window = float(self.view.ctlmin.GetValue())
         self.eng.config.chrom_peak_width = float(self.view.ctlcpeaks_param1.GetValue())
+        self.eng.config.sw_time_window = float(self.view.ctlswwin.GetValue())
+        self.eng.config.sw_scan_offset = float(self.view.ctlswoffset.GetValue())
         pass
 
     def load_to_gui(self):
         self.view.ctlmin.SetValue(str(self.eng.config.time_window))
         self.view.ctlcpeaks_param1.SetValue(str(self.eng.config.chrom_peak_width))
+        self.view.ctlswwin.SetValue(str(self.eng.config.sw_time_window))
+        self.view.ctlswoffset.SetValue(str(self.eng.config.sw_scan_offset))
         pass
 
     def plot_single_mz(self, e=None):
-        self.makeplot4(plot=self.view.plotm, data=self.eng.mzdata)
+        if self.eng.procdata is not None:
+            data = self.eng.procdata
+        else:
+            data = self.eng.mzdata
+        self.makeplot4(plot=self.view.plotm, data=data)
 
     def plot_single_mass(self):
         self.makeplot2(plot=self.view.plot2s, data=self.eng.massdat)
 
     def plot_single_pks(self):
+        if self.eng.procdata is not None:
+            data = self.eng.procdata
+        else:
+            data = self.eng.mzdata
         self.makeplot2(plot=self.view.plot2s, data=self.eng.massdat, pks=self.eng.unidec_eng.pks)
-        self.makeplot4(plot=self.view.plotm, data=self.eng.mzdata, pks=self.eng.unidec_eng.pks)
+        self.makeplot4(plot=self.view.plotm, data=data, pks=self.eng.unidec_eng.pks)
 
     def on_selection(self, min, max, plot=True):
         self.view.SetStatusText("Averaging Scans...", number=1)
@@ -161,13 +175,14 @@ class ChromApp(MetaUniDecBase):
 
     def on_unidec_run(self, e=None):
         self.export_config()
-        self.eng.unidec_eng.pass_data_in(self.eng.mzdata)
+        fname = os.path.splitext(self.eng.filename)[0]+"_selection.txt"
+        self.eng.unidec_eng.pass_data_in(self.eng.mzdata, dirname=self.eng.config.udir, fname=fname)
         self.eng.config.config_export(self.eng.unidec_eng.config.confname)
         self.eng.unidec_eng.config.config_import(self.eng.unidec_eng.config.confname)
         self.eng.unidec_eng.process_data()
-        self.eng.unidec_eng.run_unidec()
+        self.eng.unidec_eng.run_unidec(efficiency=True)
 
-        self.eng.mzdata = self.eng.unidec_eng.data.data2
+        self.eng.procdata = self.eng.unidec_eng.data.data2
         self.eng.massdat = self.eng.unidec_eng.data.massdat
 
         self.plot_single_mz()
@@ -184,22 +199,10 @@ class ChromApp(MetaUniDecBase):
         self.view.singlepeakpanel.add_data(self.eng.unidec_eng.pks)
         pass
 
-    def on_pick_peaks(self, e=None):
-        """
-        Tested
-        :param e:
-        :return:
-        """
-        self.view.SetStatusText("Picking Peaks...", number=5)
-        self.export_config()
-        self.eng.pick_peaks()
-        self.view.peakpanel.add_data(self.eng.pks)
-        self.view.peakpanel.meta = True
+    def peak_plots(self, e=None):
         self.makeplot2_mud()
         self.makeplot7()
         self.plot_sums()
-        self.view.SetStatusText("Peak Detection and Extraction Complete", number=5)
-        pass
 
     def on_clear_spectra(self, e=None):
         self.eng.data.clear()
@@ -227,8 +230,15 @@ class ChromApp(MetaUniDecBase):
         self.eng.add_chrom_peaks()
         self.update_hdf5()
 
+    def on_sliding_window(self, e=None):
+        self.get_from_gui()
+        self.eng.add_sliding_window()
+        self.update_hdf5()
+
     def on_delete(self, e=None):
         self.makeplot2_mud()
+        self.makeplot7()
+        self.plot_sums()
 
     def on_single_delete(self, e=None):
         self.plot_single_pks()

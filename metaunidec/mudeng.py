@@ -28,7 +28,7 @@ def metaunidec_call(config, *args, **kwargs):
     tstart = time.perf_counter()
     out = subprocess.call(call)
     tend = time.perf_counter()
-    #print(call, out)
+    # print(call, out)
     print("Execution Time:", (tend - tstart))
     return out
 
@@ -98,8 +98,16 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
     def pick_peaks(self):
         self.config.write_hdf5()
         self.sum_masses()
+
+        scores_included = False
+        try:
+            if len(self.data.peaks[0]) == 3:
+                scores_included = True
+        except:
+            pass
+
         self.pks = peakstructure.Peaks()
-        self.pks.add_peaks(self.data.peaks, massbins=self.config.massbins)
+        self.pks.add_peaks(self.data.peaks, massbins=self.config.massbins, scores_included=scores_included)
         self.pks.default_params(cmap=self.config.peakcmap)
 
         ud.peaks_error_FWHM(self.pks, self.data.massdat)
@@ -107,8 +115,134 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.peaks_error_replicates(self.pks, self.data.spectra, self.config)
         for i, p in enumerate(self.pks.peaks):
             p.extracts = self.data.exgrid[i]
+
         self.update_history()
         self.export_params()
+
+    def pick_scanpeaks(self):
+        self.config.write_hdf5()
+        self.out = metaunidec_call(self.config, "-scanpeaks")
+        self.data.import_hdf5()
+        self.sum_masses()
+
+        combined_peaks = self.combine_scanpeaks()
+
+        self.pks = peakstructure.Peaks()
+        self.pks.add_peaks(combined_peaks, massbins=self.config.massbins * 0.1, scores_included=True)
+        self.pks.default_params(cmap=self.config.peakcmap)
+
+        self.scanpeaks_extracts()
+        ud.peaks_error_FWHM(self.pks, self.data.massdat)
+        self.peaks_error_replicates(self.pks, self.data.spectra, self.config)
+
+        self.update_history()
+        self.export_params()
+        pass
+
+    def filter_peaks(self, minscore=0.4):
+        newpeaks = []
+        indexes = []
+        for i, p in enumerate(self.pks.peaks):
+            if p.dscore > minscore:
+                newpeaks.append([p.mass, p.height, p.dscore])
+                indexes.append(i)
+        newpeaks = np.array(newpeaks)
+        indexes = np.array(indexes)
+        if len(newpeaks) > 0:
+            self.pks = peakstructure.Peaks()
+            self.pks.add_peaks(newpeaks, massbins=self.config.massbins, scores_included=True)
+            self.pks.default_params(cmap=self.config.peakcmap)
+
+            self.data.exgrid = self.data.exgrid[indexes]
+            self.normalize_exgrid()
+
+            ud.peaks_error_FWHM(self.pks, self.data.massdat)
+            self.peaks_error_replicates(self.pks, self.data.spectra, self.config)
+
+            self.update_history()
+            self.export_params()
+        else:
+            print("No Peaks Found with Scores Above", minscore)
+            self.pks = peakstructure.Peaks()
+
+    def combine_scanpeaks(self):
+        allpeaks = np.array([])
+        window = self.config.massbins * 2
+        for s in self.data.spectra:
+            for i, p in enumerate(s.peaks):
+                if len(allpeaks) > 0:
+                    masses = allpeaks[:, 0]
+                    adiff = np.abs(masses - p[0])
+                    if np.any(adiff < window):
+                        index = np.argmin(adiff)
+                        allpeaks[index, 1] += p[1]
+                        weighted_dscore = (p[1] * p[2] + allpeaks[index, 1] * allpeaks[index, 2]) / (
+                                p[1] + allpeaks[index, 1])
+                        allpeaks[index, 2] = weighted_dscore
+
+                        weighted_mass = (p[1] * p[0] + allpeaks[index, 1] * allpeaks[index, 0]) / (
+                                p[1] + allpeaks[index, 1])
+                        weighted_mass = ud.round_to_nearest(weighted_mass, self.config.massbins * 0.1)
+                        allpeaks[index, 0] = weighted_mass
+
+                    else:
+                        index = len(allpeaks)
+                        allpeaks = np.append(allpeaks, [p], axis=0)
+                else:
+                    index = 0
+                    allpeaks = np.array([p])
+                s.pks.peaks[i].index = index
+
+        if self.config.peaknorm == 1:
+            allpeaks[:, 1] /= np.amax(allpeaks[:, 1])
+
+        if self.config.peaknorm == 2:
+            allpeaks[:, 1] /= np.sum(allpeaks[:, 1])
+
+        return allpeaks
+
+    def scanpeaks_extracts(self):
+        if ud.isempty(self.data.exgrid):
+            print("Empty extract grid, running UniDec...")
+            self.sum_masses()
+            self.out = metaunidec_call(self.config, "-scanpeaks")
+            self.data.import_hdf5()
+
+        self.data.exgrid = np.zeros((len(self.pks.peaks), len(self.data.spectra)))
+        for i, p in enumerate(self.pks.peaks):
+            for j, s in enumerate(self.data.spectra):
+                ints = 0
+                for p2 in s.pks.peaks:
+                    if p2.index == i:
+                        ints += p2.height
+                self.data.exgrid[i, j] = ints
+
+        self.normalize_exgrid()
+
+    def normalize_exgrid(self):
+        print(self.config.exnorm)
+        if self.config.exnorm == 3:
+            for i in range(0, len(self.data.exgrid)):
+                if np.amax(self.data.exgrid[i]) != 0:
+                    self.data.exgrid[i] /= np.amax(self.data.exgrid[i])
+
+        if self.config.exnorm == 4:
+            for i in range(0, len(self.data.exgrid)):
+                if np.amax(self.data.exgrid[i]) != 0:
+                    self.data.exgrid[i] /= np.sum(self.data.exgrid[i])
+
+        if self.config.exnorm == 1:
+            for i in range(0, len(self.data.exgrid[0])):
+                if np.amax(self.data.exgrid[:, i]) != 0:
+                    self.data.exgrid[:, i] /= np.amax(self.data.exgrid[:, i])
+
+        if self.config.exnorm == 2:
+            for i in range(0, len(self.data.exgrid[0])):
+                if np.amax(self.data.exgrid[:, i]) != 0:
+                    self.data.exgrid[:, i] /= np.sum(self.data.exgrid[:, i])
+
+        for i, p in enumerate(self.pks.peaks):
+            p.extracts = self.data.exgrid[i]
 
     def peaks_heights(self):
         self.sum_masses()
@@ -117,7 +251,6 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
             p.mztab2 = []
 
         for i, s in enumerate(self.data.spectra):
-
             data2 = s.data2
             mgrid, zgrid = np.meshgrid(s.data2[:, 0], s.ztab, indexing='ij')
             mzgrid = np.transpose([np.ravel(mgrid), np.ravel(zgrid), s.mzgrid])
@@ -128,7 +261,6 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         for p in self.pks.peaks:
             p.mztab = np.array(p.mztab)
             p.mztab2 = np.array(p.mztab2)
-
 
     def peaks_error_replicates(self, pks, spectra, config):
         peakvals = []
@@ -146,7 +278,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
                         maxind = x
                 peakvals[i].append(spec.massdat[maxind, 0])
                 ints.append(spec.massdat[maxind, 1])
-            #print(peakvals[i], ints)
+            # print(peakvals[i], ints)
             pk.errorreplicate = ud.weighted_std(peakvals[i], ints)
 
     def export_params(self, e=None):
@@ -289,9 +421,9 @@ if __name__ == '__main__':
     exit()
     '''
 
-    testdir = "C:\Python\\UniDec\\unidec_src\\UniDec\\x64\Release"
+    testdir = "C:\Python\\UniDec3\\unidec_src\\UniDec\\x64\Release"
     testfile = "JAW.hdf5"
     testpath = os.path.join(testdir, testfile)
     eng.open(testpath)
     eng.run_unidec()
-    eng.pick_peaks()
+    eng.pick_scanpeaks()

@@ -101,9 +101,9 @@ class Mainwindow(MainwindowBase):
         splitterwindow2 = wx.SplitterWindow(splitterwindow, -1, style=wx.SP_3D | wx.SP_BORDER)
         panelp = wx.Panel(splitterwindow2, -1)
         panel = scrolled.ScrolledPanel(splitterwindow2, -1)  # wx.Panel(splitterwindow2, -1)
-        splitterwindow2.SplitVertically(panelp, panel, sashPosition=-250 - self.config.imflag * 20)
-        splitterwindow2.SetMinimumPaneSize(175)
-        splitterwindow.SetMinimumPaneSize(175)
+        splitterwindow2.SplitVertically(panelp, panel, sashPosition=-270 - self.config.imflag * 20)
+        splitterwindow2.SetMinimumPaneSize(270)
+        splitterwindow.SetMinimumPaneSize(250)
         # splitterwindow.SetMinSize((0,0))
         # splitterwindow2.SetMinSize((0,0))
         file_drop_target = MyFileDropTarget(self)
@@ -278,8 +278,6 @@ class Mainwindow(MainwindowBase):
         sizercontrols.Add(self.controls, 1, wx.EXPAND)
         panel.SetSizer(sizercontrols)
         sizercontrols.Fit(self)
-        # panel.SetAutoLayout(1)
-        # panel.SetupScrolling(scroll_x=False, scroll_y=True)
 
         if self.system == "Linux" and self.tabbed != 1:
             sizerplot.Fit(splitterwindow)

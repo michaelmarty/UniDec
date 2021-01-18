@@ -157,7 +157,7 @@ class MainwindowBase(wx.Frame):
         self.SetStatusText("Saving", number=5)
         figureflags, files = self.save_all_figures("eps")
         self.SetStatusText("Saved to .eps", number=5)
-        pass
+        return figureflags, files
 
     def on_save_figure_png(self, e, **kwargs):
         """

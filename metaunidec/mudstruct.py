@@ -4,7 +4,7 @@ import h5py
 import unidec_modules.unidectools as ud
 import os
 from copy import deepcopy
-
+from unidec_modules.peakstructure import Peaks
 
 class MetaDataSet:
     def __init__(self, engine):
@@ -20,6 +20,7 @@ class MetaDataSet:
         self.mzdat = []
         self.exgrid = []
         self.exvals = []
+        self.peaks = []
         self.var1 = []
         self.var2 = []
         self.v1name = "Variable 1"
@@ -241,9 +242,21 @@ class MetaDataSet:
                 spectra.append(s)
         return spectra
 
+    def safemax(self, s):
+        try:
+            maxval = np.amax(s.data2[:, 1])
+        except:
+            maxval = 0
+        return maxval
+
     def get_max_data2(self):
-        maxes = [np.amax(s.data2[:, 1]) for s in self.spectra]
-        return np.amax(maxes)
+        maxes = [self.safemax(s) for s in self.spectra]
+        try:
+            maxval = np.amax(maxes)
+        except:
+            maxval = 0
+        return maxval
+
 
     def get_bool(self):
         bool_array = []
@@ -253,6 +266,7 @@ class MetaDataSet:
             else:
                 bool_array.append(False)
         return np.array(bool_array)
+
 
     def import_vars(self, get_vnames=True):
         hdf = h5py.File(self.filename, 'r+')
@@ -272,6 +286,7 @@ class MetaDataSet:
         hdf.close()
 
         self.update_var_array()
+
 
     def update_var_array(self):
         self.var1 = []
@@ -309,9 +324,9 @@ class MetaDataSet:
 
 class Spectrum:
     def __init__(self, topname, index, eng):
-        self.fitdat = np.array([])
-        self.baseline = np.array([])
-        self.fitdat2d = np.array([])
+        # self.fitdat = np.array([])
+        # self.baseline = np.array([])
+        # self.fitdat2d = np.array([])
         self.rawdata = np.array([])
         self.data2 = np.array([])
         self.massdat = np.array([])
@@ -319,6 +334,8 @@ class Spectrum:
         self.massgrid = np.array([])
         self.ztab = np.array([])
         self.zdata = np.array([])
+        self.peaks = np.array([])
+        self.pks = Peaks()
         self.index = index
         self.name = ""
         self.topname = topname
@@ -339,14 +356,15 @@ class Spectrum:
         hdf = h5py.File(file, 'a')
         msdata = hdf.require_group(self.topname + "/" + str(self.index))
         if not vars_only:
-            replace_dataset(msdata, "raw_data", self.rawdata)
-            replace_dataset(msdata, "fit_data", self.fitdat)
-            replace_dataset(msdata, "processed_data", self.data2)
-            replace_dataset(msdata, "mass_data", self.massdat)
-            replace_dataset(msdata, "mz_grid", self.mzgrid)
-            replace_dataset(msdata, "mass_grid", self.massgrid)
-            replace_dataset(msdata, "baseline", self.baseline)
-            replace_dataset(msdata, "charge_data", self.zdata)
+            replace_dataset(msdata, "raw_data", self.rawdata.astype(self.eng.config.dtype))
+            # print(self.eng.config.dtype)
+            # replace_dataset(msdata, "fit_data", self.fitdat)
+            replace_dataset(msdata, "processed_data", self.data2.astype(self.eng.config.dtype))
+            replace_dataset(msdata, "mass_data", self.massdat.astype(self.eng.config.dtype))
+            replace_dataset(msdata, "mz_grid", self.mzgrid.astype(self.eng.config.dtype))
+            replace_dataset(msdata, "mass_grid", self.massgrid.astype(self.eng.config.dtype))
+            # replace_dataset(msdata, "baseline", self.baseline)
+            replace_dataset(msdata, "charge_data", self.zdata.astype(self.eng.config.dtype))
         for key, value in list(self.attrs.items()):
             msdata.attrs[key] = value
         hdf.close()
@@ -359,7 +377,7 @@ class Spectrum:
         hdf = h5py.File(file, 'r')
         msdata = hdf.get(self.topname + "/" + str(self.index))
         self.rawdata = get_dataset(msdata, "raw_data")
-        self.fitdat = get_dataset(msdata, "fit_data")
+        # self.fitdat = get_dataset(msdata, "fit_data")
         self.data2 = get_dataset(msdata, "processed_data")
         if ud.isempty(self.data2) and not ud.isempty(self.rawdata):
             self.data2 = deepcopy(self.rawdata)
@@ -384,6 +402,14 @@ class Spectrum:
             self.ztab = self.zdata[:, 0]
         except:
             pass
-        self.baseline = get_dataset(msdata, "baseline")
+        # self.baseline = get_dataset(msdata, "baseline")
+        self.peaks = get_dataset(msdata, "peaks")
+        self.setup_peaks()
         self.attrs = dict(list(msdata.attrs.items()))
         hdf.close()
+
+    def setup_peaks(self):
+        self.pks.add_peaks(self.peaks, scores_included=True)
+        self.pks.default_params()
+        #print([[p.mass, p.height, p.dscore] for p in self.pks.peaks])
+

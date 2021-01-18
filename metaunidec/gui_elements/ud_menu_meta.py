@@ -332,10 +332,13 @@ class meta_menu(wx.Menu):
         #self.menuAdditionalParameters = self.experimentalmenu.Append(wx.ID_ANY, "Additional Parameters",
         #                                                             "Adjust some experimental parameters")
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_additional_parameters, self.menuAdditionalParameters)
-        # self.experimentalmenu.AppendSeparator()
+        self.experimentalmenu.AppendSeparator()
 
-        # self.menucal = self.experimentalmenu.Append(wx.ID_ANY, "Apply Calibration")
-        # self.parent.Bind(wx.EVT_MENU, self.pres.on_calibrate, self.menucal)
+        self.menuscanpeaks = self.experimentalmenu.Append(wx.ID_ANY, "Get Scan Peaks")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_pick_scanpeaks, self.menuscanpeaks)
+
+        self.menufilterpeaks = self.experimentalmenu.Append(wx.ID_ANY, "Filter Peaks by Score")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_filter_peaks_MUD, self.menufilterpeaks)
 
         if self.type == "Meta":
             #Help Menu

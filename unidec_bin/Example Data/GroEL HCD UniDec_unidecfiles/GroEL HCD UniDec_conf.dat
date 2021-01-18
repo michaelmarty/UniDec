@@ -1,4 +1,4 @@
-version 4.3.0
+version 4.3.1
 imflag 0
 input C:\Python\UniDec3\unidec_bin\Example Data\GroEL HCD UniDec_unidecfiles\GroEL HCD UniDec_input.dat
 output C:\Python\UniDec3\unidec_bin\Example Data\GroEL HCD UniDec_unidecfiles\GroEL HCD UniDec

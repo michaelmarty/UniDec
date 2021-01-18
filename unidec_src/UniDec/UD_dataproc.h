@@ -16,9 +16,9 @@
 #define DATAPROC_HEADER
 
 //Pool data
-int pool1d(double *oldmz, double *oldint, const int oldlen, const int mzbins)
+int pool1d(float *oldmz, float *oldint, const int oldlen, const int mzbins)
 {
-	double *newmz, *newint;
+	float *newmz, *newint;
 	int newlen = oldlen/mzbins;
 
 	if (oldlen > newlen*mzbins)
@@ -27,15 +27,15 @@ int pool1d(double *oldmz, double *oldint, const int oldlen, const int mzbins)
 	}
 	
 	//declare memory for new arrays
-	newmz = calloc(newlen, sizeof(double));
-	newint = calloc(newlen, sizeof(double));
+	newmz = calloc(newlen, sizeof(float));
+	newint = calloc(newlen, sizeof(float));
 	
 	// printf("%d %d %d\n", oldlen, newlen, mzbins);
 	for (int i = 0; i < newlen; i++)
 	{
-		double mz = 0;
-		double val = 0;
-		double bins = 0;
+		float mz = 0;
+		float val = 0;
+		float bins = 0;
 		for(int j=0; j<mzbins; j++)
 		{
 			int index = i*mzbins + j;
@@ -51,11 +51,11 @@ int pool1d(double *oldmz, double *oldint, const int oldlen, const int mzbins)
 	}
 
 	//Bookkeeping 
-	realloc(oldmz, newlen * sizeof(double));
-	realloc(oldint, newlen * sizeof(double));
+	oldmz = realloc(oldmz, newlen * sizeof(float));
+	oldint = realloc(oldint, newlen * sizeof(float));
 
-	memcpy(oldmz, newmz, sizeof(double)*newlen);
-	memcpy(oldint, newint, sizeof(double)*newlen);
+	memcpy(oldmz, newmz, sizeof(float)*newlen);
+	memcpy(oldint, newint, sizeof(float)*newlen);
 
 	free(newmz);
 	free(newint);
@@ -65,13 +65,14 @@ int pool1d(double *oldmz, double *oldint, const int oldlen, const int mzbins)
 
 
 //Chop data
-int chop1d(double *oldmz, double *oldint, int oldlen, const double min, const double max)
+int chop1d(float *oldmz, float *oldint, int oldlen, const float min, const float max)
 {
-	double *newmz, *newint;
+	float *newmz, *newint;
 	int newlen = 0;
 
-	double maxval = max1d(oldmz, oldlen);
-	double minval = min1d(oldmz, oldlen);
+	float maxval = max1d(oldmz, oldlen);
+	float minval = min1d(oldmz, oldlen);
+	//printf("Test %f %f\n", maxval, minval);
 	if (maxval<max && minval>min)
 	{
 		return oldlen;
@@ -88,12 +89,13 @@ int chop1d(double *oldmz, double *oldint, int oldlen, const double min, const do
 
 	if (newlen >= oldlen)
 	{
+		
 		return oldlen;
 	}
-	
+	//printf("Test2 %d\n", newlen);
 	//declare memory for new arrays
-	newmz = calloc(newlen, sizeof(double));
-	newint = calloc(newlen, sizeof(double));
+	newmz = calloc(newlen, sizeof(float));
+	newint = calloc(newlen, sizeof(float));
 	
 	//Fill new arrays
 	newlen = 0;
@@ -106,26 +108,26 @@ int chop1d(double *oldmz, double *oldint, int oldlen, const double min, const do
 			newlen++;
 		}
 	}
-	
+	//printf("Test3 %d\n", newlen);
 	//Bookkeeping 
-	realloc(oldmz, newlen * sizeof(double));
-	realloc(oldint, newlen * sizeof(double));
-	
-	memcpy(oldmz, newmz, sizeof(double)*newlen);
-	memcpy(oldint, newint, sizeof(double)*newlen);
-	
+	oldmz = realloc(oldmz, newlen * sizeof(float));
+	oldint = realloc(oldint, newlen * sizeof(float));
+	//printf("Test3.5 %d\n", newlen);
+	memcpy(oldmz, newmz, sizeof(float)*newlen);
+	memcpy(oldint, newint, sizeof(float)*newlen);
+	//printf("Test4 %d\n", newlen);
 	free(newmz);
 	free(newint);
-	
+	//printf("Test4 %d\n", newlen);
 	return newlen;	
 }
 
 //Remove duplicates
-int remove_duplicates(double *oldmz, double *oldint, int oldlen)
+int remove_duplicates(float *oldmz, float *oldint, int oldlen)
 {
-	double *newmz, *newint;
+	float *newmz, *newint;
 	int newlen = 1;
-	double val = 0;
+	float val = 0;
 
 
 	//get new length
@@ -143,8 +145,8 @@ int remove_duplicates(double *oldmz, double *oldint, int oldlen)
 	}
 
 	//declare memory for new arrays
-	newmz = calloc(newlen, sizeof(double));
-	newint = calloc(newlen, sizeof(double));
+	newmz = calloc(newlen, sizeof(float));
+	newint = calloc(newlen, sizeof(float));
 
 	//Fill new arrays
 	newlen = 0;
@@ -167,22 +169,22 @@ int remove_duplicates(double *oldmz, double *oldint, int oldlen)
 	newlen++;
 
 	//Bookkeeping 
-	realloc(oldmz, newlen * sizeof(double));
-	realloc(oldint, newlen * sizeof(double));
+	oldmz = realloc(oldmz, newlen * sizeof(float));
+	oldint = realloc(oldint, newlen * sizeof(float));
 
-	memcpy(oldmz, newmz, sizeof(double)*newlen);
-	memcpy(oldint, newint, sizeof(double)*newlen);
+	memcpy(oldmz, newmz, sizeof(float)*newlen);
+	memcpy(oldint, newint, sizeof(float)*newlen);
 
-	//free(newmz);
-	//free(newint);
+	free(newmz);
+	free(newint);
 	//printf("Removed %d Duplicates\n", oldlen - newlen);
 	return newlen;
 }
 
-//Remove duplicates
-int remove_middle_zeros(double *oldmz, double *oldint, int oldlen)
+//Remove middle zeros
+int remove_middle_zeros(float *oldmz, float *oldint, int oldlen)
 {
-	double *newmz, *newint;
+	float *newmz, *newint;
 	int newlen = 2;
 
 	//get new length
@@ -200,8 +202,8 @@ int remove_middle_zeros(double *oldmz, double *oldint, int oldlen)
 	}
 
 	//declare memory for new arrays
-	newmz = calloc(newlen, sizeof(double));
-	newint = calloc(newlen, sizeof(double));
+	newmz = calloc(newlen, sizeof(float));
+	newint = calloc(newlen, sizeof(float));
 
 	//Fill new arrays
 	newlen = 0;
@@ -223,22 +225,22 @@ int remove_middle_zeros(double *oldmz, double *oldint, int oldlen)
 	newlen++;
 
 	//Bookkeeping 
-	realloc(oldmz, newlen * sizeof(double));
-	realloc(oldint, newlen * sizeof(double));
+	oldmz = realloc(oldmz, newlen * sizeof(float));
+	oldint = realloc(oldint, newlen * sizeof(float));
 
-	memcpy(oldmz, newmz, sizeof(double)*newlen);
-	memcpy(oldint, newint, sizeof(double)*newlen);
+	memcpy(oldmz, newmz, sizeof(float)*newlen);
+	memcpy(oldint, newint, sizeof(float)*newlen);
 
-	//free(newmz);
-	//free(newint);
+	free(newmz);
+	free(newint);
 	//printf("Removed %d Middle Zeros\n", oldlen - newlen);
 	return newlen;
 }
 
 //Normalize
-void norm1d(double *dataInt, const int lengthmz)
+void norm1d(float *dataInt, const int lengthmz)
 {
-	double maxval = max1d(dataInt, lengthmz);
+	float maxval = max1d(dataInt, lengthmz);
 	if(maxval>0){
 		for (int i = 0; i < lengthmz; i++)
 		{
@@ -247,10 +249,10 @@ void norm1d(double *dataInt, const int lengthmz)
 	}
 }
 
-void background_subtract(double *dataInt, const double bsub, const int lengthmz)
+void background_subtract(float *dataInt, const float bsub, const int lengthmz)
 {
-	double *background;
-	background = calloc(lengthmz, sizeof(double));
+	float *background;
+	background = calloc(lengthmz, sizeof(float));
 	// Get Local Mins
 	for (int i=0; i < lengthmz; i++)
 	{
@@ -258,7 +260,7 @@ void background_subtract(double *dataInt, const double bsub, const int lengthmz)
 		int end = i + abs(bsub);
 		if (start < 0) { start = 0; }
 		if (end > lengthmz) { end = lengthmz; }
-		double min = dataInt[start];
+		float min = dataInt[start];
 		for (int j = start+1; j < end; j++)
 		{
 			if (dataInt[j] < min) { min = dataInt[j]; }
@@ -267,8 +269,8 @@ void background_subtract(double *dataInt, const double bsub, const int lengthmz)
 	}
 	// Smooth Local Mins and Subtract
 	int threshold = abs(bsub) * 6;
-	double *gaussian;
-	gaussian = calloc(threshold, sizeof(double));
+	float *gaussian;
+	gaussian = calloc(threshold, sizeof(float));
 	for (int i = 0; i < threshold; i++)
 	{
 		gaussian[i] = ndis(i, abs(bsub) * 3, abs(bsub));
@@ -281,7 +283,7 @@ void background_subtract(double *dataInt, const double bsub, const int lengthmz)
 		int end = i + abs(bsub)*3;
 		if (start < 0) { start = 0; }
 		if (end > lengthmz) { end = lengthmz; }
-		double val = 0;
+		float val = 0;
 		for (int j = start; j < end; j++)
 		{
 			val += background[j] * gaussian[j - start];
@@ -296,20 +298,20 @@ void background_subtract(double *dataInt, const double bsub, const int lengthmz)
 // A comparator function used by qsort 
 inline int compare(const void* a, const void* b)
 {
-	return (*(double*)a - *(double*)b);
+	return (*(float*)a - *(float*)b);
 }
 
 //Cut out the lowest x percent of the data
-int data_reduction(double* oldmz, double* oldint, int oldlen, const double redper)
+int data_reduction(float* oldmz, float* oldint, int oldlen, const float redper)
 {
-	double* newmz, * newint, *sortint, cutoff;
+	float* newmz, * newint, *sortint, cutoff;
 	int newlen = 0;
 	
 	//Create the sort array and load it with intensities
-	sortint = calloc(oldlen, sizeof(double));
-	memcpy(sortint, oldint, sizeof(double) * oldlen);
+	sortint = calloc(oldlen, sizeof(float));
+	memcpy(sortint, oldint, sizeof(float) * oldlen);
 	//Sort it
-	qsort(sortint, oldlen, sizeof(double), compare);
+	qsort(sortint, oldlen, sizeof(float), compare);
 	
 	//Find the index redper percent of the way through the list
 	int index = (int)redper * oldlen / 100.;
@@ -334,8 +336,8 @@ int data_reduction(double* oldmz, double* oldint, int oldlen, const double redpe
 	if (newlen < 3) { printf("Warning: Aggressive Data Reduction!!! Lower the data reduction percentage\n\n"); }
 
 	//declare memory for new arrays
-	newmz = calloc(newlen, sizeof(double));
-	newint = calloc(newlen, sizeof(double));
+	newmz = calloc(newlen, sizeof(float));
+	newint = calloc(newlen, sizeof(float));
 
 	//Fill new arrays
 	newlen = 0;
@@ -350,11 +352,11 @@ int data_reduction(double* oldmz, double* oldint, int oldlen, const double redpe
 	}
 
 	//Bookkeeping 
-	realloc(oldmz, newlen * sizeof(double));
-	realloc(oldint, newlen * sizeof(double));
+	oldmz = realloc(oldmz, newlen * sizeof(float));
+	oldint = realloc(oldint, newlen * sizeof(float));
 
-	memcpy(oldmz, newmz, sizeof(double) * newlen);
-	memcpy(oldint, newint, sizeof(double) * newlen);
+	memcpy(oldmz, newmz, sizeof(float) * newlen);
+	memcpy(oldint, newint, sizeof(float) * newlen);
 
 	free(newmz);
 	free(newint);
@@ -366,8 +368,8 @@ int data_reduction(double* oldmz, double* oldint, int oldlen, const double redpe
 void process_data(int argc, char *argv[], Config config)
 {	
 	hid_t file_id;
-	double *dataMZ = NULL;
-	double *dataInt = NULL;
+	float *dataMZ = NULL;
+	float *dataInt = NULL;
 	char dataset[1024];
 	char outdat[1024];
 	char strval[1024];
@@ -380,50 +382,52 @@ void process_data(int argc, char *argv[], Config config)
 	file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 	strjoin(dataset, "/raw_data", outdat);
 	int lengthmz = mh5getfilelength(file_id, outdat);
-	dataMZ = calloc(lengthmz, sizeof(double));
-	dataInt = calloc(lengthmz, sizeof(double));
+	dataMZ = calloc(lengthmz*2, sizeof(float));
+	dataInt = calloc(lengthmz*2, sizeof(float));
 	mh5readfile2d(file_id, outdat, lengthmz, dataMZ, dataInt);
-	//printf("Length of Data: %d \n", lengthmz);
+	int silent = 1;
+	if (silent == 0) { printf("Length of Data: %d \n", lengthmz); }
 
 
 	//Bin
 	if (config.mzbins > 1)
 	{
-		//printf("Binning data every %d data points\n", config.mzbins);
+		if (silent == 0) { printf("Binning data every %d data points\n", config.mzbins); }
 		lengthmz = pool1d(dataMZ, dataInt, lengthmz, config.mzbins);
 	}
 
 	//Chop
 	if (config.minmz >= 0 && config.maxmz > 0)
 	{
-		//printf("Chopping data to range: %f %f\n", config.minmz, config.maxmz);
+		if (silent == 0) { printf("Chopping data to range: %f %f\n", config.minmz, config.maxmz); }
 		lengthmz=chop1d(dataMZ, dataInt, lengthmz, config.minmz, config.maxmz);
 	}
 
 	//Remove Zeros
-	//printf("Removing zeros %d\n", lengthmz);
+	if (silent == 0) { printf("Removing zeros %d\n", lengthmz); }
 	lengthmz = remove_middle_zeros(dataMZ, dataInt, lengthmz);
 
 	//Remove Duplicates
 	lengthmz = remove_duplicates(dataMZ, dataInt, lengthmz);
-	//printf("New Length %d\n", lengthmz);
+	if (silent == 0) { printf("New Length %d\n", lengthmz); }
 
 	//Background subtraction
 	if (config.bsub != 0)
 	{
+		if (silent == 0) { printf("Background Subtraction: %f\n", config.bsub); }
 		background_subtract(dataInt, config.bsub, lengthmz);
 	}
 
 	if (config.datareduction != 0)
 	{
-		//printf("Data Reduction: %f\n", config.datareduction);
+		if (silent == 0) { printf("Data Reduction: %f\n", config.datareduction); }
 		lengthmz = data_reduction(dataMZ, dataInt, lengthmz, config.datareduction);
 	}
 
 	//Normalize
 	if (config.datanorm == 1)
 	{
-		//printf("Normalizing\n");
+		if (silent == 0) { printf("Normalizing\n"); }
 		norm1d(dataInt, lengthmz);
 	}
 
@@ -433,12 +437,13 @@ void process_data(int argc, char *argv[], Config config)
 	config.speedyflag = 0;
 	//Write data to processed_data
 	strjoin(dataset, "/processed_data", outdat);
-	//printf("\tWriting to: %s...", outdat);
+	if (silent == 0) { printf("\tWriting to: %s...", outdat); }
 	mh5writefile2d(file_id, outdat, lengthmz, dataMZ, dataInt);
+	set_needs_grids(file_id);
 	free(dataMZ);
 	free(dataInt);
 	H5Fclose(file_id);
-	//printf("Done\n");
+	if (silent == 0) { printf("Done\n"); }
 }
 
 #endif

@@ -5,20 +5,33 @@ import time
 
 def get_raw_metadata(path):
     rawfile = MSFileReader(path)
-# Most are columns in the Xcalibur sequence editor
-# "Company" - Research Group name
-    company = rawfile.GetSeqRowUserText(index=3)
-    print(company)
-# "Laboratory" - collaborator PI's name
-    lab = rawfile.GetSeqRowUserText(index=2)
-    print(lab)
-# "Client" - collaborator's name.
-    client = rawfile.GetSeqRowUserText(index=1)
-    print(client)
-# "Phone" - This will be "shipment date"
-    phone = rawfile.GetSeqRowUserText(index=4)
-    shipment = phone.replace('Phone', '')
-    print(shipment)
+# Most are columns in the Xcalibur sequence editor the names are Xcalibur default.
+# "Study" - could be solution info - OBE mM AmAc
+    header1 = rawfile.GetSeqRowUserLabel(index=0)
+    print(header1)
+    study1 = rawfile.GetSeqRowUserText(index=0)
+    print(study1)
+# "Client" - collaborator's name, PI - contact.
+    header2 = rawfile.GetSeqRowUserLabel(index=1)
+    print(header2)
+    client2 = rawfile.GetSeqRowUserText(index=1)
+    print(client2)
+# "Laboratory" - collaborator PI's name - contact name
+    header3 = rawfile.GetSeqRowUserLabel(index=2)
+    print(header3)
+    lab3 = rawfile.GetSeqRowUserText(index=2)
+    print(lab3)
+# "Company" - Research Group name (previous) "Sample Conditions" (new)
+    header4 = rawfile.GetSeqRowUserLabel(index=3)
+    print(header4)
+    company4 = rawfile.GetSeqRowUserText(index=3)
+    print(company4)
+# "Phone" - This will be "Shipment date"
+    header5 = rawfile.GetSeqRowUserLabel(index=4)
+    print(header5)
+    phone5 = rawfile.GetSeqRowUserText(index=4)
+    #shipment = phone.replace('Phone', '')
+    print(phone5)
 # Andrew - The date modified = "Data recorded" - this date is the end of the run.
     # Get the time of last modifation of the specified path since the epoch
     #modification_time = os.path.getmtime(path)
@@ -28,15 +41,17 @@ def get_raw_metadata(path):
 # Instrument:
     inst = rawfile.GetInstModel()
     print(inst)
-# "Study" - could be solution info - OBE mM AmAc
-    study = rawfile.GetSeqRowUserText(index=0)
-    print(study)
 # Injection would be useful to add to our reports
     inject = rawfile.GetSeqRowInjectionVolume()
     print(inject)
+# "comment" - for misc info
+    GetSeqRowComment = rawfile.GetSeqRowComment()
+    print(GetSeqRowComment)
     
 
-    output_string="Lab: " + str(company) + ";" +"Client: " + str(lab)+ " - " + str(client) + ";" + "Shipment Date: " + str(shipment) + ";" + "Data Recorded: " + str(local_time) + ";" + "Instrument: " + str(inst) + ";" + "Study: " + str(study) + ";" + "Injection (uL): " + str(inject)
+    output_string= str(header3) + ": " + str(lab3) + ";" + str(header2) + ": " + str(client2) + ";" + str(header5) + ": " + str(phone5) + ";" \
+                   + "Data Recorded: " + str(local_time) + ";" + "Instrument: " + str(inst) + ";" + str(header4) + ": " \
+                  + str(company4) + ";" + str(header1) + ": " + str(study1) + ";" + "Injection (uL): " + str(inject) + ";" + "Comment: " + str(GetSeqRowComment)
     #print(output_string)
     return output_string
 
@@ -44,7 +59,7 @@ def get_raw_metadata(path):
 if __name__ == "__main__":
     dir = "C:\\Users\\norri\\OneDrive\\Desktop\\UniDec_report tests"
     #dir = "D:\\Data"
-    filename = "20200603_Ivan_D3-5A2_3k_HCD005.raw"
+    filename = "20201022_Ryan_RK_hetcrn-n-s-2_3xdilu_6k_HCD120.raw"
     path = os.path.join(dir, filename)
     get_raw_metadata(path)
 
@@ -59,9 +74,9 @@ def get_raw_samplename(path):
 if __name__ == "__main__":
     dir = "C:\\Users\\norri\\OneDrive\\Desktop\\UniDec_report tests"
     #dir = "D:\\Data"
-    filename = "20200603_Ivan_D3-5A2_3k_HCD005.raw"
+    filename = "20201022_Ryan_RK_hetcrn-n-s-2_3xdilu_6k_HCD120.raw"
     path = os.path.join(dir, filename)
-    get_raw_companyname(path)
+    #get_raw_companyname(path)
     
     #for i in range(rawfile.FirstSpectrumNumber, rawfile.LastSpectrumNumber + 1):
     #    print(i, rawfile.GetCollisionEnergyForScanNum(i, MSOrder=1))

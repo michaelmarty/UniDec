@@ -88,9 +88,9 @@ except (OSError, NameError):
 
 
 def get_importer(path):
-    if os.path.splitext(path)[1] == ".mzML":
+    if os.path.splitext(path)[1] == ".mzML" or os.path.splitext(path)[1] == ".gz":
         # mzML file
-        d = mzMLimporter(path)
+        d = mzMLimporter(path, gzmode=True)
     elif os.path.splitext(path)[1].lower() == ".raw" and not os.path.isdir(path):
         # Thermo Raw File
         try:
@@ -218,6 +218,9 @@ def decimal_formatter(a, template):
         label = "%g" % round(a, -dec2)
     return label
 
+def round_to_nearest(n, m):
+    r = n % m
+    return n + m - r if r + r >= m else n - r
 
 def fix_textpos(pos, maxval):
     cutoff = 0.05 * maxval
@@ -279,7 +282,7 @@ def mass_weighted_average(value, weights):
 def polydispersity_index(massdat):
     number_average_molar_mass = weighted_avg(massdat[:, 0], massdat[:, 1])
     mass_average_molar_mass = mass_weighted_average(massdat[:, 0], massdat[:, 1])
-    pdi = mass_average_molar_mass/number_average_molar_mass
+    pdi = mass_average_molar_mass / number_average_molar_mass
     return pdi
 
 
@@ -393,13 +396,19 @@ def integrate(data, start, end):
     return integral, intdat
 
 
-def center_of_mass(data, start=None, end=None, power=1.):
+def center_of_mass(data, start=None, end=None, relative_cutoff=None, power=1.):
     if start is not None and end is not None:
         boo1 = data[:, 0] < end
         boo2 = data[:, 0] > start
         cutdat = data[np.all([boo1, boo2], axis=0)]
     else:
         cutdat = data
+
+    if relative_cutoff is not None:
+        maxval = np.amax(cutdat[:, 1])
+        boo3 = cutdat[:, 1] > maxval * relative_cutoff
+        cutdat = cutdat[boo3]
+
     try:
         weightedavg = np.average(cutdat[:, 0], weights=np.power(cutdat[:, 1], float(power)))
         weightstd = weighted_std(cutdat[:, 0], np.power(cutdat[:, 1], float(power)))
@@ -1005,7 +1014,7 @@ def auto_peak_width(datatop, psfun=None, singlepeak=False):
         else:
             isodat = datatop
 
-        fits = np.array([isolated_peak_fit(isodat[:, 0], isodat[:, 1], i) for i in range(0, 3)])
+        fits = np.array([isolated_peak_fit(isodat[:, 0], isodat[:, 1], i) for i in range(0, 3)], dtype="object")
 
         errors = [np.sum(np.array(isodat[:, 1] - f) ** 2.) for f in fits[:, 1]]
         if psfun is None:
@@ -1245,6 +1254,19 @@ def intensitythresh_del(datatop, thresh):
     """
     above = datatop[:, 1] > thresh
     datatop = datatop[above]
+    return datatop
+
+
+def intensitythresh_sub(datatop, thresh):
+    """
+    Sets an intensity threshold. Everything below the threshold is set to 0. Everything else is subtracted by threshold.
+    :param datatop: Data array
+    :param thresh: Threshold value
+    :return: Thresholded array.
+    """
+    datatop[:, 1] -= thresh * np.amax(datatop[:, 1])
+    belowint = datatop[:, 1] < 0
+    datatop[belowint, 1] = 0
     return datatop
 
 
@@ -1528,9 +1550,9 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
         data2 = polynomial_background_subtract(data2, buff)
     elif subtype == 5 and buff != 0:
         data2 = savgol_background_subtract(data2, buff)
-    # elif subtype == 3 and buff != 0:
-    #   data2 = gaussian_background_subtract(data2, buff)
-    #    pass
+    elif subtype == 3 and buff != 0:
+        data2 = intensitythresh_sub(data2, buff)
+        pass
     elif buff == 0:
         pass
     else:
@@ -2316,29 +2338,35 @@ def fft_process(mzdata, diffrange=None, binsize=0.1, pad=None, preprocessed=Fals
     return maxpos, ftext2, fftdat, fft2
 
 
-def windowed_fft(data, mean, sigma, diffrange=None):
+def windowed_fft(data, mean, sigma, diffrange=None, norm=True):
     if diffrange is None:
         diffrange = [740, 770]
     window = ndis_std(data[:, 0], mean, sigma)
     newdata = deepcopy(data)
     newdata[:, 1] = newdata[:, 1] * window
     maxpos, fft2 = double_fft_diff(newdata, diffrange=diffrange, preprocessed=True)
+    if norm:
+        factor = np.sum(newdata[:, 1])
+        fft2[:, 1] *= factor
     fft2[:, 1] -= np.amin(fft2[:, 1])
     return maxpos, fft2
 
 
-def windowed_fft_single(data, mean, sigma, diffrange=None):
+def windowed_fft_single(data, mean, sigma, diffrange=None, norm=True):
     if diffrange is None:
         diffrange = [0, 10]
     window = ndis_std(data[:, 0], mean, sigma)
     newdata = deepcopy(data)
     newdata[:, 1] = newdata[:, 1] * window
     maxpos, fft2 = fft_diff(newdata, diffrange=diffrange)
+    if norm:
+        factor = np.sum(newdata[:, 1])
+        fft2[:, 1] *= factor
     fft2[:, 1] -= np.amin(fft2[:, 1])
     return maxpos, fft2
 
 
-def win_fft_grid(rawdata, binsize, wbin, window_fwhm, diffrange):
+def win_fft_grid(rawdata, binsize, wbin, window_fwhm, diffrange, norm=True):
     # Prepare data
     mindat = np.amin(rawdata[:, 0])
     maxdat = np.amax(rawdata[:, 0])
@@ -2348,7 +2376,7 @@ def win_fft_grid(rawdata, binsize, wbin, window_fwhm, diffrange):
 
     xvals = np.arange(mindat, maxdat, wbin)
 
-    results = np.array([windowed_fft(mzdata, x, window_fwhm, diffrange=diffrange)[1] for x in xvals])
+    results = np.array([windowed_fft(mzdata, x, window_fwhm, diffrange=diffrange, norm=norm)[1] for x in xvals])
 
     intdat = results[:, :, 1]
     yvals = np.unique(results[:, :, 0])
@@ -2357,7 +2385,7 @@ def win_fft_grid(rawdata, binsize, wbin, window_fwhm, diffrange):
     return out
 
 
-def win_fft_grid_single(rawdata, binsize, wbin, window_fwhm, diffrange):
+def win_fft_grid_single(rawdata, binsize, wbin, window_fwhm, diffrange, norm=True):
     # Prepare data
     mindat = np.amin(rawdata[:, 0])
     maxdat = np.amax(rawdata[:, 0])
@@ -2367,7 +2395,7 @@ def win_fft_grid_single(rawdata, binsize, wbin, window_fwhm, diffrange):
 
     xvals = np.arange(mindat, maxdat, wbin)
 
-    results = np.array([windowed_fft_single(mzdata, x, window_fwhm, diffrange=diffrange)[1] for x in xvals])
+    results = np.array([windowed_fft_single(mzdata, x, window_fwhm, diffrange=diffrange, norm=norm)[1] for x in xvals])
 
     intdat = results[:, :, 1]
     yvals = np.unique(results[:, :, 0])
@@ -2376,13 +2404,13 @@ def win_fft_grid_single(rawdata, binsize, wbin, window_fwhm, diffrange):
     return out
 
 
-def win_fft_diff(rawdata, binsize=0.05, sigma=1000, diffrange=None):
+def win_fft_diff(rawdata, binsize=0.05, sigma=1000, diffrange=None, norm=True):
     smoothdata = deepcopy(rawdata)
     smoothdata = gsmooth(smoothdata, 1000)
     mzdata = linearize(rawdata, binsize, 3)
     mzdata = pad_two_power(mzdata)
     maxpos = smoothdata[np.argmax(smoothdata[:, 1]), 0]
-    maxdiff, fftdat = windowed_fft(mzdata, maxpos, sigma, diffrange=diffrange)
+    maxdiff, fftdat = windowed_fft(mzdata, maxpos, sigma, diffrange=diffrange, norm=norm)
     print("Difference:", maxdiff)
     return maxdiff, fftdat
 

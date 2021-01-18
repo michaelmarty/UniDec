@@ -3,7 +3,7 @@ import wx.lib.agw.foldpanelbar as fpb
 import os
 import unidec_modules.unidectools as ud
 import numpy as np
-
+import wx.lib.scrolledpanel as scrolled
 
 class main_controls(wx.Panel):
     def __init__(self, parent, config, pres, panel, iconfile):
@@ -66,7 +66,9 @@ class main_controls(wx.Panel):
 
         # Setting up main fold controls
         size1 = (75, -1)
-        self.foldpanels = fpb.FoldPanelBar(self, -1, agwStyle=fpb.FPB_VERTICAL)
+        self.scrolledpanel = scrolled.ScrolledPanel(self, style=wx.ALL | wx.EXPAND)
+        self.scrolledpanel.SetupScrolling()
+        self.foldpanels = fpb.FoldPanelBar(self.scrolledpanel, -1, size=(250, 1900), agwStyle=fpb.FPB_VERTICAL)
         style1 = fpb.CaptionBarStyle()
         style1b = fpb.CaptionBarStyle()
         style1c = fpb.CaptionBarStyle()
@@ -432,7 +434,7 @@ class main_controls(wx.Panel):
         self.ctlpublicationmode = wx.CheckBox(panel3b, label="Publication Mode")
         gbox3b.Add(self.ctlpublicationmode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
-        self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved/Profile", "Raw/Centroid"])
+        self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved/Profile", "Raw/Centroid", "Fast Profile", "Fast Centroid"], majorDimension=2)
         gbox3b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
@@ -492,10 +494,49 @@ class main_controls(wx.Panel):
 
         sizercontrol.SetMinSize((250 + self.config.imflag * 10, 0))
 
+        # Add to sizer and setup
+        sizercontrolscrolled = wx.BoxSizer(wx.VERTICAL)
+        sizercontrolscrolled.Add(self.foldpanels, 1, wx.EXPAND)
+        self.scrolledpanel.SetSizer(sizercontrolscrolled)
+        sizercontrolscrolled.Fit(self.scrolledpanel)
+
         # Add to top control sizer
-        sizercontrol.Add(self.foldpanels, 1, wx.EXPAND)
+        sizercontrol.Add(self.scrolledpanel, 1, wx.EXPAND)
+
+        # Bottom Buttons
+        buttonsizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        bsize = (45, 25)
+        self.mainbutton = wx.Button(self, -1, "Main", size=bsize)
+        self.expandbutton = wx.Button(self, -1, "All", size=bsize)
+        self.collapsebutton = wx.Button(self, -1, "None", size=bsize)
+        self.bluebutton = wx.Button(self, -1, "Blue", size=bsize)
+        self.yellowbutton = wx.Button(self, -1, "Yellow", size=bsize)
+        self.redbutton = wx.Button(self, -1, "Red", size=bsize)
+        self.bluebutton.SetBackgroundColour(wx.Colour(150, 150, 255))
+        self.yellowbutton.SetBackgroundColour(wx.Colour(255, 255, 150))
+        self.redbutton.SetBackgroundColour(wx.Colour(255, 150, 150))
+        self.parent.Bind(wx.EVT_BUTTON, self.on_expand_main, self.mainbutton)
+        self.parent.Bind(wx.EVT_BUTTON, self.on_expand_all, self.expandbutton)
+        self.parent.Bind(wx.EVT_BUTTON, self.on_collapse_all, self.collapsebutton)
+        self.parent.Bind(wx.EVT_BUTTON, self.on_expand_blue, self.bluebutton)
+        self.parent.Bind(wx.EVT_BUTTON, self.on_expand_yellow, self.yellowbutton)
+        self.parent.Bind(wx.EVT_BUTTON, self.on_expand_red, self.redbutton)
+        buttons = [self.mainbutton, self.expandbutton, self.collapsebutton, self.bluebutton, self.yellowbutton,
+                   self.redbutton]
+        for button in buttons:
+            buttonsizer2.Add(button, 0, wx.EXPAND)
+        sizercontrol.Add(buttonsizer2, 0, wx.EXPAND)
+
+        # Add to top control sizer
+        #sizercontrol.Add(self.foldpanels, 1, wx.EXPAND)
+        #self.SetSizer(sizercontrol)
+        #sizercontrol.Fit(self)
+
+        # Set top sizer
         self.SetSizer(sizercontrol)
         sizercontrol.Fit(self)
+
+        # Add remaining things
         self.setup_tool_tips()
         self.bind_changes()
 
@@ -931,6 +972,60 @@ class main_controls(wx.Panel):
         value = self.ctlbselect.GetSelection()
         self.ctlbeta.SetValue(str(self.betasettings[value]))
         self.export_gui_to_config()
+
+    def on_collapse_all(self, e=None):
+        num = self.foldpanels.GetCount()
+        for i in range(0, num):
+            fp = self.foldpanels.GetFoldPanel(i)
+            self.foldpanels.Collapse(fp)
+        pass
+
+    def on_expand_all(self, e=None):
+        num = self.foldpanels.GetCount()
+        for i in range(0, num):
+            fp = self.foldpanels.GetFoldPanel(i)
+            self.foldpanels.Expand(fp)
+        pass
+
+    def on_expand_blue(self, e=None):
+        num = self.foldpanels.GetCount()
+        for i in range(0, num):
+            fp = self.foldpanels.GetFoldPanel(i)
+            if i ==0:
+                self.foldpanels.Expand(fp)
+            else:
+                self.foldpanels.Collapse(fp)
+        pass
+
+    def on_expand_yellow(self, e=None):
+        num = self.foldpanels.GetCount()
+        for i in range(0, num):
+            fp = self.foldpanels.GetFoldPanel(i)
+            if i in [1, 2,3]:
+                self.foldpanels.Expand(fp)
+            else:
+                self.foldpanels.Collapse(fp)
+        pass
+
+    def on_expand_red(self, e=None):
+        num = self.foldpanels.GetCount()
+        for i in range(0, num):
+            fp = self.foldpanels.GetFoldPanel(i)
+            if i in [5, 4]:
+                self.foldpanels.Expand(fp)
+            else:
+                self.foldpanels.Collapse(fp)
+        pass
+
+    def on_expand_main(self, e=None):
+        num = self.foldpanels.GetCount()
+        for i in range(0, num):
+            fp = self.foldpanels.GetFoldPanel(i)
+            if i in [0, 1, 2, 4]:
+                self.foldpanels.Expand(fp)
+            else:
+                self.foldpanels.Collapse(fp)
+        pass
 
     def on_spectra_color_change(self, e):
         value = str(self.ctlspeccm.GetStringSelection())

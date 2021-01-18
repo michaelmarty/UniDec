@@ -894,7 +894,7 @@ class DataCollector(wx.Frame):
                 if not zstate == 'All':
                     try:
                         filename = os.path.join(header + "_unidecfiles", subheader + "_massgrid.bin")
-                        massgrid = np.fromfile(filename, dtype=float)
+                        massgrid = np.fromfile(filename, dtype=self.config.dtype)
                         configfile = os.path.join(header + "_unidecfiles", subheader + "_conf.dat")
                         f = open(configfile, 'r')
                         for line in f:
@@ -1217,7 +1217,7 @@ class DataCollector(wx.Frame):
                 file2 = filename
                 print("Undefined choice for data type", self.datachoice, type(self.datachoice))
             data = np.loadtxt(file2)
-            massgrid = np.fromfile(filename, dtype=float)
+            massgrid = np.fromfile(filename, dtype=self.config.dtype)
             configfile = os.path.join(header + "_unidecfiles", subheader + "_conf.dat")
             f = open(configfile, 'r')
             for line in f:

@@ -397,6 +397,35 @@ class MetaUniDecBase(UniDecPres):
         self.view.SetStatusText("UniDec Done %.2gs" % self.eng.config.runtime, number=5)
         pass
 
+    def on_pick_peaks(self, e=None):
+        """
+        Tested
+        :param e:
+        :return:
+        """
+        self.view.SetStatusText("Picking Peaks...", number=5)
+        self.export_config()
+        self.eng.pick_peaks()
+        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
+        self.view.peakpanel.meta = True
+        self.peak_plots()
+        self.view.SetStatusText("Peak Detection and Extraction Complete", number=5)
+        pass
+
+    def on_pick_scanpeaks(self, e=None):
+        self.view.SetStatusText("Picking Peaks by Scan...", number=5)
+        self.export_config()
+        self.eng.pick_scanpeaks()
+        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
+        self.view.peakpanel.meta = True
+        self.peak_plots()
+        self.view.SetStatusText("ScanPeak Detection and Extraction Complete", number=5)
+
+    def on_filter_peaks_MUD(self, e=None):
+        self.on_filter_peaks(e)
+        self.view.SetStatusText("UniScore: " + str(round(self.eng.pks.uniscore * 100, 2)), number=3)
+        self.peak_plots()
+
     def on_auto(self, e=None):
         """
         Tested
@@ -591,6 +620,10 @@ class MetaUniDecBase(UniDecPres):
         """
         :return:
         """
+        if self.eng.config.rawflag > 1:
+            self.warn("Unable to Animate: Need to turn off Fast Profile or Fast Centroid")
+            return
+
         newgrid = []
         for s in self.eng.data.spectra:
             newgrid.append(s.data2)
@@ -605,6 +638,10 @@ class MetaUniDecBase(UniDecPres):
         :param type:
         :return:
         """
+        if self.eng.config.rawflag > 1:
+            self.warn("Unable to Animate: Need to turn off Fast Profile or Fast Centroid")
+            return
+
         self.eng.sum_masses()
         dlg = miscwindows.SingleInputDialog(self.view)
         dlg.initialize_interface(title="Set Compression", message="Number of x values to compress:", defaultvalue="10")
@@ -949,23 +986,15 @@ class UniDecApp(MetaUniDecBase):
         except Exception as e:
             print(e)
 
-    def on_pick_peaks(self, e=None):
+    def peak_plots(self, e=None):
         """
-        Tested
-        :param e:
-        :return:
+        Called when peaks are picked or changed
         """
-        self.view.SetStatusText("Picking Peaks...", number=5)
-        self.export_config()
-        self.eng.pick_peaks()
-        self.view.peakpanel.add_data(self.eng.pks)
         self.makeplot2_mud()
         self.plot_sums()
         self.makeplot6()
         self.makeplot7()
         self.makeplot8()
-        self.view.SetStatusText("Peak Detection and Extraction Complete", number=5)
-        pass
 
     def on_replot(self, e=None, plotsums=True):
         """
@@ -1080,6 +1109,7 @@ class UniDecApp(MetaUniDecBase):
         """
         paths = FileDialogs.open_multiple_files_dialog(message="Choose ramp data files mzml or Thermo Raw format",
                                                        file_type="All Files|*.*| Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML")
+        print("Paths:", paths)
         if paths is not None:
             dlg = miscwindows.SingleInputDialog(self.view)
             dlg.initialize_interface("Timestep", "Enter ramp timestep to compress in minutes:", defaultvalue=str(1.0))

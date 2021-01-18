@@ -15,17 +15,18 @@
 //#include "UniDec.h"
 //#include "UD_peak_width.h"
 
+void WritePeaks(const Config config, const Decon* decon);
 
 
-void get_fwhms(Config config, const int mlen, const double* massaxis, const double* masssum, const double* peakx, double* fwhmlow, double* fwhmhigh, double* badfwhm)
+void get_fwhms(Config config, const int plen, const int mlen, const float* massaxis, const float* masssum, const float* peakx, float* fwhmlow, float* fwhmhigh, float* badfwhm)
 {
-	for (int i = 0; i < config.plen; i++)
+	for (int i = 0; i < plen; i++)
 	{
-		double peak = peakx[i];
+		float peak = peakx[i];
 		int index = nearfast(massaxis, peak, mlen);
-		double max = masssum[index];
+		float max = masssum[index];
 		
-		double halfmax = max / 2.0;
+		float halfmax = max / 2.0;
 		int lindex = index;
 		int hindex = index;
 		
@@ -38,7 +39,7 @@ void get_fwhms(Config config, const int mlen, const double* massaxis, const doub
 				lfound = 1;
 			}
 			else{
-				double lval = masssum[lindex];
+				float lval = masssum[lindex];
 				if (lval <= halfmax)
 				{
 					lfound = 1;
@@ -55,7 +56,7 @@ void get_fwhms(Config config, const int mlen, const double* massaxis, const doub
 				hfound = 1;
 			}
 			else{
-				double hval = masssum[hindex];
+				float hval = masssum[hindex];
 				if (hval <= halfmax)
 				{
 					hfound = 1;
@@ -64,19 +65,19 @@ void get_fwhms(Config config, const int mlen, const double* massaxis, const doub
 			
 		}
 
-		double mlow = massaxis[lindex];
-		double mhigh = massaxis[hindex];
+		float mlow = massaxis[lindex];
+		float mhigh = massaxis[hindex];
 
 		//Catch peaks that are too assymetric. Fix and flag them.
-		double highdiff = mhigh - peak;
-		double lowdiff = peak - mlow;
-		double fwhm = mhigh - mlow;
+		float highdiff = mhigh - peak;
+		float lowdiff = peak - mlow;
+		float fwhm = mhigh - mlow;
 
-		double threshold = 0.75;
-		double mult = threshold / (1 - threshold);
+		float threshold = 0.75;
+		float mult = threshold / (1 - threshold);
 		if (fwhm != 0) {
-			double rh = highdiff / fwhm;
-			double rl = lowdiff / fwhm;
+			float rh = highdiff / fwhm;
+			float rl = lowdiff / fwhm;
 			if (rh > threshold)
 			{
 				mhigh = peak + lowdiff * mult;
@@ -102,9 +103,9 @@ void get_fwhms(Config config, const int mlen, const double* massaxis, const doub
 }
 
 // To lower duplication, consider calling this in the loop of get_fwhms()?
-double single_fwhm(Config config, const int mlen, const double* massaxis, const double* masssum, const double peak, int index, double max)
+float single_fwhm(Config config, const int mlen, const float* massaxis, const float* masssum, const float peak, int index, float max)
 {
-	double halfmax = max / 2.0;
+	float halfmax = max / 2.0;
 	int lindex = index;
 	int hindex = index;
 
@@ -117,7 +118,7 @@ double single_fwhm(Config config, const int mlen, const double* massaxis, const 
 			lfound = 1;
 		}
 		else {
-			double lval = masssum[lindex];
+			float lval = masssum[lindex];
 			if (lval <= halfmax)
 			{
 				lfound = 1;
@@ -134,7 +135,7 @@ double single_fwhm(Config config, const int mlen, const double* massaxis, const 
 			hfound = 1;
 		}
 		else {
-			double hval = masssum[hindex];
+			float hval = masssum[hindex];
 			if (hval <= halfmax)
 			{
 				hfound = 1;
@@ -143,19 +144,19 @@ double single_fwhm(Config config, const int mlen, const double* massaxis, const 
 
 	}
 
-	double mlow = massaxis[lindex];
-	double mhigh = massaxis[hindex];
+	float mlow = massaxis[lindex];
+	float mhigh = massaxis[hindex];
 
 	//Catch peaks that are too assymetric. Fix and flag them.
-	double highdiff = mhigh - peak;
-	double lowdiff = peak - mlow;
-	double fwhm = mhigh - mlow;
+	float highdiff = mhigh - peak;
+	float lowdiff = peak - mlow;
+	float fwhm = mhigh - mlow;
 
-	double threshold = 0.75;
-	double mult = threshold / (1 - threshold);
+	float threshold = 0.75;
+	float mult = threshold / (1 - threshold);
 	if (fwhm != 0) {
-		double rh = highdiff / fwhm;
-		double rl = lowdiff / fwhm;
+		float rh = highdiff / fwhm;
+		float rl = lowdiff / fwhm;
 		if (rh > threshold)
 		{
 			mhigh = peak + lowdiff * mult;
@@ -175,26 +176,26 @@ double single_fwhm(Config config, const int mlen, const double* massaxis, const 
 	return fwhm;
 }
 
-double uscore(Config config, const double* dataMZ, const double* dataInt, const double* mzgrid, const int* nztab, 
-	const double mlow, const double mhigh, const double peak)
+float uscore(Config config, const float* dataMZ, const float* dataInt, const float* mzgrid, const int* nztab, 
+	const float mlow, const float mhigh, const float peak)
 {
-	double power = 2;
-	//double* errors = NULL;
-	//double* weights = NULL;
-	//errors = calloc(config.numz, sizeof(double));
-	//weights = calloc(config.numz, sizeof(double));
+	float power = 2;
+	//float* errors = NULL;
+	//float* weights = NULL;
+	//errors = calloc(config.numz, sizeof(float));
+	//weights = calloc(config.numz, sizeof(float));
 
-	double numerator = 0;
-	double denominator = 0;
+	float numerator = 0;
+	float denominator = 0;
 
-	double datamin = dataMZ[0];
-	double datamax = dataMZ[config.lengthmz - 1];
+	float datamin = dataMZ[0];
+	float datamax = dataMZ[config.lengthmz - 1];
 	
 	for (int i = 0; i < config.numz; i++)
 	{
-		double z = (double)nztab[i];
-		double lmz = (mlow + z * config.adductmass) / z;
-		double hmz = (mhigh + z * config.adductmass) / z;
+		float z = (float)nztab[i];
+		float lmz = (mlow + z * config.adductmass) / z;
+		float hmz = (mhigh + z * config.adductmass) / z;
 
 		if ( hmz > datamin && lmz < datamax)
 		{
@@ -206,20 +207,21 @@ double uscore(Config config, const double* dataMZ, const double* dataInt, const 
 
 			//printf("%f %f\n", dataMZ[lindex], dataMZ[hindex]);
 
-			double sumdata = 0;
-			double sumerrors = 0;
-			double sumdecon = 0;
+			float sumdata = 0;
+			float sumerrors = 0;
+			float sumdecon = 0;
 
 			for (int j = lindex; j <= hindex; j++)
 			{
-				double data = dataInt[j];
-				double decon = mzgrid[index2D(config.numz, j, i)];
+				float data = dataInt[j];
+				float decon = mzgrid[index2D(config.numz, j, i)];
+				if (config.orbimode == 1) { decon *= z; }
 				sumerrors += fabs(data - decon);
 				sumdata += data;
 				sumdecon += decon;
 			}
 
-			double per = 0;
+			float per = 0;
 			if (sumdata > 0)
 			{
 				per = 1 - (sumerrors / sumdata);
@@ -241,16 +243,16 @@ double uscore(Config config, const double* dataMZ, const double* dataInt, const 
 }
 
 
-double mscore(Config config, const int mlen, const double* massaxis, const double* masssum, const double* massgrid, const double mlow, const double mhigh, const double peak)
+float mscore(Config config, const int mlen, const float* massaxis, const float* masssum, const float* massgrid, const float mlow, const float mhigh, const float peak)
 {
-	double power = 2;
-	double mscore = 0;
+	float power = 2;
+	float mscore = 0;
 
-	double numerator = 0;
-	double denominator = 0;
+	float numerator = 0;
+	float denominator = 0;
 
-	double datamin = massaxis[0];
-	double datamax = massaxis[mlen - 1];
+	float datamin = massaxis[0];
+	float datamax = massaxis[mlen - 1];
 
 	if (mhigh > datamin && mlow < datamax)
 	{
@@ -261,11 +263,11 @@ double mscore(Config config, const int mlen, const double* massaxis, const doubl
 		if (massaxis[hindex] > mhigh) { hindex -= 1; }
 		//printf("%f %f\n", massaxis[lindex], massaxis[hindex]);
 
-		double mmax = 0;
-		double msum = 0;
+		float mmax = 0;
+		float msum = 0;
 		for (int j = lindex; j <= hindex; j++)
 		{
-			double data = masssum[j];
+			float data = masssum[j];
 			if (data > mmax) { mmax = data; }
 			msum += data;
 		}
@@ -273,28 +275,28 @@ double mscore(Config config, const int mlen, const double* massaxis, const doubl
 
 		for (int i = 0; i < config.numz; i++)
 		{
-			double sumdata = 0;
-			double sumerrors = 0;
-			double sumdecon = 0;
+			float sumdata = 0;
+			float sumerrors = 0;
+			float sumdecon = 0;
 			for (int j = lindex; j <= hindex; j++)
 			{
-				double decon = massgrid[index2D(config.numz, j, i)];
+				float decon = massgrid[index2D(config.numz, j, i)];
 				sumdecon += decon;
 			}
 
-			//double sumdecon2 = 0;
+			//float sumdecon2 = 0;
 			if (sumdecon > 0)
 			{
 				for (int j = lindex; j <= hindex; j++)
 				{
-					double data = masssum[j];
-					double decon = massgrid[index2D(config.numz, j, i)] / sumdecon * msum;
+					float data = masssum[j];
+					float decon = massgrid[index2D(config.numz, j, i)] / sumdecon * msum;
 					sumerrors += fabs(data - decon);
 					sumdata += data;
 					//sumdecon2 += decon;
 				}
 
-				double per = 0;
+				float per = 0;
 				if (sumdata > 0)
 				{
 					per = 1 - (sumerrors / sumdata);
@@ -317,15 +319,15 @@ double mscore(Config config, const int mlen, const double* massaxis, const doubl
 }
 
 
-double csscore(Config config, const int mlen, const double* massaxis, const double* masssum, const double* massgrid, const double mlow, const double mhigh, const double peak)
+float csscore(Config config, const int mlen, const float* massaxis, const float* masssum, const float* massgrid, const float mlow, const float mhigh, const float peak)
 {
-	double csscore = 0;
+	float csscore = 0;
 	
-	double* zvals = NULL;
-	zvals = calloc(config.numz, sizeof(double));
+	float* zvals = NULL;
+	zvals = calloc(config.numz, sizeof(float));
 
-	double datamin = massaxis[0];
-	double datamax = massaxis[mlen - 1];
+	float datamin = massaxis[0];
+	float datamax = massaxis[mlen - 1];
 
 	if (mhigh > datamin && mlow < datamax)
 	{
@@ -335,12 +337,12 @@ double csscore(Config config, const int mlen, const double* massaxis, const doub
 		if (massaxis[lindex] < mlow) { lindex += 1; }
 		if (massaxis[hindex] > mhigh) { hindex -= 1; }
 
-		double zmax = 0;
-		double zsum = 0;
+		float zmax = 0;
+		float zsum = 0;
 		int zmaxindex = -1;
 		for (int i = 0; i < config.numz; i++)
 		{
-			double zval = 0;
+			float zval = 0;
 			for (int j = lindex; j <= hindex; j++)
 			{
 				zval += massgrid[index2D(config.numz, j, i)];
@@ -350,13 +352,13 @@ double csscore(Config config, const int mlen, const double* massaxis, const doub
 			if (zval > zmax) { zmax = zval; zmaxindex = i; }
 		}
 
-		double badarea = 0;
+		float badarea = 0;
 		int index = zmaxindex;
-		double lowval = zmax;
+		float lowval = zmax;
 		while (index < config.numz - 1)
 		{
 			index += 1;
-			double v = zvals[index];
+			float v = zvals[index];
 			if (v < lowval)
 			{
 				lowval = v;
@@ -371,7 +373,7 @@ double csscore(Config config, const int mlen, const double* massaxis, const doub
 		while (index > 0)
 		{
 			index -= 1;
-			double v = zvals[index];
+			float v = zvals[index];
 			if (v < lowval)
 			{
 				lowval = v;
@@ -391,71 +393,71 @@ double csscore(Config config, const int mlen, const double* massaxis, const doub
 }
 
 
-double find_minimum(Config config, const int mlen, const double* massaxis, const double* masssum, const double lowpt, const double highpt)
+float find_minimum(Config config, const int mlen, const float* massaxis, const float* masssum, const float lowpt, const float highpt)
 {
 	int lindex = nearfast(massaxis, lowpt, mlen);
 	int hindex = nearfast(massaxis, highpt, mlen);
 
-	double minval = masssum[hindex];
+	float minval = masssum[hindex];
 	for (int i = lindex; i < hindex; i++)
 	{
-		double val = masssum[i];
+		float val = masssum[i];
 		if (val < minval) { minval = val; }
 	}
 	return minval;
 }
 
-double score_minimum(double height, double min)
+float score_minimum(float height, float min)
 {
-	double hh = height / 2;
+	float hh = height / 2;
 	if (min > hh) {
 		return 1 - ((min - hh) / (height - hh));
 	}
 	else { return 1; }
 }
 
-double fscore(Config config, const int mlen, const double* massaxis, const double* masssum, const double *peakx, const double height, 
-	const double mlow, const double mhigh, const double peak, const int badfwhm)
+float fscore(Config config, const int plen, const int mlen, const float* massaxis, const float* masssum, const float *peakx, const float height, 
+	const float mlow, const float mhigh, const float peak, const int badfwhm)
 {
-	double fscore = 1;
+	float fscore = 1;
 
 	//Score down peaks that are highly assymetic.
 	if (badfwhm == 1) {
 		//printf("Badfwhm\n");
-		double highdiff = mhigh - peak;
-		double lowdiff = peak - mlow;
-		double fwhm = mhigh - mlow;
+		float highdiff = mhigh - peak;
+		float lowdiff = peak - mlow;
+		float fwhm = mhigh - mlow;
 		if (lowdiff > highdiff) {
-			double min = find_minimum(config, mlen, massaxis, masssum, mlow - config.massbins, peak);
-			double fsc = score_minimum(height, min);
+			float min = find_minimum(config, mlen, massaxis, masssum, mlow - config.massbins, peak);
+			float fsc = score_minimum(height, min);
 			//printf("Fscore2 %f %f %f\n", fsc, min, height);
 			fscore *= fsc;
 		}
 		else {
-			double min = find_minimum(config, mlen, massaxis, masssum, peak, mhigh + config.massbins);
-			double fsc = score_minimum(height, min);
+			float min = find_minimum(config, mlen, massaxis, masssum, peak, mhigh + config.massbins);
+			float fsc = score_minimum(height, min);
 			//printf("Fscore3 %f %f %f\n", fsc, min, height);
 			fscore *= fsc;
 		}
 	}
 
 	//Test if the peaks are actually separated with at least a half max height
-	for (int i = 0; i < config.plen; i++)
+	for (int i = 0; i < plen; i++)
 	{
-		double peak2 = peakx[i];
+		float peak2 = peakx[i];
 		if (peak != peak2)
 		{
 			if (peak2 < peak && peak2 > mlow)
 			{
-				double min = find_minimum(config, mlen, massaxis, masssum, peak2, peak);
-				double fsc = score_minimum(height, min);
+				float min = find_minimum(config, mlen, massaxis, masssum, peak2, peak);
+				float fsc = score_minimum(height, min);
 				//printf("Fscore4 %f %f %f %f\n", fsc, min, height, peak2);
 				fscore *= fsc;
 			}
 			if (peak2 > peak && peak2 < mhigh)
 			{
-				double min = find_minimum(config, mlen, massaxis, masssum, peak, peak2);
-				double fsc = score_minimum(height, min);
+				float min = find_minimum(config, mlen, massaxis, masssum, peak, peak2);
+				float fsc = score_minimum(height, min);
 				//printf("Fscore5 %f %f %f %f\n", fsc, min, height, peak2);
 				fscore *= fsc;
 			}
@@ -466,52 +468,38 @@ double fscore(Config config, const int mlen, const double* massaxis, const doubl
 }
 
 
-double score(Config config, Decon decon, const double * dataMZ, const double * dataInt, const double *mzgrid, const double *massaxis, const double* masssum, const double *massgrid, const int *nztab, const double threshold)
-{
-	//printf("Starting Score %f %f\n", config.peakwin, config.peakthresh);
-	double xfwhm = 2;
+float score_from_peaks(const int plen, const float *peakx, const float *peaky, float *dscores, const Config config, Decon *decon, const Input inp, const float threshold) {
 
-	double* peakx = NULL;
-	double* peaky = NULL;
-	peakx = calloc(decon.mlen, sizeof(double));
-	peaky = calloc(decon.mlen, sizeof(double));
+	float xfwhm = 2;
+	float* fwhmlow = NULL;
+	float* fwhmhigh = NULL;
+	float* badfwhm = NULL;
+	fwhmlow = calloc(plen, sizeof(float));
+	fwhmhigh = calloc(plen, sizeof(float));
+	badfwhm = calloc(plen, sizeof(float));
 
-	int plen = peak_detect(massaxis, masssum, decon.mlen, config.peakwin, config.peakthresh, peakx, peaky);
-	config.plen = plen;
+	get_fwhms(config, plen, decon->mlen, decon->massaxis, decon->massaxisval, peakx, fwhmlow, fwhmhigh, badfwhm);
 
-	peakx = realloc(peakx, plen * sizeof(double));
-	peaky = realloc(peaky, plen * sizeof(double));
-
-	peak_norm(peaky, plen, config.peaknorm);
-
-	double* fwhmlow = NULL;
-	double* fwhmhigh = NULL;
-	double* badfwhm = NULL;
-	fwhmlow = calloc(plen, sizeof(double));
-	fwhmhigh = calloc(plen, sizeof(double));
-	badfwhm = calloc(plen, sizeof(double));
-
-	get_fwhms(config, decon.mlen, massaxis, masssum, peakx, fwhmlow, fwhmhigh, badfwhm);
-
-	double numerator = 0;
-	double denominator = 0;
-	double uniscore = 0;
+	float numerator = 0;
+	float denominator = 0;
+	float uniscore = 0;
 
 	for (int i = 0; i < plen; i++)
 	{
-		double m = peakx[i];
-		double ival = peaky[i];
-		double l = m - (m-fwhmlow[i])*xfwhm;
-		double h = m + (fwhmhigh[i]-m)*xfwhm;
-		int index = nearfast(massaxis, m, decon.mlen);
-		double height = masssum[index];
-		
-		double usc = uscore(config, dataMZ, dataInt, mzgrid, nztab, l, h, m);
-		double msc = mscore(config, decon.mlen, massaxis, masssum, massgrid, l, h, m);
-		double cssc = csscore(config, decon.mlen, massaxis, masssum, massgrid, l, h, m);
-		double fsc = fscore(config, decon.mlen, massaxis, masssum, peakx, height, fwhmlow[i], fwhmhigh[i], m, badfwhm[i]);
+		float m = peakx[i];
+		float ival = peaky[i];
+		float l = m - (m - fwhmlow[i]) * xfwhm;
+		float h = m + (fwhmhigh[i] - m) * xfwhm;
+		int index = nearfast(decon->massaxis, m, decon->mlen);
+		float height = decon->massaxisval[index];
 
-		double dsc = usc * msc * cssc * fsc;
+		float usc = uscore(config, inp.dataMZ, inp.dataInt, decon->newblur, inp.nztab, l, h, m);
+		float msc = mscore(config, decon->mlen, decon->massaxis, decon->massaxisval, decon->massgrid, l, h, m);
+		float cssc = csscore(config, decon->mlen, decon->massaxis, decon->massaxisval, decon->massgrid, l, h, m);
+		float fsc = fscore(config, plen, decon->mlen, decon->massaxis, decon->massaxisval, peakx, height, fwhmlow[i], fwhmhigh[i], m, badfwhm[i]);
+
+		float dsc = usc * msc * cssc * fsc;
+		dscores[i] = dsc;
 		if (dsc > threshold)
 		{
 			//printf("Peak: Mass:%f Int:%f M:%f U:%f CS:%f F:%f D: %f \n", peakx[i], peaky[i], msc, usc, cssc, fsc, dsc);
@@ -520,10 +508,95 @@ double score(Config config, Decon decon, const double * dataMZ, const double * d
 		}
 	}
 
-	printf("R Squared: %f\n", decon.rsquared);
+	//printf("R Squared: %f\n", decon->rsquared);
 
-	if (denominator != 0) { uniscore = decon.rsquared * numerator / denominator; }
-	
-	printf("Average Peaks Score (UniScore): %f\n", uniscore);
+	if (denominator != 0) { uniscore = decon->rsquared * numerator / denominator; }
 	return uniscore;
 }
+
+float score(Config config, Decon *decon, Input inp, const float threshold)
+{
+	//printf("Starting Score %f %f\n", config.peakwin, config.peakthresh);
+	
+	decon->peakx = calloc(decon->mlen, sizeof(float));
+	decon->peaky = calloc(decon->mlen, sizeof(float));
+	
+	int plen = peak_detect(decon->massaxis, decon->massaxisval, decon->mlen, config.peakwin, config.peakthresh, decon->peakx, decon->peaky);
+	decon->plen = plen;
+
+	decon->peakx = realloc(decon->peakx, plen * sizeof(float));
+	decon->peaky = realloc(decon->peaky, plen * sizeof(float));
+	decon->dscores = calloc(plen, sizeof(float));
+
+	peak_norm(decon->peaky, plen, config.peaknorm);
+
+	float uniscore = score_from_peaks(plen, decon->peakx, decon->peaky, decon->dscores, config, decon, inp, threshold);
+	printf("Average Peaks Score (UniScore): %f\n", uniscore);
+
+	return uniscore;
+}
+
+int ReadDecon(Config* config, const Input inp, Decon* decon) 
+{
+	char outdat[1024];
+	char strval[1024];
+
+	//Import Rsquared
+	decon->rsquared = float_attr(config->file_id, config->dataset, "rsquared", decon->rsquared);
+
+	//Mass Data
+	strjoin(config->dataset, "/mass_data", outdat);
+	//printf("\tReading: %s\n", outdat);
+	decon->mlen = mh5getfilelength(config->file_id, outdat);
+	decon->massaxis = calloc(decon->mlen, sizeof(float));
+	decon->massaxisval = calloc(decon->mlen, sizeof(float));
+	mh5readfile2d(config->file_id, outdat, decon->mlen, decon->massaxis, decon->massaxisval);
+
+	//MZ Grid
+	strjoin(config->dataset, "/mz_grid", outdat);
+	int status = check_group_noexit(config->file_id, outdat);
+	if (status == 0) { return 0; }
+	//printf("\tReading: %s\n", outdat);
+	decon->newblur = calloc(config->lengthmz * config->numz, sizeof(float));
+	mh5readfile1d(config->file_id, outdat, decon->newblur);
+
+	//Mass Grid
+	strjoin(config->dataset, "/mass_grid", outdat);
+	status = check_group_noexit(config->file_id, outdat);
+	if (status == 0) { return 0; }
+	//printf("\tReading: %s\n", outdat);
+	decon->massgrid = calloc(decon->mlen * config->numz, sizeof(float));
+	mh5readfile1d(config->file_id, outdat, decon->massgrid);
+	return 1;
+}
+
+void get_scan_scores(int argc, char* argv[], Config config)
+{
+	config.file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
+	int num = 0;
+	num = int_attr(config.file_id, "/ms_dataset", "num", num);
+
+	for (int i = 0; i < num; i++) {
+		config.metamode = i;
+		
+		Decon decon = SetupDecon();
+		Input inp = SetupInputs();
+		ReadInputs(argc, argv, &config, &inp);
+		int status = ReadDecon(&config, inp, &decon);
+
+		if(status ==1){
+			score(config, &decon, inp, 0);
+			WritePeaks(config, &decon);
+		}
+		else
+		{
+			printf("Missing deconvolution outputs. Turn off Fast Profile/Fast Centroid and try deconvolving again.");
+		}
+
+		FreeDecon(decon);
+		FreeInputs(inp);
+	}
+	H5Fclose(config.file_id);
+}
+
+

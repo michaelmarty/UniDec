@@ -5,6 +5,7 @@ import wx
 from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows, MassDefectExtractor
 import unidec_modules.unidectools as ud
 from unidec_modules.MassFitter import MassFitter
+from unidec_modules.isolated_packages.MD_compare import MassDefectCompareWindow
 import matplotlib.cm as cm
 
 __author__ = 'Michael.Marty'
@@ -98,6 +99,11 @@ class MassDefectWindow(wx.Frame):
                                             "Open Window to Extract Mass Defect Values")
             self.Bind(wx.EVT_MENU, self.on_extract_window, extractwindow)
             filemenu.AppendSeparator()
+
+        comparewindow = filemenu.Append(wx.ID_ANY, "Compare Mass Defect Files",
+                                        "Open Window to Compare Mass Defect 2D files")
+        self.Bind(wx.EVT_MENU, self.on_compare_window, comparewindow)
+        filemenu.AppendSeparator()
 
         menu_save_fig_png = filemenu.Append(wx.ID_ANY, "Save Figures as PNG",
                                             "Save all figures as PNG in central directory")
@@ -345,6 +351,11 @@ class MassDefectWindow(wx.Frame):
         try:
             save_path2d = os.path.join(self.directory, title + spacer + "2D_Mass_Defects.txt")
             np.savetxt(save_path2d, self.data2d)
+
+            if save_path2d != self.config.defectcomparefiles[0]:
+                self.config.defectcomparefiles[1] = self.config.defectcomparefiles[0]
+                self.config.defectcomparefiles[0]= save_path2d
+
             save_path1d = os.path.join(self.directory, title + spacer + "1D_Mass_Defects.txt")
             np.savetxt(save_path1d, self.data1d)
             print('Saved: ', save_path2d, save_path1d)
@@ -417,6 +428,11 @@ class MassDefectWindow(wx.Frame):
             # Save Results
             save_path2d = os.path.join(self.directory, self.outfname + "Total_2D_Mass_Defects.txt")
             np.savetxt(save_path2d, self.data2d)
+
+            if save_path2d != self.config.defectcomparefiles[0]:
+                self.config.defectcomparefiles[1] = self.config.defectcomparefiles[0]
+                self.config.defectcomparefiles[0]= save_path2d
+
             save_path1d = os.path.join(self.directory, self.outfname + "Total_1D_Mass_Defects.txt")
             np.savetxt(save_path1d, self.data1d)
             print('Saved: ', save_path2d, save_path1d)
@@ -522,6 +538,8 @@ class MassDefectWindow(wx.Frame):
         self.config.kendrickmass = self.m0
         frame = MassDefectExtractor.MassDefectExtractorWindow(self, self.dat3, self.data1d[:, 0], self.yvals,
                                                               config=self.config, xtype=self.xtype)
+    def on_compare_window(self, e=None):
+        frame= MassDefectCompareWindow(self, None, config=self.config)
 
     def on_save_fig(self, e):
         """

@@ -11,7 +11,7 @@ import numpy as np
 import os
 from copy import deepcopy
 
-def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags, output, rawsamplename):
+def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags, output, rawsamplename, match, uniscore):
     #rawfilename = config.filename
     #header = config.outfname
 
@@ -23,6 +23,7 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
 
     header = deepcopy(config.outfname)
     header2 = os.path.split(header)[1]
+    header3 = header2.replace('_', '\\_')
 
     error = config.error
     confname = config.confname
@@ -52,7 +53,7 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
     f.write("\\Large\\textbf{" + rawsamplename + " UniDec Deconvolution}\n")
     f.write("\\end{center}\n")
     f.write("\\noindent\n")
-    f.write("\\columnratio{0.7}\n")
+    f.write("\\columnratio{0.72}\n")
     f.write("\\begin{paracol}{2}\n")
     f.write("\\begin{minipage}{5.5in}\n")
 
@@ -60,21 +61,25 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
     output1 = output.replace(';', '}\\\{')
     output2 = output1.replace('; ', '}\\\{')
     output3 = output2.replace('_', '\\_')
-    f.write("\\text{" + output3 + "}\\\\\n")
+    output4 = output3.replace('%', '\%')
+    f.write("\\text{" + output4 + "}\\\\\n")
     
-    f.write("Time Stamp: " + time.strftime("%a, %d %b %Y, %H:%M %Z", time.localtime()) + "\\\\\n")
-    f.write("File Name: " + rawfilename + "\\\\\n")
+    f.write("Date Analyzed: " + time.strftime("%a, %d %b %Y, %H:%M %Z", time.localtime()) + "\\\\\n")
+    f.write("File Name: " + header3 + "\\\\\n")
 
     f.write("\\end{minipage}\n")
     f.write("\\switchcolumn\n")
     f.write("\\begin{minipage}{2in}\n")
     f.write("\\begin{Form}\n")
     f.write("\\text{Quality Check:}\\\\\n")
+    f.write("\\text{ Average Peaks Score: }" + str(round(uniscore,2)) + "\\\\\n")
+    f.write("\\\\\n")
+    f.write("\\text{ Expected Oligomers:}\\\\\n")
     f.write("\\ChoiceMenu[radio,radiosymbol=\ding{110},height=0.125in,bordercolor=white,color=green,backgroundcolor=white,name=quality,charsize=14pt]{\mbox{}}{Passed:=g}\\\\\n")
     f.write("\\ChoiceMenu[radio,radiosymbol=\ding{110},height=0.125in,bordercolor=white,color=yellow,backgroundcolor=white,name=quality,charsize=14pt]{\mbox{}}{Mixed:=y}\\\\\n")
     f.write("\\ChoiceMenu[radio,radiosymbol=\ding{110},height=0.125in,bordercolor=white,color=red,backgroundcolor=white,name=quality,charsize=14pt]{\mbox{}}{Failed:=r}\\\\\n")
     f.write("\\\\\n")
-    f.write("\\CheckBox[name=followup,height=0.125in]{Require follow-up?}\\\\\n")
+    #f.write("\\CheckBox[name=followup,height=0.125in]{Require follow-up?}\\\\\n")
     f.write("\\end{Form}\n")
     f.write("\\end{minipage}\n")
     f.write("\\end{paracol}\n")
@@ -100,20 +105,29 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
         f.write("\\includegraphics[scale=" + str(scale) + "]{{" + header2 + "_Figure" + str(2) + "}.pdf}\\\\\n")
     f.write("\\end{minipage}\n")
     f.write("\\end{paracol}\n")
-
+    #print(match)
+    #print(peaks)
+    #print(uniscore)
+    #print("Error: ", error)
     f.write("\\begin{center}\n")
     f.write("\\begin{table}[ht]\n")
     f.write("\\centering\n")
-    f.write("\\begin{tabular}{c c c c c}\n")
-    f.write("Symbol & Mass (Da) & Intensity\\tablefootnote{Intensity values should not be considered quantitative} & Name/Species/Oligomer & Expected (Da) \\\\\n")
+    f.write("\\begin{tabular}{c c c c c c}\n")
+    f.write("Symbol & Mass (Da) & Intensity\\tablefootnote{Intensity values should not be considered quantitative} & Expected & Difference (Da) & Name/Species/Oligomer \\\\\n")
     f.write("\\hline\n")
     f.write("\\hline\n")
     for i in range(0, len(peaks)):
+        if len(peaks) == len(match):
+            match1 = str(round(float(match[i][1])))
+            error = str(round(float(match[i][2])))
+        else:
+            match1 = "-"
+            error = "-"
         a = 1
         f.write(
             "\\cellcolor[rgb]{" + "%.4f" % color[i][0] * a + "," + "%.4f" % color[i][1] * a + "," + "%.4f" % color[i][
                 2] * a + "}\n")
-        f.write(textdict[labels[i]] + '&$' + str(int(round(peaks[i][0]))) + '$&$' + str(int(round(peaks[i][1]))) + '$&$' + names[i] + '$&' "-" '\\\\\hline\n')
+        f.write(textdict[labels[i]] + '&$' + str(int(round(peaks[i][0]))) + '$&$' + str(int(round(peaks[i][1]))) + '$&$' + match1 + '$&$' + error  + '$&' + names[i] + '\\\\\hline\n')
     f.write("\\hline\n")
     f.write("\\end{tabular}\n")
     f.write("\\end{table}\n")

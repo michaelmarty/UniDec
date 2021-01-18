@@ -2,13 +2,13 @@ imflag 0
 numit 100
 numz 25
 endz 25
-startz 1
+startz 5
 zzsig 1.0
-mzsig 5
+mzsig 10
 psfun 0
 discreteplot 0
 massub 200000
-masslb 100.0
+masslb 20000.0
 msig 1
 molig 749
 massbins 10.0
@@ -23,7 +23,7 @@ peakplotthresh 0.1
 plotsep 0.025
 intthresh 0.0
 aggressive 0
-rawflag 0
+rawflag 1
 adductmass 1.007276467
 nativezub 100.0
 nativezlb -100.0
@@ -34,7 +34,7 @@ noiseflag 0.0
 linflag 0
 cmap nipy_spectral
 peakcmap rainbow
-publicationmode 0
+publicationmode 1
 isotopemode 0
 peaknorm 1
 baselineflag 1.0

@@ -56,7 +56,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.Bind(wx.EVT_BUTTON, self.pres.on_chrom_peaks, self.cpeaksbutton)
         tsizer0.Add(self.cpeaksbutton)
 
-        self.ctlcpeaks_param1 = wx.TextCtrl(self.panel, value="2", size=(50, 20))
+        self.ctlcpeaks_param1 = wx.TextCtrl(self.panel, value=str(self.config.chrom_peak_width), size=(50, 20))
         tsizer0.Add(self.ctlcpeaks_param1, 0, wx.ALIGN_CENTER_VERTICAL)
         tsizer0.Add(wx.StaticText(self.panel, label="min"), 0, wx.ALIGN_CENTER_VERTICAL)
 
@@ -67,11 +67,26 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.Bind(wx.EVT_BUTTON, self.pres.on_timepart, self.timepartbutton)
         tsizer1.Add(self.timepartbutton)
 
-        self.ctlmin = wx.TextCtrl(self.panel, value="2", size=(50, 20))
+        self.ctlmin = wx.TextCtrl(self.panel, value=str(self.config.time_window), size=(50, 20))
         tsizer1.Add(self.ctlmin, 0, wx.ALIGN_CENTER_VERTICAL)
         tsizer1.Add(wx.StaticText(self.panel, label="min"), 0, wx.ALIGN_CENTER_VERTICAL)
 
         self.ctlsizer.Add(tsizer1)
+
+        tsizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        self.swbutton = wx.Button(self.panel, label="Sliding Window Width:")
+        self.Bind(wx.EVT_BUTTON, self.pres.on_sliding_window, self.swbutton)
+        tsizer2.Add(self.swbutton)
+
+        self.ctlswwin = wx.TextCtrl(self.panel, value=str(self.config.sw_time_window), size=(50, 20))
+        tsizer2.Add(self.ctlswwin, 0, wx.ALIGN_CENTER_VERTICAL)
+        tsizer2.Add(wx.StaticText(self.panel, label="Offset:"), 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.ctlswoffset = wx.TextCtrl(self.panel, value=str(int(self.config.sw_scan_offset)), size=(50, 20))
+        tsizer2.Add(self.ctlswoffset, 0, wx.ALIGN_CENTER_VERTICAL)
+        #tsizer2.Add(wx.StaticText(self.panel, label="min. Offset:"), 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.ctlsizer.Add(tsizer2)
 
         self.clear_button = wx.Button(self.panel, label="Clear All Spectra")
         self.Bind(wx.EVT_BUTTON, self.pres.on_clear_spectra, self.clear_button)
@@ -118,14 +133,14 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         sizerplot = wx.GridBagSizer()
 
         figsize = (4.9, 3.5)
-        self.plotc = plot1d.Plot1d(plotwindow, figsize=figsize) # Chromatogram
-        self.plotm = plot1d.Plot1d(plotwindow, figsize=figsize) # Selection from chromatogram
-        self.plot1 = plot1d.Plot1d(plotwindow, smash=1, figsize=figsize) # MUD Plot 1 m/z cascade
-        self.plot2 = plot1d.Plot1d(plotwindow, figsize=figsize) # MUD Deconvolved Data
-        self.plot7 = plot1d.Plot1d(plotwindow, figsize=figsize) # MUD Extraction
-        self.plot2s = plot1d.Plot1d(plotwindow, figsize=figsize) # Selection mass
-        self.plot3 = plot2d.Plot2d(plotwindow, figsize=figsize) # MUD 2D m/z vs. time
-        self.plot5 = plot2d.Plot2d(plotwindow, figsize=figsize) # MUD 2D mass vs. time
+        self.plotc = plot1d.Plot1d(plotwindow, figsize=figsize)  # Chromatogram
+        self.plotm = plot1d.Plot1d(plotwindow, figsize=figsize)  # Selection from chromatogram
+        self.plot1 = plot1d.Plot1d(plotwindow, smash=1, figsize=figsize)  # MUD Plot 1 m/z cascade
+        self.plot2 = plot1d.Plot1d(plotwindow, figsize=figsize)  # MUD Deconvolved Data
+        self.plot7 = plot1d.Plot1d(plotwindow, figsize=figsize)  # MUD Extraction
+        self.plot2s = plot1d.Plot1d(plotwindow, figsize=figsize)  # Selection mass
+        self.plot3 = plot2d.Plot2d(plotwindow, figsize=figsize)  # MUD 2D m/z vs. time
+        self.plot5 = plot2d.Plot2d(plotwindow, figsize=figsize)  # MUD 2D mass vs. time
 
         sizerplot.Add(self.plotc, (0, 0), span=(1, 1), flag=wx.EXPAND)
         sizerplot.Add(self.plotm, (1, 0), span=(1, 1), flag=wx.EXPAND)
@@ -137,6 +152,8 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         sizerplot.Add(self.plot5, (3, 1), span=(1, 1), flag=wx.EXPAND)
 
         self.plots = [self.plotc, self.plotm, self.plot1, self.plot2, self.plot7, self.plot2s, self.plot3, self.plot5]
+        self.plotnames = ["Chrom_TIC", "Chrom_mz_selected", "ChromFigure_mz", "ChromFigure_mass", "ChromFigure_XIC",
+                          "Chrom_mass_selected","Chrom2Dmz", "Chrom2Dmass"]
 
         plotwindow.SetSizerAndFit(sizerplot)
         plotwindow.SetupScrolling()
