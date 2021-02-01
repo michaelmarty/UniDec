@@ -32,6 +32,12 @@ class ChromApp(MetaUniDecBase):
         self.recent_files = self.read_recent()
         self.cleanup_recent_file(self.recent_files)
         self.view.menu.update_recent()
+
+        if self.infile is not None:
+            self.open_file(self.infile)
+            # self.on_dataprep_button(0)
+            # self.on_auto(0)
+
         if False:
             path = "D:\\Data\\ShortCourse\\strepme.RAW"
             # path = "D:\Data\ChromTest\SYJMX160819_04.hdf5"

@@ -3,7 +3,7 @@ from copy import deepcopy
 from unidec_modules import unidectools as ud
 import numpy as np
 
-version = "4.4.0"
+version = "4.4.1"
 
 class UniDecEngine:
     def __init__(self):
@@ -237,13 +237,16 @@ class UniDecEngine:
         for i, m in enumerate(oxmasses):
             low = m + self.config.integratelb
             high = m + self.config.integrateub
-            print("Peak:", m, "Number of Oxidations:", nox[i], "Range:", low, "to", high)
             # area, intdat = ud.integrate(data, low, high) # Peak Area
-            area = ud.localmax(data[:, 1], low, high) # Peak Height
+            area = ud.data_extract(data, m, window=high-low, extract_method=1) # Peak Height
             areas.append(area)
+            print("Peak:", m, "Number of Oxidations:", nox[i], "Range:", low, "to", high, "Local Max:", area)
         areas = np.array(areas)
-        areas /= np.amax(areas)
-        print("Relative Areas:", areas)
+        try:
+            areas /= np.amax(areas)
+        except:
+            pass
+        print("Relative Heights:", areas)
 
         totox = np.sum(nox * areas) / np.sum(areas)
         print("Total Oxidations:", totox)

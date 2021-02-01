@@ -195,6 +195,12 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.4.4.1
+
+Fixed bug with FPOP.
+
+Added a command line warning when data might be approaching the memory limit.
+
 v.4.4.0
 
 **Added Scroll Bar to Controls!** People have been asking for this for a while, and I could never figure out how to get it to work. Finally, I managed to find the answer and added it with some buttons on the bottom to help expand and collapse key parts.

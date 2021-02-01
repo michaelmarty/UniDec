@@ -2106,6 +2106,7 @@ void MakePeakShape2D(int lengthmz,int maxlength,int *starttab,int *endtab,float 
 	  {
 		  int start = starttab[i];
 		  int end = endtab[i];
+		  int t = 0;
 		  for (int j = start; j <= end; j++)
 		  {	
 			  int j2 = fixk(j, lengthmz);

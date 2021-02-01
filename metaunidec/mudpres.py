@@ -819,6 +819,11 @@ class UniDecApp(MetaUniDecBase):
         self.cleanup_recent_file(self.recent_files)
         self.view.menu.update_recent()
 
+        if self.infile is not None:
+            self.open_file(self.infile)
+            # self.on_dataprep_button(0)
+            # self.on_auto(0)
+
     def on_open(self, e):
         """
         Manual Test - Passed

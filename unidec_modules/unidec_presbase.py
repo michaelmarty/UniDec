@@ -8,7 +8,7 @@ import unidec_modules.peakwidthtools as peakwidthtools
 from unidec_modules import ManualSelectionWindow, AutocorrWindow, miscwindows, peakstructure
 import time
 from metaunidec.mudstruct import MetaDataSet
-
+import sys, getopt
 
 class UniDecPres(object):
     """
@@ -22,6 +22,19 @@ class UniDecPres(object):
         self.eng = None
         self.view = None
         self.recent_files = []
+
+        self.infile=None
+        opts = None
+        try:
+            opts, args = getopt.getopt(sys.argv[1:], "ucmf:", ["file=", "unidec", "meta", "chrom"])
+        except getopt.GetoptError as e:
+            print("Error in Argv. Likely unknown option: ", sys.argv, e)
+            print("Known options: -u, -m, -c, -f")
+        if opts is not None:
+            for opt, arg in opts:
+                if opt in ("-f", "--file"):
+                    self.infile = arg
+                    print("Opening File:", self.infile)
         pass
 
     def start(self):

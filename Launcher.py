@@ -16,7 +16,7 @@ from UniChrom2 import ChromApp
 import wx.py as py
 import sys
 import os
-
+import sys
 
 class UniDecLauncher(UniDecPres):
     """
@@ -38,6 +38,18 @@ class UniDecLauncher(UniDecPres):
     def init(self, *args, **kwargs):
         self.view = Lview(self)
         self.view.Bind(wx.EVT_CLOSE, self.on_close)
+
+        if "--meta" in sys.argv[1:] or "-m" in sys.argv[1:]:
+            print("Launching Meta")
+            self.view.button4()
+
+        if "--chrom" in sys.argv[1:] or "-c" in sys.argv[1:]:
+            print("Launching UniChrom")
+            self.view.button8()
+
+        if "--unidec" in sys.argv[1:] or "-u" in sys.argv[1:]:
+            print("Launching UniChrom")
+            self.view.button1()
 
     def on_close(self, e=None):
         self.quit_application()
@@ -162,5 +174,5 @@ class Shell(object):
 if __name__ == '__main__':
     # app2 = Shell()
     multiprocessing.freeze_support()
-    app = UniDecLauncher()
+    app = UniDecLauncher(sys.argv[1:])
     app.start()
