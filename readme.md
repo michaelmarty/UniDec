@@ -197,6 +197,8 @@ The main GUI class is GUniDec.UniDecApp.
 
 v.4.4.1
 
+Added commandline options to the Python code to allow -f "file.txt" to automatically launch the file with the program. Using -u/--unidec, -m/--meta, or -c/--chrom will launch UniDec, MetaUniDec, and UniChrom respectively with the launcher.
+
 Fixed bug with FPOP.
 
 Added a command line warning when data might be approaching the memory limit.
