@@ -58,6 +58,8 @@ class UniDecConfig(object):
         self.chrom_peak_width = 2
         self.sw_time_window = 1
         self.sw_scan_offset = 10
+        self.time_start = ""
+        self.time_end = ""
 
         self.twavedict = {1: "Logarithmic", 2: "Linear", 3: "Power Law"}
         self.backgroundchoices = ["Subtract Minimum", "Subtract Line",
@@ -624,7 +626,8 @@ class UniDecConfig(object):
             "exthresh": self.exthresh,
             "exnorm": self.exnorm, "exnormz": self.exnormz, "metamode": self.metamode,
             "datanorm": self.datanorm, "chrom_time_window": self.time_window, "chrom_peak_width": self.chrom_peak_width,
-            "sw_time_window": self.sw_time_window, "sw_scan_offset": self.sw_scan_offset
+            "sw_time_window": self.sw_time_window, "sw_scan_offset": self.sw_scan_offset, "time_start":self.time_start,
+            "time_end":self.time_end
         }
 
         for key, value in cdict.items():
@@ -758,6 +761,9 @@ class UniDecConfig(object):
         self.chrom_peak_width = self.read_attr(self.chrom_peak_width, "chrom_peak_width", config_group)
         self.sw_time_window = self.read_attr(self.sw_time_window, "sw_time_window", config_group)
         self.sw_scan_offset = self.read_attr(self.sw_scan_offset, "sw_scan_offset", config_group)
+
+        self.time_start = self.read_attr(self.time_start, "time_start", config_group)
+        self.time_end = self.read_attr(self.time_end, "time_end", config_group)
 
         hdf.close()
 

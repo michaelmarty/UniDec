@@ -10,6 +10,7 @@ from unidec_modules.isolated_packages import FileDialogs
 from unidec_modules.ChromEng import ChromEngine, chrom_file_exts
 import GUniDec
 
+
 class ChromApp(MetaUniDecBase):
     def __init__(self, *args, **kwargs):
         """
@@ -29,7 +30,7 @@ class ChromApp(MetaUniDecBase):
         pub.subscribe(self.on_get_mzlimits, 'mzlimits')
         self.outputfile = None
         self.scans = None
-        self.export_fname=None
+        self.export_fname = None
         self.chrommode = True
         self.recent_files = self.read_recent()
         self.cleanup_recent_file(self.recent_files)
@@ -141,13 +142,23 @@ class ChromApp(MetaUniDecBase):
         self.eng.config.chrom_peak_width = float(self.view.ctlcpeaks_param1.GetValue())
         self.eng.config.sw_time_window = float(self.view.ctlswwin.GetValue())
         self.eng.config.sw_scan_offset = float(self.view.ctlswoffset.GetValue())
+        try:
+            self.eng.config.time_start = float(self.view.ctltmin.GetValue())
+        except:
+            self.eng.config.time_start = None
+        try:
+            self.eng.config.time_end = float(self.view.ctltmax.GetValue())
+        except:
+            self.eng.config.time_end = None
         pass
 
     def load_to_gui(self):
         self.view.ctlmin.SetValue(str(self.eng.config.time_window))
         self.view.ctlcpeaks_param1.SetValue(str(self.eng.config.chrom_peak_width))
         self.view.ctlswwin.SetValue(str(self.eng.config.sw_time_window))
-        self.view.ctlswoffset.SetValue(str(self.eng.config.sw_scan_offset))
+        self.view.ctlswoffset.SetValue(str(int(self.eng.config.sw_scan_offset)))
+        self.view.ctltmin.SetValue(str(self.eng.config.time_start))
+        self.view.ctltmax.SetValue(str(self.eng.config.time_end))
         pass
 
     def plot_single_mz(self, e=None):

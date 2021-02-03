@@ -74,18 +74,28 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.ctlsizer.Add(tsizer1)
 
         tsizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        self.swbutton = wx.Button(self.panel, label="Sliding Window Width:")
+        self.swbutton = wx.Button(self.panel, label="Sliding Window (min):")
         self.Bind(wx.EVT_BUTTON, self.pres.on_sliding_window, self.swbutton)
         tsizer2.Add(self.swbutton)
 
         self.ctlswwin = wx.TextCtrl(self.panel, value=str(self.config.sw_time_window), size=(50, 20))
         tsizer2.Add(self.ctlswwin, 0, wx.ALIGN_CENTER_VERTICAL)
-        tsizer2.Add(wx.StaticText(self.panel, label="Offset:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        tsizer2.Add(wx.StaticText(self.panel, label="Offset (#):"), 0, wx.ALIGN_CENTER_VERTICAL)
 
         self.ctlswoffset = wx.TextCtrl(self.panel, value=str(int(self.config.sw_scan_offset)), size=(50, 20))
         tsizer2.Add(self.ctlswoffset, 0, wx.ALIGN_CENTER_VERTICAL)
-        #tsizer2.Add(wx.StaticText(self.panel, label="min. Offset:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        tsizer2.Add(wx.StaticText(self.panel, label="min"), 0, wx.ALIGN_CENTER_VERTICAL)
 
+        self.ctlsizer.Add(tsizer2)
+
+        tsizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        tsizer2.Add(wx.StaticText(self.panel, label="Time Start:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctltmin = wx.TextCtrl(self.panel, value=str(self.config.time_start), size=(50, 20))
+        tsizer2.Add(self.ctltmin, 0, wx.ALIGN_CENTER_VERTICAL)
+        tsizer2.Add(wx.StaticText(self.panel, label="End:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctltmax = wx.TextCtrl(self.panel, value=str(self.config.time_end), size=(50, 20))
+        tsizer2.Add(self.ctltmax, 0, wx.ALIGN_CENTER_VERTICAL)
+        # tsizer2.Add(wx.StaticText(self.panel, label="min. Offset:"), 0, wx.ALIGN_CENTER_VERTICAL)
         self.ctlsizer.Add(tsizer2)
 
         self.clear_button = wx.Button(self.panel, label="Clear All Spectra")
