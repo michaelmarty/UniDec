@@ -62,7 +62,8 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
     output2 = output1.replace('; ', '}\\\{')
     output3 = output2.replace('_', '\\_')
     output4 = output3.replace('%', '\%')
-    f.write("\\text{" + output4 + "}\\\\\n")
+    output5 = output4.replace('#', '\#')
+    f.write("\\text{" + output5 + "}\\\\\n")
     
     f.write("Date Analyzed: " + time.strftime("%a, %d %b %Y, %H:%M %Z", time.localtime()) + "\\\\\n")
     f.write("File Name: " + header3 + "\\\\\n")
@@ -117,6 +118,7 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags,
     f.write("\\hline\n")
     f.write("\\hline\n")
     for i in range(0, len(peaks)):
+        names[i] = names[i].replace('_', '\\_')
         if len(peaks) == len(match):
             match1 = str(round(float(match[i][1])))
             error = str(round(float(match[i][2])))
