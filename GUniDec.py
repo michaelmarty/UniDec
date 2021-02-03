@@ -78,7 +78,7 @@ class UniDecApp(UniDecPres):
             newdir, fname = os.path.split(kwargs["path"])
             self.on_open_file(fname, newdir)
             # self.on_dataprep_button(0)
-            self.on_auto(0)
+            # self.on_auto(0)
 
         if self.infile is not None:
             newdir, fname = os.path.split(self.infile)

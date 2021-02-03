@@ -114,6 +114,10 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.Bind(wx.EVT_BUTTON, self.pres.on_pick_peaks_individual, self.pick_peaks_button_individual)
         self.ctlsizer2.Add(self.pick_peaks_button_individual)
 
+        self.open_ud_button = wx.Button(self.panel, label="Open Selection in UniDec GUI")
+        self.Bind(wx.EVT_BUTTON, self.pres.on_open_ud, self.open_ud_button)
+        self.ctlsizer2.Add(self.open_ud_button)
+
         label = wx.StaticText(self.panel, label="Peaks for Manual Selection", size=(300, 30))
         label.SetFont(labelfont)
         self.ctlsizer2.Add(label, 0)

@@ -8,7 +8,7 @@ import multiprocessing
 from unidec_modules.gui_elements.ChromWindow import ChromWindow
 from unidec_modules.isolated_packages import FileDialogs
 from unidec_modules.ChromEng import ChromEngine, chrom_file_exts
-
+import GUniDec
 
 class ChromApp(MetaUniDecBase):
     def __init__(self, *args, **kwargs):
@@ -29,6 +29,8 @@ class ChromApp(MetaUniDecBase):
         pub.subscribe(self.on_get_mzlimits, 'mzlimits')
         self.outputfile = None
         self.scans = None
+        self.export_fname=None
+        self.chrommode = True
         self.recent_files = self.read_recent()
         self.cleanup_recent_file(self.recent_files)
         self.view.menu.update_recent()
@@ -179,12 +181,15 @@ class ChromApp(MetaUniDecBase):
                 print("Error Plotting Scans")
         return self.eng.mzdata
 
-    def on_unidec_run(self, e=None):
+    def export_selection(self, e=None):
         self.export_config()
-        fname = os.path.splitext(self.eng.filename)[0]+"_selection.txt"
-        self.eng.unidec_eng.pass_data_in(self.eng.mzdata, dirname=self.eng.config.udir, fname=fname)
+        self.export_fname = os.path.splitext(self.eng.filename)[0] + "_selection.txt"
+        self.eng.unidec_eng.pass_data_in(self.eng.mzdata, dirname=self.eng.config.udir, fname=self.export_fname)
         self.eng.config.config_export(self.eng.unidec_eng.config.confname)
         self.eng.unidec_eng.config.config_import(self.eng.unidec_eng.config.confname)
+
+    def on_unidec_run(self, e=None):
+        self.export_selection()
         self.eng.unidec_eng.process_data()
         self.eng.unidec_eng.run_unidec(efficiency=True)
 
@@ -204,6 +209,23 @@ class ChromApp(MetaUniDecBase):
         self.plot_single_pks()
         self.view.singlepeakpanel.add_data(self.eng.unidec_eng.pks)
         pass
+
+    def on_open_ud(self, e=None):
+        self.export_selection()
+        if self.export_fname is not None:
+            path = os.path.join(self.eng.config.udir, self.export_fname)
+            print("Launching UniDec:")
+            app = GUniDec.UniDecApp(path=path)
+            app.start()
+
+    def make_selection(self, index=0):
+        print("Selection Index is now:", index)
+        sstart = self.eng.data.spectra[index].attrs["scanstart"]
+        send = self.eng.data.spectra[index].attrs["scanend"]
+        tstart = self.eng.data.spectra[index].attrs["timestart"]
+        tend = self.eng.data.spectra[index].attrs["timeend"]
+        print(sstart, send, tstart, tend)
+        self.on_selection(tstart, tend)
 
     def peak_plots(self, e=None):
         self.makeplot2_mud()

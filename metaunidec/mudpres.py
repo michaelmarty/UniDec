@@ -271,6 +271,7 @@ class MetaUniDecBase(UniDecPres):
         print("Top index is now:", index)
         self.eng.data.data2 = self.eng.data.spectra[index].data2
 
+
     def on_ignore(self, indexes):
         """
         Partly tested - Passed
@@ -781,7 +782,7 @@ class UniDecApp(MetaUniDecBase):
         """
         MetaUniDecBase.__init__(self, *args, **kwargs)
         self.init(*args, **kwargs)
-
+        self.chrommode = False
         # self.on_open(0)
         try:
             if False:
