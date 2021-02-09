@@ -205,6 +205,8 @@ Added commandline options to the Python code to allow -f "file.txt" to automatic
 
 Fixed bug with FPOP.
 
+Fixed bug with charge extraction in C code.
+
 Added a command line warning when data might be approaching the memory limit.
 
 v.4.4.0

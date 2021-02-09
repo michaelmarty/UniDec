@@ -168,7 +168,10 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 	int plen = mh5getfilelength(file_id, poutdat);
 	float *peakx = NULL;
 	peakx = calloc(plen, sizeof(float));
-	mh5readfile1d(file_id, poutdat, peakx);
+
+	mh5readfile2dcolumn(file_id, poutdat, peakx, 0);
+
+	//mh5readfile1d(file_id, poutdat, peakx);
 	
 	int num = 0;
 	num = int_attr(file_id, "/ms_dataset", "num", num);
