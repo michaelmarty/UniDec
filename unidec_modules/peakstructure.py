@@ -71,6 +71,8 @@ class Peak:
         self.zdist = None
         self.estimatedarea = 0
         self.index = 0
+        self.sdnum = 0
+        self.sdval = 0
 
     def line_out(self, type="Full"):
         if type == "Full":

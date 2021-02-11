@@ -2720,9 +2720,11 @@ def peaks_error_mean(pks, data, ztab, massdat, config):
     pass
 
 
-def subtract_and_divide(pks, basemass, refguess):
+def subtract_and_divide(pks, basemass, refguess, outputall=False):
     avgmass = []
     ints = []
+    nums = []
+    masses = []
     for p in pks.peaks:
         if p.ignore == 0:
             mass = p.mass - basemass
@@ -2731,8 +2733,15 @@ def subtract_and_divide(pks, basemass, refguess):
                 avg = mass / num
                 avgmass.append(avg)
                 ints.append(p.height)
+                nums.append(num)
+                masses.append(p.mass)
+                p.sdnum = num
+                p.sdval = avg
 
-    return np.average(avgmass, weights=ints)
+    if outputall:
+        return np.average(avgmass, weights=ints), avgmass, ints, nums, masses
+    else:
+        return np.average(avgmass, weights=ints)
 
 
 if __name__ == "__main__":

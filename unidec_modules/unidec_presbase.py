@@ -5,7 +5,7 @@ import os
 import numpy as np
 import unidec_modules.unidectools as ud
 import unidec_modules.peakwidthtools as peakwidthtools
-from unidec_modules import ManualSelectionWindow, AutocorrWindow, miscwindows, peakstructure
+from unidec_modules import ManualSelectionWindow, AutocorrWindow, miscwindows, peakstructure, SubDiv
 import time
 from metaunidec.mudstruct import MetaDataSet
 import sys, getopt
@@ -553,6 +553,9 @@ class UniDecPres(object):
             message = "Average Mass: " + outstring
             self.copy_to_clipboard(outstring)
             self.warn(message, caption="Subtract and Divide Results")
+
+    def sub_div_window(self, e=None):
+        sd = SubDiv.SubDivFrame(self.view, self.eng.data.massdat, self.eng.pks, self.eng.config)
 
     def copy_to_clipboard(self, outstring):
         # Create text data object
