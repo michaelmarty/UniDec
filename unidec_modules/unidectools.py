@@ -218,9 +218,11 @@ def decimal_formatter(a, template):
         label = "%g" % round(a, -dec2)
     return label
 
+
 def round_to_nearest(n, m):
     r = n % m
     return n + m - r if r + r >= m else n - r
+
 
 def fix_textpos(pos, maxval):
     cutoff = 0.05 * maxval
@@ -1431,10 +1433,12 @@ def removeduplicates(datatop):
     :param datatop: Data array (N x 2)
     :return: Data with unique x values
     """
-    testunique = np.unique(datatop[:, 0])
-    if len(testunique) != len(datatop):
+    config = unidecstructure.UniDecConfig()
+    floatdata = np.array(datatop[:, 0], dtype=config.dtype)
+    testunique = np.unique(floatdata)
+    if len(testunique) != len(floatdata):
         print("Removing Duplicates")
-        num, start = np.histogram(datatop[:, 0], bins=testunique)
+        num, start = np.histogram(floatdata, bins=testunique)
         means = []
         xvals = []
         index = 0
@@ -1528,9 +1532,6 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
     if smooth > 0:
         data2 = gsmooth(data2, smooth)
 
-    # Remove Duplicate Data Points
-    data2 = removeduplicates(data2)
-
     # Linearize Data
     if binsize > 0:
         if linflag != 2:
@@ -1599,6 +1600,12 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
         except:
             pass
         pass
+
+    # Remove Duplicate Data Points
+    data2 = removeduplicates(data2)
+
+    index = nearest(data2[:, 0], 5983)
+    print(data2[index:index + 10])
 
     return data2
 

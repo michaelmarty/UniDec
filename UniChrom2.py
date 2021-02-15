@@ -24,6 +24,7 @@ class ChromApp(MetaUniDecBase):
 
     def init(self, *args, **kwargs):
         self.eng = ChromEngine()
+        self.eng.config.datanorm=0
         self.view = ChromWindow(self, "UniChrom", self.eng.config)
         self.import_config()
 

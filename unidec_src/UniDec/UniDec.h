@@ -3436,7 +3436,7 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 	//Test to make sure no two data points has the same x value
 	for (int i = 0; i < config->lengthmz - 1; i++)
 	{
-		if (inp->dataMZ[i] == inp->dataMZ[i + 1]) { printf("Error: Two data points are identical"); exit(104); }
+		if (inp->dataMZ[i] == inp->dataMZ[i + 1]) { printf("Error: Two data points are identical: %f %f \n\n", inp->dataMZ[i], inp->dataMZ[i+1]); exit(104); }
 	}
 
 }
