@@ -30,7 +30,11 @@ class WizardGrid(wx.grid.Grid):
                             2 :  ['Filename',
                                   #'Sample','Description',
                                   'Collision Voltage', 'm/z Start', 'm/z End', 'm/z Bin Size','Function',
-                                  'Scan Start', 'Scan End', 'Full Path','','','','','']
+                                  'Scan Start', 'Scan End', 'Full Path','','','','',''],
+                            3: ['Filename',
+                                # 'Sample','Description',
+                                'Collision Voltage', 'm/z Start', 'm/z End', 'm/z Bin Size', 'Function',
+                                'Time Start', 'Time End', 'Full Path', '', '', '', '', '']
                           }
         self.col_conv = { 'linear' : { tt.FILE_NAME: 0,
                                        #tt.SAMPLE: 1,
@@ -74,7 +78,19 @@ class WizardGrid(wx.grid.Grid):
                                        tt.FUNCTION: 5,
                                        tt.SCAN_START: 6,
                                        tt.SCAN_END: 7,
-                                       tt.FILE_PATH: 8}}
+                                       tt.FILE_PATH: 8},
+                          'ms times': {tt.FILE_NAME: 0,
+                                 # tt.SAMPLE: 1,
+                                 # tt.DESCRIPTION: 2,
+                                 tt.COLLISION_V: 1,
+                                 tt.START: 2,
+                                 tt.END: 3,
+                                 tt.BIN: 4,
+                                 tt.FUNCTION: 5,
+                                 tt.TIME_START: 6,
+                                 tt.TIME_END: 7,
+                                 tt.FILE_PATH: 8}
+                          }
 
         self.set_labels(labels)
         self.AutoSizeColumns()
@@ -158,6 +174,8 @@ class WizardGrid(wx.grid.Grid):
                 conv = self.col_conv['linear']
             elif out[tt.TYPE].lower() == 'ms':
                 conv = self.col_conv['ms']
+            elif out[tt.TYPE].lower() == 'ms times':
+                conv = self.col_conv['ms times']
             else:
                 conv = self.col_conv['t-wave']
             for key in conv:

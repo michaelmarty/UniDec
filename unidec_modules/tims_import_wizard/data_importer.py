@@ -12,6 +12,7 @@ from pubsub import pub
 
 from unidec_modules.tims_import_wizard import TagTypes as tt
 from unidec_modules.tims_import_wizard import get_data_wrapper
+
 try:
     from unidec_modules.waters_importer.WatersImporter import WatersDataImporter as WDI
 except Exception as e:
@@ -43,7 +44,9 @@ def auto_from_wizard(lines, exedir):
             'EDC': tt.EDC,
             'Function': tt.FUNCTION,
             'Scan Start': tt.SCAN_START,
-            'Scan End': tt.SCAN_END}
+            'Scan End': tt.SCAN_END,
+            'Time Start': tt.TIME_START,
+            'Time End': tt.TIME_END}
 
     # Make empty job_list
     job_list = []
@@ -84,6 +87,8 @@ def auto_from_wizard(lines, exedir):
                 parse[tt.DRIFT_V] = None
             elif mode.lower() == "ms":
                 pass
+            elif mode.lower() == "ms times":
+                pass
             else:  # t-wave
                 parse[tt.TCAL1] = None
                 parse[tt.TCAL2] = None
@@ -116,7 +121,7 @@ def auto_from_wizard(lines, exedir):
                     parse[tt.EDC] = float(parse[tt.EDC])
 
             # alter atom from string to integar
-            if not mode.lower() == "ms":
+            if not mode.lower() == "ms" and not mode.lower() == "ms times":
                 atoms = {'He': 4, 'N2': 28}
                 parse[tt.ATOM] = atoms[parse[tt.ATOM]]
 
@@ -151,7 +156,7 @@ def run_get_data(job_kwargs):
     if int(job_kwargs[tt.FUNCTION]) != 1:
         job_kwargs[tt.FILE_NAME] = job_kwargs[tt.FILE_NAME] + '_%02d' % int(job_kwargs[tt.FUNCTION])
         # print job_kwargs[tt.FILE_NAME]
-    if job_kwargs[tt.TYPE].lower() != 'ms':
+    if job_kwargs[tt.TYPE].lower() != 'ms' and job_kwargs[tt.TYPE].lower() != 'ms times':
         A, B, X, Y, C = get_data_wrapper.new_get_data(start,
                                                       end,
                                                       job_kwargs[tt.BIN],
@@ -176,13 +181,32 @@ def run_get_data(job_kwargs):
 
         MakeUniDecConfig(job_kwargs)
     else:
-        get_data_wrapper.new_get_data_MS(start,
-                                         end,
-                                         job_kwargs[tt.BIN],
-                                         job_kwargs[tt.FILE_PATH],
-                                         job_kwargs[tt.FUNCTION],
-                                         scan_start,
-                                         scan_end)
+        if job_kwargs[tt.TYPE].lower() == 'ms':
+            get_data_wrapper.new_get_data_MS(start,
+                                             end,
+                                             job_kwargs[tt.BIN],
+                                             job_kwargs[tt.FILE_PATH],
+                                             job_kwargs[tt.FUNCTION],
+                                             scan_start,
+                                             scan_end)
+        elif job_kwargs[tt.TYPE].lower() == 'ms times':
+            try:
+                time_start = float(job_kwargs[tt.TIME_START])
+            except (ValueError, KeyError, AttributeError, TypeError):
+                time_start = 0
+
+            try:
+                time_end = float(job_kwargs[tt.TIME_END])
+            except (ValueError, KeyError, AttributeError, TypeError):
+                time_end = None
+
+            get_data_wrapper.new_get_data_MS(start,
+                                             end,
+                                             job_kwargs[tt.BIN],
+                                             job_kwargs[tt.FILE_PATH],
+                                             job_kwargs[tt.FUNCTION],
+                                             time_start=time_start,
+                                             time_end=time_end)
         # job_kwargs['1D'] = (A, B)
 
 
@@ -343,13 +367,15 @@ def parse_file(file_path, exp_type='linear', collision=None, debug=False, dir=No
                tt.COLLISION_V: None,
                tt.START: None,
                tt.END: None,
-               tt.BIN: "1",
+               tt.BIN: "0",
                tt.TYPE: exp_type,
                # tt.DESCRIPTION: None,
                # tt.SAMPLE: None,
                tt.FUNCTION: '1',
                tt.SCAN_START: None,
-               tt.SCAN_END: None}
+               tt.SCAN_END: None,
+               tt.TIME_START: None,
+               tt.TIME_END: None}
 
         # only for t-wave
         if out[tt.TYPE] == 't-wave':
@@ -412,7 +438,7 @@ def parse_file(file_path, exp_type='linear', collision=None, debug=False, dir=No
 
             out[tt.DRIFT_V] = search_extern(file_path, 'Transfer Collision Energy')
 
-        if out[tt.TYPE] != 'ms':
+        if out[tt.TYPE] != 'ms' and out[tt.TYPE] != 'ms times':
             # try to grab the pusher frequency from the stat code
             # pusher = get_stat_code(file_path, 76, dir=exedir)
             pusher = get_stat_name(file_path, "Transport RF")

@@ -1,6 +1,8 @@
 UniDec: Universal Deconvolution of Mass and Ion Mobility Spectra 
 =================================================================
 
+UniDec's Mission: Making it easier to do more with your data.
+
 UniDec is a Bayesian deconvolution program for deconvolution of mass spectra and ion mobility-mass spectra.
 
 It was originally published in: [M. T. Marty, A. J. Baldwin, E. G. Marklund, G. K. A. Hochberg, J. L. P. Benesch, C. V. Robinson, Anal. Chem. 2015, 87, 4370-4376.](http://pubs.acs.org/doi/abs/10.1021/acs.analchem.5b00140)
@@ -205,9 +207,7 @@ Added Subtract and Divide window to help visualize average monomer masses.
 
 Added commandline options to the Python code to allow -f "file.txt" to automatically launch the file with the program. Using -u/--unidec, -m/--meta, or -c/--chrom will launch UniDec, MetaUniDec, and UniChrom respectively with the launcher.
 
-Fixed bug with FPOP.
-
-Fixed bug with charge extraction in C code.
+Fixed bug with FPOP. Fixed bug with charge extraction in C code. Fixed bug with single scan Thermo files. Fixed bug with remove duplicates. 
 
 Added a command line warning when data might be approaching the memory limit.
 

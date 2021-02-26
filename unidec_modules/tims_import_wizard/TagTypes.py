@@ -26,8 +26,10 @@ PUSHER = 'pusher'
 FUNCTION = 'function'
 SCAN_START = 'scan_start'
 SCAN_END = 'scan_end'
-TCAL1="tcal1"
-TCAL2="tcal2"
+TIME_START = 'time_start'
+TIME_END = 'time_end'
+TCAL1 = "tcal1"
+TCAL2 = "tcal2"
 
 tag_type_formatting = {SAMPLE: 'Sample',
                        DESCRIPTION: 'Description',
@@ -52,8 +54,10 @@ tag_type_formatting = {SAMPLE: 'Sample',
                        FUNCTION: 'Function',
                        SCAN_START: 'Scan Start',
                        SCAN_END: 'Scan End',
-                       TCAL1:"Calibration 1",
-                       TCAL2:"Calibration 2"
+                       TIME_START: 'Time Start',
+                       TIME_END: 'Time End',
+                       TCAL1: "Calibration 1",
+                       TCAL2: "Calibration 2"
                        }
 
 

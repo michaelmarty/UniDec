@@ -105,7 +105,7 @@ class WatersDataImporter:
 
         mzs, ivals = self.readerMS.CombineScan(self.function, np.arange(scan_range[0], scan_range[1]))
         data = np.transpose([mzs, ivals])
-        if mzbins is None or mzbins == 0:
+        if mzbins is None or float(mzbins) == 0:
             return data
         else:
             data = merge_spectra([data], mzbins=mzbins, type="Integrate")

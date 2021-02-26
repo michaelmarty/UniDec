@@ -180,6 +180,7 @@ class ChromEngine(MetaUniDec):
         times = np.arange(0, np.amax(self.ticdat[:, 0]), self.config.time_window)
 
         if self.config.time_start is not None and self.config.time_end is not None:
+            times = np.arange(self.config.time_start, np.amax(self.ticdat[:, 0]), self.config.time_window)
             boo1 = times >= self.config.time_start
             boo2 = times <= self.config.time_end
             boo3 = np.logical_and(boo1, boo2)

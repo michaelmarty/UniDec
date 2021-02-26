@@ -39,7 +39,7 @@ class ImportWizard(wx.Frame):
         # Mode which to import
         self.rb = wx.RadioBox(panel, wx.ID_ANY, "Type of Drift Cell",
                               wx.DefaultPosition, wx.DefaultSize,
-                              ['Linear', 'T-wave', 'MS Only'], 2)
+                              ['Linear', 'T-wave', 'MS Only (Scans)', 'MS Only (Times)'], 3)
         defaultselection = 2
         self.rb.SetSelection(defaultselection)
         self.rb.SetToolTip(wx.ToolTip("Select type of drift cell in your ion mobility mass spectrometer"))
@@ -126,6 +126,8 @@ class ImportWizard(wx.Frame):
                 exp_type = 'linear'
             elif sel == 2:
                 exp_type = "ms"
+            elif sel == 3:
+                exp_type = "ms times"
             else:
                 exp_type = 't-wave'
 
@@ -143,6 +145,8 @@ class ImportWizard(wx.Frame):
             import_data.append("ionMS import wizard,T-wave,")
         elif self.rb.GetSelection() == 2:
             import_data.append("ionMS import wizard,MS,")
+        elif self.rb.GetSelection() == 3:
+            import_data.append("ionMS import wizard,MS times,")
         else:
             print("No valid drift tube selected")
 
@@ -219,6 +223,8 @@ class ImportWizard(wx.Frame):
                 f.writelines('ionMS import wizard,Linear,\n')
             elif self.rb.GetSelection() == 2:
                 f.writelines("ionMS import wizard,MS,\n")
+            elif self.rb.GetSelection() == 3:
+                f.writelines("ionMS import wizard,MS Times,\n")
             else:
                 f.writelines('ionMS import wizard,T-wave,\n')
 
