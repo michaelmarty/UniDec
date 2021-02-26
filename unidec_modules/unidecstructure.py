@@ -312,6 +312,9 @@ class UniDecConfig(object):
         f.write("filterwidth " + str(self.filterwidth) + "\n")
         f.write("zerolog " + str(self.zerolog) + "\n")
 
+        f.write("doubledec " + str(int(self.doubledec)) + "\n")
+        f.write("kernel " + str(self.kernel) + "\n")
+
         if self.mindt != '' or self.maxdt != '':
             f.write("zout " + str(self.zout) + "\n")
             f.write("pusher " + str(self.pusher) + "\n")

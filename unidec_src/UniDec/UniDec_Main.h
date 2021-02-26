@@ -709,6 +709,12 @@ int run_unidec(int argc, char *argv[], Config config) {
 		//Run the main Deconvolution		
 		decon = MainDeconvolution(config, inp, 0); }
 
+	// Run DoubleDec if it's checked
+	if (config.doubledec) { // Use Python to confirm kernel file is selected
+		printf("Running DoubleDec now\n");
+		DoubleDecon(&config, &decon);
+	}
+
 	//................................................................
 	//
 	//  Wrapping up
