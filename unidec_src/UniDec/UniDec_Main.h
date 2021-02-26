@@ -21,7 +21,7 @@
 #include "UD_score.h"
 
 
-Decon MainDeconvolution(const Config config, const Input inp, const int silent)
+Decon MainDeconvolution(const Config config, const Input inp, const int silent, const int verbose)
 {
 	Decon decon = SetupDecon();
 	char* barr = NULL;
@@ -65,21 +65,28 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 		//Changes dimensions of the peak shape function. 1D for speedy and 2D otherwise
 		int pslen = config.lengthmz;
 		if (config.speedyflag == 0) { pslen = config.lengthmz * maxlength; }
-		mzdist = calloc(pslen, sizeof(float));
-		rmzdist = calloc(pslen, sizeof(float));
-		memset(mzdist, 0, pslen * sizeof(float));
-		memset(rmzdist, 0, pslen * sizeof(float));
-
+		if (verbose == 1) { printf("Maxlength: %d \t Total Size: %zu GB\n", maxlength, pslen*sizeof(float)/1000000000); }
+		mzdist = calloc(pslen, sizeof(float)); //malloc(sizeof(float) * pslen); //
+		//if (verbose == 1) { printf("mzdist: %p %p\n", mzdist, NULL); }
+		//memset(mzdist, 0, pslen * sizeof(float));
+		if (verbose == 1) { printf("mzdist: %p\n", mzdist); }
+		if (pslen * sizeof(float) / 1000000000 > 4) { printf("Danger: Your data may crash the memory. Consider setting the Peak FWHM to 0.\n"); }
 		int makereverse = 0;
-		if (config.mzsig < 0 || config.beta < 0) { makereverse = 1; }
+		if (config.mzsig < 0 || config.beta < 0) { makereverse = 1; rmzdist = calloc(pslen, sizeof(float));
+		//memset(rmzdist, 0, pslen * sizeof(float));
+		}
+		else { rmzdist = calloc(0, sizeof(float)); }
 
 		//Calculates the distance between mz values as a 2D or 3D matrix
+
 		if (config.speedyflag == 0)
 		{
+			if (verbose == 1) { printf("Making Peak Shape 2D\n"); }
 			MakePeakShape2D(config.lengthmz, maxlength, starttab, endtab, inp.dataMZ, fabs(config.mzsig) * config.peakshapeinflate, config.psfun, config.speedyflag, mzdist, rmzdist, makereverse);
 		}
 		else
 		{
+			if (verbose == 1) { printf("Making Peak Shape 1D\n"); }
 			//Calculates peak shape as a 1D list centered at the first element for circular convolutions
 			MakePeakShape1D(inp.dataMZ, threshold, config.lengthmz, config.speedyflag, fabs(config.mzsig) * config.peakshapeinflate, config.psfun, mzdist, rmzdist, makereverse);
 		}
@@ -561,7 +568,7 @@ void RunAutotune(Config *config, Input *inp, Decon *decon) {
 
 	int start_numit = config->numit;
 	config->numit = 10;
-	*decon = MainDeconvolution(*config, *inp, 1);
+	*decon = MainDeconvolution(*config, *inp, 1, 0);
 	float bestscore = decon->uniscore;
 
 	float start_mzsig = config->mzsig;
@@ -596,7 +603,7 @@ void RunAutotune(Config *config, Input *inp, Decon *decon) {
 					config->beta = betas[k];
 					config->psig = psigs[h];
 
-					*decon = MainDeconvolution(*config, *inp, 1);
+					*decon = MainDeconvolution(*config, *inp, 1, 0);
 					float newscore = decon->uniscore;
 					if (newscore > bestscore) {
 						start_mzsig = config->mzsig;
@@ -618,7 +625,7 @@ void RunAutotune(Config *config, Input *inp, Decon *decon) {
 	config->peakthresh = start_peakthresh;
 	config->peakwin = start_peakwindow;
 	printf("Best mzsig: %f zsig: %f beta: %f psig: %f Score:%f\n", start_mzsig, start_zsig, start_beta, start_psig, bestscore);
-	*decon = MainDeconvolution(*config, *inp, 0);
+	*decon = MainDeconvolution(*config, *inp, 0, 0);
 }
 
 int run_unidec(int argc, char *argv[], Config config) {
@@ -629,6 +636,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 	Input inp = SetupInputs();
 
 	bool autotune = 0;
+	int verbose = 0;
 	if (argc>2)
 	{
 		if (strcmp(argv[2], "-test") == 0)
@@ -640,6 +648,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 		}
 
 		if (strcmp(argv[2], "-autotune") == 0){autotune = 1;}
+		if (strcmp(argv[2], "-verbose") == 0) { verbose = 1; }
 	}
 
 	//..................................
@@ -653,7 +662,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 		ReadInputs(argc, argv, &config, &inp);
 	}
 	else{ exit(88); }
-
+	if (verbose == 1) { printf("Read Inputs\n"); }
 
 	//.............................................................
 	//
@@ -671,26 +680,31 @@ int run_unidec(int argc, char *argv[], Config config) {
 			inp.mtab[index2D(config.numz, i, j)] = (inp.dataMZ[i] * inp.nztab[j] - config.adductmass*inp.nztab[j]);
 		}
 	}
+	if (verbose == 1) { printf("Setup Masses\n"); }
 
 	//Allocates the memory for the boolean array of whether to test a value
 	inp.barr = calloc(config.lengthmz * config.numz, sizeof(char));
 	//Tells the algorithm to ignore data that are equal to zero
 	ignorezeros(inp.barr, inp.dataInt, config.lengthmz, config.numz);
+	if (verbose == 1) { printf("Ignored Zeros\n"); }
 
 	//Sets limits based on mass range and any test masses
 	SetLimits(config, &inp);
+	if (verbose == 1) { printf("Set limits\n"); }
 
 	//Manual Assignments
 	if (config.manualflag == 1)
 	{
 		ManualAssign(inp.dataMZ, inp.barr, inp.nztab, config);
 	}
+	if (verbose == 1) { printf("Setup Manual Assign\n"); }
 
 	//Setup Isotope Distributions
 	if (config.isotopemode > 0)
 	{
 		setup_and_make_isotopes(&config, &inp);
 	}
+	if (verbose == 1) { printf("Setup Isotopes\n"); }
 
 	//................................................................
 	//
@@ -707,7 +721,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 	}
 	else{ 
 		//Run the main Deconvolution		
-		decon = MainDeconvolution(config, inp, 0); }
+		decon = MainDeconvolution(config, inp, 0, verbose); }
 
 	// Run DoubleDec if it's checked
 	if (config.doubledec) { // Use Python to confirm kernel file is selected

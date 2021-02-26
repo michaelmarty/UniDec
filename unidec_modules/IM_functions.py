@@ -37,7 +37,7 @@ def min_array(igrid, xwidth, ywidth):
         for j in range(0, shape[1]):
             ystart = max([0, j - abs(ywidth)])
             yend = min([shape[1], j + abs(ywidth) + 1])
-            mins[i, j] = np.amin(igrid[xstart:xend, ystart:yend])
+            mins[i, j] = np.amin(igrid[int(xstart):int(xend), int(ystart):int(yend)])
     return mins
 
 

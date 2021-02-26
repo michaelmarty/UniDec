@@ -11,12 +11,12 @@ def get_raw_metadata(path):
     print(header1)
     study1 = rawfile.GetSeqRowUserText(index=0)
     print(study1)
-# "Client" - collaborator's name, PI - contact.
+# "Client" - collaborator's name, PI - contact name.
     header2 = rawfile.GetSeqRowUserLabel(index=1)
     print(header2)
     client2 = rawfile.GetSeqRowUserText(index=1)
     print(client2)
-# "Laboratory" - collaborator PI's name - contact name
+# "Laboratory" - Our PI's name - analyst's name
     header3 = rawfile.GetSeqRowUserLabel(index=2)
     print(header3)
     lab3 = rawfile.GetSeqRowUserText(index=2)
@@ -41,17 +41,20 @@ def get_raw_metadata(path):
 # Instrument:
     inst = rawfile.GetInstModel()
     print(inst)
-# Injection would be useful to add to our reports
+# "Injection"
     inject = rawfile.GetSeqRowInjectionVolume()
     print(inject)
-# "comment" - for misc info
+# "Comment" - for misc info
     GetSeqRowComment = rawfile.GetSeqRowComment()
     print(GetSeqRowComment)
-    
+# "Sample Weight" in mg/mL
+    sampleweight = rawfile.GetSeqRowSampleWeight()
+    print(sampleweight)
+
 
     output_string= str(header3) + ": " + str(lab3) + ";" + str(header2) + ": " + str(client2) + ";" + str(header5) + ": " + str(phone5) + ";" \
-                   + "Data Recorded: " + str(local_time) + ";" + "Instrument: " + str(inst) + ";" + str(header4) + ": " \
-                  + str(company4) + ";" + str(header1) + ": " + str(study1) + ";" + "Injection (uL): " + str(inject) + ";" + "Comment: " + str(GetSeqRowComment)
+                   + "Data Recorded: " + str(local_time) + ";" + "Instrument: " + str(inst) + ";" + str(header1) + ": " + str(study1) + ";" + str(header4) + ": " \
+                  + str(company4) + ";" + "Concentration (ug/uL): " + str(sampleweight) + ";" + "Injection (uL): " + str(inject) + ";" + "Comment: " + str(GetSeqRowComment)
     #print(output_string)
     return output_string
 
@@ -99,4 +102,4 @@ if __name__ == "__main__":
     #print('GetSeqRowSampleName', rawfile.GetSeqRowSampleName())
     #print('GetSeqRowRawFileName', rawfile.GetSeqRowRawFileName())
     #print('GetSeqRowLevelName', rawfile.GetSeqRowLevelName())
-
+    #print('GetSeqRowSampleID', rawfile.GetSeqRowSampleID())

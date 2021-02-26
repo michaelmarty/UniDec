@@ -55,14 +55,20 @@ class ThermoDataImporter:
             scan_range = self.get_scans_from_times(time_range)
             print("Getting times:", time_range)
         if scan_range is None:
-            scan_range = [np.amin(self.scans), np.amax(self.scans)]
+            try:
+                scan_range = [np.amin(self.scans), np.amax(self.scans)]
+            except:
+                scan_range = [1,2]
         scan_range = np.array(scan_range, dtype=np.int)
         print("Thermo Scan Range:", scan_range)
 
-        if scan_range[0] < np.amin(self.scans):
-            scan_range[0] = np.amin(self.scans)
-        if scan_range[1] > np.amax(self.scans):
-            scan_range[1] = np.amin(self.scans)
+        try:
+            if scan_range[0] < np.amin(self.scans):
+                scan_range[0] = np.amin(self.scans)
+            if scan_range[1] > np.amax(self.scans):
+                scan_range[1] = np.amin(self.scans)
+        except:
+            scan_range = [1, 2]
 
         if scan_range[1] - scan_range[0] > 1:
             data = np.array(list(self.msrun.GetAverageSpectrum(scan_range)))

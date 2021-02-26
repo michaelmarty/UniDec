@@ -8,6 +8,7 @@ import multiprocessing
 from unidec_modules.gui_elements.ChromWindow import ChromWindow
 from unidec_modules.isolated_packages import FileDialogs
 from unidec_modules.ChromEng import ChromEngine, chrom_file_exts
+import GUniDec
 
 
 class ChromApp(MetaUniDecBase):
@@ -23,15 +24,24 @@ class ChromApp(MetaUniDecBase):
 
     def init(self, *args, **kwargs):
         self.eng = ChromEngine()
+        self.eng.config.datanorm=0
         self.view = ChromWindow(self, "UniChrom", self.eng.config)
         self.import_config()
 
         pub.subscribe(self.on_get_mzlimits, 'mzlimits')
         self.outputfile = None
         self.scans = None
+        self.export_fname = None
+        self.chrommode = True
         self.recent_files = self.read_recent()
         self.cleanup_recent_file(self.recent_files)
         self.view.menu.update_recent()
+
+        if self.infile is not None:
+            self.open_file(self.infile)
+            # self.on_dataprep_button(0)
+            # self.on_auto(0)
+
         if False:
             path = "D:\\Data\\ShortCourse\\strepme.RAW"
             # path = "D:\Data\ChromTest\SYJMX160819_04.hdf5"
@@ -133,13 +143,23 @@ class ChromApp(MetaUniDecBase):
         self.eng.config.chrom_peak_width = float(self.view.ctlcpeaks_param1.GetValue())
         self.eng.config.sw_time_window = float(self.view.ctlswwin.GetValue())
         self.eng.config.sw_scan_offset = float(self.view.ctlswoffset.GetValue())
+        try:
+            self.eng.config.time_start = float(self.view.ctltmin.GetValue())
+        except:
+            self.eng.config.time_start = None
+        try:
+            self.eng.config.time_end = float(self.view.ctltmax.GetValue())
+        except:
+            self.eng.config.time_end = None
         pass
 
     def load_to_gui(self):
         self.view.ctlmin.SetValue(str(self.eng.config.time_window))
         self.view.ctlcpeaks_param1.SetValue(str(self.eng.config.chrom_peak_width))
         self.view.ctlswwin.SetValue(str(self.eng.config.sw_time_window))
-        self.view.ctlswoffset.SetValue(str(self.eng.config.sw_scan_offset))
+        self.view.ctlswoffset.SetValue(str(int(self.eng.config.sw_scan_offset)))
+        self.view.ctltmin.SetValue(str(self.eng.config.time_start))
+        self.view.ctltmax.SetValue(str(self.eng.config.time_end))
         pass
 
     def plot_single_mz(self, e=None):
@@ -173,12 +193,15 @@ class ChromApp(MetaUniDecBase):
                 print("Error Plotting Scans")
         return self.eng.mzdata
 
-    def on_unidec_run(self, e=None):
+    def export_selection(self, e=None):
         self.export_config()
-        fname = os.path.splitext(self.eng.filename)[0]+"_selection.txt"
-        self.eng.unidec_eng.pass_data_in(self.eng.mzdata, dirname=self.eng.config.udir, fname=fname)
+        self.export_fname = os.path.splitext(self.eng.filename)[0] + "_selection.txt"
+        self.eng.unidec_eng.pass_data_in(self.eng.mzdata, dirname=self.eng.config.udir, fname=self.export_fname)
         self.eng.config.config_export(self.eng.unidec_eng.config.confname)
         self.eng.unidec_eng.config.config_import(self.eng.unidec_eng.config.confname)
+
+    def on_unidec_run(self, e=None):
+        self.export_selection()
         self.eng.unidec_eng.process_data()
         self.eng.unidec_eng.run_unidec(efficiency=True)
 
@@ -198,6 +221,23 @@ class ChromApp(MetaUniDecBase):
         self.plot_single_pks()
         self.view.singlepeakpanel.add_data(self.eng.unidec_eng.pks)
         pass
+
+    def on_open_ud(self, e=None):
+        self.export_selection()
+        if self.export_fname is not None:
+            path = os.path.join(self.eng.config.udir, self.export_fname)
+            print("Launching UniDec:")
+            app = GUniDec.UniDecApp(path=path)
+            app.start()
+
+    def make_selection(self, index=0):
+        print("Selection Index is now:", index)
+        sstart = self.eng.data.spectra[index].attrs["scanstart"]
+        send = self.eng.data.spectra[index].attrs["scanend"]
+        tstart = self.eng.data.spectra[index].attrs["timestart"]
+        tend = self.eng.data.spectra[index].attrs["timeend"]
+        print(sstart, send, tstart, tend)
+        self.on_selection(tstart, tend)
 
     def peak_plots(self, e=None):
         self.makeplot2_mud()

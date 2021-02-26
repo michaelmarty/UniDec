@@ -49,6 +49,23 @@ int mh5getfilelength(hid_t file_id, char *dataname)
 	return dims[0];
 }
 
+void mh5readfile2dcolumn(hid_t file_id, char* dataname, float* outdata, int col)
+{
+	check_group(file_id, dataname);
+	hsize_t     dims[2];
+	H5LTget_dataset_info(file_id, dataname, dims, NULL, NULL);
+	printf("%d %d\n", dims[0], dims[1]);
+
+	float* data;
+	data = calloc(dims[0]*dims[1], sizeof(float));
+	H5LTread_dataset_float(file_id, dataname, data);
+	for (int i = 0; i < dims[0]; i++)
+	{
+		outdata[i] = data[i * dims[1] + col];
+	}
+	free(data);
+}
+
 /*
 void mh5readfile2d_grid(hid_t file_id, char* dataname, int length1, int length2, float* data1)
 {

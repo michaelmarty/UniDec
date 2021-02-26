@@ -195,6 +195,22 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.4.4.1
+
+Added ability to open UniDec GUI from UniChrom selection and ability to right click a spectrum and add it to selection on UniChrom. 
+
+Added time limit option to UniChrom.
+
+Added Subtract and Divide window to help visualize average monomer masses.
+
+Added commandline options to the Python code to allow -f "file.txt" to automatically launch the file with the program. Using -u/--unidec, -m/--meta, or -c/--chrom will launch UniDec, MetaUniDec, and UniChrom respectively with the launcher.
+
+Fixed bug with FPOP.
+
+Fixed bug with charge extraction in C code.
+
+Added a command line warning when data might be approaching the memory limit.
+
 v.4.4.0
 
 **Added Scroll Bar to Controls!** People have been asking for this for a while, and I could never figure out how to get it to work. Finally, I managed to find the answer and added it with some buttons on the bottom to help expand and collapse key parts.

@@ -5,10 +5,10 @@
  *      Author: Michael.Marty
  */
 
- /*
- #ifndef UNIDEC_H_
- #define UNIDEC_H_
- #endif*/ /* UNIDEC_H_ */
+/*
+#ifndef UNIDEC_H_
+#define UNIDEC_H_
+#endif*/ /* UNIDEC_H_ */
 
 #ifndef UNIDEC_HEADER
 #define UNIDEC_HEADER
@@ -21,7 +21,7 @@
 #include "hdf5.h"
 #include "hdf5_hl.h"
 #include <fftw3.h>
- //#include "UD_sg.h"
+//#include "UD_sg.h"
 
 void mh5readfile3d(hid_t file_id, char* dataname, int lengthmz, float* dataMZ, float* dataInt, float* data3);
 void mh5readfile2d(hid_t file_id, char* dataname, int lengthmz, float* dataMZ, float* dataInt);
@@ -2116,18 +2116,19 @@ void MakeBlurM(int lengthmz, int numz, int numclose, char *barr, int *closemind,
 
 void MakePeakShape2D(int lengthmz, int maxlength, int* starttab, int* endtab, float* dataMZ, float mzsig, int psfun, int speedyflag, float* mzdist, float* rmzdist, int makereverse)
 {
-#pragma omp parallel for schedule(auto)
-	for (int i = 0;i < lengthmz;i++)
-	{
-		int start = starttab[i];
-		int end = endtab[i];
-		for (int j = start; j <= end; j++)
-		{
-			int j2 = fixk(j, lengthmz);
-			mzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(dataMZ[i], dataMZ[j2], mzsig, psfun);
-			if (makereverse == 1) { rmzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(dataMZ[j2], dataMZ[i], mzsig, psfun); }
-		}
-	}
+	#pragma omp parallel for schedule(auto)
+	for(int i=0;i<lengthmz;i++)
+	  {
+		  int start = starttab[i];
+		  int end = endtab[i];
+		  int t = 0;
+		  for (int j = start; j <= end; j++)
+		  {	
+			  int j2 = fixk(j, lengthmz);
+			  mzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(dataMZ[i], dataMZ[j2], mzsig, psfun);
+			  if (makereverse == 1) { rmzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(dataMZ[j2], dataMZ[i], mzsig, psfun); }
+		  }
+	  }
 }
 
 void MakePeakShape1D(float* dataMZ, float threshold, int lengthmz, int speedyflag, float mzsig, int psfun, float* mzdist, float* rmzdist, int makereverse)
@@ -3864,7 +3865,7 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 	//Test to make sure no two data points has the same x value
 	for (int i = 0; i < config->lengthmz - 1; i++)
 	{
-		if (inp->dataMZ[i] == inp->dataMZ[i + 1]) { printf("Error: Two data points are identical"); exit(104); }
+		if (inp->dataMZ[i] == inp->dataMZ[i + 1]) { printf("Error: Two data points are identical: %f %f \n\n", inp->dataMZ[i], inp->dataMZ[i+1]); exit(104); }
 	}
 
 }

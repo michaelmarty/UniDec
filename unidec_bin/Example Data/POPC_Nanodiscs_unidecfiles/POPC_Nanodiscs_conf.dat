@@ -1,4 +1,4 @@
-version 4.4.0
+version 4.4.1
 imflag 0
 input C:\Python\UniDec3\unidec_bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs_input.dat
 output C:\Python\UniDec3\unidec_bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs
@@ -24,7 +24,7 @@ subbuff 0.0
 subtype 0
 smooth 0.0
 mzbins 0.0
-peakwindow 50000.0
+peakwindow 500.0
 peakthresh 0.1
 peakplotthresh 1.0
 plotsep 0.025
