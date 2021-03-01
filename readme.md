@@ -207,6 +207,10 @@ Added Subtract and Divide window to help visualize average monomer masses.
 
 Added commandline options to the Python code to allow -f "file.txt" to automatically launch the file with the program. Using -u/--unidec, -m/--meta, or -c/--chrom will launch UniDec, MetaUniDec, and UniChrom respectively with the launcher.
 
+Implemented DoubleDec in C code (Jack Liu) rather than Python.
+
+Edited Waters Raw to Text Conversion Wizard to allow specification of extraction times rather than just scans.
+
 Fixed bug with FPOP. Fixed bug with charge extraction in C code. Fixed bug with single scan Thermo files. Fixed bug with remove duplicates. 
 
 Added a command line warning when data might be approaching the memory limit.
