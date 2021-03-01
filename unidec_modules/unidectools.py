@@ -1604,9 +1604,6 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
     # Remove Duplicate Data Points
     data2 = removeduplicates(data2)
 
-    index = nearest(data2[:, 0], 5983)
-    print(data2[index:index + 10])
-
     return data2
 
 
