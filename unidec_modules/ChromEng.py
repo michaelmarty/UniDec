@@ -5,7 +5,7 @@ from metaunidec.mudeng import MetaUniDec
 from unidec import UniDec
 from copy import deepcopy
 
-chrom_file_exts = [".raw", ".Raw", ".RAW", ".d", ".mzML.gz", ".mzML" ]
+chrom_file_exts = [".raw", ".Raw", ".RAW", ".d", ".mzML.gz", ".mzML"]
 
 
 class ChromEngine(MetaUniDec):
@@ -178,6 +178,14 @@ class ChromEngine(MetaUniDec):
 
     def add_regular_times(self):
         times = np.arange(0, np.amax(self.ticdat[:, 0]), self.config.time_window)
+
+        if self.config.time_start is not None and self.config.time_end is not None:
+            times = np.arange(self.config.time_start, np.amax(self.ticdat[:, 0]), self.config.time_window)
+            boo1 = times >= self.config.time_start
+            boo2 = times <= self.config.time_end
+            boo3 = np.logical_and(boo1, boo2)
+            times = times[boo3]
+
         self.data.clear()
         for i, t in enumerate(times):
             data = self.get_data_from_times(t, t + self.config.time_window)
@@ -185,7 +193,14 @@ class ChromEngine(MetaUniDec):
 
     def add_chrom_peaks(self):
         self.get_chrom_peaks()
-        times = self.chrompeaks_tranges
+        times = np.array(self.chrompeaks_tranges)
+
+        if self.config.time_start is not None and self.config.time_end is not None:
+            boo1 = times[:, 0] >= self.config.time_start
+            boo2 = times[:, 1] <= self.config.time_end
+            boo3 = np.logical_and(boo1, boo2)
+            times = times[boo3]
+
         self.data.clear()
         for i, t in enumerate(times):
             data = self.get_data_from_times(t[0], t[1])
@@ -198,6 +213,14 @@ class ChromEngine(MetaUniDec):
         self.data.clear()
         for i in tindex:
             t = self.ticdat[i, 0]
+
+            if self.config.time_start is not None:
+                if t < self.config.time_start:
+                    continue
+            if self.config.time_end is not None:
+                if t + self.config.sw_time_window > self.config.time_end:
+                    continue
+
             data = self.get_data_from_times(t, t + self.config.sw_time_window)
             self.data.add_data(data, name=str(t), attrs=self.attrs, export=False)
         pass

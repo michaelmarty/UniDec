@@ -78,7 +78,13 @@ class UniDecApp(UniDecPres):
             newdir, fname = os.path.split(kwargs["path"])
             self.on_open_file(fname, newdir)
             # self.on_dataprep_button(0)
-            self.on_auto(0)
+            # self.on_auto(0)
+
+        if self.infile is not None:
+            newdir, fname = os.path.split(self.infile)
+            self.on_open_file(fname, newdir)
+            # self.on_dataprep_button(0)
+            # self.on_auto(0)
 
         # For testing, load up a spectrum at startup. Used only on MTM's computer.
         if False and platform.node() == "DESKTOP-R236BN2":

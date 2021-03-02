@@ -334,6 +334,7 @@ class UniDec(UniDecEngine):
         # Import Results
         self.pks = peakstructure.Peaks()
         self.data.massdat = np.loadtxt(self.config.massdatfile)
+        """
         if self.config.doubledec and self.config.kernel != "":  # Replace massdat with DD files
             ddinstance = dd.DoubleDec()
             ddinstance.dd_import(self.config.massdatfile, self.config.kernel)
@@ -343,6 +344,7 @@ class UniDec(UniDecEngine):
             self.data.massdat = ddinstance.dec2  # Copying probably isn't necessary
         elif self.config.doubledec and self.config.kernel == "":
             print("\nTo use DoubleDec, please select a kernel file\n")
+        """
         self.data.ztab = np.arange(self.config.startz, self.config.endz + 1)
 
         try:

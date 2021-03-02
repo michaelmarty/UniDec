@@ -72,18 +72,28 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
     :param datalist: M x N x 2 list of data sets
     :return: Merged N x 2 data set
     """
-    concat = np.concatenate(datalist)
+    # Find which spectrum in this list is the largest. This will likely have the highest resolution.
     maxlenpos = get_longest_index(datalist)
+
+    # Concatenate everything for finding the min/max m/z values in all scans
+    concat = np.concatenate(datalist)
     # xvals = concat[:, 0]
     # print "Median Resolution:", resolution
     # axis = nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
-    if mzbins is None or mzbins == 0:
+
+    # If no m/z bin size is specified, find the average resolution of the largest scan
+    # Then, create a dummy axis with the average resolution.
+    # Otherwise, create a dummy axis with the specified m/z bin size.
+    if mzbins is None or float(mzbins) == 0:
         resolution = get_resolution(datalist[maxlenpos])
         axis = ud.nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
     else:
         axis = np.arange(np.amin(concat[:, 0]), np.amax(concat[:, 0]), float(mzbins))
     template = np.transpose([axis, np.zeros_like(axis)])
     print("Length merge axis:", len(template))
+
+    # Loop through the data and resample it to match the template, either by integration or interpolation
+    # Sum the resampled data into the template.
     for d in datalist:
         if len(d) > 2:
             if type == "Interpolate":
