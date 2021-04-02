@@ -11,7 +11,8 @@ import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 import unidec_modules.MassSpecBuilder as MSBuild
 from unidec_modules.unidec_enginebase import UniDecEngine
-import unidec_modules.DoubleDec as dd
+import wx
+# import unidec_modules.DoubleDec as dd
 
 __author__ = 'Michael.Marty'
 
@@ -302,6 +303,19 @@ class UniDec(UniDecEngine):
         if self.check_badness() == 1:
             print("Badness found, aborting UniDec run")
             return 1
+        if self.config.doubledec:
+            kpath = self.config.kernel
+            try:
+                with open(kpath, "r") as f:
+                    pass
+            except (IOError, FileNotFoundError) as err:
+                kmsg = wx.MessageDialog(
+                    None, "Could not open kernel file.\n" +
+                    "Please select a valid kernel file to use DoubleDec",
+                    "Error",
+                    wx.OK
+                ).ShowModal()
+                return 0
         # Export Config and Call
         self.export_config()
         tstart = time.perf_counter()

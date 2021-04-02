@@ -511,6 +511,15 @@ class UniDecConfig(object):
                             self.baselineflag = ud.string_to_value(line.split()[1])
                         if line.startswith("orbimode"):
                             self.orbimode = ud.string_to_value(line.split()[1])
+                        if line.startswith("doubledec"):
+                            ddval = ud.string_to_int(line.split()[1])
+                            if ddval == 0:
+                                self.doubledec = False
+                            else:
+                                self.doubledec = True
+                        if line.startswith("kernel"):
+                            self.kernel = line.strip()[7:]
+
 
                         # IM Imports
                         if line.startswith("ccsub"):
