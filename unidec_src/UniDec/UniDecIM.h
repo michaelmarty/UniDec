@@ -23,6 +23,7 @@
 #include <math.h>
 #include <time.h>
 #include <fftw3.h>
+#include <complex.h>
 //#include <omp.h>
 
 void readfilemanual(char *infile, int lengthmz, float *array1, float *array2, float *array3, float *array4, float *array5)
@@ -348,6 +349,86 @@ float calcDt(float mass, int z, float ccs, float ccsconst, float hmass, float to
 	float dt = (td * 1000) + to;
 	return dt;
 }
+
+float calcCCSSLIMpoly3(float mass, int z, float dt, float tcal1, float tcal2, float tcal3, float tcal4, float hmass, float edc)
+{
+	float rdt = dt - (edc * sqrt(mass / z) / 1.000E3);
+	float rccs;
+	if (rdt <= 0) { return 0; }
+	rccs = tcal1 * pow(rdt,3) + tcal2 * pow(rdt, 2) + tcal3 * rdt+tcal4; 
+	float gamma = 1 / z * sqrt(mass / (mass + hmass));
+	return rccs * gamma;
+}
+
+
+float calcDtSLIMpoly3(float mass, int z, float ccs, float tcal1, float tcal2, float tcal3, float tcal4, float hmass, float edc)
+{
+	float gamma = 1 / z * sqrt(mass / (mass + hmass));
+	float rccs = ccs / gamma;
+	if (rccs <= 0) { return 0; }
+
+	float a = tcal1;
+	float b = tcal2;
+	float c = tcal3;
+	float d = tcal4 - rccs;
+
+	printf("%fx^3 + %fx^2 + %fx + %f = 0 \n", a, b, c, d);
+
+	float p = -b / (3*a);
+	float q = powf(p, 3) + ((b * c) - (3 * a * d))/(6 * powf(a, 2));
+	float r = c / (3 * a);
+
+	float p2 = powf(p, 2);
+	float q2 = powf(q, 2);
+	float rmp23 = powf(r - p2, 3);
+	
+	float _Complex c1 = csqrtf(q2 + rmp23);
+	float _Complex c2 = cpowf(q + c1, 1. / 3.);
+	float _Complex c3 = cpowf(q - c1, 1. / 3.);
+
+	float _Complex crdt = c2 + c3 + p;
+	float rdt = cabsf(crdt);
+
+	printf("x = %f \n", rdt);
+
+	//rdt = pow(q + pow(pow(q, 2) + pow(r - pow(p, 2), 3), 0.5), 1 / 3) + pow(q - pow(pow(q, 2) + pow(r - pow(p, 2), 3), 0.5), 1 / 3) + p;
+	return rdt + (edc * sqrt(mass / z) / 1000);
+}
+
+float calcCCSSLIMpoly2(float mass, int z, float dt, float tcal1, float tcal2, float tcal3,  float hmass, float edc)
+{
+	float rdt = dt - (edc * sqrt(mass / z) / 1.000E3);
+	float rccs;
+	if (rdt <= 0) { return 0; }
+	rccs = tcal1 * pow(rdt,2) + tcal2 *rdt+tcal3;
+	float gamma = 1 / z * sqrt(mass / (mass + hmass));
+	return rccs * gamma;
+}
+
+float calcDtSLIMpoly2(float mass, int z, float ccs, float tcal1, float tcal2, float tcal3,  float hmass, float edc)
+{
+	float gamma = 1 / z * sqrt(mass / (mass + hmass));
+	float rccs = ccs / gamma;
+	if (rccs <= 0) { return 0; }
+
+	float a = tcal1;
+	float b = tcal2;
+	float c = tcal3-rccs;
+
+	printf(" %fx^2 + %fx + %f = 0 \n", a, b, c);
+
+	float rdt = (-b + sqrt(pow(b,2) - 4 * a * c))/(2*a);
+	printf("x = %f \n", rdt);
+	if (rdt > 0) { return rdt + (edc * sqrt(mass / z) / 1000);}
+		
+	rdt = (-b - sqrt(pow(b, 2) - 4 * a * c)) / (2 * a);
+	printf("x = %f \n", rdt);
+	if (rdt > 0) { return rdt + (edc * sqrt(mass / z) / 1000); }
+
+	return 0;
+}
+
+
 
 float calcMass(float mz, int z, float adductmass)
 {
@@ -1070,7 +1151,7 @@ void MFileZ(int mfilelen, float *massaxis, int *ztab, float *masszgrid, float *t
 	free(temp);
 }
 
-void KillB_IM(float *I, int *B, int * size, float intthresh)
+void KillB_IM(float *IntArray, int *B, int * size, float intthresh)
 {
 	for (int i = 0; i<size[0]; i++)
 	{
@@ -1078,7 +1159,7 @@ void KillB_IM(float *I, int *B, int * size, float intthresh)
 		{
 			for (int k = 0; k<size[2]; k++)
 			{
-				if (I[index2D(size[1], i, j)] < intthresh) {
+				if (IntArray[index2D(size[1], i, j)] < intthresh) {
 					B[index3D(size[1], size[2], i, j, k)] = 0;
 				}
 			}

@@ -143,7 +143,11 @@ class DataImporter:
         return data
 
     def get_tic(self):
-        return self.msrun.xic(filter="Full")
+        try:
+            xic = self.msrun.xic(filter="Full")
+        except:
+            xic = self.msrun.xic()
+        return xic
 
     def get_max_time(self):
         times = self.msrun.time_range()

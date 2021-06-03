@@ -79,6 +79,12 @@ class Plot2d(PlottingWindow):
         ylen = len(yvals)
         newgrid = np.reshape(zgrid, (xlen, ylen))
 
+        if config.intscale == "Square Root":
+            newgrid = np.sqrt(newgrid)
+        elif config.intscale == "Logarithmic":
+            newgrid = ud.fake_log(newgrid)
+
+
         # Save Data
         if dat is None:
             X2, Y2 = np.meshgrid(xvals, yvals, indexing="ij")
@@ -214,3 +220,48 @@ class Plot2d(PlottingWindow):
         self.subplot1.axis([x1, x2, y1, y2])
         self.nativez.append([offset, col])
         self.repaint()
+
+    def hist2d(self, xvals, yvals, bins, config=None, xlab='m/z (Th)', ylab="Charge",
+                    title='', repaint=True, nticks=None, test_kda=False):
+        # Clear Plot
+        self.clear_plot('nopaint')
+        # Set xlabel and ylabel
+        self.xlabel = xlab
+        self.ylabel = ylab
+
+        # Get values from config
+        if config is not None:
+            self.cmap = config.cmap
+        else:
+            self.cmap = u"jet"
+
+        # Set Tick colors
+        self.set_tickcolor()
+
+        # Test if we should plot kDa instead of Da
+        if test_kda:
+            self.kda_test(xvals)
+
+        # Add axes
+        self.subplot1 = self.figure.add_axes(self._axes)
+        # Plot
+
+        cax = self.subplot1.hist2d(xvals / self.kdnorm, yvals, bins, cmap=self.cmap)
+        datalims = [np.amin(xvals) / self.kdnorm, np.amin(yvals), np.amax(xvals) / self.kdnorm, np.amax(yvals)]
+
+        # Set X and Y axis labels
+        self.subplot1.set_xlabel(self.xlabel)
+        self.subplot1.set_ylabel(self.ylabel)
+        # Set Title
+        self.subplot1.set_title(title)
+        # Set colorbar
+        # self.cbar = self.figure.colorbar(cax, ax=None, use_gridspec=True)
+        # Change tick colors
+        if nticks is not None:
+            self.subplot1.xaxis.set_major_locator(MaxNLocator(nbins=nticks))
+
+        # Setup zoom and repaint
+        self.setup_zoom([self.subplot1], 'box', data_lims=datalims)
+        if repaint:
+            self.repaint()
+        self.flag = True

@@ -32,6 +32,8 @@ void mh5writefile1d(hid_t file_id, char* dataname, int length, float* data1);
 void mh5writefile2d(hid_t file_id, char* dataname, int length, float* data1, float* data2);
 void mh5writefile2d_grid(hid_t file_id, char* dataname, int length1, int length2, float* data1);
 void delete_group(hid_t file_id, char* dataname);
+float calcDtSLIMpoly3(float mass, int z, float ccs, float tcal1, float tcal2, float tcal3, float tcal4, float hmass, float edc);
+float calcDtSLIMpoly2(float mass, int z, float ccs, float tcal1, float tcal2, float tcal3, float hmass, float edc);
 
 typedef struct Input Input;
 
@@ -193,6 +195,8 @@ struct Config
 	float volt;
 	float tcal1;
 	float tcal2;
+	float tcal3;
+	float tcal4;
 	float twaveflag;
 	float hmass;
 	float to;
@@ -283,6 +287,8 @@ Config SetDefaultConfig()
 	config.volt = 50;
 	config.tcal1 = 0.3293;
 	config.tcal2 = 6.3597;
+	config.tcal3 = 0;
+	config.tcal4 = 0;
 	config.twaveflag = -1;
 	config.hmass = 4.002602;
 	config.to = 0.97;
@@ -437,6 +443,8 @@ Config LoadConfig(Config config, const char* filename)
 			if (strstr(x, "tnaught") != NULL) { config.to = atof(y); }// printf(" to"); }
 			if (strstr(x, "tcal1") != NULL) { config.tcal1 = atof(y); }// printf(" tcal1"); }
 			if (strstr(x, "tcal2") != NULL) { config.tcal2 = atof(y); }// printf(" tcal2"); }
+			if (strstr(x, "tcal3") != NULL) { config.tcal3 = atof(y); }// printf(" tcal3"); }
+			if (strstr(x, "tcal4") != NULL) { config.tcal4 = atof(y); }// printf(" tcal4"); }
 			if (strstr(x, "edc") != NULL) { config.edc = atof(y); }// printf(" edc"); }
 			if (strstr(x, "zout") != NULL) { config.zout = atoi(y); }// printf(" zout"); }
 			if (strstr(x, "twaveflag") != NULL) { config.twaveflag = atoi(y); }// printf(" twaveflag"); }
@@ -537,8 +545,16 @@ void PrintHelp()
 	printf("\t\t\t\t\t Reduced CCS = P1 * Reduced Drift Time + P2\n");
 	printf("\t\t\t\t3=T-Wave Power Law Calibration\n");
 	printf("\t\t\t\t\tReduced CCS =P1 * (Reduced Drift Time ^ P2)\n");
-	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) v.1141.\n");
+	printf("\t\t\t\t3=SLIM T-Wave 2nd Order Polynomial Calibration\n");
+	printf("\t\t\t\t\t\"tcal3\"=Calibration paramter 3 (P3)\n");
+	printf("\t\t\t\t3=SLIM T-Wave 3rd Order Polynomial Calibration\n");
+	printf("\t\t\t\t\t\"tcal4\"=Calibration parmater 4 (P4)\n");
+	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit.1776.\n");
 	//printf("\nsize of: %d",sizeof(char));
+
+	float test = calcDtSLIMpoly3(1, 1, 0, 2, 3, -11, -3, 4, 0);
+	float test2 = calcDtSLIMpoly2(1, 1, 0, 2, 3, -11, 4, 0);
+
 }
 
 //Print a float array
@@ -3023,36 +3039,29 @@ void softargmax(float* blur, const int lengthmz, const int numz, const float bet
 		float sum2 = 0;
 		float sum1 = 0;
 		float factor = 0;
-		//float max1 = 0;
-		//float max2 = 0;
 		float min2 = 1000000000000;
-		//float min1 = 1000000000000;
+
 		for (int j = 0; j < numz; j++)
 		{
 			float d = newblur[index2D(numz, i, j)];
 			sum1 += d;
-			//if (d < min1) { min1 = d; }
-			//if (d > max1) { max1 = d; }
+
 			float e = exp(beta * d);
-			//if (beta > 0) { e = exp(beta * d); }
-			//else { e = pow(d, -beta); }
+
 			if (e < min2) { min2 = e; }
-			//if (e > max2) { max2 = e; }
+
 			blur[index2D(numz, i, j)] = e;
 			sum2 += e;
 		}
-		//float min = min2 - min1;
-		//if (beta < 0) { min = min2; } 
+
 		float denom = (sum2 - min2 * numz);
 		if (denom != 0) { factor = sum1 / denom; };
-		//float factor = max1 / (max2 - min);
-		//float sum3 = 0;
+
 		if (factor > 0) {
 			for (int j = 0; j < numz; j++)
 			{
 				blur[index2D(numz, i, j)] -= min2;
 				blur[index2D(numz, i, j)] *= factor;
-				//sum3 += blur[index2D(numz, i, j)];
 			}
 		}
 		else {
@@ -3061,7 +3070,6 @@ void softargmax(float* blur, const int lengthmz, const int numz, const float bet
 				blur[index2D(numz, i, j)] = 0;
 			}
 		}
-		//printf("%f %f\n", sum1, sum3);
 	}
 	free(newblur);
 	return;

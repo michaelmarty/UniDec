@@ -189,10 +189,14 @@ class RawFileReader(object):
         self.scanrange = [self.FirstSpectrumNumber, self.LastSpectrumNumber]
         self.timerange = [self.StartTime, self.EndTime]
 
+        self.get_scan_header()
+
+
+    def get_scan_header(self, scannumber=2):
         try:
             self.header = {}
             extra_header_info = self.source.GetTrailerExtraHeaderInformation()
-            extra_header_values = self.source.GetTrailerExtraValues(2, True)
+            extra_header_values = self.source.GetTrailerExtraValues(scannumber, True)
             extra_header_values = DotNetArrayToNPArray(extra_header_values, dtype=str)
             for i in range(len(extra_header_info)):
                 item = extra_header_info[i]
@@ -201,12 +205,14 @@ class RawFileReader(object):
             try:
                 self.injection_time = float(self.Get_Header_Item('Ion Injection Time (ms)'))
                 self.resolution = float(self.Get_Header_Item('FT Resolution'))
+                return self.injection_time, self.resolution
             except:
                 self.injection_time = None
                 self.resolution = None
         except:
             self.header = None
             print("Error getting header")
+        return None, None
 
     def Get_Header_Item(self, item):
         return self.header[item]
@@ -511,6 +517,7 @@ class RawFileReader(object):
         else:
             # Get the segmented (low res and profile) scan data
             segmentedScan = averageScan.SegmentedScan
+
             if outputData:
                 for i in range(segmentedScan.Positions.Length):
                     print('  {} - {:.4f}, {:.0f}'.format(
@@ -519,6 +526,17 @@ class RawFileReader(object):
             self.data = np.transpose(
                 [DotNetArrayToNPArray(segmentedScan.Positions), DotNetArrayToNPArray(segmentedScan.Intensities)])
         return self.data
+
+    def GetCentroidArray(self, scanNumber=1):
+        scan = Scan.FromFile(self.source, scanNumber)
+        masses = DotNetArrayToNPArray(scan.PreferredMasses)
+        noises = DotNetArrayToNPArray(scan.PreferredNoises)
+        intensities = DotNetArrayToNPArray(scan.PreferredIntensities)
+        resolutions = DotNetArrayToNPArray(scan.PreferredResolutions)
+
+        all = np.transpose([masses, intensities, noises, resolutions])
+        return all
+
 
     def CalculateMassPrecision(self, scanNumber=1):
         '''Calculates the mass precision for a spectrum.

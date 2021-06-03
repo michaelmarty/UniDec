@@ -365,8 +365,6 @@ class main_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.register, self.menuRegister)
 
         self.experimentalmenu.AppendSeparator()
-        self.menulauncher = self.experimentalmenu.Append(wx.ID_ANY, "Launcher")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_launcher, self.menulauncher)
 
         # Set Events for Menu Bar
 

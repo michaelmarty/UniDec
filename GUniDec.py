@@ -21,7 +21,6 @@ from copy import deepcopy
 import platform
 import multiprocessing
 from unidec_modules.unidec_presbase import UniDecPres
-import Launcher
 from iFAMS.wxiFAMS import iFAMS_Window
 
 try:
@@ -139,7 +138,7 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         # tstart =time.perf_counter()
-
+        self.export_config()
         # Clear other plots and panels
         self.view.peakpanel.clear_list()
         self.view.clear_all_plots()
@@ -281,14 +280,15 @@ class UniDecApp(UniDecPres):
         :param e: unused space for event
         :return:
         """
+        self.export_config(self.eng.config.confname)
         if dirname is None:
             self.eng.config.dirname = FileDialogs.open_single_dir_dialog("Choose a raw file", '')
         else:
             self.eng.config.dirname = dirname
 
         if self.eng.config.imflag == 1:
-            if int(self.view.controls.ctlconvertflag.GetValue()) == 1:
-                binsize = str(ud.string_to_value(self.view.controls.ctlbinsize.GetValue()))
+            if self.eng.config.compressflag == 1:
+                binsize = str(self.eng.config.mzbins)
                 print("Converting at resolution of: " + binsize)
             else:
                 binsize = "0"
@@ -1720,11 +1720,6 @@ class UniDecApp(UniDecPres):
     def on_write_hdf5(self, e=None):
         self.eng.write_hdf5()
         print("Wrote: ", self.eng.config.hdf_file)
-
-    def on_launcher(self, e=None):
-        # self.view.Destroy()
-        launcher = Launcher.UniDecLauncher()
-        launcher.start()
 
 
 # TODO: Charge state distributions of each peak

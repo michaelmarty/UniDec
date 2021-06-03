@@ -141,7 +141,7 @@ def splitdis(x, mid, fwhm, a=1, norm_area=False):
         else:
             return ndis_std(x, mid, sig2, a=a2)
     except ValueError:
-        output = np.zeros(len(x))
+        output = np.zeros_like(x)
         output[x > mid] = ldis(x[x > mid], mid, fwhm, a=a1)
         output[x <= mid] = ndis_std(x[x <= mid], mid, sig2, a=a2)
         return output
@@ -264,7 +264,7 @@ def gaussfit(xvals, yvals, mguess=None, sguess=0.1, aguess=None, cleanup=True):
     return fits
 
 
-def psfit(x, s, m, a, b, psfun):
+def psfit(x, s, m, a=1, b=0, psfun=0):
     """
     Make peak shape from fit
     :param x: x values

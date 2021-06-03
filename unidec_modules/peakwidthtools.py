@@ -209,7 +209,7 @@ class PeakTools2d(wx.Dialog):
         :return:
         """
         wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
-        self.SetSize((700, 700))
+        self.SetSize((700, 750))
         self.SetTitle("Peak Fitting Tools")
         self.plot1 = None
         self.flipbutton = None
@@ -249,6 +249,11 @@ class PeakTools2d(wx.Dialog):
         self.config = config
         self.psfun = config.psfun
 
+        if self.config.imflag ==1:
+            self.label = "Drift Time"
+        else:
+            self.label = "Charge"
+
         # Create the interface
         pnl = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
@@ -263,7 +268,7 @@ class PeakTools2d(wx.Dialog):
         hbox10 = wx.BoxSizer(wx.VERTICAL)
 
         centerbutton = wx.Button(pnl, label='Reset Range')
-        self.flipbutton = wx.Button(pnl, label='Flip m/z and AT')
+        self.flipbutton = wx.Button(pnl, label='Flip m/z and '+self.label)
         centerbutton.Bind(wx.EVT_BUTTON, self.on_reset)
         self.flipbutton.Bind(wx.EVT_BUTTON, self.on_flip)
 
@@ -274,7 +279,7 @@ class PeakTools2d(wx.Dialog):
 
         hboxsigs2 = wx.BoxSizer(wx.HORIZONTAL)
         self.outdtsig = wx.TextCtrl(pnl, value="")
-        hboxsigs2.Add(wx.StaticText(pnl, label='A.T. Width Fit: '), wx.ALIGN_CENTER_VERTICAL)
+        hboxsigs2.Add(wx.StaticText(pnl, label=self.label+' Width Fit: '), wx.ALIGN_CENTER_VERTICAL)
         hboxsigs2.Add(self.outdtsig, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
 
         hbox10.Add(centerbutton, 0, wx.ALIGN_LEFT)
@@ -284,7 +289,7 @@ class PeakTools2d(wx.Dialog):
         hbox11.Add(hbox10, 0, wx.ALIGN_LEFT)
 
         hbox9 = wx.BoxSizer(wx.VERTICAL)
-        self.ctlpsfun = wx.RadioBox(pnl, label="Peak Shape Fit Function",
+        self.ctlpsfun = wx.RadioBox(pnl, label="m/z Peak Shape Fit Function",
                                     choices=["Gaussian", "Lorentzian", "Split G/L"])
         self.ctlpsfun.SetSelection(self.psfun)
         fitbutton = wx.Button(pnl, label='Fit Peak Shape')
@@ -367,7 +372,7 @@ class PeakTools2d(wx.Dialog):
             intdt = self.C[pos]
             self.data2 = np.column_stack((self.dt, intdt))
             self.data, self.data2 = self.data2, self.data
-            self.plot1.plotrefreshtop(self.data[:, 0], self.data[:, 1], title="Data", xlabel="Drift Time (ms)",
+            self.plot1.plotrefreshtop(self.data[:, 0], self.data[:, 1], title="Data", xlabel=self.label,
                                       ylabel="Normalized Intensity", zoom="span")
             self.outmzsig.SetValue(str(self.fitsig))
             self.flipflag = 1
@@ -413,8 +418,12 @@ class PeakTools2d(wx.Dialog):
         newmax = xlim[1]
         boo1 = np.logical_and(self.data[:, 0] < newmax, self.data[:, 0] > newmin)
         self.centdat = self.data[boo1]
-        self.plot1.plotrefreshtop(self.centdat[:, 0], self.centdat[:, 1], title="Data", xlabel="m/z (Th)",
-                                  ylabel="Normalized Intensity", zoom="span")
+        if self.flipflag == 0:
+            self.plot1.plotrefreshtop(self.centdat[:, 0], self.centdat[:, 1], title="Data", xlabel="m/z (Th)",
+                                      ylabel="Normalized Intensity", zoom="span")
+        else:
+            self.plot1.plotrefreshtop(self.centdat[:, 0], self.centdat[:, 1], title="Data", xlabel=self.label,
+                                      ylabel="Normalized Intensity", zoom="span")
 
     def on_plot(self, e):
         """
@@ -431,9 +440,6 @@ class PeakTools2d(wx.Dialog):
             fitdat = make_peak_shape(self.centdat[:, 0], self.psfun, sigguess, self.centdat[midguess, 0])
         else:
             fitdat = make_peak_shape(self.centdat[:, 0], 0, sigguess, self.centdat[midguess, 0])
-
-        self.plot1.plotrefreshtop(self.centdat[:, 0], self.centdat[:, 1], title="Data", xlabel="m/z (Th)",
-                                  ylabel="Normalized Intensity", zoom="span")
 
         self.plot1.plotadd(self.centdat[:, 0], fitdat * aguess, "blue", "Peak Shape Guess", nopaint=False)
 
@@ -466,8 +472,7 @@ class PeakTools2d(wx.Dialog):
 
         self.ctlsigguess.SetValue(str(fitout[0]))
         self.resbox.SetValue(str(resolution))
-        self.plot1.plotrefreshtop(self.centdat[:, 0], self.centdat[:, 1], title="Data", xlabel="m/z (Th)",
-                                  ylabel="Normalized Intensity", zoom="span")
+
         self.plot1.plotadd(self.centdat[:, 0], fitdat, "blue", "Peak Shape Guess", nopaint=False)
         self.errorbox.SetValue(str(error))
         pass

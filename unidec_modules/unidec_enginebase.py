@@ -3,7 +3,7 @@ from copy import deepcopy
 from unidec_modules import unidectools as ud
 import numpy as np
 
-version = "4.4.1"
+version = "5.0.0.a"
 
 class UniDecEngine:
     def __init__(self):
@@ -229,8 +229,13 @@ class UniDecEngine:
     def oxidation_analysis(self, e=None):
         data = self.data.massdat
 
-        maxindex = np.argmax(data[:, 1])
-        maxmass, maxint = data[maxindex]
+        pdata = []
+        for p in self.pks.peaks:
+            if p.ignore == 0:
+                pdata.append([p.mass, p.height])
+        pdata = np.array(pdata)
+        maxindex = np.argmax(pdata[:,1])
+        maxmass = pdata[maxindex][0]
         nox = np.arange(0, 4)
         oxmasses = maxmass + nox * 16
         areas = []

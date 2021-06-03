@@ -54,4 +54,7 @@ integrateub 1000.0
 filterwidth 20.0
 zerolog -12.0
 doubledec 0
-kernel C:\Python\UniDec3\unidec_bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs_mass.txt
+kernel 
+CDslope 12.5
+CDzbins 1
+csig 0

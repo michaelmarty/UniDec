@@ -10,7 +10,7 @@ chrom_file_exts = [".raw", ".Raw", ".RAW", ".d", ".mzML.gz", ".mzML"]
 
 class ChromEngine(MetaUniDec):
     """
-    Imports mzML data files.
+    UniChrom Engine.
     """
 
     def __init__(self):

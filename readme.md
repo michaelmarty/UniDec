@@ -197,6 +197,18 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.5.0.0
+
+**Added UCD: UniDec for Charge Detection-MS**. This major new window extends UniDec to CD-MS data. It builds on the existing UniDec GUI but uses a new deconvolution engine. The engine is written in Python and has GPU-acceleration available for anyone with CUDA 11.2 installed. 
+
+**Added mzML ion mobility support**. Using MSConvert, select "Combine ion mobility scans". Then, launch UniDec and switch to IM mode by clicking Advanced > Switch to Ion Mobility Mode. UniDecIM should then be able to open ion mobility mzML files by drag and drop or File > Open File. It will create a text file next to the mzML file that you can open in the future. We recommend using the "Compress when converting to .txt" option to help speed up data processing by binning the data at this stage using the "Bin Every" parameter. 
+
+Began adding experimental SLIM IM-MS calibration functions. Not fully implemented.
+
+Added ability to open CSV files exported from Thermo Freestyle.
+
+Cleaned up and refactored some code to fit UCD. Bug fixes.
+
 v.4.4.1
 
 Added ability to open UniDec GUI from UniChrom selection and ability to right click a spectrum and add it to selection on UniChrom. 

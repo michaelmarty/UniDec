@@ -77,7 +77,7 @@ class UniDec(UniDecEngine):
         self.config.default_file_names()
 
         # Import Data
-        self.data.rawdata = ud.load_mz_file(self.config.filename, self.config, time_range)
+        self.data.rawdata = ud.load_mz_file(self.config.filename, self.config, time_range, imflag=self.config.imflag)
         if ud.isempty(self.data.rawdata):
             print("Error: Data Array is Empty")
             print("Likely an error with data conversion")

@@ -164,6 +164,14 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 				{
 					tempccs = calcCCSTwavePower(masstab[index2D(size[2], i, k)], ztab[k], dtext[j], config.tcal1, config.tcal2, config.hmass, config.edc);
 				}
+				else if (config.twaveflag == 4)
+				{
+					tempccs = calcCCSSLIMpoly2(masstab[index2D(size[2], i, k)], ztab[k], dtext[j], config.tcal1, config.tcal2, config.tcal3, config.hmass, config.edc);
+				}
+				else if (config.twaveflag == 5)
+				{
+					tempccs = calcCCSSLIMpoly3(masstab[index2D(size[2], i, k)], ztab[k], dtext[j], config.tcal1, config.tcal2, config.tcal3, config.tcal4, config.hmass, config.edc);
+				}
 				else
 				{
 					TwaveError(config.twaveflag);
@@ -256,6 +264,8 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 							else if (config.twaveflag == 1) { point2 = calcDtTwaveLog(point, ztab[k] + closezind[l], ccspt, config.tcal1, config.tcal2, config.hmass, config.edc); }
 							else if (config.twaveflag == 2) { point2 = calcDtTwaveLinear(point, ztab[k] + closezind[l], ccspt, config.tcal1, config.tcal2, config.hmass, config.edc); }
 							else if (config.twaveflag == 3) { point2 = calcDtTwavePower(point, ztab[k] + closezind[l], ccspt, config.tcal1, config.tcal2, config.hmass, config.edc); }
+							else if (config.twaveflag == 4) { point2 = calcDtSLIMpoly2(point, ztab[k] + closezind[l], ccspt, config.tcal1, config.tcal2, config.tcal3, config.hmass, config.edc); }
+							else if (config.twaveflag == 5) { point2 = calcDtSLIMpoly3(point, ztab[k] + closezind[l], ccspt, config.tcal1, config.tcal2, config.tcal3, config.tcal4, config.hmass, config.edc); }
 							else { TwaveError(config.twaveflag); }
 							if ((point2<mzranges[2] || point2>mzranges[3]) && config.csig >= 0) { badflag = 1; }
 							else
@@ -421,6 +431,8 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 					else if (config.twaveflag == 1) { tempdt = calcDtTwaveLog(tempmass, ztab[k], tempccs, config.tcal1, config.tcal2, config.hmass, config.edc); }
 					else if (config.twaveflag == 2) { tempdt = calcDtTwaveLinear(tempmass, ztab[k], tempccs, config.tcal1, config.tcal2, config.hmass, config.edc); }
 					else if (config.twaveflag == 3) { tempdt = calcDtTwavePower(tempmass, ztab[k], tempccs, config.tcal1, config.tcal2, config.hmass, config.edc); }
+					else if (config.twaveflag == 4) { tempdt = calcDtSLIMpoly2(tempmass, ztab[k], tempccs, config.tcal1, config.tcal2, config.tcal3, config.hmass, config.edc); }
+					else if (config.twaveflag == 5) { tempdt = calcDtSLIMpoly3(tempmass, ztab[k], tempccs, config.tcal1, config.tcal2, config.tcal3, config.tcal4, config.hmass, config.edc); }
 					else { TwaveError(config.twaveflag); }
 
 					if (tempmz>mzext[1] && tempmz<mzext[size[0] - 2] && tempdt>dtext[1] && tempdt<dtext[size[1] - 2])
