@@ -1217,7 +1217,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             with open(kernel_path2, "r") as f:
                 self.doubledecbutton.SetLabel(os.path.splitext(os.path.basename(kernel_path2))[0])
                 self.config.kernel = kernel_path2
-        except IOError:
+        except (IOError, FileNotFoundError) as err:
             print("Please deconvolve the m/z file [" + kernel_name + "] with UniDec first.")
         print(self.config.kernel)
 
