@@ -35,7 +35,16 @@ class ThermoDataImporter:
             impdat = np.array(self.msrun.GetSpectrum(s))  # May want to test this.
             impdat = impdat[impdat[:, 0] > 10]
             self.data.append(impdat)
-        self.data = np.array(self.data)
+        self.data = np.array(self.data, dtype=object)
+        return self.data
+
+    def grab_centroid_data(self):
+        self.data = []
+        for s in self.scans:
+            impdat = np.array(self.msrun.GetCentroidArray(s))  # May want to test this.
+            impdat = impdat[impdat[:, 0] > 10]
+            self.data.append(impdat)
+        self.data = np.array(self.data, dtype=object)
         return self.data
 
     def grab_scan_data(self, s):
@@ -116,6 +125,13 @@ class ThermoDataImporter:
         else:
             t = self.times[scan_range[0]]
             return [t, t, t]
+
+    def get_inj_time_array(self):
+        its = []
+        for i, s in enumerate(self.scans):
+            it, res = self.msrun.get_scan_header(s)
+            its.append(it)
+        return np.array(its)
 
 
 if __name__ == "__main__":

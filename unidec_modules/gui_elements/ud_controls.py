@@ -7,12 +7,12 @@ import time
 import wx.lib.scrolledpanel as scrolled
 
 
-class main_controls(wx.Panel):#scrolled.ScrolledPanel):
+class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
     def __init__(self, parent, config, pres, panel, iconfile):
         super(wx.Panel, self).__init__(panel)
-        #super(scrolled.ScrolledPanel, self).__init__(parent=panel, style=wx.ALL | wx.EXPAND)
+        # super(scrolled.ScrolledPanel, self).__init__(parent=panel, style=wx.ALL | wx.EXPAND)
         # self.SetAutoLayout(1)
-        #self.SetupScrolling(scroll_x=False)
+        # self.SetupScrolling(scroll_x=False)
 
         self.parent = parent
         self.config = config
@@ -71,7 +71,7 @@ class main_controls(wx.Panel):#scrolled.ScrolledPanel):
         sizercontrol.Add(buttonsizer, 0, wx.EXPAND)
 
         # Setting up main fold controls
-        self.scrolledpanel=scrolled.ScrolledPanel(self, style=wx.ALL | wx.EXPAND)
+        self.scrolledpanel = scrolled.ScrolledPanel(self, style=wx.ALL | wx.EXPAND)
         self.scrolledpanel.SetupScrolling()
         size1 = (75, -1)
         self.foldpanels = fpb.FoldPanelBar(self.scrolledpanel, -1, size=(250, 1900), agwStyle=fpb.FPB_VERTICAL)
@@ -244,10 +244,11 @@ class main_controls(wx.Panel):#scrolled.ScrolledPanel):
                                                        cbstyle=style1c)
             panel1c = wx.Panel(foldpanel1c, -1)
             gbox1c = wx.GridBagSizer(wx.VERTICAL)
-
+            i = 0
             self.ctltwave = wx.RadioBox(panel1c, label="", choices=["Linear Cell", "Travelling Wave"])
             self.parent.Bind(wx.EVT_RADIOBOX, self.pres.on_flip_twave, self.ctltwave)
-            gbox1c.Add(self.ctltwave, (0, 0), span=(1, 2))
+            gbox1c.Add(self.ctltwave, (i, 0), span=(1, 2))
+            i += 1
 
             self.twave = self.config.twaveflag > 0
             if not self.twave:
@@ -283,26 +284,42 @@ class main_controls(wx.Panel):#scrolled.ScrolledPanel):
                 self.ctltwave.SetSelection(1)
 
                 self.ctltcal1 = wx.TextCtrl(panel1c, value="", size=size1)
-                gbox1c.Add(self.ctltcal1, (1, 1), span=(1, 1))
-                gbox1c.Add(wx.StaticText(panel1c, label="Calibration Parameter 1: "), (1, 0),
+                gbox1c.Add(self.ctltcal1, (i, 1), span=(1, 1))
+                gbox1c.Add(wx.StaticText(panel1c, label="Calibration Parameter 1: "), (i, 0),
                            flag=wx.ALIGN_CENTER_VERTICAL)
+                i += 1
+
 
                 self.ctltcal2 = wx.TextCtrl(panel1c, value='', size=size1)
-                gbox1c.Add(self.ctltcal2, (2, 1), span=(1, 1))
-                gbox1c.Add(wx.StaticText(panel1c, label="Calibration Parameter 2: "), (2, 0),
+                gbox1c.Add(self.ctltcal2, (i, 1), span=(1, 1))
+                gbox1c.Add(wx.StaticText(panel1c, label="Calibration Parameter 2: "), (i, 0),
                            flag=wx.ALIGN_CENTER_VERTICAL)
+                i += 1
 
                 self.ctledc = wx.TextCtrl(panel1c, value='', size=size1)
-                gbox1c.Add(self.ctledc, (3, 1), span=(1, 1))
-                gbox1c.Add(wx.StaticText(panel1c, label="EDC Parameter: "), (3, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                gbox1c.Add(self.ctledc, (i, 1), span=(1, 1))
+                gbox1c.Add(wx.StaticText(panel1c, label="EDC Parameter: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                i += 1
+
+                self.ctltcal3 = wx.TextCtrl(panel1c, value='', size=size1)
+                gbox1c.Add(self.ctltcal3, (i, 1), span=(1, 1))
+                gbox1c.Add(wx.StaticText(panel1c, label="SLIM Param. 3: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                i += 1
+
+                self.ctltcal4 = wx.TextCtrl(panel1c, value='', size=size1)
+                gbox1c.Add(self.ctltcal4, (i, 1), span=(1, 1))
+                gbox1c.Add(wx.StaticText(panel1c, label="SLIM Param. 4: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                i += 1
 
                 self.ctlgasmass = wx.TextCtrl(panel1c, value='', size=size1)
-                gbox1c.Add(self.ctlgasmass, (4, 1), span=(1, 1))
-                gbox1c.Add(wx.StaticText(panel1c, label="Gas Mass (Da): "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                gbox1c.Add(self.ctlgasmass, (i, 1), span=(1, 1))
+                gbox1c.Add(wx.StaticText(panel1c, label="Gas Mass (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                i += 1
 
                 self.ctltwavecaltype = wx.Choice(panel1c, -1, choices=list(self.config.twavedict.values()))
-                gbox1c.Add(self.ctltwavecaltype, (5, 1), span=(1, 1))
-                gbox1c.Add(wx.StaticText(panel1c, label="Calibration Type: "), (5, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                gbox1c.Add(self.ctltwavecaltype, (i, 1), span=(1, 1))
+                gbox1c.Add(wx.StaticText(panel1c, label="Calibration Type: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                i += 1
 
             self.ctltwave.SetSelection(int(self.twave))
             panel1c.SetSizer(gbox1c)
@@ -679,9 +696,9 @@ class main_controls(wx.Panel):#scrolled.ScrolledPanel):
         sizercontrolscrolled.Fit(self.scrolledpanel)
 
         # Add to top control sizer
-        sizercontrol.Add(self.scrolledpanel,1, wx.EXPAND)
+        sizercontrol.Add(self.scrolledpanel, 1, wx.EXPAND)
 
-        #Bottom Buttons
+        # Bottom Buttons
         if self.config.imflag == 0:
             buttonsizer2 = wx.BoxSizer(wx.HORIZONTAL)
             bsize = (45, 25)
@@ -700,7 +717,8 @@ class main_controls(wx.Panel):#scrolled.ScrolledPanel):
             self.parent.Bind(wx.EVT_BUTTON, self.on_expand_blue, self.bluebutton)
             self.parent.Bind(wx.EVT_BUTTON, self.on_expand_yellow, self.yellowbutton)
             self.parent.Bind(wx.EVT_BUTTON, self.on_expand_red, self.redbutton)
-            buttons = [self.mainbutton, self.expandbutton, self.collapsebutton, self.bluebutton, self.yellowbutton, self.redbutton]
+            buttons = [self.mainbutton, self.expandbutton, self.collapsebutton, self.bluebutton, self.yellowbutton,
+                       self.redbutton]
             for button in buttons:
                 buttonsizer2.Add(button, 0, wx.EXPAND)
             sizercontrol.Add(buttonsizer2, 0, wx.EXPAND)
@@ -808,6 +826,8 @@ class main_controls(wx.Panel):#scrolled.ScrolledPanel):
                 else:
                     self.ctltcal1.SetValue(str(self.config.tcal1))
                     self.ctltcal2.SetValue(str(self.config.tcal2))
+                    self.ctltcal3.SetValue(str(self.config.tcal3))
+                    self.ctltcal4.SetValue(str(self.config.tcal4))
                     self.ctledc.SetValue(str(self.config.edc))
                     self.ctlgasmass.SetValue(str(self.config.gasmass))
                     self.ctltwavecaltype.SetSelection(list(self.config.twavedict.keys()).index(self.config.twaveflag))
@@ -924,6 +944,7 @@ class main_controls(wx.Panel):#scrolled.ScrolledPanel):
         self.config.poolflag = self.ctlpoolflag.GetSelection()
 
         if self.config.imflag == 1:
+            self.config.compressflag = int(self.ctlconvertflag.GetValue())
             self.config.pusher = ud.string_to_value(self.ctlpusher.GetValue())
             self.config.mindt = ud.string_to_value(self.ctlmindt.GetValue())
             self.config.maxdt = ud.string_to_value(self.ctlmaxdt.GetValue())
@@ -947,6 +968,8 @@ class main_controls(wx.Panel):#scrolled.ScrolledPanel):
             else:
                 self.config.tcal1 = ud.string_to_value(self.ctltcal1.GetValue())
                 self.config.tcal2 = ud.string_to_value(self.ctltcal2.GetValue())
+                self.config.tcal3 = ud.string_to_value(self.ctltcal3.GetValue())
+                self.config.tcal4 = ud.string_to_value(self.ctltcal4.GetValue())
                 self.config.edc = ud.string_to_value(self.ctledc.GetValue())
                 self.config.gasmass = ud.string_to_value(self.ctlgasmass.GetValue())
                 self.config.twaveflag = list(self.config.twavedict.keys())[self.ctltwavecaltype.GetSelection()]
@@ -1098,6 +1121,8 @@ class main_controls(wx.Panel):#scrolled.ScrolledPanel):
                 self.ctltcal1.SetToolTip(wx.ToolTip("T-Wave calibration parameter 1."))
                 self.ctltcal2.SetToolTip(wx.ToolTip("T-Wave calibration parameter 2."))
                 self.ctledc.SetToolTip(wx.ToolTip("T-Wave instrument EDC parameter."))
+                self.ctltcal3.SetToolTip(wx.ToolTip("T-Wave calibration parameter 3 for SLIM poly2."))
+                self.ctltcal4.SetToolTip(wx.ToolTip("T-Wave calibration parameter 4 for SLIM poly3."))
                 self.ctlgasmass.SetToolTip(wx.ToolTip("Mass of gas in drift cell.\nDefault is for Nitrogen."))
             self.ctlccslb.SetToolTip(wx.ToolTip("Minimum allowed CCS."))
             self.ctlccsub.SetToolTip(wx.ToolTip("Maximum allowed CCS."))
@@ -1192,7 +1217,7 @@ class main_controls(wx.Panel):#scrolled.ScrolledPanel):
             with open(kernel_path2, "r") as f:
                 self.doubledecbutton.SetLabel(os.path.splitext(os.path.basename(kernel_path2))[0])
                 self.config.kernel = kernel_path2
-        except IOError:
+        except (IOError, FileNotFoundError) as err:
             print("Please deconvolve the m/z file [" + kernel_name + "] with UniDec first.")
         print(self.config.kernel)
 
@@ -1259,7 +1284,7 @@ class main_controls(wx.Panel):#scrolled.ScrolledPanel):
         num = self.foldpanels.GetCount()
         for i in range(0, num):
             fp = self.foldpanels.GetFoldPanel(i)
-            if i in [0,1]:
+            if i in [0, 1]:
                 self.foldpanels.Expand(fp)
             else:
                 self.foldpanels.Collapse(fp)
@@ -1269,7 +1294,7 @@ class main_controls(wx.Panel):#scrolled.ScrolledPanel):
         num = self.foldpanels.GetCount()
         for i in range(0, num):
             fp = self.foldpanels.GetFoldPanel(i)
-            if i in [2,3,4]:
+            if i in [2, 3, 4]:
                 self.foldpanels.Expand(fp)
             else:
                 self.foldpanels.Collapse(fp)

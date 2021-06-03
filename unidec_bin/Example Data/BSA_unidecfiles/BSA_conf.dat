@@ -1,4 +1,4 @@
-version 4.4.0
+version 5.0.0.a
 imflag 0
 input C:\Python\UniDec3\unidec_bin\Example Data\BSA_unidecfiles\BSA_input.dat
 output C:\Python\UniDec3\unidec_bin\Example Data\BSA_unidecfiles\BSA
@@ -11,12 +11,13 @@ psig 1.0
 beta 500.0
 mzsig 1.50166
 psfun 0
+zpsfun 0
 discreteplot 0
 massub 150000.0
 masslb 40000.0
 msig 0.0
 molig 0.0
-massbins 10.0
+massbins 1.0
 mtabsig 0.0
 minmz 2229.987476247107
 maxmz 7608.365676580418
@@ -53,3 +54,9 @@ integratelb -1000.0
 integrateub 1000.0
 filterwidth 20.0
 zerolog -12.0
+doubledec 0
+kernel 
+CDslope 12.5
+CDzbins 1.0
+CDres 1
+csig 0.0

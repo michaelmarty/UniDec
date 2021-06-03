@@ -5,6 +5,7 @@ import os
 from copy import deepcopy
 import time
 from pymzml.utils.utils import index_gzip
+import pymzml.obo
 
 __author__ = 'Michael.Marty'
 
@@ -66,7 +67,7 @@ def get_longest_index(datalist):
 def merge_spectra(datalist, mzbins=None, type="Interpolate"):
     """
     Merge together a list of data.
-    Interpolates each data set in the lit to a new nonlinear axis with the median resolution of the first element.
+    Interpolates each data set in the list to a new nonlinear axis with the median resolution of the first element.
     Optionally, allows mzbins to create a linear axis with each point spaced by mzbins.
     Then, adds the interpolated data together to get the merged data.
     :param datalist: M x N x 2 list of data sets
@@ -106,6 +107,60 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
     return template
 
 
+def merge_im_spectra(datalist, mzbins=None, type="Integrate"):
+    """
+    Merge together a list of ion mobility data.
+    Interpolates each data set in the list to a new nonlinear axis with the median resolution of the first element.
+    Optionally, allows mzbins to create a linear axis with each point spaced by mzbins.
+    Then, adds the interpolated data together to get the merged data.
+    :param datalist: M x N x 2 list of data sets
+    :return: Merged N x 2 data set
+    """
+    # Find which spectrum in this list is the largest. This will likely have the highest resolution.
+    maxlenpos = get_longest_index(datalist)
+
+    # Concatenate everything for finding the min/max m/z values in all scans
+    if len(datalist) > 1:
+        concat = np.concatenate(datalist)
+    else:
+        concat = np.array(datalist[0])
+    # If no m/z bin size is specified, find the average resolution of the largest scan
+    # Then, create a dummy axis with the average resolution.
+    # Otherwise, create a dummy axis with the specified m/z bin size.
+    if mzbins is None or float(mzbins) == 0:
+        resolution = get_resolution(datalist[maxlenpos])
+        mzaxis = ud.nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
+    else:
+        mzaxis = np.arange(np.amin(concat[:, 0]), np.amax(concat[:, 0]), float(mzbins))
+
+    # For drift time, use just unique drift time values. May need to make this fancier.
+    dtaxis = np.sort(np.unique(concat[:, 1]))
+
+    # Create the mesh grid from the new axes
+    X, Y = np.meshgrid(mzaxis, dtaxis, indexing="ij")
+
+    template = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(np.zeros_like(X))])
+    print("Shape merge axis:", X.shape)
+    xbins = deepcopy(mzaxis)
+    xbins[1:] -= np.diff(xbins)
+    xbins = np.append(xbins, xbins[-1] + np.diff(xbins)[-1])
+    ybins = deepcopy(dtaxis)
+    ybins[1:] -= np.diff(ybins) / 2.
+    ybins = np.append(ybins, ybins[-1] + np.diff(ybins)[-1])
+    # Loop through the data and resample it to match the template, either by integration or interpolation
+    # Sum the resampled data into the template.
+    for d in datalist:
+        if len(d) > 2:
+            if type == "Interpolate":
+                newdat = ud.mergedata2d(template[:, 0], template[:, 1], d[:, 0], d[:, 1], d[:, 2])
+            elif type == "Integrate":
+                newdat, xedges, yedges = np.histogram2d(d[:, 0], d[:, 1], bins=[xbins, ybins], weights=d[:, 2])
+            else:
+                print("ERROR: unrecognized merge spectra type:", type)
+            template[:, 2] += np.ravel(newdat)
+    return template
+
+
 def nonlinear_axis(start, end, res):
     """
     Creates a nonlinear axis with the m/z values spaced with a defined and constant resolution.
@@ -124,10 +179,39 @@ def nonlinear_axis(start, end, res):
     return np.array(axis)
 
 
-def get_data_from_spectrum(spectrum):
+def get_data_from_spectrum(spectrum, threshold=-1):
     impdat = np.transpose([spectrum.mz, spectrum.i])
     impdat = impdat[impdat[:, 0] > 10]
+    if threshold >= 0:
+        impdat = impdat[impdat[:, 1] > threshold]
     return impdat
+
+
+def get_im_data_from_spectrum(spectrum, threshold=-1):
+    array_params = spectrum._get_encoding_parameters("raw ion mobility array")
+    dtarray = spectrum._decode(*array_params)
+
+    impdat = np.transpose([spectrum.mz, dtarray, spectrum.i])
+
+    impdat = impdat[impdat[:, 0] > 10]
+    if threshold >= 0:
+        impdat = impdat[impdat[:, 2] > threshold]
+    return impdat
+
+
+def search_by_id(obo, id):
+    key = "MS:{0}".format(id)
+    return_value = ""
+    for lookup in obo.lookups:
+        if key in lookup:
+            if obo.MS_tag_regex.match(key):
+                for fn in FIELDNAMES:
+                    if fn in lookup[key].keys():
+                        return_value += "{0}\n".format(lookup[key][fn])
+    return return_value
+
+
+FIELDNAMES = ["id", "name", "def", "is_a"]
 
 
 class mzMLimporter:
@@ -196,7 +280,7 @@ class mzMLimporter:
         newdat = ud.mergedata(template, data)
         template[:, 1] += newdat[:, 1]
 
-        for i in range(int(scan_range[0]) + 1, scan_range[1]+1):
+        for i in range(int(scan_range[0]) + 1, scan_range[1] + 1):
             try:
                 data = get_data_from_spectrum(self.msrun[self.ids[i]])
                 newdat = ud.mergedata(template, data)
@@ -205,26 +289,27 @@ class mzMLimporter:
                 print("Error", e, "With scan number:", i)
         return template
 
-    def grab_data(self):
+    def grab_data(self, threshold=-1):
         newtimes = []
-        #newscans = []
+        # newscans = []
         newids = []
         self.data = []
         for i, s in enumerate(self.ids):
             try:
-                impdat = get_data_from_spectrum(self.msrun[s])
+                impdat = get_data_from_spectrum(self.msrun[s], threshold=threshold)
                 self.data.append(impdat)
                 newtimes.append(self.times[i])
-                #newscans.append(self.scans[i])
+                # newscans.append(self.scans[i])
                 newids.append(s)
             except Exception as e:
                 print("mzML import error")
                 print(e)
-        #self.scans = np.array(newscans)
+        # self.scans = np.array(newscans)
         self.times = np.array(newtimes)
         self.ids = np.array(newids)
         self.scans = np.arange(0, len(self.ids))
         self.data = np.array(self.data)
+        return self.data
 
     def get_data_fast_memory_heavy(self, scan_range=None, time_range=None):
         if self.data is None:
@@ -236,7 +321,7 @@ class mzMLimporter:
             print("Getting times:", time_range)
 
         if scan_range is not None:
-            data = data[int(scan_range[0]):int(scan_range[1]+1)]
+            data = data[int(scan_range[0]):int(scan_range[1] + 1)]
             print("Getting scans:", scan_range)
         else:
             print("Getting all scans, length:", len(self.scans), data.shape)
@@ -332,18 +417,124 @@ class mzMLimporter:
     def get_max_scans(self):
         return np.amax(self.scans)
 
+    def get_inj_time(self, spectrum):
+        element = spectrum.element
+        it = 1
+        for child in element.iter():
+            if 'name' in child.attrib:
+                if child.attrib['name'] == 'ion injection time':
+                    it = child.attrib['value']
+                    try:
+                        it = float(it)
+                    except:
+                        it = 1
+        return it
+
+    def get_property(self, s, name):
+        element = self.msrun[s].element
+        it = 1
+        for child in element.iter():
+            if 'name' in child.attrib:
+                if child.attrib['name'] == name:
+                    it = child.attrib['value']
+                    try:
+                        it = float(it)
+                    except:
+                        it = 1
+        return it
+
+    def get_dts(self):
+        dts = []
+        for i, s in enumerate(self.ids):
+            try:
+                dt = self.get_property(s, 'ion mobility drift time')
+                dts.append(dt)
+            except:
+                dts.append(-1)
+        return np.array(dts)
+
+    def get_inj_time_array(self):
+        its = []
+        for i, s in enumerate(self.ids):
+            it = self.get_inj_time(self.msrun[s])
+            its.append(it)
+        return np.array(its)
+
+    def grab_im_data(self):
+        newtimes = []
+        newids = []
+        self.data = []
+        for i, s in enumerate(self.ids):
+            try:
+                array = get_im_data_from_spectrum(self.msrun[s])
+                self.data.append(np.array(array))
+                newtimes.append(self.times[i])
+                newids.append(s)
+            except:
+                pass
+        self.data = np.array(self.data, dtype='object')
+        self.times = np.array(newtimes)
+        self.ids = np.array(newids)
+        self.scans = np.arange(0, len(self.ids))
+        return self.data
+
+    def get_im_data(self, scan_range=None, time_range=None, mzbins=None):
+        start_time = time.perf_counter()
+        if self.data is None:
+            self.grab_im_data()
+
+        data = deepcopy(self.data)
+        if time_range is not None:
+            scan_range = self.get_scans_from_times(time_range)
+            print("Getting times:", time_range)
+
+        if scan_range is not None:
+            data = data[int(scan_range[0]):int(scan_range[1] + 1)]
+            print("Getting scans:", scan_range)
+        else:
+            print("Getting all scans, length:", len(self.scans), data.shape)
+
+        if data is None or ud.isempty(data):
+            print("Error: Empty Data Object")
+            return None
+
+        # Need to merge to get 2D from spare array
+        try:
+            data = merge_im_spectra(data, mzbins=mzbins)
+        except Exception as e:
+            concat = np.concatenate(data)
+            sort = concat[concat[:, 0].argsort()]
+            data = ud.removeduplicates(sort)
+            print("2", e)
+
+        # plt.figure()
+        # plt.plot(data)
+        # plt.show()
+        print("Import Time:", time.perf_counter() - start_time)
+        return data
+
 
 if __name__ == "__main__":
     # test = u"C:\Python\\UniDec3\TestSpectra\JAW.mzML"
-    test = "C:\Data\MikeGeeson\MG_201116_2.mzML.gz"
+    # test = "C:\Data\MikeGeeson\MG_201116_2.mzML.gz"
     # test = "C:\Data\ManasiFiles\Thermo_Files_Filgrastim\\191101_FilgL_FIA_140kres_500ng.mzML"
     # test = "C:\Data\ManasiFiles\Bruker D files_HBoku_mab\\200815_FIA_H20_HBOKU_ph9_200ustime_1550_7000mz_1ul_75_1_698.mzML.gz"
     # test = "C:\Data\ManasiFiles\Bruker D files_HBoku_mab\\test.mzML.gz"
+    test = "C:\Data\Wendy\FW CDMS runs20210322081451\/20210301_OBJ41415_CDMS_Pure_4.mzML.gz"
     import time
 
     tstart = time.perf_counter()
 
     d = mzMLimporter(test)
+    spectrum = d.msrun[10]
+    # it = it.get("ion inject time")
+    element = spectrum.element
+    for child in element.iter():
+        if 'name' in child.attrib:
+            if child.attrib['name'] == 'ion injection time':
+                it = child.attrib['value']
+                print(it)
+    exit()
     tic = d.get_tic()
     print(len(tic))
     print(len(d.scans))
@@ -360,8 +551,6 @@ if __name__ == "__main__":
     # get_data_from_spectrum(d.msrun[239])
     # exit()
     data = d.get_data()
-
-
 
     print(data)
     import matplotlib.pyplot as plt

@@ -46,15 +46,11 @@ if system == "Windows":
     exename += ".exe"
 outputdir = 'UniDec_' + system
 if distmode:
-    outputdir += '_Dist'
+    outputdir += '_GPU'
 zipdirectory = outputdir + "_" + date + ".zip"
 
-# Analysis of packages
-a = Analysis(['Launcher.py'],
-             pathex=[os.getcwd()],
-             excludes=['pandas', 'IPython', 'statsmodels', 'pyopenms', 'sklearn',
-                       'GdkPixbuf', 'PIL', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2', 'PyQt5'],
-             hiddenimports=[  # 'plotly','
+
+hiddenimportslist=[  # 'plotly','
                  # 'sklearn', 'sklearn.decomposition', 'sklearn.preprocessing', 'sklearn.utils', 'pytest', 'pluggy',
                  # 'sklearn.utils.testing', 'sklearn.utils._cython_blas',
                  'scipy.special._ufuncs_cxx', 'scipy.linalg.cython_blas', 'scipy.linalg.cython_lapack',
@@ -72,9 +68,29 @@ a = Analysis(['Launcher.py'],
                  'pubsub.core.kwargs.topicmgrimpl',
                  'Tkinter', 'FixTk', '_tkinter', 'Tkconstants', 'FileDialog', 'Dialog', 'six',
                  'pymzml.run', 'pymzml.plot', 'pymzml.obo',
-                 'pkg_resources.py2_warn'
+                 'pkg_resources.py2_warn',
                  # , 'requests.packages.chardet.sys', 'requests','urllib3.packages.ordered_dict'
-             ],
+             ]
+
+cudaimportlist=['cupy','cupy.core', 'cupy.core._routines_sorting','cupy.core.flags','cupy.core.new_fusion',
+                 'cupy.core._fusion_trace','cupy.core._fusion_variable','cupy.core._fusion_op',
+                 'cupy.core._fusion_optimization','cupy.core._fusion_kernel',
+                 'cupy_backends.cuda.stream', 'cupy.core._carray', 'fastrlock',
+                 'fastrlock.rlock', 'cupy.core._cub_reduction', 'cupy.core._ufuncs']
+
+excludeslist = ['pandas', 'IPython', 'statsmodels', 'pyopenms', 'sklearn',
+                       'GdkPixbuf', 'PIL', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2', 'PyQt5']
+
+if distmode:
+    hiddenimportslist = hiddenimportslist + cudaimportlist
+else:
+    excludeslist = excludeslist + cudaimportlist
+
+# Analysis of packages
+a = Analysis(['Launcher.py'],
+             pathex=[os.getcwd()],
+             excludes=excludeslist,
+             hiddenimports=hiddenimportslist,
              hookspath=None,
              runtime_hooks=None)
 
@@ -100,16 +116,23 @@ if system == "Windows":
             a.datas += add
             # print add
 
+    cuincludedir='C:\\Python37\\Lib\\site-packages\\cupy\\core\\include'
+    for root, subdirs, files in os.walk(cuincludedir):
+        for f in files:
+            path = os.path.join(root, f)
+            relpath = os.path.relpath(path, cuincludedir)
+            add = [('cupy\\core\\include\\' + relpath, path, 'DATA')]
+            a.datas += add
+            # print(add)
+
     a.datas += [('RawFileReaderLicense.doc', 'unidec_modules\\thermo_reader\\RawFileReaderLicense.doc', 'DATA')]
     a.datas += [('ThermoFisher.CommonCore.Data.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.Data.dll', 'DATA')]
     a.datas += [('ThermoFisher.CommonCore.RawFileReader.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.RawFileReader.dll', 'DATA')]
     a.datas += [('ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'DATA')]
     a.datas += [('ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'DATA')]
-
-    if not distmode:
-        a.datas += [('MassLynxRaw.dll', 'unidec_bin\\MassLynxRaw.dll', 'DATA')]
-        a.datas += [('cdt.dll', 'unidec_bin\\cdt.dll', 'DATA')]
-        a.datas += [('Waters_MassLynxSDK_EULA.txt', 'unidec_bin\\Waters_MassLynxSDK_EULA.txt', 'DATA')]
+    a.datas += [('MassLynxRaw.dll', 'unidec_bin\\MassLynxRaw.dll', 'DATA')]
+    a.datas += [('cdt.dll', 'unidec_bin\\cdt.dll', 'DATA')]
+    a.datas += [('Waters_MassLynxSDK_EULA.txt', 'unidec_bin\\Waters_MassLynxSDK_EULA.txt', 'DATA')]
 elif system == "Linux":
     a.datas += [('unideclinux', 'unidec_bin/unideclinux', 'DATA')]
     # a.datas += [('unideclinuxIM', 'unidec_bin/unideclinuxIM', 'DATA')]

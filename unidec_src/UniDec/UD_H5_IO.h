@@ -237,6 +237,8 @@ Config mh5LoadConfig(Config config, hid_t file_id)
 	config.to = float_attr(file_id, "/config", "tnaught", config.to);
 	config.tcal1 = float_attr(file_id, "/config", "tcal1", config.tcal1);
 	config.tcal2 = float_attr(file_id, "/config", "tcal2", config.tcal2);
+	config.tcal3 = float_attr(file_id, "/config", "tcal3", config.tcal3);
+	config.tcal4 = float_attr(file_id, "/config", "tcal4", config.tcal4);
 	config.edc = float_attr(file_id, "/config", "edc", config.edc);
 	config.nativeccsub = float_attr(file_id, "/config", "ubnativeccs", config.nativeccsub);
 	config.nativeccslb = float_attr(file_id, "/config", "lbnativeccs", config.nativeccslb);

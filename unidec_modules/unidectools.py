@@ -17,7 +17,11 @@ from scipy.optimize import curve_fit
 from scipy import signal
 from scipy import fftpack
 import matplotlib.cm as cm
-from unidec_modules.mzMLimporter import mzMLimporter
+
+try:
+    from unidec_modules.mzMLimporter import mzMLimporter
+except:
+    pass
 from unidec_modules.fitting import *
 from unidec_modules import unidecstructure
 import fnmatch
@@ -832,7 +836,7 @@ def waters_convert2(path, config=None, outfile=None):
     return data
 
 
-def load_mz_file(path, config=None, time_range=None):
+def load_mz_file(path, config=None, time_range=None, imflag=0):
     """
     Loads a text or mzml file
     :param path: File path to load
@@ -872,9 +876,19 @@ def load_mz_file(path, config=None, time_range=None):
             data = np.loadtxt(path, skiprows=header_test(path))
             # data = np.loadtxt(path, skiprows=header_test(path, delimiter=","), delimiter=",")
         elif extension == ".csv":
-            data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0, 1))
-        elif extension == ".mzml":
-            data = mzMLimporter(path).get_data(time_range=time_range)
+            try:
+                data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0, 1))
+            except:
+                data = np.loadtxt(path, delimiter=",", skiprows=8, usecols=(0, 1))
+        elif extension == ".mzml" or extension == ".gz":
+            if imflag == 1:
+                if config.compressflag == 1:
+                    mzbins = config.mzbins
+                else:
+                    mzbins = None
+                data = mzMLimporter(path).get_im_data(time_range=time_range, mzbins=mzbins)
+            else:
+                data = mzMLimporter(path).get_data(time_range=time_range)
             txtname = path[:-5] + ".txt"
             np.savetxt(txtname, data)
             print("Saved to:", txtname)
@@ -1373,7 +1387,7 @@ def linterpolate(datatop, intx):
     :return: Interpolation of intensity from original data onto the new x-axis.
         Same shape as the old data but new length.
     """
-    f = interp1d(datatop[:, 0], datatop[:, 1])
+    f = interp1d(datatop[:, 0], datatop[:, 1], fill_value=0, bounds_error=False)
     inty = f(intx)
     newdat = np.column_stack((intx, inty))
     return newdat
@@ -1477,9 +1491,15 @@ def detectoreff(datatop, va):
     return datatop
 
 
-def fake_log(data):
-    non_zero_min = np.amin(data[data > 0])
-    return np.log10(np.clip(data, non_zero_min, np.amax(data)))
+def fake_log(data, percent=50):
+    nonzerodata = data[data > 0]
+    l1 = len(nonzerodata)
+    sdat = np.sort(np.ravel(nonzerodata))
+    index = round(l1 * percent / 100.)
+    non_zero_min = sdat[index]
+    newdata = np.log10(np.clip(data, non_zero_min, np.amax(data)))
+    newdata -= np.amin(newdata)
+    return newdata
 
 
 def remove_middle_zeros(data):
@@ -1558,16 +1578,6 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
         pass
     else:
         print("Background subtraction code unsupported", subtype, buff)
-
-    # Scale Adjustment
-    print(config.intscale, config.intscale == "Square Root")
-    if config.intscale == "Square Root":
-        data2[:, 1] = np.sqrt(data2[:, 1])
-        print("Square Root Scale")
-    elif config.intscale == "Logarithmic":
-        data2[:, 1] = fake_log(data2[:, 1])
-        data2[:, 1] -= np.amin(data2[:, 1])
-        print("Log Scale")
 
     # Data Reduction
     if redper > 0:
@@ -1884,7 +1894,8 @@ def nonlinstickconv(xvals, mztab, fwhm, psfun):
     stick = np.zeros(xlen)
     stick[np.array(mztab[:, 2]).astype(np.int)] = mztab[:, 1]
     bool1 = [np.abs(xvals - xvals[i]) < window for i in range(0, xlen)]
-    kernels = np.array([make_peak_shape(-xvals[bool1[i]], psfun, fwhm, -xvals[i]) for i in range(0, xlen)])
+    kernels = np.array([make_peak_shape(-xvals[bool1[i]], psfun, fwhm, -xvals[i]) for i in range(0, xlen)],
+                       dtype=object)
     output = np.array([np.sum(kernels[i] * stick[bool1[i]]) for i in range(0, xlen)])
     return output
 
