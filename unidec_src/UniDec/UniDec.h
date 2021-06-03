@@ -3285,6 +3285,45 @@ void readkernel(const char* infile, int lengthmz, double* datax, double* datay)
 
 }
 
+// Fast way of finding the nearest data point in an ordered list of doubles.
+int nearfast_d(const double* dataMZ, const double point, const int numdat)
+{
+	int start = 0;
+	int length = numdat - 1;
+	int end = 0;
+	int diff = length - start;
+	while (diff > 1) {
+		if (point < dataMZ[start + (length - start) / 2]) {
+			length = start + (length - start) / 2;
+		} else if (point == dataMZ[start + (length - start) / 2]) {
+			end = start + (length - start) / 2;
+			length = start + (length - start) / 2;
+			start = start + (length - start) / 2;
+			return end;
+		} else if (point > dataMZ[start + (length - start) / 2]) {
+			start = start + (length - start) / 2;
+		}
+		diff = length - start;
+	}
+	if (fabs(point - dataMZ[start]) >= fabs(point - dataMZ[length])) {
+		end = length;
+	} else {
+		end = start;
+	}
+	return end;
+}
+
+double LinearInterpolateD(double y1, double y2, double mu)
+{
+	return(y1 * (1 - mu) + y2 * mu);
+}
+
+double LinearInterpolatePositionD(double x1, double x2, double x)
+{
+	if (x2 - x1 == 0) { return 0; }
+	return (x - x1) / (x2 - x1);
+}
+
 // "Returns" discrete Fourier transform of input array. Unused.
 // Use fftw library instead
 void discretefouriertransform(double* input, double** output, int length) {
@@ -3351,6 +3390,110 @@ void cconv2(double* a, double* b, double* c, int length) {
 	free(A);
 	free(B);
 	free(C);
+}
+
+// Integrates data in kernel to match sampling in data. Returns the new kernel length
+int integrate_dd(double* kernel_x, double* kernel_y, int kernellen, double* data_x,
+	double* data_y, int datalen, double** kernel_x_new, double** kernel_y_new) {
+	if (kernellen <= 1 || datalen <= 1) {
+		return kernellen;
+	}
+	double diff = data_x[1] - data_x[0]; // kernel sampling needs to match this
+	double kdiff = kernel_x[1] - kernel_x[0]; // the original kernel sampling
+	int newlen = ((kernel_x[kernellen - 1] - kernel_x[0]) / diff) + 1; // new number of points in kernel
+	// these are the newly allocated arrays for the kernel
+	int truelen;
+	if (newlen > datalen) {
+		truelen = newlen;
+	} else {
+		truelen = datalen;
+	}
+	*kernel_x_new = calloc(truelen, sizeof(double));
+	*kernel_y_new = calloc(truelen, sizeof(double));
+
+	double current_x = kernel_x[0];
+	double current_xl = kernel_x[0];
+	double current_xr = kernel_x[0] + (diff / 2);
+	int current_index = 0;
+	for (int i = 0; i < newlen; i++) {
+		double y_val = 0;
+		for (int j = current_index; j < kernellen; j++) {
+			// For the first value, add area to the left of the point
+			if (j == current_index && j != 0 && kernel_x[j] >= current_xl && kernel_x[j] < current_xr) {
+				double left_mu = LinearInterpolatePositionD(kernel_x[j - 1], kernel_x[j], current_xl);
+				double left_y = LinearInterpolateD(kernel_y[j - 1], kernel_y[j], left_mu);
+				y_val += (left_y + kernel_y[j]) * (kernel_x[j] - current_xl) / 2.0;
+			}
+			// Next, add the area to the right of the point (it's either to the next point, to the
+			// boundary, or we're at the last point)
+			if (kernel_x[j] >= current_xl && kernel_x[j] < current_xr && (j + 1) < kernellen &&
+				kernel_x[j + 1] < current_xr) {
+				y_val += (kernel_y[j] + kernel_y[j + 1]) * kdiff / 2.0;
+			} else if (kernel_x[j] >= current_xl && kernel_x[j] < current_xr &&
+				(j + 1) < kernellen && kernel_x[j + 1] >= current_xr) {
+				double right_mu = LinearInterpolatePositionD(kernel_x[j], kernel_x[j + 1], current_xr);
+				double right_y = LinearInterpolateD(kernel_y[j], kernel_y[j + 1], right_mu);
+				y_val += (kernel_y[j] + right_y) * (current_xr - kernel_x[j]) / 2.0;
+			} else if (kernel_x[j] >= current_xr || (j + 1) >= kernellen) {
+				current_index = j;
+				break;
+			}
+		}
+		(*kernel_x_new)[i] = current_x;
+		(*kernel_y_new)[i] = y_val; // Should probably divide by diff. CHECK! --actually, I don't think it matters
+		current_x += diff;
+		current_xl = current_xr;
+		current_xr += diff;
+	}
+
+	return newlen;
+}
+
+// (Linear) Interpolates data in kernel to match sampling in data. Returns the new kernel length
+int interpolate_dd(double* kernel_x, double* kernel_y, int kernellen, double* data_x,
+	double* data_y, int datalen, double** kernel_x_new, double** kernel_y_new) {
+	if (kernellen <= 1 || datalen <= 1) {
+		return kernellen;
+	}
+	double diff = data_x[1] - data_x[0]; // kernel sampling needs to match this
+	int newlen = ((kernel_x[kernellen - 1] - kernel_x[0]) / diff) + 1; // new number of points in kernel
+	// these are the newly allocated arrays for the kernel
+	int truelen;
+	if (newlen > datalen) {
+		truelen = newlen;
+	} else {
+		truelen = datalen;
+	}
+	*kernel_x_new = calloc(truelen, sizeof(double));
+	*kernel_y_new = calloc(truelen, sizeof(double));
+
+	double current_x = kernel_x[0];
+	for (int i = 0; i < newlen; i++) {
+		int nearest_index = nearfast_d(kernel_x, current_x, kernellen);
+		if (kernel_x[nearest_index] == current_x) {
+			(*kernel_y_new)[i] = kernel_y[nearest_index];
+		} else if (kernel_x[nearest_index] < current_x) {
+			if ((nearest_index + 1) < kernellen) {
+				double mu = LinearInterpolatePositionD(kernel_x[nearest_index], kernel_x[nearest_index + 1], current_x);
+				double y_val = LinearInterpolateD(kernel_y[nearest_index], kernel_y[nearest_index + 1], mu);
+				(*kernel_y_new)[i] = y_val;
+			} else { // this should never be the case
+				(*kernel_y_new)[i] = kernel_y[nearest_index];
+			}
+		} else if (kernel_x[nearest_index] > current_x) {
+			if (nearest_index > 0) {
+				double mu = LinearInterpolatePositionD(kernel_x[nearest_index - 1], kernel_x[nearest_index], current_x);
+				double y_val = LinearInterpolateD(kernel_y[nearest_index - 1], kernel_y[nearest_index], mu);
+				(*kernel_y_new)[i] = y_val;
+			} else { // this should also never happen
+				(*kernel_y_new)[i] = kernel_y[nearest_index];
+			}
+		}
+		(*kernel_x_new)[i] = current_x;
+		current_x += diff;
+	}
+
+	return newlen;
 }
 
 void cconv2fast(double* a, double* b, double* c, int length) {
@@ -3568,27 +3711,29 @@ void DoubleDecon(const Config* config, Decon* decon) {
 	int data_length = decon->mlen;
 	if (kernel_length > data_length) {
 		true_length = kernel_length;
-	}
-	else {
+	} else {
 		true_length = data_length;
 	}
 
 	// Read in kernel file
-	double* kernel_x = calloc(true_length, sizeof(double));
-	double* kernel_y = calloc(true_length, sizeof(double));
-	double max_kernel_y = 0.0;
-	int max_kernel_i = 0;
-	readkernel(config->kernel, kernel_length, kernel_x, kernel_y);
-	for (int i = 0; i < kernel_length; i++) {
-		if (kernel_y[i] > max_kernel_y) {
-			max_kernel_y = kernel_y[i];
-			max_kernel_i = i;
+	double* kernel_x_init = calloc(true_length, sizeof(double));
+	double* kernel_y_init = calloc(true_length, sizeof(double));
+	readkernel(config->kernel, kernel_length, kernel_x_init, kernel_y_init);
+	// printf("Kernel file read.\n");
+
+	// Enforce the same sampling on the kernel
+	if (kernel_length > 1 && data_length > 1) {
+		double diff = decon->massaxis[1] - decon->massaxis[0]; // kernel sampling needs to match this
+		double kdiff = kernel_x_init[1] - kernel_x_init[0]; // the original kernel sampling
+		if (diff != kdiff) {
+			int newlen = ((kernel_x_init[kernel_length - 1] - kernel_x_init[0]) / diff) + 1;
+			if (newlen > data_length) {
+				true_length = newlen;
+			} else {
+				true_length = data_length;
+			}
 		}
 	}
-	for (int i = 0; i < kernel_length; i++) {	// Normalize
-		kernel_y[i] = kernel_y[i] / max_kernel_y;
-	}
-	printf("Kernel file read and normalized.\n");
 
 	// Read in data (i.e. copy from decon struct)
 	double* data_x = calloc(true_length, sizeof(double));
@@ -3604,7 +3749,44 @@ void DoubleDecon(const Config* config, Decon* decon) {
 	for (int i = 0; i < data_length; i++) {	// Normalize
 		data_y[i] = data_y[i] / max_data_y;
 	}
-	printf("Data file copied and normalized.\n");
+	// printf("Data file copied and normalized.\n");
+
+	// Integrate or interpolate if necessary...
+	double* kernel_x = NULL;
+	double* kernel_y = NULL;
+	int kernel_length2 = true_length;
+	// printf("true length is %d\n", kernel_length2);
+	if (kernel_length > 1 && data_length > 1 &&
+		(data_x[1] - data_x[0]) > (kernel_x_init[1] - kernel_x_init[0])) {
+		// printf("Integrating\n");
+		kernel_length2 = integrate_dd(kernel_x_init, kernel_y_init, kernel_length, data_x, data_y,
+			true_length, &kernel_x, &kernel_y);
+	} else if (kernel_length > 1 && data_length > 1 &&
+		(data_x[1] - data_x[0]) < (kernel_x_init[1] - kernel_x_init[0])) {
+		// printf("Interpolating\n");
+		kernel_length2 = interpolate_dd(kernel_x_init, kernel_y_init, kernel_length, data_x, data_y,
+			true_length, &kernel_x, &kernel_y);
+	} else {
+		// printf("Sampling is OK\n");
+		kernel_x = kernel_x_init;
+		kernel_y = kernel_y_init;
+	}
+	// ...and find max and normalize
+	double max_kernel_y = 0.0;
+	int max_kernel_i = 0;
+	for (int i = 0; i < kernel_length2; i++) {
+		// printf("kernel y for index %d is %f\n", i, kernel_y[i]);
+		if (kernel_y[i] > max_kernel_y) {
+			max_kernel_y = kernel_y[i];
+			max_kernel_i = i;
+		}
+	}
+	// printf("max is %f, out of length %d\n", max_kernel_y, kernel_length2);
+	for (int i = 0; i < kernel_length2; i++) {	// Normalize
+		kernel_y[i] = kernel_y[i] / max_kernel_y;
+		// printf("%f\n", kernel_y[i]);
+	}
+	// printf("Kernel file normalized.\n");
 
 	// Pad x-axis for the shorter one (is padding kernel even necessary???)
 	if (data_length < true_length) { // Pad data_x
@@ -3623,7 +3805,7 @@ void DoubleDecon(const Config* config, Decon* decon) {
 			last = kernel_x[i];
 		}
 	}
-	printf("Data padded.\n");
+	// printf("Data padded.\n");
 
 	// Prepare kernel
 	double* real_kernel_y = calloc(true_length, sizeof(double));
@@ -3634,32 +3816,41 @@ void DoubleDecon(const Config* config, Decon* decon) {
 	for (int i = 0; i < max_kernel_i; i++) {
 		real_kernel_y[part1_length + i] = kernel_y[i];
 	}
-	printf("Kernel file prepared.\n");
+	// printf("Kernel file prepared.\n");
 
 	// Run Richardson-Lucy deconvolution
 	double* doubledec = calloc(true_length, sizeof(double));
-	printf("Running dd_deconv2\n");
+	// printf("Running dd_deconv2\n");
 	dd_deconv2(real_kernel_y, data_y, true_length, doubledec);
 
-	printf("Copying results to Decon struct.\n");
-	if (true_length > decon->mlen) {
-		printf("Warning: new length exceeds previous mlen.\n");
+	// printf("Copying results to Decon struct.\n");
+	int lb = nearfast_d(data_x, config->masslb, true_length);
+	if (data_x[lb] < config->masslb) lb++;
+	int ub = nearfast_d(data_x, config->massub, true_length);
+	if (data_x[ub] > config->massub) lb--;
+	int write_length = ub - lb + 1;
+	if (write_length > decon->mlen) {
+		// printf("Warning: new length exceeds previous mlen.\n");
 		free(decon->massaxis);
 		free(decon->massaxisval);
-		decon->massaxis = calloc(true_length, sizeof(float));
-		decon->massaxisval = calloc(true_length, sizeof(float));
+		decon->massaxis = calloc(write_length, sizeof(float));
+		decon->massaxisval = calloc(write_length, sizeof(float));
 	}
 	// Copy results to the Decon struct
-	for (int i = 0; i < true_length; i++) {
-		decon->massaxis[i] = data_x[i];
-		decon->massaxisval[i] = doubledec[i];
+	for (int i = 0; i < write_length; i++) {
+		decon->massaxis[i] = data_x[i + lb];
+		decon->massaxisval[i] = doubledec[i + lb];
 	}
-	decon->mlen = true_length;
-	printf("Results copied to Decon.\n");
+	decon->mlen = write_length;
+	// printf("Results copied to Decon.\n");
 
 	// Free memory
-	free(kernel_x);
-	free(kernel_y);
+	if (kernel_x != kernel_x_init) {
+		free(kernel_x);
+		free(kernel_y);
+	}
+	free(kernel_x_init);
+	free(kernel_y_init);
 	free(real_kernel_y);
 	free(data_x);
 	free(data_y);
