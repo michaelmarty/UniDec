@@ -203,6 +203,8 @@ v.5.0.0
 
 **Added mzML ion mobility support**. Using MSConvert, select "Combine ion mobility scans". Then, launch UniDec and switch to IM mode by clicking Advanced > Switch to Ion Mobility Mode. UniDecIM should then be able to open ion mobility mzML files by drag and drop or File > Open File. It will create a text file next to the mzML file that you can open in the future. We recommend using the "Compress when converting to .txt" option to help speed up data processing by binning the data at this stage using the "Bin Every" parameter. 
 
+**Improved DoubleDec** code that is integrated into the C code and more tolerant of different types of input.
+
 Began adding experimental SLIM IM-MS calibration functions. Not fully implemented.
 
 Added ability to open CSV files exported from Thermo Freestyle.

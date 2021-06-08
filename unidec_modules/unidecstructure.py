@@ -214,7 +214,7 @@ class UniDecConfig(object):
         # Reused by IM and CD
         self.csig = 0
         # Charge Detection
-        self.CDslope = 12.5
+        self.CDslope = 0.2074
         self.CDzbins = 1
         self.CDres = 1
 

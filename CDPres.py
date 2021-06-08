@@ -66,7 +66,7 @@ class UniDecCDApp(UniDecApp):
             # self.on_dataprep_button(0)
             # self.on_auto(0)
 
-        if True and platform.node() == 'DESKTOP-08TGCJO':
+        if False and platform.node() == 'DESKTOP-08TGCJO':
             path = "C:\\Data\\CDMS\\02242021_MK_BSA__CD-MS_Aqu_ACN_10min.RAW"
             path = "C:\\Data\\CDMS\\20210309_MK_ADH_pos_CDMS_512ms_5min_50ms_pressure01.RAW"
             # path = "C:\\Data\\CDMS\\Replicates\\AAV8_IMID_CDMS_1.RAW"
