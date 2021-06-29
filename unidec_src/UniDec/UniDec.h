@@ -553,7 +553,7 @@ void PrintHelp()
 	//printf("\nsize of: %d",sizeof(char));
 
 	float test = calcDtSLIMpoly3(1, 1, 0, 2, 3, -11, -3, 4, 0);
-	float test2 = calcDtSLIMpoly2(1, 1, 0, 2, 3, -11, 4, 0);
+	//float test2 = calcDtSLIMpoly2(1, 1, 0, 2, 3, -11, 4, 0);
 
 }
 

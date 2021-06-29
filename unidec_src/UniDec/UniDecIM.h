@@ -270,11 +270,16 @@ void convolve3D(float *out, float *in, float *peakshape, int *size)
 	free(tempout);
 }
 
-float calcCCS(float mass, int z, float dt, float ccsconst, float hmass, float to)
+float calcCCS(const float mass, const int z, const float dt, const float ccsconst, const float hmass, const float to, const int type)
 {
 	float ac = 1.6605389E-27;
+	float factor = 0.001;
+	if (type == 1) {
+		ac = 1;
+		factor = 1;
+	}
 	float rmass = ac*(mass*hmass) / (mass + hmass);
-	float td = (dt - to)*0.001;
+	float td = (dt - to)*factor;
 	float ccs = (float)z*(td)*sqrt(1 / rmass)*ccsconst;
 	return ccs;
 }
@@ -340,13 +345,19 @@ float calcDtTwavePower(float mass, int z, float ccs, float tcal1, float tcal2, f
 	return rdt + (edc*sqrt(mass / z) / 1000);
 }
 
-float calcDt(float mass, int z, float ccs, float ccsconst, float hmass, float to)
+float calcDt(const float mass, const int z, const float ccs, const float ccsconst, const float hmass, const float to, const int type)
 {
 
 	float ac = 1.6605389E-27;
+	float factor = 1000;
+	if (type == 1)
+	{
+		ac = 1;
+		factor = 1;
+	}
 	float rmass = ac*(mass*hmass) / (mass + hmass);
 	float td = ccs / (ccsconst*(float)z*sqrt(1 / rmass));
-	float dt = (td * 1000) + to;
+	float dt = (td * factor) + to;
 	return dt;
 }
 

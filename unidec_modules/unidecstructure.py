@@ -216,7 +216,7 @@ class UniDecConfig(object):
         # Charge Detection
         self.CDslope = 0.2074
         self.CDzbins = 1
-        self.CDres = 1
+        self.CDres = 0
 
         self.doubledec = False
         self.kernel = ""
@@ -906,10 +906,6 @@ class UniDecConfig(object):
 
             if self.ccsub < self.ccslb:
                 self.warning = "CCS Upper Bound lower then CCS Lower Bound\nFix CCS range."
-                self.badtest = 1
-
-            if self.twaveflag == 0 and (self.pressure == 0 or self.driftlength == 0):
-                self.warning = "Pressure and Cell Length must be nonzero for Linear Cell"
                 self.badtest = 1
 
             if self.twaveflag > 0 and (self.tcal1 == 0 or self.tcal2 == 0 or self.edc == 0):

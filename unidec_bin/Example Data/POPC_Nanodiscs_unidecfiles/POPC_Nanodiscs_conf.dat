@@ -1,4 +1,4 @@
-version 4.4.1
+version 5.0.0.beta
 imflag 0
 input C:\Python\UniDec3\unidec_bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs_input.dat
 output C:\Python\UniDec3\unidec_bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs
@@ -11,6 +11,7 @@ psig 0.0
 beta 0.0
 mzsig 5.0
 psfun 0
+zpsfun 0
 discreteplot 0
 massub 200000.0
 masslb 20000.0
@@ -54,7 +55,8 @@ integrateub 1000.0
 filterwidth 20.0
 zerolog -12.0
 doubledec 0
-kernel 
+kernel C:\Python\UniDec3\unidec_bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs_mass.txt
 CDslope 12.5
-CDzbins 1
-csig 0
+CDzbins 1.0
+CDres 1.0
+csig 0.0
