@@ -32,8 +32,10 @@ void mh5writefile1d(hid_t file_id, char* dataname, int length, float* data1);
 void mh5writefile2d(hid_t file_id, char* dataname, int length, float* data1, float* data2);
 void mh5writefile2d_grid(hid_t file_id, char* dataname, int length1, int length2, float* data1);
 void delete_group(hid_t file_id, char* dataname);
-float calcDtSLIMpoly3(float mass, int z, float ccs, float tcal1, float tcal2, float tcal3, float tcal4, float hmass, float edc);
 float calcDtSLIMpoly2(float mass, int z, float ccs, float tcal1, float tcal2, float tcal3, float hmass, float edc);
+float calcCCSSLIMpoly2(float mass, int z, float dt, float tcal1, float tcal2, float tcal3, float hmass, float edc);
+float calcCCSSLIMpoly3(float mass, int z, float dt, float tcal1, float tcal2, float tcal3, float tcal4, float hmass, float edc);
+float calcDtSLIMpoly3(float mass, int z, float ccs, float tcal1, float tcal2, float tcal3, float tcal4, float hmass, float edc);
 
 typedef struct Input Input;
 
@@ -545,15 +547,32 @@ void PrintHelp()
 	printf("\t\t\t\t\t Reduced CCS = P1 * Reduced Drift Time + P2\n");
 	printf("\t\t\t\t3=T-Wave Power Law Calibration\n");
 	printf("\t\t\t\t\tReduced CCS =P1 * (Reduced Drift Time ^ P2)\n");
-	printf("\t\t\t\t3=SLIM T-Wave 2nd Order Polynomial Calibration\n");
+	printf("\t\t\t\t4=SLIM T-Wave 2nd Order Polynomial Calibration\n");
 	printf("\t\t\t\t\t\"tcal3\"=Calibration paramter 3 (P3)\n");
-	printf("\t\t\t\t3=SLIM T-Wave 3rd Order Polynomial Calibration\n");
+	printf("\t\t\t\t5=SLIM T-Wave 3rd Order Polynomial Calibration\n");
 	printf("\t\t\t\t\t\"tcal4\"=Calibration parmater 4 (P4)\n");
-	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit.1776.\n");
+	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit.1916.\n");
 	//printf("\nsize of: %d",sizeof(char));
 
-	float test = calcDtSLIMpoly3(1, 1, 0, 2, 3, -11, -3, 4, 0);
-	//float test2 = calcDtSLIMpoly2(1, 1, 0, 2, 3, -11, 4, 0);
+	/*
+	float d = 119.528155;
+	float c = 0.32967;
+	float b = -0.000115585597;
+	float a = 2.4120647e-8;
+	float mass = 760;
+	float z = 1;
+	float hmass = 14;
+	float edc = 0;
+
+	float test2 = calcCCSSLIMpoly2(mass, z, 778, b, c, d, hmass, edc);
+	printf("Test2CCS: %f\n", test2);
+	test2 = calcDtSLIMpoly2(mass, z, 306, b, c, d, hmass, edc);
+	printf("Test2DT: %f\n", test2);
+
+	float test=calcCCSSLIMpoly3(mass, z, 778, a, b, c, d, hmass, edc);
+	printf("Test3CCS: %f\n", test);
+	test = calcDtSLIMpoly3(mass, z, 317, a, b, c, d, hmass, edc);
+	printf("Test3Dt: %f\n", test);*/
 
 }
 
@@ -655,6 +674,35 @@ void readfile3(char* infile, int lengthmz, float* array1, float* array2, float* 
 
 }
 
+//Reads in x y z file.
+void readfile3bin(char* infile, int lengthmz, float* array1, float* array2, float* array3)
+{
+	FILE* file_ptr;
+	int i;
+	float* data;
+	data = calloc(lengthmz * 3, sizeof(float));
+
+	file_ptr = fopen(infile, "rb");
+
+	if (file_ptr == 0)
+	{
+		printf("Could not open %s file\n", infile);
+		exit(10);
+	}
+	else {
+		fread(data, sizeof(float), lengthmz * 3, file_ptr);
+		for (i = 0; i < lengthmz; i++)
+		{
+			array1[i] = data[i*3];
+			array2[i] = data[i*3+1];
+			array3[i] = data[i*3+2];
+			//printf("%f %f %f\n", array1[i], array2[i], array3[i]);
+		}
+	}
+	fclose(file_ptr);
+}
+
+
 //Reads in single list of values
 void readmfile(char* infile, int mfilelen, float* testmasses)
 {
@@ -699,6 +747,30 @@ int getfilelength(const char* infile)
 		{
 			l += 1;
 		}
+	}
+	fclose(file_ptr);
+	return l;
+}
+
+// count the number of lines we have in datafile
+int getfilelengthbin(const char* infile, const int size, const int width)
+{
+	FILE* file_ptr;
+	int l = 0;
+	char input[501];
+	file_ptr = fopen(infile, "rb");
+
+	if (file_ptr == 0)
+	{
+		printf("Could not open %s file\n", infile);
+		exit(9);
+	}
+	else
+	{
+		
+		fseek(file_ptr, 0, SEEK_END);
+		l = ftell(file_ptr);
+		l /= (size * width);
 	}
 	fclose(file_ptr);
 	return l;

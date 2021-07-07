@@ -887,11 +887,18 @@ def load_mz_file(path, config=None, time_range=None, imflag=0):
                 else:
                     mzbins = None
                 data = mzMLimporter(path).get_im_data(time_range=time_range, mzbins=mzbins)
+                if extension == ".mzml":
+                    num = -5
+                if extension == '.gz':
+                    num = -8
+                txtname = path[:num] + ".txt"
+                np.savetxt(txtname, sparse(data))
+                print("Saved to:", txtname)
             else:
                 data = mzMLimporter(path).get_data(time_range=time_range)
-            txtname = path[:-5] + ".txt"
-            np.savetxt(txtname, data)
-            print("Saved to:", txtname)
+                txtname = path[:-5] + ".txt"
+                np.savetxt(txtname, data)
+                print("Saved to:", txtname)
         elif extension.lower() == ".raw":
             data = ThermoDataImporter(path).get_data(time_range=time_range)
             txtname = path[:-4] + ".txt"
@@ -944,6 +951,16 @@ def dataexport(datatop, fname):
         print("NOTE: Your path length might exceed the limit for Windows. Please shorten your file name.")
     pass
 
+def dataexportbin(datatop, fname):
+    try:
+        datatop.astype(np.single).tofile(fname, sep="")
+    except:
+        path = os.path.join(os.getcwd(), fname)
+        path = "\\\\?\\%s" % path
+        datatop.astype(np.single).tofile(path, sep="")
+        print("NOTE: Your path length might exceed the limit for Windows. Please shorten your file name.")
+    pass
+
 
 def savetxt(fname, datatop):
     try:
@@ -969,7 +986,7 @@ def mergedata(data1, data2):
     return newdat
 
 
-def mergedata2d(x1, y1, x2, y2, z2):
+def mergedata2d(x1, y1, x2, y2, z2, method="linear"):
     """
     Uses a 2D interpolation to merge a 2D grid of data from one set of axes to another.
 
@@ -985,7 +1002,7 @@ def mergedata2d(x1, y1, x2, y2, z2):
     oldy = np.ravel(y2)
     newx = np.ravel(x1)
     newy = np.ravel(y1)
-    zout = griddata(np.transpose([oldx, oldy]), np.ravel(z2), (newx, newy), method='linear', fill_value=0)
+    zout = griddata(np.transpose([oldx, oldy]), np.ravel(z2), (newx, newy), method=method, fill_value=0)
     return zout
 
 
@@ -1312,6 +1329,56 @@ def gsmooth(datatop, sig):
     print(len(datatop), sig)
     datatop[:, 1] = filt.gaussian_filter(datatop[:, 1], sig)
     return datatop
+
+
+def linear_axis(raw_data):
+    # Get the sparse data
+    sparse_data=np.unique(raw_data)
+    # Find the sample rate
+    sample_rate = np.amin(np.diff(sparse_data))
+    # Setup the new axis
+    min = np.amin(sparse_data)
+    max = np.amax(sparse_data)
+    newaxis = np.arange(min, max+sample_rate, sample_rate)
+    # Round the old axis to match the new. Otherwise, small differences will be deadly
+    oldraw = np.round((raw_data-min)/sample_rate)*sample_rate + min
+    oldaxis = np.unique(oldraw)
+    return newaxis, oldaxis, oldraw
+
+
+def mergedata2dexact(x1, y1, x2, y2, z2):
+    p1 = np.vectorize(complex)(x1, y1)
+    p2 = np.vectorize(complex)(x2, y2)
+    boo3 = np.isin(p1, p2)
+
+    z1 = np.zeros_like(x1)
+    z1[boo3] = z2
+    return z1
+
+
+def unsparse(rawdata):
+    # Create new axes
+    mzaxis2, mzaxis, rawdata[:,0] = linear_axis(rawdata[:,0])
+    dtaxis2, dtaxis, rawdata[:,1] = linear_axis(rawdata[:,1])
+
+    # Create new grids
+    mzaxis2grid, dtaxis2grid = np.meshgrid(mzaxis2, dtaxis2, sparse=False, indexing='ij')
+
+    # Unsparse
+    ints2 = mergedata2dexact(np.ravel(mzaxis2grid), np.ravel(dtaxis2grid), rawdata[:, 0], rawdata[:, 1], rawdata[:, 2])
+
+    # Wrap everything together
+    rawdata3 = np.transpose([np.ravel(mzaxis2grid), np.ravel(dtaxis2grid), ints2])
+
+    # Create 1D sum
+    intgrid = ints2.reshape((len(mzaxis2), len(dtaxis2)))
+    rawdata = np.transpose([mzaxis2, np.sum(intgrid, axis=1)])
+
+    return rawdata3, rawdata
+
+def sparse(rawdata):
+    boo1 = rawdata[:,2]!=0
+    return rawdata[boo1]
 
 
 def nonlinear_axis(start, end, res):

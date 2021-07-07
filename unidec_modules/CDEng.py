@@ -174,7 +174,7 @@ class UniDecCD(unidec.UniDec):
         The m/z, intensity, and scan data is saved in self.darray (the raw data array).
 
         Next, it filters out any data with intensities of zero.
-        The noise is calculated as the median of the non-zero intensities.
+        The noise is calculated as the maximum of the second derivative of the intensity distribution, also known as the Gmax2.
         The self.farray (filtered array) is created from self.darray.
 
         An Import Error is raised if the darray is empty

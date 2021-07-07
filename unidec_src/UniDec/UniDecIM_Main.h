@@ -30,7 +30,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 
 	printf("Opening File: %s\n", config.infile);
 	int lines;
-	lines = getfilelength(config.infile);
+	lines = getfilelengthbin(config.infile, sizeof(float), 3);
 
 	printf("config.length of data: %d\n", lines);
 
@@ -109,7 +109,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	mzdat = calloc(lines, sizeof(float));
 	dtdat = calloc(lines, sizeof(float));
 	dataInt = calloc(lines, sizeof(float));
-	readfile3(config.infile, lines, mzdat, dtdat, dataInt);
+	readfile3bin(config.infile, lines, mzdat, dtdat, dataInt);
 
 	//Charge States
 	int numz = config.endz - config.startz + 1;
@@ -126,7 +126,6 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	int totlen = size[0] * size[1] * size[2];
 	printf("Dimensions of data: %d mz by %d dt by %d z: %d lines: %d total\n", size[0], size[1], size[2], size[0] * size[1], totlen);
 	if (totlen>155E6) { printf("Warning: May exceed system memory capacity"); }
-
 	//Extracting mz and dt ranges
 	mzext = calloc(size[0], sizeof(float));
 	dtext = calloc(size[1], sizeof(float));

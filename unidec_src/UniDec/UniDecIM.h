@@ -60,10 +60,9 @@ int GetSize0(float *array, int lines)
 {
 	int cnt = 1;
 	float test = array[0];
-	int i;
-	for (i = 1; i<lines; i++) //look for the number of times dH decrements
+	for (int i = 1; i<lines; i++) //look for the number of times dH decrements
 	{
-		if (array[i] != test)
+		if (array[i] > test)
 		{
 			test = array[i];
 			cnt++;
@@ -77,10 +76,9 @@ int GetSize1(float *array, int lines)
 	int cnt = 1;
 	int flag = 0;
 	float test = array[0];
-	int i;
-	for (i = 1; i<lines; i++)
+	for (int i = 1; i<lines; i++)
 	{
-		if (array[i] != test && flag == 0)
+		if (array[i] > test && flag == 0)
 		{
 			cnt++;
 		}
@@ -363,28 +361,42 @@ float calcDt(const float mass, const int z, const float ccs, const float ccscons
 
 float calcCCSSLIMpoly3(float mass, int z, float dt, float tcal1, float tcal2, float tcal3, float tcal4, float hmass, float edc)
 {
-	float rdt = dt - (edc * sqrt(mass / z) / 1.000E3);
+	float rdt = dt -(edc * sqrtf(mass / z) / 1000.);
 	float rccs;
 	if (rdt <= 0) { return 0; }
-	rccs = tcal1 * pow(rdt,3) + tcal2 * pow(rdt, 2) + tcal3 * rdt+tcal4; 
-	float gamma = 1 / z * sqrt(mass / (mass + hmass));
-	return rccs * gamma;
+	rccs = tcal4 * powf(rdt,3) + tcal3 * powf(rdt, 2) + tcal2 * rdt+tcal1; 
+	float gamma = (1 / (float)z) * sqrtf(mass / (mass + hmass));
+	if (gamma > 0) { rccs *= gamma; }
+	else { printf("CCS Gamma is negative %d %f %f %f\n", z, mass, hmass, gamma); exit(93);}
+	return rccs;
 }
 
 
 float calcDtSLIMpoly3(float mass, int z, float ccs, float tcal1, float tcal2, float tcal3, float tcal4, float hmass, float edc)
 {
-	float gamma = 1 / z * sqrt(mass / (mass + hmass));
-	float rccs = ccs / gamma;
+	float gamma = (1 / (float)z) * sqrtf(mass / (mass + hmass));
+	float rccs = ccs;
+	if (gamma > 0) { rccs /= gamma; }
+	else { printf("Dt Gamma is negative %d %f %f %f\n", z, mass, hmass, gamma); exit(94);}
 	if (rccs <= 0) { return 0; }
 
-	float a = tcal1;
-	float b = tcal2;
-	float c = tcal3;
-	float d = tcal4 - rccs;
+	float a = tcal4;
+	float b = tcal3;
+	float c = tcal2;
+	float d = tcal1 - rccs;
 
-	printf("%fx^3 + %fx^2 + %fx + %f = 0 \n", a, b, c, d);
+	//printf("%.5e x^3 + %fx^2 + %fx + %f = 0 \n", a, b, c, d);
+	float d0 = powf(b, 2) - 3 * a * c;
+	float d1 = 2 * powf(b, 3) - 9 * a * b * c + 27 * powf(a, 2) * d;
+	float d2 = powf(d1, 2) - 4 * powf(d0, 3);
+	if (d2 < 0) { return 0; }
 
+	float cst = cbrtf((d1+sqrtf(d2))/2.);
+	if (cst == 0) { return 0; }
+	float rdt = -1 / (3 * a) * (b + cst + d0 / cst);
+	//printf("x = %f \n", rdt);
+	/*
+	//An early attempt. Doesn't seem to work very well...
 	float p = -b / (3*a);
 	float q = powf(p, 3) + ((b * c) - (3 * a * d))/(6 * powf(a, 2));
 	float r = c / (3 * a);
@@ -399,42 +411,49 @@ float calcDtSLIMpoly3(float mass, int z, float ccs, float tcal1, float tcal2, fl
 
 	float _Complex crdt = c2 + c3 + p;
 	float rdt = cabsf(crdt);
-
-	printf("x = %f \n", rdt);
-
 	//rdt = pow(q + pow(pow(q, 2) + pow(r - pow(p, 2), 3), 0.5), 1 / 3) + pow(q - pow(pow(q, 2) + pow(r - pow(p, 2), 3), 0.5), 1 / 3) + p;
-	return rdt + (edc * sqrt(mass / z) / 1000);
+	*/
+	
+	return rdt +(edc * sqrtf(mass / z) / 1000);
 }
 
 float calcCCSSLIMpoly2(float mass, int z, float dt, float tcal1, float tcal2, float tcal3,  float hmass, float edc)
 {
-	float rdt = dt - (edc * sqrt(mass / z) / 1.000E3);
+	float rdt = dt -(edc * sqrtf(mass / z) / 1000.);
 	float rccs;
 	if (rdt <= 0) { return 0; }
-	rccs = tcal1 * pow(rdt,2) + tcal2 *rdt+tcal3;
-	float gamma = 1 / z * sqrt(mass / (mass + hmass));
-	return rccs * gamma;
+	rccs = tcal3 * powf(rdt,2) + tcal2 *rdt+tcal1;
+	float gamma = (1 / (float)z) * sqrtf(mass / (mass + hmass));
+	if (gamma > 0) { rccs *= gamma; }
+	else { printf("CCS Gamma is negative %d %f %f %f\n", z, mass, hmass, gamma); exit(91); }
+	return rccs;
 }
 
 float calcDtSLIMpoly2(float mass, int z, float ccs, float tcal1, float tcal2, float tcal3,  float hmass, float edc)
 {
-	float gamma = 1 / z * sqrt(mass / (mass + hmass));
-	float rccs = ccs / gamma;
+	float gamma = (1 / (float)z) * sqrtf(mass / (mass + hmass));
+	float rccs = ccs;
+	if (gamma > 0) { rccs /= gamma; }
+	else { printf("DT Gamma is negative %d %f %f %f\n", z, mass, hmass, gamma); exit(92); }
 	if (rccs <= 0) { return 0; }
 
-	float a = tcal1;
+	float a = tcal3;
 	float b = tcal2;
-	float c = tcal3-rccs;
+	float c = tcal1-rccs;
 
-	printf(" %fx^2 + %fx + %f = 0 \n", a, b, c);
+	float d0 = powf(b, 2) - 4 * a * c;
+	if (d0 < 0) { return 0; }
+	float d1 = sqrtf(d0);
 
-	float rdt = (-b + sqrt(pow(b,2) - 4 * a * c))/(2*a);
-	printf("x = %f \n", rdt);
-	if (rdt > 0) { return rdt + (edc * sqrt(mass / z) / 1000);}
+	//printf(" %fx^2 + %fx + %f = 0 \n", a, b, c);
+
+	float rdt = (-b + d1)/(2*a);
+	//printf("x = %f \n", rdt);
+	if (rdt > 0) { return rdt; }// + (edc * sqrt(mass / z) / 1000);}
 		
-	rdt = (-b - sqrt(pow(b, 2) - 4 * a * c)) / (2 * a);
-	printf("x = %f \n", rdt);
-	if (rdt > 0) { return rdt + (edc * sqrt(mass / z) / 1000); }
+	rdt = (-b - d1) / (2 * a);
+	//printf("x = %f \n", rdt);
+	if (rdt > 0) { return rdt; }// +(edc * sqrt(mass / z) / 1000); }
 
 	return 0;
 }
