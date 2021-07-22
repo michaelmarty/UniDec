@@ -129,15 +129,43 @@ class ThermoDataImporter:
     def get_inj_time_array(self):
         its = []
         for i, s in enumerate(self.scans):
-            it, res = self.msrun.get_scan_header(s)
+            it, res, an1, an2 = self.msrun.get_scan_header(s)
             its.append(it)
         return np.array(its)
+
+    def get_analog_voltage1(self):
+        vs = []
+        for i, s in enumerate(self.scans):
+            it, res, an1, an2 = self.msrun.get_scan_header(s)
+            vs.append(an1)
+        return np.array(vs)
+
+    def get_analog_voltage2(self):
+        vs = []
+        for i, s in enumerate(self.scans):
+            it, res, an1, an2 = self.msrun.get_scan_header(s)
+            vs.append(an2)
+        return np.array(vs)
 
 
 if __name__ == "__main__":
     test = u"C:\Python\\UniDec3\TestSpectra\\test.RAW"
+    test = "Z:\\Group Share\\Levi\\MS DATA\\vt_ESI data\\DMPG LL37 ramps\\18to1\\20210707_LB_DMPG3_LL37_18to1_RAMP_16_37_3.RAW"
+
     tstart = time.perf_counter()
-    d = ThermoDataImporter(test).get_data()
+    d = ThermoDataImporter(test)
+    vdata = d.get_analog_voltage1()
+    times = d.get_tic()[1:, 0]
+
+    # vdata = (-34.48*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))+(263.91*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))-(811.83*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))+(1258.4*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))-(1032.3*(vdata-np.amin(vdata)))+409.12
+
+    vdata = (-44.115*(vdata)*(vdata)*(vdata))+(201.67*(vdata)*(vdata))+(-347.15*(vdata))+242.19
+
+    import matplotlib.pyplot as plt
+
+    plt.plot(times, vdata)
+    plt.show()
+
     # d.get_data(time_range=(0, 10))
     print("ImportData: %.2gs" % (time.perf_counter() - tstart))
     # import matplotlib.pyplot as plt

@@ -104,8 +104,8 @@ class UniDecConfig(object):
         self.driftlength = 0.18202
         self.tcal1 = 0.3293
         self.tcal2 = 6.3597
-        self.tcal3 = ""
-        self.tcal4 = ""
+        self.tcal3 = 0
+        self.tcal4 = 0
         self.edc = 1.57
         self.gasmass = 4.002602
         self.twaveflag = 0
@@ -638,6 +638,11 @@ class UniDecConfig(object):
             self.minmz = float(self.minmz)
         except:
             self.minmz = 0
+
+        if self.tcal3 == "":
+            self.tcal3 = 0
+        if self.tcal4 == "":
+            self.tcal4 = 0
 
         cdict = {  # "input": self.infname, "output": self.outfname,
             "numit": self.numit, "version": self.version,

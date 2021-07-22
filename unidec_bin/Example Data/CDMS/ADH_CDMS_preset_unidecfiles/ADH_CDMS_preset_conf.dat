@@ -1,7 +1,7 @@
-version 5.0.0.a
+version 5.0.1
 imflag 0
-input Z:\Group Share\Marius Kostelic\CD-MS\Replicates\ADH_CDMS_preset_unidecfiles\ADH_CDMS_preset_input.dat
-output Z:\Group Share\Marius Kostelic\CD-MS\Replicates\ADH_CDMS_preset_unidecfiles\ADH_CDMS_preset
+input C:\Python\UniDec3\unidec_bin\Example Data\CDMS\ADH_CDMS_preset_unidecfiles\ADH_CDMS_preset_input.dat
+output C:\Python\UniDec3\unidec_bin\Example Data\CDMS\ADH_CDMS_preset_unidecfiles\ADH_CDMS_preset
 numit 50
 numz 36
 endz 45
@@ -47,9 +47,9 @@ spectracmap rainbow
 publicationmode 1
 isotopemode 0
 peaknorm 1
-datanorm 1.0
+datanorm 1
 baselineflag 1.0
-orbimode 0.0
+orbimode 0
 integratelb -7.0
 integrateub 10.0
 filterwidth 20.0

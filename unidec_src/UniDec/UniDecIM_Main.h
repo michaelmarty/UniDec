@@ -125,7 +125,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	size[2] = numz;
 	int totlen = size[0] * size[1] * size[2];
 	printf("Dimensions of data: %d mz by %d dt by %d z: %d lines: %d total\n", size[0], size[1], size[2], size[0] * size[1], totlen);
-	if (totlen>155E6) { printf("Warning: May exceed system memory capacity"); }
+	if (totlen>155E6) { printf("Warning: May exceed system memory capacity\n"); }
 	//Extracting mz and dt ranges
 	mzext = calloc(size[0], sizeof(float));
 	dtext = calloc(size[1], sizeof(float));
@@ -135,8 +135,8 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	mzranges[1] = mzext[size[0] - 1];
 	mzranges[2] = dtext[0];
 	mzranges[3] = dtext[size[1] - 1];
-	printf("MZ Range: %f config.to %f\n", mzranges[0], mzranges[1]);
-	printf("DT Range: %f config.to %f\n", mzranges[2], mzranges[3]);
+	printf("MZ Range: %f to %f\n", mzranges[0], mzranges[1]);
+	printf("DT Range: %f to %f\n", mzranges[2], mzranges[3]);
 
 	peakshape = calloc(lines, sizeof(float));
 	GetPeaks(peakshape, size, mzext, dtext, config.mzsig, config.dtsig, config.psfun);

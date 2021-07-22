@@ -554,25 +554,31 @@ void PrintHelp()
 	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit.1916.\n");
 	//printf("\nsize of: %d",sizeof(char));
 
-	/*
+	
 	float d = 119.528155;
 	float c = 0.32967;
 	float b = -0.000115585597;
 	float a = 2.4120647e-8;
 	float mass = 760;
+	mass = 50000;
 	float z = 1;
+	z = 15; 
 	float hmass = 14;
 	float edc = 0;
+	float dt = 778;
+	dt = 350;
+	float ccs = 360;
+	ccs = 3400;
 
-	float test2 = calcCCSSLIMpoly2(mass, z, 778, b, c, d, hmass, edc);
+	float test2 = calcCCSSLIMpoly2(mass, z, dt, b, c, d, hmass, edc);
 	printf("Test2CCS: %f\n", test2);
-	test2 = calcDtSLIMpoly2(mass, z, 306, b, c, d, hmass, edc);
+	test2 = calcDtSLIMpoly2(mass, z, ccs, b, c, d, hmass, edc);
 	printf("Test2DT: %f\n", test2);
 
-	float test=calcCCSSLIMpoly3(mass, z, 778, a, b, c, d, hmass, edc);
+	float test=calcCCSSLIMpoly3(mass, z, dt, a, b, c, d, hmass, edc);
 	printf("Test3CCS: %f\n", test);
-	test = calcDtSLIMpoly3(mass, z, 317, a, b, c, d, hmass, edc);
-	printf("Test3Dt: %f\n", test);*/
+	test = calcDtSLIMpoly3(mass, z, ccs, a, b, c, d, hmass, edc);
+	printf("Test3Dt: %f\n", test);
 
 }
 

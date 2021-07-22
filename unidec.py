@@ -699,6 +699,9 @@ class UniDec(UniDecEngine):
             ud.dataexport(mztab[:, :, 1], self.config.outfname + "_chargedata.dat")
             print("Exported data to " + self.config.outfname + "_chargedata.dat")
 
+            ud.dataexport(mztab[:, :, 0], self.config.outfname + "_mzpeakdata.dat")
+            print("Exported data to " + self.config.outfname + "_mzpeakdata.dat")
+
             # Export Peaks Integral by Charge Grid
             if self.config.batchflag == 0:
                 try:

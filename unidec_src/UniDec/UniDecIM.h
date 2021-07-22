@@ -272,11 +272,13 @@ float calcCCS(const float mass, const int z, const float dt, const float ccscons
 {
 	float ac = 1.6605389E-27;
 	float factor = 0.001;
+	float rmass = ac * (mass * hmass) / (mass + hmass);
 	if (type == 1) {
 		ac = 1;
 		factor = 1;
+		rmass = mass / (mass + hmass);
 	}
-	float rmass = ac*(mass*hmass) / (mass + hmass);
+	
 	float td = (dt - to)*factor;
 	float ccs = (float)z*(td)*sqrt(1 / rmass)*ccsconst;
 	return ccs;
@@ -348,12 +350,14 @@ float calcDt(const float mass, const int z, const float ccs, const float ccscons
 
 	float ac = 1.6605389E-27;
 	float factor = 1000;
+	float rmass = ac * (mass * hmass) / (mass + hmass);
 	if (type == 1)
 	{
 		ac = 1;
 		factor = 1;
+		rmass = mass / (mass + hmass);
 	}
-	float rmass = ac*(mass*hmass) / (mass + hmass);
+	
 	float td = ccs / (ccsconst*(float)z*sqrt(1 / rmass));
 	float dt = (td * factor) + to;
 	return dt;
