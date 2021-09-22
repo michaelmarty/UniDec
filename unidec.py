@@ -734,12 +734,13 @@ class UniDec(UniDecEngine):
                                        p.centroid, p.errorFWHM, p.errormean])
             self.peakparams = np.array(peakparams)
 
-            print("Mass MassStdGuess AvgCharge StdDevCharge Height Area MassCentroid MassFWHM MassErrorBetweenZ")
+            header="Mass MassStdGuess AvgCharge StdDevCharge Height Area MassCentroid MassFWHM MassErrorBetweenZ"
+            print(header)
             np.set_printoptions(precision=2, formatter={'float': '{: 0.2f}'.format})
             print(self.peakparams)
             np.set_printoptions()
             outfile = self.config.outfname + "_peakparam.dat"
-            ud.dataexport(self.peakparams, outfile)
+            ud.dataexport(self.peakparams, outfile, header)
             print("Peak Parameters (Saved To", outfile, ")")
         else:
             print("Pick Peaks First")

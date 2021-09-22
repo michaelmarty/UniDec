@@ -193,6 +193,9 @@ class UniDecCD(unidec.UniDec):
         # Set up UniDec paths
         self.before_open()
 
+        if os.path.isdir(self.path):
+            self.path = self.convert_stori(self.path)
+
         # Get the extension
         extension = os.path.splitext(self.path)[1]
 
@@ -370,9 +373,42 @@ class UniDecCD(unidec.UniDec):
         self.config.default_file_names()
 
         # Look for already processed data in the form of an npz file and load it if it exists for speed.
-        if os.path.isfile(self.config.cdrawextracts):
+        if os.path.isfile(self.path) and os.path.isfile(self.config.cdrawextracts):
             print("Raw data found:", self.config.cdrawextracts)
             self.path = self.config.cdrawextracts
+
+    def open_stori(self, path):
+        starttime = time.perf_counter()
+        files = os.listdir(path)
+        alldata = []
+        for i, f in enumerate(files):
+            if os.path.splitext(f)[1]==".csv":
+                p = os.path.join(path, f)
+                data = np.genfromtxt(p, delimiter="\t", skip_header=1)
+                alldata.append(data)
+
+                #if ud.isempty(alldata):
+                #    alldata = data
+                #else:
+                #    alldata = np.append(alldata, data, axis=0)
+        alldata = np.concatenate(alldata, axis=0)
+        print(alldata.shape)
+        print("Opening Time: ", time.perf_counter()-starttime)
+        # Scan	Ionnumber	Segnumber	M/Z	Frequency	Slope	Slope R Squared	Time of Birth	Time of Death
+        mz = alldata[:,3]
+        intensity = alldata[:, 5]
+        scan = alldata[:,0]
+        return mz, intensity, scan
+
+    def convert_stori(self, path):
+        mz, intensity, scans = self.open_stori(path)
+        darray = np.transpose([mz, intensity, scans])
+        # Filter out only the data with positive intensities
+        boo1 = darray[:, 1] > 0
+        darray = darray[boo1]
+        outfile = path + "_combined.npz"
+        np.savez_compressed(outfile, data=darray)
+        return outfile
 
     def process_data(self, transform=True):
         """
@@ -694,7 +730,7 @@ class UniDecCD(unidec.UniDec):
 
         # Calculate m/z values for Z+1 and Z-1
         uppermz = (self.mass + uY) / uY
-        lowermz = (self.mass + lY) / lY
+        lowermz = ud.safedivide((self.mass + lY), lY) # In case the starting charge state is 1
 
         # Calculate the indexes for where to find the Z+1 and Z-1 m/z values
         m1 = self.mz[0]
@@ -963,6 +999,10 @@ class UniDecCD(unidec.UniDec):
 
 if __name__ == '__main__':
     eng = UniDecCD()
+    path = "C:\Data\CDMS\AqpZ_STORI\AqpZ_STORI\\072621AquaZ_low-high_noDi_IST10_processed"
+    eng.open_file(path)
+
+    exit()
     path = "C:\\Data\\CDMS\\spike trimer CDMS data.csv"
     eng.open_file(path)
     eng.process_data()

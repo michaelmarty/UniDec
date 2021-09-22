@@ -1,15 +1,15 @@
-version 5.0.0.beta
+version 5.0.1
 imflag 0
 input C:\Python\UniDec3\unidec_bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs_input.dat
 output C:\Python\UniDec3\unidec_bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs
 numit 100
-numz 21
-endz 25
-startz 5
-zzsig -0.5
-psig 0.0
+numz 30
+endz 30
+startz 1
+zzsig 1.0
+psig 1.0
 beta 0.0
-mzsig 5.0
+mzsig 10.0
 psfun 0
 zpsfun 0
 discreteplot 0
@@ -17,7 +17,7 @@ massub 200000.0
 masslb 20000.0
 msig 1.0
 molig 760.0
-massbins 1.0
+massbins 10.0
 mtabsig 0.0
 minmz 8762.296892
 maxmz 12864.620507
@@ -36,7 +36,7 @@ rawflag 0
 adductmass 1.007276467
 nativezub 100.0
 nativezlb -100.0
-poolflag 1
+poolflag 2
 accvol 0.0
 peakshapeinflate 1.0
 noiseflag 0.0

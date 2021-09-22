@@ -199,9 +199,11 @@ The main GUI class is GUniDec.UniDecApp.
 
 v.5.0.1
 
-**Added Beta Support for Agilent Drift Tube IM-MS**. To use this, convert your data to mzML using MSConvert and select the "Combine Ion Mobility Scans" option. We recommend using the package as gzip as well and setting the extension to ".mzML.gz". Next, open UniDec and switch to Ion Mobility Mode under the Advanced Tab. Open the mzML file (drag and drop will work). Adjust the parameters in data processing to get it to look nice. The pusher should be set to 0. Set the voltage, temperature, and pressure to 0 in the Ion Mobility Parameters (with Linear Cell selected). Enger the tfix as the Dead Time and the Beta parameter below in the Drift Cell Length/Beta box. Adjust your parameters and hit deconvolve. 
+**Added Beta Support for Agilent Drift Tube IM-MS**. To use this, convert your data to mzML using MSConvert and select the "Combine Ion Mobility Scans" option. We recommend using the package as gzip as well and setting the extension to ".mzML.gz". Next, open UniDec and switch to Ion Mobility Mode under the Advanced Tab. Open the mzML file (drag and drop will work). Adjust the parameters in data processing to get it to look nice. The pusher should be set to 0. Set the voltage, temperature, and pressure to 0 in the Ion Mobility Parameters (with Linear Cell selected). Enger the tfix as the Dead Time and the Beta parameter below in the Drift Cell Length/Beta box. Adjust your parameters and hit deconvolve.
 
-Added ability to export m/z values for peaks as _mzpeakdata.dat.
+**Added Support for SLIM TWIMS IM-MS**. Select SLIM poly3 or poly2 under the T-Wave Calibration Type. Calibration parameter 1 is the constant term with parameter 2 as the linear term and so on. 
+
+Added ability to export m/z values for peaks as _mzpeakdata.dat. Added headers to peakparams export text file.
 
 Fixed bugs with UltraMeta.
 

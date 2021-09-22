@@ -551,34 +551,46 @@ void PrintHelp()
 	printf("\t\t\t\t\t\"tcal3\"=Calibration paramter 3 (P3)\n");
 	printf("\t\t\t\t5=SLIM T-Wave 3rd Order Polynomial Calibration\n");
 	printf("\t\t\t\t\t\"tcal4\"=Calibration parmater 4 (P4)\n");
-	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit.1916.\n");
+	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit date 8/4/21\n");
 	//printf("\nsize of: %d",sizeof(char));
 
-	
-	float d = 119.528155;
-	float c = 0.32967;
-	float b = -0.000115585597;
-	float a = 2.4120647e-8;
+	/*
+	float a = 119.528155;
+	float b = 0.32967;
+	float c = -0.000115585597;
+	float d = 2.4120647e-8;
 	float mass = 760;
-	mass = 50000;
 	float z = 1;
-	z = 15; 
-	float hmass = 14;
+	
 	float edc = 0;
 	float dt = 778;
-	dt = 350;
-	float ccs = 360;
-	ccs = 3400;
+	float ccs = 310;
+	float hmass = 28;
+	
+	a = 153.38;
+	b = 0.58873;
+	c = -3.4613e-4;
+	d = 1.2183e-7;
 
-	float test2 = calcCCSSLIMpoly2(mass, z, dt, b, c, d, hmass, edc);
-	printf("Test2CCS: %f\n", test2);
-	test2 = calcDtSLIMpoly2(mass, z, ccs, b, c, d, hmass, edc);
-	printf("Test2DT: %f\n", test2);
+	
+	mass = 50000;
+	z = 15; 
+	dt = 350;
+	ccs = 4755;
+
+	printf("Mass: %f Charge: %f GasM: %f\n", mass, z, hmass);
+	printf("a=%f b=%f c=%f d=%e\n", a, b, c, d);
+
+
+	float test2 = calcCCSSLIMpoly2(mass, z, dt, a, b, c, hmass, edc);
+	printf("Test 2nd Order DT: %f => CCS: %f\n", dt, test2);
+	test2 = calcDtSLIMpoly2(mass, z, ccs, a, b, c, hmass, edc);
+	printf("Test 2nd Order CCS: %f => DT: %f\n", ccs, test2);
 
 	float test=calcCCSSLIMpoly3(mass, z, dt, a, b, c, d, hmass, edc);
-	printf("Test3CCS: %f\n", test);
+	printf("Test 3rd Order DT: %f => CCS: %f\n", dt, test);
 	test = calcDtSLIMpoly3(mass, z, ccs, a, b, c, d, hmass, edc);
-	printf("Test3Dt: %f\n", test);
+	printf("Test 3rd Order CCS: %f => Dt: %f\n", ccs, test);*/
 
 }
 

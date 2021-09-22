@@ -511,6 +511,12 @@ class UniDecApp(UniDecPres):
                     except:
                         pass
 
+            try:
+                test=float(self.eng.config.reductionpercent)
+            except:
+                self.eng.config.reductionpercent=0
+
+
             if self.eng.config.reductionpercent < 0:
                 print("Making Dot Plot")
                 data2 = ud.dataprep(self.eng.data.rawdata, self.eng.config, peaks=False, intthresh=False)
@@ -548,7 +554,7 @@ class UniDecApp(UniDecPres):
                     pass
                 except:
                     pass
-            if self.eng.config.aggressiveflag != 0 and len(self.eng.data.baseline) == len(self.eng.data.fitdat):
+            if self.eng.config.aggressiveflag != 0 and len(self.eng.data.baseline) == len(self.eng.data.data2):
                 self.view.plot1.plotadd(self.eng.data.data2[:, 0], self.eng.data.baseline, 'blue', "Baseline")
             if leg:
                 self.view.plot1.add_legend()

@@ -852,6 +852,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 except:
                     print("No Menu Found")
 
+            try:
+                test = float(self.config.msig)
+            except:
+                self.config.msig=0
+
+
             if self.config.msig > 0:
                 self.parent.SetStatusText(
                     "Oligomer Blur Mass: " + str(self.config.molig) + " Std Dev: " + str(self.config.msig),
@@ -928,13 +934,18 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
         self.config.rawflag = self.ctlrawflag.GetSelection()
 
+        try:
+            test = float(self.config.adductmass)
+        except:
+            self.config.adductmass=0
+
         if self.ctlnegmode.GetValue() == 1:
             # print("Negative Ion Mode")
             if self.config.adductmass > 0:
                 self.config.adductmass *= -1
                 self.ctladductmass.SetValue(str(self.config.adductmass))
         else:
-            # print("Positive Ion Mode")
+            # print("Positive Ion Mode")\
             if self.config.adductmass < 0:
                 self.config.adductmass *= -1
                 self.ctladductmass.SetValue(str(self.config.adductmass))
@@ -983,13 +994,15 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.config.minmz = np.amin(self.pres.eng.data.rawdata[:, 0])
         if not self.config.maxmz and not ud.isempty(self.pres.eng.data.rawdata):
             self.config.maxmz = np.amax(self.pres.eng.data.rawdata[:, 0])
-        pass
 
-        if self.config.msig > 0:
-            self.parent.SetStatusText(
-                "Oligomer Blur Mass: " + str(self.config.molig) + " Std Dev: " + str(self.config.msig),
-                number=4)
-        else:
+        try:
+            if self.config.msig > 0:
+                self.parent.SetStatusText(
+                    "Oligomer Blur Mass: " + str(self.config.molig) + " Std Dev: " + str(self.config.msig),
+                    number=4)
+            else:
+                self.parent.SetStatusText(" ", number=4)
+        except:
             self.parent.SetStatusText(" ", number=4)
         # noinspection PyPep8
 

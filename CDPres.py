@@ -12,6 +12,7 @@ from unidec_modules.gui_elements import CDWindow
 import multiprocessing
 from unidec_modules.unidec_presbase import UniDecPres
 from unidec_modules import peakwidthtools, CDCal
+from unidec_modules.isolated_packages import FileDialogs
 import platform
 
 
@@ -50,7 +51,6 @@ class UniDecCDApp(UniDecApp):
         self.recent_files = self.read_recent()
         self.cleanup_recent_file(self.recent_files)
         self.view.menu.update_recent()
-
 
         self.on_load_default(0)
 
@@ -130,6 +130,15 @@ class UniDecCDApp(UniDecApp):
         self.view.menu.update_recent()
 
         self.on_dataprep_button()
+
+    def on_stori(self, e=None, dirname=None):
+        self.export_config(self.eng.config.confname)
+        if dirname is None:
+            dirname = FileDialogs.open_single_dir_dialog("Choose a Folder of STORI CSV Files", '')
+        print("Converting: ", dirname)
+        newfile = self.eng.convert_stori(dirname)
+        print("Created file: ", newfile)
+        self.on_open_file(None, None, path=newfile)
 
     def on_dataprep_button(self, e=None):
         self.view.clear_all_plots()

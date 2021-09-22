@@ -110,6 +110,10 @@ class CD_menu(wx.Menu):
         self.menucal = self.toolsmenu.Append(wx.ID_ANY, "Calibration Tool")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_calibrate, self.menucal)
 
+        self.toolsmenu.AppendSeparator()
+        self.menustori = self.toolsmenu.Append(wx.ID_ANY, "Convert STORI Folder of CSVs")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_stori, self.menustori)
+
         # Tools
         self.parent.Bind(wx.EVT_MENU, self.pres.on_mass_tools, self.menuMassFile)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_peak_width_tool, self.menuWidth)

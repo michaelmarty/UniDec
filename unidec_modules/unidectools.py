@@ -941,13 +941,13 @@ def zip_folder(save_path, directory=None):
     print("File saved to: " + str(save_path))
 
 
-def dataexport(datatop, fname):
+def dataexport(datatop, fname, header=""):
     try:
-        np.savetxt(fname, datatop, fmt='%f')
+        np.savetxt(fname, datatop, fmt='%f', header=header)
     except:
         path = os.path.join(os.getcwd(), fname)
         path = "\\\\?\\%s" % path
-        np.savetxt(path, datatop, fmt='%f')
+        np.savetxt(path, datatop, fmt='%f', header=header)
         print("NOTE: Your path length might exceed the limit for Windows. Please shorten your file name.")
     pass
 
