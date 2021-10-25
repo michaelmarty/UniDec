@@ -205,14 +205,16 @@ class RawFileReader(object):
             try:
                 self.injection_time = float(self.Get_Header_Item('Ion Injection Time (ms)'))
                 self.resolution = float(self.Get_Header_Item('FT Resolution'))
-                return self.injection_time, self.resolution
+                self.analog1 = float(self.Get_Header_Item("Analog Input 1 (V)"))
+                self.analog2 = float(self.Get_Header_Item("Analog Input 2 (V)"))
+                return self.injection_time, self.resolution, self.analog1, self.analog2
             except:
                 self.injection_time = None
                 self.resolution = None
         except:
             self.header = None
             print("Error getting header")
-        return None, None
+        return None, None, None, None
 
     def Get_Header_Item(self, item):
         return self.header[item]

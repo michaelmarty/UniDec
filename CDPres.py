@@ -12,6 +12,7 @@ from unidec_modules.gui_elements import CDWindow
 import multiprocessing
 from unidec_modules.unidec_presbase import UniDecPres
 from unidec_modules import peakwidthtools, CDCal
+from unidec_modules.isolated_packages import FileDialogs
 import platform
 
 
@@ -51,7 +52,6 @@ class UniDecCDApp(UniDecApp):
         self.cleanup_recent_file(self.recent_files)
         self.view.menu.update_recent()
 
-
         self.on_load_default(0)
 
         if "path" in kwargs:
@@ -66,7 +66,7 @@ class UniDecCDApp(UniDecApp):
             # self.on_dataprep_button(0)
             # self.on_auto(0)
 
-        if True and platform.node() == 'DESKTOP-08TGCJO':
+        if False and platform.node() == 'DESKTOP-08TGCJO':
             path = "C:\\Data\\CDMS\\02242021_MK_BSA__CD-MS_Aqu_ACN_10min.RAW"
             path = "C:\\Data\\CDMS\\20210309_MK_ADH_pos_CDMS_512ms_5min_50ms_pressure01.RAW"
             # path = "C:\\Data\\CDMS\\Replicates\\AAV8_IMID_CDMS_1.RAW"
@@ -130,6 +130,15 @@ class UniDecCDApp(UniDecApp):
         self.view.menu.update_recent()
 
         self.on_dataprep_button()
+
+    def on_stori(self, e=None, dirname=None):
+        self.export_config(self.eng.config.confname)
+        if dirname is None:
+            dirname = FileDialogs.open_single_dir_dialog("Choose a Folder of STORI CSV Files", '')
+        print("Converting: ", dirname)
+        newfile = self.eng.convert_stori(dirname)
+        print("Created file: ", newfile)
+        self.on_open_file(None, None, path=newfile)
 
     def on_dataprep_button(self, e=None):
         self.view.clear_all_plots()

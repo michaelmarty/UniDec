@@ -104,8 +104,8 @@ class UniDecConfig(object):
         self.driftlength = 0.18202
         self.tcal1 = 0.3293
         self.tcal2 = 6.3597
-        self.tcal3 = ""
-        self.tcal4 = ""
+        self.tcal3 = 0
+        self.tcal4 = 0
         self.edc = 1.57
         self.gasmass = 4.002602
         self.twaveflag = 0
@@ -214,9 +214,9 @@ class UniDecConfig(object):
         # Reused by IM and CD
         self.csig = 0
         # Charge Detection
-        self.CDslope = 12.5
+        self.CDslope = 0.2074
         self.CDzbins = 1
-        self.CDres = 1
+        self.CDres = 0
 
         self.doubledec = False
         self.kernel = ""
@@ -639,6 +639,11 @@ class UniDecConfig(object):
         except:
             self.minmz = 0
 
+        if self.tcal3 == "":
+            self.tcal3 = 0
+        if self.tcal4 == "":
+            self.tcal4 = 0
+
         cdict = {  # "input": self.infname, "output": self.outfname,
             "numit": self.numit, "version": self.version,
             "endz": self.endz, "startz": self.startz, "zzsig": self.zzsig, "psig": self.psig, "mzsig": self.mzsig,
@@ -906,10 +911,6 @@ class UniDecConfig(object):
 
             if self.ccsub < self.ccslb:
                 self.warning = "CCS Upper Bound lower then CCS Lower Bound\nFix CCS range."
-                self.badtest = 1
-
-            if self.twaveflag == 0 and (self.pressure == 0 or self.driftlength == 0):
-                self.warning = "Pressure and Cell Length must be nonzero for Linear Cell"
                 self.badtest = 1
 
             if self.twaveflag > 0 and (self.tcal1 == 0 or self.tcal2 == 0 or self.edc == 0):

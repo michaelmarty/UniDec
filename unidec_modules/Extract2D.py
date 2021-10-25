@@ -2,6 +2,7 @@ import os
 from copy import deepcopy
 import numpy as np
 import wx
+import matplotlib.cm as cm
 
 from unidec_modules import unidecstructure
 from unidec_modules import plot2d
@@ -78,6 +79,8 @@ class Extract2DPlot(wx.Frame):
             self.config.initialize()
         else:
             self.config = config
+            if directory is None:
+                directory = self.config.udir
 
         if directory is None:
             self.directory = os.getcwd()
@@ -151,18 +154,18 @@ class Extract2DPlot(wx.Frame):
             totalbutton = wx.Button(panel, label="Total")
         else:
             totalbutton = wx.Button(panel, label="Replot")
-        #wapbutton = wx.Button(panel, label="WAP")
+        # wapbutton = wx.Button(panel, label="WAP")
         if self.dlen > 1:
             controlsizer2.Add(backbutton, 0, wx.EXPAND)
             controlsizer2.Add(nextbutton, 0, wx.EXPAND)
         controlsizer2.Add(totalbutton, 0, wx.EXPAND)
-        #if self.dlen > 1:
-            #controlsizer2.Add(wapbutton, 0, wx.EXPAND)
+        # if self.dlen > 1:
+        # controlsizer2.Add(wapbutton, 0, wx.EXPAND)
 
         self.Bind(wx.EVT_BUTTON, self.on_back, backbutton)
         self.Bind(wx.EVT_BUTTON, self.on_next, nextbutton)
         self.Bind(wx.EVT_BUTTON, self.on_total, totalbutton)
-        #self.Bind(wx.EVT_BUTTON, self.on_wap, wapbutton)
+        # self.Bind(wx.EVT_BUTTON, self.on_wap, wapbutton)
 
         sizer.Add(controlsizer, 0, wx.EXPAND)
         sizer.Add(controlsizer1, 0, wx.EXPAND)
@@ -276,12 +279,23 @@ class Extract2DPlot(wx.Frame):
             self.plot2.clear_plot()
             print("Failed Plot2", e)
         try:
-            self.plot1.plotrefreshtop(np.unique(self.m1grid), np.sum(grid, axis=1), "Total Projection", "mass 1",
+            self.plot1.plotrefreshtop(np.unique(self.m1grid), np.sum(grid, axis=1)/np.amax(np.sum(grid, axis=1)), "Total Projection", "mass 1",
                                       "Total Intensity", "", self.config, test_kda=False, nopaint=False)
             outputdata = np.transpose([np.unique(self.m1grid), np.sum(grid, axis=1)])
             self.data1d = outputdata
+
+            for d in range(len(self.m2range)):
+                if np.amax(grid[:, d]) != 0:
+                    data = deepcopy(grid[:, d] / np.amax(grid[:, d]))
+                else:
+                    data = deepcopy(grid[:, d])
+                color = cm.get_cmap("viridis")(float(d/len(self.m2range)))
+                self.plot1.plotadd(np.unique(self.m1grid), data, colval=color)
+            self.plot1.repaint()
+
             outfile = os.path.join(self.directory, self.header + "_total_2D_Extract.txt")
             np.savetxt(outfile, outputdata)
+            print(outfile)
         except Exception as e:
             self.plot1.clear_plot()
             print("Failed Plot1", e)
@@ -447,13 +461,14 @@ class Extract2DPlot(wx.Frame):
 
 # Main App Execution
 if __name__ == "__main__":
-    #data3 = np.loadtxt(
+    # data3 = np.loadtxt(
     #    "C:\UniDecPastedSpectra\PastedSpectrum_2017_Dec_11_11_30_45_unidecfiles\PastedSpectrum_2017_Dec_11_11_30_45_mass.txt")
     data3 = np.loadtxt(
-        "C:\Data\Others\Miranda\sample_data\MC_20170904_1to1_aB_C137S_11000_520_HCD300_CAL_unidecfiles\CorrectedMassData.txt")
+        "Z:\mtmarty\Data\Others\Miranda\sample_data\MC_20170904_1to1_aB_C137S_11000_520_HCD300_CAL_unidecfiles\CorrectedMassData.txt")
+    data3 = np.loadtxt("C:\Python\\UniDec3\\TestSpectra\\60_unidecfiles\\60_mass.txt")
     datalist = [data3]
 
     app = wx.App(False)
     frame = Extract2DPlot(None, datalist)
-    #frame.run_multip("1,2,3,4,5,6")
+    # frame.run_multip("1,2,3,4,5,6")
     app.MainLoop()

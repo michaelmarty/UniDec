@@ -171,3 +171,5 @@ unidec_modules/thermo_reader/RawFileReaderExample
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/Peaks_Mass_Defects.txt
 *.diagsession
 unidec_src/UniDec/UniDec.common.settings
+unidec_bin/recentCD.txt
+unidec_modules/isolated_packages/ZoomBoxMargot.py

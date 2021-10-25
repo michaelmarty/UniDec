@@ -79,6 +79,7 @@ class UniDec(UniDecEngine):
 
         # Import Data
         self.data.rawdata = ud.load_mz_file(self.config.filename, self.config, time_range, imflag=self.config.imflag)
+
         if ud.isempty(self.data.rawdata):
             print("Error: Data Array is Empty")
             print("Likely an error with data conversion")
@@ -88,6 +89,7 @@ class UniDec(UniDecEngine):
             self.config.imflag = 1
             self.config.discreteplot = 1
             self.config.poolflag = 1
+            '''
             mzaxis = np.unique(self.data.rawdata[:, 0])
             dtaxis = np.unique(self.data.rawdata[:, 1])
             intgrid = np.zeros((len(mzaxis), len(dtaxis)))
@@ -98,19 +100,22 @@ class UniDec(UniDecEngine):
                     intgrid[np.where(mzaxis == x)[0][0], np.where(dtaxis == y)[0][0]] = z
             self.data.rawdata = np.transpose([mzaxis, np.sum(intgrid, axis=1)])
             mzaxis, dtaxis = np.meshgrid(mzaxis, dtaxis, sparse=False, indexing='ij')
-            self.data.rawdata3 = np.transpose([np.ravel(mzaxis), np.ravel(dtaxis), np.ravel(intgrid)])
+            self.data.rawdata3 = np.transpose([np.ravel(mzaxis), np.ravel(dtaxis), np.ravel(intgrid)])'''
+            self.data.rawdata3, self.data.rawdata = ud.unsparse(self.data.rawdata)
             self.data.data3 = self.data.rawdata3
         else:
             self.config.imflag = 0
 
         if self.config.imflag == 0:
             newname = self.config.outfname + "_rawdata.txt"
+            outputdata = self.data.rawdata
         else:
             newname = self.config.outfname + "_imraw.txt"
+            outputdata = ud.sparse(self.data.rawdata3)
         if not os.path.isfile(newname):
             try:
                 # shutil.copy(file_directory, newname)
-                np.savetxt(newname, self.data.rawdata)
+                np.savetxt(newname, outputdata)
             except Exception as e:
                 pass
 
@@ -272,7 +277,7 @@ class UniDec(UniDecEngine):
                 print("Time: %.2gs" % (tend - tstart2))
             self.data.data3 = np.transpose([np.ravel(mz), np.ravel(dt), np.ravel(i3)])
             self.data.data2 = np.transpose([np.unique(mz), np.sum(i3, axis=1)])
-            ud.dataexport(self.data.data3, self.config.infname)
+            ud.dataexportbin(self.data.data3, self.config.infname)
             pass
 
         self.config.procflag = 1
@@ -694,6 +699,9 @@ class UniDec(UniDecEngine):
             ud.dataexport(mztab[:, :, 1], self.config.outfname + "_chargedata.dat")
             print("Exported data to " + self.config.outfname + "_chargedata.dat")
 
+            ud.dataexport(mztab[:, :, 0], self.config.outfname + "_mzpeakdata.dat")
+            print("Exported data to " + self.config.outfname + "_mzpeakdata.dat")
+
             # Export Peaks Integral by Charge Grid
             if self.config.batchflag == 0:
                 try:
@@ -726,12 +734,13 @@ class UniDec(UniDecEngine):
                                        p.centroid, p.errorFWHM, p.errormean])
             self.peakparams = np.array(peakparams)
 
-            print("Mass MassStdGuess AvgCharge StdDevCharge Height Area MassCentroid MassFWHM MassErrorBetweenZ")
+            header="Mass MassStdGuess AvgCharge StdDevCharge Height Area MassCentroid MassFWHM MassErrorBetweenZ"
+            print(header)
             np.set_printoptions(precision=2, formatter={'float': '{: 0.2f}'.format})
             print(self.peakparams)
             np.set_printoptions()
             outfile = self.config.outfname + "_peakparam.dat"
-            ud.dataexport(self.peakparams, outfile)
+            ud.dataexport(self.peakparams, outfile, header)
             print("Peak Parameters (Saved To", outfile, ")")
         else:
             print("Pick Peaks First")

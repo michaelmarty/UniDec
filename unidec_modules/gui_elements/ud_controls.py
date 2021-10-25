@@ -278,7 +278,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
                 self.ctldriftlength = wx.TextCtrl(panel1c, value='', size=size1)
                 gbox1c.Add(self.ctldriftlength, (6, 1), span=(1, 1))
-                gbox1c.Add(wx.StaticText(panel1c, label="Drift Cell Length (m)"), (6, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                gbox1c.Add(wx.StaticText(panel1c, label="Drift Cell Length (m)\nor Beta (Agilent)"), (6, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
             else:
                 self.ctltwave.SetSelection(1)
@@ -548,14 +548,15 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             gbox2b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
             i += 1  # Check
 
-        ddsizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.doubledecflag = wx.CheckBox(panel2b, label="Double Deconvolution")
-        self.parent.Bind(wx.EVT_CHECKBOX, self.on_double_dec, self.doubledecflag)
-        self.doubledecbutton = wx.Button(panel2b, label="Open kernel file")
-        self.parent.Bind(wx.EVT_BUTTON, self.on_open_kernel, self.doubledecbutton)
-        ddsizer.Add(self.doubledecflag, 0, wx.ALIGN_CENTER_VERTICAL)
-        ddsizer.Add(self.doubledecbutton, 0, wx.ALIGN_CENTER_VERTICAL)
-        gbox2b.Add(ddsizer, (i, 0), span=(1, 2))
+        if self.config.imflag != 1:
+            ddsizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.doubledecflag = wx.CheckBox(panel2b, label="Double Deconvolution")
+            self.parent.Bind(wx.EVT_CHECKBOX, self.on_double_dec, self.doubledecflag)
+            self.doubledecbutton = wx.Button(panel2b, label="Open kernel file")
+            self.parent.Bind(wx.EVT_BUTTON, self.on_open_kernel, self.doubledecbutton)
+            ddsizer.Add(self.doubledecflag, 0, wx.ALIGN_CENTER_VERTICAL)
+            ddsizer.Add(self.doubledecbutton, 0, wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(ddsizer, (i, 0), span=(1, 2))
 
         panel2b.SetSizer(gbox2b)
         gbox2b.Fit(panel2b)
@@ -754,10 +755,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlmasslb.SetValue(str(self.config.masslb))
             self.ctlmassub.SetValue(str(self.config.massub))
             self.ctlmasslistflag.SetValue(self.config.mfileflag)
-            self.doubledecflag.SetValue(self.config.doubledec)  # DoubleDec config import
-            if self.config.kernel != "":
-                kernel_name = os.path.splitext(os.path.basename(self.config.kernel))[0]
-                self.doubledecbutton.SetLabel(kernel_name)
             self.ctlmtabsig.SetValue(str(self.config.mtabsig))
             self.ctlbuff.SetValue(str(self.config.subbuff))
             self.subtypectl.SetSelection(int(self.config.subtype))
@@ -777,6 +774,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlmaxnativez.SetValue(str(self.config.nativezub))
             self.ctlpoolflag.SetSelection(self.config.poolflag)
             if self.config.imflag == 0:
+                if self.config.kernel != "":
+                    kernel_name = os.path.splitext(os.path.basename(self.config.kernel))[0]
+                    self.doubledecbutton.SetLabel(kernel_name)
+                self.doubledecflag.SetValue(self.config.doubledec)  # DoubleDec config import
                 self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
                 self.ctlmanualassign.SetValue(self.config.manualfileflag)
                 self.ctlisotopemode.SetSelection(self.config.isotopemode)
@@ -851,6 +852,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 except:
                     print("No Menu Found")
 
+            try:
+                test = float(self.config.msig)
+            except:
+                self.config.msig=0
+
+
             if self.config.msig > 0:
                 self.parent.SetStatusText(
                     "Oligomer Blur Mass: " + str(self.config.molig) + " Std Dev: " + str(self.config.msig),
@@ -897,8 +904,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.psfun = self.ctlpsfun.GetSelection()
         self.config.peaknorm = self.ctlnorm.GetSelection()
         self.config.mfileflag = int(self.ctlmasslistflag.GetValue())
-        self.config.doubledec = self.doubledecflag.GetValue()  # DoubleDec config export
-        # self.config.kernel =
         self.config.peakwindow = ud.string_to_value(self.ctlwindow.GetValue())
         self.config.peakthresh = ud.string_to_value(self.ctlthresh.GetValue())
         self.config.peakplotthresh = ud.string_to_value(self.ctlthresh2.GetValue())
@@ -913,6 +918,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.integratelb = ud.string_to_value(self.ctlintlb.GetValue())
         self.config.integrateub = ud.string_to_value(self.ctlintub.GetValue())
         if self.config.imflag == 0:
+            self.config.doubledec = self.doubledecflag.GetValue()  # DoubleDec config export
             self.config.reductionpercent = ud.string_to_value(self.ctldatareductionpercent.GetValue())
             self.config.isotopemode = int(self.ctlisotopemode.GetSelection())
             self.config.orbimode = int(self.ctlorbimode.GetValue())
@@ -928,13 +934,18 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
         self.config.rawflag = self.ctlrawflag.GetSelection()
 
+        try:
+            test = float(self.config.adductmass)
+        except:
+            self.config.adductmass=0
+
         if self.ctlnegmode.GetValue() == 1:
             # print("Negative Ion Mode")
             if self.config.adductmass > 0:
                 self.config.adductmass *= -1
                 self.ctladductmass.SetValue(str(self.config.adductmass))
         else:
-            # print("Positive Ion Mode")
+            # print("Positive Ion Mode")\
             if self.config.adductmass < 0:
                 self.config.adductmass *= -1
                 self.ctladductmass.SetValue(str(self.config.adductmass))
@@ -983,13 +994,15 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.config.minmz = np.amin(self.pres.eng.data.rawdata[:, 0])
         if not self.config.maxmz and not ud.isempty(self.pres.eng.data.rawdata):
             self.config.maxmz = np.amax(self.pres.eng.data.rawdata[:, 0])
-        pass
 
-        if self.config.msig > 0:
-            self.parent.SetStatusText(
-                "Oligomer Blur Mass: " + str(self.config.molig) + " Std Dev: " + str(self.config.msig),
-                number=4)
-        else:
+        try:
+            if self.config.msig > 0:
+                self.parent.SetStatusText(
+                    "Oligomer Blur Mass: " + str(self.config.molig) + " Std Dev: " + str(self.config.msig),
+                    number=4)
+            else:
+                self.parent.SetStatusText(" ", number=4)
+        except:
             self.parent.SetStatusText(" ", number=4)
         # noinspection PyPep8
 

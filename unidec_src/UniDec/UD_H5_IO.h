@@ -53,8 +53,14 @@ void mh5readfile2dcolumn(hid_t file_id, char* dataname, float* outdata, int col)
 {
 	check_group(file_id, dataname);
 	hsize_t     dims[2];
+	int ndims=0;
+	H5LTget_dataset_ndims(file_id, dataname, &ndims);
+	if (ndims == 1) {
+		H5LTread_dataset_float(file_id, dataname, outdata);
+		return;
+	}
 	H5LTget_dataset_info(file_id, dataname, dims, NULL, NULL);
-	printf("%d %d\n", dims[0], dims[1]);
+	printf("%d %d %d %s\n", dims[0], dims[1], ndims, dataname);
 
 	float* data;
 	data = calloc(dims[0]*dims[1], sizeof(float));

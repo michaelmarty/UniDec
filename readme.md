@@ -197,11 +197,25 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.5.0.1
+
+**Added Beta Support for STORI Folders** in UCD. Select the directory of CSV files under Tools. It will concatenate these and convert them into an npz file that you can open directly.
+
+**Added Beta Support for Agilent Drift Tube IM-MS**. To use this, convert your data to mzML using MSConvert and select the "Combine Ion Mobility Scans" option. We recommend using the package as gzip as well and setting the extension to ".mzML.gz". Next, open UniDec and switch to Ion Mobility Mode under the Advanced Tab. Open the mzML file (drag and drop will work). Adjust the parameters in data processing to get it to look nice. The pusher should be set to 0. Set the voltage, temperature, and pressure to 0 in the Ion Mobility Parameters (with Linear Cell selected). Enger the tfix as the Dead Time and the Beta parameter below in the Drift Cell Length/Beta box. Adjust your parameters and hit deconvolve.
+
+**Added Support for SLIM TWIMS IM-MS**. Select SLIM poly3 or poly2 under the T-Wave Calibration Type. Calibration parameter 1 is the constant term with parameter 2 as the linear term and so on. 
+
+Added ability to export m/z values for peaks as _mzpeakdata.dat. Added headers to peakparams export text file.
+
+Fixed bugs with UltraMeta.
+
 v.5.0.0
 
 **Added UCD: UniDec for Charge Detection-MS**. This major new window extends UniDec to CD-MS data. It builds on the existing UniDec GUI but uses a new deconvolution engine. The engine is written in Python and has GPU-acceleration available for anyone with CUDA 11.2 installed. 
 
 **Added mzML ion mobility support**. Using MSConvert, select "Combine ion mobility scans". Then, launch UniDec and switch to IM mode by clicking Advanced > Switch to Ion Mobility Mode. UniDecIM should then be able to open ion mobility mzML files by drag and drop or File > Open File. It will create a text file next to the mzML file that you can open in the future. We recommend using the "Compress when converting to .txt" option to help speed up data processing by binning the data at this stage using the "Bin Every" parameter. 
+
+**Improved DoubleDec** code that is integrated into the C code and more tolerant of different types of input.
 
 Began adding experimental SLIM IM-MS calibration functions. Not fully implemented.
 

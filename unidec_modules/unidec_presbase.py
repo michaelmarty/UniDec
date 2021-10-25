@@ -201,7 +201,7 @@ class UniDecPres(object):
             data = self.eng.data.massdat
         if pks is None:
             pks = self.eng.pks
-        if self.eng.config.batchflag == 0:
+        if self.eng.config.batchflag == 0 and data.shape[1]==2:
             tstart = time.perf_counter()
             plot.plotrefreshtop(data[:, 0], data[:, 1],
                                 "Zero-charge Mass Spectrum", "Mass (Da)",
@@ -232,10 +232,12 @@ class UniDecPres(object):
             pks = self.eng.pks
         if self.eng.config.batchflag == 0:
             tstart = time.perf_counter()
+            # This plots the normal 1D mass spectrum
             plot.plotrefreshtop(data[:, 0], data[:, 1],
                                            "Data with Offset Isolated Species", "m/z (Th)",
                                            "Normalized and Offset Intensity", "Data", self.eng.config, nopaint=True)
             num = 0
+            # Corrections for if Isotope mode is on
             if self.eng.config.isotopemode == 1:
                 try:
                     stickmax = np.amax(np.array([p.stickdat for p in pks.peaks]))
@@ -243,15 +245,22 @@ class UniDecPres(object):
                     stickmax = 1.0
             else:
                 stickmax = 1.0
+            # Loop through each peak
             for i, p in enumerate(pks.peaks):
+                # Check if the peak is ignored
                 if p.ignore == 0:
+                    # Check if the mztabs are empty
                     if (not ud.isempty(p.mztab)) and (not ud.isempty(p.mztab2)):
                         mztab = np.array(p.mztab)
                         mztab2 = np.array(p.mztab2)
                         maxval = np.amax(mztab[:, 1])
+                        # Filter all peaks where the deconvolved intensity is above the relative threshold
                         b1 = mztab[:, 1] > self.eng.config.peakplotthresh * maxval
+                        # Plot the filtered peaks as dots on the spectrum
                         plot.plotadddot(mztab2[b1, 0], mztab2[b1, 1], p.color, p.marker)
+                    # Check if convolved data is present
                     if not ud.isempty(p.stickdat):
+                        # Plot the offset reconvolved data from the isolated species
                         plot.plotadd(self.eng.data.data2[:, 0], np.array(p.stickdat) / stickmax - (
                                 num + 1) * self.eng.config.separation, p.color, "useless label")
                     num += 1
@@ -585,8 +594,11 @@ class UniDecPres(object):
                 lines = []
                 for l in file:
                     p = l.strip("\n")
-                    if os.path.isfile(p):
-                        lines.append(p)
+                    try:
+                        if os.path.isfile(p):
+                            lines.append(p)
+                    except:
+                        pass
         else:
             self.eng.config.recentfile = os.path.join(self.eng.config.UniDecDir, "recent.txt")
             with open(self.eng.config.recentfile, 'w') as file:

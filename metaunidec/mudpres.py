@@ -35,6 +35,7 @@ class MetaUniDecBase(UniDecPres):
 
     def __init__(self, *args, **kwargs):
         UniDecPres.__init__(self, *args, **kwargs)
+        self.chrommode = False
         atexit.register(self.repack_hdf5)
 
     def makeplot1(self, e=None):
@@ -82,7 +83,7 @@ class MetaUniDecBase(UniDecPres):
             sep = self.eng.config.separation
 
         spectra = self.eng.data.get_spectra()
-        if len(spectra) > self.eng.config.crossover:
+        if len(spectra) > int(self.eng.config.crossover):
             mult = int(len(spectra) / self.eng.config.numtot)
             self.view.SetStatusText("Displaying subset of data", number=2)
         else:

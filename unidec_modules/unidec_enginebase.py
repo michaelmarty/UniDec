@@ -3,7 +3,7 @@ from copy import deepcopy
 from unidec_modules import unidectools as ud
 import numpy as np
 
-version = "5.0.0.a"
+version = "5.0.1"
 
 class UniDecEngine:
     def __init__(self):
@@ -257,3 +257,4 @@ class UniDecEngine:
         print("Total Oxidations:", totox)
 
         return np.append(areas, totox)
+

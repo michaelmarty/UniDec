@@ -178,7 +178,7 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 
 	float *extracts = NULL;
 	extracts = calloc(plen*num, sizeof(float));
-	
+
 	for (int i = 0; i < num; i++)
 	{
 		strcpy(dataset, "/ms_dataset");

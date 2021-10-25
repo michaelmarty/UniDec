@@ -30,7 +30,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 
 	printf("Opening File: %s\n", config.infile);
 	int lines;
-	lines = getfilelength(config.infile);
+	lines = getfilelengthbin(config.infile, sizeof(float), 3);
 
 	printf("config.length of data: %d\n", lines);
 
@@ -82,15 +82,34 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	float po = 760;
 	float tempo = 273.15;
 	float pi = 3.14159265359;
+	float ccsconst;
+	float ccsconsttype = 0;
 	config.temp = config.temp + tempo;
-	float ccsconst = (sqrt(18 * pi) / 16)*(e / sqrt(kb*config.temp)) / n*(config.volt / pow(config.len, 2))*(po / config.press)*(config.temp / tempo)*1E20;
+	if (config.press == 0 || config.volt == 0 || config.temp == 0)
+	{
+		printf("Either pressure, voltage, or temp is 0. Assuming length is beta (Agilent style)\n");
+		if (config.len != 0) {
+			ccsconst = 1.0 / config.len;
+			ccsconsttype = 1;
+		}
+		else
+		{
+			printf("Need length parameter to be set to beta");
+			exit(1);
+		}
+	}
+	else {
+		ccsconst = (sqrt(18 * pi) / 16) * (e / sqrt(kb * config.temp)) / n * (config.volt / pow(config.len, 2)) * (po / config.press) * (config.temp / tempo) * 1E20;
+		printf("CCS Const: %f\n", ccsconst);
+	}
+	
 	if (config.twaveflag>0) { printf("Ridin' the T-Wave!\n"); }
 
 	//Reading In Data
 	mzdat = calloc(lines, sizeof(float));
 	dtdat = calloc(lines, sizeof(float));
 	dataInt = calloc(lines, sizeof(float));
-	readfile3(config.infile, lines, mzdat, dtdat, dataInt);
+	readfile3bin(config.infile, lines, mzdat, dtdat, dataInt);
 
 	//Charge States
 	int numz = config.endz - config.startz + 1;
@@ -106,8 +125,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	size[2] = numz;
 	int totlen = size[0] * size[1] * size[2];
 	printf("Dimensions of data: %d mz by %d dt by %d z: %d lines: %d total\n", size[0], size[1], size[2], size[0] * size[1], totlen);
-	if (totlen>155E6) { printf("Warning: May exceed system memory capacity"); }
-
+	if (totlen>155E6) { printf("Warning: May exceed system memory capacity\n"); }
 	//Extracting mz and dt ranges
 	mzext = calloc(size[0], sizeof(float));
 	dtext = calloc(size[1], sizeof(float));
@@ -117,8 +135,8 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	mzranges[1] = mzext[size[0] - 1];
 	mzranges[2] = dtext[0];
 	mzranges[3] = dtext[size[1] - 1];
-	printf("MZ Range: %f config.to %f\n", mzranges[0], mzranges[1]);
-	printf("DT Range: %f config.to %f\n", mzranges[2], mzranges[3]);
+	printf("MZ Range: %f to %f\n", mzranges[0], mzranges[1]);
+	printf("DT Range: %f to %f\n", mzranges[2], mzranges[3]);
 
 	peakshape = calloc(lines, sizeof(float));
 	GetPeaks(peakshape, size, mzext, dtext, config.mzsig, config.dtsig, config.psfun);
@@ -150,7 +168,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 				tempmass = masstab[index2D(size[2], i, k)];
 				if (config.twaveflag == 0)
 				{
-					tempccs = calcCCS(masstab[index2D(size[2], i, k)], ztab[k], dtext[j], ccsconst, config.hmass, config.to);
+					tempccs = calcCCS(masstab[index2D(size[2], i, k)], ztab[k], dtext[j], ccsconst, config.hmass, config.to, ccsconsttype);
 				}
 				else if (config.twaveflag == 1)
 				{
@@ -260,7 +278,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 						else
 						{
 							indm = nearfast(mzext, point, size[0]);
-							if (config.twaveflag == 0) { point2 = calcDt(point, ztab[k] + closezind[l], ccspt, ccsconst, config.hmass, config.to); }
+							if (config.twaveflag == 0) { point2 = calcDt(point, ztab[k] + closezind[l], ccspt, ccsconst, config.hmass, config.to, ccsconsttype); }
 							else if (config.twaveflag == 1) { point2 = calcDtTwaveLog(point, ztab[k] + closezind[l], ccspt, config.tcal1, config.tcal2, config.hmass, config.edc); }
 							else if (config.twaveflag == 2) { point2 = calcDtTwaveLinear(point, ztab[k] + closezind[l], ccspt, config.tcal1, config.tcal2, config.hmass, config.edc); }
 							else if (config.twaveflag == 3) { point2 = calcDtTwavePower(point, ztab[k] + closezind[l], ccspt, config.tcal1, config.tcal2, config.hmass, config.edc); }
@@ -427,7 +445,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 					tempmz = calcMz(tempmass, ztab[k], config.adductmass);
 					tempccs = ccsaxis[j];
 
-					if (config.twaveflag == 0) { tempdt = calcDt(tempmass, ztab[k], tempccs, ccsconst, config.hmass, config.to); }
+					if (config.twaveflag == 0) { tempdt = calcDt(tempmass, ztab[k], tempccs, ccsconst, config.hmass, config.to, ccsconsttype); }
 					else if (config.twaveflag == 1) { tempdt = calcDtTwaveLog(tempmass, ztab[k], tempccs, config.tcal1, config.tcal2, config.hmass, config.edc); }
 					else if (config.twaveflag == 2) { tempdt = calcDtTwaveLinear(tempmass, ztab[k], tempccs, config.tcal1, config.tcal2, config.hmass, config.edc); }
 					else if (config.twaveflag == 3) { tempdt = calcDtTwavePower(tempmass, ztab[k], tempccs, config.tcal1, config.tcal2, config.hmass, config.edc); }

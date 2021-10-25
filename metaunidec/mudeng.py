@@ -286,7 +286,10 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         for p in self.pks.peaks:
             peakparams.append([str(p.mass), str(p.height), str(p.area), str(p.label)])
         outfile = self.config.outfname + "_peaks.txt"
-        np.savetxt(outfile, np.array(peakparams), delimiter=",", fmt="%s")
+        try:
+            np.savetxt(outfile, np.array(peakparams), delimiter=",", fmt="%s")
+        except:
+            pass
 
         peakexts = []
         for p in self.pks.peaks:
