@@ -197,6 +197,14 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.5.0.2
+
+Added Batch Processing (via Tools menu or drag and drop) to UniDecCD.
+
+Fixed bugs with STORI calibration in UCD.
+
+Added export of text file for composite spectrum.
+
 v.5.0.1
 
 **Added Beta Support for STORI Folders** in UCD. Select the directory of CSV files under Tools. It will concatenate these and convert them into an npz file that you can open directly.

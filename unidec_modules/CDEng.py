@@ -124,10 +124,14 @@ def softmax(I, beta):
 def filter_centroid_const(d, mz_threshold=1):
     """
     """
-    boo1 = np.diff(d[:, 0]) > mz_threshold
-    boo2 = np.append(boo1[0], boo1)
-    boo3 = np.append(boo1, boo1[-1])
-    boo1 = np.logical_and(boo2, boo3)
+    try:
+        boo1 = np.diff(d[:, 0]) > mz_threshold
+        boo2 = np.append(boo1[0], boo1)
+        boo3 = np.append(boo1, boo1[-1])
+        boo1 = np.logical_and(boo2, boo3)
+    except:
+        print("No Centroid Overlaps Found")
+        return d
     return d[boo1]
 
 
@@ -301,19 +305,24 @@ class UniDecCD(unidec.UniDec):
         else:
             print("Unrecognized file type:", self.path)
             return 0
-
+        print("File Read. Length: ", len(data))
         # Post processing if data is from raw or mzML
         # Ignored if text file input
         if self.thermodata:
             scans = np.concatenate([s * np.ones(len(data[i])) for i, s in enumerate(self.scans)])
             mz = np.concatenate([d[:, 0] for d in data])
-            intensity = np.concatenate([d[:, 1] * self.it[i] / 1000. for i, d in enumerate(data)])
+            try:
+                intensity = np.concatenate([d[:, 1] * self.it[i] / 1000. for i, d in enumerate(data)])
+            except:
+                print(self.it)
+                intensity = np.concatenate([d[:, 1] for i, d in enumerate(data)])
 
         # Create data array
         self.darray = np.transpose([mz, intensity, scans])
         # Filter out only the data with positive intensities
         boo1 = self.darray[:, 1] > 0
         self.darray = self.darray[boo1]
+        print("Filtered 0 intensity values. Length: ", len(self.darray))
         # Define the noise level as the median of the data intensities
         self.noise = Gmax2(self.darray)
         # Create the filtered array (farray) object
@@ -931,7 +940,7 @@ class UniDecCD(unidec.UniDec):
         # Transform m/z to mass
         self.transform(massbins=self.config.massbins)
 
-    def extract_intensities(self, mass, minz, maxz, window=10):
+    def extract_intensities(self, mass, minz, maxz, window=25, sdmult=2, noise_mult=0):
         ztab = np.arange(minz, maxz + 1)
         mztab = (mass + ztab * self.config.adductmass) / ztab
         extracts = []
@@ -939,14 +948,13 @@ class UniDecCD(unidec.UniDec):
         for i, z in enumerate(ztab):
             self.farray = deepcopy(self.darray)
             self.filter_mz(mzrange=windows + mztab[i])
-
             ext = self.filter_centroid_all(1)
-
-            int_range = [self.noise*1.5, 3000]
+            int_range = [self.noise*noise_mult, 100000000000000]
             ext = self.filter_int(int_range)
             if not ud.isempty(self.farray):
                 median = np.median(self.farray[:, 1])
-                stddev = 100
+                stddev = np.std(self.farray[:, 1]) * sdmult
+                #stddev = median * medrange
                 int_range = np.array([-stddev, stddev]) + median
                 ext = self.filter_int(int_range)
 
@@ -957,8 +965,12 @@ class UniDecCD(unidec.UniDec):
                 else:
                     extracts = np.concatenate((extracts, ext), axis=0)
                 pass
+                print("Filtering mz: ", mztab[i], len(ext))
         snextracts = deepcopy(extracts)
-        snextracts[:, 1] = snextracts[:, 1] / self.noise
+        try:
+            snextracts[:, 1] = snextracts[:, 1] / self.noise
+        except:
+            print("No Intensity Found", snextracts)
         return extracts, snextracts
 
     def get_fit(self, extracts):

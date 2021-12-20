@@ -637,8 +637,10 @@ class UniDecApp(UniDecPres):
 
             self.view.plot4.plotadd(self.eng.data.data2[:, 0], self.eng.pks.composite, "b", "useless label")
             self.view.plot4.repaint()
+            np.savetxt(self.eng.config.outfname + "_composite_spectrum.dat",
+                       np.transpose([self.eng.data.data2[:, 0], self.eng.pks.composite]))
         except ValueError:
-            print("Need to hit Plot Species button first")
+            print("Need to hit Plot Peaks button first")
 
     def make_im_plots(self):
         """

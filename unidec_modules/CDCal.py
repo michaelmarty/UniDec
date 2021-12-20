@@ -193,6 +193,8 @@ class CDCalDialog(wx.Frame):
 
         ctlsizer.Add(vbox2, 1, wx.EXPAND)
 
+
+
         sb2 = wx.StaticBox(self.pnl, label='Fit Parameters')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.VERTICAL)
         gbox1c = wx.GridBagSizer(wx.VERTICAL)
@@ -209,7 +211,26 @@ class CDCalDialog(wx.Frame):
         gbox1c.Add(wx.StaticText(self.pnl, label="S/N Slope: "), (1, 0),
                    flag=wx.ALIGN_CENTER_VERTICAL)
 
+        self.ctlmzwindow = wx.TextCtrl(self.pnl, value='', size=size1)
+        gbox1c.Add(self.ctlmzwindow, (2, 1), span=(1, 1))
+        gbox1c.Add(wx.StaticText(self.pnl, label="m/z Window: "), (2, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlmzwindow.SetValue("25")
+
+        self.ctlnoise = wx.TextCtrl(self.pnl, value='', size=size1)
+        gbox1c.Add(self.ctlnoise, (3, 1), span=(1, 1))
+        gbox1c.Add(wx.StaticText(self.pnl, label="S/N Minimum: "), (3, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlnoise.SetValue("0")
+
+        self.ctlsdmult = wx.TextCtrl(self.pnl, value='', size=size1)
+        gbox1c.Add(self.ctlsdmult, (4, 1), span=(1, 1))
+        gbox1c.Add(wx.StaticText(self.pnl, label="Std Dev Window: "), (4, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlsdmult.SetValue("2")
+
         sbs2.Add(gbox1c, 0, wx.EXPAND)
+
         ctlsizer.Add(sbs2, 0, wx.EXPAND)
 
         sbs.Add(ctlsizer, 0, wx.EXPAND)
@@ -247,6 +268,29 @@ class CDCalDialog(wx.Frame):
         :return: None
         """
         caldat = np.array(self.masspanel.list.get_list())
+        try:
+            mzwindow = float(self.ctlmzwindow.GetValue())
+            print("Using MZ Window: ", mzwindow)
+        except:
+            mzwindow = 25
+            print("Could Not Convert to Float:", self.ctlmzwindow.GetValue())
+            print("Using Default for MZ window:", mzwindow)
+
+        try:
+            noisemult = float(self.ctlnoise.GetValue())
+            print("Using Noise Threshold: ", noisemult)
+        except:
+            noisemult = 0
+            print("Could Not Convert to Float:", self.ctlnoise.GetValue())
+            print("Using Default for Noise Threshold:", noisemult)
+
+        try:
+            sdmult = float(self.ctlsdmult.GetValue())
+            print("Using Std Dev Window: ", sdmult)
+        except:
+            sdmult = 0
+            print("Could Not Convert to Float:", self.ctlsdmult.GetValue())
+            print("Using Default for Std Dev Window:", sdmult)
 
         eng = UniDecCD()
         extracts = []
@@ -257,7 +301,7 @@ class CDCalDialog(wx.Frame):
             m = float(l[1])
             minz = float(l[2])
             maxz = float(l[3])
-            ext, snext = eng.extract_intensities(m, minz, maxz, window=5)
+            ext, snext = eng.extract_intensities(m, minz, maxz, window=mzwindow, noise_mult=noisemult, sdmult=sdmult)
 
             if i == 0:
                 extracts = ext
@@ -293,11 +337,12 @@ class CDCalDialog(wx.Frame):
 # Main App Execution
 if __name__ == "__main__":
     calpath = "Z:\Group Share\Marius Kostelic\CD-MS\Replicates\Calibration.csv"
+    calpath = "C:\Data\CDMS\AqpZ_STORI\AqpZ_STORI\caltest.csv"
     app = wx.App(False)
     frame = CDCalDialog(None)
     from unidec_modules.unidecstructure import UniDecConfig
     config = UniDecConfig()
     frame.initialize_interface(config)
     frame.load_csv(calpath)
-    #frame.on_plot(None)
+    frame.on_plot(None)
     app.MainLoop()

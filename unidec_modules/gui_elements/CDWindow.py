@@ -69,7 +69,7 @@ class CDMainwindow(MainwindowBase):
                 ["F", self.pres.on_compare2, self.menu.menucompare2],  # ["Z", self.pres.on_charge_plot],
                 # ["L", self.pres.on_load_everything, self.menu.menuLoadEverything],
                 # ["S", self.pres.on_save_state, self.menu.menuSaveState],
-                # ["B", self.pres.on_batch, self.menu.menuBatch],
+                ["B", self.pres.on_batch, self.menu.menuBatch],
                 ["Q", self.on_exit, self.menu.menuExit],
                 ["T", self.pres.on_mass_tools, self.menu.menuMassFile],
                 ["M", self.pres.on_match, self.menu.menumatch],
@@ -250,8 +250,8 @@ class MyFileDropTarget(wx.FileDropTarget):
         elif len(filenames) > 1:
             # Batch process the files that were dropped
             if os.path.splitext(filenames[0])[1] == ".raw" and os.path.isdir(filenames[0]):
-                print("Batch converting raw to txt")
-                self.window.pres.on_batch_raw(0, filenames, clip=False)
+                print("Error: Is Directory")
+                #self.window.pres.on_batch_raw(0, filenames, clip=False)
             else:
                 print("Running batch mode")
                 self.window.pres.on_batch(batchfiles=filenames)

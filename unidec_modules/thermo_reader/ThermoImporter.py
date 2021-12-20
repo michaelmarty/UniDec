@@ -130,6 +130,11 @@ class ThermoDataImporter:
         its = []
         for i, s in enumerate(self.scans):
             it, res, an1, an2 = self.msrun.get_scan_header(s)
+            try:
+                it = float(it)
+            except:
+                print("Error in scan header:", i, s, it)
+                it = 1
             its.append(it)
         return np.array(its)
 

@@ -286,6 +286,55 @@ class UniDecCDApp(UniDecApp):
         dlg = CDCal.CDCalDialog(self.view)
         dlg.initialize_interface(self.eng.config)
 
+    def on_batch(self, e=None, flag=0, batchfiles=None):
+        """
+        Batch processing!
+        Spawns a directory to select multiple files.
+        Feeds the file names into a loop that:
+        Opens the file (self.on_open_file)
+        Prepares the data (self.on_dataprep_button)
+        Runs UniDec (self.unidec_button)
+        Picks Peaks (self.on_pick_peaks)
+        Exports Peak Parameters (self.on_export_params)
+        Saves State (self.on_save_state)
+        If uses self.eng.config.batchflag to prevent certain things from plotting and all key parameters from changing.
+        If batchflag is 2 (flag=1),
+            all key paramters are kept, but the data ranges are refreshed from the individual files.
+        :param e: event passed to some function (unused)
+        :param flag: flag added to self.eng.config.batchflag
+        :param batchfiles: List of files to run in batch. If None, will open dialog.
+        :return:
+        """
+        if batchfiles is None:
+            batchfiles = FileDialogs.open_multiple_files_dialog(
+                message="Select Files To Process With Current Parameters",
+                file_type="Any Type|*.*|Text (.txt)|*.txt|Thermo (.raw)|*.raw|mzML (.mzML)|*.mzML")
+
+        self.eng.config.batchflag = 1 + flag
+        tstarttop = time.perf_counter()
+        print(batchfiles)
+        if batchfiles is not None:
+            self.view.clear_all_plots()
+            for i, path in enumerate(batchfiles):
+                print(path)
+                tstart = time.perf_counter()
+                dirname, filename = os.path.split(path)
+                self.on_open_file(filename, dirname)
+                self.on_dataprep_button(e)
+                self.on_unidec_button(e)
+                self.on_pick_peaks(e)
+                self.on_export_params(e)
+                # outfile = os.path.join(dirname, self.eng.config.outfname + ".zip")
+                # self.on_save_state(0, outfile)
+                # print "File saved to: " + str(outfile)
+                print("Completed: " + path)
+                tend = time.perf_counter()
+                print("Run Time: %.2gs" % (tend - tstart))
+                print("\n")
+        self.eng.config.batchflag = 0
+        tend = time.perf_counter()
+        print("\nTotal Batch Run Time: %.3gs" % (tend - tstarttop))
+
     def on_gpu_mode(self, gpumode=False):
         self.eng.gpu_mode(gpumode)
 
