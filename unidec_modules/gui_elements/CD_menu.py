@@ -99,6 +99,11 @@ class CD_menu(wx.Menu):
         self.menuExit = self.filemenu.Append(wx.ID_EXIT, "E&xit\tCtrl+Q", " Terminate the Program")
 
         # Setting Up the Tools Menu
+        self.menuBatch = self.toolsmenu.Append(wx.ID_ANY, "Batch Process\tCtrl+B",
+                                               "Run these conditions on multiple samples")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_batch, self.menuBatch)
+        self.toolsmenu.AppendSeparator()
+
         self.menuMassFile = self.toolsmenu.Append(wx.ID_ANY, "Oligomer and Mass Tools\tCtrl+T",
                                                   "Oligomer and Mass Tools")
         self.toolsmenu.AppendSeparator()
@@ -120,10 +125,7 @@ class CD_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_auto_peak_width, self.menuAutoWidth)
 
         '''
-        self.menuBatch = self.toolsmenu.Append(wx.ID_ANY, "Batch Process\tCtrl+B",
-                                               "Run these conditions on multiple samples")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_batch, self.menuBatch)
-        self.toolsmenu.AppendSeparator()
+        
 
         self.menuManualFile = self.toolsmenu.Append(wx.ID_ANY, "Manual Assignment",
                                                     "Manually set UniDec to preassign specific m/z values")

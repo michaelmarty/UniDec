@@ -457,6 +457,11 @@ class mzMLimporter:
         its = []
         for i, s in enumerate(self.ids):
             it = self.get_inj_time(self.msrun[s])
+            try:
+                it = float(it)
+            except:
+                print("Error in scan header:", i, s, it)
+                it = 1
             its.append(it)
         return np.array(its)
 

@@ -69,6 +69,7 @@ hiddenimportslist=[  # 'plotly','
                  'Tkinter', 'FixTk', '_tkinter', 'Tkconstants', 'FileDialog', 'Dialog', 'six',
                  'pymzml.run', 'pymzml.plot', 'pymzml.obo',
                  'pkg_resources.py2_warn',
+                 'PIL',
                  # , 'requests.packages.chardet.sys', 'requests','urllib3.packages.ordered_dict'
              ]
 
@@ -79,7 +80,7 @@ cudaimportlist=['cupy','cupy.core', 'cupy.core._routines_sorting','cupy.core.fla
                  'fastrlock.rlock', 'cupy.core._cub_reduction', 'cupy.core._ufuncs']
 
 excludeslist = ['pandas', 'IPython', 'statsmodels', 'pyopenms', 'sklearn',
-                       'GdkPixbuf', 'PIL', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2', 'PyQt5']
+                       'GdkPixbuf', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2', 'PyQt5']
 
 if distmode:
     hiddenimportslist = hiddenimportslist + cudaimportlist
