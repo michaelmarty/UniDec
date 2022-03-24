@@ -93,7 +93,7 @@ class UniDecCDApp(UniDecApp):
             self.on_open_file(filename, dirname)
         dlg.Destroy()
 
-    def on_open_file(self, filename, directory, path=None):
+    def on_open_file(self, filename, directory, path=None, refresh=False):
         """
         Opens a file. Run self.eng.open_file.
         :param filename: File name
@@ -110,7 +110,8 @@ class UniDecCDApp(UniDecApp):
         if path is None:
             path = os.path.join(directory, filename)
         print("Opening", path)
-        self.eng.open_file(path)
+        self.top_path=path
+        self.eng.open_file(path, refresh=refresh)
 
         # Set Status Bar Text Values
         self.view.SetStatusText("File: " + path, number=1)
@@ -130,6 +131,10 @@ class UniDecCDApp(UniDecApp):
         self.view.menu.update_recent()
 
         self.on_dataprep_button()
+
+    def on_refresh(self, e=None):
+        if self.top_path is not None:
+            self.on_open_file(None, None, path=self.top_path, refresh=True)
 
     def on_stori(self, e=None, dirname=None):
         self.export_config(self.eng.config.confname)
@@ -157,6 +162,21 @@ class UniDecCDApp(UniDecApp):
                                         config=self.eng.config)
         else:
             print("ERROR: Histogram Array is empty")
+
+    def make_mzmass_plot(self, e=None):
+        self.export_config(self.eng.config.confname)
+        print("Creating m/z vs. Mass plot.")
+        tstart = time.perf_counter()
+        # Make mz vs mass plot
+        self.eng.transform_mzmass()
+        if not ud.isempty(self.eng.data.mzmassgrid) or np.amax(self.eng.data.mzmassgrid) == 0:
+            self.view.plot5.contourplot(xvals=self.eng.mz, yvals=self.eng.data.massdat[:,0], zgrid=np.transpose(self.eng.data.mzmassgrid),
+                                        config=self.eng.config, ylab="Mass (Da)", discrete=True)
+        else:
+            print("ERROR: mzmassgrid Array is empty")
+        tend = time.perf_counter()
+        print("m/z vs. Mass Plot Time: %.2gs" % (tend - tstart))
+
 
     def plotkernel(self, e=None):
         self.export_config()
@@ -217,6 +237,7 @@ class UniDecCDApp(UniDecApp):
         pass
 
     def on_replot(self, e=None):
+        self.export_config()
         self.makeplot1()
         self.makeplot2()
         self.makeplot3()

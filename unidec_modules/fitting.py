@@ -35,7 +35,7 @@ def binomial_fit(xvals, yvals):
     return fits, fitdat
 
 
-def ndis_std(x, mid, sig, a=1, norm_area=False):
+def ndis_std(x: object, mid: object, sig: object, a: object = 1, norm_area: object = False) -> object:
     """
     Normal Gaussian function normalized to the max of 1.
     :param x: x values

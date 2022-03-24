@@ -129,7 +129,7 @@ class UniDecApp(UniDecPres):
             self.on_open_file(filename, dirname)
         dlg.Destroy()
 
-    def on_open_file(self, filename, directory, skipengine=False, **kwargs):
+    def on_open_file(self, filename, directory, skipengine=False, refresh=False, **kwargs):
         """
         Opens a file. Run self.eng.open_file.
         :param filename: File name
@@ -144,7 +144,8 @@ class UniDecApp(UniDecPres):
         self.view.clear_all_plots()
         if not skipengine:
             # Open File in Engine
-            self.eng.open_file(filename, directory, **kwargs)
+            self.top_path = os.path.join(directory, filename)
+            self.eng.open_file(filename, directory, refresh=refresh, **kwargs)
 
         # Set Status Bar Text Values
         self.view.SetStatusText("File: " + filename, number=1)
@@ -344,7 +345,7 @@ class UniDecApp(UniDecPres):
                     os.mkdir(newdir)
                 np.savetxt(os.path.join(newdir, fname), data)
                 print("Saved Pasted Spectrum as File:", fname, " in directory:", newdir)
-                self.on_open_file(fname, newdir, pasted=True)
+                self.on_open_file(fname, newdir, refresh=True)
             else:
                 print("Paste failed, got: ", data)
         except Exception as e:
@@ -512,10 +513,9 @@ class UniDecApp(UniDecPres):
                         pass
 
             try:
-                test=float(self.eng.config.reductionpercent)
+                test = float(self.eng.config.reductionpercent)
             except:
-                self.eng.config.reductionpercent=0
-
+                self.eng.config.reductionpercent = 0
 
             if self.eng.config.reductionpercent < 0:
                 print("Making Dot Plot")

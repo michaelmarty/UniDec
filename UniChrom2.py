@@ -65,13 +65,14 @@ class ChromApp(MetaUniDecBase):
             if os.path.splitext(dirname)[1] in chrom_file_exts:
                 self.open_file(dirname)
 
-    def open_file(self, path, skip_eng=False, batch=False):
+    def open_file(self, path, skip_eng=False, batch=False, refresh=False):
         self.view.clear_all_plots()
         self.view.ypanel.list.clear_list()
         if os.path.isfile(path) or os.path.isdir(path):
             self.view.SetStatusText("Opening", number=0)
+            self.top_path = path
             if not skip_eng:
-                load_hdf5 = self.eng.open_chrom(path)
+                load_hdf5 = self.eng.open_chrom(path, refresh=refresh)
             else:
                 load_hdf5 = True
             self.view.SetStatusText(str(self.eng.filename), number=0)
@@ -83,6 +84,17 @@ class ChromApp(MetaUniDecBase):
             self.view.menu.update_recent()
         else:
             print("Could not find file:", path)
+
+    def on_open_file(self, filename, directory, time_range=None, refresh=False):
+        path = os.path.join(directory, filename)
+        self.open_file(path, refresh=refresh)
+        if refresh and time_range is None:
+            self.select_all()
+        if refresh and time_range is not None:
+            self.on_selection(time_range[0], time_range[1])
+
+    def quick_auto(self, e=None):
+        self.on_unidec_run()
 
     def update_hdf5(self, export=True):
         self.view.clear_plots()
@@ -192,6 +204,9 @@ class ChromApp(MetaUniDecBase):
             except (TypeError, IndexError):
                 print("Error Plotting Scans")
         return self.eng.mzdata
+
+    def select_all(self, e=None):
+        self.on_selection(0, 100000000000000)
 
     def export_selection(self, e=None):
         self.export_config()

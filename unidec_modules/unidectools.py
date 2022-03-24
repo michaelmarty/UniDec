@@ -111,6 +111,15 @@ def get_importer(path):
     return d
 
 
+def get_max_time(path):
+    if os.path.splitext(path)[1] == ".txt":
+        return 0
+
+    importer = get_importer(path)
+    maxtime = importer.get_max_time()
+    return maxtime
+
+
 # ..........................
 #
 # Utility Functions
@@ -529,6 +538,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             print("NEED TO SET INTEGRAL WINDOW!\nUsing Peak Height Instead")
 
     elif extract_method == 3:
+        # Center of Mass
         if window is not None:
             start = x - window
             end = x + window
@@ -538,6 +548,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 4:
+        # Local Max Position
         if window is not None:
             start = x - window
             end = x + window
@@ -575,6 +586,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 7:
+        # Center of Mass for intensity squared
         if window is not None:
             start = x - window
             end = x + window
@@ -584,6 +596,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 8:
+        # Center of Mass for intensity cubed
         if window is not None:
             start = x - window
             end = x + window
@@ -593,7 +606,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 9:
-        # Remove data points that fall below 50% threshold
+        # Center of mass Remove data points that fall below 50% threshold squared
         maxval = np.amax(data[:, 1])
         boo2 = data[:, 1] > maxval * 0.5
         cutdat = data[boo2]
@@ -607,7 +620,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 10:
-        # Remove data points that fall below 50% threshold
+        # Center of Mass Remove data points that fall below 50% threshold cubed
         maxval = np.amax(data[:, 1])
         boo2 = data[:, 1] > maxval * 0.5
         cutdat = data[boo2]
@@ -646,6 +659,25 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
                 val = height * fwhm * np.pi / 2
             elif psfun == 2:  # Split G/L
                 val = height * fwhm * adjusted_coeff
+
+    elif extract_method == 12:
+        # Peak Area with 10% relative threshold
+        start = nearest(data[:, 0], (x - window))  # x values should be sorted
+        end = nearest(data[:, 0], (x + window))
+        data_slice = data[start:end]
+        max_index = np.argmax(data_slice[:, 1])
+        local_height = data_slice[max_index, 1]
+
+        boo2 = data[:, 1] > local_height * 0.1
+        cutdat = data[boo2]
+        if window is not None:
+            start = x - window
+            end = x + window
+            val, junk = integrate(cutdat, start, end)
+        else:
+            index = nearest(data[:, 0], x)
+            val = data[index, 1]
+            print("NEED TO SET INTEGRAL WINDOW!\nUsing Peak Height Instead")
 
     else:
         val = 0
@@ -950,6 +982,7 @@ def dataexport(datatop, fname, header=""):
         np.savetxt(path, datatop, fmt='%f', header=header)
         print("NOTE: Your path length might exceed the limit for Windows. Please shorten your file name.")
     pass
+
 
 def dataexportbin(datatop, fname):
     try:
@@ -1333,15 +1366,15 @@ def gsmooth(datatop, sig):
 
 def linear_axis(raw_data):
     # Get the sparse data
-    sparse_data=np.unique(raw_data)
+    sparse_data = np.unique(raw_data)
     # Find the sample rate
     sample_rate = np.amin(np.diff(sparse_data))
     # Setup the new axis
     min = np.amin(sparse_data)
     max = np.amax(sparse_data)
-    newaxis = np.arange(min, max+sample_rate, sample_rate)
+    newaxis = np.arange(min, max + sample_rate, sample_rate)
     # Round the old axis to match the new. Otherwise, small differences will be deadly
-    oldraw = np.round((raw_data-min)/sample_rate)*sample_rate + min
+    oldraw = np.round((raw_data - min) / sample_rate) * sample_rate + min
     oldaxis = np.unique(oldraw)
     return newaxis, oldaxis, oldraw
 
@@ -1358,8 +1391,8 @@ def mergedata2dexact(x1, y1, x2, y2, z2):
 
 def unsparse(rawdata):
     # Create new axes
-    mzaxis2, mzaxis, rawdata[:,0] = linear_axis(rawdata[:,0])
-    dtaxis2, dtaxis, rawdata[:,1] = linear_axis(rawdata[:,1])
+    mzaxis2, mzaxis, rawdata[:, 0] = linear_axis(rawdata[:, 0])
+    dtaxis2, dtaxis, rawdata[:, 1] = linear_axis(rawdata[:, 1])
 
     # Create new grids
     mzaxis2grid, dtaxis2grid = np.meshgrid(mzaxis2, dtaxis2, sparse=False, indexing='ij')
@@ -1376,8 +1409,9 @@ def unsparse(rawdata):
 
     return rawdata3, rawdata
 
+
 def sparse(rawdata):
-    boo1 = rawdata[:,2]!=0
+    boo1 = rawdata[:, 2] != 0
     return rawdata[boo1]
 
 

@@ -340,6 +340,23 @@ class meta_menu(wx.Menu):
         self.menufilterpeaks = self.experimentalmenu.Append(wx.ID_ANY, "Filter Peaks by Score")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_filter_peaks_MUD, self.menufilterpeaks)
 
+        if self.type != "Meta":
+            self.experimentalmenu.AppendSeparator()
+            self.menurefresh = self.experimentalmenu.Append(wx.ID_ANY, "Refresh Cumulative")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_timer, self.menurefresh)
+
+            self.menurefresh2 = self.experimentalmenu.Append(wx.ID_ANY, "Refresh Recent")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_timer2, self.menurefresh2)
+
+            self.menuautorefresh = self.experimentalmenu.Append(wx.ID_ANY, "Start Auto Refresh Cumulative")
+            self.parent.Bind(wx.EVT_MENU, self.pres.create_timer, self.menuautorefresh)
+
+            self.menuautorefresh2 = self.experimentalmenu.Append(wx.ID_ANY, "Start Auto Refresh Recent")
+            self.parent.Bind(wx.EVT_MENU, self.pres.create_timer2, self.menuautorefresh2)
+
+            self.menuautorefreshstop = self.experimentalmenu.Append(wx.ID_ANY, "Stop Auto Refresh")
+            self.parent.Bind(wx.EVT_MENU, self.pres.auto_refresh_stop, self.menuautorefreshstop)
+
         if self.type == "Meta":
             #Help Menu
             self.getstarted = self.helpmenu.Append(wx.ID_ANY, "Getting Started")
