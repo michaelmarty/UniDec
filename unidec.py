@@ -34,7 +34,7 @@ class UniDec(UniDecEngine):
         self.errorgrid = None
         pass
 
-    def open_file(self, file_name, file_directory=None, time_range=None, *args, **kwargs):
+    def open_file(self, file_name, file_directory=None, time_range=None, refresh=False, *args, **kwargs):
         """
         Open text or mzML file. Will create _unidecfiles directory if it does not exist.
 
@@ -118,11 +118,6 @@ class UniDec(UniDecEngine):
                 np.savetxt(newname, outputdata)
             except Exception as e:
                 pass
-
-        if "pasted" in kwargs and kwargs["pasted"]:
-            refresh = True
-        else:
-            refresh = False
 
         if os.path.isfile(self.config.infname) and not refresh and self.config.imflag == 0:
             self.data.data2 = np.loadtxt(self.config.infname)

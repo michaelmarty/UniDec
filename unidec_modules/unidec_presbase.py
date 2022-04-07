@@ -10,6 +10,7 @@ import time
 from metaunidec.mudstruct import MetaDataSet
 import sys, getopt
 
+
 class UniDecPres(object):
     """
     Main UniDec GUI Application.
@@ -23,10 +24,12 @@ class UniDecPres(object):
         self.view = None
         self.recent_files = []
 
-        self.infile=None
+        self.infile = None
+        self.top_path = None
         opts = None
         try:
             opts, args = getopt.getopt(sys.argv[1:], "ucmf:", ["file=", "unidec", "meta", "chrom"])
+
         except getopt.GetoptError as e:
             print("Error in Argv. Likely unknown option: ", sys.argv, e)
             print("Known options: -u, -m, -c, -f")
@@ -35,6 +38,10 @@ class UniDecPres(object):
                 if opt in ("-f", "--file"):
                     self.infile = arg
                     print("Opening File:", self.infile)
+        if ud.isempty(opts):
+            if len(args) > 0:
+                self.infile = args[0]
+                print("Opening File:", self.infile)
         pass
 
     def start(self):
@@ -201,7 +208,7 @@ class UniDecPres(object):
             data = self.eng.data.massdat
         if pks is None:
             pks = self.eng.pks
-        if self.eng.config.batchflag == 0 and data.shape[1]==2:
+        if self.eng.config.batchflag == 0 and data.shape[1] == 2 and len(data)>=2:
             tstart = time.perf_counter()
             plot.plotrefreshtop(data[:, 0], data[:, 1],
                                 "Zero-charge Mass Spectrum", "Mass (Da)",
@@ -214,6 +221,8 @@ class UniDecPres(object):
             plot.repaint()
             tend = time.perf_counter()
             print("Plot 2: %.2gs" % (tend - tstart))
+        if data.shape[1]!=2 or len(data)<2:
+            print("Data Too Small. Adjust parameters.", data)
 
     def makeplot4(self, e=None, plot=None, data=None, pks=None):
         """
@@ -234,8 +243,8 @@ class UniDecPres(object):
             tstart = time.perf_counter()
             # This plots the normal 1D mass spectrum
             plot.plotrefreshtop(data[:, 0], data[:, 1],
-                                           "Data with Offset Isolated Species", "m/z (Th)",
-                                           "Normalized and Offset Intensity", "Data", self.eng.config, nopaint=True)
+                                "Data with Offset Isolated Species", "m/z (Th)",
+                                "Normalized and Offset Intensity", "Data", self.eng.config, nopaint=True)
             num = 0
             # Corrections for if Isotope mode is on
             if self.eng.config.isotopemode == 1:
@@ -332,11 +341,11 @@ class UniDecPres(object):
         :return: None
         """
         if peakpanel is None:
-            peakpanel=self.view.peakpanel
+            peakpanel = self.view.peakpanel
         if pks is None:
-            pks=self.eng.pks
+            pks = self.eng.pks
         if plot is None:
-            plot=self.view.plot2
+            plot = self.view.plot2
         if massdat is None:
             massdat = self.eng.data.massdat
 
@@ -363,11 +372,11 @@ class UniDecPres(object):
         :return: None
         """
         if peakpanel is None:
-            peakpanel=self.view.peakpanel
+            peakpanel = self.view.peakpanel
         if pks is None:
             pks = self.eng.pks
         if plot is None:
-            plot=self.view.plot2
+            plot = self.view.plot2
         if dataobj is None:
             dataobj = self.eng.data
 
@@ -620,3 +629,45 @@ class UniDecPres(object):
                 l = p + '\n'
                 f.write(l)
             f.truncate()
+
+    def auto_refresh_stop(self, e=None):
+        self.timer.Stop()
+
+    def create_timer(self, e=None):
+        self.timer = wx.Timer(self.view)
+        self.view.Bind(wx.EVT_TIMER, self.on_timer)
+        self.timer.Start(10000)
+
+    def create_timer2(self, e=None):
+        self.timer = wx.Timer(self.view)
+        self.view.Bind(wx.EVT_TIMER, self.on_timer2)
+        self.timer.Start(10000)
+
+    def on_timer(self, e=None):
+        print("Event")
+        print("Refreshing: ", self.top_path)
+        file_directory = os.path.dirname(self.top_path)
+        file_name = os.path.basename(self.top_path)
+        self.on_open_file(file_name, file_directory, refresh=True)
+        self.quick_auto()
+
+    def on_timer2(self, e=None):
+        print("Event")
+        print("Refreshing: ", self.top_path)
+        file_directory = os.path.dirname(self.top_path)
+        file_name = os.path.basename(self.top_path)
+        maxtime = ud.get_max_time(self.top_path)
+        print("Latest Time:", maxtime)
+
+        mintime = maxtime - 1
+        if mintime < 0:
+            mintime = 0
+        timerange = [mintime, maxtime]
+        print(timerange)
+
+        self.on_open_file(file_name, file_directory, time_range=timerange, refresh=True)
+        self.quick_auto()
+
+    def quick_auto(self, e=None):
+        self.on_dataprep_button(e)
+        self.on_unidec_button(e)

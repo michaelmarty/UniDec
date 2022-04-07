@@ -1164,6 +1164,7 @@ class DataContainer:
         self.massdat = np.array([])
         self.mzgrid = np.array([])
         self.massgrid = np.array([])
+        self.mzmassgrid = np.array([])
         self.ztab = np.array([])
         self.massccs = np.array([])
         self.ccsz = np.array([])

@@ -174,7 +174,10 @@ class RawFileReader(object):
         # Check if the RAW file is being acquired
         if self.source.InAcquisition:
             print('RAW file still being acquired - {}'.format(filename))
+            self.acquiring = True
             # May be able to do some cool stuff here...
+        else:
+            self.acquiring = False
 
         self.source.SelectInstrument(ThermoFisher.CommonCore.Data.Business.Device.MS, 1)
 
@@ -190,7 +193,6 @@ class RawFileReader(object):
         self.timerange = [self.StartTime, self.EndTime]
 
         self.get_scan_header()
-
 
     def get_scan_header(self, scannumber=2):
         try:
@@ -538,7 +540,6 @@ class RawFileReader(object):
 
         all = np.transpose([masses, intensities, noises, resolutions])
         return all
-
 
     def CalculateMassPrecision(self, scanNumber=1):
         '''Calculates the mass precision for a spectrum.

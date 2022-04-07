@@ -297,6 +297,10 @@ class CD_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_compare2, self.menucompare2)
         self.menucompare3 = self.experimentalmenu.Append(wx.ID_ANY, "Compare Processed and Unprocessed")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_compare_proc, self.menucompare3)
+
+        self.experimentalmenu.AppendSeparator()
+        self.menurefresh = self.experimentalmenu.Append(wx.ID_ANY, "Refresh Acquiring Data")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_refresh, self.menurefresh)
         '''    
         self.menucolor1d = self.experimentalmenu.Append(wx.ID_ANY, "Color Plots",
                                                         "Make a Different Colored 1D Plot")

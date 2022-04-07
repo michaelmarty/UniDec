@@ -49,8 +49,11 @@ class UniDecLauncher(UniDecPres):
             self.view.button8()
 
         if "--unidec" in sys.argv[1:] or "-u" in sys.argv[1:]:
-            print("Launching UniChrom")
+            print("Launching UniDec")
             self.view.button1()
+
+        if len(sys.argv)>1:
+            self.view.button8()
 
     def on_close(self, e=None):
         self.quit_application()

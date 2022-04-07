@@ -304,6 +304,8 @@ class Plot1d(PlottingWindow):
         self.subplot1.set_clip_on(False)
         self.setup_zoom([self.subplot1], self.zoomtype)
         self.flag = True
+        if repaint:
+            self.repaint()
 
     # TODO make the axes work for negative and positive bars
     def barplottoperrors(self, xarr, yarr, peakval, colortab, xlabel="", ylabel="", title="", zoom="box", repaint=True,

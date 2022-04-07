@@ -501,6 +501,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox3b.Add(self.plot5button, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
+        self.plot5button2 = wx.Button(panel3b, -1, "Plot m/z v. Mass Grid")
+        self.parent.Bind(wx.EVT_BUTTON, self.pres.make_mzmass_plot, self.plot5button2)
+        gbox3b.Add(self.plot5button2, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+
         panel3b.SetSizer(gbox3b)
         gbox3b.Fit(panel3b)
         self.foldpanels.AddFoldPanelWindow(foldpanel3b, panel3b, fpb.FPB_ALIGN_WIDTH)

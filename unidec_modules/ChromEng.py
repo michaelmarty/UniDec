@@ -28,7 +28,7 @@ class ChromEngine(MetaUniDec):
         self.config.default_high_res()
         self.unidec_eng = UniDec()
 
-    def open_chrom(self, path, load_hdf5=True):
+    def open_chrom(self, path, load_hdf5=True, refresh=False):
         if os.path.splitext(path)[1] == ".hdf5":
             self.open_hdf5_file(path)
             return True
@@ -37,7 +37,7 @@ class ChromEngine(MetaUniDec):
 
             print("Opening: ", self.filename)
             self.path = path
-            load_hdf5 = self.load_mzml(self.path, load_hdf5)
+            load_hdf5 = self.load_mzml(self.path, load_hdf5, refresh=refresh)
             return load_hdf5
 
     def open_hdf5_file(self, path):
@@ -59,7 +59,7 @@ class ChromEngine(MetaUniDec):
         raise FileNotFoundError
         # return False, header
 
-    def load_mzml(self, path, load_hdf5=True, *args, **kwargs):
+    def load_mzml(self, path, load_hdf5=True, refresh=False, *args, **kwargs):
         self.path = path
         name = os.path.splitext(path)[0]
         if name[-5:].lower() == ".mzml":
@@ -69,7 +69,7 @@ class ChromEngine(MetaUniDec):
         self.data.filename = self.outpath
         hdf5 = False
         self.clear()
-        if os.path.isfile(self.outpath) and load_hdf5:
+        if os.path.isfile(self.outpath) and load_hdf5 and not refresh:
             print('Opening HDF5 File:', self.outpath)
             try:
                 self.open(self.outpath)

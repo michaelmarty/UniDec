@@ -197,6 +197,22 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.5.0.3
+
+Added m/z vs. mass plot for UniDecCD using a button in the Additional Plotting Parameters. Thanks to Sean Cleary for inspiration here.
+
+A few new experimental features in my attempt at real time deconvolution:
+
+* Added refresh on UCD.
+
+* Added autorefresh tool on UniDec and UniChrom. If you open a file that is currently collecting data, you can do real time deconvolution as the data is collected.
+
+* A command line argument will automatically launch to UniChrom and open the file argument that is provided. This means you can now set UniDec as the default app in Windows to open Raw files and other data format. If you do this, when you click the icon on the Thermo Exactive Tune Software, it will open UniDec as the default app. Still a work in progress, but kind of fun to play with. 
+
+Added new features to Extract 2D window. 
+
+Finally figured out how to fix the bug for wxPython 4.1, but it involves modifying the source code. Contact me if you are interested in running it yourself. 4.1 will be reflected in the build.
+
 v.5.0.2
 
 Added Batch Processing (via Tools menu or drag and drop) to UniDecCD.
