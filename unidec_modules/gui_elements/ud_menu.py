@@ -303,6 +303,8 @@ class main_menu(wx.Menu):
             self.parent.Bind(wx.EVT_MENU, self.pres.on_additional_parameters, self.menuAdditionalParameters)
             self.parent.Bind(wx.EVT_MENU, self.pres.on_color_plot1d, self.menucolor1d)
             # self.parent.Bind(wx.EVT_MENU, self.pres.on_minimize, self.menuMinimize)
+        #self.experimentalmenu.AppendSeparator()
+
         self.experimentalmenu.AppendSeparator()
 
         self.menusuperbatch = self.experimentalmenu.Append(wx.ID_ANY, "Speed Batch",
@@ -339,6 +341,9 @@ class main_menu(wx.Menu):
 
         self.menunavia = self.experimentalmenu.Append(wx.ID_ANY, "Import from Navia")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_navia, self.menunavia)
+
+        self.menumql = self.experimentalmenu.Append(wx.ID_ANY, "MassQL", "MassQL")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_mql, self.menumql)
 
         self.experimentalmenu.AppendSeparator()
         self.menuisotopes = self.experimentalmenu.Append(wx.ID_ANY, "Plot Averagine Isotope Distributions")

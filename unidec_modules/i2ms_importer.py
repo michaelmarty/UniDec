@@ -12,16 +12,20 @@ class I2MSImporter:
         cursor.execute('PRAGMA table_info(Ion)')
         keys = cursor.fetchall()
         self.keys = np.array(keys)
-        self.scans = self.data[:,2]
+        self.mzkey = np.where(self.keys[:, 1] == "Mz")[0][0]
+        self.scankey = np.where(self.keys[:, 1] == "ScanNumber")[0][0]
+        self.slopekey = np.where(self.keys[:, 1] == "Slope")[0][0]
+        self.scans = self.data[:,self.scankey]
 
     def grab_data(self):
-        slopes = self.data[:, 7]
-        mz = self.data[:, 5]
+        slopes = self.data[:, self.slopekey]
+        mz = self.data[:, self.mzkey]
         return np.transpose([mz, slopes])
 
 
 if __name__ == "__main__":
     file = "Z:\\Group Share\\Marius Kostelic\\STORI\\20220123_MK_BSA_STORI_5_data_2022-02-03-09-10-47.i2MS"
+    file = "Z:\\Group Share\\Marius Kostelic\\Baker Lab AAVs\\Replicates STORI for Jack\\AAV2_E3_F3_STORI.dmt"
 
     i2ms = I2MSImporter(file)
     print(i2ms.keys)

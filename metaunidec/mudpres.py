@@ -22,6 +22,7 @@ from metaunidec import ultrameta
 from metaunidec.mudhelp import *
 from metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard
 from unidec_modules.plot_waterfall import WaterfallFrame
+from unidec_modules.plateplot import PlateFrame
 
 # import FileDialog  # Needed for pyinstaller
 
@@ -847,6 +848,38 @@ class UniDecApp(MetaUniDecBase):
             self.open_file(self.eng.config.hdf_file)
         dlg.Destroy()
         pass
+
+    def on_open_csv(self, e):
+        """
+        :param e:
+        :return:
+        """
+        print("Opening")
+        dlg = wx.FileDialog(self.view, "Choose a sequence file in CSV format", '', "", "*.csv*")
+        if dlg.ShowModal() == wx.ID_OK:
+            self.view.SetStatusText("Opening", number=5)
+            filename = dlg.GetFilename()
+            print("Openening: ", filename)
+            if os.path.splitext(filename)[1] != ".csv":
+                print("Need CSV file")
+                return
+            dirname = dlg.GetDirectory()
+            path = os.path.join(dirname, filename)
+            self.open_csv(path)
+        dlg.Destroy()
+        pass
+
+    def on_plate_viewer(self, e=None):
+        print("Opening Plate Viewer Window")
+        pt = PlateFrame(None)
+        pt.load_eng(self.eng)
+        # wt.draw()
+        pass
+
+    def open_csv(self, path):
+        outpath = self.eng.csv_reader(path)
+        if outpath is not None:
+            self.open_file(self.eng.outpath)
 
     def open_file(self, path=None):
         """

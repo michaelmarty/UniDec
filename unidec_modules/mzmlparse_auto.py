@@ -53,7 +53,7 @@ def parse(path, times, timestep, volts, outputheader, directory, output="txt"):
                         group.attrs["Collision Voltage"] = volts[v]
                     group.attrs["timestart"] = time
                     group.attrs["timeend"] = time + timestep
-                    group.attrs["timemid"] = time + timestep*0.5
+                    group.attrs["timemid"] = time + timestep * 0.5
                     num += 1
                     pass
         if output == "hdf5":
@@ -105,7 +105,7 @@ def parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr=None, outpu
                     group.attrs["timeend"] = t + timestep
                     group.attrs["timemid"] = t + timestep * 0.5
                     splits = path.split(sep="\\")
-                    group.attrs["Original File"] = splits[len(splits)-1]
+                    group.attrs["Original File"] = splits[len(splits) - 1]
                     num += 1
                     pass
             v += 1
@@ -123,7 +123,7 @@ def extract(file, directory, timestep=1.0, output="txt"):
     newdir = os.path.join(directory, name)
     if output == "hdf5":
         newdir = directory
-    #name=ud.smartdecode(name)
+    # name=ud.smartdecode(name)
     splits = name.split(sep="_")
     try:
         for i, s in enumerate(splits):
@@ -164,7 +164,7 @@ def extract_scans(file, directory, scanbins=1, output="txt"):
             maxscans = d.get_max_scans()
         else:
             maxtime = d.get_max_time()
-            maxscans = d.get_max_scans()-1
+            maxscans = d.get_max_scans() - 1
         scans = np.arange(0, maxscans, scanbins)
 
         if output == "hdf5":
@@ -244,7 +244,8 @@ def extract_timepoints(files, directories, starttp=None, endtp=None, timestep=1.
     return parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr, outputname)
 
 
-def extract_scans_multiple_files(files, dirs, startscan=1.0, endscan=1.0, outputname="Combined", existing_path=None):
+def extract_scans_multiple_files(files, dirs, startscan=1.0, endscan=1.0, outputname="Combined", existing_path=None,
+                                 vars=None, keys=None):
     paths = []
     names = []
     startscan = int(float(startscan))
@@ -261,6 +262,7 @@ def extract_scans_multiple_files(files, dirs, startscan=1.0, endscan=1.0, output
         outpath = os.path.join(newdir, outfile)
     else:
         outpath = existing_path
+    print("Creating HDF5 File:", outpath)
     hdf = h5py.File(outpath, "a")
     try:
         if existing_path is None:
@@ -268,14 +270,20 @@ def extract_scans_multiple_files(files, dirs, startscan=1.0, endscan=1.0, output
     except:
         pass
     msdataset = hdf.require_group("ms_dataset")
-    msdataset.attrs["v1name"] = "timemid"
+    if vars is not None and keys is not None:
+        msdataset.attrs["v1name"] = "Position"
+    else:
+        msdataset.attrs["v1name"] = "timemid"
     msdataset.attrs["v2name"] = "Original File"
     config = hdf.require_group("config")
     config.attrs["metamode"] = -1
     num = 0
     for path in paths:
+        print("Opening", path)
         if os.path.isfile(path):
             importer = get_importer(path)
+            if endscan == -1:
+                endscan = importer.get_max_scans()
             data = importer.get_data(scan_range=(startscan, endscan))
             if not ud.isempty(data):
                 group = msdataset.require_group(str(num))
@@ -287,7 +295,11 @@ def extract_scans_multiple_files(files, dirs, startscan=1.0, endscan=1.0, output
                 group.attrs["scanstart"] = startscan
                 group.attrs["scanend"] = endscan
                 splits = path.split(sep="\\")
-                group.attrs["Original File"] = splits[len(splits)-1]
+                group.attrs["Original File"] = splits[len(splits) - 1]
+                if vars is not None and keys is not None:
+                    v = vars[num]
+                    for k in keys:
+                        group.attrs[str(k)] = str(v[keys[k]])
                 num += 1
         else:
             print("File not found: ", path)
@@ -307,7 +319,7 @@ if __name__ == '__main__':
     directory = "C:\\Data\\"
     directory = "Z:\\wresager\\Bleaching\\"
     file = "20170721_WCR_RHO_bleaching.RAW"
-    directory="C:\\Python\\UniDec3\\TestSpectra\\"
+    directory = "C:\\Python\\UniDec3\\TestSpectra\\"
     file = "test_ms.raw"
     timestep = 2.0
     # extract("test.mzML", directory, timestep, output="hdf5")

@@ -197,6 +197,20 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.5.0.4
+
+Added Normalize Data option in UniDecCD.
+
+Allowed Waterfall plots to show text data on the y-axis.
+
+Fixed bug in Thermo Importer. Fixed bugs with a few parameters in UCD.
+
+Added ability to open .dmt and .i2ms files from STORI analysis.
+
+Added experimental MassQL feature to select peaks that match certain queries. 
+
+Adding experimental High Throughput Screen features in MetaUniDec.
+
 v.5.0.3
 
 Added m/z vs. mass plot for UniDecCD using a button in the Additional Plotting Parameters. Thanks to Sean Cleary for inspiration here.

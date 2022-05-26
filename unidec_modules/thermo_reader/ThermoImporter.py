@@ -1,6 +1,7 @@
 import numpy as np
-#import unidec_modules.thermo_reader.RawFileReader
+# import unidec_modules.thermo_reader.RawFileReader
 import time
+
 
 class ThermoDataImporter:
     """
@@ -15,6 +16,10 @@ class ThermoDataImporter:
         :param kwargs: keywords (unused)
         :return: mzMLimporter object
         """
+        print("Launching Thermo Importer. If it fails after this step, try this:")
+        print("Delete your whole UniDec folder but keep the zip file.")
+        print("Right click on the zip file and open properties. You should see a box to Unblock it. Check that.")
+        print("Click ok. Unzip it again. Try it once more.")
         from unidec_modules.thermo_reader.RawFileReader import RawFileReader as rr
         print("Reading Thermo Data:", path)
         self.msrun = rr(path)
@@ -26,7 +31,7 @@ class ThermoDataImporter:
         for s in self.scans:
             self.times.append(self.msrun.scan_time_from_scan_name(s))
         self.times = np.array(self.times)
-        # print(len(self.data), len(self.times), len(self.scans))
+        print("Number of Scans", len(self.scans))
         # print(self.times)
 
     def grab_data(self):
@@ -67,15 +72,15 @@ class ThermoDataImporter:
             try:
                 scan_range = [np.amin(self.scans), np.amax(self.scans)]
             except:
-                scan_range = [1,2]
+                scan_range = [1, 2]
         scan_range = np.array(scan_range, dtype=np.int)
         print("Thermo Scan Range:", scan_range)
 
         try:
-            if scan_range[0] < np.amin(self.scans):
+            if scan_range[0] < np.amin(self.scans) or scan_range[0] == -1:
                 scan_range[0] = np.amin(self.scans)
-            if scan_range[1] > np.amax(self.scans):
-                scan_range[1] = np.amin(self.scans)
+            if scan_range[1] > np.amax(self.scans) or scan_range[1] == -1:
+                scan_range[1] = np.amax(self.scans)
         except:
             scan_range = [1, 2]
 
@@ -164,7 +169,7 @@ if __name__ == "__main__":
 
     # vdata = (-34.48*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))+(263.91*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))-(811.83*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))+(1258.4*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))-(1032.3*(vdata-np.amin(vdata)))+409.12
 
-    vdata = (-44.115*(vdata)*(vdata)*(vdata))+(201.67*(vdata)*(vdata))+(-347.15*(vdata))+242.19
+    vdata = (-44.115 * (vdata) * (vdata) * (vdata)) + (201.67 * (vdata) * (vdata)) + (-347.15 * (vdata)) + 242.19
 
     import matplotlib.pyplot as plt
 

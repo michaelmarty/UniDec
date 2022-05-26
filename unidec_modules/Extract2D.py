@@ -63,10 +63,13 @@ class Extract2DPlot(wx.Frame):
         wx.Frame.__init__(self, parent, title="2D Grid Extraction", size=(-1, -1))
         # Make Menu
         self.filemenu = wx.Menu()
+        self.menuRunAll = self.filemenu.Append(wx.ID_ANY, "Run Next On All",
+                                                   "Run Next on All")
         self.menuSaveFigPNG = self.filemenu.Append(wx.ID_ANY, "Save Figures as PNG",
                                                    "Save all figures as PNG in central directory")
         self.menuSaveFigPDF = self.filemenu.Append(wx.ID_ANY, "Save Figures as PDF",
                                                    "Save all figures as PDF in central directory")
+        self.Bind(wx.EVT_MENU, self.on_all_next, self.menuRunAll)
         self.Bind(wx.EVT_MENU, self.on_save_fig, self.menuSaveFigPNG)
         self.Bind(wx.EVT_MENU, self.on_save_figPDF, self.menuSaveFigPDF)
 
@@ -461,6 +464,14 @@ class Extract2DPlot(wx.Frame):
         self.makegrid()
         self.extractall()
         self.makeplot()
+
+    def on_all_next(self, e=None):
+        self.getfromgui()
+        for self.pos in range(len(self.datalist)):
+            print(self.pos, self.params)
+            self.makegrid()
+            self.extractall()
+            self.makeplot()
 
     def on_total(self, e=None):
         """

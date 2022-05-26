@@ -1,4 +1,4 @@
-version 5.0.1
+version 5.1.0
 imflag 0
 input C:\Python\UniDec3\unidec_bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs_input.dat
 output C:\Python\UniDec3\unidec_bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs
@@ -60,3 +60,5 @@ CDslope 12.5
 CDzbins 1.0
 CDres 1.0
 csig 0.0
+smoothdt 0.0
+subbufdt 0.0

@@ -332,6 +332,8 @@ class UniDecConfig(object):
         f.write("CDzbins " + str(self.CDzbins) + "\n")
         f.write("CDres " + str(self.CDres) + "\n")
         f.write("csig " + str(self.csig) + "\n")
+        f.write("smoothdt " + str(self.smoothdt) + "\n")
+        f.write("subbufdt " + str(self.subbufdt) + "\n")
         if self.mindt != '' or self.maxdt != '':
             f.write("zout " + str(self.zout) + "\n")
             f.write("pusher " + str(self.pusher) + "\n")
@@ -341,8 +343,6 @@ class UniDecConfig(object):
             f.write("ccslb " + str(self.ccslb) + "\n")
             f.write("dtsig " + str(self.dtsig) + "\n")
             f.write("ccsbins " + str(self.ccsbins) + "\n")
-            f.write("subbufdt " + str(self.subbufdt) + "\n")
-            f.write("smoothdt " + str(self.smoothdt) + "\n")
             f.write("ubnativeccs " + str(self.nativeccsub) + "\n")
             f.write("lbnativeccs " + str(self.nativeccslb) + "\n")
             f.write("twaveflag " + str(self.twaveflag) + "\n")

@@ -340,6 +340,13 @@ class meta_menu(wx.Menu):
         self.menufilterpeaks = self.experimentalmenu.Append(wx.ID_ANY, "Filter Peaks by Score")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_filter_peaks_MUD, self.menufilterpeaks)
 
+        if self.type == "Meta":
+            self.experimentalmenu.AppendSeparator()
+            self.menucsv = self.experimentalmenu.Append(wx.ID_ANY, "Open CSV Sequence")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_open_csv, self.menucsv)
+            self.menuwells = self.experimentalmenu.Append(wx.ID_ANY, "Open Plate Viewer")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_plate_viewer, self.menuwells)
+
         if self.type != "Meta":
             self.experimentalmenu.AppendSeparator()
             self.menurefresh = self.experimentalmenu.Append(wx.ID_ANY, "Refresh Cumulative")
