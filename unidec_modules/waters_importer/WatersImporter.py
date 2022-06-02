@@ -141,6 +141,17 @@ class WatersDataImporter:
         # self.readerLC.__del__()
         return tic
 
+    def get_bpi(self):
+        self.readerLC = MLCR.MassLynxRawChromatogramReader(self.path)
+        tic = np.transpose(self.readerLC.ReadBPI(self.function))
+        # self.readerLC.__del__()
+        return tic
+
+    def get_eic(self, mass=811, tolerance=0.10):
+        self.readerLC = MLCR.MassLynxRawChromatogramReader(self.path)
+        tic = np.transpose(self.readerLC.ReadMassChromatogram(self.function, mass, tolerance, False))
+        return tic
+
     def get_max_time(self):
         return self.times[len(self.times) - 1]
 

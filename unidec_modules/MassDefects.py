@@ -61,11 +61,17 @@ class MassDefectWindow(wx.Frame):
             self.transformmode = p[1]
             self.centermode = p[2]
             self.xtype = p[3]
+            self.lowmass = p[4]
+            self.highmass = p[5]
+            self.massrange = [self.lowmass, self.highmass]
         else:
             self.nbins = 50
             self.transformmode = 1
             self.centermode = 1
             self.xtype = 0
+            self.lowmass = ""
+            self.highmass = ""
+            self.massrange = None
         self.factor = 1
         self.xlab = ""
         self.outfname = self.config.outfname
@@ -174,8 +180,8 @@ class MassDefectWindow(wx.Frame):
 
         controlsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.ctlm0 = wx.TextCtrl(panel, value=str(self.m0))
-        self.ctlwindow = wx.TextCtrl(panel, value=str(self.nbins))
+        self.ctlm0 = wx.TextCtrl(panel, value=str(self.m0), size=(75, 20))
+        self.ctlwindow = wx.TextCtrl(panel, value=str(self.nbins), size=(75, 20))
         controlsizer.Add(wx.StaticText(panel, label="Reference Mass"), 0, wx.ALIGN_CENTER_VERTICAL)
         controlsizer.Add(self.ctlm0, 0, wx.ALIGN_CENTER_VERTICAL)
         controlsizer.Add(wx.StaticText(panel, label="Number of Defect Bins"), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -214,6 +220,13 @@ class MassDefectWindow(wx.Frame):
         self.radiobox3 = wx.RadioBox(panel, choices=["Normalized", "Mass (Da)"], label="Mass Defect Units")
         controlsizer.Add(self.radiobox3, 0, wx.EXPAND)
         self.radiobox3.SetSelection(self.xtype)
+
+        self.ctllowmass = wx.TextCtrl(panel, value=str(self.lowmass), size=(75, 20))
+        self.ctlhighmass = wx.TextCtrl(panel, value=str(self.highmass), size=(75, 20))
+        controlsizer.Add(wx.StaticText(panel, label="Limit Masses:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer.Add(self.ctllowmass, 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer.Add(wx.StaticText(panel, label="to"), 0, wx.ALIGN_CENTER_VERTICAL)
+        controlsizer.Add(self.ctlhighmass, 0, wx.ALIGN_CENTER_VERTICAL)
 
         sizer.Add(controlsizer, 0, wx.EXPAND)
         sizer.Add(controlsizer2, 0, wx.EXPAND)
@@ -271,8 +284,27 @@ class MassDefectWindow(wx.Frame):
             self.factor = self.m0
             self.xlab = "Mass"
             self.ylab = "Mass Defect (Da)"
-        self.config.defectparams = [self.nbins, self.transformmode, self.centermode, self.xtype]
-        self.notchanged=np.all(oldparams == self.config.defectparams)
+
+        try:
+            self.lowmass = float(self.ctllowmass.GetValue())
+        except ValueError:
+            self.lowmass = -1
+
+        try:
+            self.highmass = float(self.ctlhighmass.GetValue())
+        except ValueError:
+            self.highmass = -1
+
+        if self.lowmass >= 0 or self.highmass >= 0:
+            if self.highmass < 0:
+                self.highmass = 10000000000
+            self.massrange = [self.lowmass, self.highmass]
+        else:
+            self.massrange = None
+
+        self.config.defectparams = [self.nbins, self.transformmode, self.centermode, self.xtype, self.lowmass,
+                                    self.highmass]
+        self.notchanged = np.all(oldparams == self.config.defectparams)
 
     def make_list_plots(self):
         print(self.igrids.shape)
@@ -336,7 +368,8 @@ class MassDefectWindow(wx.Frame):
                                                                                centermode=self.centermode,
                                                                                nbins=self.nbins,
                                                                                transformmode=self.transformmode,
-                                                                               xaxistype=self.xtype)
+                                                                               xaxistype=self.xtype,
+                                                                               massrange=self.massrange)
         if self.xtype == 0:
             factor = 1.0
         else:
@@ -346,7 +379,7 @@ class MassDefectWindow(wx.Frame):
             title = str(self.yvals[self.pos])
             spacer = "_"
         else:
-            title = str(self.pos)#self.outfname
+            title = str(self.pos)  # self.outfname
             spacer = ""
         try:
             save_path2d = os.path.join(self.directory, title + spacer + "2D_Mass_Defects.txt")
@@ -354,7 +387,7 @@ class MassDefectWindow(wx.Frame):
 
             if save_path2d != self.config.defectcomparefiles[0]:
                 self.config.defectcomparefiles[1] = self.config.defectcomparefiles[0]
-                self.config.defectcomparefiles[0]= save_path2d
+                self.config.defectcomparefiles[0] = save_path2d
 
             save_path1d = os.path.join(self.directory, title + spacer + "1D_Mass_Defects.txt")
             np.savetxt(save_path1d, self.data1d)
@@ -378,11 +411,14 @@ class MassDefectWindow(wx.Frame):
         try:
             if self.m0 == 0:
                 return
-            self.plot1.colorplotMD(self.datalist[self.pos, :, 0], self.datalist[self.pos, :, 1],
-                                   self.datalist[self.pos, :, 0] / float(self.m0) % 1.0 * factor, max=factor,
+            self.plotdat = self.datalist[self.pos]
+            if self.massrange is not None:
+                self.plotdat = ud.datachop(self.plotdat, self.massrange[0], self.massrange[1])
+            self.plot1.colorplotMD(self.plotdat[ :, 0], self.plotdat[ :, 1],
+                                   self.plotdat[ :, 0] / float(self.m0) % 1.0 * factor, max=factor,
                                    title="Zero-Charge Mass Spectrum",
                                    xlabel="Mass", ylabel="Intensity", test_kda=True)
-            self.plotdat = self.datalist[self.pos]
+
         except Exception as e:
             self.plot1.clear_plot()
             print("Failed Plot1", e)
@@ -395,7 +431,7 @@ class MassDefectWindow(wx.Frame):
             self.plot4.clear_plot()
             print("Failed Plot 4", e)
 
-        self.total=False
+        self.total = False
 
     def makeplottotal(self, e=None):
         """
@@ -416,7 +452,8 @@ class MassDefectWindow(wx.Frame):
                                                                                        centermode=self.centermode,
                                                                                        nbins=self.nbins,
                                                                                        transformmode=self.transformmode,
-                                                                                       xaxistype=self.xtype)
+                                                                                       xaxistype=self.xtype,
+                                                                                       massrange=self.massrange)
                 igrids.append(igrid)
             # Sum and reshape
             igrids = np.array(igrids)
@@ -431,12 +468,12 @@ class MassDefectWindow(wx.Frame):
 
             if save_path2d != self.config.defectcomparefiles[0]:
                 self.config.defectcomparefiles[1] = self.config.defectcomparefiles[0]
-                self.config.defectcomparefiles[0]= save_path2d
+                self.config.defectcomparefiles[0] = save_path2d
 
             save_path1d = os.path.join(self.directory, self.outfname + "Total_1D_Mass_Defects.txt")
             np.savetxt(save_path1d, self.data1d)
             print('Saved: ', save_path2d, save_path1d)
-            self.total=True
+            self.total = True
         else:
             pass
 
@@ -453,11 +490,14 @@ class MassDefectWindow(wx.Frame):
             self.plot2.clear_plot()
             print("Failed Plot2", e)
         try:
-            self.plot1.colorplotMD(self.datasum[:, 0], self.datasum[:, 1],
-                                   self.datasum[:, 0] / float(self.m0) % 1.0 * factor,
+            self.plotdat = self.datasum
+            if self.massrange is not None:
+                self.plotdat = ud.datachop(self.plotdat, self.massrange[0], self.massrange[1])
+            self.plot1.colorplotMD(self.plotdat[:, 0], self.plotdat[:, 1],
+                                   self.plotdat[:, 0] / float(self.m0) % 1.0 * factor,
                                    title="Zero-Charge Mass Spectrum", max=factor,
                                    xlabel="Mass", ylabel="Intensity", test_kda=True)
-            self.plotdat = self.datasum
+
         except Exception as e:
             self.plot1.clear_plot()
             print("Failed Plot1", e)
@@ -538,8 +578,9 @@ class MassDefectWindow(wx.Frame):
         self.config.kendrickmass = self.m0
         frame = MassDefectExtractor.MassDefectExtractorWindow(self, self.dat3, self.data1d[:, 0], self.yvals,
                                                               config=self.config, xtype=self.xtype)
+
     def on_compare_window(self, e=None):
-        frame= MassDefectCompareWindow(self, None, config=self.config)
+        frame = MassDefectCompareWindow(self, None, config=self.config)
 
     def on_save_fig(self, e):
         """
@@ -703,7 +744,7 @@ class MassDefectWindow(wx.Frame):
                     vval = ud.simple_mass_defect(vval, refmass=self.m0, centermode=self.centermode, normtype=self.xtype)
 
                 shift = 0.98
-                boo1=(np.abs(np.array(vvals) - vval)) < factor * 0.05
+                boo1 = (np.abs(np.array(vvals) - vval)) < factor * 0.05
                 numclose = np.sum(boo1)
                 if numclose > 0:
                     sarray = np.array(shifts)
@@ -743,7 +784,7 @@ class MassDefectWindow(wx.Frame):
                         print("Failed Multiline 1: ", m, e)
                         pass
 
-            #except Exception as e:
+            # except Exception as e:
             #    print("Failed Multiline 2: ", m, e)
             #    pass
 

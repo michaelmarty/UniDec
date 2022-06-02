@@ -53,6 +53,7 @@ If this isn't present, it will print a warning but use the pure python code late
 """
 dllname = "libmypfunc"
 protmass = 1.007276467
+omass = 15.994914
 
 if platform.system() == "Windows":
     if not is_64bits:
@@ -737,11 +738,13 @@ def simple_mass_defect(mass, refmass, centermode=1, normtype=1):
     return md
 
 
-def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmode=1, xaxistype=1):
+def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmode=1, xaxistype=1, massrange=None):
     # Calculate Defects for Deconvolved Masses
     if kendrickmass == 0:
         print("Error: Kendrick mass is 0.")
         return None, None, None, None, None
+    if massrange is not None:
+        massdat = datachop(massdat, massrange[0], massrange[1])
     xaxis = massdat[:, 0]
     kmass = np.array(xaxis) / float(kendrickmass)
     if centermode == 1:
@@ -936,6 +939,8 @@ def load_mz_file(path, config=None, time_range=None, imflag=0):
             txtname = path[:-4] + ".txt"
             np.savetxt(txtname, data)
             print("Saved to:", txtname)
+        elif extension.lower() == ".npz":
+            data = np.load(path)['data']
         else:
             try:
                 data = np.loadtxt(path, skiprows=header_test(path))

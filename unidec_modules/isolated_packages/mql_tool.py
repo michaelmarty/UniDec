@@ -1,3 +1,5 @@
+from massql import msql_engine
+from massql import msql_fileloading
 try:
     from massql import msql_engine
     from massql import msql_fileloading

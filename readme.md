@@ -199,6 +199,8 @@ The main GUI class is GUniDec.UniDecApp.
 
 v.5.0.4
 
+Added Mass Limits to Mass Defect Tools.
+
 Added Normalize Data option in UniDecCD.
 
 Allowed Waterfall plots to show text data on the y-axis.
@@ -210,6 +212,8 @@ Added ability to open .dmt and .i2ms files from STORI analysis.
 Added experimental MassQL feature to select peaks that match certain queries. 
 
 Adding experimental High Throughput Screen features in MetaUniDec.
+
+Added ability to open npz files, which are much faster than txt and should help in custom scripts.
 
 v.5.0.3
 
