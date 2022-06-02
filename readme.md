@@ -128,6 +128,8 @@ pypubsub
 tornado
 pythonnet
 multiplierz (Windows only, for Agilent imports)
+pymsfilereader (Option for some features)
+massql (Optional if you want to try this feature)
 
 All of these can be installed from the command line with (for example):
     
