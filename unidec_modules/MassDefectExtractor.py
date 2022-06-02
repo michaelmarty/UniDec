@@ -133,7 +133,7 @@ class MassDefectExtractorWindow(wx.Frame):
         controlsizer.Add(wx.StaticText(panel, label=" How to extract: "), 0, wx.ALIGN_CENTER_VERTICAL)
         self.ctlextract = wx.ComboBox(panel, value=defaultexchoice, choices=list(extractchoices.values()),
                                       style=wx.CB_READONLY | wx.ALIGN_CENTER_VERTICAL)
-        controlsizer.Add(self.ctlextract, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        controlsizer.Add(self.ctlextract, 0, wx.EXPAND)
 
         self.ctlwindow = wx.TextCtrl(panel, value=str(self.window), size=(60, 23))
         controlsizer.Add(wx.StaticText(panel, label="Window:"), 0, wx.ALIGN_CENTER_VERTICAL)

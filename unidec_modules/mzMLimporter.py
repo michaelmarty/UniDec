@@ -503,7 +503,7 @@ class mzMLimporter:
             print("Error: Empty Data Object")
             return None
 
-        # Need to merge to get 2D from spare array
+        # Need to merge to get 2D from sparse array
         try:
             data = merge_im_spectra(data, mzbins=mzbins)
         except Exception as e:
@@ -520,12 +520,7 @@ class mzMLimporter:
 
 
 if __name__ == "__main__":
-    # test = u"C:\Python\\UniDec3\TestSpectra\JAW.mzML"
-    # test = "C:\Data\MikeGeeson\MG_201116_2.mzML.gz"
-    # test = "C:\Data\ManasiFiles\Thermo_Files_Filgrastim\\191101_FilgL_FIA_140kres_500ng.mzML"
-    # test = "C:\Data\ManasiFiles\Bruker D files_HBoku_mab\\200815_FIA_H20_HBOKU_ph9_200ustime_1550_7000mz_1ul_75_1_698.mzML.gz"
-    # test = "C:\Data\ManasiFiles\Bruker D files_HBoku_mab\\test.mzML.gz"
-    test = "C:\Data\Wendy\FW CDMS runs20210322081451\/20210301_OBJ41415_CDMS_Pure_4.mzML.gz"
+    test = u"C:\Python\\UniDec3\TestSpectra\JAW.mzML"
     import time
 
     tstart = time.perf_counter()

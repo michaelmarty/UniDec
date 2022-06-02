@@ -408,6 +408,50 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
             self.outpath = automzml.extract_timepoints(files, dirs, starttp, endtp, timestep, outputname=name)
         return self.outpath
 
+    def csv_reader(self, csvpath):
+        # Read the CSV file
+        print("Reading CSV: ", csvpath)
+        seq = np.genfromtxt(csvpath, delimiter=",", skip_header=1, dtype=str)
+        keys = seq[0]
+        kdict = {keys[i]: i for i in range(len(keys))}
+        seq = seq[1:]
+
+        # Sorting the files
+        files = seq[:, kdict["File Name"]]
+        dirs = seq[:, kdict["Path"]]
+        csvdir = os.path.dirname(csvpath)
+        # Adding the ability to check if the CSV input path is wrong
+        # If it can't find the file, it tries to look in the local directory
+        for i in range(len(seq)):
+            f = files[i] + ".raw"
+            files[i] = f
+            path = os.path.join(dirs[i], f)
+            if not os.path.isfile(path):
+                path2 = os.path.join(csvdir, f)
+                if os.path.isfile(path2):
+                    dirs[i] = csvdir
+                    print("Found file in local directory")
+                else:
+                    print("Error: Could not find file: ", path)
+                    print("Error: Could not find file: ", path2)
+                    print("Aborting. Please check csv file.")
+                    return None
+        print(files, dirs)
+        #Creating the outpath
+        outname = os.path.split(csvpath)[1]
+        outname = os.path.splitext(outname)[0]
+        print(outname)
+
+        # Parse the file over all scans
+        print("Parsing Files")
+        self.outpath = automzml.extract_scans_multiple_files(files, dirs, startscan=0, endscan=-1, outputname=outname, vars=seq, keys=kdict)
+        print("Completed Parsing. Saved to", self.outpath)
+        return self.outpath
+
+
+
+
+
 
 if __name__ == '__main__':
     eng = MetaUniDec()
@@ -422,11 +466,13 @@ if __name__ == '__main__':
     eng.data.add_data(data3)
     eng.data.remove_data([0, 2])
     exit()
-    '''
-
+    
     testdir = "C:\Python\\UniDec3\\unidec_src\\UniDec\\x64\Release"
     testfile = "JAW.hdf5"
     testpath = os.path.join(testdir, testfile)
     eng.open(testpath)
     eng.run_unidec()
     eng.pick_scanpeaks()
+    '''
+    path = "C:\Data\HTS_Sharon\\20220404-5_sequence_Shortlist.csv"
+    eng.csv_reader(path)

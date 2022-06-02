@@ -64,6 +64,14 @@ class Waterfall3DPlot(PlottingWindow):
         poly = PolyCollection(verts, edgecolors=colors, facecolors=colors)
         #poly.set_facecolor((1,1,1,0))
         poly.set_alpha(0.7)
+        labels=None
+        try:
+            float(zarray[0])
+        except:
+            labels=zarray
+            zarray = np.arange(len(zarray))
+
+
         self.subplot1.add_collection3d(poly, zs=zarray, zdir='y')
 
         xgrid = np.hstack(xgrid)
@@ -77,6 +85,10 @@ class Waterfall3DPlot(PlottingWindow):
         self.subplot1.set_zlim3d(np.amin(ygrid), np.amax(ygrid))
         self.subplot1.get_zaxis().set_ticks([0, np.amax(ygrid) / 2, np.amax(ygrid)])
         self.subplot1.get_zaxis().set_ticklabels(["0", '%', "100"])
+
+        if labels is not None:
+            self.subplot1.get_yaxis().set_ticks(zarray)
+            self.subplot1.get_yaxis().set_ticklabels(labels)
 
         self.subplot1.xaxis.pane.fill = False
         self.subplot1.yaxis.pane.fill = False

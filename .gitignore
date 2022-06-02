@@ -166,6 +166,8 @@ unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure4.eps
 unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure5.eps
 unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure6.eps
 unidec_bin/Example Data/BSA_unidecfiles/BSA_report.out
+unidec_bin/Example Data/BSA_unidecfiles/BSA_composite_spectrum.dat
+
 unidec_modules/thermo_reader/RawFileReader
 unidec_modules/thermo_reader/RawFileReaderExample
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/Peaks_Mass_Defects.txt
@@ -173,3 +175,18 @@ unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/Peaks_Mass_Defects.txt
 unidec_src/UniDec/UniDec.common.settings
 unidec_bin/recentCD.txt
 unidec_modules/isolated_packages/ZoomBoxMargot.py
+*.feather
+unidec_bin/Other_builds.zip
+unidec_bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/GroEL_CDMS_1_input.dat
+unidec_bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/GroEL_CDMS_1_mass.txt
+unidec_bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/GroEL_CDMS_1_peaks.dat
+unidec_bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/GroEL_CDMS_1_rawdata.npz
+unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_error.txt
+unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_fitdat.bin
+unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_grid.bin
+unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_input.dat
+unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_mass.txt
+unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_massgrid.bin
+unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_peak_areas.dat
+unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_peaks.dat
+unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_rawdata.txt

@@ -25,8 +25,13 @@ class SingleInputDialog(wx.Dialog):
         :param kwargs: Passed to wx.Dialog.
         :return: None
         """
+        if "width" in kwargs.keys():
+            self.width = kwargs["width"]
+            del kwargs["width"]
+        else:
+            self.width = 400
         wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
-        self.SetSize((400, 200))
+        self.SetSize((self.width, 200))
         self.value = None
         self.inputbox = None
 
@@ -42,7 +47,7 @@ class SingleInputDialog(wx.Dialog):
         pnl = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        self.inputbox = wx.TextCtrl(pnl, value=defaultvalue, size=(175, 25))
+        self.inputbox = wx.TextCtrl(pnl, value=defaultvalue, size=(self.width - 50, 25))
         hbox.Add(wx.StaticText(pnl, label=message), 0, wx.ALIGN_CENTER_VERTICAL)
         hbox.Add(self.inputbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
         pnl.SetSizer(hbox)
@@ -145,8 +150,8 @@ class MultiInputDialog(wx.Dialog):
             else:
                 d = defaultvalues[i]
             inputbox = wx.TextCtrl(pnl, value=str(d), size=(175, 25))
-            vbox2.Add(wx.StaticText(pnl, label=m), (i,0), flag=wx.EXPAND)
-            vbox2.Add(inputbox, (i,1), flag=wx.EXPAND)
+            vbox2.Add(wx.StaticText(pnl, label=m), (i, 0), flag=wx.EXPAND)
+            vbox2.Add(inputbox, (i, 1), flag=wx.EXPAND)
             self.inputboxes.append(inputbox)
 
         pnl.SetSizer(vbox2)

@@ -227,7 +227,7 @@ class UniDecCD(unidec.UniDec):
             # Set flag for correcting injection times later
             self.thermodata = True
 
-        elif extension.lower() == ".i2ms":
+        elif extension.lower() == ".i2ms" or extension.lower() == ".dmt":
             # Import Thermo Raw file using ThermoDataImporter
             self.I2MSI = i2ms_importer.I2MSImporter(self.path)
             # Get the data
@@ -595,7 +595,9 @@ class UniDecCD(unidec.UniDec):
         self.ztab = self.ztab[1:] - zbins / 2.
         self.data.ztab = self.ztab
         self.harray = np.transpose(self.harray)
-        self.harray /= np.amax(self.harray)
+
+        if self.config.datanorm == 1:
+            self.harray /= np.amax(self.harray)
 
         self.X, self.Y = np.meshgrid(self.mz, self.ztab, indexing='xy')
         self.mass = (self.X - self.config.adductmass) * self.Y
@@ -721,9 +723,9 @@ class UniDecCD(unidec.UniDec):
             d = self.harray[:, i]
             boo1 = d > 0
             newdata = np.transpose([self.mass[:, i][boo1], d[boo1]])
-            #if :
+            # if :
             #    self.data.mzmassgrid.append(massaxis * 0)
-            #else:
+            # else:
             if self.config.poolflag == 1 and len(newdata) >= 2:
                 massdata = ud.linterpolate(newdata, massaxis)
             else:
@@ -778,14 +780,14 @@ class UniDecCD(unidec.UniDec):
             self.mkernel2[0] = fitting.psfit(X[0], self.config.psig, np.amin(self.mz), psfun=self.config.psfun) \
                                + fitting.psfit(X[0], self.config.psig, np.amax(self.mz) + self.config.mzbins,
                                                psfun=self.config.psfun)
-            self.mkernel2 /= np.amax(self.mkernel2)
+            self.mkernel2 /= np.sum(self.mkernel2)
 
-        self.kernel /= np.amax(self.kernel)
+        self.kernel /= np.sum(self.kernel)
         # Create the flipped kernel for the correlation. Roll so that the 0,0 point is still the highest
         self.ckernel = np.roll(np.flip(self.kernel), (1, 1), axis=(0, 1))
 
         if mzsig > 0:
-            self.mkernel /= np.amax(self.mkernel)
+            self.mkernel /= np.sum(self.mkernel)
 
     def setup_zsmooth(self):
         # Setup Grids for  Z+1, and Z-1
@@ -944,8 +946,9 @@ class UniDecCD(unidec.UniDec):
             i += 1
             # print(i)
         print("Deconvolution iterations: ", i)
-        # Normalize the final array
-        I /= xp.amax(I)
+        if self.config.datanorm == 1:
+            # Normalize the final array
+            I /= xp.amax(I)
 
         # Get the reconvolved data
         recon = cconv2D_preB(I, ftk)
@@ -953,7 +956,8 @@ class UniDecCD(unidec.UniDec):
             recon = recon.get()
         # Get the fit data in 1D for the DScore calc
         self.data.fitdat = np.sum(recon, axis=0)
-        self.data.fitdat /= np.amax(self.data.data2[:, 1]) / np.amax(self.data.fitdat)
+        if self.config.datanorm == 1:
+            self.data.fitdat /= np.amax(self.data.data2[:, 1]) / np.amax(self.data.fitdat)
 
         if self.config.mzsig > 0 and self.config.rawflag == 0:
             # Reconvolved/Profile: Reconvolves with the peak shape in the mass dimension only

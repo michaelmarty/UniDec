@@ -128,6 +128,8 @@ pypubsub
 tornado
 pythonnet
 multiplierz (Windows only, for Agilent imports)
+pymsfilereader (Option for some features)
+massql (Optional if you want to try this feature)
 
 All of these can be installed from the command line with (for example):
     
@@ -196,6 +198,24 @@ In reading the documentation, it is perhaps best to start with the unidec.UniDec
 The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
+
+v.5.0.4
+
+Added Mass Limits to Mass Defect Tools.
+
+Added Normalize Data option in UniDecCD.
+
+Allowed Waterfall plots to show text data on the y-axis.
+
+Fixed bug in Thermo Importer. Fixed bugs with a few parameters in UCD.
+
+Added ability to open .dmt and .i2ms files from STORI analysis.
+
+Added experimental MassQL feature to select peaks that match certain queries. 
+
+Adding experimental High Throughput Screen features in MetaUniDec.
+
+Added ability to open npz files, which are much faster than txt and should help in custom scripts.
 
 v.5.0.3
 

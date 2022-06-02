@@ -12,7 +12,7 @@ import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 from unidec_modules import Extract2D, peakwidthtools, masstools, miscwindows, \
     MassDefects, mainwindow, nativez, ManualSelectionWindow, AutocorrWindow, fft_window, GridDecon, isotopetools
-from unidec_modules.isolated_packages import FileDialogs, texmaker, score_window, texmaker_nmsgsb, navia_importer
+from unidec_modules.isolated_packages import FileDialogs, texmaker, score_window, texmaker_nmsgsb, navia_importer, mql_tool
 import datacollector
 import import_wizard
 import unidec_modules.IM_windows as IM_wind
@@ -1134,6 +1134,31 @@ class UniDecApp(UniDecPres):
             newpath = navia_importer.navia_import(pathname)
             newdir, newfile = os.path.split(newpath)
             self.on_open_file(newfile, newdir)
+
+    def on_mql(self, e=None):
+        defaultquery= "QUERY scaninfo(MS1DATA) WHERE MS1MZ=X AND MS1MZ=X+760:TOLERANCEMZ=5 FILTER MS1MZ=X"
+        # Launch window to input calibration parameters
+        dialog = miscwindows.SingleInputDialog(self.view, width=800)
+        dialog.initialize_interface(title="MassQL Query",
+                                    message="Query",
+                                    defaultvalue=defaultquery)
+        dialog.ShowModal()
+
+        try:
+            query = dialog.value
+            print("Query:", query)
+        except Exception as e:
+            print("Query failed:", e)
+            query=None
+
+        file = self.eng.config.peaksfile
+        print("MassQL", file)
+        mql = mql_tool.MQL_TOOL(file)
+        mql.query(query, self.eng.pks)
+        self.on_delete()
+        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
+
+
 
     def on_2d_grid(self, e=None):
         """

@@ -207,6 +207,8 @@ class MyFileDropTarget(wx.FileDropTarget):
         if os.path.splitext(fname)[1] == ".hdf5":
             print("Opening .hdf5 file:", fname)
             self.window.pres.open_file(path)
+        elif os.path.splitext(fname)[1] == ".csv":
+            self.window.pres.open_csv(path)
         else:
             self.window.pres.add_files(filenames)
         return 0

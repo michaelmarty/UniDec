@@ -1,4 +1,4 @@
-version 5.0.1
+version 5.0.4
 imflag 0
 input C:\Python\UniDec3\unidec_bin\Example Data\ADH_unidecfiles\ADH_input.dat
 output C:\Python\UniDec3\unidec_bin\Example Data\ADH_unidecfiles\ADH
@@ -60,3 +60,5 @@ CDslope 0.2074
 CDzbins 1.0
 CDres 1.0
 csig 5.0
+smoothdt 0
+subbufdt 0

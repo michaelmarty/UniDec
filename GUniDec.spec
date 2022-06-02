@@ -1,5 +1,4 @@
 # -*- mode: python -*-
-
 import os
 import pymzml
 import datetime
@@ -69,6 +68,7 @@ hiddenimportslist=[  # 'plotly','
                  'Tkinter', 'FixTk', '_tkinter', 'Tkconstants', 'FileDialog', 'Dialog', 'six',
                  'pymzml.run', 'pymzml.plot', 'pymzml.obo',
                  'pkg_resources.py2_warn',
+                 'massql',
                  'PIL',
                  # , 'requests.packages.chardet.sys', 'requests','urllib3.packages.ordered_dict'
              ]
@@ -79,7 +79,7 @@ cudaimportlist=['cupy','cupy.core', 'cupy.core._routines_sorting','cupy.core.fla
                  'cupy_backends.cuda.stream', 'cupy.core._carray', 'fastrlock',
                  'fastrlock.rlock', 'cupy.core._cub_reduction', 'cupy.core._ufuncs']
 
-excludeslist = ['pandas', 'IPython', 'statsmodels', 'pyopenms', 'sklearn',
+excludeslist = ['IPython', 'statsmodels', 'pyopenms', 'sklearn',
                        'GdkPixbuf', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2', 'PyQt5']
 
 if distmode:
@@ -109,7 +109,9 @@ if system == "Windows":
     # a.datas += [('rawreadertim.exe', 'unidec_bin\\rawreadertim.exe', 'DATA')]
     a.datas += [('CDCReader.exe', 'unidec_bin\\CDCReader.exe', 'DATA')]
     a.datas += [('h5repack.exe', 'unidec_bin\\h5repack.exe', 'DATA')]
-    a.datas += [('pymzml\\version.txt', 'C:\\Python37\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
+    a.datas += [('pymzml\\version.txt', 'C:\\Python39\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
+    a.datas += [('massql\\msql.ebnf', 'C:\\Python39\\Lib\\site-packages\\massql\\msql.ebnf', 'DATA')]
+
 
     for file in os.listdir('unidec_bin'):
         if fnmatch.fnmatch(file, 'api*'):
@@ -117,7 +119,7 @@ if system == "Windows":
             a.datas += add
             # print add
 
-    cuincludedir='C:\\Python37\\Lib\\site-packages\\cupy\\core\\include'
+    cuincludedir='C:\\Python39\\Lib\\site-packages\\cupy\\core\\include'
     for root, subdirs, files in os.walk(cuincludedir):
         for f in files:
             path = os.path.join(root, f)
@@ -155,6 +157,8 @@ a.datas.extend(dir_files("unidec_bin\\multiplierz", 'multiplierz'))
 
 a.datas.extend(dir_files("unidec_bin\\Presets", 'Presets'))
 a.datas.extend(dir_files("unidec_bin\\Example Data", 'Example Data'))
+a.datas.extend(dir_files('C:\\Python39\\Lib\\site-packages\\matchms\\data', "matchms\\data"))
+# a.datas += [('matchms\\data\\known_key_conversions.csv', 'C:\\Python39\\Lib\\site-packages\\massql\\msql.ebnf', 'DATA')]
 
 # Can't remember why I needed these...
 # grammar=os.path.join(os.path.dirname(lib2to3.__file__),'Grammar.txt')

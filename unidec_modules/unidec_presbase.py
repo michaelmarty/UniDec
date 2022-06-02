@@ -18,7 +18,7 @@ class UniDecPres(object):
     Presenter contains UniDec engine at self.eng and main GUI window at self.view
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, ignore_args=False, *args, **kwargs):
         self.wx_app = wx.App(redirect=False)
         self.eng = None
         self.view = None
@@ -27,22 +27,26 @@ class UniDecPres(object):
         self.infile = None
         self.top_path = None
         opts = None
-        try:
-            opts, args = getopt.getopt(sys.argv[1:], "ucmf:", ["file=", "unidec", "meta", "chrom"])
+        if not ignore_args:
+            try:
+                opts, args = getopt.getopt(sys.argv[1:], "ucmf:", ["file=", "unidec", "meta", "chrom"])
+            except getopt.GetoptError as e:
+                print("Error in Argv. Likely unknown option: ", sys.argv, e)
+                print("Known options: -u, -m, -c, -f")
 
-        except getopt.GetoptError as e:
-            print("Error in Argv. Likely unknown option: ", sys.argv, e)
-            print("Known options: -u, -m, -c, -f")
-        if opts is not None:
-            for opt, arg in opts:
-                if opt in ("-f", "--file"):
-                    self.infile = arg
+            #print("ARGS:", args)
+            #print("KWARGS:", kwargs)
+            #print("OPTS:", opts)
+            if opts is not None:
+                for opt, arg in opts:
+                    if opt in ("-f", "--file"):
+                        self.infile = arg
+                        print("Opening File:", self.infile)
+            if ud.isempty(opts):
+                if len(args) > 0:
+                    self.infile = args[0]
                     print("Opening File:", self.infile)
-        if ud.isempty(opts):
-            if len(args) > 0:
-                self.infile = args[0]
-                print("Opening File:", self.infile)
-        pass
+            pass
 
     def start(self):
         """

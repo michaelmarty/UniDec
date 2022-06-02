@@ -157,6 +157,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                           flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
+        self.ctldatanorm = wx.CheckBox(panel1, label="Normalize Data")
+        self.ctldatanorm.SetValue(True)
+        sizercontrol1.Add(self.ctldatanorm, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
         self.dataprepbutton = wx.Button(panel1, -1, "Process Data")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_dataprep_button, self.dataprepbutton)
         sizercontrol1.Add(self.dataprepbutton, (i, 0), span=(1, 2), flag=wx.EXPAND)
@@ -618,7 +623,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlsep.SetValue(str(self.config.separation))
             self.ctlintthresh.SetValue(str(self.config.intthresh))
             self.ctladductmass.SetValue(str(self.config.adductmass))
-
+            self.ctldatanorm.SetValue(self.config.datanorm)
             self.ctlnumit.SetValue(str(self.config.numit))
 
             self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
@@ -705,7 +710,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
         self.config.beta = ud.string_to_value(self.ctlbeta.GetValue())
         self.config.poolflag = self.ctlpoolflag.GetSelection()
-
+        self.config.datanorm = int(self.ctldatanorm.GetValue())
         self.config.intthresh = ud.string_to_value(self.ctlintthresh.GetValue())
         self.config.massbins = ud.string_to_value(self.ctlmassbins.GetValue())
         self.config.endz = ud.string_to_int(self.ctlendz.GetValue())
@@ -877,7 +882,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ppbutton.SetToolTip(wx.ToolTip("Pick Peaks (Ctrl+P)"))
         self.autobutton.SetToolTip(wx.ToolTip("Process Data, Run UniDec, Pick Peaks (Ctrl+E)"))
         self.ctlslope.SetToolTip(wx.ToolTip("Slope for conversion of intensity to charge.\nz=I/slope"))
-        self.ctlcsig.SetToolTip(wx.ToolTip("Width of CCS smooth.\nCCS difference is taken as the CCS bin size."))
+        self.ctlcsig.SetToolTip(wx.ToolTip("Width of Charge Distribution.\nFWHM of the charge distribution."))
 
         self.ctlzsmoothcheck.SetToolTip(
             wx.ToolTip("Select whether to assume a smooth charge state distribution"))
