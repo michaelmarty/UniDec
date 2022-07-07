@@ -66,7 +66,6 @@ float extract_zcom(Config config, const float peak, const float *xvals, const fl
 	float thresh2 = thresh*Max(zvals, mlen*zlen);
 	//printf("thresh2 %f %f\n", thresh2, thresh);
 	
-	int pos = nearfast(xvals, peak, mlen);
 	float *zdat = NULL;
 	zdat = calloc(zlen, sizeof(float));
 	

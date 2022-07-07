@@ -157,6 +157,13 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	simp_norm_sum(zlength, zdist);
 	simp_norm_sum(numclose, closeval);
 
+	int badness1 = 1;
+	for (int i = 0; i < config.lengthmz * config.numz; i++)
+	{
+		if (barr[i] == 1) { badness1 = 0; }
+	}
+	if (badness1 == 1) { printf("ERROR:1\n"); exit(10); }
+
 	//Set up blur
 	//MakeBlur(config.lengthmz, config.numz, numclose, barr, closezind, closemind, inp.mtab, config.molig, config.adductmass, inp.nztab, inp.dataMZ, closeind, threshold, config);
 	MakeSparseBlur(numclose, barr, closezind, closemind, inp.mtab, inp.nztab, inp.dataMZ, closeind, closeval, closearray, config);

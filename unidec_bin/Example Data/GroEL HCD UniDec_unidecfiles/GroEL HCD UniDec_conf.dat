@@ -1,4 +1,4 @@
-version 4.4.0
+version 5.0.5
 imflag 0
 input C:\Python\UniDec3\unidec_bin\Example Data\GroEL HCD UniDec_unidecfiles\GroEL HCD UniDec_input.dat
 output C:\Python\UniDec3\unidec_bin\Example Data\GroEL HCD UniDec_unidecfiles\GroEL HCD UniDec
@@ -11,6 +11,7 @@ psig 0.0
 beta 0.0
 mzsig 0.0
 psfun 0
+zpsfun 0
 discreteplot 0
 massub 1000000.0
 masslb 1000.0
@@ -54,3 +55,11 @@ integratelb -1000.0
 integrateub 1000.0
 filterwidth 20.0
 zerolog -12.0
+doubledec 0
+kernel 
+CDslope 0.2074
+CDzbins 1.0
+CDres 0.0
+csig 0.0
+smoothdt 0.0
+subbufdt 0.0

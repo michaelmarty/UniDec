@@ -21,7 +21,7 @@ def make_mass_list(massdat, arrayin, psfun, posarray, nparam=3, maxshift=None, *
     array = np.reshape(arrayin, (int(num), nparam))
 
     for i in np.arange(0, len(array)):
-        output += ud.make_peak_shape(massdat[:, 0], psfun, array[i, 1], array[i, 0], norm_area=True) * array[i, 2]
+        output += ud.make_peak_shape(massdat[:, 0], psfun, array[i, 1], array[i, 0], norm_area=True, speedy=True) * array[i, 2]
     if np.amax(output) != 0:
         output = output / np.amax(output) * np.amax(massdat[:, 1])
     if np.any(array[:, 1:] < 0):

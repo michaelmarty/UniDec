@@ -1,4 +1,4 @@
-version 5.0.4
+version 5.0.5
 imflag 0
 input C:\Python\UniDec3\unidec_bin\Example Data\ADH_unidecfiles\ADH_input.dat
 output C:\Python\UniDec3\unidec_bin\Example Data\ADH_unidecfiles\ADH
@@ -55,10 +55,10 @@ integrateub 1000.0
 filterwidth 20.0
 zerolog -12.0
 doubledec 0
-kernel 
+kernel Z:\mtmarty\Data\WangLabAnalysis\20200430_jat_wanglabsample_concthenbiospin_unidecfiles\20200430_jat_wanglabsample_concthenbiospin_mass.txt
 CDslope 0.2074
 CDzbins 1.0
 CDres 1.0
 csig 5.0
-smoothdt 0
-subbufdt 0
+smoothdt 0.0
+subbufdt 0.0

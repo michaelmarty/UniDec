@@ -246,7 +246,6 @@ float uscore(Config config, const float* dataMZ, const float* dataInt, const flo
 float mscore(Config config, const int mlen, const float* massaxis, const float* masssum, const float* massgrid, const float mlow, const float mhigh, const float peak)
 {
 	float power = 2;
-	float mscore = 0;
 
 	float numerator = 0;
 	float denominator = 0;
@@ -426,7 +425,7 @@ float fscore(Config config, const int plen, const int mlen, const float* massaxi
 		//printf("Badfwhm\n");
 		float highdiff = mhigh - peak;
 		float lowdiff = peak - mlow;
-		float fwhm = mhigh - mlow;
+
 		if (lowdiff > highdiff) {
 			float min = find_minimum(config, mlen, massaxis, masssum, mlow - config.massbins, peak);
 			float fsc = score_minimum(height, min);
@@ -539,7 +538,6 @@ float score(Config config, Decon *decon, Input inp, const float threshold)
 int ReadDecon(Config* config, const Input inp, Decon* decon) 
 {
 	char outdat[1024];
-	char strval[1024];
 
 	//Import Rsquared
 	decon->rsquared = float_attr(config->file_id, config->dataset, "rsquared", decon->rsquared);

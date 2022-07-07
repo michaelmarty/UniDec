@@ -34,7 +34,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 
 	printf("config.length of data: %d\n", lines);
 
-	int i, j, k, l, m, tmlen, manlength;
+	int i, j, k, m, tmlen;
 
 	int *ztab = NULL, *closemind = NULL,
 		*closezind = NULL,

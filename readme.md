@@ -18,6 +18,8 @@ UniDec may be downloaded from [https://github.com/michaelmarty/UniDec/releases](
 This compiled version is compatible with 64-bit Windows. It a portable binary, so it does not need a conventional installation.
 Just unzip the folder, put it somewhere convenient, and click the GUI_UniDec.exe file in the folder to launch.
 
+To use the PDF report generator, install [MikTex](https://miktex.org) and select install packages automatically from the installation options. You may need to add this to your system path so that PDFLatex is found from the command line. 
+
 ## Tutorial
 
 You can watch a video tutorial on how to use UniDec here: [https://www.youtube.com/watch?v=e33JxgY6CJY](https://www.youtube.com/watch?v=e33JxgY6CJY).
@@ -110,7 +112,7 @@ Only mzML and Thermo RAW files are supported for automated chromatogram import.
 ## Installing the Source Code
 
 Most users will likely just want to run the compiled version. For those advanced users who have experience with Python,
-we have provided the source code for the GUI and API.
+we have provided the source code for the GUI and API. For more information, check out this [walkthrough](https://github.com/michaelmarty/UniDec/wiki/Installing-the-UniDec-Source-Code).
 
 ### Python
 
@@ -142,14 +144,14 @@ Note: I would highly recommend setting up 64-bit Python as the default. MS data 
 As described below, the Python code presented here relies on one critical binary, UniDec.exe. The binary should be in the /unidec_bin directory. 
 
 If you are interested in building the binary or modifying the source code, the code and Visual Studio project files
-are in unidec_src/UniDec. It is currently configured for Visual Studio Community 2015 with HDF5 1.10.1 and Intel Parallel Studio 19.
+are in unidec_src/UniDec. It is currently configured for Visual Studio Community 2022 with HDF5 1.12.2 and the Intel oneAPI compiler.
 It can be easily compiled with other compilers but will show a significant performance loss without the Intel Compilers.
  
 If you are interested in binaries for Mac and Linux, I would recommend building them yourself using the scripts in the unidec_src/UniDec directory. UniDec compiles easily and works fine with these operating systems, but I don't have the time to support them.
 
 ## UniDec Documentation
 
-Documentation is for the Python engine and GUI and can be found at http://michaelmarty.github.io/UniDecDocumentation/.
+Documentation is for the Python engine and GUI and can be found at http://michaelmarty.github.io/UniDecDocumentation/. Sorry, honestly it's pretty out of date by now.
 
 My goal is that this documentation will allow you to utilize the power of the UniDec python engine for scripting data analysis routines and performing custom analysis. Also, it will allow you to add new modules to the UniDec GUI.
 
@@ -198,6 +200,18 @@ In reading the documentation, it is perhaps best to start with the unidec.UniDec
 The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
+
+v.5.0.5
+
+**Upgraded build** using the Intel oneAPI and Visual Studio 2022. Giving about a 2x speed boost!
+
+Added new Gaussian fitting experimental features to DataCollector.
+
+Fixed bug in build with PDF export.
+
+Fixed bug with manual assignments.
+
+Fixed CDMS example data showing up in other windows.
 
 v.5.0.4
 

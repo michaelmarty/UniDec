@@ -10,6 +10,7 @@ from matplotlib.pyplot import colormaps
 from matplotlib import rcParams
 from matplotlib.patches import Rectangle
 from pubsub import pub
+from unidec_modules.isolated_packages.MD_Fitter import *
 
 import multiprocessing
 from unidec_modules import UniFit, Extract2D, unidecstructure, PlotAnimations, plot1d, plot2d, miscwindows, \
@@ -341,6 +342,10 @@ class DataCollector(wx.Frame):
         self.menuplotx = self.toolsmenu.Append(wx.ID_ANY, "Plot X Ranges", "Plot X Ranges")
         self.Bind(wx.EVT_MENU, self.shade_plots, self.menuplotx)
 
+        self.experimentalmenu.AppendSeparator()
+        self.menugfit = self.experimentalmenu.Append(wx.ID_ANY, "Fit Extracted Data to Gaussians", "Fit Extracted Data to Gaussians")
+        self.Bind(wx.EVT_MENU, self.on_fitting, self.menugfit)
+
         self.toolsmenu.AppendSeparator()
 
         ### CMap drop down menu
@@ -558,10 +563,13 @@ class DataCollector(wx.Frame):
             # self.load(os.path.join(self.directory,"AmtB_04_test.json"))
             # self.directory = "C:\\Data\\AmtB_DMPC"
             # self.load(os.path.join(self.directory, "AmtB_07.json"))
-            if False:
+            if True:
                 self.directory = "C:\\Data\\Others\\Miranda"
+                self.directory = "Z:\\Group Share\\Marius Kostelic\\Baker Lab AAVs\\Test for gaussian fitting\\"
                 self.load(os.path.join(self.directory, "collection1.json"))
-                self.on_kd_fit(0)
+                # self.on_kd_fit(0)
+                # self.on_run(0)
+                self.on_fitting()
             try:
                 # testdir = "C:\Python\UniDec\unidec_src\UniDec\\x64\Release"
                 # testfile = "JAW.hdf5"
@@ -838,7 +846,7 @@ class DataCollector(wx.Frame):
             self.ctlmax.SetValue(str(self.range[1]))
 
 
-    def on_run(self, e, vals=None):
+    def on_run(self, e=None, vals=None):
         tstart = time.perf_counter()
         self.update_get(e)
         # os.chdir(self.directory)
@@ -1390,7 +1398,47 @@ class DataCollector(wx.Frame):
         print(self.kernelfile)
         DoubleDec.batch_dd(self.paths, self.kernelfile)
 
+    def on_fitting(self, e=None):
+        starttime= time.perf_counter()
+        self.update_get(None)
+        print("Starting Fitting")
+        self.extract = []
+        self.plot4.clear_plot()
+        for k, l in enumerate(self.yvals):
+            fcolor = np.array(l[4:7])
+            data = self.data[k]
+            print(len(data))
+            masses = [float(s) for s in np.array(self.xvals)[:,0]]
+            print(masses)
+            print(self.window)
+            fits, fitdat = MD_Fitter(data, mds=masses, maxshift=self.window, widthguess=self.window, )
+            fitdat /= np.amax(data[:,1])/np.amax(fitdat)
+            self.plot1.plotadd(data[:, 0], fitdat, fcolor, nopaint=False, linestyle="--")
+            if not self.plot4.flag:
+                self.plot4.plotrefreshtop(data[:, 0], data[:, 1]-k, "Extracted Data", "", "", "", None,
+                                          nopaint=True,
+                                          color=fcolor, test_kda=True)
+            else:
+                self.plot4.plotadd(data[:, 0], data[:,1]-k, fcolor)
+            self.plot4.plotadd(data[:, 0], fitdat-k, fcolor, linestyle="--")
+            xext = fits[:,2]
+            self.extract.append(xext)
+        self.plot4.repaint()
 
+        self.extract = np.array(self.extract)
+        if len(self.xvals) != 0:
+            if self.normflag2 == 1:
+                sums = np.sum(self.extract, axis=1)
+                self.extract = [self.extract[i] / sums[i] for i in range(0, len(self.yvals))]
+                self.extract = np.array(self.extract)
+
+            colormap = cm.get_cmap(self.xcmap, len(self.xvals))
+            self.xcolors = colormap(np.arange(len(self.xvals)))
+            self.makeplot2()
+
+            np.savetxt(os.path.join(self.directory, "extracts_fitted.txt"), self.extract)
+        endtime = time.perf_counter()
+        print("Fitting Time: ", endtime-starttime)
 
     def on_ylabel(self, e):
         dlg = miscwindows.SingleInputDialog(self)

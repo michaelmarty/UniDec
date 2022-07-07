@@ -190,3 +190,7 @@ unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_massgrid.bin
 unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_peak_areas.dat
 unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_peaks.dat
 unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_rawdata.txt
+unidec_bin/Presets/CDMS/Heck_CDMS_AAVs_120K_0148_slope
+unidec_bin/Presets/CDMS/Heck_CDMS_AAVs_120k_0156
+unidec_bin/Presets/CDMS/Heck_CDMS_AAVs_240K_02193_slope
+unidec_bin/Presets/CDMS/Heck_CDMS_AAVs_240K_021_slope

@@ -1,4 +1,4 @@
-version 5.1.0
+version 5.0.5
 imflag 0
 input C:\Python\UniDec3\unidec_bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat
 output C:\Python\UniDec3\unidec_bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1
@@ -47,7 +47,7 @@ spectracmap rainbow
 publicationmode 1
 isotopemode 0
 peaknorm 1
-datanorm 1.0
+datanorm 1
 baselineflag 1.0
 orbimode 0.0
 integratelb -7.0
@@ -60,3 +60,5 @@ CDslope 0.2074
 CDzbins 1.0
 CDres 1.0
 csig 5.0
+smoothdt 0.0
+subbufdt 0.0

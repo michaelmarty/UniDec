@@ -551,7 +551,7 @@ void PrintHelp()
 	printf("\t\t\t\t\t\"tcal3\"=Calibration paramter 3 (P3)\n");
 	printf("\t\t\t\t5=SLIM T-Wave 3rd Order Polynomial Calibration\n");
 	printf("\t\t\t\t\t\"tcal4\"=Calibration parmater 4 (P4)\n");
-	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit date 8/4/21\n");
+	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit date 6/30/22\n");
 	//printf("\nsize of: %d",sizeof(char));
 
 	/*
@@ -698,7 +698,7 @@ void readfile3bin(char* infile, int lengthmz, float* array1, float* array2, floa
 	FILE* file_ptr;
 	int i;
 	float* data;
-	data = calloc(lengthmz * 3, sizeof(float));
+	data = (float*) calloc(lengthmz * 3, sizeof(float));
 
 	file_ptr = fopen(infile, "rb");
 
@@ -775,7 +775,6 @@ int getfilelengthbin(const char* infile, const int size, const int width)
 {
 	FILE* file_ptr;
 	int l = 0;
-	char input[501];
 	file_ptr = fopen(infile, "rb");
 
 	if (file_ptr == 0)
@@ -798,7 +797,6 @@ int getfilelengthbin(const char* infile, const int size, const int width)
 int nearunsorted(float* testmasses, float point, int lengthtest)
 {
 	float minval = fabs(point - testmasses[0]);
-	float val = testmasses[0];
 	float difftest;
 	int pos = 0;
 	for (int i = 1; i < lengthtest; i++)
@@ -807,7 +805,6 @@ int nearunsorted(float* testmasses, float point, int lengthtest)
 		if (difftest < minval)
 		{
 			minval = difftest;
-			val = testmasses[i];
 			pos = i;
 		}
 	}
@@ -1320,7 +1317,7 @@ void blur_baseline(float* baseline, const int lengthmz, const float* dataMZ, con
 {
 	int mulin = mult;
 	float* temp = NULL;
-	temp = calloc(lengthmz, sizeof(float));
+	temp = (float*) calloc(lengthmz, sizeof(float));
 	memcpy(temp, baseline, sizeof(float) * lengthmz);
 	int i, j;
 #pragma omp parallel for private (i,j), schedule(auto)
@@ -1384,7 +1381,7 @@ void midblur_baseline(float* baseline, const int lengthmz, const float* dataMZ, 
 	int window = 25;
 
 	float* temp = NULL;
-	temp = calloc(lengthmz, sizeof(float));
+	temp = (float*) calloc(lengthmz, sizeof(float));
 	memcpy(temp, baseline, sizeof(float) * lengthmz);
 	int i, j;
 #pragma omp parallel for private(i,j), schedule(auto)
@@ -1393,7 +1390,7 @@ void midblur_baseline(float* baseline, const int lengthmz, const float* dataMZ, 
 		float val = 0;
 		float len = window * 2;
 		float* med = NULL;
-		med = calloc(len, sizeof(float));
+		med = (float*) calloc(len, sizeof(float));
 		int index = 0;
 		for (j = -window; j < window; j++)
 		{
@@ -1432,7 +1429,7 @@ void midblur_baseline(float* baseline, const int lengthmz, const float* dataMZ, 
 void blur_noise(float* noise, int lengthmz)
 {
 	float* temp = NULL;
-	temp = calloc(lengthmz, sizeof(float));
+	temp = (float*) calloc(lengthmz, sizeof(float));
 	memcpy(temp, noise, sizeof(float) * lengthmz);
 	int i, j;
 	float filter[5] = { -0.1,-0.4,1,-0.4,-0.1 };
@@ -1594,7 +1591,7 @@ void apply_ratios(const int lengthmz, const int numz, const float* __restrict bl
 void deconvolve_baseline(const int lengthmz, const float* dataMZ, const float* dataInt, float* baseline, const float mzsig)
 {
 	float* denom = NULL;
-	denom = calloc(lengthmz, sizeof(float));
+	denom = (float*) calloc(lengthmz, sizeof(float));
 
 	midblur_baseline(baseline, lengthmz, dataMZ, mzsig, 0);
 	midblur_baseline(baseline, lengthmz, dataMZ, mzsig, 5);
@@ -1623,10 +1620,10 @@ float deconvolve_iteration_speedy(const int lengthmz, const int numz, const int 
 	, const int* starttab, const int* endtab, const float* mzdist, const float* rmzdist, const int speedyflag, const int baselineflag, float* baseline,
 	float* noise, const float mzsig, const float* dataMZ, const float filterwidth, const float psig)
 {
-	unsigned int i, j, k;
+	unsigned int i;
 	float* deltas = NULL, * denom = NULL;
-	deltas = calloc(lengthmz, sizeof(float));
-	denom = calloc(lengthmz, sizeof(float));
+	deltas = (float*) calloc(lengthmz, sizeof(float));
+	denom = (float*) calloc(lengthmz, sizeof(float));
 
 	if (aggressiveflag == 1 && mzsig != 0) {
 		blur_baseline(baseline, lengthmz, dataMZ, fabs(mzsig), 0, filterwidth);
@@ -1719,7 +1716,7 @@ float getfitdatspeedy(float* fitdat, const float* blur, const char* barr, const 
 {
 	unsigned int i, j, k;
 	float* deltas = NULL;
-	deltas = calloc(lengthmz, sizeof(float));
+	deltas = (float*) calloc(lengthmz, sizeof(float));
 	if (isolength == 0) {
 #pragma omp parallel for private (i,j), schedule(auto)
 		for (i = 0; i < lengthmz; i++) //Collapse the grid into a 1D array of delta function values
@@ -1961,9 +1958,9 @@ void ManualAssign(float* dataMZ, char* barr, int* nztab, Config config)
 		manlen = getfilelength(config.manualfile);
 	}
 	printf("Length of Manual List: %d \n", manlen);
-	float* manualmz = malloc(sizeof(float) * manlen);
-	float* manualwin = malloc(sizeof(float) * manlen);
-	float* manualassign = malloc(sizeof(float) * manlen);
+	float* manualmz = (float*) malloc(sizeof(float) * manlen);
+	float* manualwin = (float*) malloc(sizeof(float) * manlen);
+	float* manualassign = (float*) malloc(sizeof(float) * manlen);
 	if (config.filetype == 1)
 	{
 		mh5readfile3d(config.file_id, "/config/manuallist", manlen, manualmz, manualwin, manualassign);
@@ -1975,12 +1972,13 @@ void ManualAssign(float* dataMZ, char* barr, int* nztab, Config config)
 
 	for (i = 0; i < manlen; i++) {
 		if (manualassign[i] < 0) { manualmz[i] = -manualmz[i] * 1000.0; }
+		printf("Manual Assignment: %f %f %f\n", manualmz[i], manualwin[i], manualassign[i]);
 		//Cheating a bit...make the manualmz very negative if deassign, so that they aren't discovered by the assign loop
 	}
 
 	float testmz;
 	int closest;
-#pragma omp parallel for private (i,j,testmz,closest), schedule(auto)
+	#pragma omp parallel for private (i,j,testmz,closest), schedule(auto)
 	for (i = 0;i < lengthmz;i++)
 	{
 		for (j = 0;j < numz;j++)
@@ -2134,7 +2132,7 @@ void MakeSparseBlur(const int numclose, char* barr, const int* closezind,
 
 					}
 				}
-				if (num < 2 && config.isotopemode == 0) { barr[index2D(numz, i, j)] = 0; }// printf("%d %d \n", i, j);}
+				if (num < 2 && config.isotopemode == 0 && config.manualflag==0) { barr[index2D(numz, i, j)] = 0; }// printf("%d %d \n", i, j);}
 			}
 			else
 			{
@@ -2227,7 +2225,6 @@ void MakePeakShape2D(int lengthmz, int maxlength, int* starttab, int* endtab, fl
 	  {
 		  int start = starttab[i];
 		  int end = endtab[i];
-		  int t = 0;
 		  for (int j = start; j <= end; j++)
 		  {	
 			  int j2 = fixk(j, lengthmz);
@@ -2254,7 +2251,7 @@ void MakePeakShape1D(float* dataMZ, float threshold, int lengthmz, int speedyfla
 void monotopic_to_average(const int lengthmz, const int numz, float* blur, const char* barr, int isolength, const int* __restrict isotopepos, const float* __restrict isotopeval)
 {
 	float* newblur = NULL;
-	newblur = calloc(lengthmz * numz, sizeof(float));
+	newblur = (float*) calloc(lengthmz * numz, sizeof(float));
 	unsigned int i, j, k;
 	for (i = 0; i < lengthmz; i++)
 	{
@@ -2531,9 +2528,8 @@ void SmartTransform(const int maaxle, const int numz, const int lengthmz, const 
 						}
 						else if (edge == 2 && (dataMZ[index2] - dataMZ[index]) != 0)
 						{
-							float factor = 1;
 							if (index2 == 0) { index = 0; index2 = 1; }
-							if (index == lengthmz - 1) { index = lengthmz - 1; index2 = lengthmz - 2; factor = -1; }
+							if (index == lengthmz - 1) { index = lengthmz - 1; index2 = lengthmz - 2;}
 							float mu = (mztest - dataMZ[index]) / (dataMZ[index] - dataMZ[index2]);
 							float y1 = blur[index2D(numz, index, j)];
 							float y2 = 0;
@@ -2721,8 +2717,8 @@ void make_isotopes(float* isoparams, int* isotopepos, float* isotopeval, float* 
 	}
 	float massdiff = 1.0026;
 
-	float minmid = isotopemid(minmass, isoparams);
-	float minsig = isotopesig(minmass, isoparams);
+	//float minmid = isotopemid(minmass, isoparams);
+	//float minsig = isotopesig(minmass, isoparams);
 	float maxmid = isotopemid(maxmass, isoparams);
 	float maxsig = isotopesig(maxmass, isoparams);
 
@@ -2734,8 +2730,8 @@ void make_isotopes(float* isoparams, int* isotopepos, float* isotopeval, float* 
 	int isolength = isoend - isostart;
 	float* isorange = NULL;
 	int* isoindex = NULL;
-	isorange = calloc(isolength, sizeof(float));
-	isoindex = calloc(isolength, sizeof(int));
+	isorange = (float*) calloc(isolength, sizeof(float));
+	isoindex = (int*) calloc(isolength, sizeof(int));
 	for (i = 0; i < isolength; i++)
 	{
 		isorange[i] = (isostart + i) * massdiff;
@@ -2853,8 +2849,8 @@ void test_isotopes(float mass, float* isoparams)
 	int isolength = isoend - isostart;
 	float* isorange = NULL;
 	int* isoindex = NULL;
-	isorange = calloc(isolength, sizeof(float));
-	isoindex = calloc(isolength, sizeof(int));
+	isorange = (float*) calloc(isolength, sizeof(float));
+	isoindex = (int*) calloc(isolength, sizeof(int));
 	for (i = 0; i < isolength; i++)
 	{
 		isoindex[i] = (isostart + i);
@@ -2876,8 +2872,8 @@ void setup_and_make_isotopes(Config* config, Input* inp) {
 
 	config->isolength = setup_isotopes(inp->isoparams, inp->isotopepos, inp->isotopeval, inp->mtab, inp->nztab, inp->barr, inp->dataMZ, config->lengthmz, config->numz);
 
-	inp->isotopepos = calloc(config->isolength * config->lengthmz * config->numz, sizeof(int));
-	inp->isotopeval = calloc(config->isolength * config->lengthmz * config->numz, sizeof(float));
+	inp->isotopepos = (int*) calloc(config->isolength * config->lengthmz * config->numz, sizeof(int));
+	inp->isotopeval = (float*) calloc(config->isolength * config->lengthmz * config->numz, sizeof(float));
 
 	make_isotopes(inp->isoparams, inp->isotopepos, inp->isotopeval, inp->mtab, inp->nztab, inp->barr, inp->dataMZ, config->lengthmz, config->numz);
 
@@ -2938,7 +2934,7 @@ void charge_scaling(float* blur, const int* nztab, const int lengthmz, const int
 void point_smoothing(float* blur, const char* barr, const int lengthmz, const int numz, const int width)
 {
 	float* newblur;
-	newblur = calloc(lengthmz * numz, sizeof(float));
+	newblur = (float*) calloc(lengthmz * numz, sizeof(float));
 	memcpy(newblur, blur, lengthmz * numz * sizeof(float));
 #pragma omp parallel for schedule(auto)
 	for (int i = 0; i < lengthmz; i++)
@@ -2968,7 +2964,7 @@ void point_smoothing(float* blur, const char* barr, const int lengthmz, const in
 void point_smoothing_peak_width(const int lengthmz, const int numz, const int maxlength, const int* starttab, const int* endtab, const float* mzdist, float* blur, const int speedyflag, const char* barr)
 {
 	float* newblur;
-	newblur = calloc(lengthmz * numz, sizeof(float));
+	newblur = (float*) calloc(lengthmz * numz, sizeof(float));
 	memcpy(newblur, blur, lengthmz * numz * sizeof(float));
 	Reconvolve(lengthmz, numz, maxlength, starttab, endtab, mzdist, newblur, blur, speedyflag, barr);
 	return;
@@ -3020,11 +3016,11 @@ void softargmax_transposed(float* blur, const int lengthmz, const int numz, cons
 	, int* starttab, int* endtab, float* mzdist, const float mzsig)
 {
 	float* newblur, * deltas, * deltas2, * denom, * denom2;
-	newblur = calloc(lengthmz * numz, sizeof(float));
-	deltas = calloc(lengthmz, sizeof(float));
-	deltas2 = calloc(lengthmz, sizeof(float));
-	denom = calloc(lengthmz, sizeof(float));
-	denom2 = calloc(lengthmz, sizeof(float));
+	newblur = (float*) calloc(lengthmz * numz, sizeof(float));
+	deltas = (float*) calloc(lengthmz, sizeof(float));
+	deltas2 = (float*) calloc(lengthmz, sizeof(float));
+	denom = (float*) calloc(lengthmz, sizeof(float));
+	denom2 = (float*) calloc(lengthmz, sizeof(float));
 	memcpy(newblur, blur, lengthmz * numz * sizeof(float));
 
 	//Sum deltas
@@ -3074,7 +3070,7 @@ void softargmax_transposed(float* blur, const int lengthmz, const int numz, cons
 void softargmax_everything(float* blur, const int lengthmz, const int numz, const float beta)
 {
 	float* newblur;
-	newblur = calloc(lengthmz * numz, sizeof(float));
+	newblur = (float*) calloc(lengthmz * numz, sizeof(float));
 	memcpy(newblur, blur, lengthmz * numz * sizeof(float));
 	//float max1 = 0;
 	//float max2 = 0;
@@ -3121,7 +3117,7 @@ void softargmax(float* blur, const int lengthmz, const int numz, const float bet
 	}
 
 	float* newblur;
-	newblur = calloc(lengthmz * numz, sizeof(float));
+	newblur = (float*) calloc(lengthmz * numz, sizeof(float));
 	memcpy(newblur, blur, lengthmz * numz * sizeof(float));
 #pragma omp parallel for schedule(auto)
 	for (int i = 0; i < lengthmz; i++)
@@ -3258,7 +3254,7 @@ void point_smoothing_iso(float *blur, const int lengthmz, const int numz, const 
 void SetLimits(const Config config, Input* inp)
 {
 	//Determines the indexes of each test mass from mfile in m/z space
-	int* testmasspos = malloc(sizeof(float) * config.mfilelen * config.numz);
+	int* testmasspos = (int*) malloc(sizeof(float) * config.mfilelen * config.numz);
 	if (config.mflag == 1 && config.limitflag == 1) {
 		for (int i = 0; i < config.mfilelen; i++)
 		{
@@ -3325,7 +3321,7 @@ void WritePeaks(const Config config, const Decon* decon) {
 	char outdat[1024];
 	strjoin(config.dataset, "/peaks", outdat);
 	float* ptemp = NULL;
-	ptemp = calloc(decon->plen * 3, sizeof(float));
+	ptemp = (float*) calloc(decon->plen * 3, sizeof(float));
 
 	for (int i = 0; i < decon->plen; i++) {
 		ptemp[i * 3] = decon->peakx[i];
@@ -3452,13 +3448,13 @@ void inversefouriertransform(double** input, double* output, int length) {
 // Gives convolution of functions a and b. Unused.
 // Use cconv2fast instead
 void cconv2(double* a, double* b, double* c, int length) {
-	double** A = malloc(length * sizeof(double*));	// (a + bi)
-	double** B = malloc(length * sizeof(double*));	// (c + di)
-	double** C = malloc(length * sizeof(double*));
+	double** A = (double **) malloc(length * sizeof(double*));	// (a + bi)
+	double** B = (double**) malloc(length * sizeof(double*));	// (c + di)
+	double** C = (double**) malloc(length * sizeof(double*));
 	for (int i = 0; i < length; i++) {
-		A[i] = calloc(2, sizeof(double));
-		B[i] = calloc(2, sizeof(double));
-		C[i] = calloc(2, sizeof(double));
+		A[i] = (double*) calloc(2, sizeof(double));
+		B[i] = (double*) calloc(2, sizeof(double));
+		C[i] = (double*) calloc(2, sizeof(double));
 	}
 
 	discretefouriertransform(a, A, length);
@@ -3498,8 +3494,8 @@ int integrate_dd(double* kernel_x, double* kernel_y, int kernellen, double* data
 	} else {
 		truelen = datalen;
 	}
-	*kernel_x_new = calloc(truelen, sizeof(double));
-	*kernel_y_new = calloc(truelen, sizeof(double));
+	*kernel_x_new = (double*) calloc(truelen, sizeof(double));
+	*kernel_y_new = (double*) calloc(truelen, sizeof(double));
 
 	double current_x = kernel_x[0];
 	double current_xl = kernel_x[0];
@@ -3554,8 +3550,8 @@ int interpolate_dd(double* kernel_x, double* kernel_y, int kernellen, double* da
 	} else {
 		truelen = datalen;
 	}
-	*kernel_x_new = calloc(truelen, sizeof(double));
-	*kernel_y_new = calloc(truelen, sizeof(double));
+	*kernel_x_new = (double*) calloc(truelen, sizeof(double));
+	*kernel_y_new = (double*) calloc(truelen, sizeof(double));
 
 	double current_x = kernel_x[0];
 	for (int i = 0; i < newlen; i++) {
@@ -3591,9 +3587,9 @@ void cconv2fast(double* a, double* b, double* c, int length) {
 	// We don't seem to have complex.h, unfortunately
 	// fftw_complex is a double[2] of real (0) and imaginary (1)
 	int complen = (length / 2) + 1;
-	fftw_complex* A = fftw_malloc(complen * sizeof(fftw_complex));
-	fftw_complex* B = fftw_malloc(complen * sizeof(fftw_complex));
-	fftw_complex* C = fftw_malloc(complen * sizeof(fftw_complex));
+	fftw_complex* A = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
+	fftw_complex* B = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
+	fftw_complex* C = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
 
 	// Possible issue: create plan after we've created inputs (params)
 	fftw_plan p1 = fftw_plan_dft_r2c_1d(length, a, A, FFTW_ESTIMATE);
@@ -3629,25 +3625,25 @@ void complex_mult(fftw_complex* A, fftw_complex* B, fftw_complex* product_ft, in
 
 void dd_deconv2(double* kernel_y, double* data_y, int length, double* output) {
 	// Create flipped point spread function kernel_star
-	double* kernel_star = malloc(length * sizeof(double));
+	double* kernel_star = (double*) malloc(length * sizeof(double));
 	for (int i = 0; i < length; i++) {
 		kernel_star[i] = kernel_y[length - i - 1];
 	}
 	// Create estimate for solution
-	double* estimate = malloc(length * sizeof(double));
+	double* estimate = (double*) malloc(length * sizeof(double));
 	for (int i = 0; i < length; i++) {
 		estimate[i] = data_y[i];
 	}
 	// Allocate arrays for convolutions
-	double* conv1 = malloc(length * sizeof(double));
-	double* conv2 = malloc(length * sizeof(double));
+	double* conv1 = (double*) malloc(length * sizeof(double));
+	double* conv2 = (double*) malloc(length * sizeof(double));
 
 	int complen = (length / 2) + 1;
-	fftw_complex* kernel_ft = fftw_malloc(complen * sizeof(fftw_complex));
-	fftw_complex* kernel_star_ft = fftw_malloc(complen * sizeof(fftw_complex));
-	fftw_complex* estimate_ft = fftw_malloc(complen * sizeof(fftw_complex));
-	fftw_complex* conv1_ft = fftw_malloc(complen * sizeof(fftw_complex));
-	fftw_complex* product_ft = fftw_malloc(complen * sizeof(fftw_complex));
+	fftw_complex* kernel_ft = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
+	fftw_complex* kernel_star_ft = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
+	fftw_complex* estimate_ft = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
+	fftw_complex* conv1_ft = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
+	fftw_complex* product_ft = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
 
 	// FFTW_MEASURE takes a few seconds and overwrites input arrays, so we use ESTIMATE
 	fftw_plan pk = fftw_plan_dft_r2c_1d(length, kernel_y, kernel_ft, FFTW_ESTIMATE); // for kernel_y
@@ -3730,18 +3726,18 @@ void dd_deconv2(double* kernel_y, double* data_y, int length, double* output) {
 void dd_deconv(double* kernel_y, double* data_y, int length, double* output) {
 
 	// Create flipped point spread function kernel_star
-	double* kernel_star = malloc(length * sizeof(double));
+	double* kernel_star = (double*) malloc(length * sizeof(double));
 	for (int i = 0; i < length; i++) {
 		kernel_star[i] = kernel_y[length - i - 1];
 	}
 	// Create estimate for solution
-	double* estimate = malloc(length * sizeof(double));
+	double* estimate = (double*) malloc(length * sizeof(double));
 	for (int i = 0; i < length; i++) {
 		estimate[i] = data_y[i];
 	}
 	// Allocate arrays for convolutions
-	double* conv1 = malloc(length * sizeof(double));
-	double* conv2 = malloc(length * sizeof(double));
+	double* conv1 = (double*) malloc(length * sizeof(double));
+	double* conv2 = (double*) malloc(length * sizeof(double));
 
 	// Perform iterations
 	int j = 0;
@@ -3806,8 +3802,8 @@ void DoubleDecon(const Config* config, Decon* decon) {
 	}
 
 	// Read in kernel file
-	double* kernel_x_init = calloc(true_length, sizeof(double));
-	double* kernel_y_init = calloc(true_length, sizeof(double));
+	double* kernel_x_init = (double*) calloc(true_length, sizeof(double));
+	double* kernel_y_init = (double*) calloc(true_length, sizeof(double));
 	readkernel(config->kernel, kernel_length, kernel_x_init, kernel_y_init);
 	// printf("Kernel file read.\n");
 
@@ -3826,8 +3822,8 @@ void DoubleDecon(const Config* config, Decon* decon) {
 	}
 
 	// Read in data (i.e. copy from decon struct)
-	double* data_x = calloc(true_length, sizeof(double));
-	double* data_y = calloc(true_length, sizeof(double));
+	double* data_x = (double*) calloc(true_length, sizeof(double));
+	double* data_y = (double*) calloc(true_length, sizeof(double));
 	double max_data_y = 0.0;
 	for (int i = 0; i < data_length; i++) {
 		data_x[i] = decon->massaxis[i];
@@ -3898,7 +3894,7 @@ void DoubleDecon(const Config* config, Decon* decon) {
 	// printf("Data padded.\n");
 
 	// Prepare kernel
-	double* real_kernel_y = calloc(true_length, sizeof(double));
+	double* real_kernel_y = (double*) calloc(true_length, sizeof(double));
 	int part1_length = true_length - max_kernel_i;
 	for (int i = 0; i < part1_length; i++) {
 		real_kernel_y[i] = kernel_y[max_kernel_i + i];
@@ -3909,7 +3905,7 @@ void DoubleDecon(const Config* config, Decon* decon) {
 	// printf("Kernel file prepared.\n");
 
 	// Run Richardson-Lucy deconvolution
-	double* doubledec = calloc(true_length, sizeof(double));
+	double* doubledec = (double*) calloc(true_length, sizeof(double));
 	// printf("Running dd_deconv2\n");
 	dd_deconv2(real_kernel_y, data_y, true_length, doubledec);
 
@@ -3923,8 +3919,8 @@ void DoubleDecon(const Config* config, Decon* decon) {
 		// printf("Warning: new length exceeds previous mlen.\n");
 		free(decon->massaxis);
 		free(decon->massaxisval);
-		decon->massaxis = calloc(write_length, sizeof(float));
-		decon->massaxisval = calloc(write_length, sizeof(float));
+		decon->massaxis = (float*) calloc(write_length, sizeof(float));
+		decon->massaxisval = (float*) calloc(write_length, sizeof(float));
 	}
 	// Copy results to the Decon struct
 	for (int i = 0; i < write_length; i++) {
@@ -4008,9 +4004,9 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 			if (config.rawflag == 1) { mh5writefile1d(file_id, outdat, config.lengthmz * config.numz, decon->blur); }
 
 			float* chargedat = NULL;
-			chargedat = calloc(config.numz, sizeof(float));
+			chargedat = (float*) calloc(config.numz, sizeof(float));
 			float* chargeaxis = NULL;
-			chargeaxis = calloc(config.numz, sizeof(float));
+			chargeaxis = (float*) calloc(config.numz, sizeof(float));
 
 			for (int j = 0; j < config.numz; j++) {
 				float val = 0;
@@ -4099,8 +4095,8 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 		config->file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 		strjoin(config->dataset, "/processed_data", outdat);
 		config->lengthmz = mh5getfilelength(config->file_id, outdat);
-		inp->dataMZ = calloc(config->lengthmz, sizeof(float));
-		inp->dataInt = calloc(config->lengthmz, sizeof(float));
+		inp->dataMZ = (float*) calloc(config->lengthmz, sizeof(float));
+		inp->dataInt = (float*) calloc(config->lengthmz, sizeof(float));
 		mh5readfile2d(config->file_id, outdat, config->lengthmz, inp->dataMZ, inp->dataInt);
 		printf("Length of Data: %d \n", config->lengthmz);
 
@@ -4109,19 +4105,19 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 		{
 			config->mfilelen = mh5getfilelength(config->file_id, "/config/masslist");
 			printf("Length of mfile: %d \n", config->mfilelen);
-			inp->testmasses = malloc(sizeof(float) * config->mfilelen);
+			inp->testmasses = (float*) malloc(sizeof(float) * config->mfilelen);
 			mh5readfile1d(config->file_id, "/config/masslist", inp->testmasses);
 		}
 		else {
-			inp->testmasses = malloc(sizeof(float) * config->mfilelen);
+			inp->testmasses = (float*) malloc(sizeof(float) * config->mfilelen);
 		}
 	}
 	else {
 
 		//Calculate the length of the data file automatically
 		config->lengthmz = getfilelength(config->infile);
-		inp->dataMZ = calloc(config->lengthmz, sizeof(float));
-		inp->dataInt = calloc(config->lengthmz, sizeof(float));
+		inp->dataMZ = (float*) calloc(config->lengthmz, sizeof(float));
+		inp->dataInt = (float*) calloc(config->lengthmz, sizeof(float));
 
 		readfile(config->infile, config->lengthmz, inp->dataMZ, inp->dataInt);//load up the data array
 		printf("Length of Data: %d \n", config->lengthmz);
@@ -4133,7 +4129,7 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 			config->mfilelen = getfilelength(config->mfile);
 			printf("Length of mfile: %d \n", config->mfilelen);
 		}
-		inp->testmasses = malloc(sizeof(float) * config->mfilelen);
+		inp->testmasses = (float*) malloc(sizeof(float) * config->mfilelen);
 		if (config->mflag == 1)
 		{
 			readmfile(config->mfile, config->mfilelen, inp->testmasses);//read in mass tab
@@ -4142,7 +4138,7 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 
 
 	//This for loop creates a list of charge values
-	inp->nztab = calloc(config->numz, sizeof(int));
+	inp->nztab = (int*) calloc(config->numz, sizeof(int));
 	for (int i = 0; i < config->numz; i++) { inp->nztab[i] = i + config->startz; }
 	//printf("nzstart %d\n",inp.nztab[0]);
 
