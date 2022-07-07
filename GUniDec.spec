@@ -67,7 +67,7 @@ hiddenimportslist=[  # 'plotly','
                  'pubsub.core.kwargs.topicmgrimpl',
                  'Tkinter', 'FixTk', '_tkinter', 'Tkconstants', 'FileDialog', 'Dialog', 'six',
                  'pymzml.run', 'pymzml.plot', 'pymzml.obo',
-                 'pkg_resources.py2_warn',
+                 'pkg_resources.py2_warn','matplotlib.backends.backend_pdf',
                  'massql',
                  'PIL',
                  # , 'requests.packages.chardet.sys', 'requests','urllib3.packages.ordered_dict'
@@ -100,21 +100,22 @@ if system == "Windows":
     a.datas += [('UniDec.exe', 'unidec_bin\\UniDec.exe', 'DATA')]
     a.datas += [('readme.md', 'readme.md', 'DATA')]
     a.datas += [('LICENSE', 'LICENSE', 'DATA')]
-    a.datas += [('libiomp5md.dll', 'unidec_bin\\libiomp5md.dll', 'DATA')]
-    a.datas += [('mkl_intel_thread.dll', 'unidec_bin\\mkl_intel_thread.dll', 'DATA')]
-    a.datas += [('ucrtbase.dll', 'unidec_bin\\ucrtbase.dll', 'DATA')]
-    a.datas += [('vcruntime140.dll', 'unidec_bin\\vcruntime140.dll', 'DATA')]
-    a.datas += [('libmypfunc.dll', 'unidec_bin\\libmypfunc.dll', 'DATA')]
+    # a.datas += [('libiomp5md.dll', 'unidec_bin\\libiomp5md.dll', 'DATA')]
+    # a.datas += [('mkl_intel_thread.dll', 'unidec_bin\\mkl_intel_thread.dll', 'DATA')]
+    # a.datas += [('ucrtbase.dll', 'unidec_bin\\ucrtbase.dll', 'DATA')]
+    # a.datas += [('vcruntime140.dll', 'unidec_bin\\vcruntime140.dll', 'DATA')]
+    # a.datas += [('libmypfunc.dll', 'unidec_bin\\libmypfunc.dll', 'DATA')]
     # a.datas += [('rawreader.exe', 'unidec_bin\\rawreader.exe', 'DATA')]
     # a.datas += [('rawreadertim.exe', 'unidec_bin\\rawreadertim.exe', 'DATA')]
     a.datas += [('CDCReader.exe', 'unidec_bin\\CDCReader.exe', 'DATA')]
     a.datas += [('h5repack.exe', 'unidec_bin\\h5repack.exe', 'DATA')]
+    a.datas += [('unimod.sqlite', 'unidec_bin\\unimod.sqlite', 'DATA')]
     a.datas += [('pymzml\\version.txt', 'C:\\Python39\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
     a.datas += [('massql\\msql.ebnf', 'C:\\Python39\\Lib\\site-packages\\massql\\msql.ebnf', 'DATA')]
 
-
+    # Copy over all the DLLs from the bin folder
     for file in os.listdir('unidec_bin'):
-        if fnmatch.fnmatch(file, 'api*'):
+        if fnmatch.fnmatch(file, '*.dll'):
             add = [(file, 'unidec_bin\\' + file, 'DATA')]
             a.datas += add
             # print add
@@ -133,8 +134,8 @@ if system == "Windows":
     a.datas += [('ThermoFisher.CommonCore.RawFileReader.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.RawFileReader.dll', 'DATA')]
     a.datas += [('ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'DATA')]
     a.datas += [('ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'DATA')]
-    a.datas += [('MassLynxRaw.dll', 'unidec_bin\\MassLynxRaw.dll', 'DATA')]
-    a.datas += [('cdt.dll', 'unidec_bin\\cdt.dll', 'DATA')]
+    # a.datas += [('MassLynxRaw.dll', 'unidec_bin\\MassLynxRaw.dll', 'DATA')]
+    # a.datas += [('cdt.dll', 'unidec_bin\\cdt.dll', 'DATA')]
     a.datas += [('Waters_MassLynxSDK_EULA.txt', 'unidec_bin\\Waters_MassLynxSDK_EULA.txt', 'DATA')]
 elif system == "Linux":
     a.datas += [('unideclinux', 'unidec_bin/unideclinux', 'DATA')]

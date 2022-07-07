@@ -2323,7 +2323,7 @@ def conv_peak_shape_kernel(xaxis, psfun, fwhm):
     return kernel
 
 
-def make_peak_shape(xaxis, psfun, fwhm, mid, norm_area=False):
+def make_peak_shape(xaxis, psfun, fwhm, mid, norm_area=False, speedy=False):
     """
     Make a peak of width fwhm centered at mid for given x axis.
 
@@ -2339,6 +2339,16 @@ def make_peak_shape(xaxis, psfun, fwhm, mid, norm_area=False):
     :param mid: Midpoint of peak
     :return: Peak shape centered at midpoint .
     """
+    # If Speedy, limit the range to just within a few fwhm around the mid
+    if speedy:
+        #b1 = xaxis < mid+2*fwhm
+        #b2 = xaxis > mid-2*fwhm
+        #b1 = np.logical_and(b1, b2)
+        b1 = np.abs(xaxis-mid)<2*fwhm
+        fullx = xaxis
+        xaxis = xaxis[b1]
+        #print(len(xaxis), len(fullx))
+
 
     if psfun == 0:
         kernel = ndis(xaxis, mid, fwhm, norm_area=norm_area)
@@ -2350,6 +2360,13 @@ def make_peak_shape(xaxis, psfun, fwhm, mid, norm_area=False):
         kernel = ndis(xaxis, mid, fwhm, norm_area=norm_area)
     else:
         kernel = xaxis * 0
+
+    # Merge back in the speedy results
+    if speedy:
+        fullkernel = fullx*0
+        fullkernel[b1] = kernel
+        kernel = fullkernel
+
     return kernel
 
 

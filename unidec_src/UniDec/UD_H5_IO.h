@@ -86,7 +86,7 @@ void mh5readfile2d_grid(hid_t file_id, char* dataname, int length1, int length2,
 void mh5readfile2d(hid_t file_id, char *dataname, int lengthmz, float *dataMZ, float *dataInt)
 {
 	check_group(file_id, dataname);
-	int i, j;
+	int i;
 	float *data;
 	data = calloc(lengthmz * 2, sizeof(float));
 	H5LTread_dataset_float(file_id, dataname, data);
@@ -101,7 +101,7 @@ void mh5readfile2d(hid_t file_id, char *dataname, int lengthmz, float *dataMZ, f
 void mh5readfile3d(hid_t file_id, char *dataname, int lengthmz, float *dataMZ, float *dataInt, float *data3)
 {
 	check_group(file_id, dataname);
-	int i, j;
+	int i;
 	float *data;
 	data = calloc(lengthmz * 3, sizeof(float));
 	H5LTread_dataset_float(file_id, dataname, data);

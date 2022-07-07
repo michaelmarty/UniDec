@@ -849,7 +849,6 @@ void makeaxis(float *axis, int length, float min, float binsize)
 void write1D(char *outfile, char *suffix, float *array, int length)
 {
 	char outstring[500];
-	int i;
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.bin", outfile, suffix);
 	out_ptr = fopen(outstring, "wb");
