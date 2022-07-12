@@ -35,11 +35,11 @@ void readfilemanual(char *infile, int lengthmz, float *array1, float *array2, fl
 	char c[500];
 	char d[500];
 	char e[500];
-	file_ptr = fopen(infile, "r");
-	if (file_ptr == 0)
+	errno_t err = fopen_s(&file_ptr, infile, "r");
+	if (err == 0)
 	{
 		printf("Could not open %s file\n", infile);
-		exit(10);
+		exit(err);
 	}
 	else {
 
@@ -236,8 +236,9 @@ void convolve3D(float *out, float *in, float *peakshape, int *size)
 {
 	//Initialize memory
 	float *temp = NULL, *tempout = NULL;
-	temp = calloc(size[0] * size[1], sizeof(float));
-	tempout = calloc(size[0] * size[1], sizeof(float));
+	int l = size[0] * size[1];
+	temp = calloc(l, sizeof(float));
+	tempout = calloc(l, sizeof(float));
 	int i, j, k;
 	//Convolve for each charge slice
 	for (k = 0; k<size[2]; k++)
@@ -603,7 +604,8 @@ void blur_it_IM(int *size, float *blur, float *newblur, int *closetab, int *barr
 
 	if (csig < 0) {
 		float *mzzsumgrid = NULL;
-		mzzsumgrid = calloc(size[0] * size[2], sizeof(float));
+		int l = size[0] * size[2];
+		mzzsumgrid = calloc(l, sizeof(float));
 		sum2D(size, mzzsumgrid, blur, 1);
 #pragma omp parallel for schedule(dynamic)
 		for (int i = 0; i < size[0]; i++)
@@ -851,7 +853,8 @@ void write1D(char *outfile, char *suffix, float *array, int length)
 	char outstring[500];
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.bin", outfile, suffix);
-	out_ptr = fopen(outstring, "wb");
+	errno_t err = fopen_s(&out_ptr, outstring, "wb");
+	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
 	fwrite(array, sizeof(float), length, out_ptr);
 
 	//sprintf(outstring,"%s_%s.txt",outfile,suffix);
@@ -870,7 +873,8 @@ void write2D(char *outfile, char *suffix, float *array1, float *array2, int leng
 	int i;
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.txt", outfile, suffix);
-	out_ptr = fopen(outstring, "w");
+	errno_t err = fopen_s(&out_ptr, outstring, "w");
+	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
 	for (i = 0; i<length; i++)
 	{
 		fprintf(out_ptr, "%f %f\n", array1[i], array2[i]);
@@ -885,7 +889,8 @@ void write3D(char *outfile, char *suffix, float *array1, float *array2, float *a
 	int i;
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.txt", outfile, suffix);
-	out_ptr = fopen(outstring, "w");
+	errno_t err = fopen_s(&out_ptr, outstring, "w");
+	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
 	for (i = 0; i<length; i++)
 	{
 		fprintf(out_ptr, "%f %f %f\n", array1[i], array2[i], array3[i]);
@@ -900,7 +905,8 @@ void writemfileres(char *outfile, char *suffix, float *array1, float *array2, fl
 	int i;
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.txt", outfile, suffix);
-	out_ptr = fopen(outstring, "w");
+	errno_t err = fopen_s(&out_ptr, outstring, "w");
+	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
 	//fprintf(out_ptr,"Mass\tIntensity\tCCS Avg.\tCCS Std. Dev.\tZ avg.\tZ Std. Dev.\n");
 	for (i = 0; i<length; i++)
 	{
@@ -917,7 +923,8 @@ void writemzgrid(char *outfile, char *suffix, float *mzext, float *dtext, int *z
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.bin", outfile, suffix);
 	//printf("%s\n",outstring);
-	out_ptr = fopen(outstring, "wb");
+	errno_t err = fopen_s(&out_ptr, outstring, "wb");
+	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
 	/*
 	for(i=0;i<size[0];i++)
 	{
@@ -930,7 +937,8 @@ void writemzgrid(char *outfile, char *suffix, float *mzext, float *dtext, int *z
 	}
 	}
 	*/
-	fwrite(blur, sizeof(float), size[0] * size[1] * size[2], out_ptr);
+	int l = size[0] * size[1] * size[2];
+	fwrite(blur, sizeof(float), l, out_ptr);
 	fclose(out_ptr);
 	printf("File written to: %s\n", outstring);
 }
@@ -985,9 +993,11 @@ void writezslice(int *size, char *outfile, char *suffix, float *massaxis, float 
 	char outstring[500];
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s_%d.bin", outfile, suffix, ztab[k]);
-	out_ptr = fopen(outstring, "wb");
+	errno_t err = fopen_s(&out_ptr, outstring, "wb");
+	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
 	float *temp = NULL;
-	temp = calloc(size[0] * size[1], sizeof(float));
+	int newlen = size[0] * size[1];
+	temp = calloc(newlen, sizeof(float));
 	for (i = 0; i<size[0]; i++)
 	{
 		for (j = 0; j<size[1]; j++)
@@ -996,7 +1006,8 @@ void writezslice(int *size, char *outfile, char *suffix, float *massaxis, float 
 			temp[index2D(size[1], i, j)] = array[index3D(size[1], size[2], i, j, k)];
 		}
 	}
-	fwrite(temp, sizeof(float), size[0] * size[1], out_ptr);
+	int l = size[0] * size[1];
+	fwrite(temp, sizeof(float), l, out_ptr);
 	fclose(out_ptr);
 	free(temp);
 	printf("File written to: %s\n", outstring);
@@ -1049,7 +1060,7 @@ float cubicInterpolate_IM(float p[4], float x) {
 	return p[1] + 0.5 * x*(p[2] - p[0] + x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + x*(3.0*(p[1] - p[2]) + p[3] - p[0])));
 }
 float bicubicInterpolate_IM(float p[4][4], float x, float y) {
-	float arr[4];
+	float arr[4] = { 0, 0 ,0, 0 };
 	arr[0] = cubicInterpolate_IM(p[0], y);
 	arr[1] = cubicInterpolate_IM(p[1], y);
 	arr[2] = cubicInterpolate_IM(p[2], y);
@@ -1060,8 +1071,8 @@ float bicubicInterpolate_IM(float p[4][4], float x, float y) {
 float bicubicinterpolation(int *size, int indm, int indc, int k, float *mzext, float *dtext, float tempmz, float tempdt, int rawflag, float *newblur, float *blur)
 {
 	float mu1, mu2;
-	float p[4][4];
-	int im[4], ic[4];
+	float p[4][4] = { { 0,0,0,0 } , { 0,0,0,0 } , { 0,0,0,0 } , { 0,0,0,0 } };
+	int im[4] = { 0,0,0,0 }, ic[4] = { 0,0,0,0 };
 	int i, j;
 	if (mzext[indm]>tempmz) { im[2] = indm; im[1] = indm - 1; im[0] = indm - 2; im[3] = indm + 1; }
 	else { im[1] = indm; im[2] = indm + 1; im[0] = indm - 1; im[3] = indm + 2; }

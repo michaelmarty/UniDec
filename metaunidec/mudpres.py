@@ -91,7 +91,7 @@ class MetaUniDecBase(UniDecPres):
             mult = 1
         for i, s in enumerate(spectra[::mult]):
             if not ud.isempty(s.massdat):
-                if i == 0:
+                if i == 0 or not self.view.plot2.flag:
                     self.view.plot2.plotrefreshtop(s.massdat[:, 0], s.massdat[:, 1], title="Zero-Charge Mass Spectrum",
                                                    xlabel="Mass (Da)",
                                                    ylabel="Intensity", label=s.name, config=self.eng.config,

@@ -1055,6 +1055,9 @@ def auto_peak_width(datatop, psfun=None, singlepeak=False):
     maxpos = np.argmax(datatop[:, 1])
     maxval = datatop[maxpos, 0]
 
+    if maxval == 0:
+        return 1, 0, 0
+
     # TODO: This is potentially dangerous if nonlinear!
     ac, cpeaks = autocorr(datatop)
     if singlepeak or not isempty(cpeaks):
@@ -2258,23 +2261,27 @@ def autocorr(datatop, config=None):
     :return: Autocorr spectrum, peaks in autocorrelation.
     """
     corry = signal.fftconvolve(datatop[:, 1], datatop[:, 1][::-1], mode='same')
-    corry /= np.amax(corry)
-    maxpos1 = np.argmax(datatop[:, 1])
-    start = np.amax([maxpos1 - len(datatop) / 10, 0])
-    end = np.amin([len(datatop) - 1, maxpos1 + len(datatop) / 10])
-    cutdat = datatop[int(start):int(end)]
-    if len(cutdat) < 20:
-        cutdat = datatop
-    # cutdat=datatop # Other old
-    xdiff = np.mean(cutdat[1:, 0] - cutdat[:len(cutdat) - 1, 0])  # Less dangerous but still dangerous when non-linear
-    # xdiff = datatop[1, 0] - datatop[0, 0] #OLD
-    corrx = np.arange(0.0, len(corry)) * xdiff
-    maxpos = np.argmax(corry)
-    corrx = corrx - corrx[maxpos]
-    autocorr = np.transpose([corrx, corry])
-    boo1 = autocorr[:, 0] > xdiff
-    cpeaks = peakdetect(autocorr[boo1], config)
-    return autocorr, cpeaks
+    if np.amax(corry)!=0:
+        corry /= np.amax(corry)
+        maxpos1 = np.argmax(datatop[:, 1])
+        start = np.amax([maxpos1 - len(datatop) / 10, 0])
+        end = np.amin([len(datatop) - 1, maxpos1 + len(datatop) / 10])
+        cutdat = datatop[int(start):int(end)]
+        if len(cutdat) < 20:
+            cutdat = datatop
+        # cutdat=datatop # Other old
+        xdiff = np.mean(cutdat[1:, 0] - cutdat[:len(cutdat) - 1, 0])  # Less dangerous but still dangerous when non-linear
+        # xdiff = datatop[1, 0] - datatop[0, 0] #OLD
+        corrx = np.arange(0.0, len(corry)) * xdiff
+        maxpos = np.argmax(corry)
+        corrx = corrx - corrx[maxpos]
+        autocorr = np.transpose([corrx, corry])
+        boo1 = autocorr[:, 0] > xdiff
+        cpeaks = peakdetect(autocorr[boo1], config)
+        return autocorr, cpeaks
+
+    else:
+        return [[]], [[]]
 
 
 def cconvolve(xvals, mztab, fwhm, psfun):

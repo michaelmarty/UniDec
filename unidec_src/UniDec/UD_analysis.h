@@ -19,7 +19,7 @@
 float single_fwhm(Config config, const int mlen, const float* massaxis, const float* masssum, const float peak, int index, float max);
 int ReadDecon(Config* config, const Input inp, Decon* decon);
 float score_from_peaks(const int plen, const float* peakx, const float* peaky, float* dscores, const Config config, Decon* decon, const Input inp, const float threshold);
-float score(Config config, Decon* decon, Input inp, const float threshold);
+float score(Config config, Decon* decon, Input inp, const float threshold, const int silent);
 
 void interpolate_merge(const float *massaxis, float *outint, const float *tempaxis, const float *tempint, const int mlen, const int templen)
 {
@@ -83,9 +83,9 @@ void make_grid(int argc, char *argv[], Config config, const char *dtype, const c
 	num = int_attr(config.file_id, "/ms_dataset", "num", num);
 	
 	//Read In Data
-	strcpy(dataset, "/ms_dataset");
+	strcpy_s(dataset, sizeof(dataset), "/ms_dataset");
 	sprintf(strval, "/%d", 0);
-	strcat(dataset, strval);
+	strcat_s(dataset, sizeof(dataset), strval);
 	strjoin(dataset, dtype, outdat);
 	//printf("Processing HDF5 Data Set: %s\n", outdat);
 	
@@ -96,8 +96,8 @@ void make_grid(int argc, char *argv[], Config config, const char *dtype, const c
 	float *massaxis = NULL;
 	float *masssum = NULL;
 	float *temp = NULL;
-	
-	massgrid = calloc(mlen*num, sizeof(float));
+	int newlen = mlen * num;
+	massgrid = calloc(newlen, sizeof(float));
 	massaxis = calloc(mlen, sizeof(float));
 	masssum = calloc(mlen, sizeof(float));
 	temp = calloc(mlen, sizeof(float));
@@ -111,9 +111,9 @@ void make_grid(int argc, char *argv[], Config config, const char *dtype, const c
 
 	for (int i = 1; i < num; i++)
 	{
-		strcpy(dataset, "/ms_dataset");
+		strcpy_s(dataset, sizeof(dataset), "/ms_dataset");
 		sprintf(strval, "/%d", i);
-		strcat(dataset, strval);
+		strcat_s(dataset, sizeof(dataset), strval);
 		//printf("Processing HDF5 Data Set: %s\n", dataset);
 		strjoin(dataset, dtype, outdat);
 
@@ -143,7 +143,7 @@ void make_grid(int argc, char *argv[], Config config, const char *dtype, const c
 	}
 
 	//Write data to processed_data
-	strcpy(dataset, "/ms_dataset");
+	strcpy_s(dataset, sizeof(dataset), "/ms_dataset");
 	strjoin(dataset, out1, outdat);
 	printf("\tWriting to: %s\n", outdat);
 	mh5writefile1d(config.file_id, outdat, mlen*num, massgrid);
@@ -454,13 +454,14 @@ void peak_extracts(Config config, const float *peakx, hid_t file_id, const char 
 	num = int_attr(file_id, "/ms_dataset", "num", num);
 
 	float *extracts = NULL;
-	extracts = calloc(plen*num, sizeof(float));
+	int newlen = plen * num;
+	extracts = calloc(newlen, sizeof(float));
 
 	for (int i = 0; i < num; i++)
 	{
-		strcpy(dataset, "/ms_dataset");
+		strcpy_s(dataset, sizeof(dataset), "/ms_dataset");
 		sprintf(strval, "/%d", i);
-		strcat(dataset, strval);
+		strcat_s(dataset, sizeof(dataset), strval);
 		//printf("Processing HDF5 Data Set: %s\n", dataset);
 		strjoin(dataset, dtype, outdat);
 
@@ -529,7 +530,7 @@ void peak_extracts(Config config, const float *peakx, hid_t file_id, const char 
 		}
 	}
 
-	strcpy(dataset, "/peaks");
+	strcpy_s(dataset, sizeof(dataset), "/peaks");
 	makegroup(file_id, dataset);
 	if (ultra)
 		strjoin(dataset, "/ultraextracts", outdat);
@@ -555,9 +556,9 @@ void get_all_peaks(int argc, char *argv[], Config config)
 
 	for (int i = 0; i < num; i++) {
 		//Read In Data
-		strcpy(dataset, "/ms_dataset");
+		strcpy_s(dataset, sizeof(dataset), "/ms_dataset");
 		sprintf(strval, "/%d", i);
-		strcat(dataset, strval);
+		strcat_s(dataset, sizeof(dataset), strval);
 
 		strjoin(dataset, "/mass_data", outdat);
 		printf("Processing HDF5 Data: %s\n", outdat);
@@ -605,7 +606,7 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 
 	if (!ultra){
 		//Read In Data
-		strcpy(dataset, "/ms_dataset");
+		strcpy_s(dataset, sizeof(dataset), "/ms_dataset");
 		strjoin(dataset, "/mass_axis", outdat);
 		printf("Processing HDF5 Data: %s\n", outdat);
 
@@ -618,7 +619,7 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 		masssum = calloc(mlen, sizeof(float));
 
 		mh5readfile1d(config.file_id, outdat, massaxis);
-		strcpy(dataset, "/ms_dataset");
+		strcpy_s(dataset, sizeof(dataset), "/ms_dataset");
 		strjoin(dataset, "/mass_sum", outdat);
 		mh5readfile1d(config.file_id, outdat, masssum);
 
@@ -690,13 +691,14 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 		}
 
 		//Write the outputs
-		strcpy(dataset, "/peaks");
+		strcpy_s(dataset, sizeof(dataset), "/peaks");
 		makegroup(config.file_id, dataset);
 		strjoin(dataset, "/peakdata", outdat);
 		printf("\tWriting %d Peaks to: %s\n", plen, outdat);
 
 		float* ptemp = NULL;
-		ptemp = calloc(plen * 3, sizeof(float));
+		int newlen = plen * 3;
+		ptemp = calloc(newlen, sizeof(float));
 
 		for (int i = 0; i < plen; i++) {
 			ptemp[i * 3] = peakx[i];
@@ -719,7 +721,7 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 		free(denominators);
 	}
 	else {
-		strcpy(dataset, "/peaks");
+		strcpy_s(dataset, sizeof(dataset), "/peaks");
 		strjoin(dataset, "/ultrapeakdata", outdat);
 		printf("Importing Peaks: %s\n", outdat);
 

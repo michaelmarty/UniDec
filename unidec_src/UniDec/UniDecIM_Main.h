@@ -40,7 +40,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 		*closezind = NULL,
 		*closecind = NULL,
 		*barr = NULL, *closetab = NULL;
-	int size[4];
+	int size[4] = {0,0,0,0};
 
 	float *mzdat = NULL,
 		*dtdat = NULL,
@@ -130,7 +130,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	mzext = calloc(size[0], sizeof(float));
 	dtext = calloc(size[1], sizeof(float));
 	Extract(mzext, dtext, mzdat, dtdat, size);
-	float mzranges[4];
+	float mzranges[4] = {0,0,0,0};
 	mzranges[0] = mzext[0];
 	mzranges[1] = mzext[size[0] - 1];
 	mzranges[2] = dtext[0];
@@ -144,7 +144,8 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 
 	//Filling the mass table
 	ccstab = calloc(totlen, sizeof(float));
-	masstab = calloc(size[0] * size[2], sizeof(float));
+	int l = size[0] * size[2];
+	masstab = calloc(l, sizeof(float));
 	barr = calloc(totlen, sizeof(int));
 #pragma omp parallel for private (i,j), schedule(dynamic)
 	for (i = 0; i<size[0]; i++)
@@ -234,7 +235,8 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	closemind = calloc(numclose, sizeof(int));
 	closezind = calloc(numclose, sizeof(int));
 	closecind = calloc(numclose, sizeof(int));
-	closetab = calloc(numclose*totlen, sizeof(int));
+	int n2 = numclose * totlen;
+	closetab = calloc(n2, sizeof(int));
 	int index;
 #pragma omp parallel for private (i,j,k,index), schedule(dynamic)
 	for (i = 0; i<mlength; i++)
@@ -306,7 +308,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	blur = calloc(totlen, sizeof(float));
 	newblur = calloc(totlen, sizeof(float));
 	//memset(barr,1,totlen);
-#pragma omp parallel for private (i,j,k), schedule(dynamic)
+	#pragma omp parallel for private (i,j,k), schedule(dynamic)
 	for (i = 0; i<size[0]; i++)
 	{
 		for (j = 0; j<size[1]; j++)
@@ -359,7 +361,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	printf("Done\n");
 
 	//Get Max and Min mass and ccs values
-	float ranges[4];
+	float ranges[4] = {0,0,0,0};
 	ranges[0] = config.masslb; ranges[1] = config.massub; ranges[2] = config.ccslb; ranges[3] = config.ccsub;
 	if (config.fixedmassaxis == 0) { getranges(size, newblur, masstab, ccstab, ranges, barr); }
 	printf("Mass Range: %f to %f  Mass Bins: %f Da\n", ranges[0], ranges[1], config.massbins);
@@ -367,7 +369,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 
 	int maaxle = 1 + (int)((ranges[1] - ranges[0]) / config.massbins);
 	int ccaxle = 1 + (int)((ranges[3] - ranges[2]) / config.ccsbins);
-	int newsize[3];
+	int newsize[3] = {0,0,0};
 	newsize[0] = maaxle;
 	newsize[1] = ccaxle;
 	newsize[2] = numz;
@@ -379,8 +381,9 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	massvals = calloc(maaxle, sizeof(float));
 	ccsaxis = calloc(ccaxle, sizeof(float));
 	ccsvals = calloc(ccaxle, sizeof(float));
-	newgrid = calloc(newsize[0] * newsize[1] * newsize[2], sizeof(float));
-	memset(newgrid, 0, newsize[0] * newsize[1] * newsize[2]);
+	int lnew = newsize[0] * newsize[1] * newsize[2];
+	newgrid = calloc(lnew, sizeof(float));
+	memset(newgrid, 0, lnew);
 	makeaxis(massaxis, maaxle, ranges[0], config.massbins);
 	makeaxis(ccsaxis, ccaxle, ranges[2], config.ccsbins);
 
@@ -478,9 +481,12 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 
 	//Sum across charge and CCS
 	float *massccsgrid = NULL, *masszgrid = NULL, *ccszgrid = NULL;//,*ccsaxis=NULL,*ccsvals=NULL,*newgrid=NULL;
-	massccsgrid = calloc(maaxle*ccaxle, sizeof(float));
-	masszgrid = calloc(maaxle*numz, sizeof(float));
-	ccszgrid = calloc(ccaxle*numz, sizeof(float));
+	int l1 = maaxle * ccaxle;
+	int l2 = maaxle * numz;
+	int l3 = ccaxle * numz;
+	massccsgrid = calloc(l1, sizeof(float));
+	masszgrid = calloc(l2, sizeof(float));
+	ccszgrid = calloc(l3, sizeof(float));
 	sum2D(newsize, massccsgrid, newgrid, 2);
 	sum2D(newsize, masszgrid, newgrid, 1);
 	sum2D(newsize, ccszgrid, newgrid, 0);
@@ -517,7 +523,8 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	char *suffixerr = "error";
 	FILE *out_ptrIM = NULL;
 	sprintf(outstring, "%s_%s.txt", config.outfile, suffixerr);
-	out_ptrIM = fopen(outstring, "w");
+	errno_t err = fopen_s(&out_ptrIM, outstring, "w");
+	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
 	fprintf(out_ptrIM, "error %f\n", error);
 	fclose(out_ptrIM);
 	printf("File written to: %s\n", outstring);

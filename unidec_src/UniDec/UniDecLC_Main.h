@@ -20,10 +20,10 @@
 int run_unidec_LC(int argc, char* argv[], Config config) {
 	//Initialize
 	char dataset[1024];
-	strcpy(dataset, "/ms_dataset");
+	strcpy_s(dataset, sizeof(dataset), "/ms_dataset");
 	char strval[1024];
 	sprintf(strval, "/%d", config.metamode);
-	strcat(dataset, strval);
+	strcat_s(dataset, sizeof (dataset), strval);
 	printf("HDF5 Data Set: %s\n", dataset);
 
 	return 0;

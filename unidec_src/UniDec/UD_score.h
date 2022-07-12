@@ -513,7 +513,7 @@ float score_from_peaks(const int plen, const float *peakx, const float *peaky, f
 	return uniscore;
 }
 
-float score(Config config, Decon *decon, Input inp, const float threshold)
+float score(Config config, Decon *decon, Input inp, const float threshold, const int silent)
 {
 	//printf("Starting Score %f %f\n", config.peakwin, config.peakthresh);
 	
@@ -530,7 +530,7 @@ float score(Config config, Decon *decon, Input inp, const float threshold)
 	peak_norm(decon->peaky, plen, config.peaknorm);
 
 	float uniscore = score_from_peaks(plen, decon->peakx, decon->peaky, decon->dscores, config, decon, inp, threshold);
-	printf("Average Peaks Score (UniScore): %f\n", uniscore);
+	if (silent == 0) { printf("Average Peaks Score (UniScore): %f\n", uniscore); }
 
 	return uniscore;
 }
@@ -583,7 +583,7 @@ void get_scan_scores(int argc, char* argv[], Config config)
 		int status = ReadDecon(&config, inp, &decon);
 
 		if(status ==1){
-			score(config, &decon, inp, 0);
+			score(config, &decon, inp, 0, config.silent);
 			WritePeaks(config, &decon);
 		}
 		else

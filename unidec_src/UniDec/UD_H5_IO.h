@@ -60,7 +60,7 @@ void mh5readfile2dcolumn(hid_t file_id, char* dataname, float* outdata, int col)
 		return;
 	}
 	H5LTget_dataset_info(file_id, dataname, dims, NULL, NULL);
-	printf("%d %d %d %s\n", dims[0], dims[1], ndims, dataname);
+	//printf("%d %d %d %s\n", dims[0], dims[1], ndims, dataname);
 
 	float* data;
 	data = calloc(dims[0]*dims[1], sizeof(float));
@@ -88,7 +88,8 @@ void mh5readfile2d(hid_t file_id, char *dataname, int lengthmz, float *dataMZ, f
 	check_group(file_id, dataname);
 	int i;
 	float *data;
-	data = calloc(lengthmz * 2, sizeof(float));
+	int newlen = lengthmz * 2;
+	data = calloc(newlen, sizeof(float));
 	H5LTread_dataset_float(file_id, dataname, data);
 	for (i = 0; i<lengthmz; i++)
 	{
@@ -103,7 +104,8 @@ void mh5readfile3d(hid_t file_id, char *dataname, int lengthmz, float *dataMZ, f
 	check_group(file_id, dataname);
 	int i;
 	float *data;
-	data = calloc(lengthmz * 3, sizeof(float));
+	int newlen = lengthmz * 3;
+	data = calloc(newlen, sizeof(float));
 	H5LTread_dataset_float(file_id, dataname, data);
 	for (i = 0; i<lengthmz; i++)
 	{
@@ -137,7 +139,8 @@ void mh5writefile2d(hid_t file_id, char *dataname, int length, float *data1, flo
 	}
 	float *data;
 	int i;
-	data = calloc(length * 2, sizeof(float));
+	int len2 = length * 2;
+	data = calloc(len2, sizeof(float));
 	for (i = 0; i<length; i++)
 	{
 		data[2*i] = data1[i];
@@ -286,8 +289,8 @@ Config mh5LoadConfig(Config config, hid_t file_id)
 
 void strjoin(const char *s1, const char *s2, char *newstring)
 {
-	strcpy(newstring, s1);
-	strcat(newstring, s2);
+	strcpy(newstring,  s1);
+	strcat(newstring,  s2);
 }
 
 void makegroup(hid_t file_id, char *dataset)
