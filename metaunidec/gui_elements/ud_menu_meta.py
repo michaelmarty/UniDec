@@ -320,6 +320,19 @@ class meta_menu(wx.Menu):
             self.parent.Bind(wx.EVT_MENU, self.pres.on_autoformat, self.autoformat)
             self.experimentalmenu.AppendSeparator()
 
+            self.ctlimzmltohdf5 = self.experimentalmenu.Append(wx.ID_ANY, "Write imzML to HDF5",
+                                                           "For Imaging files, write to HDF5")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_imzml_to_hdf5, self.ctlimzmltohdf5)
+
+            self.ctltoimzml = self.experimentalmenu.Append(wx.ID_ANY, "Write HDF5 to imzml",
+                                                           "For Imaging files, write to imzML")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_hdf5_to_imzml, self.ctltoimzml)
+
+            self.ctlimagingviewer = self.experimentalmenu.Append(wx.ID_ANY, "Open Imaging Viewer",
+                                                           "Tool for Viewing MSI Data")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_imaging_viewer, self.ctlimagingviewer)
+            self.experimentalmenu.AppendSeparator()
+
         self.menuwaterfall = self.experimentalmenu.Append(wx.ID_ANY, "Waterfall Plot",
                                                        "Make 3D Waterfall plot with mass distributions")
         self.parent.Bind(wx.EVT_MENU, self.pres.make_waterfall_plots, self.menuwaterfall)

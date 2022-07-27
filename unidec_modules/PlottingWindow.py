@@ -116,6 +116,13 @@ class PlottingWindow(wx.Window):
         self.canvas.mpl_connect('button_release_event', self.on_release)
         self.canvas.mpl_connect('key_press_event', self.on_key)
 
+    def get_blank_axis(self, scale=None):
+        if scale is None:
+            scale = self._axes
+        self.clear_plot("nopaint")
+        self.subplot1 = self.figure.add_axes(scale)
+        return self.subplot1
+
     def on_release(self, event):
         """
         Function triggered on button release event from plot.

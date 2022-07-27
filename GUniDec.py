@@ -987,7 +987,7 @@ class UniDecApp(UniDecPres):
             dlg.on_match_all(0)
             dlg.on_close(0)
         # TODO: Rewrite so p.match isn't overwritten somehow if cancel is selected
-        if self.eng.config.matchlist != [] and result == 0:
+        if not ud.isempty(self.eng.config.matchlist) and result == 0:
             if len(self.eng.config.matchlist[3]) == self.eng.pks.plen:
                 self.view.SetStatusText("Matching", number=5)
                 np.savetxt(self.eng.config.matchfile, np.transpose(self.eng.config.matchlist), fmt='%s', delimiter=",")

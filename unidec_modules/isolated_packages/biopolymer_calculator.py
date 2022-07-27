@@ -107,13 +107,13 @@ class BiopolymerFrame(wx.Dialog):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.sizer.Add(self.ctltype, 0, flag=wx.ALIGN_CENTER_VERTICAL)
-        self.sizer.Add(self.ctltyperna, 0, flag=wx.ALIGN_CENTER_VERTICAL)
+        self.sizer.Add(self.ctltype, 0)
+        self.sizer.Add(self.ctltyperna, 0)
 
         self.sizer.Add(wx.StaticText(self.panel, label="  Sequence: "))
-        self.sizer.Add(self.ctlseq, 0, flag=wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL)
+        self.sizer.Add(self.ctlseq, 0, flag= wx.ALIGN_CENTER_HORIZONTAL)
 
-        self.sizer.Add(self.calcbutton, 0, flag=wx.ALIGN_CENTER_VERTICAL| wx.ALIGN_CENTER_HORIZONTAL)
+        self.sizer.Add(self.calcbutton, 0, flag=wx.ALIGN_CENTER_HORIZONTAL)
 
         self.sizer.Add(wx.StaticText(self.panel, label="\nCalculated Mass (Da): "))
         self.sizer.Add(self.ctlmass, 0)

@@ -73,14 +73,12 @@ class Plot1d(PlottingWindow):
             if config.publicationmode != 0:
                 pubflag = 1
 
+        self.subplot1 = self.figure.add_axes(self._axes)
+        self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=color, label=label, marker=marker, **kwargs)
         if pubflag == 0:
-            self.subplot1 = self.figure.add_axes(self._axes)
-            self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=color, label=label, marker=marker, **kwargs)
             self.subplot1.set_ylabel(self.ylabel)
             self.subplot1.set_title(title)
         else:
-            self.subplot1 = self.figure.add_axes(self._axes)
-            self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=color, label=label, marker=marker, **kwargs)
             self.subplot1.spines['top'].set_visible(False)
             self.subplot1.spines['right'].set_visible(False)
             self.subplot1.get_xaxis().tick_bottom()

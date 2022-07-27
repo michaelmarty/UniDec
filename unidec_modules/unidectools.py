@@ -696,6 +696,25 @@ def data_extract_grid(data, xarray, extract_method=1, window=0):
     return igrid
 
 
+def extract_from_data_matrix(xaxis, matrix, midpoint, extract_method=0, window=0):
+    if extract_method == 0:
+        index = nearest(xaxis, midpoint)
+        data = matrix[:, index]
+    elif extract_method == 1:
+        startindex = nearest(xaxis, midpoint-window)
+        endindex = nearest(xaxis, midpoint + window)
+        data = np.amax(matrix[:, startindex:endindex], axis=1)
+    elif extract_method == 2:
+        startindex = nearest(xaxis, midpoint-window)
+        endindex = nearest(xaxis, midpoint + window)
+        data = np.sum(matrix[:, startindex:endindex], axis=1)
+    else:
+        print("Grid Extraction Method Not Recognized")
+        data = []
+    return data
+
+
+
 def normalize_extracts(grid, norm_method=0):
     xlen, ylen = grid.shape
     xarray = range(0, xlen)
