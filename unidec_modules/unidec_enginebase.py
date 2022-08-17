@@ -3,7 +3,7 @@ from copy import deepcopy
 from unidec_modules import unidectools as ud
 import numpy as np
 
-version = "4.3.0"
+version = "5.1.0"
 
 class UniDecEngine:
     def __init__(self):
@@ -222,27 +222,39 @@ class UniDecEngine:
         return fit, rsquared
 
 
-
+    def polydispersity_index(self, e=None):
+        pdi = ud.polydispersity_index(self.data.massdat)
+        print(pdi)
 
     def oxidation_analysis(self, e=None):
         data = self.data.massdat
 
-        maxindex = np.argmax(data[:, 1])
-        maxmass, maxint = data[maxindex]
+        pdata = []
+        for p in self.pks.peaks:
+            if p.ignore == 0:
+                pdata.append([p.mass, p.height])
+        pdata = np.array(pdata)
+        maxindex = np.argmax(pdata[:,1])
+        maxmass = pdata[maxindex][0]
         nox = np.arange(0, 4)
         oxmasses = maxmass + nox * 16
         areas = []
         for i, m in enumerate(oxmasses):
             low = m + self.config.integratelb
             high = m + self.config.integrateub
-            print("Peak:", m, "Number of Oxidations:", nox[i], "Integration Range:", low, "to", high)
-            area, intdat = ud.integrate(data, low, high)
+            area, intdat = ud.integrate(data, low, high) # Peak Area
+            #area = ud.data_extract(data, (high+low)/2., window=(high-low)/2., extract_method=1) # Peak Height
             areas.append(area)
+            print("Peak:", m, "Number of Oxidations:", nox[i], "Range:", low, "to", high, "Local Max:", area)
         areas = np.array(areas)
-        areas /= np.amax(areas)
-        print("Relative Areas:", areas)
+        try:
+            areas /= np.amax(areas)
+        except:
+            pass
+        print("Relative Heights:", areas)
 
         totox = np.sum(nox * areas) / np.sum(areas)
         print("Total Oxidations:", totox)
 
         return np.append(areas, totox)
+

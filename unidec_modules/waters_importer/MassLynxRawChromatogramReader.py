@@ -61,7 +61,7 @@ class MassLynxRawChromatogramReader(MassLynxRawReader):
         pIntensities = c_void_p()
             
         # read tic
-        readBPI = MassLynxRawReader.massLynxDll.readTICChromatogram
+        readBPI = MassLynxRawReader.massLynxDll.readBPIChromatogram
         readBPI.argtypes = [c_void_p, c_int, POINTER(c_void_p), POINTER(c_void_p), POINTER(c_int)]
         super().CheckReturnCode( readBPI(self._getReader(),whichFunction, pTimes, pIntensities, size) )
 

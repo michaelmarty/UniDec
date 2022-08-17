@@ -140,3 +140,82 @@ class ColorPlot2D(PlottingWindow):
         self.setup_zoom([self.subplot1], 'box', data_lims=self.datalims)
         self.repaint()
         self.flag = True
+
+    def make_compare_color_plot(self, data1, data2, test_kda=True, xlab="", ylab=""):
+        # If data is coming in as 1D list in dat, reshape it
+
+        # Test if we should plot kDa instead of Da
+        if test_kda:
+            self.kda_test(np.unique(data1[:, 0]))
+
+        z1 = data1[:, 2]
+        x1 = np.unique(data1[:, 0])/ self.kdnorm
+        y1 = np.unique(data1[:, 1])
+        z2 = data2[:, 2]
+        x2 = np.unique(data2[:, 0])/ self.kdnorm
+        y2 = np.unique(data2[:, 1])
+
+        xlen1 = len(x1)
+        ylen1 = len(y1)
+        zgrid1 = np.reshape(z1, (xlen1, ylen1))
+        xlen2 = len(x2)
+        ylen2 = len(y2)
+        zgrid2 = np.reshape(z2, (xlen2, ylen2))
+
+        # Create Data Limits
+        data_x_lim = (np.amin(np.concatenate([x1, x2])), np.amax(np.concatenate([x1, x2])))
+        data_y_lim = (np.amin(np.concatenate([y1, y2])), np.amax(np.concatenate([y1, y2])))
+        self.datalims = [data_x_lim[0], data_y_lim[0], data_x_lim[1], data_y_lim[1]]
+        # Normalize Grids
+        zgrid1 = np.abs(zgrid1) / np.amax(zgrid1)
+        zgrid2 = np.abs(zgrid2) / np.amax(zgrid2)
+
+        # This is the magic for creating the color maps
+        # Note: It skews the color map such that the maximum color change is when the charge state distribution is changing the most
+        # You could make it linear, but a lot of the color change would happen at the boring fringes of the distribution
+        #zlen = len(ztab)
+        #ztot = np.sum(mzgrid, axis=(0, 1))
+        #zind = np.array(list(range(0, zlen)))
+
+        #avg = np.average(zind, weights=ztot)
+        #std = math.sqrt(np.average(np.array(zind - avg) ** 2, weights=ztot))
+        #skew = norm.cdf(zind, loc=avg, scale=std * 1.75)
+        topcmap = "seismic"
+        cmarr, acolors = color_map_array([0,1], topcmap, 1)
+        cm.register_cmap(name="newcmap1", data=cmarr[0])
+        cm.register_cmap(name="newcmap2", data=cmarr[1])
+
+        # Create basics of the plot
+        self.figure.clear()
+        self.subplot1 = self.figure.add_axes(self._axes)
+
+        # I think this clips things such that everything above vmax is a full strength of color
+        normalization = cm.colors.Normalize(vmax=1, vmin=0)
+
+        # Set up plot limits
+        xdiff = x1[1] - x1[0]
+        ydiff = y1[1] - y1[0]
+        extent = (data_x_lim[0] - 0.5 * xdiff, data_x_lim[1] + 0.5 * xdiff, data_y_lim[0] - 0.5 * ydiff, data_y_lim[1] + 0.5 * ydiff)
+        extent2 = (np.amin(x2), np.amax(x2), np.amin(y2),np.amax(y2))
+        extent1 = (np.amin(x1), np.amax(x1), np.amin(y1), np.amax(y1))
+
+        # Make the background and title
+        self.subplot1.imshow(np.transpose(np.zeros_like(zgrid1)), origin="lower", cmap="binary",
+                             extent=extent, norm=normalization, aspect='auto')
+        self.subplot1.set_title("Comparison")
+
+        # Plot each comparison
+        self.subplot1.imshow(np.transpose(zgrid1), origin="lower", cmap="newcmap1", extent=extent1,
+                             norm=normalization,aspect='auto')
+        self.subplot1.imshow(np.transpose(zgrid2), origin="lower", cmap="newcmap2", extent=extent2,
+                             norm=normalization,aspect='auto')
+
+        # Labels and legends
+        self.subplot1.set_xlabel(self.xlabel)
+        self.subplot1.set_ylabel(ylab)
+
+        # Set up zoom and repaint it
+        self.setup_zoom([self.subplot1], 'box', data_lims=self.datalims)
+        self.repaint()
+        self.flag = True
+

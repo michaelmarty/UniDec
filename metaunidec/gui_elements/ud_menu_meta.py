@@ -152,7 +152,7 @@ class meta_menu(wx.Menu):
 
         # Example Data
         self.examplemenu, self.masterd2 = pm.make_preset_menu(self.config.exampledatadir, exclude_dir="_unidecfiles",
-                                                              topi=2500, ext="hdf5")
+                                                              topi=2500, ext="hdf5", exclude_dir_list=["CDMS"])
         self.filemenu.AppendSubMenu(self.examplemenu, "Load Example Data")
         for i, path, item in self.masterd2:
             # print(i, path, item)
@@ -181,6 +181,16 @@ class meta_menu(wx.Menu):
             self.parent.Bind(wx.EVT_MENU, self.pres.on_batch_cre, self.menubatchcre)
 
             self.toolsmenu.AppendSeparator()
+
+        else:
+            self.menubatchrun = self.toolsmenu.Append(wx.ID_ANY, "Batch Run Files (Thermo/mzML/etc.)",
+                                                      "Apply current config and time windows and run deconvolution for batch of  files")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_batch_chrom1, self.menubatchrun)
+
+            self.menubatchrun2 = self.toolsmenu.Append(wx.ID_ANY, "Batch Run Directories (Waters/Agilent)",
+                                                      "Apply current config and time windows and run deconvolution for batch of  files")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_batch_chrom_dirs, self.menubatchrun2)
+
         self.menuExport = self.toolsmenu.Append(wx.ID_ANY, "Export Peaks Parameters and Data",
                                                 "Export intensities of charge states, areas, average charge state, and other parameters for the peaks")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_export_params, self.menuExport)
@@ -310,6 +320,19 @@ class meta_menu(wx.Menu):
             self.parent.Bind(wx.EVT_MENU, self.pres.on_autoformat, self.autoformat)
             self.experimentalmenu.AppendSeparator()
 
+            self.ctlimzmltohdf5 = self.experimentalmenu.Append(wx.ID_ANY, "Write imzML to HDF5",
+                                                           "For Imaging files, write to HDF5")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_imzml_to_hdf5, self.ctlimzmltohdf5)
+
+            self.ctltoimzml = self.experimentalmenu.Append(wx.ID_ANY, "Write HDF5 to imzml",
+                                                           "For Imaging files, write to imzML")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_hdf5_to_imzml, self.ctltoimzml)
+
+            self.ctlimagingviewer = self.experimentalmenu.Append(wx.ID_ANY, "Open Imaging Viewer",
+                                                           "Tool for Viewing MSI Data")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_imaging_viewer, self.ctlimagingviewer)
+            self.experimentalmenu.AppendSeparator()
+
         self.menuwaterfall = self.experimentalmenu.Append(wx.ID_ANY, "Waterfall Plot",
                                                        "Make 3D Waterfall plot with mass distributions")
         self.parent.Bind(wx.EVT_MENU, self.pres.make_waterfall_plots, self.menuwaterfall)
@@ -322,10 +345,37 @@ class meta_menu(wx.Menu):
         #self.menuAdditionalParameters = self.experimentalmenu.Append(wx.ID_ANY, "Additional Parameters",
         #                                                             "Adjust some experimental parameters")
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_additional_parameters, self.menuAdditionalParameters)
-        # self.experimentalmenu.AppendSeparator()
+        self.experimentalmenu.AppendSeparator()
 
-        # self.menucal = self.experimentalmenu.Append(wx.ID_ANY, "Apply Calibration")
-        # self.parent.Bind(wx.EVT_MENU, self.pres.on_calibrate, self.menucal)
+        self.menuscanpeaks = self.experimentalmenu.Append(wx.ID_ANY, "Get Scan Peaks")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_pick_scanpeaks, self.menuscanpeaks)
+
+        self.menufilterpeaks = self.experimentalmenu.Append(wx.ID_ANY, "Filter Peaks by Score")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_filter_peaks_MUD, self.menufilterpeaks)
+
+        if self.type == "Meta":
+            self.experimentalmenu.AppendSeparator()
+            self.menucsv = self.experimentalmenu.Append(wx.ID_ANY, "Open CSV Sequence")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_open_csv, self.menucsv)
+            self.menuwells = self.experimentalmenu.Append(wx.ID_ANY, "Open Plate Viewer")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_plate_viewer, self.menuwells)
+
+        if self.type != "Meta":
+            self.experimentalmenu.AppendSeparator()
+            self.menurefresh = self.experimentalmenu.Append(wx.ID_ANY, "Refresh Cumulative")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_timer, self.menurefresh)
+
+            self.menurefresh2 = self.experimentalmenu.Append(wx.ID_ANY, "Refresh Recent")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_timer2, self.menurefresh2)
+
+            self.menuautorefresh = self.experimentalmenu.Append(wx.ID_ANY, "Start Auto Refresh Cumulative")
+            self.parent.Bind(wx.EVT_MENU, self.pres.create_timer, self.menuautorefresh)
+
+            self.menuautorefresh2 = self.experimentalmenu.Append(wx.ID_ANY, "Start Auto Refresh Recent")
+            self.parent.Bind(wx.EVT_MENU, self.pres.create_timer2, self.menuautorefresh2)
+
+            self.menuautorefreshstop = self.experimentalmenu.Append(wx.ID_ANY, "Stop Auto Refresh")
+            self.parent.Bind(wx.EVT_MENU, self.pres.auto_refresh_stop, self.menuautorefreshstop)
 
         if self.type == "Meta":
             #Help Menu

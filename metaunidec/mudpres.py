@@ -18,10 +18,11 @@ from unidec_modules.isolated_packages import FileDialogs
 import datacollector
 import multiprocessing
 from unidec_modules.unidec_presbase import UniDecPres
-from metaunidec import ultrameta
+from metaunidec import ultrameta, image_plotter
 from metaunidec.mudhelp import *
 from metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard
 from unidec_modules.plot_waterfall import WaterfallFrame
+from unidec_modules.plateplot import PlateFrame
 
 # import FileDialog  # Needed for pyinstaller
 
@@ -35,6 +36,7 @@ class MetaUniDecBase(UniDecPres):
 
     def __init__(self, *args, **kwargs):
         UniDecPres.__init__(self, *args, **kwargs)
+        self.chrommode = False
         atexit.register(self.repack_hdf5)
 
     def makeplot1(self, e=None):
@@ -82,14 +84,14 @@ class MetaUniDecBase(UniDecPres):
             sep = self.eng.config.separation
 
         spectra = self.eng.data.get_spectra()
-        if len(spectra) > self.eng.config.crossover:
+        if len(spectra) > int(self.eng.config.crossover):
             mult = int(len(spectra) / self.eng.config.numtot)
             self.view.SetStatusText("Displaying subset of data", number=2)
         else:
             mult = 1
         for i, s in enumerate(spectra[::mult]):
             if not ud.isempty(s.massdat):
-                if i == 0:
+                if i == 0 or not self.view.plot2.flag:
                     self.view.plot2.plotrefreshtop(s.massdat[:, 0], s.massdat[:, 1], title="Zero-Charge Mass Spectrum",
                                                    xlabel="Mass (Da)",
                                                    ylabel="Intensity", label=s.name, config=self.eng.config,
@@ -397,6 +399,35 @@ class MetaUniDecBase(UniDecPres):
         self.view.SetStatusText("UniDec Done %.2gs" % self.eng.config.runtime, number=5)
         pass
 
+    def on_pick_peaks(self, e=None):
+        """
+        Tested
+        :param e:
+        :return:
+        """
+        self.view.SetStatusText("Picking Peaks...", number=5)
+        self.export_config()
+        self.eng.pick_peaks()
+        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
+        self.view.peakpanel.meta = True
+        self.peak_plots()
+        self.view.SetStatusText("Peak Detection and Extraction Complete", number=5)
+        pass
+
+    def on_pick_scanpeaks(self, e=None):
+        self.view.SetStatusText("Picking Peaks by Scan...", number=5)
+        self.export_config()
+        self.eng.pick_scanpeaks()
+        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
+        self.view.peakpanel.meta = True
+        self.peak_plots()
+        self.view.SetStatusText("ScanPeak Detection and Extraction Complete", number=5)
+
+    def on_filter_peaks_MUD(self, e=None):
+        self.on_filter_peaks(e)
+        self.view.SetStatusText("UniScore: " + str(round(self.eng.pks.uniscore * 100, 2)), number=3)
+        self.peak_plots()
+
     def on_auto(self, e=None):
         """
         Tested
@@ -591,6 +622,10 @@ class MetaUniDecBase(UniDecPres):
         """
         :return:
         """
+        if self.eng.config.rawflag > 1:
+            self.warn("Unable to Animate: Need to turn off Fast Profile or Fast Centroid")
+            return
+
         newgrid = []
         for s in self.eng.data.spectra:
             newgrid.append(s.data2)
@@ -605,6 +640,10 @@ class MetaUniDecBase(UniDecPres):
         :param type:
         :return:
         """
+        if self.eng.config.rawflag > 1:
+            self.warn("Unable to Animate: Need to turn off Fast Profile or Fast Centroid")
+            return
+
         self.eng.sum_masses()
         dlg = miscwindows.SingleInputDialog(self.view)
         dlg.initialize_interface(title="Set Compression", message="Number of x values to compress:", defaultvalue="10")
@@ -744,7 +783,7 @@ class UniDecApp(MetaUniDecBase):
         """
         MetaUniDecBase.__init__(self, *args, **kwargs)
         self.init(*args, **kwargs)
-
+        self.chrommode = False
         # self.on_open(0)
         try:
             if False:
@@ -782,6 +821,11 @@ class UniDecApp(MetaUniDecBase):
         self.cleanup_recent_file(self.recent_files)
         self.view.menu.update_recent()
 
+        if self.infile is not None:
+            self.open_file(self.infile)
+            # self.on_dataprep_button(0)
+            # self.on_auto(0)
+
     def on_open(self, e):
         """
         Manual Test - Passed
@@ -803,6 +847,38 @@ class UniDecApp(MetaUniDecBase):
             self.open_file(self.eng.config.hdf_file)
         dlg.Destroy()
         pass
+
+    def on_open_csv(self, e):
+        """
+        :param e:
+        :return:
+        """
+        print("Opening")
+        dlg = wx.FileDialog(self.view, "Choose a sequence file in CSV format", '', "", "*.csv*")
+        if dlg.ShowModal() == wx.ID_OK:
+            self.view.SetStatusText("Opening", number=5)
+            filename = dlg.GetFilename()
+            print("Openening: ", filename)
+            if os.path.splitext(filename)[1] != ".csv":
+                print("Need CSV file")
+                return
+            dirname = dlg.GetDirectory()
+            path = os.path.join(dirname, filename)
+            self.open_csv(path)
+        dlg.Destroy()
+        pass
+
+    def on_plate_viewer(self, e=None):
+        print("Opening Plate Viewer Window")
+        pt = PlateFrame(None)
+        pt.load_eng(self.eng)
+        # wt.draw()
+        pass
+
+    def open_csv(self, path):
+        outpath = self.eng.csv_reader(path)
+        if outpath is not None:
+            self.open_file(self.eng.outpath)
 
     def open_file(self, path=None):
         """
@@ -949,23 +1025,15 @@ class UniDecApp(MetaUniDecBase):
         except Exception as e:
             print(e)
 
-    def on_pick_peaks(self, e=None):
+    def peak_plots(self, e=None):
         """
-        Tested
-        :param e:
-        :return:
+        Called when peaks are picked or changed
         """
-        self.view.SetStatusText("Picking Peaks...", number=5)
-        self.export_config()
-        self.eng.pick_peaks()
-        self.view.peakpanel.add_data(self.eng.pks)
         self.makeplot2_mud()
         self.plot_sums()
         self.makeplot6()
         self.makeplot7()
         self.makeplot8()
-        self.view.SetStatusText("Peak Detection and Extraction Complete", number=5)
-        pass
 
     def on_replot(self, e=None, plotsums=True):
         """
@@ -997,8 +1065,6 @@ class UniDecApp(MetaUniDecBase):
         self.makeplot8()
         self.plot_sums()
         pass
-
-
 
     def on_left_click(self, xpos, ypos):
         """
@@ -1080,6 +1146,7 @@ class UniDecApp(MetaUniDecBase):
         """
         paths = FileDialogs.open_multiple_files_dialog(message="Choose ramp data files mzml or Thermo Raw format",
                                                        file_type="All Files|*.*| Thermo RAW files (*.RAW)|*.RAW|mzML files (*.mzML)|*.mzML")
+        print("Paths:", paths)
         if paths is not None:
             dlg = miscwindows.SingleInputDialog(self.view)
             dlg.initialize_interface("Timestep", "Enter ramp timestep to compress in minutes:", defaultvalue=str(1.0))
@@ -1478,7 +1545,49 @@ class UniDecApp(MetaUniDecBase):
         self.on_delete()
         self.view.peakpanel.add_data(self.eng.pks)
 
+    def on_hdf5_to_imzml(self, e=None):
+        outfile = os.path.splitext(self.eng.config.hdf_file)[0] + "_unidec.imzml"
+        print("Writing HDF5 file", self.eng.config.hdf_file)
+        print("to imzML file: ", outfile)
+        self.eng.write_to_imzML(outfile)
 
+    def on_imzml_to_hdf5(self, e=None):
+        print("Opening")
+        dlg = wx.FileDialog(self.view, "Choose a data file in imzML format", '', "", "*.imzml*")
+        if dlg.ShowModal() == wx.ID_OK:
+            filename = dlg.GetFilename()
+            print("Openening: ", filename)
+            if os.path.splitext(filename)[1].lower() != ".imzml":
+                print("Need imzml file")
+                return
+            dirname = dlg.GetDirectory()
+            infile = os.path.join(dirname, filename)
+            outfile = os.path.splitext(infile)[0]
+            outfile = outfile + ".hdf5"
+            self.eng.imzml_to_hdf5(infile, outfile)
+            try:
+                self.open_file(outfile)
+            except Exception as e:
+                print("Error opening file:", e)
+        dlg.Destroy()
+
+    def make_image_plot(self, e=None):
+        peak_index = e.id
+        print("Making Image for peak #", peak_index)
+        #imdat = self.eng.generate_image(peak_index)
+        self.view.plot8.clear_plot()
+        zdat = self.eng.data.exgrid[peak_index]
+        self.view.plot8._axes = [0.12, 0.12, 0.75, 0.8]
+        var1 = np.array(self.eng.data.var1)
+        var2 = np.array(self.eng.data.var2)
+        dat = np.transpose([var1, var2, zdat])
+        self.view.plot8.contourplot(dat=dat, normflag=1, config=self.eng.config,
+                                    xlab="x", ylab="y", discrete=1, )
+
+    def on_imaging_viewer(self, e=None):
+        print("Launching Imaging Viewer")
+        dlg = image_plotter.ImagingWindow(self.view)
+        dlg.init(self.eng.data, self.eng.config)
 
 # Critical
 # TODO: Thorough testing

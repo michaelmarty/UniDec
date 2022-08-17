@@ -1,6 +1,8 @@
 UniDec: Universal Deconvolution of Mass and Ion Mobility Spectra 
 =================================================================
 
+UniDec's Mission: Making it easier to do more with your data.
+
 UniDec is a Bayesian deconvolution program for deconvolution of mass spectra and ion mobility-mass spectra.
 
 It was originally published in: [M. T. Marty, A. J. Baldwin, E. G. Marklund, G. K. A. Hochberg, J. L. P. Benesch, C. V. Robinson, Anal. Chem. 2015, 87, 4370-4376.](http://pubs.acs.org/doi/abs/10.1021/acs.analchem.5b00140)
@@ -15,6 +17,8 @@ UniDec may be downloaded from [https://github.com/michaelmarty/UniDec/releases](
 
 This compiled version is compatible with 64-bit Windows. It a portable binary, so it does not need a conventional installation.
 Just unzip the folder, put it somewhere convenient, and click the GUI_UniDec.exe file in the folder to launch.
+
+To use the PDF report generator, install [MikTex](https://miktex.org) and select install packages automatically from the installation options. You may need to add this to your system path so that PDFLatex is found from the command line. 
 
 ## Tutorial
 
@@ -108,7 +112,7 @@ Only mzML and Thermo RAW files are supported for automated chromatogram import.
 ## Installing the Source Code
 
 Most users will likely just want to run the compiled version. For those advanced users who have experience with Python,
-we have provided the source code for the GUI and API.
+we have provided the source code for the GUI and API. For more information, check out this [walkthrough](https://github.com/michaelmarty/UniDec/wiki/Installing-the-UniDec-Source-Code).
 
 ### Python
 
@@ -126,6 +130,8 @@ pypubsub
 tornado
 pythonnet
 multiplierz (Windows only, for Agilent imports)
+pymsfilereader (Option for some features)
+massql (Optional if you want to try this feature)
 
 All of these can be installed from the command line with (for example):
     
@@ -138,14 +144,14 @@ Note: I would highly recommend setting up 64-bit Python as the default. MS data 
 As described below, the Python code presented here relies on one critical binary, UniDec.exe. The binary should be in the /unidec_bin directory. 
 
 If you are interested in building the binary or modifying the source code, the code and Visual Studio project files
-are in unidec_src/UniDec. It is currently configured for Visual Studio Community 2015 with HDF5 1.10.1 and Intel Parallel Studio 19.
+are in unidec_src/UniDec. It is currently configured for Visual Studio Community 2022 with HDF5 1.12.2 and the Intel oneAPI compiler.
 It can be easily compiled with other compilers but will show a significant performance loss without the Intel Compilers.
  
 If you are interested in binaries for Mac and Linux, I would recommend building them yourself using the scripts in the unidec_src/UniDec directory. UniDec compiles easily and works fine with these operating systems, but I don't have the time to support them.
 
 ## UniDec Documentation
 
-Documentation is for the Python engine and GUI and can be found at http://michaelmarty.github.io/UniDecDocumentation/.
+Documentation is for the Python engine and GUI and can be found at http://michaelmarty.github.io/UniDecDocumentation/. Sorry, honestly it's pretty out of date by now.
 
 My goal is that this documentation will allow you to utilize the power of the UniDec python engine for scripting data analysis routines and performing custom analysis. Also, it will allow you to add new modules to the UniDec GUI.
 
@@ -195,6 +201,149 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.5.1.0
+
+Added Intensity Threshold to MetaUniDec. Updated code throughout to allow more tolerance for empty data sets below threshold. Streamlined some print commands.
+
+Fixed a bunch of warnings when compiling on VS2022. Updated to _s libaries for a lot of stdlib stuff. If this breaks compiling on Mac and Linux, let me know.
+
+Added experimental MS Imaging tools.
+
+Added tool for identifying alternative matches on the Oligomer and Mass Tools and for selecting alternate matches from the list. Explore right clicks on the match panel to test this out.
+
+Speeding up a few things in Meta.
+
+Fixed bug with multiple file dialog. Fixed bug with biopolymer calculator. Fixed bug with peak list.
+
+v.5.0.5
+
+**Upgraded build** using the Intel oneAPI and Visual Studio 2022. Giving about a 2x speed boost!
+
+Added new Gaussian fitting experimental features to DataCollector.
+
+Fixed bug in build with PDF export.
+
+Fixed bug with manual assignments.
+
+Fixed CDMS example data showing up in other windows.
+
+v.5.0.4
+
+Added Mass Limits to Mass Defect Tools.
+
+Added Normalize Data option in UniDecCD.
+
+Allowed Waterfall plots to show text data on the y-axis.
+
+Fixed bug in Thermo Importer. Fixed bugs with a few parameters in UCD.
+
+Added ability to open .dmt and .i2ms files from STORI analysis.
+
+Added experimental MassQL feature to select peaks that match certain queries. 
+
+Adding experimental High Throughput Screen features in MetaUniDec.
+
+Added ability to open npz files, which are much faster than txt and should help in custom scripts.
+
+v.5.0.3
+
+Added m/z vs. mass plot for UniDecCD using a button in the Additional Plotting Parameters. Thanks to Sean Cleary for inspiration here.
+
+A few new experimental features in my attempt at real time deconvolution:
+
+* Added refresh on UCD.
+
+* Added autorefresh tool on UniDec and UniChrom. If you open a file that is currently collecting data, you can do real time deconvolution as the data is collected.
+
+* A command line argument will automatically launch to UniChrom and open the file argument that is provided. This means you can now set UniDec as the default app in Windows to open Raw files and other data format. If you do this, when you click the icon on the Thermo Exactive Tune Software, it will open UniDec as the default app. Still a work in progress, but kind of fun to play with. 
+
+Added new features to Extract 2D window. 
+
+Finally figured out how to fix the bug for wxPython 4.1, but it involves modifying the source code. Contact me if you are interested in running it yourself. 4.1 will be reflected in the build.
+
+v.5.0.2
+
+Added Batch Processing (via Tools menu or drag and drop) to UniDecCD.
+
+Fixed bugs with STORI calibration in UCD.
+
+Added export of text file for composite spectrum.
+
+v.5.0.1
+
+**Added Beta Support for STORI Folders** in UCD. Select the directory of CSV files under Tools. It will concatenate these and convert them into an npz file that you can open directly.
+
+**Added Beta Support for Agilent Drift Tube IM-MS**. To use this, convert your data to mzML using MSConvert and select the "Combine Ion Mobility Scans" option. We recommend using the package as gzip as well and setting the extension to ".mzML.gz". Next, open UniDec and switch to Ion Mobility Mode under the Advanced Tab. Open the mzML file (drag and drop will work). Adjust the parameters in data processing to get it to look nice. The pusher should be set to 0. Set the voltage, temperature, and pressure to 0 in the Ion Mobility Parameters (with Linear Cell selected). Enger the tfix as the Dead Time and the Beta parameter below in the Drift Cell Length/Beta box. Adjust your parameters and hit deconvolve.
+
+**Added Support for SLIM TWIMS IM-MS**. Select SLIM poly3 or poly2 under the T-Wave Calibration Type. Calibration parameter 1 is the constant term with parameter 2 as the linear term and so on. 
+
+Added ability to export m/z values for peaks as _mzpeakdata.dat. Added headers to peakparams export text file.
+
+Fixed bugs with UltraMeta.
+
+v.5.0.0
+
+**Added UCD: UniDec for Charge Detection-MS**. This major new window extends UniDec to CD-MS data. It builds on the existing UniDec GUI but uses a new deconvolution engine. The engine is written in Python and has GPU-acceleration available for anyone with CUDA 11.2 installed. 
+
+**Added mzML ion mobility support**. Using MSConvert, select "Combine ion mobility scans". Then, launch UniDec and switch to IM mode by clicking Advanced > Switch to Ion Mobility Mode. UniDecIM should then be able to open ion mobility mzML files by drag and drop or File > Open File. It will create a text file next to the mzML file that you can open in the future. We recommend using the "Compress when converting to .txt" option to help speed up data processing by binning the data at this stage using the "Bin Every" parameter. 
+
+**Improved DoubleDec** code that is integrated into the C code and more tolerant of different types of input.
+
+Began adding experimental SLIM IM-MS calibration functions. Not fully implemented.
+
+Added ability to open CSV files exported from Thermo Freestyle.
+
+Cleaned up and refactored some code to fit UCD. Bug fixes.
+
+v.4.4.1
+
+Added ability to open UniDec GUI from UniChrom selection and ability to right click a spectrum and add it to selection on UniChrom. 
+
+Added time limit option to UniChrom.
+
+Added Subtract and Divide window to help visualize average monomer masses.
+
+Added commandline options to the Python code to allow -f "file.txt" to automatically launch the file with the program. Using -u/--unidec, -m/--meta, or -c/--chrom will launch UniDec, MetaUniDec, and UniChrom respectively with the launcher.
+
+Implemented DoubleDec in C code (Jack Liu) rather than Python.
+
+Edited Waters Raw to Text Conversion Wizard to allow specification of extraction times rather than just scans.
+
+Fixed bug with FPOP. Fixed bug with charge extraction in C code. Fixed bug with single scan Thermo files. Fixed bug with remove duplicates. 
+
+Added a command line warning when data might be approaching the memory limit.
+
+v.4.4.0
+
+**Added Scroll Bar to Controls!** People have been asking for this for a while, and I could never figure out how to get it to work. Finally, I managed to find the answer and added it with some buttons on the bottom to help expand and collapse key parts.
+
+In a significant technical change, I switched all doubles in the C code to floats. For those who are interested, this sacrifices a little precision in calculations for improvements in speed and file size.
+
+**Added Fast Profile and Fast Centroid** options for UniChrom2 and MetaUniDec. These will help speed up deconvolutions and limit file sizes by not adding the massgrid and mzgrid to each spectrum. The animate features will not work, and other things might not be available, but the basic settings should be consistent.
+
+**Major speed improvements to large mzML data files** by using gzip to compress the data prior to opening it. Thanks to the pymzML team for this.
+
+**Added DScore to MetaUniDec and UniChrom**. This will now show the DScore for each peak. It calculates the DScore for each spectrum but then takes the average across all spectra weighted by the intensity of that peak in each spectrum. 
+Also, added Filter by Score to Experimental Menu.
+
+**Added Sliding Window to UniChrom**. You can now specify the width of the window (in minutes) and the offset between the start of the windows (in # of scans). The offset needs to be an integer greater than or equal to 1. Setting the window to 1 will start a window on each scan. Setting a window of 0 and an offset of 1 will give every scan separately, without averaging any of them together.
+
+**Hidden feature: Write data from plot to text file.** Clicking Ctrl+u on most plots will now give you a dialog to save the underlying data as a text file. Usually, this data was written somewhere behind the scenes, but this will give an easy way to export it.
+
+Added DNA to Biopolymer Calculator.
+
+Added a Mass Defect Comparison Tool to the Mass Defect Window.
+
+Added normalization option to FFT window, which really improves the results.
+
+Added "Subtract Constant" option to the UniDec baseline subtraction. The number in the box will specify the constant relative to the max intensity. For example, a value of 0.01 will subtract each intensity by 1% of the maximum.
+
+UniChrom2 manual selection now puts data out as text files in the UniDec Files and Figures folder rather than TestSpectra.
+
+Bug fixes to data import functions.
+
+Fixed bugs with figure saving and isolating peaks in UniChrom.
+
 v.4.3.0
 
 **Added UniChrom2: UniDec for LC/MS data**. UniChrom is built on top of the MetaUniDec engine and uses HDF5 files and many of the same core tools. The primary additions are the ability to parse chromatography data into HDF5, visualize and interact with LC/MS data, and manually select and quickly deconvolve parts of the chromatogram.
@@ -205,15 +354,19 @@ v.4.3.0
 
 **Added Thermo RawFileReader libraries** to avoid having to install MSFileReader and to make opening native Thermo data faster and more robust.
 
-The mass defect windows can now make horizontal lines from input mass values, not just input mass defect value. It will automatically calculate the mass defect from the input mass. 
+The mass defect windows can now make horizontal lines from input mass values, not just input mass defect value. It will automatically calculate the mass defect from the input mass.
 
 Major refactoring of the code to support UniChrom. For example, switched from local to absolute paths for most files in the engine.
 
 Added Estimated Area extraction to DataCollector and MetaUniDec. Here, it uses the peak height and FWHM to estimate the area based on the peak shape.
 
+Added experimental DoubleDec (Double Deconvolution) feature to the main UniDec window.
+
 Fixed bug with spaces in oligomer names when importing ofiles.
 
 Switched default native charge range to +/- 1000 from +/- 100 to work better with denatured data.
+
+Other bug fixes and minor changes.
 
 v.4.2.2
 

@@ -2,13 +2,13 @@ import wx
 import wx.lib.mixins.listctrl as listmix
 import numpy as np
 from copy import deepcopy
-
+from unidec_modules import miscwindows
 from unidec_modules import unidectools as ud
-
 
 luminance_cutoff = 135
 white_text = wx.Colour(250, 250, 250)
-black_text = wx.Colour(0,0,0)
+black_text = wx.Colour(0, 0, 0)
+
 
 def tofloat(string):
     return float(string.replace(",", ""))
@@ -51,6 +51,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.EVT_CHARGE_STATE = wx.PyEventBinder(wx.NewEventType(), 1)
         self.EVT_DIFFERENCES = wx.PyEventBinder(wx.NewEventType(), 1)
         self.EVT_MASSES = wx.PyEventBinder(wx.NewEventType(), 1)
+        self.EVT_IMAGE = wx.PyEventBinder(wx.NewEventType(), 1)
 
         self.remove = []
         self.selection = []
@@ -72,6 +73,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.popupID12 = wx.NewIdRef()
         self.popupID13 = wx.NewIdRef()
         self.popupID14 = wx.NewIdRef()
+        self.popupID15 = wx.NewIdRef()
+        self.popupID16 = wx.NewIdRef()
 
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)
@@ -87,6 +90,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.Bind(wx.EVT_MENU, self.on_popup_twelve, id=self.popupID12)
         self.Bind(wx.EVT_MENU, self.on_popup_scorecolor, id=self.popupID13)
         self.Bind(wx.EVT_MENU, self.on_popup_twelve_full, id=self.popupID14)
+        self.Bind(wx.EVT_MENU, self.on_popup_rename, id=self.popupID15)
+        self.Bind(wx.EVT_MENU, self.on_popup_image, id=self.popupID16)
 
     def clear_list(self):
         """
@@ -125,7 +130,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             col.SetText("DScore")
         self.list_ctrl.SetColumn(3, col)
         self.list_ctrl.SetColumnWidth(3, 65)
-
+        self.errorsdisplayed = False
         try:
             col = self.list_ctrl.GetColumn(1)
             col.SetText(collab1)
@@ -134,47 +139,55 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         except Exception as e:
             pass
 
-        for i in range(0, self.pks.plen):
-            p = pks.peaks[i]
-            self.list_ctrl.InsertItem(i, p.textmarker)
-            # self.list_ctrl.SetItem(i, 1, str(p.mass))
-            if self.pks.massbins < 1:
-                self.list_ctrl.SetItem(i, 1, str(p.mass))
-            else:
+        i = 0
+        for j in range(0, self.pks.plen):
+            p = pks.peaks[j]
+            if not p.ignore:
+                self.list_ctrl.InsertItem(i, p.textmarker)
+                # self.list_ctrl.SetItem(i, 1, str(p.mass))
                 if p.mass == round(p.mass):
                     p.mass = int(p.mass)
-                self.list_ctrl.SetItem(i, 1, "{:,}".format(p.mass))
-
-            self.list_ctrl.SetItem(i, 2, "%.2f" % p.height)
-            try:
-                if show == "area":
-                    self.list_ctrl.SetItem(i, 3, str(p.area))
-                elif show == "integral":
-                    self.list_ctrl.SetItem(i, 3, "%.2f" % p.integral)
-                elif show == "diff":
-                    self.list_ctrl.SetItem(i, 3, str(p.diff))
-                elif show == "avgcharge":
-                    self.list_ctrl.SetItem(i, 3, str(p.avgcharge))
-                elif show == "mscore":
-                    self.list_ctrl.SetItem(i, 3, str(np.round(p.mscore*100, 2)))
-                elif show == "dscore":
-                    self.list_ctrl.SetItem(i, 3, str(np.round(p.dscore*100, 2)))
+                    self.list_ctrl.SetItem(i, 1, f'{p.mass:,}')
                 else:
-                    self.list_ctrl.SetItem(i, 3, "")
-            except (ValueError, AttributeError, TypeError):
-                self.list_ctrl.SetItem(i, 3, "")
-            self.list_ctrl.SetItem(i, 4, str(p.label))
-            self.list_ctrl.SetItemData(i, i)
-            color = wx.Colour(int(round(p.color[0] * 255)), int(round(p.color[1] * 255)), int(round(p.color[2] * 255)),
-                              alpha=255)
-            self.list_ctrl.SetItemBackgroundColour(i, col=color)
+                    self.list_ctrl.SetItem(i, 1, f'{float(str(p.mass)):,}')
 
-            # textcolor = wx.Colour(255 - color.Red(), 255 - color.Green(), 255-color.Blue()) #Inverted. Looks bad.
-            luminance = ud.get_luminance(color, type=2)
-            #print(color, luminance)
-            if luminance < luminance_cutoff:
-                self.list_ctrl.SetItemTextColour(i, col=white_text)
+                self.list_ctrl.SetItem(i, 2, "%.2f" % p.height)
+                try:
+                    if show == "area":
+                        self.list_ctrl.SetItem(i, 3, str(p.area))
+                    elif show == "integral":
+                        self.list_ctrl.SetItem(i, 3, "%.2f" % p.integral)
+                    elif show == "diff":
+                        self.list_ctrl.SetItem(i, 3, str(p.diff))
+                    elif show == "avgcharge":
+                        self.list_ctrl.SetItem(i, 3, str(p.avgcharge))
+                    elif show == "mscore":
+                        self.list_ctrl.SetItem(i, 3, str(np.round(p.mscore * 100, 2)))
+                    elif show == "dscore":
+                        self.list_ctrl.SetItem(i, 3, str(np.round(p.dscore * 100, 2)))
+                    else:
+                        self.list_ctrl.SetItem(i, 3, "")
+                except (ValueError, AttributeError, TypeError):
+                    self.list_ctrl.SetItem(i, 3, "")
+                self.list_ctrl.SetItem(i, 4, str(p.label))
+                self.list_ctrl.SetItemData(i, i)
+                color = wx.Colour(int(round(p.color[0] * 255)), int(round(p.color[1] * 255)),
+                                  int(round(p.color[2] * 255)),
+                                  alpha=255)
+                self.list_ctrl.SetItemBackgroundColour(i, col=color)
+
+                # textcolor = wx.Colour(255 - color.Red(), 255 - color.Green(), 255-color.Blue()) #Inverted. Looks bad.
+                luminance = ud.get_luminance(color, type=2)
+                # print(color, luminance)
+                if luminance < luminance_cutoff:
+                    self.list_ctrl.SetItemTextColour(i, col=white_text)
+                i += 1
         self.remove = []
+
+        col = self.list_ctrl.GetColumn(4)
+        col.SetText("Name")
+        self.list_ctrl.SetColumn(4, col)
+
         listmix.ColumnSorterMixin.__init__(self, 4)
 
     def GetListCtrl(self):
@@ -191,53 +204,37 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         :param event: Unused Event
         :return: None
         """
-        if self.errorsdisplayed is False:
-            if hasattr(self, "popupID1"):
-                menu = wx.Menu()
-                menu.Append(self.popupID1, "Ignore")
-                menu.Append(self.popupID2, "Isolate")
-                menu.Append(self.popupID3, "Repopulate")
-                menu.AppendSeparator()
-                menu.Append(self.popupID4, "Label Charge States")
-                menu.Append(self.popupID10, "Label Select Masses")
-                menu.Append(self.popupID11, "Label All Masses")
-                menu.Append(self.popupID6, "Display Differences")
-                menu.AppendSeparator()
-                menu.Append(self.popupID7, "Centroid and Uncertainty")
-                menu.AppendSeparator()
-                menu.Append(self.popupID5, "Color Select")
-                menu.Append(self.popupID9, "Marker Select")
-                if not self.meta:
-                    menu.Append(self.popupID13, "Color By Score")
-                menu.AppendSeparator()
-                menu.Append(self.popupID12, "Copy All Basic")
-                menu.Append(self.popupID14, "Copy All Full")
-                self.PopupMenu(menu)
-                menu.Destroy()
-        else:
-            if hasattr(self, "popupID1"):
-                menu = wx.Menu()
-                menu.Append(self.popupID1, "Ignore")
-                menu.Append(self.popupID2, "Isolate")
-                menu.Append(self.popupID3, "Repopulate")
-                menu.AppendSeparator()
-                menu.Append(self.popupID4, "Label Charge States")
-                menu.Append(self.popupID10, "Label Select Masses")
-                menu.Append(self.popupID11, "Label All Masses")
-                menu.Append(self.popupID6, "Display Differences")
 
-                menu.AppendSeparator()
+        if hasattr(self, "popupID1"):
+            menu = wx.Menu()
+            menu.Append(self.popupID1, "Ignore")
+            menu.Append(self.popupID2, "Isolate")
+            menu.Append(self.popupID3, "Repopulate")
+            menu.AppendSeparator()
+            menu.Append(self.popupID4, "Label Charge States")
+            menu.Append(self.popupID10, "Label Select Masses")
+            menu.Append(self.popupID11, "Label All Masses")
+            menu.Append(self.popupID6, "Display Differences")
+            menu.AppendSeparator()
+            if self.errorsdisplayed is False:
+                menu.Append(self.popupID7, "Centroid and Uncertainty")
+            else:
                 menu.Append(self.popupID8, "Hide Uncertainties")
+            menu.AppendSeparator()
+            menu.Append(self.popupID5, "Color Select")
+            menu.Append(self.popupID9, "Marker Select")
+            if not self.meta:
+                menu.Append(self.popupID13, "Color By Score")
+            else:
                 menu.AppendSeparator()
-                menu.Append(self.popupID5, "Color Select")
-                menu.Append(self.popupID9, "Marker Select")
-                if not self.meta:
-                    menu.Append(self.popupID13, "Color By Score")
-                menu.AppendSeparator()
-                menu.Append(self.popupID12, "Copy All Basic")
-                menu.Append(self.popupID14, "Copy All Full")
-                self.PopupMenu(menu)
-                menu.Destroy()
+                menu.Append(self.popupID16, "Plot Image")
+            menu.AppendSeparator()
+            menu.Append(self.popupID12, "Copy All Basic")
+            menu.Append(self.popupID14, "Copy All Full")
+            menu.AppendSeparator()
+            menu.Append(self.popupID15, "Rename Peak")
+            self.PopupMenu(menu)
+            menu.Destroy()
 
     def on_popup_one(self, event=None):
         """
@@ -412,7 +409,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.list_ctrl.SetItemBackgroundColour(item, col=colout)
 
         luminance = ud.get_luminance(wx.Colour(colout), type=2)
-        #print(wx.Colour(colout), luminance)
+        # print(wx.Colour(colout), luminance)
         if luminance < luminance_cutoff:
             self.list_ctrl.SetItemTextColour(item, col=white_text)
         else:
@@ -460,7 +457,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                 self.list_ctrl.SetItem(i, 4, str(p.errorreplicate))
                 if first == 1:
                     col = self.list_ctrl.GetColumn(4)
-                    col.SetText("Duplicate Error")
+                    col.SetText("Replicate Error")
                     self.list_ctrl.SetColumn(4, col)
                     first = 0
             else:
@@ -493,17 +490,19 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         for i in range(0, self.pks.plen):
             p = self.pks.peaks[i]
             # self.list_ctrl.SetItem(i, 1, str(p.mass))
-            if self.pks.massbins < 1:
-                self.list_ctrl.SetItem(i, 1, str(p.mass))
+            if p.mass == round(p.mass):
+                p.mass = int(p.mass)
+                self.list_ctrl.SetItem(i, 1, f'{p.mass:,}')
             else:
-                if p.mass == round(p.mass):
-                    p.mass = int(p.mass)
-                self.list_ctrl.SetItem(i, 1, "{:,}".format(p.mass))
+                self.list_ctrl.SetItem(i, 1, f'{float(str(p.mass)):,}')
             self.list_ctrl.SetItem(i, 3, str(p.area))
             self.list_ctrl.SetItem(i, 4, str(p.label))
         self.errorsdisplayed = False
 
     def on_popup_nine(self, e=None):
+        """
+        Changes the marker
+        """
         item = self.list_ctrl.GetFirstSelected()
         peak = tofloat(self.list_ctrl.GetItem(item, col=1).GetText())
         i = ud.nearest(self.pks.masses, peak)
@@ -526,7 +525,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
 
     def on_popup_twelve(self, e=None, type="Basic"):
         print("Copying...")
-        outstring=self.pks.copy(type=type)
+        outstring = self.pks.copy(type=type)
         print("Outputs:", outstring)
 
         # Create text data object
@@ -550,6 +549,38 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.pks.color_by_score()
         self.fix_text_color()
         newevent = wx.PyCommandEvent(self.EVT_DELETE_SELECTION_2._getEvtType(), self.GetId())
+        self.GetEventHandler().ProcessEvent(newevent)
+
+    def on_popup_rename(self, e=None):
+        print("Renaming Peak")
+        item = self.list_ctrl.GetFirstSelected()
+        peak = tofloat(self.list_ctrl.GetItem(item, col=1).GetText())
+        i = ud.nearest(self.pks.masses, peak)
+        dialog = miscwindows.SingleInputDialog(self)
+        dialog.initialize_interface(title="Rename Peak",
+                                    message="Rename the Peak As:")
+        dialog.ShowModal()
+        oldname = self.pks.peaks[i].label
+        try:
+            result = dialog.value
+            if result != "None":
+                newname = result
+            else:
+                newname = oldname
+            print("New Name:", newname)
+        except Exception as e:
+            print("Rename failed:", e)
+        self.pks.peaks[i].label = newname
+        self.list_ctrl.SetItem(item, 4, self.pks.peaks[i].label)
+        newevent = wx.PyCommandEvent(self.EVT_DELETE_SELECTION_2._getEvtType(), self.GetId())
+        self.GetEventHandler().ProcessEvent(newevent)
+
+    def on_popup_image(self, e=None):
+        item = self.list_ctrl.GetFirstSelected()
+        peak = tofloat(self.list_ctrl.GetItem(item, col=1).GetText())
+        i = ud.nearest(self.pks.masses, peak)
+        newevent = wx.PyCommandEvent(self.EVT_IMAGE._getEvtType(), self.GetId())
+        newevent.id = i
         self.GetEventHandler().ProcessEvent(newevent)
 
 # TODO: Add in a column label drop down or some other way to select which information of self.pks is displayed

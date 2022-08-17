@@ -567,7 +567,7 @@ class IMToolExtract(wx.Dialog):
         outs = np.array(self.masspanel.list.get_list())
         fname = self.config.outfname + "_zout_" + str(self.zout) + ".bin"
         if os.path.isfile(fname):
-            zoutgrid = np.fromfile(fname, dtype=float)
+            zoutgrid = np.fromfile(fname, dtype=self.config.dtype)
         else:
             zoutgrid = self.totalgrid
         # 2D plot

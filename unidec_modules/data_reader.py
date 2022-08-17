@@ -55,6 +55,7 @@ class DataImporter:
         self.times = []
         self.data = None
         for s in self.scans:
+            s=s-1
             try:
                 self.times.append(self.msrun.scan_time_from_scan_name(s))
             except Exception as e:
@@ -70,6 +71,7 @@ class DataImporter:
                         print("Using Scan rather than Time")
                         self.times.append(s)
         self.times = np.array(self.times)
+        # print(self.times)
         # print(len(self.data), len(self.times), len(self.scans))
 
     def grab_data(self):
@@ -78,7 +80,7 @@ class DataImporter:
             impdat = np.array(self.msrun.scan(s))  # May want to test this.
             impdat = impdat[impdat[:, 0] > 10]
             self.data.append(impdat)
-        self.data = np.array(self.data)
+        self.data = np.array(self.data, dtype=object)
         return self.data
 
     def get_data(self, scan_range=None, time_range=None):
@@ -141,7 +143,11 @@ class DataImporter:
         return data
 
     def get_tic(self):
-        return self.msrun.xic(filter="Full")
+        try:
+            xic = self.msrun.xic(filter="Full")
+        except:
+            xic = self.msrun.xic()
+        return xic
 
     def get_max_time(self):
         times = self.msrun.time_range()

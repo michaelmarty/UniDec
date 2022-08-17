@@ -1,5 +1,4 @@
 # -*- mode: python -*-
-
 import os
 import pymzml
 import datetime
@@ -46,18 +45,15 @@ if system == "Windows":
     exename += ".exe"
 outputdir = 'UniDec_' + system
 if distmode:
-    outputdir += '_Dist'
+    outputdir += '_GPU'
 zipdirectory = outputdir + "_" + date + ".zip"
 
-# Analysis of packages
-a = Analysis(['Launcher.py'],
-             pathex=[os.getcwd()],
-             excludes=['pandas', 'IPython', 'Cython', 'statsmodels', 'pyopenms', 'sklearn',
-                       'GdkPixbuf', 'PIL', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2', 'PyQt5'],
-             hiddenimports=[  # 'plotly','
+
+hiddenimportslist=[  # 'plotly','
                  # 'sklearn', 'sklearn.decomposition', 'sklearn.preprocessing', 'sklearn.utils', 'pytest', 'pluggy',
                  # 'sklearn.utils.testing', 'sklearn.utils._cython_blas',
                  'scipy.special._ufuncs_cxx', 'scipy.linalg.cython_blas', 'scipy.linalg.cython_lapack',
+                 'scipy.special.cython_special','numpy',
                  'scipy._lib.messagestream','clr', 'pythonnet', 'Python.Runtime.dll',
                  'FileDialog', 'Dialog', 'encodings', 'encodings.__init__',
                  'packaging', 'packaging.version', 'packaging.specifiers',
@@ -70,9 +66,32 @@ a = Analysis(['Launcher.py'],
                  'pubsub.core.listenerbase', 'pubsub.core', 'pubsub.core.kwargs.topicargspecimpl',
                  'pubsub.core.kwargs.topicmgrimpl',
                  'Tkinter', 'FixTk', '_tkinter', 'Tkconstants', 'FileDialog', 'Dialog', 'six',
-                 'pymzml.run', 'pymzml.plot', 'pymzml.obo'
+                 'pymzml.run', 'pymzml.plot', 'pymzml.obo',
+                 'pkg_resources.py2_warn','matplotlib.backends.backend_pdf',
+                 'massql',
+                 'PIL',
                  # , 'requests.packages.chardet.sys', 'requests','urllib3.packages.ordered_dict'
-             ],
+             ]
+
+cudaimportlist=['cupy','cupy.core', 'cupy.core._routines_sorting','cupy.core.flags','cupy.core.new_fusion',
+                 'cupy.core._fusion_trace','cupy.core._fusion_variable','cupy.core._fusion_op',
+                 'cupy.core._fusion_optimization','cupy.core._fusion_kernel',
+                 'cupy_backends.cuda.stream', 'cupy.core._carray', 'fastrlock',
+                 'fastrlock.rlock', 'cupy.core._cub_reduction', 'cupy.core._ufuncs']
+
+excludeslist = ['IPython', 'statsmodels', 'pyopenms', 'sklearn',
+                       'GdkPixbuf', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2', 'PyQt5']
+
+if distmode:
+    hiddenimportslist = hiddenimportslist + cudaimportlist
+else:
+    excludeslist = excludeslist + cudaimportlist
+
+# Analysis of packages
+a = Analysis(['Launcher.py'],
+             pathex=[os.getcwd()],
+             excludes=excludeslist,
+             hiddenimports=hiddenimportslist,
              hookspath=None,
              runtime_hooks=None)
 
@@ -81,33 +100,43 @@ if system == "Windows":
     a.datas += [('UniDec.exe', 'unidec_bin\\UniDec.exe', 'DATA')]
     a.datas += [('readme.md', 'readme.md', 'DATA')]
     a.datas += [('LICENSE', 'LICENSE', 'DATA')]
-    a.datas += [('libiomp5md.dll', 'unidec_bin\\libiomp5md.dll', 'DATA')]
-    a.datas += [('mkl_intel_thread.dll', 'unidec_bin\\mkl_intel_thread.dll', 'DATA')]
-    a.datas += [('ucrtbase.dll', 'unidec_bin\\ucrtbase.dll', 'DATA')]
-    a.datas += [('vcruntime140.dll', 'unidec_bin\\vcruntime140.dll', 'DATA')]
-    a.datas += [('libmypfunc.dll', 'unidec_bin\\libmypfunc.dll', 'DATA')]
+    # a.datas += [('libiomp5md.dll', 'unidec_bin\\libiomp5md.dll', 'DATA')]
+    # a.datas += [('mkl_intel_thread.dll', 'unidec_bin\\mkl_intel_thread.dll', 'DATA')]
+    # a.datas += [('ucrtbase.dll', 'unidec_bin\\ucrtbase.dll', 'DATA')]
+    # a.datas += [('vcruntime140.dll', 'unidec_bin\\vcruntime140.dll', 'DATA')]
+    # a.datas += [('libmypfunc.dll', 'unidec_bin\\libmypfunc.dll', 'DATA')]
     # a.datas += [('rawreader.exe', 'unidec_bin\\rawreader.exe', 'DATA')]
     # a.datas += [('rawreadertim.exe', 'unidec_bin\\rawreadertim.exe', 'DATA')]
     a.datas += [('CDCReader.exe', 'unidec_bin\\CDCReader.exe', 'DATA')]
     a.datas += [('h5repack.exe', 'unidec_bin\\h5repack.exe', 'DATA')]
-    a.datas += [('pymzml\\version.txt', 'C:\\Python38\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
+    a.datas += [('unimod.sqlite', 'unidec_bin\\unimod.sqlite', 'DATA')]
+    a.datas += [('pymzml\\version.txt', 'C:\\Python39\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
+    a.datas += [('massql\\msql.ebnf', 'C:\\Python39\\Lib\\site-packages\\massql\\msql.ebnf', 'DATA')]
 
+    # Copy over all the DLLs from the bin folder
     for file in os.listdir('unidec_bin'):
-        if fnmatch.fnmatch(file, 'api*'):
+        if fnmatch.fnmatch(file, '*.dll'):
             add = [(file, 'unidec_bin\\' + file, 'DATA')]
             a.datas += add
             # print add
+
+    cuincludedir='C:\\Python39\\Lib\\site-packages\\cupy\\core\\include'
+    for root, subdirs, files in os.walk(cuincludedir):
+        for f in files:
+            path = os.path.join(root, f)
+            relpath = os.path.relpath(path, cuincludedir)
+            add = [('cupy\\core\\include\\' + relpath, path, 'DATA')]
+            a.datas += add
+            # print(add)
 
     a.datas += [('RawFileReaderLicense.doc', 'unidec_modules\\thermo_reader\\RawFileReaderLicense.doc', 'DATA')]
     a.datas += [('ThermoFisher.CommonCore.Data.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.Data.dll', 'DATA')]
     a.datas += [('ThermoFisher.CommonCore.RawFileReader.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.RawFileReader.dll', 'DATA')]
     a.datas += [('ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'DATA')]
     a.datas += [('ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'DATA')]
-
-    if not distmode:
-        a.datas += [('MassLynxRaw.dll', 'unidec_bin\\MassLynxRaw.dll', 'DATA')]
-        a.datas += [('cdt.dll', 'unidec_bin\\cdt.dll', 'DATA')]
-        a.datas += [('Waters_MassLynxSDK_EULA.txt', 'unidec_bin\\Waters_MassLynxSDK_EULA.txt', 'DATA')]
+    # a.datas += [('MassLynxRaw.dll', 'unidec_bin\\MassLynxRaw.dll', 'DATA')]
+    # a.datas += [('cdt.dll', 'unidec_bin\\cdt.dll', 'DATA')]
+    a.datas += [('Waters_MassLynxSDK_EULA.txt', 'unidec_bin\\Waters_MassLynxSDK_EULA.txt', 'DATA')]
 elif system == "Linux":
     a.datas += [('unideclinux', 'unidec_bin/unideclinux', 'DATA')]
     # a.datas += [('unideclinuxIM', 'unidec_bin/unideclinuxIM', 'DATA')]
@@ -129,6 +158,8 @@ a.datas.extend(dir_files("unidec_bin\\multiplierz", 'multiplierz'))
 
 a.datas.extend(dir_files("unidec_bin\\Presets", 'Presets'))
 a.datas.extend(dir_files("unidec_bin\\Example Data", 'Example Data'))
+a.datas.extend(dir_files('C:\\Python39\\Lib\\site-packages\\matchms\\data', "matchms\\data"))
+# a.datas += [('matchms\\data\\known_key_conversions.csv', 'C:\\Python39\\Lib\\site-packages\\massql\\msql.ebnf', 'DATA')]
 
 # Can't remember why I needed these...
 # grammar=os.path.join(os.path.dirname(lib2to3.__file__),'Grammar.txt')
@@ -139,12 +170,10 @@ a.datas.extend(dir_files("unidec_bin\\Example Data", 'Example Data'))
 from os import listdir
 from PyInstaller import compat
 
-#mkldir = compat.base_prefix + "/Lib/site-packages/numpy/DLLs"
-#a.datas.extend(dir_files(mkldir, ''))
-#a.datas.extend(
-#    [(mkldir + "/" + mkl, '', 'DATA') for mkl in listdir(mkldir) if mkl.startswith('mkl_') or mkl.startswith('libio')])
-#for b in binaries:
-#    a.datas += b
+mkldir = compat.base_prefix + "/Lib/site-packages/numpy/DLLs"
+a.datas.extend(dir_files(mkldir, ''))
+a.datas.extend(
+    [(mkldir + "/" + mkl, '', 'DATA') for mkl in listdir(mkldir) if mkl.startswith('mkl_') or mkl.startswith('libio')])
 
 # Assemble and build
 pyz = PYZ(a.pure)

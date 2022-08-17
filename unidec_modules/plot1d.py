@@ -66,19 +66,19 @@ class Plot1d(PlottingWindow):
         else:
             self.kdnorm = 1
 
+        self.data = np.transpose([xvals, yvals])
+
         pubflag = 0
         if config is not None:
             if config.publicationmode != 0:
                 pubflag = 1
 
+        self.subplot1 = self.figure.add_axes(self._axes)
+        self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=color, label=label, marker=marker, **kwargs)
         if pubflag == 0:
-            self.subplot1 = self.figure.add_axes(self._axes)
-            self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=color, label=label, marker=marker, **kwargs)
             self.subplot1.set_ylabel(self.ylabel)
             self.subplot1.set_title(title)
         else:
-            self.subplot1 = self.figure.add_axes(self._axes)
-            self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=color, label=label, marker=marker, **kwargs)
             self.subplot1.spines['top'].set_visible(False)
             self.subplot1.spines['right'].set_visible(False)
             self.subplot1.get_xaxis().tick_bottom()
@@ -210,6 +210,7 @@ class Plot1d(PlottingWindow):
     def errorbars(self, xvals, yvals, xerr=None, yerr=None, color="black", newlabel="", nopaint=True, **kwargs):
         self.subplot1.errorbar(np.array(xvals) / self.kdnorm, yvals, xerr=xerr, yerr=yerr, color=color, label=newlabel,
                                **kwargs)
+        self.data = np.transpose([xvals, yvals])
         self.setup_zoom([self.subplot1], self.zoomtype, pad=0.02)
         if not nopaint:
             self.repaint()
@@ -223,6 +224,7 @@ class Plot1d(PlottingWindow):
         :return: None
         """
         self.subplot1.fill_between(np.array(x) / self.kdnorm, y, y2=0, facecolor=color, alpha=0.75)
+        self.data = np.transpose([x, y])
 
     def add_rect(self, xstart, ystart, xwidth, ywidth, alpha=0.5, facecolor="k", edgecolor='k', nopaint=False):
         self.subplot1.add_patch(
@@ -254,6 +256,7 @@ class Plot1d(PlottingWindow):
 
             xvals = xarray[i]
             n, bins, patches = self.subplot1.hist(xvals, label=label, histtype="stepfilled", alpha=0.4, density=1)
+            self.data = np.transpose([bins, n])
             ytempmax = np.amax(n)
             xtempmax = np.amax(bins)
             if ytempmax > ymax:
@@ -285,6 +288,7 @@ class Plot1d(PlottingWindow):
         """
         self.clear_plot("nopaint")
         self.zoomtype = zoom
+        self.data = np.transpose([xarr, yarr])
         xticloc = np.array(xarr)
         peaklab = [str(p) for p in peakval]
         self.subplot1 = self.figure.add_axes(self._axes, xticks=xticloc)
@@ -298,6 +302,8 @@ class Plot1d(PlottingWindow):
         self.subplot1.set_clip_on(False)
         self.setup_zoom([self.subplot1], self.zoomtype)
         self.flag = True
+        if repaint:
+            self.repaint()
 
     # TODO make the axes work for negative and positive bars
     def barplottoperrors(self, xarr, yarr, peakval, colortab, xlabel="", ylabel="", title="", zoom="box", repaint=True,
@@ -319,6 +325,7 @@ class Plot1d(PlottingWindow):
         """
         self.clear_plot("nopaint")
         self.zoomtype = zoom
+        self.data = np.transpose([xarr, yarr])
         xticloc = np.array(xarr)
         peaklab = [str(p) for p in peakval]
         self.subplot1 = self.figure.add_axes(self._axes, xticks=xticloc, ymargin=1)
@@ -372,6 +379,7 @@ class Plot1d(PlottingWindow):
         self.clear_plot("nopaint")
         self.xlabel = xlabel
         self.ylabel = ylabel
+        self.data = np.transpose([xvals, yvals, cvals])
         self.zoomtype = zoom
         if "nticks" in kwargs:
             nticks = kwargs["nticks"]

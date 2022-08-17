@@ -105,7 +105,7 @@ class WatersDataImporter:
 
         mzs, ivals = self.readerMS.CombineScan(self.function, np.arange(scan_range[0], scan_range[1]))
         data = np.transpose([mzs, ivals])
-        if mzbins is None or mzbins == 0:
+        if mzbins is None or float(mzbins) == 0:
             return data
         else:
             data = merge_spectra([data], mzbins=mzbins, type="Integrate")
@@ -139,6 +139,17 @@ class WatersDataImporter:
         self.readerLC = MLCR.MassLynxRawChromatogramReader(self.path)
         tic = np.transpose(self.readerLC.ReadTIC(self.function))
         # self.readerLC.__del__()
+        return tic
+
+    def get_bpi(self):
+        self.readerLC = MLCR.MassLynxRawChromatogramReader(self.path)
+        tic = np.transpose(self.readerLC.ReadBPI(self.function))
+        # self.readerLC.__del__()
+        return tic
+
+    def get_eic(self, mass=811, tolerance=0.10):
+        self.readerLC = MLCR.MassLynxRawChromatogramReader(self.path)
+        tic = np.transpose(self.readerLC.ReadMassChromatogram(self.function, mass, tolerance, False))
         return tic
 
     def get_max_time(self):

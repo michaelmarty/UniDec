@@ -1,4 +1,3 @@
-import sys
 import string
 import wx.lib.mixins.listctrl as listmix
 import wx
@@ -76,7 +75,7 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
             list_out.append(float(self.GetItemText(i)))
         return list_out
 
-    def on_right_click_masslist(self, event):
+    def on_right_click_masslist(self, event=None):
         """
         Create a right click menu.
         :param event: Unused event
@@ -296,7 +295,10 @@ class MatchListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
         :param style: Passed to wx.ListCtrl
         :return: None
         """
-        wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)
+        wx.ListCtrl.__init__(self, parent, id_value, pos, size, style=wx.LC_REPORT)
+        # wx.ListCtrl.__init__(self, pos=wx.DefaultPosition, size=size,
+        # style=wx.LC_REPORT | wx.BORDER_SUNKEN)
+        self.parent = parent
         listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.TextEditMixin.__init__(self)
         self.InsertColumn(0, "Peak Mass (Da)")
@@ -308,6 +310,11 @@ class MatchListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
         self.SetColumnWidth(2, 100)
         self.SetColumnWidth(3, 100)
         self.index = 0
+        self.mode=0
+
+        self.popupID1 = wx.NewIdRef()
+        self.Bind(wx.EVT_MENU, self.on_view_alt, id=self.popupID1)
+        self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click, self)
 
     def clear(self):
         """
@@ -347,6 +354,30 @@ class MatchListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
             list_out.append(sublist)
         return list_out
 
+    def color_item(self, i, color):
+        color = wx.Colour(int(round(color[0] * 255)), int(round(color[1] * 255)),
+                          int(round(color[2] * 255)), alpha=255)
+        self.SetItemBackgroundColour(i, col=color)
+
+    def on_view_alt(self, e=None):
+        item = self.GetFirstSelected()
+        self.parent.parent.parent.on_view_alt(item)
+
+    def on_right_click(self, event):
+        """
+        Create a right click menu.
+        :param event: Unused event
+        :return: None
+        """
+        if hasattr(self, "popupID1"):
+            menu = wx.Menu()
+            if self.mode == 0:
+                menu.Append(self.popupID1, "View Alternates")
+            else:
+                menu.Append(self.popupID1, "Select Match")
+            self.PopupMenu(menu)
+            menu.Destroy()
+
 
 class MatchListCrtlPanel(wx.Panel):
     def __init__(self, parent):
@@ -357,6 +388,7 @@ class MatchListCrtlPanel(wx.Panel):
         """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         sizer = wx.BoxSizer(wx.VERTICAL)
+        self.parent = parent
         self.list = MatchListCrtl(self, wx.NewIdRef(), size=(500, 200), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)
@@ -454,8 +486,6 @@ class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
         :param data1: The first column, the measured mass
         :param data2: The second column, the simulated mass
         :param data3: The third column, the error between measured and simulated.
-
-        :param data4: The fourth column, the match name.
         :return: None
         """
         self.DeleteAllItems()
@@ -555,6 +585,18 @@ class MassSelection(wx.Dialog):
         self.masslistbox = None
         self.oligomerlistbox = None
         self.matchlistbox = None
+        self.ctlmatcherror = None
+        self.commonmassespanel = None
+        self.diffmatrix = None
+        self.matchlist = None
+        self.oligomasslist = None
+        self.oligonames = None
+        self.peakindex = None
+        self.peakmass = None
+        self.mnames = None
+        self.mmasses = None
+        self.diffs = None
+        self.tolerance = 1000
 
     def init_dialog(self, config, pks, massdat=None):
         """
@@ -656,14 +698,19 @@ class MassSelection(wx.Dialog):
         match_iso_button = wx.Button(panel, label="Match to Isolated Oligomers")
         match_iso_button.SetToolTip(wx.ToolTip("Match peaks to isolated oligomers from Oligomer Maker."))
         self.Bind(wx.EVT_BUTTON, self.on_match_isolated, match_iso_button)
-        match_all_button = wx.Button(panel, label="Matched to Mixed Oligomers")
+        match_all_button = wx.Button(panel, label="Match to Mixed Oligomers")
         match_all_button.SetToolTip(
             wx.ToolTip("Match peaks to any possible combination of oligomers from Oligomer Maker."))
         self.Bind(wx.EVT_BUTTON, self.on_match_all, match_all_button)
+        check_alt_button = wx.Button(panel, label="Check for Alternates")
+        check_alt_button.SetToolTip(
+            wx.ToolTip("Check for alternative matches. Yellow indicates possible alternates within tolerance."))
+        self.Bind(wx.EVT_BUTTON, self.on_check_for_alt_match, check_alt_button)
         self.matchlistbox = MatchListCrtlPanel(panel)
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
         hbox2.Add(match_iso_button, 1, wx.EXPAND)
         hbox2.Add(match_all_button, 1, wx.EXPAND)
+        hbox2.Add(check_alt_button, 1, wx.EXPAND)
         sbs4.Add(hbox2, 0, wx.EXPAND)
         sbs4.Add(self.matchlistbox)
         sbs2.AddStretchSpacer(prop=1)
@@ -715,6 +762,7 @@ class MassSelection(wx.Dialog):
         if len(defaultmatchlist) == 4:
             self.matchlistbox.list.populate(defaultmatchlist[0], defaultmatchlist[1], defaultmatchlist[2],
                                             defaultmatchlist[3])
+            self.matchlist = defaultmatchlist
         try:
             self.load_common_masses(self.config.masstablefile)
         except:
@@ -789,16 +837,9 @@ class MassSelection(wx.Dialog):
         :param e: Unused event
         :return: None
         """
-        oligos = self.oligomerlistbox.list.get_list()
-        try:
-            tolerance = float(self.ctlmatcherror.GetValue())
-        except ValueError:
-            tolerance = None
-        oligomasslist, oligonames = ud.make_isolated_match(oligos)
-        matchlist = ud.match(self.pks, oligomasslist, oligonames, tolerance=tolerance)
-        self.matchlistbox.list.populate(matchlist[0], matchlist[1], matchlist[2], matchlist[3])
+        self.on_match(type="isolated")
 
-    def on_match_all(self, e):
+    def on_match_all(self, e=None):
         """
         Match the peaks in self.pks to all possible combination of oligomers in the oligomerlist.
         Uses ud.make_all_matches function.
@@ -806,17 +847,96 @@ class MassSelection(wx.Dialog):
         :param e: Unused event
         :return: None
         """
+        self.on_match(type="all")
+
+    def on_match(self, type="all"):
         oligos = self.oligomerlistbox.list.get_list()
-        try:
-            tolerance = float(self.ctlmatcherror.GetValue())
-        except ValueError:
-            tolerance = None
-        oligomasslist, oligonames = ud.make_all_matches(oligos)
-        if ud.isempty(oligomasslist):
+        self.read_tolerance()
+
+        if type == "all":
+            self.oligomasslist, self.oligonames = ud.make_all_matches(oligos)
+        elif type == "isolated":
+            self.oligomasslist, self.oligonames = ud.make_isolated_match(oligos)
+        else:
+            print("Match type not recognized")
+            return
+        if ud.isempty(self.oligomasslist):
             print("ERROR: Need to specify the Potential Oligomers")
             return
-        matchlist = ud.match(self.pks, oligomasslist, oligonames, tolerance=tolerance)
-        self.matchlistbox.list.populate(matchlist[0], matchlist[1], matchlist[2], matchlist[3])
+        self.matchlist = ud.match(self.pks, self.oligomasslist, self.oligonames, tolerance=self.tolerance)
+        self.matchlistbox.list.populate(self.matchlist[0], self.matchlist[1], self.matchlist[2], self.matchlist[3])
+        self.matchlistbox.list.mode = 0
+        self.diffmatrix = None
+
+    def on_check_for_alt_match(self, e=None):
+        self.matchlistbox.list.populate(self.matchlist[0], self.matchlist[1], self.matchlist[2], self.matchlist[3])
+        self.matchlistbox.list.mode = 0
+        self.read_tolerance()
+        peakmasses = [p.mass for p in self.pks.peaks]
+        if self.oligomasslist is None:
+            self.on_match()
+        self.diffmatrix = np.subtract.outer(peakmasses, self.oligomasslist)
+        matchcount = np.sum(np.abs(self.diffmatrix) < self.tolerance, axis=1)
+        for i, c in enumerate(matchcount):
+            if c == 0:
+                color = [1, 0, 0]
+            elif c == 1:
+                color = [0, 1, 0]
+            elif c > 1:
+                color = [1, 1, 0]
+            else:
+                color = [0, 0, 1]
+            self.matchlistbox.list.color_item(i, color)
+
+
+    def on_view_alt(self, index=None):
+        if self.matchlistbox.list.mode == 0:
+            self.read_tolerance()
+            if self.diffmatrix is None:
+                self.on_check_for_alt_match()
+            if index is None:
+                index = 0
+
+            self.peakindex = index
+            self.peakmass = self.pks.peaks[index].mass
+            b1 = np.abs(self.diffmatrix[index]) < self.tolerance
+            l = np.sum(b1)
+            peakmass = [self.peakmass for i in range(l)]
+            self.diffs = self.diffmatrix[index][b1]
+            self.mnames = np.array(self.oligonames)[b1]
+            self.mmasses = np.array(self.oligomasslist)[b1]
+            self.matchlistbox.list.populate(peakmass, self.mmasses, self.diffs, self.mnames)
+
+            for i in range(l):
+                absdiff = np.abs(self.diffs)
+                min = np.amin(absdiff)
+                max = np.amax(absdiff) # self.tolerance
+                r = np.sqrt(np.abs(np.abs(self.diffs[i])-min)/(max-min))
+                color = [r, 1, r]
+                self.matchlistbox.list.color_item(i, color)
+
+            self.matchlistbox.list.mode = 1
+
+        elif self.matchlistbox.list.mode == 1:
+            selected_diff = self.diffs[index]
+            selected_name = self.mnames[index]
+            selected_match = self.mmasses[index]
+            self.matchlist[1][self.peakindex] = selected_match
+            self.matchlist[2][self.peakindex] = selected_diff
+            self.matchlist[3][self.peakindex] = selected_name
+
+            self.matchlistbox.list.populate(self.matchlist[0], self.matchlist[1], self.matchlist[2], self.matchlist[3])
+
+            self.matchlistbox.list.mode = 0
+
+    def read_tolerance(self):
+        try:
+            self.tolerance = float(self.ctlmatcherror.GetValue())
+        except ValueError:
+            self.tolerance = None
+
+    def set_tolerance(self, tol=1000):
+        self.ctlmatcherror.SetValue(str(tol))
 
     def on_close(self, e):
         """
@@ -828,11 +948,8 @@ class MassSelection(wx.Dialog):
         :param e: Unused event
         :return: None
         """
-        try:
-            tolerance = float(self.ctlmatcherror.GetValue())
-        except ValueError:
-            tolerance = None
-        self.config.matchtolerance = tolerance
+        self.read_tolerance()
+        self.config.matchtolerance = self.tolerance
 
         newmasslist = self.masslistbox.list.get_list()
         # print newmasslist
@@ -848,7 +965,7 @@ class MassSelection(wx.Dialog):
         if not ud.isempty(oligos):
             oligos = np.array(oligos)
             oligoshort = oligos[:, :2]
-            oligoshort = oligoshort.astype(np.float)
+            oligoshort = oligoshort.astype(float)
             oligos = oligos[np.any([oligoshort != 0], axis=2)[0], :]
             # oligos=oligos[::-1]
         self.config.oligomerlist = oligos
@@ -969,8 +1086,15 @@ if __name__ == "__main__":
     import unidec
 
     eng = unidec.UniDec()
+    eng.open_file("C:\\Data\\NolanWashU\\20220429-S100B-Oligomer-1.txt")
+    eng.unidec_imports()
+    eng.pick_peaks()
     app = wx.App(False)
     frame = MassSelection(None)
     frame.init_dialog(eng.config, eng.pks, massdat=None)
+    frame.set_tolerance(10)
+    frame.on_match_all()
+    frame.on_check_for_alt_match()
+    frame.on_view_alt()
     frame.ShowModal()
     app.MainLoop()

@@ -320,7 +320,7 @@ class DataCollector(wx.Frame):
             self.update_gui()
             return
 
-        hdf = h5py.File(path)
+        hdf = h5py.File(path, 'r')
         self.config.hdf_file = path
         h5_config = hdf.require_group("config")
         self.config.exnorm = h5_config.attrs["exnorm"]
@@ -437,7 +437,7 @@ class DataCollector(wx.Frame):
             if not os.path.isfile(path):
                 print("Error2: File Not Found:", path)
                 return
-            hdf = h5py.File(path)
+            hdf = h5py.File(path, 'a')
             h5_config = hdf.require_group("config")
             h5_config.attrs.modify("exnorm", self.config.exnorm)
             h5_config.attrs.modify("exnormz", self.config.exnormz)
@@ -452,14 +452,15 @@ class DataCollector(wx.Frame):
             hdf.close()
 
             self.run_hdf5(path)
-        except:
+        except Exception as e:
             self.SetStatusText("ERROR with File: " + path, number=2)
-            print("ERROR Python: File", path)
+            print("ERROR Python: File", path, e)
 
     def run_hdf5(self, path):
         if not os.path.isfile(path):
             print("Error3: File Not Found:", path)
             return
+        print("Running MetaUniDec -ultraextract", path)
         out = mudeng.metaunidec_call(self.config, "-ultraextract", path=path)
         if out != 0:
             self.SetStatusText("ERROR with File: " + path, number=2)
@@ -498,7 +499,7 @@ class DataCollector(wx.Frame):
             paths.append(path)
 
         if fit is None:
-            if True:
+            if False:
                 threads = []
                 for p in paths:
                     t = threading.Thread(target=self.update_hdf5, args=(p,))
@@ -788,7 +789,7 @@ class DataCollector(wx.Frame):
         output = np.array(output)
         self.data = output
         try:
-            hdf = h5py.File(os.path.join(self.directory, "Extracts.hdf5"))
+            hdf = h5py.File(os.path.join(self.directory, "Extracts.hdf5"), 'a')
             for n, l in enumerate(output):
                 name = l[0][0]
                 try:

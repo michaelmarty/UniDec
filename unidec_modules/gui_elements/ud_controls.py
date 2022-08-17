@@ -4,10 +4,16 @@ import os
 import unidec_modules.unidectools as ud
 import numpy as np
 import time
+import wx.lib.scrolledpanel as scrolled
 
-class main_controls(wx.Panel):
+
+class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
     def __init__(self, parent, config, pres, panel, iconfile):
         super(wx.Panel, self).__init__(panel)
+        # super(scrolled.ScrolledPanel, self).__init__(parent=panel, style=wx.ALL | wx.EXPAND)
+        # self.SetAutoLayout(1)
+        # self.SetupScrolling(scroll_x=False)
+
         self.parent = parent
         self.config = config
         self.pres = pres
@@ -45,7 +51,7 @@ class main_controls(wx.Panel):
 
         # Small Toolbar
         buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
-        bsize = (50, 25)
+        bsize = (54, 25)
         self.openbutton = wx.BitmapButton(self, -1, self.open_bmp, size=bsize)
         self.procbutton = wx.BitmapButton(self, -1, self.next_bmp, size=bsize)
         self.procbutton.SetBackgroundColour(wx.Colour(150, 150, 255))
@@ -65,8 +71,10 @@ class main_controls(wx.Panel):
         sizercontrol.Add(buttonsizer, 0, wx.EXPAND)
 
         # Setting up main fold controls
+        self.scrolledpanel = scrolled.ScrolledPanel(self, style=wx.ALL | wx.EXPAND)
+        self.scrolledpanel.SetupScrolling()
         size1 = (75, -1)
-        self.foldpanels = fpb.FoldPanelBar(self, -1, agwStyle=fpb.FPB_VERTICAL)
+        self.foldpanels = fpb.FoldPanelBar(self.scrolledpanel, -1, size=(250, 1900), agwStyle=fpb.FPB_VERTICAL)
         style1 = fpb.CaptionBarStyle()
         style1b = fpb.CaptionBarStyle()
         style1c = fpb.CaptionBarStyle()
@@ -110,7 +118,7 @@ class main_controls(wx.Panel):
         mzrange.Add(wx.StaticText(panel1, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
         mzrange.Add(self.ctlmaxmz)
         mzrange.Add(wx.StaticText(panel1, label=" Th "), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.fullbutton = wx.Button(panel1, -1, "Full", size=(40,25))
+        self.fullbutton = wx.Button(panel1, -1, "Full", size=(40, 25))
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_full, self.fullbutton)
         mzrange.Add(self.fullbutton)
         i = 0
@@ -171,7 +179,6 @@ class main_controls(wx.Panel):
             gbox1b.Add(wx.StaticText(panel1b, label="Pusher Interval (\u03BCs)"), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
-
         self.subtypectl = wx.Choice(panel1b, -1, choices=self.backgroundchoices)
         self.ctlbuff = wx.TextCtrl(panel1b, value="", size=size1)
         self.subtypectl.SetSelection(2)
@@ -196,7 +203,6 @@ class main_controls(wx.Panel):
         i += 1
 
         if self.config.imflag == 0:
-
             self.ctldatareductionpercent = wx.TextCtrl(panel1b, value="", size=size1)
             gbox1b.Add(self.ctldatareductionpercent, (i, 1), span=(1, 1))
             gbox1b.Add(wx.StaticText(panel1b, label="Data Reduction (%): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -238,10 +244,11 @@ class main_controls(wx.Panel):
                                                        cbstyle=style1c)
             panel1c = wx.Panel(foldpanel1c, -1)
             gbox1c = wx.GridBagSizer(wx.VERTICAL)
-
+            i = 0
             self.ctltwave = wx.RadioBox(panel1c, label="", choices=["Linear Cell", "Travelling Wave"])
             self.parent.Bind(wx.EVT_RADIOBOX, self.pres.on_flip_twave, self.ctltwave)
-            gbox1c.Add(self.ctltwave, (0, 0), span=(1, 2))
+            gbox1c.Add(self.ctltwave, (i, 0), span=(1, 2))
+            i += 1
 
             self.twave = self.config.twaveflag > 0
             if not self.twave:
@@ -271,32 +278,48 @@ class main_controls(wx.Panel):
 
                 self.ctldriftlength = wx.TextCtrl(panel1c, value='', size=size1)
                 gbox1c.Add(self.ctldriftlength, (6, 1), span=(1, 1))
-                gbox1c.Add(wx.StaticText(panel1c, label="Drift Cell Length (m)"), (6, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                gbox1c.Add(wx.StaticText(panel1c, label="Drift Cell Length (m)\nor Beta (Agilent)"), (6, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
             else:
                 self.ctltwave.SetSelection(1)
 
                 self.ctltcal1 = wx.TextCtrl(panel1c, value="", size=size1)
-                gbox1c.Add(self.ctltcal1, (1, 1), span=(1, 1))
-                gbox1c.Add(wx.StaticText(panel1c, label="Calibration Parameter 1: "), (1, 0),
+                gbox1c.Add(self.ctltcal1, (i, 1), span=(1, 1))
+                gbox1c.Add(wx.StaticText(panel1c, label="Calibration Parameter 1: "), (i, 0),
                            flag=wx.ALIGN_CENTER_VERTICAL)
+                i += 1
+
 
                 self.ctltcal2 = wx.TextCtrl(panel1c, value='', size=size1)
-                gbox1c.Add(self.ctltcal2, (2, 1), span=(1, 1))
-                gbox1c.Add(wx.StaticText(panel1c, label="Calibration Parameter 2: "), (2, 0),
+                gbox1c.Add(self.ctltcal2, (i, 1), span=(1, 1))
+                gbox1c.Add(wx.StaticText(panel1c, label="Calibration Parameter 2: "), (i, 0),
                            flag=wx.ALIGN_CENTER_VERTICAL)
+                i += 1
 
                 self.ctledc = wx.TextCtrl(panel1c, value='', size=size1)
-                gbox1c.Add(self.ctledc, (3, 1), span=(1, 1))
-                gbox1c.Add(wx.StaticText(panel1c, label="EDC Parameter: "), (3, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                gbox1c.Add(self.ctledc, (i, 1), span=(1, 1))
+                gbox1c.Add(wx.StaticText(panel1c, label="EDC Parameter: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                i += 1
+
+                self.ctltcal3 = wx.TextCtrl(panel1c, value='', size=size1)
+                gbox1c.Add(self.ctltcal3, (i, 1), span=(1, 1))
+                gbox1c.Add(wx.StaticText(panel1c, label="SLIM Param. 3: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                i += 1
+
+                self.ctltcal4 = wx.TextCtrl(panel1c, value='', size=size1)
+                gbox1c.Add(self.ctltcal4, (i, 1), span=(1, 1))
+                gbox1c.Add(wx.StaticText(panel1c, label="SLIM Param. 4: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                i += 1
 
                 self.ctlgasmass = wx.TextCtrl(panel1c, value='', size=size1)
-                gbox1c.Add(self.ctlgasmass, (4, 1), span=(1, 1))
-                gbox1c.Add(wx.StaticText(panel1c, label="Gas Mass (Da): "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                gbox1c.Add(self.ctlgasmass, (i, 1), span=(1, 1))
+                gbox1c.Add(wx.StaticText(panel1c, label="Gas Mass (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                i += 1
 
                 self.ctltwavecaltype = wx.Choice(panel1c, -1, choices=list(self.config.twavedict.values()))
-                gbox1c.Add(self.ctltwavecaltype, (5, 1), span=(1, 1))
-                gbox1c.Add(wx.StaticText(panel1c, label="Calibration Type: "), (5, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                gbox1c.Add(self.ctltwavecaltype, (i, 1), span=(1, 1))
+                gbox1c.Add(wx.StaticText(panel1c, label="Calibration Type: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                i += 1
 
             self.ctltwave.SetSelection(int(self.twave))
             panel1c.SetSizer(gbox1c)
@@ -519,20 +542,21 @@ class main_controls(wx.Panel):
             self.ctlnativeccslb = wx.TextCtrl(panel2b, value='', size=(75, -1))
             self.ctlnativeccsub = wx.TextCtrl(panel2b, value='', size=(75, -1))
             sbs2.Add(self.ctlnativeccslb, flag=wx.LEFT | wx.EXPAND, border=5)
-            sbs2.Add(wx.StaticText(panel2b, label=' to '), 0,  wx.EXPAND)
+            sbs2.Add(wx.StaticText(panel2b, label=' to '), 0, wx.EXPAND)
             sbs2.Add(self.ctlnativeccsub, flag=wx.LEFT | wx.EXPAND, border=5)
             sbs2.Add(wx.StaticText(panel2b, label=" \u212B\u00B2 "), 0, wx.EXPAND)
             gbox2b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
             i += 1  # Check
 
-        ddsizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.doubledecflag = wx.CheckBox(panel2b, label="Double Deconvolution")
-        self.parent.Bind(wx.EVT_CHECKBOX, self.on_double_dec, self.doubledecflag)
-        self.doubledecbutton = wx.Button(panel2b, label="Open kernel file")
-        self.parent.Bind(wx.EVT_BUTTON, self.on_open_kernel, self.doubledecbutton)
-        ddsizer.Add(self.doubledecflag, 0, wx.ALIGN_CENTER_VERTICAL)
-        ddsizer.Add(self.doubledecbutton, 0, wx.ALIGN_CENTER_VERTICAL)
-        gbox2b.Add(ddsizer, (i, 0), span=(1, 2))
+        if self.config.imflag != 1:
+            ddsizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.doubledecflag = wx.CheckBox(panel2b, label="Double Deconvolution")
+            self.parent.Bind(wx.EVT_CHECKBOX, self.on_double_dec, self.doubledecflag)
+            self.doubledecbutton = wx.Button(panel2b, label="Open kernel file")
+            self.parent.Bind(wx.EVT_BUTTON, self.on_open_kernel, self.doubledecbutton)
+            ddsizer.Add(self.doubledecflag, 0, wx.ALIGN_CENTER_VERTICAL)
+            ddsizer.Add(self.doubledecbutton, 0, wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(ddsizer, (i, 0), span=(1, 2))
 
         panel2b.SetSizer(gbox2b)
         gbox2b.Fit(panel2b)
@@ -584,9 +608,9 @@ class main_controls(wx.Panel):
 
         self.ctlpeakcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
 
-        #for mp in self.config.cmaps2:
+        # for mp in self.config.cmaps2:
         #    self.ctl2dcm.Append(mp)
-        #for mp in self.config.cmaps:
+        # for mp in self.config.cmaps:
         #    self.ctlpeakcm.Append(mp)
         self.ctl2dcm.AppendItems(self.config.cmaps2)
         self.ctlpeakcm.AppendItems(self.config.cmaps)
@@ -624,10 +648,10 @@ class main_controls(wx.Panel):
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.HORIZONTAL)
         self.ctlintlb = wx.TextCtrl(panel3b, value='', size=(75, -1))
         self.ctlintub = wx.TextCtrl(panel3b, value='', size=(75, -1))
-        sbs2.Add(self.ctlintlb, flag=wx.LEFT  | wx.EXPAND, border=5)
-        sbs2.Add(wx.StaticText(panel3b, label=' to '), 0, flag= wx.EXPAND)
+        sbs2.Add(self.ctlintlb, flag=wx.LEFT | wx.EXPAND, border=5)
+        sbs2.Add(wx.StaticText(panel3b, label=' to '), 0, flag=wx.EXPAND)
         sbs2.Add(self.ctlintub, flag=wx.LEFT | wx.EXPAND, border=5)
-        sbs2.Add(wx.StaticText(panel3b, label=' Da '), 0, flag= wx.EXPAND)
+        sbs2.Add(wx.StaticText(panel3b, label=' Da '), 0, flag=wx.EXPAND)
         gbox3b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
@@ -666,10 +690,45 @@ class main_controls(wx.Panel):
 
         sizercontrol.SetMinSize((250 + self.config.imflag * 10, 0))
 
+        # Add to sizer and setup
+        sizercontrolscrolled = wx.BoxSizer(wx.VERTICAL)
+        sizercontrolscrolled.Add(self.foldpanels, 1, wx.EXPAND)
+        self.scrolledpanel.SetSizer(sizercontrolscrolled)
+        sizercontrolscrolled.Fit(self.scrolledpanel)
+
         # Add to top control sizer
-        sizercontrol.Add(self.foldpanels, 1, wx.EXPAND)
+        sizercontrol.Add(self.scrolledpanel, 1, wx.EXPAND)
+
+        # Bottom Buttons
+        if self.config.imflag == 0:
+            buttonsizer2 = wx.BoxSizer(wx.HORIZONTAL)
+            bsize = (45, 25)
+            self.mainbutton = wx.Button(self, -1, "Main", size=bsize)
+            self.expandbutton = wx.Button(self, -1, "All", size=bsize)
+            self.collapsebutton = wx.Button(self, -1, "None", size=bsize)
+            self.bluebutton = wx.Button(self, -1, "Blue", size=bsize)
+            self.yellowbutton = wx.Button(self, -1, "Yellow", size=bsize)
+            self.redbutton = wx.Button(self, -1, "Red", size=bsize)
+            self.bluebutton.SetBackgroundColour(wx.Colour(150, 150, 255))
+            self.yellowbutton.SetBackgroundColour(wx.Colour(255, 255, 150))
+            self.redbutton.SetBackgroundColour(wx.Colour(255, 150, 150))
+            self.parent.Bind(wx.EVT_BUTTON, self.on_expand_main, self.mainbutton)
+            self.parent.Bind(wx.EVT_BUTTON, self.on_expand_all, self.expandbutton)
+            self.parent.Bind(wx.EVT_BUTTON, self.on_collapse_all, self.collapsebutton)
+            self.parent.Bind(wx.EVT_BUTTON, self.on_expand_blue, self.bluebutton)
+            self.parent.Bind(wx.EVT_BUTTON, self.on_expand_yellow, self.yellowbutton)
+            self.parent.Bind(wx.EVT_BUTTON, self.on_expand_red, self.redbutton)
+            buttons = [self.mainbutton, self.expandbutton, self.collapsebutton, self.bluebutton, self.yellowbutton,
+                       self.redbutton]
+            for button in buttons:
+                buttonsizer2.Add(button, 0, wx.EXPAND)
+            sizercontrol.Add(buttonsizer2, 0, wx.EXPAND)
+
+        # Set top sizer
         self.SetSizer(sizercontrol)
         sizercontrol.Fit(self)
+
+        # Add remaining things
         self.setup_tool_tips()
         self.bind_changes()
 
@@ -696,10 +755,6 @@ class main_controls(wx.Panel):
             self.ctlmasslb.SetValue(str(self.config.masslb))
             self.ctlmassub.SetValue(str(self.config.massub))
             self.ctlmasslistflag.SetValue(self.config.mfileflag)
-            self.doubledecflag.SetValue(self.config.doubledec)  # DoubleDec config import
-            if self.config.kernel != "":
-                kernel_name = os.path.splitext(os.path.basename(self.config.kernel))[0]
-                self.doubledecbutton.SetLabel(kernel_name)
             self.ctlmtabsig.SetValue(str(self.config.mtabsig))
             self.ctlbuff.SetValue(str(self.config.subbuff))
             self.subtypectl.SetSelection(int(self.config.subtype))
@@ -719,6 +774,10 @@ class main_controls(wx.Panel):
             self.ctlmaxnativez.SetValue(str(self.config.nativezub))
             self.ctlpoolflag.SetSelection(self.config.poolflag)
             if self.config.imflag == 0:
+                if self.config.kernel != "":
+                    kernel_name = os.path.splitext(os.path.basename(self.config.kernel))[0]
+                    self.doubledecbutton.SetLabel(kernel_name)
+                self.doubledecflag.SetValue(self.config.doubledec)  # DoubleDec config import
                 self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
                 self.ctlmanualassign.SetValue(self.config.manualfileflag)
                 self.ctlisotopemode.SetSelection(self.config.isotopemode)
@@ -768,6 +827,8 @@ class main_controls(wx.Panel):
                 else:
                     self.ctltcal1.SetValue(str(self.config.tcal1))
                     self.ctltcal2.SetValue(str(self.config.tcal2))
+                    self.ctltcal3.SetValue(str(self.config.tcal3))
+                    self.ctltcal4.SetValue(str(self.config.tcal4))
                     self.ctledc.SetValue(str(self.config.edc))
                     self.ctlgasmass.SetValue(str(self.config.gasmass))
                     self.ctltwavecaltype.SetSelection(list(self.config.twavedict.keys()).index(self.config.twaveflag))
@@ -791,6 +852,12 @@ class main_controls(wx.Panel):
                 except:
                     print("No Menu Found")
 
+            try:
+                test = float(self.config.msig)
+            except:
+                self.config.msig=0
+
+
             if self.config.msig > 0:
                 self.parent.SetStatusText(
                     "Oligomer Blur Mass: " + str(self.config.molig) + " Std Dev: " + str(self.config.msig),
@@ -805,13 +872,13 @@ class main_controls(wx.Panel):
             if self.config.imflag == 1:
                 self.ctlmindt.SetValue(str(self.config.mindt))
                 self.ctlmaxdt.SetValue(str(self.config.maxdt))
-        #print("4: %.2gs" % (time.perf_counter() - tstart))
+        # print("4: %.2gs" % (time.perf_counter() - tstart))
         self.update_flag = True
         try:
             self.update_quick_controls()
         except Exception as e:
             print("Error updating quick controls", e)
-        #print("5: %.2gs" % (time.perf_counter() - tstart))
+        # print("5: %.2gs" % (time.perf_counter() - tstart))
         self.Thaw()
 
     def export_gui_to_config(self, e=None):
@@ -837,8 +904,6 @@ class main_controls(wx.Panel):
         self.config.psfun = self.ctlpsfun.GetSelection()
         self.config.peaknorm = self.ctlnorm.GetSelection()
         self.config.mfileflag = int(self.ctlmasslistflag.GetValue())
-        self.config.doubledec = self.doubledecflag.GetValue()  # DoubleDec config export
-        # self.config.kernel =
         self.config.peakwindow = ud.string_to_value(self.ctlwindow.GetValue())
         self.config.peakthresh = ud.string_to_value(self.ctlthresh.GetValue())
         self.config.peakplotthresh = ud.string_to_value(self.ctlthresh2.GetValue())
@@ -853,6 +918,7 @@ class main_controls(wx.Panel):
         self.config.integratelb = ud.string_to_value(self.ctlintlb.GetValue())
         self.config.integrateub = ud.string_to_value(self.ctlintub.GetValue())
         if self.config.imflag == 0:
+            self.config.doubledec = self.doubledecflag.GetValue()  # DoubleDec config export
             self.config.reductionpercent = ud.string_to_value(self.ctldatareductionpercent.GetValue())
             self.config.isotopemode = int(self.ctlisotopemode.GetSelection())
             self.config.orbimode = int(self.ctlorbimode.GetValue())
@@ -868,13 +934,18 @@ class main_controls(wx.Panel):
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
         self.config.rawflag = self.ctlrawflag.GetSelection()
 
+        try:
+            test = float(self.config.adductmass)
+        except:
+            self.config.adductmass=0
+
         if self.ctlnegmode.GetValue() == 1:
             # print("Negative Ion Mode")
             if self.config.adductmass > 0:
                 self.config.adductmass *= -1
                 self.ctladductmass.SetValue(str(self.config.adductmass))
         else:
-            # print("Positive Ion Mode")
+            # print("Positive Ion Mode")\
             if self.config.adductmass < 0:
                 self.config.adductmass *= -1
                 self.ctladductmass.SetValue(str(self.config.adductmass))
@@ -884,6 +955,7 @@ class main_controls(wx.Panel):
         self.config.poolflag = self.ctlpoolflag.GetSelection()
 
         if self.config.imflag == 1:
+            self.config.compressflag = int(self.ctlconvertflag.GetValue())
             self.config.pusher = ud.string_to_value(self.ctlpusher.GetValue())
             self.config.mindt = ud.string_to_value(self.ctlmindt.GetValue())
             self.config.maxdt = ud.string_to_value(self.ctlmaxdt.GetValue())
@@ -907,6 +979,8 @@ class main_controls(wx.Panel):
             else:
                 self.config.tcal1 = ud.string_to_value(self.ctltcal1.GetValue())
                 self.config.tcal2 = ud.string_to_value(self.ctltcal2.GetValue())
+                self.config.tcal3 = ud.string_to_value(self.ctltcal3.GetValue())
+                self.config.tcal4 = ud.string_to_value(self.ctltcal4.GetValue())
                 self.config.edc = ud.string_to_value(self.ctledc.GetValue())
                 self.config.gasmass = ud.string_to_value(self.ctlgasmass.GetValue())
                 self.config.twaveflag = list(self.config.twavedict.keys())[self.ctltwavecaltype.GetSelection()]
@@ -920,13 +994,15 @@ class main_controls(wx.Panel):
             self.config.minmz = np.amin(self.pres.eng.data.rawdata[:, 0])
         if not self.config.maxmz and not ud.isempty(self.pres.eng.data.rawdata):
             self.config.maxmz = np.amax(self.pres.eng.data.rawdata[:, 0])
-        pass
 
-        if self.config.msig > 0:
-            self.parent.SetStatusText(
-                "Oligomer Blur Mass: " + str(self.config.molig) + " Std Dev: " + str(self.config.msig),
-                number=4)
-        else:
+        try:
+            if self.config.msig > 0:
+                self.parent.SetStatusText(
+                    "Oligomer Blur Mass: " + str(self.config.molig) + " Std Dev: " + str(self.config.msig),
+                    number=4)
+            else:
+                self.parent.SetStatusText(" ", number=4)
+        except:
             self.parent.SetStatusText(" ", number=4)
         # noinspection PyPep8
 
@@ -1058,6 +1134,8 @@ class main_controls(wx.Panel):
                 self.ctltcal1.SetToolTip(wx.ToolTip("T-Wave calibration parameter 1."))
                 self.ctltcal2.SetToolTip(wx.ToolTip("T-Wave calibration parameter 2."))
                 self.ctledc.SetToolTip(wx.ToolTip("T-Wave instrument EDC parameter."))
+                self.ctltcal3.SetToolTip(wx.ToolTip("T-Wave calibration parameter 3 for SLIM poly2."))
+                self.ctltcal4.SetToolTip(wx.ToolTip("T-Wave calibration parameter 4 for SLIM poly3."))
                 self.ctlgasmass.SetToolTip(wx.ToolTip("Mass of gas in drift cell.\nDefault is for Nitrogen."))
             self.ctlccslb.SetToolTip(wx.ToolTip("Minimum allowed CCS."))
             self.ctlccsub.SetToolTip(wx.ToolTip("Maximum allowed CCS."))
@@ -1131,23 +1209,30 @@ class main_controls(wx.Panel):
         :param e: Triggering event. Unused.
         :return: None
         """
-        kernel_path = self.pres.on_open_kernel()
+        kernel_path = self.pres.on_open_kernel()  # The file the user chose
+        kernel_path2 = kernel_path  # The _mass.txt file
         kernel_name = os.path.basename(kernel_path)
-        bare_name = os.path.splitext(kernel_name)[0]
-        # if kernel_name.split('_')[-1] == "mass.txt":  # Possible naming issues
-        #    self.doubledecbutton.SetLabel(bare_name)
-        #    self.config.kernel = kernel_path
-        # else:
-        kernel_path2 = os.path.dirname(kernel_path) + "\\" + bare_name + "_unidecfiles\\" + \
-            bare_name + "_mass.txt"
+
+        if kernel_name.split('_')[-1] != "mass.txt":
+            # If the filename doesn't end in "_mass.txt", it's not a mass file
+            is_mass = False
+        else:
+            # Otherwise, it might be a mass file. Check if linear
+            kernel_dat = np.loadtxt(kernel_path)
+            kernel_diff = np.diff(kernel_dat[:, 0])
+            is_mass = np.all(kernel_diff == kernel_diff[0])
+        if not is_mass:  # If not a mass file, find the mass file
+            bare_name = os.path.splitext(kernel_name)[0]
+            kernel_path2 = os.path.dirname(kernel_path) + "\\" + bare_name + "_unidecfiles\\" + \
+                           bare_name + "_mass.txt"
+
         try:
             with open(kernel_path2, "r") as f:
                 self.doubledecbutton.SetLabel(os.path.splitext(os.path.basename(kernel_path2))[0])
                 self.config.kernel = kernel_path2
-        except IOError:
+        except (IOError, FileNotFoundError) as err:
             print("Please deconvolve the m/z file [" + kernel_name + "] with UniDec first.")
         print(self.config.kernel)
-        # TODO: Check that mass file is linear!
 
     def on_z_smooth(self, e):
         value = self.ctlzsmoothcheck.Get3StateValue()
@@ -1193,6 +1278,60 @@ class main_controls(wx.Panel):
         value = self.ctlbselect.GetSelection()
         self.ctlbeta.SetValue(str(self.betasettings[value]))
         self.export_gui_to_config()
+
+    def on_collapse_all(self, e=None):
+        num = self.foldpanels.GetCount()
+        for i in range(0, num):
+            fp = self.foldpanels.GetFoldPanel(i)
+            self.foldpanels.Collapse(fp)
+        pass
+
+    def on_expand_all(self, e=None):
+        num = self.foldpanels.GetCount()
+        for i in range(0, num):
+            fp = self.foldpanels.GetFoldPanel(i)
+            self.foldpanels.Expand(fp)
+        pass
+
+    def on_expand_blue(self, e=None):
+        num = self.foldpanels.GetCount()
+        for i in range(0, num):
+            fp = self.foldpanels.GetFoldPanel(i)
+            if i in [0, 1]:
+                self.foldpanels.Expand(fp)
+            else:
+                self.foldpanels.Collapse(fp)
+        pass
+
+    def on_expand_yellow(self, e=None):
+        num = self.foldpanels.GetCount()
+        for i in range(0, num):
+            fp = self.foldpanels.GetFoldPanel(i)
+            if i in [2, 3, 4]:
+                self.foldpanels.Expand(fp)
+            else:
+                self.foldpanels.Collapse(fp)
+        pass
+
+    def on_expand_red(self, e=None):
+        num = self.foldpanels.GetCount()
+        for i in range(0, num):
+            fp = self.foldpanels.GetFoldPanel(i)
+            if i in [5, 6]:
+                self.foldpanels.Expand(fp)
+            else:
+                self.foldpanels.Collapse(fp)
+        pass
+
+    def on_expand_main(self, e=None):
+        num = self.foldpanels.GetCount()
+        for i in range(0, num):
+            fp = self.foldpanels.GetFoldPanel(i)
+            if i in [0, 2, 3, 5]:
+                self.foldpanels.Expand(fp)
+            else:
+                self.foldpanels.Collapse(fp)
+        pass
 
     def bind_changes(self, e=None):
         self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlzzsig)
@@ -1250,9 +1389,9 @@ class main_controls(wx.Panel):
             except:
                 value = -1
             psval = self.ctlpsfun.GetSelection()
-            #try:
+            # try:
             #    fwhm, psfun, mid = ud.auto_peak_width(self.pres.eng.data.data2)
-            #except:
+            # except:
             #    fwhm = -1
             #    psfun = -1
             if value == 0:

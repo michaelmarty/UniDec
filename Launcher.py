@@ -6,7 +6,9 @@ import wx
 from unidec_modules.unidec_presbase import UniDecPres
 from unidec_modules.unidec_enginebase import UniDecEngine
 import multiprocessing
-import GUniDec
+from CDPres import UniDecCDApp
+from GUniDec import UniDecApp
+
 import datacollector
 from metaunidec import mudpres
 from import_wizard import ImportWizard
@@ -14,9 +16,10 @@ from metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard as HDF
 from metaunidec.ultrameta import DataCollector as UMDC
 from UniChrom2 import ChromApp
 import wx.py as py
-import sys
 import os
-
+import sys
+import locale
+locale.setlocale(locale.LC_ALL, 'C')
 
 class UniDecLauncher(UniDecPres):
     """
@@ -39,6 +42,21 @@ class UniDecLauncher(UniDecPres):
         self.view = Lview(self)
         self.view.Bind(wx.EVT_CLOSE, self.on_close)
 
+        if "--meta" in sys.argv[1:] or "-m" in sys.argv[1:]:
+            print("Launching Meta")
+            self.view.button4()
+
+        if "--chrom" in sys.argv[1:] or "-c" in sys.argv[1:]:
+            print("Launching UniChrom")
+            self.view.button8()
+
+        if "--unidec" in sys.argv[1:] or "-u" in sys.argv[1:]:
+            print("Launching UniDec")
+            self.view.button1()
+
+        if len(sys.argv)>1:
+            self.view.button8()
+
     def on_close(self, e=None):
         self.quit_application()
         self.view.Destroy()
@@ -59,15 +77,16 @@ class Lview(wx.Frame):
         button6 = wx.Button(panel, -1, "HDF5 Import Wizard\n\nImport Data into HDF5 for MetaUniDec")
         button7 = wx.Button(panel, -1, "UltraMeta Data Collector\n\nVisualize Multiple HDF5 Data Sets\nFit Trends")
         button8 = wx.Button(panel, -1, "UniChrom2\n\nDeconvolution of Chromatograms\nUniDec for LC/MS Data")
+        button9 = wx.Button(panel, -1, "UniDecCD\n\nDeconvolution of Charge Detection MS\nUniDec for CD-MS Data")
 
-        html = wx.html.HtmlWindow(panel, -1, size=(330,260))
+        html = wx.html.HtmlWindow(panel, -1, size=(390,310))
         pathtofile = os.path.dirname(os.path.abspath(__file__))
         self.imagepath = os.path.join(pathtofile, "UniDecLogoMR.png")
         #print(self.imagepath)
         html.SetPage(
             "<html><body>"
             #"<h1>UniDec</h1>"
-            "<img src=\"" + self.imagepath +"\" alt=\"PNG Icon\" height=\"200\" width=\"290\">"
+            "<img src=\"" + self.imagepath +"\" alt=\"PNG Icon\" height=\"250\" width=\"363\">"
             "<p>Please Cite: Marty et al. Anal. Chem. 2015. " 
             "DOI: 10.1021/acs.analchem.5b00140.</p>"
             "</body></html>"
@@ -79,9 +98,10 @@ class Lview(wx.Frame):
         sizer.Add(button4, (0, 1), flag=wx.EXPAND)
         sizer.Add(button6, (2, 1), flag=wx.EXPAND)
         sizer.Add(button7, (1, 1), flag=wx.EXPAND)
-        sizer.Add(button5, (3, 0), flag=wx.EXPAND)
+        sizer.Add(button9, (3, 0), flag=wx.EXPAND)
+        sizer.Add(button5, (4, 0), span=(1,2), flag=wx.EXPAND)
         sizer.Add(button8, (3, 1), flag=wx.EXPAND)
-        sizer.Add(html, (0, 2), span=(4, 2))
+        sizer.Add(html, (0, 2), span=(5, 2))
 
         self.Bind(wx.EVT_BUTTON, self.button1, button1)
         self.Bind(wx.EVT_BUTTON, self.button2, button2)
@@ -91,6 +111,7 @@ class Lview(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.button6, button6)
         self.Bind(wx.EVT_BUTTON, self.button7, button7)
         self.Bind(wx.EVT_BUTTON, self.button8, button8)
+        self.Bind(wx.EVT_BUTTON, self.button9, button9)
 
         panel.SetSizer(sizer)
         sizer.Fit(self)
@@ -100,7 +121,7 @@ class Lview(wx.Frame):
 
     def button1(self, e=None):
         print("Launching UniDec")
-        app = GUniDec.UniDecApp()
+        app = UniDecApp()
         app.start()
 
     def button2(self, e=None):
@@ -144,6 +165,11 @@ class Lview(wx.Frame):
         app = ChromApp()
         app.start()
 
+    def button9(self, e=None):
+        print("Launching UniDecCD")
+        app = UniDecCDApp()
+        app.start()
+
 class Shell(object):
     def __init__(self, *args, **kwargs):
         self.__wx_app = wx.App(redirect=True)
@@ -162,5 +188,5 @@ class Shell(object):
 if __name__ == '__main__':
     # app2 = Shell()
     multiprocessing.freeze_support()
-    app = UniDecLauncher()
+    app = UniDecLauncher(sys.argv[1:])
     app.start()

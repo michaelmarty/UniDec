@@ -173,6 +173,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
         self.Bind(self.peakpanel.EVT_CHARGE_STATE, self.pres.on_charge_states_mud, self.peakpanel)
         self.Bind(self.peakpanel.EVT_DIFFERENCES, self.pres.on_differences, self.peakpanel)
         self.Bind(self.peakpanel.EVT_MASSES, self.pres.on_label_masses, self.peakpanel)
+        self.Bind(self.peakpanel.EVT_IMAGE, self.pres.make_image_plot, self.peakpanel)
         sizer.Add(self.peakpanel, 0, wx.EXPAND)
 
         self.controls = main_controls(self, self.config, self.pres, panel, self.icon_path)
@@ -207,6 +208,8 @@ class MyFileDropTarget(wx.FileDropTarget):
         if os.path.splitext(fname)[1] == ".hdf5":
             print("Opening .hdf5 file:", fname)
             self.window.pres.open_file(path)
+        elif os.path.splitext(fname)[1] == ".csv":
+            self.window.pres.open_csv(path)
         else:
             self.window.pres.add_files(filenames)
         return 0

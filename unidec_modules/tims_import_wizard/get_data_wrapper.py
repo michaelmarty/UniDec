@@ -145,18 +145,27 @@ def new_get_data_MS_old(start, end, bin_size, raw_file, function_no, scan_start,
 '''
 
 
-def new_get_data_MS(start, end, bin_size, raw_file, function_no, scan_start, scan_end, dir=None):
+def new_get_data_MS(start, end, bin_size, raw_file, function_no, scan_start=None, scan_end=None, dir=None, time_start=None, time_end=None):
     msfile = os.path.splitext(raw_file)[0] + '_' + str(function_no) + '_ms.txt'
     print("MS Processing: ", raw_file, "to", msfile)
 
     reader = WDI(raw_file, function=function_no)
 
-    if scan_start > 0. and scan_end is not None and scan_end > 0.:
-        scan_range = [scan_start, scan_end]
-    else:
-        scan_range = None
+    if time_start is not None:
+        if time_start >= 0. and time_end is not None and time_end > 0.:
+            time_range = [time_start, time_end]
+        else:
+            time_range = None
+        print("Time Range:", time_range)
+        data = reader.get_data(time_range=time_range, mzbins=bin_size)
 
-    data = reader.get_data(scan_range=scan_range, mzbins=bin_size)
+    else:
+        if scan_start > 0. and scan_end is not None and scan_end > 0.:
+            scan_range = [scan_start, scan_end]
+        else:
+            scan_range = None
+
+        data = reader.get_data(scan_range=scan_range, mzbins=bin_size)
 
     try:
         start = float(start)

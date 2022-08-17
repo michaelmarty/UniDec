@@ -17,7 +17,11 @@ from scipy.optimize import curve_fit
 from scipy import signal
 from scipy import fftpack
 import matplotlib.cm as cm
-from unidec_modules.mzMLimporter import mzMLimporter
+
+try:
+    from unidec_modules.mzMLimporter import mzMLimporter
+except:
+    pass
 from unidec_modules.fitting import *
 from unidec_modules import unidecstructure
 import fnmatch
@@ -34,8 +38,7 @@ try:
 except:
     print("Could not import Waters Data Importer")
 
-
-#from unidec_modules.thermo_reader.ThermoImporter import ThermoDataImporter
+# from unidec_modules.thermo_reader.ThermoImporter import ThermoDataImporter
 try:
     from unidec_modules.thermo_reader.ThermoImporter import ThermoDataImporter
 except:
@@ -50,6 +53,7 @@ If this isn't present, it will print a warning but use the pure python code late
 """
 dllname = "libmypfunc"
 protmass = 1.007276467
+omass = 15.994914
 
 if platform.system() == "Windows":
     if not is_64bits:
@@ -89,9 +93,9 @@ except (OSError, NameError):
 
 
 def get_importer(path):
-    if os.path.splitext(path)[1] == ".mzML":
+    if os.path.splitext(path)[1] == ".mzML" or os.path.splitext(path)[1] == ".gz":
         # mzML file
-        d = mzMLimporter(path)
+        d = mzMLimporter(path, gzmode=True)
     elif os.path.splitext(path)[1].lower() == ".raw" and not os.path.isdir(path):
         # Thermo Raw File
         try:
@@ -106,6 +110,15 @@ def get_importer(path):
         d = data_reader.DataImporter(path)
 
     return d
+
+
+def get_max_time(path):
+    if os.path.splitext(path)[1] == ".txt":
+        return 0
+
+    importer = get_importer(path)
+    maxtime = importer.get_max_time()
+    return maxtime
 
 
 # ..........................
@@ -146,11 +159,12 @@ def get_luminance(color, type=2):
     return larray[type]
 
 
-def match_files(directory, string):
+def match_files(directory, string, exclude=None):
     files = []
     for file in os.listdir(directory):
         if fnmatch.fnmatch(file, string):
-            files.append(file)
+            if exclude is None or exclude not in file:
+                files.append(file)
     return np.array(files)
 
 
@@ -220,6 +234,11 @@ def decimal_formatter(a, template):
     return label
 
 
+def round_to_nearest(n, m):
+    r = n % m
+    return n + m - r if r + r >= m else n - r
+
+
 def fix_textpos(pos, maxval):
     cutoff = 0.05 * maxval
     posout = []
@@ -271,6 +290,17 @@ def weighted_avg(values, weights):
     if np.sum(weights) == 0:
         return 0
     return np.average(values, weights=weights)
+
+
+def mass_weighted_average(value, weights):
+    return np.sum(weights * np.power(value, 2)) / np.sum(weights * value)
+
+
+def polydispersity_index(massdat):
+    number_average_molar_mass = weighted_avg(massdat[:, 0], massdat[:, 1])
+    mass_average_molar_mass = mass_weighted_average(massdat[:, 0], massdat[:, 1])
+    pdi = mass_average_molar_mass / number_average_molar_mass
+    return pdi
 
 
 def interp_pos(array, target):
@@ -383,13 +413,19 @@ def integrate(data, start, end):
     return integral, intdat
 
 
-def center_of_mass(data, start=None, end=None, power=1.):
+def center_of_mass(data, start=None, end=None, relative_cutoff=None, power=1.):
     if start is not None and end is not None:
         boo1 = data[:, 0] < end
         boo2 = data[:, 0] > start
         cutdat = data[np.all([boo1, boo2], axis=0)]
     else:
         cutdat = data
+
+    if relative_cutoff is not None:
+        maxval = np.amax(cutdat[:, 1])
+        boo3 = cutdat[:, 1] > maxval * relative_cutoff
+        cutdat = cutdat[boo3]
+
     try:
         weightedavg = np.average(cutdat[:, 0], weights=np.power(cutdat[:, 1], float(power)))
         weightstd = weighted_std(cutdat[:, 0], np.power(cutdat[:, 1], float(power)))
@@ -504,6 +540,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             print("NEED TO SET INTEGRAL WINDOW!\nUsing Peak Height Instead")
 
     elif extract_method == 3:
+        # Center of Mass
         if window is not None:
             start = x - window
             end = x + window
@@ -513,6 +550,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 4:
+        # Local Max Position
         if window is not None:
             start = x - window
             end = x + window
@@ -550,6 +588,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 7:
+        # Center of Mass for intensity squared
         if window is not None:
             start = x - window
             end = x + window
@@ -559,6 +598,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 8:
+        # Center of Mass for intensity cubed
         if window is not None:
             start = x - window
             end = x + window
@@ -568,7 +608,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 9:
-        # Remove data points that fall below 50% threshold
+        # Center of mass Remove data points that fall below 50% threshold squared
         maxval = np.amax(data[:, 1])
         boo2 = data[:, 1] > maxval * 0.5
         cutdat = data[boo2]
@@ -582,7 +622,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 10:
-        # Remove data points that fall below 50% threshold
+        # Center of Mass Remove data points that fall below 50% threshold cubed
         maxval = np.amax(data[:, 1])
         boo2 = data[:, 1] > maxval * 0.5
         cutdat = data[boo2]
@@ -622,6 +662,25 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             elif psfun == 2:  # Split G/L
                 val = height * fwhm * adjusted_coeff
 
+    elif extract_method == 12:
+        # Peak Area with 10% relative threshold
+        start = nearest(data[:, 0], (x - window))  # x values should be sorted
+        end = nearest(data[:, 0], (x + window))
+        data_slice = data[start:end]
+        max_index = np.argmax(data_slice[:, 1])
+        local_height = data_slice[max_index, 1]
+
+        boo2 = data[:, 1] > local_height * 0.1
+        cutdat = data[boo2]
+        if window is not None:
+            start = x - window
+            end = x + window
+            val, junk = integrate(cutdat, start, end)
+        else:
+            index = nearest(data[:, 0], x)
+            val = data[index, 1]
+            print("NEED TO SET INTEGRAL WINDOW!\nUsing Peak Height Instead")
+
     else:
         val = 0
         print("Undefined extraction choice")
@@ -636,6 +695,25 @@ def data_extract_grid(data, xarray, extract_method=1, window=0):
             x = xarray[j, k]
             igrid[j, k] = data_extract(data, x, extract_method=extract_method, window=window)
     return igrid
+
+
+def extract_from_data_matrix(xaxis, matrix, midpoint, extract_method=0, window=0):
+    if extract_method == 0:
+        index = nearest(xaxis, midpoint)
+        data = matrix[:, index]
+    elif extract_method == 1:
+        startindex = nearest(xaxis, midpoint-window)
+        endindex = nearest(xaxis, midpoint + window)
+        data = np.amax(matrix[:, startindex:endindex], axis=1)
+    elif extract_method == 2:
+        startindex = nearest(xaxis, midpoint-window)
+        endindex = nearest(xaxis, midpoint + window)
+        data = np.sum(matrix[:, startindex:endindex], axis=1)
+    else:
+        print("Grid Extraction Method Not Recognized")
+        data = []
+    return data
+
 
 
 def normalize_extracts(grid, norm_method=0):
@@ -679,11 +757,14 @@ def simple_mass_defect(mass, refmass, centermode=1, normtype=1):
         md = md * refmass
     return md
 
-def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmode=1, xaxistype=1):
+
+def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmode=1, xaxistype=1, massrange=None):
     # Calculate Defects for Deconvolved Masses
     if kendrickmass == 0:
         print("Error: Kendrick mass is 0.")
         return None, None, None, None, None
+    if massrange is not None:
+        massdat = datachop(massdat, massrange[0], massrange[1])
     xaxis = massdat[:, 0]
     kmass = np.array(xaxis) / float(kendrickmass)
     if centermode == 1:
@@ -810,7 +891,7 @@ def waters_convert2(path, config=None, outfile=None):
     return data
 
 
-def load_mz_file(path, config=None, time_range=None):
+def load_mz_file(path, config=None, time_range=None, imflag=0):
     """
     Loads a text or mzml file
     :param path: File path to load
@@ -850,17 +931,36 @@ def load_mz_file(path, config=None, time_range=None):
             data = np.loadtxt(path, skiprows=header_test(path))
             # data = np.loadtxt(path, skiprows=header_test(path, delimiter=","), delimiter=",")
         elif extension == ".csv":
-            data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0, 1))
-        elif extension == ".mzml":
-            data = mzMLimporter(path).get_data(time_range=time_range)
-            txtname = path[:-5] + ".txt"
-            np.savetxt(txtname, data)
-            print("Saved to:", txtname)
+            try:
+                data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0, 1))
+            except:
+                data = np.loadtxt(path, delimiter=",", skiprows=8, usecols=(0, 1))
+        elif extension == ".mzml" or extension == ".gz":
+            if imflag == 1:
+                if config.compressflag == 1:
+                    mzbins = config.mzbins
+                else:
+                    mzbins = None
+                data = mzMLimporter(path).get_im_data(time_range=time_range, mzbins=mzbins)
+                if extension == ".mzml":
+                    num = -5
+                if extension == '.gz':
+                    num = -8
+                txtname = path[:num] + ".txt"
+                np.savetxt(txtname, sparse(data))
+                print("Saved to:", txtname)
+            else:
+                data = mzMLimporter(path).get_data(time_range=time_range)
+                txtname = path[:-5] + ".txt"
+                np.savetxt(txtname, data)
+                print("Saved to:", txtname)
         elif extension.lower() == ".raw":
             data = ThermoDataImporter(path).get_data(time_range=time_range)
             txtname = path[:-4] + ".txt"
             np.savetxt(txtname, data)
             print("Saved to:", txtname)
+        elif extension.lower() == ".npz":
+            data = np.load(path)['data']
         else:
             try:
                 data = np.loadtxt(path, skiprows=header_test(path))
@@ -898,13 +998,24 @@ def zip_folder(save_path, directory=None):
     print("File saved to: " + str(save_path))
 
 
-def dataexport(datatop, fname):
+def dataexport(datatop, fname, header=""):
     try:
-        np.savetxt(fname, datatop, fmt='%f')
+        np.savetxt(fname, datatop, fmt='%f', header=header)
     except:
         path = os.path.join(os.getcwd(), fname)
         path = "\\\\?\\%s" % path
-        np.savetxt(path, datatop, fmt='%f')
+        np.savetxt(path, datatop, fmt='%f', header=header)
+        print("NOTE: Your path length might exceed the limit for Windows. Please shorten your file name.")
+    pass
+
+
+def dataexportbin(datatop, fname):
+    try:
+        datatop.astype(np.single).tofile(fname, sep="")
+    except:
+        path = os.path.join(os.getcwd(), fname)
+        path = "\\\\?\\%s" % path
+        datatop.astype(np.single).tofile(path, sep="")
         print("NOTE: Your path length might exceed the limit for Windows. Please shorten your file name.")
     pass
 
@@ -933,7 +1044,7 @@ def mergedata(data1, data2):
     return newdat
 
 
-def mergedata2d(x1, y1, x2, y2, z2):
+def mergedata2d(x1, y1, x2, y2, z2, method="linear"):
     """
     Uses a 2D interpolation to merge a 2D grid of data from one set of axes to another.
 
@@ -949,7 +1060,7 @@ def mergedata2d(x1, y1, x2, y2, z2):
     oldy = np.ravel(y2)
     newx = np.ravel(x1)
     newy = np.ravel(y1)
-    zout = griddata(np.transpose([oldx, oldy]), np.ravel(z2), (newx, newy), method='linear', fill_value=0)
+    zout = griddata(np.transpose([oldx, oldy]), np.ravel(z2), (newx, newy), method=method, fill_value=0)
     return zout
 
 
@@ -963,6 +1074,9 @@ def mergedata2d(x1, y1, x2, y2, z2):
 def auto_peak_width(datatop, psfun=None, singlepeak=False):
     maxpos = np.argmax(datatop[:, 1])
     maxval = datatop[maxpos, 0]
+
+    if maxval == 0:
+        return 1, 0, 0
 
     # TODO: This is potentially dangerous if nonlinear!
     ac, cpeaks = autocorr(datatop)
@@ -994,7 +1108,7 @@ def auto_peak_width(datatop, psfun=None, singlepeak=False):
         else:
             isodat = datatop
 
-        fits = np.array([isolated_peak_fit(isodat[:, 0], isodat[:, 1], i) for i in range(0, 3)])
+        fits = np.array([isolated_peak_fit(isodat[:, 0], isodat[:, 1], i) for i in range(0, 3)], dtype="object")
 
         errors = [np.sum(np.array(isodat[:, 1] - f) ** 2.) for f in fits[:, 1]]
         if psfun is None:
@@ -1237,6 +1351,19 @@ def intensitythresh_del(datatop, thresh):
     return datatop
 
 
+def intensitythresh_sub(datatop, thresh):
+    """
+    Sets an intensity threshold. Everything below the threshold is set to 0. Everything else is subtracted by threshold.
+    :param datatop: Data array
+    :param thresh: Threshold value
+    :return: Thresholded array.
+    """
+    datatop[:, 1] -= thresh * np.amax(datatop[:, 1])
+    belowint = datatop[:, 1] < 0
+    datatop[belowint, 1] = 0
+    return datatop
+
+
 def remove_noise(datatop, percent=None):
     l1 = len(datatop)
     if percent is None:
@@ -1260,8 +1387,60 @@ def gsmooth(datatop, sig):
     :param sig: Width of Gaussian Array
     :return: Smoothed Data
     """
+    print(len(datatop), sig)
     datatop[:, 1] = filt.gaussian_filter(datatop[:, 1], sig)
     return datatop
+
+
+def linear_axis(raw_data):
+    # Get the sparse data
+    sparse_data = np.unique(raw_data)
+    # Find the sample rate
+    sample_rate = np.amin(np.diff(sparse_data))
+    # Setup the new axis
+    min = np.amin(sparse_data)
+    max = np.amax(sparse_data)
+    newaxis = np.arange(min, max + sample_rate, sample_rate)
+    # Round the old axis to match the new. Otherwise, small differences will be deadly
+    oldraw = np.round((raw_data - min) / sample_rate) * sample_rate + min
+    oldaxis = np.unique(oldraw)
+    return newaxis, oldaxis, oldraw
+
+
+def mergedata2dexact(x1, y1, x2, y2, z2):
+    p1 = np.vectorize(complex)(x1, y1)
+    p2 = np.vectorize(complex)(x2, y2)
+    boo3 = np.isin(p1, p2)
+
+    z1 = np.zeros_like(x1)
+    z1[boo3] = z2
+    return z1
+
+
+def unsparse(rawdata):
+    # Create new axes
+    mzaxis2, mzaxis, rawdata[:, 0] = linear_axis(rawdata[:, 0])
+    dtaxis2, dtaxis, rawdata[:, 1] = linear_axis(rawdata[:, 1])
+
+    # Create new grids
+    mzaxis2grid, dtaxis2grid = np.meshgrid(mzaxis2, dtaxis2, sparse=False, indexing='ij')
+
+    # Unsparse
+    ints2 = mergedata2dexact(np.ravel(mzaxis2grid), np.ravel(dtaxis2grid), rawdata[:, 0], rawdata[:, 1], rawdata[:, 2])
+
+    # Wrap everything together
+    rawdata3 = np.transpose([np.ravel(mzaxis2grid), np.ravel(dtaxis2grid), ints2])
+
+    # Create 1D sum
+    intgrid = ints2.reshape((len(mzaxis2), len(dtaxis2)))
+    rawdata = np.transpose([mzaxis2, np.sum(intgrid, axis=1)])
+
+    return rawdata3, rawdata
+
+
+def sparse(rawdata):
+    boo1 = rawdata[:, 2] != 0
+    return rawdata[boo1]
 
 
 def nonlinear_axis(start, end, res):
@@ -1337,7 +1516,7 @@ def linterpolate(datatop, intx):
     :return: Interpolation of intensity from original data onto the new x-axis.
         Same shape as the old data but new length.
     """
-    f = interp1d(datatop[:, 0], datatop[:, 1])
+    f = interp1d(datatop[:, 0], datatop[:, 1], fill_value=0, bounds_error=False)
     inty = f(intx)
     newdat = np.column_stack((intx, inty))
     return newdat
@@ -1397,10 +1576,12 @@ def removeduplicates(datatop):
     :param datatop: Data array (N x 2)
     :return: Data with unique x values
     """
-    testunique = np.unique(datatop[:, 0])
-    if len(testunique) != len(datatop):
+    config = unidecstructure.UniDecConfig()
+    floatdata = np.array(datatop[:, 0], dtype=config.dtype)
+    testunique = np.unique(floatdata)
+    if len(testunique) != len(floatdata):
         print("Removing Duplicates")
-        num, start = np.histogram(datatop[:, 0], bins=testunique)
+        num, start = np.histogram(floatdata, bins=testunique)
         means = []
         xvals = []
         index = 0
@@ -1439,9 +1620,15 @@ def detectoreff(datatop, va):
     return datatop
 
 
-def fake_log(data):
-    non_zero_min = np.amin(data[data > 0])
-    return np.log10(np.clip(data, non_zero_min, np.amax(data)))
+def fake_log(data, percent=50):
+    nonzerodata = data[data > 0]
+    l1 = len(nonzerodata)
+    sdat = np.sort(np.ravel(nonzerodata))
+    index = round(l1 * percent / 100.)
+    non_zero_min = sdat[index]
+    newdata = np.log10(np.clip(data, non_zero_min, np.amax(data)))
+    newdata -= np.amin(newdata)
+    return newdata
 
 
 def remove_middle_zeros(data):
@@ -1494,9 +1681,6 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
     if smooth > 0:
         data2 = gsmooth(data2, smooth)
 
-    # Remove Duplicate Data Points
-    data2 = removeduplicates(data2)
-
     # Linearize Data
     if binsize > 0:
         if linflag != 2:
@@ -1516,23 +1700,13 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
         data2 = polynomial_background_subtract(data2, buff)
     elif subtype == 5 and buff != 0:
         data2 = savgol_background_subtract(data2, buff)
-    # elif subtype == 3 and buff != 0:
-    #   data2 = gaussian_background_subtract(data2, buff)
-    #    pass
+    elif subtype == 3 and buff != 0:
+        data2 = intensitythresh_sub(data2, buff)
+        pass
     elif buff == 0:
         pass
     else:
         print("Background subtraction code unsupported", subtype, buff)
-
-    # Scale Adjustment
-    print(config.intscale, config.intscale == "Square Root")
-    if config.intscale == "Square Root":
-        data2[:, 1] = np.sqrt(data2[:, 1])
-        print("Square Root Scale")
-    elif config.intscale == "Logarithmic":
-        data2[:, 1] = fake_log(data2[:, 1])
-        data2[:, 1] -= np.amin(data2[:, 1])
-        print("Log Scale")
 
     # Data Reduction
     if redper > 0:
@@ -1565,6 +1739,9 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
         except:
             pass
         pass
+
+    # Remove Duplicate Data Points
+    data2 = removeduplicates(data2)
 
     return data2
 
@@ -1666,7 +1843,7 @@ def peakdetect_nonlinear(data, config=None, window=1, threshold=0):
             end = data[i, 0] + window
             isodat = datachop(data, start, end)
             testmax = np.amax(isodat[:, 1])
-            index = nearest(isodat[:,0], data[i,0])
+            index = nearest(isodat[:, 0], data[i, 0])
             if data[i, 1] == testmax and np.all(data[i, 1] != isodat[:index, 1]):
                 peaks.append([data[i, 0], data[i, 1]])
 
@@ -1846,7 +2023,8 @@ def nonlinstickconv(xvals, mztab, fwhm, psfun):
     stick = np.zeros(xlen)
     stick[np.array(mztab[:, 2]).astype(np.int)] = mztab[:, 1]
     bool1 = [np.abs(xvals - xvals[i]) < window for i in range(0, xlen)]
-    kernels = np.array([make_peak_shape(-xvals[bool1[i]], psfun, fwhm, -xvals[i]) for i in range(0, xlen)])
+    kernels = np.array([make_peak_shape(-xvals[bool1[i]], psfun, fwhm, -xvals[i]) for i in range(0, xlen)],
+                       dtype=object)
     output = np.array([np.sum(kernels[i] * stick[bool1[i]]) for i in range(0, xlen)])
     return output
 
@@ -2103,23 +2281,27 @@ def autocorr(datatop, config=None):
     :return: Autocorr spectrum, peaks in autocorrelation.
     """
     corry = signal.fftconvolve(datatop[:, 1], datatop[:, 1][::-1], mode='same')
-    corry /= np.amax(corry)
-    maxpos1 = np.argmax(datatop[:, 1])
-    start = np.amax([maxpos1 - len(datatop) / 10, 0])
-    end = np.amin([len(datatop) - 1, maxpos1 + len(datatop) / 10])
-    cutdat = datatop[int(start):int(end)]
-    if len(cutdat) < 20:
-        cutdat = datatop
-    # cutdat=datatop # Other old
-    xdiff = np.mean(cutdat[1:, 0] - cutdat[:len(cutdat) - 1, 0])  # Less dangerous but still dangerous when non-linear
-    # xdiff = datatop[1, 0] - datatop[0, 0] #OLD
-    corrx = np.arange(0.0, len(corry)) * xdiff
-    maxpos = np.argmax(corry)
-    corrx = corrx - corrx[maxpos]
-    autocorr = np.transpose([corrx, corry])
-    boo1 = autocorr[:, 0] > xdiff
-    cpeaks = peakdetect(autocorr[boo1], config)
-    return autocorr, cpeaks
+    if np.amax(corry)!=0:
+        corry /= np.amax(corry)
+        maxpos1 = np.argmax(datatop[:, 1])
+        start = np.amax([maxpos1 - len(datatop) / 10, 0])
+        end = np.amin([len(datatop) - 1, maxpos1 + len(datatop) / 10])
+        cutdat = datatop[int(start):int(end)]
+        if len(cutdat) < 20:
+            cutdat = datatop
+        # cutdat=datatop # Other old
+        xdiff = np.mean(cutdat[1:, 0] - cutdat[:len(cutdat) - 1, 0])  # Less dangerous but still dangerous when non-linear
+        # xdiff = datatop[1, 0] - datatop[0, 0] #OLD
+        corrx = np.arange(0.0, len(corry)) * xdiff
+        maxpos = np.argmax(corry)
+        corrx = corrx - corrx[maxpos]
+        autocorr = np.transpose([corrx, corry])
+        boo1 = autocorr[:, 0] > xdiff
+        cpeaks = peakdetect(autocorr[boo1], config)
+        return autocorr, cpeaks
+
+    else:
+        return [[]], [[]]
 
 
 def cconvolve(xvals, mztab, fwhm, psfun):
@@ -2168,7 +2350,7 @@ def conv_peak_shape_kernel(xaxis, psfun, fwhm):
     return kernel
 
 
-def make_peak_shape(xaxis, psfun, fwhm, mid, norm_area=False):
+def make_peak_shape(xaxis, psfun, fwhm, mid, norm_area=False, speedy=False):
     """
     Make a peak of width fwhm centered at mid for given x axis.
 
@@ -2184,6 +2366,16 @@ def make_peak_shape(xaxis, psfun, fwhm, mid, norm_area=False):
     :param mid: Midpoint of peak
     :return: Peak shape centered at midpoint .
     """
+    # If Speedy, limit the range to just within a few fwhm around the mid
+    if speedy:
+        #b1 = xaxis < mid+2*fwhm
+        #b2 = xaxis > mid-2*fwhm
+        #b1 = np.logical_and(b1, b2)
+        b1 = np.abs(xaxis-mid)<2*fwhm
+        fullx = xaxis
+        xaxis = xaxis[b1]
+        #print(len(xaxis), len(fullx))
+
 
     if psfun == 0:
         kernel = ndis(xaxis, mid, fwhm, norm_area=norm_area)
@@ -2195,6 +2387,13 @@ def make_peak_shape(xaxis, psfun, fwhm, mid, norm_area=False):
         kernel = ndis(xaxis, mid, fwhm, norm_area=norm_area)
     else:
         kernel = xaxis * 0
+
+    # Merge back in the speedy results
+    if speedy:
+        fullkernel = fullx*0
+        fullkernel[b1] = kernel
+        kernel = fullkernel
+
     return kernel
 
 
@@ -2304,29 +2503,35 @@ def fft_process(mzdata, diffrange=None, binsize=0.1, pad=None, preprocessed=Fals
     return maxpos, ftext2, fftdat, fft2
 
 
-def windowed_fft(data, mean, sigma, diffrange=None):
+def windowed_fft(data, mean, sigma, diffrange=None, norm=True):
     if diffrange is None:
         diffrange = [740, 770]
     window = ndis_std(data[:, 0], mean, sigma)
     newdata = deepcopy(data)
     newdata[:, 1] = newdata[:, 1] * window
     maxpos, fft2 = double_fft_diff(newdata, diffrange=diffrange, preprocessed=True)
+    if norm:
+        factor = np.sum(newdata[:, 1])
+        fft2[:, 1] *= factor
     fft2[:, 1] -= np.amin(fft2[:, 1])
     return maxpos, fft2
 
 
-def windowed_fft_single(data, mean, sigma, diffrange=None):
+def windowed_fft_single(data, mean, sigma, diffrange=None, norm=True):
     if diffrange is None:
         diffrange = [0, 10]
     window = ndis_std(data[:, 0], mean, sigma)
     newdata = deepcopy(data)
     newdata[:, 1] = newdata[:, 1] * window
     maxpos, fft2 = fft_diff(newdata, diffrange=diffrange)
+    if norm:
+        factor = np.sum(newdata[:, 1])
+        fft2[:, 1] *= factor
     fft2[:, 1] -= np.amin(fft2[:, 1])
     return maxpos, fft2
 
 
-def win_fft_grid(rawdata, binsize, wbin, window_fwhm, diffrange):
+def win_fft_grid(rawdata, binsize, wbin, window_fwhm, diffrange, norm=True):
     # Prepare data
     mindat = np.amin(rawdata[:, 0])
     maxdat = np.amax(rawdata[:, 0])
@@ -2336,7 +2541,7 @@ def win_fft_grid(rawdata, binsize, wbin, window_fwhm, diffrange):
 
     xvals = np.arange(mindat, maxdat, wbin)
 
-    results = np.array([windowed_fft(mzdata, x, window_fwhm, diffrange=diffrange)[1] for x in xvals])
+    results = np.array([windowed_fft(mzdata, x, window_fwhm, diffrange=diffrange, norm=norm)[1] for x in xvals])
 
     intdat = results[:, :, 1]
     yvals = np.unique(results[:, :, 0])
@@ -2345,7 +2550,7 @@ def win_fft_grid(rawdata, binsize, wbin, window_fwhm, diffrange):
     return out
 
 
-def win_fft_grid_single(rawdata, binsize, wbin, window_fwhm, diffrange):
+def win_fft_grid_single(rawdata, binsize, wbin, window_fwhm, diffrange, norm=True):
     # Prepare data
     mindat = np.amin(rawdata[:, 0])
     maxdat = np.amax(rawdata[:, 0])
@@ -2355,7 +2560,7 @@ def win_fft_grid_single(rawdata, binsize, wbin, window_fwhm, diffrange):
 
     xvals = np.arange(mindat, maxdat, wbin)
 
-    results = np.array([windowed_fft_single(mzdata, x, window_fwhm, diffrange=diffrange)[1] for x in xvals])
+    results = np.array([windowed_fft_single(mzdata, x, window_fwhm, diffrange=diffrange, norm=norm)[1] for x in xvals])
 
     intdat = results[:, :, 1]
     yvals = np.unique(results[:, :, 0])
@@ -2364,13 +2569,13 @@ def win_fft_grid_single(rawdata, binsize, wbin, window_fwhm, diffrange):
     return out
 
 
-def win_fft_diff(rawdata, binsize=0.05, sigma=1000, diffrange=None):
+def win_fft_diff(rawdata, binsize=0.05, sigma=1000, diffrange=None, norm=True):
     smoothdata = deepcopy(rawdata)
     smoothdata = gsmooth(smoothdata, 1000)
     mzdata = linearize(rawdata, binsize, 3)
     mzdata = pad_two_power(mzdata)
     maxpos = smoothdata[np.argmax(smoothdata[:, 1]), 0]
-    maxdiff, fftdat = windowed_fft(mzdata, maxpos, sigma, diffrange=diffrange)
+    maxdiff, fftdat = windowed_fft(mzdata, maxpos, sigma, diffrange=diffrange, norm=norm)
     print("Difference:", maxdiff)
     return maxdiff, fftdat
 
@@ -2680,9 +2885,11 @@ def peaks_error_mean(pks, data, ztab, massdat, config):
     pass
 
 
-def subtract_and_divide(pks, basemass, refguess):
+def subtract_and_divide(pks, basemass, refguess, outputall=False):
     avgmass = []
     ints = []
+    nums = []
+    masses = []
     for p in pks.peaks:
         if p.ignore == 0:
             mass = p.mass - basemass
@@ -2691,8 +2898,15 @@ def subtract_and_divide(pks, basemass, refguess):
                 avg = mass / num
                 avgmass.append(avg)
                 ints.append(p.height)
+                nums.append(num)
+                masses.append(p.mass)
+                p.sdnum = num
+                p.sdval = avg
 
-    return np.average(avgmass, weights=ints)
+    if outputall:
+        return np.average(avgmass, weights=ints), avgmass, ints, nums, masses
+    else:
+        return np.average(avgmass, weights=ints)
 
 
 if __name__ == "__main__":

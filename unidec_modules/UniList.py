@@ -240,7 +240,7 @@ class UniListApp(UniDecPres):
         # pub.subscribe(self.on_get_mzlimits, 'mzlimits')
         # pub.subscribe(self.on_left_click, 'left_click')
 
-        if True:
+        if False:
             p1 = "C:\\Users\\margo\\Desktop\\Marty\\wanglabsample_protease_3.txt"
             p2 = "C:\\Users\\margo\\Desktop\\Marty\\wanglabsample_protease_3.txt"
             p3 = "C:\\Users\\margo\\Desktop\\Marty\\wanglabsample_protease_3.txt"

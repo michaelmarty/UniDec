@@ -204,6 +204,7 @@ class ListCtrlPanel(wx.Panel):
         self.popupID5 = wx.NewIdRef()
         self.popupID6 = wx.NewIdRef()
         self.popupID7 = wx.NewIdRef()
+        self.popupID8 = wx.NewIdRef()
         self.popupID10 = wx.NewIdRef()
         self.popupID11 = wx.NewIdRef()
 
@@ -214,6 +215,7 @@ class ListCtrlPanel(wx.Panel):
         self.Bind(wx.EVT_MENU, self.on_popup_five, id=self.popupID5)
         self.Bind(wx.EVT_MENU, self.on_popup_six, id=self.popupID6)
         self.Bind(wx.EVT_MENU, self.on_popup_seven, id=self.popupID7)
+        self.Bind(wx.EVT_MENU, self.on_popup_eight, id=self.popupID8)
         self.Bind(wx.EVT_MENU, self.on_popup_ten, id=self.popupID10)
         self.Bind(wx.EVT_MENU, self.on_popup_eleven, id=self.popupID11)
 
@@ -232,6 +234,8 @@ class ListCtrlPanel(wx.Panel):
             menu.AppendSeparator()
             menu.Append(self.popupID7, "Change Color")
             menu.Append(self.popupID2, "Make Top")
+            if self.pres.chrommode:
+                menu.Append(self.popupID8, "Make Selection")
             menu.Append(self.popupID3, "Fill Down Variable 2")
             menu.AppendSeparator()
             menu.Append(self.popupID1, "Delete")
@@ -255,6 +259,10 @@ class ListCtrlPanel(wx.Panel):
     def on_popup_two(self, event):
         item = self.list.GetFirstSelected()
         self.pres.make_top(item)
+
+    def on_popup_eight(self, event):
+        item = self.list.GetFirstSelected()
+        self.pres.make_selection(item)
 
     def on_popup_three(self, event):
         item = self.list.GetFirstSelected()

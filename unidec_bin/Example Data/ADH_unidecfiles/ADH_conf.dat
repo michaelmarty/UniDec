@@ -1,16 +1,17 @@
-version 4.3.0
+version 5.1.0
 imflag 0
 input C:\Python\UniDec3\unidec_bin\Example Data\ADH_unidecfiles\ADH_input.dat
 output C:\Python\UniDec3\unidec_bin\Example Data\ADH_unidecfiles\ADH
 numit 100
-numz 50
-endz 50
+numz 40
+endz 40
 startz 1
 zzsig 1.0
-psig 1.0
+psig 0.0
 beta 0.0
-mzsig 0.85
+mzsig 10.0
 psfun 0
+zpsfun 0
 discreteplot 0
 massub 500000.0
 masslb 5000.0
@@ -21,7 +22,7 @@ mtabsig 0.0
 minmz 989.9406399034492
 maxmz 20213.597994866224
 subbuff 0.0
-subtype 2
+subtype 3
 smooth 0.0
 mzbins 0.0
 peakwindow 500.0
@@ -53,3 +54,11 @@ integratelb -1000.0
 integrateub 1000.0
 filterwidth 20.0
 zerolog -12.0
+doubledec 0
+kernel Z:\mtmarty\Data\WangLabAnalysis\20200430_jat_wanglabsample_concthenbiospin_unidecfiles\20200430_jat_wanglabsample_concthenbiospin_mass.txt
+CDslope 0.2074
+CDzbins 1.0
+CDres 1.0
+csig 5.0
+smoothdt 0.0
+subbufdt 0.0

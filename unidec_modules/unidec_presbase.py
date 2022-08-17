@@ -5,9 +5,10 @@ import os
 import numpy as np
 import unidec_modules.unidectools as ud
 import unidec_modules.peakwidthtools as peakwidthtools
-from unidec_modules import ManualSelectionWindow, AutocorrWindow, miscwindows, peakstructure
+from unidec_modules import ManualSelectionWindow, AutocorrWindow, miscwindows, peakstructure, SubDiv
 import time
 from metaunidec.mudstruct import MetaDataSet
+import sys, getopt
 
 
 class UniDecPres(object):
@@ -17,12 +18,35 @@ class UniDecPres(object):
     Presenter contains UniDec engine at self.eng and main GUI window at self.view
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, ignore_args=False, *args, **kwargs):
         self.wx_app = wx.App(redirect=False)
         self.eng = None
         self.view = None
         self.recent_files = []
-        pass
+
+        self.infile = None
+        self.top_path = None
+        opts = None
+        if not ignore_args:
+            try:
+                opts, args = getopt.getopt(sys.argv[1:], "ucmf:", ["file=", "unidec", "meta", "chrom"])
+            except getopt.GetoptError as e:
+                print("Error in Argv. Likely unknown option: ", sys.argv, e)
+                print("Known options: -u, -m, -c, -f")
+
+            #print("ARGS:", args)
+            #print("KWARGS:", kwargs)
+            #print("OPTS:", opts)
+            if opts is not None:
+                for opt, arg in opts:
+                    if opt in ("-f", "--file"):
+                        self.infile = arg
+                        print("Opening File:", self.infile)
+            if ud.isempty(opts):
+                if len(args) > 0:
+                    self.infile = args[0]
+                    print("Opening File:", self.infile)
+            pass
 
     def start(self):
         """
@@ -188,7 +212,7 @@ class UniDecPres(object):
             data = self.eng.data.massdat
         if pks is None:
             pks = self.eng.pks
-        if self.eng.config.batchflag == 0:
+        if self.eng.config.batchflag == 0 and data.shape[1] == 2 and len(data)>=2:
             tstart = time.perf_counter()
             plot.plotrefreshtop(data[:, 0], data[:, 1],
                                 "Zero-charge Mass Spectrum", "Mass (Da)",
@@ -201,6 +225,8 @@ class UniDecPres(object):
             plot.repaint()
             tend = time.perf_counter()
             print("Plot 2: %.2gs" % (tend - tstart))
+        if data.shape[1]!=2 or len(data)<2:
+            print("Data Too Small. Adjust parameters.", data)
 
     def makeplot4(self, e=None, plot=None, data=None, pks=None):
         """
@@ -219,10 +245,12 @@ class UniDecPres(object):
             pks = self.eng.pks
         if self.eng.config.batchflag == 0:
             tstart = time.perf_counter()
+            # This plots the normal 1D mass spectrum
             plot.plotrefreshtop(data[:, 0], data[:, 1],
-                                           "Data with Offset Isolated Species", "m/z (Th)",
-                                           "Normalized and Offset Intensity", "Data", self.eng.config, nopaint=True)
+                                "Data with Offset Isolated Species", "m/z (Th)",
+                                "Normalized and Offset Intensity", "Data", self.eng.config, nopaint=True)
             num = 0
+            # Corrections for if Isotope mode is on
             if self.eng.config.isotopemode == 1:
                 try:
                     stickmax = np.amax(np.array([p.stickdat for p in pks.peaks]))
@@ -230,21 +258,49 @@ class UniDecPres(object):
                     stickmax = 1.0
             else:
                 stickmax = 1.0
+            # Loop through each peak
             for i, p in enumerate(pks.peaks):
+                # Check if the peak is ignored
                 if p.ignore == 0:
+                    # Check if the mztabs are empty
                     if (not ud.isempty(p.mztab)) and (not ud.isempty(p.mztab2)):
                         mztab = np.array(p.mztab)
                         mztab2 = np.array(p.mztab2)
                         maxval = np.amax(mztab[:, 1])
+                        # Filter all peaks where the deconvolved intensity is above the relative threshold
                         b1 = mztab[:, 1] > self.eng.config.peakplotthresh * maxval
+                        # Plot the filtered peaks as dots on the spectrum
                         plot.plotadddot(mztab2[b1, 0], mztab2[b1, 1], p.color, p.marker)
+                    # Check if convolved data is present
                     if not ud.isempty(p.stickdat):
+                        # Plot the offset reconvolved data from the isolated species
                         plot.plotadd(self.eng.data.data2[:, 0], np.array(p.stickdat) / stickmax - (
                                 num + 1) * self.eng.config.separation, p.color, "useless label")
                     num += 1
             plot.repaint()
             tend = time.perf_counter()
             print("Plot 4: %.2gs" % (tend - tstart))
+
+    def on_filter_peaks(self, e=None):
+        defaultvalue = "40"
+        try:
+            defaultvalue = str(self.eng.fdrs[0, 1] * 100)
+        except:
+            pass
+        dialog = miscwindows.SingleInputDialog(self.view)
+        dialog.initialize_interface(title="Minimum DScore", message="Set Minimum DScore Value (%): ",
+                                    defaultvalue=defaultvalue)
+        dialog.ShowModal()
+
+        try:
+            minval = float(dialog.value) / 100.
+        except:
+            print("Error with Score Input:", dialog.value)
+            minval = 0.4
+
+        print("Using DScore Cutoff (%): ", minval * 100)
+        self.eng.filter_peaks(minscore=minval)
+        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
 
     def on_charge_states(self, e=None, mass=None, plot=None, peakpanel=None, data=None):
         """
@@ -289,11 +345,11 @@ class UniDecPres(object):
         :return: None
         """
         if peakpanel is None:
-            peakpanel=self.view.peakpanel
+            peakpanel = self.view.peakpanel
         if pks is None:
-            pks=self.eng.pks
+            pks = self.eng.pks
         if plot is None:
-            plot=self.view.plot2
+            plot = self.view.plot2
         if massdat is None:
             massdat = self.eng.data.massdat
 
@@ -320,11 +376,11 @@ class UniDecPres(object):
         :return: None
         """
         if peakpanel is None:
-            peakpanel=self.view.peakpanel
+            peakpanel = self.view.peakpanel
         if pks is None:
             pks = self.eng.pks
         if plot is None:
-            plot=self.view.plot2
+            plot = self.view.plot2
         if dataobj is None:
             dataobj = self.eng.data
 
@@ -520,6 +576,9 @@ class UniDecPres(object):
             self.copy_to_clipboard(outstring)
             self.warn(message, caption="Subtract and Divide Results")
 
+    def sub_div_window(self, e=None):
+        sd = SubDiv.SubDivFrame(self.view, self.eng.data.massdat, self.eng.pks, self.eng.config)
+
     def copy_to_clipboard(self, outstring):
         # Create text data object
         clipboard = wx.TextDataObject()
@@ -548,8 +607,11 @@ class UniDecPres(object):
                 lines = []
                 for l in file:
                     p = l.strip("\n")
-                    if os.path.isfile(p):
-                        lines.append(p)
+                    try:
+                        if os.path.isfile(p):
+                            lines.append(p)
+                    except:
+                        pass
         else:
             self.eng.config.recentfile = os.path.join(self.eng.config.UniDecDir, "recent.txt")
             with open(self.eng.config.recentfile, 'w') as file:
@@ -571,3 +633,45 @@ class UniDecPres(object):
                 l = p + '\n'
                 f.write(l)
             f.truncate()
+
+    def auto_refresh_stop(self, e=None):
+        self.timer.Stop()
+
+    def create_timer(self, e=None):
+        self.timer = wx.Timer(self.view)
+        self.view.Bind(wx.EVT_TIMER, self.on_timer)
+        self.timer.Start(10000)
+
+    def create_timer2(self, e=None):
+        self.timer = wx.Timer(self.view)
+        self.view.Bind(wx.EVT_TIMER, self.on_timer2)
+        self.timer.Start(10000)
+
+    def on_timer(self, e=None):
+        print("Event")
+        print("Refreshing: ", self.top_path)
+        file_directory = os.path.dirname(self.top_path)
+        file_name = os.path.basename(self.top_path)
+        self.on_open_file(file_name, file_directory, refresh=True)
+        self.quick_auto()
+
+    def on_timer2(self, e=None):
+        print("Event")
+        print("Refreshing: ", self.top_path)
+        file_directory = os.path.dirname(self.top_path)
+        file_name = os.path.basename(self.top_path)
+        maxtime = ud.get_max_time(self.top_path)
+        print("Latest Time:", maxtime)
+
+        mintime = maxtime - 1
+        if mintime < 0:
+            mintime = 0
+        timerange = [mintime, maxtime]
+        print(timerange)
+
+        self.on_open_file(file_name, file_directory, time_range=timerange, refresh=True)
+        self.quick_auto()
+
+    def quick_auto(self, e=None):
+        self.on_dataprep_button(e)
+        self.on_unidec_button(e)

@@ -35,6 +35,7 @@ class UniDecConfig(object):
         """
         self.version = version
         self.inputversion = None
+        self.dtype = np.single
         self.infname = "input.dat"
         self.outfname = ""
         self.mfile = "mass.dat"
@@ -49,16 +50,21 @@ class UniDecConfig(object):
         self.filename = ''
         self.extension = ''
         self.imflag = 0
+        self.cdmsflag = 0
         self.metamode = -2
         self.filetype = 0
         self.autotune = False
 
         self.time_window = 2
         self.chrom_peak_width = 2
+        self.sw_time_window = 1
+        self.sw_scan_offset = 10
+        self.time_start = ""
+        self.time_end = ""
 
-        self.twavedict = {1: "Logarithmic", 2: "Linear", 3: "Power Law"}
+        self.twavedict = {1: "Logarithmic", 2: "Linear", 3: "Power Law", 4: "SLIM poly2", 5: "SLIM poly3"}
         self.backgroundchoices = ["Subtract Minimum", "Subtract Line",
-                                  "Subtract Curved"]  # , "Subtract Gaussian"]  # , "Subtract SavGol","Subtract Polynomial"]
+                                  "Subtract Curved", "Subtract Constant"]  # , "Subtract SavGol","Subtract Polynomial"]
         self.isotopechoices = ["Isotopes: Off", "Isotopes: Mono", "Isotopes: Average"]
         self.figsize = (6, 5)
         self.mass_proton = 1.007276467
@@ -99,6 +105,8 @@ class UniDecConfig(object):
         self.driftlength = 0.18202
         self.tcal1 = 0.3293
         self.tcal2 = 6.3597
+        self.tcal3 = 0
+        self.tcal4 = 0
         self.edc = 1.57
         self.gasmass = 4.002602
         self.twaveflag = 0
@@ -121,6 +129,7 @@ class UniDecConfig(object):
         self.gridparams = None
         self.griddecon = None
         self.defectparams = None
+        self.defectcomparefiles = [None, None]
         self.matchtolerance = 1000
 
         self.avgscore = 0
@@ -150,6 +159,7 @@ class UniDecConfig(object):
         self.mzsig = 0.85
         self.automzsig = 0
         self.psfun = 0
+        self.psfunz = 0
         self.autopsfun = 0
         self.massub = 500000
         self.masslb = 5000
@@ -200,7 +210,14 @@ class UniDecConfig(object):
         self.nativeccslb = -20000
         self.dtsig = 0.2
         self.ccsbins = 100
+        self.compressflag = 1
+
+        # Reused by IM and CD
         self.csig = 0
+        # Charge Detection
+        self.CDslope = 0.2074
+        self.CDzbins = 1
+        self.CDres = 0
 
         self.doubledec = False
         self.kernel = ""
@@ -239,6 +256,7 @@ class UniDecConfig(object):
             print("NOTE: Your path length might exceed the limit for Windows. Please shorten your file name.")'''
         f.write("version " + str(self.version) + "\n")
         f.write("imflag " + str(self.imflag) + "\n")
+        f.write("cdmsflag " + str(self.cdmsflag) + "\n")
         f.write("input " + str(self.infname) + "\n")
         f.write("output " + str(self.outfname) + "\n")
         f.write("numit " + str(self.numit) + "\n")
@@ -250,6 +268,7 @@ class UniDecConfig(object):
         f.write("beta " + str(self.beta) + "\n")
         f.write("mzsig " + str(self.mzsig) + "\n")
         f.write("psfun " + str(self.psfun) + "\n")
+        f.write("zpsfun " + str(self.psfunz) + "\n")
         f.write("discreteplot " + str(self.discreteplot) + "\n")
         f.write("massub " + str(self.massub) + "\n")
         f.write("masslb " + str(self.masslb) + "\n")
@@ -308,6 +327,15 @@ class UniDecConfig(object):
         f.write("filterwidth " + str(self.filterwidth) + "\n")
         f.write("zerolog " + str(self.zerolog) + "\n")
 
+        f.write("doubledec " + str(int(self.doubledec)) + "\n")
+        f.write("kernel " + str(self.kernel) + "\n")
+
+        f.write("CDslope " + str(self.CDslope) + "\n")
+        f.write("CDzbins " + str(self.CDzbins) + "\n")
+        f.write("CDres " + str(self.CDres) + "\n")
+        f.write("csig " + str(self.csig) + "\n")
+        f.write("smoothdt " + str(self.smoothdt) + "\n")
+        f.write("subbufdt " + str(self.subbufdt) + "\n")
         if self.mindt != '' or self.maxdt != '':
             f.write("zout " + str(self.zout) + "\n")
             f.write("pusher " + str(self.pusher) + "\n")
@@ -316,10 +344,7 @@ class UniDecConfig(object):
             f.write("ccsub " + str(self.ccsub) + "\n")
             f.write("ccslb " + str(self.ccslb) + "\n")
             f.write("dtsig " + str(self.dtsig) + "\n")
-            f.write("csig " + str(self.csig) + "\n")
             f.write("ccsbins " + str(self.ccsbins) + "\n")
-            f.write("subbufdt " + str(self.subbufdt) + "\n")
-            f.write("smoothdt " + str(self.smoothdt) + "\n")
             f.write("ubnativeccs " + str(self.nativeccsub) + "\n")
             f.write("lbnativeccs " + str(self.nativeccslb) + "\n")
             f.write("twaveflag " + str(self.twaveflag) + "\n")
@@ -334,6 +359,8 @@ class UniDecConfig(object):
             if self.twaveflag > 0:  # and (self.tcal1!=0 or self.tcal2!=0 or self.edc!=0):
                 f.write("tcal1 " + str(self.tcal1) + "\n")
                 f.write("tcal2 " + str(self.tcal2) + "\n")
+                f.write("tcal3 " + str(self.tcal3) + "\n")
+                f.write("tcal4 " + str(self.tcal4) + "\n")
                 f.write("edc " + str(self.edc) + "\n")
                 f.write("gasmass " + str(self.gasmass) + "\n")
 
@@ -394,6 +421,14 @@ class UniDecConfig(object):
                             self.endz = ud.string_to_int(line.split()[1])
                         if line.startswith("startz"):
                             self.startz = ud.string_to_int(line.split()[1])
+
+                        if line.startswith("CDslope"):
+                            self.CDslope = ud.string_to_value(line.split()[1])
+                        if line.startswith("CDzbins"):
+                            self.CDzbins = ud.string_to_value(line.split()[1])
+                        if line.startswith("CDres"):
+                            self.CDres = ud.string_to_value(line.split()[1])
+
                         if line.startswith("zzsig"):
                             self.zzsig = ud.string_to_value(line.split()[1])
                         if line.startswith("psig"):
@@ -404,6 +439,8 @@ class UniDecConfig(object):
                             self.mzsig = ud.string_to_value(line.split()[1])
                         if line.startswith("psfun"):
                             self.psfun = ud.string_to_int(line.split()[1])
+                        if line.startswith("zpsfun"):
+                            self.psfunz = ud.string_to_int(line.split()[1])
                         if line.startswith("discreteplot"):
                             self.discreteplot = ud.string_to_int(line.split()[1])
                         if line.startswith("massub"):
@@ -502,6 +539,14 @@ class UniDecConfig(object):
                             self.baselineflag = ud.string_to_value(line.split()[1])
                         if line.startswith("orbimode"):
                             self.orbimode = ud.string_to_value(line.split()[1])
+                        if line.startswith("doubledec"):
+                            ddval = ud.string_to_int(line.split()[1])
+                            if ddval == 0:
+                                self.doubledec = False
+                            else:
+                                self.doubledec = True
+                        if line.startswith("kernel"):
+                            self.kernel = line.strip()[7:]
 
                         # IM Imports
                         if line.startswith("ccsub"):
@@ -534,6 +579,10 @@ class UniDecConfig(object):
                             self.tcal1 = ud.string_to_value(line.split()[1])
                         if line.startswith("tcal2"):
                             self.tcal2 = ud.string_to_value(line.split()[1])
+                        if line.startswith("tcal3"):
+                            self.tcal3 = ud.string_to_value(line.split()[1])
+                        if line.startswith("tcal4"):
+                            self.tcal4 = ud.string_to_value(line.split()[1])
                         if line.startswith("edc"):
                             self.edc = ud.string_to_value(line.split()[1])
                         if line.startswith("twaveflag"):
@@ -591,11 +640,17 @@ class UniDecConfig(object):
         except:
             self.minmz = 0
 
+        if self.tcal3 == "":
+            self.tcal3 = 0
+        if self.tcal4 == "":
+            self.tcal4 = 0
+
         cdict = {  # "input": self.infname, "output": self.outfname,
             "numit": self.numit, "version": self.version,
             "endz": self.endz, "startz": self.startz, "zzsig": self.zzsig, "psig": self.psig, "mzsig": self.mzsig,
             "beta": self.beta,
-            "psfun": self.psfun, "discreteplot": self.discreteplot, "massub": self.massub, "masslb": self.masslb,
+            "psfun": self.psfun, "psfunz": self.psfunz, "discreteplot": self.discreteplot, "massub": self.massub,
+            "masslb": self.masslb,
             "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
             "minmz": self.minmz, "maxmz": self.maxmz, "subbuff": self.subbuff, "smooth": self.smooth,
             "mzbins": self.mzbins, "peakwindow": self.peakwindow, "peakthresh": self.peakthresh,
@@ -613,13 +668,17 @@ class UniDecConfig(object):
             "ubnativeccs": self.nativeccsub, "lbnativeccs": self.nativeccslb, "twaveflag": self.twaveflag,
             "temp": self.temp, "pressure": self.pressure, "volt": self.volt,
             "tnaught": self.to, "driftlength": self.driftlength, "tcal1": self.tcal1, "tcal2": self.tcal2,
+            "tcal3": self.tcal3, "tcal4": self.tcal4,
             "edc": self.edc, "gasmass": self.gasmass, "integratelb": self.integratelb,
             "integrateub": self.integrateub, "filterwidth": self.filterwidth, "zerolog": self.zerolog,
             "manualfileflag": self.manualfileflag, "mfileflag": self.mfileflag, "imflag": self.imflag,
+            "cdmsflag": self.cdmsflag,
             "exwindow": self.exwindow, "exchoice": self.exchoice, "exchoicez": self.exchoicez,
             "exthresh": self.exthresh,
             "exnorm": self.exnorm, "exnormz": self.exnormz, "metamode": self.metamode,
-            "datanorm": self.datanorm
+            "datanorm": self.datanorm, "chrom_time_window": self.time_window, "chrom_peak_width": self.chrom_peak_width,
+            "sw_time_window": self.sw_time_window, "sw_scan_offset": self.sw_scan_offset, "time_start": self.time_start,
+            "time_end": self.time_end
         }
 
         for key, value in cdict.items():
@@ -670,6 +729,7 @@ class UniDecConfig(object):
         self.beta = self.read_attr(self.beta, "beta", config_group)
         self.mzsig = self.read_attr(self.mzsig, "mzsig", config_group)
         self.psfun = self.read_attr(self.psfun, "psfun", config_group)
+        self.psfunz = self.read_attr(self.psfunz, "psfunz", config_group)
         self.discreteplot = self.read_attr(self.discreteplot, "discreteplot", config_group)
         self.massub = self.read_attr(self.massub, "massub", config_group)
         self.masslb = self.read_attr(self.masslb, "masslb", config_group)
@@ -726,6 +786,8 @@ class UniDecConfig(object):
         self.driftlength = self.read_attr(self.driftlength, "driftlength", config_group)
         self.tcal1 = self.read_attr(self.tcal1, "tcal1", config_group)
         self.tcal2 = self.read_attr(self.tcal2, "tcal2", config_group)
+        self.tcal3 = self.read_attr(self.tcal3, "tcal3", config_group)
+        self.tcal4 = self.read_attr(self.tcal4, "tcal4", config_group)
         self.edc = self.read_attr(self.edc, "edc", config_group)
         self.gasmass = self.read_attr(self.gasmass, "gasmass", config_group)
 
@@ -736,6 +798,7 @@ class UniDecConfig(object):
         self.mfileflag = self.read_attr(self.mfileflag, "mfileflag", config_group)
         self.manualfileflag = self.read_attr(self.manualfileflag, "manualfileflag", config_group)
         self.imflag = self.read_attr(self.imflag, "imflag", config_group)
+        self.cdmsflag = self.read_attr(self.cdmsflag, "cdmsflag", config_group)
 
         self.exchoice = self.read_attr(self.exchoice, "exchoice", config_group)
         self.exchoicez = self.read_attr(self.exchoicez, "exchoicez", config_group)
@@ -748,6 +811,14 @@ class UniDecConfig(object):
         self.masslist = get_dataset(config_group, "masslist")
         self.manuallist = get_dataset(config_group, "manuallist")
         self.oligomerlist = get_dataset(config_group, "oligomerlist").astype(np.unicode_)
+
+        self.time_window = self.read_attr(self.time_window, "chrom_time_window", config_group)
+        self.chrom_peak_width = self.read_attr(self.chrom_peak_width, "chrom_peak_width", config_group)
+        self.sw_time_window = self.read_attr(self.sw_time_window, "sw_time_window", config_group)
+        self.sw_scan_offset = self.read_attr(self.sw_scan_offset, "sw_scan_offset", config_group)
+
+        self.time_start = self.read_attr(self.time_start, "time_start", config_group)
+        self.time_end = self.read_attr(self.time_end, "time_end", config_group)
 
         hdf.close()
 
@@ -777,7 +848,9 @@ class UniDecConfig(object):
         self.massgridfile = self.outfname + "_massgrid.bin"
         self.fitdatfile = self.outfname + "_fitdat.bin"
         self.errorfile = self.outfname + "_error.txt"
+        self.deconfile = self.outfname + "_decon.txt"
         self.mzgridfile = self.outfname + "_grid.bin"
+        self.cdrawextracts = self.outfname + "_rawdata.npz"
         if self.filetype == 0:
             self.hdf_file = self.outfname + ".hdf5"
 
@@ -843,10 +916,6 @@ class UniDecConfig(object):
 
             if self.ccsub < self.ccslb:
                 self.warning = "CCS Upper Bound lower then CCS Lower Bound\nFix CCS range."
-                self.badtest = 1
-
-            if self.twaveflag == 0 and (self.pressure == 0 or self.driftlength == 0):
-                self.warning = "Pressure and Cell Length must be nonzero for Linear Cell"
                 self.badtest = 1
 
             if self.twaveflag > 0 and (self.tcal1 == 0 or self.tcal2 == 0 or self.edc == 0):
@@ -1034,9 +1103,12 @@ class UniDecConfig(object):
         self.defaultconfig = os.path.join(self.UniDecDir, "default_conf.dat")
         self.masstablefile = os.path.join(self.UniDecDir, "mass_table.csv")
         self.recentfile = os.path.join(self.UniDecDir, "recent.txt")
+        self.recentfileCD = os.path.join(self.UniDecDir, "recentCD.txt")
         self.h5repackfile = os.path.join(self.UniDecDir, self.h5repackfile)
         self.presetdir = os.path.join(self.UniDecDir, "Presets")
+        self.presetdirCD = os.path.join(self.UniDecDir, "Presets", "CDMS")
         self.exampledatadir = os.path.join(self.UniDecDir, "Example Data")
+        self.exampledatadirCD = os.path.join(self.UniDecDir, "Example Data", "CDMS")
 
         print("\nUniDec Path:", self.UniDecPath)
 
@@ -1097,6 +1169,7 @@ class DataContainer:
         self.massdat = np.array([])
         self.mzgrid = np.array([])
         self.massgrid = np.array([])
+        self.mzmassgrid = np.array([])
         self.ztab = np.array([])
         self.massccs = np.array([])
         self.ccsz = np.array([])

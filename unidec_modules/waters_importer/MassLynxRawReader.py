@@ -172,6 +172,8 @@ class MassLynxStringHandler(object):
     def ToString(self, chString, release):
         if (None == chString):
             return ""
+        if chString.value is None:
+            return ""
 
         strValue = chString.value.decode()
         if (release):

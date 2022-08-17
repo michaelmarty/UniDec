@@ -89,7 +89,7 @@ class main_menu(wx.Menu):
 
         # Example Data
         self.examplemenu, self.masterd2 = pm.make_preset_menu(self.config.exampledatadir, exclude_dir="_unidecfiles",
-                                                              topi=2500, exclude_ext="hdf5")
+                                                              topi=2500, exclude_ext="hdf5", exclude_dir_list=["CDMS"])
 
         keys = []
         for i, d in enumerate(self.masterd2):
@@ -177,6 +177,10 @@ class main_menu(wx.Menu):
                                                   "Labels the average charge state in each distribution")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_label_avg_charge_states, self.maxcharge)
 
+        self.analysismenu.AppendSeparator()
+        self.menubiocalc = self.analysismenu.Append(wx.ID_ANY, "Protein/RNA/DNA Mass Calculator")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_biopolymer, self.menubiocalc)
+
         if self.config.imflag == 1:
             self.analysismenu.AppendSeparator()
             self.menuimtools = self.analysismenu.Append(wx.ID_ANY, "IM Parameters Tool",
@@ -259,7 +263,7 @@ class main_menu(wx.Menu):
             self.menulinreg = self.experimentalmenu.Append(wx.ID_ANY, "Linear Regression")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_linreg, self.menulinreg)
             self.menusubdiv = self.experimentalmenu.Append(wx.ID_ANY, "Subtract and Divide")
-            self.parent.Bind(wx.EVT_MENU, self.pres.sub_div, self.menusubdiv)
+            self.parent.Bind(wx.EVT_MENU, self.pres.sub_div_window, self.menusubdiv)
 
             self.experimentalmenu.AppendSeparator()
 
@@ -299,6 +303,8 @@ class main_menu(wx.Menu):
             self.parent.Bind(wx.EVT_MENU, self.pres.on_additional_parameters, self.menuAdditionalParameters)
             self.parent.Bind(wx.EVT_MENU, self.pres.on_color_plot1d, self.menucolor1d)
             # self.parent.Bind(wx.EVT_MENU, self.pres.on_minimize, self.menuMinimize)
+        #self.experimentalmenu.AppendSeparator()
+
         self.experimentalmenu.AppendSeparator()
 
         self.menusuperbatch = self.experimentalmenu.Append(wx.ID_ANY, "Speed Batch",
@@ -333,22 +339,46 @@ class main_menu(wx.Menu):
         self.menuifams = self.experimentalmenu.Append(wx.ID_ANY, "iFAMS")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_iFAMS, self.menuifams)
 
+        self.menunavia = self.experimentalmenu.Append(wx.ID_ANY, "Import from Navia")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_navia, self.menunavia)
+
+        self.menumql = self.experimentalmenu.Append(wx.ID_ANY, "MassQL", "MassQL")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_mql, self.menumql)
+
         self.experimentalmenu.AppendSeparator()
         self.menuisotopes = self.experimentalmenu.Append(wx.ID_ANY, "Plot Averagine Isotope Distributions")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_plot_isotope_distribution, self.menuisotopes)
 
-        self.menufpop = self.experimentalmenu.Append(wx.ID_ANY, "FPOP")
-        self.parent.Bind(wx.EVT_MENU, self.pres.fpop, self.menufpop)
+        self.menupdi = self.experimentalmenu.Append(wx.ID_ANY, "Print Polydispersity Index")
+        self.parent.Bind(wx.EVT_MENU, self.pres.eng.polydispersity_index, self.menupdi)
 
         self.experimentalmenu.AppendSeparator()
-        self.menubiocalc = self.experimentalmenu.Append(wx.ID_ANY, "Protein/RNA Mass Calculator")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_biopolymer, self.menubiocalc)
+
+        self.menufpop = self.experimentalmenu.Append(wx.ID_ANY, "FPOP")
+        self.parent.Bind(wx.EVT_MENU, self.pres.fpop, self.menufpop)
 
         self.menutheomass = self.experimentalmenu.Append(wx.ID_ANY, "Plot Theoretical Mass")
         self.parent.Bind(wx.EVT_MENU, self.pres.plot_theo_mass, self.menutheomass)
 
         # self.menucentroid = self.experimentalmenu.Append(wx.ID_ANY, "Get Centroid at FWHM")
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_centroid, self.menucentroid)
+        self.experimentalmenu.AppendSeparator()
+        self.menurefresh = self.experimentalmenu.Append(wx.ID_ANY, "Refresh Cumulative")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_timer, self.menurefresh)
+
+        self.menurefresh2 = self.experimentalmenu.Append(wx.ID_ANY, "Refresh Recent")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_timer2, self.menurefresh2)
+
+        self.menuautorefresh = self.experimentalmenu.Append(wx.ID_ANY, "Start Auto Refresh Cumulative")
+        self.parent.Bind(wx.EVT_MENU, self.pres.create_timer, self.menuautorefresh)
+
+        self.menuautorefresh2 = self.experimentalmenu.Append(wx.ID_ANY, "Start Auto Refresh Recent")
+        self.parent.Bind(wx.EVT_MENU, self.pres.create_timer2, self.menuautorefresh2)
+
+        self.menuautorefreshstop = self.experimentalmenu.Append(wx.ID_ANY, "Stop Auto Refresh")
+        self.parent.Bind(wx.EVT_MENU, self.pres.auto_refresh_stop, self.menuautorefreshstop)
+
+
 
         self.experimentalmenu.AppendSeparator()
         self.menuRegister = self.experimentalmenu.Append(wx.ID_ANY, "Fix Agilent Imports",
@@ -357,8 +387,6 @@ class main_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.register, self.menuRegister)
 
         self.experimentalmenu.AppendSeparator()
-        self.menulauncher = self.experimentalmenu.Append(wx.ID_ANY, "Launcher")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_launcher, self.menulauncher)
 
         # Set Events for Menu Bar
 

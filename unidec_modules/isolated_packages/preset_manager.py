@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 
-def make_preset_menu(toppath=None, exclude_dir=None, topi=1500, ext="", exclude_ext=None):
+def make_preset_menu(toppath=None, exclude_dir=None, topi=1500, ext="", exclude_ext=None, exclude_dir_list=[]):
     if toppath is None:
         toppath = "C:\\Python\\UniDec3\\unidec_bin\\Presets\\"
     custommenu = wx.Menu()
@@ -19,7 +19,7 @@ def make_preset_menu(toppath=None, exclude_dir=None, topi=1500, ext="", exclude_
         ext = ""
 
     never = "UniDec_Figures_and_Files"
-    
+
     try:
         for p in os.listdir(toppath):
             path = os.path.join(toppath, p)
@@ -29,7 +29,8 @@ def make_preset_menu(toppath=None, exclude_dir=None, topi=1500, ext="", exclude_
                 masterd.append([topi + i, path, mitem])
                 i += 1
                 # print(p)
-            if os.path.isdir(path) and exclude_dir not in path and never not in path:
+            if os.path.isdir(path) and exclude_dir not in path and never not in path \
+                    and os.path.split(path)[1] not in exclude_dir_list:
                 opmenu2 = wx.Menu()
                 opmenu.AppendSubMenu(opmenu2, p)
                 for p in os.listdir(path):
@@ -40,7 +41,9 @@ def make_preset_menu(toppath=None, exclude_dir=None, topi=1500, ext="", exclude_
                         masterd.append([topi + i, path2, mitem])
                         i += 1
                         # print(p)
-                    if os.path.isdir(path2) and exclude_dir not in path2 and never not in path2:
+                    if os.path.isdir(
+                            path2) and exclude_dir not in path2 and never not in path2\
+                            and os.path.split(path2)[1] not in exclude_dir_list:
                         opmenu3 = wx.Menu()
                         opmenu2.AppendSubMenu(opmenu3, p)
                         for p in os.listdir(path2):
@@ -51,7 +54,9 @@ def make_preset_menu(toppath=None, exclude_dir=None, topi=1500, ext="", exclude_
                                 masterd.append([topi + i, path3, mitem])
                                 i += 1
                                 # print(p)
-                            if os.path.isdir(path3) and exclude_dir not in path3 and never not in path3:
+                            if os.path.isdir(
+                                    path3) and exclude_dir not in path3 and never not in path3 \
+                                    and os.path.split(path3)[1] not in exclude_dir_list:
                                 opmenu4 = wx.Menu()
                                 opmenu3.AppendSubMenu(opmenu4, p)
                                 for p in os.listdir(path3):

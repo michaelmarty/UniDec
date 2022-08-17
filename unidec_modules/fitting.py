@@ -4,6 +4,7 @@ from scipy import stats
 from scipy import special
 import scipy.optimize as opt
 
+const = np.sqrt(2 * np.pi)
 
 def poisson(x, mu, A):
     return stats.poisson.pmf(x, mu) * A
@@ -35,7 +36,7 @@ def binomial_fit(xvals, yvals):
     return fits, fitdat
 
 
-def ndis_std(x, mid, sig, a=1, norm_area=False):
+def ndis_std(x: object, mid: float, sig: float, a: float = 1, norm_area: bool = False) -> object:
     """
     Normal Gaussian function normalized to the max of 1.
     :param x: x values
@@ -46,7 +47,7 @@ def ndis_std(x, mid, sig, a=1, norm_area=False):
     :return: Gaussian distribution at x values
     """
     if norm_area:
-        a *= 1 / (sig * np.sqrt(2 * np.pi))
+        a *= 1 / (sig * const)
     return a * np.exp(-(x - mid) * (x - mid) / (2.0 * sig * sig))
 
 
@@ -141,7 +142,7 @@ def splitdis(x, mid, fwhm, a=1, norm_area=False):
         else:
             return ndis_std(x, mid, sig2, a=a2)
     except ValueError:
-        output = np.zeros(len(x))
+        output = np.zeros_like(x)
         output[x > mid] = ldis(x[x > mid], mid, fwhm, a=a1)
         output[x <= mid] = ndis_std(x[x <= mid], mid, sig2, a=a2)
         return output
@@ -264,7 +265,7 @@ def gaussfit(xvals, yvals, mguess=None, sguess=0.1, aguess=None, cleanup=True):
     return fits
 
 
-def psfit(x, s, m, a, b, psfun):
+def psfit(x, s, m, a=1, b=0, psfun=0):
     """
     Make peak shape from fit
     :param x: x values

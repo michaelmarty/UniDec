@@ -37,7 +37,7 @@ def min_array(igrid, xwidth, ywidth):
         for j in range(0, shape[1]):
             ystart = max([0, j - abs(ywidth)])
             yend = min([shape[1], j + abs(ywidth) + 1])
-            mins[i, j] = np.amin(igrid[xstart:xend, ystart:yend])
+            mins[i, j] = np.amin(igrid[int(xstart):int(xend), int(ystart):int(yend)])
     return mins
 
 
@@ -177,12 +177,6 @@ def process_data_2d(xgrid, ygrid, igrid, config):
     # print "Time3: %.2gs" % (tend - tstart)
     if config.detectoreffva != 0:
         igrid = detectoreff_2d(igrid, xgrid, config.detectoreffva)
-
-    if config.intscale == "Square Root":
-        igrid = np.sqrt(igrid)
-    elif config.intscale == "Logarithmic":
-        igrid = ud.fake_log(igrid)
-        igrid -= np.amin(igrid)
 
     igrid /= np.amax(igrid)
 
