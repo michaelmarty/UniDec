@@ -461,7 +461,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
 
     def write_to_imzML(self, outpath):
         print("Writing to imzml:", outpath)
-        with ImzMLWriter(outpath, polarity='positive') as w:
+        with ImzMLWriter(outpath) as w:
             for i, s in enumerate(self.data.spectra):
                 mzs = s.massdat[:, 0]
                 intensities = s.massdat[:, 1]
@@ -471,7 +471,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
                 x = s.attrs['xpos']
                 y = s.attrs['ypos']
                 z = s.attrs['zpos']
-                coords = (x, y, z)
+                coords = (int(x), int(y), int(z))
                 print(i, coords)
                 w.addSpectrum(mzs, intensities, coords)
         print("Done Writing to imzml:", outpath)

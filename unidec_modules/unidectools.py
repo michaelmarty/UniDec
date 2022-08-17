@@ -159,11 +159,12 @@ def get_luminance(color, type=2):
     return larray[type]
 
 
-def match_files(directory, string):
+def match_files(directory, string, exclude=None):
     files = []
     for file in os.listdir(directory):
         if fnmatch.fnmatch(file, string):
-            files.append(file)
+            if exclude is None or exclude not in file:
+                files.append(file)
     return np.array(files)
 
 

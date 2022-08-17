@@ -68,7 +68,7 @@ def hdf5_to_imzml(path, outpath):
     eng = MetaUniDec()
     eng.open(path)
 
-    with ImzMLWriter(outpath, polarity='positive') as w:
+    with ImzMLWriter(outpath) as w:
         for i, s in enumerate(eng.data.spectra):
             mzs = s.massdat[:,0]
             intensities = s.massdat[:,1]
@@ -78,7 +78,8 @@ def hdf5_to_imzml(path, outpath):
             x = s.attrs['xpos']
             y = s.attrs['ypos']
             z = s.attrs['zpos']
-            coords = (int(x), int(y), int(z))
+            coords = tuple(np.array([int(x), int(y), int(z)]).astype(int))
+            print(coords)
             print(i, coords)
             w.addSpectrum(mzs, intensities, coords)
 
