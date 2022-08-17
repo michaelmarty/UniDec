@@ -50,6 +50,7 @@ class UniDecConfig(object):
         self.filename = ''
         self.extension = ''
         self.imflag = 0
+        self.cdmsflag = 0
         self.metamode = -2
         self.filetype = 0
         self.autotune = False
@@ -255,6 +256,7 @@ class UniDecConfig(object):
             print("NOTE: Your path length might exceed the limit for Windows. Please shorten your file name.")'''
         f.write("version " + str(self.version) + "\n")
         f.write("imflag " + str(self.imflag) + "\n")
+        f.write("cdmsflag " + str(self.cdmsflag) + "\n")
         f.write("input " + str(self.infname) + "\n")
         f.write("output " + str(self.outfname) + "\n")
         f.write("numit " + str(self.numit) + "\n")
@@ -546,7 +548,6 @@ class UniDecConfig(object):
                         if line.startswith("kernel"):
                             self.kernel = line.strip()[7:]
 
-
                         # IM Imports
                         if line.startswith("ccsub"):
                             self.ccsub = ud.string_to_value(line.split()[1])
@@ -648,7 +649,8 @@ class UniDecConfig(object):
             "numit": self.numit, "version": self.version,
             "endz": self.endz, "startz": self.startz, "zzsig": self.zzsig, "psig": self.psig, "mzsig": self.mzsig,
             "beta": self.beta,
-            "psfun": self.psfun,"psfunz": self.psfunz, "discreteplot": self.discreteplot, "massub": self.massub, "masslb": self.masslb,
+            "psfun": self.psfun, "psfunz": self.psfunz, "discreteplot": self.discreteplot, "massub": self.massub,
+            "masslb": self.masslb,
             "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
             "minmz": self.minmz, "maxmz": self.maxmz, "subbuff": self.subbuff, "smooth": self.smooth,
             "mzbins": self.mzbins, "peakwindow": self.peakwindow, "peakthresh": self.peakthresh,
@@ -670,12 +672,13 @@ class UniDecConfig(object):
             "edc": self.edc, "gasmass": self.gasmass, "integratelb": self.integratelb,
             "integrateub": self.integrateub, "filterwidth": self.filterwidth, "zerolog": self.zerolog,
             "manualfileflag": self.manualfileflag, "mfileflag": self.mfileflag, "imflag": self.imflag,
+            "cdmsflag": self.cdmsflag,
             "exwindow": self.exwindow, "exchoice": self.exchoice, "exchoicez": self.exchoicez,
             "exthresh": self.exthresh,
             "exnorm": self.exnorm, "exnormz": self.exnormz, "metamode": self.metamode,
             "datanorm": self.datanorm, "chrom_time_window": self.time_window, "chrom_peak_width": self.chrom_peak_width,
-            "sw_time_window": self.sw_time_window, "sw_scan_offset": self.sw_scan_offset, "time_start":self.time_start,
-            "time_end":self.time_end
+            "sw_time_window": self.sw_time_window, "sw_scan_offset": self.sw_scan_offset, "time_start": self.time_start,
+            "time_end": self.time_end
         }
 
         for key, value in cdict.items():
@@ -795,6 +798,7 @@ class UniDecConfig(object):
         self.mfileflag = self.read_attr(self.mfileflag, "mfileflag", config_group)
         self.manualfileflag = self.read_attr(self.manualfileflag, "manualfileflag", config_group)
         self.imflag = self.read_attr(self.imflag, "imflag", config_group)
+        self.cdmsflag = self.read_attr(self.cdmsflag, "cdmsflag", config_group)
 
         self.exchoice = self.read_attr(self.exchoice, "exchoice", config_group)
         self.exchoicez = self.read_attr(self.exchoicez, "exchoicez", config_group)
@@ -844,8 +848,9 @@ class UniDecConfig(object):
         self.massgridfile = self.outfname + "_massgrid.bin"
         self.fitdatfile = self.outfname + "_fitdat.bin"
         self.errorfile = self.outfname + "_error.txt"
+        self.deconfile = self.outfname + "_decon.txt"
         self.mzgridfile = self.outfname + "_grid.bin"
-        self.cdrawextracts =self.outfname + "_rawdata.npz"
+        self.cdrawextracts = self.outfname + "_rawdata.npz"
         if self.filetype == 0:
             self.hdf_file = self.outfname + ".hdf5"
 

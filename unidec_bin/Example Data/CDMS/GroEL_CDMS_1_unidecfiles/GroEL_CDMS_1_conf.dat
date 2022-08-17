@@ -1,5 +1,6 @@
-version 5.0.5
+version 5.1.0
 imflag 0
+cdmsflag 1
 input C:\Python\UniDec3\unidec_bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat
 output C:\Python\UniDec3\unidec_bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1
 numit 50
@@ -32,7 +33,7 @@ plotsep 0.025
 intthresh 0.0
 reductionpercent 0.0
 aggressive 0
-rawflag 0
+rawflag 1
 adductmass 1.007276467
 nativezub 100.0
 nativezlb -100.0

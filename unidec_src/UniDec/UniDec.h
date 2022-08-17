@@ -238,6 +238,7 @@ struct Config
 	hid_t file_id;
 	char dataset[1024];
 	int silent;
+	int cdmsflag;
 };
 
 Config SetDefaultConfig()
@@ -329,6 +330,7 @@ Config SetDefaultConfig()
 	config.doubledec = 0; // Consider initializing kernel as well?
 	config.file_id = 0;
 	config.silent = 0;
+	config.cdmsflag = 0;
 	return config;
 }
 
@@ -367,8 +369,8 @@ Config PostImport(Config config)
 	if (config.twaveflag == -1 && config.imflag == 1) { printf("\n\nNeed to define twaveflag for CCS calculation\n\n"); }
 
 	//bug proofing so we don't get a 1/0 problem
-	if (config.msig == 0) { config.msig = 0.00001; }
-	if (config.zsig == 0) { config.zsig = 0.00001; }
+	//if (config.msig == 0) { config.msig = 0.00001; }
+	//if (config.zsig == 0) { config.zsig = 0.00001; }
 	if (config.massbins == 0) { config.massbins = 1; }
 
 	//Convert aggressiveflag to baselineflag
@@ -435,6 +437,7 @@ Config LoadConfig(Config config, const char* filename)
 			if (strstr(x, "isotopemode") != NULL) { config.isotopemode = atoi(y); }// printf(" isotopemode"); }
 			if (strstr(x, "orbimode") != NULL) { config.orbimode = atoi(y); }// printf(" orbimode"); }
 			if (strstr(x, "imflag") != NULL) { config.imflag = atoi(y); }// printf(" imflag"); }
+			if (strstr(x, "cdmsflag") != NULL) { config.cdmsflag = atoi(y); }// printf(" imflag"); }
 			if (strstr(x, "linflag") != NULL) { config.linflag = atoi(y); }// printf(" linflag"); }
 			//IM Parameters
 			if (strstr(x, "csig") != NULL) { config.csig = atof(y); }// printf(" csig"); }
