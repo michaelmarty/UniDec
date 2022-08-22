@@ -47,8 +47,8 @@ peakcmap viridis
 spectracmap rainbow
 publicationmode 1
 isotopemode 0
-peaknorm 1
-datanorm 1
+peaknorm 1.0
+datanorm 1.0
 baselineflag 1.0
 orbimode 0.0
 integratelb -7.0

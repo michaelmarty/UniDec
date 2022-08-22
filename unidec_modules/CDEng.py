@@ -806,7 +806,7 @@ class UniDecCD(unidec.UniDec):
 
         # Calculate normal indexes
         indexes = np.arange(0, lm)
-        normindexes = np.array([indexes for i in self.ztab]).astype(np.int)
+        normindexes = np.array([indexes for i in self.ztab]).astype(int)
 
         # Calculate upperindexes for Z+1
         upperindex = np.round(((uppermz - m1) / (m2 - m1)) * (lm - 1))
@@ -821,8 +821,8 @@ class UniDecCD(unidec.UniDec):
         lowerindex[lowerindex >= lm] = normindexes[lowerindex >= lm]
         # For both, use the normal index if it is out of range
 
-        self.upperindex = np.array(upperindex, dtype=np.int)
-        self.lowerindex = np.array(lowerindex, dtype=np.int)
+        self.upperindex = np.array(upperindex, dtype=int)
+        self.lowerindex = np.array(lowerindex, dtype=int)
 
     def filter_zdist(self, I, setup=True):
         if setup:
@@ -993,7 +993,7 @@ class UniDecCD(unidec.UniDec):
         print("Running Deconvolution", self.config.mzsig, self.config.csig)
         starttime = time.perf_counter()
         # Run the deconvolution core by calling on C external
-        #self.decon_external_call()
+        self.decon_external_call()
         # Make kernels for convolutions based on peak shapes
         self.make_kernel(self.config.mzsig, self.config.csig)
         # Run deconvolution
