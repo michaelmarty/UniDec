@@ -304,6 +304,7 @@
     <ClInclude Include="UD_score.h" />
     <ClInclude Include="UD_sg.h" />
     <ClInclude Include="UniDec.h" />
+    <ClInclude Include="UniDecCD_Main.h" />
     <ClInclude Include="UniDecIM.h" />
     <ClInclude Include="UniDecIM_Main.h" />
     <ClInclude Include="UniDecLC_Main.h" />
