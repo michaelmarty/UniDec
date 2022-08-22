@@ -139,7 +139,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	printf("DT Range: %f to %f\n", mzranges[2], mzranges[3]);
 
 	peakshape = calloc(lines, sizeof(float));
-	GetPeaks(peakshape, size, mzext, dtext, config.mzsig, config.dtsig, config.psfun);
+	GetPeaks(peakshape, size, mzext, dtext, config.mzsig, config.dtsig, config.psfun, 0);
 	printf("Peak Shape Set\n");
 
 	//Filling the mass table

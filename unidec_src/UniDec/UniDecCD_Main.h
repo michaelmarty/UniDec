@@ -22,10 +22,8 @@
 
 /*
 TODO:
-	Refine peak shapes
-	Add z psfun
-	Fix end point being high on peak setup
 	Point smoothing is currently boxcar but py is psfun
+	Find out why results look different on exe, possibly fwhm vs sigma
 */
 
 
@@ -280,13 +278,13 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	mkernel_FFT = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * lines);
 
 	//Make Peak Shape Kernel
-	GetPeaks(peakshape, size, mzext, zext, config.mzsig, config.csig, config.psfun);
+	GetPeaks(peakshape, size, mzext, zext, config.mzsig, config.csig, config.psfun, config.zpsfun);
 	// Precompute FFTs
 	precompute_fft2D(peakshape, size, peakshape_FFT);
 	complex_conjugate(peakshape_FFT, inverse_peakshape_FFT, lines);
 	
 	if (config.rawflag == 0) {
-		GetPeaks(mkernel, size, mzext, zext, config.mzsig, 0, config.psfun);
+		GetPeaks(mkernel, size, mzext, zext, config.mzsig, 0, config.psfun, config.zpsfun);
 		precompute_fft2D(mkernel, size, mkernel_FFT);
 	}
 	printf("Peak Shape Set\n");
@@ -388,11 +386,30 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	}
 	printf("Completed Iterations\n");
 	//Writing outputs
-	
+
+	//Outputting Fit Reconvolved Data as newblur2
+	memcpy_s(newblur, matsize, blur, matsize);
+	fftconvolve2D_precomputed(newblur2, newblur, peakshape_FFT, size, p1, p3, in1, out1);
+	//Normalize if necessary
+	if (config.datanorm == 1) {
+		float blurmax = getmax(lines, newblur2);
+		if (dmax != 0) {
+			normalize(lines, newblur2, blurmax / dmax);
+		}
+	}
+	ApplyCutoff1D(newblur2, 0, lines);
+	//Write the fitdat file
+	char* suffixfit = "fitdat";
+	write1D(config.outfile, suffixfit, newblur2, lines);
+
+
+	//Writing Main Output
+
 	//Reconvolve if necessary
 	if (config.rawflag == 0) {
 		memcpy_s(newblur, matsize, blur, matsize);
 		fftconvolve2D_precomputed(blur, newblur, mkernel_FFT, size, p1, p3, in1, out1);
+		printf("Reconvolved with m/z dimension\n");
 	}
 	
 	//Normalize if necessary

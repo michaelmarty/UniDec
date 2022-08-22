@@ -163,6 +163,7 @@ struct Config
 	float massub;
 	float masslb;
 	int psfun;
+	int zpsfun;
 	float mtabsig;
 	char mfile[500];
 	char manualfile[500];
@@ -259,6 +260,7 @@ Config SetDefaultConfig()
 	config.massub = 5000000;
 	config.masslb = 100;
 	config.psfun = 0;
+	config.zpsfun = 0;
 	config.mtabsig = 0;
 	config.mflag = 0;
 	config.massbins = 100;
@@ -420,6 +422,7 @@ Config LoadConfig(Config config, const char* filename)
 			if (strstr(x, "massub") != NULL) { config.massub = atof(y); }// printf(" massub"); }
 			if (strstr(x, "masslb") != NULL) { config.masslb = atof(y); }// printf(" masslb"); }
 			if (strstr(x, "psfun") != NULL) { config.psfun = atoi(y); }// printf(" psfun"); }
+			if (strstr(x, "zpsfun") != NULL) { config.zpsfun = atoi(y); }
 			if (strstr(x, "mtabsig") != NULL) { config.mtabsig = atof(y); }// printf(" mtabsig"); }
 			if (strstr(x, "massbins") != NULL) { config.massbins = atof(y); }// printf(" massbins"); }
 			if (strstr(x, "psthresh") != NULL) { config.psthresh = atof(y); }// printf(" psthresh"); }

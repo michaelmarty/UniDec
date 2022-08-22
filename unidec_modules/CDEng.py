@@ -1008,22 +1008,32 @@ class UniDecCD(unidec.UniDec):
 
     def decon_external_call(self):
         self.export_config()
-
+        # Check for this
         if self.config.CDzbins != 1 and self.config.zzsig != 0:
             print("ERROR: Charge smoothing is only define for when charges are binned to unit charge")
             self.harray=[[]]
             return
-
+        # Output input data
         X, Y = np.meshgrid(self.mz, self.ztab, indexing='ij')
         outarray = self.harray.transpose()
         startdims = np.shape(outarray)
         outdat = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(outarray)])
         np.savetxt(self.config.infname, outdat)
         print("Saved Input File:", self.config.infname)
+
+        # Make the call
         ud.unidec_call(self.config)
+
+        # Load in deconvolved data
         self.harray = np.loadtxt(self.config.deconfile)
         print("Loaded Output File:", self.config.deconfile)
         self.harray = self.harray.reshape(startdims).transpose()
+
+        # Load in fit data, needed for scoring
+        self.data.fitdat = np.fromfile(self.config.fitdatfile, dtype=self.config.dtype)
+        self.data.fitdat = self.data.fitdat.reshape(startdims).transpose()
+        self.data.fitdat = np.sum(self.data.fitdat, axis=0)
+        print("Loaded Output File:", self.config.deconfile)
 
     def extract_intensities(self, mass, minz, maxz, window=25, sdmult=2, noise_mult=0):
         ztab = np.arange(minz, maxz + 1)

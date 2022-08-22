@@ -133,18 +133,43 @@ float SplitGL(float x, float y, float sig)
 }
 
 //function to return a 2D peak value at a given point
-float Peak(float x1, float x2, float y1, float y2, float sig1, float sig2, int psfun)
+float Peak(const float x1, const float x2, const float y1, const float y2, const float sig1, const float sig2, const int psfun, const int zpsfun)
 {
-	if (psfun == 0) {
-		return Gaus(x1, x2, sig1)*Gaus(y1, y2, sig2);
+	float d2 = 0;
+	float d1 = 0;
+	if (sig2 == 0) {
+		if (y1 == y2) { d2 = 1; }
+		else { d2 = 0; }
 	}
-	if (psfun == 1) {
-		return Lorentz(x1, x2, sig1)*Gaus(y1, y2, sig2);
+	else {
+		if (zpsfun == 0) {
+			d2 = Gaus(y1, y2, sig2);
+		}
+		if (zpsfun == 1) {
+			d2 = Lorentz(y1, y2, sig2);
+		}
+		if (psfun == 2) {
+			d2 = SplitGL(-1*y1, -1*y2, sig2);
+		}
 	}
-	if (psfun == 2) {
-		return SplitGL(x1, x2, sig1)*Gaus(y1, y2, sig2);
+
+	if (sig1 == 0) {
+		if (x1 == x2) { d1 = 1; }
+		else { d1 = 0; }
 	}
-	return 0;
+	else {
+		if (psfun == 0) {
+			d1= Gaus(x1, x2, sig1);
+		}
+		if (psfun == 1) {
+			d1 = Lorentz(x1, x2, sig1);
+		}
+		if (psfun == 2) {
+			d1 = SplitGL(x1, x2, sig1);
+		}
+	}
+	
+	return d1 * d2;
 }
 
 
@@ -153,7 +178,7 @@ static int index4D(int *size, int r, int c, int d, int f)
 	return r*size[1] * size[2] * size[3] + c*size[2] * size[3] + d*size[3] + f;
 }
 
-void GetPeaks(float *peak, int *Size, float *dH, float *dC, float sig1, float sig2, int psfun)
+void GetPeaks(float *peak, int *Size, float *dH, float *dC, float sig1, float sig2, int psfun, int zpsfun)
 {
 	int i, j;
 	float hmax = 2 * dH[Size[0] - 1] - dH[Size[0] - 2];
@@ -170,10 +195,10 @@ void GetPeaks(float *peak, int *Size, float *dH, float *dC, float sig1, float si
 			float Cval = dC[j];
 
 			//put the peakj in the four corners
-			float v1 = Peak(hmin, Hval, cmin, Cval, sig1, sig2, psfun);
-			float v2 = Peak(hmax, Hval, cmax, Cval, sig1, sig2, psfun);
-			float v3 = Peak(hmin, Hval, cmax, Cval, sig1, sig2, psfun);
-			float v4 = Peak(hmax, Hval, cmin, Cval, sig1, sig2, psfun);
+			float v1 = Peak(hmin, Hval, cmin, Cval, sig1, sig2, psfun, zpsfun);
+			float v2 = Peak(hmax, Hval, cmax, Cval, sig1, sig2, psfun, zpsfun);
+			float v3 = Peak(hmin, Hval, cmax, Cval, sig1, sig2, psfun, zpsfun);
+			float v4 = Peak(hmax, Hval, cmin, Cval, sig1, sig2, psfun, zpsfun);
 
 			float val = v1 + v2 + v3 + v4;
 			peak[index2D(Size[1], i, j)] = val; //store peak in complete peak list
