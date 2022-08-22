@@ -113,8 +113,17 @@ class PlottingWindow(wx.Window):
         self.ylabel = ""
         self.zoomtype = "box"
         self.tickcolor = "black"
+        self.mouse_active = False
         self.canvas.mpl_connect('button_release_event', self.on_release)
         self.canvas.mpl_connect('key_press_event', self.on_key)
+        self.canvas.mpl_connect('figure_enter_event', self.mouse_activate)
+        self.canvas.mpl_connect('figure_leave_event', self.mouse_inactivate)
+
+    def mouse_activate(self, event):
+        self.mouse_active=True
+
+    def mouse_inactivate(self, event):
+        self.mouse_active=False
 
     def get_blank_axis(self, scale=None):
         if scale is None:

@@ -160,22 +160,22 @@ void GetPeaks(float *peak, int *Size, float *dH, float *dC, float sig1, float si
 	float cmax = 2 * dC[Size[1] - 1] - dC[Size[1] - 2];
 	float hmin = dH[0];
 	float cmin = dC[0];
-	float Hval, Cval, v1, v2, v3, v4, val;
-	#pragma omp parallel for private (i,j,Hval,Cval,v1,v2,v3,v4,val), schedule(dynamic)
+
+	#pragma omp parallel for private (i,j), schedule(dynamic)
 	for (i = 0; i<Size[0]; i++)
 	{
 		for (j = 0; j<Size[1]; j++)
 		{
-			Hval = dH[i];
-			Cval = dC[j];
+			float Hval = dH[i];
+			float Cval = dC[j];
 
 			//put the peakj in the four corners
-			v1 = Peak(hmin, Hval, cmin, Cval, sig1, sig2, psfun);
-			v2 = Peak(hmax, Hval, cmax, Cval, sig1, sig2, psfun);
-			v3 = Peak(hmin, Hval, cmax, Cval, sig1, sig2, psfun);
-			v4 = Peak(hmax, Hval, cmin, Cval, sig1, sig2, psfun);
+			float v1 = Peak(hmin, Hval, cmin, Cval, sig1, sig2, psfun);
+			float v2 = Peak(hmax, Hval, cmax, Cval, sig1, sig2, psfun);
+			float v3 = Peak(hmin, Hval, cmax, Cval, sig1, sig2, psfun);
+			float v4 = Peak(hmax, Hval, cmin, Cval, sig1, sig2, psfun);
 
-			val = v1 + v2 + v3 + v4;
+			float val = v1 + v2 + v3 + v4;
 			peak[index2D(Size[1], i, j)] = val; //store peak in complete peak list
 		}
 	}

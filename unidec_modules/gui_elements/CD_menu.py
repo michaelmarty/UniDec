@@ -255,8 +255,10 @@ class CD_menu(wx.Menu):
         self.gpumenu = wx.Menu()
         self.gpumenu.Append(601, "Off", "Turns off GPU Acceleration", wx.ITEM_RADIO)
         self.gpumenu.Append(602, "On", "Turns on GPU Acceleration", wx.ITEM_RADIO)
+        self.gpumenu.Append(603, "Exe", "Turns off GPU Acceleration and uses Exe", wx.ITEM_RADIO)
         self.parent.Bind(wx.EVT_MENU, self.menu_601_602, id=601)
         self.parent.Bind(wx.EVT_MENU, self.menu_601_602, id=602)
+        self.parent.Bind(wx.EVT_MENU, self.menu_601_602, id=603)
         self.advancedmenu.AppendSubMenu(self.gpumenu, 'GPU Mode')
 
 
@@ -419,10 +421,15 @@ class CD_menu(wx.Menu):
         event_id = event.GetId()
         if event_id == 601:
             gpumode = False
+            exemode = False
         if event_id == 602:
             gpumode = True
-        print("GPU Mode:", gpumode)
-        self.pres.on_gpu_mode(gpumode)
+            exemode = False
+        if event_id == 603:
+            gpumode = False
+            exemode = True
+        print("GPU Mode:", gpumode, "Exe Mode:", exemode)
+        self.pres.on_gpu_mode(gpumode, exemode)
 
     def on_custom_defaults(self, e):
         # print("Clicked", e)

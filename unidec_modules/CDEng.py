@@ -169,10 +169,12 @@ class UniDecCD(unidec.UniDec):
         self.config.mzbins = 1
         self.config.rawflag = 1
         self.config.poolflag = 1
+        self.exemode=False
         pass
 
-    def gpu_mode(self, gpumode=False):
+    def gpu_mode(self, gpumode=False, exemode=False):
         switch_gpu_mode(gpumode)
+        self.exemode=exemode
 
     def open_file(self, path, refresh=False):
         """
@@ -992,23 +994,30 @@ class UniDecCD(unidec.UniDec):
 
         print("Running Deconvolution", self.config.mzsig, self.config.csig)
         starttime = time.perf_counter()
-        # Run the deconvolution core by calling on C external
-        self.decon_external_call()
-        # Make kernels for convolutions based on peak shapes
-        self.make_kernel(self.config.mzsig, self.config.csig)
-        # Run deconvolution
-        self.decon_core()
+        if self.exemode:
+            # Run the deconvolution core by calling on C external
+            self.decon_external_call()
+        else:
+            # Make kernels for convolutions based on peak shapes
+            self.make_kernel(self.config.mzsig, self.config.csig)
+            # Run deconvolution
+            self.decon_core()
         print("Deconvolution Time:", time.perf_counter() - starttime)
         # Transform m/z to mass
         self.transform()
 
     def decon_external_call(self):
         self.export_config()
+
+        if self.config.CDzbins != 1 and self.config.zzsig != 0:
+            print("ERROR: Charge smoothing is only define for when charges are binned to unit charge")
+            self.harray=[[]]
+            return
+
         X, Y = np.meshgrid(self.mz, self.ztab, indexing='ij')
         outarray = self.harray.transpose()
         startdims = np.shape(outarray)
         outdat = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(outarray)])
-        print(np.argmax(outdat[:,2]))
         np.savetxt(self.config.infname, outdat)
         print("Saved Input File:", self.config.infname)
         ud.unidec_call(self.config)
