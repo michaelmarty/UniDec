@@ -340,6 +340,7 @@ Config PostImport(Config config)
 {
 	//Convert gaussian FWHM to sigma
 	if (config.psfun == 0) { config.mzsig = config.mzsig / 2.35482; }
+	if (config.zpsfun == 0) { config.csig = config.csig / 2.35482; }
 	config.dtsig = config.dtsig / 2.35482;
 	//Check whether to turn off or on the config.limitflag. Limit flag on means it will select only the mass values closest to the mass values from mfile.
 	if (config.mflag == 1 && config.mtabsig == 0) { config.limitflag = 1; }

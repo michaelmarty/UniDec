@@ -110,25 +110,25 @@ void Extract(float *mzext, float *dtext, float *mzdat, float *dtdat, int *size)
 
 float Gaus(float x, float x0, float sig)
 {
-	return exp(-pow(x - x0, 2.) / (2.*sig*sig));
+	return expf(-powf(x - x0, 2.) / (2.*sig*sig));
 }
 
 
 //function to return a gaussian at a specific point
 float Lorentz(float x, float x0, float sig)
 {
-	return pow(sig / 2, 2) / (pow(x - x0, 2) + pow(sig / 2, 2));
+	return powf(sig / 2, 2) / (powf(x - x0, 2) + powf(sig / 2, 2));
 }
 
 float SplitGL(float x, float y, float sig)
 {
 	if (y<x)
 	{
-		return exp(-(pow(x - y, 2)) / (2 * sig*sig*0.180337));
+		return expf(-(powf(x - y, 2)) / (2 * sig*sig*0.180337));
 	}
 	else
 	{
-		return (sig / 2)*(sig / 2) / (pow((x - y), 2) + pow((sig / 2), 2));
+		return (sig / 2)*(sig / 2) / (powf((x - y), 2) + powf((sig / 2), 2));
 	}
 }
 

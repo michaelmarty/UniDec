@@ -253,9 +253,10 @@ class CD_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_flip_tabbed, self.menufliptabbed)
         self.advancedmenu.AppendSeparator()
         self.gpumenu = wx.Menu()
-        self.gpumenu.Append(601, "Off", "Turns off GPU Acceleration", wx.ITEM_RADIO)
-        self.gpumenu.Append(602, "On", "Turns on GPU Acceleration", wx.ITEM_RADIO)
         self.gpumenu.Append(603, "Exe", "Turns off GPU Acceleration and uses Exe", wx.ITEM_RADIO)
+        self.gpumenu.Append(601, "Py", "Turns off GPU Acceleration but uses Python", wx.ITEM_RADIO)
+        self.gpumenu.Append(602, "CuPy", "Turns on GPU Acceleration with Python", wx.ITEM_RADIO)
+
         self.parent.Bind(wx.EVT_MENU, self.menu_601_602, id=601)
         self.parent.Bind(wx.EVT_MENU, self.menu_601_602, id=602)
         self.parent.Bind(wx.EVT_MENU, self.menu_601_602, id=603)

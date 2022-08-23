@@ -205,6 +205,8 @@ v.5.1.0
 
 Added Intensity Threshold to MetaUniDec. Updated code throughout to allow more tolerance for empty data sets below threshold. Streamlined some print commands.
 
+Ported UniDecCD from Python to C, which speeds things up. The point smoothing is slightly different, but it should otherwise behave very similarly.
+
 Fixed a bunch of warnings when compiling on VS2022. Updated to _s libaries for a lot of stdlib stuff. If this breaks compiling on Mac and Linux, let me know.
 
 Added experimental MS Imaging tools.
