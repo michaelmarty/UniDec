@@ -34,9 +34,9 @@ class UniDecPres(object):
                 print("Error in Argv. Likely unknown option: ", sys.argv, e)
                 print("Known options: -u, -m, -c, -f")
 
-            #print("ARGS:", args)
-            #print("KWARGS:", kwargs)
-            #print("OPTS:", opts)
+            # print("ARGS:", args)
+            # print("KWARGS:", kwargs)
+            # print("OPTS:", opts)
             if opts is not None:
                 for opt, arg in opts:
                     if opt in ("-f", "--file"):
@@ -212,7 +212,7 @@ class UniDecPres(object):
             data = self.eng.data.massdat
         if pks is None:
             pks = self.eng.pks
-        if self.eng.config.batchflag == 0 and data.shape[1] == 2 and len(data)>=2:
+        if self.eng.config.batchflag == 0 and data.shape[1] == 2 and len(data) >= 2:
             tstart = time.perf_counter()
             plot.plotrefreshtop(data[:, 0], data[:, 1],
                                 "Zero-charge Mass Spectrum", "Mass (Da)",
@@ -225,7 +225,7 @@ class UniDecPres(object):
             plot.repaint()
             tend = time.perf_counter()
             print("Plot 2: %.2gs" % (tend - tstart))
-        if data.shape[1]!=2 or len(data)<2:
+        if data.shape[1] != 2 or len(data) < 2:
             print("Data Too Small. Adjust parameters.", data)
 
     def makeplot4(self, e=None, plot=None, data=None, pks=None):
@@ -396,6 +396,53 @@ class UniDecPres(object):
         for i, d in enumerate(pmasses):
             if d in peaksel:
                 label = ud.decimal_formatter(d, self.eng.config.massbins)
+                plot.addtext(label, pmasses[i], mval * 0.06 + pint[i], vlines=False)
+
+    def on_label_integral(self, e=None, peakpanel=None, pks=None, plot=None, dataobj=None):
+        """
+        Triggered by right click "Label Masses" on self.view.peakpanel.
+        Plots a line with text listing the mass of each specific peak.
+        Updates the peakpanel to show the masses.
+        :param e: unused event
+        :return: None
+        """
+
+        try:
+            self.on_integrate()
+            print("Integrated Peaks")
+            int_success = True
+        except:
+            print("Unable to integrate. Using Peak Heights")
+            int_success = False
+            pass
+        if peakpanel is None:
+            peakpanel = self.view.peakpanel
+        if pks is None:
+            pks = self.eng.pks
+        if plot is None:
+            plot = self.view.plot2
+        if dataobj is None:
+            dataobj = self.eng.data
+
+        if int_success:
+            pintegral = np.array([p.integral for p in pks.peaks])
+        else:
+            pintegral = np.array([p.height for p in pks.peaks])
+
+        peaksel = peakpanel.selection2
+        pmasses = np.array([p.mass for p in pks.peaks])
+        if ud.isempty(peaksel):
+            peaksel = pmasses
+        pint = np.array([p.height for p in pks.peaks])
+        mval = np.amax(dataobj.massdat[:, 1])
+
+        if isinstance(dataobj, MetaDataSet):
+            mval = (mval * 1.3 + self.eng.config.separation * dataobj.len)
+
+        plot.textremove()
+        for i, d in enumerate(pmasses):
+            if d in peaksel:
+                label = str(np.round(pintegral[i], 2))
                 plot.addtext(label, pmasses[i], mval * 0.06 + pint[i], vlines=False)
 
     def on_auto_peak_width(self, e=None, set=True):

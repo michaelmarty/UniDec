@@ -1,5 +1,6 @@
-version 5.0.5
+version 5.1.0
 imflag 0
+cdmsflag 0
 input C:\Python\UniDec3\unidec_bin\Example Data\GroEL HCD UniDec_unidecfiles\GroEL HCD UniDec_input.dat
 output C:\Python\UniDec3\unidec_bin\Example Data\GroEL HCD UniDec_unidecfiles\GroEL HCD UniDec
 numit 50

@@ -20,12 +20,6 @@
 //#include "UniDecIM.h"
 
 
-/*
-TODO:
-	Point smoothing is currently boxcar but py is psfun
-	Find out why results look different on exe, possibly fwhm vs sigma
-*/
-
 
 void blur_it_CD(float * output, const float * input, const int* upinds, const int *loinds, const int length, const float floor)
 {
@@ -282,11 +276,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	// Precompute FFTs
 	precompute_fft2D(peakshape, size, peakshape_FFT);
 	complex_conjugate(peakshape_FFT, inverse_peakshape_FFT, lines);
-	
-	if (config.rawflag == 0) {
-		GetPeaks(mkernel, size, mzext, zext, config.mzsig, 0, config.psfun, config.zpsfun);
-		precompute_fft2D(mkernel, size, mkernel_FFT);
-	}
+
 	printf("Peak Shape Set\n");
 
 
@@ -407,6 +397,9 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 
 	//Reconvolve if necessary
 	if (config.rawflag == 0) {
+		GetPeaks(mkernel, size, mzext, zext, config.mzsig, 0, config.psfun, config.zpsfun);
+		precompute_fft2D(mkernel, size, mkernel_FFT);
+		
 		memcpy_s(newblur, matsize, blur, matsize);
 		fftconvolve2D_precomputed(blur, newblur, mkernel_FFT, size, p1, p3, in1, out1);
 		printf("Reconvolved with m/z dimension\n");

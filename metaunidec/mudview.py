@@ -173,6 +173,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
         self.Bind(self.peakpanel.EVT_CHARGE_STATE, self.pres.on_charge_states_mud, self.peakpanel)
         self.Bind(self.peakpanel.EVT_DIFFERENCES, self.pres.on_differences, self.peakpanel)
         self.Bind(self.peakpanel.EVT_MASSES, self.pres.on_label_masses, self.peakpanel)
+        self.Bind(self.peakpanel.EVT_AREAS, self.pres.on_label_integral, self.peakpanel)
         self.Bind(self.peakpanel.EVT_IMAGE, self.pres.make_image_plot, self.peakpanel)
         sizer.Add(self.peakpanel, 0, wx.EXPAND)
 

@@ -360,6 +360,9 @@ class main_menu(wx.Menu):
         self.menutheomass = self.experimentalmenu.Append(wx.ID_ANY, "Plot Theoretical Mass")
         self.parent.Bind(wx.EVT_MENU, self.pres.plot_theo_mass, self.menutheomass)
 
+        #self.menupeakares = self.experimentalmenu.Append(wx.ID_ANY, "Label Peak Areas")
+        #self.parent.Bind(wx.EVT_MENU, self.pres.on_label_integral, self.menupeakares)
+
         # self.menucentroid = self.experimentalmenu.Append(wx.ID_ANY, "Get Centroid at FWHM")
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_centroid, self.menucentroid)
         self.experimentalmenu.AppendSeparator()

@@ -169,7 +169,7 @@ class UniDecCD(unidec.UniDec):
         self.config.mzbins = 1
         self.config.rawflag = 1
         self.config.poolflag = 1
-        self.exemode=False
+        self.exemode=True
         pass
 
     def gpu_mode(self, gpumode=False, exemode=False):

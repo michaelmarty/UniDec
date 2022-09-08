@@ -11,11 +11,11 @@ zzsig 1e-06
 psig 1.0
 beta 1.0
 mzsig 1.0
-psfun 2
+psfun 0
 zpsfun 0
 discreteplot 1
 massub 1000000.0
-masslb 20000.0
+masslb 600000.0
 msig 0.0
 molig 0.0
 massbins 10.0
@@ -60,6 +60,6 @@ kernel
 CDslope 0.2074
 CDzbins 1.0
 CDres 1.0
-csig 5.0
+csig 4.0
 smoothdt 0.0
 subbufdt 0.0

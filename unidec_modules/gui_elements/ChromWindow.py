@@ -137,6 +137,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.Bind(self.singlepeakpanel.EVT_CHARGE_STATE, self.pres.on_single_charge_states, self.singlepeakpanel)
         self.Bind(self.singlepeakpanel.EVT_DIFFERENCES, self.pres.on_single_differences, self.singlepeakpanel)
         self.Bind(self.singlepeakpanel.EVT_MASSES, self.pres.on_single_label_masses, self.singlepeakpanel)
+        self.Bind(self.singlepeakpanel.EVT_AREAS, self.pres.on_label_integral, self.singlepeakpanel)
         self.ctlsizer2.Add(self.singlepeakpanel, 0, wx.EXPAND)
 
         self.leftsizer.Add(self.ctlsizer2, 0, wx.EXPAND)
@@ -183,6 +184,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.Bind(self.peakpanel.EVT_CHARGE_STATE, self.pres.on_charge_states_mud, self.peakpanel)
         self.Bind(self.peakpanel.EVT_DIFFERENCES, self.pres.on_differences, self.peakpanel)
         self.Bind(self.peakpanel.EVT_MASSES, self.pres.on_label_masses, self.peakpanel)
+        self.Bind(self.peakpanel.EVT_AREAS, self.pres.on_label_integral, self.peakpanel)
         self.sizer3.Add(self.peakpanel, 0, wx.EXPAND)
         self.mainsizer.Add(self.sizer3, 0, wx.EXPAND)
 
