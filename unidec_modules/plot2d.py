@@ -27,7 +27,7 @@ class Plot2d(PlottingWindow):
 
     def contourplot(self, dat=None, config=None, xvals=None, yvals=None, zgrid=None, xlab='m/z (Th)', ylab="Charge",
                     title='', normflag=1, normrange=[0, 1], repaint=True, nticks=None, test_kda=False, discrete=None,
-                    ticloc=None, ticlab=None):
+                    ticloc=None, ticlab=None, order=None):
         """
         Make 2D plot.
 
@@ -77,13 +77,28 @@ class Plot2d(PlottingWindow):
             yvals = np.unique(dat[:, 1])
         xlen = len(xvals)
         ylen = len(yvals)
-        newgrid = np.reshape(zgrid, (xlen, ylen))
+
+        try:
+            if order is None and xlen > 2 and ylen > 2:
+                if np.all(dat[:2, 0] == xvals[:2]):
+                    order = "F"
+                elif np.all(dat[:2, 1] == yvals[:2]):
+                    order = "C"
+                else:
+                    order = "C"
+            else:
+                order = "C"
+        except:
+            order = "C"
+
+        newgrid = np.reshape(zgrid, (xlen, ylen), order=order)
+        if order == "F":
+            newgrid = newgrid[:, ::-1]
 
         if config.intscale == "Square Root":
             newgrid = np.sqrt(newgrid)
         elif config.intscale == "Logarithmic":
             newgrid = ud.fake_log(newgrid)
-
 
         # Save Data
         if dat is None:
@@ -111,8 +126,8 @@ class Plot2d(PlottingWindow):
         if speedplot == 0:
             # Slow contour plot that interpolates grid
             b1 = newgrid > 0.01 * np.amax(newgrid)
-            #If the data is sparse, use the tricontourf, otherwise, use the regular contourf
-            if np.sum(b1)/len(newgrid.ravel()) < 0.1:
+            # If the data is sparse, use the tricontourf, otherwise, use the regular contourf
+            if np.sum(b1) / len(newgrid.ravel()) < 0.1:
                 try:
                     b1 = b1.astype(float)
                     b1 = filt.uniform_filter(b1, size=3) > 0
@@ -147,7 +162,7 @@ class Plot2d(PlottingWindow):
 
             try:
                 ax = self.subplot1
-                im = NonUniformImage(ax, interpolation="nearest", extent=extent, cmap=self.cmap, norm=norm,)
+                im = NonUniformImage(ax, interpolation="nearest", extent=extent, cmap=self.cmap, norm=norm, )
                 im.set_data(xvals / self.kdnorm, yvals, np.transpose(newgrid))
                 ax.images.append(im)
                 ax.set_xlim(extent[0], extent[1])
@@ -222,7 +237,7 @@ class Plot2d(PlottingWindow):
         self.repaint()
 
     def hist2d(self, xvals, yvals, bins, config=None, xlab='m/z (Th)', ylab="Charge",
-                    title='', repaint=True, nticks=None, test_kda=False):
+               title='', repaint=True, nticks=None, test_kda=False):
         # Clear Plot
         self.clear_plot('nopaint')
         # Set xlabel and ylabel

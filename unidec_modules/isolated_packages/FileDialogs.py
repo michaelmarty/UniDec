@@ -48,15 +48,14 @@ def open_multiple_files_dialog(message="Open Files", file_type="*.*"):
     default_dir = ""
 
     dlg = wx.FileDialog(None, message, default_dir, "", file_type, wx.FD_OPEN | wx.FD_MULTIPLE | wx.FD_FILE_MUST_EXIST)
-    path = None
     file_names = None
     if dlg.ShowModal() == wx.ID_OK:
-        path = dlg.GetPath()
-        if path is not None:
-            file_names = [ud.smartdecode(os.path.join(os.path.dirname(path.encode('utf-8')), f.encode('utf-8'))) for f
-                          in dlg.GetFilenames()]
-            default_dir = os.path.dirname(path)
-            # print("Files:", file_names)
+        file_names = dlg.GetPaths()
+        default_dir = dlg.GetDirectory()
+        #if path is not None:
+        #    file_names = [ud.smartdecode(os.path.join(os.path.dirname(path.encode('utf-8')), f.encode('utf-8'))) for f
+        #                  in dlg.GetFilenames()]
+        print("Files:", file_names)
     dlg.Destroy()
     return file_names
 

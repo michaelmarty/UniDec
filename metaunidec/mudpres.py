@@ -18,7 +18,7 @@ from unidec_modules.isolated_packages import FileDialogs
 import datacollector
 import multiprocessing
 from unidec_modules.unidec_presbase import UniDecPres
-from metaunidec import ultrameta
+from metaunidec import ultrameta, image_plotter
 from metaunidec.mudhelp import *
 from metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard
 from unidec_modules.plot_waterfall import WaterfallFrame
@@ -91,7 +91,7 @@ class MetaUniDecBase(UniDecPres):
             mult = 1
         for i, s in enumerate(spectra[::mult]):
             if not ud.isempty(s.massdat):
-                if i == 0:
+                if i == 0 or not self.view.plot2.flag:
                     self.view.plot2.plotrefreshtop(s.massdat[:, 0], s.massdat[:, 1], title="Zero-Charge Mass Spectrum",
                                                    xlabel="Mass (Da)",
                                                    ylabel="Intensity", label=s.name, config=self.eng.config,
@@ -272,7 +272,6 @@ class MetaUniDecBase(UniDecPres):
         """
         print("Top index is now:", index)
         self.eng.data.data2 = self.eng.data.spectra[index].data2
-
 
     def on_ignore(self, indexes):
         """
@@ -1067,8 +1066,6 @@ class UniDecApp(MetaUniDecBase):
         self.plot_sums()
         pass
 
-
-
     def on_left_click(self, xpos, ypos):
         """
         Triggered by pubsub from plot windows.
@@ -1548,7 +1545,49 @@ class UniDecApp(MetaUniDecBase):
         self.on_delete()
         self.view.peakpanel.add_data(self.eng.pks)
 
+    def on_hdf5_to_imzml(self, e=None):
+        outfile = os.path.splitext(self.eng.config.hdf_file)[0] + "_unidec.imzml"
+        print("Writing HDF5 file", self.eng.config.hdf_file)
+        print("to imzML file: ", outfile)
+        self.eng.write_to_imzML(outfile)
 
+    def on_imzml_to_hdf5(self, e=None):
+        print("Opening")
+        dlg = wx.FileDialog(self.view, "Choose a data file in imzML format", '', "", "*.imzml*")
+        if dlg.ShowModal() == wx.ID_OK:
+            filename = dlg.GetFilename()
+            print("Openening: ", filename)
+            if os.path.splitext(filename)[1].lower() != ".imzml":
+                print("Need imzml file")
+                return
+            dirname = dlg.GetDirectory()
+            infile = os.path.join(dirname, filename)
+            outfile = os.path.splitext(infile)[0]
+            outfile = outfile + ".hdf5"
+            self.eng.imzml_to_hdf5(infile, outfile)
+            try:
+                self.open_file(outfile)
+            except Exception as e:
+                print("Error opening file:", e)
+        dlg.Destroy()
+
+    def make_image_plot(self, e=None):
+        peak_index = e.id
+        print("Making Image for peak #", peak_index)
+        #imdat = self.eng.generate_image(peak_index)
+        self.view.plot8.clear_plot()
+        zdat = self.eng.data.exgrid[peak_index]
+        self.view.plot8._axes = [0.12, 0.12, 0.75, 0.8]
+        var1 = np.array(self.eng.data.var1)
+        var2 = np.array(self.eng.data.var2)
+        dat = np.transpose([var1, var2, zdat])
+        self.view.plot8.contourplot(dat=dat, normflag=1, config=self.eng.config,
+                                    xlab="x", ylab="y", discrete=1, )
+
+    def on_imaging_viewer(self, e=None):
+        print("Launching Imaging Viewer")
+        dlg = image_plotter.ImagingWindow(self.view)
+        dlg.init(self.eng.data, self.eng.config)
 
 # Critical
 # TODO: Thorough testing

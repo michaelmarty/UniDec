@@ -163,6 +163,7 @@ struct Config
 	float massub;
 	float masslb;
 	int psfun;
+	int zpsfun;
 	float mtabsig;
 	char mfile[500];
 	char manualfile[500];
@@ -237,14 +238,16 @@ struct Config
 	char kernel[500];
 	hid_t file_id;
 	char dataset[1024];
+	int silent;
+	int cdmsflag;
 };
 
 Config SetDefaultConfig()
 {
 	Config config;
-	strcpy(config.infile, "default_data.txt");
-	strcpy(config.outfile, "default_output");
-	strcpy(config.mfile, "default_mfile.txt");
+	strcpy_s(config.infile, sizeof(config.infile), "default_data.txt");
+	strcpy_s(config.outfile, sizeof(config.outfile), "default_output");
+	strcpy_s(config.mfile, sizeof(config.mfile), "default_mfile.txt");
 	config.numit = 50;
 	config.endz = 100;
 	config.startz = 1;
@@ -257,6 +260,7 @@ Config SetDefaultConfig()
 	config.massub = 5000000;
 	config.masslb = 100;
 	config.psfun = 0;
+	config.zpsfun = 0;
 	config.mtabsig = 0;
 	config.mflag = 0;
 	config.massbins = 100;
@@ -327,6 +331,8 @@ Config SetDefaultConfig()
 	// DoubleDec
 	config.doubledec = 0; // Consider initializing kernel as well?
 	config.file_id = 0;
+	config.silent = 0;
+	config.cdmsflag = 0;
 	return config;
 }
 
@@ -334,6 +340,7 @@ Config PostImport(Config config)
 {
 	//Convert gaussian FWHM to sigma
 	if (config.psfun == 0) { config.mzsig = config.mzsig / 2.35482; }
+	if (config.zpsfun == 0) { config.csig = config.csig / 2.35482; }
 	config.dtsig = config.dtsig / 2.35482;
 	//Check whether to turn off or on the config.limitflag. Limit flag on means it will select only the mass values closest to the mass values from mfile.
 	if (config.mflag == 1 && config.mtabsig == 0) { config.limitflag = 1; }
@@ -365,8 +372,8 @@ Config PostImport(Config config)
 	if (config.twaveflag == -1 && config.imflag == 1) { printf("\n\nNeed to define twaveflag for CCS calculation\n\n"); }
 
 	//bug proofing so we don't get a 1/0 problem
-	if (config.msig == 0) { config.msig = 0.00001; }
-	if (config.zsig == 0) { config.zsig = 0.00001; }
+	//if (config.msig == 0) { config.msig = 0.00001; }
+	//if (config.zsig == 0) { config.zsig = 0.00001; }
 	if (config.massbins == 0) { config.massbins = 1; }
 
 	//Convert aggressiveflag to baselineflag
@@ -382,7 +389,9 @@ Config PostImport(Config config)
 Config LoadConfig(Config config, const char* filename)
 {
 	// We assume argv[1] is a filename to open
-	FILE* file = fopen(filename, "r");
+	FILE* file;
+	errno_t err = fopen_s(&file, filename, "r");
+	if (err != 0) { printf("Error Opening %s %d\n", filename, err); exit(err); }
 
 	if (file == 0)
 	{
@@ -392,15 +401,15 @@ Config LoadConfig(Config config, const char* filename)
 	//Configuration file should be formatted: name value
 	else
 	{
-		char x[500];
-		char y[500];
+		char x[501]= {0};
+		char y[501]= {0};
 		//printf("\nRead from file:");
 		while (fscanf(file, "%s %500[^\n]", x, y) != EOF)
 		{
 			//printf( "read in: %s %s \n", x,y );
-			if (strstr(x, "input") != NULL) { strcpy(config.infile, y); }// printf(" input");
-			if (strstr(x, "output") != NULL) { strcpy(config.outfile, y); }//  printf(" output"); }
-			if (strstr(x, "mfile") != NULL) { strcpy(config.mfile, y); config.mflag = 1; }// printf(" mfile"); }
+			if (strstr(x, "input") != NULL) { strcpy_s(config.infile, sizeof(config.infile), y); }// printf(" input");
+			if (strstr(x, "output") != NULL) { strcpy_s(config.outfile, sizeof(config.outfile), y); }//  printf(" output"); }
+			if (strstr(x, "mfile") != NULL) { strcpy_s(config.mfile, sizeof(config.mfile), y); config.mflag = 1; }// printf(" mfile"); }
 			if (strstr(x, "numit") != NULL) { config.numit = atoi(y); }// printf(" numit"); }
 			//if (strstr(x, "numz") != NULL){ config.numz = atoi(y); printf(" numz"); }
 			if (strstr(x, "startz") != NULL) { config.startz = atoi(y); }// printf(" startz"); }
@@ -414,6 +423,7 @@ Config LoadConfig(Config config, const char* filename)
 			if (strstr(x, "massub") != NULL) { config.massub = atof(y); }// printf(" massub"); }
 			if (strstr(x, "masslb") != NULL) { config.masslb = atof(y); }// printf(" masslb"); }
 			if (strstr(x, "psfun") != NULL) { config.psfun = atoi(y); }// printf(" psfun"); }
+			if (strstr(x, "zpsfun") != NULL) { config.zpsfun = atoi(y); }
 			if (strstr(x, "mtabsig") != NULL) { config.mtabsig = atof(y); }// printf(" mtabsig"); }
 			if (strstr(x, "massbins") != NULL) { config.massbins = atof(y); }// printf(" massbins"); }
 			if (strstr(x, "psthresh") != NULL) { config.psthresh = atof(y); }// printf(" psthresh"); }
@@ -424,13 +434,14 @@ Config LoadConfig(Config config, const char* filename)
 			if (strstr(x, "nativezub") != NULL) { config.nativezub = atof(y); }// printf(" nativezub"); }
 			if (strstr(x, "nativezlb") != NULL) { config.nativezlb = atof(y); }// printf(" nativezlb"); }
 			if (strstr(x, "poolflag") != NULL) { config.poolflag = atoi(y); }// printf(" poolflag"); }
-			if (strstr(x, "manualfile") != NULL) { config.manualflag = 1; strcpy(config.manualfile, y); }//  printf(" manualfile"); }
+			if (strstr(x, "manualfile") != NULL) { config.manualflag = 1; strcpy_s(config.manualfile, sizeof(config.manualfile), y); }//  printf(" manualfile"); }
 			if (strstr(x, "intthresh") != NULL) { config.intthresh = atof(y); }// printf(" intthresh"); }
 			if (strstr(x, "peakshapeinflate") != NULL) { config.peakshapeinflate = atof(y); }// printf(" peakshapeinflate"); }
 			if (strstr(x, "killmass") != NULL) { config.killmass = atof(y); }// printf(" killmass"); }
 			if (strstr(x, "isotopemode") != NULL) { config.isotopemode = atoi(y); }// printf(" isotopemode"); }
 			if (strstr(x, "orbimode") != NULL) { config.orbimode = atoi(y); }// printf(" orbimode"); }
 			if (strstr(x, "imflag") != NULL) { config.imflag = atoi(y); }// printf(" imflag"); }
+			if (strstr(x, "cdmsflag") != NULL) { config.cdmsflag = atoi(y); }// printf(" imflag"); }
 			if (strstr(x, "linflag") != NULL) { config.linflag = atoi(y); }// printf(" linflag"); }
 			//IM Parameters
 			if (strstr(x, "csig") != NULL) { config.csig = atof(y); }// printf(" csig"); }
@@ -464,7 +475,7 @@ Config LoadConfig(Config config, const char* filename)
 			if (strstr(x, "peaknorm") != NULL) { config.peaknorm = atoi(y); }// printf(" peaknorm"); }
 			// DoubleDec Parameters
 			if (strstr(x, "doubledec") != NULL) { config.doubledec = atoi(y); }
-			if (strstr(x, "kernel") != NULL) { strcpy(config.kernel, y); }
+			if (strstr(x, "kernel") != NULL) { strcpy_s(config.kernel, sizeof(config.kernel), y); }
 		}
 		//printf("\n\n");
 	}
@@ -551,7 +562,7 @@ void PrintHelp()
 	printf("\t\t\t\t\t\"tcal3\"=Calibration paramter 3 (P3)\n");
 	printf("\t\t\t\t5=SLIM T-Wave 3rd Order Polynomial Calibration\n");
 	printf("\t\t\t\t\t\"tcal4\"=Calibration parmater 4 (P4)\n");
-	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit date 6/30/22\n");
+	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit date 7/12/22\n");
 	//printf("\nsize of: %d",sizeof(char));
 
 	/*
@@ -639,27 +650,22 @@ void readfile(char* infile, int lengthmz, float* dataMZ, float* dataInt)
 {
 	FILE* file_ptr;
 	int i;
-	char x[500];
-	char y[500];
+	char x[500] = { 0 };
+	char y[500] = { 0 };
 
-	file_ptr = fopen(infile, "r");
+	errno_t err = fopen_s(&file_ptr, infile, "r");
+	if (err != 0) { printf("Error Opening %s %d\n", infile, err); exit(err); }
 
-	if (file_ptr == 0)
+	for (i = 0;i < lengthmz;i++)
 	{
-		printf("Could not open %s file\n", infile);
-		exit(10);
-	}
-	else {
-
-		for (i = 0;i < lengthmz;i++)
-		{
-			fscanf(file_ptr, "%s %s", x, y);
+		int match = fscanf(file_ptr, "%s %s", x, y);
+		if (match != 0){
 			dataMZ[i] = atof(x);
 			dataInt[i] = atof(y);
 		}
 	}
-	fclose(file_ptr);
 
+	fclose(file_ptr);
 }
 
 //Reads in x y z file.
@@ -667,22 +673,17 @@ void readfile3(char* infile, int lengthmz, float* array1, float* array2, float* 
 {
 	FILE* file_ptr;
 	int i;
-	char x[500];
-	char y[500];
-	char z[500];
+	char x[500] = { 0 };
+	char y[500] = { 0 };
+	char z[500] = { 0 };
 
-	file_ptr = fopen(infile, "r");
+	errno_t err = fopen_s(&file_ptr, infile, "r");
+	if (err != 0) { printf("Error Opening %s %d\n", infile, err); exit(err); }
 
-	if (file_ptr == 0)
+	for (i = 0;i < lengthmz;i++)
 	{
-		printf("Could not open %s file\n", infile);
-		exit(10);
-	}
-	else {
-
-		for (i = 0;i < lengthmz;i++)
-		{
-			fscanf(file_ptr, "%s %s %s", x, y, z);
+		int match = fscanf(file_ptr, "%s %s %s", x, y, z);
+		if (match !=0){
 			array1[i] = atof(x);
 			array2[i] = atof(y);
 			array3[i] = atof(z);
@@ -698,17 +699,15 @@ void readfile3bin(char* infile, int lengthmz, float* array1, float* array2, floa
 	FILE* file_ptr;
 	int i;
 	float* data;
-	data = (float*) calloc(lengthmz * 3, sizeof(float));
+	int newlen = lengthmz * 3;
+	data = (float*) calloc(newlen, sizeof(float));
 
-	file_ptr = fopen(infile, "rb");
-
-	if (file_ptr == 0)
-	{
-		printf("Could not open %s file\n", infile);
-		exit(10);
-	}
-	else {
-		fread(data, sizeof(float), lengthmz * 3, file_ptr);
+	errno_t err = fopen_s(&file_ptr, infile, "rb");
+	if (err != 0) { printf("Error Opening %s %d\n", infile, err); exit(err); }
+	
+	int l = lengthmz * 3;
+	if (data) {
+		fread(data, sizeof(float), l, file_ptr);
 		for (i = 0; i < lengthmz; i++)
 		{
 			array1[i] = data[i*3];
@@ -716,6 +715,7 @@ void readfile3bin(char* infile, int lengthmz, float* array1, float* array2, floa
 			array3[i] = data[i*3+2];
 			//printf("%f %f %f\n", array1[i], array2[i], array3[i]);
 		}
+		free(data);
 	}
 	fclose(file_ptr);
 }
@@ -726,23 +726,19 @@ void readmfile(char* infile, int mfilelen, float* testmasses)
 {
 	FILE* file_ptr;
 	int i;
-	char input[500];
+	char input[500] = { 0 };
 
-	file_ptr = fopen(infile, "r");
+	errno_t err = fopen_s(&file_ptr, infile, "r");
+	if (err != 0) { printf("Error Opening %s %d\n", infile, err); exit(err); }
 
-	if (file_ptr == 0)
+	for (i = 0;i < mfilelen;i++)
 	{
-		printf("Could not open %s file\n", infile);
-		exit(20);
-	}
-	else {
-
-		for (i = 0;i < mfilelen;i++)
-		{
-			fscanf(file_ptr, "%s", input);
+		int match = fscanf(file_ptr, "%s", input);
+		if (match !=0){
 			testmasses[i] = atof(input);
 		}
 	}
+	
 	fclose(file_ptr);
 }
 
@@ -752,20 +748,14 @@ int getfilelength(const char* infile)
 	FILE* file_ptr;
 	int l = 0;
 	char input[501];
-	file_ptr = fopen(infile, "r");
+	errno_t err = fopen_s(&file_ptr, infile, "r");
+	if (err != 0) { printf("Error Opening %s %d\n", infile, err); exit(err); }
 
-	if (file_ptr == 0)
+	while (fscanf(file_ptr, "%500[^\n]%*c", input) != EOF)
 	{
-		printf("Could not open %s file\n", infile);
-		exit(9);
+		l += 1;
 	}
-	else
-	{
-		while (fscanf(file_ptr, "%500[^\n]%*c", input) != EOF)
-		{
-			l += 1;
-		}
-	}
+	
 	fclose(file_ptr);
 	return l;
 }
@@ -775,20 +765,13 @@ int getfilelengthbin(const char* infile, const int size, const int width)
 {
 	FILE* file_ptr;
 	int l = 0;
-	file_ptr = fopen(infile, "rb");
+	errno_t err = fopen_s(&file_ptr, infile, "rb");
+	if (err != 0) { printf("Error Opening %s %d\n", infile, err); exit(err); }
+	
+	fseek(file_ptr, 0, SEEK_END);
+	l = ftell(file_ptr);
+	l /= (size * width);
 
-	if (file_ptr == 0)
-	{
-		printf("Could not open %s file\n", infile);
-		exit(9);
-	}
-	else
-	{
-		
-		fseek(file_ptr, 0, SEEK_END);
-		l = ftell(file_ptr);
-		l /= (size * width);
-	}
 	fclose(file_ptr);
 	return l;
 }
@@ -1044,7 +1027,8 @@ void blur_it(const int lengthmz,
 {
 	if (numclose == 1)
 	{
-		memcpy(newblur, blur, lengthmz * numz * sizeof(float));
+		size_t len = (size_t) lengthmz * numz * sizeof(float);
+		memcpy(newblur, blur, len);
 	}
 	else {
 #pragma omp parallel for schedule(auto)
@@ -1079,7 +1063,8 @@ void blur_it_mean(const int lengthmz,
 {
 	if (numclose == 1)
 	{
-		memcpy(newblur, blur, lengthmz * numz * sizeof(float));
+		size_t len = (size_t) lengthmz * numz * sizeof(float);
+		memcpy(newblur, blur, len);
 	}
 	else {
 #pragma omp parallel for schedule(auto)
@@ -1217,7 +1202,8 @@ void blur_it_hybrid1(const int lengthmz,
 	int numclose = zlength * mlength;
 	if (numclose == 1)
 	{
-		memcpy(newblur, blur, lengthmz * numz * sizeof(float));
+		size_t len = (size_t) lengthmz * numz * sizeof(float);
+		memcpy(newblur, blur, len);
 	}
 	else {
 #pragma omp parallel for private (i,k,j, n), schedule(auto)
@@ -1272,7 +1258,8 @@ void blur_it_hybrid2(const int lengthmz,
 	int numclose = zlength * mlength;
 	if (numclose == 1)
 	{
-		memcpy(newblur, blur, lengthmz * numz * sizeof(float));
+		size_t len = (size_t) lengthmz * numz * sizeof(float);
+		memcpy(newblur, blur, len);
 	}
 	else {
 #pragma omp parallel for private (i,k,j, n), schedule(auto)
@@ -1382,81 +1369,87 @@ void midblur_baseline(float* baseline, const int lengthmz, const float* dataMZ, 
 
 	float* temp = NULL;
 	temp = (float*) calloc(lengthmz, sizeof(float));
-	memcpy(temp, baseline, sizeof(float) * lengthmz);
-	int i, j;
-#pragma omp parallel for private(i,j), schedule(auto)
-	for (i = 0; i < lengthmz; i++)
-	{
-		float val = 0;
-		float len = window * 2;
-		float* med = NULL;
-		med = (float*) calloc(len, sizeof(float));
-		int index = 0;
-		for (j = -window; j < window; j++)
+	if (temp){
+		memcpy(temp, baseline, sizeof(float) * lengthmz);
+		int i, j;
+	#pragma omp parallel for private(i,j), schedule(auto)
+		for (i = 0; i < lengthmz; i++)
 		{
-			int k = i + j * mult;
-			float newval = 0;
-			if (k >= 0 && k < lengthmz) {
-				newval = temp[k];
+			float val = 0;
+			float len = window * 2;
+			float* med = NULL;
+			med = (float*) calloc(len, sizeof(float));
+			if (med){
+				int index = 0;
+				for (j = -window; j < window; j++)
+				{
+					int k = i + j * mult;
+					float newval = 0;
+					if (k >= 0 && k < lengthmz) {
+						newval = temp[k];
+					}
+					if (k < 0)
+					{
+						newval = temp[-k];
+					}
+					if (k >= lengthmz)
+					{
+						newval = temp[2 * lengthmz - k];
+					}
+					med[index] = newval;
+					index++;
+				}
+				qsort(med, len, sizeof(float), compare_function);
+				index = 0;
+				for (j = 0; j < window; j++)
+				{
+					val += med[j];
+					index++;
+				}
+				if (index != 0) {
+					baseline[i] = val / ((float)index);
+				}
+				else { baseline[i] = 0; }
+				free(med);
 			}
-			if (k < 0)
-			{
-				newval = temp[-k];
-			}
-			if (k >= lengthmz)
-			{
-				newval = temp[2 * lengthmz - k];
-			}
-			med[index] = newval;
-			index++;
 		}
-		qsort(med, len, sizeof(float), compare_function);
-		index = 0;
-		for (j = 0; j < window; j++)
-		{
-			val += med[j];
-			index++;
-		}
-		if (index != 0) {
-			baseline[i] = val / ((float)index);
-		}
-		else { baseline[i] = 0; }
-		free(med);
+		free(temp);
 	}
-	free(temp);
 }
 
 void blur_noise(float* noise, int lengthmz)
 {
 	float* temp = NULL;
 	temp = (float*) calloc(lengthmz, sizeof(float));
-	memcpy(temp, noise, sizeof(float) * lengthmz);
-	int i, j;
-	float filter[5] = { -0.1,-0.4,1,-0.4,-0.1 };
-#pragma omp parallel for private (i,j), schedule(auto)
-	for (i = 0; i < lengthmz; i++)
-	{
-		float val = 0;
-		for (j = -2; j <= 2; j++)
+	if (temp){
+		memcpy(temp, noise, sizeof(float) * lengthmz);
+		int i, j;
+		float filter[5] = { -0.1,-0.4,1,-0.4,-0.1 };
+	#pragma omp parallel for private (i,j), schedule(auto)
+		for (i = 0; i < lengthmz; i++)
 		{
-			int k = i + j;
-			float newval = 0;
-			if (k >= 0 && k < lengthmz) {
-				newval = temp[k];
-			}
-			if (k < 0)
+			float val = 0;
+			for (j = -2; j <= 2; j++)
 			{
-				newval = temp[-k];
+				int k = i + j;
+				float newval = 0;
+				if (k >= 0 && k < lengthmz) {
+					newval = temp[k];
+				}
+				if (k < 0)
+				{
+					newval = temp[-k];
+				}
+				if (k >= lengthmz)
+				{
+					newval = temp[2 * lengthmz - k];
+				}
+				val += newval * filter[j + 2];
 			}
-			if (k >= lengthmz)
-			{
-				newval = temp[2 * lengthmz - k];
-			}
-			val += newval * filter[j + 2];
+			noise[i] = val;
 		}
-		noise[i] = val;
+		free(temp);
 	}
-	free(temp);
 }
 
 inline int fixk(int k, int lengthmz)
@@ -1592,26 +1585,27 @@ void deconvolve_baseline(const int lengthmz, const float* dataMZ, const float* d
 {
 	float* denom = NULL;
 	denom = (float*) calloc(lengthmz, sizeof(float));
+	if (denom){
+		midblur_baseline(baseline, lengthmz, dataMZ, mzsig, 0);
+		midblur_baseline(baseline, lengthmz, dataMZ, mzsig, 5);
 
-	midblur_baseline(baseline, lengthmz, dataMZ, mzsig, 0);
-	midblur_baseline(baseline, lengthmz, dataMZ, mzsig, 5);
+		memcpy(denom, baseline, sizeof(float) * lengthmz);
+		int i;
+	#pragma omp parallel for private(i), schedule(auto)
+		for (i = 0; i < lengthmz; i++)
+		{
+			if (denom[i] != 0 && dataInt[i] >= 0) { denom[i] = dataInt[i] / denom[i]; }
+		}
 
-	memcpy(denom, baseline, sizeof(float) * lengthmz);
-	int i;
-#pragma omp parallel for private(i), schedule(auto)
-	for (i = 0; i < lengthmz; i++)
-	{
-		if (denom[i] != 0 && dataInt[i] >= 0) { denom[i] = dataInt[i] / denom[i]; }
+		midblur_baseline(denom, lengthmz, dataMZ, mzsig, 0);
+		midblur_baseline(denom, lengthmz, dataMZ, mzsig, 5);
+	#pragma omp parallel for private(i), schedule(auto)
+		for (i = 0; i < lengthmz; i++)
+		{
+			baseline[i] = baseline[i] * (denom[i]);
+		}
+		free(denom);
 	}
-
-	midblur_baseline(denom, lengthmz, dataMZ, mzsig, 0);
-	midblur_baseline(denom, lengthmz, dataMZ, mzsig, 5);
-#pragma omp parallel for private(i), schedule(auto)
-	for (i = 0; i < lengthmz; i++)
-	{
-		baseline[i] = baseline[i] * (denom[i]);
-	}
-	free(denom);
 }
 
 float deconvolve_iteration_speedy(const int lengthmz, const int numz, const int maxlength, const float* __restrict blur, float* __restrict blur2,
@@ -1701,11 +1695,10 @@ float deconvolve_iteration_speedy(const int lengthmz, const int numz, const int 
 	return 0;
 }
 
-void ApplyCutoff1D(float* array, float cutoff, int lengthmz)
+void ApplyCutoff1D(float* array, const float cutoff, const int lengthmz)
 {
-	unsigned int i;
 	//#pragma omp parallel for private (i,j), schedule(auto)
-	for (i = 0; i < lengthmz; i++)
+	for (int i = 0; i < lengthmz; i++)
 	{
 		if (array[i] < cutoff) { array[i] = 0; }
 	}
@@ -2251,25 +2244,27 @@ void MakePeakShape1D(float* dataMZ, float threshold, int lengthmz, int speedyfla
 void monotopic_to_average(const int lengthmz, const int numz, float* blur, const char* barr, int isolength, const int* __restrict isotopepos, const float* __restrict isotopeval)
 {
 	float* newblur = NULL;
-	newblur = (float*) calloc(lengthmz * numz, sizeof(float));
-	unsigned int i, j, k;
-	for (i = 0; i < lengthmz; i++)
-	{
-		for (j = 0; j < numz; j++)
+	int l = lengthmz * numz;
+	newblur = (float*) calloc(l, sizeof(float));
+	if (newblur){
+		for (int i = 0; i < lengthmz; i++)
 		{
-			if (barr[index2D(numz, i, j)] == 1) {
-				float topval = blur[index2D(numz, i, j)];
-				for (k = 0; k < isolength; k++)
-				{
-					int pos = isotopepos[index3D(numz, isolength, i, j, k)];
-					float val = isotopeval[index3D(numz, isolength, i, j, k)];
-					newblur[index2D(numz, pos, j)] += topval * (float)val;
+			for (int j = 0; j < numz; j++)
+			{
+				if (barr[index2D(numz, i, j)] == 1) {
+					float topval = blur[index2D(numz, i, j)];
+					for (int k = 0; k < isolength; k++)
+					{
+						int pos = isotopepos[index3D(numz, isolength, i, j, k)];
+						float val = isotopeval[index3D(numz, isolength, i, j, k)];
+						newblur[index2D(numz, pos, j)] += topval * (float)val;
+					}
 				}
 			}
 		}
+		memcpy(blur, newblur, sizeof(float) * lengthmz * numz);
+		free(newblur);
 	}
-	memcpy(blur, newblur, sizeof(float) * lengthmz * numz);
-	free(newblur);
 }
 
 
@@ -2732,61 +2727,63 @@ void make_isotopes(float* isoparams, int* isotopepos, float* isotopeval, float* 
 	int* isoindex = NULL;
 	isorange = (float*) calloc(isolength, sizeof(float));
 	isoindex = (int*) calloc(isolength, sizeof(int));
-	for (i = 0; i < isolength; i++)
-	{
-		isorange[i] = (isostart + i) * massdiff;
-		isoindex[i] = (isostart + i);
-	}
-#pragma omp parallel for private (i,j,k), schedule(auto)
-	for (i = 0; i < lengthmz; i++)
-	{
-		for (j = 0; j < numz; j++)
+	if (isorange&&isoindex){
+		for (i = 0; i < isolength; i++)
 		{
-			if (barr[index2D(numz, i, j)] == 1)
+			isorange[i] = (isostart + i) * massdiff;
+			isoindex[i] = (isostart + i);
+		}
+	#pragma omp parallel for private (i,j,k), schedule(auto)
+		for (i = 0; i < lengthmz; i++)
+		{
+			for (j = 0; j < numz; j++)
 			{
-				float mz = dataMZ[i];
-				int z = ztab[j];
-				for (k = 0; k < isolength; k++)
+				if (barr[index2D(numz, i, j)] == 1)
 				{
-					float newmz = mz + (isorange[k] / ((float)z));
-					int pos = nearfast(dataMZ, newmz, lengthmz);
-					isotopepos[index3D(numz, isolength, i, j, k)] = pos;
+					float mz = dataMZ[i];
+					int z = ztab[j];
+					for (k = 0; k < isolength; k++)
+					{
+						float newmz = mz + (isorange[k] / ((float)z));
+						int pos = nearfast(dataMZ, newmz, lengthmz);
+						isotopepos[index3D(numz, isolength, i, j, k)] = pos;
+					}
 				}
 			}
 		}
-	}
-#pragma omp parallel for private (i,j,k), schedule(auto)
-	for (i = 0; i < lengthmz; i++)
-	{
-		for (j = 0; j < numz; j++)
+	#pragma omp parallel for private (i,j,k), schedule(auto)
+		for (i = 0; i < lengthmz; i++)
 		{
-			if (barr[index2D(numz, i, j)] == 1)
+			for (j = 0; j < numz; j++)
 			{
-				float mass = mtab[index2D(numz, i, j)];
-				float mid = isotopemid(mass, isoparams);
-				float sig = isotopesig(mass, isoparams);
-				if (sig == 0) { printf("Error: Sigma Isotope Parameter is 0"); exit(102); }
-				float alpha = isotopealpha(mass, isoparams);
-				float amp = (1.0 - alpha) / (sig * 2.50662827);
-				float beta = isotopebeta(mass, isoparams);
-				float tot = 0;
-				for (k = 0; k < isolength; k++)
+				if (barr[index2D(numz, i, j)] == 1)
 				{
-					float e = alpha * exp(-isoindex[k] * beta);
-					float g = amp * exp(-pow(isoindex[k] - mid, 2) / (2 * pow(sig, 2)));
-					float temp = e + g;
-					tot += temp;
-					isotopeval[index3D(numz, isolength, i, j, k)] = temp;
-				}
-				for (k = 0; k < isolength; k++)
-				{
-					if (tot > 0) { isotopeval[index3D(numz, isolength, i, j, k)] = isotopeval[index3D(numz, isolength, i, j, k)] / tot; }
+					float mass = mtab[index2D(numz, i, j)];
+					float mid = isotopemid(mass, isoparams);
+					float sig = isotopesig(mass, isoparams);
+					if (sig == 0) { printf("Error: Sigma Isotope Parameter is 0"); exit(102); }
+					float alpha = isotopealpha(mass, isoparams);
+					float amp = (1.0 - alpha) / (sig * 2.50662827);
+					float beta = isotopebeta(mass, isoparams);
+					float tot = 0;
+					for (k = 0; k < isolength; k++)
+					{
+						float e = alpha * exp(-isoindex[k] * beta);
+						float g = amp * exp(-pow(isoindex[k] - mid, 2) / (2 * pow(sig, 2)));
+						float temp = e + g;
+						tot += temp;
+						isotopeval[index3D(numz, isolength, i, j, k)] = temp;
+					}
+					for (k = 0; k < isolength; k++)
+					{
+						if (tot > 0) { isotopeval[index3D(numz, isolength, i, j, k)] = isotopeval[index3D(numz, isolength, i, j, k)] / tot; }
+					}
 				}
 			}
 		}
+		free(isorange);
+		free(isoindex);
 	}
-	free(isorange);
-	free(isoindex);
 }
 
 void isotope_dist(float mass, int isolength, int* isoindex, float* isovals, float* isoparams)
@@ -2851,29 +2848,31 @@ void test_isotopes(float mass, float* isoparams)
 	int* isoindex = NULL;
 	isorange = (float*) calloc(isolength, sizeof(float));
 	isoindex = (int*) calloc(isolength, sizeof(int));
-	for (i = 0; i < isolength; i++)
-	{
-		isoindex[i] = (isostart + i);
+	if (isorange && isoindex){
+		for (i = 0; i < isolength; i++)
+		{
+			isoindex[i] = (isostart + i);
+		}
+		isotope_dist(mass, isolength, isoindex, isorange, isoparams);
+		printf("Distribution: %f", mass);
+		for (i = 0; i < isolength; i++)
+		{
+			printf("%f ", isorange[i]);
+		}
+		printf("\n");
+		textvectorprint(isorange, isolength);
+		free(isorange);
+		free(isoindex);
 	}
-	isotope_dist(mass, isolength, isoindex, isorange, isoparams);
-	printf("Distribution: %f", mass);
-	for (i = 0; i < isolength; i++)
-	{
-		printf("%f ", isorange[i]);
-	}
-	printf("\n");
-	textvectorprint(isorange, isolength);
-	free(isorange);
-	free(isoindex);
 }
 
 void setup_and_make_isotopes(Config* config, Input* inp) {
 	printf("Isotope Mode: %d\n", config->isotopemode);
 
 	config->isolength = setup_isotopes(inp->isoparams, inp->isotopepos, inp->isotopeval, inp->mtab, inp->nztab, inp->barr, inp->dataMZ, config->lengthmz, config->numz);
-
-	inp->isotopepos = (int*) calloc(config->isolength * config->lengthmz * config->numz, sizeof(int));
-	inp->isotopeval = (float*) calloc(config->isolength * config->lengthmz * config->numz, sizeof(float));
+	int l = config->isolength * config->lengthmz * config->numz;
+	inp->isotopepos = (int*)calloc(l , sizeof(int));
+	inp->isotopeval = (float*) calloc(l, sizeof(float));
 
 	make_isotopes(inp->isoparams, inp->isotopepos, inp->isotopeval, inp->mtab, inp->nztab, inp->barr, inp->dataMZ, config->lengthmz, config->numz);
 
@@ -2934,39 +2933,46 @@ void charge_scaling(float* blur, const int* nztab, const int lengthmz, const int
 void point_smoothing(float* blur, const char* barr, const int lengthmz, const int numz, const int width)
 {
 	float* newblur;
-	newblur = (float*) calloc(lengthmz * numz, sizeof(float));
-	memcpy(newblur, blur, lengthmz * numz * sizeof(float));
-#pragma omp parallel for schedule(auto)
-	for (int i = 0; i < lengthmz; i++)
-	{
-		for (int j = 0; j < numz; j++)
+	int l = lengthmz * numz;
+	newblur = (float*) calloc(l, sizeof(float));
+	if (newblur){
+		size_t newl = (size_t)lengthmz * numz * sizeof(float);
+		memcpy(newblur, blur, newl);
+		#pragma omp parallel for schedule(auto)
+		for (int i = 0; i < lengthmz; i++)
 		{
-			if (barr[index2D(numz, i, j)] == 1) {
-				int low = i - width;
-				if (low < 0) { low = 0; }
-				int high = i + width + 1;
-				if (high > lengthmz) { high = lengthmz; }
+			for (int j = 0; j < numz; j++)
+			{
+				if (barr[index2D(numz, i, j)] == 1) {
+					int low = i - width;
+					if (low < 0) { low = 0; }
+					int high = i + width + 1;
+					if (high > lengthmz) { high = lengthmz; }
 
-				float sum = 0;
-				for (int k = low; k < high; k++)
-				{
-					sum += newblur[index2D(numz, k, j)];
+					float sum = 0;
+					for (int k = low; k < high; k++)
+					{
+						sum += newblur[index2D(numz, k, j)];
+					}
+
+					blur[index2D(numz, i, j)] = sum / ((float)1 + 2 * width);
 				}
-
-				blur[index2D(numz, i, j)] = sum / ((float)1 + 2 * width);
 			}
 		}
+		free(newblur);
 	}
-	free(newblur);
 	return;
 }
 
 void point_smoothing_peak_width(const int lengthmz, const int numz, const int maxlength, const int* starttab, const int* endtab, const float* mzdist, float* blur, const int speedyflag, const char* barr)
 {
 	float* newblur;
-	newblur = (float*) calloc(lengthmz * numz, sizeof(float));
-	memcpy(newblur, blur, lengthmz * numz * sizeof(float));
-	Reconvolve(lengthmz, numz, maxlength, starttab, endtab, mzdist, newblur, blur, speedyflag, barr);
+	int ln = lengthmz * numz;
+	newblur = (float*) calloc(ln, sizeof(float));
+	if (newblur){
+		memcpy(newblur, blur, ln * sizeof(float));
+		Reconvolve(lengthmz, numz, maxlength, starttab, endtab, mzdist, newblur, blur, speedyflag, barr);
+	}
 	return;
 }
 
@@ -3016,12 +3022,14 @@ void softargmax_transposed(float* blur, const int lengthmz, const int numz, cons
 	, int* starttab, int* endtab, float* mzdist, const float mzsig)
 {
 	float* newblur, * deltas, * deltas2, * denom, * denom2;
-	newblur = (float*) calloc(lengthmz * numz, sizeof(float));
+	int newl = lengthmz * numz;
+	newblur = (float*) calloc(newl, sizeof(float));
 	deltas = (float*) calloc(lengthmz, sizeof(float));
 	deltas2 = (float*) calloc(lengthmz, sizeof(float));
 	denom = (float*) calloc(lengthmz, sizeof(float));
 	denom2 = (float*) calloc(lengthmz, sizeof(float));
-	memcpy(newblur, blur, lengthmz * numz * sizeof(float));
+	size_t newl2 = (size_t)lengthmz * numz * sizeof(float);
+	memcpy(newblur, blur, newl2);
 
 	//Sum deltas
 	sum_deltas(lengthmz, numz, blur, barr, isolength, isotopepos, isotopeval, deltas);
@@ -3070,41 +3078,45 @@ void softargmax_transposed(float* blur, const int lengthmz, const int numz, cons
 void softargmax_everything(float* blur, const int lengthmz, const int numz, const float beta)
 {
 	float* newblur;
-	newblur = (float*) calloc(lengthmz * numz, sizeof(float));
-	memcpy(newblur, blur, lengthmz * numz * sizeof(float));
-	//float max1 = 0;
-	//float max2 = 0;
-	float sum2 = 0;
-	float sum1 = 0;
-	float min2 = 100000000000000000;
-	//#pragma omp parallel for schedule(auto), reduction(min:min2), reduction(+:sum1), reduction(+:sum2)
-	for (int i = 0; i < lengthmz * numz; i++)
-	{
-		float d = newblur[i];
-		//if (d > max1) { max1 = d; }
-		float e = exp(beta * d);
-		//float e = pow(d, -beta);
-		//if (e > max2) { max2 = e; }
-		blur[i] = e;
-		if (e < min2) { min2 = e; }
-		sum1 += d;
-		sum2 += e;
-	}
-	float factor = 0;
-	//float denom = (max2 - min2);
-	//if (denom != 0) { factor = max1 / denom; };
-	float denom = (sum2 - min2 * numz * lengthmz);
-	if (denom != 0) { factor = sum1 / denom; };
-	//if (sum2 != 0) { factor = sum1 / sum2; };
-	if (factor > 0) {
-#pragma omp parallel for schedule(auto)
+	int l = lengthmz * numz;
+	size_t sizel = (size_t)l * sizeof(float);
+	newblur = (float*) calloc(l, sizeof(float));
+	if (newblur){
+		memcpy(newblur, blur, sizel);
+		//float max1 = 0;
+		//float max2 = 0;
+		float sum2 = 0;
+		float sum1 = 0;
+		float min2 = 1000000000000000.0;
+		//#pragma omp parallel for schedule(auto), reduction(min:min2), reduction(+:sum1), reduction(+:sum2)
 		for (int i = 0; i < lengthmz * numz; i++)
 		{
-			blur[i] -= min2;
-			blur[i] *= factor;
+			float d = newblur[i];
+			//if (d > max1) { max1 = d; }
+			float e = exp(beta * d);
+			//float e = pow(d, -beta);
+			//if (e > max2) { max2 = e; }
+			blur[i] = e;
+			if (e < min2) { min2 = e; }
+			sum1 += d;
+			sum2 += e;
 		}
+		float factor = 0;
+		//float denom = (max2 - min2);
+		//if (denom != 0) { factor = max1 / denom; };
+		float denom = (sum2 - min2 * numz * lengthmz);
+		if (denom != 0) { factor = sum1 / denom; };
+		//if (sum2 != 0) { factor = sum1 / sum2; };
+		if (factor > 0) {
+	#pragma omp parallel for schedule(auto)
+			for (int i = 0; i < lengthmz * numz; i++)
+			{
+				blur[i] -= min2;
+				blur[i] *= factor;
+			}
+		}
+		free(newblur);
 	}
-	free(newblur);
 	return;
 }
 
@@ -3117,47 +3129,51 @@ void softargmax(float* blur, const int lengthmz, const int numz, const float bet
 	}
 
 	float* newblur;
-	newblur = (float*) calloc(lengthmz * numz, sizeof(float));
-	memcpy(newblur, blur, lengthmz * numz * sizeof(float));
-#pragma omp parallel for schedule(auto)
-	for (int i = 0; i < lengthmz; i++)
-	{
-		float sum2 = 0;
-		float sum1 = 0;
-		float factor = 0;
-		float min2 = 1000000000000;
-
-		for (int j = 0; j < numz; j++)
+	int l = lengthmz * numz;
+	size_t sizel = (size_t)l * sizeof(float);
+	newblur = (float*) calloc(l, sizeof(float));
+	if (newblur){
+		memcpy(newblur, blur, sizel);
+	#pragma omp parallel for schedule(auto)
+		for (int i = 0; i < lengthmz; i++)
 		{
-			float d = newblur[index2D(numz, i, j)];
-			sum1 += d;
+			float sum2 = 0;
+			float sum1 = 0;
+			float factor = 0;
+			float min2 = 1000000000000.0;
 
-			float e = exp(beta * d);
-
-			if (e < min2) { min2 = e; }
-
-			blur[index2D(numz, i, j)] = e;
-			sum2 += e;
-		}
-
-		float denom = (sum2 - min2 * numz);
-		if (denom != 0) { factor = sum1 / denom; };
-
-		if (factor > 0) {
 			for (int j = 0; j < numz; j++)
 			{
-				blur[index2D(numz, i, j)] -= min2;
-				blur[index2D(numz, i, j)] *= factor;
+				float d = newblur[index2D(numz, i, j)];
+				sum1 += d;
+
+				float e = exp(beta * d);
+
+				if (e < min2) { min2 = e; }
+
+				blur[index2D(numz, i, j)] = e;
+				sum2 += e;
+			}
+
+			float denom = (sum2 - min2 * numz);
+			if (denom != 0) { factor = sum1 / denom; };
+
+			if (factor > 0) {
+				for (int j = 0; j < numz; j++)
+				{
+					blur[index2D(numz, i, j)] -= min2;
+					blur[index2D(numz, i, j)] *= factor;
+				}
+			}
+			else {
+				for (int j = 0; j < numz; j++)
+				{
+					blur[index2D(numz, i, j)] = 0;
+				}
 			}
 		}
-		else {
-			for (int j = 0; j < numz; j++)
-			{
-				blur[index2D(numz, i, j)] = 0;
-			}
-		}
+		free(newblur);
 	}
-	free(newblur);
 	return;
 }
 
@@ -3255,33 +3271,35 @@ void SetLimits(const Config config, Input* inp)
 {
 	//Determines the indexes of each test mass from mfile in m/z space
 	int* testmasspos = (int*) malloc(sizeof(float) * config.mfilelen * config.numz);
-	if (config.mflag == 1 && config.limitflag == 1) {
-		for (int i = 0; i < config.mfilelen; i++)
-		{
-			for (int j = 0; j < config.numz; j++)
+	if (testmasspos){
+		if (config.mflag == 1 && config.limitflag == 1) {
+			for (int i = 0; i < config.mfilelen; i++)
 			{
-				float mztest = (inp->testmasses[i] + config.adductmass * inp->nztab[j]) / (float)inp->nztab[j];
-				testmasspos[index2D(config.numz, i, j)] = nearfast(inp->dataMZ, mztest, config.lengthmz);
+				for (int j = 0; j < config.numz; j++)
+				{
+					float mztest = (inp->testmasses[i] + config.adductmass * inp->nztab[j]) / (float)inp->nztab[j];
+					testmasspos[index2D(config.numz, i, j)] = nearfast(inp->dataMZ, mztest, config.lengthmz);
+				}
 			}
 		}
-	}
 
-	//If there is a mass file read, it will only allow masses close to those masses within some config.mtabsig window.
-	if (config.mflag == 1 && config.limitflag == 0)
-	{
-		TestMassListWindowed(config.lengthmz, config.numz, inp->barr, inp->mtab, config.nativezub, config.nativezlb, config.massub, config.masslb, inp->nztab, inp->testmasses, config.mfilelen, config.mtabsig);
+		//If there is a mass file read, it will only allow masses close to those masses within some config.mtabsig window.
+		if (config.mflag == 1 && config.limitflag == 0)
+		{
+			TestMassListWindowed(config.lengthmz, config.numz, inp->barr, inp->mtab, config.nativezub, config.nativezlb, config.massub, config.masslb, inp->nztab, inp->testmasses, config.mfilelen, config.mtabsig);
+		}
+		//If there is a mass file read and the mass table window (config.mtabsig) is 0, it will only write intensities at the m/z values closest to the m/z values read in from the mfile.
+		else if (config.mflag == 1 && config.limitflag == 1)
+		{
+			TestMassListLimit(config.lengthmz, config.numz, inp->barr, inp->mtab, config.nativezub, config.nativezlb, config.massub, config.masslb, inp->nztab, testmasspos, config.mfilelen);
+		}
+		//Normally, write the intensity values if the values fall within the mass upperbound and lower bound
+		else
+		{
+			TestMass(config.lengthmz, config.numz, inp->barr, inp->mtab, config.nativezub, config.nativezlb, config.massub, config.masslb, inp->nztab);
+		}
+		free(testmasspos);
 	}
-	//If there is a mass file read and the mass table window (config.mtabsig) is 0, it will only write intensities at the m/z values closest to the m/z values read in from the mfile.
-	else if (config.mflag == 1 && config.limitflag == 1)
-	{
-		TestMassListLimit(config.lengthmz, config.numz, inp->barr, inp->mtab, config.nativezub, config.nativezlb, config.massub, config.masslb, inp->nztab, testmasspos, config.mfilelen);
-	}
-	//Normally, write the intensity values if the values fall within the mass upperbound and lower bound
-	else
-	{
-		TestMass(config.lengthmz, config.numz, inp->barr, inp->mtab, config.nativezub, config.nativezlb, config.massub, config.masslb, inp->nztab);
-	}
-	free(testmasspos);
 }
 
 //Sets the maxlength parameter and the start and end values for the m/z peak shape convolution
@@ -3321,16 +3339,18 @@ void WritePeaks(const Config config, const Decon* decon) {
 	char outdat[1024];
 	strjoin(config.dataset, "/peaks", outdat);
 	float* ptemp = NULL;
-	ptemp = (float*) calloc(decon->plen * 3, sizeof(float));
+	int l = decon->plen * 3;
+	ptemp = (float*) calloc(l, sizeof(float));
+	if(ptemp){
+		for (int i = 0; i < decon->plen; i++) {
+			ptemp[i * 3] = decon->peakx[i];
+			ptemp[i * 3 + 1] = decon->peaky[i];
+			ptemp[i * 3 + 2] = decon->dscores[i];
+		}
 
-	for (int i = 0; i < decon->plen; i++) {
-		ptemp[i * 3] = decon->peakx[i];
-		ptemp[i * 3 + 1] = decon->peaky[i];
-		ptemp[i * 3 + 2] = decon->dscores[i];
+		mh5writefile2d_grid(config.file_id, outdat, decon->plen, 3, ptemp);
+		free(ptemp);
 	}
-
-	mh5writefile2d_grid(config.file_id, outdat, decon->plen, 3, ptemp);
-	free(ptemp);
 }
 
 /*
@@ -3348,10 +3368,11 @@ void readkernel(const char* infile, int lengthmz, double* datax, double* datay)
 {
 	FILE* file_ptr;
 	int i;
-	char x[500];
-	char y[500];
+	char x[500] = { 0 };
+	char y[500] = { 0 };
 
-	file_ptr = fopen(infile, "r");
+	errno_t err = fopen_s(&file_ptr, infile, "r");
+	if (err != 0) { printf("Error Opening %s %d\n", infile, err); exit(err); }
 
 	if (file_ptr == 0)
 	{
@@ -3362,9 +3383,11 @@ void readkernel(const char* infile, int lengthmz, double* datax, double* datay)
 
 		for (i = 0;i < lengthmz;i++)
 		{
-			fscanf(file_ptr, "%s %s", x, y);
-			datax[i] = atof(x);
-			datay[i] = atof(y);
+			int match = fscanf(file_ptr, "%s %s", x, y);
+			if (match !=0){
+				datax[i] = atof(x);
+				datay[i] = atof(y);
+			}
 		}
 	}
 	fclose(file_ptr);
@@ -3447,6 +3470,7 @@ void inversefouriertransform(double** input, double* output, int length) {
 
 // Gives convolution of functions a and b. Unused.
 // Use cconv2fast instead
+/*
 void cconv2(double* a, double* b, double* c, int length) {
 	double** A = (double **) malloc(length * sizeof(double*));	// (a + bi)
 	double** B = (double**) malloc(length * sizeof(double*));	// (c + di)
@@ -3477,6 +3501,7 @@ void cconv2(double* a, double* b, double* c, int length) {
 	free(B);
 	free(C);
 }
+*/
 
 // Integrates data in kernel to match sampling in data. Returns the new kernel length
 int integrate_dd(double* kernel_x, double* kernel_y, int kernellen, double* data_x,
@@ -3496,42 +3521,44 @@ int integrate_dd(double* kernel_x, double* kernel_y, int kernellen, double* data
 	}
 	*kernel_x_new = (double*) calloc(truelen, sizeof(double));
 	*kernel_y_new = (double*) calloc(truelen, sizeof(double));
-
-	double current_x = kernel_x[0];
-	double current_xl = kernel_x[0];
-	double current_xr = kernel_x[0] + (diff / 2);
-	int current_index = 0;
-	for (int i = 0; i < newlen; i++) {
-		double y_val = 0;
-		for (int j = current_index; j < kernellen; j++) {
-			// For the first value, add area to the left of the point
-			if (j == current_index && j != 0 && kernel_x[j] >= current_xl && kernel_x[j] < current_xr) {
-				double left_mu = LinearInterpolatePositionD(kernel_x[j - 1], kernel_x[j], current_xl);
-				double left_y = LinearInterpolateD(kernel_y[j - 1], kernel_y[j], left_mu);
-				y_val += (left_y + kernel_y[j]) * (kernel_x[j] - current_xl) / 2.0;
+	if (*kernel_x_new && *kernel_y_new){
+		double current_x = kernel_x[0];
+		double current_xl = kernel_x[0];
+		double current_xr = kernel_x[0] + (diff / 2);
+		int current_index = 0;
+		for (int i = 0; i < newlen; i++) {
+			double y_val = 0;
+			for (int j = current_index; j < kernellen; j++) {
+				// For the first value, add area to the left of the point
+				if (j == current_index && j != 0 && kernel_x[j] >= current_xl && kernel_x[j] < current_xr) {
+					double left_mu = LinearInterpolatePositionD(kernel_x[j - 1], kernel_x[j], current_xl);
+					double left_y = LinearInterpolateD(kernel_y[j - 1], kernel_y[j], left_mu);
+					y_val += (left_y + kernel_y[j]) * (kernel_x[j] - current_xl) / 2.0;
+				}
+				// Next, add the area to the right of the point (it's either to the next point, to the
+				// boundary, or we're at the last point)
+				if (kernel_x[j] >= current_xl && kernel_x[j] < current_xr && (j + 1) < kernellen &&
+					kernel_x[j + 1] < current_xr) {
+					y_val += (kernel_y[j] + kernel_y[j + 1]) * kdiff / 2.0;
+				} else if (kernel_x[j] >= current_xl && kernel_x[j] < current_xr &&
+					(j + 1) < kernellen && kernel_x[j + 1] >= current_xr) {
+					double right_mu = LinearInterpolatePositionD(kernel_x[j], kernel_x[j + 1], current_xr);
+					double right_y = LinearInterpolateD(kernel_y[j], kernel_y[j + 1], right_mu);
+					y_val += (kernel_y[j] + right_y) * (current_xr - kernel_x[j]) / 2.0;
+				} else if (kernel_x[j] >= current_xr || (j + 1) >= kernellen) {
+					current_index = j;
+					break;
+				}
 			}
-			// Next, add the area to the right of the point (it's either to the next point, to the
-			// boundary, or we're at the last point)
-			if (kernel_x[j] >= current_xl && kernel_x[j] < current_xr && (j + 1) < kernellen &&
-				kernel_x[j + 1] < current_xr) {
-				y_val += (kernel_y[j] + kernel_y[j + 1]) * kdiff / 2.0;
-			} else if (kernel_x[j] >= current_xl && kernel_x[j] < current_xr &&
-				(j + 1) < kernellen && kernel_x[j + 1] >= current_xr) {
-				double right_mu = LinearInterpolatePositionD(kernel_x[j], kernel_x[j + 1], current_xr);
-				double right_y = LinearInterpolateD(kernel_y[j], kernel_y[j + 1], right_mu);
-				y_val += (kernel_y[j] + right_y) * (current_xr - kernel_x[j]) / 2.0;
-			} else if (kernel_x[j] >= current_xr || (j + 1) >= kernellen) {
-				current_index = j;
-				break;
-			}
+			(*kernel_x_new)[i] = current_x;
+			(*kernel_y_new)[i] = y_val; // Should probably divide by diff. CHECK! --actually, I don't think it matters
+			current_x += diff;
+			current_xl = current_xr;
+			current_xr += diff;
 		}
-		(*kernel_x_new)[i] = current_x;
-		(*kernel_y_new)[i] = y_val; // Should probably divide by diff. CHECK! --actually, I don't think it matters
-		current_x += diff;
-		current_xl = current_xr;
-		current_xr += diff;
+		free(kernel_x_new);
+		free(kernel_y_new);
 	}
-
 	return newlen;
 }
 
@@ -3552,33 +3579,35 @@ int interpolate_dd(double* kernel_x, double* kernel_y, int kernellen, double* da
 	}
 	*kernel_x_new = (double*) calloc(truelen, sizeof(double));
 	*kernel_y_new = (double*) calloc(truelen, sizeof(double));
-
-	double current_x = kernel_x[0];
-	for (int i = 0; i < newlen; i++) {
-		int nearest_index = nearfast_d(kernel_x, current_x, kernellen);
-		if (kernel_x[nearest_index] == current_x) {
-			(*kernel_y_new)[i] = kernel_y[nearest_index];
-		} else if (kernel_x[nearest_index] < current_x) {
-			if ((nearest_index + 1) < kernellen) {
-				double mu = LinearInterpolatePositionD(kernel_x[nearest_index], kernel_x[nearest_index + 1], current_x);
-				double y_val = LinearInterpolateD(kernel_y[nearest_index], kernel_y[nearest_index + 1], mu);
-				(*kernel_y_new)[i] = y_val;
-			} else { // this should never be the case
+	if(*kernel_x_new && *kernel_y_new){
+		double current_x = kernel_x[0];
+		for (int i = 0; i < newlen; i++) {
+			int nearest_index = nearfast_d(kernel_x, current_x, kernellen);
+			if (kernel_x[nearest_index] == current_x) {
 				(*kernel_y_new)[i] = kernel_y[nearest_index];
+			} else if (kernel_x[nearest_index] < current_x) {
+				if ((nearest_index + 1) < kernellen) {
+					double mu = LinearInterpolatePositionD(kernel_x[nearest_index], kernel_x[nearest_index + 1], current_x);
+					double y_val = LinearInterpolateD(kernel_y[nearest_index], kernel_y[nearest_index + 1], mu);
+					(*kernel_y_new)[i] = y_val;
+				} else { // this should never be the case
+					(*kernel_y_new)[i] = kernel_y[nearest_index];
+				}
+			} else if (kernel_x[nearest_index] > current_x) {
+				if (nearest_index > 0) {
+					double mu = LinearInterpolatePositionD(kernel_x[nearest_index - 1], kernel_x[nearest_index], current_x);
+					double y_val = LinearInterpolateD(kernel_y[nearest_index - 1], kernel_y[nearest_index], mu);
+					(*kernel_y_new)[i] = y_val;
+				} else { // this should also never happen
+					(*kernel_y_new)[i] = kernel_y[nearest_index];
+				}
 			}
-		} else if (kernel_x[nearest_index] > current_x) {
-			if (nearest_index > 0) {
-				double mu = LinearInterpolatePositionD(kernel_x[nearest_index - 1], kernel_x[nearest_index], current_x);
-				double y_val = LinearInterpolateD(kernel_y[nearest_index - 1], kernel_y[nearest_index], mu);
-				(*kernel_y_new)[i] = y_val;
-			} else { // this should also never happen
-				(*kernel_y_new)[i] = kernel_y[nearest_index];
-			}
+			(*kernel_x_new)[i] = current_x;
+			current_x += diff;
 		}
-		(*kernel_x_new)[i] = current_x;
-		current_x += diff;
+	free(kernel_x_new);
+	free(kernel_y_new);
 	}
-
 	return newlen;
 }
 
@@ -3623,169 +3652,176 @@ void complex_mult(fftw_complex* A, fftw_complex* B, fftw_complex* product_ft, in
 	}
 }
 
-void dd_deconv2(double* kernel_y, double* data_y, int length, double* output) {
+void dd_deconv2(double* kernel_y, double* data_y, const int length, double* output) {
 	// Create flipped point spread function kernel_star
-	double* kernel_star = (double*) malloc(length * sizeof(double));
-	for (int i = 0; i < length; i++) {
-		kernel_star[i] = kernel_y[length - i - 1];
-	}
+	double* kernel_star = (double*)calloc(length, sizeof(double));
 	// Create estimate for solution
-	double* estimate = (double*) malloc(length * sizeof(double));
-	for (int i = 0; i < length; i++) {
-		estimate[i] = data_y[i];
-	}
+	double* estimate = (double*)calloc(length, sizeof(double));
 	// Allocate arrays for convolutions
-	double* conv1 = (double*) malloc(length * sizeof(double));
-	double* conv2 = (double*) malloc(length * sizeof(double));
+	double* conv1 = (double*)calloc(length, sizeof(double));
+	double* conv2 = (double*)calloc(length, sizeof(double));
+	if (conv1 && conv2 && estimate && kernel_star){
+		for (int i = 0; i < length; i++) {
+			kernel_star[i] = kernel_y[length - i - 1];
+		}
 
-	int complen = (length / 2) + 1;
-	fftw_complex* kernel_ft = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
-	fftw_complex* kernel_star_ft = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
-	fftw_complex* estimate_ft = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
-	fftw_complex* conv1_ft = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
-	fftw_complex* product_ft = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
+		for (int i = 0; i < length; i++) {
+			estimate[i] = data_y[i];
+		}
 
-	// FFTW_MEASURE takes a few seconds and overwrites input arrays, so we use ESTIMATE
-	fftw_plan pk = fftw_plan_dft_r2c_1d(length, kernel_y, kernel_ft, FFTW_ESTIMATE); // for kernel_y
-	fftw_plan pks = fftw_plan_dft_r2c_1d(length, kernel_star, kernel_star_ft, FFTW_ESTIMATE); // for kernel_star
-	fftw_plan p1 = fftw_plan_dft_r2c_1d(length, estimate, estimate_ft, FFTW_ESTIMATE); // for estimate
-	fftw_plan p2 = fftw_plan_dft_r2c_1d(length, conv1, conv1_ft, FFTW_ESTIMATE); // for conv1
-	fftw_plan p1r = fftw_plan_dft_c2r_1d(length, product_ft, conv1, FFTW_ESTIMATE); // to conv1
-	fftw_plan p2r = fftw_plan_dft_c2r_1d(length, product_ft, conv2, FFTW_ESTIMATE); // to conv2
+		int complen = (length / 2) + 1;
+		fftw_complex* kernel_ft = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
+		fftw_complex* kernel_star_ft = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
+		fftw_complex* estimate_ft = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
+		fftw_complex* conv1_ft = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
+		fftw_complex* product_ft = (fftw_complex*) fftw_malloc(complen * sizeof(fftw_complex));
 
-	// We only need to do the transforms for kernel and kernel* once
-	fftw_execute(pk);
-	fftw_execute(pks);
+		// FFTW_MEASURE takes a few seconds and overwrites input arrays, so we use ESTIMATE
+		fftw_plan pk = fftw_plan_dft_r2c_1d(length, kernel_y, kernel_ft, FFTW_ESTIMATE); // for kernel_y
+		fftw_plan pks = fftw_plan_dft_r2c_1d(length, kernel_star, kernel_star_ft, FFTW_ESTIMATE); // for kernel_star
+		fftw_plan p1 = fftw_plan_dft_r2c_1d(length, estimate, estimate_ft, FFTW_ESTIMATE); // for estimate
+		fftw_plan p2 = fftw_plan_dft_r2c_1d(length, conv1, conv1_ft, FFTW_ESTIMATE); // for conv1
+		fftw_plan p1r = fftw_plan_dft_c2r_1d(length, product_ft, conv1, FFTW_ESTIMATE); // to conv1
+		fftw_plan p2r = fftw_plan_dft_c2r_1d(length, product_ft, conv2, FFTW_ESTIMATE); // to conv2
 
-	// Perform iterations
-	int j = 0;
-	double diff = 1.0;
-	while (j < 50 && diff > 0.0001) { // Thresholds same as in Python
-		// Find new estimate
-		// cconv2fast(kernel_y, estimate, conv1, length);
-		fftw_execute(p1);
-		complex_mult(kernel_ft, estimate_ft, product_ft, complen);
-		fftw_execute(p1r);
-		for (int k = 0; k < length; k++) {
-			if (conv1[k] != 0) {
-				conv1[k] = data_y[k] / conv1[k];
+		// We only need to do the transforms for kernel and kernel* once
+		fftw_execute(pk);
+		fftw_execute(pks);
+
+		// Perform iterations
+		int j = 0;
+		double diff = 1.0;
+		while (j < 50 && diff > 0.0001) { // Thresholds same as in Python
+			// Find new estimate
+			// cconv2fast(kernel_y, estimate, conv1, length);
+			fftw_execute(p1);
+			complex_mult(kernel_ft, estimate_ft, product_ft, complen);
+			fftw_execute(p1r);
+			for (int k = 0; k < length; k++) {
+				if (conv1[k] != 0) {
+					conv1[k] = data_y[k] / conv1[k];
+				}
+			}
+			// cconv2fast(conv1, kernel_star, conv2, length);
+			fftw_execute(p2);
+			complex_mult(conv1_ft, kernel_star_ft, product_ft, complen);
+			fftw_execute(p2r);
+			for (int k = 0; k < length; k++) {
+				conv2[k] = conv2[k] * estimate[k]; // Store new estimate in conv2
+			}
+			// Find how much the estimate changed
+			double sum_diff = 0.0;
+			double sum_est = 0.0;
+			for (int k = 0; k < length; k++) {
+				sum_diff += pow((estimate[k] - conv2[k]), 2.0);
+				sum_est += estimate[k];
+			}
+			diff = sum_diff / sum_est;
+			// Set new estimate as estimate
+			for (int k = 0; k < length; k++) {
+				estimate[k] = conv2[k];
+			}
+			j++;
+		}
+
+		// estimate now contains our deconvolution
+		// Normalize and "return"
+		double estimate_max = 0.0;
+		for (int i = 0; i < length; i++) {
+			if (estimate_max < estimate[i]) {
+				estimate_max = estimate[i];
 			}
 		}
-		// cconv2fast(conv1, kernel_star, conv2, length);
-		fftw_execute(p2);
-		complex_mult(conv1_ft, kernel_star_ft, product_ft, complen);
-		fftw_execute(p2r);
-		for (int k = 0; k < length; k++) {
-			conv2[k] = conv2[k] * estimate[k]; // Store new estimate in conv2
+		for (int i = 0; i < length; i++) {
+			output[i] = estimate[i] / estimate_max;
 		}
-		// Find how much the estimate changed
-		double sum_diff = 0.0;
-		double sum_est = 0.0;
-		for (int k = 0; k < length; k++) {
-			sum_diff += pow((estimate[k] - conv2[k]), 2.0);
-			sum_est += estimate[k];
-		}
-		diff = sum_diff / sum_est;
-		// Set new estimate as estimate
-		for (int k = 0; k < length; k++) {
-			estimate[k] = conv2[k];
-		}
-		j++;
-	}
 
-	// estimate now contains our deconvolution
-	// Normalize and "return"
-	double estimate_max = 0.0;
-	for (int i = 0; i < length; i++) {
-		if (estimate_max < estimate[i]) {
-			estimate_max = estimate[i];
-		}
+		// Free arrays
+		free(kernel_star);
+		free(estimate);
+		free(conv1);
+		free(conv2);
+		fftw_destroy_plan(pk);
+		fftw_destroy_plan(pks);
+		fftw_destroy_plan(p1);
+		fftw_destroy_plan(p2);
+		fftw_destroy_plan(p1r);
+		fftw_destroy_plan(p2r);
+		fftw_free(kernel_ft);
+		fftw_free(kernel_star_ft);
+		fftw_free(estimate_ft);
+		fftw_free(conv1_ft);
+		fftw_free(product_ft);
 	}
-	for (int i = 0; i < length; i++) {
-		output[i] = estimate[i] / estimate_max;
-	}
-
-	// Free arrays
-	free(kernel_star);
-	free(estimate);
-	free(conv1);
-	free(conv2);
-	fftw_destroy_plan(pk);
-	fftw_destroy_plan(pks);
-	fftw_destroy_plan(p1);
-	fftw_destroy_plan(p2);
-	fftw_destroy_plan(p1r);
-	fftw_destroy_plan(p2r);
-	fftw_free(kernel_ft);
-	fftw_free(kernel_star_ft);
-	fftw_free(estimate_ft);
-	fftw_free(conv1_ft);
-	fftw_free(product_ft);
 }
 
-void dd_deconv(double* kernel_y, double* data_y, int length, double* output) {
+void dd_deconv(double* kernel_y, double* data_y, const int length, double* output) {
 
 	// Create flipped point spread function kernel_star
-	double* kernel_star = (double*) malloc(length * sizeof(double));
-	for (int i = 0; i < length; i++) {
-		kernel_star[i] = kernel_y[length - i - 1];
-	}
+	//double* kernel_star = (double*) malloc(length * sizeof(double));
+	double* kernel_star = (double*)calloc(length, sizeof(double));
 	// Create estimate for solution
-	double* estimate = (double*) malloc(length * sizeof(double));
-	for (int i = 0; i < length; i++) {
-		estimate[i] = data_y[i];
-	}
+	double* estimate = (double*)calloc(length, sizeof(double));
 	// Allocate arrays for convolutions
-	double* conv1 = (double*) malloc(length * sizeof(double));
-	double* conv2 = (double*) malloc(length * sizeof(double));
+	double* conv1 = (double*)calloc(length, sizeof(double));
+	double* conv2 = (double*)calloc(length, sizeof(double));
 
-	// Perform iterations
-	int j = 0;
-	double diff = 1.0;
-	while (j < 50 && diff > 0.0001) { // Thresholds same as in Python
-		// Find new estimate
-		cconv2fast(kernel_y, estimate, conv1, length);
-		for (int k = 0; k < length; k++) {
-			if (conv1[k] != 0) {
-				conv1[k] = data_y[k] / conv1[k];
+	if (conv1 && conv2 && estimate && kernel_star){
+		for (int i = 0; i < length; i++) {
+			kernel_star[i] = kernel_y[length - i - 1];
+		}
+
+		for (int i = 0; i < length; i++) {
+			estimate[i] = data_y[i];
+		}
+		// Perform iterations
+		int j = 0;
+		double diff = 1.0;
+		while (j < 50 && diff > 0.0001) { // Thresholds same as in Python
+			// Find new estimate
+			cconv2fast(kernel_y, estimate, conv1, length);
+			for (int k = 0; k < length; k++) {
+				if (conv1[k] != 0) {
+					conv1[k] = data_y[k] / conv1[k];
+				}
+			}
+			cconv2fast(conv1, kernel_star, conv2, length);
+			for (int k = 0; k < length; k++) {
+				conv2[k] = conv2[k] * estimate[k]; // Store new estimate in conv2
+			}
+			// Find how much the estimate changed
+			double sum_diff = 0.0;
+			double sum_est = 0.0;
+			for (int k = 0; k < length; k++) {
+				sum_diff += pow((estimate[k] - conv2[k]), 2.0);
+				sum_est += estimate[k];
+			}
+			diff = sum_diff / sum_est;
+			// Set new estimate as estimate
+			for (int k = 0; k < length; k++) {
+				estimate[k] = conv2[k];
+			}
+			j++;
+		}
+
+		// estimate now contains our deconvolution
+		// Normalize and "return"
+		double estimate_max = 0.0;
+		for (int i = 0; i < length; i++) {
+			if (estimate_max < estimate[i]) {
+				estimate_max = estimate[i];
 			}
 		}
-		cconv2fast(conv1, kernel_star, conv2, length);
-		for (int k = 0; k < length; k++) {
-			conv2[k] = conv2[k] * estimate[k]; // Store new estimate in conv2
+		for (int i = 0; i < length; i++) {
+			output[i] = estimate[i] / estimate_max;
 		}
-		// Find how much the estimate changed
-		double sum_diff = 0.0;
-		double sum_est = 0.0;
-		for (int k = 0; k < length; k++) {
-			sum_diff += pow((estimate[k] - conv2[k]), 2.0);
-			sum_est += estimate[k];
-		}
-		diff = sum_diff / sum_est;
-		// Set new estimate as estimate
-		for (int k = 0; k < length; k++) {
-			estimate[k] = conv2[k];
-		}
-		j++;
-	}
 
-	// estimate now contains our deconvolution
-	// Normalize and "return"
-	double estimate_max = 0.0;
-	for (int i = 0; i < length; i++) {
-		if (estimate_max < estimate[i]) {
-			estimate_max = estimate[i];
-		}
+		// Free arrays
+		free(kernel_star);
+		free(estimate);
+		free(conv1);
+		free(conv2);
 	}
-	for (int i = 0; i < length; i++) {
-		output[i] = estimate[i] / estimate_max;
-	}
-
-	// Free arrays
-	free(kernel_star);
-	free(estimate);
-	free(conv1);
-	free(conv2);
 
 }
 
@@ -3883,7 +3919,7 @@ void DoubleDecon(const Config* config, Decon* decon) {
 			last = data_x[i];
 		}
 	}
-	else if (kernel_length < true_length) { // Pad kernel_x
+	else if (kernel_length < true_length && kernel_length > 2) { // Pad kernel_x
 		double diff = kernel_x[1] - kernel_x[0];
 		double last = kernel_x[kernel_length - 1];
 		for (int i = kernel_length; i < true_length; i++) {
@@ -3922,10 +3958,12 @@ void DoubleDecon(const Config* config, Decon* decon) {
 		decon->massaxis = (float*) calloc(write_length, sizeof(float));
 		decon->massaxisval = (float*) calloc(write_length, sizeof(float));
 	}
-	// Copy results to the Decon struct
-	for (int i = 0; i < write_length; i++) {
-		decon->massaxis[i] = data_x[i + lb];
-		decon->massaxisval[i] = doubledec[i + lb];
+	if (decon->massaxis && decon->massaxisval){
+		// Copy results to the Decon struct
+		for (int i = 0; i < write_length; i++) {
+			decon->massaxis[i] = data_x[i + lb];
+			decon->massaxisval[i] = doubledec[i + lb];
+		}
 	}
 	decon->mlen = write_length;
 	// printf("Results copied to Decon.\n");
@@ -3955,7 +3993,8 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 		if (config.filetype == 0) {
 			char outstring2[500];
 			sprintf(outstring2, "%s_fitdat.bin", config.outfile);
-			out_ptr = fopen(outstring2, "wb");
+			errno_t err = fopen_s(&out_ptr, outstring2, "wb");
+			if (err != 0) { printf("Error Opening %s %d\n", outstring2, err); exit(err); }
 			fwrite(decon->fitdat, sizeof(float), config.lengthmz, out_ptr);
 			fclose(out_ptr);
 			//printf("Fit: %s\t", outstring2);
@@ -3971,7 +4010,8 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 		if (config.filetype == 0) {
 			char outstring2[500];
 			sprintf(outstring2, "%s_baseline.bin", config.outfile);
-			out_ptr = fopen(outstring2, "wb");
+			errno_t err = fopen_s(&out_ptr, outstring2, "wb");
+			if (err != 0) { printf("Error Opening %s %d\n", outstring2, err); exit(err); }
 			fwrite(decon->baseline, sizeof(float), config.lengthmz, out_ptr);
 			fclose(out_ptr);
 			//printf("Background: %s\t", outstring2);
@@ -3988,39 +4028,43 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 		// Note to self
 		// rawflag=0 -> Reconvolved/Profile -> newblur
 		// rawflag=1 -> Raw/Centroid -> blur
-
+		int l = config.lengthmz * config.numz;
 		if (config.filetype == 0) {
 			char outstring9[500];
 			sprintf(outstring9, "%s_grid.bin", config.outfile);
-			out_ptr = fopen(outstring9, "wb");
-			if (config.rawflag == 0) { fwrite(decon->newblur, sizeof(float), config.lengthmz * config.numz, out_ptr); }
-			if (config.rawflag == 1) { fwrite(decon->blur, sizeof(float), config.lengthmz * config.numz, out_ptr); }
+			errno_t err = fopen_s(&out_ptr, outstring9, "wb");
+			if (err != 0) { printf("Error Opening %s %d\n", outstring9, err); exit(err); }
+			if (config.rawflag == 0) { fwrite(decon->newblur, sizeof(float), l, out_ptr); }
+			if (config.rawflag == 1) { fwrite(decon->blur, sizeof(float),l, out_ptr); }
 			fclose(out_ptr);
 			//printf("m/z grid: %s\t", outstring9);
 		}
 		else {
 			strjoin(config.dataset, "/mz_grid", outdat);
-			if (config.rawflag == 0) { mh5writefile1d(file_id, outdat, config.lengthmz * config.numz, decon->newblur); }
-			if (config.rawflag == 1) { mh5writefile1d(file_id, outdat, config.lengthmz * config.numz, decon->blur); }
+			if (config.rawflag == 0) { mh5writefile1d(file_id, outdat, l, decon->newblur); }
+			if (config.rawflag == 1) { mh5writefile1d(file_id, outdat, l, decon->blur); }
 
 			float* chargedat = NULL;
 			chargedat = (float*) calloc(config.numz, sizeof(float));
 			float* chargeaxis = NULL;
 			chargeaxis = (float*) calloc(config.numz, sizeof(float));
 
-			for (int j = 0; j < config.numz; j++) {
-				float val = 0;
-				chargeaxis[j] = (float)inp->nztab[j];
-				for (int i = 0; i < config.lengthmz; i++) {
+			if (chargedat && chargeaxis){
 
-					val += decon->newblur[index2D(config.numz, i, j)];
+				for (int j = 0; j < config.numz; j++) {
+					float val = 0;
+					chargeaxis[j] = (float)inp->nztab[j];
+					for (int i = 0; i < config.lengthmz; i++) {
+
+						val += decon->newblur[index2D(config.numz, i, j)];
+					}
+					chargedat[j] = val;
 				}
-				chargedat[j] = val;
+				strjoin(config.dataset, "/charge_data", outdat);
+				mh5writefile2d(file_id, outdat, config.numz, chargeaxis, chargedat);
+				free(chargedat);
+				free(chargeaxis);
 			}
-			strjoin(config.dataset, "/charge_data", outdat);
-			mh5writefile2d(file_id, outdat, config.numz, chargeaxis, chargedat);
-			free(chargedat);
-			free(chargeaxis);
 		}
 	}
 	else if (config.filetype == 1) {
@@ -4032,20 +4076,22 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 		strjoin(config.dataset, "/mass_grid", outdat);
 		delete_group(file_id, outdat);
 	}
-
+	
 	//Writes the convolved mass grid in binary format
 	if (config.rawflag == 0 || config.rawflag == 1) {
+		int l = decon->mlen * config.numz;
 		if (config.filetype == 0) {
 			char outstring10[500];
 			sprintf(outstring10, "%s_massgrid.bin", config.outfile);
-			out_ptr = fopen(outstring10, "wb");
-			fwrite(decon->massgrid, sizeof(float), decon->mlen * config.numz, out_ptr);
+			errno_t err = fopen_s(&out_ptr, outstring10, "wb");
+			if (err != 0) { printf("Error Opening %s %d\n", outstring10, err); exit(err); }
+			fwrite(decon->massgrid, sizeof(float), l, out_ptr);
 			fclose(out_ptr);
 			//printf("Mass Grid: %s\t", outstring10);
 		}
 		else {
 			strjoin(config.dataset, "/mass_grid", outdat);
-			mh5writefile1d(file_id, outdat, decon->mlen * config.numz, decon->massgrid);
+			mh5writefile1d(file_id, outdat, l, decon->massgrid);
 		}
 	}
 
@@ -4054,7 +4100,8 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 		if (config.filetype == 0) {
 			char outstring4[500];
 			sprintf(outstring4, "%s_mass.txt", config.outfile);
-			out_ptr = fopen(outstring4, "w");
+			errno_t err = fopen_s(&out_ptr, outstring4, "w");
+			if (err != 0) { printf("Error Opening %s %d\n", outstring4, err); exit(err); }
 			for (int i = 0; i < decon->mlen; i++)
 			{
 				fprintf(out_ptr, "%f %f\n", decon->massaxis[i], decon->massaxisval[i]);
@@ -4080,15 +4127,15 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 	if (config->filetype == 1) {
 		if (config->metamode != -2)
 		{
-			strcpy(config->dataset, "/ms_dataset");
+			strcpy_s(config->dataset, sizeof(config->dataset), "/ms_dataset");
 			char strval[1024];
 			sprintf(strval, "/%d", config->metamode);
-			strcat(config->dataset, strval);
-			printf("HDF5 Data Set: %s\n", config->dataset);
+			strcat_s(config->dataset, sizeof(config->dataset), strval);
+			printf("HDF5: %s\n", config->dataset);
 		}
 		else
 		{
-			strcpy(config->dataset, "/ms_data");
+			strcpy_s(config->dataset, sizeof(config->dataset), "/ms_data");
 		}
 
 		char outdat[1024];
@@ -4098,7 +4145,7 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 		inp->dataMZ = (float*) calloc(config->lengthmz, sizeof(float));
 		inp->dataInt = (float*) calloc(config->lengthmz, sizeof(float));
 		mh5readfile2d(config->file_id, outdat, config->lengthmz, inp->dataMZ, inp->dataInt);
-		printf("Length of Data: %d \n", config->lengthmz);
+		if (config->silent == 0) {printf("Length of Data: %d \n", config->lengthmz);}
 
 		//Check the length of the mfile and then read it in.
 		if (config->mflag == 1)
@@ -4139,18 +4186,22 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 
 	//This for loop creates a list of charge values
 	inp->nztab = (int*) calloc(config->numz, sizeof(int));
-	for (int i = 0; i < config->numz; i++) { inp->nztab[i] = i + config->startz; }
-	//printf("nzstart %d\n",inp.nztab[0]);
 
-	//Test to make sure no charge state is zero
-	for (int j = 0; j < config->numz; j++)
-	{
-		if (inp->nztab[j] == 0) { printf("Error: Charge state cannot be 0"); exit(100); }
-	}
-	//Test to make sure no two data points has the same x value
-	for (int i = 0; i < config->lengthmz - 1; i++)
-	{
-		if (inp->dataMZ[i] == inp->dataMZ[i + 1]) { printf("Error: Two data points are identical: %f %f \n\n", inp->dataMZ[i], inp->dataMZ[i+1]); exit(104); }
+	if (inp->nztab){
+		for (int i = 0; i < config->numz; i++) { inp->nztab[i] = i + config->startz; }
+	
+		//printf("nzstart %d\n",inp.nztab[0]);
+
+		//Test to make sure no charge state is zero
+		for (int j = 0; j < config->numz; j++)
+		{
+			if (inp->nztab[j] == 0) { printf("Error: Charge state cannot be 0"); exit(100); }
+		}
+		//Test to make sure no two data points has the same x value
+		for (int i = 0; i < config->lengthmz - 1; i++)
+		{
+			if (inp->dataMZ[i] == inp->dataMZ[i + 1]) { printf("Error: Two data points are identical: %f %f \n\n", inp->dataMZ[i], inp->dataMZ[i+1]); exit(104); }
+		}
 	}
 
 }

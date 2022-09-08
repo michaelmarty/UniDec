@@ -201,6 +201,24 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.5.1.0
+
+Added Intensity Threshold to MetaUniDec. Updated code throughout to allow more tolerance for empty data sets below threshold. Streamlined some print commands.
+
+Ported UniDecCD from Python to C, which speeds things up. The point smoothing is slightly different, but it should otherwise behave very similarly.
+
+Added ability to label the peak areas on the deconvolved mass plot. Check out the right click menu in the peak list.
+
+Fixed a bunch of warnings when compiling on VS2022. Updated to _s libaries for a lot of stdlib stuff. If this breaks compiling on Mac and Linux, let me know.
+
+Added experimental MS Imaging tools.
+
+Added tool for identifying alternative matches on the Oligomer and Mass Tools and for selecting alternate matches from the list. Explore right clicks on the match panel to test this out.
+
+Speeding up a few things in Meta.
+
+Fixed bug with multiple file dialog. Fixed bug with biopolymer calculator. Fixed bug with peak list.
+
 v.5.0.5
 
 **Upgraded build** using the Intel oneAPI and Visual Studio 2022. Giving about a 2x speed boost!

@@ -18,6 +18,8 @@ from UniChrom2 import ChromApp
 import wx.py as py
 import os
 import sys
+import locale
+locale.setlocale(locale.LC_ALL, 'C')
 
 class UniDecLauncher(UniDecPres):
     """

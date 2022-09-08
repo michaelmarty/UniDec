@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 from unidec_modules.hdf5_tools import replace_dataset, get_dataset
 import h5py
@@ -5,6 +7,7 @@ import unidec_modules.unidectools as ud
 import os
 from copy import deepcopy
 from unidec_modules.peakstructure import Peaks
+
 
 class MetaDataSet:
     def __init__(self, engine):
@@ -31,7 +34,7 @@ class MetaDataSet:
         self.fits = []
         pass
 
-    def import_hdf5(self, file=None):
+    def import_hdf5(self, file=None, speedy=False):
         if file is None:
             file = self.filename
         else:
@@ -53,14 +56,16 @@ class MetaDataSet:
         if ud.isempty(self.spectra):
             for i in self.indexes:
                 s = Spectrum(self.topname, i, self.eng)
-                s.read_hdf5(file)
+                s.read_hdf5(file, speedy=speedy)
                 self.spectra.append(s)
         else:
             for s in self.spectra:
-                s.read_hdf5(file)
+                s.read_hdf5(file, speedy=speedy)
+
         if not ud.isempty(self.spectra):
             self.data2 = self.spectra[0].data2
             self.import_vars()
+
 
     def export_hdf5(self, file=None, vars_only=False, delete=False):
         if file is None:
@@ -157,9 +162,10 @@ class MetaDataSet:
         replace_dataset(pdataset, "fits", self.fits)
         hdf.close()
 
-    def import_grids_and_peaks(self):
+    def import_grids_and_peaks(self, refresh=True):
         if len(self.spectra) > 0:
-            self.eng.make_grids()
+            if refresh:
+                self.eng.make_grids()
             num = self.import_grids()
             self.import_peaks()
             if len(self.spectra) != num:
@@ -204,7 +210,7 @@ class MetaDataSet:
             snew.attrs = attrs
 
         try:
-            if "CID" in name or "SID" in name:
+            if "CID" in name or "SID" in name or "TEMP" in name:
                 print(name)
                 name = os.path.splitext(name)[0]
                 splits = name.split("_")
@@ -216,6 +222,15 @@ class MetaDataSet:
                             print(splits, e)
 
                         self.v1name = "Collision Voltage"
+
+                    if s == "TEMP":
+                        try:
+                            snew.var1 = float(splits[i + 1])
+                            self.v1name = "Temperature"
+                        except Exception as e:
+                            print(splits, e)
+
+
         except Exception as e:
             print("Error in parsing collision voltage:", e)
             print(name)
@@ -257,7 +272,6 @@ class MetaDataSet:
             maxval = 0
         return maxval
 
-
     def get_bool(self):
         bool_array = []
         for i, s in enumerate(self.spectra):
@@ -266,7 +280,6 @@ class MetaDataSet:
             else:
                 bool_array.append(False)
         return np.array(bool_array)
-
 
     def import_vars(self, get_vnames=True):
         hdf = h5py.File(self.filename, 'r+')
@@ -284,9 +297,7 @@ class MetaDataSet:
             msdata.attrs["v1name"] = str(self.v1name)
             msdata.attrs["v2name"] = str(self.v2name)
         hdf.close()
-
         self.update_var_array()
-
 
     def update_var_array(self):
         self.var1 = []
@@ -369,47 +380,55 @@ class Spectrum:
             msdata.attrs[key] = value
         hdf.close()
 
-    def read_hdf5(self, file=None):
+    def read_hdf5(self, file=None, speedy=False):
         if file is None:
             file = self.filename
         else:
             self.filename = file
         hdf = h5py.File(file, 'r')
         msdata = hdf.get(self.topname + "/" + str(self.index))
-        self.rawdata = get_dataset(msdata, "raw_data")
-        # self.fitdat = get_dataset(msdata, "fit_data")
-        self.data2 = get_dataset(msdata, "processed_data")
-        if ud.isempty(self.data2) and not ud.isempty(self.rawdata):
-            self.data2 = deepcopy(self.rawdata)
-        self.massdat = get_dataset(msdata, "mass_data")
-        self.zdata = get_dataset(msdata, "charge_data")
-        if self.eng.config.datanorm == 1:
+        if not speedy:
+            self.rawdata = get_dataset(msdata, "raw_data")
+            # self.fitdat = get_dataset(msdata, "fit_data")
+            self.data2 = get_dataset(msdata, "processed_data")
+            if ud.isempty(self.data2) and not ud.isempty(self.rawdata):
+                self.data2 = deepcopy(self.rawdata)
+            self.massdat = get_dataset(msdata, "mass_data")
             try:
-                self.data2[:, 1] /= np.amax(self.data2[:, 1])
+                if len(self.massdat) < 2 and "mass_data" in list(msdata.keys()):
+                    self.massdat = np.array([[self.eng.config.masslb, 0], [self.eng.config.massub, 0]])
             except:
                 pass
+            self.zdata = get_dataset(msdata, "charge_data")
+
+            if self.eng.config.datanorm == 1:
+                try:
+                    self.data2[:, 1] /= np.amax(self.data2[:, 1])
+                except:
+                    pass
+                try:
+                    self.massdat[:, 1] /= np.amax(self.massdat[:, 1])
+                except:
+                    pass
+                try:
+                    self.zdata[:, 1] /= np.amax(self.zdata[:, 1])
+                except:
+                    pass
+
+            self.mzgrid = get_dataset(msdata, "mz_grid")
+            self.massgrid = get_dataset(msdata, "mass_grid")
+
             try:
-                self.massdat[:, 1] /= np.amax(self.massdat[:, 1])
+                self.ztab = self.zdata[:, 0]
             except:
                 pass
-            try:
-                self.zdata[:, 1] /= np.amax(self.zdata[:, 1])
-            except:
-                pass
-        self.mzgrid = get_dataset(msdata, "mz_grid")
-        self.massgrid = get_dataset(msdata, "mass_grid")
-        try:
-            self.ztab = self.zdata[:, 0]
-        except:
-            pass
-        # self.baseline = get_dataset(msdata, "baseline")
-        self.peaks = get_dataset(msdata, "peaks")
-        self.setup_peaks()
+            # self.baseline = get_dataset(msdata, "baseline")
+            self.peaks = get_dataset(msdata, "peaks")
+            self.setup_peaks()
         self.attrs = dict(list(msdata.attrs.items()))
         hdf.close()
 
     def setup_peaks(self):
         self.pks.add_peaks(self.peaks, scores_included=True)
         self.pks.default_params()
-        #print([[p.mass, p.height, p.dscore] for p in self.pks.peaks])
-
+        # print([[p.mass, p.height, p.dscore] for p in self.pks.peaks])

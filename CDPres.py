@@ -356,8 +356,8 @@ class UniDecCDApp(UniDecApp):
         tend = time.perf_counter()
         print("\nTotal Batch Run Time: %.3gs" % (tend - tstarttop))
 
-    def on_gpu_mode(self, gpumode=False):
-        self.eng.gpu_mode(gpumode)
+    def on_gpu_mode(self, gpumode=False, exemode=False):
+        self.eng.gpu_mode(gpumode, exemode)
 
     def remake_mainwindow(self, tabbed=None):
         iconfile = self.view.icon_path

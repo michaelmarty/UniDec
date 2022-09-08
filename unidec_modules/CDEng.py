@@ -169,10 +169,12 @@ class UniDecCD(unidec.UniDec):
         self.config.mzbins = 1
         self.config.rawflag = 1
         self.config.poolflag = 1
+        self.exemode=True
         pass
 
-    def gpu_mode(self, gpumode=False):
+    def gpu_mode(self, gpumode=False, exemode=False):
         switch_gpu_mode(gpumode)
+        self.exemode=exemode
 
     def open_file(self, path, refresh=False):
         """
@@ -368,6 +370,7 @@ class UniDecCD(unidec.UniDec):
             except Exception as e:
                 pass
 
+        self.config.cdmsflag = 1
         # Load the config if you can find it
         if os.path.isfile(self.config.confname):
             self.load_config(self.config.confname)
@@ -795,8 +798,8 @@ class UniDecCD(unidec.UniDec):
         X, lY = np.meshgrid(self.mz, self.ztab - 1, indexing='xy')
 
         # Calculate m/z values for Z+1 and Z-1
-        uppermz = (self.mass + uY) / uY
-        lowermz = ud.safedivide((self.mass + lY), lY)  # In case the starting charge state is 1
+        uppermz = (self.mass + uY * self.config.adductmass) / uY
+        lowermz = ud.safedivide((self.mass + lY * self.config.adductmass), lY)  # In case the starting charge state is 1
 
         # Calculate the indexes for where to find the Z+1 and Z-1 m/z values
         m1 = self.mz[0]
@@ -805,7 +808,7 @@ class UniDecCD(unidec.UniDec):
 
         # Calculate normal indexes
         indexes = np.arange(0, lm)
-        normindexes = np.array([indexes for i in self.ztab]).astype(np.int)
+        normindexes = np.array([indexes for i in self.ztab]).astype(int)
 
         # Calculate upperindexes for Z+1
         upperindex = np.round(((uppermz - m1) / (m2 - m1)) * (lm - 1))
@@ -820,8 +823,8 @@ class UniDecCD(unidec.UniDec):
         lowerindex[lowerindex >= lm] = normindexes[lowerindex >= lm]
         # For both, use the normal index if it is out of range
 
-        self.upperindex = np.array(upperindex, dtype=np.int)
-        self.lowerindex = np.array(lowerindex, dtype=np.int)
+        self.upperindex = np.array(upperindex, dtype=int)
+        self.lowerindex = np.array(lowerindex, dtype=int)
 
     def filter_zdist(self, I, setup=True):
         if setup:
@@ -991,13 +994,46 @@ class UniDecCD(unidec.UniDec):
 
         print("Running Deconvolution", self.config.mzsig, self.config.csig)
         starttime = time.perf_counter()
-        # Make kernels for convolutions based on peak shapes
-        self.make_kernel(self.config.mzsig, self.config.csig)
-        # Run deconvolution
-        self.decon_core()
+        if self.exemode:
+            # Run the deconvolution core by calling on C external
+            self.decon_external_call()
+        else:
+            # Make kernels for convolutions based on peak shapes
+            self.make_kernel(self.config.mzsig, self.config.csig)
+            # Run deconvolution
+            self.decon_core()
         print("Deconvolution Time:", time.perf_counter() - starttime)
         # Transform m/z to mass
         self.transform()
+
+    def decon_external_call(self):
+        self.export_config()
+        # Check for this
+        if self.config.CDzbins != 1 and self.config.zzsig != 0:
+            print("ERROR: Charge smoothing is only define for when charges are binned to unit charge")
+            self.harray=[[]]
+            return
+        # Output input data
+        X, Y = np.meshgrid(self.mz, self.ztab, indexing='ij')
+        outarray = self.harray.transpose()
+        startdims = np.shape(outarray)
+        outdat = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(outarray)])
+        np.savetxt(self.config.infname, outdat)
+        print("Saved Input File:", self.config.infname)
+
+        # Make the call
+        ud.unidec_call(self.config)
+
+        # Load in deconvolved data
+        self.harray = np.loadtxt(self.config.deconfile)
+        print("Loaded Output File:", self.config.deconfile)
+        self.harray = self.harray.reshape(startdims).transpose()
+
+        # Load in fit data, needed for scoring
+        self.data.fitdat = np.fromfile(self.config.fitdatfile, dtype=self.config.dtype)
+        self.data.fitdat = self.data.fitdat.reshape(startdims).transpose()
+        self.data.fitdat = np.sum(self.data.fitdat, axis=0)
+        print("Loaded Output File:", self.config.deconfile)
 
     def extract_intensities(self, mass, minz, maxz, window=25, sdmult=2, noise_mult=0):
         ztab = np.arange(minz, maxz + 1)
@@ -1100,19 +1136,21 @@ if __name__ == '__main__':
 
     # exit()
     path = "C:\\Data\\CDMS\\spike trimer CDMS data.csv"
+    path = "C:\\Python\\UniDec3\\unidec_bin\\Example Data\\CDMS\\GroEL_CDMS_1.RAW"
     eng.open_file(path)
     eng.process_data()
+    eng.run_deconvolution()
     # eng.sim_dist()
     # eng.plot_add()
     # maxtup = np.unravel_index(np.argmax(eng.harray, axis=None), eng.harray.shape)
     # print(maxtup)
-    eng.make_kernel(eng.config.mzsig, eng.config.csig)
+    # eng.make_kernel(eng.config.mzsig, eng.config.csig)
     # eng.harray = np.roll(eng.ckernel, maxtup, axis=(0, 1))
     # eng.plot_hist()
     # exit()
-    eng.decon_core()
+    # eng.decon_core()
     # print(np.unravel_index(np.argmax(eng.harray, axis=None), eng.harray.shape))
-    eng.plot_mzmass_hist()
+    # eng.plot_mzmass_hist()
     # eng.plot_hist()
     exit()
 

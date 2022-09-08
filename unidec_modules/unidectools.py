@@ -159,11 +159,12 @@ def get_luminance(color, type=2):
     return larray[type]
 
 
-def match_files(directory, string):
+def match_files(directory, string, exclude=None):
     files = []
     for file in os.listdir(directory):
         if fnmatch.fnmatch(file, string):
-            files.append(file)
+            if exclude is None or exclude not in file:
+                files.append(file)
     return np.array(files)
 
 
@@ -696,6 +697,25 @@ def data_extract_grid(data, xarray, extract_method=1, window=0):
     return igrid
 
 
+def extract_from_data_matrix(xaxis, matrix, midpoint, extract_method=0, window=0):
+    if extract_method == 0:
+        index = nearest(xaxis, midpoint)
+        data = matrix[:, index]
+    elif extract_method == 1:
+        startindex = nearest(xaxis, midpoint-window)
+        endindex = nearest(xaxis, midpoint + window)
+        data = np.amax(matrix[:, startindex:endindex], axis=1)
+    elif extract_method == 2:
+        startindex = nearest(xaxis, midpoint-window)
+        endindex = nearest(xaxis, midpoint + window)
+        data = np.sum(matrix[:, startindex:endindex], axis=1)
+    else:
+        print("Grid Extraction Method Not Recognized")
+        data = []
+    return data
+
+
+
 def normalize_extracts(grid, norm_method=0):
     xlen, ylen = grid.shape
     xarray = range(0, xlen)
@@ -1054,6 +1074,9 @@ def mergedata2d(x1, y1, x2, y2, z2, method="linear"):
 def auto_peak_width(datatop, psfun=None, singlepeak=False):
     maxpos = np.argmax(datatop[:, 1])
     maxval = datatop[maxpos, 0]
+
+    if maxval == 0:
+        return 1, 0, 0
 
     # TODO: This is potentially dangerous if nonlinear!
     ac, cpeaks = autocorr(datatop)
@@ -2258,23 +2281,27 @@ def autocorr(datatop, config=None):
     :return: Autocorr spectrum, peaks in autocorrelation.
     """
     corry = signal.fftconvolve(datatop[:, 1], datatop[:, 1][::-1], mode='same')
-    corry /= np.amax(corry)
-    maxpos1 = np.argmax(datatop[:, 1])
-    start = np.amax([maxpos1 - len(datatop) / 10, 0])
-    end = np.amin([len(datatop) - 1, maxpos1 + len(datatop) / 10])
-    cutdat = datatop[int(start):int(end)]
-    if len(cutdat) < 20:
-        cutdat = datatop
-    # cutdat=datatop # Other old
-    xdiff = np.mean(cutdat[1:, 0] - cutdat[:len(cutdat) - 1, 0])  # Less dangerous but still dangerous when non-linear
-    # xdiff = datatop[1, 0] - datatop[0, 0] #OLD
-    corrx = np.arange(0.0, len(corry)) * xdiff
-    maxpos = np.argmax(corry)
-    corrx = corrx - corrx[maxpos]
-    autocorr = np.transpose([corrx, corry])
-    boo1 = autocorr[:, 0] > xdiff
-    cpeaks = peakdetect(autocorr[boo1], config)
-    return autocorr, cpeaks
+    if np.amax(corry)!=0:
+        corry /= np.amax(corry)
+        maxpos1 = np.argmax(datatop[:, 1])
+        start = np.amax([maxpos1 - len(datatop) / 10, 0])
+        end = np.amin([len(datatop) - 1, maxpos1 + len(datatop) / 10])
+        cutdat = datatop[int(start):int(end)]
+        if len(cutdat) < 20:
+            cutdat = datatop
+        # cutdat=datatop # Other old
+        xdiff = np.mean(cutdat[1:, 0] - cutdat[:len(cutdat) - 1, 0])  # Less dangerous but still dangerous when non-linear
+        # xdiff = datatop[1, 0] - datatop[0, 0] #OLD
+        corrx = np.arange(0.0, len(corry)) * xdiff
+        maxpos = np.argmax(corry)
+        corrx = corrx - corrx[maxpos]
+        autocorr = np.transpose([corrx, corry])
+        boo1 = autocorr[:, 0] > xdiff
+        cpeaks = peakdetect(autocorr[boo1], config)
+        return autocorr, cpeaks
+
+    else:
+        return [[]], [[]]
 
 
 def cconvolve(xvals, mztab, fwhm, psfun):

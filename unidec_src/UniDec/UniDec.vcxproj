@@ -82,7 +82,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>Intel C++ Compiler 19.1</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 2022</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <InterproceduralOptimization>true</InterproceduralOptimization>
     <UseIntelTBB>true</UseIntelTBB>
@@ -91,6 +91,8 @@
     <UseILP64Interfaces>true</UseILP64Interfaces>
     <UseIntelDAAL>Parallel_Static</UseIntelDAAL>
     <UseIntelIPP>false</UseIntelIPP>
+    <UseInteloneMKL>Parallel</UseInteloneMKL>
+    <UseILP64Interfaces1A>true</UseILP64Interfaces1A>
   </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release3|x64'">
     <PlatformToolset>Intel C++ Compiler 2022</PlatformToolset>
@@ -226,7 +228,7 @@
       <Parallelization>true</Parallelization>
       <UseIntelOptimizedHeaders>true</UseIntelOptimizedHeaders>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <FloatingPointModel>Fast2</FloatingPointModel>
+      <FloatingPointModel>Fast</FloatingPointModel>
       <OffloadConstructs>Optional</OffloadConstructs>
       <OpenMP>GenerateParallelCode</OpenMP>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
@@ -244,7 +246,6 @@
       <LanguageStandard>Default</LanguageStandard>
       <LlvmTransitionalOption>NextGenNone</LlvmTransitionalOption>
       <AdditionalIncludeDirectories>C:\Program Files\HDF_Group\HDF5\1.12.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <CCppSupport>C99Support</CCppSupport>
     </ClCompile>
     <Link>
       <AdditionalDependencies>libszip.lib;libzlib.lib;libhdf5.lib;libhdf5_hl.lib;ucrt.lib;vcruntime.lib;msvcrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -278,6 +279,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <FloatingPointModel>Fast</FloatingPointModel>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>hdf5.lib;hdf5_hl.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -302,6 +304,7 @@
     <ClInclude Include="UD_score.h" />
     <ClInclude Include="UD_sg.h" />
     <ClInclude Include="UniDec.h" />
+    <ClInclude Include="UniDecCD_Main.h" />
     <ClInclude Include="UniDecIM.h" />
     <ClInclude Include="UniDecIM_Main.h" />
     <ClInclude Include="UniDecLC_Main.h" />

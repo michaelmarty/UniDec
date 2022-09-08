@@ -35,11 +35,11 @@ void readfilemanual(char *infile, int lengthmz, float *array1, float *array2, fl
 	char c[500];
 	char d[500];
 	char e[500];
-	file_ptr = fopen(infile, "r");
-	if (file_ptr == 0)
+	errno_t err = fopen_s(&file_ptr, infile, "r");
+	if (err == 0)
 	{
 		printf("Could not open %s file\n", infile);
-		exit(10);
+		exit(err);
 	}
 	else {
 
@@ -110,41 +110,66 @@ void Extract(float *mzext, float *dtext, float *mzdat, float *dtdat, int *size)
 
 float Gaus(float x, float x0, float sig)
 {
-	return exp(-pow(x - x0, 2.) / (2.*sig*sig));
+	return expf(-powf(x - x0, 2.) / (2.*sig*sig));
 }
 
 
 //function to return a gaussian at a specific point
 float Lorentz(float x, float x0, float sig)
 {
-	return pow(sig / 2, 2) / (pow(x - x0, 2) + pow(sig / 2, 2));
+	return powf(sig / 2, 2) / (powf(x - x0, 2) + powf(sig / 2, 2));
 }
 
 float SplitGL(float x, float y, float sig)
 {
 	if (y<x)
 	{
-		return exp(-(pow(x - y, 2)) / (2 * sig*sig*0.180337));
+		return expf(-(powf(x - y, 2)) / (2 * sig*sig*0.180337));
 	}
 	else
 	{
-		return (sig / 2)*(sig / 2) / (pow((x - y), 2) + pow((sig / 2), 2));
+		return (sig / 2)*(sig / 2) / (powf((x - y), 2) + powf((sig / 2), 2));
 	}
 }
 
 //function to return a 2D peak value at a given point
-float Peak(float x1, float x2, float y1, float y2, float sig1, float sig2, int psfun)
+float Peak(const float x1, const float x2, const float y1, const float y2, const float sig1, const float sig2, const int psfun, const int zpsfun)
 {
-	if (psfun == 0) {
-		return Gaus(x1, x2, sig1)*Gaus(y1, y2, sig2);
+	float d2 = 0;
+	float d1 = 0;
+	if (sig2 == 0) {
+		if (y1 == y2) { d2 = 1; }
+		else { d2 = 0; }
 	}
-	if (psfun == 1) {
-		return Lorentz(x1, x2, sig1)*Gaus(y1, y2, sig2);
+	else {
+		if (zpsfun == 0) {
+			d2 = Gaus(y1, y2, sig2);
+		}
+		if (zpsfun == 1) {
+			d2 = Lorentz(y1, y2, sig2);
+		}
+		if (psfun == 2) {
+			d2 = SplitGL(-1*y1, -1*y2, sig2);
+		}
 	}
-	if (psfun == 2) {
-		return SplitGL(x1, x2, sig1)*Gaus(y1, y2, sig2);
+
+	if (sig1 == 0) {
+		if (x1 == x2) { d1 = 1; }
+		else { d1 = 0; }
 	}
-	return 0;
+	else {
+		if (psfun == 0) {
+			d1= Gaus(x1, x2, sig1);
+		}
+		if (psfun == 1) {
+			d1 = Lorentz(x1, x2, sig1);
+		}
+		if (psfun == 2) {
+			d1 = SplitGL(x1, x2, sig1);
+		}
+	}
+	
+	return d1 * d2;
 }
 
 
@@ -153,29 +178,29 @@ static int index4D(int *size, int r, int c, int d, int f)
 	return r*size[1] * size[2] * size[3] + c*size[2] * size[3] + d*size[3] + f;
 }
 
-void GetPeaks(float *peak, int *Size, float *dH, float *dC, float sig1, float sig2, int psfun)
+void GetPeaks(float *peak, int *Size, float *dH, float *dC, float sig1, float sig2, int psfun, int zpsfun)
 {
 	int i, j;
 	float hmax = 2 * dH[Size[0] - 1] - dH[Size[0] - 2];
 	float cmax = 2 * dC[Size[1] - 1] - dC[Size[1] - 2];
 	float hmin = dH[0];
 	float cmin = dC[0];
-	float Hval, Cval, v1, v2, v3, v4, val;
-	#pragma omp parallel for private (i,j,Hval,Cval,v1,v2,v3,v4,val), schedule(dynamic)
+
+	#pragma omp parallel for private (i,j), schedule(dynamic)
 	for (i = 0; i<Size[0]; i++)
 	{
 		for (j = 0; j<Size[1]; j++)
 		{
-			Hval = dH[i];
-			Cval = dC[j];
+			float Hval = dH[i];
+			float Cval = dC[j];
 
 			//put the peakj in the four corners
-			v1 = Peak(hmin, Hval, cmin, Cval, sig1, sig2, psfun);
-			v2 = Peak(hmax, Hval, cmax, Cval, sig1, sig2, psfun);
-			v3 = Peak(hmin, Hval, cmax, Cval, sig1, sig2, psfun);
-			v4 = Peak(hmax, Hval, cmin, Cval, sig1, sig2, psfun);
+			float v1 = Peak(hmin, Hval, cmin, Cval, sig1, sig2, psfun, zpsfun);
+			float v2 = Peak(hmax, Hval, cmax, Cval, sig1, sig2, psfun, zpsfun);
+			float v3 = Peak(hmin, Hval, cmax, Cval, sig1, sig2, psfun, zpsfun);
+			float v4 = Peak(hmax, Hval, cmin, Cval, sig1, sig2, psfun, zpsfun);
 
-			val = v1 + v2 + v3 + v4;
+			float val = v1 + v2 + v3 + v4;
 			peak[index2D(Size[1], i, j)] = val; //store peak in complete peak list
 		}
 	}
@@ -236,8 +261,9 @@ void convolve3D(float *out, float *in, float *peakshape, int *size)
 {
 	//Initialize memory
 	float *temp = NULL, *tempout = NULL;
-	temp = calloc(size[0] * size[1], sizeof(float));
-	tempout = calloc(size[0] * size[1], sizeof(float));
+	int l = size[0] * size[1];
+	temp = calloc(l, sizeof(float));
+	tempout = calloc(l, sizeof(float));
 	int i, j, k;
 	//Convolve for each charge slice
 	for (k = 0; k<size[2]; k++)
@@ -603,7 +629,8 @@ void blur_it_IM(int *size, float *blur, float *newblur, int *closetab, int *barr
 
 	if (csig < 0) {
 		float *mzzsumgrid = NULL;
-		mzzsumgrid = calloc(size[0] * size[2], sizeof(float));
+		int l = size[0] * size[2];
+		mzzsumgrid = calloc(l, sizeof(float));
 		sum2D(size, mzzsumgrid, blur, 1);
 #pragma omp parallel for schedule(dynamic)
 		for (int i = 0; i < size[0]; i++)
@@ -851,7 +878,8 @@ void write1D(char *outfile, char *suffix, float *array, int length)
 	char outstring[500];
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.bin", outfile, suffix);
-	out_ptr = fopen(outstring, "wb");
+	errno_t err = fopen_s(&out_ptr, outstring, "wb");
+	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
 	fwrite(array, sizeof(float), length, out_ptr);
 
 	//sprintf(outstring,"%s_%s.txt",outfile,suffix);
@@ -870,7 +898,8 @@ void write2D(char *outfile, char *suffix, float *array1, float *array2, int leng
 	int i;
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.txt", outfile, suffix);
-	out_ptr = fopen(outstring, "w");
+	errno_t err = fopen_s(&out_ptr, outstring, "w");
+	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
 	for (i = 0; i<length; i++)
 	{
 		fprintf(out_ptr, "%f %f\n", array1[i], array2[i]);
@@ -885,7 +914,8 @@ void write3D(char *outfile, char *suffix, float *array1, float *array2, float *a
 	int i;
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.txt", outfile, suffix);
-	out_ptr = fopen(outstring, "w");
+	errno_t err = fopen_s(&out_ptr, outstring, "w");
+	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
 	for (i = 0; i<length; i++)
 	{
 		fprintf(out_ptr, "%f %f %f\n", array1[i], array2[i], array3[i]);
@@ -900,7 +930,8 @@ void writemfileres(char *outfile, char *suffix, float *array1, float *array2, fl
 	int i;
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.txt", outfile, suffix);
-	out_ptr = fopen(outstring, "w");
+	errno_t err = fopen_s(&out_ptr, outstring, "w");
+	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
 	//fprintf(out_ptr,"Mass\tIntensity\tCCS Avg.\tCCS Std. Dev.\tZ avg.\tZ Std. Dev.\n");
 	for (i = 0; i<length; i++)
 	{
@@ -917,7 +948,8 @@ void writemzgrid(char *outfile, char *suffix, float *mzext, float *dtext, int *z
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.bin", outfile, suffix);
 	//printf("%s\n",outstring);
-	out_ptr = fopen(outstring, "wb");
+	errno_t err = fopen_s(&out_ptr, outstring, "wb");
+	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
 	/*
 	for(i=0;i<size[0];i++)
 	{
@@ -930,7 +962,8 @@ void writemzgrid(char *outfile, char *suffix, float *mzext, float *dtext, int *z
 	}
 	}
 	*/
-	fwrite(blur, sizeof(float), size[0] * size[1] * size[2], out_ptr);
+	int l = size[0] * size[1] * size[2];
+	fwrite(blur, sizeof(float), l, out_ptr);
 	fclose(out_ptr);
 	printf("File written to: %s\n", outstring);
 }
@@ -985,9 +1018,11 @@ void writezslice(int *size, char *outfile, char *suffix, float *massaxis, float 
 	char outstring[500];
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s_%d.bin", outfile, suffix, ztab[k]);
-	out_ptr = fopen(outstring, "wb");
+	errno_t err = fopen_s(&out_ptr, outstring, "wb");
+	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
 	float *temp = NULL;
-	temp = calloc(size[0] * size[1], sizeof(float));
+	int newlen = size[0] * size[1];
+	temp = calloc(newlen, sizeof(float));
 	for (i = 0; i<size[0]; i++)
 	{
 		for (j = 0; j<size[1]; j++)
@@ -996,7 +1031,8 @@ void writezslice(int *size, char *outfile, char *suffix, float *massaxis, float 
 			temp[index2D(size[1], i, j)] = array[index3D(size[1], size[2], i, j, k)];
 		}
 	}
-	fwrite(temp, sizeof(float), size[0] * size[1], out_ptr);
+	int l = size[0] * size[1];
+	fwrite(temp, sizeof(float), l, out_ptr);
 	fclose(out_ptr);
 	free(temp);
 	printf("File written to: %s\n", outstring);
@@ -1049,7 +1085,7 @@ float cubicInterpolate_IM(float p[4], float x) {
 	return p[1] + 0.5 * x*(p[2] - p[0] + x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + x*(3.0*(p[1] - p[2]) + p[3] - p[0])));
 }
 float bicubicInterpolate_IM(float p[4][4], float x, float y) {
-	float arr[4];
+	float arr[4] = { 0, 0 ,0, 0 };
 	arr[0] = cubicInterpolate_IM(p[0], y);
 	arr[1] = cubicInterpolate_IM(p[1], y);
 	arr[2] = cubicInterpolate_IM(p[2], y);
@@ -1060,8 +1096,8 @@ float bicubicInterpolate_IM(float p[4][4], float x, float y) {
 float bicubicinterpolation(int *size, int indm, int indc, int k, float *mzext, float *dtext, float tempmz, float tempdt, int rawflag, float *newblur, float *blur)
 {
 	float mu1, mu2;
-	float p[4][4];
-	int im[4], ic[4];
+	float p[4][4] = { { 0,0,0,0 } , { 0,0,0,0 } , { 0,0,0,0 } , { 0,0,0,0 } };
+	int im[4] = { 0,0,0,0 }, ic[4] = { 0,0,0,0 };
 	int i, j;
 	if (mzext[indm]>tempmz) { im[2] = indm; im[1] = indm - 1; im[0] = indm - 2; im[3] = indm + 1; }
 	else { im[1] = indm; im[2] = indm + 1; im[0] = indm - 1; im[3] = indm + 2; }

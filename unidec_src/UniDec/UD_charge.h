@@ -159,7 +159,7 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 	char pdataset[1024];
 	char poutdat[1024];
 
-	strcpy(pdataset, "/peaks");
+	strcpy_s(pdataset, sizeof(pdataset), "/peaks");
 	if(ultra){ strjoin(pdataset, "/ultrapeakdata", poutdat); }
 	else{ strjoin(pdataset, "/peakdata", poutdat); }
 	printf("Importing Charge Peaks: %s\n", poutdat);
@@ -176,13 +176,14 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 	num = int_attr(file_id, "/ms_dataset", "num", num);
 
 	float *extracts = NULL;
-	extracts = calloc(plen*num, sizeof(float));
+	int newlen = plen * num;
+	extracts = calloc(newlen, sizeof(float));
 
 	for (int i = 0; i < num; i++)
 	{
-		strcpy(dataset, "/ms_dataset");
+		strcpy_s(dataset, sizeof(dataset), "/ms_dataset");
 		sprintf(strval, "/%d", i);
-		strcat(dataset, strval);
+		strcat_s(dataset, sizeof(dataset), strval);
 		//printf("Processing HDF5 Data Set: %s\n", dataset);
 		strjoin(dataset, "/mass_data", outdat);
 		strjoin(dataset, "/charge_data", outdat2);
@@ -265,7 +266,7 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 		}
 	}
 	
-	strcpy(dataset, "/peaks");
+	strcpy_s(dataset, sizeof(dataset), "/peaks");
 	makegroup(file_id, dataset);
 	if (ultra)
 		strjoin(dataset, "/ultrazextracts", outdat);

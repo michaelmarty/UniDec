@@ -142,6 +142,11 @@ class main_controls(wx.Panel):
         sizercontrol1.Add(wx.StaticText(panel1, label="Data Reduction (%): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
+        self.ctlintthresh = wx.TextCtrl(panel1, value="", size=size1)
+        sizercontrol1.Add(self.ctlintthresh, (i, 1), span=(1, 1))
+        sizercontrol1.Add(wx.StaticText(panel1, label="Intensity Threshold: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
         self.ctldatanorm = wx.CheckBox(panel1, label="Normalize Data")
         sizercontrol1.Add(self.ctldatanorm, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
@@ -566,6 +571,7 @@ class main_controls(wx.Panel):
             # self.ctlsmooth.SetValue(str(self.config.smooth))
             self.ctlbinsize.SetValue(str(self.config.mzbins))
             self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
+            self.ctlintthresh.SetValue(str(self.config.intthresh))
             self.ctlwindow.SetValue(str(self.config.peakwindow))
             self.ctlthresh.SetValue(str(self.config.peakthresh))
             self.ctlthresh2.SetValue(str(self.config.peakplotthresh))
@@ -670,6 +676,7 @@ class main_controls(wx.Panel):
         # self.config.smooth = ud.string_to_value(self.ctlsmooth.GetValue())
         self.config.mzbins = ud.string_to_value(self.ctlbinsize.GetValue())
         self.config.reductionpercent = ud.string_to_value(self.ctldatareductionpercent.GetValue())
+        self.config.intthresh = ud.string_to_value(self.ctlintthresh.GetValue())
         self.config.subbuff = ud.string_to_value(self.ctlbuff.GetValue())
         # self.config.subtype = self.subtypectl.GetSelection()
         # self.config.intthresh = ud.string_to_value(self.ctlintthresh.GetValue())
@@ -812,8 +819,7 @@ class main_controls(wx.Panel):
         self.ctldatareductionpercent.SetToolTip(
             wx.ToolTip(
                 "Reduces the amount of data by removing everything below a threshold.\nSets the threshold based on this percentage of data to remove."))
-        # self.ctlintthresh.SetToolTip(
-        #    wx.ToolTip("Set intensity threshold. Data points below threshold are excluded from deconvolution."))
+        self.ctlintthresh.SetToolTip(wx.ToolTip("Set intensity threshold. Data points below threshold are excluded from deconvolution."))
         self.ctlbuff.SetToolTip(wx.ToolTip(
             "Background subtraction: Width of smoothing for curved background"
             "\nSmaller values will give more aggressive subtraction."))

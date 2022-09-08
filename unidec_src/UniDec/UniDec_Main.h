@@ -21,6 +21,14 @@
 #include "UD_score.h"
 
 
+Decon ExitToBlank(const Config config, Decon decon)
+{
+	int l = config.lengthmz * config.numz;
+	decon.blur = calloc(l, sizeof(float));
+	decon.newblur = calloc(l, sizeof(float));
+	return decon;
+}
+
 Decon MainDeconvolution(const Config config, const Input inp, const int silent, const int verbose)
 {
 	Decon decon = SetupDecon();
@@ -48,8 +56,11 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	//     Sets the mzdist with the peak shape
 	//
 	//....................................................................
-	barr = calloc(config.lengthmz * config.numz, sizeof(char));
-	memcpy(barr, inp.barr, config.lengthmz * config.numz * sizeof(char));
+	int ln = config.lengthmz * config.numz;
+	size_t sizelnc = (size_t)ln * sizeof(char);
+	size_t sizelnf = (size_t)ln * sizeof(float);
+	barr = calloc(ln, sizeof(char));
+	memcpy(barr, inp.barr, sizelnc);
 
 	//Sets a threshold for m/z values to check. Things that are far away in m/z space don't need to be considered in the iterations.
 	float threshold = config.psthresh * fabs(config.mzsig) * config.peakshapeinflate;
@@ -143,8 +154,9 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	closemind = calloc(numclose, sizeof(int));
 	closezind = calloc(numclose, sizeof(int));
 	closeval = calloc(numclose, sizeof(float));
-	closeind = calloc(numclose * config.lengthmz * config.numz, sizeof(int));
-	closearray = calloc(numclose * config.lengthmz * config.numz, sizeof(float));
+	int newlen = numclose * config.lengthmz * config.numz;
+	closeind = calloc(newlen, sizeof(int));
+	closearray = calloc(newlen, sizeof(float));
 
 	//Determines the indexes of things that are close as well as the values used in the neighborhood convolution
 	for (int k = 0; k < numclose; k++)
@@ -173,7 +185,24 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	{
 		if (barr[i] == 1) { badness = 0;}
 	}
-	if (badness == 1) { printf("ERROR: Setup is bad. No points are allowed\n"); exit(10); }
+	if (badness == 1) { printf("ERROR: Setup is bad. No points are allowed\n"); 
+	decon = ExitToBlank(config, decon); 
+	free(mzdist);
+	free(rmzdist);
+	free(closeval);
+	free(closearray);
+	free(closemind);
+	free(closezind);
+	free(endtab);
+	free(starttab);
+
+	free(mdist);
+	free(mind);
+	free(zind);
+	free(zdist);
+	free(barr);
+	free(closeind);
+	return(decon); }
 
 	if (silent == 0) { printf("Charges blurred: %d  Masses blurred: %d\n", zlength, mlength); }
 	
@@ -196,9 +225,9 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	
 
 	//Creates an intial probability matrix, decon.blur, of 1 for each element
-	decon.blur = calloc(config.lengthmz * config.numz, sizeof(float));
-	decon.newblur = calloc(config.lengthmz * config.numz, sizeof(float));
-	oldblur = calloc(config.lengthmz * config.numz, sizeof(float));
+	decon.blur = calloc(ln, sizeof(float));
+	decon.newblur = calloc(ln, sizeof(float));
+	oldblur = calloc(ln, sizeof(float));
 
 	if (config.baselineflag == 1) {
 		printf("Auto Baseline Mode On: %d\n", config.aggressiveflag);
@@ -333,17 +362,20 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 				}
 			}
 			if (tot != 0) { decon.conv = (diff / tot); }
-			else { decon.conv = 12345678; printf("m/z vs. charge grid is zero. Iteration: %d\n", iterations); }
+			else {
+				if (decon.conv == 12345678) { printf("m/z vs. charge grid is zero. Iteration: %d\n", iterations); break; }
+				else{decon.conv = 12345678;}
+			} 
 
 			//printf("Iteration: %d Convergence: %f\n", iterations, decon.conv);
 			if (decon.conv < 0.000001) {
 				if (off == 1 && config.numit > 0) {
-					printf("Converged in %d iterations.\n\n", iterations);
+					if (silent == 0) { printf("Converged in %d iterations.\n", iterations); }
 					break;
 				}
 				off = 1;
 			}
-			memcpy(oldblur, decon.blur, config.lengthmz * config.numz * sizeof(float));
+			memcpy(oldblur, decon.blur, sizelnf);
 		}
 		
 	}
@@ -425,7 +457,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		}
 		else
 		{
-			memcpy(decon.newblur, decon.blur, config.lengthmz * config.numz * sizeof(float));
+			memcpy(decon.newblur, decon.blur, sizelnf);
 		}
 	}
 
@@ -458,13 +490,14 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 				}
 			}
 		}
-		printf("Massmin: %f  ", massmin);
-		printf("Massmax: %f  ", massmax);
+		if (silent == 0){printf("Massmin: %f  ", massmin); printf("Massmax: %f  ", massmax);}
 	}
 	else { massmax = config.massub; massmin = config.masslb; }
 
 	//Checks to make sure the mass axis is good and makes a dummy axis if not
 	decon.mlen = (int)(massmax - massmin) / config.massbins;
+	int mn = decon.mlen * config.numz;
+	size_t sizemn = (size_t)mn * sizeof(float);
 	if (decon.mlen < 1) {
 		printf("Bad mass axis length: %d\n", decon.mlen);
 		massmax = config.massub;
@@ -474,9 +507,9 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		//Declare the memory
 		decon.massaxis = calloc(decon.mlen, sizeof(float));
 		decon.massaxisval = calloc(decon.mlen, sizeof(float));
-		decon.massgrid = calloc(decon.mlen * config.numz, sizeof(float));
+		decon.massgrid = calloc(mn, sizeof(float));
 		memset(decon.massaxisval, 0, decon.mlen * sizeof(float));
-		memset(decon.massgrid, 0, decon.mlen * config.numz * sizeof(float));
+		memset(decon.massgrid, 0, sizemn);
 
 		//Create the mass axis
 		for (int i = 0; i < decon.mlen; i++)
@@ -491,9 +524,9 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		//Declare the memory
 		decon.massaxis = calloc(decon.mlen, sizeof(float));
 		decon.massaxisval = calloc(decon.mlen, sizeof(float));
-		decon.massgrid = calloc(decon.mlen * config.numz, sizeof(float));
+		decon.massgrid = calloc(mn, sizeof(float));
 		memset(decon.massaxisval, 0, decon.mlen * sizeof(float));
-		memset(decon.massgrid, 0, decon.mlen * config.numz * sizeof(float));
+		memset(decon.massgrid, 0, sizemn);
 		if (silent == 0) { printf("Mass axis length: %d\n", decon.mlen); }
 
 		
@@ -543,7 +576,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 
 	//Note this will not execute if the mass axis is bad
 	float scorethreshold = 0;
-	decon.uniscore = score(config, &decon, inp, scorethreshold);
+	decon.uniscore = score(config, &decon, inp, scorethreshold, silent);
 
 	}
 
@@ -678,7 +711,8 @@ int run_unidec(int argc, char *argv[], Config config) {
 	//...............................................................
 
 	//Fills inp.mtab by multiplying each mz by each z
-	inp.mtab = calloc(config.lengthmz * config.numz, sizeof(float));
+	int ln = config.lengthmz * config.numz;
+	inp.mtab = calloc(ln, sizeof(float));
 	#pragma omp parallel for schedule(auto)
 	for (int i = 0; i<config.lengthmz; i++)
 	{
@@ -690,7 +724,8 @@ int run_unidec(int argc, char *argv[], Config config) {
 	if (verbose == 1) { printf("Setup Masses\n"); }
 
 	//Allocates the memory for the boolean array of whether to test a value
-	inp.barr = calloc(config.lengthmz * config.numz, sizeof(char));
+	int newlen = config.lengthmz * config.numz;
+	inp.barr = calloc(newlen, sizeof(char));
 	//Tells the algorithm to ignore data that are equal to zero
 	ignorezeros(inp.barr, inp.dataInt, config.lengthmz, config.numz);
 	if (verbose == 1) { printf("Ignored Zeros\n"); }
@@ -703,15 +738,17 @@ int run_unidec(int argc, char *argv[], Config config) {
 	if (config.manualflag == 1)
 	{
 		ManualAssign(inp.dataMZ, inp.barr, inp.nztab, config);
+		if (verbose == 1) { printf("Setup Manual Assign\n"); }
 	}
-	if (verbose == 1) { printf("Setup Manual Assign\n"); }
+	
 
 	//Setup Isotope Distributions
 	if (config.isotopemode > 0)
 	{
 		setup_and_make_isotopes(&config, &inp);
+		if (verbose == 1) { printf("Setup Isotopes\n"); }
 	}
-	if (verbose == 1) { printf("Setup Isotopes\n"); }
+	
 
 	//................................................................
 	//
@@ -728,14 +765,14 @@ int run_unidec(int argc, char *argv[], Config config) {
 	}
 	else{ 
 		//Run the main Deconvolution		
-		decon = MainDeconvolution(config, inp, 0, verbose); }
+		decon = MainDeconvolution(config, inp, config.silent, verbose); }
 
 	// Run DoubleDec if it's checked
 	if (config.doubledec) { // Use Python to confirm kernel file is selected
 		printf("Running DoubleDec now\n");
 		DoubleDecon(&config, &decon);
 	}
-
+	if (verbose == 1) { printf("Decon Done\n"); }
 	//................................................................
 	//
 	//  Wrapping up
@@ -744,15 +781,17 @@ int run_unidec(int argc, char *argv[], Config config) {
 
 	//Write Everything
 	WriteDecon(config, &decon, &inp);
+	if (verbose == 1) { printf("Write Done\n"); }
 
 	//Writes a file with a number of key parameters such as error and number of significant parameters.
 	clock_t end = clock();
 	float totaltime = (float)(end - starttime) / CLOCKS_PER_SEC;
 	if (config.filetype == 0) {
 		FILE* out_ptr = NULL;
-		char outstring3[500];
+		char outstring3[1024];
 		sprintf(outstring3, "%s_error.txt", config.outfile);
-		out_ptr = fopen(outstring3, "w");
+		errno_t err = fopen_s(&out_ptr, outstring3, "w");
+		if (err != 0) { printf("Error Opening %s %d\n", outstring3, err); exit(err); }
 		fprintf(out_ptr, "error = %f\n", decon.error);
 		fprintf(out_ptr, "time = %f\n", totaltime);
 		fprintf(out_ptr, "iterations = %d\n", decon.iterations);
@@ -787,6 +826,6 @@ int run_unidec(int argc, char *argv[], Config config) {
 	//printf("Error in the Fit: %f\n", decon.error);
 
 	//Final Check that iterations worked and a reporter of the time consumed
-	printf("Finished with %d iterations in %f seconds!\n\n", decon.iterations, totaltime);
+	if (config.silent == 0) { printf("Finished with %d iterations in %f seconds!\n\n", decon.iterations, totaltime); }
 	return 0;
 }

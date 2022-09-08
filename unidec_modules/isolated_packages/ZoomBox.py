@@ -352,6 +352,12 @@ class ZoomBox:
                         pub.sendMessage('smash')
                     else:
                         pub.sendMessage('mzlimits')
+                elif event.button == 3 and self.smash == 2:
+                        pub.sendMessage('mzlimits2')
+                elif event.button == 3 and self.smash == 3:
+                        pub.sendMessage('mzlimits3')
+                elif event.button == 3 and self.smash == 4:
+                        pub.sendMessage('mzlimits4')
                 elif event.button == 2:
                     pub.sendMessage('middle_click')
                 return True

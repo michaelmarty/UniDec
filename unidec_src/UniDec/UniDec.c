@@ -6,7 +6,7 @@
 // Copyright University of Arizona 2016
 //
 
-
+#define __STDC_WANT_LIB_EXT1__ 1
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -16,6 +16,7 @@
 #include "UniDec_Main.h"
 #include "UniDecIM_Main.h"
 #include "MetaUniDec_Main.h"
+#include "UniDecCD_Main.h"
 
 
 
@@ -71,6 +72,11 @@ int main(int argc, char *argv[])
 	{
 		printf("UniDec Ion Mobility Run\n");
 		result = run_unidec_IM(argc, argv, config);
+	}
+	else if (config.cdmsflag == 1)
+	{
+		printf("UniDecCD Run\n");
+		result = run_unidec_CD(argc, argv, config);
 	}
 	else
 	{

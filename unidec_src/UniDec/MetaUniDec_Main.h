@@ -17,11 +17,14 @@
 //#include "UD_peak_width.h"
 
 int run_metaunidec(int argc, char *argv[], Config config) {
+	clock_t starttime;
+	starttime = clock();
 	//Get Length
 	int num=0;
 	hid_t file_id;
 	file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 	num = int_attr(file_id, "/ms_dataset", "num", num);
+	if (num > 20) { config.silent = 1; }
 	H5Fclose(file_id);
 
 	int mode = 0;
@@ -129,6 +132,8 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 		printf("Getting Scan Scores\n");
 		get_scan_scores(argc, argv, config);
 	}
-
+	clock_t end = clock();
+	float totaltime = (float)(end - starttime) / CLOCKS_PER_SEC;
+	printf("Done in %f s\n", totaltime);
 	return 0;
 }

@@ -8,6 +8,12 @@ from metaunidec.mudstruct import MetaDataSet
 import unidec_modules.mzmlparse_auto as automzml
 import time
 
+try:
+    from pyimzml.ImzMLWriter import ImzMLWriter
+    from metaunidec.imzml_reader import imzml_to_hdf5
+except:
+    print("pyimzML not found. Imaging features won't work.")
+
 __author__ = 'Michael.Marty'
 
 
@@ -48,14 +54,14 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.config.metamode = -1
         self.config.linflag = 2
 
-    def open(self, path):
+    def open(self, path, speedy=False):
         self.clear()
         if path is None:
             path = self.config.hdf_file
         else:
             self.setup_filenames(path)
         self.config.read_hdf5(path)
-        self.data.import_hdf5(path)
+        self.data.import_hdf5(path, speedy=speedy)
         self.update_history()
 
     def clear(self):
@@ -92,12 +98,14 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
     def make_grids(self):
         self.out = metaunidec_call(self.config, "-grids")
 
-    def sum_masses(self):
-        self.data.import_grids_and_peaks()
+    def sum_masses(self, refresh=True):
+        self.data.import_grids_and_peaks(refresh=refresh)
 
-    def pick_peaks(self):
-        self.config.write_hdf5()
-        self.sum_masses()
+    def pick_peaks(self, refresh=True):
+        if refresh:
+            self.config.write_hdf5()
+        s = time.perf_counter()
+        self.sum_masses(refresh=refresh)
 
         scores_included = False
         try:
@@ -110,14 +118,17 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.pks.add_peaks(self.data.peaks, massbins=self.config.massbins, scores_included=scores_included)
         self.pks.default_params(cmap=self.config.peakcmap)
 
-        ud.peaks_error_FWHM(self.pks, self.data.massdat)
+        if len(self.pks.peaks) > 0:
+            ud.peaks_error_FWHM(self.pks, self.data.massdat)
 
         self.peaks_error_replicates(self.pks, self.data.spectra, self.config)
+
         for i, p in enumerate(self.pks.peaks):
             p.extracts = self.data.exgrid[i]
 
         self.update_history()
         self.export_params()
+
 
     def pick_scanpeaks(self):
         self.config.write_hdf5()
@@ -269,15 +280,14 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         for i, pk in enumerate(pks.peaks):
             ints = []
             for spec in spectra:
-                index = ud.nearest(spec.massdat[:, 0], pk.mass)
-                startindmass = ud.nearest(spec.massdat[:, 0], spec.massdat[index, 0] - config.peakwindow)
-                endindmass = ud.nearest(spec.massdat[:, 0], spec.massdat[index, 0] + config.peakwindow)
-                maxind = index
-                for x in range(startindmass, endindmass + 1):
-                    if spec.massdat[x, 1] > spec.massdat[maxind, 1]:
-                        maxind = x
-                peakvals[i].append(spec.massdat[maxind, 0])
-                ints.append(spec.massdat[maxind, 1])
+                chopdat = ud.datachop(spec.massdat, pk.mass - config.peakwindow, pk.mass + config.peakwindow)
+                if len(chopdat) > 0:
+                    maxind = np.argmax(chopdat[:, 1])
+                    peakvals[i].append(chopdat[maxind, 0])
+                    ints.append(chopdat[maxind, 1])
+                else:
+                    peakvals[i].append(0)
+                    ints.append(0)
             # print(peakvals[i], ints)
             pk.errorreplicate = ud.weighted_std(peakvals[i], ints)
 
@@ -437,20 +447,48 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
                     print("Aborting. Please check csv file.")
                     return None
         print(files, dirs)
-        #Creating the outpath
+        # Creating the outpath
         outname = os.path.split(csvpath)[1]
         outname = os.path.splitext(outname)[0]
         print(outname)
 
         # Parse the file over all scans
         print("Parsing Files")
-        self.outpath = automzml.extract_scans_multiple_files(files, dirs, startscan=0, endscan=-1, outputname=outname, vars=seq, keys=kdict)
+        self.outpath = automzml.extract_scans_multiple_files(files, dirs, startscan=0, endscan=-1, outputname=outname,
+                                                             vars=seq, keys=kdict)
         print("Completed Parsing. Saved to", self.outpath)
         return self.outpath
 
+    def write_to_imzML(self, outpath):
+        print("Writing to imzml:", outpath)
+        with ImzMLWriter(outpath) as w:
+            for i, s in enumerate(self.data.spectra):
+                mzs = s.massdat[:, 0]
+                intensities = s.massdat[:, 1]
+                if len(mzs) < 2:
+                    mzs = [self.config.masslb, self.config.massub]
+                    intensities = [0, 0]
+                x = s.attrs['xpos']
+                y = s.attrs['ypos']
+                z = s.attrs['zpos']
+                coords = (int(x), int(y), int(z))
+                print(i, coords)
+                w.addSpectrum(mzs, intensities, coords)
+        print("Done Writing to imzml:", outpath)
 
+    def imzml_to_hdf5(self, infile, outfile):
+        print("Writing imzML file", infile)
+        print("to HDF5 file: ", outfile)
+        imzml_to_hdf5(infile, outfile)
+        print("Done Writing")
 
-
+    def generate_image(self, peak_index=0):
+        p = self.pks.peaks[peak_index]
+        ex = p.extracts
+        x = np.array(self.data.var1)
+        y = np.array(self.data.var2)
+        dat = np.transpose([x, y, ex])
+        return dat
 
 
 if __name__ == '__main__':

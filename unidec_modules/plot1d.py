@@ -73,14 +73,12 @@ class Plot1d(PlottingWindow):
             if config.publicationmode != 0:
                 pubflag = 1
 
+        self.subplot1 = self.figure.add_axes(self._axes)
+        self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=color, label=label, marker=marker, **kwargs)
         if pubflag == 0:
-            self.subplot1 = self.figure.add_axes(self._axes)
-            self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=color, label=label, marker=marker, **kwargs)
             self.subplot1.set_ylabel(self.ylabel)
             self.subplot1.set_title(title)
         else:
-            self.subplot1 = self.figure.add_axes(self._axes)
-            self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=color, label=label, marker=marker, **kwargs)
             self.subplot1.spines['top'].set_visible(False)
             self.subplot1.spines['right'].set_visible(False)
             self.subplot1.get_xaxis().tick_bottom()
@@ -456,3 +454,32 @@ class Plot1d(PlottingWindow):
         self.mlist = []
         self.x1, self.x2 = None, None
         self.colors = []
+
+    def scatterplottop(self, xarr, yarr, color=None, xlabel="", ylabel="", title="", zoom="box", repaint=True):
+        """
+        Create a bar plot.
+        :param xarr: x value array
+        :param yarr: y value array
+        :param color: List of colors for the various dots
+        :param xlabel: Label for x axis
+        :param ylabel: Label for y axis
+        :param title: Plot title
+        :param zoom: Type of zoom ('box' or 'span)
+        :param repaint: Boolean, whether to repaint or not when done.
+        :return: None
+        """
+        self.clear_plot("nopaint")
+        self.zoomtype = zoom
+        self.data = np.transpose([xarr, yarr])
+        self.subplot1 = self.figure.add_axes(self._axes)
+        self.subplot1.scatter(xarr, yarr, color=color)
+        self.subplot1.set_xlabel(xlabel)
+        self.subplot1.set_ylabel(ylabel)
+        self.subplot1.set_title(title)
+        self.subplot1.spines['top'].set_visible(False)
+        self.subplot1.spines['right'].set_visible(False)
+        self.subplot1.set_clip_on(False)
+        self.setup_zoom([self.subplot1], self.zoomtype, pad=0.25)
+        self.flag = True
+        if repaint:
+            self.repaint()
