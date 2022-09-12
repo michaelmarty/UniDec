@@ -245,9 +245,9 @@ struct Config
 Config SetDefaultConfig()
 {
 	Config config;
-	strcpy_s(config.infile, sizeof(config.infile), "default_data.txt");
-	strcpy_s(config.outfile, sizeof(config.outfile), "default_output");
-	strcpy_s(config.mfile, sizeof(config.mfile), "default_mfile.txt");
+	strcpy(config.infile,  "default_data.txt");
+	strcpy(config.outfile, "default_output");
+	strcpy(config.mfile, "default_mfile.txt");
 	config.numit = 50;
 	config.endz = 100;
 	config.startz = 1;
@@ -407,9 +407,9 @@ Config LoadConfig(Config config, const char* filename)
 		while (fscanf(file, "%s %500[^\n]", x, y) != EOF)
 		{
 			//printf( "read in: %s %s \n", x,y );
-			if (strstr(x, "input") != NULL) { strcpy_s(config.infile, sizeof(config.infile), y); }// printf(" input");
-			if (strstr(x, "output") != NULL) { strcpy_s(config.outfile, sizeof(config.outfile), y); }//  printf(" output"); }
-			if (strstr(x, "mfile") != NULL) { strcpy_s(config.mfile, sizeof(config.mfile), y); config.mflag = 1; }// printf(" mfile"); }
+			if (strstr(x, "input") != NULL) { strcpy(config.infile, y); }// printf(" input");
+			if (strstr(x, "output") != NULL) { strcpy(config.outfile, y); }//  printf(" output"); }
+			if (strstr(x, "mfile") != NULL) { strcpy(config.mfile, y); config.mflag = 1; }// printf(" mfile"); }
 			if (strstr(x, "numit") != NULL) { config.numit = atoi(y); }// printf(" numit"); }
 			//if (strstr(x, "numz") != NULL){ config.numz = atoi(y); printf(" numz"); }
 			if (strstr(x, "startz") != NULL) { config.startz = atoi(y); }// printf(" startz"); }
@@ -434,7 +434,7 @@ Config LoadConfig(Config config, const char* filename)
 			if (strstr(x, "nativezub") != NULL) { config.nativezub = atof(y); }// printf(" nativezub"); }
 			if (strstr(x, "nativezlb") != NULL) { config.nativezlb = atof(y); }// printf(" nativezlb"); }
 			if (strstr(x, "poolflag") != NULL) { config.poolflag = atoi(y); }// printf(" poolflag"); }
-			if (strstr(x, "manualfile") != NULL) { config.manualflag = 1; strcpy_s(config.manualfile, sizeof(config.manualfile), y); }//  printf(" manualfile"); }
+			if (strstr(x, "manualfile") != NULL) { config.manualflag = 1; strcpy(config.manualfile, y); }//  printf(" manualfile"); }
 			if (strstr(x, "intthresh") != NULL) { config.intthresh = atof(y); }// printf(" intthresh"); }
 			if (strstr(x, "peakshapeinflate") != NULL) { config.peakshapeinflate = atof(y); }// printf(" peakshapeinflate"); }
 			if (strstr(x, "killmass") != NULL) { config.killmass = atof(y); }// printf(" killmass"); }
@@ -475,7 +475,7 @@ Config LoadConfig(Config config, const char* filename)
 			if (strstr(x, "peaknorm") != NULL) { config.peaknorm = atoi(y); }// printf(" peaknorm"); }
 			// DoubleDec Parameters
 			if (strstr(x, "doubledec") != NULL) { config.doubledec = atoi(y); }
-			if (strstr(x, "kernel") != NULL) { strcpy_s(config.kernel, sizeof(config.kernel), y); }
+			if (strstr(x, "kernel") != NULL) { strcpy(config.kernel, y); }
 		}
 		//printf("\n\n");
 	}

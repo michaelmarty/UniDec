@@ -1211,28 +1211,34 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         """
         kernel_path = self.pres.on_open_kernel()  # The file the user chose
         kernel_path2 = kernel_path  # The _mass.txt file
-        kernel_name = os.path.basename(kernel_path)
+        if kernel_path is None:
+            self.config.kernel = ""
+            self.doubledecbutton.SetLabel("")
+            print("Kernel File is None")
 
-        if kernel_name.split('_')[-1] != "mass.txt":
-            # If the filename doesn't end in "_mass.txt", it's not a mass file
-            is_mass = False
         else:
-            # Otherwise, it might be a mass file. Check if linear
-            kernel_dat = np.loadtxt(kernel_path)
-            kernel_diff = np.diff(kernel_dat[:, 0])
-            is_mass = np.all(kernel_diff == kernel_diff[0])
-        if not is_mass:  # If not a mass file, find the mass file
-            bare_name = os.path.splitext(kernel_name)[0]
-            kernel_path2 = os.path.dirname(kernel_path) + "\\" + bare_name + "_unidecfiles\\" + \
-                           bare_name + "_mass.txt"
+            kernel_name = os.path.basename(kernel_path)
 
-        try:
-            with open(kernel_path2, "r") as f:
-                self.doubledecbutton.SetLabel(os.path.splitext(os.path.basename(kernel_path2))[0])
-                self.config.kernel = kernel_path2
-        except (IOError, FileNotFoundError) as err:
-            print("Please deconvolve the m/z file [" + kernel_name + "] with UniDec first.")
-        print(self.config.kernel)
+            if kernel_name.split('_')[-1] != "mass.txt":
+                # If the filename doesn't end in "_mass.txt", it's not a mass file
+                is_mass = False
+            else:
+                # Otherwise, it might be a mass file. Check if linear
+                kernel_dat = np.loadtxt(kernel_path)
+                kernel_diff = np.diff(kernel_dat[:, 0])
+                is_mass = np.all(kernel_diff == kernel_diff[0])
+            if not is_mass:  # If not a mass file, find the mass file
+                bare_name = os.path.splitext(kernel_name)[0]
+                kernel_path2 = os.path.dirname(kernel_path) + "\\" + bare_name + "_unidecfiles\\" + \
+                               bare_name + "_mass.txt"
+
+            try:
+                with open(kernel_path2, "r") as f:
+                    self.doubledecbutton.SetLabel(os.path.splitext(os.path.basename(kernel_path2))[0])
+                    self.config.kernel = kernel_path2
+            except (IOError, FileNotFoundError) as err:
+                print("Please deconvolve the m/z file [" + kernel_name + "] with UniDec first.")
+            print(self.config.kernel)
 
     def on_z_smooth(self, e):
         value = self.ctlzsmoothcheck.Get3StateValue()

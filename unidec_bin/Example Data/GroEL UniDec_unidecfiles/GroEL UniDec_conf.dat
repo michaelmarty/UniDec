@@ -1,5 +1,6 @@
-version 4.4.1
+version 5.1.0
 imflag 0
+cdmsflag 0
 input C:\Python\UniDec3\unidec_bin\Example Data\GroEL UniDec_unidecfiles\GroEL UniDec_input.dat
 output C:\Python\UniDec3\unidec_bin\Example Data\GroEL UniDec_unidecfiles\GroEL UniDec
 numit 50
@@ -11,6 +12,7 @@ psig 0.0
 beta 50.0
 mzsig 0.0
 psfun 0
+zpsfun 0
 discreteplot 0
 massub 5000000.0
 masslb 10000.0
@@ -56,5 +58,8 @@ zerolog -12.0
 doubledec 0
 kernel 
 CDslope 12.5
-CDzbins 1
-csig 0
+CDzbins 1.0
+CDres 0.0
+csig 0.0
+smoothdt 0.0
+subbufdt 0.0

@@ -24,7 +24,7 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags)
     # header = header.replace('\\', '\\\\')
     # header = header.replace('\\', '\\textbackslash ')
     header = header.replace('_', '\\_')
-    header = header.replace(' ', ': ')
+    # header = header.replace(' ', ': ')
     header2 = os.path.split(header)[1]
 
     path = deepcopy(path)
@@ -129,7 +129,7 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags)
         #linestr = linestr.replace('\\', '\\textbackspace ')
         linestr = linestr.replace('_', '\\_')
         linestr = linestr.replace(' ', ': ')
-        if "input" in linestr or "output" in linestr:
+        if "input" in linestr or "output" in linestr or "kernel" in linestr or "manualfile" in linestr:
             # f.write("\\text{" + linestr + "}\\\\\n")
             # f.write("\\text{\detokenize{" + linestr + "}}\\\\\n")
             pass
