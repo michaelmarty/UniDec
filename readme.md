@@ -217,7 +217,7 @@ Added tool for identifying alternative matches on the Oligomer and Mass Tools an
 
 Speeding up a few things in Meta.
 
-Fixed bug with multiple file dialog. Fixed bug with biopolymer calculator. Fixed bug with peak list.
+Fixed bug with multiple file dialog. Fixed bug with biopolymer calculator. Fixed bug with peak list. Fixed bug where it was crashing for people in certain regions (update to wxpython).
 
 v.5.0.5
 

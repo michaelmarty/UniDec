@@ -56,7 +56,7 @@ integrateub 20000.0
 filterwidth 20.0
 zerolog -12.0
 doubledec 0
-kernel Z:\mtmarty\Data\WangLabAnalysis\20200430_jat_wanglabsample_concthenbiospin_unidecfiles\20200430_jat_wanglabsample_concthenbiospin_mass.txt
+kernel 
 CDslope 12.5
 CDzbins 1.0
 CDres 1.0

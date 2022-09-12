@@ -20,7 +20,7 @@
 int run_unidec_LC(int argc, char* argv[], Config config) {
 	//Initialize
 	char dataset[1024];
-	strcpy_s(dataset, sizeof(dataset), "/ms_dataset");
+	strcpy(dataset, "/ms_dataset");
 	char strval[1024];
 	sprintf(strval, "/%d", config.metamode);
 	strcat_s(dataset, sizeof (dataset), strval);
