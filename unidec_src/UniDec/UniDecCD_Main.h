@@ -303,8 +303,8 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	barr = calloc(lines, sizeof(char));
 	for (int i = 0; i < lines; i++) { barr[i] = 1; }
 	rsize_t matsize = lines * sizeof(float);
-	memcpy_s(blur, matsize, dataInt, matsize);
-	memcpy_s(oldblur, matsize, blur, matsize);
+	memcpy(blur, dataInt, matsize);
+	memcpy(oldblur, blur, matsize);
 
 	printf("Iterating: \n");
 	//Iterating
@@ -322,12 +322,12 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 		// Apply charge smoothing
 		if (config.zsig!=0) {
 			blur_it_CD(newblur, blur, zupind, zloind, lines, config.zsig);
-			memcpy_s(blur, matsize, newblur, matsize);
+			memcpy(blur, newblur, matsize);
 		}
 		// Apply mass smoothing
 		if (config.msig != 0) {
 			blur_it_CD(newblur, blur, mupind, mloind, lines, config.msig);
-			memcpy_s(blur, matsize, newblur, matsize);
+			memcpy(blur, newblur, matsize);
 		}
 		
 		// Richardson Lucy
@@ -370,7 +370,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 				}
 				off = 1;
 			}
-			memcpy_s(oldblur, matsize, blur, matsize);
+			memcpy(oldblur, blur, matsize);
 		}
 		
 	}
@@ -378,7 +378,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	//Writing outputs
 
 	//Outputting Fit Reconvolved Data as newblur2
-	memcpy_s(newblur, matsize, blur, matsize);
+	memcpy(newblur, blur, matsize);
 	fftconvolve2D_precomputed(newblur2, newblur, peakshape_FFT, size, p1, p3, in1, out1);
 	//Normalize if necessary
 	if (config.datanorm == 1) {
@@ -400,7 +400,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 		GetPeaks(mkernel, size, mzext, zext, config.mzsig, 0, config.psfun, config.zpsfun);
 		precompute_fft2D(mkernel, size, mkernel_FFT);
 		
-		memcpy_s(newblur, matsize, blur, matsize);
+		memcpy(newblur, blur, matsize);
 		fftconvolve2D_precomputed(blur, newblur, mkernel_FFT, size, p1, p3, in1, out1);
 		printf("Reconvolved with m/z dimension\n");
 	}
@@ -424,8 +424,8 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	FILE* out_ptr = NULL;
 	char outstring4[500];
 	sprintf(outstring4, "%s_decon.txt", config.outfile);
-	errno_t err = fopen_s(&out_ptr, outstring4, "w");
-	if (err != 0) { printf("Error Opening %s %d\n", outstring4, err); exit(err); }
+	out_ptr = fopen(outstring4, "w");
+	if (out_ptr == 0) { printf("Error Opening %s\n", outstring4); exit(1); }
 	for (int i = 0; i < lines; i++)
 	{
 		fprintf(out_ptr, "%f\n", blur[i]);

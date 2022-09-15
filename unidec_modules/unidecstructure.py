@@ -124,6 +124,7 @@ class UniDecConfig(object):
         self.oligomerlist = []
         self.manuallist = []
         self.zoffs = []
+        self.smashrange= []
         self.massoffset = 0
         self.extractshape = 0
         self.gridparams = None

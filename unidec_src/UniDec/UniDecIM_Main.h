@@ -523,8 +523,8 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	char *suffixerr = "error";
 	FILE *out_ptrIM = NULL;
 	sprintf(outstring, "%s_%s.txt", config.outfile, suffixerr);
-	errno_t err = fopen_s(&out_ptrIM, outstring, "w");
-	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
+	out_ptrIM = fopen(outstring, "w");
+	if (out_ptrIM == 0) { printf("Error Opening %s\n", outstring); exit(1); }
 	fprintf(out_ptrIM, "error %f\n", error);
 	fclose(out_ptrIM);
 	printf("File written to: %s\n", outstring);

@@ -621,6 +621,8 @@ class UniDecCD(unidec.UniDec):
             print("Histogram Background Subtraction:", self.config.subbuff, self.config.subbufdt)
             self.harray = IM_functions.subtract_complex_2d(self.harray.transpose(), self.config).transpose()
 
+        self.harray = self.hist_filter_smash()
+
         self.data.data2 = np.transpose([self.mz, np.sum(self.harray, axis=0)])
         np.savetxt(self.config.infname, self.data.data2)
         pass
@@ -646,6 +648,28 @@ class UniDecCD(unidec.UniDec):
         boo3 = np.logical_or(boo1, boo2)
         # Set values outside range to 0
         self.harray[boo3] = 0
+        return self.harray
+
+    def hist_filter_smash(self, smashrange=None):
+        """
+        Smashes the range region to 0. Used to eliminate unwanted peaks.
+        :return: None
+        """
+        if smashrange is None:
+            smashrange = self.config.smashrange
+        else:
+            self.config.smashrange = smashrange
+
+        if not ud.isempty(smashrange):
+            print("Smashing: ", smashrange)
+            # Filter values
+            boo1 = self.X > smashrange[0]
+            boo2 = self.X < smashrange[1]
+            boo3 = np.logical_and(boo1, boo2)
+            print(boo3.shape)
+            # Set values outside range to 0
+            self.harray[boo3] = 0
+        return self.harray
 
     def hist_nativeZ_filter(self, nativeZrange=None):
         # Get values from config if not supplied

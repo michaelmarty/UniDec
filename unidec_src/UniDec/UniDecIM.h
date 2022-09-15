@@ -35,11 +35,11 @@ void readfilemanual(char *infile, int lengthmz, float *array1, float *array2, fl
 	char c[500];
 	char d[500];
 	char e[500];
-	errno_t err = fopen_s(&file_ptr, infile, "r");
-	if (err == 0)
+	file_ptr = fopen(infile, "r");
+	if (file_ptr == 0)
 	{
 		printf("Could not open %s file\n", infile);
-		exit(err);
+		exit(1);
 	}
 	else {
 
@@ -878,8 +878,8 @@ void write1D(char *outfile, char *suffix, float *array, int length)
 	char outstring[500];
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.bin", outfile, suffix);
-	errno_t err = fopen_s(&out_ptr, outstring, "wb");
-	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
+	out_ptr = fopen(outstring, "wb");
+	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
 	fwrite(array, sizeof(float), length, out_ptr);
 
 	//sprintf(outstring,"%s_%s.txt",outfile,suffix);
@@ -898,8 +898,8 @@ void write2D(char *outfile, char *suffix, float *array1, float *array2, int leng
 	int i;
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.txt", outfile, suffix);
-	errno_t err = fopen_s(&out_ptr, outstring, "w");
-	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
+	out_ptr = fopen(outstring, "w");
+	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
 	for (i = 0; i<length; i++)
 	{
 		fprintf(out_ptr, "%f %f\n", array1[i], array2[i]);
@@ -914,8 +914,8 @@ void write3D(char *outfile, char *suffix, float *array1, float *array2, float *a
 	int i;
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.txt", outfile, suffix);
-	errno_t err = fopen_s(&out_ptr, outstring, "w");
-	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
+	out_ptr = fopen(outstring, "w");
+	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
 	for (i = 0; i<length; i++)
 	{
 		fprintf(out_ptr, "%f %f %f\n", array1[i], array2[i], array3[i]);
@@ -930,8 +930,8 @@ void writemfileres(char *outfile, char *suffix, float *array1, float *array2, fl
 	int i;
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.txt", outfile, suffix);
-	errno_t err = fopen_s(&out_ptr, outstring, "w");
-	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
+	out_ptr = fopen(outstring, "w");
+	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
 	//fprintf(out_ptr,"Mass\tIntensity\tCCS Avg.\tCCS Std. Dev.\tZ avg.\tZ Std. Dev.\n");
 	for (i = 0; i<length; i++)
 	{
@@ -948,8 +948,8 @@ void writemzgrid(char *outfile, char *suffix, float *mzext, float *dtext, int *z
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.bin", outfile, suffix);
 	//printf("%s\n",outstring);
-	errno_t err = fopen_s(&out_ptr, outstring, "wb");
-	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
+	out_ptr = fopen(outstring, "wb");
+	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
 	/*
 	for(i=0;i<size[0];i++)
 	{
@@ -1018,8 +1018,8 @@ void writezslice(int *size, char *outfile, char *suffix, float *massaxis, float 
 	char outstring[500];
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s_%d.bin", outfile, suffix, ztab[k]);
-	errno_t err = fopen_s(&out_ptr, outstring, "wb");
-	if (err != 0) { printf("Error Opening %s %d\n", outstring, err); exit(err); }
+	out_ptr = fopen(outstring, "wb");
+	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
 	float *temp = NULL;
 	int newlen = size[0] * size[1];
 	temp = calloc(newlen, sizeof(float));

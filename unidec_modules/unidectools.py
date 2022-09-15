@@ -53,7 +53,7 @@ If this isn't present, it will print a warning but use the pure python code late
 """
 dllname = "libmypfunc"
 protmass = 1.007276467
-omass = 15.994914
+oxmass = 15.994914
 
 if platform.system() == "Windows":
     if not is_64bits:

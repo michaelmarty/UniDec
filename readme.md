@@ -201,6 +201,10 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.5.1.1
+
+Added Smashing (Ctrl+Double Right Click) to UCD.
+
 v.5.1.0
 
 Added Intensity Threshold to MetaUniDec. Updated code throughout to allow more tolerance for empty data sets below threshold. Streamlined some print commands.

@@ -790,8 +790,8 @@ int run_unidec(int argc, char *argv[], Config config) {
 		FILE* out_ptr = NULL;
 		char outstring3[1024];
 		sprintf(outstring3, "%s_error.txt", config.outfile);
-		errno_t err = fopen_s(&out_ptr, outstring3, "w");
-		if (err != 0) { printf("Error Opening %s %d\n", outstring3, err); exit(err); }
+		out_ptr = fopen(outstring3, "w");
+		if (out_ptr == 0) { printf("Error Opening %s\n", outstring3); exit(1); }
 		fprintf(out_ptr, "error = %f\n", decon.error);
 		fprintf(out_ptr, "time = %f\n", totaltime);
 		fprintf(out_ptr, "iterations = %d\n", decon.iterations);

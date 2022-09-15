@@ -907,6 +907,7 @@ class UniDecApp(UniDecPres):
         minmz = np.amin(self.eng.data.rawdata[:, 0])
         self.view.controls.ctlminmz.SetValue(str(minmz))
         self.view.controls.ctlmaxmz.SetValue(str(maxmz))
+        self.eng.config.smashrange=[]
         self.on_dataprep_button()
 
     def on_charge_plot(self, e=None):
