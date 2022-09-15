@@ -390,13 +390,9 @@ Config LoadConfig(Config config, const char* filename)
 {
 	// We assume argv[1] is a filename to open
 	FILE* file;
-	errno_t err = fopen_s(&file, filename, "r");
-	if (err != 0) { printf("Error Opening %s %d\n", filename, err); exit(err); }
+	file = fopen(filename, "r");
+	if (file == 0) { printf("Error Opening Configuration File: %s\n", filename); exit(1); }
 
-	if (file == 0)
-	{
-		printf("\nCould not open configuration file: \n \nSomething is wrong...\n\n");
-	}
 	//Read parameters from configuration file
 	//Configuration file should be formatted: name value
 	else
@@ -562,7 +558,7 @@ void PrintHelp()
 	printf("\t\t\t\t\t\"tcal3\"=Calibration paramter 3 (P3)\n");
 	printf("\t\t\t\t5=SLIM T-Wave 3rd Order Polynomial Calibration\n");
 	printf("\t\t\t\t\t\"tcal4\"=Calibration parmater 4 (P4)\n");
-	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit date 7/12/22\n");
+	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit date 9/15/22\n");
 	//printf("\nsize of: %d",sizeof(char));
 
 	/*
@@ -653,8 +649,8 @@ void readfile(char* infile, int lengthmz, float* dataMZ, float* dataInt)
 	char x[500] = { 0 };
 	char y[500] = { 0 };
 
-	errno_t err = fopen_s(&file_ptr, infile, "r");
-	if (err != 0) { printf("Error Opening %s %d\n", infile, err); exit(err); }
+	file_ptr = fopen(infile, "r");
+	if (file_ptr == 0) { printf("Error Opening %s\n", infile); exit(1); }
 
 	for (i = 0;i < lengthmz;i++)
 	{
@@ -677,8 +673,8 @@ void readfile3(char* infile, int lengthmz, float* array1, float* array2, float* 
 	char y[500] = { 0 };
 	char z[500] = { 0 };
 
-	errno_t err = fopen_s(&file_ptr, infile, "r");
-	if (err != 0) { printf("Error Opening %s %d\n", infile, err); exit(err); }
+	file_ptr = fopen(infile, "r");
+	if (file_ptr == 0) { printf("Error Opening %s\n", infile); exit(1); }
 
 	for (i = 0;i < lengthmz;i++)
 	{
@@ -702,8 +698,8 @@ void readfile3bin(char* infile, int lengthmz, float* array1, float* array2, floa
 	int newlen = lengthmz * 3;
 	data = (float*) calloc(newlen, sizeof(float));
 
-	errno_t err = fopen_s(&file_ptr, infile, "rb");
-	if (err != 0) { printf("Error Opening %s %d\n", infile, err); exit(err); }
+	file_ptr = fopen(infile, "rb");
+	if (file_ptr == 0) { printf("Error Opening %s\n", infile); exit(1); }
 	
 	int l = lengthmz * 3;
 	if (data) {
@@ -728,8 +724,8 @@ void readmfile(char* infile, int mfilelen, float* testmasses)
 	int i;
 	char input[500] = { 0 };
 
-	errno_t err = fopen_s(&file_ptr, infile, "r");
-	if (err != 0) { printf("Error Opening %s %d\n", infile, err); exit(err); }
+	file_ptr = fopen(infile, "r");
+	if (file_ptr == 0) { printf("Error Opening %s\n", infile); exit(1); }
 
 	for (i = 0;i < mfilelen;i++)
 	{
@@ -748,8 +744,8 @@ int getfilelength(const char* infile)
 	FILE* file_ptr;
 	int l = 0;
 	char input[501];
-	errno_t err = fopen_s(&file_ptr, infile, "r");
-	if (err != 0) { printf("Error Opening %s %d\n", infile, err); exit(err); }
+	file_ptr = fopen(infile, "r");
+	if (file_ptr == 0) { printf("Error Opening %s\n", infile); exit(1); }
 
 	while (fscanf(file_ptr, "%500[^\n]%*c", input) != EOF)
 	{
@@ -765,8 +761,8 @@ int getfilelengthbin(const char* infile, const int size, const int width)
 {
 	FILE* file_ptr;
 	int l = 0;
-	errno_t err = fopen_s(&file_ptr, infile, "rb");
-	if (err != 0) { printf("Error Opening %s %d\n", infile, err); exit(err); }
+	file_ptr = fopen(infile, "rb");
+	if (file_ptr == 0) { printf("Error Opening %s\n", infile); exit(1); }
 	
 	fseek(file_ptr, 0, SEEK_END);
 	l = ftell(file_ptr);
@@ -2068,7 +2064,7 @@ void MakeSparseBlur(const int numclose, char* barr, const int* closezind,
 	float molig = config.molig;
 	float adductmass = config.adductmass;
 
-#pragma omp parallel for schedule(auto)
+	#pragma omp parallel for schedule(auto)
 	for (int i = 0; i < lengthmz; i++)
 	{
 		for (int j = 0; j < numz; j++)
@@ -3371,8 +3367,8 @@ void readkernel(const char* infile, int lengthmz, double* datax, double* datay)
 	char x[500] = { 0 };
 	char y[500] = { 0 };
 
-	errno_t err = fopen_s(&file_ptr, infile, "r");
-	if (err != 0) { printf("Error Opening %s %d\n", infile, err); exit(err); }
+	file_ptr = fopen(infile, "r");
+	if (file_ptr == 0) { printf("Error Opening %s\n", infile); exit(1); }
 
 	if (file_ptr == 0)
 	{
@@ -3993,8 +3989,8 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 		if (config.filetype == 0) {
 			char outstring2[500];
 			sprintf(outstring2, "%s_fitdat.bin", config.outfile);
-			errno_t err = fopen_s(&out_ptr, outstring2, "wb");
-			if (err != 0) { printf("Error Opening %s %d\n", outstring2, err); exit(err); }
+			out_ptr = fopen(outstring2, "wb");
+			if (out_ptr == 0) { printf("Error Opening %s \n", outstring2); exit(1); }
 			fwrite(decon->fitdat, sizeof(float), config.lengthmz, out_ptr);
 			fclose(out_ptr);
 			//printf("Fit: %s\t", outstring2);
@@ -4010,8 +4006,8 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 		if (config.filetype == 0) {
 			char outstring2[500];
 			sprintf(outstring2, "%s_baseline.bin", config.outfile);
-			errno_t err = fopen_s(&out_ptr, outstring2, "wb");
-			if (err != 0) { printf("Error Opening %s %d\n", outstring2, err); exit(err); }
+			out_ptr = fopen(outstring2, "wb");
+			if (out_ptr == 0) { printf("Error Opening %s \n", outstring2); exit(1); }
 			fwrite(decon->baseline, sizeof(float), config.lengthmz, out_ptr);
 			fclose(out_ptr);
 			//printf("Background: %s\t", outstring2);
@@ -4032,8 +4028,8 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 		if (config.filetype == 0) {
 			char outstring9[500];
 			sprintf(outstring9, "%s_grid.bin", config.outfile);
-			errno_t err = fopen_s(&out_ptr, outstring9, "wb");
-			if (err != 0) { printf("Error Opening %s %d\n", outstring9, err); exit(err); }
+			out_ptr = fopen(outstring9, "wb");
+			if (out_ptr == 0) { printf("Error Opening %s\n", outstring9); exit(1); }
 			if (config.rawflag == 0) { fwrite(decon->newblur, sizeof(float), l, out_ptr); }
 			if (config.rawflag == 1) { fwrite(decon->blur, sizeof(float),l, out_ptr); }
 			fclose(out_ptr);
@@ -4083,8 +4079,8 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 		if (config.filetype == 0) {
 			char outstring10[500];
 			sprintf(outstring10, "%s_massgrid.bin", config.outfile);
-			errno_t err = fopen_s(&out_ptr, outstring10, "wb");
-			if (err != 0) { printf("Error Opening %s %d\n", outstring10, err); exit(err); }
+			out_ptr = fopen(outstring10, "wb");
+			if (out_ptr == 0) { printf("Error Opening %s\n", outstring10); exit(1); }
 			fwrite(decon->massgrid, sizeof(float), l, out_ptr);
 			fclose(out_ptr);
 			//printf("Mass Grid: %s\t", outstring10);
@@ -4100,8 +4096,8 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 		if (config.filetype == 0) {
 			char outstring4[500];
 			sprintf(outstring4, "%s_mass.txt", config.outfile);
-			errno_t err = fopen_s(&out_ptr, outstring4, "w");
-			if (err != 0) { printf("Error Opening %s %d\n", outstring4, err); exit(err); }
+			out_ptr = fopen(outstring4, "w");
+			if (out_ptr == 0) { printf("Error Opening %s\n", outstring4); exit(1); }
 			for (int i = 0; i < decon->mlen; i++)
 			{
 				fprintf(out_ptr, "%f %f\n", decon->massaxis[i], decon->massaxisval[i]);
@@ -4124,29 +4120,31 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 
 void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 {
+	
 	if (config->filetype == 1) {
 		if (config->metamode != -2)
 		{
-			strcpy_s(config->dataset, sizeof(config->dataset), "/ms_dataset");
+			strcpy(config->dataset,"/ms_dataset");
 			char strval[1024];
 			sprintf(strval, "/%d", config->metamode);
-			strcat_s(config->dataset, sizeof(config->dataset), strval);
+			strcat(config->dataset, strval);
 			printf("HDF5: %s\n", config->dataset);
 		}
 		else
 		{
-			strcpy_s(config->dataset, sizeof(config->dataset), "/ms_data");
+			strcpy(config->dataset, "/ms_data");
 		}
-
+		
 		char outdat[1024];
+		strjoin(config->dataset, "/processed_data", outdat);		
 		config->file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
-		strjoin(config->dataset, "/processed_data", outdat);
+
 		config->lengthmz = mh5getfilelength(config->file_id, outdat);
 		inp->dataMZ = (float*) calloc(config->lengthmz, sizeof(float));
 		inp->dataInt = (float*) calloc(config->lengthmz, sizeof(float));
 		mh5readfile2d(config->file_id, outdat, config->lengthmz, inp->dataMZ, inp->dataInt);
 		if (config->silent == 0) {printf("Length of Data: %d \n", config->lengthmz);}
-
+		
 		//Check the length of the mfile and then read it in.
 		if (config->mflag == 1)
 		{
@@ -4158,6 +4156,7 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 		else {
 			inp->testmasses = (float*) malloc(sizeof(float) * config->mfilelen);
 		}
+
 	}
 	else {
 
@@ -4182,11 +4181,10 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 			readmfile(config->mfile, config->mfilelen, inp->testmasses);//read in mass tab
 		}
 	}
-
-
+	
 	//This for loop creates a list of charge values
 	inp->nztab = (int*) calloc(config->numz, sizeof(int));
-
+	
 	if (inp->nztab){
 		for (int i = 0; i < config->numz; i++) { inp->nztab[i] = i + config->startz; }
 	
@@ -4203,7 +4201,7 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 			if (inp->dataMZ[i] == inp->dataMZ[i + 1]) { printf("Error: Two data points are identical: %f %f \n\n", inp->dataMZ[i], inp->dataMZ[i+1]); exit(104); }
 		}
 	}
-
+	
 }
 
 #endif

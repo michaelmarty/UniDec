@@ -44,6 +44,7 @@ class UniDecCDApp(UniDecApp):
         self.comparedata = None
 
         pub.subscribe(self.on_get_mzlimits, 'mzlimits')
+        pub.subscribe(self.on_smash, 'smash')
         '''
         pub.subscribe(self.on_integrate, 'integrate')
         pub.subscribe(self.on_left_click, 'left_click')'''
@@ -306,6 +307,25 @@ class UniDecCDApp(UniDecApp):
     def on_calibrate(self, e=None):
         dlg = CDCal.CDCalDialog(self.view)
         dlg.initialize_interface(self.eng.config)
+
+    def on_smash(self):
+        """
+        Triggered by right click on plot1.
+        Smashes the zoomed region to 0. Used to eliminate unwanted peaks.
+        :return: None
+        """
+        if wx.GetKeyState(wx.WXK_CONTROL):
+            print("Smashing!")
+            self.export_config(None)
+            limits = self.view.plot1.subplot1.get_xlim()
+            self.eng.config.smashrange=limits
+
+            self.on_dataprep_button()
+
+            self.view.SetStatusText("R\u00B2 ", number=3)
+            message = "Smashing peaks from " + str(limits[0]) + " to " + str(limits[1]) + "\nClick Full to undo"
+            self.warn(message)
+            pass
 
     def on_batch(self, e=None, flag=0, batchfiles=None):
         """

@@ -11,7 +11,7 @@ discreteplot 0
 massub 200000
 masslb 20000.0
 msig 1
-molig 621.8
+molig 622
 massbins 10.0
 mtabsig 0.0
 subbuff 0.0

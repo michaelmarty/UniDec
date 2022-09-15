@@ -3,7 +3,7 @@ from copy import deepcopy
 from unidec_modules import unidectools as ud
 import numpy as np
 
-version = "5.1.0"
+version = "5.1.1"
 
 class UniDecEngine:
     def __init__(self):

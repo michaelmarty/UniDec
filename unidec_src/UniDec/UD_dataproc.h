@@ -377,9 +377,9 @@ void process_data(int argc, char *argv[], Config config)
 	char strval[1024];
 
 	//Read In Data
-	strcpy_s(dataset, sizeof(dataset), "/ms_dataset");
+	strcpy(dataset, "/ms_dataset");
 	sprintf(strval, "/%d", config.metamode);
-	strcat_s(dataset, sizeof(dataset), strval);
+	strcat(dataset, strval);
 	printf("Processing HDF5 Data Set: %s\n", dataset);
 	file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 	strjoin(dataset, "/raw_data", outdat);
