@@ -558,7 +558,7 @@ void PrintHelp()
 	printf("\t\t\t\t\t\"tcal3\"=Calibration paramter 3 (P3)\n");
 	printf("\t\t\t\t5=SLIM T-Wave 3rd Order Polynomial Calibration\n");
 	printf("\t\t\t\t\t\"tcal4\"=Calibration parmater 4 (P4)\n");
-	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit date 7/12/22\n");
+	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit date 9/15/22\n");
 	//printf("\nsize of: %d",sizeof(char));
 
 	/*
@@ -2064,7 +2064,7 @@ void MakeSparseBlur(const int numclose, char* barr, const int* closezind,
 	float molig = config.molig;
 	float adductmass = config.adductmass;
 
-#pragma omp parallel for schedule(auto)
+	#pragma omp parallel for schedule(auto)
 	for (int i = 0; i < lengthmz; i++)
 	{
 		for (int j = 0; j < numz; j++)
@@ -4120,6 +4120,7 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 
 void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 {
+	
 	if (config->filetype == 1) {
 		if (config->metamode != -2)
 		{
@@ -4133,16 +4134,17 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 		{
 			strcpy(config->dataset, "/ms_data");
 		}
-
+		
 		char outdat[1024];
+		strjoin(config->dataset, "/processed_data", outdat);		
 		config->file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
-		strjoin(config->dataset, "/processed_data", outdat);
+
 		config->lengthmz = mh5getfilelength(config->file_id, outdat);
 		inp->dataMZ = (float*) calloc(config->lengthmz, sizeof(float));
 		inp->dataInt = (float*) calloc(config->lengthmz, sizeof(float));
 		mh5readfile2d(config->file_id, outdat, config->lengthmz, inp->dataMZ, inp->dataInt);
 		if (config->silent == 0) {printf("Length of Data: %d \n", config->lengthmz);}
-
+		
 		//Check the length of the mfile and then read it in.
 		if (config->mflag == 1)
 		{
@@ -4154,6 +4156,7 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 		else {
 			inp->testmasses = (float*) malloc(sizeof(float) * config->mfilelen);
 		}
+
 	}
 	else {
 
@@ -4178,11 +4181,10 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 			readmfile(config->mfile, config->mfilelen, inp->testmasses);//read in mass tab
 		}
 	}
-
-
+	
 	//This for loop creates a list of charge values
 	inp->nztab = (int*) calloc(config->numz, sizeof(int));
-
+	
 	if (inp->nztab){
 		for (int i = 0; i < config->numz; i++) { inp->nztab[i] = i + config->startz; }
 	
@@ -4199,7 +4201,7 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 			if (inp->dataMZ[i] == inp->dataMZ[i + 1]) { printf("Error: Two data points are identical: %f %f \n\n", inp->dataMZ[i], inp->dataMZ[i+1]); exit(104); }
 		}
 	}
-
+	
 }
 
 #endif

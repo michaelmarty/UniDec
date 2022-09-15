@@ -180,32 +180,33 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	//MakeBlur(config.lengthmz, config.numz, numclose, barr, closezind, closemind, inp.mtab, config.molig, config.adductmass, inp.nztab, inp.dataMZ, closeind, threshold, config);
 	MakeSparseBlur(numclose, barr, closezind, closemind, inp.mtab, inp.nztab, inp.dataMZ, closeind, closeval, closearray, config);
 
+	if (silent == 0) { printf("Charges blurred: %d  Masses blurred: %d\n", zlength, mlength); }
+
 	int badness = 1;
 	for (int i = 0; i < config.lengthmz * config.numz; i++)
 	{
 		if (barr[i] == 1) { badness = 0;}
 	}
-	if (badness == 1) { printf("ERROR: Setup is bad. No points are allowed\n"); 
-	decon = ExitToBlank(config, decon); 
-	free(mzdist);
-	free(rmzdist);
-	free(closeval);
-	free(closearray);
-	free(closemind);
-	free(closezind);
-	free(endtab);
-	free(starttab);
+	if (badness == 1) { printf("ERROR: Setup is bad. No points are allowed.\n Check that either mass smoothing, charge smoothing, manual assignment, or isotope mode are on."); 
+		decon = ExitToBlank(config, decon); 
+		free(mzdist);
+		free(rmzdist);
+		free(closeval);
+		free(closearray);
+		free(closemind);
+		free(closezind);
+		free(endtab);
+		free(starttab);
 
-	free(mdist);
-	free(mind);
-	free(zind);
-	free(zdist);
-	free(barr);
-	free(closeind);
-	return(decon); }
+		free(mdist);
+		free(mind);
+		free(zind);
+		free(zdist);
+		free(barr);
+		free(closeind);
+		return(decon); 
+	}
 
-	if (silent == 0) { printf("Charges blurred: %d  Masses blurred: %d\n", zlength, mlength); }
-	
 	//IntPrint(closeind, numclose * config.lengthmz * config.numz);
 
 	//Determine the maximum intensity in the data

@@ -85,7 +85,7 @@ int run_metaunidec(int argc, char *argv[], Config config) {
 		get_peaks(argc, argv, config, 0);
 		//get_peak_widths(argc, argv, config);
 	}
-
+	
 	if (mode == 5)
 	{
 		//printf("Extracting Data\n");

@@ -603,7 +603,7 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 	char outdat[1024];
 
 	config.file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
-
+	
 	if (!ultra){
 		//Read In Data
 		strcpy(dataset, "/ms_dataset");
@@ -630,9 +630,9 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 		float* dscores = NULL;
 		float* numerators = NULL;
 		float* denominators = NULL;
-
+		
 		int plen = peak_detect(massaxis, masssum, mlen, config.peakwin, config.peakthresh, peakx, peaky);
-
+		
 		peakx = realloc(peakx, plen*sizeof(float));
 		peaky = realloc(peaky, plen*sizeof(float));
 		dscores = calloc(plen, sizeof(float));
@@ -643,7 +643,7 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 
 		int num = 0;
 		num = int_attr(config.file_id, "/ms_dataset", "num", num);
-
+		
 		// Get the dscores by scoring the peak at each scan
 		for (int i = 0; i < num; i++) {
 			//Create a temp array
@@ -654,15 +654,17 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 			config.metamode = i;
 			Decon decon = SetupDecon();
 			Input inp = SetupInputs();
+			
 			ReadInputs(argc, argv, &config, &inp);
+			
 			int status = ReadDecon(&config, inp, &decon);
-
+			
 			//Check to make sure key deconvolution grids are there
 			if (status == 1) {
 				//Get the scores for each peak
 				//score(config, &decon, inp, 0);
 				score_from_peaks(plen, peakx, peaky, tempdscores, config, &decon, inp, 0);
-
+				
 				//Average In Dscores
 				for (int j = 0; j < plen; j++)
 				{
@@ -672,30 +674,30 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 					numerators[j] += yval * tempdscores[j];
 					denominators[j] += yval;
 				}
+				
 			}
 			else
 			{
 				printf("Missing deconvolution outputs. Turn off Fast Profile/Fast Centroid and try deconvolving again.");
 			}
-
+			
 			//Free things
 			FreeDecon(decon);
 			FreeInputs(inp);
 			free(tempdscores);
 		}
-
 		//Average In Dscores
 		for (int j = 0; j < plen; j++)
 		{
 			if(denominators[j] != 0){dscores[j] = numerators[j]/denominators[j];}
 		}
-
+		
 		//Write the outputs
 		strcpy(dataset, "/peaks");
 		makegroup(config.file_id, dataset);
 		strjoin(dataset, "/peakdata", outdat);
 		printf("\tWriting %d Peaks to: %s\n", plen, outdat);
-
+		
 		float* ptemp = NULL;
 		int newlen = plen * 3;
 		ptemp = calloc(newlen, sizeof(float));

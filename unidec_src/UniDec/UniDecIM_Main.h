@@ -564,6 +564,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	free(masszgrid);
 	free(ccszgrid);
 	endtime = time(NULL);
+
 	printf("\nDone in %ds!\n", (int)difftime(endtime, starttime));
 	return 0;
 }
