@@ -297,7 +297,7 @@ void background_subtract(float *dataInt, const int bsub, const int lengthmz)
 }
 
 // A comparator function used by qsort 
-inline int compare(const void* a, const void* b)
+int compare(const void* a, const void* b)
 {
 	return (*(float*)a - *(float*)b);
 }
