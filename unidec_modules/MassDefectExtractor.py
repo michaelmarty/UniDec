@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import wx
-from unidec_modules import unidecstructure, plot1d, plot2d
+from unidec_modules import unidecstructure, PlottingWindow
 import unidec_modules.unidectools as ud
 import unidec_modules.masstools as masstools
 import matplotlib.cm as cm
@@ -82,10 +82,10 @@ class MassDefectExtractorWindow(wx.Frame):
         # Setup the GUI
         panel = wx.Panel(self)
 
-        self.plot1 = plot1d.Plot1d(panel)
-        self.plot2 = plot2d.Plot2d(panel)
-        self.plot5 = plot1d.Plot1d(panel)
-        self.plot6 = plot2d.Plot2d(panel)
+        self.plot1 = PlottingWindow.Plot1d(panel)
+        self.plot2 = PlottingWindow.Plot2d(panel)
+        self.plot5 = PlottingWindow.Plot1d(panel)
+        self.plot6 = PlottingWindow.Plot2d(panel)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         hbox = wx.BoxSizer(wx.HORIZONTAL)

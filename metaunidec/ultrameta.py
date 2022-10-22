@@ -13,7 +13,7 @@ from matplotlib import colors as mplcol
 from pubsub import pub
 import wx.lib.scrolledpanel as scrolled
 import multiprocessing
-from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows
+from unidec_modules import unidecstructure, PlottingWindow, miscwindows
 import unidec_modules.unidectools as ud
 import h5py
 from unidec_modules.hdf5_tools import replace_dataset, get_dataset
@@ -211,8 +211,8 @@ class DataCollector(wx.Frame):
 
         figsize = (7, 5)
         axes = [0.12, 0.12, 0.65, 0.8]
-        self.plot1 = plot1d.Plot1d(self.panel, figsize=figsize, axes=axes)
-        self.plot2 = plot1d.Plot1d(self.panel, figsize=figsize, axes=axes)
+        self.plot1 = PlottingWindow.Plot1d(self.panel, figsize=figsize, axes=axes)
+        self.plot2 = PlottingWindow.Plot1d(self.panel, figsize=figsize, axes=axes)
         self.plotsizer = wx.BoxSizer(wx.VERTICAL)
         self.plotsizer.Add(self.plot1, 0, wx.EXPAND)
         self.plotsizer.Add(self.plot2, 0, wx.EXPAND)
@@ -1243,15 +1243,15 @@ class BarGraphWindow(wx.Frame):
         plotsizer = wx.GridBagSizer()
         figsize = (6, 5)
         self.plots = []
-        self.p1 = plot1d.Plot1d(self.panel, figsize=figsize)
-        self.p2 = plot1d.Plot1d(self.panel, figsize=figsize)
+        self.p1 = PlottingWindow.Plot1d(self.panel, figsize=figsize)
+        self.p2 = PlottingWindow.Plot1d(self.panel, figsize=figsize)
         self.plots.append(self.p1)
         self.plots.append(self.p2)
         plotsizer.Add(self.p1, (0, 0), span=(1, 1), flag=wx.EXPAND)
         plotsizer.Add(self.p2, (0, 1), span=(1, 1), flag=wx.EXPAND)
         if numplots == 4:
-            self.p3 = plot1d.Plot1d(self.panel, figsize=figsize)
-            self.p4 = plot1d.Plot1d(self.panel, figsize=figsize)
+            self.p3 = PlottingWindow.Plot1d(self.panel, figsize=figsize)
+            self.p4 = PlottingWindow.Plot1d(self.panel, figsize=figsize)
             self.plots.append(self.p3)
             self.plots.append(self.p4)
             plotsizer.Add(self.p3, (1, 0), span=(1, 1), flag=wx.EXPAND)
@@ -1270,9 +1270,9 @@ class BarGraphWindow(wx.Frame):
             ptemp = []
             for y in range(0, ydim):
                 if type == "2D":
-                    p = plot2d.Plot2d(self.panel, figsize=figsize)
+                    p = PlottingWindow.Plot2d(self.panel, figsize=figsize)
                 else:
-                    p = plot1d.Plot1d(self.panel, figsize=figsize)
+                    p = PlottingWindow.Plot1d(self.panel, figsize=figsize)
                 plotsizer.Add(p, (x, y), span=(1, 1), flag=wx.EXPAND)
                 ptemp.append(p)
             self.plots.append(ptemp)

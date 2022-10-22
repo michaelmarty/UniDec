@@ -737,12 +737,14 @@ class MetaUniDecBase(UniDecPres):
                 for name in files:
                     if name.endswith('.hdf5'):
                         name = os.path.join(root, name)
+                        print("Repacking: ", name)
                         new_path = name.replace(".hdf5", "temp.hdf5")
                         if 0 == subprocess.call(
                                 "\"" + self.eng.config.h5repackfile + "\" \"" + name + "\" \"" + new_path + "\"") and os.path.isfile(
                             new_path):
                             os.remove(name)
                             os.rename(new_path, name)
+            print("Done Repacking")
 
     def on_undo(self, e=None):
         """

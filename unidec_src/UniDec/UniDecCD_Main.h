@@ -302,7 +302,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	oldblur = calloc(lines, sizeof(float));
 	barr = calloc(lines, sizeof(char));
 	for (int i = 0; i < lines; i++) { barr[i] = 1; }
-	rsize_t matsize = lines * sizeof(float);
+	size_t matsize = lines * sizeof(float);
 	memcpy(blur, dataInt, matsize);
 	memcpy(oldblur, blur, matsize);
 

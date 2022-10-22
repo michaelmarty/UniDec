@@ -1,21 +1,23 @@
+import numpy as np
+
 import matplotlib.cm as cm
 from matplotlib.ticker import MaxNLocator
 from matplotlib.ticker import FixedLocator
-import numpy as np
-import scipy.ndimage.filters as filt
 from matplotlib.image import NonUniformImage
-from unidec_modules.PlottingWindow import PlottingWindow
+
+import scipy.ndimage.filters as filt
+
 from unidec_modules import unidectools as ud
+from unidec_modules.PlotBase import PlotBase
 
 __author__ = 'Michael.Marty'
 
 
 # TODO: The 100% line on the color bar doesn't come right up to the top. Fix it so it is square.
-class Plot2d(PlottingWindow):
+class Plot2dBase(PlotBase):
     """
     Plotting class for 2D contour plots
     """
-
     def __init__(self, *args, **kwargs):
         """
         Initialize parameters for plotting window
@@ -23,7 +25,7 @@ class Plot2d(PlottingWindow):
         :param kwargs: Keywords passed to PlottingWindow
         :return: Plot2d object
         """
-        PlottingWindow.__init__(self, *args, **kwargs)
+        PlotBase.__init__(self, *args, **kwargs)
 
     def contourplot(self, dat=None, config=None, xvals=None, yvals=None, zgrid=None, xlab='m/z (Th)', ylab="Charge",
                     title='', normflag=1, normrange=[0, 1], repaint=True, nticks=None, test_kda=False, discrete=None,

@@ -2,13 +2,13 @@ import numpy as np
 from copy import deepcopy
 from matplotlib.ticker import MaxNLocator
 
-from unidec_modules.PlottingWindow import PlottingWindow
+from unidec_modules.PlottingWindow import PlottingWindowBase
 from unidec_modules.unidectools import interp_pos
 
 __author__ = 'Michael.Marty'
 
 
-class CubePlot(PlottingWindow):
+class CubePlot(PlottingWindowBase):
     """
     Plotting class for cube plots. Performs isometric projections of three 2D plots onto three faces of a cube.
     """
@@ -19,7 +19,7 @@ class CubePlot(PlottingWindow):
         :param kwargs:
         :return: CubePlot Object
         """
-        PlottingWindow.__init__(self, *args, **kwargs)
+        PlottingWindowBase.__init__(self, *args, **kwargs)
         self._axes = [0.01, 0.01, 0.99, 0.99]
         self.normaltickes = False
 

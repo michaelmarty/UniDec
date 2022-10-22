@@ -4,7 +4,7 @@ from matplotlib import colors as mcolors
 import numpy as np
 import wx
 from copy import deepcopy
-from unidec_modules.PlottingWindow import PlottingWindow
+from unidec_modules.PlottingWindow import PlottingWindowBase
 from unidec_modules.unidectools import interp_pos
 from matplotlib.ticker import MaxNLocator
 
@@ -15,7 +15,7 @@ def cc(arg):
     return mcolors.to_rgba(arg, alpha=0.6)
 
 
-class Waterfall3DPlot(PlottingWindow):
+class Waterfall3DPlot(PlottingWindowBase):
     """
     Plotting class for 3D Waterfall plots.
     """
@@ -30,7 +30,7 @@ class Waterfall3DPlot(PlottingWindow):
         if "frame" in kwargs:
             self.frame = kwargs['frame']
             del kwargs['frame']
-        PlottingWindow.__init__(self, *args, **kwargs)
+        PlottingWindowBase.__init__(self, *args, **kwargs)
         self._axes = [0.05, 0.1, 0.9, 0.9]
         self.cids = []
 

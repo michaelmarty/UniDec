@@ -2,7 +2,7 @@ import numpy as np
 import os
 import wx
 import unidec_modules.unidectools as ud
-from unidec_modules import plot1d, peakstructure, unidecstructure
+from unidec_modules import PlottingWindow, peakstructure, unidecstructure
 
 
 class SubDivFrame(wx.Frame):
@@ -34,8 +34,8 @@ class SubDivFrame(wx.Frame):
         self.sub = defaultsub
 
         self.panel = wx.Panel(self)
-        self.plot1 = plot1d.Plot1d(self.panel)
-        self.plot2 = plot1d.Plot1d(self.panel)
+        self.plot1 = PlottingWindow.Plot1d(self.panel)
+        self.plot2 = PlottingWindow.Plot1d(self.panel)
         self.ctlsub = wx.TextCtrl(self.panel, value=str(self.sub))
         self.ctldiv = wx.TextCtrl(self.panel, value=str(self.div))
         self.ctlresult = wx.TextCtrl(self.panel, value="")

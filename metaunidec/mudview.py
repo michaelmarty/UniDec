@@ -5,7 +5,7 @@ import wx
 import wx.lib.scrolledpanel as scrolled
 from matplotlib import rcParams
 
-from unidec_modules import plot1d, plot2d, miscwindows
+from unidec_modules import PlottingWindow, miscwindows
 from unidec_modules.gui_elements import peaklistsort, mainwindow_base
 from metaunidec.gui_elements.list_ctrls import ListCtrlPanel
 from metaunidec.gui_elements.ud_cont_meta import main_controls
@@ -112,14 +112,14 @@ class Mainwindow(mainwindow_base.MainwindowBase):
             tab8 = wx.Panel(plotwindow)
             tab9 = wx.Panel(plotwindow)
 
-            self.plot1 = plot1d.Plot1d(tab1, smash=1, figsize=figsize)
-            self.plot2 = plot1d.Plot1d(tab2, integrate=1, figsize=figsize)
-            self.plot3 = plot2d.Plot2d(tab3, figsize=figsize)
-            self.plot5 = plot2d.Plot2d(tab5, figsize=figsize)
-            self.plot6 = plot1d.Plot1d(tab6, figsize=figsize)
-            self.plot7 = plot1d.Plot1d(tab7, figsize=figsize)
-            self.plot8 = plot2d.Plot2d(tab8, figsize=figsize)
-            self.plot9 = plot1d.Plot1d(tab9, figsize=figsize)
+            self.plot1 = PlottingWindow.Plot1d(tab1, smash=1, figsize=figsize)
+            self.plot2 = PlottingWindow.Plot1d(tab2, integrate=1, figsize=figsize)
+            self.plot3 = PlottingWindow.Plot2d(tab3, figsize=figsize)
+            self.plot5 = PlottingWindow.Plot2d(tab5, figsize=figsize)
+            self.plot6 = PlottingWindow.Plot1d(tab6, figsize=figsize)
+            self.plot7 = PlottingWindow.Plot1d(tab7, figsize=figsize)
+            self.plot8 = PlottingWindow.Plot2d(tab8, figsize=figsize)
+            self.plot9 = PlottingWindow.Plot1d(tab9, figsize=figsize)
 
             miscwindows.setup_tab_box(tab1, self.plot1)
             miscwindows.setup_tab_box(tab2, self.plot2)
@@ -143,14 +143,14 @@ class Mainwindow(mainwindow_base.MainwindowBase):
             self.plotpanel = scrolled.ScrolledPanel(panel)
             sizerplot = wx.GridBagSizer()
             figsize = self.config.figsize
-            self.plot1 = plot1d.Plot1d(self.plotpanel, smash=1, figsize=figsize)
-            self.plot2 = plot1d.Plot1d(self.plotpanel, integrate=1, figsize=figsize)
-            self.plot3 = plot2d.Plot2d(self.plotpanel, figsize=figsize)
-            self.plot5 = plot2d.Plot2d(self.plotpanel, figsize=figsize)
-            self.plot6 = plot1d.Plot1d(self.plotpanel, figsize=figsize)
-            self.plot7 = plot1d.Plot1d(self.plotpanel, figsize=figsize)
-            self.plot8 = plot2d.Plot2d(self.plotpanel, figsize=figsize)
-            self.plot9 = plot1d.Plot1d(self.plotpanel, figsize=figsize)
+            self.plot1 = PlottingWindow.Plot1d(self.plotpanel, smash=1, figsize=figsize)
+            self.plot2 = PlottingWindow.Plot1d(self.plotpanel, integrate=1, figsize=figsize)
+            self.plot3 = PlottingWindow.Plot2d(self.plotpanel, figsize=figsize)
+            self.plot5 = PlottingWindow.Plot2d(self.plotpanel, figsize=figsize)
+            self.plot6 = PlottingWindow.Plot1d(self.plotpanel, figsize=figsize)
+            self.plot7 = PlottingWindow.Plot1d(self.plotpanel, figsize=figsize)
+            self.plot8 = PlottingWindow.Plot2d(self.plotpanel, figsize=figsize)
+            self.plot9 = PlottingWindow.Plot1d(self.plotpanel, figsize=figsize)
             sizerplot.Add(self.plot1, (0, 0), span=(1, 1), flag=wx.EXPAND)
             sizerplot.Add(self.plot9, (0, 1), span=(1, 1), flag=wx.EXPAND)
             sizerplot.Add(self.plot2, (1, 0), span=(1, 2), flag=wx.EXPAND)

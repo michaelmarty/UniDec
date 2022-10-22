@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-debug.py - Functions to aid in debugging 
+debug_cupy.py - Functions to aid in debugging
 Copyright 2010  Luke Campagnola
 Distributed under MIT/X11 license. See license.txt for more infomation.
 """

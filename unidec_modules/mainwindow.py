@@ -6,7 +6,7 @@ import wx.lib.scrolledpanel as scrolled
 
 from unidec_modules.gui_elements import ud_controls
 from unidec_modules.gui_elements import ud_menu
-from unidec_modules import ColorPlot, plot3d, plot1d, plot2d, miscwindows
+from unidec_modules import ColorPlot, plot3d, PlottingWindow, miscwindows
 from unidec_modules.gui_elements import peaklistsort
 from unidec_modules.gui_elements.mainwindow_base import MainwindowBase
 
@@ -126,12 +126,12 @@ class Mainwindow(MainwindowBase):
             tab5 = wx.Panel(plotwindow)
             tab6 = wx.Panel(plotwindow)
 
-            self.plot1 = plot1d.Plot1d(tab1, smash=1, figsize=figsize)
-            self.plot2 = plot1d.Plot1d(tab2, integrate=1, figsize=figsize)
-            self.plot3 = plot2d.Plot2d(tab3, figsize=figsize)
-            self.plot4 = plot1d.Plot1d(tab4, figsize=figsize)
-            self.plot5 = plot2d.Plot2d(tab5, figsize=figsize)
-            self.plot6 = plot1d.Plot1d(tab6, figsize=figsize)
+            self.plot1 = PlottingWindow.Plot1d(tab1, smash=1, figsize=figsize)
+            self.plot2 = PlottingWindow.Plot1d(tab2, integrate=1, figsize=figsize)
+            self.plot3 = PlottingWindow.Plot2d(tab3, figsize=figsize)
+            self.plot4 = PlottingWindow.Plot1d(tab4, figsize=figsize)
+            self.plot5 = PlottingWindow.Plot2d(tab5, figsize=figsize)
+            self.plot6 = PlottingWindow.Plot1d(tab6, figsize=figsize)
 
             miscwindows.setup_tab_box(tab1, self.plot1)
             miscwindows.setup_tab_box(tab2, self.plot2)
@@ -150,11 +150,11 @@ class Mainwindow(MainwindowBase):
                 tab9 = wx.Panel(plotwindow)
                 tab10 = wx.Panel(plotwindow)
 
-                self.plot1im = plot2d.Plot2d(tab1im, figsize=figsize)
-                self.plot1fit = plot2d.Plot2d(tab1fit, figsize=figsize)
-                self.plot2ccs = plot1d.Plot1d(tab2ccs, figsize=figsize)
-                self.plot5mccs = plot2d.Plot2d(tab5mccs, figsize=figsize)
-                self.plot5ccsz = plot2d.Plot2d(tab5ccsz, figsize=figsize)
+                self.plot1im = PlottingWindow.Plot2d(tab1im, figsize=figsize)
+                self.plot1fit = PlottingWindow.Plot2d(tab1fit, figsize=figsize)
+                self.plot2ccs = PlottingWindow.Plot1d(tab2ccs, figsize=figsize)
+                self.plot5mccs = PlottingWindow.Plot2d(tab5mccs, figsize=figsize)
+                self.plot5ccsz = PlottingWindow.Plot2d(tab5ccsz, figsize=figsize)
                 self.plot3color = ColorPlot.ColorPlot2D(tab3color, figsize=figsize)
                 self.plot9 = plot3d.CubePlot(tab9, figsize=figsize)
                 self.plot10 = plot3d.CubePlot(tab10, figsize=figsize)
@@ -193,19 +193,19 @@ class Mainwindow(MainwindowBase):
             splitterwindow.SplitVertically(plotwindow, splitterwindow2, sashPosition=-550)
             sizerplot = wx.GridBagSizer()
             figsize = self.config.figsize
-            self.plot1 = plot1d.Plot1d(plotwindow, smash=1, figsize=figsize)
-            self.plot2 = plot1d.Plot1d(plotwindow, integrate=1, figsize=figsize)
-            self.plot3 = plot2d.Plot2d(plotwindow, figsize=figsize)
-            self.plot4 = plot1d.Plot1d(plotwindow, figsize=figsize)
-            self.plot5 = plot2d.Plot2d(plotwindow, figsize=figsize)
-            self.plot6 = plot1d.Plot1d(plotwindow, figsize=figsize)
+            self.plot1 = PlottingWindow.Plot1d(plotwindow, smash=1, figsize=figsize)
+            self.plot2 = PlottingWindow.Plot1d(plotwindow, integrate=1, figsize=figsize)
+            self.plot3 = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
+            self.plot4 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
+            self.plot5 = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
+            self.plot6 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
 
             if self.config.imflag == 1:
-                self.plot1im = plot2d.Plot2d(plotwindow, figsize=figsize)
-                self.plot1fit = plot2d.Plot2d(plotwindow, figsize=figsize)
-                self.plot2ccs = plot1d.Plot1d(plotwindow, figsize=figsize)
-                self.plot5mccs = plot2d.Plot2d(plotwindow, figsize=figsize)
-                self.plot5ccsz = plot2d.Plot2d(plotwindow, figsize=figsize)
+                self.plot1im = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
+                self.plot1fit = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
+                self.plot2ccs = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
+                self.plot5mccs = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
+                self.plot5ccsz = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
                 self.plot3color = ColorPlot.ColorPlot2D(plotwindow, figsize=figsize)
                 self.plot9 = plot3d.CubePlot(plotwindow, figsize=figsize)
                 self.plot10 = plot3d.CubePlot(plotwindow, figsize=figsize)

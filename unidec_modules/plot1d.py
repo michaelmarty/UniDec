@@ -2,23 +2,15 @@ from matplotlib import gridspec
 from matplotlib.ticker import MaxNLocator
 import numpy as np
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from unidec_modules.isolated_packages.ZoomSpan import ZoomSpan
-
-from unidec_modules.PlottingWindow import PlottingWindow
 from matplotlib.collections import LineCollection
 import matplotlib.colorbar as colorbar
 import matplotlib as mpl
-import matplotlib.colors as colors
 import matplotlib.cm as cm
 from matplotlib.patches import Rectangle
-import matplotlib.pyplot as plt
+from unidec_modules.PlotBase import PlotBase
 
 
-class Plot1d(PlottingWindow):
-    """
-    Class for 1D plots.
-    """
-
+class Plot1dBase(PlotBase):
     def __init__(self, *args, **kwargs):
         """
         Inherit from PlottingWindow
@@ -26,7 +18,7 @@ class Plot1d(PlottingWindow):
         :param kwargs:
         :return:
         """
-        PlottingWindow.__init__(self, *args, **kwargs)
+        PlotBase.__init__(self, *args, **kwargs)
         self.mlist = []
         self.x1, self.x2 = None, None
         self.colors = []
@@ -483,3 +475,7 @@ class Plot1d(PlottingWindow):
         self.flag = True
         if repaint:
             self.repaint()
+
+
+
+

@@ -21,6 +21,9 @@ mass_H = 1.00794
 
 
 def get_aa_mass(letter):
+    if letter == " " or letter == "\t" or letter == "\n":
+        return 0
+
     try:
         return aa_masses[letter]
     except:
@@ -37,6 +40,7 @@ def get_rna_mass(letter):
     except:
         print("Bad RNA Code:", letter)
         return 0
+
 
 def get_dna_mass(letter):
     try:
@@ -68,6 +72,7 @@ def calc_rna_mass(sequence, threeend="OH", fiveend="MP"):
 
     return round(mass, 2)
 
+
 def calc_dna_mass(sequence, threeend="OH", fiveend="MP"):
     seq = sequence.upper()
     mass = np.sum([get_dna_mass(s) for s in seq])
@@ -84,13 +89,14 @@ def calc_dna_mass(sequence, threeend="OH", fiveend="MP"):
 
     return round(mass, 2)
 
+
 class BiopolymerFrame(wx.Dialog):
     def __init__(self, parent):
         wx.Dialog.__init__(self, parent, title="Biopolymer Calculator", size=(500, 500))  # ,size=(-1,-1))
         self.parent = parent
         self.mass = ""
-        self.type = 0 #Protein/Peptide = 0, RNA = 1, DNA = 2
-        self.typerna = 1 #fivend parameter
+        self.type = 0  # Protein/Peptide = 0, RNA = 1, DNA = 2
+        self.typerna = 1  # fivend parameter
 
         self.panel = wx.Panel(self)
 
@@ -111,7 +117,7 @@ class BiopolymerFrame(wx.Dialog):
         self.sizer.Add(self.ctltyperna, 0)
 
         self.sizer.Add(wx.StaticText(self.panel, label="  Sequence: "))
-        self.sizer.Add(self.ctlseq, 0, flag= wx.ALIGN_CENTER_HORIZONTAL)
+        self.sizer.Add(self.ctlseq, 0, flag=wx.ALIGN_CENTER_HORIZONTAL)
 
         self.sizer.Add(self.calcbutton, 0, flag=wx.ALIGN_CENTER_HORIZONTAL)
 
@@ -132,7 +138,6 @@ class BiopolymerFrame(wx.Dialog):
         self.panel.SetSizer(self.sizer)
         self.panel.Fit()
 
-
     def calculate(self, e=0):
         self.seq = self.ctlseq.GetValue()
         self.type = self.ctltype.GetSelection()
@@ -151,7 +156,7 @@ class BiopolymerFrame(wx.Dialog):
         elif self.type == 2:
             self.mass = calc_dna_mass(self.seq, fiveend=fiveend)
         elif self.type == 3:
-            self.mass = 2*calc_dna_mass(self.seq, fiveend=fiveend)
+            self.mass = 2 * calc_dna_mass(self.seq, fiveend=fiveend)
         print("Mass:", self.mass)
         self.ctlmass.SetValue(str(self.mass))
 
@@ -177,6 +182,7 @@ class BiopolymerFrame(wx.Dialog):
     # TODO: Add DNA feature
     # TODO: Cleanup buttons and positions
     # TODO: Add some color
+
 
 if __name__ == "__main__":
     print(mass_HPO4 + mass_HPO4 - mass_O - mass_O + mass_H + mass_H)

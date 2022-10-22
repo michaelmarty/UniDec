@@ -1,6 +1,8 @@
 from matplotlib.transforms import blended_transform_factory
-
-from unidec_modules.isolated_packages.ZoomBox import *
+from matplotlib.patches import Rectangle
+# from pubsub import setupkwargs
+from pubsub import pub
+from unidec_modules.isolated_packages.ZoomCommon import *
 
 class NoZoomSpan:
     """

@@ -2,7 +2,7 @@ import os
 from copy import deepcopy
 import numpy as np
 import wx
-from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows, MassDefectExtractor
+from unidec_modules import unidecstructure, PlottingWindow, miscwindows, MassDefectExtractor
 import unidec_modules.unidectools as ud
 from unidec_modules.MassFitter import MassFitter
 from unidec_modules.isolated_packages.MD_compare import MassDefectCompareWindow
@@ -149,15 +149,15 @@ class MassDefectWindow(wx.Frame):
         # Setup the GUI
         panel = wx.Panel(self)
 
-        self.plot1 = plot1d.Plot1d(panel)
-        self.plot2 = plot2d.Plot2d(panel)
-        self.plot3 = plot1d.Plot1d(panel)
-        self.plot4 = plot1d.Plot1d(panel)
+        self.plot1 = PlottingWindow.Plot1d(panel)
+        self.plot2 = PlottingWindow.Plot2d(panel)
+        self.plot3 = PlottingWindow.Plot1d(panel)
+        self.plot4 = PlottingWindow.Plot1d(panel)
 
         if self.datalist.shape[0] > 1:
             self.flag2 = True
-            self.plot5 = plot1d.Plot1d(panel)
-            self.plot6 = plot2d.Plot2d(panel)
+            self.plot5 = PlottingWindow.Plot1d(panel)
+            self.plot6 = PlottingWindow.Plot2d(panel)
         else:
             self.flag2 = False
             self.plot5 = None

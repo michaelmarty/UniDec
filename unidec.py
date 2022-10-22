@@ -1,6 +1,7 @@
 import os
 import time
 import shutil
+import sys, getopt
 from copy import deepcopy
 import subprocess
 import zipfile
@@ -11,14 +12,15 @@ import unidec_modules.unidectools as ud
 import unidec_modules.IM_functions as IM_func
 import unidec_modules.MassSpecBuilder as MSBuild
 from unidec_modules.unidec_enginebase import UniDecEngine
-import wx
+from unidec_modules.html_writer import *
+
 # import unidec_modules.DoubleDec as dd
 
 __author__ = 'Michael.Marty'
 
 
 class UniDec(UniDecEngine):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         """
         UniDec Engine
 
@@ -32,9 +34,36 @@ class UniDec(UniDecEngine):
         self.massfit = None
         self.massfitdat = None
         self.errorgrid = None
+        self.infile = None
+        opts = None
+        try:
+            opts, args = getopt.getopt(sys.argv[1:], "f:", ["file="])
+        except getopt.GetoptError as e:
+            print("Error in Argv. Likely unknown option: ", sys.argv, e)
+            print("Known options: -f")
+
+        #print("ARGS:", args)
+        #print("KWARGS:", kwargs)
+        #print("OPTS:", opts)
+        if opts is not None:
+            for opt, arg in opts:
+                if opt in ("-f", "--file"):
+                    self.infile = arg
+                    print("Opening File:", self.infile)
+        if ud.isempty(opts):
+            if len(args) > 0:
+                maybe_file = args[0]
+                ext = os.path.splitext(maybe_file)[1]
+                if ext.lower() in ["mzml", "mzxml", "raw", "hdf5", "txt", "gz", "d"]:
+                    self.infile = maybe_file
+                    print("Opening File:", self.infile)
+        if self.infile is not None:
+            self.open_file(self.infile)
+            self.autorun()
         pass
 
-    def open_file(self, file_name, file_directory=None, time_range=None, refresh=False, *args, **kwargs):
+    def open_file(self, file_name, file_directory=None, time_range=None, refresh=False, load_results=False, *args,
+                  **kwargs):
         """
         Open text or mzML file. Will create _unidecfiles directory if it does not exist.
 
@@ -127,10 +156,14 @@ class UniDec(UniDecEngine):
             self.config.procflag = 0
 
         # Initialize Config
-        if os.path.isfile(self.config.confname) == True:
+        if os.path.isfile(self.config.confname):
             self.load_config(self.config.confname)
         else:
             self.export_config()
+
+        if load_results:
+            self.unidec_imports(everything=True)
+            self.pick_peaks()
 
         tend = time.perf_counter()
         if "silent" not in kwargs or not kwargs["silent"]:
@@ -309,12 +342,7 @@ class UniDec(UniDecEngine):
                 with open(kpath, "r") as f:
                     pass
             except (IOError, FileNotFoundError) as err:
-                kmsg = wx.MessageDialog(
-                    None, "Could not open kernel file.\n" +
-                    "Please select a valid kernel file to use DoubleDec",
-                    "Error",
-                    wx.OK
-                ).ShowModal()
+                print("Could not open kernel file.\nPlease select a valid kernel file to use DoubleDec")
                 return 0
         # Export Config and Call
         self.export_config()
@@ -348,17 +376,7 @@ class UniDec(UniDecEngine):
         # Import Results
         self.pks = peakstructure.Peaks()
         self.data.massdat = np.loadtxt(self.config.massdatfile)
-        """
-        if self.config.doubledec and self.config.kernel != "":  # Replace massdat with DD files
-            ddinstance = dd.DoubleDec()
-            ddinstance.dd_import(self.config.massdatfile, self.config.kernel)
-            if self.config.massdatfile == self.config.kernel:
-                print("\nWARNING: Data and kernel files are the same\n")
-            ddinstance.dd_run()
-            self.data.massdat = ddinstance.dec2  # Copying probably isn't necessary
-        elif self.config.doubledec and self.config.kernel == "":
-            print("\nTo use DoubleDec, please select a kernel file\n")
-        """
+
         self.data.ztab = np.arange(self.config.startz, self.config.endz + 1)
 
         try:
@@ -729,7 +747,7 @@ class UniDec(UniDecEngine):
                                        p.centroid, p.errorFWHM, p.errormean])
             self.peakparams = np.array(peakparams)
 
-            header="Mass MassStdGuess AvgCharge StdDevCharge Height Area MassCentroid MassFWHM MassErrorBetweenZ"
+            header = "Mass MassStdGuess AvgCharge StdDevCharge Height Area MassCentroid MassFWHM MassErrorBetweenZ"
             print(header)
             np.set_printoptions(precision=2, formatter={'float': '{: 0.2f}'.format})
             print(self.peakparams)
@@ -1322,16 +1340,16 @@ class UniDec(UniDecEngine):
             elif self.config.psfun == 2:  # Split G/L
                 p.estimatedarea = p.height * p.errorFWHM * adjusted_coeff
 
-    def make_plot(self, massrange=None):
+    def make_plot(self, massrange=None, autorange=True, show=True):
         import matplotlib.pyplot as plt
 
-        plt.figure()
-        plt.subplot(121)
+        fig = plt.figure()
+        ax1 = plt.subplot(121)
         try:
             plt.plot(self.data.data2[:, 0], self.data.data2[:, 1], color="k")
         except (IndexError, AttributeError):
             plt.plot(self.data.rawdata[:, 0], self.data.rawdata[:, 1], color="k")
-        plt.subplot(122)
+        ax2 = plt.subplot(122)
         try:
             plt.plot(self.data.massdat[:, 0], self.data.massdat[:, 1], color="k")
         except (IndexError, AttributeError):
@@ -1339,210 +1357,74 @@ class UniDec(UniDecEngine):
 
         if massrange is not None:
             plt.xlim(massrange)
-            pass
-        plt.show()
-        pass
+        elif autorange:
+            plt.xlim(np.amin(self.pks.masses) - 2000, np.amax(self.pks.masses) + 2000)
+        if show:
+            plt.show()
+        return fig, ax1, ax2
 
-    '''
-    def align_peaks(self, pmasses=None, x_range=None, window=None, norm=False):
-        if x_range is None:
-            if window is None:
-                window = self.config.peakwindow * 1.
-            x_range = [-window, window]
-        if pmasses is None:
-            pmasses = [p.mass for p in self.pks.peaks]
-        # xaxis = np.arange(x_range[0], x_range[1], self.config.massbins)
+    def label_plot_correct(self, ax, matches):
+        for i, match in enumerate(matches):
+            p = self.pks.peaks[i]
+            m = p.mass
+            h = p.height
 
-        aligned = []
-        for i, pm in enumerate(pmasses):
-            x = self.data.massdat[:, 0] - pm
-            boo1 = x > x_range[0]
-            boo2 = x < x_range[1]
-            boo3 = np.all([boo1, boo2], axis=0)
-            y = self.data.massdat[boo3, 1]
-            x = x[boo3]
-            # x2 = self.data.massdat[boo3, 0]
-            if norm:
-                y /= np.amax(y)
-            dat = np.transpose([x, y])
-            if i == 0:
-                aligned.append(dat)
+            if "Correct" in match:
+                color = "g"
+                ax.text(m, h + 5, match)
+            elif match == "":
+                color = "y"
             else:
-                dat1 = deepcopy(dat)
-                if len(aligned[0]) < len(dat):
-                    f = interp1d(aligned[0][:, 0], aligned[0][:, 1], fill_value=0, bounds_error=False)
-                    aligned[0] = np.transpose([dat[:, 0], f(dat[:, 0])])
-                # TODO: Problem when len (aligned[[0]) < len (dat) (Fixed?)
-                corr = np.correlate(dat[:, 1], aligned[0][:, 1], mode="same")
-                move = np.argmax(corr) - np.argmax(dat[:, 1])
-                y = np.roll(self.data.massdat[:, 1], -move)[boo3]
-                if norm:
-                    y /= np.amax(y)
-                dat = np.transpose([x, y])
+                color = "r"
+                ax.text(m, h + 5, match)
 
-                aligned.append(ud.mergedata(aligned[0], dat))
-        aligned = np.array(aligned)
+            ax.plot(m, h, color=color, marker="o")
 
-        combined, aligned = ud.broaden(aligned)
-        '''
-    '''
-        # Realign on combined
-        aligned=[]
-        for i,pm in enumerate(pmasses):
-            x=self.data.massdat[:,0]-pm
-            boo1=x>x_range[0]
-            boo2=x<x_range[1]
-            boo3=np.all([boo1,boo2],axis=0)
-            y=self.data.massdat[boo3,1]
-            x=x[boo3]
-            x2=self.data.massdat[boo3,0]
-            if norm:
-                y=y/np.amax(y)
-            dat=np.transpose([x,y])
-            corr=signal.correlate(dat[:,1],combined[:,1],mode="same")
-            move=np.argmax(corr)-np.argmax(dat[:,1])
-            y=np.roll(self.data.massdat[:,1],-move)[boo3]
-            if norm:
-                y=y/np.amax(y)
-            dat=np.transpose([x,y])
-            aligned.append(ud.mergedata(combined,dat))
-        '''
-    '''
-        return np.array(aligned), combined
+    def gen_html_report(self):
+        outfile = self.config.outfname + "_report.html"
+        html_open(outfile)
+        html_title(self.config.filename, outfile)
 
-    
-    def correlate_intensities(self, pmasses=None, x_range=None, window=None, ci=0.99, **kwargs):
-        aligned, combined = self.align_peaks(pmasses=pmasses, x_range=x_range, window=window, norm=False)
-        corrs = np.array([ud.correlation_integration(combined, spec, alpha=(1 - ci), **kwargs) for spec in aligned])
+        array_to_html(np.transpose(self.matchlist), outfile,
+                      cols=["Measured Mass", "Theoretical Mass", "Error", "Match Name"])
 
-        cmax = np.amax(corrs[:, 0])
-        norm = np.amax(self.data.massdat[:, 1]) / cmax
-        if pmasses is None:
-            self.get_peaks_scores(window=window, x_range=x_range, ci=ci)
-            for i, p in enumerate(self.pks.peaks):
-                plvl = corrs[i, 4]
-                if plvl < (1 - ci):
-                    p.corrint = corrs[i, 0] * norm
-                    p.correrr = p.tval * corrs[i, 3] / np.sqrt(p.score) * norm
-                else:
-                    p.corrint = 0
-                    p.correrr = 0
+        #fig, ax1, ax2 = self.make_plot(autorange=True, show=False)
+        #self.label_plot_correct(ax2, self.matchlist[3])
+        plot = self.makeplot2()
+        fig_to_html_plotly(plot.figure, outfile)
 
-        return corrs
+        plot = self.makeplot4()
+        fig_to_html_plotly(plot.figure, outfile)
 
-    def get_peaks_scores(self, window=None, x_range=None, ci=0.99, **kwargs):
-        if x_range is None:
-            if window is None:
-                window = self.config.peakwindow * 1.
-            x_range = [-window, window]
-        zarr = np.reshape(self.data.massgrid, (len(self.data.massdat), len(self.data.ztab)))
-        zarr = zarr / np.amax(np.sum(zarr, axis=1)) * np.amax(self.data.massdat[:, 1])
-        for i, p in enumerate(self.pks.peaks):
-            boo1 = self.data.massdat[:, 0] < p.mass + x_range[1]
-            boo2 = self.data.massdat[:, 0] > p.mass + x_range[0]
-            boo3 = np.all([boo1, boo2], axis=0)
-            top = self.data.massdat[boo3]
-            mztabi = []
-            peakmasses = []
-            for j, z in enumerate(self.data.ztab):
-                spec = np.transpose([top[:, 0], zarr[boo3, j]])
-                corr = ud.correlation_integration(top, spec, alpha=(1 - ci), **kwargs)
-                if corr[4] < (1 - ci):
-                    mztabi.append([corr[0], corr[3]])
-                    peakmasses.append(top[np.argmax(spec[:, 1]), 0])
-                else:
-                    mztabi.append([0, 0])
-            p.mztabi = np.array(mztabi)
-            p.peakmasses = np.array(peakmasses)
-
-        self.pks.score_peaks(ci=ci)'''
-
-    '''
-    def fit_isolated_peaks(self, pmasses=None, x_range=None, window=None, norm=False, plot_fits=False, **kwargs):
-        if x_range is None:
-            if window is None:
-                window = self.config.peakwindow * 1.
-            x_range = [-window, window]
-        if pmasses is None:
-            pflag = True
-            pmasses = [p.mass for p in self.pks.peaks]
-        else:
-            pflag = False
-
-        fits = []
-        for i, pm in enumerate(pmasses):
-            xvals = self.data.massdat[:, 0] - pm
-            boo1 = xvals > x_range[0]
-            boo2 = xvals < x_range[1]
-            boo3 = np.all([boo1, boo2], axis=0)
-            y = self.data.massdat[boo3, 1]
-            x2 = self.data.massdat[boo3, 0]
-            if norm:
-                y /= np.amax(y)
-            dat = np.transpose([x2, y])
-
-            fit, fitdat = ud.isolated_peak_fit(x2, y, self.config.psfun, **kwargs)
-            fits.append(fit)
-            if plot_fits:
-                import matplotlib.pyplot as plt
-                plt.figure()
-                plt.plot(dat[:, 0], dat[:, 1])
-                plt.plot(dat[:, 0], fitdat)
-                plt.show()
-        fits = np.array(fits)
-
-        norm = np.amax(fits[:, 2, 0]) / np.amax(self.data.massdat[:, 1])
-        for f in fits:
-            f[2] = f[2] / norm
-            f[3] = f[3] / norm
-
-        # background = fits[:, 3]
-        areas = fits[:, 2]
-        means = fits[:, 1]
-        stds = fits[:, 0]
-
-        if pflag:
-            for i, p in enumerate(self.pks.peaks):
-                p.fitarea = areas[i, 0]
-                p.fitareaerr = areas[i, 1] #* p.tval  # / np.sqrt(p.score)
-                p.fitmassavg = means[i, 0]
-                p.fitmasserr = means[i, 1] #* p.tval  # / np.sqrt(p.score)
-
-        return areas, means, stds
-
-    def get_errors(self, **kwargs):
-        kwargs2 = deepcopy(kwargs)
-        kwargs2["plot_corr"] = False
-        self.get_peaks_scores(**kwargs2)
-        #self.fit_isolated_peaks(**kwargs)
-        #self.correlate_intensities(window=self.config.peakwindow, **kwargs)
-        self.normalize_peaks()
-        try:
-            errorgrid = []
-            for p in self.pks.peaks:
-                errorgrid.append([[p.fitmassavg, p.fitmasserr, p.fitarea, p.fitareaerr],
-                                  [p.massavg, p.masserr, p.corrint, p.correrr]])
-        except ValueError:
-            errorgrid = []
-        self.errorgrid = np.array(errorgrid)'''
+        html_close(outfile)
+        # mpld3.show()
+        os.system(self.config.opencommand + "\"" + outfile + "\"")
 
 
 # Optional Run
 if __name__ == "__main__":
+    print("Running UniDec Command Line")
     eng = UniDec()
 
-    print("MSTest")
-    filename = "0.txt"
-    path = "C:\\Python\\UniDec\\TestSpectra"
+    filename = "BSA.txt"
+    path = "C:\\Python\\UniDec3\\unidec_bin\\Example Data"
     # files=["150611_ND_AmtB_05_100.txt"]
-    files = ["0.txt"]  # ,"250313_AQPZ_POPC_100_imraw.txt"]
+    # files = ["0.txt"]  # ,"250313_AQPZ_POPC_100_imraw.txt"]
     # files=["Traptavidin_20mer+B4F_new_40Colli.txt"]
-    eng.read_hdf5()
-    eng.config.mzbins = 1
+    # eng.read_hdf5()
+    # eng.config.mzbins = 1
     # eng.config.psfun=2
     # eng.config.peakwindow=2000.
     # eng.process_data()
     # eng.run_unidec(silent=False)
+
+    eng.open_file(filename, path, load_results=True)
+    eng.match()
+    #plot = eng.makeplot2()
+    #os.chdir(path)
+    #plot.save_figure("test.png")
+    eng.gen_html_report()
+    # eng.pick_peaks()
 
     # eng.pick_peaks()
     # eng.write_hdf5()

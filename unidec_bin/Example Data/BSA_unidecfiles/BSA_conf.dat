@@ -1,4 +1,4 @@
-version 5.1.1
+version 5.2.0
 imflag 0
 cdmsflag 0
 input C:\Python\UniDec3\unidec_bin\Example Data\BSA_unidecfiles\BSA_input.dat
@@ -26,9 +26,9 @@ subbuff 100.0
 subtype 2
 smooth 0.0
 mzbins 0.0
-peakwindow 100.0
+peakwindow 20.0
 peakthresh 0.01
-peakplotthresh 1.0
+peakplotthresh 0.1
 plotsep 0.025
 intthresh 0.0
 reductionpercent 0.0
@@ -47,10 +47,10 @@ peakcmap rainbow
 spectracmap rainbow
 publicationmode 1
 isotopemode 0
-peaknorm 1
-datanorm 1
+peaknorm 1.0
+datanorm 1.0
 baselineflag 1.0
-orbimode 0
+orbimode 0.0
 integratelb -10.0
 integrateub 10.0
 filterwidth 20.0

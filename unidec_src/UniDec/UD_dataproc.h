@@ -302,6 +302,12 @@ int compare(const void* a, const void* b)
 	return (*(float*)a - *(float*)b);
 }
 
+// A comparator function used by qsort 
+int compare_highest_first(const void* b, const void* a)
+{
+	return (*(float*)a - *(float*)b);
+}
+
 //Cut out the lowest x percent of the data
 int data_reduction(float **oldmz, float **oldint, int oldlen, const float redper)
 {

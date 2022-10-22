@@ -4,7 +4,7 @@ import wx
 from pubsub import pub
 import wx.lib.mixins.listctrl as listmix
 import unidec_modules.unidectools as ud
-from unidec_modules import plot1d
+from unidec_modules import PlottingWindow
 import unidec
 from unidec_modules.gui_elements import peaklistsort
 from unidec_modules.unidec_presbase import UniDecPres
@@ -172,10 +172,10 @@ class UniListWindow(MainwindowBase):
         self.inputsizer.Add(self.filelist)
 
         self.plotsizer = wx.BoxSizer(wx.VERTICAL)
-        self.plot4 = plot1d.Plot1d(self.panel)
-        self.plot2 = plot1d.Plot1d(self.panel)
-        self.insetplot = plot1d.Plot1d(self.panel)
-        self.multiplot = plot1d.Plot1d(self.panel)
+        self.plot4 = PlottingWindow.Plot1d(self.panel)
+        self.plot2 = PlottingWindow.Plot1d(self.panel)
+        self.insetplot = PlottingWindow.Plot1d(self.panel)
+        self.multiplot = PlottingWindow.Plot1d(self.panel)
 
         self.plotsizer.Add(self.multiplot)
         self.plotsizer.Add(self.insetplot)

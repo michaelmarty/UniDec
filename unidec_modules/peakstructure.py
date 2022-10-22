@@ -76,7 +76,7 @@ class Peak:
 
     def line_out(self, type="Full"):
         if type == "Full":
-            outputs = [self.mass, self.centroid, self.height, self.area, self.match, self.matcherror,
+            outputs = [self.mass, self.centroid, self.height, self.area, self.match, self.matcherror, self.label,
                        self.integral, self.diff, self.avgcharge, self.dscore, self.lscore]
         elif type == "Basic":
             outputs = [self.mass, self.height, self.integral]
@@ -199,6 +199,22 @@ class Peaks:
                 boo1.append(False)
         return np.array(boo1)
 
+    def diffs_from(self, target):
+        for p in self.peaks:
+            p.diff = p.mass - target
+        return np.array([p.diff for p in self.peaks])
+
+    def diffs_consecutive(self):
+        b1 = self.get_bool()
+        pmasses = np.array([p.mass for p in self.peaks])[b1]
+        peakdiff = np.zeros(len(pmasses))
+        peakdiff[1:] = np.diff(pmasses)
+        for i, p in enumerate(self.peaks):
+            p.diff = 0
+        for i, p in enumerate(np.array(self.peaks)[b1]):
+            p.diff = peakdiff[i]
+        return np.array([p.diff for p in self.peaks])
+
     def auto_format(self):
 
         colors = np.array([[[1, 0, 0], [1, 0, 0]], [[0, 0.7, 0], [1, 1, 0]], [[0, 0.5, 1], [1, 0, 1]]])
@@ -238,11 +254,11 @@ class Peaks:
 
     def copy(self, type="Full"):
         if type == "Full":
-            print("Columns: mass, centroid, height, area, match, matcherror, integral, diff, avgcharge, dscore, lscore")
+            outstring = "Mass\tCentroid\tHeight\tArea\tMatch\tMatcherror\tLabel\tIntegral\tDiff\tAvgcharge\tDscore\tLscore\n"
         if type == "Basic":
-            print("Columns: mass, height, integral")
+            outstring = "Mass\tHeight\tIntegral\n"
+        print("Columns:", outstring)
 
-        outstring = ""
         for p in self.peaks:
             outstring += p.line_out(type=type) + "\n"
         return outstring

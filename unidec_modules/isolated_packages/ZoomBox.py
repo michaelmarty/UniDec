@@ -1,159 +1,8 @@
 from matplotlib.patches import Rectangle
-from matplotlib.transforms import Bbox
 # from pubsub import setupkwargs
 from pubsub import pub
-from copy import deepcopy
-import numpy as np
 import wx
-
-
-def GetMaxes(axes, xmin=None, xmax=None):
-    yvals = []
-    xvals = []
-    for line in axes.lines:
-        ydat = np.array(line.get_ydata())
-        xdat = line.get_xdata()
-
-        if xmin is not None and xmax is not None:
-            bool1 = np.all(np.array([xdat > xmin, xdat < xmax]), axis=0)
-            ydat = ydat[bool1]
-            line.set_clip_on(True)
-        else:
-            pass
-            line.set_clip_on(True)
-        try:
-            yvals.append([np.amin(ydat), np.amax(ydat)])
-            xvals.append([np.amin(xdat), np.amax(xdat)])
-        except Exception as e:
-            pass
-
-    for p in axes.collections:
-        try:
-            xys = np.array(p.get_paths()[0].vertices)
-        except IndexError:
-            break
-        offsets = p.get_offsets()
-        if len(offsets) > 1:
-            xys = np.array(offsets)
-        ydat = xys[:, 1]
-        xdat = xys[:, 0]
-        if xmin is not None and xmax is not None:
-            bool1 = np.all(np.array([xdat > xmin, xdat < xmax]), axis=0)
-            ydat = ydat[bool1]
-        try:
-            yvals.append([np.amin(ydat), np.amax(ydat)])
-            xvals.append([np.amin(xdat), np.amax(xdat)])
-        except Exception as e:
-            pass
-
-    for patch in axes.patches:
-        try:
-            if (patch.get_width()) and (patch.get_height()):
-                vertices = patch.get_path().vertices
-                if vertices.size > 0:
-                    xys = np.array(patch.get_patch_transform().transform(vertices))
-                    ydat = xys[:, 1]
-                    xdat = xys[:, 0]
-                    if xmin is not None and xmax is not None:
-                        bool1 = np.all(np.array([xdat > xmin, xdat < xmax]), axis=0)
-                        ydat = ydat[bool1]
-                    try:
-                        yvals.append([np.amin(ydat), np.amax(ydat)])
-                        xvals.append([np.amin(xdat), np.amax(xdat)])
-                    except Exception as e:
-                        pass
-        except Exception as e:
-            try:
-                xys = patch.xy
-                ydat = xys[:, 1]
-                xdat = xys[:, 0]
-                if xmin is not None and xmax is not None:
-                    bool1 = np.all(np.array([xdat > xmin, xdat < xmax]), axis=0)
-                    ydat = ydat[bool1]
-
-                yvals.append([np.amin(ydat), np.amax(ydat)])
-                xvals.append([np.amin(xdat), np.amax(xdat)])
-            except Exception as e:
-                pass
-
-    for t in axes.texts:
-        x, y = t.get_position()
-        y = y * 1.01
-        if xmin is not None and xmax is not None:
-            if x < xmax and x > xmin:
-                t.set_visible(True)
-                yvals.append([y, y])
-                xvals.append([x, x])
-            else:
-                t.set_visible(False)
-        else:
-            yvals.append([y, y])
-            xvals.append([x, x])
-
-    if len(yvals) != 0 and len(xvals) != 0:
-        ymin = np.amin(np.ravel(yvals))
-        ymax = np.amax(np.ravel(yvals))
-        if xmin == None or xmax == None:
-            xmin = np.amin(np.ravel(xvals))
-            xmax = np.amax(np.ravel(xvals))
-
-        if xmin > xmax: xmin, xmax = xmax, xmin
-        if ymin > ymax: ymin, ymax = ymax, ymin
-        if xmin == xmax: xmax = xmin * 1.0001
-        if ymin == ymax: ymax = ymin * 1.0001
-
-        out = [xmin, ymin, xmax, ymax]
-    else:
-        out = axes.dataLim.bounds
-
-
-    '''
-    #xlims = axes.get_xlim()
-    #ylims = axes.get_ylim()
-    #out2=Bbox(((xlims[0], ylims[0]),(xlims[1],ylims[1]*2)))
-    #print(axes.transData.transform(xlims))
-    #print(out, out2)
-    for line in axes.lines:
-        line.set_clip_on(True)
-        #line.set_clip_box(out2)
-        pass
-
-    for o in axes.findobj():
-        o.set_clip_on(True)
-        #o.set_clip_box(out2)
-    #axes.set_clip_box(out2)
-    axes.set_clip_on(True)'''
-
-    return out
-
-
-def ResetVisible(axes):
-    #xlims = axes.get_xlim()
-    #ylims = axes.get_ylim()
-    #out2=Bbox(((xlims[0], ylims[0]),(xlims[1],ylims[1]*2)))
-    for line in axes.lines:
-        #line.set_clip_box(out2)
-        line.set_clip_on(True)
-        pass
-    for t in axes.texts:
-        t.set_visible(True)
-
-
-def GetStart(axes):
-    outputs = np.array([GetMaxes(axis) for axis in axes])
-    # print "Outputs",outputs
-    xmin = np.amin(outputs[:, 0])
-    ymin = np.amin(outputs[:, 1])
-    xmax = np.amax(outputs[:, 2])
-    ymax = np.amax(outputs[:, 3])
-
-    if xmin > xmax: xmin, xmax = xmax, xmin
-    if ymin > ymax: ymin, ymax = ymax, ymin
-    if xmin == xmax: xmax = xmin * 1.0001
-    if ymin == ymax: ymax = ymin * 1.0001
-
-    out = [xmin, ymin, xmax, ymax]
-    return out
+from unidec_modules.isolated_packages.ZoomCommon import *
 
 
 class ZoomBox:
@@ -300,6 +149,13 @@ class ZoomBox:
                 axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
             # print self.data_lims
 
+        self.zoomout()
+
+    def set_clipping(self):
+        for axes in self.axes:
+            ResetVisible(axes)
+        # self.canvas.draw()
+
     def new_axes(self, axes, rectprops=None):
         self.axes = axes
         if self.canvas is not axes[0].figure.canvas:
@@ -353,11 +209,11 @@ class ZoomBox:
                     else:
                         pub.sendMessage('mzlimits')
                 elif event.button == 3 and self.smash == 2:
-                        pub.sendMessage('mzlimits2')
+                    pub.sendMessage('mzlimits2')
                 elif event.button == 3 and self.smash == 3:
-                        pub.sendMessage('mzlimits3')
+                    pub.sendMessage('mzlimits3')
                 elif event.button == 3 and self.smash == 4:
-                        pub.sendMessage('mzlimits4')
+                    pub.sendMessage('mzlimits4')
                 elif event.button == 2:
                     pub.sendMessage('middle_click')
                 return True
@@ -369,6 +225,37 @@ class ZoomBox:
         # If a button pressed, check if the release-button is the same
         return (event.inaxes not in self.axes or
                 event.button != self.eventpress.button)
+
+    def zoomout(self, event=None):
+        # print("Zoom Out")
+        # x0,y0,x1,y1=GetMaxes(event.inaxes)
+        # print GetMaxes(event.inaxes)
+
+        xmin, ymin, xmax, ymax = self.data_lims
+        if xmin > xmax: xmin, xmax = xmax, xmin
+        if ymin > ymax: ymin, ymax = ymax, ymin
+        # assure that x and y values are not equal
+        if xmin == xmax: xmax = xmin * 1.01
+        if ymin == ymax: ymax = ymin * 1.01
+
+        # Check if a zoom out is necessary
+        zoomout = False
+        for axes in self.axes:
+            if axes.get_xlim() != (xmin, xmax) and axes.get_ylim() != (ymin, ymax):
+                zoomout = True
+        # Register a click if zoomout was not necessary
+        if not zoomout and event is not None:
+            if event.button == 1 and self.smash == 1:
+                pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
+
+        for axes in self.axes:
+            xspan = xmax - xmin
+            yspan = ymax - ymin
+            axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
+            axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
+            ResetVisible(axes)
+        self.kill_labels()
+        self.canvas.draw()
 
     def press(self, event):
         'on button press event'
@@ -422,35 +309,7 @@ class ZoomBox:
                     if event.button == 1 and self.smash == 1:
                         pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
                     return
-
-                # x0,y0,x1,y1=GetMaxes(event.inaxes)
-                # print GetMaxes(event.inaxes)
-
-                xmin, ymin, xmax, ymax = self.data_lims
-                if xmin > xmax: xmin, xmax = xmax, xmin
-                if ymin > ymax: ymin, ymax = ymax, ymin
-                # assure that x and y values are not equal
-                if xmin == xmax: xmax = xmin * 1.01
-                if ymin == ymax: ymax = ymin * 1.01
-
-                # Check if a zoom out is necessary
-                zoomout = False
-                for axes in self.axes:
-                    if axes.get_xlim() != (xmin, xmax) and axes.get_ylim() != (ymin, ymax):
-                        zoomout = True
-                # Register a click if zoomout was not necessary
-                if not zoomout:
-                    if event.button == 1 and self.smash == 1:
-                        pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
-
-                for axes in self.axes:
-                    xspan = xmax - xmin
-                    yspan = ymax - ymin
-                    axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
-                    axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
-                    ResetVisible(axes)
-                self.kill_labels()
-                self.canvas.draw()
+                self.zoomout(event)
                 return
 
             self.canvas.draw()
@@ -525,15 +384,12 @@ class ZoomBox:
                 return
 
             for axes in self.axes:
-                #clipbox = [[xmin, ymin], [xmax, ymax * 2]]
-                #print(clipbox)
-                #axes.set_clip_box(clipbox)
-
                 axes.set_xlim(xmin, xmax)
                 if spanflag == 1:
                     xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=xmin, xmax=xmax)
                 axes.set_ylim(ymin, ymax)
 
+            self.set_clipping()
             self.kill_labels()
             self.canvas.draw()
 
@@ -569,6 +425,7 @@ class ZoomBox:
             self.canvas.blit(self.canvas.figure.bbox)
         else:
             self.canvas.draw_idle()
+        # self.set_clipping()
         return False
 
     def onmove(self, event):

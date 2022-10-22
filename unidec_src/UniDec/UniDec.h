@@ -747,9 +747,18 @@ int getfilelength(const char* infile)
 	file_ptr = fopen(infile, "r");
 	if (file_ptr == 0) { printf("Error Opening %s\n", infile); exit(1); }
 
-	while (fscanf(file_ptr, "%500[^\n]%*c", input) != EOF)
+	int read = -2;
+	while ( read != EOF)
 	{
-		l += 1;
+		read = fscanf(file_ptr, "%500[^\n]%*c", input);
+		if(read !=0 && read != EOF)
+		{
+			l += 1;
+		}
+		else
+		{
+			break;
+		}
 	}
 	
 	fclose(file_ptr);

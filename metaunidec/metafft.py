@@ -2,9 +2,8 @@ import os
 from copy import deepcopy
 import numpy as np
 import wx
-from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows, fitting
-from unidec_modules.unidectools import double_fft_diff, nearest, peakdetect, mergedata, datachop
-import matplotlib.cm as cm
+from unidec_modules import unidecstructure, PlottingWindow, miscwindows
+from unidec_modules.unidectools import double_fft_diff, mergedata, datachop
 
 __author__ = 'Michael.Marty'
 
@@ -79,10 +78,10 @@ class FFTWindow(wx.Frame):
             figsize = (4, 3)
         else:
             figsize = (5, 4)
-        self.plot1 = plot1d.Plot1d(panel, figsize=figsize)
-        self.plot2 = plot2d.Plot2d(panel, figsize=figsize)
-        self.plot3 = plot1d.Plot1d(panel, figsize=figsize)
-        self.plot4 = plot1d.Plot1d(panel, figsize=figsize)
+        self.plot1 = PlottingWindow.Plot1d(panel, figsize=figsize)
+        self.plot2 = PlottingWindow.Plot2d(panel, figsize=figsize)
+        self.plot3 = PlottingWindow.Plot1d(panel, figsize=figsize)
+        self.plot4 = PlottingWindow.Plot1d(panel, figsize=figsize)
         plotpanel1.Add(self.plot1, 1, flag=wx.EXPAND)
         plotpanel2.Add(self.plot2, 1, flag=wx.EXPAND)
         plotpanel1.Add(self.plot3, 1, flag=wx.EXPAND)

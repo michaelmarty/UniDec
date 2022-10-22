@@ -13,9 +13,8 @@ from pubsub import pub
 from unidec_modules.isolated_packages.MD_Fitter import *
 
 import multiprocessing
-from unidec_modules import UniFit, Extract2D, unidecstructure, PlotAnimations, plot1d, plot2d, miscwindows, \
+from unidec_modules import UniFit, Extract2D, unidecstructure, PlotAnimations, PlottingWindow, miscwindows, \
     MassDefects, nativez, IM_functions, DoubleDec
-from unidec_modules.PlottingWindow import PlottingWindow
 import unidec_modules.unidectools as ud
 from unidec_modules.AutocorrWindow import AutocorrWindow
 import h5py
@@ -240,18 +239,6 @@ class ListCtrlPanel(wx.Panel):
             self.list.SetItem(i, 3, val)
 
 
-class NetworkFrame(PlottingWindow):
-    def __init__(self, *args, **kwargs):
-        PlottingWindow.__init__(self, *args, **kwargs)
-        self.axes = self.figure.add_axes(self._axes)
-        self.flag = True
-
-    def clear_frame(self):
-        self.figure.clear()
-        self.axes = self.figure.add_axes(self._axes)
-        self.repaint()
-
-
 datachoices = {0: "Raw Data", 1: "Processed Data", 2: "Zero Charge Mass Spectrum", 3: "CCS (Experimental)", 4: "DoubleDec (Experimental)"}
 extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position",
                   5: "Center of Mass 50%", 6: "Center of Mass 10%", 11: "Estimated Area"}
@@ -410,9 +397,9 @@ class DataCollector(wx.Frame):
         self.tab3 = wx.Panel(self.plotwindow)
 
         size = [5, 4]
-        self.plot1 = plot1d.Plot1d(self.tab1, figsize=size)
-        self.plot2d = plot2d.Plot2d(self.tab2, figsize=size)
-        self.plot4 = plot1d.Plot1d(self.tab3, figsize=size)
+        self.plot1 = PlottingWindow.Plot1d(self.tab1, figsize=size)
+        self.plot2d = PlottingWindow.Plot2d(self.tab2, figsize=size)
+        self.plot4 = PlottingWindow.Plot1d(self.tab3, figsize=size)
 
         miscwindows.setup_tab_box(self.tab1, self.plot1)
         miscwindows.setup_tab_box(self.tab2, self.plot2d)
@@ -421,21 +408,20 @@ class DataCollector(wx.Frame):
         self.plotwindow.AddPage(self.tab2, "2D Grid")
         self.plotwindow.AddPage(self.tab3, "Summation")
 
-        self.plot2 = plot1d.Plot1d(self.panel)
+        self.plot2 = PlottingWindow.Plot1d(self.panel)
 
         self.plotwindow2 = wx.Notebook(self.panel)
         self.tab12 = wx.Panel(self.plotwindow2)
         self.tab22 = wx.Panel(self.plotwindow2)
 
-        self.plot3 = NetworkFrame(self.tab12)
-        self.plot3h = plot1d.Plot1d(self.tab22)
+        self.plot3 = PlottingWindow.NetworkFrame(self.tab12)
+        self.plot3h = PlottingWindow.Plot1d(self.tab22)
 
         miscwindows.setup_tab_box(self.tab12, self.plot3)
         miscwindows.setup_tab_box(self.tab22, self.plot3h)
         self.plotwindow2.AddPage(self.tab12, "Network Model")
         self.plotwindow2.AddPage(self.tab22, "histogram")
 
-        # self.plot3=NetworkFrame(self.panel)
         self.inputsizer.Add(self.plotwindow, 0, wx.EXPAND)
         self.sizer.Add(self.inputsizer, 1, wx.EXPAND)
 
@@ -506,10 +492,8 @@ class DataCollector(wx.Frame):
 
         self.plotsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        # self.plot3=NetworkFrame(self.panel)
         self.plotsizer.Add(self.plot2, 0, wx.EXPAND)
         self.plotsizer.Add(self.plotwindow2, 1, wx.EXPAND)
-        # self.plotsizer.Add(self.plot3,0,wx.EXPAND)
         self.sizer.Add(self.plotsizer, 0, wx.EXPAND)
 
         self.panel.SetSizer(self.sizer)

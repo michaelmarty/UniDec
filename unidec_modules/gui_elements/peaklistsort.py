@@ -78,6 +78,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.popupID16 = wx.NewIdRef()
         self.popupID_label_integrals = wx.NewIdRef()
         self.popupID_label_integrals2 = wx.NewIdRef()
+        self.popupID_consecutive_diffs = wx.NewIdRef()
 
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)
@@ -97,6 +98,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.Bind(wx.EVT_MENU, self.on_popup_twelve_full, id=self.popupID14)
         self.Bind(wx.EVT_MENU, self.on_popup_rename, id=self.popupID15)
         self.Bind(wx.EVT_MENU, self.on_popup_image, id=self.popupID16)
+        self.Bind(wx.EVT_MENU, self.on_popup_consec_diff, id=self.popupID_consecutive_diffs)
 
     def clear_list(self):
         """
@@ -224,7 +226,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             menu.Append(self.popupID_label_integrals, "Label Select Areas/Intensities")
             menu.Append(self.popupID_label_integrals2, "Label All Areas/Intensities")
             menu.AppendSeparator()
-            menu.Append(self.popupID6, "Display Differences")
+            menu.Append(self.popupID6, "Display Differences From")
+            menu.Append(self.popupID_consecutive_diffs, "Display Consecutive Differences")
             menu.AppendSeparator()
             if self.errorsdisplayed is False:
                 menu.Append(self.popupID7, "Centroid and Uncertainty")
@@ -311,8 +314,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         # num = self.list_ctrl.GetSelectedItemCount()
         self.selection2 = tofloat(self.list_ctrl.GetItem(item, col=1).GetText())
 
-        for p in self.pks.peaks:
-            p.diff = p.mass - self.selection2
+        self.pks.diffs_from(self.selection2)
+
         self.list_ctrl.DeleteAllItems()
 
         self.add_data(self.pks, show="diff")
@@ -329,6 +332,27 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.errorsdisplayed = False
         newevent = wx.PyCommandEvent(self.EVT_DIFFERENCES._getEvtType(), self.GetId())
         self.GetEventHandler().ProcessEvent(newevent)
+
+    def on_popup_consec_diff(self, e=None):
+        # Show Differences
+        self.pks.diffs_consecutive()
+        self.list_ctrl.DeleteAllItems()
+
+        self.add_data(self.pks, show="diff")
+
+        col = self.list_ctrl.GetColumn(3)
+        col.SetText("Diff.")
+        self.list_ctrl.SetColumn(3, col)
+        self.list_ctrl.SetColumnWidth(3, 65)
+        if self.errorsdisplayed is True:
+            col = self.list_ctrl.GetColumn(4)
+            col.SetText("Name")
+            self.list_ctrl.SetColumn(4, col)
+
+        self.errorsdisplayed = False
+        newevent = wx.PyCommandEvent(self.EVT_DIFFERENCES._getEvtType(), self.GetId())
+        self.GetEventHandler().ProcessEvent(newevent)
+
 
     def on_popup_three(self, event=None):
         """

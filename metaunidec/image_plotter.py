@@ -4,7 +4,7 @@ import numpy as np
 from pubsub import pub
 import wx
 
-from unidec_modules import plot1d, plot2d, unidecstructure
+from unidec_modules import PlottingWindow, unidecstructure
 import unidec_modules.unidectools as ud
 from metaunidec import mudstruct
 
@@ -56,16 +56,16 @@ class ImagingWindow(wx.Frame):
         vbox = wx.BoxSizer(wx.VERTICAL)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        self.plot1 = plot1d.Plot1d(panel, smash=1)
+        self.plot1 = PlottingWindow.Plot1d(panel, smash=1)
         pub.subscribe(self.extract, 'mzlimits')
-        self.plot2 = plot2d.Plot2d(panel, integrate=1)
+        self.plot2 = PlottingWindow.Plot2d(panel, integrate=1)
         pub.subscribe(self.sum_region, 'integrate')
-        self.plot3 = plot1d.Plot1d(panel, smash=2)
+        self.plot3 = PlottingWindow.Plot1d(panel, smash=2)
         pub.subscribe(self.extract2, 'mzlimits2')
-        self.plot4 = plot1d.Plot1d(panel, smash=3)
+        self.plot4 = PlottingWindow.Plot1d(panel, smash=3)
         pub.subscribe(self.extract3, 'mzlimits3')
-        self.plot5 = plot2d.Plot2d(panel)
-        self.plot6 = plot1d.Plot1d(panel, smash=4)
+        self.plot5 = PlottingWindow.Plot2d(panel)
+        self.plot6 = PlottingWindow.Plot1d(panel, smash=4)
         pub.subscribe(self.extract4, 'mzlimits4')
         hbox.Add(self.plot1)
         hbox.Add(self.plot2)
