@@ -1,8 +1,26 @@
 from pyopenms import *
 import os
-import unidec_modules.unidectools as ud
+import fnmatch
 from copy import deepcopy
 
+def match_files(directory, string, exclude=None):
+    files = []
+    for file in os.listdir(directory):
+        if fnmatch.fnmatch(file, string):
+            if exclude is None or exclude not in file:
+                files.append(file)
+    return np.array(files)
+
+def datachop(datatop, newmin, newmax):
+    """
+    Chops the range of the data. The [:,0] column of the data is the column that will be indexed.
+    :param datatop: Data array
+    :param newmin: Minimum value of chopped data
+    :param newmax: Maximum value of chopped data
+    :return: New data limited between the two bounds
+    """
+    boo1 = np.logical_and(datatop[:, 0] <= newmax, datatop[:, 0] >= newmin)
+    return datatop[boo1]
 
 def fix_parent_mz(exp, i, p, window=2, purity_thresh=0.5):
     j = deepcopy(i)
@@ -17,7 +35,7 @@ def fix_parent_mz(exp, i, p, window=2, purity_thresh=0.5):
     pmass = p.getMZ()
     mz, intensity = ms1.get_peaks()
     data = np.transpose([mz, intensity])
-    chopdat = ud.datachop(data, pmass - window, pmass + window)
+    chopdat = datachop(data, pmass - window, pmass + window)
     if len(chopdat) > 0:
         index = np.argmax(chopdat[:, 1])
         peakmz = chopdat[index, 0]
