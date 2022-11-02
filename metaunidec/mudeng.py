@@ -55,6 +55,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.config.linflag = 2
 
     def open(self, path, speedy=False):
+        st = time.perf_counter()
         self.clear()
         if path is None:
             path = self.config.hdf_file
@@ -63,6 +64,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.config.read_hdf5(path)
         self.data.import_hdf5(path, speedy=speedy)
         self.update_history()
+        print("Opening Time:", time.perf_counter()-st)
 
     def clear(self):
         self.data = MetaDataSet(self)

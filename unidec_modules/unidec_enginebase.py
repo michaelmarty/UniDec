@@ -279,7 +279,7 @@ class UniDecEngine:
 
     def match(self, tolerance=100, isolated=False, glyco=False, minsites=None, maxsites=None):
         if ud.isempty(self.olg.oligomasslist):
-            self.make_oligomers(minsites=minsites, maxsites=maxsites)
+            self.make_oligomers(minsites=minsites, maxsites=maxsites, isolated=isolated)
         if glyco:
             self.olg.pair_glyco()
         print(self.olg.oligomerlist)

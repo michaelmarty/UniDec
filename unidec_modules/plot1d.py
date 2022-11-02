@@ -91,10 +91,8 @@ class Plot1dBase(PlotBase):
         self.subplot1.set_xlabel(self.xlabel)
         self.subplot1.set_clip_on(True)
 
-        self.setup_zoom([self.subplot1], self.zoomtype)
         if not nopaint:
-            # self.setup_zoom([self.subplot1], self.zoomtype)
-            self.repaint()
+            self.repaint(setupzoom=True)
         self.flag = True
         self.mlist = []
         self.x1, self.x2 = None, None
@@ -111,10 +109,8 @@ class Plot1dBase(PlotBase):
         :return: None
         """
         self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=colval, label=newlabel, **kwargs)
-        self.setup_zoom([self.subplot1], self.zoomtype)
         if not nopaint:
-            # self.setup_zoom([self.subplot1], self.zoomtype)
-            self.repaint()
+            self.repaint(setupzoom=True)
 
     def multiplot(self, x, y, a, b):
         spec1 = gridspec.GridSpec(ncols=2, nrows=2, figure=self.figure)

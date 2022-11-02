@@ -213,6 +213,7 @@ struct Config
 	int metamode;
 	float minmz;
 	float maxmz;
+	float mzres;
 	int mzbins;
 	float bsub;
 	float datareduction;
@@ -308,6 +309,7 @@ Config SetDefaultConfig()
 	config.metamode = -2;
 	config.minmz = -1;
 	config.maxmz = -1;
+	config.mzres = -1;
 	config.mzbins = 0;
 	config.bsub = 0;
 	config.datareduction = 0;
@@ -558,7 +560,7 @@ void PrintHelp()
 	printf("\t\t\t\t\t\"tcal3\"=Calibration paramter 3 (P3)\n");
 	printf("\t\t\t\t5=SLIM T-Wave 3rd Order Polynomial Calibration\n");
 	printf("\t\t\t\t\t\"tcal4\"=Calibration parmater 4 (P4)\n");
-	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit date 9/15/22\n");
+	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit date 11/1/22\n");
 	//printf("\nsize of: %d",sizeof(char));
 
 	/*
@@ -969,7 +971,7 @@ float Max(const float* blur, const int length) {
 	return blurmax;
 }
 
-float Sum(const float* blur, int length) {
+float Sum(const float* blur, const int length) {
 	float sum = 0;
 	for (int i = 0; i < length; i++)
 	{
@@ -978,7 +980,7 @@ float Sum(const float* blur, int length) {
 	return sum;
 }
 
-float max1d(float* blur, int lengthmz) {
+float max1d(const float* blur, const int lengthmz) {
 	float blurmax = blur[0];
 	unsigned int i;
 	for (i = 0; i < lengthmz; i++)
@@ -991,7 +993,7 @@ float max1d(float* blur, int lengthmz) {
 	return blurmax;
 }
 
-float min1d(float* blur, int lengthmz) {
+float min1d(const float* blur, const int lengthmz) {
 	float blurmin = blur[0];
 	unsigned int i;
 	for (i = 0; i < lengthmz; i++)
@@ -1004,7 +1006,7 @@ float min1d(float* blur, int lengthmz) {
 	return blurmin;
 }
 
-int argmax(float* blur, int lengthmz)
+int argmax(const float* blur, const int lengthmz)
 {
 	float max = blur[0];
 	int pos = 0;
@@ -4137,7 +4139,7 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 			char strval[1024];
 			sprintf(strval, "/%d", config->metamode);
 			strcat(config->dataset, strval);
-			printf("HDF5: %s\n", config->dataset);
+			if (config->silent == 0) { printf("HDF5: %s\n", config->dataset); }
 		}
 		else
 		{
@@ -4146,7 +4148,7 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 		
 		char outdat[1024];
 		strjoin(config->dataset, "/processed_data", outdat);		
-		config->file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
+		//config->file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 
 		config->lengthmz = mh5getfilelength(config->file_id, outdat);
 		inp->dataMZ = (float*) calloc(config->lengthmz, sizeof(float));

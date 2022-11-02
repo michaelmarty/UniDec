@@ -513,10 +513,29 @@ float score_from_peaks(const int plen, const float *peakx, const float *peaky, f
 	return uniscore;
 }
 
+int peaks_no_score(Config config, Decon* decon, Input inp, const float threshold, const int silent)
+{
+	decon->peakx = calloc(decon->mlen, sizeof(float));
+	decon->peaky = calloc(decon->mlen, sizeof(float));
+
+	int plen = peak_detect(decon->massaxis, decon->massaxisval, decon->mlen, config.peakwin, config.peakthresh, decon->peakx, decon->peaky);
+	decon->plen = plen;
+
+	decon->peakx = realloc(decon->peakx, plen * sizeof(float));
+	decon->peaky = realloc(decon->peaky, plen * sizeof(float));
+	decon->dscores = calloc(plen, sizeof(float));
+
+	peak_norm(decon->peaky, plen, config.peaknorm);
+
+	return plen;
+}
+
+
 float score(Config config, Decon *decon, Input inp, const float threshold, const int silent)
 {
 	//printf("Starting Score %f %f\n", config.peakwin, config.peakthresh);
-	
+	int plen = peaks_no_score(config, decon, inp, threshold, silent);
+	/*
 	decon->peakx = calloc(decon->mlen, sizeof(float));
 	decon->peaky = calloc(decon->mlen, sizeof(float));
 	
@@ -527,13 +546,14 @@ float score(Config config, Decon *decon, Input inp, const float threshold, const
 	decon->peaky = realloc(decon->peaky, plen * sizeof(float));
 	decon->dscores = calloc(plen, sizeof(float));
 
-	peak_norm(decon->peaky, plen, config.peaknorm);
+	peak_norm(decon->peaky, plen, config.peaknorm);*/
 
 	float uniscore = score_from_peaks(plen, decon->peakx, decon->peaky, decon->dscores, config, decon, inp, threshold);
 	if (silent == 0) { printf("Average Peaks Score (UniScore): %f\n", uniscore); }
 
 	return uniscore;
 }
+
 
 int ReadDecon(Config* config, const Input inp, Decon* decon) 
 {
@@ -552,7 +572,7 @@ int ReadDecon(Config* config, const Input inp, Decon* decon)
 
 	//MZ Grid
 	strjoin(config->dataset, "/mz_grid", outdat);
-	int status = check_group_noexit(config->file_id, outdat);
+	int status = check_group_noexit(config->file_id, outdat, config->silent);
 	if (status == 0) { return 0; }
 	//printf("\tReading: %s\n", outdat);
 	decon->newblur = calloc(config->lengthmz * config->numz, sizeof(float));
@@ -560,7 +580,7 @@ int ReadDecon(Config* config, const Input inp, Decon* decon)
 
 	//Mass Grid
 	strjoin(config->dataset, "/mass_grid", outdat);
-	status = check_group_noexit(config->file_id, outdat);
+	status = check_group_noexit(config->file_id, outdat, config->silent);
 	if (status == 0) { return 0; }
 	//printf("\tReading: %s\n", outdat);
 	decon->massgrid = calloc(decon->mlen * config->numz, sizeof(float));
@@ -570,7 +590,6 @@ int ReadDecon(Config* config, const Input inp, Decon* decon)
 
 void get_scan_scores(int argc, char* argv[], Config config)
 {
-	config.file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 	int num = 0;
 	num = int_attr(config.file_id, "/ms_dataset", "num", num);
 
@@ -588,13 +607,14 @@ void get_scan_scores(int argc, char* argv[], Config config)
 		}
 		else
 		{
-			printf("Missing deconvolution outputs. Turn off Fast Profile/Fast Centroid and try deconvolving again.");
+			peaks_no_score(config, &decon, inp, 0, config.silent);
+			if (config.silent == 0) { printf("Missing deconvolution outputs. Writing without scores.\nTo get scores, turn off Fast Profile/Fast Centroid and try deconvolving again."); }
+			WritePeaks(config, &decon);
 		}
 
 		FreeDecon(decon);
 		FreeInputs(inp);
 	}
-	H5Fclose(config.file_id);
 }
 
 

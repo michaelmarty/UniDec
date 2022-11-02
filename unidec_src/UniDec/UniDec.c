@@ -17,7 +17,7 @@
 #include "UniDecIM_Main.h"
 #include "MetaUniDec_Main.h"
 #include "UniDecCD_Main.h"
-#include "UD_match.h"
+// #include "UD_match.h"
 
 
 
@@ -49,10 +49,10 @@ Config ImportConfig(int argc, char * argv[], Config config)
 
 int main(int argc, char *argv[])
 {
-	if (argc > 1)
-	{
-		if (strcmp(argv[1], "-match") == 0) { unidec_match(argc, argv); return 0; }
-	}
+	//if (argc > 1)
+	//{
+	//	if (strcmp(argv[1], "-match") == 0) { unidec_match(argc, argv); return 0; }
+	//}
 
 
 	int result = 0;

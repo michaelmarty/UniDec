@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib.transforms import Bbox
 import matplotlib
-
+from copy import deepcopy
 
 def GetMaxes(axes, xmin=None, xmax=None):
     yvals = []
@@ -102,7 +102,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
     else:
         out = axes.dataLim.bounds
 
-    set_clipping(axes)
+    # set_clipping(axes)
 
     return out
 
@@ -110,7 +110,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
 def set_clipping(axes):
     # print('Set Clipping')
     # clip_all(axes)
-    # clip_none(axes)
+    #clip_none(axes)
     special_clip(axes)
 
 
@@ -134,7 +134,8 @@ def special_clip(axes):
     if axes.get_clip_on():
         axes.set_clip_on(True)
 
-        oldpts = axes.bbox.get_points()
+        oldpts = deepcopy(axes.bbox.get_points())
+        #oldpts = axes.bbox.get_points()
         oldpts[1, 1] *= 1.05
         newbbox = Bbox(oldpts)
         for o in axes.lines:
@@ -142,7 +143,7 @@ def special_clip(axes):
             marker = o.properties()["marker"]
             if marker != "None": #"child" in label:
                 o.set_clip_box(newbbox)
-            pass
+                pass
     else:
         clip_none(axes)
         '''

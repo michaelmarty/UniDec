@@ -148,9 +148,6 @@ float charge_extract_switch(const Config config, const float peak, const float *
 
 void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra)
 {
-	hid_t file_id;
-	file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
-
 	char dataset[1024];
 	char outdat[1024];
 	char strval[1024];
@@ -164,16 +161,16 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 	else{ strjoin(pdataset, "/peakdata", poutdat); }
 	printf("Importing Charge Peaks: %s\n", poutdat);
 
-	int plen = mh5getfilelength(file_id, poutdat);
+	int plen = mh5getfilelength(config.file_id, poutdat);
 	float *peakx = NULL;
 	peakx = calloc(plen, sizeof(float));
 
-	mh5readfile2dcolumn(file_id, poutdat, peakx, 0);
+	mh5readfile2dcolumn(config.file_id, poutdat, peakx, 0);
 
 	//mh5readfile1d(file_id, poutdat, peakx);
 	
 	int num = 0;
-	num = int_attr(file_id, "/ms_dataset", "num", num);
+	num = int_attr(config.file_id, "/ms_dataset", "num", num);
 
 	float *extracts = NULL;
 	int newlen = plen * num;
@@ -189,27 +186,27 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 		strjoin(dataset, "/charge_data", outdat2);
 		strjoin(dataset, "/mass_grid", outdat3);
 
-		int masslen = mh5getfilelength(file_id, outdat);
-		int zlen = mh5getfilelength(file_id, outdat2);
-		int glen = mh5getfilelength(file_id, outdat3);
+		int masslen = mh5getfilelength(config.file_id, outdat);
+		int zlen = mh5getfilelength(config.file_id, outdat2);
+		int glen = mh5getfilelength(config.file_id, outdat3);
 
 		float *mass_ints = NULL;
 		float *massaxis = NULL;
 		mass_ints = calloc(masslen, sizeof(float));
 		massaxis = calloc(masslen, sizeof(float));
-		mh5readfile2d(file_id, outdat, masslen, massaxis, mass_ints);
+		mh5readfile2d(config.file_id, outdat, masslen, massaxis, mass_ints);
 		free(mass_ints);
 
 		float *zints = NULL;
 		float *zaxis = NULL;
 		zints = calloc(zlen, sizeof(float));
 		zaxis = calloc(zlen, sizeof(float));
-		mh5readfile2d(file_id, outdat2, zlen, zaxis, zints);
+		mh5readfile2d(config.file_id, outdat2, zlen, zaxis, zints);
 		free(zints);
 
 		float *grid = NULL;
 		grid = calloc(glen, sizeof(float));
-		mh5readfile1d(file_id, outdat3, grid);
+		mh5readfile1d(config.file_id, outdat3, grid);
 		float sum = 0;
 		float max = 0;
 		for (int j = 0; j < plen; j++)
@@ -267,15 +264,14 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 	}
 	
 	strcpy(dataset, "/peaks");
-	makegroup(file_id, dataset);
+	makegroup(config.file_id, dataset);
 	if (ultra)
 		strjoin(dataset, "/ultrazextracts", outdat);
 	else
 		strjoin(dataset, "/zextracts", outdat);
 	printf("\tWriting Charge Extracts to: %s\t%d %d %f %f\n", outdat, config.exchoicez, config.exnormz, config.exwindow, config.exthresh);
-	mh5writefile2d_grid(file_id, outdat, num, plen, extracts);
+	mh5writefile2d_grid(config.file_id, outdat, num, plen, extracts);
 	free(peakx);
 	free(extracts);
-	H5Fclose(file_id);
 	//printf("Success!\n");
 }

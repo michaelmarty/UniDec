@@ -50,7 +50,7 @@ class ZoomBox:
                  spancoords='data',
                  button=None,
                  data_lims=None,
-                 integrate=0, smash=0, pad=0):
+                 integrate=0, smash=0, pad=0.0001):
 
         """
         Create a selector in axes.  When a selection is made, clear
@@ -214,6 +214,8 @@ class ZoomBox:
                     pub.sendMessage('mzlimits3')
                 elif event.button == 3 and self.smash == 4:
                     pub.sendMessage('mzlimits4')
+                elif event.button == 3 and self.smash == 5:
+                    pub.sendMessage('mzlimits5')
                 elif event.button == 2:
                     pub.sendMessage('middle_click')
                 return True
@@ -251,7 +253,8 @@ class ZoomBox:
         for axes in self.axes:
             xspan = xmax - xmin
             yspan = ymax - ymin
-            axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
+            if xmin - xspan * self.pad != xmax + xspan * self.pad:
+                axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
             axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
             ResetVisible(axes)
         self.kill_labels()

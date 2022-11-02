@@ -171,6 +171,21 @@ def match_files(directory, string, exclude=None):
                 files.append(file)
     return np.array(files)
 
+def match_dirs_recursive(topdir, ending=".raw"):
+    found_dirs = []
+    for root, dirs, files in os.walk(topdir):
+        for d in dirs:
+            if d.endswith(ending):
+                found_dirs.append(os.path.join(root, d))
+    return np.array(found_dirs)
+
+def match_files_recursive(topdir, ending=".raw"):
+    found_files = []
+    for root, dirs, files in os.walk(topdir):
+        for f in files:
+            if f.endswith(ending):
+                found_files.append(os.path.join(root, f))
+    return np.array(found_files)
 
 def isempty(thing):
     """
@@ -275,7 +290,7 @@ def safedivide1(a, b):
     if b != 0:
         return a / b
     else:
-        return 0
+        return a * 0
 
 
 def weighted_std(values, weights):
@@ -840,7 +855,7 @@ def solve_for_mass(mz1, mz2, adductmass=1.007276467):
 # .........................................
 
 
-def header_test(path):
+def header_test(path, deletechars=None):
     """
     A quick test of a file to remove any problems from the header.
 
@@ -854,6 +869,9 @@ def header_test(path):
     try:
         with open(path, "r") as f:
             for line in f:
+                if deletechars is not None:
+                    for c in deletechars:
+                        line = line.replace(c, "")
                 for sin in line.split():
                     try:
                         float(sin)
@@ -861,6 +879,8 @@ def header_test(path):
                         # print(sin, line)
                         header += 1
                         break
+                if line == "\n":
+                    header += 1
         if header > 0:
             print("Header Length:", header)
     except (ImportError, OSError, AttributeError, IOError) as e:
@@ -931,7 +951,11 @@ def load_mz_file(path, config=None, time_range=None, imflag=0):
             raise IOError
     else:
         if extension == ".txt":
-            data = np.loadtxt(path, skiprows=header_test(path))
+            try:
+                data = np.loadtxt(path, skiprows=header_test(path))
+            except:
+                c = lambda s: float(str(s.decode("UTF-8")).replace(",", ""))  # .replace("'", "").replace("b", "")
+                data = np.genfromtxt(path, skip_header=header_test(path, deletechars=","), converters={0: c, 1: c})
             # data = np.loadtxt(path, skiprows=header_test(path, delimiter=","), delimiter=",")
         elif extension == ".csv":
             try:
@@ -2075,7 +2099,6 @@ def make_alpha_cmap(rgb_tuple, alpha):
     return cmap
 
 
-
 def color_map_array(array, cmap, alpha):
     """
     For a specified array of values, map the intensity to a specified RGB color defined by cmap (output as topcm).
@@ -2227,6 +2250,7 @@ def make_all_matches(oligos):
         oligomasslist, oligonames = make_isolated_match(oligos)
     return oligomasslist, oligonames
 
+
 def get_glyco_indexes(oligomerlist, printoutput=False):
     names = oligomerlist[:, 4]
     sname = ''
@@ -2258,8 +2282,6 @@ def get_glyco_indexes(oligomerlist, printoutput=False):
     return sindex, hindex, gindex, findex
 
 
-
-
 def pair_glyco_matches(oligomasslist, oligonames, oligomerlist):
     oligomerlist = np.array(oligomerlist)
     startindex = oligomerlist[:, 2].astype(np.int)
@@ -2272,13 +2294,13 @@ def pair_glyco_matches(oligomasslist, oligonames, oligomerlist):
     ng = np.zeros(nmatches)
 
     if sindex != -1:
-        ns = oligonames[:, sindex]+startindex[sindex]
+        ns = oligonames[:, sindex] + startindex[sindex]
 
     if hindex != -1:
-        nh = oligonames[:, hindex]+startindex[hindex]
+        nh = oligonames[:, hindex] + startindex[hindex]
 
     if gindex != -1:
-        ng = oligonames[:, gindex]+startindex[gindex]
+        ng = oligonames[:, gindex] + startindex[gindex]
     # Number of Sialic Acid is less than or equal to number of hexoses
     b1 = ns <= nh
     # Number of Sialic Acids is also less than or equal to number of glcnacs
@@ -2311,7 +2333,7 @@ def match(pks, oligomasslist, oligonames, oligomerlist, tolerance=None, return_n
         if tolerance is None or np.abs(error) < tolerance:
             name = index_to_oname(oligonames[nearpt], startindex, onames)
             if return_numbers:
-                number = oligonames[nearpt]+startindex
+                number = oligonames[nearpt] + startindex
         else:
             name = ""
 
@@ -2887,7 +2909,10 @@ def peaks_error_FWHM(pks, data):
         datamax = np.amax(np.asarray(data)[:, 1])
     except:
         datamax = 0
-    div = datamax / pmax
+    try:
+        div = datamax / pmax
+    except:
+        div = 1
     for p in pks.peaks:
         int = p.height
         index = nearest(data[:, 0], p.mass)

@@ -203,13 +203,19 @@ The main GUI class is GUniDec.UniDecApp.
 
 v.5.2.0
 
-Improvements to matching speed and API. Added right click option to send item from oligomer list to common matches list.
+Improvements to matching speed and API. Added right click option to send item from oligomer list to common matches list. Added a bunch of glycans and stuff to the common masses table.
+
+Improvements to MetaUniDec. Create a merged template rather than just using the first spectrum. Improvements to speed by keeping file open for the whole session. Reduction in print outputs.
+
+Improvements to Imaging viewer, including bug fixes.
 
 Added ability to calculate consecutive differences in peak masses.
 
 Added continuous plot button for UCD m/z vs. mass. Also, fixed bug to improve plotting.
 
 Improved copy/paste from peak list.
+
+Added ability to read text file exported from Chromeleon that have a bunch of commas in the numbers.
 
 Added mzXML support courtesy of pyteomics (please cite: Goloborodko, A.A.; Levitsky, L.I.; Ivanov, M.V.; and Gorshkov, M.V. (2013) “Pyteomics - a Python Framework for Exploratory Data Analysis and Rapid Software Prototyping in Proteomics”, Journal of The American Society for Mass Spectrometry, 24(2), 301–304. DOI: 10.1007/s13361-012-0516-6 and Levitsky, L.I.; Klein, J.; Ivanov, M.V.; and Gorshkov, M.V. (2018) “Pyteomics 4.0: five years of development of a Python proteomics framework”, Journal of Proteome Research. DOI: 10.1021/acs.jproteome.8b00717)
 

@@ -66,50 +66,106 @@ void interpolate_merge(const float *massaxis, float *outint, const float *tempax
 
 }
 
+Config get_global_min_max(int argc, char* argv[], Config config, const char* dtype)
+{
+	char dataset[1024];
+	char outdat[1024];
+	char strval[1024];
+
+	int num = 0;
+	num = int_attr(config.file_id, "/ms_dataset", "num", num);
+
+	float minval = 1000000000;
+	float maxval = 0;
+	float minres = minval;
+
+	for (int i = 0; i < num; i++)
+	{
+		strcpy(dataset, "/ms_dataset");
+		sprintf(strval, "/%d", i);
+		strcat(dataset, strval);
+		strjoin(dataset, dtype, outdat);
+
+		int templen = mh5getfilelength(config.file_id, outdat);
+
+		float* temp = NULL;
+		float* tempaxis = NULL;
+		temp = calloc(templen, sizeof(float));
+		tempaxis = calloc(templen, sizeof(float));
+
+		mh5readfile2d(config.file_id, outdat, templen, tempaxis, temp);
+
+		float newmin = min1d(tempaxis, templen);
+		float newmax = max1d(tempaxis, templen);
+		float newres = (newmax - newmin) / (float) templen;
+
+		if (newmin < minval) { minval = newmin; }
+		if (newmax > maxval) { maxval = newmax; }
+		if (newres < minres) { minres = newres; }
+
+		free(temp);
+		free(tempaxis);
+	}
+
+	if (strcmp(dtype, "/mass_data") == 0) {
+		config.masslb = minval;
+		config.massub = maxval;
+	}
+	if (strcmp(dtype, "/processed_data") == 0) {
+		config.minmz = minval;
+		config.maxmz = maxval;
+		config.mzres = minres;
+	}
+
+	return config;
+}
 
 
 void make_grid(int argc, char *argv[], Config config, const char *dtype, const char *out1, const char *out2, const char *out3)
 {
 	clock_t starttime;
 	starttime = clock();
-
+	config = get_global_min_max(argc, argv, config, dtype);
 
 	char dataset[1024];
 	char outdat[1024];
 	char strval[1024];
-	
-	config.file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
+
 	int num = 0;
 	num = int_attr(config.file_id, "/ms_dataset", "num", num);
 	
-	//Read In Data
-	strcpy(dataset, "/ms_dataset");
-	sprintf(strval, "/%d", 0);
-	strcat(dataset, strval);
-	strjoin(dataset, dtype, outdat);
-	//printf("Processing HDF5 Data Set: %s\n", outdat);
-	
-	
-	int mlen = mh5getfilelength(config.file_id, outdat);
+	float minval = 1000000000;
+	float maxval = 0;
+	float binval = 0;
+
+	if (strcmp(dtype, "/mass_data")==0) {
+		minval = config.masslb;
+		maxval = config.massub;
+		binval = config.massbins;
+	}
+	if (strcmp(dtype, "/processed_data") == 0) {
+		minval = config.minmz;
+		maxval = config.maxmz;
+		binval = config.mzres;
+	}
+	printf("Template: %f to %f by %f\n", minval, maxval, binval);
+
+	int mlen = 1 + (int)(maxval - minval) / binval;
 	
 	float *massgrid = NULL;
 	float *massaxis = NULL;
 	float *masssum = NULL;
-	float *temp = NULL;
 	int newlen = mlen * num;
 	massgrid = calloc(newlen, sizeof(float));
 	massaxis = calloc(mlen, sizeof(float));
 	masssum = calloc(mlen, sizeof(float));
-	temp = calloc(mlen, sizeof(float));
-	mh5readfile2d(config.file_id, outdat, mlen, massaxis, temp);
+
 	for (int i = 0; i < mlen; i++)
 	{
-		massgrid[i] = temp[i];
-		masssum[i] = temp[i];
+		massaxis[i] = minval + i * binval;
 	}
-	free(temp);
 
-	for (int i = 1; i < num; i++)
+	for (int i = 0; i < num; i++)
 	{
 		strcpy(dataset, "/ms_dataset");
 		sprintf(strval, "/%d", i);
@@ -171,7 +227,7 @@ void make_grid(int argc, char *argv[], Config config, const char *dtype, const c
 	free(massgrid);
 	free(massaxis);
 	free(masssum);
-	H5Fclose(config.file_id);
+
 	clock_t end = clock();
 	float totaltime = (float)(end - starttime) / CLOCKS_PER_SEC;
 	printf("Done in %f seconds\n", totaltime);
@@ -545,14 +601,12 @@ void peak_extracts(Config config, const float *peakx, hid_t file_id, const char 
 
 void get_all_peaks(int argc, char *argv[], Config config)
 {
-	hid_t file_id;
 	char dataset[1024];
 	char outdat[1024];
 	char strval[1024];
 
-	file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 	int num = 0;
-	num = int_attr(file_id, "/ms_dataset", "num", num);
+	num = int_attr(config.file_id, "/ms_dataset", "num", num);
 
 	for (int i = 0; i < num; i++) {
 		//Read In Data
@@ -561,9 +615,9 @@ void get_all_peaks(int argc, char *argv[], Config config)
 		strcat(dataset, strval);
 
 		strjoin(dataset, "/mass_data", outdat);
-		printf("Processing HDF5 Data: %s\n", outdat);
+		if (config.silent == 0) { printf("Processing HDF5 Data: %s\n", outdat); }
 
-		int mlen = mh5getfilelength(file_id, outdat);
+		int mlen = mh5getfilelength(config.file_id, outdat);
 
 		float *massaxis = NULL;
 		float *masssum = NULL;
@@ -571,7 +625,7 @@ void get_all_peaks(int argc, char *argv[], Config config)
 		massaxis = calloc(mlen, sizeof(float));
 		masssum = calloc(mlen, sizeof(float));
 
-		mh5readfile2d(file_id, outdat, mlen, massaxis, masssum);
+		mh5readfile2d(config.file_id, outdat, mlen, massaxis, masssum);
 
 		float *peakx = NULL;
 		float *peaky = NULL;
@@ -586,29 +640,28 @@ void get_all_peaks(int argc, char *argv[], Config config)
 		peak_norm(peaky, plen, config.peaknorm);
 
 		strjoin(dataset, "/peakdata", outdat);
-		printf("\tWriting %d Peaks to: %s\n", plen, outdat);
-		mh5writefile2d(file_id, outdat, plen, peakx, peaky);
+		if (config.silent == 0) { printf("\tWriting %d Peaks to: %s\n", plen, outdat); }
+		mh5writefile2d(config.file_id, outdat, plen, peakx, peaky);
 
 		free(peakx);
 		free(peaky);
 		free(massaxis);
 		free(masssum);
 	}
-	H5Fclose(file_id);
 }
 
 void get_peaks(int argc, char *argv[], Config config, int ultra)
 {
 	char dataset[1024];
 	char outdat[1024];
-
-	config.file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 	
 	if (!ultra){
 		//Read In Data
 		strcpy(dataset, "/ms_dataset");
 		strjoin(dataset, "/mass_axis", outdat);
-		printf("Processing HDF5 Data: %s\n", outdat);
+		if (config.silent == 0) {
+			printf("Processing HDF5 Data: %s\n", outdat);
+		}
 
 		int mlen = mh5getfilelength(config.file_id, outdat);
 
@@ -678,7 +731,7 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 			}
 			else
 			{
-				printf("Missing deconvolution outputs. Turn off Fast Profile/Fast Centroid and try deconvolving again.");
+				if (config.silent == 0) { printf("Missing deconvolution outputs. No scores will be provided. To get scores, turn off Fast Profile/Fast Centroid and try deconvolving again."); }
 			}
 			
 			//Free things
@@ -696,7 +749,10 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 		strcpy(dataset, "/peaks");
 		makegroup(config.file_id, dataset);
 		strjoin(dataset, "/peakdata", outdat);
-		printf("\tWriting %d Peaks to: %s\n", plen, outdat);
+		
+		if (config.silent == 0) {
+			printf("\tWriting %d Peaks to: %s\n", plen, outdat);
+		}
 		
 		float* ptemp = NULL;
 		int newlen = plen * 3;
@@ -737,7 +793,6 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 		free(peakx);
 
 	}
-	H5Fclose(config.file_id);
 }
 
 // peak_extracts() extracts for each row in /peakdata and writes to /extracts

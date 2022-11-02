@@ -707,11 +707,11 @@ class MetaUniDecBase(UniDecPres):
             self.eng.data.import_vars()
             self.view.clear_plots()
             self.view.ypanel.list.populate(self.eng.data)
-            try:
-                self.eng.pick_peaks()
-            except:
-                pass
-            self.on_replot()
+            #try:
+            #    self.eng.pick_peaks()
+            #3except:
+             #   pass
+            self.on_replot(plotsums=False)
 
     def on_export_params(self, e=None):
         """
@@ -972,7 +972,10 @@ class UniDecApp(MetaUniDecBase):
                     for p in self.eng.pks.peaks:
                         if p.ignore == 0:
                             num += 1
-                            ints.append(p.extracts[i])
+                            if i < len(p.extracts):
+                                ints.append(p.extracts[i])
+                            else:
+                                ints.append(0)
                             cols.append(p.color)
                             labs.append(p.label)
 
@@ -987,7 +990,7 @@ class UniDecApp(MetaUniDecBase):
                 if s.ignore == 0:
                     num += 1
                     for p in self.eng.pks.peaks:
-                        if p.ignore == 0:
+                        if p.ignore == 0 and i < len(p.extracts):
                             e = p.extracts[i]
                             num += 1
                             self.view.plot6.plotadddot(num - 1, e, p.color, p.marker)

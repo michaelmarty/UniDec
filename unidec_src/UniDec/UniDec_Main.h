@@ -182,31 +182,6 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 
 	if (silent == 0) { printf("Charges blurred: %d  Masses blurred: %d\n", zlength, mlength); }
 
-	int badness = 1;
-	for (int i = 0; i < config.lengthmz * config.numz; i++)
-	{
-		if (barr[i] == 1) { badness = 0;}
-	}
-	if (badness == 1) { printf("ERROR: Setup is bad. No points are allowed.\n Check that either mass smoothing, charge smoothing, manual assignment, or isotope mode are on."); 
-		decon = ExitToBlank(config, decon); 
-		free(mzdist);
-		free(rmzdist);
-		free(closeval);
-		free(closearray);
-		free(closemind);
-		free(closezind);
-		free(endtab);
-		free(starttab);
-
-		free(mdist);
-		free(mind);
-		free(zind);
-		free(zdist);
-		free(barr);
-		free(closeind);
-		return(decon); 
-	}
-
 	//IntPrint(closeind, numclose * config.lengthmz * config.numz);
 
 	//Determine the maximum intensity in the data
@@ -296,11 +271,39 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 
 	}
 
+	// Final check that there are are actually possible data in the set
+	int badness = 1;
+	for (int i = 0; i < config.lengthmz * config.numz; i++)
+	{
+		if (barr[i] == 1) { badness = 0; }
+	}
+	if (badness == 1) {
+		if (silent == 0) { printf("ERROR: Setup is bad. No points are allowed.\n Check that either mass smoothing, charge smoothing, manual assignment, or isotope mode are on.\n"); };
+		decon = ExitToBlank(config, decon);
+		free(mzdist);
+		free(rmzdist);
+		free(closeval);
+		free(closearray);
+		free(closemind);
+		free(closezind);
+		free(endtab);
+		free(starttab);
+
+		free(mdist);
+		free(mind);
+		free(zind);
+		free(zdist);
+		free(barr);
+		free(closeind);
+		return(decon);
+	}
 
 	//Run the iteration
 	float blurmax = 0;
 	decon.conv = 0;
 	int off = 0;
+	
+
 	if (silent == 0) { printf("Iterating..."); }
 
 	for (int iterations = 0; iterations < abs(config.numit); iterations++)
@@ -500,7 +503,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	int mn = decon.mlen * config.numz;
 	size_t sizemn = (size_t)mn * sizeof(float);
 	if (decon.mlen < 1) {
-		printf("Bad mass axis length: %d\n", decon.mlen);
+		printf("ERROR: No masses detected. Length: %d\n", decon.mlen);
 		massmax = config.massub;
 		massmin = config.masslb;
 		decon.mlen = (int)(massmax - massmin) / config.massbins;
@@ -518,7 +521,6 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 			decon.massaxis[i] = massmin + i * config.massbins;
 		}
 		decon.uniscore = 0;
-		printf("ERROR: No masses detected.\n");
 	}
 	else {
 
@@ -817,7 +819,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 		write_attr_float(config.file_id, config.dataset, "psig", config.psig);
 		write_attr_float(config.file_id, config.dataset, "beta", config.beta);
 		set_needs_grids(config.file_id);
-		H5Fclose(config.file_id);
+		//H5Fclose(config.file_id);
 	}
 
 	//Free memory
