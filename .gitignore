@@ -229,5 +229,5 @@ LipyDec.py
 unidec_modules/SkyQuant.py
 docker_commands.txt
 unidec_bin/Example Data/BSA_unidecfiles/BSA_conv.bin
-
+.pypirc
 

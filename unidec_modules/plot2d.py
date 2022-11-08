@@ -206,7 +206,7 @@ class Plot2dBase(PlotBase):
         # Setup zoom and repaint
         self.setup_zoom([self.subplot1], 'box', data_lims=datalims)
         if repaint:
-            self.repaint()
+            self.repaint(setupzoom=False)
         self.flag = True
 
     def plot_native_z(self, offset, col, xvals, width=0, alpha=1, shape=0):
@@ -236,7 +236,7 @@ class Plot2dBase(PlotBase):
                                            color=col, alpha=alpha * weight, linewidth=0.0)
         self.subplot1.axis([x1, x2, y1, y2])
         self.nativez.append([offset, col])
-        self.repaint()
+        self.repaint(setupzoom=False)
 
     def hist2d(self, xvals, yvals, bins, config=None, xlab='m/z (Th)', ylab="Charge",
                title='', repaint=True, nticks=None, test_kda=False):
@@ -280,5 +280,5 @@ class Plot2dBase(PlotBase):
         # Setup zoom and repaint
         self.setup_zoom([self.subplot1], 'box', data_lims=datalims)
         if repaint:
-            self.repaint()
+            self.repaint(setupzoom=False)
         self.flag = True

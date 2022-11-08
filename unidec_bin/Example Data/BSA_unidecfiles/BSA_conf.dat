@@ -20,8 +20,8 @@ msig 0.0
 molig 0.0
 massbins 1.0
 mtabsig 0.0
-minmz 2229.987476247107
-maxmz 7608.365676580418
+minmz 2230.0590452136075
+maxmz 7607.178087755371
 subbuff 100.0
 subtype 2
 smooth 0.0

@@ -77,6 +77,7 @@ class PlotBase(object):
         self.zoomtype = "box"
         self.tickcolor = "black"
         self.mouse_active = False
+        self.aspect = "auto"
 
     def repaint(self, setupzoom=False):
         if setupzoom:
@@ -95,6 +96,11 @@ class PlotBase(object):
         self.subplot1.set_ylim((ymin, ymax))
         self.subplot1.set_xlim((xmin, xmax))
         pass
+
+    def set_aspect(self, aspect=None):
+        if aspect is None:
+            aspect = self.aspect
+        self.subplot1.set_aspect(aspect)
 
     def get_blank_axis(self, scale=None):
         if scale is None:

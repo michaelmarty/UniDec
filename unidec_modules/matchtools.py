@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from unidec_modules.biopolymertools import *
 
 
 def sort_sitematches_by(indexes, masses, probs, type="mass"):
@@ -145,3 +146,113 @@ def sitematch_to_excel(indexes, masses, probs, names, peakmasses, protmass, site
             # print(matchdf)
             # Write to excel into a sheet with the peak mass as the name
             matchdf.to_excel(writer, sheet_name=str(mass))
+
+
+def calc_seqmasses(row):
+    """
+    Function to calculate a sequence mass from a row
+    :param row: Row from a df with Sequence N as a column header for each sequence you want to calculate
+    :return: Sequences, Masses, Labels
+    """
+    seqs = []
+    masses = []
+    labels = []
+    for k in row.keys():
+        if "Sequence" in k:
+            seq = row[k]
+            if type(seq) is str:
+                seqs.append(seq)
+                mass = calc_pep_mass(seq)
+                masses.append(mass)
+                labels.append(k)
+    return np.array(seqs), np.array(masses), np.array(labels)
+
+
+def calc_pairs(row):
+    """
+    For use with UniDec Pharma Pipeline
+    Calculate the potential pairs from a row.
+    :param row: Row from a df with Sequence N in the column heading designating the sequence. Seq N + Seq M will look for a pair.
+    :return: Masses of pairs, labels of potential pairs
+    """
+    labels = []
+    pairs = []
+    for i, item in enumerate(row):
+        if type(item) is str:
+            if "+" in item or "Seq" in item:
+                label = row.keys()[i]
+                labels.append(label)
+                pairing = item
+                pairing = pairing.replace("Seq", "")
+                pairing = np.array(pairing.split("+"))
+                pairing = pairing.astype(int)
+                pairs.append(pairing)
+    pmasses = []
+    for i, pair in enumerate(pairs):
+        masses = []
+        for j, p in enumerate(pair):
+            seqname = "Sequence " + str(p)
+            for k in row.keys():
+                if k == seqname:
+                    seq = row[k]
+                    if type(seq) is str:
+                        mass = calc_pep_mass(seq)
+                        masses.append(mass)
+        pmass = np.sum(masses)
+        pmasses.append(pmass)
+
+    for k in row.keys():
+        if "Sequence" in k:
+            seq = row[k]
+            if type(seq) is str:
+                mass = calc_pep_mass(seq)
+                pmasses.append(mass)
+                labels.append(k)
+    return pmasses, labels
+
+
+def UPP_check_peaks(row, pks, tol, moddf):
+    peakmasses = pks.masses
+    peakheights = [p.height for p in pks.peaks]
+    # seqs, seqmasses, seqlabels = calc_seqmasses(row)
+    pmasses, plabels = calc_pairs(row)
+    print(peakmasses)
+    print(np.transpose([pmasses, plabels]))
+    modmasses = moddf["Mass"].to_numpy()
+    modlabels = moddf["Name"].to_numpy()
+    pmassgrid = np.array([modmasses + p for p in pmasses])
+
+    correctint = 0
+    incorrectint = 0
+    unmatchedint = 0
+    totalint = np.sum(peakheights)
+    matches = []
+    matchstring = ""
+
+    for i, peakmass in enumerate(peakmasses):
+        closeindex2D = np.unravel_index(np.argmin(np.abs(pmassgrid - peakmass)), pmassgrid.shape)
+        closeindex = closeindex2D[0]
+        error = np.argmin(np.abs(pmassgrid - peakmass))
+        label = plabels[closeindex] + "+" + modlabels[closeindex2D[1]]
+        if error < tol:
+            matches.append(label)
+            matchstring += " " + label
+            if "Correct" in plabels[closeindex]:
+                print("Correct", peakmass, label)
+                correctint += peakheights[i]
+            else:
+                print("Incorrect", peakmass, label)
+                incorrectint += peakheights[i]
+        else:
+            matches.append("")
+            print("Unmatched", peakmass)
+            unmatchedint += peakheights[i]
+
+    percents = np.array([correctint, incorrectint, unmatchedint]) / totalint * 100
+    print(percents)
+    if correctint + incorrectint > 0:
+        percents2 = np.array([correctint, incorrectint]) / (correctint + incorrectint) * 100
+    else:
+        percents2 = np.array([0, 0])
+    print(percents2)
+    return percents, percents2, matches, matchstring

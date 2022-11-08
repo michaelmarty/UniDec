@@ -102,7 +102,7 @@ class PlottingWindowBase(PlotBase, wx.Window):
                     self.zoom.switch_label()
                 except:
                     print("Could not switch on labels")
-        if event.button == 2:
+        if event.button == 2 or (event.button == 1 and wx.GetKeyState(wx.WXK_ESCAPE)):
             if wx.GetKeyState(wx.WXK_CONTROL):
                 dlg = DoubleInputDialog(self)
                 dlg.initialize_interface("Matplotlib RC Parameters", "RC Param Name:", 'lines.markersize',
@@ -110,8 +110,13 @@ class PlottingWindowBase(PlotBase, wx.Window):
                 dlg.ShowModal()
                 rcname = dlg.value
                 rcval = dlg.value2
-                print(rcname, rcval, "Replot to activate")
-                rcParams[rcname] = rcval
+
+                if rcname == "aspect":
+                    self.set_aspect(rcval)
+                    self.repaint(setupzoom=False)
+                else:
+                    print(rcname, rcval, "Replot to activate")
+                    rcParams[rcname] = rcval
             elif wx.GetKeyState(wx.WXK_ALT):
                 dlg = DoubleInputDialog(self)
                 dlg.initialize_interface("Set Plot X Range", "Min:", '',
