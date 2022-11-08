@@ -515,19 +515,21 @@ class UniDec(UniDecEngine):
         Convolve Peaks with Peak Shape
         :return: None
         """
-        #ud.makeconvspecies(self.data.data2, self.pks, self.config)
-        ud.unidec_call(self.config, conv=True)
+        if self.config.imflag == 1:
+            convdata = ud.makeconvspecies(self.data.data2, self.pks, self.config)
+        else:
+            ud.unidec_call(self.config, conv=True)
 
-        convdata = np.fromfile(self.config.outfname + "_conv.bin", dtype=self.config.dtype)
-        xlen = len(self.data.data2)
-        convdata = convdata.reshape((len(self.pks.peaks), xlen))
+            convdata = np.fromfile(self.config.outfname + "_conv.bin", dtype=self.config.dtype)
+            xlen = len(self.data.data2)
+            convdata = convdata.reshape((len(self.pks.peaks), xlen))
 
-        self.pks.composite = np.zeros(xlen)
-        for i in range(0, self.pks.plen):
-            sd = convdata[i]
-            self.pks.peaks[i].stickdat = sd
-            self.pks.composite += np.array(sd)
-        self.pks.convolved = True
+            self.pks.composite = np.zeros(xlen)
+            for i in range(0, self.pks.plen):
+                sd = convdata[i]
+                self.pks.peaks[i].stickdat = sd
+                self.pks.composite += np.array(sd)
+            self.pks.convolved = True
         return np.array(convdata)
 
 
