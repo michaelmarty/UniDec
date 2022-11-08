@@ -87,19 +87,22 @@ def stats_flow(df, ratio=None, ltype=None, column="+Ox", pcutoff=0.05):
     # Second, test variances
     # Test if any of the p values are significantly non-normal. If so, use the Levene test
     if np.any(p0 < pcutoff):
-        p1 = stats_test(df, ratio=ratio, ltype=ltype, column=column, type="levene", pcutoff=pcutoff)
+        t1 = "levene"
     # If all are normal or <3 data points, use bartlett
     else:
-        p1 = stats_test(df, ratio=ratio, ltype=ltype, column=column, type="bartlett", pcutoff=pcutoff)
+        t1 = "bartlett"
+    p1 = stats_test(df, ratio=ratio, ltype=ltype, column=column, type=t1, pcutoff=pcutoff)
 
     # Third, test difference in means
     # If the same variances, use Tukey HSD
     if p1 > pcutoff:
-        p2 = stats_test(df, ratio=ratio, ltype=ltype, column=column, type="tukey", pcutoff=pcutoff)
+        t2 = "tukey"
     # If different, use Games-Howell
     else:
-        p2 = stats_test(df, ratio=ratio, ltype=ltype, column=column, type="games", pcutoff=pcutoff)
+        t2 = "games"
+    p2 = stats_test(df, ratio=ratio, ltype=ltype, column=column, type=t2, pcutoff=pcutoff)
 
+    print("Stats Completed:", ratio, ltype, t1, t2)
     return p2
 
 
@@ -133,4 +136,4 @@ for l in lipids:
 
 # Output results
 print(outdf)
-outdf.to_excel("FPOP_Stats.xlsx")
+#outdf.to_excel("FPOP_Stats.xlsx")

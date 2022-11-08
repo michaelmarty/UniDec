@@ -203,6 +203,8 @@ The main GUI class is GUniDec.UniDecApp.
 
 v.5.2.0
 
+Major speed up to Plot Peaks command that simulates the isolated charge state distributions! This function is now built into the same C code used by UniDec, and is called by the UniDec.exe <file>_conf.dat -conv. It produces a binary file output that is read in and plotted. 
+
 Improvements to matching speed and API. Added right click option to send item from oligomer list to common matches list. Added a bunch of glycans and stuff to the common masses table.
 
 Improvements to MetaUniDec. Create a merged template rather than just using the first spectrum. Improvements to speed by keeping file open for the whole session. Reduction in print outputs.

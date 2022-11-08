@@ -248,6 +248,7 @@
     <ClInclude Include="MetaUniDec_Main.h" />
     <ClInclude Include="UD_analysis.h" />
     <ClInclude Include="UD_charge.h" />
+    <ClInclude Include="UD_conv.h" />
     <ClInclude Include="UD_dataproc.h" />
     <ClInclude Include="UD_H5_IO.h" />
     <ClInclude Include="UD_match.h" />

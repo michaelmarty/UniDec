@@ -6,7 +6,6 @@ import subprocess
 import time
 import decimal
 from bisect import bisect_left
-from ctypes import *
 from copy import deepcopy
 import zipfile
 import numpy as np
@@ -47,51 +46,8 @@ except:
     print("Could not import Thermo Data Importer")
 
 is_64bits = sys.maxsize > 2 ** 32
-
-"""
-Loads initial dll called libmypfunc. Will speed up convolutions and a few functions.
-
-If this isn't present, it will print a warning but use the pure python code later on.
-"""
-dllname = "libmypfunc"
 protmass = 1.007276467
 oxmass = 15.994914
-
-if platform.system() == "Windows":
-    if not is_64bits:
-        dllname += "32"
-    dllname += ".dll"
-elif platform.system() == "Darwin":
-    dllname += ".dylib"
-else:
-    dllname += ".so"
-testpath = dllname
-if os.path.isfile(testpath):
-    dllpath = testpath
-else:
-    # print testpath
-    pathtofile = os.path.dirname(os.path.abspath(__file__))
-    testpath = os.path.join(pathtofile, dllname)
-    if os.path.isfile(testpath):
-        dllpath = testpath
-    else:
-        # print testpath
-        testpath = os.path.join(os.path.dirname(pathtofile), dllname)
-        if os.path.isfile(testpath):
-            dllpath = testpath
-        else:
-            # print testpath
-            testpath = os.path.join(os.path.join(os.path.dirname(pathtofile), "unidec_bin"), dllname)
-            if os.path.isfile(testpath):
-                dllpath = testpath
-            else:
-                # print testpath
-                print("Unable to find file", testpath)
-
-try:
-    libs = cdll.LoadLibrary(dllpath)
-except (OSError, NameError):
-    print("Failed to load libmypfunc, convolutions in nonlinear mode might be slow")
 
 
 def get_importer(path):
@@ -1780,7 +1736,7 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
 # ............................................................................
 
 
-def unidec_call(config, silent=False, **kwargs):
+def unidec_call(config, silent=False, conv=False, **kwargs):
     """
     Run the UniDec binary specified by exepath with the configuration file specified by configfile.
     If silent is False (default), the output from exepath will be printed to the standard out.
@@ -1793,6 +1749,7 @@ def unidec_call(config, silent=False, **kwargs):
     :param exepath: Path to UniDec or UniDecIM binary
     :param configfile: Path to configuration file
     :param silent: Whether to print the output of exepath to the standard out
+    :param conv: Whether to call the convolution function only rather than the standard deconvolution
     :param kwargs:
     :return: Standard error of exepath execution
     """
@@ -1801,6 +1758,9 @@ def unidec_call(config, silent=False, **kwargs):
 
     if config.autotune:
         call.append("-autotune")
+
+    if conv:
+        call.append("-conv")
 
     if silent:
         out = subprocess.call(call, stdout=subprocess.PIPE)
@@ -2016,10 +1976,7 @@ def makeconvspecies(processed_data, pks, config):
             kernel = conv_peak_shape_kernel(xvals, config.psfun, peakwidth)
             stickdat = [stickconv(p.mztab, kernel) for p in pks.peaks]
         else:
-            try:
-                stickdat = [cconvolve(xvals, p.mztab, config.mzsig, config.psfun) for p in pks.peaks]
-            except (OSError, TypeError, NameError, AttributeError):
-                stickdat = [nonlinstickconv(xvals, p.mztab, config.mzsig, config.psfun) for p in pks.peaks]
+            stickdat = [nonlinstickconv(xvals, p.mztab, config.mzsig, config.psfun) for p in pks.peaks]
 
     pks.composite = np.zeros(xlen)
     for i in range(0, pks.plen):
@@ -2306,7 +2263,7 @@ def pair_glyco_matches(oligomasslist, oligonames, oligomerlist):
     # Number of Sialic Acids is also less than or equal to number of glcnacs
     b2 = ns <= ng
     b3 = np.logical_and(b1, b2)
-
+    print(nmatches, len(oligomasslist[b3]))
     return oligomasslist[b3], oligonames[b3]
 
 
@@ -2445,24 +2402,6 @@ def autocorr(datatop, config=None):
 
     else:
         return [[]], [[]]
-
-
-def cconvolve(xvals, mztab, fwhm, psfun):
-    """
-    Fast nonlinear convolution algorithm using C dll.
-    :param xvals: x-axis
-    :param mztab: mztab from make_peaks_mztab()
-    :param fwhm: Full width half max of peak
-    :param psfun: Peak shape function code (0=Gauss, 1=Lorentzian, 2=Split G/L)
-    :return: Convolved output
-    """
-    stick = np.zeros(len(xvals))
-    stick[np.array(mztab[:, 2]).astype(np.int)] = mztab[:, 1]
-    cxvals = (c_double * len(xvals))(*xvals)
-    cinput = (c_double * len(stick))(*stick)
-    cout = (c_double * len(stick))()
-    libs.convolve(byref(cxvals), byref(cinput), byref(cout), (c_int)(psfun), (c_double)(fwhm), len(cinput))
-    return np.frombuffer(cout)
 
 
 def conv_peak_shape_kernel(xaxis, psfun, fwhm):
