@@ -127,6 +127,7 @@ def match_files(directory, string, exclude=None):
                 files.append(file)
     return np.array(files)
 
+
 def match_dirs_recursive(topdir, ending=".raw"):
     found_dirs = []
     for root, dirs, files in os.walk(topdir):
@@ -135,6 +136,7 @@ def match_dirs_recursive(topdir, ending=".raw"):
                 found_dirs.append(os.path.join(root, d))
     return np.array(found_dirs)
 
+
 def match_files_recursive(topdir, ending=".raw"):
     found_files = []
     for root, dirs, files in os.walk(topdir):
@@ -142,6 +144,7 @@ def match_files_recursive(topdir, ending=".raw"):
             if f.endswith(ending):
                 found_files.append(os.path.join(root, f))
     return np.array(found_files)
+
 
 def isempty(thing):
     """
@@ -317,7 +320,7 @@ def nearestunsorted(array, target):
 
 def nearest(array, target):
     """
-    In an sorted array, quickly find the position of the element closest to the target.
+    In a sorted array, quickly find the position of the element closest to the target.
     :param array: Array
     :param target: Value
     :return: np.argmin(np.abs(array - target))
@@ -868,6 +871,16 @@ def waters_convert2(path, config=None, outfile=None):
         outfile = os.path.join(path, "converted_rawdata.txt")
     np.savetxt(outfile, data)
     return data
+
+
+def get_polarity(path):
+    extension = os.path.splitext(path)[1]
+    if extension.lower() == ".raw":
+        polarity = ThermoDataImporter(path).get_polarity()
+        return polarity
+    else:
+        print("File Extension Not Supported Yet...Bug MTM about this...")
+        return None
 
 
 def load_mz_file(path, config=None, time_range=None, imflag=0):
@@ -1769,7 +1782,7 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     return out
 
 
-def peakdetect(data, config=None, window=10, threshold=0):
+def peakdetect(data, config=None, window=10, threshold=0, ppm=None, norm=True):
     """
     Simple peak detection algorithm.
 
@@ -1787,17 +1800,29 @@ def peakdetect(data, config=None, window=10, threshold=0):
         threshold = config.peakthresh
     peaks = []
     length = len(data)
-    maxval = np.amax(data[:, 1])
+    if norm:
+        maxval = np.amax(data[:, 1])
+    else:
+        maxval = 1
     for i in range(0, length):
         if data[i, 1] > maxval * threshold:
-            start = i - window
-            end = i + window
-            if start < 0:
-                start = 0
-            if end > length:
-                end = length
-            start = int(start)
-            end = int(end) + 1
+            if ppm is not None:
+                ptmass = data[i, 0]
+                newwin = ppm * 1e-6 * ptmass
+                start = nearest(data[:, 0], ptmass - newwin)
+                end = nearest(data[:, 0], ptmass + newwin)
+            else:
+                start = i - window
+                end = i + window
+
+                start = int(start)
+                end = int(end) + 1
+
+                if start < 0:
+                    start = 0
+                if end > length:
+                    end = length
+
             testmax = np.amax(data[start:end, 1])
             if data[i, 1] == testmax and np.all(data[i, 1] != data[start:i, 1]):
                 peaks.append([data[i, 0], data[i, 1]])
