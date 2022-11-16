@@ -1,7 +1,6 @@
 import wx
-from scipy.optimize import curve_fit
 import numpy as np
-from unidec_modules import plot1d
+from unidec_modules import PlottingWindow
 from unidec_modules.unidectools import make_peak_shape, simp_string_to_value, isolated_peak_fit
 
 __author__ = 'Michael.Marty'
@@ -49,7 +48,7 @@ class PeakTools1d(wx.Dialog):
         sb = wx.StaticBox(pnl, label='Peak Shape Tool')
         sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 
-        self.plot1 = plot1d.Plot1d(pnl)
+        self.plot1 = PlottingWindow.Plot1d(pnl)
 
         self.plot1.plotrefreshtop(self.data[:, 0], self.data[:, 1], title="Data", xlabel="m/z (Th)",
                                   ylabel="Normalized Intensity", zoom="span")
@@ -261,7 +260,7 @@ class PeakTools2d(wx.Dialog):
         sb = wx.StaticBox(pnl, label='Peak Shape Tool')
         sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 
-        self.plot1 = plot1d.Plot1d(pnl)
+        self.plot1 = PlottingWindow.Plot1d(pnl)
         sbs.Add(self.plot1, 1, wx.EXPAND)
 
         hbox11 = wx.BoxSizer(wx.HORIZONTAL)
@@ -314,7 +313,7 @@ class PeakTools2d(wx.Dialog):
 
         hbox9.Add(hbox6, 0, wx.ALIGN_RIGHT)
         hbox9.Add(hbox7, 0, wx.ALIGN_RIGHT)
-        hbox11.Add(hbox9, 1, wx.ALIGN_RIGHT)
+        hbox11.Add(hbox9, 1)
         sbs.Add(hbox11, 0, wx.EXPAND)
         pnl.SetSizer(sbs)
 

@@ -1,7 +1,7 @@
 import wx.lib.mixins.listctrl as listmix
 import wx
 
-from unidec_modules import plot1d, peakstructure
+from unidec_modules import PlottingWindow, peakstructure
 import unidec_modules.unidectools as ud
 
 __author__ = 'Michael.Marty'
@@ -114,7 +114,7 @@ class AutocorrWindow(wx.Dialog):
         sb = wx.StaticBox(panel, label='Autocorrelation')
         sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 
-        self.plot1 = plot1d.Plot1d(panel)
+        self.plot1 = PlottingWindow.Plot1d(panel)
         sbs.Add(self.plot1)
         hbox.Add(sbs)
         self.listpanel = CorrListCtrlPanel(panel)

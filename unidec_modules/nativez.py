@@ -6,8 +6,7 @@ import matplotlib.cm as cm
 from scipy.interpolate import interp1d
 from wx.lib.agw import ultimatelistctrl as ulc
 from unidec_modules import unidectools as ud
-from unidec_modules import plot1d
-from unidec_modules import plot2d
+from unidec_modules import PlottingWindow
 from unidec_modules import MassFitter
 
 __author__ = 'Michael.Marty'
@@ -117,13 +116,13 @@ class NativeZ(wx.Dialog):
         sb = wx.StaticBox(pnl, label='Set Parameters to Plot Native Z')
         sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 
-        self.plot1 = plot1d.Plot1d(pnl, figsize=self.figsize)
-        self.plot2 = plot1d.Plot1d(pnl, figsize=self.figsize)
-        self.plot3 = plot1d.Plot1d(pnl, figsize=self.figsize)
-        self.plot4 = plot1d.Plot1d(pnl, figsize=self.figsize)
-        self.plot5 = plot1d.Plot1d(pnl, figsize=self.figsize)
-        self.plot6 = plot1d.Plot1d(pnl, figsize=self.figsize)
-        self.plot7 = plot2d.Plot2d(pnl, figsize=self.figsize)
+        self.plot1 = PlottingWindow.Plot1d(pnl, figsize=self.figsize)
+        self.plot2 = PlottingWindow.Plot1d(pnl, figsize=self.figsize)
+        self.plot3 = PlottingWindow.Plot1d(pnl, figsize=self.figsize)
+        self.plot4 = PlottingWindow.Plot1d(pnl, figsize=self.figsize)
+        self.plot5 = PlottingWindow.Plot1d(pnl, figsize=self.figsize)
+        self.plot6 = PlottingWindow.Plot1d(pnl, figsize=self.figsize)
+        self.plot7 = PlottingWindow.Plot2d(pnl, figsize=self.figsize)
 
         hbox0 = wx.BoxSizer(wx.HORIZONTAL)
         hbox0.Add(self.plot1, 0, wx.EXPAND)

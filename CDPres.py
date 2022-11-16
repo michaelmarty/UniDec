@@ -164,7 +164,10 @@ class UniDecCDApp(UniDecApp):
         else:
             print("ERROR: Histogram Array is empty")
 
-    def make_mzmass_plot(self, e=None):
+    def make_mzmass_plot_continuous(self, e=None):
+        self.make_mzmass_plot(discrete=False)
+
+    def make_mzmass_plot(self, e=None, discrete=True):
         self.export_config(self.eng.config.confname)
         print("Creating m/z vs. Mass plot.")
         tstart = time.perf_counter()
@@ -172,7 +175,7 @@ class UniDecCDApp(UniDecApp):
         self.eng.transform_mzmass()
         if not ud.isempty(self.eng.data.mzmassgrid) or np.amax(self.eng.data.mzmassgrid) == 0:
             self.view.plot5.contourplot(xvals=self.eng.mz, yvals=self.eng.data.massdat[:,0], zgrid=np.transpose(self.eng.data.mzmassgrid),
-                                        config=self.eng.config, ylab="Mass (Da)", discrete=True)
+                                        config=self.eng.config, ylab="Mass (Da)", discrete=discrete)
         else:
             print("ERROR: mzmassgrid Array is empty")
         tend = time.perf_counter()

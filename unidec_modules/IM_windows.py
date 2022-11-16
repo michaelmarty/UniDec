@@ -5,7 +5,7 @@ import wx
 import wx.lib.mixins.listctrl as listmix
 import matplotlib.cm as cm
 from unidec_modules.IM_functions import *
-from unidec_modules import plot1d, plot2d
+from unidec_modules import PlottingWindow
 
 __author__ = 'Michael.Marty'
 
@@ -181,7 +181,7 @@ class IMTools(wx.Dialog):
         sb = wx.StaticBox(self.pnl, label='Ion Mobility Parameters Tool')
         sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 
-        self.plot = plot2d.Plot2d(self.pnl)
+        self.plot = PlottingWindow.Plot2d(self.pnl)
         self.plot.contourplot(self.data3, self.config, xlab="m/z (Th)", ylab="Arrival Time (ms)", title="IM-MS Data")
         sbs.Add(self.plot, 1, wx.EXPAND)
 
@@ -456,8 +456,8 @@ class IMToolExtract(wx.Dialog):
         sb = wx.StaticBox(pnl, label='Ion Mobility Extraction Tool')
         sbs = wx.StaticBoxSizer(sb, orient=wx.HORIZONTAL)
         figsize = (6, 5)
-        self.plot1 = plot2d.Plot2d(pnl, figsize=figsize)
-        self.plot2 = plot1d.Plot1d(pnl, figsize=figsize)
+        self.plot1 = PlottingWindow.Plot2d(pnl, figsize=figsize)
+        self.plot2 = PlottingWindow.Plot1d(pnl, figsize=figsize)
         plotsizer = wx.BoxSizer(wx.VERTICAL)
         plotsizer.Add(self.plot1, 0, wx.EXPAND)
         plotsizer.Add(self.plot2, 0, wx.EXPAND)

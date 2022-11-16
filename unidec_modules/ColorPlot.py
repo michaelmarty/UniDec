@@ -6,7 +6,7 @@ from scipy.stats import norm
 import matplotlib.colors as colors
 import matplotlib.colorbar as colorbar
 
-from unidec_modules.PlottingWindow import PlottingWindow
+from unidec_modules.PlottingWindow import PlottingWindowBase
 from unidec_modules.unidectools import color_map_array
 
 '''
@@ -49,7 +49,7 @@ def color_map_array(array, cmap, alpha):
 __author__ = 'Michael.Marty'
 
 
-class ColorPlot2D(PlottingWindow):
+class ColorPlot2D(PlottingWindowBase):
     """
     Method to perform a 3D plot by plotting the Z axis as 2D slices of a different color.
     Each 2D slice uses the alpha (trasparency) parameter to indicate intensity in square root scale.
@@ -62,7 +62,7 @@ class ColorPlot2D(PlottingWindow):
         :param kwargs:
         :return: ColorPlot2D object
         """
-        PlottingWindow.__init__(self, *args, **kwargs)
+        PlottingWindowBase.__init__(self, *args, **kwargs)
         self._axes = [0.1, 0.1, 0.64, 0.8]
 
     def make_color_plot(self, mzgrid, mzax, dtax, ztab):
@@ -114,7 +114,7 @@ class ColorPlot2D(PlottingWindow):
 
         # Loop through each charge state and make the color plot to layer on top of the black background
         for i in range(0, zlen):
-            cm.register_cmap(name="newcmap", data=cmarr[i])
+            cm.register(cmarr[i], name="newcmap")
             grid_slice = np.sqrt(mzgrid[:, :, i])
             normalization = cm.colors.Normalize(vmax=0.5, vmin=0.00)
             self.subplot1.imshow(np.transpose(grid_slice), origin="lower", cmap="newcmap", extent=extent,

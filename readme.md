@@ -201,6 +201,30 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.5.2.0
+
+Major speed up to Plot Peaks command that simulates the isolated charge state distributions! This function is now built into the same C code used by UniDec, and is called by the UniDec.exe <file>_conf.dat -conv. It produces a binary file output that is read in and plotted. 
+
+Improvements to matching speed and API. Added right click option to send item from oligomer list to common matches list. Added a bunch of glycans and stuff to the common masses table.
+
+Improvements to MetaUniDec. Create a merged template rather than just using the first spectrum. Improvements to speed by keeping file open for the whole session. Reduction in print outputs.
+
+Improvements to Imaging viewer, including bug fixes.
+
+Added ability to calculate consecutive differences in peak masses.
+
+Added continuous plot button for UCD m/z vs. mass. Also, fixed bug to improve plotting.
+
+Improved copy/paste from peak list.
+
+Added ability to read text file exported from Chromeleon that have a bunch of commas in the numbers.
+
+Added mzXML support courtesy of pyteomics (please cite: Goloborodko, A.A.; Levitsky, L.I.; Ivanov, M.V.; and Gorshkov, M.V. (2013) “Pyteomics - a Python Framework for Exploratory Data Analysis and Rapid Software Prototyping in Proteomics”, Journal of The American Society for Mass Spectrometry, 24(2), 301–304. DOI: 10.1007/s13361-012-0516-6 and Levitsky, L.I.; Klein, J.; Ivanov, M.V.; and Gorshkov, M.V. (2018) “Pyteomics 4.0: five years of development of a Python proteomics framework”, Journal of Proteome Research. DOI: 10.1021/acs.jproteome.8b00717)
+
+Added Docker container and updated for command line usage of unidec.py.
+
+Fixed bug with the Peak Width Tools in UCD. Fixed labeling issue on UniChrom. Added UCD as command launch item.
+
 v.5.1.1
 
 Added Smashing (Ctrl+Double Right Click) to UCD.

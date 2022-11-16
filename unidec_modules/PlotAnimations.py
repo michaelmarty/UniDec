@@ -1,8 +1,7 @@
 import numpy as np
 from matplotlib.animation import FuncAnimation
 import wx
-from unidec_modules import plot2d
-from unidec_modules import plot1d
+from unidec_modules import PlottingWindow
 from unidec_modules import unidecstructure
 from unidec_modules import unidectools as ud
 from unidec_modules.isolated_packages import FileDialogs
@@ -77,9 +76,9 @@ class AnimationWindow(wx.Frame):
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         if self.mode == 1:
-            self.plot = plot1d.Plot1d(panel)
+            self.plot = PlottingWindow.Plot1d(panel)
         else:
-            self.plot = plot2d.Plot2d(panel)
+            self.plot = PlottingWindow.Plot2d(panel)
         sizer.Add(self.plot, 0, wx.EXPAND)
 
         controlsizer = wx.BoxSizer(wx.HORIZONTAL)

@@ -39,14 +39,9 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		* zind = NULL,
 		* closemind = NULL,
 		* closezind = NULL,
-		* closeind = NULL,
-		* starttab = NULL,
-		* endtab = NULL;
-	float
-		* mdist = NULL,
+		* closeind = NULL;
+	float * mdist = NULL,
 		* zdist = NULL,
-		* mzdist = NULL,
-		* rmzdist = NULL,
 		* oldblur = NULL,
 		* closeval = NULL,
 		* closearray = NULL;
@@ -62,25 +57,22 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	barr = calloc(ln, sizeof(char));
 	memcpy(barr, inp.barr, sizelnc);
 
-	//Sets a threshold for m/z values to check. Things that are far away in m/z space don't need to be considered in the iterations.
-	float threshold = config.psthresh * fabs(config.mzsig) * config.peakshapeinflate;
-	if (silent == 0) { printf("Threshold: %f\t", threshold); }
+	int maxlength = SetUpPeakShape(config, inp, &decon, 0, 1);
+	
+	/*
 	//Create a list of start and end values to box in arrays based on the above threshold
 	starttab = calloc(config.lengthmz, sizeof(int));
 	endtab = calloc(config.lengthmz, sizeof(int));
 	int maxlength = 1;
 	if (config.mzsig != 0) {
 		//Gets maxlength and sets start and endtab
-		maxlength = SetStartsEnds(config, &inp, starttab, endtab, threshold);
+		maxlength = SetStartsEnds(config, &inp, starttab, endtab);
 
 		//Changes dimensions of the peak shape function. 1D for speedy and 2D otherwise
 		int pslen = config.lengthmz;
 		if (config.speedyflag == 0) { pslen = config.lengthmz * maxlength; }
 		if (verbose == 1) { printf("Maxlength: %d \t Total Size: %zu GB\n", maxlength, pslen*sizeof(float)/1000000000); }
-		mzdist = calloc(pslen, sizeof(float)); //malloc(sizeof(float) * pslen); //
-		//if (verbose == 1) { printf("mzdist: %p %p\n", mzdist, NULL); }
-		//memset(mzdist, 0, pslen * sizeof(float));
-		if (verbose == 1) { printf("mzdist: %p\n", mzdist); }
+		mzdist = calloc(pslen, sizeof(float));
 		if (pslen * sizeof(float) / 1000000000 > 4) { printf("Danger: Your data may crash the memory. Consider setting the Peak FWHM to 0.\n"); }
 		int makereverse = 0;
 		if (config.mzsig < 0 || config.beta < 0) { makereverse = 1; rmzdist = calloc(pslen, sizeof(float));
@@ -99,7 +91,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		{
 			if (verbose == 1) { printf("Making Peak Shape 1D\n"); }
 			//Calculates peak shape as a 1D list centered at the first element for circular convolutions
-			MakePeakShape1D(inp.dataMZ, threshold, config.lengthmz, config.speedyflag, fabs(config.mzsig) * config.peakshapeinflate, config.psfun, mzdist, rmzdist, makereverse);
+			MakePeakShape1D(inp.dataMZ, config.psmzthresh, config.lengthmz, config.speedyflag, fabs(config.mzsig) * config.peakshapeinflate, config.psfun, mzdist, rmzdist, makereverse);
 		}
 		if (silent == 0) { printf("mzdist set: %f\t maxlength: %d\n", mzdist[0], maxlength); }
 
@@ -108,7 +100,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	{
 		mzdist = calloc(0, sizeof(float));
 		maxlength = 0;
-	}
+	}*/
 
 	//....................................................
 	//
@@ -181,31 +173,6 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	MakeSparseBlur(numclose, barr, closezind, closemind, inp.mtab, inp.nztab, inp.dataMZ, closeind, closeval, closearray, config);
 
 	if (silent == 0) { printf("Charges blurred: %d  Masses blurred: %d\n", zlength, mlength); }
-
-	int badness = 1;
-	for (int i = 0; i < config.lengthmz * config.numz; i++)
-	{
-		if (barr[i] == 1) { badness = 0;}
-	}
-	if (badness == 1) { printf("ERROR: Setup is bad. No points are allowed.\n Check that either mass smoothing, charge smoothing, manual assignment, or isotope mode are on."); 
-		decon = ExitToBlank(config, decon); 
-		free(mzdist);
-		free(rmzdist);
-		free(closeval);
-		free(closearray);
-		free(closemind);
-		free(closezind);
-		free(endtab);
-		free(starttab);
-
-		free(mdist);
-		free(mind);
-		free(zind);
-		free(zdist);
-		free(barr);
-		free(closeind);
-		return(decon); 
-	}
 
 	//IntPrint(closeind, numclose * config.lengthmz * config.numz);
 
@@ -296,11 +263,35 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 
 	}
 
+	// Final check that there are are actually possible data in the set
+	int badness = 1;
+	for (int i = 0; i < config.lengthmz * config.numz; i++)
+	{
+		if (barr[i] == 1) { badness = 0; }
+	}
+	if (badness == 1) {
+		if (silent == 0) { printf("ERROR: Setup is bad. No points are allowed.\n Check that either mass smoothing, charge smoothing, manual assignment, or isotope mode are on.\n"); };
+		decon = ExitToBlank(config, decon);
+		free(closeval);
+		free(closearray);
+		free(closemind);
+		free(closezind);
+
+		free(mdist);
+		free(mind);
+		free(zind);
+		free(zdist);
+		free(barr);
+		free(closeind);
+		return(decon);
+	}
 
 	//Run the iteration
 	float blurmax = 0;
 	decon.conv = 0;
 	int off = 0;
+	
+
 	if (silent == 0) { printf("Iterating..."); }
 
 	for (int iterations = 0; iterations < abs(config.numit); iterations++)
@@ -314,7 +305,8 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		}
 		else if (config.beta < 0 && iterations >0)
 		{
-			softargmax_transposed(decon.blur, config.lengthmz, config.numz, fabs(config.beta/betafactor), barr, maxlength, config.isolength, inp.isotopepos, inp.isotopeval, config.speedyflag, starttab, endtab, rmzdist, config.mzsig);
+			softargmax_transposed(decon.blur, config.lengthmz, config.numz, fabs(config.beta/betafactor), barr, maxlength,
+				config.isolength, inp.isotopepos, inp.isotopeval, config.speedyflag, decon.starttab, decon.endtab, decon.rmzdist, config.mzsig);
 		}
 
 		if (config.psig >= 1 && iterations > 0)
@@ -324,7 +316,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		}
 		else if (config.psig < 0 && iterations >0)
 		{
-			point_smoothing_peak_width(config.lengthmz, config.numz, maxlength, starttab, endtab, mzdist, decon.blur, config.speedyflag, barr);
+			point_smoothing_peak_width(config.lengthmz, config.numz, maxlength, decon.starttab, decon.endtab, decon.mzdist, decon.blur, config.speedyflag, barr);
 		}
 
 		
@@ -347,7 +339,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		//Run Richardson-Lucy Deconvolution
 		deconvolve_iteration_speedy(config.lengthmz, config.numz, maxlength,
 			decon.newblur, decon.blur, barr, config.aggressiveflag, dataInt2,
-			config.isolength, inp.isotopepos, inp.isotopeval, starttab, endtab, mzdist, rmzdist, config.speedyflag,
+			config.isolength, inp.isotopepos, inp.isotopeval, decon.starttab, decon.endtab, decon.mzdist, decon.rmzdist, config.speedyflag,
 			config.baselineflag, decon.baseline, decon.noise, config.mzsig, inp.dataMZ, config.filterwidth, config.psig);
 		
 		//Determine the metrics for conversion. Only do this every 10% to speed up.
@@ -396,11 +388,11 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	if (config.peakshapeinflate != 1 && config.mzsig != 0) {
 		if (config.speedyflag == 0)
 		{
-			MakePeakShape2D(config.lengthmz, maxlength, starttab, endtab, inp.dataMZ, fabs(config.mzsig), config.psfun, config.speedyflag, mzdist, rmzdist, 0);
+			MakePeakShape2D(config.lengthmz, maxlength, decon.starttab, decon.endtab, inp.dataMZ, fabs(config.mzsig), config.psfun, config.speedyflag, decon.mzdist, decon.rmzdist, 0);
 		}
 		else
 		{
-			MakePeakShape1D(inp.dataMZ, threshold, config.lengthmz, config.speedyflag, fabs(config.mzsig), config.psfun, mzdist, rmzdist, 0);
+			MakePeakShape1D(inp.dataMZ, config.psmzthresh, config.lengthmz, config.speedyflag, fabs(config.mzsig), config.psfun, decon.mzdist, decon.rmzdist, 0);
 		}
 		printf("mzdist reset: %f\n", config.mzsig);
 	}
@@ -417,7 +409,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	
 	//Calculate the fit data and error.
 	decon.fitdat = calloc(config.lengthmz, sizeof(float));
-	decon.error = errfunspeedy(config, decon, barr, inp.dataInt, maxlength, inp.isotopepos, inp.isotopeval, starttab, endtab, mzdist, &decon.rsquared);
+	decon.error = errfunspeedy(config, decon, barr, inp.dataInt, maxlength, inp.isotopepos, inp.isotopeval, decon.starttab, decon.endtab, decon.mzdist, &decon.rsquared);
 
 	//Fix issues with fitdat and consecutive zero data points
 	//TODO: It might be possible to build this in to convolve_simp so that this isn't necessary but it would require a 1D barr.
@@ -454,7 +446,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	float newblurmax = blurmax;
 	if ((config.rawflag == 0 || config.rawflag == 2)) {
 		if (config.mzsig != 0) {
-			newblurmax = Reconvolve(config.lengthmz, config.numz, maxlength, starttab, endtab, mzdist, decon.blur, decon.newblur, config.speedyflag, barr);
+			newblurmax = Reconvolve(config.lengthmz, config.numz, maxlength, decon.starttab, decon.endtab, decon.mzdist, decon.blur, decon.newblur, config.speedyflag, barr);
 		}
 		else
 		{
@@ -479,8 +471,8 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 			{
 				if (decon.newblur[index2D(config.numz, i, j)] * barr[index2D(config.numz, i, j)] > newblurmax * cutoff)
 				{
-					float testmax = inp.mtab[index2D(config.numz, i, j)] + threshold * inp.nztab[j]+config.massbins;
-					float testmin = inp.mtab[index2D(config.numz, i, j)] - threshold * inp.nztab[j];
+					float testmax = inp.mtab[index2D(config.numz, i, j)] + config.psmzthresh * inp.nztab[j]+config.massbins;
+					float testmin = inp.mtab[index2D(config.numz, i, j)] - config.psmzthresh * inp.nztab[j];
 
 					//To prevent really wierd decimals
 					testmin = round(testmin / config.massbins) * config.massbins;
@@ -500,7 +492,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	int mn = decon.mlen * config.numz;
 	size_t sizemn = (size_t)mn * sizeof(float);
 	if (decon.mlen < 1) {
-		printf("Bad mass axis length: %d\n", decon.mlen);
+		printf("ERROR: No masses detected. Length: %d\n", decon.mlen);
 		massmax = config.massub;
 		massmin = config.masslb;
 		decon.mlen = (int)(massmax - massmin) / config.massbins;
@@ -518,7 +510,6 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 			decon.massaxis[i] = massmin + i * config.massbins;
 		}
 		decon.uniscore = 0;
-		printf("ERROR: No masses detected.\n");
 	}
 	else {
 
@@ -582,14 +573,10 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	}
 
 	//Free Memory
-	free(mzdist);
-	free(rmzdist);
 	free(closeval);
 	free(closearray);
 	free(closemind);
 	free(closezind);
-	free(endtab);
-	free(starttab);
 
 	free(mdist);
 	free(mind);
@@ -707,22 +694,12 @@ int run_unidec(int argc, char *argv[], Config config) {
 
 	//.............................................................
 	//
-	//          Set the Mass Values and Values to Exclude
+	//          Set the Mass Values to Exclude
 	//
 	//...............................................................
 
-	//Fills inp.mtab by multiplying each mz by each z
-	int ln = config.lengthmz * config.numz;
-	inp.mtab = calloc(ln, sizeof(float));
-	#pragma omp parallel for schedule(auto)
-	for (int i = 0; i<config.lengthmz; i++)
-	{
-		for (int j = 0; j<config.numz; j++)
-		{
-			inp.mtab[index2D(config.numz, i, j)] = (inp.dataMZ[i] * inp.nztab[j] - config.adductmass*inp.nztab[j]);
-		}
-	}
-	if (verbose == 1) { printf("Setup Masses\n"); }
+
+	CalcMasses(&config, &inp);
 
 	//Allocates the memory for the boolean array of whether to test a value
 	int newlen = config.lengthmz * config.numz;
@@ -742,7 +719,6 @@ int run_unidec(int argc, char *argv[], Config config) {
 		if (verbose == 1) { printf("Setup Manual Assign\n"); }
 	}
 	
-
 	//Setup Isotope Distributions
 	if (config.isotopemode > 0)
 	{
@@ -817,7 +793,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 		write_attr_float(config.file_id, config.dataset, "psig", config.psig);
 		write_attr_float(config.file_id, config.dataset, "beta", config.beta);
 		set_needs_grids(config.file_id);
-		H5Fclose(config.file_id);
+		//H5Fclose(config.file_id);
 	}
 
 	//Free memory

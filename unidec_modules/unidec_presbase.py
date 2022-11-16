@@ -29,10 +29,10 @@ class UniDecPres(object):
         opts = None
         if not ignore_args:
             try:
-                opts, args = getopt.getopt(sys.argv[1:], "ucmf:", ["file=", "unidec", "meta", "chrom"])
+                opts, args = getopt.getopt(sys.argv[1:], "ucmfd:", ["file=", "unidec", "meta", "chrom", "ucd"])
             except getopt.GetoptError as e:
                 print("Error in Argv. Likely unknown option: ", sys.argv, e)
-                print("Known options: -u, -m, -c, -f")
+                print("Known options: -u, -m, -c, -f, -d")
 
             # print("ARGS:", args)
             # print("KWARGS:", kwargs)
@@ -212,21 +212,7 @@ class UniDecPres(object):
             data = self.eng.data.massdat
         if pks is None:
             pks = self.eng.pks
-        if self.eng.config.batchflag == 0 and data.shape[1] == 2 and len(data) >= 2:
-            tstart = time.perf_counter()
-            plot.plotrefreshtop(data[:, 0], data[:, 1],
-                                "Zero-charge Mass Spectrum", "Mass (Da)",
-                                "Intensity", "Mass Distribution", self.eng.config, test_kda=True,
-                                nopaint=True)
-            if pks.plen > 0:
-                for p in pks.peaks:
-                    if p.ignore == 0:
-                        plot.plotadddot(p.mass, p.height, p.color, p.marker)
-            plot.repaint()
-            tend = time.perf_counter()
-            print("Plot 2: %.2gs" % (tend - tstart))
-        if data.shape[1] != 2 or len(data) < 2:
-            print("Data Too Small. Adjust parameters.", data)
+        self.eng.makeplot2(plot, data, pks)
 
     def makeplot4(self, e=None, plot=None, data=None, pks=None):
         """
@@ -243,43 +229,7 @@ class UniDecPres(object):
             data = self.eng.data.data2
         if pks is None:
             pks = self.eng.pks
-        if self.eng.config.batchflag == 0:
-            tstart = time.perf_counter()
-            # This plots the normal 1D mass spectrum
-            plot.plotrefreshtop(data[:, 0], data[:, 1],
-                                "Data with Offset Isolated Species", "m/z (Th)",
-                                "Normalized and Offset Intensity", "Data", self.eng.config, nopaint=True)
-            num = 0
-            # Corrections for if Isotope mode is on
-            if self.eng.config.isotopemode == 1:
-                try:
-                    stickmax = np.amax(np.array([p.stickdat for p in pks.peaks]))
-                except (AttributeError, ValueError):
-                    stickmax = 1.0
-            else:
-                stickmax = 1.0
-            # Loop through each peak
-            for i, p in enumerate(pks.peaks):
-                # Check if the peak is ignored
-                if p.ignore == 0:
-                    # Check if the mztabs are empty
-                    if (not ud.isempty(p.mztab)) and (not ud.isempty(p.mztab2)):
-                        mztab = np.array(p.mztab)
-                        mztab2 = np.array(p.mztab2)
-                        maxval = np.amax(mztab[:, 1])
-                        # Filter all peaks where the deconvolved intensity is above the relative threshold
-                        b1 = mztab[:, 1] > self.eng.config.peakplotthresh * maxval
-                        # Plot the filtered peaks as dots on the spectrum
-                        plot.plotadddot(mztab2[b1, 0], mztab2[b1, 1], p.color, p.marker)
-                    # Check if convolved data is present
-                    if not ud.isempty(p.stickdat):
-                        # Plot the offset reconvolved data from the isolated species
-                        plot.plotadd(self.eng.data.data2[:, 0], np.array(p.stickdat) / stickmax - (
-                                num + 1) * self.eng.config.separation, p.color, "useless label")
-                    num += 1
-            plot.repaint()
-            tend = time.perf_counter()
-            print("Plot 4: %.2gs" % (tend - tstart))
+        self.eng.makeplot4(plot, data, pks)
 
     def on_filter_peaks(self, e=None):
         defaultvalue = "40"
@@ -336,7 +286,7 @@ class UniDecPres(object):
             plot.addtext(sign + str(i), peakpos[index], np.amax(data[:, 1]) * 0.99)
             index += 1
 
-    def on_differences(self, e=None, peakpanel=None, pks=None, plot=None, massdat=None):
+    def on_differences(self, e=None, pks=None, plot=None, massdat=None):
         """
         Triggered by right click "Display Differences" on self.view.peakpanel.
         Plots a line with text listing the difference between each mass and a specific peak.
@@ -344,8 +294,7 @@ class UniDecPres(object):
         :param e: unused event
         :return: None
         """
-        if peakpanel is None:
-            peakpanel = self.view.peakpanel
+
         if pks is None:
             pks = self.eng.pks
         if plot is None:
@@ -353,9 +302,10 @@ class UniDecPres(object):
         if massdat is None:
             massdat = self.eng.data.massdat
 
-        peaksel = peakpanel.selection2
-        pmasses = np.array([p.mass for p in pks.peaks])
-        peakdiff = pmasses - peaksel
+        b1 = pks.get_bool()
+
+        pmasses = np.array([p.mass for p in pks.peaks])[b1]
+        peakdiff = np.array([p.diff for p in pks.peaks])[b1]
         mval = np.amax(massdat[:, 1])
         # print peakdiff
 
@@ -366,6 +316,7 @@ class UniDecPres(object):
                 plot.addtext(label, pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
             else:
                 plot.addtext("0", pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
+
 
     def on_label_masses(self, e=None, peakpanel=None, pks=None, plot=None, dataobj=None):
         """

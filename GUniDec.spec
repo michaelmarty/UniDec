@@ -104,9 +104,6 @@ if system == "Windows":
     # a.datas += [('mkl_intel_thread.dll', 'unidec_bin\\mkl_intel_thread.dll', 'DATA')]
     # a.datas += [('ucrtbase.dll', 'unidec_bin\\ucrtbase.dll', 'DATA')]
     # a.datas += [('vcruntime140.dll', 'unidec_bin\\vcruntime140.dll', 'DATA')]
-    # a.datas += [('libmypfunc.dll', 'unidec_bin\\libmypfunc.dll', 'DATA')]
-    # a.datas += [('rawreader.exe', 'unidec_bin\\rawreader.exe', 'DATA')]
-    # a.datas += [('rawreadertim.exe', 'unidec_bin\\rawreadertim.exe', 'DATA')]
     a.datas += [('CDCReader.exe', 'unidec_bin\\CDCReader.exe', 'DATA')]
     a.datas += [('h5repack.exe', 'unidec_bin\\h5repack.exe', 'DATA')]
     a.datas += [('unimod.sqlite', 'unidec_bin\\unimod.sqlite', 'DATA')]
@@ -139,8 +136,6 @@ if system == "Windows":
     a.datas += [('Waters_MassLynxSDK_EULA.txt', 'unidec_bin\\Waters_MassLynxSDK_EULA.txt', 'DATA')]
 elif system == "Linux":
     a.datas += [('unideclinux', 'unidec_bin/unideclinux', 'DATA')]
-    # a.datas += [('unideclinuxIM', 'unidec_bin/unideclinuxIM', 'DATA')]
-    a.datas += [('libmypfunc.so', 'unidec_bin/libmypfunc.so', 'DATA')]
 
 a.datas += [('cacert.pem', os.path.join('unidec_bin', 'cacert.pem'), 'DATA')]
 a.datas += [('Images/logo.ico', 'logo.ico', 'DATA')]

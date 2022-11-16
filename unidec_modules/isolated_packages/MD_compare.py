@@ -1,9 +1,6 @@
-import matplotlib.pyplot as plt
-import os
 import numpy as np
 import wx
-from unidec_modules import unidecstructure, plot1d, plot2d, miscwindows, MassDefectExtractor, ColorPlot
-import unidec_modules.unidectools as ud
+from unidec_modules import unidecstructure, PlottingWindow, ColorPlot
 
 
 class MassDefectCompareWindow(wx.Frame):
@@ -114,10 +111,10 @@ class MassDefectCompareWindow(wx.Frame):
         # Setup the GUI
         panel = wx.Panel(self)
 
-        self.plot1 = plot2d.Plot2d(panel)
-        self.plot2 = plot2d.Plot2d(panel)
+        self.plot1 = PlottingWindow.Plot2d(panel)
+        self.plot2 = PlottingWindow.Plot2d(panel)
         self.plot3 = ColorPlot.ColorPlot2D(panel)
-        # self.plot4 = plot1d.Plot1d(panel)
+        # self.plot4 = PlottingWindow.Plot1d(panel)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         # plotsizer1 = wx.BoxSizer(wx.HORIZONTAL)

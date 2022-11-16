@@ -222,3 +222,12 @@ unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_Figure6.pdf
 unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_report.aux
 unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_report.log
 unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_report.pdf
+unidec_bin/Example Data/BSA_unidecfiles/BSA_ofile_crazy.dat
+unidec_bin/Example Data/BSA_unidecfiles/BSA_report.html
+unidec_src/UniDec/test_match.bat
+LipyDec.py
+unidec_modules/SkyQuant.py
+docker_commands.txt
+unidec_bin/Example Data/BSA_unidecfiles/BSA_conv.bin
+.pypirc
+

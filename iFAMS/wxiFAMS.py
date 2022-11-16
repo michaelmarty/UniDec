@@ -1,11 +1,9 @@
 import os
-from copy import deepcopy
 import numpy as np
 import wx
 
-from unidec_modules import unidecstructure, plot1d, plot2d
+from unidec_modules import unidecstructure, PlottingWindow
 import unidec_modules.unidectools as ud
-import matplotlib._cm as cm
 
 from iFAMS import iFAMSfun
 
@@ -46,10 +44,10 @@ class iFAMS_Window(wx.Frame):
         # Setup the Plots
         panel = wx.Panel(self)
 
-        self.plot1 = plot1d.Plot1d(panel)
-        self.plot2 = plot1d.Plot1d(panel)
-        self.plot3 = plot1d.Plot1d(panel)
-        self.plot4 = plot1d.Plot1d(panel)
+        self.plot1 = PlottingWindow.Plot1d(panel)
+        self.plot2 = PlottingWindow.Plot1d(panel)
+        self.plot3 = PlottingWindow.Plot1d(panel)
+        self.plot4 = PlottingWindow.Plot1d(panel)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         plotsizer1 = wx.BoxSizer(wx.HORIZONTAL)

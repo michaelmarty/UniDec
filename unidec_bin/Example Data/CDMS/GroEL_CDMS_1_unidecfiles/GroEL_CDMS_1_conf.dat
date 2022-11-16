@@ -1,4 +1,4 @@
-version 5.1.0
+version 5.2.0
 imflag 0
 cdmsflag 1
 input C:\Python\UniDec3\unidec_bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat
@@ -43,7 +43,7 @@ peakshapeinflate 1.0
 noiseflag 0.0
 linflag 2
 cmap viridis
-peakcmap viridis
+peakcmap viridis_r
 spectracmap rainbow
 publicationmode 1
 isotopemode 0

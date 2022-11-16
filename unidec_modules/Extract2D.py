@@ -5,8 +5,7 @@ import wx
 import matplotlib.cm as cm
 
 from unidec_modules import unidecstructure
-from unidec_modules import plot2d
-from unidec_modules import plot1d
+from unidec_modules import PlottingWindow
 from unidec_modules import unidectools as ud
 from unidec_modules.MassFitter import MassFitter
 from unidec_modules import miscwindows
@@ -134,10 +133,10 @@ class Extract2DPlot(wx.Frame):
         # Setup GUI
         panel = wx.Panel(self)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self.plot1 = plot1d.Plot1d(panel)
-        self.plot2 = plot2d.Plot2d(panel)
-        self.plot3 = plot1d.Plot1d(panel)
-        self.plot4 = plot1d.Plot1d(panel)
+        self.plot1 = PlottingWindow.Plot1d(panel)
+        self.plot2 = PlottingWindow.Plot2d(panel)
+        self.plot3 = PlottingWindow.Plot1d(panel)
+        self.plot4 = PlottingWindow.Plot1d(panel)
         sizer2 = wx.BoxSizer(wx.HORIZONTAL)
         sizer2.Add(self.plot1, 1, wx.EXPAND)
         sizer2.Add(self.plot3, 1, wx.EXPAND)

@@ -95,6 +95,10 @@ struct Decon {
 	float* peakx;
 	float* peaky;
 	float* dscores;
+	int* starttab;
+	int* endtab;
+	float* mzdist;
+	float* rmzdist;
 	float error;
 	float rsquared;
 	int iterations;
@@ -118,6 +122,10 @@ Decon SetupDecon() {
 	decon.peakx = NULL;
 	decon.peaky = NULL;
 	decon.dscores = NULL;
+	decon.starttab = NULL;
+	decon.endtab = NULL;
+	decon.mzdist = NULL;
+	decon.rmzdist = NULL;
 	decon.error = 0;
 	decon.rsquared = 0;
 	decon.iterations = 0;
@@ -142,6 +150,10 @@ void FreeDecon(Decon decon)
 	free(decon.peakx);
 	free(decon.peaky);
 	free(decon.dscores);
+	free(decon.mzdist);
+	free(decon.rmzdist);
+	free(decon.starttab);
+	free(decon.endtab);
 }
 
 typedef struct Config Config;
@@ -164,6 +176,7 @@ struct Config
 	float masslb;
 	int psfun;
 	int zpsfun;
+	float psmzthresh;
 	float mtabsig;
 	char mfile[500];
 	char manualfile[500];
@@ -213,6 +226,7 @@ struct Config
 	int metamode;
 	float minmz;
 	float maxmz;
+	float mzres;
 	int mzbins;
 	float bsub;
 	float datareduction;
@@ -261,6 +275,7 @@ Config SetDefaultConfig()
 	config.masslb = 100;
 	config.psfun = 0;
 	config.zpsfun = 0;
+	config.psmzthresh = 0;
 	config.mtabsig = 0;
 	config.mflag = 0;
 	config.massbins = 100;
@@ -308,6 +323,7 @@ Config SetDefaultConfig()
 	config.metamode = -2;
 	config.minmz = -1;
 	config.maxmz = -1;
+	config.mzres = -1;
 	config.mzbins = 0;
 	config.bsub = 0;
 	config.datareduction = 0;
@@ -382,6 +398,9 @@ Config PostImport(Config config)
 
 	//Experimental correction. Not sure why this is necessary.
 	if (config.psig < 0) { config.mzsig /= 3; }
+
+	//Sets a threshold for m/z values to check. Things that are far away in m/z space don't need to be considered in the iterations.
+	config.psmzthresh = config.psthresh * fabs(config.mzsig) * config.peakshapeinflate;
 
 	return config;
 }
@@ -558,7 +577,7 @@ void PrintHelp()
 	printf("\t\t\t\t\t\"tcal3\"=Calibration paramter 3 (P3)\n");
 	printf("\t\t\t\t5=SLIM T-Wave 3rd Order Polynomial Calibration\n");
 	printf("\t\t\t\t\t\"tcal4\"=Calibration parmater 4 (P4)\n");
-	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit date 9/15/22\n");
+	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit date 11/1/22\n");
 	//printf("\nsize of: %d",sizeof(char));
 
 	/*
@@ -641,6 +660,12 @@ float ndis(float x, float y, float sig)
 //Actual Modulus operator rather than Remainder operator %
 int mod(int a, int b) { int r = a % b; return r < 0 ? r + b : r; }
 
+// Simple function to calculate mz from mass, z, and adductmass
+float calcmz(const float mass, const int z, const float adductmass)
+{
+	return (mass + (float)z * adductmass) / (float)z;
+}
+
 //Reads in x y file.
 void readfile(char* infile, int lengthmz, float* dataMZ, float* dataInt)
 {
@@ -716,6 +741,24 @@ void readfile3bin(char* infile, int lengthmz, float* array1, float* array2, floa
 	fclose(file_ptr);
 }
 
+//Reads in list binary file.
+void readfile1bin(char* infile, int lengthmz, float* data)
+{
+	FILE* file_ptr = fopen(infile, "rb");
+	if (file_ptr == 0) { printf("Error Opening %s\n", infile); exit(1); }
+	fread(data, sizeof(float), lengthmz, file_ptr);
+	fclose(file_ptr);
+}
+
+//Writes to binary file
+void writefile1bin(char * outstring, int lengthmz, float *data)
+{
+	FILE* out_ptr = fopen(outstring, "wb");
+	if (out_ptr == 0) { printf("Error Opening %s \n", outstring); exit(1); }
+	fwrite(data, sizeof(float), lengthmz, out_ptr);
+	fclose(out_ptr);
+}
+
 
 //Reads in single list of values
 void readmfile(char* infile, int mfilelen, float* testmasses)
@@ -747,9 +790,18 @@ int getfilelength(const char* infile)
 	file_ptr = fopen(infile, "r");
 	if (file_ptr == 0) { printf("Error Opening %s\n", infile); exit(1); }
 
-	while (fscanf(file_ptr, "%500[^\n]%*c", input) != EOF)
+	int read = -2;
+	while ( read != EOF)
 	{
-		l += 1;
+		read = fscanf(file_ptr, "%500[^\n]%*c", input);
+		if(read !=0 && read != EOF)
+		{
+			l += 1;
+		}
+		else
+		{
+			break;
+		}
 	}
 	
 	fclose(file_ptr);
@@ -960,7 +1012,7 @@ float Max(const float* blur, const int length) {
 	return blurmax;
 }
 
-float Sum(const float* blur, int length) {
+float Sum(const float* blur, const int length) {
 	float sum = 0;
 	for (int i = 0; i < length; i++)
 	{
@@ -969,7 +1021,7 @@ float Sum(const float* blur, int length) {
 	return sum;
 }
 
-float max1d(float* blur, int lengthmz) {
+float max1d(const float* blur, const int lengthmz) {
 	float blurmax = blur[0];
 	unsigned int i;
 	for (i = 0; i < lengthmz; i++)
@@ -982,7 +1034,7 @@ float max1d(float* blur, int lengthmz) {
 	return blurmax;
 }
 
-float min1d(float* blur, int lengthmz) {
+float min1d(const float* blur, const int lengthmz) {
 	float blurmin = blur[0];
 	unsigned int i;
 	for (i = 0; i < lengthmz; i++)
@@ -995,7 +1047,7 @@ float min1d(float* blur, int lengthmz) {
 	return blurmin;
 }
 
-int argmax(float* blur, int lengthmz)
+int argmax(const float* blur, const int lengthmz)
 {
 	float max = blur[0];
 	int pos = 0;
@@ -2431,16 +2483,15 @@ void SmartTransform(const int maaxle, const int numz, const int lengthmz, const 
 		float val = 0;
 		for (int j = 0; j < numz; j++)
 		{
-			float z = (float)nztab[j];
+			int z = nztab[j];
 			float mtest = massaxis[i];
-			float mztest = (mtest + z * adductmass) / z;
+			float mztest = calcmz(mtest, z, adductmass);
 
 			float mzlower;
 			float mlower;
 			if (i > 0) {
 				mlower = massaxis[i - 1];
-				mzlower = (mlower + z * adductmass) / z;
-				//mzlower = (mzlower + mztest) / 2;
+				mzlower = calcmz(mlower, z, adductmass);
 			}
 			else { mzlower = mztest; mlower = mtest; }
 
@@ -2448,8 +2499,7 @@ void SmartTransform(const int maaxle, const int numz, const int lengthmz, const 
 			float mupper;
 			if (i < maaxle - 1) {
 				mupper = massaxis[i + 1];
-				mzupper = (mupper + z * adductmass) / z;
-				//mzupper = (mzupper + mztest) / 2;
+				mzupper = calcmz(mupper, z, adductmass);
 			}
 			else { mzupper = mztest; mupper = mtest; }
 
@@ -3300,11 +3350,11 @@ void SetLimits(const Config config, Input* inp)
 
 //Sets the maxlength parameter and the start and end values for the m/z peak shape convolution
 //Convolution uses a reflection for the edges, so some care needs to be taken when things are over the edge.
-int SetStartsEnds(const Config config, const Input* inp, int* starttab, int* endtab, const float threshold) {
+int SetStartsEnds(const Config config, const Input* inp, int* starttab, int* endtab) {
 	int maxlength = 1;
 	for (int i = 0; i < config.lengthmz; i++)
 	{
-		float point = inp->dataMZ[i] - threshold;
+		float point = inp->dataMZ[i] - config.psmzthresh;
 		int start, end;
 		if (point < inp->dataMZ[0] && config.speedyflag == 0) {
 			//start = (int)((point - inp->dataMZ[0]) / (inp->dataMZ[1] - inp->dataMZ[0]));
@@ -3315,7 +3365,7 @@ int SetStartsEnds(const Config config, const Input* inp, int* starttab, int* end
 		}
 		starttab[i] = start;
 
-		point = inp->dataMZ[i] + threshold;
+		point = inp->dataMZ[i] + config.psmzthresh;
 		if (point > inp->dataMZ[config.lengthmz - 1] && config.speedyflag == 0) {
 			//end = config.lengthmz - 1 + (int)((point - inp->dataMZ[config.lengthmz - 1]) / (inp->dataMZ[config.lengthmz - 1] - inp->dataMZ[config.lengthmz - 2]));
 			end = config.lengthmz - 1 + nearfast(inp->dataMZ, 2 * inp->dataMZ[0] - point, config.lengthmz);
@@ -4128,7 +4178,7 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 			char strval[1024];
 			sprintf(strval, "/%d", config->metamode);
 			strcat(config->dataset, strval);
-			printf("HDF5: %s\n", config->dataset);
+			if (config->silent == 0) { printf("HDF5: %s\n", config->dataset); }
 		}
 		else
 		{
@@ -4137,7 +4187,7 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 		
 		char outdat[1024];
 		strjoin(config->dataset, "/processed_data", outdat);		
-		config->file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
+		//config->file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 
 		config->lengthmz = mh5getfilelength(config->file_id, outdat);
 		inp->dataMZ = (float*) calloc(config->lengthmz, sizeof(float));
@@ -4201,7 +4251,70 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 			if (inp->dataMZ[i] == inp->dataMZ[i + 1]) { printf("Error: Two data points are identical: %f %f \n\n", inp->dataMZ[i], inp->dataMZ[i+1]); exit(104); }
 		}
 	}
-	
+}
+
+void CalcMasses(Config* config, Input* inp) {
+	//Fills mtab by multiplying each mz by each z
+	int ln = config->lengthmz * config->numz;
+	inp->mtab = (float*)calloc(ln, sizeof(float));
+	#pragma omp parallel for schedule(auto)
+	for (int i = 0; i < config->lengthmz; i++)
+	{
+		for (int j = 0; j < config->numz; j++)
+		{
+			inp->mtab[index2D(config->numz, i, j)] = (inp->dataMZ[i] * inp->nztab[j] - config->adductmass * inp->nztab[j]);
+		}
+	}
+}
+
+
+
+int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, const int verbose)
+{
+	//Create a list of start and end values to box in arrays based on the above threshold
+	decon->starttab = (int*) calloc(config.lengthmz, sizeof(int));
+	decon->endtab = (int*) calloc(config.lengthmz, sizeof(int));
+	int maxlength = 1;
+	if (config.mzsig != 0) {
+		//Gets maxlength and sets start and endtab
+		maxlength = SetStartsEnds(config, &inp, decon->starttab, decon->endtab);
+
+		//Changes dimensions of the peak shape function. 1D for speedy and 2D otherwise
+		int pslen = config.lengthmz;
+		if (config.speedyflag == 0) { pslen = config.lengthmz * maxlength; }
+		if (verbose == 1) { printf("Maxlength: %d \t Total Size: %zu GB\n", maxlength, pslen * sizeof(float) / 1000000000); }
+		decon->mzdist = (float*) calloc(pslen, sizeof(float));
+		if (pslen * sizeof(float) / 1000000000 > 4) { printf("Danger: Your data may crash the memory. Consider setting the Peak FWHM to 0.\n"); }
+		int makereverse = 0;
+		if (config.mzsig < 0 || config.beta < 0) {
+			makereverse = 1; decon->rmzdist = (float*) calloc(pslen, sizeof(float));
+		}
+		else { decon->rmzdist = (float*) calloc(0, sizeof(float)); }
+
+		//Calculates the distance between mz values as a 2D or 3D matrix
+
+		if (config.speedyflag == 0)
+		{
+			if (verbose == 1) { printf("Making Peak Shape 2D\n"); }
+			MakePeakShape2D(config.lengthmz, maxlength, decon->starttab, decon->endtab, inp.dataMZ, 
+				fabs(config.mzsig) * config.peakshapeinflate, config.psfun, config.speedyflag, decon->mzdist, decon->rmzdist, makereverse);
+		}
+		else
+		{
+			if (verbose == 1) { printf("Making Peak Shape 1D\n"); }
+			//Calculates peak shape as a 1D list centered at the first element for circular convolutions
+			MakePeakShape1D(inp.dataMZ, config.psmzthresh, config.lengthmz, config.speedyflag, fabs(config.mzsig) * config.peakshapeinflate,
+				config.psfun, decon->mzdist, decon->rmzdist, makereverse);
+		}
+		if (silent == 0) { printf("mzdist set: %f\t maxlength: %d\n", decon->mzdist[0], maxlength); }
+
+	}
+	else
+	{
+		decon->mzdist = (float*) calloc(0, sizeof(float));
+		maxlength = 0;
+	}
+	return maxlength;
 }
 
 #endif

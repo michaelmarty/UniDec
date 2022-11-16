@@ -54,6 +54,10 @@ class UniDecLauncher(UniDecPres):
             print("Launching UniDec")
             self.view.button1()
 
+        if "--ucd" in sys.argv[1:] or "-d" in sys.argv[1:]:
+            print("Launching UniDecCD")
+            self.view.button9()
+
         if len(sys.argv)>1:
             self.view.button8()
 

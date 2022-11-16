@@ -39,7 +39,7 @@ class MetaDataSet:
             file = self.filename
         else:
             self.filename = file
-        hdf = h5py.File(file, 'r')
+        hdf = h5py.File(file, 'r+')
         msdata = hdf.require_group(self.topname)
         keys = list(msdata.keys())
         self.indexes = []
@@ -51,20 +51,25 @@ class MetaDataSet:
         self.indexes = np.array(self.indexes)
         self.indexes = sorted(self.indexes)
         self.len = len(self.indexes)
-        hdf.close()
 
         if ud.isempty(self.spectra):
             for i in self.indexes:
                 s = Spectrum(self.topname, i, self.eng)
-                s.read_hdf5(file, speedy=speedy)
+                s.read_hdf5(file, speedy=speedy, hdfobj=hdf)
                 self.spectra.append(s)
         else:
             for s in self.spectra:
-                s.read_hdf5(file, speedy=speedy)
+                s.read_hdf5(file, speedy=speedy, hdfobj=hdf)
 
         if not ud.isempty(self.spectra):
             self.data2 = self.spectra[0].data2
-            self.import_vars()
+            self.import_vars(hdfobj=hdf)
+
+            try:
+                self.import_grids()
+            except:
+                pass
+        hdf.close()
 
 
     def export_hdf5(self, file=None, vars_only=False, delete=False):
@@ -91,7 +96,6 @@ class MetaDataSet:
         group.attrs["v2name"] = self.v2name
         config = hdf.require_group("config")
         config.attrs["metamode"] = -1
-        hdf.close()
 
         self.var1 = []
         self.var2 = []
@@ -102,11 +106,12 @@ class MetaDataSet:
             s.attrs["name"] = s.name
             self.var1.append(s.var1)
             self.var2.append(s.var2)
-            s.write_hdf5(self.filename, vars_only=vars_only)
+            s.write_hdf5(self.filename, vars_only=vars_only, hdfobj=hdf)
         self.var1 = np.array(self.var1)
         # print("Variable 1:", self.var1)
         self.var2 = np.array(self.var2)
         self.len = len(self.spectra)
+        hdf.close()
 
     def export_vars(self, file=None):
         for s in self.spectra:
@@ -148,7 +153,7 @@ class MetaDataSet:
         return num
 
     def import_peaks(self):
-        hdf = h5py.File(self.filename, 'r')
+        hdf = h5py.File(self.filename, 'r+')
         pdataset = hdf.require_group("/peaks")
         self.peaks = get_dataset(pdataset, "peakdata")
         self.exgrid = get_dataset(pdataset, "extracts").transpose()
@@ -196,6 +201,7 @@ class MetaDataSet:
         self.add_data(data, name=filename)
 
     def add_data(self, data, name="", attrs=None, export=True):
+        print("Adding:", name, "to", self.topname)
         snew = Spectrum(self.topname, self.len, self.eng)
         snew.rawdata = data
         snew.data2 = deepcopy(data)
@@ -281,8 +287,11 @@ class MetaDataSet:
                 bool_array.append(False)
         return np.array(bool_array)
 
-    def import_vars(self, get_vnames=True):
-        hdf = h5py.File(self.filename, 'r+')
+    def import_vars(self, get_vnames=True, hdfobj=None):
+        if hdfobj is None:
+            hdf = h5py.File(self.filename, 'r+')
+        else:
+            hdf = hdfobj
         msdata = hdf.require_group(self.topname)
         if get_vnames:
             try:
@@ -296,7 +305,8 @@ class MetaDataSet:
         else:
             msdata.attrs["v1name"] = str(self.v1name)
             msdata.attrs["v2name"] = str(self.v2name)
-        hdf.close()
+        if hdfobj is None:
+            hdf.close()
         self.update_var_array()
 
     def update_var_array(self):
@@ -358,13 +368,15 @@ class Spectrum:
         self.var2 = 0
         self.eng = eng
 
-    def write_hdf5(self, file=None, vars_only=False):
-        if file is None:
-            file = self.filename
+    def write_hdf5(self, file=None, vars_only=False, hdfobj=None):
+        if hdfobj is None:
+            if file is None:
+                file = self.filename
+            else:
+                self.filename = file
+            hdf = h5py.File(file, 'a')
         else:
-            self.filename = file
-
-        hdf = h5py.File(file, 'a')
+            hdf = hdfobj
         msdata = hdf.require_group(self.topname + "/" + str(self.index))
         if not vars_only:
             replace_dataset(msdata, "raw_data", self.rawdata.astype(self.eng.config.dtype))
@@ -378,14 +390,19 @@ class Spectrum:
             replace_dataset(msdata, "charge_data", self.zdata.astype(self.eng.config.dtype))
         for key, value in list(self.attrs.items()):
             msdata.attrs[key] = value
-        hdf.close()
 
-    def read_hdf5(self, file=None, speedy=False):
-        if file is None:
-            file = self.filename
+        if hdfobj is None:
+            hdf.close()
+
+    def read_hdf5(self, file=None, speedy=False, hdfobj=None):
+        if hdfobj is None:
+            if file is None:
+                file = self.filename
+            else:
+                self.filename = file
+            hdf = h5py.File(file, 'r')
         else:
-            self.filename = file
-        hdf = h5py.File(file, 'r')
+            hdf = hdfobj
         msdata = hdf.get(self.topname + "/" + str(self.index))
         if not speedy:
             self.rawdata = get_dataset(msdata, "raw_data")
@@ -426,7 +443,8 @@ class Spectrum:
             self.peaks = get_dataset(msdata, "peaks")
             self.setup_peaks()
         self.attrs = dict(list(msdata.attrs.items()))
-        hdf.close()
+        if hdfobj is None:
+            hdf.close()
 
     def setup_peaks(self):
         self.pks.add_peaks(self.peaks, scores_included=True)

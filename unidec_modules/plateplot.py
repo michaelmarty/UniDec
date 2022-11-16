@@ -3,9 +3,8 @@ from matplotlib import colors as mcolors
 import numpy as np
 import wx
 from copy import deepcopy
-from unidec_modules.PlottingWindow import PlottingWindow
 from metaunidec.mudeng import MetaUniDec
-from unidec_modules import plot1d, unidecstructure
+from unidec_modules import PlottingWindow, unidecstructure
 
 __author__ = 'Michael.Marty'
 
@@ -14,7 +13,7 @@ def cc(arg):
     return mcolors.to_rgba(arg, alpha=0.6)
 
 
-class PlatePlot(PlottingWindow):
+class PlatePlot(PlottingWindow.PlottingWindowBase):
     """
     Plotting class for 3D Waterfall plots.
     """
@@ -29,7 +28,7 @@ class PlatePlot(PlottingWindow):
         if "frame" in kwargs:
             self.frame = kwargs['frame']
             del kwargs['frame']
-        PlottingWindow.__init__(self, *args, **kwargs)
+        PlottingWindow.PlottingWindowBase.__init__(self, *args, **kwargs)
         self._axes = [0.05, 0.1, 0.9, 0.9]
         self.cids = []
 
@@ -111,7 +110,7 @@ class PlateFrame(wx.Frame):
 
         self.panel = wx.Panel(self)
         self.plateplot = PlatePlot(self.panel, frame=self)
-        self.plot1 = plot1d.Plot1d(self.panel)
+        self.plot1 = PlottingWindow.Plot1d(self.panel)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         s1 = wx.BoxSizer(wx.HORIZONTAL)

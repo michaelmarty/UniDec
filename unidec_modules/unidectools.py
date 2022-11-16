@@ -6,7 +6,6 @@ import subprocess
 import time
 import decimal
 from bisect import bisect_left
-from ctypes import *
 from copy import deepcopy
 import zipfile
 import numpy as np
@@ -17,6 +16,7 @@ from scipy.optimize import curve_fit
 from scipy import signal
 from scipy import fftpack
 import matplotlib.cm as cm
+import matplotlib.colors as colors
 
 try:
     from unidec_modules.mzMLimporter import mzMLimporter
@@ -25,6 +25,7 @@ except:
 from unidec_modules.fitting import *
 from unidec_modules import unidecstructure
 import fnmatch
+from unidec_modules.mzXML_importer import mzXMLimporter
 
 # import unidec_modules.data_reader as data_reader
 try:
@@ -45,57 +46,16 @@ except:
     print("Could not import Thermo Data Importer")
 
 is_64bits = sys.maxsize > 2 ** 32
-
-"""
-Loads initial dll called libmypfunc. Will speed up convolutions and a few functions.
-
-If this isn't present, it will print a warning but use the pure python code later on.
-"""
-dllname = "libmypfunc"
 protmass = 1.007276467
 oxmass = 15.994914
-
-if platform.system() == "Windows":
-    if not is_64bits:
-        dllname += "32"
-    dllname += ".dll"
-elif platform.system() == "Darwin":
-    dllname += ".dylib"
-else:
-    dllname += ".so"
-testpath = dllname
-if os.path.isfile(testpath):
-    dllpath = testpath
-else:
-    # print testpath
-    pathtofile = os.path.dirname(os.path.abspath(__file__))
-    testpath = os.path.join(pathtofile, dllname)
-    if os.path.isfile(testpath):
-        dllpath = testpath
-    else:
-        # print testpath
-        testpath = os.path.join(os.path.dirname(pathtofile), dllname)
-        if os.path.isfile(testpath):
-            dllpath = testpath
-        else:
-            # print testpath
-            testpath = os.path.join(os.path.join(os.path.dirname(pathtofile), "unidec_bin"), dllname)
-            if os.path.isfile(testpath):
-                dllpath = testpath
-            else:
-                # print testpath
-                print("Unable to find file", testpath)
-
-try:
-    libs = cdll.LoadLibrary(dllpath)
-except (OSError, NameError):
-    print("Failed to load libmypfunc, convolutions in nonlinear mode might be slow")
 
 
 def get_importer(path):
     if os.path.splitext(path)[1] == ".mzML" or os.path.splitext(path)[1] == ".gz":
         # mzML file
         d = mzMLimporter(path, gzmode=True)
+    elif os.path.splitext(path)[1] == ".mzXML":
+        d = mzXMLimporter(path)
     elif os.path.splitext(path)[1].lower() == ".raw" and not os.path.isdir(path):
         # Thermo Raw File
         try:
@@ -167,6 +127,21 @@ def match_files(directory, string, exclude=None):
                 files.append(file)
     return np.array(files)
 
+def match_dirs_recursive(topdir, ending=".raw"):
+    found_dirs = []
+    for root, dirs, files in os.walk(topdir):
+        for d in dirs:
+            if d.endswith(ending):
+                found_dirs.append(os.path.join(root, d))
+    return np.array(found_dirs)
+
+def match_files_recursive(topdir, ending=".raw"):
+    found_files = []
+    for root, dirs, files in os.walk(topdir):
+        for f in files:
+            if f.endswith(ending):
+                found_files.append(os.path.join(root, f))
+    return np.array(found_files)
 
 def isempty(thing):
     """
@@ -271,7 +246,7 @@ def safedivide1(a, b):
     if b != 0:
         return a / b
     else:
-        return 0
+        return a * 0
 
 
 def weighted_std(values, weights):
@@ -702,18 +677,17 @@ def extract_from_data_matrix(xaxis, matrix, midpoint, extract_method=0, window=0
         index = nearest(xaxis, midpoint)
         data = matrix[:, index]
     elif extract_method == 1:
-        startindex = nearest(xaxis, midpoint-window)
+        startindex = nearest(xaxis, midpoint - window)
         endindex = nearest(xaxis, midpoint + window)
         data = np.amax(matrix[:, startindex:endindex], axis=1)
     elif extract_method == 2:
-        startindex = nearest(xaxis, midpoint-window)
+        startindex = nearest(xaxis, midpoint - window)
         endindex = nearest(xaxis, midpoint + window)
         data = np.sum(matrix[:, startindex:endindex], axis=1)
     else:
         print("Grid Extraction Method Not Recognized")
         data = []
     return data
-
 
 
 def normalize_extracts(grid, norm_method=0):
@@ -837,7 +811,7 @@ def solve_for_mass(mz1, mz2, adductmass=1.007276467):
 # .........................................
 
 
-def header_test(path):
+def header_test(path, deletechars=None):
     """
     A quick test of a file to remove any problems from the header.
 
@@ -851,6 +825,9 @@ def header_test(path):
     try:
         with open(path, "r") as f:
             for line in f:
+                if deletechars is not None:
+                    for c in deletechars:
+                        line = line.replace(c, "")
                 for sin in line.split():
                     try:
                         float(sin)
@@ -858,6 +835,8 @@ def header_test(path):
                         # print(sin, line)
                         header += 1
                         break
+                if line == "\n":
+                    header += 1
         if header > 0:
             print("Header Length:", header)
     except (ImportError, OSError, AttributeError, IOError) as e:
@@ -928,7 +907,11 @@ def load_mz_file(path, config=None, time_range=None, imflag=0):
             raise IOError
     else:
         if extension == ".txt":
-            data = np.loadtxt(path, skiprows=header_test(path))
+            try:
+                data = np.loadtxt(path, skiprows=header_test(path))
+            except:
+                c = lambda s: float(str(s.decode("UTF-8")).replace(",", ""))  # .replace("'", "").replace("b", "")
+                data = np.genfromtxt(path, skip_header=header_test(path, deletechars=","), converters={0: c, 1: c})
             # data = np.loadtxt(path, skiprows=header_test(path, delimiter=","), delimiter=",")
         elif extension == ".csv":
             try:
@@ -1753,7 +1736,7 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
 # ............................................................................
 
 
-def unidec_call(config, silent=False, **kwargs):
+def unidec_call(config, silent=False, conv=False, **kwargs):
     """
     Run the UniDec binary specified by exepath with the configuration file specified by configfile.
     If silent is False (default), the output from exepath will be printed to the standard out.
@@ -1766,6 +1749,7 @@ def unidec_call(config, silent=False, **kwargs):
     :param exepath: Path to UniDec or UniDecIM binary
     :param configfile: Path to configuration file
     :param silent: Whether to print the output of exepath to the standard out
+    :param conv: Whether to call the convolution function only rather than the standard deconvolution
     :param kwargs:
     :return: Standard error of exepath execution
     """
@@ -1774,6 +1758,9 @@ def unidec_call(config, silent=False, **kwargs):
 
     if config.autotune:
         call.append("-autotune")
+
+    if conv:
+        call.append("-conv")
 
     if silent:
         out = subprocess.call(call, stdout=subprocess.PIPE)
@@ -1989,10 +1976,7 @@ def makeconvspecies(processed_data, pks, config):
             kernel = conv_peak_shape_kernel(xvals, config.psfun, peakwidth)
             stickdat = [stickconv(p.mztab, kernel) for p in pks.peaks]
         else:
-            try:
-                stickdat = [cconvolve(xvals, p.mztab, config.mzsig, config.psfun) for p in pks.peaks]
-            except (OSError, TypeError, NameError, AttributeError):
-                stickdat = [nonlinstickconv(xvals, p.mztab, config.mzsig, config.psfun) for p in pks.peaks]
+            stickdat = [nonlinstickconv(xvals, p.mztab, config.mzsig, config.psfun) for p in pks.peaks]
 
     pks.composite = np.zeros(xlen)
     for i in range(0, pks.plen):
@@ -2068,7 +2052,8 @@ def make_alpha_cmap(rgb_tuple, alpha):
              'blue': ((0.0, rgb_tuple[2], rgb_tuple[2]),
                       (1.0, rgb_tuple[2], rgb_tuple[2])), 'alpha': ((0.0, 0, 0),
                                                                     (1.0, alpha, alpha))}
-    return cdict
+    cmap = colors.LinearSegmentedColormap("newcmap", cdict)
+    return cmap
 
 
 def color_map_array(array, cmap, alpha):
@@ -2122,19 +2107,49 @@ def combine(array2):
     return finlist
 
 
+def index_to_oname(index, startindex, names):
+    name = ""
+    for i in range(0, len(index)):
+        val = index[i] + startindex[i]
+        if val > 0:
+            if names[i] == "":
+                name = name + str(val)
+            else:
+                name = name + str(val) + "[" + names[i] + "] "
+    return name
+
+
 def combine_all(array2):
     lens = lengths(array2)
     tup = tuple(lens)
+    print("Starting combining all: ", np.product(lens))
     startindex = array2[:, 2]
     startindex = startindex.astype(np.int)
     basemass = array2[:, 0]
     basemass = basemass.astype(np.float)
     omass = array2[:, 1]
     omass = omass.astype(np.float)
-    names = array2[:, 4]
-    finlist = []
-    namelist = []
+    # names = array2[:, 4]
+
+    # namelist = np.array([index for index in np.ndindex(tup)])
+    namelist = np.array(list(np.ndindex(tup)), dtype=np.dtype((int, len(lens))))
+    # finlist = np.array([np.sum((index + startindex) * omass + basemass) for index in namelist])
+    finlist = np.sum((namelist + startindex) * omass + basemass, axis=1)
+
+    """
     for index in np.ndindex(tup):
+        vals = index + startindex
+        b1 = vals > 0
+        vstr = vals[b1].astype(str)
+        nstr = "[" + np.char.array(names[b1]) + "] "
+        nstr[nstr == "[] "] = ""
+        fstr = vstr + nstr
+        name = ""
+        for i in range(0, len(vstr)):
+            name += fstr[i]
+        namelist.append(name)"""
+    '''
+        for index in np.ndindex(tup):
         name = ""
         for i in range(0, len(index)):
             val = index[i] + startindex[i]
@@ -2149,7 +2164,11 @@ def combine_all(array2):
         if total > 0:
             finlist.append(total)
             namelist.append(name)
-            # print index,name
+            # print index,name'''
+
+    b1 = finlist != 0
+    finlist = finlist[b1]
+    namelist = namelist[b1]
     return finlist, namelist
 
 
@@ -2163,6 +2182,10 @@ def make_isolated_match(oligos):
             newmass = float(oligos[i][0]) + j * float(oligos[i][1])
             if newmass > 0:
                 oligomasslist.append(newmass)
+                index = np.zeros(len(oligos))
+                index[i] = j
+                oligonames.append(index)
+                '''
                 if j > 0 or oligos[i][4] == "":
                     if oligos[i][4] == "":
                         oligonames.append(str(j))
@@ -2170,7 +2193,7 @@ def make_isolated_match(oligos):
                         oligonames.append(str(j) + "[" + oligos[i][4] + "]")
                 else:
                     oligonames.append("")
-                    # self.oligonames.append(str(j)+""+oligos[i][4])
+                    # self.oligonames.append(str(j)+""+oligos[i][4])'''
     oligomasslist = np.array(oligomasslist)
     return oligomasslist, oligonames
 
@@ -2185,19 +2208,89 @@ def make_all_matches(oligos):
     return oligomasslist, oligonames
 
 
-def match(pks, oligomasslist, oligonames, tolerance=None):
+def get_glyco_indexes(oligomerlist, printoutput=False):
+    names = oligomerlist[:, 4]
+    sname = ''
+    hname = ''
+    gname = ''
+    fname = ''
+    hindex = -1
+    gindex = -1
+    sindex = -1
+    findex = -1
+    for i, n in enumerate(names):
+        if "SA" in n:
+            sname = n
+            sindex = i
+        if "Hex" in n:
+            hname = n
+            hindex = i
+        if "GlcNAc" in n:
+            gname = n
+            gindex = i
+        if "Fuc" in n:
+            fname = n
+            findex = i
+    if printoutput:
+        print("Sialic Acid Name:", sname, sindex)
+        print("Hexose Name:", hname, hindex)
+        print("GlcNAc Name:", gname, gindex)
+        print("Fucose Name:", fname, findex)
+    return sindex, hindex, gindex, findex
+
+
+def pair_glyco_matches(oligomasslist, oligonames, oligomerlist):
+    oligomerlist = np.array(oligomerlist)
+    startindex = oligomerlist[:, 2].astype(np.int)
+
+    sindex, hindex, gindex, findex = get_glyco_indexes(oligomerlist)
+
+    nmatches = len(oligonames)
+    ns = np.zeros(nmatches)
+    nh = np.zeros(nmatches)
+    ng = np.zeros(nmatches)
+
+    if sindex != -1:
+        ns = oligonames[:, sindex] + startindex[sindex]
+
+    if hindex != -1:
+        nh = oligonames[:, hindex] + startindex[hindex]
+
+    if gindex != -1:
+        ng = oligonames[:, gindex] + startindex[gindex]
+    # Number of Sialic Acid is less than or equal to number of hexoses
+    b1 = ns <= nh
+    # Number of Sialic Acids is also less than or equal to number of glcnacs
+    b2 = ns <= ng
+    b3 = np.logical_and(b1, b2)
+    print(nmatches, len(oligomasslist[b3]))
+    return oligomasslist[b3], oligonames[b3]
+
+
+def match(pks, oligomasslist, oligonames, oligomerlist, tolerance=None, return_numbers=False):
+    print("Starting Match")
+    starttime = time.perf_counter()
     matches = []
     errors = []
     peaks = []
     names = []
+    numbers = []
+
+    oligomerlist = np.array(oligomerlist)
+    startindex = oligomerlist[:, 2].astype(np.int)
+    onames = oligomerlist[:, 4]
+
     for i in range(0, pks.plen):
         p = pks.peaks[i]
         target = p.mass
         nearpt = nearestunsorted(oligomasslist, target)
         match = oligomasslist[nearpt]
         error = target - match
+        number = np.zeros(len(startindex))
         if tolerance is None or np.abs(error) < tolerance:
-            name = oligonames[nearpt]
+            name = index_to_oname(oligonames[nearpt], startindex, onames)
+            if return_numbers:
+                number = oligonames[nearpt] + startindex
         else:
             name = ""
 
@@ -2208,8 +2301,14 @@ def match(pks, oligomasslist, oligonames, tolerance=None):
         errors.append(error)
         peaks.append(target)
         names.append(name)
+        numbers.append(number)
     matchlist = [peaks, matches, errors, names]
-    return matchlist
+    endtime = time.perf_counter()
+    print("Matched in: ", endtime - starttime, "s")
+    if return_numbers:
+        return np.array(matchlist), np.array(numbers)
+    else:
+        return np.array(matchlist)
 
 
 # ...........................................................
@@ -2281,7 +2380,7 @@ def autocorr(datatop, config=None):
     :return: Autocorr spectrum, peaks in autocorrelation.
     """
     corry = signal.fftconvolve(datatop[:, 1], datatop[:, 1][::-1], mode='same')
-    if np.amax(corry)!=0:
+    if np.amax(corry) != 0:
         corry /= np.amax(corry)
         maxpos1 = np.argmax(datatop[:, 1])
         start = np.amax([maxpos1 - len(datatop) / 10, 0])
@@ -2290,7 +2389,8 @@ def autocorr(datatop, config=None):
         if len(cutdat) < 20:
             cutdat = datatop
         # cutdat=datatop # Other old
-        xdiff = np.mean(cutdat[1:, 0] - cutdat[:len(cutdat) - 1, 0])  # Less dangerous but still dangerous when non-linear
+        xdiff = np.mean(
+            cutdat[1:, 0] - cutdat[:len(cutdat) - 1, 0])  # Less dangerous but still dangerous when non-linear
         # xdiff = datatop[1, 0] - datatop[0, 0] #OLD
         corrx = np.arange(0.0, len(corry)) * xdiff
         maxpos = np.argmax(corry)
@@ -2302,24 +2402,6 @@ def autocorr(datatop, config=None):
 
     else:
         return [[]], [[]]
-
-
-def cconvolve(xvals, mztab, fwhm, psfun):
-    """
-    Fast nonlinear convolution algorithm using C dll.
-    :param xvals: x-axis
-    :param mztab: mztab from make_peaks_mztab()
-    :param fwhm: Full width half max of peak
-    :param psfun: Peak shape function code (0=Gauss, 1=Lorentzian, 2=Split G/L)
-    :return: Convolved output
-    """
-    stick = np.zeros(len(xvals))
-    stick[np.array(mztab[:, 2]).astype(np.int)] = mztab[:, 1]
-    cxvals = (c_double * len(xvals))(*xvals)
-    cinput = (c_double * len(stick))(*stick)
-    cout = (c_double * len(stick))()
-    libs.convolve(byref(cxvals), byref(cinput), byref(cout), (c_int)(psfun), (c_double)(fwhm), len(cinput))
-    return np.frombuffer(cout)
 
 
 def conv_peak_shape_kernel(xaxis, psfun, fwhm):
@@ -2368,14 +2450,13 @@ def make_peak_shape(xaxis, psfun, fwhm, mid, norm_area=False, speedy=False):
     """
     # If Speedy, limit the range to just within a few fwhm around the mid
     if speedy:
-        #b1 = xaxis < mid+2*fwhm
-        #b2 = xaxis > mid-2*fwhm
-        #b1 = np.logical_and(b1, b2)
-        b1 = np.abs(xaxis-mid)<2*fwhm
+        # b1 = xaxis < mid+2*fwhm
+        # b2 = xaxis > mid-2*fwhm
+        # b1 = np.logical_and(b1, b2)
+        b1 = np.abs(xaxis - mid) < 2 * fwhm
         fullx = xaxis
         xaxis = xaxis[b1]
-        #print(len(xaxis), len(fullx))
-
+        # print(len(xaxis), len(fullx))
 
     if psfun == 0:
         kernel = ndis(xaxis, mid, fwhm, norm_area=norm_area)
@@ -2390,7 +2471,7 @@ def make_peak_shape(xaxis, psfun, fwhm, mid, norm_area=False, speedy=False):
 
     # Merge back in the speedy results
     if speedy:
-        fullkernel = fullx*0
+        fullkernel = fullx * 0
         fullkernel[b1] = kernel
         kernel = fullkernel
 
@@ -2767,7 +2848,10 @@ def peaks_error_FWHM(pks, data):
         datamax = np.amax(np.asarray(data)[:, 1])
     except:
         datamax = 0
-    div = datamax / pmax
+    try:
+        div = datamax / pmax
+    except:
+        div = 1
     for p in pks.peaks:
         int = p.height
         index = nearest(data[:, 0], p.mass)

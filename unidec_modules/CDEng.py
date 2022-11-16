@@ -748,7 +748,7 @@ class UniDecCD(unidec.UniDec):
         self.data.mzmassgrid = []
         for i in range(len(self.mz)):
             d = self.harray[:, i]
-            boo1 = d > 0
+            boo1 = d >= 0
             newdata = np.transpose([self.mass[:, i][boo1], d[boo1]])
             # if :
             #    self.data.mzmassgrid.append(massaxis * 0)

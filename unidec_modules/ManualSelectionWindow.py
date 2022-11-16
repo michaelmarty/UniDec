@@ -7,7 +7,7 @@ from matplotlib.patches import Rectangle
 import matplotlib.cm as cm
 from scipy.spatial.distance import euclidean
 
-from unidec_modules import plot1d, plot2d
+from unidec_modules import PlottingWindow
 from unidec_modules.isolated_packages import FileDialogs
 import unidec_modules.unidectools as ud
 
@@ -302,9 +302,9 @@ class ManualSelection(wx.Dialog):
         size = (7, 4)
         vbox2 = wx.BoxSizer(wx.VERTICAL)
         if self.config.imflag == 0:
-            self.plot1 = plot1d.Plot1d(panel, figsize=size)
+            self.plot1 = PlottingWindow.Plot1d(panel, figsize=size)
         else:
-            self.plot1 = plot2d.Plot2d(panel, figsize=size)
+            self.plot1 = PlottingWindow.Plot2d(panel, figsize=size)
 
         vbox2.Add(self.plot1, 0, wx.EXPAND)
 

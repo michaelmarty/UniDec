@@ -17,6 +17,8 @@
 #include "UniDecIM_Main.h"
 #include "MetaUniDec_Main.h"
 #include "UniDecCD_Main.h"
+// #include "UD_match.h"
+#include "UD_conv.h"
 
 
 
@@ -49,6 +51,8 @@ Config ImportConfig(int argc, char * argv[], Config config)
 int main(int argc, char *argv[])
 {
 	
+
+
 	int result = 0;
 
 	if (argc > 2)
@@ -59,6 +63,11 @@ int main(int argc, char *argv[])
 	Config config = SetDefaultConfig();
 
 	config=ImportConfig(argc, argv, config);
+
+	if (argc > 2)
+	{
+		if (strcmp(argv[2], "-conv") == 0) { conv_main(argc, argv, config); return 0; }
+	}
 
 	if (config.metamode != -2)
 	{

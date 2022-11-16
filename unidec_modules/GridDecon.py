@@ -10,8 +10,7 @@ from scipy.sparse import csr_matrix
 from scipy.signal import savgol_filter
 
 from unidec_modules import unidecstructure
-from unidec_modules import plot2d
-from unidec_modules import plot1d
+from unidec_modules import PlottingWindow
 from unidec_modules import unidectools as ud
 
 __author__ = 'Michael.Marty'
@@ -126,8 +125,8 @@ class GridDeconWindow(wx.Frame):
         panel = wx.Panel(self)
         topsizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self.plot1 = plot1d.Plot1d(panel)
-        self.plot2 = plot2d.Plot2d(panel)
+        self.plot1 = PlottingWindow.Plot1d(panel)
+        self.plot2 = PlottingWindow.Plot2d(panel)
         sizer.Add(self.plot1, 1, wx.EXPAND)
         sizer.Add(self.plot2, 1, wx.EXPAND)
 

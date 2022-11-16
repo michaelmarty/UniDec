@@ -7,7 +7,7 @@ from metaunidec.gui_elements.ud_menu_meta import meta_menu
 from unidec_modules.gui_elements import peaklistsort, mainwindow_base
 import wx.lib.scrolledpanel as scrolled
 from pubsub import pub
-from unidec_modules import plot1d, plot2d
+from unidec_modules import PlottingWindow
 
 
 class ChromWindow(mainwindow_base.MainwindowBase):
@@ -84,7 +84,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
 
         self.ctlswoffset = wx.TextCtrl(self.panel, value=str(int(self.config.sw_scan_offset)), size=(50, 20))
         tsizer2.Add(self.ctlswoffset, 0, wx.ALIGN_CENTER_VERTICAL)
-        tsizer2.Add(wx.StaticText(self.panel, label="min"), 0, wx.ALIGN_CENTER_VERTICAL)
+        #tsizer2.Add(wx.StaticText(self.panel, label="min"), 0, wx.ALIGN_CENTER_VERTICAL)
 
         self.ctlsizer.Add(tsizer2)
 
@@ -148,14 +148,14 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         sizerplot = wx.GridBagSizer()
 
         figsize = (4.9, 3.5)
-        self.plotc = plot1d.Plot1d(plotwindow, figsize=figsize)  # Chromatogram
-        self.plotm = plot1d.Plot1d(plotwindow, figsize=figsize)  # Selection from chromatogram
-        self.plot1 = plot1d.Plot1d(plotwindow, smash=1, figsize=figsize)  # MUD Plot 1 m/z cascade
-        self.plot2 = plot1d.Plot1d(plotwindow, figsize=figsize)  # MUD Deconvolved Data
-        self.plot7 = plot1d.Plot1d(plotwindow, figsize=figsize)  # MUD Extraction
-        self.plot2s = plot1d.Plot1d(plotwindow, figsize=figsize)  # Selection mass
-        self.plot3 = plot2d.Plot2d(plotwindow, figsize=figsize)  # MUD 2D m/z vs. time
-        self.plot5 = plot2d.Plot2d(plotwindow, figsize=figsize)  # MUD 2D mass vs. time
+        self.plotc = PlottingWindow.Plot1d(plotwindow, figsize=figsize)  # Chromatogram
+        self.plotm = PlottingWindow.Plot1d(plotwindow, figsize=figsize)  # Selection from chromatogram
+        self.plot1 = PlottingWindow.Plot1d(plotwindow, smash=1, figsize=figsize)  # MUD Plot 1 m/z cascade
+        self.plot2 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)  # MUD Deconvolved Data
+        self.plot7 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)  # MUD Extraction
+        self.plot2s = PlottingWindow.Plot1d(plotwindow, figsize=figsize)  # Selection mass
+        self.plot3 = PlottingWindow.Plot2d(plotwindow, figsize=figsize)  # MUD 2D m/z vs. time
+        self.plot5 = PlottingWindow.Plot2d(plotwindow, figsize=figsize)  # MUD 2D mass vs. time
 
         sizerplot.Add(self.plotc, (0, 0), span=(1, 1), flag=wx.EXPAND)
         sizerplot.Add(self.plotm, (1, 0), span=(1, 1), flag=wx.EXPAND)

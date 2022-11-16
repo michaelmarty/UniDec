@@ -1,7 +1,7 @@
 import wx
 import wx.lib.mixins.listctrl as listmix
 from unidec_modules.IM_functions import *
-from unidec_modules import plot2d
+from unidec_modules import PlottingWindow
 from unidec_modules.CDEng import UniDecCD
 from unidec_modules.isolated_packages import FileDialogs
 
@@ -165,8 +165,8 @@ class CDCalDialog(wx.Frame):
 
         plotsizer = wx.BoxSizer(wx.HORIZONTAL)
         figsize = (6, 4)
-        self.plot = plot2d.Plot2d(self.pnl, figsize=figsize)
-        self.plot2 = plot2d.Plot2d(self.pnl, figsize=figsize)
+        self.plot = PlottingWindow.Plot2d(self.pnl, figsize=figsize)
+        self.plot2 = PlottingWindow.Plot2d(self.pnl, figsize=figsize)
         plotsizer.Add(self.plot, 1, wx.EXPAND)
         plotsizer.Add(self.plot2, 1, wx.EXPAND)
 

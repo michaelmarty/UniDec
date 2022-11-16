@@ -302,6 +302,12 @@ int compare(const void* a, const void* b)
 	return (*(float*)a - *(float*)b);
 }
 
+// A comparator function used by qsort 
+int compare_highest_first(const void* b, const void* a)
+{
+	return (*(float*)a - *(float*)b);
+}
+
 //Cut out the lowest x percent of the data
 int data_reduction(float **oldmz, float **oldint, int oldlen, const float redper)
 {
@@ -369,7 +375,6 @@ int data_reduction(float **oldmz, float **oldint, int oldlen, const float redper
 
 void process_data(int argc, char *argv[], Config config)
 {	
-	hid_t file_id;
 	float *dataMZ = NULL;
 	float *dataInt = NULL;
 	char dataset[1024];
@@ -380,16 +385,17 @@ void process_data(int argc, char *argv[], Config config)
 	strcpy(dataset, "/ms_dataset");
 	sprintf(strval, "/%d", config.metamode);
 	strcat(dataset, strval);
-	printf("Processing HDF5 Data Set: %s\n", dataset);
-	file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
+	if (config.silent == 0) { printf("Processing HDF5 Data Set: %s\n", dataset); }
+	
 	strjoin(dataset, "/raw_data", outdat);
-	int lengthmz = mh5getfilelength(file_id, outdat);
+	int lengthmz = mh5getfilelength(config.file_id, outdat);
+	
 	dataMZ = calloc(lengthmz, sizeof(float));
 	dataInt = calloc(lengthmz, sizeof(float));
-	mh5readfile2d(file_id, outdat, lengthmz, dataMZ, dataInt);
+	mh5readfile2d(config.file_id, outdat, lengthmz, dataMZ, dataInt);
 	int silent = 1;
 	if (silent == 0) { printf("Length of Data: %d \n", lengthmz); }
-
+	
 	//Bin
 	if (config.mzbins > 1)
 	{
@@ -448,12 +454,12 @@ void process_data(int argc, char *argv[], Config config)
 	//Write data to processed_data
 	strjoin(dataset, "/processed_data", outdat);
 	if (silent == 0) { printf("\tWriting to: %s...", outdat); }
-	mh5writefile2d(file_id, outdat, lengthmz, dataMZ, dataInt);
-	if (silent == 0) { printf("1"); }
-	set_needs_grids(file_id);
-	if (silent == 0) { printf("2"); }
-	H5Fclose(file_id);
-	if (silent == 0) { printf("3"); }
+	mh5writefile2d(config.file_id, outdat, lengthmz, dataMZ, dataInt);
+	
+	// Set the grids as needed
+	set_needs_grids(config.file_id);
+	
+	// Free everything
 	free(dataMZ);
 	free(dataInt);
 	if (silent == 0) { printf("Done\n"); }

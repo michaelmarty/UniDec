@@ -1,9 +1,11 @@
-from unidec_modules import unidecstructure, peakstructure
-from copy import deepcopy
+from unidec_modules import unidecstructure, peakstructure, plot1d
 from unidec_modules import unidectools as ud
 import numpy as np
+import os
+import time
 
-version = "5.1.1"
+version = "5.2.0"
+
 
 class UniDecEngine:
     def __init__(self):
@@ -24,6 +26,7 @@ class UniDecEngine:
         self.config_count = 0
         self.data = None
         self.pks = None
+        self.olg = None
         self.initialize()
         pass
 
@@ -38,6 +41,7 @@ class UniDecEngine:
         self.reset_config()
         self.data = unidecstructure.DataContainer()
         self.pks = peakstructure.Peaks()
+        self.olg = unidecstructure.OligomerContainer()
 
     def reset_config(self):
         """
@@ -221,7 +225,6 @@ class UniDecEngine:
             print("Need to set the mass difference/mass of oligomer")
         return fit, rsquared
 
-
     def polydispersity_index(self, e=None):
         pdi = ud.polydispersity_index(self.data.massdat)
         print(pdi)
@@ -234,7 +237,7 @@ class UniDecEngine:
             if p.ignore == 0:
                 pdata.append([p.mass, p.height])
         pdata = np.array(pdata)
-        maxindex = np.argmax(pdata[:,1])
+        maxindex = np.argmax(pdata[:, 1])
         maxmass = pdata[maxindex][0]
         nox = np.arange(0, 4)
         oxmasses = maxmass + nox * 16
@@ -242,8 +245,8 @@ class UniDecEngine:
         for i, m in enumerate(oxmasses):
             low = m + self.config.integratelb
             high = m + self.config.integrateub
-            area, intdat = ud.integrate(data, low, high) # Peak Area
-            #area = ud.data_extract(data, (high+low)/2., window=(high-low)/2., extract_method=1) # Peak Height
+            area, intdat = ud.integrate(data, low, high)  # Peak Area
+            # area = ud.data_extract(data, (high+low)/2., window=(high-low)/2., extract_method=1) # Peak Height
             areas.append(area)
             print("Peak:", m, "Number of Oxidations:", nox[i], "Range:", low, "to", high, "Local Max:", area)
         areas = np.array(areas)
@@ -258,3 +261,218 @@ class UniDecEngine:
 
         return np.append(areas, totox)
 
+    def load_ofile(self, file=None):
+        if file is None:
+            file = self.config.ofile
+
+        if os.path.isfile(file):
+            self.config.oligomerlist = unidecstructure.ofile_reader(file)
+            if self.config.oligomerlist.shape == (4,) or self.config.oligomerlist.shape == (5,):
+                self.config.oligomerlist = np.array([self.config.oligomerlist])
+        else:
+            print("Ofile Not Found: ", file)
+
+    def make_oligomers(self, isolated=False, oligomerlist=None, minsites=None, maxsites=None):
+        if oligomerlist is None:
+            oligomerlist = self.config.oligomerlist
+        self.olg.make_oligomers(isolated=isolated, oligomerlist=oligomerlist, minsites=minsites, maxsites=maxsites)
+
+    def match(self, tolerance=100, isolated=False, glyco=False, minsites=None, maxsites=None):
+        if ud.isempty(self.olg.oligomasslist):
+            self.make_oligomers(minsites=minsites, maxsites=maxsites, isolated=isolated)
+        if glyco:
+            self.olg.pair_glyco()
+        print(self.olg.oligomerlist)
+        self.matchlist, self.matchindexes = ud.match(self.pks, self.olg.oligomasslist, self.olg.oligonames,
+                                                     self.config.oligomerlist, tolerance=tolerance, return_numbers=True)
+
+    def get_alts(self, tolerance=100):
+        self.altmasses, self.altindexes, self.matchcounts = self.olg.get_alts(self.pks, tolerance)
+
+    def get_summed_match_intensities(self, index, alts=True, normmode=0, probarray=None, get_2D=False):
+        # To translate the index into oligomer number
+        basenumber = int(self.config.oligomerlist[index, 2])
+
+        # If alts are considered, divide up the intensity proporionately into different potential matches
+        # Either uses a probability array to tell which is more probable or assumes all are equally likely
+        # Note: it would be possible to assume a peak width and set likelihood based on error relative to PW
+        if alts:
+            # Merge the alternate indexes together into a single giant list
+            altindexes = np.concatenate(self.altindexes)
+            # Pull out only the ones with the right index
+            snumbers = altindexes[:, index]
+            sunique = np.unique(snumbers)
+
+            # Allows input of probability array to filter the potential matches to get the most likely
+            if probarray is not None:
+                # Translate the probability data into indexes
+                nvals = probarray[:, 0]
+                probs = np.zeros(np.amax(sunique) + 1)
+                for i, s in enumerate(sunique):
+                    if s + basenumber in nvals:
+                        j = np.argwhere(nvals == s + basenumber)[0][0]
+                        probs[s] = probarray[j, 1]
+                # Create a large array with probabilities matching the indexes
+                probs2 = probs[snumbers]
+
+                # Set the intensities based on the peak height and the normalized probability of each peak
+                intensities = []
+                index = 0
+                for i, p in enumerate(self.pks.peaks):
+                    n = self.matchcounts[i]
+                    subprobs2 = probs2[index:index + n]
+                    if np.sum(subprobs2) == 0:
+                        print("No matches compatible with probability for peak:", p.mass)
+                        intensities.append(np.ones(n) * p.height * subprobs2)
+                    else:
+                        intensities.append(np.ones(n) * p.height * subprobs2 / np.sum(subprobs2))
+                    index += n
+                intensities = np.concatenate(intensities)
+
+            else:
+                intensities = []
+                for i, p in enumerate(self.pks.peaks):
+                    intensities.append(np.ones(self.matchcounts[i]) * p.height / self.matchcounts[i])
+                intensities = np.concatenate(intensities)
+
+        else:
+            # If alts are not considered, just use the matches and assume they have all the peak height
+            intensities = np.array([p.height for p in self.pks.peaks])
+            snumbers = self.matchindexes[:, index]
+            sunique = np.unique(snumbers)
+
+        sint = []
+        psint = []
+        for i, s in enumerate(sunique):
+            b1 = snumbers == s
+            subset = intensities[b1]
+            sum = np.sum(subset)
+            sint.append(sum)
+            if get_2D:
+                index = 0
+                peaksums = []
+                for j, p in enumerate(self.pks.peaks):
+                    mask = np.zeros_like(intensities)
+                    if alts:
+                        n = self.matchcounts[j]
+                        mask[index:index + n] = 1
+                        index += n
+                    else:
+                        mask[j] = 1
+                    peaksum = np.sum(intensities[b1 * mask.astype(bool)])
+                    peaksums.append(peaksum)
+
+                peaksums = np.array(peaksums)
+                # if np.amax(peaksums) != 0:
+                #    peaksums = peaksums / np.sum(peaksums)
+                psint.append(peaksums)
+
+        sint = np.array(sint)
+        if normmode == 1:
+            sint /= np.sum(sint)
+        if normmode == 2:
+            sint /= np.max(sint)
+        if get_2D:
+            psint = np.array(psint)
+            if np.amax(psint) != 0:
+                psint /= np.amax(psint)
+            return np.transpose([sunique + basenumber, sint]), psint
+        else:
+            return np.transpose([sunique + basenumber, sint])
+
+    def load_peaks(self, pfile):
+        pdata = np.loadtxt(pfile, delimiter=",", usecols=(0, 1))
+        self.pks = peakstructure.Peaks()
+        self.pks.add_peaks(pdata)
+
+    def makeplot2(self, plot=None, data=None, pks=None, config=None):
+        """
+        Plot mass data and peaks if possible in self.view.plot2
+        :param plot: Plot object. Default is None, which will set plot to creating a new plot
+        :param data: 2D data with mass in the first column and intensity in the second. Default is self.data.massdat
+        :param pks: Peaks object. Default is self.pks
+        :param config: Config objet. Default is self.config
+        :return plot: The Plot object
+        """
+        if plot is None:
+            plot = plot1d.Plot1dBase()
+        if data is None:
+            data = self.data.massdat
+        if pks is None:
+            pks = self.pks
+        if config is None:
+            config = self.config
+        if config.batchflag == 0 and data.shape[1] == 2 and len(data) >= 2:
+            tstart = time.perf_counter()
+            plot.plotrefreshtop(data[:, 0], data[:, 1],
+                                "Zero-charge Mass Spectrum", "Mass (Da)",
+                                "Intensity", "Mass Distribution", config, test_kda=True,
+                                nopaint=True)
+            if pks.plen > 0:
+                for p in pks.peaks:
+                    if p.ignore == 0:
+                        plot.plotadddot(p.mass, p.height, p.color, p.marker)
+            plot.repaint()
+            tend = time.perf_counter()
+            print("Plot 2: %.2gs" % (tend - tstart))
+        if data.shape[1] != 2 or len(data) < 2:
+            print("Data Too Small. Adjust parameters.", data)
+        return plot
+
+    def makeplot4(self, plot=None, data=None, pks=None, config=None):
+        """
+        Plots isolated peaks against the data in self.view.plot4.
+        Will plot dots at peak positions.
+        If possible, will plot full isolated spectra.
+        :param plot: Plot object. Default is None, which will set plot to creating a new plot
+        :param data: 2D data with mass in the first column and intensity in the second. Default is self.data.massdat
+        :param pks: Peaks object. Default is self.pks
+        :param config: Config objet. Default is self.config
+        :return plot: The Plot object
+        """
+        if plot is None:
+            plot = plot1d.Plot1dBase()
+        if data is None:
+            data = self.data.data2
+        if pks is None:
+            pks = self.pks
+        if config is None:
+            config = self.config
+        if config.batchflag == 0:
+            tstart = time.perf_counter()
+            # This plots the normal 1D mass spectrum
+            plot.plotrefreshtop(data[:, 0], data[:, 1],
+                                "Data with Offset Isolated Species", "m/z (Th)",
+                                "Normalized and Offset Intensity", "Data", config, nopaint=True)
+            num = 0
+            # Corrections for if Isotope mode is on
+            if config.isotopemode == 1:
+                try:
+                    stickmax = np.amax(np.array([p.stickdat for p in pks.peaks]))
+                except (AttributeError, ValueError):
+                    stickmax = 1.0
+            else:
+                stickmax = 1.0
+            # Loop through each peak
+            for i, p in enumerate(pks.peaks):
+                # Check if the peak is ignored
+                if p.ignore == 0:
+                    # Check if the mztabs are empty
+                    if (not ud.isempty(p.mztab)) and (not ud.isempty(p.mztab2)):
+                        mztab = np.array(p.mztab)
+                        mztab2 = np.array(p.mztab2)
+                        maxval = np.amax(mztab[:, 1])
+                        # Filter all peaks where the deconvolved intensity is above the relative threshold
+                        b1 = mztab[:, 1] > config.peakplotthresh * maxval
+                        # Plot the filtered peaks as dots on the spectrum
+                        plot.plotadddot(mztab2[b1, 0], mztab2[b1, 1], p.color, p.marker)
+                    # Check if convolved data is present
+                    if not ud.isempty(p.stickdat):
+                        # Plot the offset reconvolved data from the isolated species
+                        plot.plotadd(data[:, 0], np.array(p.stickdat) / stickmax - (
+                                num + 1) * config.separation, p.color, "useless label")
+                    num += 1
+            plot.repaint()
+            tend = time.perf_counter()
+            print("Plot 4: %.2gs" % (tend - tstart))
+            return plot

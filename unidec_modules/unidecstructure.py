@@ -1,4 +1,6 @@
 import os
+import time
+
 import numpy as np
 from unidec_modules import unidectools as ud
 import platform
@@ -14,10 +16,11 @@ __author__ = 'Michael.Marty'
 def ofile_reader(path):
     oligos = []
     for line in open(path):
-        a = np.array(line.split())
-        string = " ".join(a[4:])
-        oarray = np.array([a[0], a[1], a[2], a[3], string])
-        oligos.append(oarray)
+        if len(line) > 1:
+            a = np.array(line.split())
+            string = " ".join(a[4:])
+            oarray = np.array([a[0], a[1], a[2], a[3], string])
+            oligos.append(oarray)
     return np.array(oligos)
 
 
@@ -694,6 +697,7 @@ class UniDecConfig(object):
             replace_dataset(config_group, "manuallist", data=self.manuallist)
         if not ud.isempty(self.oligomerlist):
             replace_dataset(config_group, "oligomerlist", data=self.oligomerlist.astype(np.string_))
+            np.savetxt(self.ofile, self.oligomerlist, fmt='%s')
 
         hdf.close()
         pass
@@ -1152,6 +1156,48 @@ class UniDecConfig(object):
     def get_preset_list(self):
         for dirpath, dirnames, files in os.walk(self.presetdir):
             print(files)
+
+
+class OligomerContainer:
+    def __init__(self):
+        self.oligomernames = np.array([])
+        self.oligomasslist = np.array([])
+        self.oligomerlist = np.array([])
+
+    def make_oligomers(self, isolated=False, oligomerlist=None, minsites=None, maxsites=None):
+        print("Starting to make oligomers. Isolated=", isolated)
+        stime = time.perf_counter()
+        self.oligomerlist = oligomerlist
+        if not isolated:
+            self.oligomasslist, self.oligonames = ud.make_all_matches(oligomerlist)
+        else:
+            self.oligomasslist, self.oligonames = ud.make_isolated_match(oligomerlist)
+        if minsites is not None:
+            sums = np.sum(self.oligonames, axis=1)
+            b1 = sums >= minsites
+            self.oligomasslist = self.oligomasslist[b1]
+            self.oligonames = self.oligonames[b1]
+        if maxsites is not None:
+            sums = np.sum(self.oligonames, axis=1)
+            b1 = sums <= maxsites
+            self.oligomasslist = self.oligomasslist[b1]
+            self.oligonames = self.oligonames[b1]
+        print("Oligomers Made in ", time.perf_counter()-stime, "s")
+
+    def pair_glyco(self):
+        self.oligomasslist, self.oligonames = ud.pair_glyco_matches(self.oligomasslist, self.oligonames, self.oligomerlist)
+
+    def get_alts(self, pks, tolerance=10):
+        altmasses = []
+        altindexes = []
+        matchcounts = []
+        for p in pks.peaks:
+            m = p.mass
+            b1 = np.abs(self.oligomasslist-m) < tolerance
+            altmasses.append(self.oligomasslist[b1])
+            altindexes.append(self.oligonames[b1])
+            matchcounts.append(np.sum(b1))
+        return altmasses, altindexes, np.array(matchcounts)
 
 
 class DataContainer:

@@ -25,10 +25,10 @@ int check_group(hid_t file_id, char *dataname)
 	return status;
 }
 
-int check_group_noexit(hid_t file_id, char* dataname)
+int check_group_noexit(hid_t file_id, char* dataname, const int silent)
 {
 	int status = H5Lexists(file_id, dataname, H5P_DEFAULT);
-	if (status == 0) { printf("Dataset %s does not exist.\n", dataname);}
+	if (status == 0 && silent==0) { printf("Dataset %s does not exist.\n", dataname);}
 	return status;
 }
 

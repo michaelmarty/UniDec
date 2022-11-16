@@ -303,7 +303,7 @@ class ChromApp(MetaUniDecBase):
                               data=self.eng.unidec_eng.data.data2)
 
     def on_single_differences(self, e=None):
-        self.on_differences(self, plot=self.view.plot2s, peakpanel=self.view.singlepeakpanel,
+        self.on_differences(self, plot=self.view.plot2s,
                             massdat=self.eng.unidec_eng.data.massdat, pks=self.eng.unidec_eng.pks)
 
     def on_single_label_masses(self, e=None):

@@ -5,7 +5,7 @@ import numpy as np
 def replace_dataset(group, name, data):
     if name in list(group.keys()):
         del group[name]
-    group.create_dataset(name, data=data)
+    group.create_dataset(name, data=data, compression="gzip")
     pass
 
 
