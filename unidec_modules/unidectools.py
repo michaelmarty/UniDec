@@ -2941,7 +2941,8 @@ def peaks_error_FWHM(pks, data):
         end = p.intervalFWHM[1]
         p.centroid = center_of_mass(data, start, end)[0]
         # print("Apex:", p.mass, "Centroid:", p.centroid, "FWHM Range:", p.intervalFWHM)
-
+    pks.centroids = np.array([p.centroid for p in pks.peaks])
+    pks.fwhms = np.array([p.errorFWHM for p in pks.peaks])
 
 def peaks_error_mean(pks, data, ztab, massdat, config):
     """

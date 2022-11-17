@@ -6,6 +6,7 @@ import pandas as pd
 import os
 import time
 import matplotlib.pyplot as plt
+import unidec_modules.peakstructure as ps
 
 pd.set_option('mode.chained_assignment', None)
 
@@ -28,8 +29,8 @@ class LipiDecRunner:
         print("Data File:", self.datapath)
         print("Library File:", self.libpath)
 
-        self.eng=None
-        self.results=None
+        self.eng = None
+        self.results = None
 
         libext = os.path.splitext(libpath)[1]
         if libext == ".xlsx":
@@ -101,6 +102,13 @@ class LipiDec:
         self.noiselevel = ud.noise_level2(self.data[self.data[:, 1] > 0], percent=0.50)
         self.peaks = ud.peakdetect(self.data, threshold=self.noiselevel * 5, ppm=self.tolerance * 2, norm=False)
         print("Peaks:", len(self.peaks))
+        # Change peak apex to centroids
+        self.pks = ps.Peaks()
+        self.pks.add_peaks(self.peaks)
+        ud.peaks_error_FWHM(self.pks, self.data)
+        self.peaks[:, 0] = self.pks.centroids
+        self.pks.integrate(self.data)
+
 
     def sort_df(self):
         self.df.sort_values("Mass")

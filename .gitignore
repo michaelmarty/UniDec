@@ -135,7 +135,6 @@ unidec_modules/thermo_reader/greparam.py
 unidec_bin/Presets/Marius/
 MANIFEST.in
 desktop.ini
-setup.py
 unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure1.pdf
 unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure2.pdf
 unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure3.pdf

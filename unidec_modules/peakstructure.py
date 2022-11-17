@@ -104,6 +104,10 @@ class Peaks:
         self.plen = 0
         self.changed = 0
         self.masses = []
+        self.heights = []
+        self.centroids = []
+        self.areas = []
+        self.fwhms = []
         self.convolved = False
         self.composite = None
         self.peakcolors = []
@@ -130,6 +134,7 @@ class Peaks:
                 newpeak.dscore = p[2]
             self.peaks.append(newpeak)
         self.masses = np.array([p.mass for p in self.peaks])
+        self.heights = np.array([p.height for p in self.peaks])
         self.plen = len(self.peaks)
         self.convolved = False
         self.composite = None
@@ -215,6 +220,28 @@ class Peaks:
             p.diff = peakdiff[i]
         return np.array([p.diff for p in self.peaks])
 
+    def integrate(self, data, lb=None, ub=None):
+        self.areas = []
+        for p in self.peaks:
+            if lb is None:
+                if len(p.intervalFWHM) == 2:
+                    lb = (p.intervalFWHM[0]-p.mass) * 2
+                else:
+                    print("ERROR IN INTEGRATION. Need to calc FWHM first.")
+                    lb = 0
+            if ub is None:
+                if len(p.intervalFWHM) == 2:
+                    ub = (p.intervalFWHM[1]-p.mass) * 2
+                else:
+                    print("ERROR IN INTEGRATION. Need to calc FWHM first.")
+                    ub = 0
+            p.integralrange = [p.mass + lb, p.mass + ub]
+            p.integral = ud.integrate(data, p.integralrange[0], p.integralrange[1])[0]
+            self.areas.append(p.integral)
+        self.areas = np.array(self.areas)
+
+
+
     def auto_format(self):
 
         colors = np.array([[[1, 0, 0], [1, 0, 0]], [[0, 0.7, 0], [1, 1, 0]], [[0, 0.5, 1], [1, 0, 1]]])
@@ -263,36 +290,4 @@ class Peaks:
             outstring += p.line_out(type=type) + "\n"
         return outstring
 
-    '''
-    def score_peaks(self, thresh=0, ci=0.99):
-        """
-        For each peak, assign a score of the fractional number of charge states observed.
-        :param thresh: Optional threshold to define a noise floor.
-        :return: None
-        """
-        for p in self.peaks:
-            boo1 = p.mztab[:, 1] > thresh
-            boo2 = p.mztab2[:, 1] > 0
-            booi = p.mztabi[:, 0] > 0
-            boo3 = np.all([boo1, boo2, booi], axis=0)
-            try:
-                p.score = np.sum((np.ones_like(p.mztab[boo3, 1]) - np.clip(
-                    np.abs((p.mztab[boo3, 1] - p.mztab2[boo3, 1])) / p.mztab2[boo3, 1], 0, 1)))
-            except ZeroDivisionError:
-                p.score = 0
-
-            try:
-                dof = p.score - 1
-                if dof < 0:
-                    tval = 0
-                else:
-                    tval = ud.get_tvalue(dof, ci=ci)
-                p.massavg = np.average(p.peakmasses)
-                p.masserr = tval * np.std(p.peakmasses, ddof=1) / np.sqrt(p.score)
-                p.tval = tval
-            except (ValueError, ZeroDivisionError, RuntimeWarning, RuntimeError):
-                p.massavg = 0
-                p.masserr = 0
-                p.tval = 0
-    '''
 
