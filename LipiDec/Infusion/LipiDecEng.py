@@ -68,6 +68,8 @@ class LipiDecRunner:
         if outdir is None:
             self.results.to_excel(self.datapath[:-4] + "_results.xlsx")
         else:
+            if not os.path.isdir(outdir):
+                os.mkdir(outdir)
             self.results.to_excel(os.path.join(outdir, self.datapath[:-4] + "_results.xlsx"))
         # results = calc_fromula_from_mass(peaks[:,0], tolerance=5)
         print("Done:", time.perf_counter() - st)
