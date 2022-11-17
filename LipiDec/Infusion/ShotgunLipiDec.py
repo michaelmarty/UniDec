@@ -33,6 +33,8 @@ for dfile in files:
     else:
         libfile = nonderlibfile
     runner = LipiDecRunner(dfile, libfile, dir=topdir, datarange=drange)
+    runner.eng.tolerance = 5
+    #runner.eng.minisomatches = 3
     runner.run(ignore_list=ignore_list)
     if plot:
         runner.make_plot(show=False)
