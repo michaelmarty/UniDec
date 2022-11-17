@@ -58,9 +58,10 @@ class LipiDecRunner:
             # data = ud.datachop(data, 742, 772)
             # data = ud.datachop(data, 870, 876)
 
+        self.eng = LipiDec(self.data, self.libdf)
+
     def run(self, ignore_list=[], outdir=None):
         st = time.perf_counter()
-        self.eng = LipiDec(self.data, self.libdf)
         self.eng.cleanup_db(mode=self.polarity, ignore_list=ignore_list)
         self.eng.find_matches()
         self.eng.run_decon()
@@ -95,24 +96,14 @@ class LipiDec:
         self.peaks = None
         self.data = data
         self.tolerance = 3
+        self.peaktol = self.tolerance
         # self.sort_df()
         self.minisomatches = 2
         self.intensity_error_cutoff = 0.2
         self.coal_tol_mult = 5
-        self.coal_rat_cutoff = 20
+        self.coal_rat_cutoff = 10
         self.db_round_decimal = 3
-        self.get_peaks()
 
-    def get_peaks(self):
-        self.noiselevel = ud.noise_level2(self.data[self.data[:, 1] > 0], percent=0.50)
-        self.peaks = ud.peakdetect(self.data, threshold=self.noiselevel * 5, ppm=self.tolerance * 2, norm=False)
-        print("Peaks:", len(self.peaks))
-        # Change peak apex to centroids
-        self.pks = ps.Peaks()
-        self.pks.add_peaks(self.peaks)
-        ud.peaks_error_FWHM(self.pks, self.data)
-        self.peaks[:, 0] = self.pks.centroids
-        self.pks.integrate(self.data)
 
     def sort_df(self):
         self.df.sort_values("Mass")
@@ -150,7 +141,19 @@ class LipiDec:
         self.correct_peaks()
         self.find_isotope_matches(minmatches=self.minisomatches)
 
+    def get_peaks(self):
+        self.noiselevel = ud.noise_level2(self.data[self.data[:, 1] > 0], percent=0.50)
+        self.peaks = ud.peakdetect(self.data, threshold=self.noiselevel * 5, ppm=self.peaktol, norm=False)
+        print("Peaks:", len(self.peaks))
+        # Change peak apex to centroids
+        self.pks = ps.Peaks()
+        self.pks.add_peaks(self.peaks)
+        ud.peaks_error_FWHM(self.pks, self.data)
+        #self.peaks[:, 0] = self.pks.centroids
+        self.pks.integrate(self.data)
+
     def find_initial_matches(self):
+        self.get_peaks()
         dbmasses = self.df["Mz"].to_numpy()
         matches = np.array([matcher(self.peaks[:, 0], mass, self.tolerance) for mass in dbmasses])
         b1 = matches > -1
