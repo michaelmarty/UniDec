@@ -73,7 +73,7 @@ class ThermoDataImporter:
                 scan_range = [np.amin(self.scans), np.amax(self.scans)]
             except:
                 scan_range = [1, 2]
-        scan_range = np.array(scan_range, dtype=np.int)
+        scan_range = np.array(scan_range, dtype=int)
         print("Thermo Scan Range:", scan_range)
 
         try:
@@ -180,10 +180,10 @@ if __name__ == "__main__":
     tstart = time.perf_counter()
     d = ThermoDataImporter(test)
     d.get_polarity()
-    exit()
+    #exit()
     vdata = d.get_analog_voltage1()
     times = d.get_tic()[1:, 0]
-
+    data = d.get_data()
     # vdata = (-34.48*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))+(263.91*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))-(811.83*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))+(1258.4*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))-(1032.3*(vdata-np.amin(vdata)))+409.12
 
     vdata = (-44.115 * (vdata) * (vdata) * (vdata)) + (201.67 * (vdata) * (vdata)) + (-347.15 * (vdata)) + 242.19

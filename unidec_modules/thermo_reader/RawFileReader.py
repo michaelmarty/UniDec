@@ -47,7 +47,7 @@ Borrowed some code from pyRawRileReader from pDeep3: https://github.com/pFindStu
 '''
 
 
-def DotNetArrayToNPArray(arr, dtype=np.float):
+def DotNetArrayToNPArray(arr, dtype=float):
     return np.array(list(arr), dtype=dtype)
 
 
@@ -198,7 +198,7 @@ class RawFileReader(object):
         try:
             self.header = {}
             extra_header_info = self.source.GetTrailerExtraHeaderInformation()
-            extra_header_values = self.source.GetTrailerExtraValues(scannumber, True)
+            extra_header_values = self.source.GetTrailerExtraValues(int(scannumber))
             extra_header_values = DotNetArrayToNPArray(extra_header_values, dtype=str)
             for i in range(len(extra_header_info)):
                 item = extra_header_info[i]
@@ -232,7 +232,7 @@ class RawFileReader(object):
         return self.timerange
 
     def scan_time_from_scan_name(self, scan):
-        return self.source.RetentionTimeFromScanNumber(scan)
+        return self.source.RetentionTimeFromScanNumber(int(scan))
 
     def GetFilters(self):
         """Returns the list of unique scan filters for the raw file. This function is only supported for MS
@@ -311,8 +311,8 @@ class RawFileReader(object):
         numberFilters = len(self.source.GetFilters())
 
         # Get the scan filter for the first and last spectrum in the RAW file
-        firstFilter = IScanFilter(self.source.GetFilterForScanNumber(scanrange[0]))
-        lastFilter = IScanFilter(self.source.GetFilterForScanNumber(scanrange[1]))
+        firstFilter = IScanFilter(self.source.GetFilterForScanNumber(int(scanrange[0])))
+        lastFilter = IScanFilter(self.source.GetFilterForScanNumber(int(scanrange[1])))
 
         print('Filter Information:')
         print('   Scan filter (first scan): {}'.format(firstFilter.ToString()))
@@ -354,13 +354,13 @@ class RawFileReader(object):
             # Get the retention time for this scan number.  This is one of
             # two comparable functions that will convert between retention
             # time and scan number.
-            time = self.source.RetentionTimeFromScanNumber(scan)
+            time = self.source.RetentionTimeFromScanNumber(int(scan))
 
             # Get the scan filter for this scan number
-            scanFilter = IScanFilter(self.source.GetFilterForScanNumber(scan))
+            scanFilter = IScanFilter(self.source.GetFilterForScanNumber(int(scan)))
 
             # Get the scan event for this scan number
-            scanEvent = IScanEventBase(self.source.GetScanEventForScanNumber(scan))
+            scanEvent = IScanEventBase(self.source.GetScanEventForScanNumber(int(scan)))
 
             # Get the ionizationMode, MS2 precursor mass, collision
             # energy, and isolation width for each scan
@@ -379,7 +379,7 @@ class RawFileReader(object):
                 # Get the trailer extra data for this scan and then look
                 # for the monoisotopic m/z value in the trailer extra data
                 # list
-                trailerData = self.source.GetTrailerExtraInformation(scan)
+                trailerData = self.source.GetTrailerExtraInformation(int(scan))
 
                 for i in range(trailerData.Length):
                     if trailerData.Labels[i] == 'Monoisotopic M/Z:':
@@ -397,7 +397,7 @@ class RawFileReader(object):
                             collisionEnergy, isolationWidth))
 
             elif scanFilter.MSOrder == MSOrderType.Ms:
-                scanDependents = self.source.GetScanDependents(scan, 5)
+                scanDependents = self.source.GetScanDependents(int(scan), 5)
 
                 print(
                     'Scan number {} @ time {:.2f} - Instrument type={}, Number dependent scans={}'.format(
@@ -413,13 +413,13 @@ class RawFileReader(object):
             outputData (bool): the output data flag.
         '''
         if scanFilter is None:
-            scanFilter = IScanFilter(self.source.GetFilterForScanNumber(scanNumber))
+            scanFilter = IScanFilter(self.source.GetFilterForScanNumber(int(scanNumber)))
         # Check for a valid scan filter
         if not scanFilter:
             return
 
         # Get the scan statistics from the RAW file for this scan number
-        scanStatistics = self.source.GetScanStatsForScanNumber(scanNumber)
+        scanStatistics = self.source.GetScanStatsForScanNumber(int(scanNumber))
 
         # Check to see if the scan has centroid data or profile data.  Depending upon the
         # type of data, different methods will be used to read the data.  While the ReadAllSpectra
@@ -428,7 +428,7 @@ class RawFileReader(object):
         if scanStatistics.IsCentroidScan:
             # Get the centroid (label) data from the RAW file for this
             # scan
-            centroidStream = self.source.GetCentroidStream(scanNumber, False)
+            centroidStream = self.source.GetCentroidStream(int(scanNumber), False)
 
             # Print the spectral data (mass, intensity, charge values).
             # Not all of the information in the high resolution centroid
@@ -445,11 +445,11 @@ class RawFileReader(object):
                 [DotNetArrayToNPArray(centroidStream.Masses), DotNetArrayToNPArray(centroidStream.Intensities)])
         else:
             # Get the segmented (low res and profile) scan data
-            segmentedScan = self.source.GetSegmentedScanFromScanNumber(scanNumber, scanStatistics)
+            segmentedScan = self.source.GetSegmentedScanFromScanNumber(int(scanNumber), scanStatistics)
 
             # Print the spectral data (mass, intensity values)
             if outputData:
-                print('Spectrum (normal data) {} - {} points'.format(scanNumber, segmentedScan.Positions.Length))
+                print('Spectrum (normal data) {} - {} points'.format(int(scanNumber), segmentedScan.Positions.Length))
                 for i in range(segmentedScan.Positions.Length):
                     print('  {} - {:.4f}, {:.0f}'.format(
                         i, segmentedScan.Positions[i], segmentedScan.Intensities[i]))
@@ -478,24 +478,24 @@ class RawFileReader(object):
         # Get the scan filter for the first scan.  This scan filter will be used to located
         # scans within the given scan range of the same type
         if filter is None:
-            scanFilter = IScanFilter(self.source.GetFilterForScanNumber(scanrange[0]))
+            scanFilter = IScanFilter(self.source.GetFilterForScanNumber(int(scanrange[0])))
         else:
             filterhelper = Extensions.BuildFilterHelper(self.source, filter)
             scanFilter = filterhelper.Filter
-        scanStatistics = self.source.GetScanStatsForScanNumber(scanrange[0])
+        scanStatistics = self.source.GetScanStatsForScanNumber(int(scanrange[0]))
 
         # Get the average mass spectrum for the provided scan range. In addition to getting the
         # average scan using a scan range, the library also provides a similar method that takes
         # a time range.
 
         averageScan = Extensions.AverageScansInScanRange(
-            self.source, scanrange[0], scanrange[1], scanFilter, options)
+            self.source, int(scanrange[0]), int(scanrange[1]), scanFilter, options)
 
         if averageScan is None:
             filterhelper = Extensions.BuildFilterHelper(self.source, "Full")
             scanFilter = filterhelper.Filter
             averageScan = Extensions.AverageScansInScanRange(
-                self.source, scanrange[0], scanrange[1], scanFilter, options)
+                self.source, int(scanrange[0]), int(scanrange[1]), scanFilter, options)
         # This example uses a different method to get the same average spectrum that was calculated in the
         # previous portion of this method.  Instead of passing the start and end scan, a list of scans will
         # be passed to the GetAveragedMassSpectrum function.
@@ -532,7 +532,7 @@ class RawFileReader(object):
         return self.data
 
     def GetCentroidArray(self, scanNumber=1):
-        scan = Scan.FromFile(self.source, scanNumber)
+        scan = Scan.FromFile(self.source, int(scanNumber))
         masses = DotNetArrayToNPArray(scan.PreferredMasses)
         noises = DotNetArrayToNPArray(scan.PreferredNoises)
         intensities = DotNetArrayToNPArray(scan.PreferredIntensities)
@@ -549,13 +549,13 @@ class RawFileReader(object):
         '''
 
         # Get the scan from the RAW file
-        scan = Scan.FromFile(self.source, scanNumber)
+        scan = Scan.FromFile(self.source, int(scanNumber))
 
         # Get the scan event and from the scan event get the analyzer type for this scan
-        scanEvent = IScanEventBase(self.source.GetScanEventForScanNumber(scanNumber))
+        scanEvent = IScanEventBase(self.source.GetScanEventForScanNumber(int(scanNumber)))
 
         # Get the trailer extra data to get the ion time for this file
-        logEntry = self.source.GetTrailerExtraInformation(scanNumber)
+        logEntry = self.source.GetTrailerExtraInformation(int(scanNumber))
 
         trailerHeadings = List[str]()
         trailerValues = List[str]()
