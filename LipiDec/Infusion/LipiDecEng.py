@@ -58,14 +58,17 @@ class LipiDecRunner:
             # data = ud.datachop(data, 742, 772)
             # data = ud.datachop(data, 870, 876)
 
-    def run(self, ignore_list=[]):
+    def run(self, ignore_list=[], outdir=None):
         st = time.perf_counter()
         self.eng = LipiDec(self.data, self.libdf)
         self.eng.cleanup_db(mode=self.polarity, ignore_list=ignore_list)
         self.eng.find_matches()
         self.eng.run_decon()
         self.results = self.eng.find_alternates()
-        self.results.to_excel(self.datapath[:-4] + "_results.xlsx")
+        if outdir is None:
+            self.results.to_excel(self.datapath[:-4] + "_results.xlsx")
+        else:
+            self.results.to_excel(os.path.join(outdir, self.datapath[:-4] + "_results.xlsx"))
         # results = calc_fromula_from_mass(peaks[:,0], tolerance=5)
         print("Done:", time.perf_counter() - st)
 
@@ -108,7 +111,6 @@ class LipiDec:
         ud.peaks_error_FWHM(self.pks, self.data)
         self.peaks[:, 0] = self.pks.centroids
         self.pks.integrate(self.data)
-
 
     def sort_df(self):
         self.df.sort_values("Mass")
