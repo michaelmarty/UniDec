@@ -52,6 +52,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.EVT_DIFFERENCES = wx.PyEventBinder(wx.NewEventType(), 1)
         self.EVT_MASSES = wx.PyEventBinder(wx.NewEventType(), 1)
         self.EVT_AREAS = wx.PyEventBinder(wx.NewEventType(), 1)
+        self.EVT_NAMES = wx.PyEventBinder(wx.NewEventType(), 1)
         self.EVT_IMAGE = wx.PyEventBinder(wx.NewEventType(), 1)
 
         self.remove = []
@@ -79,6 +80,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.popupID_label_integrals = wx.NewIdRef()
         self.popupID_label_integrals2 = wx.NewIdRef()
         self.popupID_consecutive_diffs = wx.NewIdRef()
+        self.popupID_label_names_all = wx.NewIdRef()
+        self.popupID_label_names_select = wx.NewIdRef()
 
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)
@@ -99,6 +102,8 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.Bind(wx.EVT_MENU, self.on_popup_rename, id=self.popupID15)
         self.Bind(wx.EVT_MENU, self.on_popup_image, id=self.popupID16)
         self.Bind(wx.EVT_MENU, self.on_popup_consec_diff, id=self.popupID_consecutive_diffs)
+        self.Bind(wx.EVT_MENU, self.on_popup_label_names_all, id=self.popupID_label_names_all)
+        self.Bind(wx.EVT_MENU, self.on_popup_label_names_select, id=self.popupID_label_names_select)
 
     def clear_list(self):
         """
@@ -225,6 +230,9 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             menu.AppendSeparator()
             menu.Append(self.popupID_label_integrals, "Label Select Areas/Intensities")
             menu.Append(self.popupID_label_integrals2, "Label All Areas/Intensities")
+            menu.AppendSeparator()
+            menu.Append(self.popupID_label_names_select, "Label Select Names")
+            menu.Append(self.popupID_label_names_all, "Label All Names")
             menu.AppendSeparator()
             menu.Append(self.popupID6, "Display Differences From")
             menu.Append(self.popupID_consecutive_diffs, "Display Consecutive Differences")
@@ -415,6 +423,33 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         newevent = wx.PyCommandEvent(self.EVT_MASSES._getEvtType(), self.GetId())
         self.GetEventHandler().ProcessEvent(newevent)
 
+    def on_popup_label_names_all(self, event=None):
+        """
+        Gets the selected items and adds it self.selection2. Triggers EVT_NAMES.
+        :param event:
+        :return:
+        """
+        self.selection2 = [p.mass for p in self.pks.peaks]
+        newevent = wx.PyCommandEvent(self.EVT_NAMES._getEvtType(), self.GetId())
+        self.GetEventHandler().ProcessEvent(newevent)
+
+    def on_popup_label_names_select(self, event=None):
+        """
+        Gets the selected items and adds it self.selection2. Triggers EVT_NAMES.
+        :param event:
+        :return:
+        """
+        # Label Masses
+        item = self.list_ctrl.GetFirstSelected()
+        num = self.list_ctrl.GetSelectedItemCount()
+        self.selection2 = []
+        self.selection2.append(tofloat(self.list_ctrl.GetItem(item, col=1).GetText()))
+        for i in range(1, num):
+            item = self.list_ctrl.GetNextSelected(item)
+            self.selection2.append(tofloat(self.list_ctrl.GetItem(item, col=1).GetText()))
+        newevent = wx.PyCommandEvent(self.EVT_NAMES._getEvtType(), self.GetId())
+        self.GetEventHandler().ProcessEvent(newevent)
+
     def on_popup_label_areas_all(self, event=None):
         """
         Gets the selected items and adds it self.selection2. Triggers EVT_AREAS.
@@ -427,7 +462,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
 
     def on_popup_label_areas_select(self, event=None):
         """
-        Gets the selected items and adds it self.selection2. Triggers EVT_MASSES.
+        Gets the selected items and adds it self.selection2. Triggers EVT_AREAS.
         :param event:
         :return:
         """

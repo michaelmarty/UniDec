@@ -203,6 +203,8 @@ The main GUI class is GUniDec.UniDecApp.
 
 v.5.2.1
 
+Added ability to label names from peak panel.
+
 Added drag and drop for batch processing in UniChrom. 
 
 Fixes to reading in Agilent Files. May no longer need adminstrator access but not sure. Also, may work with Bruker TIMS data, but also not sure about this.
