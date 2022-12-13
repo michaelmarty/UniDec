@@ -313,7 +313,7 @@ class UniDecCD(unidec.UniDec):
 
         elif extension.lower() == ".npz":
             # Load numpy compressed file
-            data = np.load(self.path)['data']
+            data = np.load(self.path, allow_pickle=True)['data']
             # Assume m/z is in column 1 and intensity column 2
             mz = data[:, 0]
             intensity = data[:, 1]

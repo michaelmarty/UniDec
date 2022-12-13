@@ -536,13 +536,13 @@ class UniDecConfig(object):
                         if line.startswith("zerolog"):
                             self.zerolog = ud.string_to_value(line.split()[1])
                         if line.startswith("peaknorm"):
-                            self.peaknorm = ud.string_to_value(line.split()[1])
+                            self.peaknorm = ud.string_to_int(line.split()[1])
                         if line.startswith("datanorm"):
-                            self.datanorm = ud.string_to_value(line.split()[1])
+                            self.datanorm = ud.string_to_int(line.split()[1])
                         if line.startswith("baselineflag"):
                             self.baselineflag = ud.string_to_value(line.split()[1])
                         if line.startswith("orbimode"):
-                            self.orbimode = ud.string_to_value(line.split()[1])
+                            self.orbimode = ud.string_to_int(line.split()[1])
                         if line.startswith("doubledec"):
                             ddval = ud.string_to_int(line.split()[1])
                             if ddval == 0:

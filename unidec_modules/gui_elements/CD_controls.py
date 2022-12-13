@@ -628,7 +628,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlsep.SetValue(str(self.config.separation))
             self.ctlintthresh.SetValue(str(self.config.intthresh))
             self.ctladductmass.SetValue(str(self.config.adductmass))
-            self.ctldatanorm.SetValue(self.config.datanorm)
+            self.ctldatanorm.SetValue(int(self.config.datanorm))
             self.ctlnumit.SetValue(str(self.config.numit))
 
             self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))

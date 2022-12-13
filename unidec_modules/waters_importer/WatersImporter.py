@@ -232,17 +232,20 @@ class WatersDataImporter:
 
 if __name__ == "__main__":
     # test = "Z:\Group Share\Group\\Archive\\Scott\\test.RAW"
-    # test = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw"
+    test = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw"
     # test = "D:\\Data\\unidec_bunching8\\bunching8.raw"
-    test = "D:\Data\Data_for_Mike\SYJMX160819_04.raw"
+    #test = "D:\Data\Data_for_Mike\SYJMX160819_04.raw"
     tstart = time.perf_counter()
     d = WatersDataImporter(test, do_import=False)
     # d1, d2 = d.readerMS.ReadScan(d.function, 1)
     # d3, d4 = d.readerMS.CombineScan(d.function, np.arange(1,500))
-    data = d.get_data([1, 10])
-    data = d.get_data([20, 30])
+    #data = d.get_data([1, 10])
+    #data = d.get_data([20, 30])
+    data = d.get_IMMS_data()
+    print(len(data[0]))
+    print(data[0][0])
     print("ImportData: %.2gs" % (time.perf_counter() - tstart))
-
+    exit()
     import matplotlib.pyplot as plt
 
     plt.plot(data[:, 0], data[:, 1])

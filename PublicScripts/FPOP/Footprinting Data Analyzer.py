@@ -103,7 +103,7 @@ for i, path in enumerate(files[:]):
     # If there is load it
     # If not, average the time range to produce a spectrum file
     if os.path.isfile(outfile):
-        data = np.load(outfile)['data']
+        data = np.load(outfile, allow_pickle=True)['data']
     else:
         try:
             d = WDI(path)

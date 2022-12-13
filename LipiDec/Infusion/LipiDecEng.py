@@ -11,10 +11,15 @@ import unidec_modules.peakstructure as ps
 pd.set_option('mode.chained_assignment', None)
 
 
-def matcher(array, target, tolerance):
+def matcher(array, target, tolerance, fwhms):
     index = ud.nearest(array, target)
     match = array[index]
-    if np.abs(match - target) < tolerance * 1e-6 * target:
+    tol = tolerance * 1e-6 * target
+
+    #if tol < fwhms[index]:
+    #    tol = fwhms[index]
+
+    if np.abs(match - target) < tol:
         return index
     else:
         return -1
@@ -60,9 +65,9 @@ class LipiDecRunner:
 
         self.eng = LipiDec(self.data, self.libdf)
 
-    def run(self, ignore_list=[], outdir=None):
+    def run(self, ignore_list=[], outdir=None, include_list=[]):
         st = time.perf_counter()
-        self.eng.cleanup_db(mode=self.polarity, ignore_list=ignore_list)
+        self.eng.cleanup_db(mode=self.polarity, ignore_list=ignore_list, include_list=include_list)
         self.eng.find_matches()
         self.eng.run_decon()
         self.results = self.eng.find_alternates()
@@ -75,7 +80,7 @@ class LipiDecRunner:
         # results = calc_fromula_from_mass(peaks[:,0], tolerance=5)
         print("Done:", time.perf_counter() - st)
 
-    def make_plot(self, show=True):
+    def make_plot(self, show=True, plottype="log"):
         plt.figure()
         plt.plot(self.data[:, 0], self.data[:, 1])
         self.eng.plot_hits(plt.gca())
@@ -83,7 +88,8 @@ class LipiDecRunner:
         plt.hlines(self.eng.noiselevel * 5, np.amin(self.data[:, 0]), np.amax(self.data[:, 0]))
         plt.xlim(np.amin(self.data[:, 0]), np.amax(self.data[:, 0]))
         plt.ylim(self.eng.noiselevel, np.amax(self.data[:, 1]))
-        plt.gca().set_yscale('symlog')
+        if plottype == "log":
+            plt.gca().set_yscale('symlog')
         if show:
             plt.show()
 
@@ -96,9 +102,9 @@ class LipiDec:
         self.peaks = None
         self.data = data
         self.tolerance = 3
-        self.peaktol = self.tolerance
+        self.peaktol = self.tolerance*2
         # self.sort_df()
-        self.minisomatches = 2
+        self.minisomatches = 1
         self.intensity_error_cutoff = 0.2
         self.coal_tol_mult = 5
         self.coal_rat_cutoff = 10
@@ -108,7 +114,7 @@ class LipiDec:
     def sort_df(self):
         self.df.sort_values("Mass")
 
-    def cleanup_db(self, mode="positive", ignore_list=[], drop_duplicates=True):
+    def cleanup_db(self, mode="positive", ignore_list=[], include_list=[], drop_duplicates=True):
         if mode is None:
             mode = "positive"
         if mode.lower() == "positive":
@@ -122,6 +128,9 @@ class LipiDec:
 
         for ignore in ignore_list:
             self.topdf = self.topdf.drop(self.topdf[self.topdf["subclassKey"] == ignore].index)
+
+        for include in include_list:
+            self.topdf = self.topdf.drop(self.topdf[self.topdf["subclassKey"] != include].index)
 
         self.topdf = self.topdf.reset_index()
 
@@ -148,14 +157,14 @@ class LipiDec:
         # Change peak apex to centroids
         self.pks = ps.Peaks()
         self.pks.add_peaks(self.peaks)
-        ud.peaks_error_FWHM(self.pks, self.data)
-        #self.peaks[:, 0] = self.pks.centroids
-        self.pks.integrate(self.data)
+        #ud.peaks_error_FWHM(self.pks, self.data, level=0.25)
+        # self.peaks[:, 0] = self.pks.centroids
+        #self.pks.integrate(self.data)
 
     def find_initial_matches(self):
         self.get_peaks()
         dbmasses = self.df["Mz"].to_numpy()
-        matches = np.array([matcher(self.peaks[:, 0], mass, self.tolerance) for mass in dbmasses])
+        matches = np.array([matcher(self.peaks[:, 0], mass, self.tolerance, self.pks.fwhms) for mass in dbmasses])
         b1 = matches > -1
         self.hdf = deepcopy(self.df.loc[b1])
         self.hdf["Match"] = matches[b1]
@@ -170,7 +179,7 @@ class LipiDec:
         print("Corrected Peaks:", median_error, median_error2)
 
     def detect_coalescence(self, isomasses, isoints, isomatches, row, index=2):
-        newmatch = matcher(self.peaks[:, 0], isomasses[index], self.tolerance * self.coal_tol_mult)
+        newmatch = matcher(self.peaks[:, 0], isomasses[index], self.tolerance * self.coal_tol_mult, self.pks.fwhms)
         if newmatch > -1:
             predicted_int = row["Height"] * isoints[index]
             measured_int = self.peaks[newmatch, 1]
@@ -195,11 +204,11 @@ class LipiDec:
             isotopes = np.array(f.spectrum(min_intensity=0.1).dataframe())
             isomasses = (isotopes[:, 0] + adductmass) / np.abs(charge)
             isoints = isotopes[:, 2] / 100.
-            isomatches = np.array([matcher(self.peaks[:, 0], m, self.tolerance) for m in isomasses])
+            isomatches = np.array([matcher(self.peaks[:, 0], m, self.tolerance, self.pks.fwhms) for m in isomasses])
             hits = np.sum(isomatches > -1)
 
             if hits >= minmatches:
-                for j in range(2, len(isomatches)):
+                for j in range(1, len(isomatches)):
                     if isomatches[j] == -1:
                         isomatches, isomasses = self.detect_coalescence(isomasses, isoints, isomatches, row, index=j)
 
@@ -216,13 +225,14 @@ class LipiDec:
         self.hdf["Isoints"] = isointarray
         self.hdf["Isomatch"] = isomatcharray
 
+
     def run_decon(self):
         for i in range(0, 10):
             spectrum = self.make_spectrum()
             ratio = ud.safedivide(self.peaks[:, 1], spectrum)
             self.apply_ratio(ratio)
 
-        self.find_good_species()
+        #self.find_good_species()
         self.find_missing_peaks()
         self.find_alternates()
 
@@ -291,12 +301,16 @@ class LipiDec:
         spectrum = self.make_spectrum()
 
         for i, p in enumerate(self.peaks):
+            peak = self.pks.peaks[i]
+            fwhm = peak.errorFWHM
             if spectrum[i] == 0:
                 ax.plot(p[0], p[1], marker="o", linestyle=" ", color="r")
             elif self.diffs[i] > self.intensity_error_cutoff:
                 ax.plot(p[0], p[1], marker="o", linestyle=" ", color="y")
+                ax.plot(p[0], spectrum[i], marker="s", linestyle=" ", color="y")
             else:
-                # ax.plot(p[0], spectrum[i], marker="o", linestyle=" ", color="y")
+                ax.plot(p[0], p[1], marker="o", linestyle=" ", color="b")
+                ax.plot(p[0], spectrum[i], marker="s", linestyle=" ", color="b")
                 pass
 
         for i, row in self.hdf.iterrows():

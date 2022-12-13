@@ -21,11 +21,11 @@ topdir = "C:\Data\Lipidomics\Infusion\Raw data"
 files = ud.match_files(topdir, "*.raw")
 #files = ["B2SW620_3_10in40_RF10_NonDer_Pos.raw", "B2SW620_3_10in40_RF10_NonDer_Neg.raw"]
 files = ["C01AB1T1-Human__KANJ--B1_4X_MS_MN_211203_Der_Pos_1.raw"]
-files = ["B3_-5ta_CLMut_2in1_FAIMSCV62(5).raw"]
+#files = ["B3_-5ta_CLMut_2in1_FAIMSCV62(5).raw"]
 plot=True
 for dfile in files:
-    drange = [700,750]
-    #drange = None
+    #drange = [700,750]
+    drange = None
     if "NonDer" in dfile:
         libfile = nonderlibfile
     elif "Der" in dfile:

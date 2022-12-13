@@ -90,14 +90,14 @@ class DataImporter:
         """
         try:
             if scan_range is not None:
-                scan_range = np.array(scan_range, dtype=np.int)
+                scan_range = np.array(scan_range, dtype=int)
                 scan_range = scan_range+1
             if time_range is not None:
                 scan_range = self.get_scans_from_times(time_range)
                 print("Getting times:", time_range)
             if scan_range is None:
                 scan_range = [np.amin(self.scans), np.amax(self.scans)]
-            scan_range = np.array(scan_range, dtype=np.int)
+            scan_range = np.array(scan_range, dtype=int)
             print("Scan Range:", scan_range)
 
             if scan_range[0] < np.amin(self.scans):
@@ -188,13 +188,15 @@ class DataImporter:
 if __name__ == "__main__":
     test = "Z:\Group Share\Group\\Archive\\Scott\\test.RAW"
     test = "C:\Data\Others\Agilent\\2019_05_15_bsa_ccs_02.d"
-    test = u"C:\Python\\UniDec3\TestSpectra\\test.RAW"
-    #tstart = time.perf_counter()
+    #test = u"C:\Python\\UniDec3\TestSpectra\\test.RAW"
+    test = "Z:\mtmarty\Data\Others\Agilent\\2019_05_15_bsa_ccs_02.d"
 
-    #d = DataImporter(test)
-    #print(d.get_times_from_scans([0, 10]))
-    #d.get_data(time_range=(0, 10))
-    #print("ImportData: %.2gs" % (time.perf_counter() - tstart))
+    tstart = time.perf_counter()
+
+    d = DataImporter(test)
+    print(d.get_times_from_scans([0, 10]))
+    d.get_data(time_range=(0, 10))
+    print("ImportData: %.2gs" % (time.perf_counter() - tstart))
     #import matplotlib.pyplot as plt
 
     #plt.plot(d[:, 0], d[:, 1])

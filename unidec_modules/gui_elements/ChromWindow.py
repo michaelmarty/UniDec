@@ -251,10 +251,13 @@ class ChromDropTarget(wx.FileDropTarget):
         """
         if len(filenames) == 1:
             path = filenames[0]
-            self.window.pres.open_file(path)
+            if path[-9:] == "_conf.dat":
+                print("Importing Configuration File:", path)
+                self.window.pres.import_config(path)
+            else:
+                self.window.pres.open_file(path)
         elif len(filenames) > 1:
-            for f in filenames:
-                self.window.pres.open_file(f)
+            self.window.pres.batch_run(filenames)
         else:
             print("Error in drag and drop.")
         return 0

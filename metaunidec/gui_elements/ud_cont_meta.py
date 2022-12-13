@@ -561,7 +561,7 @@ class main_controls(wx.Panel):
             self.ctlbeta.SetValue(str(self.config.beta))
             self.ctlmzsig.SetValue(str(self.config.mzsig))
             self.ctlpsfun.SetSelection(self.config.psfun)
-            self.ctlnorm.SetSelection(self.config.peaknorm)
+            self.ctlnorm.SetSelection(int(self.config.peaknorm))
             self.ctlmasslb.SetValue(str(self.config.masslb))
             self.ctlmassub.SetValue(str(self.config.massub))
             self.ctlmasslistflag.SetValue(self.config.mfileflag)

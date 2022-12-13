@@ -229,7 +229,7 @@ class mzMLimporter:
         """
         print("Reading mzML:", path)
         self.filesize = os.stat(path).st_size
-        if not os.path.splitext(path)[1] == ".gz" and (self.filesize > 1e8 or gzmode):  # for files larger than 100 MB
+        if not os.path.splitext(path)[1] == ".gz" and (self.filesize > 3e8 or gzmode):  # for files larger than 100 MB
             path = auto_gzip(path)
             print("Converted to gzip file to improve speed:", path)
             self.filesize = os.stat(path).st_size
@@ -239,6 +239,7 @@ class mzMLimporter:
         # self.scans = []
         self.times = []
         self.ids = []
+
         for i, spectrum in enumerate(self.msrun):
             if '_scan_time' in list(spectrum.__dict__.keys()):
                 try:
@@ -262,7 +263,7 @@ class mzMLimporter:
         self.times = np.array(self.times)
         self.ids = np.array(self.ids)
         self.scans = np.arange(0, len(self.ids))
-        # print("Reading Complete")
+        print("Reading Complete")
 
     def get_data_memory_safe(self, scan_range=None, time_range=None):
         if time_range is not None:
@@ -290,11 +291,13 @@ class mzMLimporter:
         return template
 
     def grab_data(self, threshold=-1):
+        print("Grabbing Data")
         newtimes = []
         # newscans = []
         newids = []
         self.data = []
         for i, s in enumerate(self.ids):
+            #print(i)
             try:
                 impdat = get_data_from_spectrum(self.msrun[s], threshold=threshold)
                 self.data.append(impdat)
@@ -308,7 +311,8 @@ class mzMLimporter:
         self.times = np.array(newtimes)
         self.ids = np.array(newids)
         self.scans = np.arange(0, len(self.ids))
-        self.data = np.array(self.data)
+        self.data = np.array(self.data, dyype=object)
+        print("Data Grabbed")
         return self.data
 
     def get_data_fast_memory_heavy(self, scan_range=None, time_range=None):
@@ -352,7 +356,7 @@ class mzMLimporter:
         Returns merged 1D MS data from mzML import
         :return: merged data
         """
-        if self.filesize > 1000000000 and self.data is None:
+        if self.filesize > 1e9 and self.data is None:
             try:
                 data = self.get_data_memory_safe(scan_range, time_range)
             except Exception as e:
@@ -521,11 +525,13 @@ class mzMLimporter:
 
 if __name__ == "__main__":
     test = u"C:\Python\\UniDec3\TestSpectra\JAW.mzML"
+    test = "C:\Data\CytC_Intact_MMarty_Share\\221114_STD_Pro_CytC_2ug_r1.mzML.gz"
     import time
 
     tstart = time.perf_counter()
 
     d = mzMLimporter(test)
+    '''
     spectrum = d.msrun[10]
     # it = it.get("ion inject time")
     element = spectrum.element
@@ -539,9 +545,9 @@ if __name__ == "__main__":
     print(len(tic))
     print(len(d.scans))
 
-    exit()
-    # data = d.get_data_memory_safe()
-    data = d.get_data()
+    exit()'''
+    data = d.get_data_memory_safe()
+    #data = d.get_data()
     tend = time.perf_counter()
     # print(call, out)
     print("Execution Time:", (tend - tstart))

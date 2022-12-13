@@ -12,6 +12,8 @@ import encodings
 import zipimport
 from PyInstaller.utils.hooks import collect_data_files
 from multiprocessing import freeze_support
+from os import listdir
+from PyInstaller import compat
 
 freeze_support()
 
@@ -107,8 +109,8 @@ if system == "Windows":
     a.datas += [('CDCReader.exe', 'unidec_bin\\CDCReader.exe', 'DATA')]
     a.datas += [('h5repack.exe', 'unidec_bin\\h5repack.exe', 'DATA')]
     a.datas += [('unimod.sqlite', 'unidec_bin\\unimod.sqlite', 'DATA')]
-    a.datas += [('pymzml\\version.txt', 'C:\\Python39\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
-    a.datas += [('massql\\msql.ebnf', 'C:\\Python39\\Lib\\site-packages\\massql\\msql.ebnf', 'DATA')]
+    a.datas += [('pymzml\\version.txt', compat.base_prefix + '\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
+    a.datas += [('massql\\msql.ebnf', compat.base_prefix + '\\Lib\\site-packages\\massql\\msql.ebnf', 'DATA')]
 
     # Copy over all the DLLs from the bin folder
     for file in os.listdir('unidec_bin'):
@@ -117,14 +119,15 @@ if system == "Windows":
             a.datas += add
             # print add
 
-    cuincludedir='C:\\Python39\\Lib\\site-packages\\cupy\\core\\include'
-    for root, subdirs, files in os.walk(cuincludedir):
-        for f in files:
-            path = os.path.join(root, f)
-            relpath = os.path.relpath(path, cuincludedir)
-            add = [('cupy\\core\\include\\' + relpath, path, 'DATA')]
-            a.datas += add
-            # print(add)
+    if distmode:
+        cuincludedir=compat.base_prefix +'\\Lib\\site-packages\\cupy\\core\\include'
+        for root, subdirs, files in os.walk(cuincludedir):
+            for f in files:
+                path = os.path.join(root, f)
+                relpath = os.path.relpath(path, cuincludedir)
+                add = [('cupy\\core\\include\\' + relpath, path, 'DATA')]
+                a.datas += add
+                # print(add)
 
     a.datas += [('RawFileReaderLicense.doc', 'unidec_modules\\thermo_reader\\RawFileReaderLicense.doc', 'DATA')]
     a.datas += [('ThermoFisher.CommonCore.Data.dll', 'unidec_modules\\thermo_reader\\ThermoFisher.CommonCore.Data.dll', 'DATA')]
@@ -153,8 +156,8 @@ a.datas.extend(dir_files("unidec_bin\\multiplierz", 'multiplierz'))
 
 a.datas.extend(dir_files("unidec_bin\\Presets", 'Presets'))
 a.datas.extend(dir_files("unidec_bin\\Example Data", 'Example Data'))
-a.datas.extend(dir_files('C:\\Python39\\Lib\\site-packages\\matchms\\data', "matchms\\data"))
-# a.datas += [('matchms\\data\\known_key_conversions.csv', 'C:\\Python39\\Lib\\site-packages\\massql\\msql.ebnf', 'DATA')]
+a.datas.extend(dir_files(compat.base_prefix + '\\Lib\\site-packages\\matchms\\data', "matchms\\data"))
+# a.datas += [('matchms\\data\\known_key_conversions.csv', compat.base_prefix + '\\Lib\\site-packages\\massql\\msql.ebnf', 'DATA')]
 
 # Can't remember why I needed these...
 # grammar=os.path.join(os.path.dirname(lib2to3.__file__),'Grammar.txt')
@@ -162,13 +165,15 @@ a.datas.extend(dir_files('C:\\Python39\\Lib\\site-packages\\matchms\\data', "mat
 # grammar=os.path.join(os.path.dirname(lib2to3.__file__),'PatternGrammar.txt')
 # a.datas.extend([(os.path.join('lib2to3','PatternGrammar.txt'),grammar,'DATA')])
 
-from os import listdir
-from PyInstaller import compat
 
 mkldir = compat.base_prefix + "/Lib/site-packages/numpy/DLLs"
 a.datas.extend(dir_files(mkldir, ''))
 a.datas.extend(
     [(mkldir + "/" + mkl, '', 'DATA') for mkl in listdir(mkldir) if mkl.startswith('mkl_') or mkl.startswith('libio')])
+
+
+rdkitlibs = compat.base_prefix + "/Lib/site-packages/rdkit.libs"
+a.datas.extend(dir_files(rdkitlibs, ''))
 
 # Assemble and build
 pyz = PYZ(a.pure)

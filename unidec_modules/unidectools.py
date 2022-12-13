@@ -956,7 +956,7 @@ def load_mz_file(path, config=None, time_range=None, imflag=0):
             np.savetxt(txtname, data)
             print("Saved to:", txtname)
         elif extension.lower() == ".npz":
-            data = np.load(path)['data']
+            data = np.load(path, allow_pickle=True)['data']
         else:
             try:
                 data = np.loadtxt(path, skiprows=header_test(path))
@@ -2860,7 +2860,7 @@ def calc_FWHM(peak, data):
     return FWHM, [data[indexstart, 0], data[indexend, 0]]
 
 
-def peaks_error_FWHM(pks, data):
+def peaks_error_FWHM(pks, data, level=0.5):
     """
     Calculates the error of each peak in pks using FWHM.
     Looks for the left and right point of the peak that is 1/2 the peaks max intensity, rightmass - leftmass = error
@@ -2885,7 +2885,7 @@ def peaks_error_FWHM(pks, data):
         counter = 1
         leftfound = False
         rightfound = False
-        val = (int * div) / 2.
+        val = (int * div) * level
         while rightfound is False or leftfound is False:
             if leftfound is False and index - counter >= 0:
                 if data[index - counter, 1] <= val:
