@@ -96,6 +96,9 @@ class ThermoDataImporter:
     def get_tic(self):
         return self.msrun.GetChromatogram()
 
+    def get_eic(self, mass_range=[0,1000000], scan_range=None):
+        return self.msrun.Get_EIC(massrange=mass_range, scanrange=scan_range)
+
     def get_max_time(self):
         times = self.msrun.time_range()
         return times[1]
@@ -190,6 +193,14 @@ if __name__ == "__main__":
 
     tstart = time.perf_counter()
     d = ThermoDataImporter(test)
+    dat = d.get_eic([5000,10000])
+
+    import matplotlib.pyplot as plt
+    plt.plot(dat[:,0], dat[:,1])
+    plt.show()
+
+    exit()
+
     d.get_polarity()
     exit()
     vdata = d.get_analog_voltage1()

@@ -33,7 +33,7 @@ import ThermoFisher
 from ThermoFisher.CommonCore.Data import ToleranceUnits
 from ThermoFisher.CommonCore.Data import Extensions
 from ThermoFisher.CommonCore.Data.Business import ChromatogramSignal, ChromatogramTraceSettings, DataUnits, Device, \
-    GenericDataTypes, SampleType, Scan, TraceType
+    GenericDataTypes, SampleType, Scan, TraceType, Range
 from ThermoFisher.CommonCore.Data.FilterEnums import IonizationModeType, MSOrderType
 from ThermoFisher.CommonCore.Data.Interfaces import IChromatogramSettings, IScanEventBase, IScanFilter, \
     RawFileClassification
@@ -330,6 +330,30 @@ class RawFileReader(object):
         # Define the settings for getting the Base Peak chromatogram #TraceType.BasePeak
         # Define the settings for getting the TIC chromatogram #TraceType.TIC
         settings = ChromatogramTraceSettings(TraceType.TIC)
+        # Get the chromatogram from the RAW file.
+        data = self.source.GetChromatogramData([settings], int(scanrange[0]), int(scanrange[1]))
+        # Split the data into the chromatograms
+        trace = ChromatogramSignal.FromChromatogramData(data)
+        # Convert to Numpy Array
+        self.ticdat = np.transpose(
+            [DotNetArrayToNPArray(trace[trace_number].Times), DotNetArrayToNPArray(trace[trace_number].Intensities)])
+        return self.ticdat
+
+    def Get_EIC(self, massrange=[10000,15000], scanrange=None, trace_number=0):
+        '''Reads the base peak chromatogram for the RAW file.
+        Args:
+            scanrange = [ start scan for the chromatogram, end scan for the chromatogram.]
+        '''
+        if scanrange is None:
+            scanrange = [self.FirstSpectrumNumber, self.LastSpectrumNumber]
+        # Define the settings for getting the Base Peak chromatogram #TraceType.BasePeak
+        # Define the settings for getting the TIC chromatogram #TraceType.TIC
+        MR = Range.Create(massrange[0], massrange[1])
+        settings = ChromatogramTraceSettings(TraceType.MassRange)
+        settings.MassRanges = [MR]
+        #print(MR, dir(MR), MR.High, MR.Low)
+        #print(settings, dir(settings), settings.GetMassRange(trace_number).High)
+        #print(dir(MR), MR.High, MR.Low)
         # Get the chromatogram from the RAW file.
         data = self.source.GetChromatogramData([settings], int(scanrange[0]), int(scanrange[1]))
         # Split the data into the chromatograms
