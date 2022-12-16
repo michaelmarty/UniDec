@@ -33,10 +33,10 @@ import ThermoFisher
 from ThermoFisher.CommonCore.Data import ToleranceUnits
 from ThermoFisher.CommonCore.Data import Extensions
 from ThermoFisher.CommonCore.Data.Business import ChromatogramSignal, ChromatogramTraceSettings, DataUnits, Device, \
-    GenericDataTypes, SampleType, Scan, TraceType, Range, PeakChromatogramSettings
+    GenericDataTypes, SampleType, Scan, TraceType, Range
 from ThermoFisher.CommonCore.Data.FilterEnums import IonizationModeType, MSOrderType
 from ThermoFisher.CommonCore.Data.Interfaces import IChromatogramSettings, IScanEventBase, IScanFilter, \
-    RawFileClassification, IChromatogramSettingsEx
+    RawFileClassification
 from ThermoFisher.CommonCore.MassPrecisionEstimator import PrecisionEstimate
 from ThermoFisher.CommonCore.RawFileReader import RawFileReaderAdapter, SequenceFileReader
 
