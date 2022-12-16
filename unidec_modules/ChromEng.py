@@ -79,7 +79,7 @@ class ChromEngine(MetaUniDec):
         if not os.path.isfile(self.outpath):
             self.data.new_file(self.outpath)
             self.open(self.outpath)
-
+        self.auto_polarity(path)
         self.update_history()
 
         self.chromdat = ud.get_importer(path)

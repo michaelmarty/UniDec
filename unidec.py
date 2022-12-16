@@ -161,6 +161,8 @@ class UniDec(UniDecEngine):
         else:
             self.export_config()
 
+        self.auto_polarity(file_path)
+
         if load_results:
             self.unidec_imports(everything=True)
             self.pick_peaks()

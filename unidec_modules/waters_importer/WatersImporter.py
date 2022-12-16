@@ -229,6 +229,18 @@ class WatersDataImporter:
             self.immsdata.append(scandat)
         return self.immsdata
 
+    def get_polarity(self):
+        line = self.reader.GetIonModeString(self.function)
+        print(line)
+        if "+" in line:
+            print("Polarity: Positive")
+            return "Positive"
+        if "-" in line:
+            print("Polarity: Negative")
+            return "Negative"
+        print("Polarity: Unknown")
+        return None
+
 
 if __name__ == "__main__":
     # test = "Z:\Group Share\Group\\Archive\\Scott\\test.RAW"
@@ -241,6 +253,10 @@ if __name__ == "__main__":
     # d3, d4 = d.readerMS.CombineScan(d.function, np.arange(1,500))
     #data = d.get_data([1, 10])
     #data = d.get_data([20, 30])
+    d.get_stats()
+    print(d.get_polarity())
+    exit()
+
     data = d.get_IMMS_data()
     print(len(data[0]))
     print(data[0][0])

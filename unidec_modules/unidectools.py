@@ -65,6 +65,9 @@ def get_importer(path):
     elif os.path.splitext(path)[1].lower() == ".raw" and os.path.isdir(path):
         # Waters Raw Directory
         d = WDI(path, do_import=False)
+    elif os.path.splitext(path)[1].lower() == ".txt":
+        print("Text Files Not Supported for This Operation")
+        return None
     else:
         # Some other file type
         d = data_reader.DataImporter(path)
@@ -874,12 +877,11 @@ def waters_convert2(path, config=None, outfile=None):
 
 
 def get_polarity(path):
-    extension = os.path.splitext(path)[1]
-    if extension.lower() == ".raw":
-        polarity = ThermoDataImporter(path).get_polarity()
+    d = get_importer(path)
+    if d is not None:
+        polarity = d.get_polarity()
         return polarity
     else:
-        print("File Extension Not Supported Yet...Bug MTM about this...")
         return None
 
 

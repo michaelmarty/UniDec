@@ -157,11 +157,11 @@ class ThermoDataImporter:
             vs.append(an2)
         return np.array(vs)
 
-    def get_polarity(self):
+    def get_polarity(self, scan=1):
         #print(dir(self.msrun.source))
+        '''
         im = self.msrun.source.GetInstrumentMethod(0)
-        #print(im)
-        #exit()
+        print(im)
         for line in im.split("\n"):
             if "Polarity" in line:
                 if "Positive" in line:
@@ -172,15 +172,26 @@ class ThermoDataImporter:
                     return "Negative"
         print("Polarity: Unknown")
         return None
+        # exit()'''
+        scan_mode = self.msrun.source.GetScanEventStringForScanNumber(scan)
+        if "+" in scan_mode:
+            print("Polarity: Positive")
+            return "Positive"
+        if "-" in scan_mode[:10]:
+            print("Polarity: Negative")
+            return "Negative"
+        print("Polarity: Unknown")
+        return None
 
 if __name__ == "__main__":
     test = u"C:\Python\\UniDec3\TestSpectra\\test.RAW"
     #test = "Z:\\Group Share\\Levi\\MS DATA\\vt_ESI data\\DMPG LL37 ramps\\18to1\\20210707_LB_DMPG3_LL37_18to1_RAMP_16_37_3.RAW"
+    #test = "Z:\Group Share\Group\Archive\James Keener\AqpZ mix lipid ND\\20190226_JEK_AQPZ_E3T0_PGPC_GC_NEG.RAW"
 
     tstart = time.perf_counter()
     d = ThermoDataImporter(test)
     d.get_polarity()
-    #exit()
+    exit()
     vdata = d.get_analog_voltage1()
     times = d.get_tic()[1:, 0]
     data = d.get_data()
