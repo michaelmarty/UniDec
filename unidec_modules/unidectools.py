@@ -65,6 +65,9 @@ def get_importer(path):
     elif os.path.splitext(path)[1].lower() == ".raw" and os.path.isdir(path):
         # Waters Raw Directory
         d = WDI(path, do_import=False)
+    elif os.path.splitext(path)[1].lower() == ".txt":
+        print("Text Files Not Supported for This Operation")
+        return None
     else:
         # Some other file type
         d = data_reader.DataImporter(path)
@@ -127,6 +130,7 @@ def match_files(directory, string, exclude=None):
                 files.append(file)
     return np.array(files)
 
+
 def match_dirs_recursive(topdir, ending=".raw"):
     found_dirs = []
     for root, dirs, files in os.walk(topdir):
@@ -135,6 +139,7 @@ def match_dirs_recursive(topdir, ending=".raw"):
                 found_dirs.append(os.path.join(root, d))
     return np.array(found_dirs)
 
+
 def match_files_recursive(topdir, ending=".raw"):
     found_files = []
     for root, dirs, files in os.walk(topdir):
@@ -142,6 +147,7 @@ def match_files_recursive(topdir, ending=".raw"):
             if f.endswith(ending):
                 found_files.append(os.path.join(root, f))
     return np.array(found_files)
+
 
 def isempty(thing):
     """
@@ -317,7 +323,7 @@ def nearestunsorted(array, target):
 
 def nearest(array, target):
     """
-    In an sorted array, quickly find the position of the element closest to the target.
+    In a sorted array, quickly find the position of the element closest to the target.
     :param array: Array
     :param target: Value
     :return: np.argmin(np.abs(array - target))
@@ -870,6 +876,15 @@ def waters_convert2(path, config=None, outfile=None):
     return data
 
 
+def get_polarity(path):
+    d = get_importer(path)
+    if d is not None:
+        polarity = d.get_polarity()
+        return polarity
+    else:
+        return None
+
+
 def load_mz_file(path, config=None, time_range=None, imflag=0):
     """
     Loads a text or mzml file
@@ -943,7 +958,7 @@ def load_mz_file(path, config=None, time_range=None, imflag=0):
             np.savetxt(txtname, data)
             print("Saved to:", txtname)
         elif extension.lower() == ".npz":
-            data = np.load(path)['data']
+            data = np.load(path, allow_pickle=True)['data']
         else:
             try:
                 data = np.loadtxt(path, skiprows=header_test(path))
@@ -1769,7 +1784,7 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     return out
 
 
-def peakdetect(data, config=None, window=10, threshold=0):
+def peakdetect(data, config=None, window=10, threshold=0, ppm=None, norm=True):
     """
     Simple peak detection algorithm.
 
@@ -1787,17 +1802,29 @@ def peakdetect(data, config=None, window=10, threshold=0):
         threshold = config.peakthresh
     peaks = []
     length = len(data)
-    maxval = np.amax(data[:, 1])
+    if norm:
+        maxval = np.amax(data[:, 1])
+    else:
+        maxval = 1
     for i in range(0, length):
         if data[i, 1] > maxval * threshold:
-            start = i - window
-            end = i + window
-            if start < 0:
-                start = 0
-            if end > length:
-                end = length
-            start = int(start)
-            end = int(end) + 1
+            if ppm is not None:
+                ptmass = data[i, 0]
+                newwin = ppm * 1e-6 * ptmass
+                start = nearest(data[:, 0], ptmass - newwin)
+                end = nearest(data[:, 0], ptmass + newwin)
+            else:
+                start = i - window
+                end = i + window
+
+                start = int(start)
+                end = int(end) + 1
+
+                if start < 0:
+                    start = 0
+                if end > length:
+                    end = length
+
             testmax = np.amax(data[start:end, 1])
             if data[i, 1] == testmax and np.all(data[i, 1] != data[start:i, 1]):
                 peaks.append([data[i, 0], data[i, 1]])
@@ -2835,7 +2862,7 @@ def calc_FWHM(peak, data):
     return FWHM, [data[indexstart, 0], data[indexend, 0]]
 
 
-def peaks_error_FWHM(pks, data):
+def peaks_error_FWHM(pks, data, level=0.5):
     """
     Calculates the error of each peak in pks using FWHM.
     Looks for the left and right point of the peak that is 1/2 the peaks max intensity, rightmass - leftmass = error
@@ -2860,7 +2887,7 @@ def peaks_error_FWHM(pks, data):
         counter = 1
         leftfound = False
         rightfound = False
-        val = (int * div) / 2.
+        val = (int * div) * level
         while rightfound is False or leftfound is False:
             if leftfound is False and index - counter >= 0:
                 if data[index - counter, 1] <= val:
@@ -2916,7 +2943,8 @@ def peaks_error_FWHM(pks, data):
         end = p.intervalFWHM[1]
         p.centroid = center_of_mass(data, start, end)[0]
         # print("Apex:", p.mass, "Centroid:", p.centroid, "FWHM Range:", p.intervalFWHM)
-
+    pks.centroids = np.array([p.centroid for p in pks.peaks])
+    pks.fwhms = np.array([p.errorFWHM for p in pks.peaks])
 
 def peaks_error_mean(pks, data, ztab, massdat, config):
     """

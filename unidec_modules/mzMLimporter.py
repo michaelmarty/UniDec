@@ -184,6 +184,11 @@ def get_data_from_spectrum(spectrum, threshold=-1):
     impdat = impdat[impdat[:, 0] > 10]
     if threshold >= 0:
         impdat = impdat[impdat[:, 1] > threshold]
+    #print(len(impdat))
+    #with np.printoptions(threshold=10000):
+    #    print(np.sum(impdat[:,1]>0))
+    #print(impdat)
+    #exit()
     return impdat
 
 
@@ -229,7 +234,7 @@ class mzMLimporter:
         """
         print("Reading mzML:", path)
         self.filesize = os.stat(path).st_size
-        if not os.path.splitext(path)[1] == ".gz" and (self.filesize > 1e8 or gzmode):  # for files larger than 100 MB
+        if not os.path.splitext(path)[1] == ".gz" and (self.filesize > 3e8 or gzmode):  # for files larger than 100 MB
             path = auto_gzip(path)
             print("Converted to gzip file to improve speed:", path)
             self.filesize = os.stat(path).st_size
@@ -239,6 +244,7 @@ class mzMLimporter:
         # self.scans = []
         self.times = []
         self.ids = []
+
         for i, spectrum in enumerate(self.msrun):
             if '_scan_time' in list(spectrum.__dict__.keys()):
                 try:
@@ -262,16 +268,16 @@ class mzMLimporter:
         self.times = np.array(self.times)
         self.ids = np.array(self.ids)
         self.scans = np.arange(0, len(self.ids))
-        # print("Reading Complete")
+        print("Reading Complete")
 
     def get_data_memory_safe(self, scan_range=None, time_range=None):
         if time_range is not None:
             scan_range = self.get_scans_from_times(time_range)
             print("Getting times:", time_range)
         if scan_range is None:
-            scan_range = [np.amin(self.scans), np.amax(self.scans)]
+            scan_range = [int(np.amin(self.scans)), int(np.amax(self.scans))]
         print("Scan Range:", scan_range)
-        data = get_data_from_spectrum(self.msrun[self.ids[0]])
+        data = get_data_from_spectrum(self.msrun[self.ids[scan_range[0]]])
 
         resolution = get_resolution(data)
         axis = ud.nonlinear_axis(np.amin(data[:, 0]), np.amax(data[:, 0]), resolution)
@@ -280,21 +286,45 @@ class mzMLimporter:
         newdat = ud.mergedata(template, data)
         template[:, 1] += newdat[:, 1]
 
+
+        # New Fast Method
+        index = 0
+        while index <= scan_range[1]-scan_range[0]:
+            try:
+                spec = self.msrun.next()
+            except:
+                break
+
+            if spec.ID in self.ids:
+                index += 1
+                if scan_range[0] <= index <= scan_range[1]:
+                    try:
+                        data = get_data_from_spectrum(spec)
+                        newdat = ud.mergedata(template, data)
+                        template[:, 1] += newdat[:, 1]
+                    except Exception as e:
+                        print("Error", e, "With scan number:", index)
+        '''
+        # Old Slow Method
         for i in range(int(scan_range[0]) + 1, scan_range[1] + 1):
             try:
                 data = get_data_from_spectrum(self.msrun[self.ids[i]])
                 newdat = ud.mergedata(template, data)
                 template[:, 1] += newdat[:, 1]
             except Exception as e:
-                print("Error", e, "With scan number:", i)
+                print("Error", e, "With scan number:", i)'''
         return template
 
     def grab_data(self, threshold=-1):
+        print("Grabbing Data")
         newtimes = []
         # newscans = []
         newids = []
         self.data = []
+        '''
+        # Old Very slow method
         for i, s in enumerate(self.ids):
+            #print(i)
             try:
                 impdat = get_data_from_spectrum(self.msrun[s], threshold=threshold)
                 self.data.append(impdat)
@@ -304,11 +334,26 @@ class mzMLimporter:
             except Exception as e:
                 print("mzML import error")
                 print(e)
+                '''
+        # New Faster Method
+        for n, spec in enumerate(self.msrun):
+            if spec.ID in self.ids:
+                try:
+                    impdat = get_data_from_spectrum(spec, threshold=threshold)
+                    self.data.append(impdat)
+                    newtimes.append(self.times[n])
+                    # newscans.append(self.scans[i])
+                    newids.append(spec.ID)
+                except Exception as e:
+                    print("mzML import error")
+                    print(e)
+
         # self.scans = np.array(newscans)
         self.times = np.array(newtimes)
         self.ids = np.array(newids)
         self.scans = np.arange(0, len(self.ids))
-        self.data = np.array(self.data)
+        self.data = np.array(self.data, dtype=object)
+        print("Data Grabbed")
         return self.data
 
     def get_data_fast_memory_heavy(self, scan_range=None, time_range=None):
@@ -352,7 +397,7 @@ class mzMLimporter:
         Returns merged 1D MS data from mzML import
         :return: merged data
         """
-        if self.filesize > 1000000000 and self.data is None:
+        if self.filesize > 1e9 and self.data is None:
             try:
                 data = self.get_data_memory_safe(scan_range, time_range)
             except Exception as e:
@@ -469,6 +514,8 @@ class mzMLimporter:
         newtimes = []
         newids = []
         self.data = []
+        """
+        # Old Slow Method
         for i, s in enumerate(self.ids):
             try:
                 array = get_im_data_from_spectrum(self.msrun[s])
@@ -476,7 +523,20 @@ class mzMLimporter:
                 newtimes.append(self.times[i])
                 newids.append(s)
             except:
-                pass
+                pass"""
+
+        # New Faster Method
+        for n, spec in enumerate(self.msrun):
+            if spec.ID in self.ids:
+                try:
+                    impdat = get_im_data_from_spectrum(spec)
+                    self.data.append(impdat)
+                    newtimes.append(self.times[n])
+                    newids.append(spec.ID)
+                except Exception as e:
+                    print("mzML import error")
+                    print(e)
+
         self.data = np.array(self.data, dtype='object')
         self.times = np.array(newtimes)
         self.ids = np.array(newids)
@@ -518,14 +578,40 @@ class mzMLimporter:
         print("Import Time:", time.perf_counter() - start_time)
         return data
 
+    def get_polarity(self, scan=1):
+        for s, spec in enumerate(self.msrun):
+            if s == scan:
+                #spec = self.msrun[scan]
+                negative_polarity = spec["negative scan"]
+                if negative_polarity == "" or negative_polarity:
+                    negative_polarity = True
+                    print("Polarity: Negative")
+                    return "Negative"
+
+                positive_polarity = spec["positive scan"]
+                if positive_polarity == "" or positive_polarity:
+                    print("Polarity: Positive")
+                    return "Positive"
+
+                print(positive_polarity, negative_polarity)
+                print("Polarity: Unknown")
+                return None
+
 
 if __name__ == "__main__":
     test = u"C:\Python\\UniDec3\TestSpectra\JAW.mzML"
+    # test = "C:\Data\CytC_Intact_MMarty_Share\\221114_STD_Pro_CytC_2ug_r1.mzML.gz"
+    # test = "C:\Data\CytC_Intact_MMarty_Share\\221114_STD_Pro_CytC_2ug_r1_2.mzML"
+    #test = "C:\Data\IMS Example Data\imstest2.mzML"
+    #test = "C:\Data\CytC_Intact_MMarty_Share\\20221215_MMarty_Share\SHA_1598_9.mzML.gz"
     import time
 
     tstart = time.perf_counter()
 
     d = mzMLimporter(test)
+    print(d.get_polarity())
+    exit()
+    '''
     spectrum = d.msrun[10]
     # it = it.get("ion inject time")
     element = spectrum.element
@@ -539,18 +625,18 @@ if __name__ == "__main__":
     print(len(tic))
     print(len(d.scans))
 
-    exit()
-    # data = d.get_data_memory_safe()
-    data = d.get_data()
+    exit()'''
+    #data = d.get_data_memory_safe()
+    data = d.get_data(time_range=(3,5))
     tend = time.perf_counter()
     # print(call, out)
     print("Execution Time:", (tend - tstart))
 
     print(len(data))
-    exit()
+    #exit()
     # get_data_from_spectrum(d.msrun[239])
     # exit()
-    data = d.get_data()
+    #data = d.get_data()
 
     print(data)
     import matplotlib.pyplot as plt

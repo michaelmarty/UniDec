@@ -175,6 +175,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
         self.Bind(self.peakpanel.EVT_MASSES, self.pres.on_label_masses, self.peakpanel)
         self.Bind(self.peakpanel.EVT_AREAS, self.pres.on_label_integral, self.peakpanel)
         self.Bind(self.peakpanel.EVT_IMAGE, self.pres.make_image_plot, self.peakpanel)
+        self.Bind(self.peakpanel.EVT_NAMES, self.pres.on_label_names, self.peakpanel)
         sizer.Add(self.peakpanel, 0, wx.EXPAND)
 
         self.controls = main_controls(self, self.config, self.pres, panel, self.icon_path)

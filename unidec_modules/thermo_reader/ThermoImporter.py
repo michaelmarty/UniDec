@@ -73,7 +73,7 @@ class ThermoDataImporter:
                 scan_range = [np.amin(self.scans), np.amax(self.scans)]
             except:
                 scan_range = [1, 2]
-        scan_range = np.array(scan_range, dtype=np.int)
+        scan_range = np.array(scan_range, dtype=int)
         print("Thermo Scan Range:", scan_range)
 
         try:
@@ -157,16 +157,44 @@ class ThermoDataImporter:
             vs.append(an2)
         return np.array(vs)
 
+    def get_polarity(self, scan=1):
+        #print(dir(self.msrun.source))
+        '''
+        im = self.msrun.source.GetInstrumentMethod(0)
+        print(im)
+        for line in im.split("\n"):
+            if "Polarity" in line:
+                if "Positive" in line:
+                    print("Polarity: Positive")
+                    return "Positive"
+                if "Negative" in line:
+                    print("Polarity: Negative")
+                    return "Negative"
+        print("Polarity: Unknown")
+        return None
+        # exit()'''
+        scan_mode = self.msrun.source.GetScanEventStringForScanNumber(scan)
+        if "+" in scan_mode:
+            print("Polarity: Positive")
+            return "Positive"
+        if "-" in scan_mode[:10]:
+            print("Polarity: Negative")
+            return "Negative"
+        print("Polarity: Unknown")
+        return None
 
 if __name__ == "__main__":
     test = u"C:\Python\\UniDec3\TestSpectra\\test.RAW"
-    test = "Z:\\Group Share\\Levi\\MS DATA\\vt_ESI data\\DMPG LL37 ramps\\18to1\\20210707_LB_DMPG3_LL37_18to1_RAMP_16_37_3.RAW"
+    #test = "Z:\\Group Share\\Levi\\MS DATA\\vt_ESI data\\DMPG LL37 ramps\\18to1\\20210707_LB_DMPG3_LL37_18to1_RAMP_16_37_3.RAW"
+    #test = "Z:\Group Share\Group\Archive\James Keener\AqpZ mix lipid ND\\20190226_JEK_AQPZ_E3T0_PGPC_GC_NEG.RAW"
 
     tstart = time.perf_counter()
     d = ThermoDataImporter(test)
+    d.get_polarity()
+    exit()
     vdata = d.get_analog_voltage1()
     times = d.get_tic()[1:, 0]
-
+    data = d.get_data()
     # vdata = (-34.48*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))+(263.91*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))-(811.83*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))+(1258.4*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))-(1032.3*(vdata-np.amin(vdata)))+409.12
 
     vdata = (-44.115 * (vdata) * (vdata) * (vdata)) + (201.67 * (vdata) * (vdata)) + (-347.15 * (vdata)) + 242.19

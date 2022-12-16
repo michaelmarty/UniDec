@@ -396,6 +396,41 @@ class UniDecPres(object):
                 label = str(np.round(pintegral[i], 2))
                 plot.addtext(label, pmasses[i], mval * 0.06 + pint[i], vlines=False)
 
+    def on_label_names(self, e=None, peakpanel=None, pks=None, plot=None, dataobj=None):
+        """
+        Triggered by right click "Label Masses" on self.view.peakpanel.
+        Plots a line with text listing the mass of each specific peak.
+        Updates the peakpanel to show the masses.
+        :param e: unused event
+        :return: None
+        """
+
+        if peakpanel is None:
+            peakpanel = self.view.peakpanel
+        if pks is None:
+            pks = self.eng.pks
+        if plot is None:
+            plot = self.view.plot2
+        if dataobj is None:
+            dataobj = self.eng.data
+
+        pnames = np.array([p.label for p in pks.peaks])
+
+        peaksel = peakpanel.selection2
+        pmasses = np.array([p.mass for p in pks.peaks])
+        if ud.isempty(peaksel):
+            peaksel = pmasses
+        pint = np.array([p.height for p in pks.peaks])
+        mval = np.amax(dataobj.massdat[:, 1])
+
+        if isinstance(dataobj, MetaDataSet):
+            mval = (mval * 1.3 + self.eng.config.separation * dataobj.len)
+
+        plot.textremove()
+        for i, d in enumerate(pmasses):
+            if d in peaksel:
+                plot.addtext(pnames[i], pmasses[i], mval * 0.06 + pint[i], vlines=False)
+
     def on_auto_peak_width(self, e=None, set=True):
         self.export_config()
         if not ud.isempty(self.eng.data.data2):

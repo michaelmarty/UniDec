@@ -138,6 +138,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.Bind(self.singlepeakpanel.EVT_DIFFERENCES, self.pres.on_single_differences, self.singlepeakpanel)
         self.Bind(self.singlepeakpanel.EVT_MASSES, self.pres.on_single_label_masses, self.singlepeakpanel)
         self.Bind(self.singlepeakpanel.EVT_AREAS, self.pres.on_label_integral, self.singlepeakpanel)
+        self.Bind(self.singlepeakpanel.EVT_NAMES, self.pres.on_label_names, self.singlepeakpanel)
         self.ctlsizer2.Add(self.singlepeakpanel, 0, wx.EXPAND)
 
         self.leftsizer.Add(self.ctlsizer2, 0, wx.EXPAND)
@@ -185,6 +186,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.Bind(self.peakpanel.EVT_DIFFERENCES, self.pres.on_differences, self.peakpanel)
         self.Bind(self.peakpanel.EVT_MASSES, self.pres.on_label_masses, self.peakpanel)
         self.Bind(self.peakpanel.EVT_AREAS, self.pres.on_label_integral, self.peakpanel)
+        self.Bind(self.peakpanel.EVT_NAMES, self.pres.on_label_names, self.peakpanel)
         self.sizer3.Add(self.peakpanel, 0, wx.EXPAND)
         self.mainsizer.Add(self.sizer3, 0, wx.EXPAND)
 
@@ -251,10 +253,13 @@ class ChromDropTarget(wx.FileDropTarget):
         """
         if len(filenames) == 1:
             path = filenames[0]
-            self.window.pres.open_file(path)
+            if path[-9:] == "_conf.dat":
+                print("Importing Configuration File:", path)
+                self.window.pres.import_config(path)
+            else:
+                self.window.pres.open_file(path)
         elif len(filenames) > 1:
-            for f in filenames:
-                self.window.pres.open_file(f)
+            self.window.pres.batch_run(filenames)
         else:
             print("Error in drag and drop.")
         return 0

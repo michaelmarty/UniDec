@@ -4,7 +4,7 @@ from unidec_modules.mzMLimporter import merge_spectra
 from copy import deepcopy
 import numpy as np
 import time
-
+import os
 # import sys
 # import wx
 
@@ -76,9 +76,15 @@ class DataImporter:
 
     def grab_data(self):
         self.data = []
+        #print(self.msrun.scan_info())
         for s in self.scans:
+
             impdat = np.array(self.msrun.scan(s))  # May want to test this.
             impdat = impdat[impdat[:, 0] > 10]
+            #print(len(impdat))
+            #with np.printoptions(threshold=100):
+            #print(impdat)
+            #exit()
             self.data.append(impdat)
         self.data = np.array(self.data, dtype=object)
         return self.data
@@ -90,14 +96,14 @@ class DataImporter:
         """
         try:
             if scan_range is not None:
-                scan_range = np.array(scan_range, dtype=np.int)
+                scan_range = np.array(scan_range, dtype=int)
                 scan_range = scan_range+1
             if time_range is not None:
                 scan_range = self.get_scans_from_times(time_range)
                 print("Getting times:", time_range)
             if scan_range is None:
                 scan_range = [np.amin(self.scans), np.amax(self.scans)]
-            scan_range = np.array(scan_range, dtype=np.int)
+            scan_range = np.array(scan_range, dtype=int)
             print("Scan Range:", scan_range)
 
             if scan_range[0] < np.amin(self.scans):
@@ -184,17 +190,49 @@ class DataImporter:
             t = self.times[scan_range[0]]
             return [t, t, t]
 
+    def get_polarity(self, scan=0):
+        self.scan_info = self.msrun.scan_info()
+        line = self.scan_info[scan]
+        print(line)
+        if "+" in line:
+            print("Polarity: Positive")
+            return "Positive"
+        if "-" in line:
+            print("Polarity: Negative")
+            return "Negative"
+        print("Polarity: Unknown")
+        return None
+
+
 
 if __name__ == "__main__":
     test = "Z:\Group Share\Group\\Archive\\Scott\\test.RAW"
     test = "C:\Data\Others\Agilent\\2019_05_15_bsa_ccs_02.d"
-    test = u"C:\Python\\UniDec3\TestSpectra\\test.RAW"
-    #tstart = time.perf_counter()
+    #test = u"C:\Python\\UniDec3\TestSpectra\\test.RAW"
+    test = "Z:\mtmarty\Data\Others\Agilent\\2019_05_15_bsa_ccs_02.d"
+    test = "C:\Data\CytC_Intact_MMarty_Share\\20221215_MMarty_Share\SHA_1598_9.d"
+    tstart = time.perf_counter()
 
-    #d = DataImporter(test)
-    #print(d.get_times_from_scans([0, 10]))
-    #d.get_data(time_range=(0, 10))
-    #print("ImportData: %.2gs" % (time.perf_counter() - tstart))
+    d = DataImporter(test)
+    d.grab_data()
+    import matplotlib.pyplot as plt
+
+    n = 200
+    plt.subplot(121)
+    plt.plot(d.data[n][:, 0], d.data[n][:, 1])
+    plt.subplot(122)
+    plt.plot(d.data[n-1][:,0], d.data[n-1][:,1])
+
+    plt.show()
+    exit()
+
+    print(d.get_times_from_scans([0, 10]))
+    data = d.get_data(time_range=(3, 5))
+    #path =os.path.abspath(test)
+    #print(path)
+    #os.chdir(path)
+    #np.savetxt("3-5d.txt", data)
+    print("ImportData: %.2gs" % (time.perf_counter() - tstart))
     #import matplotlib.pyplot as plt
 
     #plt.plot(d[:, 0], d[:, 1])

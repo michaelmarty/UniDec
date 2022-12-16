@@ -201,6 +201,20 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.5.2.1
+
+UniDec and UniChrom now try to read the polarity from the data and set the adduct appropriately. Check that this is working!
+
+Added ability to label names from peak panel.
+
+Added drag and drop for batch processing in UniChrom. 
+
+Significantly faster reading of some mzML files. 
+
+Fixes to reading in Agilent Files. May no longer need adminstrator access but not sure. Also, may work with Bruker TIMS data, but also not sure about this.
+
+Fixes with reading some config files. Fixes with npz file reading.
+
 v.5.2.0
 
 Major speed up to Plot Peaks command that simulates the isolated charge state distributions! This function is now built into the same C code used by UniDec, and is called by the UniDec.exe <file>_conf.dat -conv. It produces a binary file output that is read in and plotted. 
