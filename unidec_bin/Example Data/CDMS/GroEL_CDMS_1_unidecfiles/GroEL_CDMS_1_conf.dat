@@ -50,7 +50,7 @@ isotopemode 0
 peaknorm 1
 datanorm 1
 baselineflag 1.0
-orbimode 0.0
+orbimode False
 integratelb -7.0
 integrateub 10.0
 filterwidth 20.0

@@ -4,7 +4,7 @@ import numpy as np
 import os
 import time
 
-version = "5.2.0"
+version = "5.2.1"
 
 
 class UniDecEngine:

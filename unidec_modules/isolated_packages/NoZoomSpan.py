@@ -40,6 +40,7 @@ class NoZoomSpan:
                  minspan=None,
                  useblit=False,
                  rectprops=None,
+                 zoombutton=None,
                  onmove_callback=None):
         """
         Create a span selector in axes.  When a selection is made, clear
@@ -74,12 +75,14 @@ class NoZoomSpan:
         self.onmove_callback = onmove_callback
         self.useblit = useblit
         self.minspan = minspan
+        self.zoombutton = zoombutton
 
         # Needed when dragging out of axes
         self.buttonDown = False
         self.prev = (0, 0)
 
         self.new_axes(axes)
+        self.data_lims = GetStart(self.axes)
 
     def new_axes(self, axes):
         self.axes = axes
@@ -113,7 +116,7 @@ class NoZoomSpan:
 
     def ignore(self, event):
         'return True if event should be ignored'
-        return event.inaxes not in self.axes or not self.visible or event.button != 1
+        return event.inaxes not in self.axes or not self.visible # or event.button != 1
 
     def press(self, event):
         'on button press event'
@@ -136,21 +139,47 @@ class NoZoomSpan:
         if self.pressv is None or (self.ignore(event) and not self.buttonDown): return
         self.buttonDown = False
 
+        for rect in self.rect:
+            rect.set_visible(False)
+
+        # left-click in place resets the x-axis
+        if event.xdata == self.pressv and event.button == self.zoombutton:
+            # x0,y0,x1,y1=GetMaxes(event.inaxes)
+            x0, y0, x1, y1 = self.data_lims
+            for axes in self.axes:
+                axes.set_xlim(x0, x1)
+                axes.set_ylim(y0, y1 + y1 * 0.03)
+                ResetVisible(axes)
+            self.canvas.draw()
+            return
+
         vmin = self.pressv
         vmax = event.xdata or self.prev[0]
 
         if vmin > vmax: vmin, vmax = vmax, vmin
         span = vmax - vmin
 
-        print(vmin, vmax, span)
-        pub.sendMessage('scans_selected', min=vmin, max=vmax)
-        if self.minspan is not None and span <= self.minspan:
+        if self.zoombutton is None or event.button != self.zoombutton:
+            print(vmin, vmax, span)
+            pub.sendMessage('scans_selected', min=vmin, max=vmax)
+            if self.minspan is not None and span <= self.minspan:
+                self.canvas.draw()
+                for rect in self.rect:
+                    rect.set_x(vmin)
+                    rect.set_width(0.01)
+                self.update()
+                return
+        elif event.button == self.zoombutton:
+            print("Zooming")
+            if self.minspan is not None and span < self.minspan: return
+
+            for axes in self.axes:
+                # axes.set_xlim((self.pressv, event.xdata))
+                axes.set_xlim((vmin, vmax))
+                # Autoscale Y
+                #xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=vmin, xmax=vmax)
+                #axes.set_ylim((ymin, ymax))
             self.canvas.draw()
-            for rect in self.rect:
-                rect.set_x(vmin)
-                rect.set_width(0.01)
-            self.update()
-            return
 
         self.pressv = None
 

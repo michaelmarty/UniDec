@@ -65,7 +65,8 @@ def get_importer(path):
     elif os.path.splitext(path)[1].lower() == ".raw" and os.path.isdir(path):
         # Waters Raw Directory
         d = WDI(path, do_import=False)
-    elif os.path.splitext(path)[1].lower() == ".txt":
+    elif os.path.splitext(path)[1].lower() == ".txt" or os.path.splitext(path)[1].lower() == ".dat" \
+            or os.path.splitext(path)[1].lower() == ".csv":
         print("Text Files Not Supported for This Operation")
         return None
     else:
@@ -921,7 +922,7 @@ def load_mz_file(path, config=None, time_range=None, imflag=0):
             print("\t but I couldn't find the file...")
             raise IOError
     else:
-        if extension == ".txt":
+        if extension == ".txt" or extension == ".dat":
             try:
                 data = np.loadtxt(path, skiprows=header_test(path))
             except:
