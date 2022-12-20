@@ -257,6 +257,7 @@ class PlottingWindowBase(PlotBase, wx.Window):
                 plots,
                 None,
                 minspan=0,
+                zoombutton=3,
                 useblit=True,
                 onmove_callback=None,
                 rectprops=dict(alpha=0.2, facecolor='yellow'))

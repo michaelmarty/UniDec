@@ -205,6 +205,8 @@ v.5.2.1
 
 UniDec and UniChrom now try to read the polarity from the data and set the adduct appropriately. Check that this is working!
 
+Added right click for zoom on UniChrom TIC.
+
 Added ability to label names from peak panel.
 
 Added drag and drop for batch processing in UniChrom. 
