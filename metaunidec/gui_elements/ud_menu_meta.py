@@ -3,6 +3,7 @@ import os
 import numpy as np
 import unidec_modules.isolated_packages.preset_manager as pm
 
+
 class meta_menu(wx.Menu):
     def __init__(self, parent, config, pres, type="Meta"):
         super(wx.Menu, self).__init__()
@@ -29,15 +30,14 @@ class meta_menu(wx.Menu):
             self.parent.Bind(wx.EVT_MENU, self.pres.on_open, self.openmenu)
             self.parent.Bind(wx.EVT_MENU, self.pres.on_wizard, self.wizardmenu)
 
-
             self.filemenu2 = wx.Menu()
             self.newmenu = self.filemenu2.Append(wx.ID_ANY, "New File", "Create New Blank HDF5 file")
             self.addmenu = self.filemenu2.Append(wx.ID_ANY, "Add Data Files",
                                                  "Add data from individual text, mzml, or Thermo RAW files to current HDF5 file")
             self.menupastespectrum = self.filemenu2.Append(wx.ID_ANY, "Add Data From Clipboard",
-                                                          "Add copied data from clipboard to current HDF5 file")
+                                                           "Add copied data from clipboard to current HDF5 file")
             self.menuexportdata = self.filemenu2.Append(wx.ID_ANY, "Export HDF5 to Text",
-                                                          "Export data in HDF5 to individual text files")
+                                                        "Export data in HDF5 to individual text files")
             self.filemenu.AppendSubMenu(self.filemenu2, "Manual File Operations")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_new_file, self.newmenu)
             self.parent.Bind(wx.EVT_MENU, self.pres.on_add_file, self.addmenu)
@@ -48,13 +48,13 @@ class meta_menu(wx.Menu):
 
             self.filemenu3 = wx.Menu()
             self.importmenu = self.filemenu3.Append(wx.ID_ANY, "Auto Import Chromatogram By Time",
-                                                   "Import mzML or Thermo RAW Ramps to HDF5 files")
-            self.importmenu2 = self.filemenu3.Append(wx.ID_ANY, "Auto Import Chromatogram By Scans",
-                                                   "Import mzML or Thermo RAW Ramps to HDF5 files")
-            self.importmenu3 = self.filemenu3.Append(wx.ID_ANY, "Auto Import Multiple Chromatograms By Range of Times",
-                                                   "Import mzML or Thermo RAW Ramps to HDF5 files")
-            self.importmenu4 = self.filemenu3.Append(wx.ID_ANY, "Auto Import Multiple Chromatograms By Range of Scans",
                                                     "Import mzML or Thermo RAW Ramps to HDF5 files")
+            self.importmenu2 = self.filemenu3.Append(wx.ID_ANY, "Auto Import Chromatogram By Scans",
+                                                     "Import mzML or Thermo RAW Ramps to HDF5 files")
+            self.importmenu3 = self.filemenu3.Append(wx.ID_ANY, "Auto Import Multiple Chromatograms By Range of Times",
+                                                     "Import mzML or Thermo RAW Ramps to HDF5 files")
+            self.importmenu4 = self.filemenu3.Append(wx.ID_ANY, "Auto Import Multiple Chromatograms By Range of Scans",
+                                                     "Import mzML or Thermo RAW Ramps to HDF5 files")
             self.filemenu.AppendSubMenu(self.filemenu3, "Automated Chromatogram Parsing")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_import_mzml, self.importmenu)
             self.parent.Bind(wx.EVT_MENU, self.pres.on_import_mzml_scans, self.importmenu2)
@@ -63,21 +63,22 @@ class meta_menu(wx.Menu):
             self.filemenu.AppendSeparator()
 
         else:
-            self.openmenu = self.filemenu.Append(wx.ID_ANY, "Open mzML or Thermo Raw File\tCtrl+O", "Open mzML or Thermo Raw File")
+            self.openmenu = self.filemenu.Append(wx.ID_ANY, "Open mzML or Thermo Raw File\tCtrl+O",
+                                                 "Open mzML or Thermo Raw File")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_open, self.openmenu)
 
             self.openmenudir = self.filemenu.Append(wx.ID_ANY, "Open Waters or Agilent File",
-                                                 "Open Waters or Agilent File")
+                                                    "Open Waters or Agilent File")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_open_dir, self.openmenudir)
             self.filemenu.AppendSeparator()
             self.menuopenhdf5 = self.filemenu.Append(wx.ID_ANY, "Open HDF5 File",
-                                                 "Open HDF5 File from Previous Deconvolution")
+                                                     "Open HDF5 File from Previous Deconvolution")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_open_hdf5, self.menuopenhdf5)
 
             self.filemenu.AppendSubMenu(self.menuOpenRecent, "Open Recent File")
             self.filemenu.AppendSeparator()
             self.menuexportdata = self.filemenu.Append(wx.ID_ANY, "Export HDF5 to Text",
-                                                        "Export data in HDF5 to individual text files")
+                                                       "Export data in HDF5 to individual text files")
             self.parent.Bind(wx.EVT_MENU, self.pres.eng.export_spectra, self.menuexportdata)
             self.filemenu.AppendSeparator()
 
@@ -151,8 +152,15 @@ class meta_menu(wx.Menu):
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_pdf_report, self.menuSaveFigure4)
 
         # Example Data
-        self.examplemenu, self.masterd2 = pm.make_preset_menu(self.config.exampledatadir, exclude_dir="_unidecfiles",
-                                                              topi=2500, ext="hdf5", exclude_dir_list=["CDMS"])
+        if self.type == "Meta":
+            self.examplemenu, self.masterd2 = pm.make_preset_menu(self.config.exampledatadir,
+                                                                  exclude_dir="_unidecfiles",
+                                                                  topi=2500, ext="hdf5",
+                                                                  exclude_dir_list=["CDMS", "UniChrom"])
+        else:
+            self.examplemenu, self.masterd2 = pm.make_preset_menu(self.config.exampledatadirUC,
+                                                                  exclude_dir="_unidecfiles",
+                                                                  topi=2500, ext=None)
         self.filemenu.AppendSubMenu(self.examplemenu, "Load Example Data")
         for i, path, item in self.masterd2:
             # print(i, path, item)
@@ -164,20 +172,19 @@ class meta_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.parent.on_about, self.menuAbout)
         self.parent.Bind(wx.EVT_MENU, self.parent.on_exit, self.menuExit)
 
-
         # Setting Up the Tools Menu
         if self.type == "Meta":
             self.menubatchocnfig = self.toolsmenu.Append(wx.ID_ANY, "Batch assign configs",
-                                                        "Apply current config to a batch of HDF5 files.")
+                                                         "Apply current config to a batch of HDF5 files.")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_batch_config, self.menubatchocnfig)
             self.menubatchrun = self.toolsmenu.Append(wx.ID_ANY, "Batch Run",
-                                                        "Apply current config and run deconvolution for batch of HDF5 files")
+                                                      "Apply current config and run deconvolution for batch of HDF5 files")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_batch_run, self.menubatchrun)
             self.menubatchextract = self.toolsmenu.Append(wx.ID_ANY, "Batch Extract",
-                                                      "Run extraction on batch of HDF5 files")
+                                                          "Run extraction on batch of HDF5 files")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_batch_extract, self.menubatchextract)
             self.menubatchcre = self.toolsmenu.Append(wx.ID_ANY, "Batch Assign/Run/Extract",
-                                                          "Apply current config, run, and extract on batch of HDF5 files")
+                                                      "Apply current config, run, and extract on batch of HDF5 files")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_batch_cre, self.menubatchcre)
 
             self.toolsmenu.AppendSeparator()
@@ -188,7 +195,7 @@ class meta_menu(wx.Menu):
             self.parent.Bind(wx.EVT_MENU, self.pres.on_batch_chrom1, self.menubatchrun)
 
             self.menubatchrun2 = self.toolsmenu.Append(wx.ID_ANY, "Batch Run Directories (Waters/Agilent)",
-                                                      "Apply current config and time windows and run deconvolution for batch of  files")
+                                                       "Apply current config and time windows and run deconvolution for batch of  files")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_batch_chrom_dirs, self.menubatchrun2)
 
         self.menuExport = self.toolsmenu.Append(wx.ID_ANY, "Export Peaks Parameters and Data",
@@ -215,7 +222,6 @@ class meta_menu(wx.Menu):
                                                "Run \"Match to Mixed Oligomers\" in Oligomer and Mass Tools")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_match, self.menumatch)
 
-
         # Setting up Analysis Menu
         self.animatemenu = wx.Menu()
 
@@ -224,13 +230,13 @@ class meta_menu(wx.Menu):
         self.menuanimate15 = self.animatemenu.Append(wx.ID_ANY, "Animate Annotated Zero-Charge Spectra",
                                                      "Animate 1D plots of zero-charge mass spectra with markers")
         self.menuanimate2 = self.animatemenu.Append(wx.ID_ANY, "Animate Mass Spectra",
-                                                     "Animate 1D plots of mass spectra")
+                                                    "Animate 1D plots of mass spectra")
         self.menuanimate25 = self.animatemenu.Append(wx.ID_ANY, "Animate Annotated Mass Spectra",
-                                                    "Animate 1D plots of mass spectra with markers")
+                                                     "Animate 1D plots of mass spectra with markers")
         self.menuanimate3 = self.animatemenu.Append(wx.ID_ANY, "Animate Mass v. Charge Grid",
-                                                     "Animate 2D plots of mass vs. charge")
+                                                    "Animate 2D plots of mass vs. charge")
         self.menuanimate4 = self.animatemenu.Append(wx.ID_ANY, "Animate m/z v. Charge Grid",
-                                                     "Animate 1D plots of m/z vs charge")
+                                                    "Animate 1D plots of m/z vs charge")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_animate_mass, self.menuanimate1)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_animate_mz, self.menuanimate2)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_animate_annotated_mz, self.menuanimate25)
@@ -253,13 +259,13 @@ class meta_menu(wx.Menu):
         if self.type == "Meta":
             self.analysismenu.AppendSeparator()
             self.menuexpfit = self.analysismenu.Append(wx.ID_ANY, "Exponential Decay Fit",
-                                                    "Fit all plots to exponential decays")
+                                                       "Fit all plots to exponential decays")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_exp_fit, self.menuexpfit)
             self.menulinfit = self.analysismenu.Append(wx.ID_ANY, "Linear Fit",
-                                                    "Fit all plots to line")
+                                                       "Fit all plots to line")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_lin_fit, self.menulinfit)
             self.menusigfit = self.analysismenu.Append(wx.ID_ANY, "Logistic Fit",
-                                                    "Fit all plots to logistic equation")
+                                                       "Fit all plots to logistic equation")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_sig_fit, self.menusigfit)
 
             self.analysismenu.AppendSeparator()
@@ -306,12 +312,12 @@ class meta_menu(wx.Menu):
             # Experimental
             self.parent.Bind(wx.EVT_MENU, self.pres.on_undo, self.menuundo)
 
-            #self.menuredo = self.experimentalmenu.Append(wx.ID_ANY, "Redo Parameter Change\tCtrl+Y",
+            # self.menuredo = self.experimentalmenu.Append(wx.ID_ANY, "Redo Parameter Change\tCtrl+Y",
             #                                             "Go to the next set of parameters")
             # self.parent.Bind(wx.EVT_MENU, self.pres.on_redo, self.menuredo)
 
             self.experimentalmenu.AppendSeparator()
-            #self.analysismenu.AppendSeparator()
+            # self.analysismenu.AppendSeparator()
             self.menuDC = self.experimentalmenu.Append(wx.ID_ANY, "Data Collector and KD Fitting")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_data_collector, self.menuDC)
             self.experimentalmenu.AppendSeparator()
@@ -321,7 +327,7 @@ class meta_menu(wx.Menu):
             self.experimentalmenu.AppendSeparator()
 
             self.ctlimzmltohdf5 = self.experimentalmenu.Append(wx.ID_ANY, "Write imzML to HDF5",
-                                                           "For Imaging files, write to HDF5")
+                                                               "For Imaging files, write to HDF5")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_imzml_to_hdf5, self.ctlimzmltohdf5)
 
             self.ctltoimzml = self.experimentalmenu.Append(wx.ID_ANY, "Write HDF5 to imzml",
@@ -329,12 +335,12 @@ class meta_menu(wx.Menu):
             self.parent.Bind(wx.EVT_MENU, self.pres.on_hdf5_to_imzml, self.ctltoimzml)
 
             self.ctlimagingviewer = self.experimentalmenu.Append(wx.ID_ANY, "Open Imaging Viewer",
-                                                           "Tool for Viewing MSI Data")
+                                                                 "Tool for Viewing MSI Data")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_imaging_viewer, self.ctlimagingviewer)
             self.experimentalmenu.AppendSeparator()
 
         self.menuwaterfall = self.experimentalmenu.Append(wx.ID_ANY, "Waterfall Plot",
-                                                       "Make 3D Waterfall plot with mass distributions")
+                                                          "Make 3D Waterfall plot with mass distributions")
         self.parent.Bind(wx.EVT_MENU, self.pres.make_waterfall_plots, self.menuwaterfall)
 
         self.experimentalmenu.AppendSeparator()
@@ -342,7 +348,7 @@ class meta_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_linreg, self.menulinreg)
         self.menusubdiv = self.experimentalmenu.Append(wx.ID_ANY, "Subtract and Divide")
         self.parent.Bind(wx.EVT_MENU, self.pres.sub_div, self.menusubdiv)
-        #self.menuAdditionalParameters = self.experimentalmenu.Append(wx.ID_ANY, "Additional Parameters",
+        # self.menuAdditionalParameters = self.experimentalmenu.Append(wx.ID_ANY, "Additional Parameters",
         #                                                             "Adjust some experimental parameters")
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_additional_parameters, self.menuAdditionalParameters)
         self.experimentalmenu.AppendSeparator()
@@ -378,7 +384,7 @@ class meta_menu(wx.Menu):
             self.parent.Bind(wx.EVT_MENU, self.pres.auto_refresh_stop, self.menuautorefreshstop)
 
         if self.type == "Meta":
-            #Help Menu
+            # Help Menu
             self.getstarted = self.helpmenu.Append(wx.ID_ANY, "Getting Started")
             self.listconts = self.helpmenu.Append(wx.ID_ANY, "The Spectra Table")
             self.plotwindow = self.helpmenu.Append(wx.ID_ANY, "Plot Window")
@@ -484,7 +490,7 @@ class meta_menu(wx.Menu):
             pos = np.argmin(np.abs(ids - nid))
             path = self.masterd[pos, 1]
             print("Opening Config:", path)
-            #self.pres.eng.load_config(path)
+            # self.pres.eng.load_config(path)
             self.pres.import_config(path)
         except Exception as e:
             print(e)

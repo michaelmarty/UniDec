@@ -231,4 +231,7 @@ unidec_bin/Example Data/BSA_unidecfiles/BSA_conv.bin
 .pypirc
 UniDec.egg-info
 distpypi
+publish_test.cmd
+unidec_bin/IUPAC-atomic-masses.csv
+unidec_modules/hramtools.py
 

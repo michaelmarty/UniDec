@@ -14,7 +14,7 @@ from metaunidec import mudpres
 from import_wizard import ImportWizard
 from metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard as HDF5Wizard
 from metaunidec.ultrameta import DataCollector as UMDC
-from UniChrom2 import ChromApp
+from UniChrom import ChromApp
 import wx.py as py
 import os
 import sys

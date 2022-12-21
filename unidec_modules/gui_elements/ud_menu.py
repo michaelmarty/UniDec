@@ -89,7 +89,7 @@ class main_menu(wx.Menu):
 
         # Example Data
         self.examplemenu, self.masterd2 = pm.make_preset_menu(self.config.exampledatadir, exclude_dir="_unidecfiles",
-                                                              topi=2500, exclude_ext="hdf5", exclude_dir_list=["CDMS"])
+                                                              topi=2500, exclude_ext="hdf5", exclude_dir_list=["CDMS", "UniChrom"])
 
         keys = []
         for i, d in enumerate(self.masterd2):

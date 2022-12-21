@@ -1114,6 +1114,7 @@ class UniDecConfig(object):
         self.presetdirCD = os.path.join(self.UniDecDir, "Presets", "CDMS")
         self.exampledatadir = os.path.join(self.UniDecDir, "Example Data")
         self.exampledatadirCD = os.path.join(self.UniDecDir, "Example Data", "CDMS")
+        self.exampledatadirUC = os.path.join(self.UniDecDir, "Example Data", "UniChrom")
 
         print("\nUniDec Path:", self.UniDecPath)
 
