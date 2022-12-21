@@ -13,21 +13,19 @@ Module for window defining the oligomers, the expected masses, and for matching 
 '''
 
 
-# TODO: Inherit a subclass with basic list control functions like delete
-
-
 class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
-    def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0, coltitle="Mass (Da)"):
+    def __init__(self, parent, panel, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0, coltitle="Mass (Da)"):
         """
         Create the mass list ctrl with one column.
         :param parent: Passed to wx.ListCtrl
-        :param id_value: Passed to wx.ListCtrl
+        :param panel: Passed to wx.ListCtrl
         :param pos: Passed to wx.ListCtrl
         :param size: Passed to wx.ListCtrl
         :param style: Passed to wx.ListCtrl
         :return: None
         """
-        wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)
+        id_value = wx.NewIdRef()
+        wx.ListCtrl.__init__(self, panel, id_value, pos, size, style)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.TextEditMixin.__init__(self)
         self.InsertColumn(0, coltitle)
@@ -119,33 +117,19 @@ class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdit
         bp.Destroy()
 
 
-class MassListCtrlPanel(wx.Panel):
-    def __init__(self, parent, columntitle="Mass (Da)", size=(210, 380)):
-        """
-        ListCtrlPanel for the Mass list
-        :param parent: Parent panel or window
-        :return: None
-        """
-        wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        self.list = MassListCrtl(self, wx.NewIdRef(), coltitle=columntitle, size=size, style=wx.LC_REPORT)
-        sizer.Add(self.list, 1, wx.EXPAND)
-        self.SetSizer(sizer)
-        self.SetAutoLayout(True)
-
-
 class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
-    def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+    def __init__(self, parent, panel, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
         """
         Create a 5 column list ctrl.
         :param parent: Passed to wx.ListCrtl
-        :param id_value: Passed to wx.ListCrtl
+        :param panel: Passed to wx.ListCrtl
         :param pos: Passed to wx.ListCrtl
         :param size: Passed to wx.ListCrtl
         :param style: Passed to wx.ListCrtl
         :return: None
         """
-        wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)
+        id_value = wx.NewIdRef()
+        wx.ListCtrl.__init__(self, panel, id_value, pos, size, style)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.TextEditMixin.__init__(self)
         self.parent = parent
@@ -262,7 +246,7 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
             selection.append(item)
         olist = self.get_items(selection)
         for o in olist:
-            self.parent.parent.add_to_common_masses( o[4], o[1],"User")
+            self.parent.add_to_common_masses( o[4], o[1],"User")
             print('Added', o[4], 'to common mass table')
 
 
@@ -297,34 +281,19 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
         bp.Destroy()
 
 
-class OligomerListCrtlPanel(wx.Panel):
-    def __init__(self, parent, real_parent):
-        """
-        ListCtrlPanel for the Oligomer list
-        :param parent: Parent panel or window
-        :return: None
-        """
-        wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        self.list = OligomerListCtrl(self, wx.NewIdRef(), size=(500, 200), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
-        sizer.Add(self.list, 1, wx.EXPAND)
-        self.SetSizer(sizer)
-        self.SetAutoLayout(True)
-        self.parent=real_parent
-
-
 class MatchListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
-    def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+    def __init__(self, parent, panel, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
         """
         Create a four column uneditable list control.
         :param parent: Parent panel or window
-        :param id_value: Passed to wx.ListCtrl
+        :param panel: Passed to wx.ListCtrl
         :param pos: Passed to wx.ListCtrl
         :param size: Passed to wx.ListCtrl
         :param style: Passed to wx.ListCtrl
         :return: None
         """
-        wx.ListCtrl.__init__(self, parent, id_value, pos, size, style=wx.LC_REPORT)
+        id_value = wx.NewIdRef()
+        wx.ListCtrl.__init__(self, panel, id_value, pos, size, style=wx.LC_REPORT)
         # wx.ListCtrl.__init__(self, pos=wx.DefaultPosition, size=size,
         # style=wx.LC_REPORT | wx.BORDER_SUNKEN)
         self.parent = parent
@@ -390,7 +359,7 @@ class MatchListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
 
     def on_view_alt(self, e=None):
         item = self.GetFirstSelected()
-        self.parent.parent.parent.on_view_alt(item)
+        self.parent.on_view_alt(item)
 
     def on_right_click(self, event):
         """
@@ -408,22 +377,6 @@ class MatchListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
             menu.Destroy()
 
 
-class MatchListCrtlPanel(wx.Panel):
-    def __init__(self, parent):
-        """
-        ListCtrlPanel for the Match list
-        :param parent: Parent panel or window
-        :return: None
-        """
-        wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        self.parent = parent
-        self.list = MatchListCrtl(self, wx.NewIdRef(), size=(500, 200), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
-        sizer.Add(self.list, 1, wx.EXPAND)
-        self.SetSizer(sizer)
-        self.SetAutoLayout(True)
-
-
 class DummyPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
@@ -432,18 +385,19 @@ class DummyPanel(wx.Panel):
 
 class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
                    listmix.TextEditMixin, listmix.ColumnSorterMixin):
-    def __init__(self, parent, id_value, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+    def __init__(self, parent, panel, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
         """
         Create a four column uneditable list control.
         :param parent: Parent panel or window
-        :param id_value: Passed to wx.ListCtrl
+        :param panel: Passed to wx.ListCtrl
         :param pos: Passed to wx.ListCtrl
         :param size: Passed to wx.ListCtrl
         :param style: Passed to wx.ListCtrl
         :return: None
         """
+        id_value = wx.NewIdRef()
         self.parent = parent
-        wx.ListCtrl.__init__(self, parent, id_value, pos, size, style)
+        wx.ListCtrl.__init__(self, panel, id_value, pos, size, style)
         # listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.TextEditMixin.__init__(self)
         listmix.ColumnSorterMixin.__init__(self, 3)
@@ -482,7 +436,7 @@ class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
         menu.Destroy()
 
     def on_transfer(self, e):
-        self.parent.parent.parent.on_common_to_oligo(e)
+        self.parent.on_common_to_oligo(e)
 
     def clear(self, e=None):
         """
@@ -563,8 +517,8 @@ class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
         self.index += 1
 
     def repopulate(self, e):
-        self.populate(self.parent.parent.parent.commonmasses[:, 0], self.parent.parent.parent.commonmasses[:, 1],
-                      self.parent.parent.parent.commonmasses[:, 2])
+        self.populate(self.parent.commonmasses[:, 0], self.parent.commonmasses[:, 1],
+                      self.parent.commonmasses[:, 2])
         pass
 
     def GetListCtrl(self):
@@ -578,22 +532,6 @@ class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
             self.data.append(sublist)
         self.itemDataMap = self.data
         return self
-
-
-class CommonMassesPanel(wx.Panel):
-    def __init__(self, parent):
-        """
-        ListCtrlPanel for the Match list
-        :param parent: Parent panel or window
-        :return: None
-        """
-        wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        self.parent = parent
-        self.list = CommonMasses(self, wx.NewIdRef(), size=(400, 500), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
-        sizer.Add(self.list, 1, wx.EXPAND)
-        self.SetSizer(sizer)
-        self.SetAutoLayout(True)
 
 
 class MassSelection(wx.Dialog):
@@ -675,13 +613,13 @@ class MassSelection(wx.Dialog):
         sbs.Add(oligopop2, 0, wx.EXPAND)
         sbs.Add(addbutton, 0, wx.EXPAND)
         sbs.Add(clearbutt, 0, wx.EXPAND)
-        self.masslistbox = MassListCtrlPanel(panel)
+        self.masslistbox = MassListCrtl(self, panel, coltitle="Mass (Da)", size=(210, 380), style=wx.LC_REPORT)
 
         sbs.Add(wx.StaticText(panel, label="Mass List"))
         sbs.Add(self.masslistbox)
         sbs.Add(simbutton, 0, wx.EXPAND)
 
-        hbox.Add(sbs)
+        hbox.Add(sbs)#, wx.EXPAND)
 
         sb2 = wx.StaticBox(panel, label='Oligomer Maker')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.VERTICAL)
@@ -718,10 +656,10 @@ class MassSelection(wx.Dialog):
         hbox3.Add(textbox)
         sbs2.Add(hbox3, 0, wx.EXPAND)
 
-        self.oligomerlistbox = OligomerListCrtlPanel(panel, self)
+        self.oligomerlistbox = OligomerListCtrl(self, panel, size=(500, 200), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)#(panel, self)
 
         sbs2.Add(wx.StaticText(panel, label="Oligomer List"))
-        sbs2.Add(self.oligomerlistbox)
+        sbs2.Add(self.oligomerlistbox, wx.EXPAND)
         sbs2.Add(wx.StaticText(panel, label=""))
 
         sb4 = wx.StaticBox(panel, label="Match Peaks to Oligomers")
@@ -737,16 +675,16 @@ class MassSelection(wx.Dialog):
         check_alt_button.SetToolTip(
             wx.ToolTip("Check for alternative matches. Yellow indicates possible alternates within tolerance."))
         self.Bind(wx.EVT_BUTTON, self.on_check_for_alt_match, check_alt_button)
-        self.matchlistbox = MatchListCrtlPanel(panel)
+        self.matchlistbox = MatchListCrtl(self, panel, size=(500, 200), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
         hbox2.Add(match_iso_button, 1, wx.EXPAND)
         hbox2.Add(match_all_button, 1, wx.EXPAND)
         hbox2.Add(check_alt_button, 1, wx.EXPAND)
         sbs4.Add(hbox2, 0, wx.EXPAND)
-        sbs4.Add(self.matchlistbox)
-        sbs2.AddStretchSpacer(prop=1)
-        sbs2.Add(sbs4)
-        hbox.Add(sbs2)
+        sbs4.Add(self.matchlistbox, wx.EXPAND)
+        #sbs2.AddStretchSpacer(prop=1)
+        sbs2.Add(sbs4, wx.EXPAND)
+        hbox.Add(sbs2, wx.EXPAND)
 
         sb5 = wx.StaticBox(panel, label='Common Masses')
         sbs5 = wx.StaticBoxSizer(sb5, orient=wx.VERTICAL)
@@ -763,7 +701,7 @@ class MassSelection(wx.Dialog):
         sbs5.Add(importbutton2, 0, wx.EXPAND)
         sbs5.Add(savecommonbutton, 0, wx.EXPAND)
         sbs5.Add(addbutton4, 0, wx.EXPAND)
-        self.commonmassespanel = CommonMassesPanel(panel)
+        self.commonmassespanel = CommonMasses(self, panel, size=(400, 500), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
 
         sbs5.Add(wx.StaticText(panel, label="Common Masses List"))
         sbs5.Add(self.commonmassespanel)
@@ -786,12 +724,12 @@ class MassSelection(wx.Dialog):
         okbutton.Bind(wx.EVT_BUTTON, self.on_close)
         closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
 
-        self.masslistbox.list.populate(self.config.masslist)
-        self.oligomerlistbox.list.populate(self.config.oligomerlist)
+        self.masslistbox.populate(self.config.masslist)
+        self.oligomerlistbox.populate(self.config.oligomerlist)
 
         defaultmatchlist = self.config.matchlist
         if len(defaultmatchlist) == 4:
-            self.matchlistbox.list.populate(defaultmatchlist[0], defaultmatchlist[1], defaultmatchlist[2],
+            self.matchlistbox.populate(defaultmatchlist[0], defaultmatchlist[1], defaultmatchlist[2],
                                             defaultmatchlist[3])
             self.matchlist = defaultmatchlist
         try:
@@ -802,20 +740,20 @@ class MassSelection(wx.Dialog):
         self.CenterOnParent()
 
     def on_common_to_oligo(self, e):
-        outdata = self.commonmassespanel.list.get_selection()
+        outdata = self.commonmassespanel.get_selection()
         print(outdata)
         for o in outdata:
             print(o)
-            self.oligomerlistbox.list.add_line(0, o[1], 0, 1, o[0])
+            self.oligomerlistbox.add_line(0, o[1], 0, 1, o[0])
 
     def on_add_new_common_mass(self, e):
-        self.commonmassespanel.list.add_line()
+        self.commonmassespanel.add_line()
 
     def add_to_common_masses(self, name, mass, type):
-        self.commonmassespanel.list.add_line(name, mass, type)
+        self.commonmassespanel.add_line(name, mass, type)
 
     def on_save_common_masses(self, e):
-        outdata = self.commonmassespanel.list.get_list()
+        outdata = self.commonmassespanel.get_list()
         cmfilename = FileDialogs.save_file_dialog("Save Common Masses File", "*.csv*", self.config.masstablefile)
         if cmfilename is not None:
             np.savetxt(cmfilename, outdata, delimiter=",", fmt="%s")
@@ -830,7 +768,7 @@ class MassSelection(wx.Dialog):
     def load_common_masses(self, file):
         print("Loading Common Masses From File:", file)
         self.commonmasses = np.genfromtxt(file, delimiter=',', usecols=(0, 1, 2), dtype=str, skip_header=1)
-        self.commonmassespanel.list.populate(self.commonmasses[:, 0], self.commonmasses[:, 1], self.commonmasses[:, 2])
+        self.commonmassespanel.populate(self.commonmasses[:, 0], self.commonmasses[:, 1], self.commonmasses[:, 2])
 
     def on_simulate(self, e):
         """
@@ -840,7 +778,7 @@ class MassSelection(wx.Dialog):
         :param e: Unused event
         :return: None
         """
-        newmasslist = self.masslistbox.list.get_list()
+        newmasslist = self.masslistbox.get_list()
         newpeaks = []
         f = interp1d(self.massdat[:, 0], self.massdat[:, 1], bounds_error=False, fill_value=0)
         for mass in newmasslist:
@@ -884,7 +822,7 @@ class MassSelection(wx.Dialog):
         self.on_match(type="all")
 
     def on_match(self, type="all"):
-        self.oligos = self.oligomerlistbox.list.get_list()
+        self.oligos = self.oligomerlistbox.get_list()
         self.oligos = np.array(self.oligos)
         self.read_tolerance()
 
@@ -899,13 +837,13 @@ class MassSelection(wx.Dialog):
             print("ERROR: Need to specify the Potential Oligomers")
             return
         self.matchlist = ud.match(self.pks, self.oligomasslist, self.oligonames, self.oligos, tolerance=self.tolerance)
-        self.matchlistbox.list.populate(self.matchlist[0], self.matchlist[1], self.matchlist[2], self.matchlist[3])
-        self.matchlistbox.list.mode = 0
+        self.matchlistbox.populate(self.matchlist[0], self.matchlist[1], self.matchlist[2], self.matchlist[3])
+        self.matchlistbox.mode = 0
         self.diffmatrix = None
 
     def on_check_for_alt_match(self, e=None):
-        self.matchlistbox.list.populate(self.matchlist[0], self.matchlist[1], self.matchlist[2], self.matchlist[3])
-        self.matchlistbox.list.mode = 0
+        self.matchlistbox.populate(self.matchlist[0], self.matchlist[1], self.matchlist[2], self.matchlist[3])
+        self.matchlistbox.mode = 0
         self.read_tolerance()
         peakmasses = [p.mass for p in self.pks.peaks]
         if self.oligomasslist is None:
@@ -921,11 +859,11 @@ class MassSelection(wx.Dialog):
                 color = [1, 1, 0]
             else:
                 color = [0, 0, 1]
-            self.matchlistbox.list.color_item(i, color)
+            self.matchlistbox.color_item(i, color)
 
 
     def on_view_alt(self, index=None):
-        if self.matchlistbox.list.mode == 0:
+        if self.matchlistbox.mode == 0:
             self.read_tolerance()
             if self.diffmatrix is None:
                 self.on_check_for_alt_match()
@@ -941,7 +879,7 @@ class MassSelection(wx.Dialog):
             self.mnames = np.array(self.oligonames)[b1]
             self.mnames = np.array([ud.index_to_oname(m, self.oligos[:,2].astype(int), self.oligos[:,4]) for m in self.mnames])
             self.mmasses = np.array(self.oligomasslist)[b1]
-            self.matchlistbox.list.populate(peakmass, self.mmasses, self.diffs, self.mnames)
+            self.matchlistbox.populate(peakmass, self.mmasses, self.diffs, self.mnames)
 
             for i in range(l):
                 absdiff = np.abs(self.diffs)
@@ -949,11 +887,11 @@ class MassSelection(wx.Dialog):
                 max = np.amax(absdiff) # self.tolerance
                 r = np.sqrt(np.abs(np.abs(self.diffs[i])-min)/(max-min))
                 color = [r, 1, r]
-                self.matchlistbox.list.color_item(i, color)
+                self.matchlistbox.color_item(i, color)
 
-            self.matchlistbox.list.mode = 1
+            self.matchlistbox.mode = 1
 
-        elif self.matchlistbox.list.mode == 1:
+        elif self.matchlistbox.mode == 1:
             selected_diff = self.diffs[index]
             selected_name = self.mnames[index]
             selected_match = self.mmasses[index]
@@ -961,9 +899,9 @@ class MassSelection(wx.Dialog):
             self.matchlist[2][self.peakindex] = selected_diff
             self.matchlist[3][self.peakindex] = selected_name
 
-            self.matchlistbox.list.populate(self.matchlist[0], self.matchlist[1], self.matchlist[2], self.matchlist[3])
+            self.matchlistbox.populate(self.matchlist[0], self.matchlist[1], self.matchlist[2], self.matchlist[3])
 
-            self.matchlistbox.list.mode = 0
+            self.matchlistbox.mode = 0
 
     def read_tolerance(self):
         try:
@@ -987,7 +925,7 @@ class MassSelection(wx.Dialog):
         self.read_tolerance()
         self.config.matchtolerance = self.tolerance
 
-        newmasslist = self.masslistbox.list.get_list()
+        newmasslist = self.masslistbox.get_list()
         # print newmasslist
         if not ud.isempty(newmasslist):
             newmasslist = np.array(newmasslist)
@@ -997,7 +935,7 @@ class MassSelection(wx.Dialog):
                 self.config.masslist = newmasslist
             else:
                 self.config.masslist = []
-        oligos = self.oligomerlistbox.list.get_list()
+        oligos = self.oligomerlistbox.get_list()
         if not ud.isempty(oligos):
             oligos = np.array(oligos)
             oligoshort = oligos[:, :2]
@@ -1006,7 +944,7 @@ class MassSelection(wx.Dialog):
             # oligos=oligos[::-1]
         self.config.oligomerlist = oligos
 
-        matchlist = np.transpose(self.matchlistbox.list.get_list())
+        matchlist = np.transpose(self.matchlistbox.get_list())
         if not ud.isempty(matchlist):
             self.config.matchlist = matchlist
 
@@ -1032,7 +970,7 @@ class MassSelection(wx.Dialog):
         :return: None
         """
         try:
-            self.masslistbox.list.populate(self.pks.masses)
+            self.masslistbox.populate(self.pks.masses)
         except AttributeError:
             print("Pick peaks first")
 
@@ -1042,10 +980,10 @@ class MassSelection(wx.Dialog):
         :param e: Unused event
         :return: None
         """
-        oligos = self.oligomerlistbox.list.get_list()
+        oligos = self.oligomerlistbox.get_list()
         oligomasslist, oligonames = ud.make_isolated_match(oligos)
         oligomasslist = np.unique(oligomasslist)
-        self.masslistbox.list.populate(oligomasslist)
+        self.masslistbox.populate(oligomasslist)
 
     def pop_oligo_all(self, e):
         """
@@ -1053,10 +991,10 @@ class MassSelection(wx.Dialog):
         :param e: Unused event
         :return: None
         """
-        oligos = self.oligomerlistbox.list.get_list()
+        oligos = self.oligomerlistbox.get_list()
         oligomasslist, oligonames = ud.make_all_matches(oligos)
         oligomasslist = np.unique(oligomasslist)
-        self.masslistbox.list.populate(oligomasslist)
+        self.masslistbox.populate(oligomasslist)
 
     def on_clear_masslist(self, e):
         """
@@ -1064,7 +1002,7 @@ class MassSelection(wx.Dialog):
         :param e: Unused event
         :return: None
         """
-        self.masslistbox.list.clear()
+        self.masslistbox.clear()
 
     def on_clear_oligolist(self, e):
         """
@@ -1072,7 +1010,7 @@ class MassSelection(wx.Dialog):
         :param e: Unused Event
         :return: None
         """
-        self.oligomerlistbox.list.clear()
+        self.oligomerlistbox.clear()
 
     def on_add_mass(self, e):
         """
@@ -1080,7 +1018,7 @@ class MassSelection(wx.Dialog):
         :param e: Unused Event
         :return: None
         """
-        self.masslistbox.list.add_line()
+        self.masslistbox.add_line()
 
     def on_add_oligomer(self, e):
         """
@@ -1088,7 +1026,7 @@ class MassSelection(wx.Dialog):
         :param e: Unused event
         :return: None
         """
-        self.oligomerlistbox.list.add_line()
+        self.oligomerlistbox.add_line()
 
     def on_import_masses(self, e):
         """
@@ -1100,7 +1038,7 @@ class MassSelection(wx.Dialog):
         if mfilename is not None:
             importmass = np.loadtxt(mfilename)
             if importmass[0] > 0:
-                self.masslistbox.list.populate(importmass)
+                self.masslistbox.populate(importmass)
 
     def on_import_oligos(self, e):
         """
@@ -1114,7 +1052,7 @@ class MassSelection(wx.Dialog):
             importolig = np.genfromtxt(ofilename, dtype='str')
             if np.shape(importolig) == (5,) or np.shape(importolig) == (4,):
                 importolig = [importolig]
-            self.oligomerlistbox.list.populate(importolig)
+            self.oligomerlistbox.populate(importolig)
 
 
 # Main App Execution
