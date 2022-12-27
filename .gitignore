@@ -1,4 +1,3 @@
-
 *.pyc
 *.map
 *.md5
@@ -33,21 +32,21 @@ Scripts/MTM/unidec_tests.py
 pyinstaller_64.bat
 pyinstaller_64_dist.bat
 /Scripts/MTM/fft_test.py
-test.py
+Scripts/test_with_spectrum.py
 todo.txt
 unidec_bin/Other_builds/
 unidec_src/Old
 test_GUI.py
 Scripts/MTM/test_UniDec.py
 build.bat
-metaunidec/test_MUD.py
+unidec/metaunidec/test_MUD.py
 unidec_bin/CDCReaderOld.exe
 unidec_modules/fft_test.py
 unidec_src/UniDec/compilewin.bat
 unidec_src/UniDec/UniDec.pdb
 unidec_src/UniDec/compilewinpgcc.bat
-/unidec_modules/GridDecon2.py
-/unidec_bin/multiplierz/
+/unidec/modules/GridDecon2.py
+/unidec/bin/multiplierz/
 unidec_modules/1D_Mass_Defects.txt
 unidec_modules/2D_Mass_Defects.txt
 unidec_modules/Mass_Defect_Extracts.txt
@@ -66,57 +65,57 @@ unidec_src/UniDec/UniDech-rev511.h
 unidec_bin/old_waters/
 unidec_modules/Mass_Defect_Extracts_Total.txt
 UniDecPastedSpectra/
-iFAMS/test_unidecfiles/
-/unidec_modules/waters_importer/old/
-/unidec_modules/waters_importer/MassLynxLockMassProcessor.py
-/unidec_modules/waters_importer/MassLynxRaw.lib
+unidec/iFAMS/test_unidecfiles/
+/unidec/modules/waters_importer/old/
+/unidec/modules/waters_importer/MassLynxLockMassProcessor.py
+/unidec/modules/waters_importer/MassLynxRaw.lib
 unidec_src/UniDec/UniDec.log
 unidec_src/UniDec/oldVS/
-/unidec_bin/Example Data/ADH_unidecfiles/ADH_fitdat.bin
-/unidec_bin/Example Data/ADH_unidecfiles/ADH_grid.bin
-/unidec_bin/Example Data/ADH_unidecfiles/ADH_match.dat
-/unidec_bin/Example Data/ADH_unidecfiles/ADH_mass.txt
-/unidec_bin/Example Data/ADH_unidecfiles/ADH_input.dat
-/unidec_bin/Example Data/ADH_unidecfiles/ADH_massgrid.bin
-/unidec_bin/Example Data/ADH_unidecfiles/ADH_error.txt
-/unidec_bin/Example Data/ADH_unidecfiles/ADH_rawdata.txt
-/unidec_bin/Example Data/ADH_unidecfiles/ADH_peaks.dat
-/unidec_bin/Example Data/ADH_unidecfiles/default.hdf5
-/unidec_bin/Example Data/BSA_unidecfiles/BSA_input.dat
-/unidec_bin/Example Data/BSA_unidecfiles/BSA_match.dat
-/unidec_bin/Example Data/BSA_unidecfiles/BSA_error.txt
-/unidec_bin/Example Data/BSA_unidecfiles/BSA_grid.bin
-/unidec_bin/Example Data/BSA_unidecfiles/BSA_massgrid.bin
-/unidec_bin/Example Data/BSA_unidecfiles/BSA_rawdata.txt
-/unidec_bin/Example Data/BSA_unidecfiles/BSA_fitdat.bin
-/unidec_bin/Example Data/BSA_unidecfiles/BSA_mass.txt
-/unidec_bin/Example Data/BSA_unidecfiles/BSA_peaks.dat
-/unidec_bin/Example Data/UniDec_Figures_and_Files/
-/unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_fitdat.bin
-/unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_rawdata.txt
-/unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_grid.bin
-/unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_massgrid.bin
-/unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_error.txt
-/unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_match.dat
-/unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_peaks.dat
-/unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_input.dat
-/unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_mass.txt
-/unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_mass.txt
-/unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_rawdata.txt
-/unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_peaks.dat
-/unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_fitdat.bin
-/unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_input.dat
-/unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_massgrid.bin
-/unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_grid.bin
-/unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_error.txt
-/unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_grid.bin
-/unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_rawdata.txt
-/unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_error.txt
-/unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_mass.txt
-/unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_massgrid.bin
-/unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_input.dat
-/unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_fitdat.bin
-/unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_peaks.dat
+/unidec/bin/Example Data/ADH_unidecfiles/ADH_fitdat.bin
+/unidec/bin/Example Data/ADH_unidecfiles/ADH_grid.bin
+/unidec/bin/Example Data/ADH_unidecfiles/ADH_match.dat
+/unidec/bin/Example Data/ADH_unidecfiles/ADH_mass.txt
+/unidec/bin/Example Data/ADH_unidecfiles/ADH_input.dat
+/unidec/bin/Example Data/ADH_unidecfiles/ADH_massgrid.bin
+/unidec/bin/Example Data/ADH_unidecfiles/ADH_error.txt
+/unidec/bin/Example Data/ADH_unidecfiles/ADH_rawdata.txt
+/unidec/bin/Example Data/ADH_unidecfiles/ADH_peaks.dat
+/unidec/bin/Example Data/ADH_unidecfiles/default.hdf5
+/unidec/bin/Example Data/BSA_unidecfiles/BSA_input.dat
+/unidec/bin/Example Data/BSA_unidecfiles/BSA_match.dat
+/unidec/bin/Example Data/BSA_unidecfiles/BSA_error.txt
+/unidec/bin/Example Data/BSA_unidecfiles/BSA_grid.bin
+/unidec/bin/Example Data/BSA_unidecfiles/BSA_massgrid.bin
+/unidec/bin/Example Data/BSA_unidecfiles/BSA_rawdata.txt
+/unidec/bin/Example Data/BSA_unidecfiles/BSA_fitdat.bin
+/unidec/bin/Example Data/BSA_unidecfiles/BSA_mass.txt
+/unidec/bin/Example Data/BSA_unidecfiles/BSA_peaks.dat
+/unidec/bin/Example Data/UniDec_Figures_and_Files/
+/unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_fitdat.bin
+/unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_rawdata.txt
+/unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_grid.bin
+/unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_massgrid.bin
+/unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_error.txt
+/unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_match.dat
+/unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_peaks.dat
+/unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_input.dat
+/unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_mass.txt
+/unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_mass.txt
+/unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_rawdata.txt
+/unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_peaks.dat
+/unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_fitdat.bin
+/unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_input.dat
+/unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_massgrid.bin
+/unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_grid.bin
+/unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_error.txt
+/unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_grid.bin
+/unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_rawdata.txt
+/unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_error.txt
+/unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_mass.txt
+/unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_massgrid.bin
+/unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_input.dat
+/unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_fitdat.bin
+/unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_peaks.dat
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_Total_1D_Mass_Defects.txt
 unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_Total_2D_Mass_Defects.txt
 unidec_bin/Example Data/BSA_unidecfiles/BSA_chargedata.dat
@@ -224,7 +223,7 @@ unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_report.pdf
 unidec_bin/Example Data/BSA_unidecfiles/BSA_ofile_crazy.dat
 unidec_bin/Example Data/BSA_unidecfiles/BSA_report.html
 unidec_src/UniDec/test_match.bat
-LipyDec.py
+unidec/LipyDec.py
 unidec_modules/SkyQuant.py
 docker_commands.txt
 unidec_bin/Example Data/BSA_unidecfiles/BSA_conv.bin
@@ -234,4 +233,5 @@ distpypi
 publish_test.cmd
 unidec_bin/IUPAC-atomic-masses.csv
 unidec_modules/hramtools.py
-
+unidec/src/x64/
+unide/src/.vs/

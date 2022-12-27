@@ -2,14 +2,14 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import unidec
+import unidec.engine as engine
 import pandas as pd
-from unidec_modules.matchtools import *
+from unidec.modules.matchtools import *
 
 
 # Set the directory and engine
 os.chdir("C:\\Data\\Luis Genentech\\MHC2\\")
-eng = unidec.UniDec()
+eng = engine.UniDec()
 
 # Set and load the peak file
 pfile = "12012022_MHC2DPA_MS2_PTCR_20221201051533_peaks2.txt"

@@ -2,14 +2,14 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import unidec
+import unidec.engine as engine
 import pandas as pd
-from unidec_modules.matchtools import *
+from unidec.modules.matchtools import *
 
 
 # Set the directory and engine
 os.chdir("D:\\Data\\Luis Genentech")
-eng = unidec.UniDec()
+eng = engine.UniDec()
 
 # Set and load the peak file
 pfile = "20220113162114FcFusionProtein_SA15_20uScans_5500_7000mz_peaks.txt"

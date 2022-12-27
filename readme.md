@@ -201,6 +201,10 @@ The main GUI class is GUniDec.UniDecApp.
 
 ## Change Log
 
+v.6.0.0
+
+Major changes to code structure to enable PyPI distribution. Changed to more conventional Python package structure with unidec top directory. Renamed unidec_modules to modeuls, unidec_src to src, and unidec_bin to bin. Renamed some top level windows and moved all to main folder. 
+
 v.5.2.1
 
 UniDec and UniChrom now try to read the polarity from the data and set the adduct appropriately. Check that this is working!

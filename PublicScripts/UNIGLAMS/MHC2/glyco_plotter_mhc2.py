@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import unidec
-import unidec_modules.unidectools as ud
-from unidec_modules.isolated_packages.biopolymer_calculator import calc_pep_mass
+import unidec.engine as engine
+import unidec.modules.unidectools as ud
+from unidec.modules.isolated_packages.biopolymer_calculator import calc_pep_mass
 import matplotlib.cm as cm
 
 def make_2D_plot(axs, masses, sdata, sdata2d, gdata, gdata2d, hdata, hdata2d, fdata, fdata2d):
@@ -27,7 +27,7 @@ def make_2D_plot(axs, masses, sdata, sdata2d, gdata, gdata2d, hdata, hdata2d, fd
 
 os.chdir("C:\\Data\\Luis Genentech\\MHC2")
 
-eng = unidec.UniDec()
+eng = engine.UniDec()
 
 pfile = "MHC2_DPA_Combined_peaks.txt"
 #pfile = "12012022_MHC2DPA_MS2_PTCR_20221201051533_peaks2.txt"

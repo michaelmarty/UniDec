@@ -1,13 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import unidec
-import unidec_modules.unidectools as ud
-from unidec_modules.isolated_packages.biopolymer_calculator import calc_pep_mass
+import unidec.engine as engine
+import unidec.modules.unidectools as ud
+from unidec.modules.isolated_packages.biopolymer_calculator import calc_pep_mass
 
 os.chdir("C:\\Data\\Luis Genentech")
 
-eng = unidec.UniDec()
+eng = engine.UniDec()
 
 pfile = "20220113162114FcFusionProtein_SA15_20uScans_5500_7000mz_peaks.txt"
 # pfile = "20220113144226FcFusionProtein_SA8_20uScans_peaks.txt"

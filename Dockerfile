@@ -13,7 +13,7 @@ COPY . /opt/UniDec3
 
 # Compile C
 WORKDIR /opt/UniDec3/unidec_src/UniDec/
-RUN /opt/UniDec3/unidec_src/UniDec/compilelinux.sh
+RUN /opt/UniDec3/unidec_src/unidec/compilelinux.sh
 
 # Install Python
 WORKDIR /opt/UniDec3/

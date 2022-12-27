@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import unidec
-import unidec_modules.unidectools as ud
+import unidec.engine as engine
+import unidec.modules.unidectools as ud
 import matplotlib.cm as cm
 
 def make_plot(axs, i, sdata, gdata, hdata, fdata):
@@ -47,7 +47,7 @@ def make_2D_plot(axs, i, masses, sdata, sdata2d, gdata, gdata2d, hdata, hdata2d,
 
 os.chdir("C:\\Data\\Luis Genentech")
 
-eng = unidec.UniDec()
+eng = engine.UniDec()
 
 pfile1 = "20220113162114FcFusionProtein_SA15_20uScans_5500_7000mz_peaks.txt"
 pfile2 = "20220113144226FcFusionProtein_SA8_20uScans_peaks.txt"
