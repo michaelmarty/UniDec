@@ -34,36 +34,36 @@ pyinstaller_64_dist.bat
 /Scripts/MTM/fft_test.py
 Scripts/test_with_spectrum.py
 todo.txt
-unidec_bin/Other_builds/
+unidec/bin/Other_builds/
 unidec_src/Old
 test_GUI.py
 Scripts/MTM/test_UniDec.py
 build.bat
 unidec/metaunidec/test_MUD.py
-unidec_bin/CDCReaderOld.exe
-unidec_modules/fft_test.py
+unidec/bin/CDCReaderOld.exe
+unidec/modules/fft_test.py
 unidec_src/UniDec/compilewin.bat
 unidec_src/UniDec/UniDec.pdb
 unidec_src/UniDec/compilewinpgcc.bat
 /unidec/modules/GridDecon2.py
 /unidec/bin/multiplierz/
-unidec_modules/1D_Mass_Defects.txt
-unidec_modules/2D_Mass_Defects.txt
-unidec_modules/Mass_Defect_Extracts.txt
-unidec_modules/Mass_Defect_Grid.txt
-unidec_modules/Total_1D_Mass_Defects.txt
-unidec_modules/Total_2D_Mass_Defects.txt
-unidec_modules/Mass_Defect_Extracts_xvals.txt
-unidec_modules/0_1D_Mass_Defects.txt
-unidec_modules/0_2D_Mass_Defects.txt
-unidec_modules/1_1D_Mass_Defects.txt
-unidec_modules/1_2D_Mass_Defects.txt
+unidec/modules/1D_Mass_Defects.txt
+unidec/modules/2D_Mass_Defects.txt
+unidec/modules/Mass_Defect_Extracts.txt
+unidec/modules/Mass_Defect_Grid.txt
+unidec/modules/Total_1D_Mass_Defects.txt
+unidec/modules/Total_2D_Mass_Defects.txt
+unidec/modules/Mass_Defect_Extracts_xvals.txt
+unidec/modules/0_1D_Mass_Defects.txt
+unidec/modules/0_2D_Mass_Defects.txt
+unidec/modules/1_1D_Mass_Defects.txt
+unidec/modules/1_2D_Mass_Defects.txt
 unidec_src/UniDec/UniDec.VC.VC.opendb
 unidec_src/UniDec/UD_sg.h
 unidec_src/UniDec/UniDec_Mainh-rev485.h
 unidec_src/UniDec/UniDech-rev511.h
-unidec_bin/old_waters/
-unidec_modules/Mass_Defect_Extracts_Total.txt
+unidec/bin/old_waters/
+unidec/modules/Mass_Defect_Extracts_Total.txt
 UniDecPastedSpectra/
 unidec/iFAMS/test_unidecfiles/
 /unidec/modules/waters_importer/old/
@@ -116,122 +116,122 @@ unidec_src/UniDec/oldVS/
 /unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_input.dat
 /unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_fitdat.bin
 /unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_peaks.dat
-unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_Total_1D_Mass_Defects.txt
-unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_Total_2D_Mass_Defects.txt
-unidec_bin/Example Data/BSA_unidecfiles/BSA_chargedata.dat
-unidec_bin/Example Data/BSA_unidecfiles/BSA_chargedata_areas.dat
-unidec_bin/Example Data/BSA_unidecfiles/BSA_peakparam.dat
+unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_Total_1D_Mass_Defects.txt
+unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_Total_2D_Mass_Defects.txt
+unidec/bin/Example Data/BSA_unidecfiles/BSA_chargedata.dat
+unidec/bin/Example Data/BSA_unidecfiles/BSA_chargedata_areas.dat
+unidec/bin/Example Data/BSA_unidecfiles/BSA_peakparam.dat
  /__pycache__/
  __pycache__/
  __pycache__
-unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_peak_areas.dat
-unidec_bin/mkl_intel_thread.dll
+unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_peak_areas.dat
+unidec/bin/mkl_intel_thread.dll
 __pycache__/
-unidec_bin/Example Data/ADH_unidecfiles/ADH_peak_areas.dat
-unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_1D_Mass_Defects.txt
-unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_2D_Mass_Defects.txt
-unidec_modules/thermo_reader/greparam.py
-unidec_bin/Presets/Marius/
+unidec/bin/Example Data/ADH_unidecfiles/ADH_peak_areas.dat
+unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_1D_Mass_Defects.txt
+unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_2D_Mass_Defects.txt
+unidec/modules/thermo_reader/greparam.py
+unidec/bin/Presets/Marius/
 MANIFEST.in
 desktop.ini
-unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure1.pdf
-unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure2.pdf
-unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure3.pdf
-unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure4.pdf
-unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure5.pdf
-unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure6.pdf
-unidec_bin/Example Data/BSA_unidecfiles/BSA_manualfile.dat
-unidec_bin/Example Data/BSA_unidecfiles/BSA_report.aux
-unidec_bin/Example Data/BSA_unidecfiles/BSA_report.log
-unidec_bin/Example Data/BSA_unidecfiles/BSA_report.pdf
-unidec_bin/recent.txt
-unidec_bin/Example Data/BSA_unidecfiles/BSA_chargepeaks.txt
-unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/Extract_grid_2D_Extract.txt
-unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/Extract_total_2D_Extract.txt
+unidec/bin/Example Data/BSA_unidecfiles/BSA_Figure1.pdf
+unidec/bin/Example Data/BSA_unidecfiles/BSA_Figure2.pdf
+unidec/bin/Example Data/BSA_unidecfiles/BSA_Figure3.pdf
+unidec/bin/Example Data/BSA_unidecfiles/BSA_Figure4.pdf
+unidec/bin/Example Data/BSA_unidecfiles/BSA_Figure5.pdf
+unidec/bin/Example Data/BSA_unidecfiles/BSA_Figure6.pdf
+unidec/bin/Example Data/BSA_unidecfiles/BSA_manualfile.dat
+unidec/bin/Example Data/BSA_unidecfiles/BSA_report.aux
+unidec/bin/Example Data/BSA_unidecfiles/BSA_report.log
+unidec/bin/Example Data/BSA_unidecfiles/BSA_report.pdf
+unidec/bin/recent.txt
+unidec/bin/Example Data/BSA_unidecfiles/BSA_chargepeaks.txt
+unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/Extract_grid_2D_Extract.txt
+unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/Extract_total_2D_Extract.txt
 ExtractFull2D_Da.txt
 extracts.txt
 sums.txt
-unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_chargepeaks.txt
-unidec_bin/Example Data/BSA_unidecfiles/BSA_peak_areas.dat
+unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_chargepeaks.txt
+unidec/bin/Example Data/BSA_unidecfiles/BSA_peak_areas.dat
 ofile.dat
 BSA_report.aux
 BSA_report.log
 BSA_report.out
-unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure1.eps
-unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure2.eps
-unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure3.eps
-unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure4.eps
-unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure5.eps
-unidec_bin/Example Data/BSA_unidecfiles/BSA_Figure6.eps
-unidec_bin/Example Data/BSA_unidecfiles/BSA_report.out
-unidec_bin/Example Data/BSA_unidecfiles/BSA_composite_spectrum.dat
+unidec/bin/Example Data/BSA_unidecfiles/BSA_Figure1.eps
+unidec/bin/Example Data/BSA_unidecfiles/BSA_Figure2.eps
+unidec/bin/Example Data/BSA_unidecfiles/BSA_Figure3.eps
+unidec/bin/Example Data/BSA_unidecfiles/BSA_Figure4.eps
+unidec/bin/Example Data/BSA_unidecfiles/BSA_Figure5.eps
+unidec/bin/Example Data/BSA_unidecfiles/BSA_Figure6.eps
+unidec/bin/Example Data/BSA_unidecfiles/BSA_report.out
+unidec/bin/Example Data/BSA_unidecfiles/BSA_composite_spectrum.dat
 
-unidec_modules/thermo_reader/RawFileReader
-unidec_modules/thermo_reader/RawFileReaderExample
-unidec_bin/Example Data/POPC_Nanodiscs_unidecfiles/Peaks_Mass_Defects.txt
+unidec/modules/thermo_reader/RawFileReader
+unidec/modules/thermo_reader/RawFileReaderExample
+unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/Peaks_Mass_Defects.txt
 *.diagsession
 unidec_src/UniDec/UniDec.common.settings
-unidec_bin/recentCD.txt
-unidec_modules/isolated_packages/ZoomBoxMargot.py
+unidec/bin/recentCD.txt
+unidec/modules/isolated_packages/ZoomBoxMargot.py
 *.feather
-unidec_bin/Other_builds.zip
-unidec_bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/GroEL_CDMS_1_input.dat
-unidec_bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/GroEL_CDMS_1_mass.txt
-unidec_bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/GroEL_CDMS_1_peaks.dat
-unidec_bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/GroEL_CDMS_1_rawdata.npz
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_error.txt
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_fitdat.bin
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_grid.bin
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_input.dat
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_mass.txt
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_massgrid.bin
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_peak_areas.dat
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_peaks.dat
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_rawdata.txt
-unidec_bin/Presets/CDMS/Heck_CDMS_AAVs_120K_0148_slope
-unidec_bin/Presets/CDMS/Heck_CDMS_AAVs_120k_0156
-unidec_bin/Presets/CDMS/Heck_CDMS_AAVs_240K_02193_slope
-unidec_bin/Presets/CDMS/Heck_CDMS_AAVs_240K_021_slope
-unidec_bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/GroEL_CDMS_1_fitdat.bin
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_Figure1.pdf
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_Figure2.pdf
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_Figure3.pdf
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_Figure4.pdf
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_Figure5.pdf
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_Figure6.pdf
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_report.aux
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_report.log
-unidec_bin/Example Data/ADHclean_unidecfiles/ADHclean_report.pdf
-unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_Figure1.pdf
-unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_Figure2.pdf
-unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_Figure3.pdf
-unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_Figure4.pdf
-unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_Figure5.pdf
-unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_Figure6.pdf
-unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_report.aux
-unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_report.log
-unidec_bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_report.pdf
-unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_Figure1.pdf
-unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_Figure2.pdf
-unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_Figure3.pdf
-unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_Figure4.pdf
-unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_Figure5.pdf
-unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_Figure6.pdf
-unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_report.aux
-unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_report.log
-unidec_bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_report.pdf
-unidec_bin/Example Data/BSA_unidecfiles/BSA_ofile_crazy.dat
-unidec_bin/Example Data/BSA_unidecfiles/BSA_report.html
+unidec/bin/Other_builds.zip
+unidec/bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/GroEL_CDMS_1_input.dat
+unidec/bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/GroEL_CDMS_1_mass.txt
+unidec/bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/GroEL_CDMS_1_peaks.dat
+unidec/bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/GroEL_CDMS_1_rawdata.npz
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_error.txt
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_fitdat.bin
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_grid.bin
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_input.dat
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_mass.txt
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_massgrid.bin
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_peak_areas.dat
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_peaks.dat
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_rawdata.txt
+unidec/bin/Presets/CDMS/Heck_CDMS_AAVs_120K_0148_slope
+unidec/bin/Presets/CDMS/Heck_CDMS_AAVs_120k_0156
+unidec/bin/Presets/CDMS/Heck_CDMS_AAVs_240K_02193_slope
+unidec/bin/Presets/CDMS/Heck_CDMS_AAVs_240K_021_slope
+unidec/bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/GroEL_CDMS_1_fitdat.bin
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_Figure1.pdf
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_Figure2.pdf
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_Figure3.pdf
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_Figure4.pdf
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_Figure5.pdf
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_Figure6.pdf
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_report.aux
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_report.log
+unidec/bin/Example Data/ADHclean_unidecfiles/ADHclean_report.pdf
+unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_Figure1.pdf
+unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_Figure2.pdf
+unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_Figure3.pdf
+unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_Figure4.pdf
+unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_Figure5.pdf
+unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_Figure6.pdf
+unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_report.aux
+unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_report.log
+unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_report.pdf
+unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_Figure1.pdf
+unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_Figure2.pdf
+unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_Figure3.pdf
+unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_Figure4.pdf
+unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_Figure5.pdf
+unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_Figure6.pdf
+unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_report.aux
+unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_report.log
+unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_report.pdf
+unidec/bin/Example Data/BSA_unidecfiles/BSA_ofile_crazy.dat
+unidec/bin/Example Data/BSA_unidecfiles/BSA_report.html
 unidec_src/UniDec/test_match.bat
 unidec/LipyDec.py
-unidec_modules/SkyQuant.py
+unidec/modules/SkyQuant.py
 docker_commands.txt
-unidec_bin/Example Data/BSA_unidecfiles/BSA_conv.bin
+unidec/bin/Example Data/BSA_unidecfiles/BSA_conv.bin
 .pypirc
 UniDec.egg-info
 distpypi
 publish_test.cmd
-unidec_bin/IUPAC-atomic-masses.csv
-unidec_modules/hramtools.py
+unidec/bin/IUPAC-atomic-masses.csv
+unidec/modules/hramools.py
 unidec/src/x64/
-unide/src/.vs/
+unidec/src/.vs/
