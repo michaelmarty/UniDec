@@ -236,3 +236,7 @@ unidec/modules/hramools.py
 unidec/src/x64/
 unidec/src/.vs/
 pyproject.toml
+unidec/iFAMS/pyqtgraph/
+unidec/iFAMS/iFAMS_V5_GUI.py
+unidec/iFAMS/GuiTestFun.py
+unidec/bin/TestSpectra/test_1_unidecfiles/

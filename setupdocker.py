@@ -1,6 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
+    setup_requires=["setuptools-git"],
     name="unidec",
     version="6.0.0a1",
     author="Michael Marty",
@@ -14,6 +15,6 @@ setup(
 
     packages=find_packages(exclude=["Scripts", "Scripts.*", "*.Scripts", "*.Scripts.*"]),
     include_package_data=True,
-    package_data={"": ["logo.ico", "readme.md", "UniDecLogoMR.png", "LICENSE"]},
+    package_data={"": ["readme.md", "LICENSE"]},
     exclude_package_data={"": ["Scripts", "Scripts.*", "*.Scripts", "*.Scripts.*"]}
 )
