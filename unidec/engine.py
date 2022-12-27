@@ -12,7 +12,7 @@ import unidec.modules.unidectools as ud
 import unidec.modules.IM_functions as IM_func
 import unidec.modules.MassSpecBuilder as MSBuild
 from unidec.modules.unidec_enginebase import UniDecEngine
-
+from unidec.modules.html_writer import *
 # import modules.DoubleDec as dd
 
 __author__ = 'Michael.Marty'
@@ -21,7 +21,7 @@ __author__ = 'Michael.Marty'
 class UniDec(UniDecEngine):
     def __init__(self, *args, **kwargs):
         """
-        unidec Engine
+        UniDec Engine
 
         Consists of three main subclasses: Config, DataContiner, Peaks
 
