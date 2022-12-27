@@ -8,15 +8,15 @@ RUN pip install setuptools attrdict attrdict3 numpy pymzml networkx natsort h5py
 # RUN pip install wxpython
 
 # Copy in stuff
-RUN mkdir /opt/UniDec3
-COPY . /opt/UniDec3
+RUN mkdir /opt/UniDec
+COPY . /opt/UniDec
 
 # Compile C
-WORKDIR /opt/UniDec3/unidec/src/UniDec/
-RUN /opt/UniDec3/unidec_src/unidec/compilelinux.sh
+WORKDIR /opt/UniDec/unidec/src/
+RUN /opt/UniDec/unidec/src/compilelinux.sh
 
 # Install Python
-WORKDIR /opt/UniDec3/
+WORKDIR /opt/UniDec/
 RUN python setupdocker.py install
 
-ENV TESTFILE /opt/UniDec3/unidec/bin/TestSpectra/test_1.txt
+ENV TESTFILE /opt/UniDec/unidec/bin/TestSpectra/test_1.txt
