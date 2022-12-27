@@ -235,3 +235,4 @@ unidec/bin/IUPAC-atomic-masses.csv
 unidec/modules/hramools.py
 unidec/src/x64/
 unidec/src/.vs/
+pyproject.toml

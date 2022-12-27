@@ -12,11 +12,11 @@ RUN mkdir /opt/UniDec3
 COPY . /opt/UniDec3
 
 # Compile C
-WORKDIR /opt/UniDec3/unidec_src/UniDec/
+WORKDIR /opt/UniDec3/unidec/src/UniDec/
 RUN /opt/UniDec3/unidec_src/unidec/compilelinux.sh
 
 # Install Python
 WORKDIR /opt/UniDec3/
 RUN python setupdocker.py install
 
-ENV TESTFILE /opt/UniDec3/unidec_bin/TestSpectra/test_1.txt
+ENV TESTFILE /opt/UniDec3/unidec/bin/TestSpectra/test_1.txt
