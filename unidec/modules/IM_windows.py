@@ -1,9 +1,11 @@
 import os
 import wx
 import wx.lib.mixins.listctrl as listmix
+# noinspection PyUnresolvedReferences
 import numpy as np
 import matplotlib.cm as cm
 from unidec.modules import PlottingWindow
+# noinspection PyUnresolvedReferences
 import unidec.modules.unidectools as ud
 from unidec.modules.IM_functions import *
 

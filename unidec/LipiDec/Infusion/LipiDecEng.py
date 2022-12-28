@@ -6,7 +6,7 @@ import pandas as pd
 import os
 import time
 import matplotlib.pyplot as plt
-from unidec import modules as ps
+import unidec.modules.peakstructure as ps
 
 pd.set_option('mode.chained_assignment', None)
 

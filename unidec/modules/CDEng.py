@@ -13,44 +13,7 @@ import time
 from unidec import engine
 from scipy.optimize import curve_fit
 
-cuda = False
 xp = np
-
-
-def switch_gpu_mode(b):
-    global xp
-    global cuda
-    global cp
-    global cuda_safedivide
-    if b:
-        try:
-            import cupy as cp
-            cuda = True
-            xp = cp
-
-            cuda_safedivide = cp.ElementwiseKernel(
-                'T x, T y',
-                'T z',
-                '''
-                    if(y !=0){z = x/y;}
-                    else{z=0;}
-                ''',
-
-                'cuda_safedivide')
-            print("Using GPU Mode")
-        except Exception as e:
-            print("Error in cupy import:", e)
-            cuda = False
-            xp = np
-            print("Error: GPU Mode Off")
-    else:
-        print("GPU Mode Off")
-        cuda = False
-        xp = np
-
-
-def clear_cache():
-    cp.fft.config.get_plan_cache().clear()
 
 
 def Gmax2(darray):
@@ -79,27 +42,15 @@ def Gmax2(darray):
 
 
 def fft_fun(a):
-    if cuda:
-        A = cp.fft.rfft2(cp.asarray(a))
-    else:
-        A = fft.rfft2(a)
-    return A
+    return fft.rfft2(a)
 
 
 def ifft_fun(A, shape):
-    if cuda:
-        a = cp.fft.irfft2(A, shape)
-    else:
-        a = fft.irfft2(A, shape)
-    return a
+    return fft.irfft2(A, shape)
 
 
 def safedivide(a, b):
-    if cuda:
-        c = cuda_safedivide(a, b)
-    else:
-        c = ud.safedivide(a, b)
-    return c
+    return ud.safedivide(a, b)
 
 
 def ndis(x, y, s):
@@ -173,8 +124,7 @@ class UniDecCD(engine.UniDec):
         self.exemode=True
         pass
 
-    def gpu_mode(self, gpumode=False, exemode=False):
-        switch_gpu_mode(gpumode)
+    def exe_mode(self, exemode=True):
         self.exemode=exemode
 
     def open_file(self, path, refresh=False):
@@ -697,6 +647,7 @@ class UniDecCD(engine.UniDec):
             return 0
 
         # filter out zeros
+        self.harray = np.array(self.harray)
         boo1 = self.harray > 0
         mass = self.mass[boo1]
 
@@ -925,9 +876,6 @@ class UniDecCD(engine.UniDec):
         # Create a working array of intensity values
         I = deepcopy(self.harray)
         D = deepcopy(self.harray)
-        if cuda:
-            I = cp.asarray(I)
-            D = cp.asarray(D)
 
         # Perform the FFTs for convolution and correlation kernels
         ftk = fft_fun(self.kernel)
@@ -980,8 +928,7 @@ class UniDecCD(engine.UniDec):
 
         # Get the reconvolved data
         recon = cconv2D_preB(I, ftk)
-        if cuda:
-            recon = recon.get()
+
         # Get the fit data in 1D for the DScore calc
         self.data.fitdat = np.sum(recon, axis=0)
         if self.config.datanorm == 1:
@@ -991,16 +938,10 @@ class UniDecCD(engine.UniDec):
             # Reconvolved/Profile: Reconvolves with the peak shape in the mass dimension only
             ftmk = fft_fun(self.mkernel)
             recon2 = cconv2D_preB(I, ftmk)
-            if cuda:
-                self.harray = recon2.get()
-            else:
-                self.harray = recon2
+            self.harray = recon2
         else:
             # Raw/Centroid: Takes the deconvolved data straight
-            if cuda:
-                self.harray = I.get()
-            else:
-                self.harray = I
+            self.harray = I
 
         return self.harray
 
@@ -1039,6 +980,7 @@ class UniDecCD(engine.UniDec):
             self.harray=[[]]
             return
         # Output input data
+        self.harray = np.array(self.harray)
         X, Y = np.meshgrid(self.mz, self.ztab, indexing='ij')
         outarray = self.harray.transpose()
         startdims = np.shape(outarray)

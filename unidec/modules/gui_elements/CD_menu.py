@@ -253,14 +253,14 @@ class CD_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_flip_tabbed, self.menufliptabbed)
         self.advancedmenu.AppendSeparator()
         self.gpumenu = wx.Menu()
-        self.gpumenu.Append(603, "Exe", "Turns off GPU Acceleration and uses Exe", wx.ITEM_RADIO)
-        self.gpumenu.Append(601, "Py", "Turns off GPU Acceleration but uses Python", wx.ITEM_RADIO)
-        self.gpumenu.Append(602, "CuPy", "Turns on GPU Acceleration with Python", wx.ITEM_RADIO)
+        self.gpumenu.Append(603, "Exe", "Uses Exe", wx.ITEM_RADIO)
+        self.gpumenu.Append(601, "Py", "Uses Python", wx.ITEM_RADIO)
+        # self.gpumenu.Append(602, "CuPy", "Turns on GPU Acceleration with Python", wx.ITEM_RADIO)
 
         self.parent.Bind(wx.EVT_MENU, self.menu_601_602, id=601)
-        self.parent.Bind(wx.EVT_MENU, self.menu_601_602, id=602)
+        # self.parent.Bind(wx.EVT_MENU, self.menu_601_602, id=602)
         self.parent.Bind(wx.EVT_MENU, self.menu_601_602, id=603)
-        self.advancedmenu.AppendSubMenu(self.gpumenu, 'GPU Mode')
+        self.advancedmenu.AppendSubMenu(self.gpumenu, 'EXE Mode')
 
 
 
@@ -421,16 +421,16 @@ class CD_menu(wx.Menu):
         """
         event_id = event.GetId()
         if event_id == 601:
-            gpumode = False
+            #gpumode = False
             exemode = False
-        if event_id == 602:
-            gpumode = True
-            exemode = False
+        #if event_id == 602:
+        #    gpumode = True
+        #    exemode = False
         if event_id == 603:
-            gpumode = False
+            #gpumode = False
             exemode = True
-        print("GPU Mode:", gpumode, "Exe Mode:", exemode)
-        self.pres.on_gpu_mode(gpumode, exemode)
+        print("Exe Mode:", exemode)
+        self.pres.on_exe_mode(exemode)
 
     def on_custom_defaults(self, e):
         # print("Clicked", e)

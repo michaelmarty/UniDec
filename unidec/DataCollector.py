@@ -11,7 +11,7 @@ from matplotlib.patches import Rectangle
 from pubsub import pub
 
 import multiprocessing
-from unidec.modules import UniFit, Extract2D, unidecstructure, PlotAnimations, PlottingWindow, nativez, IM_functions
+from unidec.modules import UniFit, Extract2D, unidecstructure, PlotAnimations, PlottingWindow, IM_functions
 from unidec.modules import DoubleDec, MassDefects, miscwindows
 import unidec.modules.unidectools as ud
 from unidec.modules.AutocorrWindow import AutocorrWindow
