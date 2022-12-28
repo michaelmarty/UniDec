@@ -34,12 +34,13 @@ class UniDec(UniDecEngine):
         self.massfitdat = None
         self.errorgrid = None
         self.infile = None
+        self.outfile = None
         opts = None
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "f:", ["file="])
+            opts, args = getopt.getopt(sys.argv[1:], "f:o:", ["file=", "out="])
         except getopt.GetoptError as e:
             print("Error in Argv. Likely unknown option: ", sys.argv, e)
-            print("Known options: -f")
+            print("Known options: -f, -o")
 
         #print("ARGS:", args)
         #print("KWARGS:", kwargs)
@@ -49,6 +50,9 @@ class UniDec(UniDecEngine):
                 if opt in ("-f", "--file"):
                     self.infile = arg
                     print("Opening File:", self.infile)
+                if opt in ("-o", "--out"):
+                    self.outfile = arg
+                    print("Output File:", self.outfile)
         if ud.isempty(opts):
             if len(args) > 0:
                 maybe_file = args[0]
@@ -101,7 +105,10 @@ class UniDec(UniDecEngine):
             print("Opening File: ", self.config.filename)
 
         basename = os.path.split(os.path.splitext(file_name)[0])[1]
-        self.config.outfname = os.path.join(self.config.udir, basename)
+        if self.outfile is None:
+            self.config.outfname = os.path.join(self.config.udir, basename)
+        else:
+            self.config.outfname = self.outfile
         self.config.extension = os.path.splitext(self.config.filename)[1]
         self.config.default_file_names()
 
