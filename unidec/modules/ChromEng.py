@@ -71,11 +71,11 @@ class ChromEngine(MetaUniDec):
         self.clear()
         if os.path.isfile(self.outpath) and load_hdf5 and not refresh:
             print('Opening HDF5 File:', self.outpath)
-            try:
+            if True:
                 self.open(self.outpath)
                 hdf5 = True
-            except Exception as e:
-                print("Error opening prior hdf5 file:", e)
+            #except Exception as e:
+            #    print("Error opening prior hdf5 file:", e)
         if not os.path.isfile(self.outpath):
             self.data.new_file(self.outpath)
             self.open(self.outpath)

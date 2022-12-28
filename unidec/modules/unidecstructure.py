@@ -8,6 +8,7 @@ import matplotlib.cm as cm
 from matplotlib.pyplot import colormaps
 import h5py
 from unidec.modules.unidec_enginebase import version as version
+from unidec.modules.hdf5_tools import replace_dataset, get_dataset
 
 __author__ = 'Michael.Marty'
 

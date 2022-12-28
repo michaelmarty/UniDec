@@ -287,7 +287,7 @@ class MetaDataSet:
 
     def import_vars(self, get_vnames=True, hdfobj=None):
         if hdfobj is None:
-            hdf = h5py.File(self.filename, 'r+')
+            hdf = h5py.File(self.filename, 'a')
         else:
             hdf = hdfobj
         msdata = hdf.require_group(self.topname)

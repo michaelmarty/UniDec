@@ -84,9 +84,7 @@ elif system == "Linux":
     a.datas += [('unideclinux', 'unidec/bin/unideclinux', 'DATA')]
 
 a.datas += [('cacert.pem', os.path.join('unidec\\bin', 'cacert.pem'), 'DATA')]
-a.datas += [('Images/logo.ico', 'logo.ico', 'DATA')]
-a.datas += [('metaunidec/logo.ico', 'logo.ico', 'DATA')]
-a.datas += [('logo.ico', 'logo.ico', 'DATA')]
+a.datas += [('logo.ico', 'unidec\\bin\\logo.ico', 'DATA')]
 a.datas += [('mass_table.csv', 'unidec\\bin\\mass_table.csv', 'DATA')]
 a.datas += [('metaunidec/images/allButton.png', 'metaunidec\\images\\allButton.png', 'DATA')]
 a.datas += [('metaunidec/images/peakRightClick.png', 'metaunidec\\images\\peakRightClick.png', 'DATA')]
@@ -118,7 +116,7 @@ exe = EXE(pyz,
           debug=False,
           strip=None,
           upx=False,
-          console=True, icon='unidec\\logo.ico')
+          console=True, icon='unidec\\bin\\logo.ico')
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
