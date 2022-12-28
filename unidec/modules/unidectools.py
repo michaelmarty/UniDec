@@ -8,6 +8,7 @@ import decimal
 from bisect import bisect_left
 from copy import deepcopy
 import zipfile
+# noinspection PyUnresolvedReferences
 import numpy as np
 import scipy.ndimage.filters as filt
 from scipy.interpolate import interp1d
@@ -27,7 +28,7 @@ from unidec.modules.mzXML_importer import mzXMLimporter
 
 # import modules.data_reader as data_reader
 try:
-    from unidec import modules as data_reader
+    from unidec.modules import data_reader
 except:
     print("Could not import data reader: unidectools")
 
@@ -299,7 +300,7 @@ def interp_pos(array, target):
 def interp_val(data, target):
     """
     On a given array, interpolate the value of the target
-    :param array: data
+    :param data: data array
     :param target: Value
     :return: Interpolated index of value in array.
     """
@@ -849,7 +850,7 @@ def header_test(path, deletechars=None):
         header = 0
     return int(header)
 
-
+'''
 def waters_convert(path, config=None, outfile=None):
     if config is None:
         config = unidecstructure.UniDecConfig()
@@ -863,7 +864,7 @@ def waters_convert(path, config=None, outfile=None):
     result = subprocess.call(call)
     print("Conversion Stderr:", result)
     data = np.loadtxt(outfile)
-    return data
+    return data'''
 
 
 def waters_convert2(path, config=None, outfile=None):

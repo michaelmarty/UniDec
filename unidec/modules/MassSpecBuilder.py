@@ -42,7 +42,7 @@ def make_mass_spectrum(array, zrange=(10, 50), mzrange=(2000, 10000), mz_bin_siz
         zsig = array[i, 3]
         inten = array[i, 4]
 
-        zint = ud.ndis_std(ztab, zmid, zsig, norm_area=True)
+        zint = np.array(ud.ndis_std(ztab, zmid, zsig, norm_area=True))
 
         mzvals = (mmid + adductmass * ztab) / ztab
         mzsigs = msig / ztab

@@ -582,13 +582,13 @@ class DataCollector(wx.Frame):
             if self.config.cmaps[i] == self.xcmap:
                 self.scalemenu2.Check(id=1500 + i, check=True)
 
-    def menu_fcmaps(self, event=0):
+    def menu_fcmaps(self, event):
         event_id = event.GetId() - 500
         print(event_id)
         self.fcmap = self.config.cmaps[event_id]
         print(self.fcmap)
 
-    def menu_xcmaps(self, event=0):
+    def menu_xcmaps(self, event):
         event_id = event.GetId() - 1500
         print(event_id)
         self.xcmap = self.config.cmaps[event_id]
@@ -599,8 +599,8 @@ class DataCollector(wx.Frame):
             if not ud.isempty(self.pks.peaks):
                 for p in self.pks.peaks:
                     maxes = self.xpanel.list.add_line(val=p.mass)
-            self.ctlprot.SetValue(str(maxes[0]))
-            self.ctllig.SetValue(str(maxes[1]))
+                self.ctlprot.SetValue(str(maxes[0]))
+                self.ctllig.SetValue(str(maxes[1]))
         except Exception as ex:
             print("Unable to detect max # protein and ligands", ex)
 
@@ -907,7 +907,7 @@ class DataCollector(wx.Frame):
                             ztab = np.arange(startz, endz + 1)
                             mgrid, zgrid = np.meshgrid(data[:, 0], ztab, indexing='ij')
 
-                            offsetgrid = nativez.GetOffset(mgrid, zgrid)
+                            offsetgrid = ud.get_z_offset(mgrid, zgrid)
                             bool1 = offsetgrid >= nzstart
                             bool2 = offsetgrid <= nzend
                             bool3 = np.all([bool1, bool2], axis=0)

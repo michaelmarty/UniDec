@@ -373,6 +373,7 @@ class UniDecConfig(object):
             ud.dataexport(self.masslist, self.mfile)
         if not ud.isempty(self.manuallist):
             # print self.manuallist
+            self.manuallist = np.array(self.manuallist)
             if self.imflag == 0:
                 if self.manuallist.shape[1] == 3:
                     ud.dataexport(self.manuallist, self.manualfile)
@@ -696,6 +697,7 @@ class UniDecConfig(object):
         if not ud.isempty(self.manuallist):
             replace_dataset(config_group, "manuallist", data=self.manuallist)
         if not ud.isempty(self.oligomerlist):
+            self.oligomerlist = np.array(self.oligomerlist)
             replace_dataset(config_group, "oligomerlist", data=self.oligomerlist.astype(np.string_))
             np.savetxt(self.ofile, self.oligomerlist, fmt='%s')
 

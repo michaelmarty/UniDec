@@ -1,6 +1,6 @@
 import wx
-from unidec import modules as FileDialogs, modules as biopolymer_calculator, \
-    modules as peakwidthtools
+from unidec.modules.isolated_packages import FileDialogs, biopolymer_calculator
+from unidec.modules import peakwidthtools
 import os
 import numpy as np
 import unidec.modules.unidectools as ud
