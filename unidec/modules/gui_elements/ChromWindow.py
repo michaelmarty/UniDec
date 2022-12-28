@@ -17,7 +17,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
             self.config = self.pres.eng.config
         else:
             self.config = config
-        self.icon_path = iconfile
+        self.icon_path = self.config.iconfile
 
         self.datachoices = {0: "Raw Data", 1: "Processed Data", 2: "Zero Charge Mass Spectrum"}
         self.extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position"}

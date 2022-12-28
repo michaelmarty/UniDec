@@ -227,20 +227,20 @@ class MassLynxRawReader(object):
     pathtofile = os.path.dirname(os.path.abspath(__file__))
     path = os.path.join(pathtofile, "MassLynxRaw.dll")
     # massLynxDll = ctypes.cdll.LoadLibrary(path)
-    # Note: For some reason, you nee sometimes need to change working directory into this to get things to work
+    # Note: For some reason, you need sometimes need to change working directory into this to get things to work
     # I put in code to switch back the original directory after to avoid messing things up
     try:
         massLynxDll = ctypes.WinDLL(path)
     except Exception as e:
-        try:
-            startdir = os.getcwd()
-            os.chdir(pathtofile)
-            massLynxDll = ctypes.WinDLL(path)
-            os.chdir(startdir)
-        except Exception as e2:
-            print(e)
-            print(path)
-            print(os.path.isfile(path))
+        #try:
+        #    startdir = os.getcwd()
+        #    os.chdir(pathtofile)
+        #    massLynxDll = ctypes.WinDLL(path)
+        #    os.chdir(startdir)
+        #except Exception as e2:
+        print(e)
+        print(path)
+        print(os.path.isfile(path))
 
     def __init__(self, source, mlType):
 
@@ -380,15 +380,15 @@ class MassLynxRawProcessor(object):
     try:
         massLynxDll = ctypes.WinDLL(path)
     except Exception as e:
-        try:
-            startdir = os.getcwd()
-            os.chdir(pathtofile)
-            massLynxDll = ctypes.WinDLL(path)
-            os.chdir(startdir)
-        except Exception as e2:
-            print(e)
-            print(path)
-            print(os.path.isfile(path))
+        #try:
+        #    startdir = os.getcwd()
+        #    os.chdir(pathtofile)
+        #    massLynxDll = ctypes.WinDLL(path)
+        #    os.chdir(startdir)
+        #except Exception as e2:
+        print(e)
+        print(path)
+        print(os.path.isfile(path))
 
     def __init__(self, rr):
         self.mlRawProcessor = c_void_p()  # instance variable

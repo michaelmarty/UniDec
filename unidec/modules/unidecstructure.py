@@ -1084,6 +1084,7 @@ class UniDecConfig(object):
             self.defaultUnidecDir = ""
             self.UniDecPath = self.defaultUnidecName
             print("Assuming " + self.defaultUnidecName + " is in system path.")
+            print(pathtofile)
 
         self.UniDecPath = os.path.join(self.defaultUnidecDir, self.defaultUnidecName)
         if not os.path.isfile(self.UniDecPath):
@@ -1097,7 +1098,10 @@ class UniDecConfig(object):
                     if not os.path.isfile(self.UniDecPath):
                         giveup()
                 else:
-                    giveup()
+                    self.defaultUnidecDir = os.path.split(pathtofile)[0]
+                    self.UniDecPath = os.path.join(self.defaultUnidecDir, self.defaultUnidecName)
+                    if not os.path.isfile(self.UniDecPath):
+                        giveup()
 
         self.UniDecName = self.defaultUnidecName
         self.UniDecDir = self.defaultUnidecDir
@@ -1114,6 +1118,8 @@ class UniDecConfig(object):
         self.exampledatadir = os.path.join(self.UniDecDir, "Example Data")
         self.exampledatadirCD = os.path.join(self.UniDecDir, "Example Data", "CDMS")
         self.exampledatadirUC = os.path.join(self.UniDecDir, "Example Data", "UniChrom")
+        self.toplogofile = os.path.join(self.UniDecDir, "UniDecLogoMR.png")
+        self.iconfile = os.path.join(self.UniDecDir, "logo.ico")
 
         print("\nUniDec Path:", self.UniDecPath)
 

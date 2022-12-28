@@ -53,11 +53,11 @@ class UniDec(UniDecEngine):
                 if opt in ("-o", "--out"):
                     self.outfile = arg
                     print("Output File:", self.outfile)
-        if ud.isempty(opts):
+        if ud.isempty(opts) or self.infile is None:
             if len(args) > 0:
                 maybe_file = args[0]
                 ext = os.path.splitext(maybe_file)[1]
-                if ext.lower() in ["mzml", "mzxml", "raw", "hdf5", "txt", "gz", "d"]:
+                if ext.lower()[1:] in ["mzml", "mzxml", "raw", "hdf5", "txt", "gz", "d"]:
                     self.infile = maybe_file
                     print("Opening File:", self.infile)
         if self.infile is not None:
@@ -90,25 +90,32 @@ class UniDec(UniDecEngine):
             file_name = os.path.basename(file_name)
         file_path = os.path.join(file_directory, file_name)
 
-        # Change paths to unidecfiles folder
-        dirnew = os.path.splitext(file_path)[0] + "_unidecfiles"
-        if "clean" in kwargs and kwargs["clean"] and os.path.isdir(dirnew):
-            shutil.rmtree(dirnew)
-        if not os.path.isdir(dirnew):
-            os.mkdir(dirnew)
-        self.config.udir = dirnew
-
         # Handle Paths
         self.config.filename = file_path
         self.config.dirname = file_directory
         if "silent" not in kwargs or not kwargs["silent"]:
             print("Opening File: ", self.config.filename)
 
-        basename = os.path.split(os.path.splitext(file_name)[0])[1]
         if self.outfile is None:
-            self.config.outfname = os.path.join(self.config.udir, basename)
+            # Change paths to unidecfiles folder
+            dirnew = os.path.splitext(file_path)[0] + "_unidecfiles"
+            basename = os.path.split(os.path.splitext(file_name)[0])[1]
         else:
-            self.config.outfname = self.outfile
+            splits = os.path.split(self.outfile)
+            if splits[0] != '':
+                dirnew = os.path.abspath(splits[0])
+            else:
+                dirnew = os.getcwd()
+            basename = splits[1]
+
+        if "clean" in kwargs and kwargs["clean"] and os.path.isdir(dirnew):
+            shutil.rmtree(dirnew)
+        if not os.path.isdir(dirnew):
+            os.mkdir(dirnew)
+        self.config.udir = dirnew
+        print("Output Directory:", self.config.udir)
+        self.config.outfname = os.path.join(self.config.udir, basename)
+
         self.config.extension = os.path.splitext(self.config.filename)[1]
         self.config.default_file_names()
 

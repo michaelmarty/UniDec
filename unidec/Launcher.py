@@ -73,6 +73,17 @@ class Lview(wx.Frame):
         self.eng = UniDecEngine()
         wx.Frame.__init__(self, None, title="UniDec Launcher Version " + str(self.eng.version))
 
+        try:
+            if os.path.isfile(self.eng.config.iconfile):
+                favicon = wx.Icon(self.eng.config.iconfile, wx.BITMAP_TYPE_ANY)
+                wx.Frame.SetIcon(self, favicon)
+                self.icon_path = os.path.abspath(self.eng.config.iconfile)
+            else:
+                self.icon_path = None
+        except Exception as e:
+            print(e)
+            self.icon_path = None
+
         sizer = wx.GridBagSizer(wx.HORIZONTAL)
         panel = wx.Panel(self)
         button1 = wx.Button(panel, -1, "UniDec\n\nDeconvolve MS and IM-MS")
@@ -87,7 +98,7 @@ class Lview(wx.Frame):
 
         html = wx.html.HtmlWindow(panel, -1, size=(390,310))
         pathtofile = os.path.dirname(os.path.abspath(__file__))
-        self.imagepath = os.path.join(pathtofile, "bin","UniDecLogoMR.png")
+        self.imagepath = self.eng.config.toplogofile
         #print(self.imagepath)
         html.SetPage(
             "<html><body>"
