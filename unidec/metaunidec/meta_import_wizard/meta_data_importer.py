@@ -1,5 +1,5 @@
 from unidec.metaunidec.meta_import_wizard import MetaTagTypes as tt
-from unidec import metaunidec as mudeng
+from unidec.metaunidec import mudeng
 from unidec.modules.unidectools import get_importer
 import os
 

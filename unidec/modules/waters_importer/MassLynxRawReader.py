@@ -2,7 +2,6 @@
     MassLynx Python SDK
 '''
 
-import string
 import ctypes
 from ctypes import *
 import os

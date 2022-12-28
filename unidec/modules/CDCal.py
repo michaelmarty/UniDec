@@ -3,6 +3,7 @@ import wx.lib.mixins.listctrl as listmix
 from unidec.modules import PlottingWindow
 from unidec.modules.CDEng import UniDecCD
 from unidec.modules.isolated_packages import FileDialogs
+import numpy as np
 
 __author__ = 'Michael.Marty'
 
@@ -142,8 +143,7 @@ class CDCalDialog(wx.Frame):
 
     def initialize_interface(self, config):
         """
-        Initialize the parameters, setup the panels, and display the interface.
-        :param data3: IM-MS raw or processed data
+        Initialize the parameters, set up the panels, and display the interface.
         :param config: UniDecConfig object
         :return: None
         """
@@ -335,7 +335,7 @@ class CDCalDialog(wx.Frame):
 
 # Main App Execution
 if __name__ == "__main__":
-    calpath = "Z:\Group Share\Marius Kostelic\CD-MS\Replicates\Calibration.csv"
+    #calpath = "Z:\Group Share\Marius Kostelic\CD-MS\Replicates\Calibration.csv"
     calpath = "C:\Data\CDMS\AqpZ_STORI\AqpZ_STORI\caltest.csv"
     app = wx.App(False)
     frame = CDCalDialog(None)

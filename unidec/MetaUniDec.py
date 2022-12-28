@@ -1259,7 +1259,6 @@ class UniDecApp(MetaUniDecBase):
         :param path:
         :return:
         """
-        # self.eng = mudeng.MetaUniDec()
         # self.import_config()
         self.view.clear_plots()
         self.eng.data.new_file(path)

@@ -1,8 +1,11 @@
 import os
 import wx
 import wx.lib.mixins.listctrl as listmix
+import numpy as np
 import matplotlib.cm as cm
 from unidec.modules import PlottingWindow
+import unidec.modules.unidectools as ud
+from unidec.modules.IM_functions import *
 
 __author__ = 'Michael.Marty'
 

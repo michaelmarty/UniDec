@@ -5,6 +5,7 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib import rcParams
 import matplotlib.cm as cm
 import numpy as np
+from unidec.modules.isolated_packages.ZoomCommon import *
 
 rcParams['ps.useafm'] = True
 rcParams['ps.fonttype'] = 42

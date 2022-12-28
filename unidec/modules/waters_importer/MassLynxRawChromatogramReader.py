@@ -3,7 +3,7 @@
 '''
 
 from ctypes import*
-from unidec.modules.waters_importer.MassLynxRawReader import MassLynxRawReader, MassLynxRawProcessor, MassLynxBaseType
+from unidec.modules.waters_importer.MassLynxRawReader import MassLynxRawReader, MassLynxBaseType
 
 #from MassLynxInfoReader import *
 

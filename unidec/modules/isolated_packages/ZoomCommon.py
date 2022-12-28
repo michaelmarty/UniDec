@@ -1,6 +1,5 @@
 import numpy as np
 from matplotlib.transforms import Bbox
-import matplotlib
 from copy import deepcopy
 
 def GetMaxes(axes, xmin=None, xmax=None):

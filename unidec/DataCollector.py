@@ -17,6 +17,7 @@ import unidec.modules.unidectools as ud
 from unidec.modules.AutocorrWindow import AutocorrWindow
 import h5py
 from unidec.modules.hdf5_tools import get_dataset
+from unidec.modules.isolated_packages import MD_Fitter
 
 __author__ = 'michael.marty'
 

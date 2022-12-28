@@ -41,7 +41,7 @@ Scripts/MTM/test_UniDec.py
 build.bat
 unidec/metaunidec/test_MUD.py
 unidec/bin/CDCReaderOld.exe
-unidec/modules/fft_test.py
+Scripts/MTM/Old/fft_test.py
 unidec_src/UniDec/compilewin.bat
 unidec_src/UniDec/UniDec.pdb
 unidec_src/UniDec/compilewinpgcc.bat
@@ -172,7 +172,7 @@ unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/Peaks_Mass_Defects.txt
 *.diagsession
 unidec_src/UniDec/UniDec.common.settings
 unidec/bin/recentCD.txt
-unidec/modules/isolated_packages/ZoomBoxMargot.py
+Scripts/MTM/Old/ZoomBoxMargot.py
 *.feather
 unidec/bin/Other_builds.zip
 unidec/bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/GroEL_CDMS_1_input.dat

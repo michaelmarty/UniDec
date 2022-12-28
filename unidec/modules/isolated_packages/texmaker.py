@@ -6,7 +6,6 @@ Created on Wed Apr 02 15:52:23 2014
 """
 import subprocess
 import time
-import string
 import numpy as np
 import os
 from copy import deepcopy

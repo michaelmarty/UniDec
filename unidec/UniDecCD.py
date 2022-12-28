@@ -100,7 +100,6 @@ class UniDecCDApp(UniDecApp):
         Opens a file. Run self.eng.open_file.
         :param filename: File name
         :param directory: Directory containing file
-        :param skipengine: Boolean, Whether to skip running the engine (used when loading state)
         :return: None
         """
         # tstart =time.perf_counter()
