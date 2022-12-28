@@ -110,7 +110,11 @@ class DoubleDec:
         self.kernel = np.loadtxt(kernelpath)
         self.kdata = deepcopy(self.kernel)
 
-    def Extract(self, data, basemass=41983, m1=762, m2=63, m1range=[0, 7], m2range=[0, 7], exmethod=1, window=10):
+    def Extract(self, data, basemass=41983, m1=762, m2=63, m1range=None, m2range=None, exmethod=1, window=10):
+        if m2range is None:
+            m2range = [0, 7]
+        if m1range is None:
+            m1range = [0, 7]
         self.nm1 = np.arange(m1range[0], m1range[1])
         self.nm2 = np.arange(m2range[0], m2range[1])
         self.m2grid, self.m1grid = np.meshgrid(self.nm2, self.nm1)

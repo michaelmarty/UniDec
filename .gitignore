@@ -223,7 +223,7 @@ unidec/bin/Example Data/BSA_unidecfiles/BSA_ofile_crazy.dat
 unidec/bin/Example Data/BSA_unidecfiles/BSA_report.html
 unidec_src/UniDec/test_match.bat
 unidec/LipyDec.py
-unidec/modules/SkyQuant.py
+unidec/LipiDec/SkyQuant.py
 docker_commands.txt
 unidec/bin/Example Data/BSA_unidecfiles/BSA_conv.bin
 .pypirc

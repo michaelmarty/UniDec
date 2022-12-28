@@ -13,8 +13,8 @@ Module for window defining the oligomers, the expected masses, and for matching 
 '''
 
 
-class MassListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
-    def __init__(self, parent, panel, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0, coltitle="Mass (Da)"):
+class MassListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
+    def __init__(self, parent, panel, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.LC_REPORT, coltitle="Mass (Da)"):
         """
         Create the mass list ctrl with one column.
         :param parent: Passed to wx.ListCtrl
@@ -280,7 +280,7 @@ class OligomerListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Text
         bp.Destroy()
 
 
-class MatchListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
+class MatchListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
     def __init__(self, parent, panel, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
         """
         Create a four column uneditable list control.
@@ -612,7 +612,7 @@ class MassSelection(wx.Dialog):
         sbs.Add(oligopop2, 0, wx.EXPAND)
         sbs.Add(addbutton, 0, wx.EXPAND)
         sbs.Add(clearbutt, 0, wx.EXPAND)
-        self.masslistbox = MassListCrtl(self, panel, coltitle="Mass (Da)", size=(210, 380), style=wx.LC_REPORT)
+        self.masslistbox = MassListCtrl(self, panel, coltitle="Mass (Da)", size=(210, 380), style=wx.LC_REPORT)
 
         sbs.Add(wx.StaticText(panel, label="Mass List"))
         sbs.Add(self.masslistbox, 1, wx.EXPAND)
@@ -703,7 +703,7 @@ class MassSelection(wx.Dialog):
         check_alt_button.SetToolTip(
             wx.ToolTip("Check for alternative matches. Yellow indicates possible alternates within tolerance."))
         self.Bind(wx.EVT_BUTTON, self.on_check_for_alt_match, check_alt_button)
-        self.matchlistbox = MatchListCrtl(self, p3, size=(500, 200), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
+        self.matchlistbox = MatchListCtrl(self, p3, size=(500, 200), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
         hbox2.Add(match_iso_button, 1, wx.EXPAND)
         hbox2.Add(match_all_button, 1, wx.EXPAND)

@@ -3,7 +3,9 @@ import os
 import numpy as np
 
 
-def make_preset_menu(toppath=None, exclude_dir=None, topi=1500, ext="", exclude_ext=None, exclude_dir_list=[]):
+def make_preset_menu(toppath=None, exclude_dir=None, topi=1500, ext="", exclude_ext=None, exclude_dir_list=None):
+    if exclude_dir_list is None:
+        exclude_dir_list = []
     if toppath is None:
         toppath = "C:\\Python\\UniDec3\\unidec\\bin\\Presets\\"
     custommenu = wx.Menu()

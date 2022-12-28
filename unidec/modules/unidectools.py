@@ -2524,7 +2524,9 @@ def fft(data, phases=False):
         return aftdat, phases
 
 
-def fft_diff(data, diffrange=[500., 1000.]):
+def fft_diff(data, diffrange=None):
+    if diffrange is None:
+        diffrange = [500., 1000.]
     fftdat = fft(data)
     ftrange = [1. / diffrange[1], 1. / diffrange[0]]
     boo1 = fftdat[:, 0] < ftrange[1]

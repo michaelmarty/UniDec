@@ -2,7 +2,8 @@
 # contains basic setup functionality
 
 import wx
-import tempfile, os
+import tempfile
+import os
 from matplotlib import interactive
 from matplotlib import rcParams
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
@@ -223,6 +224,7 @@ class PlottingWindowBase(PlotBase, wx.Window):
     def setup_zoom(self, plots, zoom, data_lims=None, pad=0, groups=None):
         """
         Set up zoom on axes.
+        :param pad: Padding around plot
         :param plots: Axes objects to setup
         :param zoom: Type of zoom ('span' or 'box')
         :param data_lims: Optional manual description of the data limits (where to go when fully zoomed out)
@@ -292,22 +294,6 @@ class Plot2d(PlottingWindowBase, Plot2dBase):
         :return: Plot2d object
         """
         Plot2dBase.__init__(self, *args, **kwargs)
-        PlottingWindowBase.__init__(self, *args, **kwargs)
-
-
-class Plot1d(PlottingWindowBase, Plot1dBase):
-    """
-    Class for 1D plots.
-    """
-
-    def __init__(self, *args, **kwargs):
-        """
-        Inherit from PlottingWindow
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        Plot1dBase.__init__(self, *args, **kwargs)
         PlottingWindowBase.__init__(self, *args, **kwargs)
 
 

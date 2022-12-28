@@ -28,7 +28,7 @@ def make_nanodiscs(array):
         thresh = 4
         dist = np.arange(-int(lsig * thresh), int(lsig * thresh))
         masses = np.array([bmass * 2. + lmass * (lnum + i) for i in dist])
-        ints = ud.ndis_std(dist, 0, lsig)
+        ints = np.array(ud.ndis_std(dist, 0, lsig))
 
         newarray = np.array([[m, msig, z, zsig, ints[i]] for i, m in enumerate(masses)])
         for a in newarray:
@@ -54,7 +54,7 @@ def make_mixed_nanodiscs(array, plot=True):
         lmass2 = n[8]
         thresh = 4
         dist = np.arange(-int(lsig * thresh), int(lsig * thresh)) + lnum
-        ints = ud.ndis_std(dist, lnum, lsig)
+        ints = np.array(ud.ndis_std(dist, lnum, lsig))
 
         masses = []
         ivals = []

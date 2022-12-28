@@ -4,6 +4,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from matplotlib import rcParams
 import matplotlib.cm as cm
+# noinspection PyUnresolvedReferences
 import numpy as np
 from unidec.modules.isolated_packages.ZoomCommon import *
 

@@ -6,6 +6,8 @@ try:
 except ImportError:
     print("massql not found")
     found = False
+    msql_engine = None
+    msql_fileloading = None
 
 import numpy as np
 import os

@@ -597,6 +597,7 @@ class DataCollector(wx.Frame):
     def load_x_from_peaks(self, e):
         try:
             if not ud.isempty(self.pks.peaks):
+                maxes = ["", ""]
                 for p in self.pks.peaks:
                     maxes = self.xpanel.list.add_line(val=p.mass)
                 self.ctlprot.SetValue(str(maxes[0]))
@@ -640,6 +641,7 @@ class DataCollector(wx.Frame):
 
         pdataset = hdf.require_group("/peaks")
         peaks = get_dataset(pdataset, "peakdata")
+        maxes = ["", ""]
         for p in peaks:
             maxes = self.xpanel.list.add_line(val=p[0])
         self.ctlprot.SetValue(str(maxes[0]))
@@ -729,6 +731,7 @@ class DataCollector(wx.Frame):
         self.on_run(0)
 
     def on_add_x(self, e):
+        maxes = ["", ""]
         maxes = self.xpanel.list.add_line()
         try:
             self.ctlprot.SetValue(str(maxes[0]))
@@ -765,6 +768,7 @@ class DataCollector(wx.Frame):
     def update_get(self, e):
         self.xvals = self.xpanel.list.get_list()
         try:
+            # noinspection PyUnresolvedReferences
             maxes = self.xpanel.list.get_maxes()
             self.ctlprot.SetValue(str(maxes[0]))
             self.ctllig.SetValue(str(maxes[1]))

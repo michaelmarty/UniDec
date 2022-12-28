@@ -18,7 +18,9 @@ def construct_mol(smiles, subs):
     return m
 
 
-def massfromstruct(struct, subs, basemods=[]):
+def massfromstruct(struct, subs, basemods=None):
+    if basemods is None:
+        basemods = []
     if struct.attrib["type"] == "SMILES":
         sm = struct.text
         sm = re.sub("D", '[2H]', sm)

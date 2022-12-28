@@ -42,6 +42,7 @@ class LipiDecRunner:
             libdf = pd.read_excel(libpath)
         elif libext == ".npz":
             npz = np.load(libpath, allow_pickle=True)
+            # noinspection PyUnresolvedReferences
             libdf = pd.DataFrame.from_dict({item: npz[item] for item in npz.files}, orient='columns')
             try:
                 libdf = libdf.drop(columns=["site", "fa-chain"])
@@ -65,7 +66,11 @@ class LipiDecRunner:
 
         self.eng = LipiDec(self.data, self.libdf)
 
-    def run(self, ignore_list=[], outdir=None, include_list=[]):
+    def run(self, ignore_list=None, outdir=None, include_list=None):
+        if include_list is None:
+            include_list = []
+        if ignore_list is None:
+            ignore_list = []
         st = time.perf_counter()
         self.eng.cleanup_db(mode=self.polarity, ignore_list=ignore_list, include_list=include_list)
         self.eng.find_matches()
@@ -114,7 +119,11 @@ class LipiDec:
     def sort_df(self):
         self.df.sort_values("Mass")
 
-    def cleanup_db(self, mode="positive", ignore_list=[], include_list=[], drop_duplicates=True):
+    def cleanup_db(self, mode="positive", ignore_list=None, include_list=None, drop_duplicates=True):
+        if include_list is None:
+            include_list = []
+        if ignore_list is None:
+            ignore_list = []
         if mode is None:
             mode = "positive"
         if mode.lower() == "positive":

@@ -50,6 +50,7 @@ class DataImporter:
         except:
             register()
             self.msrun = mzFile(path)
+        # noinspection PyUnresolvedReferences
         self.scanrange = self.msrun.scan_range()
         # print(self.scanrange)
         self.scans = np.arange(self.scanrange[0], self.scanrange[1])
@@ -61,6 +62,7 @@ class DataImporter:
                 self.times.append(self.msrun.scan_time_from_scan_name(s))
             except Exception as e:
                 try:
+                    # noinspection PyUnresolvedReferences
                     t = self.msrun.info[s][0]
                     self.times.append(t)
                 except Exception as e2:
@@ -113,6 +115,7 @@ class DataImporter:
                 scan_range[1] = np.amin(self.scans)
 
             if scan_range[1]-scan_range[0] > 1:
+                # noinspection PyUnresolvedReferences
                 data = np.array(list(self.msrun.average_scan(int(scan_range[0]), int(scan_range[1]), filter="Full")))
             else:
                 impdat = np.array(self.msrun.scan(scan_range[0]))  # May want to test this.
@@ -161,6 +164,7 @@ class DataImporter:
         return times[1]
 
     def get_max_scans(self):
+        # noinspection PyUnresolvedReferences
         scans = self.msrun.scan_range()
         return scans[1]
 

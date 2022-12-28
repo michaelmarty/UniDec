@@ -21,6 +21,9 @@ class MainwindowBase(wx.Frame):
         """
         wx.Frame.__init__(self, None, title=title)
         # Set presenter and config
+        self.plotpanel = None
+        self.peakpanel = None
+        self.menu = None
         self.pres = parent
         self.config = config
         self.title = title

@@ -36,7 +36,7 @@ def binomial_fit(xvals, yvals):
     return fits, fitdat
 
 
-def ndis_std(x: object, mid: float, sig: float, a: float = 1, norm_area: bool = False) -> object:
+def ndis_std(x, mid: float, sig: float, a: float = 1, norm_area: bool = False) -> np.array:
     """
     Normal Gaussian function normalized to the max of 1.
     :param x: x values
@@ -48,7 +48,7 @@ def ndis_std(x: object, mid: float, sig: float, a: float = 1, norm_area: bool = 
     """
     if norm_area:
         a *= 1 / (sig * const)
-    return a * np.exp(-(x - mid) * (x - mid) / (2.0 * sig * sig))
+    return np.array(a * np.exp(-(x - mid) * (x - mid) / (2.0 * sig * sig)))
 
 
 def ndis(x, mid, fwhm, **kwargs):
@@ -289,11 +289,13 @@ def voigt_fit(xvals, yvals, mguess=0, sguess=0.1, gguess=0, aguess=0, bguess=0):
 
     """
     guess = [mguess, sguess, gguess, aguess, bguess]
+    # noinspection PyTupleAssignmentBalance
     popt, pcov = curve_fit(voigt, xvals, yvals, p0=guess, maxfev=1000000)
     fitdat = voigt(xvals, popt[0], popt[1], popt[2], popt[3], popt[4])
     return popt, np.sqrt(np.diag(pcov)), fitdat
 
 
+# noinspection PyTupleAssignmentBalance
 def fit_peak(xvals, yvals, psfun, midguess, fwhmguess, aguess, bguess):
     """
     Fit peak from xvals and yvals data to defined peak shape function.
@@ -436,7 +438,9 @@ def mperror(array, datatop, oarray, background):
     return error
 
 
-def complex_poisson(datatop, oarray=[1, 2], background=False):
+def complex_poisson(datatop, oarray=None, background=False):
+    if oarray is None:
+        oarray = [1, 2]
     array = mpinit(datatop, oarray, background)
     print(array)
     fit = opt.leastsq(mperror, array, args=(datatop, oarray, background))[0]

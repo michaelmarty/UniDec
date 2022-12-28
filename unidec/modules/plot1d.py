@@ -324,6 +324,7 @@ class Plot1dBase(PlotBase):
         self.subplot1.set_title(title)
         # Adjust axes for error bars
         # Negative bars
+
         if np.amin(np.asarray(yarr)) < 0 and np.amax(np.asarray(yarr)) <= 0:
             minindex = 0
             for x in range(len(yarr)):

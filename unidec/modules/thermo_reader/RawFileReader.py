@@ -339,11 +339,13 @@ class RawFileReader(object):
             [DotNetArrayToNPArray(trace[trace_number].Times), DotNetArrayToNPArray(trace[trace_number].Intensities)])
         return self.ticdat
 
-    def Get_EIC(self, massrange=[10000,15000], scanrange=None, trace_number=0):
+    def Get_EIC(self, massrange=None, scanrange=None, trace_number=0):
         """Reads the base peak chromatogram for the RAW file.
         Args:
             scanrange = [ start scan for the chromatogram, end scan for the chromatogram.]
         """
+        if massrange is None:
+            massrange = [10000, 15000]
         if scanrange is None:
             scanrange = [self.FirstSpectrumNumber, self.LastSpectrumNumber]
         # Define the settings for getting the Base Peak chromatogram #TraceType.BasePeak

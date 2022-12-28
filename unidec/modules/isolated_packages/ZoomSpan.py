@@ -5,7 +5,7 @@ from pubsub import pub
 from unidec.modules.isolated_packages.ZoomCommon import *
 
 
-class ZoomSpan:
+class ZoomSpan(ZoomCommon):
     """
     Expansion of matplotlib embed in wx example by John Bender and Edward
     Abraham, see https://www.scipy.org/Matplotlib_figure_in_a_wx_panel
@@ -58,9 +58,11 @@ class ZoomSpan:
 
 
         """
+        super(ZoomCommon, self).__init__()
         if rectprops is None:
             rectprops = dict(facecolor='yellow', alpha=0.2)
 
+        self.pad = 0.0001
         self.axes = None
         self.canvas = None
         self.visible = True
@@ -106,11 +108,6 @@ class ZoomSpan:
         if not self.useblit:
             for axes, rect in zip(self.axes, self.rect):
                 axes.add_patch(rect)
-
-    def update_background(self, event):
-        """force an update of the background"""
-        if self.useblit:
-            self.background = self.canvas.copy_from_bbox(self.canvas.figure.bbox)
 
     def ignore(self, event):
         """return True if event should be ignored"""
@@ -234,3 +231,29 @@ class ZoomSpan:
 
         self.update()
         return False
+
+    def zoomout(self, event=None):
+        # print("Zoom Out")
+        # x0,y0,x1,y1=GetMaxes(event.inaxes)
+        # print GetMaxes(event.inaxes)
+
+        xmin, ymin, xmax, ymax = self.data_lims
+        if xmin > xmax: xmin, xmax = xmax, xmin
+        if ymin > ymax: ymin, ymax = ymax, ymin
+        # assure that x and y values are not equal
+        if xmin == xmax: xmax = xmin * 1.01
+        if ymin == ymax: ymax = ymin * 1.01
+
+        # Check if a zoom out is necessary
+        zoomout = False
+        for axes in self.axes:
+            if axes.get_xlim() != (xmin, xmax) and axes.get_ylim() != (ymin, ymax):
+                zoomout = True
+
+                xspan = xmax - xmin
+                yspan = ymax - ymin
+                if xmin - xspan * self.pad != xmax + xspan * self.pad:
+                    axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
+                axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
+                ResetVisible(axes)
+        self.canvas.draw()

@@ -4,6 +4,8 @@ import unidec.modules.unidectools as ud
 import numpy as np
 import wx.lib.scrolledpanel as scrolled
 
+
+# noinspection PyMissingConstructor
 class main_controls(wx.Panel):
     def __init__(self, parent, config, pres, panel, iconfile):
         super(wx.Panel, self).__init__(panel)

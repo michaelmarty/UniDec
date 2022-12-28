@@ -531,6 +531,7 @@ class IMToolExtract(wx.Dialog):
         :param e: Unused event
         :return: None
         """
+        # noinspection PyUnresolvedReferences
         for p in self.pks.peaks:
             self.masspanel.list.add_line(val=p.mass)
 

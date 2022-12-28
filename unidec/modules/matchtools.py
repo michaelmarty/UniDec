@@ -23,7 +23,7 @@ def sort_sitematches_by(indexes, masses, probs, type="mass"):
 
 
 # Function to generate the brute force lists needed for matching
-def get_sitematch_list(gdf, sites=["S1", "S1", "S2", "S2", "S3", "S3"], probs_cutoff=1,
+def get_sitematch_list(gdf, sites=None, probs_cutoff=1,
                        masscolumn="Monoisotopic mass", namecolumn="Glycan", percent=True, sort="mass"):
     """
     Function to generate a list of potential mass matches from a DataFrame with different potential sites.
@@ -46,6 +46,8 @@ def get_sitematch_list(gdf, sites=["S1", "S1", "S2", "S2", "S3", "S3"], probs_cu
     Names is the list of names in each site.
     """
     # Make data frames for each site with only the glycans with non-zero probability
+    if sites is None:
+        sites = ["S1", "S1", "S2", "S2", "S3", "S3"]
     dfs = [gdf[gdf[s] > probs_cutoff] for s in sites]
     lens = [len(df) for df in dfs]
     lsites = len(sites)

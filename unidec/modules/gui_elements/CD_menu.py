@@ -5,6 +5,7 @@ import os
 
 
 class CD_menu(wx.Menu):
+    # noinspection PyMissingConstructor
     def __init__(self, parent, config, pres, tabbed):
         super(wx.Menu, self).__init__()
         self.pres = pres

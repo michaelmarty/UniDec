@@ -5,7 +5,7 @@ import wx
 from unidec.modules.isolated_packages.ZoomCommon import *
 
 
-class ZoomBox:
+class ZoomBox(ZoomCommon):
     """
     Select a min/max range of the x axes for a matplotlib Axes
 
@@ -90,6 +90,7 @@ class ZoomBox:
          2 = center mouse button (scroll wheel)
          3 = right mouse button
         """
+        super(ZoomCommon, self).__init__()
         self.crossoverpercent = 0.06
         self.pad = pad
 
@@ -181,11 +182,6 @@ class ZoomBox:
 
         for axes, to_draw in zip(self.axes, self.to_draw):
             axes.add_patch(to_draw)
-
-    def update_background(self, event):
-        """force an update of the background"""
-        if self.useblit:
-            self.background = self.canvas.copy_from_bbox(self.canvas.figure.bbox)
 
     def ignore(self, event):
         """return True if event should be ignored"""
@@ -492,94 +488,5 @@ class ZoomBox:
         self.update()
         return False
 
-    def set_active(self, active):
-        """ Use this to activate / deactivate the RectangleSelector
 
-            from your program with an boolean variable 'active'.
-        """
-        self.active = active
 
-    def get_active(self):
-        """ to get status of active mode (boolean variable)"""
-        return self.active
-
-    def set_manual(self, xmin, xmax):
-        for axes in self.axes:
-            axes.set_xlim((xmin, xmax))
-            if True:
-                xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=xmin, xmax=xmax)
-                axes.set_ylim((ymin, ymax))
-        self.canvas.draw()
-
-    def set_manual_y(self, ymin, ymax):
-        for axes in self.axes:
-            axes.set_ylim((ymin, ymax))
-        self.canvas.draw()
-
-    def switch_label(self):
-        self.lflag = (self.lflag + 1) % 2
-        print("Plot Labels Switched to:", self.lflag)
-
-    def label(self):
-        self.texts = []
-        self.lines = []
-        for line in self.axes[0].lines:
-            ydat = np.array(line.get_ydata())
-            xdat = line.get_xdata()
-
-            x0, x1 = self.axes[0].get_xlim()
-
-            bool1 = x0 < xdat
-            bool2 = xdat < x1
-            bool3 = np.logical_and(bool1, bool2)
-
-            cutdat = np.transpose([xdat[bool3], ydat[bool3]])
-            if len(cutdat) > 0:
-                ymin = np.amin(cutdat[:, 1])
-                ymax = np.amax(cutdat[:, 1])
-
-                window = len(cutdat) / 25.
-                thresh = 0.05 * (ymax - ymin) + ymin
-
-                peaks = self.peakdetect(cutdat, window=window, threshold=thresh)
-
-                for p in peaks:
-                    val = round(p[0], 3)
-                    text = self.axes[0].text(p[0], p[1] + 0.1 * ymax, str(val), horizontalalignment="center",
-                                             verticalalignment="top")
-                    line = self.axes[0].vlines(p[0], p[1], p[1] + 0.05 * ymax, linestyles="dashed")
-                    self.texts.append(text)
-                    self.lines.append(line)
-            self.canvas.draw()
-            return
-
-    def kill_labels(self):
-        try:
-            for t in self.texts:
-                t.remove()
-            for l in self.lines:
-                l.remove()
-            self.texts = []
-            self.lines = []
-            self.canvas.draw()
-        except:
-            pass
-        if self.lflag == 1:
-            self.label()
-
-    def peakdetect(self, data, window=10., threshold=0.):
-        peaks = []
-        length = len(data)
-        # maxval = np.amax(data[:, 1])
-        for i in range(1, length):
-            if data[i, 1] > threshold:  # Note this is different
-                start = i - window
-                end = i + window
-                if start < 0:
-                    start = 0
-                if end > length:
-                    end = length
-                testmax = np.amax(data[int(start):int(end) + 1, 1])
-                if data[i, 1] == testmax and data[i, 1] != data[i - 1, 1]:
-                    peaks.append([data[i, 0], data[i, 1]])
-        return np.array(peaks)

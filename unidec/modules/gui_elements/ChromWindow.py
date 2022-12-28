@@ -37,7 +37,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.mainsizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.leftsizer = wx.BoxSizer(wx.VERTICAL)
-
+        # noinspection PyUnresolvedReferences
         labelfont = wx.Font(16, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
 
         self.ctlsizer = wx.BoxSizer(wx.VERTICAL)

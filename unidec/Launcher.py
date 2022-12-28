@@ -3,6 +3,7 @@ import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 import wx
+import wx.html
 import multiprocessing
 
 from unidec.modules.unidec_presbase import UniDecPres
@@ -21,7 +22,9 @@ import wx.py as py
 import os
 import sys
 import locale
+
 locale.setlocale(locale.LC_ALL, 'C')
+
 
 class UniDecLauncher(UniDecPres):
     """
@@ -60,13 +63,14 @@ class UniDecLauncher(UniDecPres):
             print("Launching UniDecCD")
             self.view.button9()
 
-        if len(sys.argv)>1:
+        if len(sys.argv) > 1:
             self.view.button8()
 
     def on_close(self, e=None):
         self.quit_application()
         self.view.Destroy()
         sys.exit()
+
 
 class Lview(wx.Frame):
     def __init__(self, parent):
@@ -95,18 +99,17 @@ class Lview(wx.Frame):
         button7 = wx.Button(panel, -1, "UltraMeta Data Collector\n\nVisualize Multiple HDF5 Data Sets\nFit Trends")
         button8 = wx.Button(panel, -1, "UniChrom\n\nDeconvolution of Chromatograms\nUniDec for LC/MS Data")
         button9 = wx.Button(panel, -1, "UniDecCD\n\nDeconvolution of Charge Detection MS\nUniDec for CD-MS Data")
-
-        html = wx.html.HtmlWindow(panel, -1, size=(390,310))
+        html = wx.html.HtmlWindow(panel, -1, size=(390, 310))
         pathtofile = os.path.dirname(os.path.abspath(__file__))
         self.imagepath = self.eng.config.toplogofile
-        #print(self.imagepath)
+        # print(self.imagepath)
         html.SetPage(
             "<html><body>"
-            #"<h1>UniDec</h1>"
-            "<img src=\"" + self.imagepath +"\" alt=\"PNG Icon\" height=\"250\" width=\"363\">"
-            "<p>Please Cite: Marty et al. Anal. Chem. 2015. " 
-            "DOI: 10.1021/acs.analchem.5b00140.</p>"
-            "</body></html>"
+            # "<h1>UniDec</h1>"
+            "<img src=\"" + self.imagepath + "\" alt=\"PNG Icon\" height=\"250\" width=\"363\">"
+                                             "<p>Please Cite: Marty et al. Anal. Chem. 2015. "
+                                             "DOI: 10.1021/acs.analchem.5b00140.</p>"
+                                             "</body></html>"
         )
 
         sizer.Add(button1, (0, 0), flag=wx.EXPAND)
@@ -116,7 +119,7 @@ class Lview(wx.Frame):
         sizer.Add(button6, (2, 1), flag=wx.EXPAND)
         sizer.Add(button7, (1, 1), flag=wx.EXPAND)
         sizer.Add(button9, (3, 0), flag=wx.EXPAND)
-        sizer.Add(button5, (4, 0), span=(1,2), flag=wx.EXPAND)
+        sizer.Add(button5, (4, 0), span=(1, 2), flag=wx.EXPAND)
         sizer.Add(button8, (3, 1), flag=wx.EXPAND)
         sizer.Add(html, (0, 2), span=(5, 2))
 
@@ -162,6 +165,7 @@ class Lview(wx.Frame):
     def button5(self, e=None):
         print("Launching Scripting Shell")
         app = Shell()
+        # noinspection PyUnresolvedReferences
         app.start()
 
     def button6(self, e=None):
@@ -186,6 +190,7 @@ class Lview(wx.Frame):
         print("Launching UniDecCD")
         app = UniDecCDApp()
         app.start()
+
 
 class Shell(object):
     def __init__(self, *args, **kwargs):

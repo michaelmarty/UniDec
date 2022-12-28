@@ -506,7 +506,8 @@ class MetaUniDecBase(UniDecPres):
         if not ud.isempty(self.eng.config.matchlist) and result == 0:
             if len(self.eng.config.matchlist[3]) == self.eng.pks.plen:
                 self.view.SetStatusText("Matching", number=5)
-                np.savetxt(self.eng.config.matchfile, np.transpose(self.eng.config.matchlist), fmt='%s', delimiter=",")
+                outdat = np.transpose(self.eng.config.matchlist)
+                np.savetxt(self.eng.config.matchfile, outdat, fmt='%s', delimiter=",")
                 self.view.peakpanel.add_data(self.eng.pks)
                 try:
                     self.makeplot6()
@@ -766,6 +767,15 @@ class MetaUniDecBase(UniDecPres):
         self.eng.redo()
         self.import_config()
         # print("Redo")
+
+    def makeplot9(self, e=None):
+        print("Empty Function")
+
+    def makeplot6(self, e=None, show=None):
+        print("Empty Function")
+
+    def makeplot8(self):
+        print("Empty Function")
 
 
 class UniDecApp(MetaUniDecBase):
@@ -1094,6 +1104,7 @@ class UniDecApp(MetaUniDecBase):
                 # If a suitable local max was found, use it.
                 xpos = newxpos
 
+            newcolor = "k"
             if self.view.plot1.x1 is None or xpos == self.view.plot1.x1:
                 # Store the first value
                 self.view.plot1.x1 = xpos

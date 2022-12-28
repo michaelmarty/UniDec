@@ -1030,6 +1030,7 @@ class DataCollector(wx.Frame):
                 if type == "massdefect":
                     data1d, data2d, m1grid, m2grid, igrid = ud.kendrick_analysis(edat, molig)
                     if molig != 0:
+                        # noinspection PyUnresolvedReferences
                         plotwindow.plots[xpos][ypos].contourplot(data2d, self.config, xlab="Mass", ylab="Mass Defect",
                                                                  normflag=1, title=u, test_kda=True, repaint=False)
                         plotwindow.plots[xpos][ypos].setup_zoom([plotwindow.plots[xpos][ypos].subplot1], 'box')
@@ -1234,6 +1235,7 @@ class BarGraphWindow(wx.Frame):
 
     def setup_window(self, numplots=2):
         # self.panel = wx.Panel(self)
+        # noinspection PyUnresolvedReferences
         self.panel = wx.lib.scrolledpanel.ScrolledPanel(self)
         self.panel.SetupScrolling()
         plotsizer = wx.GridBagSizer()

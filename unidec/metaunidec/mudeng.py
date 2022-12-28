@@ -5,7 +5,7 @@ import numpy as np
 import unidec.modules.unidectools as ud
 from unidec.modules import peakstructure, unidec_enginebase
 from unidec.metaunidec.mudstruct import MetaDataSet
-from unidec import modules as automzml
+import unidec.modules.mzmlparse_auto as automzml
 import time
 
 try:

@@ -5,6 +5,7 @@ import unidec.modules.isolated_packages.preset_manager as pm
 
 
 class meta_menu(wx.Menu):
+    # noinspection PyMissingConstructor
     def __init__(self, parent, config, pres, type="Meta"):
         super(wx.Menu, self).__init__()
         self.pres = pres

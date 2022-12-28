@@ -1,9 +1,11 @@
 import wx
+import wx.html
 import os
 
 
 class HelpDlg(wx.Frame):
-    def __init__(self, num):
+    def __init__(self, num, *args, **kw):
+        super().__init__(*args, **kw)
         pathtofile = os.path.dirname(os.path.abspath(__file__))
         self.imagepath = os.path.join(pathtofile, "images")
         # print(pathtofile)

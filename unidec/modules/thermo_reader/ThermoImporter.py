@@ -96,7 +96,9 @@ class ThermoDataImporter:
     def get_tic(self):
         return self.msrun.GetChromatogram()
 
-    def get_eic(self, mass_range=[0,1000000], scan_range=None):
+    def get_eic(self, mass_range=None, scan_range=None):
+        if mass_range is None:
+            mass_range = [0, 1000000]
         return self.msrun.Get_EIC(massrange=mass_range, scanrange=scan_range)
 
     def get_max_time(self):

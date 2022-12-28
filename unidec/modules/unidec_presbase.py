@@ -18,6 +18,7 @@ class UniDecPres(object):
     """
 
     def __init__(self, ignore_args=False, *args, **kwargs):
+        self.timer = None
         self.wx_app = wx.App(redirect=False)
         self.eng = None
         self.view = None
@@ -126,7 +127,28 @@ class UniDecPres(object):
         dlg = wx.MessageDialog(self.view, message, caption, wx.OK | wx.ICON_WARNING)
         dlg.ShowModal()
         dlg.Destroy()
+    
+    def on_dataprep_button(self):
+        print("Empty Function")
+        
+    def on_open_file(self, file_name, file_directory, time_range=None, refresh=False):
+        print("Empty Function")
+        
+    def on_unidec_button(self):
+        print("Empty Function")
+        
+    def on_integrate(self):
+        print("Empty Function")
 
+    def on_replot(self, e=None, plotsums=True):
+        print("Empty Function")
+
+    def peak_plots(self, e=None):
+        print("Empty Function")
+        
+    def on_mass_tools(self, e=None, show=True):
+        print("Empty Function")
+    
     def on_get_mzlimits(self):
         try:
             if not wx.GetKeyState(wx.WXK_CONTROL):
@@ -705,5 +727,5 @@ class UniDecPres(object):
         self.quick_auto()
 
     def quick_auto(self, e=None):
-        self.on_dataprep_button(e)
-        self.on_unidec_button(e)
+        self.on_dataprep_button()
+        self.on_unidec_button()

@@ -28,7 +28,7 @@ class Plot2dBase(PlotBase):
         PlotBase.__init__(self, *args, **kwargs)
 
     def contourplot(self, dat=None, config=None, xvals=None, yvals=None, zgrid=None, xlab='m/z (Th)', ylab="Charge",
-                    title='', normflag=1, normrange=[0, 1], repaint=True, nticks=None, test_kda=False, discrete=None,
+                    title='', normflag=1, normrange=None, repaint=True, nticks=None, test_kda=False, discrete=None,
                     ticloc=None, ticlab=None, order=None):
         """
         Make 2D plot.
@@ -52,6 +52,8 @@ class Plot2dBase(PlotBase):
         :return: None
         """
         # Clear Plot
+        if normrange is None:
+            normrange = [0, 1]
         self.clear_plot('nopaint')
         # Set xlabel and ylabel
         self.xlabel = xlab

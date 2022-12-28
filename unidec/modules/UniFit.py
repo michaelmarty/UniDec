@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import scipy.optimize as opt
-import string
 import matplotlib.cm as cm
 from scipy.stats import f
 import networkx as nx
@@ -11,7 +10,7 @@ import warnings
 from copy import deepcopy
 import sys
 import time
-import scipy.special
+import scipy.special as special
 import multiprocessing
 
 __author__ = 'Michael.Marty'
@@ -781,11 +780,11 @@ class KDmodel:
         # Calculate Statistical Factors
         if self.maxsites != 0 and self.maxsites is not None:
             self.kdargs.maxsites = self.maxsites
-            narr = self.kdargs.nprottab * self.maxsites
+            narr = np.array(self.kdargs.nprottab * self.maxsites)
             iarr = self.kdargs.nligtab
             niarr = np.clip(narr - iarr, 0, sys.maxsize)
-            self.kdargs.nfactors = scipy.special.factorial(narr) / (
-                    scipy.special.factorial(niarr) * scipy.special.factorial(iarr))
+            self.kdargs.nfactors = special.factorial(narr) / (
+                    special.factorial(niarr) * special.factorial(iarr))
         else:
             self.kdargs.nfactors = None
         # Quick Plot to test structure. Note: exits the program without fitting.
@@ -1128,11 +1127,11 @@ class KDmodel:
         # Calculate Statistical Factors
         if self.maxsites != 0 and self.maxsites is not None:
             self.kdargs.maxsites = self.maxsites
-            narr = self.kdargs.nprottab * self.maxsites
+            narr = np.array(self.kdargs.nprottab * self.maxsites)
             iarr = self.kdargs.nligtab
             niarr = np.clip(narr - iarr, 0, sys.maxsize)
-            self.kdargs.nfactors = scipy.special.factorial(narr) / (
-                    scipy.special.factorial(niarr) * scipy.special.factorial(iarr))
+            self.kdargs.nfactors = special.factorial(narr) / (
+                    special.factorial(niarr) * special.factorial(iarr))
         else:
             self.kdargs.nfactors = None
 

@@ -3,7 +3,7 @@ import numpy as np
 import wx
 from unidec.modules import unidecstructure, PlottingWindow
 import unidec.modules.unidectools as ud
-from unidec import modules as masstools
+import unidec.modules.masstools as masstools
 import matplotlib.cm as cm
 from unidec.modules.isolated_packages import FileDialogs
 from matplotlib.ticker import FixedLocator
@@ -103,7 +103,7 @@ class MassDefectExtractorWindow(wx.Frame):
 
         sbs.Add(importbutton, 0, wx.EXPAND)
         sbs.Add(addbutton, 0, wx.EXPAND)
-        self.masslistbox = masstools.MassListCtrlPanel(panel, columntitle="Mass Defect Value", size=(210, 320))
+        self.masslistbox = masstools.MassListCtrl(self, panel, coltitle="Mass Defect Value", size=(210, 320))
         sbs.Add(wx.StaticText(panel, label="Mass Defect List"))
         sbs.Add(self.masslistbox)
         sbs.Add(clearbutt, 0, wx.EXPAND)
@@ -175,7 +175,7 @@ class MassDefectExtractorWindow(wx.Frame):
         self.make_list_plots()
 
         # defaultmdlist = [0.0, 0.25, 0.55]
-        # self.masslistbox.list.populate(defaultmdlist)
+        # self.masslistbox.populate(defaultmdlist)
         # self.on_extract()
 
     def on_fit(self, e=None):
@@ -199,7 +199,7 @@ class MassDefectExtractorWindow(wx.Frame):
     def update(self):
         self.extractchoice = self.ctlextract.GetSelection()
         self.norm = self.ctlnorm.GetSelection()
-        self.mdlist = self.masslistbox.list.get_list()
+        self.mdlist = self.masslistbox.get_list()
         self.window = float(self.ctlwindow.GetValue())
         self.maxshift = float(self.ctlmaxshift.GetValue())
         self.widthguess = float(self.ctlwidthguess.GetValue())
@@ -211,7 +211,7 @@ class MassDefectExtractorWindow(wx.Frame):
             self.centermode = 0
         else:
             self.centermode = 1
-        #print(self.extractchoice, self.window, self.norm, self.mdlist)
+        # print(self.extractchoice, self.window, self.norm, self.mdlist)
         self.fits = None
         self.fitdats = None
 
@@ -265,6 +265,7 @@ class MassDefectExtractorWindow(wx.Frame):
         self.plot1.add_legend()
 
     def fill_grid(self):
+        self.grid = np.array(self.grid)
         print(self.grid.shape)
         self.ss = spreadsheet.SpreadsheetFrame(len(self.mdlist), len(self.ydat) + 1)
 
@@ -299,6 +300,7 @@ class MassDefectExtractorWindow(wx.Frame):
     def make_2d_plot(self):
         iarray = np.arange(0, len(self.mdlist))
         m1grid, m2grid = np.meshgrid(self.ydat, iarray, indexing='ij')
+        self.grid = np.array(self.grid)
         data2 = np.transpose([np.ravel(m1grid), np.ravel(m2grid), np.ravel(self.grid.transpose())])
         try:
             self.plot2.contourplot(data2, self.config, xlab="Variable 1", ylab="Extracts", title="",
@@ -389,7 +391,7 @@ class MassDefectExtractorWindow(wx.Frame):
                 factor = self.config.kendrickmass
             kmdefect *= factor
             print(kmdefect)
-            self.masslistbox.list.populate(kmdefect)
+            self.masslistbox.populate(kmdefect)
 
     def on_import_masses(self, e):
         """
@@ -400,7 +402,7 @@ class MassDefectExtractorWindow(wx.Frame):
         mfilename = FileDialogs.open_file_dialog("Open Text File with List of Mass Defects", file_types="*.*")
         if mfilename is not None:
             importmass = np.loadtxt(mfilename)
-            self.masslistbox.list.populate(importmass)
+            self.masslistbox.populate(importmass)
 
     def on_clear_masslist(self, e):
         """
@@ -408,7 +410,7 @@ class MassDefectExtractorWindow(wx.Frame):
         :param e: Unused event
         :return: None
         """
-        self.masslistbox.list.clear()
+        self.masslistbox.clear()
 
     def on_add_mass(self, e):
         """
@@ -416,7 +418,7 @@ class MassDefectExtractorWindow(wx.Frame):
         :param e: Unused Event
         :return: None
         """
-        self.masslistbox.list.add_line()
+        self.masslistbox.add_line()
 
     def on_close(self, e):
         """
@@ -478,8 +480,9 @@ class MassDefectExtractorWindow(wx.Frame):
 
 # Main App Execution
 if __name__ == "__main__":
-    fname = "C:\Python\\UniDec3\\modules\Mass_Defect_Grid.txt"
-    data = np.loadtxt(fname)
+    # fname = "C:\Python\\UniDec3\\modules\Mass_Defect_Grid.txt"
+    # data = np.loadtxt(fname)
+    data = np.random.random((100, 100))
     # print(data)
     xarray = np.arange(0, len(data[0]))
     xarray = xarray / np.amax(xarray)
@@ -489,8 +492,8 @@ if __name__ == "__main__":
     app = wx.App(False)
     frame = MassDefectExtractorWindow(None, data, xarray, yarray)
     frame.mdlist = [0.0, 0.25, 0.55, 0.99]
-    frame.masslistbox.list.populate(frame.mdlist)
+    frame.masslistbox.populate(frame.mdlist)
     # frame.on_extract()
     # frame.make_2d_plot()
-    frame.on_fit()
+    # frame.on_fit()
     app.MainLoop()

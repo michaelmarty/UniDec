@@ -232,6 +232,7 @@ class AnimationWindow(wx.Frame):
         title = str(self.yvals[self.pos])
 
         if self.mode == 1:
+            # noinspection PyUnresolvedReferences
             self.plot.plotrefreshtop(newdata[:, 0], newdata[:, 1], title, self.xlabel, "Intensity", "", self.config,
                                      test_kda=self.testkda)
             self.plot.add_title(title)
@@ -312,17 +313,16 @@ class AnimationWindow(wx.Frame):
     def on_save_fig(self, e=None):
         path = FileDialogs.save_file_dialog()
         base, ext = os.path.splitext(path)
-        #self.init()
-        #self.save_fig(base,ext)
-        for i in range(0,len(self.datalist)):
+        # self.init()
+        # self.save_fig(base,ext)
+        for i in range(0, len(self.datalist)):
             self.on_next(None)
             self.save_fig(base, ext)
 
     def save_fig(self, base, ext):
-        path=base+str(self.pos)+ext
+        path = base + str(self.pos) + ext
         print(self.pos, path)
         self.plot.save_figure(path)
-
 
 
 # Main App Execution
