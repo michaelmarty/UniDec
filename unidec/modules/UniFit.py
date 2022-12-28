@@ -536,7 +536,7 @@ class KDmodel:
         if self.ligaggmode and self.numtotprot > 1:
             print("ERROR: Simultaneous free protein and free ligand aggregation are not supported")
             print("\tSet either maxligagg or numtotprot to 1.")
-            return 0
+            raise Exception
 
         if self.ligaggmode:
             print("Ligand Aggregation Mode")

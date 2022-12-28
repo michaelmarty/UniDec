@@ -1,6 +1,5 @@
 import numpy as np
 from scipy import interpolate as interpolate
-import os
 
 
 def plot_function(x, y):
@@ -21,7 +20,7 @@ def plot_function(x, y):
     numbadx = 0
 
     for i in range(1, (len(x) - 1)):
-        if (x[i] == x[i + 1]):
+        if x[i] == x[i + 1]:
             badx = x[i]
             x[i] = (x[i - 1] + badx) / 2
             x[i + 1] = (x[i] + badx) / 2
@@ -125,7 +124,7 @@ def spacing(self, refmaxtabCalc):  # calculates an initial estimate for the spac
             numcharCalc = i
             break
         else:
-            if (i < len(refmaxtabCalc) - 2):
+            if i < len(refmaxtabCalc) - 2:
                 continue
             else:
                 numcharCalc = len(refmaxtabCalc) - 1
@@ -184,7 +183,7 @@ def subunit(refmaxtabCalc, numcharCalc, omegaCalc, chargestatesCalc, chargestate
                     1 / centroids[i] * chargestatesrCalc[i] - submass)
         stdevtot += deltastdevtot
 
-    stdevmass = np.sqrt(stdevtot / (numcharCalc))
+    stdevmass = np.sqrt(stdevtot / numcharCalc)
     return submass, stdevmass
 
 def envelope_calc(chargestatesr,expandedspan,submass,ftx,ftspacing,FT,y):

@@ -162,7 +162,7 @@ class ThermoDataImporter:
 
     def get_polarity(self, scan=1):
         #print(dir(self.msrun.source))
-        '''
+        """
         im = self.msrun.source.GetInstrumentMethod(0)
         print(im)
         for line in im.split("\n"):
@@ -175,7 +175,7 @@ class ThermoDataImporter:
                     return "Negative"
         print("Polarity: Unknown")
         return None
-        # exit()'''
+        # exit()"""
         scan_mode = self.msrun.source.GetScanEventStringForScanNumber(scan)
         if "+" in scan_mode:
             print("Polarity: Positive")
@@ -208,7 +208,7 @@ if __name__ == "__main__":
     data = d.get_data()
     # vdata = (-34.48*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))+(263.91*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))-(811.83*(vdata-np.amin(vdata))*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))+(1258.4*(vdata-np.amin(vdata))*(vdata-np.amin(vdata)))-(1032.3*(vdata-np.amin(vdata)))+409.12
 
-    vdata = (-44.115 * (vdata) * (vdata) * (vdata)) + (201.67 * (vdata) * (vdata)) + (-347.15 * (vdata)) + 242.19
+    vdata = (-44.115 * vdata * vdata * vdata) + (201.67 * vdata * vdata) + (-347.15 * vdata) + 242.19
 
     import matplotlib.pyplot as plt
 

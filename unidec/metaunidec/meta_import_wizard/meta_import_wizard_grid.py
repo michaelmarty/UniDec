@@ -4,9 +4,9 @@ from unidec.metaunidec.meta_import_wizard import MetaTagTypes as tt
 
 
 class WizardGrid(wx.grid.Grid):
-    '''
+    """
     Grid for data import wizard
-    '''
+    """
 
     def __init__(self, parent, link, grid_size=(0, 6), labels=0):
         wx.grid.Grid.__init__(self, parent)
@@ -91,11 +91,11 @@ class WizardGrid(wx.grid.Grid):
         menu.Destroy()
 
     def set_labels(self, mode):
-        '''
+        """
         Set initial column headers based on mode
             0 - Linear
             1 - T-wave
-        '''
+        """
         for col, value in enumerate(self.col_header[mode]):
             self.SetColLabelValue(col, value)
 
@@ -115,7 +115,7 @@ class WizardGrid(wx.grid.Grid):
 
     def add_dataset(self, out):
         index = self.next_free_row()
-        if index != None:
+        if index is not None:
             if out[tt.TYPE].lower() == 'time':
                 conv = self.col_conv['Time']
             elif out[tt.TYPE].lower() == 'scans':
@@ -125,7 +125,7 @@ class WizardGrid(wx.grid.Grid):
             self.AutoSizeColumns()
 
     def next_free_row(self, column=0):
-        index = -1;
+        index = -1
         found = False
         while not found:
             index += 1
@@ -144,9 +144,9 @@ class WizardGrid(wx.grid.Grid):
         return col_key
 
     def fill_down(self, evt):
-        '''
+        """
         Try to fill down the columnn
-        '''
+        """
         # get text to paste
         paste = self.GetCellValue(self.row, self.col)
 
@@ -187,7 +187,7 @@ class WizardGrid(wx.grid.Grid):
     def load_data(self, array):
         for i, a in enumerate(array):
             index = self.next_free_row()
-            if index != None:
+            if index is not None:
                 for j, l in enumerate(a[:self.GetNumberCols()]):
                     self.SetCellValue(index, j, str(l))
         self.AutoSizeColumns()

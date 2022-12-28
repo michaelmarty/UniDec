@@ -1,6 +1,6 @@
-''' Waters 
+""" Waters
     MassLynx Python SDK
-'''
+"""
 from ctypes import*
 from unidec.modules.waters_importer.MassLynxRawReader import MassLynxRawReader, MassLynxRawProcessor, MassLynxBaseType
 

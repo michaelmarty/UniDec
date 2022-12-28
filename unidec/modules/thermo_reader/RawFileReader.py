@@ -222,7 +222,7 @@ class RawFileReader(object):
         return self.header[item]
 
     def Close(self):
-        '''Closes a raw file and frees the associated memory.'''
+        """Closes a raw file and frees the associated memory."""
         self.source.Dispose()
 
     def scan_range(self):
@@ -289,8 +289,8 @@ class RawFileReader(object):
             print()
 
     def ListTrailerExtraFields(self, scanrange=None):
-        '''Reads and reports the trailer extra data fields present in the RAW
-        file.        '''
+        """Reads and reports the trailer extra data fields present in the RAW
+        file.        """
 
         if scanrange is None:
             scanrange = [self.FirstSpectrumNumber, self.LastSpectrumNumber]
@@ -321,10 +321,10 @@ class RawFileReader(object):
         print()
 
     def GetChromatogram(self, scanrange=None, trace_number=0):
-        '''Reads the base peak chromatogram for the RAW file.
+        """Reads the base peak chromatogram for the RAW file.
         Args:
             scanrange = [ start scan for the chromatogram, end scan for the chromatogram.]
-        '''
+        """
         if scanrange is None:
             scanrange = [self.FirstSpectrumNumber, self.LastSpectrumNumber]
         # Define the settings for getting the Base Peak chromatogram #TraceType.BasePeak
@@ -340,10 +340,10 @@ class RawFileReader(object):
         return self.ticdat
 
     def Get_EIC(self, massrange=[10000,15000], scanrange=None, trace_number=0):
-        '''Reads the base peak chromatogram for the RAW file.
+        """Reads the base peak chromatogram for the RAW file.
         Args:
             scanrange = [ start scan for the chromatogram, end scan for the chromatogram.]
-        '''
+        """
         if scanrange is None:
             scanrange = [self.FirstSpectrumNumber, self.LastSpectrumNumber]
         # Define the settings for getting the Base Peak chromatogram #TraceType.BasePeak
@@ -364,13 +364,13 @@ class RawFileReader(object):
         return self.ticdat
 
     def ReadScanInformation(self, scanrange=None, outputData=True):
-        '''Reads the general scan information for each scan in the RAW file
+        """Reads the general scan information for each scan in the RAW file
         using the scan filter object and also the trailer extra data
         section for that same scan.
         Args:
             scanrange = [ start scan for the chromatogram, end scan for the chromatogram.]
             outputData (bool): the output data flag.
-        '''
+        """
         if scanrange is None:
             scanrange = [self.FirstSpectrumNumber, self.LastSpectrumNumber]
         # Read each scan in the RAW File
@@ -429,13 +429,13 @@ class RawFileReader(object):
                         scanDependents.ScanDependentDetailArray.Length))
 
     def GetSpectrum(self, scanNumber, scanFilter=None, outputData=False):
-        '''Gets the spectrum from the RAW file.
+        """Gets the spectrum from the RAW file.
 
         Args:
             scanNumber (int): the scan number being read.
             scanFilter (str): the scan filter for that scan.
             outputData (bool): the output data flag.
-        '''
+        """
         if scanFilter is None:
             scanFilter = IScanFilter(self.source.GetFilterForScanNumber(int(scanNumber)))
         # Check for a valid scan filter
@@ -483,12 +483,12 @@ class RawFileReader(object):
         return self.data
 
     def GetAverageSpectrum(self, scanrange=None, outputData=False, filter="FTMS"):
-        '''Gets the average spectrum from the RAW file.
+        """Gets the average spectrum from the RAW file.
 
         Args:
             scanrange = [ start scan for the chromatogram, end scan for the chromatogram.]
             outputData (bool): the output data flag.
-        '''
+        """
 
         if scanrange is None:
             scanrange = [self.FirstSpectrumNumber, self.LastSpectrumNumber]
@@ -566,11 +566,11 @@ class RawFileReader(object):
         return all
 
     def CalculateMassPrecision(self, scanNumber=1):
-        '''Calculates the mass precision for a spectrum.
+        """Calculates the mass precision for a spectrum.
 
         Args:
             scanNumber (int): the scan to process.
-        '''
+        """
 
         # Get the scan from the RAW file
         scan = Scan.FromFile(self.source, int(scanNumber))

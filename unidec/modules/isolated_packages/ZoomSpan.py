@@ -8,7 +8,7 @@ from unidec.modules.isolated_packages.ZoomCommon import *
 class ZoomSpan:
     """
     Expansion of matplotlib embed in wx example by John Bender and Edward
-    Abraham, see http://www.scipy.org/Matplotlib_figure_in_a_wx_panel
+    Abraham, see https://www.scipy.org/Matplotlib_figure_in_a_wx_panel
 
     This version allows the user to zoom in on the figure using either
     a span selector or a box selector. You can also set a persistent span
@@ -108,16 +108,16 @@ class ZoomSpan:
                 axes.add_patch(rect)
 
     def update_background(self, event):
-        'force an update of the background'
+        """force an update of the background"""
         if self.useblit:
             self.background = self.canvas.copy_from_bbox(self.canvas.figure.bbox)
 
     def ignore(self, event):
-        'return True if event should be ignored'
+        """return True if event should be ignored"""
         return event.inaxes not in self.axes or not self.visible or event.button != 1
 
     def press(self, event):
-        'on button press event'
+        """on button press event"""
         if self.ignore(event): return
         self.buttonDown = True
 
@@ -132,7 +132,7 @@ class ZoomSpan:
         return False
 
     def release(self, event):
-        'on button release event'
+        """on button release event"""
         if self.pressv is None or (self.ignore(event) and not self.buttonDown): return
         self.buttonDown = False
 
@@ -187,7 +187,7 @@ class ZoomSpan:
         return False
 
     def update(self):
-        'draw using newfangled blit or oldfangled draw depending on useblit'
+        """draw using newfangled blit or oldfangled draw depending on useblit"""
         if self.useblit:
             if self.background is not None:
                 self.canvas.restore_region(self.background)

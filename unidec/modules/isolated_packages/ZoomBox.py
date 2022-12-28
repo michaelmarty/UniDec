@@ -183,12 +183,12 @@ class ZoomBox:
             axes.add_patch(to_draw)
 
     def update_background(self, event):
-        'force an update of the background'
+        """force an update of the background"""
         if self.useblit:
             self.background = self.canvas.copy_from_bbox(self.canvas.figure.bbox)
 
     def ignore(self, event):
-        'return True if event should be ignored'
+        """return True if event should be ignored"""
         # If ZoomBox is not active :
         if not self.active:
             return True
@@ -261,7 +261,7 @@ class ZoomBox:
         self.canvas.draw()
 
     def press(self, event):
-        'on button press event'
+        """on button press event"""
         # Is the correct button pressed within the correct axes?
         if self.ignore(event): return
 
@@ -278,7 +278,7 @@ class ZoomBox:
         return False
 
     def release(self, event):
-        'on button release event'
+        """on button release event"""
         if self.eventpress is None or (self.ignore(event) and not self.buttonDown): return
         # Do compare mode stuff
         self.buttonDown = False
@@ -419,7 +419,7 @@ class ZoomBox:
             return False
 
     def update(self):
-        'draw using newfangled blit or oldfangled draw depending on useblit'
+        """draw using newfangled blit or oldfangled draw depending on useblit"""
         if self.useblit:
             if self.background is not None:
                 self.canvas.restore_region(self.background)

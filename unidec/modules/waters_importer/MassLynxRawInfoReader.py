@@ -1,7 +1,7 @@
-'''
-     Waters 
+"""
+     Waters
     MassLynx Python SDK
-'''
+"""
 
 import ctypes
 from ctypes import*
@@ -107,7 +107,7 @@ class MassLynxRawInfoReader(MassLynxRawReader):
 #        MassLynxRawReader.ReleaseMemory( temp)
 
         delim = delimiter.value.decode()
-        return itemString.split(delim);
+        return itemString.split(delim)
 
     def GetHeaderItem( self, whichItem ):
         whichItems =  list()
@@ -137,7 +137,7 @@ class MassLynxRawInfoReader(MassLynxRawReader):
         itemString = super().ToString(temp)
  
         delim = delimiter.value.decode()
-        return itemString.split(delim);
+        return itemString.split(delim)
 
     def GetScanItemString(self, whichItems):
          # get the array of items
@@ -153,8 +153,7 @@ class MassLynxRawInfoReader(MassLynxRawReader):
         itemString = super().ToString(temp)
  
         delim = delimiter.value.decode()
-        return itemString.split(delim);
-
+        return itemString.split(delim)
 
     def GetItemsInFunction( self, whichFunction, nWhichScan ):
         size = c_int(0)

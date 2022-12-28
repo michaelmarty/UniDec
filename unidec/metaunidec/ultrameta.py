@@ -814,7 +814,7 @@ class DataCollector(wx.Frame):
         self.plot1.repaint()
 
     def on_save_fig(self, e):
-        "Finished"
+        """Finished"""
         self.update_get(e)
         name1 = os.path.join(self.directory, "Figure1.png")
         if self.plot1.flag:
@@ -826,7 +826,7 @@ class DataCollector(wx.Frame):
             print(name2)
 
     def on_save_figPDF(self, e):
-        "Finished"
+        """Finished"""
         self.update_get(e)
         name1 = os.path.join(self.directory, "Figure1.pdf")
         if self.plot1.flag:
@@ -838,7 +838,7 @@ class DataCollector(wx.Frame):
             print(name2)
 
     def on_local_path(self, e):
-        "Finished"
+        """Finished"""
         self.update_get(0)
         paths = [l[0] for l in self.yvals]
         for i, l in enumerate(self.yvals):
@@ -850,7 +850,7 @@ class DataCollector(wx.Frame):
         self.localpath = 1
 
     def on_absolute_path(self, e):
-        "Finished"
+        """Finished"""
         self.update_get(0)
         for i, l in enumerate(self.yvals):
             filename = l[0]
@@ -860,7 +860,7 @@ class DataCollector(wx.Frame):
         self.localpath = 0
 
     def on_ylabel(self, e):
-        "Finished"
+        """Finished"""
         dlg = miscwindows.SingleInputDialog(self)
         dlg.initialize_interface(title="Set Variable 1 Label", message="Variable 1 axis label:", defaultvalue="")
         dlg.ShowModal()
@@ -873,7 +873,7 @@ class DataCollector(wx.Frame):
         pass
 
     def on_choose_dir(self, e):
-        'Finished'
+        """Finished"""
         dlg = wx.DirDialog(None, "Choose Top Directory", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
         if dlg.ShowModal() == wx.ID_OK:
             self.directory = dlg.GetPath()

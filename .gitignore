@@ -126,11 +126,10 @@ unidec/bin/Example Data/BSA_unidecfiles/BSA_peakparam.dat
  __pycache__
 unidec/bin/Example Data/GroEL HCD UniDec_unidecfiles/GroEL HCD UniDec_peak_areas.dat
 unidec/bin/mkl_intel_thread.dll
-__pycache__/
 unidec/bin/Example Data/ADH_unidecfiles/ADH_peak_areas.dat
 unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_1D_Mass_Defects.txt
 unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_2D_Mass_Defects.txt
-unidec/modules/thermo_reader/greparam.py
+Scripts/MTM/Old/greparam.py
 unidec/bin/Presets/Marius/
 MANIFEST.in
 desktop.ini

@@ -1,6 +1,6 @@
-''' Waters 
+""" Waters
     MassLynx Python Chromatogram reader SDK
-'''
+"""
 
 from ctypes import*
 from unidec.modules.waters_importer.MassLynxRawReader import MassLynxRawReader, MassLynxBaseType

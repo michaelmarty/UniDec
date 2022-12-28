@@ -21,18 +21,18 @@ def make_preset_menu(toppath=None, exclude_dir=None, topi=1500, ext="", exclude_
     never = "UniDec_Figures_and_Files"
 
     try:
-        for p in os.listdir(toppath):
-            path = os.path.join(toppath, p)
+        for p1 in os.listdir(toppath):
+            path = os.path.join(toppath, p1)
             if os.path.isfile(path) and ext in os.path.splitext(path)[1] and exclude_ext not in os.path.splitext(path)[
                 1]:
-                mitem = opmenu.Append(topi + i, p)
+                mitem = opmenu.Append(topi + i, p1)
                 masterd.append([topi + i, path, mitem])
                 i += 1
                 # print(p)
             if os.path.isdir(path) and exclude_dir not in path and never not in path \
                     and os.path.split(path)[1] not in exclude_dir_list:
                 opmenu2 = wx.Menu()
-                opmenu.AppendSubMenu(opmenu2, p)
+                opmenu.AppendSubMenu(opmenu2, p1)
                 for p in os.listdir(path):
                     path2 = os.path.join(path, p)
                     if os.path.isfile(path2) and ext in os.path.splitext(path2)[1] and exclude_ext not in \

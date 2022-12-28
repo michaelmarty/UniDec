@@ -53,10 +53,10 @@ class TreeCtrlPanel(wx.Panel):
 
 
     def add_root(self, name, data=None):
-        '''
+        """
         Add root folder to tree
             returns root object
-        '''
+        """
         root = self.tree.AddRoot(name)
         self.tree.SetItemData(root, data)
         self.tree.SetItemImage(root, self.fldridx, wx.TreeItemIcon_Normal)
@@ -65,9 +65,9 @@ class TreeCtrlPanel(wx.Panel):
 
 
     def add_children(self, parent, path, depth_limit=1):
-        '''
+        """
         Recursively adds children up to the depth specified
-        '''
+        """
         try:
             for folder in natsorted(os.listdir(path)):
                 new_path = os.path.join(path, folder)

@@ -146,7 +146,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         sizercontrol1.Add(self.subtypectl, (i, 0))
         self.ctlslope = wx.TextCtrl(panel1, value="", size=size1)
         sizercontrol1.Add(self.ctlslope, (i, 1))
-        #sizercontrol1.Add(wx.StaticText(panel1, label="Slope (Intensity/z)"), (i, 0),
+        # sizercontrol1.Add(wx.StaticText(panel1, label="Slope (Intensity/z)"), (i, 0),
         #                  flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
@@ -332,7 +332,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         i += 1
 
         self.ctlpsfun2 = wx.RadioBox(panel2b, label="Charge Peak Shape Function",
-                                    choices=["Gaussian", "Lorentzian", "Split L/G"])
+                                     choices=["Gaussian", "Lorentzian", "Split L/G"])
         gbox2b.Add(self.ctlpsfun2, (i, 0), span=(1, 2))
         i += 1
 
@@ -376,8 +376,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         sbs.Add(self.ctlmaxnativez, flag=wx.LEFT | wx.EXPAND, border=5)
         gbox2b.Add(sbs, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
-
-
 
         '''
         
@@ -898,6 +896,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
     #
     # .......................................................
 
+    '''
     def on_check_manual(self, e):
         """
         Checks the configuration to see if values for manual mode are set. If they are not,
@@ -922,7 +921,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         if len(self.config.masslist) < 1:
             self.pres.on_mass_tools(e)
             if len(self.config.masslist) < 1:
-                self.ctlmasslistflag.SetValue(False)
+                self.ctlmasslistflag.SetValue(False)'''
 
     def on_z_smooth(self, e):
         value = self.ctlzsmoothcheck.Get3StateValue()
@@ -941,6 +940,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlmsig.SetValue("0")
         self.export_gui_to_config()
 
+    '''
     def on_pw_check(self, e):
         value = self.ctlpeakwidthcheck.Get3StateValue()
         if value == 1:
@@ -948,7 +948,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlpsfun.SetSelection(self.config.autopsfun)
         elif value == 0:
             self.ctlmzsig.SetValue("0")
-        self.export_gui_to_config()
+        self.export_gui_to_config()'''
 
     def on_p_select(self, e):
         value = self.ctlpselect.GetSelection()

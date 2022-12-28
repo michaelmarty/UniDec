@@ -11,11 +11,11 @@ def navia2config(config_obj, json_dict):
     config_obj.subbuff = json_dict['dtp']['sub_value'][0]
     config_obj.smooth = json_dict['dtp']['gau_sigma'][0]
     config_obj.intthresh = json_dict['dtp']['intensity_threshold'][0]
-    if (json_dict['dtp']['intensity_threshold'] == 'Substract Minimum'):
+    if json_dict['dtp']['intensity_threshold'] == 'Substract Minimum':
         config_obj.subtype = 0
-    elif (json_dict['dtp']['intensity_threshold'] == 'Substract Line'):
+    elif json_dict['dtp']['intensity_threshold'] == 'Substract Line':
         config_obj.subtype = 1
-    elif (json_dict['dtp']['intensity_threshold'] == 'Substract Curved'):
+    elif json_dict['dtp']['intensity_threshold'] == 'Substract Curved':
         config_obj.subtype = 2
     config_obj.binsize = 0  # not sure here
     pass

@@ -192,8 +192,8 @@ class ScoreListCtrl(wx.grid.Grid):
         self.ClearGrid()
 
     def copy(self):
-        '''Copies the current range of select cells to clipboard.
-        '''
+        """Copies the current range of select cells to clipboard.
+        """
         # Get number of copy rows and cols
         if self.GetSelectionBlockTopLeft() == []:
             rowstart = self.GetGridCursorRow()

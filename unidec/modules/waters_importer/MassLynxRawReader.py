@@ -1,6 +1,6 @@
-''' Waters 
+""" Waters
     MassLynx Python SDK
-'''
+"""
 
 import ctypes
 from ctypes import *
@@ -169,13 +169,13 @@ class MassLynxStringHandler(object):
         return
 
     def ToString(self, chString, release):
-        if (None == chString):
+        if None == chString:
             return ""
         if chString.value is None:
             return ""
 
         strValue = chString.value.decode()
-        if (release):
+        if release:
             MassLynxRawReader.ReleaseMemory(chString)
 
         chString = None
@@ -191,11 +191,11 @@ class MassLynxCodeHandler(object):
 
     # three option true, false, throw exception
     def CheckReturnCode(self, code, throw=True):
-        self._code = code;
-        if (0 == code):
+        self._code = code
+        if 0 == code:
             return True
 
-        if (throw):
+        if throw:
             raise MassLynxException(self.GetLastCode(), self.GetLastMessage())
 
         # get last error
@@ -209,7 +209,7 @@ class MassLynxCodeHandler(object):
         getErrorMessage = MassLynxRawReader.massLynxDll.getErrorMessage
         getErrorMessage.argtypes = [c_int, POINTER(c_char_p)]
 
-        message = (c_char_p)()
+        message = c_char_p()
         getErrorMessage(self.GetLastCode(), message)
         #      exceptionMessage = "MassLynx Exception {} : {}".format( returnCode, message.value.decode())
 
@@ -248,14 +248,14 @@ class MassLynxRawReader(object):
         self._stringHandler = MassLynxStringHandler()
 
         # create scan reader from a path
-        if (isinstance(source, str)):
+        if isinstance(source, str):
             bytes = str.encode(source)
             createRawReaderFromPath = MassLynxRawReader.massLynxDll.createRawReaderFromPath
             createRawReaderFromPath.argtypes = [c_char_p, POINTER(c_void_p), c_int]
             self._codeHandler.CheckReturnCode(createRawReaderFromPath(bytes, self._getReader(), mlType))
 
         # create scan reader from a reader
-        elif (isinstance(source, MassLynxRawReader)):
+        elif isinstance(source, MassLynxRawReader):
             createRawReaderFromReader = MassLynxRawReader.massLynxDll.createRawReaderFromReader
             createRawReaderFromReader.argtypes = [c_void_p, POINTER(c_void_p), c_int]
             self._codeHandler.CheckReturnCode(createRawReaderFromReader(source._getReader(), self._getReader(), mlType))
@@ -338,11 +338,11 @@ class MassLynxProcessCodeHandler(object):
 
     # three option true, false, throw exception
     def CheckReturnCode(self, code, throw=True):
-        self._code = code;
-        if (0 == code):
+        self._code = code
+        if 0 == code:
             return True
 
-        if (throw):
+        if throw:
             raise MassLynxException(self.GetLastCode(), self.GetLastMessage())
 
         # get last error
@@ -356,7 +356,7 @@ class MassLynxProcessCodeHandler(object):
         getErrorMessage = MassLynxRawReader.massLynxDll.getProcessorMessage
         getErrorMessage.argtypes = [c_int, POINTER(c_char_p)]
 
-        message = (c_char_p)()
+        message = c_char_p()
         getErrorMessage(self.GetLastCode(), message)
         #      exceptionMessage = "MassLynx Exception {} : {}".format( returnCode, message.value.decode())
 

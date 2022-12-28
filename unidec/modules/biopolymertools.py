@@ -89,7 +89,5 @@ def calc_dna_mass(sequence, threeend="OH", fiveend="MP"):
     return round(mass, 2)
 
 
-
 if __name__ == "__main__":
     print(mass_HPO4 + mass_HPO4 - mass_O - mass_O + mass_H + mass_H)
-

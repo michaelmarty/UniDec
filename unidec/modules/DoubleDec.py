@@ -63,7 +63,7 @@ class DoubleDec:
         self.data = None
         self.kernel = None
         self.dec = None
-        self.dec2 = None
+        self.dec2 = np.array([])
         self.extracts = None
         pass
 

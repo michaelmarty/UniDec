@@ -34,7 +34,7 @@ def makemass(testmass):
 
 
 def isojim(isolist, length=700):
-    '''Thanks to Jim Prell for Sketching this Code'''
+    """Thanks to Jim Prell for Sketching this Code"""
     numc = isolist[0]
     numh = isolist[1]
     numn = isolist[2]
@@ -99,7 +99,7 @@ def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.0072
 
 
 def correct_avg(dist, mass):
-    '''Note, switched from weighted average to peak correction'''
+    """Note, switched from weighted average to peak correction"""
     avg = dist[np.argmax(dist[:, 1]), 0]  # np.average(dist[:, 0], weights=dist[:, 1])
     dist[:, 0] = dist[:, 0] - avg + mass
     return dist

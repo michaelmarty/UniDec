@@ -42,8 +42,8 @@ class WatersDataImporter:
                     fn = self.reader.GetFunctionType(self.function)
                 except:
                     print("Function number not found in Raw file:", self.function)
-                    raise (IOError)
-                    return None
+                    raise IOError
+
         print("Waters Data Type:", self.reader.GetFunctionTypeString(fn))
         self.maxscans = self.reader.GetScansInFunction(self.function)
         self.scanrange = [0, self.maxscans]

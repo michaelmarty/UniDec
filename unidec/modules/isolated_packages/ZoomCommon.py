@@ -75,7 +75,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
         x, y = t.get_position()
         y = y * 1.01
         if xmin is not None and xmax is not None:
-            if x < xmax and x > xmin:
+            if xmax > x > xmin:
                 t.set_visible(True)
                 yvals.append([y, y])
                 xvals.append([x, x])
@@ -88,7 +88,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
     if len(yvals) != 0 and len(xvals) != 0:
         ymin = np.amin(np.ravel(yvals))
         ymax = np.amax(np.ravel(yvals))
-        if xmin == None or xmax == None:
+        if xmin is None or xmax is None:
             xmin = np.amin(np.ravel(xvals))
             xmax = np.amax(np.ravel(xvals))
 

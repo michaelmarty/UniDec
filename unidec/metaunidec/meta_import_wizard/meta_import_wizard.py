@@ -111,11 +111,11 @@ class ImportWizard(wx.Frame):
 
     # bound to browse button for folder path
     def get_folder_path(self, evt):
-        '''
+        """
         Get path to folder and place in txtctrl
-        '''
+        """
         path = FileDialogs.open_dir_dialog()
-        if path != None:
+        if path is not None:
             self.folder_path.SetValue(path)
             self.my_tree.populate_tree()
 
@@ -180,12 +180,12 @@ class ImportWizard(wx.Frame):
             self.my_grid.load_data(data)
 
     def export_file(self, evt):
-        '''
+        """
         Export import file for later import
-        '''
+        """
         file_path = FileDialogs.save_file_dialog(message="Save Import CSV File", file_types="CSV (*.csv)|*.csv")
         max_index = self.my_grid.next_free_row()
-        if file_path != None and max_index > 0:
+        if file_path is not None and max_index > 0:
 
             if file_path[-17:] != '_import.csv' and file_path[-4:] != '.csv':
                 file_path += '_import.csv'

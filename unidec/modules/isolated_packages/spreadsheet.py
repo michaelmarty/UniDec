@@ -335,7 +335,7 @@ class MyGrid(wx.grid.Grid):
         self.copy(event)
         self.delete(event)
 
-class SpreadsheetPanel():
+class SpreadsheetPanel:
     def __init__(self, panel, nrows=0, ncolumns=0):
         self.ss = MyGrid(panel)
         self.nrows = nrows

@@ -795,7 +795,7 @@ class UniDecCD(engine.UniDec):
                                                psfun=self.config.psfunz)
             else:
                 self.kernel = deepcopy(self.mkernel)
-        elif zsig > 0 and mzsig <= 0:
+        elif zsig > 0 >= mzsig:
             self.mkernel = None
             self.kernel[:, 0] = fitting.psfit(-Y[:, 0], zsig, -np.amin(self.ztab), psfun=self.config.psfunz) \
                                 + fitting.psfit(-Y[:, 0], zsig, -(np.amax(self.ztab) + self.config.CDzbins),

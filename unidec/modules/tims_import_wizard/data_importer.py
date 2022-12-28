@@ -21,9 +21,9 @@ param_file_cache = {}
 
 
 def auto_from_wizard(lines, exedir):
-    '''
+    """
     Auto load from the import wizard
-    '''
+    """
     # make list to convert items for importing
     conv = {'Filename': tt.FILE_NAME,
             'Full Path': tt.FILE_PATH,
@@ -252,10 +252,10 @@ def MakeUniDecConfig(job_kwargs):
 
 
 def process_from_wizard(**kwargs):
-    '''
+    """
     Processes row in import wizard file
     and adds to data model.
-    '''
+    """
     run_get_data(kwargs)
     pub.sendMessage('RAW DATA ADDED TO MODEL')
 
@@ -451,7 +451,7 @@ def parse_file(file_path, exp_type='linear', collision=None, debug=False, dir=No
         cv = get_stat_name(file_path, "Collision Energy")
         if cv is not None:
             out[tt.COLLISION_V] = cv
-        if collision != None:
+        if collision is not None:
             out[tt.COLLISION_V] = str(collision)
 
         # get some general instrument parameters
@@ -492,12 +492,12 @@ def GetLines(InputFileName):
 
 def GetStartEndMass(RawFile):
     ce, s, e = None, None, None
-    if (platform.uname()[0] == 'Windows'):
+    if platform.uname()[0] == 'Windows':
         ParamFile = RawFile + "\_extern.inf"
     else:
         ParamFile = RawFile + "/_extern.inf"
 
-    if (os.path.exists(ParamFile) == 0):
+    if os.path.exists(ParamFile) == 0:
         sys.stdout.write('Cannot find param file %s\n' % ParamFile)
         # sys.exit(100)
 
@@ -582,7 +582,7 @@ def header_desc(file_path):
 def search_extern(file_path, search_string, split_skip=False):
     # note that split_skip will go +1 on what is returned to get around non-ASCII unit issue
     # e.g. Pusher Interval (uS) where u is Greek mu, search for "Pusher Interval" and then set split_skip = True
-    '''
+    """
     Pass in each string left of target value.
     An example,
         target
@@ -590,7 +590,7 @@ def search_extern(file_path, search_string, split_skip=False):
         Trap Wave Velocity (m/s)	300
         search string='Trap Wave Velocity (m/s)'
         returns :: 300
-    '''
+    """
     global param_file_cache
 
     param_path = os.path.join(file_path, '_extern.inf')

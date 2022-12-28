@@ -2719,7 +2719,7 @@ def win_autocorr_grid(rawdata, binsize, wbin, window_fwhm, diffrange):
 
 def correlation_integration(dat1, dat2, alpha=0.01, plot_corr=False, **kwargs):
     """
-    Perform MacCoss method (http://pubs.acs.org/doi/pdf/10.1021/ac034790h) of getting peak intensities
+    Perform MacCoss method (https://pubs.acs.org/doi/pdf/10.1021/ac034790h) of getting peak intensities
     :param dat1: Denominator peak
     :param dat2: Numerator peak
     :param alpha: 1-confidence level
@@ -2835,7 +2835,7 @@ def calc_FWHM(peak, data):
         if leftfound is False:
             if index - counter < 0:
                 leftfound = True
-            elif data[index - counter, 1] <= (int) / 2.:
+            elif data[index - counter, 1] <= int / 2.:
                 leftfound = True
                 leftwidth += 1
             else:
@@ -2843,7 +2843,7 @@ def calc_FWHM(peak, data):
         if rightfound is False:
             if index + counter >= len(data):
                 rightfound = True
-            elif data[index + counter, 1] <= (int) / 2.:
+            elif data[index + counter, 1] <= int / 2.:
                 rightfound = True
                 rightwidth += 1
             else:
