@@ -26,6 +26,7 @@ class DataImporter:
     Imports mzML data files.
     """
 
+    # noinspection PyArgumentList
     def __init__(self, path, *args, **kwargs):
         """
         Imports mzML file, adds the chromatogram into a single spectrum.
@@ -152,6 +153,7 @@ class DataImporter:
 
         return data
 
+    # noinspection PyArgumentList
     def get_tic(self):
         try:
             xic = self.msrun.xic(filter="Full")
@@ -196,6 +198,7 @@ class DataImporter:
             return [t, t, t]
 
     def get_polarity(self, scan=0):
+        # noinspection PyArgumentList
         self.scan_info = self.msrun.scan_info()
         line = self.scan_info[scan]
         print(line)

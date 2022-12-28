@@ -19,7 +19,7 @@ class ImportWizard(wx.Frame):
 
     def setup_frame(self):
         self.CreateStatusBar()
-        self.Title = 'HDF5 File Import Wizard'
+        self.SetTitle('HDF5 File Import Wizard')
 
         panel = wx.Panel(self)
 

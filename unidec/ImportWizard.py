@@ -11,6 +11,13 @@ from unidec.modules.isolated_packages import FileDialogs
 class ImportWizard(wx.Frame):
     def __init__(self, parent, dir=None):
         wx.Frame.__init__(self, parent, size=(1000, 900))
+        self.desc = None
+        self.my_tree = None
+        self.tree = None
+        self.my_grid = None
+        self.folder_path = None
+        self.rb = None
+        self.file_set = None
         self.setup_frame()
         if dir is not None:
             self.exedir = dir
@@ -19,7 +26,7 @@ class ImportWizard(wx.Frame):
 
     def setup_frame(self):
         self.CreateStatusBar()
-        self.Title = 'Data Conversion Wizard - By Tim Allison with mods from MTM'
+        self.SetTitle('Data Conversion Wizard - By Tim Allison with mods from MTM')
 
         panel = wx.Panel(self)
 
@@ -201,7 +208,8 @@ class ImportWizard(wx.Frame):
             t = threading.Thread(target=data_importer.auto_from_wizard, args=(filtered_lines, self.exedir))
             t.start()
             # gauge=ImporterProgressGauge.ProgressDialog()
-            # gauge.progress_dialog(self,"Importing raw file(s)","Importing file %s of %s, please wait..." % (1, len(filtered_lines) - 2),len(filtered_lines) - 2)
+            # gauge.progress_dialog(self,"Importing raw file(s)","Importing file %s of %s, please wait..."
+            # % (1, len(filtered_lines) - 2),len(filtered_lines) - 2)
             ImporterProgressGauge.progress_dialog(self, "Importing raw file(s)",
                                                   "Importing file %s of %s, please wait..." % (
                                                       1, len(filtered_lines) - 2), len(filtered_lines) - 2)

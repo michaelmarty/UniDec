@@ -7,6 +7,7 @@ import wx.lib.scrolledpanel as scrolled
 
 
 class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
+    # noinspection PyMissingConstructor
     def __init__(self, parent, config, pres, panel, iconfile):
         super(wx.Panel, self).__init__(panel)
         # super(scrolled.ScrolledPanel, self).__init__(parent=panel, style=wx.ALL | wx.EXPAND)

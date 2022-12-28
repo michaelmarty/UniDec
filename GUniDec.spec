@@ -134,7 +134,7 @@ out = subprocess.call(path)
 if out != 0:
     exit()
 
-exit()
+# exit()
 
 print("Zipping...")
 # Zip up the final file
