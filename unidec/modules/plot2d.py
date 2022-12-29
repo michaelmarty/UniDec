@@ -7,7 +7,7 @@ from matplotlib.image import NonUniformImage
 
 import scipy.ndimage.filters as filt
 
-from unidec.modules import unidectools as ud
+from unidec import tools as ud
 from unidec.modules.PlotBase import PlotBase
 
 __author__ = 'Michael.Marty'

@@ -1,5 +1,5 @@
 from unidec.modules import unidecstructure, peakstructure, plot1d
-from unidec.modules import unidectools as ud
+from unidec import tools as ud
 import numpy as np
 import os
 import time

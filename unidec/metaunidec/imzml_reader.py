@@ -3,7 +3,7 @@ import os
 from pyimzml.ImzMLParser import ImzMLParser
 from pyimzml.ImzMLWriter import ImzMLWriter
 import h5py
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 from unidec.modules.hdf5_tools import replace_dataset
 
 

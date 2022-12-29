@@ -6,7 +6,7 @@ from unidec import engine
 
 from unidec.GUniDec import UniDecApp
 from pubsub import pub
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 from unidec.modules import CDEng
 from unidec.modules.gui_elements import CDWindow
 import multiprocessing

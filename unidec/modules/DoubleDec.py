@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 from copy import deepcopy
 from scipy import fftpack
 import scipy.stats as stats

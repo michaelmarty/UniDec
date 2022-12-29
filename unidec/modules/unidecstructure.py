@@ -2,7 +2,7 @@ import os
 import time
 
 import numpy as np
-from unidec.modules import unidectools as ud
+from unidec import tools as ud
 import platform
 import matplotlib.cm as cm
 from matplotlib.pyplot import colormaps

@@ -8,7 +8,7 @@ from pubsub import pub
 import multiprocessing
 from unidec.modules import unidecstructure, PlottingWindow
 from unidec.modules import miscwindows
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 import h5py
 from unidec.modules.hdf5_tools import replace_dataset, get_dataset
 from unidec.metaunidec import mudeng

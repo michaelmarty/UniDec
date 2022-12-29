@@ -3,7 +3,7 @@ import wx.lib.mixins.listctrl as listmix
 import numpy as np
 import matplotlib.cm as cm
 
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 from copy import deepcopy
 
 luminance_cutoff = 135

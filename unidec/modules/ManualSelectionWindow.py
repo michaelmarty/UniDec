@@ -8,7 +8,7 @@ from scipy.spatial.distance import euclidean
 
 from unidec.modules import PlottingWindow
 from unidec.modules.isolated_packages import FileDialogs
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 
 __author__ = 'Michael.Marty'
 

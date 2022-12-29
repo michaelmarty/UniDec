@@ -7,7 +7,7 @@ import matplotlib.colors as colors
 import matplotlib.colorbar as colorbar
 
 from unidec.modules.PlottingWindow import PlottingWindowBase
-from unidec.modules.unidectools import color_map_array
+from unidec.tools import color_map_array
 
 '''
 # These functions are getting pulled from unidectools. You can uncomment this to avoid having to import them.

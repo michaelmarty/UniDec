@@ -2,7 +2,8 @@ import wx
 import wx.lib.mixins.listctrl as listmix
 import numpy as np
 from copy import deepcopy
-from unidec.modules import unidectools as ud, miscwindows
+from unidec.modules import miscwindows
+from unidec import tools as ud
 
 luminance_cutoff = 135
 white_text = wx.Colour(250, 250, 250)

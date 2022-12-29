@@ -1,6 +1,6 @@
 import numpy as np
 import pymzml
-from unidec.modules import unidectools as ud
+from unidec import tools as ud
 import os
 from copy import deepcopy
 from pymzml.utils.utils import index_gzip

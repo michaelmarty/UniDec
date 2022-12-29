@@ -3,7 +3,7 @@ from matplotlib.animation import FuncAnimation
 import wx
 from unidec.modules import PlottingWindow
 from unidec.modules import unidecstructure
-from unidec.modules import unidectools as ud
+from unidec import tools as ud
 from unidec.modules.isolated_packages import FileDialogs
 import os
 

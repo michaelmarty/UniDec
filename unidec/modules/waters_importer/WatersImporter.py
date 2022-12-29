@@ -1,5 +1,5 @@
 from copy import deepcopy
-from unidec.modules import unidectools as ud
+from unidec import tools as ud
 from unidec.modules.mzMLimporter import merge_spectra
 import numpy as np
 # import sys

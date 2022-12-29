@@ -4,7 +4,7 @@ import wx
 import wx.grid
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 from copy import deepcopy
 from unidec import engine
 

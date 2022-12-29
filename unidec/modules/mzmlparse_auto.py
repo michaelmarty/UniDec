@@ -1,6 +1,6 @@
 __author__ = 'Michael.Marty'
 
-from unidec.modules.unidectools import get_importer
+from unidec.tools import get_importer
 from unidec.modules.mzMLimporter import *
 from unidec.modules.hdf5_tools import replace_dataset
 import os

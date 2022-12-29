@@ -8,7 +8,7 @@ import scipy.ndimage.filters as filt
 
 from unidec.modules import unidecstructure
 from unidec.modules import PlottingWindow
-from unidec.modules import unidectools as ud
+from unidec import tools as ud
 
 __author__ = 'Michael.Marty'
 

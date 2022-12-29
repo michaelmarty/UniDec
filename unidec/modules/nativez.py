@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.cm as cm
 from scipy.interpolate import interp1d
 from wx.lib.agw import ultimatelistctrl as ulc
-from unidec.modules import unidectools as ud
+from unidec import tools as ud
 from unidec.modules import PlottingWindow
 from unidec.modules import MassFitter
 

@@ -6,7 +6,7 @@ from scipy.interpolate import interp1d
 from unidec.modules.AutocorrWindow import AutocorrWindow
 from unidec.modules.isolated_packages import FileDialogs
 from unidec.modules.isolated_packages import biopolymer_calculator, spreadsheet
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 
 '''
 Module for window defining the oligomers, the expected masses, and for matching peaks to the defined oligomers.

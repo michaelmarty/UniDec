@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import unidec.engine as engine
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 import matplotlib.cm as cm
 
 def make_plot(axs, i, sdata, gdata, hdata, fdata):

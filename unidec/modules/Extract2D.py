@@ -6,7 +6,8 @@ import matplotlib.cm as cm
 
 from unidec.modules import unidecstructure
 from unidec.modules import PlottingWindow
-from unidec.modules import unidectools as ud, miscwindows
+from unidec.modules import miscwindows
+from unidec import tools as ud
 from unidec.modules.MassFitter import MassFitter
 
 __author__ = 'Michael.Marty'

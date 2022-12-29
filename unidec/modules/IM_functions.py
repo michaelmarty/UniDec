@@ -4,7 +4,7 @@ import numpy as np
 import scipy.ndimage.filters as filt
 
 # import time
-from unidec.modules import unidectools as ud
+from unidec import tools as ud
 
 __author__ = 'Michael.Marty'
 

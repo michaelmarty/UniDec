@@ -2,8 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import unidec.engine as engine
-import unidec.modules.unidectools as ud
-from unidec.modules.isolated_packages.biopolymer_calculator import calc_pep_mass
+import unidec.tools as ud
 
 os.chdir("C:\\Data\\Luis Genentech")
 

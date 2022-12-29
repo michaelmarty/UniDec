@@ -13,7 +13,7 @@ from pubsub import pub
 import multiprocessing
 from unidec.modules import UniFit, Extract2D, unidecstructure, PlotAnimations, PlottingWindow, IM_functions
 from unidec.modules import DoubleDec, MassDefects, miscwindows
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 from unidec.modules.AutocorrWindow import AutocorrWindow
 import h5py
 from unidec.modules.hdf5_tools import get_dataset

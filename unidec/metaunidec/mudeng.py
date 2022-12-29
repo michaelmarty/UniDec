@@ -2,7 +2,7 @@ import os
 import subprocess
 import numpy as np
 
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 from unidec.modules import peakstructure, unidec_enginebase
 from unidec.metaunidec.mudstruct import MetaDataSet
 import unidec.modules.mzmlparse_auto as automzml

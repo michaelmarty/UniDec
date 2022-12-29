@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import unidec.modules.MassSpecBuilder as msb
-from unidec.modules import unidectools as ud
+from unidec import tools as ud
 import scipy.stats as stats
 
 belts = {"T0": 22044., "G1": 22101., "T1": 22145., "R1": 22200., "T2": 22246., "MSP1D1(-)": 22044., }

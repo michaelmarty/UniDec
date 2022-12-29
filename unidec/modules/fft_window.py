@@ -3,7 +3,7 @@ import numpy as np
 import wx
 from unidec.modules import unidecstructure, PlottingWindow, fitting
 from unidec.modules import miscwindows
-from unidec.modules.unidectools import win_fft_grid, nearest, peakdetect
+from unidec.tools import win_fft_grid, nearest, peakdetect
 import matplotlib.cm as cm
 
 __author__ = 'Michael.Marty'

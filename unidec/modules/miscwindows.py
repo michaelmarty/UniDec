@@ -1,6 +1,6 @@
 import os
 import wx
-from unidec.modules import unidectools as ud
+from unidec import tools as ud
 
 __author__ = 'Michael.Marty'
 

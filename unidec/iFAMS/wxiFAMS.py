@@ -3,7 +3,7 @@ import numpy as np
 import wx
 
 from unidec.modules import unidecstructure, PlottingWindow
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 
 from unidec.iFAMS import iFAMSfun
 

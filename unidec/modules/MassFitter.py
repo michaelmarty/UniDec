@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.optimize as opt
 
-from unidec.modules import unidectools as ud
+from unidec import tools as ud
 
 __author__ = 'Michael.Marty'
 

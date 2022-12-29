@@ -1,7 +1,7 @@
 import numpy as np
 from unidec.modules.hdf5_tools import replace_dataset, get_dataset
 import h5py
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 import os
 from copy import deepcopy
 from unidec.modules.peakstructure import Peaks

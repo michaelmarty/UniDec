@@ -5,7 +5,7 @@ from pubsub import pub
 import wx
 
 from unidec.modules import PlottingWindow, unidecstructure
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 from unidec.metaunidec import mudstruct
 
 __author__ = 'Michael.Marty'

@@ -8,7 +8,7 @@ import unidec.engine as unidec
 #
 from pubsub import pub
 
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 import unidec.modules.IM_functions as IM_func
 import unidec.modules.IM_windows as IM_wind
 from unidec.modules import Extract2D, masstools, mainwindow, nativez, fft_window, GridDecon, isotopetools

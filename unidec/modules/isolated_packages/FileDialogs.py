@@ -3,7 +3,7 @@
 
 import wx, os
 import wx.lib.agw.multidirdialog as MDD
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 from pathlib import Path
 
 # setup a default path

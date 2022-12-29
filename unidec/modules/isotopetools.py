@@ -1,7 +1,7 @@
 import numpy as np
 import time
 from scipy import fftpack
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 
 # import pyteomics.mass as ms
 

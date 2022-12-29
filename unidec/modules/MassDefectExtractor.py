@@ -2,7 +2,7 @@ import os
 import numpy as np
 import wx
 from unidec.modules import unidecstructure, PlottingWindow
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 import unidec.modules.masstools as masstools
 import matplotlib.cm as cm
 from unidec.modules.isolated_packages import FileDialogs

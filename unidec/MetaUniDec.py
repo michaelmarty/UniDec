@@ -9,7 +9,7 @@ import os
 #
 from pubsub import pub
 
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 from unidec.modules import Extract2D, masstools, PlotAnimations, IM_functions, fft_window, AutocorrWindow
 from unidec.modules import MassDefects, miscwindows
 from unidec.modules.isolated_packages import FileDialogs

@@ -1,5 +1,5 @@
 from multiplierz.mzAPI import mzFile
-from unidec.modules import unidectools as ud
+from unidec import tools as ud
 from unidec.modules.mzMLimporter import merge_spectra
 from copy import deepcopy
 import numpy as np

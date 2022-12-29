@@ -9,7 +9,7 @@ import zipfile
 import fnmatch
 import numpy as np
 from unidec.modules import unidecstructure, peakstructure, MassFitter
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 import unidec.modules.IM_functions as IM_func
 import unidec.modules.MassSpecBuilder as MSBuild
 from unidec.modules.unidec_enginebase import UniDecEngine

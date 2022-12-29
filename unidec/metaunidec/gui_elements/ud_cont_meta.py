@@ -1,6 +1,6 @@
 import wx
 import wx.lib.agw.foldpanelbar as fpb
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 import numpy as np
 import wx.lib.scrolledpanel as scrolled
 

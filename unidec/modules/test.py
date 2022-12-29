@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from unidec.modules import unidectools as ud
+from unidec import tools as ud
 from copy import deepcopy
 import warnings
 

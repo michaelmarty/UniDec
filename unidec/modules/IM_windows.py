@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.cm as cm
 from unidec.modules import PlottingWindow
 # noinspection PyUnresolvedReferences
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 from unidec.modules.IM_functions import *
 
 __author__ = 'Michael.Marty'

@@ -4,7 +4,7 @@ import math
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
 import numpy as np
-from unidec.modules import unidectools as ud
+from unidec import tools as ud
 
 __author__ = 'Michael.Marty'
 

@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import scipy
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 from unidec.modules.unidec_enginebase import UniDecEngine
 from unidec.modules.thermo_reader.ThermoImporter import ThermoDataImporter
 from copy import deepcopy

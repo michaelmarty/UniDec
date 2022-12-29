@@ -1,6 +1,6 @@
 from unidec.metaunidec.meta_import_wizard import MetaTagTypes as tt
 from unidec.metaunidec import mudeng
-from unidec.modules.unidectools import get_importer
+from unidec.tools import get_importer
 import os
 
 def parse_file(file_path, exp_type='Time', collision=None, dir=None):

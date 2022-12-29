@@ -4,7 +4,7 @@ import numpy as np
 import wx
 from unidec.modules import unidecstructure, PlottingWindow
 from unidec.modules import miscwindows
-from unidec.modules.unidectools import double_fft_diff, mergedata, datachop
+from unidec.tools import double_fft_diff, mergedata, datachop
 
 __author__ = 'Michael.Marty'
 

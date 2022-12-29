@@ -2,8 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import unidec.engine as engine
-import unidec.modules.unidectools as ud
-from unidec.modules.isolated_packages.biopolymer_calculator import calc_pep_mass
+import unidec.tools as ud
 import matplotlib.cm as cm
 
 def make_2D_plot(axs, masses, sdata, sdata2d, gdata, gdata2d, hdata, hdata2d, fdata, fdata2d):

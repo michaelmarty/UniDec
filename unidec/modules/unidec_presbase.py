@@ -3,7 +3,7 @@ from unidec.modules.isolated_packages import FileDialogs, biopolymer_calculator
 from unidec.modules import peakwidthtools
 import os
 import numpy as np
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 from unidec.modules import ManualSelectionWindow, AutocorrWindow, peakstructure
 from unidec.modules import SubDiv, miscwindows
 from unidec.metaunidec.mudstruct import MetaDataSet

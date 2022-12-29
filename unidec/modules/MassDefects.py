@@ -4,7 +4,7 @@ import numpy as np
 import wx
 from unidec.modules import unidecstructure, PlottingWindow, MassDefectExtractor
 from unidec.modules import miscwindows
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 from unidec.modules.MassFitter import MassFitter
 from unidec.modules.isolated_packages.MD_compare import MassDefectCompareWindow
 import matplotlib.cm as cm

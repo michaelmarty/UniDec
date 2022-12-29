@@ -1,6 +1,6 @@
 import numpy as np
 import wx
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 from unidec.modules import PlottingWindow, peakstructure, unidecstructure
 
 

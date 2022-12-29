@@ -1,6 +1,6 @@
 import os
 import numpy as np
-import unidec.modules.unidectools as ud
+import unidec.tools as ud
 from unidec.metaunidec.mudeng import MetaUniDec
 from unidec.engine import UniDec
 from copy import deepcopy
