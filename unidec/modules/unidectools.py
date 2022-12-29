@@ -18,6 +18,7 @@ from scipy import fftpack
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 from unidec.modules.fitting import *
+
 try:
     from unidec.modules.mzMLimporter import mzMLimporter
 except:
@@ -50,27 +51,30 @@ oxmass = 15.994914
 
 
 def get_importer(path):
-    if os.path.splitext(path)[1] == ".mzML" or os.path.splitext(path)[1] == ".gz":
-        # mzML file
-        d = mzMLimporter(path, gzmode=True)
-    elif os.path.splitext(path)[1] == ".mzXML":
-        d = mzXMLimporter(path)
-    elif os.path.splitext(path)[1].lower() == ".raw" and not os.path.isdir(path):
-        # Thermo Raw File
-        try:
-            d = ThermoDataImporter(path)
-        except:
+    if os.path.isfile(path) or os.path.isdir(path):
+        if os.path.splitext(path)[1] == ".mzML" or os.path.splitext(path)[1] == ".gz":
+            # mzML file
+            d = mzMLimporter(path, gzmode=True)
+        elif os.path.splitext(path)[1] == ".mzXML":
+            d = mzXMLimporter(path)
+        elif os.path.splitext(path)[1].lower() == ".raw" and not os.path.isdir(path):
+            # Thermo Raw File
+            try:
+                d = ThermoDataImporter(path)
+            except:
+                d = data_reader.DataImporter(path)
+        elif os.path.splitext(path)[1].lower() == ".raw" and os.path.isdir(path):
+            # Waters Raw Directory
+            d = WDI(path, do_import=False)
+        elif os.path.splitext(path)[1].lower() == ".txt" or os.path.splitext(path)[1].lower() == ".dat" \
+                or os.path.splitext(path)[1].lower() == ".csv":
+            # print("Text Files Not Supported for This Operation")
+            return None
+        else:
+            # Some other file type
             d = data_reader.DataImporter(path)
-    elif os.path.splitext(path)[1].lower() == ".raw" and os.path.isdir(path):
-        # Waters Raw Directory
-        d = WDI(path, do_import=False)
-    elif os.path.splitext(path)[1].lower() == ".txt" or os.path.splitext(path)[1].lower() == ".dat" \
-            or os.path.splitext(path)[1].lower() == ".csv":
-        print("Text Files Not Supported for This Operation")
-        return None
     else:
-        # Some other file type
-        d = data_reader.DataImporter(path)
+        print("Get Importer Failed. File Not Found:", path)
 
     return d
 
@@ -850,6 +854,7 @@ def header_test(path, deletechars=None):
         header = 0
     return int(header)
 
+
 '''
 def waters_convert(path, config=None, outfile=None):
     if config is None:
@@ -897,14 +902,18 @@ def load_mz_file(path, config=None, time_range=None, imflag=0):
     else:
         extension = config.extension.lower()
 
+    if not os.path.isfile(path) and not os.path.isdir(path):
+        print("Load MZ File Failed. File Not Found:", path)
+        raise IOError
+
     if not os.path.isfile(path):
         if os.path.isdir(path) and os.path.splitext(path)[1].lower() == ".raw":
             try:
                 outfile = os.path.splitext(path)[0] + "_rawdata.txt"
                 print("Trying to convert Waters File:", outfile)
                 data = waters_convert2(path, config, outfile=outfile)
-            except:
-                print("Attempted to convert Waters Raw file but failed")
+            except Exception as e:
+                print("Attempted to convert Waters Raw file but failed", e, path)
                 raise IOError
         elif os.path.isdir(path) and os.path.splitext(path)[1].lower() == ".d":
             try:
@@ -913,12 +922,12 @@ def load_mz_file(path, config=None, time_range=None, imflag=0):
                 txtname = path[:-2] + ".txt"
                 np.savetxt(txtname, data)
                 print("Saved to:", txtname)
-            except:
-                print("Attempted to convert Agilent Raw file but failed")
+            except Exception as e:
+                print("Attempted to convert Agilent Raw file but failed", e, path)
                 raise IOError
         else:
             print("Attempted to open:", path)
-            print("\t but I couldn't find the file...")
+            print("\t but failed. File type may not be supported...")
             raise IOError
     else:
         if extension == ".txt" or extension == ".dat":
@@ -2947,6 +2956,7 @@ def peaks_error_FWHM(pks, data, level=0.5):
         # print("Apex:", p.mass, "Centroid:", p.centroid, "FWHM Range:", p.intervalFWHM)
     pks.centroids = np.array([p.centroid for p in pks.peaks])
     pks.fwhms = np.array([p.errorFWHM for p in pks.peaks])
+
 
 def peaks_error_mean(pks, data, ztab, massdat, config):
     """

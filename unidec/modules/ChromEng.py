@@ -26,7 +26,7 @@ class ChromEngine(MetaUniDec):
         self.mzdata = None
         self.procdata = None
         self.config.default_high_res()
-        self.unidec_eng = UniDec()
+        self.unidec_eng = UniDec(ignore_args=True)
 
     def open_chrom(self, path, load_hdf5=True, refresh=False):
         if os.path.splitext(path)[1] == ".hdf5":

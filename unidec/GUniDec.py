@@ -59,7 +59,7 @@ class UniDecApp(UniDecPres):
         :param kwargs:
         :return:
         """
-        self.eng = unidec.UniDec()
+        self.eng = unidec.UniDec(ignore_args=True)
 
         self.view = mainwindow.Mainwindow(self, "UniDec", self.eng.config)
 
@@ -82,7 +82,10 @@ class UniDecApp(UniDecPres):
 
         if self.infile is not None:
             newdir, fname = os.path.split(self.infile)
-            self.on_open_file(fname, newdir)
+            try:
+                self.on_open_file(fname, newdir)
+            except Exception as exception:
+                pass
             # self.on_dataprep_button(0)
             # self.on_auto(0)
 
@@ -705,10 +708,10 @@ class UniDecApp(UniDecPres):
             self.makeplot5(1)
             self.makeplot6(1)
 
-    def make_cube_plot(self, e=None):
+    def make_cube_plot(self, event=None):
         """
         Make cube plots for IMMS.
-        :param e: unused event
+        :param event: unused event
         :return: None
         """
         self.export_config(self.eng.config.confname)

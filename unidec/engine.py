@@ -37,34 +37,39 @@ class UniDec(UniDecEngine):
         self.infile = None
         self.outfile = None
         opts = None
-        try:
-            opts, args = getopt.getopt(sys.argv[1:], "f:o:", ["file=", "out="])
-        except getopt.GetoptError as e:
-            print("Error in Argv. Likely unknown option: ", sys.argv, e)
-            print("Known options: -f, -o")
+        if "ignore_args" in kwargs:
+            ignore_args = kwargs["ignore_args"]
+        else:
+            ignore_args = False
+        if not ignore_args:
+            try:
+                opts, args = getopt.getopt(sys.argv[1:], "f:o:", ["file=", "out="])
+            except getopt.GetoptError as e:
+                print("Error in Argv. Likely unknown option: ", sys.argv, e)
+                print("Known options: -f, -o")
 
-        #print("ARGS:", args)
-        #print("KWARGS:", kwargs)
-        #print("OPTS:", opts)
-        if opts is not None:
-            for opt, arg in opts:
-                if opt in ("-f", "--file"):
-                    self.infile = arg
-                    print("Opening File:", self.infile)
-                if opt in ("-o", "--out"):
-                    self.outfile = arg
-                    print("Output File:", self.outfile)
-        if ud.isempty(opts) or self.infile is None:
-            if len(args) > 0:
-                maybe_file = args[0]
-                ext = os.path.splitext(maybe_file)[1]
-                if ext.lower()[1:] in ["mzml", "mzxml", "raw", "hdf5", "txt", "gz", "d"]:
-                    self.infile = maybe_file
-                    print("Opening File:", self.infile)
-        if self.infile is not None:
-            self.open_file(self.infile)
-            self.autorun()
-        pass
+            #print("ARGS:", args)
+            #print("KWARGS:", kwargs)
+            #print("OPTS:", opts)
+            if opts is not None:
+                for opt, arg in opts:
+                    if opt in ("-f", "--file"):
+                        self.infile = arg
+                        print("Opening File:", self.infile)
+                    if opt in ("-o", "--out"):
+                        self.outfile = arg
+                        print("Output File:", self.outfile)
+            if ud.isempty(opts) or self.infile is None:
+                if len(args) > 0:
+                    maybe_file = args[0]
+                    ext = os.path.splitext(maybe_file)[1]
+                    if ext.lower()[1:] in ["mzml", "mzxml", "raw", "hdf5", "txt", "gz", "d"]:
+                        self.infile = maybe_file
+                        print("Opening File:", self.infile)
+            if self.infile is not None:
+                self.open_file(self.infile)
+                self.autorun()
+            pass
 
     def open_file(self, file_name, file_directory=None, time_range=None, refresh=False, load_results=False, *args,
                   **kwargs):

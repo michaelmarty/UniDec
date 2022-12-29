@@ -3,7 +3,6 @@ from setuptools import setup, find_packages
 setup(
     setup_requires=["setuptools-git"],
     name="unidec",
-    #version="5.2.1.1",
     author="Michael Marty",
     author_email="mtmarty@arizona.edu",
     keywords="UniDec Mass Spectrometry Deconvolution Ion Mobility",

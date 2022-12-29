@@ -207,8 +207,11 @@ class Shell(object):
         self.__wx_app.MainLoop()
 
 
-if __name__ == '__main__':
-    # app2 = Shell()
+def run_launcher(*args, **kwargs):
     multiprocessing.freeze_support()
     app = UniDecLauncher(sys.argv[1:])
     app.start()
+
+
+if __name__ == '__main__':
+    run_launcher()

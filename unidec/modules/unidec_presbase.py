@@ -29,7 +29,7 @@ class UniDecPres(object):
         opts = None
         if not ignore_args:
             try:
-                opts, args = getopt.getopt(sys.argv[1:], "ucmfd:", ["file=", "unidec", "meta", "chrom", "ucd"])
+                opts, args = getopt.getopt(sys.argv[1:], "ucmdf:", ["file=", "unidec", "meta", "chrom", "ucd"])
             except getopt.GetoptError as e:
                 print("Error in Argv. Likely unknown option: ", sys.argv, e)
                 print("Known options: -u, -m, -c, -f, -d")

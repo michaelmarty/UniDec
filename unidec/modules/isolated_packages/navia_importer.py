@@ -73,7 +73,7 @@ def navia2ofile(json_dict, ofilepath):
 
 def navia_import(path):
     # Create a unidec engine to help with things
-    eng = engine.UniDec()
+    eng = engine.UniDec(ignore_args=True)
     config_obj = eng.config
     try:
         # Where to find NaViA session and where to save UniDEC stuff

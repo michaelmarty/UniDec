@@ -230,7 +230,7 @@ class UniListApp(UniDecPres):
         :param kwargs:
         :return:
         """
-        self.eng = engine.UniDec()
+        self.eng = engine.UniDec(ignore_args=True)
         self.view = UniListWindow(self, "unidec List Viewer", self.eng.config)
 
         # pub.subscribe(self.on_integrate, 'integrate')
@@ -307,7 +307,7 @@ class UniListApp(UniDecPres):
         return self.engs
 
     def single_eng(self, path):
-        eng = engine.UniDec()
+        eng = engine.UniDec(ignore_args=True)
         eng.open_file(path)
         eng.unidec_imports(everything=True, efficiency=True)
         eng.pick_peaks()

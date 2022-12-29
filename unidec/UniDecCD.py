@@ -288,7 +288,7 @@ class UniDecCDApp(UniDecApp):
             return
         dlg.Destroy()
 
-        udeng = engine.UniDec()
+        udeng = engine.UniDec(ignore_args=True)
         udeng.open_file(filename, dirname)
         udeng.unidec_imports()
         self.comparedata = udeng.data.massdat
