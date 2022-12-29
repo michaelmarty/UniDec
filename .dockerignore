@@ -281,5 +281,5 @@ unidec/iFAMS/GuiTestFun.py
 unidec/bin/TestSpectra/test_1_unidecfiles/
 unidec/bin/unidecmac
 unidec/bin/h5repack_mac
-
+.dockerignore
 
