@@ -136,7 +136,7 @@ If you are interested in binaries for Mac and Linux, I would recommend building 
 
 ## UniDec Documentation
 
-Documentation is for the Python engine and GUI and can be found at http://michaelmarty.github.io/UniDecDocumentation/. Sorry, honestly it's pretty out of date by now. I'm still working on documenting some of the windows and extensions (including MetaUniDec and C code), but the core features should be here.
+Documentation is for the Python engine and GUI and can be found at http://michaelmarty.github.io/UniDecDocumentation/. Sorry, it's no great documentation, and I'm way behind on completing it. I'm still working on documenting some of the windows and extensions (including MetaUniDec and C code), but the core features should be here.
 
 My goal is that this documentation will allow you to use the power of the UniDec python engine for scripting data analysis routines and performing custom analysis. Also, it will allow you to add new modules to the UniDec GUI.
 
