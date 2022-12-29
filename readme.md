@@ -160,9 +160,7 @@ MetaUniDec has a similar structure with a presenter (MetaUniDec.py), engine (mud
  (mudview.py). However, unlike conventional UniDec, MetaUniDec includes a number of additional features to process 
  and analyze data. It relies less heavily on the Python API.
 
-
-## Getting Started
-
+## Getting Started with UniDec in Python
 
 Here is some sample code for how to use the engine. 
 
@@ -180,7 +178,16 @@ Here is some sample code for how to use the engine.
     eng.pick_peaks()
 
 In reading the documentation, it is perhaps best to start with the unidec.UniDec class.
-The main GUI class is Launcher.
+
+You can also run files for simple deconvolution directly from the command line with:
+
+    python -m unidec -f "C:\data\test.txt"
+
+The main GUI class is Launcher. You can launch the Launcher from the command line with:
+
+    python -m unidec.Launcher
+
+Of course, using the pre-compiled version means you don't need to know Python at all and can just click the GUI_UniDec.exe icon to launch the program and get started. However you choose to do it, happy deconvolving!
 
 ## Change Log
 
