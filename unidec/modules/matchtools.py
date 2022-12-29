@@ -33,7 +33,7 @@ def get_sitematch_list(gdf, sites=None, probs_cutoff=1,
     The names of the columns specifying each site are specified by the sites parameter.
     :param gdf: A pandas DataFrame with the species as rows and the mass, name, and probabilities for each site as columns
     :param sites: A list of the column names for each of the sites.
-            Probabilites are provided in each column for each species row at that site.
+    Probabilites are provided in each column for each species row at that site.
     :param probs_cutoff: Cutoff to remove probabilities below a certain value. Specified in percent.
     :param masscolumn: The name of the mass
     :param namecolumn: The name of the column in the DF specifying the species. Default is "Glycan".

@@ -10,7 +10,6 @@ from unidec.modules import unidecstructure
 from unidec.modules import PlottingWindow
 from unidec import tools as ud
 
-__author__ = 'Michael.Marty'
 
 def make_pmat(mzgrid, fwhm):
     vec = np.ravel(mzgrid)
@@ -41,7 +40,7 @@ def grid_unidec(mzgrid, igrid, numit=1000, fwhm=5, mode=0, msig=0, zsig=1):
     i = 0
     while diff > 1e-9 and i < numit:
         # Blur
-        b = blur(b,msig,zsig)
+        b = blur(b, msig, zsig)
         # Deconvolve
         if mode == 0:
             b = ud.safedivide(b * igrid, conv(b, pmat))
@@ -73,6 +72,12 @@ class GridDeconWindow(wx.Frame):
 
         wx.Frame.__init__(self, parent, title="2D Grid Extraction", size=(-1, -1))
         # Make Menu
+        self.igrid = None
+        self.mzgrid = None
+        self.zgrid = None
+        self.mgrid = None
+        self.zrange = None
+        self.mrange = None
         self.filemenu = wx.Menu()
         self.menuSaveFigPNG = self.filemenu.Append(wx.ID_ANY, "Save Figures as PNG",
                                                    "Save all figures as PNG in central directory")
@@ -92,7 +97,7 @@ class GridDeconWindow(wx.Frame):
         if self.config is None:
             self.config = unidecstructure.UniDecConfig()
             self.config.initialize()
-            self.config.cmap=u"viridis"
+            self.config.cmap = u"viridis"
             if directory is None:
                 self.directory = os.getcwd()
         else:
@@ -185,7 +190,7 @@ class GridDeconWindow(wx.Frame):
 
         # Run initial extraction
         self.extract(0)
-        #self.deconvolve(0)
+        # self.deconvolve(0)
 
         self.Centre()
         self.Show(True)
@@ -300,10 +305,10 @@ class GridDeconWindow(wx.Frame):
 
 
 if __name__ == "__main__":
-    dir_name = "C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3\\"
+    dir_name = "C:\\MassLynx\\Mike.PRO\\Data\\150521\\mzML\\Aqpz_05_Ramp3\\"
     file_name = "MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit100.txt"
-    dir_name="C:\Data\Others\Miranda\sample_data\MC_20170904_1to1_aB_C137S_11500_520_HCD300_CAL_unidecfiles"
-    file_name="CorrectedMassData.txt"
+    # dir_name = "C:\Data\Others\Miranda\sample_data\MC_20170904_1to1_aB_C137S_11500_520_HCD300_CAL_unidecfiles"
+    # file_name = "CorrectedMassData.txt"
 
     path = os.path.join(dir_name, file_name)
 

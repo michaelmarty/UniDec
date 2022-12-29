@@ -1488,7 +1488,7 @@ def lintegrate(datatop, intx):
     :param datatop: Data array
     :param intx: New x-axis for data
     :return: Integration of intensity from original data onto the new x-axis.
-        Same shape as the old data but new length.
+    Same shape as the old data but new length.
     """
     length = len(datatop)
     inty = np.zeros_like(intx)

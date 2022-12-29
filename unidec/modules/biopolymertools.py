@@ -9,8 +9,10 @@ rna_masses = {'A': 329.2, 'U': 306.2, 'C': 305.2, 'G': 345.2, 'T': 306.2}
 
 dna_masses = {'A': 313.2, 'T': 304.2, 'C': 289.2, 'G': 329.2, 'U': 304.2, }
 
-sequence = "testtest"
-s2 = "MKTVVLAVAVLFLTGSQARHFWQRDDPQTPWDRVKDFATVYVDAVKDSGREYVSQFETSALGKQLNLNLLENWDTLGSTVGRLQEQLGPVTQEFWDNLEKETEWLRREMNKDLEEVKAKVQPYLDQFQTKWQEEVALYRQKMEPLGAELRDGARQKLQELQEKLTPLGEDLRDRMRHHVDALRTKMTPYSDQMRDRLAERLAQLKDSPTLAEYHTKAADHLKAFGEKAKPALEDLRQGLMPVFESFKTRIMSMVEEASKKLNAQ"
+s1 = "testtest"
+s2 = "MKTVVLAVAVLFLTGSQARHFWQRDDPQTPWDRVKDFATVYVDAVKDSGREYVSQFETSALGKQLNLNLLENWDTLGSTVGRLQEQLGPVTQEFWDNLEKETEW" \
+     "LRREMNKDLEEVKAKVQPYLDQFQTKWQEEVALYRQKMEPLGAELRDGARQKLQELQEKLTPLGEDLRDRMRHHVDALRTKMTPYSDQMRDRLAERLAQLKDSPTL" \
+     "AEYHTKAADHLKAFGEKAKPALEDLRQGLMPVFESFKTRIMSMVEEASKKLNAQ"
 
 mass_water = 18.0153
 mass_OH = 17.008
@@ -25,7 +27,7 @@ def get_aa_mass(letter):
 
     try:
         return aa_masses[letter]
-    except:
+    except Exception as exception:
         print("Bad Amino Acid Code:", letter)
         return 0
 
@@ -36,7 +38,7 @@ def get_rna_mass(letter):
 
     try:
         return rna_masses[letter]
-    except:
+    except Exception as exception:
         print("Bad RNA Code:", letter)
         return 0
 
@@ -44,7 +46,7 @@ def get_rna_mass(letter):
 def get_dna_mass(letter):
     try:
         return dna_masses[letter]
-    except:
+    except Exception as exception:
         print("Bad DNA Code:", letter)
         return 0
 
@@ -69,7 +71,7 @@ def calc_rna_mass(sequence, threeend="OH", fiveend="MP"):
     elif fiveend == "TP":
         mass += mass_HPO4 + mass_HPO4 - mass_O - mass_O + mass_H
 
-    return round(mass, 2)
+    return round(float(mass), 2)
 
 
 def calc_dna_mass(sequence, threeend="OH", fiveend="MP"):
@@ -86,7 +88,7 @@ def calc_dna_mass(sequence, threeend="OH", fiveend="MP"):
     elif fiveend == "TP":
         mass += mass_HPO4 + mass_HPO4 - mass_O - mass_O + mass_H
 
-    return round(mass, 2)
+    return round(float(mass), 2)
 
 
 if __name__ == "__main__":

@@ -83,7 +83,8 @@ class ColorPlot2D(PlottingWindowBase):
         mzgrid = np.abs(mzgrid) / np.amax(mzgrid)
 
         # This is the magic for creating the color maps
-        # Note: It skews the color map such that the maximum color change is when the charge state distribution is changing the most
+        # Note: It skews the color map such that the maximum color change is when the charge state
+        # distribution is changing the most
         # You could make it linear, but a lot of the color change would happen at the boring fringes of the distribution
         zlen = len(ztab)
         ztot = np.sum(mzgrid, axis=(0, 1))
@@ -128,7 +129,7 @@ class ColorPlot2D(PlottingWindowBase):
         cmap = colors.ListedColormap(acolors)
         normalization = colors.BoundaryNorm(ztab - 0.5, cmap.N)
         self.cbar = colorbar.ColorbarBase(cax, cmap=cmap, norm=normalization, orientation="vertical",
-                                          ticks=ztab, drawedges="True")
+                                          ticks=ztab, drawedges=True)
         self.cbar.set_label("Charge")
         # Set tick marks to white
         for line in self.subplot1.xaxis.get_ticklines():
@@ -149,10 +150,10 @@ class ColorPlot2D(PlottingWindowBase):
             self.kda_test(np.unique(data1[:, 0]))
 
         z1 = data1[:, 2]
-        x1 = np.unique(data1[:, 0])/ self.kdnorm
+        x1 = np.unique(data1[:, 0]) / self.kdnorm
         y1 = np.unique(data1[:, 1])
         z2 = data2[:, 2]
-        x2 = np.unique(data2[:, 0])/ self.kdnorm
+        x2 = np.unique(data2[:, 0]) / self.kdnorm
         y2 = np.unique(data2[:, 1])
 
         xlen1 = len(x1)
@@ -171,17 +172,18 @@ class ColorPlot2D(PlottingWindowBase):
         zgrid2 = np.abs(zgrid2) / np.amax(zgrid2)
 
         # This is the magic for creating the color maps
-        # Note: It skews the color map such that the maximum color change is when the charge state distribution is changing the most
+        # Note: It skews the color map such that the maximum color change
+        # is when the charge state distribution is changing the most
         # You could make it linear, but a lot of the color change would happen at the boring fringes of the distribution
-        #zlen = len(ztab)
-        #ztot = np.sum(mzgrid, axis=(0, 1))
-        #zind = np.array(list(range(0, zlen)))
+        # zlen = len(ztab)
+        # ztot = np.sum(mzgrid, axis=(0, 1))
+        # zind = np.array(list(range(0, zlen)))
 
-        #avg = np.average(zind, weights=ztot)
-        #std = math.sqrt(np.average(np.array(zind - avg) ** 2, weights=ztot))
-        #skew = norm.cdf(zind, loc=avg, scale=std * 1.75)
+        # avg = np.average(zind, weights=ztot)
+        # std = math.sqrt(np.average(np.array(zind - avg) ** 2, weights=ztot))
+        # skew = norm.cdf(zind, loc=avg, scale=std * 1.75)
         topcmap = "seismic"
-        cmarr, acolors = color_map_array([0,1], topcmap, 1)
+        cmarr, acolors = color_map_array([0, 1], topcmap, 1)
         cm.register_cmap(name="newcmap1", data=cmarr[0])
         cm.register_cmap(name="newcmap2", data=cmarr[1])
 
@@ -195,8 +197,9 @@ class ColorPlot2D(PlottingWindowBase):
         # Set up plot limits
         xdiff = x1[1] - x1[0]
         ydiff = y1[1] - y1[0]
-        extent = (data_x_lim[0] - 0.5 * xdiff, data_x_lim[1] + 0.5 * xdiff, data_y_lim[0] - 0.5 * ydiff, data_y_lim[1] + 0.5 * ydiff)
-        extent2 = (np.amin(x2), np.amax(x2), np.amin(y2),np.amax(y2))
+        extent = (data_x_lim[0] - 0.5 * xdiff, data_x_lim[1] + 0.5 * xdiff, data_y_lim[0] - 0.5 * ydiff,
+                  data_y_lim[1] + 0.5 * ydiff)
+        extent2 = (np.amin(x2), np.amax(x2), np.amin(y2), np.amax(y2))
         extent1 = (np.amin(x1), np.amax(x1), np.amin(y1), np.amax(y1))
 
         # Make the background and title
@@ -206,9 +209,9 @@ class ColorPlot2D(PlottingWindowBase):
 
         # Plot each comparison
         self.subplot1.imshow(np.transpose(zgrid1), origin="lower", cmap="newcmap1", extent=extent1,
-                             norm=normalization,aspect='auto')
+                             norm=normalization, aspect='auto')
         self.subplot1.imshow(np.transpose(zgrid2), origin="lower", cmap="newcmap2", extent=extent2,
-                             norm=normalization,aspect='auto')
+                             norm=normalization, aspect='auto')
 
         # Labels and legends
         self.subplot1.set_xlabel(self.xlabel)
@@ -218,4 +221,3 @@ class ColorPlot2D(PlottingWindowBase):
         self.setup_zoom([self.subplot1], 'box', data_lims=self.datalims)
         self.repaint()
         self.flag = True
-

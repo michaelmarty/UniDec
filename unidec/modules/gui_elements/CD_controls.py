@@ -811,7 +811,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             wx.ToolTip("Set intensity threshold. Data points below threshold are excluded from deconvolution."))
         self.ctldatareductionpercent.SetToolTip(
             wx.ToolTip(
-                "Reduces the amount of data by removing everything below a threshold.\nSets the threshold to fit the percentage of data to remove."))
+                "Reduces the amount of data by removing everything below a threshold."
+                "\nSets the threshold to fit the percentage of data to remove."))
         self.ctlminmz.SetToolTip(wx.ToolTip("Set minimum m/z of data"))
         self.ctlmaxmz.SetToolTip(wx.ToolTip("Set maximum m/z of data"))
         self.dataprepbutton.SetToolTip(

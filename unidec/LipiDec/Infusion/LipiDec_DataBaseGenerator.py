@@ -220,105 +220,106 @@ def sum_comp_only(df):
 
     return df
 
+if __name__ == '__main__':
 
-libfile = "C:\\Data\\Lipidomics\\Libraries\\191219-190502-LSDB5035-YHR-Human-NH4HCOO-NonDer_200929.xml"
-outfile = "C:\\Data\\Lipidomics\\Libraries\\nonder1.xlsx"
+    libfile = "C:\\Data\\Lipidomics\\Libraries\\191219-190502-LSDB5035-YHR-Human-NH4HCOO-NonDer_200929.xml"
+    outfile = "C:\\Data\\Lipidomics\\Libraries\\nonder1.xlsx"
 
-libfile = "C:\\Data\\Lipidomics\\Libraries\\191219-190502-LSDB5035-YHR-Human-NH4HCOO-Der_200929.xml"
-outfile = "C:\\Data\\Lipidomics\\Libraries\\der1.xlsx"
+    libfile = "C:\\Data\\Lipidomics\\Libraries\\191219-190502-LSDB5035-YHR-Human-NH4HCOO-Der_200929.xml"
+    outfile = "C:\\Data\\Lipidomics\\Libraries\\der1.xlsx"
 
-tree = ET.parse(libfile)
-root = tree.getroot()
+    tree = ET.parse(libfile)
+    root = tree.getroot()
 
-st = time.perf_counter()
+    st = time.perf_counter()
 
-# Unpack top database
-lclasses = []
-for r in root:
-    if r.tag == "adductIonDefinition":
-        adducts = r
-    elif r.tag == "substituentDefinition":
-        subs = r
-    elif r.tag == "lipidIonCondition":
-        lclasses.append(r)
-    else:
-        print("Unable to parse:", r.tag)
+    # Unpack top database
+    lclasses = []
+    for r in root:
+        if r.tag == "adductIonDefinition":
+            adducts = r
+        elif r.tag == "substituentDefinition":
+            subs = r
+        elif r.tag == "lipidIonCondition":
+            lclasses.append(r)
+        else:
+            print("Unable to parse:", r.tag)
 
-adf = make_adduct_db(adducts)
+    adf = make_adduct_db(adducts)
 
-classlist = ["PC", "PG", "CL", "PE", "PS", 'PC(D7)', "PC-P"]
-classlist = ["PC-P", "PC", "PE", "PE-P", "PC(D7)"]
-classlist = None
-#classlist = ["PE-P(D9)"]
+    classlist = ["PC", "PG", "CL", "PE", "PS", 'PC(D7)', "PC-P"]
+    classlist = ["PC-P", "PC", "PE", "PE-P", "PC(D7)"]
+    classlist = None
+    #classlist = ["PE-P(D9)"]
 
-ignore_list = ["TG", "TG-O", "TG-P", "TG(D5)", "AcCer"]
-ignore_list = []
+    ignore_list = ["TG", "TG-O", "TG-P", "TG(D5)", "AcCer"]
+    ignore_list = []
 
-classes = [l.attrib["subclassKey"] for l in lclasses]
-classchar = [len(l.attrib["subclassKey"]) for l in lclasses]
-sortindexes = np.argsort(classchar)
-print(classes)
+    classes = [l.attrib["subclassKey"] for l in lclasses]
+    classchar = [len(l.attrib["subclassKey"]) for l in lclasses]
+    sortindexes = np.argsort(classchar)
+    print(classes)
 
-# Loop through lipid classes
-topdf = pd.DataFrame()
-for i in sortindexes:
-    l = lclasses[i]
-    att = l.attrib
-    lclass = att["subclassKey"]
-    if (classlist is None or lclass in classlist) and lclass not in ignore_list:
-        print(lclass)
-        # Base structure of head group
-        struct = l.find("baseStructure")
+    # Loop through lipid classes
+    topdf = pd.DataFrame()
+    for i in sortindexes:
+        l = lclasses[i]
+        att = l.attrib
+        lclass = att["subclassKey"]
+        if (classlist is None or lclass in classlist) and lclass not in ignore_list:
+            print(lclass)
+            # Base structure of head group
+            struct = l.find("baseStructure")
 
-        basemodlist = find_basemods(struct)
+            basemodlist = find_basemods(struct)
 
-        # Substituents
-        moldf, sublist = make_subs_list(l, subs)
-        # Fill out DF
-        for d in att:
-            moldf[d] = att[d]
+            # Substituents
+            moldf, sublist = make_subs_list(l, subs)
+            # Fill out DF
+            for d in att:
+                moldf[d] = att[d]
 
-        # Get Masses for all lipids
-        masses = []
-        formulas = []
-        for s in sublist:
-            try:
-                m, f = massfromstruct(struct, s, basemods=basemodlist)
-                masses.append(m)
-                formulas.append(f)
-            except Exception as e:
-                print("ERROR:", e)
-                print(struct, s)
+            # Get Masses for all lipids
+            masses = []
+            formulas = []
+            for s in sublist:
+                try:
+                    m, f = massfromstruct(struct, s, basemods=basemodlist)
+                    masses.append(m)
+                    formulas.append(f)
+                except Exception as e:
+                    print("ERROR:", e)
+                    print(struct, s)
 
-                masses.append(0)
-                formulas.append("")
-        moldf["Mass"] = masses
-        moldf["Formula"] = formulas
+                    masses.append(0)
+                    formulas.append("")
+            moldf["Mass"] = masses
+            moldf["Formula"] = formulas
 
-        # Find the adduct ion conditions
-        adducts = l.find("adductIonCondition").text
-        adductlist = adducts.split(";")
-        # Loop through the adducts, add their mass and information into the growing df
-        for adduct in adductlist:
-            row = adf[adf["ionKey"] == adduct]
-            charge = float(row["charge"])
-            adductmass = float(row["Mass"])
+            # Find the adduct ion conditions
+            adducts = l.find("adductIonCondition").text
+            adductlist = adducts.split(";")
+            # Loop through the adducts, add their mass and information into the growing df
+            for adduct in adductlist:
+                row = adf[adf["ionKey"] == adduct]
+                charge = float(row["charge"])
+                adductmass = float(row["Mass"])
 
-            newdf = deepcopy(moldf)
-            newdf["charge"] = charge
-            newdf["Mz"] = (newdf["Mass"] + adductmass) / np.abs(charge)
-            newdf["Adduct"] = adduct
-            newdf["AdductMass"] = adductmass
+                newdf = deepcopy(moldf)
+                newdf["charge"] = charge
+                newdf["Mz"] = (newdf["Mass"] + adductmass) / np.abs(charge)
+                newdf["Adduct"] = adduct
+                newdf["AdductMass"] = adductmass
 
-            topdf = pd.concat([topdf, newdf])
+                topdf = pd.concat([topdf, newdf])
 
-topdf = sum_comp_only(topdf)
+    topdf = sum_comp_only(topdf)
 
-outdict = {item: topdf[item] for item in topdf.keys()}
-np.savez(outfile[:-5] + ".npz", **outdict)
+    outdict = {item: topdf[item] for item in topdf.keys()}
+    np.savez(outfile[:-5] + ".npz", **outdict)
 
-# Write output file
-topdf.to_excel(outfile)
-print("Database Size:", len(topdf))
-# print(topdf.keys())
-print("Done:", time.perf_counter() - st)
+    # Write output file
+    topdf.to_excel(outfile)
+    print("Database Size:", len(topdf))
+    # print(topdf.keys())
+    print("Done:", time.perf_counter() - st)

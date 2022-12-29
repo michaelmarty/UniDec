@@ -559,7 +559,7 @@ class IMToolExtract(wx.Dialog):
         """
         First, it updates from the GUI.
         Second, if _zout_str(self.zout).bin file exists, it will be imported.
-            This allows slices of specific charge states to be extracted. Otherwise, the default is all charge states.
+        This allows slices of specific charge states to be extracted. Otherwise, the default is all charge states.
         Third, the values are extracted and plotted.
         :param e: Unused event
         :return: None

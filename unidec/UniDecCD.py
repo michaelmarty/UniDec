@@ -343,7 +343,7 @@ class UniDecCDApp(UniDecApp):
         Saves State (self.on_save_state)
         If uses self.eng.config.batchflag to prevent certain things from plotting and all key parameters from changing.
         If batchflag is 2 (flag=1),
-            all key paramters are kept, but the data ranges are refreshed from the individual files.
+        all key paramters are kept, but the data ranges are refreshed from the individual files.
         :param e: event passed to some function (unused)
         :param flag: flag added to self.eng.config.batchflag
         :param batchfiles: List of files to run in batch. If None, will open dialog.

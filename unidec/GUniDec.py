@@ -814,7 +814,7 @@ class UniDecApp(UniDecPres):
         If plot2 is zoomed out, it will use self.eng.autointegrate() to integrate the peaks.
         If plot2 is zoomed in to a single peak, the integral for that peak is recalculated from the plot limits.
         If plot2 is zoomed in to more than one peak, the integral is not set for a single peak but simply printed on
-            the plot
+        the plot
         :param plot: Boolean, whether to add filled areas to plot.
         :return: None
         """
@@ -911,7 +911,7 @@ class UniDecApp(UniDecPres):
         minmz = np.amin(self.eng.data.rawdata[:, 0])
         self.view.controls.ctlminmz.SetValue(str(minmz))
         self.view.controls.ctlmaxmz.SetValue(str(maxmz))
-        self.eng.config.smashrange=[]
+        self.eng.config.smashrange = []
         self.on_dataprep_button()
 
     def on_charge_plot(self, e=None):
@@ -1099,8 +1099,8 @@ class UniDecApp(UniDecPres):
         """
         Open IM extraction window for extracting data from IM plots.
         Has to run unidec again with self.eng.config.zout=-1,
-            which causes the export of all charge state slices of mass vs ccs plots.
-            Normally only the faces of the mass vs ccs vs charge cube are output.
+        which causes the export of all charge state slices of mass vs ccs plots.
+        Normally only the faces of the mass vs ccs vs charge cube are output.
         :param e: unused event
         :return: None
         """
@@ -1141,7 +1141,7 @@ class UniDecApp(UniDecPres):
             self.on_open_file(newfile, newdir)
 
     def on_mql(self, e=None):
-        defaultquery= "QUERY scaninfo(MS1DATA) WHERE MS1MZ=X AND MS1MZ=X+760:TOLERANCEMZ=5 FILTER MS1MZ=X"
+        defaultquery = "QUERY scaninfo(MS1DATA) WHERE MS1MZ=X AND MS1MZ=X+760:TOLERANCEMZ=5 FILTER MS1MZ=X"
         # Launch window to input calibration parameters
         dialog = miscwindows.SingleInputDialog(self.view, width=800)
         dialog.initialize_interface(title="MassQL Query",
@@ -1154,7 +1154,7 @@ class UniDecApp(UniDecPres):
             print("Query:", query)
         except Exception as e:
             print("Query failed:", e)
-            query=None
+            query = None
 
         file = self.eng.config.peaksfile
         print("MassQL", file)
@@ -1162,8 +1162,6 @@ class UniDecApp(UniDecPres):
         mql.query(query, self.eng.pks)
         self.on_delete()
         self.view.peakpanel.add_data(self.eng.pks, show="dscore")
-
-
 
     def on_2d_grid(self, e=None):
         """
@@ -1303,8 +1301,7 @@ class UniDecApp(UniDecPres):
         Exports Peak Parameters (self.on_export_params)
         Saves State (self.on_save_state)
         If uses self.eng.config.batchflag to prevent certain things from plotting and all key parameters from changing.
-        If batchflag is 2 (flag=1),
-            all key paramters are kept, but the data ranges are refreshed from the individual files.
+        If batchflag is 2 (flag=1), all key paramters are kept, but the data ranges are refreshed from the individual files.
         :param e: event passed to some function (unused)
         :param flag: flag added to self.eng.config.batchflag
         :param batchfiles: List of files to run in batch. If None, will open dialog.
