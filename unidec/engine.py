@@ -1417,16 +1417,24 @@ class UniDec(UniDecEngine):
 
             ax.plot(m, h, color=color, marker="o")
 
-    def gen_html_report(self):
+    def gen_html_report(self, event=None):
+        """
+        Generate an HTML report of the current UniDec run.
+        :param event: Unused Event
+        :return: None
+        """
         outfile = self.config.outfname + "_report.html"
         html_open(outfile)
         html_title(self.config.filename, outfile)
 
-        array_to_html(np.transpose(self.matchlist), outfile,
-                      cols=["Measured Mass", "Theoretical Mass", "Error", "Match Name"])
+        peaks_df = self.pks.to_df()
+        colors = [p.color for p in self.pks.peaks]
 
-        #fig, ax1, ax2 = self.make_plot(autorange=True, show=False)
-        #self.label_plot_correct(ax2, self.matchlist[3])
+        df_to_html(peaks_df, outfile, colors=colors)
+
+        #array_to_html(np.transpose(self.matchlist), outfile,
+        #              cols=["Measured Mass", "Theoretical Mass", "Error", "Match Name"])
+
         plot = self.makeplot2()
         fig_to_html_plotly(plot.figure, outfile)
 
@@ -1434,7 +1442,7 @@ class UniDec(UniDecEngine):
         fig_to_html_plotly(plot.figure, outfile)
 
         html_close(outfile)
-        # mpld3.show()
+
         os.system(self.config.opencommand + "\"" + outfile + "\"")
 
 

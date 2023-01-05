@@ -82,6 +82,7 @@ class main_menu(wx.Menu):
         self.menuSaveFigure2 = self.figmenu.Append(wx.ID_ANY, "Save Figures as .png", "Save all figures to .png format")
         if self.config.imflag == 0:
             self.menuSaveFigure4 = self.figmenu.Append(wx.ID_ANY, "Generate PDF Report", "Generate PDF Report")
+            self.menuSaveFigureHTML = self.figmenu.Append(wx.ID_ANY, "Generate HTML Report", "Generate HTML Report")
         else:
             self.menuSaveFigure4 = self.figmenu.Append(wx.ID_ANY, "Save Figures as .pdf",
                                                        "Save all figures to .pdf format")
@@ -415,6 +416,7 @@ class main_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.parent.on_save_figure_small, self.menuSaveFigure1s)
         self.parent.Bind(wx.EVT_MENU, self.parent.on_save_figure_png, self.menuSaveFigure2)
         self.parent.Bind(wx.EVT_MENU, self.parent.pres.on_pdf_report, self.menuSaveFigure4)
+        self.parent.Bind(wx.EVT_MENU, self.parent.pres.eng.gen_html_report, self.menuSaveFigureHTML)
         self.parent.Bind(wx.EVT_MENU, self.parent.on_about, self.menuAbout)
         self.parent.Bind(wx.EVT_MENU, self.parent.on_exit, self.menuExit)
 

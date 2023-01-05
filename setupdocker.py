@@ -10,7 +10,7 @@ setup(
     url="https://github.com/michaelmarty/UniDec",
     python_requires='>=3.7',
 
-    install_requires=["numpy>=1.16", "scipy>=1.2", "matplotlib>=3.1", "lxml", "mpld3", 'pandas',
+    install_requires=["numpy>=1.16", "scipy>=1.2", "matplotlib>=3.1", "lxml", 'pandas',
                       "pymzml", "natsort", "networkx", "h5py", "pyimzml", "pyteomics", "plotly"],
 
     packages=find_packages(exclude=["Scripts", "Scripts.*", "*.Scripts", "*.Scripts.*"]),

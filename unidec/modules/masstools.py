@@ -1,11 +1,14 @@
 import string
 import wx.lib.mixins.listctrl as listmix
 import wx
+import os
+import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
 from unidec.modules.AutocorrWindow import AutocorrWindow
 from unidec.modules.isolated_packages import FileDialogs
 from unidec.modules.isolated_packages import biopolymer_calculator, spreadsheet
+from unidec.modules import matchtools
 import unidec.tools as ud
 
 '''
@@ -14,7 +17,8 @@ Module for window defining the oligomers, the expected masses, and for matching 
 
 
 class MassListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
-    def __init__(self, parent, panel, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.LC_REPORT, coltitle="Mass (Da)"):
+    def __init__(self, parent, panel, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.LC_REPORT,
+                 coltitle="Mass (Da)"):
         """
         Create the mass list ctrl with one column.
         :param parent: Passed to wx.ListCtrl
@@ -411,10 +415,12 @@ class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
         self.data = []
 
         self.popupID1 = wx.NewIdRef()
+        self.popupsitemode = wx.NewIdRef()
         self.popupID2 = wx.NewIdRef()
         self.popupID3 = wx.NewIdRef()
         self.popupID4 = wx.NewIdRef()
         self.Bind(wx.EVT_MENU, self.on_transfer, id=self.popupID1)
+        self.Bind(wx.EVT_MENU, self.on_transfer_site, id=self.popupsitemode)
         self.Bind(wx.EVT_MENU, self.on_delete, id=self.popupID2)
         self.Bind(wx.EVT_MENU, self.clear, id=self.popupID3)
         self.Bind(wx.EVT_MENU, self.repopulate, id=self.popupID4)
@@ -428,6 +434,8 @@ class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
         """
         menu = wx.Menu()
         menu.Append(self.popupID1, "Add to Oligomer Builder")
+        menu.Append(self.popupsitemode, "Add to Site Mode")
+        menu.AppendSeparator()
         menu.Append(self.popupID2, "Delete")
         menu.Append(self.popupID3, "Delete All")
         menu.Append(self.popupID4, "Repopulate")
@@ -436,6 +444,9 @@ class CommonMasses(wx.ListCtrl,  # listmix.ListCtrlAutoWidthMixin,
 
     def on_transfer(self, e):
         self.parent.on_common_to_oligo(e)
+
+    def on_transfer_site(self, e):
+        self.parent.on_add_to_ss(e)
 
     def clear(self, e=None):
         """
@@ -542,6 +553,10 @@ class MassSelection(wx.Dialog):
         :return: None
         """
         wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
+        self.matchtype = None
+        self.oligoindexes = None
+        self.basemass = 0
+        self.sdf = None
         self.SetSize((1200, 700))
         self.SetTitle("Mass and Oligomer Tools")
 
@@ -565,6 +580,7 @@ class MassSelection(wx.Dialog):
         self.mmasses = None
         self.diffs = None
         self.tolerance = 1000
+        self.notebook = None
 
     def init_dialog(self, config, pks, massdat=None):
         """
@@ -597,6 +613,9 @@ class MassSelection(wx.Dialog):
         oligopop2 = wx.Button(panel, label="Populate from All Possible Oligomers")
         self.Bind(wx.EVT_BUTTON, self.pop_oligo_all, oligopop2)
 
+        oligopop3 = wx.Button(panel, label="Populate from Site Mode")
+        self.Bind(wx.EVT_BUTTON, self.pop_oligo_sites, oligopop3)
+
         clearbutt = wx.Button(panel, label="Clear List")
         self.Bind(wx.EVT_BUTTON, self.on_clear_masslist, clearbutt)
 
@@ -610,6 +629,7 @@ class MassSelection(wx.Dialog):
         sbs.Add(importbutton, 0, wx.EXPAND)
         sbs.Add(oligopop, 0, wx.EXPAND)
         sbs.Add(oligopop2, 0, wx.EXPAND)
+        sbs.Add(oligopop3, 0, wx.EXPAND)
         sbs.Add(addbutton, 0, wx.EXPAND)
         sbs.Add(clearbutt, 0, wx.EXPAND)
         self.masslistbox = MassListCtrl(self, panel, coltitle="Mass (Da)", size=(210, 380), style=wx.LC_REPORT)
@@ -622,8 +642,8 @@ class MassSelection(wx.Dialog):
 
         vmidsizer = wx.BoxSizer(wx.VERTICAL)
 
-        setupnb = wx.Notebook(panel)
-        tab1 = wx.Panel(setupnb)
+        self.notebook = wx.Notebook(panel)
+        tab1 = wx.Panel(self.notebook)
 
         p1 = tab1
 
@@ -650,7 +670,8 @@ class MassSelection(wx.Dialog):
         hbox3.Add(buttonbox)
         textbox = wx.BoxSizer(wx.VERTICAL)
         text = wx.StaticText(p1,
-                             label="  For i from Min # to Max #:\n      Mass(i)=Base Offset + Monomer Mass * i \n")
+                             label=" Oligomer Mode\n    Either isolated or mixed combinations\n    "
+                                   "For i from Min # to Max #:\n       Mass(i)=Base Offset + Monomer Mass * i \n")
         font = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False)
         text.SetFont(font)
         textbox.Add(text)
@@ -665,41 +686,77 @@ class MassSelection(wx.Dialog):
         sbs2.Add(wx.StaticText(p1, label=""))
 
         tab1.SetSizerAndFit(sbs2)
-        setupnb.AddPage(tab1, "Oligomer Mode")
+        self.notebook.AddPage(tab1, "Oligomer Mode")
 
-        tab2 = wx.Panel(setupnb)
+        tab2 = wx.Panel(self.notebook)
         sb2b = wx.StaticBox(tab2, label='Site Constructor')
         sbs2b = wx.StaticBoxSizer(sb2b, orient=wx.VERTICAL)
+
+        buttonbox = wx.BoxSizer(wx.VERTICAL)
+        hbox3 = wx.BoxSizer(wx.HORIZONTAL)
+
+        importbuttonsite = wx.Button(tab2, label="Import from File")
+        self.Bind(wx.EVT_BUTTON, self.on_import_sites, importbuttonsite)
+        buttonbox.Add(importbuttonsite, 0, wx.EXPAND)
+
+        addbutton3 = wx.Button(tab2, label="Add Row")
+        self.Bind(wx.EVT_BUTTON, self.on_add_site, addbutton3)
+        buttonbox.Add(addbutton3, 0, wx.EXPAND)
+
+        addbutton4 = wx.Button(tab2, label="Add Column")
+        self.Bind(wx.EVT_BUTTON, self.on_add_col, addbutton4)
+        buttonbox.Add(addbutton4, 0, wx.EXPAND)
+
+        clearbutt3 = wx.Button(tab2, label="Clear All")
+        self.Bind(wx.EVT_BUTTON, self.on_clear_sites, clearbutt3)
+        buttonbox.Add(clearbutt3, 0, wx.EXPAND)
 
         textbox2 = wx.BoxSizer(wx.HORIZONTAL)
         self.ctlsitebasemass = wx.TextCtrl(tab2, value="")
         textbox2.Add(wx.StaticText(tab2, label="Base Mass (Da):"), 0, wx.ALIGN_CENTER_VERTICAL)
         textbox2.Add(self.ctlsitebasemass, 0)
-        sbs2b.Add(textbox2, 0, wx.EXPAND)
+        buttonbox.Add(textbox2, 0, wx.EXPAND)
 
-        self.ss = spreadsheet.SpreadsheetPanel(tab2, 4, 3)
-        self.ss.set_col_labels(["Name", "Mass", "Site1"])
+        hbox3.Add(buttonbox)
+        textbox = wx.BoxSizer(wx.VERTICAL)
+        text = wx.StaticText(tab2,
+                             label=" Site Mode\n    Only one bound per site\n    For any non-zero i at each site:\n "
+                                   "      Mass(i, ...)=Base + Site1_i + ... \n")
+        font = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False)
+        text.SetFont(font)
+        textbox.Add(text)
+        hbox3.Add(textbox)
+
+        sbs2b.Add(hbox3, 0, wx.EXPAND)
+
+        self.ss = spreadsheet.SpreadsheetPanel(self, tab2, 4, 3)
+        self.ss.set_col_labels(["Name", "Mass", "Site 1"])
+        self.add_line_to_ss()
 
         sbs2b.Add(self.ss.ss, 1, wx.EXPAND)
 
         tab2.SetSizerAndFit(sbs2b)
-        setupnb.AddPage(tab2, "Site Mode (Under Construction)")
-        vmidsizer.Add(setupnb, 1, wx.EXPAND)
-        setupnb.SetSelection(1)
-
+        self.notebook.AddPage(tab2, "Site Mode")
+        vmidsizer.Add(self.notebook, 1, wx.EXPAND)
+        # self.notebook.SetSelection(1)
 
         p3 = panel
         sb4 = wx.StaticBox(p3, label="Match Peaks")
         sbs4 = wx.StaticBoxSizer(sb4, orient=wx.VERTICAL)
 
-        match_iso_button = wx.Button(p3, label="Match to Isolated Oligomers")
+        match_iso_button = wx.Button(p3, label="Match Isolated Oligomers")
         match_iso_button.SetToolTip(wx.ToolTip("Match peaks to isolated oligomers from Oligomer Maker."))
         self.Bind(wx.EVT_BUTTON, self.on_match_isolated, match_iso_button)
-        match_all_button = wx.Button(p3, label="Match to Mixed Oligomers")
+        match_all_button = wx.Button(p3, label="Match Mixed Oligomers")
         match_all_button.SetToolTip(
             wx.ToolTip("Match peaks to any possible combination of oligomers from Oligomer Maker."))
         self.Bind(wx.EVT_BUTTON, self.on_match_all, match_all_button)
-        check_alt_button = wx.Button(p3, label="Check for Alternates")
+        match_sites_button = wx.Button(p3, label="Site Matching")
+        match_sites_button.SetToolTip(
+            wx.ToolTip(
+                "Match peaks to any possible combination of rows from the Site Mode. Each site can only have one row."))
+        self.Bind(wx.EVT_BUTTON, self.on_match_sites, match_sites_button)
+        check_alt_button = wx.Button(p3, label="Check Alternates")
         check_alt_button.SetToolTip(
             wx.ToolTip("Check for alternative matches. Yellow indicates possible alternates within tolerance."))
         self.Bind(wx.EVT_BUTTON, self.on_check_for_alt_match, check_alt_button)
@@ -707,6 +764,7 @@ class MassSelection(wx.Dialog):
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
         hbox2.Add(match_iso_button, 1, wx.EXPAND)
         hbox2.Add(match_all_button, 1, wx.EXPAND)
+        hbox2.Add(match_sites_button, 1, wx.EXPAND)
         hbox2.Add(check_alt_button, 1, wx.EXPAND)
         sbs4.Add(hbox2, 0, wx.EXPAND)
 
@@ -775,7 +833,66 @@ class MassSelection(wx.Dialog):
         # self.load_common_masses(self.config.masstablefile)
         self.CenterOnParent()
 
+    def get_site_df(self):
+        try:
+            self.basemass = float(self.ctlsitebasemass.GetValue())
+        except Exception as e:
+            self.basemass = 0
+        self.ss.ss.remove_empty("Mass")
+        self.sdf = self.ss.ss.get_df()
+        typedict = {i: float for i in self.ss.ss.get_col_headers()}
+        typedict["Name"] = str
+
+        self.sdf = self.sdf.astype(typedict)
+        print("Site Data Frame:", self.sdf)
+
+    def get_site_masses_names(self):
+        self.get_site_df()
+        indexes, masses, probs, names = matchtools.get_sitematch_list(self.sdf, sites=self.get_site_headers(),
+                                                                      masscolumn="Mass", namecolumn="Name", sort=None)
+        oligomasslist = masses + self.basemass
+        return oligomasslist, indexes, names
+
+    def get_site_headers(self):
+        col_labels = self.ss.ss.get_col_headers()
+        sites = []
+        for s in col_labels:
+            if "Site" in s:
+                sites.append(s)
+        return sites
+
+    def on_add_col(self, event=None, newcolindex=None):
+        if newcolindex is None:
+            newcolindex = self.ss.ss.GetNumberCols()
+            self.ss.ss.InsertCols(newcolindex)
+        col_labels = self.ss.ss.get_col_headers()
+        maxsite = 1
+        for i, s in enumerate(col_labels):
+            if "Site" in col_labels[i - 1]:
+                sitenumber = int(col_labels[i - 1].split()[1])
+                if sitenumber > maxsite:
+                    maxsite = sitenumber
+        newsite = str(maxsite + 1)
+        print(newsite, newcolindex)
+        self.ss.ss.SetColLabelValue(newcolindex, "Site " + newsite)
+
+    def on_add_to_ss(self, e=None):
+        self.notebook.SetSelection(1)
+        outdata = self.commonmassespanel.get_selection()
+        sites = self.get_site_headers()
+        sitedict = {sites[i]: str(1) for i in range(len(sites))}
+        for o in outdata:
+            print(o)
+            row = self.ss.ss.add_line(Name=o[0], Mass=o[1], **sitedict)
+            # self.ss.ss.set_row_values(row, **sitedict)
+
+    def add_line_to_ss(self, name="Free", mass=0):
+        sites = self.get_site_headers()
+        sitedict = {sites[i]: str(1) for i in range(len(sites))}
+        row = self.ss.ss.add_line(Name=name, Mass=str(mass), **sitedict)
+
     def on_common_to_oligo(self, e):
+        self.notebook.SetSelection(0)
         outdata = self.commonmassespanel.get_selection()
         print(outdata)
         for o in outdata:
@@ -845,7 +962,19 @@ class MassSelection(wx.Dialog):
         :param e: Unused event
         :return: None
         """
+        self.notebook.SetSelection(0)
         self.on_match(type="isolated")
+
+    def on_match_sites(self, e=None):
+        """
+        Match the peaks in self.pks to all possible combination of oligomers in the oligomerlist.
+        Uses ud.make_all_matches function.
+        Populated the matchlistbox with the results of the matching.
+        :param e: Unused event
+        :return: None
+        """
+        self.notebook.SetSelection(1)
+        self.on_match(type="site")
 
     def on_match_all(self, e=None):
         """
@@ -855,9 +984,11 @@ class MassSelection(wx.Dialog):
         :param e: Unused event
         :return: None
         """
+        self.notebook.SetSelection(0)
         self.on_match(type="all")
 
     def on_match(self, type="all"):
+        self.matchtype = type
         self.oligos = self.oligomerlistbox.get_list()
         self.oligos = np.array(self.oligos)
         self.read_tolerance()
@@ -866,13 +997,20 @@ class MassSelection(wx.Dialog):
             self.oligomasslist, self.oligonames = ud.make_all_matches(self.oligos)
         elif type == "isolated":
             self.oligomasslist, self.oligonames = ud.make_isolated_match(self.oligos)
+        elif type == "site":
+            self.oligomasslist, self.oligoindexes, self.oligonames = self.get_site_masses_names()
         else:
             print("Match type not recognized")
             return
         if ud.isempty(self.oligomasslist):
             print("ERROR: Need to specify the Potential Oligomers")
             return
-        self.matchlist = ud.match(self.pks, self.oligomasslist, self.oligonames, self.oligos, tolerance=self.tolerance)
+        if type != "site":
+            self.matchlist = ud.match(self.pks, self.oligomasslist, self.oligonames, self.oligos,
+                                      tolerance=self.tolerance)
+        else:
+            self.matchlist = matchtools.site_match(self.pks, self.oligomasslist, self.oligoindexes, self.oligonames,
+                                                   self.get_site_headers(), tolerance=self.tolerance)
         self.matchlistbox.populate(self.matchlist[0], self.matchlist[1], self.matchlist[2], self.matchlist[3])
         self.matchlistbox.mode = 0
         self.diffmatrix = None
@@ -911,10 +1049,16 @@ class MassSelection(wx.Dialog):
             l = np.sum(b1)
             peakmass = [self.peakmass for i in range(l)]
             self.diffs = self.diffmatrix[index][b1]
-            self.mnames = np.array(self.oligonames)[b1]
-            self.mnames = np.array(
-                [ud.index_to_oname(m, self.oligos[:, 2].astype(int), self.oligos[:, 4]) for m in self.mnames])
             self.mmasses = np.array(self.oligomasslist)[b1]
+            if self.matchtype != "site":
+                indexes = np.array(self.oligonames)[b1]
+                self.mnames = np.array(
+                    [ud.index_to_oname(i, self.oligos[:, 2].astype(int), self.oligos[:, 4]) for i in indexes])
+            else:
+                indexes = self.oligoindexes[b1]
+                self.mnames = np.array(
+                    [matchtools.index_to_sname(i, self.oligonames, self.get_site_headers()) for i in indexes])
+
             self.matchlistbox.populate(peakmass, self.mmasses, self.diffs, self.mnames)
 
             for i in range(l):
@@ -1016,6 +1160,7 @@ class MassSelection(wx.Dialog):
         :param e: Unused event
         :return: None
         """
+        self.notebook.SetSelection(0)
         oligos = self.oligomerlistbox.get_list()
         oligomasslist, oligonames = ud.make_isolated_match(oligos)
         oligomasslist = np.unique(oligomasslist)
@@ -1027,10 +1172,21 @@ class MassSelection(wx.Dialog):
         :param e: Unused event
         :return: None
         """
+        self.notebook.SetSelection(0)
         oligos = self.oligomerlistbox.get_list()
         oligomasslist, oligonames = ud.make_all_matches(oligos)
         oligomasslist = np.unique(oligomasslist)
         self.masslistbox.populate(oligomasslist)
+
+    def pop_oligo_sites(self, e):
+        """
+        Populates the mass list with all possible oligomers.
+        :param e: Unused event
+        :return: None
+        """
+        self.notebook.SetSelection(1)
+        self.oligomasslist, self.oligoindexes, self.oligonames = self.get_site_masses_names()
+        self.masslistbox.populate(np.unique(self.oligomasslist))
 
     def on_clear_masslist(self, e):
         """
@@ -1048,6 +1204,14 @@ class MassSelection(wx.Dialog):
         """
         self.oligomerlistbox.clear()
 
+    def on_clear_sites(self, e):
+        """
+        Clears the site list.
+        :param e: Unused Event
+        :return: None
+        """
+        self.ss.ss.clear_all()
+
     def on_add_mass(self, e):
         """
         Adds a blank line to the mass list.
@@ -1063,6 +1227,14 @@ class MassSelection(wx.Dialog):
         :return: None
         """
         self.oligomerlistbox.add_line()
+
+    def on_add_site(self, e):
+        """
+        Adds a blank line to the site list.
+        :param e: Unused event
+        :return: None
+        """
+        self.ss.ss.add_line()
 
     def on_import_masses(self, e):
         """
@@ -1089,6 +1261,28 @@ class MassSelection(wx.Dialog):
             if np.shape(importolig) == (5,) or np.shape(importolig) == (4,):
                 importolig = [importolig]
             self.oligomerlistbox.populate(importolig)
+
+    def on_import_sites(self, e=None):
+        """
+        Open a file dialog to import sites files.
+        :param e: Unused event
+        :return: None
+        """
+        path = FileDialogs.open_file_dialog("Open Sites File", file_types="*.*")
+        print("Opening Path:", path)
+        self.import_sites(path)
+
+    def import_sites(self, path):
+        extension = os.path.splitext(path)[1]
+        if path is not None:
+            if extension == ".csv":
+                df = pd.read_csv(path)
+            elif extension == ".xlsx" or extension == ".xls":
+                df = pd.read_excel(ofilename)
+            else:
+                print('Extension Not Recognized', extension)
+                return None
+            self.ss.ss.set_df(df)
 
 
 # Main App Execution

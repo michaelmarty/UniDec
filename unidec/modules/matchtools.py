@@ -1,5 +1,7 @@
 import pandas as pd
 from unidec.modules.biopolymertools import *
+import time
+from unidec.tools import nearestunsorted
 
 
 def sort_sitematches_by(indexes, masses, probs, type="mass"):
@@ -23,7 +25,7 @@ def sort_sitematches_by(indexes, masses, probs, type="mass"):
 
 
 # Function to generate the brute force lists needed for matching
-def get_sitematch_list(gdf, sites=None, probs_cutoff=1,
+def get_sitematch_list(gdf, sites=None, probs_cutoff=0,
                        masscolumn="Monoisotopic mass", namecolumn="Glycan", percent=True, sort="mass"):
     """
     Function to generate a list of potential mass matches from a DataFrame with different potential sites.
@@ -51,7 +53,6 @@ def get_sitematch_list(gdf, sites=None, probs_cutoff=1,
     dfs = [gdf[gdf[s] > probs_cutoff] for s in sites]
     lens = [len(df) for df in dfs]
     lsites = len(sites)
-
     # Extract the probs and masses to make it faster
     if percent:
         pvals = [dfs[i][s].to_numpy() / 100 for i, s in enumerate(sites)]
@@ -100,6 +101,53 @@ def sitematch_to_target(targetmass, indexes, masses, probs, tolerance=5):
     """
     b1 = np.abs(masses - targetmass) < tolerance
     return indexes[b1], masses[b1], probs[b1]
+
+
+def index_to_sname(index, names, sitenames):
+    print(index)
+    fullname = ""
+    for i in range(0, len(sitenames)):
+        nindex = index[i]
+        name = names[i][nindex]
+        fullname += "[" + sitenames[i] + ":" + name + "]"
+    return fullname
+
+
+def site_match(pks, oligomasslist, oligoindexes, onames, sitenames, tolerance=None):
+    print("Starting Match")
+    starttime = time.perf_counter()
+    matches = []
+    errors = []
+    peaks = []
+    names = []
+    # print(len(oligomasslist), oligomasslist)
+    # print(len(oligoindexes), oligoindexes)
+    # print(onames)
+
+    for i in range(0, pks.plen):
+        p = pks.peaks[i]
+        target = p.mass
+        nearpt = nearestunsorted(oligomasslist, target)
+        match = oligomasslist[nearpt]
+        error = target - match
+
+        if tolerance is None or np.abs(error) < tolerance:
+            name = index_to_sname(oligoindexes[nearpt], onames, sitenames)
+        else:
+            name = ""
+
+        p.label = name
+        p.match = match
+        p.matcherror = error
+        matches.append(match)
+        errors.append(error)
+        peaks.append(target)
+        names.append(name)
+
+    matchlist = [peaks, matches, errors, names]
+    endtime = time.perf_counter()
+    print("Matched in: ", endtime - starttime, "s")
+    return np.array(matchlist)
 
 
 def sitematch_to_excel(indexes, masses, probs, names, peakmasses, protmass, sites, outfile):

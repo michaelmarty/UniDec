@@ -1,10 +1,14 @@
 import wx.grid as gridlib
 import wx
+import unidec.modules.miscwindows as misc
+import pandas as pd
 
-# Taken from https://stackoverflow.com/questions/28509629/work-with-ctrl-c-and-ctrl-v-to-copy-and-paste-into-a-wx-grid-in-wxpython
+
+# Taken from https://stackoverflow.com/questions/28509629/
+# work-with-ctrl-c-and-ctrl-v-to-copy-and-paste-into-a-wx-grid-in-wxpython
 class MyGrid(wx.grid.Grid):
-    def __init__(self, parent):
-        wx.grid.Grid.__init__(self, parent, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, 0)
+    def __init__(self, parent, panel):
+        wx.grid.Grid.__init__(self, panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, 0)
         self.Bind(wx.EVT_KEY_DOWN, self.on_key)
         self.Bind(wx.grid.EVT_GRID_CELL_CHANGING, self.on_change)
         self.Bind(wx.grid.EVT_GRID_LABEL_RIGHT_CLICK, self.on_label_right_click)
@@ -12,6 +16,14 @@ class MyGrid(wx.grid.Grid):
         self.selected_rows = []
         self.selected_cols = []
         self.history = []
+        self.parent = parent
+
+    def set_col_headers(self, headers):
+        ncol = self.GetNumberCols()
+        if ncol < len(headers):
+            self.InsertCols(ncol, len(headers) - ncol)
+        for i, h in enumerate(headers):
+            self.SetColLabelValue(i, h)
 
     def get_col_headers(self):
         return [self.GetColLabelValue(col) for col in range(self.GetNumberCols())]
@@ -23,10 +35,85 @@ class MyGrid(wx.grid.Grid):
                 result[header] = self.GetCellValue(row, col)
             yield result
 
-    def add_rows(self, event):
+    def get_list(self):
+        data = []
+        for row in range(self.GetNumberRows()):
+            row_list = []
+            for col, header in enumerate(self.get_col_headers()):
+                result = self.GetCellValue(row, col)
+                row_list.append(result)
+            data.append(row_list)
+        return data
+
+    def remove_empty(self, col_header):
+        delete_rows = []
+        for row in range(self.GetNumberRows()):
+            for col, header in enumerate(self.get_col_headers()):
+                if header == col_header:
+                    result = self.GetCellValue(row, col)
+                    if result == "":
+                        delete_rows.append(row)
+
+        for row in delete_rows[::-1]:
+            self.DeleteRows(row)
+
+    def fill_empty(self, fillvalue="0"):
+        for row in range(self.GetNumberRows()):
+            for col, header in enumerate(self.get_col_headers()):
+                result = self.GetCellValue(row, col)
+                if result == "":
+                    self.SetCellValue(row, col, fillvalue)
+
+    def get_df(self):
+        self.fill_empty()
+        data = self.get_list()
+        df = pd.DataFrame(data, columns=self.get_col_headers())
+        return df
+
+    def set_df(self, df):
+        headers = df.columns.tolist()
+        self.set_col_headers(headers)
+        nrow = self.GetNumberRows()
+        if nrow < len(df):
+            self.InsertRows(nrow, len(df) - nrow)
+        for row in range(self.GetNumberRows()):
+            for col, header in enumerate(self.get_col_headers()):
+                self.SetCellValue(row, col, str(df.iloc[row, col]))
+
+    def clear_all(self):
+        for row in range(self.GetNumberRows()):
+            for col, header in enumerate(self.get_col_headers()):
+                self.SetCellValue(row, col, str(""))
+
+    def add_rows(self, event=None):
         for row in self.selected_rows:
             self.InsertRows(row)
         self.add_history({"type": "add_rows", "rows": self.selected_rows})
+
+    def set_row_values(self, row, **kwargs):
+        found_row = False
+        for col, header in enumerate(self.get_col_headers()):
+            for k in kwargs.keys():
+                if k == header:
+                    if self.GetCellValue(row, col) == "":
+                        self.SetCellValue(row, col, kwargs[k])
+                        found_row = True
+        return found_row
+
+    def add_line(self, **kwargs):
+        found_row = False
+        row_count = 0
+        for row in range(self.GetNumberRows()):
+            if not found_row:
+                row_count = row
+                found_row = self.set_row_values(row, **kwargs)
+
+        if not found_row:
+            row_count += 1
+            self.InsertRows(row_count)
+            self.set_row_values(row_count, **kwargs)
+
+        return row_count
 
     def delete_rows(self, event):
         self.cut(event)
@@ -44,8 +131,25 @@ class MyGrid(wx.grid.Grid):
 
     def add_cols(self, event):
         for col in self.selected_cols:
-            self.InsertCols(col)
+            self.InsertCols(col + 1)
+            try:
+                self.parent.on_add_col(event, col + 1)
+            except Exception as e:
+                print(e)
         self.add_history({"type": "add_cols", "cols": self.selected_cols})
+
+    def rename_col(self, event):
+        dlg = misc.SingleInputDialog(self)
+        dlg.initialize_interface(title="Rename Column", message="Column Name:", defaultvalue="")
+        dlg.ShowModal()
+        try:
+            name = str(dlg.value)
+        except (ValueError, TypeError, AttributeError):
+            return
+        for col in self.selected_cols:
+            self.SetColLabelValue(col, name)
+            print(col)
+            pass
 
     def delete_cols(self, event):
         self.delete(event)
@@ -94,8 +198,11 @@ class MyGrid(wx.grid.Grid):
             if not self.IsInSelection(row=1, col=event.GetCol()):
                 self.SelectCol(event.GetCol())
             self.selected_cols = self.GetSelectedCols()
+            menus += [(wx.NewId(), "Rename column", self.rename_col)]
             menus += [(wx.NewId(), "Add column", self.add_cols)]
+            menus += [None]
             menus += [(wx.NewId(), "Delete column", self.delete_cols)]
+
         else:
             return
 
@@ -335,13 +442,14 @@ class MyGrid(wx.grid.Grid):
         self.copy(event)
         self.delete(event)
 
+
 class SpreadsheetPanel:
-    def __init__(self, panel, nrows=0, ncolumns=0):
-        self.ss = MyGrid(panel)
+    def __init__(self, parent, panel, nrows=0, ncolumns=0):
+        self.ss = MyGrid(parent, panel)
         self.nrows = nrows
         self.ncolumns = ncolumns
         self.ss.CreateGrid(nrows, ncolumns)
-
+        self.parent = parent
 
     def set_col_labels(self, labels):
         for i, l in enumerate(labels):
@@ -349,7 +457,6 @@ class SpreadsheetPanel:
 
     def add_col(self, label=""):
         self.ss.AppendCols(1)
-
 
 
 class SpreadsheetFrame(wx.Frame):
@@ -360,7 +467,7 @@ class SpreadsheetFrame(wx.Frame):
         wx.Frame.__init__(self, parent=None, title=title)
         panel = wx.Panel(self)
 
-        self.ss = SpreadsheetPanel(panel, nrows, ncolumns).ss
+        self.ss = SpreadsheetPanel(self, panel, nrows, ncolumns).ss
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.ss, 1, wx.EXPAND)
@@ -371,4 +478,9 @@ class SpreadsheetFrame(wx.Frame):
 if __name__ == "__main__":
     app = wx.App()
     frame = SpreadsheetFrame(12, 8)
+    path = "C:\\Data\\Luis Genentech\\Merged Glycan List.csv"
+    df = pd.read_csv(path)
+    frame.ss.set_df(df)
+    print(df)
+
     app.MainLoop()

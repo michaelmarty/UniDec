@@ -197,6 +197,10 @@ Major changes to code structure to enable PyPI distribution. Changed to more con
 
 Improved command line tools. Added -o option for file output in unidec. Included new entry points and smoothed out command line interface. Now you can use unidec to lanuch python -m unidec in the scripts folder. Similarly, gunidec will launch python -m unidec.Launcher. If you have Python and the scripts folder configured in your system path, command line tools will be much easier to use. 
 
+Added a new mode to the Oligomer and Mass Tools, Site Mode. Here, you can specify specific binding sites and which potential species could be bound in that site. Any number of rows (species) or columns (sites) can be added as long as your memory can handle the possible combinations. Use 0s and 1s to incidate whether each species can be bound at each site. You can copy/paste from excel or open a CSV or XLSX file. 
+
+Added new experimental HTML report generator. Found in File > Save Figure Presets. Test this out and let me know what you'd like to see in it.
+
 v.5.2.1
 
 UniDec and UniChrom now try to read the polarity from the data and set the adduct appropriately. Check that this is working!

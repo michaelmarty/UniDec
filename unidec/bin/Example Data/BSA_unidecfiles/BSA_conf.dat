@@ -1,8 +1,8 @@
-version 6.0.0a1
+version 6.0.0a2
 imflag 0
 cdmsflag 0
-input C:\Python\UniDec3\unidec\bin\Example Data\BSA_unidecfiles\BSA_input.dat
-output C:\Python\UniDec3\unidec\bin\Example Data\BSA_unidecfiles\BSA
+input bin/Example Data\BSA_unidecfiles\BSA_input.dat
+output bin/Example Data\BSA_unidecfiles\BSA
 numit 50
 numz 21
 endz 30

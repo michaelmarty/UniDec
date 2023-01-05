@@ -5,6 +5,8 @@ import matplotlib.cm as cm
 from matplotlib.colors import Normalize
 import numpy as np
 from unidec import tools as ud
+import pandas as pd
+from io import StringIO
 
 __author__ = 'Michael.Marty'
 
@@ -22,7 +24,7 @@ class Peak:
         self.height = 0
         self.ccs = 0
         self.centroid = 0
-        self.area = ""
+        self.area = 0
         self.color = [1, 1, 1]
         self.label = ""
         self.marker = "."
@@ -76,8 +78,8 @@ class Peak:
 
     def line_out(self, type="Full"):
         if type == "Full":
-            outputs = [self.mass, self.centroid, self.height, self.area, self.match, self.matcherror, self.label,
-                       self.integral, self.diff, self.avgcharge, self.dscore, self.lscore]
+            outputs = [self.mass, self.centroid, self.height, self.integral, self.match, self.matcherror, self.label,
+                       self.area, self.diff, self.avgcharge, self.dscore]
         elif type == "Basic":
             outputs = [self.mass, self.height, self.integral]
         else:
@@ -281,7 +283,7 @@ class Peaks:
 
     def copy(self, type="Full"):
         if type == "Full":
-            outstring = "Mass\tCentroid\tHeight\tArea\tMatch\tMatcherror\tLabel\tIntegral\tDiff\tAvgcharge\tDscore\tLscore\n"
+            outstring = "Mass\tCentroid\tHeight\tIntegral\tMatch\tMatcherror\tLabel\tFit Area\tDiff\tAvgcharge\tDscore\n"
         if type == "Basic":
             outstring = "Mass\tHeight\tIntegral\n"
         print("Columns:", outstring)
@@ -289,5 +291,14 @@ class Peaks:
         for p in self.peaks:
             outstring += p.line_out(type=type) + "\n"
         return outstring
+
+    def to_df(self, type="Full", drop_zeros=True):
+        outstring = self.copy(type=type)
+        print(outstring)
+        df = pd.read_csv(StringIO(outstring), sep="\t", index_col=False, na_values="")
+        df.fillna("", inplace=True)
+        if drop_zeros:
+            df = df.loc[:, (df != 0).any(axis=0)]
+        return df
 
 
