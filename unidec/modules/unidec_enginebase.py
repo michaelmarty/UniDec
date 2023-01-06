@@ -5,7 +5,7 @@ import os
 import time
 from unidec.modules.html_writer import *
 
-version = "6.0.0a3"
+version = "6.0.0.b1"
 
 
 def copy_config(config):

@@ -69,7 +69,8 @@ class main_menu(wx.Menu):
 
         self.filemenu.AppendSubMenu(self.defaultmenu, "Presets")
         self.filemenu.AppendSeparator()
-        self.menuSaveFigureHTML = self.filemenu.Append(wx.ID_ANY, "Generate HTML Report", "Generate HTML Report")
+        self.menuSaveFigureHTML = self.filemenu.Append(wx.ID_ANY, "Generate HTML Report\tCtrl+H",
+                                                       "Generate HTML Report")
         self.menufigdialog = self.filemenu.Append(wx.ID_ANY, "Save Figure As",
                                                   "Dialog to define path and extension for figure saving")
         # Figure Submenu
