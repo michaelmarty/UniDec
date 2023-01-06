@@ -628,12 +628,7 @@ class UniDecConfig(object):
             else:
                 self.manuallist = np.array([])
 
-    def write_hdf5(self, file_name=None):
-        if file_name is None:
-            file_name = self.hdf_file
-        hdf = h5py.File(file_name, 'a')
-        config_group = hdf.require_group("config")
-
+    def get_config_dict(self):
         if self.metamode != -2:
             self.linflag = 2
         try:
@@ -685,6 +680,15 @@ class UniDecConfig(object):
             "sw_time_window": self.sw_time_window, "sw_scan_offset": self.sw_scan_offset, "time_start": self.time_start,
             "time_end": self.time_end
         }
+        return cdict
+
+    def write_hdf5(self, file_name=None):
+        if file_name is None:
+            file_name = self.hdf_file
+        hdf = h5py.File(file_name, 'a')
+        config_group = hdf.require_group("config")
+
+        cdict = self.get_config_dict()
 
         for key, value in cdict.items():
             try:

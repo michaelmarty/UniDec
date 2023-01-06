@@ -416,7 +416,7 @@ class main_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.parent.on_save_figure_small, self.menuSaveFigure1s)
         self.parent.Bind(wx.EVT_MENU, self.parent.on_save_figure_png, self.menuSaveFigure2)
         self.parent.Bind(wx.EVT_MENU, self.parent.pres.on_pdf_report, self.menuSaveFigure4)
-        self.parent.Bind(wx.EVT_MENU, self.parent.pres.eng.gen_html_report, self.menuSaveFigureHTML)
+        self.parent.Bind(wx.EVT_MENU, self.parent.pres.on_gen_html_report, self.menuSaveFigureHTML)
         self.parent.Bind(wx.EVT_MENU, self.parent.on_about, self.menuAbout)
         self.parent.Bind(wx.EVT_MENU, self.parent.on_exit, self.menuExit)
 

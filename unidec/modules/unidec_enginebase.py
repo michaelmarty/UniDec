@@ -3,6 +3,7 @@ from unidec import tools as ud
 import numpy as np
 import os
 import time
+from unidec.modules.html_writer import *
 
 version = "6.0.0a3"
 
@@ -182,7 +183,6 @@ class UniDecEngine:
         elif self.polarity == "Negative":
             self.config.adductmass = -1 * np.abs(self.config.adductmass)
             print("Adduct Mass:", self.config.adductmass)
-
 
     def linear_regression_peaks(self):
         print("Starting Linear Regression using a repeating mass of:", self.config.molig)
@@ -488,3 +488,53 @@ class UniDecEngine:
             tend = time.perf_counter()
             print("Plot 4: %.2gs" % (tend - tstart))
             return plot
+
+    def gen_html_report(self, event=None, plots=None, interactive=False):
+        """
+        Generate an HTML report of the current UniDec run.
+        :param event: Unused Event
+        :param plots: List of plots to include in the report. Must be 2D with row and column format.
+        :param interactive: If True, will include interactive plots. Default is False.
+        :return: None
+        """
+        outfile = self.config.outfname + "_report.html"
+        html_open(outfile)
+        html_title(self.config.filename, outfile)
+
+        peaks_df = self.pks.to_df()
+        colors = [p.color for p in self.pks.peaks]
+
+        df_to_html(peaks_df, outfile, colors=colors)
+
+        # array_to_html(np.transpose(self.matchlist), outfile,
+        #              cols=["Measured Mass", "Theoretical Mass", "Error", "Match Name"])
+        if plots is None:
+            plot = self.makeplot2()
+            plot2 = self.makeplot4()
+            plots = [[plot, plot2]]
+
+        svg_grid = []
+        figure_list = []
+        for row in plots:
+            svg_row = []
+            for c in row:
+                svg_row.append(c.get_svg())
+                figure_list.append(c.figure)
+            svg_grid.append(svg_row)
+
+        svg_grid_string = wrap_to_grid(svg_grid, outfile)
+
+        if interactive:
+            for f in figure_list:
+                try:
+                    fig_to_html_plotly(f, outfile)
+                except:
+                    pass
+
+        config_dict = self.config.get_config_dict()
+        config_htmlstring = dict_to_html(config_dict)
+        to_html_collapsible(config_htmlstring, title="UniDec Parameters", outfile=outfile, open=True, htmltext=True)
+
+        html_close(outfile)
+
+        os.system(self.config.opencommand + "\"" + outfile + "\"")

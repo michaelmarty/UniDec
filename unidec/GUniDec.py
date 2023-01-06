@@ -1756,6 +1756,17 @@ class UniDecApp(UniDecPres):
         self.eng.write_hdf5()
         print("Wrote: ", self.eng.config.hdf_file)
 
+    def on_gen_html_report(self, e=None):
+        """
+        Generates an HTML report of the current data and parameters.
+        :param e: unused event
+        :return: None
+        """
+        plots = [[self.view.plot4, self.view.plot2], [self.view.plot3, self.view.plot6],
+                 [self.view.plot5, self.view.plot1]]
+        self.eng.gen_html_report(plots=plots)
+        pass
+
 
 # TODO: Charge state distributions of each peak
 

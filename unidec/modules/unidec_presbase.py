@@ -252,6 +252,16 @@ class UniDecPres(object):
             pks = self.eng.pks
         self.eng.makeplot4(plot, data, pks)
 
+    def on_gen_html_report(self, e=None):
+        """
+        Generates an HTML report of the current data and parameters.
+        :param e: unused event
+        :return: None
+        """
+        plots = [[self.view.plot4, self.view.plot2]]
+        self.eng.gen_html_report(plots=plots)
+        pass
+
     def on_filter_peaks(self, e=None):
         defaultvalue = "40"
         try:

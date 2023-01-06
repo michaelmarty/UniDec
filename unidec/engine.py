@@ -13,7 +13,8 @@ import unidec.tools as ud
 import unidec.modules.IM_functions as IM_func
 import unidec.modules.MassSpecBuilder as MSBuild
 from unidec.modules.unidec_enginebase import UniDecEngine
-from unidec.modules.html_writer import *
+
+
 # import modules.DoubleDec as dd
 
 __author__ = 'Michael.Marty'
@@ -48,9 +49,9 @@ class UniDec(UniDecEngine):
                 print("Error in Argv. Likely unknown option: ", sys.argv, e)
                 print("Known options: -f, -o")
 
-            #print("ARGS:", args)
-            #print("KWARGS:", kwargs)
-            #print("OPTS:", opts)
+            # print("ARGS:", args)
+            # print("KWARGS:", kwargs)
+            # print("OPTS:", opts)
             if opts is not None:
                 for opt, arg in opts:
                     if opt in ("-f", "--file"):
@@ -552,7 +553,6 @@ class UniDec(UniDecEngine):
                 self.pks.composite += np.array(sd)
             self.pks.convolved = True
         return np.array(convdata)
-
 
     def autorun(self):
         self.process_data()
@@ -1417,34 +1417,6 @@ class UniDec(UniDecEngine):
 
             ax.plot(m, h, color=color, marker="o")
 
-    def gen_html_report(self, event=None):
-        """
-        Generate an HTML report of the current UniDec run.
-        :param event: Unused Event
-        :return: None
-        """
-        outfile = self.config.outfname + "_report.html"
-        html_open(outfile)
-        html_title(self.config.filename, outfile)
-
-        peaks_df = self.pks.to_df()
-        colors = [p.color for p in self.pks.peaks]
-
-        df_to_html(peaks_df, outfile, colors=colors)
-
-        #array_to_html(np.transpose(self.matchlist), outfile,
-        #              cols=["Measured Mass", "Theoretical Mass", "Error", "Match Name"])
-
-        plot = self.makeplot2()
-        fig_to_html_plotly(plot.figure, outfile)
-
-        plot = self.makeplot4()
-        fig_to_html_plotly(plot.figure, outfile)
-
-        html_close(outfile)
-
-        os.system(self.config.opencommand + "\"" + outfile + "\"")
-
 
 # Optional Run
 if __name__ == "__main__":
@@ -1465,9 +1437,9 @@ if __name__ == "__main__":
 
     eng.open_file(filename, path, load_results=True)
     eng.match()
-    #plot = eng.makeplot2()
-    #os.chdir(path)
-    #plot.save_figure("test.png")
+    # plot = eng.makeplot2()
+    # os.chdir(path)
+    # plot.save_figure("test.png")
     eng.gen_html_report()
     # eng.pick_peaks()
 

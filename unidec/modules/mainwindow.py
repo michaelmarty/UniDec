@@ -68,6 +68,7 @@ class Mainwindow(MainwindowBase):
                 ["K", self.pres.on_kendrick, self.menu.menukendrick],
                 #["C", self.pres.on_plot_composite, self.controls.compositebutton],
                 ["N", self.pres.on_replot, self.controls.replotbutton],
+                ["H", self.pres.on_gen_html_report, self.menu.menuSaveFigureHTML],
                 ["F", self.pres.on_plot_offsets, self.menu.menuoffset],  # ["Z", self.pres.on_charge_plot],
                 ["L", self.pres.on_load_everything, self.menu.menuLoadEverything],
                 ["S", self.pres.on_save_state, self.menu.menuSaveState],

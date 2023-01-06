@@ -1,6 +1,6 @@
 import numpy as np
-from matplotlib.transforms import Bbox
-from copy import deepcopy
+from matplotlib.transforms import Bbox, TransformedBbox
+
 
 def GetMaxes(axes, xmin=None, xmax=None):
     yvals = []
@@ -15,7 +15,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
             line.set_clip_on(True)
         else:
             pass
-            #line.set_clip_on(True)
+            # line.set_clip_on(True)
         try:
             yvals.append([np.amin(ydat), np.amax(ydat)])
             xvals.append([np.amin(xdat), np.amax(xdat)])
@@ -109,7 +109,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
 def set_clipping(axes):
     # print('Set Clipping')
     # clip_all(axes)
-    #clip_none(axes)
+    # clip_none(axes)
     special_clip(axes)
 
 
@@ -133,16 +133,21 @@ def special_clip(axes):
     if axes.get_clip_on():
         axes.set_clip_on(True)
 
-        oldpts = deepcopy(axes.bbox.get_points())
-        #oldpts = axes.bbox.get_points()
-        oldpts[1, 1] *= 1.05
-        newbbox = Bbox(oldpts)
+        # oldpts = axes.bbox.get_points()
+        # oldpts = axes.bbox.get_points()
+        # oldpts[1, 1] *= 1.05
+        # oldpts[0, 1] = 0.95
+        # newbbox = Bbox(oldpts)
+        newbbox = TransformedBbox(Bbox([[-0.05, -0.05], [1.05, 1.05]]),
+                                  axes.transAxes)
+        # print(axes.bbox.get_points(), newbbox)
         for o in axes.lines:
-            #label = o.properties()["label"]
+            # label = o.properties()["label"]
             marker = o.properties()["marker"]
-            if marker != "None": #"child" in label:
+            if marker != "None":  # "child" in label:
                 o.set_clip_box(newbbox)
                 pass
+
     else:
         clip_none(axes)
         '''
@@ -161,6 +166,7 @@ def special_clip(axes):
             else:
                 o.set_clip_on(False)
             pass'''
+
 
 def clip_none(axes):
     axes.set_clip_on(False)
@@ -193,6 +199,7 @@ def GetStart(axes):
 
     out = [xmin, ymin, xmax, ymax]
     return out
+
 
 class ZoomCommon:
     def __init__(self):
@@ -301,4 +308,3 @@ class ZoomCommon:
         """force an update of the background"""
         if self.useblit:
             self.background = self.canvas.copy_from_bbox(self.canvas.figure.bbox)
-

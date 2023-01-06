@@ -41,22 +41,22 @@ class Peak:
         self.kendrickdefect = 0
         self.kmass = 0
         self.score = 0
-        #self.corrint = 0
-        #self.correrr = 0
+        # self.corrint = 0
+        # self.correrr = 0
         self.mztabi = []
         self.massavg = 0
         self.masserr = 0
-        #self.tval = 0
+        # self.tval = 0
         self.peakmasses = []
-        #self.fitmassavg = 0
-        #self.fitmasserr = 0
-        #self.fitarea = 0
-        #self.fitareaerr = 0
+        # self.fitmassavg = 0
+        # self.fitmasserr = 0
+        # self.fitarea = 0
+        # self.fitareaerr = 0
         self.diff = 0
         self.extracts = []
         self.errorFWHM = 0
         self.intervalFWHM = [0, 0]
-        self.badFWHM=False
+        self.badFWHM = False
         self.errormean = -1
         self.errorreplicate = 0
         self.avgcharge = 0
@@ -78,7 +78,8 @@ class Peak:
 
     def line_out(self, type="Full"):
         if type == "Full":
-            outputs = [self.mass, self.centroid, self.height, self.integral, self.match, self.matcherror, self.label,
+            outputs = [self.textmarker, self.mass, self.centroid, self.height, self.integral, self.match,
+                       self.matcherror, self.label,
                        self.area, self.diff, self.avgcharge, self.dscore]
         elif type == "Basic":
             outputs = [self.mass, self.height, self.integral]
@@ -141,7 +142,6 @@ class Peaks:
         self.convolved = False
         self.composite = None
         self.massbins = massbins
-
 
     def default_params(self, cmap="rainbow"):
         """
@@ -227,13 +227,13 @@ class Peaks:
         for p in self.peaks:
             if lb is None:
                 if len(p.intervalFWHM) == 2:
-                    lb = (p.intervalFWHM[0]-p.mass) * 2
+                    lb = (p.intervalFWHM[0] - p.mass) * 2
                 else:
                     print("ERROR IN INTEGRATION. Need to calc FWHM first.")
                     lb = 0
             if ub is None:
                 if len(p.intervalFWHM) == 2:
-                    ub = (p.intervalFWHM[1]-p.mass) * 2
+                    ub = (p.intervalFWHM[1] - p.mass) * 2
                 else:
                     print("ERROR IN INTEGRATION. Need to calc FWHM first.")
                     ub = 0
@@ -241,8 +241,6 @@ class Peaks:
             p.integral = ud.integrate(data, p.integralrange[0], p.integralrange[1])[0]
             self.areas.append(p.integral)
         self.areas = np.array(self.areas)
-
-
 
     def auto_format(self):
 
@@ -283,10 +281,11 @@ class Peaks:
 
     def copy(self, type="Full"):
         if type == "Full":
-            outstring = "Mass\tCentroid\tHeight\tIntegral\tMatch\tMatcherror\tLabel\tFit Area\tDiff\tAvgcharge\tDscore\n"
+            outstring = "Symbol\tMass\tCentroid\tHeight\tIntegral\tMatch\tMatcherror\tLabel" \
+                        "\tFit Area\tDiff\tAvgcharge\tDscore\n"
         if type == "Basic":
             outstring = "Mass\tHeight\tIntegral\n"
-        print("Columns:", outstring)
+        #print("Columns:", outstring)
 
         for p in self.peaks:
             outstring += p.line_out(type=type) + "\n"
@@ -294,11 +293,9 @@ class Peaks:
 
     def to_df(self, type="Full", drop_zeros=True):
         outstring = self.copy(type=type)
-        print(outstring)
+        #print(outstring)
         df = pd.read_csv(StringIO(outstring), sep="\t", index_col=False, na_values="")
         df.fillna("", inplace=True)
         if drop_zeros:
             df = df.loc[:, (df != 0).any(axis=0)]
         return df
-
-

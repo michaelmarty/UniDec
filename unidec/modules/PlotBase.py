@@ -4,6 +4,8 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from matplotlib import rcParams
 import matplotlib.cm as cm
+import io
+from matplotlib.backends.backend_svg import FigureCanvasSVG
 # noinspection PyUnresolvedReferences
 import numpy as np
 from unidec.modules.isolated_packages.ZoomCommon import *
@@ -79,6 +81,7 @@ class PlotBase(object):
         self.tickcolor = "black"
         self.mouse_active = False
         self.aspect = "auto"
+        self.canvas = None
 
     def repaint(self, setupzoom=False):
         if setupzoom:
@@ -90,6 +93,7 @@ class PlotBase(object):
 
     def zoomout(self):
         set_clipping(self.subplot1)
+        pass
 
     def setup_zoom(self, plots=None, zoom=None, data_lims=None, pad=0, groups=None):
         # Autoscale Y
@@ -138,6 +142,21 @@ class PlotBase(object):
             dpi = None
         self.figure.savefig(path, transparent=t, dpi=dpi)
         print("Saved Figure: ", path)
+
+    def get_svg(self):
+        """
+        Returns SVG string of figure.
+        :return: SVG string
+        """
+        # clip_none(self.subplot1)
+        svg = io.BytesIO()
+        if self.canvas is None:
+            svgcanvas = FigureCanvasSVG(self.figure)
+            svgcanvas.print_svg(svg)
+        else:
+            self.figure.savefig(svg, format="svg")
+
+        return svg.getvalue()
 
     def kda_test(self, xvals):
         """
