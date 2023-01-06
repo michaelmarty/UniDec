@@ -14,7 +14,6 @@ import unidec.modules.IM_functions as IM_func
 import unidec.modules.MassSpecBuilder as MSBuild
 from unidec.modules.unidec_enginebase import UniDecEngine
 
-
 # import modules.DoubleDec as dd
 
 __author__ = 'Michael.Marty'
@@ -407,7 +406,10 @@ class UniDec(UniDecEngine):
             self.data.massdat = np.array([self.data.massdat])
             self.config.massdatnormtop = np.amax(self.data.massdat[:, 1])
         if not efficiency:
-            self.data.massgrid = np.fromfile(self.config.massgridfile, dtype=self.config.dtype)
+            try:
+                self.data.massgrid = np.fromfile(self.config.massgridfile, dtype=self.config.dtype)
+            except Exception:
+                pass
 
             self.data.fitdat = np.fromfile(self.config.fitdatfile, dtype=self.config.dtype)
             try:
@@ -425,7 +427,11 @@ class UniDec(UniDecEngine):
                 self.data.fitdat = np.sum(self.data.fitdat.reshape(
                     (len(np.unique(self.data.data3[:, 0])), len(np.unique(self.data.data3[:, 1])))), axis=1)
 
-        runstats = np.genfromtxt(self.config.errorfile, dtype='str')
+        try:
+            runstats = np.genfromtxt(self.config.errorfile, dtype='str')
+        except Exception:
+            runstats = []
+            pass
         if self.config.imflag == 0:
             # Calculate Error
             try:
@@ -445,9 +451,7 @@ class UniDec(UniDecEngine):
                     xv = np.c_[np.ravel(yv), np.ravel(xv)]
                     self.data.mzgrid = np.c_[xv, self.data.mzgrid]
                 except Exception as e:
-                    print("Error: Mismatched dimensions between processed and deconvolved data")
-                    print(len)
-                    print(e)
+                    print("Error: Mismatched dimensions between processed and deconvolved data", e)
                     self.data.mzgrid = []
 
             for r in runstats:
@@ -1416,6 +1420,98 @@ class UniDec(UniDecEngine):
                 ax.text(m, h + 5, match)
 
             ax.plot(m, h, color=color, marker="o")
+
+    def makeplot1IM(self, plot1im=None, plot1fit=None, imfit=False):
+        if plot1im is None:
+            plot1im = plot2d.Plot2dBase()
+        if plot1fit is None:
+            plot1fit = plot2d.Plot2dBase()
+
+        if self.config.imflag == 1:
+            try:
+                plot1im.contourplot(self.data.data3, self.config, xlab="m/z (Th)", ylab="Arrival Time (ms)",
+                                    title="IM-MS Data")
+            except:
+                pass
+            if imfit:
+                try:
+                    plot1fit.contourplot(self.data.fitdat2d, self.config, xlab="m/z (Th)", ylab="Arrival Time (ms)",
+                                         title="IM-MS Fit")
+                except:
+                    pass
+
+    def makeplot1(self, plot=None, intthresh=False, imfit=True, config=None):
+        """
+        Plot data and fit in self.view.plot1 and optionally in plot1fit
+        :param plot: plot to use
+        :param intthresh: if True, plot intensity threshold
+        :param imfit: if True, plot IM fit
+        :param config: config to use, default is self.config
+        :return: plot object
+        """
+        if config is None:
+            config = self.config
+        if plot is None:
+            plot = plot1d.Plot1dBase()
+
+        if self.config.batchflag == 0:
+            tstart = time.perf_counter()
+            leg = False
+            # Honestly, I don't remember what this was supposed to do. Probably something with peak mode.
+            try:
+                test = float(self.config.reductionpercent)
+            except Exception as e:
+                self.config.reductionpercent = 0
+
+            if self.config.reductionpercent < 0:
+                print("Making Dot Plot")
+                data2 = ud.dataprep(self.data.rawdata, self.config, peaks=False, intthresh=False)
+                plot.plotrefreshtop(data2[:, 0], data2[:, 1], "Data and UniDec Fit",
+                                    "m/z (Th)", "Normalized Intensity", "Data", self.config, nopaint=True)
+                plot.plotadddot(self.data.data2[:, 0], self.data.data2[:, 1], 'blue', "o", "Peaks")
+
+                # Add red line if there is a fitdata
+                try:
+                    if len(self.data.fitdat) > 0 and imfit:
+                        plot.plotadddot(self.data.data2[:, 0], self.data.fitdat, 'red', "s", "Fit Data")
+                        leg = True
+                    pass
+                except:
+                    pass
+
+            else:
+                # Add Processed Data Plot
+                plot.plotrefreshtop(self.data.data2[:, 0], self.data.data2[:, 1],
+                                    "Data and UniDec Fit",
+                                    "m/z (Th)", "Normalized Intensity", "Data", self.config,
+                                    nopaint=True)
+
+                # Add red line if there is a threshold
+                if self.config.intthresh != 0 and self.config.imflag == 0 and intthresh:
+                    plot.plotadd(self.data.data2[:, 0], np.zeros_like(self.data.data2[:, 1]) + self.config.intthresh,
+                                 "red", "Noise Threshold")
+                    leg = True
+
+                # Add red line for fit
+                try:
+                    if len(self.data.fitdat) > 0 and imfit:
+                        plot.plotadd(self.data.data2[:, 0], self.data.fitdat, 'red', "Fit Data")
+                        leg = True
+                    pass
+                except Exception as e:
+                    pass
+
+            # Add baseline if the flag is set
+            if self.config.aggressiveflag != 0 and len(self.data.baseline) == len(self.data.data2):
+                plot.plotadd(self.data.data2[:, 0], self.data.baseline, 'blue', "Baseline")
+
+            # Add Legend
+            if leg:
+                plot.add_legend()
+            # Repaint
+            plot.repaint()
+            print("Plot 1: %.2gs" % (time.perf_counter() - tstart))
+        return plot
 
 
 # Optional Run

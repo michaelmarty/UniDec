@@ -881,8 +881,11 @@ def waters_convert2(path, config=None, outfile=None):
     return data
 
 
-def get_polarity(path):
-    d = get_importer(path)
+def get_polarity(path, importer=None):
+    if importer is None:
+        d = get_importer(path)
+    else:
+        d = importer
     if d is not None:
         polarity = d.get_polarity()
         return polarity

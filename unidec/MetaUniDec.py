@@ -127,7 +127,7 @@ class MetaUniDecBase(UniDecPres):
 
                 ylabel = self.view.extractlabels[self.eng.config.exchoice]
                 self.view.plot7.clear_plot()
-                self.view.plot7._axes = [0.2, 0.12, 0.75, 0.8]
+                # self.view.plot7._axes = [0.2, 0.12, 0.75, 0.8]
                 for i, p in enumerate(self.eng.pks.peaks):
                     if p.ignore == 0:
                         color = p.color
@@ -909,7 +909,7 @@ class UniDecApp(MetaUniDecBase):
         self.view.ypanel.list.populate(self.eng.data)
         # print("3: %.2gs" % (time.perf_counter() - tstart))
         # self.on_auto_peak_width(set=False)
-        self.eng.get_auto_peak_width(set=False)
+        self.eng.get_auto_peak_width(set_it=False)
         # print("4: %.2gs" % (time.perf_counter() - tstart))
         self.makeplot1()
         self.makeplot2_mud()

@@ -1,6 +1,7 @@
 import numpy as np
 from unidec.modules.hdf5_tools import replace_dataset, get_dataset
 import h5py
+import pandas as pd
 import unidec.tools as ud
 import os
 from copy import deepcopy
@@ -340,6 +341,28 @@ class MetaDataSet:
             pass
         # print("Variable 1:", self.var1)
 
+    def attrs_to_df(self):
+        df = pd.DataFrame()
+        for i, s in enumerate(self.spectra):
+            df = pd.concat([df, pd.DataFrame(s.attrs, index=[i])])
+        return df
+
+    # Return array of a specific attribute in spectra defined by the function input
+    def get_attr(self, attr):
+        attr_array = []
+        for i, s in enumerate(self.spectra):
+            try:
+                attr_array.append(s.attrs[attr])
+            except:
+                attr_array.append(None)
+        return np.array(attr_array)
+
+    # Return array of color values for each spectrum
+    def get_colors(self):
+        colors = []
+        for i, s in enumerate(self.spectra):
+            colors.append(s.color)
+        return np.array(colors)
 
 class Spectrum:
     def __init__(self, topname, index, eng):
@@ -360,7 +383,7 @@ class Spectrum:
         self.topname = topname
         self.filename = ""
         self.attrs = {}
-        self.color = "k"
+        self.color = "#000000"
         self.ignore = 0
         self.var1 = 0
         self.var2 = 0

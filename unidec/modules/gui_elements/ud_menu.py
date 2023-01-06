@@ -69,7 +69,7 @@ class main_menu(wx.Menu):
 
         self.filemenu.AppendSubMenu(self.defaultmenu, "Presets")
         self.filemenu.AppendSeparator()
-
+        self.menuSaveFigureHTML = self.filemenu.Append(wx.ID_ANY, "Generate HTML Report", "Generate HTML Report")
         self.menufigdialog = self.filemenu.Append(wx.ID_ANY, "Save Figure As",
                                                   "Dialog to define path and extension for figure saving")
         # Figure Submenu
@@ -82,7 +82,7 @@ class main_menu(wx.Menu):
         self.menuSaveFigure2 = self.figmenu.Append(wx.ID_ANY, "Save Figures as .png", "Save all figures to .png format")
         if self.config.imflag == 0:
             self.menuSaveFigure4 = self.figmenu.Append(wx.ID_ANY, "Generate PDF Report", "Generate PDF Report")
-            self.menuSaveFigureHTML = self.figmenu.Append(wx.ID_ANY, "Generate HTML Report", "Generate HTML Report")
+
         else:
             self.menuSaveFigure4 = self.figmenu.Append(wx.ID_ANY, "Save Figures as .pdf",
                                                        "Save all figures to .pdf format")

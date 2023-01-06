@@ -15,6 +15,11 @@ class ChromEngine(MetaUniDec):
 
     def __init__(self):
         MetaUniDec.__init__(self)
+        self.chrompeaks = None
+        self.chrompeaks_tranges = None
+        self.outpath = None
+        self.attrs = None
+        self.scans = None
         self.filename = None
         self.dirname = None
         self.path = None
@@ -79,10 +84,11 @@ class ChromEngine(MetaUniDec):
         if not os.path.isfile(self.outpath):
             self.data.new_file(self.outpath)
             self.open(self.outpath)
-        self.auto_polarity(path)
+
         self.update_history()
 
         self.chromdat = ud.get_importer(path)
+        self.auto_polarity(path, self.chromdat)
         self.tic = self.chromdat.get_tic()
         self.ticdat = np.array(self.tic)
 
@@ -93,19 +99,19 @@ class ChromEngine(MetaUniDec):
         self.procdata = None
         return self.mzdata
 
-    def get_data_from_times(self, min, max):
-        minscan = ud.nearest(self.ticdat[:, 0], min)
-        if self.ticdat[minscan, 0] < min:
+    def get_data_from_times(self, minval, maxval):
+        minscan = ud.nearest(self.ticdat[:, 0], minval)
+        if self.ticdat[minscan, 0] < minval:
             minscan += 1
-        maxscan = ud.nearest(self.ticdat[:, 0], max)
-        if self.ticdat[maxscan, 0] > max:
+        maxscan = ud.nearest(self.ticdat[:, 0], maxval)
+        if self.ticdat[maxscan, 0] > maxval:
             maxscan -= 1
         if maxscan <= minscan:
             maxscan = minscan + 1
-        self.scans = [minscan, maxscan, min, max]
+        self.scans = [minscan, maxscan, minval, maxval]
 
-        attrs = {"timestart": min, "timeend": max,
-                 "timemid": (min + max) / 2.,
+        attrs = {"timestart": minval, "timeend": maxval,
+                 "timemid": (minval + maxval) / 2.,
                  "scanstart": minscan, "scanend": maxscan,
                  "scanmid": (minscan + maxscan) / 2.}
         self.attrs = attrs
@@ -156,19 +162,19 @@ class ChromEngine(MetaUniDec):
         tranges = []
         diffs = np.diff(ticdat[:, 0])
         for p in peaks:
-            fwhm, range = ud.calc_FWHM(p[0], ticdat)
+            fwhm, fwhmrange = ud.calc_FWHM(p[0], ticdat)
             index = ud.nearest(ticdat[:, 0], p[0])
             if index >= len(diffs):
                 index = len(diffs) - 1
             localdiff = diffs[index]
-            if p[0] - fwhm / 2. < mint or p[0] + fwhm / 2. > maxt or fwhm > 4 * window or fwhm < localdiff * 2 or range[
-                0] == p[0] or range[1] == p[0]:
-                print("Bad Peak", p, fwhm, range)
+            if p[0] - fwhm / 2. < mint or p[0] + fwhm / 2. > maxt or fwhm > 4 * window or fwhm < localdiff * 2 \
+                    or fwhmrange[0] == p[0] or fwhmrange[1] == p[0]:
+                print("Bad Peak", p, fwhm, fwhmrange)
                 pass
             else:
                 print(p[0], fwhm)
                 goodpeaks.append(p)
-                tranges.append(range)
+                tranges.append(fwhmrange)
         self.chrompeaks = goodpeaks
         self.chrompeaks_tranges = tranges
         return goodpeaks, tranges
@@ -230,3 +236,11 @@ class ChromEngine(MetaUniDec):
         for i, t in enumerate(starts):
             data = self.get_data_from_times(t, ends[i])
             self.data.add_data(data, name=str(t), attrs=self.attrs, export=False)
+
+
+if __name__ == "__main__":
+    inpath = "C:\\Python\\UniDec3\\unidec\\bin\\Example Data\\UniChrom\\SEC_Native_Herceptin.raw"
+    eng = ChromEngine()
+    eng.open_chrom(inpath)
+    eng.gen_html_report()
+    pass

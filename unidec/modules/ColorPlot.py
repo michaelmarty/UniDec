@@ -64,6 +64,7 @@ class ColorPlot2D(PlottingWindowBase):
         """
         PlottingWindowBase.__init__(self, *args, **kwargs)
         self._axes = [0.1, 0.1, 0.64, 0.8]
+        self.is2d = True
 
     def make_color_plot(self, mzgrid, mzax, dtax, ztab):
         """
@@ -115,10 +116,10 @@ class ColorPlot2D(PlottingWindowBase):
 
         # Loop through each charge state and make the color plot to layer on top of the black background
         for i in range(0, zlen):
-            cm.register(cmarr[i], name="newcmap")
+            #cm.register_cmap(cmap=, name="newcmap")
             grid_slice = np.sqrt(mzgrid[:, :, i])
             normalization = cm.colors.Normalize(vmax=0.5, vmin=0.00)
-            self.subplot1.imshow(np.transpose(grid_slice), origin="lower", cmap="newcmap", extent=extent,
+            self.subplot1.imshow(np.transpose(grid_slice), origin="lower", cmap=cmarr[i], extent=extent,
                                  norm=normalization,
                                  aspect='auto')
 

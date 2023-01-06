@@ -22,6 +22,7 @@ class CubePlot(PlottingWindowBase):
         PlottingWindowBase.__init__(self, *args, **kwargs)
         self._axes = [0.01, 0.01, 0.99, 0.99]
         self.normaltickes = False
+        self.is2d = True
 
     def cubeplot(self, xaxis, yaxis, zaxis, C, C2, C3, xlab="", ylab="", zlab="", cmap="jet"):
         """

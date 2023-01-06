@@ -75,6 +75,7 @@ class CDMainwindow(MainwindowBase):
                 ["M", self.pres.on_match, self.menu.menumatch],
                 ["W", self.pres.on_auto_peak_width, self.menu.menuAutoWidth],
                 ["Z", self.pres.on_undo, self.menu.menuundo],
+                ["H", self.pres.on_gen_html_report, self.menu.menuSaveFigureHTML],
                 ["Y", self.pres.on_redo, self.menu.menuredo],
                 ]
 
@@ -176,8 +177,8 @@ class CDMainwindow(MainwindowBase):
             plotwindow.Bind(wx.EVT_SET_FOCUS, self.onFocus)
         self.plotpanel = plotwindow
 
-        self.plots = [self.plot1, self.plot2, self.plot3, self.plot4, self.plot5, self.plot6]
-        self.plotnames = ["Figure1", "Figure2", "Figure3", "Figure4", "Figure5", "Figure6"]
+        self.plots = [self.plot1, self.plot2, self.plot5, self.plot4, self.plot3, self.plot6]
+        self.plotnames = ["Figure1", "Figure2", "Figure5", "Figure4", "Figure3", "Figure6"]
 
         # ...........................
         #

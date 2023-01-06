@@ -24,7 +24,20 @@ def ofile_reader(path):
     return np.array(oligos)
 
 
-# noinspection PyAttributeOutsideInit
+def read_attr(thing, string, config_group):
+    try:
+        if string in list(config_group.attrs.keys()):
+            val = config_group.attrs.get(string)
+            if isinstance(val, np.ndarray):
+                return val[0]
+            else:
+                return val
+        else:
+            return thing
+    except Exception:
+        return thing
+
+
 class UniDecConfig(object):
     """
     Class containing all options and configurations for UniDec GUI and Program. Contains methods to export and import
@@ -39,6 +52,9 @@ class UniDecConfig(object):
         self.version = version
         self.inputversion = None
         self.dtype = np.single
+
+        # File names and paths
+        self.system = platform.system()
         self.infname = "input.dat"
         self.outfname = ""
         self.mfile = "mass.dat"
@@ -52,6 +68,33 @@ class UniDecConfig(object):
         self.udir = ''
         self.filename = ''
         self.extension = ''
+        self.deconfile = ''
+        self.errorfile = ''
+        self.fitdatfile = ''
+        self.massgridfile = ''
+        self.massdatfile = ''
+        self.cdrawextracts = ''
+        self.mzgridfile = ''
+        self.cdcreaderpath = ''
+        self.UniDecPath = ''
+        self.UniDecDir = ''
+        self.UniDecName = ''
+        self.defaultUnidecDir = ''
+        self.opencommand = ''
+        self.defaultUnidecName = ''
+        self.iconfile = ''
+        self.toplogofile = ''
+        self.exampledatadirUC = ''
+        self.exampledatadirCD = ''
+        self.exampledatadir = ''
+        self.presetdirCD = ''
+        self.presetdir = ''
+        self.h5repackfile = ''
+        self.recentfileCD = ''
+        self.recentfile = ''
+        self.masstablefile = ''
+        self.defaultconfig = ''
+
         self.imflag = 0
         self.cdmsflag = 0
         self.metamode = -2
@@ -72,6 +115,154 @@ class UniDecConfig(object):
         self.figsize = (6, 5)
         self.mass_proton = 1.007276467
         self.mass_diff_carbon = 1.0033
+        self.polarity = "Positive"
+
+        # Initialize Parameters
+        # plotting
+        self.publicationmode = 1
+        self.discreteplot = 0
+        self.cmap = u"nipy_spectral"
+        self.peakcmap = u"rainbow"
+        self.spectracmap = u"rainbow"
+        self.rawflag = 0
+
+        # data prep
+        self.minmz = ''
+        self.maxmz = ''
+        self.intscale = u"Linear"
+
+        # Results
+        self.error = 0
+        self.runtime = 0
+
+        # IM specific
+        self.mindt = ''
+        self.maxdt = ''
+        self.zout = 0
+        self.pusher = 0
+        self.temp = 25
+        self.pressure = 2
+        self.volt = 50
+        self.to = 0
+        self.driftlength = 0.18202
+        self.tcal1 = 0.3293
+        self.tcal2 = 6.3597
+        self.tcal3 = 0
+        self.tcal4 = 0
+        self.edc = 1.57
+        self.gasmass = 4.002602
+        self.twaveflag = 0
+
+        # Misc
+        self.batchflag = 0
+        self.procflag = 0
+        self.massdatnormtop = 0
+        self.mfileflag = 0
+        self.manualfileflag = 0
+        self.kendrickmass = None
+
+        self.masslist = []
+        self.matchlist = []
+        self.oligomerlist = []
+        self.manuallist = []
+        self.zoffs = []
+        self.smashrange = []
+        self.massoffset = 0
+        self.extractshape = 0
+        self.gridparams = None
+        self.griddecon = None
+        self.defectparams = None
+        self.defectcomparefiles = [None, None]
+        self.matchtolerance = 1000
+
+        self.avgscore = 0
+
+        # Data Prep
+        self.detectoreffva = 0
+        self.mzbins = 0
+        self.smooth = 0
+        self.subbuff = 0
+        self.subtype = 2
+        self.intthresh = 0
+        self.reductionpercent = 0
+
+        # unidec
+        self.numit = 100
+        self.zzsig = 1
+        self.psig = 1
+        self.beta = 0
+        self.startz = 1
+        self.endz = 50
+        self.numz = 50
+        self.mzsig = 0.85
+        self.automzsig = 0
+        self.psfun = 0
+        self.psfunz = 0
+        self.autopsfun = 0
+        self.massub = 500000
+        self.masslb = 5000
+        self.msig = 0
+        self.molig = 0
+        self.massbins = 10
+        self.adductmass = 1.007276467
+        self.baselineflag = 1
+        self.aggressiveflag = 0
+        self.noiseflag = 0
+        self.isotopemode = 0
+        self.orbimode = 0
+
+        # Other
+        self.mtabsig = 0
+        self.poolflag = 2
+        self.nativezub = 1000
+        self.nativezlb = -1000
+        self.inflate = 1
+        self.linflag = 2
+        self.integratelb = ""
+        self.integrateub = ""
+        self.filterwidth = 20
+        self.zerolog = -12
+
+        # Peak Selection and plotting
+        self.peakwindow = 500
+        self.peakthresh = 0.1
+        self.peakplotthresh = 0.1
+        self.separation = 0.025
+        self.peaknorm = 1
+        self.exwindow = 0
+        self.exchoice = 0
+        self.exchoicez = 1
+        self.exthresh = 10
+        self.exnorm = 1
+        self.exnormz = 0
+        self.datanorm = 1
+        self.numtot = 20
+        self.crossover = 100
+
+        # IM Specific
+        self.smoothdt = 0
+        self.subbufdt = 0
+        self.ccslb = 100
+        self.ccsub = 25000
+        self.nativeccsub = 20000
+        self.nativeccslb = -20000
+        self.dtsig = 0.2
+        self.ccsbins = 100
+        self.compressflag = 1
+
+        # Reused by IM and CD
+        self.csig = 0
+        # Charge Detection
+        self.CDslope = 0.2074
+        self.CDzbins = 1
+        self.CDres = 0
+
+        self.doubledec = False
+        self.kernel = ""
+
+        self.cmaps = None
+        self.cmaps2 = None
+
         self.initialize()
 
     def initialize(self):
@@ -127,7 +318,7 @@ class UniDecConfig(object):
         self.oligomerlist = []
         self.manuallist = []
         self.zoffs = []
-        self.smashrange= []
+        self.smashrange = []
         self.massoffset = 0
         self.extractshape = 0
         self.gridparams = None
@@ -510,20 +701,11 @@ class UniDecConfig(object):
                         if line.startswith("linflag"):
                             self.linflag = ud.string_to_int(line.split()[1])
                         if line.startswith("cmap"):
-                            try:
-                                self.cmap = str(line.split()[1], encoding="utf-8")
-                            except:
-                                self.cmap = str(line.split()[1])
+                            self.cmap = str(line.split()[1])
                         if line.startswith("peakcmap"):
-                            try:
-                                self.peakcmap = str(line.split()[1], encoding="utf-8")
-                            except:
-                                self.peakcmap = str(line.split()[1])
+                            self.peakcmap = str(line.split()[1])
                         if line.startswith("spectracmap"):
-                            try:
-                                self.spectracmap = str(line.split()[1], encoding="utf-8")
-                            except:
-                                self.spectracmap = str(line.split()[1])
+                            self.spectracmap = str(line.split()[1])
                         if line.startswith("publicationmode"):
                             self.publicationmode = ud.string_to_int(line.split()[1])
                         if line.startswith("isotopemode"):
@@ -633,11 +815,11 @@ class UniDecConfig(object):
             self.linflag = 2
         try:
             self.maxmz = float(self.maxmz)
-        except:
+        except Exception:
             self.maxmz = 1000000
         try:
             self.minmz = float(self.minmz)
-        except:
+        except Exception:
             self.minmz = 0
 
         if self.tcal3 == "":
@@ -693,8 +875,8 @@ class UniDecConfig(object):
         for key, value in cdict.items():
             try:
                 config_group.attrs[key] = value
-            except:
-                print("Error with key, value:", key, value)
+            except Exception as e:
+                print("Error with key, value:", key, value, e)
 
         if not ud.isempty(self.masslist):
             replace_dataset(config_group, "masslist", data=self.masslist)
@@ -708,128 +890,115 @@ class UniDecConfig(object):
         hdf.close()
         pass
 
-    def read_attr(self, thing, string, config):
-        try:
-            if string in list(config.attrs.keys()):
-                val = config.attrs.get(string)
-                if isinstance(val, np.ndarray):
-                    return val[0]
-                else:
-                    return val
-            else:
-                return thing
-        except:
-            return thing
-
     def read_hdf5(self, file_name=None):
         if file_name is None:
             file_name = self.hdf_file
         hdf = h5py.File(file_name, 'r')
         config_group = hdf.get("config")
         # self.infname = self.read_attr(self.infname, "input", config_group)
-        self.inputversion = self.read_attr(self.inputversion, "version", config_group)
-        self.maxmz = self.read_attr(self.maxmz, "maxmz", config_group)
-        self.minmz = self.read_attr(self.minmz, "minmz", config_group)
-        self.metamode = self.read_attr(self.metamode, "metamode", config_group)
+        self.inputversion = read_attr(self.inputversion, "version", config_group)
+        self.maxmz = read_attr(self.maxmz, "maxmz", config_group)
+        self.minmz = read_attr(self.minmz, "minmz", config_group)
+        self.metamode = read_attr(self.metamode, "metamode", config_group)
         # self.outfname = self.read_attr(self.outfname, "output", config_group)
-        self.numit = self.read_attr(self.numit, "numit", config_group)
-        self.endz = self.read_attr(self.endz, "endz", config_group)
-        self.startz = self.read_attr(self.startz, "startz", config_group)
-        self.zzsig = self.read_attr(self.zzsig, "zzsig", config_group)
-        self.psig = self.read_attr(self.psig, "psig", config_group)
-        self.beta = self.read_attr(self.beta, "beta", config_group)
-        self.mzsig = self.read_attr(self.mzsig, "mzsig", config_group)
-        self.psfun = self.read_attr(self.psfun, "psfun", config_group)
-        self.psfunz = self.read_attr(self.psfunz, "psfunz", config_group)
-        self.discreteplot = self.read_attr(self.discreteplot, "discreteplot", config_group)
-        self.massub = self.read_attr(self.massub, "massub", config_group)
-        self.masslb = self.read_attr(self.masslb, "masslb", config_group)
-        self.molig = self.read_attr(self.molig, "molig", config_group)
-        self.msig = self.read_attr(self.msig, "msig", config_group)
-        self.massbins = self.read_attr(self.massbins, "massbins", config_group)
-        self.mtabsig = self.read_attr(self.mtabsig, "mtabsig", config_group)
-        self.subbuff = self.read_attr(self.subbuff, "subbuff", config_group)
-        self.smooth = self.read_attr(self.smooth, "smooth", config_group)
-        self.mzbins = self.read_attr(self.mzbins, "mzbins", config_group)
-        self.peakwindow = self.read_attr(self.peakwindow, "peakwindow", config_group)
-        self.peakthresh = self.read_attr(self.peakthresh, "peakthresh", config_group)
-        self.peakplotthresh = self.read_attr(self.peakplotthresh, "peakplotthresh", config_group)
-        self.separation = self.read_attr(self.separation, "separation", config_group)
-        self.intthresh = self.read_attr(self.intthresh, "intthresh", config_group)
-        self.reductionpercent = self.read_attr(self.reductionpercent, "reductionpercent", config_group)
-        self.aggressiveflag = self.read_attr(self.aggressiveflag, "aggressiveflag", config_group)
-        self.rawflag = self.read_attr(self.rawflag, "rawflag", config_group)
-        self.adductmass = self.read_attr(self.adductmass, "adductmass", config_group)
-        self.nativezub = self.read_attr(self.nativezub, "nativezub", config_group)
-        self.nativezlb = self.read_attr(self.nativezlb, "nativezlb", config_group)
-        self.poolflag = self.read_attr(self.poolflag, "poolflag", config_group)
-        self.detectoreffva = self.read_attr(self.detectoreffva, "accvol", config_group)
-        self.inflate = self.read_attr(self.inflate, "peakshapeinflate", config_group)
-        self.noiseflag = self.read_attr(self.noiseflag, "noiseflag", config_group)
-        self.linflag = self.read_attr(self.linflag, "linflag", config_group)
-        self.cmap = self.read_attr(self.cmap, "cmap", config_group)
-        self.peakcmap = self.read_attr(self.peakcmap, "peakcmap", config_group)
-        self.spectracmap = self.read_attr(self.spectracmap, "spectracmap", config_group)
-        self.publicationmode = self.read_attr(self.publicationmode, "publicationmode", config_group)
-        self.isotopemode = self.read_attr(self.isotopemode, "isotopemode", config_group)
-        self.peaknorm = self.read_attr(self.peaknorm, "peaknorm", config_group)
-        self.baselineflag = self.read_attr(self.baselineflag, "baselineflag", config_group)
-        self.orbimode = self.read_attr(self.orbimode, "orbimode", config_group)
-        self.zout = self.read_attr(self.zout, "zout", config_group)
+        self.numit = read_attr(self.numit, "numit", config_group)
+        self.endz = read_attr(self.endz, "endz", config_group)
+        self.startz = read_attr(self.startz, "startz", config_group)
+        self.zzsig = read_attr(self.zzsig, "zzsig", config_group)
+        self.psig = read_attr(self.psig, "psig", config_group)
+        self.beta = read_attr(self.beta, "beta", config_group)
+        self.mzsig = read_attr(self.mzsig, "mzsig", config_group)
+        self.psfun = read_attr(self.psfun, "psfun", config_group)
+        self.psfunz = read_attr(self.psfunz, "psfunz", config_group)
+        self.discreteplot = read_attr(self.discreteplot, "discreteplot", config_group)
+        self.massub = read_attr(self.massub, "massub", config_group)
+        self.masslb = read_attr(self.masslb, "masslb", config_group)
+        self.molig = read_attr(self.molig, "molig", config_group)
+        self.msig = read_attr(self.msig, "msig", config_group)
+        self.massbins = read_attr(self.massbins, "massbins", config_group)
+        self.mtabsig = read_attr(self.mtabsig, "mtabsig", config_group)
+        self.subbuff = read_attr(self.subbuff, "subbuff", config_group)
+        self.smooth = read_attr(self.smooth, "smooth", config_group)
+        self.mzbins = read_attr(self.mzbins, "mzbins", config_group)
+        self.peakwindow = read_attr(self.peakwindow, "peakwindow", config_group)
+        self.peakthresh = read_attr(self.peakthresh, "peakthresh", config_group)
+        self.peakplotthresh = read_attr(self.peakplotthresh, "peakplotthresh", config_group)
+        self.separation = read_attr(self.separation, "separation", config_group)
+        self.intthresh = read_attr(self.intthresh, "intthresh", config_group)
+        self.reductionpercent = read_attr(self.reductionpercent, "reductionpercent", config_group)
+        self.aggressiveflag = read_attr(self.aggressiveflag, "aggressiveflag", config_group)
+        self.rawflag = read_attr(self.rawflag, "rawflag", config_group)
+        self.adductmass = read_attr(self.adductmass, "adductmass", config_group)
+        self.nativezub = read_attr(self.nativezub, "nativezub", config_group)
+        self.nativezlb = read_attr(self.nativezlb, "nativezlb", config_group)
+        self.poolflag = read_attr(self.poolflag, "poolflag", config_group)
+        self.detectoreffva = read_attr(self.detectoreffva, "accvol", config_group)
+        self.inflate = read_attr(self.inflate, "peakshapeinflate", config_group)
+        self.noiseflag = read_attr(self.noiseflag, "noiseflag", config_group)
+        self.linflag = read_attr(self.linflag, "linflag", config_group)
+        self.cmap = read_attr(self.cmap, "cmap", config_group)
+        self.peakcmap = read_attr(self.peakcmap, "peakcmap", config_group)
+        self.spectracmap = read_attr(self.spectracmap, "spectracmap", config_group)
+        self.publicationmode = read_attr(self.publicationmode, "publicationmode", config_group)
+        self.isotopemode = read_attr(self.isotopemode, "isotopemode", config_group)
+        self.peaknorm = read_attr(self.peaknorm, "peaknorm", config_group)
+        self.baselineflag = read_attr(self.baselineflag, "baselineflag", config_group)
+        self.orbimode = read_attr(self.orbimode, "orbimode", config_group)
+        self.zout = read_attr(self.zout, "zout", config_group)
 
-        self.pusher = self.read_attr(self.pusher, "pusher", config_group)
-        self.mindt = self.read_attr(self.mindt, "mindt", config_group)
-        self.maxdt = self.read_attr(self.maxdt, "maxdt", config_group)
-        self.ccsub = self.read_attr(self.ccsub, "ccsub", config_group)
-        self.ccslb = self.read_attr(self.ccslb, "ccslb", config_group)
-        self.dtsig = self.read_attr(self.dtsig, "dtsig", config_group)
-        self.csig = self.read_attr(self.csig, "csig", config_group)
-        self.ccsbins = self.read_attr(self.ccsbins, "ccsbins", config_group)
-        self.subbufdt = self.read_attr(self.subbufdt, "subbufdt", config_group)
-        self.smoothdt = self.read_attr(self.smoothdt, "smoothdt", config_group)
-        self.nativeccsub = self.read_attr(self.nativeccsub, "nativeccsub", config_group)
-        self.nativeccslb = self.read_attr(self.nativeccslb, "nativeccslb", config_group)
-        self.twaveflag = self.read_attr(self.twaveflag, "twaveflag", config_group)
-        self.temp = self.read_attr(self.temp, "temp", config_group)
-        self.pressure = self.read_attr(self.pressure, "pressure", config_group)
-        self.volt = self.read_attr(self.volt, "volt", config_group)
-        self.to = self.read_attr(self.to, "tnaught", config_group)
-        self.driftlength = self.read_attr(self.driftlength, "driftlength", config_group)
-        self.tcal1 = self.read_attr(self.tcal1, "tcal1", config_group)
-        self.tcal2 = self.read_attr(self.tcal2, "tcal2", config_group)
-        self.tcal3 = self.read_attr(self.tcal3, "tcal3", config_group)
-        self.tcal4 = self.read_attr(self.tcal4, "tcal4", config_group)
-        self.edc = self.read_attr(self.edc, "edc", config_group)
-        self.gasmass = self.read_attr(self.gasmass, "gasmass", config_group)
+        self.pusher = read_attr(self.pusher, "pusher", config_group)
+        self.mindt = read_attr(self.mindt, "mindt", config_group)
+        self.maxdt = read_attr(self.maxdt, "maxdt", config_group)
+        self.ccsub = read_attr(self.ccsub, "ccsub", config_group)
+        self.ccslb = read_attr(self.ccslb, "ccslb", config_group)
+        self.dtsig = read_attr(self.dtsig, "dtsig", config_group)
+        self.csig = read_attr(self.csig, "csig", config_group)
+        self.ccsbins = read_attr(self.ccsbins, "ccsbins", config_group)
+        self.subbufdt = read_attr(self.subbufdt, "subbufdt", config_group)
+        self.smoothdt = read_attr(self.smoothdt, "smoothdt", config_group)
+        self.nativeccsub = read_attr(self.nativeccsub, "nativeccsub", config_group)
+        self.nativeccslb = read_attr(self.nativeccslb, "nativeccslb", config_group)
+        self.twaveflag = read_attr(self.twaveflag, "twaveflag", config_group)
+        self.temp = read_attr(self.temp, "temp", config_group)
+        self.pressure = read_attr(self.pressure, "pressure", config_group)
+        self.volt = read_attr(self.volt, "volt", config_group)
+        self.to = read_attr(self.to, "tnaught", config_group)
+        self.driftlength = read_attr(self.driftlength, "driftlength", config_group)
+        self.tcal1 = read_attr(self.tcal1, "tcal1", config_group)
+        self.tcal2 = read_attr(self.tcal2, "tcal2", config_group)
+        self.tcal3 = read_attr(self.tcal3, "tcal3", config_group)
+        self.tcal4 = read_attr(self.tcal4, "tcal4", config_group)
+        self.edc = read_attr(self.edc, "edc", config_group)
+        self.gasmass = read_attr(self.gasmass, "gasmass", config_group)
 
-        self.integratelb = self.read_attr(self.integratelb, "integratelb", config_group)
-        self.integrateub = self.read_attr(self.integrateub, "integrateub", config_group)
-        self.filterwidth = self.read_attr(self.filterwidth, "filterwidth", config_group)
-        self.zerolog = self.read_attr(self.zerolog, "zerolog, config_group", config_group)
-        self.mfileflag = self.read_attr(self.mfileflag, "mfileflag", config_group)
-        self.manualfileflag = self.read_attr(self.manualfileflag, "manualfileflag", config_group)
-        self.imflag = self.read_attr(self.imflag, "imflag", config_group)
-        self.cdmsflag = self.read_attr(self.cdmsflag, "cdmsflag", config_group)
+        self.integratelb = read_attr(self.integratelb, "integratelb", config_group)
+        self.integrateub = read_attr(self.integrateub, "integrateub", config_group)
+        self.filterwidth = read_attr(self.filterwidth, "filterwidth", config_group)
+        self.zerolog = read_attr(self.zerolog, "zerolog, config_group", config_group)
+        self.mfileflag = read_attr(self.mfileflag, "mfileflag", config_group)
+        self.manualfileflag = read_attr(self.manualfileflag, "manualfileflag", config_group)
+        self.imflag = read_attr(self.imflag, "imflag", config_group)
+        self.cdmsflag = read_attr(self.cdmsflag, "cdmsflag", config_group)
 
-        self.exchoice = self.read_attr(self.exchoice, "exchoice", config_group)
-        self.exchoicez = self.read_attr(self.exchoicez, "exchoicez", config_group)
-        self.exthresh = self.read_attr(self.exthresh, "exthresh", config_group)
-        self.exnorm = self.read_attr(self.exnorm, "exnorm", config_group)
-        self.exnormz = self.read_attr(self.exnormz, "exnormz", config_group)
-        self.datanorm = self.read_attr(self.datanorm, "datanorm", config_group)
-        self.exwindow = self.read_attr(self.exwindow, "exwindow", config_group)
+        self.exchoice = read_attr(self.exchoice, "exchoice", config_group)
+        self.exchoicez = read_attr(self.exchoicez, "exchoicez", config_group)
+        self.exthresh = read_attr(self.exthresh, "exthresh", config_group)
+        self.exnorm = read_attr(self.exnorm, "exnorm", config_group)
+        self.exnormz = read_attr(self.exnormz, "exnormz", config_group)
+        self.datanorm = read_attr(self.datanorm, "datanorm", config_group)
+        self.exwindow = read_attr(self.exwindow, "exwindow", config_group)
 
         self.masslist = get_dataset(config_group, "masslist")
         self.manuallist = get_dataset(config_group, "manuallist")
         self.oligomerlist = get_dataset(config_group, "oligomerlist").astype(np.unicode_)
 
-        self.time_window = self.read_attr(self.time_window, "chrom_time_window", config_group)
-        self.chrom_peak_width = self.read_attr(self.chrom_peak_width, "chrom_peak_width", config_group)
-        self.sw_time_window = self.read_attr(self.sw_time_window, "sw_time_window", config_group)
-        self.sw_scan_offset = self.read_attr(self.sw_scan_offset, "sw_scan_offset", config_group)
+        self.time_window = read_attr(self.time_window, "chrom_time_window", config_group)
+        self.chrom_peak_width = read_attr(self.chrom_peak_width, "chrom_peak_width", config_group)
+        self.sw_time_window = read_attr(self.sw_time_window, "sw_time_window", config_group)
+        self.sw_scan_offset = read_attr(self.sw_scan_offset, "sw_scan_offset", config_group)
 
-        self.time_start = self.read_attr(self.time_start, "time_start", config_group)
-        self.time_end = self.read_attr(self.time_end, "time_end", config_group)
+        self.time_start = read_attr(self.time_start, "time_start", config_group)
+        self.time_end = read_attr(self.time_end, "time_end", config_group)
 
         hdf.close()
 
@@ -874,72 +1043,72 @@ class UniDecConfig(object):
             m/z resolution is really small.
         :return: None
         """
-        self.badtest = 0
-        self.warning = ""
+        badest = 0
+        warning = ""
 
         try:
             x = float(self.maxmz)
-        except:
+        except Exception:
             self.maxmz = 100000
         try:
             x = float(self.minmz)
-        except:
+        except Exception:
             self.minmz = 0
 
         # Check that mz min and max are not reversed
         if self.maxmz <= self.minmz:
-            self.warning = "Max m/z is less or equal to Min m/z\nFix m/z range."
-            self.badtest = 1
+            warning = "Max m/z is less or equal to Min m/z\nFix m/z range."
+            badest = 1
 
         # Check that bin size is not too small
         if self.mzbins < 0.01 and self.linflag != 2:
-            self.warning = "Bin size is really small!\nGo ahead, but know that it will be really slow."
+            warning = "Bin size is really small!\nGo ahead, but know that it will be really slow."
 
         # Check Charge range
         if self.endz < self.startz:
-            self.warning = "Max charge is less than Min charge\nFix charge range."
-            self.badtest = 1
+            warning = "Max charge is less than Min charge\nFix charge range."
+            badest = 1
 
         # Check Mass Range
         if abs(self.massub) <= abs(self.masslb):
-            self.warning = "Max mass is less or equal to Min mass\nFix mass range."
-            self.badtest = 1
+            warning = "Max mass is less or equal to Min mass\nFix mass range."
+            badest = 1
 
         # Check Native Z range
         if self.nativezub <= self.nativezlb:
-            self.warning = "Max native z offset is less or equal to Min native z offset\nFix native z offset range."
-            self.badtest = 1
+            warning = "Max native z offset is less or equal to Min native z offset\nFix native z offset range."
+            badest = 1
 
         # Check peak width
         # if self.mzsig == 0:
-        #    self.warning = "Peak width is zero\nFix peak width to be positive number"
-        #    self.badtest = 1
+        #    warning = "Peak width is zero\nFix peak width to be positive number"
+        #    badest = 1
 
         if self.imflag == 1:
             if self.nativeccsub <= self.nativeccslb:
-                self.warning = "Max native ccs offset is less or equal to Min native ccs offset" \
-                               "\nFix native ccs offset range."
-                self.badtest = 1
+                warning = "Max native ccs offset is less or equal to Min native ccs offset" \
+                          "\nFix native ccs offset range."
+                badest = 1
 
             if self.maxdt < self.mindt:
-                self.warning = "Max Arrival Time is less or equal to Min Arrival Time\nFix Arrival Time range."
-                self.badtest = 1
+                warning = "Max Arrival Time is less or equal to Min Arrival Time\nFix Arrival Time range."
+                badest = 1
 
             if self.ccsub < self.ccslb:
-                self.warning = "CCS Upper Bound lower then CCS Lower Bound\nFix CCS range."
-                self.badtest = 1
+                warning = "CCS Upper Bound lower then CCS Lower Bound\nFix CCS range."
+                badest = 1
 
             if self.twaveflag > 0 and (self.tcal1 == 0 or self.tcal2 == 0 or self.edc == 0):
-                self.warning = "Note: One or more T-wave calibration parameters has been set to 0" \
-                               "\nCheck to make sure this is correct"
+                warning = "Note: One or more T-wave calibration parameters has been set to 0" \
+                          "\nCheck to make sure this is correct"
 
         path = os.path.join(os.getcwd(), self.confname)
         if len(path) > 250:
-            self.badtest = 1
-            self.warning = "ERROR: PATH LENGTH TOO LONG: Windows sets a 260 character path length." \
-                           "\nPlease shorten your file and folder path lengths."
+            badest = 1
+            warning = "ERROR: PATH LENGTH TOO LONG: Windows sets a 260 character path length." \
+                      "\nPlease shorten your file and folder path lengths."
 
-        return self.badtest, self.warning
+        return badest, warning
 
     def default_high_res(self):
         """
@@ -1066,7 +1235,6 @@ class UniDecConfig(object):
         """
 
         # print "\nInitial File Locations..."
-        self.system = platform.system()
         pathtofile = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.defaultUnidecDir = os.path.join(pathtofile, 'bin')
 
@@ -1144,7 +1312,7 @@ class UniDecConfig(object):
                     except RuntimeWarning as e:
                         print(e)
                         print(value, value2)
-                except:
+                except Exception:
                     pass
         except KeyError:
             flag = True
@@ -1157,7 +1325,7 @@ class UniDecConfig(object):
             cmap = cmap[2:-1]
         try:
             cmap = str(cmap, encoding="utf-8")
-        except:
+        except Exception:
             pass
 
         colormap = cm.get_cmap(cmap, n)
@@ -1173,6 +1341,7 @@ class UniDecConfig(object):
 
 class OligomerContainer:
     def __init__(self):
+        self.oligonames = np.array([])
         self.oligomernames = np.array([])
         self.oligomasslist = np.array([])
         self.oligomerlist = np.array([])
@@ -1195,10 +1364,11 @@ class OligomerContainer:
             b1 = sums <= maxsites
             self.oligomasslist = self.oligomasslist[b1]
             self.oligonames = self.oligonames[b1]
-        print("Oligomers Made in ", time.perf_counter()-stime, "s")
+        print("Oligomers Made in ", time.perf_counter() - stime, "s")
 
     def pair_glyco(self):
-        self.oligomasslist, self.oligonames = ud.pair_glyco_matches(self.oligomasslist, self.oligonames, self.oligomerlist)
+        self.oligomasslist, self.oligonames = ud.pair_glyco_matches(self.oligomasslist, self.oligonames,
+                                                                    self.oligomerlist)
 
     def get_alts(self, pks, tolerance=10):
         altmasses = []
@@ -1206,7 +1376,7 @@ class OligomerContainer:
         matchcounts = []
         for p in pks.peaks:
             m = p.mass
-            b1 = np.abs(self.oligomasslist-m) < tolerance
+            b1 = np.abs(self.oligomasslist - m) < tolerance
             altmasses.append(self.oligomasslist[b1])
             altindexes.append(self.oligonames[b1])
             matchcounts.append(np.sum(b1))

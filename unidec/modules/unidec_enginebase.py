@@ -1,4 +1,4 @@
-from unidec.modules import unidecstructure, peakstructure, plot1d
+from unidec.modules import unidecstructure, peakstructure, plot1d, plot2d
 from unidec import tools as ud
 import numpy as np
 import os
@@ -6,6 +6,11 @@ import time
 from unidec.modules.html_writer import *
 
 version = "6.0.0a3"
+
+
+def copy_config(config):
+    # return deepcopy(config)
+    return type("UniDecConfig", (object,), dict(config.__dict__))
 
 
 class UniDecEngine:
@@ -19,6 +24,7 @@ class UniDecEngine:
 
         :return: None
         """
+
         self.version = version
 
         print("\nUniDec Engine v." + self.version)
@@ -28,8 +34,12 @@ class UniDecEngine:
         self.data = None
         self.pks = None
         self.olg = None
+        self.matchcounts = None
+        self.altmasses = None
+        self.altindexes = None
+        self.matchindexes = None
+        self.matchlist = None
         self.initialize()
-        pass
 
     def initialize(self):
         """
@@ -104,24 +114,20 @@ class UniDecEngine:
         # print "Update"
         try:
             if self.config_count > 0 and self.config.check_new(self.config_history[len(self.config_history) - 1]):
-                self.config_history.append(self.copy_config(self.config))
+                self.config_history.append(copy_config(self.config))
                 self.config_count = len(self.config_history)
                 # print "Updated History", self.config_count
             elif self.config_count == 0:
                 self.clear_history()
                 # else:
                 # print "No changes"
-        except:
+        except Exception as e:
             self.clear_history()
         # print self.config_count
         pass
 
-    def copy_config(self, config):
-        # return deepcopy(config)
-        return type("UniDecConfig", (object,), dict(config.__dict__))
-
     def clear_history(self):
-        self.config_history = [self.copy_config(self.config)]
+        self.config_history = [copy_config(self.config)]
         self.config_count = 1
         pass
 
@@ -150,12 +156,12 @@ class UniDecEngine:
                     print(e)
         pass
 
-    def get_auto_peak_width(self, set=True):
+    def get_auto_peak_width(self, set_it=True):
         try:
             fwhm, psfun, mid = ud.auto_peak_width(self.data.data2)
             self.config.automzsig = fwhm
             self.config.autopsfun = psfun
-            if set:
+            if set_it:
                 self.config.psfun = psfun
                 self.config.mzsig = fwhm
             print("Automatic Peak Width:", fwhm)
@@ -173,14 +179,14 @@ class UniDecEngine:
             print(warning)
         return badness
 
-    def auto_polarity(self, path=None):
+    def auto_polarity(self, path=None, importer=None):
         if path is None:
             path = self.config.filename
-        self.polarity = ud.get_polarity(path)
-        if self.polarity == "Positive":
+        self.config.polarity = ud.get_polarity(path, importer=importer)
+        if self.config.polarity == "Positive":
             self.config.adductmass = np.abs(self.config.adductmass)
             print("Adduct Mass:", self.config.adductmass)
-        elif self.polarity == "Negative":
+        elif self.config.polarity == "Negative":
             self.config.adductmass = -1 * np.abs(self.config.adductmass)
             print("Adduct Mass:", self.config.adductmass)
 
@@ -231,8 +237,6 @@ class UniDecEngine:
                 rsquared = 1 - ud.safedivide1(sse, denom)
                 print("New Slope:", fit[0], "New Intercept:", fit[1], "R-Squared:", rsquared)
 
-
-
         else:
             print("Need to set the mass difference/mass of oligomer")
         return fit, rsquared
@@ -264,7 +268,7 @@ class UniDecEngine:
         areas = np.array(areas)
         try:
             areas /= np.amax(areas)
-        except:
+        except Exception as e:
             pass
         print("Relative Heights:", areas)
 
@@ -301,7 +305,7 @@ class UniDecEngine:
     def get_alts(self, tolerance=100):
         self.altmasses, self.altindexes, self.matchcounts = self.olg.get_alts(self.pks, tolerance)
 
-    def get_summed_match_intensities(self, index, alts=True, normmode=0, probarray=None, get_2D=False):
+    def get_summed_match_intensities(self, index, alts=True, normmode=0, probarray=None, get_2d=False):
         # To translate the index into oligomer number
         basenumber = int(self.config.oligomerlist[index, 2])
 
@@ -358,9 +362,9 @@ class UniDecEngine:
         for i, s in enumerate(sunique):
             b1 = snumbers == s
             subset = intensities[b1]
-            sum = np.sum(subset)
-            sint.append(sum)
-            if get_2D:
+            sumval = np.sum(subset)
+            sint.append(sumval)
+            if get_2d:
                 index = 0
                 peaksums = []
                 for j, p in enumerate(self.pks.peaks):
@@ -384,7 +388,7 @@ class UniDecEngine:
             sint /= np.sum(sint)
         if normmode == 2:
             sint /= np.max(sint)
-        if get_2D:
+        if get_2d:
             psint = np.array(psint)
             if np.amax(psint) != 0:
                 psint /= np.amax(psint)
@@ -396,6 +400,99 @@ class UniDecEngine:
         pdata = np.loadtxt(pfile, delimiter=",", usecols=(0, 1))
         self.pks = peakstructure.Peaks()
         self.pks.add_peaks(pdata)
+
+    def makeplot6(self, plot=None, pks=None, show="height", config=None):
+        """
+        Plots bar chart of peak heights or areas in self.view.plot6.
+        :param plot: plot object to use. If none, will create one
+        :param pks: peak structure to use. If none, will use self.pks
+        :param show: What parameter to plot
+        "height" will plot p.height for p in self.eng.pks.peaks
+        "integral" will plot p.integral
+        :param config: config object to use. If none, will use self.config
+        :return: plot object
+        """
+        if config is None:
+            config = self.config
+        if pks is None:
+            pks = self.pks
+        if plot is None:
+            plot = plot1d.Plot1dBase()
+
+        if config.batchflag == 0:
+            if pks.plen > 0:
+                num = 0
+                ints = []
+                cols = []
+                labs = []
+                marks = []
+                for i, p in enumerate(pks.peaks):
+                    if p.ignore == 0:
+                        num += 1
+                        if show == "height":
+                            ints.append(p.height)
+                        elif show == "integral":
+                            ints.append(p.integral)
+                        else:
+                            ints.append(0)
+                        cols.append(p.color)
+                        labs.append(p.label)
+                        marks.append(p.marker)
+                indexes = list(range(0, num))
+                plot.barplottop(indexes, ints, labs, cols, "Species", "Intensity",
+                                "Peak Intensities", repaint=False)
+                for i in indexes:
+                    plot.plotadddot(i, ints[i], cols[i], marks[i])
+            plot.repaint()
+        return plot
+
+    def makeplot3(self, plot=None, data=None, config=None):
+        """
+        Plot m/z vs charge grid.
+        :param plot: Plot object to use
+        :param data: Data to plot
+        :param config: Config object to use
+        :return: plot object
+        """
+        if plot is None:
+            plot = plot2d.Plot2dBase()
+        if config is None:
+            config = self.config
+        if data is None:
+            data = self.data.mzgrid
+        if config.batchflag == 0:
+            tstart = time.perf_counter()
+            plot.contourplot(data, config)
+            print("Plot 3: %.2gs" % (time.perf_counter() - tstart))
+        return plot
+
+    def makeplot5(self, plot=None, xdata=None, ydata=None, zdata=None, config=None):
+        """
+        Plot mass vs charge grid
+        :param plot: Plot object to use
+        :param xdata: x data (2D array) default is eng.data.massdat
+        :param ydata: y data (1D array) default is eng.data.ztab
+        :param zdata: z data (1D array) default is eng.data.massgrid
+        :param config: Config object to use
+        :return: plot object
+        """
+        if plot is None:
+            plot = plot2d.Plot2dBase()
+        if xdata is None:
+            xdata = self.data.massdat
+        if ydata is None:
+            ydata = self.data.ztab
+        if zdata is None:
+            zdata = self.data.massgrid
+        if config is None:
+            config = self.config
+
+        if self.config.batchflag == 0:
+            tstart = time.perf_counter()
+            plot.contourplot(xvals=xdata[:, 0], yvals=ydata, zgrid=zdata, config=config, title="Mass vs. Charge",
+                             test_kda=True)
+            print("Plot 5: %.2gs" % (time.perf_counter() - tstart))
+        return plot
 
     def makeplot2(self, plot=None, data=None, pks=None, config=None):
         """
@@ -504,23 +601,47 @@ class UniDecEngine:
         peaks_df = self.pks.to_df()
         colors = [p.color for p in self.pks.peaks]
 
-        df_to_html(peaks_df, outfile, colors=colors)
+        if len(peaks_df) > 0:
+            df_to_html(peaks_df, outfile, colors=colors)
 
         # array_to_html(np.transpose(self.matchlist), outfile,
         #              cols=["Measured Mass", "Theoretical Mass", "Error", "Match Name"])
+
         if plots is None:
             plot = self.makeplot2()
             plot2 = self.makeplot4()
-            plots = [[plot, plot2]]
+            # plot5 = self.makeplot5()
+            # plot3 = self.makeplot3()
+            # plot6 = self.makeplot6()
+            plots = [[plot, plot2]]  # , [plot5, plot3], [plot6, None]]
+        if len(np.shape(plots)) != 2 and len(plots) > 0:
+            try:
+                # Reshape 1D array to 2D with 2 columns
+                plots = np.reshape(plots, (int(len(plots) / 2), 2))
+            except Exception:
+                plots = np.reshape(plots[:-1], (int(len(plots[:-1]) / 2), 2))
+                lastrow = np.array([plots[-1], None])
+                plots = np.vstack((plots, lastrow))
 
         svg_grid = []
         figure_list = []
         for row in plots:
             svg_row = []
+            goodrow = False
             for c in row:
-                svg_row.append(c.get_svg())
-                figure_list.append(c.figure)
-            svg_grid.append(svg_row)
+                if c is not None and c.flag:
+                    goodrow = True
+                    if c.is2d:
+                        png_str = c.get_png()
+                        png_html = png_to_html(png_str)
+                        svg_row.append(png_html)
+                    else:
+                        svg_row.append(c.get_svg())
+                    figure_list.append(c.figure)
+                else:
+                    svg_row.append("<p></p>")
+            if goodrow:
+                svg_grid.append(svg_row)
 
         svg_grid_string = wrap_to_grid(svg_grid, outfile)
 
@@ -528,12 +649,22 @@ class UniDecEngine:
             for f in figure_list:
                 try:
                     fig_to_html_plotly(f, outfile)
-                except:
+                except Exception:
                     pass
+
+        try:
+            spectra_df = self.data.attrs_to_df()
+            if len(spectra_df) > 0:
+                spectra_df.drop(["beta", "error", "iterations", "psig", "rsquared", "zsig", "mzsig", "length_mass",
+                                 "length_mz", "time"], axis=1, inplace=True)
+                colors2 = self.data.get_colors()
+                df_to_html(spectra_df, outfile, colors=colors2)
+        except Exception:
+            pass
 
         config_dict = self.config.get_config_dict()
         config_htmlstring = dict_to_html(config_dict)
-        to_html_collapsible(config_htmlstring, title="UniDec Parameters", outfile=outfile, open=True, htmltext=True)
+        to_html_collapsible(config_htmlstring, title="UniDec Parameters", outfile=outfile, htmltext=True)
 
         html_close(outfile)
 

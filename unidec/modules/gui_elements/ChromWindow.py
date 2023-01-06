@@ -165,8 +165,8 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         sizerplot.Add(self.plot3, (3, 0), span=(1, 1), flag=wx.EXPAND)
         sizerplot.Add(self.plot5, (3, 1), span=(1, 1), flag=wx.EXPAND)
 
-        self.plots = [self.plotc, self.plotm, self.plot1, self.plot2, self.plot7, self.plot2s, self.plot3, self.plot5]
-        self.plotnames = ["Chrom_TIC", "Chrom_mz_selected", "ChromFigure_mz", "ChromFigure_mass", "ChromFigure_XIC",
+        self.plots = [self.plotc, self.plot7, self.plot1, self.plot2, self.plotm, self.plot2s, self.plot3, self.plot5]
+        self.plotnames = ["Chrom_TIC", "ChromFigure_XIC", "ChromFigure_mz", "ChromFigure_mass", "Chrom_mz_selected",
                           "Chrom_mass_selected","Chrom2Dmz", "Chrom2Dmass"]
 
         plotwindow.SetSizerAndFit(sizerplot)
@@ -211,6 +211,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
                 ["W", self.pres.on_auto_peak_width, self.menu.menuAutoWidth],
                 # ["Z", self.pres.on_undo, self.menu.menuundo],
                 # ["Y", self.pres.on_redo, self.menu.menuredo],
+                ["H", self.pres.on_gen_html_report, self.menu.menuSaveFigureHTML],
                 ["K", self.pres.on_kendrick, self.menu.menukendrick]
                 ]
         self.setup_shortcuts(keys)

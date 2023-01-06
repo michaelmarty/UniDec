@@ -53,10 +53,10 @@ sindex, hindex, gindex, findex = ud.get_glyco_indexes(eng.olg.oligomerlist)
 normmode = 1
 alts = True
 statsarray = [None, None, None, None]
-sdata, sdata2d = eng.get_summed_match_intensities(sindex, normmode=normmode, alts=alts, probarray=statsarray[0], get_2D=True)
-gdata, gdata2d = eng.get_summed_match_intensities(gindex, normmode=normmode, alts=alts, probarray=statsarray[1], get_2D=True)
-hdata, hdata2d = eng.get_summed_match_intensities(hindex, normmode=normmode, alts=alts, probarray=statsarray[2], get_2D=True)
-fdata, fdata2d = eng.get_summed_match_intensities(findex, normmode=normmode, alts=alts, probarray=statsarray[3], get_2D=True)
+sdata, sdata2d = eng.get_summed_match_intensities(sindex, normmode=normmode, alts=alts, probarray=statsarray[0], get_2d=True)
+gdata, gdata2d = eng.get_summed_match_intensities(gindex, normmode=normmode, alts=alts, probarray=statsarray[1], get_2d=True)
+hdata, hdata2d = eng.get_summed_match_intensities(hindex, normmode=normmode, alts=alts, probarray=statsarray[2], get_2d=True)
+fdata, fdata2d = eng.get_summed_match_intensities(findex, normmode=normmode, alts=alts, probarray=statsarray[3], get_2d=True)
 
 alpha=0.4
 plt.bar(sdata[:, 0], sdata[:, 1], alpha=alpha)

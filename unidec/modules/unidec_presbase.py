@@ -7,7 +7,8 @@ import unidec.tools as ud
 from unidec.modules import ManualSelectionWindow, AutocorrWindow, peakstructure
 from unidec.modules import SubDiv, miscwindows
 from unidec.metaunidec.mudstruct import MetaDataSet
-import sys, getopt
+import sys
+import getopt
 
 
 class UniDecPres(object):
@@ -158,7 +159,7 @@ class UniDecPres(object):
                 print("New m/z limits:", limits)
                 try:
                     self.on_dataprep_button()
-                except:
+                except Exception:
                     pass
         except Exception as e:
             print(e)
@@ -220,11 +221,35 @@ class UniDecPres(object):
         self.import_config(None)
         self.view.SetStatusText("Reset", number=5)
 
+    def makeplot5(self, e=None, plot=None):
+        """
+        Plot mass vs charge data in 2D in self.view.plot5
+        :param e: unused event
+        :param plot: Plot object. Default is None, which will set plot to self.view.plot5
+        :return: None
+        """
+        if plot is None:
+            plot = self.view.plot5
+        self.eng.makeplot5(plot)
+
+    def makeplot3(self, e=None, plot=None):
+        """
+        Plot m/z vs charge data in 2D in self.view.plot3
+        :param e: unused event
+        :param plot: Plot object. Default is None, which will set plot to self.view.plot3
+        :return: None
+        """
+        if plot is None:
+            plot = self.view.plot3
+        self.eng.makeplot3(plot)
+
     def makeplot2(self, e=None, plot=None, data=None, pks=None):
         """
         Plot mass data and peaks if possible in self.view.plot2
         :param e: unused event
         :param plot: Plot object. Default is None, which will set plot to self.view.plot2
+        :param data: Data to plot. Default is None, which will set data to self.eng.data.massdat
+        :param pks: Peaks to plot. Default is None, which will set pks to self.eng.pks
         :return: None
         """
         if plot is None:
@@ -258,8 +283,8 @@ class UniDecPres(object):
         :param e: unused event
         :return: None
         """
-        plots = [[self.view.plot4, self.view.plot2]]
-        self.eng.gen_html_report(plots=plots)
+        #plots = [[self.view.plot4, self.view.plot2]]
+        self.eng.gen_html_report(plots=self.view.plots)
         pass
 
     def on_filter_peaks(self, e=None):
@@ -465,7 +490,7 @@ class UniDecPres(object):
     def on_auto_peak_width(self, e=None, set=True):
         self.export_config()
         if not ud.isempty(self.eng.data.data2):
-            self.eng.get_auto_peak_width(set=set)
+            self.eng.get_auto_peak_width(set_it=set)
             self.import_config()
         else:
             print("Need to process data first")

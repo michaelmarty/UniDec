@@ -295,6 +295,7 @@ class Plot2d(PlottingWindowBase, Plot2dBase):
         """
         Plot2dBase.__init__(self, *args, **kwargs)
         PlottingWindowBase.__init__(self, *args, **kwargs)
+        self.is2d = True
 
 
 class PlotAny(PlottingWindowBase, Plot1dBase, Plot2dBase):

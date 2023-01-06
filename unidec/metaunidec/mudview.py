@@ -82,6 +82,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
                 ["W", self.pres.on_auto_peak_width, self.menu.menuAutoWidth],
                 ["Z", self.pres.on_undo, self.menu.menuundo],
                 # ["Y", self.pres.on_redo, self.menu.menuredo],
+                ["H", self.pres.on_gen_html_report, self.menu.menuSaveFigureHTML],
                 ["K", self.pres.on_kendrick, self.menu.menukendrick]
                 ]
         self.setup_shortcuts(keys)

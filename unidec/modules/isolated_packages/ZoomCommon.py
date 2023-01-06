@@ -138,7 +138,7 @@ def special_clip(axes):
         # oldpts[1, 1] *= 1.05
         # oldpts[0, 1] = 0.95
         # newbbox = Bbox(oldpts)
-        newbbox = TransformedBbox(Bbox([[-0.05, -0.05], [1.05, 1.05]]),
+        newbbox = TransformedBbox(Bbox([[0.00, -0.05], [1.00, 1.05]]),
                                   axes.transAxes)
         # print(axes.bbox.get_points(), newbbox)
         for o in axes.lines:

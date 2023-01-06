@@ -93,13 +93,13 @@ for i, pfile in enumerate(files):
     statsarray = [None, None, None, None]
 
     sdata, sdata2d = eng.get_summed_match_intensities(sindex, normmode=normmode, alts=alts, probarray=statsarray[0],
-                                                      get_2D=True)
+                                                      get_2d=True)
     gdata, gdata2d = eng.get_summed_match_intensities(gindex, normmode=normmode, alts=alts, probarray=statsarray[1],
-                                                      get_2D=True)
+                                                      get_2d=True)
     hdata, hdata2d = eng.get_summed_match_intensities(hindex, normmode=normmode, alts=alts, probarray=statsarray[2],
-                                                      get_2D=True)
+                                                      get_2d=True)
     fdata, fdata2d = eng.get_summed_match_intensities(findex, normmode=normmode, alts=alts, probarray=statsarray[3],
-                                                      get_2D=True)
+                                                      get_2d=True)
     statsarray = np.load(statsfiles[i], allow_pickle=True)
     make_plot(axs, i, sdata, gdata, hdata, fdata)
 

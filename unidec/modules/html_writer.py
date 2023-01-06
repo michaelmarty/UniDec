@@ -9,15 +9,16 @@ import lxml.etree as ET
 from io import StringIO, BytesIO
 import io
 import unidec.tools as ud
+import base64
 
 luminance_cutoff = 135
 
 
 def write_to_html(html_str, outfile):
     print(outfile)
-    Html_file = io.open(outfile, "a", encoding='utf-8')
-    Html_file.write(html_str)
-    Html_file.close()
+    html_file = io.open(outfile, "a", encoding='utf-8')
+    html_file.write(html_str)
+    html_file.close()
 
 
 '''
@@ -76,21 +77,22 @@ def fig_to_html_plotly(fig, outfile=None):
 def wrap_to_grid(inputlist, outfile=None):
     # Wrap a list of strings in a grid
     grid = ET.Element("div")
+    grid.set("class", "grid-container")
     for i, row in enumerate(inputlist):
         rowdiv = ET.SubElement(grid, "div")
         rowdiv.set("class", "row")
         for j, item in enumerate(row):
             div = ET.Element("div")
             div.set("class", "column")
-            #div.text = item
+            # div.text = item
 
             parser = ET.HTMLParser()
             try:
                 item = item.encode()
-            except:
+            except Exception:
                 pass
             xmlitem = ET.parse(BytesIO(item), parser)
-            xmlelement = xmlitem.getroot().find("body")#.find("div")  # .getchildren()[0].getchildren()[0]
+            xmlelement = xmlitem.getroot().find("body")
             if xmlelement is None:
                 xmlelement = xmlitem.getroot()
             rowdiv.append(xmlelement)
@@ -101,14 +103,6 @@ def wrap_to_grid(inputlist, outfile=None):
         write_to_html(grid_str, outfile)
     return grid_str
 
-'''
-# write a function to strip out the <div> tags from the html string
-def strip_divs(html_str):
-    # strip out the div tags
-    html_str = html_str.replace('<div>', '')
-    html_str = html_str.replace('</div>', '')
-    return html_str
-'''
 
 def array_to_html(array, outfile=None, cols=None, rows=None, colors=None):
     df = pd.DataFrame(array, columns=cols, index=rows)
@@ -120,16 +114,18 @@ def df_to_html(df, outfile=None, colors=None):
     if colors is not None:
         for i, color in enumerate(colors):
             hexcolor = matplotlib.colors.to_hex(color)
+            rgbcolor = matplotlib.colors.to_rgb(hexcolor)
+            print(rgbcolor)
             try:
-                luminance = ud.get_luminance(color*255, type=2)
-            except:
+                luminance = ud.get_luminance(np.array(rgbcolor) * 255, type=2)
+            except Exception:
                 luminance = 255
 
             if luminance < luminance_cutoff:
                 textcolor = 'white'
             else:
                 textcolor = 'black'
-            #print("Colors:", color, luminance, textcolor)
+            # print("Colors:", color, luminance, textcolor)
             html_str = html_str.replace('<tr>', '<tr style="background-color: %s; color: %s">'
                                         % (hexcolor, textcolor), 1)
     if outfile is not None:
@@ -147,7 +143,7 @@ def html_title(outtitle, outfile=None):
     style.text += "table {border-collapse: collapse; margin:25px; padding:0}\n"
     style.text += "th {text-align:left; background-color:#ADD8E6;; color:black;}\n"
     style.text += "tr:nth-child(even) {background-color: #f2f2f2;}\n"
-    style.text += ".grid-container {display:grid;} \n"
+    style.text += ".grid-container {display:grid; margin:25px;} \n"
     style.text += ".row {display:flex;} \n"
     style_str = ET.tostring(style, encoding='unicode')
     html_str = style_str
@@ -179,10 +175,10 @@ def html_title(outtitle, outfile=None):
 
 
 # Function to create HTML collapsible from text
-def to_html_collapsible(text, title="Click to expand", open=False, outfile=None, htmltext=False):
+def to_html_collapsible(text, title="Click to expand", canopen=True, outfile=None, htmltext=False):
     # CSS styling
     style = ET.Element('style')
-    style.text = ".collapsible {background-color: #0C234B; color: white; cursor: pointer; " \
+    style.text = ".collapsible {background-color: #0C234B; color: #e8a219; cursor: pointer; " \
                  "padding: 18px; width: 100%; border: none; text-align: left; outline: none; font-size: 15px;}\n"
     style.text += ".active, .collapsible:hover {background-color: #AB0520;}\n"
     style.text += ".collapsible:after {content: '+'; color: white; " \
@@ -209,7 +205,7 @@ def to_html_collapsible(text, title="Click to expand", open=False, outfile=None,
         parser = ET.HTMLParser()
         try:
             text = text.encode()
-        except:
+        except Exception:
             pass
         xmlitem = ET.parse(BytesIO(text), parser)
         content.append(xmlitem.getroot())
@@ -217,7 +213,7 @@ def to_html_collapsible(text, title="Click to expand", open=False, outfile=None,
     bodystring = ET.tostring(body, encoding='unicode')
     html_str += bodystring
 
-    if open:
+    if canopen:
         html_str += "<script>var coll = document.getElementsByClassName(\"collapsible\");\n"
         html_str += "var i;\n"
         html_str += "for (i = 0; i < coll.length; i++) {\n"
@@ -237,10 +233,11 @@ def to_html_collapsible(text, title="Click to expand", open=False, outfile=None,
         write_to_html(html_str, outfile)
     return html_str
 
+
 # Function to create an html table from a python dictionary
-def dict_to_html(dict, outfile=None):
+def dict_to_html(indict, outfile=None):
     html_str = "<table>\n"
-    for key, value in dict.items():
+    for key, value in indict.items():
         html_str += "<tr><td>" + str(key) + "</td><td>" + str(value) + "</td></tr>\n"
     html_str += "</table>\n"
 
@@ -248,10 +245,22 @@ def dict_to_html(dict, outfile=None):
         write_to_html(html_str, outfile)
     return html_str
 
+
+# Function to embed png image from bite string in html
+def png_to_html(png_str, outfile=None):
+    png_str = base64.b64encode(png_str)
+    png_str = png_str.decode("utf-8")
+    html_str = "<img src=\"data:image/png;base64," + png_str + "\" \"/>\n"
+
+    if outfile is not None:
+        write_to_html(html_str, outfile)
+    return html_str
+
+
 def html_open(outfile):
-    Html_file = open(outfile, "w")
-    Html_file.write("<html>\n")
-    Html_file.close()
+    html_file = open(outfile, "w")
+    html_file.write("<html lang=\"en\">\n")
+    html_file.close()
 
 
 def html_close(outfile):
@@ -268,22 +277,26 @@ if __name__ == "__main__":
     fig = plt.figure()
     ax = plt.plot([1, 2, 3, 4, 5], [2, 5, 6, 3, 7])
     # plt.show()
-    outfile = "test.html"
-    html_open(outfile)
-    html_title("Test File", outfile)
+    outfile_html = "test.html"
+    html_open(outfile_html)
+    html_title("Test File", outfile_html)
 
     colors = ["red", "green", "blue", "yellow", "orange"]
 
-    s2 = array_to_html(np.random.random((5, 5)), outfile, cols=["a", "b", "c", "d", "e"], colors=colors)
+    s2 = array_to_html(np.random.random((5, 5)), outfile_html, cols=["a", "b", "c", "d", "e"], colors=colors)
     # s1 = fig_to_html_plotly(fig, outfile)
     # s1 = fig_to_html_plotly(fig, outfile)
     # wrap_to_grid([s2, s1], outfile)
+
+    png = io.BytesIO()
+    fig.savefig(png, format="png")
+    png_str = png.getvalue()
+    png_to_html(png_str, outfile_html)
+
     dict_string = dict_to_html({"a": 1, "b": 2, "c": 3, "d": 4, "e": 5})
+    to_html_collapsible(dict_string, title="UniDec Parameters", outfile=outfile_html, htmltext=True)
 
-    to_html_collapsible(dict_string, title="UniDec Parameters", outfile=outfile, open=True, htmltext=True)
-
-    html_close(outfile)
+    html_close(outfile_html)
 
     opencommand = "start \"\" "
-    os.system(opencommand + "\"" + outfile + "\"")
-
+    os.system(opencommand + "\"" + outfile_html + "\"")

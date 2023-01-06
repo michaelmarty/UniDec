@@ -237,7 +237,10 @@ class UniDecCDApp(UniDecApp):
             self.makeplot6(1)
             self.makeplot4(1)
         self.view.SetStatusText("Peak Pick Done", number=5)
-        self.on_score()
+        try:
+            self.on_score()
+        except Exception:
+            pass
         pass
 
     def on_replot(self, e=None):
@@ -393,6 +396,15 @@ class UniDecCDApp(UniDecApp):
                                           iconfile=iconfile, tabbed=tabbed)
         self.view.Show()
         self.view.import_config_to_gui()
+
+    def on_gen_html_report(self, e=None):
+        """
+        Generates an HTML report of the current data and parameters.
+        :param e: unused event
+        :return: None
+        """
+        self.eng.gen_html_report(plots=self.view.plots)
+        pass
 
 
 if __name__ == "__main__":

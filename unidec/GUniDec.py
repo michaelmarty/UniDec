@@ -372,11 +372,11 @@ class UniDecApp(UniDecPres):
         self.view.SetStatusText("Data Prep", number=5)
         self.export_config(self.eng.config.confname)
         self.eng.process_data()
-        self.eng.get_auto_peak_width(set=False)
+        self.eng.get_auto_peak_width(set_it=False)
         self.import_config()
         # print("Data Prep Time1: %.2gs" % (time.perf_counter() - tstart))
         self.view.clear_all_plots()
-        self.makeplot1(imfit=False)
+        self.makeplot1(imfit=False, intthresh=True)
         self.view.SetStatusText("Data Length: " + str(len(self.eng.data.data2)), number=2)
         self.view.SetStatusText("R\u00B2 ", number=3)
         self.view.SetStatusText("Data Prep Done", number=5)
@@ -499,98 +499,10 @@ class UniDecApp(UniDecPres):
         :param e: unused event
         :return: None
         """
+        self.eng.makeplot1(plot=self.view.plot1, intthresh=intthresh, imfit=imfit)
         if self.eng.config.batchflag == 0:
-            tstart = time.perf_counter()
-            leg = False
-
             if self.eng.config.imflag == 1:
-                try:
-                    self.view.plot1im.contourplot(self.eng.data.data3, self.eng.config, xlab="m/z (Th)",
-                                                  ylab="Arrival Time (ms)", title="IM-MS Data")
-                except:
-                    pass
-                if imfit:
-                    try:
-                        self.view.plot1fit.contourplot(self.eng.data.fitdat2d, self.eng.config, xlab="m/z (Th)",
-                                                       ylab="Arrival Time (ms)", title="IM-MS Fit")
-                    except:
-                        pass
-
-            try:
-                test = float(self.eng.config.reductionpercent)
-            except:
-                self.eng.config.reductionpercent = 0
-
-            if self.eng.config.reductionpercent < 0:
-                print("Making Dot Plot")
-                data2 = ud.dataprep(self.eng.data.rawdata, self.eng.config, peaks=False, intthresh=False)
-                self.view.plot1.plotrefreshtop(data2[:, 0], data2[:, 1],
-                                               "Data and UniDec Fit",
-                                               "m/z (Th)", "Normalized Intensity", "Data", self.eng.config,
-                                               nopaint=True)
-                self.view.plot1.plotadddot(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], 'blue', "o", "Peaks")
-
-                try:
-                    if len(self.eng.data.fitdat) > 0 and imfit:
-                        self.view.plot1.plotadddot(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "s",
-                                                   "Fit Data")
-                        leg = True
-                    pass
-                except:
-                    pass
-
-            else:
-                self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1],
-                                               "Data and UniDec Fit",
-                                               "m/z (Th)", "Normalized Intensity", "Data", self.eng.config,
-                                               nopaint=True)
-
-                if self.eng.config.intthresh != 0 and self.eng.config.imflag == 0 and intthresh:
-                    self.view.plot1.plotadd(self.eng.data.data2[:, 0],
-                                            np.zeros_like(self.eng.data.data2[:, 1]) + self.eng.config.intthresh, "red",
-                                            "Noise Threshold")
-                    leg = True
-
-                try:
-                    if len(self.eng.data.fitdat) > 0 and imfit:
-                        self.view.plot1.plotadd(self.eng.data.data2[:, 0], self.eng.data.fitdat, 'red', "Fit Data")
-                        leg = True
-                    pass
-                except:
-                    pass
-            if self.eng.config.aggressiveflag != 0 and len(self.eng.data.baseline) == len(self.eng.data.data2):
-                self.view.plot1.plotadd(self.eng.data.data2[:, 0], self.eng.data.baseline, 'blue', "Baseline")
-            if leg:
-                self.view.plot1.add_legend()
-            self.view.plot1.repaint()
-            tend = time.perf_counter()
-            print("Plot 1: %.2gs" % (tend - tstart))
-
-    def makeplot3(self, e=None):
-        """
-        Plot m/z vs charge grid.
-        :param e: unused event
-        :return: None
-        """
-        if self.eng.config.batchflag == 0:
-            tstart = time.perf_counter()
-            self.view.plot3.contourplot(self.eng.data.mzgrid, self.eng.config)
-            tend = time.perf_counter()
-            print("Plot 3: %.2gs" % (tend - tstart))
-
-    def makeplot5(self, e=None):
-        """
-        Plot mass vs charge grid
-        :param e: unused event
-        :return: None
-        """
-        if self.eng.config.batchflag == 0:
-            tstart = time.perf_counter()
-            self.view.plot5.contourplot(
-                xvals=self.eng.data.massdat[:, 0], yvals=self.eng.data.ztab, zgrid=self.eng.data.massgrid,
-                config=self.eng.config, title="Mass vs. Charge", test_kda=True)
-            tend = time.perf_counter()
-            print("Plot 5: %.2gs" % (tend - tstart))
+                self.eng.makeplot1IM(plot1im=self.view.plot1im, plot1fit=self.view.plot1fit, imfit=imfit)
 
     def makeplot6(self, e=None, show="height"):
         """
@@ -601,31 +513,7 @@ class UniDecApp(UniDecPres):
         "integral" will plot p.integral
         :return: None
         """
-        if self.eng.config.batchflag == 0:
-            if self.eng.pks.plen > 0:
-                num = 0
-                ints = []
-                cols = []
-                labs = []
-                marks = []
-                for i, p in enumerate(self.eng.pks.peaks):
-                    if p.ignore == 0:
-                        num += 1
-                        if show == "height":
-                            ints.append(p.height)
-                        elif show == "integral":
-                            ints.append(p.integral)
-                        else:
-                            ints.append(0)
-                        cols.append(p.color)
-                        labs.append(p.label)
-                        marks.append(p.marker)
-                indexes = list(range(0, num))
-                self.view.plot6.barplottop(indexes, ints, labs, cols, "Species", "Intensity",
-                                           "Peak Intensities", repaint=False)
-                for i in indexes:
-                    self.view.plot6.plotadddot(i, ints[i], cols[i], marks[i])
-            self.view.plot6.repaint()
+        self.eng.makeplot6(plot=self.view.plot6, show=show)
 
     def on_plot_composite(self, e=None):
         """
@@ -1762,8 +1650,14 @@ class UniDecApp(UniDecPres):
         :param e: unused event
         :return: None
         """
-        plots = [[self.view.plot4, self.view.plot2], [self.view.plot3, self.view.plot6],
-                 [self.view.plot5, self.view.plot1]]
+        if self.eng.config.imflag == 0:
+            plots = [[self.view.plot4, self.view.plot2], [self.view.plot3, self.view.plot6],
+                     [self.view.plot5, self.view.plot1]]
+        else:
+            plots = [[self.view.plot4, self.view.plot2], [self.view.plot3, self.view.plot6],
+                     [self.view.plot5, self.view.plot1], [self.view.plot1im, self.view.plot1fit],
+                     [self.view.plot2ccs, self.view.plot5mccs], [self.view.plot5ccsz, self.view.plot3color],
+                     [self.view.plot9, self.view.plot10]]
         self.eng.gen_html_report(plots=plots)
         pass
 

@@ -8,7 +8,7 @@ class ThermoDataImporter:
     Imports Thermo data files.
     """
 
-    def __init__(self, path, *args, **kwargs):
+    def __init__(self, path, silent=False, *args, **kwargs):
         """
         Imports Thermo file.
         :param path: Thermo .Raw file path
@@ -16,10 +16,11 @@ class ThermoDataImporter:
         :param kwargs: keywords (unused)
         :return: mzMLimporter object
         """
-        print("Launching Thermo Importer. If it fails after this step, try this:")
-        print("Delete your whole UniDec folder but keep the zip file.")
-        print("Right click on the zip file and open properties. You should see a box to Unblock it. Check that.")
-        print("Click ok. Unzip it again. Try it once more.")
+        if not silent:
+            print("Launching Thermo Importer. If it fails after this step, try this:")
+            print("Delete your whole UniDec folder but keep the zip file.")
+            print("Right click on the zip file and open properties. You should see a box to Unblock it. Check that.")
+            print("Click ok. Unzip it again. Try it once more.")
         from unidec.modules.thermo_reader.RawFileReader import RawFileReader as rr
         print("Reading Thermo Data:", path)
         self.msrun = rr(path)

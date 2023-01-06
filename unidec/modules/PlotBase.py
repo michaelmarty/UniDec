@@ -19,6 +19,7 @@ rcParams['patch.force_edgecolor'] = True
 rcParams['patch.facecolor'] = 'b'
 rcParams['lines.markersize'] = 7
 
+
 # rcParams['axes.linewidth']=1
 # rcParams['font.size']=18
 # matplotlib.rc('font', family='sans-serif')
@@ -61,7 +62,6 @@ class PlotBase(object):
         self.figure = Figure(figsize=figsize)  # , dpi=
         self.subplot1 = None
         self.zoom = None
-        self.subplot1 = None
         self.resize = 1
         self.flag = False
         self.kda = False
@@ -82,6 +82,7 @@ class PlotBase(object):
         self.mouse_active = False
         self.aspect = "auto"
         self.canvas = None
+        self.is2d = False
 
     def repaint(self, setupzoom=False):
         if setupzoom:
@@ -155,8 +156,16 @@ class PlotBase(object):
             svgcanvas.print_svg(svg)
         else:
             self.figure.savefig(svg, format="svg")
-
         return svg.getvalue()
+
+    def get_png(self):
+        """
+        Returns PNG string of figure.
+        :return: PNG string
+        """
+        png = io.BytesIO()
+        self.figure.savefig(png, format="png")
+        return png.getvalue()
 
     def kda_test(self, xvals):
         """

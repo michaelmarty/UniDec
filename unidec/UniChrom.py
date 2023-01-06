@@ -328,8 +328,7 @@ class ChromApp(MetaUniDecBase):
             if s.ignore == 0:
                 tstart = s.attrs["timestart"]
                 tend = s.attrs["timeend"]
-
-                print(tstart, tend)
+                #print(tstart, tend)
                 self.view.plotc.add_rect(tstart, min, tend - tstart, max - min, facecolor=s.color)
         self.view.plotc.repaint()
 

@@ -26,6 +26,7 @@ class Plot2dBase(PlotBase):
         :return: Plot2d object
         """
         PlotBase.__init__(self, *args, **kwargs)
+        self.is2d = True
 
     def contourplot(self, dat=None, config=None, xvals=None, yvals=None, zgrid=None, xlab='m/z (Th)', ylab="Charge",
                     title='', normflag=1, normrange=None, repaint=True, nticks=None, test_kda=False, discrete=None,
