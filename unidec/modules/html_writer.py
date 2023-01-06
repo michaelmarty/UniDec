@@ -6,6 +6,7 @@ import plotly.tools as tls
 # from xml.etree import ElementTree as ET
 import numpy as np
 import lxml.etree as ET
+from lxml.html.clean import Cleaner
 from io import StringIO, BytesIO
 import io
 import unidec.tools as ud
@@ -14,9 +15,9 @@ import base64
 luminance_cutoff = 135
 
 
-def write_to_html(html_str, outfile):
+def write_to_html(html_str, outfile, mode="a"):
     print(outfile)
-    html_file = io.open(outfile, "a", encoding='utf-8')
+    html_file = io.open(outfile, mode, encoding='utf-8')
     html_file.write(html_str)
     html_file.close()
 
@@ -137,8 +138,8 @@ def html_title(outtitle, outfile=None):
     # CSS styling
     style = ET.Element('style')
     style.text = "header {background-color: #0C234B;}\n"
-    style.text += "h1 {color: #e8a219; text-align:left; margin:0; padding:10}\n"
-    style.text += "h2 {color: #AB0520; text-align:left; margin:0; padding:10}\n"
+    style.text += "h1 {color: #e8a219; text-align:left; margin:0; padding:10px}\n"
+    style.text += "h2 {color: #AB0520; text-align:left; margin:0; padding:10px}\n"
     style.text += "body {margin:0; padding:0; font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif;}"
     style.text += "table {border-collapse: collapse; margin:25px; padding:0}\n"
     style.text += "th {text-align:left; background-color:#ADD8E6;; color:black;}\n"
@@ -266,6 +267,23 @@ def html_open(outfile):
 def html_close(outfile):
     html_str = "</body>\n</html>\n"
     write_to_html(html_str, outfile)
+    html_cleaner(outfile)
+
+
+def html_cleaner(outfile):
+    cleaner = Cleaner(scripts=False, javascript=False, style=False, inline_style=False, page_structure=False,
+                      meta=False, embedded=False, links=False, comments=False, frames=False, forms=False,
+                      safe_attrs_only=False, processing_instructions=False, annoying_tags=False,
+                      remove_unknown_tags=False,)
+
+    html_file = io.open(outfile, "r", encoding='utf-8')
+    html_str = html_file.read()
+    html_file.close()
+
+    clean_html = cleaner.clean_html(html_str)
+
+
+    write_to_html(clean_html, outfile, mode="w")
 
 
 if __name__ == "__main__":
@@ -297,6 +315,8 @@ if __name__ == "__main__":
     to_html_collapsible(dict_string, title="UniDec Parameters", outfile=outfile_html, htmltext=True)
 
     html_close(outfile_html)
+
+    html_cleaner(outfile_html)
 
     opencommand = "start \"\" "
     os.system(opencommand + "\"" + outfile_html + "\"")
