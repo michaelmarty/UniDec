@@ -49,6 +49,7 @@ is_64bits = sys.maxsize > 2 ** 32
 protmass = 1.007276467
 oxmass = 15.994914
 
+known_extensions = [".raw", ".d", ".mzml", ".gz", ".mzxml", ".txt", ".csv", ".dat", ".npz"]
 
 def get_importer(path):
     if os.path.isfile(path) or os.path.isdir(path):
@@ -891,7 +892,6 @@ def get_polarity(path, importer=None):
         return polarity
     else:
         return None
-
 
 def load_mz_file(path, config=None, time_range=None, imflag=0):
     """

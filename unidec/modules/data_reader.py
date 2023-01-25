@@ -174,25 +174,25 @@ class DataImporter:
         boo1 = self.times >= time_range[0]
         boo2 = self.times < time_range[1]
         try:
-            min = np.amin(self.scans[boo1])
-            max = np.amax(self.scans[boo2])
+            minimum = np.amin(self.scans[boo1])
+            maximum = np.amax(self.scans[boo2])
         except:
-            min = -1
-            max = -1
-        return [min, max]
+            minimum = -1
+            maximum = -1
+        return [minimum, maximum]
 
     def get_times_from_scans(self, scan_range):
         if scan_range[1] - scan_range[0] > 1:
             boo1 = self.scans >= scan_range[0]
             boo2 = self.scans < scan_range[1]
             boo3 = np.logical_and(boo1, boo2)
-            min = np.amin(self.times[boo1])
-            max = np.amax(self.times[boo2])
+            minimum = np.amin(self.times[boo1])
+            maximum = np.amax(self.times[boo2])
             try:
                 avg = np.mean(self.times[boo3])
             except:
-                avg = min
-            return [min, avg, max]
+                avg = minimum
+            return [minimum, avg, maximum]
         else:
             t = self.times[scan_range[0]]
             return [t, t, t]

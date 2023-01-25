@@ -164,7 +164,7 @@ def run_get_data(job_kwargs):
                                                       job_kwargs[tt.FUNCTION],
                                                       scan_start,
                                                       scan_end,
-                                                      dir=job_kwargs['exedir'])
+                                                      directory=job_kwargs['exedir'])
 
         # A = [i[0] for i in X]
         # B = [i.sum() for i in C]
@@ -343,9 +343,9 @@ def split_and_strip(line, delimiter=','):
     return tmp
 
 
-def parse_file(file_path, exp_type='linear', collision=None, debug=False, dir=None):
+def parse_file(file_path, exp_type='linear', collision=None, debug=False, directory=None):
     file_name = os.path.split(file_path)[1]
-    exedir = dir
+    exedir = directory
     # check a data folder
     if file_name.endswith('.raw'):
         des = header_desc(file_path)
@@ -542,7 +542,7 @@ def get_stat_code_old(raw_file, stat_code, dir=None):
 '''
 
 
-def get_stat_code(raw_file, stat_code, dir=None):
+def get_stat_code(raw_file, stat_code, directory=None):
     param = WDI(raw_file, do_import=False).get_stat_code(stat_code)
     # print(param)
     try:

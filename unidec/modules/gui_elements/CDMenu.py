@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 
-class CD_menu(wx.Menu):
+class CDMenu(wx.Menu):
     # noinspection PyMissingConstructor
     def __init__(self, parent, config, pres, tabbed):
         super(wx.Menu, self).__init__()
@@ -138,11 +138,13 @@ class CD_menu(wx.Menu):
 
         # Setting up Analysis Menu
         self.menuPlotZ = self.analysismenu.Append(wx.ID_ANY, "Native Charge/Mass Tools",
-                                                  "Tool for exploring relationship between charge and native mass and extraction specific distributions")
+                                                  "Tool for exploring relationship between charge and native mass "
+                                                  "and extraction specific distributions")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_nativez_tools, self.menuPlotZ)
         self.analysismenu.AppendSeparator()
         self.menuExport = self.analysismenu.Append(wx.ID_ANY, "Export Peaks Parameters and Data",
-                                                   "Export intensities of charge states, areas, average charge state, and other parameters for the peaks")
+                                                   "Export intensities of charge states, areas, average charge state, "
+                                                   "and other parameters for the peaks")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_export_params, self.menuExport)
         self.menuFitNorm = self.analysismenu.Append(wx.ID_ANY, "Fit Peak Intensities",
                                                     "Fits masses and reports normalized and relative peak intensities")
@@ -160,13 +162,15 @@ class CD_menu(wx.Menu):
         self.analysismenu.AppendSeparator()
 
         self.menuintegrate = self.analysismenu.Append(wx.ID_ANY, "Integrate Peaks\tCtrl+I",
-                                                      "Peak area with range set by Peak Detection Range or Integration Range")
+                                                      "Peak area with range set by Peak Detection Range or "
+                                                      "Integration Range")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_integrate, self.menuintegrate)
         self.menumatch = self.analysismenu.Append(wx.ID_ANY, "Auto Match Peaks\tCtrl+M",
                                                   "Run \"Match to Mixed Oligomers\" in Oligomer and Mass Tools")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_match, self.menumatch)
         self.menucom = self.analysismenu.Append(wx.ID_ANY, "Report Center of Mass",
-                                                "Reports center of mass for the zoomed region of the zero-charge mass spectrum")
+                                                "Reports center of mass for the zoomed region of the zero-charge "
+                                                "mass spectrum")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_center_of_mass, self.menucom)
 
         self.maxcharge = self.analysismenu.Append(wx.ID_ANY, "Label Max Charge States",
@@ -264,8 +268,6 @@ class CD_menu(wx.Menu):
         # self.parent.Bind(wx.EVT_MENU, self.menu_601_602, id=602)
         self.parent.Bind(wx.EVT_MENU, self.menu_601_602, id=603)
         self.advancedmenu.AppendSubMenu(self.gpumenu, 'EXE Mode')
-
-
 
         # Experimental Menu
         self.menuundo = self.experimentalmenu.Append(wx.ID_ANY, "Undo Parameter Change\tCtrl+Z",
@@ -423,14 +425,15 @@ class CD_menu(wx.Menu):
         :return: None
         """
         event_id = event.GetId()
+        exemode = True
         if event_id == 601:
-            #gpumode = False
+            # gpumode = False
             exemode = False
-        #if event_id == 602:
+        # if event_id == 602:
         #    gpumode = True
         #    exemode = False
         if event_id == 603:
-            #gpumode = False
+            # gpumode = False
             exemode = True
         print("Exe Mode:", exemode)
         self.pres.on_exe_mode(exemode)
@@ -460,10 +463,10 @@ class CD_menu(wx.Menu):
 
     def load_example_data(self, pos):
         path = self.masterd2[pos, 1]
-        dir = os.path.dirname(path)
+        dirname = os.path.dirname(path)
         file = os.path.split(path)[1]
-        print("Opening Path:", path, file, dir)
-        self.pres.on_open_file(file, dir)
+        print("Opening Path:", path, file, dirname)
+        self.pres.on_open_file(file, dirname)
 
     def update_recent(self):
         menu_list = self.menuOpenRecent.GetMenuItems()

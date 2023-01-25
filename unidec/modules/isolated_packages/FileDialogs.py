@@ -103,11 +103,11 @@ def open_single_dir_dialog(message, default):
     global default_dir
     dlg = wx.DirDialog(None, message, default)
     # dlg=MDD.MultiDirDialog(None,message=message,defaultPath=default,agwStyle=MDD.DD_NEW_DIR_BUTTON)
-    dir = None
+    directory = None
     if dlg.ShowModal() == wx.ID_OK:
-        dir = ud.smartdecode(dlg.GetPath())
-        default_dir = dir
+        directory = ud.smartdecode(dlg.GetPath())
+        default_dir = directory
     dlg.Destroy()
-    return dir
+    return directory
 
 # TODO: Simple Figure Dialog App to feed into parsers

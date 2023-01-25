@@ -284,9 +284,9 @@ class Extract2DPlot(wx.Frame):
         # max = np.amax(data[:, 1])
         for n, m in enumerate(self.massgrid.ravel()):
             low = (m - window) / self.plot3.kdnorm
-            max = np.ravel(self.igrid[i])[n]
+            maximum = np.ravel(self.igrid[i])[n]
             w = window * 2 / self.plot3.kdnorm
-            self.plot3.add_rect(low, 0, w, max, alpha=0.35, nopaint=True)
+            self.plot3.add_rect(low, 0, w, maximum, alpha=0.35, nopaint=True)
         self.plot3.repaint()
         self.makebarchart()
 

@@ -1,4 +1,5 @@
 import os, subprocess, sys
+
 try:
     from unidec.modules.waters_importer.WatersImporter import WatersDataImporter as WDI
 except Exception as e:
@@ -7,11 +8,11 @@ import unidec.tools as ud
 import numpy as np
 
 
-def new_get_data(start, end, im_bin_size, raw_file, pusher, function_no, scan_start, scan_end, dir=None):
-    if dir is None:
+def new_get_data(start, end, im_bin_size, raw_file, pusher, function_no, scan_start, scan_end, directory=None):
+    if directory is None:
         cdcreader_path = os.getcwd()
     else:
-        cdcreader_path = dir
+        cdcreader_path = directory
 
     cdcexe = os.path.join(cdcreader_path, 'CDCReader.exe')
     if not os.path.isfile(cdcexe):
@@ -144,7 +145,8 @@ def new_get_data_MS_old(start, end, bin_size, raw_file, function_no, scan_start,
 '''
 
 
-def new_get_data_MS(start, end, bin_size, raw_file, function_no, scan_start=None, scan_end=None, dir=None, time_start=None, time_end=None):
+def new_get_data_MS(start, end, bin_size, raw_file, function_no, scan_start=None, scan_end=None, directory=None,
+                    time_start=None, time_end=None):
     msfile = os.path.splitext(raw_file)[0] + '_' + str(function_no) + '_ms.txt'
     print("MS Processing: ", raw_file, "to", msfile)
 

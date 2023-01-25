@@ -12,8 +12,8 @@ def replace_dataset(group, name, data):
 def replace_dataset_strings(group, name, data):
     if name in list(group.keys()):
         del group[name]
-    ascii = [n.encode("ascii", "ignore") for n in data]
-    group.create_dataset(name, data=ascii)
+    asciilist = [n.encode("ascii", "ignore") for n in data]
+    group.create_dataset(name, data=asciilist)
     pass
 
 

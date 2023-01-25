@@ -115,6 +115,10 @@ class PlotBase(object):
         self.subplot1 = self.figure.add_axes(scale)
         return self.subplot1
 
+    def get_linewidth(self):
+        linewidth = self.subplot1.lines[0].get_linewidth()
+        return linewidth
+
     def on_save_fig(self, evt, path, **kwargs):
         """
         Save figure to path.
@@ -190,7 +194,7 @@ class PlotBase(object):
             self.kdnorm = 1.
             self.kda = False
 
-    def plotadddot(self, x, y, colval, markval, label=""):
+    def plotadddot(self, x, y, colval, markval, label="", linewidth=None):
         """
         Adds a scatter plot to the figure. May be one or more.
         :param x: x values
@@ -198,10 +202,11 @@ class PlotBase(object):
         :param colval: Color
         :param markval: Marker
         :param label: Label for Plot
+        :param linewidth: Line width
         :return: None
         """
         self.subplot1.plot(np.array(x) / self.kdnorm, y, color=colval, marker=markval, linestyle='None', clip_on=True,
-                           markeredgecolor="k", label=label)
+                           markeredgecolor="k", label=label, linewidth=linewidth)
 
     def addtext(self, txt, x, y, vlines=True, hlines=False, color="k", ymin=0, ymax=None, verticalalignment="top",
                 xmin=0, xmax=None, nopaint=False, **kwargs):

@@ -184,13 +184,13 @@ class DoubleDec:
 
 
 if __name__ == "__main__":
-    dir = "D:\\Data\\rhodopsin"
+    directory = "D:\\Data\\rhodopsin"
 
     f1 = "0.txt"
     f2 = "250.txt"
 
-    p1 = os.path.join(dir, f1)
-    p2 = os.path.join(dir, f2)
+    p1 = os.path.join(directory, f1)
+    p2 = os.path.join(directory, f2)
 
     # p1 = "D:\Data\WangLabAnalysis\\20200430_jat_wanglabsample_concthenbiospin_unidecfiles\\20200430_jat_wanglabsample_concthenbiospin_mass.txt"
     # p1 = "D:\Data\WangLabAnalysis\wanglabsample_protease_3_unidecfiles\wanglabsample_protease_3_mass.txt"

@@ -128,16 +128,16 @@ class UniDecPres(object):
         dlg = wx.MessageDialog(self.view, message, caption, wx.OK | wx.ICON_WARNING)
         dlg.ShowModal()
         dlg.Destroy()
-    
+
     def on_dataprep_button(self):
         print("Empty Function")
-        
+
     def on_open_file(self, file_name, file_directory, time_range=None, refresh=False):
         print("Empty Function")
-        
+
     def on_unidec_button(self):
         print("Empty Function")
-        
+
     def on_integrate(self):
         print("Empty Function")
 
@@ -146,10 +146,10 @@ class UniDecPres(object):
 
     def peak_plots(self, e=None):
         print("Empty Function")
-        
+
     def on_mass_tools(self, e=None, show=True):
         print("Empty Function")
-    
+
     def on_get_mzlimits(self):
         try:
             if not wx.GetKeyState(wx.WXK_CONTROL):
@@ -283,7 +283,7 @@ class UniDecPres(object):
         :param e: unused event
         :return: None
         """
-        #plots = [[self.view.plot4, self.view.plot2]]
+        # plots = [[self.view.plot4, self.view.plot2]]
         self.eng.gen_html_report(plots=self.view.plots)
         pass
 
@@ -307,6 +307,98 @@ class UniDecPres(object):
         print("Using DScore Cutoff (%): ", minval * 100)
         self.eng.filter_peaks(minscore=minval)
         self.view.peakpanel.add_data(self.eng.pks, show="dscore")
+
+    def plot_integral(self, limits, color=None, filled=True, plot=None, repaint=False):
+        """
+        Plot a filled integral under a peak.
+        :param limits: Limits of integration
+        :param color: Color of fill and plot
+        :param filled: If True, will fill the area under the curve
+        :param plot: Plot object. Default is None, which will set plot to self.view.plot2
+        :param repaint: If True, will repaint the plot
+        :return: None
+        """
+        if plot is None:
+            plot = self.view.plot2
+        integral, intdat = self.eng.integrate(limits=limits)
+        if filled:
+            plot.filledplot(intdat[:, 0], intdat[:, 1], color)
+
+        # Get Line width from matplotlib plot
+        try:
+            linewidth = plot.get_linewidth()
+            linewidth *= 1.75
+        except:
+            linewidth = 1.75
+
+        plot.plotadd(intdat[:, 0], intdat[:, 1], color, linewidth=linewidth)
+
+        if repaint:
+            plot.repaint()
+
+    def on_color_peaks(self, e=None, plot2=None, plot4=None, mass=None, peakpanel=None, pks=None, filled=True):
+        """
+        Color the peaks in plot2 and plot4. Will also plot the integral under the peak.
+        :param e: Unused event
+        :param plot2: Plot object. Default is None, which will set plot to self.view.plot2
+        :param plot4: Plot object. Default is None, which will set plot to self.view.plot4
+        :param mass: Mass list to color. Default is None, which will set mass to self.view.peakpanel.selection2. If set, it will override peakpanel.
+        :param peakpanel: Peak panel object. Default is None, which will set peakpanel to self.view.peakpanel.
+        :param pks: Peaks object. Default is None, which will set pks to self.eng.pks
+        :param filled: Whether to fill the integral under the peak
+        :return: None
+        """
+        if plot2 is None:
+            plot2 = self.view.plot2
+        if plot4 is None:
+            try:
+                plot4 = self.view.plot4
+            except Exception:
+                plot4 = None
+
+        if mass is None:
+            if peakpanel is None:
+                peaksel = self.view.peakpanel.selection2
+            else:
+                peaksel = peakpanel.selection2
+        else:
+            peaksel = mass
+
+        if pks is None:
+            pks = self.eng.pks
+
+        # Get Line width from matplotlib plot
+        try:
+            linewidth = plot4.get_linewidth()
+            linewidth *= 1.75
+        except:
+            linewidth = 1.75
+
+
+        # TODO: Take away black background on colored lines
+        for p in self.eng.pks.peaks:
+            if p.mass in peaksel:
+                if not ud.isempty(p.intervalFWHM):
+                    # limits = p.integralrange
+                    limits = 2 * (np.array(p.intervalFWHM)-p.mass) + p.mass
+                    #print(p.intervalFWHM, limits, p.mass)
+
+                    color = p.color
+                    self.plot_integral(limits, color=color, filled=filled, plot=plot2, repaint=False)
+                    if plot4 is not None:
+                        for i, z in enumerate(self.eng.data.ztab):
+                            if p.mztab[i, 1] > self.eng.config.peakplotthresh * np.amax(p.mztab[:, 1]):
+                                mzlimits = (np.array(limits) / float(z)) + self.eng.config.adductmass
+                                boo1 = self.eng.data.data2[:, 0] < mzlimits[1]
+                                boo2 = self.eng.data.data2[:, 0] > mzlimits[0]
+                                intdat = self.eng.data.data2[np.all([boo1, boo2], axis=0)]
+                                if filled:
+                                    plot4.filledplot(intdat[:, 0], intdat[:, 1], color)
+
+                                plot4.plotadd(intdat[:, 0], intdat[:, 1], color, linewidth=linewidth)
+        plot2.repaint()
+        if plot4 is not None:
+            plot4.repaint()
 
     def on_charge_states(self, e=None, mass=None, plot=None, peakpanel=None, data=None):
         """
@@ -372,7 +464,6 @@ class UniDecPres(object):
                 plot.addtext(label, pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
             else:
                 plot.addtext("0", pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
-
 
     def on_label_masses(self, e=None, peakpanel=None, pks=None, plot=None, dataobj=None):
         """

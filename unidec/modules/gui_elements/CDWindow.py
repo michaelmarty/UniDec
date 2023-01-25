@@ -4,7 +4,7 @@ import wx
 import wx.lib.scrolledpanel as scrolled
 
 from unidec.modules.gui_elements import CD_controls
-from unidec.modules.gui_elements import CD_menu
+from unidec.modules.gui_elements import CDMenu
 from unidec.modules import PlottingWindow
 from unidec.modules import miscwindows
 from unidec.modules.gui_elements import peaklistsort
@@ -53,7 +53,7 @@ class CDMainwindow(MainwindowBase):
 
         self.twave = self.config.twaveflag > 0
 
-        self.menu = CD_menu.CD_menu(self, self.config, self.pres, self.tabbed)
+        self.menu = CDMenu.CDMenu(self, self.config, self.pres, self.tabbed)
         self.SetMenuBar(self.menu.menuBar)
 
         self.setup_main_panel()
@@ -188,12 +188,7 @@ class CDMainwindow(MainwindowBase):
 
         sizerpeaks = wx.BoxSizer(wx.VERTICAL)
         self.peakpanel = peaklistsort.PeakListCtrlPanel(panelp)
-        self.Bind(self.peakpanel.EVT_DELETE_SELECTION_2, self.pres.on_delete, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_CHARGE_STATE, self.pres.on_charge_states, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_DIFFERENCES, self.pres.on_differences, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_MASSES, self.pres.on_label_masses, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_AREAS, self.pres.on_label_integral, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_NAMES, self.pres.on_label_names, self.peakpanel)
+        self.bind_peakpanel()
         sizerpeaks.Add(self.peakpanel, 0, wx.EXPAND)
         panelp.SetSizer(sizerpeaks)
         sizerpeaks.Fit(self)
@@ -254,7 +249,7 @@ class MyFileDropTarget(wx.FileDropTarget):
             # Batch process the files that were dropped
             if os.path.splitext(filenames[0])[1] == ".raw" and os.path.isdir(filenames[0]):
                 print("Error: Is Directory")
-                #self.window.pres.on_batch_raw(0, filenames, clip=False)
+                # self.window.pres.on_batch_raw(0, filenames, clip=False)
             else:
                 print("Running batch mode")
                 self.window.pres.on_batch(batchfiles=filenames)

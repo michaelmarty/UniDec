@@ -201,6 +201,8 @@ Added a new mode to the Oligomer and Mass Tools, Site Mode. Here, you can specif
 
 Added new experimental HTML report generator. Found in File > Save Figure Presets. Test this out and let me know what you'd like to see in it.
 
+Added a color plot option to the right click of the peak panel. Check it out!
+
 v.5.2.1
 
 UniDec and UniChrom now try to read the polarity from the data and set the adduct appropriately. Check that this is working!

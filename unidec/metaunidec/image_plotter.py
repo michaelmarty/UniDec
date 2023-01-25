@@ -125,39 +125,39 @@ class ImagingWindow(wx.Frame):
     def load_plot1(self, e=None):
         self.plot1.plotrefreshtop(self.data.massdat[:, 0], self.data.massdat[:, 1])
 
-    def extract(self, e=None, range=None, dtype="mass", plot=None, no_face=False):
+    def extract(self, e=None, erange=None, dtype="mass", plot=None, no_face=False):
         self.update()
-        if range is None:
-            range = self.plot1.subplot1.get_xlim()
+        if erange is None:
+            erange = self.plot1.subplot1.get_xlim()
             self.load_plot1()
             if not no_face:
-                self.plot1.add_rect(range[0], 0, range[1] - range[0], np.amax(self.data.massdat[:, 1]), facecolor="y")
+                self.plot1.add_rect(erange[0], 0, erange[1] - erange[0], np.amax(self.data.massdat[:, 1]), facecolor="y")
         if dtype == "mass":
             grid = self.data.massgrid[:, :, 1]
             dat = self.data.massdat[:, 0]
-            self.massrange = range
+            self.massrange = erange
         elif dtype == "mz":
             grid = self.data.mzgrid[:, :, 1]
             dat = self.data.mzdat[:, 0]
-            self.mzrange = range
+            self.mzrange = erange
         else:
             return
 
-        print("Extracting in Range:", range)
-        midpoint = np.mean(range)
-        window = midpoint - range[0]
+        print("Extracting in Range:", erange)
+        midpoint = np.mean(erange)
+        window = midpoint - erange[0]
         self.exdata = ud.extract_from_data_matrix(dat, grid, midpoint=midpoint, window=window,
                                                   extract_method=self.exchoice)
         self.image_plot(plot=plot)
 
     def extract2(self, e=None):
-        range = self.plot3.subplot1.get_xlim()
+        erange = self.plot3.subplot1.get_xlim()
         self.load_plot1()
-        self.plot1.add_rect(range[0], 0, range[1] - range[0], np.amax(self.data.massdat[:, 1]), facecolor="y")
-        self.plot3.add_rect(range[0], 0, range[1] - range[0], np.amax(self.region_massdat[:, 1]), facecolor="y")
-        self.extract(range=range)
+        self.plot1.add_rect(erange[0], 0, erange[1] - erange[0], np.amax(self.data.massdat[:, 1]), facecolor="y")
+        self.plot3.add_rect(erange[0], 0, erange[1] - erange[0], np.amax(self.region_massdat[:, 1]), facecolor="y")
+        self.extract(erange=erange)
 
-    def sum_region(self, e=None, range=None):
+    def sum_region(self, e=None):
         xrange = self.plot2.subplot1.get_xlim()
         yrange = self.plot2.subplot1.get_ylim()
         print("Extracting in Shape Range:", xrange, yrange)
@@ -190,24 +190,24 @@ class ImagingWindow(wx.Frame):
                          xlab="x", ylab="y", discrete=1, order=None)
 
     def extract3(self, e=None):
-        range = self.plot4.subplot1.get_xlim()
+        erange = self.plot4.subplot1.get_xlim()
         self.load_plot4()
-        self.plot4.add_rect(range[0], 0, range[1] - range[0], np.amax(self.data.mzdat[:, 1]), facecolor="y")
-        self.extract(range=range, dtype="mz", plot=self.plot5)
+        self.plot4.add_rect(erange[0], 0, erange[1] - erange[0], np.amax(self.data.mzdat[:, 1]), facecolor="y")
+        self.extract(erange=erange, dtype="mz", plot=self.plot5)
 
     def extract4(self, e=None):
-        range = self.plot6.subplot1.get_xlim()
+        erange = self.plot6.subplot1.get_xlim()
         self.load_plot4()
-        self.plot4.add_rect(range[0], 0, range[1] - range[0], np.amax(self.data.mzdat[:, 1]), facecolor="y")
-        self.plot6.add_rect(range[0], 0, range[1] - range[0], np.amax(self.region_mzdat[:, 1]), facecolor="y")
-        self.extract(range=range, dtype="mz", plot=self.plot5)
+        self.plot4.add_rect(erange[0], 0, erange[1] - erange[0], np.amax(self.data.mzdat[:, 1]), facecolor="y")
+        self.plot6.add_rect(erange[0], 0, erange[1] - erange[0], np.amax(self.region_mzdat[:, 1]), facecolor="y")
+        self.extract(erange=erange, dtype="mz", plot=self.plot5)
 
     def plot_mz_values(self, e=None):
         print("Plotting mz")
-        range = self.massrange
-        midpoint = np.mean(range)
-        localmaxpos = ud.data_extract(self.data.massdat, midpoint, window=(range[1] - range[0])/2., extract_method=4)
-        print(localmaxpos, midpoint, range)
+        erange = self.massrange
+        midpoint = np.mean(erange)
+        localmaxpos = ud.data_extract(self.data.massdat, midpoint, window=(erange[1] - erange[0])/2., extract_method=4)
+        print(localmaxpos, midpoint, erange)
         self.ztab = np.arange(self.config.startz, self.config.endz + 1)
         mztab = (localmaxpos + self.ztab * self.config.adductmass) / self.ztab
         b1 = mztab < np.amax(self.data.mzdat[:, 0])

@@ -18,6 +18,7 @@ from unidec.ImportWizard import ImportWizard
 from unidec.metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard as HDF5Wizard
 from unidec.metaunidec.ultrameta import DataCollector as UMDC
 from unidec.UniChrom import ChromApp
+from unidec.UPP import UPPApp
 import wx.py as py
 import os
 import sys
@@ -99,6 +100,7 @@ class Lview(wx.Frame):
         button7 = wx.Button(panel, -1, "UltraMeta Data Collector\n\nVisualize Multiple HDF5 Data Sets\nFit Trends")
         button8 = wx.Button(panel, -1, "UniChrom\n\nDeconvolution of Chromatograms\nUniDec for LC/MS Data")
         button9 = wx.Button(panel, -1, "UniDecCD\n\nDeconvolution of Charge Detection MS\nUniDec for CD-MS Data")
+        button10 = wx.Button(panel, -1, "UPP\n\nUniDec Pharama Pipeline\nBatch Processing Workflow")
         html = wx.html.HtmlWindow(panel, -1, size=(390, 310))
         pathtofile = os.path.dirname(os.path.abspath(__file__))
         self.imagepath = self.eng.config.toplogofile
@@ -119,7 +121,8 @@ class Lview(wx.Frame):
         sizer.Add(button6, (2, 1), flag=wx.EXPAND)
         sizer.Add(button7, (1, 1), flag=wx.EXPAND)
         sizer.Add(button9, (3, 0), flag=wx.EXPAND)
-        sizer.Add(button5, (4, 0), span=(1, 2), flag=wx.EXPAND)
+        sizer.Add(button5, (4, 1), span=(1, 1), flag=wx.EXPAND)
+        sizer.Add(button10, (4, 0), span=(1, 1), flag=wx.EXPAND)
         sizer.Add(button8, (3, 1), flag=wx.EXPAND)
         sizer.Add(html, (0, 2), span=(5, 2))
 
@@ -132,6 +135,7 @@ class Lview(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.button7, button7)
         self.Bind(wx.EVT_BUTTON, self.button8, button8)
         self.Bind(wx.EVT_BUTTON, self.button9, button9)
+        self.Bind(wx.EVT_BUTTON, self.button10, button10)
 
         panel.SetSizer(sizer)
         sizer.Fit(self)
@@ -190,6 +194,10 @@ class Lview(wx.Frame):
         print("Launching UniDecCD")
         app = UniDecCDApp()
         app.start()
+
+    def button10(self, e=None):
+        print("Launching UPP")
+        app = UPPApp()
 
 
 class Shell(object):

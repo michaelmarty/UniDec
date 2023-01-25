@@ -261,12 +261,7 @@ class Mainwindow(MainwindowBase):
         # ...........................
         sizerpeaks = wx.BoxSizer(wx.VERTICAL)
         self.peakpanel = peaklistsort.PeakListCtrlPanel(panelp)
-        self.Bind(self.peakpanel.EVT_DELETE_SELECTION_2, self.pres.on_delete, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_CHARGE_STATE, self.pres.on_charge_states, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_DIFFERENCES, self.pres.on_differences, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_MASSES, self.pres.on_label_masses, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_AREAS, self.pres.on_label_integral, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_NAMES, self.pres.on_label_names, self.peakpanel)
+        self.bind_peakpanel()
         sizerpeaks.Add(self.peakpanel, 0, wx.EXPAND)
         panelp.SetSizer(sizerpeaks)
         sizerpeaks.Fit(self)

@@ -1273,15 +1273,8 @@ class MassSelection(wx.Dialog):
         self.import_sites(path)
 
     def import_sites(self, path):
-        extension = os.path.splitext(path)[1]
         if path is not None:
-            if extension == ".csv":
-                df = pd.read_csv(path)
-            elif extension == ".xlsx" or extension == ".xls":
-                df = pd.read_excel(ofilename)
-            else:
-                print('Extension Not Recognized', extension)
-                return None
+            df = spreadsheet.file_to_df(path)
             self.ss.ss.set_df(df)
 
 

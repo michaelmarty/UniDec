@@ -200,10 +200,10 @@ class FFTWindow(wx.Frame):
             rowsums = []
             rowdiff = []
             for row in range(0, int(indexdiff)):
-                sum = 0
+                sumval = 0
                 for col in range(0, int(len(data2d) / indexdiff)):
-                    sum += data2d[int(col * indexdiff + row), 2]
-                rowsums.append(sum)
+                    sumval += data2d[int(col * indexdiff + row), 2]
+                rowsums.append(sumval)
                 rowdiff.append(self.diffrange[0] + self.binsize + (self.binsize * row))
             maxsum = np.amax(np.asarray(rowsums))
             tmp = [x / maxsum for x in rowsums]
@@ -350,13 +350,13 @@ class FFTWindow(wx.Frame):
             rowsums = []
             tmpdiff = []
             for row in range(nearestyvalind[x * 2], nearestyvalind[x * 2 + 1]):
-                sum = 0
+                sumval = 0
                 for col in range(nearestxvalind[x * 2], nearestxvalind[x * 2 + 1], int(indexdiff)):
-                    sum += data2d[int(col + row), 2]
-                rowsums.append(sum)
+                    sumval += data2d[int(col + row), 2]
+                rowsums.append(sumval)
                 tmpdiff.append(self.diffrange[0] + self.binsize + (self.binsize * row))
-                if sum > maxsum:
-                    maxsum = sum
+                if sumval > maxsum:
+                    maxsum = sumval
             boxsums.append(rowsums)
             rowdiffs.append(tmpdiff)
         colormap = cm.get_cmap('rainbow', len(xvals) / 2)

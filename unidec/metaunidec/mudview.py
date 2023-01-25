@@ -170,13 +170,8 @@ class Mainwindow(mainwindow_base.MainwindowBase):
                           "MeatFigure7", "MetaFigure8"]
 
         self.peakpanel = peaklistsort.PeakListCtrlPanel(panel, meta=True)
-        self.Bind(self.peakpanel.EVT_DELETE_SELECTION_2, self.pres.on_delete, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_CHARGE_STATE, self.pres.on_charge_states_mud, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_DIFFERENCES, self.pres.on_differences, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_MASSES, self.pres.on_label_masses, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_AREAS, self.pres.on_label_integral, self.peakpanel)
+        self.bind_peakpanel(meta=True)
         self.Bind(self.peakpanel.EVT_IMAGE, self.pres.make_image_plot, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_NAMES, self.pres.on_label_names, self.peakpanel)
         sizer.Add(self.peakpanel, 0, wx.EXPAND)
 
         self.controls = main_controls(self, self.config, self.pres, panel, self.icon_path)

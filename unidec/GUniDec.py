@@ -502,7 +502,7 @@ class UniDecApp(UniDecPres):
         self.eng.makeplot1(plot=self.view.plot1, intthresh=intthresh, imfit=imfit)
         if self.eng.config.batchflag == 0:
             if self.eng.config.imflag == 1:
-                self.eng.makeplot1IM(plot1im=self.view.plot1im, plot1fit=self.view.plot1fit, imfit=imfit)
+                self.eng.makeplot1im(plot1im=self.view.plot1im, plot1fit=self.view.plot1fit, imfit=imfit)
 
     def makeplot6(self, e=None, show="height"):
         """
@@ -669,11 +669,10 @@ class UniDecApp(UniDecPres):
                 limits = p.integralrange
                 color = p.color
                 self.plot_integral(limits, color=color, filled=filled)
-                self.view.plot2.repaint()
 
                 for i, z in enumerate(self.eng.data.ztab):
                     if p.mztab[i, 1] > self.eng.config.peakplotthresh * np.amax(p.mztab[:, 1]):
-                        mzlimits = np.array(limits) / float(z)
+                        mzlimits = (np.array(limits) / float(z)) + self.eng.config.adductmass
                         boo1 = self.eng.data.data2[:, 0] < mzlimits[1]
                         boo2 = self.eng.data.data2[:, 0] > mzlimits[0]
                         intdat = self.eng.data.data2[np.all([boo1, boo2], axis=0)]
@@ -681,20 +680,8 @@ class UniDecApp(UniDecPres):
                             self.view.plot4.filledplot(intdat[:, 0], intdat[:, 1], color)
                         else:
                             self.view.plot4.plotadd(intdat[:, 0], intdat[:, 1], color)
-                        self.view.plot4.repaint()
-
-    def plot_integral(self, limits, color=None, filled=True):
-        """
-        Plot a filled integral under a peak.
-        :param limits: Limits of integration
-        :param color: Color of fill and plot
-        :return: None
-        """
-        integral, intdat = self.eng.integrate(limits=limits)
-        if filled:
-            self.view.plot2.filledplot(intdat[:, 0], intdat[:, 1], color)
-        else:
-            self.view.plot2.plotadd(intdat[:, 0], intdat[:, 1], color)
+        self.view.plot2.repaint()
+        self.view.plot4.repaint()
 
     def on_integrate(self, plot=True, filled=True):
         """

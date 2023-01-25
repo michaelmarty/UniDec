@@ -138,7 +138,7 @@ class ImportWizard(wx.Frame):
             else:
                 exp_type = 't-wave'
 
-            output = data_importer.parse_file(file_path, exp_type=exp_type, dir=self.exedir)
+            output = data_importer.parse_file(file_path, exp_type=exp_type, directory=self.exedir)
             if output is not None:
                 self.my_grid.add_dataset(output)
 

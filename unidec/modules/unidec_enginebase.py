@@ -3,6 +3,7 @@ from unidec import tools as ud
 import numpy as np
 import os
 import time
+import webbrowser
 from unidec.modules.html_writer import *
 
 version = "6.0.0.b1"
@@ -240,6 +241,21 @@ class UniDecEngine:
         else:
             print("Need to set the mass difference/mass of oligomer")
         return fit, rsquared
+
+    def integrate(self, limits, data=None):
+        """
+        Trapezoid ntegrate data between limits[0] and limits[1]
+        :param limits: [min,max] list of lower and upper bounds on integration
+        :param data: N x 2 array of data (mass, intensity)
+        If data is None (default), self.data.massdat is used.
+        :return: None
+        """
+        if data is None:
+            massdat = self.data.massdat
+        else:
+            massdat = np.transpose([self.data.massdat[:, 0], data])
+        integral, intdat = ud.integrate(massdat, limits[0], limits[1])
+        return integral, intdat
 
     def polydispersity_index(self, e=None):
         pdi = ud.polydispersity_index(self.data.massdat)
@@ -586,7 +602,7 @@ class UniDecEngine:
             print("Plot 4: %.2gs" % (tend - tstart))
             return plot
 
-    def gen_html_report(self, event=None, plots=None, interactive=False):
+    def gen_html_report(self, event=None, outfile=None, plots=None, interactive=False, open_in_browser=True):
         """
         Generate an HTML report of the current UniDec run.
         :param event: Unused Event
@@ -594,7 +610,8 @@ class UniDecEngine:
         :param interactive: If True, will include interactive plots. Default is False.
         :return: None
         """
-        outfile = self.config.outfname + "_report.html"
+        if outfile is None:
+            outfile = self.config.outfname + "_report.html"
         html_open(outfile)
         html_title(self.config.filename, outfile)
 
@@ -668,4 +685,8 @@ class UniDecEngine:
 
         html_close(outfile)
 
-        os.system(self.config.opencommand + "\"" + outfile + "\"")
+        if open_in_browser:
+            webbrowser.open_new_tab(outfile)
+            #os.system(self.config.opencommand + "\"" + outfile + "\"")
+
+        return outfile

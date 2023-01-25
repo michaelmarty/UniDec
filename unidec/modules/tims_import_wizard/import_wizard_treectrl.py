@@ -2,11 +2,13 @@ import wx
 import os
 from natsort import natsorted
 
-class TreeCtrl(wx.TreeCtrl):
-    def __init__(self, parent, id, pos, size, style):
-        wx.TreeCtrl.__init__(self, parent, id, pos, size, style)
 
-#---------------------------------------------------------------------------
+class TreeCtrl(wx.TreeCtrl):
+    def __init__(self, parent, idval, pos, size, style):
+        wx.TreeCtrl.__init__(self, parent, idval, pos, size, style)
+
+
+# ---------------------------------------------------------------------------
 
 class TreeCtrlPanel(wx.Panel):
     def __init__(self, parent, link):
@@ -39,7 +41,6 @@ class TreeCtrlPanel(wx.Panel):
 
         self.populate_tree()
 
-
     # instantiates the tree, uses path in gui, which has a default value
     def populate_tree(self):
         path = self.link.folder_path.GetValue()
@@ -50,7 +51,6 @@ class TreeCtrlPanel(wx.Panel):
                 root = self.add_root(os.path.basename(path), path)
                 self.add_children(root, path, 2)
                 self.tree.Expand(root)
-
 
     def add_root(self, name, data=None):
         """
@@ -63,7 +63,6 @@ class TreeCtrlPanel(wx.Panel):
         self.tree.SetItemImage(root, self.fldropenidx, wx.TreeItemIcon_Expanded)
         return root
 
-
     def add_children(self, parent, path, depth_limit=1):
         """
         Recursively adds children up to the depth specified
@@ -72,8 +71,8 @@ class TreeCtrlPanel(wx.Panel):
             for folder in natsorted(os.listdir(path)):
                 new_path = os.path.join(path, folder)
                 if not os.path.isfile(new_path) and \
-                   not folder.startswith('.')  and \
-                   not folder.startswith('_'):
+                        not folder.startswith('.') and \
+                        not folder.startswith('_'):
                     if os.path.isdir(new_path):
                         child = self.tree.AppendItem(parent, os.path.basename(new_path))
                         self.tree.SetItemData(child, new_path)
@@ -83,7 +82,6 @@ class TreeCtrlPanel(wx.Panel):
                             self.add_children(child, new_path, depth_limit - 1)
         except OSError:
             pass
-
 
     def raw_file_info(self, path):
         if not '.raw' in path:
@@ -99,7 +97,7 @@ class TreeCtrlPanel(wx.Panel):
                 des_path = os.path.join(path, '_HEADER.TXT')
                 if os.path.isfile(des_path):
                     # get description from header
-                    f = open(des_path, 'r')#, encoding="utf-8")
+                    f = open(des_path, 'r')  # , encoding="utf-8")
                     lines = f.readlines()
                     f.close()
                     for line in lines:
@@ -118,19 +116,17 @@ class TreeCtrlPanel(wx.Panel):
                     add_lines += 'Instrument Parameter File\n'
                     add_lines += '-------------------------------\n'
                     for line in lines:
-                        add_lines += line# + '\n'
+                        add_lines += line  # + '\n'
 
                 if add_lines != '':
                     print("add_lines is blank")
 
-                #add_lines = unicode(add_lines, errors='ignore')
+                # add_lines = unicode(add_lines, errors='ignore')
                 self.link.desc.SetValue(add_lines)
-
 
     def OnSize(self, event):
         w, h = self.GetClientSize()
         self.tree.SetSize(0, 0, w, h)
-
 
     def on_selected_changed(self, event):
         self.item = event.GetItem()
@@ -142,7 +138,6 @@ class TreeCtrlPanel(wx.Panel):
                 print("Error in file header decoding: ", e)
         event.Skip()
 
-
     def on_activate(self, event):
         if self.item:
             if self.tree.IsExpanded(self.item):
@@ -152,7 +147,6 @@ class TreeCtrlPanel(wx.Panel):
                 self.tree.DeleteChildren(self.item)
                 self.add_children(self.item, self.tree.GetItemData(self.item), 1)
                 self.tree.Expand(self.item)
-
 
     def on_item_expanded(self, event):
         self.item = event.GetItem()

@@ -5,6 +5,7 @@ from unidec.modules.biopolymertools import *
 class BiopolymerFrame(wx.Dialog):
     def __init__(self, parent):
         wx.Dialog.__init__(self, parent, title="Biopolymer Calculator", size=(500, 500))  # ,size=(-1,-1))
+        self.seq = None
         self.parent = parent
         self.mass = ""
         self.type = 0  # Protein/Peptide = 0, RNA = 1, DNA = 2
@@ -61,6 +62,9 @@ class BiopolymerFrame(wx.Dialog):
             fiveend = "MP"
         elif self.typerna == 2:
             fiveend = "TP"
+        else:
+            fiveend = "OH"
+
         if self.type == 0:
             self.mass = calc_pep_mass(self.seq)
         elif self.type == 1:

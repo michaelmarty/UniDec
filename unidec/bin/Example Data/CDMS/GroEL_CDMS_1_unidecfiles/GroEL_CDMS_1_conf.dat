@@ -1,4 +1,4 @@
-version 6.0.0a3
+version 6.0.0.b1
 imflag 0
 cdmsflag 1
 input C:\Python\UniDec3\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat

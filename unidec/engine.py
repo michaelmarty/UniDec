@@ -2,7 +2,8 @@
 import os
 import time
 import shutil
-import sys, getopt
+import sys
+import getopt
 from copy import deepcopy
 import subprocess
 import zipfile
@@ -17,6 +18,16 @@ from unidec.modules.unidec_enginebase import UniDecEngine
 # import modules.DoubleDec as dd
 
 __author__ = 'Michael.Marty'
+
+
+def score_minimum(height, minimum):
+    x2 = height
+    x1 = height / 2.
+    if minimum > x1:
+        y = 1 - (minimum - x1) / (x2 - x1)
+    else:
+        y = 1
+    return y
 
 
 class UniDec(UniDecEngine):
@@ -84,6 +95,10 @@ class UniDec(UniDecEngine):
         :param file_name: Name of file to open. May be in  x y or x y z text format or in mzML format.
                 May be tab or space delimited
         :param file_directory: Directory in which filename is located. Default is current directory.
+        If None, will get from file_name.
+        :param time_range: Array or tuple of (start, end) times to load from data file. Default is to load all.
+        :param refresh: If True, will refresh the data file even if it already exists.
+        :param load_results: If True, will load the results from the _unidecfiles directory.
         :return: None
         """
         tstart = time.perf_counter()
@@ -389,6 +404,7 @@ class UniDec(UniDecEngine):
         """
         Imports files output from the unidec core executable into self.data.
         :param efficiency: If True, it will ignore the larger files to speed up the run.
+        :param everything: If True, it will import all files, even the large ones.
         :return: None
         """
         if everything:
@@ -402,7 +418,7 @@ class UniDec(UniDecEngine):
 
         try:
             self.config.massdatnormtop = np.amax(self.data.massdat[:, 1])
-        except:
+        except Exception:
             self.data.massdat = np.array([self.data.massdat])
             self.config.massdatnormtop = np.amax(self.data.massdat[:, 1])
         if not efficiency:
@@ -517,7 +533,8 @@ class UniDec(UniDecEngine):
         # Generate Intensities of Each Charge State for Each Peak
         try:
             mztab = ud.make_peaks_mztab(self.data.mzgrid, self.pks, self.config.adductmass)
-        except:
+        except Exception:
+            mztab = []
             pass
         # Calculate errors for peaks with FWHM
         try:
@@ -533,7 +550,7 @@ class UniDec(UniDecEngine):
             try:
                 ud.make_peaks_mztab_spectrum(self.data.mzgrid, self.pks, self.data.data2, mztab)
                 self.export_config()
-            except:
+            except Exception:
                 pass
 
     def convolve_peaks(self):
@@ -586,14 +603,14 @@ class UniDec(UniDecEngine):
 
         print("Number of False Scores:", len(dscores))
         sd = np.sort(dscores)
-        l = len(sd)
+        length = len(sd)
         fdrs = [0, 0.01, 0.05]
         cutoffs = []
 
         for fdr in fdrs:
-            f = int(l * (1 - fdr)) + 1
-            if f >= l:
-                f = l - 1
+            f = int(length * (1 - fdr)) + 1
+            if f >= length:
+                f = length - 1
             cutoffs.append(sd[f])
             print("FDR (%):", fdr * 100, "DScore Cut Off (%):", sd[f] * 100)
 
@@ -686,20 +703,6 @@ class UniDec(UniDecEngine):
         outgrid /= np.amax(outgrid)
         return oaxis, outgrid
 
-    def integrate(self, limits, data=None):
-        """
-        Trapezoid ntegrate data between limits[0] and limits[1]
-        :param limits: [min,max] list of lower and upper bounds on integration
-        :param data: N x 2 array of data (mass, intensity)
-        If data is None (default), self.data.massdat is used.
-        :return: None
-        """
-        if data is None:
-            massdat = self.data.massdat
-        else:
-            massdat = np.transpose([self.data.massdat[:, 0], data])
-        integral, intdat = ud.integrate(massdat, limits[0], limits[1])
-        return integral, intdat
 
     def autointegrate(self, ztab=None):
         """
@@ -1047,7 +1050,7 @@ class UniDec(UniDecEngine):
                 stack.append(zarr[boo3, j])
             p.zstack = np.array(stack)
 
-    def pks_mscore(self, xfwhm=2, pow=2):
+    def pks_mscore(self, xfwhm=2, power=2):
         self.get_zstack(xfwhm=xfwhm)
         for p in self.pks.peaks:
             m = p.zstack[0]
@@ -1075,7 +1078,7 @@ class UniDec(UniDecEngine):
                 weights.append(sY)
             rats = np.array(rats)
             weights = np.array(weights)
-            avg = ud.weighted_avg(rats, weights ** pow)
+            avg = ud.weighted_avg(rats, weights ** power)
             # print("Peak Mass:", p.mass, "Peak Shape Score", avg, p.mscore)
             p.mscore = avg
 
@@ -1099,11 +1102,10 @@ class UniDec(UniDecEngine):
 
             zs = np.sum(sumz)
             badarea = 0
-            l = len(sumz)
 
             index = zm
             low = sumz[zm]
-            while index < l - 1:
+            while index < len(sumz) - 1:
                 index += 1
                 val = sumz[index]
                 if val < low:
@@ -1159,7 +1161,7 @@ class UniDec(UniDecEngine):
             p.rsquared = 1 - ud.safedivide1(sse, denom)
             p.mzstack = np.array(stack, dtype='object')
 
-    def pks_uscore(self, xfwhm=2, pow=1):
+    def pks_uscore(self, xfwhm=2, power=1):
         self.get_mzstack(xfwhm=xfwhm)
         for p in self.pks.peaks:
             rats = []
@@ -1184,18 +1186,9 @@ class UniDec(UniDecEngine):
             rats = np.array(rats)
 
             weights = np.array(weights)
-            avg = ud.weighted_avg(rats, weights ** pow)
+            avg = ud.weighted_avg(rats, weights ** power)
             # print("Peak Mass:", p.mass, "Uniqueness Score", avg)
             p.uscore = avg
-
-    def score_minimum(self, height, min):
-        x2 = height
-        x1 = height / 2.
-        if min > x1:
-            y = 1 - (min - x1) / (x2 - x1)
-        else:
-            y = 1
-        return y
 
     def pks_fscore(self):
         for p in self.pks.peaks:
@@ -1211,13 +1204,13 @@ class UniDec(UniDecEngine):
                 if diff[0] > diff[1]:
                     dcut1 = ud.datachop(self.data.massdat, interval[0] - self.config.massbins, p.mass)
                     lmin = np.amin(dcut1[:, 1])
-                    fscore1 = self.score_minimum(height, lmin)
+                    fscore1 = score_minimum(height, lmin)
                     # print("Fscore2", fscore1, lmin, height)
                     p.fscore *= fscore1
                 else:
                     dcut2 = ud.datachop(self.data.massdat, p.mass, interval[1] + self.config.massbins)
                     umin = np.amin(dcut2[:, 1])
-                    fscore2 = self.score_minimum(height, umin)
+                    fscore2 = score_minimum(height, umin)
                     # print("Fscore3", fscore2, umin, height)
                     p.fscore *= fscore2
 
@@ -1236,7 +1229,7 @@ class UniDec(UniDecEngine):
                 for m in badmasses:
                     dcut1 = ud.datachop(self.data.massdat, m, p.mass)
                     lmin = np.amin(dcut1[:, 1])
-                    fscore1 = self.score_minimum(height, lmin)
+                    fscore1 = score_minimum(height, lmin)
                     # print("Fscore4", fscore1, lmin, height)
                     p.fscore *= fscore1
 
@@ -1245,7 +1238,7 @@ class UniDec(UniDecEngine):
                 for m in badmasses:
                     dcut2 = ud.datachop(self.data.massdat, p.mass, m)
                     umin = np.amin(dcut2[:, 1])
-                    fscore2 = self.score_minimum(height, umin)
+                    fscore2 = score_minimum(height, umin)
                     # print("Fscore5", fscore2, umin, height)
                     p.fscore *= fscore2
 
@@ -1259,7 +1252,7 @@ class UniDec(UniDecEngine):
         self.data.tscore = tscore
         return tscore'''
 
-    def dscore(self, xfwhm=2, pow=2):
+    def dscore(self, xfwhm=2, power=2):
         """
         Combined score should include:
 
@@ -1274,8 +1267,8 @@ class UniDec(UniDecEngine):
         :return:
         """
         if len(self.pks.peaks) > 0:
-            self.pks_mscore(xfwhm=xfwhm, pow=pow)
-            self.pks_uscore(pow=pow, xfwhm=xfwhm)
+            self.pks_mscore(xfwhm=xfwhm, power=power)
+            self.pks_uscore(power=power, xfwhm=xfwhm)
             self.pks_csscore(xfwhm=xfwhm)
             self.pks_fscore()
             # self.tscore()
@@ -1297,7 +1290,7 @@ class UniDec(UniDecEngine):
                       "Combined:", round(p.dscore * 100, 2))
                 # print(p.intervalFWHM)'''
             ints = np.array(ints)
-            self.pks.uniscore = ud.weighted_avg(dscores, ints ** pow) * self.config.error
+            self.pks.uniscore = ud.weighted_avg(dscores, ints ** power) * self.config.error
             print("R Squared:", self.config.error)
             # print("TScore:", self.data.tscore)
             print("Average Peaks Score (UniScore):", self.pks.uniscore)
@@ -1421,7 +1414,7 @@ class UniDec(UniDecEngine):
 
             ax.plot(m, h, color=color, marker="o")
 
-    def makeplot1IM(self, plot1im=None, plot1fit=None, imfit=False):
+    def makeplot1im(self, plot1im=None, plot1fit=None, imfit=False):
         if plot1im is None:
             plot1im = plot2d.Plot2dBase()
         if plot1fit is None:
@@ -1431,13 +1424,13 @@ class UniDec(UniDecEngine):
             try:
                 plot1im.contourplot(self.data.data3, self.config, xlab="m/z (Th)", ylab="Arrival Time (ms)",
                                     title="IM-MS Data")
-            except:
+            except Exception:
                 pass
             if imfit:
                 try:
                     plot1fit.contourplot(self.data.fitdat2d, self.config, xlab="m/z (Th)", ylab="Arrival Time (ms)",
                                          title="IM-MS Fit")
-                except:
+                except Exception:
                     pass
 
     def makeplot1(self, plot=None, intthresh=False, imfit=True, config=None):
@@ -1476,7 +1469,7 @@ class UniDec(UniDecEngine):
                         plot.plotadddot(self.data.data2[:, 0], self.data.fitdat, 'red', "s", "Fit Data")
                         leg = True
                     pass
-                except:
+                except Exception:
                     pass
 
             else:

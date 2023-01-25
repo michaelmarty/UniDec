@@ -228,7 +228,8 @@ def calc_pairs(row):
     pairs = []
     for i, item in enumerate(row):
         if type(item) is str:
-            if "+" in item or "Seq" in item:
+            if "Seq" in item:
+                print(item)
                 label = row.keys()[i]
                 labels.append(label)
                 pairing = item
@@ -260,15 +261,19 @@ def calc_pairs(row):
     return pmasses, labels
 
 
-def UPP_check_peaks(row, pks, tol, moddf):
+def UPP_check_peaks(row, pks, tol, moddf=None):
     peakmasses = pks.masses
     peakheights = [p.height for p in pks.peaks]
     # seqs, seqmasses, seqlabels = calc_seqmasses(row)
     pmasses, plabels = calc_pairs(row)
-    print(peakmasses)
+    # print(peakmasses)
     print(np.transpose([pmasses, plabels]))
-    modmasses = moddf["Mass"].to_numpy()
-    modlabels = moddf["Name"].to_numpy()
+    if moddf is not None:
+        modmasses = moddf["Mass"].to_numpy()
+        modlabels = moddf["Name"].to_numpy()
+    else:
+        modmasses = [0]
+        modlabels = [""]
     pmassgrid = np.array([modmasses + p for p in pmasses])
 
     correctint = 0
@@ -298,10 +303,10 @@ def UPP_check_peaks(row, pks, tol, moddf):
             unmatchedint += peakheights[i]
 
     percents = np.array([correctint, incorrectint, unmatchedint]) / totalint * 100
-    print(percents)
+    # print(percents)
     if correctint + incorrectint > 0:
         percents2 = np.array([correctint, incorrectint]) / (correctint + incorrectint) * 100
     else:
         percents2 = np.array([0, 0])
-    print(percents2)
+    # print(percents2)
     return percents, percents2, matches, matchstring

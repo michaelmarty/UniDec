@@ -2,6 +2,22 @@ import wx.grid as gridlib
 import wx
 import unidec.modules.miscwindows as misc
 import pandas as pd
+import os
+import wx.lib.mixins.inspection
+import wx.html
+import webbrowser
+
+
+def file_to_df(path):
+    extension = os.path.splitext(path)[1]
+    if extension == ".csv":
+        df = pd.read_csv(path)
+    elif extension == ".xlsx" or extension == ".xls":
+        df = pd.read_excel(path)
+    else:
+        print('Extension Not Recognized', extension)
+        df = None
+    return df
 
 
 # Taken from https://stackoverflow.com/questions/28509629/
@@ -13,6 +29,7 @@ class MyGrid(wx.grid.Grid):
         self.Bind(wx.grid.EVT_GRID_CELL_CHANGING, self.on_change)
         self.Bind(wx.grid.EVT_GRID_LABEL_RIGHT_CLICK, self.on_label_right_click)
         self.Bind(wx.grid.EVT_GRID_CELL_RIGHT_CLICK, self.on_cell_right_click)
+        self.Bind(wx.grid.EVT_GRID_CELL_LEFT_DCLICK, self.open_link)
         self.selected_rows = []
         self.selected_cols = []
         self.history = []
@@ -45,14 +62,21 @@ class MyGrid(wx.grid.Grid):
             data.append(row_list)
         return data
 
-    def remove_empty(self, col_header):
+    def remove_empty(self, col_header=None):
         delete_rows = []
         for row in range(self.GetNumberRows()):
+            all_bad = True
             for col, header in enumerate(self.get_col_headers()):
                 if header == col_header:
                     result = self.GetCellValue(row, col)
                     if result == "":
                         delete_rows.append(row)
+                elif col_header is None:
+                    result = self.GetCellValue(row, col)
+                    if result != "":
+                        all_bad = False
+            if all_bad and col_header is None:
+                delete_rows.append(row)
 
         for row in delete_rows[::-1]:
             self.DeleteRows(row)
@@ -76,9 +100,16 @@ class MyGrid(wx.grid.Grid):
         nrow = self.GetNumberRows()
         if nrow < len(df):
             self.InsertRows(nrow, len(df) - nrow)
-        for row in range(self.GetNumberRows()):
+        for row in range(len(df)):
             for col, header in enumerate(self.get_col_headers()):
-                self.SetCellValue(row, col, str(df.iloc[row, col]))
+                value = str(df.iloc[row, col])
+                self.SetCellValue(row, col, value)
+                if ".html" in value or ".htm" in value or "http" in value:
+                    self.SetCellTextColour(row, col, wx.BLUE)
+                    self.SetCellFont(row, col,
+                                     wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD,
+                                             wx.TEXT_ATTR_FONT_UNDERLINE))
+                    self.SetReadOnly(row, col, True)
 
     def clear_all(self):
         for row in range(self.GetNumberRows()):
@@ -148,7 +179,6 @@ class MyGrid(wx.grid.Grid):
             return
         for col in self.selected_cols:
             self.SetColLabelValue(col, name)
-            print(col)
             pass
 
     def delete_cols(self, event):
@@ -442,6 +472,19 @@ class MyGrid(wx.grid.Grid):
         self.copy(event)
         self.delete(event)
 
+    def open_link(self, event):
+        row = event.GetRow()
+        col = event.GetCol()
+        value = self.GetCellValue(row, col)
+        if ".html" in value or "http" in value:
+            print("Opening link:", value)
+            webbrowser.open(value)
+        elif "Open In UniDec" in value:
+            print("Opening UniDec")
+            self.parent.open_unidec(row)
+        else:
+            event.Skip()
+
 
 class SpreadsheetPanel:
     def __init__(self, parent, panel, nrows=0, ncolumns=0):
@@ -475,12 +518,66 @@ class SpreadsheetFrame(wx.Frame):
         self.Show()
 
 
+'''
+class HtmlRenderer(wx.grid.GridCellRenderer):
+    def __init__(self, html_str):
+        wx.grid.GridCellRenderer.__init__(self)
+        self.html_str = html_str
+        self.html = wx.html.HtmlDCRenderer()
+
+    def Draw(self, grid, attr, dc, rect, row, col, isSelected):
+        self.html.SetDC(dc)
+        self.html.SetSize(100, 20)
+        self.html.SetHtmlText(self.html_str)
+
+        dc.SetBackgroundMode(wx.SOLID)
+        if isSelected:
+            dc.SetBrush(wx.Brush(wx.BLUE, wx.SOLID))
+            dc.SetPen(wx.Pen(wx.BLUE, 1, wx.SOLID))
+        else:
+            dc.SetBrush(wx.Brush(wx.WHITE, wx.SOLID))
+            dc.SetPen(wx.Pen(wx.WHITE, 1, wx.SOLID))
+        dc.DrawRectangle(rect)
+
+
+        width, height = html.GetTotalWidth(), html.GetTotalHeight()
+        if width > rect.width - 2:
+            width = rect.width - 2
+        if height > rect.height - 2:
+            height = rect.height - 2
+
+        self.html.Render(5, -2)
+        # dc.Blit(rect.x + 1, rect.y + 1, width, height, html, 0, 0, wx.COPY, True)
+
+    def on_open_link(self, event):
+        print("Test")
+   
+# renderer = HtmlRenderer("<a href=\"http:\\www.google.com\">test</a>")
+# frame.ss.SetCellRenderer(0, 0, renderer)
+# frame.ss.SetReadOnly(0, 0)
+# frame.ss.Bind(wx.html.EVT_HTML_CELL_CLICKED, renderer.on_open_link)     
+'''
+
+
+class MyApp(wx.App, wx.lib.mixins.inspection.InspectionMixin):
+    def OnInit(self):
+        self.Init()
+        self.frame = SpreadsheetFrame(12, 8)
+        self.frame.Show()
+        self.SetTopWindow(self.frame)
+        return True
+
+
 if __name__ == "__main__":
-    app = wx.App()
-    frame = SpreadsheetFrame(12, 8)
-    path = "C:\\Data\\Luis Genentech\\Merged Glycan List.csv"
-    df = pd.read_csv(path)
-    frame.ss.set_df(df)
-    print(df)
+    # app = wx.App()
+    app = MyApp(redirect=False)
+    frame = app.frame
+    frame.ss.SetCellValue(0, 0, "http://www.google.com")
+    frame.ss.SetReadOnly(0, 0)
+    # frame = SpreadsheetFrame(12, 8)
+    # path = "C:\\Data\\Luis Genentech\\Merged Glycan List.csv"
+    # df = pd.read_csv(path)
+    # frame.ss.set_df(df)
+    # print(df)
 
     app.MainLoop()

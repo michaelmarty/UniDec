@@ -12,6 +12,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
     def __init__(self, parent, title, config=None, iconfile=None, *args, **kwargs):
         mainwindow_base.MainwindowBase.__init__(self, parent, title, config, iconfile)
         # wx.Frame.__init__(self, None, title=title)  # ,size=(200,-1))
+        self.meta = True
         self.pres = parent
         if config is None:
             self.config = self.pres.eng.config
@@ -82,7 +83,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
 
         self.ctlswoffset = wx.TextCtrl(self.panel, value=str(int(self.config.sw_scan_offset)), size=(50, 20))
         tsizer2.Add(self.ctlswoffset, 0, wx.ALIGN_CENTER_VERTICAL)
-        #tsizer2.Add(wx.StaticText(self.panel, label="min"), 0, wx.ALIGN_CENTER_VERTICAL)
+        # tsizer2.Add(wx.StaticText(self.panel, label="min"), 0, wx.ALIGN_CENTER_VERTICAL)
 
         self.ctlsizer.Add(tsizer2)
 
@@ -167,7 +168,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
 
         self.plots = [self.plotc, self.plot7, self.plot1, self.plot2, self.plotm, self.plot2s, self.plot3, self.plot5]
         self.plotnames = ["Chrom_TIC", "ChromFigure_XIC", "ChromFigure_mz", "ChromFigure_mass", "Chrom_mz_selected",
-                          "Chrom_mass_selected","Chrom2Dmz", "Chrom2Dmass"]
+                          "Chrom_mass_selected", "Chrom2Dmz", "Chrom2Dmass"]
 
         plotwindow.SetSizerAndFit(sizerplot)
         plotwindow.SetupScrolling()
@@ -179,12 +180,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         label.SetFont(labelfont)
         self.sizer3.Add(label, 0)
         self.peakpanel = peaklistsort.PeakListCtrlPanel(self.panel, meta=True)
-        self.Bind(self.peakpanel.EVT_DELETE_SELECTION_2, self.pres.on_delete, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_CHARGE_STATE, self.pres.on_charge_states_mud, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_DIFFERENCES, self.pres.on_differences, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_MASSES, self.pres.on_label_masses, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_AREAS, self.pres.on_label_integral, self.peakpanel)
-        self.Bind(self.peakpanel.EVT_NAMES, self.pres.on_label_names, self.peakpanel)
+        self.bind_peakpanel(meta=True)
         self.sizer3.Add(self.peakpanel, 0, wx.EXPAND)
         self.mainsizer.Add(self.sizer3, 0, wx.EXPAND)
 

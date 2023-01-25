@@ -11,12 +11,13 @@ from io import StringIO, BytesIO
 import io
 import unidec.tools as ud
 import base64
+import webbrowser
 
 luminance_cutoff = 135
 
 
 def write_to_html(html_str, outfile, mode="a"):
-    print(outfile)
+    # print(outfile)
     html_file = io.open(outfile, mode, encoding='utf-8')
     html_file.write(html_str)
     html_file.close()
@@ -116,7 +117,7 @@ def df_to_html(df, outfile=None, colors=None):
         for i, color in enumerate(colors):
             hexcolor = matplotlib.colors.to_hex(color)
             rgbcolor = matplotlib.colors.to_rgb(hexcolor)
-            print(rgbcolor)
+            # print(rgbcolor)
             try:
                 luminance = ud.get_luminance(np.array(rgbcolor) * 255, type=2)
             except Exception:
@@ -265,7 +266,7 @@ def html_open(outfile):
 
 
 def html_close(outfile):
-    html_str = "</body>\n</html>\n"
+    html_str = "</html>\n"
     write_to_html(html_str, outfile)
     html_cleaner(outfile)
 
@@ -274,14 +275,13 @@ def html_cleaner(outfile):
     cleaner = Cleaner(scripts=False, javascript=False, style=False, inline_style=False, page_structure=False,
                       meta=False, embedded=False, links=False, comments=False, frames=False, forms=False,
                       safe_attrs_only=False, processing_instructions=False, annoying_tags=False,
-                      remove_unknown_tags=False,)
+                      remove_unknown_tags=False, )
 
     html_file = io.open(outfile, "r", encoding='utf-8')
     html_str = html_file.read()
     html_file.close()
 
     clean_html = cleaner.clean_html(html_str)
-
 
     write_to_html(clean_html, outfile, mode="w")
 
@@ -292,24 +292,24 @@ if __name__ == "__main__":
 
     os.chdir(path)
 
-    fig = plt.figure()
+    figure = plt.figure()
     ax = plt.plot([1, 2, 3, 4, 5], [2, 5, 6, 3, 7])
     # plt.show()
     outfile_html = "test.html"
     html_open(outfile_html)
     html_title("Test File", outfile_html)
 
-    colors = ["red", "green", "blue", "yellow", "orange"]
+    colorslist = ["red", "green", "blue", "yellow", "orange"]
 
-    s2 = array_to_html(np.random.random((5, 5)), outfile_html, cols=["a", "b", "c", "d", "e"], colors=colors)
+    s2 = array_to_html(np.random.random((5, 5)), outfile_html, cols=["a", "b", "c", "d", "e"], colors=colorslist)
     # s1 = fig_to_html_plotly(fig, outfile)
     # s1 = fig_to_html_plotly(fig, outfile)
     # wrap_to_grid([s2, s1], outfile)
 
     png = io.BytesIO()
-    fig.savefig(png, format="png")
-    png_str = png.getvalue()
-    png_to_html(png_str, outfile_html)
+    figure.savefig(png, format="png")
+    png_str2 = png.getvalue()
+    png_to_html(png_str2, outfile_html)
 
     dict_string = dict_to_html({"a": 1, "b": 2, "c": 3, "d": 4, "e": 5})
     to_html_collapsible(dict_string, title="UniDec Parameters", outfile=outfile_html, htmltext=True)
@@ -318,5 +318,6 @@ if __name__ == "__main__":
 
     html_cleaner(outfile_html)
 
-    opencommand = "start \"\" "
-    os.system(opencommand + "\"" + outfile_html + "\"")
+    #opencommand = "start \"\" "
+    #os.system(opencommand + "\"" + outfile_html + "\"")
+    webbrowser.open(outfile_html)

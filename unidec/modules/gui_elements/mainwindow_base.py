@@ -30,16 +30,17 @@ class MainwindowBase(wx.Frame):
         self.controls = None
         self.plots = []
         self.plotnames = []
+        self.meta = False
 
         self.version = self.pres.eng.version
 
         if iconfile is None:
             if os.path.isfile(self.config.iconfile):
                 iconfile = self.config.iconfile
-                #print(self.config.iconfile)
+                # print(self.config.iconfile)
             else:
                 iconfile = "logo.ico"
-                #print(self.config.iconfile)
+                # print(self.config.iconfile)
         # Set Icon File
         try:
             if os.path.isfile(iconfile):
@@ -84,6 +85,24 @@ class MainwindowBase(wx.Frame):
 
     def on_defaults(self, e):
         self.menu.on_defaults(e)
+
+    def bind_peakpanel(self, meta=False):
+        """
+        Bind peakpanel events to presenter functions.
+        :return:
+        """
+        self.Bind(self.peakpanel.EVT_DELETE_SELECTION_2, self.pres.on_delete, self.peakpanel)
+        if meta:
+            self.Bind(self.peakpanel.EVT_CHARGE_STATE, self.pres.on_charge_states_mud, self.peakpanel)
+        else:
+            self.Bind(self.peakpanel.EVT_CHARGE_STATE, self.pres.on_charge_states, self.peakpanel)
+        self.Bind(self.peakpanel.EVT_DIFFERENCES, self.pres.on_differences, self.peakpanel)
+        self.Bind(self.peakpanel.EVT_MASSES, self.pres.on_label_masses, self.peakpanel)
+        self.Bind(self.peakpanel.EVT_AREAS, self.pres.on_label_integral, self.peakpanel)
+        self.Bind(self.peakpanel.EVT_NAMES, self.pres.on_label_names, self.peakpanel)
+        self.Bind(self.peakpanel.EVT_COLOR_PEAKS, self.pres.on_color_peaks, self.peakpanel)
+
+
 
     def on_motion(self, xpos, ypos):
         """
@@ -222,7 +241,6 @@ class MainwindowBase(wx.Frame):
             self.figsize = np.array(dlg.figsize)
             self.rect = np.array(dlg.rect)
 
-
             if not np.all(defaultsize == self.figsize) or not np.all(defaultrect == self.rect):
                 plots = self.shrink_all_figures()
                 self.SetStatusText("Saving Figures", number=5)
@@ -232,7 +250,8 @@ class MainwindowBase(wx.Frame):
                     plot.resize = 1
                     plot.size_handler()
             else:
-                figureflags, files = self.save_all_figures(extension, extension2="", header=path, transparent=transparent, dpi=dpi)
+                figureflags, files = self.save_all_figures(extension, extension2="", header=path,
+                                                           transparent=transparent, dpi=dpi)
             # print self.directory
             self.SetStatusText("Saved Figures", number=5)
             # TODO: Remember Values from previous
@@ -321,5 +340,3 @@ class MainwindowBase(wx.Frame):
         """
         pub.unsubAll()
         self.Close(True)
-
-
