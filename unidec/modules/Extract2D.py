@@ -125,7 +125,7 @@ class Extract2DPlot(wx.Frame):
         self.datalist = data_list
         self.dlen = len(data_list)
         self.pos = -1
-        self.yvals = np.array(yvals).astype(np.float)
+        self.yvals = np.array(yvals).astype(float)
         if ud.isempty(yvals):
             self.yvals = np.arange(0, len(data_list))
         self.storediscrete = deepcopy(self.config.discreteplot)
@@ -324,7 +324,7 @@ class Extract2DPlot(wx.Frame):
         self.config.discreteplot = 1
         # self.config.cmap="jet"
         title = str(self.yvals[i])
-        if type(self.directory) is not str or os.PathLike:
+        if type(self.directory) is not str and type(self.directory) is not os.PathLike:
             d = self.directory[i]
         else:
             d = self.directory
@@ -357,7 +357,7 @@ class Extract2DPlot(wx.Frame):
         dat = np.transpose([np.ravel(self.m1grid), np.ravel(self.m2grid), np.ravel(grid)])
         self.config.discreteplot = 1
         # self.config.cmap="jet"
-        if type(self.directory) is not str or os.PathLike:
+        if type(self.directory) is not str and type(self.directory) is not os.PathLike:
             newdir = self.directory[self.pos]
         else:
             newdir = self.directory
@@ -417,7 +417,7 @@ class Extract2DPlot(wx.Frame):
             outputdata = np.transpose([np.unique(self.m1grid), np.average(grid, axis=1)])
             self.data1d = outputdata
 
-            if type(self.directory) is not str or os.PathLike:
+            if type(self.directory) is not str and type(self.directory) is not os.PathLike:
                 d = self.directory[self.pos]
             else:
                 d = self.directory
@@ -500,7 +500,7 @@ class Extract2DPlot(wx.Frame):
         :param e: Unused event
         :return: None
         """
-        if type(self.directory) is not str or os.PathLike:
+        if type(self.directory) is not str and type(self.directory) is not os.PathLike:
             d = self.directory[self.pos]
         else:
             d = self.directory
@@ -520,7 +520,7 @@ class Extract2DPlot(wx.Frame):
         :param e: Unused event
         :return: None
         """
-        if type(self.directory) is not str or os.PathLike:
+        if type(self.directory) is not str and type(self.directory) is not os.PathLike:
             d = self.directory[self.pos]
         else:
             d = self.directory
@@ -581,9 +581,10 @@ if __name__ == "__main__":
     #    "C:\UniDecPastedSpectra\PastedSpectrum_2017_Dec_11_11_30_45_unidecfiles\PastedSpectrum_2017_Dec_11_11_30_45_mass.txt")
     data3 = np.loadtxt(
         "Z:\mtmarty\Data\Others\Miranda\sample_data\MC_20170904_1to1_aB_C137S_11000_520_HCD300_CAL_unidecfiles\CorrectedMassData.txt")
-    data3 = np.loadtxt("/TestSpectra/60_unidecfiles/60_mass.txt")
-    file = "Z:\\Group Share\\Hiruni Jayasekera\HSJ_MAE AqpZ CL\WT_R224A Titrations\WT_R224A_25C\\rep3\\20220303_HSJ_MAE_AqpZWT_R224A_160CL_TS_25C_3_unidecfiles\\20220303_HSJ_MAE_AqpZWT_R224A_160CL_TS_25C_3_mass.txt"
-    file = "Z:\\Group Share\\Hiruni Jayasekera\\HSJ_MAE AqpZ CL\WT_R224A Titrations\WT_R224A_25C\\rep3\\20220308_HSJ_MAE_AqpZWT_R224A_160CL_TS_25_3_unidecfiles\\20220308_HSJ_MAE_AqpZWT_R224A_160CL_TS_25_3_mass.txt"
+    #data3 = np.loadtxt("/TestSpectra/60_unidecfiles/60_mass.txt")
+    file = "Z:\\Group Share\\Hiruni Jayasekera\\HSJ_MAE AqpZ CL Project\\Final\\WT_R224A Titrations\WT_R224A_25C\\rep3\\20220303_HSJ_MAE_AqpZWT_R224A_160CL_TS_25C_3_unidecfiles\\20220303_HSJ_MAE_AqpZWT_R224A_160CL_TS_25C_3_mass.txt"
+    #file = "Z:\\Group Share\\Hiruni Jayasekera\\HSJ_MAE AqpZ CL\WT_R224A Titrations\WT_R224A_25C\\rep3\\20220308_HSJ_MAE_AqpZWT_R224A_160CL_TS_25_3_unidecfiles\\20220308_HSJ_MAE_AqpZWT_R224A_160CL_TS_25_3_mass.txt"
+    file = "Z:\Group Share\Hiruni Jayasekera\\HSJ_MAE AqpZ CL Project\\Final\\R224A_R224-75A Titrations All\\R224A_R224-75A_30C\\rep3\\20220317_HSJ_AqpZR224A_R224-75A_100CL_TS_30_3_unidecfiles\\20220317_HSJ_AqpZR224A_R224-75A_100CL_TS_30_3_mass.txt"
     data3 = np.loadtxt(file)
     datalist = [data3]
 

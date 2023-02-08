@@ -20,8 +20,8 @@ msig 0.0
 molig 0.0
 massbins 1.0
 mtabsig 0.0
-minmz 2230.059045
-maxmz 7607.178088
+minmz 2790.2352054484936
+maxmz 8019.214011328101
 subbuff 100.0
 subtype 2
 smooth 0.0
@@ -51,12 +51,12 @@ peaknorm 1
 datanorm 1
 baselineflag 1.0
 orbimode 0
-integratelb -10.0
-integrateub 10.0
+integratelb -30.0
+integrateub 40.0
 filterwidth 20.0
 zerolog -12.0
 doubledec 0
-kernel Z:\mtmarty\Data\WangLabAnalysis\20200430_jat_wanglabsample_concthenbiospin_unidecfiles\20200430_jat_wanglabsample_concthenbiospin_mass.txt
+kernel C:\Python\UniDec3\unidec\bin\Example Data\BSA_unidecfiles\BSA_mass.txt
 CDslope 12.5
 CDzbins 1.0
 CDres 1.0

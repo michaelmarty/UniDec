@@ -72,6 +72,7 @@ class PlotBase(object):
         self.lines = []
         self.cbar = None
         self.datalims = None
+        self.zoomvals = None
         self.data = None
         self.cmap = None
         self.set_color()
@@ -102,6 +103,30 @@ class PlotBase(object):
         self.subplot1.set_ylim((ymin, ymax))
         self.subplot1.set_xlim((xmin, xmax))
         pass
+
+    def get_zoomvals(self):
+        if self.zoom is not None and self.zoom.xzoom is not None and self.zoom.yzoom is not None:
+            self.zoomvals = [self.zoom.xzoom[0], self.zoom.xzoom[1], self.zoom.yzoom[0], self.zoom.yzoom[1]]
+        else:
+            try:
+                xmin, ymin, xmax, ymax = GetMaxes(self.subplot1)
+                self.zoomvals = [xmin, xmax, ymin, ymax]
+            except Exception:
+                self.zoomvals = None
+        # print("Getting Zoom Vals:", self.zoomvals)
+
+    def set_zoomvals(self, zoomvals=None):
+        if zoomvals is not None:
+            self.zoomvals = zoomvals
+
+        if self.zoom is not None:
+            self.zoom.set_xlim(self.zoomvals[0], self.zoomvals[1])
+            self.zoom.set_ylim(self.zoomvals[2], self.zoomvals[3])
+        else:
+            self.subplot1.set_xlim(self.zoomvals[0], self.zoomvals[1])
+            self.subplot1.set_ylim(self.zoomvals[2], self.zoomvals[3])
+
+        # print("Setting Zoom Vals:", self.zoomvals)
 
     def set_aspect(self, aspect=None):
         if aspect is None:

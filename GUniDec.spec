@@ -41,7 +41,7 @@ hiddenimportslist=['scipy.special._ufuncs_cxx', 'scipy.linalg.cython_blas', 'sci
                  'scipy._lib.messagestream','clr', 'pythonnet',
                  'encodings', 'encodings.__init__',
                  'packaging', 'packaging.version', 'packaging.specifiers',
-                 'pubsub', 'pubsub.core',
+                 'pubsub', 'pubsub.core', 'matplotlib.backends.backend_ps'
              ]
 
 

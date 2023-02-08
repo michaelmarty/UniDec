@@ -6,18 +6,9 @@ import os
 import wx.lib.mixins.inspection
 import wx.html
 import webbrowser
+from unidec.modules.matchtools import file_to_df
 
 
-def file_to_df(path):
-    extension = os.path.splitext(path)[1]
-    if extension == ".csv":
-        df = pd.read_csv(path)
-    elif extension == ".xlsx" or extension == ".xls":
-        df = pd.read_excel(path)
-    else:
-        print('Extension Not Recognized', extension)
-        df = None
-    return df
 
 
 # Taken from https://stackoverflow.com/questions/28509629/
@@ -110,6 +101,7 @@ class MyGrid(wx.grid.Grid):
                                      wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD,
                                              wx.TEXT_ATTR_FONT_UNDERLINE))
                     self.SetReadOnly(row, col, True)
+        self.autoscale_column_width()
 
     def clear_all(self):
         for row in range(self.GetNumberRows()):
@@ -485,6 +477,14 @@ class MyGrid(wx.grid.Grid):
         else:
             event.Skip()
 
+    def autoscale_column_width(self):
+        #self.SetDefaultRenderer(CutomGridCellAutoWrapStringRenderer())
+        self.AutoSizeColumns()
+        for col in range(self.GetNumberCols()):
+            if self.GetColSize(col) > 250:
+                self.SetColSize(col, 250)
+        self.AutoSizeRows()
+
 
 class SpreadsheetPanel:
     def __init__(self, parent, panel, nrows=0, ncolumns=0):
@@ -516,6 +516,42 @@ class SpreadsheetFrame(wx.Frame):
         sizer.Add(self.ss, 1, wx.EXPAND)
         panel.SetSizer(sizer)
         self.Show()
+
+
+from wx.lib import wordwrap
+
+
+class CutomGridCellAutoWrapStringRenderer(wx.grid.GridCellRenderer):
+    def __init__(self):
+        wx.grid.GridCellRenderer.__init__(self)
+
+    def Draw(self, grid, attr, dc, rect, row, col, isSelected):
+        text = grid.GetCellValue(row, col)
+        dc.SetFont(attr.GetFont())
+        text = wordwrap.wordwrap(text, grid.GetColSize(col), dc, breakLongWords=True)
+        hAlign, vAlign = attr.GetAlignment()
+        if isSelected:
+            bg = grid.GetSelectionBackground()
+            fg = grid.GetSelectionForeground()
+        else:
+            bg = attr.GetBackgroundColour()
+            fg = attr.GetTextColour()
+        dc.SetTextBackground(bg)
+        dc.SetTextForeground(fg)
+        dc.SetBrush(wx.Brush(bg, wx.SOLID))
+        dc.SetPen(wx.TRANSPARENT_PEN)
+        dc.DrawRectangle(rect)
+        grid.DrawTextRectangle(dc, text, rect, hAlign, vAlign)
+
+    def GetBestSize(self, grid, attr, dc, row, col):
+        text = grid.GetCellValue(row, col)
+        dc.SetFont(attr.GetFont())
+        text = wordwrap.wordwrap(text, grid.GetColSize(col), dc, breakLongWords=False)
+        w, h, lineHeight = dc.GetMultiLineTextExtent(text)
+        return wx.Size(w, h)
+
+    def Clone(self):
+        return CutomGridCellAutoWrapStringRenderer()
 
 
 '''
@@ -572,7 +608,8 @@ if __name__ == "__main__":
     # app = wx.App()
     app = MyApp(redirect=False)
     frame = app.frame
-    frame.ss.SetCellValue(0, 0, "http://www.google.com")
+    frame.ss.SetCellRenderer(0, 0, CutomGridCellAutoWrapStringRenderer())
+    frame.ss.SetCellValue(0, 0, "http://www.google.com/test/test/test/test")
     frame.ss.SetReadOnly(0, 0)
     # frame = SpreadsheetFrame(12, 8)
     # path = "C:\\Data\\Luis Genentech\\Merged Glycan List.csv"

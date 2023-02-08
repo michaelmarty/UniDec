@@ -1,8 +1,8 @@
-version 5.1.0
+version 6.0.0.b1
 imflag 0
 cdmsflag 0
-input C:\Python\UniDec3\unidec_bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs_input.dat
-output C:\Python\UniDec3\unidec_bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs
+input C:\Python\UniDec3\unidec\bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs_input.dat
+output C:\Python\UniDec3\unidec\bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs
 numit 100
 numz 30
 endz 30

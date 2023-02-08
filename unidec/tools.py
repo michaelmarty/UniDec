@@ -4,12 +4,14 @@ import sys
 import math
 import subprocess
 import time
+import re
 import decimal
 from bisect import bisect_left
 from copy import deepcopy
 import zipfile
 # noinspection PyUnresolvedReferences
 import numpy as np
+import scipy.fft
 import scipy.ndimage.filters as filt
 from scipy.interpolate import interp1d
 from scipy.interpolate import griddata
@@ -50,6 +52,7 @@ protmass = 1.007276467
 oxmass = 15.994914
 
 known_extensions = [".raw", ".d", ".mzml", ".gz", ".mzxml", ".txt", ".csv", ".dat", ".npz"]
+
 
 def get_importer(path):
     if os.path.isfile(path) or os.path.isdir(path):
@@ -822,7 +825,7 @@ def solve_for_mass(mz1, mz2, adductmass=1.007276467):
 # .........................................
 
 
-def header_test(path, deletechars=None):
+def header_test(path, deletechars=None, delimiter=" |\t"):
     """
     A quick test of a file to remove any problems from the header.
 
@@ -830,6 +833,8 @@ def header_test(path, deletechars=None):
     completely converted to floats. It breaks the loop on the first hit that is entirely floats, so any header lines
     blow that will not be counted.
     :param path: Path of file to be scanned
+    :param deletechars: Characters to be removed from the file before scanning
+    :param delimiter: Delimiter to be used in the file
     :return: Integer length of the number of header lines
     """
     header = 0
@@ -839,7 +844,7 @@ def header_test(path, deletechars=None):
                 if deletechars is not None:
                     for c in deletechars:
                         line = line.replace(c, "")
-                for sin in line.split():
+                for sin in re.split(delimiter, line): #line.split(delimiter):
                     try:
                         float(sin)
                     except ValueError:
@@ -892,6 +897,7 @@ def get_polarity(path, importer=None):
         return polarity
     else:
         return None
+
 
 def load_mz_file(path, config=None, time_range=None, imflag=0):
     """
@@ -2534,6 +2540,21 @@ def fft(data, phases=False):
     if phases:
         phases = np.arctan2(fft.imag, fft.real)
         return aftdat, phases
+
+
+def rfft(data, nmult=1):
+    # X-axis
+    massdif = data[1, 0] - data[0, 0]
+    # fvals = np.fft.fftfreq(len(data), d=massdif)
+    fvals = scipy.fft.rfftfreq(len(data) * nmult, d=massdif)
+    # Y-axis
+    # fft = np.fft.fft(data[:, 1])
+    fft = scipy.fft.rfft(data[:, 1], n=len(data) * nmult)
+    # fft = pyfftw.interfaces.numpy_fft.fft(data[:,1])
+    # Cleanup
+    aftdat = np.transpose([fvals, np.abs(fft)])
+    aftdat[:, 1] /= np.amax(aftdat[:, 1])
+    return aftdat
 
 
 def fft_diff(data, diffrange=None):

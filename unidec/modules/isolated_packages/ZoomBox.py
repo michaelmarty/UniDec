@@ -135,22 +135,23 @@ class ZoomBox(ZoomCommon):
         else:
             self.data_lims = data_lims
 
+        self.initialize()
+        #self.zoomout()
+
+    def initialize(self):
         xmin, ymin, xmax, ymax = self.data_lims
         if xmin > xmax: xmin, xmax = xmax, xmin
         if ymin > ymax: ymin, ymax = ymax, ymin
         # assure that x and y values are not equal
         if xmin == xmax: xmax = xmin * 1.0001
         if ymin == ymax: ymax = ymin * 1.0001
-        for axes in self.axes:
-            xspan = xmax - xmin
-            yspan = ymax - ymin
-            if xspan != 0:
-                axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
-            if yspan != 0:
-                axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
-            # print self.data_lims
-
-        self.zoomout()
+        xspan = xmax - xmin
+        yspan = ymax - ymin
+        if xspan != 0:
+            self.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad, draw=False)
+            # print("1")
+        if yspan != 0:
+            self.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad, draw=False)
 
     def set_clipping(self):
         for axes in self.axes:
@@ -246,12 +247,14 @@ class ZoomBox(ZoomCommon):
             if event.button == 1 and self.smash == 1:
                 pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
 
+        xspan = xmax - xmin
+        yspan = ymax - ymin
+        if xmin - xspan * self.pad != xmax + xspan * self.pad:
+            self.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad, draw=False)
+            # print("2")
+        self.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad, draw=False)
+
         for axes in self.axes:
-            xspan = xmax - xmin
-            yspan = ymax - ymin
-            if xmin - xspan * self.pad != xmax + xspan * self.pad:
-                axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
-            axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
             ResetVisible(axes)
         self.kill_labels()
         self.canvas.draw()
@@ -382,11 +385,9 @@ class ZoomBox(ZoomCommon):
                 print(spanx, charge, charge * xmax)
                 return
 
-            for axes in self.axes:
-                axes.set_xlim(xmin, xmax)
-                if spanflag == 1:
-                    xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=xmin, xmax=xmax)
-                axes.set_ylim(ymin, ymax)
+            self.set_xlim(xmin, xmax, draw=False)
+            # print("3")
+            self.set_auto_ylim(xmin, xmax, draw=False)
 
             self.set_clipping()
             self.kill_labels()
@@ -487,6 +488,3 @@ class ZoomBox(ZoomCommon):
 
         self.update()
         return False
-
-
-

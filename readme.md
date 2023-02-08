@@ -199,9 +199,19 @@ Improved command line tools. Added -o option for file output in unidec. Included
 
 Added a new mode to the Oligomer and Mass Tools, Site Mode. Here, you can specify specific binding sites and which potential species could be bound in that site. Any number of rows (species) or columns (sites) can be added as long as your memory can handle the possible combinations. Use 0s and 1s to incidate whether each species can be bound at each site. You can copy/paste from excel or open a CSV or XLSX file. 
 
+Added the first build of the **UniDec Pharma Pipeline** tool to help with batch processing and analysis for large sample sets. More details to come.
+
 Added new experimental HTML report generator. Found in File > Save Figure Presets. Test this out and let me know what you'd like to see in it.
 
 Added a color plot option to the right click of the peak panel. Check it out!
+
+Added FWHM and error to the Copy All Full right click option in the peak panel.
+
+**Changed default behavior for zooming such that it does not zoom out when plots are replotted.** This is a major change that I think will be more intuitive. If you want to zoom out, you can still click once on the plot as usual. 
+
+Removed the ability to manually integrate peaks. Now, only auto integration is allowed. If you want to have this added back in, let me know, but it seemed to be causing more trouble than it was worth.
+
+Various bug fixes including fixing EPS export and bugs on Export2D. Fixed import of tab delimited files. Resized manual file menu. Improved window stretching in oligomer and mass tools.
 
 v.5.2.1
 

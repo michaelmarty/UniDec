@@ -695,6 +695,8 @@ class UniDecApp(UniDecPres):
         """
         # Get Limits
         self.export_config(self.eng.config.confname)
+        self.eng.autointegrate()
+        '''
         limits = self.view.plot2.subplot1.get_xlim()
         olimits = deepcopy(limits)
 
@@ -726,7 +728,7 @@ class UniDecApp(UniDecPres):
                                         np.amax(intdat[:, 1]) + 0.05 * np.amax(self.eng.data.massdat[:, 1]),
                                         range=limits)
                 return 0
-
+        '''
         # Normalize and write
         self.eng.normalize_peaks()
         areas = [[p.mass, p.integral] for p in self.eng.pks.peaks]

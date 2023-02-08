@@ -80,7 +80,8 @@ class Peak:
         if type == "Full":
             outputs = [self.textmarker, self.mass, self.centroid, self.height, self.integral, self.match,
                        self.matcherror, self.label,
-                       self.area, self.diff, self.avgcharge, self.dscore]
+                       self.area, self.diff, self.avgcharge, self.dscore, self.errorFWHM, self.intervalFWHM[0],
+                       self.intervalFWHM[1], self.errormean, self.errorreplicate]
         elif type == "Basic":
             outputs = [self.mass, self.height, self.integral]
         else:
@@ -282,7 +283,7 @@ class Peaks:
     def copy(self, type="Full"):
         if type == "Full":
             outstring = "Symbol\tMass\tCentroid\tHeight\tIntegral\tMatch\tMatcherror\tLabel" \
-                        "\tFit Area\tDiff\tAvgcharge\tDscore\n"
+                        "\tFit Area\tDiff\tAvgcharge\tDscore\tFWHM\tLowValFWHM\tHighValFWHM\tErrorMean\tErrorReplicate\n"
         if type == "Basic":
             outstring = "Mass\tHeight\tIntegral\n"
         #print("Columns:", outstring)

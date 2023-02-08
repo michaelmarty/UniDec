@@ -291,7 +291,7 @@ class ManualSelection(wx.Dialog):
         :return: None
         """
         self.data = data
-        self.SetSize((550 + config.imflag * 50, 650))
+        self.SetSize((700 + config.imflag * 50, 650))
         self.config = config
 
         panel = wx.Panel(self)

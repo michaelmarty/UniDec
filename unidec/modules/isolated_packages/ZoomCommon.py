@@ -211,6 +211,8 @@ class ZoomCommon:
         self.canvas = None
         self.background = None
         self.useblit = True
+        self.xzoom = None
+        self.yzoom = None
 
     def switch_label(self):
         self.lflag = (self.lflag + 1) % 2
@@ -291,18 +293,35 @@ class ZoomCommon:
         """ to get status of active mode (boolean variable)"""
         return self.active
 
-    def set_manual(self, xmin, xmax):
+    def set_xlim(self, xmin, xmax, draw=True):
+        self.xzoom = [xmin, xmax]
         for axes in self.axes:
             axes.set_xlim((xmin, xmax))
-            if True:
-                xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=xmin, xmax=xmax)
-                axes.set_ylim((ymin, ymax))
-        self.canvas.draw()
+        if draw:
+            self.canvas.draw()
 
-    def set_manual_y(self, ymin, ymax):
+    def set_ylim(self, ymin, ymax, draw=True):
+        self.yzoom = [ymin, ymax]
         for axes in self.axes:
             axes.set_ylim((ymin, ymax))
-        self.canvas.draw()
+        if draw:
+            self.canvas.draw()
+
+    def set_auto_ylim(self, xmin, xmax, draw=True):
+        self.xzoom = [xmin, xmax]
+        for axes in self.axes:
+            xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=xmin, xmax=xmax)
+            axes.set_ylim((ymin, ymax))
+            self.yzoom = [ymin, ymax]
+        if draw:
+            self.canvas.draw()
+
+    def set_manual(self, xmin, xmax):
+        self.set_xlim(xmin, xmax, draw=False)
+        self.set_auto_ylim(xmin, xmax, draw=True)
+
+    def set_manual_y(self, ymin, ymax):
+        self.set_ylim(ymin, ymax)
 
     def update_background(self, event):
         """force an update of the background"""

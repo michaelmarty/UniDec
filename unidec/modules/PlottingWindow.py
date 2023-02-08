@@ -64,6 +64,7 @@ class PlottingWindowBase(PlotBase, wx.Window):
         self.canvas.mpl_connect('key_press_event', self.on_key)
         self.canvas.mpl_connect('figure_enter_event', self.mouse_activate)
         self.canvas.mpl_connect('figure_leave_event', self.mouse_inactivate)
+        self.canvas.mpl_connect('draw_event', self.on_draw)
 
     def repaint(self, setupzoom=True):
         """
@@ -75,20 +76,26 @@ class PlottingWindowBase(PlotBase, wx.Window):
                 self.setup_zoom([self.subplot1], self.zoomtype)
             except:
                 pass
-        try:
-            self.zoomout()
-        except:
-            pass
+        else:
+            try:
+                self.zoomout()
+            except:
+                pass
+        if self.zoomvals is not None:
+            self.set_zoomvals()
         self.canvas.draw()
 
     def zoomout(self):
-        self.zoom.zoomout()
+        self.zoom.initialize()
 
     def mouse_activate(self, event):
         self.mouse_active = True
 
     def mouse_inactivate(self, event):
         self.mouse_active = False
+
+    def on_draw(self, event):
+        self.get_zoomvals()
 
     def on_release(self, event):
         """

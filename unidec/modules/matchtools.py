@@ -2,6 +2,19 @@ import pandas as pd
 from unidec.modules.biopolymertools import *
 import time
 from unidec.tools import nearestunsorted
+import os
+
+
+def file_to_df(path):
+    extension = os.path.splitext(path)[1]
+    if extension == ".csv":
+        df = pd.read_csv(path)
+    elif extension == ".xlsx" or extension == ".xls":
+        df = pd.read_excel(path)
+    else:
+        print('Extension Not Recognized', extension)
+        df = None
+    return df
 
 
 def sort_sitematches_by(indexes, masses, probs, type="mass"):
@@ -283,7 +296,8 @@ def UPP_check_peaks(row, pks, tol, moddf=None):
     matches = []
     matchstring = ""
 
-    for i, peakmass in enumerate(peakmasses):
+    for i, p in enumerate(pks.peaks):
+        peakmass = p.mass
         closeindex2D = np.unravel_index(np.argmin(np.abs(pmassgrid - peakmass)), pmassgrid.shape)
         closeindex = closeindex2D[0]
         error = np.argmin(np.abs(pmassgrid - peakmass))
@@ -294,13 +308,16 @@ def UPP_check_peaks(row, pks, tol, moddf=None):
             if "Correct" in plabels[closeindex]:
                 print("Correct", peakmass, label)
                 correctint += peakheights[i]
+                p.color = "green"
             else:
                 print("Incorrect", peakmass, label)
                 incorrectint += peakheights[i]
+                p.color = "red"
         else:
             matches.append("")
             print("Unmatched", peakmass)
             unmatchedint += peakheights[i]
+            p.color = "yellow"
 
     percents = np.array([correctint, incorrectint, unmatchedint]) / totalint * 100
     # print(percents)
