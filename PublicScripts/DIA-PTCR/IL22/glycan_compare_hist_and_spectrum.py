@@ -39,7 +39,7 @@ plt.ylabel("Relative Intensity")
 
 plt.subplot(224)
 plt.plot(histdat[:,0]/1000, histdat[:,1]/np.amax(histdat[:,1]), label="Bottom-Up")
-plt.plot(massdat[:,0]/1000, massdat[:,1]/np.amax(massdat[:,1]), label="UNIGLAMS")
+plt.plot(massdat[:,0]/1000, massdat[:,1]/np.amax(massdat[:,1]), label="DIA-PTCR")
 plt.xlim(90,120)
 plt.xlabel("Mass (Da")
 
