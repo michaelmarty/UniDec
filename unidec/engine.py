@@ -558,9 +558,10 @@ class UniDec(UniDecEngine):
         Convolve Peaks with Peak Shape
         :return: None
         """
-        if self.config.imflag == 1:
+        if self.config.imflag == 1 or self.config.cdmsflag == 1:
             convdata = ud.makeconvspecies(self.data.data2, self.pks, self.config)
         else:
+            # TODO: There's no reason this shouldn't work for CD-MS data, but we'd need to include a write to _grid.bin
             ud.unidec_call(self.config, conv=True)
 
             convdata = np.fromfile(self.config.outfname + "_conv.bin", dtype=self.config.dtype)
@@ -702,7 +703,6 @@ class UniDec(UniDecEngine):
         outgrid -= np.amin(outgrid)
         outgrid /= np.amax(outgrid)
         return oaxis, outgrid
-
 
     def autointegrate(self, ztab=None):
         """

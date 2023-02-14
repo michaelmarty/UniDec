@@ -4,7 +4,8 @@ from matplotlib.patches import Rectangle
 from pubsub import pub
 from unidec.modules.isolated_packages.ZoomCommon import *
 
-class NoZoomSpan:
+
+class NoZoomSpan(ZoomCommon):
     """
     Expansion of matplotlib embed in wx example by John Bender and Edward
     Abraham, see https://www.scipy.org/Matplotlib_figure_in_a_wx_panel
@@ -58,6 +59,9 @@ class NoZoomSpan:
 
 
         """
+        # Call to super
+        super(NoZoomSpan, self).__init__()
+
         if rectprops is None:
             rectprops = dict(facecolor='yellow', alpha=0.2)
 
@@ -116,7 +120,7 @@ class NoZoomSpan:
 
     def ignore(self, event):
         """return True if event should be ignored"""
-        return event.inaxes not in self.axes or not self.visible # or event.button != 1
+        return event.inaxes not in self.axes or not self.visible  # or event.button != 1
 
     def press(self, event):
         """on button press event"""
@@ -177,8 +181,8 @@ class NoZoomSpan:
                 # axes.set_xlim((self.pressv, event.xdata))
                 axes.set_xlim((vmin, vmax))
                 # Autoscale Y
-                #xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=vmin, xmax=vmax)
-                #axes.set_ylim((ymin, ymax))
+                # xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=vmin, xmax=vmax)
+                # axes.set_ylim((ymin, ymax))
             self.canvas.draw()
 
         self.pressv = None

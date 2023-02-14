@@ -77,6 +77,15 @@ class MainwindowBase(wx.Frame):
         self.SetAcceleratorTable(wx.AcceleratorTable(tab))
         pass
 
+    def reset_zoom(self, e=None):
+        """
+        Reset zoom on all plots.
+        :param e: wx Event
+        :return: None
+        """
+        for plot in self.plots:
+            plot.reset_zoom()
+
     def import_config_to_gui(self):
         self.controls.import_config_to_gui()
 
@@ -135,6 +144,7 @@ class MainwindowBase(wx.Frame):
                 plot.clear_plot()
             except AttributeError:
                 pass
+        self.reset_zoom()
 
     def clear_plots(self, flag=0):
         self.clear_all_plots(flag)

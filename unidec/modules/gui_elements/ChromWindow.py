@@ -221,6 +221,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.plot7.clear_plot()
         self.plot3.clear_plot()
         self.plot5.clear_plot()
+        self.reset_zoom()
 
     def export_gui_to_config(self):
         self.controls.export_gui_to_config()

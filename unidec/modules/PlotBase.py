@@ -105,8 +105,15 @@ class PlotBase(object):
         pass
 
     def get_zoomvals(self):
-        if self.zoom is not None and self.zoom.xzoom is not None and self.zoom.yzoom is not None:
-            self.zoomvals = [self.zoom.xzoom[0], self.zoom.xzoom[1], self.zoom.yzoom[0], self.zoom.yzoom[1]]
+        if self.zoom is not None:
+            try:
+                self.zoomvals = [self.zoom.xzoom[0], self.zoom.xzoom[1], self.zoom.yzoom[0], self.zoom.yzoom[1]]
+            except Exception:
+                try:
+                    xmin, ymin, xmax, ymax = GetMaxes(self.subplot1)
+                    self.zoomvals = [xmin, xmax, ymin, ymax]
+                except Exception:
+                    self.zoomvals = None
         else:
             try:
                 xmin, ymin, xmax, ymax = GetMaxes(self.subplot1)
@@ -114,6 +121,9 @@ class PlotBase(object):
             except Exception:
                 self.zoomvals = None
         # print("Getting Zoom Vals:", self.zoomvals)
+
+    def reset_zoom(self):
+        self.zoomvals = None
 
     def set_zoomvals(self, zoomvals=None):
         if zoomvals is not None:
@@ -315,6 +325,7 @@ class PlotBase(object):
         self.lines = []
         self.kda = False
         self.kdnorm = 1.
+        #self.zoomvals = None
         if "nopaint" not in args:
             self.repaint()
 

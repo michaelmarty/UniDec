@@ -362,6 +362,7 @@ class Extract2DPlot(wx.Frame):
         else:
             newdir = self.directory
 
+
         try:
             self.plot2.contourplot(dat, self.config, xlab="mass 1", ylab="mass 2", title="Total Extraction", normflag=0,
                                    normrange=[np.amin(grid), np.amax(grid)])

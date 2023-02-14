@@ -385,7 +385,7 @@ class MetaUniDecBase(UniDecPres):
         :return:
         """
         self.view.SetStatusText("Running UniDec...", number=5)
-        self.view.clear_plots()
+        # self.view.clear_plots()
         tstart = time.perf_counter()
         self.export_config()
         self.check_badness()

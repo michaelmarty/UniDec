@@ -15,6 +15,9 @@ import unidec.tools as ud
 Module for window defining the oligomers, the expected masses, and for matching peaks to the defined oligomers.
 '''
 
+white_text = wx.Colour(250, 250, 250)
+black_text = wx.Colour(0, 0, 0)
+
 
 class MassListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
     def __init__(self, parent, panel, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.LC_REPORT,
@@ -356,9 +359,21 @@ class MatchListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
         return list_out
 
     def color_item(self, i, color):
-        color = wx.Colour(int(round(color[0] * 255)), int(round(color[1] * 255)),
-                          int(round(color[2] * 255)), alpha=255)
+        # Adjust background color
+        try:
+            color = wx.Colour(int(round(color[0] * 255)), int(round(color[1] * 255)),
+                              int(round(color[2] * 255)), alpha=255)
+        except Exception:
+            color = wx.Colour(255, 255, 255, alpha=255)
         self.SetItemBackgroundColour(i, col=color)
+
+        # Adjust Text Color
+        luminance = ud.get_luminance(color, type=2)
+        # print(wx.Colour(colout), luminance)
+        if luminance < ud.luminance_cutoff:
+            self.SetItemTextColour(i, col=white_text)
+        else:
+            self.SetItemTextColour(i, col=black_text)
 
     def on_view_alt(self, e=None):
         item = self.GetFirstSelected()
@@ -1065,8 +1080,14 @@ class MassSelection(wx.Dialog):
                 absdiff = np.abs(self.diffs)
                 min = np.amin(absdiff)
                 max = np.amax(absdiff)  # self.tolerance
-                r = np.sqrt(np.abs(np.abs(self.diffs[i]) - min) / (max - min))
-                color = [r, 1, r]
+                if max != min:
+                    try:
+                        r = np.sqrt(np.abs(np.abs(self.diffs[i]) - min) / (max - min))
+                    except Exception:
+                        r = 1
+                else:
+                    r = 1
+                color = [r, r, 1]
                 self.matchlistbox.color_item(i, color)
 
             self.matchlistbox.mode = 1
@@ -1078,6 +1099,12 @@ class MassSelection(wx.Dialog):
             self.matchlist[1][self.peakindex] = selected_match
             self.matchlist[2][self.peakindex] = selected_diff
             self.matchlist[3][self.peakindex] = selected_name
+
+            for p in self.pks.peaks:
+                if p.mass == self.peakmass:
+                    p.label = selected_name
+                    p.match = selected_match
+                    p.matcherror = selected_diff
 
             self.matchlistbox.populate(self.matchlist[0], self.matchlist[1], self.matchlist[2], self.matchlist[3])
 

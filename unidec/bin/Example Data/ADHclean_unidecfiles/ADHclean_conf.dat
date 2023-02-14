@@ -1,8 +1,8 @@
-version 5.2.0
+version 6.0.0.b1
 imflag 0
 cdmsflag 0
-input C:\Python\UniDec3\unidec_bin\Example Data\ADHclean_unidecfiles\ADHclean_input.dat
-output C:\Python\UniDec3\unidec_bin\Example Data\ADHclean_unidecfiles\ADHclean
+input C:\Python\UniDec3\unidec\bin\Example Data\ADHclean_unidecfiles\ADHclean_input.dat
+output C:\Python\UniDec3\unidec\bin\Example Data\ADHclean_unidecfiles\ADHclean
 numit 50
 numz 30
 endz 30
@@ -20,8 +20,8 @@ msig 0.0
 molig 0.0
 massbins 1.0
 mtabsig 0.0
-minmz 2525.2093874254124
-maxmz 6974.711734333711
+minmz 5018.643629228079
+maxmz 6915.490403041921
 subbuff 0.0
 subtype 2
 smooth 0.0
@@ -56,7 +56,7 @@ integrateub 20000.0
 filterwidth 20.0
 zerolog -12.0
 doubledec 0
-kernel 
+kernel C:\Python\UniDec3\unidec\bin\Example Data\BSA_unidecfiles\BSA_mass.txt
 CDslope 12.5
 CDzbins 1.0
 CDres 1.0

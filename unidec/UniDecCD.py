@@ -209,7 +209,7 @@ class UniDecCDApp(UniDecApp):
 
     def on_unidec_button(self, e=None):
         self.view.SetStatusText("Deconvolving", number=5)
-        self.view.clear_all_plots()
+        # self.view.clear_all_plots()
         self.export_config(self.eng.config.confname)
         self.eng.run_deconvolution()
         self.makeplot1()

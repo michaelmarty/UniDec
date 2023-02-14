@@ -114,6 +114,9 @@ def commonprefix(args):
     return os.path.commonprefix(args).rpartition(sep)[0]
 
 
+luminance_cutoff = 135
+
+
 def get_luminance(color, type=2):
     try:
         r = color.Red()
@@ -844,7 +847,7 @@ def header_test(path, deletechars=None, delimiter=" |\t"):
                 if deletechars is not None:
                     for c in deletechars:
                         line = line.replace(c, "")
-                for sin in re.split(delimiter, line): #line.split(delimiter):
+                for sin in re.split(delimiter, line):  # line.split(delimiter):
                     try:
                         float(sin)
                     except ValueError:
@@ -2153,6 +2156,7 @@ def combine(array2):
 
 
 def index_to_oname(index, startindex, names):
+    #print(index, startindex, names)
     name = ""
     for i in range(0, len(index)):
         val = index[i] + startindex[i]
@@ -2227,9 +2231,9 @@ def make_isolated_match(oligos):
             newmass = float(oligos[i][0]) + j * float(oligos[i][1])
             if newmass > 0:
                 oligomasslist.append(newmass)
-                index = np.zeros(len(oligos))
+                index = np.zeros(len(oligos)).astype(int)
                 index[i] = j
-                oligonames.append(index)
+                oligonames.append(index-start)
                 '''
                 if j > 0 or oligos[i][4] == "":
                     if oligos[i][4] == "":

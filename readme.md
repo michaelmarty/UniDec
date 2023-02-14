@@ -211,7 +211,7 @@ Added FWHM and error to the Copy All Full right click option in the peak panel.
 
 Removed the ability to manually integrate peaks. Now, only auto integration is allowed. If you want to have this added back in, let me know, but it seemed to be causing more trouble than it was worth.
 
-Various bug fixes including fixing EPS export and bugs on Export2D. Fixed import of tab delimited files. Resized manual file menu. Improved window stretching in oligomer and mass tools.
+Various bug fixes including fixing EPS export and bugs on Export2D. Fixed import of tab delimited files. Resized manual file menu. Improved window stretching in oligomer and mass tools. Broken plot peaks on UniDecCD. Bug on selecting alternative matches not propagating. Updated background color to blue on alternative matches to avoid confusion with RYG scheme. Fixed labeling bug with isolated match names. 
 
 v.5.2.1
 

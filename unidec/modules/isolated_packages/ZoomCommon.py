@@ -296,14 +296,17 @@ class ZoomCommon:
     def set_xlim(self, xmin, xmax, draw=True):
         self.xzoom = [xmin, xmax]
         for axes in self.axes:
-            axes.set_xlim((xmin, xmax))
+            if xmin != xmax:
+                axes.set_xlim((xmin, xmax))
         if draw:
             self.canvas.draw()
 
     def set_ylim(self, ymin, ymax, draw=True):
         self.yzoom = [ymin, ymax]
         for axes in self.axes:
-            axes.set_ylim((ymin, ymax))
+            if ymin != ymax:
+                axes.set_ylim((ymin, ymax))
+            set_clipping(axes)
         if draw:
             self.canvas.draw()
 
@@ -313,6 +316,7 @@ class ZoomCommon:
             xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=xmin, xmax=xmax)
             axes.set_ylim((ymin, ymax))
             self.yzoom = [ymin, ymax]
+            set_clipping(axes)
         if draw:
             self.canvas.draw()
 
