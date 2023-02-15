@@ -106,13 +106,13 @@ def wrap_to_grid(inputlist, outfile=None):
     return grid_str
 
 
-def array_to_html(array, outfile=None, cols=None, rows=None, colors=None):
+def array_to_html(array, outfile=None, cols=None, rows=None, colors=None, index=True):
     df = pd.DataFrame(array, columns=cols, index=rows)
-    return df_to_html(df, outfile, colors=colors)
+    return df_to_html(df, outfile, colors=colors, index=index)
 
 
-def df_to_html(df, outfile=None, colors=None):
-    html_str = df.to_html()
+def df_to_html(df, outfile=None, colors=None, index=True):
+    html_str = df.to_html(index=index)
     if colors is not None:
         for i, color in enumerate(colors):
             hexcolor = matplotlib.colors.to_hex(color)

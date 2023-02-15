@@ -216,6 +216,16 @@ def string_to_int(s, default=False):
         return default
 
 
+def strip_char_from_string(s, char):
+    """
+    Strip a character from a string
+    :param s: String
+    :param char: Character to strip
+    :return: String without character
+    """
+    return s.replace(char, "")
+
+
 def decimal_formatter(a, template):
     dec = decimal.Decimal(str(template).rstrip("0"))
     dec2 = dec.as_tuple().exponent

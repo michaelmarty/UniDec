@@ -232,7 +232,7 @@ def calc_seqmasses(row):
 
 def calc_pairs(row):
     """
-    For use with UniDec Pharma Pipeline
+    For use with UniDec Processing Pipeline
     Calculate the potential pairs from a row.
     :param row: Row from a df with Sequence N in the column heading designating the sequence. Seq N + Seq M will look for a pair.
     :return: Masses of pairs, labels of potential pairs
