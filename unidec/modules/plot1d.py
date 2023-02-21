@@ -438,11 +438,13 @@ class Plot1dBase(PlotBase):
                         data_lims=[np.amin(xvals), np.amin(yvals), np.max(xvals), np.amax(yvals)])
 
         if not nopaint:
-            self.repaint()
+            self.repaint(setupzoom=False)
+
         self.flag = True
         self.mlist = []
         self.x1, self.x2 = None, None
         self.colors = []
+
 
     def scatterplottop(self, xarr, yarr, color=None, xlabel="", ylabel="", title="", zoom="box", repaint=True):
         """

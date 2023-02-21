@@ -235,6 +235,7 @@ def calc_twave_dt_power(mass, z, ccs, config):
 def calc_linear_dt(mass, z, ccs, config):
     """
     Calculate drift time in a linear cell
+
     :param mass: Mass in Da
     :param z: Charge
     :param ccs: CCS in Angstrom^2

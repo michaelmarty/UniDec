@@ -39,7 +39,7 @@ probs_cutoff=1
 # Brute force calculate all possible combinations of glycans in the list
 indexes, masses, probs, glycans = get_sitematch_list(gdf, sites=sites, probs_cutoff=probs_cutoff)
 
-
+'''
 # Plot Histogram
 binsize = 20
 bins = np.arange(np.amin(masses)+protmass, np.amax(masses)+protmass, binsize)
@@ -48,7 +48,7 @@ histdat = np.transpose([edges[0:-1]+binsize/2., hist])
 np.savetxt(gfile[:-4]+"TheoreticalMassBruteForceHistdat"+str(probs_cutoff)+".txt", histdat)
 plt.hist(masses + protmass, bins=bins)
 plt.savefig(gfile[:-4]+"TheoreticalMassBruteForce"+str(probs_cutoff)+".pdf")
-plt.show()
+plt.show()'''
 
 
 # Open the output file

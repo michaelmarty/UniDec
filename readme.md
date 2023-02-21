@@ -199,7 +199,7 @@ Improved command line tools. Added -o option for file output in unidec. Included
 
 Added a new mode to the Oligomer and Mass Tools, Site Mode. Here, you can specify specific binding sites and which potential species could be bound in that site. Any number of rows (species) or columns (sites) can be added as long as your memory can handle the possible combinations. Use 0s and 1s to incidate whether each species can be bound at each site. You can copy/paste from excel or open a CSV or XLSX file. 
 
-Added the first build of the **UniDec Pharma Pipeline** tool to help with batch processing and analysis for large sample sets. More details to come.
+Added the first build of the **UniDec Processing Pipeline** tool to help with batch processing and analysis for large sample sets. More details to come.
 
 Added new experimental HTML report generator. Found in File > Save Figure Presets. Test this out and let me know what you'd like to see in it.
 

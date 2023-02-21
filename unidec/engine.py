@@ -92,10 +92,8 @@ class UniDec(UniDecEngine):
 
         If silent=True is passed in **kwargs, prints are suppressed.
 
-        :param file_name: Name of file to open. May be in  x y or x y z text format or in mzML format.
-                May be tab or space delimited
-        :param file_directory: Directory in which filename is located. Default is current directory.
-        If None, will get from file_name.
+        :param: file_name: Name of file to open. May be in  x y or x y z text format or in mzML format. May be tab or space delimited
+        :param file_directory: Directory in which filename is located. Default is current directory. If None, will get from file_name.
         :param time_range: Array or tuple of (start, end) times to load from data file. Default is to load all.
         :param refresh: If True, will refresh the data file even if it already exists.
         :param load_results: If True, will load the results from the _unidecfiles directory.
@@ -622,7 +620,8 @@ class UniDec(UniDecEngine):
         Performs autocorrelation on mass data. Result is stored as self.data.autocorr.
         Picks peaks greater than 0 using peak detection parameters in config file.
         Peaks are stored as a peak structure at self.autopeaks
-        :param massdat: Data on which to run autocorrelation. Default is None, in which case self.data.massdat is used.
+
+        :param: massdat Data on which to run autocorrelation. Default is None, in which case self.data.massdat is used.
         :return: float. First peak in autocorrelation.
         """
         if massdat is None:

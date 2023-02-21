@@ -1,6 +1,7 @@
 import os
 import wx
 from unidec import tools as ud
+import unidec.modules.isolated_packages.spreadsheet as ss
 
 __author__ = 'Michael.Marty'
 
@@ -611,3 +612,5 @@ class FileNameDialog(wx.Dialog):
         """
         self.Destroy()
         self.EndModal(1)
+
+

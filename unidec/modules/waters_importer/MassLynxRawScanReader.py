@@ -138,6 +138,44 @@ class MassLynxRawScanReader(MassLynxRawReader):
 
         return masses, intensities
 
+    '''
+    def CombineDriftScan(self, whichFunction, scans):
+        # create the retrun values
+        size = c_int(0)
+        pMasses = c_void_p()
+        pIntensities = c_void_p()
+
+        #Create the input data
+        nScans = len(scans)
+        pScans = (c_int * len(scans))(*scans)
+
+        self.processor = MassLynxRawProcessor(self)
+        # read create the function and arguments
+        combineScan = MassLynxRawReader.massLynxDll.combineScan
+        combineScan.argtypes = [c_void_p, c_int, POINTER(c_int), c_int]
+        # run combinescan and check errors
+        out = combineScan(self.processor._getProcessor(), whichFunction, pScans, nScans)
+        self.processor._codeHandler.CheckReturnCode(out)
+
+        # Get scan from the combined
+        getScan = MassLynxRawReader.massLynxDll.getDriftTime
+        getScan.argtypes = [c_void_p, POINTER(c_void_p), POINTER(c_void_p), POINTER(c_int)]
+        out3 = getScan(self.processor._getProcessor(), pMasses, pIntensities, size)
+        self.processor._codeHandler.CheckReturnCode(out3)
+
+        # fill the array
+        pM = cast(pMasses, POINTER(c_float))
+        pI = cast(pIntensities, POINTER(c_float))
+
+        masses = pM[0:size.value]
+        intensities = pI[0:size.value]
+
+        # dealocate memory
+        # MassLynxRawReader.ReleaseMemory( pMasses)
+        # MassLynxRawReader.ReleaseMemory( pIntensities)
+
+        return masses, intensities
+    '''
     #def readDaughterScan( self, whichFunction, whichScan ):
     #    try:
     #        size = self.getScanSize( whichFunction,whichScan )

@@ -908,7 +908,7 @@ class MassDefectWindow(wx.Frame):
 
 # Main App Execution
 if __name__ == "__main__":
-    dir = "/TestSpectra/60_unidecfiles"
+    dir = "..\\..\\TestSpectra\\60_unidecfiles"
     file = "60_mass.txt"
     # file = "60_input.dat"
 
@@ -916,7 +916,7 @@ if __name__ == "__main__":
 
     data = np.loadtxt(path)
 
-    dir = "/TestSpectra/180_unidecfiles"
+    dir = "..\\..\\TestSpectra\\180_unidecfiles"
     file = "180_mass.txt"
 
     path = os.path.join(dir, file)
