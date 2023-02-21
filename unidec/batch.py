@@ -27,13 +27,19 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
             ["Mod File", False, "The File Name or Path of the Mod File. "
                                 "Can be either Excel or CSV. The file should have \"Mass\" and \"Name\" "
                                 "columns with these exact headers. If not specified, no modifications will be used."],
+            ["Favored Match", False, "If there are several possible matches within tolerance, which to select. "
+                                     "Default is \"Closest\" for the closest absolute mass. Also accepts \"Incorrect\" "
+                                     "to select an incorrect mass within the tolerance even if a correct mass is "
+                                     "closesr. Other keywords like \"Ignore\" and \"Correct\" can be used to select "
+                                     "specific types of matches over others."],
             ["Sequence {n}", True, "The amino acid sequence or mass for the {n}th protein. Can be multiple sequences, "
                                    "each as their own columns. If it can convert to float, it will. "
                                    "If not, it will assume it is an amino acid sequence with 1 letter codes."],
             ["Correct", True, "The Correct Pairing. This should be a list of the correct pairs, "
                               "listed as Seq1+Seq2, for example."],
-            ["Ignore", True, "Known species that can be ignored. This should be similar to the list of correct pairs, "
-                             "listed as Seq1+Seq2, for example. Can be Seq5 if you want to just ignore Seq5."],
+            ["Ignore", False, "Known species that can be ignored. This should be similar to the list of correct pairs, "
+                              "listed as Seq1+Seq2, for example. Can be Seq5 if you want to just ignore Seq5. "
+                              "Note, mods will also be applied to this."],
             ["{any other keywords}", True, "Incorrect Pairings. This should be a list of the incorrect pairs, "
                                            "listed as Seq2+Seq2, for example. "
                                            "The column header can be anything as long as \"Seq\" is in the cell."]

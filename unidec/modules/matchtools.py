@@ -5,6 +5,7 @@ from unidec.tools import nearestunsorted
 import os
 import math
 
+
 def file_to_df(path):
     extension = os.path.splitext(path)[1]
     if extension == ".csv":
@@ -291,14 +292,19 @@ def calc_pairs(row):
                 pmasses.append(float(seq))
                 labels.append(k)
 
-    return pmasses, labels
+    return np.array(pmasses), np.array(labels)
 
 
-def UPP_check_peaks(row, pks, tol, moddf=None):
+def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
     # Get Peak Masses and Heights
     peakmasses = pks.masses
     peakheights = [p.height for p in pks.peaks]
     # seqs, seqmasses, seqlabels = calc_seqmasses(row)
+
+    # Get the favored match
+    if "Favored Match" in row.keys():
+        favor = row["Favored Match"]
+        print("Favoring:", favor)
 
     # Calculate the potential pairs
     pmasses, plabels = calc_pairs(row)
@@ -314,7 +320,7 @@ def UPP_check_peaks(row, pks, tol, moddf=None):
         modlabels = [""]
     # Create a grid of all possible combinations of peak masses and mod masses
     pmassgrid = np.array([modmasses + p for p in pmasses])
-
+    # TODO: Allow a flag to turn off mods to ignore.
 
     # Set up the arrays to store the results
     correctint = 0
@@ -330,10 +336,38 @@ def UPP_check_peaks(row, pks, tol, moddf=None):
         error = np.amin(np.abs(pmassgrid - peakmass))
         # If something is within the tolerance, add it to the list
         if error < tol:
-            closeindex2D = np.unravel_index(np.argmin(np.abs(pmassgrid - peakmass)), pmassgrid.shape)
+            # If the goal is to favor the closest, find the closest match and use that
+            if favor == "Closest":
+                closeindex2D = np.unravel_index(np.argmin(np.abs(pmassgrid - peakmass)), pmassgrid.shape)
+            else:
+                # Otherwise, if there is a single match, use that
+                abserr = np.abs(pmassgrid - peakmass)
+                b1 = abserr < tol
+                if np.sum(b1) == 1:
+                    closeindex2D = np.unravel_index(np.argmin(np.abs(pmassgrid - peakmass)), pmassgrid.shape)
+                else:
+                    # If there are more than one matches, find all possible matches within the tolerance
+                    true_indexes = np.argwhere(b1)
+                    errors = abserr[b1]
+                    labels = plabels[true_indexes[:, 0]]
+
+                    # If there are any matches with labels that match the favored, use those
+                    if favor == "Incorrect":
+                        favored_indexes = np.array(
+                            ["Correct" not in label and "Ignore" not in label for label in labels])
+                    else:
+                        favored_indexes = np.array([favor in label for label in labels])
+
+                    if np.sum(favored_indexes) > 0:
+                        # Select the closet match from the favored matches
+                        true_indexes = true_indexes[favored_indexes]
+                        errors = errors[favored_indexes]
+                        closeindex2D = true_indexes[np.argmin(errors)]
+                    else:
+                        # Otherwise, default back to the closest match
+                        closeindex2D = np.unravel_index(np.argmin(np.abs(pmassgrid - peakmass)), pmassgrid.shape)
 
             closeindex = closeindex2D[0]
-
             label = plabels[closeindex] + "+" + modlabels[closeindex2D[1]]
 
             matches.append(label)
