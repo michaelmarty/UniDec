@@ -5,6 +5,7 @@ import os
 import numpy as np
 import time
 import webbrowser
+import sys
 
 basic_parameters = [["Sample name", True, "The File Name or Path. File extensions are optional."],
                     ["Data Directory", False, "The directory of the data files. If you do not specify this, "
@@ -255,6 +256,11 @@ if __name__ == "__main__":
     # batch.run_df(df)
     # batch.open_all_html()
     batch = UniDecBatchProcessor()
-    path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
-    batch.run_file(path, decon=True, use_converted=True)
-    batch.open_all_html()
+    if len(sys.argv) > 1:
+        batch.run_file(sys.argv[1], decon=True, use_converted=True)
+        batch.open_all_html()
+    else:
+        path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
+        batch.run_file(path, decon=False, use_converted=True)
+        batch.open_all_html()
+        pass
