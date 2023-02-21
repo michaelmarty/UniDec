@@ -3,7 +3,7 @@ from unidec.modules.biopolymertools import *
 import time
 from unidec.tools import nearestunsorted
 import os
-
+import math
 
 def file_to_df(path):
     extension = os.path.splitext(path)[1]
@@ -228,6 +228,8 @@ def calc_seqmasses(row):
                 masses.append(mass)
                 labels.append(k)
             elif type(seq) is float or type(seq) is int:
+                if math.isnan(seq):
+                    seq = 0
                 seqs.append("")
                 masses.append(float(seq))
                 labels.append(k)
@@ -269,7 +271,10 @@ def calc_pairs(row):
                         mass = calc_pep_mass(seq)
                         masses.append(mass)
                     if type(seq) is float or type(seq) is int:
+                        if math.isnan(seq):
+                            seq = 0
                         masses.append(float(seq))
+
         pmass = np.sum(masses)
         pmasses.append(pmass)
 
@@ -281,8 +286,11 @@ def calc_pairs(row):
                 pmasses.append(mass)
                 labels.append(k)
             if type(seq) is float or type(seq) is int:
+                if math.isnan(seq):
+                    seq = 0
                 pmasses.append(float(seq))
                 labels.append(k)
+
     return pmasses, labels
 
 
@@ -306,7 +314,7 @@ def UPP_check_peaks(row, pks, tol, moddf=None):
         modlabels = [""]
     # Create a grid of all possible combinations of peak masses and mod masses
     pmassgrid = np.array([modmasses + p for p in pmasses])
-    # print(pmassgrid)
+
 
     # Set up the arrays to store the results
     correctint = 0

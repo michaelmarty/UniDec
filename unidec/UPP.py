@@ -290,7 +290,7 @@ if __name__ == "__main__":
     app = wx.App()
     frame = UPPApp()
     frame.usedeconbox.SetValue(False)
-    path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
+    path = "C:\\Data\\Wilson_Genentech\\sequences_short2.xlsx"
 
     # frame.on_help_page()
     # exit()

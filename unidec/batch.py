@@ -115,25 +115,8 @@ class UniDecBatchProcessor(object):
         self.rundf = file_to_df(file)
         self.run_df(decon=decon, use_converted=use_converted)
 
-    def get_file_path(self, row, use_converted=True):
-        # Read the file name
-        file = row["Sample name"]
-        try:
-            file = strip_char_from_string(file, "\"")
-        except Exception as e:
-            print("Error stripping file name", file, e)
-
-        # Look for the data directory
-        if "Data Directory" in row:
-            data_dir = row["Data Directory"]
-            if os.path.isdir(data_dir):
-                self.data_dir = data_dir
-        # Find the file
-        path = find_file(file, self.data_dir, use_converted)
-
-        return path
-
     def run_df(self, df=None, decon=True, use_converted=True):
+
         # Print the data directory and start the clock
         print("Data Directory:", self.data_dir)
         clockstart = time.perf_counter()
@@ -224,6 +207,24 @@ class UniDecBatchProcessor(object):
             if os.path.isfile(row["Reports"]):
                 webbrowser.open(row["Reports"])
 
+    def get_file_path(self, row, use_converted=True):
+        # Read the file name
+        file = row["Sample name"]
+        try:
+            file = strip_char_from_string(file, "\"")
+        except Exception as e:
+            print("Error stripping file name", file, e)
+
+        # Look for the data directory
+        if "Data Directory" in row:
+            data_dir = row["Data Directory"]
+            if os.path.isdir(data_dir):
+                self.data_dir = data_dir
+        # Find the file
+        outpath = find_file(file, self.data_dir, use_converted)
+
+        return outpath
+
     def run_correct_pair(self, row, pks=None):
         if pks is None:
             pks = self.eng.pks
@@ -260,7 +261,7 @@ if __name__ == "__main__":
         batch.run_file(sys.argv[1], decon=True, use_converted=True)
         batch.open_all_html()
     else:
-        path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
+        path = "C:\\Data\\Wilson_Genentech\\sequences_short2.xlsx"
         batch.run_file(path, decon=False, use_converted=True)
         batch.open_all_html()
         pass

@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 aa_masses = {'A': 71.0788, 'C': 103.1388, 'D': 115.0886, 'E': 129.1155, 'F': 147.1766,
              'G': 57.0519, 'H': 137.1411, 'I': 113.1594, 'K': 128.1741, 'L': 113.1594,
@@ -53,7 +54,7 @@ def get_dna_mass(letter):
 
 def calc_pep_mass(sequence, allow_float=True, remove_nan=True):
     if remove_nan:
-        if sequence == "nan":
+        if sequence.lower() == "nan":
             return 0.0
 
     if allow_float:
