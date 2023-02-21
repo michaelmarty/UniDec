@@ -66,11 +66,16 @@ class PlottingWindowBase(PlotBase, wx.Window):
         self.canvas.mpl_connect('figure_leave_event', self.mouse_inactivate)
         self.canvas.mpl_connect('draw_event', self.on_draw)
 
-    def repaint(self, setupzoom=True):
+    def repaint(self, setupzoom=True, resetzoom=False):
         """
         Redraw and refresh the plot.
+        :param setupzoom: Boolean, whether to setup zooming
+        :param resetzoom: Boolean, whether to reset zooming
         :return: None
         """
+        if resetzoom:
+            self.reset_zoom()
+
         if setupzoom:
             try:
                 self.setup_zoom([self.subplot1], self.zoomtype)

@@ -808,7 +808,8 @@ class UniDecApp(UniDecPres):
             for p in self.eng.pks.peaks:
                 if p.ignore == 0:
                     self.view.plot2.plotadddot(p.mass, p.height, p.color, p.marker)
-        self.view.plot2.repaint()
+        self.view.plot2.repaint(resetzoom=True)
+
         self.makeplot4(0)
         self.makeplot6(0)
         cavg, cstd = ud.center_of_mass(cdat)

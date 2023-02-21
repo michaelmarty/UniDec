@@ -1,20 +1,20 @@
-version 5.1.1
+version 6.0.0.b2
 imflag 0
 cdmsflag 0
-input C:\Python\UniDec3\unidec_bin\Example Data\ADH_unidecfiles\ADH_input.dat
-output C:\Python\UniDec3\unidec_bin\Example Data\ADH_unidecfiles\ADH
+input C:\Python\UniDec3\unidec\bin\Example Data\ADH_unidecfiles\ADH_input.dat
+output C:\Python\UniDec3\unidec\bin\Example Data\ADH_unidecfiles\ADH
 numit 100
-numz 40
-endz 40
+numz 30
+endz 30
 startz 1
 zzsig 1.0
-psig 0.0
-beta 0.0
+psig 1.0
+beta 50.0
 mzsig 10.0
 psfun 0
 zpsfun 0
 discreteplot 0
-massub 500000.0
+massub 200000.0
 masslb 5000.0
 msig 0.0
 molig 0.0
@@ -22,10 +22,10 @@ massbins 10.0
 mtabsig 0.0
 minmz 989.9406399034492
 maxmz 20213.597994866224
-subbuff 0.0
-subtype 3
+subbuff 100.0
+subtype 2
 smooth 0.0
-mzbins 0.0
+mzbins 10.0
 peakwindow 500.0
 peakthresh 0.1
 peakplotthresh 0.1

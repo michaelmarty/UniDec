@@ -85,7 +85,10 @@ class PlotBase(object):
         self.canvas = None
         self.is2d = False
 
-    def repaint(self, setupzoom=False):
+    def repaint(self, setupzoom=False, resetzoom=False):
+        if resetzoom:
+            self.reset_zoom()
+
         if setupzoom:
             self.setup_zoom()
         try:
