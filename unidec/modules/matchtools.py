@@ -227,6 +227,10 @@ def calc_seqmasses(row):
                 mass = calc_pep_mass(seq)
                 masses.append(mass)
                 labels.append(k)
+            elif type(seq) is float or type(seq) is int:
+                seqs.append("")
+                masses.append(float(seq))
+                labels.append(k)
     return np.array(seqs), np.array(masses), np.array(labels)
 
 
@@ -239,6 +243,7 @@ def calc_pairs(row):
     """
     labels = []
     pairs = []
+    # Loop through the rows and look for Seq in the cell
     for i, item in enumerate(row):
         if type(item) is str:
             if "Seq" in item:
@@ -250,6 +255,8 @@ def calc_pairs(row):
                 pairing = np.array(pairing.split("+"))
                 pairing = pairing.astype(int)
                 pairs.append(pairing)
+
+    # Loop through the pairs and calculate their masses
     pmasses = []
     for i, pair in enumerate(pairs):
         masses = []
@@ -261,6 +268,8 @@ def calc_pairs(row):
                     if type(seq) is str:
                         mass = calc_pep_mass(seq)
                         masses.append(mass)
+                    if type(seq) is float or type(seq) is int:
+                        masses.append(float(seq))
         pmass = np.sum(masses)
         pmasses.append(pmass)
 
@@ -271,54 +280,79 @@ def calc_pairs(row):
                 mass = calc_pep_mass(seq)
                 pmasses.append(mass)
                 labels.append(k)
+            if type(seq) is float or type(seq) is int:
+                pmasses.append(float(seq))
+                labels.append(k)
     return pmasses, labels
 
 
 def UPP_check_peaks(row, pks, tol, moddf=None):
+    # Get Peak Masses and Heights
     peakmasses = pks.masses
     peakheights = [p.height for p in pks.peaks]
     # seqs, seqmasses, seqlabels = calc_seqmasses(row)
+
+    # Calculate the potential pairs
     pmasses, plabels = calc_pairs(row)
     # print(peakmasses)
     print(np.transpose([pmasses, plabels]))
+
+    # Set up the mod masses and labaels
     if moddf is not None:
         modmasses = moddf["Mass"].to_numpy()
         modlabels = moddf["Name"].to_numpy()
     else:
         modmasses = [0]
         modlabels = [""]
+    # Create a grid of all possible combinations of peak masses and mod masses
     pmassgrid = np.array([modmasses + p for p in pmasses])
+    # print(pmassgrid)
 
+    # Set up the arrays to store the results
     correctint = 0
     incorrectint = 0
     unmatchedint = 0
     totalint = np.sum(peakheights)
     matches = []
     matchstring = ""
-
+    # Loop through the peaks and find the closest match
     for i, p in enumerate(pks.peaks):
+        # Find the minimum error
         peakmass = p.mass
-        closeindex2D = np.unravel_index(np.argmin(np.abs(pmassgrid - peakmass)), pmassgrid.shape)
-        closeindex = closeindex2D[0]
-        error = np.argmin(np.abs(pmassgrid - peakmass))
-        label = plabels[closeindex] + "+" + modlabels[closeindex2D[1]]
+        error = np.amin(np.abs(pmassgrid - peakmass))
+        # If something is within the tolerance, add it to the list
         if error < tol:
+            closeindex2D = np.unravel_index(np.argmin(np.abs(pmassgrid - peakmass)), pmassgrid.shape)
+
+            closeindex = closeindex2D[0]
+
+            label = plabels[closeindex] + "+" + modlabels[closeindex2D[1]]
+
             matches.append(label)
             matchstring += " " + label
             if "Correct" in plabels[closeindex]:
-                print("Correct", peakmass, label)
+                # print("Correct", peakmass, label)
                 correctint += peakheights[i]
-                p.color = "green"
-            else:
-                print("Incorrect", peakmass, label)
-                incorrectint += peakheights[i]
-                p.color = "red"
-        else:
-            matches.append("")
-            print("Unmatched", peakmass)
-            unmatchedint += peakheights[i]
-            p.color = "yellow"
+                p.color = [0, 1, 0]  # Green
 
+            elif "Ignore" in plabels[closeindex]:
+                # print("Ignore", peakmass, label)
+                p.color = [0, 0, 1]  # Blue
+                totalint -= peakheights[i]  # Remove this from the total intensity
+
+            else:
+                # print("Incorrect", peakmass, label)
+                incorrectint += peakheights[i]
+                p.color = [1, 0, 0]  # Red
+        else:
+            label = "Unknown"
+            matches.append("")
+            # print("Unmatched", peakmass)
+            unmatchedint += peakheights[i]
+            p.color = [1, 1, 0]  # Yellow
+        p.label = label
+
+    # Calculate the percentages
     percents = np.array([correctint, incorrectint, unmatchedint]) / totalint * 100
     # print(percents)
     if correctint + incorrectint > 0:

@@ -51,9 +51,21 @@ def get_dna_mass(letter):
         return 0
 
 
-def calc_pep_mass(sequence):
-    seq = sequence.upper()
-    mass = np.sum([get_aa_mass(s) for s in seq]) + mass_water
+def calc_pep_mass(sequence, allow_float=True, remove_nan=True):
+    if remove_nan:
+        if sequence == "nan":
+            return 0.0
+
+    if allow_float:
+        try:
+            mass = float(sequence)
+        except Exception as exception:
+            seq = sequence.upper()
+            mass = np.sum([get_aa_mass(s) for s in seq]) + mass_water
+    else:
+        seq = sequence.upper()
+        mass = np.sum([get_aa_mass(s) for s in seq]) + mass_water
+    # print(sequence, mass)
     return np.round(mass, 2)
 
 

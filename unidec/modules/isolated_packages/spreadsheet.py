@@ -362,6 +362,16 @@ class MyGrid(wx.grid.Grid):
             for col in range(start_col, end_col + 1):
                 yield [row, col]
 
+    def get_selected_rows(self):
+        # returns a list of selected rows
+        selection = self.get_selection()
+        if not selection:
+            return
+
+        start_row, start_col, end_row, end_col = selection
+        for row in range(start_row, end_row + 1):
+            yield row
+
     def copy(self, event):
         """
         Copies range of selected cells to clipboard.

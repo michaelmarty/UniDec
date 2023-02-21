@@ -4,6 +4,7 @@ from unidec.modules.isolated_packages.spreadsheet import *
 from unidec.batch import UniDecBatchProcessor as BPEngine
 from unidec.batch import *
 from unidec.modules.html_writer import *
+from unidec.GUniDec import UniDecApp
 
 
 class HelpDlg(wx.Frame):
@@ -186,6 +187,11 @@ class UPPApp(wx.Frame):
         hsizer.Add(self.usedeconbox, 0, wx.EXPAND)
         self.usedeconbox.SetValue(self.use_decon)
 
+        # Insert a button for Run in UniDec and bind to function
+        btn = wx.Button(panel, label="Run in UniDec")
+        btn.Bind(wx.EVT_BUTTON, self.on_open_unidec)
+        hsizer.Add(btn, 0)
+
         sizer.Add(hsizer, 0, wx.ALL | wx.EXPAND)
 
         self.ss = SpreadsheetPanel(self, panel, nrows, ncolumns).ss
@@ -249,8 +255,27 @@ class UPPApp(wx.Frame):
         print("Open All HTML Reports button pressed")
         self.bpeng.open_all_html()
 
+    def on_open_unidec(self, event):
+        ssdf = self.ss.get_df()
+        self.bpeng.rundf = ssdf
+        selected_rows = list(self.ss.get_selected_rows())
+        print(selected_rows)
+        row = self.bpeng.rundf.iloc[selected_rows[0]]
+        self.open_unidec(row)
+
     def open_unidec(self, row):
         print("Opening in UniDec:", row)
+        filepath = self.bpeng.get_file_path(row)
+        if filepath is not None:
+            print("Launching UniDec:")
+            app = UniDecApp(path=filepath)
+            app.eng.unidec_imports(efficiency=False)
+            app.after_unidec_run()
+            app.on_pick_peaks()
+            if self.bpeng.correct_pair_mode:
+                self.bpeng.run_correct_pair(row, app.eng.pks)
+                app.after_pick_peaks()
+            app.start()
 
     def on_help_page(self, event=None):
         print("Help button pressed")
@@ -267,9 +292,9 @@ if __name__ == "__main__":
     frame.usedeconbox.SetValue(False)
     path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
 
-    frame.on_help_page()
+    # frame.on_help_page()
     # exit()
-    if False:
+    if True:
         frame.load_file(path)
         # frame.set_dir_tet_box("C:\\Data\\Wilson_Genentech\\Data")
         # print(df)

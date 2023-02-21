@@ -450,13 +450,16 @@ class UniDecApp(UniDecPres):
         self.eng.pick_peaks()
         self.view.SetStatusText("Plotting Peaks", number=5)
         if self.eng.config.batchflag == 0:
-            self.view.peakpanel.add_data(self.eng.pks)
-            self.makeplot2(1)
-            self.makeplot6(1)
-            self.makeplot4(1)
+            self.after_pick_peaks()
         self.view.SetStatusText("Peak Pick Done", number=5)
         self.on_score()
         pass
+
+    def after_pick_peaks(self):
+        self.view.peakpanel.add_data(self.eng.pks)
+        self.makeplot2(1)
+        self.makeplot6(1)
+        self.makeplot4(1)
 
     def on_plot_peaks(self, e=None):
         """
