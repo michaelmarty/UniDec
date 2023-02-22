@@ -32,6 +32,8 @@ except Exception as e:
 
 # import FileDialog  # Needed for pyinstaller
 
+
+
 __author__ = 'Michael.Marty'
 
 
@@ -1660,4 +1662,8 @@ class UniDecApp(UniDecPres):
 if __name__ == '__main__':
     multiprocessing.freeze_support()
     app = UniDecApp()
+    #import wx.lib.inspection
+    #wx.lib.inspection.InspectionTool().Show()
     app.start()
+
+

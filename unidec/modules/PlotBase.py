@@ -63,6 +63,7 @@ class PlotBase(object):
         self.subplot1 = None
         self.zoom = None
         self.resize = 1
+        self.resizeflag = False
         self.flag = False
         self.kda = False
         self.kdnorm = 1.
@@ -328,7 +329,7 @@ class PlotBase(object):
         self.lines = []
         self.kda = False
         self.kdnorm = 1.
-        #self.zoomvals = None
+        # self.zoomvals = None
         if "nopaint" not in args:
             self.repaint()
 

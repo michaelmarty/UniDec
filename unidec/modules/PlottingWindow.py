@@ -23,7 +23,7 @@ from unidec.modules.plot2d import Plot2dBase
 interactive(True)
 
 
-class PlottingWindowBase(PlotBase, wx.Window):
+class PlottingWindowBase(PlotBase, wx.Panel):
     """
     Class for wx window with embedded matplotlib plots
     Inherits from PlotBase, which is the core functions stripped of everything interactive
@@ -57,14 +57,27 @@ class PlottingWindowBase(PlotBase, wx.Window):
         else:
             self.smash = 0
 
+        if "parent" in kwargs:
+            self.parent = kwargs["parent"]
+            del kwargs["parent"]
+        else:
+            self.parent = None
+
         wx.Window.__init__(self, *args)
         self.Bind(wx.EVT_SIZE, self.size_handler)
+        # self.Bind(wx.EVT_IDLE, self.on_idle)
         self.canvas = FigureCanvasWxAgg(self, -1, self.figure)
         self.canvas.mpl_connect('button_release_event', self.on_release)
         self.canvas.mpl_connect('key_press_event', self.on_key)
         self.canvas.mpl_connect('figure_enter_event', self.mouse_activate)
         self.canvas.mpl_connect('figure_leave_event', self.mouse_inactivate)
         self.canvas.mpl_connect('draw_event', self.on_draw)
+
+        #self.sizer = wx.BoxSizer(wx.VERTICAL)
+        #self.sizer.Add(self.canvas, 1, wx.EXPAND)
+        #self.SetSizer(self.sizer)
+        #self.Show()
+        #self.Layout()
 
     def repaint(self, setupzoom=True, resetzoom=False):
         """
@@ -196,15 +209,78 @@ class PlottingWindowBase(PlotBase, wx.Window):
         if path is not None:
             self.save_figure(path, **kwargs)
 
-    def size_handler(self, *args, **kwargs):
+    def size_handler(self, event, *args, **kwargs):
         """
         Resizes the plots
         :param args:
         :param kwargs:
         :return: None
         """
+        # print("Size Handler")
+        #event.Skip()
+        #wx.CallAfter(self.on_size, event)
         if self.resize == 1:
             self.canvas.SetSize(self.GetSize())
+
+    def on_size(self, event):
+        """
+        Resizes the plots
+        :param event: wx.Event
+        :return: None
+        """
+        if self.resize == 1:
+            self.resizeflag = True
+
+    def on_idle(self, event):
+        """
+        Function triggered on idle event from plot.
+        :param event: wx.Event
+        :return: None
+        """
+        if self.resizeflag:
+            # print(self.GetSize())
+            # print(self.GetClientSize())
+            if self.parent is not None:
+                pass
+                '''
+                print("Client Size:", self.parent.GetClientSize())
+                print("Parent Size:", self.parent.GetSize())
+                psize = self.parent.GetClientSize()
+                sizer = self.parent.GetSizer()
+                cellsize = sizer.GetCellSize(0, 0)
+                print("Cell Size:", cellsize)
+
+                halfcolumn = [psize[0] / 2, psize[1] / 2]
+                if cellsize[0] != 0:
+                    newcellsize = (cellsize[0] * halfcolumn[0] / cellsize[0], cellsize[1] * halfcolumn[0] / cellsize[0])
+                    print(newcellsize)
+                    # self.canvas.resize(*newcellsize)
+                    # self.canvas.SetSize(newcellsize)
+                    # self.canvas.SetMinSize(newcellsize)
+                    self.set_resize(newcellsize)'''
+
+            # self.canvas.SetMinSize(self.GetSize())
+            # self.SetMinSize(self.GetSize())
+
+            # self.SetSize(self.GetSize())
+            # self.canvas.SetClientSize(self.GetSize())
+            # self.canvas.SetMinClientSize(self.GetSize())
+            # print(self.GetClientSize())
+            # self.canvas.resize(self.GetSize())
+            # self.canvas.draw()
+            # self.SetClientSize(self.GetSize())
+            self.resizeflag = False
+
+    def set_resize(self, newsize):
+        self.SetSize(newsize)
+        #self.canvas.Destroy()
+        #self.canvas = FigureCanvasWxAgg(self, -1, self.figure)
+        self.canvas.SetSize(newsize)
+        self.figure.set_size_inches(float(newsize[0]) / self.figure.get_dpi(),
+                                    float(newsize[1]) / self.figure.get_dpi())
+        self.canvas.draw()
+        self.Layout()
+        self.Refresh()
 
     def copy_to_clipboard(self, *args, **kwargs):
         obj = tempfile.NamedTemporaryFile(delete=False)

@@ -439,9 +439,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox3b = wx.GridBagSizer(wx.VERTICAL)
 
         i = 0
-        self.ctlnorm = wx.RadioBox(panel3b, label="Peak Normalization", choices=["None", "Max", "Total"])
-        gbox3b.Add(self.ctlnorm, (i, 0), span=(1, 2), flag=wx.EXPAND)
-        i += 1
 
         self.ctl2dcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
 
@@ -467,6 +464,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved/Profile", "Raw/Centroid"])
         gbox3b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+
+        self.ctlnorm = wx.RadioBox(panel3b, label="Peak Normalization", choices=["None", "Max", "Total"])
+        gbox3b.Add(self.ctlnorm, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
         self.ctlthresh2 = wx.TextCtrl(panel3b, value="", size=size1)

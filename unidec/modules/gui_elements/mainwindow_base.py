@@ -31,6 +31,7 @@ class MainwindowBase(wx.Frame):
         self.plots = []
         self.plotnames = []
         self.meta = False
+        self.resizeflag = False
 
         self.version = self.pres.eng.version
 
@@ -57,6 +58,31 @@ class MainwindowBase(wx.Frame):
         self.system = platform.system()
         self.displaysize = wx.GetDisplaySize()
         pub.subscribe(self.on_motion, 'newxy')
+
+        # Bind to resize event
+        #self.Bind(wx.EVT_SIZE, self.onResize)
+
+        # Bind on Idle
+        #self.Bind(wx.EVT_IDLE, self.onIdle)
+        pass
+
+    def onIdle(self, event):
+        """
+        On Idle, check if a resize has occured
+        """
+        if self.resizeflag:
+            self.resizeflag = False
+            self.resize()
+
+    def onResize(self, event):
+        """
+        On resize, replot the data
+        """
+        # print("Resize")
+        self.resizeflag = True
+
+    def resize(self):
+        pass
 
     def launch(self):
         self.Centre()

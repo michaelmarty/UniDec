@@ -170,7 +170,7 @@ class main_menu(wx.Menu):
 
         self.menuchargeplot = self.analysismenu.Append(wx.ID_ANY, "Plot By Charge",
                                                        "Plots Mass Distributions as a Function of Charge")
-        self.menuoffset = self.analysismenu.Append(wx.ID_ANY, "Plot Charge Offsets\tCtrl+F",
+        self.menuoffset = self.analysismenu.Append(wx.ID_ANY, "Plot Charge Offsets",
                                                    "Plots Mass vs. Charge Offset in 2D Plot")
         self.maxcharge = self.analysismenu.Append(wx.ID_ANY, "Label Max Charge States",
                                                   "Labels the maximum charge state in each distribution")

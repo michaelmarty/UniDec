@@ -178,6 +178,15 @@ def html_title(outtitle, outfile=None):
 
 # Function to create HTML collapsible from text
 def to_html_collapsible(text, title="Click to expand", canopen=True, outfile=None, htmltext=False):
+    """
+    Create HTML collapsible from text.
+    :param text: Text to be displayed in collapsible
+    :param title: Title of collapsible
+    :param canopen: Whether collapsible can be opened or not
+    :param outfile: File output
+    :param htmltext:
+    :return:
+    """
     # CSS styling
     style = ET.Element('style')
     style.text = ".collapsible {background-color: #0C234B; color: #e8a219; cursor: pointer; " \

@@ -69,7 +69,7 @@ class Mainwindow(MainwindowBase):
                 #["C", self.pres.on_plot_composite, self.controls.compositebutton],
                 ["N", self.pres.on_replot, self.controls.replotbutton],
                 ["H", self.pres.on_gen_html_report, self.menu.menuSaveFigureHTML],
-                ["F", self.pres.on_plot_offsets, self.menu.menuoffset],  # ["Z", self.pres.on_charge_plot],
+                #["F", self.pres.on_plot_offsets, self.menu.menuoffset],  # ["Z", self.pres.on_charge_plot],
                 ["L", self.pres.on_load_everything, self.menu.menuLoadEverything],
                 ["S", self.pres.on_save_state, self.menu.menuSaveState],
                 ["B", self.pres.on_batch, self.menu.menuBatch],
@@ -98,17 +98,16 @@ class Mainwindow(MainwindowBase):
         # Sizers to develop layout
         # s1 = (min(self.displaysize[0], 1851), self.displaysize[1])
         # s2 = (550, self.displaysize[1])
-        splitterwindow = wx.SplitterWindow(self, -1, style=wx.SP_3D | wx.SP_BORDER)
-        splitterwindow2 = wx.SplitterWindow(splitterwindow, -1, style=wx.SP_3D | wx.SP_BORDER)
+        self.splitterwindow = wx.SplitterWindow(self, -1, style=wx.SP_3D | wx.SP_BORDER)
+        splitterwindow2 = wx.SplitterWindow(self.splitterwindow, -1, style=wx.SP_3D | wx.SP_BORDER)
+        self.splitterwindow.SetSashGravity(0)
+        splitterwindow2.SetSashGravity(0.5)
         panelp = wx.Panel(splitterwindow2, -1)
         panel = scrolled.ScrolledPanel(splitterwindow2, -1)  # wx.Panel(splitterwindow2, -1)
         splitterwindow2.SplitVertically(panelp, panel, sashPosition=-270 - self.config.imflag * 20)
-        splitterwindow2.SetMinimumPaneSize(270)
-        splitterwindow.SetMinimumPaneSize(250)
-        # splitterwindow.SetMinSize((0,0))
-        # splitterwindow2.SetMinSize((0,0))
+
         file_drop_target = MyFileDropTarget(self)
-        splitterwindow.SetDropTarget(file_drop_target)
+        self.splitterwindow.SetDropTarget(file_drop_target)
         # .................................
         #
         #    Layout the Plots
@@ -118,8 +117,8 @@ class Mainwindow(MainwindowBase):
         # Tabbed view of plots
         if self.tabbed == 1:
             figsize = self.config.figsize
-            plotwindow = wx.Notebook(splitterwindow)
-            splitterwindow.SplitVertically(plotwindow, splitterwindow2, sashPosition=-550)
+            plotwindow = wx.Notebook(self.splitterwindow)
+            self.splitterwindow.SplitVertically(plotwindow, splitterwindow2, sashPosition=-550)
             tab1 = wx.Panel(plotwindow)
             tab2 = wx.Panel(plotwindow)
             tab3 = wx.Panel(plotwindow)
@@ -190,16 +189,16 @@ class Mainwindow(MainwindowBase):
         # Scrolled panel view of plots
         else:
             # TODO: Line up plots on left hand side so that they share an m/z axis
-            plotwindow = scrolled.ScrolledPanel(splitterwindow)
-            splitterwindow.SplitVertically(plotwindow, splitterwindow2, sashPosition=-550)
-            sizerplot = wx.GridBagSizer()
+            plotwindow = scrolled.ScrolledPanel(self.splitterwindow)
+            self.splitterwindow.SplitVertically(plotwindow, splitterwindow2, sashPosition=-550)
+            self.sizerplot = wx.GridBagSizer()
             figsize = self.config.figsize
-            self.plot1 = PlottingWindow.Plot1d(plotwindow, smash=1, figsize=figsize)
-            self.plot2 = PlottingWindow.Plot1d(plotwindow, integrate=1, figsize=figsize)
-            self.plot3 = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
-            self.plot4 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
-            self.plot5 = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
-            self.plot6 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
+            self.plot1 = PlottingWindow.Plot1d(plotwindow, smash=1, figsize=figsize, parent=plotwindow)
+            self.plot2 = PlottingWindow.Plot1d(plotwindow, integrate=1, figsize=figsize, parent=plotwindow)
+            self.plot3 = PlottingWindow.Plot2d(plotwindow, figsize=figsize, parent=plotwindow)
+            self.plot4 = PlottingWindow.Plot1d(plotwindow, figsize=figsize, parent=plotwindow)
+            self.plot5 = PlottingWindow.Plot2d(plotwindow, figsize=figsize, parent=plotwindow)
+            self.plot6 = PlottingWindow.Plot1d(plotwindow, figsize=figsize, parent=plotwindow)
 
             if self.config.imflag == 1:
                 self.plot1im = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
@@ -212,34 +211,34 @@ class Mainwindow(MainwindowBase):
                 self.plot10 = plot3d.CubePlot(plotwindow, figsize=figsize)
 
             if self.config.imflag == 0:
-                sizerplot.Add(self.plot1, (0, 0), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot2, (0, 1), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot3, (1, 0), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot4, (1, 1), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot5, (2, 0), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot6, (2, 1), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot1, (0, 0), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot2, (0, 1), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot3, (1, 0), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot4, (1, 1), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot5, (2, 0), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot6, (2, 1), span=(1, 1), flag=wx.EXPAND)
             else:
-                sizerplot.Add(self.plot1, (0, 0), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot1im, (0, 1), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot1fit, (1, 1), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot3color, (1, 0), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot2, (2, 0), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot2ccs, (3, 0), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot3, (2, 1), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot4, (4, 0), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot5, (3, 1), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot5mccs, (4, 1), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot5ccsz, (5, 1), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot6, (5, 0), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot9, (6, 0), span=(1, 1), flag=wx.EXPAND)
-                sizerplot.Add(self.plot10, (6, 1), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot1, (0, 0), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot1im, (0, 1), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot1fit, (1, 1), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot3color, (1, 0), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot2, (2, 0), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot2ccs, (3, 0), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot3, (2, 1), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot4, (4, 0), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot5, (3, 1), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot5mccs, (4, 1), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot5ccsz, (5, 1), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot6, (5, 0), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot9, (6, 0), span=(1, 1), flag=wx.EXPAND)
+                self.sizerplot.Add(self.plot10, (6, 1), span=(1, 1), flag=wx.EXPAND)
 
             # plotwindow.SetScrollbars(1, 1,1,1)
             if self.system == "Linux":
-                plotwindow.SetSizer(sizerplot)
-                sizerplot.Fit(self)
+                plotwindow.SetSizer(self.sizerplot)
+                self.sizerplot.Fit(self)
             else:
-                plotwindow.SetSizerAndFit(sizerplot)
+                plotwindow.SetSizerAndFit(self.sizerplot)
             plotwindow.SetupScrolling()
             plotwindow.SetFocus()
             plotwindow.Bind(wx.EVT_SET_FOCUS, self.onFocus)
@@ -277,16 +276,41 @@ class Mainwindow(MainwindowBase):
         panel.SetSizer(sizercontrols)
         sizercontrols.Fit(self)
 
+        splitterwindow2.SetMinimumPaneSize(20)
+        self.splitterwindow.SetMinimumPaneSize(20)
+        # self.splitterwindow.SetMinSize((0,0))
+        # splitterwindow2.SetMinSize((0,0))
+
         if self.system == "Linux" and self.tabbed != 1:
-            sizerplot.Fit(splitterwindow)
+            self.sizerplot.Fit(self.splitterwindow)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(splitterwindow, 1, wx.EXPAND)
+        sizer.Add(self.splitterwindow, 0, wx.EXPAND)
 
         # Set everything up
         self.SetSizer(sizer)
         sizer.Fit(self)
+
+        self.Layout()
+
+    def resize(self):
+        '''
+        self.plotpanel.SetSize(self.splitterwindow.GetSize())
+        self.plotpanel.SetMinSize(self.splitterwindow.GetSize())
+        self.plotpanel.SetVirtualSize(self.splitterwindow.GetSize())
+        self.plotpanel.SetVirtualSizeWH(*self.splitterwindow.GetSize())
+        #self.plotpanel.SetBestVirtualSize(self.splitterwindow.GetSize())
+        #self.sizerplot.SetMinSize(self.splitterwindow.GetSize())
+
+        self.plotpanel.SetSizer(self.sizerplot)
+        self.sizerplot.FitInside(self.splitterwindow)
+        self.sizerplot.RepositionChildren(wx.Size(10, 10))'''
+
+        self.Layout()
+        self.Refresh()
         pass
+
+
 
 
 class MyFileDropTarget(wx.FileDropTarget):
