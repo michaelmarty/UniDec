@@ -239,9 +239,6 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             menu.Append(self.popupID_label_names_select, "Label Select Names")
             menu.Append(self.popupID_label_names_all, "Label All Names")
             menu.AppendSeparator()
-            menu.Append(self.popupID_color_peaks, "Color Select Peaks")
-            menu.Append(self.popupID_color_peaks_all, "Color All Peaks")
-            menu.AppendSeparator()
             menu.Append(self.popupID6, "Display Differences From")
             menu.Append(self.popupID_consecutive_diffs, "Display Consecutive Differences")
             menu.AppendSeparator()
@@ -252,16 +249,20 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             menu.AppendSeparator()
             menu.Append(self.popupID5, "Color Select")
             menu.Append(self.popupID9, "Marker Select")
+            menu.Append(self.popupID15, "Rename Peak")
+            menu.AppendSeparator()
             if not self.meta:
                 menu.Append(self.popupID13, "Color By Score")
             else:
                 menu.AppendSeparator()
                 menu.Append(self.popupID16, "Plot Image")
             menu.AppendSeparator()
+            menu.Append(self.popupID_color_peaks, "Color Select Peaks")
+            menu.Append(self.popupID_color_peaks_all, "Color All Peaks")
+            menu.AppendSeparator()
             menu.Append(self.popupID12, "Copy All Basic")
             menu.Append(self.popupID14, "Copy All Full")
-            menu.AppendSeparator()
-            menu.Append(self.popupID15, "Rename Peak")
+
             self.PopupMenu(menu)
             menu.Destroy()
 
