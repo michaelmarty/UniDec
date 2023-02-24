@@ -303,7 +303,7 @@ class UniDec(UniDecEngine):
             float(self.config.maxmz)
         except ValueError:
             self.config.maxmz = np.amax(self.data.rawdata[:, 0])
-
+        # print("Min MZ: ", self.config.minmz, "Max MZ: ", self.config.maxmz)
         if self.config.imflag == 1:
             try:
                 float(self.config.mindt)

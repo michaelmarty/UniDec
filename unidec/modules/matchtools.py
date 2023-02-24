@@ -368,6 +368,10 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
                         closeindex2D = np.unravel_index(np.argmin(np.abs(pmassgrid - peakmass)), pmassgrid.shape)
 
             closeindex = closeindex2D[0]
+            print(pmassgrid.shape, closeindex2D)
+            p.match = pmassgrid[tuple(closeindex2D)]
+            p.matcherror = peakmass - p.match
+
             label = plabels[closeindex] + "+" + modlabels[closeindex2D[1]]
 
             matches.append(label)
@@ -393,6 +397,7 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
             unmatchedint += peakheights[i]
             p.color = [1, 1, 0]  # Yellow
         p.label = label
+
 
     # Calculate the percentages
     percents = np.array([correctint, incorrectint, unmatchedint]) / totalint * 100

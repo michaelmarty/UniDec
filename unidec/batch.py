@@ -21,7 +21,10 @@ basic_parameters = [["Sample name", True, "The File Name or Path. File extension
 config_parameters = [["Config Peak Thres", False, "Deconvolution Setting: The Peak Detection Threshold"],
                      ["Config Peak Window", False, "Deconvolution Setting: The Peak Detection Window in Da"],
                      ["Config High Mass", False, "Deconvolution Setting: The High Mass Limit in Da"],
-                     ["Config Low Mass", False, "Deconvolution Setting: The Low Mass Limit in Da"]]
+                     ["Config Low Mass", False, "Deconvolution Setting: The Low Mass Limit in Da"],
+                     ["Config High m/z", False, "Deconvolution Setting: The High m/z Limit"],
+                     ["Config Low m/z", False, "Deconvolution Setting: The Low m/z Limit"]
+                     ]
 
 recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if not specified."],
             ["Mod File", False, "The File Name or Path of the Mod File. "
@@ -86,6 +89,18 @@ def set_param_from_row(eng, row):
                 eng.config.massub = float(row[k])
             except Exception as e:
                 print("Error setting high mass", k, row[k], e)
+        if "Config Low m/z" in k or "Config Low mz" in k:
+            try:
+                eng.config.minmz = float(row[k])
+            except Exception as e:
+                print("Error setting low m/z", k, row[k], e)
+        if "Config High m/z" in k or "Config High mz" in k:
+            try:
+                eng.config.maxmz = float(row[k])
+            except Exception as e:
+                print("Error setting high m/z", k, row[k], e)
+
+        #print(eng.config.maxmz, eng.config.minmz, k)
     return eng
 
 
@@ -98,7 +113,13 @@ def get_time_range(row):
     if "End Time" in row:
         endtime = row["End Time"]
     if starttime != 0 or endtime != 1e12:
-        time_range = [starttime, endtime]
+        try:
+            starttime = float(starttime)
+            endtime = float(endtime)
+            time_range = [starttime, endtime]
+        except Exception as e:
+            print("Error setting time range", starttime, endtime, e)
+            time_range = None
     else:
         time_range = None
     return time_range
@@ -121,7 +142,7 @@ class UniDecBatchProcessor(object):
         self.rundf = file_to_df(file)
         self.run_df(decon=decon, use_converted=use_converted)
 
-    def run_df(self, df=None, decon=True, use_converted=True):
+    def run_df(self, df=None, decon=True, use_converted=True, interactive=False):
 
         # Print the data directory and start the clock
         print("Data Directory:", self.data_dir)
@@ -172,7 +193,7 @@ class UniDecBatchProcessor(object):
                     matches.append(matchstring)
 
                 # Generate the HTML report
-                outfile = self.eng.gen_html_report(open_in_browser=False)
+                outfile = self.eng.gen_html_report(open_in_browser=False, interactive=interactive)
                 htmlfiles.append(outfile)
             else:
                 # When files are not found, print the error and add empty results

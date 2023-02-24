@@ -32,6 +32,7 @@ class Peak:
         self.ignore = 0
         self.match = 0
         self.matcherror = 0
+        self.altmatches = []
         self.integral = 0
         self.integralrange = []
         self.mztab = []

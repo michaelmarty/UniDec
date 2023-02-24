@@ -9,8 +9,6 @@ import webbrowser
 from unidec.modules.matchtools import file_to_df
 
 
-
-
 # Taken from https://stackoverflow.com/questions/28509629/
 # work-with-ctrl-c-and-ctrl-v-to-copy-and-paste-into-a-wx-grid-in-wxpython
 class MyGrid(wx.grid.Grid):
@@ -487,8 +485,26 @@ class MyGrid(wx.grid.Grid):
         else:
             event.Skip()
 
+    def save_file(self, filename=None):
+        """
+        Saves the grid to a file.
+        :param filename: filename to save to
+        :return: None
+        """
+        if filename is not None:
+            df = self.get_df()
+            if filename.endswith(".csv"):
+                df.to_csv(filename, index=False)
+            elif filename.endswith(".xlsx"):
+                df.to_excel(filename, index=False)
+            elif filename.endswith(".txt"):
+                df.to_csv(filename, sep="\t", index=False)
+            else:
+                df.to_csv(filename, index=False)
+            print("Saved Spreadsheet to: ", filename)
+
     def autoscale_column_width(self):
-        #self.SetDefaultRenderer(CutomGridCellAutoWrapStringRenderer())
+        # self.SetDefaultRenderer(CutomGridCellAutoWrapStringRenderer())
         self.AutoSizeColumns()
         for col in range(self.GetNumberCols()):
             if self.GetColSize(col) > 250:

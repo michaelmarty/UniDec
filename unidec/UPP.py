@@ -128,12 +128,18 @@ class UPPApp(wx.Frame):
         wx.Frame.__init__(self, parent=None, title=title, size=(1800, 600))
         self.use_decon = True
         self.use_converted = True
+        self.use_interactive = False
         self.bpeng = BPEngine()
 
         menu = wx.Menu()
         # Open File Menu
         open_file_menu_item = menu.Append(wx.ID_ANY, "Open File", "Open a CSV or Excel file")
         self.Bind(wx.EVT_MENU, self.on_load_file, open_file_menu_item)
+        menu.AppendSeparator()
+
+        # Save File Menu
+        save_file_menu_item = menu.Append(wx.ID_ANY, "Save File", "Save a CSV or Excel file")
+        self.Bind(wx.EVT_MENU, self.on_save_file, save_file_menu_item)
 
         help_menu = wx.Menu()
         # Open File Menu
@@ -152,9 +158,9 @@ class UPPApp(wx.Frame):
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
         # Insert a button and bind it with a handler called on_run
-        btn = wx.Button(panel, label="Run")
-        btn.Bind(wx.EVT_BUTTON, self.on_run)
-        hsizer.Add(btn, 0)
+        self.runbtn = wx.Button(panel, label="Run")
+        self.runbtn.Bind(wx.EVT_BUTTON, self.on_run)
+        hsizer.Add(self.runbtn, 0)
 
         # Insert a button for Open All HTML Reports and bind to function
         btn = wx.Button(panel, label="Open All HTML Reports")
@@ -188,9 +194,14 @@ class UPPApp(wx.Frame):
         self.usedeconbox.SetValue(self.use_decon)
 
         # Insert a button for Run in UniDec and bind to function
-        btn = wx.Button(panel, label="Run in UniDec")
+        btn = wx.Button(panel, label="Open in UniDec")
         btn.Bind(wx.EVT_BUTTON, self.on_open_unidec)
         hsizer.Add(btn, 0)
+
+        # Insert a checkbox to select whether to generate interactive HTML reports
+        self.interactivebox = wx.CheckBox(panel, label="Interactive Reports")
+        hsizer.Add(self.interactivebox, 0, wx.EXPAND)
+        self.interactivebox.SetValue(self.use_interactive)
 
         sizer.Add(hsizer, 0, wx.ALL | wx.EXPAND)
 
@@ -202,9 +213,11 @@ class UPPApp(wx.Frame):
 
     def on_run(self, event=None):
         print("Run button pressed")
+        self.runbtn.SetBackgroundColour("red")
         self.get_from_gui()
-        self.bpeng.run_df(decon=self.use_decon, use_converted=self.use_converted)
+        self.bpeng.run_df(decon=self.use_decon, use_converted=self.use_converted, interactive=self.use_interactive)
         self.ss.set_df(self.bpeng.rundf)
+        self.runbtn.SetBackgroundColour("green")
 
     def load_file(self, filename):
         print("Loading File:", filename)
@@ -230,12 +243,30 @@ class UPPApp(wx.Frame):
             pathname = fileDialog.GetPath()
             self.load_file(pathname)
 
+    def on_save_file(self, event):
+        print("Save button pressed")
+        # Create a file dialog
+        with wx.FileDialog(self, "Save CSV or Excel File",
+                           wildcard="CSV or Excel files (*.csv; *.xlsx; *.xls)|*.csv; *.xlsx; *.xls|"
+                                    "CSV files (*.csv)|*.csv|"
+                                    "Excel files (*.xlsx; *.xls)|*.xlsx; *.xls",
+                           style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+            # Show the dialog and retrieve the user response. If it is the OK response,
+            # process the data.
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return
+            # Proceed loading the file chosen by the user
+            pathname = fileDialog.GetPath()
+            self.ss.save_file(pathname)
+
+
     # def set_dir_tet_box(self, dirname):
     #    self.dirtxtbox.SetValue(dirname)
 
     def get_from_gui(self):
         self.use_converted = self.useconvbox.GetValue()
         self.use_decon = self.usedeconbox.GetValue()
+        self.use_interactive = self.interactivebox.GetValue()
 
         # dirname = self.dirtxtbox.GetValue()
         # tol = self.tolbox.GetValue()
