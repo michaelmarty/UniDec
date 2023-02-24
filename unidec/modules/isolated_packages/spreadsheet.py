@@ -7,6 +7,7 @@ import wx.lib.mixins.inspection
 import wx.html
 import webbrowser
 from unidec.modules.matchtools import file_to_df
+import numpy as np
 
 
 # Taken from https://stackoverflow.com/questions/28509629/
@@ -202,9 +203,9 @@ class MyGrid(wx.grid.Grid):
         return
 
     def on_label_right_click(self, event):
-        menus = [(wx.NewId(), "Cut", self.cut),
-                 (wx.NewId(), "Copy", self.copy),
-                 (wx.NewId(), "Paste", self.paste),
+        menus = [(wx.NewIdRef(), "Cut", self.cut),
+                 (wx.NewIdRef(), "Copy", self.copy),
+                 (wx.NewIdRef(), "Paste", self.paste),
                  None]
 
         # Select if right clicked row or column is not in selection
@@ -212,16 +213,18 @@ class MyGrid(wx.grid.Grid):
             if not self.IsInSelection(row=event.GetRow(), col=1):
                 self.SelectRow(event.GetRow())
             self.selected_rows = self.GetSelectedRows()
-            menus += [(wx.NewId(), "Add row", self.add_rows)]
-            menus += [(wx.NewId(), "Delete row", self.delete_rows)]
+            menus += [(wx.NewIdRef(), "Add row", self.add_rows)]
+            menus += [(wx.NewIdRef(), "Delete row", self.delete_rows)]
         elif event.GetCol() > -1:
             if not self.IsInSelection(row=1, col=event.GetCol()):
                 self.SelectCol(event.GetCol())
             self.selected_cols = self.GetSelectedCols()
-            menus += [(wx.NewId(), "Rename column", self.rename_col)]
-            menus += [(wx.NewId(), "Add column", self.add_cols)]
+            menus += [(wx.NewIdRef(), "Rename column", self.rename_col)]
+            menus += [(wx.NewIdRef(), "Add column", self.add_cols)]
             menus += [None]
-            menus += [(wx.NewId(), "Delete column", self.delete_cols)]
+            menus += [(wx.NewIdRef(), "Sort column (toggle up/down)", self.sort_by_selected_column)]
+            menus += [None]
+            menus += [(wx.NewIdRef(), "Delete column", self.delete_cols)]
 
         else:
             return
@@ -369,6 +372,47 @@ class MyGrid(wx.grid.Grid):
         start_row, start_col, end_row, end_col = selection
         for row in range(start_row, end_row + 1):
             yield row
+
+    def sort_by_selected_column(self, event):
+        # sort by selected column
+        selected_columns = self.GetSelectedCols()
+        if not selected_columns:
+            return
+
+        selected_column = selected_columns[0]
+        self.sort_by_column(selected_column)
+
+    def sort_by_column(self, column):
+        # sort by column
+        rows = self.GetNumberRows()
+        if rows < 2:
+            return
+
+        # get column values
+        values = []
+        for row in range(rows):
+            values.append(self.GetCellValue(row, column))
+
+        # sort values
+        try:
+            values = np.array(values).astype(float)
+        except Exception:
+            pass
+        sortindex = np.argsort(values, kind="stable")
+        if np.all(sortindex == np.arange(len(sortindex))):
+            sortindex = sortindex[::-1]
+            print("Already Sorterd. Reversing Sort")
+        #print(sortindex)
+
+        # get df
+        df = self.get_df()
+
+        # sort df
+        df = df.iloc[sortindex]
+
+        # set df
+        self.set_df(df)
+
 
     def copy(self, event):
         """
@@ -634,13 +678,13 @@ if __name__ == "__main__":
     # app = wx.App()
     app = MyApp(redirect=False)
     frame = app.frame
-    frame.ss.SetCellRenderer(0, 0, CutomGridCellAutoWrapStringRenderer())
-    frame.ss.SetCellValue(0, 0, "http://www.google.com/test/test/test/test")
-    frame.ss.SetReadOnly(0, 0)
-    # frame = SpreadsheetFrame(12, 8)
-    # path = "C:\\Data\\Luis Genentech\\Merged Glycan List.csv"
-    # df = pd.read_csv(path)
-    # frame.ss.set_df(df)
+    #frame.ss.SetCellRenderer(0, 0, CutomGridCellAutoWrapStringRenderer())
+    #frame.ss.SetCellValue(0, 0, "http://www.google.com/test/test/test/test")
+    #frame.ss.SetReadOnly(0, 0)
+    #frame = SpreadsheetFrame(12, 8)
+    path = "C:\\Data\\Luis Genentech\\Merged Glycan List.csv"
+    df = pd.read_csv(path)
+    frame.ss.set_df(df)
     # print(df)
 
     app.MainLoop()

@@ -33,6 +33,8 @@ class Peak:
         self.match = 0
         self.matcherror = 0
         self.altmatches = []
+        self.altmatcherrors = []
+        self.numberalts = 0
         self.integral = 0
         self.integralrange = []
         self.mztab = []
@@ -82,14 +84,20 @@ class Peak:
             outputs = [self.textmarker, self.mass, self.centroid, self.height, self.integral, self.match,
                        self.matcherror, self.label,
                        self.area, self.diff, self.avgcharge, self.dscore, self.errorFWHM, self.intervalFWHM[0],
-                       self.intervalFWHM[1], self.errormean, self.errorreplicate]
+                       self.intervalFWHM[1], self.errormean, self.errorreplicate, self.numberalts, self.altmatches]
         elif type == "Basic":
             outputs = [self.mass, self.height, self.integral]
         else:
             outputs = [self.mass, self.height]
         outstring = ""
         for o in outputs:
-            outstring += str(o) + "\t"
+            # Check if o is a list or array
+            if isinstance(o, (list, np.ndarray)):
+                for oo in o:
+                    outstring += str(oo) + " "
+                outstring += "\t"
+            else:
+                outstring += str(o) + "\t"
         return outstring
 
 
@@ -284,10 +292,11 @@ class Peaks:
     def copy(self, type="Full"):
         if type == "Full":
             outstring = "Symbol\tMass\tCentroid\tHeight\tIntegral\tMatch\tMatcherror\tLabel" \
-                        "\tFit Area\tDiff\tAvgcharge\tDscore\tFWHM\tLowValFWHM\tHighValFWHM\tErrorMean\tErrorReplicate\n"
+                        "\tFit Area\tDiff\tAvgcharge\tDscore\tFWHM\tLowValFWHM\tHighValFWHM\tErrorMean\t" \
+                        "ErrorReplicate\tNumMatches\tAltMatches\n"
         if type == "Basic":
             outstring = "Mass\tHeight\tIntegral\n"
-        #print("Columns:", outstring)
+        # print("Columns:", outstring)
 
         for p in self.peaks:
             outstring += p.line_out(type=type) + "\n"
@@ -295,9 +304,10 @@ class Peaks:
 
     def to_df(self, type="Full", drop_zeros=True):
         outstring = self.copy(type=type)
-        #print(outstring)
+        # print(outstring)
         df = pd.read_csv(StringIO(outstring), sep="\t", index_col=False, na_values="")
         df.fillna("", inplace=True)
         if drop_zeros:
             df = df.loc[:, (df != 0).any(axis=0)]
+            df = df.loc[:, (df != -1).any(axis=0)]
         return df

@@ -333,24 +333,33 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
     for i, p in enumerate(pks.peaks):
         # Find the minimum error
         peakmass = p.mass
-        error = np.amin(np.abs(pmassgrid - peakmass))
+        errors = peakmass - pmassgrid
+        abserr = np.abs(errors)
+        minerror = np.amin(abserr)
+
+        # Get the number of matches
+        b1 = abserr < tol
+        # Set some values on peak object
+        p.numberalts = np.sum(b1)
+
+        # If there are more than one matches, find all possible matches within the tolerance
+        true_indexes = np.argwhere(b1)
+        true_errors = abserr[b1]
+        labels = plabels[true_indexes[:, 0]]
+
+        p.altmatches = np.array([plabels[x[0]] + "+" + modlabels[x[1]] for x in true_indexes])
+        p.altmatcherrors = errors[b1]
+
         # If something is within the tolerance, add it to the list
-        if error < tol:
+        if minerror < tol:
             # If the goal is to favor the closest, find the closest match and use that
             if favor == "Closest":
                 closeindex2D = np.unravel_index(np.argmin(np.abs(pmassgrid - peakmass)), pmassgrid.shape)
             else:
                 # Otherwise, if there is a single match, use that
-                abserr = np.abs(pmassgrid - peakmass)
-                b1 = abserr < tol
-                if np.sum(b1) == 1:
+                if p.numberalts == 1:
                     closeindex2D = np.unravel_index(np.argmin(np.abs(pmassgrid - peakmass)), pmassgrid.shape)
                 else:
-                    # If there are more than one matches, find all possible matches within the tolerance
-                    true_indexes = np.argwhere(b1)
-                    errors = abserr[b1]
-                    labels = plabels[true_indexes[:, 0]]
-
                     # If there are any matches with labels that match the favored, use those
                     if favor == "Incorrect":
                         favored_indexes = np.array(
@@ -361,18 +370,22 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
                     if np.sum(favored_indexes) > 0:
                         # Select the closet match from the favored matches
                         true_indexes = true_indexes[favored_indexes]
-                        errors = errors[favored_indexes]
-                        closeindex2D = true_indexes[np.argmin(errors)]
+                        true_errors = true_errors[favored_indexes]
+                        closeindex2D = true_indexes[np.argmin(true_errors)]
                     else:
                         # Otherwise, default back to the closest match
                         closeindex2D = np.unravel_index(np.argmin(np.abs(pmassgrid - peakmass)), pmassgrid.shape)
 
             closeindex = closeindex2D[0]
-            print(pmassgrid.shape, closeindex2D)
+            # print(pmassgrid.shape, closeindex2D)
             p.match = pmassgrid[tuple(closeindex2D)]
             p.matcherror = peakmass - p.match
 
             label = plabels[closeindex] + "+" + modlabels[closeindex2D[1]]
+
+            # Remove label from altmatches
+            if len(p.altmatches) > 0:
+                p.altmatches = np.delete(p.altmatches, np.argwhere(p.altmatches == label))
 
             matches.append(label)
             matchstring += " " + label
@@ -396,8 +409,9 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
             # print("Unmatched", peakmass)
             unmatchedint += peakheights[i]
             p.color = [1, 1, 0]  # Yellow
+            p.match = 0
+            p.matcherror = 0
         p.label = label
-
 
     # Calculate the percentages
     percents = np.array([correctint, incorrectint, unmatchedint]) / totalint * 100
