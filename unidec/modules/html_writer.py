@@ -1,8 +1,8 @@
-# import mpld3
+import mpld3
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.colors
-import plotly.tools as tls
+# import plotly.tools as tls
 # from xml.etree import ElementTree as ET
 import numpy as np
 import lxml.etree as ET
@@ -24,12 +24,11 @@ def write_to_html(html_str, outfile, mode="a"):
     html_file.close()
 
 
-'''
-def fig_to_html(fig, outfile):
+def fig_to_html_mpld3(fig, outfile):
     html_str = mpld3.fig_to_html(fig, no_extras=True)
-    write_to_html(html_str, outfile)'''
+    write_to_html(html_str, outfile)
 
-
+'''
 def fig_to_html_plotly(fig, outfile=None):
     xlabel = fig.gca().get_xlabel()
     ylabel = fig.gca().get_ylabel()
@@ -74,7 +73,7 @@ def fig_to_html_plotly(fig, outfile=None):
     html_str = plotly_fig.to_html(full_html=False)
     if outfile is not None:
         write_to_html(html_str, outfile)
-    return html_str
+    return html_str'''
 
 
 def wrap_to_grid(inputlist, outfile=None):

@@ -666,7 +666,7 @@ class UniDecEngine:
         if interactive:
             for f in figure_list:
                 try:
-                    fig_to_html_plotly(f, outfile)
+                    fig_to_html_mpld3(f, outfile)
                 except Exception:
                     pass
 

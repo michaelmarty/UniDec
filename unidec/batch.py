@@ -147,10 +147,10 @@ class UniDecBatchProcessor(object):
         self.correct_pair_mode = False
         self.time_range = None
 
-    def run_file(self, file=None, decon=True, use_converted=True):
+    def run_file(self, file=None, decon=True, use_converted=True, interactive=False):
         self.top_dir = os.path.dirname(file)
         self.rundf = file_to_df(file)
-        self.run_df(decon=decon, use_converted=use_converted)
+        self.run_df(decon=decon, use_converted=use_converted, interactive=interactive)
 
     def run_df(self, df=None, decon=True, use_converted=True, interactive=False):
 
@@ -189,7 +189,7 @@ class UniDecBatchProcessor(object):
                 if decon:
                     self.eng.autorun()
                 else:
-                    self.eng.unidec_imports(efficiency=True)
+                    self.eng.unidec_imports(efficiency=False)
                     self.eng.pick_peaks()
 
                 # The First Recipe, correct pair mode
@@ -300,6 +300,6 @@ if __name__ == "__main__":
         batch.open_all_html()
     else:
         path = "C:\\Data\\Wilson_Genentech\\sequences_short2.xlsx"
-        batch.run_file(path, decon=False, use_converted=True)
+        batch.run_file(path, decon=False, use_converted=True, interactive=True)
         batch.open_all_html()
         pass
