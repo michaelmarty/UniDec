@@ -237,11 +237,12 @@ def calc_seqmasses(row):
     return np.array(seqs), np.array(masses), np.array(labels)
 
 
-def calc_pairs(row):
+def calc_pairs(row, include_seqs=False):
     """
     For use with UniDec Processing Pipeline
     Calculate the potential pairs from a row.
     :param row: Row from a df with Sequence N in the column heading designating the sequence. Seq N + Seq M will look for a pair.
+    :param include_seqs: Boolean to include the isolated sequences in the output. Default is False. If you want to include these sequences, set to True or include Seq1 as a separate incorrect column.
     :return: Masses of pairs, labels of potential pairs
     """
     labels = []
@@ -279,18 +280,19 @@ def calc_pairs(row):
         pmass = np.sum(masses)
         pmasses.append(pmass)
 
-    for k in row.keys():
-        if "Sequence" in k:
-            seq = row[k]
-            if type(seq) is str:
-                mass = calc_pep_mass(seq)
-                pmasses.append(mass)
-                labels.append(k)
-            if type(seq) is float or type(seq) is int:
-                if math.isnan(seq):
-                    seq = 0
-                pmasses.append(float(seq))
-                labels.append(k)
+    if include_seqs:
+        for k in row.keys():
+            if "Sequence" in k:
+                seq = row[k]
+                if type(seq) is str:
+                    mass = calc_pep_mass(seq)
+                    pmasses.append(mass)
+                    labels.append(k)
+                if type(seq) is float or type(seq) is int:
+                    if math.isnan(seq):
+                        seq = 0
+                    pmasses.append(float(seq))
+                    labels.append(k)
 
     return np.array(pmasses), np.array(labels)
 

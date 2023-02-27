@@ -12,6 +12,7 @@ import io
 import unidec.tools as ud
 import base64
 import webbrowser
+import os
 
 luminance_cutoff = 135
 
@@ -141,6 +142,7 @@ def html_title(outtitle, outfile=None):
     style.text = "header {background-color: #0C234B;}\n"
     style.text += "h1 {color: #e8a219; text-align:left; margin:0; padding:10px}\n"
     style.text += "h2 {color: #AB0520; text-align:left; margin:0; padding:10px}\n"
+    style.text += "h3 {color: #AB0520; text-align:left; margin:0; padding:10px}\n"
     style.text += "body {margin:0; padding:0; font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif;}"
     style.text += "table {border-collapse: collapse; margin:25px; padding:0}\n"
     style.text += "th {text-align:left; background-color:#ADD8E6;; color:black;}\n"
@@ -150,10 +152,19 @@ def html_title(outtitle, outfile=None):
     style_str = ET.tostring(style, encoding='unicode')
     html_str = style_str
 
+    try:
+        # Split file name title into file and directory
+        dirname = os.path.split(outtitle)[0]
+        fname = os.path.split(outtitle)[1]
+    except Exception as e:
+        print("Error splitting file name:", e)
+        dirname = ""
+        fname = outtitle
+
     # Header
     head = ET.Element("head")
     title = ET.Element("title")
-    title.text = str(outtitle)
+    title.text = "UniDec Report: " + str(fname)
     head.append(title)
     headerstring = ET.tostring(head, encoding='unicode')
     html_str += headerstring
@@ -165,8 +176,11 @@ def html_title(outtitle, outfile=None):
     h1.text = "UniDec Report"
     header.append(h1)
     h2 = ET.Element("h2")
-    h2.text = "File Name: " + str(outtitle)
+    h2.text = "File Name: " + str(fname)
+    h3 = ET.Element("h3")
+    h3.text = "Directory: " + str(dirname)
     header.append(h2)
+    header.append(h3)
     body.append(header)
     bodystring = ET.tostring(body, encoding='unicode')
     html_str += bodystring

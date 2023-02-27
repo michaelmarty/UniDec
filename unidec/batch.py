@@ -100,7 +100,7 @@ def set_param_from_row(eng, row):
             except Exception as e:
                 print("Error setting high m/z", k, row[k], e)
 
-        #print(eng.config.maxmz, eng.config.minmz, k)
+        # print(eng.config.maxmz, eng.config.minmz, k)
     return eng
 
 
@@ -123,6 +123,16 @@ def get_time_range(row):
     else:
         time_range = None
     return time_range
+
+
+def set_row_merge(topdf, subdf, indexes):
+    for index in indexes:
+        for k in subdf.keys():
+            if k in topdf.keys():
+                topdf[k][index] = subdf[k][index]
+            else:
+                topdf[k] = subdf[k]
+    return topdf
 
 
 class UniDecBatchProcessor(object):
@@ -228,6 +238,7 @@ class UniDecBatchProcessor(object):
 
         # Print Run Time
         print("Batch Run Time:", time.perf_counter() - clockstart)
+        return self.rundf
 
     def open_all_html(self):
         for i, row in self.rundf.iterrows():

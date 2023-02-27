@@ -613,6 +613,7 @@ class UniDecEngine:
         if outfile is None:
             outfile = self.config.outfname + "_report.html"
         html_open(outfile)
+
         html_title(self.config.filename, outfile)
 
         peaks_df = self.pks.to_df()

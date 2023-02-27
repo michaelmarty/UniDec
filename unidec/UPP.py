@@ -1,5 +1,6 @@
 import wx
 import pandas as pd
+from copy import deepcopy
 from unidec.modules.isolated_packages.spreadsheet import *
 from unidec.batch import UniDecBatchProcessor as BPEngine
 from unidec.batch import *
@@ -158,9 +159,14 @@ class UPPApp(wx.Frame):
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
         # Insert a button and bind it with a handler called on_run
-        self.runbtn = wx.Button(panel, label="Run")
+        self.runbtn = wx.Button(panel, label="Run All")
         self.runbtn.Bind(wx.EVT_BUTTON, self.on_run)
         hsizer.Add(self.runbtn, 0)
+
+        # Insert a button and bind it with a handler called on_run
+        self.runbtn2 = wx.Button(panel, label="Run Selected")
+        self.runbtn2.Bind(wx.EVT_BUTTON, self.on_run_selected)
+        hsizer.Add(self.runbtn2, 0)
 
         # Insert a button for Open All HTML Reports and bind to function
         btn = wx.Button(panel, label="Open All HTML Reports")
@@ -219,6 +225,29 @@ class UPPApp(wx.Frame):
         self.ss.set_df(self.bpeng.rundf)
         self.runbtn.SetBackgroundColour("green")
 
+    def on_run_selected(self, event=None, rows=None):
+        self.runbtn2.SetBackgroundColour("red")
+        if rows is None:
+            # Get Selected Rows
+            selected_rows = list(self.ss.get_selected_rows())
+        else:
+            selected_rows = rows
+        print("Running Selected Rows:", selected_rows)
+        # Get Sub Dataframe with Selected Rows
+        self.get_from_gui()
+        topdf = deepcopy(self.bpeng.rundf)
+        subdf = self.bpeng.rundf.iloc[selected_rows]
+        # Run SubDF
+        subdf2 = self.bpeng.run_df(df=subdf, decon=self.use_decon, use_converted=self.use_converted,
+                                   interactive=self.use_interactive)
+        # Update the main dataframe
+        # topdf.iloc[selected_rows] = subdf2
+        topdf = set_row_merge(topdf, subdf, selected_rows)
+        self.bpeng.rundf = topdf
+        self.ss.set_df(self.bpeng.rundf)
+        # Finish by coloring the button green
+        self.runbtn2.SetBackgroundColour("green")
+
     def load_file(self, filename):
         print("Loading File:", filename)
         self.bpeng.top_dir = os.path.dirname(filename)
@@ -258,7 +287,6 @@ class UPPApp(wx.Frame):
             # Proceed loading the file chosen by the user
             pathname = fileDialog.GetPath()
             self.ss.save_file(pathname)
-
 
     # def set_dir_tet_box(self, dirname):
     #    self.dirtxtbox.SetValue(dirname)
@@ -321,7 +349,7 @@ if __name__ == "__main__":
     app = wx.App()
     frame = UPPApp()
     frame.usedeconbox.SetValue(False)
-    path = "C:\\Data\\Wilson_Genentech\\sequences_short2.xlsx"
+    path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
 
     # frame.on_help_page()
     # exit()
@@ -330,5 +358,7 @@ if __name__ == "__main__":
         # frame.set_dir_tet_box("C:\\Data\\Wilson_Genentech\\Data")
         # print(df)
         frame.on_run()
+        #frame.on_run_selected(rows=[1])
+        #frame.on_run_selected(rows=[0])
 
     app.MainLoop()
