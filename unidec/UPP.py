@@ -168,9 +168,17 @@ class UPPApp(wx.Frame):
         self.runbtn2.Bind(wx.EVT_BUTTON, self.on_run_selected)
         hsizer.Add(self.runbtn2, 0)
 
+        # Insert Spacer Text
+        hsizer.Add(wx.StaticText(panel, label="   "), 0)
+
         # Insert a button for Open All HTML Reports and bind to function
         btn = wx.Button(panel, label="Open All HTML Reports")
         btn.Bind(wx.EVT_BUTTON, self.on_open_all_html)
+        hsizer.Add(btn, 0)
+
+        # Insert a button for Run in UniDec and bind to function
+        btn = wx.Button(panel, label="Open in UniDec")
+        btn.Bind(wx.EVT_BUTTON, self.on_open_unidec)
         hsizer.Add(btn, 0)
 
         # Insert a static text of directory
@@ -189,25 +197,32 @@ class UPPApp(wx.Frame):
         # hsizer.Add(self.tolbox, 0, wx.EXPAND)
         # hsizer.Add(wx.StaticText(panel, label="Da   ", style=wx.ALIGN_CENTER_VERTICAL))
 
+        # Insert Spacer Text
+        hsizer.Add(wx.StaticText(panel, label="   "), 0)
+
         # Insert a checkbox to select whether to use already converted data
-        self.useconvbox = wx.CheckBox(panel, label="Use Converted Data")
+        self.useconvbox = wx.CheckBox(panel, label="Use Converted Data  ")
         hsizer.Add(self.useconvbox, 0, wx.EXPAND)
         self.useconvbox.SetValue(self.use_converted)
 
         # Insert a checkbox to select whether to use already deconvolved data
-        self.usedeconbox = wx.CheckBox(panel, label="Deconvolve Data")
+        self.usedeconbox = wx.CheckBox(panel, label="Deconvolve Data  ")
         hsizer.Add(self.usedeconbox, 0, wx.EXPAND)
         self.usedeconbox.SetValue(self.use_decon)
 
-        # Insert a button for Run in UniDec and bind to function
-        btn = wx.Button(panel, label="Open in UniDec")
-        btn.Bind(wx.EVT_BUTTON, self.on_open_unidec)
-        hsizer.Add(btn, 0)
-
         # Insert a checkbox to select whether to generate interactive HTML reports
-        self.interactivebox = wx.CheckBox(panel, label="Interactive Reports")
+        self.interactivebox = wx.CheckBox(panel, label="Interactive Reports  ")
         hsizer.Add(self.interactivebox, 0, wx.EXPAND)
         self.interactivebox.SetValue(self.use_interactive)
+
+        # Insert Spacer Text
+        hsizer.Add(wx.StaticText(panel, label="   "), 0)
+
+        # Insert a button to hide columns
+        self.hidebtn = wx.Button(panel, label="Hide Columns")
+        self.hidebtn.Bind(wx.EVT_BUTTON, self.on_hide_columns)
+        hsizer.Add(self.hidebtn, 0)
+        self.hide_col_flag=False
 
         sizer.Add(hsizer, 0, wx.ALL | wx.EXPAND)
 
@@ -224,6 +239,8 @@ class UPPApp(wx.Frame):
         self.bpeng.run_df(decon=self.use_decon, use_converted=self.use_converted, interactive=self.use_interactive)
         self.ss.set_df(self.bpeng.rundf)
         self.runbtn.SetBackgroundColour("green")
+        if not self.hide_col_flag:
+            self.on_hide_columns()
 
     def on_run_selected(self, event=None, rows=None):
         self.runbtn2.SetBackgroundColour("red")
@@ -247,6 +264,8 @@ class UPPApp(wx.Frame):
         self.ss.set_df(self.bpeng.rundf)
         # Finish by coloring the button green
         self.runbtn2.SetBackgroundColour("green")
+        if not self.hide_col_flag:
+            self.on_hide_columns()
 
     def load_file(self, filename):
         print("Loading File:", filename)
@@ -335,6 +354,18 @@ class UPPApp(wx.Frame):
                 self.bpeng.run_correct_pair(row, app.eng.pks)
                 app.after_pick_peaks()
             app.start()
+
+    def on_hide_columns(self, event=None):
+        columns_to_hide = ["Tolerance", "File", "Time", "Config", "Sequence", "Directory", "Matches"]
+        if not self.hide_col_flag:
+            for keyword in columns_to_hide:
+                self.ss.hide_columns_by_keyword(keyword)
+            self.hide_col_flag = True
+            self.hidebtn.SetLabel("Show Columns")
+        else:
+            self.hidebtn.SetLabel("Hide Columns")
+            self.ss.show_all_columns()
+            self.hide_col_flag = False
 
     def on_help_page(self, event=None):
         print("Help button pressed")

@@ -25,6 +25,65 @@ class MyGrid(wx.grid.Grid):
         self.history = []
         self.parent = parent
 
+
+    def on_cell_right_click(self, event):
+        menus = [(wx.NewId(), "Cut", self.cut),
+                 (wx.NewId(), "Copy", self.copy),
+                 (wx.NewId(), "Paste", self.paste)]
+        popup_menu = wx.Menu()
+        for menu in menus:
+            if menu is None:
+                popup_menu.AppendSeparator()
+                continue
+            popup_menu.Append(menu[0], menu[1])
+            self.Bind(wx.EVT_MENU, menu[2], id=menu[0])
+
+        self.PopupMenu(popup_menu, event.GetPosition())
+        popup_menu.Destroy()
+        return
+
+    def on_label_right_click(self, event):
+        menus = [(wx.NewIdRef(), "Cut", self.cut),
+                 (wx.NewIdRef(), "Copy", self.copy),
+                 (wx.NewIdRef(), "Paste", self.paste),
+                 None]
+
+        # Select if right clicked row or column is not in selection
+        if event.GetRow() > -1:
+            if not self.IsInSelection(row=event.GetRow(), col=1):
+                self.SelectRow(event.GetRow())
+            self.selected_rows = self.GetSelectedRows()
+            menus += [(wx.NewIdRef(), "Add row", self.add_rows)]
+            menus += [(wx.NewIdRef(), "Delete row", self.delete_rows)]
+        elif event.GetCol() > -1:
+            if not self.IsInSelection(row=1, col=event.GetCol()):
+                self.SelectCol(event.GetCol())
+            self.selected_cols = self.GetSelectedCols()
+            menus += [(wx.NewIdRef(), "Rename column", self.rename_col)]
+            menus += [(wx.NewIdRef(), "Add column", self.add_cols)]
+            menus += [None]
+            menus += [(wx.NewIdRef(), "Hide columns", self.on_hide_columns)]
+            menus += [(wx.NewIdRef(), "Unhide all", self.show_all_columns)]
+            menus += [None]
+            menus += [(wx.NewIdRef(), "Sort column (toggle up/down)", self.sort_by_selected_column)]
+            menus += [None]
+            menus += [(wx.NewIdRef(), "Delete column", self.delete_cols)]
+
+        else:
+            return
+
+        popup_menu = wx.Menu()
+        for menu in menus:
+            if menu is None:
+                popup_menu.AppendSeparator()
+                continue
+            popup_menu.Append(menu[0], menu[1])
+            self.Bind(wx.EVT_MENU, menu[2], id=menu[0])
+
+        self.PopupMenu(popup_menu, event.GetPosition())
+        popup_menu.Destroy()
+        return
+
     def set_col_headers(self, headers):
         ncol = self.GetNumberCols()
         if ncol < len(headers):
@@ -185,61 +244,6 @@ class MyGrid(wx.grid.Grid):
             ))
             self.DeleteCols(col)
         self.add_history({"type": "delete_cols", "cols": cols})
-
-    def on_cell_right_click(self, event):
-        menus = [(wx.NewId(), "Cut", self.cut),
-                 (wx.NewId(), "Copy", self.copy),
-                 (wx.NewId(), "Paste", self.paste)]
-        popup_menu = wx.Menu()
-        for menu in menus:
-            if menu is None:
-                popup_menu.AppendSeparator()
-                continue
-            popup_menu.Append(menu[0], menu[1])
-            self.Bind(wx.EVT_MENU, menu[2], id=menu[0])
-
-        self.PopupMenu(popup_menu, event.GetPosition())
-        popup_menu.Destroy()
-        return
-
-    def on_label_right_click(self, event):
-        menus = [(wx.NewIdRef(), "Cut", self.cut),
-                 (wx.NewIdRef(), "Copy", self.copy),
-                 (wx.NewIdRef(), "Paste", self.paste),
-                 None]
-
-        # Select if right clicked row or column is not in selection
-        if event.GetRow() > -1:
-            if not self.IsInSelection(row=event.GetRow(), col=1):
-                self.SelectRow(event.GetRow())
-            self.selected_rows = self.GetSelectedRows()
-            menus += [(wx.NewIdRef(), "Add row", self.add_rows)]
-            menus += [(wx.NewIdRef(), "Delete row", self.delete_rows)]
-        elif event.GetCol() > -1:
-            if not self.IsInSelection(row=1, col=event.GetCol()):
-                self.SelectCol(event.GetCol())
-            self.selected_cols = self.GetSelectedCols()
-            menus += [(wx.NewIdRef(), "Rename column", self.rename_col)]
-            menus += [(wx.NewIdRef(), "Add column", self.add_cols)]
-            menus += [None]
-            menus += [(wx.NewIdRef(), "Sort column (toggle up/down)", self.sort_by_selected_column)]
-            menus += [None]
-            menus += [(wx.NewIdRef(), "Delete column", self.delete_cols)]
-
-        else:
-            return
-
-        popup_menu = wx.Menu()
-        for menu in menus:
-            if menu is None:
-                popup_menu.AppendSeparator()
-                continue
-            popup_menu.Append(menu[0], menu[1])
-            self.Bind(wx.EVT_MENU, menu[2], id=menu[0])
-
-        self.PopupMenu(popup_menu, event.GetPosition())
-        popup_menu.Destroy()
-        return
 
     def on_change(self, event):
         cell = event.GetEventObject()
@@ -413,6 +417,29 @@ class MyGrid(wx.grid.Grid):
         # set df
         self.set_df(df)
 
+    def on_hide_columns(self, event):
+        # hide selected columns
+        selected_columns = self.GetSelectedCols()
+        if not selected_columns:
+            return
+
+        for column in selected_columns:
+            self.hide_columns(column)
+
+    def hide_columns(self, index):
+        # hide columns
+        self.HideCol(index)
+
+    def hide_columns_by_keyword(self, keyword):
+        # hide columns
+        for col in range(self.GetNumberCols()):
+            if keyword in self.GetColLabelValue(col):
+                self.HideCol(col)
+
+    def show_all_columns(self, event=None):
+        # show all columns
+        for col in range(self.GetNumberCols()):
+            self.ShowCol(col)
 
     def copy(self, event):
         """
