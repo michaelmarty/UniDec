@@ -465,7 +465,7 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
         else:
             value = 0
         row[newrowkey2] = value
-        print(row[newrowkey2], newrowkey2)
+        #print(row[newrowkey2], newrowkey2)
 
 
     row["Total Height"] = totalint

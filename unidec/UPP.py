@@ -43,7 +43,8 @@ class HelpDlg(wx.Frame):
                    "After opening the file, you should see it populate the main window like a spreadsheet.</p>" \
                    "<h3>What Do You Need In the Spreadsheet?</h3>" \
                    "<p>All you need is to specify the \"Sample name\" column with the file path. " \
-                   "However, there are other optional parameters that you can specifiy.</p>"
+                   "However, there are other optional parameters that you can specifiy. Note, capitalization is" \
+                   " important, so make sure to specify caps carefully.</p>"
 
         html_str += array_to_html(basic_parameters, cols=["Parameter", "Required", "Description"], rows=None,
                                   colors=None, index=False)
@@ -119,6 +120,23 @@ class HelpDlg(wx.Frame):
         html_str += "</body></html>"
 
         html.SetPage(html_str)
+
+
+class MyFileDropTarget(wx.FileDropTarget):
+    """"""
+
+    def __init__(self, window):
+        """Constructor"""
+        wx.FileDropTarget.__init__(self)
+        self.window = window
+
+    def OnDropFiles(self, x, y, filenames):
+        """
+        When files are dropped, either open a single file or run in batch.
+        """
+        path = filenames[0]
+        self.window.load_file(path)
+        return 0
 
 
 class UPPApp(wx.Frame):
@@ -224,11 +242,6 @@ class UPPApp(wx.Frame):
         hsizer.Add(self.hidebtn, 0)
         self.hide_col_flag = False
 
-        # Insert a button to hide columns that are empty
-        self.hideemptybtn = wx.Button(panel, label="Hide Empty Columns")
-        self.hideemptybtn.Bind(wx.EVT_BUTTON, self.on_hide_empty_columns)
-        hsizer.Add(self.hideemptybtn, 0)
-
         # Insert a button to hide columns with height in the title
         self.hideheightbtn = wx.Button(panel, label="Hide Height Columns")
         self.hideheightbtn.Bind(wx.EVT_BUTTON, self.on_hide_height_columns)
@@ -241,11 +254,23 @@ class UPPApp(wx.Frame):
         hsizer.Add(self.hidepercentbtn, 0)
         self.hide_percentcol_flag = False
 
+        # Insert Spacer Text
+        hsizer.Add(wx.StaticText(panel, label="   "), 0)
+
+        # Insert a button to hide columns that are empty
+        self.hideemptybtn = wx.Button(panel, label="Hide Empty Columns")
+        self.hideemptybtn.Bind(wx.EVT_BUTTON, self.on_hide_empty_columns)
+        hsizer.Add(self.hideemptybtn, 0)
+
         sizer.Add(hsizer, 0, wx.ALL | wx.EXPAND)
 
         self.ss = SpreadsheetPanel(self, panel, nrows, ncolumns).ss
         self.ss.set_col_headers(["Sample name", "Data Directory"])
         sizer.Add(self.ss, 1, wx.EXPAND)
+
+        file_drop_target = MyFileDropTarget(self)
+        self.ss.SetDropTarget(file_drop_target)
+
         panel.SetSizer(sizer)
         self.Show()
 
@@ -286,11 +311,13 @@ class UPPApp(wx.Frame):
 
     def load_file(self, filename):
         print("Loading File:", filename)
+        self.ss.delete_all()
         self.bpeng.top_dir = os.path.dirname(filename)
         df = file_to_df(filename)
         self.ss.set_df(df)
         # dirname = os.path.dirname(filename)
         # self.set_dir_tet_box(dirname)
+        self.reset_hidden_columns()
 
     def on_load_file(self, event):
         print("Load button pressed")
@@ -372,9 +399,9 @@ class UPPApp(wx.Frame):
                 app.after_pick_peaks()
             app.start()
 
-    def on_hide_columns(self, event=None):
+    def on_hide_columns(self, event=None, reset=False):
         columns_to_hide = ["Tolerance", "File", "Time", "Config", "Sequence", "Directory", "Matches"]
-        if not self.hide_col_flag:
+        if not self.hide_col_flag and not reset:
             for keyword in columns_to_hide:
                 self.ss.hide_columns_by_keyword(keyword)
             self.hide_col_flag = True
@@ -384,26 +411,31 @@ class UPPApp(wx.Frame):
             self.ss.show_all_columns()
             self.hide_col_flag = False
 
+    def reset_hidden_columns(self):
+        self.on_hide_columns(reset=True)
+        self.on_hide_height_columns(reset=True)
+        self.on_hide_percent_columns(reset=True)
+
     def on_hide_empty_columns(self, event=None):
         self.ss.hide_empty_columns()
 
-    def on_hide_height_columns(self, event=None):
-        if not self.hide_height_flag:
+    def on_hide_height_columns(self, event=None, reset=False):
+        if not self.hide_height_flag and not reset:
             self.ss.hide_columns_by_keyword("Height")
             self.hide_height_flag = True
-            self.hideheightbtn.SetLabel("Show Height")
+            self.hideheightbtn.SetLabel("Show Height Columns")
         else:
-            self.hideheightbtn.SetLabel("Hide Height")
+            self.hideheightbtn.SetLabel("Hide Height Columns")
             self.ss.show_columns_by_keyword("Height")
             self.hide_height_flag = False
 
-    def on_hide_percent_columns(self, event=None):
-        if not self.hide_percentcol_flag:
+    def on_hide_percent_columns(self, event=None, reset=False):
+        if not self.hide_percentcol_flag and not reset:
             self.ss.hide_columns_by_keyword("%")
             self.hide_percentcol_flag = True
-            self.hidepercentbtn.SetLabel("Show Percent")
+            self.hidepercentbtn.SetLabel("Show % Columns")
         else:
-            self.hidepercentbtn.SetLabel("Hide Percent")
+            self.hidepercentbtn.SetLabel("Hide % Columns")
             self.ss.show_columns_by_keyword("%")
             self.hide_percentcol_flag = False
 

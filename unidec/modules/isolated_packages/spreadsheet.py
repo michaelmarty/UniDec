@@ -166,6 +166,11 @@ class MyGrid(wx.grid.Grid):
             for col, header in enumerate(self.get_col_headers()):
                 self.SetCellValue(row, col, str(""))
 
+    def delete_all(self):
+        self.ClearGrid()
+        self.DeleteRows(0, self.GetNumberRows())
+        self.DeleteCols(0, self.GetNumberCols())
+
     def add_rows(self, event=None):
         for row in self.selected_rows:
             self.InsertRows(row)
