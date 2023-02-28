@@ -43,9 +43,8 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
             ["Ignore", False, "Known species that can be ignored. This should be similar to the list of correct pairs, "
                               "listed as Seq1+Seq2, for example. Can be Seq5 if you want to just ignore Seq5. "
                               "Note, mods will also be applied to this."],
-            ["{any other keywords}", True, "Incorrect Pairings. This should be a list of the incorrect pairs, "
-                                           "listed as Seq2+Seq2, for example. "
-                                           "The column header can be anything as long as \"Seq\" is in the cell."]
+            ["Incorrect", True, "Incorrect Pairings. This should be a list of the incorrect pairs, "
+                                           "listed as Seq2+Seq2, for example. "]
             ]
 
 
@@ -126,13 +125,25 @@ def get_time_range(row):
 
 
 def set_row_merge(topdf, subdf, indexes):
+    if subdf.ndim == 1:
+        subdf = subdf.to_frame().transpose()
+
     for index in indexes:
         for k in subdf.keys():
             if k in topdf.keys():
-                topdf[k][index] = subdf[k][index]
+                topdf.loc[index, k] = subdf[k][index]
+                pass
             else:
                 topdf[k] = subdf[k]
     return topdf
+
+
+def remove_columns(df, key):
+    for k in df.keys():
+        if key in k:
+            df = df.drop(k, axis=1)
+            print("Dropping", k)
+    return df
 
 
 class UniDecBatchProcessor(object):
@@ -162,13 +173,12 @@ class UniDecBatchProcessor(object):
             self.rundf = df
 
         # Set up the lists for the results
-        percs = []
-        percs2 = []
-        matches = []
         htmlfiles = []
 
         # Check if the "Correct" column is in the DataFrame to start correct pair mode
         self.correct_pair_mode = check_for_correct_in_keys(self.rundf)
+        #if self.correct_pair_mode:
+        #    self.rundf = remove_columns(self.rundf, "Height")
 
         # Loop through the DataFrame
         for i, row in self.rundf.iterrows():
@@ -195,42 +205,18 @@ class UniDecBatchProcessor(object):
                 # The First Recipe, correct pair mode
                 if self.correct_pair_mode:
                     # Run correct pair mode
-                    perc, perc2, matchstring, newrow = self.run_correct_pair(row)
-
-                    # Fill in the results
-                    percs.append(perc)
-                    percs2.append(perc2)
-                    matches.append(matchstring)
+                    newrow = self.run_correct_pair(row)
 
                     # Merge the row back in the df
-                    # self.rundf = set_row_merge(self.rundf, newrow, [i])
+                    self.rundf = set_row_merge(self.rundf, newrow, [i])
 
                 # Generate the HTML report
                 outfile = self.eng.gen_html_report(open_in_browser=False, interactive=interactive)
                 htmlfiles.append(outfile)
-
-
-
             else:
                 # When files are not found, print the error and add empty results
                 print("File not found:", path)
-                if self.correct_pair_mode:
-                    percs.append([0, 0, 0])
-                    percs2.append([0, 0])
-                    matches.append("")
                 htmlfiles.append("")
-
-        # Set the results array in the DataFrame
-        if self.correct_pair_mode:
-            percs = np.array(percs)
-            percs2 = np.array(percs2)
-
-            self.rundf["Correct %"] = percs[:, 0]
-            self.rundf["Incorrect %"] = percs[:, 1]
-            self.rundf["Unmatched %"] = percs[:, 2]
-            self.rundf["Correct % Matched Only"] = percs2[:, 0]
-            self.rundf["Incorrect % Matched Only"] = percs2[:, 1]
-            self.rundf["Matches"] = matches
 
         # Set the HTML file names in the DataFrame
         self.rundf["Reports"] = htmlfiles
@@ -240,8 +226,10 @@ class UniDecBatchProcessor(object):
             self.top_dir = os.path.dirname(self.data_dir)
 
         # Write the results to an Excel file to the top directory
-        self.rundf.to_excel(os.path.join(self.top_dir, "results.xlsx"))
-
+        outfile = os.path.join(self.top_dir, "results.xlsx")
+        self.rundf.to_excel(outfile)
+        print("Write to: ", outfile)
+        #print(self.rundf)
         # Print Run Time
         print("Batch Run Time:", time.perf_counter() - clockstart)
         return self.rundf
@@ -287,9 +275,9 @@ class UniDecBatchProcessor(object):
                 self.moddf = file_to_df(self.modfile)
 
         # Match to the correct peaks
-        perc, perc2, matcharray, matchstring, newrow = UPP_check_peaks(row, pks, self.tolerance, self.moddf)
+        newrow = UPP_check_peaks(row, pks, self.tolerance, self.moddf)
 
-        return perc, perc2, matchstring, newrow
+        return newrow
 
 
 if __name__ == "__main__":
@@ -306,6 +294,8 @@ if __name__ == "__main__":
         batch.open_all_html()
     else:
         path = "C:\\Data\\Wilson_Genentech\\sequences_short2.xlsx"
+        pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=False, use_converted=True, interactive=True)
-        batch.open_all_html()
+
+        #batch.open_all_html()
         pass

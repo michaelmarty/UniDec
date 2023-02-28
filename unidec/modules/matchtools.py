@@ -237,7 +237,10 @@ def calc_seqmasses(row):
     return np.array(seqs), np.array(masses), np.array(labels)
 
 
-def calc_pairs(row, include_seqs=False):
+known_labels = ["Correct", "Incorrect", "Ignore"]
+
+
+def calc_pairs(row, include_seqs=False, remove_zeros=False):
     """
     For use with UniDec Processing Pipeline
     Calculate the potential pairs from a row.
@@ -247,6 +250,18 @@ def calc_pairs(row, include_seqs=False):
     """
     labels = []
     pairs = []
+    # Loop through the rows and look for a known_label in the key
+    for k in row.keys():
+        for label in known_labels:
+            if label in k:
+                labels.append(k)
+                pairing = row[k]
+                pairing = pairing.replace("Seq", "")
+                pairing = np.array(pairing.split("+"))
+                # pairing = pairing.astype(int)
+                pairs.append(pairing)
+
+    '''
     # Loop through the rows and look for Seq in the cell
     for i, item in enumerate(row):
         if type(item) is str:
@@ -258,7 +273,7 @@ def calc_pairs(row, include_seqs=False):
                 pairing = pairing.replace("Seq", "")
                 pairing = np.array(pairing.split("+"))
                 pairing = pairing.astype(int)
-                pairs.append(pairing)
+                pairs.append(pairing)'''
 
     # Loop through the pairs and calculate their masses
     pmasses = []
@@ -280,6 +295,7 @@ def calc_pairs(row, include_seqs=False):
         pmass = np.sum(masses)
         pmasses.append(pmass)
 
+    # Add the individual sequences if desired
     if include_seqs:
         for k in row.keys():
             if "Sequence" in k:
@@ -294,7 +310,15 @@ def calc_pairs(row, include_seqs=False):
                     pmasses.append(float(seq))
                     labels.append(k)
 
-    return np.array(pmasses), np.array(labels)
+    # Convert to numpy arrays
+    pmasses = np.array(pmasses)
+    labels = np.array(labels)
+
+    # Remove zeros if desired
+    if remove_zeros:
+        b1 = pmasses <= 0
+        pmasses, labels = pmasses[b1], labels[b1]
+    return pmasses, labels
 
 
 def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
@@ -312,6 +336,7 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
     pmasses, plabels = calc_pairs(row)
     # print(peakmasses)
     print(np.transpose([pmasses, plabels]))
+    plabelints = np.zeros(len(plabels))
 
     # Set up the mod masses and labaels
     if moddf is not None:
@@ -328,6 +353,7 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
     correctint = 0
     incorrectint = 0
     unmatchedint = 0
+    ignoreheight = 0
     totalint = np.sum(peakheights)
     matches = []
     matchstring = ""
@@ -393,7 +419,6 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
             matchstring += " " + label
 
             rowkey = plabels[closeindex]
-            newrowkey = plabels[closeindex] + " Height"
 
             if "Correct" in rowkey:
                 # print("Correct", peakmass, label)
@@ -404,6 +429,7 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
                 # print("Ignore", peakmass, label)
                 p.color = [0, 0, 1]  # Blue
                 totalint -= peakheights[i]  # Remove this from the total intensity]
+                ignoreheight += peakheights[i]
 
             elif "Incorrect" in rowkey:
                 # print("Incorrect", peakmass, label)
@@ -411,11 +437,13 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
                 p.color = [1, 0, 0]  # Red
 
             else:
+                print("Error: Something went wrong with row name parsing", rowkey)
                 # print("Incorrect", peakmass, label)
-                incorrectint += peakheights[i]
-                p.color = [1, 0, 0]  # Red
+                # incorrectint += peakheights[i]
+                # p.color = [1, 0, 0]  # Red
 
-            row[newrowkey] = peakheights[i]
+
+            plabelints[closeindex] += peakheights[i]
 
         else:
             label = "Unknown"
@@ -427,6 +455,25 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
             p.matcherror = 0
         p.label = label
 
+    for i, label in enumerate(plabels):
+        newrowkey = label.lower() + " Height"
+        row[newrowkey] = plabelints[i]
+
+        newrowkey2 = label.lower() + " %"
+        if totalint != 0:
+             value = plabelints[i] / totalint * 100
+        else:
+            value = 0
+        row[newrowkey2] = value
+        print(row[newrowkey2], newrowkey2)
+
+
+    row["Total Height"] = totalint
+    row["Total correct Height"] = correctint
+    row["Total incorrect Height"] = incorrectint
+    row["Total unmatched Height"] = unmatchedint
+    row["Total ignored Height"] = ignoreheight
+
     # Calculate the percentages
     percents = np.array([correctint, incorrectint, unmatchedint]) / totalint * 100
     # print(percents)
@@ -435,4 +482,12 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
     else:
         percents2 = np.array([0, 0])
     # print(percents2)
-    return percents, percents2, matches, matchstring, row
+
+    row["correct %"] = percents[0]
+    row["incorrect %"] = percents[1]
+    row["unmatched %"] = percents[2]
+    row["correct % Matched Only"] = percents2[0]
+    row["incorrect % Matched Only"] = percents2[1]
+    row["Matches"] = matchstring
+
+    return row

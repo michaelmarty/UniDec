@@ -8,6 +8,7 @@ import wx.html
 import webbrowser
 from unidec.modules.matchtools import file_to_df
 import numpy as np
+import math
 
 
 # Taken from https://stackoverflow.com/questions/28509629/
@@ -24,7 +25,6 @@ class MyGrid(wx.grid.Grid):
         self.selected_cols = []
         self.history = []
         self.parent = parent
-
 
     def on_cell_right_click(self, event):
         menus = [(wx.NewId(), "Cut", self.cut),
@@ -406,7 +406,7 @@ class MyGrid(wx.grid.Grid):
         if np.all(sortindex == np.arange(len(sortindex))):
             sortindex = sortindex[::-1]
             print("Already Sorterd. Reversing Sort")
-        #print(sortindex)
+        # print(sortindex)
 
         # get df
         df = self.get_df()
@@ -435,6 +435,42 @@ class MyGrid(wx.grid.Grid):
         for col in range(self.GetNumberCols()):
             if keyword in self.GetColLabelValue(col):
                 self.HideCol(col)
+
+    def show_columns_by_keyword(self, keyword):
+        # show columns
+        for col in range(self.GetNumberCols()):
+            if keyword in self.GetColLabelValue(col):
+                self.ShowCol(col)
+
+    def hide_empty_columns(self):
+        # hide empty columns
+        for col in range(self.GetNumberCols()):
+            if self.is_empty_column(col):
+                self.HideCol(col)
+
+    def is_empty_column(self, col):
+        # check if column is empty
+        values = []
+        for row in range(self.GetNumberRows()):
+            value = self.GetCellValue(row, col)
+            values.append(value)
+
+        if np.all([v == "0.0" for v in values]):
+            return True
+
+        if np.all([v == "0" for v in values]):
+            return True
+
+        if np.all([v == "nan" for v in values]):
+            return True
+
+        if np.all([v == "" for v in values]):
+            return True
+
+        if np.all([pd.isna(v) for v in values]):
+            return True
+
+        return False
 
     def show_all_columns(self, event=None):
         # show all columns
@@ -705,10 +741,10 @@ if __name__ == "__main__":
     # app = wx.App()
     app = MyApp(redirect=False)
     frame = app.frame
-    #frame.ss.SetCellRenderer(0, 0, CutomGridCellAutoWrapStringRenderer())
-    #frame.ss.SetCellValue(0, 0, "http://www.google.com/test/test/test/test")
-    #frame.ss.SetReadOnly(0, 0)
-    #frame = SpreadsheetFrame(12, 8)
+    # frame.ss.SetCellRenderer(0, 0, CutomGridCellAutoWrapStringRenderer())
+    # frame.ss.SetCellValue(0, 0, "http://www.google.com/test/test/test/test")
+    # frame.ss.SetReadOnly(0, 0)
+    # frame = SpreadsheetFrame(12, 8)
     path = "C:\\Data\\Luis Genentech\\Merged Glycan List.csv"
     df = pd.read_csv(path)
     frame.ss.set_df(df)

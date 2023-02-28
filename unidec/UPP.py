@@ -222,7 +222,24 @@ class UPPApp(wx.Frame):
         self.hidebtn = wx.Button(panel, label="Hide Columns")
         self.hidebtn.Bind(wx.EVT_BUTTON, self.on_hide_columns)
         hsizer.Add(self.hidebtn, 0)
-        self.hide_col_flag=False
+        self.hide_col_flag = False
+
+        # Insert a button to hide columns that are empty
+        self.hideemptybtn = wx.Button(panel, label="Hide Empty Columns")
+        self.hideemptybtn.Bind(wx.EVT_BUTTON, self.on_hide_empty_columns)
+        hsizer.Add(self.hideemptybtn, 0)
+
+        # Insert a button to hide columns with height in the title
+        self.hideheightbtn = wx.Button(panel, label="Hide Height Columns")
+        self.hideheightbtn.Bind(wx.EVT_BUTTON, self.on_hide_height_columns)
+        hsizer.Add(self.hideheightbtn, 0)
+        self.hide_height_flag = False
+
+        # Insert a button to hide columns with % in the title
+        self.hidepercentbtn = wx.Button(panel, label="Hide % Columns")
+        self.hidepercentbtn.Bind(wx.EVT_BUTTON, self.on_hide_percent_columns)
+        hsizer.Add(self.hidepercentbtn, 0)
+        self.hide_percentcol_flag = False
 
         sizer.Add(hsizer, 0, wx.ALL | wx.EXPAND)
 
@@ -367,6 +384,29 @@ class UPPApp(wx.Frame):
             self.ss.show_all_columns()
             self.hide_col_flag = False
 
+    def on_hide_empty_columns(self, event=None):
+        self.ss.hide_empty_columns()
+
+    def on_hide_height_columns(self, event=None):
+        if not self.hide_height_flag:
+            self.ss.hide_columns_by_keyword("Height")
+            self.hide_height_flag = True
+            self.hideheightbtn.SetLabel("Show Height")
+        else:
+            self.hideheightbtn.SetLabel("Hide Height")
+            self.ss.show_columns_by_keyword("Height")
+            self.hide_height_flag = False
+
+    def on_hide_percent_columns(self, event=None):
+        if not self.hide_percentcol_flag:
+            self.ss.hide_columns_by_keyword("%")
+            self.hide_percentcol_flag = True
+            self.hidepercentbtn.SetLabel("Show Percent")
+        else:
+            self.hidepercentbtn.SetLabel("Hide Percent")
+            self.ss.show_columns_by_keyword("%")
+            self.hide_percentcol_flag = False
+
     def on_help_page(self, event=None):
         print("Help button pressed")
         dlg = HelpDlg()
@@ -389,7 +429,7 @@ if __name__ == "__main__":
         # frame.set_dir_tet_box("C:\\Data\\Wilson_Genentech\\Data")
         # print(df)
         frame.on_run()
-        #frame.on_run_selected(rows=[1])
-        #frame.on_run_selected(rows=[0])
+        # frame.on_run_selected(rows=[1])
+        # frame.on_run_selected(rows=[0])
 
     app.MainLoop()
