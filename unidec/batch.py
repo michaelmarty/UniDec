@@ -195,16 +195,22 @@ class UniDecBatchProcessor(object):
                 # The First Recipe, correct pair mode
                 if self.correct_pair_mode:
                     # Run correct pair mode
-                    perc, perc2, matchstring = self.run_correct_pair(row)
+                    perc, perc2, matchstring, newrow = self.run_correct_pair(row)
 
                     # Fill in the results
                     percs.append(perc)
                     percs2.append(perc2)
                     matches.append(matchstring)
 
+                    # Merge the row back in the df
+                    # self.rundf = set_row_merge(self.rundf, newrow, [i])
+
                 # Generate the HTML report
                 outfile = self.eng.gen_html_report(open_in_browser=False, interactive=interactive)
                 htmlfiles.append(outfile)
+
+
+
             else:
                 # When files are not found, print the error and add empty results
                 print("File not found:", path)
@@ -281,9 +287,9 @@ class UniDecBatchProcessor(object):
                 self.moddf = file_to_df(self.modfile)
 
         # Match to the correct peaks
-        perc, perc2, matcharray, matchstring = UPP_check_peaks(row, pks, self.tolerance, self.moddf)
+        perc, perc2, matcharray, matchstring, newrow = UPP_check_peaks(row, pks, self.tolerance, self.moddf)
 
-        return perc, perc2, matchstring
+        return perc, perc2, matchstring, newrow
 
 
 if __name__ == "__main__":

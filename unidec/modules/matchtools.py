@@ -391,20 +391,32 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
 
             matches.append(label)
             matchstring += " " + label
-            if "Correct" in plabels[closeindex]:
+
+            rowkey = plabels[closeindex]
+            newrowkey = plabels[closeindex] + " Height"
+
+            if "Correct" in rowkey:
                 # print("Correct", peakmass, label)
                 correctint += peakheights[i]
                 p.color = [0, 1, 0]  # Green
 
-            elif "Ignore" in plabels[closeindex]:
+            elif "Ignore" in rowkey:
                 # print("Ignore", peakmass, label)
                 p.color = [0, 0, 1]  # Blue
-                totalint -= peakheights[i]  # Remove this from the total intensity
+                totalint -= peakheights[i]  # Remove this from the total intensity]
+
+            elif "Incorrect" in rowkey:
+                # print("Incorrect", peakmass, label)
+                incorrectint += peakheights[i]
+                p.color = [1, 0, 0]  # Red
 
             else:
                 # print("Incorrect", peakmass, label)
                 incorrectint += peakheights[i]
                 p.color = [1, 0, 0]  # Red
+
+            row[newrowkey] = peakheights[i]
+
         else:
             label = "Unknown"
             matches.append("")
@@ -423,4 +435,4 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
     else:
         percents2 = np.array([0, 0])
     # print(percents2)
-    return percents, percents2, matches, matchstring
+    return percents, percents2, matches, matchstring, row
