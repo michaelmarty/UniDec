@@ -189,7 +189,7 @@ class UniDec(UniDecEngine):
             self.config.procflag = 0
 
         # Initialize Config
-        if os.path.isfile(self.config.confname):
+        if os.path.isfile(self.config.confname) and not refresh:
             self.load_config(self.config.confname)
         else:
             self.export_config()
@@ -366,7 +366,7 @@ class UniDec(UniDecEngine):
         """
         # Check to make sure everything is in order
         if self.config.procflag == 0:
-            print("Need to process data first...")
+            print("Need to process data first. Processing...")
             self.process_data()
         if self.check_badness() == 1:
             print("Badness found, aborting unidec run")
@@ -511,6 +511,7 @@ class UniDec(UniDecEngine):
         else:
             print("No peaks detected", peaks, self.config.peakwindow, self.config.peakthresh)
             print("Mass Data:", self.data.massdat)
+        return peaks
 
     def setup_peaks(self, peaks):
         if self.config.peaknorm == 1:

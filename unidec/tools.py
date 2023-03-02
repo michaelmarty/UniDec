@@ -1634,8 +1634,11 @@ def normalize(datatop):
     :param datatop: Data array (N x 2)
     :return: Normalized data array (N x 2)
     """
-    maxval = np.amax(datatop[:, 1])
-    datatop[:, 1] = datatop[:, 1] / maxval
+    try:
+        maxval = np.amax(datatop[:, 1])
+        datatop[:, 1] = datatop[:, 1] / maxval
+    except:
+        pass
     return datatop
 
 
@@ -1702,8 +1705,11 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
     va = config.detectoreffva
     linflag = config.linflag
     redper = config.reductionpercent
-    # Crop Data
-    data2 = datachop(deepcopy(datatop), newmin, newmax)
+    if type(newmin) != str and type(newmax) != str:
+        # Crop Data
+        data2 = datachop(deepcopy(datatop), newmin, newmax)
+    else:
+        data2 = deepcopy(datatop)
     if len(data2) == 0:
         print("Error: m/z range is too small. No data fits the range.")
     # correct for detector efficiency

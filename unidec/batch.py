@@ -27,9 +27,18 @@ config_parameters = [["Config Peak Thres", False, "Deconvolution Setting: The Pe
                      ]
 
 recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if not specified."],
-            ["Mod File", False, "The File Name or Path of the Mod File. "
-                                "Can be either Excel or CSV. The file should have \"Mass\" and \"Name\" "
-                                "columns with these exact headers. If not specified, no modifications will be used."],
+            ["Variable Mod File", False, "The File Name or Path of the Variable Mod File. "
+                                         "Can be either Excel or CSV. The file should have \"Mass\" and \"Name\" "
+                                         "columns with these exact headers. If not specified,"
+                                         " no modifications will be used."],
+            ["Fixed Mod File", False, "The File Name or Path of the Fxied Mod File. "
+                                      "Can be either Excel or CSV. The file should have \"Mass\" and \"Name\" "
+                                      "columns with these exact headers. Can also have \"Number\" if a "
+                                      "multiple is used If not specified, no modifications will be used."],
+            ["Reduced", False, "A column specifying if sequences should be fully disulfide reduced or not. "
+                               "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
+                               "column name, etc. Delimiters do not matter. "
+                               "Will only work if sequences are amino acid codes with C."],
             ["Favored Match", False, "If there are several possible matches within tolerance, which to select. "
                                      "Default is \"Closest\" for the closest absolute mass. Also accepts \"Incorrect\" "
                                      "to select an incorrect mass within the tolerance even if a correct mass is "
@@ -44,7 +53,7 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
                               "listed as Seq1+Seq2, for example. Can be Seq5 if you want to just ignore Seq5. "
                               "Note, mods will also be applied to this."],
             ["Incorrect", True, "Incorrect Pairings. This should be a list of the incorrect pairs, "
-                                           "listed as Seq2+Seq2, for example. "]
+                                "listed as Seq2+Seq2, for example. "]
             ]
 
 
@@ -153,8 +162,10 @@ class UniDecBatchProcessor(object):
         self.data_dir = ""
         self.top_dir = ""
         self.rundf = None
-        self.modfile = None
-        self.moddf = None
+        self.vmodfile = None
+        self.fmodfile = None
+        self.vmoddf = None
+        self.fmoddf = None
         self.correct_pair_mode = False
         self.time_range = None
 
@@ -177,7 +188,7 @@ class UniDecBatchProcessor(object):
 
         # Check if the "Correct" column is in the DataFrame to start correct pair mode
         self.correct_pair_mode = check_for_correct_in_keys(self.rundf)
-        #if self.correct_pair_mode:
+        # if self.correct_pair_mode:
         #    self.rundf = remove_columns(self.rundf, "Height")
 
         # Loop through the DataFrame
@@ -229,7 +240,7 @@ class UniDecBatchProcessor(object):
         outfile = os.path.join(self.top_dir, "results.xlsx")
         self.rundf.to_excel(outfile)
         print("Write to: ", outfile)
-        #print(self.rundf)
+        # print(self.rundf)
         # Print Run Time
         print("Batch Run Time:", time.perf_counter() - clockstart)
         return self.rundf
@@ -269,13 +280,19 @@ class UniDecBatchProcessor(object):
                 pass
 
         # Get and read the mod file
-        if "Mod File" in row:
-            self.modfile = row["Mod File"]
-            if os.path.isfile(self.modfile):
-                self.moddf = file_to_df(self.modfile)
+        if "Variable Mod File" in row:
+            self.vmodfile = row["Variable Mod File"]
+            if os.path.isfile(self.vmodfile):
+                self.vmoddf = file_to_df(self.vmodfile)
+
+        # Get and read the mod file
+        if "Fixed Mod File" in row:
+            self.fmodfile = row["Fixed Mod File"]
+            if os.path.isfile(self.fmodfile):
+                self.fmoddf = file_to_df(self.fmodfile)
 
         # Match to the correct peaks
-        newrow = UPP_check_peaks(row, pks, self.tolerance, self.moddf)
+        newrow = UPP_check_peaks(row, pks, self.tolerance, vmoddf=self.vmoddf, fmoddf=self.fmoddf)
 
         return newrow
 
@@ -293,9 +310,9 @@ if __name__ == "__main__":
         batch.run_file(sys.argv[1], decon=True, use_converted=True)
         batch.open_all_html()
     else:
-        path = "C:\\Data\\Wilson_Genentech\\sequences_short2.xlsx"
+        path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
         pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=False, use_converted=True, interactive=True)
 
-        #batch.open_all_html()
+        # batch.open_all_html()
         pass

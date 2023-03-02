@@ -52,7 +52,15 @@ def get_dna_mass(letter):
         return 0
 
 
-def calc_pep_mass(sequence, allow_float=True, remove_nan=True):
+def calc_pep_mass(sequence, allow_float=True, remove_nan=True, fully_reduced=False):
+    if fully_reduced:
+        # Count number of c in sequence
+        c = sequence.lower().count("c")
+        # Multiply by -1 * mass of H
+        modmass = c * (-1 * mass_H)
+    else:
+        modmass = 0
+
     if remove_nan:
         if sequence.lower() == "nan":
             return 0.0
@@ -67,7 +75,7 @@ def calc_pep_mass(sequence, allow_float=True, remove_nan=True):
         seq = sequence.upper()
         mass = np.sum([get_aa_mass(s) for s in seq]) + mass_water
     # print(sequence, mass)
-    return np.round(mass, 2)
+    return np.round(mass + modmass, 2)
 
 
 def calc_rna_mass(sequence, threeend="OH", fiveend="MP"):

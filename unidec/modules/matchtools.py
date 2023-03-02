@@ -237,19 +237,66 @@ def calc_seqmasses(row):
     return np.array(seqs), np.array(masses), np.array(labels)
 
 
+def parse_fmoddf(fmoddf):
+    # print(fmoddf)
+    total_mod_mass = 0
+    total_mod_name = ""
+    for i, row in fmoddf.iterrows():
+        try:
+            n = float(row["Number"])
+        except:
+            n = 1
+        modmass = row["Mass"]
+        modname = row["Name"]
+        total_mod_mass += n * modmass
+        total_mod_name += "+" + str(n) + "[" + modname + "]"
+    print("Fixed Mods:", total_mod_mass, total_mod_name)
+    return total_mod_mass, total_mod_name
+
+
+def parse_vmoddf(vmoddf):
+    # Set up the mod masses and labaels
+    if vmoddf is not None:
+        modmasses = vmoddf["Mass"].to_numpy()
+        modlabels = vmoddf["Name"].to_numpy()
+    else:
+        modmasses = [0]
+        modlabels = [""]
+
+    # print("Variable Mods:", modmasses, modlabels)
+    return modmasses, modlabels
+
+
+def check_reduced(redstring, pair):
+    code = "Seq" + str(pair)
+    if code in redstring:
+        return True
+    else:
+        return False
+
+
 known_labels = ["Correct", "Incorrect", "Ignore"]
 
 
-def calc_pairs(row, include_seqs=False, remove_zeros=False):
+def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
     """
     For use with UniDec Processing Pipeline
     Calculate the potential pairs from a row.
     :param row: Row from a df with Sequence N in the column heading designating the sequence. Seq N + Seq M will look for a pair.
     :param include_seqs: Boolean to include the isolated sequences in the output. Default is False. If you want to include these sequences, set to True or include Seq1 as a separate incorrect column.
+    :param remove_zeros: Boolean to remove the pairs with masses of 0 from the output. Default is True.
+    :param fmoddf: DataFrame of the Fixed Modifications to use for the sequences. If None, will not use any.
     :return: Masses of pairs, labels of potential pairs
     """
     labels = []
     pairs = []
+
+    redstring = ""
+    # Try to get reduced things
+    if "Reduced" in row.keys():
+        redstring = row["Reduced"]
+        # print(redstring)
+
     # Loop through the rows and look for a known_label in the key
     for k in row.keys():
         for label in known_labels:
@@ -265,10 +312,6 @@ def calc_pairs(row, include_seqs=False, remove_zeros=False):
                     if math.isnan(pairing):
                         pairing = 0
                     pairs.append(np.array([pairing]))
-                #pairing = pairing.replace("Seq", "")
-                #pairing = np.array(pairing.split("+"))
-                # pairing = pairing.astype(int)
-                #pairs.append(pairing)
 
     '''
     # Loop through the rows and look for Seq in the cell
@@ -290,11 +333,13 @@ def calc_pairs(row, include_seqs=False, remove_zeros=False):
         masses = []
         for j, p in enumerate(pair):
             seqname = "Sequence " + str(p)
+            reduced = check_reduced(redstring, p)
+            # print("Seqname:", seqname, "Reduced:", reduced)
             for k in row.keys():
                 if k == seqname:
                     seq = row[k]
                     if type(seq) is str:
-                        mass = calc_pep_mass(seq)
+                        mass = calc_pep_mass(seq, fully_reduced=reduced)
                         masses.append(mass)
                     if type(seq) is float or type(seq) is int:
                         if math.isnan(seq):
@@ -303,6 +348,8 @@ def calc_pairs(row, include_seqs=False, remove_zeros=False):
 
         pmass = np.sum(masses)
         pmasses.append(pmass)
+
+    parse_fmoddf(fmoddf)
 
     # Add the individual sequences if desired
     if include_seqs:
@@ -325,12 +372,12 @@ def calc_pairs(row, include_seqs=False, remove_zeros=False):
 
     # Remove zeros if desired
     if remove_zeros:
-        b1 = pmasses <= 0
+        b1 = pmasses > 0
         pmasses, labels = pmasses[b1], labels[b1]
     return pmasses, labels
 
 
-def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
+def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest"):
     # Get Peak Masses and Heights
     peakmasses = pks.masses
     peakheights = [p.height for p in pks.peaks]
@@ -342,18 +389,14 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
         print("Favoring:", favor)
 
     # Calculate the potential pairs
-    pmasses, plabels = calc_pairs(row)
+    pmasses, plabels = calc_pairs(row, fmoddf=fmoddf)
     # print(peakmasses)
     print(np.transpose([pmasses, plabels]))
     plabelints = np.zeros(len(plabels))
 
-    # Set up the mod masses and labaels
-    if moddf is not None:
-        modmasses = moddf["Mass"].to_numpy()
-        modlabels = moddf["Name"].to_numpy()
-    else:
-        modmasses = [0]
-        modlabels = [""]
+    # Get Variable Mods
+    modmasses, modlabels = parse_vmoddf(vmoddf)
+
     # Create a grid of all possible combinations of peak masses and mod masses
     pmassgrid = np.array([modmasses + p for p in pmasses])
     # TODO: Allow a flag to turn off mods to ignore.
@@ -451,7 +494,6 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
                 # incorrectint += peakheights[i]
                 # p.color = [1, 0, 0]  # Red
 
-
             plabelints[closeindex] += peakheights[i]
 
         else:
@@ -470,12 +512,11 @@ def UPP_check_peaks(row, pks, tol, moddf=None, favor="Closest"):
 
         newrowkey2 = label.lower() + " %"
         if totalint != 0:
-             value = plabelints[i] / totalint * 100
+            value = plabelints[i] / totalint * 100
         else:
             value = 0
         row[newrowkey2] = value
-        #print(row[newrowkey2], newrowkey2)
-
+        # print(row[newrowkey2], newrowkey2)
 
     row["Total Height"] = totalint
     row["Total correct Height"] = correctint
