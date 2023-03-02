@@ -132,7 +132,8 @@ class UniDec(UniDecEngine):
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
         self.config.udir = dirnew
-        print("Output Directory:", self.config.udir)
+        if "silent" not in kwargs or not kwargs["silent"]:
+            print("Output Directory:", self.config.udir)
         self.config.outfname = os.path.join(self.config.udir, basename)
 
         self.config.extension = os.path.splitext(self.config.filename)[1]
@@ -1343,7 +1344,8 @@ class UniDec(UniDecEngine):
 
         # Create the file in the new path
         path = os.path.join(testdir, fname)
-        print("Creating file:", path)
+        if "silent" in kwargs and not kwargs["silent"]:
+            print("Creating file:", path)
         np.savetxt(path, data)
 
         # Open it

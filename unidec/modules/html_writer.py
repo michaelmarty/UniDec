@@ -130,6 +130,20 @@ def df_to_html(df, outfile=None, colors=None, index=True):
             # print("Colors:", color, luminance, textcolor)
             html_str = html_str.replace('<tr>', '<tr style="background-color: %s; color: %s">'
                                         % (hexcolor, textcolor), 1)
+    html_str = "\n" + html_str + "\n"
+
+    '''
+    # Make the table sortable
+    html_str = html_str.replace('<table border="1" class="dataframe">', '<table border="1" class="sortable">')
+    # Javascript for sorting
+    html_str += """
+    <script>
+    $(document).ready(function() {
+        $('table.sortable').tablesorter();
+    });
+    </script>
+    """'''
+
     if outfile is not None:
         write_to_html(html_str, outfile)
     return html_str

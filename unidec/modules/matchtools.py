@@ -256,10 +256,19 @@ def calc_pairs(row, include_seqs=False, remove_zeros=False):
             if label in k:
                 labels.append(k)
                 pairing = row[k]
-                pairing = pairing.replace("Seq", "")
-                pairing = np.array(pairing.split("+"))
+                if type(pairing) is str:
+                    pairing = pairing.replace("Seq", "")
+                    pairing = np.array(pairing.split("+"))
+                    # pairing = pairing.astype(int)
+                    pairs.append(pairing)
+                elif type(pairing) is float or type(pairing) is int:
+                    if math.isnan(pairing):
+                        pairing = 0
+                    pairs.append(np.array([pairing]))
+                #pairing = pairing.replace("Seq", "")
+                #pairing = np.array(pairing.split("+"))
                 # pairing = pairing.astype(int)
-                pairs.append(pairing)
+                #pairs.append(pairing)
 
     '''
     # Loop through the rows and look for Seq in the cell

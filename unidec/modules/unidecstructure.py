@@ -874,6 +874,8 @@ class UniDecConfig(object):
 
         for key, value in cdict.items():
             try:
+                #if value is None:
+                #    value = ""
                 config_group.attrs[key] = value
             except Exception as e:
                 print("Error with key, value:", key, value, e)

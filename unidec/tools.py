@@ -1393,7 +1393,7 @@ def intensitythresh_sub(datatop, thresh):
     return datatop
 
 
-def remove_noise(datatop, percent=None):
+def remove_noise(datatop, percent=None, silent=True):
     l1 = len(datatop)
     if percent is None:
         cutoff = np.average(datatop[:, 1]) * 2
@@ -1405,7 +1405,9 @@ def remove_noise(datatop, percent=None):
         cutoff = sdat[index]
     datatop = intensitythresh(datatop, cutoff)
     # datatop = remove_middle_zeros(datatop)
-    print(l1, len(datatop))
+    if not silent:
+        print("Removed", l1 - len(datatop), "points.")
+        print(l1, len(datatop))
     return datatop
 
 
@@ -1670,7 +1672,7 @@ def remove_middle_zeros(data):
     return data[boo6]
 
 
-def dataprep(datatop, config, peaks=True, intthresh=True):
+def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
     """
     Main function to process 1D MS data. The order is:
 
@@ -1685,6 +1687,9 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
 
     :param datatop: Raw data array (N x 2)
     :param config: UniDecConfig object
+    :param peaks: Boolean to perform peak detection
+    :param intthresh: Boolean to perform intensity thresholding
+    :param silent: Boolean to suppress output
     :return: Processed data
     """
     newmin = config.minmz
@@ -1747,9 +1752,10 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
 
     # Intensity Threshold
     if thresh > 0 and intthresh:
-        print(len(data2))
+        # print(len(data2))
         data2 = intensitythresh(data2, thresh)  # thresh
-        print("Intensity Threshold Applied:", thresh, len(data2), np.amax(data2[:, 1]))
+        if not silent:
+            print("Intensity Threshold Applied:", thresh, len(data2), np.amax(data2[:, 1]))
         # data2=data2[data2[:,1]>0]
     else:
         data2 = intensitythresh(data2, 0)  # thresh
@@ -1760,7 +1766,8 @@ def dataprep(datatop, config, peaks=True, intthresh=True):
         # peakind = signal.find_peaks_cwt(data2[:,1], widths)
         # data2 = data2[peakind]
         data2 = peakdetect(data2, window=-redper, threshold=thresh)
-        print(data2)
+        if not silent:
+            print(data2)
 
     if linflag == 2:
         try:
