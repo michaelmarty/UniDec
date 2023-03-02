@@ -241,16 +241,17 @@ def parse_fmoddf(fmoddf):
     # print(fmoddf)
     total_mod_mass = 0
     total_mod_name = ""
-    for i, row in fmoddf.iterrows():
-        try:
-            n = float(row["Number"])
-        except:
-            n = 1
-        modmass = row["Mass"]
-        modname = row["Name"]
-        total_mod_mass += n * modmass
-        total_mod_name += "+" + str(n) + "[" + modname + "]"
-    print("Fixed Mods:", total_mod_mass, total_mod_name)
+    if fmoddf is not None:
+        for i, row in fmoddf.iterrows():
+            try:
+                n = float(row["Number"])
+            except:
+                n = 1
+            modmass = row["Mass"]
+            modname = row["Name"]
+            total_mod_mass += n * modmass
+            total_mod_name += "+" + str(n) + "[" + modname + "]"
+        print("Fixed Mods:", total_mod_mass, total_mod_name)
     return total_mod_mass, total_mod_name
 
 
@@ -297,6 +298,8 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
         redstring = row["Reduced"]
         # print(redstring)
 
+    total_mod_mass, total_mod_name = parse_fmoddf(fmoddf)
+
     # Loop through the rows and look for a known_label in the key
     for k in row.keys():
         for label in known_labels:
@@ -327,6 +330,8 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
                 pairing = pairing.astype(int)
                 pairs.append(pairing)'''
 
+
+
     # Loop through the pairs and calculate their masses
     pmasses = []
     for i, pair in enumerate(pairs):
@@ -338,18 +343,28 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
             for k in row.keys():
                 if k == seqname:
                     seq = row[k]
+                    # Calculate mass of the sequence
                     if type(seq) is str:
                         mass = calc_pep_mass(seq, fully_reduced=reduced)
-                        masses.append(mass)
-                    if type(seq) is float or type(seq) is int:
+                    elif type(seq) is float or type(seq) is int:
+                        # If it's already a number, just use it
                         if math.isnan(seq):
                             seq = 0
-                        masses.append(float(seq))
+                        mass = float(seq)
+                    else:
+                        # Something is wrong
+                        print("Likely error in mass value: ", seq)
+                        mass = 0
+
+                    # Add the fixed mods
+                    if mass != 0:
+                        mass += total_mod_mass
+
+                    # Add the mass to the list
+                    masses.append(mass)
 
         pmass = np.sum(masses)
         pmasses.append(pmass)
-
-    parse_fmoddf(fmoddf)
 
     # Add the individual sequences if desired
     if include_seqs:
@@ -358,13 +373,19 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
                 seq = row[k]
                 if type(seq) is str:
                     mass = calc_pep_mass(seq)
-                    pmasses.append(mass)
-                    labels.append(k)
-                if type(seq) is float or type(seq) is int:
+                elif type(seq) is float or type(seq) is int:
                     if math.isnan(seq):
                         seq = 0
-                    pmasses.append(float(seq))
-                    labels.append(k)
+                    mass = float(seq)
+                else:
+                    print("Likely error in mass value: ", seq)
+                    mass = 0
+
+                # Add the fixed mods
+                if mass != 0:
+                    mass += total_mod_mass
+                pmasses.append(mass)
+                labels.append(k)
 
     # Convert to numpy arrays
     pmasses = np.array(pmasses)

@@ -34,7 +34,9 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
             ["Fixed Mod File", False, "The File Name or Path of the Fxied Mod File. "
                                       "Can be either Excel or CSV. The file should have \"Mass\" and \"Name\" "
                                       "columns with these exact headers. Can also have \"Number\" if a "
-                                      "multiple is used If not specified, no modifications will be used."],
+                                      "multiple is used If not specified, no modifications will be used. "
+                                      "Note, it will apply one set of all fixed mods to each sequence. "
+                                      "If you specify, \"Seq1+Seq2\", it will apply the fixed mods to both sequences."],
             ["Reduced", False, "A column specifying if sequences should be fully disulfide reduced or not. "
                                "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
                                "column name, etc. Delimiters do not matter. "
@@ -177,7 +179,7 @@ class UniDecBatchProcessor(object):
     def run_df(self, df=None, decon=True, use_converted=True, interactive=False):
 
         # Print the data directory and start the clock
-        print("Data Directory:", self.data_dir)
+        # print("Data Directory:", self.data_dir)
         clockstart = time.perf_counter()
         # Set the Pandas DataFrame
         if df is not None:
