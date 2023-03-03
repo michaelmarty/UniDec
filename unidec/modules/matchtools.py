@@ -306,62 +306,68 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
             if label in k:
                 labels.append(k)
                 pairing = row[k]
-                if type(pairing) is str:
+                # If it has a sequence, calculate parse the sequence name into an array
+                if type(pairing) is str and "Seq" in pairing:
                     pairing = pairing.replace("Seq", "")
                     pairing = np.array(pairing.split("+"))
                     # pairing = pairing.astype(int)
                     pairs.append(pairing)
+                # If it is a float or int, add it to the array
                 elif type(pairing) is float or type(pairing) is int:
                     if math.isnan(pairing):
                         pairing = 0
-                    pairs.append(np.array([pairing]))
-
-    '''
-    # Loop through the rows and look for Seq in the cell
-    for i, item in enumerate(row):
-        if type(item) is str:
-            if "Seq" in item:
-                print(item)
-                label = row.keys()[i]
-                labels.append(label)
-                pairing = item
-                pairing = pairing.replace("Seq", "")
-                pairing = np.array(pairing.split("+"))
-                pairing = pairing.astype(int)
-                pairs.append(pairing)'''
-
-
+                    pairs.append([pairing])
+                else:
+                    # If it's a string without Seq or something else, try to make it a float
+                    try:
+                        p = float(pairing)
+                        pairs.append([p])
+                    except:
+                        print("Error parsing pairing:", pairing, label)
 
     # Loop through the pairs and calculate their masses
     pmasses = []
     for i, pair in enumerate(pairs):
         masses = []
         for j, p in enumerate(pair):
-            seqname = "Sequence " + str(p)
-            reduced = check_reduced(redstring, p)
-            # print("Seqname:", seqname, "Reduced:", reduced)
-            for k in row.keys():
-                if k == seqname:
-                    seq = row[k]
-                    # Calculate mass of the sequence
-                    if type(seq) is str:
-                        mass = calc_pep_mass(seq, fully_reduced=reduced)
-                    elif type(seq) is float or type(seq) is int:
-                        # If it's already a number, just use it
-                        if math.isnan(seq):
-                            seq = 0
-                        mass = float(seq)
-                    else:
-                        # Something is wrong
-                        print("Likely error in mass value: ", seq)
-                        mass = 0
+            # If it is a number, just use it
+            if type(p) is float or type(p) is int:
+                if math.isnan(p):
+                    p = 0
+                mass = float(p)
+                # Add the fixed mods
+                if mass != 0:
+                    mass += total_mod_mass
 
-                    # Add the fixed mods
-                    if mass != 0:
-                        mass += total_mod_mass
+                masses.append(mass)
+                # print("Mass:", p)
+            else:
+                # Find the sequence
+                seqname = "Sequence " + str(p)
+                reduced = check_reduced(redstring, p)
+                # print("Seqname:", seqname, "Reduced:", reduced)
+                for k in row.keys():
+                    if k == seqname:
+                        seq = row[k]
+                        # Calculate mass of the sequence
+                        if type(seq) is str:
+                            mass = calc_pep_mass(seq, fully_reduced=reduced)
+                        elif type(seq) is float or type(seq) is int:
+                            # If it's already a number, just use it
+                            if math.isnan(seq):
+                                seq = 0
+                            mass = float(seq)
+                        else:
+                            # Something is wrong
+                            print("Likely error in mass value: ", seq)
+                            mass = 0
 
-                    # Add the mass to the list
-                    masses.append(mass)
+                        # Add the fixed mods
+                        if mass != 0:
+                            mass += total_mod_mass
+
+                        # Add the mass to the list
+                        masses.append(mass)
 
         pmass = np.sum(masses)
         pmasses.append(pmass)
