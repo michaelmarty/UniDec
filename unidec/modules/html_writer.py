@@ -28,6 +28,7 @@ def fig_to_html_mpld3(fig, outfile):
     html_str = mpld3.fig_to_html(fig, no_extras=True)
     write_to_html(html_str, outfile)
 
+
 '''
 def fig_to_html_plotly(fig, outfile=None):
     xlabel = fig.gca().get_xlabel()
@@ -111,7 +112,7 @@ def array_to_html(array, outfile=None, cols=None, rows=None, colors=None, index=
     return df_to_html(df, outfile, colors=colors, index=index)
 
 
-def df_to_html(df, outfile=None, colors=None, index=True):
+def df_to_html(df, outfile=None, colors=None, index=True, sortable=True):
     html_str = df.to_html(index=index)
     if colors is not None:
         for i, color in enumerate(colors):
@@ -132,17 +133,75 @@ def df_to_html(df, outfile=None, colors=None, index=True):
                                         % (hexcolor, textcolor), 1)
     html_str = "\n" + html_str + "\n"
 
-    '''
-    # Make the table sortable
-    html_str = html_str.replace('<table border="1" class="dataframe">', '<table border="1" class="sortable">')
-    # Javascript for sorting
-    html_str += """
-    <script>
-    $(document).ready(function() {
-        $('table.sortable').tablesorter();
-    });
-    </script>
-    """'''
+    if sortable:
+
+        # Make the table sortable
+        html_str = html_str.replace('<table border="1" class="dataframe">',
+                                    '<table border="1" class="dataframe" id="myTable2">')
+        # Add onclick to headers
+        for i in range(0, len(df.columns)+1):
+            html_str = html_str.replace('<th>', '<th onclick="sortTable(' + str(i-1) + ')">', 1)
+        # Javascript for sorting
+        html_str += """
+        <script>
+        function sortTable(n) {
+          var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+          table = document.getElementById("myTable2");
+          switching = true;
+          // Set the sorting direction to ascending:
+          dir = "asc";
+          /* Make a loop that will continue until
+          no switching has been done: */
+          while (switching) {
+            // Start by saying: no switching is done:
+            switching = false;
+            rows = table.rows;
+            /* Loop through all table rows (except the
+            first, which contains table headers): */
+            for (i = 1; i < (rows.length - 1); i++) {
+              // Start by saying there should be no switching:
+              shouldSwitch = false;
+              /* Get the two elements you want to compare,
+              one from current row and one from the next: */
+              x = rows[i].getElementsByTagName("TD")[n];
+              y = rows[i + 1].getElementsByTagName("TD")[n];
+              /* Check if the two rows should switch place,
+              based on the direction, asc or desc: */
+              if (dir == "asc") {
+                if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                  // If so, mark as a switch and break the loop:
+                  shouldSwitch = true;
+                  break;
+                }
+              } else if (dir == "desc") {
+                if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                  // If so, mark as a switch and break the loop:
+                  shouldSwitch = true;
+                  break;
+                }
+              }
+            }
+            if (shouldSwitch) {
+              /* If a switch has been marked, make the switch
+              and mark that a switch has been done: */
+              rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+              switching = true;
+              // Each time a switch is done, increase this count by 1:
+              switchcount ++;
+            } else {
+              /* If no switching has been done AND the direction is "asc",
+              set the direction to "desc" and run the while loop again. */
+              if (switchcount == 0 && dir == "asc") {
+                dir = "desc";
+                switching = true;
+              }
+            }
+          }
+        }
+        </script>
+        """
+
+        html_str = html_str + "<p style=\"margin-left: 25px\"><em>*Click on a column header to sort.</em></p>"
 
     if outfile is not None:
         write_to_html(html_str, outfile)
@@ -354,6 +413,6 @@ if __name__ == "__main__":
 
     html_cleaner(outfile_html)
 
-    #opencommand = "start \"\" "
-    #os.system(opencommand + "\"" + outfile_html + "\"")
+    # opencommand = "start \"\" "
+    # os.system(opencommand + "\"" + outfile_html + "\"")
     webbrowser.open(outfile_html)
