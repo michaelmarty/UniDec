@@ -314,7 +314,7 @@ if __name__ == "__main__":
     else:
         path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
         pd.set_option('display.max_columns', None)
-        batch.run_file(path, decon=False, use_converted=True, interactive=True)
+        batch.run_file(path, decon=False, use_converted=True, interactive=False)
 
-        # batch.open_all_html()
+        batch.open_all_html()
         pass
