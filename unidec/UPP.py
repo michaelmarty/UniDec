@@ -47,7 +47,7 @@ class HelpDlg(wx.Frame):
                    " important, so make sure to specify caps carefully.</p>"
 
         html_str += array_to_html(basic_parameters, cols=["Parameter", "Required", "Description"], rows=None,
-                                  colors=None, index=False)
+                                  colors=None, index=False, sortable=False)
 
         html_str += "<h3>Running UPP</h3><p>" \
                     "After you have opened your file, you can run UPP by clicking the \"Run\" button.</p> " \
@@ -78,7 +78,7 @@ class HelpDlg(wx.Frame):
                     "by adding these optional rows in the spreadsheet: </p> "
 
         html_str += array_to_html(config_parameters, cols=["Parameter", "Required", "Description"], rows=None,
-                                  colors=None, index=False)
+                                  colors=None, index=False, sortable=False)
 
         html_str += "<h2>Advanced Features</h2> <h3>Developing Workflows</h3><p>" \
                     "After you deconvolve your data, there are lots of things you can do with it. " \
@@ -93,7 +93,7 @@ class HelpDlg(wx.Frame):
                     "Here is an example recipe that checks if the correct pairing of massees" \
                     " and/or sequences is present. " \
                     "The column keyword of \"Sequence {n}\" defines a protein sequence " \
-                    "were {n} is a number, such as \"Sequence 1\". " \
+                    "were {n} is a number, such as \"Sequence 1\", or some other label. " \
                     "Each sequence cell should give the amino acid sequence of the " \
                     "protein chain or the mass of the species. </p> <p> " \
                     "Another key column is \"Correct{anything}\". UPP will look for a column with \"Correct\" in it. " \
@@ -103,7 +103,9 @@ class HelpDlg(wx.Frame):
                     " two sequences written as: \"Seq1+Seq2\". " \
                     "You can also other columns like \"Incorrect Homodimer\" as a column header " \
                     "with similar definitions (Seq2+Seq2 for example) " \
-                    "and UPP will check if the incorrect pairing is present. </p> <p> " \
+                    "and UPP will check if the incorrect pairing is present. " \
+                    "You can also specify \"Ignored\" columns to ignore certain pairings. " \
+                    "Note, you can also specify masses directly as correct, incorrect, or ignored. </p> <p> " \
                     "Finally, you can specify a Fixed or Variable Mod File to list potential sequence " \
                     "modifications (see more info below) and a \"Tolerance\" to specify the peak matching tolerance. " \
                     "Using all this information, the workflow will then search for the correct" \
@@ -119,7 +121,7 @@ class HelpDlg(wx.Frame):
                     "Additional details on keywords are provided below. "
 
         html_str += array_to_html(recipe_w, cols=["Parameter", "Required", "Description"], rows=None,
-                                  colors=None, index=False)
+                                  colors=None, index=False, sortable=False)
 
         html_str += "</body></html>"
 

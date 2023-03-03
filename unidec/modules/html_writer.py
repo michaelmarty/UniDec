@@ -107,9 +107,9 @@ def wrap_to_grid(inputlist, outfile=None):
     return grid_str
 
 
-def array_to_html(array, outfile=None, cols=None, rows=None, colors=None, index=True):
+def array_to_html(array, outfile=None, cols=None, rows=None, colors=None, index=True, sortable=True):
     df = pd.DataFrame(array, columns=cols, index=rows)
-    return df_to_html(df, outfile, colors=colors, index=index)
+    return df_to_html(df, outfile, colors=colors, index=index, sortable=sortable)
 
 
 def df_to_html(df, outfile=None, colors=None, index=True, sortable=True):
