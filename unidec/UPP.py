@@ -89,29 +89,33 @@ class HelpDlg(wx.Frame):
                     "</p> <p>If you have new ideas for recipes, feel free to reach out for help. " \
                     "We are happy to help you develop your own recipes and workflows.</p> "
 
-        html_str += "<h3>An Example Workflow: Check Correct Pairing</h3><p>" \
-                    "Here is an example recipe that checks if the correct pairing of protein sequences is present. " \
+        html_str += "<h3>Workflow 1: Check Correct Masses or Pairings</h3><p>" \
+                    "Here is an example recipe that checks if the correct pairing of massees" \
+                    " and/or sequences is present. " \
                     "The column keyword of \"Sequence {n}\" defines a protein sequence " \
                     "were {n} is a number, such as \"Sequence 1\". " \
-                    "Each sequence cell should give the amino acid sequence of the protein chain. </p> <p> " \
+                    "Each sequence cell should give the amino acid sequence of the " \
+                    "protein chain or the mass of the species. </p> <p> " \
                     "Another key column is \"Correct{anything}\". UPP will look for a column with \"Correct\" in it. " \
                     "The \"Correct\" column should contain the correct pairing of the protein sequences. " \
                     "For example, if you have two protein sequences, \"Sequence 1\" and \"Sequence 2\", " \
                     "the \"Correct\" column should contain the pairing of the" \
                     " two sequences written as: \"Seq1+Seq2\". " \
-                    "You can also other columns like \"Homodimer\" as a column header " \
+                    "You can also other columns like \"Incorrect Homodimer\" as a column header " \
                     "with similar definitions (Seq2+Seq2 for example) " \
                     "and UPP will check if the incorrect pairing is present. </p> <p> " \
-                    "Finally, you can specify a Mod File to list potential sequence " \
+                    "Finally, you can specify a Fixed or Variable Mod File to list potential sequence " \
                     "modifications (see more info below) and a \"Tolerance\" to specify the peak matching tolerance. " \
                     "Using all this information, the workflow will then search for the correct" \
                     " and incorrectly paired masses in the deconvolution results (with any possible modifications). " \
-                    "If the correct pairing is present, it will color the peak green. " \
-                    "If the incorrect pairing is present, it will color the peak red. " \
-                    "If neither pairing is present (unknown), it will color the peak yellow. </p> <p> " \
+                    "If the correct mass/pairing is present, it will color the peak green. " \
+                    "If the incorrect mass/pairing is present, it will color the peak red. " \
+                    "If an ignored mass/pairng is present, it will color the peak blue. " \
+                    "If no mathes are found for a given peak (unknown), it will color the peak yellow. </p> <p> " \
                     "The final results spreadsheet will contain the percentage of the signal " \
-                    "that is correct, incorrect, and unknown." \
-                    "It will also give the percentage of correct and incorrect after ignoring the unknown. " \
+                    "that is correct, incorrect, ignored, and unknown." \
+                    "It will also give the percentage of correct and incorrect " \
+                    "after ignoring the unknown and ignored. " \
                     "Additional details on keywords are provided below. "
 
         html_str += array_to_html(recipe_w, cols=["Parameter", "Required", "Description"], rows=None,

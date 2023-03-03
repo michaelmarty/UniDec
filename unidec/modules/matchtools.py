@@ -268,7 +268,7 @@ def parse_vmoddf(vmoddf):
     return modmasses, modlabels
 
 
-def check_reduced(redstring, pair):
+def check_string_for_seq(redstring, pair):
     code = "Seq" + str(pair)
     if code in redstring:
         return True
@@ -297,6 +297,12 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
     if "Reduced" in row.keys():
         redstring = row["Reduced"]
         # print(redstring)
+
+    modstring = ""
+    # Try to get reduced things
+    if "Apply Fixed Mods" in row.keys():
+        modstring = row["Apply Fixed Mods"]
+        print(modstring)
 
     total_mod_mass, total_mod_name = parse_fmoddf(fmoddf)
 
@@ -330,21 +336,17 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
     for i, pair in enumerate(pairs):
         masses = []
         for j, p in enumerate(pair):
+            mass = 0
             # If it is a number, just use it
             if type(p) is float or type(p) is int:
                 if math.isnan(p):
                     p = 0
                 mass = float(p)
-                # Add the fixed mods
-                if mass != 0:
-                    mass += total_mod_mass
-
-                masses.append(mass)
-                # print("Mass:", p)
+            # If it is a string, parse it
             else:
                 # Find the sequence
                 seqname = "Sequence " + str(p)
-                reduced = check_reduced(redstring, p)
+                reduced = check_string_for_seq(redstring, p)
                 # print("Seqname:", seqname, "Reduced:", reduced)
                 for k in row.keys():
                     if k == seqname:
@@ -362,12 +364,13 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
                             print("Likely error in mass value: ", seq)
                             mass = 0
 
-                        # Add the fixed mods
-                        if mass != 0:
-                            mass += total_mod_mass
+            applyfixedmod = check_string_for_seq(modstring, p)
+            # Add the fixed mods
+            if mass != 0 and (modstring == "" or applyfixedmod):
+                mass += total_mod_mass
 
-                        # Add the mass to the list
-                        masses.append(mass)
+            # Add the mass to the list
+            masses.append(mass)
 
         pmass = np.sum(masses)
         pmasses.append(pmass)

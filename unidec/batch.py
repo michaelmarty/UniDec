@@ -37,6 +37,10 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
                                       "multiple is used If not specified, no modifications will be used. "
                                       "Note, it will apply one set of all fixed mods to each sequence. "
                                       "If you specify, \"Seq1+Seq2\", it will apply the fixed mods to both sequences."],
+            ["Apply Fixed Mods", False, "A column specifying which sequences should get the fixed mods. "
+                               "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
+                               "column name, etc. Delimiters do not matter. "
+                               "It will assume yes to all if this column is not present. "],
             ["Reduced", False, "A column specifying if sequences should be fully disulfide reduced or not. "
                                "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
                                "column name, etc. Delimiters do not matter. "
@@ -46,16 +50,16 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
                                      "to select an incorrect mass within the tolerance even if a correct mass is "
                                      "closesr. Other keywords like \"Ignore\" and \"Correct\" can be used to select "
                                      "specific types of matches over others."],
-            ["Sequence {n}", True, "The amino acid sequence or mass for the {n}th protein. Can be multiple sequences, "
+            ["Sequence {n}", False, "The amino acid sequence or mass for the {n}th protein. Can be multiple sequences, "
                                    "each as their own columns. If it can convert to float, it will. "
                                    "If not, it will assume it is an amino acid sequence with 1 letter codes."],
-            ["Correct", True, "The Correct Pairing. This should be a list of the correct pairs, "
-                              "listed as Seq1+Seq2, for example."],
+            ["Correct", True, "The Correct Pairing. This may be a list of the correct pairs, "
+                              "listed as Seq1+Seq2, for example. Can also be a single mass value. "],
             ["Ignore", False, "Known species that can be ignored. This should be similar to the list of correct pairs, "
                               "listed as Seq1+Seq2, for example. Can be Seq5 if you want to just ignore Seq5. "
-                              "Note, mods will also be applied to this."],
-            ["Incorrect", True, "Incorrect Pairings. This should be a list of the incorrect pairs, "
-                                "listed as Seq2+Seq2, for example. "]
+                              "Note, mods will also be applied to this. Can be a single mass value as well. "],
+            ["Incorrect", True, "Incorrect Pairings. This can be a list of the incorrect pairs, "
+                                "listed as Seq2+Seq2, for example. It can also be a single mass value. "]
             ]
 
 
