@@ -1,7 +1,6 @@
 import os
-import glob
-import unidec_modules.unidectools as ud
-from unidec_modules.waters_importer.WatersImporter import WatersDataImporter as WDI
+import unidec.tools as ud
+from unidec.modules.waters_importer.WatersImporter import WatersDataImporter as WDI
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib

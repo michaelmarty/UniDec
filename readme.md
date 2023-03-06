@@ -38,7 +38,7 @@ By downloading UniDec, you are agreeing to the UniDec and any third party licens
 ### UniDec License:
 
 Copyright (c) 2016, University of Oxford
-              2017-2019, University of Arizona
+              2017-2023, University of Arizona
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -82,22 +82,24 @@ For Water's .raw files, UniDec is bundled with converters (CDCReader.exe) to
 convert the data to .txt. It will compress the retention time dimension into a single spectrum. 
 A single file can be opened directly, or multiple files can be converted using 
 Tools > Simple Batch Process Raw to Txt. For a fancier conversion such as extracting specific functions or scans, 
-try Tools > Raw to Txt Conversion Wizard. Note: rawreader.exe has been replaced with the MassLynxSDK 4.5 Python library. Water's converters will need MassLynxRaw.dll and/or cdt.dll in the same directory as the converter executables (the unidec_bin folder or the top directory). You can find these at: [https://interface.waters.com/masslynx/developers-area/sdks/](https://interface.waters.com/masslynx/developers-area/sdks/). 
+try Tools > Raw to Txt Conversion Wizard. Note: rawreader.exe has been replaced with the MassLynxSDK 4.5 Python library. Water's converters will need MassLynxRaw.dll and/or cdt.dll in the same directory as the converter executables (the unidec/bin folder or the top directory). You can find these at: [https://interface.waters.com/masslynx/developers-area/sdks/](https://interface.waters.com/masslynx/developers-area/sdks/) if they aren't already there. 
 
-Thermo .raw files can be read as you would a text file on Windows thanks to [multiplierz](https://github.com/BlaisProteomics/multiplierz). You will need [MSFileReader](https://thermo.flexnetoperations.com/control/thmo/download?element=6306677) installed. Please cite them (http://onlinelibrary.wiley.com/doi/10.1002/pmic.201700091/abstract). It will compress all scans together unless parsed with MetaUniDec. 
+Agilent .d files can be read as you would a text file on Windows thanks to [multiplierz](https://github.com/BlaisProteomics/multiplierz). Please cite them (http://onlinelibrary.wiley.com/doi/10.1002/pmic.201700091/abstract). It will compress all scans together unless parsed with MetaUniDec. 
 
-Note: multiplierz is currently not compatible for Python 3. However, you can make it work by fixing the print and import commands. I can provide a modified version on request.
+Thermo .raw files should be able to be opened natively on Windows. Thermo DLLs are included bundled with UniDec.
 
 Finally, many vendor formats can be converted mzML using [Proteowizard](http://proteowizard.sourceforge.net/). UniDec will open mzML file as if they are a text file, and this format should be cross platform.
-We utilize [pymzML](http://pymzml.github.io/intro.html#general-information) for this. Please [cite them](https://www.ncbi.nlm.nih.gov/pubmed/22302572).
+We use [pymzML](http://pymzml.github.io/intro.html#general-information) for this. Please [cite them](https://www.ncbi.nlm.nih.gov/pubmed/22302572).
 
-## MetaUniDec File Types and Importing
+If you are a fan of mzXML, we recently added mzXML support courtesy of pyteomics (please cite: Goloborodko, A.A.; Levitsky, L.I.; Ivanov, M.V.; and Gorshkov, M.V. (2013) “Pyteomics - a Python Framework for Exploratory Data Analysis and Rapid Software Prototyping in Proteomics”, Journal of The American Society for Mass Spectrometry, 24(2), 301–304. DOI: 10.1007/s13361-012-0516-6 and Levitsky, L.I.; Klein, J.; Ivanov, M.V.; and Gorshkov, M.V. (2018) “Pyteomics 4.0: five years of development of a Python proteomics framework”, Journal of Proteome Research. DOI: 10.1021/acs.jproteome.8b00717).
 
-With MetaUniDec, everything is stored in a single HDF5 files. 
-The HDF5 Import Wizard allows you to import a range of different file types directly into a single HDF5 file.
+## MetaUniDec and UniChrom File Types and Importing
+
+With MetaUniDec and UniChrom, everything is stored in a single HDF5 files. 
+The HDF5 Import Wizard allows you to import a range of different file types directly into a single HDF5 file for MetaUniDec.
 Thermo RAW and mzML files are supported fully, which means that either the scan or time range can be specified.
 Text and Waters RAW files are supported for file import. Text files must be a single m/z spectrum.
-Waters RAW files will have all scans summed into a single m/z spectrum upon import. 
+Waters RAW files will have all scans summed into a single m/z spectrum upon import in MetaUniDec. 
 The File>Waters Conversion Wizard tool allows specific scans to be converted into text files for importing.
 
 In addition to the Import Wizard, there are several Manual File options, which will allow you to create blank HDF5 
@@ -107,37 +109,20 @@ You can also just copy the data from XCalibur or MassLynx and then use Add Data 
 
 There are a few automated tools to parse single chromatograms directly into HDF5 files if you have all the data chromatograms 
 with predictable scans or times. You can batch process multiple files at once. 
-Only mzML and Thermo RAW files are supported for automated chromatogram import.
+
+However, if you want to look at chromatography data directly, we now recommend UniChrom, which will plot the TIC and allow you to select specific scan ranges either manually or automatically.
+
 
 ## Installing the Source Code
 
 Most users will likely just want to run the compiled version. For those advanced users who have experience with Python,
-we have provided the source code for the GUI and API. For more information, check out this [walkthrough](https://github.com/michaelmarty/UniDec/wiki/Installing-the-UniDec-Source-Code).
+we have provided the source code for the GUI and API. For more information, check out this [walkthrough](https://github.com/michaelmarty/UniDec/wiki/Installing-the-UniDec-Source-Code). Specific package requirements are outlined in the setup.py file.
 
-### Python
+However, an experimental distribution is provide on PyPI. Using:
 
-UniDec is currently compatible only with Python 3. There are several Python libraries that UniDec will depend on. 
+    pip install unidec
 
-matplotlib
-numpy
-scipy
-wxpython
-natsort
-pymzml
-networkx
-h5py
-pypubsub
-tornado
-pythonnet
-multiplierz (Windows only, for Agilent imports)
-pymsfilereader (Option for some features)
-massql (Optional if you want to try this feature)
-
-All of these can be installed from the command line with (for example):
-    
-    pip install natsort
-
-Note: I would highly recommend setting up 64-bit Python as the default. MS data works fine with 32-bit, but IM-MS data is prone to crash the memory. If you are getting memory errors, the first thing to try is to upgrade the bit level to 64.
+should install UniDec on your computer and install any required dependencies. Try this out first and see if it works.
 
 ### The UniDec Binaries
 
@@ -147,15 +132,13 @@ If you are interested in building the binary or modifying the source code, the c
 are in unidec_src/UniDec. It is currently configured for Visual Studio Community 2022 with HDF5 1.12.2 and the Intel oneAPI compiler.
 It can be easily compiled with other compilers but will show a significant performance loss without the Intel Compilers.
  
-If you are interested in binaries for Mac and Linux, I would recommend building them yourself using the scripts in the unidec_src/UniDec directory. UniDec compiles easily and works fine with these operating systems, but I don't have the time to support them.
+If you are interested in binaries for Mac and Linux, I would recommend building them yourself using the scripts in the unidec/src directory. UniDec compiles easily and works fine with these operating systems. I have provided some linux and mac version for you to test, but no promises they will work. Alternatively, you can use the [Docker container](https://hub.docker.com/r/michaeltmarty/unidec). 
 
 ## UniDec Documentation
 
-Documentation is for the Python engine and GUI and can be found at http://michaelmarty.github.io/UniDecDocumentation/. Sorry, honestly it's pretty out of date by now.
+Documentation is for the Python engine and GUI and can be found at http://michaelmarty.github.io/UniDecDocumentation/. Sorry, it's no great documentation, and I'm way behind on completing it. I'm still working on documenting some of the windows and extensions (including MetaUniDec and C code), but the core features should be here.
 
-My goal is that this documentation will allow you to utilize the power of the UniDec python engine for scripting data analysis routines and performing custom analysis. Also, it will allow you to add new modules to the UniDec GUI.
-
-I'm still working on documenting some of the windows and extensions (including MetaUniDec and C code), but the core features should be here.
+My goal is that this documentation will allow you to use the power of the UniDec python engine for scripting data analysis routines and performing custom analysis. Also, it will allow you to add new modules to the UniDec GUI.
 
 ## UniDec Architecture
 
@@ -165,21 +148,19 @@ It can be run independently as a command line program fed by a configuration fil
 
 The Python engine and GUI serve as a very extensive wrapper for the C core. 
 
-The engine (unidec.py) can be operated by independently of the GUI. This allows scripting of UniDec analysis for more complex and high-throughput analysis than is possible with the GUI.
+The engine (engine.py) can be operated by independently of the GUI. This allows scripting of UniDec analysis for more complex and high-throughput analysis than is possible with the GUI.
 The engine contains three major subclasses, a config, data, and peaks object.
 
 The GUI is organized with a Model-Presenter-View architecture.
 The main App is the presenter (GUniDec.py).
-The presenter contains a model (the UniDec engine at unidec.py) and a view (mainwindow.py). 
+The presenter contains a model (the UniDec engine at engine.py) and a view (mainwindow.py). 
 The presenter coordinates transfer between the GUI and the engine.
 
-MetaUniDec has a similar structure with a presenter (mudpres.py), engine (mudeng.py), and view
+MetaUniDec has a similar structure with a presenter (MetaUniDec.py), engine (mudeng.py), and view
  (mudview.py). However, unlike conventional UniDec, MetaUniDec includes a number of additional features to process 
  and analyze data. It relies less heavily on the Python API.
 
-
-## Getting Started
-
+## Getting Started with UniDec in Python
 
 Here is some sample code for how to use the engine. 
 
@@ -197,9 +178,40 @@ Here is some sample code for how to use the engine.
     eng.pick_peaks()
 
 In reading the documentation, it is perhaps best to start with the unidec.UniDec class.
-The main GUI class is GUniDec.UniDecApp.
+
+You can also run files for simple deconvolution directly from the command line with:
+
+    python -m unidec -f "C:\data\test.txt"
+
+The main GUI class is Launcher. You can launch the Launcher from the command line with:
+
+    python -m unidec.Launcher
+
+Of course, using the pre-compiled version means you don't need to know Python at all and can just click the GUI_UniDec.exe icon to launch the program and get started. However you choose to do it, happy deconvolving!
 
 ## Change Log
+
+v.6.0.0
+
+Major changes to code structure to enable PyPI distribution. Changed to more conventional Python package structure with unidec top directory. Renamed unidec_modules to modeuls, unidec_src to src, and unidec_bin to bin. Renamed some top level windows and moved all to main folder. For example, unidectools.py has been moved from modules to the top level and renamed as tools.py, and unidec.py has been renamed as engine.py. 
+
+Improved command line tools. Added -o option for file output in unidec. Included new entry points and smoothed out command line interface. Now you can use unidec to lanuch python -m unidec in the scripts folder. Similarly, gunidec will launch python -m unidec.Launcher. If you have Python and the scripts folder configured in your system path, command line tools will be much easier to use. 
+
+Added a new mode to the Oligomer and Mass Tools, Site Mode. Here, you can specify specific binding sites and which potential species could be bound in that site. Any number of rows (species) or columns (sites) can be added as long as your memory can handle the possible combinations. Use 0s and 1s to incidate whether each species can be bound at each site. You can copy/paste from excel or open a CSV or XLSX file. 
+
+Added the first build of the **UniDec Processing Pipeline** tool to help with batch processing and analysis for large sample sets. More details to come.
+
+Added new experimental HTML report generator. Found in File > Save Figure Presets. Test this out and let me know what you'd like to see in it.
+
+Added a color plot option to the right click of the peak panel. Check it out!
+
+Added FWHM and error to the Copy All Full right click option in the peak panel.
+
+**Changed default behavior for zooming such that it does not zoom out when plots are replotted.** This is a major change that I think will be more intuitive. If you want to zoom out, you can still click once on the plot as usual. 
+
+Removed the ability to manually integrate peaks. Now, only auto integration is allowed. If you want to have this added back in, let me know, but it seemed to be causing more trouble than it was worth.
+
+Various bug fixes including fixing EPS export and bugs on Export2D. Fixed import of tab delimited files. Resized manual file menu. Improved window stretching in oligomer and mass tools. Broken plot peaks on UniDecCD. Bug on selecting alternative matches not propagating. Updated background color to blue on alternative matches to avoid confusion with RYG scheme. Fixed labeling bug with isolated match names. 
 
 v.5.2.1
 
