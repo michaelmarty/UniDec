@@ -209,7 +209,7 @@ class PlottingWindowBase(PlotBase, wx.Panel):
         if path is not None:
             self.save_figure(path, **kwargs)
 
-    def size_handler(self, event, *args, **kwargs):
+    def size_handler(self, event=None, *args, **kwargs):
         """
         Resizes the plots
         :param args:
