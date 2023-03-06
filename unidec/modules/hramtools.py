@@ -4,6 +4,7 @@ import time
 import re
 
 lipidsearchspace = [["1H", 54, 184], ["12C", 29, 93], ["14N", 0, 1], ["16O", 8, 17], ["31P", 0, 1]]#, ["13C", 0, 3]]
+lipidsearchspace = [["1H", 0, 184], ["12C", 0, 93], ["14N", 0, 1], ["16O", 0, 17], ["31P", 0, 1]]#, ["13C", 0, 3]]
 smallmolsearch = [["1H", 0, 100], ["12C", 0, 100], ["14N", 0, 5], ["16O", 0, 5], ["31P", 0, 1]]
 
 class HRAMResult:
@@ -134,9 +135,10 @@ if __name__ == "__main__":
     target = 807.5723599471314
     target = 729.2312
     #target = 18.034374
+    target = 529.461
     searcher = HRAMSearchSpace()
     # target = 1500
-    results = calc_fromula_from_mass([target], Searcher=searcher, tolerance=10)
+    results = calc_fromula_from_mass([target], Searcher=searcher, tolerance=5)
     print(results[0].to_df())
     print(results[0].match_comp)
     print(results[0].elem_keys, results[0].iso_keys)

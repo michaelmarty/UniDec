@@ -38,21 +38,22 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
                                       "Note, it will apply one set of all fixed mods to each sequence. "
                                       "If you specify, \"Seq1+Seq2\", it will apply the fixed mods to both sequences."],
             ["Apply Fixed Mods", False, "A column specifying which sequences should get the fixed mods. "
-                               "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
-                               "column name, etc. Delimiters do not matter. "
-                               "It will assume yes to all if this column is not present. "],
-            ["Reduced", False, "A column specifying if sequences should be fully disulfide reduced or not. "
-                               "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
-                               "column name, etc. Delimiters do not matter. "
-                               "Will only work if sequences are amino acid codes with C."],
+                                        "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
+                                        "column name, etc. Delimiters do not matter. "
+                                        "It will assume yes to all if this column is not present. "],
+            ["Disulfides Oxidized", False, "A column specifying the sequences that should be fully disulfide oxidized. "
+                                           "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
+                                           "column name, etc. Delimiters do not matter. "
+                                           "Will only work if sequences are amino acid codes with C. "
+                                           "It will subtract one H mass for each C."],
             ["Favored Match", False, "If there are several possible matches within tolerance, which to select. "
                                      "Default is \"Closest\" for the closest absolute mass. Also accepts \"Incorrect\" "
                                      "to select an incorrect mass within the tolerance even if a correct mass is "
                                      "closesr. Other keywords like \"Ignore\" and \"Correct\" can be used to select "
                                      "specific types of matches over others."],
             ["Sequence {n}", False, "The amino acid sequence or mass for the {n}th protein. Can be multiple sequences, "
-                                   "each as their own columns. If it can convert to float, it will. "
-                                   "If not, it will assume it is an amino acid sequence with 1 letter codes."],
+                                    "each as their own columns. If it can convert to float, it will. "
+                                    "If not, it will assume it is an amino acid sequence with 1 letter codes."],
             ["Correct", True, "The Correct Pairing. This may be a list of the correct pairs, "
                               "listed as Seq1+Seq2, for example. Can also be a single mass value. "],
             ["Ignore", False, "Known species that can be ignored. This should be similar to the list of correct pairs, "

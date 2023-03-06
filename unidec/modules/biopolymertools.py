@@ -52,8 +52,8 @@ def get_dna_mass(letter):
         return 0
 
 
-def calc_pep_mass(sequence, allow_float=True, remove_nan=True, fully_reduced=False):
-    if fully_reduced:
+def calc_pep_mass(sequence, allow_float=True, remove_nan=True, all_cyst_ox=False):
+    if all_cyst_ox:
         # Count number of c in sequence
         c = sequence.lower().count("c")
         # Multiply by -1 * mass of H

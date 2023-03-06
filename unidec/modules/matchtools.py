@@ -294,14 +294,14 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
 
     redstring = ""
     # Try to get reduced things
-    if "Reduced" in row.keys():
-        redstring = row["Reduced"]
+    if "Disulfides Oxidized" in row.keys():
+        redstring = str(row["Disulfides Oxidized"])
         # print(redstring)
 
     modstring = ""
     # Try to get reduced things
     if "Apply Fixed Mods" in row.keys():
-        modstring = row["Apply Fixed Mods"]
+        modstring = str(row["Apply Fixed Mods"])
         print(modstring)
 
     total_mod_mass, total_mod_name = parse_fmoddf(fmoddf)
@@ -347,13 +347,13 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
                 # Find the sequence
                 seqname = "Sequence " + str(p)
                 reduced = check_string_for_seq(redstring, p)
-                # print("Seqname:", seqname, "Reduced:", reduced)
+
                 for k in row.keys():
                     if k == seqname:
                         seq = row[k]
                         # Calculate mass of the sequence
                         if type(seq) is str:
-                            mass = calc_pep_mass(seq, fully_reduced=reduced)
+                            mass = calc_pep_mass(seq, all_cyst_ox=reduced)
                         elif type(seq) is float or type(seq) is int:
                             # If it's already a number, just use it
                             if math.isnan(seq):
