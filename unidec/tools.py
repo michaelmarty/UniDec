@@ -838,7 +838,7 @@ def solve_for_mass(mz1, mz2, adductmass=1.007276467):
 # .........................................
 
 
-def header_test(path, deletechars=None, delimiter=" |\t"):
+def header_test(path, deletechars=None, delimiter=" |\t", strip_end_space=True):
     """
     A quick test of a file to remove any problems from the header.
 
@@ -848,15 +848,30 @@ def header_test(path, deletechars=None, delimiter=" |\t"):
     :param path: Path of file to be scanned
     :param deletechars: Characters to be removed from the file before scanning
     :param delimiter: Delimiter to be used in the file
+    :param strip_end_space: Boolean to strip the end space from the line
     :return: Integer length of the number of header lines
     """
     header = 0
     try:
         with open(path, "r") as f:
             for line in f:
+                # If the line is empty, skip it and add to the header
+                if line == "\n":
+                    header += 1
+                    continue
+                # Remove any characters that are defined in deletechars
                 if deletechars is not None:
                     for c in deletechars:
                         line = line.replace(c, "")
+
+                # Strip the end space if strip_end_space is True
+                if strip_end_space:
+                    if line[-1] == "\n" and len(line) > 1:
+                        line = line[:-1]
+                    if line[-1] == " " and len(line) > 1:
+                        line = line[:-1]
+
+                # Split the line by the delimiter and try to convert each element to a float
                 for sin in re.split(delimiter, line):  # line.split(delimiter):
                     try:
                         float(sin)
@@ -864,8 +879,7 @@ def header_test(path, deletechars=None, delimiter=" |\t"):
                         # print(sin, line)
                         header += 1
                         break
-                if line == "\n":
-                    header += 1
+        # If the header is greater than 0, print the header length
         if header > 0:
             print("Header Length:", header)
     except (ImportError, OSError, AttributeError, IOError) as e:
@@ -2179,7 +2193,7 @@ def combine(array2):
 
 
 def index_to_oname(index, startindex, names):
-    #print(index, startindex, names)
+    # print(index, startindex, names)
     name = ""
     for i in range(0, len(index)):
         val = index[i] + startindex[i]
@@ -2256,7 +2270,7 @@ def make_isolated_match(oligos):
                 oligomasslist.append(newmass)
                 index = np.zeros(len(oligos)).astype(int)
                 index[i] = j
-                oligonames.append(index-start)
+                oligonames.append(index - start)
                 '''
                 if j > 0 or oligos[i][4] == "":
                     if oligos[i][4] == "":
@@ -3085,11 +3099,14 @@ def subtract_and_divide(pks, basemass, refguess, outputall=False):
 
 
 if __name__ == "__main__":
-    testfile = "C:\Python\\unidec\TestSpectra\\test_imms.raw"
+    # testfile = "C:\Python\\unidec\TestSpectra\\test_imms.raw"
     # data = waters_convert(testfile)
     # print(np.amax(data))
-    data = waters_convert2(testfile)
-    print(np.amax(data))
+    # data = waters_convert2(testfile)
+    # print(np.amax(data))
+
+    testfile = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw\\test_imms_imraw.txt"
+    print(header_test(testfile))
 
     exit()
 
