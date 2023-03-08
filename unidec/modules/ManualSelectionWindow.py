@@ -145,10 +145,21 @@ class ManualListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
             self.SetColumnWidth(0, 100)
             self.SetColumnWidth(1, 100)
             self.SetColumnWidth(2, 100)
-        else:
+        elif self.imflag == 1:
             self.InsertColumn(0, "m/z value (Th)", wx.LIST_FORMAT_RIGHT)
             self.InsertColumn(1, "+/-")
             self.InsertColumn(2, "Arrival Time (ms)", wx.LIST_FORMAT_RIGHT)
+            self.InsertColumn(3, "+/-")
+            self.InsertColumn(4, "Charge")
+            self.SetColumnWidth(0, 90)
+            self.SetColumnWidth(1, 50)
+            self.SetColumnWidth(2, 105)
+            self.SetColumnWidth(3, 50)
+            self.SetColumnWidth(4, 75)
+        else:
+            self.InsertColumn(0, "m/z value (Th)", wx.LIST_FORMAT_RIGHT)
+            self.InsertColumn(1, "+/-")
+            self.InsertColumn(2, "Charge", wx.LIST_FORMAT_RIGHT)
             self.InsertColumn(3, "+/-")
             self.InsertColumn(4, "Charge")
             self.SetColumnWidth(0, 90)
@@ -175,7 +186,7 @@ class ManualListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
         index = self.InsertItem(10000, str(line[0]))
         self.SetItem(index, 1, str(line[1]))
         self.SetItem(index, 2, str(line[2]))
-        if self.imflag == 1:
+        if self.imflag >= 1:
             self.SetItem(index, 3, str(line[3]))
             self.SetItem(index, 4, str(0))
 
@@ -191,7 +202,7 @@ class ManualListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
             index = self.InsertItem(i, str(data[i][0]))
             self.SetItem(index, 1, str(data[i][1]))
             self.SetItem(index, 2, str(data[i][2]))
-            if self.imflag == 1:
+            if self.imflag >= 1:
                 self.SetItem(index, 3, str(data[i][3]))
                 self.SetItem(index, 4, str(data[i][4]))
             if colors is not None:
@@ -229,7 +240,8 @@ class ManualListCtrlPanel(wx.Panel):
         """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self.list = ManualListCrtl(self, wx.NewIdRef(), size=(300 + 100 * imflag, 150), style=wx.LC_REPORT,
+        self.list = ManualListCrtl(self, wx.NewIdRef(), size=(300 + 100 * np.amin([imflag, 1]), 150),
+                                   style=wx.LC_REPORT,
                                    imflag=imflag)
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click, self.list)
         sizer.Add(self.list, 1, wx.EXPAND)
@@ -283,6 +295,7 @@ class ManualSelection(wx.Dialog):
         self.data = []
         self.plot1 = None
         self.masslistbox = None
+        self.tdflag = 0
 
     def initiate_dialog(self, config, data):
         """
@@ -292,7 +305,15 @@ class ManualSelection(wx.Dialog):
         :return: None
         """
         self.data = data
-        self.SetSize((700 + config.imflag * 50, 650))
+
+        if config.imflag == 1:
+            self.tdflag = 1
+        elif config.cdmsflag == 1:
+            self.tdflag = 2
+        else:
+            self.tdflag = 0
+
+        self.SetSize((700 + np.amin([self.tdflag, 1]) * 50, 650))
         self.config = config
 
         panel = wx.Panel(self)
@@ -301,7 +322,7 @@ class ManualSelection(wx.Dialog):
 
         size = (7, 4)
         vbox2 = wx.BoxSizer(wx.VERTICAL)
-        if self.config.imflag == 0:
+        if self.tdflag == 0:
             self.plot1 = PlottingWindow.Plot1d(panel, figsize=size)
         else:
             self.plot1 = PlottingWindow.Plot2d(panel, figsize=size)
@@ -336,7 +357,7 @@ class ManualSelection(wx.Dialog):
 
         sb2 = wx.StaticBox(panel, label='Manual List')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.VERTICAL)
-        self.masslistbox = ManualListCtrlPanel(panel, imflag=self.config.imflag)
+        self.masslistbox = ManualListCtrlPanel(panel, imflag=self.tdflag)
         # sbs2.Add(wx.StaticText(panel, label="Manual List"))
         sbs2.Add(self.masslistbox)
         hbox.Add(sbs2)
@@ -416,7 +437,7 @@ class ManualSelection(wx.Dialog):
         """
         x0, x1 = self.plot1.subplot1.get_xlim()
         xwin = (x1 - x0) / 2.
-        if self.config.imflag == 0:
+        if self.tdflag == 0:
             line = [x0 + xwin, xwin, 0, 0]
         else:
             y0, y1 = self.plot1.subplot1.get_ylim()
@@ -432,7 +453,7 @@ class ManualSelection(wx.Dialog):
         :return: None
         """
         # Make initial plot
-        if self.config.imflag == 0:
+        if self.tdflag == 0:
             self.plot1.plotrefreshtop(self.data[:, 0], self.data[:, 1], "", "m/z (Th)", "Normalized Intensity", "Data",
                                       self.config)
         else:
@@ -447,7 +468,7 @@ class ManualSelection(wx.Dialog):
             # Make the color map
             colormap = cm.get_cmap('rainbow', len(manuallist))
             xcolors = colormap(np.arange(len(manuallist)))
-            if self.config.imflag == 1:
+            if self.tdflag == 1:
                 # Try to correct for overlapping regions in IM-MS.
                 try:
                     if detectoverlap(manuallist):
@@ -457,7 +478,7 @@ class ManualSelection(wx.Dialog):
                     print("Error with overlapping assignments. Try making sure regions don't intersect.", e)
             # Plot the appropriate regions on the plot.
             for i, l in enumerate(manuallist):
-                if self.config.imflag == 0:
+                if self.tdflag == 0:
                     y0 = np.amin(self.data[:, 1])
                     ywidth = np.amax(self.data[:, 1]) - y0
                 else:
@@ -481,7 +502,7 @@ class ManualSelection(wx.Dialog):
         import_file_name = FileDialogs.open_file_dialog("Open File", file_types="*.*")
         if import_file_name is not None:
             importtrunc = np.loadtxt(import_file_name)
-            if self.config.imflag == 0:
+            if self.tdflag == 0:
                 if importtrunc.shape == (3,):
                     importtrunc = [importtrunc]
                 if len(importtrunc[0]) == 3:
@@ -516,10 +537,19 @@ class SmashListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
             self.InsertColumn(1, "+/-")
             self.SetColumnWidth(0, 100)
             self.SetColumnWidth(1, 100)
-        else:
+        elif self.imflag == 1:
             self.InsertColumn(0, "m/z value (Th)", wx.LIST_FORMAT_RIGHT)
             self.InsertColumn(1, "+/-")
             self.InsertColumn(2, "Arrival Time (ms)", wx.LIST_FORMAT_RIGHT)
+            self.InsertColumn(3, "+/-")
+            self.SetColumnWidth(0, 90)
+            self.SetColumnWidth(1, 50)
+            self.SetColumnWidth(2, 105)
+            self.SetColumnWidth(3, 50)
+        else:
+            self.InsertColumn(0, "m/z value (Th)", wx.LIST_FORMAT_RIGHT)
+            self.InsertColumn(1, "+/-")
+            self.InsertColumn(2, "Charge", wx.LIST_FORMAT_RIGHT)
             self.InsertColumn(3, "+/-")
             self.SetColumnWidth(0, 90)
             self.SetColumnWidth(1, 50)
@@ -543,9 +573,9 @@ class SmashListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
             line = [0, 0, 0, 0]
         index = self.InsertItem(10000, str(line[0]))
         self.SetItem(index, 1, str(line[1]))
-        if self.imflag == 1:
-            self.SetItem(index, 2, str(line[3]))
-            self.SetItem(index, 3, str(0))
+        if self.imflag >= 1:
+            self.SetItem(index, 2, str(line[2]))
+            self.SetItem(index, 3, str(line[3]))
 
     def populate(self, data, colors=None):
         """
@@ -558,7 +588,7 @@ class SmashListCrtl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEdi
         for i in range(0, len(data)):
             index = self.InsertItem(i, str(data[i][0]))
             self.SetItem(index, 1, str(data[i][1]))
-            if self.imflag == 1:
+            if self.imflag >= 1:
                 self.SetItem(index, 2, str(data[i][2]))
                 self.SetItem(index, 3, str(data[i][3]))
             if colors is not None:
@@ -594,7 +624,7 @@ class SmashListCtrlPanel(wx.Panel):
         """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self.list = SmashListCrtl(self, wx.NewIdRef(), size=(300 + 100 * imflag, 150), style=wx.LC_REPORT,
+        self.list = SmashListCrtl(self, wx.NewIdRef(), size=(300 + 100 * np.amin([imflag, 1]), 150), style=wx.LC_REPORT,
                                   imflag=imflag)
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click, self.list)
         sizer.Add(self.list, 1, wx.EXPAND)
@@ -648,6 +678,7 @@ class SmashSelection(wx.Dialog):
         self.data = []
         self.plot1 = None
         self.masslistbox = None
+        self.tdflag = 0
 
     def initiate_dialog(self, config, data):
         """
@@ -656,8 +687,15 @@ class SmashSelection(wx.Dialog):
         :param data: Data to plot (either MS or IM-MS)
         :return: None
         """
+        if config.imflag == 1:
+            self.tdflag = 1
+        elif config.cdmsflag == 1:
+            self.tdflag = 2
+        else:
+            self.tdflag = 0
+
         self.data = data
-        self.SetSize((700 + config.imflag * 50, 650))
+        self.SetSize((700 + np.amin([self.tdflag, 1]) * 50, 650))
         self.config = config
 
         panel = wx.Panel(self)
@@ -666,7 +704,7 @@ class SmashSelection(wx.Dialog):
 
         size = (7, 4)
         vbox2 = wx.BoxSizer(wx.VERTICAL)
-        if self.config.imflag == 0:
+        if self.tdflag == 0:
             self.plot1 = PlottingWindow.Plot1d(panel, figsize=size)
         else:
             self.plot1 = PlottingWindow.Plot2d(panel, figsize=size)
@@ -701,7 +739,7 @@ class SmashSelection(wx.Dialog):
 
         sb2 = wx.StaticBox(panel, label='Smash List')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.VERTICAL)
-        self.masslistbox = SmashListCtrlPanel(panel, imflag=self.config.imflag)
+        self.masslistbox = SmashListCtrlPanel(panel, imflag=self.tdflag)
         # sbs2.Add(wx.StaticText(panel, label="Manual List"))
         sbs2.Add(self.masslistbox)
         hbox.Add(sbs2)
@@ -783,7 +821,7 @@ class SmashSelection(wx.Dialog):
         """
         x0, x1 = self.plot1.subplot1.get_xlim()
         xwin = (x1 - x0) / 2.
-        if self.config.imflag == 0:
+        if self.tdflag == 0:
             line = [x0 + xwin, xwin, 0, 0]
         else:
             y0, y1 = self.plot1.subplot1.get_ylim()
@@ -794,16 +832,18 @@ class SmashSelection(wx.Dialog):
 
     def on_plot(self, e):
         """
-        Attempts to correct and plot the manual assignments.
+        Attempts to correct and plot the smash assignments.
         :param e: Unused event
         :return: None
         """
         # Make initial plot
-        if self.config.imflag == 0:
+        if self.tdflag == 0:
             self.plot1.plotrefreshtop(self.data[:, 0], self.data[:, 1], "", "m/z (Th)", "Normalized Intensity", "Data",
                                       self.config)
-        else:
+        elif self.tdflag == 1:
             self.plot1.contourplot(self.data, self.config, xlab="m/z (Th)", ylab="Arrival Time (ms)", title="")
+        else:
+            self.plot1.contourplot(self.data, self.config, xlab="m/z (Th)", ylab="Charge", title="")
 
         # Get manual assignments from list
         manuallist = self.masslistbox.list.get_list()
@@ -814,7 +854,7 @@ class SmashSelection(wx.Dialog):
             # Make the color map
             colormap = cm.get_cmap('rainbow', len(manuallist))
             xcolors = colormap(np.arange(len(manuallist)))
-            if self.config.imflag == 1:
+            if self.tdflag == 1:
                 # Try to correct for overlapping regions in IM-MS.
                 try:
                     if detectoverlap(manuallist):
@@ -824,16 +864,17 @@ class SmashSelection(wx.Dialog):
                     print("Error with overlapping assignments. Try making sure regions don't intersect.", e)
             # Plot the appropriate regions on the plot.
             for i, l in enumerate(manuallist):
-                if self.config.imflag == 0:
+                if self.tdflag == 0:
                     y0 = np.amin(self.data[:, 1])
                     ywidth = np.amax(self.data[:, 1]) - y0
                 else:
                     y0 = l[2] - l[3]
                     ywidth = l[3] * 2.
-                self.plot1.subplot1.add_patch(
-                    Rectangle((l[0] - l[1], y0), l[1] * 2., ywidth, alpha=0.5, facecolor=xcolors[i], edgecolor='black',
-                              fill=True))
-            self.plot1.repaint()
+                self.plot1.subplot1.add_patch(Rectangle((l[0] - l[1], y0), l[1] * 2., ywidth, alpha=0.5,
+                                                        facecolor=xcolors[i], edgecolor='black', fill=True))
+            self.plot1.repaint(resetzoom=True)
+            #self.plot1.zoomout()
+
             # Refill the list with the corrected values
             self.masslistbox.list.populate(manuallist, colors=xcolors)
         pass
@@ -848,7 +889,7 @@ class SmashSelection(wx.Dialog):
         import_file_name = FileDialogs.open_file_dialog("Open File", file_types="*.*")
         if import_file_name is not None:
             importtrunc = np.loadtxt(import_file_name)
-            if self.config.imflag == 0:
+            if self.tdflag == 0:
                 if importtrunc.shape == (2,):
                     importtrunc = [importtrunc]
                 if len(importtrunc[0]) == 2:
@@ -863,11 +904,17 @@ class SmashSelection(wx.Dialog):
 
 
 if __name__ == "__main__":
-    from unidec import engine
-    eng = engine.UniDec()
+    path = "C:\\Python\\UniDec3\\unidec\\bin\\Example Data\\CDMS\\GroEL_CDMS_1.RAW"
+    from unidec.modules import CDEng
+
+    eng = CDEng.UniDecCD()
+    eng.open_file(path)
+    eng.process_data()
+    eng.config.discreteplot = 1
+    # eng.config.cdmsflag = 1
     # Launch SmashSelection
     app = wx.App(False)
     frame = SmashSelection(None)
-    frame.initiate_dialog(eng.config, None)
+    frame.initiate_dialog(eng.config, eng.data.data3)
     frame.ShowModal()
     app.MainLoop()

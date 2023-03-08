@@ -556,6 +556,9 @@ class UniDecCD(engine.UniDec):
         self.X, self.Y = np.meshgrid(self.mz, self.ztab, indexing='xy')
         self.mass = (self.X - self.config.adductmass) * self.Y
 
+        self.data.data3 = np.transpose([np.ravel(self.X, order="F"), np.ravel(self.Y, order="F"),
+                                        np.ravel(self.harray, order="F")])
+
     def hist_data_prep(self):
         if self.config.smooth > 0 or self.config.smoothdt > 0:
             print("Histogram Smoothing:", self.config.smooth, self.config.smoothdt)
@@ -620,6 +623,24 @@ class UniDecCD(engine.UniDec):
             print(boo3.shape)
             # Set values outside range to 0
             self.harray[boo3] = 0
+
+        if not ud.isempty(self.config.smashlist) and self.config.smashflag == 1:
+            print("Smashing: ", self.config.smashlist)
+            for i in range(len(self.config.smashlist)):
+                smashrange = self.config.smashlist[i]
+                # Filter values
+                boo1 = self.X > smashrange[0] - smashrange[1]
+                boo2 = self.X < smashrange[0] + smashrange[1]
+                boo3 = np.logical_and(boo1, boo2)
+
+                boo1 = self.Y > smashrange[2] - smashrange[3]
+                boo2 = self.Y < smashrange[2] + smashrange[3]
+                boo4 = np.logical_and(boo1, boo2)
+
+                boo3 = np.logical_and(boo3, boo4)
+
+                # Set values outside range to 0
+                self.harray[boo3] = 0
         return self.harray
 
     def hist_nativeZ_filter(self, nativeZrange=None):

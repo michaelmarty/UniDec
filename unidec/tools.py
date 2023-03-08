@@ -1698,6 +1698,22 @@ def smash(data, midpoint, window):
     return data
 
 
+def smash2d(data, midpoint, window, ymidpoint, ywindow):
+    # Set all the data from midpoint-window to midpoint+window to zero
+    b1 = data[:, 0] > midpoint - window
+    b2 = data[:, 0] < midpoint + window
+    b3 = np.logical_and(b1, b2)
+
+    b1 = data[:, 1] > ymidpoint - ywindow
+    b2 = data[:, 1] < ymidpoint + ywindow
+    b4 = np.logical_and(b1, b2)
+
+    b5 = np.logical_and(b3, b4)
+
+    data[b5, 2] = 0
+    return data
+
+
 def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
     """
     Main function to process 1D MS data. The order is:

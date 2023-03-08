@@ -6,7 +6,7 @@ import time
 import webbrowser
 from unidec.modules.html_writer import *
 
-version = "6.0.0"
+version = "6.0.1"
 
 
 def copy_config(config):

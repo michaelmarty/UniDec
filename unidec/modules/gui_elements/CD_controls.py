@@ -233,6 +233,13 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox1b.Add(self.ctlnegmode, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         self.parent.Bind(wx.EVT_CHECKBOX, self.export_gui_to_config, self.ctlnegmode)
         i += 1
+
+        self.ctlsmashflag = wx.CheckBox(panel1b, label="Remove Noise Peaks")
+        self.parent.Bind(wx.EVT_CHECKBOX, self.on_check_smash, self.ctlsmashflag)
+        gbox1b.Add(self.ctlsmashflag, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlsmashflag.SetToolTip(wx.ToolTip("Remove Noise Peaks. See Tools>Select Noise Peaks"))
+        i += 1
+
         gbox1b.Add(wx.StaticText(panel1b, label=""), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
         panel1b.SetSizer(gbox1b)
@@ -633,6 +640,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
 
             self.ctldiscrete.SetValue(self.config.discreteplot)
+            self.ctlsmashflag.SetValue(self.config.smashflag)
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlrawflag.SetSelection(self.config.rawflag)
 
@@ -738,6 +746,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.integrateub = ud.string_to_value(self.ctlintub.GetValue())
         self.config.reductionpercent = ud.string_to_value(self.ctldatareductionpercent.GetValue())
 
+        self.config.smashflag = int(self.ctlsmashflag.GetValue())
         self.config.discreteplot = int(self.ctldiscrete.GetValue())
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
         self.config.rawflag = self.ctlrawflag.GetSelection()
@@ -952,6 +961,19 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         elif value == 0:
             self.ctlmzsig.SetValue("0")
         self.export_gui_to_config()'''
+
+    def on_check_smash(self, e):
+        """
+        Checks the configuration to see if values for noise smashing are set. If they are not,
+        it opens the window to set the smash assignments.
+        :param e: Dummy wx event passed on.
+        :return: None
+        """
+        self.config.smashflag = self.ctlsmashflag.GetValue()
+        if len(self.config.smashlist) < 1:
+            self.pres.on_smash_window(e)
+            if len(self.config.smashlist) < 1:
+                self.ctlsmashflag.SetValue(False)
 
     def on_p_select(self, e):
         value = self.ctlpselect.GetSelection()

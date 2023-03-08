@@ -1192,8 +1192,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
     def on_check_smash(self, e):
         """
-        Checks the configuration to see if values for manual mode are set. If they are not,
-        it opens the window to set the manual assignments.
+        Checks the configuration to see if values for noise smashing are set. If they are not,
+        it opens the window to set the smash assignments.
         :param e: Dummy wx event passed on.
         :return: None
         """

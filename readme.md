@@ -191,6 +191,12 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.6.0.1
+
+*Added Noise Removal Tool* to UniDec and UniDecCD. This allows you to select specific noise regions (common in UHMR data) and set them to 0. Try Tools > Select Noise Peaks and the checking "Remove Noise Peaks" in the Advanced Data Processing Parameters.
+
+Fixed major bugs with 2D zooming and plotting. 
+
 v.6.0.0
 
 Major changes to code structure to enable PyPI distribution. Changed to more conventional Python package structure with unidec top directory. Renamed unidec_modules to modules, unidec_src to src, and unidec_bin to bin. Renamed some top level windows and moved all to main folder. For example, unidectools.py has been moved from modules to the top level and renamed as tools.py, and unidec.py has been renamed as engine.py. The good news is that you can now do `pip install unidec` and `python -m unidec.Launcher` to run UniDec from the command line.

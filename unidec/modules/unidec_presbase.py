@@ -627,8 +627,10 @@ class UniDecPres(object):
         :return: None
         """
         dlg = ManualSelectionWindow.SmashSelection(self.view)
-        if self.eng.config.imflag == 0:
+        if self.eng.config.imflag == 0 and self.eng.config.cdmsflag == 0:
             dlg.initiate_dialog(self.eng.config, self.eng.data.data2)
+        elif self.eng.config.cdmsflag == 1:
+            dlg.initiate_dialog(self.eng.config, self.eng.data.data3)
         else:
             dlg.initiate_dialog(self.eng.config, self.eng.data.data3)
         dlg.ShowModal()

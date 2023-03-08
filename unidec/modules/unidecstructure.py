@@ -470,6 +470,7 @@ class UniDecConfig(object):
         f.write("psfun " + str(self.psfun) + "\n")
         f.write("zpsfun " + str(self.psfunz) + "\n")
         f.write("discreteplot " + str(self.discreteplot) + "\n")
+        f.write("smashflag " + str(self.smashflag) + "\n")
         f.write("massub " + str(self.massub) + "\n")
         f.write("masslb " + str(self.masslb) + "\n")
         f.write("msig " + str(self.msig) + "\n")
@@ -587,7 +588,7 @@ class UniDecConfig(object):
         if not ud.isempty(self.smashlist):
             # print self.smashlist
             self.smashlist = np.array(self.smashlist)
-            if self.imflag == 0:
+            if self.imflag == 0 and self.cdmsflag == 0:
                 if self.smashlist.shape[1] == 2:
                     ud.dataexport(self.smashlist, self.smashfile)
                 else:
@@ -662,6 +663,8 @@ class UniDecConfig(object):
                             self.psfunz = ud.string_to_int(line.split()[1])
                         if line.startswith("discreteplot"):
                             self.discreteplot = ud.string_to_int(line.split()[1])
+                        if line.startswith("smashflag"):
+                            self.smashflag = ud.string_to_int(line.split()[1])
                         if line.startswith("massub"):
                             self.massub = ud.string_to_value(line.split()[1])
                         if line.startswith("masslb"):
@@ -839,7 +842,7 @@ class UniDecConfig(object):
             # Import smash file
             if os.path.isfile(self.smashfile):
                 self.smashlist = np.loadtxt(self.smashfile)
-                if self.imflag == 0:
+                if self.imflag == 0 and self.cdmsflag == 0:
                     if self.smashlist.shape == (2,):
                         self.smashlist = np.array([self.smashlist])
                 else:
