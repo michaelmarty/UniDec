@@ -6,6 +6,7 @@ import unidec.engine as engine
 import pandas as pd
 from unidec.modules.matchtools import *
 
+# Idea do this same thing with other omics data (lipidomics, metabolomics, etc.)
 
 # Set the directory and engine
 os.chdir("D:\\Data\\Luis Genentech")
@@ -13,16 +14,16 @@ eng = engine.UniDec()
 
 # Set and load the peak file
 pfile = "20220113162114FcFusionProtein_SA15_20uScans_5500_7000mz_peaks.txt"
-#pfile = "20220113144226FcFusionProtein_SA8_20uScans_peaks.txt"
-#pfile = "211029_Wendy_Isle22FC_4_warmup_PTR2_peaks.txt"
+# pfile = "20220113144226FcFusionProtein_SA8_20uScans_peaks.txt"
+# pfile = "211029_Wendy_Isle22FC_4_warmup_PTR2_peaks.txt"
 eng.load_peaks(pfile)
 
 # Set and load the glycan file
-#gfile = "SA15_Trypsin_glycan_list_abridged.csv"
-#gfile = "IL22_SA8_tryp_glycan_list_abridged.csv"
-#gfile = "IL22_SA4_tryp_glycan_list_abridged.csv"
-#gfile = "IL22_Tryp\\IL22_SA4_tryp_glycan_list_4thsite.csv"
-#gfile = "IL22_Tryp\\IL22_SA8_tryp_glycan_list_4thsite.csv"
+# gfile = "SA15_Trypsin_glycan_list_abridged.csv"
+# gfile = "IL22_SA8_tryp_glycan_list_abridged.csv"
+# gfile = "IL22_SA4_tryp_glycan_list_abridged.csv"
+# gfile = "IL22_Tryp\\IL22_SA4_tryp_glycan_list_4thsite.csv"
+# gfile = "IL22_Tryp\\IL22_SA8_tryp_glycan_list_4thsite.csv"
 gfile = "IL22_Tryp\\IL22_SA15_tryp_glycan_list_4thsite.csv"
 gdf = pd.read_csv(gfile)
 print(gdf.keys())
@@ -35,7 +36,7 @@ print("Protein Mass:", protmass)
 sites = ["S1", "S1", "S2", "S2", "S3", "S3", "S4", "S4"]
 
 st = time.perf_counter()
-probs_cutoff=1
+probs_cutoff = 1
 # Brute force calculate all possible combinations of glycans in the list
 indexes, masses, probs, glycans = get_sitematch_list(gdf, sites=sites, probs_cutoff=probs_cutoff)
 
@@ -50,9 +51,8 @@ plt.hist(masses + protmass, bins=bins)
 plt.savefig(gfile[:-4]+"TheoreticalMassBruteForce"+str(probs_cutoff)+".pdf")
 plt.show()'''
 
-
 # Open the output file
-outfile = gfile[:-4] + "_matches_brute_force"+str(probs_cutoff)+".xlsx"
+outfile = gfile[:-4] + "_matches_brute_force" + str(probs_cutoff) + ".xlsx"
 with pd.ExcelWriter(outfile) as writer:
     # Loop through all peaks
     for mass in eng.pks.masses:

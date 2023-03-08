@@ -193,7 +193,8 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.6.0.0
 
-Major changes to code structure to enable PyPI distribution. Changed to more conventional Python package structure with unidec top directory. Renamed unidec_modules to modeuls, unidec_src to src, and unidec_bin to bin. Renamed some top level windows and moved all to main folder. For example, unidectools.py has been moved from modules to the top level and renamed as tools.py, and unidec.py has been renamed as engine.py. 
+Major changes to code structure to enable PyPI distribution. Changed to more conventional Python package structure with unidec top directory. Renamed unidec_modules to modules, unidec_src to src, and unidec_bin to bin. Renamed some top level windows and moved all to main folder. For example, unidectools.py has been moved from modules to the top level and renamed as tools.py, and unidec.py has been renamed as engine.py. The good news is that you can now do `pip install unidec` and `python -m unidec.Launcher` to run UniDec from the command line.
+
 
 Improved command line tools. Added -o option for file output in unidec. Included new entry points and smoothed out command line interface. Now you can use unidec to lanuch python -m unidec in the scripts folder. Similarly, gunidec will launch python -m unidec.Launcher. If you have Python and the scripts folder configured in your system path, command line tools will be much easier to use. 
 

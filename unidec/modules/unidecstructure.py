@@ -59,6 +59,7 @@ class UniDecConfig(object):
         self.outfname = ""
         self.mfile = "mass.dat"
         self.manualfile = "man.dat"
+        self.smashfile = "smash.dat"
         self.confname = "conf.dat"
         self.hdf_file = "default.hdf5"
         self.ofile = "ofile.dat"
@@ -165,6 +166,8 @@ class UniDecConfig(object):
         self.matchlist = []
         self.oligomerlist = []
         self.manuallist = []
+        self.smashlist = []
+        self.smashflag = 0
         self.zoffs = []
         self.smashrange = []
         self.massoffset = 0
@@ -317,6 +320,8 @@ class UniDecConfig(object):
         self.matchlist = []
         self.oligomerlist = []
         self.manuallist = []
+        self.smashlist = []
+        self.smashflag = 0
         self.zoffs = []
         self.smashrange = []
         self.massoffset = 0
@@ -560,10 +565,11 @@ class UniDecConfig(object):
                 f.write("gasmass " + str(self.gasmass) + "\n")
 
         f.close()
+        # Export Mass List
         if not ud.isempty(self.masslist):
             ud.dataexport(self.masslist, self.mfile)
+        # Export Manual List
         if not ud.isempty(self.manuallist):
-            # print self.manuallist
             self.manuallist = np.array(self.manuallist)
             if self.imflag == 0:
                 if self.manuallist.shape[1] == 3:
@@ -577,6 +583,23 @@ class UniDecConfig(object):
                 else:
                     print("Manual List Shape is wrong. Try using manual list tool again.")
                     print(self.manuallist.shape)
+        # Export Smash list
+        if not ud.isempty(self.smashlist):
+            # print self.smashlist
+            self.smashlist = np.array(self.smashlist)
+            if self.imflag == 0:
+                if self.smashlist.shape[1] == 2:
+                    ud.dataexport(self.smashlist, self.smashfile)
+                else:
+                    print("Manual List Shape is wrong. Try using manual list tool again.")
+                    print(self.smashlist.shape)
+            else:
+                if self.smashlist.shape[1] == 4:
+                    ud.dataexport(self.smashlist, self.smashfile)
+                else:
+                    print("Manual List Shape is wrong. Try using manual list tool again.")
+                    print(self.smashlist.shape)
+
         if not ud.isempty(self.oligomerlist):
             np.savetxt(self.ofile, self.oligomerlist, fmt='%s')
 
@@ -785,6 +808,7 @@ class UniDecConfig(object):
             f.close()
             self.endz = self.startz + self.numz - 1
 
+            # Import massfile
             if os.path.isfile(self.mfile):
                 self.masslist = np.loadtxt(self.mfile)
                 if self.masslist.size == 1:
@@ -792,6 +816,7 @@ class UniDecConfig(object):
             else:
                 self.masslist = np.array([])
 
+            # Import Ofile
             if os.path.isfile(self.ofile):
                 self.oligomerlist = ofile_reader(self.ofile)
                 if self.oligomerlist.shape == (4,) or self.oligomerlist.shape == (5,):
@@ -799,6 +824,7 @@ class UniDecConfig(object):
             else:
                 self.oligomerlist = np.array([])
 
+            # Import manual file
             if os.path.isfile(self.manualfile):
                 self.manuallist = np.loadtxt(self.manualfile)
                 if self.imflag == 0:
@@ -809,6 +835,18 @@ class UniDecConfig(object):
                         self.manuallist = np.array([self.manuallist])
             else:
                 self.manuallist = np.array([])
+
+            # Import smash file
+            if os.path.isfile(self.smashfile):
+                self.smashlist = np.loadtxt(self.smashfile)
+                if self.imflag == 0:
+                    if self.smashlist.shape == (2,):
+                        self.smashlist = np.array([self.smashlist])
+                else:
+                    if self.smashlist.shape == (4,):
+                        self.smashlist = np.array([self.smashlist])
+            else:
+                self.smashlist = np.array([])
 
     def get_config_dict(self):
         if self.metamode != -2:
@@ -874,7 +912,7 @@ class UniDecConfig(object):
 
         for key, value in cdict.items():
             try:
-                #if value is None:
+                # if value is None:
                 #    value = ""
                 config_group.attrs[key] = value
             except Exception as e:
@@ -1023,6 +1061,7 @@ class UniDecConfig(object):
         self.confname = self.outfname + "_conf.dat"
         self.mfile = self.outfname + "_mfile.dat"
         self.manualfile = self.outfname + "_manualfile.dat"
+        self.smashfile = self.outfname + "_smashfile.dat"
         self.ofile = self.outfname + "_ofile.dat"
         self.matchfile = self.outfname + "_match.dat"
         self.peaksfile = self.outfname + "_peaks.dat"
