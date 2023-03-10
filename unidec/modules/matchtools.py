@@ -301,6 +301,8 @@ def calc_bispecific_correct(row, a_code="BsAb (Correct)", b_code="LC1 Mispair (I
 
     # Normalize
     s = np.sum([a, b, c])
+    if s == 0:
+        return row
     a /= s
     b /= s
     c /= s

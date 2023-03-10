@@ -286,7 +286,7 @@ class UniDecBatchProcessor(object):
             # If the file exists, open it
             if os.path.isfile(path):
                 print("Opening:", path)
-                self.eng.open_file(path, time_range=self.time_range, refresh=not use_converted)
+                self.eng.open_file(path, time_range=self.time_range, refresh=not use_converted, silent=True)
 
                 if "Config File" in row:
                     try:
@@ -302,7 +302,7 @@ class UniDecBatchProcessor(object):
                 if decon:
                     autopw = not check_for_value(row, "Config m/z Peak FWHM", (float, int))
                     print("Auto Peak Width", autopw)
-                    self.eng.autorun(auto_peak_width=autopw)
+                    self.eng.autorun(auto_peak_width=autopw, silent=True)
                 else:
                     self.eng.unidec_imports(efficiency=False)
                     self.eng.pick_peaks()
