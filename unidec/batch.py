@@ -25,9 +25,12 @@ config_parameters = [["Config Peak Thres", False, "Deconvolution Setting: The Pe
                      ["Config High m/z", False, "Deconvolution Setting: The High m/z Limit"],
                      ["Config Low m/z", False, "Deconvolution Setting: The Low m/z Limit"],
                      ["Config Sample Mass Every", False, "Deconvolution Setting: The Mass Bin Size in Da"],
-                     ["Config m/z Peak FWHM", False, "Deconvolution Setting: The Peak Width in m/z used for Deconvolution"],
+                     ["Config m/z Peak FWHM", False,
+                      "Deconvolution Setting: The Peak Width in m/z used for Deconvolution"],
                      ["Config m/z Peak Shape", False, "Deconvolution Setting: The peak shape function used for "
                                                       "Deconvolution. 0=gaussian, 1=lorentzian, 2=split G/L"],
+                     ["Config File", False, "Path to Config File. Will load this file and use the settings. Note,"
+                                            " any settings specified in the batch file will override the config file."],
                      ]
 
 recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if not specified."],
@@ -41,33 +44,38 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
                                       "multiple is used If not specified, no modifications will be used. "
                                       "Note, it will apply one set of all fixed mods to each sequence. "
                                       "If you specify, \"Seq1+Seq2\", it will apply the fixed mods to both sequences."],
-            ["Apply Fixed Mods", False, "A column specifying which sequences should get the fixed mods. "
-                                        "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
-                                        "column name, etc. Delimiters do not matter. "
-                                        "You can specify \"All\" to apply mods to all sequences "
-                                        "or \"None\" to apply to none. "
-                                        "It will assume yes to all if this column is not present. "],
-            ["Disulfides Oxidized", False, "A column specifying the sequences that should be fully disulfide oxidized. "
-                                           "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
-                                           "column name, etc. Delimiters do not matter. "
-                                           "It will assume no to all if this column is not present. "
-                                           "You can specify \"All\" to oxidize all sequences "
-                                           "or \"None\" to oxidize none. "
-                                           "Will only work if sequences are amino acid codes with C. "
-                                           "It will subtract one H mass for each C."],
-            ["Favored Match", False, "If there are several possible matches within tolerance, which to select. "
-                                     "Default is \"Closest\" for the closest absolute mass. Also accepts \"Incorrect\" "
-                                     "to select an incorrect mass within the tolerance even if a correct mass is "
-                                     "closesr. Other keywords like \"Ignore\" and \"Correct\" can be used to select "
-                                     "specific types of matches over others."],
-            ["Sequence {n}", False, "The amino acid sequence or mass for the {n}th protein. Can be multiple sequences, "
-                                    "each as their own columns. If it can convert to float, it will. "
-                                    "If not, it will assume it is an amino acid sequence with 1 letter codes."],
+            ["Apply Fixed Mods", False,
+             "A column specifying which sequences should get the fixed mods. "
+             "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
+             "column name, etc. Delimiters do not matter. "
+             "You can specify \"All\" to apply mods to all sequences "
+             "or \"None\" to apply to none. "
+             "It will assume yes to all if this column is not present. "],
+            ["Disulfides Oxidized", False,
+             "A column specifying the sequences that should be fully disulfide oxidized. "
+             "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
+             "column name, etc. Delimiters do not matter. "
+             "It will assume no to all if this column is not present. "
+             "You can specify \"All\" to oxidize all sequences "
+             "or \"None\" to oxidize none. "
+             "Will only work if sequences are amino acid codes with C. "
+             "It will subtract one H mass for each C."],
+            ["Favored Match", False,
+             "If there are several possible matches within tolerance, which to select. "
+             "Default is \"Closest\" for the closest absolute mass. Also accepts \"Incorrect\" "
+             "to select an incorrect mass within the tolerance even if a correct mass is "
+             "closesr. Other keywords like \"Ignore\" and \"Correct\" can be used to select "
+             "specific types of matches over others."],
+            ["Sequence {n}", False,
+             "The amino acid sequence or mass for the {n}th protein. Can be multiple sequences, "
+             "each as their own columns. If it can convert to float, it will. "
+             "If not, it will assume it is an amino acid sequence with 1 letter codes."],
             ["Correct", True, "The Correct Pairing. This may be a list of the correct pairs, "
                               "listed as Seq1+Seq2, for example. Can also be a single mass value. "],
-            ["Ignore", False, "Known species that can be ignored. This should be similar to the list of correct pairs, "
-                              "listed as Seq1+Seq2, for example. Can be Seq5 if you want to just ignore Seq5. "
-                              "Note, mods will also be applied to this. Can be a single mass value as well. "],
+            ["Ignore", False,
+             "Known species that can be ignored. This should be similar to the list of correct pairs, "
+             "listed as Seq1+Seq2, for example. Can be Seq5 if you want to just ignore Seq5. "
+             "Note, mods will also be applied to this. Can be a single mass value as well. "],
             ["Incorrect", True, "Incorrect Pairings. This can be a list of the incorrect pairs, "
                                 "listed as Seq2+Seq2, for example. It can also be a single mass value. "]
             ]
@@ -247,6 +255,10 @@ class UniDecBatchProcessor(object):
             if os.path.isfile(path):
                 print("Opening:", path)
                 self.eng.open_file(path, time_range=self.time_range)
+
+                if "Config File" in row:
+                    self.eng.load_config(row["Config File"])
+                    print("Loaded Config File:", row["Config File"])
 
                 # Set the deconvolution parameters from the DataFrame
                 self.eng = set_param_from_row(self.eng, row)

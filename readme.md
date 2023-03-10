@@ -199,6 +199,7 @@ UPP Changes:
 * Added "Config m/z Peak FWHM", "Config m/z Peak Shape", and "Config Sample Mass Every" parameters. If "Config m/z Peak FWHM" is specified as a float or integer, it will use that and skip the automatic peak width determination.
 * Enabled relative paths. 
 * Added "All" or "None" keywords on "Apply Fixed Mods" and "Disulfides Oxidized." 
+* Added "Config File" keyword to load a specific config file.
 
 
 Fixed major bugs with 2D zooming and plotting. 
