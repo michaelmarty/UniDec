@@ -51,7 +51,7 @@ is_64bits = sys.maxsize > 2 ** 32
 protmass = 1.007276467
 oxmass = 15.994914
 
-known_extensions = [".raw", ".d", ".mzml", ".gz", ".mzxml", ".txt", ".csv", ".dat", ".npz"]
+known_extensions = [".raw", ".d", ".mzml", ".gz", ".mzxml",".mzxml", ".txt", ".csv", ".dat", ".npz"]
 
 
 def get_importer(path):

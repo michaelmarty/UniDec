@@ -168,8 +168,9 @@ class UPPApp(wx.Frame):
         menu.AppendSeparator()
 
         # Add Files Menu
-        add_files_menu_item = menu.Append(wx.ID_ANY, "Add Data File", "Add Data Files")
+        add_files_menu_item = menu.Append(wx.ID_ANY, "Add Data Files", "Add Data Files")
         self.Bind(wx.EVT_MENU, self.on_add_files, add_files_menu_item)
+        # Clear everything on the panel
         clear_everything_menu_item = menu.Append(wx.ID_ANY, "Clear All", "Clear Everything")
         self.Bind(wx.EVT_MENU, self.clear_all, clear_everything_menu_item)
 
@@ -326,7 +327,6 @@ class UPPApp(wx.Frame):
         self.ss.delete_all()
         self.ss.set_col_headers(["Sample name", "Data Directory"])
 
-
     def load_file(self, filename):
         print("Loading File:", filename)
         self.ss.delete_all()
@@ -419,12 +419,26 @@ class UPPApp(wx.Frame):
 
     def on_add_files(self, event=None):
 
+        wildcard = "CSV or Excel files (*.csv; *.xlsx; *.xls)|*.csv; *.xlsx; *.xls|CSV files (*.csv)|*.csv|Excel files (*.xlsx; *.xls)|*.xlsx; *.xls"
+        wildcard = "Any files (*.*) |*.*| " \
+                   "Known file types (*.raw; *.d; *.mzML; *.mzXML; *.txt; *.csv; *.dat; *.npz)|" \
+                   "*.raw; *.d; *.mzML; *.mzXML; *.txt; *.csv; *.dat; *.npz|" \
+                   "Thermo RAW files (*.raw)|*.raw|" \
+                   "Agilent D files (*.d)|*.d|" \
+                   "mzML files (*.mzML)|*.mzML|" \
+                   "mzXML files (*.mzXML)|*.mzXML|" \
+                   "Text files (*.txt)|*.txt|" \
+                   "CSV files (*.csv)|*.csv|" \
+                   "Dat files (*.dat)|*.dat|" \
+                   "NPZ files (*.npz)|*.npz"
+
         # Create a file selection dialog
         with wx.FileDialog(self, "Select Files to Add",
-                           wildcard="",
+                           wildcard=wildcard,
                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE) as fileDialog:
             # Show the dialog and retrieve the user response. If it is the OK response,
             # process the data.
+
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
             # Proceed loading the file chosen by the user
@@ -502,12 +516,12 @@ if __name__ == "__main__":
     # frame.on_help_page()
     # exit()
     if True:
-        frame.load_file(path)
+        # frame.load_file(path)
         # frame.set_dir_tet_box("C:\\Data\\Wilson_Genentech\\Data")
         # print(df)
         # frame.on_run()
         # frame.on_run_selected(rows=[1])
         # frame.on_run_selected(rows=[0])
-        # frame.on_add_files()
+        frame.on_add_files()
 
     app.MainLoop()
