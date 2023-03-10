@@ -454,8 +454,21 @@ def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest"):
         favor = row["Favored Match"]
         print("Favoring:", favor)
 
+    # Get the global fixed mod
+    globalfixedmod = 0
+    if "Global Fixed Mod" in row.keys():
+        try:
+            val = float(row["Global Fixed Mod"])
+            if not math.isnan(val):
+                globalfixedmod = val
+                print("Global Fixed Mod:", globalfixedmod)
+        except Exception:
+            globalfixedmod = 0
+
     # Calculate the potential pairs
     pmasses, plabels = calc_pairs(row, fmoddf=fmoddf)
+    # Add the global fixed mod
+    pmasses += globalfixedmod
     # print(peakmasses)
     print(np.transpose([pmasses, plabels]))
     if len(pmasses) == 0:

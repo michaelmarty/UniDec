@@ -170,6 +170,7 @@ class UPPApp(wx.Frame):
         # Add Files Menu
         add_files_menu_item = menu.Append(wx.ID_ANY, "Add Data Files", "Add Data Files")
         self.Bind(wx.EVT_MENU, self.on_add_files, add_files_menu_item)
+
         # Clear everything on the panel
         clear_everything_menu_item = menu.Append(wx.ID_ANY, "Clear All", "Clear Everything")
         self.Bind(wx.EVT_MENU, self.clear_all, clear_everything_menu_item)
