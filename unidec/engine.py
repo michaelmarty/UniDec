@@ -576,9 +576,10 @@ class UniDec(UniDecEngine):
             self.pks.convolved = True
         return np.array(convdata)
 
-    def autorun(self):
+    def autorun(self, auto_peak_width=True):
         self.process_data()
-        self.get_auto_peak_width()
+        if auto_peak_width:
+            self.get_auto_peak_width()
         self.run_unidec()
         self.pick_peaks()
         self.autointegrate()

@@ -269,11 +269,47 @@ def parse_vmoddf(vmoddf):
 
 
 def check_string_for_seq(redstring, pair):
+    if redstring == "All":
+        return True
+    if redstring == "None":
+        return False
+
     code = "Seq" + str(pair)
     if code in redstring:
         return True
     else:
         return False
+
+
+def calc_bispecific_correct(row, a_code="BsAb", b_code="LC1 Mispair", c_code="LC2 Mispair"):
+    """
+    Calculate the correct bispecific pairing from three columns of heights.
+    Ref: http://dx.doi.org/10.1080/19420862.2016.1232217
+    :param row: df row with the three columns
+    :param a_code: the code for the first column with the correct pairing
+    :param b_code: the code for the second column with the incorrect pairing
+    :param c_code: the code for the third column with the incorrect pairing
+    :return: x, y, the fraction of the a peak that is correctly paired and light chain scrambled, respectively.
+    """
+
+    a = row[a_code.lower() + " Height"]
+    b = row[b_code.lower() + " Height"]
+    c = row[c_code.lower() + " Height"]
+
+    a /= np.sum([a, b, c])
+    b /= np.sum([a, b, c])
+    c /= np.sum([a, b, c])
+
+    d = (a/2.)**2 - (b*c)
+
+    if d > 0:
+        x = (a/2.) + np.sqrt(d)
+    else:
+        x = (a/2.)
+
+    y = a - x
+
+    return x, y
 
 
 known_labels = ["Correct", "Incorrect", "Ignore"]
@@ -302,7 +338,7 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
     # Try to get reduced things
     if "Apply Fixed Mods" in row.keys():
         modstring = str(row["Apply Fixed Mods"])
-        print(modstring)
+        # print(modstring)
 
     total_mod_mass, total_mod_name = parse_fmoddf(fmoddf)
 

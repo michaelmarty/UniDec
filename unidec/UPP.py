@@ -457,8 +457,9 @@ class UPPApp(wx.Frame):
 if __name__ == "__main__":
     app = wx.App()
     frame = UPPApp()
-    frame.usedeconbox.SetValue(False)
+    frame.usedeconbox.SetValue(True)
     path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
+    path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
 
     # frame.on_help_page()
     # exit()

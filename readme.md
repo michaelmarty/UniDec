@@ -195,6 +195,12 @@ v.6.0.1
 
 *Added Noise Removal Tool* to UniDec and UniDecCD. This allows you to select specific noise regions (common in UHMR data) and set them to 0. Try Tools > Select Noise Peaks and the checking "Remove Noise Peaks" in the Advanced Data Processing Parameters.
 
+UPP Changes: 
+* Added "Config m/z Peak FWHM", "Config m/z Peak Shape", and "Config Sample Mass Every" parameters. If "Config m/z Peak FWHM" is specified as a float or integer, it will use that and skip the automatic peak width determination.
+* Enabled relative paths. 
+* Added "All" or "None" keywords on "Apply Fixed Mods" and "Disulfides Oxidized." 
+
+
 Fixed major bugs with 2D zooming and plotting. 
 
 v.6.0.0
