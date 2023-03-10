@@ -82,13 +82,28 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
 
 
 def find_file(fname, folder, use_converted=True):
+    # If use_converted is true, it will look for the converted file first, then the original.
     if use_converted:
         extensions = known_extensions[::-1]
     else:
         extensions = known_extensions
-    for ext in extensions:
-        if os.path.exists(os.path.join(folder, fname + ext)):
-            return os.path.join(folder, fname + ext)
+
+    # Tries to find the extension of the file
+    extension = os.path.splitext(fname)[1].lower()
+    if extension in extensions:
+        # If it finds a file extension it recoginzes, it will try to find the file with that extension
+        if os.path.exists(os.path.join(folder, fname)):
+            # Return the file with the folder
+            return os.path.join(folder, fname)
+        else:
+            # Return the original file name and hope for the best
+            return fname
+
+    else:
+        # If a file extension is not regonized, it will try to find the file with the extensions it knows
+        for ext in extensions:
+            if os.path.exists(os.path.join(folder, fname + ext)):
+                return os.path.join(folder, fname + ext)
     return fname
 
 
@@ -101,54 +116,63 @@ def check_for_correct_in_keys(df):
 
 def set_param_from_row(eng, row):
     for k in row.keys():
+        val = row[k]
+        if isinstance(val, (float, int)):
+            if math.isnan(val):
+                continue
+        if isinstance(val, str):
+            if val == "nan":
+                continue
+
         if "Config Peak Window" in k:
             try:
-                eng.config.peakwindow = float(row[k])
+                eng.config.peakwindow = float(val)
             except Exception as e:
-                print("Error setting peak window", k, row[k], e)
+                print("Error setting peak window", k, val, e)
         if "Config Peak Thres" in k:
             try:
-                eng.config.peakthresh = float(row[k])
+                eng.config.peakthresh = float(val)
             except Exception as e:
-                print("Error setting peak threshold", k, row[k], e)
+                print("Error setting peak threshold", k, val, e)
         if "Config Low Mass" in k:
             try:
-                eng.config.masslb = float(row[k])
+                eng.config.masslb = float(val)
             except Exception as e:
-                print("Error setting low mass", k, row[k], e)
+                print("Error setting low mass", k, val, e)
         if "Config High Mass" in k:
             try:
-                eng.config.massub = float(row[k])
+                eng.config.massub = float(val)
             except Exception as e:
-                print("Error setting high mass", k, row[k], e)
+                print("Error setting high mass", k, val, e)
+
         if "Config Low m/z" in k or "Config Low mz" in k:
             try:
-                eng.config.minmz = float(row[k])
+                eng.config.minmz = float(val)
             except Exception as e:
-                print("Error setting low m/z", k, row[k], e)
+                print("Error setting low m/z", k, val, e)
         if "Config High m/z" in k or "Config High mz" in k:
             try:
-                eng.config.maxmz = float(row[k])
+                eng.config.maxmz = float(val)
             except Exception as e:
-                print("Error setting high m/z", k, row[k], e)
+                print("Error setting high m/z", k, val, e)
 
         if "Config Sample Mass Every" in k:
             try:
-                eng.config.massbins = float(row[k])
+                eng.config.massbins = float(val)
             except Exception as e:
-                print("Error setting massbins", k, row[k], e)
+                print("Error setting massbins", k, val, e)
 
         if "Config m/z FWHM" in k or "Config mz FWHM" in k:
             try:
-                eng.config.mzsig = float(row[k])
+                eng.config.mzsig = float(val)
             except Exception as e:
-                print("Error setting massbins", k, row[k], e)
+                print("Error setting massbins", k, val, e)
 
         if "Config m/z Peak Shape" in k or "Config mz Peak Shape" in k:
             try:
-                eng.config.psfun = int(row[k])
+                eng.config.psfun = int(val)
             except Exception as e:
-                print("Error setting massbins", k, row[k], e)
+                print("Error setting massbins", k, val, e)
 
         # print(eng.config.maxmz, eng.config.minmz, k)
     return eng
@@ -254,11 +278,14 @@ class UniDecBatchProcessor(object):
             # If the file exists, open it
             if os.path.isfile(path):
                 print("Opening:", path)
-                self.eng.open_file(path, time_range=self.time_range)
+                self.eng.open_file(path, time_range=self.time_range, refresh=not use_converted)
 
                 if "Config File" in row:
-                    self.eng.load_config(row["Config File"])
-                    print("Loaded Config File:", row["Config File"])
+                    try:
+                        self.eng.load_config(row["Config File"])
+                        print("Loaded Config File:", row["Config File"])
+                    except Exception as e:
+                        print("Error loading config file", row["Config File"], e)
 
                 # Set the deconvolution parameters from the DataFrame
                 self.eng = set_param_from_row(self.eng, row)
@@ -325,7 +352,7 @@ class UniDecBatchProcessor(object):
                 self.data_dir = data_dir
         # Find the file
         outpath = find_file(file, self.data_dir, use_converted)
-
+        # print("File Path:", outpath)
         return os.path.abspath(outpath)
 
     def run_correct_pair(self, row, pks=None):
@@ -342,14 +369,14 @@ class UniDecBatchProcessor(object):
         # Get and read the mod file
         if "Variable Mod File" in row:
             self.vmodfile = row["Variable Mod File"]
-            if os.path.isfile(self.vmodfile):
+            if os.path.isfile(str(self.vmodfile)):
                 self.vmoddf = file_to_df(self.vmodfile)
                 print("Loaded Variable Mod File: ", self.vmodfile)
 
         # Get and read the mod file
         if "Fixed Mod File" in row:
             self.fmodfile = row["Fixed Mod File"]
-            if os.path.isfile(self.fmodfile):
+            if os.path.isfile(str(self.fmodfile)):
                 self.fmoddf = file_to_df(self.fmodfile)
                 print("Loaded Fixed Mod File: ", self.fmodfile)
 
@@ -374,6 +401,7 @@ if __name__ == "__main__":
     else:
         path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
         path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
+        path = "C:\\Data\\Wilson_Genentech\\BsAb\\test2.csv"
         pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=True, use_converted=True, interactive=False)
 

@@ -458,6 +458,9 @@ def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest"):
     pmasses, plabels = calc_pairs(row, fmoddf=fmoddf)
     # print(peakmasses)
     print(np.transpose([pmasses, plabels]))
+    if len(pmasses) == 0:
+        print("No masses found. Exiting Pair Mode.")
+        return row
     plabelints = np.zeros(len(plabels))
 
     # Get Variable Mods
