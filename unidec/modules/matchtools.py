@@ -281,7 +281,8 @@ def check_string_for_seq(redstring, pair):
         return False
 
 
-def calc_bispecific_correct(row, a_code="BsAb", b_code="LC1 Mispair", c_code="LC2 Mispair"):
+def calc_bispecific_correct(row, a_code="BsAb (Correct)", b_code="LC1 Mispair (Incorrect)",
+                            c_code="LC2 Mispair (Incorrect)"):
     """
     Calculate the correct bispecific pairing from three columns of heights.
     Ref: http://dx.doi.org/10.1080/19420862.2016.1232217
@@ -291,25 +292,32 @@ def calc_bispecific_correct(row, a_code="BsAb", b_code="LC1 Mispair", c_code="LC
     :param c_code: the code for the third column with the incorrect pairing
     :return: x, y, the fraction of the a peak that is correctly paired and light chain scrambled, respectively.
     """
-
+    if a_code not in row.keys() or b_code not in row.keys() or c_code not in row.keys():
+        return row
+    # Get Heights
     a = row[a_code.lower() + " Height"]
     b = row[b_code.lower() + " Height"]
     c = row[c_code.lower() + " Height"]
 
-    a /= np.sum([a, b, c])
-    b /= np.sum([a, b, c])
-    c /= np.sum([a, b, c])
+    # Normalize
+    s = np.sum([a, b, c])
+    a /= s
+    b /= s
+    c /= s
 
-    d = (a/2.)**2 - (b*c)
-
+    # Calculate
+    d = (a / 2.) ** 2 - (b * c)
     if d > 0:
-        x = (a/2.) + np.sqrt(d)
+        x = (a / 2.) + np.sqrt(d)
     else:
-        x = (a/2.)
-
+        x = (a / 2.)
     y = a - x
 
-    return x, y
+    # Set
+    row["BsAb Pairing Calculated (%)"] = x
+    row["Light Chain Scrambled (%)"] = y
+
+    return row
 
 
 known_labels = ["Correct", "Incorrect", "Ignore"]
@@ -621,5 +629,7 @@ def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest"):
     row["correct % Matched Only"] = percents2[0]
     row["incorrect % Matched Only"] = percents2[1]
     row["Matches"] = matchstring
+
+    row = calc_bispecific_correct(row)
 
     return row

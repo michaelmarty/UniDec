@@ -56,33 +56,37 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
                                         "this is applied only once to each complex. "
                                         "Also, it is a single float value rather than a file. "],
             ["Disulfides Oxidized", False,
-                "A column specifying the sequences that should be fully disulfide oxidized. "
-                "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
-                "column name, etc. Delimiters do not matter. "
-                "It will assume no to all if this column is not present. "
-                "You can specify \"All\" to oxidize all sequences "
-                "or \"None\" to oxidize none. "
-                "Will only work if sequences are amino acid codes with C. "
-                "It will subtract one H mass for each C."],
-             ["Favored Match", False,
-              "If there are several possible matches within tolerance, which to select. "
-              "Default is \"Closest\" for the closest absolute mass. Also accepts \"Incorrect\" "
-              "to select an incorrect mass within the tolerance even if a correct mass is "
-              "closesr. Other keywords like \"Ignore\" and \"Correct\" can be used to select "
-              "specific types of matches over others."],
-             ["Sequence {n}", False,
-              "The amino acid sequence or mass for the {n}th protein. Can be multiple sequences, "
-              "each as their own columns. If it can convert to float, it will. "
-              "If not, it will assume it is an amino acid sequence with 1 letter codes."],
-             ["Correct", True, "The Correct Pairing. This may be a list of the correct pairs, "
-                               "listed as Seq1+Seq2, for example. Can also be a single mass value. "],
-             ["Ignore", False,
-              "Known species that can be ignored. This should be similar to the list of correct pairs, "
-              "listed as Seq1+Seq2, for example. Can be Seq5 if you want to just ignore Seq5. "
-              "Note, mods will also be applied to this. Can be a single mass value as well. "],
-             ["Incorrect", True, "Incorrect Pairings. This can be a list of the incorrect pairs, "
-                                 "listed as Seq2+Seq2, for example. It can also be a single mass value. "]
-             ]
+             "A column specifying the sequences that should be fully disulfide oxidized. "
+             "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
+             "column name, etc. Delimiters do not matter. "
+             "It will assume no to all if this column is not present. "
+             "You can specify \"All\" to oxidize all sequences "
+             "or \"None\" to oxidize none. "
+             "Will only work if sequences are amino acid codes with C. "
+             "It will subtract one H mass for each C."],
+            ["Favored Match", False,
+             "If there are several possible matches within tolerance, which to select. "
+             "Default is \"Closest\" for the closest absolute mass. Also accepts \"Incorrect\" "
+             "to select an incorrect mass within the tolerance even if a correct mass is "
+             "closesr. Other keywords like \"Ignore\" and \"Correct\" can be used to select "
+             "specific types of matches over others."],
+            ["Sequence {n}", False,
+             "The amino acid sequence or mass for the {n}th protein. Can be multiple sequences, "
+             "each as their own columns. If it can convert to float, it will. "
+             "If not, it will assume it is an amino acid sequence with 1 letter codes."],
+            ["Correct", True, "The Correct Pairing. This may be a list of the correct pairs, "
+                              "listed as Seq1+Seq2, for example. Can also be a single mass value. "],
+            ["Ignore", False,
+             "Known species that can be ignored. This should be similar to the list of correct pairs, "
+             "listed as Seq1+Seq2, for example. Can be Seq5 if you want to just ignore Seq5. "
+             "Note, mods will also be applied to this. Can be a single mass value as well. "],
+            ["Incorrect", False, "Incorrect Pairings. This can be a list of the incorrect pairs, "
+                                 "listed as Seq2+Seq2, for example. It can also be a single mass value. "],
+            ["BsAb (Correct) | LC1 Mispair (Incorrect) | LC2 Mispair (Incorrect)", False,
+             "This is a special mode for bispecific antibodies. If you specify all of these three columns, "
+             "it will calculate the corrected percentages for bispecific antibodies and light chain scrambling. "
+             "Form more details, see https://dx.doi.org/10.1080/19420862.2016.1232217. "]
+            ]
 
 
 def find_file(fname, folder, use_converted=True):
@@ -405,7 +409,8 @@ if __name__ == "__main__":
     else:
         path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
         path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
-        path = "C:\\Data\\Wilson_Genentech\\BsAb\\test2.csv"
+        path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
+        # path = "C:\\Data\\Wilson_Genentech\\BsAb\\test2.csv"
         pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=True, use_converted=True, interactive=False)
 

@@ -200,6 +200,10 @@ UPP Changes:
 * Enabled relative paths. 
 * Added "All" or "None" keywords on "Apply Fixed Mods" and "Disulfides Oxidized." 
 * Added "Config File" keyword to load a specific config file.
+* More tolerant of nans and different file extensions
+* Added ability to select files to load to UPP.
+* Added "Global Fixed Mod" to apply the same float value to each pair.
+* Special Bispecific Antibody Pairing Calculations (see Help File)
 
 
 Fixed major bugs with 2D zooming and plotting. 
