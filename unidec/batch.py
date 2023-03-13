@@ -178,7 +178,7 @@ def set_param_from_row(eng, row):
             except Exception as e:
                 print("Error setting massbins", k, val, e)
 
-        if "Config m/z FWHM" in k or "Config mz FWHM" in k:
+        if "Config m/z Peak FWHM" in k or "Config mz Peak FWHM" in k:
             try:
                 eng.config.mzsig = float(val)
             except Exception as e:
@@ -420,10 +420,10 @@ if __name__ == "__main__":
     else:
         path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
         path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
-        path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
+        # path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
         # path = "C:\\Data\\Wilson_Genentech\\BsAb\\test2.csv"
         pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=True, use_converted=True, interactive=False)
 
-        # batch.open_all_html()
+        batch.open_all_html()
         pass
