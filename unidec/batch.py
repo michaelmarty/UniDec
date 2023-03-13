@@ -201,6 +201,14 @@ def check_for_value(row, key, correcttypetuple):
     return False
 
 
+def check_for_floatable(row, key):
+    try:
+        float(row[key])
+        return True
+    except Exception as e:
+        return False
+
+
 def get_time_range(row):
     # Look for the time range
     starttime = 0
@@ -311,7 +319,7 @@ class UniDecBatchProcessor(object):
 
                 # Run the deconvolution or import the prior deconvolution results
                 if decon:
-                    autopw = not check_for_value(row, "Config m/z Peak FWHM", (float, int))
+                    autopw = not check_for_floatable(row, "Config m/z Peak FWHM")
                     print("Auto Peak Width", autopw)
                     self.eng.autorun(auto_peak_width=autopw, silent=True)
                 else:
@@ -367,7 +375,7 @@ class UniDecBatchProcessor(object):
         if "Data Directory" in row:
             data_dir = row["Data Directory"]
             # print(data_dir, os.path.isdir(data_dir), os.getcwd())
-            if os.path.isdir(data_dir):
+            if os.path.isdir(str(data_dir)):
                 self.data_dir = data_dir
         # Find the file
         outpath = find_file(file, self.data_dir, use_converted)
@@ -422,6 +430,7 @@ if __name__ == "__main__":
         path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
         # path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
         # path = "C:\\Data\\Wilson_Genentech\\BsAb\\test2.csv"
+        path = "C:\\Data\\Wilson_Genentech\\Test\\BsAb test v2.xlsx"
         pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=True, use_converted=True, interactive=False)
 
