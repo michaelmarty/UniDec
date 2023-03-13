@@ -165,6 +165,15 @@ class UPPApp(wx.Frame):
         # Save File Menu
         save_file_menu_item = menu.Append(wx.ID_ANY, "Save File", "Save a CSV or Excel file")
         self.Bind(wx.EVT_MENU, self.on_save_file, save_file_menu_item)
+        menu.AppendSeparator()
+
+        # Add Files Menu
+        add_files_menu_item = menu.Append(wx.ID_ANY, "Add Data Files", "Add Data Files")
+        self.Bind(wx.EVT_MENU, self.on_add_files, add_files_menu_item)
+
+        # Clear everything on the panel
+        clear_everything_menu_item = menu.Append(wx.ID_ANY, "Clear All", "Clear Everything")
+        self.Bind(wx.EVT_MENU, self.clear_all, clear_everything_menu_item)
 
         help_menu = wx.Menu()
         # Open File Menu
@@ -315,9 +324,16 @@ class UPPApp(wx.Frame):
         if not self.hide_col_flag:
             self.on_hide_columns()
 
+    def clear_all(self, event=None):
+        self.ss.delete_all()
+        self.ss.set_col_headers(["Sample name", "Data Directory"])
+
     def load_file(self, filename):
         print("Loading File:", filename)
-        self.ss.delete_all()
+        try:
+            self.ss.delete_all()
+        except Exception:
+            pass
         self.bpeng.top_dir = os.path.dirname(filename)
         df = file_to_df(filename)
         self.ss.set_df(df)
@@ -405,6 +421,46 @@ class UPPApp(wx.Frame):
                 app.after_pick_peaks()
             app.start()
 
+    def on_add_files(self, event=None):
+
+        wildcard = "CSV or Excel files (*.csv; *.xlsx; *.xls)|*.csv; *.xlsx; *.xls|CSV files (*.csv)|*.csv|Excel files (*.xlsx; *.xls)|*.xlsx; *.xls"
+        wildcard = "Any files (*.*) |*.*| " \
+                   "Known file types (*.raw; *.d; *.mzML; *.mzXML; *.txt; *.csv; *.dat; *.npz)|" \
+                   "*.raw; *.d; *.mzML; *.mzXML; *.txt; *.csv; *.dat; *.npz|" \
+                   "Thermo RAW files (*.raw)|*.raw|" \
+                   "Agilent D files (*.d)|*.d|" \
+                   "mzML files (*.mzML)|*.mzML|" \
+                   "mzXML files (*.mzXML)|*.mzXML|" \
+                   "Text files (*.txt)|*.txt|" \
+                   "CSV files (*.csv)|*.csv|" \
+                   "Dat files (*.dat)|*.dat|" \
+                   "NPZ files (*.npz)|*.npz"
+
+        # Create a file selection dialog
+        with wx.FileDialog(self, "Select Files to Add",
+                           wildcard=wildcard,
+                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE) as fileDialog:
+            # Show the dialog and retrieve the user response. If it is the OK response,
+            # process the data.
+
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return
+            # Proceed loading the file chosen by the user
+            paths = fileDialog.GetPaths()
+            self.add_files(paths)
+
+    def add_files(self, paths):
+        print("Adding Files:", paths)
+        self.get_from_gui()
+        # Add paths list to the datafram in the "Sample name" column
+        sample_names = [os.path.basename(path) for path in paths]
+        data_dir = [os.path.dirname(path) for path in paths]
+        newdf = pd.DataFrame({"Sample name": sample_names, "Data Directory": data_dir})
+        self.bpeng.rundf = pd.concat([self.bpeng.rundf, newdf], ignore_index=True)
+
+        self.ss.set_df(self.bpeng.rundf)
+        self.reset_hidden_columns()
+
     def on_hide_columns(self, event=None, reset=False):
         columns_to_hide = ["Tolerance", "File", "Time", "Config", "Sequence", "Directory", "Matches"]
         if not self.hide_col_flag and not reset:
@@ -457,17 +513,19 @@ class UPPApp(wx.Frame):
 if __name__ == "__main__":
     app = wx.App()
     frame = UPPApp()
-    frame.usedeconbox.SetValue(False)
+    frame.usedeconbox.SetValue(True)
     path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
+    path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
 
     # frame.on_help_page()
     # exit()
-    if True:
+    if False:
         frame.load_file(path)
         # frame.set_dir_tet_box("C:\\Data\\Wilson_Genentech\\Data")
         # print(df)
-        frame.on_run()
+        # frame.on_run()
         # frame.on_run_selected(rows=[1])
         # frame.on_run_selected(rows=[0])
+        # frame.on_add_files()
 
     app.MainLoop()

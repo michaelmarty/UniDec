@@ -23,7 +23,14 @@ config_parameters = [["Config Peak Thres", False, "Deconvolution Setting: The Pe
                      ["Config High Mass", False, "Deconvolution Setting: The High Mass Limit in Da"],
                      ["Config Low Mass", False, "Deconvolution Setting: The Low Mass Limit in Da"],
                      ["Config High m/z", False, "Deconvolution Setting: The High m/z Limit"],
-                     ["Config Low m/z", False, "Deconvolution Setting: The Low m/z Limit"]
+                     ["Config Low m/z", False, "Deconvolution Setting: The Low m/z Limit"],
+                     ["Config Sample Mass Every", False, "Deconvolution Setting: The Mass Bin Size in Da"],
+                     ["Config m/z Peak FWHM", False,
+                      "Deconvolution Setting: The Peak Width in m/z used for Deconvolution"],
+                     ["Config m/z Peak Shape", False, "Deconvolution Setting: The peak shape function used for "
+                                                      "Deconvolution. 0=gaussian, 1=lorentzian, 2=split G/L"],
+                     ["Config File", False, "Path to Config File. Will load this file and use the settings. Note,"
+                                            " any settings specified in the batch file will override the config file."],
                      ]
 
 recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if not specified."],
@@ -37,41 +44,82 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
                                       "multiple is used If not specified, no modifications will be used. "
                                       "Note, it will apply one set of all fixed mods to each sequence. "
                                       "If you specify, \"Seq1+Seq2\", it will apply the fixed mods to both sequences."],
-            ["Apply Fixed Mods", False, "A column specifying which sequences should get the fixed mods. "
-                                        "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
-                                        "column name, etc. Delimiters do not matter. "
-                                        "It will assume yes to all if this column is not present. "],
-            ["Disulfides Oxidized", False, "A column specifying the sequences that should be fully disulfide oxidized. "
-                                           "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
-                                           "column name, etc. Delimiters do not matter. "
-                                           "Will only work if sequences are amino acid codes with C. "
-                                           "It will subtract one H mass for each C."],
-            ["Favored Match", False, "If there are several possible matches within tolerance, which to select. "
-                                     "Default is \"Closest\" for the closest absolute mass. Also accepts \"Incorrect\" "
-                                     "to select an incorrect mass within the tolerance even if a correct mass is "
-                                     "closesr. Other keywords like \"Ignore\" and \"Correct\" can be used to select "
-                                     "specific types of matches over others."],
-            ["Sequence {n}", False, "The amino acid sequence or mass for the {n}th protein. Can be multiple sequences, "
-                                    "each as their own columns. If it can convert to float, it will. "
-                                    "If not, it will assume it is an amino acid sequence with 1 letter codes."],
+            ["Apply Fixed Mods", False,
+             "A column specifying which sequences should get the fixed mods. "
+             "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
+             "column name, etc. Delimiters do not matter. "
+             "You can specify \"All\" to apply mods to all sequences "
+             "or \"None\" to apply to none. "
+             "It will assume yes to all if this column is not present. "],
+            ["Global Fixed Mod", False, "A column specifying a global fixed mass shift to apply to all complexes. "
+                                        "Unlike Fixed Mod File, which applies a fixed modification to each sequence, "
+                                        "this is applied only once to each complex. "
+                                        "Also, it is a single float value rather than a file. "],
+            ["Disulfides Oxidized", False,
+             "A column specifying the sequences that should be fully disulfide oxidized. "
+             "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
+             "column name, etc. Delimiters do not matter. "
+             "It will assume no to all if this column is not present. "
+             "You can specify \"All\" to oxidize all sequences "
+             "or \"None\" to oxidize none. "
+             "Will only work if sequences are amino acid codes with C. "
+             "It will subtract one H mass for each C."],
+            ["Favored Match", False,
+             "If there are several possible matches within tolerance, which to select. "
+             "Default is \"Closest\" for the closest absolute mass. Also accepts \"Incorrect\" "
+             "to select an incorrect mass within the tolerance even if a correct mass is "
+             "closesr. Other keywords like \"Ignore\" and \"Correct\" can be used to select "
+             "specific types of matches over others."],
+            ["Sequence {n}", False,
+             "The amino acid sequence or mass for the {n}th protein. Can be multiple sequences, "
+             "each as their own columns. If it can convert to float, it will. "
+             "If not, it will assume it is an amino acid sequence with 1 letter codes."],
             ["Correct", True, "The Correct Pairing. This may be a list of the correct pairs, "
                               "listed as Seq1+Seq2, for example. Can also be a single mass value. "],
-            ["Ignore", False, "Known species that can be ignored. This should be similar to the list of correct pairs, "
-                              "listed as Seq1+Seq2, for example. Can be Seq5 if you want to just ignore Seq5. "
-                              "Note, mods will also be applied to this. Can be a single mass value as well. "],
-            ["Incorrect", True, "Incorrect Pairings. This can be a list of the incorrect pairs, "
-                                "listed as Seq2+Seq2, for example. It can also be a single mass value. "]
+            ["Ignore", False,
+             "Known species that can be ignored. This should be similar to the list of correct pairs, "
+             "listed as Seq1+Seq2, for example. Can be Seq5 if you want to just ignore Seq5. "
+             "Note, mods will also be applied to this. Can be a single mass value as well. "],
+            ["Incorrect", False, "Incorrect Pairings. This can be a list of the incorrect pairs, "
+                                 "listed as Seq2+Seq2, for example. It can also be a single mass value. "],
+            ["BsAb (Correct) | LC1 Mispair (Incorrect) | LC2 Mispair (Incorrect)", False,
+             "This is a special mode for bispecific antibodies. If you specify all of these three columns, "
+             "it will calculate the corrected percentages for bispecific antibodies and light chain scrambling. "
+             "Form more details, see https://dx.doi.org/10.1080/19420862.2016.1232217. "]
             ]
 
 
 def find_file(fname, folder, use_converted=True):
+    # If use_converted is true, it will look for the converted file first, then the original.
     if use_converted:
         extensions = known_extensions[::-1]
     else:
         extensions = known_extensions
-    for ext in extensions:
-        if os.path.exists(os.path.join(folder, fname + ext)):
-            return os.path.join(folder, fname + ext)
+
+    if use_converted:
+        # try to find a converted file first
+        fnameroot = os.path.splitext(fname)[0]
+        for ext in extensions:
+            testpath = os.path.join(folder, fnameroot + ext)
+            if os.path.exists(testpath):
+                return testpath
+
+    # Tries to find the extension of the file
+    extension = os.path.splitext(fname)[1].lower()
+    if extension in extensions:
+        # If it finds a file extension it recoginzes, it will try to find the file with that extension
+        if os.path.exists(os.path.join(folder, fname)):
+            # Return the file with the folder
+            return os.path.join(folder, fname)
+        else:
+            # Return the original file name and hope for the best
+            return fname
+
+    else:
+        # If a file extension is not regonized, it will try to find the file with the extensions it knows
+        for ext in extensions:
+            if os.path.exists(os.path.join(folder, fname + ext)):
+                return os.path.join(folder, fname + ext)
     return fname
 
 
@@ -84,39 +132,73 @@ def check_for_correct_in_keys(df):
 
 def set_param_from_row(eng, row):
     for k in row.keys():
+        val = row[k]
+        if isinstance(val, (float, int)):
+            if math.isnan(val):
+                continue
+        if isinstance(val, str):
+            if val == "nan":
+                continue
+
         if "Config Peak Window" in k:
             try:
-                eng.config.peakwindow = float(row[k])
+                eng.config.peakwindow = float(val)
             except Exception as e:
-                print("Error setting peak window", k, row[k], e)
+                print("Error setting peak window", k, val, e)
         if "Config Peak Thres" in k:
             try:
-                eng.config.peakthresh = float(row[k])
+                eng.config.peakthresh = float(val)
             except Exception as e:
-                print("Error setting peak threshold", k, row[k], e)
+                print("Error setting peak threshold", k, val, e)
         if "Config Low Mass" in k:
             try:
-                eng.config.masslb = float(row[k])
+                eng.config.masslb = float(val)
             except Exception as e:
-                print("Error setting low mass", k, row[k], e)
+                print("Error setting low mass", k, val, e)
         if "Config High Mass" in k:
             try:
-                eng.config.massub = float(row[k])
+                eng.config.massub = float(val)
             except Exception as e:
-                print("Error setting high mass", k, row[k], e)
+                print("Error setting high mass", k, val, e)
+
         if "Config Low m/z" in k or "Config Low mz" in k:
             try:
-                eng.config.minmz = float(row[k])
+                eng.config.minmz = float(val)
             except Exception as e:
-                print("Error setting low m/z", k, row[k], e)
+                print("Error setting low m/z", k, val, e)
         if "Config High m/z" in k or "Config High mz" in k:
             try:
-                eng.config.maxmz = float(row[k])
+                eng.config.maxmz = float(val)
             except Exception as e:
-                print("Error setting high m/z", k, row[k], e)
+                print("Error setting high m/z", k, val, e)
+
+        if "Config Sample Mass Every" in k:
+            try:
+                eng.config.massbins = float(val)
+            except Exception as e:
+                print("Error setting massbins", k, val, e)
+
+        if "Config m/z Peak FWHM" in k or "Config mz Peak FWHM" in k:
+            try:
+                eng.config.mzsig = float(val)
+            except Exception as e:
+                print("Error setting massbins", k, val, e)
+
+        if "Config m/z Peak Shape" in k or "Config mz Peak Shape" in k:
+            try:
+                eng.config.psfun = int(val)
+            except Exception as e:
+                print("Error setting massbins", k, val, e)
 
         # print(eng.config.maxmz, eng.config.minmz, k)
     return eng
+
+
+def check_for_value(row, key, correcttypetuple):
+    if key in row:
+        if isinstance(row[key], correcttypetuple):
+            return True
+    return False
 
 
 def get_time_range(row):
@@ -179,16 +261,20 @@ class UniDecBatchProcessor(object):
     def run_file(self, file=None, decon=True, use_converted=True, interactive=False):
         self.top_dir = os.path.dirname(file)
         self.rundf = file_to_df(file)
+
         self.run_df(decon=decon, use_converted=use_converted, interactive=interactive)
 
     def run_df(self, df=None, decon=True, use_converted=True, interactive=False):
 
         # Print the data directory and start the clock
-        # print("Data Directory:", self.data_dir)
         clockstart = time.perf_counter()
         # Set the Pandas DataFrame
         if df is not None:
             self.rundf = df
+
+        # Get into the right relative directory
+        if os.path.isdir(self.top_dir):
+            os.chdir(self.top_dir)
 
         # Set up the lists for the results
         htmlfiles = []
@@ -200,6 +286,7 @@ class UniDecBatchProcessor(object):
 
         # Loop through the DataFrame
         for i, row in self.rundf.iterrows():
+            self.eng.reset_config()
             path = self.get_file_path(row, use_converted=use_converted)
 
             # Get the time range
@@ -208,14 +295,25 @@ class UniDecBatchProcessor(object):
             # If the file exists, open it
             if os.path.isfile(path):
                 print("Opening:", path)
-                self.eng.open_file(path, time_range=self.time_range)
+                if not use_converted:
+                    print("Refreshing")
+                self.eng.open_file(path, time_range=self.time_range, refresh=not use_converted, silent=True)
+
+                if "Config File" in row:
+                    try:
+                        self.eng.load_config(row["Config File"])
+                        print("Loaded Config File:", row["Config File"])
+                    except Exception as e:
+                        print("Error loading config file", row["Config File"], e)
 
                 # Set the deconvolution parameters from the DataFrame
                 self.eng = set_param_from_row(self.eng, row)
 
                 # Run the deconvolution or import the prior deconvolution results
                 if decon:
-                    self.eng.autorun()
+                    autopw = not check_for_value(row, "Config m/z Peak FWHM", (float, int))
+                    print("Auto Peak Width", autopw)
+                    self.eng.autorun(auto_peak_width=autopw, silent=True)
                 else:
                     self.eng.unidec_imports(efficiency=False)
                     self.eng.pick_peaks()
@@ -268,12 +366,13 @@ class UniDecBatchProcessor(object):
         # Look for the data directory
         if "Data Directory" in row:
             data_dir = row["Data Directory"]
+            # print(data_dir, os.path.isdir(data_dir), os.getcwd())
             if os.path.isdir(data_dir):
                 self.data_dir = data_dir
         # Find the file
         outpath = find_file(file, self.data_dir, use_converted)
-
-        return outpath
+        # print("File Path:", outpath)
+        return os.path.abspath(outpath)
 
     def run_correct_pair(self, row, pks=None):
         if pks is None:
@@ -289,14 +388,16 @@ class UniDecBatchProcessor(object):
         # Get and read the mod file
         if "Variable Mod File" in row:
             self.vmodfile = row["Variable Mod File"]
-            if os.path.isfile(self.vmodfile):
+            if os.path.isfile(str(self.vmodfile)):
                 self.vmoddf = file_to_df(self.vmodfile)
+                print("Loaded Variable Mod File: ", self.vmodfile)
 
         # Get and read the mod file
         if "Fixed Mod File" in row:
             self.fmodfile = row["Fixed Mod File"]
-            if os.path.isfile(self.fmodfile):
+            if os.path.isfile(str(self.fmodfile)):
                 self.fmoddf = file_to_df(self.fmodfile)
+                print("Loaded Fixed Mod File: ", self.fmodfile)
 
         # Match to the correct peaks
         newrow = UPP_check_peaks(row, pks, self.tolerance, vmoddf=self.vmoddf, fmoddf=self.fmoddf)
@@ -318,8 +419,11 @@ if __name__ == "__main__":
         batch.open_all_html()
     else:
         path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
+        path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
+        # path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
+        # path = "C:\\Data\\Wilson_Genentech\\BsAb\\test2.csv"
         pd.set_option('display.max_columns', None)
-        batch.run_file(path, decon=False, use_converted=True, interactive=False)
+        batch.run_file(path, decon=True, use_converted=True, interactive=False)
 
         batch.open_all_html()
         pass

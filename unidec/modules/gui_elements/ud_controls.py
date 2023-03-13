@@ -214,6 +214,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             gbox1b.Add(self.ctldatanorm, (i, 0), span=(1, 2))
             i += 1
 
+        self.ctlsmashflag = wx.CheckBox(panel1b, label="Remove Noise Peaks")
+        self.parent.Bind(wx.EVT_CHECKBOX, self.on_check_smash, self.ctlsmashflag)
+        gbox1b.Add(self.ctlsmashflag, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
         self.ctlbinsize = wx.TextCtrl(panel1b, value="", size=size1)
         gbox1b.Add(self.ctlbinsize, (i, 1))
         gbox1b.Add(wx.StaticText(panel1b, label="Bin Every: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -789,6 +794,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctlbintype.SetSelection(int(self.config.linflag))
                 self.ctlpsig.SetValue(str(self.config.psig))
                 self.ctlbeta.SetValue(str(self.config.beta))
+
+            self.ctlsmashflag.SetValue(self.config.smashflag)
             self.ctldiscrete.SetValue(self.config.discreteplot)
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlrawflag.SetSelection(self.config.rawflag)
@@ -933,6 +940,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             if self.config.mzbins == 0:
                 self.config.linflag = 2
                 self.ctlbintype.SetSelection(int(self.config.linflag))
+        self.config.smashflag = int(self.ctlsmashflag.GetValue())
         self.config.discreteplot = int(self.ctldiscrete.GetValue())
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
         self.config.rawflag = self.ctlrawflag.GetSelection()
@@ -1074,6 +1082,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 "Use isotopic distributions in deconvolution.\nOutput either monoisotopic or average masses"))
             self.ctlorbimode.SetToolTip(wx.ToolTip("Scale intensities by 1/z to compensate for induced charge effects"))
             self.ctlmanualassign.SetToolTip(wx.ToolTip("Use manual assignments. See Tools>Manual Assignment"))
+            self.ctlsmashflag.SetToolTip(wx.ToolTip("Remove Noise Peaks. See Tools>Select Noise Peaks"))
             self.ctlbintype.SetToolTip(wx.ToolTip(
                 "Sets how to bin the data\nValue set by above with Bin Every\nLinear bins with linear m/z axis"
                 "\nLinear Resolution bins with m/z axis that has a constant resolution"
@@ -1180,6 +1189,19 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.pres.on_manual(e)
             if len(self.config.manuallist) < 1:
                 self.ctlmanualassign.SetValue(False)
+
+    def on_check_smash(self, e):
+        """
+        Checks the configuration to see if values for noise smashing are set. If they are not,
+        it opens the window to set the smash assignments.
+        :param e: Dummy wx event passed on.
+        :return: None
+        """
+        self.config.smashflag = self.ctlsmashflag.GetValue()
+        if len(self.config.smashlist) < 1:
+            self.pres.on_smash_window(e)
+            if len(self.config.smashlist) < 1:
+                self.ctlsmashflag.SetValue(False)
 
     def on_mass_list(self, e):
         """

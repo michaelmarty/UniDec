@@ -6,7 +6,7 @@ import time
 import webbrowser
 from unidec.modules.html_writer import *
 
-version = "6.0.0"
+version = "6.0.1"
 
 
 def copy_config(config):
@@ -15,7 +15,7 @@ def copy_config(config):
 
 
 class UniDecEngine:
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         """
         UniDec Engine Base
 
@@ -27,8 +27,12 @@ class UniDecEngine:
         """
 
         self.version = version
-
-        print("\nUniDec Engine v." + self.version)
+        if "silent" in kwargs:
+            self.silent = kwargs["silent"]
+        else:
+            self.silent = False
+        if not self.silent:
+            print("\nUniDec Engine v." + self.version)
         self.config = None
         self.config_history = []
         self.config_count = 0
@@ -510,7 +514,7 @@ class UniDecEngine:
             print("Plot 5: %.2gs" % (time.perf_counter() - tstart))
         return plot
 
-    def makeplot2(self, plot=None, data=None, pks=None, config=None):
+    def makeplot2(self, plot=None, data=None, pks=None, config=None, silent=False):
         """
         Plot mass data and peaks if possible in self.view.plot2
         :param plot: Plot object. Default is None, which will set plot to creating a new plot
@@ -539,12 +543,13 @@ class UniDecEngine:
                         plot.plotadddot(p.mass, p.height, p.color, p.marker)
             plot.repaint()
             tend = time.perf_counter()
-            print("Plot 2: %.2gs" % (tend - tstart))
+            if not silent:
+                print("Plot 2: %.2gs" % (tend - tstart))
         if data.shape[1] != 2 or len(data) < 2:
             print("Data Too Small. Adjust parameters.", data)
         return plot
 
-    def makeplot4(self, plot=None, data=None, pks=None, config=None):
+    def makeplot4(self, plot=None, data=None, pks=None, config=None, silent=False):
         """
         Plots isolated peaks against the data in self.view.plot4.
         Will plot dots at peak positions.
@@ -599,7 +604,8 @@ class UniDecEngine:
                     num += 1
             plot.repaint()
             tend = time.perf_counter()
-            print("Plot 4: %.2gs" % (tend - tstart))
+            if not silent:
+                print("Plot 4: %.2gs" % (tend - tstart))
             return plot
 
     def gen_html_report(self, event=None, outfile=None, plots=None, interactive=False, open_in_browser=True):
@@ -626,8 +632,8 @@ class UniDecEngine:
         #              cols=["Measured Mass", "Theoretical Mass", "Error", "Match Name"])
 
         if plots is None:
-            plot = self.makeplot2()
-            plot2 = self.makeplot4()
+            plot = self.makeplot2(silent=True)
+            plot2 = self.makeplot4(silent=True)
             # plot5 = self.makeplot5()
             # plot3 = self.makeplot3()
             # plot6 = self.makeplot6()

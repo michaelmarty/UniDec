@@ -139,6 +139,7 @@ class ZoomBox(ZoomCommon):
         #self.zoomout()
 
     def initialize(self):
+        # print("Data Lims:", self.data_lims)
         xmin, ymin, xmax, ymax = self.data_lims
         if xmin > xmax: xmin, xmax = xmax, xmin
         if ymin > ymax: ymin, ymax = ymax, ymin
@@ -387,7 +388,10 @@ class ZoomBox(ZoomCommon):
 
             self.set_xlim(xmin, xmax, draw=False)
             # print("3")
-            self.set_auto_ylim(xmin, xmax, draw=False)
+            # print("xmin, xmax", xmin, xmax)
+            # print("ymin, ymax", ymin, ymax)
+            # self.set_auto_ylim(xmin, xmax, draw=False)
+            self.set_ylim(ymin, ymax, draw=False)
 
             self.set_clipping()
             self.kill_labels()

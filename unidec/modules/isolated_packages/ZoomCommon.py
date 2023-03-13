@@ -85,6 +85,13 @@ def GetMaxes(axes, xmin=None, xmax=None):
             yvals.append([y, y])
             xvals.append([x, x])
 
+    for im in axes.images:
+        extent = im.get_extent()
+        xdat = [extent[0], extent[1]]
+        ydat = [extent[2], extent[3]]
+        yvals.append([np.amin(ydat), np.amax(ydat)])
+        xvals.append([np.amin(xdat), np.amax(xdat)])
+
     if len(yvals) != 0 and len(xvals) != 0:
         ymin = np.amin(np.ravel(yvals))
         ymax = np.amax(np.ravel(yvals))
@@ -102,7 +109,7 @@ def GetMaxes(axes, xmin=None, xmax=None):
         out = axes.dataLim.bounds
 
     # set_clipping(axes)
-
+    # print("GetMaxes", out)
     return out
 
 
@@ -186,7 +193,7 @@ def ResetVisible(axes):
 
 def GetStart(axes):
     outputs = np.array([GetMaxes(axis) for axis in axes])
-    # print "Outputs",outputs
+    # print("Outputs",outputs)
     xmin = np.amin(outputs[:, 0])
     ymin = np.amin(outputs[:, 1])
     xmax = np.amax(outputs[:, 2])

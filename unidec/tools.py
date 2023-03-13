@@ -51,7 +51,7 @@ is_64bits = sys.maxsize > 2 ** 32
 protmass = 1.007276467
 oxmass = 15.994914
 
-known_extensions = [".raw", ".d", ".mzml", ".gz", ".mzxml", ".txt", ".csv", ".dat", ".npz"]
+known_extensions = [".raw", ".d", ".mzml", ".gz", ".mzxml",".mzxml", ".txt", ".csv", ".dat", ".npz"]
 
 
 def get_importer(path):
@@ -1689,6 +1689,31 @@ def remove_middle_zeros(data):
     return data[boo6]
 
 
+def smash(data, midpoint, window):
+    # Set all the data from midpoint-window to midpoint+window to zero
+    b1 = data[:, 0] > midpoint - window
+    b2 = data[:, 0] < midpoint + window
+    b3 = np.logical_and(b1, b2)
+    data[b3, 1] = 0
+    return data
+
+
+def smash2d(data, midpoint, window, ymidpoint, ywindow):
+    # Set all the data from midpoint-window to midpoint+window to zero
+    b1 = data[:, 0] > midpoint - window
+    b2 = data[:, 0] < midpoint + window
+    b3 = np.logical_and(b1, b2)
+
+    b1 = data[:, 1] > ymidpoint - ywindow
+    b2 = data[:, 1] < ymidpoint + ywindow
+    b4 = np.logical_and(b1, b2)
+
+    b5 = np.logical_and(b3, b4)
+
+    data[b5, 2] = 0
+    return data
+
+
 def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
     """
     Main function to process 1D MS data. The order is:
@@ -1724,6 +1749,12 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
         data2 = datachop(deepcopy(datatop), newmin, newmax)
     else:
         data2 = deepcopy(datatop)
+
+    if config.smashflag == 1:
+        print("Smashing!:", config.smashlist)
+        for i in range(0, len(config.smashlist)):
+            data2 = smash(data2, config.smashlist[i][0], config.smashlist[i][1])
+
     if len(data2) == 0:
         print("Error: m/z range is too small. No data fits the range.")
     # correct for detector efficiency

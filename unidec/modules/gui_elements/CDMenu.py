@@ -107,6 +107,10 @@ class CDMenu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_batch, self.menuBatch)
         self.toolsmenu.AppendSeparator()
 
+        self.menusmashwindow = self.toolsmenu.Append(wx.ID_ANY, "Select Noise Peaks")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_smash_window, self.menusmashwindow)
+        self.toolsmenu.AppendSeparator()
+
         self.menuMassFile = self.toolsmenu.Append(wx.ID_ANY, "Oligomer and Mass Tools\tCtrl+T",
                                                   "Oligomer and Mass Tools")
         self.toolsmenu.AppendSeparator()

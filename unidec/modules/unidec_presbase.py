@@ -620,6 +620,21 @@ class UniDecPres(object):
             dlg.initiate_dialog(self.eng.config, self.eng.data.data3)
         dlg.ShowModal()
 
+    def on_smash_window(self, e=None):
+        """
+        Opens window for selecting peaks to smash. Window directly modifies self.eng.config.
+        :param e: unused event
+        :return: None
+        """
+        dlg = ManualSelectionWindow.SmashSelection(self.view)
+        if self.eng.config.imflag == 0 and self.eng.config.cdmsflag == 0:
+            dlg.initiate_dialog(self.eng.config, self.eng.data.data2)
+        elif self.eng.config.cdmsflag == 1:
+            dlg.initiate_dialog(self.eng.config, self.eng.data.data3)
+        else:
+            dlg.initiate_dialog(self.eng.config, self.eng.data.data3)
+        dlg.ShowModal()
+
     def on_match(self, e=None):
         """
         Automatic matching to present oligomer list.

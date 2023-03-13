@@ -191,9 +191,27 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.6.0.1
+
+*Added Noise Removal Tool* to UniDec and UniDecCD. This allows you to select specific noise regions (common in UHMR data) and set them to 0. Try Tools > Select Noise Peaks and the checking "Remove Noise Peaks" in the Advanced Data Processing Parameters.
+
+UPP Changes: 
+* Added "Config m/z Peak FWHM", "Config m/z Peak Shape", and "Config Sample Mass Every" parameters. If "Config m/z Peak FWHM" is specified as a float or integer, it will use that and skip the automatic peak width determination.
+* Enabled relative paths. 
+* Added "All" or "None" keywords on "Apply Fixed Mods" and "Disulfides Oxidized." 
+* Added "Config File" keyword to load a specific config file.
+* More tolerant of nans and different file extensions
+* Added ability to select files to load to UPP.
+* Added "Global Fixed Mod" to apply the same float value to each pair.
+* Special Bispecific Antibody Pairing Calculations (see Help File)
+* Fixex issues bugs with use_converted, clear all, and resetting the config.
+
+Fixed major bugs with 2D zooming and plotting. 
+
 v.6.0.0
 
-Major changes to code structure to enable PyPI distribution. Changed to more conventional Python package structure with unidec top directory. Renamed unidec_modules to modeuls, unidec_src to src, and unidec_bin to bin. Renamed some top level windows and moved all to main folder. For example, unidectools.py has been moved from modules to the top level and renamed as tools.py, and unidec.py has been renamed as engine.py. 
+Major changes to code structure to enable PyPI distribution. Changed to more conventional Python package structure with unidec top directory. Renamed unidec_modules to modules, unidec_src to src, and unidec_bin to bin. Renamed some top level windows and moved all to main folder. For example, unidectools.py has been moved from modules to the top level and renamed as tools.py, and unidec.py has been renamed as engine.py. The good news is that you can now do `pip install unidec` and `python -m unidec.Launcher` to run UniDec from the command line.
+
 
 Improved command line tools. Added -o option for file output in unidec. Included new entry points and smoothed out command line interface. Now you can use unidec to lanuch python -m unidec in the scripts folder. Similarly, gunidec will launch python -m unidec.Launcher. If you have Python and the scripts folder configured in your system path, command line tools will be much easier to use. 
 

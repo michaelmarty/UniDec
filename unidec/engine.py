@@ -576,13 +576,14 @@ class UniDec(UniDecEngine):
             self.pks.convolved = True
         return np.array(convdata)
 
-    def autorun(self):
-        self.process_data()
-        self.get_auto_peak_width()
-        self.run_unidec()
+    def autorun(self, auto_peak_width=True, silent=False):
+        self.process_data(silent=silent)
+        if auto_peak_width:
+            self.get_auto_peak_width()
+        self.run_unidec(silent=silent)
         self.pick_peaks()
         self.autointegrate()
-        self.export_params(0)
+        self.export_params(silent=silent)
 
     def estimate_FDR(self):
         print("Starting FDR Estimate")
@@ -745,20 +746,23 @@ class UniDec(UniDecEngine):
         self.normalize_peaks()
         return np.array(zarea)
 
-    def export_params(self, e):
+    def export_params(self, e=None, silent=False):
         """
         Export a number of different parameters about the peaks into different text files.
         :param e: if e is "PostFit", it will output mass fit parameters as well
+        :param silent: if True, it will not print the output file names
         :return: None
         """
         if self.pks.plen > 0:
             # Export Peaks Height by Charge Grid
             mztab = np.array([p.mztab for p in self.pks.peaks])
             ud.dataexport(mztab[:, :, 1], self.config.outfname + "_chargedata.dat")
-            print("Exported data to " + self.config.outfname + "_chargedata.dat")
+            if not silent:
+                print("Exported data to " + self.config.outfname + "_chargedata.dat")
 
             ud.dataexport(mztab[:, :, 0], self.config.outfname + "_mzpeakdata.dat")
-            print("Exported data to " + self.config.outfname + "_mzpeakdata.dat")
+            if not silent:
+                print("Exported data to " + self.config.outfname + "_mzpeakdata.dat")
 
             # Export Peaks Integral by Charge Grid
             if self.config.batchflag == 0:
@@ -793,13 +797,14 @@ class UniDec(UniDecEngine):
             self.peakparams = np.array(peakparams)
 
             header = "Mass MassStdGuess AvgCharge StdDevCharge Height Area MassCentroid MassFWHM MassErrorBetweenZ"
-            print(header)
-            np.set_printoptions(precision=2, formatter={'float': '{: 0.2f}'.format})
-            print(self.peakparams)
-            np.set_printoptions()
             outfile = self.config.outfname + "_peakparam.dat"
             ud.dataexport(self.peakparams, outfile, header)
-            print("Peak Parameters (Saved To", outfile, ")")
+            if not silent:
+                print(header)
+                np.set_printoptions(precision=2, formatter={'float': '{: 0.2f}'.format})
+                print(self.peakparams)
+                np.set_printoptions()
+                print("Peak Parameters (Saved To", outfile, ")")
         else:
             print("Pick Peaks First")
 

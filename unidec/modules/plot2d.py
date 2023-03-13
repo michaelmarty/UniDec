@@ -165,11 +165,12 @@ class Plot2dBase(PlotBase):
             extent = (np.amin(xvals) / self.kdnorm - 0.5 * xdiff, np.amax(xvals) / self.kdnorm + 0.5 * xdiff,
                       np.amin(yvals) - 0.5 * ydiff, np.amax(yvals) + 0.5 * ydiff)
 
+
             try:
                 ax = self.subplot1
                 im = NonUniformImage(ax, interpolation="nearest", extent=extent, cmap=self.cmap, norm=norm, )
                 im.set_data(xvals / self.kdnorm, yvals, np.transpose(newgrid))
-                ax.images.append(im)
+                ax.add_image(im)
                 ax.set_xlim(extent[0], extent[1])
                 ax.set_ylim(extent[2], extent[3])
                 cax = im
