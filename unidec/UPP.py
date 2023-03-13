@@ -330,7 +330,10 @@ class UPPApp(wx.Frame):
 
     def load_file(self, filename):
         print("Loading File:", filename)
-        self.ss.delete_all()
+        try:
+            self.ss.delete_all()
+        except Exception:
+            pass
         self.bpeng.top_dir = os.path.dirname(filename)
         df = file_to_df(filename)
         self.ss.set_df(df)
@@ -512,11 +515,11 @@ if __name__ == "__main__":
     frame = UPPApp()
     frame.usedeconbox.SetValue(True)
     path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
-    path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
+    path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
 
     # frame.on_help_page()
     # exit()
-    if True:
+    if False:
         frame.load_file(path)
         # frame.set_dir_tet_box("C:\\Data\\Wilson_Genentech\\Data")
         # print(df)

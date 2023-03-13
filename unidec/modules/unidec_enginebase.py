@@ -15,7 +15,7 @@ def copy_config(config):
 
 
 class UniDecEngine:
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         """
         UniDec Engine Base
 
@@ -27,8 +27,12 @@ class UniDecEngine:
         """
 
         self.version = version
-
-        print("\nUniDec Engine v." + self.version)
+        if "silent" in kwargs:
+            self.silent = kwargs["silent"]
+        else:
+            self.silent = False
+        if not self.silent:
+            print("\nUniDec Engine v." + self.version)
         self.config = None
         self.config_history = []
         self.config_count = 0

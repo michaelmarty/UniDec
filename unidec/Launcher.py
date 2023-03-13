@@ -100,7 +100,7 @@ class Lview(wx.Frame):
         button7 = wx.Button(panel, -1, "UltraMeta Data Collector\n\nVisualize Multiple HDF5 Data Sets\nFit Trends")
         button8 = wx.Button(panel, -1, "UniChrom\n\nDeconvolution of Chromatograms\nUniDec for LC/MS Data")
         button9 = wx.Button(panel, -1, "UniDecCD\n\nDeconvolution of Charge Detection MS\nUniDec for CD-MS Data")
-        button10 = wx.Button(panel, -1, "UPP\n\nUniDec Pharama Pipeline\nBatch Processing Workflow")
+        button10 = wx.Button(panel, -1, "UPP\n\nUniDec Processing Pipeline\nBatch Processing Workflow")
         html = wx.html.HtmlWindow(panel, -1, size=(390, 310))
         pathtofile = os.path.dirname(os.path.abspath(__file__))
         self.imagepath = self.eng.config.toplogofile

@@ -96,6 +96,14 @@ def find_file(fname, folder, use_converted=True):
     else:
         extensions = known_extensions
 
+    if use_converted:
+        # try to find a converted file first
+        fnameroot = os.path.splitext(fname)[0]
+        for ext in extensions:
+            testpath = os.path.join(folder, fnameroot + ext)
+            if os.path.exists(testpath):
+                return testpath
+
     # Tries to find the extension of the file
     extension = os.path.splitext(fname)[1].lower()
     if extension in extensions:
@@ -278,6 +286,7 @@ class UniDecBatchProcessor(object):
 
         # Loop through the DataFrame
         for i, row in self.rundf.iterrows():
+            self.eng.reset_config()
             path = self.get_file_path(row, use_converted=use_converted)
 
             # Get the time range
@@ -286,6 +295,8 @@ class UniDecBatchProcessor(object):
             # If the file exists, open it
             if os.path.isfile(path):
                 print("Opening:", path)
+                if not use_converted:
+                    print("Refreshing")
                 self.eng.open_file(path, time_range=self.time_range, refresh=not use_converted, silent=True)
 
                 if "Config File" in row:
