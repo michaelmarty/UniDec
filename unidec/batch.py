@@ -201,6 +201,16 @@ def check_for_value(row, key, correcttypetuple):
     return False
 
 
+def check_for_floatable(row, key):
+    try:
+        val = float(row[key])
+        if math.isnan(val):
+            return False
+        return True
+    except Exception as e:
+        return False
+
+
 def get_time_range(row):
     # Look for the time range
     starttime = 0
@@ -255,6 +265,7 @@ class UniDecBatchProcessor(object):
         self.fmodfile = None
         self.vmoddf = None
         self.fmoddf = None
+        self.autopw = True
         self.correct_pair_mode = False
         self.time_range = None
 
@@ -286,6 +297,7 @@ class UniDecBatchProcessor(object):
 
         # Loop through the DataFrame
         for i, row in self.rundf.iterrows():
+            self.autopw = True
             self.eng.reset_config()
             path = self.get_file_path(row, use_converted=use_converted)
 
@@ -299,10 +311,13 @@ class UniDecBatchProcessor(object):
                     print("Refreshing")
                 self.eng.open_file(path, time_range=self.time_range, refresh=not use_converted, silent=True)
 
+                # If the config file is specified, load it
                 if "Config File" in row:
                     try:
                         self.eng.load_config(row["Config File"])
                         print("Loaded Config File:", row["Config File"])
+                        # If a config file is loaded, it will not use the auto peak width
+                        self.autopw = False
                     except Exception as e:
                         print("Error loading config file", row["Config File"], e)
 
@@ -311,9 +326,11 @@ class UniDecBatchProcessor(object):
 
                 # Run the deconvolution or import the prior deconvolution results
                 if decon:
-                    autopw = not check_for_value(row, "Config m/z Peak FWHM", (float, int))
-                    print("Auto Peak Width", autopw)
-                    self.eng.autorun(auto_peak_width=autopw, silent=True)
+                    # If the Config m/z Peak FWHM is specified, do not use the auto peak width
+                    if "Config m/z Peak FWHM" in row:
+                        self.autopw = not check_for_floatable(row, "Config m/z Peak FWHM")
+                    print("Auto Peak Width", self.autopw)
+                    self.eng.autorun(auto_peak_width=self.autopw, silent=True)
                 else:
                     self.eng.unidec_imports(efficiency=False)
                     self.eng.pick_peaks()
@@ -367,7 +384,7 @@ class UniDecBatchProcessor(object):
         if "Data Directory" in row:
             data_dir = row["Data Directory"]
             # print(data_dir, os.path.isdir(data_dir), os.getcwd())
-            if os.path.isdir(data_dir):
+            if os.path.isdir(str(data_dir)):
                 self.data_dir = data_dir
         # Find the file
         outpath = find_file(file, self.data_dir, use_converted)
@@ -422,6 +439,7 @@ if __name__ == "__main__":
         path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
         # path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
         # path = "C:\\Data\\Wilson_Genentech\\BsAb\\test2.csv"
+        path = "C:\\Data\\Wilson_Genentech\\Test\\BsAb test v2.xlsx"
         pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=True, use_converted=True, interactive=False)
 

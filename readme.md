@@ -204,7 +204,7 @@ UPP Changes:
 * Added ability to select files to load to UPP.
 * Added "Global Fixed Mod" to apply the same float value to each pair.
 * Special Bispecific Antibody Pairing Calculations (see Help File)
-* Fixex issues bugs with use_converted, clear all, and resetting the config.
+* Fixed issues bugs with use_converted, clear all, and resetting the config.
 
 Fixed major bugs with 2D zooming and plotting. 
 
