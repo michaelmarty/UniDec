@@ -6,7 +6,7 @@ import time
 import webbrowser
 from unidec.modules.html_writer import *
 
-version = "6.0.1"
+version = "6.0.2"
 
 
 def copy_config(config):
@@ -608,12 +608,16 @@ class UniDecEngine:
                 print("Plot 4: %.2gs" % (tend - tstart))
             return plot
 
-    def gen_html_report(self, event=None, outfile=None, plots=None, interactive=False, open_in_browser=True):
+    def gen_html_report(self, event=None, outfile=None, plots=None, interactive=False, open_in_browser=True,
+                        results_string=None):
         """
         Generate an HTML report of the current UniDec run.
         :param event: Unused Event
+        :param outfile: Output file name. Default is None, which will use the default name.
         :param plots: List of plots to include in the report. Must be 2D with row and column format.
         :param interactive: If True, will include interactive plots. Default is False.
+        :param open_in_browser: If True, will open the report in the default browser. Default is True.
+        :param results_string: String to include in the report. Default is None.
         :return: None
         """
         if outfile is None:
@@ -630,6 +634,9 @@ class UniDecEngine:
 
         # array_to_html(np.transpose(self.matchlist), outfile,
         #              cols=["Measured Mass", "Theoretical Mass", "Error", "Match Name"])
+
+        if results_string is not None:
+            to_html_paragraph(results_string, outfile)
 
         if plots is None:
             plot = self.makeplot2(silent=True)
@@ -694,6 +701,6 @@ class UniDecEngine:
 
         if open_in_browser:
             webbrowser.open_new_tab(outfile)
-            #os.system(self.config.opencommand + "\"" + outfile + "\"")
+            # os.system(self.config.opencommand + "\"" + outfile + "\"")
 
         return outfile

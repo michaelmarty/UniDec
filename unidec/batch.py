@@ -37,7 +37,13 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
             ["Variable Mod File", False, "The File Name or Path of the Variable Mod File. "
                                          "Can be either Excel or CSV. The file should have \"Mass\" and \"Name\" "
                                          "columns with these exact headers. If not specified,"
-                                         " no modifications will be used."],
+                                         " no modifications will be used. "
+                                         "Note, if a Variable Mod File is provided, it will apply at least one mod "
+                                         "to each complex. In other words, if you only have one line in the file,  "
+                                         "it will act as a global fixed mod (see below) to the whole complex. "
+                                         "If you want an option for unmodified, you need to include a line with "
+                                         "a mass of 0.0 and a name of \"Unmodified\" or \" \". "
+             ],
             ["Fixed Mod File", False, "The File Name or Path of the Fxied Mod File. "
                                       "Can be either Excel or CSV. The file should have \"Mass\" and \"Name\" "
                                       "columns with these exact headers. Can also have \"Number\" if a "
@@ -88,6 +94,14 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
              "Form more details, see https://dx.doi.org/10.1080/19420862.2016.1232217. "]
             ]
 
+recipe_d = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if not specified."],
+            ["Protein Mass", True, "The Protein Mass in Da"],
+            ["Drug Mass", True, "The Drug Mass in Da"],
+            ["Min Drug", False,
+             "The minimum number of drug molecules to include in the ADC. Default is 0 if not specified."],
+            ["Max Drug", True, "The maximum number of drug molecules to include in the ADC."]
+            ]
+
 
 def find_file(fname, folder, use_converted=True):
     # If use_converted is true, it will look for the converted file first, then the original.
@@ -123,9 +137,9 @@ def find_file(fname, folder, use_converted=True):
     return fname
 
 
-def check_for_correct_in_keys(df):
+def check_for_word_in_keys(df, word="Correct"):
     for k in df.keys():
-        if "Correct" in k:
+        if word in k:
             return True
     return False
 
@@ -267,6 +281,7 @@ class UniDecBatchProcessor(object):
         self.fmoddf = None
         self.autopw = True
         self.correct_pair_mode = False
+        self.dar_mode = False
         self.time_range = None
 
     def run_file(self, file=None, decon=True, use_converted=True, interactive=False):
@@ -291,7 +306,9 @@ class UniDecBatchProcessor(object):
         htmlfiles = []
 
         # Check if the "Correct" column is in the DataFrame to start correct pair mode
-        self.correct_pair_mode = check_for_correct_in_keys(self.rundf)
+        self.correct_pair_mode = check_for_word_in_keys(self.rundf, "Correct")
+        # Check for the DAR mode
+        self.dar_mode = check_for_word_in_keys(self.rundf, "Max Drugs")
         # if self.correct_pair_mode:
         #    self.rundf = remove_columns(self.rundf, "Height")
 
@@ -335,6 +352,8 @@ class UniDecBatchProcessor(object):
                     self.eng.unidec_imports(efficiency=False)
                     self.eng.pick_peaks()
 
+                results_string = None
+
                 # The First Recipe, correct pair mode
                 if self.correct_pair_mode:
                     # Run correct pair mode
@@ -343,8 +362,18 @@ class UniDecBatchProcessor(object):
                     # Merge the row back in the df
                     self.rundf = set_row_merge(self.rundf, newrow, [i])
 
+                if self.dar_mode:
+                    # Run DAR mode
+                    newrow = self.run_dar(row)
+
+                    # Merge the row back in the df
+                    self.rundf = set_row_merge(self.rundf, newrow, [i])
+
+                    results_string = "The Drug-to-Antibody Ratio (DAR) is: " + str(newrow["DAR"])
+
                 # Generate the HTML report
-                outfile = self.eng.gen_html_report(open_in_browser=False, interactive=interactive)
+                outfile = self.eng.gen_html_report(open_in_browser=False, interactive=interactive,
+                                                   results_string=results_string)
                 htmlfiles.append(outfile)
             else:
                 # When files are not found, print the error and add empty results
@@ -421,6 +450,65 @@ class UniDecBatchProcessor(object):
 
         return newrow
 
+    def run_dar(self, row, pks=None):
+        if pks is None:
+            pks = self.eng.pks
+
+        # Extract the tolerance for peak matching
+        if "Tolerance (Da)" in row:
+            try:
+                self.tolerance = float(row["Tolerance (Da)"])
+            except Exception:
+                pass
+
+        # Read the Protein Mass
+        if "Protein Mass" in row:
+            try:
+                protein_mass = float(row["Protein Mass"])
+            except Exception:
+                print("Error: Protein Mass is not a number. Please specify Protein Mass in the DataFrame.")
+                return row
+        else:
+            print("Error: No Protein Mass Specified. Please specify Protein Mass in the DataFrame.")
+            return row
+
+        # Read the Drug Mass
+        if "Drug Mass" in row:
+            try:
+                drug_mass = float(row["Drug Mass"])
+            except Exception:
+                print("Error: Drug Mass is not a number. Please specify Drug Mass in the DataFrame.")
+                return row
+        else:
+            print("Error: No Drug Mass Specified. Please specify Drug Mass in the DataFrame.")
+            return row
+
+        # Read the min and max drugs
+        if "Min Drugs" in row:
+            try:
+                min_drugs = int(row["Min Drugs"])
+            except Exception:
+                print("Error: Min Drugs is not an integer. Please specify Min Drugs in the DataFrame. Using 0.")
+                min_drugs = 0
+        else:
+            min_drugs = 0
+
+        if "Max Drugs" in row:
+            try:
+                max_drugs = int(row["Max Drugs"])
+            except Exception:
+                print("Error: Max Drugs is not an integer. Please specify Max Drugs in the DataFrame.")
+                return row
+        else:
+            print("Error: No Max Drugs Specified. Please specify Max Drugs in the DataFrame.")
+            return row
+
+        print("Running DAR Calculation. Min Drugs:", min_drugs, "Max Drugs:", max_drugs, "Protein Mass:", protein_mass,
+              "Drug Mass:", drug_mass)
+        dar_val = dar_calc(pks, protein_mass, drug_mass, min_drugs, max_drugs, self.tolerance)
+        row["DAR"] = dar_val
+        return row
+
 
 if __name__ == "__main__":
     # Example usage
@@ -440,6 +528,7 @@ if __name__ == "__main__":
         # path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
         # path = "C:\\Data\\Wilson_Genentech\\BsAb\\test2.csv"
         path = "C:\\Data\\Wilson_Genentech\\Test\\BsAb test v2.xlsx"
+        path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
         pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=True, use_converted=True, interactive=False)
 

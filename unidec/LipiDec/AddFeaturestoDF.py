@@ -6,10 +6,10 @@ import re
 def get_overall_tails(name):
     if "|" in name:
         try:
-            tname = name.split("|")[0] # Remove before vertical line
-            tname = tname.split()[1] # Remove after space to get tails
-            tl = tname.split(":")[0] # Get length
-            tu = tname.split(":")[1] # Get unsaturation
+            tname = name.split("|")[0]  # Remove before vertical line
+            tname = tname.split()[1]  # Remove after space to get tails
+            tl = tname.split(":")[0]  # Get length
+            tu = tname.split(":")[1]  # Get unsaturation
         except:
             return name, -1, -1
         try:
@@ -23,15 +23,16 @@ def get_overall_tails(name):
     else:
         tname = name.split()[1]
         fas = tname.split("_")
-        tls=0
-        tus=0
+        tls = 0
+        tus = 0
         for f in fas:
             tl = f.split(":")[0]  # Get length
             try:
                 tu = f.split(":")[1]  # Get unsaturation
             except:
-                print(f, name)
-                exit()
+                print("Unable to parse part: ", f, name)
+                continue
+                # exit()
             try:
                 tl = int(tl)
             except:
@@ -67,6 +68,52 @@ def set_tails(df, name="Metabolite name"):
     return df
 
 
+def set_class_name(df, name="Metabolite name"):
+    df = df.copy(deep=True)
+    names = df[name].to_numpy()
+    classes = []
+    for n in names:
+        if "|" in n:
+            n = n.split("|")[1]
+        n = n.split()[0]
+        classes.append(n)
+    df["Class Name"] = classes
+    return df
+
+
+def calc_tail_diff(df, class_col="Class Name", tail_col="Tail Lengths", unsat_col="Tail Unsaturation"):
+    # Calculate average tail lengths and unsaturations for each class
+    unique_classes = np.unique(df[class_col])
+    avg_class_lengths = []
+    avg_class_unsat = []
+    for c in unique_classes:
+        avg_class_lengths.append(np.mean(df[df[class_col] == c][tail_col]))
+        avg_class_unsat.append(np.mean(df[df[class_col] == c][unsat_col]))
+
+    # Subtract each value from the average for that class
+    tail_diffs = []
+    unsat_diffs = []
+    for i, row in df.iterrows():
+        c = row[class_col]
+        t = row[tail_col]
+        u = row[unsat_col]
+        index = np.where(unique_classes == c)[0][0]
+        tdiff = t - avg_class_lengths[index]
+        udiff = u - avg_class_unsat[index]
+        tail_diffs.append(tdiff)
+        unsat_diffs.append(udiff)
+
+    df["Tail Length Diff"] = tail_diffs
+    df["Tail Unsat Diff"] = unsat_diffs
+
+    print('Unique Classes: ', unique_classes)
+    print('Average Tail Lengths: ', avg_class_lengths)
+    print('Average Tail Unsaturation: ', avg_class_unsat)
+
+
+    return df
+
+
 adduct_translator = np.array([["[M+H]+", "[M+H]", "+1", 1, "[M+H]1+"],
                               ["[M+NH4]+", "[M+NH4]", "+1", 1, "[M+NH4]1+"],
                               ["[M+2H]2+", "[M+2H]", "+2", 2, "[M+2H]2+"],
@@ -82,7 +129,7 @@ def parse_names(df, namecolumn="Metabolite name", parse_adduct=True):
     full_names_adduct = []
     charges = []
     for i, row in df.iterrows():
-        #Parse Name
+        # Parse Name
         mol_name = row[namecolumn]
         if "|" in mol_name:
             names = mol_name.split("|")
@@ -93,7 +140,7 @@ def parse_names(df, namecolumn="Metabolite name", parse_adduct=True):
         simp_names.append(simp_name)
         full_names.append(full_name)
 
-        #Parse Adduct
+        # Parse Adduct
         if parse_adduct:
             prec_adduct = row["Adduct type"]
             if prec_adduct in adduct_translator[:, 0]:
@@ -152,7 +199,7 @@ def isotope_ratios(df):
         s = np.array(re.split(" |:", sraw))
         try:
             ints = s[1::2].astype(float)
-            ratio = ints[1]/ints[0]
+            ratio = ints[1] / ints[0]
         except:
             ratio = -1
         ratios.append(ratio)

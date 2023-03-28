@@ -139,8 +139,8 @@ def df_to_html(df, outfile=None, colors=None, index=True, sortable=True):
         html_str = html_str.replace('<table border="1" class="dataframe">',
                                     '<table border="1" class="dataframe" id="myTable2">')
         # Add onclick to headers
-        for i in range(0, len(df.columns)+1):
-            html_str = html_str.replace('<th>', '<th onclick="sortTable(' + str(i-1) + ')">', 1)
+        for i in range(0, len(df.columns) + 1):
+            html_str = html_str.replace('<th>', '<th onclick="sortTable(' + str(i - 1) + ')">', 1)
         # Javascript for sorting
         html_str += """
         <script>
@@ -348,6 +348,15 @@ def png_to_html(png_str, outfile=None):
     png_str = base64.b64encode(png_str)
     png_str = png_str.decode("utf-8")
     html_str = "<img src=\"data:image/png;base64," + png_str + "\" \"/>\n"
+
+    if outfile is not None:
+        write_to_html(html_str, outfile)
+    return html_str
+
+
+# Create function to add string as an html paragraph
+def to_html_paragraph(text, outfile=None):
+    html_str = "<p style=\"margin-left: 25px\">" + text + "</p>\n"
 
     if outfile is not None:
         write_to_html(html_str, outfile)

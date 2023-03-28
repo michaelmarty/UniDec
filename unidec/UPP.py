@@ -123,6 +123,21 @@ class HelpDlg(wx.Frame):
         html_str += array_to_html(recipe_w, cols=["Parameter", "Required", "Description"], rows=None,
                                   colors=None, index=False, sortable=False)
 
+        html_str += "<h3>Workflow 2: Calculate Drug-to-Antibody Ratio</h3><p>" \
+                    "This recipe will calculate the drug-to-antibody ratio for an ADC. " \
+                    "The column keyword of \"Protein Mass\" defines the mass of the antibody. " \
+                    "The column keyword of \"Drug Mass\" defines the mass of the drug. " \
+                    "The column keyword of \"Max Drug\" defines the maximum number of drug molecules to consider. " \
+                    "UPP will then loop through all possible combinations of drug and antibody " \
+                    "and see if they match any of the detected peaks. " \
+                    "If a match is found, it will color the peak green. " \
+                    "If no match is found, it will color the peak yellow. " \
+                    "After extracting the height for each peak, UPP will calculate the drug-to-antibody ratio. " \
+                    "Additional details on keywords are provided below. "
+
+        html_str += array_to_html(recipe_d, cols=["Parameter", "Required", "Description"], rows=None,
+                                  colors=None, index=False, sortable=False)
+
         html_str += "</body></html>"
 
         html.SetPage(html_str)
@@ -513,17 +528,18 @@ class UPPApp(wx.Frame):
 if __name__ == "__main__":
     app = wx.App()
     frame = UPPApp()
-    frame.usedeconbox.SetValue(True)
+    frame.usedeconbox.SetValue(False)
     path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
     path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
-
+    path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
+    path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
     # frame.on_help_page()
     # exit()
-    if False:
+    if True:
         frame.load_file(path)
         # frame.set_dir_tet_box("C:\\Data\\Wilson_Genentech\\Data")
         # print(df)
-        # frame.on_run()
+        frame.on_run()
         # frame.on_run_selected(rows=[1])
         # frame.on_run_selected(rows=[0])
         # frame.on_add_files()
