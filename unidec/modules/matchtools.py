@@ -268,6 +268,20 @@ def parse_vmoddf(vmoddf):
     return modmasses, modlabels
 
 
+def parse_global_fixed_mod(row):
+    # Get the global fixed mod
+    globalfixedmod = 0
+    if "Global Fixed Mod" in row.keys():
+        try:
+            val = float(row["Global Fixed Mod"])
+            if not math.isnan(val):
+                globalfixedmod = val
+                print("Global Fixed Mod:", globalfixedmod)
+        except Exception:
+            globalfixedmod = 0
+    return globalfixedmod
+
+
 def check_string_for_seq(redstring, pair):
     if redstring == "All":
         return True
@@ -325,7 +339,7 @@ def calc_bispecific_correct(row, a_code="BsAb (Correct)", b_code="LC1 Mispair (I
 known_labels = ["Correct", "Incorrect", "Ignore"]
 
 
-def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
+def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None, keywords=None):
     """
     For use with UniDec Processing Pipeline
     Calculate the potential pairs from a row.
@@ -337,6 +351,10 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
     """
     labels = []
     pairs = []
+
+    # If keywords is None, use the known labels
+    if keywords is None:
+        keywords = known_labels
 
     redstring = ""
     # Try to get reduced things
@@ -354,7 +372,7 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
 
     # Loop through the rows and look for a known_label in the key
     for k in row.keys():
-        for label in known_labels:
+        for label in keywords:
             if label in k:
                 labels.append(k)
                 pairing = row[k]
@@ -465,15 +483,7 @@ def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest"):
         print("Favoring:", favor)
 
     # Get the global fixed mod
-    globalfixedmod = 0
-    if "Global Fixed Mod" in row.keys():
-        try:
-            val = float(row["Global Fixed Mod"])
-            if not math.isnan(val):
-                globalfixedmod = val
-                print("Global Fixed Mod:", globalfixedmod)
-        except Exception:
-            globalfixedmod = 0
+    globalfixedmod = parse_global_fixed_mod(row)
 
     # Calculate the potential pairs
     pmasses, plabels = calc_pairs(row, fmoddf=fmoddf)
@@ -686,9 +696,13 @@ def dar_calc(pks, protein_mass, drug_mass, min_drugs, max_drugs, tolerance):
     adc_nums = np.array(adc_nums)
     # Get the total ADC intensity
     total_adc = np.sum(adc_heights)
-    # Get the weighted average number of drugs conjugated
-    dar_val = np.sum(adc_nums * adc_heights) / total_adc
-    # Get the standard deviation of the number of drugs conjugated
+    if total_adc == 0:
+        print("Error in DAR calculation, no intensity matched to ADC")
+        return -1
+    else:
+        # Get the weighted average number of drugs conjugated
+        dar_val = np.sum(adc_nums * adc_heights) / total_adc
+        # Get the standard deviation of the number of drugs conjugated
 
-    print("DAR:", dar_val)
-    return dar_val
+        print("DAR:", dar_val)
+        return dar_val

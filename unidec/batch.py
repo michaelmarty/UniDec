@@ -77,8 +77,8 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
              "closesr. Other keywords like \"Ignore\" and \"Correct\" can be used to select "
              "specific types of matches over others."],
             ["Sequence {n}", False,
-             "The amino acid sequence or mass for the {n}th protein. Can be multiple sequences, "
-             "each as their own columns. If it can convert to float, it will. "
+             "The amino acid sequence or mass for the {n} protein or molecule. There can be multiple sequences, "
+             "each as their own columns and with unique names. If it can convert to float, it will. "
              "If not, it will assume it is an amino acid sequence with 1 letter codes."],
             ["Correct", True, "The Correct Pairing. This may be a list of the correct pairs, "
                               "listed as Seq1+Seq2, for example. Can also be a single mass value. "],
@@ -94,13 +94,53 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
              "Form more details, see https://dx.doi.org/10.1080/19420862.2016.1232217. "]
             ]
 
-recipe_d = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if not specified."],
-            ["Protein Mass", True, "The Protein Mass in Da or as an amino acid sequence."],
-            ["Drug Mass", True, "The Drug Mass in Da."],
-            ["Min Drug", False,
-             "The minimum number of drug molecules to include in the ADC. Default is 0 if not specified."],
-            ["Max Drug", True, "The maximum number of drug molecules to include in the ADC."]
-            ]
+recipe_d = [
+    ["Protein Mass", True, "The Protein Mass in either (1) a float in Da, (2) as an amino acid sequence, or "
+                           "(3) as a string of Seq{n}+Seq{m}, where Seq{n} and Seq{m} are the names of "
+                           "the columns containing the amino acid sequences or masses of individual species. "
+                           "See below for more details on the Sequence {n} column. "
+     ],
+    ["Drug Mass", True, "The Drug Mass in Da."],
+    ["Min Drug", False,
+     "The minimum number of drug molecules to include in the ADC. Default is 0 if not specified."],
+    ["Max Drug", True, "The maximum number of drug molecules to include in the ADC."],
+    ["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if not specified."],
+    ["Fixed Mod File", False, "The File Name or Path of the Fxied Mod File. "
+                              "Can be either Excel or CSV. The file should have \"Mass\" and \"Name\" "
+                              "columns with these exact headers. Can also have \"Number\" if a "
+                              "multiple is used If not specified, no modifications will be used. "
+                              "Note, it will apply one set of all fixed mods to each sequence. "
+                              "If you specify, \"Seq1+Seq2\", it will apply the fixed mods to both sequences."
+                              "If you specify a single amino acid sequence or float mass in the "
+                              "Protein Mass column, it will apply the fixed mods only once. "],
+    ["Apply Fixed Mods", False,
+     "A column specifying which sequences should get the fixed mods. "
+     "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
+     "column name, etc. Delimiters do not matter. "
+     "You can specify \"All\" to apply mods to all sequences "
+     "or \"None\" to apply to none. "
+     "It will assume yes to all if this column is not present. "],
+    ["Global Fixed Mod", False, "A column specifying a global fixed mass shift to apply to all complexes. "
+                                "Unlike Fixed Mod File, which applies a fixed modification to each sequence, "
+                                "this is applied only once to each complex. "
+                                "Also, it is a single float value rather than a file. "
+                                "This will be have identically to the Fixed Mod File "
+                                "if you specify a single amino acid sequence or mass float in the "
+                                "Protein Mass column. "],
+    ["Sequence {n}", False,
+     "The amino acid sequence or mass for the {n} protein or molecule. There can be multiple sequences, "
+     "each as their own columns and with unique names. If it can convert to float, it will. "
+     "If not, it will assume it is an amino acid sequence with 1 letter codes."],
+    ["Disulfides Oxidized", False,
+     "A column specifying the sequences that should be fully disulfide oxidized. "
+     "Should have the format of \"Seq1 Seq2 Seq3\" where Seq1 is the Sequence 1 "
+     "column name, etc. It will not work if only the amino acid sequence is given. Delimiters do not matter. "
+     "It will assume no to all if this column is not present. "
+     "You can specify \"All\" to oxidize all sequences "
+     "or \"None\" to oxidize none. "
+     "Will only work if sequences are amino acid codes with C. "
+     "It will subtract one H mass for each C."],
+]
 
 
 def find_file(fname, folder, use_converted=True):
@@ -423,7 +463,16 @@ class UniDecBatchProcessor(object):
         # print("File Path:", outpath)
         return os.path.abspath(outpath)
 
+    def get_tol(self, row):
+        # Extract the tolerance for peak matching
+        if "Tolerance (Da)" in row:
+            try:
+                self.tolerance = float(row["Tolerance (Da)"])
+            except Exception:
+                pass
+
     def get_mod_files(self, row):
+        self.vmoddf = None
         # Get and read the mod file
         if "Variable Mod File" in row:
             self.vmodfile = row["Variable Mod File"]
@@ -431,6 +480,7 @@ class UniDecBatchProcessor(object):
                 self.vmoddf = file_to_df(self.vmodfile)
                 print("Loaded Variable Mod File: ", self.vmodfile)
 
+        self.fmoddf = None
         # Get and read the mod file
         if "Fixed Mod File" in row:
             self.fmodfile = row["Fixed Mod File"]
@@ -441,14 +491,9 @@ class UniDecBatchProcessor(object):
     def run_correct_pair(self, row, pks=None):
         if pks is None:
             pks = self.eng.pks
-
-        # Extract the tolerance for peak matching
-        if "Tolerance (Da)" in row:
-            try:
-                self.tolerance = float(row["Tolerance (Da)"])
-            except Exception:
-                pass
-
+        # Get tolerance
+        self.get_tol(row)
+        # Get mod files
         self.get_mod_files(row)
 
         # Match to the correct peaks
@@ -461,21 +506,42 @@ class UniDecBatchProcessor(object):
             pks = self.eng.pks
 
         # Extract the tolerance for peak matching
-        if "Tolerance (Da)" in row:
+        self.get_tol(row)
+        # Get the mod files
+        self.get_mod_files(row)
+
+        # Set the Fixed Mod if applicable
+        fmod_mass = 0
+        if self.fmoddf is not None:
             try:
-                self.tolerance = float(row["Tolerance (Da)"])
+                fmod_mass, fmod_label = parse_fmoddf(self.fmoddf)
+                fmod_mass = float(fmod_mass)
             except Exception:
-                pass
+                print("Error calculating fixed mod mass.", self.fmoddf)
+        # Add in the global fixed mod if applicable
+        try:
+            global_fixed_mod = parse_global_fixed_mod(row)
+            global_fixed_mod = float(global_fixed_mod)
+            fmod_mass += global_fixed_mod
+        except Exception:
+            print("Error calculating global fixed mod mass.", row)
 
         # Read the Protein Mass
         if "Protein Mass" in row:
             try:
                 protein_mass = float(row["Protein Mass"])
+                protein_mass += fmod_mass
             except Exception:
                 try:
-                    protein_mass = calc_pep_mass(row["Protein Mass"])
+                    if "Seq" in row["Protein Mass"]:
+                        masses, labels = calc_pairs(row, fmoddf=self.fmoddf, keywords=["Protein Mass"])
+                        protein_mass = masses[0]
+                    else:
+                        protein_mass = calc_pep_mass(row["Protein Mass"])
+                        protein_mass += fmod_mass
+
                 except Exception:
-                    print("Error: Protein Mass is not a number. Please specify Protein Mass in the DataFrame.")
+                    print("Error in calculating the protein mass. Please specify Protein Mass in the DataFrame.")
                     return row
         else:
             print("Error: No Protein Mass Specified. Please specify Protein Mass in the DataFrame.")
@@ -545,7 +611,7 @@ if __name__ == "__main__":
         # path = "C:\\Data\\Wilson_Genentech\\BsAb\\test2.csv"
         path = "C:\\Data\\Wilson_Genentech\\Test\\BsAb test v2.xlsx"
         path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test short.xlsx"
-        # path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
+        path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
         pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=True, use_converted=True, interactive=False)
 

@@ -125,7 +125,8 @@ class HelpDlg(wx.Frame):
 
         html_str += "<h3>Workflow 2: Calculate Drug-to-Antibody Ratio</h3><p>" \
                     "This recipe will calculate the drug-to-antibody ratio for an ADC. " \
-                    "The column keyword of \"Protein Mass\" defines the mass of the antibody. " \
+                    "The column keyword of \"Protein Mass\" defines the mass of the antibody, either with a " \
+                    "mass value, an amino acid sequence, or a Seq code combination. " \
                     "The column keyword of \"Drug Mass\" defines the mass of the drug. " \
                     "The column keyword of \"Max Drug\" defines the maximum number of drug molecules to consider. " \
                     "UPP will then loop through all possible combinations of drug and antibody " \
@@ -581,8 +582,8 @@ if __name__ == "__main__":
     path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
     path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
     path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
-    #path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
-    #path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
+    # path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
+    # path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
     # frame.on_help_page()
     # exit()
     if True:
