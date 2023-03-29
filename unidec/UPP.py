@@ -171,6 +171,17 @@ class UPPApp(wx.Frame):
         self.use_interactive = False
         self.bpeng = BPEngine()
 
+        try:
+            if os.path.isfile(self.bpeng.eng.config.iconfile):
+                favicon = wx.Icon(self.bpeng.eng.config.iconfile, wx.BITMAP_TYPE_ANY)
+                wx.Frame.SetIcon(self, favicon)
+                self.icon_path = os.path.abspath(self.bpeng.eng.config.iconfile)
+            else:
+                self.icon_path = None
+        except Exception as e:
+            print(e)
+            self.icon_path = None
+
         menu = wx.Menu()
         # Open File Menu
         open_file_menu_item = menu.Append(wx.ID_ANY, "Open File", "Open a CSV or Excel file")
@@ -309,7 +320,7 @@ class UPPApp(wx.Frame):
         self.runbtn.SetBackgroundColour("red")
         self.get_from_gui()
         self.bpeng.run_df(decon=self.use_decon, use_converted=self.use_converted, interactive=self.use_interactive)
-        self.ss.set_df(self.bpeng.rundf)
+        self.load_to_gui()
         self.runbtn.SetBackgroundColour("green")
         if not self.hide_col_flag:
             self.on_hide_columns()
@@ -333,7 +344,7 @@ class UPPApp(wx.Frame):
         # topdf.iloc[selected_rows] = subdf2
         topdf = set_row_merge(topdf, subdf, selected_rows)
         self.bpeng.rundf = topdf
-        self.ss.set_df(self.bpeng.rundf)
+        self.load_to_gui()
         # Finish by coloring the button green
         self.runbtn2.SetBackgroundColour("green")
         if not self.hide_col_flag:
@@ -350,8 +361,8 @@ class UPPApp(wx.Frame):
         except Exception:
             pass
         self.bpeng.top_dir = os.path.dirname(filename)
-        df = file_to_df(filename)
-        self.ss.set_df(df)
+        self.bpeng.rundf = file_to_df(filename)
+        self.load_to_gui()
         # dirname = os.path.dirname(filename)
         # self.set_dir_tet_box(dirname)
         self.reset_hidden_columns()
@@ -409,6 +420,10 @@ class UPPApp(wx.Frame):
         self.ss.remove_empty()
         ssdf = self.ss.get_df()
         self.bpeng.rundf = ssdf
+
+    def load_to_gui(self):
+        self.ss.set_df(self.bpeng.rundf)
+        self.color_columns()
 
     def on_open_all_html(self, event):
         print("Open All HTML Reports button pressed")
@@ -473,7 +488,7 @@ class UPPApp(wx.Frame):
         newdf = pd.DataFrame({"Sample name": sample_names, "Data Directory": data_dir})
         self.bpeng.rundf = pd.concat([self.bpeng.rundf, newdf], ignore_index=True)
 
-        self.ss.set_df(self.bpeng.rundf)
+        self.load_to_gui()
         self.reset_hidden_columns()
 
     def on_hide_columns(self, event=None, reset=False):
@@ -516,6 +531,40 @@ class UPPApp(wx.Frame):
             self.ss.show_columns_by_keyword("%")
             self.hide_percentcol_flag = False
 
+    def color_columns(self):
+        for row in basic_parameters:
+            if row[1]:
+                self.ss.color_columns_by_keyword(row[0], "#D1F2EB")
+            else:
+                self.ss.color_columns_by_keyword(row[0], "#D6EAF8")
+
+        for row in config_parameters:
+            if row[1]:
+                self.ss.color_columns_by_keyword(row[0], "#FEF9E7")
+            else:
+                self.ss.color_columns_by_keyword(row[0], "#FEF9E7")
+
+        for row in recipe_w:
+            if row[1]:
+                self.ss.color_columns_by_keyword(row[0], "#BB8FCE")
+            else:
+                self.ss.color_columns_by_keyword(row[0], "#E8DAEF")
+
+        for row in recipe_d:
+            if row[1]:
+                self.ss.color_columns_by_keyword(row[0], "#D98880")
+            else:
+                self.ss.color_columns_by_keyword(row[0], "#F5B7B1")
+
+        self.ss.color_columns_by_keyword("Height", "#5D6D7E")
+        self.ss.color_columns_by_keyword("%", "#D5D8DC")
+        self.ss.color_columns_by_keyword("BsAb Pairing Calculated", "#7DCEA0")
+        self.ss.color_columns_by_keyword("DAR", "#7DCEA0")
+        self.ss.color_columns_by_keyword("Light Chain Scrambled", "#F7DC6F")
+
+        self.ss.color_columns_by_keyword("Sequence", "#FDEBD0")
+        self.ss.color_columns_by_keyword("Matches", "#D5F5E3")
+
     def on_help_page(self, event=None):
         print("Help button pressed")
         dlg = HelpDlg()
@@ -531,8 +580,8 @@ if __name__ == "__main__":
     frame.usedeconbox.SetValue(False)
     path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
     path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
-    path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
-    path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
+    #path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
+    #path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
     # frame.on_help_page()
     # exit()
     if True:

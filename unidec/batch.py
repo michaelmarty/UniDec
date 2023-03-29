@@ -410,6 +410,7 @@ class UniDecBatchProcessor(object):
             print("Error stripping file name", file, e)
 
         # Look for the data directory
+        self.data_dir = ""
         if "Data Directory" in row:
             data_dir = row["Data Directory"]
             # print(data_dir, os.path.isdir(data_dir), os.getcwd())

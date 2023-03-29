@@ -316,8 +316,8 @@ def calc_bispecific_correct(row, a_code="BsAb (Correct)", b_code="LC1 Mispair (I
     y = a - x
 
     # Set
-    row["BsAb Pairing Calculated (%)"] = x
-    row["Light Chain Scrambled (%)"] = y
+    row["BsAb Pairing Calculated (%)"] = x * 100
+    row["Light Chain Scrambled (%)"] = y * 100
 
     return row
 
