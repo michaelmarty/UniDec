@@ -197,7 +197,11 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.6.0.2
 
-**Added a new Drug-to-Antibody Ratio (DAR) calculation mode for UPP.**
+**Added a new Drug-to-Antibody Ratio (DAR) calculation mode for UPP.** See help file for the new keywords. 
+
+Added color to the columns on UPP.
+
+Fixed bug with HTML float sorting as text.
 
 v.6.0.1
 

@@ -423,17 +423,7 @@ class UniDecBatchProcessor(object):
         # print("File Path:", outpath)
         return os.path.abspath(outpath)
 
-    def run_correct_pair(self, row, pks=None):
-        if pks is None:
-            pks = self.eng.pks
-
-        # Extract the tolerance for peak matching
-        if "Tolerance (Da)" in row:
-            try:
-                self.tolerance = float(row["Tolerance (Da)"])
-            except Exception:
-                pass
-
+    def get_mod_files(self, row):
         # Get and read the mod file
         if "Variable Mod File" in row:
             self.vmodfile = row["Variable Mod File"]
@@ -447,6 +437,19 @@ class UniDecBatchProcessor(object):
             if os.path.isfile(str(self.fmodfile)):
                 self.fmoddf = file_to_df(self.fmodfile)
                 print("Loaded Fixed Mod File: ", self.fmodfile)
+
+    def run_correct_pair(self, row, pks=None):
+        if pks is None:
+            pks = self.eng.pks
+
+        # Extract the tolerance for peak matching
+        if "Tolerance (Da)" in row:
+            try:
+                self.tolerance = float(row["Tolerance (Da)"])
+            except Exception:
+                pass
+
+        self.get_mod_files(row)
 
         # Match to the correct peaks
         newrow = UPP_check_peaks(row, pks, self.tolerance, vmoddf=self.vmoddf, fmoddf=self.fmoddf)
@@ -509,11 +512,18 @@ class UniDecBatchProcessor(object):
             print("Error: No Max Drugs Specified. Please specify Max Drugs in the DataFrame.")
             return row
 
-        print("Running DAR Calculation. Min Drugs:", min_drugs, "Max Drugs:", max_drugs, "Protein Mass:", protein_mass,
-              "Drug Mass:", drug_mass)
-        dar_val = dar_calc(pks, protein_mass, drug_mass, min_drugs, max_drugs, self.tolerance)
-        row["DAR"] = dar_val
-        return row
+        if protein_mass > 0 and drug_mass > 0 and min_drugs >= 0 and max_drugs > 0:
+            print("Running DAR Calculation. Min Drugs:", min_drugs, "Max Drugs:", max_drugs, "Protein Mass:",
+                  protein_mass,
+                  "Drug Mass:", drug_mass)
+            dar_val = dar_calc(pks, protein_mass, drug_mass, min_drugs, max_drugs, self.tolerance)
+            row["DAR"] = dar_val
+            return row
+        else:
+            print("Error: DAR Calculation Failed. Please check your parameters.")
+            print("Min Drugs:", min_drugs, "Max Drugs:", max_drugs, "Protein Mass:", protein_mass,
+                  "Drug Mass:", drug_mass)
+            return row
 
 
 if __name__ == "__main__":
@@ -534,7 +544,8 @@ if __name__ == "__main__":
         # path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
         # path = "C:\\Data\\Wilson_Genentech\\BsAb\\test2.csv"
         path = "C:\\Data\\Wilson_Genentech\\Test\\BsAb test v2.xlsx"
-        path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
+        path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test short.xlsx"
+        # path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
         pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=True, use_converted=True, interactive=False)
 

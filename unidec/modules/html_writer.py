@@ -166,15 +166,23 @@ def df_to_html(df, outfile=None, colors=None, index=True, sortable=True):
               x = rows[i].getElementsByTagName("TD")[n];
               y = rows[i + 1].getElementsByTagName("TD")[n];
               /* Check if the two rows should switch place,
-              based on the direction, asc or desc: */
+              based on the direction, asc or desc. 
+              Try to use a float. If not a float, use lower case: */
+              xfloat = parseFloat(x.innerHTML)
+              yfloat = parseFloat(y.innerHTML)
+              if (isNaN(xfloat) || isNaN(yfloat)){
+                xfloat = x.innerHTML.toLowerCase()
+                yfloat = y.innerHTML.toLowerCase()
+              }  
+              
               if (dir == "asc") {
-                if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                if (xfloat > yfloat) {
                   // If so, mark as a switch and break the loop:
                   shouldSwitch = true;
                   break;
                 }
               } else if (dir == "desc") {
-                if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                if (xfloat < yfloat) {
                   // If so, mark as a switch and break the loop:
                   shouldSwitch = true;
                   break;
