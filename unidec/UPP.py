@@ -580,6 +580,7 @@ if __name__ == "__main__":
     frame.usedeconbox.SetValue(False)
     path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
     path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
+    path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
     #path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
     #path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
     # frame.on_help_page()
@@ -588,7 +589,7 @@ if __name__ == "__main__":
         frame.load_file(path)
         # frame.set_dir_tet_box("C:\\Data\\Wilson_Genentech\\Data")
         # print(df)
-        frame.on_run()
+        # frame.on_run()
         # frame.on_run_selected(rows=[1])
         # frame.on_run_selected(rows=[0])
         # frame.on_add_files()

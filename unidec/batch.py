@@ -95,8 +95,8 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
             ]
 
 recipe_d = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if not specified."],
-            ["Protein Mass", True, "The Protein Mass in Da"],
-            ["Drug Mass", True, "The Drug Mass in Da"],
+            ["Protein Mass", True, "The Protein Mass in Da or as an amino acid sequence."],
+            ["Drug Mass", True, "The Drug Mass in Da."],
             ["Min Drug", False,
              "The minimum number of drug molecules to include in the ADC. Default is 0 if not specified."],
             ["Max Drug", True, "The maximum number of drug molecules to include in the ADC."]
@@ -368,8 +368,10 @@ class UniDecBatchProcessor(object):
 
                     # Merge the row back in the df
                     self.rundf = set_row_merge(self.rundf, newrow, [i])
-
-                    results_string = "The Drug-to-Antibody Ratio (DAR) is: " + str(newrow["DAR"])
+                    try:
+                        results_string = "The Drug-to-Antibody Ratio (DAR) is: " + str(newrow["DAR"])
+                    except Exception:
+                        results_string = None
 
                 # Generate the HTML report
                 outfile = self.eng.gen_html_report(open_in_browser=False, interactive=interactive,
@@ -467,8 +469,11 @@ class UniDecBatchProcessor(object):
             try:
                 protein_mass = float(row["Protein Mass"])
             except Exception:
-                print("Error: Protein Mass is not a number. Please specify Protein Mass in the DataFrame.")
-                return row
+                try:
+                    protein_mass = calc_pep_mass(row["Protein Mass"])
+                except Exception:
+                    print("Error: Protein Mass is not a number. Please specify Protein Mass in the DataFrame.")
+                    return row
         else:
             print("Error: No Protein Mass Specified. Please specify Protein Mass in the DataFrame.")
             return row
