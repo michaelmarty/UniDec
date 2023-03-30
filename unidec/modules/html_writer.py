@@ -216,7 +216,7 @@ def df_to_html(df, outfile=None, colors=None, index=True, sortable=True):
     return html_str
 
 
-def html_title(outtitle, outfile=None):
+def gen_style_str():
     # CSS styling
     style = ET.Element('style')
     style.text = "header {background-color: #0C234B;}\n"
@@ -224,13 +224,18 @@ def html_title(outtitle, outfile=None):
     style.text += "h2 {color: #AB0520; text-align:left; margin:0; padding:10px}\n"
     style.text += "h3 {color: #AB0520; text-align:left; margin:0; padding:10px}\n"
     style.text += "body {margin:0; padding:0; font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif;}"
+    style.text += "p {margin-left:25px; padding:0;}"
     style.text += "table {border-collapse: collapse; margin:25px; padding:0}\n"
     style.text += "th {text-align:left; background-color:#ADD8E6;; color:black;}\n"
     style.text += "tr:nth-child(even) {background-color: #f2f2f2;}\n"
     style.text += ".grid-container {display:grid; margin:25px;} \n"
     style.text += ".row {display:flex;} \n"
     style_str = ET.tostring(style, encoding='unicode')
-    html_str = style_str
+    return style_str
+
+
+def html_title(outtitle, outfile=None):
+    html_str = gen_style_str()
 
     try:
         # Split file name title into file and directory

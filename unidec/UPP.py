@@ -13,6 +13,7 @@ class HelpDlg(wx.Frame):
         super().__init__(*args, **kw)
         pathtofile = os.path.dirname(os.path.abspath(__file__))
         self.imagepath = os.path.join(pathtofile, "images")
+        self.htmlstr = ""
         # print(pathtofile)
         # print(self.imagepath)
         if num == 1:
@@ -23,10 +24,21 @@ class HelpDlg(wx.Frame):
 
     def help_frame(self):
         wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(600, 600))
+
+        # Add a menu button to open in the web browser
+        menu = wx.Menu()
+        menu.Append(wx.ID_ANY, "Open in Browser")
+        menu.Bind(wx.EVT_MENU, self.open_in_browser)
+        menu_bar = wx.MenuBar()
+        menu_bar.Append(menu, "Help")
+        self.SetMenuBar(menu_bar)
+
         html = wx.html.HtmlWindow(self)
 
-        html_str = "<html><body>" \
-                   "<h1>Overview</h1><p>" \
+        html_str = gen_style_str()
+
+        html_str += "<html><body>" \
+                   "<header><h1>Overview</h1></header><p>" \
                    "Welcome to the UniDec Processing Pipeline (UPP)! " \
                    "This module is designed to help you process, deconvolve, " \
                    "and extract specific information from your data. " \
@@ -141,7 +153,21 @@ class HelpDlg(wx.Frame):
 
         html_str += "</body></html>"
 
+        self.htmlstr = html_str
+        '''
+        # For Writing to File
+        # Copy html_str to clipboard
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(wx.TextDataObject(html_str))
+            wx.TheClipboard.Close()'''
+
         html.SetPage(html_str)
+
+    def open_in_browser(self, event):
+        # Open in Browser
+        with open("help.html", "w") as f:
+            f.write(self.htmlstr)
+        webbrowser.open("help.html")
 
 
 class MyFileDropTarget(wx.FileDropTarget):
@@ -587,7 +613,7 @@ if __name__ == "__main__":
     # path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
     # frame.on_help_page()
     # exit()
-    if True:
+    if False:
         frame.load_file(path)
         # frame.set_dir_tet_box("C:\\Data\\Wilson_Genentech\\Data")
         # print(df)
