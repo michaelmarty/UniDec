@@ -6,6 +6,7 @@ import numpy as np
 import time
 import webbrowser
 import sys
+import re
 
 basic_parameters = [["Sample name", True, "The File Name or Path. File extensions are optional."],
                     ["Data Directory", False, "The directory of the data files. If you do not specify this, "
@@ -323,8 +324,12 @@ class UniDecBatchProcessor(object):
         self.correct_pair_mode = False
         self.dar_mode = False
         self.time_range = None
+        self.global_html_str = ""
+        self.filename = ""
+        self.global_html_file = "results.html"
 
     def run_file(self, file=None, decon=True, use_converted=True, interactive=False):
+        self.filename = file
         self.top_dir = os.path.dirname(file)
         self.rundf = file_to_df(file)
 
@@ -424,6 +429,9 @@ class UniDecBatchProcessor(object):
                 outfile = self.eng.gen_html_report(open_in_browser=False, interactive=interactive,
                                                    results_string=results_string)
                 htmlfiles.append(outfile)
+
+                # Add the HTML report to the global HTML string
+                self.global_html_str += self.eng.html_str
             else:
                 # When files are not found, print the error and add empty results
                 print("File not found:", path)
@@ -436,11 +444,32 @@ class UniDecBatchProcessor(object):
         if self.top_dir == "" and self.data_dir != "":
             self.top_dir = os.path.dirname(self.data_dir)
 
+        # Get Output File Base Name
+        try:
+            filebase = os.path.splitext(os.path.basename(self.filename))[0]
+            outbase = os.path.join(self.top_dir, filebase)
+        except Exception:
+            outbase = os.path.join(self.top_dir, "results")
+
         # Write the results to an Excel file to the top directory
-        outfile = os.path.join(self.top_dir, "results.xlsx")
+        outfile = outbase + "_results.xlsx"
         self.rundf.to_excel(outfile)
         print("Write to: ", outfile)
         # print(self.rundf)
+
+        # Write the global HTML string to a file
+        self.global_html_file = outbase + "_report.html"
+        with open(self.global_html_file, "w", encoding="utf-8") as f:
+            title_string = "UPP Results " + str(self.filename)
+            f.write("<html>")
+            f.write("<title>" + title_string + "</title>")
+            f.write("<header><h1>" + title_string + "</h1></header>")
+            # Remove text between <h1> and </h1> tags
+            self.global_html_str = re.sub(r"<h1>.*</h1>", "", self.global_html_str)
+            f.write(self.global_html_str)
+            f.write("</html>")
+        print("Write to: ", self.global_html_file)
+
         # Print Run Time
         print("Batch Run Time:", time.perf_counter() - clockstart)
         return self.rundf
@@ -449,6 +478,10 @@ class UniDecBatchProcessor(object):
         for i, row in self.rundf.iterrows():
             if os.path.isfile(row["Reports"]):
                 webbrowser.open(row["Reports"])
+
+    def open_global_html(self):
+        if os.path.isfile(self.global_html_file):
+            webbrowser.open(self.global_html_file)
 
     def get_file_path(self, row, use_converted=True):
         # Read the file name
@@ -622,9 +655,11 @@ if __name__ == "__main__":
         # path = "C:\\Data\\Wilson_Genentech\\BsAb\\test2.csv"
         path = "C:\\Data\\Wilson_Genentech\\Test\\BsAb test v2.xlsx"
         path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test short.xlsx"
-        #path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
+        path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
+        path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
+        # path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
         pd.set_option('display.max_columns', None)
-        batch.run_file(path, decon=True, use_converted=True, interactive=False)
+        batch.run_file(path, decon=False, use_converted=True, interactive=False)
 
-        batch.open_all_html()
+        batch.open_global_html()
         pass

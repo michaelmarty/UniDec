@@ -24,9 +24,11 @@ def write_to_html(html_str, outfile, mode="a"):
     html_file.close()
 
 
-def fig_to_html_mpld3(fig, outfile):
+def fig_to_html_mpld3(fig, outfile=None):
     html_str = mpld3.fig_to_html(fig, no_extras=True)
-    write_to_html(html_str, outfile)
+    if outfile is not None:
+        write_to_html(html_str, outfile)
+    return html_str
 
 
 '''

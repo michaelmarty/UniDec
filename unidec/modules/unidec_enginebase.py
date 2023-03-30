@@ -44,6 +44,7 @@ class UniDecEngine:
         self.altindexes = None
         self.matchindexes = None
         self.matchlist = None
+        self.html_str = ""
         self.initialize()
 
     def initialize(self):
@@ -623,20 +624,20 @@ class UniDecEngine:
         if outfile is None:
             outfile = self.config.outfname + "_report.html"
         html_open(outfile)
-
-        html_title(self.config.filename, outfile)
+        self.html_str = ""
+        self.html_str += html_title(self.config.filename, outfile)
 
         peaks_df = self.pks.to_df()
         colors = [p.color for p in self.pks.peaks]
 
         if len(peaks_df) > 0:
-            df_to_html(peaks_df, outfile, colors=colors)
+            self.html_str += df_to_html(peaks_df, outfile, colors=colors)
 
         # array_to_html(np.transpose(self.matchlist), outfile,
         #              cols=["Measured Mass", "Theoretical Mass", "Error", "Match Name"])
 
         if results_string is not None:
-            to_html_paragraph(results_string, outfile)
+            self.html_str += to_html_paragraph(results_string, outfile)
 
         if plots is None:
             plot = self.makeplot2(silent=True)
@@ -675,11 +676,12 @@ class UniDecEngine:
                 svg_grid.append(svg_row)
 
         svg_grid_string = wrap_to_grid(svg_grid, outfile)
+        self.html_str += svg_grid_string
 
         if interactive:
             for f in figure_list:
                 try:
-                    fig_to_html_mpld3(f, outfile)
+                    self.html_str += fig_to_html_mpld3(f, outfile)
                 except Exception:
                     pass
 
@@ -689,13 +691,14 @@ class UniDecEngine:
                 spectra_df.drop(["beta", "error", "iterations", "psig", "rsquared", "zsig", "mzsig", "length_mass",
                                  "length_mz", "time"], axis=1, inplace=True)
                 colors2 = self.data.get_colors()
-                df_to_html(spectra_df, outfile, colors=colors2)
+                self.html_str += df_to_html(spectra_df, outfile, colors=colors2)
         except Exception:
             pass
 
         config_dict = self.config.get_config_dict()
         config_htmlstring = dict_to_html(config_dict)
-        to_html_collapsible(config_htmlstring, title="UniDec Parameters", outfile=outfile, htmltext=True)
+        self.html_str += to_html_collapsible(config_htmlstring, title="UniDec Parameters", outfile=outfile,
+                                             htmltext=True)
 
         html_close(outfile)
 

@@ -255,36 +255,7 @@ class UPPApp(wx.Frame):
         hsizer.Add(self.runbtn2, 0)
 
         # Insert Spacer Text
-        hsizer.Add(wx.StaticText(panel, label="   "), 0)
-
-        # Insert a button for Open All HTML Reports and bind to function
-        btn = wx.Button(panel, label="Open All HTML Reports")
-        btn.Bind(wx.EVT_BUTTON, self.on_open_all_html)
-        hsizer.Add(btn, 0)
-
-        # Insert a button for Run in UniDec and bind to function
-        btn = wx.Button(panel, label="Open in UniDec")
-        btn.Bind(wx.EVT_BUTTON, self.on_open_unidec)
-        hsizer.Add(btn, 0)
-
-        # Insert a static text of directory
-        # hsizer.Add(wx.StaticText(panel, label="   Data Directory:", style=wx.ALIGN_CENTER_VERTICAL))
-        # Insert a text box to read out the directory
-        # self.dirtxtbox = wx.TextCtrl(panel, size=(400, -1))
-        # hsizer.Add(self.dirtxtbox, 0, wx.EXPAND)
-        # Add a button to set the directory
-        # btn = wx.Button(panel, label="...")
-
-        # Insert a static text of tolerance
-        # hsizer.Add(wx.StaticText(panel, label="   Tolerance:", style=wx.ALIGN_CENTER_VERTICAL))
-        # Insert a text box to read out the directory
-        # self.tolbox = wx.TextCtrl(panel, size=(50, -1))
-        # self.tolbox.SetValue("50")
-        # hsizer.Add(self.tolbox, 0, wx.EXPAND)
-        # hsizer.Add(wx.StaticText(panel, label="Da   ", style=wx.ALIGN_CENTER_VERTICAL))
-
-        # Insert Spacer Text
-        hsizer.Add(wx.StaticText(panel, label="   "), 0)
+        hsizer.Add(wx.StaticText(panel, label="     "), 0)
 
         # Insert a checkbox to select whether to use already converted data
         self.useconvbox = wx.CheckBox(panel, label="Use Converted Data  ")
@@ -304,37 +275,69 @@ class UPPApp(wx.Frame):
         # Insert Spacer Text
         hsizer.Add(wx.StaticText(panel, label="   "), 0)
 
+        # Insert a button for Open Global HTML Reports and bind to function
+        btn = wx.Button(panel, label="Open Combined Report")
+        btn.Bind(wx.EVT_BUTTON, self.on_open_global_html)
+        btn.SetBackgroundColour("#5B2C6F")
+        btn.SetOwnForegroundColour("#FFFFFF")
+        hsizer.Add(btn, 0)
+
+        # Insert a button for Open All HTML Reports and bind to function
+        btn = wx.Button(panel, label="Open All Reports")
+        btn.Bind(wx.EVT_BUTTON, self.on_open_all_html)
+        btn.SetBackgroundColour("#196F3D")
+        btn.SetOwnForegroundColour("#FFFFFF")
+        hsizer.Add(btn, 0)
+
+        # Insert a button for Run in UniDec and bind to function
+        btn = wx.Button(panel, label="Open in UniDec")
+        btn.Bind(wx.EVT_BUTTON, self.on_open_unidec)
+        btn.SetBackgroundColour("#1F618D")
+        btn.SetOwnForegroundColour("#FFFF00")
+        hsizer.Add(btn, 0)
+
+        # Insert Spacer Text
+        #hsizer.Add(wx.StaticText(panel, label="   "), 0)
+        hsizer2 = wx.BoxSizer(wx.HORIZONTAL)
         # Insert a button to hide columns
         self.hidebtn = wx.Button(panel, label="Hide Columns")
         self.hidebtn.Bind(wx.EVT_BUTTON, self.on_hide_columns)
-        hsizer.Add(self.hidebtn, 0)
+        hsizer2.Add(self.hidebtn, 0)
         self.hide_col_flag = False
+
+        hsizer2.Add(wx.StaticText(panel, label="   "), 0)
 
         # Insert a button to hide columns with height in the title
         self.hideheightbtn = wx.Button(panel, label="Hide Height Columns")
         self.hideheightbtn.Bind(wx.EVT_BUTTON, self.on_hide_height_columns)
-        hsizer.Add(self.hideheightbtn, 0)
+        self.hideheightbtn.SetBackgroundColour("#5D6D7E")
+        self.hideheightbtn.SetOwnForegroundColour("#FFFFFF")
+        hsizer2.Add(self.hideheightbtn, 0)
         self.hide_height_flag = False
 
         # Insert a button to hide columns with % in the title
         self.hidepercentbtn = wx.Button(panel, label="Hide % Columns")
         self.hidepercentbtn.Bind(wx.EVT_BUTTON, self.on_hide_percent_columns)
-        hsizer.Add(self.hidepercentbtn, 0)
+        self.hidepercentbtn.SetBackgroundColour("#D5D8DC")
+        #self.hidepercentbtn.SetOwnForegroundColour("#FFFFFF")
+        hsizer2.Add(self.hidepercentbtn, 0)
         self.hide_percentcol_flag = False
 
         # Insert Spacer Text
-        hsizer.Add(wx.StaticText(panel, label="   "), 0)
+        hsizer2.Add(wx.StaticText(panel, label="   "), 0)
 
         # Insert a button to hide columns that are empty
         self.hideemptybtn = wx.Button(panel, label="Hide Empty Columns")
         self.hideemptybtn.Bind(wx.EVT_BUTTON, self.on_hide_empty_columns)
-        hsizer.Add(self.hideemptybtn, 0)
+        hsizer2.Add(self.hideemptybtn, 0)
 
         sizer.Add(hsizer, 0, wx.ALL | wx.EXPAND)
 
         self.ss = SpreadsheetPanel(self, panel, nrows, ncolumns).ss
         self.ss.set_col_headers(["Sample name", "Data Directory"])
         sizer.Add(self.ss, 1, wx.EXPAND)
+
+        sizer.Add(hsizer2, 0, wx.ALL | wx.EXPAND)
 
         file_drop_target = MyFileDropTarget(self)
         self.ss.SetDropTarget(file_drop_target)
@@ -388,6 +391,7 @@ class UPPApp(wx.Frame):
         except Exception:
             pass
         self.bpeng.top_dir = os.path.dirname(filename)
+        self.bpeng.filename = filename
         self.bpeng.rundf = file_to_df(filename)
         self.load_to_gui()
         # dirname = os.path.dirname(filename)
@@ -455,6 +459,10 @@ class UPPApp(wx.Frame):
     def on_open_all_html(self, event):
         print("Open All HTML Reports button pressed")
         self.bpeng.open_all_html()
+
+    def on_open_global_html(self, event):
+        print("Open Global HTML Report button pressed")
+        self.bpeng.open_global_html()
 
     def on_open_unidec(self, event):
         ssdf = self.ss.get_df()
@@ -607,13 +615,13 @@ if __name__ == "__main__":
     frame.usedeconbox.SetValue(False)
     path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
     path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
-    path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
-    path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
+    # path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
+    #path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
     # path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
     # path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
     # frame.on_help_page()
     # exit()
-    if False:
+    if True:
         frame.load_file(path)
         # frame.set_dir_tet_box("C:\\Data\\Wilson_Genentech\\Data")
         # print(df)
