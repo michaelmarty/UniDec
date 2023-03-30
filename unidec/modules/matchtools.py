@@ -569,6 +569,12 @@ def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest"):
             if len(p.altmatches) > 0:
                 p.altmatches = np.delete(p.altmatches, np.argwhere(p.altmatches == label))
 
+            # Remove the terminal + if it exists
+            if label[-1] == "+":
+                label = label[:-1]
+            if label[-2:] == "+ ":
+                label = label[:-2]
+
             matches.append(label)
             matchstring += " " + label
 

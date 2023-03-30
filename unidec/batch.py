@@ -168,12 +168,12 @@ def find_file(fname, folder, use_converted=True):
         else:
             # Return the original file name and hope for the best
             return fname
-
     else:
         # If a file extension is not regonized, it will try to find the file with the extensions it knows
         for ext in extensions:
-            if os.path.exists(os.path.join(folder, fname + ext)):
-                return os.path.join(folder, fname + ext)
+            testpath = os.path.join(folder, fname + ext)
+            if os.path.exists(testpath):
+                return testpath
     return fname
 
 
@@ -389,8 +389,15 @@ class UniDecBatchProcessor(object):
                     print("Auto Peak Width", self.autopw)
                     self.eng.autorun(auto_peak_width=self.autopw, silent=True)
                 else:
-                    self.eng.unidec_imports(efficiency=False)
-                    self.eng.pick_peaks()
+                    try:
+                        self.eng.unidec_imports(efficiency=False)
+                        self.eng.pick_peaks()
+                    except FileNotFoundError:
+                        # If the Config m/z Peak FWHM is specified, do not use the auto peak width
+                        if "Config m/z Peak FWHM" in row:
+                            self.autopw = not check_for_floatable(row, "Config m/z Peak FWHM")
+                        print("Auto Peak Width", self.autopw)
+                        self.eng.autorun(auto_peak_width=self.autopw, silent=True)
 
                 results_string = None
 
@@ -512,6 +519,7 @@ class UniDecBatchProcessor(object):
 
         # Set the Fixed Mod if applicable
         fmod_mass = 0
+        global_fixed_mod = 0
         if self.fmoddf is not None:
             try:
                 fmod_mass, fmod_label = parse_fmoddf(self.fmoddf)
@@ -536,6 +544,7 @@ class UniDecBatchProcessor(object):
                     if "Seq" in row["Protein Mass"]:
                         masses, labels = calc_pairs(row, fmoddf=self.fmoddf, keywords=["Protein Mass"])
                         protein_mass = masses[0]
+                        protein_mass += global_fixed_mod
                     else:
                         protein_mass = calc_pep_mass(row["Protein Mass"])
                         protein_mass += fmod_mass
@@ -561,18 +570,20 @@ class UniDecBatchProcessor(object):
         # Read the min and max drugs
         if "Min Drugs" in row:
             try:
-                min_drugs = int(row["Min Drugs"])
+                min_drugs = int(float(row["Min Drugs"]))
             except Exception:
-                print("Error: Min Drugs is not an integer. Please specify Min Drugs in the DataFrame. Using 0.")
+                print("Error: Min Drugs is not an integer. Please specify Min Drugs in the DataFrame. Using 0.",
+                      row["Min Drugs"])
                 min_drugs = 0
         else:
             min_drugs = 0
 
         if "Max Drugs" in row:
             try:
-                max_drugs = int(row["Max Drugs"])
+                max_drugs = int(float(row["Max Drugs"]))
             except Exception:
-                print("Error: Max Drugs is not an integer. Please specify Max Drugs in the DataFrame.")
+                print("Error: Max Drugs is not an integer. Please specify Max Drugs in the DataFrame.",
+                      row["Max Drugs"])
                 return row
         else:
             print("Error: No Max Drugs Specified. Please specify Max Drugs in the DataFrame.")
@@ -611,7 +622,7 @@ if __name__ == "__main__":
         # path = "C:\\Data\\Wilson_Genentech\\BsAb\\test2.csv"
         path = "C:\\Data\\Wilson_Genentech\\Test\\BsAb test v2.xlsx"
         path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test short.xlsx"
-        path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
+        #path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
         pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=True, use_converted=True, interactive=False)
 
