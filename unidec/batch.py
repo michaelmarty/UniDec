@@ -1,6 +1,6 @@
 from unidec.engine import UniDec
 from unidec.modules.matchtools import *
-from unidec.tools import known_extensions, strip_char_from_string
+from unidec.tools import known_extensions, strip_char_from_string, find_kernel_file
 import os
 import numpy as np
 import time
@@ -32,6 +32,12 @@ config_parameters = [["Config Peak Thres", False, "Deconvolution Setting: The Pe
                                                       "Deconvolution. 0=gaussian, 1=lorentzian, 2=split G/L"],
                      ["Config File", False, "Path to Config File. Will load this file and use the settings. Note,"
                                             " any settings specified in the batch file will override the config file."],
+                     ["DoubleDec Kernel File", False, "Path to DoubleDec Kernel File. If specified, it will load "
+                          "this file and use DoubleDec. WARNING: Do not use Kernel files that are also in the list. "
+                          "If you want to use a kernel file from your list, first deconvolve it, "
+                          "then copy the _mass.txt file out to a separate folder. "
+                          "Then, add that _mass.txt file as the path. Otherwise, you will be overwriting "
+                          "the kernel each time, which can cause unstable results."],
                      ]
 
 recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if not specified."],
@@ -185,7 +191,7 @@ def check_for_word_in_keys(df, word="Correct"):
     return False
 
 
-def set_param_from_row(eng, row):
+def set_param_from_row(eng, row, dirname=""):
     for k in row.keys():
         val = row[k]
         if isinstance(val, (float, int)):
@@ -244,6 +250,21 @@ def set_param_from_row(eng, row):
                 eng.config.psfun = int(val)
             except Exception as e:
                 print("Error setting massbins", k, val, e)
+
+        if "DoubleDec Kernel File" in k:
+            print(val)
+            kernel_file = find_kernel_file(val)
+            if kernel_file is None:
+                kernel_file = find_kernel_file(os.path.join(dirname, val))
+            if kernel_file is None:
+                kernel_file = find_kernel_file(os.path.join(os.getcwd(), val))
+
+            if kernel_file is not None:
+                eng.config.kernel = kernel_file
+                eng.config.doubledec = True
+                print("Using DoubleDec kernel", kernel_file)
+            else:
+                eng.config.doubledec = False
 
         # print(eng.config.maxmz, eng.config.minmz, k)
     return eng
@@ -336,7 +357,7 @@ class UniDecBatchProcessor(object):
         self.run_df(decon=decon, use_converted=use_converted, interactive=interactive)
 
     def run_df(self, df=None, decon=True, use_converted=True, interactive=False):
-
+        self.global_html_str = ""
         # Print the data directory and start the clock
         clockstart = time.perf_counter()
         # Set the Pandas DataFrame
@@ -384,7 +405,7 @@ class UniDecBatchProcessor(object):
                         print("Error loading config file", row["Config File"], e)
 
                 # Set the deconvolution parameters from the DataFrame
-                self.eng = set_param_from_row(self.eng, row)
+                self.eng = set_param_from_row(self.eng, row, self.data_dir)
 
                 # Run the deconvolution or import the prior deconvolution results
                 if decon:

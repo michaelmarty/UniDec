@@ -160,6 +160,34 @@ def match_files_recursive(topdir, ending=".raw"):
     return np.array(found_files)
 
 
+def find_kernel_file(kernel_path):
+    kernel_name = os.path.basename(kernel_path)
+
+    if kernel_name.split('_')[-1] != "mass.txt":
+        # If the filename doesn't end in "_mass.txt", it's not a mass file
+        is_mass = False
+    else:
+        # Otherwise, it might be a mass file. Check if linear
+        kernel_dat = np.loadtxt(kernel_path)
+        kernel_diff = np.diff(kernel_dat[:, 0])
+        is_mass = np.all(kernel_diff == kernel_diff[0])
+
+    if is_mass:
+        return kernel_path
+    else:
+        # If not a mass file, find the mass file
+        bare_name = os.path.splitext(kernel_name)[0]
+        kernel_path2 = os.path.dirname(kernel_path) + "\\" + bare_name + "_unidecfiles\\" + \
+                       bare_name + "_mass.txt"
+
+        try:
+            with open(kernel_path2, "r") as f:
+                return kernel_path2
+        except (IOError, FileNotFoundError) as err:
+            # print("Please deconvolve the m/z file [" + kernel_name + "] with UniDec first.")
+            return None
+
+
 def isempty(thing):
     """
     Checks wether the thing, a list or array, is empty

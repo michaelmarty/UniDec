@@ -17,6 +17,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include "hdf5.h"
+#include "hdf5_hl.h"
 
 int check_group(hid_t file_id, char *dataname)
 {

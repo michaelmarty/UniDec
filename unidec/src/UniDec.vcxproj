@@ -251,6 +251,7 @@
     <ClInclude Include="UD_conv.h" />
     <ClInclude Include="UD_dataproc.h" />
     <ClInclude Include="UD_H5_IO.h" />
+    <ClInclude Include="UD_IO.h" />
     <ClInclude Include="UD_match.h" />
     <ClInclude Include="UD_peak_width.h" />
     <ClInclude Include="UD_score.h" />

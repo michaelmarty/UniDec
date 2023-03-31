@@ -16,8 +16,11 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include "hdf5.h"
+#include "hdf5_hl.h"
 #include "UniDec.h"
 #include "UD_H5_IO.h"
+#include "UD_IO.h"
 #include "UD_score.h"
 
 

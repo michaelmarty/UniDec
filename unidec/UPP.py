@@ -484,6 +484,9 @@ class UPPApp(wx.Frame):
             if self.bpeng.correct_pair_mode:
                 self.bpeng.run_correct_pair(row, app.eng.pks)
                 app.after_pick_peaks()
+            elif self.bpeng.dar_mode:
+                self.bpeng.run_dar(row, app.eng.pks)
+                app.after_pick_peaks()
             app.start()
 
     def on_add_files(self, event=None):
@@ -527,7 +530,8 @@ class UPPApp(wx.Frame):
         self.reset_hidden_columns()
 
     def on_hide_columns(self, event=None, reset=False):
-        columns_to_hide = ["Tolerance", "File", "Time", "Config", "Sequence", "Directory", "Matches"]
+        columns_to_hide = ["Tolerance", "File", "Time", "Config", "Sequence", "Directory", "Matches",
+                           "Global Fixed Mod", "Favored Match", "Apply Fixed Mods", "Disulfides Oxidized"]
         if not self.hide_col_flag and not reset:
             for keyword in columns_to_hide:
                 self.ss.hide_columns_by_keyword(keyword)
@@ -558,12 +562,12 @@ class UPPApp(wx.Frame):
 
     def on_hide_percent_columns(self, event=None, reset=False):
         if not self.hide_percentcol_flag and not reset:
-            self.ss.hide_columns_by_keyword("%")
+            self.ss.hide_columns_by_keyword(" %")
             self.hide_percentcol_flag = True
             self.hidepercentbtn.SetLabel("Show % Columns")
         else:
             self.hidepercentbtn.SetLabel("Hide % Columns")
-            self.ss.show_columns_by_keyword("%")
+            self.ss.show_columns_by_keyword(" %")
             self.hide_percentcol_flag = False
 
     def color_columns(self):
@@ -616,7 +620,7 @@ if __name__ == "__main__":
     path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
     path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
     # path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
-    #path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
+    path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM_DoubleDec.xlsx"
     # path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
     # path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
     # frame.on_help_page()
