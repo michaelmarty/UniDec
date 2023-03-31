@@ -619,10 +619,12 @@ if __name__ == "__main__":
     frame.usedeconbox.SetValue(False)
     path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
     path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
-    # path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
-    path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM_DoubleDec.xlsx"
+    path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
+    # path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM_DoubleDec.xlsx"
     # path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
     # path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
+    path = "C:\\Data\\UPPDemo\\BsAb\\outliers.xlsx"
+    # path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test short.xlsx"
     # frame.on_help_page()
     # exit()
     if True:

@@ -25,6 +25,12 @@ config_parameters = [["Config Peak Thres", False, "Deconvolution Setting: The Pe
                      ["Config Low Mass", False, "Deconvolution Setting: The Low Mass Limit in Da"],
                      ["Config High m/z", False, "Deconvolution Setting: The High m/z Limit"],
                      ["Config Low m/z", False, "Deconvolution Setting: The Low m/z Limit"],
+                     ["Config High z", False, "Deconvolution Setting: The High Charge Limit"],
+                     ["Config Low z", False, "Deconvolution Setting: The Low Charge Limit"],
+                     ["Config Integral Lower", False, "Deconvolution Setting: The Lower Integral Limit"],
+                     ["Config Integral Upper", False, "Deconvolution Setting: The Upper Integral Limit"],
+                     ["Quant Mode", False, "Quantification Setting: How to extract intensity from the peaks.  "
+                                           "Unless this is set to \"Integral\", it will use peak height"],
                      ["Config Sample Mass Every", False, "Deconvolution Setting: The Mass Bin Size in Da"],
                      ["Config m/z Peak FWHM", False,
                       "Deconvolution Setting: The Peak Width in m/z used for Deconvolution"],
@@ -33,11 +39,14 @@ config_parameters = [["Config Peak Thres", False, "Deconvolution Setting: The Pe
                      ["Config File", False, "Path to Config File. Will load this file and use the settings. Note,"
                                             " any settings specified in the batch file will override the config file."],
                      ["DoubleDec Kernel File", False, "Path to DoubleDec Kernel File. If specified, it will load "
-                          "this file and use DoubleDec. WARNING: Do not use Kernel files that are also in the list. "
-                          "If you want to use a kernel file from your list, first deconvolve it, "
-                          "then copy the _mass.txt file out to a separate folder. "
-                          "Then, add that _mass.txt file as the path. Otherwise, you will be overwriting "
-                          "the kernel each time, which can cause unstable results."],
+                                                      "this file and use DoubleDec. WARNING: Do not use Kernel files "
+                                                      "that are also in the list. "
+                                                      "If you want to use a kernel file from your list, "
+                                                      "first deconvolve it, "
+                                                      "then copy the _mass.txt file out to a separate folder. "
+                                                      "Then, add that _mass.txt file as the path. Otherwise, "
+                                                      "you will be overwriting "
+                                                      "the kernel each time, which can cause unstable results."],
                      ]
 
 recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if not specified."],
@@ -211,6 +220,7 @@ def set_param_from_row(eng, row, dirname=""):
                 eng.config.peakthresh = float(val)
             except Exception as e:
                 print("Error setting peak threshold", k, val, e)
+
         if "Config Low Mass" in k:
             try:
                 eng.config.masslb = float(val)
@@ -233,6 +243,17 @@ def set_param_from_row(eng, row, dirname=""):
             except Exception as e:
                 print("Error setting high m/z", k, val, e)
 
+        if "Config Low z" in k:
+            try:
+                eng.config.startz = int(float(val))
+            except Exception as e:
+                print("Error setting low z", k, val, e)
+        if "Config High z" in k:
+            try:
+                eng.config.endz = int(float(val))
+            except Exception as e:
+                print("Error setting high z", k, val, e)
+
         if "Config Sample Mass Every" in k:
             try:
                 eng.config.massbins = float(val)
@@ -247,9 +268,23 @@ def set_param_from_row(eng, row, dirname=""):
 
         if "Config m/z Peak Shape" in k or "Config mz Peak Shape" in k:
             try:
-                eng.config.psfun = int(val)
+                eng.config.psfun = int(float(val))
             except Exception as e:
                 print("Error setting massbins", k, val, e)
+
+        if "Config Integral Lower" in k:
+            try:
+                eng.config.integratelb = float(val)
+            except Exception as e:
+                print("Error setting integral lower", k, val, e)
+                eng.config.integratelb = ""
+
+        if "Config Integral Upper" in k:
+            try:
+                eng.config.integrateub = float(val)
+            except Exception as e:
+                print("Error setting integral upper", k, val, e)
+                eng.config.integrateub = ""
 
         if "DoubleDec Kernel File" in k:
             print(val)
@@ -345,6 +380,7 @@ class UniDecBatchProcessor(object):
         self.correct_pair_mode = False
         self.dar_mode = False
         self.time_range = None
+        self.integrate = False
         self.global_html_str = ""
         self.filename = ""
         self.global_html_file = "results.html"
@@ -407,6 +443,13 @@ class UniDecBatchProcessor(object):
                 # Set the deconvolution parameters from the DataFrame
                 self.eng = set_param_from_row(self.eng, row, self.data_dir)
 
+                # Check whether to integrate or use peak height
+                self.integrate = False
+                if "Quant Mode" in row:
+                    if row["Quant Mode"] == "Integral":
+                        self.integrate = True
+                        print("Using Integral Mode")
+
                 # Run the deconvolution or import the prior deconvolution results
                 if decon:
                     # If the Config m/z Peak FWHM is specified, do not use the auto peak width
@@ -425,6 +468,13 @@ class UniDecBatchProcessor(object):
                         print("Auto Peak Width", self.autopw)
                         self.eng.autorun(auto_peak_width=self.autopw, silent=True)
 
+                if self.integrate:
+                    try:
+                        self.eng.autointegrate()
+                    except Exception as err:
+                        print("Error in integrating", err)
+                        self.integrate = False
+
                 results_string = None
 
                 # The First Recipe, correct pair mode
@@ -434,6 +484,10 @@ class UniDecBatchProcessor(object):
 
                     # Merge the row back in the df
                     self.rundf = set_row_merge(self.rundf, newrow, [i])
+
+                    # Add the results string
+                    if "BsAb Pairing Calculated (%)" in newrow.keys():
+                        results_string = "The BsAb Pairing Calculated is: " + str(newrow["BsAb Pairing Calculated (%)"])
 
                 if self.dar_mode:
                     # Run DAR mode
@@ -474,7 +528,7 @@ class UniDecBatchProcessor(object):
 
         # Write the results to an Excel file to the top directory
         outfile = outbase + "_results.xlsx"
-        self.rundf.to_excel(outfile)
+        self.rundf.to_excel(outfile, index=False)
         print("Write to: ", outfile)
         # print(self.rundf)
 
@@ -558,7 +612,8 @@ class UniDecBatchProcessor(object):
         self.get_mod_files(row)
 
         # Match to the correct peaks
-        newrow = UPP_check_peaks(row, pks, self.tolerance, vmoddf=self.vmoddf, fmoddf=self.fmoddf)
+        newrow = UPP_check_peaks(row, pks, self.tolerance, vmoddf=self.vmoddf, fmoddf=self.fmoddf,
+                                 integrate=self.integrate)
 
         return newrow
 
@@ -647,7 +702,8 @@ class UniDecBatchProcessor(object):
             print("Running DAR Calculation. Min Drugs:", min_drugs, "Max Drugs:", max_drugs, "Protein Mass:",
                   protein_mass,
                   "Drug Mass:", drug_mass)
-            dar_val = dar_calc(pks, protein_mass, drug_mass, min_drugs, max_drugs, self.tolerance)
+            dar_val = dar_calc(pks, protein_mass, drug_mass, min_drugs, max_drugs, self.tolerance,
+                               integrate=self.integrate)
             row["DAR"] = dar_val
             return row
         else:

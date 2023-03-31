@@ -471,10 +471,13 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None, keywords
     return pmasses, labels
 
 
-def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest"):
+def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest", integrate=False):
     # Get Peak Masses and Heights
     peakmasses = pks.masses
-    peakheights = [p.height for p in pks.peaks]
+    if integrate:
+        peakheights = [p.integral for p in pks.peaks]
+    else:
+        peakheights = [p.height for p in pks.peaks]
     # seqs, seqmasses, seqlabels = calc_seqmasses(row)
 
     # Get the favored match
@@ -653,7 +656,7 @@ def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest"):
     return row
 
 
-def dar_calc(pks, protein_mass, drug_mass, min_drugs, max_drugs, tolerance):
+def dar_calc(pks, protein_mass, drug_mass, min_drugs, max_drugs, tolerance, integrate=False):
     """
     Calculate the DAR for a given ADC. This is the weighted average of the number of drugs conjugated to the antibody.
     :param pks: The peaklist object
@@ -666,7 +669,10 @@ def dar_calc(pks, protein_mass, drug_mass, min_drugs, max_drugs, tolerance):
     """
     # Get the peaks
     peak_masses = np.array([p.mass for p in pks.peaks])
-    peak_heights = np.array([p.height for p in pks.peaks])
+    if integrate:
+        peak_heights = np.array([p.integral for p in pks.peaks])
+    else:
+        peak_heights = np.array([p.height for p in pks.peaks])
     # Set all peaks to yellow
     for p in pks.peaks:
         p.color = [1, 1, 0]
