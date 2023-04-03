@@ -38,25 +38,25 @@ class HelpDlg(wx.Frame):
         html_str = gen_style_str()
 
         html_str += "<html><body>" \
-                   "<header><h1>Overview</h1></header><p>" \
-                   "Welcome to the UniDec Processing Pipeline (UPP)! " \
-                   "This module is designed to help you process, deconvolve, " \
-                   "and extract specific information from your data. " \
-                   "Expanding on the batch processing features present in UniDec from the beginning, " \
-                   "it is designed to interface with Excel/CSV files so that you can connect it with your workflows. " \
-                   "</p>" \
-                   "<h2>Basic Features</h2> <h3>Opening A File</h3><p>" \
-                   "Although you can type everything directly into UPP, " \
-                   "we recommend you start by importing your information from " \
-                   "an Excel/CSV file. " \
-                   "After you have your file ready, you can open it by clicking the" \
-                   " \"File > Open File\" button and selecting your file. " \
-                   "You can also open a file by dragging and dropping it onto the window. " \
-                   "After opening the file, you should see it populate the main window like a spreadsheet.</p>" \
-                   "<h3>What Do You Need In the Spreadsheet?</h3>" \
-                   "<p>All you need is to specify the \"Sample name\" column with the file path. " \
-                   "However, there are other optional parameters that you can specifiy. Note, capitalization is" \
-                   " important, so make sure to specify caps carefully.</p>"
+                    "<header><h1>Overview</h1></header><p>" \
+                    "Welcome to the UniDec Processing Pipeline (UPP)! " \
+                    "This module is designed to help you process, deconvolve, " \
+                    "and extract specific information from your data. " \
+                    "Expanding on the batch processing features present in UniDec from the beginning, " \
+                    "it is designed to interface with Excel/CSV files so that you can connect it with your workflows. " \
+                    "</p>" \
+                    "<h2>Basic Features</h2> <h3>Opening A File</h3><p>" \
+                    "Although you can type everything directly into UPP, " \
+                    "we recommend you start by importing your information from " \
+                    "an Excel/CSV file. " \
+                    "After you have your file ready, you can open it by clicking the" \
+                    " \"File > Open File\" button and selecting your file. " \
+                    "You can also open a file by dragging and dropping it onto the window. " \
+                    "After opening the file, you should see it populate the main window like a spreadsheet.</p>" \
+                    "<h3>What Do You Need In the Spreadsheet?</h3>" \
+                    "<p>All you need is to specify the \"Sample name\" column with the file path. " \
+                    "However, there are other optional parameters that you can specifiy. Note, capitalization is" \
+                    " important, so make sure to specify caps carefully.</p>"
 
         html_str += array_to_html(basic_parameters, cols=["Parameter", "Required", "Description"], rows=None,
                                   colors=None, index=False, sortable=False)
@@ -196,7 +196,7 @@ class UPPApp(wx.Frame):
         self.use_decon = True
         self.use_converted = True
         self.use_interactive = False
-        self.bpeng = BPEngine()
+        self.bpeng = BPEngine(parent=self)
 
         try:
             if os.path.isfile(self.bpeng.eng.config.iconfile):
@@ -297,7 +297,7 @@ class UPPApp(wx.Frame):
         hsizer.Add(btn, 0)
 
         # Insert Spacer Text
-        #hsizer.Add(wx.StaticText(panel, label="   "), 0)
+        # hsizer.Add(wx.StaticText(panel, label="   "), 0)
         hsizer2 = wx.BoxSizer(wx.HORIZONTAL)
         # Insert a button to hide columns
         self.hidebtn = wx.Button(panel, label="Hide Columns")
@@ -319,7 +319,7 @@ class UPPApp(wx.Frame):
         self.hidepercentbtn = wx.Button(panel, label="Hide % Columns")
         self.hidepercentbtn.Bind(wx.EVT_BUTTON, self.on_hide_percent_columns)
         self.hidepercentbtn.SetBackgroundColour("#D5D8DC")
-        #self.hidepercentbtn.SetOwnForegroundColour("#FFFFFF")
+        # self.hidepercentbtn.SetOwnForegroundColour("#FFFFFF")
         hsizer2.Add(self.hidepercentbtn, 0)
         self.hide_percentcol_flag = False
 
@@ -341,21 +341,32 @@ class UPPApp(wx.Frame):
 
         file_drop_target = MyFileDropTarget(self)
         self.ss.SetDropTarget(file_drop_target)
+        # self.ss.Bind(wx.grid.EVT_GRID_CELL_LEFT_CLICK, self.on_cell_clicked)
 
         panel.SetSizer(sizer)
+
+        # Create Status bar
+        self.CreateStatusBar(3)
+
         self.Show()
 
     def on_run(self, event=None):
-        print("Run button pressed")
+        self.SetStatusText("Running...", 2)
         self.runbtn.SetBackgroundColour("red")
         self.get_from_gui()
+        wx.Yield()
         self.bpeng.run_df(decon=self.use_decon, use_converted=self.use_converted, interactive=self.use_interactive)
         self.load_to_gui()
         self.runbtn.SetBackgroundColour("green")
         if not self.hide_col_flag:
             self.on_hide_columns()
 
+        self.SetStatusText("Outputs: " + self.bpeng.outbase + "_results.xlsx", 1)
+        self.SetStatusText("Completed: " + str(self.bpeng.runtime) + " seconds", 2)
+
     def on_run_selected(self, event=None, rows=None):
+        # Get from GUI
+        self.SetStatusText("Running...", 2)
         self.runbtn2.SetBackgroundColour("red")
         if rows is None:
             # Get Selected Rows
@@ -365,11 +376,15 @@ class UPPApp(wx.Frame):
         print("Running Selected Rows:", selected_rows)
         # Get Sub Dataframe with Selected Rows
         self.get_from_gui()
+        wx.Yield()
+
+        # RUN THE SELECTED ROWS
         topdf = deepcopy(self.bpeng.rundf)
         subdf = self.bpeng.rundf.iloc[selected_rows]
         # Run SubDF
         subdf2 = self.bpeng.run_df(df=subdf, decon=self.use_decon, use_converted=self.use_converted,
                                    interactive=self.use_interactive)
+
         # Update the main dataframe
         # topdf.iloc[selected_rows] = subdf2
         topdf = set_row_merge(topdf, subdf, selected_rows)
@@ -380,12 +395,17 @@ class UPPApp(wx.Frame):
         if not self.hide_col_flag:
             self.on_hide_columns()
 
+        self.SetStatusText("Outputs: " + self.bpeng.outbase + "_results.xlsx", 1)
+        self.SetStatusText("Completed: " + str(self.bpeng.runtime) + " seconds", 2)
+
     def clear_all(self, event=None):
         self.ss.delete_all()
         self.ss.set_col_headers(["Sample name", "Data Directory"])
 
     def load_file(self, filename):
         print("Loading File:", filename)
+        # Set status
+        self.SetStatusText("Inputs: " + filename, 0)
         try:
             self.ss.delete_all()
         except Exception:
@@ -604,6 +624,16 @@ class UPPApp(wx.Frame):
         self.ss.color_columns_by_keyword("Sequence", "#FDEBD0")
         self.ss.color_columns_by_keyword("Matches", "#D5F5E3")
 
+    def update_progress(self, i, total_n):
+        status_text = "Processing file {} of {}".format(i+1, total_n)
+        self.SetStatusText(status_text, 2)
+        # update gui
+        wx.Yield()
+
+    """
+    def on_cell_clicked(self, event=None):
+        print("Cell clicked")"""
+
     def on_help_page(self, event=None):
         print("Help button pressed")
         dlg = HelpDlg()
@@ -623,8 +653,9 @@ if __name__ == "__main__":
     # path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM_DoubleDec.xlsx"
     # path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
     # path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
-    path = "C:\\Data\\UPPDemo\\BsAb\\outliers.xlsx"
+    # path = "C:\\Data\\UPPDemo\\BsAb\\outliers.xlsx"
     # path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test short.xlsx"
+    path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
     # frame.on_help_page()
     # exit()
     if True:

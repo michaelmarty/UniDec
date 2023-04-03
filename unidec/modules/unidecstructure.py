@@ -914,12 +914,13 @@ class UniDecConfig(object):
         cdict = self.get_config_dict()
 
         for key, value in cdict.items():
-            try:
-                # if value is None:
-                #    value = ""
-                config_group.attrs[key] = value
-            except Exception as e:
-                print("Error with key, value:", key, value, e)
+            if value is not None:
+                try:
+                    # if value is None:
+                    #    value = ""
+                    config_group.attrs[key] = value
+                except Exception as e:
+                    print("Error with key, value:", key, value, e)
 
         if not ud.isempty(self.masslist):
             replace_dataset(config_group, "masslist", data=self.masslist)

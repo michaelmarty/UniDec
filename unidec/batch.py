@@ -366,7 +366,7 @@ def remove_columns(df, key):
 
 
 class UniDecBatchProcessor(object):
-    def __init__(self):
+    def __init__(self, parent=None):
         self.eng = UniDec()
         self.tolerance = 50
         self.data_dir = ""
@@ -383,7 +383,10 @@ class UniDecBatchProcessor(object):
         self.integrate = False
         self.global_html_str = ""
         self.filename = ""
+        self.outbase = ""
         self.global_html_file = "results.html"
+        self.parent = parent
+        self.runtime = -1
 
     def run_file(self, file=None, decon=True, use_converted=True, interactive=False):
         self.filename = file
@@ -414,8 +417,12 @@ class UniDecBatchProcessor(object):
         # if self.correct_pair_mode:
         #    self.rundf = remove_columns(self.rundf, "Height")
 
+        total_n = len(self.rundf)
         # Loop through the DataFrame
         for i, row in self.rundf.iterrows():
+            if self.parent is not None:
+                self.parent.update_progress(i, total_n)
+
             self.autopw = True
             self.eng.reset_config()
             path = self.get_file_path(row, use_converted=use_converted)
@@ -522,18 +529,18 @@ class UniDecBatchProcessor(object):
         # Get Output File Base Name
         try:
             filebase = os.path.splitext(os.path.basename(self.filename))[0]
-            outbase = os.path.join(self.top_dir, filebase)
+            self.outbase = os.path.join(self.top_dir, filebase)
         except Exception:
-            outbase = os.path.join(self.top_dir, "results")
+            self.outbase = os.path.join(self.top_dir, "results")
 
         # Write the results to an Excel file to the top directory
-        outfile = outbase + "_results.xlsx"
+        outfile = self.outbase + "_results.xlsx"
         self.rundf.to_excel(outfile, index=False)
         print("Write to: ", outfile)
         # print(self.rundf)
 
         # Write the global HTML string to a file
-        self.global_html_file = outbase + "_report.html"
+        self.global_html_file = self.outbase + "_report.html"
         with open(self.global_html_file, "w", encoding="utf-8") as f:
             title_string = "UPP Results " + str(self.filename)
             f.write("<html>")
@@ -546,7 +553,8 @@ class UniDecBatchProcessor(object):
         print("Write to: ", self.global_html_file)
 
         # Print Run Time
-        print("Batch Run Time:", time.perf_counter() - clockstart)
+        self.runtime = np.round(time.perf_counter() - clockstart, 1)
+        print("Batch Run Time:", self.runtime)
         return self.rundf
 
     def open_all_html(self):
