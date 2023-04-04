@@ -285,6 +285,13 @@ class UPPApp(wx.Frame):
         # Insert a button for Open All HTML Reports and bind to function
         btn = wx.Button(panel, label="Open All Reports")
         btn.Bind(wx.EVT_BUTTON, self.on_open_all_html)
+        btn.SetBackgroundColour("#F15628")
+        btn.SetOwnForegroundColour("#0B31A5")
+        hsizer.Add(btn, 0)
+
+        # Insert a button for Open the Results File and bind to function
+        btn = wx.Button(panel, label="Open Results")
+        btn.Bind(wx.EVT_BUTTON, self.open_results_file)
         btn.SetBackgroundColour("#196F3D")
         btn.SetOwnForegroundColour("#FFFFFF")
         hsizer.Add(btn, 0)
@@ -361,7 +368,7 @@ class UPPApp(wx.Frame):
         if not self.hide_col_flag:
             self.on_hide_columns()
 
-        self.SetStatusText("Outputs: " + self.bpeng.outbase + "_results.xlsx", 1)
+        self.SetStatusText("Outputs: " + self.bpeng.outfile, 1)
         self.SetStatusText("Completed: " + str(self.bpeng.runtime) + " seconds", 2)
 
     def on_run_selected(self, event=None, rows=None):
@@ -383,19 +390,24 @@ class UPPApp(wx.Frame):
         subdf = self.bpeng.rundf.iloc[selected_rows]
         # Run SubDF
         subdf2 = self.bpeng.run_df(df=subdf, decon=self.use_decon, use_converted=self.use_converted,
-                                   interactive=self.use_interactive)
+                                   interactive=self.use_interactive, write_xlsx=False, write_html=False)
 
         # Update the main dataframe
         # topdf.iloc[selected_rows] = subdf2
         topdf = set_row_merge(topdf, subdf, selected_rows)
         self.bpeng.rundf = topdf
+
+        # Write the results
+        self.bpeng.write_xlsx()
+
+        # Load to GUI
         self.load_to_gui()
         # Finish by coloring the button green
         self.runbtn2.SetBackgroundColour("green")
         if not self.hide_col_flag:
             self.on_hide_columns()
 
-        self.SetStatusText("Outputs: " + self.bpeng.outbase + "_results.xlsx", 1)
+        self.SetStatusText("Outputs: " + self.bpeng.outfile, 1)
         self.SetStatusText("Completed: " + str(self.bpeng.runtime) + " seconds", 2)
 
     def clear_all(self, event=None):
@@ -458,16 +470,6 @@ class UPPApp(wx.Frame):
         self.use_decon = self.usedeconbox.GetValue()
         self.use_interactive = self.interactivebox.GetValue()
 
-        # dirname = self.dirtxtbox.GetValue()
-        # tol = self.tolbox.GetValue()
-        # self.bpeng.data_dir = dirname
-        # try:
-        #    self.bpeng.tolerance = float(tol)
-        # except Exception as e:
-        #    print("Error with Tolerance Value. Using default value of 50 Da", e)
-        #    self.bpeng.tolerance = 10
-        #    self.tolbox.SetValue("10")
-
         self.ss.remove_empty()
         ssdf = self.ss.get_df()
         self.bpeng.rundf = ssdf
@@ -475,6 +477,12 @@ class UPPApp(wx.Frame):
     def load_to_gui(self):
         self.ss.set_df(self.bpeng.rundf)
         self.color_columns()
+
+    def open_results_file(self, event):
+        print("Open Results button pressed")
+        # Open Results File in Explorer
+        if os.path.isfile(self.bpeng.outfile):
+            os.startfile(self.bpeng.outfile)
 
     def on_open_all_html(self, event):
         print("Open All HTML Reports button pressed")

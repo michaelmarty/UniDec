@@ -384,6 +384,7 @@ class UniDecBatchProcessor(object):
         self.global_html_str = ""
         self.filename = ""
         self.outbase = ""
+        self.outfile = ""
         self.global_html_file = "results.html"
         self.parent = parent
         self.runtime = -1
@@ -395,7 +396,7 @@ class UniDecBatchProcessor(object):
 
         self.run_df(decon=decon, use_converted=use_converted, interactive=interactive)
 
-    def run_df(self, df=None, decon=True, use_converted=True, interactive=False):
+    def run_df(self, df=None, decon=True, use_converted=True, interactive=False, write_html=True, write_xlsx=True):
         self.global_html_str = ""
         # Print the data directory and start the clock
         clockstart = time.perf_counter()
@@ -533,29 +534,37 @@ class UniDecBatchProcessor(object):
         except Exception:
             self.outbase = os.path.join(self.top_dir, "results")
 
-        # Write the results to an Excel file to the top directory
-        outfile = self.outbase + "_results.xlsx"
-        self.rundf.to_excel(outfile, index=False)
-        print("Write to: ", outfile)
-        # print(self.rundf)
+        if write_xlsx:
+            self.write_xlsx()
 
-        # Write the global HTML string to a file
-        self.global_html_file = self.outbase + "_report.html"
-        with open(self.global_html_file, "w", encoding="utf-8") as f:
-            title_string = "UPP Results " + str(self.filename)
-            f.write("<html>")
-            f.write("<title>" + title_string + "</title>")
-            f.write("<header><h1>" + title_string + "</h1></header>")
-            # Remove text between <h1> and </h1> tags
-            self.global_html_str = re.sub(r"<h1>.*</h1>", "", self.global_html_str)
-            f.write(self.global_html_str)
-            f.write("</html>")
-        print("Write to: ", self.global_html_file)
+        if write_html:
+            # Write the global HTML string to a file
+            self.global_html_file = self.outbase + "_report.html"
+            with open(self.global_html_file, "w", encoding="utf-8") as f:
+                title_string = "UPP Results " + str(self.filename)
+                f.write("<html>")
+                f.write("<title>" + title_string + "</title>")
+                f.write("<header><h1>" + title_string + "</h1></header>")
+                # Remove text between <h1> and </h1> tags
+                self.global_html_str = re.sub(r"<h1>.*</h1>", "", self.global_html_str)
+                f.write(self.global_html_str)
+                f.write("</html>")
+            print("Write to: ", self.global_html_file)
 
         # Print Run Time
         self.runtime = np.round(time.perf_counter() - clockstart, 1)
         print("Batch Run Time:", self.runtime)
         return self.rundf
+
+    def write_xlsx(self, outfile=None):
+        # Write the results to an Excel file to the top directory
+        if outfile is None:
+            self.outfile = self.outbase + "_results.xlsx"
+        else:
+            self.outfile = outfile
+        self.rundf.to_excel(self.outfile, index=False)
+        print("Write to: ", self.outfile)
+        # print(self.rundf)
 
     def open_all_html(self):
         for i, row in self.rundf.iterrows():
