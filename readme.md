@@ -201,7 +201,7 @@ v.6.0.2
 
 Added color to the columns on UPP.
 
-Fixed bug with HTML float sorting as text.
+Fixed bug with HTML float sorting as text. Fixed major bugs with file imports.
 
 v.6.0.1
 
