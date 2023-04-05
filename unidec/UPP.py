@@ -664,9 +664,12 @@ if __name__ == "__main__":
     # path = "C:\\Data\\UPPDemo\\BsAb\\outliers.xlsx"
     # path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test short.xlsx"
     path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
+    path = "C:\\Data\\UPPDemo\\FileOpening\\filetest.xlsx"
     # frame.on_help_page()
     # exit()
-    if True:
+    if False:
+        frame.useconvbox.SetValue(False)
+        frame.usedeconbox.SetValue(True)
         frame.load_file(path)
         # frame.set_dir_tet_box("C:\\Data\\Wilson_Genentech\\Data")
         # print(df)

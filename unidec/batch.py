@@ -432,7 +432,7 @@ class UniDecBatchProcessor(object):
             self.time_range = get_time_range(row)
 
             # If the file exists, open it
-            if os.path.isfile(path):
+            if os.path.exists(path):
                 print("Opening:", path)
                 if not use_converted:
                     print("Refreshing")

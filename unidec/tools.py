@@ -51,27 +51,28 @@ is_64bits = sys.maxsize > 2 ** 32
 protmass = 1.007276467
 oxmass = 15.994914
 
-known_extensions = [".raw", ".d", ".mzml", ".gz", ".mzxml",".mzxml", ".txt", ".csv", ".dat", ".npz"]
+known_extensions = [".raw", ".d", ".mzml", ".gz", ".mzml.gz", ".mzxml", ".txt", ".csv", ".dat", ".npz"]
 
 
 def get_importer(path):
+    extension = os.path.splitext(path)[1]
+    extension = extension.lower()
     if os.path.isfile(path) or os.path.isdir(path):
-        if os.path.splitext(path)[1] == ".mzML" or os.path.splitext(path)[1] == ".gz":
+        if extension == ".mzml" or extension == ".gz":
             # mzML file
             d = mzMLimporter(path, gzmode=True)
-        elif os.path.splitext(path)[1] == ".mzXML":
+        elif extension == ".mzxml":
             d = mzXMLimporter(path)
-        elif os.path.splitext(path)[1].lower() == ".raw" and not os.path.isdir(path):
+        elif extension == ".raw" and not os.path.isdir(path):
             # Thermo Raw File
             try:
                 d = ThermoDataImporter(path)
             except:
                 d = data_reader.DataImporter(path)
-        elif os.path.splitext(path)[1].lower() == ".raw" and os.path.isdir(path):
+        elif extension == ".raw" and os.path.isdir(path):
             # Waters Raw Directory
             d = WDI(path, do_import=False)
-        elif os.path.splitext(path)[1].lower() == ".txt" or os.path.splitext(path)[1].lower() == ".dat" \
-                or os.path.splitext(path)[1].lower() == ".csv":
+        elif extension == ".txt" or extension == ".dat" or extension == ".csv":
             # print("Text Files Not Supported for This Operation")
             return None
         else:
@@ -195,7 +196,7 @@ def isempty(thing):
     :return: Boolean, True if not empty
     """
     try:
-        if np.asarray(thing).size == 0 or thing is None:
+        if np.asarray(thing, dtype=object).size == 0 or thing is None:
             out = True
         else:
             out = False
@@ -963,6 +964,7 @@ def load_mz_file(path, config=None, time_range=None, imflag=0):
     """
     if config is None:
         extension = os.path.splitext(path)[1]
+        extension = extension.lower()
     else:
         extension = config.extension.lower()
 
@@ -971,7 +973,7 @@ def load_mz_file(path, config=None, time_range=None, imflag=0):
         raise IOError
 
     if not os.path.isfile(path):
-        if os.path.isdir(path) and os.path.splitext(path)[1].lower() == ".raw":
+        if os.path.isdir(path) and extension == ".raw":
             try:
                 outfile = os.path.splitext(path)[0] + "_rawdata.txt"
                 print("Trying to convert Waters File:", outfile)
@@ -979,7 +981,7 @@ def load_mz_file(path, config=None, time_range=None, imflag=0):
             except Exception as e:
                 print("Attempted to convert Waters Raw file but failed", e, path)
                 raise IOError
-        elif os.path.isdir(path) and os.path.splitext(path)[1].lower() == ".d":
+        elif os.path.isdir(path) and extension == ".d":
             try:
                 print("Trying to convert Agilent File:", path)
                 data = data_reader.DataImporter(path).get_data(time_range=time_range)
@@ -1007,27 +1009,32 @@ def load_mz_file(path, config=None, time_range=None, imflag=0):
             except:
                 data = np.loadtxt(path, delimiter=",", skiprows=8, usecols=(0, 1))
         elif extension == ".mzml" or extension == ".gz":
+            if extension == ".mzml":
+                num = -5
+            if extension == '.gz':
+                num = -8
+            txtname = path[:num] + ".txt"
             if imflag == 1:
                 if config.compressflag == 1:
                     mzbins = config.mzbins
                 else:
                     mzbins = None
                 data = mzMLimporter(path).get_im_data(time_range=time_range, mzbins=mzbins)
-                if extension == ".mzml":
-                    num = -5
-                if extension == '.gz':
-                    num = -8
-                txtname = path[:num] + ".txt"
+
                 np.savetxt(txtname, sparse(data))
                 print("Saved to:", txtname)
             else:
                 data = mzMLimporter(path).get_data(time_range=time_range)
-                txtname = path[:-5] + ".txt"
                 np.savetxt(txtname, data)
                 print("Saved to:", txtname)
         elif extension.lower() == ".raw":
             data = ThermoDataImporter(path).get_data(time_range=time_range)
             txtname = path[:-4] + ".txt"
+            np.savetxt(txtname, data)
+            print("Saved to:", txtname)
+        elif extension.lower() == ".mzxml":
+            data = mzXMLimporter(path).get_data(time_range=time_range)
+            txtname = path[:-6] + ".txt"
             np.savetxt(txtname, data)
             print("Saved to:", txtname)
         elif extension.lower() == ".npz":
