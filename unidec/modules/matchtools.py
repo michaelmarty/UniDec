@@ -268,6 +268,20 @@ def parse_vmoddf(vmoddf):
     return modmasses, modlabels
 
 
+def parse_global_fixed_mod(row):
+    # Get the global fixed mod
+    globalfixedmod = 0
+    if "Global Fixed Mod" in row.keys():
+        try:
+            val = float(row["Global Fixed Mod"])
+            if not math.isnan(val):
+                globalfixedmod = val
+                print("Global Fixed Mod:", globalfixedmod)
+        except Exception:
+            globalfixedmod = 0
+    return globalfixedmod
+
+
 def check_string_for_seq(redstring, pair):
     if redstring == "All":
         return True
@@ -316,8 +330,8 @@ def calc_bispecific_correct(row, a_code="BsAb (Correct)", b_code="LC1 Mispair (I
     y = a - x
 
     # Set
-    row["BsAb Pairing Calculated (%)"] = x
-    row["Light Chain Scrambled (%)"] = y
+    row["BsAb Pairing Calculated (%)"] = x * 100
+    row["Light Chain Scrambled (%)"] = y * 100
 
     return row
 
@@ -325,7 +339,7 @@ def calc_bispecific_correct(row, a_code="BsAb (Correct)", b_code="LC1 Mispair (I
 known_labels = ["Correct", "Incorrect", "Ignore"]
 
 
-def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
+def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None, keywords=None):
     """
     For use with UniDec Processing Pipeline
     Calculate the potential pairs from a row.
@@ -337,6 +351,10 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
     """
     labels = []
     pairs = []
+
+    # If keywords is None, use the known labels
+    if keywords is None:
+        keywords = known_labels
 
     redstring = ""
     # Try to get reduced things
@@ -354,7 +372,7 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
 
     # Loop through the rows and look for a known_label in the key
     for k in row.keys():
-        for label in known_labels:
+        for label in keywords:
             if label in k:
                 labels.append(k)
                 pairing = row[k]
@@ -453,10 +471,13 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None):
     return pmasses, labels
 
 
-def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest"):
+def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest", integrate=False):
     # Get Peak Masses and Heights
     peakmasses = pks.masses
-    peakheights = [p.height for p in pks.peaks]
+    if integrate:
+        peakheights = [p.integral for p in pks.peaks]
+    else:
+        peakheights = [p.height for p in pks.peaks]
     # seqs, seqmasses, seqlabels = calc_seqmasses(row)
 
     # Get the favored match
@@ -465,15 +486,7 @@ def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest"):
         print("Favoring:", favor)
 
     # Get the global fixed mod
-    globalfixedmod = 0
-    if "Global Fixed Mod" in row.keys():
-        try:
-            val = float(row["Global Fixed Mod"])
-            if not math.isnan(val):
-                globalfixedmod = val
-                print("Global Fixed Mod:", globalfixedmod)
-        except Exception:
-            globalfixedmod = 0
+    globalfixedmod = parse_global_fixed_mod(row)
 
     # Calculate the potential pairs
     pmasses, plabels = calc_pairs(row, fmoddf=fmoddf)
@@ -559,6 +572,12 @@ def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest"):
             if len(p.altmatches) > 0:
                 p.altmatches = np.delete(p.altmatches, np.argwhere(p.altmatches == label))
 
+            # Remove the terminal + if it exists
+            if label[-1] == "+":
+                label = label[:-1]
+            if label[-2:] == "+ ":
+                label = label[:-2]
+
             matches.append(label)
             matchstring += " " + label
 
@@ -635,3 +654,67 @@ def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest"):
     row = calc_bispecific_correct(row)
 
     return row
+
+
+def dar_calc(pks, protein_mass, drug_mass, min_drugs, max_drugs, tolerance, integrate=False):
+    """
+    Calculate the DAR for a given ADC. This is the weighted average of the number of drugs conjugated to the antibody.
+    :param pks: The peaklist object
+    :param protein_mass: The mass of the protein
+    :param drug_mass: The mass of the drug
+    :param min_drugs: The minimum number of drugs conjugated
+    :param max_drugs: The maximum number of drugs conjugated
+    :param tolerance: The tolerance for matching the ADC mass to a peak
+    :return: The DAR
+    """
+    # Get the peaks
+    peak_masses = np.array([p.mass for p in pks.peaks])
+    if integrate:
+        peak_heights = np.array([p.integral for p in pks.peaks])
+    else:
+        peak_heights = np.array([p.height for p in pks.peaks])
+    # Set all peaks to yellow
+    for p in pks.peaks:
+        p.color = [1, 1, 0]
+        p.label = ""
+
+    # Loop over all the possible numbers of drugs conjugated
+    adc_heights = []
+    adc_nums = []
+    for i in range(min_drugs, max_drugs):
+        # Calc the mass of the protein + drug
+        adc_mass = protein_mass + drug_mass * i
+        # Find the closest peak to the mass
+        cindex = np.argmin(np.abs(peak_masses - adc_mass))
+        closest_peak = peak_masses[cindex]
+        # If the closest peak is within the tolerance, use it
+        if np.abs(closest_peak - adc_mass) < tolerance:
+            # Get the peak height
+            peak_height = peak_heights[cindex]
+            # Add the peak height to the list
+            adc_heights.append(peak_height)
+            adc_nums.append(i)
+
+            # Format peak
+            pks.peaks[cindex].color = [0, 1, 0]
+            pks.peaks[cindex].label = "ADC+" + str(i) + " Drugs"
+        else:
+            # Otherwise, add a zero
+            adc_heights.append(0)
+            adc_nums.append(i)
+
+    # Make a numpy array of the heights and nums
+    adc_heights = np.array(adc_heights)
+    adc_nums = np.array(adc_nums)
+    # Get the total ADC intensity
+    total_adc = np.sum(adc_heights)
+    if total_adc == 0:
+        print("Error in DAR calculation, no intensity matched to ADC")
+        return -1
+    else:
+        # Get the weighted average number of drugs conjugated
+        dar_val = np.sum(adc_nums * adc_heights) / total_adc
+        # Get the standard deviation of the number of drugs conjugated
+
+        print("DAR:", dar_val)
+        return dar_val

@@ -13,6 +13,7 @@ class HelpDlg(wx.Frame):
         super().__init__(*args, **kw)
         pathtofile = os.path.dirname(os.path.abspath(__file__))
         self.imagepath = os.path.join(pathtofile, "images")
+        self.htmlstr = ""
         # print(pathtofile)
         # print(self.imagepath)
         if num == 1:
@@ -23,28 +24,39 @@ class HelpDlg(wx.Frame):
 
     def help_frame(self):
         wx.Frame.__init__(self, None, wx.ID_ANY, title="Help", size=(600, 600))
+
+        # Add a menu button to open in the web browser
+        menu = wx.Menu()
+        menu.Append(wx.ID_ANY, "Open in Browser")
+        menu.Bind(wx.EVT_MENU, self.open_in_browser)
+        menu_bar = wx.MenuBar()
+        menu_bar.Append(menu, "Help")
+        self.SetMenuBar(menu_bar)
+
         html = wx.html.HtmlWindow(self)
 
-        html_str = "<html><body>" \
-                   "<h1>Overview</h1><p>" \
-                   "Welcome to the UniDec Processing Pipeline (UPP)! " \
-                   "This module is designed to help you process, deconvolve, " \
-                   "and extract specific information from your data. " \
-                   "Expanding on the batch processing features present in UniDec from the beginning, " \
-                   "it is designed to interface with Excel/CSV files so that you can connect it with your workflows. " \
-                   "</p>" \
-                   "<h2>Basic Features</h2> <h3>Opening A File</h3><p>" \
-                   "Although you can type everything directly into UPP, " \
-                   "we recommend you start by importing your information from " \
-                   "an Excel/CSV file. " \
-                   "After you have your file ready, you can open it by clicking the" \
-                   " \"File > Open File\" button and selecting your file. " \
-                   "You can also open a file by dragging and dropping it onto the window. " \
-                   "After opening the file, you should see it populate the main window like a spreadsheet.</p>" \
-                   "<h3>What Do You Need In the Spreadsheet?</h3>" \
-                   "<p>All you need is to specify the \"Sample name\" column with the file path. " \
-                   "However, there are other optional parameters that you can specifiy. Note, capitalization is" \
-                   " important, so make sure to specify caps carefully.</p>"
+        html_str = gen_style_str()
+
+        html_str += "<html><body>" \
+                    "<header><h1>Overview</h1></header><p>" \
+                    "Welcome to the UniDec Processing Pipeline (UPP)! " \
+                    "This module is designed to help you process, deconvolve, " \
+                    "and extract specific information from your data. " \
+                    "Expanding on the batch processing features present in UniDec from the beginning, " \
+                    "it is designed to interface with Excel/CSV files so that you can connect it with your workflows. " \
+                    "</p>" \
+                    "<h2>Basic Features</h2> <h3>Opening A File</h3><p>" \
+                    "Although you can type everything directly into UPP, " \
+                    "we recommend you start by importing your information from " \
+                    "an Excel/CSV file. " \
+                    "After you have your file ready, you can open it by clicking the" \
+                    " \"File > Open File\" button and selecting your file. " \
+                    "You can also open a file by dragging and dropping it onto the window. " \
+                    "After opening the file, you should see it populate the main window like a spreadsheet.</p>" \
+                    "<h3>What Do You Need In the Spreadsheet?</h3>" \
+                    "<p>All you need is to specify the \"Sample name\" column with the file path. " \
+                    "However, there are other optional parameters that you can specifiy. Note, capitalization is" \
+                    " important, so make sure to specify caps carefully.</p>"
 
         html_str += array_to_html(basic_parameters, cols=["Parameter", "Required", "Description"], rows=None,
                                   colors=None, index=False, sortable=False)
@@ -123,9 +135,39 @@ class HelpDlg(wx.Frame):
         html_str += array_to_html(recipe_w, cols=["Parameter", "Required", "Description"], rows=None,
                                   colors=None, index=False, sortable=False)
 
+        html_str += "<h3>Workflow 2: Calculate Drug-to-Antibody Ratio</h3><p>" \
+                    "This recipe will calculate the drug-to-antibody ratio for an ADC. " \
+                    "The column keyword of \"Protein Mass\" defines the mass of the antibody, either with a " \
+                    "mass value, an amino acid sequence, or a Seq code combination. " \
+                    "The column keyword of \"Drug Mass\" defines the mass of the drug. " \
+                    "The column keyword of \"Max Drug\" defines the maximum number of drug molecules to consider. " \
+                    "UPP will then loop through all possible combinations of drug and antibody " \
+                    "and see if they match any of the detected peaks. " \
+                    "If a match is found, it will color the peak green. " \
+                    "If no match is found, it will color the peak yellow. " \
+                    "After extracting the height for each peak, UPP will calculate the drug-to-antibody ratio. " \
+                    "Additional details on keywords are provided below. "
+
+        html_str += array_to_html(recipe_d, cols=["Parameter", "Required", "Description"], rows=None,
+                                  colors=None, index=False, sortable=False)
+
         html_str += "</body></html>"
 
+        self.htmlstr = html_str
+        '''
+        # For Writing to File
+        # Copy html_str to clipboard
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(wx.TextDataObject(html_str))
+            wx.TheClipboard.Close()'''
+
         html.SetPage(html_str)
+
+    def open_in_browser(self, event):
+        # Open in Browser
+        with open("help.html", "w") as f:
+            f.write(self.htmlstr)
+        webbrowser.open("help.html")
 
 
 class MyFileDropTarget(wx.FileDropTarget):
@@ -154,7 +196,18 @@ class UPPApp(wx.Frame):
         self.use_decon = True
         self.use_converted = True
         self.use_interactive = False
-        self.bpeng = BPEngine()
+        self.bpeng = BPEngine(parent=self)
+
+        try:
+            if os.path.isfile(self.bpeng.eng.config.iconfile):
+                favicon = wx.Icon(self.bpeng.eng.config.iconfile, wx.BITMAP_TYPE_ANY)
+                wx.Frame.SetIcon(self, favicon)
+                self.icon_path = os.path.abspath(self.bpeng.eng.config.iconfile)
+            else:
+                self.icon_path = None
+        except Exception as e:
+            print(e)
+            self.icon_path = None
 
         menu = wx.Menu()
         # Open File Menu
@@ -202,36 +255,7 @@ class UPPApp(wx.Frame):
         hsizer.Add(self.runbtn2, 0)
 
         # Insert Spacer Text
-        hsizer.Add(wx.StaticText(panel, label="   "), 0)
-
-        # Insert a button for Open All HTML Reports and bind to function
-        btn = wx.Button(panel, label="Open All HTML Reports")
-        btn.Bind(wx.EVT_BUTTON, self.on_open_all_html)
-        hsizer.Add(btn, 0)
-
-        # Insert a button for Run in UniDec and bind to function
-        btn = wx.Button(panel, label="Open in UniDec")
-        btn.Bind(wx.EVT_BUTTON, self.on_open_unidec)
-        hsizer.Add(btn, 0)
-
-        # Insert a static text of directory
-        # hsizer.Add(wx.StaticText(panel, label="   Data Directory:", style=wx.ALIGN_CENTER_VERTICAL))
-        # Insert a text box to read out the directory
-        # self.dirtxtbox = wx.TextCtrl(panel, size=(400, -1))
-        # hsizer.Add(self.dirtxtbox, 0, wx.EXPAND)
-        # Add a button to set the directory
-        # btn = wx.Button(panel, label="...")
-
-        # Insert a static text of tolerance
-        # hsizer.Add(wx.StaticText(panel, label="   Tolerance:", style=wx.ALIGN_CENTER_VERTICAL))
-        # Insert a text box to read out the directory
-        # self.tolbox = wx.TextCtrl(panel, size=(50, -1))
-        # self.tolbox.SetValue("50")
-        # hsizer.Add(self.tolbox, 0, wx.EXPAND)
-        # hsizer.Add(wx.StaticText(panel, label="Da   ", style=wx.ALIGN_CENTER_VERTICAL))
-
-        # Insert Spacer Text
-        hsizer.Add(wx.StaticText(panel, label="   "), 0)
+        hsizer.Add(wx.StaticText(panel, label="     "), 0)
 
         # Insert a checkbox to select whether to use already converted data
         self.useconvbox = wx.CheckBox(panel, label="Use Converted Data  ")
@@ -251,31 +275,68 @@ class UPPApp(wx.Frame):
         # Insert Spacer Text
         hsizer.Add(wx.StaticText(panel, label="   "), 0)
 
+        # Insert a button for Open Global HTML Reports and bind to function
+        btn = wx.Button(panel, label="Open Combined Report")
+        btn.Bind(wx.EVT_BUTTON, self.on_open_global_html)
+        btn.SetBackgroundColour("#5B2C6F")
+        btn.SetOwnForegroundColour("#FFFFFF")
+        hsizer.Add(btn, 0)
+
+        # Insert a button for Open All HTML Reports and bind to function
+        btn = wx.Button(panel, label="Open All Reports")
+        btn.Bind(wx.EVT_BUTTON, self.on_open_all_html)
+        btn.SetBackgroundColour("#F15628")
+        btn.SetOwnForegroundColour("#0B31A5")
+        hsizer.Add(btn, 0)
+
+        # Insert a button for Open the Results File and bind to function
+        btn = wx.Button(panel, label="Open Results")
+        btn.Bind(wx.EVT_BUTTON, self.open_results_file)
+        btn.SetBackgroundColour("#196F3D")
+        btn.SetOwnForegroundColour("#FFFFFF")
+        hsizer.Add(btn, 0)
+
+        # Insert a button for Run in UniDec and bind to function
+        btn = wx.Button(panel, label="Open in UniDec")
+        btn.Bind(wx.EVT_BUTTON, self.on_open_unidec)
+        btn.SetBackgroundColour("#1F618D")
+        btn.SetOwnForegroundColour("#FFFF00")
+        hsizer.Add(btn, 0)
+
+        # Insert Spacer Text
+        # hsizer.Add(wx.StaticText(panel, label="   "), 0)
+        hsizer2 = wx.BoxSizer(wx.HORIZONTAL)
         # Insert a button to hide columns
         self.hidebtn = wx.Button(panel, label="Hide Columns")
         self.hidebtn.Bind(wx.EVT_BUTTON, self.on_hide_columns)
-        hsizer.Add(self.hidebtn, 0)
+        hsizer2.Add(self.hidebtn, 0)
         self.hide_col_flag = False
+
+        hsizer2.Add(wx.StaticText(panel, label="   "), 0)
 
         # Insert a button to hide columns with height in the title
         self.hideheightbtn = wx.Button(panel, label="Hide Height Columns")
         self.hideheightbtn.Bind(wx.EVT_BUTTON, self.on_hide_height_columns)
-        hsizer.Add(self.hideheightbtn, 0)
+        self.hideheightbtn.SetBackgroundColour("#5D6D7E")
+        self.hideheightbtn.SetOwnForegroundColour("#FFFFFF")
+        hsizer2.Add(self.hideheightbtn, 0)
         self.hide_height_flag = False
 
         # Insert a button to hide columns with % in the title
         self.hidepercentbtn = wx.Button(panel, label="Hide % Columns")
         self.hidepercentbtn.Bind(wx.EVT_BUTTON, self.on_hide_percent_columns)
-        hsizer.Add(self.hidepercentbtn, 0)
+        self.hidepercentbtn.SetBackgroundColour("#D5D8DC")
+        # self.hidepercentbtn.SetOwnForegroundColour("#FFFFFF")
+        hsizer2.Add(self.hidepercentbtn, 0)
         self.hide_percentcol_flag = False
 
         # Insert Spacer Text
-        hsizer.Add(wx.StaticText(panel, label="   "), 0)
+        hsizer2.Add(wx.StaticText(panel, label="   "), 0)
 
         # Insert a button to hide columns that are empty
         self.hideemptybtn = wx.Button(panel, label="Hide Empty Columns")
         self.hideemptybtn.Bind(wx.EVT_BUTTON, self.on_hide_empty_columns)
-        hsizer.Add(self.hideemptybtn, 0)
+        hsizer2.Add(self.hideemptybtn, 0)
 
         sizer.Add(hsizer, 0, wx.ALL | wx.EXPAND)
 
@@ -283,23 +344,36 @@ class UPPApp(wx.Frame):
         self.ss.set_col_headers(["Sample name", "Data Directory"])
         sizer.Add(self.ss, 1, wx.EXPAND)
 
+        sizer.Add(hsizer2, 0, wx.ALL | wx.EXPAND)
+
         file_drop_target = MyFileDropTarget(self)
         self.ss.SetDropTarget(file_drop_target)
+        # self.ss.Bind(wx.grid.EVT_GRID_CELL_LEFT_CLICK, self.on_cell_clicked)
 
         panel.SetSizer(sizer)
+
+        # Create Status bar
+        self.CreateStatusBar(3)
+
         self.Show()
 
     def on_run(self, event=None):
-        print("Run button pressed")
+        self.SetStatusText("Running...", 2)
         self.runbtn.SetBackgroundColour("red")
         self.get_from_gui()
+        wx.Yield()
         self.bpeng.run_df(decon=self.use_decon, use_converted=self.use_converted, interactive=self.use_interactive)
-        self.ss.set_df(self.bpeng.rundf)
+        self.load_to_gui()
         self.runbtn.SetBackgroundColour("green")
         if not self.hide_col_flag:
             self.on_hide_columns()
 
+        self.SetStatusText("Outputs: " + self.bpeng.outfile, 1)
+        self.SetStatusText("Completed: " + str(self.bpeng.runtime) + " seconds", 2)
+
     def on_run_selected(self, event=None, rows=None):
+        # Get from GUI
+        self.SetStatusText("Running...", 2)
         self.runbtn2.SetBackgroundColour("red")
         if rows is None:
             # Get Selected Rows
@@ -309,20 +383,32 @@ class UPPApp(wx.Frame):
         print("Running Selected Rows:", selected_rows)
         # Get Sub Dataframe with Selected Rows
         self.get_from_gui()
+        wx.Yield()
+
+        # RUN THE SELECTED ROWS
         topdf = deepcopy(self.bpeng.rundf)
         subdf = self.bpeng.rundf.iloc[selected_rows]
         # Run SubDF
         subdf2 = self.bpeng.run_df(df=subdf, decon=self.use_decon, use_converted=self.use_converted,
-                                   interactive=self.use_interactive)
+                                   interactive=self.use_interactive, write_xlsx=False, write_html=False)
+
         # Update the main dataframe
         # topdf.iloc[selected_rows] = subdf2
         topdf = set_row_merge(topdf, subdf, selected_rows)
         self.bpeng.rundf = topdf
-        self.ss.set_df(self.bpeng.rundf)
+
+        # Write the results
+        self.bpeng.write_xlsx()
+
+        # Load to GUI
+        self.load_to_gui()
         # Finish by coloring the button green
         self.runbtn2.SetBackgroundColour("green")
         if not self.hide_col_flag:
             self.on_hide_columns()
+
+        self.SetStatusText("Outputs: " + self.bpeng.outfile, 1)
+        self.SetStatusText("Completed: " + str(self.bpeng.runtime) + " seconds", 2)
 
     def clear_all(self, event=None):
         self.ss.delete_all()
@@ -330,13 +416,16 @@ class UPPApp(wx.Frame):
 
     def load_file(self, filename):
         print("Loading File:", filename)
+        # Set status
+        self.SetStatusText("Inputs: " + filename, 0)
         try:
             self.ss.delete_all()
         except Exception:
             pass
         self.bpeng.top_dir = os.path.dirname(filename)
-        df = file_to_df(filename)
-        self.ss.set_df(df)
+        self.bpeng.filename = filename
+        self.bpeng.rundf = file_to_df(filename)
+        self.load_to_gui()
         # dirname = os.path.dirname(filename)
         # self.set_dir_tet_box(dirname)
         self.reset_hidden_columns()
@@ -381,23 +470,27 @@ class UPPApp(wx.Frame):
         self.use_decon = self.usedeconbox.GetValue()
         self.use_interactive = self.interactivebox.GetValue()
 
-        # dirname = self.dirtxtbox.GetValue()
-        # tol = self.tolbox.GetValue()
-        # self.bpeng.data_dir = dirname
-        # try:
-        #    self.bpeng.tolerance = float(tol)
-        # except Exception as e:
-        #    print("Error with Tolerance Value. Using default value of 50 Da", e)
-        #    self.bpeng.tolerance = 10
-        #    self.tolbox.SetValue("10")
-
         self.ss.remove_empty()
         ssdf = self.ss.get_df()
         self.bpeng.rundf = ssdf
 
+    def load_to_gui(self):
+        self.ss.set_df(self.bpeng.rundf)
+        self.color_columns()
+
+    def open_results_file(self, event):
+        print("Open Results button pressed")
+        # Open Results File in Explorer
+        if os.path.isfile(self.bpeng.outfile):
+            os.startfile(self.bpeng.outfile)
+
     def on_open_all_html(self, event):
         print("Open All HTML Reports button pressed")
         self.bpeng.open_all_html()
+
+    def on_open_global_html(self, event):
+        print("Open Global HTML Report button pressed")
+        self.bpeng.open_global_html()
 
     def on_open_unidec(self, event):
         ssdf = self.ss.get_df()
@@ -418,6 +511,9 @@ class UPPApp(wx.Frame):
             app.on_pick_peaks()
             if self.bpeng.correct_pair_mode:
                 self.bpeng.run_correct_pair(row, app.eng.pks)
+                app.after_pick_peaks()
+            elif self.bpeng.dar_mode:
+                self.bpeng.run_dar(row, app.eng.pks)
                 app.after_pick_peaks()
             app.start()
 
@@ -458,11 +554,12 @@ class UPPApp(wx.Frame):
         newdf = pd.DataFrame({"Sample name": sample_names, "Data Directory": data_dir})
         self.bpeng.rundf = pd.concat([self.bpeng.rundf, newdf], ignore_index=True)
 
-        self.ss.set_df(self.bpeng.rundf)
+        self.load_to_gui()
         self.reset_hidden_columns()
 
     def on_hide_columns(self, event=None, reset=False):
-        columns_to_hide = ["Tolerance", "File", "Time", "Config", "Sequence", "Directory", "Matches"]
+        columns_to_hide = ["Tolerance", "File", "Time", "Config", "Sequence", "Directory", "Matches",
+                           "Global Fixed Mod", "Favored Match", "Apply Fixed Mods", "Disulfides Oxidized"]
         if not self.hide_col_flag and not reset:
             for keyword in columns_to_hide:
                 self.ss.hide_columns_by_keyword(keyword)
@@ -493,13 +590,57 @@ class UPPApp(wx.Frame):
 
     def on_hide_percent_columns(self, event=None, reset=False):
         if not self.hide_percentcol_flag and not reset:
-            self.ss.hide_columns_by_keyword("%")
+            self.ss.hide_columns_by_keyword(" %")
             self.hide_percentcol_flag = True
             self.hidepercentbtn.SetLabel("Show % Columns")
         else:
             self.hidepercentbtn.SetLabel("Hide % Columns")
-            self.ss.show_columns_by_keyword("%")
+            self.ss.show_columns_by_keyword(" %")
             self.hide_percentcol_flag = False
+
+    def color_columns(self):
+        for row in basic_parameters:
+            if row[1]:
+                self.ss.color_columns_by_keyword(row[0], "#D1F2EB")
+            else:
+                self.ss.color_columns_by_keyword(row[0], "#D6EAF8")
+
+        for row in config_parameters:
+            if row[1]:
+                self.ss.color_columns_by_keyword(row[0], "#FEF9E7")
+            else:
+                self.ss.color_columns_by_keyword(row[0], "#FEF9E7")
+
+        for row in recipe_w:
+            if row[1]:
+                self.ss.color_columns_by_keyword(row[0], "#BB8FCE")
+            else:
+                self.ss.color_columns_by_keyword(row[0], "#E8DAEF")
+
+        for row in recipe_d:
+            if row[1]:
+                self.ss.color_columns_by_keyword(row[0], "#D98880")
+            else:
+                self.ss.color_columns_by_keyword(row[0], "#F5B7B1")
+
+        self.ss.color_columns_by_keyword("Height", "#5D6D7E")
+        self.ss.color_columns_by_keyword("%", "#D5D8DC")
+        self.ss.color_columns_by_keyword("BsAb Pairing Calculated", "#7DCEA0")
+        self.ss.color_columns_by_keyword("DAR", "#7DCEA0")
+        self.ss.color_columns_by_keyword("Light Chain Scrambled", "#F7DC6F")
+
+        self.ss.color_columns_by_keyword("Sequence", "#FDEBD0")
+        self.ss.color_columns_by_keyword("Matches", "#D5F5E3")
+
+    def update_progress(self, i, total_n):
+        status_text = "Processing file {} of {}".format(i+1, total_n)
+        self.SetStatusText(status_text, 2)
+        # update gui
+        wx.Yield()
+
+    """
+    def on_cell_clicked(self, event=None):
+        print("Cell clicked")"""
 
     def on_help_page(self, event=None):
         print("Help button pressed")
@@ -513,17 +654,26 @@ class UPPApp(wx.Frame):
 if __name__ == "__main__":
     app = wx.App()
     frame = UPPApp()
-    frame.usedeconbox.SetValue(True)
+    frame.usedeconbox.SetValue(False)
     path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
     path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
-
+    path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
+    # path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM_DoubleDec.xlsx"
+    # path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
+    # path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
+    # path = "C:\\Data\\UPPDemo\\BsAb\\outliers.xlsx"
+    # path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test short.xlsx"
+    path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
+    path = "C:\\Data\\UPPDemo\\FileOpening\\filetest.xlsx"
     # frame.on_help_page()
     # exit()
     if False:
+        frame.useconvbox.SetValue(False)
+        frame.usedeconbox.SetValue(True)
         frame.load_file(path)
         # frame.set_dir_tet_box("C:\\Data\\Wilson_Genentech\\Data")
         # print(df)
-        # frame.on_run()
+        frame.on_run()
         # frame.on_run_selected(rows=[1])
         # frame.on_run_selected(rows=[0])
         # frame.on_add_files()

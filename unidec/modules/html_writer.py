@@ -24,9 +24,11 @@ def write_to_html(html_str, outfile, mode="a"):
     html_file.close()
 
 
-def fig_to_html_mpld3(fig, outfile):
+def fig_to_html_mpld3(fig, outfile=None):
     html_str = mpld3.fig_to_html(fig, no_extras=True)
-    write_to_html(html_str, outfile)
+    if outfile is not None:
+        write_to_html(html_str, outfile)
+    return html_str
 
 
 '''
@@ -139,8 +141,8 @@ def df_to_html(df, outfile=None, colors=None, index=True, sortable=True):
         html_str = html_str.replace('<table border="1" class="dataframe">',
                                     '<table border="1" class="dataframe" id="myTable2">')
         # Add onclick to headers
-        for i in range(0, len(df.columns)+1):
-            html_str = html_str.replace('<th>', '<th onclick="sortTable(' + str(i-1) + ')">', 1)
+        for i in range(0, len(df.columns) + 1):
+            html_str = html_str.replace('<th>', '<th onclick="sortTable(' + str(i - 1) + ')">', 1)
         # Javascript for sorting
         html_str += """
         <script>
@@ -166,15 +168,23 @@ def df_to_html(df, outfile=None, colors=None, index=True, sortable=True):
               x = rows[i].getElementsByTagName("TD")[n];
               y = rows[i + 1].getElementsByTagName("TD")[n];
               /* Check if the two rows should switch place,
-              based on the direction, asc or desc: */
+              based on the direction, asc or desc. 
+              Try to use a float. If not a float, use lower case: */
+              xfloat = parseFloat(x.innerHTML)
+              yfloat = parseFloat(y.innerHTML)
+              if (isNaN(xfloat) || isNaN(yfloat)){
+                xfloat = x.innerHTML.toLowerCase()
+                yfloat = y.innerHTML.toLowerCase()
+              }  
+              
               if (dir == "asc") {
-                if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                if (xfloat > yfloat) {
                   // If so, mark as a switch and break the loop:
                   shouldSwitch = true;
                   break;
                 }
               } else if (dir == "desc") {
-                if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                if (xfloat < yfloat) {
                   // If so, mark as a switch and break the loop:
                   shouldSwitch = true;
                   break;
@@ -208,7 +218,7 @@ def df_to_html(df, outfile=None, colors=None, index=True, sortable=True):
     return html_str
 
 
-def html_title(outtitle, outfile=None):
+def gen_style_str():
     # CSS styling
     style = ET.Element('style')
     style.text = "header {background-color: #0C234B;}\n"
@@ -216,13 +226,18 @@ def html_title(outtitle, outfile=None):
     style.text += "h2 {color: #AB0520; text-align:left; margin:0; padding:10px}\n"
     style.text += "h3 {color: #AB0520; text-align:left; margin:0; padding:10px}\n"
     style.text += "body {margin:0; padding:0; font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif;}"
+    style.text += "p {margin-left:25px; padding:0;}"
     style.text += "table {border-collapse: collapse; margin:25px; padding:0}\n"
     style.text += "th {text-align:left; background-color:#ADD8E6;; color:black;}\n"
     style.text += "tr:nth-child(even) {background-color: #f2f2f2;}\n"
     style.text += ".grid-container {display:grid; margin:25px;} \n"
     style.text += ".row {display:flex;} \n"
     style_str = ET.tostring(style, encoding='unicode')
-    html_str = style_str
+    return style_str
+
+
+def html_title(outtitle, outfile=None):
+    html_str = gen_style_str()
 
     try:
         # Split file name title into file and directory
@@ -348,6 +363,15 @@ def png_to_html(png_str, outfile=None):
     png_str = base64.b64encode(png_str)
     png_str = png_str.decode("utf-8")
     html_str = "<img src=\"data:image/png;base64," + png_str + "\" \"/>\n"
+
+    if outfile is not None:
+        write_to_html(html_str, outfile)
+    return html_str
+
+
+# Create function to add string as an html paragraph
+def to_html_paragraph(text, outfile=None):
+    html_str = "<p style=\"margin-left: 25px\">" + text + "</p>\n"
 
     if outfile is not None:
         write_to_html(html_str, outfile)

@@ -28,7 +28,7 @@ You can watch a video tutorial on how to use UniDec here: [https://www.youtube.c
 
 UniDec is distributed under a completely open source license. Our hope is that this allows UniDec to be
 more widely used. If you are interested in including UniDec in another academic or commercial software distribution, 
-you are welcome to email mtmarty@email.arizona.edu for more information. 
+you are welcome to email mtmarty@arizona.edu for more information. 
 
 UniDec source code and compiled binaries are released under a modified BSD License as described below. Note, we ask
 that you cite us in any publications. Quantitative citation metrics will help grant applications to support future development.
@@ -67,6 +67,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ### Third Party Licenses
 
 Waters DLLs are distributed under the Waters MassLynxSDK EULA license. The Thermo RawFileReader DLLs are distributed under the RawFileReader.doc license. By downloading and using these DLLs, you are accepting those licenses and these terms. Thermo and Waters are indemnified, defended, and held harmless from any claims, including attorneys’ fees, related to the distribution or use of this software. Redistribution of Waters and Thermo libraries is restricted as described in those licenses. Info on other licenses are provided below.
+
+Intel libraries from the oneAPI are distributed under licenses found in the bin folder. 
+
+RDKit libraries are gratefully used for LipiDec and are distributed under the CC-SA license. Please [cite them when using these features](https://www.rdkit.org/docs/Overview.html#citing-the-rdkit). 
 
 ## UniDec Compatible File Types
 
@@ -191,9 +195,17 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.6.0.2
+
+**Added a new Drug-to-Antibody Ratio (DAR) calculation mode for UPP.** See help file for the new keywords. 
+
+Added color to the columns on UPP.
+
+Fixed bug with HTML float sorting as text. Fixed major bugs with file imports.
+
 v.6.0.1
 
-*Added Noise Removal Tool* to UniDec and UniDecCD. This allows you to select specific noise regions (common in UHMR data) and set them to 0. Try Tools > Select Noise Peaks and the checking "Remove Noise Peaks" in the Advanced Data Processing Parameters.
+**Added Noise Removal Tool** to UniDec and UniDecCD. This allows you to select specific noise regions (common in UHMR data) and set them to 0. Try Tools > Select Noise Peaks and the checking "Remove Noise Peaks" in the Advanced Data Processing Parameters.
 
 UPP Changes: 
 * Added "Config m/z Peak FWHM", "Config m/z Peak Shape", and "Config Sample Mass Every" parameters. If "Config m/z Peak FWHM" is specified as a float or integer, it will use that and skip the automatic peak width determination.

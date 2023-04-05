@@ -30,6 +30,7 @@ class mzXMLimporter:
         self.filesize = os.stat(path).st_size
         self.msrun = mzxml.read(path)
         self.data = None
+        self.polarity = None
         # self.scans = []
         self.times = []
         self.ids = []
@@ -46,12 +47,10 @@ class mzXMLimporter:
             except Exception as e:
                 self.times.append(-1)
                 id = -1
-                print("1", spectrum, e)
+                # print("1", spectrum, e)
             # self.scans.append(i)
             self.ids.append(id)
             # print(i, end=" ")
-            if i==0:
-                print(spectrum)
         self.times = np.array(self.times)
         self.ids = np.array(self.ids)
         self.scans = np.arange(0, len(self.ids))
@@ -101,7 +100,6 @@ class mzXMLimporter:
         self.times = np.array(newtimes)
         self.ids = np.array(newids)
         self.scans = np.arange(0, len(self.ids))
-        self.data = np.array(self.data)
         return self.data
 
     def get_data_fast_memory_heavy(self, scan_range=None, time_range=None):
@@ -117,7 +115,7 @@ class mzXMLimporter:
             data = data[int(scan_range[0]):int(scan_range[1] + 1)]
             print("Getting scans:", scan_range)
         else:
-            print("Getting all scans, length:", len(self.scans), data.shape)
+            print("Getting all scans, length:", len(self.scans), len(data))
 
         if data is None or ud.isempty(data):
             print("Error: Empty Data Object")
@@ -199,6 +197,9 @@ class mzXMLimporter:
 
     def get_max_scans(self):
         return np.amax(self.scans)
+
+    def get_polarity(self):
+        return self.polarity
 
 
 if __name__ == "__main__":

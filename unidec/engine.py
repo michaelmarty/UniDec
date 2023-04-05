@@ -466,7 +466,7 @@ class UniDec(UniDecEngine):
                     xv = np.c_[np.ravel(yv), np.ravel(xv)]
                     self.data.mzgrid = np.c_[xv, self.data.mzgrid]
                 except Exception as e:
-                    print("Error: Mismatched dimensions between processed and deconvolved data", e)
+                    print("Error: Mismatched dimensions between processed and deconvolved data. ", e)
                     self.data.mzgrid = []
 
             for r in runstats:

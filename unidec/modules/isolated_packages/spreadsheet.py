@@ -9,6 +9,11 @@ import webbrowser
 from unidec.modules.matchtools import file_to_df
 import numpy as np
 import math
+import unidec.tools as ud
+
+luminance_cutoff = 135
+white_text = wx.Colour(250, 250, 250)
+black_text = wx.Colour(0, 0, 0)
 
 
 # Taken from https://stackoverflow.com/questions/28509629/
@@ -481,6 +486,24 @@ class MyGrid(wx.grid.Grid):
         # show all columns
         for col in range(self.GetNumberCols()):
             self.ShowCol(col)
+
+    def color_column(self, col, color):
+        color = wx.Colour(color)
+        # color column
+        for row in range(self.GetNumberRows()):
+            self.SetCellBackgroundColour(row, col, color)
+            luminance = ud.get_luminance(color)
+            if luminance < luminance_cutoff:
+                self.SetCellTextColour(row, col, white_text)
+            else:
+                self.SetCellTextColour(row, col, black_text)
+
+    def color_columns_by_keyword(self, keyword, color):
+        # color column by keyword
+        for col in range(self.GetNumberCols()):
+            if keyword in self.GetColLabelValue(col):
+                self.color_column(col, color)
+        self.Refresh()
 
     def copy(self, event):
         """

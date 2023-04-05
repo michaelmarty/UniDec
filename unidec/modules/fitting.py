@@ -46,6 +46,7 @@ def ndis_std(x, mid: float, sig: float, a: float = 1, norm_area: bool = False) -
     :param norm_area: Boolean, Whether to normalize so that the area under the distribution is 1.
     :return: Gaussian distribution at x values
     """
+    x = np.array(x).astype(float)
     if norm_area:
         a *= 1 / (sig * const)
     return np.array(a * np.exp(-(x - mid) * (x - mid) / (2.0 * sig * sig)))
