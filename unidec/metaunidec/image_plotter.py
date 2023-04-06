@@ -3,7 +3,7 @@ import os
 import numpy as np
 from pubsub import pub
 import wx
-
+from scipy.spatial.distance import cosine
 from unidec.modules import PlottingWindow, unidecstructure
 import unidec.tools as ud
 from unidec.metaunidec import mudstruct
@@ -33,6 +33,8 @@ class ImagingWindow(wx.Frame):
         self.config = None
         self.plot1 = None
         self.exchoice = 2
+        self.mass_extracted = None
+        self.mz_extracted = None
 
     def init(self, data, config=None):
         """
@@ -49,6 +51,13 @@ class ImagingWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_open_hdf5, menu_open)
         menu_bar = wx.MenuBar()
         menu_bar.Append(filemenu, "&File")
+
+        # Add an analysis menu
+        analysismenu = wx.Menu()
+        menu_analyze = analysismenu.Append(wx.ID_ANY, "Cosine Similarity Mass vs. m/z",
+                                           "Print the Cosine Similarity of the Mass vs. m/z images")
+        self.Bind(wx.EVT_MENU, self.on_cosine, menu_analyze)
+        menu_bar.Append(analysismenu, "&Analysis")
 
         self.SetMenuBar(menu_bar)
 
@@ -110,6 +119,8 @@ class ImagingWindow(wx.Frame):
         self.data = data
         self.x = np.array(self.data.var1)
         self.y = np.array(self.data.var2)
+        self.mass_extracted = None
+        self.mz_extracted = None
 
 
     def update(self, e=None):
@@ -149,6 +160,11 @@ class ImagingWindow(wx.Frame):
         self.exdata = ud.extract_from_data_matrix(dat, grid, midpoint=midpoint, window=window,
                                                   extract_method=self.exchoice)
         self.image_plot(plot=plot)
+
+        if dtype == "mass":
+            self.mass_extracted = self.exdata
+        elif dtype == "mz":
+            self.mz_extracted = self.exdata
 
     def extract2(self, e=None):
         erange = self.plot3.subplot1.get_xlim()
@@ -234,6 +250,27 @@ class ImagingWindow(wx.Frame):
         self.init_data(data)
         self.load()
         self.extract()
+
+    def on_cosine(self, event=None):
+        print("Calculating Cosine Similarity")
+        d1 = self.mass_extracted
+        d2 = self.mz_extracted
+
+        if d1 is None or d2 is None:
+            print("Need to select mass and m/z data first")
+            return
+
+        if np.shape(d1) != np.shape(d2):
+            print("Mass and m/z data must be the same size")
+            print(np.shape(d1), np.shape(d2))
+            return
+
+        cos = 1 - cosine(d1, d2)
+
+        outtext = "Cosine Similarity: " + str(np.round(cos * 100, 2)) + "%"
+
+        print(outtext)
+        self.plot5.add_title(outtext)
 
 
 if __name__ == "__main__":

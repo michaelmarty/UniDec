@@ -195,6 +195,10 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.6.0.3
+
+Added cosine similarity to Image Plotter.
+
 v.6.0.2
 
 **Added a new Drug-to-Antibody Ratio (DAR) calculation mode for UPP.** See help file for the new keywords. 
