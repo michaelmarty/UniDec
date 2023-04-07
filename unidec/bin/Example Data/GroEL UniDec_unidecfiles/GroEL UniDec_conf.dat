@@ -1,8 +1,8 @@
-version 5.1.0
+version 6.0.3
 imflag 0
 cdmsflag 0
-input C:\Python\UniDec3\unidec_bin\Example Data\GroEL UniDec_unidecfiles\GroEL UniDec_input.dat
-output C:\Python\UniDec3\unidec_bin\Example Data\GroEL UniDec_unidecfiles\GroEL UniDec
+input C:\Python\UniDec3\unidec\bin\Example Data\GroEL UniDec_unidecfiles\GroEL UniDec_input.dat
+output C:\Python\UniDec3\unidec\bin\Example Data\GroEL UniDec_unidecfiles\GroEL UniDec
 numit 50
 numz 16
 endz 75
@@ -14,14 +14,15 @@ mzsig 0.0
 psfun 0
 zpsfun 0
 discreteplot 0
+smashflag 0
 massub 5000000.0
 masslb 10000.0
 msig 0.0
 molig 0.0
 massbins 100.0
 mtabsig 0.0
-minmz 10079.027219759617
-maxmz 13777.256263028847
+minmz 10663.855208153076
+maxmz 13054.449030768461
 subbuff 100.0
 subtype 2
 smooth 0.0

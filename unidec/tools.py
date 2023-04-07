@@ -935,8 +935,8 @@ def waters_convert(path, config=None, outfile=None):
     return data'''
 
 
-def waters_convert2(path, config=None, outfile=None):
-    data = WDI(path).get_data()
+def waters_convert2(path, config=None, outfile=None, time_range=None):
+    data = WDI(path).get_data(time_range=time_range)
 
     if outfile is None:
         outfile = os.path.join(path, "converted_rawdata.txt")
@@ -978,7 +978,7 @@ def load_mz_file(path, config=None, time_range=None, imflag=0):
             try:
                 outfile = os.path.splitext(path)[0] + "_rawdata.txt"
                 print("Trying to convert Waters File:", outfile)
-                data = waters_convert2(path, config, outfile=outfile)
+                data = waters_convert2(path, config, outfile=outfile, time_range=time_range)
             except Exception as e:
                 print("Attempted to convert Waters Raw file but failed", e, path)
                 raise IOError
@@ -3166,12 +3166,13 @@ def subtract_and_divide(pks, basemass, refguess, outputall=False):
 
 
 if __name__ == "__main__":
-    # testfile = "C:\Python\\unidec\TestSpectra\\test_imms.raw"
+    testfile = "C:\Python\\UniDec3\\TestSpectra\\test_imms.raw"
     # data = waters_convert(testfile)
     # print(np.amax(data))
-    # data = waters_convert2(testfile)
+    data = waters_convert2(testfile)#, time_range=[0,1])
     # print(np.amax(data))
-
+    print(data)
+    exit()
     testfile = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw\\test_imms_imraw.txt"
     print(header_test(testfile))
 
