@@ -428,7 +428,7 @@ Config LoadConfig(Config config, const char* filename)
 			if (strstr(x, "massub") != NULL) { config.massub = atof(y); }// printf(" massub"); }
 			if (strstr(x, "masslb") != NULL) { config.masslb = atof(y); }// printf(" masslb"); }
 			if (strstr(x, "psfun") != NULL) { config.psfun = atoi(y); }// printf(" psfun"); }
-			if (strstr(x, "zpsfun") != NULL) { config.zpsfun = atoi(y); }
+			if (strstr(x, "zpsfn") != NULL) { config.zpsfun = atoi(y); }
 			if (strstr(x, "mtabsig") != NULL) { config.mtabsig = atof(y); }// printf(" mtabsig"); }
 			if (strstr(x, "massbins") != NULL) { config.massbins = atof(y); }// printf(" massbins"); }
 			if (strstr(x, "psthresh") != NULL) { config.psthresh = atof(y); }// printf(" psthresh"); }
@@ -3962,7 +3962,7 @@ int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, con
 			makereverse = 1; decon->rmzdist = (float*) calloc(pslen, sizeof(float));
 		}
 		else { decon->rmzdist = (float*) calloc(0, sizeof(float)); }
-
+		printf("Test: %d\n", config.psfun);
 		//Calculates the distance between mz values as a 2D or 3D matrix
 
 		if (config.speedyflag == 0)

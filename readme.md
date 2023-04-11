@@ -199,6 +199,11 @@ v.6.0.3
 
 Added cosine similarity to Image Plotter.
 
+Fixed bug with Waters time range on file open.
+
+Fixed bug with peaks shapes not registering. Note, this fix will break compatiblity for the charge peak shape
+parameter on older config files for UCD. Just change zpsfun to zpsfn on the config file to rescue.
+
 v.6.0.2
 
 **Added a new Drug-to-Antibody Ratio (DAR) calculation mode for UPP.** See help file for the new keywords. 

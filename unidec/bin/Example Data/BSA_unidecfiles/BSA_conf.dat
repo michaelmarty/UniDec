@@ -1,4 +1,4 @@
-version 6.0.0
+version 6.0.3
 imflag 0
 cdmsflag 0
 input C:\Python\UniDec3\unidec\bin\Example Data\BSA_unidecfiles\BSA_input.dat
@@ -14,6 +14,7 @@ mzsig 1.0
 psfun 0
 zpsfun 0
 discreteplot 0
+smashflag 0
 massub 500000.0
 masslb 1000.0
 msig 0.0
