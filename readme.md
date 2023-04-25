@@ -199,6 +199,8 @@ v.6.0.3
 
 Added cosine similarity to Image Plotter.
 
+Added "Config Smash File" input to UPP.
+
 Fixed bug with Waters time range on file open.
 
 Fixed bug with peaks shapes not registering. Note, this fix will break compatiblity for the charge peak shape

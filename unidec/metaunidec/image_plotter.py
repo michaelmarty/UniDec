@@ -32,6 +32,11 @@ class ImagingWindow(wx.Frame):
         self.SetTitle("Imaging Plots")
         self.config = None
         self.plot1 = None
+        self.plot2 = None
+        self.plot3 = None
+        self.plot4 = None
+        self.plot5 = None
+        self.plot6 = None
         self.exchoice = 2
         self.mass_extracted = None
         self.mz_extracted = None
@@ -65,18 +70,24 @@ class ImagingWindow(wx.Frame):
         vbox = wx.BoxSizer(wx.VERTICAL)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        self.plot1 = PlottingWindow.Plot1d(panel, smash=5)
-        pub.subscribe(self.extract, 'mzlimits5')
+        self.plot1 = PlottingWindow.Plot1d(panel, smash=2)
+        self.Bind(self.plot1.EVT_MZLIMITS, self.extract, self.plot1)
+
         self.plot2 = PlottingWindow.Plot2d(panel, integrate=1)
         pub.subscribe(self.sum_region, 'integrate')
+
         self.plot3 = PlottingWindow.Plot1d(panel, smash=2)
-        pub.subscribe(self.extract2, 'mzlimits2')
-        self.plot4 = PlottingWindow.Plot1d(panel, smash=3)
-        pub.subscribe(self.extract3, 'mzlimits3')
+        self.Bind(self.plot3.EVT_MZLIMITS, self.extract2, self.plot3)
+
+        self.plot4 = PlottingWindow.Plot1d(panel, smash=2)
+        self.Bind(self.plot4.EVT_MZLIMITS, self.extract3, self.plot4)
+
         self.plot5 = PlottingWindow.Plot2d(panel, integrate=1)
         pub.subscribe(self.sum_region, 'integrate')
-        self.plot6 = PlottingWindow.Plot1d(panel, smash=4)
-        pub.subscribe(self.extract4, 'mzlimits4')
+
+        self.plot6 = PlottingWindow.Plot1d(panel, smash=2)
+        self.Bind(self.plot6.EVT_MZLIMITS, self.extract4, self.plot6)
+
         hbox.Add(self.plot1)
         hbox.Add(self.plot2)
         hbox.Add(self.plot3)

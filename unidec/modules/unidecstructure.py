@@ -840,16 +840,24 @@ class UniDecConfig(object):
                 self.manuallist = np.array([])
 
             # Import smash file
-            if os.path.isfile(self.smashfile):
-                self.smashlist = np.loadtxt(self.smashfile)
-                if self.imflag == 0 and self.cdmsflag == 0:
-                    if self.smashlist.shape == (2,):
-                        self.smashlist = np.array([self.smashlist])
-                else:
-                    if self.smashlist.shape == (4,):
-                        self.smashlist = np.array([self.smashlist])
+            self.import_smashfile()
+
+    def import_smashfile(self, filename=None):
+        if filename is None:
+            filename = self.smashfile
+        else:
+            self.smashfile = filename
+        # Import smash file
+        if os.path.isfile(self.smashfile):
+            self.smashlist = np.loadtxt(self.smashfile)
+            if self.imflag == 0 and self.cdmsflag == 0:
+                if self.smashlist.shape == (2,):
+                    self.smashlist = np.array([self.smashlist])
             else:
-                self.smashlist = np.array([])
+                if self.smashlist.shape == (4,):
+                    self.smashlist = np.array([self.smashlist])
+        else:
+            self.smashlist = np.array([])
 
     def get_config_dict(self):
         if self.metamode != -2:

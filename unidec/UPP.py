@@ -504,7 +504,7 @@ class UPPApp(wx.Frame):
         print("Opening in UniDec:", row)
         filepath = self.bpeng.get_file_path(row)
         if filepath is not None:
-            print("Launching UniDec:")
+            print("Launching UniDec:", filepath)
             app = UniDecApp(path=filepath)
             app.eng.unidec_imports(efficiency=False)
             app.after_unidec_run()

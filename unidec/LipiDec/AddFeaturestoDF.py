@@ -2,11 +2,45 @@ import pandas as pd
 import numpy as np
 import re
 
+lipid_colormap = {"CL": "orange", "PC": "dimgrey", "PE": "purple",
+                  "PI": "darkgreen", "PS": "blue", "SM": "lightcoral",
+                  "LPC": "lightgrey", "LPE": "plum", "Cer": "brown",
+                  "HexCer": "maroon", "PG": "green", "LPE-O": "orchid",
+                  "PE-O": "fuchsia", "PC-O": "grey",
+                  "PE-O/P": "fuchsia", "PC-O/P": "grey",
+                  "PE-P": "darkviolet", "PC-P": "darkgrey",
+                  "PI-O": "limegreen", "PS-O": "dodgerblue",
+                  "PI-O/P": "limegreen", "PS-O/P": "dodgerblue",
+                  "TG": "snow",
+                  }
+
+
+def get_colors(unique_classes):
+    colors = []
+    for uclass in unique_classes:
+        if uclass in lipid_colormap:
+            colors.append(lipid_colormap[uclass])
+        else:
+            colors.append("black")
+    return colors
+
+
+def clean_name(name):
+    # Check for _A or similar in the name
+    name = re.sub(r'_[A-Z]', '', name)
+    name = re.sub(r';[0-9]O', '', name)
+    name = re.sub(r';O', '', name)
+    name = re.sub(r'Unsettled: ', '', name)
+    name = re.sub(r'O-', '', name)
+    name = re.sub(r'P-', '', name)
+    return name
+
 
 def get_overall_tails(name):
     if "|" in name:
         try:
             tname = name.split("|")[0]  # Remove before vertical line
+            tname = clean_name(tname)
             tname = tname.split()[1]  # Remove after space to get tails
             tl = tname.split(":")[0]  # Get length
             tu = tname.split(":")[1]  # Get unsaturation
@@ -16,13 +50,19 @@ def get_overall_tails(name):
             tl = int(tl)
         except:
             tl = -1
+            print("Unable to parse length: ", name, tname, tl)
         try:
             tu = int(tu)
         except:
             tu = -1
+            print("Unable to parse unsaturation: ", name, tname, tu)
     else:
-        tname = name.split()[1]
-        fas = tname.split("_")
+        name = clean_name(name)
+
+        tname = name.split(" ")[1]
+
+        # fas = tname.split("_")
+        fas = re.split('_|/', tname)
         tls = 0
         tus = 0
         for f in fas:
@@ -30,18 +70,20 @@ def get_overall_tails(name):
             try:
                 tu = f.split(":")[1]  # Get unsaturation
             except:
-                print("Unable to parse part: ", f, name)
+                print("Unable to parse part: ", f, name, tname, fas)
                 continue
                 # exit()
             try:
                 tl = int(tl)
             except:
                 tls = -1
+                print("Unable to parse length: ", f, name, tname, fas)
                 break
             try:
                 tu = int(tu)
             except:
                 tus = -1
+                print("Unable to parse unsaturation: ", f, name, tname, fas)
                 break
             tls += tl
             tus += tu
@@ -68,27 +110,46 @@ def set_tails(df, name="Metabolite name"):
     return df
 
 
+def get_class(name):
+    name = re.sub("Unsettled: ", "", name)
+    tailmod = ""
+    if "O" in name and "Cer" not in name and "SM" not in name:
+        tailmod = "-O/P"
+    if "P-" in name:
+        tailmod = "-O/P"
+    name = name.split(" ")[0] + tailmod
+
+    return name
+
+
 def set_class_name(df, name="Metabolite name"):
     df = df.copy(deep=True)
     names = df[name].to_numpy()
     classes = []
     for n in names:
-        if "|" in n:
-            n = n.split("|")[1]
-        n = n.split()[0]
+        # if "|" in n:
+        #    n = n.split("|")[1]
+        # n = n.split()[0]
+        n = get_class(n)
         classes.append(n)
     df["Class Name"] = classes
     return df
 
 
-def calc_tail_diff(df, class_col="Class Name", tail_col="Tail Lengths", unsat_col="Tail Unsaturation"):
+def calc_tail_diff(df, class_col="Class Name", tail_col="Tail Lengths", unsat_col="Tail Unsaturation", weight_col=None):
     # Calculate average tail lengths and unsaturations for each class
     unique_classes = np.unique(df[class_col])
     avg_class_lengths = []
     avg_class_unsat = []
     for c in unique_classes:
-        avg_class_lengths.append(np.mean(df[df[class_col] == c][tail_col]))
-        avg_class_unsat.append(np.mean(df[df[class_col] == c][unsat_col]))
+        subdf = df[df[class_col] == c]
+        if weight_col is None:
+            avg_class_lengths.append(np.mean(subdf[tail_col]))
+            avg_class_unsat.append(np.mean(subdf[unsat_col]))
+        else:
+            weights = subdf[weight_col]
+            avg_class_lengths.append(np.average(subdf[tail_col], weights=weights))
+            avg_class_unsat.append(np.average(subdf[unsat_col], weights=weights))
 
     # Subtract each value from the average for that class
     tail_diffs = []
@@ -109,7 +170,6 @@ def calc_tail_diff(df, class_col="Class Name", tail_col="Tail Lengths", unsat_co
     print('Unique Classes: ', unique_classes)
     print('Average Tail Lengths: ', avg_class_lengths)
     print('Average Tail Unsaturation: ', avg_class_unsat)
-
 
     return df
 
@@ -212,6 +272,12 @@ def fill_out_df(df):
     df = set_tails(df)
     df = parse_names(df)
     df = mass_defect_df(df)
+    return df
+
+
+def fill_out_df_names(df, name="Metabolite name"):
+    df = set_tails(df, name)
+    df = parse_names(df, name)
     return df
 
 

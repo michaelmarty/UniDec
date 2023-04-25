@@ -301,6 +301,24 @@ def set_param_from_row(eng, row, dirname=""):
             else:
                 eng.config.doubledec = False
 
+        if "Config Smash File" in k:
+            smash_file = val
+            if not os.path.exists(smash_file):
+                smash_file = os.path.join(dirname, smash_file)
+            if not os.path.exists(smash_file):
+                smash_file = os.path.join(os.getcwd(), smash_file)
+
+            if os.path.exists(smash_file):
+                eng.config.smashfile = smash_file
+                print("Using Smashfile", smash_file)
+                eng.config.smashflag = 1
+                eng.config.import_smashfile()
+            else:
+                print("Smash File Not Found", smash_file, val)
+                eng.config.smashflag = 0
+        else:
+            eng.config.smashflag = 0
+
         # print(eng.config.maxmz, eng.config.minmz, k)
     return eng
 
@@ -752,8 +770,9 @@ if __name__ == "__main__":
         path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
         path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
         # path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
+        path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
         pd.set_option('display.max_columns', None)
-        batch.run_file(path, decon=False, use_converted=True, interactive=False)
+        batch.run_file(path, decon=True, use_converted=True, interactive=False)
 
         batch.open_global_html()
         pass

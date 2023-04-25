@@ -220,6 +220,23 @@ class ZoomCommon:
         self.useblit = True
         self.xzoom = None
         self.yzoom = None
+        self.parent = None
+
+    def on_newxy(self, x, y):
+        if self.parent is not None:
+            self.parent.on_newxy(x, y)
+
+    def scans_selected(self, vmin, vmax):
+        if self.parent is not None:
+            self.parent.on_scans_selected(vmin, vmax)
+
+    def left_click(self, x, y):
+        if self.parent is not None:
+            self.parent.on_left_click(x, y)
+
+    def right_click(self, event=None):
+        if self.parent is not None:
+            self.parent.on_right_click(event)
 
     def switch_label(self):
         self.lflag = (self.lflag + 1) % 2

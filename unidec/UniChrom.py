@@ -191,6 +191,9 @@ class ChromApp(MetaUniDecBase):
         self.makeplot2(plot=self.view.plot2s, data=self.eng.massdat, pks=self.eng.unidec_eng.pks)
         self.makeplot4(plot=self.view.plotm, data=data, pks=self.eng.unidec_eng.pks)
 
+    def on_selection_event(self, event):
+        self.on_selection(event.smin, event.smax)
+
     def on_selection(self, min, max, plot=True):
         self.view.SetStatusText("Averaging Scans...", number=1)
         self.view.SetStatusText("Please wait...", number=2)

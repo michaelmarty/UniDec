@@ -27,7 +27,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.CreateStatusBar(7)
         self.SetStatusWidths([-1, 200, 120, 200, 230, 250, 130])
         pub.subscribe(self.on_motion, 'newxy')
-        pub.subscribe(self.pres.on_selection, 'scans_selected')
+
 
         self.menu = meta_menu(self, self.config, self.pres, type="Chrom")
         self.SetMenuBar(self.menu.menuBar)
@@ -156,6 +156,10 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.plot2s = PlottingWindow.Plot1d(plotwindow, figsize=figsize)  # Selection mass
         self.plot3 = PlottingWindow.Plot2d(plotwindow, figsize=figsize)  # MUD 2D m/z vs. time
         self.plot5 = PlottingWindow.Plot2d(plotwindow, figsize=figsize)  # MUD 2D mass vs. time
+
+        # Bind Plotc to the EVT_SCANS_SELECTED event
+        self.Bind(self.plotc.EVT_SCANS_SELECTED, self.pres.on_selection_event, self.plotc)
+        #pub.subscribe(self.pres.on_selection, 'scans_selected')
 
         sizerplot.Add(self.plotc, (0, 0), span=(1, 1), flag=wx.EXPAND)
         sizerplot.Add(self.plotm, (1, 0), span=(1, 1), flag=wx.EXPAND)
