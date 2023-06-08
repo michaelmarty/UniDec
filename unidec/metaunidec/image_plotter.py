@@ -52,7 +52,7 @@ class ImagingWindow(wx.Frame):
         # Make the menu
         filemenu = wx.Menu()
         menu_open = filemenu.Append(wx.ID_ANY, "Open HDF5 File",
-                                            "Open an HDF5 to view")
+                                    "Open an HDF5 to view")
         self.Bind(wx.EVT_MENU, self.on_open_hdf5, menu_open)
         menu_bar = wx.MenuBar()
         menu_bar.Append(filemenu, "&File")
@@ -133,7 +133,6 @@ class ImagingWindow(wx.Frame):
         self.mass_extracted = None
         self.mz_extracted = None
 
-
     def update(self, e=None):
         self.exchoice = self.ctletype.GetSelection()
 
@@ -142,10 +141,12 @@ class ImagingWindow(wx.Frame):
         self.load_plot4()
 
     def load_plot4(self, e=None):
-        self.plot4.plotrefreshtop(self.data.mzdat[:, 0], self.data.mzdat[:, 1])
+        self.plot4.plotrefreshtop(self.data.mzdat[:, 0], self.data.mzdat[:, 1], xlabel="m/z (Th)",
+                                  ylabel="Intensity")
 
     def load_plot1(self, e=None):
-        self.plot1.plotrefreshtop(self.data.massdat[:, 0], self.data.massdat[:, 1])
+        self.plot1.plotrefreshtop(self.data.massdat[:, 0], self.data.massdat[:, 1], xlabel="Mass (Da)",
+                                  ylabel="Intensity")
 
     def extract(self, e=None, erange=None, dtype="mass", plot=None, no_face=False):
         self.update()
@@ -153,7 +154,8 @@ class ImagingWindow(wx.Frame):
             erange = self.plot1.subplot1.get_xlim()
             self.load_plot1()
             if not no_face:
-                self.plot1.add_rect(erange[0], 0, erange[1] - erange[0], np.amax(self.data.massdat[:, 1]), facecolor="y")
+                self.plot1.add_rect(erange[0], 0, erange[1] - erange[0], np.amax(self.data.massdat[:, 1]),
+                                    facecolor="y")
         if dtype == "mass":
             grid = self.data.massgrid[:, :, 1]
             dat = self.data.massdat[:, 0]
@@ -198,12 +200,12 @@ class ImagingWindow(wx.Frame):
 
         regiondat = np.sum(self.data.massgrid[ball, :, 1], axis=0)
         regiondat = np.transpose([self.data.massdat[:, 0], regiondat])
-        self.plot3.plotrefreshtop(regiondat[:, 0], regiondat[:, 1])
+        self.plot3.plotrefreshtop(regiondat[:, 0], regiondat[:, 1], xlabel="Mass (Da)", ylabel="Intensity")
         self.region_massdat = regiondat
 
         regiondat2 = np.sum(self.data.mzgrid[ball, :, 1], axis=0)
         regiondat2 = np.transpose([self.data.mzdat[:, 0], regiondat2])
-        self.plot6.plotrefreshtop(regiondat2[:, 0], regiondat2[:, 1])
+        self.plot6.plotrefreshtop(regiondat2[:, 0], regiondat2[:, 1], xlabel="m/z (Th)", ylabel="Intensity")
         self.region_mzdat = regiondat2
 
     def image_plot(self, e=None, data=None, plot=None):
@@ -233,7 +235,8 @@ class ImagingWindow(wx.Frame):
         print("Plotting mz")
         erange = self.massrange
         midpoint = np.mean(erange)
-        localmaxpos = ud.data_extract(self.data.massdat, midpoint, window=(erange[1] - erange[0])/2., extract_method=4)
+        localmaxpos = ud.data_extract(self.data.massdat, midpoint, window=(erange[1] - erange[0]) / 2.,
+                                      extract_method=4)
         print(localmaxpos, midpoint, erange)
         self.ztab = np.arange(self.config.startz, self.config.endz + 1)
         mztab = (localmaxpos + self.ztab * self.config.adductmass) / self.ztab
