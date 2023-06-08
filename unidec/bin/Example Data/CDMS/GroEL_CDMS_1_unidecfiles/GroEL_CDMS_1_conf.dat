@@ -12,7 +12,7 @@ psig 1.0
 beta 1.0
 mzsig 1.0
 psfun 0
-zpsfun 0
+zpsfn 0
 discreteplot 1
 smashflag 0
 massub 1000000.0

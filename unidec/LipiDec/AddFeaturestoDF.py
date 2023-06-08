@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 
+'''
 lipid_colormap = {"CL": "orange", "PC": "dimgrey", "PE": "purple",
                   "PI": "darkgreen", "PS": "blue", "SM": "lightcoral",
                   "LPC": "lightgrey", "LPE": "plum", "Cer": "brown",
@@ -13,6 +14,23 @@ lipid_colormap = {"CL": "orange", "PC": "dimgrey", "PE": "purple",
                   "PI-O/P": "limegreen", "PS-O/P": "dodgerblue",
                   "TG": "snow",
                   }
+'''
+
+lipid_colormap = {"CL": "#FB5200", "PC": "#BF9000", "PE": "purple",
+                  "PI": "#4B9167", "PS": "#0000FF", "SM": "#F08080",
+                  "LPC": "lightgrey", "LPE": "plum", "Cer": "#44546A",
+                  "HexCer": "#800000", "PG": "#006C00", "LPE-O": "orchid",
+                  "PE-O": "fuchsia", "PC-O": "#FFD655",
+                  "PE-O/P": "fuchsia", "PC-O/P": "#FFD655", "PC O/P": "#FFD655", "PE O/P": "fuchsia",
+                  "PE-P": "darkviolet", "PC-P": "#FFD655",
+                  "PI-O": "limegreen", "PS-O": "dodgerblue",
+                  "PI-O/P": "limegreen", "PS-O/P": "dodgerblue",
+                  "TG": "#0099FF",
+                  }
+
+lipid_symbolmap = {"CL": "o", "PC": "o", "PE": "s", "PG": '>', "PI": ">", "PS": "<", "SM": "H",
+                   "Cer": "^", "HexCer": "v", "TG": "D",
+                   }
 
 
 def get_colors(unique_classes):
@@ -25,14 +43,62 @@ def get_colors(unique_classes):
     return colors
 
 
+def get_symbols(unique_classes):
+    symbols = []
+    for uclass in unique_classes:
+        if uclass in lipid_symbolmap:
+            symbols.append(lipid_symbolmap[uclass])
+        else:
+            symbols.append("o")
+    return symbols
+
+
+def get_internal_standards(classname, classes):
+    std = "IS" + classname
+    if std in classes:
+        return std
+    # For names with -O/P
+    std = "IS" + classname[:2]
+    if std in classes:
+        return std
+    std = "IS" + classname[:3]
+    if std in classes:
+        return std
+    std = "IS" + classname[:-4]
+    if std in classes:
+        return std
+    # For hexcer
+    std = "IS" + classname[3:]
+    if std in classes:
+        return std
+
+    if classname == "TG":
+        return "ISPC"
+
+    print("Internal Standard Not Found:", classname, std)
+    print(classes)
+    raise (Warning)
+    return None
+
+
 def clean_name(name):
     # Check for _A or similar in the name
     name = re.sub(r'_[A-Z]', '', name)
+    name = re.sub(r'2OH', '', name)
     name = re.sub(r';[0-9]O', '', name)
+    name = re.sub(r'\(d7\)', '', name)
+    name = re.sub(r'-d7', '', name)
     name = re.sub(r';O', '', name)
     name = re.sub(r'Unsettled: ', '', name)
     name = re.sub(r'O-', '', name)
     name = re.sub(r'P-', '', name)
+    name = re.sub(r'-', '_', name)
+    name = re.sub(r'/', '_', name)
+    name = re.sub(r';', '', name)
+
+    name = re.sub(r'\(', '', name)
+    name = re.sub(r'\)', '', name)
+    name = re.sub(r'd', '', name)
     return name
 
 
@@ -70,20 +136,20 @@ def get_overall_tails(name):
             try:
                 tu = f.split(":")[1]  # Get unsaturation
             except:
-                print("Unable to parse part: ", f, name, tname, fas)
+                print("Unable to parse part 2: ", f, name, tname, fas)
                 continue
                 # exit()
             try:
                 tl = int(tl)
             except:
                 tls = -1
-                print("Unable to parse length: ", f, name, tname, fas)
+                print("Unable to parse length 2: ", f, name, tname, fas)
                 break
             try:
                 tu = int(tu)
             except:
                 tus = -1
-                print("Unable to parse unsaturation: ", f, name, tname, fas)
+                print("Unable to parse unsaturation 2: ", f, name, tname, fas)
                 break
             tls += tl
             tus += tu
