@@ -1,5 +1,7 @@
 import numpy as np
 import math
+import re
+import os
 
 aa_masses = {'A': 71.0788, 'C': 103.1388, 'D': 115.0886, 'E': 129.1155, 'F': 147.1766,
              'G': 57.0519, 'H': 137.1411, 'I': 113.1594, 'K': 128.1741, 'L': 113.1594,
@@ -112,5 +114,31 @@ def calc_dna_mass(sequence, threeend="OH", fiveend="MP"):
     return round(float(mass), 2)
 
 
+def read_fasta(path):
+    f = open(path, 'r')
+    lines = f.readlines()
+
+    hre = re.compile('>(\S+)')
+    lre = re.compile('^(\S+)$')
+
+    gene = {}
+
+    for line in lines:
+        outh = hre.search(line)
+        if outh:
+            id = outh.group(1)
+        else:
+            outl = lre.search(line)
+            if id in gene.keys():
+                gene[id] += outl.group(1)
+            else:
+                gene[id] = outl.group(1)
+    return gene
+
+
 if __name__ == "__main__":
     print(mass_HPO4 + mass_HPO4 - mass_O - mass_O + mass_H + mass_H)
+    os.chdir("..\\..\\Scripts\\old\\Jessica")
+    file = "ecoli.fasta"
+    genes = read_fasta(file)
+    print(genes)

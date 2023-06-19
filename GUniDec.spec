@@ -9,6 +9,7 @@ import fnmatch
 from multiprocessing import freeze_support
 from os import listdir
 from PyInstaller import compat
+import matplotlib
 
 freeze_support()
 
@@ -41,7 +42,7 @@ hiddenimportslist=['scipy.special._ufuncs_cxx', 'scipy.linalg.cython_blas', 'sci
                  'scipy._lib.messagestream','clr', 'pythonnet',
                  'encodings', 'encodings.__init__',
                  'packaging', 'packaging.version', 'packaging.specifiers',
-                 'pubsub', 'pubsub.core', 'matplotlib.backends.backend_ps'
+                 'pubsub', 'pubsub.core', 'matplotlib.backends.backend_ps', 'matplotlib.backends.backend_pdf',
              ]
 
 

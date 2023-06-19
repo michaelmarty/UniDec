@@ -197,6 +197,8 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.6.0.3
 
+Added global peak output to UPP.
+
 Added cosine similarity to Image Plotter.
 
 Added "Config Smash File" input to UPP.
@@ -207,6 +209,8 @@ Fixed bug with Waters time range on file open.
 
 Fixed bug with peaks shapes not registering. Note, this fix will break compatiblity for the charge peak shape
 parameter on older config files for UCD. Just change zpsfun to zpsfn on the config file to rescue.
+
+Fixed bug with PDF saving not working.
 
 v.6.0.2
 
