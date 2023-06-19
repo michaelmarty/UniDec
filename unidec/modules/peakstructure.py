@@ -78,6 +78,8 @@ class Peak:
         self.index = 0
         self.sdnum = 0
         self.sdval = 0
+        self.filename = ""
+        self.filenumber = -1
 
     def line_out(self, type="Full"):
         if type == "Full":
@@ -87,6 +89,12 @@ class Peak:
                        self.intervalFWHM[1], self.errormean, self.errorreplicate, self.numberalts, self.altmatches]
         elif type == "Basic":
             outputs = [self.mass, self.height, self.integral]
+        elif type == "FullFiles":
+            outputs = [self.textmarker, self.mass, self.centroid, self.height, self.integral, self.match,
+                       self.matcherror, self.label,
+                       self.area, self.diff, self.avgcharge, self.dscore, self.errorFWHM, self.intervalFWHM[0],
+                       self.intervalFWHM[1], self.errormean, self.errorreplicate, self.numberalts, self.altmatches,
+                       self.filename, self.filenumber]
         else:
             outputs = [self.mass, self.height]
         outstring = ""
@@ -152,6 +160,16 @@ class Peaks:
         self.convolved = False
         self.composite = None
         self.massbins = massbins
+
+    def merge_in_peaks(self, pks, filename=None, filenumber=None):
+        for p in pks.peaks:
+            if filename is not None:
+                p.filename = filename
+            if filenumber is not None:
+                p.filenumber = filenumber
+            self.peaks.append(p)
+        return self
+
 
     def default_params(self, cmap="rainbow"):
         """
@@ -294,8 +312,12 @@ class Peaks:
             outstring = "Symbol\tMass\tCentroid\tHeight\tIntegral\tMatch\tMatcherror\tLabel" \
                         "\tFit Area\tDiff\tAvgcharge\tDscore\tFWHM\tLowValFWHM\tHighValFWHM\tErrorMean\t" \
                         "ErrorReplicate\tNumMatches\tAltMatches\n"
-        if type == "Basic":
+        elif type == "Basic":
             outstring = "Mass\tHeight\tIntegral\n"
+        elif type == "FullFiles":
+            outstring = "Symbol\tMass\tCentroid\tHeight\tIntegral\tMatch\tMatcherror\tLabel" \
+                        "\tFit Area\tDiff\tAvgcharge\tDscore\tFWHM\tLowValFWHM\tHighValFWHM\tErrorMean\t" \
+                        "ErrorReplicate\tNumMatches\tAltMatches\tFileName\tFileNumber\n"
         # print("Columns:", outstring)
 
         for p in self.peaks:

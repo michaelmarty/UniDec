@@ -16,11 +16,35 @@ from unidec.modules.miscwindows import DoubleInputDialog
 from unidec.modules.PlotBase import PlotBase
 from unidec.modules.plot1d import Plot1dBase
 from unidec.modules.plot2d import Plot2dBase
+from pubsub import pub
 
 # import matplotlib.style as mplstyle
 # mplstyle.use('fast')
 
 interactive(True)
+
+# Create ScanSelected custom event
+ScanSelectedEventType = wx.NewEventType()
+EVT_SCANS_SELECTED = wx.PyEventBinder(ScanSelectedEventType, 1)
+
+
+class ScanSelectedEvent(wx.PyCommandEvent):
+    def __init__(self, evttype, id, smin=None, smax=None):
+        wx.PyCommandEvent.__init__(self, evttype, id)
+        self.smin = smin
+        self.smax = smax
+
+
+# Create mzlimits custom event
+MZLimitsEventType = wx.NewEventType()
+EVT_MZLIMITS = wx.PyEventBinder(MZLimitsEventType, 1)
+
+
+class MZLimitsEvent(wx.PyCommandEvent):
+    def __init__(self, evttype, id, minval=None, maxval=None):
+        wx.PyCommandEvent.__init__(self, evttype, id)
+        self.minval = minval
+        self.maxval = maxval
 
 
 class PlottingWindowBase(PlotBase, wx.Panel):
@@ -45,6 +69,8 @@ class PlottingWindowBase(PlotBase, wx.Panel):
 
         PlotBase.__init__(self, *args, **kwargs)
         self.displaysize = wx.GetDisplaySize()
+        self.EVT_SCANS_SELECTED = EVT_SCANS_SELECTED
+        self.EVT_MZLIMITS = EVT_MZLIMITS
 
         if "integrate" in kwargs:
             self.int = kwargs["integrate"]
@@ -73,11 +99,11 @@ class PlottingWindowBase(PlotBase, wx.Panel):
         self.canvas.mpl_connect('figure_leave_event', self.mouse_inactivate)
         self.canvas.mpl_connect('draw_event', self.on_draw)
 
-        #self.sizer = wx.BoxSizer(wx.VERTICAL)
-        #self.sizer.Add(self.canvas, 1, wx.EXPAND)
-        #self.SetSizer(self.sizer)
-        #self.Show()
-        #self.Layout()
+        # self.sizer = wx.BoxSizer(wx.VERTICAL)
+        # self.sizer.Add(self.canvas, 1, wx.EXPAND)
+        # self.SetSizer(self.sizer)
+        # self.Show()
+        # self.Layout()
 
     def repaint(self, setupzoom=True, resetzoom=False):
         """
@@ -217,8 +243,8 @@ class PlottingWindowBase(PlotBase, wx.Panel):
         :return: None
         """
         # print("Size Handler")
-        #event.Skip()
-        #wx.CallAfter(self.on_size, event)
+        # event.Skip()
+        # wx.CallAfter(self.on_size, event)
         if self.resize == 1:
             self.canvas.SetSize(self.GetSize())
 
@@ -273,8 +299,8 @@ class PlottingWindowBase(PlotBase, wx.Panel):
 
     def set_resize(self, newsize):
         self.SetSize(newsize)
-        #self.canvas.Destroy()
-        #self.canvas = FigureCanvasWxAgg(self, -1, self.figure)
+        # self.canvas.Destroy()
+        # self.canvas = FigureCanvasWxAgg(self, -1, self.figure)
         self.canvas.SetSize(newsize)
         self.figure.set_size_inches(float(newsize[0]) / self.figure.get_dpi(),
                                     float(newsize[1]) / self.figure.get_dpi())
@@ -326,6 +352,7 @@ class PlottingWindowBase(PlotBase, wx.Panel):
             self.zoom = ZoomSpan(
                 plots,
                 None,
+                parent=self,
                 useblit=True,
                 onmove_callback=None,
                 rectprops=dict(alpha=0.2, facecolor='yellow'))
@@ -333,6 +360,7 @@ class PlottingWindowBase(PlotBase, wx.Panel):
             self.zoom = ZoomBox(
                 plots,
                 None,
+                parent=self,
                 groups=groups,
                 drawtype='box',
                 useblit=True,
@@ -346,12 +374,39 @@ class PlottingWindowBase(PlotBase, wx.Panel):
             self.zoom = NoZoomSpan(
                 plots,
                 None,
+                parent=self,
                 minspan=0,
                 zoombutton=3,
                 useblit=True,
                 onmove_callback=None,
                 rectprops=dict(alpha=0.2, facecolor='yellow'))
 
+    def on_newxy(self, x, y):
+        # print(x, y)
+        pub.sendMessage('newxy', xpos=x, ypos=y)
+
+    def on_scans_selected(self, smin, smax):
+        # pub.sendMessage('scans_selected', min=smin, max=smax)
+        event = ScanSelectedEvent(ScanSelectedEventType, self.GetId(), smin=smin, smax=smax)
+        self.GetEventHandler().ProcessEvent(event)
+
+    def on_left_click(self, x, y):
+        pub.sendMessage('left_click', xpos=x, ypos=y)
+
+    def on_right_click(self, event=None):
+        if self.int == 1:
+            # print "rightclick"
+            pub.sendMessage('integrate')
+        elif self.smash == 1:
+            if event.dblclick:
+                pub.sendMessage('smash')
+            else:
+                pub.sendMessage('mzlimits')
+                event = ScanSelectedEvent(MZLimitsEventType, self.GetId())
+                self.GetEventHandler().ProcessEvent(event)
+        elif self.smash == 2:
+            event = ScanSelectedEvent(MZLimitsEventType, self.GetId())
+            self.GetEventHandler().ProcessEvent(event)
 
 class Plot1d(PlottingWindowBase, Plot1dBase):
     """

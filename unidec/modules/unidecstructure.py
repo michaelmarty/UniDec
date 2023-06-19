@@ -468,7 +468,7 @@ class UniDecConfig(object):
         f.write("beta " + str(self.beta) + "\n")
         f.write("mzsig " + str(self.mzsig) + "\n")
         f.write("psfun " + str(self.psfun) + "\n")
-        f.write("zpsfun " + str(self.psfunz) + "\n")
+        f.write("zpsfn " + str(self.psfunz) + "\n")
         f.write("discreteplot " + str(self.discreteplot) + "\n")
         f.write("smashflag " + str(self.smashflag) + "\n")
         f.write("massub " + str(self.massub) + "\n")
@@ -659,7 +659,7 @@ class UniDecConfig(object):
                             self.mzsig = ud.string_to_value(line.split()[1])
                         if line.startswith("psfun"):
                             self.psfun = ud.string_to_int(line.split()[1])
-                        if line.startswith("zpsfun"):
+                        if line.startswith("zpsfn"):
                             self.psfunz = ud.string_to_int(line.split()[1])
                         if line.startswith("discreteplot"):
                             self.discreteplot = ud.string_to_int(line.split()[1])
@@ -840,16 +840,24 @@ class UniDecConfig(object):
                 self.manuallist = np.array([])
 
             # Import smash file
-            if os.path.isfile(self.smashfile):
-                self.smashlist = np.loadtxt(self.smashfile)
-                if self.imflag == 0 and self.cdmsflag == 0:
-                    if self.smashlist.shape == (2,):
-                        self.smashlist = np.array([self.smashlist])
-                else:
-                    if self.smashlist.shape == (4,):
-                        self.smashlist = np.array([self.smashlist])
+            self.import_smashfile()
+
+    def import_smashfile(self, filename=None):
+        if filename is None:
+            filename = self.smashfile
+        else:
+            self.smashfile = filename
+        # Import smash file
+        if os.path.isfile(self.smashfile):
+            self.smashlist = np.loadtxt(self.smashfile)
+            if self.imflag == 0 and self.cdmsflag == 0:
+                if self.smashlist.shape == (2,):
+                    self.smashlist = np.array([self.smashlist])
             else:
-                self.smashlist = np.array([])
+                if self.smashlist.shape == (4,):
+                    self.smashlist = np.array([self.smashlist])
+        else:
+            self.smashlist = np.array([])
 
     def get_config_dict(self):
         if self.metamode != -2:

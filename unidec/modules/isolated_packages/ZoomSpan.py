@@ -1,7 +1,6 @@
 from matplotlib.transforms import blended_transform_factory
 from matplotlib.patches import Rectangle
 # from pubsub import setupkwargs
-from pubsub import pub
 from unidec.modules.isolated_packages.ZoomCommon import *
 
 
@@ -38,6 +37,7 @@ class ZoomSpan(ZoomCommon):
     """
 
     def __init__(self, axes, onselect,
+                 parent=None,
                  minspan=None,
                  useblit=False,
                  rectprops=None,
@@ -62,6 +62,7 @@ class ZoomSpan(ZoomCommon):
         if rectprops is None:
             rectprops = dict(facecolor='yellow', alpha=0.2)
 
+        self.parent = parent
         self.pad = 0.0001
         self.axes = None
         self.canvas = None
@@ -197,9 +198,11 @@ class ZoomSpan(ZoomCommon):
         return False
 
     def onmove(self, event):
-        pub.sendMessage('newxy', xpos=event.xdata, ypos=event.ydata)
-        'on motion notify event'
-        if self.pressv is None or self.ignore(event): return
+        self.on_newxy(event.xdata, event.ydata)
+
+        #'on motion notify event'
+        if self.pressv is None or self.ignore(event):
+            return
         x, y = event.xdata, event.ydata
         self.prev = x, y
 

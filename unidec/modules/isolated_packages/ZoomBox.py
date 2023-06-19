@@ -1,6 +1,4 @@
 from matplotlib.patches import Rectangle
-# from pubsub import setupkwargs
-from pubsub import pub
 import wx
 from unidec.modules.isolated_packages.ZoomCommon import *
 
@@ -40,7 +38,7 @@ class ZoomBox(ZoomCommon):
         show()
     """
 
-    def __init__(self, axes, onselect, groups=None, drawtype='box',
+    def __init__(self, axes, onselect, parent=None, groups=None, drawtype='box',
                  minspanx=None,
                  minspany=None,
                  useblit=False,
@@ -93,6 +91,7 @@ class ZoomBox(ZoomCommon):
         super(ZoomCommon, self).__init__()
         self.crossoverpercent = 0.06
         self.pad = pad
+        self.parent = parent
 
         self.axes = None
         self.canvas = None
@@ -197,25 +196,9 @@ class ZoomBox(ZoomCommon):
 
         # Only do selection if event was triggered with a desired button
         if self.validButtons is not None:
-            if not event.button in self.validButtons:
-                if event.button == 3 and self.integrate == 1:
-                    # print "rightclick"
-                    pub.sendMessage('integrate')
-                elif event.button == 3 and self.smash == 1:
-                    if event.dblclick:
-                        pub.sendMessage('smash')
-                    else:
-                        pub.sendMessage('mzlimits')
-                elif event.button == 3 and self.smash == 2:
-                    pub.sendMessage('mzlimits2')
-                elif event.button == 3 and self.smash == 3:
-                    pub.sendMessage('mzlimits3')
-                elif event.button == 3 and self.smash == 4:
-                    pub.sendMessage('mzlimits4')
-                elif event.button == 3 and self.smash == 5:
-                    pub.sendMessage('mzlimits5')
-                elif event.button == 2:
-                    pub.sendMessage('middle_click')
+            if event.button not in self.validButtons:
+                if event.button == 3:
+                    self.right_click(event)
                 return True
 
         # If no button pressed yet or if it was out of the axes, ignore
@@ -246,7 +229,7 @@ class ZoomBox(ZoomCommon):
         # Register a click if zoomout was not necessary
         if not zoomout and event is not None:
             if event.button == 1 and self.smash == 1:
-                pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
+                self.left_click(event.xdata, event.ydata)
 
         xspan = xmax - xmin
         yspan = ymax - ymin
@@ -310,7 +293,7 @@ class ZoomBox(ZoomCommon):
                 if wx.GetKeyState(wx.WXK_CONTROL):
                     # Ignore the resize if the control key is down
                     if event.button == 1 and self.smash == 1:
-                        pub.sendMessage('left_click', xpos=event.xdata, ypos=event.ydata)
+                        self.left_click(event.xdata, event.ydata)
                     return
                 self.zoomout(event)
                 return
@@ -433,9 +416,12 @@ class ZoomBox(ZoomCommon):
         return False
 
     def onmove(self, event):
-        pub.sendMessage('newxy', xpos=event.xdata, ypos=event.ydata)
-        'on motion notify event if box/line is wanted'
-        if self.eventpress is None or self.ignore(event): return
+        self.on_newxy(event.xdata, event.ydata)
+        # newevent = NewXYEvent(xpos=event.xdata, ypos=event.ydata)
+        # self.GetEventHandler().ProcessEvent(newevent)
+        # 'on motion notify event if box/line is wanted'
+        if self.eventpress is None or self.ignore(event):
+            return
         x, y = event.xdata, event.ydata  # actual position (with
         #   (button still pressed)
 

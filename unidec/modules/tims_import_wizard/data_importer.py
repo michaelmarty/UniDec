@@ -7,7 +7,6 @@ from math import floor
 from multiprocessing import Process, Queue, cpu_count
 import sys
 import platform
-from pubsub import pub
 
 from unidec.modules.tims_import_wizard import TagTypes as tt
 from unidec.modules.tims_import_wizard import get_data_wrapper
@@ -257,7 +256,6 @@ def process_from_wizard(**kwargs):
     and adds to data model.
     """
     run_get_data(kwargs)
-    pub.sendMessage('RAW DATA ADDED TO MODEL')
 
 
 # uses multiprocessing module to import data across multiple cores
@@ -293,7 +291,6 @@ def mp_process_from_wizard(job_list):
             job_kwargs = result_queue.get()
         except Exception as e:  # Queue.Empty:
             break
-        pub.sendMessage('RAW DATA ADDED TO MODEL')
         result_count += 1
 
     for each in workers:

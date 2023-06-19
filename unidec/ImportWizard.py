@@ -4,7 +4,7 @@ import multiprocessing
 import wx
 
 from unidec.modules.tims_import_wizard import import_wizard_treectrl
-from unidec.modules.tims_import_wizard import import_wizard_grid, data_importer, ImporterProgressGauge
+from unidec.modules.tims_import_wizard import import_wizard_grid, data_importer
 from unidec.modules.isolated_packages import FileDialogs
 
 
@@ -210,9 +210,9 @@ class ImportWizard(wx.Frame):
             # gauge=ImporterProgressGauge.ProgressDialog()
             # gauge.progress_dialog(self,"Importing raw file(s)","Importing file %s of %s, please wait..."
             # % (1, len(filtered_lines) - 2),len(filtered_lines) - 2)
-            ImporterProgressGauge.progress_dialog(self, "Importing raw file(s)",
-                                                  "Importing file %s of %s, please wait..." % (
-                                                      1, len(filtered_lines) - 2), len(filtered_lines) - 2)
+            #ImporterProgressGauge.progress_dialog(self, "Importing raw file(s)",
+            #                                      "Importing file %s of %s, please wait..." % (
+            #                                          1, len(filtered_lines) - 2), len(filtered_lines) - 2)
 
     def export_file(self, evt):
         """
@@ -221,7 +221,6 @@ class ImportWizard(wx.Frame):
         file_path = FileDialogs.save_file_dialog(message="Save Import CSV File", file_types="CSV (*.csv)|*.csv")
         max_index = self.my_grid.next_free_row()
         if file_path is not None and max_index > 0:
-
             if file_path[-17:] != '_ionMS_import.csv' and file_path[-4:] != '.csv':
                 file_path += '_ionMS_import.csv'
 

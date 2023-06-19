@@ -790,13 +790,14 @@ class UniDec(UniDecEngine):
                     peakparams.append(
                         [peaks[i, 0], self.config.mzsig * avg, avg, std, peaks[i, 1] / np.sum(peaks[:, 1]),
                          self.massfit[i, 1], self.massfit[i, 2] / np.sum(self.massfit[:, 2]),
-                         p.centroid, p.errorFWHM, p.errorreplicate])
+                         p.centroid, p.errorFWHM, p.errorreplicate, p.dscore])
                 else:
                     peakparams.append([peaks[i, 0], self.config.mzsig * avg, avg, std, peaks[i, 1], areas[i],
-                                       p.centroid, p.errorFWHM, p.errormean])
+                                       p.centroid, p.errorFWHM, p.errormean, p.dscore])
             self.peakparams = np.array(peakparams)
 
-            header = "Mass MassStdGuess AvgCharge StdDevCharge Height Area MassCentroid MassFWHM MassErrorBetweenZ"
+            header = "Mass MassStdGuess AvgCharge StdDevCharge Height Area MassCentroid " \
+                     "MassFWHM MassErrorBetweenZ DScore"
             outfile = self.config.outfname + "_peakparam.dat"
             ud.dataexport(self.peakparams, outfile, header)
             if not silent:

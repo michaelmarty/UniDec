@@ -195,11 +195,35 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.6.0.3
+
+Added global peak output to UPP.
+
+Added cosine similarity to Image Plotter.
+
+Added "Config Smash File" input to UPP.
+
+Added DScore to peakparam.dat output.
+
+Fixed bug with Waters time range on file open.
+
+Fixed bug with peaks shapes not registering. Note, this fix will break compatiblity for the charge peak shape
+parameter on older config files for UCD. Just change zpsfun to zpsfn on the config file to rescue.
+
+Fixed bug with PDF saving not working.
+
 v.6.0.2
 
 **Added a new Drug-to-Antibody Ratio (DAR) calculation mode for UPP.** See help file for the new keywords. 
 
-Added color to the columns on UPP.
+Other improvements to UPP:
+* Added color to the columns on UPP.
+* Added ability to do peak integration.
+* Added low and high charge config options.
+* Added buttons to open results in Excel or other spreadsheet software. 
+* Added global HTML report. 
+* Improved file naming of outputs.
+* Added progress bar on the bottom.
 
 Fixed bug with HTML float sorting as text. Fixed major bugs with file imports.
 

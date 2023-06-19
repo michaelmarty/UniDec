@@ -1,7 +1,6 @@
 from matplotlib.transforms import blended_transform_factory
 from matplotlib.patches import Rectangle
-# from pubsub import setupkwargs
-from pubsub import pub
+
 from unidec.modules.isolated_packages.ZoomCommon import *
 
 
@@ -38,6 +37,7 @@ class NoZoomSpan(ZoomCommon):
     """
 
     def __init__(self, axes, onselect,
+                 parent=None,
                  minspan=None,
                  useblit=False,
                  rectprops=None,
@@ -65,6 +65,7 @@ class NoZoomSpan(ZoomCommon):
         if rectprops is None:
             rectprops = dict(facecolor='yellow', alpha=0.2)
 
+        self.parent = parent
         self.axes = None
         self.canvas = None
         self.visible = True
@@ -165,7 +166,7 @@ class NoZoomSpan(ZoomCommon):
 
         if self.zoombutton is None or event.button != self.zoombutton:
             print(vmin, vmax, span)
-            pub.sendMessage('scans_selected', min=vmin, max=vmax)
+            self.scans_selected(vmin, vmax)
             if self.minspan is not None and span <= self.minspan:
                 self.canvas.draw()
                 for rect in self.rect:
@@ -203,8 +204,9 @@ class NoZoomSpan(ZoomCommon):
         return False
 
     def onmove(self, event):
-        pub.sendMessage('newxy', xpos=event.xdata, ypos=event.ydata)
-        'on motion notify event'
+        self.on_newxy(event.xdata, event.ydata)
+
+        # on motion notify event
         if self.pressv is None or self.ignore(event):
             return
         x, y = event.xdata, event.ydata

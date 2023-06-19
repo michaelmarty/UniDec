@@ -3,7 +3,7 @@ import os
 import numpy as np
 from pubsub import pub
 import wx
-
+from scipy.spatial.distance import cosine
 from unidec.modules import PlottingWindow, unidecstructure
 import unidec.tools as ud
 from unidec.metaunidec import mudstruct
@@ -32,7 +32,14 @@ class ImagingWindow(wx.Frame):
         self.SetTitle("Imaging Plots")
         self.config = None
         self.plot1 = None
+        self.plot2 = None
+        self.plot3 = None
+        self.plot4 = None
+        self.plot5 = None
+        self.plot6 = None
         self.exchoice = 2
+        self.mass_extracted = None
+        self.mz_extracted = None
 
     def init(self, data, config=None):
         """
@@ -45,10 +52,17 @@ class ImagingWindow(wx.Frame):
         # Make the menu
         filemenu = wx.Menu()
         menu_open = filemenu.Append(wx.ID_ANY, "Open HDF5 File",
-                                            "Open an HDF5 to view")
+                                    "Open an HDF5 to view")
         self.Bind(wx.EVT_MENU, self.on_open_hdf5, menu_open)
         menu_bar = wx.MenuBar()
         menu_bar.Append(filemenu, "&File")
+
+        # Add an analysis menu
+        analysismenu = wx.Menu()
+        menu_analyze = analysismenu.Append(wx.ID_ANY, "Cosine Similarity Mass vs. m/z",
+                                           "Print the Cosine Similarity of the Mass vs. m/z images")
+        self.Bind(wx.EVT_MENU, self.on_cosine, menu_analyze)
+        menu_bar.Append(analysismenu, "&Analysis")
 
         self.SetMenuBar(menu_bar)
 
@@ -56,18 +70,24 @@ class ImagingWindow(wx.Frame):
         vbox = wx.BoxSizer(wx.VERTICAL)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        self.plot1 = PlottingWindow.Plot1d(panel, smash=5)
-        pub.subscribe(self.extract, 'mzlimits5')
+        self.plot1 = PlottingWindow.Plot1d(panel, smash=2)
+        self.Bind(self.plot1.EVT_MZLIMITS, self.extract, self.plot1)
+
         self.plot2 = PlottingWindow.Plot2d(panel, integrate=1)
         pub.subscribe(self.sum_region, 'integrate')
+
         self.plot3 = PlottingWindow.Plot1d(panel, smash=2)
-        pub.subscribe(self.extract2, 'mzlimits2')
-        self.plot4 = PlottingWindow.Plot1d(panel, smash=3)
-        pub.subscribe(self.extract3, 'mzlimits3')
+        self.Bind(self.plot3.EVT_MZLIMITS, self.extract2, self.plot3)
+
+        self.plot4 = PlottingWindow.Plot1d(panel, smash=2)
+        self.Bind(self.plot4.EVT_MZLIMITS, self.extract3, self.plot4)
+
         self.plot5 = PlottingWindow.Plot2d(panel, integrate=1)
         pub.subscribe(self.sum_region, 'integrate')
-        self.plot6 = PlottingWindow.Plot1d(panel, smash=4)
-        pub.subscribe(self.extract4, 'mzlimits4')
+
+        self.plot6 = PlottingWindow.Plot1d(panel, smash=2)
+        self.Bind(self.plot6.EVT_MZLIMITS, self.extract4, self.plot6)
+
         hbox.Add(self.plot1)
         hbox.Add(self.plot2)
         hbox.Add(self.plot3)
@@ -110,7 +130,8 @@ class ImagingWindow(wx.Frame):
         self.data = data
         self.x = np.array(self.data.var1)
         self.y = np.array(self.data.var2)
-
+        self.mass_extracted = None
+        self.mz_extracted = None
 
     def update(self, e=None):
         self.exchoice = self.ctletype.GetSelection()
@@ -120,10 +141,12 @@ class ImagingWindow(wx.Frame):
         self.load_plot4()
 
     def load_plot4(self, e=None):
-        self.plot4.plotrefreshtop(self.data.mzdat[:, 0], self.data.mzdat[:, 1])
+        self.plot4.plotrefreshtop(self.data.mzdat[:, 0], self.data.mzdat[:, 1], xlabel="m/z (Th)",
+                                  ylabel="Intensity")
 
     def load_plot1(self, e=None):
-        self.plot1.plotrefreshtop(self.data.massdat[:, 0], self.data.massdat[:, 1])
+        self.plot1.plotrefreshtop(self.data.massdat[:, 0], self.data.massdat[:, 1], xlabel="Mass (Da)",
+                                  ylabel="Intensity")
 
     def extract(self, e=None, erange=None, dtype="mass", plot=None, no_face=False):
         self.update()
@@ -131,7 +154,8 @@ class ImagingWindow(wx.Frame):
             erange = self.plot1.subplot1.get_xlim()
             self.load_plot1()
             if not no_face:
-                self.plot1.add_rect(erange[0], 0, erange[1] - erange[0], np.amax(self.data.massdat[:, 1]), facecolor="y")
+                self.plot1.add_rect(erange[0], 0, erange[1] - erange[0], np.amax(self.data.massdat[:, 1]),
+                                    facecolor="y")
         if dtype == "mass":
             grid = self.data.massgrid[:, :, 1]
             dat = self.data.massdat[:, 0]
@@ -149,6 +173,11 @@ class ImagingWindow(wx.Frame):
         self.exdata = ud.extract_from_data_matrix(dat, grid, midpoint=midpoint, window=window,
                                                   extract_method=self.exchoice)
         self.image_plot(plot=plot)
+
+        if dtype == "mass":
+            self.mass_extracted = self.exdata
+        elif dtype == "mz":
+            self.mz_extracted = self.exdata
 
     def extract2(self, e=None):
         erange = self.plot3.subplot1.get_xlim()
@@ -171,12 +200,12 @@ class ImagingWindow(wx.Frame):
 
         regiondat = np.sum(self.data.massgrid[ball, :, 1], axis=0)
         regiondat = np.transpose([self.data.massdat[:, 0], regiondat])
-        self.plot3.plotrefreshtop(regiondat[:, 0], regiondat[:, 1])
+        self.plot3.plotrefreshtop(regiondat[:, 0], regiondat[:, 1], xlabel="Mass (Da)", ylabel="Intensity")
         self.region_massdat = regiondat
 
         regiondat2 = np.sum(self.data.mzgrid[ball, :, 1], axis=0)
         regiondat2 = np.transpose([self.data.mzdat[:, 0], regiondat2])
-        self.plot6.plotrefreshtop(regiondat2[:, 0], regiondat2[:, 1])
+        self.plot6.plotrefreshtop(regiondat2[:, 0], regiondat2[:, 1], xlabel="m/z (Th)", ylabel="Intensity")
         self.region_mzdat = regiondat2
 
     def image_plot(self, e=None, data=None, plot=None):
@@ -206,7 +235,8 @@ class ImagingWindow(wx.Frame):
         print("Plotting mz")
         erange = self.massrange
         midpoint = np.mean(erange)
-        localmaxpos = ud.data_extract(self.data.massdat, midpoint, window=(erange[1] - erange[0])/2., extract_method=4)
+        localmaxpos = ud.data_extract(self.data.massdat, midpoint, window=(erange[1] - erange[0]) / 2.,
+                                      extract_method=4)
         print(localmaxpos, midpoint, erange)
         self.ztab = np.arange(self.config.startz, self.config.endz + 1)
         mztab = (localmaxpos + self.ztab * self.config.adductmass) / self.ztab
@@ -234,6 +264,27 @@ class ImagingWindow(wx.Frame):
         self.init_data(data)
         self.load()
         self.extract()
+
+    def on_cosine(self, event=None):
+        print("Calculating Cosine Similarity")
+        d1 = self.mass_extracted
+        d2 = self.mz_extracted
+
+        if d1 is None or d2 is None:
+            print("Need to select mass and m/z data first")
+            return
+
+        if np.shape(d1) != np.shape(d2):
+            print("Mass and m/z data must be the same size")
+            print(np.shape(d1), np.shape(d2))
+            return
+
+        cos = 1 - cosine(d1, d2)
+
+        outtext = "Cosine Similarity: " + str(np.round(cos * 100, 2)) + "%"
+
+        print(outtext)
+        self.plot5.add_title(outtext)
 
 
 if __name__ == "__main__":

@@ -196,6 +196,7 @@ class UPPApp(wx.Frame):
         self.use_decon = True
         self.use_converted = True
         self.use_interactive = False
+        self.make_combined_peaks = True
         self.bpeng = BPEngine(parent=self)
 
         try:
@@ -271,6 +272,11 @@ class UPPApp(wx.Frame):
         self.interactivebox = wx.CheckBox(panel, label="Interactive Reports  ")
         hsizer.Add(self.interactivebox, 0, wx.EXPAND)
         self.interactivebox.SetValue(self.use_interactive)
+
+        # Insert a checkbox to select whether to generate a combined peak list
+        self.peaklistbox = wx.CheckBox(panel, label="Generate Combined Peak List  ")
+        hsizer.Add(self.peaklistbox, 0, wx.EXPAND)
+        self.peaklistbox.SetValue(self.make_combined_peaks)
 
         # Insert Spacer Text
         hsizer.Add(wx.StaticText(panel, label="   "), 0)
@@ -362,7 +368,8 @@ class UPPApp(wx.Frame):
         self.runbtn.SetBackgroundColour("red")
         self.get_from_gui()
         wx.Yield()
-        self.bpeng.run_df(decon=self.use_decon, use_converted=self.use_converted, interactive=self.use_interactive)
+        self.bpeng.run_df(decon=self.use_decon, use_converted=self.use_converted, interactive=self.use_interactive,
+                          write_peaks=self.make_combined_peaks)
         self.load_to_gui()
         self.runbtn.SetBackgroundColour("green")
         if not self.hide_col_flag:
@@ -388,9 +395,11 @@ class UPPApp(wx.Frame):
         # RUN THE SELECTED ROWS
         topdf = deepcopy(self.bpeng.rundf)
         subdf = self.bpeng.rundf.iloc[selected_rows]
+        toppeaks = deepcopy(self.bpeng.pks)
         # Run SubDF
         subdf2 = self.bpeng.run_df(df=subdf, decon=self.use_decon, use_converted=self.use_converted,
-                                   interactive=self.use_interactive, write_xlsx=False, write_html=False)
+                                   interactive=self.use_interactive, write_xlsx=False, write_html=False,
+                                   write_peaks=False)
 
         # Update the main dataframe
         # topdf.iloc[selected_rows] = subdf2
@@ -399,6 +408,17 @@ class UPPApp(wx.Frame):
 
         # Write the results
         self.bpeng.write_xlsx()
+
+        if self.make_combined_peaks:
+            if toppeaks is not None:
+                #Merge in the new peaks
+                toppeaks = toppeaks.merge_in_peaks(self.bpeng.pks)
+                # Write the peaks
+                self.bpeng.pks = toppeaks
+                self.bpeng.write_peaks()
+            else:
+                print("Missing peaks for the whole data set. Outputting only the selected peaks.")
+                self.bpeng.write_peaks()
 
         # Load to GUI
         self.load_to_gui()
@@ -469,6 +489,7 @@ class UPPApp(wx.Frame):
         self.use_converted = self.useconvbox.GetValue()
         self.use_decon = self.usedeconbox.GetValue()
         self.use_interactive = self.interactivebox.GetValue()
+        self.make_combined_peaks = self.peaklistbox.GetValue()
 
         self.ss.remove_empty()
         ssdf = self.ss.get_df()
@@ -504,7 +525,7 @@ class UPPApp(wx.Frame):
         print("Opening in UniDec:", row)
         filepath = self.bpeng.get_file_path(row)
         if filepath is not None:
-            print("Launching UniDec:")
+            print("Launching UniDec:", filepath)
             app = UniDecApp(path=filepath)
             app.eng.unidec_imports(efficiency=False)
             app.after_unidec_run()
@@ -633,7 +654,7 @@ class UPPApp(wx.Frame):
         self.ss.color_columns_by_keyword("Matches", "#D5F5E3")
 
     def update_progress(self, i, total_n):
-        status_text = "Processing file {} of {}".format(i+1, total_n)
+        status_text = "Processing file {} of {}".format(i + 1, total_n)
         self.SetStatusText(status_text, 2)
         # update gui
         wx.Yield()

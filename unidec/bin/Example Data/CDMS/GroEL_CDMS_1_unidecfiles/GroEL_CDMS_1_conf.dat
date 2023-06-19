@@ -1,4 +1,4 @@
-version 6.0.0
+version 6.0.3
 imflag 0
 cdmsflag 1
 input C:\Python\UniDec3\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat
@@ -12,7 +12,7 @@ psig 1.0
 beta 1.0
 mzsig 1.0
 psfun 0
-zpsfun 0
+zpsfn 0
 discreteplot 1
 smashflag 0
 massub 1000000.0

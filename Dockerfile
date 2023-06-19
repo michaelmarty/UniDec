@@ -19,4 +19,8 @@ RUN /opt/UniDec/unidec/src/compilelinux.sh
 WORKDIR /opt/UniDec/
 RUN python setupdocker.py install
 
+# Add the UniDec bin folder to the path
+ENV PATH="$PATH:/opt/UniDec/unidec/bin"
+
+# Test everything
 ENV TESTFILE /opt/UniDec/unidec/bin/TestSpectra/test_1.txt

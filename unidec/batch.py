@@ -1,5 +1,6 @@
 from unidec.engine import UniDec
 from unidec.modules.matchtools import *
+from unidec.modules import peakstructure
 from unidec.tools import known_extensions, strip_char_from_string, find_kernel_file
 import os
 import numpy as np
@@ -301,6 +302,24 @@ def set_param_from_row(eng, row, dirname=""):
             else:
                 eng.config.doubledec = False
 
+        if "Config Smash File" in k:
+            smash_file = val
+            if not os.path.exists(smash_file):
+                smash_file = os.path.join(dirname, smash_file)
+            if not os.path.exists(smash_file):
+                smash_file = os.path.join(os.getcwd(), smash_file)
+
+            if os.path.exists(smash_file):
+                eng.config.smashfile = smash_file
+                print("Using Smashfile", smash_file)
+                eng.config.smashflag = 1
+                eng.config.import_smashfile()
+            else:
+                print("Smash File Not Found", smash_file, val)
+                eng.config.smashflag = 0
+        else:
+            eng.config.smashflag = 0
+
         # print(eng.config.maxmz, eng.config.minmz, k)
     return eng
 
@@ -388,6 +407,7 @@ class UniDecBatchProcessor(object):
         self.global_html_file = "results.html"
         self.parent = parent
         self.runtime = -1
+        self.pks = None
 
     def run_file(self, file=None, decon=True, use_converted=True, interactive=False):
         self.filename = file
@@ -396,8 +416,10 @@ class UniDecBatchProcessor(object):
 
         self.run_df(decon=decon, use_converted=use_converted, interactive=interactive)
 
-    def run_df(self, df=None, decon=True, use_converted=True, interactive=False, write_html=True, write_xlsx=True):
+    def run_df(self, df=None, decon=True, use_converted=True, interactive=False, write_html=True, write_xlsx=True,
+               write_peaks=True):
         self.global_html_str = ""
+        self.pks = peakstructure.Peaks()
         # Print the data directory and start the clock
         clockstart = time.perf_counter()
         # Set the Pandas DataFrame
@@ -515,6 +537,8 @@ class UniDecBatchProcessor(object):
 
                 # Add the HTML report to the global HTML string
                 self.global_html_str += self.eng.html_str
+                # Add the peaks to the global peaks
+                self.pks.merge_in_peaks(self.eng.pks, filename=path, filenumber=i)
             else:
                 # When files are not found, print the error and add empty results
                 print("File not found:", path)
@@ -551,11 +575,21 @@ class UniDecBatchProcessor(object):
                 f.write("</html>")
             print("Write to: ", self.global_html_file)
 
+        if write_peaks:
+            self.write_peaks()
+
         # Print Run Time
         self.runtime = np.round(time.perf_counter() - clockstart, 1)
         print("Batch Run Time:", self.runtime)
         return self.rundf
 
+    def write_peaks(self, outfile=None):
+        # Write the peaks to a file
+        if outfile is None:
+            outfile = self.outbase + "_peaks.xlsx"
+        peakdf = self.pks.to_df(type="FullFiles")
+        peakdf.to_excel(outfile, index=False)
+        print("Write Peaks to: ", outfile)
     def write_xlsx(self, outfile=None):
         # Write the results to an Excel file to the top directory
         if outfile is None:
@@ -752,8 +786,9 @@ if __name__ == "__main__":
         path = "C:\\Data\\Wilson_Genentech\\DAR\\Biotin UPP template test.xlsx"
         path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
         # path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
+        path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
         pd.set_option('display.max_columns', None)
-        batch.run_file(path, decon=False, use_converted=True, interactive=False)
+        batch.run_file(path, decon=True, use_converted=True, interactive=False)
 
         batch.open_global_html()
         pass

@@ -1,4 +1,4 @@
-version 6.0.2
+version 6.0.3
 imflag 0
 cdmsflag 0
 input C:\Python\UniDec3\unidec\bin\Example Data\ADHclean_unidecfiles\ADHclean_input.dat
@@ -10,9 +10,9 @@ startz 1
 zzsig 1.0
 psig 1.0
 beta 0.0
-mzsig 1.0
-psfun 0
-zpsfun 0
+mzsig 5.0
+psfun 2
+zpsfn 0
 discreteplot 0
 smashflag 0
 massub 175000.0
@@ -44,7 +44,7 @@ peakshapeinflate 1.0
 noiseflag 0.0
 linflag 2
 cmap nipy_spectral
-peakcmap rainbow
+peakcmap prism
 spectracmap rainbow
 publicationmode 1
 isotopemode 0
