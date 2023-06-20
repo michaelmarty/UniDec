@@ -151,17 +151,69 @@ class HelpDlg(wx.Frame):
         html_str += array_to_html(recipe_d, cols=["Parameter", "Required", "Description"], rows=None,
                                   colors=None, index=False, sortable=False)
 
+        html_str += "<h3>How to Build Your Own Workflow</h3><p>" \
+                    "Note, this will require knowledge of Python syntax," \
+                    " the Pandas library, and NumPy.</p> " \
+                    "<p>You can build your own workflow by modifying the batch.py file. " \
+                    "First, locate the batch.py file, and then find the run_df function. " \
+                    "This function first checks the column keywords to see if each workflow should be run. " \
+                    "Add your own keyword check function here.</p> " \
+                    "<p>Next, the run_df function loops through each row in the DataFrame. " \
+                    "For each row, it will first deconvolve the data and then extract the peaks. " \
+                    "The peaks are collected in a the eng.pks structure, " \
+                    "which is found in unidec/modules/peakstructure.py. " \
+                    "After finding the peaks, you can add your own analysis functions where it is marked. " \
+                    "The key objects are the row, which contains all the parameters from the spreadsheet, " \
+                    "and the eng.pks structure, which contains the peaks.</p> " \
+                    "<p>I recommend that you write a function with the row as a parameter " \
+                    "and that returns a newrow back. " \
+                    "You can also include the pks object as a parameter, but I usually just" \
+                    " get it from the engine by default. " \
+                    "The row is a pandas DataFrame object, " \
+                    "and you can access the different parameters with " \
+                    "row[“Column Name”], for example. The peaks can be accessed with something " \
+                    "like [p.mass for p in pks.peaks]. " \
+                    "You can also access values like p.height or p.integral. The self.integrate variable, " \
+                    "which is set by row[“Quant Mode”], " \
+                    "can be accessed to select either of these.</p>" \
+                    "<p>Additional peak parameters, such as p.color or p.dscore can be found in the " \
+                    "peakstructure.py code. You can edit these parameters inside your " \
+                    "function to edit the color of the peaks or the label with something like: " \
+                    "pks.peaks[i].color = [0, 1, 0]. See the dar_calc function in " \
+                    "unidec/modules/matchtool.py for a simple example. </p>" \
+                    "<p>After pulling the relevant information from the row (your spreadsheet) and the pks " \
+                    "(the deconvolution results), you can do any necessary calculations and write the results" \
+                    " back into the original row object, using something like row[“Result”]. " \
+                    "You can name it whatever you want. Importantly, unlike the pks object, " \
+                    "just modifying the row inside your function will not change it in the larger program. " \
+                    "To get the modified row out, your need to return the row as the output from the function " \
+                    "(which I save as newrow) and then use the set_row_merge function to merge the newrow " \
+                    "into the rundf. You should just be able to copy the syntax from other workflows here.</p>" \
+                    "<p>If you would like to access more features of the deconvolved data than you can find " \
+                    "in the peaks, you can use the self.eng, which accesses the entire UniDec engine. " \
+                    "The engine code can be found under engine.py and unidec_enginebase.py. " \
+                    "The key data is stored under eng.data, which is a DataContainer object " \
+                    "(see modules/unidecstructure.py). For example, self.eng.data.massdat is a numpy array with " \
+                    "the 1D deconvolved mass distribution, with mass in the first position " \
+                    "and intensity in the second. </p>" \
+                    "<p>That’s it! The row contains all the key inputs and outputs from the spreadsheet. " \
+                    "The eng.pks or eng.data contain the deconvolution data. Let me know what questions you " \
+                    "have and what ideas you come up with. I would love to add additional workflows, " \
+                    "so if you send me your code, I can merge it in for anyone to use.</p> " \
+
         html_str += "</body></html>"
 
+
         self.htmlstr = html_str
-        '''
+
         # For Writing to File
         # Copy html_str to clipboard
-        if wx.TheClipboard.Open():
+        '''if wx.TheClipboard.Open():
             wx.TheClipboard.SetData(wx.TextDataObject(html_str))
             wx.TheClipboard.Close()'''
 
         html.SetPage(html_str)
+
 
     def open_in_browser(self, event):
         # Open in Browser
@@ -411,7 +463,7 @@ class UPPApp(wx.Frame):
 
         if self.make_combined_peaks:
             if toppeaks is not None:
-                #Merge in the new peaks
+                # Merge in the new peaks
                 toppeaks = toppeaks.merge_in_peaks(self.bpeng.pks)
                 # Write the peaks
                 self.bpeng.pks = toppeaks

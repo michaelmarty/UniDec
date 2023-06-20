@@ -498,6 +498,7 @@ class UniDecBatchProcessor(object):
                         print("Auto Peak Width", self.autopw)
                         self.eng.autorun(auto_peak_width=self.autopw, silent=True)
 
+                # Integrate the peaks
                 if self.integrate:
                     try:
                         self.eng.autointegrate()
@@ -529,6 +530,12 @@ class UniDecBatchProcessor(object):
                         results_string = "The Drug-to-Antibody Ratio (DAR) is: " + str(newrow["DAR"])
                     except Exception:
                         results_string = None
+
+                ##################
+                #
+                # Insert your own workflow here
+                #
+                ###############################
 
                 # Generate the HTML report
                 outfile = self.eng.gen_html_report(open_in_browser=False, interactive=interactive,
@@ -655,6 +662,12 @@ class UniDecBatchProcessor(object):
                 print("Loaded Fixed Mod File: ", self.fmodfile)
 
     def run_correct_pair(self, row, pks=None):
+        """
+        Run Correct Pair workflow on a single row. This is the main function for running Correct Pair on a single pandas row.
+        :param row: The row from the rundf to run Correct Pair on.
+        :param pks: The peaks to use for Correct Pair. If None, use the peaks from the engine.
+        :return: row: The updated row with Correct Pair results.
+        """
         if pks is None:
             pks = self.eng.pks
         # Get tolerance
@@ -669,6 +682,13 @@ class UniDecBatchProcessor(object):
         return newrow
 
     def run_dar(self, row, pks=None):
+        """
+        Run DAR workflow on a single row. This is the main function for running DAR on a single pandas row.
+        :param row: The row from the rundf to run DAR on.
+        :param pks: The peaks to use for DAR. If None, use the peaks from the engine.
+        :return: row: The updated row with DAR results.
+        """
+        # Get the peaks
         if pks is None:
             pks = self.eng.pks
 
@@ -749,6 +769,7 @@ class UniDecBatchProcessor(object):
             print("Error: No Max Drugs Specified. Please specify Max Drugs in the DataFrame.")
             return row
 
+        # Run DAR if it has all the necessary pieces
         if protein_mass > 0 and drug_mass > 0 and min_drugs >= 0 and max_drugs > 0:
             print("Running DAR Calculation. Min Drugs:", min_drugs, "Max Drugs:", max_drugs, "Protein Mass:",
                   protein_mass,

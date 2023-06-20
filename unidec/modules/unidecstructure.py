@@ -1442,21 +1442,21 @@ class DataContainer:
         Initialize DataContainer with empty arrays.
         :return: None
         """
-        self.fitdat = np.array([])
-        self.baseline = np.array([])
-        self.fitdat2d = np.array([])
-        self.rawdata = np.array([])
-        self.rawdata3 = np.array([])
-        self.data2 = np.array([])
-        self.data3 = np.array([])
-        self.massdat = np.array([])
-        self.mzgrid = np.array([])
-        self.massgrid = np.array([])
-        self.mzmassgrid = np.array([])
-        self.ztab = np.array([])
-        self.massccs = np.array([])
-        self.ccsz = np.array([])
-        self.ccsdata = np.array([])
+        self.fitdat = np.array([])  # Fit of m/z data from deconvolution
+        self.baseline = np.array([])  # Baseline of the m/z data
+        self.fitdat2d = np.array([])  # Fit of 2D data from deconvolution
+        self.rawdata = np.array([])  # Raw m/z data
+        self.rawdata3 = np.array([])  # Raw IMMS data
+        self.data2 = np.array([])  # Processed m/z data
+        self.data3 = np.array([])  # Processed IMMS data
+        self.massdat = np.array([])  # Deconvolved 1D mass data
+        self.mzgrid = np.array([])  # Deconvolved 2D m/z vs charge grid
+        self.massgrid = np.array([])  # Deconvolved 2D mass vs charge grid
+        self.mzmassgrid = np.array([])  # Deconvolved 2D m/z vs mass grid
+        self.ztab = np.array([])  # Charge state table
+        self.massccs = np.array([])  # Mass vs CCS table
+        self.ccsz = np.array([])  # CCS vs charge table
+        self.ccsdata = np.array([])  # CCS data in 1D
         self.tscore = 0
 
     def write_hdf5(self, file_name):
