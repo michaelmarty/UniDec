@@ -197,7 +197,7 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.6.0.3
 
-Added global peak output to UPP.
+Added global peak output to UPP. Updated documentation and help for UPP to show how to write your own workflows.
 
 Added cosine similarity to Image Plotter.
 
