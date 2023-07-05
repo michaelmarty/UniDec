@@ -195,6 +195,12 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.6.0.4
+
+Fixed bug with CDCReader path in ImportWizard.
+
+
+
 v.6.0.3
 
 Added global peak output to UPP. Updated documentation and help for UPP to show how to write your own workflows.

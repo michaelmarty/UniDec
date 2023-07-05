@@ -511,34 +511,6 @@ def GetStartEndMass(RawFile):
     return ce, s, e
 
 
-'''
-def get_stat_code_old(raw_file, stat_code, dir=None):
-    if dir is None:
-        path = os.getcwd()
-    else:
-        path = dir
-    rawreader_path = os.path.join(path, 'rawreadertim.exe')
-
-    if not os.path.isfile(rawreader_path):
-        rawreader_path = os.path.join(path, "bin", 'rawreadertim.exe')
-        if not os.path.isfile(rawreader_path):
-            print("Unable to find rawreadertim.exe")
-            print(rawreader_path)
-            return None
-    # default/hard coded to function 0, odd, 0 is for rawreader and 1 is for CDCReader
-    process = subprocess.Popen([rawreader_path, raw_file, '--fn=0', '--stat=' + str(stat_code)],
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
-    (stdout, stderr) = process.communicate()
-    try:
-        param = float(stdout)
-        if param > 0.:
-            return param
-    except ValueError:
-        return None
-'''
-
-
 def get_stat_code(raw_file, stat_code, directory=None):
     param = WDI(raw_file, do_import=False).get_stat_code(stat_code)
     # print(param)

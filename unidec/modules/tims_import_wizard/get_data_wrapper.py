@@ -9,12 +9,14 @@ import numpy as np
 
 
 def new_get_data(start, end, im_bin_size, raw_file, pusher, function_no, scan_start, scan_end, directory=None):
+    print(directory)
     if directory is None:
         cdcreader_path = os.getcwd()
     else:
         cdcreader_path = directory
 
     cdcexe = os.path.join(cdcreader_path, 'CDCReader.exe')
+    print(cdcreader_path, cdcexe)
     if not os.path.isfile(cdcexe):
         cdcexe = os.path.join(cdcreader_path, 'bin', 'CDCReader.exe')
         if not os.path.isfile(cdcexe):
