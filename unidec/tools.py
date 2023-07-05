@@ -1025,7 +1025,11 @@ def load_mz_file(path, config=None, time_range=None, imflag=0):
                 np.savetxt(txtname, sparse(data))
                 print("Saved to:", txtname)
             else:
-                data = mzMLimporter(path).get_data(time_range=time_range)
+                try:
+                    data = mzMLimporter(path).get_data(time_range=time_range)
+                except Exception as e:
+                    print("Error with loading mzML file:", e)
+                    data = mzMLimporter(path, nogz=True).get_data(time_range=time_range)
                 np.savetxt(txtname, data)
                 print("Saved to:", txtname)
         elif extension.lower() == ".raw":
@@ -3166,6 +3170,14 @@ def subtract_and_divide(pks, basemass, refguess, outputall=False):
 
 
 if __name__ == "__main__":
+    testdir = "C:\\Data\\AgilentData"
+    testfile = "egf_f295_115212021-11-0511-26-59.mzML"
+    path = os.path.join(testdir, testfile)
+
+    data = load_mz_file(path)
+
+
+    exit()
     testfile = "C:\Python\\UniDec3\\TestSpectra\\test_imms.raw"
     # data = waters_convert(testfile)
     # print(np.amax(data))
