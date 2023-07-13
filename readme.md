@@ -197,6 +197,8 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.6.0.4
 
+Added del_columns custom field in batch.py.
+
 Fixed bug with CDCReader path in ImportWizard. Fixed weird bug with compressed mzML files.
 
 v.6.0.3

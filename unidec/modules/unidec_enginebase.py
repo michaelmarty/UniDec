@@ -610,7 +610,7 @@ class UniDecEngine:
             return plot
 
     def gen_html_report(self, event=None, outfile=None, plots=None, interactive=False, open_in_browser=True,
-                        results_string=None):
+                        results_string=None, del_columns=None):
         """
         Generate an HTML report of the current UniDec run.
         :param event: Unused Event
@@ -619,6 +619,7 @@ class UniDecEngine:
         :param interactive: If True, will include interactive plots. Default is False.
         :param open_in_browser: If True, will open the report in the default browser. Default is True.
         :param results_string: String to include in the report. Default is None.
+        :param del_columns: List of columns to delete from the report. Default is None.
         :return: None
         """
         if outfile is None:
@@ -629,6 +630,9 @@ class UniDecEngine:
 
         peaks_df = self.pks.to_df()
         colors = [p.color for p in self.pks.peaks]
+
+        if del_columns is not None:
+            peaks_df = peaks_df.drop(del_columns, axis=1)
 
         if len(peaks_df) > 0:
             self.html_str += df_to_html(peaks_df, outfile, colors=colors)

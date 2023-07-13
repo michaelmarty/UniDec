@@ -537,9 +537,10 @@ class UniDecBatchProcessor(object):
                 #
                 ###############################
 
+                del_columns = ["LowValFWHM", "HighValFWHM"]
                 # Generate the HTML report
                 outfile = self.eng.gen_html_report(open_in_browser=False, interactive=interactive,
-                                                   results_string=results_string)
+                                                   results_string=results_string, del_columns=del_columns)
                 htmlfiles.append(outfile)
 
                 # Add the HTML report to the global HTML string

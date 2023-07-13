@@ -29,7 +29,6 @@ from unidec.modules import unidecstructure
 import fnmatch
 from unidec.modules.mzXML_importer import mzXMLimporter
 
-# import modules.data_reader as data_reader
 try:
     from unidec.modules import data_reader
 except:
@@ -3171,7 +3170,8 @@ def subtract_and_divide(pks, basemass, refguess, outputall=False):
 
 if __name__ == "__main__":
     testdir = "C:\\Data\\AgilentData"
-    testfile = "egf_f295_115212021-11-0511-26-59.mzML"
+    testfile = "LYZ-F319-2-11-22-P1-A1.D"
+    #testfile = "2019_05_15_bsa_ccs_02.d"
     path = os.path.join(testdir, testfile)
 
     data = load_mz_file(path)
