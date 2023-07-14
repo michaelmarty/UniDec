@@ -197,7 +197,9 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.6.0.4
 
-Added del_columns custom field in batch.py.
+Added "PyroGlu" option in UPP to automatically account for pyroglutamate formation on sequences that could have it. See help file for more information.
+
+Added del_columns custom field in batch.py for those that want to edit the report fields.
 
 Fixed bug with CDCReader path in ImportWizard. Fixed weird bug with compressed mzML files.
 

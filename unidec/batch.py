@@ -48,6 +48,11 @@ config_parameters = [["Config Peak Thres", False, "Deconvolution Setting: The Pe
                                                       "Then, add that _mass.txt file as the path. Otherwise, "
                                                       "you will be overwriting "
                                                       "the kernel each time, which can cause unstable results."],
+                     ["Config Smash File", False, "Path to Smash File. If specified, it will load the file and use "
+                                                  "the values provided to remove specific m/z ranges. The file "
+                                                  "should be a simple text file with two columns, the first "
+                                                  "specifying the lower m/z and the second specifying the upper m/z. "
+                                                  "All data points between the upper and lower will be zerod. "]
                      ]
 
 recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if not specified."],
@@ -87,6 +92,9 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
              "or \"None\" to oxidize none. "
              "Will only work if sequences are amino acid codes with C. "
              "It will subtract one H mass for each C."],
+            ["PyroGlu", False, "A column specifying whether to assume pyroglutamate formation. "
+                               "Can be either True or False. If True, it will subtract the mass of H2O or OH if the first amino acid "
+                               "is E or Q. If False, it will not. Default is false if not specified."],
             ["Favored Match", False,
              "If there are several possible matches within tolerance, which to select. "
              "Default is \"Closest\" for the closest absolute mass. Also accepts \"Incorrect\" "
@@ -157,6 +165,10 @@ recipe_d = [
      "or \"None\" to oxidize none. "
      "Will only work if sequences are amino acid codes with C. "
      "It will subtract one H mass for each C."],
+    ["PyroGlu", False, "A column specifying whether to assume pyroglutamate formation. "
+                       "Can be either True or False. If True, it will subtract the mass of "
+                       "H2O or OH if the first amino acid "
+                       "is E or Q. If False, it will not. Default is false if not specified."],
 ]
 
 
@@ -598,6 +610,7 @@ class UniDecBatchProcessor(object):
         peakdf = self.pks.to_df(type="FullFiles")
         peakdf.to_excel(outfile, index=False)
         print("Write Peaks to: ", outfile)
+
     def write_xlsx(self, outfile=None):
         # Write the results to an Excel file to the top directory
         if outfile is None:
@@ -799,7 +812,7 @@ if __name__ == "__main__":
         batch.run_file(sys.argv[1], decon=True, use_converted=True)
         batch.open_all_html()
     else:
-        path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
+
         path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
         # path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
         # path = "C:\\Data\\Wilson_Genentech\\BsAb\\test2.csv"
@@ -809,6 +822,7 @@ if __name__ == "__main__":
         path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
         # path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
         path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
+        path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
         pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=True, use_converted=True, interactive=False)
 

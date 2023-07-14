@@ -23,7 +23,6 @@ mass_O = 15.9994
 mass_HPO4 = 95.9793
 mass_H = 1.00794
 
-
 def get_aa_mass(letter):
     if letter == " " or letter == "\t" or letter == "\n":
         return 0
@@ -54,7 +53,7 @@ def get_dna_mass(letter):
         return 0
 
 
-def calc_pep_mass(sequence, allow_float=True, remove_nan=True, all_cyst_ox=False):
+def calc_pep_mass(sequence, allow_float=True, remove_nan=True, all_cyst_ox=False, pyroglu=False, round_to=2):
     if all_cyst_ox:
         # Count number of c in sequence
         c = sequence.lower().count("c")
@@ -77,7 +76,15 @@ def calc_pep_mass(sequence, allow_float=True, remove_nan=True, all_cyst_ox=False
         seq = sequence.upper()
         mass = np.sum([get_aa_mass(s) for s in seq]) + mass_water
     # print(sequence, mass)
-    return np.round(mass + modmass, 2)
+    # Look for pyroglutamate mod if set
+    if pyroglu:
+        if sequence[0] == "E":
+            modmass -= mass_water
+        if sequence[0] == "Q":
+            modmass -= mass_OH
+
+    massoutput = np.round(mass + modmass, round_to)
+    return massoutput
 
 
 def calc_rna_mass(sequence, threeend="OH", fiveend="MP"):
