@@ -232,6 +232,8 @@ def gen_style_str():
     style.text += "tr:nth-child(even) {background-color: #f2f2f2;}\n"
     style.text += ".grid-container {display:grid; margin:25px;} \n"
     style.text += ".row {display:flex;} \n"
+    style.text += "@media print {.pagebreak {clear: both;page-break-after: always;}}\n"
+    style.text += "@media print {body {-webkit-print-color-adjust: exact;}}\n"
     style_str = ET.tostring(style, encoding='unicode')
     return style_str
 
@@ -373,6 +375,13 @@ def png_to_html(png_str, outfile=None):
 def to_html_paragraph(text, outfile=None):
     html_str = "<p style=\"margin-left: 25px\">" + text + "</p>\n"
 
+    if outfile is not None:
+        write_to_html(html_str, outfile)
+    return html_str
+
+
+def html_pagebreak(outfile=None):
+    html_str = '<div class="pagebreak"> </div>\n'
     if outfile is not None:
         write_to_html(html_str, outfile)
     return html_str

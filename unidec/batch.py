@@ -822,7 +822,7 @@ if __name__ == "__main__":
         path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
         # path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
         path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
-        path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
+        #path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
         pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=True, use_converted=True, interactive=False)
 

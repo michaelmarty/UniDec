@@ -199,6 +199,8 @@ v.6.0.4
 
 Added "PyroGlu" option in UPP to automatically account for pyroglutamate formation on sequences that could have it. See help file for more information.
 
+Printing HTML reports to PDF now looks better, with page breaks and background colors.
+
 Added del_columns custom field in batch.py for those that want to edit the report fields.
 
 Fixed bug with CDCReader path in ImportWizard. Fixed weird bug with compressed mzML files.

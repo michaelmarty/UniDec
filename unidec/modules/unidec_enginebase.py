@@ -703,7 +703,7 @@ class UniDecEngine:
         config_htmlstring = dict_to_html(config_dict)
         self.html_str += to_html_collapsible(config_htmlstring, title="UniDec Parameters", outfile=outfile,
                                              htmltext=True)
-
+        self.html_str += html_pagebreak()
         html_close(outfile)
 
         if open_in_browser:
