@@ -640,9 +640,6 @@ class UniDecEngine:
         # array_to_html(np.transpose(self.matchlist), outfile,
         #              cols=["Measured Mass", "Theoretical Mass", "Error", "Match Name"])
 
-        if results_string is not None:
-            self.html_str += to_html_paragraph(results_string, outfile)
-
         if plots is None:
             plot = self.makeplot2(silent=True)
             plot2 = self.makeplot4(silent=True)
@@ -688,6 +685,10 @@ class UniDecEngine:
                     self.html_str += fig_to_html_mpld3(f, outfile)
                 except Exception:
                     pass
+
+        # Write results string paragraph
+        if results_string is not None:
+            self.html_str += to_html_paragraph(results_string, outfile)
 
         try:
             spectra_df = self.data.attrs_to_df()

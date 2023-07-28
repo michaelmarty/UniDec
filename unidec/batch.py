@@ -17,7 +17,9 @@ basic_parameters = [["Sample name", True, "The File Name or Path. File extension
                                           "will assume start with scan 1."],
                     ["End Time", False, "Deconvolution Setting: The End Time to Stop Extracting "
                                         "From if Chromatography Data is Used. If not specified, "
-                                        "will continue to the last scan. It will sum from Start Time to End Time"]
+                                        "will continue to the last scan. It will sum from Start Time to End Time"],
+                    ["Notes", False, "Any notes you want to add to the output report. You can include something"
+                                     " like Sample Notes or Experiment Notes to create multiple notes sections."]
                     ]
 
 config_parameters = [["Config Peak Thres", False, "Deconvolution Setting: The Peak Detection Threshold"],
@@ -548,6 +550,15 @@ class UniDecBatchProcessor(object):
                 # Insert your own workflow here
                 #
                 ###############################
+
+                for c in row.keys():
+                    if "Notes" in c:
+                        notes_string = row[c]
+                        notes_string = "<strong>" + c + ": </strong>" + notes_string
+                        if results_string is None:
+                            results_string = notes_string
+                        else:
+                            results_string += "<br><br>" + notes_string
 
                 del_columns = ["LowValFWHM", "HighValFWHM"]
                 # Generate the HTML report

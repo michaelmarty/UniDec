@@ -197,6 +197,8 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.6.0.4
 
+Added "Notes" option to UPP to add notes to the bottom of the report.
+
 Added "PyroGlu" option in UPP to automatically account for pyroglutamate formation on sequences that could have it. See help file for more information.
 
 Printing HTML reports to PDF now looks better, with page breaks and background colors.
