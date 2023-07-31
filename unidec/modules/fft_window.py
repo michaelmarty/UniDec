@@ -4,7 +4,8 @@ import wx
 from unidec.modules import unidecstructure, PlottingWindow, fitting
 from unidec.modules import miscwindows
 from unidec.tools import win_fft_grid, nearest, peakdetect
-import matplotlib.cm as cm
+# import matplotlib.cm as cm
+import matplotlib as mpl
 
 __author__ = 'Michael.Marty'
 
@@ -359,7 +360,8 @@ class FFTWindow(wx.Frame):
                     maxsum = sumval
             boxsums.append(rowsums)
             rowdiffs.append(tmpdiff)
-        colormap = cm.get_cmap('rainbow', len(xvals) / 2)
+        # colormap = cm.get_cmap('rainbow', len(xvals) / 2)
+        colormap = mpl.colormaps['rainbow'].resampled(len(xvals) / 2)
         cols = colormap(np.arange(len(xvals) / 2))
         tmp = [y / maxsum for y in boxsums[0]]
         self.on_get_peaks(data=np.transpose([rowdiffs[0],tmp]))

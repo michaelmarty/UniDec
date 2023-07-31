@@ -135,7 +135,7 @@ class ZoomBox(ZoomCommon):
             self.data_lims = data_lims
 
         self.initialize()
-        #self.zoomout()
+        # self.zoomout()
 
     def initialize(self):
         # print("Data Lims:", self.data_lims)
@@ -313,19 +313,34 @@ class ZoomBox(ZoomCommon):
                     offy = self.prev[1]
                     xlims = self.axes[0].get_xlim()
                     ylims = self.axes[0].get_ylim()
-                    if np.abs(self.prev[0] - xlims[0]) < np.abs(self.prev[0] - xlims[1]):
+                    if offx < xlims[0]:
                         offx = xlims[0]
-                    else:
+                    elif offx > xlims[1]:
                         offx = xlims[1]
 
-                    if np.abs(self.prev[1] - ylims[0]) < np.abs(self.prev[1] - ylims[1]):
+                    if offy < ylims[0]:
                         offy = ylims[0]
-                    else:
+                    elif offy > ylims[1]:
                         offy = ylims[1]
+                    '''
+                    if np.abs(self.prev[0] - xlims[0]) < np.abs(self.prev[0] - xlims[1]):
+                        # offx = xlims[0]
+                        pass
+                    else:
+                        # offx = xlims[1]
+                        pass
+
+                    if np.abs(self.prev[1] - ylims[0]) < np.abs(self.prev[1] - ylims[1]):
+                        # offy = ylims[0]
+                        pass
+                    else:
+                        # offy = ylims[1]
+                        pass'''
                 except:
                     pass
 
                 xmax, ymax = self.eventrelease.xdata or offx, self.eventrelease.ydata or offy
+                # print(xmin, xmax)
 
             elif self.spancoords == 'pixels':
                 xmin, ymin = self.eventpress.x, self.eventpress.y
@@ -345,8 +360,9 @@ class ZoomBox(ZoomCommon):
                 y0, y1 = event.inaxes.get_ylim()
             except Exception as e:
                 y0, y1 = self.data_lims[1], self.data_lims[3]
+                # print(e, xmin, xmax, ymin, ymax)
             if ymax - ymin < (y1 - y0) * self.crossoverpercent:
-                # print ymax,ymin,ymax-ymin,(y1-y0)*self.crossoverpercent
+                # print(ymax,ymin,y0, y1, "Test")
                 ymax = y1
                 ymin = y0
                 spanflag = 1
@@ -361,20 +377,14 @@ class ZoomBox(ZoomCommon):
                 """Box too small"""  # check if drawed distance (if it exists) is
                 return  # not to small in neither x nor y-direction
 
-            if wx.GetKeyState(wx.WXK_CONTROL):
-                # TODO: Send this signal up and drop it in a main GUI
-                # if the ctrl key is down, print out the difference and a guess for the Nanodisc mass assuming POPC
-                lmass = 760.076
-                charge = lmass / spanx
-                print(spanx, charge, charge * xmax)
-                return
-
             self.set_xlim(xmin, xmax, draw=False)
             # print("3")
-            # print("xmin, xmax", xmin, xmax)
-            # print("ymin, ymax", ymin, ymax)
-            # self.set_auto_ylim(xmin, xmax, draw=False)
-            self.set_ylim(ymin, ymax, draw=False)
+            print("xmin, xmax", xmin, xmax)
+            print("ymin, ymax", ymin, ymax)
+            if spanflag:
+                self.set_auto_ylim(xmin, xmax, draw=False)
+            else:
+                self.set_ylim(ymin, ymax, draw=False)
 
             self.set_clipping()
             self.kill_labels()

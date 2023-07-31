@@ -1,7 +1,8 @@
 from __future__ import unicode_literals
 import string
 import math
-import matplotlib.cm as cm
+# import matplotlib.cm as cm
+import matplotlib as mpl
 from matplotlib.colors import Normalize
 import numpy as np
 from unidec import tools as ud
@@ -184,9 +185,11 @@ class Peaks:
         except:
             pass
 
-        self.colormap = cm.get_cmap(cmap, len(self.peaks))
+        # self.colormap = cm.get_cmap(cmap, len(self.peaks))
+        self.colormap = mpl.colormaps[cmap].resampled(len(self.peaks))
         if self.colormap is None:
-            self.colormap = cm.get_cmap(u"rainbow", len(self.peaks))
+            # self.colormap = cm.get_cmap(u"rainbow", len(self.peaks))
+            self.colormap = mpl.colormaps[u"rainbow"].resampled(len(self.peaks))
         self.peakcolors = self.colormap(np.arange(len(self.peaks)))
         self.markers = ['o', 'v', '^', '>', 's', 'd', '*']
         self.textmarkers = ['\u25CB', '\u25BD', '\u25B3', '\u25B7', '\u25A2', '\u2662', '\u2606']
@@ -202,7 +205,8 @@ class Peaks:
 
     def color_by_score(self, e=0):
         scores = np.array([p.dscore for p in self.peaks])
-        colormap = cm.get_cmap('RdYlGn')
+        # colormap = cm.get_cmap('RdYlGn')
+        colormap = mpl.colormaps['RdYlGn']
         norm = Normalize(vmin=0, vmax=1)
         colors = colormap(norm(scores))
         self.peakcolors = colors

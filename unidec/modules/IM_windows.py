@@ -3,7 +3,8 @@ import wx
 import wx.lib.mixins.listctrl as listmix
 # noinspection PyUnresolvedReferences
 import numpy as np
-import matplotlib.cm as cm
+# import matplotlib.cm as cm
+import matplotlib as mpl
 from unidec.modules import PlottingWindow
 # noinspection PyUnresolvedReferences
 import unidec.tools as ud
@@ -581,7 +582,8 @@ class IMToolExtract(wx.Dialog):
         ccsproj = np.sum(zoutgrid, axis=0)
         self.plot2.plotrefreshtop(self.ccsdat[:, 0], ccsproj / np.amax(ccsproj), "CCS Extract",
                                   "CCS (${\AA}$$^2$)", "Normalized Intensity", "", self.config)
-        colormap = cm.get_cmap(self.config.peakcmap, len(outs))
+        # colormap = cm.get_cmap(self.config.peakcmap, len(outs))
+        colormap = mpl.colormaps[self.config.peakcmap].resampled(len(outs))
         xcolors = colormap(np.arange(len(outs)))
         for i, l in enumerate(outs):
             mass = l[0]

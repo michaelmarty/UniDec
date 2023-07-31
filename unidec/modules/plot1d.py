@@ -423,7 +423,8 @@ class Plot1dBase(PlotBase):
         cax = self.figure.add_axes([0.77, 0.1, 0.04, 0.8])
         ticks = np.linspace(0., 1., 11, endpoint=True)
 
-        cmap2 = cm.get_cmap(cmap)
+        # cmap2 = cm.get_cmap(cmap)
+        cmap2 = mpl.colormaps[cmap]
         self.cbar = colorbar.ColorbarBase(cax, cmap=cmap2, orientation="vertical", ticks=ticks)
         ticks = ticks * max
         if max > 10:

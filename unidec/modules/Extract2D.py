@@ -2,7 +2,8 @@ import os
 from copy import deepcopy
 import numpy as np
 import wx
-import matplotlib.cm as cm
+# import matplotlib.cm as cm
+import matplotlib as mpl
 
 from unidec.modules import unidecstructure
 from unidec.modules import PlottingWindow
@@ -384,7 +385,8 @@ class Extract2DPlot(wx.Frame):
                     data = deepcopy(grid[:, d] / np.amax(grid[:, d]))
                 else:
                     data = deepcopy(grid[:, d])
-                color = cm.get_cmap("viridis")(float(d / len(self.m2range)))
+                # color = cm.get_cmap("viridis")(float(d / len(self.m2range)))
+                color = mpl.colormaps["viridis"].resampled(float(d / len(self.m2range)))
                 self.plot1.plotadd(np.unique(self.m1grid), data, colval=color)
             self.plot1.repaint()
 
@@ -583,10 +585,10 @@ if __name__ == "__main__":
     data3 = np.loadtxt(
         "Z:\mtmarty\Data\Others\Miranda\sample_data\MC_20170904_1to1_aB_C137S_11000_520_HCD300_CAL_unidecfiles\CorrectedMassData.txt")
     #data3 = np.loadtxt("/TestSpectra/60_unidecfiles/60_mass.txt")
-    file = "Z:\\Group Share\\Hiruni Jayasekera\\HSJ_MAE AqpZ CL Project\\Final\\WT_R224A Titrations\WT_R224A_25C\\rep3\\20220303_HSJ_MAE_AqpZWT_R224A_160CL_TS_25C_3_unidecfiles\\20220303_HSJ_MAE_AqpZWT_R224A_160CL_TS_25C_3_mass.txt"
+    #file = "Z:\\Group Share\\Hiruni Jayasekera\\HSJ_MAE AqpZ CL Project\\Final\\WT_R224A Titrations\WT_R224A_25C\\rep3\\20220303_HSJ_MAE_AqpZWT_R224A_160CL_TS_25C_3_unidecfiles\\20220303_HSJ_MAE_AqpZWT_R224A_160CL_TS_25C_3_mass.txt"
     #file = "Z:\\Group Share\\Hiruni Jayasekera\\HSJ_MAE AqpZ CL\WT_R224A Titrations\WT_R224A_25C\\rep3\\20220308_HSJ_MAE_AqpZWT_R224A_160CL_TS_25_3_unidecfiles\\20220308_HSJ_MAE_AqpZWT_R224A_160CL_TS_25_3_mass.txt"
-    file = "Z:\Group Share\Hiruni Jayasekera\\HSJ_MAE AqpZ CL Project\\Final\\R224A_R224-75A Titrations All\\R224A_R224-75A_30C\\rep3\\20220317_HSJ_AqpZR224A_R224-75A_100CL_TS_30_3_unidecfiles\\20220317_HSJ_AqpZR224A_R224-75A_100CL_TS_30_3_mass.txt"
-    data3 = np.loadtxt(file)
+    # file = "Z:\Group Share\Hiruni Jayasekera\\HSJ_MAE AqpZ CL Project\\Final\\R224A_R224-75A Titrations All\\R224A_R224-75A_30C\\rep3\\20220317_HSJ_AqpZR224A_R224-75A_100CL_TS_30_3_unidecfiles\\20220317_HSJ_AqpZR224A_R224-75A_100CL_TS_30_3_mass.txt"
+    #data3 = np.loadtxt(file)
     datalist = [data3]
 
     app = wx.App(False)
