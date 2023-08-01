@@ -379,8 +379,8 @@ class ZoomBox(ZoomCommon):
 
             self.set_xlim(xmin, xmax, draw=False)
             # print("3")
-            print("xmin, xmax", xmin, xmax)
-            print("ymin, ymax", ymin, ymax)
+            # print("xmin, xmax", xmin, xmax)
+            # print("ymin, ymax", ymin, ymax)
             if spanflag:
                 self.set_auto_ylim(xmin, xmax, draw=False)
             else:

@@ -203,6 +203,8 @@ Added "PyroGlu" option in UPP to automatically account for pyroglutamate formati
 
 Printing HTML reports to PDF now looks better, with page breaks and background colors.
 
+Command line now runs DScore with peak picking, so DScores will now appear in UPP.
+
 Added del_columns custom field in batch.py for those that want to edit the report fields.
 
 Fixed bug with CDCReader path in ImportWizard. Fixed weird bug with compressed mzML files.

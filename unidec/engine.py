@@ -498,7 +498,7 @@ class UniDec(UniDecEngine):
                 xv = np.c_[np.ravel(yv), np.ravel(xv)]
                 self.data.mzgrid = np.c_[xv, np.ravel(self.data.mzgrid)]
 
-    def pick_peaks(self):
+    def pick_peaks(self, calc_dscore=True):
         """
         Detect, Normalize, and Output Peaks
         :return: None
@@ -508,6 +508,8 @@ class UniDec(UniDecEngine):
         peaks = ud.peakdetect(self.data.massdat, self.config)
         if len(peaks) > 0:
             self.setup_peaks(peaks)
+            if calc_dscore:
+                self.dscore()
         else:
             print("No peaks detected", peaks, self.config.peakwindow, self.config.peakthresh)
             print("Mass Data:", self.data.massdat)
