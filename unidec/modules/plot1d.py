@@ -65,6 +65,9 @@ class Plot1dBase(PlotBase):
             if config.publicationmode != 0:
                 pubflag = 1
 
+            if config.datanorm == 0:
+                self._axes = [0.2, 0.11, 0.75, 0.8]
+
         self.subplot1 = self.figure.add_axes(self._axes)
         self.subplot1.plot(np.array(xvals) / self.kdnorm, yvals, color=color, label=label, marker=marker, **kwargs)
         if pubflag == 0:
@@ -77,11 +80,12 @@ class Plot1dBase(PlotBase):
             self.subplot1.get_yaxis().tick_left()
             self.subplot1.get_yaxis().set_tick_params(direction='out')
             self.subplot1.get_xaxis().set_tick_params(direction='out')
-            if config.peaknorm != 2:
+            if config.datanorm != 0:
                 self.subplot1.get_yaxis().set_ticks([0, np.amax(yvals) / 2, np.amax(yvals)])
                 self.subplot1.get_yaxis().set_ticklabels(["0", '%', "100"])
             else:
-                self.subplot1.set_ylabel("Relative Intensity")
+                self.subplot1.set_ylabel("Intensity")
+
 
         if nticks is not None:
             self.subplot1.xaxis.set_major_locator(MaxNLocator(nbins=nticks))
@@ -408,7 +412,7 @@ class Plot1dBase(PlotBase):
             self.subplot1.get_yaxis().tick_left()
             self.subplot1.get_yaxis().set_tick_params(direction='out')
             self.subplot1.get_xaxis().set_tick_params(direction='out')
-            if config.peaknorm != 2:
+            if config.datanorm != 0:
                 self.subplot1.get_yaxis().set_ticks([0, np.amax(yvals) / 2, np.amax(yvals)])
                 self.subplot1.get_yaxis().set_ticklabels(["0", '%', "100"])
             else:

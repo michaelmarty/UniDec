@@ -22,8 +22,13 @@ basic_parameters = [["Sample name", True, "The File Name or Path. File extension
                                      " like Sample Notes or Experiment Notes to create multiple notes sections."]
                     ]
 
-config_parameters = [["Config Peak Thres", False, "Deconvolution Setting: The Peak Detection Threshold"],
+config_parameters = [["Config Data Norm", False, "Data Processing Setting: Whether to normalize the data or not. "
+                                                 "Should be set as 0 or 1. Default is 1."],
+                     ["Config Peak Thres", False, "Deconvolution Setting: The Peak Detection Threshold"],
                      ["Config Peak Window", False, "Deconvolution Setting: The Peak Detection Window in Da"],
+                     ["Config Peak Norm", False,
+                      "Deconvolution Setting: The Peak Intensity Normalization mode. 0 is no normalization, "
+                      "1 is normalization to the max, and 2 is normalization to the sum"],
                      ["Config High Mass", False, "Deconvolution Setting: The High Mass Limit in Da"],
                      ["Config Low Mass", False, "Deconvolution Setting: The Low Mass Limit in Da"],
                      ["Config High m/z", False, "Deconvolution Setting: The High m/z Limit"],
@@ -300,6 +305,18 @@ def set_param_from_row(eng, row, dirname=""):
             except Exception as e:
                 print("Error setting integral upper", k, val, e)
                 eng.config.integrateub = ""
+
+        if "Config Data Norm" in k:
+            try:
+                eng.config.datanorm = int(val)
+            except Exception as e:
+                print("Error setting data norm", k, val, e)
+
+        if "Config Peak Norm" in k:
+            try:
+                eng.config.peaknorm = int(val)
+            except Exception as e:
+                print("Error setting peak norm", k, val, e)
 
         if "DoubleDec Kernel File" in k:
             print(val)
@@ -833,7 +850,7 @@ if __name__ == "__main__":
         path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
         # path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
         path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
-        #path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
+        # path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
         pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=True, use_converted=True, interactive=False)
 
