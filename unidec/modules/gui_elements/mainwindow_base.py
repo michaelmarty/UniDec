@@ -60,10 +60,10 @@ class MainwindowBase(wx.Frame):
         pub.subscribe(self.on_motion, 'newxy')
 
         # Bind to resize event
-        #self.Bind(wx.EVT_SIZE, self.onResize)
+        # self.Bind(wx.EVT_SIZE, self.onResize)
 
         # Bind on Idle
-        #self.Bind(wx.EVT_IDLE, self.onIdle)
+        # self.Bind(wx.EVT_IDLE, self.onIdle)
         pass
 
     def onIdle(self, event):
@@ -136,8 +136,6 @@ class MainwindowBase(wx.Frame):
         self.Bind(self.peakpanel.EVT_AREAS, self.pres.on_label_integral, self.peakpanel)
         self.Bind(self.peakpanel.EVT_NAMES, self.pres.on_label_names, self.peakpanel)
         self.Bind(self.peakpanel.EVT_COLOR_PEAKS, self.pres.on_color_peaks, self.peakpanel)
-
-
 
     def on_motion(self, xpos, ypos):
         """
@@ -254,7 +252,7 @@ class MainwindowBase(wx.Frame):
         figsize = self.plots[0].GetSize()
         dpi = wx.ScreenDC().GetPPI()
         defaultsize = np.array([figsize[0] / dpi[0], figsize[1] / dpi[1]])
-        defaultrect = np.array([0.1, 0.1, 0.8, 0.8])
+        defaultrect = np.array([0.11, 0.11, 0.8, 0.8])
         figureflags = []
         files = []
 
@@ -305,9 +303,11 @@ class MainwindowBase(wx.Frame):
             try:
                 rect = self.rect
             except:
-                rect = [0.1, 0.1, 0.8, 0.8]
+                rect = [0.11, 0.11, 0.8, 0.8]
                 self.rect = rect
         print(self.rect)
+        r02 = rect[0] + rect[2]
+        cbarpad = 0.02
         if plot.flag:
             dpi = wx.ScreenDC().GetPPI()
             figsize2 = (int(figsize[0] * dpi[0]), int(figsize[1] * dpi[1]))
@@ -318,7 +318,7 @@ class MainwindowBase(wx.Frame):
             # plot.set_nticks(5)
             plot.subplot1.set_position(rect)
             if plot.cbar is not None:
-                plot.cbar.ax.set_position([0.85, 0.2, 0.05, 0.7])
+                plot.cbar.ax.set_position([r02 + cbarpad, self.rect[1], 1 - r02 - cbarpad, self.rect[3]])
             plot.repaint()
 
     def shrink_all_figures(self, figsize=None, rect=None):

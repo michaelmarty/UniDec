@@ -3,6 +3,7 @@ import time
 from matplotlib.pyplot import colormaps
 from matplotlib import rcParams
 from matplotlib import colors as mplcol
+import matplotlib as mpl
 
 from pubsub import pub
 import multiprocessing
@@ -1081,7 +1082,8 @@ class BarGraphWindow(wx.Frame):
         slope = []
         num = 0
         if self.colors is None:
-            colormap = cm.get_cmap('rainbow', len(fits))
+            # colormap = cm.get_cmap('rainbow', len(fits))
+            colormap = mpl.colormaps['rainbow'].resampled(len(fits))
             cols = colormap(np.arange(len(fits)))
         else:
             cols = self.colors
@@ -1127,7 +1129,8 @@ class BarGraphWindow(wx.Frame):
         slope = []
         num = 0
         if colors is None:
-            colormap = cm.get_cmap('rainbow', len(fits))
+            # colormap = cm.get_cmap('rainbow', len(fits))
+            colormap = mpl.colormaps['rainbow'].resampled(len(fits))
             cols = colormap(np.arange(len(fits)))
         else:
             cols = colors
@@ -1175,7 +1178,8 @@ class BarGraphWindow(wx.Frame):
         midpoint = []
         num = 0
         if colors is None:
-            colormap = cm.get_cmap('rainbow', len(fits))
+            # colormap = cm.get_cmap('rainbow', len(fits))
+            colormap = mpl.colormaps['rainbow'].resampled(len(fits))
             cols = colormap(np.arange(len(fits)))
         else:
             cols = colors

@@ -321,7 +321,10 @@ class ZoomCommon:
         self.xzoom = [xmin, xmax]
         for axes in self.axes:
             if xmin != xmax:
-                axes.set_xlim((xmin, xmax))
+                try:
+                    axes.set_xlim((xmin, xmax))
+                except Exception:
+                    pass
         if draw:
             self.canvas.draw()
 
@@ -329,7 +332,10 @@ class ZoomCommon:
         self.yzoom = [ymin, ymax]
         for axes in self.axes:
             if ymin != ymax:
-                axes.set_ylim((ymin, ymax))
+                try:
+                    axes.set_ylim((ymin, ymax))
+                except Exception:
+                    pass
             set_clipping(axes)
         if draw:
             self.canvas.draw()

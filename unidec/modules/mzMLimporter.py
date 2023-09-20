@@ -16,7 +16,7 @@ def gzip_files(mzml_path, out_path):
     with open(mzml_path) as fin:
         fin.seek(0, 2)
         max_offset_len = fin.tell()
-        max_spec_no = pymzml.run.Reader(mzml_path).get_spectrum_count() + 10
+        max_spec_no = pymzml.run.Reader(mzml_path).get_spectrum_count() + 32
 
     index_gzip(
         mzml_path, out_path, max_idx=max_spec_no, idx_len=len(str(max_offset_len))
@@ -223,7 +223,7 @@ class mzMLimporter:
     Imports mzML data files.
     """
 
-    def __init__(self, path, gzmode=False, *args, **kwargs):
+    def __init__(self, path, gzmode=False, nogz=False, *args, **kwargs):
         """
         Imports mzML file, adds the chromatogram into a single spectrum.
         :param path: .mzML file path
@@ -233,7 +233,7 @@ class mzMLimporter:
         """
         print("Reading mzML:", path)
         self.filesize = os.stat(path).st_size
-        if not os.path.splitext(path)[1] == ".gz" and (self.filesize > 3e8 or gzmode):  # for files larger than 100 MB
+        if not os.path.splitext(path)[1] == ".gz" and (self.filesize > 1e8 or gzmode) and not nogz:  # for files larger than 100 MB
             path = auto_gzip(path)
             print("Converted to gzip file to improve speed:", path)
             self.filesize = os.stat(path).st_size

@@ -5,6 +5,7 @@ import numpy as np
 import unidec.tools as ud
 import platform
 import matplotlib.cm as cm
+import matplotlib as mpl
 from matplotlib.pyplot import colormaps
 import h5py
 from unidec.modules.unidec_enginebase import version as version
@@ -1381,9 +1382,11 @@ class UniDecConfig(object):
         except Exception:
             pass
 
-        colormap = cm.get_cmap(cmap, n)
+        # colormap = cm.get_cmap(cmap, n)
+        colormap = mpl.colormaps[cmap].resampled(n)
         if colormap is None:
-            colormap = cm.get_cmap(u"rainbow", n)
+            # colormap = cm.get_cmap(u"rainbow", n)
+            colormap = mpl.colormaps[u"rainbow"].resampled(n)
         colors = colormap(np.arange(n))
         return colors
 

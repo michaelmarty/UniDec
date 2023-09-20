@@ -378,9 +378,9 @@ class SaveFigureDialog(wx.Dialog):
 
         hbox8 = wx.BoxSizer(wx.HORIZONTAL)
         size = (40, 20)
-        self.b1 = wx.TextCtrl(pnl, value=str(0.1), size=size)
-        self.b2 = wx.TextCtrl(pnl, value=str(0.1), size=size)
-        self.b3 = wx.TextCtrl(pnl, value=str(0.8), size=size)
+        self.b1 = wx.TextCtrl(pnl, value=str(0.11), size=size)
+        self.b2 = wx.TextCtrl(pnl, value=str(0.11), size=size)
+        self.b3 = wx.TextCtrl(pnl, value=str(0.75), size=size)
         self.b4 = wx.TextCtrl(pnl, value=str(0.8), size=size)
         hbox8.Add(wx.StaticText(pnl, label='Plot Position: '), 0, wx.ALIGN_CENTER_VERTICAL)
         hbox8.Add(self.b1, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)

@@ -6,7 +6,7 @@ import time
 import webbrowser
 from unidec.modules.html_writer import *
 
-version = "6.0.3"
+version = "6.0.4"
 
 
 def copy_config(config):
@@ -610,7 +610,7 @@ class UniDecEngine:
             return plot
 
     def gen_html_report(self, event=None, outfile=None, plots=None, interactive=False, open_in_browser=True,
-                        results_string=None):
+                        results_string=None, del_columns=None):
         """
         Generate an HTML report of the current UniDec run.
         :param event: Unused Event
@@ -619,6 +619,7 @@ class UniDecEngine:
         :param interactive: If True, will include interactive plots. Default is False.
         :param open_in_browser: If True, will open the report in the default browser. Default is True.
         :param results_string: String to include in the report. Default is None.
+        :param del_columns: List of columns to delete from the report. Default is None.
         :return: None
         """
         if outfile is None:
@@ -630,14 +631,14 @@ class UniDecEngine:
         peaks_df = self.pks.to_df()
         colors = [p.color for p in self.pks.peaks]
 
+        if del_columns is not None:
+            peaks_df = peaks_df.drop(del_columns, axis=1)
+
         if len(peaks_df) > 0:
             self.html_str += df_to_html(peaks_df, outfile, colors=colors)
 
         # array_to_html(np.transpose(self.matchlist), outfile,
         #              cols=["Measured Mass", "Theoretical Mass", "Error", "Match Name"])
-
-        if results_string is not None:
-            self.html_str += to_html_paragraph(results_string, outfile)
 
         if plots is None:
             plot = self.makeplot2(silent=True)
@@ -685,6 +686,10 @@ class UniDecEngine:
                 except Exception:
                     pass
 
+        # Write results string paragraph
+        if results_string is not None:
+            self.html_str += to_html_paragraph(results_string, outfile)
+
         try:
             spectra_df = self.data.attrs_to_df()
             if len(spectra_df) > 0:
@@ -699,7 +704,7 @@ class UniDecEngine:
         config_htmlstring = dict_to_html(config_dict)
         self.html_str += to_html_collapsible(config_htmlstring, title="UniDec Parameters", outfile=outfile,
                                              htmltext=True)
-
+        self.html_str += html_pagebreak()
         html_close(outfile)
 
         if open_in_browser:

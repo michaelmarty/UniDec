@@ -210,7 +210,7 @@ def sitematch_to_excel(indexes, masses, probs, names, peakmasses, protmass, site
             # Write to excel into a sheet with the peak mass as the name
             matchdf.to_excel(writer, sheet_name=str(mass))
 
-
+'''
 def calc_seqmasses(row):
     """
     Function to calculate a sequence mass from a row
@@ -234,7 +234,7 @@ def calc_seqmasses(row):
                 seqs.append("")
                 masses.append(float(seq))
                 labels.append(k)
-    return np.array(seqs), np.array(masses), np.array(labels)
+    return np.array(seqs), np.array(masses), np.array(labels)'''
 
 
 def parse_fmoddf(fmoddf):
@@ -339,18 +339,18 @@ def calc_bispecific_correct(row, a_code="BsAb (Correct)", b_code="LC1 Mispair (I
 known_labels = ["Correct", "Incorrect", "Ignore"]
 
 
-def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None, keywords=None):
+def calc_pairs(row, remove_zeros=True, fmoddf=None, keywords=None):
     """
     For use with UniDec Processing Pipeline
     Calculate the potential pairs from a row.
     :param row: Row from a df with Sequence N in the column heading designating the sequence. Seq N + Seq M will look for a pair.
-    :param include_seqs: Boolean to include the isolated sequences in the output. Default is False. If you want to include these sequences, set to True or include Seq1 as a separate incorrect column.
     :param remove_zeros: Boolean to remove the pairs with masses of 0 from the output. Default is True.
     :param fmoddf: DataFrame of the Fixed Modifications to use for the sequences. If None, will not use any.
     :return: Masses of pairs, labels of potential pairs
     """
     labels = []
     pairs = []
+    pyroglu = False
 
     # If keywords is None, use the known labels
     if keywords is None:
@@ -367,6 +367,23 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None, keywords
     if "Apply Fixed Mods" in row.keys():
         modstring = str(row["Apply Fixed Mods"])
         # print(modstring)
+
+    # Check if PyroGlu keyword is in the row
+    if "PyroGlu" in row.keys():
+        pyroglu = row["PyroGlu"]
+        # check if it is a boolean
+        if type(pyroglu) is bool:
+            pass
+        elif type(pyroglu) is str:
+            if pyroglu.lower() == "true":
+                pyroglu = True
+            elif pyroglu.lower() == "false":
+                pyroglu = False
+        elif pyroglu is None:
+            pyroglu = False
+        else:
+            print("Error parsing PyroGlu:", pyroglu)
+            pyroglu = False
 
     total_mod_mass, total_mod_name = parse_fmoddf(fmoddf)
 
@@ -410,6 +427,7 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None, keywords
             else:
                 # Find the sequence
                 seqname = "Sequence " + str(p)
+                # Check if it should be reduced
                 reduced = check_string_for_seq(redstring, p)
 
                 for k in row.keys():
@@ -417,7 +435,7 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None, keywords
                         seq = row[k]
                         # Calculate mass of the sequence
                         if type(seq) is str:
-                            mass = calc_pep_mass(seq, all_cyst_ox=reduced)
+                            mass = calc_pep_mass(seq, all_cyst_ox=reduced, pyroglu=pyroglu)
                         elif type(seq) is float or type(seq) is int:
                             # If it's already a number, just use it
                             if math.isnan(seq):
@@ -438,14 +456,14 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None, keywords
 
         pmass = np.sum(masses)
         pmasses.append(pmass)
-
+    '''
     # Add the individual sequences if desired
     if include_seqs:
         for k in row.keys():
             if "Sequence" in k:
                 seq = row[k]
                 if type(seq) is str:
-                    mass = calc_pep_mass(seq)
+                    mass = calc_pep_mass(seq, pyroglu=pyroglu)
                 elif type(seq) is float or type(seq) is int:
                     if math.isnan(seq):
                         seq = 0
@@ -458,7 +476,7 @@ def calc_pairs(row, include_seqs=False, remove_zeros=True, fmoddf=None, keywords
                 if mass != 0:
                     mass += total_mod_mass
                 pmasses.append(mass)
-                labels.append(k)
+                labels.append(k)'''
 
     # Convert to numpy arrays
     pmasses = np.array(pmasses)
@@ -478,7 +496,7 @@ def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest", in
         peakheights = [p.integral for p in pks.peaks]
     else:
         peakheights = [p.height for p in pks.peaks]
-    # seqs, seqmasses, seqlabels = calc_seqmasses(row)
+
 
     # Get the favored match
     if "Favored Match" in row.keys():

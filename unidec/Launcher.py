@@ -19,6 +19,7 @@ from unidec.metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard
 from unidec.metaunidec.ultrameta import DataCollector as UMDC
 from unidec.UniChrom import ChromApp
 from unidec.UPP import UPPApp
+from unidec.modules import unidecstructure
 import wx.py as py
 import os
 import sys
@@ -156,8 +157,11 @@ class Lview(wx.Frame):
 
     def button3(self, e=None):
         print("Launching Waters Converter Wizard")
+        config = unidecstructure.UniDecConfig()
+        config.initialize_system_paths()
+        print("UniDec Directory: " + config.UniDecDir)
         app = wx.App(False)
-        frame = ImportWizard(None)
+        frame = ImportWizard(None, config.UniDecDir)
         frame.Show()
         app.MainLoop()
 

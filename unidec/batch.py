@@ -17,11 +17,18 @@ basic_parameters = [["Sample name", True, "The File Name or Path. File extension
                                           "will assume start with scan 1."],
                     ["End Time", False, "Deconvolution Setting: The End Time to Stop Extracting "
                                         "From if Chromatography Data is Used. If not specified, "
-                                        "will continue to the last scan. It will sum from Start Time to End Time"]
+                                        "will continue to the last scan. It will sum from Start Time to End Time"],
+                    ["Notes", False, "Any notes you want to add to the output report. You can include something"
+                                     " like Sample Notes or Experiment Notes to create multiple notes sections."]
                     ]
 
-config_parameters = [["Config Peak Thres", False, "Deconvolution Setting: The Peak Detection Threshold"],
+config_parameters = [["Config Data Norm", False, "Data Processing Setting: Whether to normalize the data or not. "
+                                                 "Should be set as 0 or 1. Default is 1."],
+                     ["Config Peak Thres", False, "Deconvolution Setting: The Peak Detection Threshold"],
                      ["Config Peak Window", False, "Deconvolution Setting: The Peak Detection Window in Da"],
+                     ["Config Peak Norm", False,
+                      "Deconvolution Setting: The Peak Intensity Normalization mode. 0 is no normalization, "
+                      "1 is normalization to the max, and 2 is normalization to the sum"],
                      ["Config High Mass", False, "Deconvolution Setting: The High Mass Limit in Da"],
                      ["Config Low Mass", False, "Deconvolution Setting: The Low Mass Limit in Da"],
                      ["Config High m/z", False, "Deconvolution Setting: The High m/z Limit"],
@@ -48,6 +55,11 @@ config_parameters = [["Config Peak Thres", False, "Deconvolution Setting: The Pe
                                                       "Then, add that _mass.txt file as the path. Otherwise, "
                                                       "you will be overwriting "
                                                       "the kernel each time, which can cause unstable results."],
+                     ["Config Smash File", False, "Path to Smash File. If specified, it will load the file and use "
+                                                  "the values provided to remove specific m/z ranges. The file "
+                                                  "should be a simple text file with two columns, the first "
+                                                  "specifying the lower m/z and the second specifying the upper m/z. "
+                                                  "All data points between the upper and lower will be zerod. "]
                      ]
 
 recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if not specified."],
@@ -87,6 +99,9 @@ recipe_w = [["Tolerance (Da)", False, "The Tolerance in Da. Default is 50 Da if 
              "or \"None\" to oxidize none. "
              "Will only work if sequences are amino acid codes with C. "
              "It will subtract one H mass for each C."],
+            ["PyroGlu", False, "A column specifying whether to assume pyroglutamate formation. "
+                               "Can be either True or False. If True, it will subtract the mass of H2O or OH if the first amino acid "
+                               "is E or Q. If False, it will not. Default is false if not specified."],
             ["Favored Match", False,
              "If there are several possible matches within tolerance, which to select. "
              "Default is \"Closest\" for the closest absolute mass. Also accepts \"Incorrect\" "
@@ -157,6 +172,10 @@ recipe_d = [
      "or \"None\" to oxidize none. "
      "Will only work if sequences are amino acid codes with C. "
      "It will subtract one H mass for each C."],
+    ["PyroGlu", False, "A column specifying whether to assume pyroglutamate formation. "
+                       "Can be either True or False. If True, it will subtract the mass of "
+                       "H2O or OH if the first amino acid "
+                       "is E or Q. If False, it will not. Default is false if not specified."],
 ]
 
 
@@ -286,6 +305,18 @@ def set_param_from_row(eng, row, dirname=""):
             except Exception as e:
                 print("Error setting integral upper", k, val, e)
                 eng.config.integrateub = ""
+
+        if "Config Data Norm" in k:
+            try:
+                eng.config.datanorm = int(val)
+            except Exception as e:
+                print("Error setting data norm", k, val, e)
+
+        if "Config Peak Norm" in k:
+            try:
+                eng.config.peaknorm = int(val)
+            except Exception as e:
+                print("Error setting peak norm", k, val, e)
 
         if "DoubleDec Kernel File" in k:
             print(val)
@@ -537,9 +568,19 @@ class UniDecBatchProcessor(object):
                 #
                 ###############################
 
+                for c in row.keys():
+                    if "Notes" in c:
+                        notes_string = row[c]
+                        notes_string = "<strong>" + c + ": </strong>" + notes_string
+                        if results_string is None:
+                            results_string = notes_string
+                        else:
+                            results_string += "<br><br>" + notes_string
+
+                del_columns = ["LowValFWHM", "HighValFWHM"]
                 # Generate the HTML report
                 outfile = self.eng.gen_html_report(open_in_browser=False, interactive=interactive,
-                                                   results_string=results_string)
+                                                   results_string=results_string, del_columns=del_columns)
                 htmlfiles.append(outfile)
 
                 # Add the HTML report to the global HTML string
@@ -597,6 +638,7 @@ class UniDecBatchProcessor(object):
         peakdf = self.pks.to_df(type="FullFiles")
         peakdf.to_excel(outfile, index=False)
         print("Write Peaks to: ", outfile)
+
     def write_xlsx(self, outfile=None):
         # Write the results to an Excel file to the top directory
         if outfile is None:
@@ -798,7 +840,7 @@ if __name__ == "__main__":
         batch.run_file(sys.argv[1], decon=True, use_converted=True)
         batch.open_all_html()
     else:
-        path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
+
         path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
         # path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test.xlsx"
         # path = "C:\\Data\\Wilson_Genentech\\BsAb\\test2.csv"
@@ -808,6 +850,7 @@ if __name__ == "__main__":
         path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
         # path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
         path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
+        # path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
         pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=True, use_converted=True, interactive=False)
 

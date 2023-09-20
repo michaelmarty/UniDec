@@ -4,7 +4,8 @@ import time
 import wx
 import wx.lib.mixins.listctrl as listmix
 import numpy as np
-import matplotlib.cm as cm
+# import matplotlib.cm as cm
+import matplotlib as mpl
 from matplotlib.pyplot import colormaps
 from matplotlib import rcParams
 from matplotlib.patches import Rectangle
@@ -153,7 +154,8 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
 
     def get_list(self, fcmap='rainbow'):
         count = self.GetItemCount()
-        colormap = cm.get_cmap(fcmap, count)
+        # colormap = cm.get_cmap(fcmap, count)
+        colormap = mpl.colormaps[fcmap].resampled(count)
         peakcolors = colormap(np.arange(count))
         list_output = []
         for i in range(0, count):
@@ -996,7 +998,8 @@ class DataCollector(wx.Frame):
                 self.extract = [self.extract[i] / sums[i] for i in range(0, len(self.yvals))]
                 self.extract = np.array(self.extract)
 
-            colormap = cm.get_cmap(self.xcmap, len(self.xvals))
+            # colormap = cm.get_cmap(self.xcmap, len(self.xvals))
+            colormap = mpl.colormaps[self.xcmap].resampled(len(self.xvals))
             self.xcolors = colormap(np.arange(len(self.xvals)))
             self.makeplot2()
             # print np.mean(self.extract,axis=0)
@@ -1419,7 +1422,8 @@ class DataCollector(wx.Frame):
                 self.extract = [self.extract[i] / sums[i] for i in range(0, len(self.yvals))]
                 self.extract = np.array(self.extract)
 
-            colormap = cm.get_cmap(self.xcmap, len(self.xvals))
+            # colormap = cm.get_cmap(self.xcmap, len(self.xvals))
+            colormap = mpl.colormaps[self.xcmap].resampled(len(self.xvals))
             self.xcolors = colormap(np.arange(len(self.xvals)))
             self.makeplot2()
 

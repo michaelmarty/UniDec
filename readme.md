@@ -195,6 +195,20 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.6.0.4
+
+Added "Notes" option to UPP to add notes to the bottom of the report. Added peak and data normalization options to UPP spreadsheet inputs. See help file. 
+
+Added "PyroGlu" option in UPP to automatically account for pyroglutamate formation on sequences that could have it. See help file for more information.
+
+Printing HTML reports to PDF now looks better, with page breaks and background colors.
+
+Command line now runs DScore with peak picking, so DScores will now appear in UPP.
+
+Added del_columns custom field in batch.py for those that want to edit the report fields.
+
+Fixed bug with CDCReader path in ImportWizard. Fixed weird bug with compressed mzML files. Fixed bug with save figure as and color bars.
+
 v.6.0.3
 
 Added global peak output to UPP. Updated documentation and help for UPP to show how to write your own workflows.

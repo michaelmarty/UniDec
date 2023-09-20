@@ -1,7 +1,7 @@
 import wx
 import wx.lib.mixins.listctrl as listmix
 import numpy as np
-import matplotlib.cm as cm
+import matplotlib as mpl
 
 import unidec.tools as ud
 from copy import deepcopy
@@ -31,10 +31,12 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def populate(self, dataset, colors=None):
         self.DeleteAllItems()
         try:
-            colormap = cm.get_cmap(self.config.spectracmap, dataset.len)
+            # colormap = cm.get_cmap(self.config.spectracmap, dataset.len)
+            colormap = mpl.colormaps[self.config.spectracmap].resampled(dataset.len)
         except:
             print("Failed to get spectra cmap", self.config)
-            colormap = cm.get_cmap('rainbow', dataset.len)
+            # colormap = cm.get_cmap('rainbow', dataset.len)
+            colormap = mpl.colormaps['rainbow'].resampled(dataset.len)
         peakcolors = colormap(np.arange(dataset.len))
         if colors is None:
             colors = peakcolors
@@ -77,10 +79,12 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def recolor(self):
         dataset = self.data
         try:
-            colormap = cm.get_cmap(self.config.spectracmap, dataset.len)
+            # colormap = cm.get_cmap(self.config.spectracmap, dataset.len)
+            colormap = mpl.colormaps[self.config.spectracmap].resampled(dataset.len)
         except:
             print("Failed to get spectra cmap", self.config)
-            colormap = cm.get_cmap('rainbow', dataset.len)
+            # colormap = cm.get_cmap('rainbow', dataset.len)
+            colormap = mpl.colormaps['rainbow'].resampled(dataset.len)
         peakcolors = colormap(np.arange(dataset.len))
         colors = peakcolors
         for i in range(0, dataset.len):

@@ -449,7 +449,7 @@ class UniDecApp(UniDecPres):
         self.view.SetStatusText("Detecting Peaks", number=5)
         tstart = time.perf_counter()
         self.export_config(self.eng.config.confname)
-        self.eng.pick_peaks()
+        self.eng.pick_peaks(calc_dscore=False)
         self.view.SetStatusText("Plotting Peaks", number=5)
         if self.eng.config.batchflag == 0:
             self.after_pick_peaks()

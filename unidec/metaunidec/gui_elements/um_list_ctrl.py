@@ -2,7 +2,7 @@ import os
 import wx
 import wx.lib.mixins.listctrl as listmix
 import numpy as np
-import matplotlib.cm as cm
+import matplotlib as mpl
 
 
 class XValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEditMixin):
@@ -104,7 +104,8 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
 
     def get_list(self):
         count = self.GetItemCount()
-        colormap = cm.get_cmap('rainbow', count)
+        # colormap = cm.get_cmap('rainbow', count)
+        colormap = mpl.colormaps['rainbow'].resampled(count)
         peakcolors = colormap(np.arange(count))
         list_output = []
         for i in range(0, count):

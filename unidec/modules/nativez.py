@@ -2,7 +2,8 @@ import sys
 import time
 import wx
 import numpy as np
-import matplotlib.cm as cm
+# import matplotlib.cm as cm
+import matplotlib as mpl
 from scipy.interpolate import interp1d
 from wx.lib.agw import ultimatelistctrl as ulc
 from unidec import tools as ud
@@ -492,7 +493,8 @@ class NativeZ(wx.Dialog):
 
                 # Create height extraction bar chart
                 xvals2 = np.arange(0, len(sum1))
-                colormap = cm.get_cmap(self.config.peakcmap, len(xvals))
+                # colormap = cm.get_cmap(self.config.peakcmap, len(xvals))
+                colormap = mpl.colormaps[self.config.peakcmap].resampled(len(xvals))
                 peakcolors = colormap(np.arange(len(xvals)))
                 self.plot5.barplottop(xvals2, sum1, [int(i) for i in xvals], peakcolors, label,
                                       "Normalized Intensity", "Extracted Total Peak Heights")

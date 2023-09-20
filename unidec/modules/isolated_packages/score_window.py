@@ -2,7 +2,8 @@ import numpy as np
 import os
 import wx
 import wx.grid
-import matplotlib.cm as cm
+#import matplotlib.cm as cm
+import matplotlib as mpl
 from matplotlib.colors import Normalize
 import unidec.tools as ud
 from copy import deepcopy
@@ -79,7 +80,8 @@ def score_plots2(eng, save=False):
     rcParams['ps.fonttype'] = 42
     rcParams['pdf.fonttype'] = 42
 
-    colormap = cm.get_cmap('RdYlGn')
+    # colormap = cm.get_cmap('RdYlGn')
+    colormap = mpl.colormaps["RdYlGn"]
     norm = Normalize(vmin=0, vmax=1)
 
     plt.rcParams.update({'font.size': 10})
@@ -159,7 +161,8 @@ class ScoreListCtrl(wx.grid.Grid):
         self.SetColSize(0, width=75)
         self.SetColSize(1, width=75)
 
-        colormap = cm.get_cmap('RdYlGn')
+        # colormap = cm.get_cmap('RdYlGn')
+        colormap = mpl.colormaps['RdYlGn']
         norm = Normalize(vmin=0, vmax=1)
 
         for index, p in enumerate(pks.peaks):

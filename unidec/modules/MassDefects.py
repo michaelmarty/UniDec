@@ -7,7 +7,7 @@ from unidec.modules import miscwindows
 import unidec.tools as ud
 from unidec.modules.MassFitter import MassFitter
 from unidec.modules.isolated_packages.MD_compare import MassDefectCompareWindow
-import matplotlib.cm as cm
+import matplotlib
 
 __author__ = 'Michael.Marty'
 
@@ -308,10 +308,13 @@ class MassDefectWindow(wx.Frame):
         self.notchanged = np.all(oldparams == self.config.defectparams)
 
     def make_list_plots(self):
-        print(self.igrids.shape)
-        self.colormap = cm.get_cmap(ud.smartdecode(self.config.peakcmap), len(self.datalist))
+        print("Shape 2:", self.igrids.shape)
+        # self.colormap = cm.get_cmap(ud.smartdecode(self.config.peakcmap), len(self.datalist))
+        self.colormap = matplotlib.colormaps[ud.smartdecode(self.config.peakcmap)].resampled(len(self.datalist))
+
         if self.colormap is None:
-            self.colormap = cm.get_cmap(u"rainbow", len(self.datalist))
+            # self.colormap = cm.get_cmap(u"rainbow", len(self.datalist))
+            self.colormap = matplotlib.colormaps[u"rainbow"].resampled(len(self.datalist))
         self.peakcolors = self.colormap(np.arange(len(self.datalist)))
 
         dat3 = []

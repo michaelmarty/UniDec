@@ -3,7 +3,8 @@ import wx.lib.mixins.listctrl as listmix
 import wx
 import numpy as np
 from matplotlib.patches import Rectangle
-import matplotlib.cm as cm
+# import matplotlib.cm as cm
+import matplotlib as mpl
 from scipy.spatial.distance import euclidean
 
 from unidec.modules import PlottingWindow
@@ -466,7 +467,8 @@ class ManualSelection(wx.Dialog):
             manuallist = np.array(manuallist)
             manuallist = manuallist[np.any([manuallist != 0], axis=2)[0], :]
             # Make the color map
-            colormap = cm.get_cmap('rainbow', len(manuallist))
+            # colormap = cm.get_cmap('rainbow', len(manuallist))
+            colormap = mpl.colormaps['rainbow'].resampled(len(manuallist))
             xcolors = colormap(np.arange(len(manuallist)))
             if self.tdflag == 1:
                 # Try to correct for overlapping regions in IM-MS.
@@ -852,7 +854,8 @@ class SmashSelection(wx.Dialog):
             manuallist = np.array(manuallist)
             manuallist = manuallist[np.any([manuallist != 0], axis=2)[0], :]
             # Make the color map
-            colormap = cm.get_cmap('rainbow', len(manuallist))
+            # colormap = cm.get_cmap('rainbow', len(manuallist))
+            colormap = mpl.colormaps['rainbow'].resampled(len(manuallist))
             xcolors = colormap(np.arange(len(manuallist)))
             if self.tdflag == 1:
                 # Try to correct for overlapping regions in IM-MS.

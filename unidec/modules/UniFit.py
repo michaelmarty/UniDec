@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import scipy.optimize as opt
-import matplotlib.cm as cm
+# import matplotlib.cm as cm
+import matplotlib as mpl
 from scipy.stats import f
 import networkx as nx
 import re
@@ -991,7 +992,8 @@ class KDmodel:
 
     def PlotTrace(self, topax=None):
         dims = self.data.shape
-        colormap = cm.get_cmap(self.cmap, dims[0])
+        # colormap = cm.get_cmap(self.cmap, dims[0])
+        colormap = mpl.colormaps[self.cmap].resampled(dims[0])
         colors = colormap(np.arange(dims[0]))
         if topax is None:
             fig = plt.figure()
