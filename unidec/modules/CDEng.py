@@ -519,7 +519,7 @@ class UniDecCD(engine.UniDec):
         elif slope < 0 or self.config.subtype == 0:
             self.zarray = self.farray[:, 1] / (np.abs(slope) * self.noise)
 
-    def histogram(self, mzbins=1, zbins=1, x=None, y=None):
+    def histogram(self, mzbins=1, zbins=1, x=None, y=None, mzrange=None, zrange=None):
         if x is None:
             x = self.farray[:, 0]
 
@@ -536,24 +536,32 @@ class UniDecCD(engine.UniDec):
             print("ERROR: Empty Filtered Array, check settings")
             self.harray = []
             return 0
-        mzrange = [np.floor(np.amin(x)), np.amax(x)]
-        zrange = [np.floor(np.amin(y)), np.amax(y)]
+
+        if mzrange is None:
+            mzrange = [np.floor(np.amin(x)), np.amax(x)]
+        if zrange is None:
+            zrange = [np.floor(np.amin(y)), np.amax(y)]
+
         mzaxis = np.arange(mzrange[0] - mzbins / 2., mzrange[1] + mzbins / 2, mzbins)
         # Weird fix to make this axis even is necessary for CuPy fft for some reason...
         if len(mzaxis) % 2 == 1:
             mzaxis = np.arange(mzrange[0] - mzbins / 2., mzrange[1] + 3 * mzbins / 2, mzbins)
         zaxis = np.arange(zrange[0] - zbins / 2., zrange[1] + zbins / 2, zbins)
 
-        self.harray, self.mz, self.ztab = np.histogram2d(x, self.zarray, [mzaxis, zaxis])
+        self.harray, self.mz, self.ztab = np.histogram2d(x, y, [mzaxis, zaxis])
+
         self.mz = self.mz[1:] - mzbins / 2.
         self.ztab = self.ztab[1:] - zbins / 2.
         self.data.ztab = self.ztab
         self.harray = np.transpose(self.harray)
 
         if self.config.datanorm == 1:
-            self.harray /= np.amax(self.harray)
+            maxval = np.amax(self.harray)
+            if maxval > 0:
+                self.harray /= maxval
 
         self.X, self.Y = np.meshgrid(self.mz, self.ztab, indexing='xy')
+
         self.mass = (self.X - self.config.adductmass) * self.Y
 
         self.data.data3 = np.transpose([np.ravel(self.X, order="F"), np.ravel(self.Y, order="F"),

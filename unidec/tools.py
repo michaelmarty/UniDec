@@ -1041,6 +1041,12 @@ def load_mz_file(path, config=None, time_range=None, imflag=0):
             txtname = path[:-6] + ".txt"
             np.savetxt(txtname, data)
             print("Saved to:", txtname)
+        elif extension.lower() == ".wiff":
+            print("Trying to convert Sciex File (no promises...):", path)
+            data = data_reader.DataImporter(path).get_data(time_range=time_range)
+            txtname = path[:-4] + ".txt"
+            np.savetxt(txtname, data)
+            print("Saved to:", txtname)
         elif extension.lower() == ".npz":
             data = np.load(path, allow_pickle=True)['data']
         else:

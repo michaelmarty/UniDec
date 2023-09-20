@@ -207,7 +207,7 @@ Command line now runs DScore with peak picking, so DScores will now appear in UP
 
 Added del_columns custom field in batch.py for those that want to edit the report fields.
 
-Fixed bug with CDCReader path in ImportWizard. Fixed weird bug with compressed mzML files.
+Fixed bug with CDCReader path in ImportWizard. Fixed weird bug with compressed mzML files. Fixed bug with save figure as and color bars.
 
 v.6.0.3
 

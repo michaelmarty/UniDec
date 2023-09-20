@@ -1,7 +1,6 @@
-
-
 import numpy as np
 from unidec import tools as ud
+from unidec.modules import isotopetools as iso
 
 __author__ = 'Michael.Marty'
 
@@ -28,7 +27,7 @@ def make_mass_spectrum(array, zrange=(10, 50), mzrange=(2000, 10000), mz_bin_siz
     :return: Spectrum, ztab (new spectrum in N x 2 (m/z, intensity) and charge states allowed)
     """
     mzaxis = np.arange(mzrange[0], mzrange[1], mz_bin_size)
-    ztab = np.arange(zrange[0], zrange[1], 1)
+    ztab = np.arange(zrange[0], zrange[1] + 1, 1)
 
     array = np.array(array)
     num = int(len(array.flatten()) / 5)
@@ -42,7 +41,11 @@ def make_mass_spectrum(array, zrange=(10, 50), mzrange=(2000, 10000), mz_bin_siz
         zsig = array[i, 3]
         inten = array[i, 4]
 
-        zint = np.array(ud.ndis_std(ztab, zmid, zsig, norm_area=True))
+        if zsig != 0:
+            zint = np.array(ud.ndis_std(ztab, zmid, zsig, norm_area=True))
+        else:
+            zint = np.zeros(len(ztab))
+            zint[np.argmin(np.abs(ztab - zmid))] = 1
 
         mzvals = (mmid + adductmass * ztab) / ztab
         mzsigs = msig / ztab
@@ -83,7 +86,7 @@ def get_zrange(params):
     return zrange
 
 
-def get_mzrange(params):
+def get_mzrange(params, padding=1000, **kwargs):
     """
     From paramaters defining mass spectrum, pick a reasonable m/z range.
     :param params: P x 5 array of parameters [mass, mass fwhm, z avg, z std dev, intensity]
@@ -92,7 +95,7 @@ def get_mzrange(params):
     zrange = get_zrange(params)
     mmax = np.amax(params[:, 0])
     mmin = np.amin(params[:, 0])
-    mzrange = [mmin / zrange[1], mmax / zrange[0]]
+    mzrange = [mmin / zrange[1] - padding, mmax / zrange[0] + padding]
     return mzrange
 
 
@@ -115,7 +118,10 @@ def simple_params(masslist, intlist=None, resolution=1000, zwidth=2, rlist=None,
     if rlist is None:
         rlist = np.ones(len(masslist)) * resolution
     params = np.array(
-            [[m, m / float(rlist[i]), ud.predict_charge(m), zwidth, intlist[i]] for i, m in enumerate(masslist)])
+        [[m, m / float(rlist[i]), ud.predict_charge(m), zwidth, intlist[i]] for i, m in enumerate(masslist)])
+    if "zlist" in kwargs:
+        params[:, 2] = kwargs["zlist"]
+        params[:, 3] = 0
     return params
 
 
@@ -128,7 +134,7 @@ def simple_spectrum(masslist, **kwargs):
     """
     params = simple_params(masslist, **kwargs)
     zrange = get_zrange(params)
-    mzrange = get_mzrange(params)
+    mzrange = get_mzrange(params, **kwargs)
     spec = make_mass_spectrum(params, zrange=zrange, mzrange=mzrange, **kwargs)
     return spec
 
@@ -142,10 +148,39 @@ def simple_spectrum2(masslist, **kwargs):
     """
     params = simple_params(masslist, **kwargs)
     zrange = get_zrange(params)
-    mzrange = get_mzrange(params)
+    mzrange = get_mzrange(params, **kwargs)
     spec = make_mass_spectrum(params, zrange=zrange, mzrange=mzrange, **kwargs)
     return spec, params
 
+
+def isotopic_spectrum(masslist, chargelist=None, intlist=None, x=None, resolution=100000, **kwargs):
+    allparams = []
+
+    for i, mass in enumerate(masslist):
+        dist = iso.calc_averagine_isotope_dist(mass, **kwargs)
+        dist[:, 1] /= np.amax(dist[:, 1])
+
+        if chargelist is not None:
+            z = chargelist[i]
+        else:
+            z = 1
+
+        if intlist is not None:
+            intensity = intlist[i]
+        else:
+            intensity = 1
+
+        params = np.array(
+            [[m[0], m[0] / float(resolution), z, 0, intensity * m[1]] for i, m in enumerate(dist)])
+
+        allparams.append(params)
+
+    params = np.concatenate(allparams)
+    print(params)
+    zrange = get_zrange(params)
+    mzrange = get_mzrange(params, **kwargs)
+    spec = make_mass_spectrum(params, zrange=zrange, mzrange=mzrange, resolution=resolution, **kwargs)
+    return spec
 
 
 if __name__ == "__main__":

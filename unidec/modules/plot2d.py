@@ -77,9 +77,14 @@ class Plot2dBase(PlotBase):
 
         # If data is coming in as 1D list in dat, reshape it
         if xvals is None or yvals is None or zgrid is None:
-            zgrid = dat[:, 2]
-            xvals = np.unique(dat[:, 0])
-            yvals = np.unique(dat[:, 1])
+            if np.shape(dat)[1] == 3:
+                zgrid = dat[:, 2]
+                xvals = np.unique(dat[:, 0])
+                yvals = np.unique(dat[:, 1])
+            else:
+                zgrid = dat
+                xvals = np.arange(0, np.shape(zgrid)[0])
+                yvals = np.arange(0, np.shape(zgrid)[1])
         xlen = len(xvals)
         ylen = len(yvals)
 

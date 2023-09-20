@@ -66,7 +66,7 @@ def isojim(isolist, length=700):
     return allift
 
 
-def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.007276467, crop=False):
+def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.007276467, crop=False, **kwargs):
     formula, minmassint, isolist = makemass(mass)
     # print(isolist)
     intensities = isojim(isolist)
