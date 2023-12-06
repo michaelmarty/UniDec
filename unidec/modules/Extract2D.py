@@ -567,7 +567,7 @@ class Extract2DPlot(wx.Frame):
     def run_multip(self, string):
         try:
             array = string.split(",")
-            array = np.array(array).astype(np.int)
+            array = np.array(array).astype(int)
             fits, fitdat, i1, i2 = ud.complex_poisson(self.data1d, array, background=True)
             print("Fits:", fits)
             self.plot1.plotadd(self.data1d[:, 0], fitdat, "green", nopaint=False)

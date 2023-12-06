@@ -152,7 +152,7 @@ class DoubleDec:
         for i, p in enumerate(peaks):
             sticks = self.dec2[:, 0] == p[0]
             sticks = np.array(sticks)
-            sticks = sticks.astype(np.float) * p[1]
+            sticks = sticks.astype(float) * p[1]
             sticks = cconv2(sticks, self.kernel)
 
             simdat[:, 1] += sticks

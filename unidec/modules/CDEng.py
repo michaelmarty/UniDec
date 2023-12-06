@@ -222,8 +222,8 @@ class UniDecCD(engine.UniDec):
                 intkey = "Charge"
                 mzcol = np.argmax(data[0] == mzkey)
                 intcol = np.argmax(data[0] == intkey)
-                mz = data[1:, mzcol].astype(np.float)
-                intensity = data[1:, intcol].astype(np.float)
+                mz = data[1:, mzcol].astype(float)
+                intensity = data[1:, intcol].astype(float)
                 scans = np.arange(len(mz))
             # Don't do post-processing for thermo data
             self.thermodata = False
@@ -866,9 +866,9 @@ class UniDecCD(engine.UniDec):
         indexoffsets = np.round(mzoffsets / self.config.mzbins)
         lmz = len(self.mz)
         indexes = np.arange(0, lmz)
-        upperindexes = np.array([indexes + i for i in indexoffsets]).astype(np.int)
-        lowerindexes = np.array([indexes - i for i in indexoffsets]).astype(np.int)
-        normindexes = np.array([indexes for i in indexoffsets]).astype(np.int)
+        upperindexes = np.array([indexes + i for i in indexoffsets]).astype(int)
+        lowerindexes = np.array([indexes - i for i in indexoffsets]).astype(int)
+        normindexes = np.array([indexes for i in indexoffsets]).astype(int)
 
         upperindexes[upperindexes < 0] = normindexes[upperindexes < 0]
         lowerindexes[lowerindexes < 0] = normindexes[lowerindexes < 0]

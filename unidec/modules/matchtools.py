@@ -86,7 +86,7 @@ def get_sitematch_list(gdf, sites=None, probs_cutoff=0,
         inds = indexes[:, i]
         probs[i] = pvals[i][inds]
         masses[i] = mvals[i][inds]
-    probs = np.product(probs, axis=0)
+    probs = np.prod(probs, axis=0)
     masses = np.sum(masses, axis=0)
 
     if sort is not None:

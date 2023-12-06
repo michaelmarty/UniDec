@@ -20,6 +20,7 @@ class ChromEngine(MetaUniDec):
         self.outpath = None
         self.attrs = None
         self.scans = None
+        self.fullscans = None
         self.filename = None
         self.dirname = None
         self.path = None
@@ -91,7 +92,7 @@ class ChromEngine(MetaUniDec):
         self.auto_polarity(path, self.chromdat)
         self.tic = self.chromdat.get_tic()
         self.ticdat = np.array(self.tic)
-
+        self.fullscans = self.chromdat.scans
         return hdf5
 
     def get_data_from_scans(self, scan_range=None):
@@ -118,6 +119,9 @@ class ChromEngine(MetaUniDec):
 
         self.get_data_from_scans([minscan, maxscan])
         return self.mzdata
+
+    def get_minmax_times(self):
+        return np.amin(self.ticdat[:, 0]), np.amax(self.ticdat[:, 0])
 
     def get_times(self):
         starts = []

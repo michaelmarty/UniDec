@@ -2166,7 +2166,7 @@ def nonlinstickconv(xvals, mztab, fwhm, psfun):
         window = 15 * fwhm
     xlen = len(xvals)
     stick = np.zeros(xlen)
-    stick[np.array(mztab[:, 2]).astype(np.int)] = mztab[:, 1]
+    stick[np.array(mztab[:, 2]).astype(int)] = mztab[:, 1]
     bool1 = [np.abs(xvals - xvals[i]) < window for i in range(0, xlen)]
     kernels = np.array([make_peak_shape(-xvals[bool1[i]], psfun, fwhm, -xvals[i]) for i in range(0, xlen)],
                        dtype=object)
@@ -2183,7 +2183,7 @@ def stickconv(mztab, kernel):
     """
     xlen = len(kernel)
     temp = np.zeros(xlen)
-    temp[np.array(mztab[:, 2]).astype(np.int)] = mztab[:, 1]
+    temp[np.array(mztab[:, 2]).astype(int)] = mztab[:, 1]
     return cconv(temp, kernel)
 
 
@@ -2196,7 +2196,7 @@ def sticks_only(mztab, kernel):
     """
     xlen = len(kernel)
     temp = np.zeros(xlen)
-    temp[np.array(mztab[:, 2]).astype(np.int)] = mztab[:, 1]
+    temp[np.array(mztab[:, 2]).astype(int)] = mztab[:, 1]
     return temp
 
 
@@ -2255,11 +2255,11 @@ def combine(array2):
     lens = lengths(array2)
     tup = tuple(lens)
     startindex = array2[:, 2]
-    startindex = startindex.astype(np.int)
+    startindex = startindex.astype(int)
     basemass = array2[:, 0]
-    basemass = basemass.astype(np.float)
+    basemass = basemass.astype(float)
     omass = array2[:, 1]
-    omass = omass.astype(np.float)
+    omass = omass.astype(float)
     finlist = []
     for index in np.ndindex(tup):
         total = np.sum((index + startindex) * omass + basemass)
@@ -2284,13 +2284,13 @@ def index_to_oname(index, startindex, names):
 def combine_all(array2):
     lens = lengths(array2)
     tup = tuple(lens)
-    print("Starting combining all: ", np.product(lens))
+    print("Starting combining all: ", np.prod(lens))
     startindex = array2[:, 2]
-    startindex = startindex.astype(np.int)
+    startindex = startindex.astype(int)
     basemass = array2[:, 0]
-    basemass = basemass.astype(np.float)
+    basemass = basemass.astype(float)
     omass = array2[:, 1]
-    omass = omass.astype(np.float)
+    omass = omass.astype(float)
     # names = array2[:, 4]
 
     # namelist = np.array([index for index in np.ndindex(tup)])
@@ -2403,7 +2403,7 @@ def get_glyco_indexes(oligomerlist, printoutput=False):
 
 def pair_glyco_matches(oligomasslist, oligonames, oligomerlist):
     oligomerlist = np.array(oligomerlist)
-    startindex = oligomerlist[:, 2].astype(np.int)
+    startindex = oligomerlist[:, 2].astype(int)
 
     sindex, hindex, gindex, findex = get_glyco_indexes(oligomerlist)
 
@@ -2439,7 +2439,7 @@ def match(pks, oligomasslist, oligonames, oligomerlist, tolerance=None, return_n
     numbers = []
 
     oligomerlist = np.array(oligomerlist)
-    startindex = oligomerlist[:, 2].astype(np.int)
+    startindex = oligomerlist[:, 2].astype(int)
     onames = oligomerlist[:, 4]
 
     for i in range(0, pks.plen):
@@ -2493,7 +2493,7 @@ def cconv(a, b):
 
 
 def FD_gauss_wavelet(length, width):
-    xvals = np.arange(0, length).astype(np.float)
+    xvals = np.arange(0, length).astype(float)
     mu = np.round(length / 2)
     sigma = width
     return [stats.norm.pdf(x, mu, sigma) * (mu - x) / sigma ** 2 for x in xvals]

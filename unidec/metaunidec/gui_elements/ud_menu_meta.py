@@ -489,7 +489,7 @@ class meta_menu(wx.Menu):
         # print("Clicked", e)
         try:
             nid = e.GetId()
-            ids = self.masterd[:, 0].astype(np.float)
+            ids = self.masterd[:, 0].astype(float)
             pos = np.argmin(np.abs(ids - nid))
             path = self.masterd[pos, 1]
             print("Opening Config:", path)
@@ -502,7 +502,7 @@ class meta_menu(wx.Menu):
         # print("Clicked", e)
         try:
             nid = e.GetId()
-            ids = self.masterd2[:, 0].astype(np.float)
+            ids = self.masterd2[:, 0].astype(float)
             pos = np.argmin(np.abs(ids - nid))
             path = self.masterd2[pos, 1]
             print("Opening Path:", path)

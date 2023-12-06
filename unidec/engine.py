@@ -1285,8 +1285,8 @@ class UniDec(UniDecEngine):
             ints = []
             for p in self.pks.peaks:
                 scores = np.array([p.mscore, p.uscore, p.fscore, p.cs_score])  # p.rsquared,
-                p.dscore = np.product(scores)
-                p.lscore = np.product(scores[:-1])
+                p.dscore = np.prod(scores)
+                p.lscore = np.prod(scores[:-1])
                 dscores.append(p.dscore)
                 ints.append(p.height)
                 '''

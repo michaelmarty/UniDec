@@ -50,8 +50,6 @@ Config ImportConfig(int argc, char * argv[], Config config)
 
 int main(int argc, char *argv[])
 {
-	
-
 
 	int result = 0;
 

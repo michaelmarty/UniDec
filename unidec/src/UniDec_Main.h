@@ -34,6 +34,10 @@ Decon ExitToBlank(const Config config, Decon decon)
 
 Decon MainDeconvolution(const Config config, const Input inp, const int silent, const int verbose)
 {
+	//Insert time
+	time_t starttime;
+	starttime = clock();
+
 	Decon decon = SetupDecon();
 	char* barr = NULL;
 
@@ -574,6 +578,8 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	decon.uniscore = score(config, &decon, inp, scorethreshold, silent);
 
 	}
+	// Print out time
+	printf("Deconvolution Time: %f\n", (float)(clock() - starttime) / CLOCKS_PER_SEC);
 
 	//Free Memory
 	free(closeval);

@@ -1099,7 +1099,7 @@ class UniDecApp(UniDecPres):
             result = dialog.value
             if result != "None":
                 coeff = np.array(result.split())
-                coeff = coeff.astype(np.float)
+                coeff = coeff.astype(float)
             else:
                 coeff = None
             self.eng.data.rawdata = ud.cal_data(self.eng.data.rawdata, coeff)
