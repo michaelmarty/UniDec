@@ -203,7 +203,7 @@ class mzXMLimporter:
 
 
 if __name__ == "__main__":
-    test = u"C:\Data\Wilson_Genentech\Raw Files for Michael Marty\B4.mzXML"
+    test = u"C:\\Data\\Wilson_Genentech\\Raw Files for Michael Marty\\B4.mzXML"
     import time
 
     tstart = time.perf_counter()

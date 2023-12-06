@@ -550,16 +550,16 @@ class UniDecApp(UniDecPres):
             self.makeplot5(1)
             self.makeplot3(1)
             self.view.plot2ccs.plotrefreshtop(self.eng.data.ccsdata[:, 0], self.eng.data.ccsdata[:, 1],
-                                              title="CCS Distribution", xlabel="CCS (${\AA}$$^2$)", ylabel="Intensity",
+                                              title="CCS Distribution", xlabel="CCS (${\\AA}$$^2$)", ylabel="Intensity",
                                               label="CCS Summation", config=self.eng.config, nopaint=False)
             self.view.plot5mccs.contourplot(xvals=self.eng.data.massdat[:, 0], yvals=self.eng.data.ccsdata[:, 0],
                                             zgrid=np.ravel(self.eng.data.massccs), config=self.eng.config,
-                                            ylab="CCS (${\AA}$$^2$)", title="Mass vs. CCS", test_kda=True)
+                                            ylab="CCS (${\\AA}$$^2$)", title="Mass vs. CCS", test_kda=True)
 
             ccsgrid2, zgrid2 = np.meshgrid(self.eng.data.ztab, self.eng.data.ccsdata[:, 0], sparse=False, indexing='ij')
             self.view.plot5ccsz.contourplot(
                 np.transpose([np.ravel(ccsgrid2), np.ravel(zgrid2), np.ravel(self.eng.data.ccsz)]), self.eng.config,
-                xlab="Charge", ylab="CCS (${\AA}$$^2$)", title="CCS vs. Charge")
+                xlab="Charge", ylab="CCS (${\\AA}$$^2$)", title="CCS vs. Charge")
             print("Made IM Plots")
             try:
                 self.view.plot3color.make_color_plot(self.eng.data.mztgrid, np.unique(self.eng.data.data3[:, 0]),
@@ -626,7 +626,7 @@ class UniDecApp(UniDecPres):
                                       self.eng.data.massccs, self.eng.data.massgrid.reshape(
                     (len(self.eng.data.massdat), len(self.eng.data.ztab))), self.eng.data.ccsz.transpose(),
                                       xlab="Mass (Da)",
-                                      ylab="CCS (${\AA}$$^2$)", zlab="Charge", cmap=self.eng.config.cmap)
+                                      ylab="CCS (${\\AA}$$^2$)", zlab="Charge", cmap=self.eng.config.cmap)
             endtime = time.perf_counter()
             print("Finished Final Cube in: ", (endtime - starttime), " s")
         except Exception as ex:

@@ -490,7 +490,7 @@ def GetLines(InputFileName):
 def GetStartEndMass(RawFile):
     ce, s, e = None, None, None
     if platform.uname()[0] == 'Windows':
-        ParamFile = RawFile + "\_extern.inf"
+        ParamFile = RawFile + "\\_extern.inf"
     else:
         ParamFile = RawFile + "/_extern.inf"
 

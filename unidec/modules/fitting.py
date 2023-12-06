@@ -450,8 +450,8 @@ def complex_poisson(datatop, oarray=None, background=False):
 
 
 if __name__ == "__main__":
-    path = "C:\\UniDecPastedSpectra\PastedSpectrum_2017_Dec_11_09_02_49_unidecfiles\Extract_total_2D_Extract.txt"
-    path = "C:\\UniDecPastedSpectra\PastedSpectrum_2017_Dec_11_11_30_45_unidecfiles\Extract_total_2D_Extract.txt"
+    path = "C:\\UniDecPastedSpectra\\PastedSpectrum_2017_Dec_11_09_02_49_unidecfiles\\Extract_total_2D_Extract.txt"
+    path = "C:\\UniDecPastedSpectra\\PastedSpectrum_2017_Dec_11_11_30_45_unidecfiles\\Extract_total_2D_Extract.txt"
     data = np.loadtxt(path)[1:18]
     data[:, 1] -= np.amin(data[:, 1])
 
