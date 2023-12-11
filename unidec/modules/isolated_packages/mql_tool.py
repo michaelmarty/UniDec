@@ -29,7 +29,7 @@ class MQL_TOOL:
     def query(self, input_query, pks):
         self.input_query = input_query
         self.results_df = msql_engine.process_query(self.input_query, self.file, ms1_df=self.ms1_df, ms2_df=self.ms2_df)
-        mz = self.results_df["comment"].to_numpy(dtype=np.float)
+        mz = self.results_df["comment"].to_numpy(dtype=float)
         for p in pks.peaks:
             if np.any(p.mass == mz):
                 p.ignore = False

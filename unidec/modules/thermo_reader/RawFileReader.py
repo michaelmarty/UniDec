@@ -193,8 +193,10 @@ class RawFileReader(object):
         self.timerange = [self.StartTime, self.EndTime]
 
         self.get_scan_header()
+        self.get_status_log()
+        #self.get_tune_data()
 
-    def get_scan_header(self, scannumber=2):
+    def get_scan_header(self, scannumber=1):
         try:
             self.header = {}
             extra_header_info = self.source.GetTrailerExtraHeaderInformation()
@@ -217,6 +219,42 @@ class RawFileReader(object):
             self.header = None
             print("Error getting header")
         return None, None, None, None
+
+    def get_status_log(self, scannumber=1):
+        try:
+            self.statuslog = {}
+
+            status_log_info = self.source.GetStatusLogHeaderInformation()
+            status_log_values = self.source.GetStatusLogValues(int(scannumber), True).Values
+            status_log_values = DotNetArrayToNPArray(status_log_values, dtype=str)
+
+            for i in range(len(status_log_info)):
+                item = status_log_info[i]
+                self.statuslog[item.Label] = status_log_values[i]
+
+            try:
+                self.uhv_pressure = float(self.statuslog['UHV Sensor (mbar)'])
+            except:
+                self.uhv_pressure = None
+
+        except:
+            self.statuslog = None
+            print("Error getting status log")
+
+    def get_tune_data(self, scannumber=1):
+        try:
+            self.tunedata = {}
+
+            tune_data_info = self.source.GetTuneDataHeaderInformation()
+            tune_data_values = self.source.GetTuneDataValues(int(scannumber))
+            tune_data_values = DotNetArrayToNPArray(tune_data_values, dtype=str)
+
+            for i in range(len(tune_data_info)):
+                item = tune_data_info[i]
+                self.tunedata[item.Label] = tune_data_values[i]
+        except:
+            self.tunedata = None
+            print("Error getting tune data")
 
     def Get_Header_Item(self, item):
         return self.header[item]

@@ -10,6 +10,7 @@ from multiprocessing import freeze_support
 from os import listdir
 from PyInstaller import compat
 import matplotlib
+import hashing
 
 freeze_support()
 
@@ -147,6 +148,8 @@ for root, dirs, files in os.walk(outputdir):
         zipf.write(os.path.join(root, file), compress_type=zipfile.ZIP_DEFLATED)
 zipf.close()
 print("Zipped to", zipdirectory, "from", outputdir)
+
+hashing.hashfile(zipdirectory)
 
 tend = time.perf_counter()
 print("Build Time: %.2gm" % ((tend - tstart) / 60.0))

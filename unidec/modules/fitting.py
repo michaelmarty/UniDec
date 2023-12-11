@@ -397,8 +397,8 @@ def poisson_mono_di(datatop):
 def multipoisson(array, datatop, oarray, background=False):
     l = len(oarray)
     fitdat = np.zeros_like(datatop[:, 1])
-    integrals = np.empty_like(oarray).astype(np.float)
-    integrals2 = np.empty_like(oarray).astype(np.float)
+    integrals = np.empty_like(oarray).astype(float)
+    integrals2 = np.empty_like(oarray).astype(float)
     for i in range(0, l):
         oligomer = oarray[i]
         mu = array[i * 2]
@@ -450,8 +450,8 @@ def complex_poisson(datatop, oarray=None, background=False):
 
 
 if __name__ == "__main__":
-    path = "C:\\UniDecPastedSpectra\PastedSpectrum_2017_Dec_11_09_02_49_unidecfiles\Extract_total_2D_Extract.txt"
-    path = "C:\\UniDecPastedSpectra\PastedSpectrum_2017_Dec_11_11_30_45_unidecfiles\Extract_total_2D_Extract.txt"
+    path = "C:\\UniDecPastedSpectra\\PastedSpectrum_2017_Dec_11_09_02_49_unidecfiles\\Extract_total_2D_Extract.txt"
+    path = "C:\\UniDecPastedSpectra\\PastedSpectrum_2017_Dec_11_11_30_45_unidecfiles\\Extract_total_2D_Extract.txt"
     data = np.loadtxt(path)[1:18]
     data[:, 1] -= np.amin(data[:, 1])
 

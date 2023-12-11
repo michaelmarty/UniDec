@@ -1149,8 +1149,8 @@ class DataCollector(wx.Frame):
             maxsites = int(self.maxsites)
         except (ValueError, TypeError):
             maxsites = 0
-        model = UniFit.KDmodel(np.transpose(self.extract), self.yvals[:, 2].astype(np.float64),
-                               self.yvals[:, 1].astype(np.float64), nodelist, os.path.join(self.directory, "fits"),
+        model = UniFit.KDmodel(np.transpose(self.extract), self.yvals[:, 2].astype(float),
+                               self.yvals[:, 1].astype(float), nodelist, os.path.join(self.directory, "fits"),
                                numtotprot=self.numprot, numtotlig=self.numlig, removeoutliers=outlierflag,
                                plot1=self.plot2.subplot1,
                                plot2=self.plot3.axes, plot3=self.plot3h, bootnum=self.bootstrap, maxsites=maxsites,
@@ -1332,8 +1332,8 @@ class DataCollector(wx.Frame):
             dlg.Destroy()
             print("Openening: ", path)
             msdat = np.loadtxt(path)
-            mids = np.array([y[1] for y in self.yvals]).astype(np.float)
-            wins = np.array([y[2] for y in self.yvals]).astype(np.float)
+            mids = np.array([y[1] for y in self.yvals]).astype(float)
+            wins = np.array([y[2] for y in self.yvals]).astype(float)
 
             vals = []
             for i, m in enumerate(mids):

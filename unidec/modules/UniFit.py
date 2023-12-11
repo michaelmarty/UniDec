@@ -190,7 +190,7 @@ def MakeGrid(pfree, lfree, ureact, prottab, ligtab, paths, kds, nfactors):
     for i in range(0, len(ureact)):
         nump = ureact[i, 2, 0]
         numl = ureact[i, 2, 1]
-        denom = np.product([kds[j] for j in paths[i]])
+        denom = np.prod([kds[j] for j in paths[i]])
         if denom != 0:
             intgrid[nump, numl] += (pfree ** nump) * (lfree ** (numl * h)) / denom
     if nfactors is not None:
@@ -481,7 +481,7 @@ class KDmodel:
 
         if nodelist is None:
             nprot = np.ones(numtotlig + 1)
-            nodelist = np.transpose([nprot, self.nlig]).astype(np.int)
+            nodelist = np.transpose([nprot, self.nlig]).astype(int)
         self.kdargs.nodelist = np.array(nodelist)
 
         # Getting in the experimenatl data

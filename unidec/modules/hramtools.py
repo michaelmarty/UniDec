@@ -88,7 +88,7 @@ class HRAMSearchSpace:
 
     def generate_masses(self):
         lens = self.ends - self.starts + 1
-        print("Generating combinations:", lens, np.product(lens))
+        print("Generating combinations:", lens, np.prod(lens))
         self.indexes = np.array(list(np.ndindex(tuple(lens))))
         self.massvals = np.array([np.sum(self.isomasses * (i + self.starts)) for i in self.indexes])
 

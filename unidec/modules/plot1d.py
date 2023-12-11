@@ -432,7 +432,7 @@ class Plot1dBase(PlotBase):
         self.cbar = colorbar.ColorbarBase(cax, cmap=cmap2, orientation="vertical", ticks=ticks)
         ticks = ticks * max
         if max > 10:
-            ticks = np.round(ticks).astype(np.int)
+            ticks = np.round(ticks).astype(int)
         else:
             ticks = np.round(ticks, 1)
         ticks = ticks.astype(str)

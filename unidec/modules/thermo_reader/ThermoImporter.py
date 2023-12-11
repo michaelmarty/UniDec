@@ -26,7 +26,7 @@ class ThermoDataImporter:
         self.msrun = rr(path)
         self.scanrange = self.msrun.scan_range()
         # print(self.scanrange)
-        self.scans = np.arange(self.scanrange[0], self.scanrange[1])
+        self.scans = np.arange(self.scanrange[0], self.scanrange[1]+1)
         self.times = []
         self.data = None
         for s in self.scans:
@@ -64,7 +64,7 @@ class ThermoDataImporter:
         :return: merged data
         """
         if scan_range is not None:
-            scan_range = np.array(scan_range, dtype=np.int)
+            scan_range = np.array(scan_range, dtype=int)
             scan_range = scan_range + 1
         if time_range is not None:
             scan_range = self.get_scans_from_times(time_range)
@@ -163,6 +163,23 @@ class ThermoDataImporter:
             vs.append(an2)
         return np.array(vs)
 
+    def get_sid_voltage(self, scan=1):
+        try:
+            scan_mode = self.msrun.source.GetScanEventStringForScanNumber(scan)
+            #Find where sid= is in the string
+            sid_index = scan_mode.find("sid=")
+            #Find the next space after sid=
+            space_index = scan_mode.find(" ", sid_index)
+            #Get the sid value
+            sid_value = scan_mode[sid_index+4:space_index]
+            #Convert to float
+            sid_value = float(sid_value)
+        except:
+            sid_value = 0
+
+        return sid_value
+
+
     def get_polarity(self, scan=1):
         #print(dir(self.msrun.source))
         """
@@ -187,6 +204,7 @@ class ThermoDataImporter:
             print("Polarity: Negative")
             return "Negative"
         print("Polarity: Unknown")
+
         return None
 
 if __name__ == "__main__":
