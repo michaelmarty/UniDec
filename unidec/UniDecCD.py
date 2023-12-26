@@ -19,8 +19,8 @@ import platform
 
 class UniDecCDApp(UniDecApp):
     """
-    Main UniDec GUI Application.
-    Presenter contains UniDec engine at self.eng and main GUI window at self.view
+    Main UniDecCD GUI Application.
+    Presenter contains UniDecCD engine at self.eng and main GUI window at self.view
     """
 
     def __init__(self, *args, **kwargs):
@@ -46,9 +46,7 @@ class UniDecCDApp(UniDecApp):
 
         pub.subscribe(self.on_get_mzlimits, 'mzlimits')
         pub.subscribe(self.on_smash, 'smash')
-        '''
-        pub.subscribe(self.on_integrate, 'integrate')
-        pub.subscribe(self.on_left_click, 'left_click')'''
+
         self.eng.config.recentfile = self.eng.config.recentfileCD
         self.recent_files = self.read_recent()
         self.cleanup_recent_file(self.recent_files)
@@ -96,6 +94,17 @@ class UniDecCDApp(UniDecApp):
         dlg.Destroy()
 
     def on_open_file(self, filename, directory, path=None, refresh=False):
+        """
+        Opens a file. Run self.eng.open_file.
+        :param filename: File name
+        :param directory: Directory containing file
+        :param path: Full path to file
+        :param refresh: Refresh the data ranges from the file. Default False.
+        :return: None
+        """
+        self.on_open_cdms_file(filename, directory, path=path, refresh=refresh)
+
+    def on_open_cdms_file(self, filename, directory, path=None, refresh=False):
         """
         Opens a file. Run self.eng.open_file.
         :param filename: File name

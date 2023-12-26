@@ -9,6 +9,7 @@ from matplotlib.backends.backend_svg import FigureCanvasSVG
 # noinspection PyUnresolvedReferences
 import numpy as np
 from unidec.modules.isolated_packages.ZoomCommon import *
+from matplotlib.patches import Rectangle
 
 rcParams['ps.useafm'] = True
 rcParams['ps.fonttype'] = 42
@@ -246,6 +247,13 @@ class PlotBase(object):
         """
         self.subplot1.plot(np.array(x) / self.kdnorm, y, color=colval, marker=markval, linestyle='None', clip_on=True,
                            markeredgecolor="k", label=label, linewidth=linewidth)
+
+    def add_rect(self, xstart, ystart, xwidth, ywidth, alpha=0.5, facecolor="k", edgecolor='k', nopaint=False):
+        self.subplot1.add_patch(
+            Rectangle((xstart, ystart), xwidth, ywidth, alpha=alpha, facecolor=facecolor, edgecolor=edgecolor,
+                      fill=True))
+        if not nopaint:
+            self.repaint()
 
     def addtext(self, txt, x, y, vlines=True, hlines=False, color="k", ymin=0, ymax=None, verticalalignment="top",
                 xmin=0, xmax=None, nopaint=False, **kwargs):

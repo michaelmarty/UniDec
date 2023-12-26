@@ -567,7 +567,7 @@ void PrintHelp()
 	printf("\t\t\t\t\t\"tcal3\"=Calibration paramter 3 (P3)\n");
 	printf("\t\t\t\t5=SLIM T-Wave 3rd Order Polynomial Calibration\n");
 	printf("\t\t\t\t\t\"tcal4\"=Calibration parmater 4 (P4)\n");
-	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@email.arizona.edu) commit date 11/1/22\n");
+	printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@arizona.edu) commit date 12/26/23\n");
 	//printf("\nsize of: %d",sizeof(char));
 
 	/*
@@ -2680,21 +2680,22 @@ void make_isotopes(float* isoparams, int* isotopepos, float* isotopeval, float* 
 	}
 	float massdiff = 1.0026;
 
-	//float minmid = isotopemid(minmass, isoparams);
-	//float minsig = isotopesig(minmass, isoparams);
+	float minmid = isotopemid(minmass, isoparams);
+	float minsig = isotopesig(minmass, isoparams);
 	float maxmid = isotopemid(maxmass, isoparams);
 	float maxsig = isotopesig(maxmass, isoparams);
 
-	//int isostart = (int)(minmid - 4 * minsig);
-	int isostart = 0;
+	int isostart = (int)(minmid - 4 * minsig);
+	//int isostart = 0;
 	int isoend = (int)(maxmid + 4 * maxsig);
-	//if (isostart<0){ isostart = 0; }
+	if (isostart<0){ isostart = 0; }
 	if (isoend < 4) { isoend = 4; }
 	int isolength = isoend - isostart;
 	float* isorange = NULL;
 	int* isoindex = NULL;
 	isorange = (float*) calloc(isolength, sizeof(float));
 	isoindex = (int*) calloc(isolength, sizeof(int));
+
 	if (isorange&&isoindex){
 		for (i = 0; i < isolength; i++)
 		{
@@ -2719,7 +2720,8 @@ void make_isotopes(float* isoparams, int* isotopepos, float* isotopeval, float* 
 				}
 			}
 		}
-	#pragma omp parallel for private (i,j,k), schedule(auto)
+	
+#pragma omp parallel for private (i,j,k), schedule(auto)
 		for (i = 0; i < lengthmz; i++)
 		{
 			for (j = 0; j < numz; j++)
@@ -2838,7 +2840,9 @@ void setup_and_make_isotopes(Config* config, Input* inp) {
 	printf("Isotope Mode: %d\n", config->isotopemode);
 
 	config->isolength = setup_isotopes(inp->isoparams, inp->isotopepos, inp->isotopeval, inp->mtab, inp->nztab, inp->barr, inp->dataMZ, config->lengthmz, config->numz);
+
 	int l = config->isolength * config->lengthmz * config->numz;
+
 	inp->isotopepos = (int*)calloc(l , sizeof(int));
 	inp->isotopeval = (float*) calloc(l, sizeof(float));
 

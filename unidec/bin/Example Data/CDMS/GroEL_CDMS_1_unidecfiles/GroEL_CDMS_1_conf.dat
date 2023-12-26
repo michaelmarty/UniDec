@@ -1,4 +1,4 @@
-version 6.0.3
+version 6.0.5
 imflag 0
 cdmsflag 1
 input C:\Python\UniDec3\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat
@@ -21,8 +21,8 @@ msig 0.0
 molig 0.0
 massbins 10.0
 mtabsig 0.0
-minmz 10017.040865384615
-maxmz 12598.242788461539
+minmz 9992.689903846154
+maxmz 12573.891826923078
 subbuff 0.0
 subtype 0
 smooth 0.0

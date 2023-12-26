@@ -260,6 +260,8 @@ class UniDecConfig(object):
         self.CDslope = 0.2074
         self.CDzbins = 1
         self.CDres = 0
+        self.CDScanStart = -1
+        self.CDScanEnd = -1
 
         self.doubledec = False
         self.kernel = ""

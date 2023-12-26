@@ -195,6 +195,12 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.6.0.5
+
+Minor fixes to update compatibility for Python 3.11 and 3.12. 
+
+Fixed common crash bug when isotope mode is on. Added warnings for if isotope mode is on.
+
 v.6.0.4
 
 Added "Notes" option to UPP to add notes to the bottom of the report. Added peak and data normalization options to UPP spreadsheet inputs. See help file. 

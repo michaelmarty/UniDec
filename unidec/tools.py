@@ -20,6 +20,8 @@ from scipy import fftpack
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 from unidec.modules.fitting import *
+from itertools import cycle
+
 
 try:
     from unidec.modules.mzMLimporter import mzMLimporter
@@ -132,6 +134,11 @@ def get_luminance(color, type=2):
     l3 = np.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b)
     larray = [l1, l2, l3]
     return larray[type]
+
+
+def create_color_cycle(seq='bgrcmk'):
+    cycol = cycle(seq)
+    return cycol
 
 
 def match_files(directory, string, exclude=None):
@@ -1912,9 +1919,9 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
         call.append("-conv")
 
     if silent:
-        out = subprocess.call(call, stdout=subprocess.PIPE)
+        out = subprocess.call(call, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
     else:
-        out = subprocess.call(call)
+        out = subprocess.call(call, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
     return out
 
 
@@ -3177,17 +3184,16 @@ def subtract_and_divide(pks, basemass, refguess, outputall=False):
 if __name__ == "__main__":
     testdir = "C:\\Data\\AgilentData"
     testfile = "LYZ-F319-2-11-22-P1-A1.D"
-    #testfile = "2019_05_15_bsa_ccs_02.d"
+    # testfile = "2019_05_15_bsa_ccs_02.d"
     path = os.path.join(testdir, testfile)
 
     data = load_mz_file(path)
-
 
     exit()
     testfile = "C:\Python\\UniDec3\\TestSpectra\\test_imms.raw"
     # data = waters_convert(testfile)
     # print(np.amax(data))
-    data = waters_convert2(testfile)#, time_range=[0,1])
+    data = waters_convert2(testfile)  # , time_range=[0,1])
     # print(np.amax(data))
     print(data)
     exit()

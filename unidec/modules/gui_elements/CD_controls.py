@@ -8,7 +8,7 @@ import wx.lib.scrolledpanel as scrolled
 
 class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
     # noinspection PyMissingConstructor
-    def __init__(self, parent, config, pres, panel, iconfile):
+    def __init__(self, parent, config, pres, panel, iconfile, htmode=False):
         super(wx.Panel, self).__init__(panel)
         # super(scrolled.ScrolledPanel, self).__init__(parent=panel, style=wx.ALL | wx.EXPAND)
         # self.SetAutoLayout(1)
@@ -82,6 +82,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         style2b = fpb.CaptionBarStyle()
         style3 = fpb.CaptionBarStyle()
         style3b = fpb.CaptionBarStyle()
+        styleht = fpb.CaptionBarStyle()
 
         bright = 150
         bright2 = 200
@@ -102,6 +103,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         style2b.SetSecondColour(wx.Colour(255, 255, bright4))
         style3.SetSecondColour(wx.Colour(255, bright3, bright3))
         style3b.SetSecondColour(wx.Colour(255, bright4, bright4))
+
+        styleht.SetSecondColour(wx.Colour(0, bright4, 0))
 
         self.imflag = 0
 
@@ -179,6 +182,17 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox1b = wx.GridBagSizer(wx.VERTICAL)
         i = 0
 
+        self.ctlscanstart = wx.TextCtrl(panel1b, value="", size=(60, -1))
+        self.ctlscanend = wx.TextCtrl(panel1b, value="", size=(60, -1))
+        scanrange = wx.BoxSizer(wx.HORIZONTAL)
+        scanrange.Add(wx.StaticText(panel1b, label="Scan Range: "), 0, wx.ALIGN_CENTER_VERTICAL)
+        scanrange.Add(self.ctlscanstart)
+        scanrange.Add(wx.StaticText(panel1b, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
+        scanrange.Add(self.ctlscanend)
+        gbox1b.Add(scanrange, (i, 0), span=(1, 2))
+        i += 1
+
+
         self.ctlzbins = wx.TextCtrl(panel1b, value="", size=size1)
         gbox1b.Add(self.ctlzbins, (i, 1))
         gbox1b.Add(wx.StaticText(panel1b, label="Charge Bin Size: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -246,6 +260,26 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox1b.Fit(panel1b)
 
         self.foldpanels.AddFoldPanelWindow(foldpanel1b, panel1b, fpb.FPB_ALIGN_WIDTH)
+        if htmode:
+            foldpanelht = self.foldpanels.AddFoldPanel(caption="HT Parameters", collapsed=False, cbstyle=styleht)
+            panelht = wx.Panel(foldpanelht, -1)
+            sizercontrolht1 = wx.GridBagSizer(wx.VERTICAL)
+            i=0
+
+            self.runticht = wx.Button(panelht, -1, "Run TIC Hadamard Transform")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.on_run_tic_ht, self.runticht)
+            sizercontrolht1.Add(self.runticht, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1
+
+            self.runallht = wx.Button(panelht, -1, "Run All Hadamard Transform")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.on_run_all_ht, self.runallht)
+            sizercontrolht1.Add(self.runallht, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1
+
+            panelht.SetSizer(sizercontrolht1)
+            sizercontrolht1.Fit(panelht)
+            self.foldpanels.AddFoldPanelWindow(foldpanelht, panelht, fpb.FPB_ALIGN_WIDTH)
+            self.foldpanels.AddFoldPanelWindow(foldpanelht, wx.StaticText(foldpanelht, -1, " "), fpb.FPB_ALIGN_WIDTH)
 
         # Panel for unidec Parameters
         foldpanel2 = self.foldpanels.AddFoldPanel(caption="UniDec Parameters", collapsed=False, cbstyle=style2)
@@ -623,6 +657,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlmtabsig.SetValue(str(self.config.mtabsig))
             self.ctlmanualassign.SetValue(self.config.manualfileflag)            
             '''
+            self.ctlscanstart.SetValue(str(self.config.CDScanStart))
+            self.ctlscanend.SetValue(str(self.config.CDScanEnd))
+
             self.ctlzbins.SetValue(str(self.config.CDzbins))
             self.ctlcentroid.SetValue(str(self.config.CDres))
             self.ctlbinsize.SetValue(str(self.config.mzbins))
@@ -699,6 +736,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.minmz = ud.string_to_value(self.ctlminmz.GetValue())
         self.config.maxmz = ud.string_to_value(self.ctlmaxmz.GetValue())
         self.config.CDzbins = ud.string_to_value(self.ctlzbins.GetValue())
+        self.config.CDScanStart = ud.string_to_value(self.ctlscanstart.GetValue())
+        self.config.CDScanEnd = ud.string_to_value(self.ctlscanend.GetValue())
         self.config.CDres = ud.string_to_value(self.ctlcentroid.GetValue())
         self.config.CDslope = ud.string_to_value(self.ctlslope.GetValue())
         self.config.subtype = self.subtypectl.GetSelection()
@@ -810,6 +849,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlstartz.SetToolTip(wx.ToolTip("Minimum allowed charge state in deconvolution."))
         self.ctlendz.SetToolTip(wx.ToolTip("Maximum allowed charge state in deconvolution."))
         self.ctlzbins.SetToolTip(wx.ToolTip("Charge Bin Size for Histogram."))
+        self.ctlscanstart.SetToolTip(wx.ToolTip("Minimum scan number to include in deconvolution."))
+        self.ctlscanend.SetToolTip(wx.ToolTip("Maximum scan number to include in deconvolution."))
         self.ctlcentroid.SetToolTip(wx.ToolTip("Width for Centroid Filtering in units of m/z."))
         self.ctlbinsize.SetToolTip(wx.ToolTip(
             "Controls Linearization.\nConstant bin size (Th) for Linear m/z"

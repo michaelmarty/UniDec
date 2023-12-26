@@ -19,7 +19,7 @@ class CDMainwindow(MainwindowBase):
     Main UniDec GUI Window.
     """
 
-    def __init__(self, parent, title, config, iconfile=None, tabbed=None):
+    def __init__(self, parent, title, config, iconfile=None, tabbed=None, htmode=False):
         """
         initialize window and feed in links to presenter and config.
 
@@ -30,6 +30,7 @@ class CDMainwindow(MainwindowBase):
         """
         MainwindowBase.__init__(self, parent, title, config, iconfile, tabbed)
 
+        self.htmode=htmode
         if tabbed is None:
             # If tabbed isn't specified, use the display size to decide what is best
             print("Display Size ", self.displaysize)
@@ -176,6 +177,9 @@ class CDMainwindow(MainwindowBase):
             plotwindow.SetFocus()
             plotwindow.Bind(wx.EVT_SET_FOCUS, self.onFocus)
         self.plotpanel = plotwindow
+
+        #if self.htmode:
+        #    self.Bind(self.plot1.EVT_MZLIMITS, self.extract, self.plot1)
 
         self.plots = [self.plot1, self.plot2, self.plot5, self.plot4, self.plot3, self.plot6]
         self.plotnames = ["Figure1", "Figure2", "Figure5", "Figure4", "Figure3", "Figure6"]

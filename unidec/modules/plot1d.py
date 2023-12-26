@@ -6,7 +6,7 @@ from matplotlib.collections import LineCollection
 import matplotlib.colorbar as colorbar
 import matplotlib as mpl
 import matplotlib.cm as cm
-from matplotlib.patches import Rectangle
+
 from unidec.modules.PlotBase import PlotBase
 
 
@@ -24,7 +24,8 @@ class Plot1dBase(PlotBase):
         self.colors = []
 
     def plotrefreshtop(self, xvals, yvals, title="", xlabel="", ylabel="", label="", config=None, color="black",
-                       marker=None, zoom="box", nopaint=False, test_kda=False, integerticks=False, **kwargs):
+                       marker=None, zoom="box", nopaint=False, test_kda=False, integerticks=False, zoomout=False,
+                       **kwargs):
         """
         Create a new 1D plot.
         :param xvals: x values
@@ -40,6 +41,7 @@ class Plot1dBase(PlotBase):
         :param nopaint: Boolean, whether to repaint or not
         :param test_kda: Boolean, whether to attempt to plot kDa rather than Da
         :param integerticks: Boolean, whether to use inter tickmarks only
+        :param zoomout: Boolean, whether to zoom out
         :param kwargs: Keywords
         :return: None
         """
@@ -96,7 +98,10 @@ class Plot1dBase(PlotBase):
         self.subplot1.set_clip_on(True)
 
         if not nopaint:
-            self.repaint(setupzoom=True)
+            if zoomout:
+                self.repaint(setupzoom=True, resetzoom=True)
+            else:
+                self.repaint(setupzoom=True)
         self.flag = True
         self.mlist = []
         self.x1, self.x2 = None, None
@@ -218,12 +223,7 @@ class Plot1dBase(PlotBase):
         self.subplot1.fill_between(np.array(x) / self.kdnorm, y, y2=0, facecolor=color, alpha=0.75)
         self.data = np.transpose([x, y])
 
-    def add_rect(self, xstart, ystart, xwidth, ywidth, alpha=0.5, facecolor="k", edgecolor='k', nopaint=False):
-        self.subplot1.add_patch(
-            Rectangle((xstart, ystart), xwidth, ywidth, alpha=alpha, facecolor=facecolor, edgecolor=edgecolor,
-                      fill=True))
-        if not nopaint:
-            self.repaint()
+
 
     def histogram(self, xarray, labels=None, xlab="", ylab="", title=""):
         """

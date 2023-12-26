@@ -410,6 +410,10 @@ class UniDecApp(UniDecPres):
             self.view.SetStatusText("Error %.0g" % out, number=5)
             print("Error ", out)
             self.warn("Error %.0g" % out)
+        if self.eng.check_isomode():
+            self.view.SetStatusText("Warning: Isotope Mode On!", number=4)
+        else:
+            self.view.SetStatusText("", number=4)
         pass
 
     def after_unidec_run(self):

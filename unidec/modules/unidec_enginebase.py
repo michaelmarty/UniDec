@@ -183,7 +183,15 @@ class UniDecEngine:
         badness, warning = self.config.check_badness()
         if warning != "":
             print(warning)
+        self.check_isomode()
         return badness
+
+    def check_isomode(self):
+        if self.config.isotopemode != 0:
+            print("\nIsotope mode is on!!! If you are seeing errors, try turning this off.\n")
+            return True
+        else:
+            return False
 
     def auto_polarity(self, path=None, importer=None):
         if path is None:
