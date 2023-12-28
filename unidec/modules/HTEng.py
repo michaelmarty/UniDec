@@ -8,15 +8,13 @@ from modules.unidecstructure import DataContainer
 
 import matplotlib.pyplot as plt
 
-HTseqDict = {'2': '101', '3': '1110100', '4': '000100110101111', '5': '0000100101100111110001101110101',
-             '6': '000001000011000101001111010001110010010110111011001101010111111',
-             '7': '0000001000001100001010001111001000101100111010100111110100001110001001001101101011011110110001101001011101110011001010101111111',
-             '8': '000000010111000111011110001011001101100001111001110000101011111111001011110100101000011011101101111101011101000001100101010100011010110001100000100101101101010011010011111101110011001111011001000010000001110010010011000100111010101101000100010100100011111'}
-
 
 class HTEng:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.config.htmode = True
+
+        # Empty Arrays
         self.scans = []
         self.fullscans = []
         self.fulltime = []
@@ -24,21 +22,26 @@ class HTEng:
         self.htkernel = []
         self.fftk = []
         self.htoutput = []
+
+        # Index Values
         self.padindex = 0
         self.shiftindex = 0
         self.kernelroll = 0
         self.cycleindex = 0
+        self.config.HTcycleindex = -1
 
-        self.htseq = HTseqDict['3']
+        # Important Parameters that Should be Automatically Set by File Name
+        self.config.htbit = 3  # HT bit, should automatically grab this
+        self.config.htseq = ud.HTseqDict[str(self.config.htbit)]  # HT Sequence, should automatically set this
 
-        self.analysistime = 38  # total analysis time in min, should automatically grab this
-        self.timespacing = 0.165576  # Scan time, should automatically grab this
-        self.cycletime = 2.0  # Total cycle time, should automatically grab this
-        self.timepad = 0  # Length of time pad, should automatically grab this
+        self.config.HTcycletime = 2.0  # Total cycle time, should automatically grab this
+        self.config.HTtimepad = 0  # Length of time pad, should automatically grab this
 
-        self.timeshift = 7  # How far back in time to shift
+        # Important Parameters that the User may have to Set
+        self.config.HTanalysistime = 38  # total analysis time in min, should automatically grab this but not for CDMS
+        self.config.HTtimeshift = 7  # How far back in time to shift
+        self.config.HTksmooth = 0  # Kernel Smooth
 
-        self.kernelsmooth = 5  # Kernel smoothing width
         print("HT Engine")
 
     def parse_file_name(self, path):
@@ -46,43 +49,45 @@ class HTEng:
             # Find location of cyc and take next character
             cycindex = path.find("cyc")
             cyc = int(path[cycindex + 3])
-            self.cycletime = float(cyc)
+            self.config.HTcycletime = float(cyc)
 
         if "zp" in path:
             # Find location of zp and take next character
             zpindex = path.find("zp")
             zp = float(path[zpindex + 2])
-            self.timepad = zp * self.cycletime
+            self.config.HTtimepad = zp * self.config.HTcycletime
 
         if "bit" in path:
             # Find location of bit and take next character
             bitindex = path.find("bit")
-            bit = int(path[bitindex + 3])
+            self.config.htbit = int(path[bitindex + 3])
             try:
-                self.htseq = HTseqDict[str(bit)]
+                self.config.htseq = ud.HTseqDict[str(self.config.htbit)]
             except KeyError as e:
                 print("ERROR: Bit not found in dictionary. Using 3 bit sequence.")
                 print(e)
-                self.htseq = '1110100'
+                self.config.htseq = '1110100'
+                self.config.htbit = 3
 
-        print("Cycle Time:", self.cycletime, "Time Pad:", self.timepad, "HT Sequence:", self.htseq)
+        print("Cycle Time:", self.config.HTcycletime, "Time Pad:", self.config.HTtimepad,
+              "HT Sequence:", self.config.htseq)
 
     def setup_ht(self, cycleindex=None):
         """
         Sets up the HT kernel for deconvolution. This is a binary sequence that is convolved with the data to
         deconvolve the data. The sequence is defined by the htseq variable. The timepad and timeshift variables
-        shift the sequence in time. The kernelsmooth variable smooths the kernel to reduce ringing.
+        shift the sequence in time. The config.HTksmooth variable smooths the kernel to reduce ringing.
         :param cycleindex: The length of a cycle in number of scans.
             If not specified, default is the full number of scans divided by the number of cycles.
         :return: None
         """
         # Finds the number of scans that are padded
-        if self.timepad > 0:
-            self.padindex = self.set_timepad_index(self.timepad)
+        if self.config.HTtimepad > 0:
+            self.padindex = self.set_timepad_index(self.config.HTtimepad)
 
-        if self.timeshift >= 0:
+        if self.config.HTtimeshift >= 0:
             # Index for the first scan above the timepad
-            padindex2 = self.set_timepad_index(self.timeshift)
+            padindex2 = self.set_timepad_index(self.config.HTtimeshift)
             # Describes the number of scans to shift the data back by
             self.shiftindex = self.padindex - padindex2
 
@@ -93,7 +98,7 @@ class HTEng:
                   "Likely need to decrease timeshift. Setting to 0.")
 
         # Convert sequence to array
-        seqarray = np.array([int(s) for s in self.htseq])
+        seqarray = np.array([int(s) for s in self.config.htseq])
         seqarray = seqarray * 2 - 1
         shortkernel = seqarray
 
@@ -103,18 +108,24 @@ class HTEng:
 
         scaledkernel = np.arange(len(shortkernel)) / (len(shortkernel))
         kernelscans = scaledkernel * (np.amax(self.scans) - self.padindex)
-        self.cycleindex = np.round(kernelscans[1])
+
+        if cycleindex is None:
+            if self.config.HTcycleindex <= 0:
+                self.cycleindex = np.round(kernelscans[1])
+            else:
+                cycleindex = int(self.config.HTcycleindex)
 
         # Correct the cycle time to be not a division of the total sequence length but a fixed number of scans
         if cycleindex is not None:
             diff = np.amax(self.scans) - self.padindex - cycleindex * len(shortkernel)
-            self.padindex += diff + 1
+            self.padindex += int(diff) + 1
             kernelscans = np.arange(len(shortkernel)) * cycleindex
+            self.cycleindex = int(cycleindex)
             print("Correction Diff:", diff)
 
         # Create the HT kernel
-        self.htkernel = np.zeros_like(self.fullscans[self.padindex:]).astype(float)
-        print("HT Kernel Length:", len(self.htkernel), self.padindex, cycleindex)
+        self.htkernel = np.zeros_like(self.fullscans[int(self.padindex):]).astype(float)
+        print("HT Kernel Length:", len(self.htkernel), "Pad Index:", self.padindex, "Cycle Index:", self.cycleindex)
 
         index = 0
         for i, s in enumerate(self.fullscans):
@@ -126,14 +137,14 @@ class HTEng:
                     break
 
         # Smooth the kernel if desired
-        if self.kernelsmooth > 0:
+        if self.config.HTksmooth > 0:
             self.gausskernel = np.zeros_like(self.htkernel)
-            self.gausskernel += ndis(self.fullscans[self.padindex:], self.padindex, self.kernelsmooth)
+            self.gausskernel += ndis(self.fullscans[self.padindex:], self.padindex, self.config.HTksmooth)
             self.gausskernel += ndis(self.fullscans[self.padindex:], np.amax(self.fullscans[self.padindex:]) + 1,
-                                     self.kernelsmooth)
-            self.gausskernel /= np.amax(self.gausskernel)
+                                     self.config.HTksmooth)
+            self.gausskernel /= np.sum(self.gausskernel)
             self.fftg = np.fft.fft(self.gausskernel)
-            self.htkernel = np.fft.ifft(np.fft.fft(self.htkernel) * self.fftg).real
+            self.htkernel = np.fft.ifft(np.fft.fft(self.htkernel) * self.fftg)
 
         # Make fft of kernel for later use
         self.fftk = np.fft.fft(self.htkernel).conj()
@@ -148,8 +159,10 @@ class HTEng:
         # Whether to smooth the data before deconvolution
         if "gsmooth" in kwargs:
             data = scipy.ndimage.gaussian_filter1d(data, kwargs["gsmooth"])
+            print("Gaussian Smoothing")
         if "sgsmooth" in kwargs:
             data = scipy.signal.savgol_filter(data, kwargs["sgsmooth"], 2)
+            print("Savitzky-Golay Smoothing")
 
         # Set the range of indexes used in the deconvolution
         # Starts at the pad but shift will move it back
@@ -158,7 +171,7 @@ class HTEng:
         #      len(data))
         # Do the convolution
         output = np.fft.ifft(
-            np.fft.fft(data[self.indexrange[0]:self.indexrange[1]]) * self.fftk).real
+            np.fft.fft(data[self.indexrange[0]:self.indexrange[1]]) * self.fftk)
 
         # Shift the output back to the original time
         if self.padindex > 0:
@@ -195,7 +208,9 @@ class HTEng:
             peakindex = 0
         return peakindex
 
-    def get_cycle_time(self, data, cycleindexguess=None, widthguess=110):
+    def get_cycle_time(self, data=None, cycleindexguess=None, widthguess=110):
+        if data is None:
+            data = self.fulltic
         # autocorrelation of the data
         ac = np.correlate(data, data, mode="same")
         # Get peak after largest peak
@@ -207,9 +222,9 @@ class HTEng:
             maxindex = len(ac) - 2 * widthguess - 1
         # Get first peak
         self.cycleindex = np.argmax(ac[widthguess:widthguess + maxindex]) + widthguess
-        self.timespacing = np.amax(self.fulltime) / len(self.fulltime)
-        self.cycletime = self.cycleindex * self.timespacing
-        print(self.cycleindex, self.cycletime)
+        timespacing = np.amax(self.fulltime) / len(self.fulltime)
+        self.config.HTcycletime = self.cycleindex * timespacing
+        print("Cycle Index:", self.cycleindex, "Cycle Time:", self.config.HTcycletime)
         return ac
 
 
@@ -221,7 +236,7 @@ class UniChromHT(HTEng, ChromEngine):
     def open_file(self, path):
         self.open_chrom(path)
         times = self.get_minmax_times()
-        self.analysistime = np.amax(times[1])
+        self.config.HTanalysistime = np.amax(times[1])
         self.fullscans -= np.amin(self.fullscans)
         self.scans = np.array(self.fullscans)
         self.parse_file_name(path)
@@ -266,6 +281,11 @@ class UniDecCDHT(HTEng, UniDecCD):
         self.open_cdms_file(path, refresh=refresh)
         self.parse_file_name(path)
 
+    def prep_time_domain(self):
+        self.scans = np.unique(self.farray[:, 2])
+        self.fullscans = np.arange(1, np.amax(self.scans) + 1)
+        self.fulltime = self.fullscans * self.config.HTanalysistime / np.amax(self.fullscans)
+
     def process_data_scans(self, transform=True):
         """
         Main function for processing CDMS data, includes filtering, converting intensity to charge, histogramming,
@@ -278,9 +298,7 @@ class UniDecCDHT(HTEng, UniDecCD):
         starttime = time.perf_counter()
         self.process_data()
 
-        self.scans = np.unique(self.farray[:, 2])
-        self.fullscans = np.arange(1, np.amax(self.scans) + 1)
-        self.fulltime = self.fullscans * self.analysistime / np.amax(self.fullscans)
+        self.prep_time_domain()
 
         self.topfarray = deepcopy(self.farray)
         self.topzarray = deepcopy(self.zarray)
@@ -381,14 +399,13 @@ class UniDecCDHT(HTEng, UniDecCD):
         harray = np.transpose(harray)
         return harray
 
-    def get_eic(self, farray, *args, **kwargs):
+    def create_chrom(self, farray, *args, **kwargs):
         # Count of number of time each scans appears in farray
         scans, counts = np.unique(farray[:, 2], return_counts=True)
 
         fulleic = np.zeros_like(self.fullscans)
         for i, s in enumerate(scans):
             fulleic[int(s) - 1] = counts[i]
-
         # Normalize
         if "normalize" in kwargs:
             if kwargs["normalize"]:
@@ -398,9 +415,10 @@ class UniDecCDHT(HTEng, UniDecCD):
         return np.transpose([self.fulltime, fulleic])
 
     def get_tic(self, farray=None, *args, **kwargs):
+        self.prep_time_domain()
         if farray is None:
             farray = self.farray
-        fulltic = self.get_eic(farray, *args, **kwargs)
+        fulltic = self.create_chrom(farray, *args, **kwargs)
         self.fulltic = fulltic[:, 1]
         return fulltic
 
@@ -410,7 +428,7 @@ class UniDecCDHT(HTEng, UniDecCD):
         self.htoutput = self.htdecon(self.fulltic, *args, **kwargs)
         return np.transpose([self.fulltime, self.htoutput])
 
-    def eic_ht(self, mzrange, zrange, *args, **kwargs):
+    def get_eic(self, mzrange, zrange, *args, **kwargs):
         # Filter farray
         b1 = self.farray[:, 0] >= mzrange[0]
         b2 = self.farray[:, 0] <= mzrange[1]
@@ -422,7 +440,11 @@ class UniDecCDHT(HTEng, UniDecCD):
         farray2 = self.farray[b]
 
         # Create EIC
-        eic = self.get_eic(farray2)
+        eic = self.create_chrom(farray2, *args, **kwargs)
+        return eic
+
+    def eic_ht(self, mzrange, zrange, *args, **kwargs):
+        eic = self.get_eic(mzrange, zrange, *args, **kwargs)
         self.setup_ht()
         self.htoutput = self.htdecon(eic[:, 1], *args, **kwargs)
         return np.transpose([self.fulltime, self.htoutput]), eic

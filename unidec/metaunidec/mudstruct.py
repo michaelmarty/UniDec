@@ -70,7 +70,6 @@ class MetaDataSet:
                 pass
         hdf.close()
 
-
     def export_hdf5(self, file=None, vars_only=False, delete=False):
         if file is None:
             file = self.filename
@@ -363,6 +362,7 @@ class MetaDataSet:
         for i, s in enumerate(self.spectra):
             colors.append(s.color)
         return np.array(colors)
+
 
 class Spectrum:
     def __init__(self, topname, index, eng):

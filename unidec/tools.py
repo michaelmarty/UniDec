@@ -55,6 +55,11 @@ oxmass = 15.994914
 known_extensions = [".raw", ".d", ".mzml", ".gz", ".mzml.gz", ".mzxml", ".mzML", ".mzML.gz", ".mzXML",
                     ".txt", ".csv", ".dat", ".npz"]
 
+HTseqDict = {'2': '101', '3': '1110100', '4': '000100110101111', '5': '0000100101100111110001101110101',
+             '6': '000001000011000101001111010001110010010110111011001101010111111',
+             '7': '0000001000001100001010001111001000101100111010100111110100001110001001001101101011011110110001101001011101110011001010101111111',
+             '8': '000000010111000111011110001011001101100001111001110000101011111111001011110100101000011011101101111101011101000001100101010100011010110001100000100101101101010011010011111101110011001111011001000010000001110010010011000100111010101101000100010100100011111'}
+
 
 def get_importer(path):
     extension = os.path.splitext(path)[1]
@@ -2541,7 +2546,7 @@ def continuous_wavelet_transform(a, widths, wavelet_type="Ricker"):
     return signal.cwt(a, wavelet, widths)
 
 
-def autocorr(datatop, config=None):
+def autocorr(datatop, config=None, window=None):
     """
     Note: ASSUMES LINEARIZED DATA
     :param datatop: 1D data
@@ -2566,7 +2571,7 @@ def autocorr(datatop, config=None):
         corrx = corrx - corrx[maxpos]
         autocorr = np.transpose([corrx, corry])
         boo1 = autocorr[:, 0] > xdiff
-        cpeaks = peakdetect(autocorr[boo1], config)
+        cpeaks = peakdetect(autocorr[boo1], config, window=window)
         return autocorr, cpeaks
 
     else:

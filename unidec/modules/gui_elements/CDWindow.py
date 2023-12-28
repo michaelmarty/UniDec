@@ -9,6 +9,7 @@ from unidec.modules import PlottingWindow
 from unidec.modules import miscwindows
 from unidec.modules.gui_elements import peaklistsort
 from unidec.modules.gui_elements.mainwindow_base import MainwindowBase
+from unidec.modules.gui_elements.HTCD_ListCtrls import ListCtrlPanel
 
 __author__ = 'Michael.Marty'
 
@@ -30,7 +31,7 @@ class CDMainwindow(MainwindowBase):
         """
         MainwindowBase.__init__(self, parent, title, config, iconfile, tabbed)
 
-        self.htmode=htmode
+        self.htmode = htmode
         if tabbed is None:
             # If tabbed isn't specified, use the display size to decide what is best
             print("Display Size ", self.displaysize)
@@ -140,6 +141,12 @@ class CDMainwindow(MainwindowBase):
             miscwindows.setup_tab_box(tab5, self.plot5)
             miscwindows.setup_tab_box(tab6, self.plot6)
 
+            if self.htmode:
+                self.plottic = PlottingWindow.Plot1d(tab1, figsize=figsize)
+                tabtic = wx.Panel(plotwindow)
+                miscwindows.setup_tab_box(tabtic, self.plottic)
+                plotwindow.AddPage(tabtic, "Chromatogram")
+
             plotwindow.AddPage(tab1, "CD-MS Data")
             plotwindow.AddPage(tab3, "Charge Distribution")
             plotwindow.AddPage(tab2, "Mass Distribution")
@@ -160,12 +167,18 @@ class CDMainwindow(MainwindowBase):
             self.plot5 = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
             self.plot6 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
 
-            sizerplot.Add(self.plot1, (0, 0), span=(1, 1), flag=wx.EXPAND)
-            sizerplot.Add(self.plot2, (0, 1), span=(1, 1), flag=wx.EXPAND)
-            sizerplot.Add(self.plot3, (1, 0), span=(1, 1), flag=wx.EXPAND)
-            sizerplot.Add(self.plot4, (1, 1), span=(1, 1), flag=wx.EXPAND)
-            sizerplot.Add(self.plot5, (2, 0), span=(1, 1), flag=wx.EXPAND)
-            sizerplot.Add(self.plot6, (2, 1), span=(1, 1), flag=wx.EXPAND)
+            i = 0
+            if self.htmode:
+                self.plottic = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
+                sizerplot.Add(self.plottic, (0, 0), span=(1, 2), flag=wx.EXPAND)
+                i += 1
+
+            sizerplot.Add(self.plot1, (i, 0), span=(1, 1), flag=wx.EXPAND)
+            sizerplot.Add(self.plot2, (i, 1), span=(1, 1), flag=wx.EXPAND)
+            sizerplot.Add(self.plot3, (i + 1, 0), span=(1, 1), flag=wx.EXPAND)
+            sizerplot.Add(self.plot4, (i + 1, 1), span=(1, 1), flag=wx.EXPAND)
+            sizerplot.Add(self.plot5, (i + 2, 0), span=(1, 1), flag=wx.EXPAND)
+            sizerplot.Add(self.plot6, (i + 2, 1), span=(1, 1), flag=wx.EXPAND)
 
             # plotwindow.SetScrollbars(1, 1,1,1)
             if self.system == "Linux":
@@ -178,11 +191,16 @@ class CDMainwindow(MainwindowBase):
             plotwindow.Bind(wx.EVT_SET_FOCUS, self.onFocus)
         self.plotpanel = plotwindow
 
-        #if self.htmode:
+        # if self.htmode:
         #    self.Bind(self.plot1.EVT_MZLIMITS, self.extract, self.plot1)
 
         self.plots = [self.plot1, self.plot2, self.plot5, self.plot4, self.plot3, self.plot6]
         self.plotnames = ["Figure1", "Figure2", "Figure5", "Figure4", "Figure3", "Figure6"]
+
+        if self.htmode:
+            self.plots = [self.plottic] + self.plots
+            self.plotnames = ["Chromatogram"] + self.plotnames
+            self.plottic._axes = [0.07, 0.11, 0.9, 0.8]
 
         # ...........................
         #
@@ -191,9 +209,17 @@ class CDMainwindow(MainwindowBase):
         # ...........................
 
         sizerpeaks = wx.BoxSizer(wx.VERTICAL)
-        self.peakpanel = peaklistsort.PeakListCtrlPanel(panelp)
+        if self.htmode:
+            self.peakpanel = peaklistsort.PeakListCtrlPanel(panelp, size=(300, 500))
+        else:
+            self.peakpanel = peaklistsort.PeakListCtrlPanel(panelp)
         self.bind_peakpanel()
         sizerpeaks.Add(self.peakpanel, 0, wx.EXPAND)
+
+        if self.htmode:
+            self.chrompanel = ListCtrlPanel(panelp, self.pres, size=(300, 300))
+            sizerpeaks.Add(self.chrompanel, 0, wx.EXPAND)
+
         panelp.SetSizer(sizerpeaks)
         sizerpeaks.Fit(self)
 
@@ -203,7 +229,8 @@ class CDMainwindow(MainwindowBase):
         #
         # .............................
         sizercontrols = wx.BoxSizer(wx.VERTICAL)
-        self.controls = CD_controls.main_controls(self, self.config, self.pres, panel, self.icon_path)
+        self.controls = CD_controls.main_controls(self, self.config, self.pres, panel, self.icon_path,
+                                                  htmode=self.htmode)
         sizercontrols.Add(self.controls, 1, wx.EXPAND)
         panel.SetSizer(sizercontrols)
         sizercontrols.Fit(self)

@@ -156,6 +156,9 @@ class UniDecCDApp(UniDecApp):
         self.on_open_file(None, None, path=newfile)
 
     def on_dataprep_button(self, e=None):
+        self.dataprep()
+
+    def dataprep(self):
         self.view.clear_all_plots()
         self.export_config(self.eng.config.confname)
         self.eng.process_data()
@@ -238,7 +241,7 @@ class UniDecCDApp(UniDecApp):
         self.view.SetStatusText("Detecting Peaks", number=5)
         tstart = time.perf_counter()
         self.export_config(self.eng.config.confname)
-        self.eng.pick_peaks()
+        self.eng.pick_peaks(calc_dscore=False)
         self.view.SetStatusText("Plotting Peaks", number=5)
         if self.eng.config.batchflag == 0:
             self.view.peakpanel.add_data(self.eng.pks)

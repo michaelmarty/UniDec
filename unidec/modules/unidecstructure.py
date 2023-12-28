@@ -76,6 +76,7 @@ class UniDecConfig(object):
         self.massgridfile = ''
         self.massdatfile = ''
         self.cdrawextracts = ''
+        self.cdchrom = ''
         self.mzgridfile = ''
         self.cdcreaderpath = ''
         self.UniDecPath = ''
@@ -263,6 +264,18 @@ class UniDecConfig(object):
         self.CDScanStart = -1
         self.CDScanEnd = -1
 
+        # Hadamard Transform Parameters
+        self.htmode = False
+        self.htseq = ""
+        self.htbit = 0
+        self.HTksmooth = 0
+        self.HTanalysistime = 38.0
+        self.HTcycletime = 2.0
+        self.HTtimepad = 0.0
+        self.HTtimeshift = 7.0
+        self.HTcycleindex = -1
+        self.HTxaxis = "Time"
+
         self.doubledec = False
         self.kernel = ""
 
@@ -421,6 +434,9 @@ class UniDecConfig(object):
         self.CDslope = 0.2074
         self.CDzbins = 1
         self.CDres = 0
+        self.CDScanStart = -1
+        self.CDScanEnd = -1
+        self.HTksmooth = 0
 
         self.doubledec = False
         self.kernel = ""
@@ -537,6 +553,10 @@ class UniDecConfig(object):
         f.write("CDslope " + str(self.CDslope) + "\n")
         f.write("CDzbins " + str(self.CDzbins) + "\n")
         f.write("CDres " + str(self.CDres) + "\n")
+        f.write("CDScanStart " + str(self.CDScanStart) + "\n")
+        f.write("CDScanEnd " + str(self.CDScanEnd) + "\n")
+        f.write("HTksmooth " + str(self.HTksmooth) + "\n")
+
         f.write("csig " + str(self.csig) + "\n")
         f.write("smoothdt " + str(self.smoothdt) + "\n")
         f.write("subbufdt " + str(self.subbufdt) + "\n")
@@ -651,7 +671,12 @@ class UniDecConfig(object):
                             self.CDzbins = ud.string_to_value(line.split()[1])
                         if line.startswith("CDres"):
                             self.CDres = ud.string_to_value(line.split()[1])
-
+                        if line.startswith("CDScanStart"):
+                            self.CDScanStart = ud.string_to_int(line.split()[1])
+                        if line.startswith("CDScanEnd"):
+                            self.CDScanEnd = ud.string_to_int(line.split()[1])
+                        if line.startswith("HTksmooth"):
+                            self.HTksmooth = ud.string_to_value(line.split()[1])
                         if line.startswith("zzsig"):
                             self.zzsig = ud.string_to_value(line.split()[1])
                         if line.startswith("psig"):
@@ -1087,6 +1112,7 @@ class UniDecConfig(object):
         self.deconfile = self.outfname + "_decon.txt"
         self.mzgridfile = self.outfname + "_grid.bin"
         self.cdrawextracts = self.outfname + "_rawdata.npz"
+        self.cdchrom = self.outfname + "_chroms.txt"
         if self.filetype == 0:
             self.hdf_file = self.outfname + ".hdf5"
 
@@ -1503,6 +1529,71 @@ class DataContainer:
         self.ccsdata = immsdata.get("ccs_data")
         self.baseline = config_group.get("baseline")
         hdf.close()
+
+
+class Chromatogram:
+    def __init__(self):
+        self.chromdat = np.array([])
+        self.label = ""
+        self.color = "#000000"
+        self.index = 0
+        self.mzrange = [-1, -1]
+        self.zrange = [-1, -1]
+        self.sum = -1
+        self.ignore = 0
+        self.ht = False
+
+    def to_row(self):
+        out = [self.label, str(self.color), str(self.index), str(self.mzrange[0]), str(self.mzrange[1]),
+               str(self.zrange[0]), str(self.zrange[1]), str(self.sum), str(self.ht)]
+        return out
+
+
+class ChromatogramContainer:
+    def __init__(self):
+        self.chromatograms = []
+
+    def add_chromatogram(self, data, label=None, color="#000000", index=None, mzrange=None, zrange=None, ht=False):
+        chrom = Chromatogram()
+        chrom.chromdat = data
+        chrom.sum = np.sum(data[:, 1])
+
+        if label is None:
+            label = ""
+            if mzrange is not None:
+                label += "m/z: " + str(round(mzrange[0])) + "-" + str(round(mzrange[1]))
+            if zrange is not None:
+                label += " z: " + str(round(zrange[0])) + "-" + str(round(zrange[1]))
+            if ht:
+                label += " HT"
+
+        chrom.label = label
+
+        chrom.color = color
+
+        if index is not None:
+            chrom.index = index
+        else:
+            chrom.index = len(self.chromatograms)
+
+        if mzrange is not None:
+            chrom.mzrange = mzrange
+
+        if zrange is not None:
+            chrom.zrange = zrange
+
+        self.ht = ht
+
+        self.chromatograms.append(chrom)
+
+    def clear(self):
+        self.chromatograms = []
+
+    def to_array(self):
+        arr = []
+        for chrom in self.chromatograms:
+            arr.append(chrom.to_row())
+        return np.array(arr).astype(str)
 
 
 if __name__ == '__main__':

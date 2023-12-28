@@ -13,7 +13,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         # super(scrolled.ScrolledPanel, self).__init__(parent=panel, style=wx.ALL | wx.EXPAND)
         # self.SetAutoLayout(1)
         # self.SetupScrolling(scroll_x=False)
-
+        self.htmode = htmode
         self.parent = parent
         self.config = config
         self.pres = pres
@@ -192,7 +192,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox1b.Add(scanrange, (i, 0), span=(1, 2))
         i += 1
 
-
         self.ctlzbins = wx.TextCtrl(panel1b, value="", size=size1)
         gbox1b.Add(self.ctlzbins, (i, 1))
         gbox1b.Add(wx.StaticText(panel1b, label="Charge Bin Size: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -264,16 +263,80 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             foldpanelht = self.foldpanels.AddFoldPanel(caption="HT Parameters", collapsed=False, cbstyle=styleht)
             panelht = wx.Panel(foldpanelht, -1)
             sizercontrolht1 = wx.GridBagSizer(wx.VERTICAL)
-            i=0
+            i = 0
 
+            # Button for Run TIC HT
             self.runticht = wx.Button(panelht, -1, "Run TIC Hadamard Transform")
             self.parent.Bind(wx.EVT_BUTTON, self.pres.on_run_tic_ht, self.runticht)
             sizercontrolht1.Add(self.runticht, (i, 0), span=(1, 2), flag=wx.EXPAND)
             i += 1
 
+            # Button for Run EIC HT
+            self.runeicht = wx.Button(panelht, -1, "Run EIC Hadamard Transform")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.on_run_eic_ht, self.runeicht)
+            sizercontrolht1.Add(self.runeicht, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1
+
             self.runallht = wx.Button(panelht, -1, "Run All Hadamard Transform")
             self.parent.Bind(wx.EVT_BUTTON, self.pres.on_run_all_ht, self.runallht)
             sizercontrolht1.Add(self.runallht, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1
+
+            # Text Control for Kernel Smoothing
+            self.ctlkernelsmooth = wx.TextCtrl(panelht, value="", size=size1)
+            sizercontrolht1.Add(self.ctlkernelsmooth, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="Kernel Smoothing: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Text Control for HTtimeshift
+            self.ctlhttimeshift = wx.TextCtrl(panelht, value="", size=size1)
+            sizercontrolht1.Add(self.ctlhttimeshift, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="Time Shift: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Text Control for Analysis Time
+            self.ctlanalysistime = wx.TextCtrl(panelht, value="", size=size1)
+            sizercontrolht1.Add(self.ctlanalysistime, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="Analysis Time: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Drop down menu for X-axis
+            self.ctlxaxis = wx.Choice(panelht, -1, choices=["Time", "Scans"])
+            self.ctlxaxis.SetSelection(0)
+            sizercontrolht1.Add(self.ctlxaxis, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="X-Axis: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Drop down for HTseq
+            self.ctlhtseq = wx.Choice(panelht, -1, choices=list(ud.HTseqDict.keys()))
+            self.ctlhtseq.SetSelection(3)
+            sizercontrolht1.Add(self.ctlhtseq, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="HT Sequence Bit: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Text control for timepad
+            self.ctltimepad = wx.TextCtrl(panelht, value="", size=size1)
+            sizercontrolht1.Add(self.ctltimepad, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="Time Padding: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Text control for cycle index
+            self.ctlcycleindex = wx.TextCtrl(panelht, value="", size=size1)
+            sizercontrolht1.Add(self.ctlcycleindex, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="Cycle Length: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Button for Auto Set Cycle Time
+            self.autosetct = wx.Button(panelht, -1, "Auto Set Cycle Index")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.on_auto_set_ct, self.autosetct)
+            sizercontrolht1.Add(self.autosetct, (i, 0), span=(1, 2), flag=wx.EXPAND)
             i += 1
 
             panelht.SetSizer(sizercontrolht1)
@@ -681,6 +744,15 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlrawflag.SetSelection(self.config.rawflag)
 
+            if self.htmode:
+                self.ctlkernelsmooth.SetValue(str(self.config.HTksmooth))
+                self.ctlhtseq.SetStringSelection(str(self.config.htbit))
+                self.ctlhttimeshift.SetValue(str(self.config.HTtimeshift))
+                self.ctltimepad.SetValue(str(self.config.HTtimepad))
+                self.ctlanalysistime.SetValue(str(self.config.HTanalysistime))
+                self.ctlcycleindex.SetValue(str(self.config.HTcycleindex))
+                self.ctlxaxis.SetStringSelection(self.config.HTxaxis)
+
             if self.config.adductmass < 0:
                 self.ctlnegmode.SetValue(1)
             else:
@@ -778,6 +850,15 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.peakplotthresh = ud.string_to_value(self.ctlthresh2.GetValue())
         self.config.separation = ud.string_to_value(self.ctlsep.GetValue())
         self.config.adductmass = ud.string_to_value(self.ctladductmass.GetValue())
+
+        if self.htmode:
+            self.config.HTksmooth = ud.string_to_value(self.ctlkernelsmooth.GetValue())
+            self.config.htbit = int(self.ctlhtseq.GetStringSelection())
+            self.config.HTxaxis = self.ctlxaxis.GetStringSelection()
+            self.config.HTtimeshift = ud.string_to_value(self.ctlhttimeshift.GetValue())
+            self.config.HTtimepad = ud.string_to_value(self.ctltimepad.GetValue())
+            self.config.HTanalysistime = ud.string_to_value(self.ctlanalysistime.GetValue())
+            self.config.HTcycleindex = ud.string_to_value(self.ctlcycleindex.GetValue())
 
         self.config.numit = ud.string_to_int(self.ctlnumit.GetValue())
 

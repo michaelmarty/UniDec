@@ -61,6 +61,9 @@ kernel
 CDslope 0.2074
 CDzbins 1.0
 CDres 1.0
+CDScanStart -1.0
+CDScanEnd -1.0
+HTksmooth 0
 csig 4.0
 smoothdt 0.0
 subbufdt 0.0
