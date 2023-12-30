@@ -6,12 +6,13 @@ import os
 
 class CDMenu(wx.Menu):
     # noinspection PyMissingConstructor
-    def __init__(self, parent, config, pres, tabbed):
+    def __init__(self, parent, config, pres, tabbed, htmode=False):
         super(wx.Menu, self).__init__()
         self.pres = pres
         self.config = config
         self.parent = parent
         self.tabbed = tabbed
+        self.htmode = htmode
 
         self.filemenu = wx.Menu()
         self.toolsmenu = wx.Menu()
@@ -27,6 +28,14 @@ class CDMenu(wx.Menu):
         self.filemenu.AppendSeparator()
 
         self.menuLoad = self.filemenu.Append(wx.ID_ANY, "Load External Config File", "Load in a configuration file")
+
+        if self.htmode:
+            # Load chrom file
+            self.filemenu.AppendSeparator()
+            self.menuLoadChrom = self.filemenu.Append(wx.ID_ANY, "Load Chromatogram File",
+                                                      "Load in a chromatogram file")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_load_chroms, self.menuLoadChrom)
+            self.filemenu.AppendSeparator()
 
         '''
         self.menuLoadEverything = self.filemenu.Append(wx.ID_ANY, "Load Prior State for Current File\tCtrl+L",
@@ -121,6 +130,17 @@ class CDMenu(wx.Menu):
 
         self.menucal = self.toolsmenu.Append(wx.ID_ANY, "Calibration Tool")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_calibrate, self.menucal)
+
+        if self.htmode:
+            self.toolsmenu.AppendSeparator()
+            self.menuexportHT = self.toolsmenu.Append(wx.ID_ANY, "Export Chromatograms")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_export_arrays, self.menuexportHT)
+
+            self.menuplotkernel = self.toolsmenu.Append(wx.ID_ANY, "Plot Kernel")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_plot_kernel, self.menuplotkernel)
+
+            self.menuautocycle = self.toolsmenu.Append(wx.ID_ANY, "Print Optimal Cycle Index")
+            self.parent.Bind(wx.EVT_MENU, self.pres.on_auto_set_ct, self.menuautocycle)
 
         self.toolsmenu.AppendSeparator()
         self.menustori = self.toolsmenu.Append(wx.ID_ANY, "Convert STORI Folder of CSVs")

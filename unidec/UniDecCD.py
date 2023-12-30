@@ -32,6 +32,8 @@ class UniDecCDApp(UniDecApp):
         """
         UniDecPres.__init__(self, *args, **kwargs)
         self.init(*args, **kwargs)
+        self.showht = False
+        self.comparedata = None
 
     def init(self, *args, **kwargs):
         """
@@ -42,7 +44,6 @@ class UniDecCDApp(UniDecApp):
         """
         self.eng = CDEng.UniDecCD()
         self.view = CDWindow.CDMainwindow(self, "UCD: UniDec for Charge Detection-Mass Spectrometry", self.eng.config)
-        self.comparedata = None
 
         pub.subscribe(self.on_get_mzlimits, 'mzlimits')
         pub.subscribe(self.on_smash, 'smash')
@@ -223,7 +224,10 @@ class UniDecCDApp(UniDecApp):
         self.view.SetStatusText("Deconvolving", number=5)
         # self.view.clear_all_plots()
         self.export_config(self.eng.config.confname)
-        self.eng.run_deconvolution()
+        if self.showht:
+            self.eng.run_deconvolution(process_data=False)
+        else:
+            self.eng.run_deconvolution()
         self.makeplot1()
         self.makeplot2()
         self.makeplot3()
@@ -232,11 +236,14 @@ class UniDecCDApp(UniDecApp):
         pass
 
     def on_pick_peaks(self, e=None):
+        self.pick_peaks()
+
+    def pick_peaks(self, e=None):
         """
-                Pick peaks and perform initial plots on them.
-                :param e: unused space for event
-                :return: None
-                """
+        Pick peaks and perform initial plots on them.
+        :param e: unused space for event
+        :return: None
+        """
         print("Peak Picking")
         self.view.SetStatusText("Detecting Peaks", number=5)
         tstart = time.perf_counter()

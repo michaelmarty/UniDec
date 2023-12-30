@@ -6,7 +6,7 @@ import time
 import webbrowser
 from unidec.modules.html_writer import *
 
-version = "6.0.5"
+version = "7.0.0b"
 
 
 def copy_config(config):
@@ -519,7 +519,8 @@ class UniDecEngine:
         if self.config.batchflag == 0:
             tstart = time.perf_counter()
             plot.contourplot(xvals=xdata[:, 0], yvals=ydata, zgrid=zdata, config=config, title="Mass vs. Charge",
-                             test_kda=True)
+                             test_kda=True, repaint=False)
+            plot.repaint(resetzoom=True, setupzoom=True)
             print("Plot 5: %.2gs" % (time.perf_counter() - tstart))
         return plot
 

@@ -1,3 +1,5 @@
+import time
+
 import scipy.ndimage
 from modules.fitting import *
 
@@ -7,7 +9,11 @@ import unidec.tools as ud
 from modules.unidecstructure import DataContainer
 
 import matplotlib.pyplot as plt
+import scipy.fft as fft
 
+
+# import fast_histogram
+# import pyfftw.interfaces.numpy_fft as fft
 
 class HTEng:
     def __init__(self, *args, **kwargs):
@@ -123,9 +129,12 @@ class HTEng:
             self.cycleindex = int(cycleindex)
             print("Correction Diff:", diff)
 
+        self.rollindex = int(-self.shiftindex + self.cycleindex * self.kernelroll)
+
         # Create the HT kernel
         self.htkernel = np.zeros_like(self.fullscans[int(self.padindex):]).astype(float)
-        print("HT Kernel Length:", len(self.htkernel), "Pad Index:", self.padindex, "Cycle Index:", self.cycleindex)
+        print("HT Kernel Length:", len(self.htkernel), "Pad Index:", self.padindex, "Cycle Index:", self.cycleindex,
+              "Shift Index:", self.shiftindex, "Roll Index:", self.rollindex)
 
         index = 0
         for i, s in enumerate(self.fullscans):
@@ -143,19 +152,18 @@ class HTEng:
             self.gausskernel += ndis(self.fullscans[self.padindex:], np.amax(self.fullscans[self.padindex:]) + 1,
                                      self.config.HTksmooth)
             self.gausskernel /= np.sum(self.gausskernel)
-            self.fftg = np.fft.fft(self.gausskernel)
-            self.htkernel = np.fft.ifft(np.fft.fft(self.htkernel) * self.fftg)
+            self.fftg = fft.rfft(self.gausskernel)
+            self.htkernel = fft.irfft(fft.rfft(self.htkernel) * self.fftg).real
 
         # Make fft of kernel for later use
-        self.fftk = np.fft.fft(self.htkernel).conj()
+        self.fftk = fft.rfft(self.htkernel).conj()
+
+    def correct_cycle_time(self):
+        print("Correcting")
+        self.get_cycle_time(data)
+        self.setup_ht(cycleindex=self.cycleindex)
 
     def htdecon(self, data, *args, **kwargs):
-        # Whether to correct the kernel to optimize the cycle time
-        if "correct" in kwargs:
-            if kwargs["correct"]:
-                print("Correcting")
-                self.get_cycle_time(data)
-                self.setup_ht(cycleindex=self.cycleindex)
         # Whether to smooth the data before deconvolution
         if "gsmooth" in kwargs:
             data = scipy.ndimage.gaussian_filter1d(data, kwargs["gsmooth"])
@@ -167,18 +175,59 @@ class HTEng:
         # Set the range of indexes used in the deconvolution
         # Starts at the pad but shift will move it back
         self.indexrange = [self.padindex - self.shiftindex, len(data) - self.shiftindex]
-        # print("Index Range:", self.indexrange, "Pad Index:", self.padindex, "Shift Index:", self.shiftindex, "Len:",
-        #      len(data))
+        # print("Index Range:", self.indexrange, "Pad Index:", self.padindex, "Shift Index:", self.shiftindex)
+
         # Do the convolution
-        output = np.fft.ifft(
-            np.fft.fft(data[self.indexrange[0]:self.indexrange[1]]) * self.fftk)
+        output = fft.irfft(fft.rfft(data[self.indexrange[0]:self.indexrange[1]]) * self.fftk).real
 
         # Shift the output back to the original time
         if self.padindex > 0:
-            # add zeros back on the front
-            rollindex = int(-self.shiftindex + self.cycleindex * self.kernelroll)
-            output = np.roll(np.concatenate((np.zeros(self.padindex), output)), rollindex)
+            # add zeros back on the front and roll to the correct index
+            output = np.roll(np.concatenate((np.zeros(self.padindex), output)), self.rollindex)
 
+        if "normalize" in kwargs:
+            if kwargs["normalize"]:
+                output /= np.amax(output)
+        # Return demultiplexed data
+        return output
+
+    def htdecon_speedy(self, data):
+        # Do the convolution, and only the convolution... :)
+        return fft.irfft(fft.rfft(data) * self.fftk).real
+
+    def decon_3d_fft(self, array, *args, **kwargs):
+        """
+        Developed this to see if it would speed things up. It turns out not to. About half as slow. Leaving in for
+        legacy reasons and because it's super cool code.
+        :param array:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        starttime = time.perf_counter()
+        # Slice data to appropriate range
+        dims = np.shape(array)
+        self.indexrange = [self.padindex - self.shiftindex, dims[0] - self.shiftindex]
+        data = array[self.indexrange[0]:self.indexrange[1]]
+        dims2 = np.shape(data)
+        print(dims2)
+
+        # HT Kernel 3D FFT
+        # Create 3D array of copies of 1D kernel
+        kernel3d = np.broadcast_to(self.htkernel[:, np.newaxis, np.newaxis], dims2)
+
+        print("3D Kernel", np.shape(kernel3d), time.perf_counter() - starttime)
+
+        # FFT of kernel3d
+        fftk3d = fft.rfftn(kernel3d).conj()
+        print("3D FFT of Kernel", np.shape(fftk3d), time.perf_counter() - starttime)
+
+        data_fft = fft.rfftn(data)
+        print("3D FFT of Data", np.shape(data_fft), time.perf_counter() - starttime)
+
+        # Deconvolve
+        output = fft.irfftn(data_fft * fftk3d)
+        print("Decon", np.shape(output), time.perf_counter() - starttime)
         output = np.real(output)
         if "normalize" in kwargs:
             if kwargs["normalize"]:
@@ -263,6 +312,8 @@ class UniDecCDHT(HTEng, UniDecCD):
     def __init__(self, *args, **kwargs):
         super(UniDecCDHT, self).__init__(*args, **kwargs)
         print("HT-CD-MS Engine")
+        self.config.poolflag = 0
+
         self.hstack = None
         self.fullhstack = None
         self.topfarray = None
@@ -273,13 +324,26 @@ class UniDecCDHT(HTEng, UniDecCD):
         self.X = None
         self.Y = None
         self.mass = None
-        self.fullstack_ht = None
+        self.fullhstack_ht = None
+        self.fullmstack = None
+        self.fullmstack_ht = None
+        self.mass_tic = None
+        self.mass_tic_ht = None
         self.mz = None
         self.ztab = None
 
     def open_file(self, path, refresh=False):
         self.open_cdms_file(path, refresh=refresh)
         self.parse_file_name(path)
+
+    def clear_arrays(self, massonly=False):
+        if not massonly:
+            self.fullhstack = None
+            self.fullhstack_ht = None
+        self.fullmstack = None
+        self.fullmstack_ht = None
+        self.mass_tic = None
+        self.mass_tic_ht = None
 
     def prep_time_domain(self):
         self.scans = np.unique(self.farray[:, 2])
@@ -296,8 +360,8 @@ class UniDecCDHT(HTEng, UniDecCD):
         :return: None
         """
         starttime = time.perf_counter()
-        self.process_data()
-
+        # self.process_data()
+        self.clear_arrays()
         self.prep_time_domain()
 
         self.topfarray = deepcopy(self.farray)
@@ -309,7 +373,7 @@ class UniDecCDHT(HTEng, UniDecCD):
         # Create a stack with one histogram for each scan
         self.hstack = np.zeros((len(self.scans), self.topharray.shape[0], self.topharray.shape[1]))
 
-        print("Creating Histograms for Each Scan")
+        print("Creating Histograms for Each Scan", time.perf_counter() - starttime)
         # Loop through scans and create histograms
         for i, s in enumerate(self.scans):
             # Pull out subset of data for this scan
@@ -317,31 +381,29 @@ class UniDecCDHT(HTEng, UniDecCD):
 
             # Create histogram
             harray = self.histogramLC(x=self.topfarray[b1, 0], y=self.topzarray[b1])
-
-            # Transform histogram m/z to mass
-            # NEED TO WORK ON THIS SECTION
-            if len(harray) > 0 and np.amax(harray) > 0 and False:
-                print("TRANSFORMING")
-                harray = self.hist_data_prep(harray)
-                dataobj = DataContainer()
-                if transform:
-                    dataobj = self.transform(harray=harray, dataobj=dataobj)
+            harray = self.hist_data_prep(harray)
 
             # Add histogram to stack
-            self.topharray += harray
             self.hstack[i] = harray
+
+        self.topharray = np.sum(self.hstack, axis=0)
 
         # Normalize the histogram
         if self.config.datanorm == 1:
             maxval = np.amax(self.topharray)
             if maxval > 0:
                 self.topharray /= maxval
-
+        print("T:", time.perf_counter() - starttime)
         # Reshape the data into a 3 column array
-        self.data.data3 = np.transpose([np.ravel(self.X, order="F"), np.ravel(self.Y, order="F"),
-                                        np.ravel(self.topharray, order="F")])
+        # self.data.data3 = np.transpose([np.ravel(self.X, order="F"), np.ravel(self.Y, order="F"),
+        #                                np.ravel(self.topharray, order="F")])
 
-        print("Process Time:", time.perf_counter() - starttime)
+        # create full hstack to fill any holes in the data for scans with no ions
+        self.fullhstack = np.zeros((len(self.fullscans), self.topharray.shape[0], self.topharray.shape[1]))
+        for i, s in enumerate(self.scans):
+            self.fullhstack[int(s) - 1] = self.hstack[i]
+
+        print("Process Time HT:", time.perf_counter() - starttime)
 
     def prep_hist(self, mzbins=1, zbins=1, mzrange=None, zrange=None):
         # Set up parameters
@@ -395,6 +457,9 @@ class UniDecCDHT(HTEng, UniDecCD):
             return harray
         # Create histogram
         harray, mz, ztab = np.histogram2d(x, y, [self.mzaxis, self.zaxis])
+        # harray = fast_histogram.histogram2d(x, y, [len(self.mzaxis)-1, len(self.zaxis)-1],
+        #                                    [(np.amin(self.mzaxis), np.amax(self.mzaxis)),
+        #                                     (np.amin(self.zaxis), np.amax(self.zaxis))])
         # Transpose and return
         harray = np.transpose(harray)
         return harray
@@ -449,21 +514,168 @@ class UniDecCDHT(HTEng, UniDecCD):
         self.htoutput = self.htdecon(eic[:, 1], *args, **kwargs)
         return np.transpose([self.fulltime, self.htoutput]), eic
 
-    def run_ht(self):
-        # create full hstack to fill any holes in the data for scans with no ions
-        self.fullhstack = np.zeros((len(self.fullscans), self.topharray.shape[0], self.topharray.shape[1]))
-        self.fullhstack_ht = np.zeros((len(self.fullscans), self.topharray.shape[0], self.topharray.shape[1]))
-        for i, s in enumerate(self.scans):
-            self.fullhstack[int(s) - 1] = self.hstack[i]
-
-        # Run the HT on each track in the stack
-        # TEST THIS!
+    def run_all_ht(self):
+        starttime = time.perf_counter()
+        if self.fullhstack is None:
+            self.process_data_scans()
+        self.clear_arrays(massonly=True)
+        # Setup HT
         self.setup_ht()
+
+        '''
+        # self.fullhstack_ht = self.decon_3d(self.fullhstack)
+        starttime = time.perf_counter()
+        # Prep the ranges
+        self.indexrange = [self.padindex - self.shiftindex, len(self.fullhstack) - self.shiftindex]
+        substack = self.fullhstack[self.indexrange[0]:self.indexrange[1]]
+        substack_ht = np.empty_like(substack)
+        sumgrid = np.sum(substack, axis=0)
+        # Run the HT on each track in the stack
         for i, x in enumerate(self.mz):
             for j, y in enumerate(self.ztab):
+                trace = substack[:, j, i]
+                tracesum = sumgrid[j, i]
+                if tracesum <= self.config.intthresh or tracesum <= 2:
+                    htoutput = np.zeros_like(trace)
+                else:
+                    htoutput = self.htdecon_speedy(trace)
+                substack_ht[:, j, i] = htoutput
+
+        # Shift the output back to the original time
+        if self.padindex > 0:
+            # add zeros back on the front and roll to the correct index
+            zeroarray = np.zeros((self.padindex, substack_ht.shape[1], substack_ht.shape[2]))
+            self.fullhstack_ht = np.roll(np.concatenate((zeroarray, substack_ht)), self.rollindex, axis=0)
+        else:
+            self.fullhstack_ht = substack_ht
+
+        print("Full HT Demultiplexing Done:", time.perf_counter() - starttime)
+        starttime = time.perf_counter()'''
+        # Run the HT on each track in the stack
+        self.fullhstack_ht = np.empty((len(self.fullscans), self.topharray.shape[0], self.topharray.shape[1]))
+
+        for i in range(len(self.mz)):
+            for j in range(len(self.ztab)):
                 trace = self.fullhstack[:, j, i]
-                htoutput = self.htdecon(trace)
+                tracesum = self.topharray[j, i]
+                if tracesum <= self.config.intthresh:
+                    htoutput = np.zeros_like(trace)
+                else:
+                    htoutput = self.htdecon(trace)
                 self.fullhstack_ht[:, j, i] = htoutput
+
+        # Clip all values below 1e-6 to zero
+        # self.fullhstack_ht[np.abs(self.fullhstack_ht) < 1e-6] = 0
+
+        tic = np.sum(self.fullhstack_ht, axis=(1, 2))
+        ticdat = np.transpose(np.vstack((self.fulltime, tic)))
+        if self.config.datanorm == 1:
+            norm = np.amax(ticdat[:, 1])
+            ticdat[:, 1] /= norm
+            self.fullhstack_ht /= norm
+
+        print("Full HT Demultiplexing Done:", time.perf_counter() - starttime)
+        return ticdat
+
+    def select_ht_range(self, range=None):
+        if range is None:
+            range = [np.amin(self.fulltime), np.amax(self.fulltime)]
+        b1 = self.fulltime >= range[0]
+        b2 = self.fulltime <= range[1]
+        b = np.logical_and(b1, b2)
+        substack_ht = self.fullhstack_ht[b]
+        self.harray = np.sum(substack_ht, axis=0)
+        self.harray = np.clip(self.harray, 0, np.amax(self.harray))
+        self.harray_process()
+
+    def transform_array(self, array):
+        mlen = len(self.massaxis)
+        outarray = np.zeros((len(array), mlen))
+
+        for j in range(len(self.ztab)):
+            indexes = np.array([ud.nearest(self.massaxis, m) for m in self.mass[j]])
+            uindexes = np.unique(indexes)
+
+            subarray = array[:, j]
+            # Sum together everything with the same index
+            subarray = np.transpose([np.sum(subarray[:, indexes == u], axis=1) for u in uindexes])
+            # Add to the output array
+            outarray[:, uindexes] += subarray
+
+        return outarray
+
+    def transform_stacks(self):
+        if self.massaxis is None:
+            self.process_data(transform=True)
+        if self.fullhstack is None:
+            self.process_data_scans(transform=True)
+
+        if self.config.poolflag == 1:
+            print("Transforming Stacks by Interpolation")
+        else:
+            print("Transforming Stacks by Integration")
+        starttime = time.perf_counter()
+        mlen = len(self.massaxis)
+
+        self.fullmstack = self.transform_array(self.fullhstack)
+
+        self.mass_tic = np.transpose([self.fulltime, np.sum(self.fullmstack, axis=1)])
+
+        if self.config.datanorm == 1:
+            norm = np.amax(self.mass_tic[:, 1])
+            self.mass_tic[:, 1] /= norm
+            self.fullmstack /= norm
+
+        print("Full Mass 1 Transform Done:", time.perf_counter() - starttime)
+        '''
+        self.fullmstack = np.zeros((len(self.fullscans), mlen))
+        for i in range(len(self.fullscans)):
+            for j in range(len(self.ztab)):
+                d = self.fullhstack[i, j]
+
+                if self.config.poolflag == 1:
+                    newdata = np.transpose([self.mass[j], d])
+                    output = ud.linterpolate(newdata, self.massaxis)[:, 1]
+                else:
+                    boo1 = d != 0
+                    newdata = np.transpose([self.mass[j][boo1], d[boo1]])
+                    if len(newdata) == 0:
+                        output = self.massaxis * 0
+                    else:
+                        output = ud.lintegrate(newdata, self.massaxis, fastmode=True)[:, 1]
+
+                self.fullmstack[i, :] += output
+
+        self.mass_tic = np.transpose([self.fulltime, np.sum(self.fullmstack, axis=1)])
+        print("Full Mass 1 Transform Done:", time.perf_counter() - starttime)'''
+
+        if self.fullhstack_ht is None:
+            return
+
+        self.fullmstack_ht = self.transform_array(self.fullhstack_ht)
+
+        self.mass_tic_ht = np.transpose([self.fulltime, np.sum(self.fullmstack_ht, axis=1)])
+
+        if self.config.datanorm == 1:
+            norm = np.amax(self.mass_tic_ht[:, 1])
+            self.mass_tic_ht[:, 1] /= norm
+            self.fullmstack_ht /= norm
+        print("Full Mass 2 Transform Done:", time.perf_counter() - starttime)
+
+    def get_mass_eic(self, massrange, ht=False):
+        # Filter fullmstack
+        b1 = self.massaxis >= massrange[0]
+        b2 = self.massaxis <= massrange[1]
+        b = np.logical_and(b1, b2)
+
+        if ht:
+            array = self.fullmstack_ht
+        else:
+            array = self.fullmstack
+
+        substack = array[:, b]
+        mass_eic = np.sum(substack, axis=1)
+        return np.transpose([self.fulltime, mass_eic])
 
 
 if __name__ == '__main__':
@@ -502,7 +714,7 @@ if __name__ == '__main__':
     plt.show()
     exit()
 
-    eng.run_ht()
+    eng.run_all_ht()
     print(np.shape(eng.hstack))
     plt.figure()
 

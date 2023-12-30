@@ -160,6 +160,14 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                           flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
+        if htmode:
+            # Control for scan compression
+            self.ctlscancompress = wx.TextCtrl(panel1, value="", size=size1)
+            sizercontrol1.Add(self.ctlscancompress, (i, 1), span=(1, 2))
+            sizercontrol1.Add(wx.StaticText(panel1, label="Scan Compression: "), (i, 0),
+                              flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
         self.ctldatanorm = wx.CheckBox(panel1, label="Normalize Data")
         self.ctldatanorm.SetValue(True)
         sizercontrol1.Add(self.ctldatanorm, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -269,17 +277,29 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.runticht = wx.Button(panelht, -1, "Run TIC Hadamard Transform")
             self.parent.Bind(wx.EVT_BUTTON, self.pres.on_run_tic_ht, self.runticht)
             sizercontrolht1.Add(self.runticht, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            self.runticht.SetToolTip(wx.ToolTip("HT Demultiplexing of TIC"))
             i += 1
 
             # Button for Run EIC HT
             self.runeicht = wx.Button(panelht, -1, "Run EIC Hadamard Transform")
             self.parent.Bind(wx.EVT_BUTTON, self.pres.on_run_eic_ht, self.runeicht)
             sizercontrolht1.Add(self.runeicht, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            self.runeicht.SetToolTip(wx.ToolTip("HT Demultiplexing of each EIC selected. "
+                                                "To select, zoom on a region of the 2D plot and right click."))
             i += 1
 
             self.runallht = wx.Button(panelht, -1, "Run All Hadamard Transform")
             self.parent.Bind(wx.EVT_BUTTON, self.pres.on_run_all_ht, self.runallht)
             sizercontrolht1.Add(self.runallht, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            self.runallht.SetToolTip(wx.ToolTip("Run HT on all data points. Used to create crazy cubes."))
+            i += 1
+
+            # Button to Mass Transformation
+            self.masstransform = wx.Button(panelht, -1, "Run All Mass Transform")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.run_all_mass_transform, self.masstransform)
+            sizercontrolht1.Add(self.masstransform, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            self.masstransform.SetToolTip(wx.ToolTip("Run Mass Transformation on all data points. "
+                                                     "Click button above first to do HT."))
             i += 1
 
             # Text Control for Kernel Smoothing
@@ -333,11 +353,40 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                                 flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
-            # Button for Auto Set Cycle Time
-            self.autosetct = wx.Button(panelht, -1, "Auto Set Cycle Index")
-            self.parent.Bind(wx.EVT_BUTTON, self.pres.on_auto_set_ct, self.autosetct)
-            sizercontrolht1.Add(self.autosetct, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            # Button to make 2d time vs. charge plot
+            self.maketvsc = wx.Button(panelht, -1, "Make 2D Time vs. Charge Plot")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_charge_time_2dplot, self.maketvsc)
+            sizercontrolht1.Add(self.maketvsc, (i, 0), span=(1, 2), flag=wx.EXPAND)
             i += 1
+
+            # Button to make 2d time vs. mz plot
+            self.maketvsm = wx.Button(panelht, -1, "Make 2D Time vs. m/z Plot")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_mz_time_2dplot, self.maketvsm)
+            sizercontrolht1.Add(self.maketvsm, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1
+
+            # Button to make 2d time vs. mass plot
+            self.makevtm = wx.Button(panelht, -1, "Make 2D Time vs. Mass Plot")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_mass_time_2dplot, self.makevtm)
+            sizercontrolht1.Add(self.makevtm, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1
+
+            # Button for Make m/z Cube plots
+            self.makemzcube = wx.Button(panelht, -1, "Make m/z Cube Plots")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_cube_plot, self.makemzcube)
+            sizercontrolht1.Add(self.makemzcube, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1
+
+            # Button for make mass cube plot
+            self.makemasscube = wx.Button(panelht, -1, "Make Mass Cube Plots")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_mass_cube_plot, self.makemasscube)
+            sizercontrolht1.Add(self.makemasscube, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1
+
+            # self.autosetct = wx.Button(panelht, -1, "Auto Set Cycle Index")
+            # self.parent.Bind(wx.EVT_BUTTON, self.pres.on_auto_set_ct, self.autosetct)
+            # sizercontrolht1.Add(self.autosetct, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            # i += 1
 
             panelht.SetSizer(sizercontrolht1)
             sizercontrolht1.Fit(panelht)
@@ -690,6 +739,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.update_flag = False
         if self.config.batchflag == 0:
             self.ctlmassbins.SetValue(str(self.config.massbins))
+
             self.ctlstartz.SetValue(str(self.config.startz))
             self.ctlendz.SetValue(str(self.config.endz))
             self.ctlslope.SetValue(str(self.config.CDslope))
@@ -745,6 +795,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlrawflag.SetSelection(self.config.rawflag)
 
             if self.htmode:
+                self.ctlscancompress.SetValue(str(self.config.CDScanCompress))
                 self.ctlkernelsmooth.SetValue(str(self.config.HTksmooth))
                 self.ctlhtseq.SetStringSelection(str(self.config.htbit))
                 self.ctlhttimeshift.SetValue(str(self.config.HTtimeshift))
@@ -836,6 +887,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.datanorm = int(self.ctldatanorm.GetValue())
         self.config.intthresh = ud.string_to_value(self.ctlintthresh.GetValue())
         self.config.massbins = ud.string_to_value(self.ctlmassbins.GetValue())
+
         self.config.endz = ud.string_to_int(self.ctlendz.GetValue())
         self.config.startz = ud.string_to_int(self.ctlstartz.GetValue())
 
@@ -852,6 +904,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.adductmass = ud.string_to_value(self.ctladductmass.GetValue())
 
         if self.htmode:
+            self.config.CDScanCompress = ud.string_to_value(self.ctlscancompress.GetValue())
             self.config.HTksmooth = ud.string_to_value(self.ctlkernelsmooth.GetValue())
             self.config.htbit = int(self.ctlhtseq.GetStringSelection())
             self.config.HTxaxis = self.ctlxaxis.GetStringSelection()
@@ -1022,6 +1075,29 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.ctlzsmoothcheck.SetToolTip(
             wx.ToolTip("Select whether to assume a smooth charge state distribution"))
+
+        if self.htmode:
+            self.ctlscancompress.SetToolTip(wx.ToolTip(
+                "Average each n scans together. This reduces the number of scans by a factor of n."))
+
+            self.ctlkernelsmooth.SetToolTip(wx.ToolTip(
+                "Smooth the data with a Gaussian kernel of this many data points."))
+            self.ctlhtseq.SetToolTip(wx.ToolTip(
+                "The Hadamard bit depth. Put bit{n} in file name to set automatically."))
+            self.ctlhttimeshift.SetToolTip(wx.ToolTip(
+                "Shift the HT start time by this amount to account for a delay at the start of the run. "
+                "Units of retention time."))
+
+            self.ctltimepad.SetToolTip(wx.ToolTip(
+                "Pad the time axis by this amount to account for a delay at the end of the run. "
+                "Units of retention time. Set cyc{n} and zp{m} in file name to set automatically as n and m."))
+            self.ctlanalysistime.SetToolTip(wx.ToolTip(
+                "Total analysis time. Must be set manually for DMT files."))
+            self.ctlxaxis.SetToolTip(wx.ToolTip("Select the x-axis unit for plotting."))
+            self.ctlcycleindex.SetToolTip(wx.ToolTip(
+                "The number of scans per cycle. Determined automatically if -1. "
+                "See tools menu or autocorrelation right click on TIC to get hints on setting this differently."))
+
         pass
 
     # .......................................................

@@ -56,8 +56,21 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
             if color is not None:
                 try:
                     color = mpl.colors.to_rgba(color)
-                except:
-                    color = np.fromstring(color[1:-1], sep=",", dtype=float)
+                except Exception as e:
+                    if type(color) is str or type(color) is np.str_:
+                        color = str(color)
+                        if "," in color:
+                            color = np.fromstring(color[1:-1], sep=",", dtype=float)
+                        elif " " in color:
+                            color = np.fromstring(color[1:-1], sep=" ", dtype=float)
+                        else:
+                            print("Color not be recognized:", color)
+                            color = [0, 0, 0, 1]
+                    else:
+                        print("Color not recognized:", color)
+                        print(e)
+                        print(type(color))
+                        color = [0, 0, 0, 1]
                     c.color = color
 
                 color = wx.Colour(int(round(color[0] * 255)), int(round(color[1] * 255)),
@@ -150,7 +163,7 @@ class ListCtrlPanel(wx.Panel):
     def on_popup_one(self, event):
         # Delete
         self.selection = self.get_selected()
-        for i in range(0, len(self.selection)):
+        for i in range(0, len(self.selection))[::-1]:
             self.list.data.chromatograms = np.delete(self.list.data.chromatograms, self.selection[i])
         self.list.repopulate()
         self.pres.on_ignore_repopulate()

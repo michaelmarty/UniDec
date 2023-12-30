@@ -195,7 +195,15 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.7.0.0
+
+Added new module for time domain CD-MS data analysis, UniChromCD. This includes some cool new plotting and analysis features. Most importantly, it also includes our new method for Hadamard Transform analysis of CD-MS spectra. You can use the tools for regular LC-CD-MS or go crazy with HT-LC-CD-MS. More info coming soon on this front...:)
+
+Fixed deep bug with integration transforms. Improvements and refactoring to support UniChromCD.
+
 v.6.0.5
+
+Merged into v.7
 
 Minor fixes to update compatibility for Python 3.11 and 3.12. 
 

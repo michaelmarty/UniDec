@@ -155,6 +155,7 @@ class PlottingWindowBase(PlotBase, wx.Panel):
                 except:
                     print("Could not switch on labels")
         if event.button == 2 or (event.button == 1 and wx.GetKeyState(wx.WXK_DOWN)):
+            # Middle Clicks
             if wx.GetKeyState(wx.WXK_CONTROL):
                 dlg = DoubleInputDialog(self)
                 dlg.initialize_interface("Matplotlib RC Parameters", "RC Param Name:", 'lines.markersize',
@@ -213,6 +214,8 @@ class PlottingWindowBase(PlotBase, wx.Panel):
             self.copy_to_clipboard()
         if evt.key == "ctrl+u":
             self.on_write_dialog(evt)
+
+
 
     def on_save_fig_dialog(self, evt):
         """
@@ -395,7 +398,6 @@ class PlottingWindowBase(PlotBase, wx.Panel):
 
     def on_right_click(self, event=None):
         if self.int == 1:
-            # print "rightclick"
             pub.sendMessage('integrate')
         elif self.smash == 1:
             if event.dblclick:
@@ -406,6 +408,9 @@ class PlottingWindowBase(PlotBase, wx.Panel):
                 self.GetEventHandler().ProcessEvent(event)
         elif self.smash == 2:
             event = ScanSelectedEvent(MZLimitsEventType, self.GetId())
+            self.GetEventHandler().ProcessEvent(event)
+        else:
+            event = ScanSelectedEvent(ScanSelectedEventType, self.GetId())
             self.GetEventHandler().ProcessEvent(event)
 
 class Plot1d(PlottingWindowBase, Plot1dBase):

@@ -20,6 +20,7 @@ from unidec.metaunidec.ultrameta import DataCollector as UMDC
 from unidec.UniChrom import ChromApp
 from unidec.UPP import UPPApp
 from unidec.modules import unidecstructure
+from unidec.UniChromCD import UniChromCDApp
 import wx.py as py
 import os
 import sys
@@ -93,7 +94,7 @@ class Lview(wx.Frame):
         sizer = wx.GridBagSizer(wx.HORIZONTAL)
         panel = wx.Panel(self)
         button1 = wx.Button(panel, -1, "UniDec\n\nDeconvolve MS and IM-MS")
-        button2 = wx.Button(panel, -1, "Data Collector\n\nVisualize multiple spectra\nExtract Trends\nFit Kd's")
+        button2 = wx.Button(panel, -1, "Data Collector\n\nVisualize multiple spectra\nExtract Trends and Kd's")
         button3 = wx.Button(panel, -1, "Import Wizard\n\nBatch convert Waters Raw to Txt")
         button4 = wx.Button(panel, -1, "MetaUniDec\n\nBatch process and visualize MS spectra")
         button5 = wx.Button(panel, -1, "UniDec API Shell\n\nScript UniDec with console")
@@ -101,7 +102,9 @@ class Lview(wx.Frame):
         button7 = wx.Button(panel, -1, "UltraMeta Data Collector\n\nVisualize Multiple HDF5 Data Sets\nFit Trends")
         button8 = wx.Button(panel, -1, "UniChrom\n\nDeconvolution of Chromatograms\nUniDec for LC/MS Data")
         button9 = wx.Button(panel, -1, "UniDecCD\n\nDeconvolution of Charge Detection MS\nUniDec for CD-MS Data")
-        button10 = wx.Button(panel, -1, "UPP\n\nUniDec Processing Pipeline\nBatch Processing Workflow")
+        button10 = wx.Button(panel, -1, "UniDec Processing Pipeline\n\nBatch Processing Workflow")
+        button11 = wx.Button(panel, -1,
+                             "UniChromCD\n\nDeconvolution of CD-MS Chromatograms")
         html = wx.html.HtmlWindow(panel, -1, size=(390, 310))
         pathtofile = os.path.dirname(os.path.abspath(__file__))
         self.imagepath = self.eng.config.toplogofile
@@ -122,10 +125,12 @@ class Lview(wx.Frame):
         sizer.Add(button6, (2, 1), flag=wx.EXPAND)
         sizer.Add(button7, (1, 1), flag=wx.EXPAND)
         sizer.Add(button9, (3, 0), flag=wx.EXPAND)
-        sizer.Add(button5, (4, 1), span=(1, 1), flag=wx.EXPAND)
+
         sizer.Add(button10, (4, 0), span=(1, 1), flag=wx.EXPAND)
+        sizer.Add(button11, (4, 1), span=(1, 1), flag=wx.EXPAND)
         sizer.Add(button8, (3, 1), flag=wx.EXPAND)
-        sizer.Add(html, (0, 2), span=(5, 2))
+        sizer.Add(button5, (5, 0), span=(1, 2), flag=wx.EXPAND)
+        sizer.Add(html, (0, 2), span=(6, 2))
 
         self.Bind(wx.EVT_BUTTON, self.button1, button1)
         self.Bind(wx.EVT_BUTTON, self.button2, button2)
@@ -137,6 +142,7 @@ class Lview(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.button8, button8)
         self.Bind(wx.EVT_BUTTON, self.button9, button9)
         self.Bind(wx.EVT_BUTTON, self.button10, button10)
+        self.Bind(wx.EVT_BUTTON, self.button11, button11)
 
         panel.SetSizer(sizer)
         sizer.Fit(self)
@@ -203,6 +209,10 @@ class Lview(wx.Frame):
         print("Launching UPP")
         app = UPPApp()
 
+    def button11(self, e=None):
+        print("Launching UniChromCD")
+        app = UniChromCDApp()
+        app.start()
 
 class Shell(object):
     def __init__(self, *args, **kwargs):

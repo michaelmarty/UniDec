@@ -1573,7 +1573,7 @@ def linear_interpolation(x1, x2, x):
     return float(x - x1) / float(x2 - x1)
 
 
-def lintegrate(datatop, intx):
+def lintegrate(datatop, intx, fastmode=False):
     """
     Linearize x-axis by integration.
 
@@ -1582,27 +1582,33 @@ def lintegrate(datatop, intx):
     The total sum of the intensity values should be constant.
     :param datatop: Data array
     :param intx: New x-axis for data
+    :param fastmode: If True, uses a faster but less accurate method of integration that just picks the nearest point.
     :return: Integration of intensity from original data onto the new x-axis.
     Same shape as the old data but new length.
     """
     length = len(datatop)
+    l2 = len(intx)
     inty = np.zeros_like(intx)
     for i in range(0, length):
-        if intx[0] < datatop[i, 0] < intx[len(intx) - 1]:
-            index = nearest(intx, datatop[i, 0])
-            # inty[index]+=datatop[i,1]
-            if intx[index] == datatop[i, 0]:
-                inty[index] += datatop[i, 1]
-            if intx[index] < datatop[i, 0] and index < length - 1:
-                index2 = index + 1
-                interpos = linear_interpolation(intx[index], intx[index2], datatop[i, 0])
-                inty[index] += (1 - interpos) * datatop[i, 1]
-                inty[index2] += interpos * datatop[i, 1]
-            if intx[index] > datatop[i, 0] and index > 0:
-                index2 = index - 1
-                interpos = linear_interpolation(intx[index], intx[index2], datatop[i, 0])
-                inty[index] += (1 - interpos) * datatop[i, 1]
-                inty[index2] += interpos * datatop[i, 1]
+        x = datatop[i, 0]
+        y = datatop[i, 1]
+        if intx[0] < x < intx[len(intx) - 1]:
+            index = nearest(intx, x)
+            if fastmode:
+                inty[index] += y
+            else:
+                if intx[index] == x:
+                    inty[index] += y
+                elif intx[index] < x and index < l2 - 1:
+                    index2 = index + 1
+                    interpos = linear_interpolation(intx[index], intx[index2], x)
+                    inty[index] += (1 - interpos) * y
+                    inty[index2] += interpos * y
+                elif intx[index] > x and index > 0:
+                    index2 = index - 1
+                    interpos = linear_interpolation(intx[index], intx[index2], x)
+                    inty[index] += (1 - interpos) * y
+                    inty[index2] += interpos * y
     newdat = np.column_stack((intx, inty))
     return newdat
 

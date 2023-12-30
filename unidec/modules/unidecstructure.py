@@ -275,6 +275,7 @@ class UniDecConfig(object):
         self.HTtimeshift = 7.0
         self.HTcycleindex = -1
         self.HTxaxis = "Time"
+        self.CDScanCompress = 3
 
         self.doubledec = False
         self.kernel = ""
@@ -437,6 +438,10 @@ class UniDecConfig(object):
         self.CDScanStart = -1
         self.CDScanEnd = -1
         self.HTksmooth = 0
+        self.CDScanCompress = 0
+        self.HTcycleindex = -1
+        self.HTxaxis = "Time"
+
 
         self.doubledec = False
         self.kernel = ""
@@ -556,6 +561,14 @@ class UniDecConfig(object):
         f.write("CDScanStart " + str(self.CDScanStart) + "\n")
         f.write("CDScanEnd " + str(self.CDScanEnd) + "\n")
         f.write("HTksmooth " + str(self.HTksmooth) + "\n")
+        f.write("CDScanCompresse " + str(self.CDScanCompress) + "\n")
+        f.write("HTtimepad " + str(self.HTtimepad) + "\n")
+        f.write("HTanalysistime " + str(self.HTanalysistime) + "\n")
+        f.write("HTxaxis " + str(self.HTxaxis) + "\n")
+        f.write("HTcycleindex " + str(self.HTcycleindex) + "\n")
+        f.write("HTtimepad " + str(self.HTtimepad) + "\n")
+        f.write("htbit " + str(self.htbit) + "\n")
+
 
         f.write("csig " + str(self.csig) + "\n")
         f.write("smoothdt " + str(self.smoothdt) + "\n")
@@ -677,6 +690,19 @@ class UniDecConfig(object):
                             self.CDScanEnd = ud.string_to_int(line.split()[1])
                         if line.startswith("HTksmooth"):
                             self.HTksmooth = ud.string_to_value(line.split()[1])
+
+                        if line.startswith("HTtimepad"):
+                            self.HTtimepad = ud.string_to_value(line.split()[1])
+                        if line.startswith("HTanalysistime"):
+                            self.HTanalysistime = ud.string_to_value(line.split()[1])
+                        if line.startswith("HTxaxis"):
+                            self.HTxaxis = line.split()[1]
+                        if line.startswith("HTcycleindex"):
+                            self.HTcycleindex = ud.string_to_value(line.split()[1])
+                        if line.startswith("htbit"):
+                            self.htbit = ud.string_to_value(line.split()[1])
+                        if line.startswith("CDScanCompress"):
+                            self.CDScanCompress = ud.string_to_value(line.split()[1])
                         if line.startswith("zzsig"):
                             self.zzsig = ud.string_to_value(line.split()[1])
                         if line.startswith("psig"):
@@ -1584,7 +1610,18 @@ class ChromatogramContainer:
 
         self.ht = ht
 
-        self.chromatograms.append(chrom)
+        # If label already exists, replace it
+        if label in [x.label for x in self.chromatograms]:
+            for i, x in enumerate(self.chromatograms):
+                if x.label == label:
+                    self.chromatograms[i] = chrom
+                    break
+        else:
+            # Add it if new
+            if type(self.chromatograms) is np.ndarray:
+                self.chromatograms = np.concatenate((self.chromatograms, [chrom]))
+            else:
+                self.chromatograms.append(chrom)
 
     def clear(self):
         self.chromatograms = []

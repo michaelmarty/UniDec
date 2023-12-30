@@ -121,11 +121,12 @@ class UniDecCD(engine.UniDec):
         self.config.mzbins = 1
         self.config.rawflag = 1
         self.config.poolflag = 1
-        self.exemode=True
+        self.exemode = True
+        self.massaxis = None
         pass
 
     def exe_mode(self, exemode=True):
-        self.exemode=exemode
+        self.exemode = exemode
 
     def open_file(self, path, refresh=False):
         """
@@ -431,6 +432,10 @@ class UniDecCD(engine.UniDec):
         except:
             pass
 
+        # Compress Scans
+        if self.config.CDScanCompress > 1:
+            self.farray[:, 2] = np.floor(self.farray[:, 2] / self.config.CDScanCompress)
+
         # Filter m/z
         print("Filtering m/z range:", self.config.minmz, self.config.maxmz, "Start Length:", len(self.farray))
         self.filter_mz(mzrange=[self.config.minmz, self.config.maxmz])
@@ -453,19 +458,22 @@ class UniDecCD(engine.UniDec):
 
         if len(self.harray) > 0:
             self.harray = self.hist_data_prep()
+            self.harray_process(transform=transform)
 
-            self.data.data2 = np.transpose([self.mz, np.sum(self.harray, axis=0)])
-            np.savetxt(self.config.infname, self.data.data2)
-
-            print("Transforming m/z to mass:", self.config.massbins, "Start Length:", len(self.farray))
-            if transform:
-                self.transform()
-                np.savetxt(self.config.massdatfile, self.data.massdat)
-                self.unprocessed = deepcopy(self.data.massdat)
         else:
             print("ERROR: Empty histogram array on process")
             return 0
         print("Process Time:", time.perf_counter() - starttime)
+
+    def harray_process(self, transform=True):
+        self.data.data2 = np.transpose([self.mz, np.sum(self.harray, axis=0)])
+        np.savetxt(self.config.infname, self.data.data2)
+
+        print("Transforming m/z to mass:", self.config.massbins, "Start Length:", len(self.farray))
+        if transform:
+            self.transform()
+            np.savetxt(self.config.massdatfile, self.data.massdat)
+            self.unprocessed = deepcopy(self.data.massdat)
 
     def filter_int(self, int_range):
         """
@@ -635,7 +643,6 @@ class UniDecCD(engine.UniDec):
         harray *= boo1
         return harray
 
-
     def hist_datareduction(self, harray, red_per):
         sdat = np.sort(np.ravel(harray))
         index = round(len(sdat) * red_per / 100.)
@@ -713,15 +720,9 @@ class UniDecCD(engine.UniDec):
             # Set values outside range to 0
             self.harray[boo3] = 0
 
-    def transform(self, harray=None, dataobj=None):
+    def create_mass_axis(self, harray=None):
         if harray is None:
             harray = self.harray
-        if dataobj is None:
-            dataobj = self.data
-        # Test for if array is empty and error if so
-        if len(harray) == 0:
-            print("ERROR: Empty histogram array on transform")
-            return 0
 
         # filter out zeros
         harray = np.array(harray)
@@ -732,27 +733,41 @@ class UniDecCD(engine.UniDec):
         if ud.isempty(mass):
             print("ERROR: Empty histogram array on transform")
             return 0
-
         # Find the max and min and create the new linear mass axis
         minval = np.amax([np.amin(mass) - self.config.massbins * 3, self.config.masslb])
         maxval = np.amin([np.amax(mass) + self.config.massbins * 3, self.config.massub])
         minval = round(minval / self.config.massbins) * self.config.massbins  # To prevent weird decimals
         massaxis = np.arange(minval, maxval, self.config.massbins)
+        return massaxis
+
+    def transform(self, harray=None, dataobj=None):
+        if harray is None:
+            harray = self.harray
+        if dataobj is None:
+            dataobj = self.data
+        # Test for if array is empty and error if so
+        if len(harray) == 0:
+            print("ERROR: Empty histogram array on transform")
+            return 0
+
+        massaxis = self.create_mass_axis(harray)
 
         # Create the mass grid
         dataobj.massgrid = []
         for i in range(len(self.ztab)):
             d = harray[i]
-            boo1 = d > 0
-            newdata = np.transpose([self.mass[i][boo1], d[boo1]])
-            if len(newdata) < 2:
-                dataobj.massgrid.append(massaxis * 0)
+            if self.config.poolflag == 1:
+                newdata = np.transpose([self.mass[i], d])
+                massdata = ud.linterpolate(newdata, massaxis)
             else:
-                if self.config.poolflag == 1:
-                    massdata = ud.linterpolate(newdata, massaxis)
+                boo1 = d > 0
+                newdata = np.transpose([self.mass[i][boo1], d[boo1]])
+                if len(newdata) < 2:
+                    massdata = np.transpose([massaxis, massaxis * 0])
                 else:
                     massdata = ud.lintegrate(newdata, massaxis)
-                dataobj.massgrid.append(massdata[:, 1])
+
+            dataobj.massgrid.append(massdata[:, 1])
         dataobj.massgrid = np.transpose(dataobj.massgrid)
         # Create the linearized mass data by integrating everything into the new linear axis
         dataobj.massdat = np.transpose([massaxis, np.sum(dataobj.massgrid, axis=1)])
@@ -764,6 +779,7 @@ class UniDecCD(engine.UniDec):
         dataobj.zdat = np.transpose([self.ztab, np.sum(harray, axis=1)])
         dataobj.mzgrid = np.transpose(
             [np.ravel(self.X.transpose()), np.ravel(self.Y.transpose()), np.ravel(harray.transpose())])
+        self.massaxis = massaxis
         return dataobj
 
     def transform_mzmass(self):
@@ -1023,14 +1039,15 @@ class UniDecCD(engine.UniDec):
 
         return self.harray
 
-    def run_deconvolution(self):
+    def run_deconvolution(self, process_data=True):
         """
         Function for running the full deconvolution sequence, including setup, pre-, and post-processing.
 
         :return: None
         """
-        # Process data but don't transform
-        self.process_data(transform=False)
+        if process_data:
+            # Process data but don't transform
+            self.process_data(transform=False)
         # Filter histogram to remove masses that are not allowed
         self.harray = self.hist_mass_filter(self.harray)
         # Filter histogram to remove charge states that aren't allowed based on the native charge state filter
@@ -1056,7 +1073,7 @@ class UniDecCD(engine.UniDec):
         # Check for this
         if self.config.CDzbins != 1 and self.config.zzsig != 0:
             print("ERROR: Charge smoothing is only define for when charges are binned to unit charge")
-            self.harray=[[]]
+            self.harray = [[]]
             return
         # Output input data
         self.harray = np.array(self.harray)
