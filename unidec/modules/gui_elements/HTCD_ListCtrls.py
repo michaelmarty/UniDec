@@ -96,6 +96,17 @@ class YValueListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.TextEd
     def get_data(self):
         return self.data
 
+    def translate_selection(self, sindex):
+        # Converts index of selection into actual index after accounting for ignored chromatograms
+        outindex = 0
+        for i, c in enumerate(self.data.chromatograms):
+            if c.ignore:
+                continue
+            if outindex == sindex:
+                return i
+            outindex += 1
+        return None
+
 
 class ListCtrlPanel(wx.Panel):
     def __init__(self, parent, pres, size=(200, 400)):
@@ -157,7 +168,9 @@ class ListCtrlPanel(wx.Panel):
         for i in range(1, num):
             item = self.list.GetNextSelected(item)
             self.selection.append(item)
-        print("Selection:", self.selection)
+
+        self.selection = [self.list.translate_selection(s) for s in self.selection]
+
         return self.selection
 
     def on_popup_one(self, event):
@@ -177,7 +190,9 @@ class ListCtrlPanel(wx.Panel):
     def on_popup_four(self, event):
         self.selection = self.get_selected()
         for i in range(0, len(self.selection)):
-            self.list.data.chromatograms[self.selection[i]].ignore = True
+            #index = self.list.translate_selection(self.selection[i])
+            index = self.selection[i]
+            self.list.data.chromatograms[index].ignore = True
 
         self.list.repopulate(reset=False)
         self.pres.on_ignore_repopulate()
@@ -191,7 +206,9 @@ class ListCtrlPanel(wx.Panel):
         for c in self.list.data.chromatograms:
             c.ignore = True
         for i in range(0, len(self.selection)):
-            self.list.data.chromatograms[self.selection[i]].ignore = False
+            #index = self.list.translate_selection(self.selection[i])
+            index = self.selection[i]
+            self.list.data.chromatograms[index].ignore = False
 
         self.list.repopulate(reset=False)
         self.pres.on_ignore_repopulate()
