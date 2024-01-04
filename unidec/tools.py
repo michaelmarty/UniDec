@@ -22,7 +22,6 @@ import matplotlib.colors as colors
 from unidec.modules.fitting import *
 from itertools import cycle
 
-
 try:
     from unidec.modules.mzMLimporter import mzMLimporter
 except:
@@ -1947,11 +1946,16 @@ def peakdetect(data, config=None, window=10, threshold=0, ppm=None, norm=True):
 
     :param data: Mass data array (N x 2) (mass intensity)
     :param config: UniDecConfig object
+    :param window: Tolerance window of the x values
+    :param threshold: Threshold of the y values
+    :param ppm: Tolerance window in ppm
+    :param norm: Whether to normalize the data before peak detection
     :return: Array of peaks positions and intensities (P x 2) (mass intensity)
     """
     if config is not None:
         window = config.peakwindow / config.massbins
         threshold = config.peakthresh
+
     peaks = []
     length = len(data)
     if norm:
@@ -2552,11 +2556,12 @@ def continuous_wavelet_transform(a, widths, wavelet_type="Ricker"):
     return signal.cwt(a, wavelet, widths)
 
 
-def autocorr(datatop, config=None, window=None):
+def autocorr(datatop, config=None, window=10):
     """
     Note: ASSUMES LINEARIZED DATA
     :param datatop: 1D data
     :param config: Config file (optional file)
+    :param window: Window for peak detection, default 10 data points
     :return: Autocorr spectrum, peaks in autocorrelation.
     """
     corry = signal.fftconvolve(datatop[:, 1], datatop[:, 1][::-1], mode='same')

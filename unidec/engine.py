@@ -268,7 +268,7 @@ class UniDec(UniDecEngine):
                                 newfilepath[:-10] + "_msraw.txt", '-i', newfilepath, '--ms_bin', binsize,
                                 "--ms_smooth_window", "0", "--ms_number_smooth", "0", "--im_bin", binsize, "--sparse",
                                 "1"]
-                        result = subprocess.call(call)
+                        result = subprocess.call(call, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
                         self.config.filename = newfilename
                         if result == 0 and os.path.isfile(newfilepath):
                             print("Converted IM data from raw to txt")

@@ -92,6 +92,11 @@ class UniChromCDApp(UniDecCDApp):
         self.make_tic_plot()
 
     def on_pick_peaks(self, e=None):
+        """
+        Pick peaks. Runs the peak picking algorithm. Adds Mass EIC beyond conventional UCD.
+        :param e: event (unused)
+        :return: None
+        """
         self.export_config(self.eng.config.confname)
         self.pick_peaks()
         if self.eng.fullmstack is not None:
@@ -113,10 +118,14 @@ class UniChromCDApp(UniDecCDApp):
                 self.cc.add_chromatogram(chromdat, color=p.color, label=label, ht=False)
                 if self.eng.fullmstack_ht is not None:
                     htdata = self.eng.get_mass_eic(massrange, ht=True)
-                    self.cc.add_chromatogram(htdata, color=p.color, label=label +" HT", ht=True)
+                    self.cc.add_chromatogram(htdata, color=p.color, label=label + " HT", ht=True)
         self.plot_chromatograms()
 
     def on_select_mzz_region(self):
+        """
+        Trigged by right click of m/z vs z 2D plot. Triggers EIC creation and HT if already setup.
+        :return: None
+        """
         self.export_config(self.eng.config.confname)
         if not wx.GetKeyState(wx.WXK_CONTROL):
             xlimits = self.view.plot1.subplot1.get_xlim()
@@ -130,6 +139,10 @@ class UniChromCDApp(UniDecCDApp):
                 self.add_eic(xlimits, ylimits, color=color)
 
     def make_tic_plot(self):
+        """
+        Make the TIC Plot
+        :return: None
+        """
         data = self.eng.get_tic(normalize=self.eng.config.datanorm)
         self.cc.add_chromatogram(data, color="black", label="TIC")
 
@@ -137,16 +150,33 @@ class UniChromCDApp(UniDecCDApp):
         self.plot_chromatograms(save=False)
 
     def add_eic(self, mzrange, zrange, color='b'):
+        """
+        Add an EIC to the list of chromatograms. Plot the chromatograms.
+        :param mzrange: M/z range
+        :param zrange: charge range
+        :param color: Color of the plot. Default blue.
+        :return: None
+        """
         eicdata = self.eng.get_eic(mzrange, zrange, normalize=self.eng.config.datanorm)
         self.cc.add_chromatogram(eicdata, color=color, zrange=zrange, mzrange=mzrange)
 
         self.plot_chromatograms()
 
     def on_run_tic_ht(self, e=None):
+        """
+        Button to run TIC HT. Runs run_tic_ht.
+        :param e: Unused event
+        :return: None
+        """
         self.export_config(self.eng.config.confname)
         self.run_tic_ht()
 
     def on_run_eic_ht(self, e=None):
+        """
+        Button to run EIC HT. Runs run_eic_ht on each EIC that is extracted.
+        :param e: Unused event
+        :return: None
+        """
         self.export_config(self.eng.config.confname)
         for c in self.cc.chromatograms:
             if "TIC" not in c.label:
@@ -155,6 +185,10 @@ class UniChromCDApp(UniDecCDApp):
         self.plot_chromatograms()
 
     def run_tic_ht(self):
+        """
+        Runs HT on the TIC. Clears the chromatogram list. Runs HT on TIC. Adds both to list. Plots chromatograms.
+        :return: None
+        """
         self.cc.clear()
         data = self.eng.get_tic(normalize=self.eng.config.datanorm)
         htdata = self.eng.tic_ht(normalize=self.eng.config.datanorm)
@@ -165,6 +199,16 @@ class UniChromCDApp(UniDecCDApp):
         self.plot_chromatograms(save=False)
 
     def run_eic_ht(self, mzrange, zrange, color='b', add_eic=True, plot=True):
+        """
+        Function to generate and HT an EIC. Adds both to list. Plots chromatograms.
+        :param mzrange: M/z range
+        :param zrange: Charge range
+        :param color: Color of plot. Default blue.
+        :param add_eic: Add the EIC to the list. Default True.
+        :param plot: Plot the chromatograms. Default True.
+        :return: None
+        """
+
         htdata, eicdata = self.eng.eic_ht(mzrange, zrange, normalize=self.eng.config.datanorm)
         if add_eic:
             self.cc.add_chromatogram(eicdata, color=color, zrange=zrange, mzrange=mzrange)
@@ -173,6 +217,12 @@ class UniChromCDApp(UniDecCDApp):
             self.plot_chromatograms()
 
     def plot_chromatograms(self, e=None, save=True):
+        """
+        Plot all chromatograms in the list. Add a box to the 2D plot if the chromatogram is an EIC.
+        :param e: Unused event
+        :param save: Whether to save the output to a text file. Default True
+        :return: None
+        """
         self.makeplot1()
         self.view.plottic.clear_plot()
         self.view.chrompanel.list.populate(self.cc)
@@ -208,10 +258,20 @@ class UniChromCDApp(UniDecCDApp):
             self.save_chroms()
 
     def save_chroms(self):
+        """
+        Save the chromatograms to a text file.
+        :return: None
+        """
         chromarray = self.cc.to_array()
         np.savetxt(self.eng.config.cdchrom, chromarray, delimiter="\t", fmt="%s")
 
     def load_chroms(self, fname=None, array=None):
+        """
+        Load chromatograms from a text file. Add them to the list. Plot the chromatograms.
+        :param fname: Input file name
+        :param array: Input array. Not currently used, but could be used to load from a numpy array rather than file.
+        :return: None
+        """
         if fname is not None:
             if not os.path.isfile(fname):
                 print("Chrom file not found:", fname)
@@ -219,6 +279,9 @@ class UniChromCDApp(UniDecCDApp):
             else:
                 print("Loading Chroms:", fname)
             array = np.loadtxt(fname, delimiter="\t", dtype=str)
+        elif array is None:
+            print("No file name or array supplied to load_chroms")
+            return
 
         if ud.isempty(array):
             return
@@ -242,6 +305,11 @@ class UniChromCDApp(UniDecCDApp):
         self.plot_chromatograms()
 
     def on_load_chroms(self, e=None):
+        """
+        Load chromatograms from a file. Triggered by a button.
+        :param e: Unused event
+        :return: None
+        """
         # Load File dialog
         dlg = wx.FileDialog(self.view, "Choose a file")
         if dlg.ShowModal() == wx.ID_OK:
@@ -250,10 +318,21 @@ class UniChromCDApp(UniDecCDApp):
         dlg.Destroy()
 
     def on_ignore_repopulate(self, e=None):
+        """
+        Event triggered by updates to the chromatogram list. Repopulate the list based on adjusted ignore flags.
+        :param e: Unused event
+        :return: None
+        """
         self.cc = self.view.chrompanel.list.get_data()
         self.plot_chromatograms()
 
     def on_select_time_range(self, e=None):
+        """
+        Event triggered by a click on the TIC plot. Select a time range and create a 2D m/z vs z sum from
+        that time range post-HT.
+        :param e: Unused event
+        :return: None
+        """
         if not self.showht or self.eng.fullhstack_ht is None:
             return
         if not wx.GetKeyState(wx.WXK_CONTROL):
@@ -268,29 +347,50 @@ class UniChromCDApp(UniDecCDApp):
             self.select_ht_range(range=xlimits)
 
     def on_run_all_ht(self, e=None):
+        """
+        Button to trigger running HT on all data. Runs run_all_ht.
+        :param e: Unused event.
+        :return: None
+        """
         self.run_all_ht()
 
     def run_all_ht(self):
+        """
+        Run HT on all data. Clears the chromatogram list. Runs HT on each data point. Plots chromatograms after
+        adding extracted TIC*_HT.
+        :return: None
+        """
         self.export_config(self.eng.config.confname)
         self.eng.process_data_scans()
         ticdat = self.eng.run_all_ht()
 
         self.cc.add_chromatogram(ticdat, color="gold", label="TIC*_HT")
 
-        #tic2 = np.sum(self.eng.fullhstack, axis=(1, 2))
-        #ticdat2 = np.transpose(np.vstack((self.eng.fulltime, tic2)))
-        #self.cc.add_chromatogram(ticdat2, color="red", label="TIC*")
+        # tic2 = np.sum(self.eng.fullhstack, axis=(1, 2))
+        # ticdat2 = np.transpose(np.vstack((self.eng.fulltime, tic2)))
+        # self.cc.add_chromatogram(ticdat2, color="red", label="TIC*")
 
         self.showht = True
         self.plot_chromatograms()
 
     def run_all_mass_transform(self, e=None):
+        """
+        Button to trigger running mass transform on all data. Runs transform_stacks. Creates mass TICs.
+        :param e: Unused event.
+        :return: None
+        """
         self.eng.transform_stacks()
         self.cc.add_chromatogram(self.eng.mass_tic, color="grey", label="Mass TIC")
         if self.eng.fullmstack_ht is not None:
             self.cc.add_chromatogram(self.eng.mass_tic_ht, color="goldenrod", label="Mass TIC HT")
         self.plot_chromatograms()
+
     def select_ht_range(self, range=None):
+        """
+        Select a time range and create a 2D m/z vs z sum from that time range post-HT.
+        :param range: Time range to select. Default None, which should be all times
+        :return: None
+        """
         self.eng.select_ht_range(range=range)
         self.makeplot1()
         self.makeplot2()
@@ -298,18 +398,39 @@ class UniChromCDApp(UniDecCDApp):
         self.makeplot4()
 
     def make_charge_time_2dplot(self, e=None):
+        """
+        Creates a 2D plot of charge vs time
+        :param e: Unused event
+        :return: None
+        """
         self.export_config(self.eng.config.confname)
         self.make_2d_plot(face=1)
 
     def make_mz_time_2dplot(self, e=None):
+        """
+        Creates a 2D plot of m/z vs time
+        :param e: Unused event
+        :return: None
+        """
         self.export_config(self.eng.config.confname)
         self.make_2d_plot(face=2)
 
     def make_mass_time_2dplot(self, e=None):
+        """
+        Creates a 2D plot of mass vs time
+        :param e: Unused event
+        :return: None
+        """
         self.export_config(self.eng.config.confname)
         self.make_2d_plot(face=3)
 
     def make_2d_plot(self, e=None, face=1):
+        """
+        Creates 2D plots of charge, m/z, or mass vs time. General 2D plot function called by others
+        :param e: Unused event
+        :param face: Which face to plot against time. 1=charge, 2=m/z, 3=mass
+        :return: None
+        """
         starttime = time.perf_counter()
         print("Starting 2D Plots...", )
         if self.eng.fullhstack is None:
@@ -370,9 +491,20 @@ class UniChromCDApp(UniDecCDApp):
         print("Finished 2D Plot", (time.perf_counter() - starttime), " s")
 
     def make_mass_cube_plot(self, e=None):
+        """
+        Creates a cube plot of mass vs charge vs time
+        :param e: Unused event
+        :return: None
+        """
         self.make_cube_plot(e, mass=True)
 
     def make_cube_plot(self, e=None, mass=False):
+        """
+        Creates a cube plot of mass or m/z vs charge vs time. Trys both regular and HT if possible.
+        :param e: Unused event
+        :param mass: Flag to plot mass vs charge vs time. Default False, which plots m/z vs charge vs time.
+        :return: None
+        """
         self.export_config(self.eng.config.confname)
 
         if mass and self.eng.fullmstack is None:
@@ -441,11 +573,21 @@ class UniChromCDApp(UniDecCDApp):
             pass
 
     def on_auto_set_ct(self, e=None):
+        """
+        Automatically set the cycle index based on the autocorrelation.
+        :param e: Unused event
+        :return: None
+        """
         self.eng.get_cycle_time()
         self.eng.config.HTcycleindex = self.eng.cycleindex
         self.import_config()
 
     def on_plot_kernel(self, e=None):
+        """
+        Plot the HT kernel
+        :param e: Unused event
+        :return: None
+        """
         self.export_config(self.eng.config.confname)
         if not self.showht:
             self.eng.setup_ht()
@@ -474,9 +616,9 @@ class UniChromCDApp(UniDecCDApp):
 
     def on_autocorr2(self, index):
         """
-        Manual Test - Passed
-        :param index:
-        :return:
+        Launch an autocorrelation window for a given chromatogram.
+        :param index: Index of chromatogram in the list
+        :return: None
         """
         data = self.cc.chromatograms[index].chromdat
         data[:, 0] = np.arange(0, len(data))
@@ -485,10 +627,19 @@ class UniChromCDApp(UniDecCDApp):
         dlg.ShowModal()
 
     def on_export_arrays(self, e=None):
+        """
+        Export the chromatograms and HT kernel to text files.
+        :param e: Unused event
+        :return: None
+        """
         self.export_config(self.eng.config.confname)
         self.export_arrays()
 
     def export_arrays(self):
+        """
+        Export the chromatograms and HT kernel to text files.
+        :return: None
+        """
         # Export Kernel Array
         np.savetxt(self.eng.config.outfname + "_htkernel.txt", self.eng.htkernel)
         # Export Chromatograms

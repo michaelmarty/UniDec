@@ -1,4 +1,4 @@
-version 6.0.5
+version 7.0.0b
 imflag 0
 cdmsflag 0
 input C:\Python\UniDec3\unidec\bin\Example Data\BSA_unidecfiles\BSA_input.dat
@@ -61,6 +61,16 @@ kernel C:\Python\UniDec3\unidec\bin\Example Data\BSA_unidecfiles\BSA_mass.txt
 CDslope 12.5
 CDzbins 1.0
 CDres 1.0
+CDScanStart -1
+CDScanEnd -1
+HTksmooth 0.0
+CDScanCompresse 0.0
+HTtimepad 0.0
+HTanalysistime 38.0
+HTxaxis Time
+HTcycleindex -1.0
+HTtimepad 0.0
+htbit 0.0
 csig 0.0
 smoothdt 0.0
 subbufdt 0.0

@@ -170,9 +170,9 @@ def PDFTexReport(fname):
     if os.path.isfile(path):
         call = [path, str(fname), "-halt-on-error"]
         # print(call)
-        subprocess.call(call)
+        subprocess.call(call, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
     else:
         call = ["pdflatex", str(fname), "-halt-on-error"]
         # print(call)
-        subprocess.call(call)
+        subprocess.call(call, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
     os.chdir(oldpath)

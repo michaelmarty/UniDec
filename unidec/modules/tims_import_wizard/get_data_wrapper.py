@@ -51,7 +51,7 @@ def new_get_data(start, end, im_bin_size, raw_file, pusher, function_no, scan_st
         except ValueError:
             pass
 
-        p = subprocess.call(call_params, shell=False)  # , stdout=devnull, shell=False)
+        p = subprocess.call(call_params, shell=False, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)  # , stdout=devnull, shell=False)
 
         if p != 0:
             print("CONVERSION ERROR! Call Parameters:", call_params)

@@ -707,10 +707,10 @@ class MetaUniDecBase(UniDecPres):
             self.eng.data.import_vars()
             self.view.clear_plots()
             self.view.ypanel.list.populate(self.eng.data)
-            #try:
+            # try:
             #    self.eng.pick_peaks()
-            #3except:
-             #   pass
+            # 3except:
+            #   pass
             self.on_replot(plotsums=False)
 
     def on_export_params(self, e=None):
@@ -725,7 +725,9 @@ class MetaUniDecBase(UniDecPres):
         if self.eng.config.hdf_file != 'default.hdf5':
             new_path = self.eng.config.hdf_file.replace(".hdf5", "temp.hdf5")
             if 0 == subprocess.call(
-                    "\"" + self.eng.config.h5repackfile + "\" \"" + self.eng.config.hdf_file + "\" \"" + new_path + "\"") and os.path.isfile(
+                    "\"" + self.eng.config.h5repackfile + "\" \"" +
+                    self.eng.config.hdf_file + "\" \"" + new_path + "\"",
+                    stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL) and os.path.isfile(
                 new_path):
                 os.remove(self.eng.config.hdf_file)
                 os.rename(new_path, self.eng.config.hdf_file)
@@ -740,8 +742,9 @@ class MetaUniDecBase(UniDecPres):
                         print("Repacking: ", name)
                         new_path = name.replace(".hdf5", "temp.hdf5")
                         if 0 == subprocess.call(
-                                "\"" + self.eng.config.h5repackfile + "\" \"" + name + "\" \"" + new_path + "\"") and os.path.isfile(
-                            new_path):
+                                "\"" + self.eng.config.h5repackfile + "\" \"" + name + "\" \"" + new_path + "\""
+                                , stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL) and os.path.isfile(
+                                new_path):
                             os.remove(name)
                             os.rename(new_path, name)
             print("Done Repacking")
@@ -1588,7 +1591,7 @@ class UniDecApp(MetaUniDecBase):
     def make_image_plot(self, e=None):
         peak_index = e.id
         print("Making Image for peak #", peak_index)
-        #imdat = self.eng.generate_image(peak_index)
+        # imdat = self.eng.generate_image(peak_index)
         self.view.plot8.clear_plot()
         zdat = self.eng.data.exgrid[peak_index]
         self.view.plot8._axes = [0.12, 0.12, 0.75, 0.8]
@@ -1602,6 +1605,7 @@ class UniDecApp(MetaUniDecBase):
         print("Launching Imaging Viewer")
         dlg = image_plotter.ImagingWindow(self.view)
         dlg.init(self.eng.data, self.eng.config)
+
 
 # Critical
 # TODO: Thorough testing

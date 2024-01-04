@@ -17,6 +17,13 @@ import scipy.fft as fft
 
 class HTEng:
     def __init__(self, *args, **kwargs):
+        """
+        Initialize the HTEng class. This class is used for handling Hadamard Transform (HT) related operations.
+        :param args: Arguments (currently unused)
+        :param kwargs: Keyword Arguments (currently unused)
+        :return: None
+        """
+
         super().__init__(*args, **kwargs)
         self.config.htmode = True
 
@@ -28,12 +35,14 @@ class HTEng:
         self.htkernel = []
         self.fftk = []
         self.htoutput = []
+        self.indexrange = [0, 0]
 
         # Index Values
         self.padindex = 0
         self.shiftindex = 0
         self.kernelroll = 0
         self.cycleindex = 0
+        self.rollindex = 0
         self.config.HTcycleindex = -1
 
         # Important Parameters that Should be Automatically Set by File Name
@@ -51,6 +60,11 @@ class HTEng:
         print("HT Engine")
 
     def parse_file_name(self, path):
+        """
+        Parse the file name to extract relevant parameters for HT processing.
+        :param path: File path
+        :return: None
+        """
         if "cyc" in path:
             # Find location of cyc and take next character
             cycindex = path.find("cyc")
@@ -147,23 +161,35 @@ class HTEng:
 
         # Smooth the kernel if desired
         if self.config.HTksmooth > 0:
-            self.gausskernel = np.zeros_like(self.htkernel)
-            self.gausskernel += ndis(self.fullscans[self.padindex:], self.padindex, self.config.HTksmooth)
-            self.gausskernel += ndis(self.fullscans[self.padindex:], np.amax(self.fullscans[self.padindex:]) + 1,
-                                     self.config.HTksmooth)
-            self.gausskernel /= np.sum(self.gausskernel)
-            self.fftg = fft.rfft(self.gausskernel)
-            self.htkernel = fft.irfft(fft.rfft(self.htkernel) * self.fftg).real
+            gausskernel = np.zeros_like(self.htkernel)
+            gausskernel += ndis(self.fullscans[self.padindex:], self.padindex, self.config.HTksmooth)
+            gausskernel += ndis(self.fullscans[self.padindex:], np.amax(self.fullscans[self.padindex:]) + 1,
+                                self.config.HTksmooth)
+            gausskernel /= np.sum(gausskernel)
+            fftg = fft.rfft(gausskernel)
+            self.htkernel = fft.irfft(fft.rfft(self.htkernel) * fftg).real
 
         # Make fft of kernel for later use
         self.fftk = fft.rfft(self.htkernel).conj()
 
     def correct_cycle_time(self):
+        """
+        Correct the cycle time to be not a division of the total sequence length but a fixed number of scans
+        :return: None
+        """
         print("Correcting")
         self.get_cycle_time(data)
         self.setup_ht(cycleindex=self.cycleindex)
 
-    def htdecon(self, data, *args, **kwargs):
+    def htdecon(self, data, **kwargs):
+        """
+        Deconvolve the data using the HT kernel. Need to call setup_ht first.
+        :param data: 1D array of data to be deconvolved. Should be same dimension as self.htkernel.
+        :param kwargs: Keyword arguments. Currently supports "normalize" which normalizes the output to the maximum
+            value. Also supports "gsmooth" which smooths the data with a Gaussian filter before deconvolution.
+            Also supports "sgsmooth" which smooths the data with a Savitzky-Golay filter before deconvolution.
+        :return: Demultiplexed data. Same length as input.
+        """
         # Whether to smooth the data before deconvolution
         if "gsmooth" in kwargs:
             data = scipy.ndimage.gaussian_filter1d(data, kwargs["gsmooth"])
@@ -192,17 +218,23 @@ class HTEng:
         return output
 
     def htdecon_speedy(self, data):
+        """
+        Deconvolve the data using the HT kernel. Need to call setup_ht first. Currently unused.
+        :param data: 1D data array. Should be same dimension as self.htkernel.
+        :return: Demultiplexed data. Same length as input.
+        """
         # Do the convolution, and only the convolution... :)
         return fft.irfft(fft.rfft(data) * self.fftk).real
 
-    def decon_3d_fft(self, array, *args, **kwargs):
+    def decon_3d_fft(self, array, **kwargs):
         """
         Developed this to see if it would speed things up. It turns out not to. About half as slow. Leaving in for
         legacy reasons and because it's super cool code.
-        :param array:
-        :param args:
-        :param kwargs:
-        :return:
+        :param array: 3D array of data to be deconvolved.
+            Should be same length as self.htkernel with the other dimensions set by the harray size.
+        :param kwargs: Keyword arguments. Currently supports "normalize" which normalizes the output to the maximum
+            value.
+        :return: Demultiplexed data array. Same length as input array.
         """
         starttime = time.perf_counter()
         # Slice data to appropriate range
@@ -236,6 +268,11 @@ class HTEng:
         return output
 
     def set_timepad_index(self, timepad):
+        """
+        Find the index of the first scan above a timepad
+        :param timepad: Time value
+        :return: Index of first scan above timepad
+        """
         # find first index above timepad in self.fulltimes
         padindex = np.argmax(self.fulltime >= timepad)
         return padindex
@@ -258,6 +295,15 @@ class HTEng:
         return peakindex
 
     def get_cycle_time(self, data=None, cycleindexguess=None, widthguess=110):
+        """
+        Get the cycle time from the data. This is the time between the first peak and the next peak.
+        Uses an autocorrelation and then peak picking on the autocorrelation.
+        May need to adjust the peak picking parameters to get it to work right.
+        :param data: Input data
+        :param cycleindexguess: Guess for the cycle index
+        :param widthguess: Guess for peak width in number of scans
+        :return: autocorrelation of the data
+        """
         if data is None:
             data = self.fulltic
         # autocorrelation of the data
@@ -279,10 +325,21 @@ class HTEng:
 
 class UniChromHT(HTEng, ChromEngine):
     def __init__(self, *args, **kwargs):
+        """
+        Initialize the UniChromHT class. This class is used for handling Hadamard Transform (HT) related operations
+        on chromatograms.
+        :param args: Arguments
+        :param kwargs: Keyword Arguments
+        """
         super().__init__(*args, **kwargs)
         print("HT Chromatogram Engine")
 
     def open_file(self, path):
+        """
+        Open file and set up the time domain.
+        :param path: File path
+        :return: None
+        """
         self.open_chrom(path)
         times = self.get_minmax_times()
         self.config.HTanalysistime = np.amax(times[1])
@@ -292,6 +349,11 @@ class UniChromHT(HTEng, ChromEngine):
         print("Loaded File:", path)
 
     def eic_ht(self, massrange):
+        """
+        Get the EIC and run HT on it.
+        :param massrange: Mass range for EIC selection
+        :return: Demultiplexed data output
+        """
         eic = self.chromdat.get_eic(mass_range=np.array(massrange))
         print(eic.shape)
         self.fulltic = eic[:, 1]
@@ -300,16 +362,29 @@ class UniChromHT(HTEng, ChromEngine):
         self.htoutput = self.htdecon(self.fulltic)
         return self.htoutput
 
-    def tic_ht(self, correct=False, *args, **kwargs):
+    def tic_ht(self, correct=False, **kwargs):
+        """
+        Get the TIC and run HT on it.
+        :param correct: Whether to correct the data for the first peak
+        :param kwargs: Deconvolution keyword arguments
+        :return: Demultiplexed data output
+        """
         self.fulltic = self.ticdat[:, 1]
         self.fulltime = self.ticdat[:, 0]
         self.setup_ht()
-        self.htoutput = self.htdecon(self.fulltic, correct=correct, *args, **kwargs)
+        self.htoutput = self.htdecon(self.fulltic, correct=correct, **kwargs)
         return self.htoutput
 
 
 class UniDecCDHT(HTEng, UniDecCD):
     def __init__(self, *args, **kwargs):
+        """
+        Initialize the UniDecCDHT class. This class is used for handling Hadamard Transform (HT) related operations
+        on CDMS data.
+        :param args: Arguments
+        :param kwargs: Keyword Arguments
+        :return: None
+        """
         super(UniDecCDHT, self).__init__(*args, **kwargs)
         print("HT-CD-MS Engine")
         self.config.poolflag = 0
@@ -333,10 +408,21 @@ class UniDecCDHT(HTEng, UniDecCD):
         self.ztab = None
 
     def open_file(self, path, refresh=False):
+        """
+        Open CDMS file and set up the time domain.
+        :param path: Path to file
+        :param refresh: Whether to refresh the data. Default False.
+        :return: None
+        """
         self.open_cdms_file(path, refresh=refresh)
         self.parse_file_name(path)
 
     def clear_arrays(self, massonly=False):
+        """
+        Clear arrays to reset.
+        :param massonly: Whether to only reset mass arrays. Default False.
+        :return: None
+        """
         if not massonly:
             self.fullhstack = None
             self.fullhstack_ht = None
@@ -346,6 +432,11 @@ class UniDecCDHT(HTEng, UniDecCD):
         self.mass_tic_ht = None
 
     def prep_time_domain(self):
+        """
+        Prepare the time domain for CDMS data. Creates scans, fullscans, fulltime arrays.
+        Need to set self.config.HTanalysistime before calling this function.
+        :return: None
+        """
         self.scans = np.unique(self.farray[:, 2])
         self.fullscans = np.arange(1, np.amax(self.scans) + 1)
         self.fulltime = self.fullscans * self.config.HTanalysistime / np.amax(self.fullscans)
@@ -406,6 +497,14 @@ class UniDecCDHT(HTEng, UniDecCD):
         print("Process Time HT:", time.perf_counter() - starttime)
 
     def prep_hist(self, mzbins=1, zbins=1, mzrange=None, zrange=None):
+        """
+        Prepare the histogram for process_data_scans CDMS data.
+        :param mzbins: Bin size for m/z
+        :param zbins: Bin size for charge
+        :param mzrange: m/z range
+        :param zrange: charge range
+        :return: None
+        """
         # Set up parameters
         if mzbins < 0.001:
             print("Error, mzbins too small. Changing to 1", mzbins)
@@ -445,6 +544,12 @@ class UniDecCDHT(HTEng, UniDecCD):
         self.mass = (self.X - self.config.adductmass) * self.Y
 
     def histogramLC(self, x=None, y=None):
+        """
+        Histogram function used for LC-CD-MS data.
+        :param x: x-axis (m/z)
+        :param y: y-axis (charge)
+        :return: Histogram array
+        """
         # X is m/z
         if x is None:
             x = self.farray[:, 0]
@@ -464,7 +569,13 @@ class UniDecCDHT(HTEng, UniDecCD):
         harray = np.transpose(harray)
         return harray
 
-    def create_chrom(self, farray, *args, **kwargs):
+    def create_chrom(self, farray, **kwargs):
+        """
+        Create a chromatogram from the farray.
+        :param farray: Data array of features
+        :param kwargs: Keyword arguments. Currently supports "normalize" which normalizes the output to the maximum.
+        :return: TIC/EIC in 2D array (time, intensity)
+        """
         # Count of number of time each scans appears in farray
         scans, counts = np.unique(farray[:, 2], return_counts=True)
 
@@ -479,21 +590,39 @@ class UniDecCDHT(HTEng, UniDecCD):
             fulleic /= np.amax(fulleic)
         return np.transpose([self.fulltime, fulleic])
 
-    def get_tic(self, farray=None, *args, **kwargs):
+    def get_tic(self, farray=None, **kwargs):
+        """
+        Get the TIC from the farray.
+        :param farray: Optional input feature array
+        :param kwargs: Keywords to be passed down to create_chrom
+        :return: 2D array of TIC (time, intensity)
+        """
         self.prep_time_domain()
         if farray is None:
             farray = self.farray
-        fulltic = self.create_chrom(farray, *args, **kwargs)
+        fulltic = self.create_chrom(farray, **kwargs)
         self.fulltic = fulltic[:, 1]
         return fulltic
 
-    def tic_ht(self, *args, **kwargs):
-        self.get_tic(*args, **kwargs)
+    def tic_ht(self, **kwargs):
+        """
+        Get the TIC and run HT on it.
+        :param kwargs: Keyword arguments. Passed down to create_chrom and htdecon.
+        :return: Demultiplexed data output. 2D array (time, intensity)
+        """
+        self.get_tic(**kwargs)
         self.setup_ht()
-        self.htoutput = self.htdecon(self.fulltic, *args, **kwargs)
+        self.htoutput = self.htdecon(self.fulltic, **kwargs)
         return np.transpose([self.fulltime, self.htoutput])
 
-    def get_eic(self, mzrange, zrange, *args, **kwargs):
+    def get_eic(self, mzrange, zrange, **kwargs):
+        """
+        Get the EIC from the farray.
+        :param mzrange: m/z range
+        :param zrange: charge range
+        :param kwargs: Keywords to be passed down to create_chrom
+        :return: 2D array of EIC (time, intensity)
+        """
         # Filter farray
         b1 = self.farray[:, 0] >= mzrange[0]
         b2 = self.farray[:, 0] <= mzrange[1]
@@ -505,16 +634,27 @@ class UniDecCDHT(HTEng, UniDecCD):
         farray2 = self.farray[b]
 
         # Create EIC
-        eic = self.create_chrom(farray2, *args, **kwargs)
+        eic = self.create_chrom(farray2, **kwargs)
         return eic
 
-    def eic_ht(self, mzrange, zrange, *args, **kwargs):
-        eic = self.get_eic(mzrange, zrange, *args, **kwargs)
+    def eic_ht(self, mzrange, zrange, **kwargs):
+        """
+        Get the EIC and run HT on it.
+        :param mzrange: m/z range
+        :param zrange: charge range
+        :param kwargs: Keyword arguments. Passed down to create_chrom and htdecon.
+        :return: Demultiplexed data output. 2D array (time, intensity)
+        """
+        eic = self.get_eic(mzrange, zrange,**kwargs)
         self.setup_ht()
-        self.htoutput = self.htdecon(eic[:, 1], *args, **kwargs)
+        self.htoutput = self.htdecon(eic[:, 1],  **kwargs)
         return np.transpose([self.fulltime, self.htoutput]), eic
 
     def run_all_ht(self):
+        """
+        Run HT on all data in full 3D array. Will call process_data_scans if necessary.
+        :return: TIC based on demultiplexed data. 2D array (time, intensity)
+        """
         starttime = time.perf_counter()
         if self.fullhstack is None:
             self.process_data_scans()
@@ -578,6 +718,11 @@ class UniDecCDHT(HTEng, UniDecCD):
         return ticdat
 
     def select_ht_range(self, range=None):
+        """
+        Select a range of time from HT stack and processes it as a histogram array
+        :param range: Time range
+        :return: 2D histogram array
+        """
         if range is None:
             range = [np.amin(self.fulltime), np.amax(self.fulltime)]
         b1 = self.fulltime >= range[0]
@@ -587,8 +732,14 @@ class UniDecCDHT(HTEng, UniDecCD):
         self.harray = np.sum(substack_ht, axis=0)
         self.harray = np.clip(self.harray, 0, np.amax(self.harray))
         self.harray_process()
+        return self.harray
 
     def transform_array(self, array):
+        """
+        Transforms a histogram stack from m/z to mass
+        :param array: Histogram stack. Shape is time vs. charge vs. m/z.
+        :return: Transformed array
+        """
         mlen = len(self.massaxis)
         outarray = np.zeros((len(array), mlen))
 
@@ -605,6 +756,10 @@ class UniDecCDHT(HTEng, UniDecCD):
         return outarray
 
     def transform_stacks(self):
+        """
+        Transform the histogram stacks from m/z to mass. Calls transform_array function on each stack.
+        :return: None
+        """
         if self.massaxis is None:
             self.process_data(transform=True)
         if self.fullhstack is None:
@@ -663,6 +818,12 @@ class UniDecCDHT(HTEng, UniDecCD):
         print("Full Mass 2 Transform Done:", time.perf_counter() - starttime)
 
     def get_mass_eic(self, massrange, ht=False):
+        """
+        Get the EIC for a mass range after transforming the data to mass. Can be either HT or not.
+        :param massrange: Mass range
+        :param ht: Boolean whether to use HT or not
+        :return: 2D array of EIC (time, intensity)
+        """
         # Filter fullmstack
         b1 = self.massaxis >= massrange[0]
         b2 = self.massaxis <= massrange[1]
