@@ -199,7 +199,7 @@ v.7.0.0
 
 Added new module for time domain CD-MS data analysis, UniChromCD. This includes some cool new plotting and analysis features. Most importantly, it also includes our new method for Hadamard Transform analysis of CD-MS spectra. You can use the tools for regular LC-CD-MS or go crazy with HT-LC-CD-MS. More info coming soon on this front...:)
 
-Fixed deep bug with integration transforms. Improvements and refactoring to support UniChromCD.
+Fixed deep bug with integration transforms. Improvements and refactoring to support UniChromCD. Fixed execution bug on servers.
 
 v.6.0.5
 
