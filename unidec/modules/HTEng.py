@@ -98,7 +98,7 @@ class HTEng:
         deconvolve the data. The sequence is defined by the htseq variable. The timepad and timeshift variables
         shift the sequence in time. The config.HTksmooth variable smooths the kernel to reduce ringing.
         :param cycleindex: The length of a cycle in number of scans.
-            If not specified, default is the full number of scans divided by the number of cycles.
+        If not specified, default is the full number of scans divided by the number of cycles.
         :return: None
         """
         # Finds the number of scans that are padded
@@ -186,8 +186,8 @@ class HTEng:
         Deconvolve the data using the HT kernel. Need to call setup_ht first.
         :param data: 1D array of data to be deconvolved. Should be same dimension as self.htkernel.
         :param kwargs: Keyword arguments. Currently supports "normalize" which normalizes the output to the maximum
-            value. Also supports "gsmooth" which smooths the data with a Gaussian filter before deconvolution.
-            Also supports "sgsmooth" which smooths the data with a Savitzky-Golay filter before deconvolution.
+        value. Also supports "gsmooth" which smooths the data with a Gaussian filter before deconvolution.
+        Also supports "sgsmooth" which smooths the data with a Savitzky-Golay filter before deconvolution.
         :return: Demultiplexed data. Same length as input.
         """
         # Whether to smooth the data before deconvolution
@@ -226,6 +226,7 @@ class HTEng:
         # Do the convolution, and only the convolution... :)
         return fft.irfft(fft.rfft(data) * self.fftk).real
 
+    '''
     def decon_3d_fft(self, array, **kwargs):
         """
         Developed this to see if it would speed things up. It turns out not to. About half as slow. Leaving in for
@@ -265,7 +266,7 @@ class HTEng:
             if kwargs["normalize"]:
                 output /= np.amax(output)
         # Return demultiplexed data
-        return output
+        return output'''
 
     def set_timepad_index(self, timepad):
         """

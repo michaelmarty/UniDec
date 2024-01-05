@@ -89,10 +89,11 @@ class UniDec(UniDecEngine):
         If it finds a _conf.dat file in _unidecfiles, it will import the old configuration.
         Otherwise, it keeps the existing configuration but resets file names.
 
-        If silent=True is passed in **kwargs, prints are suppressed.
-
-        :param: file_name: Name of file to open. May be in  x y or x y z text format or in mzML format. May be tab or space delimited
-        :param file_directory: Directory in which filename is located. Default is current directory. If None, will get from file_name.
+        If silent=True is passed in kwargs, prints are suppressed.
+        :param: file_name: Name of file to open.
+        May be in  x y or x y z text format or in mzML format. May be tab or space delimited
+        :param file_directory: Directory in which filename is located.
+        Default is current directory. If None, will get from file_name.
         :param time_range: Array or tuple of (start, end) times to load from data file. Default is to load all.
         :param refresh: If True, will refresh the data file even if it already exists.
         :param load_results: If True, will load the results from the _unidecfiles directory.
@@ -206,14 +207,13 @@ class UniDec(UniDecEngine):
     def raw_process(self, dirname, inflag=False, binsize=1):
         """
         Processes Water's Raw files into .txt using external calls to:
-            self.config.cdcreaderpath for IM-MS
+        self.config.cdcreaderpath for IM-MS
 
         MS is processed by modules.waters_importer.Importer
 
         Default files are created with the header of the .raw file plus:
-            _rawdata.txt for MS
-            _imraw.txt for IM-MS
-
+        _rawdata.txt for MS
+        _imraw.txt for IM-MS
         :param dirname: .raw directory name
         :param inflag: If True, it will put the output .txt file inside the existing .raw directory. If False, it will
         put the file in the same directory that contains the .raw directory
@@ -987,9 +987,9 @@ class UniDec(UniDecEngine):
     def normalize_peaks(self):
         """
         Noamlize everything in the peaks accoring to the type set in self.config.peaknorm
-            0 = No normalization
-            1 = Normalize the max value to 1
-            2 = Normalize the sum to 1
+        0 = No normalization
+        1 = Normalize the max value to 1
+        2 = Normalize the sum to 1
         :return: None
         """
         integrals = np.array([p.integral for p in self.pks.peaks])

@@ -134,7 +134,6 @@ def detectoreff_2d(igrid, xgrid, va):
 def process_data_2d(xgrid, ygrid, igrid, config):
     """
     Process IM-MS raw data.
-
     1. Chop data to defined limits
     2. Linearize
     3. Smooth

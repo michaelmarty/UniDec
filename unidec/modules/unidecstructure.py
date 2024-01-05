@@ -1120,7 +1120,7 @@ class UniDecConfig(object):
     def default_file_names(self):
         """
         Sets the default file names. For things comming into and out of the program. In theory these can be modified,
-         but it might be risky.
+        but it might be risky.
         :return: None
         """
         self.infname = self.outfname + "_input.dat"
@@ -1145,10 +1145,10 @@ class UniDecConfig(object):
     def check_badness(self):
         """
         Test for a few things that will crash the program:
-            Min is greater than Max for m/z, charge, mass, native charge, ccs, native ccs, dt
-            Bad IM-MS calibration values.
-            Peak width is zero
-            m/z resolution is really small.
+        Min is greater than Max for m/z, charge, mass, native charge, ccs, native ccs, dt
+        Bad IM-MS calibration values.
+        Peak width is zero
+        m/z resolution is really small.
         :return: None
         """
         badest = 0

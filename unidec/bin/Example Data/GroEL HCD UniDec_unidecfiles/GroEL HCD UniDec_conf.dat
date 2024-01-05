@@ -1,4 +1,4 @@
-version 6.0.3
+version 7.0.0b
 imflag 0
 cdmsflag 0
 input C:\Python\UniDec3\unidec\bin\Example Data\GroEL HCD UniDec_unidecfiles\GroEL HCD UniDec_input.dat
@@ -12,7 +12,7 @@ psig 0.0
 beta 0.0
 mzsig 0.0
 psfun 0
-zpsfun 0
+zpsfn 0
 discreteplot 0
 smashflag 0
 massub 1000000.0
@@ -62,6 +62,16 @@ kernel
 CDslope 0.2074
 CDzbins 1.0
 CDres 0.0
+CDScanStart -1
+CDScanEnd -1
+HTksmooth 0.0
+CDScanCompresse 0.0
+HTtimepad 0.0
+HTanalysistime 38.0
+HTxaxis Time
+HTcycleindex -1.0
+HTtimepad 0.0
+htbit 0.0
 csig 0.0
 smoothdt 0.0
 subbufdt 0.0
