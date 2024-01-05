@@ -1535,11 +1535,12 @@ if __name__ == "__main__":
     # eng.run_unidec(silent=False)
 
     eng.open_file(filename, path, load_results=True)
-    eng.match()
+    # eng.match()
+    eng.run_unidec()
     # plot = eng.makeplot2()
     # os.chdir(path)
     # plot.save_figure("test.png")
-    eng.gen_html_report()
+    # eng.gen_html_report()
     # eng.pick_peaks()
 
     # eng.pick_peaks()

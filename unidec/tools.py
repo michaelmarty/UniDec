@@ -1928,10 +1928,12 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     if conv:
         call.append("-conv")
 
-    if silent:
-        out = subprocess.call(call, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
-    else:
-        out = subprocess.call(call, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
+    result = subprocess.run(call, shell=True, capture_output=True, text=True)
+    out = result.returncode
+    if not silent:
+        print(result.stdout)
+    #else:
+    #    out = subprocess.call(call, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
     return out
 
 
