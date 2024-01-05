@@ -5,7 +5,6 @@ import shutil
 import sys
 import getopt
 from copy import deepcopy
-import subprocess
 import zipfile
 import fnmatch
 import numpy as np
@@ -255,8 +254,7 @@ class UniDec(UniDecEngine):
                     if self.config.imflag == 0:
                         # print("Testing: ", newfilepath)
                         ud.waters_convert2(self.config.dirname, config=self.config, outfile=newfilepath)
-                        # result = subprocess.call(
-                        #    [self.config.rawreaderpath, "-i", self.config.dirname, "-o", newfilepath])
+
                         self.config.filename = newfilename
                         if os.path.isfile(newfilepath):
                             print("Converted data from raw to txt")
@@ -268,7 +266,8 @@ class UniDec(UniDecEngine):
                                 newfilepath[:-10] + "_msraw.txt", '-i', newfilepath, '--ms_bin', binsize,
                                 "--ms_smooth_window", "0", "--ms_number_smooth", "0", "--im_bin", binsize, "--sparse",
                                 "1"]
-                        result = subprocess.call(call, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
+                        result = ud.exe_call(call)
+
                         self.config.filename = newfilename
                         if result == 0 and os.path.isfile(newfilepath):
                             print("Converted IM data from raw to txt")

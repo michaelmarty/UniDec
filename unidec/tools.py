@@ -1902,6 +1902,24 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
 # ............................................................................
 
 
+def exe_call(call, silent=False):
+    """
+    Run the  binary specified in the call.
+    If silent is False (default), the output from exepath will be printed to the standard out.
+    If silent is True, the output is suppressed.
+
+    :param call: Call arguments to be passed ot the shell
+    :param silent: Whether to print the output of exepath to the standard out
+    :return: Standard error of exepath execution
+    """
+    print("System Call:", *call)
+    result = subprocess.run(call, shell=False, capture_output=True, text=True)
+    out = result.returncode
+    if not silent:
+        print(result.stdout)
+    return out
+
+
 def unidec_call(config, silent=False, conv=False, **kwargs):
     """
     Run the unidec binary specified by exepath with the configuration file specified by configfile.
@@ -1912,8 +1930,7 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
 
     unidec.exe conf.dat
 
-    :param exepath: Path to unidec or UniDecIM binary
-    :param configfile: Path to configuration file
+    :param config: Config object
     :param silent: Whether to print the output of exepath to the standard out
     :param conv: Whether to call the convolution function only rather than the standard deconvolution
     :param kwargs:
@@ -1928,12 +1945,7 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     if conv:
         call.append("-conv")
 
-    result = subprocess.run(call, shell=True, capture_output=True, text=True)
-    out = result.returncode
-    if not silent:
-        print(result.stdout)
-    #else:
-    #    out = subprocess.call(call, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
+    out = exe_call(call, silent=silent)
     return out
 
 

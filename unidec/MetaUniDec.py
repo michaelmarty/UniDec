@@ -1,4 +1,3 @@
-import subprocess
 import atexit
 import wx.html
 import numpy as np
@@ -724,11 +723,9 @@ class MetaUniDecBase(UniDecPres):
     def repack_hdf5(self, e=None):
         if self.eng.config.hdf_file != 'default.hdf5':
             new_path = self.eng.config.hdf_file.replace(".hdf5", "temp.hdf5")
-            if 0 == subprocess.call(
-                    "\"" + self.eng.config.h5repackfile + "\" \"" +
-                    self.eng.config.hdf_file + "\" \"" + new_path + "\"",
-                    stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL) and os.path.isfile(
-                new_path):
+            call = "\"" + self.eng.config.h5repackfile + "\" \"" + self.eng.config.hdf_file + "\" \"" + new_path + "\""
+            out = ud.exe_call(call)
+            if 0 == out and os.path.isfile(new_path):
                 os.remove(self.eng.config.hdf_file)
                 os.rename(new_path, self.eng.config.hdf_file)
 
@@ -741,10 +738,9 @@ class MetaUniDecBase(UniDecPres):
                         name = os.path.join(root, name)
                         print("Repacking: ", name)
                         new_path = name.replace(".hdf5", "temp.hdf5")
-                        if 0 == subprocess.call(
-                                "\"" + self.eng.config.h5repackfile + "\" \"" + name + "\" \"" + new_path + "\""
-                                , stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL) and os.path.isfile(
-                                new_path):
+                        call = "\"" + self.eng.config.h5repackfile + "\" \"" + name + "\" \"" + new_path + "\""
+                        out = ud.exe_call(call)
+                        if 0 == out and os.path.isfile(new_path):
                             os.remove(name)
                             os.rename(new_path, name)
             print("Done Repacking")

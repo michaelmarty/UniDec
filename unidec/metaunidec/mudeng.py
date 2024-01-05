@@ -1,5 +1,4 @@
 import os
-import subprocess
 import numpy as np
 
 import unidec.tools as ud
@@ -32,7 +31,7 @@ def metaunidec_call(config, *args, **kwargs):
             call.append("-" + str(key))
             call.append(kwargs[key])
     tstart = time.perf_counter()
-    out = subprocess.call(call, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
+    out = ud.exe_call(call)
     tend = time.perf_counter()
     # print(call, out)
     print("Execution Time:", (tend - tstart))
