@@ -36,6 +36,12 @@ def get_data(f, group, dataset):
     return data
 
 
+def get_mass_data(f):
+    x = get_data(f, "ms_dataset", "mass_axis")
+    y = get_data(f, "ms_dataset", "mass_sum")
+    return np.transpose([x, y])
+
+
 def get_metadata(f, key):
     hdf = h5py.File(f)
     g = hdf.require_group("ms_dataset")

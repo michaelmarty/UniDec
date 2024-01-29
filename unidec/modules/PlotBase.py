@@ -4,6 +4,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from matplotlib import rcParams
 import matplotlib.cm as cm
+import matplotlib as mpl
 import io
 from matplotlib.backends.backend_svg import FigureCanvasSVG
 # noinspection PyUnresolvedReferences
@@ -410,3 +411,12 @@ class PlotBase(object):
             print("Saving Data to", path)
             print("Data Dimensions:", self.data.shape)
             np.savetxt(path, self.data)
+
+    def update_style(self, stylefile=None):
+        if stylefile is None:
+            stylefile = self.config.mplstylefile
+        try:
+            mpl.style.use(stylefile)
+        except Exception as e:
+            print(e)
+            print("Failed to load style file:", stylefile)

@@ -83,6 +83,8 @@ class UniDecConfig(object):
         self.UniDecDir = ''
         self.UniDecName = ''
         self.defaultUnidecDir = ''
+        self.mplstyledir = ''
+        self.mplstylefile = 'UniDec.mplstyle'
         self.opencommand = ''
         self.defaultUnidecName = ''
         self.iconfile = ''
@@ -1403,6 +1405,8 @@ class UniDecConfig(object):
         self.exampledatadirUC = os.path.join(self.UniDecDir, "Example Data", "UniChrom")
         self.toplogofile = os.path.join(self.UniDecDir, "UniDecLogoMR.png")
         self.iconfile = os.path.join(self.UniDecDir, "logo.ico")
+        self.mplstyledir = os.path.join(self.UniDecDir, "PlotStyles")
+        self.mplstylefile = os.path.join(self.mplstyledir, "UniDec.mplstyle")
 
         print("\nUniDec Path:", self.UniDecPath)
 

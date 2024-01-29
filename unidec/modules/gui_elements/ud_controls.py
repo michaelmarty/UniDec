@@ -5,7 +5,7 @@ import unidec.tools as ud
 import numpy as np
 import time
 import wx.lib.scrolledpanel as scrolled
-
+from unidec.modules.gui_elements.PlotControlsPanel import PlotControlsPanel
 
 class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
     # noinspection PyMissingConstructor
@@ -682,6 +682,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox3b.Fit(panel3b)
         self.foldpanels.AddFoldPanelWindow(foldpanel3b, panel3b, fpb.FPB_ALIGN_WIDTH)
         self.foldpanels.AddFoldPanelWindow(foldpanel3b, wx.StaticText(foldpanel3b, -1, " "), fpb.FPB_ALIGN_WIDTH)
+
+        # Create plotcontrol panel
+        #foldpanel4 = self.foldpanels.AddFoldPanel(caption="Plot Controls", collapsed=False, cbstyle=style3b)
+        #pcpanel = PlotControlsPanel(foldpanel4, self.config)
+        #self.foldpanels.AddFoldPanelWindow(foldpanel4, pcpanel, fpb.FPB_ALIGN_WIDTH)
 
         bright = 250
         foldpanel1.SetBackgroundColour(wx.Colour(bright, bright, 255))

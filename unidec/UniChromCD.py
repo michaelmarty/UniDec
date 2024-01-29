@@ -55,7 +55,7 @@ class UniChromCDApp(UniDecCDApp):
             # self.on_dataprep_button(0)
             # self.on_auto(0)
 
-        if False:  # and platform.node() == 'DESKTOP-08TGCJO':
+        if True:  # and platform.node() == 'DESKTOP-08TGCJO':
             print("Opening Test File")
             path = ("Z:\\Group Share\\Skippy\\Projects\\HT\\Example data for MTM\\"
                     "20231202 JDS Bgal groEL bit5 zp7 inj4s cyc1m_2023-12-07-03-46-56.dmt")
