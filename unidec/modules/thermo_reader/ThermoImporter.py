@@ -210,7 +210,7 @@ class ThermoDataImporter:
 if __name__ == "__main__":
     test = u"C:\Python\\UniDec3\TestSpectra\\test.RAW"
     #test = "Z:\\Group Share\\Levi\\MS DATA\\vt_ESI data\\DMPG LL37 ramps\\18to1\\20210707_LB_DMPG3_LL37_18to1_RAMP_16_37_3.RAW"
-    #test = "Z:\Group Share\Group\Archive\James Keener\AqpZ mix lipid ND\\20190226_JEK_AQPZ_E3T0_PGPC_GC_NEG.RAW"
+    #test = "Z:\Group Share\Group\Archive\JamesKeener Keener\AqpZ mix lipid ND\\20190226_JEK_AQPZ_E3T0_PGPC_GC_NEG.RAW"
 
     tstart = time.perf_counter()
     d = ThermoDataImporter(test)

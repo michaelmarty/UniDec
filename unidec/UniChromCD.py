@@ -60,7 +60,9 @@ class UniChromCDApp(UniDecCDApp):
             path = ("Z:\\Group Share\\Skippy\\Projects\\HT\\Example data for MTM\\"
                     "20231202 JDS Bgal groEL bit5 zp7 inj4s cyc1m_2023-12-07-03-46-56.dmt")
 
-            self.on_open_file(None, None, path=path)
+            pathft = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\01302024_GDH_stepsize3_repeat15_5to500.dmt"
+
+            self.on_open_file(None, None, path=pathft)
             # self.eng.process_data_scans()
             # self.make_cube_plot()
             # self.make_mass_time_2dplot()
@@ -118,7 +120,8 @@ class UniChromCDApp(UniDecCDApp):
                 self.cc.add_chromatogram(chromdat, color=p.color, label=label, ht=False)
                 if self.eng.fullmstack_ht is not None:
                     htdata = self.eng.get_mass_eic(massrange, ht=True)
-                    self.cc.add_chromatogram(htdata, color=p.color, label=label + " HT", ht=True)
+                    self.cc.add_chromatogram(htdata, color=p.color, label=label + " " + self.eng.config.demultiplexmode,
+                                             ht=True)
         self.plot_chromatograms()
 
     def on_select_mzz_region(self):
@@ -180,7 +183,7 @@ class UniChromCDApp(UniDecCDApp):
         self.export_config(self.eng.config.confname)
         for c in self.cc.chromatograms:
             if "TIC" not in c.label:
-                if "HT" not in c.label:
+                if not c.ht:
                     self.run_eic_ht(c.mzrange, c.zrange, color=c.color, add_eic=False, plot=False)
         self.plot_chromatograms()
 
@@ -190,10 +193,11 @@ class UniChromCDApp(UniDecCDApp):
         :return: None
         """
         self.cc.clear()
-        data = self.eng.get_tic(normalize=self.eng.config.datanorm)
+        self.eng.get_tic(normalize=self.eng.config.datanorm)
         htdata = self.eng.tic_ht(normalize=self.eng.config.datanorm)
-        self.cc.add_chromatogram(data, color="black", label="TIC")
-        self.cc.add_chromatogram(htdata, color="red", label="TIC HT", ht=True)
+        ticdata = np.transpose(np.vstack((self.eng.fulltime, self.eng.fulltic)))
+        self.cc.add_chromatogram(ticdata, color="black", label="TIC")
+        self.cc.add_chromatogram(htdata, color="red", label="TIC " + self.eng.config.demultiplexmode, ht=True)
 
         self.showht = True
         self.plot_chromatograms(save=False)
@@ -212,7 +216,8 @@ class UniChromCDApp(UniDecCDApp):
         htdata, eicdata = self.eng.eic_ht(mzrange, zrange, normalize=self.eng.config.datanorm)
         if add_eic:
             self.cc.add_chromatogram(eicdata, color=color, zrange=zrange, mzrange=mzrange)
-        self.cc.add_chromatogram(htdata, color=color, zrange=zrange, mzrange=mzrange, ht=True)
+        self.cc.add_chromatogram(htdata, color=color, zrange=zrange, mzrange=mzrange, ht=True,
+                                 mode=self.eng.config.demultiplexmode)
         if plot:
             self.plot_chromatograms()
 
@@ -224,35 +229,46 @@ class UniChromCDApp(UniDecCDApp):
         :return: None
         """
         self.makeplot1()
+        self.view.SetStatusText("# Ions: " + str(len(self.eng.farray)), number=2)
         self.view.plottic.clear_plot()
+        self.view.plotdecontic.clear_plot()
         self.view.chrompanel.list.populate(self.cc)
         for c in self.cc.chromatograms:
             if c.ignore:
                 continue
 
             if self.eng.config.HTxaxis == "Scans":
-                xdat = self.eng.fullscans
+                xdat = np.arange(0, len(c.chromdat))
+                # xdat = self.eng.fullscans
                 xlab = "Scan Number"
             else:
                 xdat = c.chromdat[:, 0]
                 xlab = "Time"
 
-            if not self.view.plottic.flag:
-                self.view.plottic.plotrefreshtop(xdat, c.chromdat[:, 1], config=self.eng.config,
-                                                 zoomout=True, label=c.label, xlabel=xlab,
-                                                 color=c.color, nopaint=True)
+            if c.ht:
+                plot = self.view.plotdecontic
             else:
-                self.view.plottic.plotadd(xdat, c.chromdat[:, 1], colval=c.color, nopaint=True,
-                                          newlabel=c.label)
+                plot = self.view.plottic
+
+            if not plot.flag:
+                plot.plotrefreshtop(xdat, c.chromdat[:, 1], config=self.eng.config,
+                                    zoomout=True, label=c.label, xlabel=xlab,
+                                    color=c.color, nopaint=True)
+            else:
+                plot.plotadd(xdat, c.chromdat[:, 1], colval=c.color, nopaint=True,
+                             newlabel=c.label)
 
             xlimits = c.mzrange
             ylimits = c.zrange
             if xlimits[0] != -1 and ylimits[0] != -1 and xlimits[1] != -1 and ylimits[1] != -1:
                 self.view.plot1.add_rect(xlimits[0], ylimits[0], xlimits[1] - xlimits[0], ylimits[1] - ylimits[0],
                                          edgecolor=c.color, facecolor=c.color, nopaint=True)
-
-        self.view.plottic.add_legend()
-        self.view.plottic.repaint()
+        if self.view.plotdecontic.flag:
+            self.view.plotdecontic.add_legend()
+            self.view.plotdecontic.repaint()
+        if self.view.plottic.flag:
+            self.view.plottic.add_legend()
+            self.view.plottic.repaint()
         self.view.plot1.repaint()
         if save:
             self.save_chroms()
@@ -296,11 +312,13 @@ class UniChromCDApp(UniDecCDApp):
             mzrange = [float(a[3]), float(a[4])]
             zrange = [float(a[5]), float(a[6])]
 
-            if "TIC" in label or "HT" in label or "Mass EIC" in label:
+            if "TIC" in label or self.eng.config.demultiplexmode in label or "Mass EIC" in label:
                 continue
             chromdat = self.eng.get_eic(mzrange, zrange, normalize=self.eng.config.datanorm)
 
-            self.cc.add_chromatogram(chromdat, color=color, label=label, ht=ht, zrange=zrange, mzrange=mzrange)
+            ht = ht.lower() in ['true', '1', 't', 'y', 'yes', 'yeah']
+
+            self.cc.add_chromatogram(chromdat, color=color, label=label, ht=bool(ht), zrange=zrange, mzrange=mzrange)
 
         self.plot_chromatograms()
 
@@ -333,8 +351,6 @@ class UniChromCDApp(UniDecCDApp):
         :param e: Unused event
         :return: None
         """
-        if not self.showht or self.eng.fullhstack_ht is None:
-            return
         if not wx.GetKeyState(wx.WXK_CONTROL):
             self.plot_chromatograms()
             xlimits = self.view.plottic.subplot1.get_xlim()
@@ -344,6 +360,29 @@ class UniChromCDApp(UniDecCDApp):
             # Plot Red box on plottic
             self.view.plottic.add_rect(xlimits[0], ylimits[0], xlimits[1] - xlimits[0], ylimits[1] - ylimits[0],
                                        edgecolor="red", facecolor="red", nopaint=False)
+            self.select_ht_range(range=xlimits, raw=True)
+
+    def on_select_time_range_decon(self, e=None):
+        """
+        Event triggered by a click on the TIC plot. Select a time range and create a 2D m/z vs z sum from
+        that time range post-HT.
+        :param e: Unused event
+        :return: None
+        """
+        if not self.showht or self.eng.fullhstack_ht is None:
+            print("Need to process full data first")
+            print("Running Decon on all data")
+            self.run_all_ht()
+            return
+        if not wx.GetKeyState(wx.WXK_CONTROL):
+            self.plot_chromatograms()
+            xlimits = self.view.plotdecontic.subplot1.get_xlim()
+            print("New limits:", xlimits)
+            self.view.plotdecontic.reset_zoom()
+            ylimits = self.view.plotdecontic.subplot1.get_ylim()
+            # Plot Red box on plottic
+            self.view.plotdecontic.add_rect(xlimits[0], ylimits[0], xlimits[1] - xlimits[0], ylimits[1] - ylimits[0],
+                                            edgecolor="red", facecolor="red", nopaint=False)
             self.select_ht_range(range=xlimits)
 
     def on_run_all_ht(self, e=None):
@@ -364,7 +403,7 @@ class UniChromCDApp(UniDecCDApp):
         self.eng.process_data_scans()
         ticdat = self.eng.run_all_ht()
 
-        self.cc.add_chromatogram(ticdat, color="gold", label="TIC*_HT")
+        self.cc.add_chromatogram(ticdat, color="gold", label="TIC*_" + self.eng.config.demultiplexmode, ht=True)
 
         # tic2 = np.sum(self.eng.fullhstack, axis=(1, 2))
         # ticdat2 = np.transpose(np.vstack((self.eng.fulltime, tic2)))
@@ -382,20 +421,27 @@ class UniChromCDApp(UniDecCDApp):
         self.eng.transform_stacks()
         self.cc.add_chromatogram(self.eng.mass_tic, color="grey", label="Mass TIC")
         if self.eng.fullmstack_ht is not None:
-            self.cc.add_chromatogram(self.eng.mass_tic_ht, color="goldenrod", label="Mass TIC HT")
+            self.cc.add_chromatogram(self.eng.mass_tic_ht, color="goldenrod",
+                                     label="Mass TIC " + self.eng.config.demultiplexmode, ht=True)
         self.plot_chromatograms()
 
-    def select_ht_range(self, range=None):
+    def select_ht_range(self, range=None, raw=False):
         """
         Select a time range and create a 2D m/z vs z sum from that time range post-HT.
         :param range: Time range to select. Default None, which should be all times
         :return: None
         """
-        self.eng.select_ht_range(range=range)
+        if raw:
+            self.eng.select_raw_range(range=range)
+            self.view.SetStatusText("Raw # Ions: " + str(np.sum(self.eng.harray)), number=2)
+        else:
+            self.eng.select_ht_range(range=range)
+            self.view.SetStatusText(self.eng.config.demultiplexmode + " # Ions: " + str(np.sum(self.eng.harray)), number=2)
         self.makeplot1()
         self.makeplot2()
         self.makeplot3()
         self.makeplot4()
+
 
     def make_charge_time_2dplot(self, e=None):
         """
@@ -443,9 +489,11 @@ class UniChromCDApp(UniDecCDApp):
 
         if self.eng.config.HTxaxis == "Scans":
             xdat = self.eng.fullscans
+            xdat2 = self.eng.deconscans
             xlab = "Scan Number"
         else:
             xdat = self.eng.fulltime
+            xdat2 = self.eng.decontime
             xlab = "Time"
 
         if face == 1:
@@ -485,7 +533,7 @@ class UniChromCDApp(UniDecCDApp):
                 grid = np.clip(self.eng.fullmstack_ht, 0, np.amax(self.eng.fullmstack_ht))
         else:
             return
-        self.view.plot8.contourplot(xvals=xdat, yvals=y, zgrid=grid,
+        self.view.plot8.contourplot(xvals=xdat2, yvals=y, zgrid=grid,
                                     xlab=xlab, ylab=ylab, config=self.eng.config, discrete=discrete)
 
         print("Finished 2D Plot", (time.perf_counter() - starttime), " s")
@@ -512,9 +560,11 @@ class UniChromCDApp(UniDecCDApp):
 
         if self.eng.config.HTxaxis == "Scans":
             xdat = self.eng.fullscans
+            xdat2 = self.eng.deconscans
             xlab = "Scan Number"
         else:
             xdat = self.eng.fulltime
+            xdat2 = self.eng.decontime
             xlab = "Time"
 
         try:
@@ -561,15 +611,15 @@ class UniChromCDApp(UniDecCDApp):
             else:
                 face3 = np.sum(self.eng.fullhstack_ht, axis=0).transpose()
                 face2 = np.sum(self.eng.fullhstack_ht, axis=1).transpose()
-
-            self.view.plot10.cubeplot(ydat, self.eng.zaxis[1:], xdat,
+            print(np.shape(face1), np.shape(face2), np.shape(face3))
+            self.view.plot10.cubeplot(ydat, self.eng.zaxis[1:], xdat2,
                                       face3, face2, face1,
                                       xlab=ylab, ylab="Charge", zlab=xlab,
                                       cmap=self.eng.config.cmap)
             endtime = time.perf_counter()
             print("Finished HT Cube in: ", (endtime - starttime), " s")
         except Exception as ex:
-            print("Failed HT cube", ex)
+            print("Failed HT cube:", ex)
             pass
 
     def on_auto_set_ct(self, e=None):
@@ -590,7 +640,7 @@ class UniChromCDApp(UniDecCDApp):
         """
         self.export_config(self.eng.config.confname)
         if not self.showht:
-            self.eng.setup_ht()
+            self.eng.setup_demultiplex()
         data = self.eng.htkernel
 
         if self.eng.config.HTxaxis == "Scans":

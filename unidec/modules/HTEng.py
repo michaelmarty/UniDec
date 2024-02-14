@@ -1,16 +1,16 @@
 import time
 
 import scipy.ndimage
-from modules.fitting import *
+from unidec.modules.fitting import *
 
-from modules.CDEng import *
-from modules.ChromEng import *
+from unidec.modules.CDEng import *
+from unidec.modules.ChromEng import *
 import unidec.tools as ud
-from modules.unidecstructure import DataContainer
+# from modules.unidecstructure import DataContainer
 
 import matplotlib.pyplot as plt
 import scipy.fft as fft
-
+import math
 
 # import fast_histogram
 # import pyfftw.interfaces.numpy_fft as fft
@@ -36,6 +36,8 @@ class HTEng:
         self.fftk = []
         self.htoutput = []
         self.indexrange = [0, 0]
+        self.decontime = []
+        self.deconscans = []
 
         # Index Values
         self.padindex = 0
@@ -88,6 +90,28 @@ class HTEng:
                 print(e)
                 self.config.htseq = '1110100'
                 self.config.htbit = 3
+
+        if "frange" in path:
+            # Split the file name by _
+            parts = path.split("_")
+            # Find the part that contains frange
+            frangeindex = [i for i, s in enumerate(parts) if "frange" in s]
+            if len(frangeindex) > 0:
+                frangeindex = frangeindex[0]
+                # get the next two fields
+                ftstart = parts[frangeindex+1]
+                ftend = parts[frangeindex+2]
+
+                # Convert to float and set to field in config
+                try:
+                    self.config.FTstart = float(ftstart)
+                except Exception as e:
+                    print("Error setting FTstart:", e, ftstart)
+                try:
+                    self.config.FTend = float(ftend)
+                except Exception as e:
+                    print("Error setting FTend:", e, ftend)
+                print("FT Start:", self.config.FTstart, "FT End:", self.config.FTend)
 
         print("Cycle Time:", self.config.HTcycletime, "Time Pad:", self.config.HTtimepad,
               "HT Sequence:", self.config.htseq)
@@ -171,6 +195,8 @@ class HTEng:
 
         # Make fft of kernel for later use
         self.fftk = fft.rfft(self.htkernel).conj()
+        self.decontime = self.fulltime
+        self.deconscans = self.fullscans[:len(self.decontime)]
 
     def correct_cycle_time(self):
         """
@@ -179,7 +205,40 @@ class HTEng:
         """
         print("Correcting")
         self.get_cycle_time(data)
-        self.setup_ht(cycleindex=self.cycleindex)
+        self.setup_demultiplex(cycleindex=self.cycleindex)
+
+    def run_demultiplex(self, data, mode=None, **kwargs):
+        """
+        Overarching function to demultiplex data. Calls each demultiplexing type based on config parameter
+        :param data: 1D array of data to be deconvolved. Should be same dimension as self.htkernel if HT mode.
+        :param mode: Type of demultiplexing. Default is HT.
+        :param kwargs: Additional keyword arguments.
+        :return: Demultiplexed data. Same length as input.
+        """
+        if mode is None:
+            mode = self.config.demultiplexmode
+
+        if mode == "HT":
+            return self.htdecon(data, **kwargs)
+        elif mode == "FT":
+            return self.ftdecon(data, aFT=False, **kwargs)
+        elif mode == "aFT":
+            return self.ftdecon(data, aFT=True, **kwargs)
+
+    def setup_demultiplex(self, mode=None, **kwargs):
+        """
+        Overarching function to set up demultiplexing. Calls each demultiplexing type based on config parameter
+        :param mode: Type of demultiplexing. Default is HT.
+        :param kwargs: Additional keyword arguments.
+        :return: None
+        """
+        if mode is None:
+            mode = self.config.demultiplexmode
+
+        if mode == "HT":
+            self.setup_ht(**kwargs)
+        elif mode == "FT" or mode == "aFT":
+            self.setup_ft(**kwargs)
 
     def htdecon(self, data, **kwargs):
         """
@@ -215,58 +274,98 @@ class HTEng:
             if kwargs["normalize"]:
                 output /= np.amax(output)
         # Return demultiplexed data
-        return output
+        return output, data
 
-    def htdecon_speedy(self, data):
+    def setup_ft(self, FTstart=None, FTend=None, nzp=None):
         """
-        Deconvolve the data using the HT kernel. Need to call setup_ht first. Currently unused.
-        :param data: 1D data array. Should be same dimension as self.htkernel.
-        :return: Demultiplexed data. Same length as input.
+        Set up the Fourier Transform Deconvolution. Sets self.decontime with drift time axis.
+        :param FTstart: Starting frequence (hz)
+        :param FTend: Ending frequence (hz)
+        :return: None
         """
-        # Do the convolution, and only the convolution... :)
-        return fft.irfft(fft.rfft(data) * self.fftk).real
+        if FTstart is None:
+            FTstart = self.config.FTstart
+        else:
+            self.config.FTstart = FTstart
+        if FTend is None:
+            FTend = self.config.FTend
+        else:
+            self.config.FTend = FTend
 
-    '''
-    def decon_3d_fft(self, array, **kwargs):
+        x = self.fulltime
+
+        if nzp is None:
+            nzp = self.config.HTtimepad
+
+        x_len = int(len(x))
+        sweep_time = x[-1]
+
+        if nzp > 0:
+            pad_len = int(2 ** math.ceil(math.log2(int(len(x)))) * nzp)
+            time_step = (x[1] - x[0])
+            x = np.linspace(x[0], x[-1] + time_step * (pad_len-x_len), pad_len)
+            #self.fulltime = x
+            #self.fullscans = np.arange(len(self.fulltime))
+
+        freq = np.fft.rfftfreq(len(x), d=(x[1] - x[0]) * 60)
+
+        # Create time axis
+        sweepRate = (FTend - FTstart) / (sweep_time * 60)
+        self.decontime = freq / sweepRate
+        self.deconscans = self.fullscans[:len(self.decontime)]
+
+    def ftdecon(self, data, flattenTIC=True, apodize=True, aFT=False, normalize=False, nzp=None):
         """
-        Developed this to see if it would speed things up. It turns out not to. About half as slow. Leaving in for
-        legacy reasons and because it's super cool code.
-        :param array: 3D array of data to be deconvolved.
-            Should be same length as self.htkernel with the other dimensions set by the harray size.
-        :param kwargs: Keyword arguments. Currently supports "normalize" which normalizes the output to the maximum
-            value.
-        :return: Demultiplexed data array. Same length as input array.
+        Perform Fourier Transform Deconvolution
+        :param data: 1D data array of y-data only
+        :param flattenTIC: Whether to flatten the TIC before demultiplexing to remove low frequency components
+        :param apodize: Whether to apodize the data with a Hanning window
+        :param aFT: Whether to use Absorption FT mode
+        :return: 1D array of demultiplexed data. Same length as input.
         """
-        starttime = time.perf_counter()
-        # Slice data to appropriate range
-        dims = np.shape(array)
-        self.indexrange = [self.padindex - self.shiftindex, dims[0] - self.shiftindex]
-        data = array[self.indexrange[0]:self.indexrange[1]]
-        dims2 = np.shape(data)
-        print(dims2)
+        if np.amax(data) == 0:
+            return data[:len(self.decontime)], data
 
-        # HT Kernel 3D FFT
-        # Create 3D array of copies of 1D kernel
-        kernel3d = np.broadcast_to(self.htkernel[:, np.newaxis, np.newaxis], dims2)
+        y = data
 
-        print("3D Kernel", np.shape(kernel3d), time.perf_counter() - starttime)
+        if self.config.HTksmooth > 0:
+            y = scipy.signal.savgol_filter(y, int(np.round(float(self.config.HTksmooth))), 3)
 
-        # FFT of kernel3d
-        fftk3d = fft.rfftn(kernel3d).conj()
-        print("3D FFT of Kernel", np.shape(fftk3d), time.perf_counter() - starttime)
+        if flattenTIC:
+            # fit trendline to y and subtract to eliminate low frequency components
+            ytrnd = scipy.signal.savgol_filter(y, 15, 3)
+            y = y - ytrnd
 
-        data_fft = fft.rfftn(data)
-        print("3D FFT of Data", np.shape(data_fft), time.perf_counter() - starttime)
+        if apodize:
+            # create hanning window
+            hanning = np.hanning(len(y) * 2)
+            y = y * hanning[len(y):]
 
-        # Deconvolve
-        output = fft.irfftn(data_fft * fftk3d)
-        print("Decon", np.shape(output), time.perf_counter() - starttime)
-        output = np.real(output)
-        if "normalize" in kwargs:
-            if kwargs["normalize"]:
-                output /= np.amax(output)
-        # Return demultiplexed data
-        return output'''
+        if nzp is None:
+            nzp = self.config.HTtimepad
+
+        original_len = len(y)
+        if nzp > 0 and apodize:
+            pad_len = int(2 ** math.ceil(math.log2(int(len(y)))) * nzp)
+            z = np.zeros(pad_len)
+            z[:len(y)] = y
+            y = z
+
+        # Fourier Transform
+        Y = np.fft.rfft(y)
+
+        if aFT:
+            maxindex = np.argmax(np.abs(Y[5:])) + 5
+            phase = np.angle(Y[maxindex])
+            Y = Y * np.exp(-1j * phase)
+            Y = np.real(Y)
+        else:
+            Y = np.abs(Y)
+
+        if normalize:
+            Y /= np.amax(Y)
+
+        return Y, y[:original_len]
 
     def set_timepad_index(self, timepad):
         """
@@ -323,6 +422,58 @@ class HTEng:
         print("Cycle Index:", self.cycleindex, "Cycle Time:", self.config.HTcycletime)
         return ac
 
+    '''
+
+        def htdecon_speedy(self, data):
+            """
+            Deconvolve the data using the HT kernel. Need to call setup_ht first. Currently unused.
+            :param data: 1D data array. Should be same dimension as self.htkernel.
+            :return: Demultiplexed data. Same length as input.
+            """
+            # Do the convolution, and only the convolution... :)
+            return fft.irfft(fft.rfft(data) * self.fftk).real, data
+
+        def decon_3d_fft(self, array, **kwargs):
+            """
+            Developed this to see if it would speed things up. It turns out not to. About half as slow. Leaving in for
+            legacy reasons and because it's super cool code.
+            :param array: 3D array of data to be deconvolved.
+                Should be same length as self.htkernel with the other dimensions set by the harray size.
+            :param kwargs: Keyword arguments. Currently supports "normalize" which normalizes the output to the maximum
+                value.
+            :return: Demultiplexed data array. Same length as input array.
+            """
+            starttime = time.perf_counter()
+            # Slice data to appropriate range
+            dims = np.shape(array)
+            self.indexrange = [self.padindex - self.shiftindex, dims[0] - self.shiftindex]
+            data = array[self.indexrange[0]:self.indexrange[1]]
+            dims2 = np.shape(data)
+            print(dims2)
+
+            # HT Kernel 3D FFT
+            # Create 3D array of copies of 1D kernel
+            kernel3d = np.broadcast_to(self.htkernel[:, np.newaxis, np.newaxis], dims2)
+
+            print("3D Kernel", np.shape(kernel3d), time.perf_counter() - starttime)
+
+            # FFT of kernel3d
+            fftk3d = fft.rfftn(kernel3d).conj()
+            print("3D FFT of Kernel", np.shape(fftk3d), time.perf_counter() - starttime)
+
+            data_fft = fft.rfftn(data)
+            print("3D FFT of Data", np.shape(data_fft), time.perf_counter() - starttime)
+
+            # Deconvolve
+            output = fft.irfftn(data_fft * fftk3d)
+            print("Decon", np.shape(output), time.perf_counter() - starttime)
+            output = np.real(output)
+            if "normalize" in kwargs:
+                if kwargs["normalize"]:
+                    output /= np.amax(output)
+            # Return demultiplexed data
+            return output'''
+
 
 class UniChromHT(HTEng, ChromEngine):
     def __init__(self, *args, **kwargs):
@@ -349,18 +500,26 @@ class UniChromHT(HTEng, ChromEngine):
         self.parse_file_name(path)
         print("Loaded File:", path)
 
+    def get_eic(self, massrange):
+        """
+        Get the EIC from the chromatogram.
+        :param massrange: Mass range for EIC selection [low, high]
+        :return:
+        """
+        return self.chromdat.get_eic(mass_range=np.array(massrange))
+
     def eic_ht(self, massrange):
         """
         Get the EIC and run HT on it.
-        :param massrange: Mass range for EIC selection
+        :param massrange: Mass range for EIC selection [low, high]
         :return: Demultiplexed data output
         """
-        eic = self.chromdat.get_eic(mass_range=np.array(massrange))
+        eic = self.get_eic(massrange)
         print(eic.shape)
         self.fulltic = eic[:, 1]
         self.fulltime = eic[:, 0]
-        self.setup_ht()
-        self.htoutput = self.htdecon(self.fulltic)
+        self.setup_demultiplex()
+        self.htoutput = self.run_demultiplex(self.fulltic)[0]
         return self.htoutput
 
     def tic_ht(self, correct=False, **kwargs):
@@ -372,8 +531,8 @@ class UniChromHT(HTEng, ChromEngine):
         """
         self.fulltic = self.ticdat[:, 1]
         self.fulltime = self.ticdat[:, 0]
-        self.setup_ht()
-        self.htoutput = self.htdecon(self.fulltic, correct=correct, **kwargs)
+        self.setup_demultiplex()
+        self.htoutput = self.run_demultiplex(self.fulltic, correct=correct, **kwargs)[0]
         return self.htoutput
 
 
@@ -441,6 +600,8 @@ class UniDecCDHT(HTEng, UniDecCD):
         self.scans = np.unique(self.farray[:, 2])
         self.fullscans = np.arange(1, np.amax(self.scans) + 1)
         self.fulltime = self.fullscans * self.config.HTanalysistime / np.amax(self.fullscans)
+        self.decontime = self.fulltime
+        self.deconscans = self.fullscans
 
     def process_data_scans(self, transform=True):
         """
@@ -485,7 +646,6 @@ class UniDecCDHT(HTEng, UniDecCD):
             maxval = np.amax(self.topharray)
             if maxval > 0:
                 self.topharray /= maxval
-        print("T:", time.perf_counter() - starttime)
         # Reshape the data into a 3 column array
         # self.data.data3 = np.transpose([np.ravel(self.X, order="F"), np.ravel(self.Y, order="F"),
         #                                np.ravel(self.topharray, order="F")])
@@ -612,9 +772,10 @@ class UniDecCDHT(HTEng, UniDecCD):
         :return: Demultiplexed data output. 2D array (time, intensity)
         """
         self.get_tic(**kwargs)
-        self.setup_ht()
-        self.htoutput = self.htdecon(self.fulltic, **kwargs)
-        return np.transpose([self.fulltime, self.htoutput])
+        self.setup_demultiplex()
+        self.htoutput, self.fulltic = self.run_demultiplex(self.fulltic, **kwargs)
+
+        return np.transpose([self.decontime, self.htoutput])
 
     def get_eic(self, mzrange, zrange, **kwargs):
         """
@@ -646,10 +807,10 @@ class UniDecCDHT(HTEng, UniDecCD):
         :param kwargs: Keyword arguments. Passed down to create_chrom and htdecon.
         :return: Demultiplexed data output. 2D array (time, intensity)
         """
-        eic = self.get_eic(mzrange, zrange,**kwargs)
-        self.setup_ht()
-        self.htoutput = self.htdecon(eic[:, 1],  **kwargs)
-        return np.transpose([self.fulltime, self.htoutput]), eic
+        eic = self.get_eic(mzrange, zrange, **kwargs)
+        self.setup_demultiplex()
+        self.htoutput, eic[:, 1] = self.run_demultiplex(eic[:, 1], **kwargs)
+        return np.transpose([self.decontime, self.htoutput]), eic
 
     def run_all_ht(self):
         """
@@ -661,7 +822,7 @@ class UniDecCDHT(HTEng, UniDecCD):
             self.process_data_scans()
         self.clear_arrays(massonly=True)
         # Setup HT
-        self.setup_ht()
+        self.setup_demultiplex()
 
         '''
         # self.fullhstack_ht = self.decon_3d(self.fullhstack)
@@ -693,27 +854,27 @@ class UniDecCDHT(HTEng, UniDecCD):
         print("Full HT Demultiplexing Done:", time.perf_counter() - starttime)
         starttime = time.perf_counter()'''
         # Run the HT on each track in the stack
-        self.fullhstack_ht = np.empty((len(self.fullscans), self.topharray.shape[0], self.topharray.shape[1]))
+        self.fullhstack_ht = np.empty((len(self.decontime), self.topharray.shape[0], self.topharray.shape[1]))
 
         for i in range(len(self.mz)):
             for j in range(len(self.ztab)):
                 trace = self.fullhstack[:, j, i]
                 tracesum = self.topharray[j, i]
                 if tracesum <= self.config.intthresh:
-                    htoutput = np.zeros_like(trace)
+                    htoutput = np.zeros_like(self.decontime)
                 else:
-                    htoutput = self.htdecon(trace)
+                    htoutput, trace = self.run_demultiplex(trace)
                 self.fullhstack_ht[:, j, i] = htoutput
 
         # Clip all values below 1e-6 to zero
         # self.fullhstack_ht[np.abs(self.fullhstack_ht) < 1e-6] = 0
 
         tic = np.sum(self.fullhstack_ht, axis=(1, 2))
-        ticdat = np.transpose(np.vstack((self.fulltime, tic)))
+        ticdat = np.transpose(np.vstack((self.decontime, tic)))
         if self.config.datanorm == 1:
             norm = np.amax(ticdat[:, 1])
             ticdat[:, 1] /= norm
-            self.fullhstack_ht /= norm
+            #self.fullhstack_ht /= norm
 
         print("Full HT Demultiplexing Done:", time.perf_counter() - starttime)
         return ticdat
@@ -725,12 +886,31 @@ class UniDecCDHT(HTEng, UniDecCD):
         :return: 2D histogram array
         """
         if range is None:
+            range = [np.amin(self.decontime), np.amax(self.decontime)]
+        b1 = self.decontime >= range[0]
+        b2 = self.decontime <= range[1]
+        b = np.logical_and(b1, b2)
+        substack_ht = self.fullhstack_ht[b]
+        self.harray = np.sum(substack_ht, axis=0)
+        self.harray = np.clip(self.harray, 0, np.amax(self.harray))
+        self.harray_process()
+        return self.harray
+
+    def select_raw_range(self, range=None):
+        """
+        Select a range of time from raw data and processes it as a histogram array
+        :param range: Time range
+        :return: 2D histogram array
+        """
+        if self.fullhstack is None:
+            self.process_data_scans()
+        if range is None:
             range = [np.amin(self.fulltime), np.amax(self.fulltime)]
         b1 = self.fulltime >= range[0]
         b2 = self.fulltime <= range[1]
         b = np.logical_and(b1, b2)
-        substack_ht = self.fullhstack_ht[b]
-        self.harray = np.sum(substack_ht, axis=0)
+        substack = self.fullhstack[b]
+        self.harray = np.sum(substack, axis=0)
         self.harray = np.clip(self.harray, 0, np.amax(self.harray))
         self.harray_process()
         return self.harray
@@ -783,39 +963,18 @@ class UniDecCDHT(HTEng, UniDecCD):
             self.fullmstack /= norm
 
         print("Full Mass 1 Transform Done:", time.perf_counter() - starttime)
-        '''
-        self.fullmstack = np.zeros((len(self.fullscans), mlen))
-        for i in range(len(self.fullscans)):
-            for j in range(len(self.ztab)):
-                d = self.fullhstack[i, j]
-
-                if self.config.poolflag == 1:
-                    newdata = np.transpose([self.mass[j], d])
-                    output = ud.linterpolate(newdata, self.massaxis)[:, 1]
-                else:
-                    boo1 = d != 0
-                    newdata = np.transpose([self.mass[j][boo1], d[boo1]])
-                    if len(newdata) == 0:
-                        output = self.massaxis * 0
-                    else:
-                        output = ud.lintegrate(newdata, self.massaxis, fastmode=True)[:, 1]
-
-                self.fullmstack[i, :] += output
-
-        self.mass_tic = np.transpose([self.fulltime, np.sum(self.fullmstack, axis=1)])
-        print("Full Mass 1 Transform Done:", time.perf_counter() - starttime)'''
 
         if self.fullhstack_ht is None:
             return
 
         self.fullmstack_ht = self.transform_array(self.fullhstack_ht)
 
-        self.mass_tic_ht = np.transpose([self.fulltime, np.sum(self.fullmstack_ht, axis=1)])
+        self.mass_tic_ht = np.transpose([self.decontime, np.sum(self.fullmstack_ht, axis=1)])
 
         if self.config.datanorm == 1:
             norm = np.amax(self.mass_tic_ht[:, 1])
             self.mass_tic_ht[:, 1] /= norm
-            self.fullmstack_ht /= norm
+            #self.fullmstack_ht /= norm
         print("Full Mass 2 Transform Done:", time.perf_counter() - starttime)
 
     def get_mass_eic(self, massrange, ht=False):
@@ -832,21 +991,24 @@ class UniDecCDHT(HTEng, UniDecCD):
 
         if ht:
             array = self.fullmstack_ht
+            xvals = self.decontime
         else:
             array = self.fullmstack
+            xvals = self.fulltime
 
         substack = array[:, b]
         mass_eic = np.sum(substack, axis=1)
-        return np.transpose([self.fulltime, mass_eic])
+        return np.transpose([xvals, mass_eic])
 
 
 if __name__ == '__main__':
 
     eng = UniDecCDHT()
+    # eng = UniChromHT()
 
     dir = "C:\Data\HT-CD-MS"
-    # dir = "Z:\\Group Share\Skippy\Projects\HT\Example data for MTM\\2023-10-26"
-    dir = "Z:\\Group Share\\Skippy\\Projects\\HT\\Example data for MTM"
+    dir = "Z:\\Group Share\Skippy\Projects\HT\Example data for MTM\\2023-10-26"
+    # dir = "Z:\\Group Share\\Skippy\\Projects\\HT\\Example data for MTM"
     os.chdir(dir)
     path = "C:\\Data\\HT-CD-MS\\20230906 JDS BSA SEC f22 10x dilute STORI high flow 1_20230906171314_2023-09-07-01-43-26.dmt"
     path = "C:\\Data\\HT-CD-MS\\20230906 JDS BSA SEC f22 10x dilute STORI high flow 1_20230906171314.raw"
@@ -854,17 +1016,19 @@ if __name__ == '__main__':
     path = "2023103 JDS BSA inj5s cyc2m bit3 zp5 rep1.raw"
     path = "20231026 JDS BSA cyc2s inj5s bit3 zp1 rep1.raw"
     # path = '20231102_ADH_BSA SEC 15k cyc2m inj3s bit3 zp3 no1.raw'
-    path = '20231202 JDS 0o1uMBgal 0o4uMgroEL shortCol 300ul_m 6_1spl bit5 zp7 inj4s cyc1m AICoff IIT100.RAW'
-    path = "Z:\\Group Share\\Skippy\Projects\HT\\2023-10-13 BSA ADH\\20231013 BSA STORI inj2s cyc2m 5bit_2023-10-13-05-06-03.dmt"
-    path = "20231202 JDS Bgal groEL bit5 zp7 inj4s cyc1m_2023-12-07-03-46-56.dmt"
+    # path = '20231202 JDS 0o1uMBgal 0o4uMgroEL shortCol 300ul_m 6_1spl bit5 zp7 inj4s cyc1m AICoff IIT100.RAW'
+    # path = "Z:\\Group Share\\Skippy\Projects\HT\\2023-10-13 BSA ADH\\20231013 BSA STORI inj2s cyc2m 5bit_2023-10-13-05-06-03.dmt"
+    # path = "20231202 JDS Bgal groEL bit5 zp7 inj4s cyc1m_2023-12-07-03-46-56.dmt"
     # path = "20231202 JDS 0o1uMBgal 0o4uMgroEL shortCol 300ul_m 6_1spl bit3 zp4 inj5s cyc1m AICoff IIT200.RAW"
+    path = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\GDH\\01302024_GDH_stepsize3_repeat15_5to500_2024-02-06-04-44-16.dmt"
 
     eng.open_file(path)
-    eng.process_data_scans()
-    # eng.eic_ht([8500, 10500])
+    # eng.process_data_scans()
+    # xicdata = eng.get_eic([8500, 10500])
+    eng.eic_ht([8500, 10500], [1, 100])
     eng.tic_ht()
     # np.savetxt("tic.txt", np.transpose([eng.fulltime, eng.fulltic]))
-    ac = eng.get_cycle_time(eng.fulltic)
+    # ac = eng.get_cycle_time(eng.fulltic)
 
     # import matplotlib.pyplot as plt
     # plt.plot(ac)
@@ -872,7 +1036,7 @@ if __name__ == '__main__':
     # exit()
     plt.plot(eng.fulltime, eng.fulltic / np.amax(eng.fulltic))
     plt.plot(eng.fulltime[eng.padindex:], np.roll(eng.htkernel, 0))
-    plt.plot(eng.fulltime, eng.htoutput / np.amax(eng.htoutput) - 1)
+    plt.plot(eng.fulltime[1:], eng.htoutput / np.amax(eng.htoutput) - 1)
     plt.show()
     exit()
 

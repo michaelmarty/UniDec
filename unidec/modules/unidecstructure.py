@@ -278,6 +278,10 @@ class UniDecConfig(object):
         self.HTcycleindex = -1
         self.HTxaxis = "Time"
         self.CDScanCompress = 3
+        self.demultiplexmode = "HT"
+        self.demultiplexchoices = ["HT", "FT", "aFT"]
+        self.FTstart = 5
+        self.FTend = 1000
 
         self.doubledec = False
         self.kernel = ""
@@ -444,7 +448,6 @@ class UniDecConfig(object):
         self.HTcycleindex = -1
         self.HTxaxis = "Time"
 
-
         self.doubledec = False
         self.kernel = ""
 
@@ -570,7 +573,9 @@ class UniDecConfig(object):
         f.write("HTcycleindex " + str(self.HTcycleindex) + "\n")
         f.write("HTtimepad " + str(self.HTtimepad) + "\n")
         f.write("htbit " + str(self.htbit) + "\n")
-
+        f.write("FTstart " + str(self.FTstart) + "\n")
+        f.write("FTend " + str(self.FTend) + "\n")
+        f.write("demultiplexmode " + str(self.demultiplexmode) + "\n")
 
         f.write("csig " + str(self.csig) + "\n")
         f.write("smoothdt " + str(self.smoothdt) + "\n")
@@ -705,6 +710,13 @@ class UniDecConfig(object):
                             self.htbit = ud.string_to_value(line.split()[1])
                         if line.startswith("CDScanCompress"):
                             self.CDScanCompress = ud.string_to_value(line.split()[1])
+                        if line.startswith("demultiplexmode"):
+                            self.demultiplexmode = line.split()[1]
+                        if line.startswith("FTstart"):
+                            self.FTstart = ud.string_to_value(line.split()[1])
+                        if line.startswith("FTend"):
+                            self.FTend = ud.string_to_value(line.split()[1])
+
                         if line.startswith("zzsig"):
                             self.zzsig = ud.string_to_value(line.split()[1])
                         if line.startswith("psig"):
@@ -1583,7 +1595,8 @@ class ChromatogramContainer:
     def __init__(self):
         self.chromatograms = []
 
-    def add_chromatogram(self, data, label=None, color="#000000", index=None, mzrange=None, zrange=None, ht=False):
+    def add_chromatogram(self, data, label=None, color="#000000", index=None, mzrange=None, zrange=None, ht=False,
+                         mode="DM"):
         chrom = Chromatogram()
         chrom.chromdat = data
         chrom.sum = np.sum(data[:, 1])
@@ -1595,7 +1608,7 @@ class ChromatogramContainer:
             if zrange is not None:
                 label += " z: " + str(round(zrange[0])) + "-" + str(round(zrange[1]))
             if ht:
-                label += " HT"
+                label += " " + mode
 
         chrom.label = label
 
@@ -1612,7 +1625,7 @@ class ChromatogramContainer:
         if zrange is not None:
             chrom.zrange = zrange
 
-        self.ht = ht
+        chrom.ht = ht
 
         # If label already exists, replace it
         if label in [x.label for x in self.chromatograms]:

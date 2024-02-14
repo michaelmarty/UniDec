@@ -134,8 +134,6 @@ class CDMainwindow(MainwindowBase):
             self.plot5 = PlottingWindow.Plot2d(tab5, figsize=figsize)
             self.plot6 = PlottingWindow.Plot1d(tab6, figsize=figsize)
 
-
-
             miscwindows.setup_tab_box(tab1, self.plot1)
             miscwindows.setup_tab_box(tab2, self.plot2)
             miscwindows.setup_tab_box(tab3, self.plot3)
@@ -148,6 +146,11 @@ class CDMainwindow(MainwindowBase):
                 self.plottic = PlottingWindow.Plot1d(tabtic, figsize=figsize)
                 miscwindows.setup_tab_box(tabtic, self.plottic)
                 plotwindow.AddPage(tabtic, "Chromatogram")
+
+                decontictab = wx.Panel(plotwindow)
+                self.plotdecontic = PlottingWindow.Plot1d(decontictab, figsize=figsize)
+                miscwindows.setup_tab_box(decontictab, self.plotdecontic)
+                plotwindow.AddPage(decontictab, "Deconvolved Chromatogram")
 
             plotwindow.AddPage(tab1, "CD-MS Data")
             plotwindow.AddPage(tab3, "Charge Distribution")
@@ -191,7 +194,10 @@ class CDMainwindow(MainwindowBase):
             i = 0
             if self.htmode:
                 self.plottic = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
-                sizerplot.Add(self.plottic, (0, 0), span=(1, 2), flag=wx.EXPAND)
+                sizerplot.Add(self.plottic, (0, 0), span=(1, 1), flag=wx.EXPAND)
+
+                self.plotdecontic = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
+                sizerplot.Add(self.plotdecontic, (0, 1), span=(1, 1), flag=wx.EXPAND)
                 i += 1
 
             sizerplot.Add(self.plot1, (i, 0), span=(1, 1), flag=wx.EXPAND)
@@ -229,10 +235,13 @@ class CDMainwindow(MainwindowBase):
         self.plotnames = ["Figure1", "Figure2", "Figure5", "Figure4", "Figure3", "Figure6"]
 
         if self.htmode:
-            self.plots = [self.plottic] + self.plots + [self.plot7, self.plot8, self.plot9, self.plot10]
-            self.plotnames = ["Chromatogram"] + self.plotnames + ["Figure7", "Figure8", "Figure9", "Figure10"]
-            self.plottic._axes = [0.07, 0.11, 0.9, 0.8]
+            self.plots = [self.plottic, self.plotdecontic] + self.plots + [self.plot7, self.plot8, self.plot9,
+                                                                           self.plot10]
+            self.plotnames = ["Chromatogram", "Decon Chromatogram"] + self.plotnames + ["Figure7", "Figure8", "Figure9",
+                                                                                        "Figure10"]
+            # self.plottic._axes = [0.07, 0.11, 0.9, 0.8]
             self.Bind(self.plottic.EVT_SCANS_SELECTED, self.pres.on_select_time_range, self.plottic)
+            self.Bind(self.plotdecontic.EVT_SCANS_SELECTED, self.pres.on_select_time_range_decon, self.plotdecontic)
 
         # ...........................
         #
