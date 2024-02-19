@@ -1,16 +1,21 @@
 import time
 
+import numpy as np
 import scipy.ndimage
 from unidec.modules.fitting import *
 
 from unidec.modules.CDEng import *
 from unidec.modules.ChromEng import *
+from unidec.modules.IM_functions import calc_linear_ccs
 import unidec.tools as ud
 # from modules.unidecstructure import DataContainer
 
 import matplotlib.pyplot as plt
 import scipy.fft as fft
 import math
+
+import warnings
+warnings.filterwarnings("error")
 
 # import fast_histogram
 # import pyfftw.interfaces.numpy_fft as fft
@@ -38,6 +43,7 @@ class HTEng:
         self.indexrange = [0, 0]
         self.decontime = []
         self.deconscans = []
+        self.dtype = float
 
         # Index Values
         self.padindex = 0
@@ -99,8 +105,8 @@ class HTEng:
             if len(frangeindex) > 0:
                 frangeindex = frangeindex[0]
                 # get the next two fields
-                ftstart = parts[frangeindex+1]
-                ftend = parts[frangeindex+2]
+                ftstart = parts[frangeindex + 1]
+                ftend = parts[frangeindex + 2]
 
                 # Convert to float and set to field in config
                 try:
@@ -236,8 +242,10 @@ class HTEng:
             mode = self.config.demultiplexmode
 
         if mode == "HT":
+            self.dtype = float
             self.setup_ht(**kwargs)
         elif mode == "FT" or mode == "aFT":
+            self.dtype= complex
             self.setup_ft(**kwargs)
 
     def htdecon(self, data, **kwargs):
@@ -303,40 +311,50 @@ class HTEng:
         if nzp > 0:
             pad_len = int(2 ** math.ceil(math.log2(int(len(x)))) * nzp)
             time_step = (x[1] - x[0])
-            x = np.linspace(x[0], x[-1] + time_step * (pad_len-x_len), pad_len)
-            #self.fulltime = x
-            #self.fullscans = np.arange(len(self.fulltime))
+            x = np.linspace(x[0], x[-1] + time_step * (pad_len - x_len), pad_len)
+            # self.fulltime = x
+            # self.fullscans = np.arange(len(self.fulltime))
 
         freq = np.fft.rfftfreq(len(x), d=(x[1] - x[0]) * 60)
 
         # Create time axis
         sweepRate = (FTend - FTstart) / (sweep_time * 60)
-        self.decontime = freq / sweepRate
+        self.decontime = freq / sweepRate * 1000.
         self.deconscans = self.fullscans[:len(self.decontime)]
 
-    def ftdecon(self, data, flattenTIC=True, apodize=True, aFT=False, normalize=False, nzp=None):
+    def ftdecon(self, data, flatten=None, apodize=None, aFT=False, normalize=False, nzp=None, keepcomplex=False):
         """
         Perform Fourier Transform Deconvolution
         :param data: 1D data array of y-data only
-        :param flattenTIC: Whether to flatten the TIC before demultiplexing to remove low frequency components
+        :param flatten: Whether to flatten the TIC before demultiplexing to remove low frequency components
         :param apodize: Whether to apodize the data with a Hanning window
         :param aFT: Whether to use Absorption FT mode
+        :param normalize: Whether to normalize the output to the maximum value
+        :param nzp: Zero padding factor
         :return: 1D array of demultiplexed data. Same length as input.
         """
         if np.amax(data) == 0:
-            return data[:len(self.decontime)], data
+            if keepcomplex:
+                return np.zeros(len(self.decontime), dtype=self.dtype), data
+            else:
+                return data[:len(self.decontime)], data
+
+        if flatten is not None:
+            self.config.FTflatten = flatten
+        if apodize is not None:
+            self.config.FTapodize = apodize
 
         y = data
 
         if self.config.HTksmooth > 0:
             y = scipy.signal.savgol_filter(y, int(np.round(float(self.config.HTksmooth))), 3)
 
-        if flattenTIC:
+        if self.config.FTflatten:
             # fit trendline to y and subtract to eliminate low frequency components
             ytrnd = scipy.signal.savgol_filter(y, 15, 3)
             y = y - ytrnd
 
-        if apodize:
+        if self.config.FTapodize == 1:
             # create hanning window
             hanning = np.hanning(len(y) * 2)
             y = y * hanning[len(y):]
@@ -345,7 +363,7 @@ class HTEng:
             nzp = self.config.HTtimepad
 
         original_len = len(y)
-        if nzp > 0 and apodize:
+        if nzp > 0 and self.config.FTapodize:
             pad_len = int(2 ** math.ceil(math.log2(int(len(y)))) * nzp)
             z = np.zeros(pad_len)
             z[:len(y)] = y
@@ -358,9 +376,11 @@ class HTEng:
             maxindex = np.argmax(np.abs(Y[5:])) + 5
             phase = np.angle(Y[maxindex])
             Y = Y * np.exp(-1j * phase)
-            Y = np.real(Y)
+            if not keepcomplex:
+                Y = np.real(Y)
         else:
-            Y = np.abs(Y)
+            if not keepcomplex:
+                Y = np.abs(Y)
 
         if normalize:
             Y /= np.amax(Y)
@@ -556,14 +576,18 @@ class UniDecCDHT(HTEng, UniDecCD):
         self.topharray = None
         self.mzaxis = None
         self.zaxis = None
+        self.ccsaxis = None
         self.X = None
         self.Y = None
         self.mass = None
         self.fullhstack_ht = None
+        self.mstack = None
+        self.mstack_ht = None
         self.fullmstack = None
         self.fullmstack_ht = None
         self.mass_tic = None
         self.mass_tic_ht = None
+        self.ccsstack_ht = None
         self.mz = None
         self.ztab = None
 
@@ -586,10 +610,13 @@ class UniDecCDHT(HTEng, UniDecCD):
         if not massonly:
             self.fullhstack = None
             self.fullhstack_ht = None
+        self.mstack = None
+        self.mstack_ht = None
         self.fullmstack = None
         self.fullmstack_ht = None
         self.mass_tic = None
         self.mass_tic_ht = None
+        self.ccsstack_ht = None
 
     def prep_time_domain(self):
         """
@@ -774,7 +801,10 @@ class UniDecCDHT(HTEng, UniDecCD):
         self.get_tic(**kwargs)
         self.setup_demultiplex()
         self.htoutput, self.fulltic = self.run_demultiplex(self.fulltic, **kwargs)
-
+        if self.config.datanorm:
+            self.htoutput /= np.amax(self.htoutput)
+            self.fulltic /= np.amax(self.fulltic)
+        print(np.shape(self.decontime), np.shape(self.htoutput))
         return np.transpose([self.decontime, self.htoutput])
 
     def get_eic(self, mzrange, zrange, **kwargs):
@@ -821,41 +851,15 @@ class UniDecCDHT(HTEng, UniDecCD):
         if self.fullhstack is None:
             self.process_data_scans()
         self.clear_arrays(massonly=True)
+
         # Setup HT
         self.setup_demultiplex()
 
-        '''
-        # self.fullhstack_ht = self.decon_3d(self.fullhstack)
-        starttime = time.perf_counter()
-        # Prep the ranges
-        self.indexrange = [self.padindex - self.shiftindex, len(self.fullhstack) - self.shiftindex]
-        substack = self.fullhstack[self.indexrange[0]:self.indexrange[1]]
-        substack_ht = np.empty_like(substack)
-        sumgrid = np.sum(substack, axis=0)
         # Run the HT on each track in the stack
-        for i, x in enumerate(self.mz):
-            for j, y in enumerate(self.ztab):
-                trace = substack[:, j, i]
-                tracesum = sumgrid[j, i]
-                if tracesum <= self.config.intthresh or tracesum <= 2:
-                    htoutput = np.zeros_like(trace)
-                else:
-                    htoutput = self.htdecon_speedy(trace)
-                substack_ht[:, j, i] = htoutput
+        self.fullhstack_ht = np.empty((len(self.decontime), self.topharray.shape[0], self.topharray.shape[1])
+                                      , dtype=self.dtype)
 
-        # Shift the output back to the original time
-        if self.padindex > 0:
-            # add zeros back on the front and roll to the correct index
-            zeroarray = np.zeros((self.padindex, substack_ht.shape[1], substack_ht.shape[2]))
-            self.fullhstack_ht = np.roll(np.concatenate((zeroarray, substack_ht)), self.rollindex, axis=0)
-        else:
-            self.fullhstack_ht = substack_ht
-
-        print("Full HT Demultiplexing Done:", time.perf_counter() - starttime)
-        starttime = time.perf_counter()'''
-        # Run the HT on each track in the stack
-        self.fullhstack_ht = np.empty((len(self.decontime), self.topharray.shape[0], self.topharray.shape[1]))
-
+        processed_tic = np.zeros_like(self.fulltime)
         for i in range(len(self.mz)):
             for j in range(len(self.ztab)):
                 trace = self.fullhstack[:, j, i]
@@ -863,21 +867,22 @@ class UniDecCDHT(HTEng, UniDecCD):
                 if tracesum <= self.config.intthresh:
                     htoutput = np.zeros_like(self.decontime)
                 else:
-                    htoutput, trace = self.run_demultiplex(trace)
+                    htoutput, trace = self.run_demultiplex(trace, keepcomplex=True)
+                    processed_tic += trace
                 self.fullhstack_ht[:, j, i] = htoutput
 
         # Clip all values below 1e-6 to zero
         # self.fullhstack_ht[np.abs(self.fullhstack_ht) < 1e-6] = 0
 
         tic = np.sum(self.fullhstack_ht, axis=(1, 2))
+        tic = np.abs(tic)
         ticdat = np.transpose(np.vstack((self.decontime, tic)))
         if self.config.datanorm == 1:
-            norm = np.amax(ticdat[:, 1])
-            ticdat[:, 1] /= norm
-            #self.fullhstack_ht /= norm
+            ticdat[:, 1] /= np.amax(ticdat[:, 1])
+            processed_tic /= np.amax(processed_tic)
 
         print("Full HT Demultiplexing Done:", time.perf_counter() - starttime)
-        return ticdat
+        return ticdat, processed_tic
 
     def select_ht_range(self, range=None):
         """
@@ -890,7 +895,7 @@ class UniDecCDHT(HTEng, UniDecCD):
         b1 = self.decontime >= range[0]
         b2 = self.decontime <= range[1]
         b = np.logical_and(b1, b2)
-        substack_ht = self.fullhstack_ht[b]
+        substack_ht = np.abs(self.fullhstack_ht[b])
         self.harray = np.sum(substack_ht, axis=0)
         self.harray = np.clip(self.harray, 0, np.amax(self.harray))
         self.harray_process()
@@ -915,14 +920,15 @@ class UniDecCDHT(HTEng, UniDecCD):
         self.harray_process()
         return self.harray
 
-    def transform_array(self, array):
+    def transform_array(self, array, dtype=float):
         """
         Transforms a histogram stack from m/z to mass
         :param array: Histogram stack. Shape is time vs. charge vs. m/z.
         :return: Transformed array
         """
         mlen = len(self.massaxis)
-        outarray = np.zeros((len(array), mlen))
+        zlen = len(self.ztab)
+        outarray = np.zeros((len(array), mlen, zlen), dtype=dtype)
 
         for j in range(len(self.ztab)):
             indexes = np.array([ud.nearest(self.massaxis, m) for m in self.mass[j]])
@@ -932,9 +938,9 @@ class UniDecCDHT(HTEng, UniDecCD):
             # Sum together everything with the same index
             subarray = np.transpose([np.sum(subarray[:, indexes == u], axis=1) for u in uindexes])
             # Add to the output array
-            outarray[:, uindexes] += subarray
+            outarray[:, uindexes, j] += subarray
 
-        return outarray
+        return np.sum(outarray, axis=2), outarray
 
     def transform_stacks(self):
         """
@@ -946,6 +952,8 @@ class UniDecCDHT(HTEng, UniDecCD):
         if self.fullhstack is None:
             self.process_data_scans(transform=True)
 
+        self.ccsstack_ht = None
+
         if self.config.poolflag == 1:
             print("Transforming Stacks by Interpolation")
         else:
@@ -953,41 +961,50 @@ class UniDecCDHT(HTEng, UniDecCD):
         starttime = time.perf_counter()
         mlen = len(self.massaxis)
 
-        self.fullmstack = self.transform_array(self.fullhstack)
+        self.mstack, self.fullmstack = self.transform_array(self.fullhstack)
 
-        self.mass_tic = np.transpose([self.fulltime, np.sum(self.fullmstack, axis=1)])
+        self.mass_tic = np.transpose([self.fulltime, np.sum(self.mstack, axis=1)])
 
         if self.config.datanorm == 1:
             norm = np.amax(self.mass_tic[:, 1])
             self.mass_tic[:, 1] /= norm
-            self.fullmstack /= norm
+            self.mstack /= norm
 
         print("Full Mass 1 Transform Done:", time.perf_counter() - starttime)
 
         if self.fullhstack_ht is None:
             return
 
-        self.fullmstack_ht = self.transform_array(self.fullhstack_ht)
+        self.mstack_ht, self.fullmstack_ht = self.transform_array(self.fullhstack_ht, dtype=self.dtype)
 
-        self.mass_tic_ht = np.transpose([self.decontime, np.sum(self.fullmstack_ht, axis=1)])
+        self.mass_tic_ht = np.transpose([self.decontime, np.abs(np.sum(self.mstack_ht, axis=1))])
 
         if self.config.datanorm == 1:
             norm = np.amax(self.mass_tic_ht[:, 1])
             self.mass_tic_ht[:, 1] /= norm
-            #self.fullmstack_ht /= norm
+            # self.mstack_ht /= norm
         print("Full Mass 2 Transform Done:", time.perf_counter() - starttime)
 
-    def get_mass_eic(self, massrange, ht=False):
+    def get_mass_eic(self, massrange, zrange=None, ht=False):
         """
         Get the EIC for a mass range after transforming the data to mass. Can be either HT or not.
         :param massrange: Mass range
+        :param zrange: Charge range. Default None sets to full range.
         :param ht: Boolean whether to use HT or not
         :return: 2D array of EIC (time, intensity)
         """
-        # Filter fullmstack
+        if zrange is None:
+            zrange = [np.amin(self.ztab), np.amax(self.ztab)]
+
+        # Filter mstack
         b1 = self.massaxis >= massrange[0]
         b2 = self.massaxis <= massrange[1]
         b = np.logical_and(b1, b2)
+
+        # Filter ztab
+        b3 = self.ztab >= zrange[0]
+        b4 = self.ztab <= zrange[1]
+        b5 = np.logical_and(b4, b3)
 
         if ht:
             array = self.fullmstack_ht
@@ -996,9 +1013,130 @@ class UniDecCDHT(HTEng, UniDecCD):
             array = self.fullmstack
             xvals = self.fulltime
 
-        substack = array[:, b]
-        mass_eic = np.sum(substack, axis=1)
+        substack = array[:, b, :][:, :, b5]
+        mass_eic = np.sum(substack, axis=(1, 2))
         return np.transpose([xvals, mass_eic])
+
+    def get_ccs_eic(self, massrange=None, zrange=None, mzrange=None, normalize=False):
+        """
+        Get the EIC for a mass range after transforming the data to CCS.
+        :param massrange: Mass range
+        :param zrange: Charge range. Default None sets to full range.
+        :param mzrange: m/z range. Default None sets to full range.
+        :param normalize: Whether to normalize the output to the maximum.
+        :return: 2D array of EIC (time, intensity)
+        """
+        array = self.ccsstack_ht
+        print("Ranges:", massrange, zrange, mzrange)
+        if zrange is not None:
+            # Filter ztab
+            b3 = self.ztab >= zrange[0]
+            b4 = self.ztab <= zrange[1]
+            b5 = np.logical_and(b4, b3)
+            # Project b5 into array of same shape
+            b5 = np.array([[b5 for i in range(len(self.massaxis))] for j in range(len(self.ccsaxis))])
+        else:
+            b5 = np.ones_like(array, dtype=bool)
+
+        if mzrange is not None:
+            dt3d, mass3d, ztab3d = np.meshgrid(self.ccsaxis, self.massaxis, self.ztab, indexing='ij')
+            mz3d = (mass3d + ztab3d * self.config.adductmass) / ztab3d
+            b6 = mz3d >= mzrange[0]
+            b7 = mz3d <= mzrange[1]
+            b8 = np.logical_and(b7, b6)
+        else:
+            b8 = np.ones_like(array, dtype=bool)
+
+        if massrange is not None:
+            # Filter mstack
+            b1 = self.massaxis >= massrange[0]
+            b2 = self.massaxis <= massrange[1]
+            b = np.logical_and(b1, b2)
+            b = np.transpose([[b for i in range(len(self.ccsaxis))] for j in range(len(self.ztab))], axes=[1, 2, 0])
+        else:
+            b = np.ones_like(array, dtype=bool)
+
+        # Merge B8, B5 and B into one large 3D array
+        b8 = b8 * b5 * b
+
+        substack = array * b8
+
+        ccs_eic = np.abs(np.sum(substack, axis=(1, 2)))
+
+        if self.config.FTsmooth > 0:
+            ccs_eic = scipy.signal.savgol_filter(ccs_eic, int(self.config.FTsmooth), 3)
+
+        if normalize:
+            ccs_eic /= np.amax(ccs_eic)
+
+        return np.transpose([self.ccsaxis, ccs_eic])
+
+    def transform_dt_ccs_array(self, array, keepcomplex=True):
+        """
+        Transforms a histogram stack from drift time to CCS
+        :param array: Histogram Mass stack. Shape is time vs. mass vs. charge.
+        :return: Transformed array
+        """
+        # Create dt, mass, and z arrays in 3D
+        dt3d, mass3d, ztab3d = np.meshgrid(self.decontime, self.massaxis, self.ztab, indexing='ij')
+        # Parallel calc all CCS values into new 3d array
+        ccs3d = calc_linear_ccs(mass3d, ztab3d, dt3d, self.config)
+        # Create new CCS axis
+        minccs = np.amin(ccs3d)
+        maxccs = np.amax(ccs3d)
+        if self.config.ccsbins == -1:
+            binsize = (maxccs-minccs)/len(self.decontime)
+        else:
+            binsize = self.config.ccsbins
+        ccsaxis = np.arange(minccs, maxccs, binsize)
+        # Create bins shifted by half a bin
+        ccsbins = np.arange(minccs - binsize / 2., maxccs + binsize / 2., binsize)
+        self.ccsaxis = ccsaxis
+
+        mlen = len(self.massaxis)
+        zlen = len(self.ztab)
+        outarray = np.zeros((len(ccsaxis), mlen, zlen), dtype=self.dtype)
+        if not keepcomplex:
+            array = np.abs(array)
+        # Loop through array and paste back onto the new CCS axis
+        for i in range(mlen):
+            for j in range(zlen):
+                #indexes = np.array([ud.nearest(self.ccsaxis, c) for c in ccs3d[:, i, j]])
+                #outlist = np.zeros_like(self.ccsaxis, dtype=self.dtype)
+                #outlist[indexes] += array[:, i, j]
+
+                outlist = np.histogram(ccs3d[:, i, j], bins=ccsbins, weights=array[:, i, j])[0]
+                outarray[:, i, j] = outlist
+                # interpolate the existing arrray onto the new ccs axis
+                #outarray[:, i, j] = np.interp(self.ccsaxis, ccs3d[:, i, j], array[:, i, j])
+
+
+
+        return outarray
+
+    def ccs_transform_stacks(self):
+        """
+        Transform the histogram stacks from drift time to CCS.
+        :return: None
+        """
+        if self.fullmstack_ht is None:
+            self.run_all_ht()
+            self.transform_stacks()
+        starttime = time.perf_counter()
+        self.ccsstack_ht = self.transform_dt_ccs_array(self.fullmstack_ht)
+        print("Full CCS Transform Done:", time.perf_counter() - starttime)
+
+        ccs_tic = np.sum(self.ccsstack_ht, axis=(1, 2))
+        ccs_tic = np.abs(ccs_tic)
+        b1 = ccs_tic > 0
+        ccs_tic = ccs_tic[b1]
+        self.ccsaxis = self.ccsaxis[b1]
+        self.ccsstack_ht = self.ccsstack_ht[b1]
+        if self.config.FTsmooth > 0:
+            ccs_tic = scipy.signal.savgol_filter(ccs_tic, int(self.config.FTsmooth), 3)
+
+        ccs_tic = np.transpose(np.vstack((self.ccsaxis, ccs_tic)))
+        return ccs_tic
 
 
 if __name__ == '__main__':
@@ -1021,19 +1159,30 @@ if __name__ == '__main__':
     # path = "20231202 JDS Bgal groEL bit5 zp7 inj4s cyc1m_2023-12-07-03-46-56.dmt"
     # path = "20231202 JDS 0o1uMBgal 0o4uMgroEL shortCol 300ul_m 6_1spl bit3 zp4 inj5s cyc1m AICoff IIT200.RAW"
     path = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\GDH\\01302024_GDH_stepsize3_repeat15_5to500_2024-02-06-04-44-16.dmt"
+    pathft = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\01302024_GDH_stepsize3_repeat15_5to500.dmt"
+    eng.open_file(pathft)
+    eng.process_data()
+    eng.process_data_scans()
+    eng.run_all_ht()
+    eng.transform_stacks()
+    eng.config.ccsbins = 1
+    eng.ccs_transform_stacks()
 
-    eng.open_file(path)
+    ccs_tic = np.sum(eng.ccsstack_ht, axis=(1, 2))
+    plt.plot(eng.ccsaxis, ccs_tic)
+    plt.show()
+    # eng.get_mass_eic([8500, 10500], [1, 100])
     # eng.process_data_scans()
     # xicdata = eng.get_eic([8500, 10500])
-    eng.eic_ht([8500, 10500], [1, 100])
-    eng.tic_ht()
+    # eng.eic_ht([8500, 10500], [1, 100])
+    # eng.tic_ht()
     # np.savetxt("tic.txt", np.transpose([eng.fulltime, eng.fulltic]))
     # ac = eng.get_cycle_time(eng.fulltic)
 
     # import matplotlib.pyplot as plt
     # plt.plot(ac)
     # plt.show()
-    # exit()
+    exit()
     plt.plot(eng.fulltime, eng.fulltic / np.amax(eng.fulltic))
     plt.plot(eng.fulltime[eng.padindex:], np.roll(eng.htkernel, 0))
     plt.plot(eng.fulltime[1:], eng.htoutput / np.amax(eng.htoutput) - 1)

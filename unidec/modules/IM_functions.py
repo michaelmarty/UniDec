@@ -248,12 +248,40 @@ def calc_linear_dt(mass, z, ccs, config):
     tempo = 273.15
     temp = config.temp + tempo
     ccsconst = (np.sqrt(18.0 * np.pi) / 16.0) * (e / np.sqrt(kb * temp)) / n * (
-        config.volt / pow(config.driftlength, 2.0)) * (po / config.pressure) * (temp / tempo) * 1E20
+            config.volt / pow(config.driftlength, 2.0)) * (po / config.pressure) * (temp / tempo) * 1E20
     ac = 1.6605389E-27
     rmass = ac * (mass * config.gasmass) / (mass + config.gasmass)
     td = ccs / (ccsconst * z * np.sqrt(1 / rmass))
     dt = (td * 1000) + config.to
     return dt
+
+
+def calc_linear_ccs(mass, z, dt, config):
+    if config.ccsconstant == 0:
+        calc_linear_ccsconst(config)
+    ccsconst = config.ccsconstant
+    hmass = config.gasmass
+    to = config.to
+    ac = 1.6605389E-27
+    factor = 0.001
+    rmass = ac * (mass * hmass) / (mass + hmass)
+    td = (dt - to) * factor
+    ccs = z * td * (1 / rmass) ** 0.5 * ccsconst
+    return ccs
+
+
+def calc_linear_ccsconst(config):
+    e = 1.60217657E-19
+    kb = 1.3806488E-23
+    n = 2.6867774E25
+    po = 760
+    tempo = 273.15
+    temp = config.temp
+    pressure = config.pressure
+    driftlength = config.driftlength
+    ccsconst = (np.sqrt(18.0 * np.pi) / 16.0) * (e / np.sqrt(kb * temp)) / n * (
+            config.volt / pow(driftlength, 2.0)) * (po / pressure) * (temp / tempo) * 1E20
+    config.ccsconstant = ccsconst
 
 
 def calc_native_ccs(mass, gasmass):

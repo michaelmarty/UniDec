@@ -406,6 +406,12 @@ class PlotBase(object):
         else:
             self.tickcolor = u"white"
 
+    def get_limits(self):
+        xlimits = self.subplot1.get_xlim()
+        ylimits = self.subplot1.get_ylim()
+        print("New limits:", xlimits, ylimits)
+        return np.array(xlimits), np.array(ylimits)
+
     def write_data(self, path):
         if self.data is not None:
             print("Saving Data to", path)

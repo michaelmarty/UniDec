@@ -131,7 +131,7 @@ class CDMainwindow(MainwindowBase):
             self.plot2 = PlottingWindow.Plot1d(tab2, integrate=1, figsize=figsize)
             self.plot3 = PlottingWindow.Plot1d(tab3, figsize=figsize)
             self.plot4 = PlottingWindow.Plot1d(tab4, figsize=figsize)
-            self.plot5 = PlottingWindow.Plot2d(tab5, figsize=figsize)
+            self.plot5 = PlottingWindow.Plot2d(tab5, smash=2, figsize=figsize)
             self.plot6 = PlottingWindow.Plot1d(tab6, figsize=figsize)
 
             miscwindows.setup_tab_box(tab1, self.plot1)
@@ -188,7 +188,7 @@ class CDMainwindow(MainwindowBase):
             self.plot2 = PlottingWindow.Plot1d(plotwindow, integrate=1, figsize=figsize)
             self.plot3 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
             self.plot4 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
-            self.plot5 = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
+            self.plot5 = PlottingWindow.Plot2d(plotwindow, smash=2, figsize=figsize)
             self.plot6 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
 
             i = 0
@@ -228,8 +228,9 @@ class CDMainwindow(MainwindowBase):
             plotwindow.Bind(wx.EVT_SET_FOCUS, self.onFocus)
         self.plotpanel = plotwindow
 
-        # if self.htmode:
-        #    self.Bind(self.plot1.EVT_MZLIMITS, self.extract, self.plot1)
+        if self.htmode:
+            self.Bind(self.plot5.EVT_MZLIMITS, self.pres.on_select_massz_range, self.plot5)
+            self.Bind(self.plot1.EVT_MZLIMITS, self.pres.on_select_mzz_region, self.plot1)
 
         self.plots = [self.plot1, self.plot2, self.plot5, self.plot4, self.plot3, self.plot6]
         self.plotnames = ["Figure1", "Figure2", "Figure5", "Figure4", "Figure3", "Figure6"]

@@ -347,9 +347,13 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             i += 1
 
             # Button to make 2d time vs. mass plot
-            self.makevtm = wx.Button(paneldm, -1, "Make 2D Time vs. Mass Plot")
+            self.makevtm = wx.Button(paneldm, -1, "Time-Mass Plot")
             self.parent.Bind(wx.EVT_BUTTON, self.pres.make_mass_time_2dplot, self.makevtm)
-            sizercontrolht1.Add(self.makevtm, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            sizercontrolht1.Add(self.makevtm, (i, 0), span=(1, 1), flag=wx.EXPAND)
+
+            self.plot5button2 = wx.Button(paneldm, -1, "Mass-Charge Plot")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.makeplot5, self.plot5button2)
+            sizercontrolht1.Add(self.plot5button2, (i, 1), span=(1, 1), flag=wx.EXPAND)
             i += 1
 
             # Button for Make m/z Cube plots
@@ -421,13 +425,31 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             # Text Control for FTstart and FTend
             self.ctlftstart = wx.TextCtrl(panelft, value="", size=size1)
             sizercontrolht1.Add(self.ctlftstart, (i, 1), span=(1, 1))
-            sizercontrolht1.Add(wx.StaticText(panelft, label="FT Start: "), (i, 0),
+            sizercontrolht1.Add(wx.StaticText(panelft, label="FT Start (Hz): "), (i, 0),
                                 flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
             self.ctlftend = wx.TextCtrl(panelft, value="", size=size1)
             sizercontrolht1.Add(self.ctlftend, (i, 1), span=(1, 1))
-            sizercontrolht1.Add(wx.StaticText(panelft, label="FT End: "), (i, 0),
+            sizercontrolht1.Add(wx.StaticText(panelft, label="FT End (Hz): "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Create Two checkboxes for FTflatten and FTapodize
+            self.ctlftflatten = wx.CheckBox(panelft, label="Flatten")
+            sizercontrolht1.Add(self.ctlftflatten, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            self.ctlftflatten.SetValue(self.config.FTflatten)
+            self.ctlftflatten.SetToolTip(wx.ToolTip("Flatten the FT data"))
+            self.ctlftapodize = wx.CheckBox(panelft, label="Apodize")
+            sizercontrolht1.Add(self.ctlftapodize, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            self.ctlftapodize.SetValue(self.config.FTapodize)
+            self.ctlftapodize.SetToolTip(wx.ToolTip("Apodize the FT data"))
+            i += 1
+
+            # Add text input for post smoothing
+            self.ctlftsmooth = wx.TextCtrl(panelft, value="", size=size1)
+            sizercontrolht1.Add(self.ctlftsmooth, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelft, label="Post Smoothing: "), (i, 0),
                                 flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
@@ -437,6 +459,68 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.foldpanels.AddFoldPanelWindow(self.foldpanelft, panelft, fpb.FPB_ALIGN_WIDTH)
             self.foldpanels.AddFoldPanelWindow(self.foldpanelft, wx.StaticText(self.foldpanelft, -1, " "),
                                                fpb.FPB_ALIGN_WIDTH)
+
+            foldpanel1c = self.foldpanels.AddFoldPanel(caption="Ion Mobility Parameters", collapsed=False,
+                                                       cbstyle=style1c)
+            panel1c = wx.Panel(foldpanel1c, -1)
+            gbox1c = wx.GridBagSizer(wx.VERTICAL)
+            i = 0
+
+            # Create Run CCS Calc button
+            self.runccsbutton = wx.Button(panel1c, -1, "Run All DT to CCS")
+            self.Bind(wx.EVT_BUTTON, self.pres.on_run_ccs, self.runccsbutton)
+            gbox1c.Add(self.runccsbutton, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1
+
+            # Button to run EIC CCS
+            self.runeicccs = wx.Button(panel1c, -1, "Run EIC CCS")
+            self.Bind(wx.EVT_BUTTON, self.pres.on_run_eic_ccs, self.runeicccs)
+            gbox1c.Add(self.runeicccs, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1
+
+            self.ctlvolt = wx.TextCtrl(panel1c, value="", size=size1)
+            gbox1c.Add(self.ctlvolt, (i, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(panel1c, label="Voltage (V): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlpressure = wx.TextCtrl(panel1c, value='', size=size1)
+            gbox1c.Add(self.ctlpressure, (i, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(panel1c, label="Pressure (Torr): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctltemp = wx.TextCtrl(panel1c, value='', size=size1)
+            gbox1c.Add(self.ctltemp, (i, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(panel1c, label="Temperature (\u00B0C): "), (i, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlgasmass = wx.TextCtrl(panel1c, value='', size=size1)
+            gbox1c.Add(self.ctlgasmass, (i, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(panel1c, label="Gas Mass (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlto = wx.TextCtrl(panel1c, value='', size=size1)
+            gbox1c.Add(self.ctlto, (i, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(panel1c, label="Dead Time (t\u2080 in ms): "), (i, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctldriftlength = wx.TextCtrl(panel1c, value='', size=size1)
+            gbox1c.Add(self.ctldriftlength, (i, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(panel1c, label="Drift Cell Length (m)"), (i, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlccsbins = wx.TextCtrl(panel1c, value="", size=size1)
+            gbox1c.Add(self.ctlccsbins, (i, 1), span=(1, 2))
+            gbox1c.Add(wx.StaticText(panel1c, label="Sample CCS Every (\u212B\u00B2): "), (i, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+
+            panel1c.SetSizer(gbox1c)
+            gbox1c.Fit(panel1c)
+
+            self.foldpanels.AddFoldPanelWindow(foldpanel1c, panel1c, fpb.FPB_ALIGN_WIDTH)
+            self.foldpanels.AddFoldPanelWindow(foldpanel1c, wx.StaticText(foldpanel1c, -1, " "), fpb.FPB_ALIGN_WIDTH)
 
         # Panel for unidec Parameters
         foldpanel2 = self.foldpanels.AddFoldPanel(caption="UniDec Parameters", collapsed=False, cbstyle=style2)
@@ -851,6 +935,17 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctlmultiplexmode.SetStringSelection(self.config.demultiplexmode)
                 self.ctlftstart.SetValue(str(self.config.FTstart))
                 self.ctlftend.SetValue(str(self.config.FTend))
+                self.ctlftflatten.SetValue(self.config.FTflatten)
+                self.ctlftapodize.SetValue(self.config.FTapodize)
+                self.ctlftsmooth.SetValue(str(self.config.FTsmooth))
+
+                self.ctlvolt.SetValue(str(self.config.volt))
+                self.ctltemp.SetValue(str(self.config.temp))
+                self.ctlpressure.SetValue(str(self.config.pressure))
+                self.ctlgasmass.SetValue(str(self.config.gasmass))
+                self.ctlto.SetValue(str(self.config.to))
+                self.ctldriftlength.SetValue(str(self.config.driftlength))
+                self.ctlccsbins.SetValue(str(self.config.ccsbins))
 
             if self.config.adductmass < 0:
                 self.ctlnegmode.SetValue(1)
@@ -966,6 +1061,17 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.config.demultiplexmode = self.ctlmultiplexmode.GetStringSelection()
             self.config.FTstart = ud.string_to_value(self.ctlftstart.GetValue())
             self.config.FTend = ud.string_to_value(self.ctlftend.GetValue())
+            self.config.FTflatten = self.ctlftflatten.GetValue()
+            self.config.FTapodize = self.ctlftapodize.GetValue()
+            self.config.FTsmooth = ud.string_to_value(self.ctlftsmooth.GetValue())
+
+            self.config.volt = ud.string_to_value(self.ctlvolt.GetValue())
+            self.config.temp = ud.string_to_value(self.ctltemp.GetValue())
+            self.config.pressure = ud.string_to_value(self.ctlpressure.GetValue())
+            self.config.gasmass = ud.string_to_value(self.ctlgasmass.GetValue())
+            self.config.to = ud.string_to_value(self.ctlto.GetValue())
+            self.config.driftlength = ud.string_to_value(self.ctldriftlength.GetValue())
+            self.config.ccsbins = ud.string_to_value(self.ctlccsbins.GetValue())
 
         self.config.numit = ud.string_to_int(self.ctlnumit.GetValue())
 

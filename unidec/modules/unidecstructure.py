@@ -157,6 +157,7 @@ class UniDecConfig(object):
         self.edc = 1.57
         self.gasmass = 4.002602
         self.twaveflag = 0
+        self.ccsconstant = 0
 
         # Misc
         self.batchflag = 0
@@ -282,6 +283,9 @@ class UniDecConfig(object):
         self.demultiplexchoices = ["HT", "FT", "aFT"]
         self.FTstart = 5
         self.FTend = 1000
+        self.FTflatten = True
+        self.FTapodize = 1
+        self.FTsmooth = 0
 
         self.doubledec = False
         self.kernel = ""
@@ -575,7 +579,10 @@ class UniDecConfig(object):
         f.write("htbit " + str(self.htbit) + "\n")
         f.write("FTstart " + str(self.FTstart) + "\n")
         f.write("FTend " + str(self.FTend) + "\n")
+        f.write("FTflatten " + str(int(self.FTflatten)) + "\n")
+        f.write("FTapodize " + str(int(self.FTapodize)) + "\n")
         f.write("demultiplexmode " + str(self.demultiplexmode) + "\n")
+        f.write("FTsmooth " + str(self.FTsmooth) + "\n")
 
         f.write("csig " + str(self.csig) + "\n")
         f.write("smoothdt " + str(self.smoothdt) + "\n")
@@ -716,6 +723,12 @@ class UniDecConfig(object):
                             self.FTstart = ud.string_to_value(line.split()[1])
                         if line.startswith("FTend"):
                             self.FTend = ud.string_to_value(line.split()[1])
+                        if line.startswith("FTflatten"):
+                            self.FTflatten = ud.string_to_int(line.split()[1])
+                        if line.startswith("FTapodize"):
+                            self.FTapodize = ud.string_to_int(line.split()[1])
+                        if line.startswith("FTsmooth"):
+                            self.FTsmooth = ud.string_to_value(line.split()[1])
 
                         if line.startswith("zzsig"):
                             self.zzsig = ud.string_to_value(line.split()[1])
@@ -1576,6 +1589,8 @@ class DataContainer:
 class Chromatogram:
     def __init__(self):
         self.chromdat = np.array([])
+        self.decondat = np.array([])
+        self.ccsdat = np.array([])
         self.label = ""
         self.color = "#000000"
         self.index = 0
@@ -1584,6 +1599,8 @@ class Chromatogram:
         self.sum = -1
         self.ignore = 0
         self.ht = False
+        self.massrange = [-1, -1]
+        self.massmode = False
 
     def to_row(self):
         out = [self.label, str(self.color), str(self.index), str(self.mzrange[0]), str(self.mzrange[1]),
@@ -1595,10 +1612,12 @@ class ChromatogramContainer:
     def __init__(self):
         self.chromatograms = []
 
-    def add_chromatogram(self, data, label=None, color="#000000", index=None, mzrange=None, zrange=None, ht=False,
-                         mode="DM"):
+    def add_chromatogram(self, data, decondat=None, ccsdat=None, label=None, color="#000000", index=None, mzrange=None,
+                         zrange=None, massrange=None, massmode=False, mode="DM"):
         chrom = Chromatogram()
         chrom.chromdat = data
+        chrom.decondat = decondat
+        chrom.ccsdat = ccsdat
         chrom.sum = np.sum(data[:, 1])
 
         if label is None:
@@ -1607,8 +1626,6 @@ class ChromatogramContainer:
                 label += "m/z: " + str(round(mzrange[0])) + "-" + str(round(mzrange[1]))
             if zrange is not None:
                 label += " z: " + str(round(zrange[0])) + "-" + str(round(zrange[1]))
-            if ht:
-                label += " " + mode
 
         chrom.label = label
 
@@ -1621,11 +1638,16 @@ class ChromatogramContainer:
 
         if mzrange is not None:
             chrom.mzrange = mzrange
+            chrom.massmode = False
 
         if zrange is not None:
             chrom.zrange = zrange
 
-        chrom.ht = ht
+        if massrange is not None:
+            chrom.massrange = massrange
+            chrom.massmode = True
+
+        chrom.massmode = massmode
 
         # If label already exists, replace it
         if label in [x.label for x in self.chromatograms]:
@@ -1639,6 +1661,8 @@ class ChromatogramContainer:
                 self.chromatograms = np.concatenate((self.chromatograms, [chrom]))
             else:
                 self.chromatograms.append(chrom)
+
+        return chrom
 
     def clear(self):
         self.chromatograms = []
