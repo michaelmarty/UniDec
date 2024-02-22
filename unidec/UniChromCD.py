@@ -221,9 +221,10 @@ class UniChromCDApp(UniDecCDApp):
                     c.decondat = htdata
                     c.chromdat = eicdata
                 # eicdata = self.eng.get_ccs_eic(mzrange=c.mzrange, zrange=c.zrange, normalize=self.eng.config.datanorm)
-                eicdata = self.eng.convert_trace_to_ccs(c.decondat, mzrange=c.mzrange, zrange=c.zrange,
+                eicdata, avgz, avgmz = self.eng.convert_trace_to_ccs(c.decondat, mzrange=c.mzrange, zrange=c.zrange,
                                                         normalize=self.eng.config.datanorm)
                 c.ccsdat = eicdata
+                c.label = "Avg. m/z: " + str(round(avgmz)) + " z: " + str(round(avgz))
         self.plot_chromatograms()
 
     def on_run_tic_ht(self, e=None):
@@ -284,15 +285,21 @@ class UniChromCDApp(UniDecCDApp):
         #    print("No CCS Data")
 
         try:
-            ccsdata = self.eng.convert_trace_to_ccs(htdata, mzrange=c.mzrange, zrange=c.zrange,
+            ccsdata, avgz, avgmz = self.eng.convert_trace_to_ccs(htdata, mzrange=c.mzrange, zrange=c.zrange,
                                                     normalize=self.eng.config.datanorm)
         except:
             print("Failed to convert to CCS")
             ccsdata = None
+            avgz = None
+            avgmz = None
 
         self.cc.add_chromatogram(eicdata, decondat=htdata, ccsdat=ccsdata, color=color, zrange=zrange, mzrange=mzrange,
                                  mode=self.eng.config.demultiplexmode)
         self.showht = True
+
+        if avgz is not None:
+            c = self.cc.chromatograms[-1]
+            c.label = "Avg. m/z: " + str(round(avgmz)) + " z: " + str(round(avgz))
         self.plot_chromatograms()
 
     def plot_chromatograms(self, e=None, save=True):

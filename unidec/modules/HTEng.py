@@ -1163,9 +1163,11 @@ class UniDecCDHT(HTEng, UniDecCD):
 
         avgmz = np.sum(intarray * mzarray) / np.sum(intarray)
         avgz = np.sum(intarray * zarray) / np.sum(intarray)
+        avgz = np.round(avgz)
+        avgmass = (avgmz - self.config.adductmass) * avgz
         # Calculate weighted average of m/z and charge
 
-        ccs_axis = calc_linear_ccs(avgmz, avgz, trace[:, 0], self.config)
+        ccs_axis = calc_linear_ccs(avgmass, avgz, trace[:, 0], self.config)
 
         if normalize:
             trace[:, 1] /= np.amax(trace[:, 1])
@@ -1175,7 +1177,7 @@ class UniDecCDHT(HTEng, UniDecCD):
                 self.config.FTsmooth = 10.
             trace[:, 1] = scipy.signal.savgol_filter(trace[:, 1], int(self.config.FTsmooth), 3)
 
-        return np.transpose([ccs_axis, trace[:, 1]])
+        return np.transpose([ccs_axis, trace[:, 1]]), avgz, avgmz
 
 
 if __name__ == '__main__':
