@@ -145,6 +145,19 @@ def create_color_cycle(seq='bgrcmk'):
     return cycol
 
 
+def get_color_from_index(index, seq="custom1"):
+    if seq == "tab":
+        carray = colors.TABLEAU_COLORS.keys()
+    elif seq == "custom1":
+        carray = ["purple", "blue", "dodgerblue", "cyan", "green", "lime", "gold", "orange", "coral", "red", "magenta"]
+    else:
+        carray = cm.get_cmap(seq).colors
+    color = list(carray)[index % len(carray)]
+    return color
+
+
+
+
 def match_files(directory, string, exclude=None):
     files = []
     for file in os.listdir(directory):

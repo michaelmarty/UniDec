@@ -28,7 +28,6 @@ class UniChromCDApp(UniDecCDApp):
         self.cc = ChromatogramContainer()
         self.showht = False
         self.showccs = False
-        self.cycol = ud.create_color_cycle("bgcmy")
 
         self.view = CDWindow.CDMainwindow(self, "UniChrom for CD-MS Data",
                                           self.eng.config, htmode=True)
@@ -169,7 +168,7 @@ class UniChromCDApp(UniDecCDApp):
             ylimits = self.view.plot1.subplot1.get_ylim()
             print("New limits:", xlimits, ylimits)
             self.view.plot1.reset_zoom()
-            color = next(self.cycol)
+            color = ud.get_color_from_index(len(self.cc.chromatograms))
             if self.showht or self.showccs:
                 self.run_eic_ht(xlimits, ylimits, color=color)
             else:
@@ -180,9 +179,9 @@ class UniChromCDApp(UniDecCDApp):
         if not wx.GetKeyState(wx.WXK_CONTROL):
             xlimits, ylimits = self.view.plot5.get_limits()
             xlimits = np.array(xlimits) * self.view.plot5.kdnorm
-            print("TEST", xlimits)
+            print("New Mass Limits", xlimits)
             self.view.plot5.reset_zoom()
-            color = next(self.cycol)
+            color = get_color_from_index(len(self.cc.chromatograms))
 
             if self.eng.ccsstack_ht is not None:
                 self.add_mass_eic(xlimits, ylimits, color=color, plot=True, ccs=True)
