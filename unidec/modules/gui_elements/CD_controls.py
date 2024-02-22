@@ -333,12 +333,18 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             sizercontrolht1.Add(self.ctlxaxis, (i, 1), span=(1, 1))
             sizercontrolht1.Add(wx.StaticText(paneldm, label="X-Axis: "), (i, 0),
                                 flag=wx.ALIGN_CENTER_VERTICAL)
+            # Bind to on replot
+            self.ctlxaxis.Bind(wx.EVT_CHOICE, self.pres.on_replot_chrom)
             i += 1
 
             # Check box to show legends
-            self.ctllegends = wx.CheckBox(paneldm, label="Show Legends")
-            sizercontrolht1.Add(self.ctllegends, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            self.ctllegends = wx.CheckBox(paneldm, label="")
+            sizercontrolht1.Add(self.ctllegends, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            sizercontrolht1.Add(wx.StaticText(paneldm, label="Show Legends: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
             self.ctllegends.SetValue(True)
+            # Bind to on replot
+            self.ctllegends.Bind(wx.EVT_CHECKBOX, self.pres.on_replot_chrom)
             i += 1
 
             # Button to make 2d time vs. charge plot

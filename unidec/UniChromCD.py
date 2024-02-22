@@ -84,6 +84,20 @@ class UniChromCDApp(UniDecCDApp):
         self.on_open_cdms_file(filename, directory, path=path, refresh=refresh)
         self.load_chroms(self.eng.config.cdchrom)
 
+    def on_replot(self, e=None):
+        self.export_config()
+        self.makeplot1()
+        self.makeplot2()
+        self.makeplot3()
+        self.makeplot4()
+        self.makeplot6()
+        self.on_replot_chrom()
+        pass
+
+    def on_replot_chrom(self, e=None):
+        self.export_config()
+        self.plot_chromatograms()
+
     def on_dataprep_button(self, e=None):
         """
         Run data preparation. Makes the TIC and clears the chromatogram list.
