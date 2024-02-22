@@ -213,9 +213,16 @@ class UniChromCDApp(UniDecCDApp):
 
     def on_run_eic_ccs(self, e=None):
         self.export_config(self.eng.config.confname)
+        self.showccs = True
         for c in self.cc.chromatograms:
             if "TIC" not in c.label:
-                eicdata = self.eng.get_ccs_eic(mzrange=c.mzrange, zrange=c.zrange, normalize=self.eng.config.datanorm)
+                if c.decondat is None:
+                    htdata, eicdata = self.eng.eic_ht(c.mzrange, c.zrange, normalize=self.eng.config.datanorm)
+                    c.decondat = htdata
+                    c.chromdat = eicdata
+                # eicdata = self.eng.get_ccs_eic(mzrange=c.mzrange, zrange=c.zrange, normalize=self.eng.config.datanorm)
+                eicdata = self.eng.convert_trace_to_ccs(c.decondat, mzrange=c.mzrange, zrange=c.zrange,
+                                                        normalize=self.eng.config.datanorm)
                 c.ccsdat = eicdata
         self.plot_chromatograms()
 
@@ -235,7 +242,7 @@ class UniChromCDApp(UniDecCDApp):
         :return: None
         """
         self.export_config(self.eng.config.confname)
-        self.showccs=False
+        self.showccs = False
         for c in self.cc.chromatograms:
             if "TIC" not in c.label:
                 htdata, eicdata = self.eng.eic_ht(c.mzrange, c.zrange, normalize=self.eng.config.datanorm)
@@ -269,12 +276,20 @@ class UniChromCDApp(UniDecCDApp):
         """
 
         htdata, eicdata = self.eng.eic_ht(mzrange, zrange, normalize=self.eng.config.datanorm)
-        if self.eng.ccsstack_ht is not None:
-            ccsdata = self.eng.get_ccs_eic(mzrange=mzrange, zrange=zrange, normalize=self.eng.config.datanorm)
-            print("Got CCS Data")
-        else:
+        # if self.eng.ccsstack_ht is not None:
+        #    ccsdata = self.eng.get_ccs_eic(mzrange=mzrange, zrange=zrange, normalize=self.eng.config.datanorm)
+        #    print("Got CCS Data")
+        # else:
+        #    ccsdata = None
+        #    print("No CCS Data")
+
+        try:
+            ccsdata = self.eng.convert_trace_to_ccs(htdata, mzrange=c.mzrange, zrange=c.zrange,
+                                                    normalize=self.eng.config.datanorm)
+        except:
+            print("Failed to convert to CCS")
             ccsdata = None
-            print("No CCS Data")
+
         self.cc.add_chromatogram(eicdata, decondat=htdata, ccsdat=ccsdata, color=color, zrange=zrange, mzrange=mzrange,
                                  mode=self.eng.config.demultiplexmode)
         self.showht = True
@@ -352,10 +367,12 @@ class UniChromCDApp(UniDecCDApp):
                                                    newlabel=c.label)
 
         if self.view.plotdecontic.flag:
-            self.view.plotdecontic.add_legend()
+            if self.eng.config.showlegends:
+                self.view.plotdecontic.add_legend()
             self.view.plotdecontic.repaint(resetzoom=True)
         if self.view.plottic.flag:
-            self.view.plottic.add_legend()
+            if self.eng.config.showlegends:
+                self.view.plottic.add_legend()
             self.view.plottic.repaint(resetzoom=True)
         self.view.plot1.repaint()
         if save:
@@ -521,7 +538,7 @@ class UniChromCDApp(UniDecCDApp):
         :param e: Unused event
         :return: None
         """
-        self.showccs=True
+        self.showccs = True
         self.export_config(self.eng.config.confname)
         ccs_tic = self.eng.ccs_transform_stacks()
         for c in self.cc.chromatograms:
@@ -766,7 +783,8 @@ class UniChromCDApp(UniDecCDApp):
         else:
             self.view.plottic.plotadd(xdat, data, colval=color, nopaint=False,
                                       newlabel=label)
-        self.view.plottic.add_legend()
+        if self.eng.config.showlegends:
+            self.view.plottic.add_legend()
 
     def on_autocorr2(self, index):
         """

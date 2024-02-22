@@ -335,6 +335,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                                 flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
+            # Check box to show legends
+            self.ctllegends = wx.CheckBox(paneldm, label="Show Legends")
+            sizercontrolht1.Add(self.ctllegends, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            self.ctllegends.SetValue(True)
+            i += 1
+
             # Button to make 2d time vs. charge plot
             self.maketvsc = wx.Button(paneldm, -1, "Time-Z Plot")
             self.parent.Bind(wx.EVT_BUTTON, self.pres.make_charge_time_2dplot, self.maketvsc)
@@ -447,7 +453,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             i += 1
 
             # Add text input for post smoothing
-            self.ctlftsmooth = wx.TextCtrl(panelft, value="", size=size1)
+            self.ctlftsmooth = wx.TextCtrl(panelft, value=str(self.config.FTsmooth), size=size1)
             sizercontrolht1.Add(self.ctlftsmooth, (i, 1), span=(1, 1))
             sizercontrolht1.Add(wx.StaticText(panelft, label="Post Smoothing: "), (i, 0),
                                 flag=wx.ALIGN_CENTER_VERTICAL)
@@ -995,7 +1001,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.Thaw()
 
-        self.update_demultiplex_mode()
+        if self.htmode:
+            self.update_demultiplex_mode()
 
     def export_gui_to_config(self, e=None):
         """
@@ -1064,6 +1071,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.config.FTflatten = self.ctlftflatten.GetValue()
             self.config.FTapodize = self.ctlftapodize.GetValue()
             self.config.FTsmooth = ud.string_to_value(self.ctlftsmooth.GetValue())
+            self.config.showlegends = self.ctllegends.GetValue()
 
             self.config.volt = ud.string_to_value(self.ctlvolt.GetValue())
             self.config.temp = ud.string_to_value(self.ctltemp.GetValue())

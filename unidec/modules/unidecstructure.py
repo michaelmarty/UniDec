@@ -286,6 +286,7 @@ class UniDecConfig(object):
         self.FTflatten = True
         self.FTapodize = 1
         self.FTsmooth = 0
+        self.showlegends = True
 
         self.doubledec = False
         self.kernel = ""

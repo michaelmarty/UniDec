@@ -15,7 +15,9 @@ import scipy.fft as fft
 import math
 
 import warnings
+
 warnings.filterwarnings("error")
+
 
 # import fast_histogram
 # import pyfftw.interfaces.numpy_fft as fft
@@ -245,7 +247,7 @@ class HTEng:
             self.dtype = float
             self.setup_ht(**kwargs)
         elif mode == "FT" or mode == "aFT":
-            self.dtype= complex
+            self.dtype = complex
             self.setup_ft(**kwargs)
 
     def htdecon(self, data, **kwargs):
@@ -1085,7 +1087,7 @@ class UniDecCDHT(HTEng, UniDecCD):
         minccs = np.amin(ccs3d)
         maxccs = np.amax(ccs3d)
         if self.config.ccsbins == -1:
-            binsize = (maxccs-minccs)/len(self.decontime)
+            binsize = (maxccs - minccs) / len(self.decontime)
         else:
             binsize = self.config.ccsbins
         ccsaxis = np.arange(minccs, maxccs, binsize)
@@ -1101,16 +1103,14 @@ class UniDecCDHT(HTEng, UniDecCD):
         # Loop through array and paste back onto the new CCS axis
         for i in range(mlen):
             for j in range(zlen):
-                #indexes = np.array([ud.nearest(self.ccsaxis, c) for c in ccs3d[:, i, j]])
-                #outlist = np.zeros_like(self.ccsaxis, dtype=self.dtype)
-                #outlist[indexes] += array[:, i, j]
+                # indexes = np.array([ud.nearest(self.ccsaxis, c) for c in ccs3d[:, i, j]])
+                # outlist = np.zeros_like(self.ccsaxis, dtype=self.dtype)
+                # outlist[indexes] += array[:, i, j]
 
                 outlist = np.histogram(ccs3d[:, i, j], bins=ccsbins, weights=array[:, i, j])[0]
                 outarray[:, i, j] = outlist
                 # interpolate the existing arrray onto the new ccs axis
-                #outarray[:, i, j] = np.interp(self.ccsaxis, ccs3d[:, i, j], array[:, i, j])
-
-
+                # outarray[:, i, j] = np.interp(self.ccsaxis, ccs3d[:, i, j], array[:, i, j])
 
         return outarray
 
@@ -1133,10 +1133,50 @@ class UniDecCDHT(HTEng, UniDecCD):
         self.ccsaxis = self.ccsaxis[b1]
         self.ccsstack_ht = self.ccsstack_ht[b1]
         if self.config.FTsmooth > 0:
+            if self.config.FTsmooth > len(ccs_tic):
+                self.config.FTsmooth = 10
+            print("Smoothing", self.config.FTsmooth)
             ccs_tic = scipy.signal.savgol_filter(ccs_tic, int(self.config.FTsmooth), 3)
 
         ccs_tic = np.transpose(np.vstack((self.ccsaxis, ccs_tic)))
         return ccs_tic
+
+    def convert_trace_to_ccs(self, trace, mzrange, zrange, normalize=False):
+        """
+        Convert a trace to CCS.
+        :param trace: 1D array of intensity
+        :param mzrange: m/z range
+        :param zrange: charge range
+        :param normalize: Whether to normalize the output to the maximum.
+        :return: 2D array of CCS (time, intensity)
+        """
+        trace = deepcopy(trace)
+        b1 = self.X >= mzrange[0]
+        b2 = self.X <= mzrange[1]
+        b3 = self.Y >= zrange[0]
+        b4 = self.Y <= zrange[1]
+        b = np.logical_and(b1, b2)
+        b = np.logical_and(b, b3)
+        b = np.logical_and(b, b4)
+        intarray = self.topharray[b]
+        mzarray = self.X[b]
+        zarray = self.Y[b]
+
+        avgmz = np.sum(intarray * mzarray) / np.sum(intarray)
+        avgz = np.sum(intarray * zarray) / np.sum(intarray)
+        # Calculate weighted average of m/z and charge
+
+        ccs_axis = calc_linear_ccs(avgmz, avgz, trace[:, 0], self.config)
+
+        if normalize:
+            trace[:, 1] /= np.amax(trace[:, 1])
+
+        if self.config.FTsmooth > 0:
+            if self.config.FTsmooth > len(ccs_axis):
+                self.config.FTsmooth = 10
+            trace[:, 1] = scipy.signal.savgol_filter(trace[:, 1], int(self.config.FTsmooth), 3)
+
+        return np.transpose([ccs_axis, trace[:, 1]])
 
 
 if __name__ == '__main__':
