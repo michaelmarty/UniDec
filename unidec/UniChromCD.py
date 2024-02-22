@@ -307,10 +307,11 @@ class UniChromCDApp(UniDecCDApp):
         self.view.plottic.clear_plot()
         self.view.plotdecontic.clear_plot()
         self.view.chrompanel.list.populate(self.cc)
-
-        for c in self.cc.chromatograms:
+        number = 0
+        for i, c in enumerate(self.cc.chromatograms):
             if c.ignore:
                 continue
+            sep = number * self.eng.config.separation
 
             xlimits = c.mzrange
             ylimits = c.zrange
@@ -327,11 +328,11 @@ class UniChromCDApp(UniDecCDApp):
                     xlab = "Time"
 
                 if not self.view.plottic.flag:
-                    self.view.plottic.plotrefreshtop(xdat, c.chromdat[:, 1], config=self.eng.config,
+                    self.view.plottic.plotrefreshtop(xdat, c.chromdat[:, 1]-sep, config=self.eng.config,
                                                      zoomout=True, label=c.label, xlabel=xlab,
                                                      color=c.color, nopaint=True)
                 else:
-                    self.view.plottic.plotadd(xdat, c.chromdat[:, 1], colval=c.color, nopaint=True,
+                    self.view.plottic.plotadd(xdat, c.chromdat[:, 1]-sep, colval=c.color, nopaint=True,
                                               newlabel=c.label)
 
             if c.decondat is not None and not self.showccs:
@@ -343,11 +344,11 @@ class UniChromCDApp(UniDecCDApp):
                     xlab = "Time"
 
                 if not self.view.plotdecontic.flag:
-                    self.view.plotdecontic.plotrefreshtop(xdat, c.decondat[:, 1], config=self.eng.config,
+                    self.view.plotdecontic.plotrefreshtop(xdat, c.decondat[:, 1]-sep, config=self.eng.config,
                                                           zoomout=True, label=c.label, xlabel=xlab,
                                                           color=c.color, nopaint=True)
                 else:
-                    self.view.plotdecontic.plotadd(xdat, c.decondat[:, 1], colval=c.color, nopaint=True,
+                    self.view.plotdecontic.plotadd(xdat, c.decondat[:, 1]-sep, colval=c.color, nopaint=True,
                                                    newlabel=c.label)
 
             if c.ccsdat is not None and self.showccs:
@@ -359,12 +360,14 @@ class UniChromCDApp(UniDecCDApp):
                     xlab = "CCS (\u212B\u00B2)"
 
                 if not self.view.plotdecontic.flag:
-                    self.view.plotdecontic.plotrefreshtop(xdat, c.ccsdat[:, 1], config=self.eng.config,
+                    self.view.plotdecontic.plotrefreshtop(xdat, c.ccsdat[:, 1]-sep, config=self.eng.config,
                                                           zoomout=True, label=c.label, xlabel=xlab,
                                                           color=c.color, nopaint=True)
                 else:
-                    self.view.plotdecontic.plotadd(xdat, c.ccsdat[:, 1], colval=c.color, nopaint=True,
+                    self.view.plotdecontic.plotadd(xdat, c.ccsdat[:, 1]-sep, colval=c.color, nopaint=True,
                                                    newlabel=c.label)
+
+            number += 1
 
         if self.view.plotdecontic.flag:
             if self.eng.config.showlegends:

@@ -1,7 +1,7 @@
 import math
 
 import numpy as np
-import scipy.ndimage.filters as filt
+import scipy.ndimage as filt
 
 # import time
 from unidec import tools as ud

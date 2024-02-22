@@ -1379,7 +1379,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         num = self.foldpanels.GetCount()
         for i in range(0, num):
             fp = self.foldpanels.GetFoldPanel(i)
-            if i in [5, 6, 7]:
+            if i in [6, 7, 8]:
                 self.foldpanels.Expand(fp)
             else:
                 self.foldpanels.Collapse(fp)
@@ -1389,7 +1389,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         num = self.foldpanels.GetCount()
         for i in range(0, num):
             fp = self.foldpanels.GetFoldPanel(i)
-            if i in [8, 9]:
+            if i in [9, 10]:
                 self.foldpanels.Expand(fp)
             else:
                 self.foldpanels.Collapse(fp)
@@ -1399,7 +1399,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         num = self.foldpanels.GetCount()
         for i in range(0, num):
             fp = self.foldpanels.GetFoldPanel(i)
-            if i in [0, 5, 6, 8]:
+            if i in [0, 6, 7, 9]:
                 self.foldpanels.Expand(fp)
             else:
                 self.foldpanels.Collapse(fp)

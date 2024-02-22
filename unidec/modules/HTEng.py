@@ -14,9 +14,8 @@ import matplotlib.pyplot as plt
 import scipy.fft as fft
 import math
 
-import warnings
-
-warnings.filterwarnings("error")
+#import warnings
+#warnings.filterwarnings("error")
 
 
 # import fast_histogram
@@ -1134,7 +1133,7 @@ class UniDecCDHT(HTEng, UniDecCD):
         self.ccsstack_ht = self.ccsstack_ht[b1]
         if self.config.FTsmooth > 0:
             if self.config.FTsmooth > len(ccs_tic):
-                self.config.FTsmooth = 10
+                self.config.FTsmooth = 10.
             print("Smoothing", self.config.FTsmooth)
             ccs_tic = scipy.signal.savgol_filter(ccs_tic, int(self.config.FTsmooth), 3)
 
@@ -1173,7 +1172,7 @@ class UniDecCDHT(HTEng, UniDecCD):
 
         if self.config.FTsmooth > 0:
             if self.config.FTsmooth > len(ccs_axis):
-                self.config.FTsmooth = 10
+                self.config.FTsmooth = 10.
             trace[:, 1] = scipy.signal.savgol_filter(trace[:, 1], int(self.config.FTsmooth), 3)
 
         return np.transpose([ccs_axis, trace[:, 1]])
