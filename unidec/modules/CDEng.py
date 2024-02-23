@@ -123,6 +123,7 @@ class UniDecCD(engine.UniDec):
         self.config.poolflag = 1
         self.exemode = True
         self.massaxis = None
+        self.invinjtime = None
         pass
 
     def exe_mode(self, exemode=True):
@@ -175,6 +176,7 @@ class UniDecCD(engine.UniDec):
 
         # Get the extension
         extension = os.path.splitext(self.path)[1]
+        self.invinjtime = None
 
         if extension.lower() == ".raw":
             # Import Thermo Raw file using ThermoDataImporter
@@ -189,6 +191,7 @@ class UniDecCD(engine.UniDec):
             self.res = self.TDI.msrun.resolution
             # Set flag for correcting injection times later
             self.thermodata = True
+            self.invinjtime = 1./self.it
 
         elif extension.lower() == ".i2ms" or extension.lower() == ".dmt":
             # Import Thermo Raw file using ThermoDataImporter
@@ -201,6 +204,8 @@ class UniDecCD(engine.UniDec):
             scans = self.I2MSI.scans
             # Set flag for correcting injection times later
             self.thermodata = False
+            # Set the inverse injection time array for DMT data
+            self.invinjtime = self.I2MSI.invinjtime
 
         elif extension.lower() == ".mzml" or extension.lower() == ".gz":
             # Import mzML data, scans, and injection time
@@ -209,6 +214,7 @@ class UniDecCD(engine.UniDec):
             data = self.MLI.grab_data(threshold=0)
             self.scans = self.MLI.scans
             self.it = self.MLI.get_inj_time_array()
+            self.invinjtime = 1./self.it
             self.thermodata = True
 
         elif extension.lower() == ".txt":
@@ -222,9 +228,13 @@ class UniDecCD(engine.UniDec):
                 # Look for scans in column 3
                 try:
                     scans = data[:, 2]
-                except:
+                except Exception:
                     # If not found, assume all are scan 1
                     scans = np.ones_like(mz)
+                try:
+                    self.invinjtime = data[:, 3]
+                except Exception:
+                    self.invinjtime = None
             except:
                 # More complex text file from Jarrold Lab
                 data = np.genfromtxt(path, dtype=np.str, comments=None)
@@ -235,6 +245,7 @@ class UniDecCD(engine.UniDec):
                 mz = data[1:, mzcol].astype(float)
                 intensity = data[1:, intcol].astype(float)
                 scans = np.arange(len(mz))
+                self.invinjtime = None
             # Don't do post-processing for thermo data
             self.thermodata = False
 
@@ -247,9 +258,13 @@ class UniDecCD(engine.UniDec):
             # Look for scans in column 3
             try:
                 scans = data[:, 2]
-            except:
+            except Exception:
                 # If not found, assume all are scan 1
                 scans = np.ones_like(mz)
+            try:
+                self.invinjtime = data[:, 3]
+            except Exception:
+                self.invinjtime = None
             # Don't do post-processing for thermo data
             self.thermodata = False
 
@@ -258,7 +273,7 @@ class UniDecCD(engine.UniDec):
             data = np.fromfile(self.path)
             try:
                 data = data.reshape((int(len(data) / 3), 3))
-            except:
+            except Exception:
                 data = data.reshape((int(len(data) / 2)), 2)
             # Assume m/z is in column 1 and intensity column 2
             mz = data[:, 0]
@@ -269,6 +284,10 @@ class UniDecCD(engine.UniDec):
             except:
                 # If not found, assume all are scan 1
                 scans = np.ones_like(mz)
+            try:
+                self.invinjtime = data[:, 3]
+            except Exception:
+                self.invinjtime = None
             # Don't do post-processing for thermo data
             self.thermodata = False
 
@@ -281,15 +300,20 @@ class UniDecCD(engine.UniDec):
             # Look for scans in column 3
             try:
                 scans = data[:, 2]
-            except:
+            except Exception:
                 # If not found, assume all are scan 1
                 scans = np.ones_like(mz)
+            try:
+                self.invinjtime = data[:, 3]
+            except Exception:
+                self.invinjtime = None
             # Don't do post-processing for thermo data
             self.thermodata = False
 
         else:
             print("Unrecognized file type:", self.path)
             return 0
+
         print("File Read. Length: ", len(data))
         # Post processing if data is from raw or mzML
         # Ignored if text file input
@@ -298,12 +322,15 @@ class UniDecCD(engine.UniDec):
             mz = np.concatenate([d[:, 0] for d in data])
             try:
                 intensity = np.concatenate([d[:, 1] * self.it[i] / 1000. for i, d in enumerate(data)])
-            except:
-                print(self.it)
+            except Exception as e:
+                print(e, self.it)
                 intensity = np.concatenate([d[:, 1] for i, d in enumerate(data)])
 
+        if self.invinjtime is None:
+            self.invinjtime = np.ones_like(scans)
+
         # Create data array
-        self.darray = np.transpose([mz, intensity, scans])
+        self.darray = np.transpose([mz, intensity, scans, self.invinjtime])
         # Filter out only the data with positive intensities
         boo1 = self.darray[:, 1] > 0
         self.darray = self.darray[boo1]
@@ -590,7 +617,13 @@ class UniDecCD(engine.UniDec):
             mzaxis = np.arange(mzrange[0] - mzbins / 2., mzrange[1] + 3 * mzbins / 2, mzbins)
         zaxis = np.arange(zrange[0] - zbins / 2., zrange[1] + zbins / 2, zbins)
 
-        self.harray, self.mz, self.ztab = np.histogram2d(x, y, [mzaxis, zaxis])
+        if self.config.CDiitflag and self.invinjtime is not None:
+            weights = self.farray[:, 3]
+            print("Using weighted hist", np.mean(weights), np.amin(weights), np.amax(weights))
+        else:
+            weights = None
+
+        self.harray, self.mz, self.ztab = np.histogram2d(x, y, [mzaxis, zaxis], weights=weights)
 
         self.mz = self.mz[1:] - mzbins / 2.
         self.ztab = self.ztab[1:] - zbins / 2.

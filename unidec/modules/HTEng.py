@@ -661,7 +661,7 @@ class UniDecCDHT(HTEng, UniDecCD):
             b1 = self.topfarray[:, 2] == s
 
             # Create histogram
-            harray = self.histogramLC(x=self.topfarray[b1, 0], y=self.topzarray[b1])
+            harray = self.histogramLC(x=self.topfarray[b1, 0], y=self.topzarray[b1], w=self.topfarray[b1, 3])
             harray = self.hist_data_prep(harray)
 
             # Add histogram to stack
@@ -732,7 +732,7 @@ class UniDecCDHT(HTEng, UniDecCD):
         # Calculate the mass of every point on histogram
         self.mass = (self.X - self.config.adductmass) * self.Y
 
-    def histogramLC(self, x=None, y=None):
+    def histogramLC(self, x=None, y=None, w=None):
         """
         Histogram function used for LC-CD-MS data.
         :param x: x-axis (m/z)
@@ -749,8 +749,19 @@ class UniDecCDHT(HTEng, UniDecCD):
         if len(x) <= 1 or len(y) <= 1:
             harray = np.zeros_like(self.topharray)
             return harray
+
+        if self.config.CDiitflag:
+            if w is None:
+                weights = self.farray[:, 3]
+                if len(weights) != len(x):
+                    weights = None
+            else:
+                weights = w
+        else:
+            weights = None
+
         # Create histogram
-        harray, mz, ztab = np.histogram2d(x, y, [self.mzaxis, self.zaxis])
+        harray, mz, ztab = np.histogram2d(x, y, [self.mzaxis, self.zaxis], weights=weights)
         # harray = fast_histogram.histogram2d(x, y, [len(self.mzaxis)-1, len(self.zaxis)-1],
         #                                    [(np.amin(self.mzaxis), np.amax(self.mzaxis)),
         #                                     (np.amin(self.zaxis), np.amax(self.zaxis))])
@@ -1150,6 +1161,8 @@ class UniDecCDHT(HTEng, UniDecCD):
         :param normalize: Whether to normalize the output to the maximum.
         :return: 2D array of CCS (time, intensity)
         """
+        if self.topharray is None:
+            self.process_data_scans()
         trace = deepcopy(trace)
         b1 = self.X >= mzrange[0]
         b2 = self.X <= mzrange[1]

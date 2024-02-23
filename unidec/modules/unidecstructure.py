@@ -266,6 +266,7 @@ class UniDecConfig(object):
         self.CDres = 0
         self.CDScanStart = -1
         self.CDScanEnd = -1
+        self.CDiitflag = False
 
         # Hadamard Transform Parameters
         self.htmode = False

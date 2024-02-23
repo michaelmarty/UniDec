@@ -16,6 +16,13 @@ class I2MSImporter:
         self.scankey = np.where(self.keys[:, 1] == "ScanNumber")[0][0]
         self.slopekey = np.where(self.keys[:, 1] == "Slope")[0][0]
         self.scans = self.data[:,self.scankey]
+        self.iitkey = np.where(self.keys[:, 1] == "InverseInjectionTimeSeconds")[0][0]
+        self.invinjtime = self.data[:, self.iitkey]
+        '''
+        try:
+            self.invinjtime = np.where(self.keys[:, 1] == "InverseInjectionTimeSeconds")[0][0]
+        except:
+            self.invinjtime = None'''
 
     def grab_data(self):
         slopes = self.data[:, self.slopekey]

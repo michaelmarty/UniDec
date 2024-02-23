@@ -261,6 +261,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlsmashflag.SetToolTip(wx.ToolTip("Remove Noise Peaks. See Tools>Select Noise Peaks"))
         i += 1
 
+        # Check box for inv inj time
+        self.ctlinjtime = wx.CheckBox(panel1b, label="DMT Inverse Injection Time")
+        gbox1b.Add(self.ctlinjtime, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlinjtime.SetToolTip(wx.ToolTip("Use inverse injection time for histogram."))
+        i += 1
+
         gbox1b.Add(wx.StaticText(panel1b, label=""), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
         panel1b.SetSizer(gbox1b)
@@ -472,9 +478,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.foldpanels.AddFoldPanelWindow(self.foldpanelft, wx.StaticText(self.foldpanelft, -1, " "),
                                                fpb.FPB_ALIGN_WIDTH)
 
-            foldpanel1c = self.foldpanels.AddFoldPanel(caption="Ion Mobility Parameters", collapsed=False,
+            self.foldpanelim = self.foldpanels.AddFoldPanel(caption="Ion Mobility Parameters", collapsed=False,
                                                        cbstyle=style1c)
-            panel1c = wx.Panel(foldpanel1c, -1)
+            panel1c = wx.Panel(self.foldpanelim, -1)
             gbox1c = wx.GridBagSizer(wx.VERTICAL)
             i = 0
 
@@ -531,8 +537,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             panel1c.SetSizer(gbox1c)
             gbox1c.Fit(panel1c)
 
-            self.foldpanels.AddFoldPanelWindow(foldpanel1c, panel1c, fpb.FPB_ALIGN_WIDTH)
-            self.foldpanels.AddFoldPanelWindow(foldpanel1c, wx.StaticText(foldpanel1c, -1, " "), fpb.FPB_ALIGN_WIDTH)
+            self.foldpanels.AddFoldPanelWindow(self.foldpanelim, panel1c, fpb.FPB_ALIGN_WIDTH)
+            self.foldpanels.AddFoldPanelWindow(self.foldpanelim, wx.StaticText(self.foldpanelim, -1, " "), fpb.FPB_ALIGN_WIDTH)
 
         # Panel for unidec Parameters
         foldpanel2 = self.foldpanels.AddFoldPanel(caption="UniDec Parameters", collapsed=False, cbstyle=style2)
@@ -932,6 +938,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
             self.ctldiscrete.SetValue(self.config.discreteplot)
             self.ctlsmashflag.SetValue(self.config.smashflag)
+            self.ctlinjtime.SetValue(self.config.CDiitflag)
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlrawflag.SetSelection(self.config.rawflag)
 
@@ -1094,6 +1101,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.reductionpercent = ud.string_to_value(self.ctldatareductionpercent.GetValue())
 
         self.config.smashflag = int(self.ctlsmashflag.GetValue())
+        self.config.CDiitflag = int(self.ctlinjtime.GetValue())
         self.config.discreteplot = int(self.ctldiscrete.GetValue())
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
         self.config.rawflag = self.ctlrawflag.GetSelection()
@@ -1429,6 +1437,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         if "HT" in demultiplexmode:
             self.foldpanels.Collapse(self.foldpanelft)
             self.foldpanels.Expand(self.foldpanelht)
+            self.foldpanels.Collapse(self.foldpanelim)
         elif "FT" in demultiplexmode:
             self.foldpanels.Collapse(self.foldpanelht)
             self.foldpanels.Expand(self.foldpanelft)
