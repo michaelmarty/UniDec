@@ -6,7 +6,7 @@ from unidec.modules.fitting import *
 
 from unidec.modules.CDEng import *
 from unidec.modules.ChromEng import *
-from unidec.modules.IM_functions import calc_linear_ccs
+from unidec.modules.IM_functions import calc_linear_ccs, calc_linear_ccsconst
 import unidec.tools as ud
 # from modules.unidecstructure import DataContainer
 
@@ -1081,6 +1081,7 @@ class UniDecCDHT(HTEng, UniDecCD):
         # Create dt, mass, and z arrays in 3D
         dt3d, mass3d, ztab3d = np.meshgrid(self.decontime, self.massaxis, self.ztab, indexing='ij')
         # Parallel calc all CCS values into new 3d array
+        calc_linear_ccsconst(self.config)
         ccs3d = calc_linear_ccs(mass3d, ztab3d, dt3d, self.config)
         # Create new CCS axis
         minccs = np.amin(ccs3d)
@@ -1166,7 +1167,7 @@ class UniDecCDHT(HTEng, UniDecCD):
         avgz = np.round(avgz)
         avgmass = (avgmz - self.config.adductmass) * avgz
         # Calculate weighted average of m/z and charge
-
+        calc_linear_ccsconst(self.config)
         ccs_axis = calc_linear_ccs(avgmass, avgz, trace[:, 0], self.config)
 
         if normalize:

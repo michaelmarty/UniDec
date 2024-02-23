@@ -266,7 +266,7 @@ def calc_linear_ccs(mass, z, dt, config):
     factor = 0.001
     rmass = ac * (mass * hmass) / (mass + hmass)
     td = (dt - to) * factor
-    ccs = z * td * (1 / rmass) ** 0.5 * ccsconst
+    ccs = z * td * ((1 / rmass) ** 0.5) * ccsconst
     return ccs
 
 
@@ -274,9 +274,9 @@ def calc_linear_ccsconst(config):
     e = 1.60217657E-19
     kb = 1.3806488E-23
     n = 2.6867774E25
-    po = 760
+    po = 760.0
     tempo = 273.15
-    temp = config.temp
+    temp = config.temp + tempo
     pressure = config.pressure
     driftlength = config.driftlength
     ccsconst = (np.sqrt(18.0 * np.pi) / 16.0) * (e / np.sqrt(kb * temp)) / n * (
