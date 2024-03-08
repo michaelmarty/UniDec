@@ -572,12 +572,13 @@ class UniDecConfig(object):
         f.write("CDScanStart " + str(self.CDScanStart) + "\n")
         f.write("CDScanEnd " + str(self.CDScanEnd) + "\n")
         f.write("HTksmooth " + str(self.HTksmooth) + "\n")
-        f.write("CDScanCompresse " + str(self.CDScanCompress) + "\n")
+        f.write("CDScanCompress " + str(self.CDScanCompress) + "\n")
         f.write("HTtimepad " + str(self.HTtimepad) + "\n")
         f.write("HTanalysistime " + str(self.HTanalysistime) + "\n")
         f.write("HTxaxis " + str(self.HTxaxis) + "\n")
         f.write("HTcycleindex " + str(self.HTcycleindex) + "\n")
-        f.write("HTtimepad " + str(self.HTtimepad) + "\n")
+        f.write("HTcylctime " + str(self.HTcycletime) + "\n")
+        f.write("HTtimeshift " + str(self.HTtimeshift) + "\n")
         f.write("htbit " + str(self.htbit) + "\n")
         f.write("FTstart " + str(self.FTstart) + "\n")
         f.write("FTend " + str(self.FTend) + "\n")
@@ -706,7 +707,8 @@ class UniDecConfig(object):
                             self.CDScanEnd = ud.string_to_int(line.split()[1])
                         if line.startswith("HTksmooth"):
                             self.HTksmooth = ud.string_to_value(line.split()[1])
-
+                        if line.startswith("HTtimeshift"):
+                            self.HTtimeshift = ud.string_to_value(line.split()[1])
                         if line.startswith("HTtimepad"):
                             self.HTtimepad = ud.string_to_value(line.split()[1])
                         if line.startswith("HTanalysistime"):
@@ -715,6 +717,8 @@ class UniDecConfig(object):
                             self.HTxaxis = line.split()[1]
                         if line.startswith("HTcycleindex"):
                             self.HTcycleindex = ud.string_to_value(line.split()[1])
+                        if line.startswith("HTcylctime"):
+                            self.HTcycletime = ud.string_to_value(line.split()[1])
                         if line.startswith("htbit"):
                             self.htbit = ud.string_to_value(line.split()[1])
                         if line.startswith("CDScanCompress"):
@@ -731,7 +735,6 @@ class UniDecConfig(object):
                             self.FTapodize = ud.string_to_int(line.split()[1])
                         if line.startswith("FTsmooth"):
                             self.FTsmooth = ud.string_to_value(line.split()[1])
-
                         if line.startswith("zzsig"):
                             self.zzsig = ud.string_to_value(line.split()[1])
                         if line.startswith("psig"):
