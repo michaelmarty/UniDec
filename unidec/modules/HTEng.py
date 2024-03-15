@@ -14,8 +14,9 @@ import matplotlib.pyplot as plt
 import scipy.fft as fft
 import math
 
-#import warnings
-#warnings.filterwarnings("error")
+
+# import warnings
+# warnings.filterwarnings("error")
 
 
 # import fast_histogram
@@ -81,8 +82,8 @@ class HTEng:
             cyc = int(path[cycindex + 3])
             self.config.HTcycletime = float(cyc)
 
-        #if "zp" in path:
-            # Find location of zp and take next character
+        # if "zp" in path:
+        # Find location of zp and take next character
         #    zpindex = path.find("zp")
         #    zp = float(path[zpindex + 2])
         #    self.config.HTtimepad = zp * self.config.HTcycletime
@@ -91,9 +92,19 @@ class HTEng:
             # Find location of bit and take next character
             bitindex = path.find("bit")
             try:
-                self.config.htbit = int(path[bitindex + 3])
+                firstbit = path[bitindex + 3]
             except Exception as e:
-                print("Error setting HT bit:", e, bitindex, path[bitindex:bitindex+4])
+                print("Error setting HT bit:", e, bitindex, path[bitindex:bitindex + 4])
+                firstbit = ""
+            if firstbit.isdigit():
+                self.config.htbit = int(firstbit)
+            elif firstbit == "-":
+                self.config.htbit = -1 * int(path[bitindex + 4])
+            else:
+                try:
+                    self.config.htbit = int(path[bitindex + 3])
+                except Exception as e:
+                    print("Error setting HT bit:", e, bitindex, path[bitindex:bitindex + 4])
             try:
                 self.config.htseq = ud.HTseqDict[str(self.config.htbit)]
             except KeyError as e:
@@ -274,19 +285,19 @@ class HTEng:
         # Set the range of indexes used in the deconvolution
         # Starts at the pad but shift will move it back
         self.indexrange = [self.padindex - self.shiftindex, len(data) - self.shiftindex]
-        #print("Index Range:", self.indexrange, "Pad Index:", self.padindex, "Shift Index:", self.shiftindex, "Data Length:", len(data))
+        # print("Index Range:", self.indexrange, "Pad Index:", self.padindex, "Shift Index:", self.shiftindex, "Data Length:", len(data))
 
         # Do the convolution
         output = fft.irfft(fft.rfft(data[self.indexrange[0]:self.indexrange[1]]) * self.fftk).real
         # If output is odd, add a 0 to the end
         if len(output) < len(data[self.indexrange[0]:self.indexrange[1]]):
             output = np.append(output, 0)
-        #print(len(output), len(data[self.indexrange[0]:self.indexrange[1]]))
+        # print(len(output), len(data[self.indexrange[0]:self.indexrange[1]]))
         # Shift the output back to the original time
         if self.padindex > 0:
             # add zeros back on the front and roll to the correct index
             output = np.roll(np.concatenate((np.zeros(self.padindex), output)), self.rollindex)
-        #print(np.shape(data), np.shape(output))
+        # print(np.shape(data), np.shape(output))
         if "normalize" in kwargs:
             if kwargs["normalize"]:
                 output /= np.amax(output)
@@ -820,12 +831,12 @@ class UniDecCDHT(HTEng, UniDecCD):
         """
         self.get_tic(**kwargs)
         self.setup_demultiplex()
-        #print(np.shape(self.decontime), np.shape(self.fulltic))
+        # print(np.shape(self.decontime), np.shape(self.fulltic))
         self.htoutput, self.fulltic = self.run_demultiplex(self.fulltic, **kwargs)
         if self.config.datanorm:
             self.htoutput /= np.amax(self.htoutput)
             self.fulltic /= np.amax(self.fulltic)
-        #print(np.shape(self.decontime), np.shape(self.htoutput))
+        # print(np.shape(self.decontime), np.shape(self.htoutput))
         return np.transpose([self.decontime, self.htoutput])
 
     def get_eic(self, mzrange, zrange, **kwargs):

@@ -848,6 +848,10 @@ class UniChromCDApp(UniDecCDApp):
             newlabel = newlabel.replace(":", "_")
             newlabel = os.path.join(os.path.split(self.eng.config.outfname)[0], newlabel)
             np.savetxt(newlabel + "_chrom.txt", c.chromdat)
+            if c.decondat is not None:
+                np.savetxt(newlabel + "_decon.txt", c.decondat)
+            if c.ccsdat is not None:
+                np.savetxt(newlabel + "_ccs.txt", c.ccsdat)
         print("Saved Files")
 
 
