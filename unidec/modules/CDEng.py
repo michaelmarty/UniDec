@@ -465,7 +465,7 @@ class UniDecCD(engine.UniDec):
 
         # Filter m/z
         print("Filtering m/z range:", self.config.minmz, self.config.maxmz, "Start Length:", len(self.farray))
-        self.filter_mz(mzrange=[self.config.minmz, self.config.maxmz])
+        self.filter_mz(mzrange=np.abs([self.config.minmz, self.config.maxmz]))
 
         # Filter Centroids
         print("Filtering centroids:", self.config.CDres, "Start Length:", len(self.farray))
@@ -473,7 +473,7 @@ class UniDecCD(engine.UniDec):
 
         # Filter Charge States
         print("Filtering Charge range:", self.config.startz, self.config.endz, "Start Length:", len(self.farray))
-        self.filter_z(zrange=[self.config.startz, self.config.endz + 1])
+        self.filter_z(zrange=np.abs([self.config.startz, self.config.endz + 1]))
 
         # Convert intensity to charge
         print("Converting From Intensity to Charge. Slope:", self.config.CDslope, "Start Length:", len(self.farray))
@@ -607,9 +607,17 @@ class UniDecCD(engine.UniDec):
             return 0
 
         if mzrange is None:
-            mzrange = [np.floor(np.amin(x)), np.amax(x)]
+            mzrange = np.array([self.config.minmz, self.config.maxmz])
+            if np.any(mzrange < 0):
+                mzrange = np.abs(mzrange)
+            else:
+                mzrange = [np.floor(np.amin(x)), np.amax(x)]
         if zrange is None:
-            zrange = [np.floor(np.amin(y)), np.amax(y)]
+            zrange = np.array([self.config.startz, self.config.endz + 1])
+            if np.any(zrange < 0):
+                zrange = np.abs(zrange)
+            else:
+                zrange = [np.floor(np.amin(y)), np.ceil(np.amax(y))+1]
 
         mzaxis = np.arange(mzrange[0] - mzbins / 2., mzrange[1] + mzbins / 2, mzbins)
         # Weird fix to make this axis even is necessary for CuPy fft for some reason...
