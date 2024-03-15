@@ -799,6 +799,8 @@ class UniChromCDApp(UniDecCDApp):
         self.indexrange = [self.eng.padindex - self.eng.shiftindex, len(xdat) - self.eng.shiftindex]
         xdat = xdat[self.indexrange[0]:self.indexrange[1]]
         data *= np.amax(self.eng.fulltic) / np.amax(data)
+        if len(xdat) > len(data):
+            xdat = xdat[:len(data)]
         if not self.view.plottic.flag:
             self.view.plottic.plotrefreshtop(xdat, data, config=self.eng.config,
                                              zoomout=True, label=label, xlabel=xlab,

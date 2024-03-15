@@ -136,6 +136,7 @@ class HTEng:
         If not specified, default is the full number of scans divided by the number of cycles.
         :return: None
         """
+        self.config.htseq = ud.HTseqDict[str(self.config.htbit)]
         # Finds the number of scans that are padded
         if self.config.HTtimepad > 0:
             self.padindex = self.set_timepad_index(self.config.HTtimepad)

@@ -1073,6 +1073,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.config.CDScanCompress = ud.string_to_value(self.ctlscancompress.GetValue())
             self.config.HTksmooth = ud.string_to_value(self.ctlkernelsmooth.GetValue())
             self.config.htbit = int(self.ctlhtseq.GetStringSelection())
+            self.config.htseq = ud.HTseqDict[str(self.config.htbit)]
             self.config.HTxaxis = self.ctlxaxis.GetStringSelection()
             self.config.HTtimeshift = ud.string_to_value(self.ctlhttimeshift.GetValue())
             self.config.HTtimepad = ud.string_to_value(self.ctltimepad.GetValue())
