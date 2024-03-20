@@ -12,7 +12,6 @@ plot_params = {"font.size": 12, "xtick.labelsize": 12, "ytick.labelsize": 12, "l
                "axes.xmargin": 0.05, "axes.ymargin": 0.05,
                }
 
-
 # Export plot_params to .mplstyle file
 def export_mplstyle(params, filename="unidec.mplstyle"):
     with open(filename, "w") as f:
@@ -39,9 +38,28 @@ class PlotControlsPanel(wx.Panel):
             label = wx.StaticText(self, label=p)
             txt_ctrl = wx.TextCtrl(self, value=str(plot_params[p]), name=p)
 
+
             # Insert into sizer
             self.sizer.Add(label, pos=(i, 0), flag=wx.ALL, border=5)
             self.sizer.Add(txt_ctrl, pos=(i, 1), flag=wx.ALL, border=5)
+            # Create and Insert a slider into sizer (ommiting a slider for lineStyle)
+            if (i != 4 and i != 5):
+                slider = wx.Slider(self, value=0, minValue=0, maxValue=100, name=p)
+                self.sizer.Add(slider, pos=(i,2),flag=wx.ALL, border=5)
+
+        # Adding a drop down menu with 4 options: Large, Medium, Small, and Custom
+        size_label = wx.StaticText(self, label="Size: ")
+        size_choices = ["Large", "Medium", "Small", "Custom"]
+        self.size_choice = wx.Choice(self, choices=size_choices)
+        self.sizer.Add(size_label, pos=(len(plot_params)+1 , 0),
+                       flag=wx.ALL,border=5)
+        self.sizer.Add(self.size_choice, pos=(len(plot_params)+2,0),
+                       flag=wx.ALL, border=5)
+
+        # Adding a radio button that "locks" settings
+        self.lock_settings_radio = wx.RadioButton(self, label="Lock Settings")
+        self.sizer.Add(self.lock_settings_radio, pos=(len(plot_params) + 1, 1),
+                       flag=wx.ALL, border=5)
 
         # Add in apply button
         self.apply_button = wx.Button(self, label="Apply")
