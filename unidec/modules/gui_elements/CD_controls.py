@@ -405,6 +405,13 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                                 flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
+            # Text control for max scans
+            self.ctlmaxscans = wx.TextCtrl(panelht, value="", size=size1)
+            sizercontrolht1.Add(self.ctlmaxscans, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="Max Scans: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
             # Drop down for HTseq
             self.ctlhtseq = wx.Choice(panelht, -1, choices=list(ud.HTseqDict.keys()))
             self.ctlhtseq.SetSelection(3)
@@ -949,6 +956,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctlhttimeshift.SetValue(str(self.config.HTtimeshift))
                 self.ctltimepad.SetValue(str(self.config.HTtimepad))
                 self.ctlanalysistime.SetValue(str(self.config.HTanalysistime))
+                self.ctlmaxscans.SetValue(str(self.config.HTmaxscans))
                 self.ctlcycleindex.SetValue(str(self.config.HTcycleindex))
                 self.ctlxaxis.SetStringSelection(self.config.HTxaxis)
                 self.ctlmultiplexmode.SetStringSelection(self.config.demultiplexmode)
@@ -1078,6 +1086,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.config.HTtimeshift = ud.string_to_value(self.ctlhttimeshift.GetValue())
             self.config.HTtimepad = ud.string_to_value(self.ctltimepad.GetValue())
             self.config.HTanalysistime = ud.string_to_value(self.ctlanalysistime.GetValue())
+            self.config.HTmaxscans = ud.string_to_value(self.ctlmaxscans.GetValue())
             self.config.HTcycleindex = ud.string_to_value(self.ctlcycleindex.GetValue())
             self.config.demultiplexmode = self.ctlmultiplexmode.GetStringSelection()
             self.config.FTstart = ud.string_to_value(self.ctlftstart.GetValue())
@@ -1276,6 +1285,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 "Units of retention time. Set cyc{n} and zp{m} in file name to set automatically as n and m."))
             self.ctlanalysistime.SetToolTip(wx.ToolTip(
                 "Total analysis time. Must be set manually for DMT files."))
+            self.ctlmaxscans.SetToolTip(wx.ToolTip(
+                "Maximum number of scans to use in the analysis. Set to -1 to automatically determine from data"))
             self.ctlxaxis.SetToolTip(wx.ToolTip("Select the x-axis unit for plotting."))
             self.ctlcycleindex.SetToolTip(wx.ToolTip(
                 "The number of scans per cycle. Determined automatically if -1. "

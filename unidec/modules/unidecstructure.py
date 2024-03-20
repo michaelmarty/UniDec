@@ -280,6 +280,7 @@ class UniDecConfig(object):
         self.HTcycleindex = -1
         self.HTxaxis = "Time"
         self.CDScanCompress = 3
+        self.HTmaxscans = -1
         self.demultiplexmode = "HT"
         self.demultiplexchoices = ["HT", "FT", "aFT"]
         self.FTstart = 5
@@ -573,6 +574,7 @@ class UniDecConfig(object):
         f.write("CDScanEnd " + str(self.CDScanEnd) + "\n")
         f.write("HTksmooth " + str(self.HTksmooth) + "\n")
         f.write("CDScanCompress " + str(self.CDScanCompress) + "\n")
+        f.write("HTmaxscans " + str(self.HTmaxscans) + "\n")
         f.write("HTtimepad " + str(self.HTtimepad) + "\n")
         f.write("HTanalysistime " + str(self.HTanalysistime) + "\n")
         f.write("HTxaxis " + str(self.HTxaxis) + "\n")
@@ -723,6 +725,8 @@ class UniDecConfig(object):
                             self.htbit = ud.string_to_value(line.split()[1])
                         if line.startswith("CDScanCompress"):
                             self.CDScanCompress = ud.string_to_value(line.split()[1])
+                        if line.startswith("HTmaxscans"):
+                            self.HTmaxscans = ud.string_to_value(line.split()[1])
                         if line.startswith("demultiplexmode"):
                             self.demultiplexmode = line.split()[1]
                         if line.startswith("FTstart"):

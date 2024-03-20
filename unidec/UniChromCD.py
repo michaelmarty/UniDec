@@ -61,8 +61,9 @@ class UniChromCDApp(UniDecCDApp):
                     "20231202 JDS Bgal groEL bit5 zp7 inj4s cyc1m_2023-12-07-03-46-56.dmt")
             path2 = "Z:\Group Share\Skippy\Projects\HT\Example data for MTM\\2023-03-06 Bgal 5bit triplicate\\20240306 Bgal inj5 iit1 bit5 zp10.dmt"
             pathft = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\01302024_GDH_stepsize3_repeat15_5to500.dmt"
+            path3 = "Z:\\Group Share\\ONO\\CDMS\\5 bit HT data\\20240313 JDS Bgal 0o1g_l inj1o5 quad9k bit-5 zp10 i2.dmt"
 
-            self.on_open_file(None, None, path=path2)
+            self.on_open_file(None, None, path=path3)
             # self.eng.process_data_scans()
             # self.make_cube_plot()
             # self.make_mass_time_2dplot()

@@ -174,7 +174,7 @@ class HTEng:
         shortkernel = np.roll(shortkernel, self.kernelroll)
 
         scaledkernel = np.arange(len(shortkernel)) / (len(shortkernel))
-        kernelscans = scaledkernel * (np.amax(self.scans) - self.padindex)
+        kernelscans = scaledkernel * (np.amax(self.fullscans) - self.padindex)
 
         if cycleindex is None:
             if self.config.HTcycleindex <= 0:
@@ -184,7 +184,7 @@ class HTEng:
 
         # Correct the cycle time to be not a division of the total sequence length but a fixed number of scans
         if cycleindex is not None:
-            diff = np.amax(self.scans) - self.padindex - cycleindex * len(shortkernel)
+            diff = np.amax(self.fullscans) - self.padindex - cycleindex * len(shortkernel)
             self.padindex += int(diff) + 1
             kernelscans = np.arange(len(shortkernel)) * cycleindex
             self.cycleindex = int(cycleindex)
@@ -645,7 +645,19 @@ class UniDecCDHT(HTEng, UniDecCD):
         :return: None
         """
         self.scans = np.unique(self.farray[:, 2])
-        self.fullscans = np.arange(1, np.amax(self.scans) + 1)
+        if self.config.HTmaxscans < 0:
+            maxscans = np.amax(self.scans)
+            print("Max Scans: ", maxscans)
+        else:
+            maxscans = self.config.HTmaxscans
+            if self.config.CDScanCompress > 1:
+                maxscans = int(maxscans / self.config.CDScanCompress)
+
+            if maxscans < np.amax(self.scans):
+                print("Error with setting Max Scans, less than total scan number:", maxscans, np.amax(self.scans))
+                maxscans = np.amax(self.scans)
+
+        self.fullscans = np.arange(1, maxscans + 1)
         self.fulltime = self.fullscans * self.config.HTanalysistime / np.amax(self.fullscans)
         self.decontime = self.fulltime
         self.deconscans = self.fullscans
