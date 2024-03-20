@@ -405,6 +405,7 @@ class UniDecCDApp(UniDecApp):
         self.eng.exe_mode(exemode)
 
     def remake_mainwindow(self, tabbed=None):
+        htmode = self.view.htmode
         iconfile = self.view.icon_path
         # evt=EventManager()
         # print evt.GetStats()
@@ -412,7 +413,7 @@ class UniDecCDApp(UniDecApp):
         self.view.on_exit()
         self.view = []
         self.view = CDWindow.CDMainwindow(self, "UCD: UniDec for Charge Detection-Mass Spectrometry", self.eng.config,
-                                          iconfile=iconfile, tabbed=tabbed)
+                                          iconfile=iconfile, tabbed=tabbed, htmode=htmode)
         self.view.Show()
         self.view.import_config_to_gui()
 
