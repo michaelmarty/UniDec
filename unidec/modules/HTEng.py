@@ -8,7 +8,7 @@ from unidec.modules.CDEng import *
 from unidec.modules.ChromEng import *
 from unidec.modules.IM_functions import calc_linear_ccs, calc_linear_ccsconst
 import unidec.tools as ud
-# from modules.unidecstructure import DataContainer
+from unidec.modules.unidecstructure import UniDecConfig
 
 import matplotlib.pyplot as plt
 import scipy.fft as fft
@@ -32,6 +32,8 @@ class HTEng:
         """
 
         super().__init__(*args, **kwargs)
+        if not hasattr(self, "config"):
+            self.config = UniDecConfig()
         self.config.htmode = True
 
         # Empty Arrays
@@ -138,7 +140,7 @@ class HTEng:
         print("Cycle Time:", self.config.HTcycletime, "Time Pad:", self.config.HTtimepad,
               "HT Sequence:", self.config.htseq)
 
-    def setup_ht(self, cycleindex=None):
+    def setup_ht(self, cycleindex=None, seq=None):
         """
         Sets up the HT kernel for deconvolution. This is a binary sequence that is convolved with the data to
         deconvolve the data. The sequence is defined by the htseq variable. The timepad and timeshift variables
@@ -147,7 +149,10 @@ class HTEng:
         If not specified, default is the full number of scans divided by the number of cycles.
         :return: None
         """
-        self.config.htseq = ud.HTseqDict[str(self.config.htbit)]
+        if seq is None:
+            self.config.htseq = ud.HTseqDict[str(int(self.config.htbit))]
+        else:
+            self.config.htseq = seq
         # Finds the number of scans that are padded
         if self.config.HTtimepad > 0:
             self.padindex = self.set_timepad_index(self.config.HTtimepad)
@@ -166,15 +171,22 @@ class HTEng:
 
         # Convert sequence to array
         seqarray = np.array([int(s) for s in self.config.htseq])
+
         seqarray = seqarray * 2 - 1
+        # For any less than -1, set equal to 0
+        seqarray[seqarray < -1] = 0
+
         shortkernel = seqarray
+        print(shortkernel)
 
         # Roll short kernel so that the first 1 is in index 0
         self.kernelroll = -np.argmax(shortkernel)
         shortkernel = np.roll(shortkernel, self.kernelroll)
 
         scaledkernel = np.arange(len(shortkernel)) / (len(shortkernel))
+        # print("Scaled Kernel:", scaledkernel)
         kernelscans = scaledkernel * (np.amax(self.fullscans) - self.padindex)
+        # print("Kernel Scans:", kernelscans)
 
         if cycleindex is None:
             if self.config.HTcycleindex <= 0:
@@ -190,6 +202,7 @@ class HTEng:
             self.cycleindex = int(cycleindex)
             print("Correction Diff:", diff)
 
+        print("Cycle Index:", self.cycleindex)
         self.rollindex = int(-self.shiftindex + self.cycleindex * self.kernelroll)
 
         # Create the HT kernel
@@ -303,6 +316,39 @@ class HTEng:
                 output /= np.amax(output)
         # Return demultiplexed data
         return output, data
+
+    def masked_demultiplex_ht(self, data, win, n, mode="con", **kwargs):
+        self.config.htseq = ud.HTseqDict[str(int(self.config.htbit))]
+        htseq = np.array([int(s) for s in self.config.htseq])
+        outdata = []
+        for i in range(n):
+            seq = np.array(htseq).astype(int)
+            # Alter HT seq
+            if mode == "con":
+                starti = np.random.randint(len(seq))
+                endi = starti + win
+                if endi > len(seq):
+                    seq[starti:] = -1
+                    seq[:endi % len(seq)] = -1
+                else:
+                    seq[starti:endi] = -1
+            elif mode == "rand":
+                seq[np.random.randint(len(seq), size=win)] = -1
+            elif mode == "alt":
+                starti = np.random.randint(len(seq))
+                endi = starti + win * 2
+                if endi > len(seq):
+                    seq[starti::2] = -1
+                    seq[:endi % len(seq):2] = -1
+                else:
+                    seq[starti:endi:2] = -1
+            # Set window to -1
+            self.setup_ht(seq=seq)
+            out, _ = self.htdecon(data, **kwargs)
+            outdata.append(out)
+            # plt.plot(outdata[-1])
+        avg = np.mean(outdata, axis=0)
+        return outdata, avg
 
     def setup_ft(self, FTstart=None, FTend=None, nzp=None):
         """
@@ -618,6 +664,7 @@ class UniDecCDHT(HTEng, UniDecCD):
         :param refresh: Whether to refresh the data. Default False.
         :return: None
         """
+        self.clear_arrays()
         self.open_cdms_file(path, refresh=refresh)
         self.parse_file_name(path)
 
@@ -816,7 +863,7 @@ class UniDecCDHT(HTEng, UniDecCD):
         # Normalize
         if "normalize" in kwargs:
             if kwargs["normalize"]:
-                fulleic /= np.amax(fulleic)
+                fulleic = fulleic / np.amax(fulleic)
         else:
             fulleic /= np.amax(fulleic)
         return np.transpose([self.fulltime, fulleic])
@@ -872,6 +919,35 @@ class UniDecCDHT(HTEng, UniDecCD):
         # Create EIC
         eic = self.create_chrom(farray2, **kwargs)
         return eic
+
+    def extract_subdata(self, mzrange, zrange):
+        b1 = self.mz >= mzrange[0]
+        b2 = self.mz <= mzrange[1]
+        b3 = self.ztab >= zrange[0]
+        b4 = self.ztab <= zrange[1]
+        b = np.logical_and(b1, b2)
+        b2 = np.logical_and(b3, b4)
+
+        b3 = np.outer(b2, b)
+        newd = deepcopy(self.data)
+        '''newh = np.atleast_2d(self.harray[:, b][b2])
+        
+
+        ztab = np.atleast_1d(self.ztab[b2])
+        mz = np.atleast_1d(self.mz[b])
+        mass = np.atleast_2d(self.mass[:, b][b2])
+
+        if len(ztab) != newh.shape[0]:
+            newh = newh.transpose()
+            mass = mass.transpose()'''
+
+        newh2 = self.harray * b3
+
+        if np.sum(newh2) != 0:
+            newd = self.transform(newh2, newd)
+        # newd = self.transform(newh, newd, ztab=ztab, mz=mz, mass=mass)
+
+        return newd
 
     def eic_ht(self, mzrange, zrange, **kwargs):
         """

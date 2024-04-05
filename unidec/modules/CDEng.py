@@ -617,7 +617,7 @@ class UniDecCD(engine.UniDec):
             if np.any(zrange < 0):
                 zrange = np.abs(zrange)
             else:
-                zrange = [np.floor(np.amin(y)), np.ceil(np.amax(y))+1]
+                zrange = np.array([np.floor(np.amin(y)), np.ceil(np.amax(y))])
 
         mzaxis = np.arange(mzrange[0] - mzbins / 2., mzrange[1] + mzbins / 2, mzbins)
         # Weird fix to make this axis even is necessary for CuPy fft for some reason...
@@ -761,14 +761,16 @@ class UniDecCD(engine.UniDec):
             # Set values outside range to 0
             self.harray[boo3] = 0
 
-    def create_mass_axis(self, harray=None):
+    def create_mass_axis(self, harray=None, mass=None):
         if harray is None:
             harray = self.harray
+        if mass is None:
+            mass = self.mass
 
         # filter out zeros
         harray = np.array(harray)
         boo1 = harray > 0
-        mass = self.mass[boo1]
+        mass = mass[boo1]
 
         # Test for if array is empty and error if so
         if ud.isempty(mass):
@@ -781,28 +783,37 @@ class UniDecCD(engine.UniDec):
         massaxis = np.arange(minval, maxval, self.config.massbins)
         return massaxis
 
-    def transform(self, harray=None, dataobj=None):
+    def transform(self, harray=None, dataobj=None, ztab=None, mass=None, mz=None):
         if harray is None:
             harray = self.harray
         if dataobj is None:
             dataobj = self.data
+            flag = True
+        else:
+            flag = False
+        if ztab is None:
+            ztab = self.ztab
+        if mass is None:
+            mass = self.mass
+        if mz is None:
+            mz = self.mz
         # Test for if array is empty and error if so
         if len(harray) == 0:
             print("ERROR: Empty histogram array on transform")
             return 0
 
-        massaxis = self.create_mass_axis(harray)
+        massaxis = self.create_mass_axis(harray, mass=mass)
 
         # Create the mass grid
         dataobj.massgrid = []
-        for i in range(len(self.ztab)):
+        for i in range(len(ztab)):
             d = harray[i]
             if self.config.poolflag == 1:
-                newdata = np.transpose([self.mass[i], d])
+                newdata = np.atleast_2d(np.transpose([mass[i], d]))
                 massdata = ud.linterpolate(newdata, massaxis)
             else:
                 boo1 = d > 0
-                newdata = np.transpose([self.mass[i][boo1], d[boo1]])
+                newdata = np.transpose([mass[i][boo1], d[boo1]])
                 if len(newdata) < 2:
                     massdata = np.transpose([massaxis, massaxis * 0])
                 else:
@@ -816,11 +827,18 @@ class UniDecCD(engine.UniDec):
         # Ravel the massgrid to make the format match unidec
         dataobj.massgrid = np.ravel(dataobj.massgrid)
         # Create the data2 and mzgrid objects from the histogram array for compatiblity with unidec functions
-        dataobj.data2 = np.transpose([self.mz, np.sum(harray, axis=0)])
-        dataobj.zdat = np.transpose([self.ztab, np.sum(harray, axis=1)])
+        dataobj.data2 = np.transpose([mz, np.sum(harray, axis=0)])
+        dataobj.zdat = np.transpose([ztab, np.sum(harray, axis=1)])
+        if self.X.shape != harray.shape:
+            X, Y = np.meshgrid(mz, ztab, indexing='xy')
+        else:
+            X = self.X
+            Y = self.Y
+
         dataobj.mzgrid = np.transpose(
-            [np.ravel(self.X.transpose()), np.ravel(self.Y.transpose()), np.ravel(harray.transpose())])
-        self.massaxis = massaxis
+            [np.ravel(X.transpose()), np.ravel(Y.transpose()), np.ravel(harray.transpose())])
+        if flag:
+            self.massaxis = massaxis
         return dataobj
 
     def transform_mzmass(self):

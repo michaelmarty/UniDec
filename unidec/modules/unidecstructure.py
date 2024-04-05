@@ -1610,6 +1610,7 @@ class Chromatogram:
         self.ht = False
         self.massrange = [-1, -1]
         self.massmode = False
+        self.dataobj = None
 
     def to_row(self):
         out = [self.label, str(self.color), str(self.index), str(self.mzrange[0]), str(self.mzrange[1]),

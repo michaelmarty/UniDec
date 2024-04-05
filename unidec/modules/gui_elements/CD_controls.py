@@ -748,8 +748,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         i = 0
 
         self.ctl2dcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
+        self.ctl2dcm.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
 
         self.ctlpeakcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
+        self.ctlpeakcm.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
 
         self.ctl2dcm.AppendItems(self.config.cmaps2)
         self.ctlpeakcm.AppendItems(self.config.cmaps)
@@ -1443,6 +1445,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.parent.Bind(wx.EVT_RADIOBOX, self.update_quick_controls, self.ctlpsfun)
         
         '''
+
+    def on_mousewheel(self, e):
+        #print("Wee")
+        pass
 
     def update_demultiplex_mode(self, e=None):
         demultiplexmode = self.ctlmultiplexmode.GetStringSelection()

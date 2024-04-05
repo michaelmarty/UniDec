@@ -297,6 +297,7 @@ class main_controls(wx.Panel):
 
         # self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
         self.ctlisotopemode = wx.Choice(panel2b, -1, size=(100, -1), choices=self.config.isotopechoices)
+        self.ctlisotopemode.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
         gbox2b.Add(self.ctlisotopemode, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
         self.ctlmanualassign = wx.CheckBox(panel2b, label="Manual Mode")
@@ -361,6 +362,7 @@ class main_controls(wx.Panel):
 
         self.ctlextract = wx.ComboBox(panel3, value="Height", choices=list(self.parent.extractchoices.values()),
                                       style=wx.CB_READONLY)
+        self.ctlextract.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
 
         self.plotbutton = wx.Button(panel3, -1, "Peak Detection/Extraction")
         self.plotbutton2 = wx.Button(panel3, -1, "Plot 2D Grids")
@@ -413,6 +415,9 @@ class main_controls(wx.Panel):
         self.ctl2dcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
         self.ctlpeakcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
         self.ctlspeccm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
+        self.ctl2dcm.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
+        self.ctlpeakcm.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
+        self.ctlspeccm.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
         self.parent.Bind(wx.EVT_COMBOBOX, self.on_spectra_color_change, self.ctlspeccm)
 
         # for mp in self.config.cmaps2:
@@ -1049,6 +1054,9 @@ class main_controls(wx.Panel):
         if self.config.imflag == 0:
             self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlbeta)
             self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlpsig)
+
+    def on_mousewheel(self, e):
+        pass
 
     def update_quick_controls(self, e=None):
         if self.update_flag:

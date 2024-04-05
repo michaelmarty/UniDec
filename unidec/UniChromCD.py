@@ -8,7 +8,7 @@ import unidec.tools as ud
 import numpy as np
 from unidec.modules import AutocorrWindow
 from unidec.modules.unidecstructure import ChromatogramContainer
-import os, time
+import os, time, platform
 
 
 class UniChromCDApp(UniDecCDApp):
@@ -55,15 +55,18 @@ class UniChromCDApp(UniDecCDApp):
             # self.on_dataprep_button(0)
             # self.on_auto(0)
 
-        if True:  # and platform.node() == 'DESKTOP-08TGCJO':
+        if True and platform.node() == 'MTM-VOSTRO':
             print("Opening Test File")
             path = ("Z:\\Group Share\\Skippy\\Projects\\HT\\Example data for MTM\\"
                     "20231202 JDS Bgal groEL bit5 zp7 inj4s cyc1m_2023-12-07-03-46-56.dmt")
             path2 = "Z:\Group Share\Skippy\Projects\HT\Example data for MTM\\2023-03-06 Bgal 5bit triplicate\\20240306 Bgal inj5 iit1 bit5 zp10.dmt"
             pathft = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\01302024_GDH_stepsize3_repeat15_5to500.dmt"
-            path3 = "Z:\\Group Share\\ONO\\CDMS\\5 bit HT data\\20240313 JDS Bgal 0o1g_l inj1o5 quad9k bit-5 zp10 i2.dmt"
-
-            self.on_open_file(None, None, path=path3)
+            # path3 = "Z:\\Group Share\\ONO\\CDMS\\5 bit HT data\\20240313 JDS Bgal 0o1g_l inj1o5 quad9k bit-5 zp10 i2.dmt"
+            path4 = "Z:\\Group Share\\Skippy\\Projects\\HT\\2024-04-01\\20240401 ribos s6Col bit3 inj5s 1_2024-04-01-04-19-29.dmt"
+            # try:
+            self.on_open_file(None, None, path=path2)
+            # except:
+            #    pass
             # self.eng.process_data_scans()
             # self.make_cube_plot()
             # self.make_mass_time_2dplot()
@@ -196,7 +199,7 @@ class UniChromCDApp(UniDecCDApp):
             xlimits = np.array(xlimits) * self.view.plot5.kdnorm
             print("New Mass Limits", xlimits)
             self.view.plot5.reset_zoom()
-            color = get_color_from_index(len(self.cc.chromatograms))
+            color = ud.get_color_from_index(len(self.cc.chromatograms))
 
             if self.eng.ccsstack_ht is not None:
                 self.add_mass_eic(xlimits, ylimits, color=color, plot=True, ccs=True)
@@ -236,7 +239,7 @@ class UniChromCDApp(UniDecCDApp):
                     c.chromdat = eicdata
                 # eicdata = self.eng.get_ccs_eic(mzrange=c.mzrange, zrange=c.zrange, normalize=self.eng.config.datanorm)
                 eicdata, avgz, avgmz = self.eng.convert_trace_to_ccs(c.decondat, mzrange=c.mzrange, zrange=c.zrange,
-                                                        normalize=self.eng.config.datanorm)
+                                                                     normalize=self.eng.config.datanorm)
                 c.ccsdat = eicdata
                 c.label = "Avg. m/z: " + str(round(avgmz)) + " z: " + str(round(avgz))
         self.plot_chromatograms()
@@ -300,7 +303,7 @@ class UniChromCDApp(UniDecCDApp):
 
         try:
             ccsdata, avgz, avgmz = self.eng.convert_trace_to_ccs(htdata, mzrange=c.mzrange, zrange=c.zrange,
-                                                    normalize=self.eng.config.datanorm)
+                                                                 normalize=self.eng.config.datanorm)
         except:
             print("Failed to convert to CCS")
             ccsdata = None
@@ -349,11 +352,11 @@ class UniChromCDApp(UniDecCDApp):
                     xlab = "Time"
 
                 if not self.view.plottic.flag:
-                    self.view.plottic.plotrefreshtop(xdat, c.chromdat[:, 1]-sep, config=self.eng.config,
+                    self.view.plottic.plotrefreshtop(xdat, c.chromdat[:, 1] - sep, config=self.eng.config,
                                                      zoomout=True, label=c.label, xlabel=xlab,
                                                      color=c.color, nopaint=True)
                 else:
-                    self.view.plottic.plotadd(xdat, c.chromdat[:, 1]-sep, colval=c.color, nopaint=True,
+                    self.view.plottic.plotadd(xdat, c.chromdat[:, 1] - sep, colval=c.color, nopaint=True,
                                               newlabel=c.label)
 
             if c.decondat is not None and not self.showccs:
@@ -365,11 +368,11 @@ class UniChromCDApp(UniDecCDApp):
                     xlab = "Time"
 
                 if not self.view.plotdecontic.flag:
-                    self.view.plotdecontic.plotrefreshtop(xdat, c.decondat[:, 1]-sep, config=self.eng.config,
+                    self.view.plotdecontic.plotrefreshtop(xdat, c.decondat[:, 1] - sep, config=self.eng.config,
                                                           zoomout=True, label=c.label, xlabel=xlab,
                                                           color=c.color, nopaint=True)
                 else:
-                    self.view.plotdecontic.plotadd(xdat, c.decondat[:, 1]-sep, colval=c.color, nopaint=True,
+                    self.view.plotdecontic.plotadd(xdat, c.decondat[:, 1] - sep, colval=c.color, nopaint=True,
                                                    newlabel=c.label)
 
             if c.ccsdat is not None and self.showccs:
@@ -381,11 +384,11 @@ class UniChromCDApp(UniDecCDApp):
                     xlab = "CCS (\u212B\u00B2)"
 
                 if not self.view.plotdecontic.flag:
-                    self.view.plotdecontic.plotrefreshtop(xdat, c.ccsdat[:, 1]-sep, config=self.eng.config,
+                    self.view.plotdecontic.plotrefreshtop(xdat, c.ccsdat[:, 1] - sep, config=self.eng.config,
                                                           zoomout=True, label=c.label, xlabel=xlab,
                                                           color=c.color, nopaint=True)
                 else:
-                    self.view.plotdecontic.plotadd(xdat, c.ccsdat[:, 1]-sep, colval=c.color, nopaint=True,
+                    self.view.plotdecontic.plotadd(xdat, c.ccsdat[:, 1] - sep, colval=c.color, nopaint=True,
                                                    newlabel=c.label)
 
             number += 1
@@ -401,6 +404,8 @@ class UniChromCDApp(UniDecCDApp):
         self.view.plot1.repaint()
         if save:
             self.save_chroms()
+
+        self.plot_mass_for_eic()
 
     def save_chroms(self):
         """
@@ -464,6 +469,42 @@ class UniChromCDApp(UniDecCDApp):
             self.load_chroms(fname=fname)
         dlg.Destroy()
 
+    def plot_mass_for_eic(self):
+        """
+        Plot the mass for the EICs.
+        :return: None
+        """
+        for c in self.cc.chromatograms:
+            if "TIC" not in c.label:
+                mzrange = c.mzrange
+                zrange = c.zrange
+                newd = self.eng.extract_subdata(mzrange, zrange)
+                c.dataobj = newd
+                massdat = newd.massdat
+                if not self.view.plot2.flag:
+                    self.view.plot2.plotrefreshtop(massdat[:, 0], massdat[:, 1], config=self.eng.config, zoomout=True,
+                                                   label=c.label, xlabel="Mass (Da)", color=c.color, nopaint=True)
+                else:
+                    self.view.plot2.plotadd(massdat[:, 0], massdat[:, 1], colval=c.color, nopaint=True,
+                                            newlabel=c.label)
+
+                zdat = newd.zdat
+                if not self.view.plot3.flag:
+                    self.view.plot3.plotrefreshtop(zdat[:, 0], zdat[:, 1], config=self.eng.config, zoomout=True,
+                                                   label=c.label, xlabel="Charge", color=c.color, nopaint=True)
+                else:
+                    self.view.plot3.plotadd(zdat[:, 0], zdat[:, 1], colval=c.color, nopaint=True, newlabel=c.label)
+
+                data2 = newd.data2
+                if not self.view.plot4.flag:
+                    self.view.plot4.plotrefreshtop(data2[:, 0], data2[:, 1], config=self.eng.config, zoomout=True,
+                                                   label=c.label, xlabel="Time", color=c.color, nopaint=True)
+                else:
+                    self.view.plot4.plotadd(data2[:, 0], data2[:, 1], colval=c.color, nopaint=True, newlabel=c.label)
+        self.view.plot2.repaint()
+        self.view.plot3.repaint()
+        self.view.plot4.repaint()
+
     def on_ignore_repopulate(self, e=None):
         """
         Event triggered by updates to the chromatogram list. Repopulate the list based on adjusted ignore flags.
@@ -481,11 +522,13 @@ class UniChromCDApp(UniDecCDApp):
         :return: None
         """
         if not wx.GetKeyState(wx.WXK_CONTROL):
-            self.plot_chromatograms()
             xlimits = self.view.plottic.subplot1.get_xlim()
             print("New limits:", xlimits)
             self.view.plottic.reset_zoom()
             ylimits = self.view.plottic.subplot1.get_ylim()
+            ylimits = np.array(ylimits)
+            ylimits[0] = 0
+            self.plot_chromatograms()
             # Plot Red box on plottic
             self.view.plottic.add_rect(xlimits[0], ylimits[0], xlimits[1] - xlimits[0], ylimits[1] - ylimits[0],
                                        edgecolor="red", facecolor="red", nopaint=False)

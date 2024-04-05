@@ -181,6 +181,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             i += 1
 
         self.subtypectl = wx.Choice(panel1b, -1, choices=self.backgroundchoices)
+        self.subtypectl.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
         self.ctlbuff = wx.TextCtrl(panel1b, value="", size=size1)
         self.subtypectl.SetSelection(2)
         gbox1b.Add(self.subtypectl, (i, 0))
@@ -229,6 +230,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                                         choices=["Linear m/z (Constant " + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z)",
                                                  "Linear resolution (Constant (m/z)/(" + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z))",
                                                  "Nonlinear", "Linear Interpolated", "Linear Resolution Interpolated"])
+            self.ctlbintype.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
             gbox1b.Add(self.ctlbintype, (i, 0), span=(1, 2))
             i += 1
         else:
@@ -323,6 +325,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 i += 1
 
                 self.ctltwavecaltype = wx.Choice(panel1c, -1, choices=list(self.config.twavedict.values()))
+                self.ctltwavecaltype.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
                 gbox1c.Add(self.ctltwavecaltype, (i, 1), span=(1, 1))
                 gbox1c.Add(wx.StaticText(panel1c, label="Calibration Type: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
                 i += 1
@@ -516,6 +519,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         if self.config.imflag == 0:
             # self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
             self.ctlisotopemode = wx.Choice(panel2b, -1, size=(100, -1), choices=self.config.isotopechoices)
+            self.ctlisotopemode.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
             gbox2b.Add(self.ctlisotopemode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.ctlorbimode = wx.CheckBox(panel2b, label="Charge Scaling")
@@ -607,10 +611,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         i = 0
 
-
         self.ctl2dcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
+        self.ctl2dcm.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
 
         self.ctlpeakcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
+        self.ctlpeakcm.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
 
         # for mp in self.config.cmaps2:
         #    self.ctl2dcm.Append(mp)
@@ -1379,6 +1384,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         if self.config.imflag == 0:
             self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlbeta)
             self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlpsig)
+
+    def on_mousewheel(self, e):
+        pass
 
     def update_quick_controls(self, e=None):
         if self.update_flag:
