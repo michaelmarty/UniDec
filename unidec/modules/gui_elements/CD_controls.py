@@ -434,6 +434,20 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                                 flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
+            # Text control for HTmaskn
+            self.ctlhtmaskn = wx.TextCtrl(panelht, value="", size=size1)
+            sizercontrolht1.Add(self.ctlhtmaskn, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="mHT Mask N: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Text control for HTwin
+            self.ctlhtwin = wx.TextCtrl(panelht, value="", size=size1)
+            sizercontrolht1.Add(self.ctlhtwin, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="mHT Window: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
             panelht.SetSizer(sizercontrolht1)
             sizercontrolht1.Fit(panelht)
 
@@ -960,6 +974,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctlanalysistime.SetValue(str(self.config.HTanalysistime))
                 self.ctlmaxscans.SetValue(str(self.config.HTmaxscans))
                 self.ctlcycleindex.SetValue(str(self.config.HTcycleindex))
+                self.ctlhtmaskn.SetValue(str(self.config.HTmaskn))
+                self.ctlhtwin.SetValue(str(self.config.HTwin))
                 self.ctlxaxis.SetStringSelection(self.config.HTxaxis)
                 self.ctlmultiplexmode.SetStringSelection(self.config.demultiplexmode)
                 self.ctlftstart.SetValue(str(self.config.FTstart))
@@ -1090,6 +1106,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.config.HTanalysistime = ud.string_to_value(self.ctlanalysistime.GetValue())
             self.config.HTmaxscans = ud.string_to_value(self.ctlmaxscans.GetValue())
             self.config.HTcycleindex = ud.string_to_value(self.ctlcycleindex.GetValue())
+            self.config.HTmaskn = ud.string_to_value(self.ctlhtmaskn.GetValue())
+            self.config.HTwin = ud.string_to_value(self.ctlhtwin.GetValue())
             self.config.demultiplexmode = self.ctlmultiplexmode.GetStringSelection()
             self.config.FTstart = ud.string_to_value(self.ctlftstart.GetValue())
             self.config.FTend = ud.string_to_value(self.ctlftend.GetValue())

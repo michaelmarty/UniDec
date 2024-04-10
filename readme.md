@@ -199,6 +199,10 @@ v.7.0.0
 
 Added new module for time domain CD-MS data analysis, UniChromCD. This includes some cool new plotting and analysis features. Most importantly, it also includes our new method for Hadamard Transform analysis of CD-MS spectra. You can use the tools for regular LC-CD-MS or go crazy with HT-LC-CD-MS. More info coming soon on this front...:)
 
+UPP added NumPeaks output on all to help with catching bad files in the results. Also, fixed bugs to allow files with bad data to proceed relatively unscathed. It should be more error tolerant now for large runs. 
+
+Blocked mouse wheel events on drop down selections. This should fix a lot of accidental switches to parameters. 
+
 Fixed deep bug with integration transforms. Improvements and refactoring to support UniChromCD. Fixed execution bug on servers.
 
 v.6.0.5

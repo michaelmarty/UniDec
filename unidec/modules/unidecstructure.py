@@ -282,12 +282,14 @@ class UniDecConfig(object):
         self.CDScanCompress = 3
         self.HTmaxscans = -1
         self.demultiplexmode = "HT"
-        self.demultiplexchoices = ["HT", "FT", "aFT"]
+        self.demultiplexchoices = ["HT", "mHT", "FT", "aFT"]
         self.FTstart = 5
         self.FTend = 1000
         self.FTflatten = True
         self.FTapodize = 1
         self.FTsmooth = 0
+        self.HTmaskn = 1000
+        self.HTwin = 5
         self.showlegends = True
 
         self.doubledec = False
@@ -588,6 +590,8 @@ class UniDecConfig(object):
         f.write("FTapodize " + str(int(self.FTapodize)) + "\n")
         f.write("demultiplexmode " + str(self.demultiplexmode) + "\n")
         f.write("FTsmooth " + str(self.FTsmooth) + "\n")
+        f.write("HTmaskn " + str(self.HTmaskn) + "\n")
+        f.write("HTwin " + str(self.HTwin) + "\n")
 
         f.write("csig " + str(self.csig) + "\n")
         f.write("smoothdt " + str(self.smoothdt) + "\n")
@@ -739,6 +743,10 @@ class UniDecConfig(object):
                             self.FTapodize = ud.string_to_int(line.split()[1])
                         if line.startswith("FTsmooth"):
                             self.FTsmooth = ud.string_to_value(line.split()[1])
+                        if line.startswith("HTmaskn"):
+                            self.HTmaskn = ud.string_to_value(line.split()[1])
+                        if line.startswith("HTwin"):
+                            self.HTwin = ud.string_to_value(line.split()[1])
                         if line.startswith("zzsig"):
                             self.zzsig = ud.string_to_value(line.split()[1])
                         if line.startswith("psig"):

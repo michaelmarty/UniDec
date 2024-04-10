@@ -784,8 +784,12 @@ class UniDec(UniDecEngine):
 
             peakparams = []
             for i in range(0, len(peaks)):
-                avg = np.average(self.data.ztab, weights=mztab[i, :, 1])
-                std = np.sqrt(np.average((np.array(self.data.ztab) - avg) ** 2, weights=mztab[i, :, 1]))
+                try:
+                    avg = np.average(self.data.ztab, weights=mztab[i, :, 1])
+                    std = np.sqrt(np.average((np.array(self.data.ztab) - avg) ** 2, weights=mztab[i, :, 1]))
+                except:
+                    avg = -1
+                    std = -1
                 p = self.pks.peaks[i]
                 if e == "PostFit":
                     peakparams.append(
@@ -992,6 +996,10 @@ class UniDec(UniDecEngine):
         2 = Normalize the sum to 1
         :return: None
         """
+        if len(self.pks.peaks) == 0:
+            print("No Peaks Detected")
+            return
+
         integrals = np.array([p.integral for p in self.pks.peaks])
         heights = np.array([p.height for p in self.pks.peaks])
         # corrints = np.array([p.corrint for p in self.pks.peaks])

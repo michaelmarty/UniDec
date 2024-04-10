@@ -256,6 +256,8 @@ class HTEng:
 
         if mode == "HT":
             return self.htdecon(data, **kwargs)
+        elif mode == "mHT":
+            return self.masked_demultiplex_ht(data, **kwargs)
         elif mode == "FT":
             return self.ftdecon(data, aFT=False, **kwargs)
         elif mode == "aFT":
@@ -317,9 +319,20 @@ class HTEng:
         # Return demultiplexed data
         return output, data
 
-    def masked_demultiplex_ht(self, data, win, n, mode="con", **kwargs):
+    def masked_demultiplex_ht(self, data, win=None, n=None, demult=None, mode="rand", **kwargs):
+
+        if win is None:
+            win = self.config.HTwin
+        if n is None:
+            n = self.config.HTmaskn
+        win = int(win)
+        n = int(n)
+
         self.config.htseq = ud.HTseqDict[str(int(self.config.htbit))]
         htseq = np.array([int(s) for s in self.config.htseq])
+        if demult is None:
+            self.setup_ht(seq=htseq)
+            demult, fulltic = self.htdecon(data, **kwargs)
         outdata = []
         for i in range(n):
             seq = np.array(htseq).astype(int)
@@ -347,8 +360,13 @@ class HTEng:
             out, _ = self.htdecon(data, **kwargs)
             outdata.append(out)
             # plt.plot(outdata[-1])
-        avg = np.mean(outdata, axis=0)
-        return outdata, avg
+        outdata = np.array(outdata)
+
+        # Calculate number of sign changes per data point
+        negcount = np.sum(outdata < 0, axis=0) + 1
+        # Divide the demultiplexed data by the negcount plus 1
+        wavg = ud.safedivide(demult, negcount.astype(float))
+        return wavg, fulltic
 
     def setup_ft(self, FTstart=None, FTend=None, nzp=None):
         """

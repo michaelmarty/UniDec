@@ -541,7 +541,7 @@ class UniDecEngine:
             pks = self.pks
         if config is None:
             config = self.config
-        if config.batchflag == 0 and data.shape[1] == 2 and len(data) >= 2:
+        if config.batchflag == 0 and len(data.shape) > 1 and len(data) >= 2:
             tstart = time.perf_counter()
             plot.plotrefreshtop(data[:, 0], data[:, 1],
                                 "Zero-charge Mass Spectrum", "Mass (Da)",
@@ -555,7 +555,7 @@ class UniDecEngine:
             tend = time.perf_counter()
             if not silent:
                 print("Plot 2: %.2gs" % (tend - tstart))
-        if data.shape[1] != 2 or len(data) < 2:
+        if len(data.shape) < 2 or len(data) < 2:
             print("Data Too Small. Adjust parameters.", data)
         return plot
 
@@ -565,7 +565,7 @@ class UniDecEngine:
         Will plot dots at peak positions.
         If possible, will plot full isolated spectra.
         :param plot: Plot object. Default is None, which will set plot to creating a new plot
-        :param data: 2D data with mass in the first column and intensity in the second. Default is self.data.massdat
+        :param data: 2D data with m/z in the first column and intensity in the second. Default is self.data.data2
         :param pks: Peaks object. Default is self.pks
         :param config: Config objet. Default is self.config
         :return plot: The Plot object
@@ -640,7 +640,7 @@ class UniDecEngine:
         peaks_df = self.pks.to_df()
         colors = [p.color for p in self.pks.peaks]
 
-        if del_columns is not None:
+        if del_columns is not None and len(peaks_df) != 0:
             peaks_df = peaks_df.drop(del_columns, axis=1)
 
         if len(peaks_df) > 0:

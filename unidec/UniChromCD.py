@@ -1,6 +1,6 @@
-from UniDecCD import UniDecCDApp
+from unidec.UniDecCD import UniDecCDApp
 import multiprocessing
-import modules.HTEng as HTEng
+import unidec.modules.HTEng as HTEng
 from unidec.modules.gui_elements import CDWindow
 from pubsub import pub
 import wx

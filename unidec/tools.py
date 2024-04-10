@@ -1727,7 +1727,7 @@ def normalize(datatop):
     try:
         maxval = np.amax(datatop[:, 1])
         datatop[:, 1] = datatop[:, 1] / maxval
-    except:
+    except Exception as e:
         pass
     return datatop
 
@@ -1986,6 +1986,10 @@ def peakdetect(data, config=None, window=10, threshold=0, ppm=None, norm=True):
 
     peaks = []
     length = len(data)
+    shape = np.shape(data)
+    if length == 0 or shape[1] != 2:
+        return np.array(peaks)
+
     if norm:
         maxval = np.amax(data[:, 1])
     else:
