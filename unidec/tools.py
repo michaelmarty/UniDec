@@ -1983,6 +1983,7 @@ def peakdetect(data, config=None, window=10, threshold=0, ppm=None, norm=True):
     if config is not None:
         window = config.peakwindow / config.massbins
         threshold = config.peakthresh
+        norm = config.normthresh
 
     peaks = []
     length = len(data)

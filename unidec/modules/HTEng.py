@@ -69,7 +69,7 @@ class HTEng:
         self.config.HTtimeshift = 7  # How far back in time to shift
         self.config.HTksmooth = 0  # Kernel Smooth
 
-        print("HT Engine")
+        #print("HT Engine")
 
     def parse_file_name(self, path):
         """
@@ -177,7 +177,7 @@ class HTEng:
         seqarray[seqarray < -1] = 0
 
         shortkernel = seqarray
-        print(shortkernel)
+        #print(shortkernel)
 
         # Roll short kernel so that the first 1 is in index 0
         self.kernelroll = -np.argmax(shortkernel)
@@ -202,13 +202,13 @@ class HTEng:
             self.cycleindex = int(cycleindex)
             print("Correction Diff:", diff)
 
-        print("Cycle Index:", self.cycleindex)
+        #print("Cycle Index:", self.cycleindex)
         self.rollindex = int(-self.shiftindex + self.cycleindex * self.kernelroll)
 
         # Create the HT kernel
         self.htkernel = np.zeros_like(self.fullscans[int(self.padindex):]).astype(float)
-        print("HT Kernel Length:", len(self.htkernel), "Pad Index:", self.padindex, "Cycle Index:", self.cycleindex,
-              "Shift Index:", self.shiftindex, "Roll Index:", self.rollindex)
+        #print("HT Kernel Length:", len(self.htkernel), "Pad Index:", self.padindex, "Cycle Index:", self.cycleindex,
+        #      "Shift Index:", self.shiftindex, "Roll Index:", self.rollindex)
 
         index = 0
         for i, s in enumerate(self.fullscans):
@@ -361,6 +361,7 @@ class HTEng:
             outdata.append(out)
             # plt.plot(outdata[-1])
         outdata = np.array(outdata)
+        #print('Shape of outdata: ', np.shape(outdata))
 
         # Calculate number of sign changes per data point
         negcount = np.sum(outdata < 0, axis=0) + 1
@@ -1227,6 +1228,7 @@ class UniDecCDHT(HTEng, UniDecCD):
             binsize = (maxccs - minccs) / len(self.decontime)
         else:
             binsize = self.config.ccsbins
+
         ccsaxis = np.arange(minccs, maxccs, binsize)
         # Create bins shifted by half a bin
         ccsbins = np.arange(minccs - binsize / 2., maxccs + binsize / 2., binsize)
@@ -1271,9 +1273,11 @@ class UniDecCDHT(HTEng, UniDecCD):
         self.ccsstack_ht = self.ccsstack_ht[b1]
         if self.config.FTsmooth > 0:
             if self.config.FTsmooth > len(ccs_tic):
-                self.config.FTsmooth = 10.
-            print("Smoothing", self.config.FTsmooth)
-            ccs_tic = scipy.signal.savgol_filter(ccs_tic, int(self.config.FTsmooth), 3)
+                self.config.FTsmooth = len(ccs_tic)
+            if len(ccs_tic) > 4:
+
+                print("Smoothing", self.config.FTsmooth)
+                ccs_tic = scipy.signal.savgol_filter(ccs_tic, int(self.config.FTsmooth), 3)
 
         ccs_tic = np.transpose(np.vstack((self.ccsaxis, ccs_tic)))
         return ccs_tic

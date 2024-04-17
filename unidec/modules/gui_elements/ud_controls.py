@@ -582,6 +582,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlwindow = wx.TextCtrl(panel3, value="", size=size1)
         self.ctlthresh = wx.TextCtrl(panel3, value="", size=size1)
 
+
         self.plotbutton = wx.Button(panel3, -1, "Peak Detection")
         self.plotbutton2 = wx.Button(panel3, -1, "Plot Peaks")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_plot_peaks, self.plotbutton2)
@@ -645,6 +646,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.ctlnorm = wx.RadioBox(panel3b, label="Peak Normalization", choices=["None", "Max", "Total"])
         gbox3b.Add(self.ctlnorm, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+
+        self.ctlnormpeakthresh = wx.CheckBox(panel3b, label="Normalize Peak Threshold")
+        gbox3b.Add(self.ctlnormpeakthresh, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
         self.ctlthresh2 = wx.TextCtrl(panel3b, value="", size=size1)
@@ -780,6 +785,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlbinsize.SetValue(str(self.config.mzbins))
             self.ctlwindow.SetValue(str(self.config.peakwindow))
             self.ctlthresh.SetValue(str(self.config.peakthresh))
+            self.ctlnormpeakthresh.SetValue(int(self.config.normthresh))
             self.ctlthresh2.SetValue(str(self.config.peakplotthresh))
             self.ctlsep.SetValue(str(self.config.separation))
             self.ctlintthresh.SetValue(str(self.config.intthresh))
@@ -926,6 +932,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.mfileflag = int(self.ctlmasslistflag.GetValue())
         self.config.peakwindow = ud.string_to_value(self.ctlwindow.GetValue())
         self.config.peakthresh = ud.string_to_value(self.ctlthresh.GetValue())
+        self.config.normthresh = int(self.ctlnormpeakthresh.GetValue())
         self.config.peakplotthresh = ud.string_to_value(self.ctlthresh2.GetValue())
         self.config.separation = ud.string_to_value(self.ctlsep.GetValue())
         self.config.adductmass = ud.string_to_value(self.ctladductmass.GetValue())

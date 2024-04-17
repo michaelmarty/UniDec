@@ -61,10 +61,11 @@ class UniChromCDApp(UniDecCDApp):
                     "20231202 JDS Bgal groEL bit5 zp7 inj4s cyc1m_2023-12-07-03-46-56.dmt")
             path2 = "Z:\Group Share\Skippy\Projects\HT\Example data for MTM\\2023-03-06 Bgal 5bit triplicate\\20240306 Bgal inj5 iit1 bit5 zp10.dmt"
             pathft = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\01302024_GDH_stepsize3_repeat15_5to500.dmt"
+            pathft2 = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\CCS troubleshooting\\03082024_GDH_4kV_stepsize3_repeate15_5to500_1_2024-03-14-09-04-57.dmt"
             # path3 = "Z:\\Group Share\\ONO\\CDMS\\5 bit HT data\\20240313 JDS Bgal 0o1g_l inj1o5 quad9k bit-5 zp10 i2.dmt"
             path4 = "Z:\\Group Share\\Skippy\\Projects\\HT\\2024-04-01\\20240401 ribos s6Col bit3 inj5s 1_2024-04-01-04-19-29.dmt"
             # try:
-            self.on_open_file(None, None, path=path2)
+            self.on_open_file(None, None, path=pathft)
             # except:
             #    pass
             # self.eng.process_data_scans()
@@ -73,7 +74,7 @@ class UniChromCDApp(UniDecCDApp):
             # self.run_all_ht()
             # self.run_all_mass_transform()
             # self.make_mass_cube_plot()
-            # self.on_run_ccs()
+            #self.on_run_ccs()
 
     def on_open_file(self, filename, directory, path=None, refresh=False):
         """

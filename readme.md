@@ -201,6 +201,8 @@ Added new module for time domain CD-MS data analysis, UniChromCD. This includes 
 
 UPP added NumPeaks output on all to help with catching bad files in the results. Also, fixed bugs to allow files with bad data to proceed relatively unscathed. It should be more error tolerant now for large runs. 
 
+Added check box on main UniDec panel for whether to normalize the peak threshold. When on, it will behave as previously where the peak thershold is a ratio of the max intensity. When off, it will be a fixed intensity. Try switching off "Publication Mode" to view the plot with intensity axes. Note, this interacts with the Peak Normalization parameter directly above it. Max will normalize everything to 100. Total can get weird. None is the safest bet. 
+
 Blocked mouse wheel events on drop down selections. This should fix a lot of accidental switches to parameters. 
 
 Fixed deep bug with integration transforms. Improvements and refactoring to support UniChromCD. Fixed execution bug on servers.

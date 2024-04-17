@@ -266,6 +266,8 @@ def calc_linear_ccs(mass, z, dt, config):
     factor = 0.001
     rmass = ac * (mass * hmass) / (mass + hmass)
     td = (dt - to) * factor
+    if np.any(rmass <= 0):
+        return mass * 0
     ccs = z * td * ((1 / rmass) ** 0.5) * ccsconst
     return ccs
 

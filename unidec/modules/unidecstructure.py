@@ -234,6 +234,7 @@ class UniDecConfig(object):
         # Peak Selection and plotting
         self.peakwindow = 500
         self.peakthresh = 0.1
+        self.normthresh = 1
         self.peakplotthresh = 0.1
         self.separation = 0.025
         self.peaknorm = 1
@@ -420,6 +421,7 @@ class UniDecConfig(object):
         # Peak Selection and plotting
         self.peakwindow = 500
         self.peakthresh = 0.1
+        self.normthresh = 1
         self.peakplotthresh = 0.1
         self.separation = 0.025
         self.peaknorm = 1
@@ -533,6 +535,7 @@ class UniDecConfig(object):
         f.write("mzbins " + str(self.mzbins) + "\n")
         f.write("peakwindow " + str(self.peakwindow) + "\n")
         f.write("peakthresh " + str(self.peakthresh) + "\n")
+        f.write("normthresh" + str(int(self.normthresh)) + "\n")
         f.write("peakplotthresh " + str(self.peakplotthresh) + "\n")
         f.write("plotsep " + str(self.separation) + "\n")
         f.write("intthresh " + str(self.intthresh) + "\n")
@@ -796,6 +799,8 @@ class UniDecConfig(object):
                             self.peakwindow = ud.string_to_value(line.split()[1])
                         if line.startswith("peakthresh"):
                             self.peakthresh = ud.string_to_value(line.split()[1])
+                        if line.startswith("normthresh"):
+                            self.normthresh = ud.string_to_int(line.split()[1])
                         if line.startswith("peakplotthresh"):
                             self.peakplotthresh = ud.string_to_value(line.split()[1])
                         if line.startswith("plotsep"):
@@ -983,6 +988,7 @@ class UniDecConfig(object):
             "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
             "minmz": self.minmz, "maxmz": self.maxmz, "subbuff": self.subbuff, "smooth": self.smooth,
             "mzbins": self.mzbins, "peakwindow": self.peakwindow, "peakthresh": self.peakthresh,
+            "normthresh": self.normthresh,
             "peakplotthresh": self.peakplotthresh, "plotsep": self.separation, "intthresh": self.intthresh,
             "reductionpercent": self.reductionpercent,
             "aggressive": self.aggressiveflag, "rawflag": self.rawflag, "adductmass": self.adductmass,
@@ -1072,6 +1078,7 @@ class UniDecConfig(object):
         self.mzbins = read_attr(self.mzbins, "mzbins", config_group)
         self.peakwindow = read_attr(self.peakwindow, "peakwindow", config_group)
         self.peakthresh = read_attr(self.peakthresh, "peakthresh", config_group)
+        self.normthresh = read_attr(self.normthresh, "normthresh", config_group)
         self.peakplotthresh = read_attr(self.peakplotthresh, "peakplotthresh", config_group)
         self.separation = read_attr(self.separation, "separation", config_group)
         self.intthresh = read_attr(self.intthresh, "intthresh", config_group)

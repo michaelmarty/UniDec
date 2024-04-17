@@ -28,7 +28,8 @@ subtype 2
 smooth 0.0
 mzbins 0.0
 peakwindow 20.0
-peakthresh 0.01
+peakthresh 0.1
+normthresh1
 peakplotthresh 0.1
 plotsep 0.025
 intthresh 0.0
@@ -46,9 +47,9 @@ linflag 2
 cmap nipy_spectral
 peakcmap rainbow
 spectracmap rainbow
-publicationmode 1
+publicationmode 0
 isotopemode 0
-peaknorm 2
+peaknorm 1
 datanorm 1
 baselineflag 1.0
 orbimode 0
@@ -64,13 +65,23 @@ CDres 1.0
 CDScanStart -1
 CDScanEnd -1
 HTksmooth 0.0
-CDScanCompresse 0.0
+CDScanCompress 0.0
+HTmaxscans -1.0
 HTtimepad 0.0
 HTanalysistime 38.0
 HTxaxis Time
 HTcycleindex -1.0
-HTtimepad 0.0
+HTcylctime 2.0
+HTtimeshift 7.0
 htbit 0.0
+FTstart 5.0
+FTend 1000.0
+FTflatten 1
+FTapodize 1
+demultiplexmode HT
+FTsmooth 0.0
+HTmaskn 1000.0
+HTwin 5.0
 csig 0.0
 smoothdt 0.0
 subbufdt 0.0
