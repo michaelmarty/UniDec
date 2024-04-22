@@ -1014,7 +1014,7 @@ class UniDecCDHT(HTEng, UniDecCD):
         # self.fullhstack_ht[np.abs(self.fullhstack_ht) < 1e-6] = 0
 
         tic = np.sum(self.fullhstack_ht, axis=(1, 2))
-        tic = np.abs(tic)
+        tic = np.real(tic)
         ticdat = np.transpose(np.vstack((self.decontime, tic)))
         if self.config.datanorm == 1:
             ticdat[:, 1] /= np.amax(ticdat[:, 1])

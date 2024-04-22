@@ -65,7 +65,7 @@ class UniChromCDApp(UniDecCDApp):
             # path3 = "Z:\\Group Share\\ONO\\CDMS\\5 bit HT data\\20240313 JDS Bgal 0o1g_l inj1o5 quad9k bit-5 zp10 i2.dmt"
             path4 = "Z:\\Group Share\\Skippy\\Projects\\HT\\2024-04-01\\20240401 ribos s6Col bit3 inj5s 1_2024-04-01-04-19-29.dmt"
             # try:
-            self.on_open_file(None, None, path=pathft)
+            self.on_open_file(None, None, path=path)
             # except:
             #    pass
             # self.eng.process_data_scans()
@@ -548,11 +548,11 @@ class UniChromCDApp(UniDecCDApp):
             self.run_all_ht()
             return
         if not wx.GetKeyState(wx.WXK_CONTROL):
-            self.plot_chromatograms()
             xlimits = self.view.plotdecontic.subplot1.get_xlim()
             print("New limits:", xlimits)
             self.view.plotdecontic.reset_zoom()
             ylimits = self.view.plotdecontic.subplot1.get_ylim()
+            self.plot_chromatograms()
             # Plot Red box on plottic
             self.view.plotdecontic.add_rect(xlimits[0], ylimits[0], xlimits[1] - xlimits[0], ylimits[1] - ylimits[0],
                                             edgecolor="red", facecolor="red", nopaint=False)
