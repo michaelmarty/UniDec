@@ -99,6 +99,12 @@ class PlottingWindowBase(PlotBase, wx.Panel):
         else:
             self.parent = None
 
+        if "swoop" in kwargs:
+            self.swoop = kwargs["swoop"]
+            del kwargs["swoop"]
+        else:
+            self.swoop = False
+
         wx.Window.__init__(self, *args)
         self.Bind(wx.EVT_SIZE, self.size_handler)
         # self.Bind(wx.EVT_IDLE, self.on_idle)
@@ -381,7 +387,7 @@ class PlottingWindowBase(PlotBase, wx.Panel):
                 onmove_callback=None,
                 spancoords='data',
                 rectprops=dict(alpha=0.2, facecolor='yellow'),
-                data_lims=data_lims,
+                data_lims=data_lims, swoop=self.swoop,
                 integrate=self.int, smash=self.smash, pad=pad)
         if zoom == "fixed_span":
             self.zoom = NoZoomSpan(

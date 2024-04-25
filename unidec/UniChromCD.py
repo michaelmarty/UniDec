@@ -247,7 +247,7 @@ class UniChromCDApp(UniDecCDApp):
                     c.chromdat = eicdata
                 # eicdata = self.eng.get_ccs_eic(mzrange=c.mzrange, zrange=c.zrange, normalize=self.eng.config.datanorm)
                 eicdata, avgz, avgmz = self.eng.convert_trace_to_ccs(c.decondat, mzrange=c.mzrange, zrange=c.zrange,
-                                                                     normalize=self.eng.config.datanorm)
+                                                                     normalize=self.eng.config.datanorm, sarray=c.sarray)
                 c.ccsdat = eicdata
                 c.label = "Avg. m/z: " + str(round(avgmz)) + " z: " + str(round(avgz))
         self.plot_chromatograms()
@@ -305,10 +305,10 @@ class UniChromCDApp(UniDecCDApp):
 
         htdata, eicdata = self.eng.eic_ht(mzrange, zrange, normalize=self.eng.config.datanorm, sarray=sarray)
 
-        try:
+        if True:
             ccsdata, avgz, avgmz = self.eng.convert_trace_to_ccs(htdata, mzrange=c.mzrange, zrange=c.zrange,
-                                                                 normalize=self.eng.config.datanorm)
-        except:
+                                                                 normalize=self.eng.config.datanorm, sarray=c.sarray)
+        else:
             print("Failed to convert to CCS")
             ccsdata = None
             avgz = None
@@ -453,9 +453,10 @@ class UniChromCDApp(UniDecCDApp):
             ht = a[8]
             mzrange = [float(a[3]), float(a[4])]
             zrange = [float(a[5]), float(a[6])]
-
-            sarray = [float(a[9]), float(a[10]), float(a[11]), float(a[12])]
-            print(sarray)
+            try:
+                sarray = [float(a[9]), float(a[10]), float(a[11]), float(a[12])]
+            except Exception:
+                sarray = [-1, -1, -1, -1]
 
             if "TIC" in label or self.eng.config.demultiplexmode in label or "Mass EIC" in label:
                 continue

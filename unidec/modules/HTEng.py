@@ -1353,40 +1353,70 @@ class UniDecCDHT(HTEng, UniDecCD):
         ccs_tic = np.transpose(np.vstack((self.ccsaxis, ccs_tic)))
         return ccs_tic
 
-    def convert_trace_to_ccs(self, trace, mzrange, zrange, normalize=False):
+    def convert_trace_to_ccs(self, trace, mzrange, zrange, sarray=None, normalize=False):
         """
         Convert a trace to CCS.
         :param trace: 1D array of intensity
         :param mzrange: m/z range
         :param zrange: charge range
+        :param sarray: Swoop array, m/z mid, z mid, z spread (vertical), z width (horizontal), default None
         :param normalize: Whether to normalize the output to the maximum.
         :return: 2D array of CCS (time, intensity)
         """
+        # If needed, process the scans
         if self.topharray is None:
             self.process_data_scans()
-        trace = deepcopy(trace)
-        b1 = self.X >= mzrange[0]
-        b2 = self.X <= mzrange[1]
-        b3 = self.Y >= zrange[0]
-        b4 = self.Y <= zrange[1]
-        b = np.logical_and(b1, b2)
-        b = np.logical_and(b, b3)
-        b = np.logical_and(b, b4)
+
+        # Swoop Array Filtering
+        if sarray is not None and sarray[0] != -1:
+            b = np.zeros_like(self.topharray)
+            # Calculate the Swoop m/z range, zrange, upper charge, and lower charge bounds
+            mz, z, zup, zdown = ud.calc_swoop(sarray, adduct_mass=self.config.adductmass)
+            # Loop over all charge states
+            for i, zval in enumerate(z):
+                # For each charge state, filter z values within the bounds
+                b1 = self.Y >= zdown[i]
+                b2 = self.Y <= zup[i]
+                bz = b1 & b2
+
+                # Filter m/z values within the bounds of that charge state
+                mzmin, mzmax = ud.get_swoop_mz_minmax(mz, i)
+                b1 = self.X >= mzmin
+                b2 = self.X <= mzmax
+                bmz = b1 & b2
+
+                # Take everything that is within the charge and m/z range for that charge state
+                # Add rather than multiple because it's OR for each charge state
+                b += bz * bmz
+            b = b.astype(bool)
+        else:
+            # Basic Rectangle Filtering
+            b1 = self.X >= mzrange[0]
+            b2 = self.X <= mzrange[1]
+            b3 = self.Y >= zrange[0]
+            b4 = self.Y <= zrange[1]
+            b = np.logical_and(b1, b2)
+            b = np.logical_and(b, b3)
+            b = np.logical_and(b, b4)
+        # Filter int, mz, z
         intarray = self.topharray[b]
         mzarray = self.X[b]
         zarray = self.Y[b]
 
+        # Calc avg mz, z, and mass
         avgmz = np.sum(intarray * mzarray) / np.sum(intarray)
         avgz = np.sum(intarray * zarray) / np.sum(intarray)
         avgz = np.round(avgz)
         avgmass = (avgmz - self.config.adductmass) * avgz
-        # Calculate weighted average of m/z and charge
+
+        # Convert DT to CCS
         calc_linear_ccsconst(self.config)
+        trace = deepcopy(trace)
         ccs_axis = calc_linear_ccs(avgmass, avgz, trace[:, 0], self.config)
 
+        # Process Intensity Data
         if normalize:
             trace[:, 1] /= np.amax(trace[:, 1])
-
         if self.config.FTsmooth > 0:
             if self.config.FTsmooth > len(ccs_axis):
                 self.config.FTsmooth = 10.
@@ -1438,31 +1468,4 @@ if __name__ == '__main__':
     # import matplotlib.pyplot as plt
     # plt.plot(ac)
     # plt.show()
-    exit()
-    plt.plot(eng.fulltime, eng.fulltic / np.amax(eng.fulltic))
-    plt.plot(eng.fulltime[eng.padindex:], np.roll(eng.htkernel, 0))
-    plt.plot(eng.fulltime[1:], eng.htoutput / np.amax(eng.htoutput) - 1)
-    plt.show()
-    exit()
 
-    eng.run_all_ht()
-    print(np.shape(eng.hstack))
-    plt.figure()
-
-    plt.subplot(121)
-    for i, x in enumerate(eng.mz):
-        for j, y in enumerate(eng.ztab):
-            plt.plot(eng.fullscans, eng.fullhstack_ht[:, j, i])
-
-    plt.subplot(122)
-    plt.imshow(np.sum(eng.fullhstack[:150], axis=0), aspect="auto", origin="lower",
-               extent=[eng.mz[0], eng.mz[-1], eng.ztab[0], eng.ztab[-1]])
-
-    plt.show()
-
-    from unidec.modules import PlotAnimations as PA
-    import wx
-
-    app = wx.App(False)
-    PA.AnimationWindow(None, eng.fullhstack[50:], mode="2D")
-    app.MainLoop()

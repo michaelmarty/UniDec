@@ -115,6 +115,11 @@ class CDMainwindow(MainwindowBase):
         #
         # ...................................
 
+        if self.htmode:
+            swoop = True
+        else:
+            swoop = False
+
         # Tabbed view of plots
         if self.tabbed == 1:
             figsize = self.config.figsize
@@ -127,7 +132,7 @@ class CDMainwindow(MainwindowBase):
             tab5 = wx.Panel(plotwindow)
             tab6 = wx.Panel(plotwindow)
 
-            self.plot1 = PlottingWindow.Plot2d(tab1, smash=1, figsize=figsize)
+            self.plot1 = PlottingWindow.Plot2d(tab1, smash=1, figsize=figsize, swoop=swoop)
             self.plot2 = PlottingWindow.Plot1d(tab2, integrate=1, figsize=figsize)
             self.plot3 = PlottingWindow.Plot1d(tab3, figsize=figsize)
             self.plot4 = PlottingWindow.Plot1d(tab4, figsize=figsize)
@@ -184,7 +189,7 @@ class CDMainwindow(MainwindowBase):
             splitterwindow.SplitVertically(plotwindow, splitterwindow2, sashPosition=-550)
             sizerplot = wx.GridBagSizer()
             figsize = self.config.figsize
-            self.plot1 = PlottingWindow.Plot2d(plotwindow, smash=1, figsize=figsize)
+            self.plot1 = PlottingWindow.Plot2d(plotwindow, smash=1, figsize=figsize, swoop=swoop)
             self.plot2 = PlottingWindow.Plot1d(plotwindow, integrate=1, figsize=figsize)
             self.plot3 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
             self.plot4 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)

@@ -47,7 +47,7 @@ class ZoomBox(ZoomCommon):
                  onmove_callback=None,
                  spancoords='data',
                  button=None,
-                 data_lims=None,
+                 data_lims=None, swoop=False,
                  integrate=0, smash=0, pad=0.0001):
 
         """
@@ -100,6 +100,7 @@ class ZoomBox(ZoomCommon):
         self.mzz = None
         self.mzcurve = None
         self.sarray = None
+        self.swoop = swoop
 
         self.lflag = 0
 
@@ -273,11 +274,12 @@ class ZoomBox(ZoomCommon):
 
     def release(self, event):
         """on button release event"""
-        if self.eventpress is None or (self.ignore(event) and not self.buttonDown): return
+        if self.eventpress is None or (self.ignore(event) and not self.buttonDown):
+            return
         # Do compare mode stuff
         self.buttonDown = False
 
-        if self.sarray is not None:
+        if self.sarray is not None and self.swoop:
             self.parent.on_swoop_drag(self.sarray)
             return
 
@@ -286,7 +288,7 @@ class ZoomBox(ZoomCommon):
                 try:
                     self.comparexvals.append(self.prev[0])
                     self.compareyvals.append(self.prev[1])
-                except:
+                except Exception:
                     self.comparexvals.append(event.xdata)
                     self.compareyvals.append(event.ydata)
             else:
@@ -458,7 +460,7 @@ class ZoomBox(ZoomCommon):
         if minx > maxx: minx, maxx = maxx, minx  # get them in the right order
         if miny > maxy: miny, maxy = maxy, miny
 
-        if self.mzz is not None:
+        if self.mzz is not None and self.swoop:
             spany = maxy - miny
             minz = self.mzz[0] * self.mzz[1] / maxx
             maxz = self.mzz[0] * self.mzz[1] / minx
