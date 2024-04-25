@@ -1655,7 +1655,7 @@ class ChromatogramContainer:
             if zrange is not None:
                 label += " z: " + str(round(zrange[0])) + "-" + str(round(zrange[1]))
             if sarray is not None:
-                label += "Swoop m/z: " + str(sarray[0]) + " z: " + str(sarray[1])
+                label += "Swoop m/z: " + str(round(sarray[0])) + " z: " + str(round(sarray[1]))
 
         chrom.label = label
 

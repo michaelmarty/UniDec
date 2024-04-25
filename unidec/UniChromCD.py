@@ -269,6 +269,7 @@ class UniChromCDApp(UniDecCDApp):
         """
         self.export_config(self.eng.config.confname)
         self.showccs = False
+        self.showht = True
         for c in self.cc.chromatograms:
             if "TIC" not in c.label:
                 htdata, eicdata = self.eng.eic_ht(c.mzrange, c.zrange,
@@ -305,14 +306,15 @@ class UniChromCDApp(UniDecCDApp):
 
         htdata, eicdata = self.eng.eic_ht(mzrange, zrange, normalize=self.eng.config.datanorm, sarray=sarray)
 
-        if True:
-            ccsdata, avgz, avgmz = self.eng.convert_trace_to_ccs(htdata, mzrange=c.mzrange, zrange=c.zrange,
-                                                                 normalize=self.eng.config.datanorm, sarray=c.sarray)
-        else:
-            print("Failed to convert to CCS")
-            ccsdata = None
-            avgz = None
-            avgmz = None
+        ccsdata = None
+        avgz = None
+        avgmz = None
+        if self.showccs:
+            try:
+                ccsdata, avgz, avgmz = self.eng.convert_trace_to_ccs(htdata, mzrange=mzrange, zrange=zrange,
+                                                                     normalize=self.eng.config.datanorm, sarray=sarray)
+            except Exception:
+                print("Failed to convert to CCS")
 
         self.cc.add_chromatogram(eicdata, decondat=htdata, ccsdat=ccsdata, color=color, zrange=zrange, mzrange=mzrange,
                                  mode=self.eng.config.demultiplexmode, sarray=sarray)
@@ -908,7 +910,7 @@ class UniChromCDApp(UniDecCDApp):
         print("Saved Files")
 
     def on_select_swoop(self, e=None):
-        print("SWOOP there it is!")
+        print("SWOOP there it is!", self.showht)
         self.eng.sarray = e.sarray
         self.export_config(self.eng.config.confname)
         if not wx.GetKeyState(wx.WXK_CONTROL):
