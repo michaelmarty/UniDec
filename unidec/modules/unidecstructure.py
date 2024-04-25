@@ -1620,16 +1620,19 @@ class Chromatogram:
         self.index = 0
         self.mzrange = [-1, -1]
         self.zrange = [-1, -1]
+        self.sarray = [-1, -1, -1, -1]
         self.sum = -1
         self.ignore = 0
         self.ht = False
         self.massrange = [-1, -1]
         self.massmode = False
         self.dataobj = None
+        self.swoopmode = False
 
     def to_row(self):
         out = [self.label, str(self.color), str(self.index), str(self.mzrange[0]), str(self.mzrange[1]),
-               str(self.zrange[0]), str(self.zrange[1]), str(self.sum), str(self.ht)]
+               str(self.zrange[0]), str(self.zrange[1]), str(self.sum), str(self.ht), str(self.sarray[0])
+               , str(self.sarray[1]), str(self.sarray[2]), str(self.sarray[3])]
         return out
 
 
@@ -1638,7 +1641,7 @@ class ChromatogramContainer:
         self.chromatograms = []
 
     def add_chromatogram(self, data, decondat=None, ccsdat=None, label=None, color="#000000", index=None, mzrange=None,
-                         zrange=None, massrange=None, massmode=False, mode="DM"):
+                         zrange=None, massrange=None, massmode=False, mode="DM", sarray=None):
         chrom = Chromatogram()
         chrom.chromdat = data
         chrom.decondat = decondat
@@ -1651,6 +1654,8 @@ class ChromatogramContainer:
                 label += "m/z: " + str(round(mzrange[0])) + "-" + str(round(mzrange[1]))
             if zrange is not None:
                 label += " z: " + str(round(zrange[0])) + "-" + str(round(zrange[1]))
+            if sarray is not None:
+                label += "Swoop m/z: " + str(sarray[0]) + " z: " + str(sarray[1])
 
         chrom.label = label
 
@@ -1671,6 +1676,11 @@ class ChromatogramContainer:
         if massrange is not None:
             chrom.massrange = massrange
             chrom.massmode = True
+
+        if sarray is not None:
+            chrom.sarray = sarray
+            chrom.swoopmode = True
+            chrom.massmode = False
 
         chrom.massmode = massmode
 

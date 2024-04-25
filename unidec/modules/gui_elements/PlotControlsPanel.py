@@ -2,6 +2,7 @@ import matplotlib as mpl
 import wx
 from unidec.modules.PlottingWindow import Plot1d
 from unidec.modules.unidecstructure import UniDecConfig
+import numpy as np
 
 mpl.rcParams['ps.useafm'] = True
 mpl.rcParams['ps.fonttype'] = 42
@@ -17,7 +18,6 @@ def export_mplstyle(params, filename="unidec.mplstyle"):
     with open(filename, "w") as f:
         for p in params:
             f.write(p + ": " + str(params[p]) + "\n")
-
 
 # Plot Controls Panel
 class PlotControlsPanel(wx.Panel):
@@ -109,7 +109,9 @@ class PlotControlWindow(wx.Frame):
         self.Show()
 
     def makeplot(self):
-        self.plot.plotrefreshtop([1, 2, 3], [1, 4, 9])
+        self.plot.plotrefreshtop([1, 2, 3, 14000], [1, 4, 9, 15])
+        #self.plot.draw_mz_curve( 10000, 10, 1, 2)
+
     def on_update_plot_params(self, event=None, stylefile=None):
         self.plot.update_style(stylefile)
         self.makeplot()

@@ -74,7 +74,7 @@ class UniChromCDApp(UniDecCDApp):
             # self.run_all_ht()
             # self.run_all_mass_transform()
             # self.make_mass_cube_plot()
-            #self.on_run_ccs()
+            # self.on_run_ccs()
 
     def on_open_file(self, filename, directory, path=None, refresh=False):
         """
@@ -216,16 +216,22 @@ class UniChromCDApp(UniDecCDApp):
         self.cc.add_chromatogram(data, color="black", label="TIC")
         self.plot_chromatograms(save=False)
 
-    def add_eic(self, mzrange, zrange, color='b', plot=True):
+    def add_eic(self, mzrange, zrange, color='b', plot=True, sarray=None, label=None):
         """
         Add an EIC to the list of chromatograms. Plot the chromatograms.
         :param mzrange: M/z range
         :param zrange: charge range
         :param color: Color of the plot. Default blue.
+        :param plot: Whether to plot the chromatograms. Default True.
+        :param sarray: Swoop array. Default None.
+        :param label: Label for the chromatogram. Default None.
         :return: None
         """
-        eicdata = self.eng.get_eic(mzrange, zrange, normalize=self.eng.config.datanorm)
-        self.cc.add_chromatogram(eicdata, color=color, zrange=zrange, mzrange=mzrange)
+        if sarray is not None and sarray[0] != -1 and sarray[1] != -1:
+            eicdata = self.eng.get_swoop_eic(sarray, normalize=self.eng.config.datanorm)
+        else:
+            eicdata = self.eng.get_eic(mzrange, zrange, normalize=self.eng.config.datanorm)
+        self.cc.add_chromatogram(eicdata, color=color, zrange=zrange, mzrange=mzrange, sarray=sarray, label=label)
         if plot:
             self.plot_chromatograms()
 
@@ -235,7 +241,8 @@ class UniChromCDApp(UniDecCDApp):
         for c in self.cc.chromatograms:
             if "TIC" not in c.label:
                 if c.decondat is None:
-                    htdata, eicdata = self.eng.eic_ht(c.mzrange, c.zrange, normalize=self.eng.config.datanorm)
+                    htdata, eicdata = self.eng.eic_ht(c.mzrange, c.zrange,
+                                                      normalize=self.eng.config.datanorm, sarray=c.sarray)
                     c.decondat = htdata
                     c.chromdat = eicdata
                 # eicdata = self.eng.get_ccs_eic(mzrange=c.mzrange, zrange=c.zrange, normalize=self.eng.config.datanorm)
@@ -264,7 +271,8 @@ class UniChromCDApp(UniDecCDApp):
         self.showccs = False
         for c in self.cc.chromatograms:
             if "TIC" not in c.label:
-                htdata, eicdata = self.eng.eic_ht(c.mzrange, c.zrange, normalize=self.eng.config.datanorm)
+                htdata, eicdata = self.eng.eic_ht(c.mzrange, c.zrange,
+                                                  normalize=self.eng.config.datanorm, sarray=c.sarray)
                 c.chromdat = eicdata
                 c.decondat = htdata
         self.plot_chromatograms()
@@ -285,22 +293,17 @@ class UniChromCDApp(UniDecCDApp):
         self.showccs = False
         self.plot_chromatograms(save=False)
 
-    def run_eic_ht(self, mzrange, zrange, color='b'):
+    def run_eic_ht(self, mzrange, zrange, color='b', sarray=None):
         """
         Function to generate and HT an EIC. Adds both to list. Plots chromatograms.
         :param mzrange: M/z range
         :param zrange: Charge range
         :param color: Color of plot. Default blue.
+        :param sarray: Swoop array. Default None.
         :return: None
         """
 
-        htdata, eicdata = self.eng.eic_ht(mzrange, zrange, normalize=self.eng.config.datanorm)
-        # if self.eng.ccsstack_ht is not None:
-        #    ccsdata = self.eng.get_ccs_eic(mzrange=mzrange, zrange=zrange, normalize=self.eng.config.datanorm)
-        #    print("Got CCS Data")
-        # else:
-        #    ccsdata = None
-        #    print("No CCS Data")
+        htdata, eicdata = self.eng.eic_ht(mzrange, zrange, normalize=self.eng.config.datanorm, sarray=sarray)
 
         try:
             ccsdata, avgz, avgmz = self.eng.convert_trace_to_ccs(htdata, mzrange=c.mzrange, zrange=c.zrange,
@@ -312,7 +315,7 @@ class UniChromCDApp(UniDecCDApp):
             avgmz = None
 
         self.cc.add_chromatogram(eicdata, decondat=htdata, ccsdat=ccsdata, color=color, zrange=zrange, mzrange=mzrange,
-                                 mode=self.eng.config.demultiplexmode)
+                                 mode=self.eng.config.demultiplexmode, sarray=sarray)
         self.showht = True
 
         if avgz is not None:
@@ -343,6 +346,10 @@ class UniChromCDApp(UniDecCDApp):
             if xlimits[0] != -1 and ylimits[0] != -1 and xlimits[1] != -1 and ylimits[1] != -1:
                 self.view.plot1.add_rect(xlimits[0], ylimits[0], xlimits[1] - xlimits[0], ylimits[1] - ylimits[0],
                                          edgecolor=c.color, facecolor=c.color, nopaint=True)
+            if c.sarray is not None:
+                if c.sarray[0] != -1 and c.sarray[1] != -1:
+                    self.view.plot1.draw_mz_curve(c.sarray, color=c.color, repaint=False,
+                                                  adduct_mass=self.eng.config.adductmass)
 
             if not ud.isempty(c.chromdat):
                 if self.eng.config.HTxaxis == "Scans":
@@ -447,14 +454,13 @@ class UniChromCDApp(UniDecCDApp):
             mzrange = [float(a[3]), float(a[4])]
             zrange = [float(a[5]), float(a[6])]
 
+            sarray = [float(a[9]), float(a[10]), float(a[11]), float(a[12])]
+            print(sarray)
+
             if "TIC" in label or self.eng.config.demultiplexmode in label or "Mass EIC" in label:
                 continue
-            chromdat = self.eng.get_eic(mzrange, zrange, normalize=self.eng.config.datanorm)
-
-            ht = ht.lower() in ['true', '1', 't', 'y', 'yes', 'yeah']
-
-            self.cc.add_chromatogram(chromdat, color=color, label=label, zrange=zrange, mzrange=mzrange)
-
+            self.add_eic(mzrange, zrange, color=color, label=label, sarray=sarray, plot=False)
+            #ht = ht.lower() in ['true', '1', 't', 'y', 'yes', 'yeah']
         self.plot_chromatograms()
 
     def on_load_chroms(self, e=None):
@@ -477,9 +483,10 @@ class UniChromCDApp(UniDecCDApp):
         """
         for c in self.cc.chromatograms:
             if "TIC" not in c.label:
-                mzrange = c.mzrange
-                zrange = c.zrange
-                newd = self.eng.extract_subdata(mzrange, zrange)
+                if c.sarray is not None and c.sarray[0] != -1:
+                    newd = self.eng.extract_swoop_subdata(c.sarray)
+                else:
+                    newd = self.eng.extract_subdata(c.mzrange, c.zrange)
                 c.dataobj = newd
                 massdat = newd.massdat
                 if not self.view.plot2.flag:
@@ -898,6 +905,17 @@ class UniChromCDApp(UniDecCDApp):
             if c.ccsdat is not None:
                 np.savetxt(newlabel + "_ccs.txt", c.ccsdat)
         print("Saved Files")
+
+    def on_select_swoop(self, e=None):
+        print("SWOOP there it is!")
+        self.eng.sarray = e.sarray
+        self.export_config(self.eng.config.confname)
+        if not wx.GetKeyState(wx.WXK_CONTROL):
+            color = ud.get_color_from_index(len(self.cc.chromatograms))
+            if self.showht or self.showccs:
+                self.run_eic_ht(None, None, color=color, sarray=self.eng.sarray)
+            else:
+                self.add_eic(None, None, color=color, sarray=self.eng.sarray)
 
 
 if __name__ == "__main__":

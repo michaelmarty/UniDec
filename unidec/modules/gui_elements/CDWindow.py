@@ -231,6 +231,7 @@ class CDMainwindow(MainwindowBase):
         if self.htmode:
             self.Bind(self.plot5.EVT_MZLIMITS, self.pres.on_select_massz_range, self.plot5)
             self.Bind(self.plot1.EVT_MZLIMITS, self.pres.on_select_mzz_region, self.plot1)
+            self.Bind(self.plot1.EVT_SWOOP_DRAG, self.pres.on_select_swoop, self.plot1)
 
         self.plots = [self.plot1, self.plot2, self.plot5, self.plot4, self.plot3, self.plot6]
         self.plotnames = ["Figure1", "Figure2", "Figure5", "Figure4", "Figure3", "Figure6"]

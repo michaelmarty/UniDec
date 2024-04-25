@@ -69,7 +69,7 @@ class HTEng:
         self.config.HTtimeshift = 7  # How far back in time to shift
         self.config.HTksmooth = 0  # Kernel Smooth
 
-        #print("HT Engine")
+        # print("HT Engine")
 
     def parse_file_name(self, path):
         """
@@ -177,7 +177,7 @@ class HTEng:
         seqarray[seqarray < -1] = 0
 
         shortkernel = seqarray
-        #print(shortkernel)
+        # print(shortkernel)
 
         # Roll short kernel so that the first 1 is in index 0
         self.kernelroll = -np.argmax(shortkernel)
@@ -202,12 +202,12 @@ class HTEng:
             self.cycleindex = int(cycleindex)
             print("Correction Diff:", diff)
 
-        #print("Cycle Index:", self.cycleindex)
+        # print("Cycle Index:", self.cycleindex)
         self.rollindex = int(-self.shiftindex + self.cycleindex * self.kernelroll)
 
         # Create the HT kernel
         self.htkernel = np.zeros_like(self.fullscans[int(self.padindex):]).astype(float)
-        #print("HT Kernel Length:", len(self.htkernel), "Pad Index:", self.padindex, "Cycle Index:", self.cycleindex,
+        # print("HT Kernel Length:", len(self.htkernel), "Pad Index:", self.padindex, "Cycle Index:", self.cycleindex,
         #      "Shift Index:", self.shiftindex, "Roll Index:", self.rollindex)
 
         index = 0
@@ -361,7 +361,7 @@ class HTEng:
             outdata.append(out)
             # plt.plot(outdata[-1])
         outdata = np.array(outdata)
-        #print('Shape of outdata: ', np.shape(outdata))
+        # print('Shape of outdata: ', np.shape(outdata))
 
         # Calculate number of sign changes per data point
         negcount = np.sum(outdata < 0, axis=0) + 1
@@ -675,6 +675,7 @@ class UniDecCDHT(HTEng, UniDecCD):
         self.ccsstack_ht = None
         self.mz = None
         self.ztab = None
+        self.sarray = None  # Params for swoop selection
 
     def open_file(self, path, refresh=False):
         """
@@ -917,6 +918,77 @@ class UniDecCDHT(HTEng, UniDecCD):
         # print(np.shape(self.decontime), np.shape(self.htoutput))
         return np.transpose([self.decontime, self.htoutput])
 
+    def extract_swoop_subdata(self, sarray):
+        """
+        Extract a subdata object based on the Swoop selection.
+        :param sarray: Swoop array, m/z mid, z mid, z spread (vertical), z width (horizontal)
+        :return: Data Object
+        """
+        # Calculate the Swoop m/z range, zrange, upper charge, and lower charge bounds
+        mz, z, zup, zdown = ud.calc_swoop(sarray, adduct_mass=self.config.adductmass)
+        # Create Boolean array
+        bsum = np.zeros(self.harray.shape)
+        # Loop over all charge states
+        for i, zval in enumerate(z):
+            # For each charge state, filter z values within the bounds
+            b1 = self.ztab >= zdown[i]
+            b2 = self.ztab <= zup[i]
+            bz = b1 & b2
+
+            # Filter m/z values within the bounds of that charge state
+            mzmin, mzmax = ud.get_swoop_mz_minmax(mz, i)
+            b1 = self.mz >= mzmin
+            b2 = self.mz <= mzmax
+            bmz = b1 & b2
+
+            # Take everything that is within the charge and m/z range for that charge state
+            # Add rather than multiple because it's OR for each charge state
+            bsum += np.outer(bz, bmz)
+
+        # Create new data object
+        newd = deepcopy(self.data)
+        # Filter Harray with the boolean array
+        newh2 = self.harray * bsum
+        # Transform and populate the new data object
+        if np.sum(newh2) != 0:
+            newd = self.transform(newh2, newd)
+        # Return data object
+        return newd
+
+    def get_swoop_eic(self, sarray, **kwargs):
+        """
+        Extract an EIC based on the Swoop selection.
+        :param sarray: Swoop array, m/z mid, z mid, z spread (vertical), z width (horizontal)
+        :param kwargs: Keywords to be passed down to create_chrom
+        :return: Data Object
+        """
+        # Calculate the Swoop m/z range, zrange, upper charge, and lower charge bounds
+        mz, z, zup, zdown = ud.calc_swoop(sarray, adduct_mass=self.config.adductmass)
+        # Create Boolean array
+        bsum = np.zeros(len(self.farray))
+        # Loop over all charge states
+        for i, zval in enumerate(z):
+            # For each charge state, filter z values within the bounds
+            b1 = self.zarray >= zdown[i]
+            b2 = self.zarray <= zup[i]
+            bz = b1 & b2
+
+            # Filter m/z values within the bounds of that charge state
+            mzmin, mzmax = ud.get_swoop_mz_minmax(mz, i)
+            b1 = self.farray[:, 0] >= mzmin
+            b2 = self.farray[:, 0] <= mzmax
+            bmz = b1 & b2
+
+            # Take everything that is within the charge and m/z range for that charge state
+            # Add rather than multiple because it's OR for each charge state
+            bsum += bmz * bz
+        # Filter farray
+        farray2 = self.farray[bsum.astype(bool)]
+
+        # Create EIC
+        eic = self.create_chrom(farray2, **kwargs)
+        return eic
+
     def get_eic(self, mzrange, zrange, **kwargs):
         """
         Get the EIC from the farray.
@@ -940,6 +1012,12 @@ class UniDecCDHT(HTEng, UniDecCD):
         return eic
 
     def extract_subdata(self, mzrange, zrange):
+        """
+        Extract a subdata object based on m/z and charge range.
+        :param mzrange: m/z range, [low, high]
+        :param zrange: z range, [low, high]
+        :return: Data Object
+        """
         b1 = self.mz >= mzrange[0]
         b2 = self.mz <= mzrange[1]
         b3 = self.ztab >= zrange[0]
@@ -949,16 +1027,6 @@ class UniDecCDHT(HTEng, UniDecCD):
 
         b3 = np.outer(b2, b)
         newd = deepcopy(self.data)
-        '''newh = np.atleast_2d(self.harray[:, b][b2])
-        
-
-        ztab = np.atleast_1d(self.ztab[b2])
-        mz = np.atleast_1d(self.mz[b])
-        mass = np.atleast_2d(self.mass[:, b][b2])
-
-        if len(ztab) != newh.shape[0]:
-            newh = newh.transpose()
-            mass = mass.transpose()'''
 
         newh2 = self.harray * b3
 
@@ -968,15 +1036,19 @@ class UniDecCDHT(HTEng, UniDecCD):
 
         return newd
 
-    def eic_ht(self, mzrange, zrange, **kwargs):
+    def eic_ht(self, mzrange, zrange, sarray=None, **kwargs):
         """
         Get the EIC and run HT on it.
         :param mzrange: m/z range
         :param zrange: charge range
+        :param sarray: Swoop array, m/z mid, z mid, z spread (vertical), z width (horizontal), default None
         :param kwargs: Keyword arguments. Passed down to create_chrom and htdecon.
         :return: Demultiplexed data output. 2D array (time, intensity)
         """
-        eic = self.get_eic(mzrange, zrange, **kwargs)
+        if sarray is not None and sarray[0] != -1:
+            eic = self.get_swoop_eic(sarray, **kwargs)
+        else:
+            eic = self.get_eic(mzrange, zrange, **kwargs)
         self.setup_demultiplex()
         self.htoutput, eic[:, 1] = self.run_demultiplex(eic[:, 1], **kwargs)
         return np.transpose([self.decontime, self.htoutput]), eic
@@ -1034,7 +1106,7 @@ class UniDecCDHT(HTEng, UniDecCD):
         b1 = self.decontime >= range[0]
         b2 = self.decontime <= range[1]
         b = np.logical_and(b1, b2)
-        substack_ht = np.abs(self.fullhstack_ht[b])
+        substack_ht = np.real(self.fullhstack_ht[b])
         self.harray = np.sum(substack_ht, axis=0)
         self.harray = np.clip(self.harray, 0, np.amax(self.harray))
         self.harray_process()
@@ -1116,7 +1188,7 @@ class UniDecCDHT(HTEng, UniDecCD):
 
         self.mstack_ht, self.fullmstack_ht = self.transform_array(self.fullhstack_ht, dtype=self.dtype)
 
-        self.mass_tic_ht = np.transpose([self.decontime, np.abs(np.sum(self.mstack_ht, axis=1))])
+        self.mass_tic_ht = np.transpose([self.decontime, np.real(np.sum(self.mstack_ht, axis=1))])
 
         if self.config.datanorm == 1:
             norm = np.amax(self.mass_tic_ht[:, 1])
@@ -1275,7 +1347,6 @@ class UniDecCDHT(HTEng, UniDecCD):
             if self.config.FTsmooth > len(ccs_tic):
                 self.config.FTsmooth = len(ccs_tic)
             if len(ccs_tic) > 4:
-
                 print("Smoothing", self.config.FTsmooth)
                 ccs_tic = scipy.signal.savgol_filter(ccs_tic, int(self.config.FTsmooth), 3)
 

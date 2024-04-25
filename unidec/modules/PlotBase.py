@@ -96,7 +96,7 @@ class PlotBase(object):
             self.setup_zoom()
         try:
             self.zoomout()
-        except:
+        except Exception:
             pass
 
     def zoomout(self):
@@ -319,7 +319,7 @@ class PlotBase(object):
                 self.text[i].remove()
                 try:
                     self.lines[i].remove()
-                except:
+                except Exception:
                     print(self.text[i])
         self.text = []
         self.lines = []
@@ -417,6 +417,29 @@ class PlotBase(object):
             print("Saving Data to", path)
             print("Data Dimensions:", self.data.shape)
             np.savetxt(path, self.data)
+
+    def draw_mz_curve(self, sarray, color="y", alpha=0.4, adduct_mass=1, repaint=False):
+        mz_mid, z_mid, z_spread, z_width = sarray
+
+        z_mid = np.round(z_mid)
+        z_width = np.round(z_width)
+        mass = mz_mid * z_mid - adduct_mass * z_mid
+        minz = z_mid - z_width
+        maxz = z_mid + z_width
+        z = np.arange(minz, maxz + 1)
+        mz = (mass + adduct_mass * z) / z
+
+        zup = z + z_spread
+        zdown = z - z_spread
+
+        zup = np.round(zup)
+        zdown = np.round(zdown)
+
+        polyobj = self.subplot1.fill_between(mz, zdown, zup, color=color, alpha=alpha)
+        if repaint:
+            self.repaint()
+
+        return polyobj, sarray
 
     def update_style(self, stylefile=None):
         if stylefile is None:

@@ -46,6 +46,15 @@ class MZLimitsEvent(wx.PyCommandEvent):
         self.minval = minval
         self.maxval = maxval
 
+# Create swoop drag custom event
+SwoopDragEventType = wx.NewEventType()
+EVT_SWOOP_DRAG = wx.PyEventBinder(SwoopDragEventType, 1)
+
+class SwoopDragEvent(wx.PyCommandEvent):
+    def __init__(self, evttype, id, sarray=None):
+        wx.PyCommandEvent.__init__(self, evttype, id)
+        self.sarray = sarray
+
 
 class PlottingWindowBase(PlotBase, wx.Panel):
     """
@@ -71,6 +80,7 @@ class PlottingWindowBase(PlotBase, wx.Panel):
         self.displaysize = wx.GetDisplaySize()
         self.EVT_SCANS_SELECTED = EVT_SCANS_SELECTED
         self.EVT_MZLIMITS = EVT_MZLIMITS
+        self.EVT_SWOOP_DRAG = EVT_SWOOP_DRAG
 
         if "integrate" in kwargs:
             self.int = kwargs["integrate"]
@@ -412,6 +422,10 @@ class PlottingWindowBase(PlotBase, wx.Panel):
         else:
             event = ScanSelectedEvent(ScanSelectedEventType, self.GetId())
             self.GetEventHandler().ProcessEvent(event)
+
+    def on_swoop_drag(self, sarray):
+        event = SwoopDragEvent(SwoopDragEventType, self.GetId(), sarray=sarray)
+        self.GetEventHandler().ProcessEvent(event)
 
 class Plot1d(PlottingWindowBase, Plot1dBase):
     """

@@ -97,6 +97,9 @@ class ZoomBox(ZoomCommon):
         self.canvas = None
         self.visible = True
         self.cids = []
+        self.mzz = None
+        self.mzcurve = None
+        self.sarray = None
 
         self.lflag = 0
 
@@ -258,6 +261,14 @@ class ZoomBox(ZoomCommon):
         if self.comparemode is True:
             self.comparexvals.append(event.xdata)
             self.compareyvals.append(event.ydata)
+
+        if wx.GetKeyState(wx.WXK_SHIFT):
+            # Get the current event x and y
+            x, y = event.xdata, event.ydata
+            self.mzz = [x, y]
+            # print("MZZ", self.mzz)
+        else:
+            self.mzz = None
         return False
 
     def release(self, event):
@@ -265,6 +276,11 @@ class ZoomBox(ZoomCommon):
         if self.eventpress is None or (self.ignore(event) and not self.buttonDown): return
         # Do compare mode stuff
         self.buttonDown = False
+
+        if self.sarray is not None:
+            self.parent.on_swoop_drag(self.sarray)
+            return
+
         if self.comparemode is True:
             if event.xdata is None:
                 try:
@@ -441,6 +457,21 @@ class ZoomBox(ZoomCommon):
         miny, maxy = self.eventpress.ydata, y  # click-y and actual mouse-y
         if minx > maxx: minx, maxx = maxx, minx  # get them in the right order
         if miny > maxy: miny, maxy = maxy, miny
+
+        if self.mzz is not None:
+            spany = maxy - miny
+            minz = self.mzz[0] * self.mzz[1] / maxx
+            maxz = self.mzz[0] * self.mzz[1] / minx
+            zwidth = maxz - minz
+            #print(self.mzz, spany, zwidth)
+            if self.mzcurve is not None:
+                self.mzcurve.remove()
+            sarray = [self.mzz[0], self.mzz[1], spany, zwidth]
+            self.mzcurve, self.sarray = self.parent.draw_mz_curve(sarray)
+            self.canvas.draw()
+            return
+        else:
+            self.sarray = None
 
         # Changes from a yellow box to a colored line
         for axes in self.axes:

@@ -3233,6 +3233,32 @@ def subtract_and_divide(pks, basemass, refguess, outputall=False):
     else:
         return np.average(avgmass, weights=ints)
 
+def calc_swoop(sarray, adduct_mass=1):
+    mz_mid, z_mid, z_spread, z_width = sarray
+    z_mid = np.round(z_mid)
+    z_width = np.round(z_width)
+    mass = mz_mid * z_mid - adduct_mass * z_mid
+    minz = z_mid - z_width
+    maxz = z_mid + z_width
+    z = np.arange(minz, maxz + 1)
+    mz = (mass + adduct_mass * z) / z
+
+    zup = np.round(z + z_spread)
+    zdown = np.round(z - z_spread)
+
+    return mz, z, zup, zdown
+
+def get_swoop_mz_minmax(mz, i):
+    if i == 0:
+        mzmax = mz[i]
+    else:
+        mzmax = (mz[i] + mz[i - 1]) / 2
+    if i == len(mz) - 1:
+        mzmin = mz[i]
+    else:
+        mzmin = (mz[i] + mz[i + 1]) / 2
+    return mzmin, mzmax
+
 
 if __name__ == "__main__":
     testdir = "C:\\Data\\AgilentData"
