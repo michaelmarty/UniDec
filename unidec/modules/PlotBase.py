@@ -4,11 +4,13 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from matplotlib import rcParams
 import matplotlib.cm as cm
+import matplotlib as mpl
 import io
 from matplotlib.backends.backend_svg import FigureCanvasSVG
 # noinspection PyUnresolvedReferences
 import numpy as np
 from unidec.modules.isolated_packages.ZoomCommon import *
+from matplotlib.patches import Rectangle
 
 rcParams['ps.useafm'] = True
 rcParams['ps.fonttype'] = 42
@@ -94,7 +96,7 @@ class PlotBase(object):
             self.setup_zoom()
         try:
             self.zoomout()
-        except:
+        except Exception:
             pass
 
     def zoomout(self):
@@ -247,6 +249,13 @@ class PlotBase(object):
         self.subplot1.plot(np.array(x) / self.kdnorm, y, color=colval, marker=markval, linestyle='None', clip_on=True,
                            markeredgecolor="k", label=label, linewidth=linewidth)
 
+    def add_rect(self, xstart, ystart, xwidth, ywidth, alpha=0.5, facecolor="k", edgecolor='k', nopaint=False):
+        self.subplot1.add_patch(
+            Rectangle((xstart, ystart), xwidth, ywidth, alpha=alpha, facecolor=facecolor, edgecolor=edgecolor,
+                      fill=True))
+        if not nopaint:
+            self.repaint()
+
     def addtext(self, txt, x, y, vlines=True, hlines=False, color="k", ymin=0, ymax=None, verticalalignment="top",
                 xmin=0, xmax=None, nopaint=False, **kwargs):
         """
@@ -310,7 +319,7 @@ class PlotBase(object):
                 self.text[i].remove()
                 try:
                     self.lines[i].remove()
-                except:
+                except Exception:
                     print(self.text[i])
         self.text = []
         self.lines = []
@@ -397,8 +406,46 @@ class PlotBase(object):
         else:
             self.tickcolor = u"white"
 
+    def get_limits(self):
+        xlimits = self.subplot1.get_xlim()
+        ylimits = self.subplot1.get_ylim()
+        print("New limits:", xlimits, ylimits)
+        return np.array(xlimits), np.array(ylimits)
+
     def write_data(self, path):
         if self.data is not None:
             print("Saving Data to", path)
             print("Data Dimensions:", self.data.shape)
             np.savetxt(path, self.data)
+
+    def draw_mz_curve(self, sarray, color="y", alpha=0.4, adduct_mass=1, repaint=False):
+        mz_mid, z_mid, z_spread, z_width = sarray
+
+        z_mid = np.round(z_mid)
+        z_width = np.round(z_width)
+        mass = mz_mid * z_mid - adduct_mass * z_mid
+        minz = z_mid - z_width
+        maxz = z_mid + z_width
+        z = np.arange(minz, maxz + 1)
+        mz = (mass + adduct_mass * z) / z
+
+        zup = z + z_spread
+        zdown = z - z_spread
+
+        zup = np.round(zup)
+        zdown = np.round(zdown)
+
+        polyobj = self.subplot1.fill_between(mz, zdown, zup, color=color, alpha=alpha)
+        if repaint:
+            self.repaint()
+
+        return polyobj, sarray
+
+    def update_style(self, stylefile=None):
+        if stylefile is None:
+            stylefile = self.config.mplstylefile
+        try:
+            mpl.style.use(stylefile)
+        except Exception as e:
+            print(e)
+            print("Failed to load style file:", stylefile)

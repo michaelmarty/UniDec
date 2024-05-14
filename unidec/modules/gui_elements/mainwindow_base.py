@@ -59,6 +59,12 @@ class MainwindowBase(wx.Frame):
         self.displaysize = wx.GetDisplaySize()
         pub.subscribe(self.on_motion, 'newxy')
 
+        recentopenid = wx.NewIdRef()
+        self.Bind(wx.EVT_MENU, self.pres.open_most_recent, id=recentopenid)
+
+        self.defaultshortcuts = [["0", self.pres.open_most_recent, recentopenid]]
+
+
         # Bind to resize event
         # self.Bind(wx.EVT_SIZE, self.onResize)
 
@@ -94,7 +100,7 @@ class MainwindowBase(wx.Frame):
         Setup shortcuts in GUI. Binds key combinations to functions in presenter (self.pres)
         :return: None
         """
-
+        keys += self.defaultshortcuts
         ids = [k[2].GetId() for k in keys]
         tab = []
         for i, k in enumerate(keys):
@@ -360,7 +366,7 @@ class MainwindowBase(wx.Frame):
         """
         dlg = wx.MessageDialog(self,
                                "UniDec GUI version " + self.version +
-                               "\nPlease contact mtmarty@email.arizona.edu with any questions, bugs, or features to add.\n"
+                               "\nPlease contact mtmarty@arizona.edu with any questions, bugs, or features to add.\n"
                                "The latest version may be found at https://github.com/michaelmarty/UniDec/releases.\n"
                                "RawFileReader reading tool. Copyright © 2016 by Thermo Fisher Scientific, Inc. All rights reserved.\n"
                                "If used in publication, please cite Marty et Al. Anal. Chem. 2015, DOI: 10.1021/acs.analchem.5b00140 ",

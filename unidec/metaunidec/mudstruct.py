@@ -64,12 +64,11 @@ class MetaDataSet:
             self.data2 = self.spectra[0].data2
             self.import_vars(hdfobj=hdf)
 
-            try:
-                self.import_grids()
-            except:
-                pass
+            #try:
+            #    self.import_grids()
+            #except:
+            #    pass
         hdf.close()
-
 
     def export_hdf5(self, file=None, vars_only=False, delete=False):
         if file is None:
@@ -363,6 +362,7 @@ class MetaDataSet:
         for i, s in enumerate(self.spectra):
             colors.append(s.color)
         return np.array(colors)
+
 
 class Spectrum:
     def __init__(self, topname, index, eng):

@@ -96,8 +96,9 @@ class AutocorrWindow(wx.Dialog):
         self.massdat = []
         self.plot1 = None
         self.listpanel = None
+        self.window=None
 
-    def initalize_dialog(self, config, massdat):
+    def initalize_dialog(self, config, massdat, window=None):
         """
         Initilizes dialog and the layout. Calls run_autocorr.
         :param config: UniDecConfig object
@@ -106,6 +107,7 @@ class AutocorrWindow(wx.Dialog):
         """
         self.config = config
         self.massdat = massdat
+        self.window=window
 
         panel = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
@@ -141,8 +143,11 @@ class AutocorrWindow(wx.Dialog):
         :param e: Unused event
         :return: None
         """
-        corr, peaks = ud.autocorr(self.massdat, self.config)
-        self.plot1.plotrefreshtop(corr[:, 0], corr[:, 1], "Autocorrelation", "Mass Difference", "", "", self.config)
+        if self.window is not None:
+            corr, peaks = ud.autocorr(self.massdat, config=None, window=self.window)
+        else:
+            corr, peaks = ud.autocorr(self.massdat, self.config)
+        self.plot1.plotrefreshtop(corr[:, 0], corr[:, 1], "Autocorrelation", "Difference", "", "", self.config)
         pks2 = peakstructure.Peaks()
         pks2.add_peaks(peaks, self.config.massbins)
         pks2.default_params()

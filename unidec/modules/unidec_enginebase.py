@@ -6,7 +6,7 @@ import time
 import webbrowser
 from unidec.modules.html_writer import *
 
-version = "6.0.5"
+version = "7.0.0b"
 
 
 def copy_config(config):
@@ -183,7 +183,15 @@ class UniDecEngine:
         badness, warning = self.config.check_badness()
         if warning != "":
             print(warning)
+        self.check_isomode()
         return badness
+
+    def check_isomode(self):
+        if self.config.isotopemode != 0:
+            print("\nIsotope mode is on!!! If you are seeing errors, try turning this off.\n")
+            return True
+        else:
+            return False
 
     def auto_polarity(self, path=None, importer=None):
         if path is None:
@@ -511,7 +519,8 @@ class UniDecEngine:
         if self.config.batchflag == 0:
             tstart = time.perf_counter()
             plot.contourplot(xvals=xdata[:, 0], yvals=ydata, zgrid=zdata, config=config, title="Mass vs. Charge",
-                             test_kda=True)
+                             test_kda=True, repaint=False)
+            plot.repaint(resetzoom=True, setupzoom=True)
             print("Plot 5: %.2gs" % (time.perf_counter() - tstart))
         return plot
 
@@ -532,7 +541,7 @@ class UniDecEngine:
             pks = self.pks
         if config is None:
             config = self.config
-        if config.batchflag == 0 and data.shape[1] == 2 and len(data) >= 2:
+        if config.batchflag == 0 and len(data.shape) > 1 and len(data) >= 2:
             tstart = time.perf_counter()
             plot.plotrefreshtop(data[:, 0], data[:, 1],
                                 "Zero-charge Mass Spectrum", "Mass (Da)",
@@ -546,7 +555,7 @@ class UniDecEngine:
             tend = time.perf_counter()
             if not silent:
                 print("Plot 2: %.2gs" % (tend - tstart))
-        if data.shape[1] != 2 or len(data) < 2:
+        if len(data.shape) < 2 or len(data) < 2:
             print("Data Too Small. Adjust parameters.", data)
         return plot
 
@@ -556,7 +565,7 @@ class UniDecEngine:
         Will plot dots at peak positions.
         If possible, will plot full isolated spectra.
         :param plot: Plot object. Default is None, which will set plot to creating a new plot
-        :param data: 2D data with mass in the first column and intensity in the second. Default is self.data.massdat
+        :param data: 2D data with m/z in the first column and intensity in the second. Default is self.data.data2
         :param pks: Peaks object. Default is self.pks
         :param config: Config objet. Default is self.config
         :return plot: The Plot object
@@ -631,7 +640,7 @@ class UniDecEngine:
         peaks_df = self.pks.to_df()
         colors = [p.color for p in self.pks.peaks]
 
-        if del_columns is not None:
+        if del_columns is not None and len(peaks_df) != 0:
             peaks_df = peaks_df.drop(del_columns, axis=1)
 
         if len(peaks_df) > 0:
@@ -683,7 +692,8 @@ class UniDecEngine:
             for f in figure_list:
                 try:
                     self.html_str += fig_to_html_mpld3(f, outfile)
-                except Exception:
+                except Exception as e:
+                    print("Unable to create interactive figures", e)
                     pass
 
         # Write results string paragraph

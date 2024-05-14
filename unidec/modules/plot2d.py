@@ -184,7 +184,6 @@ class Plot2dBase(PlotBase):
                 cax = self.subplot1.imshow(np.transpose(newgrid), origin="lower", cmap=self.cmap, extent=extent,
                                            aspect='auto', norm=norm, interpolation='nearest')
             datalims = [extent[0], extent[2], extent[1], extent[3]]
-            print(newgrid.shape)
         # Set X and Y axis labels
         self.subplot1.set_xlabel(self.xlabel)
         self.subplot1.set_ylabel(self.ylabel)

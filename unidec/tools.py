@@ -20,6 +20,7 @@ from scipy import fftpack
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 from unidec.modules.fitting import *
+from itertools import cycle
 
 try:
     from unidec.modules.mzMLimporter import mzMLimporter
@@ -52,6 +53,16 @@ oxmass = 15.994914
 
 known_extensions = [".raw", ".d", ".mzml", ".gz", ".mzml.gz", ".mzxml", ".mzML", ".mzML.gz", ".mzXML",
                     ".txt", ".csv", ".dat", ".npz"]
+
+HTseqDict = {'2': '101', '3': '1110100', '4': '000100110101111', '5': '0000100101100111110001101110101',
+             '6': '000001000011000101001111010001110010010110111011001101010111111',
+             '7': '0000001000001100001010001111001000101100111010100111110100001110001001001101101011011110110001101001011101110011001010101111111',
+             '8': '000000010111000111011110001011001101100001111001110000101011111111001011110100101000011011101101111101011101000001100101010100011010110001100000100101101101010011010011111101110011001111011001000010000001110010010011000100111010101101000100010100100011111',
+             '-2': '010', '-3': '0001011', '-4': '111011001010000', '-5': '1111011010011000001110010001010',
+             '-103': '0010111', '-105': '1010111011000111110011010010000'
+
+
+             }
 
 
 def get_importer(path):
@@ -132,6 +143,24 @@ def get_luminance(color, type=2):
     l3 = np.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b)
     larray = [l1, l2, l3]
     return larray[type]
+
+
+def create_color_cycle(seq='bgrcmk'):
+    cycol = cycle(seq)
+    return cycol
+
+
+def get_color_from_index(index, seq="custom1"):
+    if seq == "tab":
+        carray = colors.TABLEAU_COLORS.keys()
+    elif seq == "custom1":
+        carray = ["purple", "blue", "dodgerblue", "cyan", "green", "lime", "gold", "orange", "coral", "red", "magenta"]
+    else:
+        carray = cm.get_cmap(seq).colors
+    color = list(carray)[index % len(carray)]
+    return color
+
+
 
 
 def match_files(directory, string, exclude=None):
@@ -1561,7 +1590,7 @@ def linear_interpolation(x1, x2, x):
     return float(x - x1) / float(x2 - x1)
 
 
-def lintegrate(datatop, intx):
+def lintegrate(datatop, intx, fastmode=False):
     """
     Linearize x-axis by integration.
 
@@ -1570,27 +1599,33 @@ def lintegrate(datatop, intx):
     The total sum of the intensity values should be constant.
     :param datatop: Data array
     :param intx: New x-axis for data
+    :param fastmode: If True, uses a faster but less accurate method of integration that just picks the nearest point.
     :return: Integration of intensity from original data onto the new x-axis.
     Same shape as the old data but new length.
     """
     length = len(datatop)
+    l2 = len(intx)
     inty = np.zeros_like(intx)
     for i in range(0, length):
-        if intx[0] < datatop[i, 0] < intx[len(intx) - 1]:
-            index = nearest(intx, datatop[i, 0])
-            # inty[index]+=datatop[i,1]
-            if intx[index] == datatop[i, 0]:
-                inty[index] += datatop[i, 1]
-            if intx[index] < datatop[i, 0] and index < length - 1:
-                index2 = index + 1
-                interpos = linear_interpolation(intx[index], intx[index2], datatop[i, 0])
-                inty[index] += (1 - interpos) * datatop[i, 1]
-                inty[index2] += interpos * datatop[i, 1]
-            if intx[index] > datatop[i, 0] and index > 0:
-                index2 = index - 1
-                interpos = linear_interpolation(intx[index], intx[index2], datatop[i, 0])
-                inty[index] += (1 - interpos) * datatop[i, 1]
-                inty[index2] += interpos * datatop[i, 1]
+        x = datatop[i, 0]
+        y = datatop[i, 1]
+        if intx[0] < x < intx[len(intx) - 1]:
+            index = nearest(intx, x)
+            if fastmode:
+                inty[index] += y
+            else:
+                if intx[index] == x:
+                    inty[index] += y
+                elif intx[index] < x and index < l2 - 1:
+                    index2 = index + 1
+                    interpos = linear_interpolation(intx[index], intx[index2], x)
+                    inty[index] += (1 - interpos) * y
+                    inty[index2] += interpos * y
+                elif intx[index] > x and index > 0:
+                    index2 = index - 1
+                    interpos = linear_interpolation(intx[index], intx[index2], x)
+                    inty[index] += (1 - interpos) * y
+                    inty[index2] += interpos * y
     newdat = np.column_stack((intx, inty))
     return newdat
 
@@ -1696,7 +1731,7 @@ def normalize(datatop):
     try:
         maxval = np.amax(datatop[:, 1])
         datatop[:, 1] = datatop[:, 1] / maxval
-    except:
+    except Exception as e:
         pass
     return datatop
 
@@ -1885,6 +1920,24 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
 # ............................................................................
 
 
+def exe_call(call, silent=False):
+    """
+    Run the  binary specified in the call.
+    If silent is False (default), the output from exepath will be printed to the standard out.
+    If silent is True, the output is suppressed.
+
+    :param call: Call arguments to be passed ot the shell
+    :param silent: Whether to print the output of exepath to the standard out
+    :return: Standard error of exepath execution
+    """
+    print("System Call:", call)
+    result = subprocess.run(call, shell=False, capture_output=True, text=True)
+    out = result.returncode
+    if not silent:
+        print(result.stdout)
+    return out
+
+
 def unidec_call(config, silent=False, conv=False, **kwargs):
     """
     Run the unidec binary specified by exepath with the configuration file specified by configfile.
@@ -1895,8 +1948,7 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
 
     unidec.exe conf.dat
 
-    :param exepath: Path to unidec or UniDecIM binary
-    :param configfile: Path to configuration file
+    :param config: Config object
     :param silent: Whether to print the output of exepath to the standard out
     :param conv: Whether to call the convolution function only rather than the standard deconvolution
     :param kwargs:
@@ -1911,10 +1963,7 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     if conv:
         call.append("-conv")
 
-    if silent:
-        out = subprocess.call(call, stdout=subprocess.PIPE)
-    else:
-        out = subprocess.call(call)
+    out = exe_call(call, silent=silent)
     return out
 
 
@@ -1929,13 +1978,23 @@ def peakdetect(data, config=None, window=10, threshold=0, ppm=None, norm=True):
 
     :param data: Mass data array (N x 2) (mass intensity)
     :param config: UniDecConfig object
+    :param window: Tolerance window of the x values
+    :param threshold: Threshold of the y values
+    :param ppm: Tolerance window in ppm
+    :param norm: Whether to normalize the data before peak detection
     :return: Array of peaks positions and intensities (P x 2) (mass intensity)
     """
     if config is not None:
         window = config.peakwindow / config.massbins
         threshold = config.peakthresh
+        norm = config.normthresh
+
     peaks = []
     length = len(data)
+    shape = np.shape(data)
+    if length == 0 or shape[1] != 2:
+        return np.array(peaks)
+
     if norm:
         maxval = np.amax(data[:, 1])
     else:
@@ -2534,11 +2593,12 @@ def continuous_wavelet_transform(a, widths, wavelet_type="Ricker"):
     return signal.cwt(a, wavelet, widths)
 
 
-def autocorr(datatop, config=None):
+def autocorr(datatop, config=None, window=10):
     """
     Note: ASSUMES LINEARIZED DATA
     :param datatop: 1D data
     :param config: Config file (optional file)
+    :param window: Window for peak detection, default 10 data points
     :return: Autocorr spectrum, peaks in autocorrelation.
     """
     corry = signal.fftconvolve(datatop[:, 1], datatop[:, 1][::-1], mode='same')
@@ -2559,7 +2619,7 @@ def autocorr(datatop, config=None):
         corrx = corrx - corrx[maxpos]
         autocorr = np.transpose([corrx, corry])
         boo1 = autocorr[:, 0] > xdiff
-        cpeaks = peakdetect(autocorr[boo1], config)
+        cpeaks = peakdetect(autocorr[boo1], config, window=window)
         return autocorr, cpeaks
 
     else:
@@ -3173,21 +3233,46 @@ def subtract_and_divide(pks, basemass, refguess, outputall=False):
     else:
         return np.average(avgmass, weights=ints)
 
+def calc_swoop(sarray, adduct_mass=1):
+    mz_mid, z_mid, z_spread, z_width = sarray
+    z_mid = np.round(z_mid)
+    z_width = np.round(z_width)
+    mass = mz_mid * z_mid - adduct_mass * z_mid
+    minz = z_mid - z_width
+    maxz = z_mid + z_width
+    z = np.arange(minz, maxz + 1)
+    mz = (mass + adduct_mass * z) / z
+
+    zup = np.round(z + z_spread)
+    zdown = np.round(z - z_spread)
+
+    return mz, z, zup, zdown
+
+def get_swoop_mz_minmax(mz, i):
+    if i == 0:
+        mzmax = mz[i]
+    else:
+        mzmax = (mz[i] + mz[i - 1]) / 2
+    if i == len(mz) - 1:
+        mzmin = mz[i]
+    else:
+        mzmin = (mz[i] + mz[i + 1]) / 2
+    return mzmin, mzmax
+
 
 if __name__ == "__main__":
     testdir = "C:\\Data\\AgilentData"
     testfile = "LYZ-F319-2-11-22-P1-A1.D"
-    #testfile = "2019_05_15_bsa_ccs_02.d"
+    # testfile = "2019_05_15_bsa_ccs_02.d"
     path = os.path.join(testdir, testfile)
 
     data = load_mz_file(path)
-
 
     exit()
     testfile = "C:\Python\\UniDec3\\TestSpectra\\test_imms.raw"
     # data = waters_convert(testfile)
     # print(np.amax(data))
-    data = waters_convert2(testfile)#, time_range=[0,1])
+    data = waters_convert2(testfile)  # , time_range=[0,1])
     # print(np.amax(data))
     print(data)
     exit()

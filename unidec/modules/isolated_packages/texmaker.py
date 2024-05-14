@@ -4,11 +4,11 @@ Created on Wed Apr 02 15:52:23 2014
 
 @author: Michael.Marty
 """
-import subprocess
 import time
 import numpy as np
 import os
 from copy import deepcopy
+import unidec.tools as ud
 
 
 # import os
@@ -151,9 +151,9 @@ def PDFTexReport(fname):
     if os.path.isfile(path):
         call = [path, str(fname),"-halt-on-error"]
         print(call)
-        subprocess.call(call)
+        ud.exe_call(call)
     else:
         call = ["pdflatex", str(fname), "-halt-on-error"]
         print(call)
-        subprocess.call(call)
+        ud.exe_call(call)
     os.chdir(oldpath)

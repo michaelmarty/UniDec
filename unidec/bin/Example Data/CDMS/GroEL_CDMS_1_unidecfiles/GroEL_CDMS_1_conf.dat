@@ -1,4 +1,4 @@
-version 6.0.3
+version 7.0.0b
 imflag 0
 cdmsflag 1
 input C:\Python\UniDec3\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat
@@ -21,8 +21,8 @@ msig 0.0
 molig 0.0
 massbins 10.0
 mtabsig 0.0
-minmz 10017.040865384615
-maxmz 12598.242788461539
+minmz 9992.689903846154
+maxmz 12573.891826923078
 subbuff 0.0
 subtype 0
 smooth 0.0
@@ -61,6 +61,24 @@ kernel
 CDslope 0.2074
 CDzbins 1.0
 CDres 1.0
+CDScanStart 
+CDScanEnd 
+HTksmooth 0.0
+CDScanCompress 0.0
+HTmaxscans -1.0
+HTtimepad 0.0
+HTanalysistime 38.0
+HTxaxis Time
+HTcycleindex -1.0
+HTcylctime 2.0
+HTtimeshift 7.0
+htbit 0.0
+FTstart 5.0
+FTend 1000.0
+FTflatten 1
+FTapodize 1
+demultiplexmode HT
+FTsmooth 0.0
 csig 4.0
 smoothdt 0.0
 subbufdt 0.0

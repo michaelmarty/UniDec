@@ -5,7 +5,6 @@ import shutil
 import sys
 import getopt
 from copy import deepcopy
-import subprocess
 import zipfile
 import fnmatch
 import numpy as np
@@ -90,10 +89,11 @@ class UniDec(UniDecEngine):
         If it finds a _conf.dat file in _unidecfiles, it will import the old configuration.
         Otherwise, it keeps the existing configuration but resets file names.
 
-        If silent=True is passed in **kwargs, prints are suppressed.
-
-        :param: file_name: Name of file to open. May be in  x y or x y z text format or in mzML format. May be tab or space delimited
-        :param file_directory: Directory in which filename is located. Default is current directory. If None, will get from file_name.
+        If silent=True is passed in kwargs, prints are suppressed.
+        :param: file_name: Name of file to open.
+        May be in  x y or x y z text format or in mzML format. May be tab or space delimited
+        :param file_directory: Directory in which filename is located.
+        Default is current directory. If None, will get from file_name.
         :param time_range: Array or tuple of (start, end) times to load from data file. Default is to load all.
         :param refresh: If True, will refresh the data file even if it already exists.
         :param load_results: If True, will load the results from the _unidecfiles directory.
@@ -207,14 +207,13 @@ class UniDec(UniDecEngine):
     def raw_process(self, dirname, inflag=False, binsize=1):
         """
         Processes Water's Raw files into .txt using external calls to:
-            self.config.cdcreaderpath for IM-MS
+        self.config.cdcreaderpath for IM-MS
 
         MS is processed by modules.waters_importer.Importer
 
         Default files are created with the header of the .raw file plus:
-            _rawdata.txt for MS
-            _imraw.txt for IM-MS
-
+        _rawdata.txt for MS
+        _imraw.txt for IM-MS
         :param dirname: .raw directory name
         :param inflag: If True, it will put the output .txt file inside the existing .raw directory. If False, it will
         put the file in the same directory that contains the .raw directory
@@ -255,8 +254,7 @@ class UniDec(UniDecEngine):
                     if self.config.imflag == 0:
                         # print("Testing: ", newfilepath)
                         ud.waters_convert2(self.config.dirname, config=self.config, outfile=newfilepath)
-                        # result = subprocess.call(
-                        #    [self.config.rawreaderpath, "-i", self.config.dirname, "-o", newfilepath])
+
                         self.config.filename = newfilename
                         if os.path.isfile(newfilepath):
                             print("Converted data from raw to txt")
@@ -268,7 +266,8 @@ class UniDec(UniDecEngine):
                                 newfilepath[:-10] + "_msraw.txt", '-i', newfilepath, '--ms_bin', binsize,
                                 "--ms_smooth_window", "0", "--ms_number_smooth", "0", "--im_bin", binsize, "--sparse",
                                 "1"]
-                        result = subprocess.call(call)
+                        result = ud.exe_call(call)
+
                         self.config.filename = newfilename
                         if result == 0 and os.path.isfile(newfilepath):
                             print("Converted IM data from raw to txt")
@@ -509,7 +508,10 @@ class UniDec(UniDecEngine):
         if len(peaks) > 0:
             self.setup_peaks(peaks)
             if calc_dscore:
-                self.dscore()
+                try:
+                    self.dscore()
+                except:
+                    pass
         else:
             print("No peaks detected", peaks, self.config.peakwindow, self.config.peakthresh)
             print("Mass Data:", self.data.massdat)
@@ -785,8 +787,12 @@ class UniDec(UniDecEngine):
 
             peakparams = []
             for i in range(0, len(peaks)):
-                avg = np.average(self.data.ztab, weights=mztab[i, :, 1])
-                std = np.sqrt(np.average((np.array(self.data.ztab) - avg) ** 2, weights=mztab[i, :, 1]))
+                try:
+                    avg = np.average(self.data.ztab, weights=mztab[i, :, 1])
+                    std = np.sqrt(np.average((np.array(self.data.ztab) - avg) ** 2, weights=mztab[i, :, 1]))
+                except:
+                    avg = -1
+                    std = -1
                 p = self.pks.peaks[i]
                 if e == "PostFit":
                     peakparams.append(
@@ -988,11 +994,15 @@ class UniDec(UniDecEngine):
     def normalize_peaks(self):
         """
         Noamlize everything in the peaks accoring to the type set in self.config.peaknorm
-            0 = No normalization
-            1 = Normalize the max value to 1
-            2 = Normalize the sum to 1
+        0 = No normalization
+        1 = Normalize the max value to 1
+        2 = Normalize the sum to 1
         :return: None
         """
+        if len(self.pks.peaks) == 0:
+            print("No Peaks Detected")
+            return
+
         integrals = np.array([p.integral for p in self.pks.peaks])
         heights = np.array([p.height for p in self.pks.peaks])
         # corrints = np.array([p.corrint for p in self.pks.peaks])
@@ -1535,11 +1545,12 @@ if __name__ == "__main__":
     # eng.run_unidec(silent=False)
 
     eng.open_file(filename, path, load_results=True)
-    eng.match()
+    # eng.match()
+    eng.run_unidec()
     # plot = eng.makeplot2()
     # os.chdir(path)
     # plot.save_figure("test.png")
-    eng.gen_html_report()
+    # eng.gen_html_report()
     # eng.pick_peaks()
 
     # eng.pick_peaks()

@@ -121,13 +121,24 @@ class UniDecCD(engine.UniDec):
         self.config.mzbins = 1
         self.config.rawflag = 1
         self.config.poolflag = 1
-        self.exemode=True
+        self.exemode = True
+        self.massaxis = None
+        self.invinjtime = None
         pass
 
     def exe_mode(self, exemode=True):
-        self.exemode=exemode
+        self.exemode = exemode
 
     def open_file(self, path, refresh=False):
+        """
+        Passthrough function for opening CD-MS files. Calls self.open_cdms_file.
+        :param path: File path
+        :param refresh: Whether to refresh file
+        :return: None
+        """
+        self.open_cdms_file(path, refresh=refresh)
+
+    def open_cdms_file(self, path, refresh=False):
         """
         Main function for opening CD-MS files. Supports Thermo Raw, mzML, text, binary, and numpy compressed.
 
@@ -165,6 +176,7 @@ class UniDecCD(engine.UniDec):
 
         # Get the extension
         extension = os.path.splitext(self.path)[1]
+        self.invinjtime = None
 
         if extension.lower() == ".raw":
             # Import Thermo Raw file using ThermoDataImporter
@@ -179,6 +191,7 @@ class UniDecCD(engine.UniDec):
             self.res = self.TDI.msrun.resolution
             # Set flag for correcting injection times later
             self.thermodata = True
+            self.invinjtime = 1./self.it
 
         elif extension.lower() == ".i2ms" or extension.lower() == ".dmt":
             # Import Thermo Raw file using ThermoDataImporter
@@ -191,6 +204,8 @@ class UniDecCD(engine.UniDec):
             scans = self.I2MSI.scans
             # Set flag for correcting injection times later
             self.thermodata = False
+            # Set the inverse injection time array for DMT data
+            self.invinjtime = self.I2MSI.invinjtime
 
         elif extension.lower() == ".mzml" or extension.lower() == ".gz":
             # Import mzML data, scans, and injection time
@@ -199,6 +214,7 @@ class UniDecCD(engine.UniDec):
             data = self.MLI.grab_data(threshold=0)
             self.scans = self.MLI.scans
             self.it = self.MLI.get_inj_time_array()
+            self.invinjtime = 1./self.it
             self.thermodata = True
 
         elif extension.lower() == ".txt":
@@ -212,9 +228,13 @@ class UniDecCD(engine.UniDec):
                 # Look for scans in column 3
                 try:
                     scans = data[:, 2]
-                except:
+                except Exception:
                     # If not found, assume all are scan 1
                     scans = np.ones_like(mz)
+                try:
+                    self.invinjtime = data[:, 3]
+                except Exception:
+                    self.invinjtime = None
             except:
                 # More complex text file from Jarrold Lab
                 data = np.genfromtxt(path, dtype=np.str, comments=None)
@@ -225,6 +245,7 @@ class UniDecCD(engine.UniDec):
                 mz = data[1:, mzcol].astype(float)
                 intensity = data[1:, intcol].astype(float)
                 scans = np.arange(len(mz))
+                self.invinjtime = None
             # Don't do post-processing for thermo data
             self.thermodata = False
 
@@ -237,9 +258,13 @@ class UniDecCD(engine.UniDec):
             # Look for scans in column 3
             try:
                 scans = data[:, 2]
-            except:
+            except Exception:
                 # If not found, assume all are scan 1
                 scans = np.ones_like(mz)
+            try:
+                self.invinjtime = data[:, 3]
+            except Exception:
+                self.invinjtime = None
             # Don't do post-processing for thermo data
             self.thermodata = False
 
@@ -248,7 +273,7 @@ class UniDecCD(engine.UniDec):
             data = np.fromfile(self.path)
             try:
                 data = data.reshape((int(len(data) / 3), 3))
-            except:
+            except Exception:
                 data = data.reshape((int(len(data) / 2)), 2)
             # Assume m/z is in column 1 and intensity column 2
             mz = data[:, 0]
@@ -259,6 +284,10 @@ class UniDecCD(engine.UniDec):
             except:
                 # If not found, assume all are scan 1
                 scans = np.ones_like(mz)
+            try:
+                self.invinjtime = data[:, 3]
+            except Exception:
+                self.invinjtime = None
             # Don't do post-processing for thermo data
             self.thermodata = False
 
@@ -271,15 +300,20 @@ class UniDecCD(engine.UniDec):
             # Look for scans in column 3
             try:
                 scans = data[:, 2]
-            except:
+            except Exception:
                 # If not found, assume all are scan 1
                 scans = np.ones_like(mz)
+            try:
+                self.invinjtime = data[:, 3]
+            except Exception:
+                self.invinjtime = None
             # Don't do post-processing for thermo data
             self.thermodata = False
 
         else:
             print("Unrecognized file type:", self.path)
             return 0
+
         print("File Read. Length: ", len(data))
         # Post processing if data is from raw or mzML
         # Ignored if text file input
@@ -288,12 +322,15 @@ class UniDecCD(engine.UniDec):
             mz = np.concatenate([d[:, 0] for d in data])
             try:
                 intensity = np.concatenate([d[:, 1] * self.it[i] / 1000. for i, d in enumerate(data)])
-            except:
-                print(self.it)
+            except Exception as e:
+                print(e, self.it)
                 intensity = np.concatenate([d[:, 1] for i, d in enumerate(data)])
 
+        if self.invinjtime is None:
+            self.invinjtime = np.ones_like(scans)
+
         # Create data array
-        self.darray = np.transpose([mz, intensity, scans])
+        self.darray = np.transpose([mz, intensity, scans, self.invinjtime])
         # Filter out only the data with positive intensities
         boo1 = self.darray[:, 1] > 0
         self.darray = self.darray[boo1]
@@ -409,29 +446,61 @@ class UniDecCD(engine.UniDec):
         # Copy filtered array and delete peaks.
         self.farray = deepcopy(self.darray)
         self.pks = peakstructure.Peaks()
+
+        # Filter Scans
+        try:
+            if int(self.config.CDScanStart) > 0:
+                self.farray = self.farray[self.farray[:, 2] > self.config.CDScanStart]
+        except:
+            pass
+        try:
+            if int(self.config.CDScanEnd) > 0:
+                self.farray = self.farray[self.farray[:, 2] < self.config.CDScanEnd]
+        except:
+            pass
+
+        # Compress Scans
+        if self.config.CDScanCompress > 1:
+            self.farray[:, 2] = np.floor(self.farray[:, 2] / self.config.CDScanCompress)
+
+        # Filter m/z
         print("Filtering m/z range:", self.config.minmz, self.config.maxmz, "Start Length:", len(self.farray))
-        self.filter_mz(mzrange=[self.config.minmz, self.config.maxmz])
+        self.filter_mz(mzrange=np.abs([self.config.minmz, self.config.maxmz]))
+
+        # Filter Centroids
         print("Filtering centroids:", self.config.CDres, "Start Length:", len(self.farray))
         self.filter_centroid_all(self.config.CDres)
-        print("Filtering Charge range:", self.config.startz, self.config.endz, "Start Length:", len(self.farray))
-        self.filter_z(zrange=[self.config.startz, self.config.endz + 1])
 
+        # Filter Charge States
+        print("Filtering Charge range:", self.config.startz, self.config.endz, "Start Length:", len(self.farray))
+        self.filter_z(zrange=np.abs([self.config.startz, self.config.endz + 1]))
+
+        # Convert intensity to charge
         print("Converting From Intensity to Charge. Slope:", self.config.CDslope, "Start Length:", len(self.farray))
         self.convert(slope=self.config.CDslope)
 
+        # Create Histogram
         print("Creating Histogram Bins:", self.config.mzbins, self.config.CDzbins, "Start Length:", len(self.farray))
         self.histogram(mzbins=self.config.mzbins, zbins=self.config.CDzbins)
 
         if len(self.harray) > 0:
-            self.hist_data_prep()
-            print("Transforming m/z to mass:", self.config.massbins, "Start Length:", len(self.farray))
-            if transform:
-                self.transform()
-                self.unprocessed = deepcopy(self.data.massdat)
+            self.harray = self.hist_data_prep()
+            self.harray_process(transform=transform)
+
         else:
             print("ERROR: Empty histogram array on process")
             return 0
         print("Process Time:", time.perf_counter() - starttime)
+
+    def harray_process(self, transform=True):
+        self.data.data2 = np.transpose([self.mz, np.sum(self.harray, axis=0)])
+        np.savetxt(self.config.infname, self.data.data2)
+
+        print("Transforming m/z to mass:", self.config.massbins, "Start Length:", len(self.farray))
+        if transform:
+            self.transform()
+            np.savetxt(self.config.massdatfile, self.data.massdat)
+            self.unprocessed = deepcopy(self.data.massdat)
 
     def filter_int(self, int_range):
         """
@@ -538,9 +607,17 @@ class UniDecCD(engine.UniDec):
             return 0
 
         if mzrange is None:
-            mzrange = [np.floor(np.amin(x)), np.amax(x)]
+            mzrange = np.array([self.config.minmz, self.config.maxmz])
+            if np.any(mzrange < 0):
+                mzrange = np.abs(mzrange)
+            else:
+                mzrange = [np.floor(np.amin(x)), np.amax(x)]
         if zrange is None:
-            zrange = [np.floor(np.amin(y)), np.amax(y)]
+            zrange = np.array([self.config.startz, self.config.endz + 1])
+            if np.any(zrange < 0):
+                zrange = np.abs(zrange)
+            else:
+                zrange = np.array([np.floor(np.amin(y)), np.ceil(np.amax(y))])
 
         mzaxis = np.arange(mzrange[0] - mzbins / 2., mzrange[1] + mzbins / 2, mzbins)
         # Weird fix to make this axis even is necessary for CuPy fft for some reason...
@@ -548,7 +625,13 @@ class UniDecCD(engine.UniDec):
             mzaxis = np.arange(mzrange[0] - mzbins / 2., mzrange[1] + 3 * mzbins / 2, mzbins)
         zaxis = np.arange(zrange[0] - zbins / 2., zrange[1] + zbins / 2, zbins)
 
-        self.harray, self.mz, self.ztab = np.histogram2d(x, y, [mzaxis, zaxis])
+        if self.config.CDiitflag and self.invinjtime is not None:
+            weights = self.farray[:, 3]
+            print("Using weighted hist", np.mean(weights), np.amin(weights), np.amax(weights))
+        else:
+            weights = None
+
+        self.harray, self.mz, self.ztab = np.histogram2d(x, y, [mzaxis, zaxis], weights=weights)
 
         self.mz = self.mz[1:] - mzbins / 2.
         self.ztab = self.ztab[1:] - zbins / 2.
@@ -567,39 +650,48 @@ class UniDecCD(engine.UniDec):
         self.data.data3 = np.transpose([np.ravel(self.X, order="F"), np.ravel(self.Y, order="F"),
                                         np.ravel(self.harray, order="F")])
 
-    def hist_data_prep(self):
+    def hist_data_prep(self, harray=None):
+        if harray is None:
+            harray = self.harray
         if self.config.smooth > 0 or self.config.smoothdt > 0:
             print("Histogram Smoothing:", self.config.smooth, self.config.smoothdt)
-            self.harray = IM_functions.smooth_2d(self.harray, self.config.smoothdt, self.config.smooth)
+            harray = IM_functions.smooth_2d(harray, self.config.smoothdt, self.config.smooth)
 
         if self.config.intthresh > 0:
             print("Histogram Intensity Threshold:", self.config.intthresh)
-            self.hist_int_threshold(self.config.intthresh)
+            harray = self.hist_int_threshold(harray, self.config.intthresh)
         if self.config.reductionpercent > 0:
             print("Histogram Data Reduction:", self.config.reductionpercent)
-            self.hist_datareduction(self.config.reductionpercent)
+            harray = self.hist_datareduction(harray, self.config.reductionpercent)
 
         if self.config.subbuff > 0 or self.config.subbufdt > 0:
             print("Histogram Background Subtraction:", self.config.subbuff, self.config.subbufdt)
-            self.harray = IM_functions.subtract_complex_2d(self.harray.transpose(), self.config).transpose()
+            harray = IM_functions.subtract_complex_2d(harray.transpose(), self.config).transpose()
 
-        self.harray = self.hist_filter_smash()
+        harray = self.hist_filter_smash(harray)
 
-        self.data.data2 = np.transpose([self.mz, np.sum(self.harray, axis=0)])
-        np.savetxt(self.config.infname, self.data.data2)
-        pass
+        return harray
 
-    def hist_int_threshold(self, int_threshold):
-        boo1 = self.harray > int_threshold
-        self.harray *= boo1
+    def hist_int_threshold(self, harray, int_threshold):
+        """
+        Filter the harray to include only intensities above the int_threshold.
 
-    def hist_datareduction(self, red_per):
-        sdat = np.sort(np.ravel(self.harray))
+        :param harray: 2D numpy array to be filtered
+        :param int_threshold: Intensity threshold
+        :return: harray, the filtered 2D numpy array
+        """
+        boo1 = harray > int_threshold
+        harray *= boo1
+        return harray
+
+    def hist_datareduction(self, harray, red_per):
+        sdat = np.sort(np.ravel(harray))
         index = round(len(sdat) * red_per / 100.)
         cutoff = sdat[index]
-        self.hist_int_threshold(cutoff)
+        harray = self.hist_int_threshold(harray, cutoff)
+        return harray
 
-    def hist_mass_filter(self, massrange=None):
+    def hist_mass_filter(self, harray, massrange=None):
         # Get values from config if not supplied
         if massrange is None:
             massrange = [self.config.masslb, self.config.massub]
@@ -609,10 +701,10 @@ class UniDecCD(engine.UniDec):
         boo2 = self.mass > massrange[1]
         boo3 = np.logical_or(boo1, boo2)
         # Set values outside range to 0
-        self.harray[boo3] = 0
-        return self.harray
+        harray[boo3] = 0
+        return harray
 
-    def hist_filter_smash(self, smashrange=None):
+    def hist_filter_smash(self, harray, smashrange=None):
         """
         Smashes the range region to 0. Used to eliminate unwanted peaks.
         :return: None
@@ -630,7 +722,7 @@ class UniDecCD(engine.UniDec):
             boo3 = np.logical_and(boo1, boo2)
             print(boo3.shape)
             # Set values outside range to 0
-            self.harray[boo3] = 0
+            harray[boo3] = 0
 
         if not ud.isempty(self.config.smashlist) and self.config.smashflag == 1:
             print("Smashing: ", self.config.smashlist)
@@ -648,8 +740,8 @@ class UniDecCD(engine.UniDec):
                 boo3 = np.logical_and(boo3, boo4)
 
                 # Set values outside range to 0
-                self.harray[boo3] = 0
-        return self.harray
+                harray[boo3] = 0
+        return harray
 
     def hist_nativeZ_filter(self, nativeZrange=None):
         # Get values from config if not supplied
@@ -669,53 +761,85 @@ class UniDecCD(engine.UniDec):
             # Set values outside range to 0
             self.harray[boo3] = 0
 
-    def transform(self):
-        # Test for if array is empty and error if so
-        if len(self.harray) == 0:
-            print("ERROR: Empty histogram array on transform")
-            return 0
+    def create_mass_axis(self, harray=None, mass=None):
+        if harray is None:
+            harray = self.harray
+        if mass is None:
+            mass = self.mass
 
         # filter out zeros
-        self.harray = np.array(self.harray)
-        boo1 = self.harray > 0
-        mass = self.mass[boo1]
+        harray = np.array(harray)
+        boo1 = harray > 0
+        mass = mass[boo1]
 
         # Test for if array is empty and error if so
         if ud.isempty(mass):
             print("ERROR: Empty histogram array on transform")
             return 0
-
         # Find the max and min and create the new linear mass axis
         minval = np.amax([np.amin(mass) - self.config.massbins * 3, self.config.masslb])
         maxval = np.amin([np.amax(mass) + self.config.massbins * 3, self.config.massub])
         minval = round(minval / self.config.massbins) * self.config.massbins  # To prevent weird decimals
         massaxis = np.arange(minval, maxval, self.config.massbins)
+        return massaxis
+
+    def transform(self, harray=None, dataobj=None, ztab=None, mass=None, mz=None):
+        if harray is None:
+            harray = self.harray
+        if dataobj is None:
+            dataobj = self.data
+            flag = True
+        else:
+            flag = False
+        if ztab is None:
+            ztab = self.ztab
+        if mass is None:
+            mass = self.mass
+        if mz is None:
+            mz = self.mz
+        # Test for if array is empty and error if so
+        if len(harray) == 0:
+            print("ERROR: Empty histogram array on transform")
+            return 0
+
+        massaxis = self.create_mass_axis(harray, mass=mass)
 
         # Create the mass grid
-        self.data.massgrid = []
-        for i in range(len(self.ztab)):
-            d = self.harray[i]
-            boo1 = d > 0
-            newdata = np.transpose([self.mass[i][boo1], d[boo1]])
-            if len(newdata) < 2:
-                self.data.massgrid.append(massaxis * 0)
+        dataobj.massgrid = []
+        for i in range(len(ztab)):
+            d = harray[i]
+            if self.config.poolflag == 1:
+                newdata = np.atleast_2d(np.transpose([mass[i], d]))
+                massdata = ud.linterpolate(newdata, massaxis)
             else:
-                if self.config.poolflag == 1:
-                    massdata = ud.linterpolate(newdata, massaxis)
+                boo1 = d > 0
+                newdata = np.transpose([mass[i][boo1], d[boo1]])
+                if len(newdata) < 2:
+                    massdata = np.transpose([massaxis, massaxis * 0])
                 else:
                     massdata = ud.lintegrate(newdata, massaxis)
-                self.data.massgrid.append(massdata[:, 1])
-        self.data.massgrid = np.transpose(self.data.massgrid)
+
+            dataobj.massgrid.append(massdata[:, 1])
+        dataobj.massgrid = np.transpose(dataobj.massgrid)
         # Create the linearized mass data by integrating everything into the new linear axis
-        self.data.massdat = np.transpose([massaxis, np.sum(self.data.massgrid, axis=1)])
-        np.savetxt(self.config.massdatfile, self.data.massdat)
+        dataobj.massdat = np.transpose([massaxis, np.sum(dataobj.massgrid, axis=1)])
+
         # Ravel the massgrid to make the format match unidec
-        self.data.massgrid = np.ravel(self.data.massgrid)
+        dataobj.massgrid = np.ravel(dataobj.massgrid)
         # Create the data2 and mzgrid objects from the histogram array for compatiblity with unidec functions
-        self.data.data2 = np.transpose([self.mz, np.sum(self.harray, axis=0)])
-        self.data.zdat = np.transpose([self.ztab, np.sum(self.harray, axis=1)])
-        self.data.mzgrid = np.transpose(
-            [np.ravel(self.X.transpose()), np.ravel(self.Y.transpose()), np.ravel(self.harray.transpose())])
+        dataobj.data2 = np.transpose([mz, np.sum(harray, axis=0)])
+        dataobj.zdat = np.transpose([ztab, np.sum(harray, axis=1)])
+        if self.X.shape != harray.shape:
+            X, Y = np.meshgrid(mz, ztab, indexing='xy')
+        else:
+            X = self.X
+            Y = self.Y
+
+        dataobj.mzgrid = np.transpose(
+            [np.ravel(X.transpose()), np.ravel(Y.transpose()), np.ravel(harray.transpose())])
+        if flag:
+            self.massaxis = massaxis
+        return dataobj
 
     def transform_mzmass(self):
         # Test for if array is empty and error if so
@@ -974,16 +1098,17 @@ class UniDecCD(engine.UniDec):
 
         return self.harray
 
-    def run_deconvolution(self):
+    def run_deconvolution(self, process_data=True):
         """
         Function for running the full deconvolution sequence, including setup, pre-, and post-processing.
 
         :return: None
         """
-        # Process data but don't transform
-        self.process_data(transform=False)
+        if process_data:
+            # Process data but don't transform
+            self.process_data(transform=False)
         # Filter histogram to remove masses that are not allowed
-        self.hist_mass_filter()
+        self.harray = self.hist_mass_filter(self.harray)
         # Filter histogram to remove charge states that aren't allowed based on the native charge state filter
         self.hist_nativeZ_filter()
 
@@ -1000,13 +1125,14 @@ class UniDecCD(engine.UniDec):
         print("Deconvolution Time:", time.perf_counter() - starttime)
         # Transform m/z to mass
         self.transform()
+        np.savetxt(self.config.massdatfile, self.data.massdat)
 
     def decon_external_call(self):
         self.export_config()
         # Check for this
         if self.config.CDzbins != 1 and self.config.zzsig != 0:
             print("ERROR: Charge smoothing is only define for when charges are binned to unit charge")
-            self.harray=[[]]
+            self.harray = [[]]
             return
         # Output input data
         self.harray = np.array(self.harray)
@@ -1177,17 +1303,6 @@ if __name__ == '__main__':
     plt.show()
 
     # eng.run_deconvolution()
-    exit()
-
-    path = "C:\Data\CDMS\\20210309_MK_ADH_pos_CDMS_512ms_5min_50ms_pressure01_unidecfiles\\20210309_MK_ADH_pos_CDMS_512ms_5min_50ms_pressure01_rawdata.txt"
-    data = np.loadtxt(path)
-    noise = np.median(data[:, 1])
-    print(noise)
-
-    plt.plot(data[:, 0], data[:, 1])
-    plt.axhline(noise, color='r')
-    plt.hlines(noise, 4000, 14000, color='r')
-    plt.show()
 
     exit()
     eng = UniDecCD()
@@ -1199,24 +1314,4 @@ if __name__ == '__main__':
     eng.harray = eng.mass
     # eng.filter_zdist()
     exit()
-    # path = "Z:\\Group Share\\Marius Kostelic\\CD-MS\\02242021\\02242021_MK_ADH_ACN_50_IST_10min_Aqu_CD-MS.RAW"
-    # mzrange = [5000, 10000]
-    # irange = [200, 800]
-    path = "Z:\\Group Share\\Marius Kostelic\\CD-MS\\02242021 Data Set\\02242021_MK_BSA__CD-MS_Aqu_ACN_10min.RAW"
-    mzrange = [3000, 7000]
-    irange = [100, 600]
 
-    path = "Z:\\Group Share\Marius Kostelic\\CD-MS\\03082021\\20210308_MK_GroEL_CDMS_50msinject_10min.RAW"
-    mzrange = [9000, 13000]
-    irange = [1000, 2000]
-
-    eng = UniDecCD()
-    eng.open_file(path)
-    eng.filter_mz(mzrange=mzrange)
-    eng.filter_int(int_range=irange)
-    eng.convert()
-    eng.histogram()
-    eng.make_kernel()
-    eng.decon_core()
-    eng.transform()
-    eng.plot_hist()

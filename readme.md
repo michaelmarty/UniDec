@@ -195,6 +195,30 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.7.0.0
+
+Added new module for time domain CD-MS data analysis, UniChromCD. This includes some cool new plotting and analysis features. Most importantly, it also includes our new method for Hadamard Transform analysis of CD-MS spectra. You can use the tools for regular LC-CD-MS or go crazy with HT-LC-CD-MS. More info coming soon on this front...:)
+
+UPP added NumPeaks output on all to help with catching bad files in the results. Also, fixed bugs to allow files with bad data to proceed relatively unscathed. It should be more error tolerant now for large runs. 
+
+Added Ctrl+0 as shortcut to open the most recent file.
+
+Added experimental feature for check box on main UniDec panel for whether to normalize the peak threshold. When on, it will behave as previously where the peak thershold is a ratio of the max intensity. When off, it will be a fixed intensity. Try switching off "Publication Mode" to view the plot with intensity axes. Note, this interacts with the Peak Normalization parameter directly above it. Max will normalize everything to 100. Total can get weird. None is the safest bet. 
+
+Blocked mouse wheel events on drop down selections. This should fix a lot of accidental switches to parameters. 
+
+Removed or made optional some dependencies to streamline installation. Removed special report type. Updates for Python 3.12 and general library updates.
+
+Fixed deep bug with integration transforms. Improvements and refactoring to support UniChromCD. Fixed execution bug on servers. Fixed other bugs.
+
+v.6.0.5
+
+Merged into v.7
+
+Minor fixes to update compatibility for Python 3.11 and 3.12. 
+
+Fixed common crash bug when isotope mode is on. Added warnings for if isotope mode is on.
+
 v.6.0.4
 
 Added "Notes" option to UPP to add notes to the bottom of the report. Added peak and data normalization options to UPP spreadsheet inputs. See help file. 

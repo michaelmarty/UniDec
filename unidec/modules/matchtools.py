@@ -529,6 +529,10 @@ def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest", in
     incorrectint = 0
     unmatchedint = 0
     ignoreheight = 0
+    ncorr = 0
+    nincorr = 0
+    nunmatched = 0
+    nignore = 0
     totalint = np.sum(peakheights)
     matches = []
     matchstring = ""
@@ -605,17 +609,20 @@ def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest", in
                 # print("Correct", peakmass, label)
                 correctint += peakheights[i]
                 p.color = [0, 1, 0]  # Green
+                ncorr += 1
 
             elif "Ignore" in rowkey:
                 # print("Ignore", peakmass, label)
                 p.color = [0, 0, 1]  # Blue
                 totalint -= peakheights[i]  # Remove this from the total intensity]
                 ignoreheight += peakheights[i]
+                nignore += 1
 
             elif "Incorrect" in rowkey:
                 # print("Incorrect", peakmass, label)
                 incorrectint += peakheights[i]
                 p.color = [1, 0, 0]  # Red
+                nincorr += 1
 
             else:
                 print("Error: Something went wrong with row name parsing", rowkey)
@@ -633,6 +640,7 @@ def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest", in
             p.color = [1, 1, 0]  # Yellow
             p.match = 0
             p.matcherror = 0
+            nunmatched += 1
         p.label = label
 
     for i, label in enumerate(plabels):
@@ -670,6 +678,11 @@ def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest", in
     row["Matches"] = matchstring
 
     row = calc_bispecific_correct(row)
+
+    row["NumCorr"] = ncorr
+    row["NumIncorr"] = nincorr
+    row["NumUnmatched"] = nunmatched
+    row["NumIgnored"] = nignore
 
     return row
 

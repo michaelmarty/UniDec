@@ -5,7 +5,7 @@ import unidec.tools as ud
 import numpy as np
 import time
 import wx.lib.scrolledpanel as scrolled
-
+from unidec.modules.gui_elements.PlotControlsPanel import PlotControlsPanel
 
 class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
     # noinspection PyMissingConstructor
@@ -181,6 +181,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             i += 1
 
         self.subtypectl = wx.Choice(panel1b, -1, choices=self.backgroundchoices)
+        self.subtypectl.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
         self.ctlbuff = wx.TextCtrl(panel1b, value="", size=size1)
         self.subtypectl.SetSelection(2)
         gbox1b.Add(self.subtypectl, (i, 0))
@@ -229,6 +230,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                                         choices=["Linear m/z (Constant " + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z)",
                                                  "Linear resolution (Constant (m/z)/(" + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z))",
                                                  "Nonlinear", "Linear Interpolated", "Linear Resolution Interpolated"])
+            self.ctlbintype.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
             gbox1b.Add(self.ctlbintype, (i, 0), span=(1, 2))
             i += 1
         else:
@@ -323,6 +325,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 i += 1
 
                 self.ctltwavecaltype = wx.Choice(panel1c, -1, choices=list(self.config.twavedict.values()))
+                self.ctltwavecaltype.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
                 gbox1c.Add(self.ctltwavecaltype, (i, 1), span=(1, 1))
                 gbox1c.Add(wx.StaticText(panel1c, label="Calibration Type: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
                 i += 1
@@ -516,6 +519,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         if self.config.imflag == 0:
             # self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
             self.ctlisotopemode = wx.Choice(panel2b, -1, size=(100, -1), choices=self.config.isotopechoices)
+            self.ctlisotopemode.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
             gbox2b.Add(self.ctlisotopemode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.ctlorbimode = wx.CheckBox(panel2b, label="Charge Scaling")
@@ -578,6 +582,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlwindow = wx.TextCtrl(panel3, value="", size=size1)
         self.ctlthresh = wx.TextCtrl(panel3, value="", size=size1)
 
+
         self.plotbutton = wx.Button(panel3, -1, "Peak Detection")
         self.plotbutton2 = wx.Button(panel3, -1, "Plot Peaks")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_plot_peaks, self.plotbutton2)
@@ -607,10 +612,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         i = 0
 
-
         self.ctl2dcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
+        self.ctl2dcm.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
 
         self.ctlpeakcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
+        self.ctlpeakcm.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
 
         # for mp in self.config.cmaps2:
         #    self.ctl2dcm.Append(mp)
@@ -640,6 +646,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.ctlnorm = wx.RadioBox(panel3b, label="Peak Normalization", choices=["None", "Max", "Total"])
         gbox3b.Add(self.ctlnorm, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+
+        self.ctlnormpeakthresh = wx.CheckBox(panel3b, label="Normalize Peak Threshold")
+        gbox3b.Add(self.ctlnormpeakthresh, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
         self.ctlthresh2 = wx.TextCtrl(panel3b, value="", size=size1)
@@ -682,6 +692,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox3b.Fit(panel3b)
         self.foldpanels.AddFoldPanelWindow(foldpanel3b, panel3b, fpb.FPB_ALIGN_WIDTH)
         self.foldpanels.AddFoldPanelWindow(foldpanel3b, wx.StaticText(foldpanel3b, -1, " "), fpb.FPB_ALIGN_WIDTH)
+
+        # Create plotcontrol panel
+        #foldpanel4 = self.foldpanels.AddFoldPanel(caption="Plot Controls", collapsed=False, cbstyle=style3b)
+        #pcpanel = PlotControlsPanel(foldpanel4, self.config)
+        #self.foldpanels.AddFoldPanelWindow(foldpanel4, pcpanel, fpb.FPB_ALIGN_WIDTH)
 
         bright = 250
         foldpanel1.SetBackgroundColour(wx.Colour(bright, bright, 255))
@@ -770,6 +785,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlbinsize.SetValue(str(self.config.mzbins))
             self.ctlwindow.SetValue(str(self.config.peakwindow))
             self.ctlthresh.SetValue(str(self.config.peakthresh))
+            self.ctlnormpeakthresh.SetValue(int(self.config.normthresh))
             self.ctlthresh2.SetValue(str(self.config.peakplotthresh))
             self.ctlsep.SetValue(str(self.config.separation))
             self.ctlintthresh.SetValue(str(self.config.intthresh))
@@ -916,6 +932,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.mfileflag = int(self.ctlmasslistflag.GetValue())
         self.config.peakwindow = ud.string_to_value(self.ctlwindow.GetValue())
         self.config.peakthresh = ud.string_to_value(self.ctlthresh.GetValue())
+        self.config.normthresh = int(self.ctlnormpeakthresh.GetValue())
         self.config.peakplotthresh = ud.string_to_value(self.ctlthresh2.GetValue())
         self.config.separation = ud.string_to_value(self.ctlsep.GetValue())
         self.config.adductmass = ud.string_to_value(self.ctladductmass.GetValue())
@@ -1374,6 +1391,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         if self.config.imflag == 0:
             self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlbeta)
             self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlpsig)
+
+    def on_mousewheel(self, e):
+        pass
 
     def update_quick_controls(self, e=None):
         if self.update_flag:

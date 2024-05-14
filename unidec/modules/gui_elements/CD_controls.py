@@ -8,12 +8,12 @@ import wx.lib.scrolledpanel as scrolled
 
 class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
     # noinspection PyMissingConstructor
-    def __init__(self, parent, config, pres, panel, iconfile):
+    def __init__(self, parent, config, pres, panel, iconfile, htmode=False):
         super(wx.Panel, self).__init__(panel)
         # super(scrolled.ScrolledPanel, self).__init__(parent=panel, style=wx.ALL | wx.EXPAND)
         # self.SetAutoLayout(1)
         # self.SetupScrolling(scroll_x=False)
-
+        self.htmode = htmode
         self.parent = parent
         self.config = config
         self.pres = pres
@@ -82,6 +82,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         style2b = fpb.CaptionBarStyle()
         style3 = fpb.CaptionBarStyle()
         style3b = fpb.CaptionBarStyle()
+        styleht = fpb.CaptionBarStyle()
 
         bright = 150
         bright2 = 200
@@ -102,6 +103,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         style2b.SetSecondColour(wx.Colour(255, 255, bright4))
         style3.SetSecondColour(wx.Colour(255, bright3, bright3))
         style3b.SetSecondColour(wx.Colour(255, bright4, bright4))
+
+        styleht.SetSecondColour(wx.Colour(0, bright4, 0))
 
         self.imflag = 0
 
@@ -157,6 +160,14 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                           flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
+        if htmode:
+            # Control for scan compression
+            self.ctlscancompress = wx.TextCtrl(panel1, value="", size=size1)
+            sizercontrol1.Add(self.ctlscancompress, (i, 1), span=(1, 2))
+            sizercontrol1.Add(wx.StaticText(panel1, label="Scan Compression: "), (i, 0),
+                              flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
         self.ctldatanorm = wx.CheckBox(panel1, label="Normalize Data")
         self.ctldatanorm.SetValue(True)
         sizercontrol1.Add(self.ctldatanorm, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -178,6 +189,16 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         panel1b = wx.Panel(foldpanel1b, -1)
         gbox1b = wx.GridBagSizer(wx.VERTICAL)
         i = 0
+
+        self.ctlscanstart = wx.TextCtrl(panel1b, value="", size=(60, -1))
+        self.ctlscanend = wx.TextCtrl(panel1b, value="", size=(60, -1))
+        scanrange = wx.BoxSizer(wx.HORIZONTAL)
+        scanrange.Add(wx.StaticText(panel1b, label="Scan Range: "), 0, wx.ALIGN_CENTER_VERTICAL)
+        scanrange.Add(self.ctlscanstart)
+        scanrange.Add(wx.StaticText(panel1b, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
+        scanrange.Add(self.ctlscanend)
+        gbox1b.Add(scanrange, (i, 0), span=(1, 2))
+        i += 1
 
         self.ctlzbins = wx.TextCtrl(panel1b, value="", size=size1)
         gbox1b.Add(self.ctlzbins, (i, 1))
@@ -240,12 +261,305 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlsmashflag.SetToolTip(wx.ToolTip("Remove Noise Peaks. See Tools>Select Noise Peaks"))
         i += 1
 
+        # Check box for inv inj time
+        self.ctlinjtime = wx.CheckBox(panel1b, label="DMT Inverse Injection Time")
+        gbox1b.Add(self.ctlinjtime, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlinjtime.SetToolTip(wx.ToolTip("Use inverse injection time for histogram."))
+        i += 1
+
         gbox1b.Add(wx.StaticText(panel1b, label=""), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
         panel1b.SetSizer(gbox1b)
         gbox1b.Fit(panel1b)
 
         self.foldpanels.AddFoldPanelWindow(foldpanel1b, panel1b, fpb.FPB_ALIGN_WIDTH)
+        if htmode:
+            self.foldpaneldm = self.foldpanels.AddFoldPanel(caption="Demultiplexing Controls", collapsed=False,
+                                                            cbstyle=styleht)
+            paneldm = wx.Panel(self.foldpaneldm, -1)
+            sizercontrolht1 = wx.GridBagSizer(wx.VERTICAL)
+            i = 0
+
+            # Button for Run TIC HT
+            self.runticht = wx.Button(paneldm, -1, "Run TIC Demultiplex")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.on_run_tic_ht, self.runticht)
+            sizercontrolht1.Add(self.runticht, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            self.runticht.SetToolTip(wx.ToolTip("Demultiplexing of TIC"))
+            i += 1
+
+            # Button for Run EIC HT
+            self.runeicht = wx.Button(paneldm, -1, "Run EIC Demultiplex")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.on_run_eic_ht, self.runeicht)
+            sizercontrolht1.Add(self.runeicht, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            self.runeicht.SetToolTip(wx.ToolTip("Demultiplexing of each EIC selected. "
+                                                "To select, zoom on a region of the 2D plot and right click."))
+            i += 1
+
+            self.runallht = wx.Button(paneldm, -1, "Run All Demultiplex")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.on_run_all_ht, self.runallht)
+            sizercontrolht1.Add(self.runallht, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            self.runallht.SetToolTip(wx.ToolTip("Run demultiplex on all data points. Used to create crazy cubes."))
+            i += 1
+
+            # Button to Mass Transformation
+            self.masstransform = wx.Button(paneldm, -1, "Run All Mass Transform")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.run_all_mass_transform, self.masstransform)
+            sizercontrolht1.Add(self.masstransform, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            self.masstransform.SetToolTip(wx.ToolTip("Run Mass Transformation on all data points. "
+                                                     "Click button above first to do HT."))
+            i += 1
+
+            # Control for decmultiplex choice
+            self.ctlmultiplexmode = wx.Choice(paneldm, -1, choices=self.config.demultiplexchoices)
+            self.ctlmultiplexmode.SetSelection(0)
+            sizercontrolht1.Add(self.ctlmultiplexmode, (i, 1), span=(1, 2))
+            sizercontrolht1.Add(wx.StaticText(paneldm, label="Demultiplex Mode: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            self.ctlmultiplexmode.SetToolTip(wx.ToolTip("Choose the demultiplexing mode."))
+            self.ctlmultiplexmode.Bind(wx.EVT_CHOICE, self.update_demultiplex_mode)
+            i += 1
+
+            # Text Control for Kernel Smoothing
+            self.ctlkernelsmooth = wx.TextCtrl(paneldm, value="", size=size1)
+            sizercontrolht1.Add(self.ctlkernelsmooth, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(paneldm, label="Smoothing: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Text control for timepad
+            self.ctltimepad = wx.TextCtrl(paneldm, value="", size=size1)
+            sizercontrolht1.Add(self.ctltimepad, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(paneldm, label="Time Padding: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Drop down menu for X-axis
+            self.ctlxaxis = wx.Choice(paneldm, -1, choices=["Time", "Scans"])
+            self.ctlxaxis.SetSelection(0)
+            sizercontrolht1.Add(self.ctlxaxis, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(paneldm, label="X-Axis: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            # Bind to on replot
+            self.ctlxaxis.Bind(wx.EVT_CHOICE, self.pres.on_replot_chrom)
+            i += 1
+
+            # Check box to show legends
+            self.ctllegends = wx.CheckBox(paneldm, label="")
+            sizercontrolht1.Add(self.ctllegends, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            sizercontrolht1.Add(wx.StaticText(paneldm, label="Show Legends: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            self.ctllegends.SetValue(True)
+            # Bind to on replot
+            self.ctllegends.Bind(wx.EVT_CHECKBOX, self.pres.on_replot_chrom)
+            i += 1
+
+            # Button to make 2d time vs. charge plot
+            self.maketvsc = wx.Button(paneldm, -1, "Time-Z Plot")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_charge_time_2dplot, self.maketvsc)
+            sizercontrolht1.Add(self.maketvsc, (i, 0), span=(1, 1), flag=wx.EXPAND)
+
+            # Button to make 2d time vs. mz plot
+            self.maketvsm = wx.Button(paneldm, -1, "Time-m/z Plot")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_mz_time_2dplot, self.maketvsm)
+            sizercontrolht1.Add(self.maketvsm, (i, 1), span=(1, 1), flag=wx.EXPAND)
+            i += 1
+
+            # Button to make 2d time vs. mass plot
+            self.makevtm = wx.Button(paneldm, -1, "Time-Mass Plot")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_mass_time_2dplot, self.makevtm)
+            sizercontrolht1.Add(self.makevtm, (i, 0), span=(1, 1), flag=wx.EXPAND)
+
+            self.plot5button2 = wx.Button(paneldm, -1, "Mass-Charge Plot")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.makeplot5, self.plot5button2)
+            sizercontrolht1.Add(self.plot5button2, (i, 1), span=(1, 1), flag=wx.EXPAND)
+            i += 1
+
+            # Button for Make m/z Cube plots
+            self.makemzcube = wx.Button(paneldm, -1, "m/z Cube")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_cube_plot, self.makemzcube)
+            sizercontrolht1.Add(self.makemzcube, (i, 0), span=(1, 1), flag=wx.EXPAND)
+
+            # Button for make mass cube plot
+            self.makemasscube = wx.Button(paneldm, -1, "Mass Cube")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_mass_cube_plot, self.makemasscube)
+            sizercontrolht1.Add(self.makemasscube, (i, 1), span=(1, 1), flag=wx.EXPAND)
+            i += 1
+
+            paneldm.SetSizer(sizercontrolht1)
+            sizercontrolht1.Fit(paneldm)
+
+            self.foldpanels.AddFoldPanelWindow(self.foldpaneldm, paneldm, fpb.FPB_ALIGN_WIDTH)
+            self.foldpanels.AddFoldPanelWindow(self.foldpaneldm, wx.StaticText(self.foldpaneldm, -1, " "),
+                                               fpb.FPB_ALIGN_WIDTH)
+
+            self.foldpanelht = self.foldpanels.AddFoldPanel(caption="HT Parameters", collapsed=False,
+                                                            cbstyle=styleht)
+            panelht = wx.Panel(self.foldpanelht, -1)
+            sizercontrolht1 = wx.GridBagSizer(wx.VERTICAL)
+            i = 0
+
+            # Text Control for Analysis Time
+            self.ctlanalysistime = wx.TextCtrl(panelht, value="", size=size1)
+            sizercontrolht1.Add(self.ctlanalysistime, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="Analysis Time: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Text control for max scans
+            self.ctlmaxscans = wx.TextCtrl(panelht, value="", size=size1)
+            sizercontrolht1.Add(self.ctlmaxscans, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="Max Scans: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Drop down for HTseq
+            self.ctlhtseq = wx.Choice(panelht, -1, choices=list(ud.HTseqDict.keys()))
+            self.ctlhtseq.SetSelection(3)
+            sizercontrolht1.Add(self.ctlhtseq, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="HT Sequence Bit: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Text Control for HTtimeshift
+            self.ctlhttimeshift = wx.TextCtrl(panelht, value="", size=size1)
+            sizercontrolht1.Add(self.ctlhttimeshift, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="Time Shift: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Text control for cycle index
+            self.ctlcycleindex = wx.TextCtrl(panelht, value="", size=size1)
+            sizercontrolht1.Add(self.ctlcycleindex, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="Cycle Length: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Text control for HTmaskn
+            self.ctlhtmaskn = wx.TextCtrl(panelht, value="", size=size1)
+            sizercontrolht1.Add(self.ctlhtmaskn, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="mHT Mask N: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Text control for HTwin
+            self.ctlhtwin = wx.TextCtrl(panelht, value="", size=size1)
+            sizercontrolht1.Add(self.ctlhtwin, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelht, label="mHT Window: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            panelht.SetSizer(sizercontrolht1)
+            sizercontrolht1.Fit(panelht)
+
+            self.foldpanels.AddFoldPanelWindow(self.foldpanelht, panelht, fpb.FPB_ALIGN_WIDTH)
+            self.foldpanels.AddFoldPanelWindow(self.foldpanelht, wx.StaticText(self.foldpanelht, -1, " "),
+                                               fpb.FPB_ALIGN_WIDTH)
+
+            self.foldpanelft = self.foldpanels.AddFoldPanel(caption="FT Parameters", collapsed=True,
+                                                            cbstyle=styleht)
+            panelft = wx.Panel(self.foldpanelft, -1)
+            sizercontrolht1 = wx.GridBagSizer(wx.VERTICAL)
+            i = 0
+
+            # Text Control for FTstart and FTend
+            self.ctlftstart = wx.TextCtrl(panelft, value="", size=size1)
+            sizercontrolht1.Add(self.ctlftstart, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelft, label="FT Start (Hz): "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlftend = wx.TextCtrl(panelft, value="", size=size1)
+            sizercontrolht1.Add(self.ctlftend, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelft, label="FT End (Hz): "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Create Two checkboxes for FTflatten and FTapodize
+            self.ctlftflatten = wx.CheckBox(panelft, label="Flatten")
+            sizercontrolht1.Add(self.ctlftflatten, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            self.ctlftflatten.SetValue(self.config.FTflatten)
+            self.ctlftflatten.SetToolTip(wx.ToolTip("Flatten the FT data"))
+            self.ctlftapodize = wx.CheckBox(panelft, label="Apodize")
+            sizercontrolht1.Add(self.ctlftapodize, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            self.ctlftapodize.SetValue(self.config.FTapodize)
+            self.ctlftapodize.SetToolTip(wx.ToolTip("Apodize the FT data"))
+            i += 1
+
+            # Add text input for post smoothing
+            self.ctlftsmooth = wx.TextCtrl(panelft, value=str(self.config.FTsmooth), size=size1)
+            sizercontrolht1.Add(self.ctlftsmooth, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(panelft, label="Post Smoothing: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            panelft.SetSizer(sizercontrolht1)
+            sizercontrolht1.Fit(panelft)
+
+            self.foldpanels.AddFoldPanelWindow(self.foldpanelft, panelft, fpb.FPB_ALIGN_WIDTH)
+            self.foldpanels.AddFoldPanelWindow(self.foldpanelft, wx.StaticText(self.foldpanelft, -1, " "),
+                                               fpb.FPB_ALIGN_WIDTH)
+
+            self.foldpanelim = self.foldpanels.AddFoldPanel(caption="Ion Mobility Parameters", collapsed=False,
+                                                       cbstyle=style1c)
+            panel1c = wx.Panel(self.foldpanelim, -1)
+            gbox1c = wx.GridBagSizer(wx.VERTICAL)
+            i = 0
+
+            # Create Run CCS Calc button
+            self.runccsbutton = wx.Button(panel1c, -1, "Run All DT to CCS")
+            self.Bind(wx.EVT_BUTTON, self.pres.on_run_ccs, self.runccsbutton)
+            gbox1c.Add(self.runccsbutton, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1
+
+            # Button to run EIC CCS
+            self.runeicccs = wx.Button(panel1c, -1, "Run EIC CCS")
+            self.Bind(wx.EVT_BUTTON, self.pres.on_run_eic_ccs, self.runeicccs)
+            gbox1c.Add(self.runeicccs, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1
+
+            self.ctlvolt = wx.TextCtrl(panel1c, value="", size=size1)
+            gbox1c.Add(self.ctlvolt, (i, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(panel1c, label="Voltage (V): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlpressure = wx.TextCtrl(panel1c, value='', size=size1)
+            gbox1c.Add(self.ctlpressure, (i, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(panel1c, label="Pressure (Torr): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctltemp = wx.TextCtrl(panel1c, value='', size=size1)
+            gbox1c.Add(self.ctltemp, (i, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(panel1c, label="Temperature (\u00B0C): "), (i, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlgasmass = wx.TextCtrl(panel1c, value='', size=size1)
+            gbox1c.Add(self.ctlgasmass, (i, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(panel1c, label="Gas Mass (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlto = wx.TextCtrl(panel1c, value='', size=size1)
+            gbox1c.Add(self.ctlto, (i, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(panel1c, label="Dead Time (t\u2080 in ms): "), (i, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctldriftlength = wx.TextCtrl(panel1c, value='', size=size1)
+            gbox1c.Add(self.ctldriftlength, (i, 1), span=(1, 1))
+            gbox1c.Add(wx.StaticText(panel1c, label="Drift Cell Length (m)"), (i, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlccsbins = wx.TextCtrl(panel1c, value="", size=size1)
+            gbox1c.Add(self.ctlccsbins, (i, 1), span=(1, 2))
+            gbox1c.Add(wx.StaticText(panel1c, label="Sample CCS Every (\u212B\u00B2): "), (i, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+
+            panel1c.SetSizer(gbox1c)
+            gbox1c.Fit(panel1c)
+
+            self.foldpanels.AddFoldPanelWindow(self.foldpanelim, panel1c, fpb.FPB_ALIGN_WIDTH)
+            self.foldpanels.AddFoldPanelWindow(self.foldpanelim, wx.StaticText(self.foldpanelim, -1, " "), fpb.FPB_ALIGN_WIDTH)
 
         # Panel for unidec Parameters
         foldpanel2 = self.foldpanels.AddFoldPanel(caption="UniDec Parameters", collapsed=False, cbstyle=style2)
@@ -448,8 +762,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         i = 0
 
         self.ctl2dcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
+        self.ctl2dcm.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
 
         self.ctlpeakcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
+        self.ctlpeakcm.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
 
         self.ctl2dcm.AppendItems(self.config.cmaps2)
         self.ctlpeakcm.AppendItems(self.config.cmaps)
@@ -593,6 +909,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.update_flag = False
         if self.config.batchflag == 0:
             self.ctlmassbins.SetValue(str(self.config.massbins))
+
             self.ctlstartz.SetValue(str(self.config.startz))
             self.ctlendz.SetValue(str(self.config.endz))
             self.ctlslope.SetValue(str(self.config.CDslope))
@@ -623,6 +940,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlmtabsig.SetValue(str(self.config.mtabsig))
             self.ctlmanualassign.SetValue(self.config.manualfileflag)            
             '''
+            self.ctlscanstart.SetValue(str(self.config.CDScanStart))
+            self.ctlscanend.SetValue(str(self.config.CDScanEnd))
+
             self.ctlzbins.SetValue(str(self.config.CDzbins))
             self.ctlcentroid.SetValue(str(self.config.CDres))
             self.ctlbinsize.SetValue(str(self.config.mzbins))
@@ -641,8 +961,36 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
             self.ctldiscrete.SetValue(self.config.discreteplot)
             self.ctlsmashflag.SetValue(self.config.smashflag)
+            self.ctlinjtime.SetValue(self.config.CDiitflag)
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlrawflag.SetSelection(self.config.rawflag)
+
+            if self.htmode:
+                self.ctlscancompress.SetValue(str(self.config.CDScanCompress))
+                self.ctlkernelsmooth.SetValue(str(self.config.HTksmooth))
+                self.ctlhtseq.SetStringSelection(str(self.config.htbit))
+                self.ctlhttimeshift.SetValue(str(self.config.HTtimeshift))
+                self.ctltimepad.SetValue(str(self.config.HTtimepad))
+                self.ctlanalysistime.SetValue(str(self.config.HTanalysistime))
+                self.ctlmaxscans.SetValue(str(self.config.HTmaxscans))
+                self.ctlcycleindex.SetValue(str(self.config.HTcycleindex))
+                self.ctlhtmaskn.SetValue(str(self.config.HTmaskn))
+                self.ctlhtwin.SetValue(str(self.config.HTwin))
+                self.ctlxaxis.SetStringSelection(self.config.HTxaxis)
+                self.ctlmultiplexmode.SetStringSelection(self.config.demultiplexmode)
+                self.ctlftstart.SetValue(str(self.config.FTstart))
+                self.ctlftend.SetValue(str(self.config.FTend))
+                self.ctlftflatten.SetValue(self.config.FTflatten)
+                self.ctlftapodize.SetValue(self.config.FTapodize)
+                self.ctlftsmooth.SetValue(str(self.config.FTsmooth))
+
+                self.ctlvolt.SetValue(str(self.config.volt))
+                self.ctltemp.SetValue(str(self.config.temp))
+                self.ctlpressure.SetValue(str(self.config.pressure))
+                self.ctlgasmass.SetValue(str(self.config.gasmass))
+                self.ctlto.SetValue(str(self.config.to))
+                self.ctldriftlength.SetValue(str(self.config.driftlength))
+                self.ctlccsbins.SetValue(str(self.config.ccsbins))
 
             if self.config.adductmass < 0:
                 self.ctlnegmode.SetValue(1)
@@ -689,7 +1037,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         except Exception as e:
             print("Error updating quick controls", e)
         # print("5: %.2gs" % (time.perf_counter() - tstart))
+
         self.Thaw()
+
+        if self.htmode:
+            self.update_demultiplex_mode()
 
     def export_gui_to_config(self, e=None):
         """
@@ -699,6 +1051,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.minmz = ud.string_to_value(self.ctlminmz.GetValue())
         self.config.maxmz = ud.string_to_value(self.ctlmaxmz.GetValue())
         self.config.CDzbins = ud.string_to_value(self.ctlzbins.GetValue())
+        self.config.CDScanStart = ud.string_to_value(self.ctlscanstart.GetValue())
+        self.config.CDScanEnd = ud.string_to_value(self.ctlscanend.GetValue())
         self.config.CDres = ud.string_to_value(self.ctlcentroid.GetValue())
         self.config.CDslope = ud.string_to_value(self.ctlslope.GetValue())
         self.config.subtype = self.subtypectl.GetSelection()
@@ -725,6 +1079,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.datanorm = int(self.ctldatanorm.GetValue())
         self.config.intthresh = ud.string_to_value(self.ctlintthresh.GetValue())
         self.config.massbins = ud.string_to_value(self.ctlmassbins.GetValue())
+
         self.config.endz = ud.string_to_int(self.ctlendz.GetValue())
         self.config.startz = ud.string_to_int(self.ctlstartz.GetValue())
 
@@ -740,6 +1095,35 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.separation = ud.string_to_value(self.ctlsep.GetValue())
         self.config.adductmass = ud.string_to_value(self.ctladductmass.GetValue())
 
+        if self.htmode:
+            self.config.CDScanCompress = ud.string_to_value(self.ctlscancompress.GetValue())
+            self.config.HTksmooth = ud.string_to_value(self.ctlkernelsmooth.GetValue())
+            self.config.htbit = int(self.ctlhtseq.GetStringSelection())
+            self.config.htseq = ud.HTseqDict[str(self.config.htbit)]
+            self.config.HTxaxis = self.ctlxaxis.GetStringSelection()
+            self.config.HTtimeshift = ud.string_to_value(self.ctlhttimeshift.GetValue())
+            self.config.HTtimepad = ud.string_to_value(self.ctltimepad.GetValue())
+            self.config.HTanalysistime = ud.string_to_value(self.ctlanalysistime.GetValue())
+            self.config.HTmaxscans = ud.string_to_value(self.ctlmaxscans.GetValue())
+            self.config.HTcycleindex = ud.string_to_value(self.ctlcycleindex.GetValue())
+            self.config.HTmaskn = ud.string_to_value(self.ctlhtmaskn.GetValue())
+            self.config.HTwin = ud.string_to_value(self.ctlhtwin.GetValue())
+            self.config.demultiplexmode = self.ctlmultiplexmode.GetStringSelection()
+            self.config.FTstart = ud.string_to_value(self.ctlftstart.GetValue())
+            self.config.FTend = ud.string_to_value(self.ctlftend.GetValue())
+            self.config.FTflatten = self.ctlftflatten.GetValue()
+            self.config.FTapodize = self.ctlftapodize.GetValue()
+            self.config.FTsmooth = ud.string_to_value(self.ctlftsmooth.GetValue())
+            self.config.showlegends = self.ctllegends.GetValue()
+
+            self.config.volt = ud.string_to_value(self.ctlvolt.GetValue())
+            self.config.temp = ud.string_to_value(self.ctltemp.GetValue())
+            self.config.pressure = ud.string_to_value(self.ctlpressure.GetValue())
+            self.config.gasmass = ud.string_to_value(self.ctlgasmass.GetValue())
+            self.config.to = ud.string_to_value(self.ctlto.GetValue())
+            self.config.driftlength = ud.string_to_value(self.ctldriftlength.GetValue())
+            self.config.ccsbins = ud.string_to_value(self.ctlccsbins.GetValue())
+
         self.config.numit = ud.string_to_int(self.ctlnumit.GetValue())
 
         self.config.integratelb = ud.string_to_value(self.ctlintlb.GetValue())
@@ -747,6 +1131,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.reductionpercent = ud.string_to_value(self.ctldatareductionpercent.GetValue())
 
         self.config.smashflag = int(self.ctlsmashflag.GetValue())
+        self.config.CDiitflag = int(self.ctlinjtime.GetValue())
         self.config.discreteplot = int(self.ctldiscrete.GetValue())
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
         self.config.rawflag = self.ctlrawflag.GetSelection()
@@ -810,6 +1195,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlstartz.SetToolTip(wx.ToolTip("Minimum allowed charge state in deconvolution."))
         self.ctlendz.SetToolTip(wx.ToolTip("Maximum allowed charge state in deconvolution."))
         self.ctlzbins.SetToolTip(wx.ToolTip("Charge Bin Size for Histogram."))
+        self.ctlscanstart.SetToolTip(wx.ToolTip("Minimum scan number to include in deconvolution."))
+        self.ctlscanend.SetToolTip(wx.ToolTip("Maximum scan number to include in deconvolution."))
         self.ctlcentroid.SetToolTip(wx.ToolTip("Width for Centroid Filtering in units of m/z."))
         self.ctlbinsize.SetToolTip(wx.ToolTip(
             "Controls Linearization.\nConstant bin size (Th) for Linear m/z"
@@ -900,6 +1287,31 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.ctlzsmoothcheck.SetToolTip(
             wx.ToolTip("Select whether to assume a smooth charge state distribution"))
+
+        if self.htmode:
+            self.ctlscancompress.SetToolTip(wx.ToolTip(
+                "Average each n scans together. This reduces the number of scans by a factor of n."))
+
+            self.ctlkernelsmooth.SetToolTip(wx.ToolTip(
+                "Smooth the data with a Gaussian kernel of this many data points."))
+            self.ctlhtseq.SetToolTip(wx.ToolTip(
+                "The Hadamard bit depth. Put bit{n} in file name to set automatically."))
+            self.ctlhttimeshift.SetToolTip(wx.ToolTip(
+                "Shift the HT start time by this amount to account for a delay at the start of the run. "
+                "Units of retention time."))
+
+            self.ctltimepad.SetToolTip(wx.ToolTip(
+                "Pad the time axis by this amount to account for a delay at the end of the run. "
+                "Units of retention time. Set cyc{n} and zp{m} in file name to set automatically as n and m."))
+            self.ctlanalysistime.SetToolTip(wx.ToolTip(
+                "Total analysis time. Must be set manually for DMT files."))
+            self.ctlmaxscans.SetToolTip(wx.ToolTip(
+                "Maximum number of scans to use in the analysis. Set to -1 to automatically determine from data"))
+            self.ctlxaxis.SetToolTip(wx.ToolTip("Select the x-axis unit for plotting."))
+            self.ctlcycleindex.SetToolTip(wx.ToolTip(
+                "The number of scans per cycle. Determined automatically if -1. "
+                "See tools menu or autocorrelation right click on TIC to get hints on setting this differently."))
+
         pass
 
     # .......................................................
@@ -1013,7 +1425,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         num = self.foldpanels.GetCount()
         for i in range(0, num):
             fp = self.foldpanels.GetFoldPanel(i)
-            if i in [2, 3, 4]:
+            if i in [6, 7, 8]:
                 self.foldpanels.Expand(fp)
             else:
                 self.foldpanels.Collapse(fp)
@@ -1023,7 +1435,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         num = self.foldpanels.GetCount()
         for i in range(0, num):
             fp = self.foldpanels.GetFoldPanel(i)
-            if i in [5, 6]:
+            if i in [9, 10]:
                 self.foldpanels.Expand(fp)
             else:
                 self.foldpanels.Collapse(fp)
@@ -1033,7 +1445,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         num = self.foldpanels.GetCount()
         for i in range(0, num):
             fp = self.foldpanels.GetFoldPanel(i)
-            if i in [0, 2, 3, 5]:
+            if i in [0, 6, 7, 9]:
                 self.foldpanels.Expand(fp)
             else:
                 self.foldpanels.Collapse(fp)
@@ -1051,6 +1463,22 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.parent.Bind(wx.EVT_RADIOBOX, self.update_quick_controls, self.ctlpsfun)
         
         '''
+
+    def on_mousewheel(self, e):
+        #print("Wee")
+        pass
+
+    def update_demultiplex_mode(self, e=None):
+        demultiplexmode = self.ctlmultiplexmode.GetStringSelection()
+        if "HT" in demultiplexmode:
+            self.foldpanels.Collapse(self.foldpanelft)
+            self.foldpanels.Expand(self.foldpanelht)
+            self.foldpanels.Collapse(self.foldpanelim)
+        elif "FT" in demultiplexmode:
+            self.foldpanels.Collapse(self.foldpanelht)
+            self.foldpanels.Expand(self.foldpanelft)
+        else:
+            print("Unknown demultiplex mode:", demultiplexmode)
 
     def update_quick_controls(self, e=None):
         if self.update_flag:

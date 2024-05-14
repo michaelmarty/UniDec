@@ -463,6 +463,7 @@ class UniDecBatchProcessor(object):
 
         # Set up the lists for the results
         htmlfiles = []
+        npeaks = []
 
         # Check if the "Correct" column is in the DataFrame to start correct pair mode
         self.correct_pair_mode = check_for_word_in_keys(self.rundf, "Correct")
@@ -537,6 +538,8 @@ class UniDecBatchProcessor(object):
                         print("Error in integrating", err)
                         self.integrate = False
 
+                npeaks.append(len(self.eng.pks.peaks))
+
                 results_string = None
 
                 # The First Recipe, correct pair mode
@@ -591,6 +594,9 @@ class UniDecBatchProcessor(object):
                 # When files are not found, print the error and add empty results
                 print("File not found:", path)
                 htmlfiles.append("")
+
+        # Write the number of peaks IDed
+        self.rundf["NumPeaks"] = npeaks
 
         # Set the HTML file names in the DataFrame
         self.rundf["Reports"] = htmlfiles

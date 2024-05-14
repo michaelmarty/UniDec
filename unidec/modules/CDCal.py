@@ -336,7 +336,7 @@ class CDCalDialog(wx.Frame):
 # Main App Execution
 if __name__ == "__main__":
     #calpath = "Z:\Group Share\Marius Kostelic\CD-MS\Replicates\Calibration.csv"
-    calpath = "C:\Data\CDMS\AqpZ_STORI\AqpZ_STORI\caltest.csv"
+    calpath = "C:\\Data\\CDMS\\AqpZ_STORI\\AqpZ_STORI\\caltest.csv"
     app = wx.App(False)
     frame = CDCalDialog(None)
     from unidec.modules.unidecstructure import UniDecConfig

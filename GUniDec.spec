@@ -10,18 +10,43 @@ from multiprocessing import freeze_support
 from os import listdir
 from PyInstaller import compat
 import matplotlib
-import hashing
+import sys
+import hashlib
+
+
+def hashfile(path):
+    # BUF_SIZE is totally arbitrary, change for your app!
+    BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
+
+    md5 = hashlib.md5()
+    sha256 = hashlib.sha256()
+
+    with open(path, 'rb') as f:
+        while True:
+            data = f.read(BUF_SIZE)
+            if not data:
+                break
+            md5.update(data)
+            sha256.update(data)
+
+    md5hash = md5.hexdigest()
+    sha256hash = sha256.hexdigest()
+
+    print("MD5: {0}".format(md5hash))
+    print("SHA256: {0}".format(sha256hash))
+
+    return md5hash, sha256hash
 
 freeze_support()
 
 
-def dir_files(path, rel):
+def dir_files(path, rel, type='DATA'):
     ret = []
     for p, d, f in os.walk(path):
         relpath = p.replace(path, '')[1:]
         for fname in f:
             ret.append((os.path.join(rel, relpath, fname),
-                        os.path.join(p, fname), 'DATA'))
+                        os.path.join(p, fname), type))
     return ret
 
 
@@ -66,24 +91,27 @@ if system == "Windows":
     a.datas += [('CDCReader.exe', 'unidec\\bin\\CDCReader.exe', 'DATA')]
     a.datas += [('h5repack.exe', 'unidec\\bin\\h5repack.exe', 'DATA')]
     a.datas += [('unimod.sqlite', 'unidec\\bin\\unimod.sqlite', 'DATA')]
+    #a.datas += [('numpy/DLLs', 'unidec\\bin\\mkl_def.2.dll', 'BINARY')]
+    #a.datas += [('numpy/DLLs', 'unidec\\bin\\mkl_avx2.2.dll', 'BINARY')]
+    #a.datas += [('numpy/DLLs', 'unidec\\bin\\mkl_intel_thread.2.dll', 'BINARY')]
     a.datas += [('pymzml\\version.txt', compat.base_prefix + '\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
     a.datas += [('massql\\msql.ebnf', compat.base_prefix + '\\Lib\\site-packages\\massql\\msql.ebnf', 'DATA')]
 
     # Copy over all the DLLs from the bin folder
     for file in os.listdir('unidec\\bin'):
         if fnmatch.fnmatch(file, '*.dll'):
-            add = [(file, 'unidec\\bin\\' + file, 'DATA')]
+            add = [(file, 'unidec\\bin\\' + file, 'BINARY')]
             a.datas += add
             # print add
 
-    a.datas += [('RawFileReaderLicense.doc', 'unidec\\modules\\thermo_reader\\RawFileReaderLicense.doc', 'DATA')]
-    a.datas += [('ThermoFisher.CommonCore.Data.dll', 'unidec\\modules\\thermo_reader\\ThermoFisher.CommonCore.Data.dll', 'DATA')]
-    a.datas += [('ThermoFisher.CommonCore.RawFileReader.dll', 'unidec\\modules\\thermo_reader\\ThermoFisher.CommonCore.RawFileReader.dll', 'DATA')]
-    a.datas += [('ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'unidec\\modules\\thermo_reader\\ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'DATA')]
-    a.datas += [('ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'unidec\\modules\\thermo_reader\\ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'DATA')]
+    a.datas += [('RawFileReaderLicense.doc', 'unidec\\modules\\thermo_reader\\RawFileReaderLicense.doc', 'BINARY')]
+    a.datas += [('ThermoFisher.CommonCore.Data.dll', 'unidec\\modules\\thermo_reader\\ThermoFisher.CommonCore.Data.dll', 'BINARY')]
+    a.datas += [('ThermoFisher.CommonCore.RawFileReader.dll', 'unidec\\modules\\thermo_reader\\ThermoFisher.CommonCore.RawFileReader.dll', 'BINARY')]
+    a.datas += [('ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'unidec\\modules\\thermo_reader\\ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'BINARY')]
+    a.datas += [('ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'unidec\\modules\\thermo_reader\\ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'BINARY')]
     a.datas += [('Waters_MassLynxSDK_EULA.txt', 'unidec\\bin\\Waters_MassLynxSDK_EULA.txt', 'DATA')]
 elif system == "Linux":
-    a.datas += [('unideclinux', 'unidec/bin/unideclinux', 'DATA')]
+    a.datas += [('unideclinux', 'unidec/bin/unideclinux', 'BINARY')]
 
 a.datas += [('cacert.pem', os.path.join('unidec\\bin', 'cacert.pem'), 'DATA')]
 a.datas += [('logo.ico', 'unidec\\bin\\logo.ico', 'DATA')]
@@ -102,9 +130,10 @@ a.datas.extend(dir_files("unidec\\bin\\Example Data", 'Example Data'))
 a.datas.extend(dir_files(compat.base_prefix + '\\Lib\\site-packages\\matchms\\data', "matchms\\data"))
 
 mkldir = compat.base_prefix + "/Lib/site-packages/numpy/DLLs"
-a.datas.extend(dir_files(mkldir, ''))
-a.datas.extend(
-    [(mkldir + "/" + mkl, '', 'DATA') for mkl in listdir(mkldir) if mkl.startswith('mkl_') or mkl.startswith('libio')])
+newdir = "numpy/DLLs"
+a.datas.extend(dir_files(mkldir, newdir, type="BINARY"))
+#a.datas.extend(
+#    [(mkldir + "/" + mkl, newdir, 'BINARY') for mkl in listdir(mkldir) if mkl.startswith('mkl_') or mkl.startswith('libio')])
 
 rdkitlibs = compat.base_prefix + "/Lib/site-packages/rdkit.libs"
 a.datas.extend(dir_files(rdkitlibs, ''))
@@ -149,7 +178,7 @@ for root, dirs, files in os.walk(outputdir):
 zipf.close()
 print("Zipped to", zipdirectory, "from", outputdir)
 
-hashing.hashfile(zipdirectory)
+hashfile(zipdirectory)
 
 tend = time.perf_counter()
 print("Build Time: %.2gm" % ((tend - tstart) / 60.0))

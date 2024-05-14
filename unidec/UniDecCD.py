@@ -19,8 +19,8 @@ import platform
 
 class UniDecCDApp(UniDecApp):
     """
-    Main UniDec GUI Application.
-    Presenter contains UniDec engine at self.eng and main GUI window at self.view
+    Main UniDecCD GUI Application.
+    Presenter contains UniDecCD engine at self.eng and main GUI window at self.view
     """
 
     def __init__(self, *args, **kwargs):
@@ -32,6 +32,8 @@ class UniDecCDApp(UniDecApp):
         """
         UniDecPres.__init__(self, *args, **kwargs)
         self.init(*args, **kwargs)
+        self.showht = False
+        self.comparedata = None
 
     def init(self, *args, **kwargs):
         """
@@ -42,13 +44,10 @@ class UniDecCDApp(UniDecApp):
         """
         self.eng = CDEng.UniDecCD()
         self.view = CDWindow.CDMainwindow(self, "UCD: UniDec for Charge Detection-Mass Spectrometry", self.eng.config)
-        self.comparedata = None
 
         pub.subscribe(self.on_get_mzlimits, 'mzlimits')
         pub.subscribe(self.on_smash, 'smash')
-        '''
-        pub.subscribe(self.on_integrate, 'integrate')
-        pub.subscribe(self.on_left_click, 'left_click')'''
+
         self.eng.config.recentfile = self.eng.config.recentfileCD
         self.recent_files = self.read_recent()
         self.cleanup_recent_file(self.recent_files)
@@ -100,6 +99,17 @@ class UniDecCDApp(UniDecApp):
         Opens a file. Run self.eng.open_file.
         :param filename: File name
         :param directory: Directory containing file
+        :param path: Full path to file
+        :param refresh: Refresh the data ranges from the file. Default False.
+        :return: None
+        """
+        self.on_open_cdms_file(filename, directory, path=path, refresh=refresh)
+
+    def on_open_cdms_file(self, filename, directory, path=None, refresh=False):
+        """
+        Opens a file. Run self.eng.open_file.
+        :param filename: File name
+        :param directory: Directory containing file
         :return: None
         """
         # tstart =time.perf_counter()
@@ -147,6 +157,9 @@ class UniDecCDApp(UniDecApp):
         self.on_open_file(None, None, path=newfile)
 
     def on_dataprep_button(self, e=None):
+        self.dataprep()
+
+    def dataprep(self):
         self.view.clear_all_plots()
         self.export_config(self.eng.config.confname)
         self.eng.process_data()
@@ -211,7 +224,10 @@ class UniDecCDApp(UniDecApp):
         self.view.SetStatusText("Deconvolving", number=5)
         # self.view.clear_all_plots()
         self.export_config(self.eng.config.confname)
-        self.eng.run_deconvolution()
+        if self.showht:
+            self.eng.run_deconvolution(process_data=False)
+        else:
+            self.eng.run_deconvolution()
         self.makeplot1()
         self.makeplot2()
         self.makeplot3()
@@ -220,16 +236,19 @@ class UniDecCDApp(UniDecApp):
         pass
 
     def on_pick_peaks(self, e=None):
+        self.pick_peaks()
+
+    def pick_peaks(self, e=None):
         """
-                Pick peaks and perform initial plots on them.
-                :param e: unused space for event
-                :return: None
-                """
+        Pick peaks and perform initial plots on them.
+        :param e: unused space for event
+        :return: None
+        """
         print("Peak Picking")
         self.view.SetStatusText("Detecting Peaks", number=5)
         tstart = time.perf_counter()
         self.export_config(self.eng.config.confname)
-        self.eng.pick_peaks()
+        self.eng.pick_peaks(calc_dscore=False)
         self.view.SetStatusText("Plotting Peaks", number=5)
         if self.eng.config.batchflag == 0:
             self.view.peakpanel.add_data(self.eng.pks)
@@ -386,6 +405,7 @@ class UniDecCDApp(UniDecApp):
         self.eng.exe_mode(exemode)
 
     def remake_mainwindow(self, tabbed=None):
+        htmode = self.view.htmode
         iconfile = self.view.icon_path
         # evt=EventManager()
         # print evt.GetStats()
@@ -393,7 +413,7 @@ class UniDecCDApp(UniDecApp):
         self.view.on_exit()
         self.view = []
         self.view = CDWindow.CDMainwindow(self, "UCD: UniDec for Charge Detection-Mass Spectrometry", self.eng.config,
-                                          iconfile=iconfile, tabbed=tabbed)
+                                          iconfile=iconfile, tabbed=tabbed, htmode=htmode)
         self.view.Show()
         self.view.import_config_to_gui()
 

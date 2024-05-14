@@ -76,12 +76,15 @@ class UniDecConfig(object):
         self.massgridfile = ''
         self.massdatfile = ''
         self.cdrawextracts = ''
+        self.cdchrom = ''
         self.mzgridfile = ''
         self.cdcreaderpath = ''
         self.UniDecPath = ''
         self.UniDecDir = ''
         self.UniDecName = ''
         self.defaultUnidecDir = ''
+        self.mplstyledir = ''
+        self.mplstylefile = 'UniDec.mplstyle'
         self.opencommand = ''
         self.defaultUnidecName = ''
         self.iconfile = ''
@@ -154,6 +157,7 @@ class UniDecConfig(object):
         self.edc = 1.57
         self.gasmass = 4.002602
         self.twaveflag = 0
+        self.ccsconstant = 0
 
         # Misc
         self.batchflag = 0
@@ -230,6 +234,7 @@ class UniDecConfig(object):
         # Peak Selection and plotting
         self.peakwindow = 500
         self.peakthresh = 0.1
+        self.normthresh = 1
         self.peakplotthresh = 0.1
         self.separation = 0.025
         self.peaknorm = 1
@@ -260,6 +265,33 @@ class UniDecConfig(object):
         self.CDslope = 0.2074
         self.CDzbins = 1
         self.CDres = 0
+        self.CDScanStart = -1
+        self.CDScanEnd = -1
+        self.CDiitflag = False
+
+        # Hadamard Transform Parameters
+        self.htmode = False
+        self.htseq = ""
+        self.htbit = 0
+        self.HTksmooth = 0
+        self.HTanalysistime = 38.0
+        self.HTcycletime = 2.0
+        self.HTtimepad = 0.0
+        self.HTtimeshift = 7.0
+        self.HTcycleindex = -1
+        self.HTxaxis = "Time"
+        self.CDScanCompress = 3
+        self.HTmaxscans = -1
+        self.demultiplexmode = "HT"
+        self.demultiplexchoices = ["HT", "mHT", "FT", "aFT"]
+        self.FTstart = 5
+        self.FTend = 1000
+        self.FTflatten = True
+        self.FTapodize = 1
+        self.FTsmooth = 0
+        self.HTmaskn = 1000
+        self.HTwin = 5
+        self.showlegends = True
 
         self.doubledec = False
         self.kernel = ""
@@ -389,6 +421,7 @@ class UniDecConfig(object):
         # Peak Selection and plotting
         self.peakwindow = 500
         self.peakthresh = 0.1
+        self.normthresh = 1
         self.peakplotthresh = 0.1
         self.separation = 0.025
         self.peaknorm = 1
@@ -419,6 +452,12 @@ class UniDecConfig(object):
         self.CDslope = 0.2074
         self.CDzbins = 1
         self.CDres = 0
+        self.CDScanStart = -1
+        self.CDScanEnd = -1
+        self.HTksmooth = 0
+        self.CDScanCompress = 0
+        self.HTcycleindex = -1
+        self.HTxaxis = "Time"
 
         self.doubledec = False
         self.kernel = ""
@@ -496,6 +535,7 @@ class UniDecConfig(object):
         f.write("mzbins " + str(self.mzbins) + "\n")
         f.write("peakwindow " + str(self.peakwindow) + "\n")
         f.write("peakthresh " + str(self.peakthresh) + "\n")
+        f.write("normthresh" + str(int(self.normthresh)) + "\n")
         f.write("peakplotthresh " + str(self.peakplotthresh) + "\n")
         f.write("plotsep " + str(self.separation) + "\n")
         f.write("intthresh " + str(self.intthresh) + "\n")
@@ -535,6 +575,27 @@ class UniDecConfig(object):
         f.write("CDslope " + str(self.CDslope) + "\n")
         f.write("CDzbins " + str(self.CDzbins) + "\n")
         f.write("CDres " + str(self.CDres) + "\n")
+        f.write("CDScanStart " + str(self.CDScanStart) + "\n")
+        f.write("CDScanEnd " + str(self.CDScanEnd) + "\n")
+        f.write("HTksmooth " + str(self.HTksmooth) + "\n")
+        f.write("CDScanCompress " + str(self.CDScanCompress) + "\n")
+        f.write("HTmaxscans " + str(self.HTmaxscans) + "\n")
+        f.write("HTtimepad " + str(self.HTtimepad) + "\n")
+        f.write("HTanalysistime " + str(self.HTanalysistime) + "\n")
+        f.write("HTxaxis " + str(self.HTxaxis) + "\n")
+        f.write("HTcycleindex " + str(self.HTcycleindex) + "\n")
+        f.write("HTcylctime " + str(self.HTcycletime) + "\n")
+        f.write("HTtimeshift " + str(self.HTtimeshift) + "\n")
+        f.write("htbit " + str(self.htbit) + "\n")
+        f.write("FTstart " + str(self.FTstart) + "\n")
+        f.write("FTend " + str(self.FTend) + "\n")
+        f.write("FTflatten " + str(int(self.FTflatten)) + "\n")
+        f.write("FTapodize " + str(int(self.FTapodize)) + "\n")
+        f.write("demultiplexmode " + str(self.demultiplexmode) + "\n")
+        f.write("FTsmooth " + str(self.FTsmooth) + "\n")
+        f.write("HTmaskn " + str(self.HTmaskn) + "\n")
+        f.write("HTwin " + str(self.HTwin) + "\n")
+
         f.write("csig " + str(self.csig) + "\n")
         f.write("smoothdt " + str(self.smoothdt) + "\n")
         f.write("subbufdt " + str(self.subbufdt) + "\n")
@@ -649,7 +710,46 @@ class UniDecConfig(object):
                             self.CDzbins = ud.string_to_value(line.split()[1])
                         if line.startswith("CDres"):
                             self.CDres = ud.string_to_value(line.split()[1])
-
+                        if line.startswith("CDScanStart"):
+                            self.CDScanStart = ud.string_to_int(line.split()[1])
+                        if line.startswith("CDScanEnd"):
+                            self.CDScanEnd = ud.string_to_int(line.split()[1])
+                        if line.startswith("HTksmooth"):
+                            self.HTksmooth = ud.string_to_value(line.split()[1])
+                        if line.startswith("HTtimeshift"):
+                            self.HTtimeshift = ud.string_to_value(line.split()[1])
+                        if line.startswith("HTtimepad"):
+                            self.HTtimepad = ud.string_to_value(line.split()[1])
+                        if line.startswith("HTanalysistime"):
+                            self.HTanalysistime = ud.string_to_value(line.split()[1])
+                        if line.startswith("HTxaxis"):
+                            self.HTxaxis = line.split()[1]
+                        if line.startswith("HTcycleindex"):
+                            self.HTcycleindex = ud.string_to_value(line.split()[1])
+                        if line.startswith("HTcylctime"):
+                            self.HTcycletime = ud.string_to_value(line.split()[1])
+                        if line.startswith("htbit"):
+                            self.htbit = ud.string_to_value(line.split()[1])
+                        if line.startswith("CDScanCompress"):
+                            self.CDScanCompress = ud.string_to_value(line.split()[1])
+                        if line.startswith("HTmaxscans"):
+                            self.HTmaxscans = ud.string_to_value(line.split()[1])
+                        if line.startswith("demultiplexmode"):
+                            self.demultiplexmode = line.split()[1]
+                        if line.startswith("FTstart"):
+                            self.FTstart = ud.string_to_value(line.split()[1])
+                        if line.startswith("FTend"):
+                            self.FTend = ud.string_to_value(line.split()[1])
+                        if line.startswith("FTflatten"):
+                            self.FTflatten = ud.string_to_int(line.split()[1])
+                        if line.startswith("FTapodize"):
+                            self.FTapodize = ud.string_to_int(line.split()[1])
+                        if line.startswith("FTsmooth"):
+                            self.FTsmooth = ud.string_to_value(line.split()[1])
+                        if line.startswith("HTmaskn"):
+                            self.HTmaskn = ud.string_to_value(line.split()[1])
+                        if line.startswith("HTwin"):
+                            self.HTwin = ud.string_to_value(line.split()[1])
                         if line.startswith("zzsig"):
                             self.zzsig = ud.string_to_value(line.split()[1])
                         if line.startswith("psig"):
@@ -699,6 +799,8 @@ class UniDecConfig(object):
                             self.peakwindow = ud.string_to_value(line.split()[1])
                         if line.startswith("peakthresh"):
                             self.peakthresh = ud.string_to_value(line.split()[1])
+                        if line.startswith("normthresh"):
+                            self.normthresh = ud.string_to_int(line.split()[1])
                         if line.startswith("peakplotthresh"):
                             self.peakplotthresh = ud.string_to_value(line.split()[1])
                         if line.startswith("plotsep"):
@@ -886,6 +988,7 @@ class UniDecConfig(object):
             "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
             "minmz": self.minmz, "maxmz": self.maxmz, "subbuff": self.subbuff, "smooth": self.smooth,
             "mzbins": self.mzbins, "peakwindow": self.peakwindow, "peakthresh": self.peakthresh,
+            "normthresh": self.normthresh,
             "peakplotthresh": self.peakplotthresh, "plotsep": self.separation, "intthresh": self.intthresh,
             "reductionpercent": self.reductionpercent,
             "aggressive": self.aggressiveflag, "rawflag": self.rawflag, "adductmass": self.adductmass,
@@ -975,6 +1078,7 @@ class UniDecConfig(object):
         self.mzbins = read_attr(self.mzbins, "mzbins", config_group)
         self.peakwindow = read_attr(self.peakwindow, "peakwindow", config_group)
         self.peakthresh = read_attr(self.peakthresh, "peakthresh", config_group)
+        self.normthresh = read_attr(self.normthresh, "normthresh", config_group)
         self.peakplotthresh = read_attr(self.peakplotthresh, "peakplotthresh", config_group)
         self.separation = read_attr(self.separation, "separation", config_group)
         self.intthresh = read_attr(self.intthresh, "intthresh", config_group)
@@ -1067,7 +1171,7 @@ class UniDecConfig(object):
     def default_file_names(self):
         """
         Sets the default file names. For things comming into and out of the program. In theory these can be modified,
-         but it might be risky.
+        but it might be risky.
         :return: None
         """
         self.infname = self.outfname + "_input.dat"
@@ -1085,16 +1189,17 @@ class UniDecConfig(object):
         self.deconfile = self.outfname + "_decon.txt"
         self.mzgridfile = self.outfname + "_grid.bin"
         self.cdrawextracts = self.outfname + "_rawdata.npz"
+        self.cdchrom = self.outfname + "_chroms.txt"
         if self.filetype == 0:
             self.hdf_file = self.outfname + ".hdf5"
 
     def check_badness(self):
         """
         Test for a few things that will crash the program:
-            Min is greater than Max for m/z, charge, mass, native charge, ccs, native ccs, dt
-            Bad IM-MS calibration values.
-            Peak width is zero
-            m/z resolution is really small.
+        Min is greater than Max for m/z, charge, mass, native charge, ccs, native ccs, dt
+        Bad IM-MS calibration values.
+        Peak width is zero
+        m/z resolution is really small.
         :return: None
         """
         badest = 0
@@ -1349,6 +1454,8 @@ class UniDecConfig(object):
         self.exampledatadirUC = os.path.join(self.UniDecDir, "Example Data", "UniChrom")
         self.toplogofile = os.path.join(self.UniDecDir, "UniDecLogoMR.png")
         self.iconfile = os.path.join(self.UniDecDir, "logo.ico")
+        self.mplstyledir = os.path.join(self.UniDecDir, "PlotStyles")
+        self.mplstylefile = os.path.join(self.mplstyledir, "UniDec.mplstyle")
 
         print("\nUniDec Path:", self.UniDecPath)
 
@@ -1501,6 +1608,105 @@ class DataContainer:
         self.ccsdata = immsdata.get("ccs_data")
         self.baseline = config_group.get("baseline")
         hdf.close()
+
+
+class Chromatogram:
+    def __init__(self):
+        self.chromdat = np.array([])
+        self.decondat = np.array([])
+        self.ccsdat = np.array([])
+        self.label = ""
+        self.color = "#000000"
+        self.index = 0
+        self.mzrange = [-1, -1]
+        self.zrange = [-1, -1]
+        self.sarray = [-1, -1, -1, -1]
+        self.sum = -1
+        self.ignore = 0
+        self.ht = False
+        self.massrange = [-1, -1]
+        self.massmode = False
+        self.dataobj = None
+        self.swoopmode = False
+
+    def to_row(self):
+        out = [self.label, str(self.color), str(self.index), str(self.mzrange[0]), str(self.mzrange[1]),
+               str(self.zrange[0]), str(self.zrange[1]), str(self.sum), str(self.ht), str(self.sarray[0])
+               , str(self.sarray[1]), str(self.sarray[2]), str(self.sarray[3])]
+        return out
+
+
+class ChromatogramContainer:
+    def __init__(self):
+        self.chromatograms = []
+
+    def add_chromatogram(self, data, decondat=None, ccsdat=None, label=None, color="#000000", index=None, mzrange=None,
+                         zrange=None, massrange=None, massmode=False, mode="DM", sarray=None):
+        chrom = Chromatogram()
+        chrom.chromdat = data
+        chrom.decondat = decondat
+        chrom.ccsdat = ccsdat
+        chrom.sum = np.sum(data[:, 1])
+
+        if label is None:
+            label = ""
+            if mzrange is not None:
+                label += "m/z: " + str(round(mzrange[0])) + "-" + str(round(mzrange[1]))
+            if zrange is not None:
+                label += " z: " + str(round(zrange[0])) + "-" + str(round(zrange[1]))
+            if sarray is not None:
+                label += "Swoop m/z: " + str(round(sarray[0])) + " z: " + str(round(sarray[1]))
+
+        chrom.label = label
+
+        chrom.color = color
+
+        if index is not None:
+            chrom.index = index
+        else:
+            chrom.index = len(self.chromatograms)
+
+        if mzrange is not None:
+            chrom.mzrange = mzrange
+            chrom.massmode = False
+
+        if zrange is not None:
+            chrom.zrange = zrange
+
+        if massrange is not None:
+            chrom.massrange = massrange
+            chrom.massmode = True
+
+        if sarray is not None:
+            chrom.sarray = sarray
+            chrom.swoopmode = True
+            chrom.massmode = False
+
+        chrom.massmode = massmode
+
+        # If label already exists, replace it
+        if label in [x.label for x in self.chromatograms]:
+            for i, x in enumerate(self.chromatograms):
+                if x.label == label:
+                    self.chromatograms[i] = chrom
+                    break
+        else:
+            # Add it if new
+            if type(self.chromatograms) is np.ndarray:
+                self.chromatograms = np.concatenate((self.chromatograms, [chrom]))
+            else:
+                self.chromatograms.append(chrom)
+
+        return chrom
+
+    def clear(self):
+        self.chromatograms = []
+
+    def to_array(self):
+        arr = []
+        for chrom in self.chromatograms:
+            arr.append(chrom.to_row())
+        return np.array(arr).astype(str)
 
 
 if __name__ == '__main__':

@@ -388,7 +388,7 @@ class RawFileReader(object):
             scanrange = [self.FirstSpectrumNumber, self.LastSpectrumNumber]
         # Define the settings for getting the Base Peak chromatogram #TraceType.BasePeak
         # Define the settings for getting the TIC chromatogram #TraceType.TIC
-        MR = Range.Create(massrange[0], massrange[1])
+        MR = Range.Create(float(massrange[0]), float(massrange[1]))
         settings = ChromatogramTraceSettings(TraceType.MassRange)
         settings.MassRanges = [MR]
         #print(MR, dir(MR), MR.High, MR.Low)

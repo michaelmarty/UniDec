@@ -46,6 +46,15 @@ class MZLimitsEvent(wx.PyCommandEvent):
         self.minval = minval
         self.maxval = maxval
 
+# Create swoop drag custom event
+SwoopDragEventType = wx.NewEventType()
+EVT_SWOOP_DRAG = wx.PyEventBinder(SwoopDragEventType, 1)
+
+class SwoopDragEvent(wx.PyCommandEvent):
+    def __init__(self, evttype, id, sarray=None):
+        wx.PyCommandEvent.__init__(self, evttype, id)
+        self.sarray = sarray
+
 
 class PlottingWindowBase(PlotBase, wx.Panel):
     """
@@ -71,6 +80,7 @@ class PlottingWindowBase(PlotBase, wx.Panel):
         self.displaysize = wx.GetDisplaySize()
         self.EVT_SCANS_SELECTED = EVT_SCANS_SELECTED
         self.EVT_MZLIMITS = EVT_MZLIMITS
+        self.EVT_SWOOP_DRAG = EVT_SWOOP_DRAG
 
         if "integrate" in kwargs:
             self.int = kwargs["integrate"]
@@ -88,6 +98,12 @@ class PlottingWindowBase(PlotBase, wx.Panel):
             del kwargs["parent"]
         else:
             self.parent = None
+
+        if "swoop" in kwargs:
+            self.swoop = kwargs["swoop"]
+            del kwargs["swoop"]
+        else:
+            self.swoop = False
 
         wx.Window.__init__(self, *args)
         self.Bind(wx.EVT_SIZE, self.size_handler)
@@ -155,6 +171,7 @@ class PlottingWindowBase(PlotBase, wx.Panel):
                 except:
                     print("Could not switch on labels")
         if event.button == 2 or (event.button == 1 and wx.GetKeyState(wx.WXK_DOWN)):
+            # Middle Clicks
             if wx.GetKeyState(wx.WXK_CONTROL):
                 dlg = DoubleInputDialog(self)
                 dlg.initialize_interface("Matplotlib RC Parameters", "RC Param Name:", 'lines.markersize',
@@ -213,6 +230,8 @@ class PlottingWindowBase(PlotBase, wx.Panel):
             self.copy_to_clipboard()
         if evt.key == "ctrl+u":
             self.on_write_dialog(evt)
+
+
 
     def on_save_fig_dialog(self, evt):
         """
@@ -368,7 +387,7 @@ class PlottingWindowBase(PlotBase, wx.Panel):
                 onmove_callback=None,
                 spancoords='data',
                 rectprops=dict(alpha=0.2, facecolor='yellow'),
-                data_lims=data_lims,
+                data_lims=data_lims, swoop=self.swoop,
                 integrate=self.int, smash=self.smash, pad=pad)
         if zoom == "fixed_span":
             self.zoom = NoZoomSpan(
@@ -395,7 +414,6 @@ class PlottingWindowBase(PlotBase, wx.Panel):
 
     def on_right_click(self, event=None):
         if self.int == 1:
-            # print "rightclick"
             pub.sendMessage('integrate')
         elif self.smash == 1:
             if event.dblclick:
@@ -407,6 +425,13 @@ class PlottingWindowBase(PlotBase, wx.Panel):
         elif self.smash == 2:
             event = ScanSelectedEvent(MZLimitsEventType, self.GetId())
             self.GetEventHandler().ProcessEvent(event)
+        else:
+            event = ScanSelectedEvent(ScanSelectedEventType, self.GetId())
+            self.GetEventHandler().ProcessEvent(event)
+
+    def on_swoop_drag(self, sarray):
+        event = SwoopDragEvent(SwoopDragEventType, self.GetId(), sarray=sarray)
+        self.GetEventHandler().ProcessEvent(event)
 
 class Plot1d(PlottingWindowBase, Plot1dBase):
     """

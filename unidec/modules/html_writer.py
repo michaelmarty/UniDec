@@ -1,4 +1,3 @@
-import mpld3
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.colors
@@ -13,6 +12,11 @@ import unidec.tools as ud
 import base64
 import webbrowser
 import os
+
+try:
+    import mpld3
+except:
+    print("mpld3 not found")
 
 luminance_cutoff = 135
 

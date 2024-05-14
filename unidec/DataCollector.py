@@ -28,7 +28,8 @@ rcParams['pdf.fonttype'] = 42
 
 luminance_cutoff = 135
 white_text = wx.Colour(250, 250, 250)
-black_text = wx.Colour(0,0,0)
+black_text = wx.Colour(0, 0, 0)
+
 
 # TODO: Rewrite this code to clean it up...
 
@@ -173,7 +174,7 @@ class ListCtrlPanel(wx.Panel):
         id_value = wx.NewIdRef()
         self.selection = []
         self.list_type = list_type
-        self.parent=parent
+        self.parent = parent
         sizer = wx.BoxSizer(wx.VERTICAL)
         if list_type == "X":
             self.list = XValueListCtrl(self, id_value, size=size, style=wx.LC_REPORT | wx.BORDER_NONE)
@@ -240,7 +241,8 @@ class ListCtrlPanel(wx.Panel):
             self.list.SetItem(i, 3, val)
 
 
-datachoices = {0: "Raw Data", 1: "Processed Data", 2: "Zero Charge Mass Spectrum", 3: "CCS (Experimental)", 4: "DoubleDec (Experimental)"}
+datachoices = {0: "Raw Data", 1: "Processed Data", 2: "Zero Charge Mass Spectrum", 3: "CCS (Experimental)",
+               4: "DoubleDec (Experimental)"}
 extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position",
                   5: "Center of Mass 50%", 6: "Center of Mass 10%", 11: "Estimated Area"}
 extractmethods = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 11}
@@ -318,7 +320,7 @@ class DataCollector(wx.Frame):
                                                          "Normalizes mass deconvolutions to MS1 scan for variable 1 +/- variable 2")
         self.Bind(wx.EVT_MENU, self.on_msms_norm, self.menumsmsnorm)
         self.menudd = self.experimentalmenu.Append(wx.ID_ANY, "Batch DoubleDec",
-                                                         "Run DoubleDec on All Files")
+                                                   "Run DoubleDec on All Files")
         self.Bind(wx.EVT_MENU, self.on_doubledec, self.menudd)
         self.menuautocorr = self.experimentalmenu.Append(wx.ID_ANY, "View Autocorrelation of Sum",
                                                          "Shows autocorelation plot of sum")
@@ -331,7 +333,8 @@ class DataCollector(wx.Frame):
         self.Bind(wx.EVT_MENU, self.shade_plots, self.menuplotx)
 
         self.experimentalmenu.AppendSeparator()
-        self.menugfit = self.experimentalmenu.Append(wx.ID_ANY, "Fit Extracted Data to Gaussians", "Fit Extracted Data to Gaussians")
+        self.menugfit = self.experimentalmenu.Append(wx.ID_ANY, "Fit Extracted Data to Gaussians",
+                                                     "Fit Extracted Data to Gaussians")
         self.Bind(wx.EVT_MENU, self.on_fitting, self.menugfit)
 
         self.toolsmenu.AppendSeparator()
@@ -342,7 +345,7 @@ class DataCollector(wx.Frame):
             idval = 500 + i
             self.scalemenu.Append(idval, self.config.cmaps[i], "", wx.ITEM_RADIO)
             self.Bind(wx.EVT_MENU, self.menu_fcmaps, id=idval)
-            if i%20==19:
+            if i % 20 == 19:
                 self.scalemenu.Break()
         self.toolsmenu.AppendSubMenu(self.scalemenu, 'Files Color Map')
 
@@ -352,7 +355,7 @@ class DataCollector(wx.Frame):
             idval = 1500 + i
             self.scalemenu2.Append(idval, self.config.cmaps[i], "", wx.ITEM_RADIO)
             self.Bind(wx.EVT_MENU, self.menu_xcmaps, id=idval)
-            if i%20==19:
+            if i % 20 == 19:
                 self.scalemenu2.Break()
         self.toolsmenu.AppendSubMenu(self.scalemenu2, 'X Value Color Map')
 
@@ -528,7 +531,7 @@ class DataCollector(wx.Frame):
         self.offsets = []
         self.check_cmaps()
         self.hdf5_file = ""
-        self.kernelfile=""
+        self.kernelfile = ""
         self.filetype = 0
         self.update_set(0)
         self.Centre()
@@ -548,7 +551,7 @@ class DataCollector(wx.Frame):
             # self.load(os.path.join(self.directory,"AmtB_04_test.json"))
             # self.directory = "C:\\Data\\AmtB_DMPC"
             # self.load(os.path.join(self.directory, "AmtB_07.json"))
-            if True:
+            if False:
                 self.directory = "C:\\Data\\Others\\Miranda"
                 self.directory = "Z:\\Group Share\\Marius Kostelic\\Baker Lab AAVs\\Test for gaussian fitting\\"
                 self.load(os.path.join(self.directory, "collection1.json"))
@@ -834,7 +837,6 @@ class DataCollector(wx.Frame):
             self.ctlmin.SetValue(str(self.range[0]))
             self.ctlmax.SetValue(str(self.range[1]))
 
-
     def on_run(self, e=None, vals=None):
         tstart = time.perf_counter()
         self.update_get(e)
@@ -1030,15 +1032,15 @@ class DataCollector(wx.Frame):
                 val = 0
                 for xval in xs:
                     val += float(xval)
-                    self.make_shade_plot(val,  window, color)
+                    self.make_shade_plot(val, window, color)
         self.plot1.repaint()
 
     def make_shade_plot(self, val, window, color):
         y0 = np.amin(self.data[0][:, 1])
         ywidth = np.amax(self.data[0][:, 1]) - y0
         if self.plot1.kdnorm == 1000:
-            val = val/self.plot1.kdnorm
-            window = window/self.plot1.kdnorm
+            val = val / self.plot1.kdnorm
+            window = window / self.plot1.kdnorm
 
         print(val, window)
         self.plot1.subplot1.add_patch(
@@ -1389,7 +1391,7 @@ class DataCollector(wx.Frame):
         DoubleDec.batch_dd(self.paths, self.kernelfile)
 
     def on_fitting(self, e=None):
-        starttime= time.perf_counter()
+        starttime = time.perf_counter()
         self.update_get(None)
         print("Starting Fitting")
         self.extract = []
@@ -1398,20 +1400,20 @@ class DataCollector(wx.Frame):
             fcolor = np.array(l[4:7])
             data = self.data[k]
             print(len(data))
-            masses = [float(s) for s in np.array(self.xvals)[:,0]]
+            masses = [float(s) for s in np.array(self.xvals)[:, 0]]
             print(masses)
             print(self.window)
             fits, fitdat = MD_Fitter(data, mds=masses, maxshift=self.window, widthguess=self.window, )
-            fitdat /= np.amax(data[:,1])/np.amax(fitdat)
+            fitdat /= np.amax(data[:, 1]) / np.amax(fitdat)
             self.plot1.plotadd(data[:, 0], fitdat, fcolor, nopaint=False, linestyle="--")
             if not self.plot4.flag:
-                self.plot4.plotrefreshtop(data[:, 0], data[:, 1]-k, "Extracted Data", "", "", "", None,
+                self.plot4.plotrefreshtop(data[:, 0], data[:, 1] - k, "Extracted Data", "", "", "", None,
                                           nopaint=True,
                                           color=fcolor, test_kda=True)
             else:
-                self.plot4.plotadd(data[:, 0], data[:,1]-k, fcolor)
-            self.plot4.plotadd(data[:, 0], fitdat-k, fcolor, linestyle="--")
-            xext = fits[:,2]
+                self.plot4.plotadd(data[:, 0], data[:, 1] - k, fcolor)
+            self.plot4.plotadd(data[:, 0], fitdat - k, fcolor, linestyle="--")
+            xext = fits[:, 2]
             self.extract.append(xext)
         self.plot4.repaint()
 
@@ -1429,7 +1431,7 @@ class DataCollector(wx.Frame):
 
             np.savetxt(os.path.join(self.directory, "extracts_fitted.txt"), self.extract)
         endtime = time.perf_counter()
-        print("Fitting Time: ", endtime-starttime)
+        print("Fitting Time: ", endtime - starttime)
 
     def on_ylabel(self, e):
         dlg = miscwindows.SingleInputDialog(self)

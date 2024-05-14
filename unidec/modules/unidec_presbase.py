@@ -116,6 +116,7 @@ class UniDecPres(object):
         badness, warning = self.eng.config.check_badness()
         if warning != "":
             self.warn(warning)
+        self.eng.check_isomode()
         return badness
 
     def warn(self, message, caption='Warning!'):
@@ -374,14 +375,13 @@ class UniDecPres(object):
         except:
             linewidth = 1.75
 
-
         # TODO: Take away black background on colored lines
         for p in self.eng.pks.peaks:
             if p.mass in peaksel:
                 if not ud.isempty(p.intervalFWHM):
                     # limits = p.integralrange
-                    limits = 2 * (np.array(p.intervalFWHM)-p.mass) + p.mass
-                    #print(p.intervalFWHM, limits, p.mass)
+                    limits = 2 * (np.array(p.intervalFWHM) - p.mass) + p.mass
+                    # print(p.intervalFWHM, limits, p.mass)
 
                     color = p.color
                     self.plot_integral(limits, color=color, filled=filled, plot=plot2, repaint=False)
@@ -828,6 +828,14 @@ class UniDecPres(object):
                 l = p + '\n'
                 f.write(l)
             f.truncate()
+
+    def open_most_recent(self, e=None):
+        recent_files = self.read_recent()
+        if not ud.isempty(recent_files):
+            directory, file = os.path.split(recent_files[0])
+            self.on_open_file(file, directory, refresh=True)
+        else:
+            print("No Recent Files")
 
     def auto_refresh_stop(self, e=None):
         self.timer.Stop()
