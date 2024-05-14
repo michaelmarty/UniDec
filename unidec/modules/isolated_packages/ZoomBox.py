@@ -98,6 +98,7 @@ class ZoomBox(ZoomCommon):
         self.visible = True
         self.cids = []
         self.mzz = None
+        self.mzz2 = None
         self.mzcurve = None
         self.sarray = None
         self.swoop = swoop
@@ -267,9 +268,15 @@ class ZoomBox(ZoomCommon):
             # Get the current event x and y
             x, y = event.xdata, event.ydata
             self.mzz = [x, y]
-            # print("MZZ", self.mzz)
+            self.mzz2 = None
+        elif wx.GetKeyState(wx.WXK_ESCAPE):
+            # Get the current event x and y
+            x, y = event.xdata, event.ydata
+            self.mzz2 = [x, y]
+            self.mzz = None
         else:
             self.mzz = None
+            self.mzz2 = None
         return False
 
     def release(self, event):
@@ -469,6 +476,26 @@ class ZoomBox(ZoomCommon):
             if self.mzcurve is not None:
                 self.mzcurve.remove()
             sarray = [self.mzz[0], self.mzz[1], spany, zwidth]
+            self.mzcurve, self.sarray = self.parent.draw_mz_curve(sarray)
+            self.canvas.draw()
+            return
+        elif self.mzz2 is not None and self.swoop:
+            spany = maxy - miny
+            roughmass = self.mzz2[0] * self.mzz2[1]
+            minz = roughmass / maxx
+            maxz = roughmass / minx
+            minz = np.ceil(minz)
+            maxz = np.floor(maxz)
+            zwidth = maxz - minz
+            #print(roughmass, spany, zwidth, minz, maxz)
+            # print(self.mzz, spany, zwidth)
+            if self.mzcurve is not None:
+                self.mzcurve.remove()
+
+            zmid = (minz + maxz) / 2
+            mzmid = roughmass/zmid
+
+            sarray = [mzmid, zmid, spany, zwidth]
             self.mzcurve, self.sarray = self.parent.draw_mz_curve(sarray)
             self.canvas.draw()
             return

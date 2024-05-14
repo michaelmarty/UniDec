@@ -24,11 +24,11 @@ import multiprocessing
 from unidec.modules.unidec_presbase import UniDecPres
 from unidec.iFAMS.wxiFAMS import iFAMS_Window
 
-try:
-    import unidec.modules.thermo_reader.rawreader as rawreader
-except Exception as e:
-    print("Error importing Thermo Raw Reader, try installing MSFileReader from Thermo and pymsfilereader")
-    print(e)
+#try:
+#    import unidec.modules.thermo_reader.rawreader as rawreader
+#except Exception as e:
+#    print("Error importing Thermo Raw Reader, try installing MSFileReader from Thermo and pymsfilereader")
+#    print(e)
 
 # import FileDialog  # Needed for pyinstaller
 
@@ -1306,6 +1306,7 @@ class UniDecApp(UniDecPres):
             print("PDF Figures written.")
         pass
 
+    '''
     def on_nmsgsb_report(self, e=0):
 
         """
@@ -1375,7 +1376,7 @@ class UniDecApp(UniDecPres):
         # print("Resetting Figure Sizes", self.eng.config.figsize)
         # self.on_replot()
         self.on_flip_tabbed(e=0)
-        pass
+        pass'''
 
     def on_fft_window(self, e):
         print("FFT window...")

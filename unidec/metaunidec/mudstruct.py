@@ -64,10 +64,10 @@ class MetaDataSet:
             self.data2 = self.spectra[0].data2
             self.import_vars(hdfobj=hdf)
 
-            try:
-                self.import_grids()
-            except:
-                pass
+            #try:
+            #    self.import_grids()
+            #except:
+            #    pass
         hdf.close()
 
     def export_hdf5(self, file=None, vars_only=False, delete=False):

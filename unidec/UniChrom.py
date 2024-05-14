@@ -46,6 +46,9 @@ class ChromApp(MetaUniDecBase):
             # path = "D:\Data\ChromTest\SYJMX160819_04.hdf5"
             self.open_file(path)
 
+        if False:
+            self.open_most_recent()
+
     def on_open(self, e=None):
         """
         Open dialog for file opening

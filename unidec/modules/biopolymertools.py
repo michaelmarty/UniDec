@@ -132,8 +132,8 @@ def read_fasta(path):
     f = open(path, 'r')
     lines = f.readlines()
 
-    hre = re.compile('>(\S+)')
-    lre = re.compile('^(\S+)$')
+    hre = re.compile(r'>(\S+)')
+    lre = re.compile(r'^(\S+)$')
 
     gene = {}
 
@@ -152,10 +152,11 @@ def read_fasta(path):
 
 if __name__ == "__main__":
     #print(mass_HPO4 + mass_HPO4 - mass_O - mass_O + mass_H + mass_H)
-    #os.chdir("..\\..\\Scripts\\old\\Jessica")
-    #file = "ecoli.fasta"
-    #genes = read_fasta(file)
-    #print(genes)
+    os.chdir("..\\..\\Scripts\\old\\Jessica")
+    file = "ecoli.fasta"
+    genes = read_fasta(file)
+    print(genes)
+    exit()
     oligo = "aacauucaACgcugucggugAgu"
     mass = calc_rna_mass(oligo)
     print(mass)

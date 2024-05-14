@@ -247,7 +247,7 @@ class DataCollector(wx.Frame):
                     # testdir = "Z:\\Group Share\\Deseree\\Ciara\\Test"
                     # testfile = "collection2.json"
                     # testdir = "C:\\Data\\Triplicate Data"
-                    testdir = "C:\Data\Guozhi"
+                    testdir = "C:\\Data\\Guozhi"
                     # testdir = "Z:\Group Share\JamesKeener Rohrbough\Peptide nanodiscs\D1T0 Mellitin\DMPC"
                     testfile = "collection1.json"
                     self.load(os.path.join(testdir, testfile))

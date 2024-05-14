@@ -829,6 +829,14 @@ class UniDecPres(object):
                 f.write(l)
             f.truncate()
 
+    def open_most_recent(self, e=None):
+        recent_files = self.read_recent()
+        if not ud.isempty(recent_files):
+            directory, file = os.path.split(recent_files[0])
+            self.on_open_file(file, directory, refresh=True)
+        else:
+            print("No Recent Files")
+
     def auto_refresh_stop(self, e=None):
         self.timer.Stop()
 

@@ -508,7 +508,10 @@ class UniDec(UniDecEngine):
         if len(peaks) > 0:
             self.setup_peaks(peaks)
             if calc_dscore:
-                self.dscore()
+                try:
+                    self.dscore()
+                except:
+                    pass
         else:
             print("No peaks detected", peaks, self.config.peakwindow, self.config.peakthresh)
             print("Mass Data:", self.data.massdat)

@@ -692,7 +692,8 @@ class UniDecEngine:
             for f in figure_list:
                 try:
                     self.html_str += fig_to_html_mpld3(f, outfile)
-                except Exception:
+                except Exception as e:
+                    print("Unable to create interactive figures", e)
                     pass
 
         # Write results string paragraph

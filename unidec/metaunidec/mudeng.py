@@ -494,24 +494,5 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
 
 if __name__ == '__main__':
     eng = MetaUniDec()
-    '''
-    testpath = "C:\Python\\unidec\\unidec_src\\unidec\\x64\Release\\test.hdf5"
-    eng.data.new_file(testpath)
-    data1 = [1, 2, 3]
-    data2 = [4, 5, 6]
-    data3 = [7, 8, 9]
-    eng.data.add_data(data1)
-    eng.data.add_data(data2)
-    eng.data.add_data(data3)
-    eng.data.remove_data([0, 2])
-    exit()
-    
-    testdir = "C:\Python\\UniDec3\\unidec_src\\unidec\\x64\Release"
-    testfile = "JAW.hdf5"
-    testpath = os.path.join(testdir, testfile)
-    eng.open(testpath)
-    eng.run_unidec()
-    eng.pick_scanpeaks()
-    '''
-    path = "C:\Data\HTS_Sharon\\20220404-5_sequence_Shortlist.csv"
+    path = "C:\\Data\\HTS_Sharon\\20220404-5_sequence_Shortlist.csv"
     eng.csv_reader(path)

@@ -59,7 +59,7 @@ class UniChromCDApp(UniDecCDApp):
             print("Opening Test File")
             path = ("Z:\\Group Share\\Skippy\\Projects\\HT\\Example data for MTM\\"
                     "20231202 JDS Bgal groEL bit5 zp7 inj4s cyc1m_2023-12-07-03-46-56.dmt")
-            path2 = "Z:\Group Share\Skippy\Projects\HT\Example data for MTM\\2023-03-06 Bgal 5bit triplicate\\20240306 Bgal inj5 iit1 bit5 zp10.dmt"
+            path2 = "Z:\\Group Share\\Skippy\\Projects\\HT\\Example data for MTM\\2023-03-06 Bgal 5bit triplicate\\20240306 Bgal inj5 iit1 bit5 zp10.dmt"
             pathft = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\01302024_GDH_stepsize3_repeat15_5to500.dmt"
             pathft2 = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\CCS troubleshooting\\03082024_GDH_4kV_stepsize3_repeate15_5to500_1_2024-03-14-09-04-57.dmt"
             # path3 = "Z:\\Group Share\\ONO\\CDMS\\5 bit HT data\\20240313 JDS Bgal 0o1g_l inj1o5 quad9k bit-5 zp10 i2.dmt"

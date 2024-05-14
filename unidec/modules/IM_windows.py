@@ -576,12 +576,12 @@ class IMToolExtract(wx.Dialog):
             zoutgrid = self.totalgrid
         # 2D plot
         self.plot1.contourplot(xvals=self.massdat[:, 0], yvals=self.ccsdat[:, 0], zgrid=zoutgrid,
-                               config=self.config, ylab="CCS (${\AA}$$^2$)", title="Mass vs. CCS", test_kda=True)
+                               config=self.config, ylab=r"CCS (${\AA}$$^2$)", title="Mass vs. CCS", test_kda=True)
         # 1D CCS projection
         zoutgrid = np.reshape(zoutgrid, (len(self.massdat), len(self.ccsdat)))
         ccsproj = np.sum(zoutgrid, axis=0)
         self.plot2.plotrefreshtop(self.ccsdat[:, 0], ccsproj / np.amax(ccsproj), "CCS Extract",
-                                  "CCS (${\AA}$$^2$)", "Normalized Intensity", "", self.config)
+                                  r"CCS (${\AA}$$^2$)", "Normalized Intensity", "", self.config)
         # colormap = cm.get_cmap(self.config.peakcmap, len(outs))
         colormap = mpl.colormaps[self.config.peakcmap].resampled(len(outs))
         xcolors = colormap(np.arange(len(outs)))

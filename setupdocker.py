@@ -11,7 +11,7 @@ setup(
     python_requires='>=3.7',
 
     install_requires=["numpy>=1.16", "scipy>=1.2", "matplotlib>=3.1", "lxml", 'pandas',
-                      "pymzml", "natsort", "networkx", "h5py", "pyimzml", "pyteomics", "mpld3"],
+                      "pymzml", "natsort", "networkx", "h5py", "pyimzml", "pyteomics", "lxml_html_clean"],
 
     packages=find_packages(exclude=["Scripts", "Scripts.*", "*.Scripts", "*.Scripts.*"]),
     include_package_data=True,

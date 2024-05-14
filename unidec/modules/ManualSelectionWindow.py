@@ -394,11 +394,8 @@ class ManualSelection(wx.Dialog):
             manuallist = np.array(manuallist)
             manuallist = manuallist[np.any([manuallist != 0], axis=2)[0], :]
 
-        if manuallist != "":
-            if len(manuallist) > 0:
-                self.config.manuallist = manuallist
-            else:
-                self.config.manuallist = []
+        if len(manuallist) > 0:
+            self.config.manuallist = manuallist
         else:
             self.config.manuallist = []
 

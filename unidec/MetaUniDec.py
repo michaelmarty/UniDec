@@ -101,7 +101,8 @@ class MetaUniDecBase(UniDecPres):
                                             colval=s.color, newlabel=s.name)
         self.view.plot2.repaint()
         try:
-            self.makeplot9()
+            if not self.chrommode:
+                self.makeplot9()
         except:
             pass
 
@@ -723,6 +724,7 @@ class MetaUniDecBase(UniDecPres):
     def repack_hdf5(self, e=None):
         if self.eng.config.hdf_file != 'default.hdf5':
             new_path = self.eng.config.hdf_file.replace(".hdf5", "temp.hdf5")
+            print("Repacking 2:", new_path, self.eng.config.hdf_file, self.eng.config.h5repackfile)
             call = "\"" + self.eng.config.h5repackfile + "\" \"" + self.eng.config.hdf_file + "\" \"" + new_path + "\""
             out = ud.exe_call(call)
             if 0 == out and os.path.isfile(new_path):
@@ -768,13 +770,13 @@ class MetaUniDecBase(UniDecPres):
         # print("Redo")
 
     def makeplot9(self, e=None):
-        print("Empty Function")
+        print("Empty Function 9")
 
     def makeplot6(self, e=None, show=None):
-        print("Empty Function")
+        print("Empty Function 6")
 
     def makeplot8(self):
-        print("Empty Function")
+        print("Empty Function 8")
 
 
 class UniDecApp(MetaUniDecBase):

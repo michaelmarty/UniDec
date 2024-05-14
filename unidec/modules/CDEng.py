@@ -1303,17 +1303,6 @@ if __name__ == '__main__':
     plt.show()
 
     # eng.run_deconvolution()
-    exit()
-
-    path = "C:\Data\CDMS\\20210309_MK_ADH_pos_CDMS_512ms_5min_50ms_pressure01_unidecfiles\\20210309_MK_ADH_pos_CDMS_512ms_5min_50ms_pressure01_rawdata.txt"
-    data = np.loadtxt(path)
-    noise = np.median(data[:, 1])
-    print(noise)
-
-    plt.plot(data[:, 0], data[:, 1])
-    plt.axhline(noise, color='r')
-    plt.hlines(noise, 4000, 14000, color='r')
-    plt.show()
 
     exit()
     eng = UniDecCD()
@@ -1325,24 +1314,4 @@ if __name__ == '__main__':
     eng.harray = eng.mass
     # eng.filter_zdist()
     exit()
-    # path = "Z:\\Group Share\\Marius Kostelic\\CD-MS\\02242021\\02242021_MK_ADH_ACN_50_IST_10min_Aqu_CD-MS.RAW"
-    # mzrange = [5000, 10000]
-    # irange = [200, 800]
-    path = "Z:\\Group Share\\Marius Kostelic\\CD-MS\\02242021 Data Set\\02242021_MK_BSA__CD-MS_Aqu_ACN_10min.RAW"
-    mzrange = [3000, 7000]
-    irange = [100, 600]
 
-    path = "Z:\\Group Share\Marius Kostelic\\CD-MS\\03082021\\20210308_MK_GroEL_CDMS_50msinject_10min.RAW"
-    mzrange = [9000, 13000]
-    irange = [1000, 2000]
-
-    eng = UniDecCD()
-    eng.open_file(path)
-    eng.filter_mz(mzrange=mzrange)
-    eng.filter_int(int_range=irange)
-    eng.convert()
-    eng.histogram()
-    eng.make_kernel()
-    eng.decon_core()
-    eng.transform()
-    eng.plot_hist()

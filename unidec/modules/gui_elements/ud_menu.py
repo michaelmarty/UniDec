@@ -338,9 +338,9 @@ class main_menu(wx.Menu):
                                                        "Mark matched monomers and dimers automatically")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_autoformat, self.autoformat)
 
-        self.menuNMS_Report = self.experimentalmenu.Append(wx.ID_ANY, "Generate NMSGSB PDF Report",
-                                                           "Generate PDF Report in NMSGSB format")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_nmsgsb_report, self.menuNMS_Report)
+        #self.menuNMS_Report = self.experimentalmenu.Append(wx.ID_ANY, "Generate NMSGSB PDF Report",
+        #                                                   "Generate PDF Report in NMSGSB format")
+        #self.parent.Bind(wx.EVT_MENU, self.pres.on_nmsgsb_report, self.menuNMS_Report)
 
         self.experimentalmenu.AppendSeparator()
         self.menuifams = self.experimentalmenu.Append(wx.ID_ANY, "iFAMS")

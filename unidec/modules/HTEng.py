@@ -320,7 +320,6 @@ class HTEng:
         return output, data
 
     def masked_demultiplex_ht(self, data, win=None, n=None, demult=None, mode="rand", **kwargs):
-
         if win is None:
             win = self.config.HTwin
         if n is None:
@@ -359,10 +358,10 @@ class HTEng:
             self.setup_ht(seq=seq)
             out, _ = self.htdecon(data, **kwargs)
             outdata.append(out)
-            # plt.plot(outdata[-1])
+            #plt.plot(outdata[-1])
         outdata = np.array(outdata)
         # print('Shape of outdata: ', np.shape(outdata))
-
+        #plt.show()
         # Calculate number of sign changes per data point
         negcount = np.sum(outdata < 0, axis=0) + 1
         # Divide the demultiplexed data by the negcount plus 1
@@ -1430,8 +1429,8 @@ if __name__ == '__main__':
     eng = UniDecCDHT()
     # eng = UniChromHT()
 
-    dir = "C:\Data\HT-CD-MS"
-    dir = "Z:\\Group Share\Skippy\Projects\HT\Example data for MTM\\2023-10-26"
+    dir = "C:\\Data\\HT-CD-MS"
+    dir = "Z:\\Group Share\\Skippy\\Projects\\HT\\Example data for MTM\\2023-10-26"
     # dir = "Z:\\Group Share\\Skippy\\Projects\\HT\\Example data for MTM"
     os.chdir(dir)
     path = "C:\\Data\\HT-CD-MS\\20230906 JDS BSA SEC f22 10x dilute STORI high flow 1_20230906171314_2023-09-07-01-43-26.dmt"
