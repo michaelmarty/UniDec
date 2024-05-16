@@ -17,7 +17,7 @@ os.chdir(globaldir)
 
 #ListExtractorProcessingParameters
 edges = [("WT", "W14A")]
-temps = [15, 20, 25, 30, 35, 40]
+temps = [15, 20, 25, 30, 35]
 width = 95
 method = 6
 params1 = [98590, 1400, 350, 0, 7, 0, 1, width, method]
