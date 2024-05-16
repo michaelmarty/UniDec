@@ -33,7 +33,7 @@ units = "kJ/mol"
 # units = "kcal/mol"
 
 # Data info
-temps = [15, 20, 25, 30, 35, 40]
+temps = [15, 20, 25, 30, 35]
 globaldir = "Z:\\Group Share\\Hiruni Jayasekera\\HSJ_MAE AqpZ CL\\Final2\\WT_R224A Titrations All\\WT_R224A_"
 fname = "Extract_grid_2D_Extract6.txt" # Sets the name of the file to be read in
 

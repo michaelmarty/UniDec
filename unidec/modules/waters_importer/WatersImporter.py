@@ -29,22 +29,24 @@ class WatersDataImporter:
         self.readerMS = MLRSR.MassLynxRawScanReader(path)
 
         self.nfunc = self.reader.GetNumberofFunctions()
-        self.function = function
+        self.function = int(function)
         try:
             fn = self.reader.GetFunctionType(self.function)
         except:
             try:
+                print("Function number not found in Raw file.", self.function, "Defaulting to:", 0)
                 self.function = 0
                 fn = self.reader.GetFunctionType(self.function)
             except:
                 try:
+                    print("Function number not found in Raw file.", self.function, "Defaulting to:", 1)
                     self.function = 1
                     fn = self.reader.GetFunctionType(self.function)
                 except:
                     print("Function number not found in Raw file:", self.function)
                     raise IOError
 
-        print("Waters Data Type:", self.reader.GetFunctionTypeString(fn))
+        print("Waters Data Type:", self.reader.GetFunctionTypeString(fn), "Function:", self.function)
         self.maxscans = self.reader.GetScansInFunction(self.function)
         self.scanrange = [0, self.maxscans]
         self.scans = np.arange(self.scanrange[0], self.scanrange[1])

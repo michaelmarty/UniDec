@@ -72,7 +72,7 @@ for name in names:
     if name in ["H", "S", "GA", "TS"]:
         temps = [35]
     else:
-        temps = [15, 20, 25, 30, 35, 40]
+        temps = [15, 20, 25, 30, 35]
     for j in range(0, len(temps)):
         fig = plt.figure(figsize=(6, 8))
         t = temps[j]

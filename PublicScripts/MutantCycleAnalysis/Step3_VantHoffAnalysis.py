@@ -47,7 +47,7 @@ for ed in range(0, 1):
     out = True
 
     #Setting the Temperature
-    temps = [15, 20, 25, 30, 35, 40]
+    temps = [15, 20, 25, 30, 35]
     maxn = 6
     temp_val = 25
 
