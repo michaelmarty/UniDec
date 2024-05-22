@@ -267,5 +267,5 @@ unidec/bin/WiffReaderCOM.tlb
 hashing.py
 PublicScripts/MutantCycleAnalysis/Mutant Cycle Analysis/
 unidec/modules/gui_elements/UniDec.mplstyle
-
+.eggs/
 

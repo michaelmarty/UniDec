@@ -364,6 +364,8 @@ class HTEng:
         #plt.show()
         # Calculate number of sign changes per data point
         negcount = np.sum(outdata < 0, axis=0) + 1
+        #avg = np.average(outdata, axis=0)
+        #negcount = ud.safedivide(np.std(outdata, axis=0),avg)
         # Divide the demultiplexed data by the negcount plus 1
         wavg = ud.safedivide(demult, negcount.astype(float))
         return wavg, fulltic

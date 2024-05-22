@@ -1829,7 +1829,7 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
         data2 = datachop(deepcopy(datatop), newmin, newmax)
     else:
         data2 = deepcopy(datatop)
-
+    print("Test")
     if config.smashflag == 1:
         print("Smashing!:", config.smashlist)
         for i in range(0, len(config.smashlist)):

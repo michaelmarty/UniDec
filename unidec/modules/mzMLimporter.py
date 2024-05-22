@@ -80,16 +80,26 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
     # xvals = concat[:, 0]
     # print "Median Resolution:", resolution
     # axis = nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
-
+    for d in datalist:
+        print(d)
     # If no m/z bin size is specified, find the average resolution of the largest scan
     # Then, create a dummy axis with the average resolution.
     # Otherwise, create a dummy axis with the specified m/z bin size.
     if mzbins is None or float(mzbins) == 0:
         resolution = get_resolution(datalist[maxlenpos])
+        if resolution < 0:
+            print("ERROR with auto resolution:", resolution, maxlenpos, datalist[maxlenpos])
+            print("Using ABS")
+            resolution = np.abs(resolution)
+        elif resolution == 0:
+            print("ERROR, resolution is 0, using 20000.", maxlenpos, datalist[maxlenpos])
+            resolution = 20000
+
         axis = ud.nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
     else:
         axis = np.arange(np.amin(concat[:, 0]), np.amax(concat[:, 0]), float(mzbins))
     template = np.transpose([axis, np.zeros_like(axis)])
+
     print("Length merge axis:", len(template))
 
     # Loop through the data and resample it to match the template, either by integration or interpolation
@@ -103,6 +113,13 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
             else:
                 print("ERROR: unrecognized merge spectra type:", type)
             template[:, 1] += newdat[:, 1]
+
+    # Trying to catch if the data is backwards
+    try:
+        if template[1, 0] < template[0, 0]:
+            template = template[::-1]
+    except:
+        pass
     return template
 
 
@@ -183,11 +200,11 @@ def get_data_from_spectrum(spectrum, threshold=-1):
     impdat = impdat[impdat[:, 0] > 10]
     if threshold >= 0:
         impdat = impdat[impdat[:, 1] > threshold]
-    #print(len(impdat))
-    #with np.printoptions(threshold=10000):
+    # print(len(impdat))
+    # with np.printoptions(threshold=10000):
     #    print(np.sum(impdat[:,1]>0))
-    #print(impdat)
-    #exit()
+    # print(impdat)
+    # exit()
     return impdat
 
 
@@ -233,7 +250,8 @@ class mzMLimporter:
         """
         print("Reading mzML:", path)
         self.filesize = os.stat(path).st_size
-        if not os.path.splitext(path)[1] == ".gz" and (self.filesize > 1e8 or gzmode) and not nogz:  # for files larger than 100 MB
+        if not os.path.splitext(path)[1] == ".gz" and (
+                self.filesize > 1e8 or gzmode) and not nogz:  # for files larger than 100 MB
             path = auto_gzip(path)
             print("Converted to gzip file to improve speed:", path)
             self.filesize = os.stat(path).st_size
@@ -285,10 +303,9 @@ class mzMLimporter:
         newdat = ud.mergedata(template, data)
         template[:, 1] += newdat[:, 1]
 
-
         # New Fast Method
         index = 0
-        while index <= scan_range[1]-scan_range[0]:
+        while index <= scan_range[1] - scan_range[0]:
             try:
                 spec = self.msrun.next()
             except:
@@ -366,7 +383,7 @@ class mzMLimporter:
 
         if scan_range is not None:
             data = data[int(scan_range[0]):int(scan_range[1] + 1)]
-            print("Getting scans:", scan_range)
+            print("Getting scans1:", scan_range)
         else:
             print("Getting all scans, length:", len(self.scans), data.shape)
 
@@ -580,7 +597,7 @@ class mzMLimporter:
     def get_polarity(self, scan=1):
         for s, spec in enumerate(self.msrun):
             if s == scan:
-                #spec = self.msrun[scan]
+                # spec = self.msrun[scan]
                 negative_polarity = spec["negative scan"]
                 if negative_polarity == "" or negative_polarity:
                     negative_polarity = True
@@ -601,14 +618,18 @@ if __name__ == "__main__":
     test = u"C:\\Python\\UniDec3\\TestSpectra\\JAW.mzML"
     # test = "C:\Data\CytC_Intact_MMarty_Share\\221114_STD_Pro_CytC_2ug_r1.mzML.gz"
     # test = "C:\Data\CytC_Intact_MMarty_Share\\221114_STD_Pro_CytC_2ug_r1_2.mzML"
-    #test = "C:\Data\IMS Example Data\imstest2.mzML"
-    #test = "C:\Data\CytC_Intact_MMarty_Share\\20221215_MMarty_Share\SHA_1598_9.mzML.gz"
+    # test = "C:\Data\IMS Example Data\imstest2.mzML"
+    # test = "C:\Data\CytC_Intact_MMarty_Share\\20221215_MMarty_Share\SHA_1598_9.mzML.gz"
+    test = "C:\\Users\\marty\\OneDrive - University of Arizona\\Attachments\\S203.mzML.gz"
     import time
 
     tstart = time.perf_counter()
 
     d = mzMLimporter(test)
-    print(d.get_polarity())
+    d.get_data(scan_range=[196, 210])
+    tend = time.perf_counter()
+    # print(call, out)
+    print("Execution Time:", (tend - tstart))
     exit()
     '''
     spectrum = d.msrun[10]
@@ -625,17 +646,17 @@ if __name__ == "__main__":
     print(len(d.scans))
 
     exit()'''
-    #data = d.get_data_memory_safe()
-    data = d.get_data(time_range=(3,5))
+    # data = d.get_data_memory_safe()
+    data = d.get_data(time_range=(3, 5))
     tend = time.perf_counter()
     # print(call, out)
     print("Execution Time:", (tend - tstart))
 
     print(len(data))
-    #exit()
+    # exit()
     # get_data_from_spectrum(d.msrun[239])
     # exit()
-    #data = d.get_data()
+    # data = d.get_data()
 
     print(data)
     import matplotlib.pyplot as plt

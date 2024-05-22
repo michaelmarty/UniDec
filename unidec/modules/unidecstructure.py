@@ -648,7 +648,7 @@ class UniDecConfig(object):
                     print(self.manuallist.shape)
         # Export Smash list
         if not ud.isempty(self.smashlist):
-            # print self.smashlist
+            print("Exporting Smashlist:", self.smashlist, self.smashfile)
             self.smashlist = np.array(self.smashlist)
             if self.imflag == 0 and self.cdmsflag == 0:
                 if self.smashlist.shape[1] == 2:
