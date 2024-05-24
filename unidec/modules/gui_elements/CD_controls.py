@@ -146,6 +146,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         i += 1
 
         self.subtypectl = wx.Choice(panel1, -1, choices=["Slope: S/N per z", "Slope: Intensity per z"])
+        self.subtypectl.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
         self.subtypectl.SetSelection(0)
         sizercontrol1.Add(self.subtypectl, (i, 0))
         self.ctlslope = wx.TextCtrl(panel1, value="", size=size1)
@@ -311,6 +312,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
             # Control for decmultiplex choice
             self.ctlmultiplexmode = wx.Choice(paneldm, -1, choices=self.config.demultiplexchoices)
+            self.ctlmultiplexmode.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
             self.ctlmultiplexmode.SetSelection(0)
             sizercontrolht1.Add(self.ctlmultiplexmode, (i, 1), span=(1, 2))
             sizercontrolht1.Add(wx.StaticText(paneldm, label="Demultiplex Mode: "), (i, 0),
@@ -326,6 +328,20 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                                 flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
+            # Text Control for Analysis Time
+            self.ctlanalysistime = wx.TextCtrl(paneldm, value="", size=size1)
+            sizercontrolht1.Add(self.ctlanalysistime, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(paneldm, label="Analysis Time: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Text control for max scans
+            self.ctlmaxscans = wx.TextCtrl(paneldm, value="", size=size1)
+            sizercontrolht1.Add(self.ctlmaxscans, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(paneldm, label="Max Scans: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
             # Text control for timepad
             self.ctltimepad = wx.TextCtrl(paneldm, value="", size=size1)
             sizercontrolht1.Add(self.ctltimepad, (i, 1), span=(1, 1))
@@ -335,6 +351,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
             # Drop down menu for X-axis
             self.ctlxaxis = wx.Choice(paneldm, -1, choices=["Time", "Scans"])
+            self.ctlxaxis.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
             self.ctlxaxis.SetSelection(0)
             sizercontrolht1.Add(self.ctlxaxis, (i, 1), span=(1, 1))
             sizercontrolht1.Add(wx.StaticText(paneldm, label="X-Axis: "), (i, 0),
@@ -398,22 +415,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             sizercontrolht1 = wx.GridBagSizer(wx.VERTICAL)
             i = 0
 
-            # Text Control for Analysis Time
-            self.ctlanalysistime = wx.TextCtrl(panelht, value="", size=size1)
-            sizercontrolht1.Add(self.ctlanalysistime, (i, 1), span=(1, 1))
-            sizercontrolht1.Add(wx.StaticText(panelht, label="Analysis Time: "), (i, 0),
-                                flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
-
-            # Text control for max scans
-            self.ctlmaxscans = wx.TextCtrl(panelht, value="", size=size1)
-            sizercontrolht1.Add(self.ctlmaxscans, (i, 1), span=(1, 1))
-            sizercontrolht1.Add(wx.StaticText(panelht, label="Max Scans: "), (i, 0),
-                                flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
-
             # Drop down for HTseq
             self.ctlhtseq = wx.Choice(panelht, -1, choices=list(ud.HTseqDict.keys()))
+            self.ctlhtseq.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
             self.ctlhtseq.SetSelection(3)
             sizercontrolht1.Add(self.ctlhtseq, (i, 1), span=(1, 1))
             sizercontrolht1.Add(wx.StaticText(panelht, label="HT Sequence Bit: "), (i, 0),
@@ -437,14 +441,14 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             # Text control for HTmaskn
             self.ctlhtmaskn = wx.TextCtrl(panelht, value="", size=size1)
             sizercontrolht1.Add(self.ctlhtmaskn, (i, 1), span=(1, 1))
-            sizercontrolht1.Add(wx.StaticText(panelht, label="mHT Mask N: "), (i, 0),
+            sizercontrolht1.Add(wx.StaticText(panelht, label="mHT Iterations: "), (i, 0),
                                 flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
             # Text control for HTwin
             self.ctlhtwin = wx.TextCtrl(panelht, value="", size=size1)
             sizercontrolht1.Add(self.ctlhtwin, (i, 1), span=(1, 1))
-            sizercontrolht1.Add(wx.StaticText(panelht, label="mHT Window: "), (i, 0),
+            sizercontrolht1.Add(wx.StaticText(panelht, label="mHT Masks/Scan: "), (i, 0),
                                 flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 

@@ -435,15 +435,15 @@ class HTEng:
         if self.config.HTksmooth > 0:
             y = scipy.signal.savgol_filter(y, int(np.round(float(self.config.HTksmooth))), 3)
 
-        if self.config.FTflatten:
-            # fit trendline to y and subtract to eliminate low frequency components
-            ytrnd = scipy.signal.savgol_filter(y, 15, 3)
-            y = y - ytrnd
-
         if self.config.FTapodize == 1:
             # create hanning window
             hanning = np.hanning(len(y) * 2)
             y = y * hanning[len(y):]
+
+        if self.config.FTflatten:
+            # fit trendline to y and subtract to eliminate low frequency components
+            ytrnd = scipy.signal.savgol_filter(y, 15, 3)
+            y = y - ytrnd
 
         if nzp is None:
             nzp = self.config.HTtimepad

@@ -1,4 +1,4 @@
-version 7.0.0b
+version 7.0.1
 imflag 0
 cdmsflag 1
 input C:\Python\UniDec3\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat
@@ -29,6 +29,7 @@ smooth 0.0
 mzbins 10.0
 peakwindow 500.0
 peakthresh 0.2
+normthresh1
 peakplotthresh 0.1
 plotsep 0.025
 intthresh 0.0
@@ -61,8 +62,8 @@ kernel
 CDslope 0.2074
 CDzbins 1.0
 CDres 1.0
-CDScanStart 
-CDScanEnd 
+CDScanStart -1.0
+CDScanEnd -1.0
 HTksmooth 0.0
 CDScanCompress 0.0
 HTmaxscans -1.0
@@ -79,6 +80,8 @@ FTflatten 1
 FTapodize 1
 demultiplexmode HT
 FTsmooth 0.0
+HTmaskn 1000.0
+HTwin 5.0
 csig 4.0
 smoothdt 0.0
 subbufdt 0.0
