@@ -243,7 +243,7 @@ class HTEng:
         self.get_cycle_time(data)
         self.setup_demultiplex(cycleindex=self.cycleindex)
 
-    def run_demultiplex(self, data, mode=None, **kwargs):
+    def run_demultiplex(self, data, mode=None, chop=True, **kwargs):
         """
         Overarching function to demultiplex data. Calls each demultiplexing type based on config parameter
         :param data: 1D array of data to be deconvolved. Should be same dimension as self.htkernel if HT mode.
@@ -255,13 +255,32 @@ class HTEng:
             mode = self.config.demultiplexmode
 
         if mode == "HT":
-            return self.htdecon(data, **kwargs)
+            output, data = self.htdecon(data, **kwargs)
         elif mode == "mHT":
-            return self.masked_demultiplex_ht(data, **kwargs)
+            output, data = self.masked_demultiplex_ht(data, **kwargs)
         elif mode == "FT":
-            return self.ftdecon(data, aFT=False, **kwargs)
+            output, data = self.ftdecon(data, aFT=False, **kwargs)
         elif mode == "aFT":
-            return self.ftdecon(data, aFT=True, **kwargs)
+            output, data = self.ftdecon(data, aFT=True, **kwargs)
+        else:
+            output, data = data
+            print("Demultiplexing mode not recognized. Returning original data.", mode)
+
+        if chop:
+            if self.config.HToutputub > 0:
+                # find index of first peak greater than self.config.HToutputub
+                i1 = np.argmax(self.decontime > self.config.HToutputub)
+                output = output[:i1]
+                self.decontime = self.decontime[:i1]
+                self.deconscans = self.deconscans[:i1]
+            if self.config.HToutputlb > 0:
+                # find index of first peak greater than self.config.HToutputlb
+                i2 = np.argmax(self.decontime > self.config.HToutputlb)
+                output = output[i2:]
+                self.decontime = self.decontime[i2:]
+                self.deconscans = self.deconscans[i2:]
+
+        return output, data
 
     def setup_demultiplex(self, mode=None, **kwargs):
         """
@@ -358,14 +377,14 @@ class HTEng:
             self.setup_ht(seq=seq)
             out, _ = self.htdecon(data, **kwargs)
             outdata.append(out)
-            #plt.plot(outdata[-1])
+            # plt.plot(outdata[-1])
         outdata = np.array(outdata)
         # print('Shape of outdata: ', np.shape(outdata))
-        #plt.show()
+        # plt.show()
         # Calculate number of sign changes per data point
         negcount = np.sum(outdata < 0, axis=0) + 1
-        #avg = np.average(outdata, axis=0)
-        #negcount = ud.safedivide(np.std(outdata, axis=0),avg)
+        # avg = np.average(outdata, axis=0)
+        # negcount = ud.safedivide(np.std(outdata, axis=0),avg)
         # Divide the demultiplexed data by the negcount plus 1
         wavg = ud.safedivide(demult, negcount.astype(float))
         return wavg, fulltic
@@ -433,7 +452,20 @@ class HTEng:
         y = data
 
         if self.config.HTksmooth > 0:
+            if self.config.HTksmooth < 4:
+                self.config.HTksmooth = 4
+                print("Warning: FT smoothing kernel too small. Setting to 4.")
+            if self.config.HTksmooth > len(y) - 1:
+                self.config.HTksmooth = 10
+                print("Warning: FT smoothing kernel too long. Setting to 10.")
             y = scipy.signal.savgol_filter(y, int(np.round(float(self.config.HTksmooth))), 3)
+
+        if nzp is None:
+            nzp = self.config.HTtimepad
+        if nzp > 0:
+            if self.config.FTapodize == 0:
+                print("Warning: Zero padding requires apodization. Setting apodization to True.")
+                self.config.FTapodize = 1
 
         if self.config.FTapodize == 1:
             # create hanning window
@@ -444,9 +476,6 @@ class HTEng:
             # fit trendline to y and subtract to eliminate low frequency components
             ytrnd = scipy.signal.savgol_filter(y, 15, 3)
             y = y - ytrnd
-
-        if nzp is None:
-            nzp = self.config.HTtimepad
 
         original_len = len(y)
         if nzp > 0 and self.config.FTapodize:
@@ -581,6 +610,7 @@ class HTEng:
             return output'''
 
 
+'''
 class UniChromHT(HTEng, ChromEngine):
     def __init__(self, *args, **kwargs):
         """
@@ -640,6 +670,7 @@ class UniChromHT(HTEng, ChromEngine):
         self.setup_demultiplex()
         self.htoutput = self.run_demultiplex(self.fulltic, correct=correct, **kwargs)[0]
         return self.htoutput
+'''
 
 
 class UniDecCDHT(HTEng, UniDecCD):
@@ -917,7 +948,14 @@ class UniDecCDHT(HTEng, UniDecCD):
             self.htoutput /= np.amax(self.htoutput)
             self.fulltic /= np.amax(self.fulltic)
         # print(np.shape(self.decontime), np.shape(self.htoutput))
-        return np.transpose([self.decontime, self.htoutput])
+        if len(self.htoutput) != len(self.decontime):
+            print("ERROR: Length of HT output does not match time domain.", len(self.htoutput), len(self.decontime))
+            raise ValueError("Length of HT output does not match time domain.")
+            # self.decontime = np.arange(len(self.htoutput))
+            # self.deconscans = np.arange(len(self.htoutput))
+        else:
+            output = np.transpose([self.decontime, self.htoutput])
+        return output
 
     def extract_swoop_subdata(self, sarray):
         """
@@ -1052,7 +1090,16 @@ class UniDecCDHT(HTEng, UniDecCD):
             eic = self.get_eic(mzrange, zrange, **kwargs)
         self.setup_demultiplex()
         self.htoutput, eic[:, 1] = self.run_demultiplex(eic[:, 1], **kwargs)
-        return np.transpose([self.decontime, self.htoutput]), eic
+
+        if len(self.htoutput) != len(self.decontime):
+            print("ERROR: Length of HT output does not match time domain.", len(self.htoutput), len(self.decontime))
+            raise ValueError("Length of HT output does not match time domain.")
+            # self.decontime = np.arange(len(self.htoutput))
+            # self.deconscans = np.arange(len(self.htoutput))
+        else:
+            output = np.transpose([self.decontime, self.htoutput])
+
+        return output, eic
 
     def run_all_ht(self):
         """
@@ -1079,15 +1126,31 @@ class UniDecCDHT(HTEng, UniDecCD):
                 if tracesum <= self.config.intthresh:
                     htoutput = np.zeros_like(self.decontime)
                 else:
-                    htoutput, trace = self.run_demultiplex(trace, keepcomplex=True)
+                    htoutput, trace = self.run_demultiplex(trace, chop=False, keepcomplex=True)
                     processed_tic += trace
                 self.fullhstack_ht[:, j, i] = htoutput
 
         # Clip all values below 1e-6 to zero
         # self.fullhstack_ht[np.abs(self.fullhstack_ht) < 1e-6] = 0
 
+        if self.config.HToutputub > 0:
+            # find index of first peak greater than self.config.HToutputub
+            i1 = np.argmax(self.decontime > self.config.HToutputub)
+            self.fullhstack_ht = self.fullhstack_ht[:i1]
+            self.decontime = self.decontime[:i1]
+            self.deconscans = self.deconscans[:i1]
+        if self.config.HToutputlb > 0:
+            # find index of first peak greater than self.config.HToutputlb
+            i2 = np.argmax(self.decontime > self.config.HToutputlb)
+            self.fullhstack_ht = self.fullhstack_ht[i2:]
+            self.decontime = self.decontime[i2:]
+            self.deconscans = self.deconscans[i2:]
+
         tic = np.sum(self.fullhstack_ht, axis=(1, 2))
-        tic = np.real(tic)
+        if self.config.demultiplexmode != "FT":
+            tic = np.real(tic)
+        else:
+            tic = np.abs(tic)
         ticdat = np.transpose(np.vstack((self.decontime, tic)))
         if self.config.datanorm == 1:
             ticdat[:, 1] /= np.amax(ticdat[:, 1])
@@ -1427,7 +1490,6 @@ class UniDecCDHT(HTEng, UniDecCD):
 
 
 if __name__ == '__main__':
-
     eng = UniDecCDHT()
     # eng = UniChromHT()
 
@@ -1469,4 +1531,3 @@ if __name__ == '__main__':
     # import matplotlib.pyplot as plt
     # plt.plot(ac)
     # plt.show()
-

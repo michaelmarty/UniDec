@@ -140,7 +140,7 @@ class UniDecCD(engine.UniDec):
 
     def open_cdms_file(self, path, refresh=False):
         """
-        Main function for opening CD-MS files. Supports Thermo Raw, mzML, text, binary, and numpy compressed.
+        Main function for opening CD-MS files. Supports Thermo Raw and DMT, mzML, text, binary, and numpy compressed.
 
         Calls self.before_open() first to setup UniDec files and directories. Searches first for previously opened
         numpy compressed data. Switches path to that if found. Otherwise it opens the specified path.
