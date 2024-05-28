@@ -36,6 +36,7 @@ Config ImportConfig(int argc, char * argv[], Config config)
 			H5Fclose(file_id);
 		}
 		else {
+			//printf("Loading Config File: %s\n", argv[1]);
 			config.filetype = 0;
 			config = LoadConfig(config, argv[1]);
 		}

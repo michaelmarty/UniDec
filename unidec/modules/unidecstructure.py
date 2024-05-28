@@ -583,8 +583,8 @@ class UniDecConfig(object):
         f.write("HTksmooth " + str(self.HTksmooth) + "\n")
         f.write("CDScanCompress " + str(self.CDScanCompress) + "\n")
         f.write("HTmaxscans " + str(self.HTmaxscans) + "\n")
-        f.write("HToutputlb " + str(self.HToutputlb) + "\n")
-        f.write("HToutputub " + str(self.HToutputub) + "\n")
+        f.write("HToutlb " + str(self.HToutputlb) + "\n")
+        f.write("HToutub " + str(self.HToutputub) + "\n")
         f.write("HTtimepad " + str(self.HTtimepad) + "\n")
         f.write("HTanalysistime " + str(self.HTanalysistime) + "\n")
         f.write("HTxaxis " + str(self.HTxaxis) + "\n")
@@ -739,9 +739,9 @@ class UniDecConfig(object):
                             self.CDScanCompress = ud.string_to_value(line.split()[1])
                         if line.startswith("HTmaxscans"):
                             self.HTmaxscans = ud.string_to_value(line.split()[1])
-                        if line.startswith("HToutputlb"):
+                        if line.startswith("HToutlb"):
                             self.HToutputlb = ud.string_to_value(line.split()[1])
-                        if line.startswith("HToutputub"):
+                        if line.startswith("HToutub"):
                             self.HToutputub = ud.string_to_value(line.split()[1])
                         if line.startswith("demultiplexmode"):
                             self.demultiplexmode = line.split()[1]
