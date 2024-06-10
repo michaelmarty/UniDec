@@ -150,7 +150,7 @@ class HTEng:
         :return: None
         """
         if seq is None:
-            self.config.htseq = ud.HTseqDict[str(int(self.config.htbit))]
+            self.config.htseq = ud.HTseqDict[str(self.config.htbit)]
         else:
             self.config.htseq = seq
         # Finds the number of scans that are padded
@@ -346,7 +346,7 @@ class HTEng:
         win = int(win)
         n = int(n)
 
-        self.config.htseq = ud.HTseqDict[str(int(self.config.htbit))]
+        self.config.htseq = ud.HTseqDict[str(self.config.htbit)]
         htseq = np.array([int(s) for s in self.config.htseq])
         if demult is None:
             self.setup_ht(seq=htseq)
@@ -673,16 +673,16 @@ class UniChromHT(HTEng, ChromEngine):
 '''
 
 
-class UniDecCDHT(HTEng, UniDecCD):
+class UniChromCDEng(HTEng, UniDecCD):
     def __init__(self, *args, **kwargs):
         """
-        Initialize the UniDecCDHT class. This class is used for handling Hadamard Transform (HT) related operations
+        Initialize the UniChromCDEng class. This class is used for handling Hadamard Transform (HT) related operations
         on CDMS data.
         :param args: Arguments
         :param kwargs: Keyword Arguments
         :return: None
         """
-        super(UniDecCDHT, self).__init__(*args, **kwargs)
+        super(UniChromCDEng, self).__init__(*args, **kwargs)
         print("HT-CD-MS Engine")
         self.config.poolflag = 0
 
@@ -1490,7 +1490,7 @@ class UniDecCDHT(HTEng, UniDecCD):
 
 
 if __name__ == '__main__':
-    eng = UniDecCDHT()
+    eng = UniChromCDEng()
     # eng = UniChromHT()
 
     dir = "C:\\Data\\HT-CD-MS"

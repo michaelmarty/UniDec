@@ -24,7 +24,7 @@ class UniChromCDApp(UniDecCDApp):
         :param kwargs:
         :return:
         """
-        self.eng = HTEng.UniDecCDHT()
+        self.eng = HTEng.UniChromCDEng()
         self.cc = ChromatogramContainer()
         self.showht = False
         self.showccs = False

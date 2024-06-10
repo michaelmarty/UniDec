@@ -70,9 +70,10 @@ def fix_parent_mz(exp, i, p, window=2, purity_thresh=0.5):
 toppath = "C:\\Data\\Lipidomics\\OpenMS\\"
 os.chdir(toppath)
 
-mzML_files = ud.match_files(toppath, "*.mzml", exclude="fixed")
+mzML_files = match_files(toppath, "*.mzML", exclude=None)
 
 for file in mzML_files:
+    print(file)
     exp = MSExperiment()
     MzMLFile().load(file, exp)
     filtered = MSExperiment()
@@ -87,4 +88,4 @@ for file in mzML_files:
             filtered.addSpectrum(s)
 
     MzMLFile().store(file[:-5] + "_fixed.mzML", filtered)
-exit()
+

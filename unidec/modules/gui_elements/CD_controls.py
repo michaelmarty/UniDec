@@ -474,7 +474,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             # Text control for HTwin
             self.ctlhtwin = wx.TextCtrl(panelht, value="", size=size1)
             sizercontrolht1.Add(self.ctlhtwin, (i, 1), span=(1, 1))
-            sizercontrolht1.Add(wx.StaticText(panelht, label="mHT Masks/Scan: "), (i, 0),
+            sizercontrolht1.Add(wx.StaticText(panelht, label="mHT Masks/Iter: "), (i, 0),
                                 flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
@@ -1131,7 +1131,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         if self.htmode:
             self.config.CDScanCompress = ud.string_to_value(self.ctlscancompress.GetValue())
             self.config.HTksmooth = ud.string_to_value(self.ctlkernelsmooth.GetValue())
-            self.config.htbit = int(self.ctlhtseq.GetStringSelection())
+#            self.config.htbit = int(self.ctlhtseq.GetStringSelection())
+            self.config.htbit = self.ctlhtseq.GetStringSelection()
             self.config.htseq = ud.HTseqDict[str(self.config.htbit)]
             self.config.HTxaxis = self.ctlxaxis.GetStringSelection()
             self.config.HTtimeshift = ud.string_to_value(self.ctlhttimeshift.GetValue())
