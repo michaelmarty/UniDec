@@ -70,7 +70,7 @@ def fix_parent_mz(exp, i, p, window=2, purity_thresh=0.5):
 toppath = "C:\\Data\\Lipidomics\\OpenMS\\"
 os.chdir(toppath)
 
-mzML_files = match_files(toppath, "*.mzML", exclude=None)
+mzML_files = match_files(toppath, "*.mzML", exclude="fixed")
 
 for file in mzML_files:
     print(file)
