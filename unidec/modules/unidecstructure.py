@@ -272,7 +272,7 @@ class UniDecConfig(object):
         # Hadamard Transform Parameters
         self.htmode = False
         self.htseq = ""
-        self.htbit = 0
+        self.htbit = "5"
         self.HTksmooth = 0
         self.HTanalysistime = 38.0
         self.HTcycletime = 2.0
@@ -734,7 +734,7 @@ class UniDecConfig(object):
                         if line.startswith("HTcylctime"):
                             self.HTcycletime = ud.string_to_value(line.split()[1])
                         if line.startswith("htbit"):
-                            self.htbit = ud.string_to_value(line.split()[1])
+                            self.htbit = str(line.split()[1])
                         if line.startswith("CDScanCompress"):
                             self.CDScanCompress = ud.string_to_value(line.split()[1])
                         if line.startswith("HTmaxscans"):

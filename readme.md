@@ -195,6 +195,14 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.7.0.1
+
+Continued development and tweaks to UniChromCD. Bug fixes and GUI improvements. Added multiplex spectrum cropping. New HT sequences.
+
+Switched default font to Arial after years of fighting Illustrator on Deja Vu Sans.
+
+Bug fixes for file opening on Agilent and mzML.
+
 v.7.0.0
 
 Added new module for time domain CD-MS data analysis, UniChromCD. This includes some cool new plotting and analysis features. Most importantly, it also includes our new method for Hadamard Transform analysis of CD-MS spectra. You can use the tools for regular LC-CD-MS or go crazy with HT-LC-CD-MS. More info coming soon on this front...:)
