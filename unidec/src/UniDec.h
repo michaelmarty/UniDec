@@ -413,7 +413,7 @@ Config LoadConfig(Config config, const char* filename)
 		{
 			//printf( "read in: %s %s \n", x,y );
 			if (strstr(x, "input") != NULL) { strcpy(config.infile, y); }// printf(" input");
-			if (strstr(x, "output") != NULL) { strcpy(config.outfile, y); }//  printf(" output"); }
+			if (strstr(x, "output") != NULL) { strcpy(config.outfile, y); }  //printf(" %s output\n", config.outfile); }
 			if (strstr(x, "mfile") != NULL) { strcpy(config.mfile, y); config.mflag = 1; }// printf(" mfile"); }
 			if (strstr(x, "numit") != NULL) { config.numit = atoi(y); }// printf(" numit"); }
 			//if (strstr(x, "numz") != NULL){ config.numz = atoi(y); printf(" numz"); }

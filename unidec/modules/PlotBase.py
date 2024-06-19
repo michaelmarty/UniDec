@@ -20,7 +20,8 @@ rcParams['errorbar.capsize'] = 3
 rcParams['patch.force_edgecolor'] = True
 rcParams['patch.facecolor'] = 'b'
 rcParams['lines.markersize'] = 7
-
+rcParams['font.family'] = 'Arial'
+rcParams['font.size'] = 12
 
 # rcParams['axes.linewidth']=1
 # rcParams['font.size']=18

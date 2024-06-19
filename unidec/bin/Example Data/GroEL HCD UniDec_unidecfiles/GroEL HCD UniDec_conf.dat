@@ -1,4 +1,4 @@
-version 7.0.0b
+version 7.0.1
 imflag 0
 cdmsflag 0
 input C:\Python\UniDec3\unidec\bin\Example Data\GroEL HCD UniDec_unidecfiles\GroEL HCD UniDec_input.dat
@@ -30,6 +30,7 @@ smooth 0.0
 mzbins 0.0
 peakwindow 500.0
 peakthresh 0.05
+normthresh1
 peakplotthresh 0.1
 plotsep 0.025
 intthresh 0.0
@@ -65,13 +66,25 @@ CDres 0.0
 CDScanStart -1
 CDScanEnd -1
 HTksmooth 0.0
-CDScanCompresse 0.0
+CDScanCompress 0.0
+HTmaxscans -1.0
+HToutlb -1
+HToutub -1
 HTtimepad 0.0
 HTanalysistime 38.0
 HTxaxis Time
 HTcycleindex -1.0
-HTtimepad 0.0
+HTcylctime 2.0
+HTtimeshift 7.0
 htbit 0.0
+FTstart 5.0
+FTend 1000.0
+FTflatten 1
+FTapodize 1
+demultiplexmode HT
+FTsmooth 0.0
+HTmaskn 1000.0
+HTwin 5.0
 csig 0.0
 smoothdt 0.0
 subbufdt 0.0

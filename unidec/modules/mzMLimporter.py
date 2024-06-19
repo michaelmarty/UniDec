@@ -72,6 +72,9 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
     :param datalist: M x N x 2 list of data sets
     :return: Merged N x 2 data set
     """
+    # Filter out junk spectra that are empty
+    datalist = [x for x in datalist if len(x) > 0]
+
     # Find which spectrum in this list is the largest. This will likely have the highest resolution.
     maxlenpos = get_longest_index(datalist)
 
@@ -80,8 +83,8 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
     # xvals = concat[:, 0]
     # print "Median Resolution:", resolution
     # axis = nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
-    for d in datalist:
-        print(d)
+    #for d in datalist:
+    #    print(d)
     # If no m/z bin size is specified, find the average resolution of the largest scan
     # Then, create a dummy axis with the average resolution.
     # Otherwise, create a dummy axis with the specified m/z bin size.

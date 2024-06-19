@@ -146,6 +146,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         i += 1
 
         self.subtypectl = wx.Choice(panel1, -1, choices=["Slope: S/N per z", "Slope: Intensity per z"])
+        self.subtypectl.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
         self.subtypectl.SetSelection(0)
         sizercontrol1.Add(self.subtypectl, (i, 0))
         self.ctlslope = wx.TextCtrl(panel1, value="", size=size1)
@@ -311,6 +312,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
             # Control for decmultiplex choice
             self.ctlmultiplexmode = wx.Choice(paneldm, -1, choices=self.config.demultiplexchoices)
+            self.ctlmultiplexmode.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
             self.ctlmultiplexmode.SetSelection(0)
             sizercontrolht1.Add(self.ctlmultiplexmode, (i, 1), span=(1, 2))
             sizercontrolht1.Add(wx.StaticText(paneldm, label="Demultiplex Mode: "), (i, 0),
@@ -326,63 +328,25 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                                 flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
+            # Text Control for Analysis Time
+            self.ctlanalysistime = wx.TextCtrl(paneldm, value="", size=size1)
+            sizercontrolht1.Add(self.ctlanalysistime, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(paneldm, label="Analysis Time: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            # Text control for max scans
+            self.ctlmaxscans = wx.TextCtrl(paneldm, value="", size=size1)
+            sizercontrolht1.Add(self.ctlmaxscans, (i, 1), span=(1, 1))
+            sizercontrolht1.Add(wx.StaticText(paneldm, label="Max Scans: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
             # Text control for timepad
             self.ctltimepad = wx.TextCtrl(paneldm, value="", size=size1)
             sizercontrolht1.Add(self.ctltimepad, (i, 1), span=(1, 1))
             sizercontrolht1.Add(wx.StaticText(paneldm, label="Time Padding: "), (i, 0),
                                 flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
-
-            # Drop down menu for X-axis
-            self.ctlxaxis = wx.Choice(paneldm, -1, choices=["Time", "Scans"])
-            self.ctlxaxis.SetSelection(0)
-            sizercontrolht1.Add(self.ctlxaxis, (i, 1), span=(1, 1))
-            sizercontrolht1.Add(wx.StaticText(paneldm, label="X-Axis: "), (i, 0),
-                                flag=wx.ALIGN_CENTER_VERTICAL)
-            # Bind to on replot
-            self.ctlxaxis.Bind(wx.EVT_CHOICE, self.pres.on_replot_chrom)
-            i += 1
-
-            # Check box to show legends
-            self.ctllegends = wx.CheckBox(paneldm, label="")
-            sizercontrolht1.Add(self.ctllegends, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            sizercontrolht1.Add(wx.StaticText(paneldm, label="Show Legends: "), (i, 0),
-                                flag=wx.ALIGN_CENTER_VERTICAL)
-            self.ctllegends.SetValue(True)
-            # Bind to on replot
-            self.ctllegends.Bind(wx.EVT_CHECKBOX, self.pres.on_replot_chrom)
-            i += 1
-
-            # Button to make 2d time vs. charge plot
-            self.maketvsc = wx.Button(paneldm, -1, "Time-Z Plot")
-            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_charge_time_2dplot, self.maketvsc)
-            sizercontrolht1.Add(self.maketvsc, (i, 0), span=(1, 1), flag=wx.EXPAND)
-
-            # Button to make 2d time vs. mz plot
-            self.maketvsm = wx.Button(paneldm, -1, "Time-m/z Plot")
-            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_mz_time_2dplot, self.maketvsm)
-            sizercontrolht1.Add(self.maketvsm, (i, 1), span=(1, 1), flag=wx.EXPAND)
-            i += 1
-
-            # Button to make 2d time vs. mass plot
-            self.makevtm = wx.Button(paneldm, -1, "Time-Mass Plot")
-            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_mass_time_2dplot, self.makevtm)
-            sizercontrolht1.Add(self.makevtm, (i, 0), span=(1, 1), flag=wx.EXPAND)
-
-            self.plot5button2 = wx.Button(paneldm, -1, "Mass-Charge Plot")
-            self.parent.Bind(wx.EVT_BUTTON, self.pres.makeplot5, self.plot5button2)
-            sizercontrolht1.Add(self.plot5button2, (i, 1), span=(1, 1), flag=wx.EXPAND)
-            i += 1
-
-            # Button for Make m/z Cube plots
-            self.makemzcube = wx.Button(paneldm, -1, "m/z Cube")
-            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_cube_plot, self.makemzcube)
-            sizercontrolht1.Add(self.makemzcube, (i, 0), span=(1, 1), flag=wx.EXPAND)
-
-            # Button for make mass cube plot
-            self.makemasscube = wx.Button(paneldm, -1, "Mass Cube")
-            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_mass_cube_plot, self.makemasscube)
-            sizercontrolht1.Add(self.makemasscube, (i, 1), span=(1, 1), flag=wx.EXPAND)
             i += 1
 
             paneldm.SetSizer(sizercontrolht1)
@@ -392,28 +356,94 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.foldpanels.AddFoldPanelWindow(self.foldpaneldm, wx.StaticText(self.foldpaneldm, -1, " "),
                                                fpb.FPB_ALIGN_WIDTH)
 
+            self.foldpaneldmplot = self.foldpanels.AddFoldPanel(caption="Demultiplexing Plotting", collapsed=True,
+                                                            cbstyle=styleht)
+            paneldmplot = wx.Panel(self.foldpaneldmplot, -1)
+            sizercontrolht1p = wx.GridBagSizer(wx.VERTICAL)
+            i = 0
+
+            # Drop down menu for X-axis
+            self.ctlxaxis = wx.Choice(paneldmplot, -1, choices=["Time", "Scans"])
+            self.ctlxaxis.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
+            self.ctlxaxis.SetSelection(0)
+            sizercontrolht1p.Add(self.ctlxaxis, (i, 1), span=(1, 1))
+            sizercontrolht1p.Add(wx.StaticText(paneldmplot, label="X-Axis: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            # Bind to on replot
+            self.ctlxaxis.Bind(wx.EVT_CHOICE, self.pres.on_replot_chrom)
+            i += 1
+
+            # Time Range for Demultiplexing
+            self.ctltime1 = wx.TextCtrl(paneldmplot, value="", size=size1)
+            self.ctltime2 = wx.TextCtrl(paneldmplot, value="", size=size1)
+            trange = wx.BoxSizer(wx.HORIZONTAL)
+            trange.Add(wx.StaticText(paneldmplot, label="DM Time Range: "), 0, wx.ALIGN_CENTER_VERTICAL)
+            trange.Add(self.ctltime1)
+            trange.Add(wx.StaticText(paneldmplot, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
+            trange.Add(self.ctltime2)
+            sizercontrolht1p.Add(trange, (i, 0), span=(1, 2))
+            i += 1
+
+            # Check box to show legends
+            self.ctllegends = wx.CheckBox(paneldmplot, label="")
+            sizercontrolht1p.Add(self.ctllegends, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            sizercontrolht1p.Add(wx.StaticText(paneldmplot, label="Show Legends: "), (i, 0),
+                                flag=wx.ALIGN_CENTER_VERTICAL)
+            self.ctllegends.SetValue(True)
+            # Bind to on replot
+            self.ctllegends.Bind(wx.EVT_CHECKBOX, self.pres.on_replot_chrom)
+            i += 1
+
+            # Button to make 2d time vs. charge plot
+            self.maketvsc = wx.Button(paneldmplot, -1, "Time-Z Plot")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_charge_time_2dplot, self.maketvsc)
+            sizercontrolht1p.Add(self.maketvsc, (i, 0), span=(1, 1), flag=wx.EXPAND)
+
+            # Button to make 2d time vs. mz plot
+            self.maketvsm = wx.Button(paneldmplot, -1, "Time-m/z Plot")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_mz_time_2dplot, self.maketvsm)
+            sizercontrolht1p.Add(self.maketvsm, (i, 1), span=(1, 1), flag=wx.EXPAND)
+            i += 1
+
+            # Button to make 2d time vs. mass plot
+            self.makevtm = wx.Button(paneldmplot, -1, "Time-Mass Plot")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_mass_time_2dplot, self.makevtm)
+            sizercontrolht1p.Add(self.makevtm, (i, 0), span=(1, 1), flag=wx.EXPAND)
+
+            self.plot5button2 = wx.Button(paneldmplot, -1, "Mass-Charge Plot")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.makeplot5, self.plot5button2)
+            sizercontrolht1p.Add(self.plot5button2, (i, 1), span=(1, 1), flag=wx.EXPAND)
+            i += 1
+
+            # Button for Make m/z Cube plots
+            self.makemzcube = wx.Button(paneldmplot, -1, "m/z Cube")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_cube_plot, self.makemzcube)
+            sizercontrolht1p.Add(self.makemzcube, (i, 0), span=(1, 1), flag=wx.EXPAND)
+
+            # Button for make mass cube plot
+            self.makemasscube = wx.Button(paneldmplot, -1, "Mass Cube")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.make_mass_cube_plot, self.makemasscube)
+            sizercontrolht1p.Add(self.makemasscube, (i, 1), span=(1, 1), flag=wx.EXPAND)
+            i += 1
+
+            paneldmplot.SetSizer(sizercontrolht1p)
+            sizercontrolht1p.Fit(paneldmplot)
+
+            self.foldpanels.AddFoldPanelWindow(self.foldpaneldmplot, paneldmplot, fpb.FPB_ALIGN_WIDTH)
+            self.foldpanels.AddFoldPanelWindow(self.foldpaneldmplot, wx.StaticText(self.foldpaneldmplot, -1, " "),
+                                               fpb.FPB_ALIGN_WIDTH)
+
+
+
             self.foldpanelht = self.foldpanels.AddFoldPanel(caption="HT Parameters", collapsed=False,
                                                             cbstyle=styleht)
             panelht = wx.Panel(self.foldpanelht, -1)
             sizercontrolht1 = wx.GridBagSizer(wx.VERTICAL)
             i = 0
 
-            # Text Control for Analysis Time
-            self.ctlanalysistime = wx.TextCtrl(panelht, value="", size=size1)
-            sizercontrolht1.Add(self.ctlanalysistime, (i, 1), span=(1, 1))
-            sizercontrolht1.Add(wx.StaticText(panelht, label="Analysis Time: "), (i, 0),
-                                flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
-
-            # Text control for max scans
-            self.ctlmaxscans = wx.TextCtrl(panelht, value="", size=size1)
-            sizercontrolht1.Add(self.ctlmaxscans, (i, 1), span=(1, 1))
-            sizercontrolht1.Add(wx.StaticText(panelht, label="Max Scans: "), (i, 0),
-                                flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
-
             # Drop down for HTseq
             self.ctlhtseq = wx.Choice(panelht, -1, choices=list(ud.HTseqDict.keys()))
+            self.ctlhtseq.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
             self.ctlhtseq.SetSelection(3)
             sizercontrolht1.Add(self.ctlhtseq, (i, 1), span=(1, 1))
             sizercontrolht1.Add(wx.StaticText(panelht, label="HT Sequence Bit: "), (i, 0),
@@ -437,14 +467,14 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             # Text control for HTmaskn
             self.ctlhtmaskn = wx.TextCtrl(panelht, value="", size=size1)
             sizercontrolht1.Add(self.ctlhtmaskn, (i, 1), span=(1, 1))
-            sizercontrolht1.Add(wx.StaticText(panelht, label="mHT Mask N: "), (i, 0),
+            sizercontrolht1.Add(wx.StaticText(panelht, label="mHT Iterations: "), (i, 0),
                                 flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
             # Text control for HTwin
             self.ctlhtwin = wx.TextCtrl(panelht, value="", size=size1)
             sizercontrolht1.Add(self.ctlhtwin, (i, 1), span=(1, 1))
-            sizercontrolht1.Add(wx.StaticText(panelht, label="mHT Window: "), (i, 0),
+            sizercontrolht1.Add(wx.StaticText(panelht, label="mHT Masks/Iter: "), (i, 0),
                                 flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
@@ -992,6 +1022,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctldriftlength.SetValue(str(self.config.driftlength))
                 self.ctlccsbins.SetValue(str(self.config.ccsbins))
 
+                self.ctltime1.SetValue(str(self.config.HToutputlb))
+                self.ctltime2.SetValue(str(self.config.HToutputub))
+
             if self.config.adductmass < 0:
                 self.ctlnegmode.SetValue(1)
             else:
@@ -1098,7 +1131,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         if self.htmode:
             self.config.CDScanCompress = ud.string_to_value(self.ctlscancompress.GetValue())
             self.config.HTksmooth = ud.string_to_value(self.ctlkernelsmooth.GetValue())
-            self.config.htbit = int(self.ctlhtseq.GetStringSelection())
+#            self.config.htbit = int(self.ctlhtseq.GetStringSelection())
+            self.config.htbit = self.ctlhtseq.GetStringSelection()
             self.config.htseq = ud.HTseqDict[str(self.config.htbit)]
             self.config.HTxaxis = self.ctlxaxis.GetStringSelection()
             self.config.HTtimeshift = ud.string_to_value(self.ctlhttimeshift.GetValue())
@@ -1123,6 +1157,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.config.to = ud.string_to_value(self.ctlto.GetValue())
             self.config.driftlength = ud.string_to_value(self.ctldriftlength.GetValue())
             self.config.ccsbins = ud.string_to_value(self.ctlccsbins.GetValue())
+
+            self.config.HToutputlb = ud.string_to_value(self.ctltime1.GetValue())
+            self.config.HToutputub = ud.string_to_value(self.ctltime2.GetValue())
 
         self.config.numit = ud.string_to_int(self.ctlnumit.GetValue())
 

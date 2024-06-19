@@ -24,7 +24,7 @@ class UniChromCDApp(UniDecCDApp):
         :param kwargs:
         :return:
         """
-        self.eng = HTEng.UniDecCDHT()
+        self.eng = HTEng.UniChromCDEng()
         self.cc = ChromatogramContainer()
         self.showht = False
         self.showccs = False
@@ -64,8 +64,9 @@ class UniChromCDApp(UniDecCDApp):
             pathft2 = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\CCS troubleshooting\\03082024_GDH_4kV_stepsize3_repeate15_5to500_1_2024-03-14-09-04-57.dmt"
             # path3 = "Z:\\Group Share\\ONO\\CDMS\\5 bit HT data\\20240313 JDS Bgal 0o1g_l inj1o5 quad9k bit-5 zp10 i2.dmt"
             path4 = "Z:\\Group Share\\Skippy\\Projects\\HT\\2024-04-01\\20240401 ribos s6Col bit3 inj5s 1_2024-04-01-04-19-29.dmt"
+            pathft3 = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\01302024_GDH_stepsize3_repeat15_5to500.dmt"
             # try:
-            self.on_open_file(None, None, path=path)
+            self.on_open_file(None, None, path=pathft3)
             # except:
             #    pass
             # self.eng.process_data_scans()

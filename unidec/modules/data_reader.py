@@ -83,7 +83,10 @@ class DataImporter:
         #print(self.msrun.scan_info())
         for s in self.scans:
             impdat = np.array(self.msrun.scan(int(s)))  # May want to test this.
-            impdat = impdat[impdat[:, 0] > 10]
+            try:
+                impdat = impdat[impdat[:, 0] > 10]
+            except:
+                print("Error Importing Data, Scan:", s, "Data:", impdat)
             #print(len(impdat))
             #with np.printoptions(threshold=100):
             #print(impdat)
