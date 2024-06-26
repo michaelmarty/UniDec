@@ -248,6 +248,10 @@ class Plot1dBase(PlotBase):
 
             xvals = xarray[i]
             n, bins, patches = self.subplot1.hist(xvals, label=label, histtype="stepfilled", alpha=0.4, density=1)
+            if len(bins) == len(n) + 1:
+                bins1 = bins[:-1]
+                bins2 = bins[1:]
+                bins = (bins1 + bins2) / 2
             self.data = np.transpose([bins, n])
             ytempmax = np.amax(n)
             xtempmax = np.amax(bins)

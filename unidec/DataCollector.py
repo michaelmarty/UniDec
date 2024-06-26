@@ -10,7 +10,7 @@ from matplotlib.pyplot import colormaps
 from matplotlib import rcParams
 from matplotlib.patches import Rectangle
 from pubsub import pub
-
+import platform
 import multiprocessing
 from unidec.modules import UniFit, Extract2D, unidecstructure, PlotAnimations, PlottingWindow, IM_functions
 from unidec.modules import DoubleDec, MassDefects, miscwindows
@@ -558,6 +558,9 @@ class DataCollector(wx.Frame):
                 # self.on_kd_fit(0)
                 # self.on_run(0)
                 self.on_fitting()
+            if True and platform.node() == 'MTM-VOSTRO':
+                path = "Z:\mtmarty\Data\Others\Miranda\collection2.json"
+                self.load(path)
             try:
                 # testdir = "C:\Python\unidec\unidec_src\unidec\\x64\Release"
                 # testfile = "JAW.hdf5"
@@ -1486,3 +1489,5 @@ if __name__ == "__main__":
     app = wx.App(False)
     frame = DataCollector(None, "Collect Data")
     app.MainLoop()
+
+

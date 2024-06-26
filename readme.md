@@ -199,6 +199,8 @@ v.7.0.2
 
 Fixed Waters Data Conversion Wizard issue with Trapping Collision Energy (eV). 
 
+Fixed bug with KD fitting on DataCollector.
+
 v.7.0.1
 
 Continued development and tweaks to UniChromCD. Bug fixes and GUI improvements. Added multiplex spectrum cropping. New HT sequences.

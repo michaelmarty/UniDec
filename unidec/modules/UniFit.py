@@ -396,7 +396,7 @@ def Minimize(data, kdargs, **kwargs):
         weights = kdargs.weights
     fit = opt.leastsq(MinFreeError, kdargs.kds, args=(data, weights, kdargs))
     degenfit = GetDegenKD(fit[0], kdargs)
-    return np.array([fit[0], degenfit])
+    return [fit[0], degenfit]
 
 
 def BootMin(data, kdargs, weights):
