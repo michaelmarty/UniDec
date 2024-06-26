@@ -195,6 +195,10 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.7.0.2
+
+Fixed Waters Data Conversion Wizard issue with Trapping Collision Energy (eV). 
+
 v.7.0.1
 
 Continued development and tweaks to UniChromCD. Bug fixes and GUI improvements. Added multiplex spectrum cropping. New HT sequences.
