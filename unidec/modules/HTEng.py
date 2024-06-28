@@ -13,7 +13,7 @@ from unidec.modules.unidecstructure import UniDecConfig
 import matplotlib.pyplot as plt
 import scipy.fft as fft
 import math
-
+from unidec.modules.unidecstructure import ChromatogramContainer
 
 # import warnings
 # warnings.filterwarnings("error")
@@ -708,6 +708,7 @@ class UniChromCDEng(HTEng, UniDecCD):
         self.mz = None
         self.ztab = None
         self.sarray = None  # Params for swoop selection
+        self.cc = ChromatogramContainer() # Chromatograms
 
     def open_file(self, path, refresh=False):
         """

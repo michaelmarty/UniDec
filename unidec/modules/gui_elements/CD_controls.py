@@ -74,7 +74,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.scrolledpanel = scrolled.ScrolledPanel(self, style=wx.ALL | wx.EXPAND)
         self.scrolledpanel.SetupScrolling()
         size1 = (75, -1)
-        self.foldpanels = fpb.FoldPanelBar(self.scrolledpanel, -1, size=(250, 1900), agwStyle=fpb.FPB_VERTICAL)
+        self.foldpanels = fpb.FoldPanelBar(self.scrolledpanel, -1, size=(250, 3400), agwStyle=fpb.FPB_VERTICAL)
         style1 = fpb.CaptionBarStyle()
         style1b = fpb.CaptionBarStyle()
         style1c = fpb.CaptionBarStyle()
@@ -357,7 +357,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                                                fpb.FPB_ALIGN_WIDTH)
 
             self.foldpaneldmplot = self.foldpanels.AddFoldPanel(caption="Demultiplexing Plotting", collapsed=True,
-                                                            cbstyle=styleht)
+                                                                cbstyle=styleht)
             paneldmplot = wx.Panel(self.foldpaneldmplot, -1)
             sizercontrolht1p = wx.GridBagSizer(wx.VERTICAL)
             i = 0
@@ -368,7 +368,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlxaxis.SetSelection(0)
             sizercontrolht1p.Add(self.ctlxaxis, (i, 1), span=(1, 1))
             sizercontrolht1p.Add(wx.StaticText(paneldmplot, label="X-Axis: "), (i, 0),
-                                flag=wx.ALIGN_CENTER_VERTICAL)
+                                 flag=wx.ALIGN_CENTER_VERTICAL)
             # Bind to on replot
             self.ctlxaxis.Bind(wx.EVT_CHOICE, self.pres.on_replot_chrom)
             i += 1
@@ -388,7 +388,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctllegends = wx.CheckBox(paneldmplot, label="")
             sizercontrolht1p.Add(self.ctllegends, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
             sizercontrolht1p.Add(wx.StaticText(paneldmplot, label="Show Legends: "), (i, 0),
-                                flag=wx.ALIGN_CENTER_VERTICAL)
+                                 flag=wx.ALIGN_CENTER_VERTICAL)
             self.ctllegends.SetValue(True)
             # Bind to on replot
             self.ctllegends.Bind(wx.EVT_CHECKBOX, self.pres.on_replot_chrom)
@@ -432,8 +432,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.foldpanels.AddFoldPanelWindow(self.foldpaneldmplot, paneldmplot, fpb.FPB_ALIGN_WIDTH)
             self.foldpanels.AddFoldPanelWindow(self.foldpaneldmplot, wx.StaticText(self.foldpaneldmplot, -1, " "),
                                                fpb.FPB_ALIGN_WIDTH)
-
-
 
             self.foldpanelht = self.foldpanels.AddFoldPanel(caption="HT Parameters", collapsed=False,
                                                             cbstyle=styleht)
@@ -530,7 +528,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                                                fpb.FPB_ALIGN_WIDTH)
 
             self.foldpanelim = self.foldpanels.AddFoldPanel(caption="Ion Mobility Parameters", collapsed=False,
-                                                       cbstyle=style1c)
+                                                            cbstyle=style1c)
             panel1c = wx.Panel(self.foldpanelim, -1)
             gbox1c = wx.GridBagSizer(wx.VERTICAL)
             i = 0
@@ -589,7 +587,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             gbox1c.Fit(panel1c)
 
             self.foldpanels.AddFoldPanelWindow(self.foldpanelim, panel1c, fpb.FPB_ALIGN_WIDTH)
-            self.foldpanels.AddFoldPanelWindow(self.foldpanelim, wx.StaticText(self.foldpanelim, -1, " "), fpb.FPB_ALIGN_WIDTH)
+            self.foldpanels.AddFoldPanelWindow(self.foldpanelim, wx.StaticText(self.foldpanelim, -1, " "),
+                                               fpb.FPB_ALIGN_WIDTH)
 
         # Panel for unidec Parameters
         foldpanel2 = self.foldpanels.AddFoldPanel(caption="UniDec Parameters", collapsed=False, cbstyle=style2)
@@ -1131,7 +1130,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         if self.htmode:
             self.config.CDScanCompress = ud.string_to_value(self.ctlscancompress.GetValue())
             self.config.HTksmooth = ud.string_to_value(self.ctlkernelsmooth.GetValue())
-#            self.config.htbit = int(self.ctlhtseq.GetStringSelection())
+            #            self.config.htbit = int(self.ctlhtseq.GetStringSelection())
             self.config.htbit = self.ctlhtseq.GetStringSelection()
             self.config.htseq = ud.HTseqDict[str(self.config.htbit)]
             self.config.HTxaxis = self.ctlxaxis.GetStringSelection()
@@ -1448,45 +1447,37 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.foldpanels.Expand(fp)
         pass
 
-    def on_expand_blue(self, e=None):
+    def expand_list(self, list):
         num = self.foldpanels.GetCount()
         for i in range(0, num):
             fp = self.foldpanels.GetFoldPanel(i)
-            if i in [0, 1]:
+            if i in list:
                 self.foldpanels.Expand(fp)
             else:
                 self.foldpanels.Collapse(fp)
-        pass
+
+    def on_expand_blue(self, e=None):
+        self.expand_list([0, 1])
 
     def on_expand_yellow(self, e=None):
-        num = self.foldpanels.GetCount()
-        for i in range(0, num):
-            fp = self.foldpanels.GetFoldPanel(i)
-            if i in [6, 7, 8]:
-                self.foldpanels.Expand(fp)
-            else:
-                self.foldpanels.Collapse(fp)
-        pass
+        if self.htmode:
+            yellow = [9, 7, 8]
+        else:
+            yellow = [2, 3, 4]
+        self.expand_list(yellow)
 
     def on_expand_red(self, e=None):
-        num = self.foldpanels.GetCount()
-        for i in range(0, num):
-            fp = self.foldpanels.GetFoldPanel(i)
-            if i in [9, 10]:
-                self.foldpanels.Expand(fp)
-            else:
-                self.foldpanels.Collapse(fp)
-        pass
+        if self.htmode:
+            red = [10, 11]
+        else:
+            red = [5, 6]
+        self.expand_list(red)
 
     def on_expand_main(self, e=None):
-        num = self.foldpanels.GetCount()
-        for i in range(0, num):
-            fp = self.foldpanels.GetFoldPanel(i)
-            if i in [0, 6, 7, 9]:
-                self.foldpanels.Expand(fp)
-            else:
-                self.foldpanels.Collapse(fp)
-        pass
+        if self.htmode:
+            self.expand_list([0, 2, 8, 7, 10])
+        else:
+            self.expand_list([0, 2, 3, 5])
 
     def bind_changes(self, e=None):
         self.parent.Bind(wx.EVT_TEXT, self.update_quick_controls, self.ctlzzsig)
@@ -1502,7 +1493,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         '''
 
     def on_mousewheel(self, e):
-        #print("Wee")
+        # print("Wee")
         pass
 
     def update_demultiplex_mode(self, e=None):

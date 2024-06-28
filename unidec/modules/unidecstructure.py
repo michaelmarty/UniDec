@@ -218,6 +218,8 @@ class UniDecConfig(object):
         self.noiseflag = 0
         self.isotopemode = 0
         self.orbimode = 0
+        self.massdatnormtop = 1
+        self.massdatnorm = 1
 
         # Other
         self.mtabsig = 0
@@ -1637,11 +1639,12 @@ class Chromatogram:
         self.massmode = False
         self.dataobj = None
         self.swoopmode = False
+        self.massdat = None
 
     def to_row(self):
         out = [self.label, str(self.color), str(self.index), str(self.mzrange[0]), str(self.mzrange[1]),
                str(self.zrange[0]), str(self.zrange[1]), str(self.sum), str(self.ht), str(self.sarray[0])
-               , str(self.sarray[1]), str(self.sarray[2]), str(self.sarray[3])]
+            , str(self.sarray[1]), str(self.sarray[2]), str(self.sarray[3])]
         return out
 
 
