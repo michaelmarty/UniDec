@@ -268,7 +268,7 @@ void charge_peak_extracts(int argc, char *argv[], Config config, const int ultra
 	if (ultra)
 		strjoin(dataset, "/ultrazextracts", outdat);
 	else
-		strjoin(dataset, "/zextracts", outdat);
+		strjoin(dataset, "/extracts", outdat);
 	printf("\tWriting Charge Extracts to: %s\t%d %d %f %f\n", outdat, config.exchoicez, config.exnormz, config.exwindow, config.exthresh);
 	mh5writefile2d_grid(config.file_id, outdat, num, plen, extracts);
 	free(peakx);

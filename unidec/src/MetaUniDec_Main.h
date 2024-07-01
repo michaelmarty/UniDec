@@ -76,16 +76,37 @@ int run_metaunidec(int argc, char* argv[], Config config) {
 	}
 	
 	
-	if ( mode ==3 || mode == 4)
+	if (mode == 3 || mode == 4)
 	{
 		//printf("Making Merged Grids\n");
-		if (question_grids(config.file_id)) { printf("Grids Already Made\n");} //Checks to see if grids are already made
-		else{
+		if (question_grids(config.file_id)) { printf("Grids Already Made\n"); } //Checks to see if grids are already made
+		else {
 			make_grid(argc, argv, config, "/mass_data", "/mass_grid", "/mass_axis", "/mass_sum");
 			make_grid(argc, argv, config, "/processed_data", "/mz_grid", "/mz_axis", "/mz_sum");
 			set_got_grids(config.file_id);
 		}
+		if (config.exchoice < 6)
+		{
 		get_peaks(argc, argv, config, 0);
+		}
+		else if (config.exchoice == 6)
+		{
+			printf("Charge Extraction Avg\n");
+			config.exchoicez = 1;
+			config.exnormz = config.exnorm;
+			charge_peak_extracts(argc, argv, config, 0);
+		}
+		else if (config.exchoice == 7)
+		{
+			printf("Charge Extraction Max\n");
+			config.exchoicez = 0;
+			config.exnormz = config.exnorm;
+			charge_peak_extracts(argc, argv, config, 0);
+		}
+		else
+		{
+			printf("Exchoice not recognized: %d\n", config.exchoice);
+		}
 		//get_peak_widths(argc, argv, config);
 	}
 
