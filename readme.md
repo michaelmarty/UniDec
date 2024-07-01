@@ -201,7 +201,7 @@ Fixed a few display and interface bugs on UCCD and UCD.
 
 Fixed Waters Data Conversion Wizard issue with Trapping Collision Energy (eV). Stopped it from closing by default when the conversion is initiated.
 
-Fixed bug with KD fitting on DataCollector.
+Fixed bug with KD fitting on DataCollector. Fixed bug with UltraMeta. 
 
 v.7.0.1
 

@@ -242,14 +242,10 @@ class DataCollector(wx.Frame):
 
         if __name__ == "__main__":
             # testdir = "C:\Python\unidec\unidec_src\unidec\\x64\Release"
-            if False:
+            if True:
                 try:
-                    # testdir = "Z:\\Group Share\\Deseree\\Ciara\\Test"
-                    # testfile = "collection2.json"
-                    # testdir = "C:\\Data\\Triplicate Data"
-                    testdir = "C:\\Data\\Guozhi"
-                    # testdir = "Z:\Group Share\JamesKeener Rohrbough\Peptide nanodiscs\D1T0 Mellitin\DMPC"
-                    testfile = "collection1.json"
+                    testdir = "C:\\Python\\UniDec3\\TestSpectra"
+                    testfile = "um_collection1.json"
                     self.load(os.path.join(testdir, testfile))
                     # self.on_plot_all()
                     pass
@@ -783,7 +779,7 @@ class DataCollector(wx.Frame):
                 self.on_bar_graphs(bargraphfits, bargraphlabels, bargrapherrors, fit=fit, colors=bargraphcolors)
         print("Plotting Done")
 
-        output = np.array(output)
+        #output = np.array(output)
         self.data = output
         try:
             hdf = h5py.File(os.path.join(self.directory, "Extracts.hdf5"), 'a')
