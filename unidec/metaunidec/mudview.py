@@ -57,8 +57,9 @@ class Mainwindow(mainwindow_base.MainwindowBase):
 
         self.datachoices = {0: "Raw Data", 1: "Processed Data", 2: "Zero Charge Mass Spectrum"}
         self.extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position",
-                               5: "Estimated Area"}
-        self.extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass", 5: "Area"}
+                               5: "Estimated Area", 6: "Avg. Charge State", 7: "Max Charge State"}
+        self.extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass", 5: "Area", 6: "Charges",
+                              7: "Charges"}
 
         self.setupmainpanel()
 

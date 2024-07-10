@@ -197,6 +197,8 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.7.0.2
 
+Added new options in MetaUniDec for Average Charge State Plotting.
+
 Fixed a few display and interface bugs on UCCD and UCD.
 
 Fixed Waters Data Conversion Wizard issue with Trapping Collision Energy (eV). Stopped it from closing by default when the conversion is initiated.

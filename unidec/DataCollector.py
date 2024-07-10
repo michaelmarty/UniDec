@@ -559,7 +559,7 @@ class DataCollector(wx.Frame):
                 # self.on_run(0)
                 self.on_fitting()
             if True and platform.node() == 'MTM-VOSTRO':
-                path = "Z:\mtmarty\Data\Others\Miranda\collection2.json"
+                path = "Z:\\mtmarty\\Data\\Others\\Miranda\\collection2.json"
                 self.load(path)
             try:
                 # testdir = "C:\Python\unidec\unidec_src\unidec\\x64\Release"
