@@ -6,7 +6,7 @@ from torchvision.transforms import ToTensor
 from torchvision.models import resnet50, mobilenet_v3_large, MobileNet_V3_Large_Weights, ResNet50_Weights
 from torch.optim import lr_scheduler
 import time
-from IsoDec.encoding import encode_isodist
+from unidec.IsoDec.encoding import encode_isodist
 
 example = np.array([[5.66785531e+02, 1.47770838e+06],
                     [5.67057354e+02, 1.54980838e+06],
@@ -220,7 +220,7 @@ class NNmulti(nn.Module):
 
 
 class IsoDecSegmenter(IsoDecModel):
-    def __init__(self, working_dir="C:\\Data\\IsoNN\\"):
+    def __init__(self, working_dir="/xdisk/mtmarty/mtmarty/training"):
         super().__init__(working_dir)
         self.dims = [3, 16]
 

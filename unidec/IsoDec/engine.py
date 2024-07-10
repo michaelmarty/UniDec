@@ -1,9 +1,9 @@
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from IsoDec.models import IsoDecClassifier, IsoDecSegmenter, example
-from IsoDec.datatools import create_isodist
-from IsoDec.match import *
+from unidec.IsoDec.models import IsoDecClassifier, IsoDecSegmenter, example
+from unidec.IsoDec.datatools import create_isodist
+from unidec.IsoDec.match import *
 import os
 import pickle as pkl
 import matplotlib.pyplot as plt
