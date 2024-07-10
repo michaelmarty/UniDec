@@ -823,7 +823,8 @@ class UniDecCD(engine.UniDec):
         dataobj.massgrid = np.transpose(dataobj.massgrid)
         # Create the linearized mass data by integrating everything into the new linear axis
         dataobj.massdat = np.transpose([massaxis, np.sum(dataobj.massgrid, axis=1)])
-
+        if flag:
+            self.config.massdatnormtop = np.amax(dataobj.massdat[:, 1])
         # Ravel the massgrid to make the format match unidec
         dataobj.massgrid = np.ravel(dataobj.massgrid)
         # Create the data2 and mzgrid objects from the histogram array for compatiblity with unidec functions

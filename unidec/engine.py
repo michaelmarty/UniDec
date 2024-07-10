@@ -518,18 +518,29 @@ class UniDec(UniDecEngine):
         return peaks
 
     def setup_peaks(self, peaks):
+        """
+        Setup Peaks from a list of peaks, mostly by normalizing everything but also generating mztab and error values.
+        :param peaks: peaks to setup
+        :return: normalization parameter
+        """
+        norm = 1
         if self.config.peaknorm == 1:
             norm = np.amax(peaks[:, 1]) / 100.
-            peaks[:, 1] = peaks[:, 1] / norm
-            self.data.massdat[:, 1] = self.data.massdat[:, 1] / norm
         elif self.config.peaknorm == 2:
             norm = np.sum(peaks[:, 1]) / 100.
-            peaks[:, 1] = peaks[:, 1] / norm
-            self.data.massdat[:, 1] = self.data.massdat[:, 1] / norm
         else:
+            if self.config.massdatnormtop == 0:
+                self.config.massdatnormtop = np.amax(self.data.massdat[:, 1])
             norm = np.amax(peaks[:, 1]) / self.config.massdatnormtop
-            peaks[:, 1] = peaks[:, 1] / norm
-            self.data.massdat[:, 1] = self.data.massdat[:, 1] / norm
+
+        if norm == 0:
+            norm = 1
+            print("Warning: Normalization is 0. Setting to 1.")
+
+        peaks[:, 1] = peaks[:, 1] / norm
+        self.data.massdat[:, 1] = self.data.massdat[:, 1] / norm
+        self.config.massdatnorm = self.config.massdatnormtop / np.amax(peaks[:, 1])
+
         self.pks = peakstructure.Peaks()
         self.pks.add_peaks(peaks, massbins=self.config.massbins)
         self.pks.default_params(cmap=self.config.peakcmap)
@@ -556,6 +567,8 @@ class UniDec(UniDecEngine):
                 self.export_config()
             except Exception:
                 pass
+
+        return norm
 
     def convolve_peaks(self):
         """

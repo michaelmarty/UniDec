@@ -507,7 +507,10 @@ def GetStartEndMass(RawFile):
             except ValueError:
                 e = float(line.split()[3])
         if line.startswith('Trap Collision Energy'):
-            ce = float(line.split()[3])
+            if '(eV)' in line:
+                ce = float(line.split()[4])
+            else:
+                ce = float(line.split()[3])
     return ce, s, e
 
 

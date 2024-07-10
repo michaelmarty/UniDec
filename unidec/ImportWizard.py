@@ -181,8 +181,9 @@ class ImportWizard(wx.Frame):
                     tmp += '%s,' % self.my_grid.GetCellValue(index, c)
                 import_data.append(tmp[:-1])
 
-        self.Close()
+        #self.Close()
         self.auto(evt=None, filtered_lines=import_data)
+        print("Data Conversion Done")
         # self.Close()
 
     def auto(self, evt, file_path=None, filtered_lines=None):
