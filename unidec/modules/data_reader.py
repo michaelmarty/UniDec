@@ -216,12 +216,13 @@ class DataImporter:
 
 
 if __name__ == "__main__":
-    test = "Z:\Group Share\Group\\Archive\\Scott\\test.RAW"
-    test = "C:\Data\Others\Agilent\\2019_05_15_bsa_ccs_02.d"
+    test = "Z:\\Group Share\\Group\\Archive\\Scott\\test.RAW"
+    test = "C:\\Data\\Others\\Agilent\\2019_05_15_bsa_ccs_02.d"
     #test = u"C:\Python\\UniDec3\TestSpectra\\test.RAW"
-    test = "Z:\mtmarty\Data\Others\Agilent\\2019_05_15_bsa_ccs_02.d"
-    test = "C:\Data\CytC_Intact_MMarty_Share\\20221215_MMarty_Share\SHA_1598_9.d"
+    test = "Z:\\mtmarty\\Data\\Others\\Agilent\\2019_05_15_bsa_ccs_02.d"
+    test = "C:\\Data\\CytC_Intact_MMarty_Share\\20221215_MMarty_Share\\SHA_1598_9.d"
     test = "C:\\Data\\Sciex\\20230816_Myoglobin 0666 ugmL 01.wiff"
+    test = "Z:\\Group Share\\JGP\\PXD010825\\NS-CardiacTissue-SRandMit.d"
     tstart = time.perf_counter()
 
     d = DataImporter(test)

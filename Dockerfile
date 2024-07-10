@@ -1,7 +1,7 @@
-FROM python:3.9-bullseye
+FROM python:3.11.9-bookworm
 
 # C dependencies
-RUN apt-get update && apt-get install -y libgtk-3-dev libwxgtk3.0-gtk3-dev libfftw3-dev hdf5-tools libhdf5-dev --no-install-recommends && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y libfftw3-dev hdf5-tools libhdf5-dev --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
 # To Run GUI
 RUN pip install setuptools attrdict attrdict3 numpy pymzml networkx natsort h5py matplotlib scipy pyteomics mpld3 pandas plotly

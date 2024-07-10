@@ -48,6 +48,8 @@ Borrowed some code from pyRawRileReader from pDeep3: https://github.com/pFindStu
 
 
 def DotNetArrayToNPArray(arr, dtype=float):
+    if arr is None:
+        return []
     return np.array(list(arr), dtype=dtype)
 
 

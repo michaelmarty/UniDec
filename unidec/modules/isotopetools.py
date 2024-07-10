@@ -33,7 +33,15 @@ def makemass(testmass):
     return formula, minmassint, intnum
 
 
-def isojim(isolist, length=700):
+global hft, cft, nft, oft, sft
+hft = None
+cft = None
+nft = None
+oft = None
+sft = None
+
+
+def isojim(isolist, length=100):
     """Thanks to Jim Prell for Sketching this Code"""
     numc = isolist[0]
     numh = isolist[1]
@@ -42,23 +50,26 @@ def isojim(isolist, length=700):
     nums = isolist[4]
 
     buffer = np.zeros(length)
-    h = np.array([1, 0.00015, 0, 0])
-    c = np.array([1, 0.011, 0, 0])
-    n = np.array([1, 0.0037, 0, 0])
-    o = np.array([1, 0.0004, 0.002, 0])
-    s = np.array([1, 0.0079, 0.044, 0])
-    h = np.append(h, buffer)
-    c = np.append(c, buffer)
-    n = np.append(n, buffer)
-    o = np.append(o, buffer)
-    s = np.append(s, buffer)
+    global hft, cft, nft, oft, sft
+    if hft is None:
+        buffer = np.zeros(length)
+        h = np.array([1, 0.00015, 0, 0])
+        c = np.array([1, 0.011, 0, 0])
+        n = np.array([1, 0.0037, 0, 0])
+        o = np.array([1, 0.0004, 0.002, 0])
+        s = np.array([1, 0.0079, 0.044, 0])
+        h = np.append(h, buffer)
+        c = np.append(c, buffer)
+        n = np.append(n, buffer)
+        o = np.append(o, buffer)
+        s = np.append(s, buffer)
 
-    dt = np.dtype(np.complex128)
-    hft = fftpack.fft(h).astype(dt)
-    cft = fftpack.fft(c).astype(dt)
-    nft = fftpack.fft(n).astype(dt)
-    oft = fftpack.fft(o).astype(dt)
-    sft = fftpack.fft(s).astype(dt)
+        dt = np.dtype(np.complex128)
+        hft = fftpack.fft(h).astype(dt)
+        cft = fftpack.fft(c).astype(dt)
+        nft = fftpack.fft(n).astype(dt)
+        oft = fftpack.fft(o).astype(dt)
+        sft = fftpack.fft(s).astype(dt)
 
     allft = cft ** numc * hft ** numh * nft ** numn * oft ** numo * sft ** nums
     allift = np.abs(fftpack.ifft(allft))
@@ -92,7 +103,7 @@ def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.0072
         dist[:, 0] = (dist[:, 0] + z * adductmass) / z
 
     if crop:
-        b1 = dist[:, 1] > np.amax(dist[:, 1]) * 0.0001
+        b1 = dist[:, 1] > np.amax(dist[:, 1]) * 0.01
         dist = dist[b1]
 
     return np.array(dist)
@@ -104,24 +115,26 @@ def correct_avg(dist, mass):
     dist[:, 0] = dist[:, 0] - avg + mass
     return dist
 
+
 def get_apex_mono_diff(mass):
     dist = calc_averagine_isotope_dist(mass)
-    apex = dist[np.argmax(dist[:,1]),0]
-    mono = dist[0,0]
-    diff = apex-mono
+    apex = dist[np.argmax(dist[:, 1]), 0]
+    mono = dist[0, 0]
+    diff = apex - mono
     return diff
 
+
 def predict_apex_mono_diff(mass):
-    m= 0.00063139
-    b= -0.53143767
-    fit =m * mass + b
-    if fit<0:
-        fit=0
+    m = 0.00063139
+    b = -0.53143767
+    fit = m * mass + b
+    if fit < 0:
+        fit = 0
     return round(fit)
 
-if __name__ == "__main__":
 
-    x = 10**np.arange(2, 6, 0.1)
+if __name__ == "__main__":
+    x = 10 ** np.arange(2, 6, 0.1)
     y = [get_apex_mono_diff(m) for m in x]
     fit = np.polyfit(x, y, 1)
     print(fit)

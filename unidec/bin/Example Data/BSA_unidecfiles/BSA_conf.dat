@@ -1,4 +1,4 @@
-version 7.0.1
+version 7.0.2
 imflag 0
 cdmsflag 0
 input C:\Python\UniDec3\unidec\bin\Example Data\BSA_unidecfiles\BSA_input.dat
@@ -67,8 +67,8 @@ CDScanEnd -1
 HTksmooth 0.0
 CDScanCompress 0.0
 HTmaxscans -1.0
-HToutlb -1
-HToutub -1
+HToutlb -1.0
+HToutub -1.0
 HTtimepad 0.0
 HTanalysistime 38.0
 HTxaxis Time
