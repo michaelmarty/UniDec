@@ -8,7 +8,7 @@ slurmheader = """#!/bin/bash
 #SBATCH --ntasks-per-node=1
 #SBATCH --nodes=1
 #SBATCH --mem-per-cpu=4GB
-#SBATCH --time=4:00:00
+#SBATCH --time=8:00:00
 #SBATCH --job-name=JOBNAME
 #SBATCH --account=mtmarty
 #SBATCH --partition=standard
@@ -19,11 +19,11 @@ slurmheader = """#!/bin/bash
 cd $SLURM_SUBMIT_DIR
 
 module load python
-source ~/mypyenv/bin/activate
+source /home/u17/mypyenv/bin/activate
 
-ISODEC = "~/UniDec/unidec/IsoDec"
+ISODEC="/home/u17/mtmary/UniDec/unidec/IsoDec"
 
-python -m ISODEC -f FILENAME generate 
+python3 $ISODEC -f FILENAME generate 
 
 """
 
