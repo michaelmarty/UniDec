@@ -2,7 +2,7 @@ import numpy as np
 import time
 import matchms
 from copy import deepcopy
-from IsoDec.datatools import simp_charge, create_isodist
+from unidec.IsoDec.datatools import simp_charge, create_isodist
 import matplotlib.pyplot as plt
 
 mass_diff_c = 1.0033

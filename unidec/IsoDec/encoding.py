@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import unidec.tools as ud
-from IsoDec.datatools import *
-from IsoDec.match import match_charge, cplot
+from unidec.IsoDec.datatools import *
+from unidec.IsoDec.match import match_charge, cplot
 import pickle as pkl
 import time
 import torch

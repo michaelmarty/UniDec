@@ -1,9 +1,9 @@
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from IsoDec.models import IsoDecClassifier, IsoDecSegmenter, example
-from IsoDec.datatools import create_isodist
-from IsoDec.match import *
+from unidec.IsoDec.models import IsoDecClassifier, IsoDecSegmenter, example
+from unidec.IsoDec.datatools import create_isodist
+from unidec.IsoDec.match import *
 import os
 import pickle as pkl
 import matplotlib.pyplot as plt
@@ -142,8 +142,8 @@ def get_charge_nn(centroids):
 if __name__ == "__main__":
     os.chdir("C:\\Data\\IsoNN\\multi")
     eng = IsoDecEngine(1)
-    eng.create_training_dataloader("training_data_large.pth", "test_data_large.pth")
-    eng.train_model(epochs=5)
+    #eng.create_training_dataloader("training_data_large.pth", "test_data_large.pth")
+    #eng.train_model(epochs=5)
 
     c = example
     p = eng.isomod.predict(c)
@@ -152,6 +152,7 @@ if __name__ == "__main__":
     colors = ['g', 'b', 'c', 'm', 'y', 'k', 'w']
     for j, vec in enumerate(p):
         v = vec.astype(bool)
+        print(v)
         i = indexes[v]
         b1 = np.zeros(len(c))
         b1[i.astype(int)] = 1

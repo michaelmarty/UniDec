@@ -1,27 +1,33 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import os
 import unidec.tools as ud
-from IsoDec.datatools import *
-from IsoDec.match import match_charge
+from unidec.IsoDec.datatools import *
+from unidec.IsoDec.match import match_charge
 import pickle as pkl
 import time
 
 
-def process_file(file, overwrite=False):
-    starttime = time.perf_counter()
-    zdat = []
+def is_valid(file):
     extension = "." + file.split(".")[-1]
     if extension.lower() in ud.known_extensions:
+        return True
+    else:
+        return False
+
+
+def process_file(file, overwrite=False, peakdepth=100):
+    starttime = time.perf_counter()
+    zdat = []
+    if is_valid(file):
         print(file)
     else:
         print("Unknown File Type", file, extension)
         return []
 
     fileheader = os.path.basename(file).split(".")[0]
-    outfile = fileheader + ".pkl"
+    outfile = fileheader + "_" + str(peakdepth) + ".pkl"
 
-    if os.path.isfile(outfile):
+    if os.path.isfile(outfile) and not overwrite:
         print("Pkl found:", outfile)
         return []
 
@@ -29,7 +35,7 @@ def process_file(file, overwrite=False):
 
     try:
         print("N Scans:", np.amax(reader.scans))
-    except:
+    except Exception as e:
         print("Could not open:", file)
         return []
 
@@ -46,7 +52,7 @@ def process_file(file, overwrite=False):
         peaks = isotope_finder(spectrum)
         print(s, len(spectrum), len(peaks))
 
-        for i, p in enumerate(peaks[:10]):
+        for i, p in enumerate(peaks[:peakdepth]):
             try:
                 centroids, d = get_centroids(spectrum, p[0], mzwindow=[-1.5, 3.5])
                 charge, isodist, matched, isomatched = match_charge(centroids, p[0])
