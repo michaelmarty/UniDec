@@ -8,7 +8,7 @@ sys.path.append("..")
 if platform.system() == "Windows":
     udpath = "C:\\Python\\UniDec3"
 elif platform.system() == "Linux":
-    directory = "~/UniDec"
+    udpath = "/home/u17/mtmarty/UniDec"
 
 sys.path.append(udpath)
 

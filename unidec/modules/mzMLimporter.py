@@ -290,6 +290,14 @@ class mzMLimporter:
         self.scans = np.arange(0, len(self.ids))
         print("Reading Complete")
 
+    def grab_scan_data(self, scan):
+        try:
+            data = get_data_from_spectrum(self.msrun[self.ids[scan]])
+        except Exception as e:
+            print("Error in grab_scan_data:", e)
+            data = None
+        return data
+
     def get_data_memory_safe(self, scan_range=None, time_range=None):
         if time_range is not None:
             scan_range = self.get_scans_from_times(time_range)

@@ -85,4 +85,7 @@ def process_dir(directory):
 
 
 if __name__ == "__main__":
+    os.chdir("C:\\Data\\TabbData\\")
+    file = "C:\\Data\\TabbData\\20220414_onlyProtMix_1ul_20220502192503.mzML.gz"
+    zdat = process_file(file)
     pass
