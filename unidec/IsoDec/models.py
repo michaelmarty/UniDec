@@ -6,6 +6,7 @@ from torchvision.transforms import ToTensor
 from torchvision.models import resnet50, mobilenet_v3_large, MobileNet_V3_Large_Weights, ResNet50_Weights
 from torch.optim import lr_scheduler
 import time
+import platform
 from unidec.IsoDec.encoding import encode_isodist
 
 example = np.array([[5.66785531e+02, 1.47770838e+06],
@@ -95,8 +96,12 @@ class IsoDecModel:
 
     def load_model(self):
         if os.path.isfile(self.savepath):
-            self.model.load_state_dict(torch.load(self.savepath))
-            print("Model loaded:", self.savepath)
+            try:
+                self.model.load_state_dict(torch.load(self.savepath))
+                print("Model loaded:", self.savepath)
+            except Exception as e:
+                print("Model failed to load:", self.savepath)
+                print(e)
         else:
             print("Model not found:", self.savepath)
 
@@ -104,8 +109,8 @@ class IsoDecModel:
         torch.save(self.model.state_dict(), self.savepath)
         print("Model saved:", self.savepath)
 
-    def encode(self, centroids):
-        emat, self.indexes = encode_isodist(centroids)
+    def encode(self, centroids, maxlength=16):
+        emat, self.indexes = encode_isodist(centroids, maxlen=maxlength)
         return emat
 
     def train_model(self, dataloader):
@@ -200,17 +205,23 @@ class IsoDecClassifier(IsoDecModel):
 
 
 class NNmulti(nn.Module):
-    def __init__(self):
+    def __init__(self, size=16, nfeatures=3):
         super().__init__()
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
-            nn.Linear(16 * 16 * 3, 512),
+            nn.Linear(size * size * 3, 512),
             nn.ReLU(),
-            nn.Linear(512, 512),
+            nn.Linear(512, 128),
             nn.ReLU(),
-            nn.Linear(512, 512),
+            nn.Linear(128, size * nfeatures),
+            nn.Unflatten(1, (size, nfeatures)),
+            nn.Softmax(dim=2),
+            nn.Flatten(),
+            nn.Linear(size * nfeatures, 128),
             nn.ReLU(),
-            nn.Linear(512, 16 * 3)
+            nn.Linear(128, 512),
+            nn.ReLU(),
+            nn.Linear(512, size * nfeatures),
         )
 
     def forward(self, x):
@@ -220,14 +231,20 @@ class NNmulti(nn.Module):
 
 
 class IsoDecSegmenter(IsoDecModel):
-    def __init__(self, working_dir="/xdisk/mtmarty/mtmarty/training"):
+    def __init__(self, working_dir=None):
+        if working_dir is None:
+            if platform.system() == "Linux":
+                working_dir = "/xdisk/mtmarty/mtmarty/training/"
+            else:
+                working_dir = "C:\\Data\\IsoNN\\"
+
         super().__init__(working_dir)
-        self.dims = [3, 16]
+        self.dims = [2, 32]
 
     def get_model(self, modelid):
         self.modelid = modelid
         if modelid == 0:
-            self.model = NNmulti()
+            self.model = NNmulti(size=self.dims[1], nfeatures=self.dims[0])
             savename = "exp_custom_nn_multi_model.pth"
         else:
             print("Model ID not recognized")
@@ -254,7 +271,6 @@ class IsoDecSegmenter(IsoDecModel):
             y = y.float()
             # y = torch.flatten(y, start_dim=1)
             X, y = X.to(self.device), y.to(self.device)
-
             # Compute prediction error
             pred = self.model(X).reshape(y.shape)
 
@@ -298,7 +314,7 @@ class IsoDecSegmenter(IsoDecModel):
             self.setup_model()
         startime = time.perf_counter()
 
-        test_data = self.encode(centroids)
+        test_data = self.encode(centroids, maxlength=self.dims[1])
         test_data = torch.tensor(test_data, dtype=torch.float32)
 
         self.model.eval()

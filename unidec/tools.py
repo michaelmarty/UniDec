@@ -91,6 +91,7 @@ def get_importer(path):
             d = data_reader.DataImporter(path)
     else:
         print("Get Importer Failed. File Not Found:", path)
+        return None
 
     return d
 

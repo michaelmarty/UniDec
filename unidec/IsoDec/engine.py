@@ -7,6 +7,9 @@ from unidec.IsoDec.match import *
 import os
 import pickle as pkl
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+
+mpl.use("WxAgg")
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
@@ -58,7 +61,15 @@ class IsoDecEngine:
             raise ValueError("Model type not recognized")
         return self.isomod
 
-    def create_training_dataloader(self, training_path, test_path, batch_size=None):
+    def create_training_dataloader(self, training_path, test_path=None, batch_size=None):
+        if ".pth" not in training_path:
+            training_path = "training_data_" + training_path + ".pth"
+
+        if test_path is None:
+            test_path = training_path.replace("training", "test")
+        elif ".pth" not in test_path:
+            test_path = "test_data_" + test_path + ".pth"
+
         if batch_size is not None:
             self.batch_size = batch_size
 
@@ -142,17 +153,21 @@ def get_charge_nn(centroids):
 if __name__ == "__main__":
     os.chdir("C:\\Data\\IsoNN\\multi")
     eng = IsoDecEngine(1)
-    #eng.create_training_dataloader("training_data_large.pth", "test_data_large.pth")
-    #eng.train_model(epochs=5)
+    eng.create_training_dataloader("medium32x2")
+    eng.train_model(epochs=5)
 
     c = example
     p = eng.isomod.predict(c)
     indexes = eng.isomod.indexes
+    for j, vec in enumerate(p):
+        v = vec.astype(bool)
+        print(v)
+
+
     cplot(c)
     colors = ['g', 'b', 'c', 'm', 'y', 'k', 'w']
     for j, vec in enumerate(p):
         v = vec.astype(bool)
-        print(v)
         i = indexes[v]
         b1 = np.zeros(len(c))
         b1[i.astype(int)] = 1
@@ -161,5 +176,7 @@ if __name__ == "__main__":
             b1 = b1[:len(c)]
 
         d = c[b1]
+        if len(d) == 0:
+            continue
         cplot(d, color=colors[j], factor=-1)
     plt.show()

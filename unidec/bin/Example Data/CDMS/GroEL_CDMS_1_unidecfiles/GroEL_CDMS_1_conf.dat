@@ -1,9 +1,9 @@
-version 7.0.1
+version 7.0.2
 imflag 0
 cdmsflag 1
 input C:\Python\UniDec3\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat
 output C:\Python\UniDec3\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1
-numit 50
+numit False
 numz 51
 endz 100
 startz 50
@@ -13,7 +13,7 @@ beta 1.0
 mzsig 1.0
 psfun 0
 zpsfn 0
-discreteplot 1
+discreteplot 0
 smashflag 0
 massub 1000000.0
 masslb 600000.0
@@ -35,7 +35,7 @@ plotsep 0.025
 intthresh 0.0
 reductionpercent 0.0
 aggressive 0
-rawflag 1
+rawflag 0
 adductmass 1.007276467
 nativezub 100.0
 nativezlb -100.0
@@ -44,29 +44,30 @@ accvol 0.0
 peakshapeinflate 1.0
 noiseflag 0.0
 linflag 2
-cmap viridis
-peakcmap viridis_r
+cmap nipy_spectral
+peakcmap rainbow
 spectracmap rainbow
-publicationmode 1
+publicationmode 0
 isotopemode 0
 peaknorm 1
 datanorm 1
 baselineflag 1.0
 orbimode False
-integratelb -7.0
-integrateub 10.0
 filterwidth 20.0
 zerolog -12.0
 doubledec 0
-kernel 
+kernel C:\Xcalibur\Data\20210818_HMS_01_unidecfiles\20210818_HMS_01_mass.txt
 CDslope 0.2074
 CDzbins 1.0
 CDres 1.0
-CDScanStart -1.0
-CDScanEnd -1.0
+CDScanStart 
+CDScanEnd 
+CDprethresh 0.0
 HTksmooth 0.0
 CDScanCompress 0.0
 HTmaxscans -1.0
+HToutlb -1.0
+HToutub -1.0
 HTtimepad 0.0
 HTanalysistime 38.0
 HTxaxis Time
@@ -82,6 +83,23 @@ demultiplexmode HT
 FTsmooth 0.0
 HTmaskn 1000.0
 HTwin 5.0
-csig 4.0
+csig 0.0
 smoothdt 0.0
 subbufdt 0.0
+zout 0.0
+pusher 0.0
+mindt 0.0
+maxdt 30.0
+ccsub 25000.0
+ccslb 100.0
+dtsig 0.2
+ccsbins 100.0
+ubnativeccs 20000.0
+lbnativeccs -20000.0
+twaveflag 0
+temp 25.0
+pressure 2.0
+volt 50.0
+gasmass 4.002602
+tnaught 0.0
+driftlength 0.18202
