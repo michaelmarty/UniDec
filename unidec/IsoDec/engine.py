@@ -44,10 +44,10 @@ class MatchedPeak:
 
 
 class IsoDecEngine:
-    def __init__(self, mtype=0):
+    def __init__(self, mtype=0, batchsize=32):
         self.mtype = mtype
         self.isomod = self.set_model(self.mtype)
-        self.batch_size = 128
+        self.batch_size = batchsize
         self.training_data = None
         self.test_data = None
         self.train_dataloader = None
@@ -154,11 +154,12 @@ def get_charge_nn(centroids):
 
 
 if __name__ == "__main__":
+    starttime = time.perf_counter()
     os.chdir("C:\\Data\\IsoNN\\multi")
     eng = IsoDecEngine(1)
-    eng.create_training_dataloader("medium32x2")
-    eng.train_model(epochs=5)
-
+    eng.create_training_dataloader("large32x1")
+    eng.train_model(epochs=10)
+    print("Time:", time.perf_counter() - starttime)
     c = example
     p = eng.isomod.predict(c)
     indexes = eng.isomod.indexes

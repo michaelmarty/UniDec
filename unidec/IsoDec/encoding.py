@@ -286,7 +286,8 @@ def encode_double(c, c2, maxlen=16, maxdist=1.5, minsep=0.1, nfeatures=3):
 
     mergedc = mergedc[indexes]
     target[0] = ma[indexes]
-    target[1] = ma2[indexes]
+    if nfeatures > 1:
+        target[1] = ma2[indexes]
 
     if False:
         cplot(mergedc[mergedc[:, 1] > 0])
@@ -294,7 +295,8 @@ def encode_double(c, c2, maxlen=16, maxdist=1.5, minsep=0.1, nfeatures=3):
         cm1 = centroid[matched]
         cm22 = centroid2[matched2]
         cm = mergedc[target[0]]
-        cm2 = mergedc[target[1]]
+        if nfeatures > 1:
+            cm2 = mergedc[target[1]]
 
         cplot(cm, color='g', factor=-1)
         cplot(cm1, color='b', factor=-1)
@@ -392,6 +394,6 @@ if __name__ == "__main__":
     directory = "Z:\\Group Share\\JGP\\MSV000090488\\"
     directory = "Z:\\Group Share\\JGP\\MSV000091923"
     #directory = "C:\\Data\\TabbData\\"
-    encode_dir(directory, type=1, maxlen=32, nfeatures=2, name="large32x2", onedropper=0.95)
+    encode_dir(directory, type=1, maxlen=32, nfeatures=1, name="large32x1", onedropper=0.95)
     #encode_multi_file(file, maxlen=32, nfeatures=2, save=True, name="small32x2")
     print("Time:", time.perf_counter() - starttime)
