@@ -209,16 +209,9 @@ class NNmulti1(nn.Module):
     def __init__(self, size=16, nfeatures=3):
         super().__init__()
         self.flatten = nn.Flatten()
+        layersize = 512
         self.linear_relu_stack = nn.Sequential(
-            nn.Linear(size * size * 3, 512),
-            nn.ReLU(),
-            nn.Linear(512, 512),
-            nn.ReLU(),
-            nn.Linear(512, 512),
-            nn.ReLU(),
-            nn.Linear(512, 512),
-            nn.ReLU(),
-            nn.Linear(512, size * nfeatures)
+            nn.Linear(size * size * 3, size * nfeatures),
         )
 
     def forward(self, x):
@@ -257,22 +250,27 @@ class NNmulti2(nn.Module):
     def __init__(self, size=16, nfeatures=3):
         super().__init__()
         self.flatten = nn.Flatten()
+        k1 = 3
+        k2 = 3
+        h1 = 3
+        h2 = 16
+        self.conv1 = nn.Conv2d(3, h1, k1)
+        self.conv2 = nn.Conv2d(h1, h2, k2)
         self.linear_relu_stack = nn.Sequential(
-            nn.Linear(size * size * 3, 512),
+            self.conv1, nn.ReLU(), self.conv2, nn.ReLU(),
+            nn.Flatten(),
+
+            nn.Linear(12544, 512),
             nn.ReLU(),
-            nn.Linear(512, 512),
+
+            nn.Linear(512, size * nfeatures),
             nn.ReLU(),
-            nn.Linear(512, 512),
-            nn.ReLU(),
-            nn.Linear(512, 512),
-            nn.ReLU(),
-            nn.Linear(512, size * nfeatures)
         )
 
     def forward(self, x):
-        x = self.flatten(x)
+        #x = self.flatten(x)
         logits = self.linear_relu_stack(x)
-        return logits
+        return torch.clamp_max(logits, 1)
 
 class IsoDecSegmenter(IsoDecModel):
     def __init__(self, working_dir=None):
@@ -283,8 +281,8 @@ class IsoDecSegmenter(IsoDecModel):
                 working_dir = "C:\\Data\\IsoNN\\"
 
         super().__init__(working_dir)
-        self.dims = [2, 32]
-        self.modelid = 1
+        self.dims = [1, 32]
+        self.modelid = 2
 
     def get_model(self, modelid):
         self.modelid = modelid
@@ -294,6 +292,9 @@ class IsoDecSegmenter(IsoDecModel):
         elif modelid == 1:
             self.model = NNmulti1(size=self.dims[1], nfeatures=self.dims[0])
             savename = "exp_custom_nn_multi_model1.pth"
+        elif modelid == 2:
+            self.model = NNmulti2(size=self.dims[1], nfeatures=self.dims[0])
+            savename = "exp_custom_nn_multi_model2.pth"
         else:
             print("Model ID not recognized", modelid)
             raise ValueError("Model ID not recognized")
@@ -345,6 +346,7 @@ class IsoDecSegmenter(IsoDecModel):
                 y = y.float()
                 X, y = X.to(self.device), y.to(self.device)
                 pred = self.model(X).reshape(y.shape)
+
                 test_loss += self.loss_fn(pred, y).item()
 
                 pred = torch.round(pred)
