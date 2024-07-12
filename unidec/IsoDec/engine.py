@@ -9,7 +9,10 @@ import pickle as pkl
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-mpl.use("WxAgg")
+try:
+    mpl.use("WxAgg")
+except:
+    pass
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
