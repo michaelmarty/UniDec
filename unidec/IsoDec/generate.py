@@ -19,11 +19,11 @@ slurmheader = """#!/bin/bash
 cd $SLURM_SUBMIT_DIR
 
 module load python
-source /home/u17/mypyenv/bin/activate
+source /home/u17/mtmarty/mypyenv/bin/activate
 
-ISODEC="/home/u17/mtmary/UniDec/unidec/IsoDec"
+ISODEC="/home/u17/mtmarty/UniDec/unidec/IsoDec"
 
-python3 $ISODEC -f FILENAME generate 
+python3 $ISODEC -f FILENAME generate > JOBNAME.log
 
 """
 

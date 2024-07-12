@@ -35,11 +35,13 @@ class ThermoDataImporter:
         print("Number of Scans", len(self.scans))
         # print(self.times)
 
-    def grab_data(self):
+    def grab_data(self, threshold=-1):
         self.data = []
         for s in self.scans:
             impdat = np.array(self.msrun.GetSpectrum(s))  # May want to test this.
             impdat = impdat[impdat[:, 0] > 10]
+            if threshold >= 0:
+                impdat = impdat[impdat[:, 1] > threshold]
             self.data.append(impdat)
         self.data = np.array(self.data, dtype=object)
         return self.data

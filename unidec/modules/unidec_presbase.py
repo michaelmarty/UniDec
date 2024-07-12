@@ -82,11 +82,11 @@ class UniDecPres(object):
                 self.eng.config.read_hdf5(file_name)
             else:
                 self.eng.config.config_import(file_name)
-
         self.view.import_config_to_gui()
         if self.eng.config.filetype == 1:
             self.eng.config.write_hdf5()
         self.eng.update_history()
+
 
     def export_config(self, file_name=None):
         """

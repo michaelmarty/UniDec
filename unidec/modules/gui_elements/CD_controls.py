@@ -226,6 +226,13 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox1b.Add(wx.StaticText(panel1b, label="Intensity Threshold: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
+        self.ctlprethresh = wx.TextCtrl(panel1b, value="", size=size1)
+        gbox1b.Add(self.ctlprethresh, (i, 1), span=(1, 1))
+        gbox1b.Add(wx.StaticText(panel1b, label="Import Threshold: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        # Bind change in this text box to update function
+        self.parent.Bind(wx.EVT_TEXT, self.update_prethresh, self.ctlprethresh)
+        i += 1
+
         self.ctldatareductionpercent = wx.TextCtrl(panel1b, value="", size=size1)
         gbox1b.Add(self.ctldatareductionpercent, (i, 1), span=(1, 1))
         gbox1b.Add(wx.StaticText(panel1b, label="Data Reduction (%): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -932,8 +939,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         Imports parameters from the config object to the GUI.
         :return: None
         """
-
-        tstart = time.perf_counter()
         self.Freeze()
         self.update_flag = False
         if self.config.batchflag == 0:
@@ -982,10 +987,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlthresh2.SetValue(str(self.config.peakplotthresh))
             self.ctlsep.SetValue(str(self.config.separation))
             self.ctlintthresh.SetValue(str(self.config.intthresh))
+            self.ctlprethresh.SetValue(str(self.config.CDprethresh))
             self.ctladductmass.SetValue(str(self.config.adductmass))
             self.ctldatanorm.SetValue(int(self.config.datanorm))
             self.ctlnumit.SetValue(str(self.config.numit))
-
             self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
 
             self.ctldiscrete.SetValue(self.config.discreteplot)
@@ -1024,10 +1029,14 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctltime1.SetValue(str(self.config.HToutputlb))
                 self.ctltime2.SetValue(str(self.config.HToutputub))
 
-            if self.config.adductmass < 0:
-                self.ctlnegmode.SetValue(1)
-            else:
+            try:
+                if float(self.config.adductmass) < 0:
+                    self.ctlnegmode.SetValue(1)
+                else:
+                    self.ctlnegmode.SetValue(0)
+            except Exception as e:
                 self.ctlnegmode.SetValue(0)
+                self.config.adductmass = 1.007276467
 
             try:
                 self.ctl2dcm.SetSelection(self.config.cmaps2.index(self.config.cmap))
@@ -1062,13 +1071,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         if self.config.batchflag != 1:
             self.ctlminmz.SetValue(str(self.config.minmz))
             self.ctlmaxmz.SetValue(str(self.config.maxmz))
-        # print("4: %.2gs" % (time.perf_counter() - tstart))
+
         self.update_flag = True
         try:
             self.update_quick_controls()
         except Exception as e:
             print("Error updating quick controls", e)
-        # print("5: %.2gs" % (time.perf_counter() - tstart))
 
         self.Thaw()
 
@@ -1110,6 +1118,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.poolflag = self.ctlpoolflag.GetSelection()
         self.config.datanorm = int(self.ctldatanorm.GetValue())
         self.config.intthresh = ud.string_to_value(self.ctlintthresh.GetValue())
+        self.config.CDprethresh = ud.string_to_value(self.ctlprethresh.GetValue())
         self.config.massbins = ud.string_to_value(self.ctlmassbins.GetValue())
 
         self.config.endz = ud.string_to_int(self.ctlendz.GetValue())
@@ -1171,6 +1180,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.discreteplot = int(self.ctldiscrete.GetValue())
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
         self.config.rawflag = self.ctlrawflag.GetSelection()
+
+        try:
+            self.config.adductmass = float(self.config.adductmass)
+        except Exception:
+            self.config.adductmass = 1.007276467
 
         if self.ctlnegmode.GetValue() == 1:
             # print("Negative Ion Mode")
@@ -1242,6 +1256,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlsmoothdt.SetToolTip(wx.ToolTip("Gaussian smooth sigma in units of charge number."))
         self.ctlintthresh.SetToolTip(
             wx.ToolTip("Set intensity threshold. Data points below threshold are excluded from deconvolution."))
+        self.ctlprethresh.SetToolTip(
+            wx.ToolTip("Set intensity threshold applied during data import."
+                       " Data points below threshold are excluded from import. "
+                       "If you adjust this, you will need to reimport the data."))
         self.ctldatareductionpercent.SetToolTip(
             wx.ToolTip(
                 "Reduces the amount of data by removing everything below a threshold."
@@ -1382,6 +1400,13 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.pres.on_mass_tools(e)
             if len(self.config.masslist) < 1:
                 self.ctlmasslistflag.SetValue(False)'''
+
+    def update_prethresh(self, e):
+        self.config.CDprethresh = ud.string_to_value(self.ctlprethresh.GetValue())
+        try:
+            self.config.CDprethresh = float(self.config.CDprethresh)
+        except Exception:
+            self.config.CDprethresh = -1
 
     def on_z_smooth(self, e):
         value = self.ctlzsmoothcheck.Get3StateValue()

@@ -270,6 +270,7 @@ class UniDecConfig(object):
         self.CDScanStart = -1
         self.CDScanEnd = -1
         self.CDiitflag = False
+        self.CDprethresh = 0
 
         # Hadamard Transform Parameters
         self.htmode = False
@@ -459,6 +460,7 @@ class UniDecConfig(object):
         self.CDres = 0
         self.CDScanStart = -1
         self.CDScanEnd = -1
+        self.CDprethresh = 0
         self.HTksmooth = 0
         self.CDScanCompress = 0
         self.HTcycleindex = -1
@@ -582,6 +584,7 @@ class UniDecConfig(object):
         f.write("CDres " + str(self.CDres) + "\n")
         f.write("CDScanStart " + str(self.CDScanStart) + "\n")
         f.write("CDScanEnd " + str(self.CDScanEnd) + "\n")
+        f.write("CDprethresh " + str(self.CDprethresh) + "\n")
         f.write("HTksmooth " + str(self.HTksmooth) + "\n")
         f.write("CDScanCompress " + str(self.CDScanCompress) + "\n")
         f.write("HTmaxscans " + str(self.HTmaxscans) + "\n")
@@ -719,6 +722,8 @@ class UniDecConfig(object):
                             self.CDres = ud.string_to_value(line.split()[1])
                         if line.startswith("CDScanStart"):
                             self.CDScanStart = ud.string_to_int(line.split()[1])
+                        if line.startswith("CDprethresh"):
+                            self.CDprethresh = ud.string_to_value(line.split()[1])
                         if line.startswith("CDScanEnd"):
                             self.CDScanEnd = ud.string_to_int(line.split()[1])
                         if line.startswith("HTksmooth"):

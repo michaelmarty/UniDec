@@ -8,9 +8,10 @@ import matplotlib.pyplot as plt
 mass_diff_c = 1.0033
 
 
-def cplot(centroids, color='r', factor=1):
+def cplot(centroids, color='r', factor=1, base=0):
+    plt.hlines(0, np.amin(centroids[:, 0]), np.amax(centroids[:, 0]), color="k")
     for c in centroids:
-        plt.vlines(c[0], 0, factor * c[1], color=color)
+        plt.vlines(c[0], base, base + factor * c[1], color=color)
 
 
 def optimize_shift(centroids, isodist, z, tol=0.01, maxshift=3):
@@ -25,7 +26,7 @@ def optimize_shift(centroids, isodist, z, tol=0.01, maxshift=3):
         overlaps.append(np.sum(overlap))
     bestshift = shiftrange[np.argmax(overlaps)]
 
-    isodist[:, 0] = isodist[:, 0] + bestshift * mass_diff_c/z
+    isodist[:, 0] = isodist[:, 0] + bestshift * mass_diff_c / z
     return isodist
 
 
@@ -57,13 +58,17 @@ def match_charge(centroids, peakmz, charge_range=[1, 50], tol=0.01, threshold=0.
 
     for i, z in enumerate(ztab):
         isodist = create_isodist(peakmz, z, centroids)
+
+        matchindexes, isomatches = match_peaks(topcent, isodist, tol)
+        if len(matchindexes) < 3:
+            continue
+
         spectrum2 = matchms.Spectrum(mz=isodist[:, 0], intensities=isodist[:, 1],
                                      metadata={"charge": z, "precursor_mz": peakmz})
 
         score = cosine_greedy.pair(target, spectrum2)['score']
 
         if score > threshold:
-            matchindexes, isomatches = match_peaks(topcent, isodist, tol)
 
             if not silent:
                 print("Matched:", z, score)

@@ -24,9 +24,15 @@ class I2MSImporter:
         except:
             self.invinjtime = None'''
 
-    def grab_data(self):
+    def grab_data(self, threshold=-1):
         slopes = self.data[:, self.slopekey]
         mz = self.data[:, self.mzkey]
+
+        if threshold >= 0:
+            mask = slopes > threshold
+            slopes = slopes[mask]
+            mz = mz[mask]
+
         return np.transpose([mz, slopes])
 
 
