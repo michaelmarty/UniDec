@@ -72,6 +72,8 @@ class IsoDecModel:
         self.savepath = os.path.join(self.working_dir, savename)
 
     def setup_model(self, modelid=0):
+        if modelid is None:
+            modelid = self.modelid
         self.device = (
             "cuda"
             if torch.cuda.is_available()
@@ -203,6 +205,27 @@ class IsoDecClassifier(IsoDecModel):
         print("Z:", int(predz), "Time:", time.perf_counter() - startime)
         return int(predz)
 
+class NNmulti1(nn.Module):
+    def __init__(self, size=16, nfeatures=3):
+        super().__init__()
+        self.flatten = nn.Flatten()
+        self.linear_relu_stack = nn.Sequential(
+            nn.Linear(size * size * 3, 512),
+            nn.ReLU(),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Linear(512, size * nfeatures)
+        )
+
+    def forward(self, x):
+        x = self.flatten(x)
+        logits = self.linear_relu_stack(x)
+        return logits
+
 
 class NNmulti(nn.Module):
     def __init__(self, size=16, nfeatures=3):
@@ -230,6 +253,27 @@ class NNmulti(nn.Module):
         return logits
 
 
+class NNmulti2(nn.Module):
+    def __init__(self, size=16, nfeatures=3):
+        super().__init__()
+        self.flatten = nn.Flatten()
+        self.linear_relu_stack = nn.Sequential(
+            nn.Linear(size * size * 3, 512),
+            nn.ReLU(),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Linear(512, size * nfeatures)
+        )
+
+    def forward(self, x):
+        x = self.flatten(x)
+        logits = self.linear_relu_stack(x)
+        return logits
+
 class IsoDecSegmenter(IsoDecModel):
     def __init__(self, working_dir=None):
         if working_dir is None:
@@ -240,21 +284,25 @@ class IsoDecSegmenter(IsoDecModel):
 
         super().__init__(working_dir)
         self.dims = [2, 32]
+        self.modelid = 1
 
     def get_model(self, modelid):
         self.modelid = modelid
         if modelid == 0:
             self.model = NNmulti(size=self.dims[1], nfeatures=self.dims[0])
             savename = "exp_custom_nn_multi_model.pth"
+        elif modelid == 1:
+            self.model = NNmulti1(size=self.dims[1], nfeatures=self.dims[0])
+            savename = "exp_custom_nn_multi_model1.pth"
         else:
-            print("Model ID not recognized")
+            print("Model ID not recognized", modelid)
             raise ValueError("Model ID not recognized")
 
         self.savepath = os.path.join(self.working_dir, savename)
 
     def setup_training(self):
         if self.model is None:
-            self.setup_model()
+            self.setup_model(self.modelid)
         self.loss_fn = nn.MSELoss()
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.1)
         self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=1, gamma=0.95)
