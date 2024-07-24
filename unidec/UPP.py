@@ -1,3 +1,4 @@
+import platform
 import wx
 import pandas as pd
 from copy import deepcopy
@@ -246,7 +247,7 @@ class UPPApp(wx.Frame):
         """Constructor"""
         wx.Frame.__init__(self, parent=None, title=title, size=(1800, 600))
         self.use_decon = True
-        self.use_converted = True
+        self.use_converted = False
         self.use_interactive = False
         self.make_combined_peaks = True
         self.bpeng = BPEngine(parent=self)
@@ -727,7 +728,7 @@ class UPPApp(wx.Frame):
 if __name__ == "__main__":
     app = wx.App()
     frame = UPPApp()
-    frame.usedeconbox.SetValue(False)
+    #frame.usedeconbox.SetValue(False)
     path = "C:\\Data\\Wilson_Genentech\\sequences_short.xlsx"
     path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
     path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
@@ -738,9 +739,10 @@ if __name__ == "__main__":
     # path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test short.xlsx"
     path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
     path = "C:\\Data\\UPPDemo\\FileOpening\\filetest.xlsx"
+    path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short_repeat.xlsx"
     # frame.on_help_page()
     # exit()
-    if False:
+    if False and platform.node() == 'MTM-VOSTRO':
         frame.useconvbox.SetValue(False)
         frame.usedeconbox.SetValue(True)
         frame.load_file(path)

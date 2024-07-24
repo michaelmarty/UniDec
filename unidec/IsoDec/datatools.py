@@ -7,6 +7,137 @@ from unidec.modules.isotopetools import *
 import time
 import matchms
 from copy import deepcopy
+from numba import njit
+import numba as nb
+
+
+# from bisect import bisect_left
+
+
+@njit(fastmath=True)
+def bisect_left(a, x):
+    """Similar to bisect.bisect_left(), from the built-in library."""
+    M = a.size
+    for i in range(M):
+        if a[i] >= x:
+            return i
+    return M
+
+
+@njit(fastmath=True)
+def fastnearest(array, target):
+    """
+    In a sorted array, quickly find the position of the element closest to the target.
+    :param array: Array
+    :param target: Value
+    :return: np.argmin(np.abs(array - target))
+    """
+    i = int(bisect_left(array, target))
+    if i <= 0:
+        return 0
+    elif i >= len(array) - 1:
+        return len(array) - 1
+    if np.abs(array[i] - target) > np.abs(array[i - 1] - target):
+        i -= 1
+    return int(i)
+
+
+@njit(fastmath=True)
+def fastpeakdetect(data, config=None, window=10, threshold=0, ppm=None, norm=True):
+    """
+    Simple peak detection algorithm.
+
+    Detects a peak if a given data point is a local maximum within plus or minus config.peakwindow.
+    Peaks must also be above a threshold of config.peakthresh * max_data_intensity.
+
+    The mass and intensity of peaks meeting these criteria are output as a P x 2 array.
+
+    :param data: Mass data array (N x 2) (mass intensity)
+    :param config: UniDecConfig object
+    :param window: Tolerance window of the x values
+    :param threshold: Threshold of the y values
+    :param ppm: Tolerance window in ppm
+    :param norm: Whether to normalize the data before peak detection
+    :return: Array of peaks positions and intensities (P x 2) (mass intensity)
+    """
+    if config is not None:
+        window = config.peakwindow / config.massbins
+        threshold = config.peakthresh
+        norm = config.normthresh
+
+    peaks = []
+    length = len(data)
+    shape = np.shape(data)
+    if length == 0 or shape[1] != 2:
+        return np.array(peaks)
+
+    if norm:
+        maxval = np.amax(data[:, 1])
+    else:
+        maxval = 1
+    for i in range(0, length):
+        if data[i, 1] > maxval * threshold:
+            if ppm is not None:
+                ptmass = data[i, 0]
+                newwin = ppm * 1e-6 * ptmass
+                start = fastnearest(data[:, 0], ptmass - newwin)
+                end = fastnearest(data[:, 0], ptmass + newwin)
+            else:
+                start = i - window
+                end = i + window
+
+                start = int(start)
+                end = int(end) + 1
+
+                if start < 0:
+                    start = 0
+                if end > length:
+                    end = length
+
+            testmax = np.amax(data[start:end, 1])
+            if data[i, 1] == testmax and np.all(data[i, 1] != data[start:i, 1]):
+                peaks.append([data[i, 0], data[i, 1]])
+
+    return np.array(peaks)
+
+
+@njit(fastmath=True)
+def fastcalc_FWHM(peak, data):
+    index = fastnearest(data[:, 0], peak)
+    int = data[index, 1]
+    leftwidth = 0
+    rightwidth = 0
+    counter = 1
+    leftfound = False
+    rightfound = False
+    while rightfound is False or leftfound is False:
+        if leftfound is False:
+            if index - counter < 0:
+                leftfound = True
+            elif data[index - counter, 1] <= int / 2.:
+                leftfound = True
+                leftwidth += 1
+            else:
+                leftwidth += 1
+        if rightfound is False:
+            if index + counter >= len(data):
+                rightfound = True
+            elif data[index + counter, 1] <= int / 2.:
+                rightfound = True
+                rightwidth += 1
+            else:
+                rightwidth += 1
+        counter += 1
+
+    indexstart = index - leftwidth
+    indexend = index + rightwidth
+    if indexstart < 0:
+        indexstart = 0
+    if indexend >= len(data):
+        indexend = len(data) - 1
+
+    FWHM = data[indexend, 0] - data[indexstart, 0]
+    return FWHM, [data[indexstart, 0], data[indexend, 0]]
 
 
 def get_noise(data, n=20):
@@ -34,6 +165,7 @@ def get_top_peak_mz(data):
     return data[maxindex, 0]
 
 
+@njit(fastmath=True)
 def get_fwhm_peak(data, peakmz):
     """
     Get the full width half max of the peak.
@@ -41,18 +173,38 @@ def get_fwhm_peak(data, peakmz):
     :param peakmz: float, m/z value of the peak
     :return: float, full width half max of the peak
     """
-    fwhm, interval = ud.calc_FWHM(peakmz, data)
+    fwhm, interval = fastcalc_FWHM(peakmz, data)
     return fwhm
 
+@njit(fastmath=True)
+def get_all_centroids(data, window=5, threshold=0.0001):
+    if len(data) < 3:
+        return np.empty((0, 2))
 
-def get_centroids(data, peakmz, mzwindow=1.5):
-    if type(mzwindow) is float:
-        mzwindow = [-mzwindow, mzwindow]
+    fwhm = get_fwhm_peak(data, data[np.argmax(data[:, 1]), 0])
+    peaks = fastpeakdetect(data, window=window, threshold=threshold)
+
+    for p in peaks:
+        d = data[(data[:, 0] > p[0] - fwhm) & (data[:, 0] < p[0] + fwhm)]
+        if len(d) == 0:
+            continue
+        p[0] = np.sum(d[:, 0] * d[:, 1]) / np.sum(d[:, 1])
+
+    return peaks
+
+
+# @njit(fastmath=True)
+def get_centroids(data, peakmz, mzwindow=None):
+    if mzwindow is None:
+        mzwindow = [-1.5, 3.5]
     chopped = data[(data[:, 0] > peakmz + mzwindow[0]) & (data[:, 0] < peakmz + mzwindow[1])]
+
+    if len(chopped) < 3:
+        return np.array([]), np.array([])
 
     fwhm = get_fwhm_peak(chopped, peakmz)
 
-    peaks = ud.peakdetect(chopped, window=3, threshold=0.01)
+    peaks = fastpeakdetect(chopped, window=5, threshold=0.01)
     # print(peaks)
 
     for p in peaks:
@@ -76,15 +228,23 @@ def calc_match_simp(centroids, isodist):
 def isotope_finder(data, mzwindow=1.5):
     nl = get_noise(data)
     # Chop data below noise level
-    peaks = ud.peakdetect(data, window=50, threshold=nl / np.amax(data[:, 1]))
+    peaks = fastpeakdetect(data, window=50, threshold=nl / np.amax(data[:, 1]))
     # sort peaks
     peaks = np.array(sorted(peaks, key=lambda x: x[1], reverse=True))
     return peaks
 
 
+# @njit(fastmath=True)
 def create_isodist(peakmz, charge, data):
+    """
+    Create an isotopic distribution based on the peak m/z and charge state.
+    :param peakmz: Peak m/z value as float
+    :param charge: Charge state
+    :param data: Data to match to as 2D numpy array [m/z, intensity]
+    :return: Isotopic distribution as 2D numpy array [m/z, intensity]
+    """
     mass = peakmz * float(charge)
-    isodist = calc_averagine_isotope_dist(mass, charge=charge, crop=True)
+    isodist = calc_averagine_isotope_dist(mass, charge=charge, crop=True, mono=False)
     isodist[:, 1] *= np.amax(data[:, 1]) / np.amax(isodist[:, 1])
     # shift isodist so that maxes are aligned with data
     isodist[:, 0] = isodist[:, 0] + peakmz - isodist[np.argmax(isodist[:, 1]), 0]
@@ -92,6 +252,13 @@ def create_isodist(peakmz, charge, data):
 
 
 def simp_charge(centroids, silent=False):
+    """
+    Simple charge prediction based on the spacing between peaks. Picks the largest peak and looks at the spacing
+    between the two nearest peaks. Takes 1/avg spacing as the charge.
+    :param centroids: Centroid data, 2D numpy array as [m/z, intensity]
+    :param silent: Whether to print the charge state, default False
+    :return: Charge state as int
+    """
     diffs = np.diff(centroids[:, 0])
     maxindex = np.argmax(centroids[:, 1])
     start = maxindex - 1
@@ -101,6 +268,8 @@ def simp_charge(centroids, silent=False):
     if end > len(diffs):
         end = len(diffs)
     centraldiffs = diffs[start:end]
+    if len(centraldiffs) == 0:
+        return 0
     avg = np.mean(centraldiffs)
     charge = 1 / avg
     charge = round(charge)

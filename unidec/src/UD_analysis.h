@@ -437,7 +437,10 @@ float extract_estimated_area(Config config, const float peak, const float* xvals
 float extract_switch(Config config, const float peak, const float* xvals, const float* yvals, const int length)
 {
 	float output = 0;
-	if (config.exwindow == 0) { config.exchoice = 0; }
+	if (config.exwindow == 0) { config.exchoice = 0; 
+	printf("Window is set to 0, defaulting to the height extraction.\n");
+	}
+	if (config.exchoice == 0 && config.exwindow > 0) { printf("Window > 0, but choice set to height. Ignoring window.\n"); }
 	
 	float thresh = config.exthresh / 100;
 

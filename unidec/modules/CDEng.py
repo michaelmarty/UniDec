@@ -345,12 +345,21 @@ class UniDecCD(engine.UniDec):
         # Ignored if text file input
         if self.thermodata:
             scans = np.concatenate([s * np.ones(len(data[i])) for i, s in enumerate(self.scans)])
+
             mz = np.concatenate([d[:, 0] for d in data])
             try:
                 intensity = np.concatenate([d[:, 1] * self.it[i] / 1000. for i, d in enumerate(data)])
             except Exception as e:
                 print(e, self.it)
                 intensity = np.concatenate([d[:, 1] for i, d in enumerate(data)])
+
+            try:
+                it = np.concatenate([it * np.ones(len(data[i])) for i, it in enumerate(self.invinjtime)])
+                self.invinjtime = it
+            except Exception as e:
+                print("Error with injection time correction:", e)
+                print(mz.shape, intensity.shape, scans.shape, self.invinjtime.shape)
+                self.invinjtime = None
 
         if self.invinjtime is None:
             self.invinjtime = np.ones_like(scans)

@@ -1,8 +1,9 @@
 import numpy as np
 import time
-from scipy import fftpack
-import unidec.tools as ud
-
+#from scipy import fftpack
+from numpy import fft as fftpack
+# from numba import njit
+# import numba as nb
 # import pyteomics.mass as ms
 
 mass_diff_c = 1.0033
@@ -15,10 +16,12 @@ isotopes = np.array([[[12., 98.90], [13.0033548, 1.10], [0, 0], [0, 0]],
                      [[31.9720707, 95.02], [32.9714585, 0.75], [33.9678668, 4.21], [35.9760809, 0.02]]])
 
 
+# @njit(fastmath=True)
 def makemass(testmass):
     num = testmass / massavgine * avgine
-    intnum = [int(round(n)) for n in num]
-    minmassint = (intnum * isotopes[:, 0, 0]).sum()
+    intnum = np.array([int(round(n)) for n in num])
+    x = intnum * isotopes[:, 0, 0]
+    minmassint = np.sum(x)
     formula = ""
     if intnum[0] != 0:
         formula = formula + "C" + str(intnum[0])
@@ -33,15 +36,29 @@ def makemass(testmass):
     return formula, minmassint, intnum
 
 
-global hft, cft, nft, oft, sft
-hft = None
-cft = None
-nft = None
-oft = None
-sft = None
+isolength = 128
+buffer = np.zeros(isolength)
+h = np.array([1, 0.00015, 0, 0])
+c = np.array([1, 0.011, 0, 0])
+n = np.array([1, 0.0037, 0, 0])
+o = np.array([1, 0.0004, 0.002, 0])
+s = np.array([1, 0.0079, 0.044, 0])
+h = np.append(h, buffer)
+c = np.append(c, buffer)
+n = np.append(n, buffer)
+o = np.append(o, buffer)
+s = np.append(s, buffer)
+
+dt = np.dtype(np.complex128)
+hft = fftpack.rfft(h).astype(dt)
+cft = fftpack.rfft(c).astype(dt)
+nft = fftpack.rfft(n).astype(dt)
+oft = fftpack.rfft(o).astype(dt)
+sft = fftpack.rfft(s).astype(dt)
 
 
-def isojim(isolist, length=100):
+# @njit(fastmath=True)
+def isojim(isolist, length=isolength):
     """Thanks to Jim Prell for Sketching this Code"""
     numc = isolist[0]
     numh = isolist[1]
@@ -49,34 +66,31 @@ def isojim(isolist, length=100):
     numo = isolist[3]
     nums = isolist[4]
 
-    buffer = np.zeros(length)
-    global hft, cft, nft, oft, sft
-    if hft is None:
-        buffer = np.zeros(length)
-        h = np.array([1, 0.00015, 0, 0])
-        c = np.array([1, 0.011, 0, 0])
-        n = np.array([1, 0.0037, 0, 0])
-        o = np.array([1, 0.0004, 0.002, 0])
-        s = np.array([1, 0.0079, 0.044, 0])
-        h = np.append(h, buffer)
-        c = np.append(c, buffer)
-        n = np.append(n, buffer)
-        o = np.append(o, buffer)
-        s = np.append(s, buffer)
-
-        dt = np.dtype(np.complex128)
-        hft = fftpack.fft(h).astype(dt)
-        cft = fftpack.fft(c).astype(dt)
-        nft = fftpack.fft(n).astype(dt)
-        oft = fftpack.fft(o).astype(dt)
-        sft = fftpack.fft(s).astype(dt)
-
     allft = cft ** numc * hft ** numh * nft ** numn * oft ** numo * sft ** nums
-    allift = np.abs(fftpack.ifft(allft))
+
+    # with nb.objmode(allift='float64[:]'):
+    #    allift = fftpack.irfft(allft)
+    allift = np.abs(fftpack.irfft(allft))
+    # allift = np.abs(allift)
     allift = allift / np.amax(allift)
-    return allift
+    return allift  # .astype(nb.float64)
 
 
+# @njit(fastmath=True)
+def predict_charge(mass):
+    """
+    Give predicted native charge state of species of defined mass
+    https://www.pnas.org/content/107/5/2007.long
+    :param mass: Mass in Da
+    :return: Float, predicted average native charge state
+    """
+    m = 0.0467
+    s = 0.533
+    nativez = m * (mass ** s)
+    return nativez
+
+
+# @njit(fastmath=True)
 def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.007276467, crop=False, **kwargs):
     formula, minmassint, isolist = makemass(mass)
     # print(isolist)
@@ -84,20 +98,23 @@ def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.0072
     if mono:
         minmassint = mass
     masses = np.arange(0, len(intensities)) + minmassint
-    dist = np.transpose([masses, intensities])
+    dist = np.zeros((len(masses), 2))
+    dist[:, 0] = masses
+    dist[:, 1] = intensities
     if not mono:
         dist = correct_avg(dist, mass)
     # print(ms.calculate_mass(formula=formula, average=True))
     # print(np.average(dist[:, 0], weights=dist[:, 1]))
     # print(minmassint)
-    z = None
     if charge == "Auto":
-        z = ud.predict_charge(mass)
+        z = predict_charge(mass)
     elif charge is not None:
-        try:
-            z = float(charge)
-        except Exception as e:
-            print("Could not convert charge to float. Try Auto, None, or a number", e)
+        z = float(charge)
+    else:
+        z = 1.0
+
+    if adductmass is None:
+        adductmass = 0.0
 
     if z is not None and z != 0:
         dist[:, 0] = (dist[:, 0] + z * adductmass) / z
@@ -106,9 +123,10 @@ def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.0072
         b1 = dist[:, 1] > np.amax(dist[:, 1]) * 0.01
         dist = dist[b1]
 
-    return np.array(dist)
+    return dist
 
 
+# @njit(fastmath=True)
 def correct_avg(dist, mass):
     """Note, switched from weighted average to peak correction"""
     avg = dist[np.argmax(dist[:, 1]), 0]  # np.average(dist[:, 0], weights=dist[:, 1])

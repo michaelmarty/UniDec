@@ -288,7 +288,7 @@ class mzMLimporter:
         self.times = np.array(self.times)
         self.ids = np.array(self.ids)
         self.scans = np.arange(0, len(self.ids))
-        print("Reading Complete")
+        print("Reading Complete", len(self.scans))
 
     def grab_scan_data(self, scan):
         try:
@@ -630,8 +630,8 @@ if __name__ == "__main__":
     # test = "C:\Data\CytC_Intact_MMarty_Share\\221114_STD_Pro_CytC_2ug_r1.mzML.gz"
     # test = "C:\Data\CytC_Intact_MMarty_Share\\221114_STD_Pro_CytC_2ug_r1_2.mzML"
     # test = "C:\Data\IMS Example Data\imstest2.mzML"
-    # test = "C:\Data\CytC_Intact_MMarty_Share\\20221215_MMarty_Share\SHA_1598_9.mzML.gz"
-    test = "C:\\Users\\marty\\OneDrive - University of Arizona\\Attachments\\S203.mzML.gz"
+    test = "C:\Data\CytC_Intact_MMarty_Share\\20221215_MMarty_Share\SHA_1598_9.mzML.gz"
+    #test = "C:\\Users\\marty\\OneDrive - University of Arizona\\Attachments\\S203.mzML.gz"
     import time
 
     tstart = time.perf_counter()

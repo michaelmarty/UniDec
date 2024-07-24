@@ -619,7 +619,7 @@ class UniDecEngine:
             return plot
 
     def gen_html_report(self, event=None, outfile=None, plots=None, interactive=False, open_in_browser=True,
-                        results_string=None, del_columns=None):
+                        results_string=None, del_columns=None, findex=None):
         """
         Generate an HTML report of the current UniDec run.
         :param event: Unused Event
@@ -632,7 +632,9 @@ class UniDecEngine:
         :return: None
         """
         if outfile is None:
-            outfile = self.config.outfname + "_report.html"
+            outfile = self.config.reportfile
+        if findex is not None:
+            outfile = outfile.replace(".html", "_" + str(findex) + ".html")
         html_open(outfile)
         self.html_str = ""
         self.html_str += html_title(self.config.filename, outfile)

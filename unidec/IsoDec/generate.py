@@ -29,6 +29,11 @@ python3 $ISODEC -f FILENAME generate > JOBNAME.log
 
 
 def generate(file):
+    """
+    Generate a slurm file for a given file to generate the training data
+    :param file: File path
+    :return: Output file name
+    """
     print(file)
     # Just the file name without the path or extension
     fileheader = os.path.basename(file).split(".")[0]
@@ -44,6 +49,11 @@ def generate(file):
 
 
 def generate_all(directory):
+    """
+    Generate slurm files for all files in the directory
+    :param directory: Directory
+    :return: None
+    """
     os.chdir(directory)
     outfiles = []
     script = ""

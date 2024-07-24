@@ -85,11 +85,10 @@ int run_metaunidec(int argc, char* argv[], Config config) {
 			make_grid(argc, argv, config, "/processed_data", "/mz_grid", "/mz_axis", "/mz_sum");
 			set_got_grids(config.file_id);
 		}
-		if (config.exchoice < 6)
-		{
+		
 		get_peaks(argc, argv, config, 0);
-		}
-		else if (config.exchoice == 6)
+
+		if (config.exchoice == 6)
 		{
 			printf("Charge Extraction Avg\n");
 			config.exchoicez = 1;
@@ -102,10 +101,6 @@ int run_metaunidec(int argc, char* argv[], Config config) {
 			config.exchoicez = 0;
 			config.exnormz = config.exnorm;
 			charge_peak_extracts(argc, argv, config, 0);
-		}
-		else
-		{
-			printf("Exchoice not recognized: %d\n", config.exchoice);
 		}
 		//get_peak_widths(argc, argv, config);
 	}

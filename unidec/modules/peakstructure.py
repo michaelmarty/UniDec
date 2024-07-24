@@ -82,7 +82,7 @@ class Peak:
         self.filename = ""
         self.filenumber = -1
 
-    def line_out(self, type="Full"):
+    def line_out(self, type="Full", rounding=3):
         if type == "Full":
             outputs = [self.textmarker, self.mass, self.centroid, self.height, self.integral, self.match,
                        self.matcherror, self.label,
@@ -103,9 +103,19 @@ class Peak:
             # Check if o is a list or array
             if isinstance(o, (list, np.ndarray)):
                 for oo in o:
+                    if rounding is not None:
+                        try:
+                            oo = round(oo, rounding)
+                        except:
+                            pass
                     outstring += str(oo) + " "
                 outstring += "\t"
             else:
+                if rounding is not None:
+                    try:
+                        o=round(o, rounding)
+                    except:
+                        pass
                 outstring += str(o) + "\t"
         return outstring
 
@@ -331,9 +341,10 @@ class Peaks:
     def to_df(self, type="Full", drop_zeros=True):
         outstring = self.copy(type=type)
         # print(outstring)
-        df = pd.read_csv(StringIO(outstring), sep="\t", index_col=False, na_values="")
+        df = pd.read_csv(StringIO(outstring), sep="\t", index_col=False, na_values="", dtype=str)
         df.fillna("", inplace=True)
         if drop_zeros:
-            df = df.loc[:, (df != 0).any(axis=0)]
-            df = df.loc[:, (df != -1).any(axis=0)]
+            df = df.loc[:, (df != "0").any(axis=0)]
+            df = df.loc[:, (df != "-1").any(axis=0)]
+            df = df.loc[:, (df != "").any(axis=0)]
         return df

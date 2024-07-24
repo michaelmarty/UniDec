@@ -5,7 +5,7 @@ sys.path.append(str(path_root))
 from unidec.IsoDec.engine import IsoDecEngine
 import os
 
-
+# Short script for training on an HPC
 os.chdir("/xdisk/mtmarty/mtmarty/training")
 eng = IsoDecEngine(1)
 eng.create_training_dataloader("large32x1")

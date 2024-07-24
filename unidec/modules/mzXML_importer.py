@@ -98,7 +98,7 @@ class mzXMLimporter:
                 # newscans.append(self.scans[i])
                 newids.append(s)
             except Exception as e:
-                print("mzML import error")
+                print("mzXML import error")
                 print(e)
         # self.scans = np.array(newscans)
         self.times = np.array(newtimes)
