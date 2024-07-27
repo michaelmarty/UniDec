@@ -6,8 +6,11 @@ from unidec.IsoDec.engine import IsoDecEngine
 import os
 
 # Short script for training on an HPC
-os.chdir("/xdisk/mtmarty/mtmarty/training")
-eng = IsoDecEngine(1)
-eng.create_training_dataloader("large32x1")
-#eng.create_training_dataloader("exp_training_data_small.pth", "exp_test_data_small.pth")
+os.chdir("/xdisk/mtmarty/mtmarty/training/data")
+
+eng = IsoDecEngine()
+topdirectory = "/xdisk/mtmarty/mtmarty/training/data"
+dirs = [os.path.join(topdirectory, d) for d in data_dirs]
+eng.create_merged_dataloader(dirs, "phase82", noise_percent=0.2, batchsize=32, double_percent=0.2)
+
 eng.train_model(epochs=60)
