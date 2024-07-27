@@ -621,6 +621,12 @@ class RawFileReader(object):
         all = np.transpose([masses, intensities, noises, resolutions])
         return all
 
+    def GetCentroidSpectrum(self, scanNumber=1):
+        scan = Scan.FromFile(self.source, int(scanNumber))
+        masses = DotNetArrayToNPArray(scan.PreferredMasses)
+        intensities = DotNetArrayToNPArray(scan.PreferredIntensities)
+        return np.transpose([masses, intensities])
+
     def CalculateMassPrecision(self, scanNumber=1):
         """Calculates the mass precision for a spectrum.
 

@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import unidec.tools as ud
-from unidec.modules.isotopetools import *
+
 import time
 import matchms
 from copy import deepcopy
@@ -43,7 +43,7 @@ def fastnearest(array, target):
 
 
 @njit(fastmath=True)
-def fastpeakdetect(data, config=None, window=10, threshold=0, ppm=None, norm=True):
+def fastpeakdetect(data, config=None, window=10, threshold=0.0, ppm=None, norm=True):
     """
     Simple peak detection algorithm.
 
@@ -176,6 +176,25 @@ def get_fwhm_peak(data, peakmz):
     fwhm, interval = fastcalc_FWHM(peakmz, data)
     return fwhm
 
+
+@njit(fastmath=True)
+def get_centroid(data, peakmz, fwhm=1):
+    """
+    Get the centroid of the peak.
+    :param data: 2D numpy array of data
+    :param peakmz: float, m/z value of the peak
+    :return: float, centroid of the peak
+    """
+    b1 = data[:, 0] > peakmz - fwhm
+    b2 = data[:, 0] < peakmz + fwhm
+    b = b1 & b2
+    if np.sum(b) == 0:
+        return peakmz
+
+    d = data[b]
+    return np.sum(d[:, 0] * d[:, 1]) / np.sum(d[:, 1])
+
+
 @njit(fastmath=True)
 def get_all_centroids(data, window=5, threshold=0.0001):
     if len(data) < 3:
@@ -184,13 +203,12 @@ def get_all_centroids(data, window=5, threshold=0.0001):
     fwhm = get_fwhm_peak(data, data[np.argmax(data[:, 1]), 0])
     peaks = fastpeakdetect(data, window=window, threshold=threshold)
 
-    for p in peaks:
-        d = data[(data[:, 0] > p[0] - fwhm) & (data[:, 0] < p[0] + fwhm)]
-        if len(d) == 0:
-            continue
-        p[0] = np.sum(d[:, 0] * d[:, 1]) / np.sum(d[:, 1])
+    p0 = [get_centroid(data, p[0], fwhm) for p in peaks]
+    outpeaks = np.empty((len(p0), 2))
+    outpeaks[:, 0] = p0
+    outpeaks[:, 1] = peaks[:, 1]
 
-    return peaks
+    return outpeaks
 
 
 # @njit(fastmath=True)
@@ -233,22 +251,6 @@ def isotope_finder(data, mzwindow=1.5):
     peaks = np.array(sorted(peaks, key=lambda x: x[1], reverse=True))
     return peaks
 
-
-# @njit(fastmath=True)
-def create_isodist(peakmz, charge, data):
-    """
-    Create an isotopic distribution based on the peak m/z and charge state.
-    :param peakmz: Peak m/z value as float
-    :param charge: Charge state
-    :param data: Data to match to as 2D numpy array [m/z, intensity]
-    :return: Isotopic distribution as 2D numpy array [m/z, intensity]
-    """
-    mass = peakmz * float(charge)
-    isodist = calc_averagine_isotope_dist(mass, charge=charge, crop=True, mono=False)
-    isodist[:, 1] *= np.amax(data[:, 1]) / np.amax(isodist[:, 1])
-    # shift isodist so that maxes are aligned with data
-    isodist[:, 0] = isodist[:, 0] + peakmz - isodist[np.argmax(isodist[:, 1]), 0]
-    return isodist
 
 
 def simp_charge(centroids, silent=False):

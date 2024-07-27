@@ -60,6 +60,11 @@ class ThermoDataImporter:
         impdat = impdat[impdat[:, 0] > 10]
         return impdat
 
+    def grab_centroid_data(self, s):
+        impdat = np.array(self.msrun.GetCentroidSpectrum(s))
+        impdat = impdat[impdat[:, 0] > 10]
+        return impdat
+
     def get_data(self, scan_range=None, time_range=None):
         """
         Returns merged 1D MS data from mzML import
@@ -216,7 +221,8 @@ if __name__ == "__main__":
 
     tstart = time.perf_counter()
     d = ThermoDataImporter(test)
-    dat = d.get_eic([5000,10000])
+    dat = d.grab_centroid_data(1)
+    print(len(dat))
 
     import matplotlib.pyplot as plt
     plt.plot(dat[:,0], dat[:,1])

@@ -10,6 +10,16 @@ import platform
 from torchshape import tensorshape
 from unidec.IsoDec.encoding import encode_isodist, encode_phase
 
+torch.set_float32_matmul_precision("medium")
+
+def set_debug_apis(state: bool = False):
+    torch.autograd.profiler.profile(enabled=state)
+    torch.autograd.profiler.emit_nvtx(enabled=state)
+    torch.autograd.set_detect_anomaly(mode=state)
+
+
+set_debug_apis(state=False)
+
 example = np.array([[5.66785531e+02, 1.47770838e+06],
                     [5.67057354e+02, 1.54980838e+06],
                     [5.67507468e+02, 5.21600520e+07],
@@ -62,7 +72,7 @@ class NNmulti(nn.Module):
         return logits
 '''
 
-
+'''
 class ChargeClassifierNeuralNetwork(nn.Module):
     """
     Very simple neural net for classification.
@@ -86,7 +96,7 @@ class ChargeClassifierNeuralNetwork(nn.Module):
         x = self.flatten(x)
         logits = self.linear_relu_stack(x)
         return logits
-
+'''
 
 class IsoDecModel:
     """
@@ -157,7 +167,7 @@ class IsoDecModel:
         """
         if os.path.isfile(self.savepath):
             try:
-                self.model.load_state_dict(torch.load(self.savepath))
+                self.model.load_state_dict(torch.load(self.savepath, weights_only=True))
                 print("Model loaded:", self.savepath)
             except Exception as e:
                 print("Model failed to load:", self.savepath)
@@ -207,7 +217,7 @@ class IsoDecModel:
         """
         pass
 
-
+'''
 class IsoDecClassifier(IsoDecModel):
     """
     IsoDec Classifier Model. Inherits from IsoDecModel. Contains methods for training, evaluation, and prediction.
@@ -484,9 +494,6 @@ class IsoDecSegmenter(IsoDecModel):
         return 0, maskedindexes
 
 
-'''
-Ideas: Create a multiple ensemble models and  
-'''
 
 
 class CombinedSegClassNeuralNet(nn.Module):
@@ -709,7 +716,7 @@ class IsoDecMixedModel(IsoDecModel):
 
         print("Z:", int(predz), "Time:", time.perf_counter() - startime)
         return predz, mask
-
+'''
 
 class PhaseNeuralNetwork(nn.Module):
     """
@@ -717,13 +724,34 @@ class PhaseNeuralNetwork(nn.Module):
     Inputs are 50x16 phase images. Output is len 50 array of probabilities for each charge state 0 to  49.
     """
 
-    def __init__(self, size=16, outsize=50):
+    def __init__(self, size=8, outsize=50):
         super().__init__()
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
             nn.Linear(size * outsize, size * outsize),
             nn.Tanh(),
             nn.Linear(size * outsize, outsize)
+        )
+
+    def forward(self, x):
+        x = self.flatten(x)
+        logits = self.linear_relu_stack(x)
+        return logits
+
+
+class FastPhaseNeuralNetwork(nn.Module):
+    """
+    Very simple neural net for classification.
+    Inputs are 50x16 phase images. Output is len 50 array of probabilities for each charge state 0 to  49.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.flatten = nn.Flatten()
+        self.linear_relu_stack = nn.Sequential(
+            nn.Linear(400, 400),
+            nn.Tanh(),
+            nn.Linear(400, 50)
         )
 
     def forward(self, x):
@@ -742,12 +770,16 @@ class PhaseModel(IsoDecModel):
 
         super().__init__(working_dir)
         self.dims = [50, 8]
-        self.modelid = 0
+        self.modelid = 1
 
     def get_model(self, modelid):
         self.modelid = modelid
         if modelid == 0:
             self.model = PhaseNeuralNetwork(size=self.dims[1], outsize=self.dims[0])
+            savename = "phase_model.pth"
+        if modelid == 1:
+            self.model = FastPhaseNeuralNetwork()
+            # self.model = torch.compile(self.model, mode="max-autotune")
             savename = "phase_model.pth"
         else:
             print("Model ID not recognized", modelid)
@@ -758,15 +790,13 @@ class PhaseModel(IsoDecModel):
     def train_model(self, dataloader):
         if self.loss_fn is None or self.optimizer is None:
             self.setup_training()
-
+        set_debug_apis(state=False)
         size = len(dataloader.dataset)
         self.model.train()
-        for batch, s in enumerate(dataloader):
-            X = s["emat"]
-            y = s["z"]
 
-            X = X.float()
-            y = y.long()
+        for batch, s in enumerate(dataloader):
+            X = s[0]
+            y = s[1]
             X, y = X.to(self.device), y.to(self.device)
 
             # Compute prediction error
@@ -776,15 +806,15 @@ class PhaseModel(IsoDecModel):
             # Backpropagation
             loss.backward()
             self.optimizer.step()
-            self.optimizer.zero_grad()
+            self.optimizer.zero_grad(set_to_none=True)
 
             if batch % 1000 == 0:
                 loss, current = loss.item(), (batch + 1) * len(X)
                 print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
-        if self.scheduler is not None:
-            self.scheduler.step()
+            if self.scheduler is not None:
+                self.scheduler.step()
 
-    def evaluate_model(self, dataloader, maxbad=None):
+    def evaluate_model(self, dataloader, savebad=False):
         if self.model is None:
             self.setup_training()
 
@@ -794,11 +824,11 @@ class PhaseModel(IsoDecModel):
         self.model.eval()
         test_loss, correct = 0, 0
         with torch.no_grad():
-            for s in dataloader:
-                X = s["emat"]
-                y = s["z"]
-                y = y.long()
+            for j, s in enumerate(dataloader):
+                X = s[0]
+                y = s[1]
                 X, y = X.to(self.device), y.to(self.device)
+
                 pred = self.model(X)
                 test_loss += self.loss_fn(pred, y).item()
 
@@ -807,10 +837,10 @@ class PhaseModel(IsoDecModel):
 
                 correct += ccorr.sum().item()
 
-                if maxbad is not None and len(baddata) < maxbad:
+                if savebad:
                     for i in range(len(ccorr)):
                         if not ccorr[i]:
-                            baddata.append((X[i], y[i], pred_class[i]))
+                            baddata.append([j, i, int(y[i]), int(pred_class[i])])
 
         test_loss /= num_batches
         correct /= size
@@ -828,13 +858,31 @@ class PhaseModel(IsoDecModel):
 
         self.model.eval()
 
-        x = test_data.unsqueeze(0)  # test_data.flatten().unsqueeze(0)
+        x = test_data.unsqueeze(0)
         with torch.no_grad():
             x = x.to(self.device)
             predvec = self.model(x)
             predz = predvec[0].argmax(0)
         # print("Z:", int(predz), "Time:", time.perf_counter() - startime)
         return int(predz)
+
+    def batch_predict(self, dataloader):
+        if self.model is None:
+            self.setup_training()
+        size = len(dataloader.dataset)
+        self.model.eval()
+        output = torch.zeros(size, dtype=torch.long, device=self.device)
+        with torch.no_grad():
+            for batch, x in enumerate(dataloader):
+                x = x.to(self.device)
+                predvec = self.model(x)
+                predz = predvec.argmax(dim=1)
+                lx = len(x)
+                start = batch * lx
+                end = batch * lx + lx
+                output[start:end] = predz
+        output = output.cpu().numpy()
+        return output
 
     def encode(self, centroids, maxlen=None):
         """
@@ -848,7 +896,7 @@ class PhaseModel(IsoDecModel):
 
 
 if __name__ == "__main__":
-    model = IsoDecClassifier()
+    model = PhaseModel()
     z = model.predict(example)
     print(z)
 

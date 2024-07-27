@@ -228,24 +228,61 @@ def encode_isodist(isodist, maxlen=16):
 def encode_phase(centroids, maxz=50, phaseres=8):
     """
     Encode the charge phases for a set of centroids
+
+        Old Code:
+        rescale = centroids[:, 0] * 2 * np.pi * (i + 1) / mass_diff_c
+        y = np.sin(rescale)
+        z = np.cos(rescale)
+        phase = (np.arctan2(z, y) / (2 * np.pi)) % 1
+
     :param centroids: Centroids (m/z, intensity)
     :param maxz: Maximum charge state to calculate
     :param phaseres: Resolution of phases to encode in number of bins
     :return: Charge phase histogram (maxz x phaseres)
     """
     phases = np.zeros((maxz, phaseres))
-    indexes = np.zeros((maxz, len(centroids)))
+    rescale = -1 * centroids[:, 0] / mass_diff_c
     for i in range(maxz):
-        rescale = centroids[:, 0] * 2 * np.pi * (i + 1) / mass_diff_c
-        y = np.sin(rescale)
-        z = np.cos(rescale)
-        phase = (np.arctan2(z, y) / (2 * np.pi)) % 1
+        # phase = (((rescale * (i + 1)) % 1) + 0.25) % 1
+        phase = (rescale * (i + 1)) % 1  # Note, this is a much simpler implementation, needs different model
+
         phaseindexes = np.floor(phase * phaseres)
-        indexes[i] = phaseindexes
         for j in range(len(centroids)):
             phases[i, int(phaseindexes[j])] += centroids[j, 1]
     phases /= np.amax(phases)
     return phases
+
+
+@njit(fastmath=True)
+def encode_phase_all(centroids, peaks, lowmz=-1.5, highmz=5.5):
+    """
+    Work on speeding this up
+    :param centroids:
+    :param peaks:
+    :param lowmz:
+    :param highmz:
+    :return:
+    """
+    goodpeaks = []
+    outcentroids = []
+    indexes = []
+    indexvalues = np.arange(len(centroids))
+
+    for i, p in enumerate(peaks):
+        peakmz = p[0]
+        # Find all centroids in the neighborhood of the peak
+        b1 = centroids[:, 0] > peakmz + lowmz
+        b2 = centroids[:, 0] < peakmz + highmz
+        b = b1 & b2
+        if np.sum(b) < 3:
+            continue
+        c = centroids[b]
+        goodpeaks.append(p)
+        outcentroids.append(c)
+        indexes.append(indexvalues[b])
+
+    emats = [encode_phase(c) for c in outcentroids]
+    return emats, goodpeaks, outcentroids, indexes
 
 
 @njit(fastmath=True)
@@ -335,7 +372,15 @@ def plot_emat(emat):
     plt.show()
 
 
-def encode_dir(pkldir, type=0, outdir=None, name="medium", maxfiles=None, plot=False, **kwargs):
+def save_encoding(data, outfile):
+    emat = [d[0] for d in data]
+    centroids = np.array([d[1] for d in data], dtype=object)
+    z = [d[2] for d in data]
+    print("Saving to:", outfile)
+    np.savez_compressed(outfile, emat=emat, centroids=centroids, z=z)
+
+
+def encode_dir(pkldir, outdir=None, name="medium", maxfiles=None, plot=False, **kwargs):
     startime = time.perf_counter()
     training = []
     test = []
@@ -351,23 +396,9 @@ def encode_dir(pkldir, type=0, outdir=None, name="medium", maxfiles=None, plot=F
     for file in files:
         if "bad_data" in file:
             continue
-        if type == 0:
-            try:
-                tr, te, zd = encode_file(file)
-            except:
-                continue
-        elif type == 1:
-            try:
-                tr, te, zd = encode_multi_file(file, save=False, **kwargs)
-            except:
-                continue
-        elif type == 2:
-            try:
-                tr, te, zd = encode_phase_file(file, **kwargs)
-            except:
-                continue
-        else:
-            raise ValueError("Invalid Type")
+
+        tr, te, zd = encode_phase_file(file, **kwargs)
+
         training.extend(tr)
         test.extend(te)
         zdist.extend(zd)
@@ -375,9 +406,15 @@ def encode_dir(pkldir, type=0, outdir=None, name="medium", maxfiles=None, plot=F
     # Write out everything
     print(len(training), len(test))
     if outdir is not None:
+        if not os.path.isdir(outdir):
+            os.mkdir(outdir)
         os.chdir(outdir)
-    torch.save(training, "training_data_" + name + ".pth")
-    torch.save(test, "test_data_" + name + ".pth")
+
+    save_encoding(training, "training_data_" + name + ".npz")
+    save_encoding(test, "test_data_" + name + ".npz")
+
+    # torch.save(training, "training_data_" + name + ".pth")
+    # torch.save(test, "test_data_" + name + ".pth")
 
     endtime = time.perf_counter()
     print("Time:", endtime - starttime, len(zdist))
@@ -386,284 +423,40 @@ def encode_dir(pkldir, type=0, outdir=None, name="medium", maxfiles=None, plot=F
         plt.show()
 
 
-def encode_file(file):
-    training = []
-    test = []
-    zdist = []
-    # Load pkl file
-    try:
-        with open(file, "rb") as f:
-            centroids = pkl.load(f)
-    except Exception as e:
-        print("Error Loading File:", file, e)
-        return
-    # Encode each centroid
-    print("File:", file, len(centroids))
-    for c in centroids:
-        centroid = c[0]
-        z = c[1]
-        if z == 1:
-            # toss it out with a 80% chance
-            r = np.random.rand()
-            if r < 0.8:
-                continue
-        zdist.append(z)
-        emat, indexes = encode_isodist(centroid)
-        t = torch.tensor(emat, dtype=torch.float32)
-        # randomly sort into training and test data
-        r = np.random.rand()
-        if r < 0.9:
-            training.append((t, z))
-        else:
-            test.append((t, z))
-    return training, test, zdist
+@njit(fastmath=True)
+def encode_noise(peakmz: float, intensity: float, maxlen=16):
+    mznoise = np.random.uniform(peakmz - 1.5, peakmz + 3.5, maxlen)
+    intnoise = np.abs(np.random.normal(0, intensity, maxlen))
 
+    ndata = np.empty((maxlen, 2))
+    ndata[:, 0] = mznoise
+    ndata[:, 1] = intnoise
 
-def encode_mask(s, ignore_noise=False):
-    emat = s["emat"]
-    mask = s["mask"]
-    if ignore_noise:
-        if s["z"] == 0:
-            return emat, mask, s["z"]
+    emat = encode_phase(ndata)
+    return emat, ndata, 0
 
-    mask = torch.tensor(s["mask"]).flatten()
-    mmatrix = torch.einsum("i,j->ij", mask, mask)
-    ones = torch.ones_like(mmatrix)
-    mmatrix = torch.stack([ones, ones, mmatrix])
-    emat = emat * mmatrix
-    emat = emat.float()
-    return emat, mask, s["z"]
-
-
-def encode_noise(c, maxlen=16, nfeatures=1, mtype=0):
-    if mtype == 3 or mtype == "phase":
-        centroid = c[1]
-    else:
-        emat = c[0].cpu().numpy()
-        centroid = decode_emat(emat)
+@njit(fastmath=True)
+def encode_double(centroid, centroid2, maxdist=1.5, minsep=0.1, intmax=0.2):
     peakmz = centroid[np.argmax(centroid[:, 1]), 0]
-
-    mznoise = np.random.uniform(peakmz - 1.5, peakmz + 3.5, len(centroid))
-    mznoise = mznoise[:maxlen]
-    intnoise = np.abs(np.random.normal(0, np.mean(centroid[:, 1] / 2), len(centroid)))
-    intnoise = intnoise[:maxlen]
-    ndata = np.transpose([mznoise, intnoise])
-
-    if False:
-        cplot(ndata)
-        plt.show()
-
-    if mtype == 3 or mtype == "phase":
-        emat = encode_phase(ndata)
-        return torch.tensor(emat, dtype=torch.float32), centroid, 0
-    else:
-        emat, indexes = encode_isodist(ndata, maxlen=maxlen)
-        t = torch.tensor(emat, dtype=torch.float32)
-        target = np.zeros((nfeatures, maxlen))
-        return t, target, 0
-
-
-def encode_multi_individual(c, maxlen=16, nfeatures=1, onedropper=0.8):
-    centroid = c[0]
-    z = c[1]
-    if z == 1:
-        # toss it out with a 80% chance
-        r = np.random.rand()
-        if r < onedropper:
-            return 0, 0, 0, 0
-
-    matched = np.array(c[2])
-
-    if len(matched) < 3:
-        return 0, 0, 0, 0
-
-    bmatched = np.zeros(len(centroid))
-    bmatched[matched] = 1
-    isodist = c[3]
-    isomatched = c[4]
-    try:
-        peakmz = c[5]
-    except:
-        peakmz = centroid[np.argmax(centroid[:, 1]), 0]
-
-    if False:
-        cplot(centroid)
-        cplot(centroid[bmatched.astype(bool)], color='g', factor=-1)
-        plt.show()
-
-    emat, indexes = encode_isodist(centroid, maxlen=maxlen)
-    lb = len(bmatched)
-    matched = np.zeros(maxlen)
-    m1 = bmatched[indexes.astype(int)[:lb]]
-    matched[:lb] = m1
-    t = torch.tensor(emat, dtype=torch.float32)
-
-    target = np.zeros((nfeatures, maxlen))
-    target[0] = matched
-    return t, target, z, peakmz
-
-
-def encode_double(c, c2, maxlen=16, maxdist=1.5, minsep=0.1, nfeatures=1):
-    # Check if the peaks are close enough together
-    centroid = c[0]
-    centroid2 = c2[0]
-    try:
-        peakmz2 = c2[5]
-    except:
-        peakmz2 = centroid2[np.argmax(centroid2[:, 1]), 0]
-
-    try:
-        peakmz = c[5]
-    except:
-        peakmz = centroid[np.argmax(centroid[:, 1]), 0]
-
-    # Filter out peaks that are the same charge state and too close together
-    z = c[1]
-    z2 = c2[1]
-
-    matched = np.array(c[2])
-    bmatched = np.zeros(len(centroid))
-    bmatched[matched] = 1
-
-    matched2 = np.array(c2[2])
-    bmatched2 = np.zeros(len(centroid2))
-    bmatched2[matched2] = 2
+    peakmz2 = centroid2[np.argmax(centroid2[:, 1]), 0]
 
     # Move peak2 to a random spot around peak1
     shift = minsep + np.random.uniform(-1, 1) * maxdist
     centroid2[:, 0] += peakmz + shift - peakmz2
 
     # Set into to random value between 0.05 and 0.95% of the max
-    centroid2[:, 1] *= np.random.uniform(0.05, 0.95) * np.amax(centroid[:, 1]) / np.amax(centroid2[:, 1])
+    centroid2[:, 1] *= np.random.uniform(0.05, intmax) * np.amax(centroid[:, 1]) / np.amax(centroid2[:, 1])
 
-    mergedc = np.vstack([centroid, centroid2])
-    mergeda = np.hstack([bmatched, bmatched2])
+    mergedc = np.empty((len(centroid) + len(centroid2), 2))
+    mergedc[:len(centroid)] = centroid
+    mergedc[len(centroid):] = centroid2
 
-    if len(mergedc) > maxlen:
-        # remove the lowest intensity peaks
-        sortindex = np.argsort(mergedc[:, 1])[::-1]
-        mergedc = mergedc[sortindex]
-        mergedc = mergedc[:maxlen]
-        mergeda = mergeda[sortindex]
-        mergeda = mergeda[:maxlen]
-    elif len(mergedc) < maxlen:
-        # Append zeros to get to len maxlen
-        mergedc = np.vstack([mergedc, np.zeros((maxlen - len(mergedc), 2))])
-        mergeda = np.hstack([mergeda, np.zeros(maxlen - len(mergeda))])
+    emat = encode_phase(mergedc)
 
-    emat, indexes = encode_isodist(mergedc, maxlen=maxlen)
-    t = torch.tensor(emat, dtype=torch.float32)
-
-    indexes = indexes.astype(int)
-
-    target = np.zeros((nfeatures, maxlen))
-
-    ma = mergeda == 1
-    ma2 = mergeda == 2
-
-    mergedc = mergedc[indexes]
-    target[0] = ma[indexes]
-    if nfeatures > 1:
-        target[1] = ma2[indexes]
-
-    if False:
-        cplot(mergedc[mergedc[:, 1] > 0])
-
-        cm1 = centroid[matched]
-        cm22 = centroid2[matched2]
-        cm = mergedc[target[0]]
-        if nfeatures > 1:
-            cm2 = mergedc[target[1]]
-
-        cplot(cm, color='g', factor=-1)
-        cplot(cm1, color='b', factor=-1)
-        cplot(cm2, color='cyan', factor=-1, base=np.amax(centroid[:, 1]) * -1)
-
-        plt.show()
-
-    return t, target, z
+    return emat, mergedc
 
 
-def encode_multi_file(file, maxlen=16, nfeatures=1, save=True, outdir="C:\\Data\\IsoNN\\multi", name="medium",
-                      onedropper=0.9):
-    training = []
-    test = []
-    zdist = []
-    # Load pkl file
-    try:
-        with open(file, "rb") as f:
-            centroids = pkl.load(f)
-    except Exception as e:
-        print("Error Loading File:", file, e)
-        return [], [], []
-    # Encode each centroid
-    print("File:", file, len(centroids))
-    mzvals = []
-    ints = []
-    for c in centroids:
-        t, target, z, mz = encode_multi_individual(c, maxlen=maxlen, nfeatures=nfeatures, onedropper=onedropper)
-        if z == 0:
-            mzvals.append(0)
-            ints.append(0)
-            continue
-        zdist.append(z)
-        mzvals.append(mz)
-        ints.append(np.amax(c[0][:, 1]))
-        # randomly sort into training and test data
-        r = np.random.rand()
-        if r < 0.9:
-            training.append((t, target, z))
-        else:
-            test.append((t, target, z))
-    print("Phase 1", len(training), len(test))
-    count = 0
-
-    lp1 = len(training)
-    maxcount = lp1 * 2
-    for i, c in enumerate(centroids):
-        if mzvals[i] == 0:
-            continue
-        if count > maxcount:
-            break
-        found = False
-        count2 = 0
-        while not found and count2 < 10:
-
-            j = np.random.randint(0, len(centroids))
-            c2 = centroids[j]
-
-            if i == j:
-                count2 += 1
-                continue
-            if mzvals[j] == 0:
-                count2 += 1
-                continue
-
-            t, target, z = encode_double(c, c2, maxlen=maxlen, nfeatures=nfeatures)
-
-            if z == 0:
-                count2 += 1
-                continue
-
-            found = True
-            r = np.random.rand()
-            if r < 0.9:
-                training.append((t, target, z))
-                count += 1
-            else:
-                test.append((t, target, z))
-    print("Phase 2", len(training), len(test))
-    if save:
-        os.chdir(outdir)
-        # Write out everything
-        print(len(training), len(test))
-        torch.save(training, "training_data_" + name + ".pth")
-        torch.save(test, "test_data_" + name + ".pth")
-
-    return training, test, zdist
-
-
-def encode_phase_file(file, maxlen=16, nfeatures=1, save=True, outdir="C:\\Data\\IsoNN\\multi", name="medium",
+def encode_phase_file(file, maxlen=8, save=True, outdir="C:\\Data\\IsoNN\\multi", name="medium",
                       onedropper=0.95):
     training = []
     test = []
@@ -687,13 +480,15 @@ def encode_phase_file(file, maxlen=16, nfeatures=1, save=True, outdir="C:\\Data\
                 continue
         zdist.append(z)
         emat = encode_phase(centroid, phaseres=maxlen)
-        t = torch.tensor(emat, dtype=torch.float32)
+        #emat.astype(np.float32)
+        emat = torch.as_tensor(emat, dtype=torch.float32)
+
         # randomly sort into training and test data
         r = np.random.rand()
         if r < 0.9:
-            training.append((t, centroid, z))
+            training.append((emat, centroid, z))
         else:
-            test.append((t, centroid, z))
+            test.append((emat, centroid, z))
     return training, test, zdist
 
 
@@ -701,8 +496,16 @@ data_dirs = ["MSV000090488",
              "MSV000091923",
              "RibosomalPfms_Td_Control",
              "PXD019247",
-             "PXD045560"
+             "PXD045560",
+             "PXD046651",
+             "PXD027650",
+             "PXD041357"
              ]
+
+small_data_dirs = ["MSV000090488",
+                   "PXD019247",
+                   "PXD045560",
+                   ]
 
 if __name__ == "__main__":
     starttime = time.perf_counter()
@@ -712,15 +515,16 @@ if __name__ == "__main__":
     # directory = "Z:\\Group Share\\JGP\\MSV000090488\\"
     # directory = "Z:\\Group Share\\JGP\\MSV000091923"
     # directory = "Z:\\Group Share\\JGP\\RibosomalPfms_Td_Control"
-    # directory = "Z:\\Group Share\\JGP\\PXD019247"
+    #directory = "Z:\\Group Share\\JGP\\PXD019247"
     # os.chdir(directory)
     # directory = "C:\\Data\\TabbData\\"
     # outdir = "C:\\Data\\IsoNN\\training\\MSV000090488\\"
 
-    for d in data_dirs[4:]:
+    for d in data_dirs[-1::10]:
         topdir = os.path.join("Z:\\Group Share\\JGP", d)
         outdir = os.path.join("C:\\Data\\IsoNN\\training", d)
         print("Directory:", topdir, "Outdir:", outdir)
-        encode_dir(topdir, type=2, maxlen=8, nfeatures=1, name="phase81", onedropper=0.0, maxfiles=None, outdir=outdir)
+        encode_dir(topdir, maxlen=8, name="phase82", onedropper=0.0, maxfiles=None,
+                   outdir=outdir)
     # encode_multi_file(file, maxlen=32, nfeatures=2, save=True, name="small32x2")
     print("Time:", time.perf_counter() - starttime)
