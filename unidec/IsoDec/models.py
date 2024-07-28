@@ -7,7 +7,7 @@ from torchvision.transforms import ToTensor
 from torch.optim import lr_scheduler
 import time
 import platform
-from torchshape import tensorshape
+#from torchshape import tensorshape
 from unidec.IsoDec.encoding import encode_isodist, encode_phase
 
 torch.set_float32_matmul_precision("medium")
@@ -750,7 +750,11 @@ class FastPhaseNeuralNetwork(nn.Module):
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
             nn.Linear(400, 400),
-            nn.Tanh(),
+            nn.SiLU(),
+            nn.Linear(400, 400),
+            nn.SiLU(),
+            nn.Linear(400, 400),
+            nn.SiLU(),
             nn.Linear(400, 50)
         )
 
@@ -788,8 +792,8 @@ class PhaseModel(IsoDecModel):
         self.savepath = os.path.join(self.working_dir, savename)
 
     def train_model(self, dataloader):
-        if self.loss_fn is None or self.optimizer is None:
-            self.setup_training()
+        #if self.loss_fn is None or self.optimizer is None:
+        self.setup_training()
         set_debug_apis(state=False)
         size = len(dataloader.dataset)
         self.model.train()
@@ -806,13 +810,13 @@ class PhaseModel(IsoDecModel):
             # Backpropagation
             loss.backward()
             self.optimizer.step()
-            self.optimizer.zero_grad(set_to_none=True)
+            self.optimizer.zero_grad()
 
-            if batch % 1000 == 0:
+            if batch % 100000 == 0:
                 loss, current = loss.item(), (batch + 1) * len(X)
                 print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
-            if self.scheduler is not None:
-                self.scheduler.step()
+        if self.scheduler is not None:
+            self.scheduler.step()
 
     def evaluate_model(self, dataloader, savebad=False):
         if self.model is None:
