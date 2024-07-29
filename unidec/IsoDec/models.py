@@ -750,11 +750,9 @@ class FastPhaseNeuralNetwork(nn.Module):
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
             nn.Linear(400, 400),
-            nn.SiLU(),
-            nn.Linear(400, 400),
-            nn.SiLU(),
-            nn.Linear(400, 400),
-            nn.SiLU(),
+            nn.ReLU(),
+            #nn.Linear(400, 400),
+            #nn.ReLU(),
             nn.Linear(400, 50)
         )
 
@@ -796,6 +794,7 @@ class PhaseModel(IsoDecModel):
         self.setup_training()
         set_debug_apis(state=False)
         size = len(dataloader.dataset)
+        num_batches = len(dataloader)
         self.model.train()
 
         for batch, s in enumerate(dataloader):
@@ -812,7 +811,7 @@ class PhaseModel(IsoDecModel):
             self.optimizer.step()
             self.optimizer.zero_grad()
 
-            if batch % 100000 == 0:
+            if batch % int(num_batches/5) == 0:
                 loss, current = loss.item(), (batch + 1) * len(X)
                 print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
         if self.scheduler is not None:

@@ -1,6 +1,7 @@
 import time
 import warnings
 import numpy as np
+from itertools import chain
 import torch
 from torch.utils.data import DataLoader
 from unidec.IsoDec.models import example, PhaseModel
@@ -61,6 +62,7 @@ class IsoDecEngine:
         self.mzwindow = [-1.5, 5.5]
         self.knockdown_rounds = 2
         self.test_centroids = []
+        self.training_centroids = []
         self.test_batch_size = 2048
 
     def set_model(self, mtype=0):
@@ -83,30 +85,35 @@ class IsoDecEngine:
         print(f"Adding {nnoise} noise samples to training data")
         emats = []
         zs = []
+        centroids = []
         for i in range(nnoise):
-            index = i % ltest
-            centroid = self.test_centroids[index]
+            index = np.random.randint(0, ltraining - 1)
+            centroid = self.training_data[2][index]
             emat, centroid, z = encode_noise(centroid[0, 0], np.amax(centroid[:, 1]))
             emats.append(emat)
-            zs.append(z)
+            zs.append(0)
+            centroids.append(centroid)
 
         self.training_data[0] = np.concatenate((self.training_data[0], emats), axis=0)
         self.training_data[1] = np.concatenate((self.training_data[1], zs), axis=0)
+        self.training_data[2] = self.training_data[2] + centroids
 
         nnoisetest = int(ltest * noise_percent)
         print(f"Adding {nnoisetest} noise samples to test data")
         emats = []
         zs = []
+        centroids = []
         for i in range(nnoisetest):
-            index = i % ltest
-            centroid = self.test_centroids[index]
+            index = np.random.randint(0, ltest - 1)
+            centroid = self.test_data[2][index]
             emat, centroid, z = encode_noise(centroid[0, 0], np.amax(centroid[:, 1]))
             emats.append(emat)
-            zs.append(z)
-            self.test_centroids.append(centroid)
+            zs.append(0)
+            centroids.append(centroid)
 
         self.test_data[0] = np.concatenate((self.test_data[0], emats), axis=0)
         self.test_data[1] = np.concatenate((self.test_data[1], zs), axis=0)
+        self.test_data[2] = self.test_data[2] + centroids
 
     def add_doubles(self, double_percent):
         ltraining = len(self.training_data[0])
@@ -115,36 +122,41 @@ class IsoDecEngine:
         print(f"Adding {ndouble} double samples in training data")
         emats = []
         zs = []
+        centroids = []
         for i in range(ndouble):
-            index = i % ltest
-            centroid = self.test_centroids[index]
-            index2 = np.random.randint(0, ltest - 1)
-            centroid2 = self.test_centroids[index2]
+            index = np.random.randint(0, ltraining - 1)
+            centroid1 = self.training_data[2][index]
+            index2 = np.random.randint(0, ltraining - 1)
+            centroid2 = self.training_data[2][index2]
             z = self.training_data[1][index]
-            emat, centroid = encode_double(centroid, centroid2)
+            emat, centroid = encode_double(centroid1, centroid2)
             emats.append(emat)
             zs.append(z)
+            centroids.append(centroid)
 
         self.training_data[0] = np.concatenate((self.training_data[0], emats), axis=0)
         self.training_data[1] = np.concatenate((self.training_data[1], zs), axis=0)
+        self.training_data[2] = self.training_data[2] + centroids
 
         ndoubletest = int(ltest * double_percent)
         print(f"Adding {ndoubletest} double samples in test data")
         emats = []
         zs = []
+        centroids = []
         for i in range(ndoubletest):
-            index = i % ltest
-            centroid = self.test_centroids[index]
+            index = np.random.randint(0, ltest - 1)
             index2 = np.random.randint(0, ltest - 1)
-            centroid2 = self.test_centroids[index2]
+            centroid1 = self.test_data[2][index]
+            centroid2 = self.test_data[2][index2]
             z = self.test_data[1][index]
-            emat, centroid = encode_double(centroid, centroid2)
+            emat, centroid = encode_double(centroid1, centroid2)
             emats.append(emat)
             zs.append(z)
-            self.test_centroids.append(centroid)
+            centroids.append(centroid)
 
         self.test_data[0] = np.concatenate((self.test_data[0], emats), axis=0)
         self.test_data[1] = np.concatenate((self.test_data[1], zs), axis=0)
+        self.test_data[2] = self.test_data[2] + centroids
 
     def load_training_data(self, training_path, test_path=None, noise_percent=0.1, double_percent=0.1):
         ext = ".npz"
@@ -156,12 +168,10 @@ class IsoDecEngine:
         elif ext not in test_path:
             test_path = "test_data_" + test_path + ext
 
-        td = np.load(training_path)
-        self.training_data = [td["emat"], td["z"]]
+        td = np.load(training_path, allow_pickle=True)
+        self.training_data = [td["emat"], td["z"], list(td["centroids"])]
         td = np.load(test_path, allow_pickle=True)
-        self.test_data = [td["emat"], td["z"]]
-        test_centroids = list(td["centroids"])
-        self.test_centroids.extend(test_centroids)
+        self.test_data = [td["emat"], td["z"], list(td["centroids"])]
 
         if double_percent > 0:
             self.add_doubles(double_percent)
@@ -169,9 +179,7 @@ class IsoDecEngine:
         if noise_percent > 0:
             self.add_noise(noise_percent)
 
-        self.training_data = IsoDecDataset(self.training_data[0], self.training_data[1])
-        self.test_data = IsoDecDataset(self.test_data[0], self.test_data[1])
-        print("Loaded:", len(self.training_data), "Training Samples")
+        print("Loaded:", len(self.training_data[0]), "Training Samples")
 
     def create_training_dataloader(self, training_path, test_path=None, noise_percent=0.1, batchsize=None,
                                    double_percent=0.1):
@@ -181,10 +189,13 @@ class IsoDecEngine:
         self.load_training_data(training_path, test_path=test_path, noise_percent=noise_percent,
                                 double_percent=double_percent)
 
+        self.training_data = IsoDecDataset(self.training_data[0], self.training_data[1])
+        self.test_data = IsoDecDataset(self.test_data[0], self.test_data[1])
+
         self.train_dataloader = DataLoader(self.training_data, batch_size=self.batch_size, shuffle=True,
                                            pin_memory=True)
         self.test_dataloader = DataLoader(self.test_data, batch_size=self.test_batch_size, shuffle=False,
-                                          pin_memory=True)
+                                          pin_memory=False)
 
     def create_merged_dataloader(self, dirs, training_path, noise_percent=0.1, batchsize=None, double_percent=0.1):
         if batchsize is not None:
@@ -200,8 +211,16 @@ class IsoDecEngine:
             training_data.append(self.training_data)
             test_data.append(self.test_data)
 
-        self.training_data = torch.utils.data.ConcatDataset(training_data)
-        self.test_data = torch.utils.data.ConcatDataset(test_data)
+        self.training_data = [np.concatenate([t[0] for t in training_data], axis=0),
+                              np.concatenate([t[1] for t in training_data], axis=0)]
+        self.test_data = [np.concatenate([t[0] for t in test_data], axis=0),
+                          np.concatenate([t[1] for t in test_data], axis=0)]
+
+        self.training_centroids = list(chain(*[t[2] for t in training_data]))
+        self.test_centroids = list(chain(*[t[2] for t in test_data]))
+
+        self.training_data = IsoDecDataset(self.training_data[0], self.training_data[1])
+        self.test_data = IsoDecDataset(self.test_data[0], self.test_data[1])
 
         self.train_dataloader = DataLoader(self.training_data, batch_size=self.batch_size, shuffle=True,
                                            pin_memory=True)
@@ -409,9 +428,11 @@ if __name__ == "__main__":
     eng = IsoDecEngine()
     topdirectory = "C:\\Data\\IsoNN\\training"
 
-    dirs = [os.path.join(topdirectory, d) for d in data_dirs]
+    dirs = [os.path.join(topdirectory, d) for d in small_data_dirs]
     eng.create_merged_dataloader(dirs, "phase82", noise_percent=0.2, batchsize=32, double_percent=0.2)
-    eng.train_model(epochs=30)
+    eng.train_model(epochs=3)
+    # eng.create_merged_dataloader([os.path.join(topdirectory, small_data_dirs[2])], "phase82", noise_percent=0.2,
+    #                             batchsize=32, double_percent=0.2)
     eng.save_bad_data()
 
     exit()
