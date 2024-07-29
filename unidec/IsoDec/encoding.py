@@ -499,7 +499,8 @@ data_dirs = ["MSV000090488",
              "PXD045560",
              "PXD046651",
              "PXD027650",
-             "PXD041357"
+             "PXD041357",
+             "PXD042921"
              ]
 
 small_data_dirs = ["MSV000090488",
@@ -520,7 +521,7 @@ if __name__ == "__main__":
     # directory = "C:\\Data\\TabbData\\"
     # outdir = "C:\\Data\\IsoNN\\training\\MSV000090488\\"
 
-    for d in data_dirs[-1::10]:
+    for d in data_dirs[-1::100]:
         topdir = os.path.join("Z:\\Group Share\\JGP", d)
         outdir = os.path.join("C:\\Data\\IsoNN\\training", d)
         print("Directory:", topdir, "Outdir:", outdir)

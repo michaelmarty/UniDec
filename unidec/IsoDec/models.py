@@ -9,6 +9,7 @@ import time
 import platform
 #from torchshape import tensorshape
 from unidec.IsoDec.encoding import encode_isodist, encode_phase
+import inspect
 
 torch.set_float32_matmul_precision("medium")
 
@@ -766,9 +767,13 @@ class PhaseModel(IsoDecModel):
     def __init__(self, working_dir=None):
         if working_dir is None:
             if platform.system() == "Linux":
-                working_dir = "/xdisk/mtmarty/mtmarty/training/"
+                # working_dir = "/xdisk/mtmarty/mtmarty/training/"
+                filename = inspect.getframeinfo(inspect.currentframe()).filename
+                working_dir = os.path.dirname(os.path.abspath(filename))
             else:
-                working_dir = "C:\\Data\\IsoNN\\"
+                # working_dir = "C:\\Data\\IsoNN\\"
+                filename = inspect.getframeinfo(inspect.currentframe()).filename
+                working_dir = os.path.dirname(os.path.abspath(filename))
 
         super().__init__(working_dir)
         self.dims = [50, 8]

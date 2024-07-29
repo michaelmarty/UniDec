@@ -5,7 +5,7 @@ from itertools import chain
 import torch
 from torch.utils.data import DataLoader
 from unidec.IsoDec.models import example, PhaseModel
-from unidec.IsoDec.datatools import fastpeakdetect, get_all_centroids
+from unidec.IsoDec.datatools import fastpeakdetect, get_all_centroids, fastnearest
 from unidec.IsoDec.match import *
 from unidec.IsoDec.encoding import data_dirs, encode_noise, charge_phase_calculator, encode_phase_all, small_data_dirs, \
     encode_double
@@ -57,10 +57,11 @@ class IsoDecEngine:
         self.activescan = -1
         self.matchtol = 0.01
         self.minpeaks = 3
-        self.minmatchper = 0.5
-        self.maxshift = 2  # This will get overwritten for smaller z, where it's dangerous to have more than 1 or 2
+        self.minmatchper = 0.67
+        self.maxshift = 3  # This will get overwritten for smaller z, where it's dangerous to have more than 1 or 2
         self.mzwindow = [-1.5, 5.5]
-        self.knockdown_rounds = 2
+        self.plusoneintwindow = [0.1, 0.5]
+        self.knockdown_rounds = 5
         self.test_centroids = []
         self.training_centroids = []
         self.test_batch_size = 2048
@@ -285,14 +286,31 @@ class IsoDecEngine:
         isodist, matchedindexes, isomatches, peakmz, monoiso, massdist = optimize_shift(centroids, z, tol=self.matchtol,
                                                                                         maxshift=self.maxshift)
 
-        isoper = len(isomatches) / len(isodist)
+        #isoper = len(isomatches) / len(isodist)
+        areaper = np.sum(isodist[isomatches, 1]) / np.sum(isodist[:, 1])
         # print("Charge Predictions:", z, "Time:", time.perf_counter() - starttime)
+        #print(peakmz, areaper, len(matchedindexes), z)
 
-        if len(matchedindexes) >= self.minpeaks and isoper > self.minmatchper:
+        # Elaborate set of conditions to determine if the peak is a 1+ peak and if it's matching 2 peaks ok
+        # If so, let it pass with just two matches.
+        minpeaks = self.minpeaks
+        if z == 1:
+            if len(matchedindexes) == 2:
+                if isomatches[0] == 0 and isomatches[1] == 1:
+                    int1 = centroids[matchedindexes[0], 1]
+                    int2 = centroids[matchedindexes[1], 1]
+                    ratio = int2 / int1
+                    if self.plusoneintwindow[0] < ratio < self.plusoneintwindow[1]:
+                        minpeaks = 2
+                        areaper = 1
+
+        if len(matchedindexes) >= minpeaks and areaper >= self.minmatchper:
             m = MatchedPeak(centroids, isodist, z, peakmz, matchedindexes, isomatches)
             m.scan = self.activescan
             m.monoiso = monoiso
             m.massdist = massdist
+            m.avgmass = np.sum(massdist[:, 0] * massdist[:, 1]) / np.sum(massdist[:, 1])
+            m.peakmass = massdist[np.argmax(massdist[:, 1]), 0]
             if pks is not None:
                 pks.add_peak(m)
             else:
@@ -313,7 +331,7 @@ class IsoDecEngine:
         matchedindexes = self.save_peak(centroids, z, pks=pks)
         return matchedindexes
 
-    def batch_process_spectrum(self, data, window=5, threshold=0.0001, centroided=False):
+    def batch_process_spectrum(self, data, window=10, threshold=0.001, centroided=False):
         starttime = time.perf_counter()
 
         # TODO: Need a way to test for whether data is centroided already
@@ -322,8 +340,13 @@ class IsoDecEngine:
         else:
             centroids = get_all_centroids(data, window=5, threshold=threshold * 0.1)
 
+        kwindow = window
+        threshold = threshold
         for i in range(self.knockdown_rounds):
-            peaks = fastpeakdetect(centroids, window=window, threshold=threshold)
+            #print("Knockdown:", i)
+            if i > 1:
+                kwindow = 2
+            peaks = fastpeakdetect(centroids, window=kwindow, threshold=threshold)
 
             emats, peaks, centlist, indexes = encode_phase_all(centroids, peaks, lowmz=self.mzwindow[0],
                                                                highmz=self.mzwindow[1])
@@ -331,16 +354,17 @@ class IsoDecEngine:
             # emats = torch.as_tensor(emats, dtype=torch.float32).to(self.phasemodel.device)
             data_loader = DataLoader(emats, batch_size=1024, shuffle=False, pin_memory=True)
             preds = self.phasemodel.batch_predict(data_loader)
-
             knockdown = []
-            for i, p in enumerate(peaks):
-                z = preds[i]
+            for j, p in enumerate(peaks):
+                z = preds[j]
                 if z == 0:
+                    kindex = fastnearest(centroids[:, 0], p[0])
+                    knockdown.append(kindex)
                     continue
                 # Get the centroids around the peak
-                matchedindexes = self.get_matches(centlist[i], self.pks, z=z)
+                matchedindexes = self.get_matches(centlist[j], self.pks, z=z)
                 # Find matches
-                indval = indexes[i]
+                indval = indexes[j]
                 matchindvals = indval[matchedindexes]
                 # Knock them down
                 knockdown.extend(matchindvals)
@@ -348,6 +372,8 @@ class IsoDecEngine:
                 break
             knockdown = np.array(knockdown)
             centroids = np.delete(centroids, knockdown, axis=0)
+            if len(centroids) < 3:
+                break
 
         # print("Time:", time.perf_counter() - starttime)
         return self.pks
@@ -403,7 +429,7 @@ class IsoDecEngine:
         self.pks.save_pks()
         return reader
 
-    def plot_pks(self, data, scan=-1, show=False):
+    def plot_pks(self, data, scan=-1, show=False, labelz=True):
         plt.subplot(121)
         plt.plot(data[:, 0], data[:, 1])
 
@@ -419,6 +445,11 @@ class IsoDecEngine:
                 plt.subplot(122)
                 massdist = p.massdist
                 cplot(massdist, color=color)
+                mass = p.avgmass
+
+                if labelz:
+                    plt.text(mass, np.amax(centroids[:, 1]) * 1.05, str(p.z), color=color)
+
         if show:
             plt.show()
 

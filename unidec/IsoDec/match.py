@@ -61,6 +61,8 @@ class MatchedPeak:
         self.scan = -1
         self.massdist = None
         self.monoiso = -1
+        self.peakmass = -1
+        self.avgmass = -1
         if matchedindexes is not None:
             self.matchedindexes = matchedindexes
             self.matchedcentroids = centroids[matchedindexes]
@@ -147,7 +149,7 @@ def optimize_shift(centroids, z, tol=0.01, maxshift=2):
     # Limit max shifts if necessary
     if z < 3:
         maxshift = 1
-    elif z < 10:
+    elif z < 6:
         maxshift = 2
     else:
         maxshift = maxshift

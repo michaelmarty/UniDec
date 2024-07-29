@@ -269,4 +269,7 @@ PublicScripts/MutantCycleAnalysis/Mutant Cycle Analysis/
 unidec/modules/gui_elements/UniDec.mplstyle
 .eggs/
 Dockerfile_isodec
+unidec/recent.txt
+unidec/src/UniDec/
+
 
