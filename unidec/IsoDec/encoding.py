@@ -530,11 +530,11 @@ if __name__ == "__main__":
     # directory = "C:\\Data\\TabbData\\"
     # outdir = "C:\\Data\\IsoNN\\training\\MSV000090488\\"
 
-    for d in small_data_dirs:
+    for d in data_dirs:
         topdir = os.path.join("Z:\\Group Share\\JGP", d)
         outdir = os.path.join("C:\\Data\\IsoNN\\training", d)
         print("Directory:", topdir, "Outdir:", outdir)
-        encode_dir(topdir, maxlen=7, name="phase7", onedropper=0.0, maxfiles=None,
+        encode_dir(topdir, maxlen=2, name="phase2", onedropper=0.0, maxfiles=None,
                    outdir=outdir)
     # encode_multi_file(file, maxlen=32, nfeatures=2, save=True, name="small32x2")
     print("Time:", time.perf_counter() - starttime)
