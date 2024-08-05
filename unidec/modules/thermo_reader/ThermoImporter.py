@@ -65,6 +65,14 @@ class ThermoDataImporter:
         impdat = impdat[impdat[:, 0] > 10]
         return impdat
 
+    def get_ms_order(self, s):
+        order = self.msrun.GetMSOrder(s)
+        return order
+
+    def get_scan_time(self, s):
+        return self.msrun.scan_time_from_scan_name(s)
+
+
     def get_data(self, scan_range=None, time_range=None):
         """
         Returns merged 1D MS data from mzML import
@@ -185,6 +193,7 @@ class ThermoDataImporter:
             sid_value = 0
 
         return sid_value
+
 
 
     def get_polarity(self, scan=1):

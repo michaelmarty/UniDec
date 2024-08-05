@@ -37,13 +37,37 @@ def fastnearest(array, target):
         return 0
     elif i >= len(array) - 1:
         return len(array) - 1
-    if np.abs(array[i] - target) > np.abs(array[i - 1] - target):
-        i -= 1
+    if np.abs(array[i] - target) > np.abs(array[i + 1] - target):
+        i += 1
     return int(i)
+
+@njit(fastmath=True)
+def get_nearest_mass_index(m_arr, monoiso):
+    min_diff = 1e6
+    idx = -1
+
+    l = 0
+    r = len(m_arr) - 1
+
+    while l <= r:
+        m = (l + r) // 2
+        current_diff = abs(m_arr[m] - monoiso)
+
+        if current_diff < min_diff:
+            min_diff = current_diff
+            idx = m
+
+        if m_arr[m] < monoiso:
+            l = m + 1
+
+        else:
+            r = m - 1
+
+    return idx
 
 
 @njit(fastmath=True)
-def fastpeakdetect(data, config=None, window=10, threshold=0.0, ppm=None, norm=True):
+def fastpeakdetect(data, window=10, threshold=0.0, ppm=None, norm=True):
     """
     Simple peak detection algorithm.
 
@@ -53,18 +77,12 @@ def fastpeakdetect(data, config=None, window=10, threshold=0.0, ppm=None, norm=T
     The mass and intensity of peaks meeting these criteria are output as a P x 2 array.
 
     :param data: Mass data array (N x 2) (mass intensity)
-    :param config: UniDecConfig object
     :param window: Tolerance window of the x values
     :param threshold: Threshold of the y values
     :param ppm: Tolerance window in ppm
     :param norm: Whether to normalize the data before peak detection
     :return: Array of peaks positions and intensities (P x 2) (mass intensity)
     """
-    if config is not None:
-        window = config.peakwindow / config.massbins
-        threshold = config.peakthresh
-        norm = config.normthresh
-
     peaks = []
     length = len(data)
     shape = np.shape(data)
@@ -273,6 +291,8 @@ def simp_charge(centroids, silent=False):
     if len(centraldiffs) == 0:
         return 0
     avg = np.mean(centraldiffs)
+    if avg ==0:
+        return 0
     charge = 1 / avg
     charge = round(charge)
     if not silent:

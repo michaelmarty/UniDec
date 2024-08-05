@@ -241,11 +241,10 @@ def encode_phase(centroids, maxz=50, phaseres=8):
     :return: Charge phase histogram (maxz x phaseres)
     """
     phases = np.zeros((maxz, phaseres))
-    rescale = -1 * centroids[:, 0] / mass_diff_c
+    rescale = centroids[:, 0] / mass_diff_c
     for i in range(maxz):
         # phase = (((rescale * (i + 1)) % 1) + 0.25) % 1
         phase = (rescale * (i + 1)) % 1  # Note, this is a much simpler implementation, needs different model
-
         phaseindexes = np.floor(phase * phaseres)
         for j in range(len(centroids)):
             phases[i, int(phaseindexes[j])] += centroids[j, 1]
@@ -254,7 +253,7 @@ def encode_phase(centroids, maxz=50, phaseres=8):
 
 
 @njit(fastmath=True)
-def encode_phase_all(centroids, peaks, lowmz=-1.5, highmz=5.5):
+def encode_phase_all(centroids, peaks, lowmz=-1.5, highmz=5.5, phaseres=8):
     """
     Work on speeding this up
     :param centroids:
@@ -271,17 +270,23 @@ def encode_phase_all(centroids, peaks, lowmz=-1.5, highmz=5.5):
     for i, p in enumerate(peaks):
         peakmz = p[0]
         # Find all centroids in the neighborhood of the peak
-        b1 = centroids[:, 0] > peakmz + lowmz
-        b2 = centroids[:, 0] < peakmz + highmz
-        b = b1 & b2
-        if np.sum(b) < 3:
+        start = fastnearest(centroids[:, 0], peakmz + lowmz)
+        end = fastnearest(centroids[:, 0], peakmz + highmz) + 1
+
+        if i < len(peaks)-1:
+            nextpeak = peaks[i+1][0]
+            nextindex = fastnearest(centroids[:, 0], nextpeak)
+            if end >= nextindex:
+                end = nextindex - 1
+
+        if end - start < 3:
             continue
-        c = centroids[b]
+        c = centroids[start:end]
         goodpeaks.append(p)
         outcentroids.append(c)
-        indexes.append(indexvalues[b])
+        indexes.append(indexvalues[start:end])
 
-    emats = [encode_phase(c) for c in outcentroids]
+    emats = [encode_phase(c, phaseres=phaseres) for c in outcentroids]
     return emats, goodpeaks, outcentroids, indexes
 
 
@@ -435,8 +440,9 @@ def encode_noise(peakmz: float, intensity: float, maxlen=16):
     emat = encode_phase(ndata)
     return emat, ndata, 0
 
+
 @njit(fastmath=True)
-def encode_double(centroid, centroid2, maxdist=1.5, minsep=0.1, intmax=0.2):
+def encode_double(centroid, centroid2, maxdist=1.5, minsep=0.1, intmax=0.2, phaseres=8):
     peakmz = centroid[np.argmax(centroid[:, 1]), 0]
     peakmz2 = centroid2[np.argmax(centroid2[:, 1]), 0]
 
@@ -451,7 +457,7 @@ def encode_double(centroid, centroid2, maxdist=1.5, minsep=0.1, intmax=0.2):
     mergedc[:len(centroid)] = centroid
     mergedc[len(centroid):] = centroid2
 
-    emat = encode_phase(mergedc)
+    emat = encode_phase(mergedc, phaseres=phaseres)
 
     return emat, mergedc
 
@@ -462,12 +468,15 @@ def encode_phase_file(file, maxlen=8, save=True, outdir="C:\\Data\\IsoNN\\multi"
     test = []
     zdist = []
     # Load pkl file
+    if "peaks.pkl" in file:
+        return training, test, zdist
+
     try:
         with open(file, "rb") as f:
             centroids = pkl.load(f)
     except Exception as e:
         print("Error Loading File:", file, e)
-        return
+        return training, test, zdist
     # Encode each centroid
     print("File:", file, len(centroids))
     for c in centroids:
@@ -480,7 +489,7 @@ def encode_phase_file(file, maxlen=8, save=True, outdir="C:\\Data\\IsoNN\\multi"
                 continue
         zdist.append(z)
         emat = encode_phase(centroid, phaseres=maxlen)
-        #emat.astype(np.float32)
+        # emat.astype(np.float32)
         emat = torch.as_tensor(emat, dtype=torch.float32)
 
         # randomly sort into training and test data
@@ -516,16 +525,16 @@ if __name__ == "__main__":
     # directory = "Z:\\Group Share\\JGP\\MSV000090488\\"
     # directory = "Z:\\Group Share\\JGP\\MSV000091923"
     # directory = "Z:\\Group Share\\JGP\\RibosomalPfms_Td_Control"
-    #directory = "Z:\\Group Share\\JGP\\PXD019247"
+    # directory = "Z:\\Group Share\\JGP\\PXD019247"
     # os.chdir(directory)
     # directory = "C:\\Data\\TabbData\\"
     # outdir = "C:\\Data\\IsoNN\\training\\MSV000090488\\"
 
-    for d in data_dirs[-1::100]:
+    for d in small_data_dirs:
         topdir = os.path.join("Z:\\Group Share\\JGP", d)
         outdir = os.path.join("C:\\Data\\IsoNN\\training", d)
         print("Directory:", topdir, "Outdir:", outdir)
-        encode_dir(topdir, maxlen=8, name="phase82", onedropper=0.0, maxfiles=None,
+        encode_dir(topdir, maxlen=7, name="phase7", onedropper=0.0, maxfiles=None,
                    outdir=outdir)
     # encode_multi_file(file, maxlen=32, nfeatures=2, save=True, name="small32x2")
     print("Time:", time.perf_counter() - starttime)

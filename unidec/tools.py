@@ -3260,6 +3260,10 @@ def get_swoop_mz_minmax(mz, i):
         mzmin = (mz[i] + mz[i + 1]) / 2
     return mzmin, mzmax
 
+def within_ppm(theo, exp, ppmtol):
+    return np.abs(((theo - exp) / theo) * 1e6) <= ppmtol
+
+
 
 if __name__ == "__main__":
     testdir = "C:\\Data\\AgilentData"

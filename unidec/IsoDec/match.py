@@ -2,13 +2,14 @@ import numpy as np
 import time
 import matchms
 from copy import deepcopy
-from unidec.IsoDec.datatools import simp_charge
+from unidec.IsoDec.datatools import simp_charge, fastnearest, get_nearest_mass_index
 import matplotlib.pyplot as plt
 from numba import njit
 from typing import List, Tuple
 import matplotlib as mpl
 from unidec.modules.isotopetools import *
 import pickle as pkl
+import unidec.tools as ud
 
 
 # mass_diff_c = 1.0033
@@ -19,6 +20,8 @@ class MatchedCollection:
 
     def __init__(self):
         self.peaks = []
+        self.masses = []
+        self.monoisos = np.array([])
         self.colormap = mpl.colormaps.get_cmap("tab10")
 
     def add_peak(self, peak):
@@ -41,13 +44,86 @@ class MatchedCollection:
             self.peaks = pkl.load(f)
             print(f"Loaded {len(self.peaks)} peaks from {filename}")
 
+    def add_pk_to_masses(self, pk, ppmtol):
+        """
+        Checks if an existing mass matches to this peak, if so adds it to that mass, otherwise creates a new mass
+        The list of masses is constantly kept in order of monoisotopic mass.
+        """
+        if len(self.masses) == 0:
+            self.monoisos = np.append(self.monoisos, pk.monoiso)
+            self.masses.append(MatchedMass(pk))
+
+
+        else:
+            idx = fastnearest(self.monoisos, pk.monoiso)
+            nearest_mass = self.monoisos[idx]
+            if pk.scan - self.masses[idx].scans[len(self.masses[idx].scans) - 1] <= 100 and ud.within_ppm(self.masses[idx].monoiso, pk.monoiso, ppmtol):
+                self.masses[idx].scans = np.append(self.masses[idx].scans, pk.scan)
+                if not np.isin(self.masses[idx].zs, pk.z).any():
+                    self.masses[idx].zs = np.append(self.masses[idx].zs, pk.z)
+                    self.masses[idx].mzs = np.append(self.masses[idx].mzs, pk.mz)
+
+            else:
+                if pk.monoiso > nearest_mass:
+                    idx += 1
+                if idx == len(self.monoisos):
+                    self.monoisos = np.append(self.monoisos, pk.monoiso)
+                    self.masses.append(MatchedMass(pk))
+                else:
+                    self.monoisos = np.insert(self.monoisos, idx, pk.monoiso)
+                    self.masses.insert(idx, MatchedMass(pk))
+
+
+
+
+
+
+
+
+    def get_nearest_mass_index(self, monoiso):
+        min_diff = 1e6
+        idx = -1
+        searching = True
+        l = 0
+        r = len(self.masses) - 1
+
+        while l <= r:
+            m = (l + r) // 2
+            current_diff = abs(self.masses[m].monoiso - monoiso)
+
+            if current_diff < min_diff:
+                min_diff = current_diff
+                idx = m
+
+            if self.masses[m].monoiso < monoiso:
+                l = m + 1
+
+            else:
+                r = m - 1
+
+        return idx
+
+
+
+class MatchedMass:
+    """
+    Matched mass object for collecting data on MatchedPeaks with matched masses.
+    """
+
+    def __init__(self, pk):
+        self.monoiso = pk.monoiso
+        self.scans = np.array([pk.scan])
+        self.mzs = np.array([pk.mz])
+        self.zs = np.array([pk.z])
+
+
 
 class MatchedPeak:
     """
     Matched peak object for collecting data on peaks with matched distributions
     """
 
-    def __init__(self, centroids, isodist, z, mz, matchedindexes=None, isomatches=None):
+    def __init__(self, z, mz, centroids=None, isodist=None, matchedindexes=None, isomatches=None):
         self.mz = mz
         self.z = z
         self.centroids = centroids
@@ -59,10 +135,14 @@ class MatchedPeak:
         self.mask = None
         self.color = "g"
         self.scan = -1
+        self.rt = -1
+        self.ms_order = -1
         self.massdist = None
         self.monoiso = -1
         self.peakmass = -1
         self.avgmass = -1
+        self.startindex = -1
+        self.endindex = -1
         if matchedindexes is not None:
             self.matchedindexes = matchedindexes
             self.matchedcentroids = centroids[matchedindexes]
@@ -71,34 +151,6 @@ class MatchedPeak:
         if isomatches is not None:
             self.isomatches = isomatches
             self.matchedisodist = isodist[isomatches]
-
-
-def cplot(centroids, color='r', factor=1, base=0, mask=None, mfactor=-1, mcolor="g", z=0, zcolor="b", zfactor=1):
-    """
-    Simple script to plot centroids
-    :param centroids: Centroid array with m/z in first column and intensity in second
-    :param color: Color
-    :param factor: Mutiplicative factor for intensity. -1 will set below the axis
-    :param base: Base of the lines. Default is 0. Can be adjusted to shift up or down.
-    :return: None
-    """
-    plt.hlines(0, np.amin(centroids[:, 0]), np.amax(centroids[:, 0]), color="k")
-
-    if mask is not None:
-        if len(centroids) > len(mask):
-            mask = np.append(mask, np.zeros(len(centroids) - len(mask)))
-        else:
-            mask = mask[:len(centroids)]
-        for c in centroids[mask.astype(bool)]:
-            plt.vlines(c[0], base, base + mfactor * c[1], color=mcolor)
-
-    if z != 0:
-        isodist = create_isodist(centroids[np.argmax(centroids[:, 1]), 0], z, centroids)
-        for c in isodist:
-            plt.vlines(c[0], base, base + zfactor * c[1], color=zcolor, linewidth=3)
-
-    for c in centroids:
-        plt.vlines(c[0], base, base + factor * c[1], color=color)
 
 
 @njit(fastmath=True)
@@ -145,7 +197,7 @@ def create_isodist_full(peakmz, charge, data, adductmass=1.007276467):
 
 
 @njit(fastmath=True)
-def optimize_shift(centroids, z, tol=0.01, maxshift=2):
+def optimize_shift(centroids, z, peakmz, tol=0.01, maxshift=2):
     # Limit max shifts if necessary
     if z < 3:
         maxshift = 1
@@ -154,7 +206,7 @@ def optimize_shift(centroids, z, tol=0.01, maxshift=2):
     else:
         maxshift = maxshift
 
-    peakmz = centroids[np.argmax(centroids[:, 1]), 0]
+    #peakmz = centroids[np.argmax(centroids[:, 1]), 0]
     isodist, massdist, monoiso = create_isodist_full(peakmz, z, centroids)
 
     matchedindexes, isomatches = match_peaks(centroids, isodist)
@@ -176,7 +228,10 @@ def optimize_shift(centroids, z, tol=0.01, maxshift=2):
     bestshift = -1
     sum = -1
     for i, shift in enumerate(shiftrange):
-        overlap = mc * np.roll(mi, shift)
+        # TODO: This is actually unsafe, if fast. If there are gaps, it will roll over them
+        # However, I'm not sure how to do it better without sacrificing a decent amount of speed
+        # Gonna fix it in the c code though
+        overlap = mc * np.roll(mi, shift)**2
         s = np.sum(overlap)
         # overlaps.append(s)
         if s > sum:
@@ -321,4 +376,3 @@ if __name__ == "__main__":
                  [863.75527503, 5128.32373],
                  [863.97688287, 1786.120972]]
 
-    optimize_shift(np.array(centroids), np.array(isodist), 1)

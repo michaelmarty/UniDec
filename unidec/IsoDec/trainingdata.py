@@ -79,6 +79,8 @@ def process_file(file, overwrite=False, peakdepth=10, maxpeaks=None, onedropper=
             # Get the centroids around the peak
             centroids, d = get_centroids(spectrum, p[0], mzwindow=[-1.5, 3.5])
             # sort centroids by m/z
+            if len(centroids) < 3:
+                continue
             centroids = np.array(sorted(centroids, key=lambda x: x[0]))
             # Try a simple calculation of the charge state
             testz = simp_charge(centroids, silent=True)
@@ -135,10 +137,10 @@ if __name__ == "__main__":
     directory = "Z:\\Group Share\\JGP\\PXD041357"
     directory = "Z:\\Group Share\\JGP\\PXD042298"
     directory = "Z:\\Group Share\\JGP\\PXD042921"
-    #os.chdir(directory)
-    #file = "20230222_Easy1200_20min_120K_10us_20-80ACN_Iso1.raw"
-    #file = "20220709_nLC1000_E_CEW_Isoform-3_MS2_ET20hcD20_Targetted.raw"
-    #zdat = process_file(file, overwrite=True)
+    # os.chdir(directory)
+    # file = "20230222_Easy1200_20min_120K_10us_20-80ACN_Iso1.raw"
+    # file = "20220709_nLC1000_E_CEW_Isoform-3_MS2_ET20hcD20_Targetted.raw"
+    # zdat = process_file(file, overwrite=True)
     process_dir(directory)
     print("Time:", time.perf_counter() - starttime)
     pass

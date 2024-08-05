@@ -7,11 +7,12 @@ from torchvision.transforms import ToTensor
 from torch.optim import lr_scheduler
 import time
 import platform
-#from torchshape import tensorshape
+# from torchshape import tensorshape
 from unidec.IsoDec.encoding import encode_isodist, encode_phase
 import inspect
 
 torch.set_float32_matmul_precision("medium")
+
 
 def set_debug_apis(state: bool = False):
     torch.autograd.profiler.profile(enabled=state)
@@ -99,6 +100,24 @@ class ChargeClassifierNeuralNetwork(nn.Module):
         return logits
 '''
 
+
+def save_model_to_binary(model, outfile):
+    params = model.parameters()
+    output = []
+    for m in params:
+        flat = m.flatten()
+        output.append(flat)
+
+    output = torch.cat(output).cpu().detach().numpy()
+
+    output.tofile(outfile)
+
+def print_model(model):
+    for name, param in model.named_parameters():
+        print(name, param.shape)
+        print(param[0], param[1], param[2])
+
+
 class IsoDecModel:
     """
     Generic IsoDec Model base class. Contains methods for training, evaluation, and prediction.
@@ -170,6 +189,7 @@ class IsoDecModel:
             try:
                 self.model.load_state_dict(torch.load(self.savepath, weights_only=True))
                 print("Model loaded:", self.savepath)
+                # print_model(self.model)
             except Exception as e:
                 print("Model failed to load:", self.savepath)
                 print(e)
@@ -181,8 +201,11 @@ class IsoDecModel:
         Save model to savepath.
         :return: None
         """
+        if self.model is None:
+            self.setup_model()
         torch.save(self.model.state_dict(), self.savepath)
-        print("Model saved:", self.savepath)
+        save_model_to_binary(self.model, self.savepath.replace(".pth", ".bin"))
+        print("Model saved:", self.savepath, self.savepath.replace(".pth", ".bin"))
 
     def encode(self, centroids, maxlength=16):
         """
@@ -217,6 +240,7 @@ class IsoDecModel:
         :return: Prediction, format may vary depending on model
         """
         pass
+
 
 '''
 class IsoDecClassifier(IsoDecModel):
@@ -719,6 +743,7 @@ class IsoDecMixedModel(IsoDecModel):
         return predz, mask
 '''
 
+
 class PhaseNeuralNetwork(nn.Module):
     """
     Very simple neural net for classification.
@@ -730,7 +755,7 @@ class PhaseNeuralNetwork(nn.Module):
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
             nn.Linear(size * outsize, size * outsize),
-            nn.Tanh(),
+            nn.ReLU(),
             nn.Linear(size * outsize, outsize)
         )
 
@@ -752,8 +777,8 @@ class FastPhaseNeuralNetwork(nn.Module):
         self.linear_relu_stack = nn.Sequential(
             nn.Linear(400, 400),
             nn.ReLU(),
-            #nn.Linear(400, 400),
-            #nn.ReLU(),
+            # nn.Linear(400, 400),
+            # nn.ReLU(),
             nn.Linear(400, 50)
         )
 
@@ -778,13 +803,14 @@ class PhaseModel(IsoDecModel):
         super().__init__(working_dir)
         self.dims = [50, 8]
         self.modelid = 1
+        #self.get_model(self.modelid)
 
     def get_model(self, modelid):
         self.modelid = modelid
         if modelid == 0:
             self.model = PhaseNeuralNetwork(size=self.dims[1], outsize=self.dims[0])
-            savename = "phase_model.pth"
-        if modelid == 1:
+            savename = "phase_model_2.pth"
+        elif modelid == 1:
             self.model = FastPhaseNeuralNetwork()
             # self.model = torch.compile(self.model, mode="max-autotune")
             savename = "phase_model.pth"
@@ -795,7 +821,7 @@ class PhaseModel(IsoDecModel):
         self.savepath = os.path.join(self.working_dir, savename)
 
     def train_model(self, dataloader):
-        #if self.loss_fn is None or self.optimizer is None:
+        # if self.loss_fn is None or self.optimizer is None:
         self.setup_training()
         set_debug_apis(state=False)
         size = len(dataloader.dataset)
@@ -816,7 +842,7 @@ class PhaseModel(IsoDecModel):
             self.optimizer.step()
             self.optimizer.zero_grad()
 
-            if batch % int(num_batches/5) == 0:
+            if batch % int(num_batches / 5) == 0:
                 loss, current = loss.item(), (batch + 1) * len(X)
                 print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
         if self.scheduler is not None:
@@ -905,6 +931,7 @@ class PhaseModel(IsoDecModel):
 
 if __name__ == "__main__":
     model = PhaseModel()
+    model.save_model()
     z = model.predict(example)
     print(z)
 

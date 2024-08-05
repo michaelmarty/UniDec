@@ -9,14 +9,14 @@ import os
 # Short script for training on an HPC
 os.chdir("/xdisk/mtmarty/mtmarty/training/data")
 
-eng = IsoDecEngine()
+eng = IsoDecEngine(phaseres=2)
 topdirectory = "/xdisk/mtmarty/mtmarty/training/data"
 dirs = [os.path.join(topdirectory, d) for d in data_dirs]
-eng.create_merged_dataloader(dirs, "phase82", noise_percent=0, batchsize=32, double_percent=0)
+eng.create_merged_dataloader(dirs, "phase2", noise_percent=0, batchsize=32, double_percent=0)
 eng.train_model(epochs=5)
-eng.create_merged_dataloader(dirs, "phase82", noise_percent=0.0, batchsize=32, double_percent=0.2)
+eng.create_merged_dataloader(dirs, "phase2", noise_percent=0.0, batchsize=32, double_percent=0.2)
 eng.train_model(epochs=10)
-eng.create_merged_dataloader(dirs, "phase82", noise_percent=0.05, batchsize=32, double_percent=0)
+eng.create_merged_dataloader(dirs, "phase2", noise_percent=0.05, batchsize=32, double_percent=0)
 eng.train_model(epochs=10)
 
 

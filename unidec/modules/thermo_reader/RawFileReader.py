@@ -419,6 +419,10 @@ class RawFileReader(object):
             [DotNetArrayToNPArray(trace[trace_number].Times), DotNetArrayToNPArray(trace[trace_number].Intensities)])
         return self.ticdat
 
+    def GetMSOrder(self, s):
+        scanFilter = IScanFilter(self.source.GetFilterForScanNumber(int(s)))
+        return scanFilter.MSOrder.value__
+
     def ReadScanInformation(self, scanrange=None, outputData=True):
         """Reads the general scan information for each scan in the RAW file
         using the scan filter object and also the trailer extra data
