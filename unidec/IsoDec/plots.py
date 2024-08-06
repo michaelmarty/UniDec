@@ -73,3 +73,9 @@ def plot_pks(pks, data=None, centroids=None, scan=-1, show=False, labelz=True, t
         plt.suptitle(title)
     if show:
         plt.show()
+
+
+def plot_zdist(eng):
+    zdata = [x[1] for x in eng.training_data]
+    plt.hist(zdata, bins=range(0, 50))
+    plt.show()

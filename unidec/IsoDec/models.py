@@ -13,6 +13,21 @@ import inspect
 
 torch.set_float32_matmul_precision("medium")
 
+import torch.nn.functional as F
+
+
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=None, gamma=2):
+        super(FocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+
+    def forward(self, inputs, targets):
+        ce_loss = F.cross_entropy(inputs, targets, reduction='none')
+        pt = torch.exp(-ce_loss)
+        loss = (self.alpha[targets] * (1 - pt) ** self.gamma * ce_loss).mean()
+        return loss
+
 
 def set_debug_apis(state: bool = False):
     torch.autograd.profiler.profile(enabled=state)
@@ -112,6 +127,7 @@ def save_model_to_binary(model, outfile):
 
     output.tofile(outfile)
 
+
 def print_model(model):
     for name, param in model.named_parameters():
         print(name, param.shape)
@@ -134,6 +150,8 @@ class IsoDecModel:
         self.modelid = None
         self.savepath = None
         self.indexes = None
+        self.dims = [50, 8]
+        self.class_weights = None
 
     def get_model(self, modelid):
         """
@@ -169,14 +187,40 @@ class IsoDecModel:
         self.model = self.model.to(self.device)
         print("Loaded Model:", self.model)
 
-    def setup_training(self):
+    def get_class_weights(self, dataloader):
+        zvals = torch.cat([x[1] for x in dataloader])
+        weights = torch.histogram(zvals.float(), bins=torch.arange(0, 51, dtype=torch.float32))[0]
+
+        b1 = weights > 0
+
+        weights[b1] = 1.0/(weights[b1])
+        weights = weights / torch.max(weights)
+
+        self.class_weights = weights
+        #self.class_weights.to(self.device)
+        print(self.class_weights, len(self.class_weights))
+
+    def setup_training(self, lossfn="crossentropy"):
         """"
         Setup loss function, optimizer, and scheduler.
         :return: None
         """
         if self.model is None:
             self.setup_model()
-        self.loss_fn = nn.CrossEntropyLoss()
+        if lossfn == "crossentropy":
+            self.loss_fn = nn.CrossEntropyLoss()
+        elif lossfn == "weightedcrossentropy":
+            if self.class_weights is None:
+                raise ValueError("Class weights not set.")
+            self.loss_fn = nn.CrossEntropyLoss(weight=self.class_weights.to(self.device))
+        elif lossfn == "focal":
+            if self.class_weights is None:
+                raise ValueError("Class weights not set.")
+            self.loss_fn = FocalLoss(alpha=self.class_weights.to(self.device))
+        else:
+            raise ValueError("Loss function not recognized.", lossfn)
+        #self.loss_fn = nn.CrossEntropyLoss()
+        #self.loss_fn = FocalLoss(alpha=self.class_weights.to(self.device))
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.1)
         self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=1, gamma=0.95)
 
@@ -207,14 +251,13 @@ class IsoDecModel:
         save_model_to_binary(self.model, self.savepath.replace(".pth", ".bin"))
         print("Model saved:", self.savepath, self.savepath.replace(".pth", ".bin"))
 
-    def encode(self, centroids, maxlength=16):
+    def encode(self, centroids):
         """
         Encode the centroids into a format for the model.
         :param centroids: Centroid data, m/z and intensity
-        :param maxlength: Max length of the encoded data. Will generate 3 x maxlength x maxlength array
         :return: Output array of the encoded data, size 3 x maxlength x maxlength
         """
-        emat, self.indexes = encode_isodist(centroids, maxlen=maxlength)
+        emat = encode_phase(centroids, maxz=self.dims[0], phaseres=self.dims[1])
         return emat
 
     def train_model(self, dataloader):
@@ -803,7 +846,7 @@ class PhaseModel(IsoDecModel):
         super().__init__(working_dir)
         self.dims = [50, 8]
         self.modelid = 1
-        #self.get_model(self.modelid)
+        # self.get_model(self.modelid)
 
     def get_model(self, modelid):
         self.modelid = modelid
@@ -820,9 +863,10 @@ class PhaseModel(IsoDecModel):
 
         self.savepath = os.path.join(self.working_dir, savename)
 
-    def train_model(self, dataloader):
+    def train_model(self, dataloader, lossfn="crossentropy"):
         # if self.loss_fn is None or self.optimizer is None:
-        self.setup_training()
+        # plot_zdist(self)
+        self.setup_training(lossfn)
         set_debug_apis(state=False)
         size = len(dataloader.dataset)
         num_batches = len(dataloader)
@@ -917,16 +961,6 @@ class PhaseModel(IsoDecModel):
                 output[start:end] = predz
         output = output.cpu().numpy()
         return output
-
-    def encode(self, centroids, maxlen=None):
-        """
-        Encode the centroids into a format for the model.
-        :param centroids: Centroid data, m/z and intensity
-        :param maxlen: Unused
-        :return: Output array of the encoded data, size 3 x maxlength x maxlength
-        """
-        emat = encode_phase(centroids, maxz=self.dims[0], phaseres=self.dims[1])
-        return emat
 
 
 if __name__ == "__main__":

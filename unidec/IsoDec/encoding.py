@@ -429,7 +429,7 @@ def encode_dir(pkldir, outdir=None, name="medium", maxfiles=None, plot=False, **
 
 
 @njit(fastmath=True)
-def encode_noise(peakmz: float, intensity: float, maxlen=16):
+def encode_noise(peakmz: float, intensity: float, maxlen=16, phaseres=8):
     mznoise = np.random.uniform(peakmz - 1.5, peakmz + 3.5, maxlen)
     intnoise = np.abs(np.random.normal(0, intensity, maxlen))
 
@@ -437,7 +437,7 @@ def encode_noise(peakmz: float, intensity: float, maxlen=16):
     ndata[:, 0] = mznoise
     ndata[:, 1] = intnoise
 
-    emat = encode_phase(ndata)
+    emat = encode_phase(ndata, phaseres=phaseres)
     return emat, ndata, 0
 
 
@@ -534,7 +534,7 @@ if __name__ == "__main__":
         topdir = os.path.join("Z:\\Group Share\\JGP", d)
         outdir = os.path.join("C:\\Data\\IsoNN\\training", d)
         print("Directory:", topdir, "Outdir:", outdir)
-        encode_dir(topdir, maxlen=2, name="phase2", onedropper=0.0, maxfiles=None,
+        encode_dir(topdir, maxlen=4, name="phase4", onedropper=0.0, maxfiles=None,
                    outdir=outdir)
     # encode_multi_file(file, maxlen=32, nfeatures=2, save=True, name="small32x2")
     print("Time:", time.perf_counter() - starttime)

@@ -15,7 +15,7 @@ import unidec.tools as ud
 import pickle as pkl
 import matplotlib.pyplot as plt
 from unidec.IsoDec.c_interface import IsoDecWrapper
-from unidec.IsoDec.plots import cplot
+from unidec.IsoDec.plots import *
 
 
 class IsoDecDataset(torch.utils.data.Dataset):
@@ -84,7 +84,7 @@ class IsoDecEngine:
         for i in range(nnoise):
             index = np.random.randint(0, ltraining - 1)
             centroid = self.training_data[2][index]
-            emat, centroid, z = encode_noise(centroid[0, 0], np.amax(centroid[:, 1]))
+            emat, centroid, z = encode_noise(centroid[0, 0], np.amax(centroid[:, 1]), phaseres=self.phaseres)
             emats.append(emat)
             zs.append(0)
             centroids.append(centroid)
@@ -101,7 +101,7 @@ class IsoDecEngine:
         for i in range(nnoisetest):
             index = np.random.randint(0, ltest - 1)
             centroid = self.test_data[2][index]
-            emat, centroid, z = encode_noise(centroid[0, 0], np.amax(centroid[:, 1]))
+            emat, centroid, z = encode_noise(centroid[0, 0], np.amax(centroid[:, 1]), phaseres=self.phaseres)
             emats.append(emat)
             zs.append(0)
             centroids.append(centroid)
@@ -192,6 +192,8 @@ class IsoDecEngine:
         self.test_dataloader = DataLoader(self.test_data, batch_size=self.test_batch_size, shuffle=False,
                                           pin_memory=False)
 
+
+
     def create_merged_dataloader(self, dirs, training_path, noise_percent=0.1, batchsize=None, double_percent=0.1):
         if batchsize is not None:
             self.batch_size = batchsize
@@ -225,15 +227,17 @@ class IsoDecEngine:
         print(f"Training Data Length: {len(self.training_data)}")
         print(f"Test Data Length: {len(self.test_data)}")
 
-    def train_model(self, epochs=30, save=True):
+        #plot_zdist(self)
+
+    def train_model(self, epochs=30, save=True, lossfn="crossentropy"):
         starttime = time.perf_counter()
 
         if self.train_dataloader is None or self.test_dataloader is None:
             raise ValueError("DataLoaders not created. Run create_training_dataloader first.")
-
+        self.phasemodel.get_class_weights(self.train_dataloader)
         for t in range(epochs):
             print(f"Epoch {t + 1}\n-------------------------------")
-            self.phasemodel.train_model(self.train_dataloader)
+            self.phasemodel.train_model(self.train_dataloader, lossfn=lossfn)
             self.phasemodel.evaluate_model(self.test_dataloader)
 
         if save:
@@ -439,29 +443,6 @@ class IsoDecEngine:
         self.pks.save_pks()
         return reader
 
-    def plot_pks(self, data, scan=-1, show=False, labelz=True):
-        plt.subplot(121)
-        plt.plot(data[:, 0], data[:, 1])
-
-        for p in self.pks.peaks:
-            if scan == -1 or p.scan == scan:
-                color = p.color
-                isodist = p.isodist
-                plt.subplot(121)
-                cplot(isodist, color=color, factor=-1)
-                centroids = p.centroids
-                peakmz = p.mz
-                cplot(centroids)
-                plt.subplot(122)
-                massdist = p.massdist
-                cplot(massdist, color=color)
-                mass = p.avgmass
-
-                if labelz:
-                    plt.text(mass, np.amax(centroids[:, 1]) * 1.05, str(p.z), color=color)
-
-        if show:
-            plt.show()
 
 
 class IsoDecConfig:
@@ -478,12 +459,13 @@ class IsoDecConfig:
 
 if __name__ == "__main__":
     starttime = time.perf_counter()
-    eng = IsoDecEngine(phaseres=2)
+    eng = IsoDecEngine(phaseres=4)
     topdirectory = "C:\\Data\\IsoNN\\training"
 
     dirs = [os.path.join(topdirectory, d) for d in small_data_dirs]
-    eng.create_merged_dataloader(dirs, "phase2", noise_percent=0, batchsize=32, double_percent=0.4)
-    eng.train_model(epochs=10)
+    eng.create_merged_dataloader(dirs, "phase4", noise_percent=0.0, batchsize=32, double_percent=0.0)
+    #eng.train_model(epochs=3)
+    eng.train_model(epochs=3, lossfn="focal")
 
     # eng.create_merged_dataloader([os.path.join(topdirectory, small_data_dirs[2])], "phase82", noise_percent=0.2,
     #                             batchsize=32, double_percent=0.2)
