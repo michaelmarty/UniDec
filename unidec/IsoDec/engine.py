@@ -16,7 +16,7 @@ import pickle as pkl
 import matplotlib.pyplot as plt
 from unidec.IsoDec.c_interface import IsoDecWrapper
 from unidec.IsoDec.plots import *
-
+import platform
 
 class IsoDecDataset(torch.utils.data.Dataset):
     """
@@ -67,6 +67,8 @@ class IsoDecEngine:
         self.test_batch_size = 2048
 
         self.use_wrapper = True
+        if platform.system() == "Linux":
+            self.use_wrapper = False
 
         if self.use_wrapper:
             self.wrapper = IsoDecWrapper()
@@ -192,8 +194,6 @@ class IsoDecEngine:
         self.test_dataloader = DataLoader(self.test_data, batch_size=self.test_batch_size, shuffle=False,
                                           pin_memory=False)
 
-
-
     def create_merged_dataloader(self, dirs, training_path, noise_percent=0.1, batchsize=None, double_percent=0.1):
         if batchsize is not None:
             self.batch_size = batchsize
@@ -227,7 +227,7 @@ class IsoDecEngine:
         print(f"Training Data Length: {len(self.training_data)}")
         print(f"Test Data Length: {len(self.test_data)}")
 
-        #plot_zdist(self)
+        # plot_zdist(self)
 
     def train_model(self, epochs=30, save=True, lossfn="crossentropy"):
         starttime = time.perf_counter()
@@ -444,7 +444,6 @@ class IsoDecEngine:
         return reader
 
 
-
 class IsoDecConfig:
     def __init__(self, filepath):
         self.filepath = filepath
@@ -457,6 +456,7 @@ class IsoDecConfig:
         self.plusoneintwindow = [0.1, 0.5]
         self.knockdown_rounds = 3
 
+
 if __name__ == "__main__":
     starttime = time.perf_counter()
     eng = IsoDecEngine(phaseres=4)
@@ -464,7 +464,7 @@ if __name__ == "__main__":
 
     dirs = [os.path.join(topdirectory, d) for d in small_data_dirs]
     eng.create_merged_dataloader(dirs, "phase4", noise_percent=0.0, batchsize=32, double_percent=0.0)
-    #eng.train_model(epochs=3)
+    # eng.train_model(epochs=3)
     eng.train_model(epochs=3, lossfn="focal")
 
     # eng.create_merged_dataloader([os.path.join(topdirectory, small_data_dirs[2])], "phase82", noise_percent=0.2,
