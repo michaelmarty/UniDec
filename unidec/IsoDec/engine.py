@@ -66,7 +66,7 @@ class IsoDecEngine:
         self.training_centroids = []
         self.test_batch_size = 2048
 
-        self.use_wrapper = True
+        self.use_wrapper = False
 
         if self.use_wrapper:
             self.wrapper = IsoDecWrapper()
