@@ -3261,6 +3261,7 @@ def get_swoop_mz_minmax(mz, i):
     return mzmin, mzmax
 
 def within_ppm(theo, exp, ppmtol):
+    ppm_error = np.abs(((theo - exp) / theo) * 1e6)
     return np.abs(((theo - exp) / theo) * 1e6) <= ppmtol
 
 

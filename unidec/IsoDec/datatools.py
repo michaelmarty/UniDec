@@ -10,18 +10,39 @@ from copy import deepcopy
 from numba import njit
 import numba as nb
 
-
 # from bisect import bisect_left
+
+'''
+@njit(fastmath=True)
+def bisect_left(a, x):
+    """Similar to bisect.bisect_left(), from the built-in library."""
+    M = len(a)
+    for i in range(M):
+        if a[i] >= x:
+            return i
+    return M'''
 
 
 @njit(fastmath=True)
 def bisect_left(a, x):
-    """Similar to bisect.bisect_left(), from the built-in library."""
-    M = a.size
-    for i in range(M):
-        if a[i] >= x:
-            return i
-    return M
+    """Return the index where to insert item x in list a, assuming a is sorted.
+
+    The return value i is such that all e in a[:i] have e < x, and all e in
+    a[i:] have e >= x.  So if x already appears in the list, a.insert(i, x) will
+    insert just before the leftmost x already there.
+    """
+
+    lo = 0
+    hi = len(a)
+
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if a[mid] < x:
+            lo = mid + 1
+        else:
+            hi = mid
+
+    return lo
 
 
 @njit(fastmath=True)
@@ -39,31 +60,78 @@ def fastnearest(array, target):
         return len(array) - 1
     if np.abs(array[i] - target) > np.abs(array[i + 1] - target):
         i += 1
+    elif np.abs(array[i] - target) > np.abs(array[i - 1] - target):
+        i -= 1
     return int(i)
 
 @njit(fastmath=True)
-def get_nearest_mass_index(m_arr, monoiso):
-    min_diff = 1e6
-    idx = -1
+def calculate_cosinesimilarity(dist1, dist2):
+    ab = 0
+    a2 = 0
+    b2 = 0
+    for i in range(len(dist1)):
+        ab += dist1[i] * dist2[i]
+        a2 += dist1[i] ** 2
+        b2 += dist2[i] ** 2
+    return ab / (a2 ** 0.5 * b2 ** 0.5)
 
-    l = 0
-    r = len(m_arr) - 1
+@njit(fastmath=True)
+def calculate_cosinesimilarity2(isodist, isomatches, centroids, centmatches):
+    ab = 0
+    a2 = 0
+    b2 = 0
 
-    while l <= r:
-        m = (l + r) // 2
-        current_diff = abs(m_arr[m] - monoiso)
+    match_index = 0
 
-        if current_diff < min_diff:
-            min_diff = current_diff
-            idx = m
-
-        if m_arr[m] < monoiso:
-            l = m + 1
-
+    for i in range(len(isodist)):
+        if i in isomatches:
+            ab += isodist[i][1] * centroids[centmatches[match_index]][1]
+            a2 += isodist[i][1] ** 2
+            b2 += centroids[centmatches[match_index]][1] ** 2
+            match_index += 1
         else:
-            r = m - 1
+            ab += isodist[i][1] * 0
+            a2 += isodist[i][1] ** 2
+            b2 += 0
+    if ab == 0 or a2 == 0 or b2 == 0:
+        return 0
+    return ab / (a2 ** 0.5 * b2 ** 0.5)
 
-    return idx
+def fastwithinppmtol(array, target, ppmtol):
+    result = []
+    nearest_idx = fastnearest(array, target)
+
+    if ud.within_ppm(array[nearest_idx], target, ppmtol):
+        result.append(nearest_idx)
+    else:
+        return result
+
+    adding_upper = True
+    adding_lower = True
+
+    current_upper = nearest_idx + 1
+    current_lower = nearest_idx - 1
+
+    while adding_upper or adding_lower:
+        if adding_upper:
+            if current_upper >= len(array):
+                adding_upper = False
+            elif ud.within_ppm(array[current_upper], target, ppmtol):
+                result.append(current_upper)
+                current_upper += 1
+            else:
+                adding_upper = False
+
+        if adding_lower:
+            if current_lower < 0:
+                adding_lower = False
+            elif ud.within_ppm(array[current_lower], target, ppmtol):
+                result.append(current_lower)
+                current_lower -= 1
+            else:
+                adding_lower = False
+
+    return result
 
 
 @njit(fastmath=True)
@@ -171,6 +239,29 @@ def get_noise(data, n=20):
     return np.std(noise)
 
 
+def remove_noise_cdata(data, localmin=100, factor=1.5):
+    """
+    Remove noise from the data.
+    :param data: 2D numpy array of data
+    :param localmin: int, number of data points local width to take for min calcs
+    :return: data with noise removed
+    """
+    ydat = data[:, 1]
+    # find local minima
+    localmins = [np.amin(ydat[i:i + localmin]) for i in range(len(ydat) - localmin)]
+    # Extend the last bit at the end value to be the same length as data
+    localmins = np.concatenate([localmins, np.full(len(data) - len(localmins), localmins[-1])])
+    # smooth
+    noiselevel = np.convolve(localmins, np.ones(localmin*1) / localmin*1, mode="same")
+
+    # Subtract the noise level from the data
+    newdata = data[:, 1] - noiselevel * factor
+
+    data = data[newdata > 0]
+    # return the standard deviation of the noise
+    return data
+
+
 def get_top_peak_mz(data):
     """
     Get the m/z value of the top peak in the data.
@@ -270,7 +361,6 @@ def isotope_finder(data, mzwindow=1.5):
     return peaks
 
 
-
 def simp_charge(centroids, silent=False):
     """
     Simple charge prediction based on the spacing between peaks. Picks the largest peak and looks at the spacing
@@ -291,7 +381,7 @@ def simp_charge(centroids, silent=False):
     if len(centraldiffs) == 0:
         return 0
     avg = np.mean(centraldiffs)
-    if avg ==0:
+    if avg == 0:
         return 0
     charge = 1 / avg
     charge = round(charge)

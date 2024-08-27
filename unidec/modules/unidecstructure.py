@@ -6,7 +6,7 @@ import unidec.tools as ud
 import platform
 import matplotlib.cm as cm
 import matplotlib as mpl
-from matplotlib.pyplot import colormaps
+#from matplotlib.pyplot import colormaps
 import h5py
 from unidec.modules.unidec_enginebase import version as version
 from unidec.modules.hdf5_tools import replace_dataset, get_dataset
@@ -479,7 +479,7 @@ class UniDecConfig(object):
         :return: None
         """
         m = [i for i in cm.datad]
-        m2 = colormaps()
+        m2 = [map for map in mpl.colormaps]
 
         self.cmaps = sorted(m2)
         self.cmaps2 = sorted(m2)

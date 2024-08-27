@@ -72,6 +72,12 @@ class ThermoDataImporter:
     def get_scan_time(self, s):
         return self.msrun.scan_time_from_scan_name(s)
 
+    def get_isolation_mz_width(self, s):
+        scanFilter =  self.msrun.GetScanFilter(s)
+        reaction = scanFilter.GetReaction(0)
+        mz = reaction.PrecursorMass
+        width = reaction.IsolationWidth
+        return mz, width
 
     def get_data(self, scan_range=None, time_range=None):
         """

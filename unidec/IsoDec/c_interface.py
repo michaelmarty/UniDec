@@ -33,6 +33,7 @@ example = np.array([[5.66785531e+02, 1.47770838e+06],
 dllpath = "C:\\Python\\UniDec3\\unidec\\IsoDec\\src\\isodec\\x64\\Release\\isodeclib.dll"
 
 isodist = ctypes.c_float * 128
+matchedinds = ctypes.c_int * 32
 #print(isodist)
 class MPStruct(ctypes.Structure):
     _fields_ = [('mz', ctypes.c_float),
@@ -42,6 +43,8 @@ class MPStruct(ctypes.Structure):
                 ('avgmass', ctypes.c_float),
                 ('area', ctypes.c_float),
                 ('peakint', ctypes.c_float),
+                ('matchedindsiso', ctypes.c_int * 64),
+                ('matchedindsexp', ctypes.c_int * 64),
                 ('isomz', isodist),
                 ('isodist', isodist),
                 ('isomass', isodist),
@@ -72,7 +75,7 @@ class IsoDecWrapper:
         print(charge.value)
         return charge.value
 
-    def process_spectrum(self, centroids, pks=None, scannumber=None):
+    def process_spectrum(self, centroids, pks=None, config=None):
         #print("Running C Interface")
         cmz = centroids[:, 0].astype(np.float32)
         cint = centroids[:, 1].astype(np.float32)
@@ -93,7 +96,11 @@ class IsoDecWrapper:
             pk.monoiso = p.monoiso
             pk.peakmass = p.peakmass
             pk.avgmass = p.avgmass
-            pk.scan = scannumber
+
+            if config is not None:
+                pk.scan = config.activescan
+                pk.ms_order = config.activescanorder
+                pk.rt = config.activescanrt
 
             isodist = np.array(p.isodist)
             isomz = np.array(p.isomz)
@@ -103,18 +110,18 @@ class IsoDecWrapper:
             isodist = isodist[b1]
             isomz = isomz[b1]
             isomass = isomass[b1]
-
+            pk.matchedintensity = np.sum(isodist)
             pk.isodist = np.transpose((isomz, isodist))
             pk.massdist = np.transpose((isomass, isodist))
 
             pk.startindex = p.startindex
             pk.endindex = p.endindex
 
-            #pk.isodist = fast_calc_averagine_isotope_dist(p.monoiso, p.z)
+            pk.isodist = fast_calc_averagine_isotope_dist(p.monoiso, p.z)
             #pk.isodist[:,0] /= float(p.z)
-            #pk.isodist[:,1] *= p.peakint
+            pk.isodist[:,1] *= p.peakint
             pks.add_peak(pk)
-
+            pks.add_pk_to_masses(pk, 10)
         return pks
 
 

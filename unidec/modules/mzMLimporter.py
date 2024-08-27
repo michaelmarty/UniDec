@@ -624,6 +624,27 @@ class mzMLimporter:
                 print("Polarity: Unknown")
                 return None
 
+    def get_ms_order(self, s):
+        order = self.msrun[s-1].ms_level
+        #s is the scan number, this is 0 indexed, so we subtract 1 to access the correct scan.
+        return order
+
+    def get_scan_time(self, s):
+        scantime = self.msrun[s-1].scan_time_in_minutes()
+        return scantime
+
+    def get_isolation_mz_width(self, s):
+        scan = self.msrun[s-1]
+        precursors = scan.selected_precursors
+        if len(precursors) == 0:
+            return None, None
+        else:
+            precursor = precursors[0]
+            mz = precursor['mz']
+            width = 3
+            return mz, width
+
+
 
 if __name__ == "__main__":
     test = u"C:\\Python\\UniDec3\\TestSpectra\\JAW.mzML"
@@ -632,12 +653,14 @@ if __name__ == "__main__":
     # test = "C:\Data\IMS Example Data\imstest2.mzML"
     test = "C:\Data\CytC_Intact_MMarty_Share\\20221215_MMarty_Share\SHA_1598_9.mzML.gz"
     #test = "C:\\Users\\marty\\OneDrive - University of Arizona\\Attachments\\S203.mzML.gz"
+    test = "C:\\Users\\marty\\Downloads\\BSA1_scan214_full.mzML"
     import time
 
     tstart = time.perf_counter()
 
     d = mzMLimporter(test)
-    d.get_data(scan_range=[196, 210])
+    data = d.get_data()
+    print(len(data))
     tend = time.perf_counter()
     # print(call, out)
     print("Execution Time:", (tend - tstart))

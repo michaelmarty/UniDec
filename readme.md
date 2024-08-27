@@ -203,6 +203,10 @@ Added new options in MetaUniDec for Average Charge State Plotting. Added exports
 
 Added new pre-import intensity filter for UCD, which should help with memory crashes on large data files.
 
+Fixed bug opening mzML files with new build.
+
+Fixed bug with smashflag on UPP.
+
 Fixed a few display and interface bugs on UCCD and UCD.
 
 Fixed Waters Data Conversion Wizard issue with Trapping Collision Energy (eV). Stopped it from closing by default when the conversion is initiated.

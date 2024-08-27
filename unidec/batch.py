@@ -221,6 +221,7 @@ def check_for_word_in_keys(df, word="Correct"):
 
 
 def set_param_from_row(eng, row, dirname=""):
+    eng.config.smashflag = 0
     for k in row.keys():
         val = row[k]
         if isinstance(val, (float, int)):
@@ -348,8 +349,6 @@ def set_param_from_row(eng, row, dirname=""):
             else:
                 print("Smash File Not Found", smash_file, val)
                 eng.config.smashflag = 0
-        else:
-            eng.config.smashflag = 0
 
         # print(eng.config.maxmz, eng.config.minmz, k)
     return eng
@@ -879,6 +878,7 @@ if __name__ == "__main__":
         # path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
         path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
         path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short_repeat.xlsx"
+        path = "C:\\Data\\PatelTest\\CTNNB13DR010_batch_trunc.csv"
         # path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
         pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=True, use_converted=True, interactive=False)

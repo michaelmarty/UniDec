@@ -12,6 +12,7 @@ from PyInstaller import compat
 import matplotlib
 import sys
 import hashlib
+import shutil
 
 
 def hashfile(path):
@@ -158,6 +159,11 @@ coll = COLLECT(exe,
 
 path = "C:\\Python\\UniDec3\\dist\\UniDec_Windows\\GUI_UniDec.exe"
 import subprocess
+
+dst = "C:\\Python\\UniDec3\\dist\\UniDec_Windows\\obo"
+src = "C:\\Python\\UniDec3\\dist\\UniDec_Windows\\_internal\\obo"
+
+shutil.copytree(src, dst)
 
 print("Testing Software...", path)
 

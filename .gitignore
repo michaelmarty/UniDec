@@ -27,7 +27,7 @@ TestSpectra
 default_conf.dat
 unidec_src/cfunction/x64
 unidec_src/cfunction/libmypfunc32.dll
-Scripts/MTM/unidec_tests.py
+Scripts/MTM/Old/unidec_tests.py
 pyinstaller_64.bat
 pyinstaller_64_dist.bat
 /Scripts/MTM/fft_test.py
@@ -36,7 +36,7 @@ todo.txt
 unidec/bin/Other_builds/
 unidec_src/Old
 test_GUI.py
-Scripts/MTM/test_UniDec.py
+Scripts/MTM/Old/test_UniDec.py
 unidec/metaunidec/test_MUD.py
 unidec/bin/CDCReaderOld.exe
 Scripts/MTM/Old/fft_test.py
