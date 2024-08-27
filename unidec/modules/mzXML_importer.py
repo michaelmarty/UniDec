@@ -56,6 +56,10 @@ class mzXMLimporter:
         self.scans = np.arange(0, len(self.ids))
         # print("Reading Complete")
 
+    def grab_scan_data(self, scan):
+        data = get_data_from_spectrum(self.msrun[self.ids[scan]])
+        return data
+
     def get_data_memory_safe(self, scan_range=None, time_range=None):
         if time_range is not None:
             scan_range = self.get_scans_from_times(time_range)
@@ -94,7 +98,7 @@ class mzXMLimporter:
                 # newscans.append(self.scans[i])
                 newids.append(s)
             except Exception as e:
-                print("mzML import error")
+                print("mzXML import error")
                 print(e)
         # self.scans = np.array(newscans)
         self.times = np.array(newtimes)
@@ -204,11 +208,14 @@ class mzXMLimporter:
 
 if __name__ == "__main__":
     test = u"C:\\Data\\Wilson_Genentech\\Raw Files for Michael Marty\\B4.mzXML"
+    test = "D:\Data\TopDown\denatured_discovery_input_topfd.mzxml"
     import time
 
     tstart = time.perf_counter()
 
     d = mzXMLimporter(test)
+    d.grab_scan_data(10)
+    exit()
 
     tic = d.get_tic()
     #print(len(tic))

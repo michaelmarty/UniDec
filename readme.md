@@ -197,11 +197,23 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.7.0.2
 
+Improvements to UPP outputs. Fixed issue with reports getting overwritten if the same file is used in multiple rows with UPP. 
+
+Added new options in MetaUniDec for Average Charge State Plotting. Added exports of text files for fits and fitdata.
+
+Added new pre-import intensity filter for UCD, which should help with memory crashes on large data files.
+
+Fixed bug opening mzML files with new build.
+
+Fixed bug with smashflag on UPP.
+
 Fixed a few display and interface bugs on UCCD and UCD.
 
 Fixed Waters Data Conversion Wizard issue with Trapping Collision Energy (eV). Stopped it from closing by default when the conversion is initiated.
 
 Fixed bug with KD fitting on DataCollector. Fixed bug with UltraMeta. 
+
+Fixed bugs with UCD Thermo imports and with Thermo header information for resolution.
 
 v.7.0.1
 

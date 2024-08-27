@@ -81,8 +81,8 @@ class UniDec(UniDecEngine):
                 self.autorun()
             pass
 
-    def open_file(self, file_name, file_directory=None, time_range=None, refresh=False, load_results=False, *args,
-                  **kwargs):
+    def open_file(self, file_name, file_directory=None, time_range=None, refresh=False, load_results=False,
+                  *args, **kwargs):
         """
         Open text or mzML file. Will create _unidecfiles directory if it does not exist.
 
@@ -151,18 +151,6 @@ class UniDec(UniDecEngine):
             self.config.imflag = 1
             self.config.discreteplot = 1
             self.config.poolflag = 1
-            '''
-            mzaxis = np.unique(self.data.rawdata[:, 0])
-            dtaxis = np.unique(self.data.rawdata[:, 1])
-            intgrid = np.zeros((len(mzaxis), len(dtaxis)))
-            if len(self.data.rawdata[:, 2]) == len(np.ravel(intgrid)):
-                intgrid = self.data.rawdata[:, 2].reshape((len(mzaxis), len(dtaxis)))
-            else:
-                for x, y, z in self.data.rawdata:
-                    intgrid[np.where(mzaxis == x)[0][0], np.where(dtaxis == y)[0][0]] = z
-            self.data.rawdata = np.transpose([mzaxis, np.sum(intgrid, axis=1)])
-            mzaxis, dtaxis = np.meshgrid(mzaxis, dtaxis, sparse=False, indexing='ij')
-            self.data.rawdata3 = np.transpose([np.ravel(mzaxis), np.ravel(dtaxis), np.ravel(intgrid)])'''
             self.data.rawdata3, self.data.rawdata = ud.unsparse(self.data.rawdata)
             self.data.data3 = self.data.rawdata3
         else:

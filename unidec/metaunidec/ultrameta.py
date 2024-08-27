@@ -36,9 +36,9 @@ rcParams['ps.useafm'] = True
 rcParams['ps.fonttype'] = 42
 rcParams['pdf.fonttype'] = 42
 
-extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position"}
+extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position", 5: "Estimated Area"}
 extractchoicesz = {0: "Maximum", 1: "Weighted Average"}
-extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass"}
+extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass", 5: "Area"}
 
 markdict = {'\u25CB': 'o', '\u25BD': 'v', '\u25B3': '^', '\u25B7': '>', '\u25A2': 's', '\u2662': 'd',
             '\u2606': '*'}
@@ -329,6 +329,14 @@ class DataCollector(wx.Frame):
             self.config.exchoicez = h5_config.attrs["exchoicez"]
         except:
             self.config.exchoicez = 1
+
+        if self.config.exchoice == 6:
+            self.config.exchoice = 0
+            self.config.exchoicez = 1
+
+        if self.config.exchoice == 7:
+            self.config.exchoice = 0
+            self.config.exchoicez = 0
 
         self.config.exwindow = h5_config.attrs["exwindow"]
 
@@ -918,12 +926,10 @@ class DataCollector(wx.Frame):
         self.ctlnorm.SetSelection(self.config.exnorm)
         self.ctlnormz.SetSelection(self.config.exnormz)
         if self.config.exchoice > len(extractchoices):
+            print("Error: Extract Choice out of range")
             if self.config.exchoice == 5:
                 self.config.exchoice = 3
                 self.config.exthresh = 50
-            if self.config.exchoice == 6:
-                self.config.exchoice = 3
-                self.config.exthresh = 10
         self.ctlextract.SetSelection(self.config.exchoice)
         self.ctlextractz.SetSelection(self.config.exchoicez)
         self.ctlextractwindow.SetValue(str(self.config.exwindow))

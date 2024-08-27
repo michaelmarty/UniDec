@@ -6,7 +6,7 @@ import unidec.tools as ud
 import platform
 import matplotlib.cm as cm
 import matplotlib as mpl
-from matplotlib.pyplot import colormaps
+#from matplotlib.pyplot import colormaps
 import h5py
 from unidec.modules.unidec_enginebase import version as version
 from unidec.modules.hdf5_tools import replace_dataset, get_dataset
@@ -66,6 +66,7 @@ class UniDecConfig(object):
         self.ofile = "ofile.dat"
         self.matchfile = "match.csv"
         self.peaksfile = "peaks.dat"
+        self.reportfile = "report.html"
         self.dirname = ''
         self.udir = ''
         self.filename = ''
@@ -240,7 +241,7 @@ class UniDecConfig(object):
         self.peakplotthresh = 0.1
         self.separation = 0.025
         self.peaknorm = 1
-        self.exwindow = 0
+        self.exwindow = 10
         self.exchoice = 0
         self.exchoicez = 1
         self.exthresh = 10
@@ -270,6 +271,7 @@ class UniDecConfig(object):
         self.CDScanStart = -1
         self.CDScanEnd = -1
         self.CDiitflag = False
+        self.CDprethresh = 0
 
         # Hadamard Transform Parameters
         self.htmode = False
@@ -430,7 +432,7 @@ class UniDecConfig(object):
         self.peakplotthresh = 0.1
         self.separation = 0.025
         self.peaknorm = 1
-        self.exwindow = 0
+        self.exwindow = 10
         self.exchoice = 0
         self.exchoicez = 1
         self.exthresh = 10
@@ -459,6 +461,7 @@ class UniDecConfig(object):
         self.CDres = 0
         self.CDScanStart = -1
         self.CDScanEnd = -1
+        self.CDprethresh = 0
         self.HTksmooth = 0
         self.CDScanCompress = 0
         self.HTcycleindex = -1
@@ -476,7 +479,7 @@ class UniDecConfig(object):
         :return: None
         """
         m = [i for i in cm.datad]
-        m2 = colormaps()
+        m2 = [map for map in mpl.colormaps]
 
         self.cmaps = sorted(m2)
         self.cmaps2 = sorted(m2)
@@ -582,6 +585,7 @@ class UniDecConfig(object):
         f.write("CDres " + str(self.CDres) + "\n")
         f.write("CDScanStart " + str(self.CDScanStart) + "\n")
         f.write("CDScanEnd " + str(self.CDScanEnd) + "\n")
+        f.write("CDprethresh " + str(self.CDprethresh) + "\n")
         f.write("HTksmooth " + str(self.HTksmooth) + "\n")
         f.write("CDScanCompress " + str(self.CDScanCompress) + "\n")
         f.write("HTmaxscans " + str(self.HTmaxscans) + "\n")
@@ -719,6 +723,8 @@ class UniDecConfig(object):
                             self.CDres = ud.string_to_value(line.split()[1])
                         if line.startswith("CDScanStart"):
                             self.CDScanStart = ud.string_to_int(line.split()[1])
+                        if line.startswith("CDprethresh"):
+                            self.CDprethresh = ud.string_to_value(line.split()[1])
                         if line.startswith("CDScanEnd"):
                             self.CDScanEnd = ud.string_to_int(line.split()[1])
                         if line.startswith("HTksmooth"):
@@ -1179,28 +1185,29 @@ class UniDecConfig(object):
         print(f.read())
         f.close()
 
-    def default_file_names(self):
+    def default_file_names(self, s="_"):
         """
         Sets the default file names. For things comming into and out of the program. In theory these can be modified,
         but it might be risky.
         :return: None
         """
-        self.infname = self.outfname + "_input.dat"
-        self.confname = self.outfname + "_conf.dat"
-        self.mfile = self.outfname + "_mfile.dat"
-        self.manualfile = self.outfname + "_manualfile.dat"
-        self.smashfile = self.outfname + "_smashfile.dat"
-        self.ofile = self.outfname + "_ofile.dat"
-        self.matchfile = self.outfname + "_match.dat"
-        self.peaksfile = self.outfname + "_peaks.dat"
-        self.massdatfile = self.outfname + "_mass.txt"
-        self.massgridfile = self.outfname + "_massgrid.bin"
-        self.fitdatfile = self.outfname + "_fitdat.bin"
-        self.errorfile = self.outfname + "_error.txt"
-        self.deconfile = self.outfname + "_decon.txt"
-        self.mzgridfile = self.outfname + "_grid.bin"
-        self.cdrawextracts = self.outfname + "_rawdata.npz"
-        self.cdchrom = self.outfname + "_chroms.txt"
+        self.infname = self.outfname + s + "input.dat"
+        self.confname = self.outfname + s + "conf.dat"
+        self.mfile = self.outfname + s + "mfile.dat"
+        self.manualfile = self.outfname + s + "manualfile.dat"
+        self.smashfile = self.outfname + s + "smashfile.dat"
+        self.ofile = self.outfname + s + "ofile.dat"
+        self.matchfile = self.outfname + s + "match.dat"
+        self.peaksfile = self.outfname + s + "peaks.dat"
+        self.massdatfile = self.outfname + s + "mass.txt"
+        self.massgridfile = self.outfname + s + "massgrid.bin"
+        self.fitdatfile = self.outfname + s + "fitdat.bin"
+        self.errorfile = self.outfname + s + "error.txt"
+        self.deconfile = self.outfname + s + "decon.txt"
+        self.mzgridfile = self.outfname + s + "grid.bin"
+        self.cdrawextracts = self.outfname + s + "rawdata.npz"
+        self.cdchrom = self.outfname + s + "chroms.txt"
+        self.reportfile = self.outfname + s + "report.html"
         if self.filetype == 0:
             self.hdf_file = self.outfname + ".hdf5"
 

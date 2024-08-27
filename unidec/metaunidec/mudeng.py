@@ -316,6 +316,8 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
             print("Writing HDF5 spctrum to text file:", outfile)
             self.config.config_export(self.config.outfname + "_conf.dat")
 
+
+
     def batch_set_config(self, paths):
         for p in paths:
             try:
@@ -350,17 +352,41 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         for i, y in enumerate(self.data.exgrid):
             if fit == "exp":
                 fits, fitdat = ud.exp_fit(xvals, y)
+                print("Exp Constant", "Height", "Baseline")
+                print(fits)
             elif fit == "lin":
                 fits, fitdat = ud.lin_fit(xvals, y)
+                print("Slope", "Intercept")
+                print(fits)
             elif fit == "sig":
                 fits, fitdat = ud.sig_fit(xvals, y)
+                print("Midpoint", "Slope", "Height", "Baseline")
+                print(fits)
             else:
                 print("ERROR: Unsupported fit type")
                 break
-            print(fits)
+
             self.data.fitgrid.append(fitdat)
             self.data.fits.append(fits)
         self.data.export_fits()
+
+        # Save data output to text
+        self.export_fits()
+
+    def export_fits(self, e=None):
+        outfile = self.config.outfname + "_fits.txt"
+        np.savetxt(outfile, np.array(self.data.fits))
+        print("Writing Fit to text file:", outfile)
+
+        outfile2 = self.config.outfname + "_fitgrid.txt"
+        np.savetxt(outfile2, np.array(self.data.fitgrid))
+        print("Writing Fit Grid to text file:", outfile2)
+
+        outfile3 = self.config.outfname + "_exgrid.txt"
+        # Add xvals to top of exgrid
+        exgrid = np.vstack((self.data.var1, self.data.exgrid))
+        np.savetxt(outfile3, np.array(exgrid))
+        print("Writing Exgrid to text file:", outfile3)
 
     def import_mzml(self, paths, timestep=1.0, scanstep=None, starttp=None, endtp=None, name=None,
                     startscan=None, endscan=None):

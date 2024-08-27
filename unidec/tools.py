@@ -21,6 +21,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 from unidec.modules.fitting import *
 from itertools import cycle
+#from numba import jit
 
 try:
     from unidec.modules.mzMLimporter import mzMLimporter
@@ -90,6 +91,7 @@ def get_importer(path):
             d = data_reader.DataImporter(path)
     else:
         print("Get Importer Failed. File Not Found:", path)
+        return None
 
     return d
 
@@ -1965,7 +1967,7 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     out = exe_call(call, silent=silent)
     return out
 
-
+#@jit(nopython=True)
 def peakdetect(data, config=None, window=10, threshold=0, ppm=None, norm=True):
     """
     Simple peak detection algorithm.
@@ -3258,6 +3260,11 @@ def get_swoop_mz_minmax(mz, i):
         mzmin = (mz[i] + mz[i + 1]) / 2
     return mzmin, mzmax
 
+def within_ppm(theo, exp, ppmtol):
+    ppm_error = np.abs(((theo - exp) / theo) * 1e6)
+    return np.abs(((theo - exp) / theo) * 1e6) <= ppmtol
+
+
 
 if __name__ == "__main__":
     testdir = "C:\\Data\\AgilentData"
@@ -3268,7 +3275,7 @@ if __name__ == "__main__":
     data = load_mz_file(path)
 
     exit()
-    testfile = "C:\Python\\UniDec3\\TestSpectra\\test_imms.raw"
+    testfile = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw"
     # data = waters_convert(testfile)
     # print(np.amax(data))
     data = waters_convert2(testfile)  # , time_range=[0,1])

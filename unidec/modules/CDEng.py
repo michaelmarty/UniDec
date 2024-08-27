@@ -182,7 +182,7 @@ class UniDecCD(engine.UniDec):
             # Import Thermo Raw file using ThermoDataImporter
             self.TDI = ThermoDataImporter(self.path)
             # Get the data
-            data = self.TDI.grab_data()
+            data = self.TDI.grab_data(threshold=self.config.CDprethresh)
             # Get the scans
             self.scans = self.TDI.scans
             # Get the injection times for each scan
@@ -191,13 +191,13 @@ class UniDecCD(engine.UniDec):
             self.res = self.TDI.msrun.resolution
             # Set flag for correcting injection times later
             self.thermodata = True
-            self.invinjtime = 1./self.it
+            self.invinjtime = 1. / self.it
 
         elif extension.lower() == ".i2ms" or extension.lower() == ".dmt":
             # Import Thermo Raw file using ThermoDataImporter
             self.I2MSI = i2ms_importer.I2MSImporter(self.path)
             # Get the data
-            data = self.I2MSI.grab_data()
+            data = self.I2MSI.grab_data(threshold=self.config.CDprethresh)
             mz = data[:, 0]
             intensity = data[:, 1]
             # Get the scans
@@ -211,10 +211,10 @@ class UniDecCD(engine.UniDec):
             # Import mzML data, scans, and injection time
             # Note, resolution info is not transferred to mzML to my knowledge
             self.MLI = mzMLimporter.mzMLimporter(self.path)
-            data = self.MLI.grab_data(threshold=0)
+            data = self.MLI.grab_data(threshold=self.config.CDprethresh)
             self.scans = self.MLI.scans
             self.it = self.MLI.get_inj_time_array()
-            self.invinjtime = 1./self.it
+            self.invinjtime = 1. / self.it
             self.thermodata = True
 
         elif extension.lower() == ".txt":
@@ -222,9 +222,15 @@ class UniDecCD(engine.UniDec):
             try:
                 # Load text file
                 data = np.loadtxt(self.path)
+
+                # Filter pre-threshold
+                b1 = data[:, 1] > self.config.CDprethresh
+                data = data[b1]
+
                 # Assume m/z is in column 1 and intensity column 2
                 mz = data[:, 0]
                 intensity = data[:, 1]
+
                 # Look for scans in column 3
                 try:
                     scans = data[:, 2]
@@ -245,6 +251,13 @@ class UniDecCD(engine.UniDec):
                 mz = data[1:, mzcol].astype(float)
                 intensity = data[1:, intcol].astype(float)
                 scans = np.arange(len(mz))
+
+                # Filter pre-threshold
+                b1 = intensity > self.config.CDprethresh
+                mz = mz[b1]
+                intensity = intensity[b1]
+                scans = scans[b1]
+
                 self.invinjtime = None
             # Don't do post-processing for thermo data
             self.thermodata = False
@@ -252,6 +265,10 @@ class UniDecCD(engine.UniDec):
         elif extension.lower() == ".csv":
             # Load text file
             data = np.genfromtxt(self.path, delimiter=",")
+            # Filter pre-threshold
+            b1 = data[:, 1] > self.config.CDprethresh
+            data = data[b1]
+
             # Assume m/z is in column 1 and intensity column 2
             mz = data[:, 0]
             intensity = data[:, 1]
@@ -275,6 +292,10 @@ class UniDecCD(engine.UniDec):
                 data = data.reshape((int(len(data) / 3), 3))
             except Exception:
                 data = data.reshape((int(len(data) / 2)), 2)
+
+            # Filter pre-threshold
+            b1 = data[:, 1] > self.config.CDprethresh
+            data = data[b1]
             # Assume m/z is in column 1 and intensity column 2
             mz = data[:, 0]
             intensity = data[:, 1]
@@ -294,6 +315,11 @@ class UniDecCD(engine.UniDec):
         elif extension.lower() == ".npz":
             # Load numpy compressed file
             data = np.load(self.path, allow_pickle=True)['data']
+
+            # Filter pre-threshold
+            b1 = data[:, 1] > self.config.CDprethresh
+            data = data[b1]
+
             # Assume m/z is in column 1 and intensity column 2
             mz = data[:, 0]
             intensity = data[:, 1]
@@ -319,12 +345,21 @@ class UniDecCD(engine.UniDec):
         # Ignored if text file input
         if self.thermodata:
             scans = np.concatenate([s * np.ones(len(data[i])) for i, s in enumerate(self.scans)])
+
             mz = np.concatenate([d[:, 0] for d in data])
             try:
                 intensity = np.concatenate([d[:, 1] * self.it[i] / 1000. for i, d in enumerate(data)])
             except Exception as e:
                 print(e, self.it)
                 intensity = np.concatenate([d[:, 1] for i, d in enumerate(data)])
+
+            try:
+                it = np.concatenate([it * np.ones(len(data[i])) for i, it in enumerate(self.invinjtime)])
+                self.invinjtime = it
+            except Exception as e:
+                print("Error with injection time correction:", e)
+                print(mz.shape, intensity.shape, scans.shape, self.invinjtime.shape)
+                self.invinjtime = None
 
         if self.invinjtime is None:
             self.invinjtime = np.ones_like(scans)
@@ -1315,4 +1350,3 @@ if __name__ == '__main__':
     eng.harray = eng.mass
     # eng.filter_zdist()
     exit()
-

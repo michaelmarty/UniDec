@@ -221,6 +221,7 @@ def check_for_word_in_keys(df, word="Correct"):
 
 
 def set_param_from_row(eng, row, dirname=""):
+    eng.config.smashflag = 0
     for k in row.keys():
         val = row[k]
         if isinstance(val, (float, int)):
@@ -348,8 +349,6 @@ def set_param_from_row(eng, row, dirname=""):
             else:
                 print("Smash File Not Found", smash_file, val)
                 eng.config.smashflag = 0
-        else:
-            eng.config.smashflag = 0
 
         # print(eng.config.maxmz, eng.config.minmz, k)
     return eng
@@ -472,6 +471,8 @@ class UniDecBatchProcessor(object):
         # if self.correct_pair_mode:
         #    self.rundf = remove_columns(self.rundf, "Height")
 
+        duplicate_paths = self.check_duplicate_filenames(use_converted=use_converted)
+
         total_n = len(self.rundf)
         # Loop through the DataFrame
         for i, row in self.rundf.iterrows():
@@ -582,7 +583,11 @@ class UniDecBatchProcessor(object):
 
                 del_columns = ["LowValFWHM", "HighValFWHM"]
                 # Generate the HTML report
-                outfile = self.eng.gen_html_report(open_in_browser=False, interactive=interactive,
+                if path in duplicate_paths:
+                    findex = i
+                else:
+                    findex = None
+                outfile = self.eng.gen_html_report(open_in_browser=False, interactive=interactive, findex=findex,
                                                    results_string=results_string, del_columns=del_columns)
                 htmlfiles.append(outfile)
 
@@ -683,6 +688,22 @@ class UniDecBatchProcessor(object):
         outpath = find_file(file, self.data_dir, use_converted)
         # print("File Path:", outpath)
         return os.path.abspath(outpath)
+
+    def check_duplicate_filenames(self, use_converted=True):
+        paths = []
+        duplicate_paths = []
+        for i, row in self.rundf.iterrows():
+            path = self.get_file_path(row, use_converted=use_converted)
+            paths.append(path)
+
+        upaths = np.unique(paths)
+        if len(paths) != len(upaths):
+            print("Duplicate Filenames Found:")
+            for i, p in enumerate(upaths):
+                if paths.count(p) > 1:
+                    print(p, paths.count(p))
+                    duplicate_paths.append(p)
+        return duplicate_paths
 
     def get_tol(self, row):
         # Extract the tolerance for peak matching
@@ -856,6 +877,8 @@ if __name__ == "__main__":
         path = "C:\\Data\\UPPDemo\\BsAb\\BsAb test - Copy.xlsx"
         # path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
         path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
+        path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short_repeat.xlsx"
+        path = "C:\\Data\\PatelTest\\CTNNB13DR010_batch_trunc.csv"
         # path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
         pd.set_option('display.max_columns', None)
         batch.run_file(path, decon=True, use_converted=True, interactive=False)

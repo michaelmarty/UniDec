@@ -48,6 +48,8 @@ Borrowed some code from pyRawRileReader from pDeep3: https://github.com/pFindStu
 
 
 def DotNetArrayToNPArray(arr, dtype=float):
+    if arr is None:
+        return []
     return np.array(list(arr), dtype=dtype)
 
 
@@ -194,7 +196,7 @@ class RawFileReader(object):
 
         self.get_scan_header()
         self.get_status_log()
-        #self.get_tune_data()
+        # self.get_tune_data()
 
     def get_scan_header(self, scannumber=1):
         try:
@@ -205,16 +207,30 @@ class RawFileReader(object):
             for i in range(len(extra_header_info)):
                 item = extra_header_info[i]
                 self.header[item.Label[:-1]] = extra_header_values[i]
-
             try:
                 self.injection_time = float(self.Get_Header_Item('Ion Injection Time (ms)'))
-                self.resolution = float(self.Get_Header_Item('FT Resolution'))
-                self.analog1 = float(self.Get_Header_Item("Analog Input 1 (V)"))
-                self.analog2 = float(self.Get_Header_Item("Analog Input 2 (V)"))
-                return self.injection_time, self.resolution, self.analog1, self.analog2
             except:
                 self.injection_time = None
+                print("Error getting injection time")
+
+            try:
+                # find FT resultion in the header
+                reskeyword = 'FT Resolution'
+                if reskeyword not in self.header:
+                    reskeyword = 'FT Resolution (m/z=400)'
+                self.resolution = float(self.Get_Header_Item(reskeyword))
+            except:
                 self.resolution = None
+                print("Error getting resolution")
+
+            try:
+                self.analog1 = float(self.Get_Header_Item("Analog Input 1 (V)"))
+                self.analog2 = float(self.Get_Header_Item("Analog Input 2 (V)"))
+            except:
+                self.analog1 = None
+                self.analog2 = None
+                print("Error getting analog data")
+            return self.injection_time, self.resolution, self.analog1, self.analog2
         except:
             self.header = None
             print("Error getting header")
@@ -391,9 +407,9 @@ class RawFileReader(object):
         MR = Range.Create(float(massrange[0]), float(massrange[1]))
         settings = ChromatogramTraceSettings(TraceType.MassRange)
         settings.MassRanges = [MR]
-        #print(MR, dir(MR), MR.High, MR.Low)
-        #print(settings, dir(settings), settings.GetMassRange(trace_number).High)
-        #print(dir(MR), MR.High, MR.Low)
+        # print(MR, dir(MR), MR.High, MR.Low)
+        # print(settings, dir(settings), settings.GetMassRange(trace_number).High)
+        # print(dir(MR), MR.High, MR.Low)
         # Get the chromatogram from the RAW file.
         data = self.source.GetChromatogramData([settings], int(scanrange[0]), int(scanrange[1]))
         # Split the data into the chromatograms
@@ -402,6 +418,14 @@ class RawFileReader(object):
         self.ticdat = np.transpose(
             [DotNetArrayToNPArray(trace[trace_number].Times), DotNetArrayToNPArray(trace[trace_number].Intensities)])
         return self.ticdat
+
+    def GetMSOrder(self, s):
+        scanFilter = IScanFilter(self.source.GetFilterForScanNumber(int(s)))
+        return scanFilter.MSOrder.value__
+
+    def GetScanFilter(self, s):
+        scanFilter = IScanFilter(self.source.GetFilterForScanNumber(int(s)))
+        return scanFilter
 
     def ReadScanInformation(self, scanrange=None, outputData=True):
         """Reads the general scan information for each scan in the RAW file
@@ -604,6 +628,12 @@ class RawFileReader(object):
 
         all = np.transpose([masses, intensities, noises, resolutions])
         return all
+
+    def GetCentroidSpectrum(self, scanNumber=1):
+        scan = Scan.FromFile(self.source, int(scanNumber))
+        masses = DotNetArrayToNPArray(scan.PreferredMasses)
+        intensities = DotNetArrayToNPArray(scan.PreferredIntensities)
+        return np.transpose([masses, intensities])
 
     def CalculateMassPrecision(self, scanNumber=1):
         """Calculates the mass precision for a spectrum.

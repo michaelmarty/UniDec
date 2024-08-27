@@ -35,11 +35,13 @@ class ThermoDataImporter:
         print("Number of Scans", len(self.scans))
         # print(self.times)
 
-    def grab_data(self):
+    def grab_data(self, threshold=-1):
         self.data = []
         for s in self.scans:
             impdat = np.array(self.msrun.GetSpectrum(s))  # May want to test this.
             impdat = impdat[impdat[:, 0] > 10]
+            if threshold >= 0:
+                impdat = impdat[impdat[:, 1] > threshold]
             self.data.append(impdat)
         self.data = np.array(self.data, dtype=object)
         return self.data
@@ -57,6 +59,25 @@ class ThermoDataImporter:
         impdat = np.array(self.msrun.GetSpectrum(s))  # May want to test this.
         impdat = impdat[impdat[:, 0] > 10]
         return impdat
+
+    def grab_centroid_data(self, s):
+        impdat = np.array(self.msrun.GetCentroidSpectrum(s))
+        impdat = impdat[impdat[:, 0] > 10]
+        return impdat
+
+    def get_ms_order(self, s):
+        order = self.msrun.GetMSOrder(s)
+        return order
+
+    def get_scan_time(self, s):
+        return self.msrun.scan_time_from_scan_name(s)
+
+    def get_isolation_mz_width(self, s):
+        scanFilter =  self.msrun.GetScanFilter(s)
+        reaction = scanFilter.GetReaction(0)
+        mz = reaction.PrecursorMass
+        width = reaction.IsolationWidth
+        return mz, width
 
     def get_data(self, scan_range=None, time_range=None):
         """
@@ -180,6 +201,7 @@ class ThermoDataImporter:
         return sid_value
 
 
+
     def get_polarity(self, scan=1):
         #print(dir(self.msrun.source))
         """
@@ -208,13 +230,14 @@ class ThermoDataImporter:
         return None
 
 if __name__ == "__main__":
-    test = u"C:\Python\\UniDec3\TestSpectra\\test.RAW"
+    test = u"C:\\Python\\UniDec3\\TestSpectra\\test.RAW"
     #test = "Z:\\Group Share\\Levi\\MS DATA\\vt_ESI data\\DMPG LL37 ramps\\18to1\\20210707_LB_DMPG3_LL37_18to1_RAMP_16_37_3.RAW"
     #test = "Z:\Group Share\Group\Archive\JamesKeener Keener\AqpZ mix lipid ND\\20190226_JEK_AQPZ_E3T0_PGPC_GC_NEG.RAW"
 
     tstart = time.perf_counter()
     d = ThermoDataImporter(test)
-    dat = d.get_eic([5000,10000])
+    dat = d.grab_centroid_data(1)
+    print(len(dat))
 
     import matplotlib.pyplot as plt
     plt.plot(dat[:,0], dat[:,1])
