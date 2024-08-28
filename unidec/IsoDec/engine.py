@@ -275,7 +275,7 @@ class IsoDecEngine:
 
         # plot_zdist(self)
 
-    def train_model(self, epochs=30, save=True, lossfn="crossentropy"):
+    def train_model(self, epochs=30, save=True, lossfn="crossentropy", forcenew=False):
         """
         Train the model
         :param epochs: Number of epochs
@@ -290,7 +290,7 @@ class IsoDecEngine:
         self.phasemodel.get_class_weights(self.train_dataloader)
         for t in range(epochs):
             print(f"Epoch {t + 1}\n-------------------------------")
-            self.phasemodel.train_model(self.train_dataloader, lossfn=lossfn)
+            self.phasemodel.train_model(self.train_dataloader, lossfn=lossfn, forcenew=forcenew)
             self.phasemodel.evaluate_model(self.test_dataloader)
 
         if save:
@@ -622,13 +622,14 @@ class IsoDecConfig:
 
 if __name__ == "__main__":
     starttime = time.perf_counter()
-    eng = IsoDecEngine(phaseres=4)
+    eng = IsoDecEngine(phaseres=8)
     topdirectory = "C:\\Data\\IsoNN\\training"
 
     dirs = [os.path.join(topdirectory, d) for d in small_data_dirs]
-    eng.create_merged_dataloader(dirs, "phase4", noise_percent=0.0, batchsize=32, double_percent=0.0)
+    eng.create_merged_dataloader(dirs, "phase83", noise_percent=0.0, batchsize=32, double_percent=0.4)
     # eng.train_model(epochs=3)
-    eng.train_model(epochs=3, lossfn="focal")
+    eng.train_model(epochs=10, lossfn="crossentropy", forcenew=True)
+    #eng.train_model(epochs=3, lossfn="focal", forcenew=False)
 
     # eng.create_merged_dataloader([os.path.join(topdirectory, small_data_dirs[2])], "phase82", noise_percent=0.2,
     #                             batchsize=32, double_percent=0.2)

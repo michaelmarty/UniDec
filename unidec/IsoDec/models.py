@@ -136,10 +136,11 @@ class PhaseModel:
 
         self.savepath = os.path.join(self.working_dir, savename)
 
-    def setup_model(self, modelid=None):
+    def setup_model(self, modelid=None, forcenew=False):
         """
         Setup model and load if savepath exists. Set device.
         :param modelid: Model ID passed to self.get_model()
+        :param forcenew: Whether to force starting over from scratch on model parameters
         :return: None
         """
         if modelid is None:
@@ -154,9 +155,11 @@ class PhaseModel:
         print(f"Using {self.device} device")
 
         self.get_model(modelid)
-        if os.path.isfile(self.savepath):
+        if os.path.isfile(self.savepath) and not forcenew:
             self.load_model()
             print("Loaded Weights:", self.savepath)
+        else:
+            print("Starting Model From Scratch. Let's ride!")
         self.model = self.model.to(self.device)
         print("Loaded Model:", self.model)
 
@@ -181,14 +184,14 @@ class PhaseModel:
         # self.class_weights.to(self.device)
         print("Class Weights:", self.class_weights, len(self.class_weights))
 
-    def setup_training(self, lossfn="crossentropy"):
+    def setup_training(self, lossfn="crossentropy", forcenew=False):
         """"
         Setup loss function, optimizer, and scheduler.
         :param lossfn: Loss function to use. Options are "crossentropy", "weightedcrossentropy", and "focal".
         :return: None
         """
         if self.model is None:
-            self.setup_model()
+            self.setup_model(forcenew=forcenew)
         if lossfn == "crossentropy":
             self.loss_fn = nn.CrossEntropyLoss()
         elif lossfn == "weightedcrossentropy":
@@ -233,7 +236,7 @@ class PhaseModel:
         save_model_to_binary(self.model, self.savepath.replace(".pth", ".bin"))
         print("Model saved:", self.savepath, self.savepath.replace(".pth", ".bin"))
 
-    def train_model(self, dataloader, lossfn="crossentropy"):
+    def train_model(self, dataloader, lossfn="crossentropy", forcenew=False):
         """
         Train the model on a DataLoader object.
         :param dataloader: Training DataLoader object
@@ -242,7 +245,7 @@ class PhaseModel:
         """
         # if self.loss_fn is None or self.optimizer is None:
         # plot_zdist(self)
-        self.setup_training(lossfn)
+        self.setup_training(lossfn, forcenew=forcenew)
         set_debug_apis(state=False)
         size = len(dataloader.dataset)
         num_batches = len(dataloader)
@@ -263,7 +266,7 @@ class PhaseModel:
             self.optimizer.zero_grad()
 
             if batch % int(num_batches / 5) == 0:
-                loss, current = loss.item(), (batch + 1) * len(X)
+                loss, current = loss.item(), (batch + 1) * len(x)
                 print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
         if self.scheduler is not None:
             self.scheduler.step()

@@ -504,7 +504,6 @@ def encode_phase_file(file, maxlen=8, save=True, outdir="C:\\Data\\IsoNN\\multi"
 data_dirs = ["MSV000090488",
              "MSV000091923",
              "RibosomalPfms_Td_Control",
-             "PXD019247",
              "PXD045560",
              "PXD046651",
              "PXD027650",
