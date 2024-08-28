@@ -3,12 +3,13 @@ import warnings
 import numpy as np
 from itertools import chain
 import torch
+from mpmath import harmonic
 from torch.utils.data import DataLoader
 from unidec.IsoDec.models import example, PhaseModel
 from unidec.IsoDec.datatools import fastpeakdetect, get_all_centroids, fastnearest, calculate_cosinesimilarity2
 from unidec.IsoDec.match import *
 from unidec.IsoDec.encoding import data_dirs, encode_noise, encode_phase_all, small_data_dirs, \
-    encode_double
+    encode_double, encode_harmonic
 import os
 import math
 from copy import deepcopy
@@ -83,6 +84,71 @@ class IsoDecEngine:
             self.wrapper = None
 
         self.reader = None
+
+    def drop_ones(self, percentage=0.8):
+        """
+        Drop 80% of the training data with charge 1
+        :param percentage: Percentage of data to drop
+        :return: None
+        """
+        print("Dropping charge 1 data:", percentage)
+        z = self.training_data[1]
+        emat = self.training_data[0]
+        centroids = self.training_data[2]
+        keep = []
+        for i in range(len(z)):
+            if z[i] != 1 or np.random.rand() < percentage:
+                keep.append(i)
+        self.training_data = [emat[keep], z[keep], [centroids[i] for i in keep]]
+        print("New Length:", len(self.training_data[0]))
+
+    def add_harmonics(self, harmonic_percent=0.4):
+        """
+        Add harmonics at 2x charge to the training and test data
+        :param harmonic_percent: Percent of total data to add as harmonics
+        :return: None
+        """
+        ltraining = len(self.training_data[0])
+        ltest = len(self.test_data[0])
+        nharm = int(ltraining * harmonic_percent)
+        print(f"Adding {nharm} harmonic samples to training data")
+        emats = []
+        zs = []
+        tempcentroids = []
+        for i in range(nharm):
+            index = np.random.randint(0, ltraining - 1)
+            centroid = self.training_data[2][index]
+            z = self.training_data[1][index]
+            emat, centroid2 = encode_harmonic(centroid, z, phaseres=self.phaseres)
+            emats.append(emat)
+            zs.append(z)
+            tempcentroids.append(centroid2)
+
+            # cplot(centroid)
+            # cplot(centroid2, color="b")
+            # plt.show()
+
+        self.training_data[0] = np.concatenate((self.training_data[0], emats), axis=0)
+        self.training_data[1] = np.concatenate((self.training_data[1], zs), axis=0)
+        self.training_data[2] = self.training_data[2] + tempcentroids
+
+        nharmtest = int(ltest * harmonic_percent)
+        print(f"Adding {nharmtest} harmonic samples to test data")
+        emats = []
+        zs = []
+        tempcentroids = []
+        for i in range(nharmtest):
+            index = np.random.randint(0, ltest - 1)
+            centroid = self.test_data[2][index]
+            z = self.test_data[1][index]
+            emat, centroid2 = encode_harmonic(centroid, z, phaseres=self.phaseres)
+            emats.append(emat)
+            zs.append(z)
+            tempcentroids.append(centroid2)
+
+        self.test_data[0] = np.concatenate((self.test_data[0], emats), axis=0)
+        self.test_data[1] = np.concatenate((self.test_data[1], zs), axis=0)
+        self.test_data[2] = self.test_data[2] + tempcentroids
 
     def add_noise(self, noise_percent):
         """
@@ -174,7 +240,8 @@ class IsoDecEngine:
         self.test_data[1] = np.concatenate((self.test_data[1], zs), axis=0)
         self.test_data[2] = self.test_data[2] + tempcentroids
 
-    def load_training_data(self, training_path, test_path=None, noise_percent=0.1, double_percent=0.1):
+    def load_training_data(self, training_path, test_path=None, noise_percent=0.0, double_percent=0.4,
+                           harmonic_percent=0.0, onedrop_percent=0.0):
         """
         Load training data from a file
         :param training_path: Path to the training data file or name of the file tag
@@ -198,6 +265,12 @@ class IsoDecEngine:
         td = np.load(test_path, allow_pickle=True)
         self.test_data = [td["emat"], td["z"], list(td["centroids"])]
 
+        if onedrop_percent > 0:
+            self.drop_ones(percentage=onedrop_percent)
+
+        if harmonic_percent > 0:
+            self.add_harmonics(harmonic_percent)
+
         if double_percent > 0:
             self.add_doubles(double_percent)
 
@@ -206,8 +279,8 @@ class IsoDecEngine:
 
         print("Loaded:", len(self.training_data[0]), "Training Samples")
 
-    def create_training_dataloader(self, training_path, test_path=None, noise_percent=0.1, batchsize=None,
-                                   double_percent=0.1):
+    def create_training_dataloader(self, training_path, test_path=None, noise_percent=0, batchsize=None,
+                                   double_percent=0.4, harmonic_percent=0, one_drop_percent=0):
         """
         Create the training and test dataloaders from a single file path
         :param training_path: Path to the training data file or name of the file tag
@@ -221,7 +294,8 @@ class IsoDecEngine:
             self.config.batch_size = batchsize
 
         self.load_training_data(training_path, test_path=test_path, noise_percent=noise_percent,
-                                double_percent=double_percent)
+                                double_percent=double_percent, harmonic_percent=harmonic_percent,
+                                onedrop_percent=one_drop_percent)
 
         self.training_data = IsoDecDataset(self.training_data[0], self.training_data[1])
         self.test_data = IsoDecDataset(self.test_data[0], self.test_data[1])
@@ -231,7 +305,8 @@ class IsoDecEngine:
         self.test_dataloader = DataLoader(self.test_data, batch_size=self.config.test_batch_size, shuffle=False,
                                           pin_memory=False)
 
-    def create_merged_dataloader(self, dirs, training_path, noise_percent=0.1, batchsize=None, double_percent=0.1):
+    def create_merged_dataloader(self, dirs, training_path, noise_percent=0.0, batchsize=None, double_percent=0.4,
+                                 harmonic_percent=0.0, onedrop_percent=0.0):
         """
         Create a merged dataloader from multiple directories. Looks for common file names and merges them together
         :param dirs: Directories to look in
@@ -250,7 +325,8 @@ class IsoDecEngine:
         for d in dirs:
             os.chdir(d)
             print(d)
-            self.load_training_data(training_path, noise_percent=noise_percent, double_percent=double_percent)
+            self.load_training_data(training_path, noise_percent=noise_percent, double_percent=double_percent,
+                                    harmonic_percent=harmonic_percent, onedrop_percent=onedrop_percent)
             training_data.append(self.training_data)
             test_data.append(self.test_data)
 
@@ -348,7 +424,8 @@ class IsoDecEngine:
         :param pks: MatchedCollection peaks object
         :return: Matched indexes relative to the original centroid data
         """
-        peaks = optimize_shift2(self.config, centroids, z, peakmz, tol=self.config.matchtol, maxshift=self.config.maxshift)
+        peaks = optimize_shift2(self.config, centroids, z, peakmz, tol=self.config.matchtol,
+                                maxshift=self.config.maxshift)
         if len(peaks) > 0:
             all_matched_indexes = []
             for m in peaks:
@@ -357,13 +434,13 @@ class IsoDecEngine:
                         all_matched_indexes.append(ind)
                 if pks is not None:
                     pks.add_peak(m)
-                    #pks.add_pk_to_masses(m, 10)
+                    # pks.add_pk_to_masses(m, 10)
                 else:
                     self.pks.add_peak(m)
-                    #self.pks.add_pk_to_masses(m, 10)
+                    # self.pks.add_pk_to_masses(m, 10)
             return all_matched_indexes, peaks
         else:
-            return [],[]
+            return [], []
 
     def get_matches(self, centroids, z, peakmz, pks=None):
         """
@@ -419,13 +496,13 @@ class IsoDecEngine:
                 self.config.current_KD_round = i
                 peaks = fastpeakdetect(centroids, window=kwindow, threshold=threshold)
                 # print("Knockdown:", i, "Peaks:", len(peaks))
-                #print("Knockdown:", i, "Peaks:", peaks)
+                # print("Knockdown:", i, "Peaks:", peaks)
                 if len(peaks) == 0:
                     break
 
                 emats, peaks, centlist, indexes = encode_phase_all(centroids, peaks, lowmz=self.config.mzwindow[0],
-                                                                   highmz=self.config.mzwindow[1], phaseres=self.phaseres)
-
+                                                                   highmz=self.config.mzwindow[1],
+                                                                   phaseres=self.phaseres)
 
                 emats = [torch.as_tensor(e, dtype=torch.float32) for e in emats]
                 # emats = torch.as_tensor(emats, dtype=torch.float32).to(self.phasemodel.device)
@@ -444,10 +521,8 @@ class IsoDecEngine:
                         knockdown.append(kindex)
                         continue
 
-
                     # Get the centroids around the peak
                     matchedindexes, peaks = self.get_matches(centlist[j], z, p[0], pks=self.pks)
-
 
                     if len(matchedindexes) > 0:
                         ngood += 1
@@ -456,9 +531,9 @@ class IsoDecEngine:
                         matchindvals = indval[matchedindexes]
                         # Knock them down
                         knockdown.extend(matchindvals)
-                        #centroids = self.perform_modelling_kd(centroids, indval, peaks)
+                        # centroids = self.perform_modelling_kd(centroids, indval, peaks)
                 self.config.acceptedclusters += ngood
-                #print("NGood:", ngood)
+                # print("NGood:", ngood)
                 if len(knockdown) == 0:
                     continue
                 knockdown = np.array(knockdown)
@@ -466,7 +541,7 @@ class IsoDecEngine:
 
                 if len(centroids) < 3:
                     break
-                #centroids = centroids[centroids[:, 1] > 0]
+                # centroids = centroids[centroids[:, 1] > 0]
             # print("Time:", time.perf_counter() - starttime)
         return self.pks
 
@@ -488,7 +563,6 @@ class IsoDecEngine:
                     partial_kds.append([peak.matchedindexes[i], intensity_ratio])
             partial_kd_lists.append(partial_kds)
 
-
         agg_partial_kds = []
         for i in range(len(partial_kd_lists[0])):
             ratios = [partial_kd_lists[0][i][1]]
@@ -509,8 +583,6 @@ class IsoDecEngine:
             centroids[full_kds[i] + min_index, 1] = 0
 
         return centroids
-
-
 
     def process_file(self, file, scans=None):
         starttime = time.perf_counter()
@@ -564,7 +636,7 @@ class IsoDecEngine:
         print("Time:", time.perf_counter() - starttime)
         print("N Peaks:", len(self.pks.peaks))
 
-        #self.pks.save_pks()
+        # self.pks.save_pks()
         return reader
 
     def export_peaks(self, type="prosightlite", filename=None, reader=None, max_precursors=None):
@@ -626,10 +698,11 @@ if __name__ == "__main__":
     topdirectory = "C:\\Data\\IsoNN\\training"
 
     dirs = [os.path.join(topdirectory, d) for d in small_data_dirs]
-    eng.create_merged_dataloader(dirs, "phase83", noise_percent=0.0, batchsize=32, double_percent=0.4)
+    eng.create_merged_dataloader(dirs, "phase83", noise_percent=0.0, batchsize=32, double_percent=0.4,
+                                 harmonic_percent=0.1, onedrop_percent=0.8)
     # eng.train_model(epochs=3)
     eng.train_model(epochs=10, lossfn="crossentropy", forcenew=True)
-    #eng.train_model(epochs=3, lossfn="focal", forcenew=False)
+    # eng.train_model(epochs=3, lossfn="focal", forcenew=False)
 
     # eng.create_merged_dataloader([os.path.join(topdirectory, small_data_dirs[2])], "phase82", noise_percent=0.2,
     #                             batchsize=32, double_percent=0.2)

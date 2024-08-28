@@ -461,6 +461,25 @@ def encode_double(centroid, centroid2, maxdist=1.5, minsep=0.1, intmax=0.2, phas
 
     return emat, mergedc
 
+@njit(fastmath=True)
+def encode_harmonic(centroid, z, intmax=0.2, phaseres=8):
+    peakmz = centroid[np.argmax(centroid[:, 1]), 0]
+    mzshift = 0.5 / float(z)
+
+    centroid2 = centroid.copy()
+    centroid2[:, 0] += mzshift
+
+    # Set into to random value between 0.05 and 0.95% of the max
+    centroid2[:, 1] *= np.random.uniform(0.05, intmax) * np.amax(centroid[:, 1]) / np.amax(centroid2[:, 1])
+
+    mergedc = np.empty((len(centroid) + len(centroid2), 2))
+    mergedc[:len(centroid)] = centroid
+    mergedc[len(centroid):] = centroid2
+
+    emat = encode_phase(mergedc, phaseres=phaseres)
+
+    return emat, mergedc
+
 
 def encode_phase_file(file, maxlen=8, save=True, outdir="C:\\Data\\IsoNN\\multi", name="medium",
                       onedropper=0.95):

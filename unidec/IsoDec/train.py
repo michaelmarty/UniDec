@@ -14,7 +14,7 @@ os.chdir("/xdisk/mtmarty/mtmarty/training/data")
 eng = IsoDecEngine(phaseres=8)
 topdirectory = "/xdisk/mtmarty/mtmarty/training/data"
 dirs = [os.path.join(topdirectory, d) for d in data_dirs]
-eng.create_merged_dataloader(dirs, datatype, noise_percent=0, batchsize=32, double_percent=0.4)
+eng.create_merged_dataloader(dirs, datatype, noise_percent=0, batchsize=32, double_percent=0.4, onedrop_percent=0.8, harmonic_percent=0.1)
 eng.train_model(epochs=10, forcenew=True)
 #eng.create_merged_dataloader(dirs, datatype, noise_percent=0.0, batchsize=32, double_percent=0.2)
 #eng.train_model(epochs=10)
