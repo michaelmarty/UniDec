@@ -71,7 +71,7 @@ def get_importer(path):
     if os.path.isfile(path) or os.path.isdir(path):
         if extension == ".mzml" or extension == ".gz":
             # mzML file
-            d = mzMLimporter(path, gzmode=True)
+            d = mzMLimporter(path, gzmode=False)
         elif extension == ".mzxml":
             d = mzXMLimporter(path)
         elif extension == ".raw" and not os.path.isdir(path):

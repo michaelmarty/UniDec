@@ -256,7 +256,7 @@ class mzMLimporter:
         if not os.path.splitext(path)[1] == ".gz" and (
                 self.filesize > 1e8 or gzmode) and not nogz:  # for files larger than 100 MB
             path = auto_gzip(path)
-            print("Converted to gzip file to improve speed:", path)
+            print("Converted to gzip file to improve speed:", path, self.filesize, gzmode)
             self.filesize = os.stat(path).st_size
         self.path = path
         self.msrun = pymzml.run.Reader(path)
