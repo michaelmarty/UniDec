@@ -1,7 +1,7 @@
 import ctypes
 import os
 import numpy as np
-from unidec.IsoDec.match import MatchedPeak, MatchedCollection
+from unidec.IsoDec.match import MatchedPeak, MatchedCollection, IsoDecConfig
 from unidec.modules.isotopetools import fast_calc_averagine_isotope_dist
 from unidec.IsoDec.plots import *
 import unidec.tools as ud
@@ -32,7 +32,7 @@ example = np.array([[5.66785531e+02, 1.47770838e+06],
 
 dllpath = "C:\\Python\\UniDec3\\unidec\\IsoDec\\src\\isodec\\x64\\Release\\isodeclib.dll"
 
-isodist = ctypes.c_float * 128
+isodist = ctypes.c_float * 64
 matchedinds = ctypes.c_int * 32
 #print(isodist)
 class MPStruct(ctypes.Structure):
@@ -48,9 +48,54 @@ class MPStruct(ctypes.Structure):
                 ('isomz', isodist),
                 ('isodist', isodist),
                 ('isomass', isodist),
+                ('monoisos', ctypes.c_float * 16),
                 ('startindex', ctypes.c_int),
                 ('endindex', ctypes.c_int),
                 ]
+
+class IDSettings(ctypes.Structure):
+    _fields_ = [('verbose', ctypes.c_int),
+                ('peakwindow', ctypes.c_int),
+                ('peakthresh', ctypes.c_float),
+                ('minpeaks', ctypes.c_int),
+                ('minmatchper', ctypes.c_float),
+                ('css_thresh', ctypes.c_float),
+                ('matchtol', ctypes.c_float),
+                ('maxshift', ctypes.c_int),
+                ('mzwindow', ctypes.c_float * 2),
+                ('plusoneintwindow', ctypes.c_float * 2),
+                ('knockdown_rounds', ctypes.c_int),
+                ('min_score_diff', ctypes.c_float),
+                ('noisefilter', ctypes.c_float),
+                ('minareacovered', ctypes.c_float),
+                ('isolength', ctypes.c_int),
+                ('mass_diff_c', ctypes.c_float),
+                ('adductmass', ctypes.c_float),
+                ('minusoneaszero', ctypes.c_int),
+                ]
+
+
+def config_to_settings(config):
+    settings = IDSettings()
+    settings.verbose = config.verbose
+    settings.peakwindow = config.peakwindow
+    settings.peakthresh = config.peakthresh
+    settings.minpeaks = config.minpeaks
+    settings.minmatchper = config.minmatchper
+    settings.css_thresh = config.css_thresh
+    settings.matchtol = config.matchtol
+    settings.maxshift = config.maxshift
+    settings.mzwindow = (config.mzwindow[0], config.mzwindow[1])
+    settings.plusoneintwindow = (config.plusoneintwindow[0], config.plusoneintwindow[1])
+    settings.knockdown_rounds = config.knockdown_rounds
+    settings.min_score_diff = config.min_score_diff
+    settings.noisefilter = config.noisefilter
+    settings.minareacovered = config.minareacovered
+    settings.isolength = 64
+    settings.mass_diff_c = config.mass_diff_c
+    settings.adductmass = config.adductmass
+    settings.minusoneaszero = 1
+    return settings
 
 
 class IsoDecWrapper:
@@ -63,6 +108,7 @@ class IsoDecWrapper:
         self.c_lib.process_spectrum.argtypes = [ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float),
                                                 ctypes.c_int, ctypes.c_char_p, ctypes.POINTER(MPStruct)]
         self.modelpath = ctypes.c_char_p(modelpath)
+        self.config = IsoDecConfig()
 
     def predict_charge(self, centroids):
         cmz = centroids[:, 0].astype(np.float32)
@@ -81,11 +127,18 @@ class IsoDecWrapper:
         cint = centroids[:, 1].astype(np.float32)
         n = len(cmz)
         # print(n)
+
+        if config is not None:
+            settings = config_to_settings(config)
+        else:
+            config = self.config
+            settings = config_to_settings(config)
+
         elems = (MPStruct * n)()
         matchedpeaks = ctypes.cast(elems, ctypes.POINTER(MPStruct))
         nmatched = self.c_lib.process_spectrum(cmz.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
                                                cint.ctypes.data_as(ctypes.POINTER(ctypes.c_float)), n, self.modelpath,
-                                               matchedpeaks)
+                                               matchedpeaks, settings)
         # print(nmatched)
         if pks is None:
             pks = MatchedCollection()
@@ -96,6 +149,11 @@ class IsoDecWrapper:
             pk.monoiso = p.monoiso
             pk.peakmass = p.peakmass
             pk.avgmass = p.avgmass
+
+            monoisos = np.array(p.monoisos)
+            monoisos = monoisos[monoisos > 0]
+            pk.monoisos = monoisos
+            #print(monoisos)
 
             if config is not None:
                 pk.scan = config.activescan
@@ -134,5 +192,6 @@ if __name__ == "__main__":
     wrapper = IsoDecWrapper()
     #wrapper.process_spectrum(spectrum)
     pks = wrapper.process_spectrum(spectrum)
-    #exit()
+    print(len(pks.peaks))
+    exit()
     plot_pks(pks, centroids=spectrum, show=True, title="C Interface")

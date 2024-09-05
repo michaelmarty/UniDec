@@ -2,7 +2,7 @@ import numpy as np
 import time
 import matchms
 from copy import deepcopy
-from unidec.IsoDec.datatools import simp_charge, fastnearest, fastwithinppmtol, calculate_cosinesimilarity
+from unidec.IsoDec.datatools import *
 import matplotlib.pyplot as plt
 from numba import njit
 from typing import List, Tuple
@@ -14,6 +14,75 @@ import unidec.tools as ud
 import unidec.IsoDec.msalign_export as msalign
 import math
 import pandas as pd
+
+
+# @nb.experimental.jitclass()
+class IsoDecConfig:
+    '''filepath: nb.types.string
+    batch_size: int
+    test_batch_size: int
+    peakwindow: int
+    matchtol: float
+    minpeaks: int
+    minmatchper: float
+    css_thresh: float
+    maxshift: int
+    mzwindow: nb.types.List(nb.float32)
+    plusoneintwindow: nb.types.List(nb.float32)
+    knockdown_rounds: int
+    current_KD_round: int
+    activescan: int
+    activescanrt: float
+    activescanorder: int
+    min_score_diff: float
+    noisefilter: float
+    verbose: bool'''
+
+    def __init__(self):
+        """
+        Configuration class for IsoDec Engine. Holds the key parameters for the data processing and deconvolution.
+        """
+        self.filepath = ""
+        self.batch_size = 32
+        self.test_batch_size = 2048
+        self.current_KD_round = 0
+        self.activescan = -1
+        self.activescanrt = -1
+        self.activescanorder = -1
+        self.adductmass = 1.007276467
+        self.mass_diff_c = 1.0033
+
+        self.verbose = False
+
+        self.peakwindow = 40
+
+        self.phaseres = 8
+
+        self.matchtol = 5  # In ppm
+        self.minpeaks = 2
+        self.peakthresh = 0.0001
+        self.minmatchper = 0.67
+        self.css_thresh = 0.7
+        self.maxshift = 3  # This will get overwritten for smaller z, where it's dangerous to have more than 1 or 2
+        self.mzwindow = [-1.5, 2.5]
+        self.plusoneintwindow = [0.1, 0.6]
+        self.knockdown_rounds = 5
+        self.min_score_diff = 0.1
+        self.noisefilter = 1
+        self.minareacovered = 0.25
+        self.minusoneaszero = True
+
+    def set_scan_info(self, s, reader=None):
+        """
+        Sets the active scan info
+        :param s: The current scan
+        :param reader: The reader object
+        :return: None
+        """
+        self.activescan = s
+        if reader is not None:
+            self.activescanrt = reader.get_scan_time(s)
+            self.activescanorder = reader.get_ms_order(s)
 
 
 # mass_diff_c = 1.0033
@@ -126,10 +195,20 @@ class MatchedCollection:
         self.peaks = [self.peaks[i] for i in range(len(self.peaks)) if i not in to_remove]
         return
 
+    def filter(self, minval, maxval, type="mz"):
+        if type == "mz":
+            self.peaks = [p for p in self.peaks if minval < p.mz < maxval]
+        elif type == "monoiso":
+            self.peaks = [p for p in self.peaks if minval < p.monoiso < maxval]
+        else:
+            print("Type not recognized")
+        return self
+
     def copy_to_string(self):
         outstring = ""
         for p in self.peaks:
-            outstring += str(p.monoiso) + "\n"
+            for m in p.monoisos:
+                outstring += str(m) + "\n"
         return outstring
 
     def export_msalign(self, reader, filename="export.msalign", act_type="HCD", max_precursors=None):
@@ -203,12 +282,15 @@ class MatchedPeak:
     rt: float
     ms_order: int
     massdist: nb.optional(np.ndarray)
-    monoiso: float
+    monoisos: nb.optional(np.ndarray)
     peakmass: float
     avgmass: float
     startindex: int
     endindex: int
     matchedion: str
+    monoiso: float
+    bestshift: int
+    acceptedshifts: nb.optional(np.ndarray)
 
     def __init__(self, z, mz, centroids=None, isodist=None, matchedindexes=None, isomatches=None):
         self.mz = mz
@@ -225,11 +307,14 @@ class MatchedPeak:
         self.rt = -1
         self.ms_order = -1
         self.massdist = None
-        self.monoiso = -1
+        self.monoisos = []
         self.peakmass = -1
         self.avgmass = -1
         self.startindex = -1
         self.endindex = -1
+        self.monoiso = -1
+        self.bestshift = -1
+        self.acceptedshifts = None
         self.matchedion = ""
         if matchedindexes is not None:
             self.matchedindexes = matchedindexes
@@ -267,6 +352,56 @@ def df_to_matchedcollection(df, monoiso="Monoisotopic Mass", peakmz="Most Abunda
     return mc
 
 
+def read_msalign_to_matchedcollection(file, data=None):
+    """
+    Read an msalign file to a MatchedCollection object
+    :param file: Path to msalign file
+    :return: MatchedCollection object
+    """
+
+    mc = MatchedCollection()
+
+    current_scan = 1
+    with open(file, "r") as f:
+        for line in f:
+            if line[0] == "#":
+                continue
+            elif "BEGIN IONS" in line or "END IONS" in line:
+                continue
+            elif "SCANS" in line or "TITLE" in line:
+                current_scan = int(line.split("=")[1])
+                continue
+            elif "=" not in line:
+                split = line.split("\t")
+                mz = (float(split[0]) + (1.007276467 * int(split[2]))) / int(split[2])
+                pk = MatchedPeak(int(split[2]), mz)
+                pk.monoisos = [float(split[0])]
+                pk.scan = current_scan
+                pk.monoiso = float(split[0])
+                pk.matchedintensity = float(split[1])
+                mc.add_peak(pk)
+
+                isodist = fast_calc_averagine_isotope_dist(pk.monoiso, pk.z)
+                if data is not None:
+                    # Find nearest peak in data
+                    mz = isodist[np.argmax(isodist[:, 1]), 0]
+                    startindex = fastnearest(data[:, 0], mz)
+                    # endindex = fastnearest(data[:, 0], mz + window[1])
+
+                    dmax = data[startindex, 1]
+
+
+                else:
+                    dmax = 10000
+
+                for i in range(len(isodist)):
+                    isodist[i, 1] *= dmax
+                pk.mz = isodist[np.argmax(isodist[:, 1]), 0]
+                pk.isodist = isodist
+    print("Loaded", len(mc.peaks), "peaks from msalign file")
+    return mc
+
+
 def peak_mz_z_df_to_matchedcollection(df, data=None):
     """
     Convert a pandas dataframe of peak mzs (col1) and zs (col2) to a MatchedCollection object
@@ -278,6 +413,7 @@ def peak_mz_z_df_to_matchedcollection(df, data=None):
     for i, row in df.iterrows():
         pk = MatchedPeak(z=int(row['z']), mz=row['peakmz'])
         pk.monoiso = (pk.mz - 1.007276467) * pk.z
+        pk.monoisos = [pk.monoiso]
         mc.add_peak(pk)
         isodist = fast_calc_averagine_isotope_dist(pk.monoiso, pk.z)
 
@@ -301,38 +437,46 @@ def peak_mz_z_df_to_matchedcollection(df, data=None):
     return mc
 
 
-def compare_matchedcollections(coll1, coll2, ppmtol=50, objecttocompare="monoiso"):
-    masses1 = []
-    masses2 = []
-    if objecttocompare == "monoiso":
-        coll1.peaks = sorted(coll1.peaks, key=lambda x: x.monoiso)
-        coll2.peaks = sorted(coll2.peaks, key=lambda x: x.monoiso)
-        masses1 = np.array([p.monoiso for p in coll1.peaks])
-        masses2 = np.array([p.monoiso for p in coll2.peaks])
-    elif objecttocompare == "peakmass":
-        coll1.peaks = sorted(coll1.peaks, key=lambda x: x.peakmass)
-        coll2.peaks = sorted(coll2.peaks, key=lambda x: x.peakmass)
-        masses2 = np.array([p.peakmass for p in coll2.peaks])
-        masses1 = np.array([p.peakmass for p in coll1.peaks])
-    elif objecttocompare == "peakmz":
-        coll1.peaks = sorted(coll1.peaks, key=lambda x: x.mz)
-        coll2.peaks = sorted(coll2.peaks, key=lambda x: x.mz)
-        masses2 = np.array([p.mz for p in coll2.peaks])
-        masses1 = np.array([p.mz for p in coll1.peaks])
+def compare_matchedcollections(coll1, coll2, ppmtol=50, objecttocompare="monoisos", maxshift=3):
+    coll1.peaks = sorted(coll1.peaks, key=lambda x: x.monoiso)
+    coll2.peaks = sorted(coll2.peaks, key=lambda x: x.monoiso)
+    masses1 = np.array([p.monoiso for p in coll1.peaks])
+    masses2 = np.array([p.monoiso for p in coll2.peaks])
 
     unique1 = []
     shared = []
     coll2_matched_indices = []
 
+    diffs = []
+
     for i in range(len(coll1.peaks)):
         foundmatch = False
 
-        within_tol = fastwithinppmtol(masses2, masses1[i], ppmtol)
+        within_tol = fastwithin_abstol(masses2, masses1[i], 5)
         if len(within_tol) > 0:
             for j in within_tol:
                 if coll1.peaks[i].z == coll2.peaks[j].z:
-                    coll2_matched_indices.append(j)
-                    foundmatch = True
+                    # now check if a monoiso is within the ppmtol
+                    for m1 in coll1.peaks[i].monoisos:
+                        for m2 in coll2.peaks[j].monoisos:
+                            if ud.within_ppm(m1, m2, ppmtol):
+                                coll2_matched_indices.append(j)
+                                foundmatch = True
+                                diffs.append((m1 - m2) / m1 * 1e6)
+
+                            else:
+                                if maxshift > 0:
+                                    diff = np.abs(m1 - m2)
+                                    if diff < maxshift * 1.1:
+                                        mm_count = int(round(m1 - m2))
+                                        m2 = m2 + mm_count * 1.0033
+                                        if ud.within_ppm(m1, m2, ppmtol):
+                                            coll2_matched_indices.append(j)
+                                            foundmatch = True
+                                            diffs.append((m1 - m2) / m1 * 1e6)
+
+                    # coll2_matched_indices.append(j)
+                    # foundmatch = True
 
         if foundmatch:
             shared.append(coll1.peaks[i])
@@ -344,6 +488,8 @@ def compare_matchedcollections(coll1, coll2, ppmtol=50, objecttocompare="monoiso
     shared = MatchedCollection().add_peaks(shared)
     unique1 = MatchedCollection().add_peaks(unique1)
     unique2 = MatchedCollection().add_peaks(unique2)
+
+    print("Avg PPM Diff:", np.mean(diffs))
 
     return shared, unique1, unique2
 
@@ -411,7 +557,7 @@ def create_isodist2(monoiso, charge, maxval, adductmass=1.007276467):
 
 
 @njit(fastmath=True)
-def create_isodist_full(peakmz, charge, data, adductmass=1.007276467):
+def create_isodist_full(peakmz, charge, data, adductmass=1.007276467, minusoneaszero=True):
     """
     Create an isotopic distribution based on the peak m/z and charge state.
     :param peakmz: Peak m/z value as float
@@ -421,7 +567,8 @@ def create_isodist_full(peakmz, charge, data, adductmass=1.007276467):
     """
     charge = float(charge)
     mass = (peakmz - adductmass) * charge
-    isodist, massdist = fast_calc_averagine_isotope_dist_dualoutput(mass, charge=charge)
+    isodist, massdist = fast_calc_averagine_isotope_dist_dualoutput(mass, charge=charge, adductmass=adductmass,
+                                                                    minusoneaszero=minusoneaszero)
     isodist[:, 1] *= np.amax(data[:, 1])
     massdist[:, 1] *= np.amax(data[:, 1])
     # shift isodist so that maxes are aligned with data
@@ -434,28 +581,8 @@ def create_isodist_full(peakmz, charge, data, adductmass=1.007276467):
     return isodist, massdist, monoiso
 
 
-#@njit(fastmath=True)
-def optimize_shift2(config, centroids: np.ndarray, z, peakmz, tol=0.01, maxshift=2, gamma=1):
-    peaks = []
-
-    min_score_diff = 0.05
-
-    # Limit max shifts if necessary
-    if z < 3:
-        maxshift = 1
-    elif z < 6:
-        maxshift = 2
-    else:
-        maxshift = maxshift
-
-    # peakmz = centroids[np.argmax(centroids[:, 1]), 0]
-    isodist, massdist, monoiso = create_isodist_full(peakmz, z, centroids)
-
-    # matchedindexes, isomatches = match_peaks(centroids, isodist)
-
-    cent_intensities = find_matched_intensities(centroids[:, 0], centroids[:, 1], isodist[:, 0], maxshift, tolerance=5,
-                                                z=z)
-
+@njit(fastmath=True)
+def get_accepted_shifts(cent_intensities, isodist, maxshift, min_score_diff, css_thresh):
     shiftrange = np.arange(-maxshift, maxshift + 1)
     # shifts_scores = [[0, 0] for i in range(len(shiftrange))]
     shifts_scores = np.zeros((len(shiftrange), 2))
@@ -464,70 +591,294 @@ def optimize_shift2(config, centroids: np.ndarray, z, peakmz, tol=0.01, maxshift
     sum = -1
     meanratio = 1
     for i, shift in enumerate(shiftrange):
-        s = calculate_cosinesimilarity(cent_intensities ** gamma, isodist[:, 1] ** gamma, shift, maxshift)
+        s = calculate_cosinesimilarity(cent_intensities, isodist[:, 1], shift, maxshift)
         shifts_scores[i, 0] = shift
         shifts_scores[i, 1] = s
-        #print(z, peakmz, shift, s)
 
         if s > sum:
             sum = s
             bestshift = shift
 
-    max_score = max([x[1] for x in shifts_scores])
-    if max_score < config.css_thresh:
-        return peaks
+    max_score = np.amax(shifts_scores[:, 1])
+    if max_score < css_thresh:
+        return None
 
     accepted_shifts = [x for x in shifts_scores if x[1] > max_score - min_score_diff]
-
-    for shift in accepted_shifts:
-        shiftmass = shift[0] * mass_diff_c
-        monoiso_new = monoiso + shiftmass
-        massdist_new = massdist.copy()
-        massdist_new[:, 0] = massdist[:, 0] + shiftmass
-        # Correct m/z based on shift
-        shiftmz = shiftmass / z
-        isodist_new = isodist.copy()
-        isodist_new[:, 0] = isodist[:, 0] + shiftmz
-        peakmz_new = peakmz + shiftmz
-        # Match it again
-        matchedindexes, isomatches = match_peaks(centroids, isodist_new, tol=tol)
-
-        matchediso = isodist[np.array(isomatches).astype(int)]
-
-        areaper = np.sum(matchediso[:, 1]) / np.sum(isodist[:, 1])
-
-        minpeaks = config.minpeaks
-        if z == 1:
-            if len(matchedindexes) == 2:
-                if isomatches[0] == 0 and isomatches[1] == 1:
-                    int1 = centroids[matchedindexes[0], 1]
-                    int2 = centroids[matchedindexes[1], 1]
-                    if int1 == 0:
-                        ratio = 0
-                    else:
-                        ratio = int2 / int1
-                    if config.plusoneintwindow[0] < ratio < config.plusoneintwindow[1]:
-                        config.minpeaks = 2
-                        areaper = 1
-
-        passing = False
-        if areaper >= config.minmatchper or shift[1] >= config.css_thresh:
-            passing = True
-
-        if len(matchedindexes) >= config.minpeaks and passing:
-            m = MatchedPeak(int(z), float(peakmz_new), centroids, isodist_new, matchedindexes, isomatches)
-            m.scan = config.activescan
-            m.rt = config.activescanrt
-            m.ms_order = config.activescanorder
-            m.monoiso = monoiso_new
-            m.massdist = massdist_new
-            m.avgmass = np.average(massdist_new[:, 0], weights=massdist_new[:, 1])
-            m.peakmass = np.sum(massdist_new[:, 0] * massdist_new[:, 1]) / np.sum(massdist_new[:, 1])
-            peaks.append(m)
-
-    return peaks
+    return accepted_shifts
 
 
+# @njit(fastmath=True)
+def make_shifted_peak(shift: int, shiftscore: float, monoiso: float, massdist: np.ndarray, isodist: np.ndarray,
+                      peakmz: float, z: int,
+                      centroids: np.ndarray, matchtol: float,
+                      minpeaks: int, p1low: float,
+                      p1high: float, css_thresh: float, minmatchper: float, minareacovered: float, verbose=True):
+    b1 = isodist[:, 1] > 0
+    shiftmass = float(shift) * mass_diff_c
+    monoiso_new = monoiso + shiftmass
+    massdist_new = massdist[b1]
+    massdist_new[:, 0] = massdist_new[:, 0] + shiftmass
+    # Correct m/z based on shift
+    shiftmz = shiftmass / float(z)
+    isodist_new = isodist[b1]
+    isodist_new[:, 0] = isodist_new[:, 0] + shiftmz
+    peakmz_new = peakmz + shiftmz
+
+    # Match it again
+    matchedindexes, isomatches = find_matches(centroids[:, 0], isodist_new[:, 0], matchtol)
+
+    matchediso = isodist_new[np.array(isomatches)]
+    # if verbose:
+    #    print("Find Matches:", matchedindexes, isomatches, matchtol, z)
+    areaper = np.sum(matchediso[:, 1]) / np.sum(isodist_new[:, 1])
+
+    if z == 1:
+        if len(matchedindexes) == 2:
+            if isomatches[0] == 0 and isomatches[1] == 1:
+                int1 = centroids[matchedindexes[0], 1]
+                int2 = centroids[matchedindexes[1], 1]
+                if int1 == 0:
+                    ratio = 0
+                else:
+                    ratio = int2 / int1
+                if p1low < ratio < p1high:
+                    minpeaks = 2
+                    areaper = 1
+    # if verbose:
+    #    print("Matched Peaks:", len(matchedindexes), "Shift Score:", shiftscore, "Area Per:", areaper)
+
+    areacovered = np.sum(matchediso[:, 1]) / np.sum(centroids[:, 1])
+    # print("Area Covered:", areacovered)
+
+    matchedcentroids = centroids[np.array(matchedindexes)]
+    # Find the top three most intense peaks in matched iso
+    topthreeiso = np.sort(matchedcentroids[:, 1])[::-1][:minpeaks]
+    # Find the top three most intense peaks in centroids
+    topthreecent = np.sort(centroids[:, 1])[::-1][:minpeaks]
+
+    # Check if the top three peaks in the matched iso are the same as the top three peaks in the centroids
+    if np.array_equal(topthreeiso, topthreecent):
+        topthree = True
+    else:
+        topthree = False
+
+    if len(matchedindexes) >= minpeaks and (
+            areaper >= minmatchper or shiftscore >= css_thresh):  # and (areacovered > minareacovered or topthree):
+        return peakmz_new, isodist_new, matchedindexes, isomatches, monoiso_new, massdist_new
+    else:
+        if verbose:
+            print("Failed Peak:", len(matchedindexes), areaper, shiftscore, areacovered, topthree)
+            # Determine which of the tests it failed
+            if len(matchedindexes) < minpeaks:
+                print("Failed Min Peaks")
+            if not (areaper >= minmatchper or shiftscore >= css_thresh):
+                if shiftscore < css_thresh:
+                    print("Failed CSS")
+                if areaper < minmatchper:
+                    print("Failed Min Area Per")
+            if not (areacovered > minareacovered or topthree):
+                if areacovered < minareacovered:
+                    print("Failed Min Area Covered")
+                if not topthree:
+                    print("Failed Top Three")
+        return None, None, None, None, None, None
+
+
+# @njit(fastmath=True)
+def optimize_shift2(config, centroids: np.ndarray, z, peakmz):
+    peaks = []
+
+    # Limit max shifts if necessary
+    if z < 3:
+        maxshift = 1
+    elif z < 6:
+        maxshift = 2
+    else:
+        maxshift = config.maxshift
+
+    isodist, massdist, monoiso = create_isodist_full(peakmz, z, centroids, adductmass=config.adductmass,
+                                                     minusoneaszero=config.minusoneaszero)
+
+    cent_intensities = find_matched_intensities(centroids[:, 0], centroids[:, 1], isodist[:, 0], maxshift,
+                                                tolerance=config.matchtol, z=z)
+
+    # Renormalize so that the sums are equal
+    s1 = np.sum(cent_intensities)
+    s2 = np.sum(isodist[:, 1])
+    if s2 == 0:
+        return None
+    isodist[:, 1] *= s1 / s2
+
+    accepted_shifts = get_accepted_shifts(cent_intensities, isodist, maxshift, config.min_score_diff, config.css_thresh)
+
+    if config.verbose:
+        print("Accepted Shifts:", accepted_shifts)
+    if accepted_shifts is None:
+        return None
+
+    # The plan is to report a set of possible monoisotopics, but only include the centroids, isodist, massdist, and matches for the best one.
+    m = MatchedPeak(int(z), float(peakmz), centroids, isodist, None, None)
+
+    bestshift = accepted_shifts[np.argmax([x[1] for x in accepted_shifts])]
+    m.bestshift = bestshift
+    m.acceptedshifts = accepted_shifts
+
+    peakmz_new, isodist_new, matchedindexes, isomatches, monoiso_new, massdist_new = make_shifted_peak(
+        bestshift[0], bestshift[1], monoiso, massdist, isodist, peakmz, z, centroids, config.matchtol, config.minpeaks,
+        config.plusoneintwindow[0], config.plusoneintwindow[1], config.css_thresh, config.minmatchper,
+        config.minareacovered,
+        config.verbose)
+
+    if peakmz_new is None:
+        return None
+    m.monoiso = monoiso_new
+    m.scan = config.activescan
+    m.rt = config.activescanrt
+    m.ms_order = config.activescanorder
+    m.isodist = isodist_new
+    m.matchedindexes = matchedindexes
+    m.matchedintensity = np.amax(massdist_new[:, 1])
+    m.isomatches = isomatches
+    m.massdist = massdist_new
+    m.monoisos = [monoiso + accepted_shifts[i][0] * mass_diff_c for i in range(len(accepted_shifts))]
+    m.avgmass = np.average(massdist_new[:, 0], weights=massdist_new[:, 1])
+    m.peakmass = np.sum(massdist_new[:, 0] * massdist_new[:, 1]) / np.sum(massdist_new[:, 1])
+    if config.verbose:
+        print("Accepted Peak:", m)
+    return m
+
+
+@njit(fastmath=True)
+def calculate_cosinesimilarity(cent_intensities, iso_intensities, shift: int, max_shift: int):
+    ab = 0
+    a2 = 0
+    b2 = 0
+
+    for i in range(len(iso_intensities)):
+        a_val = cent_intensities[i + max_shift + shift]
+        b_val = iso_intensities[i]
+        ab += a_val * b_val
+        a2 += a_val ** 2
+        b2 += b_val ** 2
+    if ab == 0 or a2 == 0 or b2 == 0:
+        return 0
+    return ab / (math.sqrt(a2) * math.sqrt(b2))
+
+
+@njit(fastmath=True)
+def find_matches(spec1_mz: np.ndarray, spec2_mz: np.ndarray,
+                 tolerance: float) -> Tuple[List[int], List[int]]:
+    """Faster search for matching peaks.
+    Makes use of the fact that spec1 and spec2 contain ordered peak m/z (from
+    low to high m/z).
+
+    Parameters
+    ----------
+    spec1_mz:
+        Spectrum peak m/z values as numpy array. Peak mz values must be ordered.
+    spec2_mz:
+        Spectrum peak m/z values as numpy array. Peak mz values must be ordered.
+    tolerance
+        Peaks will be considered a match when <= tolerance appart in ppm.
+    Returns
+    -------
+    matches
+        List containing entries of type (idx1, idx2).
+
+    """
+    lowest_idx = 0
+    m1 = []
+    m2 = []
+    diff = spec1_mz[0] * tolerance * 1e-6
+    for peak1_idx in range(spec1_mz.shape[0]):
+        mz = spec1_mz[peak1_idx]
+        low_bound = mz - diff
+        high_bound = mz + diff
+        for peak2_idx in range(lowest_idx, spec2_mz.shape[0]):
+            mz2 = spec2_mz[peak2_idx]
+            if mz2 > high_bound:
+                break
+            if mz2 < low_bound:
+                lowest_idx = peak2_idx + 1
+            else:
+                m1.append(peak1_idx)
+                m2.append(peak2_idx)
+    return m1, m2
+
+
+@njit(fastmath=True)
+def find_matched_intensities(spec1_mz: np.ndarray, spec1_intensity: np.ndarray, spec2_mz: np.ndarray,
+                             max_shift: int, tolerance: float, z: int) -> List[float]:
+    """
+    Faster search for matching peaks.
+    Makes use of the fact that spec1 and spec2 contain ordered peak m/z (from low to high m/z).
+
+    Parameters
+    ----------
+    spec1_mz:
+        Spectrum peak m/z values as numpy array. Peak mz values must be ordered.
+    spec2_mz:
+        Theoretical isotope peak m/z values as numpy array. Peak mz values must be ordered.
+    tolerance
+        Peaks will be considered a match when within [tolerance] ppm of the theoretical value.
+    shift
+        Shift peaks of second spectra by shift. The default is 0.
+
+    Returns
+    -------
+    matches
+        List containing entries of type (centroid intensity)
+
+    """
+    mass_diff_c = 1.0033
+
+    query_mzs = [float(0) for i in range(len(spec2_mz) + 2 * max_shift)]
+
+    cent_intensities = np.zeros(len(query_mzs))
+
+    mono_idx = max_shift
+
+    for i in range(max_shift + 1):
+        if i == 0:
+            continue
+        else:
+            query_mzs[max_shift + len(spec2_mz) - 1 + i] = spec2_mz[len(spec2_mz) - 1] + (i * mass_diff_c) / z
+            query_mzs[mono_idx - i] = spec2_mz[0] - (i * mass_diff_c) / z
+
+    for i in range(len(spec2_mz)):
+        query_mzs[i + max_shift] = spec2_mz[i]
+
+    diff = (query_mzs[0] * tolerance * 1e-6)
+    for i in range(len(query_mzs)):
+        mz = query_mzs[i]
+        low_bound = mz - diff
+        high_bound = mz + diff
+        for j in range(len(spec1_mz)):
+            mz2 = spec1_mz[j]
+            if mz2 > high_bound:
+                break
+            if mz2 < low_bound:
+                continue
+            else:
+                value = spec1_intensity[j]
+                if value > cent_intensities[i]:
+                    cent_intensities[i] = spec1_intensity[j]
+
+    return cent_intensities
+
+
+'''
+@njit(fastmath=True)
+def match_peaks(centroids: np.array, isodist: np.array, tol: float = 5.0) -> Tuple[List[int], List[int]]:
+    """
+    matchingpeaks = matchms.similarity.spectrum_similarity_functions.find_matches(centroids[:, 0],
+                                                                                  isodist[:, 0], tol)
+    matchedindexes = [match[0] for match in matchingpeaks]
+    isomatches = [match[1] for match in matchingpeaks]"""
+    matchedindexes, isomatches = find_matches(centroids[:, 0], isodist[:, 0], tol)
+    return matchedindexes, isomatches
+    
+ 
 # @njit(fastmath=True)
 def _shift(centroids, z, peakmz, tol=0.01, maxshift=2, gamma=0.5):
     # Limit max shifts if necessary
@@ -606,144 +957,8 @@ def _shift(centroids, z, peakmz, tol=0.01, maxshift=2, gamma=0.5):
     # Match it again
     matchedindexes, isomatches = match_peaks(centroids, isodist, tol=tol)
     # print(bestshift, sum, isodist[0])
-    return isodist, matchedindexes, isomatches, peakmz, monoiso, massdist
-
-
-@njit(fastmath=True)
-def calculate_cosinesimilarity(cent_intensities, iso_intensities, shift: int, max_shift: int):
-    ab = 0
-    a2 = 0
-    b2 = 0
-
-    for i in range(len(iso_intensities)):
-        a_val = cent_intensities[i + max_shift + shift]
-        b_val = iso_intensities[i]
-        ab += a_val * b_val
-        a2 += a_val ** 2
-        b2 += b_val ** 2
-    if ab == 0 or a2 == 0 or b2 == 0:
-        return 0
-    return ab / (math.sqrt(a2) * math.sqrt(b2))
-
-
-def calculate_RMSD(cent_intensities, iso_intensities, shift, max_shift):
-    sse = 0
-    for i in range(len(iso_intensities)):
-        sse += (cent_intensities[i + max_shift + shift] - iso_intensities[i]) ** 2
-    return math.sqrt(sse / len(iso_intensities))
-
-
-@njit(fastmath=True)
-def find_matches(spec1_mz: np.ndarray, spec2_mz: np.ndarray,
-                 tolerance: float, shift: float = 0) -> Tuple[List[int], List[int]]:
-    """Faster search for matching peaks.
-    Makes use of the fact that spec1 and spec2 contain ordered peak m/z (from
-    low to high m/z).
-
-    Parameters
-    ----------
-    spec1_mz:
-        Spectrum peak m/z values as numpy array. Peak mz values must be ordered.
-    spec2_mz:
-        Spectrum peak m/z values as numpy array. Peak mz values must be ordered.
-    tolerance
-        Peaks will be considered a match when <= tolerance appart.
-    shift
-        Shift peaks of second spectra by shift. The default is 0.
-
-    Returns
-    -------
-    matches
-        List containing entries of type (idx1, idx2).
-
-    """
-    ppm_tol = 5
-    lowest_idx = 0
-    m1 = []
-    m2 = []
-    for peak1_idx in range(spec1_mz.shape[0]):
-        mz = spec1_mz[peak1_idx]
-        low_bound = mz - (mz * ppm_tol * 1e-6)
-        high_bound = mz + (mz * ppm_tol * 1e-6)
-        for peak2_idx in range(lowest_idx, spec2_mz.shape[0]):
-            mz2 = spec2_mz[peak2_idx] + shift
-            if mz2 > high_bound:
-                break
-            if mz2 < low_bound:
-                lowest_idx = peak2_idx + 1
-            else:
-                m1.append(peak1_idx)
-                m2.append(peak2_idx)
-    return m1, m2
-
-
-@njit(fastmath=True)
-def find_matched_intensities(spec1_mz: np.ndarray, spec1_intensity: np.ndarray, spec2_mz: np.ndarray,
-                             max_shift: int, tolerance: float, z: int) -> List[float]:
-    """
-    Faster search for matching peaks.
-    Makes use of the fact that spec1 and spec2 contain ordered peak m/z (from low to high m/z).
-
-    Parameters
-    ----------
-    spec1_mz:
-        Spectrum peak m/z values as numpy array. Peak mz values must be ordered.
-    spec2_mz:
-        Theoretical isotope peak m/z values as numpy array. Peak mz values must be ordered.
-    tolerance
-        Peaks will be considered a match when within [tolerance] ppm of the theoretical value.
-    shift
-        Shift peaks of second spectra by shift. The default is 0.
-
-    Returns
-    -------
-    matches
-        List containing entries of type (centroid intensity)
-
-    """
-    mass_diff_c = 1.0033
-
-    query_mzs = [float(0) for i in range(len(spec2_mz) + 2 * max_shift)]
-
-    cent_intensities = np.zeros(len(query_mzs))
-
-    mono_idx = max_shift
-
-    for i in range(max_shift + 1):
-        if i == 0:
-            continue
-        else:
-            query_mzs[max_shift + len(spec2_mz) - 1 + i] = spec2_mz[len(spec2_mz) - 1] + (i * mass_diff_c) / z
-            query_mzs[mono_idx - i] = spec2_mz[0] - (i * mass_diff_c) / z
-
-    for i in range(len(spec2_mz)):
-        query_mzs[i + max_shift] = spec2_mz[i]
-
-    for i in range(len(query_mzs)):
-        mz = query_mzs[i]
-        low_bound = mz - (mz * tolerance * 1e-6)
-        high_bound = mz + (mz * tolerance * 1e-6)
-        for j in range(len(spec1_mz)):
-            mz2 = spec1_mz[j]
-            if mz2 > high_bound:
-                break
-            if mz2 < low_bound:
-                continue
-            else:
-                cent_intensities[i] += spec1_intensity[j]
-
-    return cent_intensities
-
-
-@njit(fastmath=True)
-def match_peaks(centroids: np.array, isodist: np.array, tol: float = 0.01) -> Tuple[List[int], List[int]]:
-    """
-    matchingpeaks = matchms.similarity.spectrum_similarity_functions.find_matches(centroids[:, 0],
-                                                                                  isodist[:, 0], tol)
-    matchedindexes = [match[0] for match in matchingpeaks]
-    isomatches = [match[1] for match in matchingpeaks]"""
-    matchedindexes, isomatches = find_matches(centroids[:, 0], isodist[:, 0], tol)
-    return matchedindexes, isomatches
+    return isodist, matchedindexes, isomatches, peakmz, monoiso, massdist   
+'''
 
 
 def match_charge(centroids, peakmz, charge_range=[1, 50], tol=0.01, threshold=0.85, nextbest=0.8, baseline=0.1,
@@ -788,6 +1003,19 @@ def match_charge(centroids, peakmz, charge_range=[1, 50], tol=0.01, threshold=0.
         endtime = time.perf_counter()
         print("Time:", endtime - startime)
     return 0, [], [], []
+
+
+def remove_noise_peaks(pks, noiselevel):
+    """
+    Remove peaks below a certain noise level
+    :param pks: List of MatchedPeaks
+    :param noiselevel: Noise level to remove
+    :return: List of MatchedPeaks
+    """
+    newcollection = MatchedCollection()
+    filteredpeaks = [p for p in pks if p.matchedintensity > noiselevel]
+    newcollection.add_peaks(filteredpeaks)
+    return newcollection
 
 
 if __name__ == "__main__":

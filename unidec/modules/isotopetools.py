@@ -104,19 +104,29 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467):
 
 
 @njit(fastmath=True)
-def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007276467):
+def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007276467, minusoneaszero=True):
     # Predict Isotopic Intensities
     intensities = isomike(mass)
     # Calculate masses for these
-    masses = np.arange(0, len(intensities)) * mass_diff_c + mass
+    if minusoneaszero:
+        start = -1
+    else:
+        start = 0
+    masses = np.arange(start, len(intensities)) * mass_diff_c + mass
 
     # Load Into Array
     dist = np.zeros((len(masses), 2))
     dist[:, 0] = masses
-    dist[:, 1] = intensities
+    if minusoneaszero:
+        dist[1:, 1] = intensities
+    else:
+        dist[:, 1] = intensities
+
 
     # Filter Low Intensities
     b1 = intensities > np.amax(intensities) * 0.01
+    if minusoneaszero:
+        b1[0]=1
     dist = dist[b1]
 
     # Convert to m/z

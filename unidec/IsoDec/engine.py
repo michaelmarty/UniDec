@@ -20,6 +20,7 @@ from unidec.IsoDec.c_interface import IsoDecWrapper
 from unidec.IsoDec.plots import *
 import platform
 import numba as nb
+from typing import List
 
 
 class IsoDecDataset(torch.utils.data.Dataset):
@@ -48,7 +49,7 @@ class IsoDecEngine:
     Main class for IsoDec Engine
     """
 
-    def __init__(self, phaseres=8):
+    def __init__(self, phaseres=8, verbose=False):
         """
         Initialize the IsoDec Engine
         :param phaseres: Bit depth of the phase encoding. 8 is default.
@@ -60,6 +61,7 @@ class IsoDecEngine:
         self.test_dataloader = None
         self.test_centroids = []
         self.training_centroids = []
+        self.config.verbose = verbose
 
         self.pks = MatchedCollection()
 
@@ -424,23 +426,16 @@ class IsoDecEngine:
         :param pks: MatchedCollection peaks object
         :return: Matched indexes relative to the original centroid data
         """
-        peaks = optimize_shift2(self.config, centroids, z, peakmz, tol=self.config.matchtol,
-                                maxshift=self.config.maxshift)
-        if len(peaks) > 0:
-            all_matched_indexes = []
-            for m in peaks:
-                for ind in m.matchedindexes:
-                    if ind not in all_matched_indexes:
-                        all_matched_indexes.append(ind)
-                if pks is not None:
-                    pks.add_peak(m)
-                    # pks.add_pk_to_masses(m, 10)
-                else:
-                    self.pks.add_peak(m)
-                    # self.pks.add_pk_to_masses(m, 10)
-            return all_matched_indexes, peaks
+        pk = optimize_shift2(self.config, centroids, z, peakmz)
+
+        if pk is not None:
+            if pks is not None:
+                pks.add_peak(pk)
+            else:
+                self.pks.add_peak(pk)
+            return pk.matchedindexes
         else:
-            return [], []
+            return []
 
     def get_matches(self, centroids, z, peakmz, pks=None):
         """
@@ -455,10 +450,10 @@ class IsoDecEngine:
             return []
         if z == 0 or z > self.maxz:
             return []
-        matchedindexes, peaks = self.save_peak(centroids, z, peakmz, pks=pks)
-        return matchedindexes, peaks
+        matchedindexes = self.save_peak(centroids, z, peakmz, pks=pks)
+        return matchedindexes
 
-    def batch_process_spectrum(self, data, window=None, threshold=0.001, centroided=False):
+    def batch_process_spectrum(self, data, window=None, threshold=None, centroided=False):
         """
         Process a spectrum and identify the peaks. It first identifies peak cluster, then predicts the charge,
         then checks the peaks. If all is good, it adds them to the MatchedCollection as a MatchedPeak object.
@@ -472,10 +467,12 @@ class IsoDecEngine:
         starttime = time.perf_counter()
         if window is None:
             window = self.config.peakwindow
+        if threshold is None:
+            threshold = self.config.peakthresh
 
         # TODO: Need a way to test for whether data is centroided already
         if centroided:
-            centroids = data
+            centroids = deepcopy(data)
         else:
             centroids = deepcopy(get_all_centroids(data, window=5, threshold=threshold * 0.1))
 
@@ -485,35 +482,54 @@ class IsoDecEngine:
             kwindow = window
             threshold = threshold
             for i in range(self.config.knockdown_rounds):
-
-                if i <= 5:
-                    self.config.css_thresh = 0.85
-                else:
-                    self.config.css_thresh = 0.75
+                # Adjust settings based on round
+                if i >= 5:
+                    self.config.css_thresh = self.config.css_thresh * 0.90
+                    if self.config.css_thresh < 0.6:
+                        self.config.css_thresh = 0.6
 
                 if i > 0:
                     kwindow = kwindow * 0.5
+                    if kwindow < 1:
+                        kwindow = 1
+                    threshold = threshold * 0.5
+                    if threshold < 0.000001:
+                        threshold = 0.000001
                 self.config.current_KD_round = i
-                peaks = fastpeakdetect(centroids, window=kwindow, threshold=threshold)
+
+                # Pick peaks
+                peaks = fastpeakdetect(centroids, window=int(kwindow), threshold=threshold)
                 # print("Knockdown:", i, "Peaks:", len(peaks))
-                # print("Knockdown:", i, "Peaks:", peaks)
+                if self.config.verbose:
+                    print("\n\nKnockdown:", i, "NPeaks:", len(peaks), "Peaks:", peaks[:, 0], kwindow)
                 if len(peaks) == 0:
                     break
 
+                # Encode phase of all
                 emats, peaks, centlist, indexes = encode_phase_all(centroids, peaks, lowmz=self.config.mzwindow[0],
                                                                    highmz=self.config.mzwindow[1],
-                                                                   phaseres=self.phaseres)
+                                                                   phaseres=self.phaseres,
+                                                                   minpeaks=2)
 
                 emats = [torch.as_tensor(e, dtype=torch.float32) for e in emats]
                 # emats = torch.as_tensor(emats, dtype=torch.float32).to(self.phasemodel.device)
                 data_loader = DataLoader(emats, batch_size=1024, shuffle=False, pin_memory=True)
+
+                # Predict Charge
                 preds = self.phasemodel.batch_predict(data_loader)
+
+
                 knockdown = []
+                partial_kd = []
                 ngood = 0
                 # print(peaks, len(peaks))
+                # Loop through all peaks to check if they are good
                 for j, p in enumerate(peaks):
                     z = preds[j]
                     kindex = fastnearest(centroids[:, 0], p[0])
+
+                    if self.config.verbose:
+                        print("Peak:", p, z)
 
                     if kindex in knockdown:
                         continue
@@ -522,8 +538,7 @@ class IsoDecEngine:
                         continue
 
                     # Get the centroids around the peak
-                    matchedindexes, peaks = self.get_matches(centlist[j], z, p[0], pks=self.pks)
-
+                    matchedindexes = self.get_matches(centlist[j], z, p[0], pks=self.pks)
                     if len(matchedindexes) > 0:
                         ngood += 1
                         # Find matches
@@ -532,23 +547,31 @@ class IsoDecEngine:
                         # Knock them down
                         knockdown.extend(matchindvals)
                         # centroids = self.perform_modelling_kd(centroids, indval, peaks)
-                self.config.acceptedclusters += ngood
+
                 # print("NGood:", ngood)
                 if len(knockdown) == 0:
                     continue
+
+                # for k in partial_kd:
+                #   centroids[k][1] *= 0.5
                 knockdown = np.array(knockdown)
                 centroids = np.delete(centroids, knockdown, axis=0)
 
-                if len(centroids) < 3:
+                if len(centroids) < self.config.minpeaks:
                     break
                 # centroids = centroids[centroids[:, 1] > 0]
             # print("Time:", time.perf_counter() - starttime)
+
+        if self.config.noisefilter > 0:
+            medianc = np.median(centroids[:, 1]) * self.config.noisefilter
+            # print("Removing Noise Peaks Below:", medianc)
+            self.pks = remove_noise_peaks(self.pks, medianc)
         return self.pks
 
     def perform_modelling_kd(self, centroids, indval, peaks):
         centroids = deepcopy(centroids)
         min_index = indval[0]
-        max_ratio = 2
+        max_ratio = 1.25
 
         full_kds = []
         partial_kd_lists = []
@@ -557,9 +580,10 @@ class IsoDecEngine:
             partial_kds = []
             for i in range(len(peak.matchedindexes)):
                 intensity_ratio = centroids[peak.matchedindexes[i], 1] / peak.isodist[peak.isomatches[i], 1]
+                print(centroids[peak.matchedindexes[i], 0], intensity_ratio)
                 if intensity_ratio < max_ratio and peak.matchedindexes[i] not in full_kds:
                     full_kds.append(peak.matchedindexes[i])
-                else:
+                elif intensity_ratio > max_ratio:
                     partial_kds.append([peak.matchedindexes[i], intensity_ratio])
             partial_kd_lists.append(partial_kds)
 
@@ -654,42 +678,6 @@ class IsoDecEngine:
             self.pks.save_pks()
         else:
             raise ValueError("Unknown Export Type", type)
-
-
-class IsoDecConfig:
-    def __init__(self):
-        """
-        Configuration class for IsoDec Engine. Holds the key parameters for the data processing and deconvolution.
-        """
-        self.filepath = ""
-        self.batch_size = 32
-        self.test_batch_size = 2048
-        self.peakwindow = 40
-        self.acceptedclusters = 0
-        self.matchtol = 0.005
-        self.minpeaks = 3
-        self.minmatchper = 0.67
-        self.css_thresh = 0.80
-        self.maxshift = 3  # This will get overwritten for smaller z, where it's dangerous to have more than 1 or 2
-        self.mzwindow = [-1.5, 2.5]
-        self.plusoneintwindow = [0.1, 0.6]
-        self.knockdown_rounds = 10
-        self.current_KD_round = 0
-        self.activescan = -1
-        self.activescanrt = -1
-        self.activescanorder = -1
-
-    def set_scan_info(self, s, reader=None):
-        """
-        Sets the active scan info
-        :param s: The current scan
-        :param reader: The reader object
-        :return: None
-        """
-        self.activescan = s
-        if reader is not None:
-            self.activescanrt = reader.get_scan_time(s)
-            self.activescanorder = reader.get_ms_order(s)
 
 
 if __name__ == "__main__":

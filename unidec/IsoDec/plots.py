@@ -83,7 +83,7 @@ def plot_pks(pks, data=None, centroids=None, scan=-1, show=False, labelz=True, t
     if zcolor:
         cmap = plt.get_cmap(zcolormap)
 
-    print(len(pks.peaks))
+    # print(len(pks.peaks))
     for p in pks.peaks:
         if scan == -1 or p.scan == scan:
             if forcecolor is not None:

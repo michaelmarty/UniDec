@@ -195,6 +195,10 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v. 7.0.3
+
+Added "Config Data Subbuff" to UPP to allow background subtraction with a curved background in the spreadsheet format. 
+
 v.7.0.2
 
 Improvements to UPP outputs. Fixed issue with reports getting overwritten if the same file is used in multiple rows with UPP. 

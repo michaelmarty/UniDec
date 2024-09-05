@@ -228,13 +228,6 @@ def encode_isodist(isodist, maxlen=16):
 def encode_phase(centroids, maxz=50, phaseres=8):
     """
     Encode the charge phases for a set of centroids
-
-        Old Code:
-        rescale = centroids[:, 0] * 2 * np.pi * (i + 1) / mass_diff_c
-        y = np.sin(rescale)
-        z = np.cos(rescale)
-        phase = (np.arctan2(z, y) / (2 * np.pi)) % 1
-
     :param centroids: Centroids (m/z, intensity)
     :param maxz: Maximum charge state to calculate
     :param phaseres: Resolution of phases to encode in number of bins
@@ -242,18 +235,20 @@ def encode_phase(centroids, maxz=50, phaseres=8):
     """
     phases = np.zeros((maxz, phaseres))
     rescale = centroids[:, 0] / mass_diff_c
+    #nhits = np.zeros((maxz, phaseres))
     for i in range(maxz):
-        # phase = (((rescale * (i + 1)) % 1) + 0.25) % 1
         phase = (rescale * (i + 1)) % 1  # Note, this is a much simpler implementation, needs different model
         phaseindexes = np.floor(phase * phaseres)
         for j in range(len(centroids)):
             phases[i, int(phaseindexes[j])] += centroids[j, 1]
+            #nhits[i, int(phaseindexes[j])] += 1
+    #phases /= nhits
     phases /= np.amax(phases)
     return phases
 
 
 @njit(fastmath=True)
-def encode_phase_all(centroids, peaks, lowmz=-1.5, highmz=5.5, phaseres=8):
+def encode_phase_all(centroids, peaks, lowmz=-1.5, highmz=5.5, phaseres=8, minpeaks=3):
     """
     Work on speeding this up
     :param centroids:
@@ -277,9 +272,9 @@ def encode_phase_all(centroids, peaks, lowmz=-1.5, highmz=5.5, phaseres=8):
             nextpeak = peaks[i+1][0]
             nextindex = fastnearest(centroids[:, 0], nextpeak)
             if end >= nextindex:
-                end = nextindex - 1
+                end = nextindex
 
-        if end - start < 3:
+        if end - start < minpeaks:
             continue
         c = centroids[start:end]
         goodpeaks.append(p)

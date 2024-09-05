@@ -24,6 +24,10 @@ basic_parameters = [["Sample name", True, "The File Name or Path. File extension
 
 config_parameters = [["Config Data Norm", False, "Data Processing Setting: Whether to normalize the data or not. "
                                                  "Should be set as 0 or 1. Default is 1."],
+                     ["Config Data Subbuff", False,
+                      "Data Processing Setting: The background subtraction buffer width. "
+                      "Default is 0 for no background subtraction. "
+                      "A good value to test is 100 for gentle background subtraction and 10 for aggressive. "],
                      ["Config Peak Thres", False, "Deconvolution Setting: The Peak Detection Threshold"],
                      ["Config Peak Window", False, "Deconvolution Setting: The Peak Detection Window in Da"],
                      ["Config Peak Norm", False,
@@ -312,6 +316,13 @@ def set_param_from_row(eng, row, dirname=""):
                 eng.config.datanorm = int(val)
             except Exception as e:
                 print("Error setting data norm", k, val, e)
+
+        if "Config Data Subbuff" in k:
+            try:
+                eng.config.subbuff = int(val)
+                eng.config.subtype = 2
+            except Exception as e:
+                print("Error setting data subbuff", k, val, e)
 
         if "Config Peak Norm" in k:
             try:

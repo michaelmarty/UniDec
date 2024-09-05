@@ -97,6 +97,7 @@ def calculate_cosinesimilarity2(isodist, isomatches, centroids, centmatches):
         return 0
     return ab / (a2 ** 0.5 * b2 ** 0.5)
 
+@njit(fastmath=True)
 def fastwithinppmtol(array, target, ppmtol):
     result = []
     nearest_idx = fastnearest(array, target)
@@ -133,9 +134,45 @@ def fastwithinppmtol(array, target, ppmtol):
 
     return result
 
+@njit(fastmath=True)
+def fastwithin_abstol(array,target, tol):
+    result = []
+    nearest_idx = fastnearest(array, target)
+
+    if np.abs(array[nearest_idx] - target) <= tol:
+        result.append(nearest_idx)
+    else:
+        return result
+
+    adding_upper = True
+    adding_lower = True
+
+    current_upper = nearest_idx + 1
+    current_lower = nearest_idx - 1
+
+    while adding_upper or adding_lower:
+        if adding_upper:
+            if current_upper >= len(array):
+                adding_upper = False
+            elif np.abs(array[current_upper] - target) <= tol:
+                result.append(current_upper)
+                current_upper += 1
+            else:
+                adding_upper = False
+
+        if adding_lower:
+            if current_lower < 0:
+                adding_lower = False
+            elif np.abs(array[current_lower] - target) <= tol:
+                result.append(current_lower)
+                current_lower -= 1
+            else:
+                adding_lower = False
+
+    return result
 
 @njit(fastmath=True)
-def fastpeakdetect(data, window=10, threshold=0.0, ppm=None, norm=True):
+def fastpeakdetect(data, window:int=10, threshold=0.0, ppm=None, norm=True):
     """
     Simple peak detection algorithm.
 
@@ -239,26 +276,48 @@ def get_noise(data, n=20):
     return np.std(noise)
 
 
-def remove_noise_cdata(data, localmin=100, factor=1.5):
+def remove_noise_cdata(data, localmin=100, factor=1.5, mode="median"):
     """
     Remove noise from the data.
     :param data: 2D numpy array of data
     :param localmin: int, number of data points local width to take for min calcs
     :return: data with noise removed
     """
+    if len(data) < localmin:
+        return data
+
     ydat = data[:, 1]
+
     # find local minima
-    localmins = [np.amin(ydat[i:i + localmin]) for i in range(len(ydat) - localmin)]
+    if mode == "median":
+        localmins = [np.median(ydat[i:i + localmin]) for i in range(len(ydat) - localmin)]
+    elif mode == "min":
+        localmins = [np.amin(ydat[i:i + localmin]) for i in range(len(ydat) - localmin)]
+    elif mode == "mean":
+        localmins = [np.mean(ydat[i:i + localmin]) for i in range(len(ydat) - localmin)]
+    else:
+        localmins = [np.median(ydat[i:i + localmin]) for i in range(len(ydat) - localmin)]
     # Extend the last bit at the end value to be the same length as data
     localmins = np.concatenate([localmins, np.full(len(data) - len(localmins), localmins[-1])])
     # smooth
     noiselevel = np.convolve(localmins, np.ones(localmin*1) / localmin*1, mode="same")
-
     # Subtract the noise level from the data
     newdata = data[:, 1] - noiselevel * factor
 
     data = data[newdata > 0]
     # return the standard deviation of the noise
+    return data
+
+
+def remove_noise_cdata2(data, min_snr=2):
+    ydata = data[:, 1]
+    noise = np.median(ydata)
+    #plt.hist(ydata, bins=1000)
+    #plt.show()
+    max_signal = data[np.argmax(ydata), 1]
+    print("Max SNR:", max_signal / noise)
+    min_signal = noise * min_snr
+    data = data[ydata > min_signal]
     return data
 
 
