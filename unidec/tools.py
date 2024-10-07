@@ -13,6 +13,7 @@ import zipfile
 import numpy as np
 import scipy.fft
 import scipy.ndimage.filters as filt
+from numba import njit
 from scipy.interpolate import interp1d
 from scipy.interpolate import griddata
 from scipy import signal
@@ -3260,6 +3261,8 @@ def get_swoop_mz_minmax(mz, i):
         mzmin = (mz[i] + mz[i + 1]) / 2
     return mzmin, mzmax
 
+
+@njit
 def within_ppm(theo, exp, ppmtol):
     #ppm_error = np.abs(((theo - exp) / theo) * 1e6)
     #print("Within ppm ppm-error: " + str(ppm_error))

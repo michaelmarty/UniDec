@@ -1,8 +1,8 @@
 version 7.0.2
 imflag 0
 cdmsflag 0
-input C:\Python\UniDec3\unidec\bin\Example Data\BSA_unidecfiles\BSA_input.dat
-output C:\Python\UniDec3\unidec\bin\Example Data\BSA_unidecfiles\BSA
+input bin/Example Data\BSA_unidecfiles\BSA_input.dat
+output bin/Example Data\BSA_unidecfiles\BSA
 numit 50
 numz 21
 endz 30
@@ -10,7 +10,7 @@ startz 10
 zzsig 1.0
 psig 1.0
 beta 50.0
-mzsig 1.49881
+mzsig 1.0
 psfun 0
 zpsfn 0
 discreteplot 0

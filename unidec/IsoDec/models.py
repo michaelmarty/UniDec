@@ -8,7 +8,7 @@ from torch.optim import lr_scheduler
 import time
 import platform
 # from torchshape import tensorshape
-from unidec.IsoDec.encoding import encode_isodist, encode_phase
+from unidec.IsoDec.encoding import  encode_phase
 import inspect
 
 # Speed up matmul precision for faster training
@@ -334,7 +334,7 @@ class PhaseModel:
         # print("Z:", int(predz), "Time:", time.perf_counter() - startime)
         return int(predz)
 
-    def batch_predict(self, dataloader):
+    def batch_predict(self, dataloader, zscore_thresh=0.95):
         """
         Predict charge states for a batch of data.
         :param dataloader: DataLoader object with the data to predict
@@ -344,16 +344,19 @@ class PhaseModel:
             self.setup_training()
         size = len(dataloader.dataset)
         self.model.eval()
-        output = torch.zeros(size, dtype=torch.long, device=self.device)
+        output = torch.zeros((size, 2), dtype=torch.long, device=self.device)
         with torch.no_grad():
             for batch, x in enumerate(dataloader):
                 x = x.to(self.device)
-                predvec = self.model(x)
-                predz = predvec.argmax(dim=1)
                 lx = len(x)
                 start = batch * lx
                 end = batch * lx + lx
-                output[start:end] = predz
+                predvec = self.model(x)
+                #print(predvec)
+                predzs, predz_inds = torch.topk(predvec, k=2, dim=1)
+                output[start:end, 0] = predz_inds[:, 0]
+                second_score_within = ((predzs[:, 1] / predzs[:, 0]) > zscore_thresh).float()
+                output[start:end, 1] = predz_inds[:, 1] * second_score_within
         output = output.cpu().numpy()
         return output
 
@@ -407,6 +410,26 @@ class Fast8PhaseNeuralNetwork(nn.Module):
         x = self.flatten(x)
         logits = self.linear_relu_stack(x)
         return logits
+
+    '''
+    def partial(self, x):
+        x = self.flatten(x)
+
+        weights1 = self.linear_relu_stack[0].weight
+        h1 = x @ weights1.t()
+        b1 = self.linear_relu_stack[0].bias
+        h1 = h1 + b1
+        h1 = torch.relu(h1)
+        h2 = h1 @ self.linear_relu_stack[2].weight.t()
+        b2 = self.linear_relu_stack[2].bias
+        h2 = h2 + b2
+        print(h1[:5])
+        print(h2[:5])
+
+        logits = self.linear_relu_stack[0](x)
+        logits = self.linear_relu_stack[1](logits)
+        logits = self.linear_relu_stack[2](logits)
+        return logits'''
 
 
 class Fast4PhaseNeuralNetwork(nn.Module):

@@ -271,5 +271,7 @@ unidec/modules/gui_elements/UniDec.mplstyle
 Dockerfile_isodec
 unidec/recent.txt
 unidec/src/UniDec/
-
-
+unidec/IsoDec/src2/
+unidec/IsoDec/test.py
+unidec/IsoDec/testlooper.py
+unidec/IsoDec/oldisodecfunctions.py

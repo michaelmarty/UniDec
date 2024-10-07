@@ -2,13 +2,53 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-from unidec.IsoDec.match import create_isodist
-import time
 
+from matplotlib.backend_tools import ToolBase
+
+from unidec.IsoDec.match import create_isodist, MatchedPeak
+import time
+from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
+import wx
 try:
     mpl.use("WxAgg")
 except:
     pass
+
+
+# Global variable to control dragging
+zoom_levels = []
+start_x = None
+start_y = None
+
+
+def on_scroll(event):
+    ax = plt.gca()
+
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+
+    if event.inaxes is not None:
+        mouse_x = event.xdata
+        mouse_y = event.ydata
+
+        zoom_factor = 0.7
+        if event.button == 'up':
+            zoom_levels.append((xlim, ylim))
+
+            new_x_range = (xlim[1] - xlim[0]) * (1 - zoom_factor)
+            new_y_range = (ylim[1] - ylim[0]) * (1 - zoom_factor)
+            ax.set_xlim([mouse_x - new_x_range / 2, mouse_x + new_x_range / 2])
+            ax.set_ylim([mouse_y - new_y_range / 2, mouse_y + new_y_range / 2])
+
+        elif event.button == 'down':
+            if zoom_levels:
+                ax.set_xlim(zoom_levels[-1][0])
+                ax.set_ylim(zoom_levels[-1][1])
+                zoom_levels.pop()
+
+        plt.draw()
+
+
 
 def fast_vlines(centroids, color, base, factor):
     """
@@ -63,8 +103,9 @@ def cplot(centroids, color='r', factor=1, base=0, mask=None, mfactor=-1, mcolor=
         #    plt.vlines(c[0], base, base + factor * c[1], color=color)
 
 
-def plot_pks(pks, data=None, centroids=None, scan=-1, show=False, labelz=True, title=None, ccolor="r", plotmass=True,
-             zcolor=False, zcolormap="nipy_spectral", forcecolor=None, nocentroids=False):
+def plot_pks(pks, data=None, centroids=None, scan=-1, show=False, labelz=False, title=None, ccolor="r", plotmass=True,
+             zcolor=False, zcolormap="nipy_spectral", forcecolor=None, nocentroids=False, tickfont=12, labfont=14,
+             unmatched=None, annotated=None):  # Added matched and actual parameters
 
     if plotmass:
         plt.subplot(121)
@@ -77,54 +118,86 @@ def plot_pks(pks, data=None, centroids=None, scan=-1, show=False, labelz=True, t
     # Turn off top and right axis
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
-    plt.xlabel("m/z")
-    plt.ylabel("Intensity")
+    plt.xlabel("m/z", fontsize=labfont)
+    plt.ylabel("Intensity", fontsize=labfont)
+    plt.xticks(fontsize=tickfont)
+    plt.yticks(fontsize=tickfont)
 
     if zcolor:
         cmap = plt.get_cmap(zcolormap)
 
-    # print(len(pks.peaks))
-    for p in pks.peaks:
-        if scan == -1 or p.scan == scan:
-            if forcecolor is not None:
-                color = forcecolor
-            elif zcolor:
-                rescale = ((p.z-1)**0.5)/(50**0.5)
-                color = cmap(rescale)
-            else:
-                color = p.color
-            isodist = p.isodist
-            if plotmass:
-                plt.subplot(121)
-            cplot(isodist, color=color, factor=-1)
-            #plt.text(p.mz, np.amax(isodist[:, 1]) * 1.05, (str(p.peakmass) + str(p.mz) + str(p.z)), color=color)
-            if not nocentroids:
-                cplot(p.centroids, color=ccolor)
-            if plotmass:
-                plt.subplot(122)
-                massdist = p.massdist
-                cplot(massdist, color=color)
-                mass = p.avgmass
+    # Plotting peaks from pks
+    if pks is not None:
+        for p in pks.peaks:
+            if scan == -1 or p.scan == scan:
+                if forcecolor is not None:
+                    color = forcecolor
+                elif zcolor:
+                    rescale = ((p.z - 1) ** 0.5) / (50 ** 0.5)
+                    color = cmap(rescale)
+                else:
+                    color = p.color
 
-                if labelz:
-                    try:
-                        plt.text(mass, np.amax(centroids[:, 1]) * 1.05, str(p.z), color=color)
-                    except:
-                        try:
-                            plt.text(mass, np.amax(isodist[:, 1]) * 1.05, str(p.z), color=color)
-                        except:
-                            pass
+                isodist = p.isodist
+                if plotmass:
+                    plt.subplot(121)
+                cplot(isodist, color=color, factor=-1)
+                if not nocentroids:
+                    cplot(p.centroids, color=ccolor)
+                if plotmass:
+                    plt.subplot(122)
+                    massdist = p.massdist
+                    cplot(massdist, color=color)
+                    mass = p.avgmass
+
+    # Plot matched and actual peaks if provided
+    if unmatched is not None and annotated is not None:
+
+
+        # Annotate matched peaks that are also in actual
+        for peak in annotated:
+            if peak in unmatched:
+                plt.annotate(
+                    f"{round(peak.mz, 2)}, {peak.z}",  # Text to display
+                    xy=(peak.mz, peak.z * 1.05),  # Point to which the arrow points
+                    xytext=(peak.mz + 1, peak.z * 1.2),  # Position of the text
+                    fontsize=20,  # Adjust font size here
+                    color='red',  # Text color
+                    arrowprops=dict(facecolor='red', arrowstyle='-|>', shrinkA=5)  # Arrow properties
+                )
 
     if title is not None:
         plt.suptitle(title)
-    if show:
-        plt.show()
+
+    plt.legend()  # Optional: Add a legend
+
+    plt.connect('scroll_event', on_scroll)
 
 
-def plot_zdist(eng):
-    zdata = [x[1] for x in eng.training_data]
-    plt.hist(zdata, bins=range(0, 50))
-    plt.show()
+
+def genActual():
+    path = "C:\\Users\\MartyLabsOfficePC\\Documents\\ETD.txt"
+    matchedpeaks = []
+    with open(path, "r") as file:
+        for line in file:
+            if line.strip():
+                row = line.strip().split(" ",1)
+                peak = round(float(row[0]), 2)
+                currCharge = row[1].strip()
+                z = MatchedPeak(mz=peak, z=int(currCharge))
+                matchedpeaks.append(z)
+    return matchedpeaks
+
+
+def remove_matched(l1,l2,ppmtol=50):
+    unmatched = l1.copy()
+    for peak1 in l1:
+        for peak2 in l2:
+            curr_diff = abs(peak1.mz - peak2.mz)/peak1.mz
+            if (curr_diff * 1e6) < ppmtol:
+                unmatched.remove(peak1)
+                break
+    return unmatched
 
 
 if __name__ == "__main__":

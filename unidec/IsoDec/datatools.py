@@ -10,41 +10,11 @@ from copy import deepcopy
 from numba import njit
 import numba as nb
 
+
+
 # from bisect import bisect_left
 
-'''
-@njit(fastmath=True)
-def bisect_left(a, x):
-    """Similar to bisect.bisect_left(), from the built-in library."""
-    M = len(a)
-    for i in range(M):
-        if a[i] >= x:
-            return i
-    return M'''
-
-
-@njit(fastmath=True)
-def bisect_left(a, x):
-    """Return the index where to insert item x in list a, assuming a is sorted.
-
-    The return value i is such that all e in a[:i] have e < x, and all e in
-    a[i:] have e >= x.  So if x already appears in the list, a.insert(i, x) will
-    insert just before the leftmost x already there.
-    """
-
-    lo = 0
-    hi = len(a)
-
-    while lo < hi:
-        mid = (lo + hi) // 2
-        if a[mid] < x:
-            lo = mid + 1
-        else:
-            hi = mid
-
-    return lo
-
-
+# Make a python code from this C code
 @njit(fastmath=True)
 def fastnearest(array, target):
     """
@@ -53,90 +23,36 @@ def fastnearest(array, target):
     :param target: Value
     :return: np.argmin(np.abs(array - target))
     """
-    i = int(bisect_left(array, target))
-    if i <= 0:
+    if array.size == 0:
         return 0
-    elif i >= len(array) - 1:
-        return len(array) - 1
-    if np.abs(array[i] - target) > np.abs(array[i + 1] - target):
-        i += 1
-    elif np.abs(array[i] - target) > np.abs(array[i - 1] - target):
-        i -= 1
-    return int(i)
-
-@njit(fastmath=True)
-def calculate_cosinesimilarity(dist1, dist2):
-    ab = 0
-    a2 = 0
-    b2 = 0
-    for i in range(len(dist1)):
-        ab += dist1[i] * dist2[i]
-        a2 += dist1[i] ** 2
-        b2 += dist2[i] ** 2
-    return ab / (a2 ** 0.5 * b2 ** 0.5)
-
-@njit(fastmath=True)
-def calculate_cosinesimilarity2(isodist, isomatches, centroids, centmatches):
-    ab = 0
-    a2 = 0
-    b2 = 0
-
-    match_index = 0
-
-    for i in range(len(isodist)):
-        if i in isomatches:
-            ab += isodist[i][1] * centroids[centmatches[match_index]][1]
-            a2 += isodist[i][1] ** 2
-            b2 += centroids[centmatches[match_index]][1] ** 2
-            match_index += 1
-        else:
-            ab += isodist[i][1] * 0
-            a2 += isodist[i][1] ** 2
-            b2 += 0
-    if ab == 0 or a2 == 0 or b2 == 0:
-        return 0
-    return ab / (a2 ** 0.5 * b2 ** 0.5)
-
-@njit(fastmath=True)
-def fastwithinppmtol(array, target, ppmtol):
-    result = []
-    nearest_idx = fastnearest(array, target)
-
-    if ud.within_ppm(array[nearest_idx], target, ppmtol):
-        result.append(nearest_idx)
+    start = 0
+    length = len(array) - 1
+    end = 0
+    diff = length - start
+    while diff > 1:
+        if target < array[start + (length - start) // 2]:
+            length = start + (length - start) // 2
+        elif target == array[start + (length - start) // 2]:
+            end = start + (length - start) // 2
+            length = start + (length - start) // 2
+            start = start + (length - start) // 2
+            return end
+        elif target > array[start + (length - start) // 2]:
+            start = start + (length - start) // 2
+        diff = length - start
+    if np.abs(target - array[start]) >= np.abs(target - array[length]):
+        end = length
     else:
+        end = start
+    return end
+
+@njit(fastmath=True)
+def fastwithin_abstol(array, target, tol):
+    result = []
+
+    if len(array) == 0:
         return result
 
-    adding_upper = True
-    adding_lower = True
-
-    current_upper = nearest_idx + 1
-    current_lower = nearest_idx - 1
-
-    while adding_upper or adding_lower:
-        if adding_upper:
-            if current_upper >= len(array):
-                adding_upper = False
-            elif ud.within_ppm(array[current_upper], target, ppmtol):
-                result.append(current_upper)
-                current_upper += 1
-            else:
-                adding_upper = False
-
-        if adding_lower:
-            if current_lower < 0:
-                adding_lower = False
-            elif ud.within_ppm(array[current_lower], target, ppmtol):
-                result.append(current_lower)
-                current_lower -= 1
-            else:
-                adding_lower = False
-
-    return result
-
-@njit(fastmath=True)
-def fastwithin_abstol(array,target, tol):
-    result = []
     nearest_idx = fastnearest(array, target)
 
     if np.abs(array[nearest_idx] - target) <= tol:
@@ -171,34 +87,20 @@ def fastwithin_abstol(array,target, tol):
 
     return result
 
+
 @njit(fastmath=True)
-def fastpeakdetect(data, window:int=10, threshold=0.0, ppm=None, norm=True):
-    """
-    Simple peak detection algorithm.
+def fastpeakdetect(data, window: int = 10, threshold=0.0, ppm=None, norm=True):
+    peaks = np.empty((0, 2))
+    if data is None or data.size == 0 or data.ndim != 2 or data.shape[1] != 2:
+        return peaks
 
-    Detects a peak if a given data point is a local maximum within plus or minus config.peakwindow.
-    Peaks must also be above a threshold of config.peakthresh * max_data_intensity.
+    length = data.shape[0]
+    maxval = np.amax(data[:, 1]) if norm else 1
 
-    The mass and intensity of peaks meeting these criteria are output as a P x 2 array.
+    if maxval == 0:
+        return peaks
 
-    :param data: Mass data array (N x 2) (mass intensity)
-    :param window: Tolerance window of the x values
-    :param threshold: Threshold of the y values
-    :param ppm: Tolerance window in ppm
-    :param norm: Whether to normalize the data before peak detection
-    :return: Array of peaks positions and intensities (P x 2) (mass intensity)
-    """
-    peaks = []
-    length = len(data)
-    shape = np.shape(data)
-    if length == 0 or shape[1] != 2:
-        return np.array(peaks)
-
-    if norm:
-        maxval = np.amax(data[:, 1])
-    else:
-        maxval = 1
-    for i in range(0, length):
+    for i in range(length):
         if data[i, 1] > maxval * threshold:
             if ppm is not None:
                 ptmass = data[i, 0]
@@ -206,22 +108,15 @@ def fastpeakdetect(data, window:int=10, threshold=0.0, ppm=None, norm=True):
                 start = fastnearest(data[:, 0], ptmass - newwin)
                 end = fastnearest(data[:, 0], ptmass + newwin)
             else:
-                start = i - window
-                end = i + window
+                start = max(0, i - window)
+                end = min(length, i + window + 1)
 
-                start = int(start)
-                end = int(end) + 1
+            if start < end:
+                testmax = np.amax(data[start:end, 1])
+                if data[i, 1] == testmax and np.all(data[i, 1] != data[start:i, 1]):
+                    peaks = np.append(peaks, np.array([[data[i, 0], data[i, 1]]]), axis=0)
 
-                if start < 0:
-                    start = 0
-                if end > length:
-                    end = length
-
-            testmax = np.amax(data[start:end, 1])
-            if data[i, 1] == testmax and np.all(data[i, 1] != data[start:i, 1]):
-                peaks.append([data[i, 0], data[i, 1]])
-
-    return np.array(peaks)
+    return peaks
 
 
 @njit(fastmath=True)
@@ -300,37 +195,13 @@ def remove_noise_cdata(data, localmin=100, factor=1.5, mode="median"):
     # Extend the last bit at the end value to be the same length as data
     localmins = np.concatenate([localmins, np.full(len(data) - len(localmins), localmins[-1])])
     # smooth
-    noiselevel = np.convolve(localmins, np.ones(localmin*1) / localmin*1, mode="same")
+    noiselevel = np.convolve(localmins, np.ones(localmin * 1) / localmin * 1, mode="same")
     # Subtract the noise level from the data
     newdata = data[:, 1] - noiselevel * factor
 
     data = data[newdata > 0]
     # return the standard deviation of the noise
     return data
-
-
-def remove_noise_cdata2(data, min_snr=2):
-    ydata = data[:, 1]
-    noise = np.median(ydata)
-    #plt.hist(ydata, bins=1000)
-    #plt.show()
-    max_signal = data[np.argmax(ydata), 1]
-    print("Max SNR:", max_signal / noise)
-    min_signal = noise * min_snr
-    data = data[ydata > min_signal]
-    return data
-
-
-def get_top_peak_mz(data):
-    """
-    Get the m/z value of the top peak in the data.
-    :param data: 2D numpy array of data
-    :return: float, m/z value of the top peak
-    """
-    # get the index of the maximum value in the data
-    maxindex = np.argmax(data[:, 1])
-    # return the m/z value of the peak
-    return data[maxindex, 0]
 
 
 @njit(fastmath=True)
@@ -402,15 +273,6 @@ def get_centroids(data, peakmz, mzwindow=None):
     return peaks, chopped
 
 
-def calc_match_simp(centroids, isodist):
-    spectrum1 = matchms.Spectrum(mz=centroids[:, 0], intensities=centroids[:, 1], metadata={"precursor_mz": 1})
-    spectrum2 = matchms.Spectrum(mz=isodist[:, 0], intensities=isodist[:, 1], metadata={"precursor_mz": 1})
-    cosine_greedy = matchms.similarity.CosineGreedy(tolerance=0.01)
-    score = cosine_greedy.pair(spectrum1, spectrum2)
-    print(score)
-    return score
-
-
 def isotope_finder(data, mzwindow=1.5):
     nl = get_noise(data)
     # Chop data below noise level
@@ -447,3 +309,17 @@ def simp_charge(centroids, silent=False):
     if not silent:
         print("Simple Prediction:", charge)
     return charge
+
+
+
+
+
+if __name__ == "__main__":
+    a = 14501.69584
+    blist = [8031.29980469, 9462.05664062, 9820.18164062, 9935.2109375,
+             10980.79394531, 11164.91015625, 12485.61914062, 12727.8125,
+             12973.95507812, 14500.69335938, 14719.77832031]
+
+    index = fastnearest(np.array(blist), a)
+
+    print(index, blist[index])

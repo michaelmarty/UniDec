@@ -104,29 +104,20 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467):
 
 
 @njit(fastmath=True)
-def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007276467, minusoneaszero=True):
+def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007276467, isotopethresh: float = 0.01):
     # Predict Isotopic Intensities
     intensities = isomike(mass)
     # Calculate masses for these
-    if minusoneaszero:
-        start = -1
-    else:
-        start = 0
-    masses = np.arange(start, len(intensities)) * mass_diff_c + mass
+    masses = np.arange(0, len(intensities)) * mass_diff_c + mass
 
     # Load Into Array
     dist = np.zeros((len(masses), 2))
     dist[:, 0] = masses
-    if minusoneaszero:
-        dist[1:, 1] = intensities
-    else:
-        dist[:, 1] = intensities
-
+    dist[:, 1] = intensities
 
     # Filter Low Intensities
-    b1 = intensities > np.amax(intensities) * 0.01
-    if minusoneaszero:
-        b1[0]=1
+    b1 = intensities > np.amax(intensities) * isotopethresh
+
     dist = dist[b1]
 
     # Convert to m/z
@@ -193,7 +184,7 @@ def isojim(isolist, length=isolength):
     allift = np.abs(fftpack.irfft(allft))
     # allift = np.abs(allift)
     allift = allift / np.amax(allift)
-    return allift  # .astype(nb.float64)
+    return allift[:isolength]  # .astype(nb.float64)
 
 
 # @njit(fastmath=True)
@@ -211,7 +202,8 @@ def predict_charge(mass):
 
 
 # @njit(fastmath=True)
-def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.007276467, crop=False, fast=True, **kwargs):
+def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.007276467, crop=False, fast=True,
+                                length=isolength, **kwargs):
     if fast:
         minmassint = makemassmike(mass)
         intensities = isomike(mass)

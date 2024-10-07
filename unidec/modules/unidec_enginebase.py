@@ -619,7 +619,7 @@ class UniDecEngine:
             return plot
 
     def gen_html_report(self, event=None, outfile=None, plots=None, interactive=False, open_in_browser=True,
-                        results_string=None, del_columns=None, findex=None):
+                        results_string=None, del_columns=None, findex=None, allpng=False):
         """
         Generate an HTML report of the current UniDec run.
         :param event: Unused Event
@@ -675,7 +675,7 @@ class UniDecEngine:
             for c in row:
                 if c is not None and c.flag:
                     goodrow = True
-                    if c.is2d:
+                    if c.is2d or allpng:
                         png_str = c.get_png()
                         png_html = png_to_html(png_str)
                         svg_row.append(png_html)

@@ -6,7 +6,7 @@ import torch
 from mpmath import harmonic
 from torch.utils.data import DataLoader
 from unidec.IsoDec.models import example, PhaseModel
-from unidec.IsoDec.datatools import fastpeakdetect, get_all_centroids, fastnearest, calculate_cosinesimilarity2
+from unidec.IsoDec.datatools import fastpeakdetect, get_all_centroids, fastnearest
 from unidec.IsoDec.match import *
 from unidec.IsoDec.encoding import data_dirs, encode_noise, encode_phase_all, small_data_dirs, \
     encode_double, encode_harmonic
@@ -49,7 +49,7 @@ class IsoDecEngine:
     Main class for IsoDec Engine
     """
 
-    def __init__(self, phaseres=8, verbose=False):
+    def __init__(self, phaseres=8, verbose=False, use_wrapper=False):
         """
         Initialize the IsoDec Engine
         :param phaseres: Bit depth of the phase encoding. 8 is default.
@@ -65,18 +65,18 @@ class IsoDecEngine:
 
         self.pks = MatchedCollection()
 
-        self.phaseres = phaseres
+        self.config.phaseres = phaseres
         self.phasemodel = PhaseModel()
         self.maxz = 50
-        self.phasemodel.dims = [self.maxz, self.phaseres]
-        if self.phaseres == 8:
+        self.phasemodel.dims = [self.maxz, self.config.phaseres]
+        if self.config.phaseres == 8:
             self.phasemodel.modelid = 1
-        elif self.phaseres == 4:
+        elif self.config.phaseres == 4:
             self.phasemodel.modelid = 0
         else:
             self.phasemodel.modelid = 2
 
-        self.use_wrapper = True
+        self.use_wrapper = use_wrapper
         if platform.system() == "Linux":
             self.use_wrapper = False
 
@@ -121,7 +121,7 @@ class IsoDecEngine:
             index = np.random.randint(0, ltraining - 1)
             centroid = self.training_data[2][index]
             z = self.training_data[1][index]
-            emat, centroid2 = encode_harmonic(centroid, z, phaseres=self.phaseres)
+            emat, centroid2 = encode_harmonic(centroid, z, phaseres=self.config.phaseres)
             emats.append(emat)
             zs.append(z)
             tempcentroids.append(centroid2)
@@ -143,7 +143,7 @@ class IsoDecEngine:
             index = np.random.randint(0, ltest - 1)
             centroid = self.test_data[2][index]
             z = self.test_data[1][index]
-            emat, centroid2 = encode_harmonic(centroid, z, phaseres=self.phaseres)
+            emat, centroid2 = encode_harmonic(centroid, z, phaseres=self.config.phaseres)
             emats.append(emat)
             zs.append(z)
             tempcentroids.append(centroid2)
@@ -168,7 +168,7 @@ class IsoDecEngine:
         for i in range(nnoise):
             index = np.random.randint(0, ltraining - 1)
             centroid = self.training_data[2][index]
-            emat, centroid, z = encode_noise(centroid[0, 0], np.amax(centroid[:, 1]), phaseres=self.phaseres)
+            emat, centroid, z = encode_noise(centroid[0, 0], np.amax(centroid[:, 1]), phaseres=self.config.phaseres)
             emats.append(emat)
             zs.append(0)
             tempcentroids.append(centroid)
@@ -185,7 +185,7 @@ class IsoDecEngine:
         for i in range(nnoisetest):
             index = np.random.randint(0, ltest - 1)
             centroid = self.test_data[2][index]
-            emat, centroid, z = encode_noise(centroid[0, 0], np.amax(centroid[:, 1]), phaseres=self.phaseres)
+            emat, centroid, z = encode_noise(centroid[0, 0], np.amax(centroid[:, 1]), phaseres=self.config.phaseres)
             emats.append(emat)
             zs.append(0)
             tempcentroids.append(centroid)
@@ -213,7 +213,7 @@ class IsoDecEngine:
             index2 = np.random.randint(0, ltraining - 1)
             centroid2 = self.training_data[2][index2]
             z = self.training_data[1][index]
-            emat, centroid = encode_double(centroid1, centroid2, phaseres=self.phaseres)
+            emat, centroid = encode_double(centroid1, centroid2, phaseres=self.config.phaseres)
             emats.append(emat)
             zs.append(z)
             tempcentroids.append(centroid)
@@ -233,7 +233,7 @@ class IsoDecEngine:
             centroid1 = self.test_data[2][index]
             centroid2 = self.test_data[2][index2]
             z = self.test_data[1][index]
-            emat, centroid = encode_double(centroid1, centroid2, phaseres=self.phaseres)
+            emat, centroid = encode_double(centroid1, centroid2, phaseres=self.config.phaseres)
             emats.append(emat)
             zs.append(z)
             tempcentroids.append(centroid)
@@ -416,27 +416,6 @@ class IsoDecEngine:
             z = self.phasemodel.predict(centroids)
         return int(z)
 
-    def save_peak(self, centroids, z, peakmz, pks=None):
-        """
-        Save a peak to the MatchedCollection after its charge has been predicted.
-        First, it optimizes the shift of the peak, then checks the matches and adds it to the MatchedCollection.
-        :param centroids: Centroid data, m/z in first column, intensity in second
-        :param z: Predicted charge
-        :param peakmz: Peak m/z value
-        :param pks: MatchedCollection peaks object
-        :return: Matched indexes relative to the original centroid data
-        """
-        pk = optimize_shift2(self.config, centroids, z, peakmz)
-
-        if pk is not None:
-            if pks is not None:
-                pks.add_peak(pk)
-            else:
-                self.pks.add_peak(pk)
-            return pk.matchedindexes
-        else:
-            return []
-
     def get_matches(self, centroids, z, peakmz, pks=None):
         """
         Get the matches for a peak
@@ -450,8 +429,56 @@ class IsoDecEngine:
             return []
         if z == 0 or z > self.maxz:
             return []
-        matchedindexes = self.save_peak(centroids, z, peakmz, pks=pks)
-        return matchedindexes
+        pk = optimize_shift2(self.config, centroids, z, peakmz)
+        if pk is not None:
+            if pks is not None:
+                pks.add_peak(pk)
+            else:
+                self.pks.add_peak(pk)
+            return pk.matchedindexes
+        else:
+            return []
+
+    def get_matches_multiple_z(self, centroids, zs, peakmz, pks=None):
+        if len(centroids) < self.config.minpeaks:
+            return []
+        if zs[0] == 0 or zs[0] > self.maxz:
+            return []
+        pk1 = optimize_shift2(self.config, centroids, zs[0], peakmz)
+        pk2 = optimize_shift2(self.config, centroids, zs[1], peakmz)
+        if pk1 is not None and pk2 is not None:
+            #Retain the peak with the highest score
+            pk1_maxscore = np.amax(pk1.acceptedshifts[:, 1])
+            pk2_maxscore = np.amax(pk2.acceptedshifts[:, 1])
+            if self.config.verbose:
+                print("Pk1 score:", pk1_maxscore, "Pk2 score:", pk2_maxscore)
+            if pk1_maxscore > pk2_maxscore:
+                if pks is not None:
+                    pks.add_peak(pk1)
+                else:
+                    self.pks.add_peak(pk1)
+                return pk1.matchedindexes
+            else:
+                if pks is not None:
+                    pks.add_peak(pk2)
+                else:
+                    self.pks.add_peak(pk2)
+                return pk2.matchedindexes
+        elif pk1 is not None and pk2 is None:
+            if pks is not None:
+                pks.add_peak(pk1)
+            else:
+                self.pks.add_peak(pk1)
+            return pk1.matchedindexes
+        elif pk1 is None and pk2 is not None:
+            if pks is not None:
+                pks.add_peak(pk2)
+            else:
+                self.pks.add_peak(pk2)
+            return pk2.matchedindexes
+        else:
+            return []
+
 
     def batch_process_spectrum(self, data, window=None, threshold=None, centroided=False):
         """
@@ -476,6 +503,12 @@ class IsoDecEngine:
         else:
             centroids = deepcopy(get_all_centroids(data, window=5, threshold=threshold * 0.1))
 
+        med_spacing = self.check_spacings(centroids)
+        if med_spacing <= self.config.meanpeakspacing_thresh:
+            if self.config.verbose:
+                print("Median Spacing:", med_spacing, "Removing noise.")
+            centroids = remove_noise_cdata(centroids, 100, factor=1.5, mode="median")
+
         if self.use_wrapper:
             self.pks = self.wrapper.process_spectrum(centroids, self.pks, self.config)
         else:
@@ -487,7 +520,7 @@ class IsoDecEngine:
                     self.config.css_thresh = self.config.css_thresh * 0.90
                     if self.config.css_thresh < 0.6:
                         self.config.css_thresh = 0.6
-
+                print("Spectrum length: ", len(centroids))
                 if i > 0:
                     kwindow = kwindow * 0.5
                     if kwindow < 1:
@@ -508,19 +541,19 @@ class IsoDecEngine:
                 # Encode phase of all
                 emats, peaks, centlist, indexes = encode_phase_all(centroids, peaks, lowmz=self.config.mzwindow[0],
                                                                    highmz=self.config.mzwindow[1],
-                                                                   phaseres=self.phaseres,
-                                                                   minpeaks=2)
+                                                                   phaseres=self.config.phaseres,
+                                                                   minpeaks=2, datathresh=self.config.datathreshold)
+
 
                 emats = [torch.as_tensor(e, dtype=torch.float32) for e in emats]
                 # emats = torch.as_tensor(emats, dtype=torch.float32).to(self.phasemodel.device)
-                data_loader = DataLoader(emats, batch_size=1024, shuffle=False, pin_memory=True)
+                data_loader = DataLoader(emats, batch_size=2048, shuffle=False, pin_memory=True)
 
                 # Predict Charge
                 preds = self.phasemodel.batch_predict(data_loader)
 
 
                 knockdown = []
-                partial_kd = []
                 ngood = 0
                 # print(peaks, len(peaks))
                 # Loop through all peaks to check if they are good
@@ -533,12 +566,16 @@ class IsoDecEngine:
 
                     if kindex in knockdown:
                         continue
-                    if z == 0:
+                    if z[0] == 0:
                         knockdown.append(kindex)
                         continue
 
                     # Get the centroids around the peak
-                    matchedindexes = self.get_matches(centlist[j], z, p[0], pks=self.pks)
+                    if z[1] != 0:
+                        matchedindexes = self.get_matches_multiple_z(centlist[j], z, p[0], pks=self.pks)
+                    else:
+                        matchedindexes = self.get_matches(centlist[j], z[0], p[0], pks=self.pks)
+
                     if len(matchedindexes) > 0:
                         ngood += 1
                         # Find matches
@@ -546,67 +583,19 @@ class IsoDecEngine:
                         matchindvals = indval[matchedindexes]
                         # Knock them down
                         knockdown.extend(matchindvals)
-                        # centroids = self.perform_modelling_kd(centroids, indval, peaks)
-
-                # print("NGood:", ngood)
+                    else:
+                        knockdown.append(kindex)
                 if len(knockdown) == 0:
                     continue
 
-                # for k in partial_kd:
-                #   centroids[k][1] *= 0.5
                 knockdown = np.array(knockdown)
                 centroids = np.delete(centroids, knockdown, axis=0)
 
                 if len(centroids) < self.config.minpeaks:
                     break
-                # centroids = centroids[centroids[:, 1] > 0]
-            # print("Time:", time.perf_counter() - starttime)
 
-        if self.config.noisefilter > 0:
-            medianc = np.median(centroids[:, 1]) * self.config.noisefilter
-            # print("Removing Noise Peaks Below:", medianc)
-            self.pks = remove_noise_peaks(self.pks, medianc)
         return self.pks
 
-    def perform_modelling_kd(self, centroids, indval, peaks):
-        centroids = deepcopy(centroids)
-        min_index = indval[0]
-        max_ratio = 1.25
-
-        full_kds = []
-        partial_kd_lists = []
-
-        for peak in peaks:
-            partial_kds = []
-            for i in range(len(peak.matchedindexes)):
-                intensity_ratio = centroids[peak.matchedindexes[i], 1] / peak.isodist[peak.isomatches[i], 1]
-                print(centroids[peak.matchedindexes[i], 0], intensity_ratio)
-                if intensity_ratio < max_ratio and peak.matchedindexes[i] not in full_kds:
-                    full_kds.append(peak.matchedindexes[i])
-                elif intensity_ratio > max_ratio:
-                    partial_kds.append([peak.matchedindexes[i], intensity_ratio])
-            partial_kd_lists.append(partial_kds)
-
-        agg_partial_kds = []
-        for i in range(len(partial_kd_lists[0])):
-            ratios = [partial_kd_lists[0][i][1]]
-            for j in range(len(peaks)):
-                if j != 0:
-                    for k in range(len(partial_kd_lists[j])):
-                        if partial_kd_lists[j][k][0] == partial_kd_lists[0][i][0]:
-                            ratios.append(partial_kd_lists[j][k][1])
-            if len(ratios) == len(peaks):
-                agg_partial_kds.append([partial_kd_lists[0][i][0], np.mean(np.array(ratios))])
-
-        for i in range(len(agg_partial_kds)):
-            print(peaks[0].centroids[agg_partial_kds[i][0], 0], agg_partial_kds[i][1])
-            print(centroids[agg_partial_kds[i][0] + min_index, 0], centroids[agg_partial_kds[i][0] + min_index, 1])
-            centroids[agg_partial_kds[i][0] + min_index, 1] *= (1 / agg_partial_kds[i][1])
-
-        for i in range(len(full_kds)):
-            centroids[full_kds[i] + min_index, 1] = 0
-
-        return centroids
 
     def process_file(self, file, scans=None):
         starttime = time.perf_counter()
@@ -662,6 +651,12 @@ class IsoDecEngine:
 
         # self.pks.save_pks()
         return reader
+
+    def check_spacings(self, spectrum):
+        spacings = []
+        for i in range(0, len(spectrum) - 1):
+            spacings.append(spectrum[i + 1, 0] - spectrum[i, 0])
+        return np.median(spacings)
 
     def export_peaks(self, type="prosightlite", filename=None, reader=None, max_precursors=None):
         if filename is None:

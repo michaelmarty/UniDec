@@ -197,7 +197,9 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v. 7.0.3
 
-Added "Config Data Subbuff" to UPP to allow background subtraction with a curved background in the spreadsheet format. 
+Added check box in UPP to allow all PNG images rather than SVG images, which can improve file sizes.
+
+Added "Config Data Subbuff" to UPP to allow background subtraction with a curved background in the spreadsheet format. Added "Config Data Binevery", "Config Data Lintype", and "Config Data Smoothing" to provide access to other data processing parameters in the spreadsheet format.
 
 v.7.0.2
 
