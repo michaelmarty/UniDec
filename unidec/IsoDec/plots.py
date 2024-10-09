@@ -9,11 +9,11 @@ from unidec.IsoDec.match import create_isodist, MatchedPeak
 import time
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 import wx
+
 try:
     mpl.use("WxAgg")
 except:
     pass
-
 
 # Global variable to control dragging
 zoom_levels = []
@@ -49,7 +49,6 @@ def on_scroll(event):
         plt.draw()
 
 
-
 def fast_vlines(centroids, color, base, factor):
     """
     Fast vlines plotter
@@ -70,6 +69,7 @@ def fast_vlines(centroids, color, base, factor):
         ylist.append(None)
     plt.plot(xlist, ylist, color=color)
 
+
 def cplot(centroids, color='r', factor=1, base=0, mask=None, mfactor=-1, mcolor="g", z=0, zcolor="b", zfactor=1):
     """
     Simple script to plot centroids
@@ -79,7 +79,7 @@ def cplot(centroids, color='r', factor=1, base=0, mask=None, mfactor=-1, mcolor=
     :param base: Base of the lines. Default is 0. Can be adjusted to shift up or down.
     :return: None
     """
-    #if centroids is not None and len(centroids) > 0:
+    # if centroids is not None and len(centroids) > 0:
     #    plt.hlines(0, np.amin(centroids[:, 0]), np.amax(centroids[:, 0]), color="k")
 
     if mask is not None:
@@ -88,24 +88,23 @@ def cplot(centroids, color='r', factor=1, base=0, mask=None, mfactor=-1, mcolor=
         else:
             mask = mask[:len(centroids)]
         fast_vlines(centroids[mask.astype(bool)], mcolor, base, mfactor)
-        #for c in centroids[mask.astype(bool)]:
+        # for c in centroids[mask.astype(bool)]:
         #    plt.vlines(c[0], base, base + mfactor * c[1], color=mcolor)
 
     if z != 0:
         isodist = create_isodist(centroids[np.argmax(centroids[:, 1]), 0], z, centroids)
         fast_vlines(isodist, zcolor, base, zfactor)
-        #for c in isodist:
+        # for c in isodist:
         #    plt.vlines(c[0], base, base + zfactor * c[1], color=zcolor, linewidth=3)
 
     if centroids is not None:
         fast_vlines(centroids, color, base, factor)
-        #for c in centroids:
+        # for c in centroids:
         #    plt.vlines(c[0], base, base + factor * c[1], color=color)
 
 
 def plot_pks(pks, data=None, centroids=None, scan=-1, show=False, labelz=False, title=None, ccolor="r", plotmass=True,
-             zcolor=False, zcolormap="nipy_spectral", forcecolor=None, nocentroids=False, tickfont=12, labfont=14,
-             unmatched=None, annotated=None):  # Added matched and actual parameters
+             zcolor=False, zcolormap="nipy_spectral", forcecolor=None, nocentroids=False, tickfont=12, labfont=14):  # Added matched and actual parameters
 
     if plotmass:
         plt.subplot(121)
@@ -150,54 +149,12 @@ def plot_pks(pks, data=None, centroids=None, scan=-1, show=False, labelz=False, 
                     cplot(massdist, color=color)
                     mass = p.avgmass
 
-    # Plot matched and actual peaks if provided
-    if unmatched is not None and annotated is not None:
-
-
-        # Annotate matched peaks that are also in actual
-        for peak in annotated:
-            if peak in unmatched:
-                plt.annotate(
-                    f"{round(peak.mz, 2)}, {peak.z}",  # Text to display
-                    xy=(peak.mz, peak.z * 1.05),  # Point to which the arrow points
-                    xytext=(peak.mz + 1, peak.z * 1.2),  # Position of the text
-                    fontsize=20,  # Adjust font size here
-                    color='red',  # Text color
-                    arrowprops=dict(facecolor='red', arrowstyle='-|>', shrinkA=5)  # Arrow properties
-                )
-
     if title is not None:
         plt.suptitle(title)
 
     plt.legend()  # Optional: Add a legend
 
     plt.connect('scroll_event', on_scroll)
-
-
-
-def genActual():
-    path = "C:\\Users\\MartyLabsOfficePC\\Documents\\ETD.txt"
-    matchedpeaks = []
-    with open(path, "r") as file:
-        for line in file:
-            if line.strip():
-                row = line.strip().split(" ",1)
-                peak = round(float(row[0]), 2)
-                currCharge = row[1].strip()
-                z = MatchedPeak(mz=peak, z=int(currCharge))
-                matchedpeaks.append(z)
-    return matchedpeaks
-
-
-def remove_matched(l1,l2,ppmtol=50):
-    unmatched = l1.copy()
-    for peak1 in l1:
-        for peak2 in l2:
-            curr_diff = abs(peak1.mz - peak2.mz)/peak1.mz
-            if (curr_diff * 1e6) < ppmtol:
-                unmatched.remove(peak1)
-                break
-    return unmatched
 
 
 if __name__ == "__main__":
@@ -227,5 +184,5 @@ if __name__ == "__main__":
     starttime = time.perf_counter()
     for i in range(50):
         cplot(example)
-    print("Time to plot 50", time.perf_counter()-starttime)
+    print("Time to plot 50", time.perf_counter() - starttime)
     plt.show()

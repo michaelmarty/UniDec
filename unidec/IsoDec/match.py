@@ -2,6 +2,7 @@ import numpy as np
 import time
 import matchms
 from copy import deepcopy
+
 from unidec.IsoDec.datatools import *
 import matplotlib.pyplot as plt
 from numba import njit
@@ -66,14 +67,13 @@ class IsoDecConfig:
         self.maxshift = 3  # This will get overwritten for smaller z, where it's dangerous to have more than 1 or 2
         self.mzwindow = [-1.05, 2.05]
         self.plusoneintwindow = [0.1, 0.6]
-        self.knockdown_rounds = 3
+        self.knockdown_rounds = 5
         self.min_score_diff = 0.1
         self.minareacovered = 0.15
         self.minusoneaszero = True
         self.isotopethreshold = 0.01
         self.datathreshold = 0.05
         self.zscore_threshold = 0.95
-
 
     def set_scan_info(self, s, reader=None):
         """
@@ -470,19 +470,19 @@ def compare_matchedcollections(coll1, coll2, ppmtol=50, objecttocompare="monoiso
         scans = [0]
     for s in scans:
         if not ignorescan:
-            #Pull out peaks for each individual scan.
+            # Pull out peaks for each individual scan.
             coll1_sub = MatchedCollection().add_peaks([p for p in coll1.peaks if p.scan == s])
             coll2_sub = MatchedCollection().add_peaks([p for p in coll2.peaks if p.scan == s])
         else:
             coll1_sub = coll1
             coll2_sub = coll2
 
-        #Sort the peak lists and the masses by monoisotopic mass
+        # Sort the peak lists and the masses by monoisotopic mass
         coll1_sub.peaks = sorted(coll1_sub.peaks, key=lambda x: x.monoiso)
         coll2_sub.peaks = sorted(coll2_sub.peaks, key=lambda x: x.monoiso)
         masses1 = np.array([p.monoiso for p in coll1_sub.peaks])
         masses2 = np.array([p.monoiso for p in coll2_sub.peaks])
-        #print(masses1, masses2)
+        # print(masses1, masses2)
         coll2_matched_indices = []
 
         for i in range(len(coll1_sub.peaks)):
@@ -511,7 +511,6 @@ def compare_matchedcollections(coll1, coll2, ppmtol=50, objecttocompare="monoiso
                                                 foundmatch = True
                                                 diffs.append((m1 - newm2) / m1 * 1e6)
 
-
             if foundmatch:
                 shared.append(coll1_sub.peaks[i])
             else:
@@ -528,8 +527,61 @@ def compare_matchedcollections(coll1, coll2, ppmtol=50, objecttocompare="monoiso
 
     print("Avg PPM Diff:", np.mean(diffs))
 
+    return shared, unique1, unique2
+
+
+def compare_annotated(l1, l2, ppmtol, maxshift):
+    annotated = deepcopy(l1)
+    data = deepcopy(l2)
+    u1 = []
+    u2 = []
+    shared = []
+    # compare with shifting
+    annotated_mzs = []
+    annotated_charges = []
+    charge_map = {}
+    for peak in annotated:
+        curr_mz = peak.mz
+        annotated_mzs.append(curr_mz)
+        charge_map[curr_mz] = len(annotated_charges)
+        annotated_charges.append(peak.z)
+        positive_mz = peak.mz
+        negative_mz = peak.mz
+        currentshift = maxshift
+        while currentshift > 0:
+            negative_mz = negative_mz - (1 / peak.z)
+            annotated_mzs.append(negative_mz)
+            charge_map[negative_mz] = len(annotated_charges)
+            annotated_charges.append(peak.z)
+            positive_mz = positive_mz + (1 / peak.z)
+            annotated_mzs.append(positive_mz)
+            charge_map[positive_mz] = len(annotated_charges)
+            annotated_charges.append(peak.z)
+            currentshift -= 1
+    annotated_mzs = sorted(set(annotated_mzs))
+    for peak in data:
+        curr_mz = peak.mz
+        curr_tol = (curr_mz / 1e6) * ppmtol
+        matched_indices = fastwithin_abstol(np.array(annotated_mzs), curr_mz, curr_tol)
+        for index in matched_indices:
+            matched_mz = annotated_mzs[index]
+            matched_charge = annotated_charges[charge_map[matched_mz]]
+            if matched_charge == peak.z:
+                if not any(is_close(peak.mz, shared_peak.mz, 0.05) for shared_peak in shared):
+                    shared.append(peak)
+                    break
+
+    u1 = [i for i in annotated if i not in shared]
+    u2 = [i for i in data if i not in shared]
+    shared = MatchedCollection().add_peaks(shared)
+    unique1 = MatchedCollection().add_peaks(u1)
+    unique2 = MatchedCollection().add_peaks(u2)
 
     return shared, unique1, unique2
+
+
+def is_close(mz1, mz2, tolerance):
+    return abs(mz1 - mz2) <= tolerance
 
 
 def get_unique_matchedions(coll1, coll2):
@@ -605,7 +657,8 @@ def create_isodist_full(peakmz, charge, data, adductmass=1.007276467, isotopethr
     """
     charge = float(charge)
     mass = (peakmz - adductmass) * charge
-    isodist, massdist = fast_calc_averagine_isotope_dist_dualoutput(mass, charge=charge, adductmass=adductmass, isotopethresh=isotopethresh)
+    isodist, massdist = fast_calc_averagine_isotope_dist_dualoutput(mass, charge=charge, adductmass=adductmass,
+                                                                    isotopethresh=isotopethresh)
     isodist[:, 1] *= np.amax(data[:, 1])
     massdist[:, 1] *= np.amax(data[:, 1])
     # shift isodist so that maxes are aligned with data
@@ -628,7 +681,8 @@ def get_accepted_shifts(cent_intensities, isodist, maxshift, min_score_diff, css
     sum = -1
     meanratio = 1
     for i, shift in enumerate(shiftrange):
-        s = calculate_cosinesimilarity(cent_intensities, isodist[:, 1], shift, maxshift, minusoneareaszero=minusoneaszero)
+        s = calculate_cosinesimilarity(cent_intensities, isodist[:, 1], shift, maxshift,
+                                       minusoneareaszero=minusoneaszero)
         shifts_scores[i, 0] = shift
         shifts_scores[i, 1] = s
 
@@ -729,14 +783,13 @@ def optimize_shift2(config, centroids: np.ndarray, z, peakmz):
         maxshift = config.maxshift
 
     isodist, massdist, monoiso = create_isodist_full(peakmz, z, centroids, adductmass=config.adductmass,
-                                                    isotopethresh=config.isotopethreshold)
+                                                     isotopethresh=config.isotopethreshold)
 
     cent_intensities = find_matched_intensities(centroids[:, 0], centroids[:, 1], isodist[:, 0], maxshift,
                                                 tolerance=config.matchtol, z=z, peakmz=peakmz)
 
-
     norm_factor = max(cent_intensities) / max(isodist[:, 1])
-    isodist[:,1] *= norm_factor
+    isodist[:, 1] *= norm_factor
 
     accepted_shifts = get_accepted_shifts(cent_intensities, isodist, maxshift, config.min_score_diff,
                                           config.css_thresh, config.minusoneaszero)
@@ -779,15 +832,16 @@ def optimize_shift2(config, centroids: np.ndarray, z, peakmz):
     return m
 
 
-#We already have this function in datatools
+# We already have this function in datatools
 @njit(fastmath=True)
-def calculate_cosinesimilarity(cent_intensities, iso_intensities, shift: int, max_shift: int, minusoneareaszero: bool = True):
+def calculate_cosinesimilarity(cent_intensities, iso_intensities, shift: int, max_shift: int,
+                               minusoneareaszero: bool = True):
     ab = 0
     a2 = 0
     b2 = 0
 
     if minusoneareaszero:
-        a_val = cent_intensities[max_shift + shift -1]
+        a_val = cent_intensities[max_shift + shift - 1]
         b_val = 0
         ab += a_val * b_val
         a2 += a_val ** 2
@@ -1067,6 +1121,23 @@ def remove_noise_peaks(pks, noiselevel):
     filteredpeaks = [p for p in pks if p.matchedintensity > noiselevel]
     newcollection.add_peaks(filteredpeaks)
     return newcollection
+
+
+# Will generate list of matchedpeak objects from text file
+# Just specify the desired field with charge
+# Text file should be in the format: field(monoiso or mz) " " charge
+def genActual(path=None):
+    path = "Z:\\Group Share\\JGP\\js8b05641_si_001\\ETD Manual Annotations.txt"
+    matches = []
+    with open(path, "r") as file:
+        for line in file:
+            if line.strip():
+                row = line.strip().split(" ", 1)
+                peak = round(float(row[0]), 2)
+                currCharge = row[1].strip()
+                z = MatchedPeak(mz=peak, z=int(currCharge))
+                matches.append(z)
+    return matches
 
 
 if __name__ == "__main__":
