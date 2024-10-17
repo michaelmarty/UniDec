@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import unidec.tools as ud
+from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.metaunidec.mudeng import MetaUniDec
 from unidec.engine import UniDec
 from copy import deepcopy
@@ -15,6 +16,7 @@ class ChromEngine(MetaUniDec):
 
     def __init__(self):
         MetaUniDec.__init__(self)
+        self.polarity = None
         self.chrompeaks = None
         self.chrompeaks_tranges = None
         self.outpath = None
@@ -88,8 +90,8 @@ class ChromEngine(MetaUniDec):
 
         self.update_history()
 
-        self.chromdat = ud.get_importer(path)
-        self.auto_polarity(path, self.chromdat)
+        self.chromdat = ImporterFactory.create_importer(path)
+        self.polarity = self.chromdat.get_polarity()
         self.tic = self.chromdat.get_tic()
         self.ticdat = np.array(self.tic)
         self.fullscans = self.chromdat.scans
@@ -246,5 +248,5 @@ if __name__ == "__main__":
     inpath = "C:\\Python\\UniDec3\\unidec\\bin\\Example Data\\UniChrom\\SEC_Native_Herceptin.raw"
     eng = ChromEngine()
     eng.open_chrom(inpath)
-    eng.gen_html_report()
+    #eng.gen_html_report()
     pass

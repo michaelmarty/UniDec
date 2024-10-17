@@ -121,12 +121,12 @@ class PhaseModel:
         if modelid == 0:
             self.model = Fast4PhaseNeuralNetwork()
             self.dims = [50, 4]
-            savename = "phase_model_2.pth"
+            savename = "phase_model_4.pth"
         elif modelid == 1:
             self.model = Fast8PhaseNeuralNetwork()
             self.dims = [50, 8]
             # self.model = torch.compile(self.model, mode="max-autotune")
-            savename = "phase_model.pth"
+            savename = "phase_model_8.pth"
         elif modelid == 2:
             self.model = PhaseNeuralNetwork(size=self.dims[1], outsize=self.dims[0])
             savename = "phase_model_3.pth"

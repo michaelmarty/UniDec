@@ -8,6 +8,8 @@ from copy import deepcopy
 import zipfile
 import fnmatch
 import numpy as np
+
+from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.modules import unidecstructure, peakstructure, MassFitter
 import unidec.tools as ud
 import unidec.modules.IM_functions as IM_func
@@ -102,14 +104,19 @@ class UniDec(UniDecEngine):
         tstart = time.perf_counter()
         self.pks = peakstructure.Peaks()
         self.data = unidecstructure.DataContainer()
-
         # Get the directory and file names
         if file_directory is None:
             file_directory = os.path.dirname(file_name)
             file_name = os.path.basename(file_name)
-        file_path = os.path.join(file_directory, file_name)
-
+        if '.' not in file_directory:
+            file_path = os.path.join(file_directory, file_name)
+        else:
+            try:
+                file_path = file_directory
+            except:
+                raise IOError("File path not found")
         # Handle Paths
+
         self.config.filename = file_path
         self.config.dirname = file_directory
         if "silent" not in kwargs or not kwargs["silent"]:
@@ -129,6 +136,8 @@ class UniDec(UniDecEngine):
 
         if "clean" in kwargs and kwargs["clean"] and os.path.isdir(dirnew):
             shutil.rmtree(dirnew)
+
+        print(self.config.udir)
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
         self.config.udir = dirnew
@@ -139,14 +148,16 @@ class UniDec(UniDecEngine):
         self.config.extension = os.path.splitext(self.config.filename)[1]
         self.config.default_file_names()
 
-        # Import Data
-        self.data.rawdata = ud.load_mz_file(self.config.filename, self.config, time_range, imflag=self.config.imflag)
 
-        if ud.isempty(self.data.rawdata):
+        res = ImporterFactory.create_importer(file_path)
+        self.data.rawdata = res.get_data()
+        if len(self.data.rawdata.tolist()) == 0:
             print("Error: Data Array is Empty")
             print("Likely an error with data conversion")
             raise ImportError
-
+        if self.data.rawdata.ndim < 2:
+            print("Error: Data Array is not 2D")
+            raise ImportError("rawdata must be a 2D array.")
         if self.data.rawdata.shape[1] == 3:
             self.config.imflag = 1
             self.config.discreteplot = 1
@@ -182,7 +193,8 @@ class UniDec(UniDecEngine):
         else:
             self.export_config()
 
-        self.auto_polarity(file_path)
+        polarity = res.get_polarity()
+        #self.auto_polarity(file_path)
 
         if load_results:
             self.unidec_imports(everything=True)
@@ -211,7 +223,6 @@ class UniDec(UniDecEngine):
         """
         self.config.dirname = dirname
         self.config.filename = os.path.split(self.config.dirname)[1]
-
         print("Openening: ", self.config.filename)
         if os.path.splitext(self.config.filename)[1] == ".zip":
             print("Can't open zip, try Load State.")
@@ -240,15 +251,13 @@ class UniDec(UniDecEngine):
             else:
                 if self.config.system == "Windows":
                     if self.config.imflag == 0:
-                        # print("Testing: ", newfilepath)
-                        ud.waters_convert2(self.config.dirname, config=self.config, outfile=newfilepath)
-
-                        self.config.filename = newfilename
-                        if os.path.isfile(newfilepath):
-                            print("Converted data from raw to txt")
-                        else:
-                            print("Failed conversion to txt file. ", newfilepath)
-                            return None, None
+                        #importer = ImporterFactory.create_importer(self.config.filename)
+                        print(newfilename)
+                        # if os.path.isfile(newfilepath):
+                        #     print("Converted data from raw to txt")
+                        # else:
+                        #     print("Failed conversion to txt file. ", newfilepath)
+                        #     return None, None
                     else:
                         call = [self.config.cdcreaderpath, '-r', self.config.dirname, '-m',
                                 newfilepath[:-10] + "_msraw.txt", '-i', newfilepath, '--ms_bin', binsize,
@@ -265,6 +274,7 @@ class UniDec(UniDecEngine):
                 else:
                     print("Sorry. Waters Raw converter only works on windows. Convert to txt file first.")
                     return None, None
+
             return self.config.filename, self.config.dirname
 
         else:

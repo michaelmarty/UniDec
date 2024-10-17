@@ -20,32 +20,34 @@ from scipy import signal
 from scipy import fftpack
 import matplotlib.cm as cm
 import matplotlib.colors as colors
+
+from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.modules.fitting import *
 from itertools import cycle
 #from numba import jit
 
 try:
-    from unidec.modules.mzMLimporter import mzMLimporter
+    from unidec.UniDecImporter.MZML import mzML
 except:
     pass
 from unidec.modules import unidecstructure
 import fnmatch
-from unidec.modules.mzXML_importer import mzXMLimporter
+from unidec.UniDecImporter.MZXML import mzXML
 
 try:
     from unidec.modules import data_reader
 except:
     print("Could not import data reader: unidectools")
 
-# from modules.waters_importer.WatersImporter import WatersDataImporter as WDI
+
 try:
-    from unidec.modules.waters_importer.WatersImporter import WatersDataImporter as WDI
+    from unidec.UniDecImporter.Waters import Waters as WDI
 except:
     print("Could not import Waters Data Importer")
 
-# from modules.thermo_reader.ThermoImporter import ThermoDataImporter
+
 try:
-    from unidec.modules.thermo_reader.ThermoImporter import ThermoDataImporter
+    from unidec.UniDecImporter.Thermo import Thermo
 except:
     print("Could not import Thermo Data Importer")
 
@@ -65,45 +67,6 @@ HTseqDict = {'2': '101', '3': '1110100', '4': '000100110101111', '5': '000010010
              '5S13': '1111100011011101010000100101100', '5S15': '1110001101110101000010010110011'
              }
 
-
-def get_importer(path):
-    extension = os.path.splitext(path)[1]
-    extension = extension.lower()
-    if os.path.isfile(path) or os.path.isdir(path):
-        if extension == ".mzml" or extension == ".gz":
-            # mzML file
-            d = mzMLimporter(path, gzmode=False)
-        elif extension == ".mzxml":
-            d = mzXMLimporter(path)
-        elif extension == ".raw" and not os.path.isdir(path):
-            # Thermo Raw File
-            try:
-                d = ThermoDataImporter(path)
-            except:
-                d = data_reader.DataImporter(path)
-        elif extension == ".raw" and os.path.isdir(path):
-            # Waters Raw Directory
-            d = WDI(path, do_import=False)
-        elif extension == ".txt" or extension == ".dat" or extension == ".csv":
-            # print("Text Files Not Supported for This Operation")
-            return None
-        else:
-            # Some other file type
-            d = data_reader.DataImporter(path)
-    else:
-        print("Get Importer Failed. File Not Found:", path)
-        return None
-
-    return d
-
-
-def get_max_time(path):
-    if os.path.splitext(path)[1] == ".txt":
-        return 0
-
-    importer = get_importer(path)
-    maxtime = importer.get_max_time()
-    return maxtime
 
 
 # ..........................
@@ -974,119 +937,53 @@ def waters_convert2(path, config=None, outfile=None, time_range=None):
     return data
 
 
-def get_polarity(path, importer=None):
-    if importer is None:
-        d = get_importer(path)
-    else:
-        d = importer
-    if d is not None:
-        polarity = d.get_polarity()
-        return polarity
-    else:
-        return None
+#def get_polarity(path):
+    # importer = ImporterFactory.create_importer(path)
+    # polarity = importer.get_polarity()
+    # return polarity
 
 
-def load_mz_file(path, config=None, time_range=None, imflag=0):
+def load_mz_file(path: str, config: object = None, time_range: object = None, imflag: int = 0) -> np.ndarray:
     """
     Loads a text or mzml file
     :param path: File path to load
     :param config: UniDecConfig object
     :return: Data array
     """
-    if config is None:
-        extension = os.path.splitext(path)[1]
-        extension = extension.lower()
-    else:
-        extension = config.extension.lower()
+    extension = os.path.splitext(path)[1].lower()
 
-    if not os.path.isfile(path) and not os.path.isdir(path):
-        print("Load MZ File Failed. File Not Found:", path)
-        raise IOError
-
-    if not os.path.isfile(path):
-        if os.path.isdir(path) and extension == ".raw":
-            try:
-                outfile = os.path.splitext(path)[0] + "_rawdata.txt"
-                print("Trying to convert Waters File:", outfile)
-                data = waters_convert2(path, config, outfile=outfile, time_range=time_range)
-            except Exception as e:
-                print("Attempted to convert Waters Raw file but failed", e, path)
-                raise IOError
-        elif os.path.isdir(path) and extension == ".d":
-            try:
-                print("Trying to convert Agilent File:", path)
-                data = data_reader.DataImporter(path).get_data(time_range=time_range)
-                txtname = path[:-2] + ".txt"
-                np.savetxt(txtname, data)
-                print("Saved to:", txtname)
-            except Exception as e:
-                print("Attempted to convert Agilent Raw file but failed", e, path)
-                raise IOError
-        else:
-            print("Attempted to open:", path)
-            print("\t but failed. File type may not be supported...")
-            raise IOError
-    else:
-        if extension == ".txt" or extension == ".dat":
-            try:
+    try:
+        if extension in ['.csv', '.txt', '.dat', '.npz']:
+            if extension in ['.txt', '.dat']:
                 data = np.loadtxt(path, skiprows=header_test(path))
-            except:
-                c = lambda s: float(str(s.decode("UTF-8")).replace(",", ""))  # .replace("'", "").replace("b", "")
-                data = np.genfromtxt(path, skip_header=header_test(path, deletechars=","), converters={0: c, 1: c})
-            # data = np.loadtxt(path, skiprows=header_test(path, delimiter=","), delimiter=",")
-        elif extension == ".csv":
-            try:
+            elif extension == '.csv':
                 data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0, 1))
-            except:
-                data = np.loadtxt(path, delimiter=",", skiprows=8, usecols=(0, 1))
-        elif extension == ".mzml" or extension == ".gz":
-            if extension == ".mzml":
-                num = -5
-            if extension == '.gz':
-                num = -8
-            txtname = path[:num] + ".txt"
-            if imflag == 1:
-                if config.compressflag == 1:
-                    mzbins = config.mzbins
-                else:
-                    mzbins = None
-                data = mzMLimporter(path).get_im_data(time_range=time_range, mzbins=mzbins)
-
-                np.savetxt(txtname, sparse(data))
-                print("Saved to:", txtname)
-            else:
-                try:
-                    data = mzMLimporter(path).get_data(time_range=time_range)
-                except Exception as e:
-                    print("Error with loading mzML file:", e)
-                    data = mzMLimporter(path, nogz=True).get_data(time_range=time_range)
-                np.savetxt(txtname, data)
-                print("Saved to:", txtname)
-        elif extension.lower() == ".raw":
-            data = ThermoDataImporter(path).get_data(time_range=time_range)
-            txtname = path[:-4] + ".txt"
-            np.savetxt(txtname, data)
-            print("Saved to:", txtname)
-        elif extension.lower() == ".mzxml":
-            data = mzXMLimporter(path).get_data(time_range=time_range)
-            txtname = path[:-6] + ".txt"
-            np.savetxt(txtname, data)
-            print("Saved to:", txtname)
-        elif extension.lower() == ".wiff":
-            print("Trying to convert Sciex File (no promises...):", path)
-            data = data_reader.DataImporter(path).get_data(time_range=time_range)
-            txtname = path[:-4] + ".txt"
-            np.savetxt(txtname, data)
-            print("Saved to:", txtname)
-        elif extension.lower() == ".npz":
-            data = np.load(path, allow_pickle=True)['data']
+            elif extension == '.npz':
+                data = np.load(path, allow_pickle=True)['data']
         else:
-            try:
-                data = np.loadtxt(path, skiprows=header_test(path))
-            except IOError:
-                print("Failed to open:", path)
-                data = None
+            raise ValueError("Unsupported file extension")
+    except Exception as e:
+        print(f"Error loading file {path}: {e}")
+        return None
+
+    importer = ImporterFactory.create_importer(path)
+    data = importer.get_data()
     return data
+
+
+        #Config mzbins??
+        #Might be useful to have:
+        # if extension == ".mzml":
+        #     num = -5
+        # if extension == '.gz':
+        #     num = -8
+        # txtname = path[:num] + ".txt"
+        # if imflag == 1:
+        #     if config.compressflag == 1:
+        #         mzbins = config.mzbins
+        #     else:
+        #         mzbins = None
+        #Now we hit the actual importer files we want
 
 
 def zipdir(path, zip_handle):
@@ -3268,6 +3165,11 @@ def within_ppm(theo, exp, ppmtol):
     #print("Within ppm ppm-error: " + str(ppm_error))
     return np.abs(((theo - exp) / theo) * 1e6) <= ppmtol
 
+def save_data_to_text(path):
+    path = path.split(".")
+    np.savetxt(path[0] + "_data.txt", data)
+    print("Saving data: " + path[0] + "_data.txt")
+    return None
 
 
 if __name__ == "__main__":

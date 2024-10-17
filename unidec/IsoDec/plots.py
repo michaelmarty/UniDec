@@ -104,7 +104,7 @@ def cplot(centroids, color='r', factor=1, base=0, mask=None, mfactor=-1, mcolor=
 
 
 def plot_pks(pks, data=None, centroids=None, scan=-1, show=False, labelz=False, title=None, ccolor="r", plotmass=True,
-             zcolor=False, zcolormap="nipy_spectral", forcecolor=None, nocentroids=False, tickfont=12, labfont=14):  # Added matched and actual parameters
+             zcolor=False, zcolormap="nipy_spectral", forcecolor=None, nocentroids=False, tickfont=12, labfont=14, labelpeaks=False):  # Added matched and actual parameters
 
     if plotmass:
         plt.subplot(121)
@@ -136,7 +136,11 @@ def plot_pks(pks, data=None, centroids=None, scan=-1, show=False, labelz=False, 
                     color = cmap(rescale)
                 else:
                     color = p.color
-
+                if labelpeaks:
+                    intensity = 1000
+                    if p.isodist is not None:
+                        intensity = np.amax(p.isodist[:, 1])
+                    plt.text(p.mz + 0.05, intensity, s=str(round(p.mz, 2)) + "," + str(p.z), fontsize=8, color=color)
                 isodist = p.isodist
                 if plotmass:
                     plt.subplot(121)
@@ -152,7 +156,7 @@ def plot_pks(pks, data=None, centroids=None, scan=-1, show=False, labelz=False, 
     if title is not None:
         plt.suptitle(title)
 
-    plt.legend()  # Optional: Add a legend
+    #plt.legend()  # Optional: Add a legend
 
     plt.connect('scroll_event', on_scroll)
 

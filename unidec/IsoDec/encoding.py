@@ -58,7 +58,6 @@ def encode_phase_all(centroids, peaks, lowmz=-1.5, highmz=5.5, phaseres=8, minpe
     outcentroids = []
     indexes = []
     indexvalues = np.arange(len(centroids))
-
     for i, p in enumerate(peaks):
         peakmz = p[0]
         # Find all centroids in the neighborhood of the peak
@@ -69,7 +68,7 @@ def encode_phase_all(centroids, peaks, lowmz=-1.5, highmz=5.5, phaseres=8, minpe
             nextpeak = peaks[i+1][0]
             nextindex = fastnearest(centroids[:, 0], nextpeak)
             if end >= nextindex:
-                end = nextindex
+                end = nextindex - 1
 
         if end - start < minpeaks:
             continue
@@ -78,7 +77,7 @@ def encode_phase_all(centroids, peaks, lowmz=-1.5, highmz=5.5, phaseres=8, minpe
         if datathresh > 0:
             b1 = c[:,1]> (datathresh * np.amax(c[:,1]))
             new_c = c[b1]
-
+            #print("Original Centroids:", len(c), "Filtered Centroids:", len(new_c))
             if len(c) < minpeaks:
                 continue
 

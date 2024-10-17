@@ -1,6 +1,7 @@
 import tools as ud
 import os
 import unidec.modules.data_reader as dr
+from unidec.UniDecImporter.Importer import ImporterFactory
 
 dr.register()
 
@@ -14,7 +15,7 @@ agilent_validation = [11782, 45267, 21124]
 for i, f in enumerate(agilent_files):
     print(f)
     file = os.path.abspath(f)
-    importer = ud.get_importer(file)
+    importer = ImporterFactory.create_importer(file)
     data = importer.get_data()
     l = len(data)
     print("Data Length:", l)

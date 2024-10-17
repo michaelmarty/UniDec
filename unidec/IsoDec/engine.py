@@ -6,7 +6,7 @@ import torch
 from mpmath import harmonic
 from torch.utils.data import DataLoader
 from unidec.IsoDec.models import example, PhaseModel
-from unidec.IsoDec.datatools import fastpeakdetect, get_all_centroids, fastnearest
+from unidec.IsoDec.datatools import fastpeakdetect, get_all_centroids, fastnearest, check_spacings
 from unidec.IsoDec.match import *
 from unidec.IsoDec.encoding import data_dirs, encode_noise, encode_phase_all, small_data_dirs, \
     encode_double, encode_harmonic
@@ -21,6 +21,8 @@ from unidec.IsoDec.plots import *
 import platform
 import numba as nb
 from typing import List
+
+from unidec.UniDecImporter.ImporterFactory import *
 
 
 class IsoDecDataset(torch.utils.data.Dataset):
@@ -503,7 +505,7 @@ class IsoDecEngine:
         else:
             centroids = deepcopy(get_all_centroids(data, window=5, threshold=threshold * 0.1))
 
-        med_spacing = self.check_spacings(centroids)
+        med_spacing = check_spacings(centroids)
         if med_spacing <= self.config.meanpeakspacing_thresh:
             if self.config.verbose:
                 print("Median Spacing:", med_spacing, "Removing noise.")
@@ -515,7 +517,7 @@ class IsoDecEngine:
             kwindow = window
             threshold = threshold
             for i in range(self.config.knockdown_rounds):
-                # Adjust settings based on round
+                #Adjust settings based on round
                 if i >= 5:
                     self.config.css_thresh = self.config.css_thresh * 0.90
                     if self.config.css_thresh < 0.6:
@@ -601,7 +603,7 @@ class IsoDecEngine:
         starttime = time.perf_counter()
         self.config.filepath = file
         # Get importer and check it
-        reader = ud.get_importer(file)
+        reader = ImporterFactory.create_importer(file)
         self.reader = reader
         ext = os.path.splitext(file)[1]
         try:
@@ -651,12 +653,6 @@ class IsoDecEngine:
 
         # self.pks.save_pks()
         return reader
-
-    def check_spacings(self, spectrum):
-        spacings = []
-        for i in range(0, len(spectrum) - 1):
-            spacings.append(spectrum[i + 1, 0] - spectrum[i, 0])
-        return np.median(spacings)
 
     def export_peaks(self, type="prosightlite", filename=None, reader=None, max_precursors=None):
         if filename is None:

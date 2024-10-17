@@ -1,7 +1,7 @@
 import os, sys
 
 try:
-    from unidec.modules.waters_importer.WatersImporter import WatersDataImporter as WDI
+    from unidec.UniDecImporter.Waters.Waters import WatersDataImporter as WDI
 except Exception as e:
     print("Error importing Waters Importer, get_data_wrapper.py", e)
 import unidec.tools as ud

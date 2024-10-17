@@ -1,4 +1,6 @@
 import numpy as np
+
+from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.modules.hdf5_tools import replace_dataset, get_dataset
 import h5py
 import pandas as pd
@@ -195,7 +197,7 @@ class MetaDataSet:
         else:
             dirname, filename = os.path.split(path)
 
-        data = ud.load_mz_file(path)
+        data = ImporterFactory.create_importer(path).get_data()
         self.add_data(data, name=filename)
 
     def add_data(self, data, name="", attrs=None, export=True):

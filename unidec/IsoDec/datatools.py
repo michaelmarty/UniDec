@@ -281,6 +281,10 @@ def isotope_finder(data, mzwindow=1.5):
     peaks = np.array(sorted(peaks, key=lambda x: x[1], reverse=True))
     return peaks
 
+# @njit(fastmath=True)
+def check_spacings(spectrum: np.ndarray):
+    spacings = np.diff(spectrum[:, 0])
+    return np.median(spacings)
 
 def simp_charge(centroids, silent=False):
     """

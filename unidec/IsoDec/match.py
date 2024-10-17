@@ -152,7 +152,6 @@ class MatchedCollection:
             self.monoisos = np.append(self.monoisos, pk.monoiso)
             self.masses.append(MatchedMass(pk))
 
-
         else:
             idx = fastnearest(self.monoisos, pk.monoiso)
             nearest_mass = self.monoisos[idx]
@@ -233,7 +232,7 @@ class MatchedCollection:
             ms2_features += len(v)
         print("MS2 Features:", ms2_features)
 
-        msalign.write_ms1_msalign(ms1_scan_dict, filename)
+        msalign.write_ms1_msalign(ms1_scan_dict, ms2_scan_dict, filename)
         msalign.write_ms2_msalign(ms2_scan_dict, ms1_scan_dict, reader, filename, max_precursors=max_precursors,
                                   act_type=act_type)
 
@@ -454,7 +453,6 @@ def peak_mz_z_df_to_matchedcollection(df, data=None):
     print("Loaded", len(mc.peaks), "peaks from dataframe")
     return mc
 
-
 def compare_matchedcollections(coll1, coll2, ppmtol=50, objecttocompare="monoisos", maxshift=3, ignorescan=False):
     unique1 = []
     shared = []
@@ -529,56 +527,54 @@ def compare_matchedcollections(coll1, coll2, ppmtol=50, objecttocompare="monoiso
 
     return shared, unique1, unique2
 
-
 def compare_annotated(l1, l2, ppmtol, maxshift):
-    annotated = deepcopy(l1)
-    data = deepcopy(l2)
-    u1 = []
-    u2 = []
+    unique_annotated = []
+    unique_experimental = []
     shared = []
-    # compare with shifting
+
     annotated_mzs = []
     annotated_charges = []
-    charge_map = {}
-    for peak in annotated:
-        curr_mz = peak.mz
-        annotated_mzs.append(curr_mz)
-        charge_map[curr_mz] = len(annotated_charges)
-        annotated_charges.append(peak.z)
-        positive_mz = peak.mz
-        negative_mz = peak.mz
-        currentshift = maxshift
-        while currentshift > 0:
-            negative_mz = negative_mz - (1 / peak.z)
+    annotated_indices = []
+    for i in range(len(l1.peaks)):
+        annotated_mzs.append(l1[i].mz)
+        annotated_charges.append(l1[i].z)
+        annotated_indices.append(i)
+        currentshift = 1
+        while currentshift <= maxshift:
+            negative_mz = l1[i].mz - (1 / l1[i].z) * currentshift
             annotated_mzs.append(negative_mz)
-            charge_map[negative_mz] = len(annotated_charges)
-            annotated_charges.append(peak.z)
-            positive_mz = positive_mz + (1 / peak.z)
+            annotated_charges.append(l1[i].z)
+            annotated_indices.append(i)
+            positive_mz = l1[i].mz + (1 / l1[i].z) * currentshift
             annotated_mzs.append(positive_mz)
-            charge_map[positive_mz] = len(annotated_charges)
-            annotated_charges.append(peak.z)
-            currentshift -= 1
-    annotated_mzs = sorted(set(annotated_mzs))
-    for peak in data:
-        curr_mz = peak.mz
+            annotated_charges.append(l1[i].z)
+            annotated_indices.append(i)
+            currentshift += 1
+
+    #Sort annotated mzs and apply that sort to the other lists
+    annotated_mzs, annotated_charges, annotated_indices = zip(*sorted(zip(annotated_mzs, annotated_charges, annotated_indices)))
+
+    matched_annotated_indices = []
+    for i in range(len(l2.peaks)):
+        foundmatch = False
+        curr_mz = l2[i].mz
         curr_tol = (curr_mz / 1e6) * ppmtol
         matched_indices = fastwithin_abstol(np.array(annotated_mzs), curr_mz, curr_tol)
         for index in matched_indices:
-            matched_mz = annotated_mzs[index]
-            matched_charge = annotated_charges[charge_map[matched_mz]]
-            if matched_charge == peak.z:
-                if not any(is_close(peak.mz, shared_peak.mz, 0.05) for shared_peak in shared):
-                    shared.append(peak)
-                    break
+            matched_charge = annotated_charges[index]
+            if matched_charge == l2[i].z:
+                shared.append(l2[i])
+                matched_annotated_indices.append(annotated_indices[index])
+                foundmatch = True
+                break
+        if not foundmatch:
+            unique_experimental.append(l2[i])
 
-    u1 = [i for i in annotated if i not in shared]
-    u2 = [i for i in data if i not in shared]
+    unique_annotated = MatchedCollection().add_peaks([l1[i] for i in range(len(l1.peaks)) if i not in matched_annotated_indices])
     shared = MatchedCollection().add_peaks(shared)
-    unique1 = MatchedCollection().add_peaks(u1)
-    unique2 = MatchedCollection().add_peaks(u2)
+    unique_experimental = MatchedCollection().add_peaks(unique_experimental)
 
-    return shared, unique1, unique2
-
+    return shared, unique_annotated, unique_experimental
 
 def is_close(mz1, mz2, tolerance):
     return abs(mz1 - mz2) <= tolerance
@@ -698,7 +694,7 @@ def get_accepted_shifts(cent_intensities, isodist, maxshift, min_score_diff, css
     return accepted_shifts
 
 
-# @njit(fastmath=True)
+@njit(fastmath=True)
 def make_shifted_peak(shift: int, shiftscore: float, monoiso: float, massdist: np.ndarray, isodist: np.ndarray,
                       peakmz: float, z: int,
                       centroids: np.ndarray, matchtol: float,
@@ -713,7 +709,7 @@ def make_shifted_peak(shift: int, shiftscore: float, monoiso: float, massdist: n
     shiftmz = shiftmass / float(z)
     isodist_new = isodist[b1]
     isodist_new[:, 0] = isodist_new[:, 0] + shiftmz
-    peakmz_new = peakmz + shiftmz
+    peakmz_new = peakmz
 
     # Match it again
     matchedindexes, isomatches = find_matches(centroids, isodist_new, matchtol)
@@ -1126,18 +1122,21 @@ def remove_noise_peaks(pks, noiselevel):
 # Will generate list of matchedpeak objects from text file
 # Just specify the desired field with charge
 # Text file should be in the format: field(monoiso or mz) " " charge
-def genActual(path=None):
-    path = "Z:\\Group Share\\JGP\\js8b05641_si_001\\ETD Manual Annotations.txt"
-    matches = []
+def read_manual_annotations(path=None, delimiter=' '):
+    if path is None:
+        path = "Z:\\Group Share\\JGP\\js8b05641_si_001\\ETD Manual Annotations.txt"
+    mc = MatchedCollection()
+    peaks = []
     with open(path, "r") as file:
         for line in file:
             if line.strip():
-                row = line.strip().split(" ", 1)
+                row = line.strip().split(delimiter, 1)
                 peak = round(float(row[0]), 2)
                 currCharge = row[1].strip()
                 z = MatchedPeak(mz=peak, z=int(currCharge))
-                matches.append(z)
-    return matches
+                mc.add_peak(z)
+                peaks.append(z)
+    return mc
 
 
 if __name__ == "__main__":

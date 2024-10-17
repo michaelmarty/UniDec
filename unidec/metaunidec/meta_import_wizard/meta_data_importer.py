@@ -1,6 +1,6 @@
+from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.metaunidec.meta_import_wizard import MetaTagTypes as tt
 from unidec.metaunidec import mudeng
-from unidec.tools import get_importer
 import os
 
 def parse_file(file_path, exp_type='Time', collision=None, dir=None):
@@ -42,7 +42,7 @@ def auto_from_wizard(data, filename, mode):
             eng.data.add_file(path=path)
         else:
             print(start, stop)
-            importer = get_importer(path)
+            importer = ImporterFactory.create_importer(path)
             if mode == 1:
                 data = importer.get_data(scan_range=(start, stop))
             elif mode == 0:

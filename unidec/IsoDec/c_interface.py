@@ -1,11 +1,12 @@
 import ctypes
 import os
 import numpy as np
+
 from unidec.IsoDec.match import MatchedPeak, MatchedCollection, IsoDecConfig
 from unidec.modules.isotopetools import fast_calc_averagine_isotope_dist
 from unidec.IsoDec.plots import *
 import unidec.tools as ud
-#from unidec.IsoDec.encoding import encode_phase
+from unidec.IsoDec.encoding import encode_phase
 
 example = np.array(
     [
@@ -162,9 +163,10 @@ class IsoDecWrapper:
             ctypes.POINTER(MPStruct),
         ]
         self.modeldir = modeldir
-        self.modelpath = ctypes.c_char_p(
-            os.path.join(self.modeldir, "phase_model.bin").encode()
-        )
+        # self.modelpath = ctypes.c_char_p(
+        #     os.path.join(self.modeldir, "phase_model_8.bin").encode()
+        # )
+        self.modelpath = None
         self.config = IsoDecConfig()
 
     def encode(self, centroids, maxz=50, phaseres=8, config=None):
@@ -225,18 +227,18 @@ class IsoDecWrapper:
             config = self.config
             settings = config_to_settings(config)
 
-        if self.config.phaseres == 4:
-            self.modelpath = ctypes.c_char_p(
-                os.path.join(self.modeldir, "phase_model_2.bin").encode()
-            )
-        elif self.config.phaseres == 8:
-            self.modelpath = ctypes.c_char_p(
-                os.path.join(self.modeldir, "phase_model.bin").encode()
-            )
-        else:
-            print("Invalid phase resolution.", self.config.phaseres)
-            raise ValueError("Invalid phase resolution.")
-
+        # if self.config.phaseres == 4:
+        #     self.modelpath = ctypes.c_char_p(
+        #         os.path.join(self.modeldir, "phase_model_4.bin").encode()
+        #     )
+        # elif self.config.phaseres == 8:
+        #     self.modelpath = ctypes.c_char_p(
+        #         os.path.join(self.modeldir, "phase_model_8.bin").encode()
+        #     )
+        # else:
+        #     print("Invalid phase resolution.", self.config.phaseres)
+        #     raise ValueError("Invalid phase resolution.")
+        self.modelpath = None
         if config.verbose:
             print(
                 "Running C code with",
@@ -299,16 +301,21 @@ class IsoDecWrapper:
 
 
 if __name__ == "__main__":
-    filepath = "C:\\Data\\IsoNN\\test2.txt"
-    # filepath = "C:\\Data\\IsoNN\\test9.txt"
+    #filepath = "C:\\Data\\IsoNN\\test2.txt"
+    filepath = "Z:\\Group Share\\JGP\\js8b05641_si_001\\test.txt"
     spectrum = np.loadtxt(filepath, skiprows=0)
-    spectrum = ud.datachop(spectrum, 702, 708)
+    spectrum = ud.datachop(spectrum, 891.195, 893.757)
     spectrum = spectrum.astype(np.double)
 
     wrapper = IsoDecWrapper()
     e1 = wrapper.encode(spectrum)
-    exit()
-    e2 = encode_phase(spectrum).flatten()
+    #exit()
+    thresh = np.amax(spectrum[:,1]) * 0.05
+    new_spec = spectrum[spectrum[:,1] > thresh]
+    print("Old:", len(spectrum), "New:", len(new_spec))
+    e2 = encode_phase(new_spec).flatten()
+
+
 
     diff = e1 - e2
     #diff[np.abs(diff)<0.0001] = 0
@@ -316,9 +323,10 @@ if __name__ == "__main__":
     print(diff)
     print(np.amax(np.abs(diff)))
     print("Total:", np.sum(np.abs(diff)))
-    exit()
+    #exit()
     # wrapper.process_spectrum(spectrum)
     pks = wrapper.process_spectrum(spectrum)
     print(len(pks.peaks))
-    exit()
+    #exit()
     plot_pks(pks, centroids=spectrum, show=True, title="C Interface")
+    plt.show()

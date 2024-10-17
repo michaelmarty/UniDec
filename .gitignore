@@ -276,3 +276,5 @@ unidec/IsoDec/test.py
 unidec/IsoDec/testlooper.py
 unidec/IsoDec/oldisodecfunctions.py
 unidec/IsoDec/src_vs/
+unidec/IsoDec/src_cmake/cmake-build*
+unidec/IsoDec/src_cmake/.idea/

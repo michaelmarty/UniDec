@@ -48,7 +48,7 @@ def process_file(file, overwrite=False, peakdepth=10, maxpeaks=None, onedropper=
         return []
 
     # Get importer and check it
-    reader = ud.get_importer(file)
+    reader = ImportFactory.create_import(file)
     try:
         print("N Scans:", np.amax(reader.scans))
     except Exception as e:

@@ -45,22 +45,56 @@ def findprecursors_noms1(precursor_min, precursor_max, pks, max_precursors=None)
     return result
 
 
-def write_ms1_msalign(ms1_scan_dict, file):
+def write_ms1_msalign(ms1_scan_dict, ms2_scan_dict, file):
     name, _ = os.path.splitext(os.path.basename(file))
     file = file.replace('\\', '/')
     file = file.replace(".raw", ".mzML")
     with open(name + "_ms1.msalign", "w") as f:
         id = 0
+
+        f.write("#IsoDec Pirates\n")
+        f.write("#Timestamp: " + str(time.time()) + "\n")
+        f.write("####################### Parameters ######################\n")
+        f.write("#File name:\t" + file + "\n")
+        f.write("#Faims data:\tNo\n")
+        f.write("#Faims voltage:\tN/A\n")
+        if len(ms1_scan_dict) == 0:
+            f.write("#Number of MS1 scans:\t" + str(-1) + "\n")
+        else:
+            f.write("#Number of MS1 scans:\t" + str(len(ms1_scan_dict)) + "\n")
+        f.write("#Number of MS2 scans:\t" + str(len(ms2_scan_dict)) + "\n")
+        f.write("#Spectral data type:\tcentroid\n")
+        f.write("#Peak error tolerance:\t0.01\n")
+        f.write("#MS1 signal/noise ratio:\t3\n")
+        f.write("#MS/MS signal/noise ratio:\t1\n")
+        f.write("#Thread number:\t1\n")
+        f.write("#Default precursor window:\t3 m/z\n")
+        f.write("#Activation type:\tFILE\n")
+        f.write("#Use MS-Deconv score:\tNo\n")
+        f.write("#Miss MS1 spectra:\tYes\n")
+        if len(ms1_scan_dict) == 0:
+            f.write("#Max scan number:\t" + str(-1) + "\n")
+        else:
+            f.write("#Min scan number:\t" + str(list(ms1_scan_dict.keys())[0]) + "\n")
+        f.write("#Use single scan noise level:\tNo\n")
+        f.write("#ECScore cutoff:\t0.5\n")
+        f.write("#Additional feature search:\tNo\n")
+        f.write("#Generate Html files:\tNo\n")
+        f.write("#Do final filtering:\tYes\n")
+        f.write("#Version:\t1.0.0\n")
+        f.write("####################### Parameters ######################\n\n")
+
         for k, v in ms1_scan_dict.items():
             f.write("BEGIN IONS\n")
             f.write("FILE NAME=" + file + "\n")
             f.write("SPECTRUM ID=" + str(id) + "\n")
             f.write("TITLE=Scan_" + str(k) + "\n")
-            f.write("RETENTION_TIME=" + str(v[0].rt) + "\n")
+            f.write("RETENTION_TIME=" + str(v[0].rt * 60) + "\n")
             f.write("SCANS=" + str(k) + "\n")
             f.write("LEVEL=" + str(1) + "\n")
             for p in v:
-                f.write(str(p.monoiso) + "\t" + str(p.mz) + "\t" + str(p.z) + "\t" + str(1) + "\n")
+                for monoiso in p.monoisos:
+                    f.write(str(monoiso) + "\t" + str(p.mz) + "\t" + str(p.z) + "\t" + str(1) + "\n")
             f.write("END IONS\n\n")
             id += 1
 
@@ -102,7 +136,8 @@ def write_ms2_msalign(ms2_scan_dict, ms1_scan_dict, reader, file, act_type, max_
         f.write("#Additional feature search:\tNo\n")
         f.write("#Generate Html files:\tNo\n")
         f.write("#Do final filtering:\tYes\n")
-        f.write("#Version:\t1.7.6\n\n")
+        f.write("#Version:\t1.0.0\n")
+        f.write("####################### Parameters ######################\n\n")
 
 
         for k, v in ms2_scan_dict.items():
@@ -125,7 +160,7 @@ def write_ms2_msalign(ms2_scan_dict, ms1_scan_dict, reader, file, act_type, max_
                 f.write("SPECTRUM_ID=" + str(id) + "\n")
                 f.write("TITLE=Scan_" + str(k) + "\n")
                 f.write("SCANS=" + str(k) + "\n")
-                f.write("RETENTION_TIME=" + str(v[0].rt) + "\n")
+                f.write("RETENTION_TIME=" + str(v[0].rt * 60) + "\n")
                 f.write("LEVEL=" + str(2) + "\n")
                 f.write("MS_ONE_ID=" + str(ms1_id) + "\n")
                 f.write("MS_ONE_SCAN=" + str(ms1_scan) + "\n")

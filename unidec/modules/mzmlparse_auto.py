@@ -1,7 +1,9 @@
 __author__ = 'Michael.Marty'
 
-from unidec.tools import get_importer
-from unidec.modules.mzMLimporter import *
+import numpy as np
+
+from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from unidec.UniDecImporter.MZML import *
 from unidec.modules.hdf5_tools import replace_dataset
 import os
 import fnmatch
@@ -29,10 +31,10 @@ def parse(path, times, timestep, volts, outputheader, directory, output="txt"):
             config.attrs["metamode"] = -1
 
         num = 0
-        d = get_importer(path)
+        d = ImporterFactory.create_importer(path)
         for v, time in enumerate(times):
             data = d.get_data(time_range=(time, time + timestep))
-            if not ud.isempty(data):
+            if data:
                 if output == "txt":
                     if volts is not None:
                         outfile = outputheader + "_" + str(int(volts[v])) + ".txt"
@@ -46,7 +48,6 @@ def parse(path, times, timestep, volts, outputheader, directory, output="txt"):
                 elif output == "hdf5":
                     group = msdataset.require_group(str(v))
                     replace_dataset(group, "raw_data", data=data)
-                    # group=msdataset.require_group(str(v))
                     if volts is not None:
                         group.attrs["Collision Voltage"] = volts[v]
                     group.attrs["timestart"] = time
@@ -86,10 +87,10 @@ def parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr=None, outpu
     print(starttp, endtp, timestep)
     for path in paths:
         if os.path.isfile(path) or os.path.isdir(path):
-            d = get_importer(path)
+            d = ImporterFactory.create_importer(path)
             for t in np.arange(starttp, endtp, timestep):
                 data = d.get_data(time_range=(t, t + timestep))
-                if not ud.isempty(data):
+                if not data:
                     group = msdataset.require_group(str(num))
                     replace_dataset(group, "raw_data", data=data)
                     # group=msdataset.require_group(str(v))
@@ -137,7 +138,7 @@ def extract(file, directory, timestep=1.0, output="txt"):
     except:
         print("Error parsing ramp keyword. Ignoring.")
 
-    d = get_importer(path)
+    d = ImporterFactory.create_importer(path)
     maxtime = d.get_max_time()
 
     times = np.arange(0, maxtime, timestep)
@@ -151,7 +152,7 @@ def extract_scans(file, directory, scanbins=1, output="txt"):
     path = os.path.join(directory, file)
 
     if os.path.isfile(path) or os.path.isdir(path):
-        d = get_importer(path)
+        d = ImporterFactory.create_importer(path)
 
         name = os.path.splitext(file)[0]
         newdir = os.path.join(directory, name)
@@ -279,7 +280,7 @@ def extract_scans_multiple_files(files, dirs, startscan=1.0, endscan=1.0, output
     for path in paths:
         print("Opening", path)
         if os.path.isfile(path):
-            importer = get_importer(path)
+            importer = ImporterFactory.create_importer(path)
             if endscan == -1:
                 endscan = importer.get_max_scans()
             data = importer.get_data(scan_range=(startscan, endscan))

@@ -3,12 +3,11 @@ import os
 import scipy
 import unidec.tools as ud
 from unidec.modules.unidec_enginebase import UniDecEngine
-from unidec.modules.thermo_reader.ThermoImporter import ThermoDataImporter
+from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 from copy import deepcopy
 import matplotlib.pyplot as plt
 import scipy.fft as fft
 from unidec.modules import unidecstructure, peakstructure, IM_functions, fitting, i2ms_importer
-from unidec.modules import mzMLimporter
 import time
 from unidec import engine
 from scipy.optimize import curve_fit

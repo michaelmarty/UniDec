@@ -193,16 +193,17 @@ class UniDecEngine:
         else:
             return False
 
-    def auto_polarity(self, path=None, importer=None):
-        if path is None:
-            path = self.config.filename
-        self.config.polarity = ud.get_polarity(path, importer=importer)
-        if self.config.polarity == "Positive":
-            self.config.adductmass = np.abs(self.config.adductmass)
-            print("Adduct Mass:", self.config.adductmass)
-        elif self.config.polarity == "Negative":
-            self.config.adductmass = -1 * np.abs(self.config.adductmass)
-            print("Adduct Mass:", self.config.adductmass)
+    # def auto_polarity(self, path=None):
+    #
+    #     if path is None:
+    #         path = self.config.filename
+    #     self.config.polarity = ud.get_polarity(path)
+    #     if self.config.polarity == "Positive":
+    #         self.config.adductmass = np.abs(self.config.adductmass)
+    #         print("Adduct Mass:", self.config.adductmass)
+    #     elif self.config.polarity == "Negative":
+    #         self.config.adductmass = -1 * np.abs(self.config.adductmass)
+    #         print("Adduct Mass:", self.config.adductmass)
 
     def linear_regression_peaks(self):
         print("Starting Linear Regression using a repeating mass of:", self.config.molig)
@@ -618,6 +619,7 @@ class UniDecEngine:
                 print("Plot 4: %.2gs" % (tend - tstart))
             return plot
 
+    #This is broken
     def gen_html_report(self, event=None, outfile=None, plots=None, interactive=False, open_in_browser=True,
                         results_string=None, del_columns=None, findex=None, allpng=False):
         """
