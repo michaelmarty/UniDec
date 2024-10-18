@@ -110,6 +110,14 @@ struct IsoSettings
 	float zscore_threshold; //Ratio above which a secondary charge state prediction will be returned.
 };
 
+// Structure for the weights and biases of the neural network
+struct Weights {
+	float *w1;
+	float *b1;
+	float *w2;
+	float *b2;
+};
+
 ISODEC_EXPORTS void run(char *filename, char *outfile, const char *weightfile);
 ISODEC_EXPORTS int encode(const double* cmz, const float* cint, int n, float * emat, struct IsoConfig config, struct IsoSettings settings);
 ISODEC_EXPORTS void predict_charge(const double* cmz, const float* cint, int n, const char* fname, int* charge);

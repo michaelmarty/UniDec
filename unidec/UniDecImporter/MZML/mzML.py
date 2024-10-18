@@ -653,7 +653,7 @@ if __name__ == "__main__":
     # test = "C:\Data\CytC_Intact_MMarty_Share\\221114_STD_Pro_CytC_2ug_r1.mzML.gz"
     # test = "C:\Data\CytC_Intact_MMarty_Share\\221114_STD_Pro_CytC_2ug_r1_2.mzML"
     # test = "C:\Data\IMS Example Data\imstest2.mzML"
-    test = "C:\Data\CytC_Intact_MMarty_Share\\20221215_MMarty_Share\SHA_1598_9.mzML.gz"
+    test = u"C:\\Data\\CytC_Intact_MMarty_Share\\20221215_MMarty_Share\\SHA_1598_9.mzML.gz"
     #test = "C:\\Users\\marty\\OneDrive - University of Arizona\\Attachments\\S203.mzML.gz"
     test = "C:\\Users\\marty\\Downloads\\BSA1_scan214_full.mzML"
     import time

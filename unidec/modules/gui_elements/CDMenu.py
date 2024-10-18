@@ -11,7 +11,6 @@ class CDMenu(wx.Menu):
     # noinspection PyMissingConstructor
     def __init__(self, parent, config, pres, tabbed, htmode=False):
         super(wx.Menu, self).__init__()
-        print("Initializing CD MENU")
         self.pres = pres
         self.config = config
         self.parent = parent
@@ -256,9 +255,6 @@ class CDMenu(wx.Menu):
         self.advancedmenu.AppendSeparator()
 
 
-        self.unit_test_importers = self.advancedmenu.Append(wx.NewId(), "Test Importers", "Trigger all unit tests")
-        self.parent.Bind(wx.EVT_MENU, self.on_run_unit_tests, self.unit_test_importers)
-        print("Added 'Test Importers' menu item")  # Debugging line
 
 
 
@@ -531,17 +527,3 @@ class CDMenu(wx.Menu):
     def on_reset(self, event):
         wx.MessageBox("Reset to Factory Default", "Info", wx.OK | wx.ICON_INFORMATION)
 
-    def on_run_unit_tests(self, event):
-        # Run the unit tests
-        loader = unittest.TestLoader()
-        suite = loader.loadTestsFromTestCase(ImportTests)
-
-        # Run the tests and capture the results
-        runner = unittest.TextTestRunner()
-        result = runner.run(suite)
-
-        # Show results in a message box
-        if result.wasSuccessful():
-            wx.MessageBox("All unit tests passed!", "Success", wx.OK | wx.ICON_INFORMATION)
-        else:
-            wx.MessageBox(f"Some tests failed:\n{result.failures}", "Test Results", wx.OK | wx.ICON_ERROR)

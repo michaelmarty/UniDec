@@ -1,33 +1,33 @@
-version 7.0.2
+version 7.0.3
 imflag 0
 cdmsflag 0
-input bin/Example Data\BSA_unidecfiles\BSA_input.dat
-output bin/Example Data\BSA_unidecfiles\BSA
+input C:\Python\UniDec3\unidec\bin\Example Data\BSA_unidecfiles\BSA_input.dat
+output C:\Python\UniDec3\unidec\bin\Example Data\BSA_unidecfiles\BSA
 numit 50
-numz 21
-endz 30
-startz 10
+numz 50
+endz 50
+startz 1
 zzsig 1.0
 psig 1.0
-beta 50.0
+beta 0.0
 mzsig 1.0
 psfun 0
 zpsfn 0
 discreteplot 0
 smashflag 0
-massub 160000.0
+massub 500000.0
 masslb 1000.0
 msig 0.0
 molig 0.0
-massbins 1.0
+massbins 10.0
 mtabsig 0.0
-minmz 3549.3863249759615
-maxmz 6877.520328658654
-subbuff 100.0
+minmz 792.0183046302157
+maxmz 1000000.0
+subbuff 0.0
 subtype 2
 smooth 0.0
 mzbins 0.0
-peakwindow 20.0
+peakwindow 500.0
 peakthresh 0.1
 normthresh1
 peakplotthresh 0.1
@@ -37,8 +37,8 @@ reductionpercent 0.0
 aggressive 0
 rawflag 0
 adductmass 1.007276467
-nativezub 100.0
-nativezlb -100.0
+nativezub 1000.0
+nativezlb -1000.0
 poolflag 2
 accvol 0.0
 peakshapeinflate 1.0
@@ -47,14 +47,12 @@ linflag 2
 cmap nipy_spectral
 peakcmap rainbow
 spectracmap rainbow
-publicationmode 0
+publicationmode 1
 isotopemode 0
 peaknorm 1
 datanorm 1
 baselineflag 1.0
 orbimode 0
-integratelb -30.0
-integrateub 40.0
 filterwidth 20.0
 zerolog -12.0
 doubledec 0
@@ -64,6 +62,7 @@ CDzbins 1.0
 CDres 1.0
 CDScanStart -1
 CDScanEnd -1
+CDprethresh 0.0
 HTksmooth 0.0
 CDScanCompress 0.0
 HTmaxscans -1.0

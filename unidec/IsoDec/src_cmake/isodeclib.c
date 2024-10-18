@@ -7,6 +7,7 @@
 #include "isodeclib.h"
 #include "phase_model_8.h"
 #include "phase_model_4.h"
+#include "isogenmass.h"
 // #include <omp.h>
 
 // Linux code to convert binary file to header file
@@ -125,13 +126,7 @@ struct IsoSettings DefaultSettings() {
     return settings;
 }
 
-// Structure for the weights and biases of the neural network
-struct Weights {
-    float *w1;
-    float *b1;
-    float *w2;
-    float *b2;
-};
+
 
 // Sets up the weights structure and allocates memory for the weights and biases
 struct Weights SetuptWeights(const struct IsoConfig config) {
@@ -209,26 +204,11 @@ float Sum(const float *list, const int length) {
 
 struct Weights parse_weights(const float *weights, const struct IsoConfig config) {
     const struct Weights parsedweights = SetuptWeights(config);
-    //Copy weights to w1 for l1 length
-    for (int i = 0; i < config.l1; i++) {
-        parsedweights.w1[i] = weights[i];
-    }
-
-    //Copy weights to b1 for l2 length
-    for (int i = 0; i < config.l2; i++) {
-        parsedweights.b1[i] = weights[config.l1 + i];
-    }
-
-    //Copy weights to w2 for l3 length
-    for (int i = 0; i < config.l3; i++) {
-        parsedweights.w2[i] = weights[config.l1 + config.l2 + i];
-    }
-
-    //Copy weights to b2 for l4 length
-    for (int i = 0; i < config.l4; i++) {
-        parsedweights.b2[i] = weights[config.l1 + config.l2 + config.l3 + i];
-    }
-
+    // Parse the weights into the structure
+    memcpy(parsedweights.w1, weights, config.l1 * sizeof(float));
+    memcpy(parsedweights.b1, weights + config.l1, config.l2 * sizeof(float));
+    memcpy(parsedweights.w2, weights + config.l1 + config.l2, config.l3 * sizeof(float));
+    memcpy(parsedweights.b2, weights + config.l1 + config.l2 + config.l3, config.l4 * sizeof(float));
     return parsedweights;
 }
 
@@ -545,74 +525,25 @@ int peak_detect(const double *dataMZ, const float *dataInt, const int lengthmz, 
     return plen;
 }
 
-
-// Function used in isotope distribution calculation
-float isotopemid(const float mass, const float *isoparams) {
-    const float a = isoparams[4];
-    const float b = isoparams[5];
-    const float c = isoparams[6];
-    return a + b * powf(mass, c);
-}
-
-// Function used in isotope distribution calculation
-float isotopesig(const float mass, const float *isoparams) {
-    const float a = isoparams[7];
-    const float b = isoparams[8];
-    const float c = isoparams[9];
-    return a + b * powf(mass, c);
-}
-
-// Function used in isotope distribution calculation
-float isotopealpha(const float mass, const float *isoparams) {
-    const float a = isoparams[0];
-    const float b = isoparams[1];
-    return a * expf(-mass * b);
-}
-
-// Function used in isotope distribution calculation
-float isotopebeta(const float mass, const float *isoparams) {
-    const float a = isoparams[2];
-    const float b = isoparams[3];
-    return a * expf(-mass * b);
-}
-
 // Function to calculate the isotope intensity distribution for a given mass
-int isotope_dist(const float mass, float *isovals, const float *isoparams, const float normfactor,
+int isotope_dist(const float mass, float *isovals, const float normfactor,
                  const struct IsoSettings settings) {
-    // Check that isovals is not null
-
-
-    const float mid = isotopemid(mass, isoparams);
-    const float sig = isotopesig(mass, isoparams);
-    if (sig == 0) {
-        printf("Error: Sigma Isotope Parameter is 0");
-        exit(102);
-    }
-    const float alpha = isotopealpha(mass, isoparams);
-    const float amp = 1.0f - alpha;
-    const float beta = isotopebeta(mass, isoparams);
-    float max = 0;
-    int k;
 
     int offset = 0;
-    int end = settings.isolength;
-    if (settings.minusoneaszero == 1) {
-        offset = 1;
-        end = settings.isolength - 1;
-    }
+    if (settings.minusoneaszero == 1) {offset = 1;}
 
-    for (k = 0; k < end; k++) {
-        const float kfloat = (float) k;
-        const float e = alpha * expf(-kfloat * beta);
-        const float g = amp / (sig * 2.50662827f) * expf(-powf(kfloat - mid, 2) / (2 * powf(sig, 2)));
-        const float val = e + g;
-        if (val > max) { max = val; }
-        isovals[k + offset] = val;
+    float max;
+    if (mass > 60000) {
+        printf("Warning: Mass is very high, may not be accurate: %f\n", mass);
+        max = isomike(mass, isovals, settings.isolength, offset);
+    }
+    else {
+        max = isogenmass_fancy(mass, isovals, settings.isolength, offset);
     }
 
     int realisolength = 0;
     if (max > 0) {
-        for (k = 0; k < settings.isolength; k++) {
+        for (int k = 0; k < settings.isolength; k++) {
             const float yval = isovals[k] / max;
             if (yval > settings.isotopethreshold || (settings.minusoneaszero == 1 && k == 0)) {
                 isovals[k] = yval * normfactor;
@@ -928,11 +859,6 @@ int bestshift_adjust(const double *mz, const float *inten, const int length, flo
     return isgood;
 }
 
-float isoparams[10] = {
-    1.00840852e+00f, 1.25318718e-03f, 2.37226341e+00f, 8.19178000e-04f, -4.37741951e-01f,
-    6.64992972e-04f, 9.94230511e-01f, 4.64975237e-01f, 1.00529041e-02f, 5.81240792e-01f
-};
-
 int optimize_shift(const int z, const double *mz, const float *inten, const int length, struct MatchedPeak *matchpeaks,
                    const int nmatched,
                    const float peakmz, const struct IsoSettings settings) {
@@ -950,7 +876,7 @@ int optimize_shift(const int z, const double *mz, const float *inten, const int 
     // Check that it is not null
     if (isovals == NULL) { return 0; }
 
-    const int realisolength = isotope_dist(mass, isovals, isoparams, maxval, settings);
+    const int realisolength = isotope_dist(mass, isovals, maxval, settings);
 
     // Calculate the mz values for the isotopes
     float *isomzs = calloc(settings.isolength, sizeof(float));

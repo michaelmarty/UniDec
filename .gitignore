@@ -275,6 +275,11 @@ unidec/IsoDec/src2/
 unidec/IsoDec/test.py
 unidec/IsoDec/testlooper.py
 unidec/IsoDec/oldisodecfunctions.py
-unidec/IsoDec/src_vs/
+Scripts/MTM/HR/Old/src_vs/
 unidec/IsoDec/src_cmake/cmake-build*
 unidec/IsoDec/src_cmake/.idea/
+unidec/IsoDec/IsoDec tests/
+unidec/IsoDec/IsoGen/scratch.py
+unidec/IsoDec/bin/
+unidec/IsoDec/lib/
+unidec/IsoDec/src_vs/

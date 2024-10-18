@@ -3,9 +3,12 @@ Simply use: importer_name = ImporterFactory.create_importer(file_path)
 """
 import os
 
-
+recognized_file_types = [".raw", ".RAW", ".mzXML", ".MZXML", ".mzml", ".MZML", ".d", ".D", ".gz"]
 
 class ImporterFactory:
+    def __init__(self):
+        self.recognized_file_types = recognized_file_types
+
     @staticmethod
     def create_importer(file_path, **kwargs):
         if file_path.endswith(".raw") or file_path.endswith(".RAW"):

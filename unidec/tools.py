@@ -937,10 +937,10 @@ def waters_convert2(path, config=None, outfile=None, time_range=None):
     return data
 
 
-#def get_polarity(path):
-    # importer = ImporterFactory.create_importer(path)
-    # polarity = importer.get_polarity()
-    # return polarity
+def get_polarity(path):
+    importer = ImporterFactory.create_importer(path)
+    polarity = importer.get_polarity()
+    return polarity
 
 
 def load_mz_file(path: str, config: object = None, time_range: object = None, imflag: int = 0) -> np.ndarray:
@@ -960,14 +960,16 @@ def load_mz_file(path: str, config: object = None, time_range: object = None, im
                 data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0, 1))
             elif extension == '.npz':
                 data = np.load(path, allow_pickle=True)['data']
+        elif extension in ImporterFactory.recognized_file_types:
+            importer = ImporterFactory.create_importer(path)
+            data = importer.get_data()
         else:
             raise ValueError("Unsupported file extension")
     except Exception as e:
         print(f"Error loading file {path}: {e}")
         return None
 
-    importer = ImporterFactory.create_importer(path)
-    data = importer.get_data()
+
     return data
 
 

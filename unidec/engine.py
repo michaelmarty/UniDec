@@ -149,8 +149,7 @@ class UniDec(UniDecEngine):
         self.config.default_file_names()
 
 
-        res = ImporterFactory.create_importer(file_path)
-        self.data.rawdata = res.get_data()
+        self.data.rawdata = ud.load_mz_file(self.config.filename, config=self.config)
         if len(self.data.rawdata.tolist()) == 0:
             print("Error: Data Array is Empty")
             print("Likely an error with data conversion")
@@ -193,8 +192,8 @@ class UniDec(UniDecEngine):
         else:
             self.export_config()
 
-        polarity = res.get_polarity()
-        #self.auto_polarity(file_path)
+        #polarity = res.get_polarity()
+        self.auto_polarity(file_path)
 
         if load_results:
             self.unidec_imports(everything=True)

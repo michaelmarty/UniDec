@@ -193,17 +193,16 @@ class UniDecEngine:
         else:
             return False
 
-    # def auto_polarity(self, path=None):
-    #
-    #     if path is None:
-    #         path = self.config.filename
-    #     self.config.polarity = ud.get_polarity(path)
-    #     if self.config.polarity == "Positive":
-    #         self.config.adductmass = np.abs(self.config.adductmass)
-    #         print("Adduct Mass:", self.config.adductmass)
-    #     elif self.config.polarity == "Negative":
-    #         self.config.adductmass = -1 * np.abs(self.config.adductmass)
-    #         print("Adduct Mass:", self.config.adductmass)
+    def auto_polarity(self, path=None):
+        if path is None:
+            path = self.config.filename
+        self.config.polarity = ud.get_polarity(path)
+        if self.config.polarity == "Positive":
+            self.config.adductmass = np.abs(self.config.adductmass)
+            print("Adduct Mass:", self.config.adductmass)
+        elif self.config.polarity == "Negative":
+            self.config.adductmass = -1 * np.abs(self.config.adductmass)
+            print("Adduct Mass:", self.config.adductmass)
 
     def linear_regression_peaks(self):
         print("Starting Linear Regression using a repeating mass of:", self.config.molig)
