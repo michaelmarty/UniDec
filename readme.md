@@ -20,6 +20,33 @@ Just unzip the folder, put it somewhere convenient, and click the GUI_UniDec.exe
 
 To use the PDF report generator, install [MikTex](https://miktex.org) and select install packages automatically from the installation options. You may need to add this to your system path so that PDFLatex is found from the command line. 
 
+### Linux Install
+
+To install on linux start with making a virtual environment. 
+
+    virtualenv env
+	
+Then clone this repo with `git clone ....`
+
+With your directory tree looking like:
+
+	./
+    env/
+	UniDec/
+
+Then install the dependencies:
+
+    pip install -r UniDec/requirements.txt
+
+Then install UniDec as a dependency from the git repository you downloaded:
+
+	pip install -e UniDec/
+	
+Then you can run the launcher
+
+    python -m unidec.Launcher
+
+
 ## Tutorial
 
 You can watch a video tutorial on how to use UniDec here: [https://www.youtube.com/watch?v=e33JxgY6CJY](https://www.youtube.com/watch?v=e33JxgY6CJY).
