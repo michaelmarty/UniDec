@@ -110,7 +110,7 @@ def config_to_settings(config):
     settings = IDSettings()
     settings.phaseres = config.phaseres
     settings.verbose = config.verbose
-    settings.peakwindow = config.peakwindow
+    settings.peakwindow = int(config.peakwindow)
     settings.peakthresh = config.peakthresh
     settings.minpeaks = config.minpeaks
     settings.css_thresh = config.css_thresh
@@ -241,9 +241,7 @@ class IsoDecWrapper:
         self.modelpath = None
         if config.verbose:
             print(
-                "Running C code with",
-                str(self.modelpath.value),
-                "model and phaseres of:",
+                "Running C code with phaseres of:",
                 self.config.phaseres,
             )
         elems = (MPStruct * n)()
@@ -304,7 +302,7 @@ if __name__ == "__main__":
     #filepath = "C:\\Data\\IsoNN\\test2.txt"
     filepath = "Z:\\Group Share\\JGP\\js8b05641_si_001\\test.txt"
     spectrum = np.loadtxt(filepath, skiprows=0)
-    spectrum = ud.datachop(spectrum, 891.195, 893.757)
+    #spectrum = ud.datachop(spectrum, 891.195, 893.757)
     spectrum = spectrum.astype(np.double)
 
     wrapper = IsoDecWrapper()

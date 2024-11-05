@@ -182,6 +182,21 @@ class Peaks:
         return self
 
 
+    def merge_isodec_pks(self, pks, massbins=0):
+        for p in pks:
+            newpeak = Peak()
+            newpeak.mass = p.monoiso
+            newpeak.height = p.matchedintensity
+            self.peaks.append(newpeak)
+        self.masses = np.array([p.mass for p in self.peaks])
+        self.heights = np.array([p.height for p in self.peaks])
+        self.plen = len(self.peaks)
+        self.convolved = False
+        self.composite = None
+        self.massbins = massbins
+
+
+
     def default_params(self, cmap="rainbow"):
         """
         Set default parameters for peaks, such as color, label, and marker

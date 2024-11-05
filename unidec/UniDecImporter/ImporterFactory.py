@@ -3,11 +3,13 @@ Simply use: importer_name = ImporterFactory.create_importer(file_path)
 """
 import os
 
-recognized_file_types = [".raw", ".RAW", ".mzXML", ".MZXML", ".mzml", ".MZML", ".d", ".D", ".gz"]
+recognized_types = [".raw", ".RAW", ".mzXML", ".MZXML", ".mzml", ".MZML", ".d", ".D", ".gz"]
 
 class ImporterFactory:
+
+
     def __init__(self):
-        self.recognized_file_types = recognized_file_types
+         self.recognized_file_types = recognized_types
 
     @staticmethod
     def create_importer(file_path, **kwargs):
@@ -21,9 +23,11 @@ class ImporterFactory:
             from unidec.UniDecImporter.MZXML.mzXML import MZXMLImporter
             return MZXMLImporter(file_path, **kwargs)
         elif (file_path.endswith(".mzML") or file_path.endswith(".gz") or file_path.endswith(".MZML") or
-              file_path.endswith(".mzml") or file_path.endswith("GZ")):
+              file_path.endswith(".mzml") or file_path.endswith("GZ") or file_path.endswith("mzML")):
             from unidec.UniDecImporter.MZML.mzML import MZMLImporter
-            return MZMLImporter(file_path, **kwargs)
+            MZMLI = MZMLImporter(file_path, **kwargs)
+            return MZMLI
+            #return MZMLImporter(file_path, **kwargs)
         elif file_path.endswith(".d") or file_path.endswith(".D"):
             from unidec.UniDecImporter.Agilent.AgilentImporter import AgilentImporter
             return AgilentImporter(file_path, **kwargs)

@@ -96,7 +96,7 @@ struct IsoSettings
 	float css_thresh; // Minimum cosine similarity score for isotope distribution, USER
 	float matchtol; // Match Tolerance for peak detection in ppm, USER
 	int maxshift; // Maximum shift allowed for isotope distribution, USER
-	float mzwindow[2]; // MZ Window for isotope distribution
+	float mzwindow[2]; // MZ Window for isotope distribution, USER
 	float plusoneintwindow[2]; // Plus One Intensity range. Will be used for charge state 1
 	int knockdown_rounds; // Number of knockdown rounds, USER
 	float min_score_diff; // Minimum score difference for isotope distribution to allow missed monoisotopic peaks
@@ -106,7 +106,7 @@ struct IsoSettings
 	float adductmass; // Adduct Mass, USER FOR NEGATIVE MODE
 	int minusoneaszero; // Use set the -1 isotope as 0 to help force better alignments
 	float isotopethreshold; // Threshold for isotope distribution. Will remove relative intensities below this.
-	float datathreshold; // Threshold for data. Will remove relative intensities below this relative to max intensity in each cluster
+	float datathreshold; // Threshold for data. Will remove relative intensities below this relative to max intensity in each cluster, USER
 	float zscore_threshold; //Ratio above which a secondary charge state prediction will be returned.
 };
 

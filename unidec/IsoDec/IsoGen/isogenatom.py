@@ -20,7 +20,7 @@ class IsoGenAtomEngine(IsoGenEngineBase):
 
 
 if __name__ == "__main__":
-    os.chdir("Z:\Group Share\JGP\PubChem")
+    os.chdir("Z:\\Group Share\\JGP\\PubChem")
     isolen = 32
     trainfile = "isodists_7056.npz"
     trainfile = "isodists_63202.npz"
@@ -30,10 +30,10 @@ if __name__ == "__main__":
     trainfile_synethetic = "isodists_synthetic_1308425.npz"
 
     eng = IsoGenAtomEngine(isolen=isolen)
-    if True:
+    if False:
         eng.train_multiple([trainfile, trainfile_synethetic], epochs=10, forcenew=False, inputname="formulas")
 
-    testformulas = ["C2H5O", "H2SO4", "S8", "CHCl3", "C60", "CHBr3"]
+    testformulas = ["C2H5O", "H8N2O4W", "S8", "CHCl3", "C60", "CHBr3"]
     mpl.use("WxAgg")
 
     for i, f in enumerate(testformulas):

@@ -28,7 +28,7 @@ class IsoGenPepEngine(IsoGenEngineBase):
 
 
 if __name__ == "__main__":
-    os.chdir("Z:\Group Share\JGP\PeptideTraining")
+    os.chdir("Z:\\Group Share\\JGP\\PeptideTraining")
 
     isolen = 32
     trainfile = "peptidedists_633886.npz"
@@ -37,10 +37,10 @@ if __name__ == "__main__":
     trainfile_synthetic = "peptidedists_synthetic_3368720.npz"
 
     eng = IsoGenPepEngine(isolen=isolen)
-    if True:
+    if False:
         eng.train_multiple([trainfile, trainfile_synthetic], epochs=10, forcenew=False)
 
-    testformulas = ["PEPTIDE", "CCCCCCCCCCCCC", "AAAAAAAAAAAAASVGGTIPGPGPGGGQGPGEGGEGQTAR", "LLL", "KKK", "CCCM"]
+    testformulas = ["PEPTIDE", "CCCCCCCCCCCCC", "APTIGGGQGAAAAAAAAAAAASVGGTIPGPGPGGGQGPGEGGEGQTAR", "LLL", "KKK", "CCCM"]
     mpl.use("WxAgg")
     for i, f in enumerate(testformulas):
         maxval = 10
@@ -51,7 +51,10 @@ if __name__ == "__main__":
         plt.plot(dist * 100, label="AI", color="b")
         plt.plot(truedist * 100, color="k", label="True")
         plt.xlim(0, maxval)
-        plt.title(str(f))
+        title_string = str(f)
+        if len(f) > 8:
+            title_string = title_string[:8] + "...{" + str(len(f)) + "}"
+        plt.title(title_string)
         plt.xlabel("Isotope Number")
         plt.ylabel("%")
         if i == 3:

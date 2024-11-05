@@ -114,6 +114,7 @@ def isojim(isolist, length=128):
 def mass_to_dist(mass, isolength=128):
     _, minmassint, isolist = makemass(mass)
     intensities = isojim(isolist, length=isolength)
+    #intensities /= np.sum(intensities)
     return intensities
 
 def mass_to_vector(x):
@@ -221,4 +222,5 @@ if __name__ == "__main__":
     print(dnaseq_to_vector(dnaseq))
     print(rnaseq_to_dist(rnaseq))
     print(dnaseq_to_dist(dnaseq))
+    print(len(elements))
 

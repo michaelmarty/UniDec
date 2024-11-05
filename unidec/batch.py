@@ -261,11 +261,11 @@ recipe_d = [
     ],
     ["Drug Mass", True, "The Drug Mass in Da."],
     [
-        "Min Drug",
+        "Min Drugs",
         False,
         "The minimum number of drug molecules to include in the ADC. Default is 0 if not specified.",
     ],
-    ["Max Drug", True, "The maximum number of drug molecules to include in the ADC."],
+    ["Max Drugs", True, "The maximum number of drug molecules to include in the ADC."],
     [
         "Tolerance (Da)",
         False,

@@ -110,7 +110,7 @@ if __name__ == "__main__":
     mpl.use("WxAgg")
     # exit()
     testmasses = [100, 1000, 10000, 50000, 100000, 1000000]
-    #testmasses = [110000, 230000, 450000, 670000, 890000, 1000000]
+    testmasses = [110000, 230000, 450000, 670000, 890000, 1000000]
     for i, m in enumerate(testmasses):
         isolen = eng.get_isolen(m)[0]
         maxval = isolen

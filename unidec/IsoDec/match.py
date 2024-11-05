@@ -15,10 +15,11 @@ import unidec.tools as ud
 import unidec.IsoDec.msalign_export as msalign
 import math
 import pandas as pd
+# import unidec.modules.unidecstructure as udstruct
 
 
 # @nb.experimental.jitclass()
-class IsoDecConfig:
+class IsoDecConfig: # (udstruct.UniDecConfig):
     '''filepath: nb.types.string
     batch_size: int
     test_batch_size: int
@@ -42,6 +43,7 @@ class IsoDecConfig:
         """
         Configuration class for IsoDec Engine. Holds the key parameters for the data processing and deconvolution.
         """
+        super().__init__()
         self.filepath = ""
         self.batch_size = 32
         self.test_batch_size = 2048
@@ -143,6 +145,28 @@ class MatchedCollection:
             print(f"Loaded {len(self.peaks)} peaks from {filename}")
         return self
 
+    def group_peaks(self, peaks):
+        #Groups peaks with the same mz and z in the same scan into a single peak
+        grouped_peaks = []
+        grouped_peak_mzs = np.array([])
+        for p in peaks:
+            if len(grouped_peaks) == 0:
+                grouped_peaks.append(p)
+                grouped_peak_mzs = np.append(grouped_peak_mzs, p.mz)
+                continue
+            else:
+                nearest_idx = fastnearest(grouped_peak_mzs, p.mz)
+                mz_diff = np.abs(p.mz - grouped_peak_mzs[nearest_idx])
+                if mz_diff < 0.01 and p.z == grouped_peaks[nearest_idx].z:
+                    grouped_peaks[nearest_idx].monoisos.append(p.monoiso)
+                else:
+                    #Insert into the grouped peaks/grouped_mzs at the proper position
+                    if p.mz > grouped_peak_mzs[nearest_idx]:
+                        nearest_idx += 1
+                    grouped_peaks.insert(nearest_idx, p)
+                    grouped_peak_mzs = np.insert(grouped_peak_mzs, nearest_idx, p.mz)
+        return grouped_peaks
+
     def add_pk_to_masses(self, pk, ppmtol):
         """
         Checks if an existing mass matches to this peak, if so adds it to that mass, otherwise creates a new mass
@@ -153,11 +177,13 @@ class MatchedCollection:
             self.masses.append(MatchedMass(pk))
 
         else:
+            #need to update this code to allow for overlapped monoisos.
             idx = fastnearest(self.monoisos, pk.monoiso)
             nearest_mass = self.monoisos[idx]
             if pk.scan - self.masses[idx].scans[len(self.masses[idx].scans) - 1] <= 100 and ud.within_ppm(
                     self.masses[idx].monoiso, pk.monoiso, ppmtol):
                 self.masses[idx].scans = np.append(self.masses[idx].scans, pk.scan)
+                self.masses[idx].totalintensity += pk.matchedintensity
                 if pk.matchedintensity is not None:
                     if pk.matchedintensity > self.masses[idx].maxintensity:
                         self.masses[idx].maxintensity = pk.matchedintensity
@@ -169,6 +195,82 @@ class MatchedCollection:
                     self.masses[idx].mzs = np.append(self.masses[idx].mzs, pk.mz)
 
             else:
+                if pk.monoiso > nearest_mass:
+                    idx += 1
+                if idx == len(self.monoisos):
+                    self.monoisos = np.append(self.monoisos, pk.monoiso)
+                    self.masses.append(MatchedMass(pk))
+                else:
+                    self.monoisos = np.insert(self.monoisos, idx, pk.monoiso)
+                    self.masses.insert(idx, MatchedMass(pk))
+
+    def add_pk_to_masses2(self, pk, ppmtol, rt_tol=2, maxshift=3):
+        """
+        Checks if an existing mass matches to this peak, if so adds it to that mass, otherwise creates a new mass
+        The list of masses is constantly kept in order of monoisotopic mass.
+        """
+        if len(self.masses) == 0:
+            self.monoisos = np.append(self.monoisos, pk.monoiso)
+            self.masses.append(MatchedMass(pk))
+
+        else:
+            #Get the index of the nearest mass
+            idx, indices = fastwithin_abstol_withnearest(self.monoisos, pk.monoiso, maxshift*1.25)
+            nearest_mass = self.monoisos[idx]
+            matched_indices = []
+            if len(indices) > 0:
+                for i in indices:
+                    #Filter out the indices of peaks that are too far away in RT
+                    if np.abs(pk.rt - self.masses[i].maxrt) > rt_tol:
+                        continue
+                    for m in self.masses[i].monoisos:
+                        if ud.within_ppm(m, pk.monoiso, ppmtol):
+                            matched_indices.append(i)
+                            break
+                        if i in matched_indices:
+                            break
+
+                if len(matched_indices) == 0:
+                    if pk.monoiso > nearest_mass:
+                        idx += 1
+                    if idx == len(self.monoisos):
+                        self.monoisos = np.append(self.monoisos, pk.monoiso)
+                        self.masses.append(MatchedMass(pk))
+                    else:
+                        self.monoisos = np.insert(self.monoisos, idx, pk.monoiso)
+                        self.masses.insert(idx, MatchedMass(pk))
+
+                elif len(matched_indices) == 1:
+                    #Add the peak to the matched mass
+                    self.masses[matched_indices[0]].scans = np.append(self.masses[matched_indices[0]].scans, pk.scan)
+                    self.masses[idx].totalintensity += pk.matchedintensity
+                    if pk.matchedintensity is not None:
+                        if pk.matchedintensity > self.masses[matched_indices[0]].maxintensity:
+                            self.masses[matched_indices[0]].maxintensity = pk.matchedintensity
+                            self.masses[matched_indices[0]].maxscan = pk.scan
+                            self.masses[matched_indices[0]].maxrt = pk.rt
+                    if pk.z not in self.masses[matched_indices[0]].zs:
+                        self.masses[matched_indices[0]].zs = np.append(self.masses[matched_indices[0]].zs, pk.z)
+                        self.masses[matched_indices[0]].mzs = np.append(self.masses[matched_indices[0]].mzs, pk.mz)
+                else:
+                    #The new peak matches to multiple, select the one with the closest RT
+                    rt_diffs = np.abs([pk.rt - self.masses[i].maxrt for i in matched_indices])
+                    closest = np.argmin(rt_diffs)
+
+                    self.masses[matched_indices[closest]].scans = np.append(self.masses[matched_indices[closest]].scans, pk.scan)
+                    self.masses[idx].totalintensity += pk.matchedintensity
+                    if pk.matchedintensity is not None:
+                        if pk.matchedintensity > self.masses[matched_indices[closest]].maxintensity:
+                            self.masses[matched_indices[closest]].maxintensity = pk.matchedintensity
+                            self.masses[matched_indices[closest]].maxscan = pk.scan
+                            self.masses[matched_indices[closest]].maxrt = pk.rt
+                    if pk.z not in self.masses[matched_indices[closest]].zs:
+                        self.masses[matched_indices[closest]].zs = np.append(self.masses[matched_indices[closest]].zs, pk.z)
+                        self.masses[matched_indices[closest]].mzs = np.append(self.masses[matched_indices[closest]].mzs, pk.mz)
+
+
+            else:
+                #Find where to insert a new mass
                 if pk.monoiso > nearest_mass:
                     idx += 1
                 if idx == len(self.monoisos):
@@ -254,6 +356,22 @@ class MatchedCollection:
         df = self.to_df()
         df.to_csv(filename, sep="\t", index=False)
 
+    def to_mass_spectrum(self, binsize=0.1):
+        if len(self.peaks) == 0:
+            print("Zero Sized Peak Array")
+            return np.array([])
+        minmass = np.min([p.monoiso for p in self.peaks]) - 10 * binsize
+        maxmass = np.max([p.monoiso for p in self.peaks]) + 100 * binsize
+
+        masses = np.arange(minmass, maxmass, binsize)
+
+        intensities = np.zeros(len(masses))
+        for p in self.peaks:
+            idx = int((p.monoiso - minmass) / binsize)
+            intensities[idx] += p.matchedintensity
+
+        return np.transpose([masses, intensities])
+
 
 class MatchedMass:
     """
@@ -262,12 +380,14 @@ class MatchedMass:
 
     def __init__(self, pk):
         self.monoiso = pk.monoiso
+        self.monoisos = pk.monoisos
         self.scans = np.array([pk.scan])
         self.maxintensity = pk.matchedintensity
         self.maxscan = pk.scan
         self.maxrt = pk.rt
         self.mzs = np.array([pk.mz])
         self.zs = np.array([pk.z])
+        self.totalintensity = pk.matchedintensity
 
 
 '''@nb.experimental.jitclass([("centroids", nb.types.Array(nb.float64, 2, "C")),
@@ -378,25 +498,37 @@ def read_msalign_to_matchedcollection(file, data=None):
     mc = MatchedCollection()
 
     current_scan = 1
+    current_rt = 0
+    scan_peaks = []
     with open(file, "r") as f:
         for line in f:
             # print(line)
             if line[0] == "#":
                 continue
-            elif "BEGIN IONS" in line or "END IONS" in line:
+            elif "BEGIN IONS" in line:
+                continue
+            elif "END IONS" in line:
+                grouped_peaks = mc.group_peaks(scan_peaks)
+                mc.peaks.extend(grouped_peaks)
+                scan_peaks = []
                 continue
             elif "SCANS" in line:
                 current_scan = int(line.split("=")[1])
                 continue
+            elif "RETENTION_TIME" in line:
+                current_rt = float(line.split("=")[1])/60
+                continue
             elif "=" not in line and len(line) > 1:
                 split = line.split("\t")
-                mz = (float(split[0]) + (1.007276467 * int(split[2]))) / int(split[2])
+                # mz = (float(split[0]) + (1.007276467 * int(split[2]))) / int(split[2])
+                mz = float(split[1])
                 pk = MatchedPeak(int(split[2]), mz)
                 pk.monoisos = [float(split[0])]
                 pk.scan = current_scan
                 pk.monoiso = float(split[0])
                 pk.matchedintensity = float(split[1])
-                mc.add_peak(pk)
+                pk.rt = current_rt
+                scan_peaks.append(pk)
 
                 isodist = fast_calc_averagine_isotope_dist(pk.monoiso, pk.z)
                 if data is not None:
@@ -413,7 +545,7 @@ def read_msalign_to_matchedcollection(file, data=None):
 
                 for i in range(len(isodist)):
                     isodist[i, 1] *= dmax
-                pk.mz = isodist[np.argmax(isodist[:, 1]), 0]
+                # pk.mz = isodist[np.argmax(isodist[:, 1]), 0]
                 pk.isodist = isodist
     print("Loaded", len(mc.peaks), "peaks from msalign file")
     return mc
@@ -526,6 +658,91 @@ def compare_matchedcollections(coll1, coll2, ppmtol=50, objecttocompare="monoiso
     print("Avg PPM Diff:", np.mean(diffs))
 
     return shared, unique1, unique2
+
+def compare_matchedmasses(coll1, coll2, ppmtol=20, maxshift=3, rt_tol = 2, f_shared_zs=0.5):
+    #make a list of the masses within the list of matched masses contained by each collection
+    monoisos1 = np.array([m.monoiso for m in coll1.masses])
+    monoisos2 = np.array([m.monoiso for m in coll2.masses])
+
+    sum_intensity1 = np.sum(np.array([m.totalintensity for m in coll1.masses]))
+    sum_intensity2 = np.sum(np.array([m.totalintensity for m in coll2.masses]))
+
+    #now order the monoisos and apply that ordering to the masses
+    sorted_indices1 = np.argsort(monoisos1)
+    sorted_indices2 = np.argsort(monoisos2)
+    monoisos1 = monoisos1[sorted_indices1]
+    monoisos2 = monoisos2[sorted_indices2]
+    coll1.masses = [coll1.masses[i] for i in sorted_indices1]
+    coll2.masses = [coll2.masses[i] for i in sorted_indices2]
+
+    matched_coll1 = []
+    matched_coll2 = []
+
+    unique_coll1 = []
+    unique_coll2 = []
+
+    #Initially we'll store the indices of the matches/unique masses
+    for i in range(len(monoisos1)):
+        foundmatch = False
+        within_tol = fastwithin_abstol(monoisos2, monoisos1[i], int(math.ceil(maxshift + 0.5)))
+        if len(within_tol) > 0:
+            for j in within_tol:
+                #ensure that the retention times are close enough
+                if abs(coll1.masses[i].maxrt - coll2.masses[j].maxrt) < rt_tol:
+                    #ensure that the monoisos match within the ppmtol allowing the maxshift
+                    possible_monoisos = [monoisos1[i] + x * 1.0033 for x in range(-maxshift, maxshift + 1)]
+                    if any([ud.within_ppm(m, monoisos2[j], ppmtol) for m in possible_monoisos]):
+                        #ensure that the z values overlap enough
+                        z_overlap = np.intersect1d(coll1.masses[i].zs, coll2.masses[j].zs)
+                        min_frac = len(z_overlap) / max(len(coll1.masses[i].zs), len(coll2.masses[j].zs))
+                        if min_frac >= f_shared_zs:
+                            matched_coll1.append(i)
+                            foundmatch = True
+                            break
+        if not foundmatch:
+            unique_coll1.append(i)
+
+    for i in range(len(monoisos2)):
+        if i not in matched_coll2:
+            foundmatch = False
+            within_tol = fastwithin_abstol(monoisos1, monoisos2[i], int(math.ceil(maxshift + 0.5)))
+            if len(within_tol) > 0:
+                for j in within_tol:
+                    #ensure that the retention times are close enough
+                    if abs(coll1.masses[j].maxrt - coll2.masses[i].maxrt) < rt_tol:
+                        #ensure that the monoisos match within the ppmtol allowing the maxshift
+                        possible_monoisos = [monoisos2[i] + x * 1.0033 for x in range(-maxshift, maxshift + 1)]
+                        if any([ud.within_ppm(m, monoisos1[j], ppmtol) for m in possible_monoisos]):
+                            #ensure that the z values overlap enough
+                            z_overlap = np.intersect1d(coll1.masses[j].zs, coll2.masses[i].zs)
+                            min_frac = len(z_overlap) / max(len(coll1.masses[j].zs), len(coll2.masses[i].zs))
+                            if min_frac >= f_shared_zs:
+                                matched_coll2.append(i)
+                                foundmatch = True
+                                break
+            if not foundmatch:
+                unique_coll2.append(i)
+
+    #Now we'll convert the indices to the actual masses
+    matched_coll1 = [coll1.masses[i] for i in matched_coll1]
+    matched_coll2 = [coll2.masses[i] for i in matched_coll2]
+    unique_coll1 = [coll1.masses[i] for i in unique_coll1]
+    unique_coll2 = [coll2.masses[i] for i in unique_coll2]
+
+    matched_intensity1 = np.sum(np.array([m.totalintensity for m in matched_coll1]))
+    matched_intensity2 = np.sum(np.array([m.totalintensity for m in matched_coll2]))
+
+    percent_matched1 = (len(matched_coll1) / len(coll1.masses)) * 100
+    percent_matched2 = (len(matched_coll2) / len(coll2.masses)) * 100
+    percent_intensity1 = (matched_intensity1 / sum_intensity1) * 100
+    percent_intensity2 = (matched_intensity2 / sum_intensity2) * 100
+    print("% Masses Matched Collection 1:", (len(matched_coll1) / len(coll1.masses)) * 100)
+    print("% Masses Matched Collection 2:", (len(matched_coll2) / len(coll2.masses)) * 100)
+    print("% Matched Intensity Collection 1:", (matched_intensity1 / sum_intensity1) * 100)
+    print("% Matched Intensity Collection 2:", (matched_intensity2 / sum_intensity2) * 100)
+
+    return percent_matched1, percent_matched2, percent_intensity1, percent_intensity2
+
 
 def compare_annotated(l1, l2, ppmtol, maxshift):
     unique_annotated = []

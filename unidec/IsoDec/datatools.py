@@ -87,6 +87,46 @@ def fastwithin_abstol(array, target, tol):
 
     return result
 
+@njit(fastmath=True)
+def fastwithin_abstol_withnearest(array, target, tol):
+    result = []
+
+    if len(array) == 0:
+        return -1, result
+
+    nearest_idx = fastnearest(array, target)
+
+    if np.abs(array[nearest_idx] - target) <= tol:
+        result.append(nearest_idx)
+    else:
+        return nearest_idx,result
+
+    adding_upper = True
+    adding_lower = True
+
+    current_upper = nearest_idx + 1
+    current_lower = nearest_idx - 1
+
+    while adding_upper or adding_lower:
+        if adding_upper:
+            if current_upper >= len(array):
+                adding_upper = False
+            elif np.abs(array[current_upper] - target) <= tol:
+                result.append(current_upper)
+                current_upper += 1
+            else:
+                adding_upper = False
+
+        if adding_lower:
+            if current_lower < 0:
+                adding_lower = False
+            elif np.abs(array[current_lower] - target) <= tol:
+                result.append(current_lower)
+                current_lower -= 1
+            else:
+                adding_lower = False
+
+    return nearest_idx, result
 
 @njit(fastmath=True)
 def fastpeakdetect(data, window: int = 10, threshold=0.0, ppm=None, norm=True):

@@ -64,6 +64,7 @@ class IsoDecEngine:
         self.test_centroids = []
         self.training_centroids = []
         self.config.verbose = verbose
+        self.version = "1.0.0"
 
         self.pks = MatchedCollection()
 
@@ -434,6 +435,8 @@ class IsoDecEngine:
         pk = optimize_shift2(self.config, centroids, z, peakmz)
         if pk is not None:
             if pks is not None:
+                pk.rt = self.config.activescanrt
+                pk.scan = self.config.activescan
                 pks.add_peak(pk)
             else:
                 self.pks.add_peak(pk)
@@ -522,7 +525,8 @@ class IsoDecEngine:
                     self.config.css_thresh = self.config.css_thresh * 0.90
                     if self.config.css_thresh < 0.6:
                         self.config.css_thresh = 0.6
-                print("Spectrum length: ", len(centroids))
+                if self.config.verbose:
+                    print("Spectrum length: ", len(centroids))
                 if i > 0:
                     kwindow = kwindow * 0.5
                     if kwindow < 1:
@@ -553,7 +557,6 @@ class IsoDecEngine:
 
                 # Predict Charge
                 preds = self.phasemodel.batch_predict(data_loader)
-
 
                 knockdown = []
                 ngood = 0
@@ -597,6 +600,13 @@ class IsoDecEngine:
                     break
 
         return self.pks
+
+    def pks_to_mass(self, binsize=0.1):
+        """
+        Convert the MatchedCollection to mass
+        :return: None
+        """
+        return self.pks.to_mass_spectrum(binsize)
 
 
     def process_file(self, file, scans=None):

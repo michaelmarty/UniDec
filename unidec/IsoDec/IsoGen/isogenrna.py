@@ -28,14 +28,14 @@ class IsoGenRNAEngine(IsoGenEngineBase):
 
 
 if __name__ == "__main__":
-    os.chdir("Z:\Group Share\JGP\PeptideTraining")
+    os.chdir("Z:\\Group Share\\JGP\\PeptideTraining")
 
     isolen = 32
     eng = IsoGenRNAEngine(isolen=isolen)
 
     trainfile_synthetic = "rnadists_synthetic_101424.npz"
 
-    if True:
+    if False:
         eng.train_multiple([trainfile_synthetic], epochs=10, forcenew=False)
 
     mpl.use("WxAgg")
@@ -49,10 +49,13 @@ if __name__ == "__main__":
         plt.plot(dist * 100, label="AI", color="b")
         plt.plot(truedist * 100, color="k", label="True")
         plt.xlim(0, isolen)
-        plt.title(str(m) + " Da")
+        title_string = str(m)
+        if len(m) > 5:
+            title_string = title_string[:5] + "...{" + str(len(m)) + "}"
+        plt.title(title_string)
         plt.xlabel("Isotope Number")
         plt.ylabel("%")
-        if i == 3:
+        if i == 5:
             plt.legend()
     plt.tight_layout()
     plt.show()

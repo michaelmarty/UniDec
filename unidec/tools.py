@@ -21,6 +21,7 @@ from scipy import fftpack
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 
+from unidec.UniDecImporter.Importer import Importer
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.modules.fitting import *
 from itertools import cycle
@@ -938,8 +939,11 @@ def waters_convert2(path, config=None, outfile=None, time_range=None):
 
 
 def get_polarity(path):
-    importer = ImporterFactory.create_importer(path)
-    polarity = importer.get_polarity()
+    try:
+        importer = ImporterFactory.create_importer(path)
+        polarity = importer.get_polarity()
+    except:
+        polarity = "Positive"
     return polarity
 
 
@@ -950,6 +954,8 @@ def load_mz_file(path: str, config: object = None, time_range: object = None, im
     :param config: UniDecConfig object
     :return: Data array
     """
+    from unidec.UniDecImporter.ImporterFactory import recognized_types
+
     extension = os.path.splitext(path)[1].lower()
 
     try:
@@ -960,12 +966,20 @@ def load_mz_file(path: str, config: object = None, time_range: object = None, im
                 data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0, 1))
             elif extension == '.npz':
                 data = np.load(path, allow_pickle=True)['data']
-        elif extension in ImporterFactory.recognized_file_types:
+        elif extension in recognized_types:
             importer = ImporterFactory.create_importer(path)
+            #polarity = importer.get_polarity()
             data = importer.get_data()
+            # if polarity == "Positive":
+            #     np.append(data, -1)
+            # else:
+            #     np.append(data, -1)
+
+
         else:
             raise ValueError("Unsupported file extension")
     except Exception as e:
+
         print(f"Error loading file {path}: {e}")
         return None
 

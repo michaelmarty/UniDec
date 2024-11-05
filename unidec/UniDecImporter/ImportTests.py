@@ -34,7 +34,8 @@ class ImportTests(unittest.TestCase):
         self.assertEqual(type(test), type(importer))
 
     def test_mzml_create(self):
-        path = "Z:\\Group Share\\JGP\\js8b05641_si_001\\1500_scans_200K_16 fills-qb1.mzML"
+        #path = "Z:\\Group Share\\JGP\\js8b05641_si_001\\1500_scans_200K_16 fills-qb1.mzML"
+        path = "Z:\\Group Share\\JGP\\RibosomalPfms_Td_Control\\mzML\\23_04_21_PEPPI_1B_A.mzML"
         importer = ImporterFactory.create_importer(path)
         test = MZMLImporter(path)
         self.assertEqual(type(test), type(importer))
@@ -63,13 +64,14 @@ class ImportTests(unittest.TestCase):
 
 
     def test_populated_mzxml(self):
-        path = "Z:\\Group Share\\JGP\\RibosomalPfms_Td_Control\\23_04_21_PEPPI_1B_A.mzXML"
+        path = "Z:\\Group Share\\JGP\\js8b05641_si_001\\1500_scans_200K_16 fills-qb1.mzXML"
         reader = ImporterFactory.create_importer(path)
         spectrum = reader.grab_scan_data(0)
         self.assertTrue(len(spectrum) > 0)
 
     def test_populated_mzml(self):
-        path = "Z:\\Group Share\\JGP\\js8b05641_si_001\\1500_scans_200K_16 fills-qb1.mzML"
+        #path = "Z:\\Group Share\\JGP\\js8b05641_si_001\\1500_scans_200K_16 fills-qb1.mzML"
+        path = "Z:\\Group Share\\JGP\\RibosomalPfms_Td_Control\\23_04_21_PEPPI_1B_A.mzML"
         reader = ImporterFactory.create_importer(path)
         spectrum = reader.grab_scan_data(0)
         self.assertTrue(len(spectrum) > 0)

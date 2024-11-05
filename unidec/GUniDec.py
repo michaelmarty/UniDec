@@ -1545,19 +1545,6 @@ class UniDecApp(UniDecPres):
     def on_score_FDR(self, e=0):
         self.eng.estimate_FDR()
 
-    def on_ex(self, e=0, pos=1):
-        print("Loading Example Data")
-        # Load the example data from the event. If there is an error, grab the pos value and load that file.
-        try:
-            self.view.menu.on_example_data(e)
-        except:
-            self.view.menu.load_example_data(pos)
-
-        # If you hold down control, it will load everything
-        if wx.GetKeyState(wx.WXK_CONTROL):
-            self.on_load_everything()
-        pass
-
     def on_flip_mode(self, e=None):
         """
         Flips between MS and IM-MS mode

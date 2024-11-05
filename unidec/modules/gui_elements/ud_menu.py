@@ -96,7 +96,7 @@ class main_menu(wx.Menu):
 
         # Example Data
         self.examplemenu, self.masterd2 = pm.make_preset_menu(self.config.exampledatadir, exclude_dir="_unidecfiles",
-                                                              topi=2500, exclude_ext="hdf5", exclude_dir_list=["CDMS", "UniChrom"])
+                                                              topi=2500, exclude_ext="hdf5", exclude_dir_list=["CDMS", "UniChrom", "IsoDec"])
 
         keys = []
         for i, d in enumerate(self.masterd2):
@@ -394,11 +394,11 @@ class main_menu(wx.Menu):
 
 
 
-        self.experimentalmenu.AppendSeparator()
-        self.menuRegister = self.experimentalmenu.Append(wx.ID_ANY, "Fix Agilent Imports",
-                                                         "Registers the Agilent Interfaces. "
-                                                         "MUST RUN AS ADMINISTRATOR")
-        self.parent.Bind(wx.EVT_MENU, self.pres.register, self.menuRegister)
+        # self.experimentalmenu.AppendSeparator()
+        # self.menuRegister = self.experimentalmenu.Append(wx.ID_ANY, "Fix Agilent Imports",
+        #                                                  "Registers the Agilent Interfaces. "
+        #                                                  "MUST RUN AS ADMINISTRATOR")
+        # self.parent.Bind(wx.EVT_MENU, self.pres.register, self.menuRegister)
 
         self.experimentalmenu.AppendSeparator()
 
@@ -485,7 +485,7 @@ class main_menu(wx.Menu):
 
         self.unit_test_importers = self.advancedmenu.Append(wx.NewId(), "Test Importers", "Trigger all unit tests")
         self.parent.Bind(wx.EVT_MENU, self.on_run_unit_tests, self.unit_test_importers)
-        print("Added 'Test Importers' menu item")  # Debugging line
+
 
 
     pass
@@ -605,6 +605,6 @@ class main_menu(wx.Menu):
 
         # Show results in a message box
         if result.wasSuccessful():
-            wx.MessageBox("All unit tests passed!", "Success", wx.OK | wx.ICON_INFORMATION)
+            wx.MessageBox("All importers compatible", "Success", wx.OK | wx.ICON_INFORMATION)
         else:
             wx.MessageBox(f"Some tests failed:\n{result.failures}", "Test Results", wx.OK | wx.ICON_ERROR)

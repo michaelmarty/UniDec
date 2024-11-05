@@ -51,7 +51,7 @@ class AgilentImporter(Importer):
         self.data = np.array(self.data, dtype=object)
         return self.data
 
-    def get_data(self, scan_range=None, time_range=None):
+    def get_data(self, scan_range=None, time_range=None, mzbins=None):
         """
         Returns merged 1D MS data from mzML import
         :return: merged data
@@ -90,15 +90,19 @@ class AgilentImporter(Importer):
                 scan_range = self.get_scans_from_times(time_range)
                 print("Getting times:", time_range)
 
-            if scan_range is not None:
+            if scan_range is not None and len(scan_range) == 2:
                 data = data[scan_range[0]:scan_range[1]]
                 print("Getting scans:", scan_range)
+            elif scan_range is not None:
+                print("Getting scan:", scan_range[0])
+                data= data[scan_range[0]]
+                return data
             else:
                 print("Getting all scans, length:", len(self.scans))
 
             if len(data) > 1:
                 try:
-                    data = merge_spectra(data)
+                    data = merge_spectra(data, mzbins=mzbins, type="Integrate")
                 except Exception as e:
                     concat = np.concatenate(data)
                     sort = concat[concat[:, 0].argsort()]

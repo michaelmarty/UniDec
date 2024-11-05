@@ -36,7 +36,7 @@ class MainwindowBase(wx.Frame):
         self.version = self.pres.eng.version
 
         if iconfile is None:
-            if os.path.isfile(self.config.iconfile):
+            if self.config.iconfile is not None and os.path.isfile(self.config.iconfile):
                 iconfile = self.config.iconfile
                 # print(self.config.iconfile)
             else:

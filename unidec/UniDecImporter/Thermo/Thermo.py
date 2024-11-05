@@ -11,7 +11,7 @@ class ThermoImporter(Importer):
         from unidec.UniDecImporter.Thermo.RawFileReader import RawFileReader as rr
         super().__init__(path, **kwargs)
         self._silent = silent
-        self._msrun = rr(path)
+        self.msrun = rr(path)
 
         if not silent:
             print("Launching Thermo Importer. If it fails after this step, try this:")
@@ -19,7 +19,6 @@ class ThermoImporter(Importer):
             print("Right click on the zip file and open properties. You should see a box to Unblock it. Check that.")
             print("Click ok. Unzip it again. Try it once more.")
         print("Reading Thermo Data:", path)
-        self.msrun = rr(path)
         self.scanrange = self.msrun.scan_range()
         self.scans = np.arange(self.scanrange[0], self.scanrange[1]+1)
         self.times = []

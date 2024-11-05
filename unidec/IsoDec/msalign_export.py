@@ -169,10 +169,11 @@ def write_ms2_msalign(ms2_scan_dict, ms1_scan_dict, reader, file, act_type, max_
                 f.write("ACTIVATION=" + act_type + "\n")
                 f.write("PRECURSOR_MZ=")
                 for i in range(len(precursors)):
+                    mono_mz = (precursors[i].monoiso / precursors[i].z) + 1.007276466812
                     if i == len(precursors) - 1:
-                        f.write(str(precursors[i].mz) + "\n")
+                        f.write(str(mono_mz) + "\n")
                     else:
-                        f.write(str(precursors[i].mz) + ":")
+                        f.write(str(mono_mz) + ":")
                 f.write("PRECURSOR_CHARGE=")
                 for i in range(len(precursors)):
                     if i == len(precursors) - 1:
@@ -200,7 +201,8 @@ def write_ms2_msalign(ms2_scan_dict, ms1_scan_dict, reader, file, act_type, max_
                         f.write(str(feature_id) + ":")
                         feature_id += 1
                 for p in v:
-                    f.write(str(p.monoiso) + "\t" + str(p.matchedintensity) + "\t" + str(p.z) + "\t" + str(1) + "\n")
+                    for monoiso in p.monoisos:
+                        f.write(str(monoiso) + "\t" + str(p.matchedintensity) + "\t" + str(p.z) + "\t" + str(1) + "\n")
                 f.write("END IONS\n\n")
                 id += 1
 

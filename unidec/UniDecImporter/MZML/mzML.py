@@ -1,3 +1,5 @@
+import gc
+
 import numpy as np
 import pymzml
 from unidec import tools as ud
@@ -5,7 +7,8 @@ import os
 from copy import deepcopy
 from pymzml.utils.utils import index_gzip
 import pymzml.obo
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 __author__ = 'Michael.Marty'
 
 from unidec.UniDecImporter.Importer import Importer
@@ -116,6 +119,7 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
                 newdat = ud.lintegrate(d, axis)
             else:
                 print("ERROR: unrecognized trdtrmerge spectra type:", type)
+
             template[:, 1] += newdat[:, 1]
 
     # Trying to catch if the data is backwards
@@ -239,58 +243,48 @@ def search_by_id(obo, id):
 FIELDNAMES = ["id", "name", "def", "is_a"]
 
 
+import os
+import numpy as np
+from pyteomics import mzml
+
+import os
+import numpy as np
+
 class MZMLImporter(Importer):
     """
     Imports mzML data files.
     """
-
-    def __init__(self, path, gzmode=False, nogz=False, *args, **kwargs):
-        """
-        Imports mzML file, adds the chromatogram into a single spectrum.
-        :param path: .mzML file path
-        :param args: arguments (unused)
-        :param kwargs: keywords (unused)
-        :return: mzMLimporter object
-        """
-        #super().__init__(path, **kwargs)
-        print("Reading mzML:", path)
+    def __init__(self, path, *args, **kwargs):
         self.filesize = os.stat(path).st_size
-        if not os.path.splitext(path)[1] == ".gz" and (
-                self.filesize > 1e8 or gzmode) and not nogz:  # for files larger than 100 MB
-            path = auto_gzip(path)
-            print("Converted to gzip file to improve speed:", path, self.filesize, gzmode)
-            self.filesize = os.stat(path).st_size
-        self.path = path
-        self.msrun = pymzml.run.Reader(path)
-        self.data = None
-        # self.scans = []
         self.times = []
         self.ids = []
+        self.scans = []
+        self.msrun = pymzml.run.Reader(path)
+        self.data = None
+        self.global_counter = 0
+        self.process_scan()
 
+
+    def process_scan(self):
         for i, spectrum in enumerate(self.msrun):
             if '_scan_time' in list(spectrum.__dict__.keys()):
                 try:
                     if spectrum.ms_level is None:
                         continue
-                except:
-                    pass
-                try:
                     t = spectrum.scan_time_in_minutes()
                     id = spectrum.ID
                     self.times.append(float(t))
+                    self.ids.append(id)
                 except Exception as e:
-                    self.times.append(-1)
-                    id = -1
-                    print("1", spectrum, e)
-                # self.scans.append(i)
-                self.ids.append(id)
-                # print(i, end=" ")
+                    continue
+                    # self.times.append(-1)
+                    # self.ids.append(-1)
             else:
-                print("Scan time not found", i)
+                print("Scan time not found for spectrum ID:", spectrum.ID)
         self.times = np.array(self.times)
         self.ids = np.array(self.ids)
-        self.scans = np.arange(0, len(self.ids))
-        print("Reading Complete", len(self.scans))
+        self.scans = np.arange(len(self.ids))
+
 
     def grab_scan_data(self, scan):
         try:
@@ -312,80 +306,98 @@ class MZMLImporter(Importer):
         resolution = get_resolution(data)
         axis = ud.nonlinear_axis(np.amin(data[:, 0]), np.amax(data[:, 0]), resolution)
         template = np.transpose([axis, np.zeros_like(axis)])
-        # print("Length merge axis:", len(template))
         newdat = ud.mergedata(template, data)
         template[:, 1] += newdat[:, 1]
+        if self.filesize < 1e6:
+            index = 0
+            while index <= scan_range[1] - scan_range[0]:
 
-        # New Fast Method
-        index = 0
-        while index <= scan_range[1] - scan_range[0]:
-            try:
-                spec = self.msrun.next()
-            except:
-                break
-
-            if spec.ID in self.ids:
-                index += 1
-                if scan_range[0] <= index <= scan_range[1]:
-                    try:
+                try:
+                    spec = self.msrun.next()
+                except:
+                    break
+                if spec.ID in self.ids:
+                    index += 1
+                    if scan_range[0] <= index <= scan_range[1]:
+                        # try:
                         data = get_data_from_spectrum(spec)
                         newdat = ud.mergedata(template, data)
                         template[:, 1] += newdat[:, 1]
+                        # except Exception as e:
+                        #     print("Error", e, "With scan number:", index)
+            return template
+        else:
+            thread_count = 8
+            index_range = list(range(scan_range[0], scan_range[1]))
+            batches = self.generate_batches(index_range, thread_count)
+            for batch in batches:
+                print(batch)
+            with ThreadPoolExecutor(max_workers=thread_count) as executor:
+                results = list(executor.map(lambda batch: self.process_batch_and_merge(batch, template), batches))
+
+                for local_template in results:
+                    template[:, 1] += local_template[:, 1]
+
+            return template
+
+    def process_batch_and_merge(self, batch, template):
+        local_template = template.copy()
+        for index in batch:
+                if index < len(self.ids):
+                    try:
+
+                        spec = self.msrun[self.ids[index]]
+                        data = get_data_from_spectrum(spec)
+                        newdat = ud.mergedata(local_template, data)
+                        local_template[:, 1] += newdat[:, 1]
                     except Exception as e:
                         print("Error", e, "With scan number:", index)
-        '''
-        # Old Slow Method
-        for i in range(int(scan_range[0]) + 1, scan_range[1] + 1):
-            try:
-                data = get_data_from_spectrum(self.msrun[self.ids[i]])
-                newdat = ud.mergedata(template, data)
-                template[:, 1] += newdat[:, 1]
-            except Exception as e:
-                print("Error", e, "With scan number:", i)'''
-        return template
+        return local_template
 
-    def grab_data(self, threshold=-1):
-        print("Grabbing Data")
-        newtimes = []
-        # newscans = []
-        newids = []
-        self.data = []
-        '''
-        # Old Very slow method
-        for i, s in enumerate(self.ids):
-            #print(i)
-            try:
-                impdat = get_data_from_spectrum(self.msrun[s], threshold=threshold)
-                self.data.append(impdat)
-                newtimes.append(self.times[i])
-                # newscans.append(self.scans[i])
-                newids.append(s)
-            except Exception as e:
-                print("mzML import error")
-                print(e)
-                '''
-        # New Faster Method
-        for n, spec in enumerate(self.msrun):
-            if spec.ID in self.ids:
+    def generate_batches(self, scan_range, thread_count):
+        total_length = scan_range[-1]-scan_range[0]+1
+        batch_size = total_length // thread_count
+        batches = []
+
+
+        for i in range(thread_count):
+            start_index = i * batch_size
+            if i == thread_count - 1:  # Last batch gets any remaining items
+                batches.append(list(range(start_index, scan_range[1])))
+            else:
+                end_index = start_index + batch_size
+                batches.append(scan_range[start_index:end_index])
+
+        return batches
+
+    def grab_data(self):
+        for spectrum in self.msrun:
+            if 'scanList' in spectrum:
                 try:
-                    impdat = get_data_from_spectrum(spec, threshold=threshold)
-                    self.data.append(impdat)
-                    newtimes.append(self.times[n])
-                    # newscans.append(self.scans[i])
-                    newids.append(spec.ID)
-                except Exception as e:
-                    print("mzML import error")
-                    print(e)
+                    scan_info = spectrum['scanList']['scan'][0]
+                    t = scan_info['scan start time']
+                    id = spectrum['id']
 
-        # self.scans = np.array(newscans)
-        self.times = np.array(newtimes)
-        self.ids = np.array(newids)
-        self.scans = np.arange(0, len(self.ids))
-        self.data = np.array(self.data, dtype=object)
-        print("Data Grabbed")
-        return self.data
+                    raw_data = list(spectrum.get('m/z array', []))
+                    intensity_data = list(spectrum.get('intensity array', []))
+
+                    if raw_data and intensity_data:
+                        self.data.append((raw_data, intensity_data))
+                        print(
+                            f"Data appended for ID {id}: {raw_data[:5]}, {intensity_data[:5]}")
+                    else:
+                        print(f"Missing data for spectrum ID {id}")
+
+                except Exception as e:
+                    continue
+        #             print("Error processing spectrum:", e)
+        #     else:
+        #         print("Scan list not found for spectrum ID:", spectrum['id'])
+        #
+        # print("Final data length:", len(self.data))
 
     def get_data_fast_memory_heavy(self, scan_range=None, time_range=None):
+
         if self.data is None:
             self.grab_data()
 
@@ -416,9 +428,6 @@ class MZMLImporter(Importer):
             data = data[0]
         else:
             data = data
-        # plt.figure()
-        # plt.plot(data)
-        # plt.show()
         return data
 
     def get_data(self, scan_range=None, time_range=None):
@@ -427,13 +436,14 @@ class MZMLImporter(Importer):
         :return: merged data
         """
         if self.filesize > 1e9 and self.data is None:
-            try:
-                data = self.get_data_memory_safe(scan_range, time_range)
-            except Exception as e:
-                print("Error in Memory Safe mzML, trying memory heavy method")
-                data = self.get_data_fast_memory_heavy(scan_range, time_range)
+            # try:
+
+            data = self.get_data_memory_safe(scan_range, time_range)
+            # except Exception as e:
+            #     print("Error in Memory Safe mzML, trying memory heavy method")
+            #     data = self.get_data_fast_memory_heavy(scan_range, time_range)
         else:
-            data = self.get_data_fast_memory_heavy(scan_range, time_range)
+            data = self.get_data_memory_safe(scan_range, time_range)
         return data
 
     def get_tic(self):

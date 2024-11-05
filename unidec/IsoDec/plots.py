@@ -150,6 +150,8 @@ def plot_pks(pks, data=None, centroids=None, scan=-1, show=False, labelz=False, 
                 if plotmass:
                     plt.subplot(122)
                     massdist = p.massdist
+                    plt.gca().spines['top'].set_visible(False)
+                    plt.gca().spines['right'].set_visible(False)
                     cplot(massdist, color=color)
                     mass = p.avgmass
 

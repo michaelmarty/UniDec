@@ -193,10 +193,8 @@ class UniDecEngine:
         else:
             return False
 
-    def auto_polarity(self, path=None):
-        if path is None:
-            path = self.config.filename
-        self.config.polarity = ud.get_polarity(path)
+    def auto_polarity(self, importer):
+        self.config.polarity = ud.get_polarity(importer)
         if self.config.polarity == "Positive":
             self.config.adductmass = np.abs(self.config.adductmass)
             print("Adduct Mass:", self.config.adductmass)

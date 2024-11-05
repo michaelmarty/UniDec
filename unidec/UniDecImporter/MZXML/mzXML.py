@@ -1,4 +1,5 @@
 import os
+from copy import deepcopy
 
 import numpy as np
 import unidec.tools as ud
@@ -216,12 +217,12 @@ class MZXMLImporter(Importer):
 
 if __name__ == "__main__":
     test = u"C:\\Data\\Wilson_Genentech\\Raw Files for Michael Marty\\B4.mzXML"
-    test = "D:\Data\TopDown\denatured_discovery_input_topfd.mzxml"
+    test = "D:\\Data\\TopDown\\denatured_discovery_input_topfd.mzxml"
     import time
 
     tstart = time.perf_counter()
 
-    d = mzXMLimporter(test)
+    d = MZXMLImporter(test)
     d.grab_scan_data(10)
     exit()
 

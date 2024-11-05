@@ -9,7 +9,7 @@ import zipfile
 import fnmatch
 import numpy as np
 
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+
 from unidec.modules import unidecstructure, peakstructure, MassFitter
 import unidec.tools as ud
 import unidec.modules.IM_functions as IM_func
@@ -192,7 +192,8 @@ class UniDec(UniDecEngine):
         else:
             self.export_config()
 
-        #polarity = res.get_polarity()
+        #Need to streamline this so it isnt creating a whole new importer just to grab the polarity.
+        #For bigger files this is an additional unnecessary couple thousand iterations
         self.auto_polarity(file_path)
 
         if load_results:

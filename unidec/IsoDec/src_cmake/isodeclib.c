@@ -462,17 +462,21 @@ int remove_zeros(const int *zeroindices, const int zeros, double *mz, float *int
         const int end = zeroindices[i + 1];
         const int shift = i + 1;
         for (int j = begin; j < end; j++) {
-            mz[j - shift] = mz[j];
-            inten[j - shift] = inten[j];
+            const int index = j - shift;
+            // Check to see if index is below 0 or above datalen
+            if (index < 0 || index >= datalen) { continue; }
+            mz[index] = mz[j];
+            inten[index] = inten[j];
         }
     }
 
     //The end of the array must be handled separately.
     for (int i = zeroindices[zeros - 1] + 1; i < datalen; i++) {
-        mz[i - zeros] = mz[i];
-        inten[i - zeros] = inten[i];
+        const int index = i - zeros;
+        if (index < 0 || index >= datalen) { continue; }
+        mz[index] = mz[i];
+        inten[index] = inten[i];
     }
-
 
     return datalen - zeros;
 }
@@ -948,9 +952,6 @@ int process_spectrum(const double *cmz, const float *cint, int n, const char *fn
     peakx = (float *) calloc(n, sizeof(float));
     peaky = (float *) calloc(n, sizeof(float));
 
-    // Create array of MatchPeaks for filling downstream
-    //MatchedPeak* matchedpeaks;
-    //matchedpeaks = (MatchedPeak*)calloc(n, sizeof(MatchedPeak));
     int nmatched = 0;
 
     // create copy of cint
