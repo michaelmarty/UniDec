@@ -1,12 +1,38 @@
 import ctypes
 import os
 import numpy as np
-
+from pathlib import Path
+import sys
+path_root = Path(__file__).parents[2]
+sys.path.append(str(path_root))
 from unidec.IsoDec.match import MatchedPeak, MatchedCollection, IsoDecConfig
 from unidec.modules.isotopetools import fast_calc_averagine_isotope_dist
 from unidec.IsoDec.plots import *
 import unidec.tools as ud
 from unidec.IsoDec.encoding import encode_phase
+
+def find_dll(dllname="isodeclib.dll"):
+    # Find current location of this file
+    thisdir = os.path.dirname(os.path.abspath(__file__))
+    # Find the dll in the current directory
+    dllpath = os.path.join(thisdir, dllname)
+    if os.path.exists(dllpath):
+        return dllpath
+    # Find the dll in the parent directory
+    dllpath = os.path.join(thisdir, "..", dllname)
+    if os.path.exists(dllpath):
+        return dllpath
+    # Find the dll in the grandparent directory
+    dllpath = os.path.join(thisdir, "..", "..", dllname)
+    if os.path.exists(dllpath):
+        return dllpath
+    # Find the dll in a hardcoded location
+    dllpath = "C:\\Python\\UniDec3\\unidec\\IsoDec\\isodeclib.dll"
+    if os.path.exists(dllpath):
+        return dllpath
+
+    # Just leave the dll bare with no path
+    return dllname
 
 example = np.array(
     [
@@ -36,9 +62,7 @@ example = np.array(
     ]
 )
 
-dllpath = (
-    "C:\\Python\\UniDec3\\unidec\\IsoDec\\src\\isodec\\x64\\Release\\isodeclib.dll"
-)
+dllpath = find_dll()
 
 isodist = ctypes.c_float * 64
 matchedinds = ctypes.c_int * 32
@@ -135,6 +159,11 @@ class IsoDecWrapper:
     def __init__(self, dllpath=None, modeldir="C:\\Python\\UniDec3\\unidec\\IsoDec\\"):
         if dllpath is None:
             dllpath = os.path.join(modeldir, "isodeclib.dll")
+
+        if not os.path.exists(dllpath):
+            dllpath = find_dll()
+            if not os.path.exists(dllpath):
+                raise FileNotFoundError("Could not find the IsoDec C library.")
 
         self.c_lib = ctypes.CDLL(dllpath)
 
