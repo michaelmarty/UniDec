@@ -1,12 +1,12 @@
 import os
-from unidec.IsoDec.engine import IsoDecEngine
+from unidec.IsoDec.runtime import IsoDecRuntime
 from unidec.IsoDec.plots import *
 import time
 
 # Set backend to Agg
 mpl.use('WxAgg')
 # Load Main Engine
-eng = IsoDecEngine(phaseres=4, use_wrapper=True)
+eng = IsoDecRuntime(phaseres=4)
 # Set File Name and Dir
 file2 = "C:\\Data\\IsoNN\\test2.txt"
 os.chdir(os.path.dirname(file2))

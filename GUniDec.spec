@@ -74,7 +74,7 @@ hiddenimportslist=['scipy.special._ufuncs_cxx', 'scipy.linalg.cython_blas', 'sci
 
 
 excludeslist = ['IPython', 'statsmodels', 'pyopenms', 'sklearn',
-                       'GdkPixbuf', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2', 'PyQt5']
+                       'GdkPixbuf', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2', 'PyQt5', 'torch']
 
 # Analysis of packages
 a = Analysis(['unidec\\Launcher.py'],
@@ -105,14 +105,33 @@ if system == "Windows":
             a.datas += add
             # print add
 
-    a.datas += [('RawFileReaderLicense.doc', 'unidec\\modules\\thermo_reader\\RawFileReaderLicense.doc', 'BINARY')]
-    a.datas += [('ThermoFisher.CommonCore.Data.dll', 'unidec\\modules\\thermo_reader\\ThermoFisher.CommonCore.Data.dll', 'BINARY')]
-    a.datas += [('ThermoFisher.CommonCore.RawFileReader.dll', 'unidec\\modules\\thermo_reader\\ThermoFisher.CommonCore.RawFileReader.dll', 'BINARY')]
-    a.datas += [('ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'unidec\\modules\\thermo_reader\\ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'BINARY')]
-    a.datas += [('ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'unidec\\modules\\thermo_reader\\ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'BINARY')]
+    a.datas += [('RawFileReaderLicense.doc', 'unidec\\UniDecImporter\\Thermo\\RawFileReaderLicense.doc', 'BINARY')]
+    a.datas += [('ThermoFisher.CommonCore.Data.dll', 'unidec\\UniDecImporter\\Thermo\\ThermoFisher.CommonCore.Data.dll', 'BINARY')]
+    a.datas += [('ThermoFisher.CommonCore.RawFileReader.dll', 'unidec\\UniDecImporter\\Thermo\\ThermoFisher.CommonCore.RawFileReader.dll', 'BINARY')]
+    a.datas += [('ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'unidec\\UniDecImporter\\Thermo\\ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'BINARY')]
+    a.datas += [('ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'unidec\\UniDecImporter\\Thermo\\ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'BINARY')]
     a.datas += [('Waters_MassLynxSDK_EULA.txt', 'unidec\\bin\\Waters_MassLynxSDK_EULA.txt', 'DATA')]
+
+    a.datas += [('BaseCommon.dll', 'unidec\\UniDecImporter\\Agilent\\BaseCommon.dll', 'BINARY')]
+    a.datas += [('BaseCommon.tlb', 'unidec\\UniDecImporter\\Agilent\\BaseCommon.tlb', 'BINARY')]
+    a.datas += [('BaseDataAccess.dll', 'unidec\\UniDecImporter\\Agilent\\BaseDataAccess.dll', 'BINARY')]
+    a.datas += [('BaseDataAccess.tlb', 'unidec\\UniDecImporter\\Agilent\\BaseDataAccess.tlb', 'BINARY')]
+    a.datas += [('BaseError.dll', 'unidec\\UniDecImporter\\Agilent\\BaseError.dll', 'BINARY')]
+    a.datas += [('BaseTof.dll', 'unidec\\UniDecImporter\\Agilent\\BaseTof.dll', 'BINARY')]
+    a.datas += [('MassSpecDataReader.dll', 'unidec\\UniDecImporter\\Agilent\\MassSpecDataReader.dll', 'BINARY')]
+    a.datas += [('MassSpecDataReader.tlb', 'unidec\\UniDecImporter\\Agilent\\MassSpecDataReader.tlb', 'BINARY')]
+
+
+    a.datas += [('isodeclib.dll', 'unidec\\IsoDec\\isodeclib.dll', 'BINARY')]
+    a.datas += [('isodeclib.lib', 'unidec\\IsoDec\\isodeclib.lib', 'BINARY')]
+    a.datas += [('isogenmass.dll', 'unidec\\IsoDec\\isogenmass.dll', 'BINARY')]
+    a.datas += [('isogenmass.lib', 'unidec\\IsoDec\\isogenmass.lib', 'BINARY')]
+
+
 elif system == "Linux":
     a.datas += [('unideclinux', 'unidec/bin/unideclinux', 'BINARY')]
+
+
 
 a.datas += [('cacert.pem', os.path.join('unidec\\bin', 'cacert.pem'), 'DATA')]
 a.datas += [('logo.ico', 'unidec\\bin\\logo.ico', 'DATA')]
@@ -124,7 +143,7 @@ a.datas += [('UniDecLogoMR.png', 'unidec\\bin\\UniDecLogoMR.png', 'DATA')]
 
 a.datas.extend(dir_files(os.path.join(os.path.dirname(pymzml.__file__), 'obo'), 'obo'))
 
-a.datas.extend(dir_files("unidec\\bin\\multiplierz", 'multiplierz'))
+# a.datas.extend(dir_files("unidec\\bin\\multiplierz", 'multiplierz'))
 
 a.datas.extend(dir_files("unidec\\bin\\Presets", 'Presets'))
 a.datas.extend(dir_files("unidec\\bin\\Example Data", 'Example Data'))

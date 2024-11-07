@@ -1,26 +1,23 @@
 import time
-import warnings
 import numpy as np
 from itertools import chain
-import torch
-from mpmath import harmonic
-from torch.utils.data import DataLoader
-from unidec.IsoDec.models import example, PhaseModel
-from unidec.IsoDec.datatools import fastpeakdetect, get_all_centroids, fastnearest, check_spacings
-from unidec.IsoDec.match import *
-from unidec.IsoDec.encoding import data_dirs, encode_noise, encode_phase_all, small_data_dirs, \
-    encode_double, encode_harmonic
 import os
-import math
+import torch
+from torch.utils.data import DataLoader
+
+from unidec.IsoDec.models import example, PhaseModel
+from unidec.IsoDec.datatools import fastpeakdetect, get_all_centroids, fastnearest, check_spacings, remove_noise_cdata
+from unidec.IsoDec.match import optimize_shift2, IsoDecConfig, MatchedCollection
+from unidec.IsoDec.encoding import data_dirs, encode_noise, encode_phase_all, small_data_dirs, \
+    encode_double, encode_harmonic, extract_centroids
+
 from copy import deepcopy
-import unidec.tools as ud
 import pickle as pkl
 import matplotlib.pyplot as plt
 from unidec.IsoDec.c_interface import IsoDecWrapper
-from unidec.IsoDec.plots import *
+from unidec.IsoDec.plots import plot_pks, cplot
 import platform
-import numba as nb
-from typing import List
+from unidec.IsoDec.altdecon import thrash_predict
 
 from unidec.UniDecImporter.ImporterFactory import *
 
@@ -89,6 +86,7 @@ class IsoDecEngine:
             self.wrapper = None
 
         self.reader = None
+        self.predmode = 2
 
     def drop_ones(self, percentage=0.8):
         """
@@ -417,7 +415,10 @@ class IsoDecEngine:
             z = IsoDecWrapper().predict_charge(centroids)
         else:
             z = self.phasemodel.predict(centroids)
-        return int(z)
+        return [int(z), 0]
+
+    def thrash_predictor(self, centroids):
+        return [thrash_predict(centroids), 0]
 
     def get_matches(self, centroids, z, peakmz, pks=None):
         """
@@ -452,7 +453,7 @@ class IsoDecEngine:
         pk1 = optimize_shift2(self.config, centroids, zs[0], peakmz)
         pk2 = optimize_shift2(self.config, centroids, zs[1], peakmz)
         if pk1 is not None and pk2 is not None:
-            #Retain the peak with the highest score
+            # Retain the peak with the highest score
             pk1_maxscore = np.amax(pk1.acceptedshifts[:, 1])
             pk2_maxscore = np.amax(pk2.acceptedshifts[:, 1])
             if self.config.verbose:
@@ -483,7 +484,6 @@ class IsoDecEngine:
             return pk2.matchedindexes
         else:
             return []
-
 
     def batch_process_spectrum(self, data, window=None, threshold=None, centroided=False):
         """
@@ -520,7 +520,7 @@ class IsoDecEngine:
             kwindow = window
             threshold = threshold
             for i in range(self.config.knockdown_rounds):
-                #Adjust settings based on round
+                # Adjust settings based on round
                 if i >= 5:
                     self.config.css_thresh = self.config.css_thresh * 0.90
                     if self.config.css_thresh < 0.6:
@@ -544,19 +544,53 @@ class IsoDecEngine:
                 if len(peaks) == 0:
                     break
 
-                # Encode phase of all
-                emats, peaks, centlist, indexes = encode_phase_all(centroids, peaks, lowmz=self.config.mzwindow[0],
-                                                                   highmz=self.config.mzwindow[1],
-                                                                   phaseres=self.config.phaseres,
-                                                                   minpeaks=2, datathresh=self.config.datathreshold)
+                if self.predmode == 0:
+                    # Encode phase of all
+                    emats, peaks, centlist, indexes = encode_phase_all(centroids, peaks, lowmz=self.config.mzwindow[0],
+                                                                       highmz=self.config.mzwindow[1],
+                                                                       phaseres=self.config.phaseres,
+                                                                       minpeaks=2, datathresh=self.config.datathreshold)
 
+                    emats = [torch.as_tensor(e, dtype=torch.float32) for e in emats]
+                    # emats = torch.as_tensor(emats, dtype=torch.float32).to(self.phasemodel.device)
+                    data_loader = DataLoader(emats, batch_size=2048, shuffle=False, pin_memory=True)
 
-                emats = [torch.as_tensor(e, dtype=torch.float32) for e in emats]
-                # emats = torch.as_tensor(emats, dtype=torch.float32).to(self.phasemodel.device)
-                data_loader = DataLoader(emats, batch_size=2048, shuffle=False, pin_memory=True)
-
-                # Predict Charge
-                preds = self.phasemodel.batch_predict(data_loader)
+                    # Predict Charge
+                    preds = self.phasemodel.batch_predict(data_loader)
+                elif self.predmode == 1:
+                    encodingcentroids, goodpeaks, outcentroids, indexes = extract_centroids(centroids, peaks,
+                                                                                            lowmz=self.config.mzwindow[
+                                                                                                0],
+                                                                                            highmz=self.config.mzwindow[
+                                                                                                1],
+                                                                                            minpeaks=2,
+                                                                                            datathresh=self.config.datathreshold)
+                    centlist = outcentroids
+                    preds = [self.phase_predictor(c) for c in encodingcentroids]
+                elif self.predmode == 2:
+                    encodingcentroids, goodpeaks, outcentroids, indexes = extract_centroids(centroids, peaks,
+                                                                                            lowmz=self.config.mzwindow[
+                                                                                                0],
+                                                                                            highmz=self.config.mzwindow[
+                                                                                                1],
+                                                                                            minpeaks=2,
+                                                                                            datathresh=self.config.datathreshold)
+                    centlist = outcentroids
+                    preds = [self.thrash_predictor(c) for c in encodingcentroids]
+                elif self.predmode == 3:
+                    encodingcentroids, goodpeaks, outcentroids, indexes = extract_centroids(centroids, peaks,
+                                                                                            lowmz=self.config.mzwindow[
+                                                                                                0],
+                                                                                            highmz=self.config.mzwindow[
+                                                                                                1],
+                                                                                            minpeaks=2,
+                                                                                            datathresh=self.config.datathreshold)
+                    centlist = outcentroids
+                    preds = [self.phase_predictor(c) for c in encodingcentroids]
+                    preds2 = [self.thrash_predictor(c) for c in encodingcentroids]
+                    preds = [[preds[i][0], preds2[i][0]] for i in range(len(preds))]
+                else:
+                    raise ValueError("Unknown mode", self.predmode)
 
                 knockdown = []
                 ngood = 0
@@ -576,7 +610,7 @@ class IsoDecEngine:
                         continue
 
                     # Get the centroids around the peak
-                    if z[1] != 0:
+                    if z[1] != 0 and z[1] != z[0]:
                         matchedindexes = self.get_matches_multiple_z(centlist[j], z, p[0], pks=self.pks)
                     else:
                         matchedindexes = self.get_matches(centlist[j], z[0], p[0], pks=self.pks)
@@ -607,7 +641,6 @@ class IsoDecEngine:
         :return: None
         """
         return self.pks.to_mass_spectrum(binsize)
-
 
     def process_file(self, file, scans=None):
         starttime = time.perf_counter()

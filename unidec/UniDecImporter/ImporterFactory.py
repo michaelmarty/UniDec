@@ -3,7 +3,7 @@ Simply use: importer_name = ImporterFactory.create_importer(file_path)
 """
 import os
 
-recognized_types = [".raw", ".RAW", ".mzXML", ".MZXML", ".mzml", ".MZML", ".d", ".D", ".gz"]
+recognized_types = [".raw", ".RAW", ".mzxml", ".MZXML", ".mzml", ".MZML", ".d", ".D", ".gz"]
 
 class ImporterFactory:
 

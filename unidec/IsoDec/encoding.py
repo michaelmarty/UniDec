@@ -8,8 +8,7 @@ import pickle as pkl
 import time
 import torch
 import matplotlib as mpl
-from math import floor
-from numba import jit, njit, prange
+from numba import njit
 
 try:
     mpl.use("WxAgg")
@@ -42,17 +41,8 @@ def encode_phase(centroids, maxz=50, phaseres=8):
     phases /= np.amax(phases)
     return phases
 
-
 @njit(fastmath=True)
-def encode_phase_all(centroids, peaks, lowmz=-1.5, highmz=5.5, phaseres=8, minpeaks=3, datathresh=0.05):
-    """
-    Work on speeding this up
-    :param centroids:
-    :param peaks:
-    :param lowmz:
-    :param highmz:
-    :return:
-    """
+def extract_centroids(centroids, peaks, lowmz=-1.5, highmz=5.5, minpeaks=3, datathresh=0.05):
     goodpeaks = []
     encodingcentroids = []
     outcentroids = []
@@ -64,8 +54,8 @@ def encode_phase_all(centroids, peaks, lowmz=-1.5, highmz=5.5, phaseres=8, minpe
         start = fastnearest(centroids[:, 0], peakmz + lowmz)
         end = fastnearest(centroids[:, 0], peakmz + highmz) + 1
 
-        if i < len(peaks)-1:
-            nextpeak = peaks[i+1][0]
+        if i < len(peaks) - 1:
+            nextpeak = peaks[i + 1][0]
             nextindex = fastnearest(centroids[:, 0], nextpeak)
             if end >= nextindex:
                 end = nextindex - 1
@@ -75,9 +65,9 @@ def encode_phase_all(centroids, peaks, lowmz=-1.5, highmz=5.5, phaseres=8, minpe
         c = centroids[start:end]
         new_c = centroids[start:end]
         if datathresh > 0:
-            b1 = c[:,1]> (datathresh * np.amax(c[:,1]))
+            b1 = c[:, 1] > (datathresh * np.amax(c[:, 1]))
             new_c = c[b1]
-            #print("Original Centroids:", len(c), "Filtered Centroids:", len(new_c))
+            # print("Original Centroids:", len(c), "Filtered Centroids:", len(new_c))
             if len(c) < minpeaks:
                 continue
 
@@ -85,6 +75,20 @@ def encode_phase_all(centroids, peaks, lowmz=-1.5, highmz=5.5, phaseres=8, minpe
         goodpeaks.append(p)
         outcentroids.append(c)
         indexes.append(indexvalues[start:end])
+    return encodingcentroids, goodpeaks, outcentroids, indexes
+
+@njit(fastmath=True)
+def encode_phase_all(centroids, peaks, lowmz=-1.5, highmz=5.5, phaseres=8, minpeaks=3, datathresh=0.05):
+    """
+    Work on speeding this up
+    :param centroids:
+    :param peaks:
+    :param lowmz:
+    :param highmz:
+    :return:
+    """
+    encodingcentroids, goodpeaks, outcentroids, indexes = extract_centroids(centroids, peaks, lowmz=lowmz, highmz=highmz,
+                                                                            minpeaks=minpeaks, datathresh=datathresh)
 
     emats = [encode_phase(c, phaseres=phaseres) for c in encodingcentroids]
     return emats, goodpeaks, outcentroids, indexes

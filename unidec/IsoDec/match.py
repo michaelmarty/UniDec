@@ -1,9 +1,7 @@
 import numpy as np
 import time
-import matchms
-from copy import deepcopy
 
-from unidec.IsoDec.datatools import *
+from unidec.IsoDec.datatools import fastnearest, fastwithin_abstol_withnearest, fastwithin_abstol
 import matplotlib.pyplot as plt
 from numba import njit
 from typing import List, Tuple
@@ -15,7 +13,6 @@ import unidec.tools as ud
 import unidec.IsoDec.msalign_export as msalign
 import math
 import pandas as pd
-# import unidec.modules.unidecstructure as udstruct
 
 
 # @nb.experimental.jitclass()
@@ -859,7 +856,7 @@ def create_isodist2(monoiso, charge, maxval, adductmass=1.007276467):
     return isodist
 
 
-@njit(fastmath=True)
+#@njit(fastmath=True)
 def create_isodist_full(peakmz, charge, data, adductmass=1.007276467, isotopethresh: float = 0.01):
     """
     Create an isotopic distribution based on the peak m/z and charge state.
@@ -884,7 +881,7 @@ def create_isodist_full(peakmz, charge, data, adductmass=1.007276467, isotopethr
     return isodist, massdist, monoiso
 
 
-@njit(fastmath=True)
+#@njit(fastmath=True)
 def get_accepted_shifts(cent_intensities, isodist, maxshift, min_score_diff, css_thresh, minusoneaszero=True):
     shiftrange = np.arange(-maxshift, maxshift + 1)
     # shifts_scores = [[0, 0] for i in range(len(shiftrange))]
@@ -1183,144 +1180,6 @@ def find_matched_intensities(spec1_mz: np.ndarray, spec1_intensity: np.ndarray, 
                     cent_intensities[i] = spec1_intensity[j]
 
     return cent_intensities
-
-
-'''
-@njit(fastmath=True)
-def match_peaks(centroids: np.array, isodist: np.array, tol: float = 5.0) -> Tuple[List[int], List[int]]:
-    """
-    matchingpeaks = matchms.similarity.spectrum_similarity_functions.find_matches(centroids[:, 0],
-                                                                                  isodist[:, 0], tol)
-    matchedindexes = [match[0] for match in matchingpeaks]
-    isomatches = [match[1] for match in matchingpeaks]"""
-    matchedindexes, isomatches = find_matches(centroids[:, 0], isodist[:, 0], tol)
-    return matchedindexes, isomatches
-    
- 
-# @njit(fastmath=True)
-def _shift(centroids, z, peakmz, tol=0.01, maxshift=2, gamma=0.5):
-    # Limit max shifts if necessary
-    if z < 3:
-        maxshift = 1
-    elif z < 6:
-        maxshift = 2
-    else:
-        maxshift = maxshift
-
-    # peakmz = centroids[np.argmax(centroids[:, 1]), 0]
-    isodist, massdist, monoiso = create_isodist_full(peakmz, z, centroids)
-
-    # matchedindexes, isomatches = match_peaks(centroids, isodist)
-
-    cent_intensities = find_matched_intensities(centroids[:, 0], centroids[:, 1], isodist[:, 0], maxshift, tolerance=5,
-                                                z=z)
-
-    # mc = centroids[matchedindexes]
-    # mi = isodist[isomatches]
-
-    # mc = [centroids[i, 1] for i in matchedindexes]
-    # mi = [isodist[i, 1] for i in isomatches]
-
-    # mc = np.array(mc)
-    # mi = np.array(mi)
-
-    # Renormalize so that the sums are equal
-    # s1 = np.sum(mc)
-    # s2 = np.sum(mi)
-    # if s2 == 0:
-    #   return isodist, matchedindexes, isomatches, 0, 0, massdist
-    # mi *= s1 / s2
-    # isodist[:, 1] *= s1 / s2
-
-    # if maxshift > len(mc):
-    #   maxshift = len(mc) - 1
-
-    shiftrange = np.arange(-maxshift, maxshift + 1)
-
-    # overlaps = []
-    bestshift = -1
-    sum = -1
-    meanratio = 1
-    for i, shift in enumerate(shiftrange):
-        # TODO: This is actually unsafe, if fast. If there are gaps, it will roll over them
-        # However, I'm not sure how to do it better without sacrificing a decent amount of speed
-        # Gonna fix it in the c code though
-        s = calculate_cosinesimilarity(cent_intensities ** gamma, isodist[:, 1] ** gamma, shift, maxshift)
-        # rmsd = calculate_RMSD(cent_intensities**gamma, isodist[:, 1]**gamma, shift, maxshift)
-        # s = 1 / rmsd
-        # print(shift, s)
-        # overlap = mc ** gamma * roll ** gamma
-        # s = np.sum(overlap)
-        # s = calculate_cosinesimilarity(mc*gamma, roll*gamma)
-
-        # calculate rmsd between roll and mc
-        # s = 1 / np.sqrt(np.sum((mc - roll) ** 2))
-
-        # overlaps.append(s)
-        if s > sum:
-            sum = s
-            bestshift = shift
-            # meanratio = np.average(mc / roll, weights=mc)
-    # bestshift = shiftrange[np.argmax(overlaps)]
-    # isodist[:, 1] *= meanratio
-
-    # Correct masses based on shift
-    shiftmass = bestshift * mass_diff_c
-    monoiso = monoiso + shiftmass
-    massdist[:, 0] = massdist[:, 0] + shiftmass
-    # Correct m/z based on shift
-    shiftmz = shiftmass / z
-    isodist[:, 0] = isodist[:, 0] + shiftmz
-    peakmz = peakmz + a
-    # Match it again
-    matchedindexes, isomatches = match_peaks(centroids, isodist, tol=tol)
-    # print(bestshift, sum, isodist[0])
-    return isodist, matchedindexes, isomatches, peakmz, monoiso, massdist   
-'''
-
-
-def match_charge(centroids, peakmz, charge_range=[1, 50], tol=0.01, threshold=0.85, nextbest=0.8, baseline=0.1,
-                 silent=True):
-    startime = time.perf_counter()
-    topcent = deepcopy(centroids)
-
-    b1 = centroids[:, 1] > baseline * np.amax(centroids[:, 1])
-    centroids = centroids[b1]
-    if len(centroids) < 3:
-        return 0, [], [], []
-
-    target = matchms.Spectrum(mz=centroids[:, 0], intensities=centroids[:, 1], metadata={"precursor_mz": peakmz})
-    cosine_greedy = matchms.similarity.CosineGreedy(tolerance=tol)
-
-    ztab = np.arange(charge_range[0], charge_range[1])
-    charge_guess = simp_charge(centroids, silent=True)
-    # sort so that things close to charge_guess come first in ztab
-    ztab = np.array(sorted(ztab, key=lambda x: np.abs(x - charge_guess)))
-
-    for i, z in enumerate(ztab):
-        isodist = create_isodist(peakmz, z, centroids)
-
-        matchindexes, isomatches = match_peaks(topcent, isodist, tol)
-        if len(matchindexes) < 3:
-            continue
-
-        spectrum2 = matchms.Spectrum(mz=isodist[:, 0], intensities=isodist[:, 1],
-                                     metadata={"charge": z, "precursor_mz": peakmz})
-
-        score = cosine_greedy.pair(target, spectrum2)['score']
-
-        if score > threshold:
-
-            if not silent:
-                print("Matched:", z, score)
-                endtime = time.perf_counter()
-                print("Time:", endtime - startime)
-            return z, isodist, matchindexes, isomatches
-    if not silent:
-        print("No Match")
-        endtime = time.perf_counter()
-        print("Time:", endtime - startime)
-    return 0, [], [], []
 
 
 def remove_noise_peaks(pks, noiselevel):

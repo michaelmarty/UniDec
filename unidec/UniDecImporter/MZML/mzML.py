@@ -78,7 +78,6 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
     """
     # Filter out junk spectra that are empty
     datalist = [x for x in datalist if len(x) > 0]
-
     # Find which spectrum in this list is the largest. This will likely have the highest resolution.
     maxlenpos = get_longest_index(datalist)
 
@@ -128,6 +127,7 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
             template = template[::-1]
     except:
         pass
+    print(template)
     return template
 
 
@@ -204,6 +204,8 @@ def nonlinear_axis(start, end, res):
 
 
 def get_data_from_spectrum(spectrum, threshold=-1):
+    if spectrum == None:
+        return
     impdat = np.transpose([spectrum.mz, spectrum.i])
     impdat = impdat[impdat[:, 0] > 10]
     if threshold >= 0:
@@ -276,9 +278,8 @@ class MZMLImporter(Importer):
                     self.times.append(float(t))
                     self.ids.append(id)
                 except Exception as e:
-                    continue
-                    # self.times.append(-1)
-                    # self.ids.append(-1)
+                    self.times.append(-1)
+                    self.ids.append(-1)
             else:
                 print("Scan time not found for spectrum ID:", spectrum.ID)
         self.times = np.array(self.times)
@@ -302,13 +303,13 @@ class MZMLImporter(Importer):
             scan_range = [int(np.amin(self.scans)), int(np.amax(self.scans))]
         print("Scan Range:", scan_range)
         data = get_data_from_spectrum(self.msrun[self.ids[scan_range[0]]])
-
+        print(data)
         resolution = get_resolution(data)
         axis = ud.nonlinear_axis(np.amin(data[:, 0]), np.amax(data[:, 0]), resolution)
         template = np.transpose([axis, np.zeros_like(axis)])
         newdat = ud.mergedata(template, data)
         template[:, 1] += newdat[:, 1]
-        if self.filesize < 1e6:
+        if True:
             index = 0
             while index <= scan_range[1] - scan_range[0]:
 
@@ -321,12 +322,15 @@ class MZMLImporter(Importer):
                     if scan_range[0] <= index <= scan_range[1]:
                         # try:
                         data = get_data_from_spectrum(spec)
+
                         newdat = ud.mergedata(template, data)
                         template[:, 1] += newdat[:, 1]
                         # except Exception as e:
                         #     print("Error", e, "With scan number:", index)
             return template
+
         else:
+
             thread_count = 8
             index_range = list(range(scan_range[0], scan_range[1]))
             batches = self.generate_batches(index_range, thread_count)
@@ -345,8 +349,10 @@ class MZMLImporter(Importer):
         for index in batch:
                 if index < len(self.ids):
                     try:
-
                         spec = self.msrun[self.ids[index]]
+
+                        if spec == None:
+                            continue
                         data = get_data_from_spectrum(spec)
                         newdat = ud.mergedata(local_template, data)
                         local_template[:, 1] += newdat[:, 1]
@@ -641,7 +647,7 @@ class MZMLImporter(Importer):
         #s is the scan number, this is 0 indexed, so we subtract 1 to access the correct scan.
         return order
 
-    def get_scan_time(self, s):
+    def get_scan_times(self, s):
         scantime = self.msrun[s-1].scan_time_in_minutes()
         return scantime
 

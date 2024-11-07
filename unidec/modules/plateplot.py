@@ -207,7 +207,7 @@ if __name__ == "__main__":
     panel.draw()
 
     eng = MetaUniDec()
-    path = "C:\Data\HTS_Sharon\\20220404-5_sequence_Shortlist.hdf5"
+    path = "C:\\Data\\HTS_Sharon\\20220404-5_sequence_Shortlist.hdf5"
     eng.open(path)
     panel.load_eng(eng)
 

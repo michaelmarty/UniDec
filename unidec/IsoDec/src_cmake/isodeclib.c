@@ -32,28 +32,26 @@
 // }
 
 #include <immintrin.h>
-
-void matrix_vector_multiply(const float *matrix, const float *vector, const float *bias, float *result, const int N,
-                            const int M, const bool relu) {
+void matrix_vector_multiply(const float* matrix, const float* vector, const float* bias, float* result, const int N, const int M, const bool relu) {
+//#pragma omp parallel for
     for (int i = 0; i < N; i++) {
         float val = bias[i];
-        __m256 sum = _mm256_setzero_ps(); // Initialize sum to zero
-        int jend = 0;
-        for (int j = 0; j <= M - 8; j += 8) {
+        __m256  sum = _mm256_setzero_ps(); // Initialize sum to zero
+        int j;
+        for (j = 0; j <= M - 8; j += 8) {
             // Load 4 elements from the matrix and vector
-            const __m256 mat = _mm256_loadu_ps(&matrix[i * M + j]);
-            const __m256 vec = _mm256_loadu_ps(&vector[j]);
+            const __m256  mat = _mm256_loadu_ps(&matrix[i * M + j]);
+            const __m256  vec = _mm256_loadu_ps(&vector[j]);
             // Perform element-wise multiplication and add to sum
             sum = _mm256_add_ps(sum, _mm256_mul_ps(mat, vec));
-            //sum = _mm256_fmadd_ps(mat, vec, sum); // Fails in linux build
-            jend = j;
+            //sum = _mm256_fmadd_ps(mat, vec, sum);
         }
         // Horizontal addition of the 8 elements in sum
         float temp[8];
         _mm256_storeu_ps(temp, sum);
         val += temp[0] + temp[1] + temp[2] + temp[3] + temp[4] + temp[5] + temp[6] + temp[7];
         // Handle remaining elements
-        for (int j = jend; j < M; j++) {
+        for (; j < M; j++) {
             val += matrix[i * M + j] * vector[j];
         }
         // ReLU

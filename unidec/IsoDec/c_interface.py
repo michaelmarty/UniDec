@@ -3,36 +3,16 @@ import os
 import numpy as np
 from pathlib import Path
 import sys
+
 path_root = Path(__file__).parents[2]
 sys.path.append(str(path_root))
-from unidec.IsoDec.match import MatchedPeak, MatchedCollection, IsoDecConfig
 from unidec.modules.isotopetools import fast_calc_averagine_isotope_dist
-from unidec.IsoDec.plots import *
-import unidec.tools as ud
-from unidec.IsoDec.encoding import encode_phase
 
-def find_dll(dllname="isodeclib.dll"):
-    # Find current location of this file
-    thisdir = os.path.dirname(os.path.abspath(__file__))
-    # Find the dll in the current directory
-    dllpath = os.path.join(thisdir, dllname)
-    if os.path.exists(dllpath):
-        return dllpath
-    # Find the dll in the parent directory
-    dllpath = os.path.join(thisdir, "..", dllname)
-    if os.path.exists(dllpath):
-        return dllpath
-    # Find the dll in the grandparent directory
-    dllpath = os.path.join(thisdir, "..", "..", dllname)
-    if os.path.exists(dllpath):
-        return dllpath
-    # Find the dll in a hardcoded location
-    dllpath = "C:\\Python\\UniDec3\\unidec\\IsoDec\\isodeclib.dll"
-    if os.path.exists(dllpath):
-        return dllpath
+import matplotlib.pyplot as plt
+from unidec.IsoDec.match import MatchedPeak, MatchedCollection, IsoDecConfig
 
-    # Just leave the dll bare with no path
-    return dllname
+from unidec.IsoDec.plots import plot_pks
+from unidec.tools import traverse_to_unidec3, find_dll, start_at_iso
 
 example = np.array(
     [
@@ -62,7 +42,7 @@ example = np.array(
     ]
 )
 
-dllpath = find_dll()
+
 
 isodist = ctypes.c_float * 64
 matchedinds = ctypes.c_int * 32
@@ -156,17 +136,17 @@ def config_to_settings(config):
 
 
 class IsoDecWrapper:
-    def __init__(self, dllpath=None, modeldir="C:\\Python\\UniDec3\\unidec\\IsoDec\\"):
-        if dllpath is None:
-            dllpath = os.path.join(modeldir, "isodeclib.dll")
+    def __init__(self, dllpath=None, modeldir=None):
 
-        if not os.path.exists(dllpath):
-            dllpath = find_dll()
-            if not os.path.exists(dllpath):
-                raise FileNotFoundError("Could not find the IsoDec C library.")
+        dllpath = start_at_iso("isodeclib.dll")
+        if not dllpath:
+            print("DLL not found anywhere")
 
+
+        modelpath = dllpath.rsplit("\\", 1)[0]
+
+        self.modeldir = modelpath
         self.c_lib = ctypes.CDLL(dllpath)
-
         self.c_lib.encode.argtypes = [
             ctypes.POINTER(ctypes.c_double),
             ctypes.POINTER(ctypes.c_float),
@@ -191,7 +171,7 @@ class IsoDecWrapper:
             ctypes.c_char_p,
             ctypes.POINTER(MPStruct),
         ]
-        self.modeldir = modeldir
+        self.modeldir = modelpath
         # self.modelpath = ctypes.c_char_p(
         #     os.path.join(self.modeldir, "phase_model_8.bin").encode()
         # )
@@ -267,7 +247,8 @@ class IsoDecWrapper:
         # else:
         #     print("Invalid phase resolution.", self.config.phaseres)
         #     raise ValueError("Invalid phase resolution.")
-        self.modelpath = None
+        self.modelpath=None
+
         if config.verbose:
             print(
                 "Running C code with phaseres of:",
@@ -340,16 +321,6 @@ if __name__ == "__main__":
     thresh = np.amax(spectrum[:,1]) * 0.05
     new_spec = spectrum[spectrum[:,1] > thresh]
     print("Old:", len(spectrum), "New:", len(new_spec))
-    e2 = encode_phase(new_spec).flatten()
-
-
-
-    diff = e1 - e2
-    #diff[np.abs(diff)<0.0001] = 0
-    print(np.allclose(e1, e2))
-    print(diff)
-    print(np.amax(np.abs(diff)))
-    print("Total:", np.sum(np.abs(diff)))
     #exit()
     # wrapper.process_spectrum(spectrum)
     pks = wrapper.process_spectrum(spectrum)

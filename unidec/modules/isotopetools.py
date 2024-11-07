@@ -4,6 +4,7 @@ import time
 from numpy import fft as fftpack
 from numba import njit
 from copy import deepcopy
+from unidec.IsoDec.IsoGen.isogenwrapper import IsoGenWrapper
 
 # import numba as nb
 # import pyteomics.mass as ms
@@ -81,10 +82,10 @@ def makemassmike(testmass: float) -> float:
     return minmassint
 
 
-@njit(fastmath=True)
+#@njit(fastmath=True)
 def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467):
     # Predict Isotopic Intensities
-    intensities = isomike(mass)
+    intensities = isogenmass(mass)
     # Calculate masses for these
     masses = np.arange(0, len(intensities)) * mass_diff_c + mass
 
@@ -102,11 +103,16 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467):
 
     return dist
 
+#@njit(fastmath=True)
+def isogenmass(mass):
+    eng = IsoGenWrapper()
+    return eng.gen_isodist(mass)
 
-@njit(fastmath=True)
+
+#@njit(fastmath=True)
 def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007276467, isotopethresh: float = 0.01):
     # Predict Isotopic Intensities
-    intensities = isomike(mass)
+    intensities = isogenmass(mass)
     # Calculate masses for these
     masses = np.arange(0, len(intensities)) * mass_diff_c + mass
 
@@ -267,6 +273,11 @@ def predict_apex_mono_diff(mass):
 
 
 if __name__ == "__main__":
+
+    m = 1000
+    print(isogenmass(m))
+    exit()
+
     m = 1000
     formula, minmassint, isolist = makemass(m)
     x = isojim(isolist)[:10]

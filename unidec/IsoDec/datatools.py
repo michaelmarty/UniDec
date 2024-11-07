@@ -1,16 +1,5 @@
 import numpy as np
-import os
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-import unidec.tools as ud
-
-import time
-import matchms
-from copy import deepcopy
 from numba import njit
-import numba as nb
-
-
 
 # from bisect import bisect_left
 

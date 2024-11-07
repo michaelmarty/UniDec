@@ -240,8 +240,8 @@ class MassDefectCompareWindow(wx.Frame):
 
 # Main App Execution
 if __name__ == "__main__":
-    file1 = "Z:\Group Share\Julia\M2 protein\wildtype\\201116\\20201116_jat_am2_wt_dmpc_d1t0_frac1c_3to1_pc_40uMdrug_201116124724_unidecfiles\\20201116_jat_am2_wt_dmpc_d1t0_frac1c_3to1_pc_40uMdrug_201116124724_Total_2D_Mass_Defects.txt"
-    file2 = "Z:\Group Share\Julia\M2 protein\wildtype\\201116\\20201116_jat_am2_wt_dmpc_frac1c_3to1_pc_unidecfiles\\20201116_jat_am2_wt_dmpc_frac1c_3to1_pc_Total_2D_Mass_Defects.txt"
+    file1 = "Z:\\Group Share\\Julia\\M2 protein\\wildtype\\201116\\20201116_jat_am2_wt_dmpc_d1t0_frac1c_3to1_pc_40uMdrug_201116124724_unidecfiles\\20201116_jat_am2_wt_dmpc_d1t0_frac1c_3to1_pc_40uMdrug_201116124724_Total_2D_Mass_Defects.txt"
+    file2 = "Z:\\Group Share\\Julia\\M2 protein\\wildtype\\201116\\20201116_jat_am2_wt_dmpc_frac1c_3to1_pc_unidecfiles\\20201116_jat_am2_wt_dmpc_frac1c_3to1_pc_Total_2D_Mass_Defects.txt"
 
     filelist=[file1,file2]
 

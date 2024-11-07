@@ -251,7 +251,6 @@ class UniDec(UniDecEngine):
             else:
                 if self.config.system == "Windows":
                     if self.config.imflag == 0:
-                        #importer = ImporterFactory.create_importer(self.config.filename)
                         print(newfilename)
                         # if os.path.isfile(newfilepath):
                         #     print("Converted data from raw to txt")

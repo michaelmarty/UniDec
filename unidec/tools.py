@@ -33,24 +33,11 @@ except:
     pass
 from unidec.modules import unidecstructure
 import fnmatch
-from unidec.UniDecImporter.MZXML import mzXML
-
-try:
-    from unidec.modules import data_reader
-except:
-    print("Could not import data reader: unidectools")
-
 
 try:
     from unidec.UniDecImporter.Waters import Waters as WDI
 except:
     print("Could not import Waters Data Importer")
-
-
-try:
-    from unidec.UniDecImporter.Thermo import Thermo
-except:
-    print("Could not import Thermo Data Importer")
 
 is_64bits = sys.maxsize > 2 ** 32
 protmass = 1.007276467
@@ -968,7 +955,6 @@ def load_mz_file(path: str, config: object = None, time_range: object = None, im
                 data = np.load(path, allow_pickle=True)['data']
         elif extension in recognized_types:
             importer = ImporterFactory.create_importer(path)
-            #polarity = importer.get_polarity()
             data = importer.get_data()
             # if polarity == "Positive":
             #     np.append(data, -1)
@@ -3186,6 +3172,67 @@ def save_data_to_text(path):
     np.savetxt(path[0] + "_data.txt", data)
     print("Saving data: " + path[0] + "_data.txt")
     return None
+
+def find_dll(targetfile, dir):
+    if dir is None:
+        return ""
+
+    for entry in os.scandir(dir):
+        if entry.is_file() and entry.name == targetfile:
+            print("Found DLL within:", entry.path)
+            return entry.path
+
+
+        elif entry.is_dir():
+            result = find_dll(targetfile, entry.path)
+            if result:
+                return result
+
+    return ""
+
+
+# this gets me here:
+
+#C:\Python\UniDec3\
+def traverse_to_unidec3(topname="UniDec3"):
+    curr_pos = os.path.dirname(os.path.abspath(__file__))
+    # TODO: Switch to os.path.join
+    truncated = curr_pos.split("\\")
+    new_path = ""
+    for i in truncated:
+        if i == topname:
+            new_path += i + "\\"
+            break
+        else:
+            new_path += i + "\\"
+
+    return new_path
+
+def start_at_iso(targetfile):
+    result = ""
+    #print("Starting in unidec/isodec")
+    parent = traverse_to_unidec3()
+    path = os.path.join(parent, "unidec", "IsoDec")
+    if not os.path.exists(path):
+        print("Path does not exist: ", path)
+        path = traverse_to_unidec3("_internal")
+        if not os.path.exists(path):
+            print("Path does not exist: ", path)
+            return result
+
+    for entry in os.scandir(path):
+        if entry.is_file() and entry.name == targetfile:
+            print("Found DLL within:", entry.path)
+            result = entry.path
+            return result
+    if not result:
+        #Iterate alphabetically from the parent
+        print("Dll not found in nested subdirectory, searching alphabetically from parent")
+        for entry in os.scandir(parent):
+            if entry.is_dir():
+                result = find_dll(targetfile, entry.path)
+                if result:
+                    return result
 
 
 if __name__ == "__main__":

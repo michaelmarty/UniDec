@@ -3,12 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from matplotlib.backend_tools import ToolBase
-
-from unidec.IsoDec.match import create_isodist, MatchedPeak
+from unidec.IsoDec.match import create_isodist
 import time
-from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
-import wx
+
 
 try:
     mpl.use("WxAgg")

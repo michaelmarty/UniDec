@@ -5,10 +5,50 @@ import clr
 from numpy import average
 from itertools import chain
 
-dll_path = "C:\\Python\\UniDec3\\unidec\\UniDecImporter\\Agilent"
-sys.path += [os.path.join(os.path.dirname(__file__), dll_path)]
+from unidec.UniDecImporter.Thermo.RawFileReader import pathtothisfile
+
+'''
+
+pathtothisfile = os.path.dirname(__file__)
+# print(pathtothisfile)
+dlls = ['ThermoFisher.CommonCore.Data', 'ThermoFisher.CommonCore.RawFileReader',
+        'ThermoFisher.CommonCore.BackgroundSubtraction', 'ThermoFisher.CommonCore.MassPrecisionEstimator']
+
+print(pathtothisfile)
+
+for dll in dlls:
+    testpath = os.path.join(pathtothisfile, dll) + ".dll"
+    # print(testpath)
+    if os.path.isfile(testpath):
+        # print("1")
+        clr.AddReference(testpath)
+    else:
+        try:
+            # print("2")
+            import sys
+
+            sys.path.append(pathtothisfile)
+            clr.AddReference(dll)
+        except:
+            # print("3")
+            clr.AddReference(dll)'''
+
+#dll_path = "C:\\Python\\UniDec3\\unidec\\UniDecImporter\\Agilent"
+pathtothisfile = os.path.dirname(__file__)
+print(pathtothisfile)
 dlls = ['MassSpecDataReader', 'BaseCommon', 'BaseDataAccess']
-for dll in dlls: clr.AddReference(dll)
+for dll in dlls:
+    testpath = os.path.join(pathtothisfile, dll) + ".dll"
+    if os.path.isfile(testpath):
+        clr.AddReference(testpath)
+    else:
+        try:
+            sys.path.append(pathtothisfile)
+            clr.addReference(dll)
+        except:
+            clr.AddReference(dll)
+clr.AddReference("System.Collections")
+
 import Agilent
 from Agilent.MassSpectrometry.DataAnalysis import (MassSpecDataReader, BDAChromFilter, MsdrPeakFilter,
                                                    MsdrChargeStateAssignmentFilter, IMsdrDataReader, IBDAChromFilter,

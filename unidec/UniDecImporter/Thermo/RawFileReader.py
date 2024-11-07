@@ -694,7 +694,7 @@ class RawFileReader(object):
 
 
 if __name__ == "__main__":
-    test = u"C:\Python\\UniDec3\TestSpectra\\test.RAW"
+    test = u"C:\Python\\UniDec3\\TestSpectra\\test.RAW"
     path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\AgilentData\\2019_05_15_bsa_ccs_02.d"
     rr = RawFileReader(path)
     rr.GetSeqInfo()
