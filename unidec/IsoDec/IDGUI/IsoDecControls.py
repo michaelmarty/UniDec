@@ -208,10 +208,16 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         sizercontrol3 = wx.GridBagSizer(wx.VERTICAL)
 
+        self.ctlnorm = wx.RadioBox(panel3, label="Peak Normalization", choices=["None", "Max", "Total"])
+        sizercontrol3.Add(self.ctlnorm, (0, 0), span=(1, 2), flag=wx.EXPAND)
 
         self.plotbutton2 = wx.Button(panel3, -1, "Plot Peaks")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_plot_peaks, self.plotbutton2)
-        sizercontrol3.Add(self.plotbutton2, (0, 1), span=(1, 1), flag=wx.EXPAND)
+        sizercontrol3.Add(self.plotbutton2, (1, 0), span=(1, 2), flag=wx.EXPAND)
+
+        self.plotbutton1 = wx.Button(panel3, -1, "Plot Isotope Dists")
+        self.parent.Bind(wx.EVT_BUTTON, self.pres.on_plot_dists, self.plotbutton1)
+        sizercontrol3.Add(self.plotbutton1, (2, 0), span=(1, 2), flag=wx.EXPAND)
 
         panel3.SetSizer(sizercontrol3)
         sizercontrol3.Fit(panel3)
@@ -226,7 +232,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox3b = wx.GridBagSizer(wx.VERTICAL)
 
         i = 0
-
         self.ctlpeakcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
         self.ctlpeakcm.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
         self.ctlpeakcm.AppendItems(self.config.cmaps)
@@ -237,21 +242,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.ctlpublicationmode = wx.CheckBox(panel3b, label="Publication Mode")
         gbox3b.Add(self.ctlpublicationmode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
-
-        self.ctlnorm = wx.RadioBox(panel3b, label="Peak Normalization", choices=["None", "Max", "Total"])
-        gbox3b.Add(self.ctlnorm, (i, 0), span=(1, 2), flag=wx.EXPAND)
-        i += 1
-
-        self.ctlthresh2 = wx.TextCtrl(panel3b, value="", size=size1)
-        gbox3b.Add(wx.StaticText(panel3b, label="Marker Threshold: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox3b.Add(self.ctlthresh2, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
-
-        self.ctlsep = wx.TextCtrl(panel3b, value="", size=size1)
-        gbox3b.Add(wx.StaticText(panel3b, label="Species Separation: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        gbox3b.Add(self.ctlsep, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
 
         self.replotbutton = wx.Button(panel3b, -1, "Replot")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_replot, self.replotbutton)
@@ -307,8 +297,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.subtypectl.SetSelection(int(self.config.subtype))
             self.ctlwindow.SetValue(str(self.config.peakwindow))
             self.ctlthresh.SetValue(str(self.config.peakthresh))
-            self.ctlthresh2.SetValue(str(self.config.peakplotthresh))
-            self.ctlsep.SetValue(str(self.config.separation))
             self.ctlintthresh.SetValue(str(self.config.intthresh))
             self.ctladductmass.SetValue(str(self.config.adductmass))
             self.ctlnumit.SetValue(str(self.config.numit))
@@ -353,8 +341,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.peaknorm = self.ctlnorm.GetSelection()
         self.config.peakwindow = ud.string_to_value(self.ctlwindow.GetValue())
         self.config.peakthresh = ud.string_to_value(self.ctlthresh.GetValue())
-        self.config.peakplotthresh = ud.string_to_value(self.ctlthresh2.GetValue())
-        self.config.separation = ud.string_to_value(self.ctlsep.GetValue())
         self.config.adductmass = ud.string_to_value(self.ctladductmass.GetValue())
         self.config.numit = ud.string_to_int(self.ctlnumit.GetValue())
         self.config.reductionpercent = ud.string_to_value(self.ctldatareductionpercent.GetValue())
@@ -386,10 +372,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         Sets Tool Tips for items on the Main Panel
         :return: None
         """
-        self.ctlthresh2.SetToolTip(wx.ToolTip(
-            "Set threshold for peaks to be plotted in m/z. "
-            "Peak at given charge state must be greater than threshold * maximum m/z intensity."))
-        self.ctlsep.SetToolTip(wx.ToolTip("Set distance between isolated peak m/z plots."))
         self.ctlwindow.SetToolTip(
             wx.ToolTip("Peak detection window. Peak must be maximum in a +/- window range in mass (Da)."))
         self.ctlthresh.SetToolTip(wx.ToolTip(

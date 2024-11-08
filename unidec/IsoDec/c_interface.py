@@ -294,15 +294,16 @@ class IsoDecWrapper:
             isomz = isomz[b1]
             isomass = isomass[b1]
             pk.matchedintensity = np.sum(isodist)
+            pk.peakint = p.peakint
             pk.isodist = np.transpose((isomz, isodist))
             pk.massdist = np.transpose((isomass, isodist))
 
             pk.startindex = p.startindex
             pk.endindex = p.endindex
 
-            pk.isodist = fast_calc_averagine_isotope_dist(p.monoiso, p.z)
+            #pk.isodist = fast_calc_averagine_isotope_dist(p.monoiso, p.z)
             # pk.isodist[:,0] /= float(p.z)
-            pk.isodist[:, 1] *= p.peakint
+            # pk.isodist[:, 1] *= p.peakint
             pks.add_peak(pk)
             pks.add_pk_to_masses(pk, 10)
         return pks

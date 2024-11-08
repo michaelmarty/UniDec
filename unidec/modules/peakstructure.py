@@ -81,6 +81,7 @@ class Peak:
         self.sdval = 0
         self.filename = ""
         self.filenumber = -1
+        self.zs = []
 
     def line_out(self, type="Full", rounding=3):
         if type == "Full":
@@ -183,13 +184,18 @@ class Peaks:
 
 
     def merge_isodec_pks(self, pks, massbins=0, config=None):
+        masspks = pks.masses
         # Sort pks
-        pks = sorted(pks, key=lambda x: x.monoiso)
+        pks = sorted(masspks, key=lambda x: x.monoiso)
 
         for p in pks:
             newpeak = Peak()
             newpeak.mass = p.monoiso
-            newpeak.height = p.matchedintensity
+            newpeak.height = p.totalintensity
+            newpeak.mztab = np.transpose([p.mzs, p.mzints])
+            newpeak.zs = p.zs
+            newpeak.stickdat = p.isodists
+
             self.peaks.append(newpeak)
         self.masses = np.array([p.mass for p in self.peaks])
         self.heights = np.array([p.height for p in self.peaks])
@@ -209,6 +215,8 @@ class Peaks:
         self.convolved = False
         self.composite = None
         self.massbins = massbins
+
+        self.default_params()
 
 
 

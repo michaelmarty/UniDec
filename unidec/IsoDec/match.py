@@ -1,13 +1,10 @@
 import numpy as np
-import time
 
 from unidec.IsoDec.datatools import fastnearest, fastwithin_abstol_withnearest, fastwithin_abstol
-import matplotlib.pyplot as plt
-from numba import njit
 from typing import List, Tuple
-import numba as nb
+from numba import njit
 import matplotlib as mpl
-from unidec.modules.isotopetools import *
+from unidec.modules.isotopetools import fast_calc_averagine_isotope_dist, mass_diff_c, fast_calc_averagine_isotope_dist_dualoutput
 import pickle as pkl
 import unidec.tools as ud
 import unidec.IsoDec.msalign_export as msalign
@@ -15,27 +12,7 @@ import math
 import pandas as pd
 
 
-# @nb.experimental.jitclass()
 class IsoDecConfig: # (udstruct.UniDecConfig):
-    '''filepath: nb.types.string
-    batch_size: int
-    test_batch_size: int
-    peakwindow: int
-    matchtol: float
-    minpeaks: int
-    minmatchper: float
-    css_thresh: float
-    maxshift: int
-    mzwindow: nb.types.List(nb.float32)
-    plusoneintwindow: nb.types.List(nb.float32)
-    knockdown_rounds: int
-    current_KD_round: int
-    activescan: int
-    activescanrt: float
-    activescanorder: int
-    min_score_diff: float
-    verbose: bool'''
-
     def __init__(self):
         """
         Configuration class for IsoDec Engine. Holds the key parameters for the data processing and deconvolution.
@@ -164,6 +141,7 @@ class MatchedCollection:
                     grouped_peak_mzs = np.insert(grouped_peak_mzs, nearest_idx, p.mz)
         return grouped_peaks
 
+
     def add_pk_to_masses(self, pk, ppmtol):
         """
         Checks if an existing mass matches to this peak, if so adds it to that mass, otherwise creates a new mass
@@ -181,6 +159,7 @@ class MatchedCollection:
                     self.masses[idx].monoiso, pk.monoiso, ppmtol):
                 self.masses[idx].scans = np.append(self.masses[idx].scans, pk.scan)
                 self.masses[idx].totalintensity += pk.matchedintensity
+
                 if pk.matchedintensity is not None:
                     if pk.matchedintensity > self.masses[idx].maxintensity:
                         self.masses[idx].maxintensity = pk.matchedintensity
@@ -190,6 +169,8 @@ class MatchedCollection:
                 if not np.isin(self.masses[idx].zs, pk.z).any():
                     self.masses[idx].zs = np.append(self.masses[idx].zs, pk.z)
                     self.masses[idx].mzs = np.append(self.masses[idx].mzs, pk.mz)
+                    self.masses[idx].mzints = np.append(self.masses[idx].mzints, pk.peakint)
+                    self.masses[idx].isodists = np.vstack([self.masses[idx].isodists, [pk.isodist]])
 
             else:
                 if pk.monoiso > nearest_mass:
@@ -300,6 +281,7 @@ class MatchedCollection:
                         if ud.within_ppm(self.peaks[i2].monoiso, adj_mass, ppm_tolerance):
                             to_remove.append(i1)
         self.peaks = [self.peaks[i] for i in range(len(self.peaks)) if i not in to_remove]
+        # TODO: Fix masses as well with this
         return
 
     def filter(self, minval, maxval, type="mz"):
@@ -338,7 +320,6 @@ class MatchedCollection:
     def to_df(self):
         """
         Convert a MatchedCollection object to a pandas dataframe
-        :param pks: MatchedCollection object
         :return: Pandas dataframe
         """
         data = []
@@ -360,11 +341,15 @@ class MatchedCollection:
         minmass = np.min([p.monoiso for p in self.peaks]) - 10 * binsize
         maxmass = np.max([p.monoiso for p in self.peaks]) + 100 * binsize
 
+        # Round minmass and maxmass to nearest binsize
+        minmass = np.floor(minmass / binsize) * binsize
+        maxmass = np.ceil(maxmass / binsize) * binsize
+
         masses = np.arange(minmass, maxmass, binsize)
 
         intensities = np.zeros(len(masses))
         for p in self.peaks:
-            idx = int((p.monoiso - minmass) / binsize)
+            idx = round((p.monoiso - minmass) / binsize)
             intensities[idx] += p.matchedintensity
 
         return np.transpose([masses, intensities])
@@ -385,52 +370,22 @@ class MatchedMass:
         self.mzs = np.array([pk.mz])
         self.zs = np.array([pk.z])
         self.totalintensity = pk.matchedintensity
+        self.mzints = np.array([pk.peakint])
+        self.isodists = np.array([pk.isodist])
 
-
-'''@nb.experimental.jitclass([("centroids", nb.types.Array(nb.float64, 2, "C")),
-                           ("isodist", nb.types.Array(nb.float64, 2, "C")),
-                           ("matchedcentroids", nb.types.Array(nb.float64, 2, "C")),
-                           ("matchedisodist", nb.types.Array(nb.float64, 2, "C")),
-                           ("matchedindexes", nb.types.Array(nb.int64, 1, "C")),
-                           ("isomatches",  nb.types.Array(nb.int64, 1, "C")),
-                           ("massdist", nb.types.Array(nb.float64, 2, "C")),
-                           ])'''
 
 
 class MatchedPeak:
     """
     Matched peak object for collecting data on peaks with matched distributions
     """
-    mz: float
-    z: int
-    centroids: nb.optional(np.ndarray)
-    isodist: nb.optional(np.ndarray)
-    matchedintensity: nb.optional(float)
-    matchedcentroids: nb.optional(np.ndarray)
-    matchedisodist: nb.optional(np.ndarray)
-    matchedindexes: nb.optional(np.ndarray)
-    isomatches: nb.optional(np.ndarray)
-    color: str
-    scan: int
-    rt: float
-    ms_order: int
-    massdist: nb.optional(np.ndarray)
-    monoisos: nb.optional(np.ndarray)
-    peakmass: float
-    avgmass: float
-    startindex: int
-    endindex: int
-    matchedions: nb.optional(np.ndarray)
-    monoiso: float
-    bestshift: int
-    acceptedshifts: nb.optional(np.ndarray)
-
     def __init__(self, z, mz, centroids=None, isodist=None, matchedindexes=None, isomatches=None):
         self.mz = mz
         self.z = z
         self.centroids = centroids
         self.isodist = isodist
-        self.matchedintensity = None
+        self.matchedintensity = 0
+        self.peakint = 0
         self.matchedcentroids = None
         self.matchedisodist = None
         self.matchedindexes = None
@@ -843,13 +798,6 @@ def create_isodist(peakmz, charge, data, adductmass=1.007276467):
 
 @njit(fastmath=True)
 def create_isodist2(monoiso, charge, maxval, adductmass=1.007276467):
-    """
-    Create an isotopic distribution based on the peak m/z and charge state.
-    :param peakmz: Peak m/z value as float
-    :param charge: Charge state
-    :param data: Data to match to as 2D numpy array [m/z, intensity]
-    :return: Isotopic distribution as 2D numpy array [m/z, intensity]
-    """
     charge = float(charge)
     isodist = fast_calc_averagine_isotope_dist(monoiso, charge=charge)
     isodist[:, 1] *= maxval
@@ -1134,10 +1082,8 @@ def find_matched_intensities(spec1_mz: np.ndarray, spec1_intensity: np.ndarray, 
         Spectrum peak m/z values as numpy array. Peak mz values must be ordered.
     spec2_mz:
         Theoretical isotope peak m/z values as numpy array. Peak mz values must be ordered.
-    tolerance
+    tolerance:
         Peaks will be considered a match when within [tolerance] ppm of the theoretical value.
-    shift
-        Shift peaks of second spectra by shift. The default is 0.
 
     Returns
     -------

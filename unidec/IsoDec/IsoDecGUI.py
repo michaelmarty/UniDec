@@ -1,3 +1,4 @@
+import unidec.tools as ud
 from unidec.modules.unidec_presbase import UniDecPres
 from unidec.IsoDec.runtime import IsoDecRuntime
 from unidec.IsoDec.IDGUI.IsoDecView import IsoDecView
@@ -8,6 +9,8 @@ import time
 from unidec.modules.peakstructure import Peaks
 from unidec.IsoDec.datatools import get_all_centroids
 import numpy as np
+import platform
+from copy import deepcopy
 
 
 class IsoDecPres(UniDecPres):
@@ -21,9 +24,14 @@ class IsoDecPres(UniDecPres):
         self.eng.config.numit = self.isodeceng.config.knockdown_rounds
 
         self.view = IsoDecView(self, "IsoDec", self.eng.config, iconfile=None)
-
-        self.on_ex()
-
+        if True:
+            if platform.node() == 'MTM-VOSTRO':
+                self.on_ex()
+                self.on_unidec_button()
+                self.on_plot_peaks()
+                self.on_plot_dists()
+        # except:
+        #     pass
 
     def on_open(self, e=None):
         """
@@ -66,7 +74,7 @@ class IsoDecPres(UniDecPres):
         # print self.view.imflag, self.eng.config.imflag
 
         self.view.SetStatusText("Data Length: " + str(len(self.eng.data.data2)), number=2)
-        self.view.SetStatusText("R\u00B2 ", number=3)
+        #self.view.SetStatusText("R\u00B2 ", number=3)
 
         # Plot 1D
         if self.eng.config.batchflag == 0:
@@ -93,7 +101,6 @@ class IsoDecPres(UniDecPres):
         :param e: unused event
         :return: None
         """
-
         self.view.plot2.centroid_plot(self.eng.data.massdat, xlabel="Mass", ylabel="Intensity", color="k")
 
     def on_dataprep_button(self, e=None):
@@ -138,14 +145,13 @@ class IsoDecPres(UniDecPres):
         self.eng.data.massdat = self.isodeceng.pks_to_mass(self.eng.config.massbins)
         # Translate Pks
         self.translate_pks()
-        # Send pks to structure
-        self.view.peakpanel.add_data(self.eng.pks)
+
 
         self.import_config()
         self.view.clear_all_plots()
         self.makeplot1()
         self.makeplot2()
-        self.view.SetStatusText("IsoDec Done: " + str(len(self.isodeceng.pks)), number=5)
+        self.view.SetStatusText("IsoDec Done: " + str(len(self.isodeceng.pks.masses)), number=5)
         tend = time.perf_counter()
         print("IsoDec Done. Time: %.2gs" % (tend - tstart))
         pass
@@ -155,6 +161,9 @@ class IsoDecPres(UniDecPres):
         udpks = Peaks()
         udpks.merge_isodec_pks(idpks, self.eng.config.massbins, self.eng.config)
         self.eng.pks = udpks
+        # Send pks to structure
+        self.view.peakpanel.add_data(self.eng.pks, show="zs")
+
 
     def on_raw_open(self, evt=None):
         pass
@@ -169,8 +178,130 @@ class IsoDecPres(UniDecPres):
         self.view.controls.ctlmaxmz.SetValue(str(maxmz))
         self.on_dataprep_button()
 
+    def on_plot_peaks(self, evt=None):
+        self.view.export_gui_to_config()
+        print("Plotting Peaks")
+        self.translate_pks()
+        self.plot_mass_peaks()
+        self.plot_mz_peaks()
 
+    def plot_mass_peaks(self, evt=None):
+        print("Plotting Mass Peaks")
+        self.makeplot2()
+        for p in self.eng.pks.peaks:
+            norm = self.eng.pks.norm
+            if not p.ignore:
+                newmass = ud.round_to_nearest(p.mass, self.eng.config.massbins)
+                self.view.plot2.plotadddot(newmass, p.height * norm, p.color, p.marker)
+        self.view.plot2.repaint()
 
+    def plot_mz_peaks(self, evt=None):
+        print("Plotting m/z Peaks")
+        self.makeplot1()
+        for p in self.eng.pks.peaks:
+            if not p.ignore:
+                for d in p.mztab:
+                    self.view.plot1.plotadddot(d[0], d[1], p.color, p.marker)
+        self.view.plot1.repaint()
+
+    def on_plot_dists(self, evt=None):
+        print("Plotting Distributions")
+        for p in self.eng.pks.peaks:
+            if not p.ignore:
+                isodist = deepcopy(p.stickdat)
+                if len(isodist) == 0:
+                    continue
+                elif len(isodist) == 1:
+                    isodist = isodist[0]
+                else:
+                    isodist = np.concatenate(isodist, axis=0)
+                    pass
+                isodist[:, 1] = isodist[:, 1] * -1
+                self.view.plot1.add_centroid(isodist, color=p.color, repaint=False)
+        self.view.plot1.repaint()
+        pass
+
+    def on_delete(self, evt=None):
+        self.plot_mass_peaks()
+        self.plot_mz_peaks()
+
+    def on_replot(self, evt=None):
+        self.view.export_gui_to_config()
+        self.on_plot_peaks()
+
+    def on_charge_states(self, e=None, mass=None, plot=None, peakpanel=None, data=None):
+        """
+        Triggered by right click "plot charge states" on self.view.peakpanel.
+        Plots a line with text listing the charge states of a specific peak.
+        :param e: unused event
+        :return: None
+        """
+        if plot is None:
+            plot = self.view.plot1
+
+        if self.eng.config.adductmass > 0:
+            sign = "+"
+        else:
+            sign = "-"
+        charges = np.arange(self.eng.config.startz, self.eng.config.endz + 1)
+        if mass is None:
+            if peakpanel is None:
+                peaksel = self.view.peakpanel.selection2[0]
+            else:
+                peaksel = peakpanel.selection2[0]
+        else:
+            peaksel = mass
+
+        for p in self.isodeceng.pks.masses:
+            if p.monoiso == peaksel:
+                mzs = p.mzs
+                zs = p.zs
+                ints = p.mzints
+
+                print("Showing Charge States for Mass: ", peaksel)
+                print(zs)
+
+                plot.textremove()
+                if data is None:
+                    data = self.eng.data.data2
+                for i, mz in enumerate(mzs):
+                    z = zs[i]
+                    int = ints[i]
+                    plot.addtext(sign + str(z), mz, int + np.amax(data[:, 1]) * 0.06, nopaint=True)
+                plot.repaint()
+
+                break
+
+    def on_label_integral(self, e=None, peakpanel=None, pks=None, plot=None, dataobj=None):
+        """
+        Triggered by right click "Label Masses" on self.view.peakpanel.
+        Plots a line with text listing the mass of each specific peak.
+        Updates the peakpanel to show the masses.
+        :param e: unused event
+        :return: None
+        """
+        if peakpanel is None:
+            peakpanel = self.view.peakpanel
+        if pks is None:
+            pks = self.eng.pks
+        if plot is None:
+            plot = self.view.plot2
+        if dataobj is None:
+            dataobj = self.eng.data
+
+        peaksel = peakpanel.selection2
+        pmasses = np.array([p.mass for p in pks.peaks])
+        if ud.isempty(peaksel):
+            peaksel = pmasses
+        pint = np.array([p.height for p in pks.peaks])
+        mval = np.amax(dataobj.massdat[:, 1])
+
+        plot.textremove()
+        for i, d in enumerate(pmasses):
+            if d in peaksel:
+                label = str(np.round(pint[i], 2))
+                plot.addtext(label, pmasses[i], mval * 0.06 + pint[i], vlines=False, nopaint=True)
+        plot.repaint()
 
 if __name__ == "__main__":
     app = IsoDecPres()

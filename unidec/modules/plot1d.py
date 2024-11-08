@@ -524,4 +524,25 @@ class Plot1dBase(PlotBase):
         if repaint:
             self.repaint(setupzoom=True)
 
+    def add_centroid(self, centroids, color=None, repaint=True):
+        """
+        Add a centroid line to the plot.
+        :param centroids: Centroid array
+        :param color: Color
+        :param repaint: Boolean, whether to repaint or not
+        :return: None
+        """
+        xpairs = np.transpose([centroids[:, 0], centroids[:, 0]])
+        ypairs = np.transpose([np.zeros(len(centroids)), centroids[:, 1]])
+        xlist = []
+        ylist = []
+        for xends, yends in zip(xpairs, ypairs):
+            xlist.extend(xends)
+            xlist.append(None)
+            ylist.extend(yends)
+            ylist.append(None)
+        self.subplot1.plot(xlist, ylist, color=color)
+        if repaint:
+            self.repaint(setupzoom=True)
+
 

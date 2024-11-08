@@ -86,7 +86,7 @@ class IsoDecView(MainwindowBase):
         #
         # ...........................
         sizerpeaks = wx.BoxSizer(wx.VERTICAL)
-        self.peakpanel = peaklistsort.PeakListCtrlPanel(panelp, size=(300, 600))
+        self.peakpanel = peaklistsort.PeakListCtrlPanel(panelp, size=(300, 600), isodec=True)
         self.bind_peakpanel()
         sizerpeaks.Add(self.peakpanel, 0, wx.EXPAND)
         panelp.SetSizer(sizerpeaks)

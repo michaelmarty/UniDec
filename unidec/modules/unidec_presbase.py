@@ -461,9 +461,10 @@ class UniDecPres(object):
         for i, d in enumerate(peakdiff):
             if d != 0:
                 label = ud.decimal_formatter(d, self.eng.config.massbins)
-                plot.addtext(label, pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
+                plot.addtext(label, pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval, nopaint=True)
             else:
-                plot.addtext("0", pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
+                plot.addtext("0", pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval, nopaint=True)
+        plot.repaint()
 
     def on_label_masses(self, e=None, peakpanel=None, pks=None, plot=None, dataobj=None):
         """

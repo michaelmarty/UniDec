@@ -3194,19 +3194,46 @@ def find_dll(targetfile, dir):
 # this gets me here:
 
 #C:\Python\UniDec3\
+import os
+
+import os
+
+
+import os
+
+
+import os
+
 def traverse_to_unidec3(topname="UniDec3"):
-    curr_pos = os.path.dirname(os.path.abspath(__file__))
-    # TODO: Switch to os.path.join
-    truncated = curr_pos.split("\\")
+    win = False
+    # Get the absolute path of the current script
+    curr_pos = os.path.abspath(__file__)
+
+    if "\\" in curr_pos:
+        win = True
+        truncated = curr_pos.split("\\")
+    else:
+        truncated = curr_pos.split(os.path.sep)
+
     new_path = ""
-    for i in truncated:
-        if i == topname:
-            new_path += i + "\\"
-            break
-        else:
-            new_path += i + "\\"
+
+    if win:
+        new_path = truncated[0] + "\\"
+
+        for i in range(1, len(truncated)):
+            new_path = os.path.join(new_path, truncated[i])
+
+            if truncated[i] == topname:
+                break
+    else:
+        for i in range(len(truncated)):
+            new_path = os.path.join(new_path, truncated[i])
+            if truncated[i] == topname:
+                break
 
     return new_path
+
+
 
 def start_at_iso(targetfile):
     result = ""

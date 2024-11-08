@@ -303,7 +303,6 @@ class MZMLImporter(Importer):
             scan_range = [int(np.amin(self.scans)), int(np.amax(self.scans))]
         print("Scan Range:", scan_range)
         data = get_data_from_spectrum(self.msrun[self.ids[scan_range[0]]])
-        print(data)
         resolution = get_resolution(data)
         axis = ud.nonlinear_axis(np.amin(data[:, 0]), np.amax(data[:, 0]), resolution)
         template = np.transpose([axis, np.zeros_like(axis)])
@@ -327,6 +326,7 @@ class MZMLImporter(Importer):
                         template[:, 1] += newdat[:, 1]
                         # except Exception as e:
                         #     print("Error", e, "With scan number:", index)
+            self.msrun.close()
             return template
 
         else:

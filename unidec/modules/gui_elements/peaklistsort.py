@@ -19,7 +19,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
     Creates a list control panel for displaying and interacting with Peaks object
     """
 
-    def __init__(self, parent, meta=False, size=(300, 1100)):
+    def __init__(self, parent, meta=False, size=(300, 1100), isodec=False):
         """
         Initialize list_ctrl, bind events, and setup events to be broadcast back.
         :param parent: Parent of panel that will be created
@@ -27,6 +27,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         """
         wx.Panel.__init__(self, parent, -1, style=wx.WANTS_CHARS)
         self.meta = meta
+        self.isodec = isodec
         self.index = 0
         self.list_ctrl = wx.ListCtrl(self, pos=wx.DefaultPosition, size=size,
                                      style=wx.LC_REPORT | wx.BORDER_SUNKEN)
@@ -139,14 +140,18 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.pks = pks
 
         col = self.list_ctrl.GetColumn(3)
+        width = 65
         if not self.meta:
             col.SetText("Area")
         if show == "avgcharge":
             col.SetText("Avg. Charge")
+        elif show == "zs":
+            col.SetText("Z")
         if "score" in show:
             col.SetText("DScore")
+
         self.list_ctrl.SetColumn(3, col)
-        self.list_ctrl.SetColumnWidth(3, 65)
+        self.list_ctrl.SetColumnWidth(3, width)
         self.errorsdisplayed = False
         try:
             col = self.list_ctrl.GetColumn(1)
@@ -182,6 +187,14 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                         self.list_ctrl.SetItem(i, 3, str(np.round(p.mscore * 100, 2)))
                     elif show == "dscore":
                         self.list_ctrl.SetItem(i, 3, str(np.round(p.dscore * 100, 2)))
+                    elif show == "zs":
+                        string = ""
+                        for z in p.zs:
+                            string += str(z) + ", "
+                        # Remove last two characters
+                        string = string[:-2]
+
+                        self.list_ctrl.SetItem(i, 3, string)
                     else:
                         self.list_ctrl.SetItem(i, 3, "")
                 except (ValueError, AttributeError, TypeError):
@@ -242,24 +255,26 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             menu.Append(self.popupID6, "Display Differences From")
             menu.Append(self.popupID_consecutive_diffs, "Display Consecutive Differences")
             menu.AppendSeparator()
-            if self.errorsdisplayed is False:
-                menu.Append(self.popupID7, "Centroid and Uncertainty")
-            else:
-                menu.Append(self.popupID8, "Hide Uncertainties")
-            menu.AppendSeparator()
+            if not self.isodec:
+                if self.errorsdisplayed is False:
+                    menu.Append(self.popupID7, "Centroid and Uncertainty")
+                else:
+                    menu.Append(self.popupID8, "Hide Uncertainties")
+                menu.AppendSeparator()
             menu.Append(self.popupID5, "Color Select")
             menu.Append(self.popupID9, "Marker Select")
             menu.Append(self.popupID15, "Rename Peak")
             menu.AppendSeparator()
-            if not self.meta:
-                menu.Append(self.popupID13, "Color By Score")
-            else:
+            if not self.isodec:
+                if not self.meta:
+                    menu.Append(self.popupID13, "Color By Score")
+                else:
+                    menu.AppendSeparator()
+                    menu.Append(self.popupID16, "Plot Image")
                 menu.AppendSeparator()
-                menu.Append(self.popupID16, "Plot Image")
-            menu.AppendSeparator()
-            menu.Append(self.popupID_color_peaks, "Color Select Peaks")
-            menu.Append(self.popupID_color_peaks_all, "Color All Peaks")
-            menu.AppendSeparator()
+                menu.Append(self.popupID_color_peaks, "Color Select Peaks")
+                menu.Append(self.popupID_color_peaks_all, "Color All Peaks")
+                menu.AppendSeparator()
             menu.Append(self.popupID12, "Copy All Basic")
             menu.Append(self.popupID14, "Copy All Full")
 

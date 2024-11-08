@@ -35,7 +35,7 @@ for dll in dlls:
 
 #dll_path = "C:\\Python\\UniDec3\\unidec\\UniDecImporter\\Agilent"
 pathtothisfile = os.path.dirname(__file__)
-print(pathtothisfile)
+
 dlls = ['MassSpecDataReader', 'BaseCommon', 'BaseDataAccess']
 for dll in dlls:
     testpath = os.path.join(pathtothisfile, dll) + ".dll"
