@@ -126,6 +126,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctldatanorm.SetValue(True)
         gbox1b.Add(self.ctldatanorm, (i, 0), span=(1, 2))
         i += 1
+        gbox1b.Add(wx.StaticText(panel1b, label=" "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+
 
         panel1b.SetSizer(gbox1b)
         gbox1b.Fit(panel1b)
@@ -189,9 +191,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.parent.Bind(wx.EVT_CHECKBOX, self.export_gui_to_config, self.ctlnegmode)
 
         # self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
-        self.ctlisotopemode = wx.Choice(panel2b, -1, size=(100, -1), choices=self.config.isotopechoices)
-        self.ctlisotopemode.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
-        gbox2b.Add(self.ctlisotopemode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        # self.ctlisotopemode = wx.Choice(panel2b, -1, size=(100, -1), choices=self.config.isotopechoices)
+        # self.ctlisotopemode.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
+        # gbox2b.Add(self.ctlisotopemode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
 
 
         panel2b.SetSizer(gbox2b)
@@ -311,7 +313,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctladductmass.SetValue(str(self.config.adductmass))
             self.ctlnumit.SetValue(str(self.config.numit))
             self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
-            self.ctlisotopemode.SetSelection(self.config.isotopemode)
+            # self.ctlisotopemode.SetSelection(self.config.isotopemode)
             self.ctldatanorm.SetValue(int(self.config.datanorm))
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
 
@@ -356,7 +358,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.adductmass = ud.string_to_value(self.ctladductmass.GetValue())
         self.config.numit = ud.string_to_int(self.ctlnumit.GetValue())
         self.config.reductionpercent = ud.string_to_value(self.ctldatareductionpercent.GetValue())
-        self.config.isotopemode = int(self.ctlisotopemode.GetSelection())
+        # self.config.isotopemode = int(self.ctlisotopemode.GetSelection())
         self.config.datanorm = int(self.ctldatanorm.GetValue())
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
 
@@ -411,8 +413,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctldatareductionpercent.SetToolTip(
             wx.ToolTip(
                 "Reduces the amount of data by removing everything below a threshold.\nSets the threshold to fit the percentage of data to remove."))
-        self.ctlisotopemode.SetToolTip(wx.ToolTip(
-            "Use isotopic distributions in deconvolution.\nOutput either monoisotopic or average masses"))
+        # self.ctlisotopemode.SetToolTip(wx.ToolTip(
+        #     "Use isotopic distributions in deconvolution.\nOutput either monoisotopic or average masses"))
         self.ctlnumit.SetToolTip(wx.ToolTip(
             "Maximum number of iterations. Note: Deconvolution will stop automically before this if it converges."))
 

@@ -484,6 +484,44 @@ class Plot1dBase(PlotBase):
         if repaint:
             self.repaint()
 
+    def centroid_plot(self, centroids, color=None, xlabel="m/z", ylabel="", title="", zoom="box", repaint=True):
+        """
+        Create a centroid line plot.
+        :param xarr: x value array
+        :param yarr: y value array
+        :param color: List of colors for the various dots
+        :param xlabel: Label for x axis
+        :param ylabel: Label for y axis
+        :param title: Plot title
+        :param zoom: Type of zoom ('box' or 'span)
+        :param repaint: Boolean, whether to repaint or not when done.
+        :return: None
+        """
+        self.clear_plot("nopaint")
+        self.zoomtype = zoom
+        self.data = centroids
+        self.subplot1 = self.figure.add_axes(self._axes)
 
+        xpairs = np.transpose([centroids[:, 0], centroids[:, 0]])
+        ypairs = np.transpose([np.zeros(len(centroids)), centroids[:, 1]])
+        xlist = []
+        ylist = []
+        for xends, yends in zip(xpairs, ypairs):
+            xlist.extend(xends)
+            xlist.append(None)
+            ylist.extend(yends)
+            ylist.append(None)
+        self.subplot1.plot(xlist, ylist, color=color)
+
+        self.subplot1.set_xlabel(xlabel)
+        self.subplot1.set_ylabel(ylabel)
+        self.subplot1.set_title(title)
+        self.subplot1.spines['top'].set_visible(False)
+        self.subplot1.spines['right'].set_visible(False)
+        self.subplot1.set_clip_on(False)
+        self.setup_zoom([self.subplot1], self.zoomtype, pad=0.25)
+        self.flag = True
+        if repaint:
+            self.repaint(setupzoom=True)
 
 

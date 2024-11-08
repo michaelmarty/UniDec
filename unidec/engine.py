@@ -15,6 +15,7 @@ import unidec.tools as ud
 import unidec.modules.IM_functions as IM_func
 import unidec.modules.MassSpecBuilder as MSBuild
 from unidec.modules.unidec_enginebase import UniDecEngine
+from unidec.modules import plot1d, plot2d
 
 # import modules.DoubleDec as dd
 
@@ -1535,6 +1536,7 @@ class UniDec(UniDecEngine):
             plot.repaint()
             print("Plot 1: %.2gs" % (time.perf_counter() - tstart))
         return plot
+
 
 
 # Optional Run

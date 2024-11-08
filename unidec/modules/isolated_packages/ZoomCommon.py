@@ -9,6 +9,11 @@ def GetMaxes(axes, xmin=None, xmax=None):
         ydat = np.array(line.get_ydata())
         xdat = line.get_xdata()
 
+        # Drop all Nones from xdat
+        filtered = np.array([[x, y] for x, y in zip(xdat, ydat) if x is not None])
+        xdat = filtered[:, 0]
+        ydat = filtered[:, 1]
+
         if xmin is not None and xmax is not None:
             bool1 = np.all(np.array([xdat > xmin, xdat < xmax]), axis=0)
             ydat = ydat[bool1]

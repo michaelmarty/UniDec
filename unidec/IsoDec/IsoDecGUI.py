@@ -7,6 +7,7 @@ import wx
 import time
 from unidec.modules.peakstructure import Peaks
 from unidec.IsoDec.datatools import get_all_centroids
+import numpy as np
 
 
 class IsoDecPres(UniDecPres):
@@ -83,7 +84,17 @@ class IsoDecPres(UniDecPres):
         :param e: unused event
         :return: None
         """
-        self.eng.makeplot1(plot=self.view.plot1, intthresh=intthresh, imfit=imfit)
+        self.view.plot1.centroid_plot(self.eng.data.data2, xlabel="m/z", ylabel="Intensity", color="k")
+        #self.eng.makeplot1(plot=self.view.plot1, intthresh=intthresh, imfit=imfit)
+
+    def makeplot2(self, e=None):
+        """
+        Plot mass spectrum in
+        :param e: unused event
+        :return: None
+        """
+
+        self.view.plot2.centroid_plot(self.eng.data.massdat, xlabel="Mass", ylabel="Intensity", color="k")
 
     def on_dataprep_button(self, e=None):
         """
@@ -142,7 +153,7 @@ class IsoDecPres(UniDecPres):
     def translate_pks(self):
         idpks = self.isodeceng.pks
         udpks = Peaks()
-        udpks.merge_isodec_pks(idpks, self.eng.config.massbins)
+        udpks.merge_isodec_pks(idpks, self.eng.config.massbins, self.eng.config)
         self.eng.pks = udpks
 
     def on_raw_open(self, evt=None):
@@ -150,6 +161,13 @@ class IsoDecPres(UniDecPres):
 
     def on_paste_spectrum(self, evt=None):
         pass
+
+    def on_full(self, evt=None):
+        maxmz = np.amax(self.eng.data.rawdata[:, 0])
+        minmz = np.amin(self.eng.data.rawdata[:, 0])
+        self.view.controls.ctlminmz.SetValue(str(minmz))
+        self.view.controls.ctlmaxmz.SetValue(str(maxmz))
+        self.on_dataprep_button()
 
 
 

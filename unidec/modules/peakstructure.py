@@ -182,7 +182,10 @@ class Peaks:
         return self
 
 
-    def merge_isodec_pks(self, pks, massbins=0):
+    def merge_isodec_pks(self, pks, massbins=0, config=None):
+        # Sort pks
+        pks = sorted(pks, key=lambda x: x.monoiso)
+
         for p in pks:
             newpeak = Peak()
             newpeak.mass = p.monoiso
@@ -191,6 +194,18 @@ class Peaks:
         self.masses = np.array([p.mass for p in self.peaks])
         self.heights = np.array([p.height for p in self.peaks])
         self.plen = len(self.peaks)
+
+        if config is not None:
+            if config.peaknorm == 1:
+                self.norm = np.amax(self.heights)
+            elif config.peaknorm == 2:
+                self.norm = np.sum(self.heights)
+
+            if config.peaknorm > 0:
+                for p in self.peaks:
+                    p.height = p.height / self.norm
+                self.heights = np.array([p.height for p in self.peaks])
+
         self.convolved = False
         self.composite = None
         self.massbins = massbins

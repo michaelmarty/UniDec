@@ -494,7 +494,8 @@ class UniDecPres(object):
         for i, d in enumerate(pmasses):
             if d in peaksel:
                 label = ud.decimal_formatter(d, self.eng.config.massbins)
-                plot.addtext(label, pmasses[i], mval * 0.06 + pint[i], vlines=False)
+                plot.addtext(label, pmasses[i], mval * 0.06 + pint[i], vlines=False, nopaint=True)
+        plot.repaint()
 
     def on_label_integral(self, e=None, peakpanel=None, pks=None, plot=None, dataobj=None):
         """

@@ -42,7 +42,7 @@ class IsoDecDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         return [self.emat[idx], self.z[idx]]
 
-
+# TODO: Inherit this from IsoDecRuntime
 class IsoDecEngine:
     """
     Main class for IsoDec Engine
@@ -515,7 +515,7 @@ class IsoDecEngine:
             centroids = remove_noise_cdata(centroids, 100, factor=1.5, mode="median")
 
         if self.use_wrapper:
-            self.pks = self.wrapper.process_spectrum(centroids, self.pks, self.config)
+            self.pks = self.wrapper.process_spectrum(centroids, None, self.config)
         else:
             kwindow = window
             threshold = threshold

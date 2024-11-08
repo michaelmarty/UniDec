@@ -8,7 +8,7 @@ path_root = Path(__file__).parents[2]
 sys.path.append(str(path_root))
 
 from unidec.IsoDec.datatools import get_all_centroids, check_spacings, remove_noise_cdata
-from unidec.IsoDec.match import optimize_shift2, IsoDecConfig, MatchedCollection
+from unidec.IsoDec.match import IsoDecConfig, MatchedCollection
 
 from copy import deepcopy
 from unidec.IsoDec.c_interface import IsoDecWrapper, example
@@ -54,71 +54,6 @@ class IsoDecRuntime:
     def thrash_predictor(self, centroids):
         return [thrash_predict(centroids), 0]
 
-    def get_matches(self, centroids, z, peakmz, pks=None):
-        """
-        Get the matches for a peak
-        :param centroids: Centroid data, m/z in first column, intensity in second
-        :param z: Predicted charge
-        :param peakmz: Peak m/z value
-        :param pks: MatchedCollection peaks object
-        :return: Indexes of matched peaks from the centroid data
-        """
-        if len(centroids) < self.config.minpeaks:
-            return []
-        if z == 0 or z > self.maxz:
-            return []
-        pk = optimize_shift2(self.config, centroids, z, peakmz)
-        if pk is not None:
-            if pks is not None:
-                pk.rt = self.config.activescanrt
-                pk.scan = self.config.activescan
-                pks.add_peak(pk)
-            else:
-                self.pks.add_peak(pk)
-            return pk.matchedindexes
-        else:
-            return []
-
-    def get_matches_multiple_z(self, centroids, zs, peakmz, pks=None):
-        if len(centroids) < self.config.minpeaks:
-            return []
-        if zs[0] == 0 or zs[0] > self.maxz:
-            return []
-        pk1 = optimize_shift2(self.config, centroids, zs[0], peakmz)
-        pk2 = optimize_shift2(self.config, centroids, zs[1], peakmz)
-        if pk1 is not None and pk2 is not None:
-            # Retain the peak with the highest score
-            pk1_maxscore = np.amax(pk1.acceptedshifts[:, 1])
-            pk2_maxscore = np.amax(pk2.acceptedshifts[:, 1])
-            if self.config.verbose:
-                print("Pk1 score:", pk1_maxscore, "Pk2 score:", pk2_maxscore)
-            if pk1_maxscore > pk2_maxscore:
-                if pks is not None:
-                    pks.add_peak(pk1)
-                else:
-                    self.pks.add_peak(pk1)
-                return pk1.matchedindexes
-            else:
-                if pks is not None:
-                    pks.add_peak(pk2)
-                else:
-                    self.pks.add_peak(pk2)
-                return pk2.matchedindexes
-        elif pk1 is not None and pk2 is None:
-            if pks is not None:
-                pks.add_peak(pk1)
-            else:
-                self.pks.add_peak(pk1)
-            return pk1.matchedindexes
-        elif pk1 is None and pk2 is not None:
-            if pks is not None:
-                pks.add_peak(pk2)
-            else:
-                self.pks.add_peak(pk2)
-            return pk2.matchedindexes
-        else:
-            return []
-
     def batch_process_spectrum(self, data, window=None, threshold=None, centroided=False):
         """
         Process a spectrum and identify the peaks. It first identifies peak cluster, then predicts the charge,
@@ -147,7 +82,7 @@ class IsoDecRuntime:
                 print("Median Spacing:", med_spacing, "Removing noise.")
             centroids = remove_noise_cdata(centroids, 100, factor=1.5, mode="median")
 
-        self.pks = self.wrapper.process_spectrum(centroids, self.pks, self.config)
+        self.pks = self.wrapper.process_spectrum(centroids, None, self.config)
 
         return self.pks
 
