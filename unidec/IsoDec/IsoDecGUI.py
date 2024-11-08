@@ -303,6 +303,51 @@ class IsoDecPres(UniDecPres):
                 plot.addtext(label, pmasses[i], mval * 0.06 + pint[i], vlines=False, nopaint=True)
         plot.repaint()
 
+    def on_paste_spectrum(self, e=None):
+        """
+        Gets spectum from the clipboard, writes it to a new file, and then opens that new file.
+        :param e: unused space for event
+        :return: None
+        """
+        try:
+            wx.TheClipboard.Open()
+            do = wx.TextDataObject()
+            wx.TheClipboard.GetData(do)
+            wx.TheClipboard.Close()
+            text = do.GetText()
+            text = text.splitlines()
+            data = []
+            fname = "PastedSpectrum_" + str(time.strftime("%Y_%b_%d_%H_%M_%S")) + ".txt"
+            for t in text:
+                if ".RAW" in t:
+                    print(t)
+                    fname = os.path.splitext(t)[0] + ".txt"
+                line = t.split()
+                if len(line) == 2:
+                    try:
+                        mz = float(line[0])
+                        i = float(line[1])
+                        data.append([mz, i])
+                    except (ValueError, TypeError):
+                        pass
+            data = np.array(data)
+            if len(data) > 0:
+                if os.getcwd() == self.eng.config.UniDecDir:
+                    topdir = os.path.dirname(os.getcwd())
+                else:
+                    topdir = os.path.dirname(os.path.dirname(os.getcwd()))
+                newdir = os.path.join(topdir, "UniDecPastedSpectra")
+                if not os.path.isdir(newdir):
+                    os.mkdir(newdir)
+                np.savetxt(os.path.join(newdir, fname), data)
+                print("Saved Pasted Spectrum as File:", fname, " in directory:", newdir)
+                self.on_open_file(fname, newdir, refresh=True)
+            else:
+                print("Paste failed, got: ", data)
+        except Exception as e:
+            print(e)
+            wx.MessageBox("Unable to open the clipboard", "Error")
+
 if __name__ == "__main__":
     app = IsoDecPres()
     app.start()
