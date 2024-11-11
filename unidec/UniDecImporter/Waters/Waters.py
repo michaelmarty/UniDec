@@ -1,7 +1,6 @@
 import numpy as np
 
 from unidec.UniDecImporter.Importer import Importer
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.UniDecImporter.MZML.mzML import merge_spectra
 from unidec.UniDecImporter.Waters import MassLynxRawScanReader as MLRSR, MassLynxRawInfoReader as MLRIR, \
     MassLynxRawChromatogramReader as MLCR
@@ -227,5 +226,5 @@ class WatersDataImporter(Importer):
 
 if __name__ == "__main__":
     test = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw"
-    importer = ImporterFactory.create_importer(test)
+    importer = WatersDataImporter(test)
     print(type(importer))

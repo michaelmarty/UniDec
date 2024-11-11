@@ -1,7 +1,6 @@
 from unidec.UniDecImporter.Agilent.MZFILE import MZFile as mzFile, MZFile
 from unidec.UniDecImporter.Importer import *
 from unidec import tools as ud
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.UniDecImporter.MZML.mzML import merge_spectra
 from copy import deepcopy
 import numpy as np
@@ -175,7 +174,7 @@ class AgilentImporter(Importer):
 
 if __name__ == '__main__':
     path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\AgilentData\\2019_05_15_bsa_ccs_02.d"
-    test = ImporterFactory.create_importer(path)
+    test = AgilentImporter(path)
     print(type(test))
     res = test.grab_data()
     for i in res:

@@ -1,8 +1,6 @@
 import time
-
 import numpy as np
 from unidec.UniDecImporter.Importer import Importer
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 
 
 
@@ -228,7 +226,7 @@ if __name__ == "__main__":
     #test = "Z:\Group Share\Group\Archive\JamesKeener Keener\AqpZ mix lipid ND\\20190226_JEK_AQPZ_E3T0_PGPC_GC_NEG.RAW"
 
     #
-    importer = ImporterFactory.create_importer(test, silent=False)
+    importer = ThermoImporter(test, silent=False)
     print(type(importer))
     # dat = d.grab_centroid_data(1)
     # print(len(dat))

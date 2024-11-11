@@ -1,10 +1,22 @@
 import unittest
-from unidec.UniDecImporter.Agilent.AgilentImporter import AgilentImporter
+try:
+    from unidec.UniDecImporter.Agilent.AgilentImporter import AgilentImporter
+except Exception as e:
+    print(e)
+    print("Unable to import AgilentImporter")
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.UniDecImporter.MZML.mzML import *
 from unidec.UniDecImporter.MZXML.mzXML import MZXMLImporter
-from unidec.UniDecImporter.Thermo.Thermo import ThermoImporter
-from unidec.UniDecImporter.Waters.Waters import WatersDataImporter
+try:
+    from unidec.UniDecImporter.Thermo.Thermo import ThermoImporter
+except Exception as e:
+    print(e)
+    print("Unable to import ThermoImporter")
+try:
+    from unidec.UniDecImporter.Waters.Waters import WatersDataImporter
+except Exception as e:
+    print(e)
+    print("Unable to import WatersDataImporter")
 from unidec.tools import traverse_to_unidec3
 
 

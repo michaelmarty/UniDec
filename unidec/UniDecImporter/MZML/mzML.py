@@ -1,5 +1,3 @@
-import gc
-
 import numpy as np
 import pymzml
 from unidec import tools as ud
@@ -7,8 +5,6 @@ import os
 from copy import deepcopy
 from pymzml.utils.utils import index_gzip
 import pymzml.obo
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import threading
 __author__ = 'Michael.Marty'
 
 from unidec.UniDecImporter.Importer import Importer
@@ -118,6 +114,7 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
                 newdat = ud.lintegrate(d, axis)
             else:
                 print("ERROR: unrecognized trdtrmerge spectra type:", type)
+                continue
 
             template[:, 1] += newdat[:, 1]
 
@@ -181,6 +178,7 @@ def merge_im_spectra(datalist, mzbins=None, type="Integrate"):
                 newdat, xedges, yedges = np.histogram2d(d[:, 0], d[:, 1], bins=[xbins, ybins], weights=d[:, 2])
             else:
                 print("ERROR: unrecognized merge spectra type:", type)
+                continue
             template[:, 2] += np.ravel(newdat)
     return template
 
@@ -245,18 +243,14 @@ def search_by_id(obo, id):
 FIELDNAMES = ["id", "name", "def", "is_a"]
 
 
-import os
-import numpy as np
-from pyteomics import mzml
-
-import os
-import numpy as np
-
 class MZMLImporter(Importer):
     """
     Imports mzML data files.
     """
     def __init__(self, path, *args, **kwargs):
+
+        # Super call
+        super(MZMLImporter, self).__init__(path, **kwargs)
         self.filesize = os.stat(path).st_size
         self.times = []
         self.ids = []
@@ -308,41 +302,27 @@ class MZMLImporter(Importer):
         template = np.transpose([axis, np.zeros_like(axis)])
         newdat = ud.mergedata(template, data)
         template[:, 1] += newdat[:, 1]
-        if True:
-            index = 0
-            while index <= scan_range[1] - scan_range[0]:
 
-                try:
-                    spec = self.msrun.next()
-                except:
-                    break
-                if spec.ID in self.ids:
-                    index += 1
-                    if scan_range[0] <= index <= scan_range[1]:
-                        # try:
-                        data = get_data_from_spectrum(spec)
+        index = 0
+        while index <= scan_range[1] - scan_range[0]:
 
-                        newdat = ud.mergedata(template, data)
-                        template[:, 1] += newdat[:, 1]
-                        # except Exception as e:
-                        #     print("Error", e, "With scan number:", index)
-            self.msrun.close()
-            return template
+            try:
+                spec = self.msrun.next()
+            except:
+                break
+            if spec.ID in self.ids:
+                index += 1
+                if scan_range[0] <= index <= scan_range[1]:
+                    # try:
+                    data = get_data_from_spectrum(spec)
 
-        else:
+                    newdat = ud.mergedata(template, data)
+                    template[:, 1] += newdat[:, 1]
+                    # except Exception as e:
+                    #     print("Error", e, "With scan number:", index)
+        self.msrun.close()
+        return template
 
-            thread_count = 8
-            index_range = list(range(scan_range[0], scan_range[1]))
-            batches = self.generate_batches(index_range, thread_count)
-            for batch in batches:
-                print(batch)
-            with ThreadPoolExecutor(max_workers=thread_count) as executor:
-                results = list(executor.map(lambda batch: self.process_batch_and_merge(batch, template), batches))
-
-                for local_template in results:
-                    template[:, 1] += local_template[:, 1]
-
-            return template
 
     def process_batch_and_merge(self, batch, template):
         local_template = template.copy()
