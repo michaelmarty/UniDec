@@ -67,7 +67,7 @@ class IsoDecPres(UniDecPres):
         if not skipengine:
             # Open File in Engine
             self.top_path = os.path.join(directory, filename)
-            self.eng.open_file(filename, directory, refresh=refresh, **kwargs)
+            self.eng.open_file(filename, directory, refresh=refresh, prefer_centroid=True, **kwargs)
 
         # Set Status Bar Text Values
         self.view.SetStatusText("File: " + filename, number=1)

@@ -279,7 +279,6 @@ Scripts/MTM/HR/Old/src_vs/
 unidec/IsoDec/src_cmake/cmake-build*
 unidec/IsoDec/src_cmake/.idea/
 unidec/IsoDec/IsoDec tests/
-unidec/IsoDec/IsoGen/isogenwrapper.py
 unidec/IsoDec/bin/
 unidec/IsoDec/lib/
 unidec/IsoDec/src_vs/
