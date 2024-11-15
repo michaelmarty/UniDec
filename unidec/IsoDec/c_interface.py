@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from unidec.IsoDec.match import MatchedPeak, MatchedCollection, IsoDecConfig
 
 from unidec.IsoDec.plots import plot_pks
-from unidec.tools import traverse_to_unidec3, find_dll, start_at_iso
+from unidec.tools import traverse_to_unidec, find_dll, start_at_iso
 
 example = np.array(
     [

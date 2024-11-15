@@ -278,7 +278,8 @@ class MZMLImporter(Importer):
                 print("Scan time not found for spectrum ID:", spectrum.ID)
         self.times = np.array(self.times)
         self.ids = np.array(self.ids)
-        self.scans = np.arange(len(self.ids))
+        self.ids += 1
+        self.scans = np.arange(1, len(self.ids) + 1)
 
 
     def grab_scan_data(self, scan):

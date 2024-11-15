@@ -9,8 +9,8 @@ dllpath = start_at_iso("isogenmass.dll")
 if not dllpath:
     print("DLL not found anywhere")
 
-
 isodist = ctypes.c_float * 64
+
 
 isogen_c_lib = ctypes.CDLL(dllpath)
 isogen_c_lib.isogenmass.argtypes = [

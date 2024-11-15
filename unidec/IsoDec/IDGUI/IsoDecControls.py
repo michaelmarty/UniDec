@@ -152,6 +152,16 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         sizercontrol2.Add(self.rununidec, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
+        sizercontrol2.Add(wx.StaticText(panel2, label="Export type(s): "), (i, 0))
+        i += 1
+
+        self.ctlexportmsalign = wx.CheckBox(panel2, label=".msalign")
+        sizercontrol2.Add(self.ctlexportmsalign, (i, 0), span=(1, 1))
+
+        self.ctlexporttsv = wx.CheckBox(panel2, label=".tsv")
+        sizercontrol2.Add(self.ctlexporttsv, (i, 1), span=(1, 1))
+        i += 1
+
         panel2.SetSizer(sizercontrol2)
         sizercontrol2.Fit(panel2)
         self.foldpanels.AddFoldPanelWindow(foldpanel2, panel2, fpb.FPB_ALIGN_WIDTH)
@@ -179,6 +189,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox2b.Add(wx.StaticText(panel2b, label='Knockdown Rounds: '), (i, 0),
                    flag=wx.ALIGN_CENTER_VERTICAL)
         gbox2b.Add(self.ctlnumit, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlphaseres = wx.RadioBox(panel2b, label="Priority:", choices=["Speed", "Accuracy"])
+        gbox2b.Add(self.ctlphaseres, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
         self.ctladductmass = wx.TextCtrl(panel2b, value='', size=size1)
@@ -304,6 +318,22 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             # self.ctlisotopemode.SetSelection(self.config.isotopemode)
             self.ctldatanorm.SetValue(int(self.config.datanorm))
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
+            if self.config.aggressiveflag == 4:
+                self.ctlphaseres.SetSelection(0)
+            else:
+                self.ctlphaseres.SetSelection(1)
+            #Relating msalign export to the config.poolflag parameter
+            if self.config.poolflag == 1:
+                self.ctlexportmsalign.SetValue(True)
+            else:
+                self.ctlexportmsalign.SetValue(False)
+
+            #Relating tsv export to the config.compressflag
+            if self.config.compressflag == 1:
+                self.ctlexporttsv.SetValue(True)
+            else:
+                self.ctlexporttsv.SetValue(False)
+
 
             if self.config.adductmass < 0:
                 self.ctlnegmode.SetValue(1)
@@ -347,6 +377,14 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         # self.config.isotopemode = int(self.ctlisotopemode.GetSelection())
         self.config.datanorm = int(self.ctldatanorm.GetValue())
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
+        #These flags are bound to the 2 export type checkboxes in the isodec gui
+        self.config.poolflag = self.ctlexportmsalign.GetValue()
+        self.config.compressflag = self.ctlexporttsv.GetValue()
+
+        if self.ctlphaseres.GetSelection() == 0:
+            self.config.aggressiveflag = 4
+        else:
+            self.config.aggressiveflag = 8
 
         try:
             test = float(self.config.adductmass)
@@ -408,6 +446,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             "Sets normalization of mass data.\nMaximum will normalize so that the maximum value is %100."
             "\nTotal will normalize so that the sum of all peaks is %100"))
         self.replotbutton.SetToolTip(wx.ToolTip("Replot some of the plots. (Ctrl+N)"))
+
+        self.ctlphaseres.SetToolTip(wx.ToolTip("Set the priority of speed vs accuracy in the deconvolution algorithm. Speed is 4-bin and Accuracy is 8-bin."))
+
         pass
 
     # .......................................................

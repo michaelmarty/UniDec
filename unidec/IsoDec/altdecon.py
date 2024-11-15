@@ -38,17 +38,24 @@ from scipy import signal
 
 MAX_CHARGE = 50
 
+
 def gen_thrash_arrays(centroids, startpad=5):
     max_mz = centroids[-1, 0]
     min_mz = centroids[0, 0]
-    num_l = int((max_mz - min_mz) * MAX_CHARGE * 8)
+    num_l = round((max_mz - min_mz) * MAX_CHARGE * 4)
+
     intx = np.linspace(min_mz, max_mz, num_l)
+    if len(intx) <= 1:
+        return None, None, None, None, None, None
 
     linear_data = ud.lintegrate(centroids, intx, fastmode=True)
+    if len(linear_data) <= 1:
+        return None, None, None, None, None, None
+
     corry = signal.fftconvolve(linear_data[:, 1], linear_data[:, 1][::-1], mode='same')
     maxposition = np.argmax(corry)
     ac = corry[maxposition + startpad:]
-    ac /= np.max(ac)
+
 
     acx = intx - intx[0]
     acx = 1 / acx[startpad:len(ac) + startpad]
@@ -56,32 +63,44 @@ def gen_thrash_arrays(centroids, startpad=5):
     fft = np.fft.fft(linear_data[:, 1])
     fft = np.abs(fft)
     fft = fft[startpad:len(ac) + startpad]
-    fft /= np.max(fft)
+
     fftx = np.fft.fftfreq(len(linear_data[:, 1]), d=(linear_data[1, 0] - linear_data[0, 0]))
     fftx = fftx[startpad:len(ac) + startpad]
-
     b1 = fftx < MAX_CHARGE
     fft = fft[b1]
     fftx = fftx[b1]
 
-    ac2 = ud.linterpolate(np.transpose([acx, ac]), fftx)
+    fft /= np.max(fft)
+
+    ac2 = ud.lintegrate(np.transpose([acx, ac]), fftx)
 
     acx, ac = ac2[:, 0], ac2[:, 1]
-
+    ac /= np.max(ac)
     mul = ac * fft
     return linear_data, ac, fft, mul, fftx, acx
 
 def thrash_predict(centroids):
-
     startpad = 1
     linear_data, ac, fft, mul, fftx, acx = gen_thrash_arrays(centroids, startpad)
+    if linear_data is None or len(mul) == 0:
+        return 0
+    #
+    # plt.subplot(121)
+    # plt.plot(linear_data[:, 0], linear_data[:, 1])
+    # plt.subplot(122)
+    # plt.plot(acx, mul)
+    # plt.plot(acx, ac-1)
+    # plt.plot(fftx, fft-2)
+    # plt.show()
     maxpos = np.argmax(mul)
 
     charge = acx[maxpos]
+    print(charge)
     return round(charge)
 
 
 if __name__ == "__main__":
+    example = np.loadtxt("Z:\\Group Share\\JGP\\JPST001885\\UVPD_Test\\chopped.txt")
     raw_data = example
     charge_state = thrash_predict(raw_data)
     print(charge_state)
@@ -91,8 +110,9 @@ if __name__ == "__main__":
     plt.subplot(121)
     plt.plot(linear_data[:, 0], linear_data[:, 1])
     plt.subplot(122)
-    plt.plot(acx, mul)
-    plt.plot(acx, ac-1)
-    plt.plot(fftx, fft-2)
+    plt.plot(acx, mul, label="Mul")
+    plt.plot(acx, ac-1, label="AC")
+    plt.plot(fftx, fft-2, label="FFT")
+    plt.legend()
     plt.show()
 

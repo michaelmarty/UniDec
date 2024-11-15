@@ -1,5 +1,6 @@
 import numpy as np
 from numba import njit
+import scipy.ndimage.filters as filt
 
 # from bisect import bisect_left
 
@@ -245,7 +246,7 @@ def get_fwhm_peak(data, peakmz):
     return fwhm
 
 
-@njit(fastmath=True)
+#@njit(fastmath=True)
 def get_centroid(data, peakmz, fwhm=1):
     """
     Get the centroid of the peak.
@@ -263,10 +264,39 @@ def get_centroid(data, peakmz, fwhm=1):
     return np.sum(d[:, 0] * d[:, 1]) / np.sum(d[:, 1])
 
 
-@njit(fastmath=True)
-def get_all_centroids(data, window=5, threshold=0.0001):
+def datacompsub(datatop, buff):
+    """
+    Complex background subtraction.
+
+    Taken from Massign Paper
+
+    First creates an array that matches the data but has the minimum value within a window of +/- buff.
+    Then, smooths the minimum array with a Gaussian filter of width buff * 2 to form the background array.
+    Finally, subtracts the background array from the data intensities.
+
+    :param datatop: Data array
+    :param buff: Width parameter
+    :return: Subtracted data
+    """
+    length = len(datatop)
+    mins = list(range(0, length))
+    indexes = list(range(0, length))
+    for i in indexes:
+        mins[i] = np.amin(datatop[int(max([0, i - abs(buff)])):int(min([i + abs(buff), length])), 1])
+    background = filt.gaussian_filter(mins, abs(buff) * 2)
+    datatop[:, 1] = datatop[:, 1] - background
+    return datatop
+
+#@njit(fastmath=True)
+def get_all_centroids(data, window=5, threshold=0.0001, background=100, moving_average_smoothing=3):
     if len(data) < 3:
         return np.empty((0, 2))
+
+    if background > 0:
+        data = datacompsub(data, 100)
+
+    if moving_average_smoothing > 1:
+        data[:,1] = np.convolve(data[:,1], np.ones(moving_average_smoothing)/moving_average_smoothing, mode='same')
 
     fwhm = get_fwhm_peak(data, data[np.argmax(data[:, 1]), 0])
     peaks = fastpeakdetect(data, window=window, threshold=threshold)

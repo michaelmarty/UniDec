@@ -515,7 +515,7 @@ class IsoDecEngine:
             centroids = remove_noise_cdata(centroids, 100, factor=1.5, mode="median")
 
         if self.use_wrapper:
-            self.pks = self.wrapper.process_spectrum(centroids, None, self.config)
+            self.pks = self.wrapper.process_spectrum(centroids, self.pks, self.config)
         else:
             kwindow = window
             threshold = threshold

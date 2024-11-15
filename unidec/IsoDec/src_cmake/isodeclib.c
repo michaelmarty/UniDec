@@ -13,7 +13,20 @@
 // Linux code to convert binary file to header file
 // xxd -i phase_model_8.bin > phase_model_8.h
 
-#if defined(__AVX__) || defined(__AVX2__) || defined(__AVX512F__)
+// void matrix_vector_multiply(const float* matrix, const float* vector, const float* bias, float* result, const int N, const int M, const bool relu) {
+// #pragma omp parallel for
+//     for (int i = 0; i < N; i++) {
+//         float val = bias[i];
+//         for (int j = 0; j < M; j++) {
+//             val += matrix[i * M + j] * vector[j];
+//         }
+//         // ReLU
+//         if (relu) {
+//             if (val < 0) { val = 0; }
+//         }
+//         result[i] = val;
+//     }
+// }
 // #include "mkl.h"
 // void apply_relu(float * result, const int n) {
 //     for (int i = 0; i < n; i++) {
@@ -31,9 +44,13 @@
 //     }
 // }
 
+
+#if defined(__AVX2__)
+
 #include <immintrin.h>
+
 void matrix_vector_multiply(const float* matrix, const float* vector, const float* bias, float* result, const int N, const int M, const bool relu) {
-//#pragma omp parallel for
+
     for (int i = 0; i < N; i++) {
         float val = bias[i];
         __m256  sum = _mm256_setzero_ps(); // Initialize sum to zero
@@ -43,8 +60,8 @@ void matrix_vector_multiply(const float* matrix, const float* vector, const floa
             const __m256  mat = _mm256_loadu_ps(&matrix[i * M + j]);
             const __m256  vec = _mm256_loadu_ps(&vector[j]);
             // Perform element-wise multiplication and add to sum
-            sum = _mm256_add_ps(sum, _mm256_mul_ps(mat, vec));
-            //sum = _mm256_fmadd_ps(mat, vec, sum);
+            //sum = _mm256_add_ps(sum, _mm256_mul_ps(mat, vec));
+            sum = _mm256_fmadd_ps(mat, vec, sum);
         }
         // Horizontal addition of the 8 elements in sum
         float temp[8];
@@ -1212,9 +1229,29 @@ int process_spectrum_default(const double *cmz, const float *cint, const int n, 
     const struct IsoSettings settings = DefaultSettings();
     return process_spectrum(cmz, cint, n, fname, matchedpeaks, settings);
 }
+// #ifdef _MSC_VER
+// #include <intrin.h>
+// #endif
+// #ifdef __GNUC__
+// void __cpuid(int* cpuinfo, int info)
+// {
+//     __asm__ __volatile__(
+//         "xchg %%ebx, %%edi;"
+//         "cpuid;"
+//         "xchg %%ebx, %%edi;"
+//         :"=a" (cpuinfo[0]), "=D" (cpuinfo[1]), "=c" (cpuinfo[2]), "=d" (cpuinfo[3])
+//         :"0" (info)
+//     );
+// }
+// #endif
 
 void run(char *filename, char *outfile, const char *weightfile) {
     // printf("Starting Dll. Threads: %d\n", omp_get_max_threads());
+    //
+    // int cpuinfo[4];
+    // __cpuid(cpuinfo, 1);
+    // bool avxSupportted = cpuinfo[2] & (1 << 28) || false;
+    // printf("AVX: %d\n", avxSupportted);
 
     // char filename[500];
     // // ReSharper disable once CppDeprecatedEntity

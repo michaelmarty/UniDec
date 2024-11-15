@@ -54,7 +54,7 @@ class IsoDecRuntime:
     def thrash_predictor(self, centroids):
         return [thrash_predict(centroids), 0]
 
-    def batch_process_spectrum(self, data, window=None, threshold=None, centroided=False):
+    def batch_process_spectrum(self, data, window=None, threshold=None, centroided=False, refresh=False):
         """
         Process a spectrum and identify the peaks. It first identifies peak cluster, then predicts the charge,
         then checks the peaks. If all is good, it adds them to the MatchedCollection as a MatchedPeak object.
@@ -82,7 +82,10 @@ class IsoDecRuntime:
                 print("Median Spacing:", med_spacing, "Removing noise.")
             centroids = remove_noise_cdata(centroids, 100, factor=1.5, mode="median")
 
-        self.pks = self.wrapper.process_spectrum(centroids, None, self.config)
+        if refresh:
+            self.pks = MatchedCollection()
+
+        self.pks = self.wrapper.process_spectrum(centroids, self.pks, self.config)
 
         return self.pks
 

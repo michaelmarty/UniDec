@@ -8,6 +8,7 @@ from unidec.modules.hdf5_tools import replace_dataset
 import os
 import fnmatch
 import h5py
+import unidec.tools as ud
 
 
 def parse(path, times, timestep, volts, outputheader, directory, output="txt"):
@@ -34,7 +35,7 @@ def parse(path, times, timestep, volts, outputheader, directory, output="txt"):
         d = ImporterFactory.create_importer(path)
         for v, time in enumerate(times):
             data = d.get_data(time_range=(time, time + timestep))
-            if data:
+            if data is not None:
                 if output == "txt":
                     if volts is not None:
                         outfile = outputheader + "_" + str(int(volts[v])) + ".txt"
@@ -316,12 +317,11 @@ def get_files(directory, timestep=1.0, output="txt"):
 if __name__ == '__main__':
     directory = "z:\\mtmarty\\Test"
     directory = "C:\\Data\\"
-    directory = "Z:\\wresager\\Bleaching\\"
-    file = "20170721_WCR_RHO_bleaching.RAW"
     directory = "C:\\Python\\UniDec3\\TestSpectra\\"
     file = "test_ms.raw"
     timestep = 2.0
     # extract("test.mzML", directory, timestep, output="hdf5")
     extract_scans(file, directory, scanbins=100, output="hdf5")
     # get_files(directory, output="hdf5")
+    parse("C:\\Data\\IsoNN\\23_04_21_PEPPI_1B_B.raw", [0, 1, 2, 3, 4], 1, [0, 1, 2, 3, 4], "test", "C:\\Data\\IsoNN\\",)
     exit()

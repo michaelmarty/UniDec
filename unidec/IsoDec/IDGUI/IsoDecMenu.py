@@ -121,10 +121,17 @@ class main_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.parent.on_about, self.menuAbout)
         self.parent.Bind(wx.EVT_MENU, self.parent.on_exit, self.menuExit)
 
+        # Add batch process to Tools Menu
+        self.menuBatch = self.toolsmenu.Append(
+            wx.ID_ANY, "Batch Process Full File", " Batch process all scans in a full file"
+        )
+        # Bind to self.parent.on_batch
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_batch, self.menuBatch)
+
         # Setting Menu Bar
         self.menuBar = wx.MenuBar()
         self.menuBar.Append(self.filemenu, "&File")
-        # self.menuBar.Append(self.toolsmenu, "Tools")
+        self.menuBar.Append(self.toolsmenu, "Tools")
         # self.menuBar.Append(self.analysismenu, "Analysis")
         # self.menuBar.Append(self.advancedmenu, "Advanced")
         # self.menuBar.Append(self.experimentalmenu, "Experimental")

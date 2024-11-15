@@ -9,6 +9,8 @@ import decimal
 from bisect import bisect_left
 from copy import deepcopy
 import zipfile
+from math import trunc
+
 # noinspection PyUnresolvedReferences
 import numpy as np
 import scipy.fft
@@ -25,7 +27,8 @@ from unidec.UniDecImporter.Importer import Importer
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.modules.fitting import *
 from itertools import cycle
-#from numba import jit
+
+# from numba import jit
 
 try:
     from unidec.UniDecImporter.MZML import mzML
@@ -54,7 +57,6 @@ HTseqDict = {'2': '101', '3': '1110100', '4': '000100110101111', '5': '000010010
              '-103': '0010111', '-105': '1010111011000111110011010010000', '5S4': '1001011001111100011011101010000',
              '5S13': '1111100011011101010000100101100', '5S15': '1110001101110101000010010110011'
              }
-
 
 
 # ..........................
@@ -112,8 +114,6 @@ def get_color_from_index(index, seq="custom1"):
         carray = cm.get_cmap(seq).colors
     color = list(carray)[index % len(carray)]
     return color
-
-
 
 
 def match_files(directory, string, exclude=None):
@@ -969,23 +969,19 @@ def load_mz_file(path: str, config: object = None, time_range: object = None, im
         print(f"Error loading file {path}: {e}")
         return None
 
-
     return data
 
-
-        #Config mzbins??
-        #Might be useful to have:
-        # if extension == ".mzml":
-        #     num = -5
-        # if extension == '.gz':
-        #     num = -8
-        # txtname = path[:num] + ".txt"
-        # if imflag == 1:
-        #     if config.compressflag == 1:
-        #         mzbins = config.mzbins
-        #     else:
-        #         mzbins = None
-        #Now we hit the actual importer files we want
+    # if extension == ".mzml":
+    #     num = -5
+    # if extension == '.gz':
+    #     num = -8
+    # txtname = path[:num] + ".txt"
+    # if imflag == 1:
+    #     if config.compressflag == 1:
+    #         mzbins = config.mzbins
+    #     else:
+    #         mzbins = None
+    # Now we hit the actual importer files we want
 
 
 def zipdir(path, zip_handle):
@@ -1867,7 +1863,8 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     out = exe_call(call, silent=silent)
     return out
 
-#@jit(nopython=True)
+
+# @jit(nopython=True)
 def peakdetect(data, config=None, window=10, threshold=0, ppm=None, norm=True):
     """
     Simple peak detection algorithm.
@@ -3134,6 +3131,7 @@ def subtract_and_divide(pks, basemass, refguess, outputall=False):
     else:
         return np.average(avgmass, weights=ints)
 
+
 def calc_swoop(sarray, adduct_mass=1):
     mz_mid, z_mid, z_spread, z_width = sarray
     z_mid = np.round(z_mid)
@@ -3149,6 +3147,7 @@ def calc_swoop(sarray, adduct_mass=1):
 
     return mz, z, zup, zdown
 
+
 def get_swoop_mz_minmax(mz, i):
     if i == 0:
         mzmax = mz[i]
@@ -3163,15 +3162,17 @@ def get_swoop_mz_minmax(mz, i):
 
 @njit
 def within_ppm(theo, exp, ppmtol):
-    #ppm_error = np.abs(((theo - exp) / theo) * 1e6)
-    #print("Within ppm ppm-error: " + str(ppm_error))
+    # ppm_error = np.abs(((theo - exp) / theo) * 1e6)
+    # print("Within ppm ppm-error: " + str(ppm_error))
     return np.abs(((theo - exp) / theo) * 1e6) <= ppmtol
+
 
 def save_data_to_text(path):
     path = path.split(".")
     np.savetxt(path[0] + "_data.txt", data)
     print("Saving data: " + path[0] + "_data.txt")
     return None
+
 
 def find_dll(targetfile, dir):
     if dir is None:
@@ -3193,22 +3194,17 @@ def find_dll(targetfile, dir):
 
 # this gets me here:
 
-#C:\Python\UniDec3\
-import os
+# C:\Python\UniDec3\
 
 import os
 
 
-import os
-
-
-import os
-
-def traverse_to_unidec3(topname="UniDec3"):
+def traverse_to_unidec(topname="UniDec3"):
+    lowertop = topname.lower()
+    # The parent directory can be whatever it wants, search for the concrete child.
     win = False
     # Get the absolute path of the current script
     curr_pos = os.path.abspath(__file__)
-
     if "\\" in curr_pos:
         win = True
         truncated = curr_pos.split("\\")
@@ -3219,30 +3215,31 @@ def traverse_to_unidec3(topname="UniDec3"):
 
     if win:
         new_path = truncated[0] + "\\"
-
         for i in range(1, len(truncated)):
-            new_path = os.path.join(new_path, truncated[i])
 
-            if truncated[i] == topname:
+            new_path = os.path.join(new_path, truncated[i])
+            currlow = truncated[i].lower()
+            # check for duplicate dbl zip
+            if truncated[i + 1] != topname and currlow == lowertop:
                 break
     else:
         for i in range(len(truncated)):
             new_path = os.path.join(new_path, truncated[i])
-            if truncated[i] == topname:
-                break
+            if i + 1 < len(truncated):
+                if truncated[i + 1] != topname and truncated[i] == topname:
+                    break
 
     return new_path
 
 
-
 def start_at_iso(targetfile):
     result = ""
-    #print("Starting in unidec/isodec")
-    parent = traverse_to_unidec3()
+    # print("Starting in unidec/isodec")
+    parent = traverse_to_unidec()
     path = os.path.join(parent, "unidec", "IsoDec")
     if not os.path.exists(path):
         print("Path does not exist: ", path)
-        path = traverse_to_unidec3("_internal")
+        path = traverse_to_unidec("_internal")
         if not os.path.exists(path):
             print("Path does not exist: ", path)
             return result
@@ -3253,13 +3250,18 @@ def start_at_iso(targetfile):
             result = entry.path
             return result
     if not result:
-        #Iterate alphabetically from the parent
+        # Iterate alphabetically from the parent
         print("Dll not found in nested subdirectory, searching alphabetically from parent")
         for entry in os.scandir(parent):
             if entry.is_dir():
                 result = find_dll(targetfile, entry.path)
                 if result:
                     return result
+        # Now look in internal
+        if not result:
+            parent = traverse_to_unidec("_internal")
+            result = find_dll(targetfile, parent)
+            return result
 
 
 if __name__ == "__main__":

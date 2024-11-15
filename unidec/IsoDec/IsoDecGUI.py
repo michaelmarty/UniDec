@@ -21,6 +21,7 @@ class IsoDecPres(UniDecPres):
         self.eng.config.peakwindow = self.isodeceng.config.peakwindow
         self.eng.config.peakthresh = self.isodeceng.config.peakthresh
         self.eng.config.massbins = 1
+        self.eng.config.aggressiveflag = 8
         self.eng.config.numit = self.isodeceng.config.knockdown_rounds
 
         self.view = IsoDecView(self, "IsoDec", self.eng.config, iconfile=None)
@@ -125,6 +126,12 @@ class IsoDecPres(UniDecPres):
         print("Data Prep Done. Time: %.2gs" % (tend - tstart))
         pass
 
+    def translate_config(self):
+        self.isodeceng.config.peakwindow = self.eng.config.peakwindow
+        self.isodeceng.config.peakthresh = self.eng.config.peakthresh
+        self.isodeceng.config.knockdown_rounds = self.eng.config.numit
+        self.isodeceng.config.phaseres = self.eng.config.aggressiveflag
+
     def on_unidec_button(self, e=None):
         """
         Run IsoDec
@@ -134,13 +141,11 @@ class IsoDecPres(UniDecPres):
         tstart = time.perf_counter()
         self.view.SetStatusText("Running IsoDec...", number=5)
         self.export_config(self.eng.config.confname)
-        self.isodeceng.config.peakwindow = self.eng.config.peakwindow
-        self.isodeceng.config.peakthresh = self.eng.config.peakthresh
-        self.isodeceng.config.knockdown_rounds = self.eng.config.numit
+        self.translate_config()
 
         data = self.eng.data.data2
         # Run IsoDec
-        self.isodeceng.batch_process_spectrum(data, centroided=True)
+        self.isodeceng.batch_process_spectrum(data, centroided=True, refresh=True)
         # Convert to mass
         self.eng.data.massdat = self.isodeceng.pks_to_mass(self.eng.config.massbins)
         # Translate Pks
@@ -211,11 +216,11 @@ class IsoDecPres(UniDecPres):
                 isodist = deepcopy(p.stickdat)
                 if len(isodist) == 0:
                     continue
-                elif len(isodist) == 1:
-                    isodist = isodist[0]
-                else:
-                    isodist = np.concatenate(isodist, axis=0)
-                    pass
+                # elif len(isodist) == 1:
+                #     isodist = isodist[0]
+                # else:
+                #     isodist = np.concatenate(isodist, axis=0)
+                #     pass
                 isodist[:, 1] = isodist[:, 1] * -1
                 self.view.plot1.add_centroid(isodist, color=p.color, repaint=False)
         self.view.plot1.repaint()
@@ -347,6 +352,37 @@ class IsoDecPres(UniDecPres):
         except Exception as e:
             print(e)
             wx.MessageBox("Unable to open the clipboard", "Error")
+
+    def on_batch(self, e=None):
+        print("Batch Processing")
+        dlg = wx.FileDialog(self.view, "Choose a data file mzML or Thermo Raw format", '', "", "*.*")
+        if dlg.ShowModal() == wx.ID_OK:
+            self.view.SetStatusText("Opening", number=5)
+            path = dlg.GetPath()
+            self.batch_process(path)
+        dlg.Destroy()
+
+    def batch_process(self, path):
+        """
+        Batch process a file
+        :param path: File name
+        :return: None
+        """
+        print("Batch Processing:", path)
+        self.isodeceng.pks = None
+        self.view.export_gui_to_config()
+        self.isodeceng.process_file(path)
+
+        #Get the filename wihtout the path or extension
+        filename = os.path.splitext(os.path.basename(path))[0]
+        os.chdir(os.path.dirname(path))
+
+        if self.eng.config.poolflag == 1:
+            self.isodeceng.export_peaks("msalign", filename)
+
+        if self.eng.config.compressflag == 1:
+            self.isodeceng.export_peaks("tsv", filename + ".tsv")
+        pass
 
 if __name__ == "__main__":
     app = IsoDecPres()

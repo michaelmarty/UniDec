@@ -176,9 +176,11 @@ class PlottingWindowBase(PlotBase, wx.Panel):
                 dlg = DoubleInputDialog(self)
                 dlg.initialize_interface("Matplotlib RC Parameters", "RC Param Name:", 'lines.markersize',
                                          "Value:", "6")
-                dlg.ShowModal()
-                rcname = dlg.value
-                rcval = dlg.value2
+                if dlg.ShowModal() == wx.ID_OK:
+                    rcname = dlg.value
+                    rcval = dlg.value2
+                else:
+                    return None
 
                 if rcname == "aspect":
                     self.set_aspect(rcval)
@@ -190,9 +192,11 @@ class PlottingWindowBase(PlotBase, wx.Panel):
                 dlg = DoubleInputDialog(self)
                 dlg.initialize_interface("Set Plot X Range", "Min:", '',
                                          "Max:", "")
-                dlg.ShowModal()
-                minval = dlg.value
-                maxval = dlg.value2
+                if dlg.ShowModal() == wx.ID_OK:
+                    minval = dlg.value
+                    maxval = dlg.value2
+                else:
+                    return None
 
                 try:
                     minval = float(minval)
@@ -205,9 +209,11 @@ class PlottingWindowBase(PlotBase, wx.Panel):
                 dlg = DoubleInputDialog(self)
                 dlg.initialize_interface("Set Plot Y Range", "Min:", '',
                                          "Max:", "")
-                dlg.ShowModal()
-                minval = dlg.value
-                maxval = dlg.value2
+                if dlg.ShowModal() == wx.ID_OK:
+                    minval = dlg.value
+                    maxval = dlg.value2
+                else:
+                    return None
 
                 try:
                     minval = float(minval)

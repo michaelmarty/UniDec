@@ -68,7 +68,7 @@ def extract_centroids(centroids, peaks, lowmz=-1.5, highmz=5.5, minpeaks=3, data
             b1 = c[:, 1] > (datathresh * np.amax(c[:, 1]))
             new_c = c[b1]
             # print("Original Centroids:", len(c), "Filtered Centroids:", len(new_c))
-            if len(c) < minpeaks:
+            if len(new_c) < minpeaks:
                 continue
 
         encodingcentroids.append(new_c)

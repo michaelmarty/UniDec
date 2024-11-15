@@ -170,7 +170,7 @@ class MatchedCollection:
                     self.masses[idx].zs = np.append(self.masses[idx].zs, pk.z)
                     self.masses[idx].mzs = np.append(self.masses[idx].mzs, pk.mz)
                     self.masses[idx].mzints = np.append(self.masses[idx].mzints, pk.peakint)
-                    self.masses[idx].isodists = np.vstack([self.masses[idx].isodists, [pk.isodist]])
+                    self.masses[idx].isodists = np.vstack([self.masses[idx].isodists, pk.isodist])
 
             else:
                 if pk.monoiso > nearest_mass:
@@ -281,7 +281,39 @@ class MatchedCollection:
                         if ud.within_ppm(self.peaks[i2].monoiso, adj_mass, ppm_tolerance):
                             to_remove.append(i1)
         self.peaks = [self.peaks[i] for i in range(len(self.peaks)) if i not in to_remove]
+
         # TODO: Fix masses as well with this
+        masses_to_remove = []
+        for i1 in range(len(self.masses)):
+            if i1 in masses_to_remove:
+                continue
+            for i2 in range(len(self.masses)):
+                i2_matched = False
+                if i2 in masses_to_remove or i1 == i2:
+                    continue
+                for mono1 in self.masses[i1].monoisos:
+                    for mono2 in self.masses[i2].monoisos:
+                        if ud.within_ppm(mono1, mono2, ppm_tolerance):
+                            #Remove the mass at i2 and add unmatched monoisos to the mass at i1
+                            for mono in self.masses[i2].monoisos:
+                                if any(ud.within_ppm(x, mono, ppm_tolerance) for x in self.masses[i1].monoisos):
+                                    continue
+                                else:
+                                    self.masses[i1].monoisos = np.append(self.masses[i1].monoisos, mono)
+                            #Add charge states from i2 that don't exist in i1
+                            for z in self.masses[i2].zs:
+                                if z not in self.masses[i1].zs:
+                                    self.masses[i1].zs = np.append(self.masses[i1].zs, z)
+                            masses_to_remove.append(i2)
+                            i2_matched = True
+                            break
+                        if i2_matched:
+                            break
+                    if i2_matched:
+                        break
+                if i2_matched:
+                    break
+        self.masses = [self.masses[i] for i in range(len(self.masses)) if i not in masses_to_remove]
         return
 
     def filter(self, minval, maxval, type="mz"):
@@ -331,6 +363,7 @@ class MatchedCollection:
         return df
 
     def export_tsv(self, filename="export.tsv"):
+        print("Exporting to", filename)
         df = self.to_df()
         df.to_csv(filename, sep="\t", index=False)
 
@@ -371,7 +404,7 @@ class MatchedMass:
         self.zs = np.array([pk.z])
         self.totalintensity = pk.matchedintensity
         self.mzints = np.array([pk.peakint])
-        self.isodists = np.array([pk.isodist])
+        self.isodists = pk.isodist
 
 
 
@@ -497,7 +530,7 @@ def read_msalign_to_matchedcollection(file, data=None):
 
                 for i in range(len(isodist)):
                     isodist[i, 1] *= dmax
-                # pk.mz = isodist[np.argmax(isodist[:, 1]), 0]
+                pk.mz = isodist[np.argmax(isodist[:, 1]), 0]
                 pk.isodist = isodist
     print("Loaded", len(mc.peaks), "peaks from msalign file")
     return mc
@@ -749,6 +782,49 @@ def is_close(mz1, mz2, tolerance):
     return abs(mz1 - mz2) <= tolerance
 
 
+def compare_matched_ions(coll1, coll2, other_alg=None):
+    shared1 = []
+    unique1 = []
+
+    shared2 = []
+    unique2 = []
+
+    for p1 in coll1.peaks:
+        matched = False
+        for p2 in coll2.peaks:
+            if set(p1.matchedions) & set(p2.matchedions):
+                shared1.append(p1)
+                matched = True
+        if not matched and len(p1.matchedions) > 0:
+            unique1.append(p1)
+
+    for p2 in coll2.peaks:
+        matched = False
+        for p1 in coll1.peaks:
+            if set(p1.matchedions) & set(p2.matchedions):
+                shared2.append(p2)
+                matched = True
+        if not matched and len(p2.matchedions) > 0:
+            unique2.append(p2)
+
+    other_name = "Other"
+    if other_alg is not None:
+        other_name = other_alg
+
+    print("% Shared IsoDec:", len(shared1) / (len(shared1) + len(unique1)) * 100)
+    print("% Shared", other_name, ":", len(shared2) / (len(shared2) + len(unique2)) * 100)
+    print("% Unique IsoDec:", len(unique1) / (len(shared1) + len(unique1)) * 100)
+    print("% Unique", other_name, ":", len(unique2) / (len(shared2) + len(unique2)) * 100)
+
+    #Create matched collections of shared and unique peaks
+    shared1 = MatchedCollection().add_peaks(shared1)
+    unique1 = MatchedCollection().add_peaks(unique1)
+    shared2 = MatchedCollection().add_peaks(shared2)
+    unique2 = MatchedCollection().add_peaks(unique2)
+
+
+    return shared1, unique1, shared2, unique2
+
 def get_unique_matchedions(coll1, coll2):
     shared = []
     unique1 = []
@@ -843,7 +919,6 @@ def get_accepted_shifts(cent_intensities, isodist, maxshift, min_score_diff, css
                                        minusoneareaszero=minusoneaszero)
         shifts_scores[i, 0] = shift
         shifts_scores[i, 1] = s
-
         if s > sum:
             sum = s
             bestshift = shift
@@ -875,7 +950,6 @@ def make_shifted_peak(shift: int, shiftscore: float, monoiso: float, massdist: n
 
     # Match it again
     matchedindexes, isomatches = find_matches(centroids, isodist_new, matchtol)
-
     matchediso = isodist_new[np.array(isomatches)]
     # if verbose:
     #    print("Find Matches:", matchedindexes, isomatches, matchtol, z)
@@ -969,6 +1043,7 @@ def optimize_shift2(config, centroids: np.ndarray, z, peakmz):
         config.plusoneintwindow[0], config.plusoneintwindow[1], config.css_thresh,
         config.minareacovered,
         config.verbose)
+
 
     if peakmz_new is None:
         return None
@@ -1124,7 +1199,6 @@ def find_matched_intensities(spec1_mz: np.ndarray, spec1_intensity: np.ndarray, 
                 value = spec1_intensity[j]
                 if value > cent_intensities[i]:
                     cent_intensities[i] = spec1_intensity[j]
-
     return cent_intensities
 
 

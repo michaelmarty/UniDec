@@ -1,4 +1,4 @@
-version 7.0.2
+version 8.0.0a1
 imflag 0
 cdmsflag 1
 input C:\Python\UniDec3\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat
@@ -86,6 +86,7 @@ HTwin 5.0
 csig 0.0
 smoothdt 0.0
 subbufdt 0.0
+centroided 0
 zout 0.0
 pusher 0.0
 mindt 0.0
