@@ -67,7 +67,7 @@ def fast_vlines(centroids, color, base, factor):
     plt.plot(xlist, ylist, color=color)
 
 
-def cplot(centroids, color='r', factor=1, base=0, mask=None, mfactor=-1, mcolor="g", z=0, zcolor="b", zfactor=1):
+def cplot(centroids, color='r', factor=1, base=0, mask=None, mfactor=-1, mcolor="g", z=0, zcolor="b", zfactor=1, isodist=None):
     """
     Simple script to plot centroids
     :param centroids: Centroid array with m/z in first column and intensity in second
@@ -85,19 +85,17 @@ def cplot(centroids, color='r', factor=1, base=0, mask=None, mfactor=-1, mcolor=
         else:
             mask = mask[:len(centroids)]
         fast_vlines(centroids[mask.astype(bool)], mcolor, base, mfactor)
-        # for c in centroids[mask.astype(bool)]:
-        #    plt.vlines(c[0], base, base + mfactor * c[1], color=mcolor)
 
     if z != 0:
         isodist = create_isodist(centroids[np.argmax(centroids[:, 1]), 0], z, centroids)
         fast_vlines(isodist, zcolor, base, zfactor)
-        # for c in isodist:
-        #    plt.vlines(c[0], base, base + zfactor * c[1], color=zcolor, linewidth=3)
+
+    if isodist is not None:
+        fast_vlines(isodist, zcolor, base, zfactor)
 
     if centroids is not None:
         fast_vlines(centroids, color, base, factor)
-        # for c in centroids:
-        #    plt.vlines(c[0], base, base + factor * c[1], color=color)
+
 
 
 def plot_pks(pks, data=None, centroids=None, scan=-1, show=False, labelz=False, title=None, ccolor="r", plotmass=True,

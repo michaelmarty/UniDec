@@ -8,6 +8,7 @@ import pickle as pkl
 import time
 from unidec.IsoDec.match import create_isodist, find_matches
 from typing import List, Tuple
+from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 
 @njit(fastmath=True)
 def match_peaks(centroids: np.array, isodist: np.array, tol: float = 5.0) -> Tuple[List[int], List[int]]:
@@ -103,7 +104,7 @@ def process_file(file, overwrite=False, peakdepth=10, maxpeaks=None, onedropper=
         return []
 
     # Get importer and check it
-    reader = ImportFactory.create_import(file)
+    reader = ImporterFactory.create_importer(file)
     try:
         print("N Scans:", np.amax(reader.scans))
     except Exception as e:

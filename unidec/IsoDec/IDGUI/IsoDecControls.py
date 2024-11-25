@@ -6,6 +6,7 @@ import numpy as np
 import time
 import wx.lib.scrolledpanel as scrolled
 
+
 class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
     # noinspection PyMissingConstructor
     def __init__(self, parent, config, pres, panel, iconfile):
@@ -77,20 +78,27 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         i = 0
         sizercontrol1.Add(mzrange, (i, 0), span=(1, 5))
         i += 1
+        self.ctlminmz.SetToolTip(wx.ToolTip("Set minimum m/z of data"))
+        self.ctlmaxmz.SetToolTip(wx.ToolTip("Set maximum m/z of data"))
+        self.fullbutton.SetToolTip(wx.ToolTip("Set m/z range to full data range"))
 
         self.ctlbackcheck = wx.CheckBox(panel1, label="Use Background Subtraction", style=wx.CHK_3STATE)
         self.parent.Bind(wx.EVT_CHECKBOX, self.on_backcheck, self.ctlbackcheck)
         sizercontrol1.Add(self.ctlbackcheck, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
+        self.ctlbackcheck.SetToolTip(wx.ToolTip("Select to use background subtraction"))
 
         self.ctlcentroided = wx.CheckBox(panel1, label="Data is Centroided")
         sizercontrol1.Add(self.ctlcentroided, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
+        self.ctlcentroided.SetToolTip(wx.ToolTip("Select if data is already centroided"))
 
         self.dataprepbutton = wx.Button(panel1, -1, "Process Data")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_dataprep_button, self.dataprepbutton)
         sizercontrol1.Add(self.dataprepbutton, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
+        self.dataprepbutton.SetToolTip(
+            wx.ToolTip("Subtract, linearize, smooth, threshold data."))
 
         panel1.SetSizer(sizercontrol1)
         sizercontrol1.Fit(panel1)
@@ -111,62 +119,78 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox1b.Add(self.subtypectl, (i, 0))
         gbox1b.Add(self.ctlbuff, (i, 1))
         i += 1
+        self.ctlbuff.SetToolTip(wx.ToolTip(
+            "Background subtraction parameters.\nMinimum: 0=off 1=on"
+            "\nLine: The first and last n data points will be averaged;"
+            "\n a line between the two averages will be subtracted.\nCurved: Width of smoothed background"))
+        self.subtypectl.SetToolTip(wx.ToolTip("Background subtraction type."))
 
         self.ctlintthresh = wx.TextCtrl(panel1b, value="", size=size1)
         gbox1b.Add(self.ctlintthresh, (i, 1), span=(1, 1))
         gbox1b.Add(wx.StaticText(panel1b, label="Intensity Threshold: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
+        self.ctlintthresh.SetToolTip(
+            wx.ToolTip("Set intensity threshold. Data points below threshold are excluded from deconvolution."))
 
         self.ctldatareductionpercent = wx.TextCtrl(panel1b, value="", size=size1)
         gbox1b.Add(self.ctldatareductionpercent, (i, 1), span=(1, 1))
         gbox1b.Add(wx.StaticText(panel1b, label="Data Reduction (%): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
+        self.ctldatareductionpercent.SetToolTip(wx.ToolTip("Reduces the amount of data by removing everything"
+                                                           " below a threshold.\nSets the threshold to fit the "
+                                                           "percentage of data to remove."))
 
         self.ctldatanorm = wx.CheckBox(panel1b, label="Normalize Data")
         self.ctldatanorm.SetValue(True)
         gbox1b.Add(self.ctldatanorm, (i, 0), span=(1, 2))
         i += 1
         gbox1b.Add(wx.StaticText(panel1b, label=" "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-
+        self.ctldatanorm.SetToolTip(wx.ToolTip("Normalize Data and Results"))
 
         panel1b.SetSizer(gbox1b)
         gbox1b.Fit(panel1b)
 
         self.foldpanels.AddFoldPanelWindow(foldpanel1b, panel1b, fpb.FPB_ALIGN_WIDTH)
-        i=0
+        i = 0
 
         # Panel for unidec Parameters
         foldpanel2 = self.foldpanels.AddFoldPanel(caption="UniDec Parameters", collapsed=False, cbstyle=style2)
         panel2 = wx.Panel(foldpanel2, -1)
         sizercontrol2 = wx.GridBagSizer(wx.VERTICAL)
 
-
         self.ctlmassbins = wx.TextCtrl(panel2, value="", size=size1)
         sizercontrol2.Add(self.ctlmassbins, (i, 1), span=(1, 2))
-        sizercontrol2.Add(wx.StaticText(panel2, label="Sample Mass Every (Da): "), (i, 0),
+        sizercontrol2.Add(wx.StaticText(panel2, label="Mass Bin Size (Da): "), (i, 0),
                           flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
+        self.ctlmassbins.SetToolTip(wx.ToolTip("Sets the resolution of the zero-charge mass spectrum"))
 
         self.rununidec = wx.Button(panel2, -1, "Run IsoDec")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_unidec_button, self.rununidec)
         sizercontrol2.Add(self.rununidec, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
+        self.rununidec.SetToolTip(wx.ToolTip("Run IsoDec on the current data"))
 
         sizercontrol2.Add(wx.StaticText(panel2, label="Export type(s): "), (i, 0))
         i += 1
 
         self.ctlexportmsalign = wx.CheckBox(panel2, label=".msalign")
         sizercontrol2.Add(self.ctlexportmsalign, (i, 0), span=(1, 1))
+        self.ctlexportmsalign.SetToolTip(wx.ToolTip("Export the results to msalign format\n"
+                                                    "Will be saved in unidecfilesfolder\n"
+                                                    "To open, select Advanced > Open Saved File Directory"))
 
         self.ctlexporttsv = wx.CheckBox(panel2, label=".tsv")
         sizercontrol2.Add(self.ctlexporttsv, (i, 1), span=(1, 1))
         i += 1
+        self.ctlexporttsv.SetToolTip(wx.ToolTip("Export the results to TSV format\n"
+                                                "Will be saved in unidecfilesfolder\n"
+                                                "To open, select Advanced > Open Saved File Directory"))
 
         panel2.SetSizer(sizercontrol2)
         sizercontrol2.Fit(panel2)
         self.foldpanels.AddFoldPanelWindow(foldpanel2, panel2, fpb.FPB_ALIGN_WIDTH)
         self.foldpanels.AddFoldPanelWindow(foldpanel2, wx.StaticText(foldpanel2, -1, " "), fpb.FPB_ALIGN_WIDTH)
-
 
         # Panel for Additional Restraints
         foldpanel2b = self.foldpanels.AddFoldPanel(caption="Additional Deconvolution Parameters", collapsed=True,
@@ -174,41 +198,96 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         panel2b = wx.Panel(foldpanel2b, -1)
         gbox2b = wx.GridBagSizer(wx.VERTICAL)
 
-        i=0
-        self.ctlwindow = wx.TextCtrl(panel2b, value="", size=size1)
-        self.ctlthresh = wx.TextCtrl(panel2b, value="", size=size1)
-        gbox2b.Add(self.ctlwindow, (i, 1))
-        gbox2b.Add(wx.StaticText(panel2b, label="Peak Detection Range (Da): "), (i, 0),
-                          flag=wx.ALIGN_CENTER_VERTICAL)
-        i+=1
-        gbox2b.Add(self.ctlthresh, (i, 1))
-        gbox2b.Add(wx.StaticText(panel2b, label="Peak Detection Threshold: "), (i, 0),
-                          flag=wx.ALIGN_CENTER_VERTICAL)
-        i+=1
+        i = 0
+
+        # Ctrl for css_thresh
+        self.ctlccsthresh = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(self.ctlccsthresh, (i, 1))
+        gbox2b.Add(wx.StaticText(panel2b, label="Cosine Score Threshold: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+        self.ctlccsthresh.SetToolTip(wx.ToolTip("Cosine score threshold for deconvolution"))
+
+        # Ctrl for matchtol
+        self.ctlmatchtol = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(self.ctlmatchtol, (i, 1))
+        gbox2b.Add(wx.StaticText(panel2b, label="Match Tolerance (ppm): "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+        self.ctlmatchtol.SetToolTip(wx.ToolTip("Match tolerance for deconvolution in ppm"))
+
         self.ctlnumit = wx.TextCtrl(panel2b, value='', size=size1)
         gbox2b.Add(wx.StaticText(panel2b, label='Knockdown Rounds: '), (i, 0),
                    flag=wx.ALIGN_CENTER_VERTICAL)
         gbox2b.Add(self.ctlnumit, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
+        self.ctlnumit.SetToolTip(wx.ToolTip("Number of knockdown rounds used in deconvolution"))
 
-        self.ctlphaseres = wx.RadioBox(panel2b, label="Priority:", choices=["Speed", "Accuracy"])
-        gbox2b.Add(self.ctlphaseres, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        # Ctrl for maxshift
+        self.ctlmaxshift = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(self.ctlmaxshift, (i, 1))
+        gbox2b.Add(wx.StaticText(panel2b, label="Max Monoisotopic Shift (#): "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
+        self.ctlmaxshift.SetToolTip(wx.ToolTip("Maximum monoisotopic shift for deconvolution"))
 
         self.ctladductmass = wx.TextCtrl(panel2b, value='', size=size1)
         gbox2b.Add(self.ctladductmass, (i, 1), span=(1, 1))
         gbox2b.Add(wx.StaticText(panel2b, label="Adduct Mass (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
+        self.ctladductmass.SetToolTip(wx.ToolTip("Mass of charge carrying adduct;\ntypically the mass of a proton"))
 
         self.ctlnegmode = wx.CheckBox(panel2b, label="Negative Mode")
         gbox2b.Add(self.ctlnegmode, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         self.parent.Bind(wx.EVT_CHECKBOX, self.export_gui_to_config, self.ctlnegmode)
+        i += 1
+        self.ctlnegmode.SetToolTip(wx.ToolTip("Set the mode to negative ion mode"))
 
-        # self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
-        # self.ctlisotopemode = wx.Choice(panel2b, -1, size=(100, -1), choices=self.config.isotopechoices)
-        # self.ctlisotopemode.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
-        # gbox2b.Add(self.ctlisotopemode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlphaseres = wx.RadioBox(panel2b, label="Priority:", choices=["Speed", "Accuracy"])
+        gbox2b.Add(self.ctlphaseres, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        self.ctlphaseres.SetToolTip(wx.ToolTip(
+            "Set the priority of speed vs accuracy in the deconvolution algorithm. "
+            "Speed is 4-bin and Accuracy is 8-bin."))
+        i += 1
 
+        # Ctrl for data encoding threshold
+        self.ctlencodingthresh = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(self.ctlencodingthresh, (i, 1))
+        gbox2b.Add(wx.StaticText(panel2b, label="Data Encoding Threshold: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+        self.ctlencodingthresh.SetToolTip(wx.ToolTip("Data encoding threshold for deconvolution. "
+                                                     "Relative intensities below this will not be encoded."))
+
+        # Ctrl for mzwindow around peaks
+        self.ctlmzwindowlb = wx.TextCtrl(panel2b, value="", size=size1)
+        self.ctlmzwindowub = wx.TextCtrl(panel2b, value="", size=size1)
+
+        gbox2b.Add(self.ctlmzwindowlb, (i, 1))
+        gbox2b.Add(wx.StaticText(panel2b, label="m/z Window Lower (Th): "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+        gbox2b.Add(self.ctlmzwindowub, (i, 1))
+        gbox2b.Add(wx.StaticText(panel2b, label="m/z Window Upper (Th): "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+        self.ctlmzwindowlb.SetToolTip(wx.ToolTip("Lower m/z for range below peak to be encoded for prediction."))
+        self.ctlmzwindowub.SetToolTip(wx.ToolTip("Upper m/z for range above peak to be encoded for prediction."))
+
+        self.ctlwindow = wx.TextCtrl(panel2b, value="", size=size1)
+        self.ctlthresh = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(self.ctlwindow, (i, 1))
+        gbox2b.Add(wx.StaticText(panel2b, label="Peak Detection Window (#): "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+        gbox2b.Add(self.ctlthresh, (i, 1))
+        gbox2b.Add(wx.StaticText(panel2b, label="Peak Detection Threshold: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+        self.ctlwindow.SetToolTip(
+            wx.ToolTip("Peak detection window. Peak must be maximum in a +/- number of data points. Integer."))
+        self.ctlthresh.SetToolTip(wx.ToolTip(
+            "Peak detection threshold. Peak's intensity must be great than threshold times maximum mass intensity."))
 
         panel2b.SetSizer(gbox2b)
         gbox2b.Fit(panel2b)
@@ -224,14 +303,20 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.ctlnorm = wx.RadioBox(panel3, label="Peak Normalization", choices=["None", "Max", "Total"])
         sizercontrol3.Add(self.ctlnorm, (0, 0), span=(1, 2), flag=wx.EXPAND)
+        self.ctlnorm.SetToolTip(wx.ToolTip(
+            "Sets normalization of mass data.\nMaximum will normalize so that the maximum value is %100."
+            "\nTotal will normalize so that the sum of all peaks is %100"))
 
         self.plotbutton2 = wx.Button(panel3, -1, "Plot Peaks")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_plot_peaks, self.plotbutton2)
         sizercontrol3.Add(self.plotbutton2, (1, 0), span=(1, 2), flag=wx.EXPAND)
 
+        self.plotbutton2.SetToolTip(wx.ToolTip("Mark the peaks with symbols on the plots"))
+
         self.plotbutton1 = wx.Button(panel3, -1, "Plot Isotope Dists")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_plot_dists, self.plotbutton1)
         sizercontrol3.Add(self.plotbutton1, (2, 0), span=(1, 2), flag=wx.EXPAND)
+        self.plotbutton1.SetToolTip(wx.ToolTip("Plot the isotope distribution of peaks"))
 
         panel3.SetSizer(sizercontrol3)
         sizercontrol3.Fit(panel3)
@@ -249,6 +334,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlpeakcm = wx.ComboBox(panel3b, wx.ID_ANY, style=wx.CB_READONLY)
         self.ctlpeakcm.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
         self.ctlpeakcm.AppendItems(self.config.cmaps)
+        self.ctlpeakcm.SetToolTip(wx.ToolTip("Set the color function for the peaks"))
 
         gbox3b.Add(self.ctlpeakcm, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         gbox3b.Add(wx.StaticText(panel3b, label='Peaks Color Map: '), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -256,10 +342,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.ctlpublicationmode = wx.CheckBox(panel3b, label="Publication Mode")
         gbox3b.Add(self.ctlpublicationmode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlpublicationmode.SetToolTip(wx.ToolTip("Set plots to look good for publication rather than utility"))
 
         self.replotbutton = wx.Button(panel3b, -1, "Replot")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_replot, self.replotbutton)
         gbox3b.Add(self.replotbutton, (i, 0), span=(1, 1), flag=wx.EXPAND)
+        self.replotbutton.SetToolTip(wx.ToolTip("Replot some of the plots. (Ctrl+N)"))
 
         panel3b.SetSizer(gbox3b)
         gbox3b.Fit(panel3b)
@@ -290,9 +378,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.SetSizer(sizercontrol)
         sizercontrol.Fit(self)
 
-        # Add remaining things
-        self.setup_tool_tips()
-
 
     def import_config_to_gui(self):
         """
@@ -309,31 +394,38 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlnorm.SetSelection(int(self.config.peaknorm))
             self.ctlbuff.SetValue(str(self.config.subbuff))
             self.subtypectl.SetSelection(int(self.config.subtype))
-            self.ctlwindow.SetValue(str(self.config.peakwindow))
+            self.ctlwindow.SetValue(str(int(self.config.peakwindow)))
             self.ctlthresh.SetValue(str(self.config.peakthresh))
             self.ctlintthresh.SetValue(str(self.config.intthresh))
             self.ctladductmass.SetValue(str(self.config.adductmass))
-            self.ctlnumit.SetValue(str(self.config.numit))
+            self.ctlnumit.SetValue(str(int(self.config.numit)))
             self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
-            # self.ctlisotopemode.SetSelection(self.config.isotopemode)
             self.ctldatanorm.SetValue(int(self.config.datanorm))
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
+
+            # Decon params
+            self.ctlmatchtol.SetValue(str(self.config.filterwidth))
+            self.ctlmaxshift.SetValue(str(int(self.config.msig)))
+            self.ctlencodingthresh.SetValue(str(self.config.exthresh))
+            self.ctlccsthresh.SetValue(str(self.config.csig))
+            self.ctlmzwindowlb.SetValue(str(self.config.integratelb))
+            self.ctlmzwindowub.SetValue(str(self.config.integrateub))
+
             if self.config.aggressiveflag == 4:
                 self.ctlphaseres.SetSelection(0)
             else:
                 self.ctlphaseres.SetSelection(1)
-            #Relating msalign export to the config.poolflag parameter
+            # Relating msalign export to the config.poolflag parameter
             if self.config.poolflag == 1:
                 self.ctlexportmsalign.SetValue(True)
             else:
                 self.ctlexportmsalign.SetValue(False)
 
-            #Relating tsv export to the config.compressflag
+            # Relating tsv export to the config.compressflag
             if self.config.compressflag == 1:
                 self.ctlexporttsv.SetValue(True)
             else:
                 self.ctlexporttsv.SetValue(False)
-
 
             if self.config.adductmass < 0:
                 self.ctlnegmode.SetValue(1)
@@ -369,7 +461,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.intthresh = ud.string_to_value(self.ctlintthresh.GetValue())
         self.config.massbins = ud.string_to_value(self.ctlmassbins.GetValue())
         self.config.peaknorm = self.ctlnorm.GetSelection()
-        self.config.peakwindow = ud.string_to_value(self.ctlwindow.GetValue())
+        self.config.peakwindow = ud.string_to_int(self.ctlwindow.GetValue())
         self.config.peakthresh = ud.string_to_value(self.ctlthresh.GetValue())
         self.config.adductmass = ud.string_to_value(self.ctladductmass.GetValue())
         self.config.numit = ud.string_to_int(self.ctlnumit.GetValue())
@@ -377,9 +469,21 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         # self.config.isotopemode = int(self.ctlisotopemode.GetSelection())
         self.config.datanorm = int(self.ctldatanorm.GetValue())
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
-        #These flags are bound to the 2 export type checkboxes in the isodec gui
-        self.config.poolflag = self.ctlexportmsalign.GetValue()
-        self.config.compressflag = self.ctlexporttsv.GetValue()
+        # These flags are bound to the 2 export type checkboxes in the isodec gui
+        self.config.poolflag = int(self.ctlexportmsalign.GetValue())
+        self.config.compressflag = int(self.ctlexporttsv.GetValue())
+
+        # pull integratelb and integrateub from mzwindowlb and mzwindowub
+        self.config.integratelb = ud.string_to_value(self.ctlmzwindowlb.GetValue())
+        self.config.integrateub = ud.string_to_value(self.ctlmzwindowub.GetValue())
+        # matchtol goes to filterwidth
+        self.config.filterwidth = ud.string_to_value(self.ctlmatchtol.GetValue())
+        # Maxshift goes to msig
+        self.config.msig = ud.string_to_int(self.ctlmaxshift.GetValue())
+        # Encoding threshold goes to exthresh
+        self.config.exthresh = ud.string_to_value(self.ctlencodingthresh.GetValue())
+        # CSS threshold goes to csig
+        self.config.csig = ud.string_to_value(self.ctlccsthresh.GetValue())
 
         if self.ctlphaseres.GetSelection() == 0:
             self.config.aggressiveflag = 4
@@ -389,7 +493,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         try:
             test = float(self.config.adductmass)
         except:
-            self.config.adductmass=0
+            self.config.adductmass = 0
 
         if self.ctlnegmode.GetValue() == 1:
             # print("Negative Ion Mode")
@@ -403,53 +507,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctladductmass.SetValue(str(self.config.adductmass))
 
         self.config.peakcmap = str(self.ctlpeakcm.GetStringSelection())
-
-
-    def setup_tool_tips(self):
-        """
-        Sets Tool Tips for items on the Main Panel
-        :return: None
-        """
-        self.ctlwindow.SetToolTip(
-            wx.ToolTip("Peak detection window. Peak must be maximum in a +/- window range in mass (Da)."))
-        self.ctlthresh.SetToolTip(wx.ToolTip(
-            "Peak detection threshold. Peak's intensity must be great than threshold times maximum mass intensity."))
-        self.plotbutton2.SetToolTip(wx.ToolTip("Plot individual peak species in m/z. (Ctrl+K)"))
-        self.rununidec.SetToolTip(wx.ToolTip("Write Configuration File, Run UniDec, and Plot Results. (Ctrl+R)"))
-        self.ctlmassbins.SetToolTip(wx.ToolTip("Sets the resolution of the zero-charge mass spectrum"))
-        self.ctlintthresh.SetToolTip(
-            wx.ToolTip("Set intensity threshold. Data points below threshold are excluded from deconvolution."))
-        self.ctlbuff.SetToolTip(wx.ToolTip(
-            "Background subtraction parameters.\nMinimum: 0=off 1=on"
-            "\nLine: The first and last n data points will be averaged;"
-            "\n a line between the two averages will be subtracted.\nCurved: Width of smoothed background"))
-        self.ctlminmz.SetToolTip(wx.ToolTip("Set minimum m/z of data"))
-        self.ctlmaxmz.SetToolTip(wx.ToolTip("Set maximum m/z of data"))
-        self.dataprepbutton.SetToolTip(
-            wx.ToolTip("Subtract, linearize, smooth, threshold, and write data to file. (Ctrl+D)"))
-        self.ctladductmass.SetToolTip(wx.ToolTip("Mass of charge carrying adduct;\ntypically the mass of a proton"))
-
-        self.ctldatanorm.SetToolTip(wx.ToolTip("Normalize Data and Results"))
-        self.ctldatareductionpercent.SetToolTip(
-            wx.ToolTip(
-                "Reduces the amount of data by removing everything below a threshold.\nSets the threshold to fit the percentage of data to remove."))
-        # self.ctlisotopemode.SetToolTip(wx.ToolTip(
-        #     "Use isotopic distributions in deconvolution.\nOutput either monoisotopic or average masses"))
-        self.ctlnumit.SetToolTip(wx.ToolTip(
-            "Maximum number of iterations. Note: Deconvolution will stop automically before this if it converges."))
-
-        self.ctlpublicationmode.SetToolTip(wx.ToolTip("Set plots to look good for publication rather than utility"))
-
-        self.ctlpeakcm.SetToolTip(wx.ToolTip("Set the color function for the peaks"))
-
-        self.ctlnorm.SetToolTip(wx.ToolTip(
-            "Sets normalization of mass data.\nMaximum will normalize so that the maximum value is %100."
-            "\nTotal will normalize so that the sum of all peaks is %100"))
-        self.replotbutton.SetToolTip(wx.ToolTip("Replot some of the plots. (Ctrl+N)"))
-
-        self.ctlphaseres.SetToolTip(wx.ToolTip("Set the priority of speed vs accuracy in the deconvolution algorithm. Speed is 4-bin and Accuracy is 8-bin."))
-
-        pass
 
     # .......................................................
     #
@@ -466,61 +523,5 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlbuff.SetValue("0")
         self.export_gui_to_config()
 
-    def on_collapse_all(self, e=None):
-        num = self.foldpanels.GetCount()
-        for i in range(0, num):
-            fp = self.foldpanels.GetFoldPanel(i)
-            self.foldpanels.Collapse(fp)
-        pass
-
-    def on_expand_all(self, e=None):
-        num = self.foldpanels.GetCount()
-        for i in range(0, num):
-            fp = self.foldpanels.GetFoldPanel(i)
-            self.foldpanels.Expand(fp)
-        pass
-
-    def on_expand_blue(self, e=None):
-        num = self.foldpanels.GetCount()
-        for i in range(0, num):
-            fp = self.foldpanels.GetFoldPanel(i)
-            if i in [0, 1]:
-                self.foldpanels.Expand(fp)
-            else:
-                self.foldpanels.Collapse(fp)
-        pass
-
-    def on_expand_yellow(self, e=None):
-        num = self.foldpanels.GetCount()
-        for i in range(0, num):
-            fp = self.foldpanels.GetFoldPanel(i)
-            if i in [2, 3, 4]:
-                self.foldpanels.Expand(fp)
-            else:
-                self.foldpanels.Collapse(fp)
-        pass
-
-    def on_expand_red(self, e=None):
-        num = self.foldpanels.GetCount()
-        for i in range(0, num):
-            fp = self.foldpanels.GetFoldPanel(i)
-            if i in [5, 6]:
-                self.foldpanels.Expand(fp)
-            else:
-                self.foldpanels.Collapse(fp)
-        pass
-
-    def on_expand_main(self, e=None):
-        num = self.foldpanels.GetCount()
-        for i in range(0, num):
-            fp = self.foldpanels.GetFoldPanel(i)
-            if i in [0, 2, 3, 5]:
-                self.foldpanels.Expand(fp)
-            else:
-                self.foldpanels.Collapse(fp)
-        pass
-
     def on_mousewheel(self, e):
         pass
-
-

@@ -3,6 +3,7 @@ from copy import deepcopy
 
 import numpy as np
 import unidec.tools as ud
+import lxml.etree as ET
 
 
 from pyteomics import mzxml
@@ -39,7 +40,6 @@ class MZXMLImporter(Importer):
         self.filesize = os.stat(path).st_size
         self.msrun = mzxml.read(path)
         self.data = None
-        self.polarity = None
         # self.scans = []
         self.times = []
         self.ids = []
@@ -126,9 +126,13 @@ class MZXMLImporter(Importer):
 
         if scan_range is not None:
             data = data[int(scan_range[0]):int(scan_range[1] + 1)]
-            print("Getting scans:", scan_range)
+            print("Getting scans:", [scan_range[0]+1, scan_range[-1]+1])
         else:
-            print("Getting all scans, length:", len(self.scans), len(data))
+            if len(self.scans) == 1:
+                scan_range = [1,1]
+            else:
+                scan_range = list(np.arange(self.scans[0]+1, len(self.scans)+1))
+            print(scan_range)
 
         if data is None or ud.isempty(data):
             print("Error: Empty Data Object")
@@ -212,7 +216,30 @@ class MZXMLImporter(Importer):
         return np.amax(self.scans)
 
     def get_polarity(self):
-        return self.polarity
+        tree = ET.parse(self.path)
+        root = tree.getroot()
+        polarity = None
+        # Define the namespaces used in the XML
+        namespaces = {'mz': 'http://sashimi.sourceforge.net/schema_revision/mzXML_3.2'}
+
+        scans = root.xpath('//mz:scan', namespaces=namespaces)
+
+        if scans is not None:
+            # Extract the polarity attribute from the scan element
+            polarity = scans[0].attrib.get('polarity', None)
+        if polarity == '+':
+            print("Polarity: Positive")
+            return "Positive"
+        if polarity == '-':
+            print("Polarity: Negative")
+            return "Negative"
+        else:
+            print("Polarity: Unknown")
+            return "Unknown"
+        # To see the raw XML string at first scan
+        # raw_scan_xml = ET.tostring(scans[0], encoding='unicode', pretty_print=True)
+        # print(raw_scan_xml)
+
 
 
 if __name__ == "__main__":

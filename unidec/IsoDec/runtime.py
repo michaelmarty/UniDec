@@ -40,7 +40,7 @@ class IsoDecRuntime:
         self.config.phaseres = phaseres
         self.maxz = 50
         self.reader = None
-        self.predmode = 2
+        self.predmode = 0
 
     def phase_predictor(self, centroids):
         """
@@ -151,9 +151,10 @@ class IsoDecRuntime:
         # self.pks.save_pks()
         return reader
 
-    def export_peaks(self, type="prosightlite", filename=None, reader=None, max_precursors=None):
+    def export_peaks(self, type="prosightlite", filename=None, reader=None, act_type="HCD", max_precursors=None):
+        print("Filename:", filename)
         if filename is None:
-            filename = "peaks.csv"
+            filename = "peaks"
 
         if reader is None:
             reader = self.reader
@@ -161,9 +162,11 @@ class IsoDecRuntime:
         if type == "prosightlite":
             self.pks.export_prosightlite(filename)
         elif type == "msalign":
-            self.pks.export_msalign(reader, filename, max_precursors=max_precursors)
+            self.pks.export_msalign(self.config, reader, filename, act_type=act_type, max_precursors=max_precursors)
         elif type == "pkl":
             self.pks.save_pks()
+        elif type == "tsv":
+            self.pks.export_tsv(filename)
         else:
             raise ValueError("Unknown Export Type", type)
 

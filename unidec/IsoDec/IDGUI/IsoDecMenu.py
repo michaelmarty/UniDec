@@ -26,6 +26,7 @@ class main_menu(wx.Menu):
             " Open a Text File in x y text, mzML, or Thermo RAW format",
         )
         self.menuOpenRaw = self.filemenu.Append(
+
             wx.ID_ANY,
             "Open Waters or Agilent File",
             " Open a Waters .Raw or Agilent .D File",
@@ -38,6 +39,15 @@ class main_menu(wx.Menu):
             "Get Spectrum From Clipboard\tCtrl+G",
             "Pastes the spectrum, formats, and loads",
         )
+        self.filemenu.AppendSeparator()
+
+        # Menu item to reset the config file to default
+        self.menuResetConfig = self.filemenu.Append(
+            wx.ID_ANY,
+            "Set Settings to Default",
+            "Resets the settings to default",
+        )
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_init_config, self.menuResetConfig)
         self.filemenu.AppendSeparator()
 
         self.menufigdialog = self.filemenu.Append(
@@ -128,19 +138,18 @@ class main_menu(wx.Menu):
         # Bind to self.parent.on_batch
         self.parent.Bind(wx.EVT_MENU, self.pres.on_batch, self.menuBatch)
 
+        self.menuOpenDir = self.advancedmenu.Append(wx.ID_ANY, "Open Saved File Directory",
+                                                    "Opens the save directory in the file explorer")
+        self.parent.Bind(wx.EVT_MENU, self.parent.on_open_dir, self.menuOpenDir)
+
         # Setting Menu Bar
         self.menuBar = wx.MenuBar()
         self.menuBar.Append(self.filemenu, "&File")
         self.menuBar.Append(self.toolsmenu, "Tools")
         # self.menuBar.Append(self.analysismenu, "Analysis")
-        # self.menuBar.Append(self.advancedmenu, "Advanced")
+        self.menuBar.Append(self.advancedmenu, "Advanced")
         # self.menuBar.Append(self.experimentalmenu, "Experimental")
         self.parent.SetMenuBar(self.menuBar)
-        # self.Append(self.filemenu, "&File")
-        # self.Append(self.toolsmenu, "Tools")
-        # self.Append(self.analysismenu, "Analysis")
-        # self.Append(self.advancedmenu, "Advanced")
-        # self.Append(self.experimentalmenu, "Experimental")
 
     def on_example_data(self, e):
         # print("Clicked", e)

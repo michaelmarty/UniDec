@@ -22,7 +22,8 @@ except Exception as e:
     print(e)
     print("Unable to import WatersDataImporter")
 
-recognized_types = [".raw", ".RAW", ".mzxml", ".MZXML", ".mzml", ".MZML", ".d", ".D", ".gz"]
+#Should just be case insensitive comparisons when generating importers
+recognized_types = [".raw", ".RAW", ".mzxml", ".MZXML", ".mzml", ".MZML", ".mzML", ".d", ".D", ".gz", '.mzXML',  '.mzMl']
 
 class ImporterFactory:
     def __init__(self):

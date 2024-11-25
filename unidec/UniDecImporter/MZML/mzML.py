@@ -104,6 +104,7 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
 
     print("Length merge axis:", len(template))
 
+
     # Loop through the data and resample it to match the template, either by integration or interpolation
     # Sum the resampled data into the template.
     for d in datalist:
@@ -124,7 +125,6 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
             template = template[::-1]
     except:
         pass
-    print(template)
     return template
 
 
@@ -278,8 +278,7 @@ class MZMLImporter(Importer):
                 print("Scan time not found for spectrum ID:", spectrum.ID)
         self.times = np.array(self.times)
         self.ids = np.array(self.ids)
-        self.ids += 1
-        self.scans = np.arange(1, len(self.ids) + 1)
+        self.scans = np.arange(len(self.ids))
 
 
     def grab_scan_data(self, scan):
@@ -296,7 +295,8 @@ class MZMLImporter(Importer):
             print("Getting times:", time_range)
         if scan_range is None:
             scan_range = [int(np.amin(self.scans)), int(np.amax(self.scans))]
-        print("Scan Range:", scan_range)
+        #display 1 greater than actual index
+        print("Scan Range:", [scan_range[0]+1, scan_range[-1]+1])
         data = get_data_from_spectrum(self.msrun[self.ids[scan_range[0]]])
         resolution = get_resolution(data)
         axis = ud.nonlinear_axis(np.amin(data[:, 0]), np.amax(data[:, 0]), resolution)
@@ -321,41 +321,9 @@ class MZMLImporter(Importer):
                     template[:, 1] += newdat[:, 1]
                     # except Exception as e:
                     #     print("Error", e, "With scan number:", index)
-        self.msrun.close()
+        #self.msrun.close()
         return template
 
-
-    def process_batch_and_merge(self, batch, template):
-        local_template = template.copy()
-        for index in batch:
-                if index < len(self.ids):
-                    try:
-                        spec = self.msrun[self.ids[index]]
-
-                        if spec == None:
-                            continue
-                        data = get_data_from_spectrum(spec)
-                        newdat = ud.mergedata(local_template, data)
-                        local_template[:, 1] += newdat[:, 1]
-                    except Exception as e:
-                        print("Error", e, "With scan number:", index)
-        return local_template
-
-    def generate_batches(self, scan_range, thread_count):
-        total_length = scan_range[-1]-scan_range[0]+1
-        batch_size = total_length // thread_count
-        batches = []
-
-
-        for i in range(thread_count):
-            start_index = i * batch_size
-            if i == thread_count - 1:  # Last batch gets any remaining items
-                batches.append(list(range(start_index, scan_range[1])))
-            else:
-                end_index = start_index + batch_size
-                batches.append(scan_range[start_index:end_index])
-
-        return batches
 
     def grab_data(self):
         for spectrum in self.msrun:
@@ -583,7 +551,8 @@ class MZMLImporter(Importer):
             data = data[int(scan_range[0]):int(scan_range[1] + 1)]
             print("Getting scans:", scan_range)
         else:
-            print("Getting all scans, length:", len(self.scans), data.shape)
+            scan_range = list(np.arange(self.scans[0] + 1, len(self.scans) + 1))
+            print(scan_range)
 
         if data is None or ud.isempty(data):
             print("Error: Empty Data Object")
@@ -604,24 +573,28 @@ class MZMLImporter(Importer):
         print("Import Time:", time.perf_counter() - start_time)
         return data
 
+    #grab pol info from single scan. Similar to old impl but use direct idxing
     def get_polarity(self, scan=1):
-        for s, spec in enumerate(self.msrun):
-            if s == scan:
-                # spec = self.msrun[scan]
-                negative_polarity = spec["negative scan"]
-                if negative_polarity == "" or negative_polarity:
-                    negative_polarity = True
-                    print("Polarity: Negative")
-                    return "Negative"
-
-                positive_polarity = spec["positive scan"]
-                if positive_polarity == "" or positive_polarity:
-                    print("Polarity: Positive")
-                    return "Positive"
-
-                print(positive_polarity, negative_polarity)
-                print("Polarity: Unknown")
-                return None
+        # Directly access the scan at the provided index
+        spec = self.msrun[scan]
+        #to string gets the raw byte xml format of the scan
+        #print(spec.to_string())
+        comp = ""
+        xml = spec.to_string()
+        #convert the byte xml to a string
+        for i in xml:
+            comp+=chr(i)
+        #if we want to look at the raw xml data
+        #print(comp)
+        #look for the string telling us what polarity is
+        if "negative scan" in comp:
+            print("Polarity: Negative")
+            return "Negative"
+        if "positive scan" in comp:
+            print("Polarity: Positive")
+            return "Positive"
+        print("Polarity: Unknown")
+        return None
 
     def get_ms_order(self, s):
         order = self.msrun[s-1].ms_level

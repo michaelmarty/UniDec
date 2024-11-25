@@ -113,16 +113,16 @@ class IDConfig(ctypes.Structure):
 def config_to_settings(config):
     settings = IDSettings()
     settings.phaseres = config.phaseres
-    settings.verbose = config.verbose
+    settings.verbose = int(config.verbose)
     settings.peakwindow = int(config.peakwindow)
     settings.peakthresh = config.peakthresh
-    settings.minpeaks = config.minpeaks
+    settings.minpeaks = int(config.minpeaks)
     settings.css_thresh = config.css_thresh
     settings.matchtol = config.matchtol
-    settings.maxshift = config.maxshift
+    settings.maxshift = int(config.maxshift)
     settings.mzwindow = (config.mzwindow[0], config.mzwindow[1])
     settings.plusoneintwindow = (config.plusoneintwindow[0], config.plusoneintwindow[1])
-    settings.knockdown_rounds = config.knockdown_rounds
+    settings.knockdown_rounds = int(config.knockdown_rounds)
     settings.min_score_diff = config.min_score_diff
     settings.minareacovered = config.minareacovered
     settings.isolength = 64

@@ -90,8 +90,8 @@ struct IsoSettings
 {
 	int phaseres; // Precision of encoding matrix, USER
 	int verbose; // Verbose output
-	int peakwindow; // Peak Detection Window
-	float peakthresh; // Peak Detection Threshold
+	int peakwindow; // Peak Detection Window, USER
+	float peakthresh; // Peak Detection Threshold, USER
 	int minpeaks; // Minimum Peaks for an allowed peak
 	float css_thresh; // Minimum cosine similarity score for isotope distribution, USER
 	float matchtol; // Match Tolerance for peak detection in ppm, USER

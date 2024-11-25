@@ -4,12 +4,13 @@ rem Run Tests on test_GUI and test_MUD
 rem build pyinstaller
 rem build docker and commit
 rem build wheel, test, and commit
-rem python -m build -o .\distpypi
+rem python -m build -o .\distpypib
 rem python -m twine upload --repository testpypi .\distpypi\* --config-file .pypirc (check that old wheels are deleted)
 rem redo last line with pypi instead of testpypi
 rem update docs with .\unidec_doc\make.bat html
 rem paste docs into UniDecDocumentation and push to git
 
 echo "Building"
-C:\Python312\Scripts\pyinstaller.exe GUniDec.spec --noconfirm
+::C:\Python312\Scripts\pyinstaller.exe GUniDec.spec --noconfirm
+C:\Users\MartyLabsOfficePC\Python\Scripts\pyinstaller.exe GUniDec.spec --noconfirm
 rem call "C:\Python\UniDec3\dist\UniDec_Windows\GUI_UniDec.exe"

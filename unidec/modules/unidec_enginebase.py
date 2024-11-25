@@ -1,3 +1,4 @@
+from unidec.UniDecImporter.ImporterFactory import recognized_types
 from unidec.modules import unidecstructure, peakstructure, plot1d, plot2d
 from unidec import tools as ud
 import numpy as np
@@ -193,8 +194,14 @@ class UniDecEngine:
         else:
             return False
 
-    def auto_polarity(self, importer):
-        self.config.polarity = ud.get_polarity(importer)
+    def auto_polarity(self, file_path, importer):
+        ending = "." + file_path.split(".")[-1]
+        #print("ending", ending)
+        if ending in recognized_types:
+            self.config.polarity = importer.get_polarity()
+        else:
+            self.config.polarity = ud.get_polarity(importer)
+
         if self.config.polarity == "Positive":
             self.config.adductmass = np.abs(self.config.adductmass)
             print("Adduct Mass:", self.config.adductmass)

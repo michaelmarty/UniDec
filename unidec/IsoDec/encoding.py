@@ -185,6 +185,56 @@ def encode_phase_file(file, maxlen=8, save=True, outdir="C:\\Data\\IsoNN\\multi"
     return training, test, zdist
 
 
+def save_encoding(data, outfile):
+    emat = [d[0] for d in data]
+    centroids = np.array([d[1] for d in data], dtype=object)
+    z = [d[2] for d in data]
+    print("Saving to:", outfile)
+    np.savez_compressed(outfile, emat=emat, centroids=centroids, z=z)
+
+
+def encode_dir(pkldir, outdir=None, name="medium", maxfiles=None, plot=False, **kwargs):
+    startime = time.perf_counter()
+    training = []
+    test = []
+    zdist = []
+
+    files = ud.match_files_recursive(pkldir, ".pkl")
+
+    if maxfiles is not None:
+        files = files[:maxfiles]
+
+    print("Files:", files)
+
+    for file in files:
+        if "bad_data" in file:
+            continue
+
+        tr, te, zd = encode_phase_file(file, **kwargs)
+
+        training.extend(tr)
+        test.extend(te)
+        zdist.extend(zd)
+
+    # Write out everything
+    print(len(training), len(test))
+    if outdir is not None:
+        if not os.path.isdir(outdir):
+            os.mkdir(outdir)
+        os.chdir(outdir)
+
+    save_encoding(training, "training_data_" + name + ".npz")
+    save_encoding(test, "test_data_" + name + ".npz")
+
+    # torch.save(training, "training_data_" + name + ".pth")
+    # torch.save(test, "test_data_" + name + ".pth")
+
+    endtime = time.perf_counter()
+    print("Time:", endtime - starttime, len(zdist))
+    if plot:
+        plt.hist(zdist, bins=np.arange(0.5, 50.5, 1))
+        plt.show()
+
 data_dirs = ["MSV000090488",
              "MSV000091923",
              "RibosomalPfms_Td_Control",

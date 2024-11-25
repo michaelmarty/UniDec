@@ -9,13 +9,13 @@ import zipfile
 import fnmatch
 import numpy as np
 
-
 from unidec.modules import unidecstructure, peakstructure, MassFitter
 import unidec.tools as ud
 import unidec.modules.IM_functions as IM_func
 import unidec.modules.MassSpecBuilder as MSBuild
 from unidec.modules.unidec_enginebase import UniDecEngine
 from unidec.modules import plot1d, plot2d
+from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 
 # import modules.DoubleDec as dd
 
@@ -85,7 +85,7 @@ class UniDec(UniDecEngine):
             pass
 
     def open_file(self, file_name, file_directory=None, time_range=None, refresh=False, load_results=False,
-                  *args, **kwargs):
+                 isodeceng=None, *args, **kwargs):
         """
         Open text or mzML file. Will create _unidecfiles directory if it does not exist.
 
@@ -149,8 +149,10 @@ class UniDec(UniDecEngine):
         self.config.extension = os.path.splitext(self.config.filename)[1]
         self.config.default_file_names()
 
-
-        self.data.rawdata = ud.load_mz_file(self.config.filename, config=self.config)
+        curr_importer = ImporterFactory.create_importer(self.config.filename)
+        if isodeceng is not None:
+            isodeceng.reader = curr_importer
+        self.data.rawdata = ud.load_mz_file(path=self.config.filename, config=self.config, importer=curr_importer)
         if len(self.data.rawdata.tolist()) == 0:
             print("Error: Data Array is Empty")
             print("Likely an error with data conversion")
@@ -195,7 +197,7 @@ class UniDec(UniDecEngine):
 
         #Need to streamline this so it isnt creating a whole new importer just to grab the polarity.
         #For bigger files this is an additional unnecessary couple thousand iterations
-        self.auto_polarity(file_path)
+        self.auto_polarity(file_path, importer = curr_importer)
 
         if load_results:
             self.unidec_imports(everything=True)

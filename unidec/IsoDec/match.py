@@ -26,6 +26,7 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         self.activescanrt = -1
         self.activescanorder = -1
         self.meanpeakspacing_thresh = 0.01  ##This needs to be optimized.
+        self.isolation_width = 3.0
 
         self.adductmass = 1.007276467
         self.mass_diff_c = 1.0033
@@ -45,7 +46,7 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         self.plusoneintwindow = [0.1, 0.6]
         self.knockdown_rounds = 5
         self.min_score_diff = 0.1
-        self.minareacovered = 0.15
+        self.minareacovered = 0.20
         self.minusoneaszero = True
         self.isotopethreshold = 0.01
         self.datathreshold = 0.05
@@ -131,7 +132,7 @@ class MatchedCollection:
             else:
                 nearest_idx = fastnearest(grouped_peak_mzs, p.mz)
                 mz_diff = np.abs(p.mz - grouped_peak_mzs[nearest_idx])
-                if mz_diff < 0.01 and p.z == grouped_peaks[nearest_idx].z:
+                if mz_diff < 0.001 and p.z == grouped_peaks[nearest_idx].z:
                     grouped_peaks[nearest_idx].monoisos.append(p.monoiso)
                 else:
                     #Insert into the grouped peaks/grouped_mzs at the proper position
@@ -332,7 +333,7 @@ class MatchedCollection:
                 outstring += str(m) + "\n"
         return outstring
 
-    def export_msalign(self, reader, filename="export.msalign", act_type="HCD", max_precursors=None):
+    def export_msalign(self, config, reader, filename="export.msalign", act_type="HCD", max_precursors=None):
         print("Exporting to", filename, "with activation type", act_type, "N:", len(self.peaks))
         ms1_scan_dict = msalign.sort_by_scan_order(self, 1)
         ms1_features = 0
@@ -345,9 +346,8 @@ class MatchedCollection:
             ms2_features += len(v)
         print("MS2 Features:", ms2_features)
 
-        msalign.write_ms1_msalign(ms1_scan_dict, ms2_scan_dict, filename)
-        msalign.write_ms2_msalign(ms2_scan_dict, ms1_scan_dict, reader, filename, max_precursors=max_precursors,
-                                  act_type=act_type)
+        msalign.write_ms1_msalign(ms1_scan_dict, ms2_scan_dict, filename, config)
+        msalign.write_ms2_msalign(ms2_scan_dict, ms1_scan_dict, reader, filename, config, max_precursors=max_precursors, act_type=act_type)
 
     def to_df(self):
         """
@@ -473,7 +473,7 @@ def df_to_matchedcollection(df, monoiso="Monoisotopic Mass", peakmz="Most Abunda
     return mc
 
 
-def read_msalign_to_matchedcollection(file, data=None):
+def read_msalign_to_matchedcollection(file, data=None, mz_type="monoiso"):
     """
     Read an msalign file to a MatchedCollection object
     :param file: Path to msalign file
@@ -530,7 +530,8 @@ def read_msalign_to_matchedcollection(file, data=None):
 
                 for i in range(len(isodist)):
                     isodist[i, 1] *= dmax
-                pk.mz = isodist[np.argmax(isodist[:, 1]), 0]
+                if mz_type == "monoiso":
+                    pk.mz = isodist[np.argmax(isodist[:, 1]), 0]
                 pk.isodist = isodist
     print("Loaded", len(mc.peaks), "peaks from msalign file")
     return mc
@@ -717,6 +718,8 @@ def compare_matchedmasses(coll1, coll2, ppmtol=20, maxshift=3, rt_tol = 2, f_sha
     matched_intensity1 = np.sum(np.array([m.totalintensity for m in matched_coll1]))
     matched_intensity2 = np.sum(np.array([m.totalintensity for m in matched_coll2]))
 
+
+
     percent_matched1 = (len(matched_coll1) / len(coll1.masses)) * 100
     percent_matched2 = (len(matched_coll2) / len(coll2.masses)) * 100
     percent_intensity1 = (matched_intensity1 / sum_intensity1) * 100
@@ -726,7 +729,7 @@ def compare_matchedmasses(coll1, coll2, ppmtol=20, maxshift=3, rt_tol = 2, f_sha
     print("% Matched Intensity Collection 1:", (matched_intensity1 / sum_intensity1) * 100)
     print("% Matched Intensity Collection 2:", (matched_intensity2 / sum_intensity2) * 100)
 
-    return percent_matched1, percent_matched2, percent_intensity1, percent_intensity2
+    return percent_matched1, percent_matched2, percent_intensity1, percent_intensity2, len(matched_coll1), len(matched_coll2), len(monoisos1), len(monoisos2)
 
 
 def compare_annotated(l1, l2, ppmtol, maxshift):
@@ -793,7 +796,8 @@ def compare_matched_ions(coll1, coll2, other_alg=None):
         matched = False
         for p2 in coll2.peaks:
             if set(p1.matchedions) & set(p2.matchedions):
-                shared1.append(p1)
+                if p1 not in shared1:
+                    shared1.append(p1)
                 matched = True
         if not matched and len(p1.matchedions) > 0:
             unique1.append(p1)
@@ -802,7 +806,8 @@ def compare_matched_ions(coll1, coll2, other_alg=None):
         matched = False
         for p1 in coll1.peaks:
             if set(p1.matchedions) & set(p2.matchedions):
-                shared2.append(p2)
+                if p2 not in shared2:
+                    shared2.append(p2)
                 matched = True
         if not matched and len(p2.matchedions) > 0:
             unique2.append(p2)
@@ -815,6 +820,11 @@ def compare_matched_ions(coll1, coll2, other_alg=None):
     print("% Shared", other_name, ":", len(shared2) / (len(shared2) + len(unique2)) * 100)
     print("% Unique IsoDec:", len(unique1) / (len(shared1) + len(unique1)) * 100)
     print("% Unique", other_name, ":", len(unique2) / (len(shared2) + len(unique2)) * 100)
+
+    print("Number shared IsoDec:", len(shared1))
+    print("Number shared", other_name, ":", len(shared2))
+    print("Number unique IsoDec:", len(unique1))
+    print("Number unique", other_name, ":", len(unique2))
 
     #Create matched collections of shared and unique peaks
     shared1 = MatchedCollection().add_peaks(shared1)
@@ -853,7 +863,7 @@ def get_unique_matchedions(coll1, coll2):
     return shared, unique1, unique2
 
 
-@njit(fastmath=True)
+#@njit(fastmath=True)
 def create_isodist(peakmz, charge, data, adductmass=1.007276467):
     """
     Create an isotopic distribution based on the peak m/z and charge state.
@@ -1199,6 +1209,7 @@ def find_matched_intensities(spec1_mz: np.ndarray, spec1_intensity: np.ndarray, 
                 value = spec1_intensity[j]
                 if value > cent_intensities[i]:
                     cent_intensities[i] = spec1_intensity[j]
+
     return cent_intensities
 
 

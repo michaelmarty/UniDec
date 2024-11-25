@@ -64,7 +64,6 @@ class AgilentImporter(Importer):
                 print("Getting times:", time_range)
             if scan_range is None:
                 scan_range = [np.amin(self.scans), np.amax(self.scans)]
-            scan_range = np.array(scan_range, dtype=int)
             print("Scan Range:", scan_range)
 
             if scan_range[0] < np.amin(self.scans):
@@ -81,6 +80,7 @@ class AgilentImporter(Importer):
                 data = impdat
 
         except Exception as e:
+            print(e)
             print("Failed native raw averaging. Using Python averaging.")
             if self.data is None:
                 self.grab_data()
@@ -91,7 +91,6 @@ class AgilentImporter(Importer):
 
             if scan_range is not None and len(scan_range) == 2:
                 data = data[scan_range[0]:scan_range[1]]
-                print("Getting scans:", scan_range)
             elif scan_range is not None:
                 print("Getting scan:", scan_range[0])
                 data= data[scan_range[0]]
@@ -159,27 +158,29 @@ class AgilentImporter(Importer):
             return [t, t, t]
 
     def get_polarity(self, scan=0):
+
         self.scan_info = self.msrun.scan_info()
         line = self.scan_info[scan]
-        print(line)
-        if "+" in line:
+        #previous checking for +
+        if "Positive" in line:
             print("Polarity: Positive")
             return "Positive"
-        if "-" in line:
+        # previous checking for -
+        if "Negative" in line:
             print("Polarity: Negative")
             return "Negative"
         print("Polarity: Unknown")
         return None
 
 
-if __name__ == '__main__':
-    path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\AgilentData\\2019_05_15_bsa_ccs_02.d"
-    test = AgilentImporter(path)
-    print(type(test))
-    res = test.grab_data()
-    for i in res:
-        print(i)
-    print("Finished")
+# if __name__ == '__main__':
+#     path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\AgilentData\\2019_05_15_bsa_ccs_02.d"
+#     test = AgilentImporter(path)
+#     print(type(test))
+#     res = test.grab_data()
+#     for i in res:
+#         print(i)
+#     print("Finished")
 
 
 

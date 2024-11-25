@@ -35,6 +35,7 @@ class WatersDataImporter(Importer):
         print("Waters Data Type:", self.reader.GetFunctionTypeString(fn), "Function:", self.function)
         self.maxscans = self.reader.GetScansInFunction(self.function)
         self.scanrange = [0, self.maxscans]
+        print("Waters Scan Range", self.scanrange)
         self.scans = np.arange(self.scanrange[0], self.scanrange[1])
         self.times = []
         for s in self.scans:

@@ -86,7 +86,6 @@ class ThermoImporter(Importer):
                 scan_range = [np.amin(self.scans), np.amax(self.scans)]
             except:
                 scan_range = [1, 2]
-        scan_range = np.array(scan_range, dtype=int)
         print("Thermo Scan Range:", scan_range)
 
         try:

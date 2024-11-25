@@ -39,10 +39,18 @@ from scipy import signal
 MAX_CHARGE = 50
 
 
-def gen_thrash_arrays(centroids, startpad=5):
+def gen_thrash_arrays(centroids, startpad=10):
     max_mz = centroids[-1, 0]
     min_mz = centroids[0, 0]
-    num_l = round((max_mz - min_mz) * MAX_CHARGE * 4)
+
+    additional = 4 - (max_mz - min_mz)
+    if additional < 0:
+        additional = 0
+    else:
+        max_mz += additional / 2
+        min_mz -= additional / 2
+
+    num_l = int((max_mz - min_mz) * MAX_CHARGE * 8)
 
     intx = np.linspace(min_mz, max_mz, num_l)
     if len(intx) <= 1:
@@ -71,8 +79,8 @@ def gen_thrash_arrays(centroids, startpad=5):
     fftx = fftx[b1]
 
     fft /= np.max(fft)
-
     ac2 = ud.lintegrate(np.transpose([acx, ac]), fftx)
+
 
     acx, ac = ac2[:, 0], ac2[:, 1]
     ac /= np.max(ac)
@@ -80,22 +88,12 @@ def gen_thrash_arrays(centroids, startpad=5):
     return linear_data, ac, fft, mul, fftx, acx
 
 def thrash_predict(centroids):
-    startpad = 1
-    linear_data, ac, fft, mul, fftx, acx = gen_thrash_arrays(centroids, startpad)
+    linear_data, ac, fft, mul, fftx, acx = gen_thrash_arrays(centroids)
     if linear_data is None or len(mul) == 0:
         return 0
-    #
-    # plt.subplot(121)
-    # plt.plot(linear_data[:, 0], linear_data[:, 1])
-    # plt.subplot(122)
-    # plt.plot(acx, mul)
-    # plt.plot(acx, ac-1)
-    # plt.plot(fftx, fft-2)
-    # plt.show()
     maxpos = np.argmax(mul)
 
     charge = acx[maxpos]
-    print(charge)
     return round(charge)
 
 

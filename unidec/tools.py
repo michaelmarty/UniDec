@@ -934,7 +934,7 @@ def get_polarity(path):
     return polarity
 
 
-def load_mz_file(path: str, config: object = None, time_range: object = None, imflag: int = 0) -> np.ndarray:
+def load_mz_file(path: str, importer=None, config: object = None, time_range: object = None, imflag: int = 0)-> np.ndarray:
     """
     Loads a text or mzml file
     :param path: File path to load
@@ -954,13 +954,9 @@ def load_mz_file(path: str, config: object = None, time_range: object = None, im
             elif extension == '.npz':
                 data = np.load(path, allow_pickle=True)['data']
         elif extension in recognized_types:
-            importer = ImporterFactory.create_importer(path)
+            if importer == None:
+                importer = ImporterFactory.create_importer(path)
             data = importer.get_data()
-            # if polarity == "Positive":
-            #     np.append(data, -1)
-            # else:
-            #     np.append(data, -1)
-
 
         else:
             raise ValueError("Unsupported file extension")
@@ -3216,12 +3212,12 @@ def traverse_to_unidec(topname="UniDec3"):
     if win:
         new_path = truncated[0] + "\\"
         for i in range(1, len(truncated)):
-
             new_path = os.path.join(new_path, truncated[i])
             currlow = truncated[i].lower()
             # check for duplicate dbl zip
-            if truncated[i + 1] != topname and currlow == lowertop:
-                break
+            if i+1 < len(truncated):
+                if truncated[i + 1] != topname and currlow == lowertop:
+                    break
     else:
         for i in range(len(truncated)):
             new_path = os.path.join(new_path, truncated[i])
@@ -3241,6 +3237,7 @@ def start_at_iso(targetfile):
         print("Path does not exist: ", path)
         path = traverse_to_unidec("_internal")
         if not os.path.exists(path):
+
             print("Path does not exist: ", path)
             return result
 
@@ -3258,6 +3255,7 @@ def start_at_iso(targetfile):
                 if result:
                     return result
         # Now look in internal
+
         if not result:
             parent = traverse_to_unidec("_internal")
             result = find_dll(targetfile, parent)

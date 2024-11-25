@@ -35,6 +35,7 @@ for dll in dlls:
 
 #dll_path = "C:\\Python\\UniDec3\\unidec\\UniDecImporter\\Agilent"
 pathtothisfile = os.path.dirname(__file__)
+print(pathtothisfile)
 
 dlls = ['MassSpecDataReader', 'BaseCommon', 'BaseDataAccess']
 for dll in dlls:
@@ -211,11 +212,34 @@ class MZFile:
         if not nonmsDevs.Length: raise IOError("No NonmsDevices were available")
         return self.source.GetTWC(nonmsDevs[0])
 
-        # nonmsSource = INonmsDataReader(self.source)
-        # nonmsDevs = nonmsSource.GetNonmsDevices()
-        # if not nonmsDevs.Length: raise IOError("No NonmsDevices were available")
-        # return nonmsSource.GetTWC(nonmsDevs[0])
+    def average_scan(self, scan_range):
+        """
+        Average the scan data across multiple scans.
+        :param scan_range: Tuple or list defining the scan range.
+        :return: Averaged scan data as a sorted list of tuples (average mz, average intensity)
+        """
+        # Assuming `scans` is a list of lists, where each sublist contains tuples (mz, intensity)
+        dists = list(chain(
+            *[[s[i + 1][0] - s[i][0] for i in range(len(s) - 1)] for s in self.scans[scan_range[0]:scan_range[1]]]))
 
+        # Find the smallest distance, adjust by a tiny bit to avoid rounding issues
+        max_width = min(dists) - 0.000001
+
+        # Aggregate points based on the max_width found above
+        aggregated_scan = self.aggregate_points(list(chain(*self.scans[scan_range[0]:scan_range[1]])),
+                                                MAX_WIDTH=max_width)
+
+        if aggregated_scan:
+            avg_scan = []
+            for agg_pts in aggregated_scan:
+                avg_mz = self.average([x[0] for x in agg_pts])  # Average mz values
+                avg_int = sum([x[1] for x in agg_pts]) / len(self.scans)  # Average intensity values across scans
+                avg_scan.append((avg_mz, avg_int))
+
+            return sorted(avg_scan)
+        else:
+            print("Error: Aggregated scan data is empty")
+            return []
 
 
 def average(xs, weights=None):
@@ -239,22 +263,7 @@ def average(xs, weights=None):
 #     value = initial
 
 
-def average_scan(scans):
 
-    dists = list(chain(*[[s[i + 1][0] - s[i][0] for i in range(len(s) - 1)]
-                         for s in scans]))
-    max_width = min(dists) - 0.000001
-    aggregated_scan = aggregate_points(list(chain(*scans)),MAX_WIDTH=max_width)
-    if aggregated_scan:
-        avg_scan = []
-        for agg_pts in aggregated_scan:
-            avg_mz = average([x[0] for x in agg_pts])
-
-            avg_int = sum([x[1] for x in agg_pts]) / len(scans)
-
-            avg_scan.append((avg_mz, avg_int))
-
-        return sorted(avg_scan)
 
 
 def aggregate_points(pointlist, distance_function=None, MAX_WIDTH=0.025):
