@@ -134,14 +134,16 @@ def config_to_settings(config):
     settings.zscore_threshold = config.zscore_threshold
     return settings
 
+current_path = os.path.dirname(os.path.realpath(__file__))
+
+default_dll_path = start_at_iso("isodeclib.dll", guess = current_path)
+if not default_dll_path:
+    print("DLL not found anywhere")
 
 class IsoDecWrapper:
-    def __init__(self, dllpath=None, modeldir=None):
-
-        dllpath = start_at_iso("isodeclib.dll")
-        if not dllpath:
-            print("DLL not found anywhere")
-
+    def __init__(self, dllpath=None):
+        if dllpath is None:
+            dllpath = default_dll_path
 
         modelpath = dllpath.rsplit("\\", 1)[0]
 

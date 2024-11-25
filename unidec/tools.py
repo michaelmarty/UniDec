@@ -3176,9 +3176,8 @@ def find_dll(targetfile, dir):
 
     for entry in os.scandir(dir):
         if entry.is_file() and entry.name == targetfile:
-            print("Found DLL within:", entry.path)
+            #print("Found DLL within:", entry.path)
             return entry.path
-
 
         elif entry.is_dir():
             result = find_dll(targetfile, entry.path)
@@ -3187,12 +3186,8 @@ def find_dll(targetfile, dir):
 
     return ""
 
-
 # this gets me here:
-
 # C:\Python\UniDec3\
-
-import os
 
 
 def traverse_to_unidec(topname="UniDec3"):
@@ -3201,6 +3196,7 @@ def traverse_to_unidec(topname="UniDec3"):
     win = False
     # Get the absolute path of the current script
     curr_pos = os.path.abspath(__file__)
+    print("Current path: ", curr_pos)
     if "\\" in curr_pos:
         win = True
         truncated = curr_pos.split("\\")
@@ -3228,8 +3224,16 @@ def traverse_to_unidec(topname="UniDec3"):
     return new_path
 
 
-def start_at_iso(targetfile):
+def start_at_iso(targetfile, guess=None):
     result = ""
+    print("Guess:", guess)
+    if guess is not None:
+        if os.path.isdir(guess):
+            result = find_dll(targetfile, guess)
+            if result:
+                print("Found DLL within guess:", result)
+                return result
+
     # print("Starting in unidec/isodec")
     parent = traverse_to_unidec()
     path = os.path.join(parent, "unidec", "IsoDec")
@@ -3237,28 +3241,33 @@ def start_at_iso(targetfile):
         print("Path does not exist: ", path)
         path = traverse_to_unidec("_internal")
         if not os.path.exists(path):
-
             print("Path does not exist: ", path)
-            return result
-
-    for entry in os.scandir(path):
-        if entry.is_file() and entry.name == targetfile:
-            print("Found DLL within:", entry.path)
-            result = entry.path
-            return result
+            path = traverse_to_unidec("unidec")
+            if not os.path.exists(path):
+                print("Path does not exist: ", path)
+                return result
+    print("Path:", path)
+    if os.path.isdir(path):
+        for entry in os.scandir(path):
+            if entry.is_file() and entry.name == targetfile:
+                print("Found DLL within:", entry.path)
+                result = entry.path
+                return result
     if not result:
         # Iterate alphabetically from the parent
         print("Dll not found in nested subdirectory, searching alphabetically from parent")
-        for entry in os.scandir(parent):
-            if entry.is_dir():
-                result = find_dll(targetfile, entry.path)
-                if result:
-                    return result
+        if os.path.isdir(parent):
+            for entry in os.scandir(parent):
+                if entry.is_dir():
+                    result = find_dll(targetfile, entry.path)
+                    if result:
+                        return result
         # Now look in internal
-
+        print("Dll not found in parent. Searching in internal.")
         if not result:
             parent = traverse_to_unidec("_internal")
-            result = find_dll(targetfile, parent)
+            if os.path.isdir(parent):
+                result = find_dll(targetfile, parent)
             return result
 
 

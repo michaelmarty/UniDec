@@ -3,8 +3,7 @@ import time
 # from scipy import fftpack
 from numpy import fft as fftpack
 from numba import njit
-from copy import deepcopy
-from unidec.IsoDec.IsoGen.isogenwrapper import IsoGenWrapper
+from unidec.IsoDec.isogenwrapper import IsoGenWrapper
 
 # import numba as nb
 # import pyteomics.mass as ms

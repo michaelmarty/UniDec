@@ -22,14 +22,14 @@ class IsoDecPres(UniDecPres):
         self.init_config()
 
         self.view = IsoDecView(self, "IsoDec", self.eng.config, iconfile=None)
-        if True:
+        try:
             if platform.node() == 'MTM-VOSTRO':
                 self.on_ex()
                 self.on_unidec_button()
                 self.on_plot_peaks()
                 self.on_plot_dists()
-        # except:
-        #     pass
+        except:
+            pass
 
     def init_config(self):
         self.translate_id_config()
