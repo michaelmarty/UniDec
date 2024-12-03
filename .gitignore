@@ -220,8 +220,8 @@ unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_report.pdf
 unidec/bin/Example Data/BSA_unidecfiles/BSA_ofile_crazy.dat
 unidec/bin/Example Data/BSA_unidecfiles/BSA_report.html
 unidec_src/UniDec/test_match.bat
-unidec/LipiDec/LipyDec.py
-unidec/LipiDec/SkyQuant.py
+Scripts/LipiDec/LipyDec.py
+Scripts/LipiDec/SkyQuant.py
 docker_commands.txt
 unidec/bin/Example Data/BSA_unidecfiles/BSA_conv.bin
 .pypirc
