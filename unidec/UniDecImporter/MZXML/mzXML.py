@@ -5,14 +5,11 @@ import numpy as np
 import unidec.tools as ud
 import lxml.etree as ET
 
-
 from pyteomics import mzxml
 
 __author__ = 'Michael.Marty'
 
 from unidec.UniDecImporter.Importer import Importer
-
-
 
 
 def get_data_from_spectrum(spectrum, threshold=-1):
@@ -27,6 +24,7 @@ class MZXMLImporter(Importer):
     """
     Imports mzXML data files.
     """
+
     def __init__(self, path, *args, **kwargs):
         """
         Imports mzXML file, adds the chromatogram into a single spectrum.
@@ -36,11 +34,9 @@ class MZXMLImporter(Importer):
         :return: mzXMLimporter object
         """
         print("Reading mzXML:", path)
-        self.path = path
         self.filesize = os.stat(path).st_size
         self.msrun = mzxml.read(path)
         self.data = None
-        # self.scans = []
         self.times = []
         self.ids = []
         for i, spectrum in enumerate(self.msrun):
@@ -126,12 +122,12 @@ class MZXMLImporter(Importer):
 
         if scan_range is not None:
             data = data[int(scan_range[0]):int(scan_range[1] + 1)]
-            print("Getting scans:", [scan_range[0]+1, scan_range[-1]+1])
+            print("Getting scans:", [scan_range[0] + 1, scan_range[-1] + 1])
         else:
             if len(self.scans) == 1:
-                scan_range = [1,1]
+                scan_range = [1, 1]
             else:
-                scan_range = list(np.arange(self.scans[0]+1, len(self.scans)+1))
+                scan_range = list(np.arange(self.scans[0] + 1, len(self.scans) + 1))
             print(scan_range)
 
         if data is None or ud.isempty(data):
@@ -241,7 +237,6 @@ class MZXMLImporter(Importer):
         # print(raw_scan_xml)
 
 
-
 if __name__ == "__main__":
     test = u"C:\\Data\\Wilson_Genentech\\Raw Files for Michael Marty\\B4.mzXML"
     test = "D:\\Data\\TopDown\\denatured_discovery_input_topfd.mzxml"
@@ -254,7 +249,7 @@ if __name__ == "__main__":
     exit()
 
     tic = d.get_tic()
-    #print(len(tic))
+    # print(len(tic))
     import matplotlib.pyplot as plt
 
     plt.plot(tic[:, 0], tic[:, 1])
@@ -263,7 +258,7 @@ if __name__ == "__main__":
     exit()
     print(len(d.scans))
 
-    #data = d.get_data_memory_safe()
+    # data = d.get_data_memory_safe()
     data = d.get_data()
     tend = time.perf_counter()
     # print(call, out)

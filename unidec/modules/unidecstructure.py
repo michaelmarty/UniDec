@@ -52,7 +52,7 @@ class UniDecConfig(object):
         """
         self.version = version
         self.inputversion = None
-        self.dtype = np.single
+        self.dtype = ud.dtype
         self.centroided = False
 
         # File names and paths

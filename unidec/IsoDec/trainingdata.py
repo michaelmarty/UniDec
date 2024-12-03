@@ -8,7 +8,7 @@ import pickle as pkl
 import time
 from unidec.IsoDec.match import create_isodist, find_matches
 from typing import List, Tuple
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from unidec.UniDecImporter.ImporterFactory import ImporterFactory, recognized_types
 
 @njit(fastmath=True)
 def match_peaks(centroids: np.array, isodist: np.array, tol: float = 5.0) -> Tuple[List[int], List[int]]:
@@ -70,7 +70,7 @@ def is_valid(file):
     :return: True/False whether file is valid UniDec data file
     """
     extension = "." + file.split(".")[-1]
-    if extension.lower() in ud.known_extensions:
+    if extension.lower() in recognized_types:
         return True
     else:
         return False

@@ -1,3 +1,5 @@
+import os.path
+
 from unidec.UniDecImporter.Agilent.MZFILE import MZFile as mzFile, MZFile
 from unidec.UniDecImporter.Importer import *
 from unidec import tools as ud
@@ -8,6 +10,7 @@ import numpy as np
 import time
 
 
+# When is the msrun scaninfo even being populated ever
 
 
 class AgilentImporter(Importer):
@@ -19,23 +22,14 @@ class AgilentImporter(Importer):
         self.scanrange = self.msrun.scan_range()
         self.scans = np.arange(self.scanrange[0], self.scanrange[1])
         self.times = []
+        # self.times = [self.get_times_from_scans(self.scanrange)]
         self.data = None
-        for s in self.scans:
-            s = s - 1
-            try:
-                self.times.append(self.msrun.scan_time_from_scan_name(s))
-            except Exception as e:
-                try:
-                    t = self.msrun.info[s][0]
-                    self.times.append(t)
-                except Exception as e2:
-                    try:
-                        t = self.msrun.scan_info()[s][0]
-                        self.times.append(t)
-                    except Exception as e3:
-                        print("Error getting scan times:", e, e2, e3)
-                        print("Using Scan rather than Time")
-                        self.times.append(s)
+
+        self.datascans = []
+        curr_info = self.msrun.scan_info()
+        for i in curr_info:
+            self.datascans.append(self.msrun.scan(i[2]))
+            self.times.append(i[0])
         self.times = np.array(self.times)
 
     def grab_data(self):
@@ -50,6 +44,12 @@ class AgilentImporter(Importer):
         self.data = np.array(self.data, dtype=object)
         return self.data
 
+
+    def grab_scan_data(self, scan):
+        impdat = np.array(self.msrun.scan(int(scan)))
+        impdat = impdat[impdat[:, 0] > 10]
+        return impdat
+
     def get_data(self, scan_range=None, time_range=None, mzbins=None):
         """
         Returns merged 1D MS data from mzML import
@@ -58,7 +58,7 @@ class AgilentImporter(Importer):
         try:
             if scan_range is not None:
                 scan_range = np.array(scan_range, dtype=int)
-                scan_range = scan_range+1
+                scan_range = scan_range
             if time_range is not None:
                 scan_range = self.get_scans_from_times(time_range)
                 print("Getting times:", time_range)
@@ -71,13 +71,17 @@ class AgilentImporter(Importer):
             if scan_range[1] > np.amax(self.scans):
                 scan_range[1] = np.amin(self.scans)
 
-            if scan_range[1]-scan_range[0] > 1:
+            if scan_range[1] - scan_range[0] > 1:
                 # noinspection PyUnresolvedReferences
-                data = np.array(list(self.msrun.average_scan(int(scan_range[0]), int(scan_range[1]), filter="Full")))
+                # print("I got here")
+                # data = np.array(list(self.msrun.average_scan(int(scan_range[0]), int(scan_range[1]))))
+                data = np.array(list(self.msrun.average_scan(self.scanrange, self.datascans)))
+                # print("made it past before dying")
             else:
-                impdat = np.array(self.msrun.scan(scan_range[0]))  # May want to test this.
+                impdat = np.array(self.msrun.scan(scan_range[0]))
                 impdat = impdat[impdat[:, 0] > 10]
                 data = impdat
+
 
         except Exception as e:
             print(e)
@@ -88,12 +92,11 @@ class AgilentImporter(Importer):
             if time_range is not None:
                 scan_range = self.get_scans_from_times(time_range)
                 print("Getting times:", time_range)
-
             if scan_range is not None and len(scan_range) == 2:
                 data = data[scan_range[0]:scan_range[1]]
             elif scan_range is not None:
                 print("Getting scan:", scan_range[0])
-                data= data[scan_range[0]]
+                data = data[scan_range[0]]
                 return data
             else:
                 print("Getting all scans, length:", len(self.scans))
@@ -110,7 +113,6 @@ class AgilentImporter(Importer):
                 data = data[0]
             else:
                 data = data
-
         return data
 
     # noinspection PyArgumentList
@@ -161,7 +163,7 @@ class AgilentImporter(Importer):
 
         self.scan_info = self.msrun.scan_info()
         line = self.scan_info[scan]
-        #previous checking for +
+        # previous checking for +
         if "Positive" in line:
             print("Polarity: Positive")
             return "Positive"
@@ -171,7 +173,7 @@ class AgilentImporter(Importer):
             return "Negative"
         print("Polarity: Unknown")
         return None
-
+        pass
 
 # if __name__ == '__main__':
 #     path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\AgilentData\\2019_05_15_bsa_ccs_02.d"
@@ -181,6 +183,3 @@ class AgilentImporter(Importer):
 #     for i in res:
 #         print(i)
 #     print("Finished")
-
-
-

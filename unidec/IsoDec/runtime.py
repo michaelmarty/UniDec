@@ -102,11 +102,11 @@ class IsoDecRuntime:
         # Get importer and check it
         reader = ImporterFactory.create_importer(file)
         self.reader = reader
-        ext = os.path.splitext(file)[1]
         try:
             print("File:", file, "N Scans:", np.amax(reader.scans))
         except Exception as e:
             print("Could not open:", file)
+            print(e)
             return []
 
         if "centroid" in file:
@@ -114,8 +114,13 @@ class IsoDecRuntime:
             print("Assuming Centroided Data")
         else:
             centroided = False
-
+        ext = file.split(".")[-1]
+        print("Here is ext", ext)
         t2 = time.perf_counter()
+        if (ext == ".raw" or ext == ".RAW") and not os.path.isdir(reader.path):
+            isThermo = True
+        else:
+            isThermo = False
         # Loop over all scans
         for s in reader.scans:
             if scans is not None:
@@ -124,10 +129,12 @@ class IsoDecRuntime:
 
             # Open the scan and get the spectrum
             try:
-                if ext == ".raw":
+
+                if isThermo:
                     spectrum = reader.grab_centroid_data(s)
-                    centroided = True
+                    reader.centroided = True
                 else:
+                    # mzml and mzxml will auto detect if it is centroided from pymzml
                     spectrum = reader.grab_scan_data(s)
             except Exception as e:
                 print("Error Reading Scan", s, e)
@@ -135,11 +142,9 @@ class IsoDecRuntime:
             # If the spectrum is too short, skip it
             if len(spectrum) < 3:
                 continue
-
             self.config.set_scan_info(s, reader)
-            # b1 = spectrum[:,1] > 0
-            # spectrum = spectrum[b1]
-            self.batch_process_spectrum(spectrum, centroided=centroided)
+            print("Scan:", s, "Length:", len(spectrum))
+            self.batch_process_spectrum(spectrum, centroided=reader.centroided)
 
             if s % 10 == 0:
                 print("Scan:", s, "Length:", len(spectrum), "Avg. Time per scan:", (time.perf_counter() - t2) / 10.)

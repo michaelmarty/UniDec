@@ -4,14 +4,12 @@ import sys
 import math
 import subprocess
 import time
-import re
 import decimal
 from bisect import bisect_left
 from copy import deepcopy
 import zipfile
-from math import trunc
+import fnmatch
 
-# noinspection PyUnresolvedReferences
 import numpy as np
 import scipy.fft
 import scipy.ndimage.filters as filt
@@ -22,42 +20,25 @@ from scipy import signal
 from scipy import fftpack
 import matplotlib.cm as cm
 import matplotlib.colors as colors
-
-from unidec.UniDecImporter.Importer import Importer
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.modules.fitting import *
-from itertools import cycle
 
-# from numba import jit
-
-try:
-    from unidec.UniDecImporter.MZML import mzML
-except:
-    pass
-from unidec.modules import unidecstructure
-import fnmatch
-
-try:
-    from unidec.UniDecImporter.Waters import Waters as WDI
-except:
-    print("Could not import Waters Data Importer")
+# ...............................
+#
+# Constants
+#
+# .................................
 
 is_64bits = sys.maxsize > 2 ** 32
 protmass = 1.007276467
 oxmass = 15.994914
 
-known_extensions = [".raw", ".d", ".mzml", ".gz", ".mzml.gz", ".mzxml", ".mzML", ".mzML.gz", ".mzXML",
-                    ".txt", ".csv", ".dat", ".npz"]
+luminance_cutoff = 135
 
-HTseqDict = {'2': '101', '3': '1110100', '4': '000100110101111', '5': '0000100101100111110001101110101',
-             '6': '000001000011000101001111010001110010010110111011001101010111111',
-             '7': '0000001000001100001010001111001000101100111010100111110100001110001001001101101011011110110001101001011101110011001010101111111',
-             '8': '000000010111000111011110001011001101100001111001110000101011111111001011110100101000011011101101111101011101000001100101010100011010110001100000100101101101010011010011111101110011001111011001000010000001110010010011000100111010101101000100010100100011111',
-             '-2': '010', '-3': '0001011', '-4': '111011001010000', '-5': '1111011010011000001110010001010',
-             '-103': '0010111', '-105': '1010111011000111110011010010000', '5S4': '1001011001111100011011101010000',
-             '5S13': '1111100011011101010000100101100', '5S15': '1110001101110101000010010110011'
-             }
+dtype = np.single
 
+extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position",
+                  5: "Center of Mass 50%", 6: "Center of Mass 10%", 7: "Center of Mass Squares",
+                  8: "Center of Mass Cubes", 9: "Center of Mass 50% Squares", 10: "Center of Mass 50% Cubes"}
 
 # ..........................
 #
@@ -81,9 +62,6 @@ def commonprefix(args):
     return os.path.commonprefix(args).rpartition(sep)[0]
 
 
-luminance_cutoff = 135
-
-
 def get_luminance(color, type=2):
     try:
         r = color.Red()
@@ -100,11 +78,6 @@ def get_luminance(color, type=2):
     return larray[type]
 
 
-def create_color_cycle(seq='bgrcmk'):
-    cycol = cycle(seq)
-    return cycol
-
-
 def get_color_from_index(index, seq="custom1"):
     if seq == "tab":
         carray = colors.TABLEAU_COLORS.keys()
@@ -114,6 +87,40 @@ def get_color_from_index(index, seq="custom1"):
         carray = cm.get_cmap(seq).colors
     color = list(carray)[index % len(carray)]
     return color
+
+
+def make_alpha_cmap(rgb_tuple, alpha):
+    """
+    Make color map where RGB specified in tup
+    :param rgb_tuple: Tuple of RGB vaalues [0,1]
+    :param alpha: Maximum Alpha (Transparency) [0,1]
+    :return: Color map dictionary with a constant color but varying transprency
+    """
+    cdict = {'red': ((0.0, rgb_tuple[0], rgb_tuple[0]),
+                     (1.0, rgb_tuple[0], rgb_tuple[0])), 'green': ((0.0, rgb_tuple[1], rgb_tuple[1]),
+                                                                   (1.0, rgb_tuple[1], rgb_tuple[1])),
+             'blue': ((0.0, rgb_tuple[2], rgb_tuple[2]),
+                      (1.0, rgb_tuple[2], rgb_tuple[2])), 'alpha': ((0.0, 0, 0),
+                                                                    (1.0, alpha, alpha))}
+    cmap = colors.LinearSegmentedColormap("newcmap", cdict)
+    return cmap
+
+
+def color_map_array(array, cmap, alpha):
+    """
+    For a specified array of values, map the intensity to a specified RGB color defined by cmap (output as topcm).
+    For each color, create a color map where the color is constant but the transparency changes (output as cmarr).
+    :param array: Values
+    :param cmap: Color map
+    :param alpha: Max Alpha value (transparency) [0,1]
+    :return: cmarr, topcm (list of transparent color maps, list of RGB colors for array values)
+    """
+    rtab = array
+    topcm = cm.ScalarMappable(cmap=cmap).to_rgba(rtab)[:, :3]
+    cmarr = []
+    for i in range(0, len(rtab)):
+        cmarr.append(make_alpha_cmap(topcm[i], alpha))
+    return cmarr, topcm
 
 
 def match_files(directory, string, exclude=None):
@@ -141,34 +148,6 @@ def match_files_recursive(topdir, ending=".raw"):
             if f.endswith(ending):
                 found_files.append(os.path.join(root, f))
     return np.array(found_files)
-
-
-def find_kernel_file(kernel_path):
-    kernel_name = os.path.basename(kernel_path)
-
-    if kernel_name.split('_')[-1] != "mass.txt":
-        # If the filename doesn't end in "_mass.txt", it's not a mass file
-        is_mass = False
-    else:
-        # Otherwise, it might be a mass file. Check if linear
-        kernel_dat = np.loadtxt(kernel_path)
-        kernel_diff = np.diff(kernel_dat[:, 0])
-        is_mass = np.all(kernel_diff == kernel_diff[0])
-
-    if is_mass:
-        return kernel_path
-    else:
-        # If not a mass file, find the mass file
-        bare_name = os.path.splitext(kernel_name)[0]
-        kernel_path2 = os.path.dirname(kernel_path) + "\\" + bare_name + "_unidecfiles\\" + \
-                       bare_name + "_mass.txt"
-
-        try:
-            with open(kernel_path2, "r") as f:
-                return kernel_path2
-        except (IOError, FileNotFoundError) as err:
-            # print("Please deconvolve the m/z file [" + kernel_name + "] with UniDec first.")
-            return None
 
 
 def isempty(thing):
@@ -250,22 +229,6 @@ def decimal_formatter(a, template):
 def round_to_nearest(n, m):
     r = n % m
     return n + m - r if r + r >= m else n - r
-
-
-def fix_textpos(pos, maxval):
-    cutoff = 0.05 * maxval
-    posout = []
-    for i, p in enumerate(pos):
-        newp = p
-        if i > 0:
-            pastpos = posout[-1]
-            if np.abs(p - pastpos) < cutoff:
-                if p < pastpos:
-                    newp = p + 2 * cutoff
-                elif p >= pastpos:
-                    newp = p + cutoff
-        posout.append(newp)
-    return np.array(posout)
 
 
 def safedivide(a, b):
@@ -511,11 +474,6 @@ def limit_data(data, start, end):
     boo2 = data[:, 0] >= start
     intdat = data[np.all([boo1, boo2], axis=0)]
     return intdat
-
-
-extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position",
-                  5: "Center of Mass 50%", 6: "Center of Mass 10%", 7: "Center of Mass Squares",
-                  8: "Center of Mass Cubes", 9: "Center of Mass 50% Squares", 10: "Center of Mass 50% Cubes"}
 
 
 def data_extract(data, x, extract_method, window=None, **kwargs):
@@ -847,137 +805,6 @@ def solve_for_mass(mz1, mz2, adductmass=1.007276467):
 # File manipulation
 #
 # .........................................
-
-
-def header_test(path, deletechars=None, delimiter=" |\t", strip_end_space=True):
-    """
-    A quick test of a file to remove any problems from the header.
-
-    If scans through each line of an input file specificed by path and count the number of lines that cannot be
-    completely converted to floats. It breaks the loop on the first hit that is entirely floats, so any header lines
-    blow that will not be counted.
-    :param path: Path of file to be scanned
-    :param deletechars: Characters to be removed from the file before scanning
-    :param delimiter: Delimiter to be used in the file
-    :param strip_end_space: Boolean to strip the end space from the line
-    :return: Integer length of the number of header lines
-    """
-    header = 0
-    try:
-        with open(path, "r") as f:
-            for line in f:
-                # If the line is empty, skip it and add to the header
-                if line == "\n":
-                    header += 1
-                    continue
-                # Remove any characters that are defined in deletechars
-                if deletechars is not None:
-                    for c in deletechars:
-                        line = line.replace(c, "")
-
-                # Strip the end space if strip_end_space is True
-                if strip_end_space:
-                    if line[-1] == "\n" and len(line) > 1:
-                        line = line[:-1]
-                    if line[-1] == " " and len(line) > 1:
-                        line = line[:-1]
-
-                # Split the line by the delimiter and try to convert each element to a float
-                for sin in re.split(delimiter, line):  # line.split(delimiter):
-                    try:
-                        float(sin)
-                    except ValueError:
-                        # print(sin, line)
-                        header += 1
-                        break
-        # If the header is greater than 0, print the header length
-        if header > 0:
-            print("Header Length:", header)
-    except (ImportError, OSError, AttributeError, IOError) as e:
-        print("Failed header test", e)
-        header = 0
-    return int(header)
-
-
-'''
-def waters_convert(path, config=None, outfile=None):
-    if config is None:
-        config = unidecstructure.UniDecConfig()
-        config.initialize_system_paths()
-        print(config.rawreaderpath)
-    print(outfile)
-    if outfile is None:
-        outfile = os.path.join(path, "converted_rawdata.txt")
-    call = [config.rawreaderpath, "-i", path, "-o", outfile]
-    print(call)
-    result = subprocess.call(call)
-    print("Conversion Stderr:", result)
-    data = np.loadtxt(outfile)
-    return data'''
-
-
-def waters_convert2(path, config=None, outfile=None, time_range=None):
-    data = WDI(path).get_data(time_range=time_range)
-
-    if outfile is None:
-        outfile = os.path.join(path, "converted_rawdata.txt")
-    np.savetxt(outfile, data)
-    return data
-
-
-def get_polarity(path):
-    try:
-        importer = ImporterFactory.create_importer(path)
-        polarity = importer.get_polarity()
-    except:
-        polarity = "Positive"
-    return polarity
-
-
-def load_mz_file(path: str, importer=None, config: object = None, time_range: object = None, imflag: int = 0)-> np.ndarray:
-    """
-    Loads a text or mzml file
-    :param path: File path to load
-    :param config: UniDecConfig object
-    :return: Data array
-    """
-    from unidec.UniDecImporter.ImporterFactory import recognized_types
-
-    extension = os.path.splitext(path)[1].lower()
-
-    try:
-        if extension in ['.csv', '.txt', '.dat', '.npz']:
-            if extension in ['.txt', '.dat']:
-                data = np.loadtxt(path, skiprows=header_test(path))
-            elif extension == '.csv':
-                data = np.loadtxt(path, delimiter=",", skiprows=1, usecols=(0, 1))
-            elif extension == '.npz':
-                data = np.load(path, allow_pickle=True)['data']
-        elif extension in recognized_types:
-            if importer == None:
-                importer = ImporterFactory.create_importer(path)
-            data = importer.get_data()
-
-        else:
-            raise ValueError("Unsupported file extension")
-    except Exception as e:
-
-        print(f"Error loading file {path}: {e}")
-        return None
-
-    return data
-
-    # if extension == ".mzml":
-    #     num = -5
-    # if extension == '.gz':
-    #     num = -8
-    # txtname = path[:num] + ".txt"
-    # if imflag == 1:
-    #     if config.compressflag == 1:
-    #         mzbins = config.mzbins
-    #     else:
-    #         mzbins = None
-    # Now we hit the actual importer files we want
 
 
 def zipdir(path, zip_handle):
@@ -1594,8 +1421,7 @@ def removeduplicates(datatop):
     :param datatop: Data array (N x 2)
     :return: Data with unique x values
     """
-    config = unidecstructure.UniDecConfig()
-    floatdata = np.array(datatop[:, 0], dtype=config.dtype)
+    floatdata = np.array(datatop[:, 0], dtype=dtype)
     testunique = np.unique(floatdata)
     if len(testunique) != len(floatdata):
         print("Removing Duplicates")
@@ -2152,41 +1978,6 @@ def sticks_only(mztab, kernel):
     temp[np.array(mztab[:, 2]).astype(int)] = mztab[:, 1]
     return temp
 
-
-def make_alpha_cmap(rgb_tuple, alpha):
-    """
-    Make color map where RGB specified in tup
-    :param rgb_tuple: Tuple of RGB vaalues [0,1]
-    :param alpha: Maximum Alpha (Transparency) [0,1]
-    :return: Color map dictionary with a constant color but varying transprency
-    """
-    cdict = {'red': ((0.0, rgb_tuple[0], rgb_tuple[0]),
-                     (1.0, rgb_tuple[0], rgb_tuple[0])), 'green': ((0.0, rgb_tuple[1], rgb_tuple[1]),
-                                                                   (1.0, rgb_tuple[1], rgb_tuple[1])),
-             'blue': ((0.0, rgb_tuple[2], rgb_tuple[2]),
-                      (1.0, rgb_tuple[2], rgb_tuple[2])), 'alpha': ((0.0, 0, 0),
-                                                                    (1.0, alpha, alpha))}
-    cmap = colors.LinearSegmentedColormap("newcmap", cdict)
-    return cmap
-
-
-def color_map_array(array, cmap, alpha):
-    """
-    For a specified array of values, map the intensity to a specified RGB color defined by cmap (output as topcm).
-    For each color, create a color map where the color is constant but the transparency changes (output as cmarr).
-    :param array: Values
-    :param cmap: Color map
-    :param alpha: Max Alpha value (transparency) [0,1]
-    :return: cmarr, topcm (list of transparent color maps, list of RGB colors for array values)
-    """
-    rtab = array
-    topcm = cm.ScalarMappable(cmap=cmap).to_rgba(rtab)[:, :3]
-    cmarr = []
-    for i in range(0, len(rtab)):
-        cmarr.append(make_alpha_cmap(topcm[i], alpha))
-    return cmarr, topcm
-
-
 # ..............................................
 #
 # Matching Functions
@@ -2251,36 +2042,6 @@ def combine_all(array2):
     # finlist = np.array([np.sum((index + startindex) * omass + basemass) for index in namelist])
     finlist = np.sum((namelist + startindex) * omass + basemass, axis=1)
 
-    """
-    for index in np.ndindex(tup):
-        vals = index + startindex
-        b1 = vals > 0
-        vstr = vals[b1].astype(str)
-        nstr = "[" + np.char.array(names[b1]) + "] "
-        nstr[nstr == "[] "] = ""
-        fstr = vstr + nstr
-        name = ""
-        for i in range(0, len(vstr)):
-            name += fstr[i]
-        namelist.append(name)"""
-    '''
-        for index in np.ndindex(tup):
-        name = ""
-        for i in range(0, len(index)):
-            val = index[i] + startindex[i]
-            if val > 0:
-                if names[i] == "":
-                    name = name + str(val)
-                else:
-                    name = name + str(val) + "[" + names[i] + "] "
-            else:
-                pass
-        total = np.sum((index + startindex) * omass + basemass)
-        if total > 0:
-            finlist.append(total)
-            namelist.append(name)
-            # print index,name'''
-
     b1 = finlist != 0
     finlist = finlist[b1]
     namelist = namelist[b1]
@@ -2300,15 +2061,7 @@ def make_isolated_match(oligos):
                 index = np.zeros(len(oligos)).astype(int)
                 index[i] = j
                 oligonames.append(index - start)
-                '''
-                if j > 0 or oligos[i][4] == "":
-                    if oligos[i][4] == "":
-                        oligonames.append(str(j))
-                    else:
-                        oligonames.append(str(j) + "[" + oligos[i][4] + "]")
-                else:
-                    oligonames.append("")
-                    # self.oligonames.append(str(j)+""+oligos[i][4])'''
+
     oligomasslist = np.array(oligomasslist)
     return oligomasslist, oligonames
 
@@ -2794,142 +2547,6 @@ def win_fft_diff(rawdata, binsize=0.05, sigma=1000, diffrange=None, norm=True):
     return maxdiff, fftdat
 
 
-def windowed_autocorr(data, mean, sigma, diffrange=None):
-    if diffrange is None:
-        diffrange = [0, 500]
-    window = ndis_std(data[:, 0], mean, sigma)
-    newdata = deepcopy(data)
-    newdata[:, 1] = newdata[:, 1] * window
-    acdat, acpeaks = autocorr(newdata)
-    acdat = limit_data(acdat, diffrange[0], diffrange[1])
-    return acpeaks, acdat
-
-
-def win_autocorr_grid(rawdata, binsize, wbin, window_fwhm, diffrange):
-    # Prepare data
-    mindat = np.amin(rawdata[:, 0])
-    maxdat = np.amax(rawdata[:, 0])
-
-    mzdata = linearize(rawdata, binsize, 3)
-    mzdata = pad_two_power(mzdata)
-
-    xvals = np.arange(mindat, maxdat, wbin)
-
-    results = np.array([windowed_autocorr(mzdata, x, x * window_fwhm, diffrange=diffrange)[1] for x in xvals])
-
-    intdat = results[:, :, 1]
-    yvals = np.unique(results[:, :, 0])
-    xgrid, ygrid = np.meshgrid(xvals, yvals, indexing="ij")
-    out = np.transpose([np.ravel(xgrid), np.ravel(ygrid), np.ravel(intdat)])
-    return out
-
-
-def correlation_integration(dat1, dat2, alpha=0.01, plot_corr=False, **kwargs):
-    """
-    Perform MacCoss method (https://pubs.acs.org/doi/pdf/10.1021/ac034790h) of getting peak intensities
-    :param dat1: Denominator peak
-    :param dat2: Numerator peak
-    :param alpha: 1-confidence level
-    :param plot_corr: Boolean flag, if True, will plot the results
-    :param kwargs: keywords (unused dump)
-    :return: slope, cierr, rsquared, slope_std_error * np.sqrt(n), pvalue
-    slope of line (ratio of peak areas)
-    cierr (confidence interval for error)
-    rsquared (R squared value for linear fit)
-    slope_std_error * np.sqrt(n) (standard deviation of slope fit)
-    pvalue (probability that slope is nonzero)
-    """
-    n = len(dat1)
-    # sigma=0.1
-    # r1=np.random.normal(scale=sigma,size=n)
-    # r2=np.random.normal(scale=sigma,size=n)
-
-    y1 = dat1[:, 1]  # +r1
-    y2 = dat2[:, 1]  # +r2
-
-    outputs = stats.linregress(y1, y2)
-    slope, intercept, rvalue, pvalue, slope_std_error = outputs
-    rsquared = rvalue ** 2.
-    # print rsquared
-    df = n - 2  # degrees of freedom
-    tval = stats.t.isf(alpha / 2., df)
-    # ci=slope + tval*slope_std_error*np.array([-1,1])
-    cierr = tval * slope_std_error
-    # print ci,cierr
-
-    if slope > 0 and plot_corr:
-        print(slope, cierr, rsquared, slope_std_error * np.sqrt(n), pvalue)
-        fitdat = y1 * slope + intercept
-        import matplotlib.pyplot as plt
-        plt.figure()
-        plt.subplot(121)
-        plt.scatter(y1, y2)
-        plt.plot(y1, fitdat)
-        plt.subplot(122)
-        plt.plot(y1)
-        if pvalue < alpha:
-            plt.plot(y2)
-        else:
-            plt.plot(y2, color="r")
-        plt.show()
-
-    return slope, cierr, rsquared, slope_std_error * np.sqrt(n), pvalue
-
-
-def wide_sse(dat1, dat2, sig):
-    """
-    Tests the sum of squared errors between two sets of data where the second has been convolved with a Gaussian
-    :param dat1: Reference list of intensities.
-    :param dat2: Test spectrum list of intensities to broaden.
-    :param sig: Sigma for Gaussian filter
-    :return: SSE between dat1 and broadedned dat1 (float)
-    """
-    wdat = filt.gaussian_filter1d(dat2, sig)
-    wdat = wdat / np.amax(wdat) * np.amax(dat1)
-    return np.sum((wdat - dat1) ** 2)
-
-
-def broaden(aligned):
-    """
-    Take a list of aligned peaks and broaden each so that they achieve maximum overlap with the broadest one.
-    :param aligned: Array (N x M x 2). N is the number of peaks, M is the number of data points, 2 is (x,y)
-    :return: combined, aligned: The combined total of all the aligned and broaded individual peaks.
-    """
-    # First, normalize everything
-    norms = np.array([a[:, 1] / np.amax(a[:, 1]) for a in aligned])
-    # Then, find the total area under the normalized peaks
-    totals = np.sum(norms, axis=1)
-
-    # Sort the array so that the biggest peak is first
-    sortindexes = np.argsort(totals)
-    reverse = norms[sortindexes][::-1]
-
-    # For the second peak on, find the minimum deviation as a function of gaussian blur size
-    sigs = []
-    for i, r in enumerate(reverse):
-        if i == 0:
-            sigs.append(0)
-        else:
-            sigrange = np.arange(0, len(r), 1)
-            sigdat = [wide_sse(reverse[0], r, s) for s in sigrange]
-            minpos = np.argmin(sigdat)
-            bestsig = sigrange[minpos]
-            sigs.append(bestsig)
-    # Reverse everything so that the correct sigmas are restored to their rightful place
-    sigs = np.array(sigs)[::-1][sortindexes]
-
-    # Apply the sigmas to the original array
-    for i, a in enumerate(aligned):
-        a[:, 1] = filt.gaussian_filter1d(a[:, 1], sigs[i])
-        pass
-
-    # Sum and combine the spectra into a global master
-    alignedsum = np.average(aligned[:, :, 1], axis=0)
-    combined = np.transpose([aligned[0, :, 0], alignedsum])
-
-    return combined, aligned
-
-
 def calc_FWHM(peak, data):
     index = nearest(data[:, 0], peak)
     int = data[index, 1]
@@ -3163,20 +2780,13 @@ def within_ppm(theo, exp, ppmtol):
     return np.abs(((theo - exp) / theo) * 1e6) <= ppmtol
 
 
-def save_data_to_text(path):
-    path = path.split(".")
-    np.savetxt(path[0] + "_data.txt", data)
-    print("Saving data: " + path[0] + "_data.txt")
-    return None
-
-
 def find_dll(targetfile, dir):
     if dir is None:
         return ""
 
     for entry in os.scandir(dir):
         if entry.is_file() and entry.name == targetfile:
-            #print("Found DLL within:", entry.path)
+            # print("Found DLL within:", entry.path)
             return entry.path
 
         elif entry.is_dir():
@@ -3186,9 +2796,6 @@ def find_dll(targetfile, dir):
 
     return ""
 
-# this gets me here:
-# C:\Python\UniDec3\
-
 
 def traverse_to_unidec(topname="UniDec3"):
     lowertop = topname.lower()
@@ -3196,7 +2803,7 @@ def traverse_to_unidec(topname="UniDec3"):
     win = False
     # Get the absolute path of the current script
     curr_pos = os.path.abspath(__file__)
-    print("Current path: ", curr_pos)
+    # print("Current path: ", curr_pos)
     if "\\" in curr_pos:
         win = True
         truncated = curr_pos.split("\\")
@@ -3211,7 +2818,7 @@ def traverse_to_unidec(topname="UniDec3"):
             new_path = os.path.join(new_path, truncated[i])
             currlow = truncated[i].lower()
             # check for duplicate dbl zip
-            if i+1 < len(truncated):
+            if i + 1 < len(truncated):
                 if truncated[i + 1] != topname and currlow == lowertop:
                     break
     else:
@@ -3226,12 +2833,12 @@ def traverse_to_unidec(topname="UniDec3"):
 
 def start_at_iso(targetfile, guess=None):
     result = ""
-    print("Guess:", guess)
+    # print("Guess:", guess)
     if guess is not None:
         if os.path.isdir(guess):
             result = find_dll(targetfile, guess)
             if result:
-                print("Found DLL within guess:", result)
+                # print("Found DLL within guess:", result)
                 return result
 
     # print("Starting in unidec/isodec")
@@ -3246,7 +2853,7 @@ def start_at_iso(targetfile, guess=None):
             if not os.path.exists(path):
                 print("Path does not exist: ", path)
                 return result
-    print("Path:", path)
+    # print("Path:", path)
     if os.path.isdir(path):
         for entry in os.scandir(path):
             if entry.is_file() and entry.name == targetfile:
@@ -3272,26 +2879,6 @@ def start_at_iso(targetfile, guess=None):
 
 
 if __name__ == "__main__":
-    testdir = "C:\\Data\\AgilentData"
-    testfile = "LYZ-F319-2-11-22-P1-A1.D"
-    # testfile = "2019_05_15_bsa_ccs_02.d"
-    path = os.path.join(testdir, testfile)
-
-    data = load_mz_file(path)
-
-    exit()
-    testfile = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw"
-    # data = waters_convert(testfile)
-    # print(np.amax(data))
-    data = waters_convert2(testfile)  # , time_range=[0,1])
-    # print(np.amax(data))
-    print(data)
-    exit()
-    testfile = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw\\test_imms_imraw.txt"
-    print(header_test(testfile))
-
-    exit()
-
     x = [0., 1., 2., 3., 4.]
     y = [1, 0.7, 0.5, 0.4, 0.3]
     import matplotlib.pyplot as plt

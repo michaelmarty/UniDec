@@ -3,7 +3,21 @@ import time
 # from scipy import fftpack
 from numpy import fft as fftpack
 from numba import njit
-from unidec.IsoDec.isogenwrapper import IsoGenWrapper
+try:
+    from unidec.IsoDec.isogenwrapper import IsoGenWrapper
+
+    # @njit(fastmath=True)
+    def isogenmass(mass):
+        eng = IsoGenWrapper()
+        return eng.gen_isodist(mass)
+
+except Exception as e:
+    print("Could not import IsoGenWrapper")
+    print(e)
+
+    def isogenmass(mass):
+        return isomike(mass, length=64)
+
 
 # import numba as nb
 # import pyteomics.mass as ms
@@ -102,10 +116,7 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467):
 
     return dist
 
-#@njit(fastmath=True)
-def isogenmass(mass):
-    eng = IsoGenWrapper()
-    return eng.gen_isodist(mass)
+
 
 
 #@njit(fastmath=True)

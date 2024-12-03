@@ -237,9 +237,9 @@ class MassLynxRawReader(object):
         #    massLynxDll = ctypes.WinDLL(path)
         #    os.chdir(startdir)
         #except Exception as e2:
-        print(e)
-        print(path)
-        print(os.path.isfile(path))
+        print("Error loading MassLynxRaw.dll:", e)
+        if not os.path.isfile(path):
+            print("File not found:", path)
 
     def __init__(self, source, mlType):
 
@@ -385,9 +385,10 @@ class MassLynxRawProcessor(object):
         #    massLynxDll = ctypes.WinDLL(path)
         #    os.chdir(startdir)
         #except Exception as e2:
-        print(e)
-        print(path)
-        print(os.path.isfile(path))
+        # print("Error loading MassLynxRaw.dll:", e)
+        # if not os.path.isfile(path):
+        #     print("File not found:", path)
+        pass
 
     def __init__(self, rr):
         self.mlRawProcessor = c_void_p()  # instance variable

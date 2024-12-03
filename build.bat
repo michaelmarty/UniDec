@@ -4,7 +4,7 @@ rem Run Tests on test_GUI and test_MUD
 rem build pyinstaller
 rem build docker and commit
 rem build wheel, test, and commit
-rem python -m build -o .\distpypib
+rem python -m build -o .\distpypi
 rem python -m twine upload --repository testpypi .\distpypi\* --config-file .pypirc (check that old wheels are deleted)
 rem redo last line with pypi instead of testpypi
 rem update docs with .\unidec_doc\make.bat html

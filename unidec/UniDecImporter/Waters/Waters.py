@@ -1,16 +1,16 @@
 import numpy as np
-
+from copy import deepcopy
+import unidec.tools as ud
 from unidec.UniDecImporter.Importer import Importer
 from unidec.UniDecImporter.MZML.mzML import merge_spectra
 from unidec.UniDecImporter.Waters import MassLynxRawScanReader as MLRSR, MassLynxRawInfoReader as MLRIR, \
     MassLynxRawChromatogramReader as MLCR
 
+
 class WatersDataImporter(Importer):
-    def __init__(self, path, do_import = False, function = 0, *args, **kwargs):
+    def __init__(self, path, do_import=False, function=0, *args, **kwargs):
         super().__init__(path, **kwargs)
         print("Reading Data:", path)
-        self.path = path
-
         self.reader = MLRIR.MassLynxRawInfoReader(path)
         self.readerMS = MLRSR.MassLynxRawScanReader(path)
 
@@ -119,6 +119,9 @@ class WatersDataImporter(Importer):
 
         return data
 
+    def grab_scan_data(self, scan):
+        return self.readerMS.ReadScan(self.function, scan)
+
     def get_tic(self):
         self.readerLC = MLCR.MassLynxRawChromatogramReader(self.path)
         tic = np.transpose(self.readerLC.ReadTIC(self.function))
@@ -224,6 +227,7 @@ class WatersDataImporter(Importer):
             return "Negative"
         print("Polarity: Unknown")
         return None
+
 
 if __name__ == "__main__":
     test = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw"

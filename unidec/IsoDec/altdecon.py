@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import unidec.tools as ud
-import matplotlib
-
-matplotlib.use('WxAgg')
+# import matplotlib
+#
+# matplotlib.use('WxAgg')
 
 example = np.array(
     [

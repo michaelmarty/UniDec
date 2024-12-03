@@ -3,6 +3,7 @@ import os
 import numpy as np
 from pathlib import Path
 import sys
+import platform
 
 path_root = Path(__file__).parents[2]
 sys.path.append(str(path_root))
@@ -13,6 +14,20 @@ from unidec.IsoDec.match import MatchedPeak, MatchedCollection, IsoDecConfig
 
 from unidec.IsoDec.plots import plot_pks
 from unidec.tools import traverse_to_unidec, find_dll, start_at_iso
+
+
+current_path = os.path.dirname(os.path.realpath(__file__))
+
+if platform.system() == "Windows":
+    dllname = "isodeclib.dll"
+elif platform.system() == "Linux":
+    dllname = "isodeclib.so"
+else:
+    dllname = "isodeclib.dylib"
+
+default_dll_path = start_at_iso(dllname, guess = current_path)
+if not default_dll_path:
+    print("DLL not found anywhere")
 
 example = np.array(
     [
@@ -134,11 +149,6 @@ def config_to_settings(config):
     settings.zscore_threshold = config.zscore_threshold
     return settings
 
-current_path = os.path.dirname(os.path.realpath(__file__))
-
-default_dll_path = start_at_iso("isodeclib.dll", guess = current_path)
-if not default_dll_path:
-    print("DLL not found anywhere")
 
 class IsoDecWrapper:
     def __init__(self, dllpath=None):

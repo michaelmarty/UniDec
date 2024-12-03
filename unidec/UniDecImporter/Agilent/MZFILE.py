@@ -1,41 +1,17 @@
 # Rip of multiplierz's mzFile
+import math
 import os
 import sys
 import clr
+import numpy as np
 from numpy import average
 from itertools import chain
 
 from unidec.UniDecImporter.Thermo.RawFileReader import pathtothisfile
 
-'''
-
-pathtothisfile = os.path.dirname(__file__)
-# print(pathtothisfile)
-dlls = ['ThermoFisher.CommonCore.Data', 'ThermoFisher.CommonCore.RawFileReader',
-        'ThermoFisher.CommonCore.BackgroundSubtraction', 'ThermoFisher.CommonCore.MassPrecisionEstimator']
-
-print(pathtothisfile)
-
-for dll in dlls:
-    testpath = os.path.join(pathtothisfile, dll) + ".dll"
-    # print(testpath)
-    if os.path.isfile(testpath):
-        # print("1")
-        clr.AddReference(testpath)
-    else:
-        try:
-            # print("2")
-            import sys
-
-            sys.path.append(pathtothisfile)
-            clr.AddReference(dll)
-        except:
-            # print("3")
-            clr.AddReference(dll)'''
 
 #dll_path = "C:\\Python\\UniDec3\\unidec\\UniDecImporter\\Agilent"
 pathtothisfile = os.path.dirname(__file__)
-print(pathtothisfile)
 
 dlls = ['MassSpecDataReader', 'BaseCommon', 'BaseDataAccess']
 for dll in dlls:
@@ -50,7 +26,6 @@ for dll in dlls:
             clr.AddReference(dll)
 clr.AddReference("System.Collections")
 
-import Agilent
 from Agilent.MassSpectrometry.DataAnalysis import (MassSpecDataReader, BDAChromFilter, MsdrPeakFilter,
                                                    MsdrChargeStateAssignmentFilter, IMsdrDataReader, IBDAChromFilter,
                                                    IMsdrChargeStateAssignmentFilter,
@@ -101,19 +76,22 @@ class MZFile:
     def scan_info(self, start_time=None, stop_time=None, start_mz=None, stop_mz=None):
         if self.info == None:
             self.info = []
-            for index in range(self.source.FileInformation.MSScanFileInformation.TotalScansPresent):
-                infoObj = self.source.GetScanRecord(self.source, index)
-                rt = infoObj.RetentionTime
-                mz = infoObj.MZOfInterest
-                if not rt: break
-                if start_time != None and rt <= start_time: continue
-                if stop_time != None and rt >= stop_time: continue
-                if start_mz != None and mz <= start_mz: continue
-                if stop_mz != None and mz >= stop_mz: continue
-                level = 'MS%d' % int(infoObj.MSLevel)
-                polarity = str(infoObj.IonPolarity)
-                # scanType = str(infoObj.MSScanType)
-                self.info.append((rt, mz, index, level, polarity))
+        for index in range(self.source.FileInformation.MSScanFileInformation.TotalScansPresent):
+
+            infoObj = self.source.GetScanRecord(self.source, index)
+
+            rt = infoObj.RetentionTime
+            mz = infoObj.MZOfInterest
+            # if not rt: break
+            if start_time != None and rt <= start_time: continue
+            if stop_time != None and rt >= stop_time: continue
+            if start_mz != None and mz <= start_mz: continue
+            if stop_mz != None and mz >= stop_mz: continue
+            level = 'MS%d' % int(infoObj.MSLevel)
+            polarity = str(infoObj.IonPolarity)
+            # scanType = str(infoObj.MSScanType)
+            self.info.append((rt, mz, index, level, polarity))
+        #print("Data", self.info)
         return self.info
 
     def headers(self):
@@ -212,34 +190,59 @@ class MZFile:
         if not nonmsDevs.Length: raise IOError("No NonmsDevices were available")
         return self.source.GetTWC(nonmsDevs[0])
 
-    def average_scan(self, scan_range):
-        """
-        Average the scan data across multiple scans.
-        :param scan_range: Tuple or list defining the scan range.
-        :return: Averaged scan data as a sorted list of tuples (average mz, average intensity)
-        """
+        # nonmsSource = INonmsDataReader(self.source)
+        # nonmsDevs = nonmsSource.GetNonmsDevices()
+        # if not nonmsDevs.Length: raise IOError("No NonmsDevices were available")
+        # return nonmsSource.GetTWC(nonmsDevs[0])
+
+    def average_scan(self, scan_range, scans):
         # Assuming `scans` is a list of lists, where each sublist contains tuples (mz, intensity)
         dists = list(chain(
-            *[[s[i + 1][0] - s[i][0] for i in range(len(s) - 1)] for s in self.scans[scan_range[0]:scan_range[1]]]))
+            *[[s[i + 1][0] - s[i][0] for i in range(len(s) - 1)] for s in scans[scan_range[0]:scan_range[1]]]))
 
         # Find the smallest distance, adjust by a tiny bit to avoid rounding issues
-        max_width = min(dists) - 0.000001
+        #max_width = min(dists) - 0.000001
+
+        #print("Max width", max_width)
 
         # Aggregate points based on the max_width found above
-        aggregated_scan = self.aggregate_points(list(chain(*self.scans[scan_range[0]:scan_range[1]])),
-                                                MAX_WIDTH=max_width)
+        aggregated_scan = aggregate_points(list(chain(*scans[scan_range[0]:scan_range[1]])), MAX_WIDTH = 1)
+
 
         if aggregated_scan:
             avg_scan = []
             for agg_pts in aggregated_scan:
-                avg_mz = self.average([x[0] for x in agg_pts])  # Average mz values
-                avg_int = sum([x[1] for x in agg_pts]) / len(self.scans)  # Average intensity values across scans
+                avg_mz = average([x[0] for x in agg_pts])  # Average mz values
+                avg_int = sum([x[1] for x in agg_pts]) / len(scans)  # Average intensity values across scans
                 avg_scan.append((avg_mz, avg_int))
 
             return sorted(avg_scan)
         else:
             print("Error: Aggregated scan data is empty")
             return []
+
+    # def average_scan(self, start, end):
+    #     scans = [self.scan(i) for i in range(start, end)]
+    #     dists = list(chain(*[[s[i + 1][0] - s[i][0] for i in range(len(s) - 1)]
+    #                          for s in scans]))
+    #
+    #     if dists:
+    #         max_width = min(dists) - 0.000001
+    #     else:
+    #         max_width = 0.0
+    #     total_scans = []
+    #     for scan in scans:
+    #         aggregated_scan = aggregate_points(list(chain(*scans)),MAX_WIDTH=max_width)
+    #         if aggregated_scan:
+    #             avg_scan = []
+    #             for agg_pts in aggregated_scan:
+    #                 avg_mz = average([x[0] for x in agg_pts])
+    #
+    #                 avg_int = sum([x[1] for x in agg_pts]) / len(scans)
+    #
+    #                 avg_scan.append((avg_mz, avg_int))
+    #                 total_scans.append(avg_scan)
+    #     return total_scans
 
 
 def average(xs, weights=None):
@@ -263,7 +266,22 @@ def average(xs, weights=None):
 #     value = initial
 
 
-
+# def average_scan(scans):
+#
+#     dists = list(chain(*[[s[i + 1][0] - s[i][0] for i in range(len(s) - 1)]
+#                          for s in scans]))
+#     max_width = min(dists) - 0.000001
+#     aggregated_scan = aggregate_points(list(chain(*scans)),MAX_WIDTH=max_width)
+#     if aggregated_scan:
+#         avg_scan = []
+#         for agg_pts in aggregated_scan:
+#             avg_mz = average([x[0] for x in agg_pts])
+#
+#             avg_int = sum([x[1] for x in agg_pts]) / len(scans)
+#
+#             avg_scan.append((avg_mz, avg_int))
+#
+#         return sorted(avg_scan)
 
 
 def aggregate_points(pointlist, distance_function=None, MAX_WIDTH=0.025):
@@ -273,19 +291,31 @@ def aggregate_points(pointlist, distance_function=None, MAX_WIDTH=0.025):
     grouped points such that all points within a group are within MAX_WIDTH
     of each other.
     """
+
     peaks = []
     agg = []
-
     if distance_function is not None:
         distance = distance_function
     elif isinstance(pointlist[0], tuple):
         def distance(x, y):
             return x[0] - y[0]
-
         pointlist.sort()
     else:
         def distance(x, y):
             return x - y
-
         pointlist.sort()
-    return 0
+
+    for point in pointlist:
+        if not agg:
+            agg.append(point)
+        else:
+            if abs(distance(agg[0], point)) <= MAX_WIDTH:
+                agg.append(point)
+
+            else:
+                peaks.append(agg)
+                agg = [point]
+    if agg:
+        peaks.append(agg)
+    return peaks
+

@@ -1,13 +1,14 @@
 from unidec.engine import UniDec
 from unidec.modules.matchtools import *
 from unidec.modules import peakstructure
-from unidec.tools import known_extensions, strip_char_from_string, find_kernel_file
+from unidec.tools import strip_char_from_string
 import os
 import numpy as np
 import time
 import webbrowser
 import sys
 import re
+from unidec.UniDecImporter.ImporterFactory import recognized_types
 
 basic_parameters = [
     ["Sample name", True, "The File Name or Path. File extensions are optional."],
@@ -337,9 +338,9 @@ recipe_d = [
 def find_file(fname, folder, use_converted=True):
     # If use_converted is true, it will look for the converted file first, then the original.
     if use_converted:
-        extensions = known_extensions[::-1]
+        extensions = recognized_types[::-1]
     else:
-        extensions = known_extensions
+        extensions = recognized_types
 
     if use_converted:
         # try to find a converted file first
@@ -366,6 +367,35 @@ def find_file(fname, folder, use_converted=True):
             if os.path.exists(testpath):
                 return testpath
     return fname
+
+
+def find_kernel_file(kernel_path):
+    kernel_name = os.path.basename(kernel_path)
+
+    if kernel_name.split('_')[-1] != "mass.txt":
+        # If the filename doesn't end in "_mass.txt", it's not a mass file
+        is_mass = False
+    else:
+        # Otherwise, it might be a mass file. Check if linear
+        kernel_dat = np.loadtxt(kernel_path)
+        kernel_diff = np.diff(kernel_dat[:, 0])
+        is_mass = np.all(kernel_diff == kernel_diff[0])
+
+    if is_mass:
+        return kernel_path
+    else:
+        # If not a mass file, find the mass file
+        bare_name = os.path.splitext(kernel_name)[0]
+        kernel_path2 = os.path.dirname(kernel_path) + "\\" + bare_name + "_unidecfiles\\" + \
+                       bare_name + "_mass.txt"
+
+        try:
+            with open(kernel_path2, "r") as f:
+                return kernel_path2
+        except (IOError, FileNotFoundError) as err:
+            # print("Please deconvolve the m/z file [" + kernel_name + "] with UniDec first.")
+            return None
+
 
 
 def check_for_word_in_keys(df, word="Correct"):

@@ -15,7 +15,7 @@ import unidec.modules.IM_functions as IM_func
 import unidec.modules.MassSpecBuilder as MSBuild
 from unidec.modules.unidec_enginebase import UniDecEngine
 from unidec.modules import plot1d, plot2d
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from unidec.UniDecImporter.ImporterFactory import ImporterFactory, load_mz_file
 
 # import modules.DoubleDec as dd
 
@@ -152,7 +152,7 @@ class UniDec(UniDecEngine):
         curr_importer = ImporterFactory.create_importer(self.config.filename)
         if isodeceng is not None:
             isodeceng.reader = curr_importer
-        self.data.rawdata = ud.load_mz_file(path=self.config.filename, config=self.config, importer=curr_importer)
+        self.data.rawdata = load_mz_file(path=self.config.filename, importer=curr_importer)
         if len(self.data.rawdata.tolist()) == 0:
             print("Error: Data Array is Empty")
             print("Likely an error with data conversion")
@@ -226,15 +226,15 @@ class UniDec(UniDecEngine):
         """
         self.config.dirname = dirname
         self.config.filename = os.path.split(self.config.dirname)[1]
-        print("Openening: ", self.config.filename)
+        print("Opening: ", self.config.filename)
         if os.path.splitext(self.config.filename)[1] == ".zip":
             print("Can't open zip, try Load State.")
             return None, None
 
         elif os.path.splitext(self.config.filename)[1].lower() == ".d" and self.config.system == "Windows":
-            print("Agilent Data")
             self.config.dirname = os.path.split(self.config.dirname)[0]
-            self.open_file(self.config.filename, self.config.dirname)
+            # Was creating a second importer here, but it was unnecessary
+            #self.open_file(self.config.filename, self.config.dirname)
             return self.config.filename, self.config.dirname
 
         elif os.path.splitext(self.config.filename)[1] == ".raw" and self.config.system == "Windows":

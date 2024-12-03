@@ -5,6 +5,7 @@ import os
 from copy import deepcopy
 from pymzml.utils.utils import index_gzip
 import pymzml.obo
+
 __author__ = 'Michael.Marty'
 
 from unidec.UniDecImporter.Importer import Importer
@@ -28,6 +29,7 @@ def auto_gzip(mzml_path):
     out_path = mzml_path + ".gz"
     gzip_files(mzml_path, out_path)
     return out_path
+
 
 def get_resolution(testdata):
     """
@@ -82,7 +84,7 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
     # xvals = concat[:, 0]
     # print "Median Resolution:", resolution
     # axis = nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
-    #for d in datalist:
+    # for d in datalist:
     #    print(d)
     # If no m/z bin size is specified, find the average resolution of the largest scan
     # Then, create a dummy axis with the average resolution.
@@ -103,7 +105,6 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
     template = np.transpose([axis, np.zeros_like(axis)])
 
     print("Length merge axis:", len(template))
-
 
     # Loop through the data and resample it to match the template, either by integration or interpolation
     # Sum the resampled data into the template.
@@ -247,6 +248,7 @@ class MZMLImporter(Importer):
     """
     Imports mzML data files.
     """
+
     def __init__(self, path, *args, **kwargs):
 
         # Super call
@@ -259,7 +261,6 @@ class MZMLImporter(Importer):
         self.data = None
         self.global_counter = 0
         self.process_scan()
-
 
     def process_scan(self):
         for i, spectrum in enumerate(self.msrun):
@@ -280,7 +281,6 @@ class MZMLImporter(Importer):
         self.ids = np.array(self.ids)
         self.scans = np.arange(len(self.ids))
 
-
     def grab_scan_data(self, scan):
         try:
             data = get_data_from_spectrum(self.msrun[self.ids[scan]])
@@ -295,8 +295,8 @@ class MZMLImporter(Importer):
             print("Getting times:", time_range)
         if scan_range is None:
             scan_range = [int(np.amin(self.scans)), int(np.amax(self.scans))]
-        #display 1 greater than actual index
-        print("Scan Range:", [scan_range[0]+1, scan_range[-1]+1])
+        # display 1 greater than actual index
+        print("Scan Range:", [scan_range[0] + 1, scan_range[-1] + 1])
         data = get_data_from_spectrum(self.msrun[self.ids[scan_range[0]]])
         resolution = get_resolution(data)
         axis = ud.nonlinear_axis(np.amin(data[:, 0]), np.amax(data[:, 0]), resolution)
@@ -321,9 +321,8 @@ class MZMLImporter(Importer):
                     template[:, 1] += newdat[:, 1]
                     # except Exception as e:
                     #     print("Error", e, "With scan number:", index)
-        #self.msrun.close()
+        # self.msrun.close()
         return template
-
 
     def grab_data(self):
         for spectrum in self.msrun:
@@ -573,20 +572,20 @@ class MZMLImporter(Importer):
         print("Import Time:", time.perf_counter() - start_time)
         return data
 
-    #grab pol info from single scan. Similar to old impl but use direct idxing
+    # grab pol info from single scan. Similar to old impl but use direct idxing
     def get_polarity(self, scan=1):
         # Directly access the scan at the provided index
         spec = self.msrun[scan]
-        #to string gets the raw byte xml format of the scan
-        #print(spec.to_string())
+        # to string gets the raw byte xml format of the scan
+        # print(spec.to_string())
         comp = ""
         xml = spec.to_string()
-        #convert the byte xml to a string
+        # convert the byte xml to a string
         for i in xml:
-            comp+=chr(i)
-        #if we want to look at the raw xml data
-        #print(comp)
-        #look for the string telling us what polarity is
+            comp += chr(i)
+        # if we want to look at the raw xml data
+        # print(comp)
+        # look for the string telling us what polarity is
         if "negative scan" in comp:
             print("Polarity: Negative")
             return "Negative"
@@ -597,16 +596,16 @@ class MZMLImporter(Importer):
         return None
 
     def get_ms_order(self, s):
-        order = self.msrun[s-1].ms_level
-        #s is the scan number, this is 0 indexed, so we subtract 1 to access the correct scan.
+        order = self.msrun[s - 1].ms_level
+        # s is the scan number, this is 0 indexed, so we subtract 1 to access the correct scan.
         return order
 
     def get_scan_times(self, s):
-        scantime = self.msrun[s-1].scan_time_in_minutes()
+        scantime = self.msrun[s - 1].scan_time_in_minutes()
         return scantime
 
     def get_isolation_mz_width(self, s):
-        scan = self.msrun[s-1]
+        scan = self.msrun[s - 1]
         precursors = scan.selected_precursors
         if len(precursors) == 0:
             return None, None
@@ -617,14 +616,13 @@ class MZMLImporter(Importer):
             return mz, width
 
 
-
 if __name__ == "__main__":
     test = u"C:\\Python\\UniDec3\\TestSpectra\\JAW.mzML"
     # test = "C:\Data\CytC_Intact_MMarty_Share\\221114_STD_Pro_CytC_2ug_r1.mzML.gz"
     # test = "C:\Data\CytC_Intact_MMarty_Share\\221114_STD_Pro_CytC_2ug_r1_2.mzML"
     # test = "C:\Data\IMS Example Data\imstest2.mzML"
     test = u"C:\\Data\\CytC_Intact_MMarty_Share\\20221215_MMarty_Share\\SHA_1598_9.mzML.gz"
-    #test = "C:\\Users\\marty\\OneDrive - University of Arizona\\Attachments\\S203.mzML.gz"
+    # test = "C:\\Users\\marty\\OneDrive - University of Arizona\\Attachments\\S203.mzML.gz"
     test = "C:\\Users\\marty\\Downloads\\BSA1_scan214_full.mzML"
     import time
 

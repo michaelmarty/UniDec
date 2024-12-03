@@ -3,14 +3,13 @@ import numpy as np
 from unidec.UniDecImporter.Importer import Importer
 
 
-
 class ThermoImporter(Importer):
     def __init__(self, path, silent=False, *args, **kwargs):
         from unidec.UniDecImporter.Thermo.RawFileReader import RawFileReader as rr
         super().__init__(path, **kwargs)
         self._silent = silent
         self.msrun = rr(path)
-
+        self.centroided = False
         if not silent:
             print("Launching Thermo Importer. If it fails after this step, try this:")
             print("Delete your whole UniDec folder but keep the zip file.")
@@ -18,7 +17,7 @@ class ThermoImporter(Importer):
             print("Click ok. Unzip it again. Try it once more.")
         print("Reading Thermo Data:", path)
         self.scanrange = self.msrun.scan_range()
-        self.scans = np.arange(self.scanrange[0], self.scanrange[1]+1)
+        self.scans = np.arange(self.scanrange[0], self.scanrange[1] + 1)
         self.times = []
         self.data = None
         for s in self.scans:
@@ -64,7 +63,7 @@ class ThermoImporter(Importer):
         return self.msrun.scan_time_from_scan_name(s)
 
     def get_isolation_mz_width(self, s):
-        scanFilter =  self.msrun.GetScanFilter(s)
+        scanFilter = self.msrun.GetScanFilter(s)
         reaction = scanFilter.GetReaction(0)
         mz = reaction.PrecursorMass
         width = reaction.IsolationWidth
@@ -177,23 +176,21 @@ class ThermoImporter(Importer):
     def get_sid_voltage(self, scan=1):
         try:
             scan_mode = self.msrun.source.GetScanEventStringForScanNumber(scan)
-            #Find where sid= is in the string
+            # Find where sid= is in the string
             sid_index = scan_mode.find("sid=")
-            #Find the next space after sid=
+            # Find the next space after sid=
             space_index = scan_mode.find(" ", sid_index)
-            #Get the sid value
-            sid_value = scan_mode[sid_index+4:space_index]
-            #Convert to float
+            # Get the sid value
+            sid_value = scan_mode[sid_index + 4:space_index]
+            # Convert to float
             sid_value = float(sid_value)
         except:
             sid_value = 0
 
         return sid_value
 
-
-
     def get_polarity(self, scan=1):
-        #print(dir(self.msrun.source))
+        # print(dir(self.msrun.source))
         """
         im = self.msrun.source.GetInstrumentMethod(0)
         print(im)
@@ -219,10 +216,11 @@ class ThermoImporter(Importer):
 
         return None
 
+
 if __name__ == "__main__":
     test = u"C:\\Python\\UniDec3\\TestSpectra\\test.raw"
-    #test = "Z:\\Group Share\\Levi\\MS DATA\\vt_ESI data\\DMPG LL37 ramps\\18to1\\20210707_LB_DMPG3_LL37_18to1_RAMP_16_37_3.RAW"
-    #test = "Z:\Group Share\Group\Archive\JamesKeener Keener\AqpZ mix lipid ND\\20190226_JEK_AQPZ_E3T0_PGPC_GC_NEG.RAW"
+    # test = "Z:\\Group Share\\Levi\\MS DATA\\vt_ESI data\\DMPG LL37 ramps\\18to1\\20210707_LB_DMPG3_LL37_18to1_RAMP_16_37_3.RAW"
+    # test = "Z:\Group Share\Group\Archive\JamesKeener Keener\AqpZ mix lipid ND\\20190226_JEK_AQPZ_E3T0_PGPC_GC_NEG.RAW"
 
     #
     importer = ThermoImporter(test, silent=False)

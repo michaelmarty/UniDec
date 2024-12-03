@@ -200,7 +200,7 @@ class UniDecEngine:
         if ending in recognized_types:
             self.config.polarity = importer.get_polarity()
         else:
-            self.config.polarity = ud.get_polarity(importer)
+            self.config.polarity = "Positive"
 
         if self.config.polarity == "Positive":
             self.config.adductmass = np.abs(self.config.adductmass)

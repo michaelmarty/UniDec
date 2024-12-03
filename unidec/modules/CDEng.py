@@ -179,7 +179,7 @@ class UniDecCD(engine.UniDec):
 
         if extension.lower() == ".raw":
             # Import Thermo Raw file using ThermoDataImporter
-            self.TDI = ThermoDataImporter(self.path)
+            self.TDI = ImporterFactory.create_importer(self.path)
             # Get the data
             data = self.TDI.grab_data(threshold=self.config.CDprethresh)
             # Get the scans
@@ -209,7 +209,7 @@ class UniDecCD(engine.UniDec):
         elif extension.lower() == ".mzml" or extension.lower() == ".gz":
             # Import mzML data, scans, and injection time
             # Note, resolution info is not transferred to mzML to my knowledge
-            self.MLI = mzMLimporter.mzMLimporter(self.path)
+            self.MLI = ImporterFactory.create_importer(self.path)
             data = self.MLI.grab_data(threshold=self.config.CDprethresh)
             self.scans = self.MLI.scans
             self.it = self.MLI.get_inj_time_array()

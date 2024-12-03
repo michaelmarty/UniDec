@@ -13,7 +13,7 @@ import unidec.modules.IM_windows as IM_wind
 from unidec.modules import Extract2D, masstools, mainwindow, nativez, fft_window, GridDecon, isotopetools
 from unidec.modules import MassDefects, miscwindows
 from unidec.modules.isolated_packages import FileDialogs
-from unidec.modules.isolated_packages import score_window, navia_importer, texmaker, mql_tool
+from unidec.modules.isolated_packages import score_window, texmaker, mql_tool
 import unidec.DataCollector as datacollector
 import unidec.ImportWizard as import_wizard
 # import UniMin
@@ -21,7 +21,6 @@ from copy import deepcopy
 import platform
 import multiprocessing
 from unidec.modules.unidec_presbase import UniDecPres
-from unidec.iFAMS.wxiFAMS import iFAMS_Window
 
 __author__ = 'Michael.Marty'
 
@@ -1001,20 +1000,6 @@ class UniDecApp(UniDecPres):
         MassDefects.MassDefectWindow(self.view, [self.eng.data.massdat], config=self.eng.config,
                                      pks=self.eng.pks, value=self.eng.config.molig, directory=self.eng.config.udir)
 
-    def on_iFAMS(self, e=None):
-        iFAMS_Window(self.view, self.eng.data.data2, config=self.eng.config, directory=os.getcwd())
-
-    def on_navia(self, e=None):
-        with wx.FileDialog(self.view, "Open NaViA session", wildcard="XYZ files (*.navia)|*.navia",
-                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
-            if fileDialog.ShowModal() == wx.ID_CANCEL:
-                return  # the user changed their mind
-
-            # Proceed loading the file chosen by the user
-            pathname = fileDialog.GetPath()
-            newpath = navia_importer.navia_import(pathname)
-            newdir, newfile = os.path.split(newpath)
-            self.on_open_file(newfile, newdir)
 
     def on_mql(self, e=None):
         defaultquery = "QUERY scaninfo(MS1DATA) WHERE MS1MZ=X AND MS1MZ=X+760:TOLERANCEMZ=5 FILTER MS1MZ=X"
