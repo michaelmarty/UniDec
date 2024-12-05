@@ -29,6 +29,7 @@ class AgilentImporter(Importer):
         self.datascans = []
         curr_info = self.msrun.scan_info()
         for i in curr_info:
+            print(i)
             self.datascans.append(self.msrun.scan(i[2]))
             self.times.append(i[0])
         self.times = np.array(self.times)
@@ -39,8 +40,8 @@ class AgilentImporter(Importer):
             impdat = np.array(self.msrun.scan(int(s)))
             try:
                 impdat = impdat[impdat[:, 0] > 10]
-            except:
-                print("Error Importing Data, Scan:", s, "Data:", impdat)
+            except Exception as e:
+                print("Error Importing Data, Scan:", s, "Data:", impdat, "Error:", e)
             self.data.append(impdat)
         self.data = np.array(self.data, dtype=object)
         return self.data
@@ -186,11 +187,12 @@ class AgilentImporter(Importer):
         print("Polarity: Unknown")
         return None
 
-# if __name__ == '__main__':
-#     path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\AgilentData\\2019_05_15_bsa_ccs_02.d"
-#     test = AgilentImporter(path)
-#     print(type(test))
-#     res = test.grab_data()
-#     for i in res:
-#         print(i)
-#     print("Finished")
+if __name__ == '__main__':
+    path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\AgilentData\\LYZ-F319-2-11-22-P1-A1.D"
+    path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\AgilentData\\2019_05_15_bsa_ccs_02.d"
+    test = AgilentImporter(path)
+    print(type(test))
+    res = test.grab_data()
+    for i in res:
+        print(i)
+    print("Finished")

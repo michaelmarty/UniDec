@@ -627,11 +627,15 @@ if __name__ == "__main__":
     test = u"C:\\Data\\CytC_Intact_MMarty_Share\\20221215_MMarty_Share\\SHA_1598_9.mzML.gz"
     # test = "C:\\Users\\marty\\OneDrive - University of Arizona\\Attachments\\S203.mzML.gz"
     test = "C:\\Users\\marty\\Downloads\\BSA1_scan214_full.mzML"
+    test = u"C:\\Python\\UniDec3\\TestSpectra\\test.mzML"
     import time
 
     tstart = time.perf_counter()
 
     d = MZMLImporter(test)
+    it = d.get_inj_time_array()
+    print(it)
+    exit()
     data = d.get_data()
     print(len(data))
     tend = time.perf_counter()

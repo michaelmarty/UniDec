@@ -1,5 +1,5 @@
-from unidec.UniDecImporter.ImporterFactory import recognized_types
-from unidec.modules import unidecstructure, peakstructure, plot1d, plot2d
+from unidec.modules import peakstructure, plot1d, plot2d
+import unidec.modules.unidecstructure as unidecstructure
 from unidec import tools as ud
 import numpy as np
 import os
@@ -7,8 +7,7 @@ import time
 import webbrowser
 from unidec.modules.html_writer import *
 
-version = "8.0.0a1"
-
+version = unidecstructure.version
 
 def copy_config(config):
     # return deepcopy(config)

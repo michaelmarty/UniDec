@@ -1283,10 +1283,10 @@ if __name__ == '__main__':
 
     # exit()
     path = "C:\\Data\\CDMS\\spike trimer CDMS data.csv"
-    path = "/unidec/bin\\Example Data\\CDMS\\GroEL_CDMS_1.RAW"
-    eng.open_file(path)
-    eng.process_data()
-    eng.run_deconvolution()
+    path = "C:\\Python\\UniDec3\\unidec\\bin\\Example Data\\CDMS\\GroEL_CDMS_1.RAW"
+    eng.open_file(path, refresh=True)
+    # eng.process_data()
+    # eng.run_deconvolution()
     # eng.sim_dist()
     # eng.plot_add()
     # maxtup = np.unravel_index(np.argmax(eng.harray, axis=None), eng.harray.shape)

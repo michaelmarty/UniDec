@@ -199,6 +199,9 @@ class RawFileReader(object):
         # self.get_tune_data()
 
     def get_scan_header(self, scannumber=1):
+        if scannumber==0:
+            print("Scan number should start from 1")
+            raise ValueError("Scan number should start from 1")
         try:
             self.header = {}
             extra_header_info = self.source.GetTrailerExtraHeaderInformation()
@@ -693,7 +696,5 @@ class RawFileReader(object):
 
 if __name__ == "__main__":
     test = u"C:\\Python\\UniDec3\\TestSpectra\\test.RAW"
-    path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\AgilentData\\2019_05_15_bsa_ccs_02.d"
-    rr = RawFileReader(path)
-    rr.GetSeqInfo()
-    rr.Close()
+    rr = RawFileReader(test)
+    rr.get_scan_header(1)

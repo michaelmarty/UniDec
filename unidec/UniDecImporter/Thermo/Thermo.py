@@ -160,6 +160,7 @@ class ThermoImporter(Importer):
             except:
                 print("Error in scan header:", i, s, it)
                 it = 1
+            its.append(it)
         return np.array(its)
 
     def get_analog_voltage1(self):
@@ -227,6 +228,10 @@ if __name__ == "__main__":
 
     #
     importer = ThermoImporter(test, silent=False)
+    it = importer.get_inj_time_array()
+    print(it)
+
+    exit()
     dat = importer.get_data()
     print(len(dat))
 

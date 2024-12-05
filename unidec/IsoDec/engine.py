@@ -13,9 +13,9 @@ from unidec.IsoDec.encoding import data_dirs, encode_noise, encode_phase_all, sm
 
 from copy import deepcopy
 import pickle as pkl
-import matplotlib.pyplot as plt
+
 from unidec.IsoDec.c_interface import IsoDecWrapper
-from unidec.IsoDec.plots import plot_pks, cplot
+from unidec.IsoDec.plots import cplot
 import platform
 from unidec.IsoDec.altdecon import thrash_predict
 
@@ -126,10 +126,6 @@ class IsoDecEngine:
             emats.append(emat)
             zs.append(z)
             tempcentroids.append(centroid2)
-
-            # cplot(centroid)
-            # cplot(centroid2, color="b")
-            # plt.show()
 
         self.training_data[0] = np.concatenate((self.training_data[0], emats), axis=0)
         self.training_data[1] = np.concatenate((self.training_data[1], zs), axis=0)
@@ -730,6 +726,7 @@ if __name__ == "__main__":
     #                             batchsize=32, double_percent=0.2)
     # eng.save_bad_data()
     exit()
+    import matplotlib.pyplot as plt
     c = example
     pks = eng.batch_process_spectrum(c, centroided=True)
     cplot(c)

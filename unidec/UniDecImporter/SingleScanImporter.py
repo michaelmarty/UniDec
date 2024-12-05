@@ -36,16 +36,16 @@ class SingleScanImporter(Importer):
     def grab_data(self):
         return self.data
 
-    def grab_scan_data(self, scan):
+    def grab_scan_data(self, scan=None):
         return self.data
 
-    def get_scan_time(self, scan):
+    def get_scan_time(self, scan=None):
         return self.times[0]
 
-    def get_ms_order(self, scan):
+    def get_ms_order(self, scan=None):
         return 1
 
-    def get_polarity(self):
+    def get_polarity(self, scan=None):
         return self.polarity
 
 
