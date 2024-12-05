@@ -13,9 +13,11 @@ class WatersDataImporter(Importer):
         print("Reading Data:", path)
         self.reader = MLRIR.MassLynxRawInfoReader(path)
         self.readerMS = MLRSR.MassLynxRawScanReader(path)
-
+        self.path = path
         self.nfunc = self.reader.GetNumberofFunctions()
         self.function = int(function)
+        self.centroided = False
+        self.polarity = None
         try:
             fn = self.reader.GetFunctionType(self.function)
         except:
@@ -45,8 +47,7 @@ class WatersDataImporter(Importer):
             self.slow_get_data()
         else:
             self.data = None
-        # self.readerMS.__del__()
-        # self.reader.__del__()
+
 
     def slow_get_data(self):
         self.data = []
@@ -116,7 +117,8 @@ class WatersDataImporter(Importer):
         except Exception as e:
             print("ERROR with fast Waters combineScans, using slow method: ", e)
             data=self.slow_get_data_scans(scan_range, mzbins)'''
-
+        if self.polarity is None:
+            self.polarity = self.get_polarity()
         return data
 
     def grab_scan_data(self, scan):

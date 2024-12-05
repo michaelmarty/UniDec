@@ -33,7 +33,7 @@ class Importer:
     def get_tic(self):
         pass
 
-    def get_polarity(self):
+    def get_polarity(self, scan=None):
         pass
 
     def get_scan_time(self, scan):

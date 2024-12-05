@@ -52,14 +52,12 @@ class MZXMLImporter(Importer):
             except Exception as e:
                 self.times.append(-1)
                 id = -1
-                # print("1", spectrum, e)
-            # self.scans.append(i)
             self.ids.append(id)
             # print(i, end=" ")
         self.times = np.array(self.times)
         self.ids = np.array(self.ids)
         self.scans = np.arange(0, len(self.ids))
-        # print("Reading Complete")
+        self.polarity = None
 
     def grab_scan_data(self, scan):
         data = get_data_from_spectrum(self.msrun[self.ids[scan]])
@@ -164,6 +162,8 @@ class MZXMLImporter(Importer):
                 data = self.get_data_fast_memory_heavy(scan_range, time_range)
         else:
             data = self.get_data_fast_memory_heavy(scan_range, time_range)
+        if self.polarity is None:
+            self.polarity = self.get_polarity()
         return data
 
     def get_tic(self):
@@ -217,9 +217,7 @@ class MZXMLImporter(Importer):
         polarity = None
         # Define the namespaces used in the XML
         namespaces = {'mz': 'http://sashimi.sourceforge.net/schema_revision/mzXML_3.2'}
-
         scans = root.xpath('//mz:scan', namespaces=namespaces)
-
         if scans is not None:
             # Extract the polarity attribute from the scan element
             polarity = scans[0].attrib.get('polarity', None)
@@ -235,6 +233,19 @@ class MZXMLImporter(Importer):
         # To see the raw XML string at first scan
         # raw_scan_xml = ET.tostring(scans[0], encoding='unicode', pretty_print=True)
         # print(raw_scan_xml)
+
+    def get_inj_time(self, spectrum):
+        element = spectrum.element
+        it = 1
+        for child in element.iter():
+            if 'name' in child.attrib:
+                if child.attrib['name'] == 'ion injection time':
+                    it = child.attrib['value']
+                    try:
+                        it = float(it)
+                    except:
+                        it = 1
+        return it
 
 
 if __name__ == "__main__":

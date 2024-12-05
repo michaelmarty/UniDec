@@ -11,6 +11,6 @@ rem update docs with .\unidec_doc\make.bat html
 rem paste docs into UniDecDocumentation and push to git
 
 echo "Building"
-::C:\Python312\Scripts\pyinstaller.exe GUniDec.spec --noconfirm
-C:\Users\MartyLabsOfficePC\Python\Scripts\pyinstaller.exe GUniDec.spec --noconfirm
+C:\Python312\Scripts\pyinstaller.exe GUniDec.spec --noconfirm
+::C:\Users\MartyLabsOfficePC\Python\Scripts\pyinstaller.exe GUniDec.spec --noconfirm
 rem call "C:\Python\UniDec3\dist\UniDec_Windows\GUI_UniDec.exe"

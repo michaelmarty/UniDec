@@ -115,9 +115,8 @@ class IsoDecRuntime:
         else:
             centroided = False
         ext = file.split(".")[-1]
-        print("Here is ext", ext)
         t2 = time.perf_counter()
-        if (ext == ".raw" or ext == ".RAW") and not os.path.isdir(reader.path):
+        if (ext == "raw" or ext == "RAW") and not os.path.isdir(file):
             isThermo = True
         else:
             isThermo = False

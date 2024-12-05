@@ -24,6 +24,7 @@ class ThermoImporter(Importer):
             self.times.append(self.msrun.scan_time_from_scan_name(s))
         self.times = np.array(self.times)
         print("Number of Scans", len(self.scans))
+        self.polarity = None
 
     def grab_data(self, threshold=-1):
         self.data = []
@@ -96,12 +97,15 @@ class ThermoImporter(Importer):
             scan_range = [1, 2]
 
         if scan_range[1] - scan_range[0] > 1:
+            print("Getting Data from Scans:", scan_range)
             data = np.array(list(self.msrun.GetAverageSpectrum(scan_range)))
         else:
+            print("Getting Data from Scan:", scan_range[0])
             impdat = np.array(self.msrun.GetSpectrum(scan_range[0]))  # May want to test this.
             impdat = impdat[impdat[:, 0] > 10]
             data = impdat
-
+        if self.polarity is None:
+            self.polarity = self.get_polarity()
         return data
 
     def get_tic(self):
@@ -156,7 +160,6 @@ class ThermoImporter(Importer):
             except:
                 print("Error in scan header:", i, s, it)
                 it = 1
-            its.append(it)
         return np.array(its)
 
     def get_analog_voltage1(self):
@@ -224,15 +227,14 @@ if __name__ == "__main__":
 
     #
     importer = ThermoImporter(test, silent=False)
-    print(type(importer))
-    # dat = d.grab_centroid_data(1)
-    # print(len(dat))
-    #
-    # import matplotlib.pyplot as plt
-    # plt.plot(dat[:,0], dat[:,1])
-    # plt.show()
-    #
-    # exit()
+    dat = importer.get_data()
+    print(len(dat))
+
+    import matplotlib.pyplot as plt
+    plt.plot(dat[:,0], dat[:,1])
+    plt.show()
+
+    exit()
     #
     # d.get_polarity()
     # exit()

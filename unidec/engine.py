@@ -15,7 +15,7 @@ import unidec.modules.IM_functions as IM_func
 import unidec.modules.MassSpecBuilder as MSBuild
 from unidec.modules.unidec_enginebase import UniDecEngine
 from unidec.modules import plot1d, plot2d
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory, load_mz_file
+from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 
 # import modules.DoubleDec as dd
 
@@ -124,7 +124,6 @@ class UniDec(UniDecEngine):
             print("Opening File: ", self.config.filename)
 
         if self.outfile is None:
-            # Change paths to unidecfiles folder
             dirnew = os.path.splitext(file_path)[0] + "_unidecfiles"
             basename = os.path.split(os.path.splitext(file_name)[0])[1]
         else:
@@ -152,7 +151,8 @@ class UniDec(UniDecEngine):
         curr_importer = ImporterFactory.create_importer(self.config.filename)
         if isodeceng is not None:
             isodeceng.reader = curr_importer
-        self.data.rawdata = load_mz_file(path=self.config.filename, importer=curr_importer)
+
+        self.data.rawdata = curr_importer.get_data()
         if len(self.data.rawdata.tolist()) == 0:
             print("Error: Data Array is Empty")
             print("Likely an error with data conversion")
@@ -197,7 +197,7 @@ class UniDec(UniDecEngine):
 
         #Need to streamline this so it isnt creating a whole new importer just to grab the polarity.
         #For bigger files this is an additional unnecessary couple thousand iterations
-        self.auto_polarity(file_path, importer = curr_importer)
+        self.auto_polarity(importer = curr_importer)
 
         if load_results:
             self.unidec_imports(everything=True)

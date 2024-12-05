@@ -154,9 +154,8 @@ newdir = "numpy/DLLs"
 a.datas.extend(dir_files(mkldir, newdir, type="BINARY"))
 #a.datas.extend(
 #    [(mkldir + "/" + mkl, newdir, 'BINARY') for mkl in listdir(mkldir) if mkl.startswith('mkl_') or mkl.startswith('libio')])
-
-rdkitlibs = compat.base_prefix + "/Lib/site-packages/rdkit.libs"
-a.datas.extend(dir_files(rdkitlibs, ''))
+# rdkitlibs = compat.base_prefix + "/Lib/site-packages/rdkit.libs"
+# a.datas.extend(dir_files(rdkitlibs, ''))
 
 # Assemble and build
 pyz = PYZ(a.pure)

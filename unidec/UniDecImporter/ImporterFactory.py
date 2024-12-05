@@ -73,28 +73,23 @@ def get_polarity(path):
     return polarity
 
 
-def load_mz_file(path: str, importer=None)-> np.ndarray:
-    """
-    Loads a text or mzml file
-    :param path: File path to load
-    :param config: UniDecConfig object
-    :return: Data array
-    """
-    extension = os.path.splitext(path)[1].lower()
-    try:
-        if extension in recognized_types:
-            if importer == None:
-                importer = ImporterFactory.create_importer(path)
-            data = importer.get_data()
-        else:
-            raise ValueError("Unsupported file extension")
-    except Exception as e:
-        print(f"Error loading file {path}: {e}")
-        return None
+if __name__ == "__main__":
+    test = u"C:\\Python\\UniDec3\\TestSpectra\\test.raw"
+    importer = ImporterFactory.create_importer(test)
+    dat = importer.get_data()
+    print(len(dat))
 
-    return data
+    dat = importer.get_data()
+    print(len(dat))
 
-# if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    plt.plot(dat[:, 0], dat[:, 1])
+    plt.show()
+
+    exit()
+
+
 #     testfile = "C:\\Python\\UniDec3\\TestSpectra\\test.RAW"
 #     testfile = "Z:\\Group Share\\JGP\\DiverseDataExamples\\AgilentData\\LYZ-F319-2-11-22-P1-A1.D"
 #     importer = ImporterFactory.create_importer(testfile)

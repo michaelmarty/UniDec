@@ -377,7 +377,6 @@ class FFTWindow(wx.Frame):
 
 # Main App Execution
 if __name__ == "__main__":
-    datfile = "C:\\Data\\New\POPC_D1T0-2m_ISTRAP\\20170207_P1D_POPC_ND_D1T0-2m_ISTRAP_RAMP_0_275_25_1_200.0.txt"
     datfile = "C:\\Python\\UniDec3\\TestSpectra\\60.dat"
 
     data2 = np.loadtxt(datfile)

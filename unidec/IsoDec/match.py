@@ -63,6 +63,12 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         if reader is not None:
             self.activescanrt = reader.get_scan_time(s)
             self.activescanorder = reader.get_ms_order(s)
+            polarity = reader.polarity
+            if polarity == "Negative":
+                self.adductmass = -1.007276467
+            else:
+                self.adductmass = 1.007276467
+
 
 
 # mass_diff_c = 1.0033

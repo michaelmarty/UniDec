@@ -13,7 +13,7 @@ from unidec import engine
 from scipy.optimize import curve_fit
 
 xp = np
-
+cdeng_types = [".mzml", ".raw", ".mzxml", ".gz"]
 
 def Gmax2(darray):
     ints = darray[:, 1]
@@ -123,6 +123,7 @@ class UniDecCD(engine.UniDec):
         self.exemode = True
         self.massaxis = None
         self.invinjtime = None
+        self.res = None
         pass
 
     def exe_mode(self, exemode=True):
@@ -177,44 +178,20 @@ class UniDecCD(engine.UniDec):
         extension = os.path.splitext(self.path)[1]
         self.invinjtime = None
 
-        if extension.lower() == ".raw":
-            # Import Thermo Raw file using ThermoDataImporter
+        if extension.lower() in cdeng_types:
             self.TDI = ImporterFactory.create_importer(self.path)
-            # Get the data
-            data = self.TDI.grab_data(threshold=self.config.CDprethresh)
-            # Get the scans
             self.scans = self.TDI.scans
             # Get the injection times for each scan
             self.it = self.TDI.get_inj_time_array()
-            # Get the overall resolution
-            self.res = self.TDI.msrun.resolution
-            # Set flag for correcting injection times later
-            self.thermodata = True
+            if extension.lower() == ".raw":
+                self.res = self.TDI.msrun.resolution
+                data = self.TDI.grab_data(threshold=self.config.CDprethresh)
+                self.thermodata = True
+                # Set flag for correcting injection times later
+            else:
+                data = self.TDI.get_data()
+                self.thermodata = True
             self.invinjtime = 1. / self.it
-
-        elif extension.lower() == ".i2ms" or extension.lower() == ".dmt":
-            # Import Thermo Raw file using ThermoDataImporter
-            self.I2MSI = i2ms_importer.I2MSImporter(self.path)
-            # Get the data
-            data = self.I2MSI.grab_data(threshold=self.config.CDprethresh)
-            mz = data[:, 0]
-            intensity = data[:, 1]
-            # Get the scans
-            scans = self.I2MSI.scans
-            # Set flag for correcting injection times later
-            self.thermodata = False
-            # Set the inverse injection time array for DMT data
-            self.invinjtime = self.I2MSI.invinjtime
-
-        elif extension.lower() == ".mzml" or extension.lower() == ".gz":
-            # Import mzML data, scans, and injection time
-            # Note, resolution info is not transferred to mzML to my knowledge
-            self.MLI = ImporterFactory.create_importer(self.path)
-            data = self.MLI.grab_data(threshold=self.config.CDprethresh)
-            self.scans = self.MLI.scans
-            self.it = self.MLI.get_inj_time_array()
-            self.invinjtime = 1. / self.it
-            self.thermodata = True
 
         elif extension.lower() == ".txt":
             # Simple Text File
@@ -343,22 +320,35 @@ class UniDecCD(engine.UniDec):
         # Post processing if data is from raw or mzML
         # Ignored if text file input
         if self.thermodata:
-            scans = np.concatenate([s * np.ones(len(data[i])) for i, s in enumerate(self.scans)])
+            if extension.lower() == ".raw":
+                mz = np.concatenate([d[:, 0] for d in data])
 
-            mz = np.concatenate([d[:, 0] for d in data])
-            try:
-                intensity = np.concatenate([d[:, 1] * self.it[i] / 1000. for i, d in enumerate(data)])
-            except Exception as e:
-                print(e, self.it)
-                intensity = np.concatenate([d[:, 1] for i, d in enumerate(data)])
+                scans = np.concatenate([s * np.ones(len(data[i])) for i, s in enumerate(self.scans)])
 
-            try:
-                it = np.concatenate([it * np.ones(len(data[i])) for i, it in enumerate(self.invinjtime)])
-                self.invinjtime = it
-            except Exception as e:
-                print("Error with injection time correction:", e)
-                print(mz.shape, intensity.shape, scans.shape, self.invinjtime.shape)
-                self.invinjtime = None
+
+                try:
+                    intensity = np.concatenate([d[:, 1] * self.it[i] / 1000. for i, d in enumerate(data)])
+                except Exception as e:
+                    print(e, self.it)
+                    intensity = np.concatenate([d[:, 1] for i, d in enumerate(data)])
+
+                try:
+                    it = np.concatenate([it * np.ones(len(data[i])) for i, it in enumerate(self.invinjtime)])
+                    self.invinjtime = it
+                except Exception as e:
+                    print("Error with injection time correction:", e)
+                    print(mz.shape, intensity.shape, scans.shape, self.invinjtime.shape)
+                    self.invinjtime = None
+            else:
+                mz = data[:,0]
+                scans = np.tile(self.scans, len(data) // len(self.scans) + 1)[:len(data)]
+                intensity = data[:,1]
+                self.invinjtime = np.ones(len(data))
+
+            print(f"mz shape: {mz.shape}")
+            print(f"intensity shape: {intensity.shape}")
+            print(f"scans shape: {scans}")
+
 
         if self.invinjtime is None:
             self.invinjtime = np.ones_like(scans)

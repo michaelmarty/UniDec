@@ -49,16 +49,16 @@
 
 #include <immintrin.h>
 
-void matrix_vector_multiply(const float* matrix, const float* vector, const float* bias, float* result, const int N, const int M, const bool relu) {
-
+void matrix_vector_multiply(const float *matrix, const float *vector, const float *bias, float *result, const int N,
+                            const int M, const bool relu) {
     for (int i = 0; i < N; i++) {
         float val = bias[i];
-        __m256  sum = _mm256_setzero_ps(); // Initialize sum to zero
+        __m256 sum = _mm256_setzero_ps(); // Initialize sum to zero
         int j;
         for (j = 0; j <= M - 8; j += 8) {
             // Load 4 elements from the matrix and vector
-            const __m256  mat = _mm256_loadu_ps(&matrix[i * M + j]);
-            const __m256  vec = _mm256_loadu_ps(&vector[j]);
+            const __m256 mat = _mm256_loadu_ps(&matrix[i * M + j]);
+            const __m256 vec = _mm256_loadu_ps(&vector[j]);
             // Perform element-wise multiplication and add to sum
             //sum = _mm256_add_ps(sum, _mm256_mul_ps(mat, vec));
             sum = _mm256_fmadd_ps(mat, vec, sum);
@@ -116,32 +116,221 @@ struct IsoConfig SetupConfig(const int maxz, const int pres) {
 // Default settings for the isodec library
 struct IsoSettings DefaultSettings() {
     struct IsoSettings settings;
-    settings.phaseres = 8;
-    settings.verbose = 0;
-    settings.peakwindow = 80;
-    settings.matchtol = 5;
-    settings.minpeaks = 3;
-    settings.peakthresh = 0.0001f;
-    settings.css_thresh = 0.7f;
-    settings.maxshift = 3;
-    settings.mzwindow[0] = -1.5f;
-    settings.mzwindow[1] = 2.5f;
-    settings.plusoneintwindow[0] = 0.1f;
-    settings.plusoneintwindow[1] = 0.6f;
-    settings.knockdown_rounds = 5;
-    settings.min_score_diff = 0.1f;
-    settings.minareacovered = 0.25f;
+    settings.phaseres = 8; //
+    settings.verbose = 0; //
+    settings.peakwindow = 80; //
+    settings.peakthresh = 0.0001f; //
+    settings.matchtol = 5; //
+    settings.minpeaks = 3; //
+    settings.css_thresh = 0.7f; //
+    settings.maxshift = 3; //
+    settings.mzwindow[0] = -1.5f; //
+    settings.mzwindow[1] = 2.5f; //
+    settings.plusoneintwindow[0] = 0.1f; //
+    settings.plusoneintwindow[1] = 0.6f; //
+    settings.knockdown_rounds = 5; //
+    settings.min_score_diff = 0.1f; //
+    settings.minareacovered = 0.25f; //
     settings.isolength = 64;
-    settings.mass_diff_c = 1.0033;
-    settings.adductmass = 1.007276467f;
-    settings.minusoneaszero = 1;
-    settings.isotopethreshold = 0.01f;
-    settings.datathreshold = 0.05f;
-    settings.zscore_threshold = 0.95f;
+    settings.mass_diff_c = 1.0033; //
+    settings.adductmass = 1.007276467f; //
+    settings.minusoneaszero = 1; //
+    settings.isotopethreshold = 0.01f; //
+    settings.datathreshold = 0.05f; //
+    settings.zscore_threshold = 0.95f; //
     return settings;
 }
 
+struct IsoSettings CheckSettings(struct IsoSettings settings) {
+    int found_problem = 0;
+    int found_warning = 0;
 
+    if (settings.phaseres != 8 && settings.phaseres != 4) {
+        printf("Phase Resolution should be 8 or 4\n");
+        settings.phaseres = 8;
+        found_problem = 1;
+    }
+
+    if (settings.css_thresh < 0) {
+        printf("CSS Threshold cannot be negative\n");
+        settings.css_thresh = 0;
+        found_problem = 1;
+    } else if (settings.css_thresh > 1) {
+        printf("CSS Threshold cannot be greater than 1\n");
+        settings.css_thresh = 0.99f;
+        found_problem = 1;
+    } else if (settings.css_thresh < 0.25) {
+        printf("CSS Threshold is pretty low. Are you sure about this?\n");
+        found_warning = 1;
+    }
+
+    if (settings.peakwindow < 3) {
+        printf("Peak Detection Window needs to be at least 3\n");
+        settings.peakwindow = 5;
+        found_problem = 1;
+    }
+
+    if (settings.peakthresh < 0) {
+        printf("Peak Detection Threshold needs to be 0 or above\n");
+        settings.peakthresh = 0.0000001f;
+        found_problem = 1;
+    }
+
+    if (settings.minpeaks < 2) {
+        printf("Minimum Peaks for an allowed peak needs to be at least 2\n");
+        settings.minpeaks = 2;
+        found_problem = 1;
+    }
+
+    if (settings.matchtol < 0) {
+        printf("Match Tolerance cannot be negative\n");
+        settings.matchtol = 5;
+        found_problem = 1;
+    } else if (settings.matchtol > 100) {
+        printf("Match Tolerance is very high. Are you sure? This is ppm we are talking about...\n");
+        found_warning = 1;
+    }
+
+    if (settings.maxshift < 0) {
+        printf("Max Shift cannot be negative\n");
+        settings.maxshift = 0;
+        found_problem = 1;
+    } else if (settings.maxshift > 8) {
+        printf(
+            "Max Shift is too high. We're concerned about you. If you need us to let it go this high, send an email to the developers.\n");
+        settings.maxshift = 3;
+        found_problem = 1;
+    } else if (settings.maxshift > 5) {
+        printf("Max Shift is very high. Are you sure?\n");
+        found_warning = 1;
+    }
+
+    // Knockdown rounds
+    if (settings.knockdown_rounds <= 0) {
+        printf("Knockdown Rounds cannot be 0 or negative\n");
+        settings.knockdown_rounds = 1;
+        found_problem = 1;
+    } else if (settings.knockdown_rounds > 10) {
+        printf("Knockdown Rounds is very high. Are you sure?\n");
+        found_warning = 1;
+    }
+
+    // Adduct Mass
+    if (fabsf(fabsf(settings.adductmass) - 1.007276f) > 0.01f) {
+        printf("Adduct Mass is not close to 1.007276. Are you sure?\n");
+        found_warning = 1;
+    }
+
+    // Check that mass diff c is close to default and warn if otherwise
+    if (fabs(settings.mass_diff_c - 1.0033) > 0.01) {
+        printf("Mass Diff C is not close to 1.0033. Are you sure?\n");
+        found_warning = 1;
+    }
+
+    // Data Encoding Threshold
+    if (settings.datathreshold < 0) {
+        printf("Data Encoding Threshold cannot be negative\n");
+        settings.datathreshold = 0;
+        found_problem = 1;
+    } else if (settings.datathreshold > 1) {
+        printf("Data Encoding Threshold cannot be greater than 1\n");
+        settings.datathreshold = 0.05f;
+        found_problem = 1;
+    } else if (settings.datathreshold > 0.5) {
+        printf("Data Encoding Threshold may be too high. Are you sure about this?\n");
+        found_warning = 1;
+    }
+
+    // Mz Window
+    if (settings.mzwindow[0] > settings.mzwindow[1]) {
+        printf("Mz Window is not in the correct order. Resetting\n");
+        const float temp = settings.mzwindow[0];
+        settings.mzwindow[0] = settings.mzwindow[1];
+        settings.mzwindow[1] = temp;
+        found_problem = 1;
+    }
+    // If mz window is 0 or higher, reset to default
+    if (settings.mzwindow[0] >= 0) {
+        printf("Mz Window is 0 or higher. Resetting to default\n");
+        settings.mzwindow[0] = -1.5f;
+        found_warning = 1;
+    }
+    // If mz window[1] is 0 or lower, reset to default
+    if (settings.mzwindow[1] <= 0) {
+        printf("Mz Window is 0 or lower. Resetting to default\n");
+        settings.mzwindow[1] = 2.5f;
+        found_warning = 1;
+    }
+
+    if (settings.mzwindow[0] < -4) {
+        printf("Mz Window is very low. Are you sure?\n");
+        found_warning = 1;
+    }
+    if (settings.mzwindow[1] > 4) {
+        printf("Mz Window is very high. Are you sure?\n");
+        found_warning = 1;
+    }
+
+    // Check that minus one as zero is 0 or 1
+    if (settings.minusoneaszero != 0 && settings.minusoneaszero != 1) {
+        printf("Minus One as Zero should be 0 or 1\n");
+        settings.minusoneaszero = 1;
+        found_problem = 1;
+    }
+
+    // Check that plusoneintwindow is in the correct order and that it is between 0 and 1 for both values
+    if (settings.plusoneintwindow[0] > settings.plusoneintwindow[1]) {
+        printf("Plus One Intensity Window is not in the correct order. Resetting\n");
+        const float temp = settings.plusoneintwindow[0];
+        settings.plusoneintwindow[0] = settings.plusoneintwindow[1];
+        settings.plusoneintwindow[1] = temp;
+        found_problem = 1;
+    } else if (settings.plusoneintwindow[0] < 0 || settings.plusoneintwindow[0] > 1) {
+        printf("Plus One Intensity Window must be between 0 and 1. Resetting to default.\n");
+        settings.plusoneintwindow[0] = 0.1f;
+        found_problem = 1;
+    } else if (settings.plusoneintwindow[1] > 1 || settings.plusoneintwindow[1] < 0) {
+        printf("Plus One Intensity Window must be between 0 and 1. Resetting to default.\n");
+        settings.plusoneintwindow[1] = 0.6f;
+        found_problem = 1;
+    }
+
+    // Isotopethreshold must be between 0 and 1
+    if (settings.isotopethreshold < 0 || settings.isotopethreshold >= 1) {
+        printf("Isotope Threshold must be between 0 and 1. Resetting to default.\n");
+        settings.isotopethreshold = 0.01f;
+        found_problem = 1;
+    }
+
+    // minscorediff should be between 0 and 1
+    if (settings.min_score_diff < 0 || settings.min_score_diff >= 1) {
+        printf("Minimum Score Difference must be between 0 and 1. Resetting to default.\n");
+        settings.min_score_diff = 0.1f;
+        found_problem = 1;
+    }
+
+    // minareacovered should be between 0 and 1
+    if (settings.minareacovered < 0 || settings.minareacovered > 1) {
+        printf("Minimum Area Covered must be between 0 and 1. Resetting to default.\n");
+        settings.minareacovered = 0.25f;
+        found_problem = 1;
+    }
+
+    // zscore threshold should be greater than 0
+    if (settings.zscore_threshold < 0) {
+        printf("Z-Score Threshold must greater than 0. Resetting to default.\n");
+        settings.zscore_threshold = 0.95f;
+        found_problem = 1;
+    }
+
+    if (found_problem == 1) {
+        printf("Problems found in settings. Defaults have been applied for bad values. Check settings.\n");
+    } else if (found_warning == 1) {
+        printf("Warnings found in settings. Attempting to run anyway, but you should rethink your choices.\n");
+    }
+
+    return settings;
+}
 
 // Sets up the weights structure and allocates memory for the weights and biases
 struct Weights SetuptWeights(const struct IsoConfig config) {
@@ -547,16 +736,14 @@ int peak_detect(const double *dataMZ, const float *dataInt, const int lengthmz, 
 // Function to calculate the isotope intensity distribution for a given mass
 int isotope_dist(const float mass, float *isovals, const float normfactor,
                  const struct IsoSettings settings) {
-
     int offset = 0;
-    if (settings.minusoneaszero == 1) {offset = 1;}
+    if (settings.minusoneaszero == 1) { offset = 1; }
 
     float max;
     if (mass > 60000) {
         printf("Warning: Mass is very high, may not be accurate: %f\n", mass);
         max = isomike(mass, isovals, settings.isolength, offset);
-    }
-    else {
+    } else {
         max = isogenmass_fancy(mass, isovals, settings.isolength, offset);
     }
 
@@ -946,6 +1133,8 @@ int process_spectrum(const double *cmz, const float *cint, int n, const char *fn
     if (config.verbose == 1) { printf("Processing Spectrum. Phaseres: %d Length: %d\n", settings.phaseres, n); }
 
     //IsoSettings settings = DefaultSettings();
+    // Check settings to see if any are bad
+    settings = CheckSettings(settings);
 
     // Load Weights
     // ReSharper disable once CppDFAMemoryLeak
@@ -1229,6 +1418,7 @@ int process_spectrum_default(const double *cmz, const float *cint, const int n, 
     const struct IsoSettings settings = DefaultSettings();
     return process_spectrum(cmz, cint, n, fname, matchedpeaks, settings);
 }
+
 // #ifdef _MSC_VER
 // #include <intrin.h>
 // #endif

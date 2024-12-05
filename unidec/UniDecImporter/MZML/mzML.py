@@ -261,6 +261,7 @@ class MZMLImporter(Importer):
         self.data = None
         self.global_counter = 0
         self.process_scan()
+        self.polarity = None
 
     def process_scan(self):
         for i, spectrum in enumerate(self.msrun):
@@ -322,6 +323,8 @@ class MZMLImporter(Importer):
                     # except Exception as e:
                     #     print("Error", e, "With scan number:", index)
         # self.msrun.close()
+        if self.polarity is None:
+            self.polarity = self.get_polarity()
         return template
 
     def grab_data(self):

@@ -24,7 +24,8 @@ class AgilentImporter(Importer):
         self.times = []
         # self.times = [self.get_times_from_scans(self.scanrange)]
         self.data = None
-
+        self.centroided = False
+        self.polarity = None
         self.datascans = []
         curr_info = self.msrun.scan_info()
         for i in curr_info:
@@ -45,10 +46,19 @@ class AgilentImporter(Importer):
         return self.data
 
 
-    def grab_scan_data(self, scan):
-        impdat = np.array(self.msrun.scan(int(scan)))
-        impdat = impdat[impdat[:, 0] > 10]
-        return impdat
+    def grab_scan_data(self, scan, threshold=-1):
+        try:
+            impdat = np.array(self.msrun.scan(int(scan)))
+            impdat = np.transpose([impdat[:, 0], impdat[:, 1]])
+            impdat = impdat[impdat[:, 0] > 10]
+            if threshold >= 0:
+                impdat = impdat[impdat[:, 1] > threshold]
+
+            return impdat
+
+        except Exception as e:
+            print(f"Error in grab_scan_data for scan {scan}: {e}")
+            return None
 
     def get_data(self, scan_range=None, time_range=None, mzbins=None):
         """
@@ -81,6 +91,8 @@ class AgilentImporter(Importer):
                 impdat = np.array(self.msrun.scan(scan_range[0]))
                 impdat = impdat[impdat[:, 0] > 10]
                 data = impdat
+            if self.polarity is None:
+                self.polarity = self.get_polarity()
 
 
         except Exception as e:
@@ -173,7 +185,6 @@ class AgilentImporter(Importer):
             return "Negative"
         print("Polarity: Unknown")
         return None
-        pass
 
 # if __name__ == '__main__':
 #     path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\AgilentData\\2019_05_15_bsa_ccs_02.d"
