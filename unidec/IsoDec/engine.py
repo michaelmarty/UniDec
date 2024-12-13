@@ -86,7 +86,7 @@ class IsoDecEngine:
             self.wrapper = None
 
         self.reader = None
-        self.predmode = 2
+        self.predmode = 0
 
     def drop_ones(self, percentage=0.8):
         """
@@ -414,7 +414,7 @@ class IsoDecEngine:
         return [int(z), 0]
 
     def thrash_predictor(self, centroids):
-        return [thrash_predict(centroids), 0]
+        return [thrash_predict(centroids), 1]
 
     def get_matches(self, centroids, z, peakmz, pks=None):
         """
@@ -435,6 +435,7 @@ class IsoDecEngine:
                 pk.rt = self.config.activescanrt
                 pk.scan = self.config.activescan
                 pks.add_peak(pk)
+                pks.add_pk_to_masses(pk, 10)
             else:
                 self.pks.add_peak(pk)
             return pk.matchedindexes
@@ -481,7 +482,7 @@ class IsoDecEngine:
         else:
             return []
 
-    def batch_process_spectrum(self, data, window=None, threshold=None, centroided=False):
+    def batch_process_spectrum(self, data, window=None, threshold=None, centroided=False, refresh=False):
         """
         Process a spectrum and identify the peaks. It first identifies peak cluster, then predicts the charge,
         then checks the peaks. If all is good, it adds them to the MatchedCollection as a MatchedPeak object.
@@ -492,11 +493,15 @@ class IsoDecEngine:
         :param centroided: Whether the data is already centroided. If not, it will centroid it.
         :return: MatchedCollection of peaks
         """
+        if self.config.verbose:
+            print("Processing spectrum with prediction mode:", self.predmode)
         starttime = time.perf_counter()
         if window is None:
             window = self.config.peakwindow
         if threshold is None:
             threshold = self.config.peakthresh
+        if self.config.css_thresh < 0.6:
+            self.config.adjust_css = False
 
         # TODO: Need a way to test for whether data is centroided already
         if centroided:
@@ -510,6 +515,9 @@ class IsoDecEngine:
                 print("Median Spacing:", med_spacing, "Removing noise.")
             centroids = remove_noise_cdata(centroids, 100, factor=1.5, mode="median")
 
+        if refresh:
+            self.pks = MatchedCollection()
+
         if self.use_wrapper:
             self.pks = self.wrapper.process_spectrum(centroids, self.pks, self.config)
         else:
@@ -517,7 +525,7 @@ class IsoDecEngine:
             threshold = threshold
             for i in range(self.config.knockdown_rounds):
                 # Adjust settings based on round
-                if i >= 5:
+                if i >= 5 and self.config.adjust_css:
                     self.config.css_thresh = self.config.css_thresh * 0.90
                     if self.config.css_thresh < 0.6:
                         self.config.css_thresh = 0.6
@@ -547,6 +555,7 @@ class IsoDecEngine:
                                                                        phaseres=self.config.phaseres,
                                                                        minpeaks=2, datathresh=self.config.datathreshold)
 
+
                     emats = [torch.as_tensor(e, dtype=torch.float32) for e in emats]
                     # emats = torch.as_tensor(emats, dtype=torch.float32).to(self.phasemodel.device)
                     data_loader = DataLoader(emats, batch_size=2048, shuffle=False, pin_memory=True)
@@ -561,6 +570,7 @@ class IsoDecEngine:
                                                                                                 1],
                                                                                             minpeaks=2,
                                                                                             datathresh=self.config.datathreshold)
+                    peaks = goodpeaks
                     centlist = outcentroids
                     preds = [self.phase_predictor(c) for c in encodingcentroids]
                 elif self.predmode == 2:
@@ -571,6 +581,7 @@ class IsoDecEngine:
                                                                                                 1],
                                                                                             minpeaks=2,
                                                                                             datathresh=self.config.datathreshold)
+                    peaks = goodpeaks
                     centlist = outcentroids
                     preds = [self.thrash_predictor(c) for c in encodingcentroids]
                 elif self.predmode == 3:
@@ -581,6 +592,7 @@ class IsoDecEngine:
                                                                                                 1],
                                                                                             minpeaks=2,
                                                                                             datathresh=self.config.datathreshold)
+                    peaks = goodpeaks
                     centlist = outcentroids
                     preds = [self.phase_predictor(c) for c in encodingcentroids]
                     preds2 = [self.thrash_predictor(c) for c in encodingcentroids]
@@ -590,6 +602,8 @@ class IsoDecEngine:
 
                 knockdown = []
                 ngood = 0
+
+
                 # print(peaks, len(peaks))
                 # Loop through all peaks to check if they are good
                 for j, p in enumerate(peaks):
@@ -670,7 +684,7 @@ class IsoDecEngine:
                     spectrum = reader.grab_centroid_data(s)
                     centroided = True
                 else:
-                    spectrum = reader.grab_scan_data(s)
+                    spectrum = reader.get_single_scan(s)
             except Exception as e:
                 print("Error Reading Scan", s, e)
                 continue
@@ -693,7 +707,7 @@ class IsoDecEngine:
         # self.pks.save_pks()
         return reader
 
-    def export_peaks(self, type="prosightlite", filename=None, reader=None, max_precursors=None):
+    def export_peaks(self, type="prosightlite", filename="output", reader=None, act_type="HCD", max_precursors=None):
         if filename is None:
             filename = "peaks.csv"
 
@@ -703,7 +717,7 @@ class IsoDecEngine:
         if type == "prosightlite":
             self.pks.export_prosightlite(filename)
         elif type == "msalign":
-            self.pks.export_msalign(reader, filename, max_precursors=max_precursors)
+            self.pks.export_msalign(self.config, reader, filename, act_type=act_type, max_precursors=max_precursors)
         elif type == "pkl":
             self.pks.save_pks()
         else:

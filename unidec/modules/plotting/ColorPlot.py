@@ -6,7 +6,7 @@ from scipy.stats import norm
 import matplotlib.colors as colors
 import matplotlib.colorbar as colorbar
 
-from unidec.modules.PlottingWindow import PlottingWindowBase
+from unidec.modules.plotting.PlottingWindow import PlottingWindowBase
 from unidec.tools import color_map_array
 
 '''

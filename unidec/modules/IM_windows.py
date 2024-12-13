@@ -5,7 +5,7 @@ import wx.lib.mixins.listctrl as listmix
 import numpy as np
 # import matplotlib.cm as cm
 import matplotlib as mpl
-from unidec.modules import PlottingWindow
+from modules.plotting import PlottingWindow
 # noinspection PyUnresolvedReferences
 import unidec.tools as ud
 from unidec.modules.IM_functions import *

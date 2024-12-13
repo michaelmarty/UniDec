@@ -289,6 +289,7 @@ def datacompsub(datatop, buff):
 
 #@njit(fastmath=True)
 def get_all_centroids(data, window=5, threshold=0.0001, background=100, moving_average_smoothing=3):
+    # print("Initial length:", len(data))
     if len(data) < 3:
         return np.empty((0, 2))
 
@@ -305,7 +306,7 @@ def get_all_centroids(data, window=5, threshold=0.0001, background=100, moving_a
     outpeaks = np.empty((len(p0), 2))
     outpeaks[:, 0] = p0
     outpeaks[:, 1] = peaks[:, 1]
-
+    # print("Final length:", len(outpeaks))
     return outpeaks
 
 

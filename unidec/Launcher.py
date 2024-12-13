@@ -230,7 +230,6 @@ class Shell(object):
         self.shell = py.shell.Shell(wx.Frame(None))
 
         self.shellwindow = py.shell.ShellFrame(self.shell, title="UniDecShell").Show()
-
         # self.shell.Execute('app=UniDecApp()')
         # self.shell.Execute('app.start()')
         # self.shellwindow.Center()

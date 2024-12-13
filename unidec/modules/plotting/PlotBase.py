@@ -9,7 +9,7 @@ import io
 from matplotlib.backends.backend_svg import FigureCanvasSVG
 # noinspection PyUnresolvedReferences
 import numpy as np
-from unidec.modules.isolated_packages.ZoomCommon import *
+from unidec.modules.plotting.ZoomCommon import *
 from matplotlib.patches import Rectangle
 
 rcParams['ps.useafm'] = True

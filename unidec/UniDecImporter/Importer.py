@@ -1,47 +1,138 @@
 import os
-# import numpy as np
-
+import numpy as np
+import unidec.tools as ud
+from unidec.UniDecImporter import ImportTools as IT
+from copy import deepcopy
+from unidec.UniDecImporter.ImportTools import merge_spectra
 
 class Importer:
     def __init__(self, file_path, **kwargs):
         self._file_path = file_path
         self._params = kwargs
         self.ext = os.path.splitext(file_path)[1]
+        self.filesize = os.stat(file_path).st_size
         self.scans = None
         self.times = None
         self.centroided = False
         self.polarity = "Positive"
+        self.scan_range = None # Note, we will use includive scan range such that the last scan is self.scan_range[1]
+        self.data = None
+        self.cdms_support = False
+        self.imms_support = False
+        self.chrom_support = False
+        self.centroid_threshold = 0.8
 
-    def grab_data(self):
+    def get_polarity(self, scan=None):
+        return self.polarity
+
+    def get_ms_order(self, scan=None):
+        return 1
+
+    # list of all scans
+    def get_all_scans(self):
         pass
 
-    def grab_scan_data(self, scan):
+    # averaged scans
+    def get_avg_scan(self, scan_range=None, time_range=None):
+        pass
+
+    # Single scan data
+    def get_single_scan(self, scan):
         pass
 
     def get_max_time(self):
-        pass
+        return self.times[-1]
 
     def get_max_scan(self):
-        pass
+        return self.scans[-1]
 
     def get_scans_from_times(self, time_range):
-        pass
+        mins = self.get_time_scan(time_range[0])
+        if time_range[1] - time_range[0] > 0:
+            maxs = self.get_time_scan(time_range[1])
+            return [mins, maxs]
+        else:
+            return [mins, mins]
 
     def get_times_from_scans(self, scan_range):
-        pass
+        mint = self.get_scan_time(scan_range[0])
+        if scan_range[1] - scan_range[0] > 1:
+            maxt = self.get_scan_time(scan_range[1])
+            avgt = (mint + maxt) / 2.
+            return [mint, avgt, maxt]
+        else:
+            # Assume it's a single scan
+            return [mint, mint, mint]
 
     def get_tic(self):
-        pass
-
-    def get_polarity(self, scan=None):
+        if not self.chrom_support:
+            print("TIC data not supported for this file type:", self._file_path)
+            raise Exception
         pass
 
     def get_scan_time(self, scan):
-        pass
+        # Find index in self.scans
+        index = np.where(self.scans == scan)[0][0]
+        t = self.times[index]
+        return t
 
-    def get_ms_order(self, scan):
-        pass
+    def get_time_scan(self, time):
+        index = np.argmin(np.abs(self.times - time))
+        scan = self.scans[index]
+        return scan
 
     def check_centroided(self):
+        scan_data = self.get_single_scan(self.scan_range[0])
+        ratio = ud.get_autocorr_ratio(scan_data)
+        print(f"Autocorr ratio {round(ratio, 3)}")
+        if ratio < self.centroid_threshold:
+            self.centroided = True
+        else:
+            self.centroided = False
         return self.centroided
 
+    def avg_fast(self, scan_range=None, time_range=None):
+        if self.data is None:
+            self.get_all_scans()
+
+        if time_range is not None:
+            scan_range = self.get_scans_from_times(time_range)
+            print("Getting times:", time_range)
+
+        data = deepcopy(self.data)
+        if scan_range is not None:
+            startindex = np.where(self.scans == scan_range[0])[0][0]
+            endindex = np.where(self.scans == scan_range[1])[0][0]
+            data = data[startindex:endindex + 1]
+            print("Getting scans:", scan_range)
+        else:
+            print("Getting all scans, length:", len(self.scans))
+
+        if data is None or ud.isempty(data):
+            print("Error: Empty Data Object")
+            return None
+        elif len(data) > 1:
+            try:
+                data = merge_spectra(data)
+            except Exception as e:
+                print("Merge Spectra Error 2:", e)
+                print(data)
+        else:
+            data = data[0]
+
+        return data
+
+    def get_cdms_data(self, scan_range=None):
+        if not self.cdms_support:
+            print("CDMS data not supported for this file type:", self._file_path)
+            raise Exception
+
+        raw_dat = self.get_all_scans()
+        mz = np.concatenate([d[:, 0] for d in raw_dat])
+        intensity = np.concatenate([d[:, 1] for i, d in enumerate(raw_dat)])
+        scans = np.ones(len(mz))  # Update this
+        it = np.ones(len(mz))
+
+        data_array = np.transpose([mz, intensity, scans, it])
+
+        return data_array

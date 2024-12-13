@@ -14,7 +14,7 @@ import unidec.tools as ud
 import unidec.modules.IM_functions as IM_func
 import unidec.modules.MassSpecBuilder as MSBuild
 from unidec.modules.unidec_enginebase import UniDecEngine
-from unidec.modules import plot1d, plot2d
+from unidec.modules.plotting import plot1d, plot2d
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 
 # import modules.DoubleDec as dd
@@ -147,12 +147,11 @@ class UniDec(UniDecEngine):
 
         self.config.extension = os.path.splitext(self.config.filename)[1]
         self.config.default_file_names()
-
         curr_importer = ImporterFactory.create_importer(self.config.filename)
         if isodeceng is not None:
             isodeceng.reader = curr_importer
 
-        self.data.rawdata = curr_importer.get_data()
+        self.data.rawdata = curr_importer.get_avg_scan()
         if len(self.data.rawdata.tolist()) == 0:
             print("Error: Data Array is Empty")
             print("Likely an error with data conversion")

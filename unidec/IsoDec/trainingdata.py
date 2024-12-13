@@ -116,7 +116,7 @@ def process_file(file, overwrite=False, peakdepth=10, maxpeaks=None, onedropper=
     for s in reader.scans:
         # Open the scan and get the spectrum
         try:
-            spectrum = reader.grab_scan_data(s)
+            spectrum = reader.get_single_scan(s)
         except:
             print("Error Reading Scan", s)
             continue

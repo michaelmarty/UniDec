@@ -1,3 +1,4 @@
+
 import numpy as np
 
 from unidec.IsoDec.datatools import fastnearest, fastwithin_abstol_withnearest, fastwithin_abstol
@@ -27,6 +28,7 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         self.activescanorder = -1
         self.meanpeakspacing_thresh = 0.01  ##This needs to be optimized.
         self.isolation_width = 3.0
+        self.adjust_css = True
 
         self.adductmass = 1.007276467
         self.mass_diff_c = 1.0033
@@ -127,25 +129,25 @@ class MatchedCollection:
         return self
 
     def group_peaks(self, peaks):
-        #Groups peaks with the same mz and z in the same scan into a single peak
+        #Groups peaks with identical intensities
         grouped_peaks = []
-        grouped_peak_mzs = np.array([])
+        grouped_peak_intensities = np.array([])
         for p in peaks:
             if len(grouped_peaks) == 0:
                 grouped_peaks.append(p)
-                grouped_peak_mzs = np.append(grouped_peak_mzs, p.mz)
+                grouped_peak_intensities = np.append(grouped_peak_intensities, p.mz)
                 continue
             else:
-                nearest_idx = fastnearest(grouped_peak_mzs, p.mz)
-                mz_diff = np.abs(p.mz - grouped_peak_mzs[nearest_idx])
-                if mz_diff < 0.001 and p.z == grouped_peaks[nearest_idx].z:
+                nearest_idx = fastnearest(grouped_peak_intensities, p.matchedintensity)
+                intensity_diff = np.abs(p.matchedintensity - grouped_peak_intensities[nearest_idx])
+                if intensity_diff < 0.001 and p.z == grouped_peaks[nearest_idx].z:
                     grouped_peaks[nearest_idx].monoisos.append(p.monoiso)
                 else:
                     #Insert into the grouped peaks/grouped_mzs at the proper position
-                    if p.mz > grouped_peak_mzs[nearest_idx]:
+                    if p.matchedintensity > grouped_peak_intensities[nearest_idx]:
                         nearest_idx += 1
                     grouped_peaks.insert(nearest_idx, p)
-                    grouped_peak_mzs = np.insert(grouped_peak_mzs, nearest_idx, p.mz)
+                    grouped_peak_intensities = np.insert(grouped_peak_intensities, nearest_idx, p.matchedintensity)
         return grouped_peaks
 
 
@@ -511,8 +513,7 @@ def read_msalign_to_matchedcollection(file, data=None, mz_type="monoiso"):
                 continue
             elif "=" not in line and len(line) > 1:
                 split = line.split("\t")
-                # mz = (float(split[0]) + (1.007276467 * int(split[2]))) / int(split[2])
-                mz = float(split[1])
+                mz = (float(split[0]) + (1.007276467 * int(split[2]))) / int(split[2])
                 pk = MatchedPeak(int(split[2]), mz)
                 pk.monoisos = [float(split[0])]
                 pk.scan = current_scan
@@ -529,7 +530,6 @@ def read_msalign_to_matchedcollection(file, data=None, mz_type="monoiso"):
                     # endindex = fastnearest(data[:, 0], mz + window[1])
 
                     dmax = data[startindex, 1]
-
 
                 else:
                     dmax = 10000
@@ -678,6 +678,8 @@ def compare_matchedmasses(coll1, coll2, ppmtol=20, maxshift=3, rt_tol = 2, f_sha
         foundmatch = False
         within_tol = fastwithin_abstol(monoisos2, monoisos1[i], int(math.ceil(maxshift + 0.5)))
         if len(within_tol) > 0:
+            #Order the within_tol by descending matched intensity
+            within_tol = sorted(within_tol, key=lambda x: coll2.masses[x].totalintensity, reverse=True)
             for j in within_tol:
                 #ensure that the retention times are close enough
                 if abs(coll1.masses[i].maxrt - coll2.masses[j].maxrt) < rt_tol:
@@ -714,6 +716,7 @@ def compare_matchedmasses(coll1, coll2, ppmtol=20, maxshift=3, rt_tol = 2, f_sha
                                 break
             if not foundmatch:
                 unique_coll2.append(i)
+
 
     #Now we'll convert the indices to the actual masses
     matched_coll1 = [coll1.masses[i] for i in matched_coll1]
@@ -1070,7 +1073,7 @@ def optimize_shift2(config, centroids: np.ndarray, z, peakmz):
     m.ms_order = config.activescanorder
     m.isodist = isodist_new
     m.matchedindexes = matchedindexes
-    m.matchedintensity = np.amax(massdist_new[:, 1])
+    m.matchedintensity = np.sum(isodist_new[:, 1])
     m.isomatches = isomatches
     m.massdist = massdist_new
     m.monoisos = [monoiso + accepted_shifts[i][0] * mass_diff_c for i in range(len(accepted_shifts))]

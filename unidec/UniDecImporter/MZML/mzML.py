@@ -1,14 +1,18 @@
+import time
 import numpy as np
-import pymzml
-from unidec import tools as ud
 import os
 from copy import deepcopy
+
+from unidec import tools as ud
+
+import pymzml
 from pymzml.utils.utils import index_gzip
 import pymzml.obo
 
-__author__ = 'Michael.Marty'
-
 from unidec.UniDecImporter.Importer import Importer
+from unidec.UniDecImporter.ImportTools import get_resolution, merge_spectra, merge_im_spectra
+
+__author__ = 'Michael.Marty'
 
 
 def gzip_files(mzml_path, out_path):
@@ -31,177 +35,6 @@ def auto_gzip(mzml_path):
     return out_path
 
 
-def get_resolution(testdata):
-    """
-    Get the median resolution of 1D MS data.
-    :param testdata: N x 2 data (mz, intensity)
-    :return: Median resolution (float)
-    """
-    diffs = np.transpose([testdata[1:, 0], np.diff(testdata[:, 0])])
-    resolutions = ud.safedivide(diffs[:, 0], diffs[:, 1])
-    # popt, pcov = scipy.optimize.curve_fit(fit_line, diffs[:, 0], resolutions, maxfev=1000000)
-    # fitLine = fit_line(diffs[:, 0], *popt)
-    # fitMax = np.max(fitLine)
-    # fitMin = np.min(fitLine)
-    # diffs_new = diffs[(1.2 * fitMin < resolutions) & (resolutions < 1.2 * fitMax)]
-    # resolutions_new = resolutions[(1.2 * fitMin < resolutions) & (resolutions < 1.2 * fitMax)]
-    # popt2, pcov2 = scipy.optimize.curve_fit(fit_line, diffs_new[:, 0], resolutions_new, maxfev=1000000)
-    # plt.figure()
-    # plt.plot(diffs[:,0], resolutions)
-    # plt.plot(diffs[:, 0], fit_line(diffs[:, 0], *popt2), 'r-')
-    # plt.show()
-    # Currently use A * m ^1.5 (0.5?)
-    # Maybe use a*M^b
-    # return popt2
-    return np.median(resolutions)
-
-
-def fit_line(x, a, b):
-    return a * x ** b
-
-
-def get_longest_index(datalist):
-    lengths = [len(x) for x in datalist]
-    return np.argmax(lengths)
-
-
-def merge_spectra(datalist, mzbins=None, type="Interpolate"):
-    """
-    Merge together a list of data.
-    Interpolates each data set in the list to a new nonlinear axis with the median resolution of the first element.
-    Optionally, allows mzbins to create a linear axis with each point spaced by mzbins.
-    Then, adds the interpolated data together to get the merged data.
-    :param datalist: M x N x 2 list of data sets
-    :return: Merged N x 2 data set
-    """
-    # Filter out junk spectra that are empty
-    datalist = [x for x in datalist if len(x) > 0]
-    # Find which spectrum in this list is the largest. This will likely have the highest resolution.
-    maxlenpos = get_longest_index(datalist)
-
-    # Concatenate everything for finding the min/max m/z values in all scans
-    concat = np.concatenate(datalist)
-    # xvals = concat[:, 0]
-    # print "Median Resolution:", resolution
-    # axis = nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
-    # for d in datalist:
-    #    print(d)
-    # If no m/z bin size is specified, find the average resolution of the largest scan
-    # Then, create a dummy axis with the average resolution.
-    # Otherwise, create a dummy axis with the specified m/z bin size.
-    if mzbins is None or float(mzbins) == 0:
-        resolution = get_resolution(datalist[maxlenpos])
-        if resolution < 0:
-            print("ERROR with auto resolution:", resolution, maxlenpos, datalist[maxlenpos])
-            print("Using ABS")
-            resolution = np.abs(resolution)
-        elif resolution == 0:
-            print("ERROR, resolution is 0, using 20000.", maxlenpos, datalist[maxlenpos])
-            resolution = 20000
-
-        axis = ud.nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
-    else:
-        axis = np.arange(np.amin(concat[:, 0]), np.amax(concat[:, 0]), float(mzbins))
-    template = np.transpose([axis, np.zeros_like(axis)])
-
-    print("Length merge axis:", len(template))
-
-    # Loop through the data and resample it to match the template, either by integration or interpolation
-    # Sum the resampled data into the template.
-    for d in datalist:
-        if len(d) > 2:
-            if type == "Interpolate":
-                newdat = ud.mergedata(template, d)
-            elif type == "Integrate":
-                newdat = ud.lintegrate(d, axis)
-            else:
-                print("ERROR: unrecognized trdtrmerge spectra type:", type)
-                continue
-
-            template[:, 1] += newdat[:, 1]
-
-    # Trying to catch if the data is backwards
-    try:
-        if template[1, 0] < template[0, 0]:
-            template = template[::-1]
-    except:
-        pass
-    return template
-
-
-def merge_im_spectra(datalist, mzbins=None, type="Integrate"):
-    """
-    Merge together a list of ion mobility data.
-    Interpolates each data set in the list to a new nonlinear axis with the median resolution of the first element.
-    Optionally, allows mzbins to create a linear axis with each point spaced by mzbins.
-    Then, adds the interpolated data together to get the merged data.
-    :param datalist: M x N x 2 list of data sets
-    :return: Merged N x 2 data set
-    """
-    # Find which spectrum in this list is the largest. This will likely have the highest resolution.
-    maxlenpos = get_longest_index(datalist)
-
-    # Concatenate everything for finding the min/max m/z values in all scans
-    if len(datalist) > 1:
-        concat = np.concatenate(datalist)
-    else:
-        concat = np.array(datalist[0])
-    # If no m/z bin size is specified, find the average resolution of the largest scan
-    # Then, create a dummy axis with the average resolution.
-    # Otherwise, create a dummy axis with the specified m/z bin size.
-    if mzbins is None or float(mzbins) == 0:
-        resolution = get_resolution(datalist[maxlenpos])
-        mzaxis = ud.nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
-    else:
-        mzaxis = np.arange(np.amin(concat[:, 0]), np.amax(concat[:, 0]), float(mzbins))
-
-    # For drift time, use just unique drift time values. May need to make this fancier.
-    dtaxis = np.sort(np.unique(concat[:, 1]))
-
-    # Create the mesh grid from the new axes
-    X, Y = np.meshgrid(mzaxis, dtaxis, indexing="ij")
-
-    template = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(np.zeros_like(X))])
-    print("Shape merge axis:", X.shape)
-    xbins = deepcopy(mzaxis)
-    xbins[1:] -= np.diff(xbins)
-    xbins = np.append(xbins, xbins[-1] + np.diff(xbins)[-1])
-    ybins = deepcopy(dtaxis)
-    ybins[1:] -= np.diff(ybins) / 2.
-    ybins = np.append(ybins, ybins[-1] + np.diff(ybins)[-1])
-    # Loop through the data and resample it to match the template, either by integration or interpolation
-    # Sum the resampled data into the template.
-    for d in datalist:
-        if len(d) > 2:
-            if type == "Interpolate":
-                newdat = ud.mergedata2d(template[:, 0], template[:, 1], d[:, 0], d[:, 1], d[:, 2])
-            elif type == "Integrate":
-                newdat, xedges, yedges = np.histogram2d(d[:, 0], d[:, 1], bins=[xbins, ybins], weights=d[:, 2])
-            else:
-                print("ERROR: unrecognized merge spectra type:", type)
-                continue
-            template[:, 2] += np.ravel(newdat)
-    return template
-
-
-def nonlinear_axis(start, end, res):
-    """
-    Creates a nonlinear axis with the m/z values spaced with a defined and constant resolution.
-    :param start: Minimum m/z value
-    :param end: Maximum m/z value
-    :param res: Resolution of the axis ( m / delta m)
-    :return: One dimensional array of the nonlinear axis.
-    """
-    axis = []
-    i = start
-    axis.append(i)
-    i += i / fit_line(i, res[0], res[1])
-    while i < end:
-        axis.append(i)
-        i += i / fit_line(i, res[0], res[1])
-    return np.array(axis)
-
-
 def get_data_from_spectrum(spectrum, threshold=-1):
     if spectrum == None:
         return
@@ -209,11 +42,6 @@ def get_data_from_spectrum(spectrum, threshold=-1):
     impdat = impdat[impdat[:, 0] > 10]
     if threshold >= 0:
         impdat = impdat[impdat[:, 1] > threshold]
-    # print(len(impdat))
-    # with np.printoptions(threshold=10000):
-    #    print(np.sum(impdat[:,1]>0))
-    # print(impdat)
-    # exit()
     return impdat
 
 
@@ -227,6 +55,20 @@ def get_im_data_from_spectrum(spectrum, threshold=-1):
     if threshold >= 0:
         impdat = impdat[impdat[:, 2] > threshold]
     return impdat
+
+
+def get_inj_time(spectrum):
+    element = spectrum.element
+    it = 1
+    for child in element.iter():
+        if 'name' in child.attrib:
+            if child.attrib['name'] == 'ion injection time':
+                it = child.attrib['value']
+                try:
+                    it = float(it)
+                except:
+                    it = 1
+    return it
 
 
 def search_by_id(obo, id):
@@ -247,160 +89,116 @@ FIELDNAMES = ["id", "name", "def", "is_a"]
 class MZMLImporter(Importer):
     """
     Imports mzML data files.
+
+    Note: mzML files are 1 indexed, so the first scan is 1, not 0.
     """
-
     def __init__(self, path, *args, **kwargs):
+        super().__init__(path, **kwargs)
 
-        # Super call
-        super(MZMLImporter, self).__init__(path, **kwargs)
-        self.filesize = os.stat(path).st_size
-        self.times = []
-        self.ids = []
-        self.scans = []
         self.msrun = pymzml.run.Reader(path)
-        self.data = None
-        self.global_counter = 0
-        self.process_scan()
-        self.polarity = None
+        self.init_scans()
 
-    def process_scan(self):
+        self.cdms_support = True
+        self.imms_support = True
+        self.chrom_support = True
+
+    def init_scans(self):
+        self.times = []
+        self.scans = []
         for i, spectrum in enumerate(self.msrun):
-            if '_scan_time' in list(spectrum.__dict__.keys()):
-                try:
-                    if spectrum.ms_level is None:
-                        continue
-                    t = spectrum.scan_time_in_minutes()
-                    id = spectrum.ID
-                    self.times.append(float(t))
-                    self.ids.append(id)
-                except Exception as e:
-                    self.times.append(-1)
-                    self.ids.append(-1)
-            else:
-                print("Scan time not found for spectrum ID:", spectrum.ID)
+            try:
+                if spectrum.ms_level is None:
+                    continue
+                t = spectrum.scan_time_in_minutes()
+                id = spectrum.ID
+                self.times.append(float(t))
+                self.scans.append(id)
+            except:
+                pass
         self.times = np.array(self.times)
-        self.ids = np.array(self.ids)
-        self.scans = np.arange(len(self.ids))
+        self.scans = np.array(self.scans)
+        self.scan_range = [int(np.amin(self.scans)), int(np.amax(self.scans))]
+        self.reset_reader()
 
-    def grab_scan_data(self, scan):
+    def get_single_scan(self, scan):
         try:
-            data = get_data_from_spectrum(self.msrun[self.ids[scan]])
+            data = get_data_from_spectrum(self.msrun[scan])
         except Exception as e:
-            print("Error in grab_scan_data:", e)
+            print("Error in get_single_scan:", e)
             data = None
         return data
 
-    def get_data_memory_safe(self, scan_range=None, time_range=None):
+    #This is the merging function
+    def avg_safe(self, scan_range=None, time_range=None):
         if time_range is not None:
             scan_range = self.get_scans_from_times(time_range)
             print("Getting times:", time_range)
         if scan_range is None:
-            scan_range = [int(np.amin(self.scans)), int(np.amax(self.scans))]
-        # display 1 greater than actual index
-        print("Scan Range:", [scan_range[0] + 1, scan_range[-1] + 1])
-        data = get_data_from_spectrum(self.msrun[self.ids[scan_range[0]]])
+            scan_range = self.scan_range
+        print("Scan Range:", scan_range)
+
+        self.reset_reader()
+        # Get first data point and interpolate it to match template axis
+        data = get_data_from_spectrum(self.msrun[scan_range[0]])
         resolution = get_resolution(data)
         axis = ud.nonlinear_axis(np.amin(data[:, 0]), np.amax(data[:, 0]), resolution)
         template = np.transpose([axis, np.zeros_like(axis)])
         newdat = ud.mergedata(template, data)
         template[:, 1] += newdat[:, 1]
 
+        # Get other data points
         index = 0
         while index <= scan_range[1] - scan_range[0]:
-
             try:
                 spec = self.msrun.next()
             except:
                 break
-            if spec.ID in self.ids:
-                index += 1
-                if scan_range[0] <= index <= scan_range[1]:
-                    # try:
+            index += 1
+            if spec.ID in self.scans:
+                if scan_range[0] < spec.ID <= scan_range[1]:
                     data = get_data_from_spectrum(spec)
-
                     newdat = ud.mergedata(template, data)
                     template[:, 1] += newdat[:, 1]
-                    # except Exception as e:
-                    #     print("Error", e, "With scan number:", index)
-        # self.msrun.close()
-        if self.polarity is None:
-            self.polarity = self.get_polarity()
+                elif spec.ID <= scan_range[0]:
+                    pass
+                else:
+                    break
+        self.reset_reader()
         return template
 
-    def grab_data(self):
-        for spectrum in self.msrun:
-            if 'scanList' in spectrum:
+    def reset_reader(self):
+        self.msrun.close()
+        self.msrun = pymzml.run.Reader(self._file_path)
+
+    def get_all_scans(self, threshold=-1):
+        self.reset_reader()
+        newtimes = []
+        newids = []
+        self.data = []
+        for n, spec in enumerate(self.msrun):
+            if spec.ID in self.scans:
                 try:
-                    scan_info = spectrum['scanList']['scan'][0]
-                    t = scan_info['scan start time']
-                    id = spectrum['id']
-
-                    raw_data = list(spectrum.get('m/z array', []))
-                    intensity_data = list(spectrum.get('intensity array', []))
-
-                    if raw_data and intensity_data:
-                        self.data.append((raw_data, intensity_data))
-                        print(
-                            f"Data appended for ID {id}: {raw_data[:5]}, {intensity_data[:5]}")
-                    else:
-                        print(f"Missing data for spectrum ID {id}")
-
+                    impdat = get_data_from_spectrum(spec, threshold=threshold)
+                    self.data.append(impdat)
+                    newtimes.append(self.times[n])
+                    newids.append(spec.ID)
                 except Exception as e:
-                    continue
-        #             print("Error processing spectrum:", e)
-        #     else:
-        #         print("Scan list not found for spectrum ID:", spectrum['id'])
-        #
-        # print("Final data length:", len(self.data))
+                    print(e)
+        self.times = np.array(newtimes)
+        self.scans = np.array(newids)
+        self.reset_reader()
+        return self.data
 
-    def get_data_fast_memory_heavy(self, scan_range=None, time_range=None):
 
-        if self.data is None:
-            self.grab_data()
-
-        data = deepcopy(self.data)
-        if time_range is not None:
-            scan_range = self.get_scans_from_times(time_range)
-            print("Getting times:", time_range)
-
-        if scan_range is not None:
-            data = data[int(scan_range[0]):int(scan_range[1] + 1)]
-            print("Getting scans1:", scan_range)
-        else:
-            print("Getting all scans, length:", len(self.scans), data.shape)
-
-        if data is None or ud.isempty(data):
-            print("Error: Empty Data Object")
-            return None
-
-        if len(data) > 1:
-            try:
-                data = merge_spectra(data)
-            except Exception as e:
-                concat = np.concatenate(data)
-                sort = concat[concat[:, 0].argsort()]
-                data = ud.removeduplicates(sort)
-                print("2", e)
-        elif len(data) == 1:
-            data = data[0]
-        else:
-            data = data
-        return data
-
-    def get_data(self, scan_range=None, time_range=None):
+    def get_avg_scan(self, scan_range=None, time_range=None):
         """
         Returns merged 1D MS data from mzML import
         :return: merged data
         """
         if self.filesize > 1e9 and self.data is None:
-            # try:
-
-            data = self.get_data_memory_safe(scan_range, time_range)
-            # except Exception as e:
-            #     print("Error in Memory Safe mzML, trying memory heavy method")
-            #     data = self.get_data_fast_memory_heavy(scan_range, time_range)
+            data = self.avg_safe(scan_range, time_range)
         else:
-            data = self.get_data_memory_safe(scan_range, time_range)
+            data = self.avg_fast(scan_range, time_range)
         return data
 
     def get_tic(self):
@@ -412,9 +210,8 @@ class MZMLImporter(Importer):
                 raise Exception
         except:
             print("Error getting TIC in mzML; trying to make it...")
-
             tic = []
-            self.grab_data()
+            self.get_all_scans()
             print("Imported Data. Constructing TIC")
             for d in self.data:
                 try:
@@ -426,50 +223,6 @@ class MZMLImporter(Importer):
             ticdat = np.transpose([t, tic])
             print("Done")
         return ticdat
-
-    def get_scans_from_times(self, time_range):
-        boo1 = self.times >= time_range[0]
-        boo2 = self.times < time_range[1]
-        try:
-            min = np.amin(self.scans[boo1])
-            max = np.amax(self.scans[boo2])
-        except Exception as e:
-            min = -1
-            max = -1
-            print("3", e)
-        return [min, max]
-
-    def get_times_from_scans(self, scan_range):
-        boo1 = self.scans >= scan_range[0]
-        boo2 = self.scans < scan_range[1]
-        boo3 = np.logical_and(boo1, boo2)
-        min = np.amin(self.times[boo1])
-        max = np.amax(self.times[boo2])
-        try:
-            avg = np.mean(self.times[boo3])
-        except Exception as e:
-            avg = min
-            print("4", e)
-        return [min, avg, max]
-
-    def get_max_time(self):
-        return np.amax(self.times)
-
-    def get_max_scans(self):
-        return np.amax(self.scans)
-
-    def get_inj_time(self, spectrum):
-        element = spectrum.element
-        it = 1
-        for child in element.iter():
-            if 'name' in child.attrib:
-                if child.attrib['name'] == 'ion injection time':
-                    it = child.attrib['value']
-                    try:
-                        it = float(it)
-                    except:
-                        it = 1
-        return it
 
     def get_property(self, s, name):
         element = self.msrun[s].element
@@ -484,59 +237,39 @@ class MZMLImporter(Importer):
                         it = 1
         return it
 
-    def get_dts(self):
-        dts = []
-        for i, s in enumerate(self.ids):
-            try:
-                dt = self.get_property(s, 'ion mobility drift time')
-                dts.append(dt)
-            except:
-                dts.append(-1)
-        return np.array(dts)
-
     def get_inj_time_array(self):
+        self.reset_reader()
         its = []
-        for i, s in enumerate(self.ids):
-            it = self.get_inj_time(self.msrun[s])
+        for i, s in enumerate(self.scans):
+            it = get_inj_time(self.msrun[s])
             try:
                 it = float(it)
             except:
                 print("Error in scan header:", i, s, it)
                 it = 1
             its.append(it)
+        self.reset_reader()
         return np.array(its)
 
     def grab_im_data(self):
+        self.reset_reader()
         newtimes = []
         newids = []
         self.data = []
-        """
-        # Old Slow Method
-        for i, s in enumerate(self.ids):
-            try:
-                array = get_im_data_from_spectrum(self.msrun[s])
-                self.data.append(np.array(array))
-                newtimes.append(self.times[i])
-                newids.append(s)
-            except:
-                pass"""
-
-        # New Faster Method
         for n, spec in enumerate(self.msrun):
-            if spec.ID in self.ids:
+            if spec.ID in self.scans:
                 try:
                     impdat = get_im_data_from_spectrum(spec)
                     self.data.append(impdat)
                     newtimes.append(self.times[n])
                     newids.append(spec.ID)
                 except Exception as e:
-                    print("mzML import error")
-                    print(e)
+                    print(f"Error processing spectrum ID {spec.ID}: {e}")
 
-        self.data = np.array(self.data, dtype='object')
         self.times = np.array(newtimes)
-        self.ids = np.array(newids)
-        self.scans = np.arange(0, len(self.ids))
+        self.scans = np.array(newids)
+        self.data = np.array(self.data, dtype=object)
+        self.reset_reader()
         return self.data
 
     def get_im_data(self, scan_range=None, time_range=None, mzbins=None):
@@ -580,35 +313,29 @@ class MZMLImporter(Importer):
         # Directly access the scan at the provided index
         spec = self.msrun[scan]
         # to string gets the raw byte xml format of the scan
-        # print(spec.to_string())
         comp = ""
         xml = spec.to_string()
         # convert the byte xml to a string
         for i in xml:
             comp += chr(i)
         # if we want to look at the raw xml data
-        # print(comp)
         # look for the string telling us what polarity is
         if "negative scan" in comp:
             print("Polarity: Negative")
+            self.polarity = "Negative"
             return "Negative"
         if "positive scan" in comp:
             print("Polarity: Positive")
+            self.polarity = "Positive"
             return "Positive"
-        print("Polarity: Unknown")
         return None
 
-    def get_ms_order(self, s):
-        order = self.msrun[s - 1].ms_level
-        # s is the scan number, this is 0 indexed, so we subtract 1 to access the correct scan.
+    def get_ms_order(self, scan=1):
+        order = self.msrun[scan].ms_level
         return order
 
-    def get_scan_times(self, s):
-        scantime = self.msrun[s - 1].scan_time_in_minutes()
-        return scantime
-
     def get_isolation_mz_width(self, s):
-        scan = self.msrun[s - 1]
+        scan = self.msrun[s]
         precursors = scan.selected_precursors
         if len(precursors) == 0:
             return None, None
@@ -618,61 +345,53 @@ class MZMLImporter(Importer):
             width = 3
             return mz, width
 
+    def get_cdms_data(self, scan_range=None):
+        raw_dat = self.get_all_scans(threshold=0)
+        scans = self.scans
+
+        it = 1. / self.get_inj_time_array()
+        mz = np.concatenate([d[:, 0] for d in raw_dat])
+        scans = np.concatenate([s * np.ones(len(raw_dat[i])) for i, s in enumerate(self.scans)])
+        try:
+            intensity = np.concatenate([d[:, 1] * it[i] / 1000. for i, d in enumerate(raw_dat)])
+        except Exception as e:
+            print("Mark1:", e, it)
+            intensity = np.concatenate([d[:, 1] for i, d in enumerate(raw_dat)])
+        try:
+            it = np.concatenate([it * np.ones(len(raw_dat[i])) for i, it in enumerate(it)])
+        except Exception as e:
+            print("Error with injection time correction:", e)
+
+        data_array = np.transpose([mz, intensity, scans, it])
+        return data_array
+
 
 if __name__ == "__main__":
-    test = u"C:\\Python\\UniDec3\\TestSpectra\\JAW.mzML"
-    # test = "C:\Data\CytC_Intact_MMarty_Share\\221114_STD_Pro_CytC_2ug_r1.mzML.gz"
-    # test = "C:\Data\CytC_Intact_MMarty_Share\\221114_STD_Pro_CytC_2ug_r1_2.mzML"
-    # test = "C:\Data\IMS Example Data\imstest2.mzML"
-    test = u"C:\\Data\\CytC_Intact_MMarty_Share\\20221215_MMarty_Share\\SHA_1598_9.mzML.gz"
-    # test = "C:\\Users\\marty\\OneDrive - University of Arizona\\Attachments\\S203.mzML.gz"
-    test = "C:\\Users\\marty\\Downloads\\BSA1_scan214_full.mzML"
-    test = u"C:\\Python\\UniDec3\\TestSpectra\\test.mzML"
-    import time
-
-    tstart = time.perf_counter()
+    test = "Z:\\Group Share\\JGP\\DataForJoe\\TF_centroided.mzML"
+    test = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_mzml.mzML"
+    test = "C:\\Data\\DataTypeCollection\\test_mzml.mzML"
 
     d = MZMLImporter(test)
-    it = d.get_inj_time_array()
-    print(it)
-    exit()
-    data = d.get_data()
-    print(len(data))
-    tend = time.perf_counter()
-    # print(call, out)
-    print("Execution Time:", (tend - tstart))
-    exit()
-    '''
-    spectrum = d.msrun[10]
-    # it = it.get("ion inject time")
-    element = spectrum.element
-    for child in element.iter():
-        if 'name' in child.attrib:
-            if child.attrib['name'] == 'ion injection time':
-                it = child.attrib['value']
-                print(it)
-    exit()
-    tic = d.get_tic()
-    print(len(tic))
-    print(len(d.scans))
+    scan_range = [1, 1000]
 
-    exit()'''
-    # data = d.get_data_memory_safe()
-    data = d.get_data(time_range=(3, 5))
-    tend = time.perf_counter()
-    # print(call, out)
-    print("Execution Time:", (tend - tstart))
+    starttime = time.perf_counter()
+    print(len(d.avg_fast(scan_range=scan_range)))
+    print("Time:", time.perf_counter() - starttime)
 
-    print(len(data))
-    # exit()
-    # get_data_from_spectrum(d.msrun[239])
-    # exit()
-    # data = d.get_data()
+    # test it again
+    starttime = time.perf_counter()
+    print(len(d.avg_fast(scan_range=scan_range)))
+    print("Time:", time.perf_counter() - starttime)
 
-    print(data)
-    import matplotlib.pyplot as plt
+    d = MZMLImporter(test)
+    startime = time.perf_counter()
+    print(len(d.avg_safe(scan_range=scan_range)))
+    print("Time:", time.perf_counter() - startime)
 
-    plt.plot(data[:, 0], data[:, 1])
-    plt.show()
+    # test it again
+    startime = time.perf_counter()
+    print(len(d.avg_safe(scan_range=scan_range)))
+    print("Time:", time.perf_counter() - startime)
 
-    # print d.get_times_from_scans([15, 30])
+    # print(d.get_cdms_data())
+

@@ -515,7 +515,7 @@ def GetStartEndMass(RawFile):
 
 
 def get_stat_code(raw_file, stat_code, directory=None):
-    param = WDI(raw_file, do_import=False).get_stat_code(stat_code)
+    param = WDI(raw_file).get_stat_code(stat_code)
     # print(param)
     try:
         param = float(param)
@@ -526,7 +526,7 @@ def get_stat_code(raw_file, stat_code, directory=None):
 
 
 def get_stat_name(raw_file, stat_name):
-    param = WDI(raw_file, do_import=False).get_stat_name(stat_name)
+    param = WDI(raw_file).get_stat_name(stat_name)
     # print(param)
     try:
         param = float(param)

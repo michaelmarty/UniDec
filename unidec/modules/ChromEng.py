@@ -98,7 +98,7 @@ class ChromEngine(MetaUniDec):
         return hdf5
 
     def get_data_from_scans(self, scan_range=None):
-        self.mzdata = self.chromdat.get_data(scan_range)
+        self.mzdata = self.chromdat.get_avg_scan(scan_range=scan_range)
         self.procdata = None
         return self.mzdata
 

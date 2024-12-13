@@ -191,7 +191,7 @@ class RawFileReader(object):
         self.HighMass = self.source.RunHeaderEx.HighMass
         self.MassResolution = self.source.RunHeaderEx.MassResolution
         self.NumSpectra = self.source.RunHeaderEx.SpectraCount
-        self.scanrange = [self.FirstSpectrumNumber, self.LastSpectrumNumber]
+        self.scan_range = [self.FirstSpectrumNumber, self.LastSpectrumNumber]
         self.timerange = [self.StartTime, self.EndTime]
 
         self.get_scan_header()
@@ -283,7 +283,7 @@ class RawFileReader(object):
         self.source.Dispose()
 
     def scan_range(self):
-        return self.scanrange
+        return self.scan_range
 
     def time_range(self):
         return self.timerange

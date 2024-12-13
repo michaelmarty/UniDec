@@ -35,7 +35,7 @@ class MassLynxRawScanReader(MassLynxRawReader):
 
         return masses, intensities
 
-    def CombineScan(self, whichFunction, scans):
+    def combineScan(self, whichFunction, scans):
         # create the retrun values
         size = c_int(0)
         pMasses = c_void_p()

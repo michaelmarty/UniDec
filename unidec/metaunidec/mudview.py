@@ -4,7 +4,7 @@ import wx
 import wx.lib.scrolledpanel as scrolled
 from matplotlib import rcParams
 
-from unidec.modules import PlottingWindow
+from modules.plotting import PlottingWindow
 from unidec.modules import miscwindows
 from unidec.modules.gui_elements import peaklistsort, mainwindow_base
 from unidec.metaunidec.gui_elements.list_ctrls import ListCtrlPanel

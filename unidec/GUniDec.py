@@ -16,8 +16,6 @@ from unidec.modules.isolated_packages import FileDialogs
 from unidec.modules.isolated_packages import score_window, texmaker, mql_tool
 import unidec.DataCollector as datacollector
 import unidec.ImportWizard as import_wizard
-# import UniMin
-from copy import deepcopy
 import platform
 import multiprocessing
 from unidec.modules.unidec_presbase import UniDecPres
@@ -693,39 +691,7 @@ class UniDecApp(UniDecPres):
         # Get Limits
         self.export_config(self.eng.config.confname)
         self.eng.autointegrate()
-        '''
-        limits = self.view.plot2.subplot1.get_xlim()
-        olimits = deepcopy(limits)
 
-        limits = np.array(limits) * self.view.plot2.kdnorm
-
-        # Run Integration
-        if not ud.isempty(self.eng.pks.peaks) and limits[0] <= np.amin(self.eng.data.massdat[:, 0]) and limits[
-            1] >= np.amax(self.eng.data.massdat[:, 0]):
-            print("Auto Integrating")
-            self.eng.autointegrate()
-        else:
-            integral, intdat = self.eng.integrate(limits)
-            if self.eng.pks.plen > 0:
-                boo1 = self.eng.pks.masses < limits[1]
-                boo2 = self.eng.pks.masses > limits[0]
-                peaksinrange = self.eng.pks.masses[np.all([boo1, boo2], axis=0)]
-            else:
-                peaksinrange = []
-            if len(peaksinrange) == 1:
-                peak = peaksinrange[0]
-                # print peak
-                i = np.argmin((self.eng.pks.masses - peak) ** 2)
-                self.eng.pks.peaks[i].integral = integral
-                self.eng.pks.peaks[i].integralrange = limits
-                print("Differences: ", limits - self.eng.pks.peaks[i].mass)
-
-            else:
-                self.view.plot2.addtext(str(integral), np.mean(np.array(limits)),
-                                        np.amax(intdat[:, 1]) + 0.05 * np.amax(self.eng.data.massdat[:, 1]),
-                                        range=limits)
-                return 0
-        '''
         # Normalize and write
         self.eng.normalize_peaks()
         areas = [[p.mass, p.integral] for p in self.eng.pks.peaks]
@@ -1279,78 +1245,6 @@ class UniDecApp(UniDecPres):
         else:
             print("PDF Figures written.")
         pass
-
-    '''
-    def on_nmsgsb_report(self, e=0):
-
-        """
-        Creates PDF report for the Native MS Guided Structural Biology format.
-        First, writes figures to PDF.
-        Then sends results to texmaker, which creates a .tex file.
-        Finally, runs pdflatex as commandline subprocess to convert .tex to PDF.
-        :param e: event passed to self.view.on_save_figur_pdf
-        :return: None
-        """
-        path = os.path.join(self.eng.config.dirname, self.eng.config.filename)
-        print(path)
-        rawsamplename = ""
-        defaultvalue = ""
-        if os.path.splitext(path)[1].lower() == ".raw":
-            print("Getting Raw Data")
-            defaultvalue = rawreader.get_raw_metadata(path)
-            # try:
-            #    rawoutput = rawreader.get_raw_metadata(path)
-            # except:
-            #    rawoutput = None
-            rawsamplename = rawreader.get_raw_samplename(path)
-        # Andrew - edit
-
-        dialog = miscwindows.SingleInputDialog(self.view)
-        dialog.initialize_interface(title="Report Info: Input1;Input2;...;InputN", message="Set Inputs Here: ",
-                                    defaultvalue=defaultvalue)
-        dialog.ShowModal()
-        output = dialog.value
-
-        self.view.shrink_all_figures(figsize=(6, 5))
-        figureflags, files = self.view.on_save_figure_eps(e)
-        figureflags, files = self.view.on_save_figure_pdf(e)
-        textmarkertab = [p.textmarker for p in self.eng.pks.peaks]
-        peaklabels = [p.label for p in self.eng.pks.peaks]
-        peakcolors = [p.color for p in self.eng.pks.peaks]
-        peaks = np.array([[p.mass, p.height] for p in self.eng.pks.peaks])
-        uniscore = self.eng.pks.uniscore
-        # str(round(self.eng.pks.uniscore * 100, 2))
-        # oligos = np.array(oligos)
-        # match = np.array([[p.peaks, p.matches, p.errors, p.names] for p in self.eng.config.matchlist])
-        # match = np.transpose(self.eng.config.matchlist)
-        # match = self.eng.config.matchlist
-        # self.eng.config.matchlist = np.transpose(
-        #    np.genfromtxt(self.eng.config.matchfile, dtype='str', delimiter=","))
-
-        if os.path.isfile(self.eng.config.matchfile):
-            match = np.transpose(self.eng.config.matchlist)
-        else:
-            match = "-"
-        if self.eng.config.imflag == 0:
-            texmaker_nmsgsb.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config,
-                                          self.eng.config.udir,
-                                          peaks, textmarkertab, peaklabels, peakcolors, figureflags, output,
-                                          rawsamplename, match, uniscore)
-            self.view.SetStatusText("TeX file Written", number=5)
-            try:
-                texmaker_nmsgsb.PDFTexReport(self.eng.config.outfname + '_report.tex')
-                self.view.SetStatusText("PDF Report Finished", number=5)
-            except Exception as ex:
-                self.view.SetStatusText("PDF Report Failed", number=5)
-                print("PDF Report Failed to Generate. Check LaTeX installation.Need pdflatex in path.", ex)
-        else:
-            print("PDF Figures written.")
-        # self.on_replot()
-        # self.view.shrink_all_figures(figsize=self.eng.config.figsize)
-        # print("Resetting Figure Sizes", self.eng.config.figsize)
-        # self.on_replot()
-        self.on_flip_tabbed(e=0)
-        pass'''
 
     def on_fft_window(self, e):
         print("FFT window...")

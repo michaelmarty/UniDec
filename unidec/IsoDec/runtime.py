@@ -134,7 +134,7 @@ class IsoDecRuntime:
                     reader.centroided = True
                 else:
                     # mzml and mzxml will auto detect if it is centroided from pymzml
-                    spectrum = reader.grab_scan_data(s)
+                    spectrum = reader.get_single_scan(s)
             except Exception as e:
                 print("Error Reading Scan", s, e)
                 continue

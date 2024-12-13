@@ -1,23 +1,33 @@
 import numpy as np
-from copy import deepcopy
 import unidec.tools as ud
 from unidec.UniDecImporter.Importer import Importer
-from unidec.UniDecImporter.MZML.mzML import merge_spectra
+from unidec.UniDecImporter.ImportTools import merge_spectra
 from unidec.UniDecImporter.Waters import MassLynxRawScanReader as MLRSR, MassLynxRawInfoReader as MLRIR, \
     MassLynxRawChromatogramReader as MLCR
 
+# Note, waters scans are 0 indexed, so we need to subtract 1 from the scan number
 
 class WatersDataImporter(Importer):
-    def __init__(self, path, do_import=False, function=0, *args, **kwargs):
+    """
+    Imports Waters data files.
+
+    Note: Waters scans are 0 indexed, so the first scan is scan 0, not scan 1.
+    """
+    def __init__(self, path, function=0, *args, **kwargs):
         super().__init__(path, **kwargs)
-        print("Reading Data:", path)
+        print("Reading Waters Data:", path)
+        self.function = int(function)
         self.reader = MLRIR.MassLynxRawInfoReader(path)
         self.readerMS = MLRSR.MassLynxRawScanReader(path)
-        self.path = path
+        self.init_scans()
+
+        self.imms_support = True
+        self.cdms_support = False
+        self.chrom_support = True
+
+
+    def init_scans(self):
         self.nfunc = self.reader.GetNumberofFunctions()
-        self.function = int(function)
-        self.centroided = False
-        self.polarity = None
         try:
             fn = self.reader.GetFunctionType(self.function)
         except:
@@ -36,142 +46,16 @@ class WatersDataImporter(Importer):
 
         print("Waters Data Type:", self.reader.GetFunctionTypeString(fn), "Function:", self.function)
         self.maxscans = self.reader.GetScansInFunction(self.function)
-        self.scanrange = [0, self.maxscans]
-        print("Waters Scan Range", self.scanrange)
-        self.scans = np.arange(self.scanrange[0], self.scanrange[1])
+        self.scan_range = [1, self.maxscans]
+        print("Waters Scan Range", self.scan_range)
+        self.scans = np.arange(self.scan_range[0], self.scan_range[1]+1)
         self.times = []
         for s in self.scans:
-            self.times.append(self.reader.GetRetentionTime(self.function, s))
+            self.times.append(self.reader.GetRetentionTime(self.function, s-1))
         self.times = np.array(self.times)
-        if do_import:
-            self.slow_get_data()
-        else:
-            self.data = None
-
-
-    def slow_get_data(self):
-        self.data = []
-        for s in self.scans:
-            impdat = np.transpose(self.readerMS.ReadScan(self.function, s))
-            impdat = impdat[impdat[:, 0] > 10]
-            self.data.append(impdat)
-        self.data = np.array(self.data)
-
-    def slow_get_data_scans(self, scan_range, mzbins=None):
-        if self.data is None:
-            self.slow_get_data()
-        data = deepcopy(self.data)
-        if scan_range is not None:
-            data = data[scan_range[0]:scan_range[1]]
-            print("Getting scans:", scan_range)
-        else:
-            print("Getting all scans, length:", len(self.scans))
-
-        if len(data) > 1:
-            try:
-                data = merge_spectra(data, mzbins=mzbins)
-            except Exception as e:
-                concat = np.concatenate(data)
-                sort = concat[concat[:, 0].argsort()]
-                data = ud.removeduplicates(sort)
-                print(e)
-        elif len(data) == 1:
-            data = data[0]
-        else:
-            data = data
-        return data
-
-    def fast_get_data_scans(self, scan_range, mzbins=None):
-        scan_range = np.array(scan_range)
-        # if scan_range[0]<1:
-        #    scan_range[0]=1
-        if scan_range[1] > self.maxscans:
-            scan_range[1] = self.maxscans
-
-        mzs, ivals = self.readerMS.CombineScan(self.function, np.arange(scan_range[0], scan_range[1]))
-        data = np.transpose([mzs, ivals])
-        if mzbins is None or float(mzbins) == 0:
-            return data
-        else:
-            data = merge_spectra([data], mzbins=mzbins, type="Integrate")
-            return data
-
-    def get_data(self, scan_range=None, time_range=None, mzbins=None):
-        """
-        Returns merged 1D MS data from mzML import
-        :return: merged data
-        """
-
-        if time_range is not None:
-            scan_range = self.get_scans_from_times(time_range)
-            print("Getting times:", time_range)
-
-        if scan_range is None:
-            scan_range = self.scanrange
-
-        if True:
-            data = self.fast_get_data_scans(scan_range, mzbins)
-        '''
-        try:
-            data=self.fast_get_data_scans(scan_range, mzbins)
-        except Exception as e:
-            print("ERROR with fast Waters combineScans, using slow method: ", e)
-            data=self.slow_get_data_scans(scan_range, mzbins)'''
-        if self.polarity is None:
-            self.polarity = self.get_polarity()
-        return data
-
-    def grab_scan_data(self, scan):
-        return self.readerMS.ReadScan(self.function, scan)
-
-    def get_tic(self):
-        self.readerLC = MLCR.MassLynxRawChromatogramReader(self.path)
-        tic = np.transpose(self.readerLC.ReadTIC(self.function))
-        # self.readerLC.__del__()
-        return tic
-
-    def get_bpi(self):
-        self.readerLC = MLCR.MassLynxRawChromatogramReader(self.path)
-        tic = np.transpose(self.readerLC.ReadBPI(self.function))
-        # self.readerLC.__del__()
-        return tic
-
-    def get_eic(self, mass=811, tolerance=0.10):
-        self.readerLC = MLCR.MassLynxRawChromatogramReader(self.path)
-        tic = np.transpose(self.readerLC.ReadMassChromatogram(self.function, mass, tolerance, False))
-        return tic
-
-    def get_max_time(self):
-        return self.times[len(self.times) - 1]
-
-    def get_max_scans(self):
-        return self.scanrange[1] - 1
-
-    def get_scans_from_times(self, time_range):
-        boo1 = self.times >= time_range[0]
-        boo2 = self.times < time_range[1]
-        try:
-            min = np.amin(self.scans[boo1])
-            max = np.amax(self.scans[boo2])
-        except:
-            min = -1
-            max = -1
-        return [min, max]
-
-    def get_times_from_scans(self, scan_range):
-        boo1 = self.scans >= scan_range[0]
-        boo2 = self.scans < scan_range[1]
-        boo3 = np.logical_and(boo1, boo2)
-        min = np.amin(self.times[boo1])
-        max = np.amax(self.times[boo2])
-        try:
-            avg = np.mean(self.times[boo3])
-        except:
-            avg = min
-        return [min, avg, max]
 
     def get_stats(self):
-        self.reader = MLRIR.MassLynxRawInfoReader(self.path)
+        self.reader = MLRIR.MassLynxRawInfoReader(self._file_path)
         self.stat_nums = self.reader.GetItemsInFunction(self.function, 0)
         self.stat_vals = self.reader.GetScanItems(self.function, 0, self.stat_nums)
         self.stat_names = self.reader.GetScanItemString(self.stat_nums)
@@ -197,6 +81,59 @@ class WatersDataImporter(Importer):
         print("Names: ", self.stat_names)
         return 0
 
+
+    def get_avg_scan(self, scan_range=None, time_range=None, mzbins=None):
+        if scan_range is None and time_range is None:
+            scan_range = self.scan_range
+        elif time_range is not None:
+            scan_range = self.get_scans_from_times(time_range)
+            print("Getting times:", time_range)
+
+        scan_range = np.array(scan_range)
+        if scan_range[0]<1:
+           scan_range[0]=1
+        if scan_range[1] > self.maxscans:
+            scan_range[1] = self.maxscans
+
+        mzs, ivals = self.readerMS.combineScan(self.function, np.arange(scan_range[0]-1, scan_range[1]))
+        data = np.transpose([mzs, ivals])
+        if mzbins is None or float(mzbins) == 0:
+            return data
+        else:
+            data = merge_spectra([data], mzbins=mzbins, type="Integrate")
+            return data
+
+    def get_all_scans(self):
+        self.data = []
+        for s in self.scans:
+            impdat = np.transpose(self.readerMS.ReadScan(self.function, s-1))
+            impdat = impdat[impdat[:, 0] > 10]
+            self.data.append(impdat)
+        return self.data
+
+    def get_single_scan(self, scan):
+        #This should return a format which is similar to the numpy 2 column format
+        dat = self.readerMS.ReadScan(self.function, scan-1)
+        mz, intensity = dat
+        res = np.column_stack((mz, intensity))
+        return res
+
+    def get_tic(self):
+        self.readerLC = MLCR.MassLynxRawChromatogramReader(self._file_path)
+        tic = np.transpose(self.readerLC.ReadTIC(self.function))
+        # self.readerLC.__del__()
+        return tic
+
+    def get_bpi(self):
+        self.readerLC = MLCR.MassLynxRawChromatogramReader(self._file_path)
+        tic = np.transpose(self.readerLC.ReadBPI(self.function))
+        return tic
+
+    def get_eic(self, mass=811, tolerance=0.10):
+        self.readerLC = MLCR.MassLynxRawChromatogramReader(self._file_path)
+        tic = np.transpose(self.readerLC.ReadMassChromatogram(self.function, mass, tolerance, False))
+        return tic
+
     def get_IMMS_data(self):
         self.mindrift = self.get_stat_name('Minimum Drift Time Channel')
         self.maxdrift = self.get_stat_name('Maximum Drift Time Channel')
@@ -209,18 +146,11 @@ class WatersDataImporter(Importer):
             for i in range(0, 200):
                 o = np.array(self.readerMS.ReadDriftScan(self.function, s, i))
                 scandat.append(o)
-                '''
-                mz = o[0]
-                try:
-                    print(np.amax(mz))
-                except:
-                    pass'''
             self.immsdata.append(scandat)
         return self.immsdata
 
-    def get_polarity(self):
+    def get_polarity(self, scan=None):
         line = self.reader.GetIonModeString(self.function)
-        print(line)
         if "+" in line:
             print("Polarity: Positive")
             return "Positive"
@@ -230,8 +160,17 @@ class WatersDataImporter(Importer):
         print("Polarity: Unknown")
         return None
 
+    # TODO: Waters get_ms_order
+
 
 if __name__ == "__main__":
     test = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw"
-    importer = WatersDataImporter(test)
-    print(type(importer))
+    test = "C:\\Data\\DataTypeCollection\\test_waters.raw"
+    d = WatersDataImporter(test)
+    print(d.readerMS.ReadDriftScan(d.function, 0, 5))
+    print(d)
+
+
+
+
+

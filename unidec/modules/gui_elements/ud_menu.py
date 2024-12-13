@@ -5,7 +5,7 @@ import unidec.modules.isolated_packages.preset_manager as pm
 import numpy as np
 import os
 
-from unidec.UniDecImporter.ImportTests import ImportTests
+#from unidec.UniDecImporter.ImportTests import ImportTests
 
 
 class main_menu(wx.Menu):
@@ -474,8 +474,8 @@ class main_menu(wx.Menu):
         # self.Append(self.advancedmenu, "Advanced")
         # self.Append(self.experimentalmenu, "Experimental")
 
-        self.unit_test_importers = self.advancedmenu.Append(wx.NewId(), "Test Importers", "Trigger all unit tests")
-        self.parent.Bind(wx.EVT_MENU, self.on_run_unit_tests, self.unit_test_importers)
+        # self.unit_test_importers = self.advancedmenu.Append(wx.NewId(), "Test Importers", "Trigger all unit tests")
+        # self.parent.Bind(wx.EVT_MENU, self.on_run_unit_tests, self.unit_test_importers)
 
 
 
@@ -585,17 +585,17 @@ class main_menu(wx.Menu):
         new_item = self.menuOpenRecent.Append(wx.ID_ANY, filename)
         self.parent.Bind(wx.EVT_MENU, lambda e: self.pres.on_open_file(filename, dirname), new_item)
 
-    def on_run_unit_tests(self, event):
-        # Run the unit tests
-        loader = unittest.TestLoader()
-        suite = loader.loadTestsFromTestCase(ImportTests)
-
-        # Run the tests and capture the results
-        runner = unittest.TextTestRunner()
-        result = runner.run(suite)
-
-        # Show results in a message box
-        if result.wasSuccessful():
-            wx.MessageBox("All importers compatible", "Success", wx.OK | wx.ICON_INFORMATION)
-        else:
-            wx.MessageBox(f"Some tests failed:\n{result.failures}", "Test Results", wx.OK | wx.ICON_ERROR)
+    # def on_run_unit_tests(self, event):
+    #     # Run the unit tests
+    #     loader = unittest.TestLoader()
+    #     suite = loader.loadTestsFromTestCase(ImportTests)
+    #
+    #     # Run the tests and capture the results
+    #     runner = unittest.TextTestRunner()
+    #     result = runner.run(suite)
+    #
+    #     # Show results in a message box
+    #     if result.wasSuccessful():
+    #         wx.MessageBox("All importers compatible", "Success", wx.OK | wx.ICON_INFORMATION)
+    #     else:
+    #         wx.MessageBox(f"Some tests failed:\n{result.failures}", "Test Results", wx.OK | wx.ICON_ERROR)

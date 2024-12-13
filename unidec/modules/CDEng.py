@@ -2,18 +2,22 @@ import numpy as np
 import os
 import scipy
 import unidec.tools as ud
+from unidec.UniDecImporter.Thermo.Thermo import ThermoImporter
 from unidec.modules.unidec_enginebase import UniDecEngine
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from unidec.UniDecImporter.I2MS.I2MS import I2MSImporter
 from copy import deepcopy
 import matplotlib.pyplot as plt
 import scipy.fft as fft
-from unidec.modules import unidecstructure, peakstructure, IM_functions, fitting, i2ms_importer
+from unidec.modules import unidecstructure, peakstructure, IM_functions, fitting
 import time
 from unidec import engine
 from scipy.optimize import curve_fit
-
+from unidec.UniDecImporter import ImportTools as IT
 xp = np
 cdeng_types = [".mzml", ".raw", ".mzxml", ".gz"]
+
+
 
 def Gmax2(darray):
     ints = darray[:, 1]
@@ -168,193 +172,24 @@ class UniDecCD(engine.UniDec):
         # Setup
         starttime = time.perf_counter()
         self.path = path
+        if os.path.isdir(self.path):
+            print("Error: Path is a directory")
+            raise ImportError
+        if not os.path.isfile(self.path):
+            print("Error: File not found:", self.path)
+            raise ImportError
+
         # Set up unidec paths
         self.before_open(refresh=refresh)
 
-        if os.path.isdir(self.path):
-            self.path = self.convert_stori(self.path)
+        self.TDI = ImporterFactory.create_importer(self.path, silent=False)
+        print(type(self.TDI))
+        self.darray = self.TDI.get_cdms_data()
+        if type(self.TDI) == ThermoImporter:
+            self.res = IT.get_resolution(self.TDI.get_single_scan(1))
 
-        # Get the extension
-        extension = os.path.splitext(self.path)[1]
-        self.invinjtime = None
+        # Correct Thermo Data
 
-        if extension.lower() in cdeng_types:
-            self.TDI = ImporterFactory.create_importer(self.path)
-            self.scans = self.TDI.scans
-            # Get the injection times for each scan
-            self.it = self.TDI.get_inj_time_array()
-            if extension.lower() == ".raw":
-                self.res = self.TDI.msrun.resolution
-                data = self.TDI.grab_data(threshold=self.config.CDprethresh)
-                self.thermodata = True
-                # Set flag for correcting injection times later
-            else:
-                data = self.TDI.get_data()
-                self.thermodata = True
-            self.invinjtime = 1. / self.it
-
-        elif extension.lower() == ".txt":
-            # Simple Text File
-            try:
-                # Load text file
-                data = np.loadtxt(self.path)
-
-                # Filter pre-threshold
-                b1 = data[:, 1] > self.config.CDprethresh
-                data = data[b1]
-
-                # Assume m/z is in column 1 and intensity column 2
-                mz = data[:, 0]
-                intensity = data[:, 1]
-
-                # Look for scans in column 3
-                try:
-                    scans = data[:, 2]
-                except Exception:
-                    # If not found, assume all are scan 1
-                    scans = np.ones_like(mz)
-                try:
-                    self.invinjtime = data[:, 3]
-                except Exception:
-                    self.invinjtime = None
-            except:
-                # More complex text file from Jarrold Lab
-                data = np.genfromtxt(path, dtype=np.str, comments=None)
-                mzkey = "m/z_Lin_Reg"
-                intkey = "Charge"
-                mzcol = np.argmax(data[0] == mzkey)
-                intcol = np.argmax(data[0] == intkey)
-                mz = data[1:, mzcol].astype(float)
-                intensity = data[1:, intcol].astype(float)
-                scans = np.arange(len(mz))
-
-                # Filter pre-threshold
-                b1 = intensity > self.config.CDprethresh
-                mz = mz[b1]
-                intensity = intensity[b1]
-                scans = scans[b1]
-
-                self.invinjtime = None
-            # Don't do post-processing for thermo data
-            self.thermodata = False
-
-        elif extension.lower() == ".csv":
-            # Load text file
-            data = np.genfromtxt(self.path, delimiter=",")
-            # Filter pre-threshold
-            b1 = data[:, 1] > self.config.CDprethresh
-            data = data[b1]
-
-            # Assume m/z is in column 1 and intensity column 2
-            mz = data[:, 0]
-            intensity = data[:, 1]
-            # Look for scans in column 3
-            try:
-                scans = data[:, 2]
-            except Exception:
-                # If not found, assume all are scan 1
-                scans = np.ones_like(mz)
-            try:
-                self.invinjtime = data[:, 3]
-            except Exception:
-                self.invinjtime = None
-            # Don't do post-processing for thermo data
-            self.thermodata = False
-
-        elif extension.lower() == ".bin":
-            # Load numpy compressed file
-            data = np.fromfile(self.path)
-            try:
-                data = data.reshape((int(len(data) / 3), 3))
-            except Exception:
-                data = data.reshape((int(len(data) / 2)), 2)
-
-            # Filter pre-threshold
-            b1 = data[:, 1] > self.config.CDprethresh
-            data = data[b1]
-            # Assume m/z is in column 1 and intensity column 2
-            mz = data[:, 0]
-            intensity = data[:, 1]
-            # Look for scans in column 3
-            try:
-                scans = data[:, 2]
-            except:
-                # If not found, assume all are scan 1
-                scans = np.ones_like(mz)
-            try:
-                self.invinjtime = data[:, 3]
-            except Exception:
-                self.invinjtime = None
-            # Don't do post-processing for thermo data
-            self.thermodata = False
-
-        elif extension.lower() == ".npz":
-            # Load numpy compressed file
-            data = np.load(self.path, allow_pickle=True)['data']
-
-            # Filter pre-threshold
-            b1 = data[:, 1] > self.config.CDprethresh
-            data = data[b1]
-
-            # Assume m/z is in column 1 and intensity column 2
-            mz = data[:, 0]
-            intensity = data[:, 1]
-            # Look for scans in column 3
-            try:
-                scans = data[:, 2]
-            except Exception:
-                # If not found, assume all are scan 1
-                scans = np.ones_like(mz)
-            try:
-                self.invinjtime = data[:, 3]
-            except Exception:
-                self.invinjtime = None
-            # Don't do post-processing for thermo data
-            self.thermodata = False
-
-        else:
-            print("Unrecognized file type:", self.path)
-            return 0
-
-        print("File Read. Length: ", len(data))
-        # Post processing if data is from raw or mzML
-        # Ignored if text file input
-        if self.thermodata:
-            if extension.lower() == ".raw":
-                mz = np.concatenate([d[:, 0] for d in data])
-
-                scans = np.concatenate([s * np.ones(len(data[i])) for i, s in enumerate(self.scans)])
-
-
-                try:
-                    intensity = np.concatenate([d[:, 1] * self.it[i] / 1000. for i, d in enumerate(data)])
-                except Exception as e:
-                    print(e, self.it)
-                    intensity = np.concatenate([d[:, 1] for i, d in enumerate(data)])
-
-                try:
-                    it = np.concatenate([it * np.ones(len(data[i])) for i, it in enumerate(self.invinjtime)])
-                    self.invinjtime = it
-                except Exception as e:
-                    print("Error with injection time correction:", e)
-                    print(mz.shape, intensity.shape, scans.shape, self.invinjtime.shape)
-                    self.invinjtime = None
-            else:
-                mz = data[:,0]
-                scans = np.tile(self.scans, len(data) // len(self.scans) + 1)[:len(data)]
-                intensity = data[:,1]
-                self.invinjtime = np.ones(len(data))
-
-            print(f"mz shape: {mz.shape}")
-            print(f"intensity shape: {intensity.shape}")
-            print(f"scans shape: {scans}")
-
-
-        if self.invinjtime is None:
-            self.invinjtime = np.ones_like(scans)
-
-        # Create data array
-        self.darray = np.transpose([mz, intensity, scans, self.invinjtime])
         # Filter out only the data with positive intensities
         boo1 = self.darray[:, 1] > 0
         self.darray = self.darray[boo1]
@@ -370,8 +205,9 @@ class UniDecCD(engine.UniDec):
             print("Error: Data Array is Empty")
             print("Likely an error with data conversion")
             raise ImportError
-
+        mz = self.darray[:, 0]
         # Get the min and max m/z value
+        # self.darray is the mz from the transposed array
         self.config.minmz = np.amin(mz)
         self.config.maxmz = np.amax(mz)
 
@@ -424,38 +260,6 @@ class UniDecCD(engine.UniDec):
             print("Raw data found:", self.config.cdrawextracts)
             self.path = self.config.cdrawextracts
 
-    def open_stori(self, path):
-        starttime = time.perf_counter()
-        files = os.listdir(path)
-        alldata = []
-        for i, f in enumerate(files):
-            if os.path.splitext(f)[1] == ".csv":
-                p = os.path.join(path, f)
-                data = np.genfromtxt(p, delimiter="\t", skip_header=1)
-                alldata.append(data)
-
-                # if ud.isempty(alldata):
-                #    alldata = data
-                # else:
-                #    alldata = np.append(alldata, data, axis=0)
-        alldata = np.concatenate(alldata, axis=0)
-        print(alldata.shape)
-        print("Opening Time: ", time.perf_counter() - starttime)
-        # Scan	Ionnumber	Segnumber	M/Z	Frequency	Slope	Slope R Squared	Time of Birth	Time of Death
-        mz = alldata[:, 3]
-        intensity = alldata[:, 5]
-        scan = alldata[:, 0]
-        return mz, intensity, scan
-
-    def convert_stori(self, path):
-        mz, intensity, scans = self.open_stori(path)
-        darray = np.transpose([mz, intensity, scans])
-        # Filter out only the data with positive intensities
-        boo1 = darray[:, 1] > 0
-        darray = darray[boo1]
-        outfile = path + "_combined.npz"
-        np.savez_compressed(outfile, data=darray)
-        return outfile
 
     def process_data(self, transform=True):
         """
@@ -510,7 +314,7 @@ class UniDecCD(engine.UniDec):
         if len(self.harray) > 0:
             self.harray = self.hist_data_prep()
             self.harray_process(transform=transform)
-
+            return 1
         else:
             print("ERROR: Empty histogram array on process")
             return 0
@@ -1131,11 +935,17 @@ class UniDecCD(engine.UniDec):
         """
         if process_data:
             # Process data but don't transform
-            self.process_data(transform=False)
+            output = self.process_data(transform=False)
+            if output == 0:
+                return 0
         # Filter histogram to remove masses that are not allowed
         self.harray = self.hist_mass_filter(self.harray)
         # Filter histogram to remove charge states that aren't allowed based on the native charge state filter
         self.hist_nativeZ_filter()
+
+        if len(self.harray) == 0:
+            print("ERROR: Empty Histogram Array on Run")
+            return 0
 
         print("Running Deconvolution", self.config.mzsig, self.config.csig)
         starttime = time.perf_counter()
@@ -1276,15 +1086,14 @@ class UniDecCD(engine.UniDec):
         self.harray /= np.amax(self.harray)
 
 
+
 if __name__ == '__main__':
     eng = UniDecCD()
-    # path = "C:\Data\CDMS\AqpZ_STORI\AqpZ_STORI\\072621AquaZ_low-high_noDi_IST10_processed"
-    # eng.open_file(path)
+    #path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_thermo.RAW"
+    path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\CDMS\\test_dmt_cdms.dmt"
 
-    # exit()
-    path = "C:\\Data\\CDMS\\spike trimer CDMS data.csv"
-    path = "C:\\Python\\UniDec3\\unidec\\bin\\Example Data\\CDMS\\GroEL_CDMS_1.RAW"
     eng.open_file(path, refresh=True)
+    exit()
     # eng.process_data()
     # eng.run_deconvolution()
     # eng.sim_dist()
@@ -1308,7 +1117,7 @@ if __name__ == '__main__':
     print(eng.kernel)
 
     exit()
-    path = "C:\\Data\\CDMS\\20210309_MK_ADH_pos_CDMS_512ms_5min_50ms_pressure01.RAW"
+    path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\CDMS\\test_dmt_cdms.dmt"
     eng = UniDecCD()
     eng.open_file(path)
 
@@ -1333,7 +1142,6 @@ if __name__ == '__main__':
     eng = UniDecCD()
     eng.mz = np.array([5000, 6000, 7000, 8000, 9000])
     eng.ztab = np.array([12, 13, 14])
-
     eng.config.mzbins = 1000
     eng.setup_zsmooth()
     eng.harray = eng.mass

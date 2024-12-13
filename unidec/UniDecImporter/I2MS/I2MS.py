@@ -2,11 +2,13 @@ import sqlite3
 import numpy as np
 
 
+
+
 class I2MSImporter:
     def __init__(self, file):
         conn = sqlite3.connect(file)
         cursor = conn.cursor()
-        cursor.execute('SELECT * from main.Ion')
+        cursor.execute('SELECT * from main.Ion ORDER BY mz ASC')
         data = cursor.fetchall()
         self.data = np.array(data)
         cursor.execute('PRAGMA table_info(Ion)')
@@ -23,8 +25,11 @@ class I2MSImporter:
             self.invinjtime = np.where(self.keys[:, 1] == "InverseInjectionTimeSeconds")[0][0]
         except:
             self.invinjtime = None'''
+        self.cdms_support=True
+        self.imms_support=False
+        self.chrom_support=True
 
-    def grab_data(self, threshold=-1):
+    def get_all_scans(self, threshold=-1):
         slopes = self.data[:, self.slopekey]
         mz = self.data[:, self.mzkey]
 
@@ -32,16 +37,46 @@ class I2MSImporter:
             mask = slopes > threshold
             slopes = slopes[mask]
             mz = mz[mask]
-
         return np.transpose([mz, slopes])
+
+    def get_cdms_data(self):
+        raw_dat = self.get_all_scans()
+        print(raw_dat)
+        mz = raw_dat[:, 0]
+        intensity = raw_dat[:, 1]
+        scans = np.ones(len(mz))
+        it = self.invinjtime
+        data_array = np.transpose([mz, intensity, it, scans])
+
+        # print(f"mz length: {len(mz)}")
+        # print(f"intensity length: {len(intensity)}")
+        # print(f"scans length: {len(scans)}")
+        # print(f"invinjtime length: {len(self.invinjtime)}")
+
+        return data_array
+
+
+        pass
+
+
+
+    def get_single_scan(self):
+        if self.data is None:
+            return self.data
+
 
 
 if __name__ == "__main__":
-    file = "Z:\\Group Share\\Marius Kostelic\\STORI\\20220123_MK_BSA_STORI_5_data_2022-02-03-09-10-47.i2MS"
-    file = "Z:\\Group Share\\Marius Kostelic\\Baker Lab AAVs\\Replicates STORI for Jack\\AAV2_E3_F3_STORI.dmt"
 
+
+    file = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\CDMS\\test_dmt_cdms.dmt"
     i2ms = I2MSImporter(file)
-    print(i2ms.keys)
+    # print(i2ms.get_all_scans())
+    # #print(i2ms.keys)
+    # #dat = i2ms.grab_data()
+
+
+    exit()
     import matplotlib.pyplot as plt
 
     x = i2ms.data[:,7]

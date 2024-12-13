@@ -6,7 +6,7 @@ import wx
 import matplotlib as mpl
 
 from unidec.modules import unidecstructure
-from unidec.modules import PlottingWindow
+from modules.plotting import PlottingWindow
 from unidec.modules import miscwindows
 from unidec import tools as ud
 from unidec.modules.MassFitter import MassFitter

@@ -1,17 +1,20 @@
 """To create importer for any of the 4 types,
 Simply use: importer_name = ImporterFactory.create_importer(file_path)
+To fetch all scans use importer_name.get_all_scans()
 """
 import os
 import platform
 import numpy as np
 
 from unidec.UniDecImporter import SingleScanImporter as SSI
+from unidec.UniDecImporter.I2MS.I2MS import I2MSImporter
 from unidec.UniDecImporter.MZML.mzML import MZMLImporter
 from unidec.UniDecImporter.MZXML.mzXML import MZXMLImporter
 
 # Note, it is important that these be listed with raw data formats first and processed data formats later.
 # Batch.py will attempt the latter formats if use_converted option is on
-recognized_types = [".raw", ".d", ".mzxml",".mzml", ".mzml.gz", ".gz", '.txt', '.dat', '.csv', '.npz']
+recognized_types = [".raw", ".d", ".mzxml",".mzml", ".mzml.gz", ".gz", '.txt', '.dat', '.csv', '.npz', '.i2ms', '.dmt',
+                    '.bin']
 
 if platform.system() == "Windows":
     try:
@@ -51,17 +54,18 @@ class ImporterFactory:
             return ThermoImporter(file_path, **kwargs)
         elif ending==".mzxml":
             return MZXMLImporter(file_path, **kwargs)
-        elif ending==".mzml":
+        elif ending==".mzml" or ending==".mzml.gz" or ending==".gz":
             return MZMLImporter(file_path, **kwargs)
         elif ending==".d":
             return AgilentImporter(file_path, **kwargs)
         #Things to introduce in future: .Wiff (Sciex Data)
-        elif ending == ".txt" or ending == ".dat" or ending == ".csv" or ending == ".npz":
+        elif ending == ".txt" or ending == ".dat" or ending == ".csv" or ending == ".npz" or ending == '.bin':
             return SSI.SingleScanImporter(file_path, **kwargs)
+        elif ending == ".dmt" or ending == ".i2ms":
+            return I2MSImporter(file_path)
         else:
             print("Unsupported file type:", ending, file_path)
             return None
-
 
 
 def get_polarity(path):
@@ -75,17 +79,12 @@ def get_polarity(path):
 
 if __name__ == "__main__":
     test = u"C:\\Python\\UniDec3\\TestSpectra\\test.raw"
+    test = "Z:\\Group Share\\JGP\\js8b05641_si_001\\1500_scans_200K_16 fills-qb1.mzML"
     importer = ImporterFactory.create_importer(test)
-    dat = importer.get_data()
-    print(len(dat))
+    # dat = importer.get_data()
+    # print(len(dat))
 
-    dat = importer.get_data()
-    print(len(dat))
 
-    import matplotlib.pyplot as plt
-
-    plt.plot(dat[:, 0], dat[:, 1])
-    plt.show()
 
     exit()
 

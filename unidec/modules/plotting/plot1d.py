@@ -5,9 +5,8 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.collections import LineCollection
 import matplotlib.colorbar as colorbar
 import matplotlib as mpl
-import matplotlib.cm as cm
 
-from unidec.modules.PlotBase import PlotBase
+from unidec.modules.plotting.PlotBase import PlotBase
 
 
 class Plot1dBase(PlotBase):

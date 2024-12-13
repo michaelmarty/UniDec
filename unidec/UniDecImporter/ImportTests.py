@@ -1,166 +1,160 @@
 import unittest
-try:
-    from unidec.UniDecImporter.Agilent.AgilentImporter import AgilentImporter
-except Exception as e:
-    print(e)
-    print("Unable to import AgilentImporter")
+import os
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
-from unidec.UniDecImporter.MZML.mzML import *
-from unidec.UniDecImporter.MZXML.mzXML import MZXMLImporter
-try:
-    from unidec.UniDecImporter.Thermo.Thermo import ThermoImporter
-except Exception as e:
-    print(e)
-    print("Unable to import ThermoImporter")
-try:
-    from unidec.UniDecImporter.Waters.Waters import WatersDataImporter
-except Exception as e:
-    print(e)
-    print("Unable to import WatersDataImporter")
-from unidec.tools import traverse_to_unidec
+import numpy as np
+
+topdir = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection"
+chrom_dat_examples = ["test_mzml.mzML", "test_mzmlgz.mzML.gz", "test_mzxml.mzXML",
+                      "test_thermo.RAW", "test_waters.raw", "test_agilent.d"]
+chrom_paths = [os.path.join(topdir, p) for p in chrom_dat_examples]
+
+ss_dir = "SingleScan"
+ss_dat_examples = ["test_csv.csv", "test_dat.dat", "test_txt.txt"]
+
+ss_paths = []
+for p in ss_dat_examples:
+    ss_paths.append(os.path.join(topdir, ss_dir, p))
+for p in chrom_dat_examples:
+    ss_paths.append(os.path.join(topdir, p))
+
+cdms_dir = "CDMS"
+cdms_dat_examples = ["test_csv_cdms.csv", "test_raw_cdms.raw", "rest_npz_cdms.npz", "test_dmt_cdms.dmt"]
+cdms_paths = [os.path.join(topdir, cdms_dir, p) for p in cdms_dat_examples]
+
+imms_dir = "IMMS"
+imms_dat_examples = ["test_waters.raw", "test_agilentimms_mzml.mzML", "test_watersimms_mzml.mzML"]
+imms_paths = [os.path.join(topdir, imms_dir, p) for p in imms_dat_examples]
 
 
-#Waters
-#Thermo
-#mzxml
-#Mzml
-#Agilent
-#Grab the root and changedir to it
+class ImporterTests(unittest.TestCase):
+    def test_tic(self):
+        for p in chrom_paths:
+            print("Testing TIC for", p)
+            importer = ImporterFactory.create_importer(p)
+            test_tic = importer.get_tic()
+            print("Shape:", np.shape(test_tic))
+            self.assertTrue(np.shape(test_tic)[1] == 2)
+            self.assertTrue(len(test_tic) > 20)
+            self.assertTrue(importer.chrom_support)
 
+    def test_full_avg_scan(self):
+        for p in ss_paths:
+            print("Testing Avg Scan for", p)
+            importer = ImporterFactory.create_importer(p)
+            test_avg = importer.get_avg_scan()
+            print("Shape:", np.shape(test_avg))
+            self.assertTrue(np.shape(test_avg)[1] == 2)
+            self.assertTrue(len(test_avg) > 500)
 
+    def test_avg_scan_scanrange(self):
+        for p in ss_paths:
+            print("Testing Avg Scan for", p)
+            importer = ImporterFactory.create_importer(p)
+            test_avg = importer.get_avg_scan(scan_range=[1, 5])
+            print("Shape:", np.shape(test_avg))
+            self.assertTrue(np.shape(test_avg)[1] == 2)
+            self.assertTrue(len(test_avg) > 500)
 
+    def test_avg_scan_norange(self):
+        for p in ss_paths:
+            print("Testing Avg Scan for", p)
+            importer = ImporterFactory.create_importer(p)
+            test_avg = importer.get_avg_scan(scan_range=[2,2])
+            print("Shape:", np.shape(test_avg))
+            self.assertTrue(np.shape(test_avg)[1] == 2)
+            self.assertTrue(len(test_avg) > 500)
 
-class ImportTests(unittest.TestCase):
-    def test_waters_create(self):
-        path = traverse_to_unidec("UniDec3")
-        print(path)
-        # Join the returned path with the new file or directory
-        path = os.path.join(path, "TestSpectra", "2024-07-09_08_EquiSPLASH_ESIneg_TrapDDA.raw")
-        importer = ImporterFactory.create_importer(path)
-        test = WatersDataImporter(path)
-        self.assertEqual(type(test), type(importer))
+    def test_avg_time_norange(self):
+        for p in ss_paths:
+            print("Testing Avg Scan for", p)
+            importer = ImporterFactory.create_importer(p)
+            test_avg = importer.get_avg_scan(time_range=[0.1,0.1])
+            print("Shape:", np.shape(test_avg))
+            self.assertTrue(np.shape(test_avg)[1] == 2)
+            self.assertTrue(len(test_avg) > 500)
 
-    def test_thermos_create(self):
+    def test_avg_scan_timerange(self):
+        for p in ss_paths:
+            print("Testing Avg Scan for", p)
+            importer = ImporterFactory.create_importer(p)
+            test_avg = importer.get_avg_scan(time_range=[0, 0.25])
+            print("Shape:", np.shape(test_avg))
+            self.assertTrue(np.shape(test_avg)[1] == 2)
+            self.assertTrue(len(test_avg) > 500)
 
-        base_path = traverse_to_unidec("UniDec3")
-        path = os.path.join(base_path, "TestSpectra", "test.raw")
-        importer = ImporterFactory.create_importer(path)
-        test = ThermoImporter(path)
-        self.assertEqual(type(test), type(importer))
+    def test_single_scan(self):
+        for p in chrom_paths:
+            print("Testing Single Scan for", p)
+            importer = ImporterFactory.create_importer(p)
+            test_single = importer.get_single_scan(1)
+            print("Shape:", np.shape(test_single))
+            self.assertTrue(np.shape(test_single)[1] == 2)
+            self.assertTrue(len(test_single) > 20)
 
-    def test_mzxml_create(self):
-        path = traverse_to_unidec("UniDec3")
-        path = os.path.join(path, "TestSpectra", "1500_scans_200K_16 fills-qb1.mzXML")
-        importer = ImporterFactory.create_importer(path)
-        test = MZXMLImporter(path)
-        self.assertEqual(type(test), type(importer))
+    def test_all_scans(self):
+        for p in chrom_paths:
+            print("Testing All Scans for", p)
+            importer = ImporterFactory.create_importer(p)
+            test_all = importer.get_all_scans()
+            print("Len:", len(test_all))
+            self.assertTrue(type(test_all) == list)
+            self.assertTrue(len(test_all) == len(importer.scans))
 
-    def test_mzml_create(self):
-        path = traverse_to_unidec("UniDec3")
-        path = os.path.join(path, "TestSpectra", "JAW.mzML")
-        importer = ImporterFactory.create_importer(path)
-        test = MZMLImporter(path)
-        self.assertEqual(type(test), type(importer))
+    def test_get_polarity(self):
+        for p in chrom_paths:
+            print("Testing Polarity for", p)
+            importer = ImporterFactory.create_importer(p)
+            test_polarity = importer.get_polarity()
+            self.assertTrue(test_polarity in ["Positive", "Negative"])
 
-    def test_agilent_create(self):
-        path = traverse_to_unidec("UniDec3")
-        path = os.path.join(path, "TestSpectra", "2019_05_15_bsa_ccs_02.d")
-        importer = ImporterFactory.create_importer(path)
-        test = AgilentImporter(path)
-        self.assertEqual(type(test), type(importer))
+    def test_get_ms_order(self):
+        for p in chrom_paths:
+            print("Testing MS Order for", p)
+            importer = ImporterFactory.create_importer(p)
+            test_order = importer.get_ms_order()
+            print("MS Order:", test_order)
+            self.assertTrue(test_order >= 1)
 
-    def test_populated_waters(self):
-        path = traverse_to_unidec("UniDec3")
-        path = os.path.join(path, "TestSpectra", "2024-07-09_08_EquiSPLASH_ESIneg_TrapDDA.raw")
-        reader = ImporterFactory.create_importer(path)
-        spectrum = reader.get_data()
-        self.assertTrue(len(spectrum) > 0)
+    def test_check_centroided(self):
+        for p in ss_paths:
+            print("Testing Centroided for", p)
+            importer = ImporterFactory.create_importer(p)
+            test_centroided = importer.check_centroided()
+            print("Centroided:", test_centroided)
+            self.assertTrue(type(test_centroided) == bool)
 
-    def test_populated_thermo(self):
-        path = traverse_to_unidec("UniDec3")
-        path = os.path.join(path, "TestSpectra", "test.raw")
-        reader = ImporterFactory.create_importer(path)
-        spectrum = reader.grab_centroid_data(1)
-        self.assertTrue(len(spectrum) > 0)
+    def test_get_scans_times(self):
+        for p in chrom_paths:
+            print("Testing Max Scans and Times for", p)
+            importer = ImporterFactory.create_importer(p)
+            max_scan = importer.get_max_scan()
+            max_time = importer.get_max_time()
+            print("Max Scan:", max_scan)
+            print("Max Time:", max_time)
+            self.assertTrue(max_scan > 20)
+            self.assertTrue(max_time > 0.4)
 
-    def test_populated_mzxml(self):
-        path = traverse_to_unidec("UniDec3")
-        path = os.path.join(path, "TestSpectra", "1500_scans_200K_16 fills-qb1.mzXML")
-        reader = ImporterFactory.create_importer(path)
-        spectrum = reader.grab_scan_data(0)
-        self.assertTrue(len(spectrum) > 0)
+            max_scan_time = importer.get_scan_time(max_scan)
+            print("Max Scan Time:", max_scan_time)
+            self.assertEqual(max_scan_time, max_time)
 
-    def test_populated_mzml(self):
-        path = traverse_to_unidec("UniDec3")
-        path = os.path.join(path, "TestSpectra", "JAW.mzML")
-        reader = ImporterFactory.create_importer(path)
-        #print("Path for mzml: ", path)
-        spectrum = reader.grab_scan_data(0)
-        self.assertTrue(len(spectrum) > 0)
+            test_scan = max_scan - 2
+            test_scan_range = [test_scan, max_scan]
+            print("Test Scan Range:", test_scan_range)
+            test_times = importer.get_times_from_scans(test_scan_range)
+            test_times = [test_times[0], test_times[2]]
+            print("Test Times:", test_times)
+            test_scan_return = importer.get_scans_from_times(test_times)
+            print("Test Scans:", test_scan_return)
+            self.assertTrue(test_scan_return[0] == test_scan)
+            self.assertTrue(test_scan_return[1] == max_scan)
 
-
-
-
-class MZMLTests(unittest.TestCase):
-
-    def test_merge_spectra_functional(self):
-        datalist = np.array([[[1]], [[2]]])
-        expected_output = np.array([[1,0]])
-        merged = merge_spectra(datalist, type = "Interpolate")
-        #(2 + 1) / 2 = 1 for idx 0
-        #No values left, so appends a 0 to idx 1
-        self.assertTrue(np.array_equal(merged, expected_output))
-
-    def test_merge_spectra_populated(self):
-        path = traverse_to_unidec("UniDec3")
-        path = os.path.join(path, "TestSpectra", "2019_05_15_bsa_ccs_02.d")
-        reader = ImporterFactory.create_importer(path)
-        spectrum = reader.get_data()
-        merged = merge_spectra([spectrum])
-        self.assertTrue(len(merged) > 0)
-
-    def test_merge_spectra_dim(self):
-        path = traverse_to_unidec("UniDec3")
-        path = os.path.join(path, "TestSpectra", "2019_05_15_bsa_ccs_02.d")
-        reader = ImporterFactory.create_importer(path)
-        spectrum = reader.get_data()
-        merged = merge_spectra([spectrum])
-        self.assertTrue(merged.shape[1] == 2)
-
-    def test_get_scan_times(self):
-        path = traverse_to_unidec("UniDec3")
-        path = os.path.join(path, "TestSpectra", "JAW.mzMl")
-        importer = ImporterFactory.create_importer(path)
-        test_time = importer.get_scan_times(100)
-        self.assertTrue(test_time > 0)
-
-    def test_max_scans(self):
-        path = traverse_to_unidec("UniDec3")
-        path = os.path.join(path, "TestSpectra", "JAW.mzMl")
-        importer = ImporterFactory.create_importer(path)
-        test_max = importer.get_max_scans()
-        self.assertTrue(test_max > 0)
-
-    def test_get_scans_from_times(self):
-        path = traverse_to_unidec("UniDec3")
-        path = os.path.join(path, "TestSpectra", "JAW.mzMl")
-        importer = ImporterFactory.create_importer(path)
-        test_scans = importer.get_scans_from_times([0, 150])
-        self.assertTrue(len(test_scans) > 0)
-
-    def test_tic_ndim(self):
-        path = traverse_to_unidec("UniDec3")
-        path = os.path.join(path, "TestSpectra", "JAW.mzMl")
-        importer = ImporterFactory.create_importer(path)
-        test_tic = importer.get_tic()
-        self.assertTrue(test_tic.ndim > 1)
-
-    def test_tic_populated(self):
-        path = traverse_to_unidec("UniDec3")
-        path = os.path.join(path, "TestSpectra", "JAW.mzMl")
-        importer = ImporterFactory.create_importer(path)
-        test_tic = importer.get_tic()
-        self.assertTrue(len(test_tic) > 0)
-
-
+    def test_repeat_avg(self):
+        for p in chrom_paths:
+            print("Testing Repeat Avg for", p)
+            importer = ImporterFactory.create_importer(p)
+            scan_range = [1, 5]
+            test_avg = importer.get_avg_scan(scan_range=scan_range)
+            test_avg2 = importer.get_avg_scan(scan_range=scan_range)
+            self.assertTrue(np.allclose(test_avg, test_avg2))
 

@@ -2273,6 +2273,27 @@ def autocorr(datatop, config=None, window=10):
         return [[]], [[]]
 
 
+def get_autocorr_ratio(data):
+    # evaluate a 1 dimensional merged array ratio to check if a dataset is centroided
+    # If ratio >= 0.5, it is more than likely NOT centroided
+    # otherwise it probably is
+    corry = signal.fftconvolve(data[:, 1], data[:, 1][::-1], mode='same')
+
+    if np.amax(corry) != 0:
+        corry /= np.amax(corry)
+
+    maxindex = np.argmax(corry)
+    ratio = corry[maxindex+1]
+    return ratio
+
+def test_centroided(data, cutoff=0.8):
+    ratio = get_autocorr_ratio(data)
+    if ratio > cutoff:
+        return True
+    else:
+        return False
+
+
 def conv_peak_shape_kernel(xaxis, psfun, fwhm):
     """
     Creation of an efficient peak shape kernel for circular convolutions.

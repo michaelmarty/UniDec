@@ -1,10 +1,7 @@
-from unidec.modules import peakstructure, plot1d, plot2d
+from unidec.modules import peakstructure
+from unidec.modules.plotting import plot1d, plot2d
 import unidec.modules.unidecstructure as unidecstructure
-from unidec import tools as ud
-import numpy as np
-import os
 import time
-import webbrowser
 from unidec.modules.html_writer import *
 
 version = unidecstructure.version

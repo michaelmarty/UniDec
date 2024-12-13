@@ -1,8 +1,9 @@
 from matplotlib import colors as mcolors
 import numpy as np
 import wx
-from unidec.metaunidec.mudeng import MetaUniDec
-from unidec.modules import PlottingWindow, unidecstructure
+
+from unidec.modules import unidecstructure
+from modules.plotting import PlottingWindow
 
 __author__ = 'Michael.Marty'
 
@@ -205,6 +206,8 @@ if __name__ == "__main__":
     app = wx.App()
     panel = PlateFrame(None)
     panel.draw()
+
+    from unidec.metaunidec.mudeng import MetaUniDec
 
     eng = MetaUniDec()
     path = "C:\\Data\\HTS_Sharon\\20220404-5_sequence_Shortlist.hdf5"

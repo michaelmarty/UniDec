@@ -1,4 +1,3 @@
-import os
 from copy import deepcopy
 
 import numpy as np
@@ -7,9 +6,8 @@ import lxml.etree as ET
 
 from pyteomics import mzxml
 
-__author__ = 'Michael.Marty'
-
 from unidec.UniDecImporter.Importer import Importer
+from unidec.UniDecImporter.ImportTools import get_resolution, merge_spectra
 
 
 def get_data_from_spectrum(spectrum, threshold=-1):
@@ -23,9 +21,11 @@ def get_data_from_spectrum(spectrum, threshold=-1):
 class MZXMLImporter(Importer):
     """
     Imports mzXML data files.
+
+    Note: mzXML are 1 indexed, so the first scan is scan 1, not scan 0.
     """
 
-    def __init__(self, path, *args, **kwargs):
+    def __init__(self, path, **kwargs):
         """
         Imports mzXML file, adds the chromatogram into a single spectrum.
         :param path: .mzXML file path
@@ -34,44 +34,59 @@ class MZXMLImporter(Importer):
         :return: mzXMLimporter object
         """
         print("Reading mzXML:", path)
-        self.filesize = os.stat(path).st_size
+        super().__init__(path, **kwargs)
         self.msrun = mzxml.read(path)
-        self.data = None
+        self.init_scans()
+
+        self.cdms_support = True
+        self.imms_support = False
+        self.chrom_support = True
+
+    def init_scans(self):
         self.times = []
-        self.ids = []
+        self.scans = []
         for i, spectrum in enumerate(self.msrun):
             try:
                 if spectrum["msLevel"] is None:
                     continue
-            except:
-                pass
-            try:
                 t = spectrum["retentionTime"]
                 id = spectrum["num"]
                 self.times.append(float(t))
+                self.scans.append(int(id))
             except Exception as e:
-                self.times.append(-1)
-                id = -1
-            self.ids.append(id)
-            # print(i, end=" ")
+                print("Error Importing Data, Scan:", i, "Error:", e)
+
         self.times = np.array(self.times)
-        self.ids = np.array(self.ids)
-        self.scans = np.arange(0, len(self.ids))
-        self.polarity = None
+        self.scans = np.array(self.scans)
+        self.scan_range = [np.amin(self.scans), np.amax(self.scans)]
 
-    def grab_scan_data(self, scan):
-        data = get_data_from_spectrum(self.msrun[self.ids[scan]])
-        return data
+    def get_single_scan(self, scan):
+        # Iterate until we hit the desired scan, then return it, and reset the iterator
+        # self.msrun.reset()
+        # s = 0
+        # # Iterate up until one scan minus the desired scan
+        # while s < scan - 1:
+        #     spectrum = self.msrun.next()
+        #     s = int(spectrum['num'])
+        spectrum = self.msrun.get_by_id(str(scan))
+        # if int(spectrum['num']) != scan:
+        #     raise ValueError(f"Scan {scan} not found in mzXML file")
+        dat = get_data_from_spectrum(spectrum)
+        # reset the reader
+        # self.msrun.reset()
+        return dat
 
-    def get_data_memory_safe(self, scan_range=None, time_range=None):
+    def avg_safe(self, scan_range=None, time_range=None):
         if time_range is not None:
             scan_range = self.get_scans_from_times(time_range)
             print("Getting times:", time_range)
         if scan_range is None:
-            scan_range = [np.amin(self.scans), np.amax(self.scans)]
+            scan_range = self.scan_range
         print("Scan Range:", scan_range)
-        data = get_data_from_spectrum(self.msrun[self.ids[0]])
 
+        self.msrun.reset()
+        spec = self.msrun.get_by_id(str(scan_range[0]))
+        data = get_data_from_spectrum(spec)
         resolution = get_resolution(data)
         axis = ud.nonlinear_axis(np.amin(data[:, 0]), np.amax(data[:, 0]), resolution)
         template = np.transpose([axis, np.zeros_like(axis)])
@@ -79,140 +94,74 @@ class MZXMLImporter(Importer):
         newdat = ud.mergedata(template, data)
         template[:, 1] += newdat[:, 1]
 
-        for i in range(int(scan_range[0]) + 1, scan_range[1] + 1):
+        # Get other data points
+        index = 0
+        while index <= scan_range[1] - scan_range[0]:
             try:
-                data = get_data_from_spectrum(self.msrun[self.ids[i]])
-                newdat = ud.mergedata(template, data)
-                template[:, 1] += newdat[:, 1]
-            except Exception as e:
-                print("Error", e, "With scan number:", i)
+                spec = self.msrun.next()
+            except:
+                break
+            index += 1
+            s = int(spec['num'])
+            if s in self.scans:
+                if scan_range[0] < s <= scan_range[1]:
+                    data = get_data_from_spectrum(spec)
+                    newdat = ud.mergedata(template, data)
+                    template[:, 1] += newdat[:, 1]
+                elif s <= scan_range[0]:
+                    pass
+                else:
+                    break
+        self.msrun.reset()
         return template
 
-    def grab_data(self, threshold=-1):
+    def get_all_scans(self, threshold=-1):
         newtimes = []
-        # newscans = []
         newids = []
         self.data = []
-        for i, s in enumerate(self.ids):
+        self.msrun.reset()
+        for i, s in enumerate(self.scans):
             try:
-                impdat = get_data_from_spectrum(self.msrun[s], threshold=threshold)
+                impdat = get_data_from_spectrum(self.msrun.next(), threshold=threshold)
                 self.data.append(impdat)
                 newtimes.append(self.times[i])
-                # newscans.append(self.scans[i])
                 newids.append(s)
             except Exception as e:
                 print("mzXML import error")
                 print(e)
-        # self.scans = np.array(newscans)
         self.times = np.array(newtimes)
-        self.ids = np.array(newids)
-        self.scans = np.arange(0, len(self.ids))
+        self.scans = np.array(newids)
         return self.data
 
-    def get_data_fast_memory_heavy(self, scan_range=None, time_range=None):
-        if self.data is None:
-            self.grab_data()
 
-        data = deepcopy(self.data)
-        if time_range is not None:
-            scan_range = self.get_scans_from_times(time_range)
-            print("Getting times:", time_range)
-
-        if scan_range is not None:
-            data = data[int(scan_range[0]):int(scan_range[1] + 1)]
-            print("Getting scans:", [scan_range[0] + 1, scan_range[-1] + 1])
-        else:
-            if len(self.scans) == 1:
-                scan_range = [1, 1]
-            else:
-                scan_range = list(np.arange(self.scans[0] + 1, len(self.scans) + 1))
-            print(scan_range)
-
-        if data is None or ud.isempty(data):
-            print("Error: Empty Data Object")
-            return None
-
-        if len(data) > 1:
-            try:
-                data = merge_spectra(data)
-            except Exception as e:
-                concat = np.concatenate(data)
-                sort = concat[concat[:, 0].argsort()]
-                data = ud.removeduplicates(sort)
-                print("2", e)
-        elif len(data) == 1:
-            data = data[0]
-        else:
-            data = data
-        # plt.figure()
-        # plt.plot(data)
-        # plt.show()
-        return data
-
-    def get_data(self, scan_range=None, time_range=None):
+    def get_avg_scan(self, scan_range=None, time_range=None):
         """
         Returns merged 1D MS data from mzML import
         :return: merged data
         """
-        if self.filesize > 1000000000 and self.data is None:
-            try:
-                data = self.get_data_memory_safe(scan_range, time_range)
-            except Exception as e:
-                print("Error in Memory Safe mzML, trying memory heavy method")
-                data = self.get_data_fast_memory_heavy(scan_range, time_range)
+        if self.filesize > 1e9 and self.data is None:
+            data = self.avg_safe(scan_range, time_range)
         else:
-            data = self.get_data_fast_memory_heavy(scan_range, time_range)
-        if self.polarity is None:
-            self.polarity = self.get_polarity()
+            data = self.avg_fast(scan_range, time_range)
         return data
 
     def get_tic(self):
         tic = []
-        print("Imported Data. Constructing TIC")
-        for i, s in enumerate(self.ids):
-            spectrum = self.msrun[s]
+        print("Constructing TIC")
+        self.msrun.reset()
+        for i, s in enumerate(self.scans):
+            spectrum = self.msrun.next()
             try:
                 tot = float(spectrum['totIonCurrent'])
             except:
-                tot = 0
+                tot = np.sum(spectrum['intensity array'])
             tic.append(tot)
         t = self.times
         ticdat = np.transpose([t, tic])
         return ticdat
 
-    def get_scans_from_times(self, time_range):
-        boo1 = self.times >= time_range[0]
-        boo2 = self.times < time_range[1]
-        try:
-            min = np.amin(self.scans[boo1])
-            max = np.amax(self.scans[boo2])
-        except Exception as e:
-            min = -1
-            max = -1
-            print("3", e)
-        return [min, max]
-
-    def get_times_from_scans(self, scan_range):
-        boo1 = self.scans >= scan_range[0]
-        boo2 = self.scans < scan_range[1]
-        boo3 = np.logical_and(boo1, boo2)
-        min = np.amin(self.times[boo1])
-        max = np.amax(self.times[boo2])
-        try:
-            avg = np.mean(self.times[boo3])
-        except Exception as e:
-            avg = min
-            print("4", e)
-        return [min, avg, max]
-
-    def get_max_time(self):
-        return np.amax(self.times)
-
-    def get_max_scans(self):
-        return np.amax(self.scans)
-
-    def get_polarity(self):
-        tree = ET.parse(self.path)
+    def get_polarity(self, scan=None):
+        tree = ET.parse(self._file_path)
         root = tree.getroot()
         polarity = None
         # Define the namespaces used in the XML
@@ -229,64 +178,50 @@ class MZXMLImporter(Importer):
             return "Negative"
         else:
             print("Polarity: Unknown")
-            return "Unknown"
-        # To see the raw XML string at first scan
-        # raw_scan_xml = ET.tostring(scans[0], encoding='unicode', pretty_print=True)
-        # print(raw_scan_xml)
+            return None
 
-    def get_inj_time(self, spectrum):
-        element = spectrum.element
-        it = 1
-        for child in element.iter():
-            if 'name' in child.attrib:
-                if child.attrib['name'] == 'ion injection time':
-                    it = child.attrib['value']
-                    try:
-                        it = float(it)
-                    except:
-                        it = 1
-        return it
+    # TODO: mzXML get_ms_order
+
+
 
 
 if __name__ == "__main__":
-    test = u"C:\\Data\\Wilson_Genentech\\Raw Files for Michael Marty\\B4.mzXML"
-    test = "D:\\Data\\TopDown\\denatured_discovery_input_topfd.mzxml"
     import time
 
+    # test = "Z:\\Group Share\\JGP\\js8b05641_si_001\\1500_scans_200K_16 fills-qb1.mzXML"
+    test = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_mzxml.mzXML"
+    test = "C:\\Data\\DataTypeCollection\\test_mzxml.mzXML"
     tstart = time.perf_counter()
+    d = MZXMLImporter(test)
+    d.get_single_scan(1000)
+    print("Time:", time.perf_counter() - tstart)
+
+
+    scan_range = [1, 1000]
+
+    starttime = time.perf_counter()
+    print(len(d.avg_fast(scan_range=scan_range)))
+    print("Time:", time.perf_counter() - starttime)
+
+    # test it again
+    starttime = time.perf_counter()
+    print(len(d.avg_fast(scan_range=scan_range)))
+    print("Time:", time.perf_counter() - starttime)
 
     d = MZXMLImporter(test)
-    d.grab_scan_data(10)
+    startime = time.perf_counter()
+    print(len(d.avg_safe(scan_range=scan_range)))
+    print("Time:", time.perf_counter() - startime)
+
+    # test it again
+    startime = time.perf_counter()
+    print(len(d.avg_safe(scan_range=scan_range)))
+    print("Time:", time.perf_counter() - startime)
     exit()
 
-    tic = d.get_tic()
-    # print(len(tic))
-    import matplotlib.pyplot as plt
 
-    plt.plot(tic[:, 0], tic[:, 1])
-    plt.show()
-
+    d.get_avg_scan(scan_range=[1, 5])
+    print("Time:", time.perf_counter() - tstart)
     exit()
-    print(len(d.scans))
 
-    # data = d.get_data_memory_safe()
-    data = d.get_data()
-    tend = time.perf_counter()
-    # print(call, out)
-    print("Execution Time:", (tend - tstart))
-
-    exit()
-    import matplotlib.pyplot as plt
-
-    plt.plot(data[:, 0], data[:, 1])
-    plt.show()
-
-    print(len(data))
-    exit()
-    # get_data_from_spectrum(d.msrun[239])
-    # exit()
-    data = d.get_data()
-
-    print(data)
-
-    # print d.get_times_from_scans([15, 30])
+    d.get_tic()

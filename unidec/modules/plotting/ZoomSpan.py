@@ -1,10 +1,10 @@
 from matplotlib.transforms import blended_transform_factory
 from matplotlib.patches import Rectangle
 
-from unidec.modules.isolated_packages.ZoomCommon import *
+from modules.plotting.ZoomCommon import *
 
 
-class NoZoomSpan(ZoomCommon):
+class ZoomSpan(ZoomCommon):
     """
     Expansion of matplotlib embed in wx example by John Bender and Edward
     Abraham, see https://www.scipy.org/Matplotlib_figure_in_a_wx_panel
@@ -41,7 +41,6 @@ class NoZoomSpan(ZoomCommon):
                  minspan=None,
                  useblit=False,
                  rectprops=None,
-                 zoombutton=None,
                  onmove_callback=None):
         """
         Create a span selector in axes.  When a selection is made, clear
@@ -59,13 +58,12 @@ class NoZoomSpan(ZoomCommon):
 
 
         """
-        # Call to super
-        super(NoZoomSpan, self).__init__()
-
+        super(ZoomCommon, self).__init__()
         if rectprops is None:
             rectprops = dict(facecolor='yellow', alpha=0.2)
 
         self.parent = parent
+        self.pad = 0.0001
         self.axes = None
         self.canvas = None
         self.visible = True
@@ -80,7 +78,6 @@ class NoZoomSpan(ZoomCommon):
         self.onmove_callback = onmove_callback
         self.useblit = useblit
         self.minspan = minspan
-        self.zoombutton = zoombutton
 
         # Needed when dragging out of axes
         self.buttonDown = False
@@ -107,21 +104,15 @@ class NoZoomSpan(ZoomCommon):
             self.rect.append(Rectangle((0, 0), 0, 1,
                                        transform=trans,
                                        visible=False,
-                                       edgecolor="blue",
                                        **self.rectprops))
 
         if not self.useblit:
             for axes, rect in zip(self.axes, self.rect):
                 axes.add_patch(rect)
 
-    def update_background(self, event):
-        """force an update of the background"""
-        if self.useblit:
-            self.background = self.canvas.copy_from_bbox(self.canvas.figure.bbox)
-
     def ignore(self, event):
         """return True if event should be ignored"""
-        return event.inaxes not in self.axes or not self.visible  # or event.button != 1
+        return event.inaxes not in self.axes or not self.visible or event.button != 1
 
     def press(self, event):
         """on button press event"""
@@ -139,7 +130,6 @@ class NoZoomSpan(ZoomCommon):
         return False
 
     def release(self, event):
-
         """on button release event"""
         if self.pressv is None or (self.ignore(event) and not self.buttonDown): return
         self.buttonDown = False
@@ -148,7 +138,7 @@ class NoZoomSpan(ZoomCommon):
             rect.set_visible(False)
 
         # left-click in place resets the x-axis
-        if event.xdata == self.pressv and event.button == self.zoombutton:
+        if event.xdata == self.pressv:
             # x0,y0,x1,y1=GetMaxes(event.inaxes)
             x0, y0, x1, y1 = self.data_lims
             for axes in self.axes:
@@ -163,31 +153,35 @@ class NoZoomSpan(ZoomCommon):
 
         if vmin > vmax: vmin, vmax = vmax, vmin
         span = vmax - vmin
+        if self.minspan is not None and span < self.minspan: return
 
-        if self.zoombutton is None or event.button != self.zoombutton:
-            print(vmin, vmax, span)
-            self.scans_selected(vmin, vmax)
-            if self.minspan is not None and span <= self.minspan:
-                self.canvas.draw()
-                for rect in self.rect:
-                    rect.set_x(vmin)
-                    rect.set_width(0.01)
-                self.update()
-                return
-        elif event.button == self.zoombutton:
-            print("Zooming")
-            if self.minspan is not None and span < self.minspan: return
+        for axes in self.axes:
+            # axes.set_xlim((self.pressv, event.xdata))
+            axes.set_xlim((vmin, vmax))
+            # Autoscale Y
+            xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=vmin, xmax=vmax)
+            axes.set_ylim((ymin, ymax))
+        self.canvas.draw()
 
-            for axes in self.axes:
-                # axes.set_xlim((self.pressv, event.xdata))
-                axes.set_xlim((vmin, vmax))
-                # Autoscale Y
-                # xmin, ymin, xmax, ymax = GetMaxes(axes, xmin=vmin, xmax=vmax)
-                # axes.set_ylim((ymin, ymax))
-            self.canvas.draw()
+        value = 0.0
+        if self.onselect is not None and event.inaxes.lines != []:
+            # gather the values to report in a selection event
+            value = []
+            x0, y0, x1, y1 = event.inaxes.dataLim.bounds
+            dat = event.inaxes.lines[0].get_ydata()
+            npts = len(dat)
+            indx = int(round((npts - 1) * (event.xdata - x0) / (x1 - x0)))
+            if indx > (npts - 1): indx = npts - 1
+            if indx < 0: indx = 0
+            for line in event.inaxes.lines:
+                dat = line.get_ydata()
+                if indx < len(dat):
+                    value.append(dat[indx])
+            if value == []: value = 0.0
+
+            self.onselect(vmin, vmax, value, 0, 0)  # zeros are for consistency with box zoom
 
         self.pressv = None
-
         return False
 
     def update(self):
@@ -206,7 +200,7 @@ class NoZoomSpan(ZoomCommon):
     def onmove(self, event):
         self.on_newxy(event.xdata, event.ydata)
 
-        # on motion notify event
+        #'on motion notify event'
         if self.pressv is None or self.ignore(event):
             return
         x, y = event.xdata, event.ydata
@@ -240,3 +234,29 @@ class NoZoomSpan(ZoomCommon):
 
         self.update()
         return False
+
+    def zoomout(self, event=None):
+        # print("Zoom Out")
+        # x0,y0,x1,y1=GetMaxes(event.inaxes)
+        # print GetMaxes(event.inaxes)
+
+        xmin, ymin, xmax, ymax = self.data_lims
+        if xmin > xmax: xmin, xmax = xmax, xmin
+        if ymin > ymax: ymin, ymax = ymax, ymin
+        # assure that x and y values are not equal
+        if xmin == xmax: xmax = xmin * 1.01
+        if ymin == ymax: ymax = ymin * 1.01
+
+        # Check if a zoom out is necessary
+        zoomout = False
+        for axes in self.axes:
+            if axes.get_xlim() != (xmin, xmax) and axes.get_ylim() != (ymin, ymax):
+                zoomout = True
+
+                xspan = xmax - xmin
+                yspan = ymax - ymin
+                if xmin - xspan * self.pad != xmax + xspan * self.pad:
+                    axes.set_xlim(xmin - xspan * self.pad, xmax + xspan * self.pad)
+                axes.set_ylim(ymin - yspan * self.pad, ymax + yspan * self.pad)
+                ResetVisible(axes)
+        self.canvas.draw()

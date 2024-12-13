@@ -7,7 +7,7 @@ import matplotlib as mpl
 from scipy.interpolate import interp1d
 from wx.lib.agw import ultimatelistctrl as ulc
 from unidec import tools as ud
-from unidec.modules import PlottingWindow
+from modules.plotting import PlottingWindow
 from unidec.modules import MassFitter
 
 __author__ = 'Michael.Marty'

@@ -2,7 +2,8 @@ import os
 from copy import deepcopy
 import numpy as np
 import wx
-from unidec.modules import unidecstructure, PlottingWindow
+from unidec.modules import unidecstructure
+from modules.plotting import PlottingWindow
 from unidec.modules import miscwindows
 from unidec.tools import double_fft_diff, mergedata, datachop
 

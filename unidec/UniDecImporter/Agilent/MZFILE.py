@@ -7,9 +7,6 @@ import numpy as np
 from numpy import average
 from itertools import chain
 
-from unidec.UniDecImporter.Thermo.RawFileReader import pathtothisfile
-
-
 #dll_path = "C:\\Python\\UniDec3\\unidec\\UniDecImporter\\Agilent"
 pathtothisfile = os.path.dirname(__file__)
 
