@@ -45,6 +45,7 @@ class ImporterTests(unittest.TestCase):
             print("Shape:", np.shape(test_avg))
             self.assertTrue(np.shape(test_avg)[1] == 2)
             self.assertTrue(len(test_avg) > 500)
+            importer.close()
 
     def test_avg_scan_scanrange(self):
         for p in ss_paths:

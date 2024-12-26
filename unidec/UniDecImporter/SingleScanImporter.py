@@ -60,31 +60,29 @@ class SingleScanImporter(Importer):
         raw_dat = self.get_all_scans()
         mz = np.concatenate([d[:, 0] for d in raw_dat])
         intensity = np.concatenate([d[:, 1] for i, d in enumerate(raw_dat)])
-        if ext.lower() == '.csv':
-            try:
-                scans = raw_dat[:, 2]
-            except Exception as e:
-                print("No scan data in CSV file, populating with 1's")
-                scans = np.ones_like(intensity)
-            try:
-                it = raw_dat[:, 3]
-            except Exception as e:
-                print("No injection time data in CSV file, populating with 1's")
-                it = np.ones_like(mz)
-        elif ext.lower() == '.bin':
-            try:
 
-                raw_dat = raw_dat.reshape((int(len(raw_dat) / 3), 3))
-            except Exception as e:
-                raw_dat = raw_dat.reshape((int(len(raw_dat) / 2)), 2)
-            mz = raw_dat[:, 0] > 0
-            intensity = raw_dat[:, 1] > 0
-            it = np.ones_like(mz)
+        try:
+            scans = np.concatenate([d[:, 2] for d in raw_dat])
+        except Exception as e:
+            print("No scan data in CSV file, populating with 1's")
             scans = np.ones_like(intensity)
-        # .txt and .npz
-        else:
+        try:
+            it = np.concatenate([d[:, 3] for d in raw_dat])
+        except Exception as e:
+            print("No injection time data in CSV file, populating with 1's")
             it = np.ones_like(mz)
-            scans = np.ones_like(intensity)
+        # elif ext.lower() == '.bin':
+        #     try:
+        #         raw_dat = raw_dat.reshape((int(len(raw_dat) / 3), 3))
+        #     except Exception as e:
+        #         raw_dat = raw_dat.reshape((int(len(raw_dat) / 2)), 2)
+        #     mz = raw_dat[:, 0] > 0
+        #     intensity = raw_dat[:, 1] > 0
+        #     it = np.ones_like(mz)
+        #     scans = np.ones_like(intensity)
+        # else:
+        #     it = np.ones_like(mz)
+        #     scans = np.ones_like(intensity)
 
         return np.transpose([mz, intensity, scans, it])
 
@@ -95,9 +93,8 @@ class SingleScanImporter(Importer):
 
 if __name__ == "__main__":
     path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\CDMS\\test_csv_cdms.csv"
+    path = "Z:\\Group Share\\Group\\Archive\\Grad Students and Postdocs\\Skippy\\HT SEC paper data\\Bgal GroEL\\20240412 Bgal GroEL bit5 zp10 3_2024-04-16-11-38-01_unidecfiles\\20240412 Bgal GroEL bit5 zp10 3_2024-04-16-11-38-01_rawdata.npz"
     importer = SingleScanImporter(path)
-    if type(importer) == SingleScanImporter:
-        print("SingleScanImporter works")
     importer.get_cdms_data()
 
 

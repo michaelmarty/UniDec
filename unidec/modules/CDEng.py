@@ -182,11 +182,11 @@ class UniDecCD(engine.UniDec):
         # Set up unidec paths
         self.before_open(refresh=refresh)
 
-        self.TDI = ImporterFactory.create_importer(self.path, silent=False)
-        print(type(self.TDI))
-        self.darray = self.TDI.get_cdms_data()
-        if type(self.TDI) == ThermoImporter:
-            self.res = IT.get_resolution(self.TDI.get_single_scan(1))
+        self.importer = ImporterFactory.create_importer(self.path, silent=False)
+        # print(type(self.importer))
+        self.darray = self.importer.get_cdms_data()
+        if type(self.importer) == ThermoImporter:
+            self.res = IT.get_resolution(self.importer.get_single_scan(1))
 
         # Correct Thermo Data
 
