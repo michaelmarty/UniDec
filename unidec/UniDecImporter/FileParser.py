@@ -34,7 +34,7 @@ def parse(path, times, timestep, volts, outputheader, directory, output="txt"):
         num = 0
         d = ImporterFactory.create_importer(path)
         for v, time in enumerate(times):
-            data = d.get_data(time_range=(time, time + timestep))
+            data = d.get_avg_scan(time_range=(time, time + timestep))
             if data is not None:
                 if output == "txt":
                     if volts is not None:
@@ -90,8 +90,8 @@ def parse_multiple(paths, timestep, newdir, starttp, endtp, voltsarr=None, outpu
         if os.path.isfile(path) or os.path.isdir(path):
             d = ImporterFactory.create_importer(path)
             for t in np.arange(starttp, endtp, timestep):
-                data = d.get_data(time_range=(t, t + timestep))
-                if not data:
+                data = d.get_avg_scan(time_range=(t, t + timestep))
+                if len(data) > 0:
                     group = msdataset.require_group(str(num))
                     replace_dataset(group, "raw_data", data=data)
                     # group=msdataset.require_group(str(v))
@@ -161,11 +161,11 @@ def extract_scans(file, directory, scanbins=1, output="txt"):
             newdir = directory
         if os.path.splitext(file)[1] == ".mzML":
             maxtime = d.get_max_time()
-            maxscans = d.get_max_scans()
+            maxscans = d.get_max_scan()
         else:
             maxtime = d.get_max_time()
-            maxscans = d.get_max_scans() - 1
-        scans = np.arange(0, maxscans, scanbins)
+            maxscans = d.get_max_scan() - 1
+        scans = np.arange(1, maxscans, scanbins)
 
         if output == "hdf5":
             outfile = name + ".hdf5"
@@ -182,7 +182,7 @@ def extract_scans(file, directory, scanbins=1, output="txt"):
         num = 0
 
         for v, scan in enumerate(scans):
-            data = d.get_data(scan_range=(scan, scan + scanbins))
+            data = d.get_avg_scan(scan_range=(scan, scan + scanbins))
 
             if not ud.isempty(data):
                 if output == "txt":
@@ -283,8 +283,8 @@ def extract_scans_multiple_files(files, dirs, startscan=1.0, endscan=1.0, output
         if os.path.isfile(path):
             importer = ImporterFactory.create_importer(path)
             if endscan == -1:
-                endscan = importer.get_max_scans()
-            data = importer.get_data(scan_range=(startscan, endscan))
+                endscan = importer.get_max_scan()
+            data = importer.get_avg_scan(scan_range=(startscan, endscan))
             if not ud.isempty(data):
                 group = msdataset.require_group(str(num))
                 replace_dataset(group, "raw_data", data=data)
@@ -323,5 +323,5 @@ if __name__ == '__main__':
     # extract("test.mzML", directory, timestep, output="hdf5")
     extract_scans(file, directory, scanbins=100, output="hdf5")
     # get_files(directory, output="hdf5")
-    parse("C:\\Data\\IsoNN\\23_04_21_PEPPI_1B_B.raw", [0, 1, 2, 3, 4], 1, [0, 1, 2, 3, 4], "test", "C:\\Data\\IsoNN\\",)
+    # parse("C:\\Data\\IsoNN\\23_04_21_PEPPI_1B_B.raw", [0, 1, 2, 3, 4], 1, [0, 1, 2, 3, 4], "test", "C:\\Data\\IsoNN\\",)
     exit()

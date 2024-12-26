@@ -340,20 +340,6 @@ class ChromApp(MetaUniDecBase):
 
 
 if __name__ == "__main__":
-    '''
-    if False:
-        import clr
-        from System.Threading import ApartmentState, Thread, ThreadStart
-
-        def app_thread():
-            multiprocessing.freeze_support()
-            app = ChromApp()
-            app.start()
-
-        thread = Thread(ThreadStart(app_thread))
-        thread.SetApartmentState(ApartmentState.STA)
-        thread.Start()
-        thread.Join()'''
 
     multiprocessing.freeze_support()
     app = ChromApp()

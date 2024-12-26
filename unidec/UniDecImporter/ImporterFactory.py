@@ -82,7 +82,6 @@ if __name__ == "__main__":
     test = u"C:\\Python\\UniDec3\\TestSpectra\\test.raw"
     test = "Z:\\Group Share\\JGP\\js8b05641_si_001\\1500_scans_200K_16 fills-qb1.mzML"
     importer = ImporterFactory.create_importer(test)
-    # dat = importer.get_data()
     # print(len(dat))
 
 

@@ -1491,4 +1491,6 @@ if __name__ == "__main__":
     frame = DataCollector(None, "Collect Data")
     app.MainLoop()
 
+    # Test file Z:\mtmarty\Data\Others\cprog\New\Man9 141015\collection2.json
+
 

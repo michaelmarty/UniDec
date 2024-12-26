@@ -197,7 +197,7 @@ class MetaDataSet:
         else:
             dirname, filename = os.path.split(path)
 
-        data = ImporterFactory.create_importer(path).get_data()
+        data = ImporterFactory.create_importer(path).get_avg_scan()
         self.add_data(data, name=filename)
 
     def add_data(self, data, name="", attrs=None, export=True):

@@ -153,13 +153,13 @@ class UniDec(UniDecEngine):
             isodeceng.reader = curr_importer
 
         if self.config.imflag ==0:
-            self.data.rawdata = curr_importer.get_avg_scan()
+            self.data.rawdata = curr_importer.get_avg_scan(time_range=time_range)
 
             newname = self.config.outfname + "_rawdata.txt"
             outputdata = self.data.rawdata
 
         else:
-            self.data.rawdata = curr_importer.get_imms_avg_scan(mzbins=self.config.mzbins)
+            self.data.rawdata = curr_importer.get_imms_avg_scan(mzbins=self.config.mzbins, time_range=time_range)
             self.config.discreteplot = 1
             self.config.poolflag = 1
             self.data.rawdata3, self.data.rawdata = ud.unsparse(self.data.rawdata)

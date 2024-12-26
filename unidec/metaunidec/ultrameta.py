@@ -15,7 +15,7 @@ from unidec.modules.hdf5_tools import replace_dataset, get_dataset
 from unidec.metaunidec import mudeng
 from unidec import MetaUniDec as mudpres
 from unidec.metaunidec.gui_elements.um_list_ctrl import *
-import threading
+
 import numpy as np
 import wx
 
@@ -500,17 +500,8 @@ class DataCollector(wx.Frame):
             paths.append(path)
 
         if fit is None:
-            if False:
-                threads = []
-                for p in paths:
-                    t = threading.Thread(target=self.update_hdf5, args=(p,))
-                    threads.append(t)
-                    t.start()
-                for t in threads:
-                    t.join()
-            else:
-                for p in paths:
-                    self.update_hdf5(p)
+            for p in paths:
+                self.update_hdf5(p)
         print("Total Execution Time: %.2gs" % (time.perf_counter() - tstart))
         for x in self.xvals:
             print(x)

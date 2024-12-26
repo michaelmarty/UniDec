@@ -73,9 +73,20 @@ class Importer:
 
     def get_scan_time(self, scan):
         # Find index in self.scans
-        index = np.where(self.scans == scan)[0][0]
+        index = self.get_scan_index(scan)
         t = self.times[index]
         return t
+
+    def get_scan_index(self, scan):
+        if scan in self.scans:
+            index = np.where(self.scans == scan)[0][0]
+        elif scan < self.scans[0]:
+            index = 0
+        elif scan > self.scans[-1]:
+            index = len(self.scans) - 1
+        else:
+            index = np.searchsorted(self.scans, scan)
+        return index
 
     def get_time_scan(self, time):
         index = np.argmin(np.abs(self.times - time))
@@ -116,8 +127,8 @@ class Importer:
 
         data = deepcopy(self.data)
         if scan_range is not None:
-            startindex = np.where(self.scans == scan_range[0])[0][0]
-            endindex = np.where(self.scans == scan_range[1])[0][0]
+            startindex = self.get_scan_index(scan_range[0])
+            endindex = self.get_scan_index(scan_range[1])
             data = data[startindex:endindex + 1]
             print("Getting scans:", scan_range)
         else:
@@ -164,8 +175,8 @@ class Importer:
 
         data = deepcopy(self.immsdata)
         if scan_range is not None:
-            startindex = np.where(self.scans == scan_range[0])[0][0]
-            endindex = np.where(self.scans == scan_range[1])[0][0]
+            startindex = self.get_scan_index(scan_range[0])
+            endindex = self.get_scan_index(scan_range[1])
             data = data[startindex:endindex + 1]
             print("Getting scans:", scan_range)
         else:
@@ -196,7 +207,7 @@ class Importer:
         if self.immsdata is None:
             self.get_all_imms_scans()
 
-        index = np.where(self.scans == s)[0][0]
+        index = self.get_scan_index(s)
         data = self.immsdata[index]
         print("Import Time:", time.perf_counter() - start_time, "s")
         return data

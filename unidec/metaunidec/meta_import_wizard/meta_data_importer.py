@@ -44,9 +44,9 @@ def auto_from_wizard(data, filename, mode):
             print(start, stop)
             importer = ImporterFactory.create_importer(path)
             if mode == 1:
-                data = importer.get_data(scan_range=(start, stop))
+                data = importer.get_avg_scan(scan_range=(start, stop))
             elif mode == 0:
-                data = importer.get_data(time_range=(start, stop))
+                data = importer.get_avg_scan(time_range=(start, stop))
             eng.data.add_data(data, path)
         eng.data.spectra[-1].var1 = v1
         eng.data.spectra[-1].var2 = v2
