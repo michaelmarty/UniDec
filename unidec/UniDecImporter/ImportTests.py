@@ -161,11 +161,34 @@ class ImporterTests(unittest.TestCase):
 
     def test_get_cdms(self):
         for p in cdms_paths:
+            print("Testing CDMS for", p)
             importer = ImporterFactory.create_importer(p)
             curr_dat = importer.get_cdms_data()
             self.assertTrue(curr_dat.ndim == 2)
             self.assertTrue(len(curr_dat[:, 0]) == len(curr_dat[:, 1]) == len(curr_dat[:, 2]) == len(curr_dat[:, 3]))
             self.assertTrue(curr_dat[:, 0].shape == curr_dat[:, 1].shape == curr_dat[:, 2].shape == curr_dat[:, 3].shape)
+
+    def test_get_imms_avg_scan(self):
+        for p in imms_paths:
+            print("Testing IMMS for", p)
+            importer = ImporterFactory.create_importer(p)
+            curr_dat = importer.get_imms_avg_scan()
+            self.assertTrue(curr_dat.ndim == 2)
+            shape = np.shape(curr_dat)
+            print("Shape:", shape)
+            self.assertTrue(shape[1] == 3)
+            self.assertTrue(shape[0] > 20)
+
+    def test_get_imms_scan(self):
+        for p in imms_paths:
+            print("Testing IMMS for", p)
+            importer = ImporterFactory.create_importer(p)
+            curr_dat = importer.get_imms_scan(1)
+            self.assertTrue(curr_dat.ndim == 2)
+            shape = np.shape(curr_dat)
+            print("Shape:", shape)
+            self.assertTrue(shape[1] == 3)
+            self.assertTrue(shape[0] > 20)
 
 
 

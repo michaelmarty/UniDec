@@ -188,6 +188,19 @@ class Importer:
         print("Import Time:", time.perf_counter() - start_time, "s")
         return data
 
+    def get_imms_scan(self, s):
+        if not self.imms_support:
+            print("IMMS data not supported for this file type:", self._file_path)
+            raise Exception
+        start_time = time.perf_counter()
+        if self.immsdata is None:
+            self.get_all_imms_scans()
+
+        index = np.where(self.scans == s)[0][0]
+        data = self.immsdata[index]
+        print("Import Time:", time.perf_counter() - start_time, "s")
+        return data
+
     def get_all_imms_scans(self):
         if not self.imms_support:
             print("IMMS data not supported for this file type:", self._file_path)

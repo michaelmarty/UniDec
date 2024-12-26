@@ -65,6 +65,7 @@ class ImporterFactory:
             return I2MSImporter(file_path)
         else:
             print("Unsupported file type:", ending, file_path)
+            raise IOError("Unsupported file type")
             return None
 
 

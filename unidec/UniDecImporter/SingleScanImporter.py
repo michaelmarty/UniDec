@@ -90,6 +90,12 @@ class SingleScanImporter(Importer):
         self.immsdata = np.loadtxt(self._file_path, skiprows=header_test(self._file_path))
         return self.immsdata
 
+    def get_all_imms_scans(self):
+        return [self.get_imms_avg_scan()]
+
+    def get_imms_scan(self, s):
+        return self.get_imms_avg_scan()
+
 
 if __name__ == "__main__":
     path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\CDMS\\test_csv_cdms.csv"

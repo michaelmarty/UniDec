@@ -163,6 +163,7 @@ class UniDec(UniDecEngine):
             self.config.discreteplot = 1
             self.config.poolflag = 1
             self.data.rawdata3, self.data.rawdata = ud.unsparse(self.data.rawdata)
+            print("Data Shape:", self.data.rawdata3.shape, self.data.rawdata.shape)
             self.data.data3 = self.data.rawdata3
 
             newname = self.config.outfname + "_imraw.txt"
@@ -181,8 +182,12 @@ class UniDec(UniDecEngine):
                 pass
 
         if os.path.isfile(self.config.infname) and not refresh and self.config.imflag == 0:
-            self.data.data2 = np.loadtxt(self.config.infname)
-            self.config.procflag = 1
+            try:
+                self.data.data2 = np.loadtxt(self.config.infname)
+                self.config.procflag = 1
+            except:
+                self.data.data2 = self.data.rawdata
+                self.config.procflag = 0
         else:
             self.data.data2 = self.data.rawdata
             self.config.procflag = 0
@@ -235,9 +240,11 @@ class UniDec(UniDecEngine):
 
         elif os.path.splitext(self.config.filename)[1] == ".raw" and self.config.system == "Windows":
             basename = os.path.splitext(self.config.filename)[0]
-            newfilename = basename + "_rawdata.txt"
+
             if self.config.imflag == 1:
                 newfilename = basename + "_imraw.txt"
+            else:
+                newfilename = basename + "_rawdata.txt"
 
             if inflag:
                 newfilepath = os.path.join(self.config.dirname, newfilename)
@@ -267,8 +274,7 @@ class UniDec(UniDecEngine):
                 else:
                     print("Sorry. Waters Raw converter only works on windows. Convert to txt file first.")
                     return None, None
-            print(self.config.filename, self.config.dirname)
-            exit()
+
             return self.config.filename, self.config.dirname
 
         else:

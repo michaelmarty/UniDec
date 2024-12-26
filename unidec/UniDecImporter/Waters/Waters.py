@@ -132,16 +132,19 @@ class WatersDataImporter(Importer):
         print("Pusher Freq:", self.pusher)
         self.immsdata = []
         for s in self.scans:
-            scandat = []
-            for i in range(0, 200):
-                o = self.readerMS.ReadDriftScan(self.function, s-1, i)
-                if len(o) == 0:
-                    continue
-                dts = np.ones(len(o[0])) * i
-                dtdat = np.transpose([o[0], dts, o[1]])
-                scandat.extend(dtdat)
-            self.immsdata.append(np.array(scandat))
+            self.immsdata.append(self.get_imms_scan(s))
         return self.immsdata
+
+    def get_imms_scan(self, s):
+        scandat = []
+        for i in range(0, 200):
+            o = self.readerMS.ReadDriftScan(self.function, s - 1, i)
+            if len(o) == 0:
+                continue
+            dts = np.ones(len(o[0])) * i
+            dtdat = np.transpose([o[0], dts, o[1]])
+            scandat.extend(dtdat)
+        return np.array(scandat)
 
     def get_polarity(self, scan=None):
         line = self.reader.GetIonModeString(self.function)

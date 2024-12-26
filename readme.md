@@ -203,6 +203,8 @@ New IsoGen neural net for generating isotopic distributions. Used by IsoDec but 
 
 Complete rewrite and restructuring of Importing code into UniDecImporter library. This should help harmonize and centralize the MS file reading functions. Removed some prior reliance on multiplierz for Agilent data.
 
+To simplify the import functions, the UniDec GUI has changed slightly such that you need to explicity switch it to ion mobility mode (see Advanced menu) before opening ion mobility files.
+
 Various other under the hood changes to accomodate new code, and some bug fixes.
 
 Fixed label for DAR mode in UPP help files. 
