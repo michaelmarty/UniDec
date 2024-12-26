@@ -1090,7 +1090,7 @@ class UniDecCD(engine.UniDec):
 if __name__ == '__main__':
     eng = UniDecCD()
     #path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_thermo.RAW"
-    path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\CDMS\\test_dmt_cdms.dmt"
+    path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_mzxml.mzXML"
 
     eng.open_file(path, refresh=True)
     exit()
@@ -1117,7 +1117,7 @@ if __name__ == '__main__':
     print(eng.kernel)
 
     exit()
-    path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\CDMS\\test_dmt_cdms.dmt"
+    path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_mzxml.mzXML"
     eng = UniDecCD()
     eng.open_file(path)
 

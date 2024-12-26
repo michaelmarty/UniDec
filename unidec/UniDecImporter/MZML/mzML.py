@@ -101,6 +101,7 @@ class MZMLImporter(Importer):
         self.cdms_support = True
         self.imms_support = True
         self.chrom_support = True
+        print("Reading mzML file:", path)
 
     def init_scans(self):
         self.times = []
@@ -130,12 +131,7 @@ class MZMLImporter(Importer):
 
     #This is the merging function
     def avg_safe(self, scan_range=None, time_range=None):
-        if time_range is not None:
-            scan_range = self.get_scans_from_times(time_range)
-            print("Getting times:", time_range)
-        if scan_range is None:
-            scan_range = self.scan_range
-        print("Scan Range:", scan_range)
+        scan_range = self.scan_range_from_inputs(scan_range, time_range)
 
         self.reset_reader()
         # Get first data point and interpolate it to match template axis
@@ -251,16 +247,16 @@ class MZMLImporter(Importer):
         self.reset_reader()
         return np.array(its)
 
-    def grab_im_data(self):
+    def get_all_imms_scans(self):
         self.reset_reader()
         newtimes = []
         newids = []
-        self.data = []
+        self.immsdata = []
         for n, spec in enumerate(self.msrun):
             if spec.ID in self.scans:
                 try:
                     impdat = get_im_data_from_spectrum(spec)
-                    self.data.append(impdat)
+                    self.immsdata.append(impdat)
                     newtimes.append(self.times[n])
                     newids.append(spec.ID)
                 except Exception as e:
@@ -268,45 +264,8 @@ class MZMLImporter(Importer):
 
         self.times = np.array(newtimes)
         self.scans = np.array(newids)
-        self.data = np.array(self.data, dtype=object)
         self.reset_reader()
-        return self.data
-
-    def get_im_data(self, scan_range=None, time_range=None, mzbins=None):
-        start_time = time.perf_counter()
-        if self.data is None:
-            self.grab_im_data()
-
-        data = deepcopy(self.data)
-        if time_range is not None:
-            scan_range = self.get_scans_from_times(time_range)
-            print("Getting times:", time_range)
-
-        if scan_range is not None:
-            data = data[int(scan_range[0]):int(scan_range[1] + 1)]
-            print("Getting scans:", scan_range)
-        else:
-            scan_range = list(np.arange(self.scans[0] + 1, len(self.scans) + 1))
-            print(scan_range)
-
-        if data is None or ud.isempty(data):
-            print("Error: Empty Data Object")
-            return None
-
-        # Need to merge to get 2D from sparse array
-        try:
-            data = merge_im_spectra(data, mzbins=mzbins)
-        except Exception as e:
-            concat = np.concatenate(data)
-            sort = concat[concat[:, 0].argsort()]
-            data = ud.removeduplicates(sort)
-            print("2", e)
-
-        # plt.figure()
-        # plt.plot(data)
-        # plt.show()
-        print("Import Time:", time.perf_counter() - start_time)
-        return data
+        return self.immsdata
 
     # grab pol info from single scan. Similar to old impl but use direct idxing
     def get_polarity(self, scan=1):
@@ -365,14 +324,29 @@ class MZMLImporter(Importer):
         data_array = np.transpose([mz, intensity, scans, it])
         return data_array
 
+    def close(self):
+        self.msrun.close()
 
 if __name__ == "__main__":
     test = "Z:\\Group Share\\JGP\\DataForJoe\\TF_centroided.mzML"
     test = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_mzml.mzML"
-    test = "C:\\Data\\DataTypeCollection\\test_mzml.mzML"
+    test = "Z:\\Group Share\\JGP\\DataForJoe\\TF_centroided.mzML"
+    #test = "C:\\Data\\DataTypeCollection\\IMMS\\test_agilentimms_mzml.mzML"
+    # test = "C:\\Data\\DataTypeCollection\\IMMS\\test_watersimms_mzml.mzML"
+    importer = MZMLImporter(test)
+    cdat = importer.get_avg_scan()
+    test1 = "Z:\\Group Share\\JGP\\DataForJoe\\TF.mzML"
+    cimp = MZMLImporter(test1)
+    rdat = cimp.get_avg_scan()
+    print("Length of normal", len(rdat))
+    print("Length of centroided", len(cdat))
+    exit()
+    scan_range = [1, 5]
+    d.get_imms_avg_scan(scan_range=scan_range)
 
-    d = MZMLImporter(test)
-    scan_range = [1, 1000]
+    exit()
+
+
 
     starttime = time.perf_counter()
     print(len(d.avg_fast(scan_range=scan_range)))

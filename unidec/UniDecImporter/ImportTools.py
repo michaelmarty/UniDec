@@ -1,6 +1,7 @@
 import re
 import numpy as np
 import unidec.tools as ud
+from copy import deepcopy
 
 def header_test(path, deletechars=None, delimiter=" |\t|,", strip_end_space=True):
     """
@@ -135,6 +136,19 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
         pass
     return template
 
+def get_resolution_im(data):
+    """
+    Get the median resolution of 1D MS data.
+    :param testdata: N x 2 data (mz, intensity)
+    :return: Median resolution (float)
+    """
+    testdata = deepcopy(data)
+    testdata = testdata[testdata[:, 2] > 0]
+    diffs = np.transpose([testdata[1:, 0], np.diff(testdata[:, 0])])
+    b1 = diffs[:,1] > 0
+    diffs = diffs[b1]
+    resolutions = ud.safedivide(diffs[:, 0], diffs[:, 1])
+    return np.median(resolutions)
 
 def merge_im_spectra(datalist, mzbins=None, type="Integrate"):
     """
@@ -157,7 +171,7 @@ def merge_im_spectra(datalist, mzbins=None, type="Integrate"):
     # Then, create a dummy axis with the average resolution.
     # Otherwise, create a dummy axis with the specified m/z bin size.
     if mzbins is None or float(mzbins) == 0:
-        resolution = get_resolution(datalist[maxlenpos])
+        resolution = get_resolution_im(datalist[maxlenpos])
         mzaxis = ud.nonlinear_axis(np.amin(concat[:, 0]), np.amax(concat[:, 0]), resolution)
     else:
         mzaxis = np.arange(np.amin(concat[:, 0]), np.amax(concat[:, 0]), float(mzbins))

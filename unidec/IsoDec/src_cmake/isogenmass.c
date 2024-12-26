@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "isogenmass_model_64.h"
 
 
@@ -214,3 +215,6 @@ float isomike(const float mass, float * isodist, const int isolen, const int off
     }
     return max;
 }
+
+
+

@@ -56,17 +56,7 @@ class ThermoImporter(Importer):
         Returns merged 1D MS data from mzML import
         :return: merged data
         """
-        if time_range is not None:
-            scan_range = self.get_scans_from_times(time_range)
-            print("Getting times:", time_range)
-        if scan_range is None:
-            scan_range = self.scan_range
-        print("Thermo Scan Range:", scan_range)
-
-        if scan_range[0] < np.amin(self.scans) or scan_range[0] == -1:
-            scan_range[0] = np.amin(self.scans)
-        if scan_range[1] > np.amax(self.scans) or scan_range[1] == -1:
-            scan_range[1] = np.amax(self.scans)
+        scan_range = self.scan_range_from_inputs(scan_range, time_range)
 
         if scan_range[1] - scan_range[0] > 1:
             print("Getting Data from Scans:", scan_range)
@@ -157,13 +147,21 @@ class ThermoImporter(Importer):
         data_array = np.transpose([mz, intensity, scans, it])
         return data_array
 
+    def close(self):
+        self.msrun.Close()
+        return
+
 
 if __name__ == "__main__":
+    # import matplotlib.pyplot as plt
     test = "C:\\Python\\UniDec3\\TestSpectra\\test.raw"
-    test = "Z:\\Group Share\\JGP\\js8b05641_si_001\\1500_scans_200K_16 fills-qb1.raw"
-    test = "C:\\Data\\DataTypeCollection\\test_thermo.raw"
     d = ThermoImporter(test, silent=False)
-    print(d.get_avg_scan())
+
+    data = d.get_avg_scan()
+    # plt.plot(data[:, 0], data[:, 1])
+    # plt.show()
+
+
     exit()
     cdms_dat = importer.get_cdms_data()
     for i in cdms_dat:

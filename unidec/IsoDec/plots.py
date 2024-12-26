@@ -135,7 +135,8 @@ def plot_pks(pks, data=None, centroids=None, scan=-1, show=False, labelz=False, 
                     intensity = 1000
                     if p.isodist is not None:
                         intensity = np.amax(p.isodist[:, 1])
-                    plt.text(p.mz + 0.05, intensity, s=str(round(p.mz, 2)) + "," + str(p.z), fontsize=8, color=color)
+                    text = str(p.matchedions) + " +" + str(p.z)
+                    plt.text(p.mz + 0.05, intensity, s=str(text), fontsize=8, color=color)
                 isodist = p.isodist
                 if plotmass:
                     plt.subplot(121)
@@ -157,6 +158,43 @@ def plot_pks(pks, data=None, centroids=None, scan=-1, show=False, labelz=False, 
 
     plt.connect('scroll_event', on_scroll)
 
+def gen_plot_fig(pks, centroids, ccolor="k", forcecolor='b', tickfont=14, labfont=18):
+    #Scale centroids and isodists to be between 0 and 1
+    centroid_max = np.amax(centroids[:, 1])
+    if centroids is not None:
+        centroids[:, 1] = centroids[:, 1] / centroid_max
+    for p in pks.peaks:
+        if p.isodist is not None:
+            p.isodist[:, 1] = p.isodist[:, 1] / centroid_max
+
+    if centroids is not None:
+        cplot(centroids, color=ccolor)
+
+    # Turn off top and right axis
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.gca().set_xticklabels([])
+    plt.gca().set_yticklabels([])
+    plt.gca().set_xticks([])
+    plt.gca().set_yticks([])
+    plt.hlines(0, 0, 2000, color="k")
+    # plt.xlabel("m/z", fontsize=labfont)
+    # plt.ylabel("Relative Intensity", fontsize=labfont)
+    # plt.xticks(np.arange(999,1002,1),fontsize=tickfont)
+    # plt.yticks(np.arange(-1,1.1,0.5), fontsize=tickfont)
+    plt.ylim(-1.1, 1.1)
+    plt.xlim(np.amin(centroids[:, 0]), np.amax(centroids[:, 0]))
+
+    for p in pks.peaks:
+        if forcecolor is not None:
+            color = forcecolor
+        isodist = p.isodist
+        cplot(isodist, color=color, factor=-1)
+
+    plt.tight_layout()
+    if True:
+        plt.savefig("Z:\\Group Share\\JGP\\IsoDec_figs\\ROC_midthreshold.png", dpi=300)
+        plt.savefig("Z:\\Group Share\\JGP\\IsoDec_figs\\ROC_midthreshold.pdf", dpi=300)
 
 if __name__ == "__main__":
     example = np.array([[5.66785531e+02, 1.47770838e+06],

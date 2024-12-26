@@ -1,9 +1,9 @@
+import time
 import os
 import numpy as np
 import unidec.tools as ud
-from unidec.UniDecImporter import ImportTools as IT
 from copy import deepcopy
-from unidec.UniDecImporter.ImportTools import merge_spectra
+from unidec.UniDecImporter.ImportTools import merge_spectra, merge_im_spectra
 
 class Importer:
     def __init__(self, file_path, **kwargs):
@@ -17,6 +17,7 @@ class Importer:
         self.polarity = "Positive"
         self.scan_range = None # Note, we will use includive scan range such that the last scan is self.scan_range[1]
         self.data = None
+        self.immsdata = None
         self.cdms_support = False
         self.imms_support = False
         self.chrom_support = False
@@ -91,13 +92,27 @@ class Importer:
             self.centroided = False
         return self.centroided
 
+    def scan_range_from_inputs(self, scan_range=None, time_range=None):
+        if scan_range is None and time_range is None:
+            scan_range = self.scan_range
+        elif time_range is not None:
+            scan_range = self.get_scans_from_times(time_range)
+            print("Getting times:", time_range)
+
+        scan_range = np.array(scan_range)
+        if scan_range[0] < 1:
+            scan_range[0] = 1
+        if scan_range[1] > np.amax(self.scans) or scan_range[1] < scan_range[0]:
+            scan_range[1] = np.amax(self.scans)
+
+        print("Scan Range:", scan_range)
+        return scan_range
+
     def avg_fast(self, scan_range=None, time_range=None):
         if self.data is None:
             self.get_all_scans()
 
-        if time_range is not None:
-            scan_range = self.get_scans_from_times(time_range)
-            print("Getting times:", time_range)
+        scan_range = self.scan_range_from_inputs(scan_range, time_range)
 
         data = deepcopy(self.data)
         if scan_range is not None:
@@ -136,3 +151,49 @@ class Importer:
         data_array = np.transpose([mz, intensity, scans, it])
 
         return data_array
+
+    def get_imms_avg_scan(self, scan_range=None, time_range=None, mzbins=1):
+        if not self.imms_support:
+            print("IMMS data not supported for this file type:", self._file_path)
+            raise Exception
+        start_time = time.perf_counter()
+        if self.immsdata is None:
+            self.get_all_imms_scans()
+
+        scan_range = self.scan_range_from_inputs(scan_range, time_range)
+
+        data = deepcopy(self.immsdata)
+        if scan_range is not None:
+            startindex = np.where(self.scans == scan_range[0])[0][0]
+            endindex = np.where(self.scans == scan_range[1])[0][0]
+            data = data[startindex:endindex + 1]
+            print("Getting scans:", scan_range)
+        else:
+            print("Getting all scans, length:", len(self.scans))
+
+        if data is None or ud.isempty(data):
+            print("Error: Empty Data Object")
+            return None
+
+        # Need to merge to get 2D from sparse array
+        data = merge_im_spectra(data, mzbins=mzbins)
+        # try:
+        #     data = merge_im_spectra(data, mzbins=mzbins)
+        # except Exception as e:
+        #     concat = np.concatenate(data)
+        #     sort = concat[concat[:, 0].argsort()]
+        #     data = ud.removeduplicates(sort)
+        #     print("Mark2", e)
+
+        print("Import Time:", time.perf_counter() - start_time, "s")
+        return data
+
+    def get_all_imms_scans(self):
+        if not self.imms_support:
+            print("IMMS data not supported for this file type:", self._file_path)
+            raise Exception
+
+    def close(self):
+        pass
+
+

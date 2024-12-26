@@ -143,8 +143,6 @@ a.datas += [('UniDecLogoMR.png', 'unidec\\bin\\UniDecLogoMR.png', 'DATA')]
 
 a.datas.extend(dir_files(os.path.join(os.path.dirname(pymzml.__file__), 'obo'), 'obo'))
 
-# a.datas.extend(dir_files("unidec\\bin\\multiplierz", 'multiplierz'))
-
 a.datas.extend(dir_files("unidec\\bin\\Presets", 'Presets'))
 a.datas.extend(dir_files("unidec\\bin\\Example Data", 'Example Data'))
 a.datas.extend(dir_files(compat.base_prefix + '\\Lib\\site-packages\\matchms\\data', "matchms\\data"))

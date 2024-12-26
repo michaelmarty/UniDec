@@ -83,17 +83,7 @@ class WatersDataImporter(Importer):
 
 
     def get_avg_scan(self, scan_range=None, time_range=None, mzbins=None):
-        if scan_range is None and time_range is None:
-            scan_range = self.scan_range
-        elif time_range is not None:
-            scan_range = self.get_scans_from_times(time_range)
-            print("Getting times:", time_range)
-
-        scan_range = np.array(scan_range)
-        if scan_range[0]<1:
-           scan_range[0]=1
-        if scan_range[1] > self.maxscans:
-            scan_range[1] = self.maxscans
+        scan_range = self.scan_range_from_inputs(scan_range, time_range)
 
         mzs, ivals = self.readerMS.combineScan(self.function, np.arange(scan_range[0]-1, scan_range[1]))
         data = np.transpose([mzs, ivals])
@@ -134,19 +124,23 @@ class WatersDataImporter(Importer):
         tic = np.transpose(self.readerLC.ReadMassChromatogram(self.function, mass, tolerance, False))
         return tic
 
-    def get_IMMS_data(self):
-        self.mindrift = self.get_stat_name('Minimum Drift Time Channel')
-        self.maxdrift = self.get_stat_name('Maximum Drift Time Channel')
+    def get_all_imms_scans(self):
+        # self.mindrift = self.get_stat_name('Minimum Drift Time Channel')
+        # self.maxdrift = self.get_stat_name('Maximum Drift Time Channel')
         self.trf = self.get_stat_name("Transport RF")
         self.pusher = np.floor((1. / float(self.trf)) * 1000 * 1000)
-        print(self.pusher)
+        print("Pusher Freq:", self.pusher)
         self.immsdata = []
         for s in self.scans:
             scandat = []
             for i in range(0, 200):
-                o = np.array(self.readerMS.ReadDriftScan(self.function, s, i))
-                scandat.append(o)
-            self.immsdata.append(scandat)
+                o = self.readerMS.ReadDriftScan(self.function, s-1, i)
+                if len(o) == 0:
+                    continue
+                dts = np.ones(len(o[0])) * i
+                dtdat = np.transpose([o[0], dts, o[1]])
+                scandat.extend(dtdat)
+            self.immsdata.append(np.array(scandat))
         return self.immsdata
 
     def get_polarity(self, scan=None):
@@ -160,15 +154,20 @@ class WatersDataImporter(Importer):
         print("Polarity: Unknown")
         return None
 
-    # TODO: Waters get_ms_order
+    def get_ms_order(self, scan=None):
+        ms_level =  self.reader.GetFunctionTypeString(self.function)
+        count = ms_level.count("MS")
+        return count
+
+    def close(self):
+        del self.reader
+        del self.readerMS
 
 
 if __name__ == "__main__":
     test = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw"
-    test = "C:\\Data\\DataTypeCollection\\test_waters.raw"
     d = WatersDataImporter(test)
-    print(d.readerMS.ReadDriftScan(d.function, 0, 5))
-    print(d)
+    d.close()
 
 
 

@@ -61,23 +61,13 @@ class AgilentImporter(Importer):
             print(f"Error in get_single_scan for scan {scan}: {e}")
             return None
 
-    #Pretty sure this is the avg scan list
+
     def get_avg_scan(self, scan_range=None, time_range=None, mzbins=None):
         """
         Returns merged 1D MS data from mzML import
         :return: merged data
         """
-        if time_range is not None:
-            scan_range = self.get_scans_from_times(time_range)
-            print("Getting times:", time_range)
-        if scan_range is None:
-            scan_range = self.scan_range
-        print("Scan Range:", scan_range)
-
-        if scan_range[0] < np.amin(self.scans):
-            scan_range[0] = np.amin(self.scans)
-        if scan_range[1] > np.amax(self.scans):
-            scan_range[1] = np.amin(self.scans)
+        scan_range = self.scan_range_from_inputs(scan_range, time_range)
 
         self.datascans = []
         for s in self.scans:
@@ -127,14 +117,17 @@ class AgilentImporter(Importer):
         print("MS Order: Unknown")
         return 1
 
+    def close(self):
+        self.msrun.close()
+
 
 if __name__ == '__main__':
     import time
-    path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\AgilentData\\2019_05_15_bsa_ccs_02.d"
+    # path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\AgilentData\\2019_05_15_bsa_ccs_02.d"
     path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_agilent.d"
-    path = "C:\\Data\\DataTypeCollection\\test_agilent.d"
+    #path = "C:\\Data\\DataTypeCollection\\test_agilent.d"
     d = AgilentImporter(path)
-    print(d.get_avg_scan())
+    print(d.get_all_scans())
 
 
 

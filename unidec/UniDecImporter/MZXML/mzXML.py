@@ -77,12 +77,7 @@ class MZXMLImporter(Importer):
         return dat
 
     def avg_safe(self, scan_range=None, time_range=None):
-        if time_range is not None:
-            scan_range = self.get_scans_from_times(time_range)
-            print("Getting times:", time_range)
-        if scan_range is None:
-            scan_range = self.scan_range
-        print("Scan Range:", scan_range)
+        scan_range = self.scan_range_from_inputs(scan_range, time_range)
 
         self.msrun.reset()
         spec = self.msrun.get_by_id(str(scan_range[0]))
@@ -180,19 +175,35 @@ class MZXMLImporter(Importer):
             print("Polarity: Unknown")
             return None
 
-    # TODO: mzXML get_ms_order
+    def get_ms_order(self, scan=None):
+        tree = ET.parse(self._file_path)
+        root = tree.getroot()
+        ms_order = None
+        namespaces = {'mz': 'http://sashimi.sourceforge.net/schema_revision/mzXML_3.2'}
+        scans = root.xpath('//mz:scan', namespaces=namespaces)
+        if scans:
+            single_scan = scans[0]
+            ms_order = single_scan.attrib.get('msLevel', None)
+        try:
+            ms_order = int(ms_order)
+        except:
+            print("Error in ms order", ms_order)
+            ms_order = 1
+        return ms_order
 
+    def close(self):
+        self.msrun.close()
 
 
 
 if __name__ == "__main__":
     import time
 
-    # test = "Z:\\Group Share\\JGP\\js8b05641_si_001\\1500_scans_200K_16 fills-qb1.mzXML"
-    test = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_mzxml.mzXML"
-    test = "C:\\Data\\DataTypeCollection\\test_mzxml.mzXML"
+    test = "Z:\\Group Share\\JGP\\js8b05641_si_001\\1500_scans_200K_16 fills-qb1.mzXML"
     tstart = time.perf_counter()
     d = MZXMLImporter(test)
+
+    exit()
     d.get_single_scan(1000)
     print("Time:", time.perf_counter() - tstart)
 

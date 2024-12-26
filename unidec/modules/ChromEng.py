@@ -98,23 +98,29 @@ class ChromEngine(MetaUniDec):
         return hdf5
 
     def get_data_from_scans(self, scan_range=None):
+        # if scan_range is not None:
+        #     scan_range = [int(scan_range[0])+1, int(scan_range[1])+1]
         self.mzdata = self.chromdat.get_avg_scan(scan_range=scan_range)
         self.procdata = None
         return self.mzdata
 
     def get_data_from_times(self, minval, maxval):
-        minscan = ud.nearest(self.ticdat[:, 0], minval)
-        if self.ticdat[minscan, 0] < minval:
-            minscan += 1
-        maxscan = ud.nearest(self.ticdat[:, 0], maxval)
-        if self.ticdat[maxscan, 0] > maxval:
-            maxscan -= 1
-        if maxscan <= minscan:
-            maxscan = minscan + 1
+        scan_range = self.chromdat.get_scans_from_times([minval, maxval])
+        minscan, maxscan = scan_range
+        time_range = self.chromdat.get_times_from_scans(scan_range)
+        minval, midval, maxval = time_range
+        # minscan = ud.nearest(self.ticdat[:, 0], minval)
+        # if self.ticdat[minscan, 0] < minval:
+        #     minscan += 1
+        # maxscan = ud.nearest(self.ticdat[:, 0], maxval)
+        # if self.ticdat[maxscan, 0] > maxval:
+        #     maxscan -= 1
+        # if maxscan <= minscan:
+        #     maxscan = minscan + 1
         self.scans = [minscan, maxscan, minval, maxval]
 
         attrs = {"timestart": minval, "timeend": maxval,
-                 "timemid": (minval + maxval) / 2.,
+                 "timemid": midval,
                  "scanstart": minscan, "scanend": maxscan,
                  "scanmid": (minscan + maxscan) / 2.}
         self.attrs = attrs

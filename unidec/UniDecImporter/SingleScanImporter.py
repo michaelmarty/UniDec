@@ -7,7 +7,6 @@ from unidec.UniDecImporter.ImportTools import header_test
 class SingleScanImporter(Importer):
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
-        self.load_data()
 
         self.scans = [1]
         self.times = [0]
@@ -16,11 +15,10 @@ class SingleScanImporter(Importer):
         self.polarity = "Positive"
         self.scan_number = 1
         self.injection_time = 1
-
+        self.load_data()
         self.cdms_support = True
-        self.imms_support = False
+        self.imms_support = True
         self.chrom_support = False
-
 
         # Check if file exists
         if not os.path.isfile(filename):
@@ -47,6 +45,7 @@ class SingleScanImporter(Importer):
             return None
         return self.data
 
+
     def get_all_scans(self):
         return [self.load_data()]
 
@@ -59,7 +58,6 @@ class SingleScanImporter(Importer):
     def get_cdms_data(self):
         ext = os.path.splitext(self._file_path)[1]
         raw_dat = self.get_all_scans()
-        print(raw_dat)
         mz = np.concatenate([d[:, 0] for d in raw_dat])
         intensity = np.concatenate([d[:, 1] for i, d in enumerate(raw_dat)])
         if ext.lower() == '.csv':
@@ -90,14 +88,17 @@ class SingleScanImporter(Importer):
 
         return np.transpose([mz, intensity, scans, it])
 
+    def get_imms_avg_scan(self, scan_range=None, time_range=None, mzbins=None):
+        self.immsdata = np.loadtxt(self._file_path, skiprows=header_test(self._file_path))
+        return self.immsdata
+
 
 if __name__ == "__main__":
-    path = "C:\\Python\\UniDec3\\TestSpectra\\test_data.csv"
+    path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\CDMS\\test_csv_cdms.csv"
     importer = SingleScanImporter(path)
     if type(importer) == SingleScanImporter:
         print("SingleScanImporter works")
-
-    #importer.get_avg_scan()
+    importer.get_cdms_data()
 
 
 

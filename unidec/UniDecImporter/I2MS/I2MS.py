@@ -3,7 +3,6 @@ import numpy as np
 
 
 
-
 class I2MSImporter:
     def __init__(self, file):
         conn = sqlite3.connect(file)
@@ -41,29 +40,23 @@ class I2MSImporter:
 
     def get_cdms_data(self):
         raw_dat = self.get_all_scans()
-        print(raw_dat)
         mz = raw_dat[:, 0]
         intensity = raw_dat[:, 1]
         scans = np.ones(len(mz))
         it = self.invinjtime
-        data_array = np.transpose([mz, intensity, it, scans])
-
-        # print(f"mz length: {len(mz)}")
-        # print(f"intensity length: {len(intensity)}")
-        # print(f"scans length: {len(scans)}")
-        # print(f"invinjtime length: {len(self.invinjtime)}")
-
+        data_array = np.transpose([mz, intensity, scans, it])
         return data_array
 
 
-        pass
+    def get_single_scan(self, scan=None):
+        res = self.get_all_scans()
+        return res[scan]
 
-
-
-    def get_single_scan(self):
-        if self.data is None:
-            return self.data
-
+    def close(self):
+        if self.cursor:
+            self.cursor.close()
+        if self.conn:
+            self.conn.close()
 
 
 if __name__ == "__main__":
@@ -71,9 +64,8 @@ if __name__ == "__main__":
 
     file = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\CDMS\\test_dmt_cdms.dmt"
     i2ms = I2MSImporter(file)
-    # print(i2ms.get_all_scans())
-    # #print(i2ms.keys)
-    # #dat = i2ms.grab_data()
+
+
 
 
     exit()

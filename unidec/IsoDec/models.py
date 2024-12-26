@@ -334,6 +334,30 @@ class PhaseModel:
         # print("Z:", int(predz), "Time:", time.perf_counter() - startime)
         return int(predz)
 
+    def predict_returnvec(self,centroids):
+        """
+        Predict charge state for a single set of centroids.
+        :param centroids: Centroid data, m/z and intensity
+        :return: Predicted charge state, integer
+        """
+        if self.model is None:
+            self.setup_model()
+        # startime = time.perf_counter()
+
+        test_data = self.encode(centroids)
+        test_data = torch.tensor(test_data, dtype=torch.float32)
+
+        self.model.eval()
+
+        x = test_data.unsqueeze(0)
+        with torch.no_grad():
+            x = x.to(self.device)
+            predvec = self.model(x)
+            predz = predvec[0].argmax(0)
+        # print("Z:", int(predz), "Time:", time.perf_counter() - startime)
+        return int(predz), predvec
+
+
     def batch_predict(self, dataloader, zscore_thresh=0.95):
         """
         Predict charge states for a batch of data.

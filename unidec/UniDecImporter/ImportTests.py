@@ -18,11 +18,11 @@ for p in chrom_dat_examples:
     ss_paths.append(os.path.join(topdir, p))
 
 cdms_dir = "CDMS"
-cdms_dat_examples = ["test_csv_cdms.csv", "test_raw_cdms.raw", "rest_npz_cdms.npz", "test_dmt_cdms.dmt"]
+cdms_dat_examples = ["test_csv_cdms.csv", "test_raw_cdms.raw", "test_npz_cdms.npz", "test_dmt_cdms.dmt"]
 cdms_paths = [os.path.join(topdir, cdms_dir, p) for p in cdms_dat_examples]
 
 imms_dir = "IMMS"
-imms_dat_examples = ["test_waters.raw", "test_agilentimms_mzml.mzML", "test_watersimms_mzml.mzML"]
+imms_dat_examples = ["test_waters.raw", "test_agilentimms_mzml.mzML", "test_watersimms_txt.txt"]
 imms_paths = [os.path.join(topdir, imms_dir, p) for p in imms_dat_examples]
 
 
@@ -157,4 +157,15 @@ class ImporterTests(unittest.TestCase):
             test_avg = importer.get_avg_scan(scan_range=scan_range)
             test_avg2 = importer.get_avg_scan(scan_range=scan_range)
             self.assertTrue(np.allclose(test_avg, test_avg2))
+
+    def test_get_cdms(self):
+        for p in cdms_paths:
+            importer = ImporterFactory.create_importer(p)
+            curr_dat = importer.get_cdms_data()
+            self.assertTrue(curr_dat.ndim == 2)
+            self.assertTrue(len(curr_dat[:, 0]) == len(curr_dat[:, 1]) == len(curr_dat[:, 2]) == len(curr_dat[:, 3]))
+            self.assertTrue(curr_dat[:, 0].shape == curr_dat[:, 1].shape == curr_dat[:, 2].shape == curr_dat[:, 3].shape)
+
+
+
 

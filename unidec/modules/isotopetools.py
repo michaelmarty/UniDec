@@ -193,7 +193,9 @@ def isojim(isolist, length=isolength):
     numo = isolist[3]
     nums = isolist[4]
 
+
     allft = cft ** numc * hft ** numh * nft ** numn * oft ** numo * sft ** nums
+    #print(type(allft[0]))
 
     # with nb.objmode(allift='float64[:]'):
     #    allift = fftpack.irfft(allft)
@@ -284,17 +286,14 @@ def predict_apex_mono_diff(mass):
 
 if __name__ == "__main__":
 
-    m = 1000
-    print(isogenmass(m))
-    exit()
+
 
     m = 1000
     formula, minmassint, isolist = makemass(m)
     x = isojim(isolist)[:10]
     y = isomike(m)[:10]
-
-    print(x, y)
-
+    #print(x, y)
+    print(oft)
     exit()
     x = 10 ** np.arange(2, 6, 0.1)
     y = [get_apex_mono_diff(m) for m in x]

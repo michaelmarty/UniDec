@@ -106,6 +106,8 @@ class MassLynxRawInfoReader(MassLynxRawReader):
         itemString = super().ToString(temp) #temp.value.decode()
 #        MassLynxRawReader.ReleaseMemory( temp)
 
+        return itemString
+
         delim = delimiter.value.decode()
         return itemString.split(delim)
 
@@ -149,6 +151,7 @@ class MassLynxRawInfoReader(MassLynxRawReader):
         getScanItemNames = MassLynxRawReader.massLynxDll.getScanItemNames
         getScanItemNames.argtypes = [c_void_p, POINTER(c_int), POINTER(c_char_p), c_int, POINTER(c_char)]
         super().CheckReturnCode( getScanItemNames( self._getReader(), items, temp, nItems, delimiter))
+
 
         itemString = super().ToString(temp)
  

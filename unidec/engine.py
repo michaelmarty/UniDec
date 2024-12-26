@@ -109,7 +109,7 @@ class UniDec(UniDecEngine):
         if file_directory is None:
             file_directory = os.path.dirname(file_name)
             file_name = os.path.basename(file_name)
-        if '.' not in file_directory:
+        if '.d' not in file_directory and '.raw' not in file_directory:
             file_path = os.path.join(file_directory, file_name)
         else:
             try:
@@ -144,36 +144,35 @@ class UniDec(UniDecEngine):
         if "silent" not in kwargs or not kwargs["silent"]:
             print("Output Directory:", self.config.udir)
         self.config.outfname = os.path.join(self.config.udir, basename)
-
         self.config.extension = os.path.splitext(self.config.filename)[1]
         self.config.default_file_names()
+
+        #All the magic happens here
         curr_importer = ImporterFactory.create_importer(self.config.filename)
         if isodeceng is not None:
             isodeceng.reader = curr_importer
 
-        self.data.rawdata = curr_importer.get_avg_scan()
-        if len(self.data.rawdata.tolist()) == 0:
-            print("Error: Data Array is Empty")
-            print("Likely an error with data conversion")
-            raise ImportError
-        if self.data.rawdata.ndim < 2:
-            print("Error: Data Array is not 2D")
-            raise ImportError("rawdata must be a 2D array.")
-        if self.data.rawdata.shape[1] == 3:
-            self.config.imflag = 1
+        if self.config.imflag ==0:
+            self.data.rawdata = curr_importer.get_avg_scan()
+
+            newname = self.config.outfname + "_rawdata.txt"
+            outputdata = self.data.rawdata
+
+        else:
+            self.data.rawdata = curr_importer.get_imms_avg_scan(mzbins=self.config.mzbins)
             self.config.discreteplot = 1
             self.config.poolflag = 1
             self.data.rawdata3, self.data.rawdata = ud.unsparse(self.data.rawdata)
             self.data.data3 = self.data.rawdata3
-        else:
-            self.config.imflag = 0
 
-        if self.config.imflag == 0:
-            newname = self.config.outfname + "_rawdata.txt"
-            outputdata = self.data.rawdata
-        else:
             newname = self.config.outfname + "_imraw.txt"
             outputdata = ud.sparse(self.data.rawdata3)
+
+        if ud.isempty(self.data.rawdata):
+            print("Error: Data Array is Empty")
+            print("Likely an error with data conversion")
+            raise ImportError
+
         if not os.path.isfile(newname):
             try:
                 # shutil.copy(file_directory, newname)
@@ -232,8 +231,6 @@ class UniDec(UniDecEngine):
 
         elif os.path.splitext(self.config.filename)[1].lower() == ".d" and self.config.system == "Windows":
             self.config.dirname = os.path.split(self.config.dirname)[0]
-            # Was creating a second importer here, but it was unnecessary
-            #self.open_file(self.config.filename, self.config.dirname)
             return self.config.filename, self.config.dirname
 
         elif os.path.splitext(self.config.filename)[1] == ".raw" and self.config.system == "Windows":
@@ -249,22 +246,17 @@ class UniDec(UniDecEngine):
 
             if os.path.isfile(newfilepath):
                 self.config.filename = newfilename
-                print("Data already converted")
+                print("Data already converted:", newfilename)
             else:
                 if self.config.system == "Windows":
-                    if self.config.imflag == 0:
-                        print(newfilename)
-                        # if os.path.isfile(newfilepath):
-                        #     print("Converted data from raw to txt")
-                        # else:
-                        #     print("Failed conversion to txt file. ", newfilepath)
-                        #     return None, None
-                    else:
+                    if self.config.imflag == 1:
+                        stime = time.perf_counter()
                         call = [self.config.cdcreaderpath, '-r', self.config.dirname, '-m',
                                 newfilepath[:-10] + "_msraw.txt", '-i', newfilepath, '--ms_bin', binsize,
                                 "--ms_smooth_window", "0", "--ms_number_smooth", "0", "--im_bin", binsize, "--sparse",
                                 "1"]
                         result = ud.exe_call(call)
+                        print("Time: %.2gs" % (stime - time.perf_counter()))
 
                         self.config.filename = newfilename
                         if result == 0 and os.path.isfile(newfilepath):
@@ -275,12 +267,14 @@ class UniDec(UniDecEngine):
                 else:
                     print("Sorry. Waters Raw converter only works on windows. Convert to txt file first.")
                     return None, None
-
+            print(self.config.filename, self.config.dirname)
+            exit()
             return self.config.filename, self.config.dirname
 
         else:
             print("Error in conversion or file type:", self.config.filename, self.config.dirname)
-        pass
+            return None, None
+
 
     def process_data(self, **kwargs):
         """
@@ -1362,7 +1356,10 @@ class UniDec(UniDecEngine):
         # Specify the directory for the new file
         # If one is not specified, then use the TestSpectra location
         if dirname is None:
-            testdir = os.path.join(self.config.UniDecDir, "../TestSpectra")
+            # Find parent of parent of UniDecDir
+            parent = os.path.split(self.config.UniDecDir)[0]
+            parent = os.path.split(parent)[0]
+            testdir = os.path.join(parent, "TestSpectra")
         else:
             testdir = dirname
         # Create the directory if it doesn't exist
@@ -1557,7 +1554,10 @@ if __name__ == "__main__":
     # eng.process_data()
     # eng.run_unidec(silent=False)
 
-    eng.open_file(filename, path, load_results=True)
+    test = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw"
+    eng.config.imflag = 1
+    eng.config.mzbins = 1
+    eng.open_file(test)
     # eng.match()
     eng.run_unidec()
     # plot = eng.makeplot2()
