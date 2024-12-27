@@ -79,7 +79,7 @@ class Importer:
 
     def get_scan_index(self, scan):
         if scan in self.scans:
-            index = np.where(self.scans == scan)[0][0]
+            index = np.where(np.array(self.scans) == scan)[0][0]
         elif scan < self.scans[0]:
             index = 0
         elif scan > self.scans[-1]:
