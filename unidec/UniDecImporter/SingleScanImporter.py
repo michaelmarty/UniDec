@@ -100,8 +100,9 @@ class SingleScanImporter(Importer):
 if __name__ == "__main__":
     path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\CDMS\\test_csv_cdms.csv"
     path = "Z:\\Group Share\\Group\\Archive\\Grad Students and Postdocs\\Skippy\\HT SEC paper data\\Bgal GroEL\\20240412 Bgal GroEL bit5 zp10 3_2024-04-16-11-38-01_unidecfiles\\20240412 Bgal GroEL bit5 zp10 3_2024-04-16-11-38-01_rawdata.npz"
+    path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\SingleScan\\test_csv.csv"
     importer = SingleScanImporter(path)
-    importer.get_cdms_data()
+    print(importer.get_scan_time(12))
 
 
 

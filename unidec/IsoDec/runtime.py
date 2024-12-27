@@ -54,7 +54,7 @@ class IsoDecRuntime:
     def thrash_predictor(self, centroids):
         return [thrash_predict(centroids), 0]
 
-    def batch_process_spectrum(self, data, window=None, threshold=None, centroided=False, refresh=False):
+    def batch_process_spectrum(self, data, window=5, threshold=0.0001, centroided=False, refresh=False):
         """
         Process a spectrum and identify the peaks. It first identifies peak cluster, then predicts the charge,
         then checks the peaks. If all is good, it adds them to the MatchedCollection as a MatchedPeak object.
@@ -70,11 +70,10 @@ class IsoDecRuntime:
         if threshold is None:
             threshold = self.config.peakthresh
 
-        # TODO: Need a way to test for whether data is centroided already
         if centroided:
             centroids = deepcopy(data)
         else:
-            centroids = deepcopy(get_all_centroids(data, window=5, threshold=threshold * 0.1))
+            centroids = deepcopy(get_all_centroids(data, window=window, threshold=threshold * 0.1))
 
         med_spacing = check_spacings(centroids)
         if med_spacing <= self.config.meanpeakspacing_thresh:
@@ -96,7 +95,7 @@ class IsoDecRuntime:
         """
         return self.pks.to_mass_spectrum(binsize)
 
-    def process_file(self, file, scans=None):
+    def process_file(self, file, scans=None, check_centroided=True, assume_centroided=False):
         starttime = time.perf_counter()
         self.config.filepath = file
         # Get importer and check it
@@ -109,11 +108,6 @@ class IsoDecRuntime:
             print(e)
             return []
 
-        if "centroid" in file:
-            centroided = True
-            print("Assuming Centroided Data")
-        else:
-            centroided = False
         ext = file.split(".")[-1]
         t2 = time.perf_counter()
         if (ext == "raw" or ext == "RAW") and not os.path.isdir(file):
@@ -128,13 +122,17 @@ class IsoDecRuntime:
 
             # Open the scan and get the spectrum
             try:
-
                 if isThermo:
                     spectrum = reader.grab_centroid_data(s)
                     reader.centroided = True
                 else:
                     # mzml and mzxml will auto detect if it is centroided from pymzml
                     spectrum = reader.get_single_scan(s)
+                    if check_centroided and not assume_centroided:
+                        reader.check_centroided()
+                    elif assume_centroided:
+                        reader.centroided = True
+
             except Exception as e:
                 print("Error Reading Scan", s, e)
                 continue
@@ -142,7 +140,7 @@ class IsoDecRuntime:
             if len(spectrum) < 3:
                 continue
             self.config.set_scan_info(s, reader)
-            print("Scan:", s, "Length:", len(spectrum))
+            print("Scan:", s, "Length:", len(spectrum), "Centroided:", reader.centroided)
             self.batch_process_spectrum(spectrum, centroided=reader.centroided)
 
             if s % 10 == 0:
@@ -179,6 +177,11 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     starttime = time.perf_counter()
     eng = IsoDecRuntime(phaseres=8)
+
+    file ="C:\\Python\\UniDec3\\unidec\\bin\\TestSpectra\\test_2.txt"
+    eng.process_file(file)
+
+    exit()
 
     c = example
     pks = eng.batch_process_spectrum(c, centroided=True)
