@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib.animation import FuncAnimation
 import wx
-from modules.plotting import PlottingWindow
+from unidec.modules.plotting import PlottingWindow
 from unidec.modules import unidecstructure
 from unidec import tools as ud
 from unidec.modules.isolated_packages import FileDialogs

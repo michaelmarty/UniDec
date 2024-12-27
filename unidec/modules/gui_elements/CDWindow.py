@@ -5,7 +5,7 @@ import wx.lib.scrolledpanel as scrolled
 
 from unidec.modules.gui_elements import CD_controls
 from unidec.modules.gui_elements import CDMenu
-from modules.plotting import PlottingWindow, plot3d
+from unidec.modules.plotting import PlottingWindow, plot3d
 from unidec.modules import miscwindows
 from unidec.modules.gui_elements import peaklistsort
 from unidec.modules.gui_elements.mainwindow_base import MainwindowBase

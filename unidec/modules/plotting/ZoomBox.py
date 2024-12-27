@@ -1,6 +1,6 @@
 from matplotlib.patches import Rectangle
 import wx
-from modules.plotting.ZoomCommon import *
+from unidec.modules.plotting.ZoomCommon import *
 
 
 class ZoomBox(ZoomCommon):

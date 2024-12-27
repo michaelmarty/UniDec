@@ -5,7 +5,7 @@ from unidec.metaunidec.gui_elements.ud_menu_meta import meta_menu
 from unidec.modules.gui_elements import peaklistsort, mainwindow_base
 import wx.lib.scrolledpanel as scrolled
 from pubsub import pub
-from modules.plotting import PlottingWindow
+from unidec.modules.plotting import PlottingWindow
 
 
 class ChromWindow(mainwindow_base.MainwindowBase):

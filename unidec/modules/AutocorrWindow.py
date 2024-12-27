@@ -2,7 +2,7 @@ import wx.lib.mixins.listctrl as listmix
 import wx
 
 from unidec.modules import peakstructure
-from modules.plotting import PlottingWindow
+from unidec.modules.plotting import PlottingWindow
 import unidec.tools as ud
 
 __author__ = 'Michael.Marty'

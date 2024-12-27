@@ -1,6 +1,6 @@
 import matplotlib as mpl
 import wx
-from modules.plotting.PlottingWindow import Plot1d
+from unidec.modules.plotting.PlottingWindow import Plot1d
 from unidec.modules.unidecstructure import UniDecConfig
 
 mpl.rcParams['ps.useafm'] = True

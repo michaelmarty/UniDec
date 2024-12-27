@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 import wx
 from unidec.modules import unidecstructure, MassDefectExtractor
-from modules.plotting import PlottingWindow
+from unidec.modules.plotting import PlottingWindow
 from unidec.modules import miscwindows
 import unidec.tools as ud
 from unidec.modules.MassFitter import MassFitter

@@ -3,7 +3,7 @@ from matplotlib import colors as mcolors
 import numpy as np
 import wx
 from copy import deepcopy
-from modules.plotting.PlottingWindow import PlottingWindowBase
+from unidec.modules.plotting.PlottingWindow import PlottingWindowBase
 
 __author__ = 'Michael.Marty'
 

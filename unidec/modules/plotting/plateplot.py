@@ -3,7 +3,7 @@ import numpy as np
 import wx
 
 from unidec.modules import unidecstructure
-from modules.plotting import PlottingWindow
+from unidec.modules.plotting import PlottingWindow
 
 __author__ = 'Michael.Marty'
 

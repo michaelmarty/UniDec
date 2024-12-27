@@ -2,7 +2,7 @@ from unidec.modules.gui_elements.mainwindow_base import MainwindowBase
 import wx
 import wx.lib.scrolledpanel as scrolled
 import os
-from modules.plotting import PlottingWindow
+from unidec.modules.plotting import PlottingWindow
 from unidec.modules.gui_elements import peaklistsort
 from unidec.IsoDec.IDGUI import IsoDecControls
 from unidec.IsoDec.IDGUI import IsoDecMenu

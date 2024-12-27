@@ -13,7 +13,7 @@ from pubsub import pub
 import platform
 import multiprocessing
 from unidec.modules import UniFit, Extract2D, unidecstructure, IM_functions
-from modules.plotting import PlottingWindow, PlotAnimations
+from unidec.modules.plotting import PlottingWindow, PlotAnimations
 from unidec.modules import DoubleDec, MassDefects, miscwindows
 import unidec.tools as ud
 from unidec.modules.AutocorrWindow import AutocorrWindow

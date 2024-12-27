@@ -2,7 +2,7 @@ import numpy as np
 from copy import deepcopy
 from matplotlib.ticker import MaxNLocator
 
-from modules.plotting.PlottingWindow import PlottingWindowBase
+from unidec.modules.plotting.PlottingWindow import PlottingWindowBase
 from unidec.tools import interp_pos
 
 __author__ = 'Michael.Marty'

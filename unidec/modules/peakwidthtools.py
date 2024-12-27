@@ -1,6 +1,6 @@
 import wx
 import numpy as np
-from modules.plotting import PlottingWindow
+from unidec.modules.plotting import PlottingWindow
 from unidec.tools import make_peak_shape, simp_string_to_value, isolated_peak_fit
 
 __author__ = 'Michael.Marty'

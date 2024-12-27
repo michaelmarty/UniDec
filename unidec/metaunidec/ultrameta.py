@@ -7,7 +7,7 @@ from matplotlib import colors as mplcol
 from pubsub import pub
 import multiprocessing
 from unidec.modules import unidecstructure
-from modules.plotting import PlottingWindow
+from unidec.modules.plotting import PlottingWindow
 from unidec.modules import miscwindows
 import unidec.tools as ud
 import h5py

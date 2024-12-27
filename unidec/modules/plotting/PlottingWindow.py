@@ -8,14 +8,14 @@ from matplotlib import interactive
 from matplotlib import rcParams
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 
-from modules.plotting.ZoomSpan import ZoomSpan
-from modules.plotting.ZoomBox import ZoomBox
-from modules.plotting.NoZoomSpan import NoZoomSpan
+from unidec.modules.plotting.ZoomSpan import ZoomSpan
+from unidec.modules.plotting.ZoomBox import ZoomBox
+from unidec.modules.plotting.NoZoomSpan import NoZoomSpan
 from unidec.modules.isolated_packages import FileDialogs
 from unidec.modules.miscwindows import DoubleInputDialog
-from modules.plotting.PlotBase import PlotBase
-from modules.plotting.plot1d import Plot1dBase
-from modules.plotting.plot2d import Plot2dBase
+from unidec.modules.plotting.PlotBase import PlotBase
+from unidec.modules.plotting.plot1d import Plot1dBase
+from unidec.modules.plotting.plot2d import Plot2dBase
 from pubsub import pub
 
 # import matplotlib.style as mplstyle

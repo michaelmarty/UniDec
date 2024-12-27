@@ -7,7 +7,7 @@ import time
 import scipy.ndimage.filters as filt
 
 from unidec.modules import unidecstructure
-from modules.plotting import PlottingWindow
+from unidec.modules.plotting import PlottingWindow
 from unidec import tools as ud
 
 
