@@ -135,7 +135,8 @@ def plot_pks(pks, data=None, centroids=None, scan=-1, show=False, labelz=False, 
                     intensity = 1000
                     if p.isodist is not None:
                         intensity = np.amax(p.isodist[:, 1])
-                    text = str(p.matchedions) + " +" + str(p.z)
+                    #text = str(p.matchedions) + " +" + str(p.z)
+                    text = str(p.mz) + " +" + str(p.z)
                     plt.text(p.mz + 0.05, intensity, s=str(text), fontsize=8, color=color)
                 isodist = p.isodist
                 if plotmass:
@@ -192,9 +193,10 @@ def gen_plot_fig(pks, centroids, ccolor="k", forcecolor='b', tickfont=14, labfon
         cplot(isodist, color=color, factor=-1)
 
     plt.tight_layout()
+
     if True:
-        plt.savefig("Z:\\Group Share\\JGP\\IsoDec_figs\\ROC_midthreshold.png", dpi=300)
-        plt.savefig("Z:\\Group Share\\JGP\\IsoDec_figs\\ROC_midthreshold.pdf", dpi=300)
+        plt.savefig("D:\\Johnny\\University of Arizona\\martylab - Documents\\Papers\\IsoDec\\Figures\\ROC_nevermatched.png", dpi=300, transparent=True)
+        plt.savefig("D:\\Johnny\\University of Arizona\\martylab - Documents\\Papers\\IsoDec\\Figures\\ROC_nevermatched.pdf", dpi=300, transparent=True)
 
 if __name__ == "__main__":
     example = np.array([[5.66785531e+02, 1.47770838e+06],

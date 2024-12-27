@@ -1,15 +1,10 @@
-#!/usr/bin/env python
-
-use_mp_import = False
-
 import os
 from math import floor
-from multiprocessing import Process, Queue, cpu_count
 import sys
 import platform
 
-from unidec.modules.tims_import_wizard import TagTypes as tt
-from unidec.modules.tims_import_wizard import get_data_wrapper
+from unidec.modules.waters_import_wizard import TagTypes as tt
+from unidec.modules.waters_import_wizard import get_data_wrapper
 
 try:
     from unidec.UniDecImporter.Waters.Waters import WatersDataImporter as WDI
@@ -45,9 +40,6 @@ def auto_from_wizard(lines, exedir):
             'Scan End': tt.SCAN_END,
             'Time Start': tt.TIME_START,
             'Time End': tt.TIME_END}
-
-    # Make empty job_list
-    job_list = []
 
     # ADD EACH ITEM HERE
     for c, line in enumerate(lines):
@@ -123,14 +115,8 @@ def auto_from_wizard(lines, exedir):
                 atoms = {'He': 4, 'N2': 28}
                 parse[tt.ATOM] = atoms[parse[tt.ATOM]]
 
-            if use_mp_import:
-                job_list.append(parse)
-            else:
-                process_from_wizard(**parse)
+            run_get_data(parse)
 
-    if use_mp_import:
-        # new style send for parallel processing
-        mp_process_from_wizard(job_list)
 
 
 def run_get_data(job_kwargs):
@@ -155,7 +141,7 @@ def run_get_data(job_kwargs):
         job_kwargs[tt.FILE_NAME] = job_kwargs[tt.FILE_NAME] + '_%02d' % int(job_kwargs[tt.FUNCTION])
         # print job_kwargs[tt.FILE_NAME]
     if job_kwargs[tt.TYPE].lower() != 'ms' and job_kwargs[tt.TYPE].lower() != 'ms times':
-        A, B, X, Y, C = get_data_wrapper.new_get_data(start,
+        A, B, X, Y, C = get_data_wrapper.get_imms_data(start,
                                                       end,
                                                       job_kwargs[tt.BIN],
                                                       job_kwargs[tt.FILE_PATH],
@@ -250,85 +236,6 @@ def MakeUniDecConfig(job_kwargs):
     f.close()
 
 
-def process_from_wizard(**kwargs):
-    """
-    Processes row in import wizard file
-    and adds to data model.
-    """
-    run_get_data(kwargs)
-
-
-# uses multiprocessing module to import data across multiple cores
-def mp_process_from_wizard(job_list):
-    worker_queue = Queue()
-    result_queue = Queue()
-
-    for parse in job_list:
-        worker_queue.put(parse)
-
-    core_worker = 1
-    try:
-        core_worker = cpu_count() - 1
-    except Exception as e:
-        pass
-
-    workers = [Process(target=data_import_worker, args=(worker_queue, result_queue)) for i in range(core_worker)]
-
-    for each in workers:
-        each.start()
-
-    # we don't join yet as if data are large then worker process
-    # does not buffer it all through to the queue
-    # therefore have to wait before get (and therefore remove) from the queue
-    # before joining
-
-    result_count = 0
-    # for job_kwargs in iter(result_queue.get_nowait, None):
-    while True:
-        if result_count == len(job_list):
-            break
-        try:
-            job_kwargs = result_queue.get()
-        except Exception as e:  # Queue.Empty:
-            break
-        result_count += 1
-
-    for each in workers:
-        each.join()
-
-
-def data_import_worker(worker_queue, result_queue):
-    while True:
-        try:
-            # false means it does not block waiting for more items
-            job_kwargs = worker_queue.get(False)
-        except Exception as e:  # Queue.Empty:
-            break
-
-        run_get_data(job_kwargs)
-        result_queue.put(job_kwargs)
-    '''
-    try:
-        #for job_kwargs in iter(worker_queue.get_nowait, None):
-        while True:
-            try:
-                # false means it does not block waiting for more items
-                job_kwargs = worker_queue.get(False)
-            except Exception, e: # Queue.Empty:
-                break
-
-            run_get_data(job_kwargs)
-            result_queue.put(job_kwargs)
-
-    except Exception, e:
-        print 'Failed Import'
-        print e, e.message
-        result_queue.put(job_kwargs)
-
-    return
-    '''
-
-
 def split_and_strip(line, delimiter=','):
     tmp = []
     for l in line.split(delimiter):
@@ -363,7 +270,7 @@ def parse_file(file_path, exp_type='linear', collision=None, debug=False, direct
                tt.COLLISION_V: None,
                tt.START: None,
                tt.END: None,
-               tt.BIN: "0",
+               tt.BIN: "1",
                tt.TYPE: exp_type,
                # tt.DESCRIPTION: None,
                # tt.SAMPLE: None,

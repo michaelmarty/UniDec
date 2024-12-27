@@ -2902,38 +2902,6 @@ def start_at_iso(targetfile, guess=None):
             return result
 
 
-# Subtract information that matches with theoretical after data is centroided
-# From method get_all_centroids
-
-#Threshold for noise
-def subtract_matched_centroid_range(profile_data, matched_theoretical, noise_threshold = 0 ):
-    #Iterate through the list until we get a point greater than 0
-    #Store start-end
-    start = 0
-    ranges = {}
-    for i in profile_data:
-        if i > 0 and start == 0:
-            start = i
-        if i <= start:
-            ranges[start] = i
-            start = 0
-    #Iterate through the ranges and subtract the values
-    matched = []
-    to_centroided = dt.get_all_centroids(profile_data)
-    for i in to_centroided:
-        for j in matched_theoretical:
-            if i == j:
-                matched.append(i)
-    #Now we have the matched values that need to die
-    for i in matched:
-        for range in ranges.items():
-            if i < range[0] and i > range[1]:
-                profile_data[range[0]:range[1]] = 0
-                del ranges[start]
-                break
-    return profile_data
-
-
 
 
 

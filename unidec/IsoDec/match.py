@@ -1238,7 +1238,7 @@ def remove_noise_peaks(pks, noiselevel):
 # Will generate list of matchedpeak objects from text file
 # Just specify the desired field with charge
 # Text file should be in the format: field(monoiso or mz) " " charge
-def read_manual_annotations(path=None, delimiter=' '):
+def read_manual_annotations(path=None, delimiter=' ', data=None):
     if path is None:
         path = "Z:\\Group Share\\JGP\\js8b05641_si_001\\ETD Manual Annotations.txt"
     mc = MatchedCollection()
@@ -1250,9 +1250,42 @@ def read_manual_annotations(path=None, delimiter=' '):
                 peak = round(float(row[0]), 2)
                 currCharge = row[1].strip()
                 z = MatchedPeak(mz=peak, z=int(currCharge))
+                peakmass = (peak - 1.007276467) * int(currCharge)
+                monoiso = get_estimated_monoiso(peakmass)
+                isodist = fast_calc_averagine_isotope_dist(monoiso, currCharge)
+                if data is not None:
+                    # Find nearest peak in data
+                    mz = isodist[np.argmax(isodist[:, 1]), 0]
+                    startindex = fastnearest(data[:, 0], mz)
+                    # endindex = fastnearest(data[:, 0], mz + window[1])
+
+                    dmax = data[startindex, 1]
+
+                else:
+                    dmax = 10000
+
+                for i in range(len(isodist)):
+                    isodist[i, 1] *= dmax
+
+                z.isodist = isodist
+
                 mc.add_peak(z)
                 peaks.append(z)
     return mc
+
+
+def get_estimated_monoiso(peakmass):
+    """
+    Estimates the monoisotopic mass from the peak mass.
+    This is a lazy approximation, but is good enough for most purposes.
+    --JGP
+    Args:
+        peakmass: Most abundant isotopologue mass
+    Returns:
+        estimated monoisotopic mass
+    """
+    most_intense_iso = (int)(0.0006*peakmass + 0.4074)
+    return peakmass - (most_intense_iso * 1.0033)
 
 
 if __name__ == "__main__":

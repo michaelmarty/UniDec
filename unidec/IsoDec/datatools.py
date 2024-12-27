@@ -185,6 +185,7 @@ def fastcalc_FWHM(peak, data):
         indexend = len(data) - 1
 
     FWHM = data[indexend, 0] - data[indexstart, 0]
+    #print("FWHM:", [data[indexstart, 0], data[indexend, 0]])
     return FWHM, [data[indexstart, 0], data[indexend, 0]]
 
 
@@ -246,6 +247,8 @@ def get_fwhm_peak(data, peakmz):
     return fwhm
 
 
+
+
 #@njit(fastmath=True)
 def get_centroid(data, peakmz, fwhm=1):
     """
@@ -289,7 +292,6 @@ def datacompsub(datatop, buff):
 
 #@njit(fastmath=True)
 def get_all_centroids(data, window=5, threshold=0.0001, background=100, moving_average_smoothing=3):
-    # print("Initial length:", len(data))
     if len(data) < 3:
         return np.empty((0, 2))
 
@@ -375,7 +377,50 @@ def simp_charge(centroids, silent=False):
     return charge
 
 
+def subtract_matched_centroid_range(profile_data, matched_theoretical, centroids, noise_threshold=0, tolerance = 0.001, window_size=5):
+    mz_values = profile_data[:, 0].copy()
+    intensity_values = profile_data[:, 1].copy()
 
+    stored_widths = {}
+    peak_ranges = []
+
+    for centroid in centroids:
+        centroid_x = centroid[0]
+
+        fwhm = get_fwhm_peak(profile_data, centroid_x)
+        stored_widths[centroid_x] = fwhm
+        #Old
+        #left_range = max((centroid_x - fwhm / 2), 0)
+        left_range = max((centroid_x - fwhm),0)
+        right_range = max((centroid_x + fwhm),0)
+        left_range -= window_size
+        right_range += window_size
+
+        peak_ranges.append((left_range, right_range, centroid_x))
+    # 0 is left
+    # 1 is right
+    # 2 is the peak itself
+    matched_ranges = []
+    theo_intensites = matched_theoretical[:, 1]
+    theo_mz = matched_theoretical[:, 0]
+    for peak_range in peak_ranges:
+        centroid_x = peak_range[2]
+
+        for t_mz, t_intent in zip(theo_mz, theo_intensites):
+            if np.abs(t_mz - centroid_x) < tolerance:
+                matched_ranges.append((peak_range[0], peak_range[1], centroid_x))
+                break
+
+
+    matched_ranges.sort(key=lambda x: x[2])
+    for left_range, right_range, peak in matched_ranges:
+        indices_to_zero = np.logical_and(mz_values >= left_range, mz_values <= right_range)
+
+        intensity_values[indices_to_zero] = 0
+
+
+    profile_data[:, 1] = intensity_values
+    return profile_data
 
 
 if __name__ == "__main__":

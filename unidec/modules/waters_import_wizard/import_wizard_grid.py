@@ -1,6 +1,6 @@
 import wx
 import wx.grid
-from unidec.modules.tims_import_wizard import TagTypes as tt
+from unidec.modules.waters_import_wizard import TagTypes as tt
 
 class WizardGrid(wx.grid.Grid):
     """

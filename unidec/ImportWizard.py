@@ -1,10 +1,9 @@
 import os
-import threading
 import multiprocessing
 import wx
 
-from unidec.modules.tims_import_wizard import import_wizard_treectrl
-from unidec.modules.tims_import_wizard import import_wizard_grid, data_importer
+from unidec.modules.waters_import_wizard import import_wizard_treectrl
+from unidec.modules.waters_import_wizard import import_wizard_grid, data_importer
 from unidec.modules.isolated_packages import FileDialogs
 
 
@@ -205,15 +204,8 @@ class ImportWizard(wx.Frame):
 
                 filtered_lines.append(line)
 
-        if filtered_lines is not None and len(filtered_lines) > 2:  # i.e. more than just hopefully the two header lines
-            t = threading.Thread(target=data_importer.auto_from_wizard, args=(filtered_lines, self.exedir))
-            t.start()
-            # gauge=ImporterProgressGauge.ProgressDialog()
-            # gauge.progress_dialog(self,"Importing raw file(s)","Importing file %s of %s, please wait..."
-            # % (1, len(filtered_lines) - 2),len(filtered_lines) - 2)
-            #ImporterProgressGauge.progress_dialog(self, "Importing raw file(s)",
-            #                                      "Importing file %s of %s, please wait..." % (
-            #                                          1, len(filtered_lines) - 2), len(filtered_lines) - 2)
+        data_importer.auto_from_wizard(filtered_lines, self.exedir)
+
 
     def export_file(self, evt):
         """

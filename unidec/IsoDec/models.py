@@ -353,9 +353,8 @@ class PhaseModel:
         with torch.no_grad():
             x = x.to(self.device)
             predvec = self.model(x)
-            predz = predvec[0].argmax(0)
-        # print("Z:", int(predz), "Time:", time.perf_counter() - startime)
-        return int(predz), predvec
+
+        return predvec.cpu().numpy()
 
 
     def batch_predict(self, dataloader, zscore_thresh=0.95):
@@ -376,7 +375,8 @@ class PhaseModel:
                 start = batch * lx
                 end = batch * lx + lx
                 predvec = self.model(x)
-                #print(predvec)
+                for i in range(len(predvec[0])):
+                    print("z", i, predvec[0][i])
                 predzs, predz_inds = torch.topk(predvec, k=2, dim=1)
                 output[start:end, 0] = predz_inds[:, 0]
                 second_score_within = ((predzs[:, 1] / predzs[:, 0]) > zscore_thresh).float()
