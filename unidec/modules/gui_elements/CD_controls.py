@@ -2,8 +2,8 @@ import wx
 import wx.lib.agw.foldpanelbar as fpb
 import unidec.tools as ud
 import numpy as np
-import time
 import wx.lib.scrolledpanel as scrolled
+from unidec.modules.HTEng import HTseqDict
 
 
 class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
@@ -447,7 +447,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             i = 0
 
             # Drop down for HTseq
-            self.ctlhtseq = wx.Choice(panelht, -1, choices=list(ud.HTseqDict.keys()))
+            self.ctlhtseq = wx.Choice(panelht, -1, choices=list(HTseqDict.keys()))
             self.ctlhtseq.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
             self.ctlhtseq.SetSelection(3)
             sizercontrolht1.Add(self.ctlhtseq, (i, 1), span=(1, 1))
@@ -1141,7 +1141,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.config.HTksmooth = ud.string_to_value(self.ctlkernelsmooth.GetValue())
             #            self.config.htbit = int(self.ctlhtseq.GetStringSelection())
             self.config.htbit = self.ctlhtseq.GetStringSelection()
-            self.config.htseq = ud.HTseqDict[str(self.config.htbit)]
+            self.config.htseq = HTseqDict[str(self.config.htbit)]
             self.config.HTxaxis = self.ctlxaxis.GetStringSelection()
             self.config.HTtimeshift = ud.string_to_value(self.ctlhttimeshift.GetValue())
             self.config.HTtimepad = ud.string_to_value(self.ctltimepad.GetValue())

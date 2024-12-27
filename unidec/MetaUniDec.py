@@ -9,7 +9,8 @@ import os
 from pubsub import pub
 
 import unidec.tools as ud
-from unidec.modules import Extract2D, masstools, PlotAnimations, IM_functions, fft_window, AutocorrWindow
+from unidec.modules import Extract2D, masstools, IM_functions, fft_window, AutocorrWindow
+from unidec.modules.plotting import PlotAnimations
 from unidec.modules import MassDefects, miscwindows
 from unidec.modules.isolated_packages import FileDialogs
 from unidec import DataCollector as datacollector
@@ -18,8 +19,8 @@ from unidec.modules.unidec_presbase import UniDecPres
 from unidec.metaunidec import image_plotter
 from unidec.metaunidec import ultrameta
 from unidec.metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard
-from unidec.modules.plot_waterfall import WaterfallFrame
-from unidec.modules.plateplot import PlateFrame
+from unidec.modules.plotting.plot_waterfall import WaterfallFrame
+from unidec.modules.plotting.plateplot import PlateFrame
 from unidec.metaunidec.mudhelp import HelpDlg
 
 # import FileDialog  # Needed for pyinstaller

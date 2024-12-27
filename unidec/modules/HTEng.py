@@ -22,6 +22,15 @@ from unidec.modules.unidecstructure import ChromatogramContainer
 # import fast_histogram
 # import pyfftw.interfaces.numpy_fft as fft
 
+HTseqDict = {'2': '101', '3': '1110100', '4': '000100110101111', '5': '0000100101100111110001101110101',
+             '6': '000001000011000101001111010001110010010110111011001101010111111',
+             '7': '0000001000001100001010001111001000101100111010100111110100001110001001001101101011011110110001101001011101110011001010101111111',
+             '8': '000000010111000111011110001011001101100001111001110000101011111111001011110100101000011011101101111101011101000001100101010100011010110001100000100101101101010011010011111101110011001111011001000010000001110010010011000100111010101101000100010100100011111',
+             '-2': '010', '-3': '0001011', '-4': '111011001010000', '-5': '1111011010011000001110010001010',
+             '-103': '0010111', '-105': '1010111011000111110011010010000', '5S4': '1001011001111100011011101010000',
+             '5S13': '1111100011011101010000100101100', '5S15': '1110001101110101000010010110011'
+             }
+
 class HTEng:
     def __init__(self, *args, **kwargs):
         """
@@ -59,7 +68,7 @@ class HTEng:
 
         # Important Parameters that Should be Automatically Set by File Name
         self.config.htbit = 3  # HT bit, should automatically grab this
-        self.config.htseq = ud.HTseqDict[str(self.config.htbit)]  # HT Sequence, should automatically set this
+        self.config.htseq = HTseqDict[str(self.config.htbit)]  # HT Sequence, should automatically set this
 
         self.config.HTcycletime = 2.0  # Total cycle time, should automatically grab this
         self.config.HTtimepad = 0  # Length of time pad, should automatically grab this
@@ -108,7 +117,7 @@ class HTEng:
                 except Exception as e:
                     print("Error setting HT bit:", e, bitindex, path[bitindex:bitindex + 4])
             try:
-                self.config.htseq = ud.HTseqDict[str(self.config.htbit)]
+                self.config.htseq = HTseqDict[str(self.config.htbit)]
             except KeyError as e:
                 print("ERROR: Bit not found in dictionary. Using 3 bit sequence.")
                 print(e)
@@ -150,7 +159,7 @@ class HTEng:
         :return: None
         """
         if seq is None:
-            self.config.htseq = ud.HTseqDict[str(self.config.htbit)]
+            self.config.htseq = HTseqDict[str(self.config.htbit)]
         else:
             self.config.htseq = seq
         # Finds the number of scans that are padded
@@ -346,7 +355,7 @@ class HTEng:
         win = int(win)
         n = int(n)
 
-        self.config.htseq = ud.HTseqDict[str(self.config.htbit)]
+        self.config.htseq = HTseqDict[str(self.config.htbit)]
         htseq = np.array([int(s) for s in self.config.htseq])
         if demult is None:
             self.setup_ht(seq=htseq)

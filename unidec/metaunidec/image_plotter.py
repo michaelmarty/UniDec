@@ -4,7 +4,8 @@ import numpy as np
 from pubsub import pub
 import wx
 from scipy.spatial.distance import cosine
-from unidec.modules import PlottingWindow, unidecstructure
+from unidec.modules import unidecstructure
+from unidec.modules.plotting import PlottingWindow
 import unidec.tools as ud
 from unidec.metaunidec import mudstruct
 

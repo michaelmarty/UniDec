@@ -1,50 +1,10 @@
 import numpy as np
-import os
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-import unidec.tools as ud
-
-import time
-import matchms
-from copy import deepcopy
 from numba import njit
-import numba as nb
+import scipy.ndimage.filters as filt
 
 # from bisect import bisect_left
 
-'''
-@njit(fastmath=True)
-def bisect_left(a, x):
-    """Similar to bisect.bisect_left(), from the built-in library."""
-    M = len(a)
-    for i in range(M):
-        if a[i] >= x:
-            return i
-    return M'''
-
-
-@njit(fastmath=True)
-def bisect_left(a, x):
-    """Return the index where to insert item x in list a, assuming a is sorted.
-
-    The return value i is such that all e in a[:i] have e < x, and all e in
-    a[i:] have e >= x.  So if x already appears in the list, a.insert(i, x) will
-    insert just before the leftmost x already there.
-    """
-
-    lo = 0
-    hi = len(a)
-
-    while lo < hi:
-        mid = (lo + hi) // 2
-        if a[mid] < x:
-            lo = mid + 1
-        else:
-            hi = mid
-
-    return lo
-
-
+# Make a python code from this C code
 @njit(fastmath=True)
 def fastnearest(array, target):
     """
@@ -53,55 +13,39 @@ def fastnearest(array, target):
     :param target: Value
     :return: np.argmin(np.abs(array - target))
     """
-    i = int(bisect_left(array, target))
-    if i <= 0:
+    if array.size == 0:
         return 0
-    elif i >= len(array) - 1:
-        return len(array) - 1
-    if np.abs(array[i] - target) > np.abs(array[i + 1] - target):
-        i += 1
-    elif np.abs(array[i] - target) > np.abs(array[i - 1] - target):
-        i -= 1
-    return int(i)
+    start = 0
+    length = len(array) - 1
+    end = 0
+    diff = length - start
+    while diff > 1:
+        if target < array[start + (length - start) // 2]:
+            length = start + (length - start) // 2
+        elif target == array[start + (length - start) // 2]:
+            end = start + (length - start) // 2
+            length = start + (length - start) // 2
+            start = start + (length - start) // 2
+            return end
+        elif target > array[start + (length - start) // 2]:
+            start = start + (length - start) // 2
+        diff = length - start
+    if np.abs(target - array[start]) >= np.abs(target - array[length]):
+        end = length
+    else:
+        end = start
+    return end
 
 @njit(fastmath=True)
-def calculate_cosinesimilarity(dist1, dist2):
-    ab = 0
-    a2 = 0
-    b2 = 0
-    for i in range(len(dist1)):
-        ab += dist1[i] * dist2[i]
-        a2 += dist1[i] ** 2
-        b2 += dist2[i] ** 2
-    return ab / (a2 ** 0.5 * b2 ** 0.5)
-
-@njit(fastmath=True)
-def calculate_cosinesimilarity2(isodist, isomatches, centroids, centmatches):
-    ab = 0
-    a2 = 0
-    b2 = 0
-
-    match_index = 0
-
-    for i in range(len(isodist)):
-        if i in isomatches:
-            ab += isodist[i][1] * centroids[centmatches[match_index]][1]
-            a2 += isodist[i][1] ** 2
-            b2 += centroids[centmatches[match_index]][1] ** 2
-            match_index += 1
-        else:
-            ab += isodist[i][1] * 0
-            a2 += isodist[i][1] ** 2
-            b2 += 0
-    if ab == 0 or a2 == 0 or b2 == 0:
-        return 0
-    return ab / (a2 ** 0.5 * b2 ** 0.5)
-
-def fastwithinppmtol(array, target, ppmtol):
+def fastwithin_abstol(array, target, tol):
     result = []
+
+    if len(array) == 0:
+        return result
+
     nearest_idx = fastnearest(array, target)
 
-    if ud.within_ppm(array[nearest_idx], target, ppmtol):
+    if np.abs(array[nearest_idx] - target) <= tol:
         result.append(nearest_idx)
     else:
         return result
@@ -116,7 +60,7 @@ def fastwithinppmtol(array, target, ppmtol):
         if adding_upper:
             if current_upper >= len(array):
                 adding_upper = False
-            elif ud.within_ppm(array[current_upper], target, ppmtol):
+            elif np.abs(array[current_upper] - target) <= tol:
                 result.append(current_upper)
                 current_upper += 1
             else:
@@ -125,7 +69,7 @@ def fastwithinppmtol(array, target, ppmtol):
         if adding_lower:
             if current_lower < 0:
                 adding_lower = False
-            elif ud.within_ppm(array[current_lower], target, ppmtol):
+            elif np.abs(array[current_lower] - target) <= tol:
                 result.append(current_lower)
                 current_lower -= 1
             else:
@@ -133,35 +77,60 @@ def fastwithinppmtol(array, target, ppmtol):
 
     return result
 
+@njit(fastmath=True)
+def fastwithin_abstol_withnearest(array, target, tol):
+    result = []
+
+    if len(array) == 0:
+        return -1, result
+
+    nearest_idx = fastnearest(array, target)
+
+    if np.abs(array[nearest_idx] - target) <= tol:
+        result.append(nearest_idx)
+    else:
+        return nearest_idx,result
+
+    adding_upper = True
+    adding_lower = True
+
+    current_upper = nearest_idx + 1
+    current_lower = nearest_idx - 1
+
+    while adding_upper or adding_lower:
+        if adding_upper:
+            if current_upper >= len(array):
+                adding_upper = False
+            elif np.abs(array[current_upper] - target) <= tol:
+                result.append(current_upper)
+                current_upper += 1
+            else:
+                adding_upper = False
+
+        if adding_lower:
+            if current_lower < 0:
+                adding_lower = False
+            elif np.abs(array[current_lower] - target) <= tol:
+                result.append(current_lower)
+                current_lower -= 1
+            else:
+                adding_lower = False
+
+    return nearest_idx, result
 
 @njit(fastmath=True)
-def fastpeakdetect(data, window=10, threshold=0.0, ppm=None, norm=True):
-    """
-    Simple peak detection algorithm.
+def fastpeakdetect(data, window: int = 10, threshold=0.0, ppm=None, norm=True):
+    peaks = np.empty((0, 2))
+    if data is None or data.size == 0 or data.ndim != 2 or data.shape[1] != 2:
+        return peaks
 
-    Detects a peak if a given data point is a local maximum within plus or minus config.peakwindow.
-    Peaks must also be above a threshold of config.peakthresh * max_data_intensity.
+    length = data.shape[0]
+    maxval = np.amax(data[:, 1]) if norm else 1
 
-    The mass and intensity of peaks meeting these criteria are output as a P x 2 array.
+    if maxval == 0:
+        return peaks
 
-    :param data: Mass data array (N x 2) (mass intensity)
-    :param window: Tolerance window of the x values
-    :param threshold: Threshold of the y values
-    :param ppm: Tolerance window in ppm
-    :param norm: Whether to normalize the data before peak detection
-    :return: Array of peaks positions and intensities (P x 2) (mass intensity)
-    """
-    peaks = []
-    length = len(data)
-    shape = np.shape(data)
-    if length == 0 or shape[1] != 2:
-        return np.array(peaks)
-
-    if norm:
-        maxval = np.amax(data[:, 1])
-    else:
-        maxval = 1
-    for i in range(0, length):
+    for i in range(length):
         if data[i, 1] > maxval * threshold:
             if ppm is not None:
                 ptmass = data[i, 0]
@@ -169,22 +138,15 @@ def fastpeakdetect(data, window=10, threshold=0.0, ppm=None, norm=True):
                 start = fastnearest(data[:, 0], ptmass - newwin)
                 end = fastnearest(data[:, 0], ptmass + newwin)
             else:
-                start = i - window
-                end = i + window
+                start = max(0, i - window)
+                end = min(length, i + window + 1)
 
-                start = int(start)
-                end = int(end) + 1
+            if start < end:
+                testmax = np.amax(data[start:end, 1])
+                if data[i, 1] == testmax and np.all(data[i, 1] != data[start:i, 1]):
+                    peaks = np.append(peaks, np.array([[data[i, 0], data[i, 1]]]), axis=0)
 
-                if start < 0:
-                    start = 0
-                if end > length:
-                    end = length
-
-            testmax = np.amax(data[start:end, 1])
-            if data[i, 1] == testmax and np.all(data[i, 1] != data[start:i, 1]):
-                peaks.append([data[i, 0], data[i, 1]])
-
-    return np.array(peaks)
+    return peaks
 
 
 @njit(fastmath=True)
@@ -223,6 +185,7 @@ def fastcalc_FWHM(peak, data):
         indexend = len(data) - 1
 
     FWHM = data[indexend, 0] - data[indexstart, 0]
+    #print("FWHM:", [data[indexstart, 0], data[indexend, 0]])
     return FWHM, [data[indexstart, 0], data[indexend, 0]]
 
 
@@ -239,39 +202,37 @@ def get_noise(data, n=20):
     return np.std(noise)
 
 
-def remove_noise_cdata(data, localmin=100, factor=1.5):
+def remove_noise_cdata(data, localmin=100, factor=1.5, mode="median"):
     """
     Remove noise from the data.
     :param data: 2D numpy array of data
     :param localmin: int, number of data points local width to take for min calcs
     :return: data with noise removed
     """
+    if len(data) < localmin:
+        return data
+
     ydat = data[:, 1]
+
     # find local minima
-    localmins = [np.amin(ydat[i:i + localmin]) for i in range(len(ydat) - localmin)]
+    if mode == "median":
+        localmins = [np.median(ydat[i:i + localmin]) for i in range(len(ydat) - localmin)]
+    elif mode == "min":
+        localmins = [np.amin(ydat[i:i + localmin]) for i in range(len(ydat) - localmin)]
+    elif mode == "mean":
+        localmins = [np.mean(ydat[i:i + localmin]) for i in range(len(ydat) - localmin)]
+    else:
+        localmins = [np.median(ydat[i:i + localmin]) for i in range(len(ydat) - localmin)]
     # Extend the last bit at the end value to be the same length as data
     localmins = np.concatenate([localmins, np.full(len(data) - len(localmins), localmins[-1])])
     # smooth
-    noiselevel = np.convolve(localmins, np.ones(localmin*1) / localmin*1, mode="same")
-
+    noiselevel = np.convolve(localmins, np.ones(localmin * 1) / localmin * 1, mode="same")
     # Subtract the noise level from the data
     newdata = data[:, 1] - noiselevel * factor
 
     data = data[newdata > 0]
     # return the standard deviation of the noise
     return data
-
-
-def get_top_peak_mz(data):
-    """
-    Get the m/z value of the top peak in the data.
-    :param data: 2D numpy array of data
-    :return: float, m/z value of the top peak
-    """
-    # get the index of the maximum value in the data
-    maxindex = np.argmax(data[:, 1])
-    # return the m/z value of the peak
-    return data[maxindex, 0]
 
 
 @njit(fastmath=True)
@@ -286,7 +247,9 @@ def get_fwhm_peak(data, peakmz):
     return fwhm
 
 
-@njit(fastmath=True)
+
+
+#@njit(fastmath=True)
 def get_centroid(data, peakmz, fwhm=1):
     """
     Get the centroid of the peak.
@@ -304,10 +267,39 @@ def get_centroid(data, peakmz, fwhm=1):
     return np.sum(d[:, 0] * d[:, 1]) / np.sum(d[:, 1])
 
 
-@njit(fastmath=True)
-def get_all_centroids(data, window=5, threshold=0.0001):
+def datacompsub(datatop, buff):
+    """
+    Complex background subtraction.
+
+    Taken from Massign Paper
+
+    First creates an array that matches the data but has the minimum value within a window of +/- buff.
+    Then, smooths the minimum array with a Gaussian filter of width buff * 2 to form the background array.
+    Finally, subtracts the background array from the data intensities.
+
+    :param datatop: Data array
+    :param buff: Width parameter
+    :return: Subtracted data
+    """
+    length = len(datatop)
+    mins = list(range(0, length))
+    indexes = list(range(0, length))
+    for i in indexes:
+        mins[i] = np.amin(datatop[int(max([0, i - abs(buff)])):int(min([i + abs(buff), length])), 1])
+    background = filt.gaussian_filter(mins, abs(buff) * 2)
+    datatop[:, 1] = datatop[:, 1] - background
+    return datatop
+
+#@njit(fastmath=True)
+def get_all_centroids(data, window=5, threshold=0.0001, background=100, moving_average_smoothing=3):
     if len(data) < 3:
         return np.empty((0, 2))
+
+    if background > 0:
+        data = datacompsub(data, 100)
+
+    if moving_average_smoothing > 1:
+        data[:,1] = np.convolve(data[:,1], np.ones(moving_average_smoothing)/moving_average_smoothing, mode='same')
 
     fwhm = get_fwhm_peak(data, data[np.argmax(data[:, 1]), 0])
     peaks = fastpeakdetect(data, window=window, threshold=threshold)
@@ -316,7 +308,7 @@ def get_all_centroids(data, window=5, threshold=0.0001):
     outpeaks = np.empty((len(p0), 2))
     outpeaks[:, 0] = p0
     outpeaks[:, 1] = peaks[:, 1]
-
+    # print("Final length:", len(outpeaks))
     return outpeaks
 
 
@@ -343,15 +335,6 @@ def get_centroids(data, peakmz, mzwindow=None):
     return peaks, chopped
 
 
-def calc_match_simp(centroids, isodist):
-    spectrum1 = matchms.Spectrum(mz=centroids[:, 0], intensities=centroids[:, 1], metadata={"precursor_mz": 1})
-    spectrum2 = matchms.Spectrum(mz=isodist[:, 0], intensities=isodist[:, 1], metadata={"precursor_mz": 1})
-    cosine_greedy = matchms.similarity.CosineGreedy(tolerance=0.01)
-    score = cosine_greedy.pair(spectrum1, spectrum2)
-    print(score)
-    return score
-
-
 def isotope_finder(data, mzwindow=1.5):
     nl = get_noise(data)
     # Chop data below noise level
@@ -360,6 +343,10 @@ def isotope_finder(data, mzwindow=1.5):
     peaks = np.array(sorted(peaks, key=lambda x: x[1], reverse=True))
     return peaks
 
+# @njit(fastmath=True)
+def check_spacings(spectrum: np.ndarray):
+    spacings = np.diff(spectrum[:, 0])
+    return np.median(spacings)
 
 def simp_charge(centroids, silent=False):
     """
@@ -388,3 +375,60 @@ def simp_charge(centroids, silent=False):
     if not silent:
         print("Simple Prediction:", charge)
     return charge
+
+
+def subtract_matched_centroid_range(profile_data, matched_theoretical, centroids, noise_threshold=0, tolerance = 0.001, window_size=5):
+    mz_values = profile_data[:, 0].copy()
+    intensity_values = profile_data[:, 1].copy()
+
+    stored_widths = {}
+    peak_ranges = []
+
+    for centroid in centroids:
+        centroid_x = centroid[0]
+
+        fwhm = get_fwhm_peak(profile_data, centroid_x)
+        stored_widths[centroid_x] = fwhm
+        #Old
+        #left_range = max((centroid_x - fwhm / 2), 0)
+        left_range = max((centroid_x - fwhm),0)
+        right_range = max((centroid_x + fwhm),0)
+        left_range -= window_size
+        right_range += window_size
+
+        peak_ranges.append((left_range, right_range, centroid_x))
+    # 0 is left
+    # 1 is right
+    # 2 is the peak itself
+    matched_ranges = []
+    theo_intensites = matched_theoretical[:, 1]
+    theo_mz = matched_theoretical[:, 0]
+    for peak_range in peak_ranges:
+        centroid_x = peak_range[2]
+
+        for t_mz, t_intent in zip(theo_mz, theo_intensites):
+            if np.abs(t_mz - centroid_x) < tolerance:
+                matched_ranges.append((peak_range[0], peak_range[1], centroid_x))
+                break
+
+
+    matched_ranges.sort(key=lambda x: x[2])
+    for left_range, right_range, peak in matched_ranges:
+        indices_to_zero = np.logical_and(mz_values >= left_range, mz_values <= right_range)
+
+        intensity_values[indices_to_zero] = 0
+
+
+    profile_data[:, 1] = intensity_values
+    return profile_data
+
+
+if __name__ == "__main__":
+    a = 14501.69584
+    blist = [8031.29980469, 9462.05664062, 9820.18164062, 9935.2109375,
+             10980.79394531, 11164.91015625, 12485.61914062, 12727.8125,
+             12973.95507812, 14500.69335938, 14719.77832031]
+
+    index = fastnearest(np.array(blist), a)
+
+    print(index, blist[index])

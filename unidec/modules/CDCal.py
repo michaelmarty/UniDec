@@ -1,6 +1,6 @@
 import wx
 import wx.lib.mixins.listctrl as listmix
-from unidec.modules import PlottingWindow
+from unidec.modules.plotting import PlottingWindow
 from unidec.modules.CDEng import UniDecCD
 from unidec.modules.isolated_packages import FileDialogs
 import numpy as np

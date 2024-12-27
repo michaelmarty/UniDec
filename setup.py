@@ -16,6 +16,6 @@ setup(
     package_data={"": [ "readme.md", "LICENSE"]},
     exclude_package_data={"": ["Scripts", "Scripts.*", "*.Scripts", "*.Scripts.*", ".gitignore", "unidec_doc"],
                           },
-    download_url='https://github.com/michaelmarty/UniDec/archive/refs/tags/v.5.2.1.tar.gz',
+
     classifiers=[],
 )

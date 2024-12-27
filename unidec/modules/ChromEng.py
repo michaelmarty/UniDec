@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import unidec.tools as ud
+from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.metaunidec.mudeng import MetaUniDec
 from unidec.engine import UniDec
 from copy import deepcopy
@@ -15,6 +16,7 @@ class ChromEngine(MetaUniDec):
 
     def __init__(self):
         MetaUniDec.__init__(self)
+        self.polarity = None
         self.chrompeaks = None
         self.chrompeaks_tranges = None
         self.outpath = None
@@ -88,31 +90,37 @@ class ChromEngine(MetaUniDec):
 
         self.update_history()
 
-        self.chromdat = ud.get_importer(path)
-        self.auto_polarity(path, self.chromdat)
+        self.chromdat = ImporterFactory.create_importer(path)
+        self.polarity = self.chromdat.get_polarity()
         self.tic = self.chromdat.get_tic()
         self.ticdat = np.array(self.tic)
         self.fullscans = self.chromdat.scans
         return hdf5
 
     def get_data_from_scans(self, scan_range=None):
-        self.mzdata = self.chromdat.get_data(scan_range)
+        # if scan_range is not None:
+        #     scan_range = [int(scan_range[0])+1, int(scan_range[1])+1]
+        self.mzdata = self.chromdat.get_avg_scan(scan_range=scan_range)
         self.procdata = None
         return self.mzdata
 
     def get_data_from_times(self, minval, maxval):
-        minscan = ud.nearest(self.ticdat[:, 0], minval)
-        if self.ticdat[minscan, 0] < minval:
-            minscan += 1
-        maxscan = ud.nearest(self.ticdat[:, 0], maxval)
-        if self.ticdat[maxscan, 0] > maxval:
-            maxscan -= 1
-        if maxscan <= minscan:
-            maxscan = minscan + 1
+        scan_range = self.chromdat.get_scans_from_times([minval, maxval])
+        minscan, maxscan = scan_range
+        time_range = self.chromdat.get_times_from_scans(scan_range)
+        minval, midval, maxval = time_range
+        # minscan = ud.nearest(self.ticdat[:, 0], minval)
+        # if self.ticdat[minscan, 0] < minval:
+        #     minscan += 1
+        # maxscan = ud.nearest(self.ticdat[:, 0], maxval)
+        # if self.ticdat[maxscan, 0] > maxval:
+        #     maxscan -= 1
+        # if maxscan <= minscan:
+        #     maxscan = minscan + 1
         self.scans = [minscan, maxscan, minval, maxval]
 
         attrs = {"timestart": minval, "timeend": maxval,
-                 "timemid": (minval + maxval) / 2.,
+                 "timemid": midval,
                  "scanstart": minscan, "scanend": maxscan,
                  "scanmid": (minscan + maxscan) / 2.}
         self.attrs = attrs
@@ -246,5 +254,5 @@ if __name__ == "__main__":
     inpath = "C:\\Python\\UniDec3\\unidec\\bin\\Example Data\\UniChrom\\SEC_Native_Herceptin.raw"
     eng = ChromEngine()
     eng.open_chrom(inpath)
-    eng.gen_html_report()
+    #eng.gen_html_report()
     pass

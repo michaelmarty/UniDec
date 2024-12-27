@@ -1,6 +1,6 @@
 import wx
 import numpy as np
-from unidec.modules import PlottingWindow
+from unidec.modules.plotting import PlottingWindow
 from unidec.tools import make_peak_shape, simp_string_to_value, isolated_peak_fit
 
 __author__ = 'Michael.Marty'
@@ -51,7 +51,7 @@ class PeakTools1d(wx.Dialog):
         self.plot1 = PlottingWindow.Plot1d(pnl)
 
         self.plot1.plotrefreshtop(self.data[:, 0], self.data[:, 1], title="Data", xlabel="m/z (Th)",
-                                  ylabel="Normalized Intensity", zoom="span")
+                                  ylabel="Normalized Intensity", zoom="span", zoomout=True)
         sbs.Add(self.plot1, 0, wx.EXPAND)
 
         hbox11 = wx.BoxSizer(wx.HORIZONTAL)
@@ -142,7 +142,7 @@ class PeakTools1d(wx.Dialog):
         boo1 = np.logical_and(self.data[:, 0] < newmax, self.data[:, 0] > newmin)
         self.centdat = self.data[boo1]
         self.plot1.plotrefreshtop(self.centdat[:, 0], self.centdat[:, 1], title="Data", xlabel="m/z (Th)",
-                                  ylabel="Normalized Intensity", zoom="span")
+                                  ylabel="Normalized Intensity", zoom="span", zoomout=True)
 
     def on_center(self, e):
         """
@@ -157,7 +157,7 @@ class PeakTools1d(wx.Dialog):
         boo1 = np.logical_and(self.data[:, 0] < newmax, self.data[:, 0] > newmin)
         self.centdat = self.data[boo1]
         self.plot1.plotrefreshtop(self.centdat[:, 0], self.centdat[:, 1], title="Data", xlabel="m/z (Th)",
-                                  ylabel="Normalized Intensity", zoom="span")
+                                  ylabel="Normalized Intensity", zoom="span", zoomout=True)
 
     def on_plot(self, e):
         """
@@ -172,7 +172,7 @@ class PeakTools1d(wx.Dialog):
         aguess = np.amax(self.centdat[:, 1])
         fitdat = make_peak_shape(self.centdat[:, 0], self.psfun, sigguess, self.centdat[midguess, 0])
         self.plot1.plotrefreshtop(self.centdat[:, 0], self.centdat[:, 1], title="Data", xlabel="m/z (Th)",
-                                  ylabel="Normalized Intensity", zoom="span")
+                                  ylabel="Normalized Intensity", zoom="span", zoomout=True)
         self.plot1.plotadd(self.centdat[:, 0], fitdat * aguess, "blue", "Peak Shape Guess", nopaint=False)
 
     def on_fit(self, e):
@@ -193,7 +193,7 @@ class PeakTools1d(wx.Dialog):
         self.ctlmzsig.SetValue(str(fitout[0]))
         self.resbox.SetValue(str(resolution))
         self.plot1.plotrefreshtop(self.centdat[:, 0], self.centdat[:, 1],
-                                  title="Data", xlabel="m/z (Th)", ylabel="Normalized Intensity", zoom="span")
+                                  title="Data", xlabel="m/z (Th)", ylabel="Normalized Intensity", zoom="span", zoomout=True)
         self.plot1.plotadd(self.centdat[:, 0], fitdat, "blue", "Peak Shape Guess", nopaint=False)
         self.errorbox.SetValue(str(error))
         pass
@@ -336,7 +336,7 @@ class PeakTools2d(wx.Dialog):
 
         # Plot the result
         self.plot1.plotrefreshtop(self.data[:, 0], self.data[:, 1], title="Data", xlabel="m/z (Th)",
-                                  ylabel="Normalized Intensity", zoom="span")
+                                  ylabel="Normalized Intensity", zoom="span", zoomout=True)
 
     def on_close(self, e):
         """
@@ -372,7 +372,7 @@ class PeakTools2d(wx.Dialog):
             self.data2 = np.column_stack((self.dt, intdt))
             self.data, self.data2 = self.data2, self.data
             self.plot1.plotrefreshtop(self.data[:, 0], self.data[:, 1], title="Data", xlabel=self.label,
-                                      ylabel="Normalized Intensity", zoom="span")
+                                      ylabel="Normalized Intensity", zoom="span", zoomout=True)
             self.outmzsig.SetValue(str(self.fitsig))
             self.flipflag = 1
             if self.outdtsig.GetValue() != "":
@@ -404,7 +404,7 @@ class PeakTools2d(wx.Dialog):
         boo1 = np.logical_and(self.data[:, 0] < newmax, self.data[:, 0] > newmin)
         self.centdat = self.data[boo1]
         self.plot1.plotrefreshtop(self.centdat[:, 0], self.centdat[:, 1], title="Data", xlabel="m/z (Th)",
-                                  ylabel="Normalized Intensity", zoom="span")
+                                  ylabel="Normalized Intensity", zoom="span", zoomout=True)
 
     def on_center(self, e):
         """
@@ -419,10 +419,10 @@ class PeakTools2d(wx.Dialog):
         self.centdat = self.data[boo1]
         if self.flipflag == 0:
             self.plot1.plotrefreshtop(self.centdat[:, 0], self.centdat[:, 1], title="Data", xlabel="m/z (Th)",
-                                      ylabel="Normalized Intensity", zoom="span")
+                                      ylabel="Normalized Intensity", zoom="span", zoomout=True)
         else:
             self.plot1.plotrefreshtop(self.centdat[:, 0], self.centdat[:, 1], title="Data", xlabel=self.label,
-                                      ylabel="Normalized Intensity", zoom="span")
+                                      ylabel="Normalized Intensity", zoom="span", zoomout=True)
 
     def on_plot(self, e):
         """

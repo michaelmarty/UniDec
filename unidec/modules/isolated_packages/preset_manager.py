@@ -7,6 +7,7 @@ def make_preset_menu(toppath=None, exclude_dir=None, topi=1500, ext="", exclude_
     if exclude_dir_list is None:
         exclude_dir_list = []
     if toppath is None:
+        # TODO: Danger here hard coded
         toppath = "C:\\Python\\UniDec3\\unidec\\bin\\Presets\\"
     custommenu = wx.Menu()
     opmenu = custommenu

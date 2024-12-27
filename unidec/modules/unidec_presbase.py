@@ -130,16 +130,16 @@ class UniDecPres(object):
         dlg.ShowModal()
         dlg.Destroy()
 
-    def on_dataprep_button(self):
+    def on_dataprep_button(self, e=None):
         print("Empty Function")
 
     def on_open_file(self, file_name, file_directory, time_range=None, refresh=False):
         print("Empty Function")
 
-    def on_unidec_button(self):
+    def on_unidec_button(self, e=None):
         print("Empty Function")
 
-    def on_integrate(self):
+    def on_integrate(self, e=None):
         print("Empty Function")
 
     def on_replot(self, e=None, plotsums=True):
@@ -461,9 +461,10 @@ class UniDecPres(object):
         for i, d in enumerate(peakdiff):
             if d != 0:
                 label = ud.decimal_formatter(d, self.eng.config.massbins)
-                plot.addtext(label, pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
+                plot.addtext(label, pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval, nopaint=True)
             else:
-                plot.addtext("0", pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval)
+                plot.addtext("0", pmasses[i], mval * 0.99 - (i % 7) * 0.05 * mval, nopaint=True)
+        plot.repaint()
 
     def on_label_masses(self, e=None, peakpanel=None, pks=None, plot=None, dataobj=None):
         """
@@ -494,7 +495,8 @@ class UniDecPres(object):
         for i, d in enumerate(pmasses):
             if d in peaksel:
                 label = ud.decimal_formatter(d, self.eng.config.massbins)
-                plot.addtext(label, pmasses[i], mval * 0.06 + pint[i], vlines=False)
+                plot.addtext(label, pmasses[i], mval * 0.06 + pint[i], vlines=False, nopaint=True)
+        plot.repaint()
 
     def on_label_integral(self, e=None, peakpanel=None, pks=None, plot=None, dataobj=None):
         """
@@ -697,9 +699,9 @@ class UniDecPres(object):
         self.view.plot2.addtext(label, mass, mval * 0.96, vlines=True)
         self.on_charge_states(mass=mass)
 
-    def register(self, e=None):
-        from unidec.modules.data_reader import register
-        register()
+    # def register(self, e=None):
+    #     from unidec.modules.data_reader import register
+    #     register()
 
     def on_linreg(self, e=0):
         fit, rsquared = self.eng.linear_regression_peaks()
@@ -878,3 +880,31 @@ class UniDecPres(object):
     def quick_auto(self, e=None):
         self.on_dataprep_button()
         self.on_unidec_button()
+
+    def on_ex(self, e=0, pos=1):
+        print("Loading Example Data")
+        # Load the example data from the event. If there is an error, grab the pos value and load that file.
+        try:
+            self.view.menu.on_example_data(e)
+        except:
+            self.view.menu.load_example_data(pos)
+
+        # If you hold down control, it will load everything
+        if wx.GetKeyState(wx.WXK_CONTROL):
+            self.on_load_everything()
+        pass
+
+    def on_load_everything(self, e=None):
+        pass
+
+    def on_delete(self, evt=None):
+        pass
+
+    def on_full(self, evt=None):
+        pass
+
+    def on_plot_peaks(self, evt=None):
+        pass
+
+    def on_pick_peaks(self, evt=None):
+        pass

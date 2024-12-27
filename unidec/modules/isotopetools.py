@@ -3,7 +3,21 @@ import time
 # from scipy import fftpack
 from numpy import fft as fftpack
 from numba import njit
-from copy import deepcopy
+try:
+    from unidec.IsoDec.isogenwrapper import IsoGenWrapper
+
+    # @njit(fastmath=True)
+    def isogenmass(mass):
+        eng = IsoGenWrapper()
+        return eng.gen_isodist(mass)
+
+except Exception as e:
+    print("Could not import IsoGenWrapper")
+    print(e)
+
+    def isogenmass(mass):
+        return isomike(mass, length=64)
+
 
 # import numba as nb
 # import pyteomics.mass as ms
@@ -81,10 +95,10 @@ def makemassmike(testmass: float) -> float:
     return minmassint
 
 
-@njit(fastmath=True)
+#@njit(fastmath=True)
 def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467):
     # Predict Isotopic Intensities
-    intensities = isomike(mass)
+    intensities = isogenmass(mass)
     # Calculate masses for these
     masses = np.arange(0, len(intensities)) * mass_diff_c + mass
 
@@ -103,10 +117,12 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467):
     return dist
 
 
-@njit(fastmath=True)
-def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007276467):
+
+
+#@njit(fastmath=True)
+def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007276467, isotopethresh: float = 0.01):
     # Predict Isotopic Intensities
-    intensities = isomike(mass)
+    intensities = isogenmass(mass)
     # Calculate masses for these
     masses = np.arange(0, len(intensities)) * mass_diff_c + mass
 
@@ -116,7 +132,8 @@ def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007
     dist[:, 1] = intensities
 
     # Filter Low Intensities
-    b1 = intensities > np.amax(intensities) * 0.01
+    b1 = intensities > np.amax(intensities) * isotopethresh
+
     dist = dist[b1]
 
     # Convert to m/z
@@ -176,14 +193,16 @@ def isojim(isolist, length=isolength):
     numo = isolist[3]
     nums = isolist[4]
 
+
     allft = cft ** numc * hft ** numh * nft ** numn * oft ** numo * sft ** nums
+    #print(type(allft[0]))
 
     # with nb.objmode(allift='float64[:]'):
     #    allift = fftpack.irfft(allft)
     allift = np.abs(fftpack.irfft(allft))
     # allift = np.abs(allift)
     allift = allift / np.amax(allift)
-    return allift  # .astype(nb.float64)
+    return allift[:isolength]  # .astype(nb.float64)
 
 
 # @njit(fastmath=True)
@@ -201,7 +220,8 @@ def predict_charge(mass):
 
 
 # @njit(fastmath=True)
-def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.007276467, crop=False, fast=True, **kwargs):
+def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.007276467, crop=False, fast=True,
+                                length=isolength, **kwargs):
     if fast:
         minmassint = makemassmike(mass)
         intensities = isomike(mass)
@@ -265,13 +285,15 @@ def predict_apex_mono_diff(mass):
 
 
 if __name__ == "__main__":
+
+
+
     m = 1000
     formula, minmassint, isolist = makemass(m)
     x = isojim(isolist)[:10]
     y = isomike(m)[:10]
-
-    print(x, y)
-
+    #print(x, y)
+    print(oft)
     exit()
     x = 10 ** np.arange(2, 6, 0.1)
     y = [get_apex_mono_diff(m) for m in x]

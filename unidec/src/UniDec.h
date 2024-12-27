@@ -258,7 +258,7 @@ Config SetDefaultConfig()
 	config.zsig = 1;
 	config.psig = 1;
 	config.beta = 0;
-	config.mzsig = 15;
+	config.mzsig = 1;
 	config.msig = 0;
 	config.molig = 0;
 	config.massub = 5000000;

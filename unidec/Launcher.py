@@ -21,6 +21,7 @@ from unidec.UniChrom import ChromApp
 from unidec.UPP import UPPApp
 from unidec.modules import unidecstructure
 from unidec.UniChromCD import UniChromCDApp
+from unidec.IsoDec.IsoDecGUI import IsoDecPres
 import wx.py as py
 import os
 import sys
@@ -105,6 +106,7 @@ class Lview(wx.Frame):
         button10 = wx.Button(panel, -1, "UniDec Processing Pipeline\n\nBatch Processing Workflow")
         button11 = wx.Button(panel, -1,
                              "UniChromCD\n\nDeconvolution of CD-MS Chromatograms")
+        button12 = wx.Button(panel, -1, "IsoDec\n\nDeconvolution of Isotope Patterns")
         html = wx.html.HtmlWindow(panel, -1, size=(390, 310))
         pathtofile = os.path.dirname(os.path.abspath(__file__))
         self.imagepath = self.eng.config.toplogofile
@@ -129,7 +131,8 @@ class Lview(wx.Frame):
         sizer.Add(button10, (4, 0), span=(1, 1), flag=wx.EXPAND)
         sizer.Add(button11, (4, 1), span=(1, 1), flag=wx.EXPAND)
         sizer.Add(button8, (3, 1), flag=wx.EXPAND)
-        sizer.Add(button5, (5, 0), span=(1, 2), flag=wx.EXPAND)
+        sizer.Add(button12, (5, 0), span=(1, 1), flag=wx.EXPAND)
+        sizer.Add(button5, (5, 1), span=(1, 1), flag=wx.EXPAND)
         sizer.Add(html, (0, 2), span=(6, 2))
 
         self.Bind(wx.EVT_BUTTON, self.button1, button1)
@@ -143,6 +146,7 @@ class Lview(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.button9, button9)
         self.Bind(wx.EVT_BUTTON, self.button10, button10)
         self.Bind(wx.EVT_BUTTON, self.button11, button11)
+        self.Bind(wx.EVT_BUTTON, self.button12, button12)
 
         panel.SetSizer(sizer)
         sizer.Fit(self)
@@ -214,6 +218,11 @@ class Lview(wx.Frame):
         app = UniChromCDApp()
         app.start()
 
+    def button12(self, e=None):
+        print("Launching IsoDec")
+        app = IsoDecPres()
+        app.start()
+
 class Shell(object):
     def __init__(self, *args, **kwargs):
         self.__wx_app = wx.App(redirect=True)
@@ -221,7 +230,6 @@ class Shell(object):
         self.shell = py.shell.Shell(wx.Frame(None))
 
         self.shellwindow = py.shell.ShellFrame(self.shell, title="UniDecShell").Show()
-
         # self.shell.Execute('app=UniDecApp()')
         # self.shell.Execute('app.start()')
         # self.shellwindow.Center()

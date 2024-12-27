@@ -221,8 +221,8 @@ unidec/bin/Example Data/GroEL UniDec_unidecfiles/GroEL UniDec_report.pdf
 unidec/bin/Example Data/BSA_unidecfiles/BSA_ofile_crazy.dat
 unidec/bin/Example Data/BSA_unidecfiles/BSA_report.html
 unidec_src/UniDec/test_match.bat
-unidec/LipiDec/LipyDec.py
-unidec/LipiDec/SkyQuant.py
+Scripts/LipiDec/LipyDec.py
+Scripts/LipiDec/SkyQuant.py
 docker_commands.txt
 unidec/bin/Example Data/BSA_unidecfiles/BSA_conv.bin
 .pypirc
@@ -272,5 +272,17 @@ unidec/modules/gui_elements/UniDec.mplstyle
 Dockerfile_isodec
 unidec/recent.txt
 unidec/src/UniDec/
-
-
+unidec/IsoDec/src2/
+unidec/IsoDec/test.py
+unidec/IsoDec/testlooper.py
+unidec/IsoDec/oldisodecfunctions.py
+Scripts/MTM/HR/Old/src_vs/
+unidec/IsoDec/src_cmake/cmake-build*
+unidec/IsoDec/src_cmake/.idea/
+unidec/IsoDec/IsoDec tests/
+unidec/IsoDec/bin/
+unidec/IsoDec/lib/
+unidec/IsoDec/src_vs/
+unidec/bin/Example Data/IsoDec/test2_unidecfiles*
+unidec/bin/Example Data/IsoDec/test9_unidecfiles*
+unidec/UniDecImporter/reader_tester.py

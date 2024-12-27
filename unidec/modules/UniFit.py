@@ -939,35 +939,9 @@ class KDmodel:
             bins=list(range(0, len(np.ravel(self.data)) + 1)))[0], np.shape(self.data)) for i in range(0, numpts)]
         print("Bootstrapping number of tests: ", numpts)
         startt = time.perf_counter()
-        # TODO: Fix parallel processing in built version
 
-        try:
-            self.randfit = []
-            queue = multiprocessing.Queue()
-            results_queue = multiprocessing.Queue()
-            [queue.put((self.data, self.kdargs, hists[i])) for i in range(0, numpts)]
-            workers = [multiprocessing.Process(target=BootMinWorker, args=(queue, results_queue)) for i in
-                       range(0, multiprocessing.cpu_count())]
-            for p in workers:
-                p.start()
-            count = 0
-            while True:
-                if count == numpts:
-                    break
-                try:
-                    out = results_queue.get(False)
-                    self.randfit.append(out)
-                    count += 1
-                except Exception as e:
-                    pass
-            for p in workers:
-                p.join()
-            self.randfit = np.array(self.randfit)
 
-        except Exception as e:
-            print("Parallel Failed, using sequential...", e)
-
-            self.randfit = np.array([BootMin(self.data, self.kdargs, hists[i]) for i in range(0, numpts)])
+        self.randfit = np.array([BootMin(self.data, self.kdargs, hists[i]) for i in range(0, numpts)])
 
         print("Evaluation Time: ", time.perf_counter() - startt)
         if self.outlierflag:

@@ -12,7 +12,8 @@ from matplotlib.patches import Rectangle
 from pubsub import pub
 import platform
 import multiprocessing
-from unidec.modules import UniFit, Extract2D, unidecstructure, PlotAnimations, PlottingWindow, IM_functions
+from unidec.modules import UniFit, Extract2D, unidecstructure, IM_functions
+from unidec.modules.plotting import PlottingWindow, PlotAnimations
 from unidec.modules import DoubleDec, MassDefects, miscwindows
 import unidec.tools as ud
 from unidec.modules.AutocorrWindow import AutocorrWindow
@@ -1489,5 +1490,7 @@ if __name__ == "__main__":
     app = wx.App(False)
     frame = DataCollector(None, "Collect Data")
     app.MainLoop()
+
+    # Test file Z:\mtmarty\Data\Others\cprog\New\Man9 141015\collection2.json
 
 

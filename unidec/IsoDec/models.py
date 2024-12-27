@@ -8,7 +8,7 @@ from torch.optim import lr_scheduler
 import time
 import platform
 # from torchshape import tensorshape
-from unidec.IsoDec.encoding import encode_isodist, encode_phase
+from unidec.IsoDec.encoding import  encode_phase
 import inspect
 
 # Speed up matmul precision for faster training
@@ -121,12 +121,12 @@ class PhaseModel:
         if modelid == 0:
             self.model = Fast4PhaseNeuralNetwork()
             self.dims = [50, 4]
-            savename = "phase_model_2.pth"
+            savename = "phase_model_4.pth"
         elif modelid == 1:
             self.model = Fast8PhaseNeuralNetwork()
             self.dims = [50, 8]
             # self.model = torch.compile(self.model, mode="max-autotune")
-            savename = "phase_model.pth"
+            savename = "phase_model_8.pth"
         elif modelid == 2:
             self.model = PhaseNeuralNetwork(size=self.dims[1], outsize=self.dims[0])
             savename = "phase_model_3.pth"
@@ -136,10 +136,11 @@ class PhaseModel:
 
         self.savepath = os.path.join(self.working_dir, savename)
 
-    def setup_model(self, modelid=None):
+    def setup_model(self, modelid=None, forcenew=False):
         """
         Setup model and load if savepath exists. Set device.
         :param modelid: Model ID passed to self.get_model()
+        :param forcenew: Whether to force starting over from scratch on model parameters
         :return: None
         """
         if modelid is None:
@@ -154,9 +155,11 @@ class PhaseModel:
         print(f"Using {self.device} device")
 
         self.get_model(modelid)
-        if os.path.isfile(self.savepath):
+        if os.path.isfile(self.savepath) and not forcenew:
             self.load_model()
             print("Loaded Weights:", self.savepath)
+        else:
+            print("Starting Model From Scratch. Let's ride!")
         self.model = self.model.to(self.device)
         print("Loaded Model:", self.model)
 
@@ -181,14 +184,14 @@ class PhaseModel:
         # self.class_weights.to(self.device)
         print("Class Weights:", self.class_weights, len(self.class_weights))
 
-    def setup_training(self, lossfn="crossentropy"):
+    def setup_training(self, lossfn="crossentropy", forcenew=False):
         """"
         Setup loss function, optimizer, and scheduler.
         :param lossfn: Loss function to use. Options are "crossentropy", "weightedcrossentropy", and "focal".
         :return: None
         """
         if self.model is None:
-            self.setup_model()
+            self.setup_model(forcenew=forcenew)
         if lossfn == "crossentropy":
             self.loss_fn = nn.CrossEntropyLoss()
         elif lossfn == "weightedcrossentropy":
@@ -233,7 +236,7 @@ class PhaseModel:
         save_model_to_binary(self.model, self.savepath.replace(".pth", ".bin"))
         print("Model saved:", self.savepath, self.savepath.replace(".pth", ".bin"))
 
-    def train_model(self, dataloader, lossfn="crossentropy"):
+    def train_model(self, dataloader, lossfn="crossentropy", forcenew=False):
         """
         Train the model on a DataLoader object.
         :param dataloader: Training DataLoader object
@@ -242,7 +245,7 @@ class PhaseModel:
         """
         # if self.loss_fn is None or self.optimizer is None:
         # plot_zdist(self)
-        self.setup_training(lossfn)
+        self.setup_training(lossfn, forcenew=forcenew)
         set_debug_apis(state=False)
         size = len(dataloader.dataset)
         num_batches = len(dataloader)
@@ -263,7 +266,7 @@ class PhaseModel:
             self.optimizer.zero_grad()
 
             if batch % int(num_batches / 5) == 0:
-                loss, current = loss.item(), (batch + 1) * len(X)
+                loss, current = loss.item(), (batch + 1) * len(x)
                 print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
         if self.scheduler is not None:
             self.scheduler.step()
@@ -331,7 +334,30 @@ class PhaseModel:
         # print("Z:", int(predz), "Time:", time.perf_counter() - startime)
         return int(predz)
 
-    def batch_predict(self, dataloader):
+    def predict_returnvec(self,centroids):
+        """
+        Predict charge state for a single set of centroids.
+        :param centroids: Centroid data, m/z and intensity
+        :return: Predicted charge state, integer
+        """
+        if self.model is None:
+            self.setup_model()
+        # startime = time.perf_counter()
+
+        test_data = self.encode(centroids)
+        test_data = torch.tensor(test_data, dtype=torch.float32)
+
+        self.model.eval()
+
+        x = test_data.unsqueeze(0)
+        with torch.no_grad():
+            x = x.to(self.device)
+            predvec = self.model(x)
+
+        return predvec.cpu().numpy()
+
+
+    def batch_predict(self, dataloader, zscore_thresh=0.95):
         """
         Predict charge states for a batch of data.
         :param dataloader: DataLoader object with the data to predict
@@ -341,16 +367,20 @@ class PhaseModel:
             self.setup_training()
         size = len(dataloader.dataset)
         self.model.eval()
-        output = torch.zeros(size, dtype=torch.long, device=self.device)
+        output = torch.zeros((size, 2), dtype=torch.long, device=self.device)
         with torch.no_grad():
             for batch, x in enumerate(dataloader):
                 x = x.to(self.device)
-                predvec = self.model(x)
-                predz = predvec.argmax(dim=1)
                 lx = len(x)
                 start = batch * lx
                 end = batch * lx + lx
-                output[start:end] = predz
+                predvec = self.model(x)
+                for i in range(len(predvec[0])):
+                    print("z", i, predvec[0][i])
+                predzs, predz_inds = torch.topk(predvec, k=2, dim=1)
+                output[start:end, 0] = predz_inds[:, 0]
+                second_score_within = ((predzs[:, 1] / predzs[:, 0]) > zscore_thresh).float()
+                output[start:end, 1] = predz_inds[:, 1] * second_score_within
         output = output.cpu().numpy()
         return output
 
@@ -404,6 +434,26 @@ class Fast8PhaseNeuralNetwork(nn.Module):
         x = self.flatten(x)
         logits = self.linear_relu_stack(x)
         return logits
+
+    '''
+    def partial(self, x):
+        x = self.flatten(x)
+
+        weights1 = self.linear_relu_stack[0].weight
+        h1 = x @ weights1.t()
+        b1 = self.linear_relu_stack[0].bias
+        h1 = h1 + b1
+        h1 = torch.relu(h1)
+        h2 = h1 @ self.linear_relu_stack[2].weight.t()
+        b2 = self.linear_relu_stack[2].bias
+        h2 = h2 + b2
+        print(h1[:5])
+        print(h2[:5])
+
+        logits = self.linear_relu_stack[0](x)
+        logits = self.linear_relu_stack[1](logits)
+        logits = self.linear_relu_stack[2](logits)
+        return logits'''
 
 
 class Fast4PhaseNeuralNetwork(nn.Module):

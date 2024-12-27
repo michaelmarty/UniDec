@@ -159,7 +159,7 @@ class meta_menu(wx.Menu):
             self.examplemenu, self.masterd2 = pm.make_preset_menu(self.config.exampledatadir,
                                                                   exclude_dir="_unidecfiles",
                                                                   topi=2500, ext="hdf5",
-                                                                  exclude_dir_list=["CDMS", "UniChrom"])
+                                                                  exclude_dir_list=["CDMS", "UniChrom", "IsoDec"])
         else:
             self.examplemenu, self.masterd2 = pm.make_preset_menu(self.config.exampledatadirUC,
                                                                   exclude_dir="_unidecfiles", exclude_ext=".hdf5",

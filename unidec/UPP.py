@@ -250,6 +250,7 @@ class UPPApp(wx.Frame):
         self.use_converted = False
         self.use_interactive = False
         self.make_combined_peaks = True
+        self.allpng = False
         self.bpeng = BPEngine(parent=self)
 
         try:
@@ -325,6 +326,11 @@ class UPPApp(wx.Frame):
         self.interactivebox = wx.CheckBox(panel, label="Interactive Reports  ")
         hsizer.Add(self.interactivebox, 0, wx.EXPAND)
         self.interactivebox.SetValue(self.use_interactive)
+
+        # Insert a checkbox to select whether to generate HTML reports with all PNG images and not SVG. Saves a bit of space.
+        self.pngbox = wx.CheckBox(panel, label="PNG Figures  ")
+        hsizer.Add(self.pngbox, 0, wx.EXPAND)
+        self.pngbox.SetValue(self.allpng)
 
         # Insert a checkbox to select whether to generate a combined peak list
         self.peaklistbox = wx.CheckBox(panel, label="Generate Combined Peak List  ")
@@ -422,7 +428,7 @@ class UPPApp(wx.Frame):
         self.get_from_gui()
         wx.Yield()
         self.bpeng.run_df(decon=self.use_decon, use_converted=self.use_converted, interactive=self.use_interactive,
-                          write_peaks=self.make_combined_peaks)
+                          write_peaks=self.make_combined_peaks, allpng=self.allpng)
         self.load_to_gui()
         self.runbtn.SetBackgroundColour("green")
         if not self.hide_col_flag:
@@ -452,7 +458,7 @@ class UPPApp(wx.Frame):
         # Run SubDF
         subdf2 = self.bpeng.run_df(df=subdf, decon=self.use_decon, use_converted=self.use_converted,
                                    interactive=self.use_interactive, write_xlsx=False, write_html=False,
-                                   write_peaks=False)
+                                   write_peaks=False, allpng=self.allpng)
 
         # Update the main dataframe
         # topdf.iloc[selected_rows] = subdf2
@@ -543,6 +549,7 @@ class UPPApp(wx.Frame):
         self.use_decon = self.usedeconbox.GetValue()
         self.use_interactive = self.interactivebox.GetValue()
         self.make_combined_peaks = self.peaklistbox.GetValue()
+        self.allpng = self.pngbox.GetValue()
 
         self.ss.remove_empty()
         ssdf = self.ss.get_df()

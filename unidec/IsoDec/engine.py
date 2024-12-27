@@ -1,24 +1,25 @@
 import time
-import warnings
 import numpy as np
 from itertools import chain
+import os
 import torch
 from torch.utils.data import DataLoader
+
 from unidec.IsoDec.models import example, PhaseModel
-from unidec.IsoDec.datatools import fastpeakdetect, get_all_centroids, fastnearest, calculate_cosinesimilarity2
-from unidec.IsoDec.match import *
+from unidec.IsoDec.datatools import fastpeakdetect, get_all_centroids, fastnearest, check_spacings, remove_noise_cdata
+from unidec.IsoDec.match import optimize_shift2, IsoDecConfig, MatchedCollection
 from unidec.IsoDec.encoding import data_dirs, encode_noise, encode_phase_all, small_data_dirs, \
-    encode_double
-import os
-import math
+    encode_double, encode_harmonic, extract_centroids
+
 from copy import deepcopy
-import unidec.tools as ud
 import pickle as pkl
-import matplotlib.pyplot as plt
+
 from unidec.IsoDec.c_interface import IsoDecWrapper
-from unidec.IsoDec.plots import *
+from unidec.IsoDec.plots import cplot
 import platform
-import numba as nb
+from unidec.IsoDec.altdecon import thrash_predict
+
+from unidec.UniDecImporter.ImporterFactory import *
 
 
 class IsoDecDataset(torch.utils.data.Dataset):
@@ -41,13 +42,13 @@ class IsoDecDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         return [self.emat[idx], self.z[idx]]
 
-
+# TODO: Inherit this from IsoDecRuntime
 class IsoDecEngine:
     """
     Main class for IsoDec Engine
     """
 
-    def __init__(self, phaseres=8):
+    def __init__(self, phaseres=8, verbose=False, use_wrapper=False):
         """
         Initialize the IsoDec Engine
         :param phaseres: Bit depth of the phase encoding. 8 is default.
@@ -59,21 +60,23 @@ class IsoDecEngine:
         self.test_dataloader = None
         self.test_centroids = []
         self.training_centroids = []
+        self.config.verbose = verbose
+        self.version = "1.0.0"
 
         self.pks = MatchedCollection()
 
-        self.phaseres = phaseres
+        self.config.phaseres = phaseres
         self.phasemodel = PhaseModel()
         self.maxz = 50
-        self.phasemodel.dims = [self.maxz, self.phaseres]
-        if self.phaseres == 8:
+        self.phasemodel.dims = [self.maxz, self.config.phaseres]
+        if self.config.phaseres == 8:
             self.phasemodel.modelid = 1
-        elif self.phaseres == 4:
+        elif self.config.phaseres == 4:
             self.phasemodel.modelid = 0
         else:
             self.phasemodel.modelid = 2
 
-        self.use_wrapper = True
+        self.use_wrapper = use_wrapper
         if platform.system() == "Linux":
             self.use_wrapper = False
 
@@ -83,6 +86,68 @@ class IsoDecEngine:
             self.wrapper = None
 
         self.reader = None
+        self.predmode = 0
+
+    def drop_ones(self, percentage=0.8):
+        """
+        Drop 80% of the training data with charge 1
+        :param percentage: Percentage of data to drop
+        :return: None
+        """
+        print("Dropping charge 1 data:", percentage)
+        z = self.training_data[1]
+        emat = self.training_data[0]
+        centroids = self.training_data[2]
+        keep = []
+        for i in range(len(z)):
+            if z[i] != 1 or np.random.rand() < percentage:
+                keep.append(i)
+        self.training_data = [emat[keep], z[keep], [centroids[i] for i in keep]]
+        print("New Length:", len(self.training_data[0]))
+
+    def add_harmonics(self, harmonic_percent=0.4):
+        """
+        Add harmonics at 2x charge to the training and test data
+        :param harmonic_percent: Percent of total data to add as harmonics
+        :return: None
+        """
+        ltraining = len(self.training_data[0])
+        ltest = len(self.test_data[0])
+        nharm = int(ltraining * harmonic_percent)
+        print(f"Adding {nharm} harmonic samples to training data")
+        emats = []
+        zs = []
+        tempcentroids = []
+        for i in range(nharm):
+            index = np.random.randint(0, ltraining - 1)
+            centroid = self.training_data[2][index]
+            z = self.training_data[1][index]
+            emat, centroid2 = encode_harmonic(centroid, z, phaseres=self.config.phaseres)
+            emats.append(emat)
+            zs.append(z)
+            tempcentroids.append(centroid2)
+
+        self.training_data[0] = np.concatenate((self.training_data[0], emats), axis=0)
+        self.training_data[1] = np.concatenate((self.training_data[1], zs), axis=0)
+        self.training_data[2] = self.training_data[2] + tempcentroids
+
+        nharmtest = int(ltest * harmonic_percent)
+        print(f"Adding {nharmtest} harmonic samples to test data")
+        emats = []
+        zs = []
+        tempcentroids = []
+        for i in range(nharmtest):
+            index = np.random.randint(0, ltest - 1)
+            centroid = self.test_data[2][index]
+            z = self.test_data[1][index]
+            emat, centroid2 = encode_harmonic(centroid, z, phaseres=self.config.phaseres)
+            emats.append(emat)
+            zs.append(z)
+            tempcentroids.append(centroid2)
+
+        self.test_data[0] = np.concatenate((self.test_data[0], emats), axis=0)
+        self.test_data[1] = np.concatenate((self.test_data[1], zs), axis=0)
+        self.test_data[2] = self.test_data[2] + tempcentroids
 
     def add_noise(self, noise_percent):
         """
@@ -100,7 +165,7 @@ class IsoDecEngine:
         for i in range(nnoise):
             index = np.random.randint(0, ltraining - 1)
             centroid = self.training_data[2][index]
-            emat, centroid, z = encode_noise(centroid[0, 0], np.amax(centroid[:, 1]), phaseres=self.phaseres)
+            emat, centroid, z = encode_noise(centroid[0, 0], np.amax(centroid[:, 1]), phaseres=self.config.phaseres)
             emats.append(emat)
             zs.append(0)
             tempcentroids.append(centroid)
@@ -117,7 +182,7 @@ class IsoDecEngine:
         for i in range(nnoisetest):
             index = np.random.randint(0, ltest - 1)
             centroid = self.test_data[2][index]
-            emat, centroid, z = encode_noise(centroid[0, 0], np.amax(centroid[:, 1]), phaseres=self.phaseres)
+            emat, centroid, z = encode_noise(centroid[0, 0], np.amax(centroid[:, 1]), phaseres=self.config.phaseres)
             emats.append(emat)
             zs.append(0)
             tempcentroids.append(centroid)
@@ -145,7 +210,7 @@ class IsoDecEngine:
             index2 = np.random.randint(0, ltraining - 1)
             centroid2 = self.training_data[2][index2]
             z = self.training_data[1][index]
-            emat, centroid = encode_double(centroid1, centroid2, phaseres=self.phaseres)
+            emat, centroid = encode_double(centroid1, centroid2, phaseres=self.config.phaseres)
             emats.append(emat)
             zs.append(z)
             tempcentroids.append(centroid)
@@ -165,7 +230,7 @@ class IsoDecEngine:
             centroid1 = self.test_data[2][index]
             centroid2 = self.test_data[2][index2]
             z = self.test_data[1][index]
-            emat, centroid = encode_double(centroid1, centroid2, phaseres=self.phaseres)
+            emat, centroid = encode_double(centroid1, centroid2, phaseres=self.config.phaseres)
             emats.append(emat)
             zs.append(z)
             tempcentroids.append(centroid)
@@ -174,7 +239,8 @@ class IsoDecEngine:
         self.test_data[1] = np.concatenate((self.test_data[1], zs), axis=0)
         self.test_data[2] = self.test_data[2] + tempcentroids
 
-    def load_training_data(self, training_path, test_path=None, noise_percent=0.1, double_percent=0.1):
+    def load_training_data(self, training_path, test_path=None, noise_percent=0.0, double_percent=0.4,
+                           harmonic_percent=0.0, onedrop_percent=0.0):
         """
         Load training data from a file
         :param training_path: Path to the training data file or name of the file tag
@@ -198,6 +264,12 @@ class IsoDecEngine:
         td = np.load(test_path, allow_pickle=True)
         self.test_data = [td["emat"], td["z"], list(td["centroids"])]
 
+        if onedrop_percent > 0:
+            self.drop_ones(percentage=onedrop_percent)
+
+        if harmonic_percent > 0:
+            self.add_harmonics(harmonic_percent)
+
         if double_percent > 0:
             self.add_doubles(double_percent)
 
@@ -206,8 +278,8 @@ class IsoDecEngine:
 
         print("Loaded:", len(self.training_data[0]), "Training Samples")
 
-    def create_training_dataloader(self, training_path, test_path=None, noise_percent=0.1, batchsize=None,
-                                   double_percent=0.1):
+    def create_training_dataloader(self, training_path, test_path=None, noise_percent=0, batchsize=None,
+                                   double_percent=0.4, harmonic_percent=0, one_drop_percent=0):
         """
         Create the training and test dataloaders from a single file path
         :param training_path: Path to the training data file or name of the file tag
@@ -221,7 +293,8 @@ class IsoDecEngine:
             self.config.batch_size = batchsize
 
         self.load_training_data(training_path, test_path=test_path, noise_percent=noise_percent,
-                                double_percent=double_percent)
+                                double_percent=double_percent, harmonic_percent=harmonic_percent,
+                                onedrop_percent=one_drop_percent)
 
         self.training_data = IsoDecDataset(self.training_data[0], self.training_data[1])
         self.test_data = IsoDecDataset(self.test_data[0], self.test_data[1])
@@ -231,7 +304,8 @@ class IsoDecEngine:
         self.test_dataloader = DataLoader(self.test_data, batch_size=self.config.test_batch_size, shuffle=False,
                                           pin_memory=False)
 
-    def create_merged_dataloader(self, dirs, training_path, noise_percent=0.1, batchsize=None, double_percent=0.1):
+    def create_merged_dataloader(self, dirs, training_path, noise_percent=0.0, batchsize=None, double_percent=0.4,
+                                 harmonic_percent=0.0, onedrop_percent=0.0):
         """
         Create a merged dataloader from multiple directories. Looks for common file names and merges them together
         :param dirs: Directories to look in
@@ -250,7 +324,8 @@ class IsoDecEngine:
         for d in dirs:
             os.chdir(d)
             print(d)
-            self.load_training_data(training_path, noise_percent=noise_percent, double_percent=double_percent)
+            self.load_training_data(training_path, noise_percent=noise_percent, double_percent=double_percent,
+                                    harmonic_percent=harmonic_percent, onedrop_percent=onedrop_percent)
             training_data.append(self.training_data)
             test_data.append(self.test_data)
 
@@ -275,7 +350,7 @@ class IsoDecEngine:
 
         # plot_zdist(self)
 
-    def train_model(self, epochs=30, save=True, lossfn="crossentropy"):
+    def train_model(self, epochs=30, save=True, lossfn="crossentropy", forcenew=False):
         """
         Train the model
         :param epochs: Number of epochs
@@ -290,7 +365,7 @@ class IsoDecEngine:
         self.phasemodel.get_class_weights(self.train_dataloader)
         for t in range(epochs):
             print(f"Epoch {t + 1}\n-------------------------------")
-            self.phasemodel.train_model(self.train_dataloader, lossfn=lossfn)
+            self.phasemodel.train_model(self.train_dataloader, lossfn=lossfn, forcenew=forcenew)
             self.phasemodel.evaluate_model(self.test_dataloader)
 
         if save:
@@ -336,34 +411,10 @@ class IsoDecEngine:
             z = IsoDecWrapper().predict_charge(centroids)
         else:
             z = self.phasemodel.predict(centroids)
-        return int(z)
+        return [int(z), 0]
 
-    def save_peak(self, centroids, z, peakmz, pks=None):
-        """
-        Save a peak to the MatchedCollection after its charge has been predicted.
-        First, it optimizes the shift of the peak, then checks the matches and adds it to the MatchedCollection.
-        :param centroids: Centroid data, m/z in first column, intensity in second
-        :param z: Predicted charge
-        :param peakmz: Peak m/z value
-        :param pks: MatchedCollection peaks object
-        :return: Matched indexes relative to the original centroid data
-        """
-        peaks = optimize_shift2(self.config, centroids, z, peakmz, tol=self.config.matchtol, maxshift=self.config.maxshift)
-        if len(peaks) > 0:
-            all_matched_indexes = []
-            for m in peaks:
-                for ind in m.matchedindexes:
-                    if ind not in all_matched_indexes:
-                        all_matched_indexes.append(ind)
-                if pks is not None:
-                    pks.add_peak(m)
-                    #pks.add_pk_to_masses(m, 10)
-                else:
-                    self.pks.add_peak(m)
-                    #self.pks.add_pk_to_masses(m, 10)
-            return all_matched_indexes, peaks
-        else:
-            return [],[]
+    def thrash_predictor(self, centroids):
+        return [thrash_predict(centroids), 1]
 
     def get_matches(self, centroids, z, peakmz, pks=None):
         """
@@ -378,10 +429,60 @@ class IsoDecEngine:
             return []
         if z == 0 or z > self.maxz:
             return []
-        matchedindexes, peaks = self.save_peak(centroids, z, peakmz, pks=pks)
-        return matchedindexes, peaks
+        pk = optimize_shift2(self.config, centroids, z, peakmz)
+        if pk is not None:
+            if pks is not None:
+                pk.rt = self.config.activescanrt
+                pk.scan = self.config.activescan
+                pks.add_peak(pk)
+                pks.add_pk_to_masses(pk, 10)
+            else:
+                self.pks.add_peak(pk)
+            return pk.matchedindexes
+        else:
+            return []
 
-    def batch_process_spectrum(self, data, window=None, threshold=0.001, centroided=False):
+    def get_matches_multiple_z(self, centroids, zs, peakmz, pks=None):
+        if len(centroids) < self.config.minpeaks:
+            return []
+        if zs[0] == 0 or zs[0] > self.maxz:
+            return []
+        pk1 = optimize_shift2(self.config, centroids, zs[0], peakmz)
+        pk2 = optimize_shift2(self.config, centroids, zs[1], peakmz)
+        if pk1 is not None and pk2 is not None:
+            # Retain the peak with the highest score
+            pk1_maxscore = np.amax(pk1.acceptedshifts[:, 1])
+            pk2_maxscore = np.amax(pk2.acceptedshifts[:, 1])
+            if self.config.verbose:
+                print("Pk1 score:", pk1_maxscore, "Pk2 score:", pk2_maxscore)
+            if pk1_maxscore > pk2_maxscore:
+                if pks is not None:
+                    pks.add_peak(pk1)
+                else:
+                    self.pks.add_peak(pk1)
+                return pk1.matchedindexes
+            else:
+                if pks is not None:
+                    pks.add_peak(pk2)
+                else:
+                    self.pks.add_peak(pk2)
+                return pk2.matchedindexes
+        elif pk1 is not None and pk2 is None:
+            if pks is not None:
+                pks.add_peak(pk1)
+            else:
+                self.pks.add_peak(pk1)
+            return pk1.matchedindexes
+        elif pk1 is None and pk2 is not None:
+            if pks is not None:
+                pks.add_peak(pk2)
+            else:
+                self.pks.add_peak(pk2)
+            return pk2.matchedindexes
+        else:
+            return []
+
+    def batch_process_spectrum(self, data, window=None, threshold=None, centroided=False, refresh=False):
         """
         Process a spectrum and identify the peaks. It first identifies peak cluster, then predicts the charge,
         then checks the peaks. If all is good, it adds them to the MatchedCollection as a MatchedPeak object.
@@ -392,15 +493,30 @@ class IsoDecEngine:
         :param centroided: Whether the data is already centroided. If not, it will centroid it.
         :return: MatchedCollection of peaks
         """
+        if self.config.verbose:
+            print("Processing spectrum with prediction mode:", self.predmode)
         starttime = time.perf_counter()
         if window is None:
             window = self.config.peakwindow
+        if threshold is None:
+            threshold = self.config.peakthresh
+        if self.config.css_thresh < 0.6:
+            self.config.adjust_css = False
 
         # TODO: Need a way to test for whether data is centroided already
         if centroided:
-            centroids = data
+            centroids = deepcopy(data)
         else:
             centroids = deepcopy(get_all_centroids(data, window=5, threshold=threshold * 0.1))
+
+        med_spacing = check_spacings(centroids)
+        if med_spacing <= self.config.meanpeakspacing_thresh:
+            if self.config.verbose:
+                print("Median Spacing:", med_spacing, "Removing noise.")
+            centroids = remove_noise_cdata(centroids, 100, factor=1.5, mode="median")
+
+        if refresh:
+            self.pks = MatchedCollection()
 
         if self.use_wrapper:
             self.pks = self.wrapper.process_spectrum(centroids, self.pks, self.config)
@@ -408,46 +524,106 @@ class IsoDecEngine:
             kwindow = window
             threshold = threshold
             for i in range(self.config.knockdown_rounds):
-
-                if i <= 5:
-                    self.config.css_thresh = 0.85
-                else:
-                    self.config.css_thresh = 0.75
-
+                # Adjust settings based on round
+                if i >= 5 and self.config.adjust_css:
+                    self.config.css_thresh = self.config.css_thresh * 0.90
+                    if self.config.css_thresh < 0.6:
+                        self.config.css_thresh = 0.6
+                if self.config.verbose:
+                    print("Spectrum length: ", len(centroids))
                 if i > 0:
                     kwindow = kwindow * 0.5
+                    if kwindow < 1:
+                        kwindow = 1
+                    threshold = threshold * 0.5
+                    if threshold < 0.000001:
+                        threshold = 0.000001
                 self.config.current_KD_round = i
-                peaks = fastpeakdetect(centroids, window=kwindow, threshold=threshold)
+
+                # Pick peaks
+                peaks = fastpeakdetect(centroids, window=int(kwindow), threshold=threshold)
                 # print("Knockdown:", i, "Peaks:", len(peaks))
-                #print("Knockdown:", i, "Peaks:", peaks)
+                if self.config.verbose:
+                    print("\n\nKnockdown:", i, "NPeaks:", len(peaks), "Peaks:", peaks[:, 0], kwindow)
                 if len(peaks) == 0:
                     break
 
-                emats, peaks, centlist, indexes = encode_phase_all(centroids, peaks, lowmz=self.config.mzwindow[0],
-                                                                   highmz=self.config.mzwindow[1], phaseres=self.phaseres)
+                if self.predmode == 0:
+                    # Encode phase of all
+                    emats, peaks, centlist, indexes = encode_phase_all(centroids, peaks, lowmz=self.config.mzwindow[0],
+                                                                       highmz=self.config.mzwindow[1],
+                                                                       phaseres=self.config.phaseres,
+                                                                       minpeaks=2, datathresh=self.config.datathreshold)
 
 
-                emats = [torch.as_tensor(e, dtype=torch.float32) for e in emats]
-                # emats = torch.as_tensor(emats, dtype=torch.float32).to(self.phasemodel.device)
-                data_loader = DataLoader(emats, batch_size=1024, shuffle=False, pin_memory=True)
-                preds = self.phasemodel.batch_predict(data_loader)
+                    emats = [torch.as_tensor(e, dtype=torch.float32) for e in emats]
+                    # emats = torch.as_tensor(emats, dtype=torch.float32).to(self.phasemodel.device)
+                    data_loader = DataLoader(emats, batch_size=2048, shuffle=False, pin_memory=True)
+
+                    # Predict Charge
+                    preds = self.phasemodel.batch_predict(data_loader)
+                elif self.predmode == 1:
+                    encodingcentroids, goodpeaks, outcentroids, indexes = extract_centroids(centroids, peaks,
+                                                                                            lowmz=self.config.mzwindow[
+                                                                                                0],
+                                                                                            highmz=self.config.mzwindow[
+                                                                                                1],
+                                                                                            minpeaks=2,
+                                                                                            datathresh=self.config.datathreshold)
+                    peaks = goodpeaks
+                    centlist = outcentroids
+                    preds = [self.phase_predictor(c) for c in encodingcentroids]
+                elif self.predmode == 2:
+                    encodingcentroids, goodpeaks, outcentroids, indexes = extract_centroids(centroids, peaks,
+                                                                                            lowmz=self.config.mzwindow[
+                                                                                                0],
+                                                                                            highmz=self.config.mzwindow[
+                                                                                                1],
+                                                                                            minpeaks=2,
+                                                                                            datathresh=self.config.datathreshold)
+                    peaks = goodpeaks
+                    centlist = outcentroids
+                    preds = [self.thrash_predictor(c) for c in encodingcentroids]
+                elif self.predmode == 3:
+                    encodingcentroids, goodpeaks, outcentroids, indexes = extract_centroids(centroids, peaks,
+                                                                                            lowmz=self.config.mzwindow[
+                                                                                                0],
+                                                                                            highmz=self.config.mzwindow[
+                                                                                                1],
+                                                                                            minpeaks=2,
+                                                                                            datathresh=self.config.datathreshold)
+                    peaks = goodpeaks
+                    centlist = outcentroids
+                    preds = [self.phase_predictor(c) for c in encodingcentroids]
+                    preds2 = [self.thrash_predictor(c) for c in encodingcentroids]
+                    preds = [[preds[i][0], preds2[i][0]] for i in range(len(preds))]
+                else:
+                    raise ValueError("Unknown mode", self.predmode)
+
                 knockdown = []
                 ngood = 0
+
+
                 # print(peaks, len(peaks))
+                # Loop through all peaks to check if they are good
                 for j, p in enumerate(peaks):
                     z = preds[j]
                     kindex = fastnearest(centroids[:, 0], p[0])
 
+                    if self.config.verbose:
+                        print("Peak:", p, z)
+
                     if kindex in knockdown:
                         continue
-                    if z == 0:
+                    if z[0] == 0:
                         knockdown.append(kindex)
                         continue
 
-
                     # Get the centroids around the peak
-                    matchedindexes, peaks = self.get_matches(centlist[j], z, p[0], pks=self.pks)
-
+                    if z[1] != 0 and z[1] != z[0]:
+                        matchedindexes = self.get_matches_multiple_z(centlist[j], z, p[0], pks=self.pks)
+                    else:
+                        matchedindexes = self.get_matches(centlist[j], z[0], p[0], pks=self.pks)
 
                     if len(matchedindexes) > 0:
                         ngood += 1
@@ -456,67 +632,31 @@ class IsoDecEngine:
                         matchindvals = indval[matchedindexes]
                         # Knock them down
                         knockdown.extend(matchindvals)
-                        #centroids = self.perform_modelling_kd(centroids, indval, peaks)
-                self.config.acceptedclusters += ngood
-                #print("NGood:", ngood)
+                    else:
+                        knockdown.append(kindex)
                 if len(knockdown) == 0:
                     continue
+
                 knockdown = np.array(knockdown)
                 centroids = np.delete(centroids, knockdown, axis=0)
 
-                if len(centroids) < 3:
+                if len(centroids) < self.config.minpeaks:
                     break
-                #centroids = centroids[centroids[:, 1] > 0]
-            # print("Time:", time.perf_counter() - starttime)
+
         return self.pks
 
-    def perform_modelling_kd(self, centroids, indval, peaks):
-        centroids = deepcopy(centroids)
-        min_index = indval[0]
-        max_ratio = 2
-
-        full_kds = []
-        partial_kd_lists = []
-
-        for peak in peaks:
-            partial_kds = []
-            for i in range(len(peak.matchedindexes)):
-                intensity_ratio = centroids[peak.matchedindexes[i], 1] / peak.isodist[peak.isomatches[i], 1]
-                if intensity_ratio < max_ratio and peak.matchedindexes[i] not in full_kds:
-                    full_kds.append(peak.matchedindexes[i])
-                else:
-                    partial_kds.append([peak.matchedindexes[i], intensity_ratio])
-            partial_kd_lists.append(partial_kds)
-
-
-        agg_partial_kds = []
-        for i in range(len(partial_kd_lists[0])):
-            ratios = [partial_kd_lists[0][i][1]]
-            for j in range(len(peaks)):
-                if j != 0:
-                    for k in range(len(partial_kd_lists[j])):
-                        if partial_kd_lists[j][k][0] == partial_kd_lists[0][i][0]:
-                            ratios.append(partial_kd_lists[j][k][1])
-            if len(ratios) == len(peaks):
-                agg_partial_kds.append([partial_kd_lists[0][i][0], np.mean(np.array(ratios))])
-
-        for i in range(len(agg_partial_kds)):
-            print(peaks[0].centroids[agg_partial_kds[i][0], 0], agg_partial_kds[i][1])
-            print(centroids[agg_partial_kds[i][0] + min_index, 0], centroids[agg_partial_kds[i][0] + min_index, 1])
-            centroids[agg_partial_kds[i][0] + min_index, 1] *= (1 / agg_partial_kds[i][1])
-
-        for i in range(len(full_kds)):
-            centroids[full_kds[i] + min_index, 1] = 0
-
-        return centroids
-
-
+    def pks_to_mass(self, binsize=0.1):
+        """
+        Convert the MatchedCollection to mass
+        :return: None
+        """
+        return self.pks.to_mass_spectrum(binsize)
 
     def process_file(self, file, scans=None):
         starttime = time.perf_counter()
         self.config.filepath = file
         # Get importer and check it
-        reader = ud.get_importer(file)
+        reader = ImporterFactory.create_importer(file)
         self.reader = reader
         ext = os.path.splitext(file)[1]
         try:
@@ -544,7 +684,7 @@ class IsoDecEngine:
                     spectrum = reader.grab_centroid_data(s)
                     centroided = True
                 else:
-                    spectrum = reader.grab_scan_data(s)
+                    spectrum = reader.get_single_scan(s)
             except Exception as e:
                 print("Error Reading Scan", s, e)
                 continue
@@ -564,10 +704,10 @@ class IsoDecEngine:
         print("Time:", time.perf_counter() - starttime)
         print("N Peaks:", len(self.pks.peaks))
 
-        #self.pks.save_pks()
+        # self.pks.save_pks()
         return reader
 
-    def export_peaks(self, type="prosightlite", filename=None, reader=None, max_precursors=None):
+    def export_peaks(self, type="prosightlite", filename="output", reader=None, act_type="HCD", max_precursors=None):
         if filename is None:
             filename = "peaks.csv"
 
@@ -577,63 +717,30 @@ class IsoDecEngine:
         if type == "prosightlite":
             self.pks.export_prosightlite(filename)
         elif type == "msalign":
-            self.pks.export_msalign(reader, filename, max_precursors=max_precursors)
+            self.pks.export_msalign(self.config, reader, filename, act_type=act_type, max_precursors=max_precursors)
         elif type == "pkl":
             self.pks.save_pks()
         else:
             raise ValueError("Unknown Export Type", type)
 
 
-class IsoDecConfig:
-    def __init__(self):
-        """
-        Configuration class for IsoDec Engine. Holds the key parameters for the data processing and deconvolution.
-        """
-        self.filepath = ""
-        self.batch_size = 32
-        self.test_batch_size = 2048
-        self.peakwindow = 40
-        self.acceptedclusters = 0
-        self.matchtol = 0.005
-        self.minpeaks = 3
-        self.minmatchper = 0.67
-        self.css_thresh = 0.80
-        self.maxshift = 3  # This will get overwritten for smaller z, where it's dangerous to have more than 1 or 2
-        self.mzwindow = [-1.5, 2.5]
-        self.plusoneintwindow = [0.1, 0.6]
-        self.knockdown_rounds = 10
-        self.current_KD_round = 0
-        self.activescan = -1
-        self.activescanrt = -1
-        self.activescanorder = -1
-
-    def set_scan_info(self, s, reader=None):
-        """
-        Sets the active scan info
-        :param s: The current scan
-        :param reader: The reader object
-        :return: None
-        """
-        self.activescan = s
-        if reader is not None:
-            self.activescanrt = reader.get_scan_time(s)
-            self.activescanorder = reader.get_ms_order(s)
-
-
 if __name__ == "__main__":
     starttime = time.perf_counter()
-    eng = IsoDecEngine(phaseres=4)
+    eng = IsoDecEngine(phaseres=8)
     topdirectory = "C:\\Data\\IsoNN\\training"
 
     dirs = [os.path.join(topdirectory, d) for d in small_data_dirs]
-    eng.create_merged_dataloader(dirs, "phase4", noise_percent=0.0, batchsize=32, double_percent=0.0)
+    eng.create_merged_dataloader(dirs, "phase83", noise_percent=0.0, batchsize=32, double_percent=0.4,
+                                 harmonic_percent=0.1, onedrop_percent=0.8)
     # eng.train_model(epochs=3)
-    eng.train_model(epochs=3, lossfn="focal")
+    eng.train_model(epochs=10, lossfn="crossentropy", forcenew=True)
+    # eng.train_model(epochs=3, lossfn="focal", forcenew=False)
 
     # eng.create_merged_dataloader([os.path.join(topdirectory, small_data_dirs[2])], "phase82", noise_percent=0.2,
     #                             batchsize=32, double_percent=0.2)
     # eng.save_bad_data()
     exit()
+    import matplotlib.pyplot as plt
     c = example
     pks = eng.batch_process_spectrum(c, centroided=True)
     cplot(c)

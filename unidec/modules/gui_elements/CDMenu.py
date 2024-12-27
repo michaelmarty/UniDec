@@ -1,5 +1,8 @@
+
+
 import wx
 import unidec.modules.isolated_packages.preset_manager as pm
+
 import numpy as np
 import os
 
@@ -251,6 +254,10 @@ class CDMenu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_reset, self.menuReset)
         self.advancedmenu.AppendSeparator()
 
+
+
+
+
         self.menuUnidecPath = self.advancedmenu.Append(wx.ID_FILE1, "UniDec File", "Find the UniDec executable file.")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_unidec_path, self.menuUnidecPath)
         # self.menuFileName = self.advancedmenu.Append(wx.ID_FILE2, "Rename Files",
@@ -258,6 +265,9 @@ class CDMenu(wx.Menu):
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_file_name, self.menuFileName)
         self.menuOpenDir = self.advancedmenu.Append(wx.ID_ANY, "Open Saved File Directory",
                                                     "Opens the save directory in the file explorer")
+
+
+
         self.parent.Bind(wx.EVT_MENU, self.parent.on_open_dir, self.menuOpenDir)
 
         self.advancedmenu.AppendSeparator()
@@ -513,3 +523,7 @@ class CDMenu(wx.Menu):
         dirname = os.path.dirname(file_path)
         new_item = self.menuOpenRecent.Append(wx.ID_ANY, filename)
         self.parent.Bind(wx.EVT_MENU, lambda e: self.pres.on_open_file(filename, dirname), new_item)
+
+    def on_reset(self, event):
+        wx.MessageBox("Reset to Factory Default", "Info", wx.OK | wx.ICON_INFORMATION)
+

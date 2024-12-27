@@ -7,7 +7,7 @@ from matplotlib.patches import Rectangle
 import matplotlib as mpl
 from scipy.spatial.distance import euclidean
 
-from unidec.modules import PlottingWindow
+from unidec.modules.plotting import PlottingWindow
 from unidec.modules.isolated_packages import FileDialogs
 import unidec.tools as ud
 

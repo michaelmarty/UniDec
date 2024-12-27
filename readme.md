@@ -222,6 +222,26 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.8.0.0
+
+Added **IsoDec** for isotopic deconvolution. This is a new window that allows you to deconvolve isotopic distributions. It is built using a neural net engine but has a similar interface to conventional UniDec.
+
+New IsoGen neural net for generating isotopic distributions. Used by IsoDec but also available in Python code and via DLL.
+
+Complete rewrite and restructuring of Importing code into UniDecImporter library. This should help harmonize and centralize the MS file reading functions. Removed some prior reliance on multiplierz for Agilent data.
+
+To simplify the import functions, the UniDec GUI has changed slightly such that you need to explicity switch it to ion mobility mode (see Advanced menu) before opening ion mobility files.
+
+Various other under the hood changes to accomodate new code, and some bug fixes.
+
+Fixed label for DAR mode in UPP help files. 
+
+v. 7.0.3
+
+Added check box in UPP to allow all PNG images rather than SVG images, which can improve file sizes.
+
+Added "Config Data Subbuff" to UPP to allow background subtraction with a curved background in the spreadsheet format. Added "Config Data Binevery", "Config Data Lintype", and "Config Data Smoothing" to provide access to other data processing parameters in the spreadsheet format.
+
 v.7.0.2
 
 Improvements to UPP outputs. Fixed issue with reports getting overwritten if the same file is used in multiple rows with UPP. 

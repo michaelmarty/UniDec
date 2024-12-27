@@ -1,7 +1,11 @@
+import unittest
+
 import wx
 import unidec.modules.isolated_packages.preset_manager as pm
 import numpy as np
 import os
+
+#from unidec.UniDecImporter.ImportTests import ImportTests
 
 
 class main_menu(wx.Menu):
@@ -92,7 +96,7 @@ class main_menu(wx.Menu):
 
         # Example Data
         self.examplemenu, self.masterd2 = pm.make_preset_menu(self.config.exampledatadir, exclude_dir="_unidecfiles",
-                                                              topi=2500, exclude_ext="hdf5", exclude_dir_list=["CDMS", "UniChrom"])
+                                                              topi=2500, exclude_ext="hdf5", exclude_dir_list=["CDMS", "UniChrom", "IsoDec"])
 
         keys = []
         for i, d in enumerate(self.masterd2):
@@ -338,16 +342,7 @@ class main_menu(wx.Menu):
                                                        "Mark matched monomers and dimers automatically")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_autoformat, self.autoformat)
 
-        #self.menuNMS_Report = self.experimentalmenu.Append(wx.ID_ANY, "Generate NMSGSB PDF Report",
-        #                                                   "Generate PDF Report in NMSGSB format")
-        #self.parent.Bind(wx.EVT_MENU, self.pres.on_nmsgsb_report, self.menuNMS_Report)
-
         self.experimentalmenu.AppendSeparator()
-        self.menuifams = self.experimentalmenu.Append(wx.ID_ANY, "iFAMS")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_iFAMS, self.menuifams)
-
-        self.menunavia = self.experimentalmenu.Append(wx.ID_ANY, "Import from Navia")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_navia, self.menunavia)
 
         self.menumql = self.experimentalmenu.Append(wx.ID_ANY, "MassQL", "MassQL")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_mql, self.menumql)
@@ -390,11 +385,11 @@ class main_menu(wx.Menu):
 
 
 
-        self.experimentalmenu.AppendSeparator()
-        self.menuRegister = self.experimentalmenu.Append(wx.ID_ANY, "Fix Agilent Imports",
-                                                         "Registers the Agilent Interfaces. "
-                                                         "MUST RUN AS ADMINISTRATOR")
-        self.parent.Bind(wx.EVT_MENU, self.pres.register, self.menuRegister)
+        # self.experimentalmenu.AppendSeparator()
+        # self.menuRegister = self.experimentalmenu.Append(wx.ID_ANY, "Fix Agilent Imports",
+        #                                                  "Registers the Agilent Interfaces. "
+        #                                                  "MUST RUN AS ADMINISTRATOR")
+        # self.parent.Bind(wx.EVT_MENU, self.pres.register, self.menuRegister)
 
         self.experimentalmenu.AppendSeparator()
 
@@ -472,13 +467,19 @@ class main_menu(wx.Menu):
         self.menuBar.Append(self.analysismenu, "Analysis")
         self.menuBar.Append(self.advancedmenu, "Advanced")
         self.menuBar.Append(self.experimentalmenu, "Experimental")
+        self.parent.SetMenuBar(self.menuBar)
         # self.Append(self.filemenu, "&File")
         # self.Append(self.toolsmenu, "Tools")
         # self.Append(self.analysismenu, "Analysis")
         # self.Append(self.advancedmenu, "Advanced")
         # self.Append(self.experimentalmenu, "Experimental")
 
-        pass
+        # self.unit_test_importers = self.advancedmenu.Append(wx.NewId(), "Test Importers", "Trigger all unit tests")
+        # self.parent.Bind(wx.EVT_MENU, self.on_run_unit_tests, self.unit_test_importers)
+
+
+
+    pass
 
     def on_defaults(self, e):
         """
@@ -583,3 +584,18 @@ class main_menu(wx.Menu):
         dirname = os.path.dirname(file_path)
         new_item = self.menuOpenRecent.Append(wx.ID_ANY, filename)
         self.parent.Bind(wx.EVT_MENU, lambda e: self.pres.on_open_file(filename, dirname), new_item)
+
+    # def on_run_unit_tests(self, event):
+    #     # Run the unit tests
+    #     loader = unittest.TestLoader()
+    #     suite = loader.loadTestsFromTestCase(ImportTests)
+    #
+    #     # Run the tests and capture the results
+    #     runner = unittest.TextTestRunner()
+    #     result = runner.run(suite)
+    #
+    #     # Show results in a message box
+    #     if result.wasSuccessful():
+    #         wx.MessageBox("All importers compatible", "Success", wx.OK | wx.ICON_INFORMATION)
+    #     else:
+    #         wx.MessageBox(f"Some tests failed:\n{result.failures}", "Test Results", wx.OK | wx.ICON_ERROR)

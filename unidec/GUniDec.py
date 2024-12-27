@@ -5,7 +5,6 @@ import wx
 import numpy as np
 import unidec.engine as unidec
 
-#
 from pubsub import pub
 
 import unidec.tools as ud
@@ -13,26 +12,13 @@ import unidec.modules.IM_functions as IM_func
 import unidec.modules.IM_windows as IM_wind
 from unidec.modules import Extract2D, masstools, mainwindow, nativez, fft_window, GridDecon, isotopetools
 from unidec.modules import MassDefects, miscwindows
-from unidec.modules.isolated_packages import FileDialogs, texmaker_nmsgsb
-from unidec.modules.isolated_packages import score_window, navia_importer, texmaker, mql_tool
+from unidec.modules.isolated_packages import FileDialogs
+from unidec.modules.isolated_packages import score_window, texmaker, mql_tool
 import unidec.DataCollector as datacollector
 import unidec.ImportWizard as import_wizard
-# import UniMin
-from copy import deepcopy
 import platform
 import multiprocessing
 from unidec.modules.unidec_presbase import UniDecPres
-from unidec.iFAMS.wxiFAMS import iFAMS_Window
-
-#try:
-#    import unidec.modules.thermo_reader.rawreader as rawreader
-#except Exception as e:
-#    print("Error importing Thermo Raw Reader, try installing MSFileReader from Thermo and pymsfilereader")
-#    print(e)
-
-# import FileDialog  # Needed for pyinstaller
-
-
 
 __author__ = 'Michael.Marty'
 
@@ -705,39 +691,7 @@ class UniDecApp(UniDecPres):
         # Get Limits
         self.export_config(self.eng.config.confname)
         self.eng.autointegrate()
-        '''
-        limits = self.view.plot2.subplot1.get_xlim()
-        olimits = deepcopy(limits)
 
-        limits = np.array(limits) * self.view.plot2.kdnorm
-
-        # Run Integration
-        if not ud.isempty(self.eng.pks.peaks) and limits[0] <= np.amin(self.eng.data.massdat[:, 0]) and limits[
-            1] >= np.amax(self.eng.data.massdat[:, 0]):
-            print("Auto Integrating")
-            self.eng.autointegrate()
-        else:
-            integral, intdat = self.eng.integrate(limits)
-            if self.eng.pks.plen > 0:
-                boo1 = self.eng.pks.masses < limits[1]
-                boo2 = self.eng.pks.masses > limits[0]
-                peaksinrange = self.eng.pks.masses[np.all([boo1, boo2], axis=0)]
-            else:
-                peaksinrange = []
-            if len(peaksinrange) == 1:
-                peak = peaksinrange[0]
-                # print peak
-                i = np.argmin((self.eng.pks.masses - peak) ** 2)
-                self.eng.pks.peaks[i].integral = integral
-                self.eng.pks.peaks[i].integralrange = limits
-                print("Differences: ", limits - self.eng.pks.peaks[i].mass)
-
-            else:
-                self.view.plot2.addtext(str(integral), np.mean(np.array(limits)),
-                                        np.amax(intdat[:, 1]) + 0.05 * np.amax(self.eng.data.massdat[:, 1]),
-                                        range=limits)
-                return 0
-        '''
         # Normalize and write
         self.eng.normalize_peaks()
         areas = [[p.mass, p.integral] for p in self.eng.pks.peaks]
@@ -1012,20 +966,6 @@ class UniDecApp(UniDecPres):
         MassDefects.MassDefectWindow(self.view, [self.eng.data.massdat], config=self.eng.config,
                                      pks=self.eng.pks, value=self.eng.config.molig, directory=self.eng.config.udir)
 
-    def on_iFAMS(self, e=None):
-        iFAMS_Window(self.view, self.eng.data.data2, config=self.eng.config, directory=os.getcwd())
-
-    def on_navia(self, e=None):
-        with wx.FileDialog(self.view, "Open NaViA session", wildcard="XYZ files (*.navia)|*.navia",
-                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
-            if fileDialog.ShowModal() == wx.ID_CANCEL:
-                return  # the user changed their mind
-
-            # Proceed loading the file chosen by the user
-            pathname = fileDialog.GetPath()
-            newpath = navia_importer.navia_import(pathname)
-            newdir, newfile = os.path.split(newpath)
-            self.on_open_file(newfile, newdir)
 
     def on_mql(self, e=None):
         defaultquery = "QUERY scaninfo(MS1DATA) WHERE MS1MZ=X AND MS1MZ=X+760:TOLERANCEMZ=5 FILTER MS1MZ=X"
@@ -1306,78 +1246,6 @@ class UniDecApp(UniDecPres):
             print("PDF Figures written.")
         pass
 
-    '''
-    def on_nmsgsb_report(self, e=0):
-
-        """
-        Creates PDF report for the Native MS Guided Structural Biology format.
-        First, writes figures to PDF.
-        Then sends results to texmaker, which creates a .tex file.
-        Finally, runs pdflatex as commandline subprocess to convert .tex to PDF.
-        :param e: event passed to self.view.on_save_figur_pdf
-        :return: None
-        """
-        path = os.path.join(self.eng.config.dirname, self.eng.config.filename)
-        print(path)
-        rawsamplename = ""
-        defaultvalue = ""
-        if os.path.splitext(path)[1].lower() == ".raw":
-            print("Getting Raw Data")
-            defaultvalue = rawreader.get_raw_metadata(path)
-            # try:
-            #    rawoutput = rawreader.get_raw_metadata(path)
-            # except:
-            #    rawoutput = None
-            rawsamplename = rawreader.get_raw_samplename(path)
-        # Andrew - edit
-
-        dialog = miscwindows.SingleInputDialog(self.view)
-        dialog.initialize_interface(title="Report Info: Input1;Input2;...;InputN", message="Set Inputs Here: ",
-                                    defaultvalue=defaultvalue)
-        dialog.ShowModal()
-        output = dialog.value
-
-        self.view.shrink_all_figures(figsize=(6, 5))
-        figureflags, files = self.view.on_save_figure_eps(e)
-        figureflags, files = self.view.on_save_figure_pdf(e)
-        textmarkertab = [p.textmarker for p in self.eng.pks.peaks]
-        peaklabels = [p.label for p in self.eng.pks.peaks]
-        peakcolors = [p.color for p in self.eng.pks.peaks]
-        peaks = np.array([[p.mass, p.height] for p in self.eng.pks.peaks])
-        uniscore = self.eng.pks.uniscore
-        # str(round(self.eng.pks.uniscore * 100, 2))
-        # oligos = np.array(oligos)
-        # match = np.array([[p.peaks, p.matches, p.errors, p.names] for p in self.eng.config.matchlist])
-        # match = np.transpose(self.eng.config.matchlist)
-        # match = self.eng.config.matchlist
-        # self.eng.config.matchlist = np.transpose(
-        #    np.genfromtxt(self.eng.config.matchfile, dtype='str', delimiter=","))
-
-        if os.path.isfile(self.eng.config.matchfile):
-            match = np.transpose(self.eng.config.matchlist)
-        else:
-            match = "-"
-        if self.eng.config.imflag == 0:
-            texmaker_nmsgsb.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config,
-                                          self.eng.config.udir,
-                                          peaks, textmarkertab, peaklabels, peakcolors, figureflags, output,
-                                          rawsamplename, match, uniscore)
-            self.view.SetStatusText("TeX file Written", number=5)
-            try:
-                texmaker_nmsgsb.PDFTexReport(self.eng.config.outfname + '_report.tex')
-                self.view.SetStatusText("PDF Report Finished", number=5)
-            except Exception as ex:
-                self.view.SetStatusText("PDF Report Failed", number=5)
-                print("PDF Report Failed to Generate. Check LaTeX installation.Need pdflatex in path.", ex)
-        else:
-            print("PDF Figures written.")
-        # self.on_replot()
-        # self.view.shrink_all_figures(figsize=self.eng.config.figsize)
-        # print("Resetting Figure Sizes", self.eng.config.figsize)
-        # self.on_replot()
-        self.on_flip_tabbed(e=0)
-        pass'''
-
     def on_fft_window(self, e):
         print("FFT window...")
         fft_window.FFTWindow(self.view, self.eng.data.rawdata, self.eng.config)
@@ -1392,66 +1260,68 @@ class UniDecApp(UniDecPres):
         :param ypos: y position fed from event
         :return: None
         """
-        plot = True
-        if xpos is not None and ypos is not None:
-            # print "x=%.2f y=%.2f" % (xpos, ypos)
-            # Determine the limits for local max determination
-            xlimits = self.view.plot1.subplot1.get_xlim()
-            limdiff = abs(xlimits[1] - xlimits[0])
-            window = limdiff * 0.01
-
-            # Find the local max near the clicked position
-            newxpos = ud.localmaxpos(self.eng.data.data2, xpos - window, xpos + window)
-            if newxpos > 0:
-                # If a suitable local max was found, use it.
-                xpos = newxpos
-
-            if self.view.plot1.x1 is None or xpos == self.view.plot1.x1:
-                # Store the first value
-                self.view.plot1.x1 = xpos
-            else:
-                # Store the second value
-                self.view.plot1.x2 = xpos
-                # Switch them if mixed up
-                if self.view.plot1.x2 < self.view.plot1.x1:
-                    self.view.plot1.x1, self.view.plot1.x2 = self.view.plot1.x2, self.view.plot1.x1
-                print("m/z values:", self.view.plot1.x1, self.view.plot1.x2)
-                # Solve for the mass and charges
-                mass, z1, z2 = ud.solve_for_mass(self.view.plot1.x1, self.view.plot1.x2)
-                outstring = "Mass=%.2f z=%d, %d" % (mass, z1, z2)
-
-                if np.all(np.abs(np.array(self.view.plot1.mlist) - mass) > window * z1 * 0.0) and plot:
-                    self.view.plot1.mlist.append(mass)
-
-                    newcolor = 'ybgrcmk'[len(self.view.plot1.mlist) % 6]
-                    self.view.plot1.colors.append(newcolor)
-
-                    try:
-                        self.view.plot1.subplot1.legend_.remove()
-                    except AttributeError:
-                        pass
-                    # Add new things
-                    maxy = np.amax(self.eng.data.data2[:, 1])
-                    self.view.plot1.addtext(str(mass), np.amax(self.eng.data.data2[:, 0]) * 0.97,
-                                            maxy - 0.05 * len(self.view.plot1.mlist) * maxy, vlines=False,
-                                            color=newcolor)
-                elif plot:
-                    index = ud.nearestunsorted(np.array(self.view.plot1.mlist), mass)
-                    newcolor = self.view.plot1.colors[index]
-
-                if plot:
-                    # Add the charge state assignments to the plot
-                    pad = 0.05 * np.amax(self.eng.data.data2[:, 1])
-                    y1 = ud.interp_val(self.eng.data.data2, self.view.plot1.x1) + pad
-                    y2 = ud.interp_val(self.eng.data.data2, self.view.plot1.x2) + pad
-                    self.view.plot1.addtext(str(int(z1)), self.view.plot1.x1, y1, color=newcolor)
-                    self.view.plot1.addtext(str(int(z2)), self.view.plot1.x2, y2, color=newcolor)
-                    # Remove the legend
-
-                # Reset and write out values
-                self.view.SetStatusText(outstring, number=5)
-                self.view.plot1.x1, self.view.plot1.x2 = None, None
-        pass
+        return None
+        # plot = True
+        #
+        # if xpos is not None and ypos is not None:
+        #     # print "x=%.2f y=%.2f" % (xpos, ypos)
+        #     # Determine the limits for local max determination
+        #     xlimits = self.view.plot1.subplot1.get_xlim()
+        #     limdiff = abs(xlimits[1] - xlimits[0])
+        #     window = limdiff * 0.01
+        #
+        #     # Find the local max near the clicked position
+        #     newxpos = ud.localmaxpos(self.eng.data.data2, xpos - window, xpos + window)
+        #     if newxpos > 0:
+        #         # If a suitable local max was found, use it.
+        #         xpos = newxpos
+        #
+        #     if self.view.plot1.x1 is None or xpos == self.view.plot1.x1:
+        #         # Store the first value
+        #         self.view.plot1.x1 = xpos
+        #     else:
+        #         # Store the second value
+        #         self.view.plot1.x2 = xpos
+        #         # Switch them if mixed up
+        #         if self.view.plot1.x2 < self.view.plot1.x1:
+        #             self.view.plot1.x1, self.view.plot1.x2 = self.view.plot1.x2, self.view.plot1.x1
+        #         print("m/z values:", self.view.plot1.x1, self.view.plot1.x2)
+        #         # Solve for the mass and charges
+        #         mass, z1, z2 = ud.solve_for_mass(self.view.plot1.x1, self.view.plot1.x2)
+        #         outstring = "Mass=%.2f z=%d, %d" % (mass, z1, z2)
+        #
+        #         if np.all(np.abs(np.array(self.view.plot1.mlist) - mass) > window * z1 * 0.0) and plot:
+        #             self.view.plot1.mlist.append(mass)
+        #
+        #             newcolor = 'ybgrcmk'[len(self.view.plot1.mlist) % 6]
+        #             self.view.plot1.colors.append(newcolor)
+        #
+        #             try:
+        #                 self.view.plot1.subplot1.legend_.remove()
+        #             except AttributeError:
+        #                 pass
+        #             # Add new things
+        #             maxy = np.amax(self.eng.data.data2[:, 1])
+        #             self.view.plot1.addtext(str(mass), np.amax(self.eng.data.data2[:, 0]) * 0.97,
+        #                                     maxy - 0.05 * len(self.view.plot1.mlist) * maxy, vlines=False,
+        #                                     color=newcolor)
+        #         elif plot:
+        #             index = ud.nearestunsorted(np.array(self.view.plot1.mlist), mass)
+        #             newcolor = self.view.plot1.colors[index]
+        #
+        #         if plot:
+        #             # Add the charge state assignments to the plot
+        #             pad = 0.05 * np.amax(self.eng.data.data2[:, 1])
+        #             y1 = ud.interp_val(self.eng.data.data2, self.view.plot1.x1) + pad
+        #             y2 = ud.interp_val(self.eng.data.data2, self.view.plot1.x2) + pad
+        #             self.view.plot1.addtext(str(int(z1)), self.view.plot1.x1, y1, color=newcolor)
+        #             self.view.plot1.addtext(str(int(z2)), self.view.plot1.x2, y2, color=newcolor)
+        #             # Remove the legend
+        #
+        #         # Reset and write out values
+        #         self.view.SetStatusText(outstring, number=5)
+        #         self.view.plot1.x1, self.view.plot1.x2 = None, None
+        # pass
 
     def on_grid_decon(self, e):
         GridDecon.GridDeconWindow(self.view, self.eng.data.data2, config=self.eng.config)
@@ -1544,19 +1414,6 @@ class UniDecApp(UniDecPres):
 
     def on_score_FDR(self, e=0):
         self.eng.estimate_FDR()
-
-    def on_ex(self, e=0, pos=1):
-        print("Loading Example Data")
-        # Load the example data from the event. If there is an error, grab the pos value and load that file.
-        try:
-            self.view.menu.on_example_data(e)
-        except:
-            self.view.menu.load_example_data(pos)
-
-        # If you hold down control, it will load everything
-        if wx.GetKeyState(wx.WXK_CONTROL):
-            self.on_load_everything()
-        pass
 
     def on_flip_mode(self, e=None):
         """

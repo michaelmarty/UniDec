@@ -1,18 +1,16 @@
 import os
 import time
-
 import numpy as np
 import unidec.tools as ud
 import platform
 import matplotlib.cm as cm
 import matplotlib as mpl
-#from matplotlib.pyplot import colormaps
 import h5py
-from unidec.modules.unidec_enginebase import version as version
 from unidec.modules.hdf5_tools import replace_dataset, get_dataset
 
 __author__ = 'Michael.Marty'
 
+version = "8.0.0"
 
 def ofile_reader(path):
     oligos = []
@@ -52,7 +50,8 @@ class UniDecConfig(object):
         """
         self.version = version
         self.inputversion = None
-        self.dtype = np.single
+        self.dtype = ud.dtype
+        self.centroided = False
 
         # File names and paths
         self.system = platform.system()
@@ -610,6 +609,7 @@ class UniDecConfig(object):
         f.write("csig " + str(self.csig) + "\n")
         f.write("smoothdt " + str(self.smoothdt) + "\n")
         f.write("subbufdt " + str(self.subbufdt) + "\n")
+        f.write("centroided " + str(int(self.centroided)) + "\n")
         if self.mindt != '' or self.maxdt != '':
             f.write("zout " + str(self.zout) + "\n")
             f.write("pusher " + str(self.pusher) + "\n")
@@ -714,7 +714,8 @@ class UniDecConfig(object):
                             self.endz = ud.string_to_int(line.split()[1])
                         if line.startswith("startz"):
                             self.startz = ud.string_to_int(line.split()[1])
-
+                        if line.startswith("centroided"):
+                            self.centroided = ud.string_to_int(line.split()[1])
                         if line.startswith("CDslope"):
                             self.CDslope = ud.string_to_value(line.split()[1])
                         if line.startswith("CDzbins"):
@@ -1231,6 +1232,15 @@ class UniDecConfig(object):
             x = float(self.minmz)
         except Exception:
             self.minmz = 0
+
+        try:
+            x = float(self.massub)
+        except Exception:
+            self.massub = 1000000
+        try:
+            x = float(self.masslb)
+        except Exception:
+            self.masslb = 0
 
         # Check that mz min and max are not reversed
         if self.maxmz <= self.minmz:

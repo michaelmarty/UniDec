@@ -1,8 +1,7 @@
 import matplotlib as mpl
 import wx
-from unidec.modules.PlottingWindow import Plot1d
+from unidec.modules.plotting.PlottingWindow import Plot1d
 from unidec.modules.unidecstructure import UniDecConfig
-import numpy as np
 
 mpl.rcParams['ps.useafm'] = True
 mpl.rcParams['ps.fonttype'] = 42

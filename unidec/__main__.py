@@ -4,8 +4,8 @@ from unidec.engine import *
 
 
 def main(*args, **kwargs):
-    print(sys.argv)
-    print("Running Command Line UniDec")
+    print("\nRunning Command Line UniDec")
+    print("Args:", sys.argv)
     UniDec(*sys.argv)
 
 

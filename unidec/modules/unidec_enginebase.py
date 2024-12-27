@@ -1,13 +1,10 @@
-from unidec.modules import unidecstructure, peakstructure, plot1d, plot2d
-from unidec import tools as ud
-import numpy as np
-import os
+from unidec.modules import peakstructure
+from unidec.modules.plotting import plot1d, plot2d
+import unidec.modules.unidecstructure as unidecstructure
 import time
-import webbrowser
 from unidec.modules.html_writer import *
 
-version = "7.0.2"
-
+version = unidecstructure.version
 
 def copy_config(config):
     # return deepcopy(config)
@@ -193,10 +190,11 @@ class UniDecEngine:
         else:
             return False
 
-    def auto_polarity(self, path=None, importer=None):
-        if path is None:
-            path = self.config.filename
-        self.config.polarity = ud.get_polarity(path, importer=importer)
+    def auto_polarity(self, importer):
+        if importer is not None:
+            self.config.polarity = importer.polarity
+        else:
+            self.config.polarity = "Positive"
         if self.config.polarity == "Positive":
             self.config.adductmass = np.abs(self.config.adductmass)
             print("Adduct Mass:", self.config.adductmass)
@@ -618,8 +616,9 @@ class UniDecEngine:
                 print("Plot 4: %.2gs" % (tend - tstart))
             return plot
 
+    #This is broken
     def gen_html_report(self, event=None, outfile=None, plots=None, interactive=False, open_in_browser=True,
-                        results_string=None, del_columns=None, findex=None):
+                        results_string=None, del_columns=None, findex=None, allpng=False):
         """
         Generate an HTML report of the current UniDec run.
         :param event: Unused Event
@@ -675,7 +674,7 @@ class UniDecEngine:
             for c in row:
                 if c is not None and c.flag:
                     goodrow = True
-                    if c.is2d:
+                    if c.is2d or allpng:
                         png_str = c.get_png()
                         png_html = png_to_html(png_str)
                         svg_row.append(png_html)
