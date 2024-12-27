@@ -28,6 +28,12 @@ def main(*args, **kwargs):
     # print("OPTS:", opts)
     infile = None
     outfile = None
+    assume_centroided=False
+
+    if len(args) > 0:
+        if "-precentroided" in args:
+            assume_centroided=True
+
     if opts is not None:
         for opt, arg in opts:
             if opt in ("-f", "--file"):
@@ -40,16 +46,16 @@ def main(*args, **kwargs):
             if os.path.isfile(infile):
                 from unidec.IsoDec.runtime import IsoDecRuntime
                 eng = IsoDecRuntime()
-                eng.process_file(infile)
+                eng.process_file(infile, assume_centroided=assume_centroided)
                 return
 
-    if len(args) == 1:
+    if len(args) >= 1:
         file = args[0]
         print("Opening File:", file)
         if os.path.isfile(file):
             from unidec.IsoDec.runtime import IsoDecRuntime
             eng = IsoDecRuntime()
-            eng.process_file(file)
+            eng.process_file(file, assume_centroided=assume_centroided)
             return
 
     # if "train" in args:
