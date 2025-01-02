@@ -1,7 +1,7 @@
 UniDec License:
 
 Copyright (c) 2016, University of Oxford
-              2017-2024, Arizona Board of Regents on behalf of the University of Arizona
+              2017-2025, Arizona Board of Regents on behalf of the University of Arizona
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,3 +32,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Note: The Waters MassLynx SDK and DLLs are distributed under a separate license. See Waters_MassLynxSDK_EULA.txt.
 Note: The Thermo RawFileReader code is distributed under a separate license. See RawFileReader.doc.
+Note: Some other 3rd party libraries are distributed under separate licenses, as described in the readme.md file.

@@ -42,7 +42,7 @@ class ThermoImporter(Importer):
         return self.data
 
     def get_single_scan(self, s):
-        impdat = np.array(self.msrun.GetSpectrum(s))  # May want to test this.
+        impdat = np.array(self.msrun.GetSpectrum(s))
         impdat = impdat[impdat[:, 0] > 10]
         return impdat
 

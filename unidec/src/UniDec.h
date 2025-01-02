@@ -3378,40 +3378,40 @@ double LinearInterpolatePositionD(double x1, double x2, double x)
 	return (x - x1) / (x2 - x1);
 }
 
-// "Returns" discrete Fourier transform of input array. Unused.
-// Use fftw library instead
-void discretefouriertransform(double* input, double** output, int length) {
-	double pi = 3.1415926535;
-	for (int i = 0; i < length; i++) {
-		output[i][0] = 0.0; // Real term
-		output[i][1] = 0.0; // Imaginary term
-		for (int j = 0; j < length; j++) {
-			double inner = 2.0 * pi / length * i * j;
-			output[i][0] += input[j] * cos(inner);
-			output[i][1] += input[j] * (-1.0) * sin(inner);
-		}
-	}
-}
-
-// "Returns" discrete inverse Fourier transform of input. Unused.
-// Use fftw library instead
-void inversefouriertransform(double** input, double* output, int length) {
-	double pi = 3.1415926535;
-	for (int i = 0; i < length; i++) {
-		output[i] = 0.0;	// Real term
-		double imag = 0.0;	// Imaginary term
-		for (int j = 0; j < length; j++) {	// (ac - bd) + i(ad + bc)
-			double inner = 2.0 * pi / length * i * j;
-			double c = cos(inner);
-			double d = sin(inner);
-			output[i] += (input[j][0] * c) - (input[j][1] * d);
-			imag += (input[j][0] * d) + (input[j][1] * c);
-		}
-		output[i] = output[i] / ((double)length);
-		imag = imag / ((double)length);
-		printf("Imaginary term is %.2f", imag);
-	}
-}
+//// "Returns" discrete Fourier transform of input array. Unused.
+//// Use fftw library instead
+//void discretefouriertransform(double* input, double** output, int length) {
+//	double pi = 3.1415926535;
+//	for (int i = 0; i < length; i++) {
+//		output[i][0] = 0.0; // Real term
+//		output[i][1] = 0.0; // Imaginary term
+//		for (int j = 0; j < length; j++) {
+//			double inner = 2.0 * pi / length * i * j;
+//			output[i][0] += input[j] * cos(inner);
+//			output[i][1] += input[j] * (-1.0) * sin(inner);
+//		}
+//	}
+//}
+//
+//// "Returns" discrete inverse Fourier transform of input. Unused.
+//// Use fftw library instead
+//void inversefouriertransform(double** input, double* output, int length) {
+//	double pi = 3.1415926535;
+//	for (int i = 0; i < length; i++) {
+//		output[i] = 0.0;	// Real term
+//		double imag = 0.0;	// Imaginary term
+//		for (int j = 0; j < length; j++) {	// (ac - bd) + i(ad + bc)
+//			double inner = 2.0 * pi / length * i * j;
+//			double c = cos(inner);
+//			double d = sin(inner);
+//			output[i] += (input[j][0] * c) - (input[j][1] * d);
+//			imag += (input[j][0] * d) + (input[j][1] * c);
+//		}
+//		output[i] = output[i] / ((double)length);
+//		imag = imag / ((double)length);
+//		printf("Imaginary term is %.2f", imag);
+//	}
+//}
 
 // Gives convolution of functions a and b. Unused.
 // Use cconv2fast instead

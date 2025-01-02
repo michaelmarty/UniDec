@@ -375,8 +375,8 @@ class PhaseModel:
                 start = batch * lx
                 end = batch * lx + lx
                 predvec = self.model(x)
-                for i in range(len(predvec[0])):
-                    print("z", i, predvec[0][i])
+                # for i in range(len(predvec[0])):
+                #     print("z", i, predvec[0][i])
                 predzs, predz_inds = torch.topk(predvec, k=2, dim=1)
                 output[start:end, 0] = predz_inds[:, 0]
                 second_score_within = ((predzs[:, 1] / predzs[:, 0]) > zscore_thresh).float()

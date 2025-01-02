@@ -72,6 +72,8 @@ Intel libraries from the oneAPI are distributed under licenses found in the bin 
 
 RDKit libraries are gratefully used for LipiDec and are distributed under the CC-SA license. Please [cite them when using these features](https://www.rdkit.org/docs/Overview.html#citing-the-rdkit). 
 
+FFTW libraries are distributed under the GPL license, which is included alongside the relevant files.
+
 ## UniDec Compatible File Types
 
 UniDec is built to open .txt files using [numpy.loadtxt](http://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.loadtxt.html). 

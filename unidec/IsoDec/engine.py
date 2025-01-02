@@ -15,12 +15,11 @@ from copy import deepcopy
 import pickle as pkl
 
 from unidec.IsoDec.c_interface import IsoDecWrapper
-from unidec.IsoDec.plots import cplot
+from unidec.IsoDec.plots import *
 import platform
 from unidec.IsoDec.altdecon import thrash_predict
 
 from unidec.UniDecImporter.ImporterFactory import *
-
 
 class IsoDecDataset(torch.utils.data.Dataset):
     """
@@ -431,6 +430,7 @@ class IsoDecEngine:
             return []
         pk = optimize_shift2(self.config, centroids, z, peakmz)
         if pk is not None:
+            pk.matchedcentroids = centroids[pk.matchedindexes]
             if pks is not None:
                 pk.rt = self.config.activescanrt
                 pk.scan = self.config.activescan
@@ -448,7 +448,11 @@ class IsoDecEngine:
         if zs[0] == 0 or zs[0] > self.maxz:
             return []
         pk1 = optimize_shift2(self.config, centroids, zs[0], peakmz)
+        if pk1 is not None:
+            pk1.matchedcentroids = centroids[pk1.matchedindexes]
         pk2 = optimize_shift2(self.config, centroids, zs[1], peakmz)
+        if pk2 is not None:
+            pk2.matchedcentroids = centroids[pk2.matchedindexes]
         if pk1 is not None and pk2 is not None:
             # Retain the peak with the highest score
             pk1_maxscore = np.amax(pk1.acceptedshifts[:, 1])
@@ -481,6 +485,36 @@ class IsoDecEngine:
             return pk2.matchedindexes
         else:
             return []
+
+    def get_matches_zloop(self, centroids, predvec, peakmz, pks=None):
+        print("Testing peak:", peakmz)
+        if len(centroids) < self.config.minpeaks:
+            return []
+        #Order the predvec by descending
+        order = np.argsort(predvec[0])[::-1]
+        # for i in order:
+        #     print("Z:", i, "Prediction:", predvec[0][i])
+        matchedindexes = []
+        for i in order:
+            if self.config.verbose:
+                print("Z:", i, "Prediction:", predvec[0][i])
+            if i == 1:
+                #Charge 1 must be within 90% of the max score
+                if predvec[0][i] < 0.8 * predvec[0][order[0]]:
+                    continue
+            #Check if the prediction score is within a threshold of the max score
+            elif i != 1 and predvec[0][i] < self.config.zscore_threshold * predvec[0][order[0]]:
+                break
+
+            pk = optimize_shift2(self.config, centroids, i, peakmz)
+            if pk is not None:
+                #Add unique matched indexes to the list
+                matchedindexes = list(set(matchedindexes + pk.matchedindexes))
+                if pks is not None:
+                    pks.add_peak(pk)
+                else:
+                    self.pks.add_peak(pk)
+        return matchedindexes
 
     def batch_process_spectrum(self, data, window=None, threshold=None, centroided=False, refresh=False):
         """
@@ -597,6 +631,20 @@ class IsoDecEngine:
                     preds = [self.phase_predictor(c) for c in encodingcentroids]
                     preds2 = [self.thrash_predictor(c) for c in encodingcentroids]
                     preds = [[preds[i][0], preds2[i][0]] for i in range(len(preds))]
+
+                elif self.predmode == 4:
+                    encodingcentroids, goodpeaks, outcentroids, indexes = extract_centroids(centroids, peaks,
+                                                                                            lowmz=self.config.mzwindow[
+                                                                                                0],
+                                                                                            highmz=self.config.mzwindow[
+                                                                                                1],
+                                                                                            minpeaks=2,
+                                                                                            datathresh=self.config.datathreshold)
+                    peaks = goodpeaks
+                    centlist = outcentroids
+                    preds = [self.phasemodel.predict_returnvec(c) for c in encodingcentroids]
+
+
                 else:
                     raise ValueError("Unknown mode", self.predmode)
 
@@ -608,22 +656,29 @@ class IsoDecEngine:
                 # Loop through all peaks to check if they are good
                 for j, p in enumerate(peaks):
                     z = preds[j]
+                    if self.predmode == 4:
+                        z = 0
                     kindex = fastnearest(centroids[:, 0], p[0])
+
+                    matchedindexes = []
+                    if self.predmode == 4:
+                        matchedindexes = self.get_matches_zloop(centlist[j], preds[j], p[0], pks=self.pks)
 
                     if self.config.verbose:
                         print("Peak:", p, z)
 
                     if kindex in knockdown:
                         continue
-                    if z[0] == 0:
-                        knockdown.append(kindex)
-                        continue
 
-                    # Get the centroids around the peak
-                    if z[1] != 0 and z[1] != z[0]:
-                        matchedindexes = self.get_matches_multiple_z(centlist[j], z, p[0], pks=self.pks)
-                    else:
-                        matchedindexes = self.get_matches(centlist[j], z[0], p[0], pks=self.pks)
+                    if self.predmode != 4:
+                        if z[0] == 0:
+                            knockdown.append(kindex)
+                            continue
+                        # Get the centroids around the peak
+                        if z[1] != 0 and z[1] != z[0]:
+                            matchedindexes = self.get_matches_multiple_z(centlist[j], z, p[0], pks=self.pks)
+                        else:
+                            matchedindexes = self.get_matches(centlist[j], z[0], p[0], pks=self.pks)
 
                     if len(matchedindexes) > 0:
                         ngood += 1

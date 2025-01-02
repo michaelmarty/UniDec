@@ -127,7 +127,7 @@ if __name__ == '__main__':
     path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_agilent.d"
     #path = "C:\\Data\\DataTypeCollection\\test_agilent.d"
     d = AgilentImporter(path)
-    print(d.get_all_scans())
+    print(d.get_avg_scan())
 
 
 

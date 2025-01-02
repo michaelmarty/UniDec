@@ -140,7 +140,7 @@ class IsoDecRuntime:
             if len(spectrum) < 3:
                 continue
             self.config.set_scan_info(s, reader)
-            print("Scan:", s, "Length:", len(spectrum), "Centroided:", reader.centroided)
+            # print("Scan:", s, "Length:", len(spectrum), "Centroided:", reader.centroided)
             self.batch_process_spectrum(spectrum, centroided=reader.centroided)
 
             if s % 10 == 0:

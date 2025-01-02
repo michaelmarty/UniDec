@@ -377,7 +377,7 @@ def simp_charge(centroids, silent=False):
     return charge
 
 
-def subtract_matched_centroid_range(profile_data, matched_theoretical, centroids, noise_threshold=0, tolerance = 0.001, window_size=5):
+def subtract_matched_centroid_range(profile_data, matched_theoretical, centroids, noise_threshold=1000, tolerance = 0.001, window_size=5):
     mz_values = profile_data[:, 0].copy()
     intensity_values = profile_data[:, 1].copy()
 
@@ -415,8 +415,8 @@ def subtract_matched_centroid_range(profile_data, matched_theoretical, centroids
     matched_ranges.sort(key=lambda x: x[2])
     for left_range, right_range, peak in matched_ranges:
         indices_to_zero = np.logical_and(mz_values >= left_range, mz_values <= right_range)
-
-        intensity_values[indices_to_zero] = 0
+        filtered = indices_to_zero[indices_to_zero< noise_threshold]
+        intensity_values[filtered] = 0
 
 
     profile_data[:, 1] = intensity_values
