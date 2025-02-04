@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import unidec.tools as ud
 import matplotlib as mpl
 
-mpl.use('WxAgg')
+# mpl.use('WxAgg')
 
 example = np.array(
     [
