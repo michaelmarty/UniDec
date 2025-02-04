@@ -295,6 +295,11 @@ class ChromApp(MetaUniDecBase):
         self.eng.add_sliding_window()
         self.update_hdf5()
 
+    def on_scanpart(self, e=None):
+        self.get_from_gui()
+        self.eng.add_regular_scans()
+        self.update_hdf5()
+
     def on_delete(self, e=None):
         self.makeplot2_mud()
         self.makeplot7()

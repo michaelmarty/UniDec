@@ -3,6 +3,9 @@ from unidec.modules.plotting import plot1d, plot2d
 import unidec.modules.unidecstructure as unidecstructure
 import time
 from unidec.modules.html_writer import *
+from unidec.UniDecImporter import ImporterFactory
+
+
 
 version = unidecstructure.version
 
@@ -22,6 +25,7 @@ class UniDecEngine:
 
         :return: None
         """
+
 
         self.version = version
         if "silent" in kwargs:
@@ -723,3 +727,7 @@ class UniDecEngine:
             # os.system(self.config.opencommand + "\"" + outfile + "\"")
 
         return outfile
+
+
+
+

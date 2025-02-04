@@ -90,7 +90,7 @@ A single file can be opened directly, or multiple files can be converted using
 Tools > Simple Batch Process Raw to Txt. For a fancier conversion such as extracting specific functions or scans, 
 try Tools > Raw to Txt Conversion Wizard. Note: rawreader.exe has been replaced with the MassLynxSDK 4.5 Python library. Water's converters will need MassLynxRaw.dll and/or cdt.dll in the same directory as the converter executables (the unidec/bin folder or the top directory). You can find these at: [https://interface.waters.com/masslynx/developers-area/sdks/](https://interface.waters.com/masslynx/developers-area/sdks/) if they aren't already there. 
 
-Agilent .d files can be read as you would a text file on Windows thanks to [multiplierz](https://github.com/BlaisProteomics/multiplierz). Please cite them (http://onlinelibrary.wiley.com/doi/10.1002/pmic.201700091/abstract). It will compress all scans together unless parsed with MetaUniDec. 
+Agilent .d files can be read natively on Windows. 
 
 Thermo .raw files should be able to be opened natively on Windows. Thermo DLLs are included bundled with UniDec.
 
@@ -196,6 +196,12 @@ The main GUI class is Launcher. You can launch the Launcher from the command lin
 Of course, using the pre-compiled version means you don't need to know Python at all and can just click the GUI_UniDec.exe icon to launch the program and get started. However you choose to do it, happy deconvolving!
 
 ## Change Log
+
+v.8.0.1
+
+Fixed bug with dialog windows failing to return properly. 
+
+Fixed a weird mzML bug.
 
 v.8.0.0
 
@@ -1102,8 +1108,6 @@ natsort: https://github.com/SethMMorton/natsort/blob/master/LICENSE
 pymzml: https://github.com/pymzml/pymzML/blob/master/LICENSE.txt
 
 networkx: https://networkx.github.io/documentation/networkx-1.10/reference/legal.html
-
-multiplierz: https://github.com/BlaisProteomics/multiplierz/blob/master/LICENSE
 
 pypubsub: https://pypubsub.readthedocs.io/en/v4.0.3/about.html#license
 

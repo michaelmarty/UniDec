@@ -5,6 +5,7 @@ import os
 import torch
 from torch.utils.data import DataLoader
 
+from unidec.IsoDec.encoding import encode_synthetic
 from unidec.IsoDec.models import example, PhaseModel
 from unidec.IsoDec.datatools import fastpeakdetect, get_all_centroids, fastnearest, check_spacings, remove_noise_cdata
 from unidec.IsoDec.match import optimize_shift2, IsoDecConfig, MatchedCollection
@@ -20,6 +21,7 @@ import platform
 from unidec.IsoDec.altdecon import thrash_predict
 
 from unidec.UniDecImporter.ImporterFactory import *
+
 
 class IsoDecDataset(torch.utils.data.Dataset):
     """
@@ -40,6 +42,7 @@ class IsoDecDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         return [self.emat[idx], self.z[idx]]
+
 
 # TODO: Inherit this from IsoDecRuntime
 class IsoDecEngine:
@@ -238,8 +241,87 @@ class IsoDecEngine:
         self.test_data[1] = np.concatenate((self.test_data[1], zs), axis=0)
         self.test_data[2] = self.test_data[2] + tempcentroids
 
+    def equilize_data(self):
+        ltraining = len(self.training_data[0])
+        zdata = self.training_data[1]
+        zcounts = np.bincount(zdata)[1:]
+        thebar = np.median(zcounts)
+        uz = np.arange(1, len(zcounts) + 1)
+        print("Equilizing Data. The Bar:", thebar)
+
+        if len(uz) != len(zcounts):
+            raise ValueError("Unique Zs and Z Counts are not the same length")
+
+        if thebar <= 1:
+            thebar = 10
+
+        emats = []
+        zs = []
+        tempcentroids = []
+        for i in range(1, 50):
+            if i not in uz:
+                num = 0
+            else:
+                num = zcounts[np.where(uz == i)[0][0]]
+
+            if num < thebar:
+                n = int(thebar - num)
+                for j in range(n):
+                    index = np.random.randint(0, ltraining - 1)
+                    centroid1 = self.training_data[2][index]
+                    z = self.training_data[1][index]
+                    emat, centroid = encode_synthetic(centroid1, z, i, phaseres=self.config.phaseres)
+                    emats.append(emat)
+                    zs.append(i)
+                    tempcentroids.append(centroid)
+                    # cplot(centroid)
+                    # plt.show()
+
+        self.training_data[0] = np.concatenate((self.training_data[0], emats), axis=0)
+        self.training_data[1] = np.concatenate((self.training_data[1], zs), axis=0)
+        self.training_data[2] = self.training_data[2] + tempcentroids
+
+        ltest = len(self.test_data[0])
+        zdata = self.test_data[1]
+        zcounts = np.bincount(zdata)[1:]
+        thebar = np.median(zcounts)
+        uz = np.arange(1, len(zcounts) + 1)
+
+        if len(uz) != len(zcounts):
+            raise ValueError("Unique Zs and Z Counts are not the same length")
+
+        if thebar <= 1:
+            thebar = 10
+
+        emats = []
+        zs = []
+        tempcentroids = []
+        for i in range(1, 50):
+            if i not in uz:
+                num = 0
+            else:
+                num = zcounts[np.where(uz == i)[0][0]]
+
+            if num < thebar:
+                n = int(thebar - num)
+                for j in range(n):
+                    index = np.random.randint(0, ltest - 1)
+                    centroid1 = self.test_data[2][index]
+                    z = self.test_data[1][index]
+                    emat, centroid = encode_synthetic(centroid1, z, i, phaseres=self.config.phaseres)
+                    emats.append(emat)
+                    zs.append(i)
+                    tempcentroids.append(centroid)
+                    # cplot(centroid)
+                    # plt.show()
+
+        self.test_data[0] = np.concatenate((self.test_data[0], emats), axis=0)
+        self.test_data[1] = np.concatenate((self.test_data[1], zs), axis=0)
+        self.test_data[2] = self.test_data[2] + tempcentroids
+
+
     def load_training_data(self, training_path, test_path=None, noise_percent=0.0, double_percent=0.4,
-                           harmonic_percent=0.0, onedrop_percent=0.0):
+                           harmonic_percent=0.0, onedrop_percent=0.0, equilize=False):
         """
         Load training data from a file
         :param training_path: Path to the training data file or name of the file tag
@@ -247,6 +329,9 @@ class IsoDecEngine:
                             If not, will default to same as training_path
         :param noise_percent: The percent of noise to add to the training and test data
         :param double_percent: The percent of double peaks to add to the training and test data
+        :param harmonic_percent: The percent of harmonic peaks to add to the training and test data
+        :param onedrop_percent: The percent of charge 1 data to drop
+        :param equilize: Whether to equilize the data
         :return: None
         """
         ext = ".npz"
@@ -275,10 +360,13 @@ class IsoDecEngine:
         if noise_percent > 0:
             self.add_noise(noise_percent)
 
+        if equilize:
+            self.equilize_data()
+
         print("Loaded:", len(self.training_data[0]), "Training Samples")
 
     def create_training_dataloader(self, training_path, test_path=None, noise_percent=0, batchsize=None,
-                                   double_percent=0.4, harmonic_percent=0, one_drop_percent=0):
+                                   double_percent=0.4, harmonic_percent=0, one_drop_percent=0, equalize=False):
         """
         Create the training and test dataloaders from a single file path
         :param training_path: Path to the training data file or name of the file tag
@@ -286,6 +374,9 @@ class IsoDecEngine:
         :param noise_percent: Percent of noise to add to the training and test data
         :param batchsize: Batch size for training
         :param double_percent: Percent of double peaks to add to the training and test data
+        :param harmonic_percent: Percent of harmonic peaks to add to the training and test data
+        :param one_drop_percent: Percent of charge 1 data to drop
+        :param equalize: Whether to equilize the data
         :return:
         """
         if batchsize is not None:
@@ -293,7 +384,7 @@ class IsoDecEngine:
 
         self.load_training_data(training_path, test_path=test_path, noise_percent=noise_percent,
                                 double_percent=double_percent, harmonic_percent=harmonic_percent,
-                                onedrop_percent=one_drop_percent)
+                                onedrop_percent=one_drop_percent, equalize=equalize)
 
         self.training_data = IsoDecDataset(self.training_data[0], self.training_data[1])
         self.test_data = IsoDecDataset(self.test_data[0], self.test_data[1])
@@ -304,7 +395,7 @@ class IsoDecEngine:
                                           pin_memory=False)
 
     def create_merged_dataloader(self, dirs, training_path, noise_percent=0.0, batchsize=None, double_percent=0.4,
-                                 harmonic_percent=0.0, onedrop_percent=0.0):
+                                 harmonic_percent=0.0, onedrop_percent=0.0, equilize=False):
         """
         Create a merged dataloader from multiple directories. Looks for common file names and merges them together
         :param dirs: Directories to look in
@@ -312,6 +403,9 @@ class IsoDecEngine:
         :param noise_percent: Percent of noise to add to the training and test data
         :param batchsize: Batch size for training
         :param double_percent: Percent of double peaks to add to the training and test data
+        :param harmonic_percent: Percent of harmonic peaks to add to the training and test data
+        :param onedrop_percent: Percent of charge 1 data to drop
+        :param equilize: Whether to equilize the data
         :return:
         """
         if batchsize is not None:
@@ -324,7 +418,8 @@ class IsoDecEngine:
             os.chdir(d)
             print(d)
             self.load_training_data(training_path, noise_percent=noise_percent, double_percent=double_percent,
-                                    harmonic_percent=harmonic_percent, onedrop_percent=onedrop_percent)
+                                    harmonic_percent=harmonic_percent, onedrop_percent=onedrop_percent,
+                                    equilize=equilize)
             training_data.append(self.training_data)
             test_data.append(self.test_data)
 
@@ -487,34 +582,51 @@ class IsoDecEngine:
             return []
 
     def get_matches_zloop(self, centroids, predvec, peakmz, pks=None):
-        print("Testing peak:", peakmz)
         if len(centroids) < self.config.minpeaks:
             return []
-        #Order the predvec by descending
+        # Order the predvec by descending
         order = np.argsort(predvec[0])[::-1]
         # for i in order:
         #     print("Z:", i, "Prediction:", predvec[0][i])
         matchedindexes = []
+        css_scores = []
+        peaks = []
         for i in order:
             if self.config.verbose:
                 print("Z:", i, "Prediction:", predvec[0][i])
-            if i == 1:
-                #Charge 1 must be within 90% of the max score
-                if predvec[0][i] < 0.8 * predvec[0][order[0]]:
-                    continue
-            #Check if the prediction score is within a threshold of the max score
-            elif i != 1 and predvec[0][i] < self.config.zscore_threshold * predvec[0][order[0]]:
-                break
+            if i == 0:
+                continue
+            # if i == 1:
+            #     #Charge 1 must be within 90% of the max score
+            #     if predvec[0][i] < 0.5 * predvec[0][order[0]]:
+            #         continue
+            # #Check if the prediction score is within a threshold of the max score
+            # elif i != 1 and predvec[0][i] < self.config.zscore_threshold * predvec[0][order[0]]:
+            #     break
 
             pk = optimize_shift2(self.config, centroids, i, peakmz)
             if pk is not None:
-                #Add unique matched indexes to the list
-                matchedindexes = list(set(matchedindexes + pk.matchedindexes))
-                if pks is not None:
-                    pks.add_peak(pk)
-                else:
-                    self.pks.add_peak(pk)
-        return matchedindexes
+                # Add unique matched indexes to the list
+                matchedindexes.append(pk.matchedindexes)
+                # Get the max score
+                maxscore = np.amax(pk.acceptedshifts[:, 1])
+                css_scores.append(maxscore)
+                peaks.append(pk)
+                # if pks is not None:
+                #     pks.add_peak(pk)
+                # else:
+                #     self.pks.add_peak(pk)
+
+        if len(peaks) > 0:
+            # Find the peak with the highest score
+            maxindex = np.argmax(css_scores)
+            if pks is not None:
+                pks.add_peak(peaks[maxindex])
+            else:
+                self.pks.add_peak(peaks[maxindex])
+            return matchedindexes[maxindex]
+        else:
+            return []
 
     def batch_process_spectrum(self, data, window=None, threshold=None, centroided=False, refresh=False):
         """
@@ -589,7 +701,6 @@ class IsoDecEngine:
                                                                        phaseres=self.config.phaseres,
                                                                        minpeaks=2, datathresh=self.config.datathreshold)
 
-
                     emats = [torch.as_tensor(e, dtype=torch.float32) for e in emats]
                     # emats = torch.as_tensor(emats, dtype=torch.float32).to(self.phasemodel.device)
                     data_loader = DataLoader(emats, batch_size=2048, shuffle=False, pin_memory=True)
@@ -650,7 +761,6 @@ class IsoDecEngine:
 
                 knockdown = []
                 ngood = 0
-
 
                 # print(peaks, len(peaks))
                 # Loop through all peaks to check if they are good
@@ -781,21 +891,36 @@ class IsoDecEngine:
 
 if __name__ == "__main__":
     starttime = time.perf_counter()
-    eng = IsoDecEngine(phaseres=8)
+
     topdirectory = "C:\\Data\\IsoNN\\training"
+    # topdirectory = "Z:\\Group Share\\JGP\\TrainingData"
 
     dirs = [os.path.join(topdirectory, d) for d in small_data_dirs]
-    eng.create_merged_dataloader(dirs, "phase83", noise_percent=0.0, batchsize=32, double_percent=0.4,
-                                 harmonic_percent=0.1, onedrop_percent=0.8)
-    # eng.train_model(epochs=3)
-    eng.train_model(epochs=10, lossfn="crossentropy", forcenew=True)
+
+    # eng = IsoDecEngine(phaseres=8)
+    # # eng.create_merged_dataloader(dirs, "phase83", noise_percent=0.0, batchsize=32, double_percent=0,
+    # #                              harmonic_percent=0, onedrop_percent=0, equilize=True)
+    # eng.create_merged_dataloader(dirs, "phase83", noise_percent=0.0, batchsize=32, double_percent=0,
+    #                              harmonic_percent=0, onedrop_percent=0.9, equilize=True)
+    # # eng.train_model(epochs=3)
+    # eng.train_model(epochs=10, lossfn="crossentropy", forcenew=True)
     # eng.train_model(epochs=3, lossfn="focal", forcenew=False)
 
     # eng.create_merged_dataloader([os.path.join(topdirectory, small_data_dirs[2])], "phase82", noise_percent=0.2,
     #                             batchsize=32, double_percent=0.2)
     # eng.save_bad_data()
+
+    eng = IsoDecEngine(phaseres=1)
+    # eng.create_merged_dataloader(dirs, "phase83", noise_percent=0.0, batchsize=32, double_percent=0,
+    #                              harmonic_percent=0, onedrop_percent=0, equilize=True)
+    eng.create_merged_dataloader(dirs, "phase1", noise_percent=0.0, batchsize=32, double_percent=0,
+                                 harmonic_percent=0, onedrop_percent=0.9, equilize=True)
+    # eng.train_model(epochs=3)
+    eng.train_model(epochs=3, lossfn="crossentropy", forcenew=True)
+
     exit()
     import matplotlib.pyplot as plt
+
     c = example
     pks = eng.batch_process_spectrum(c, centroided=True)
     cplot(c)

@@ -129,7 +129,7 @@ class PhaseModel:
             savename = "phase_model_8.pth"
         elif modelid == 2:
             self.model = PhaseNeuralNetwork(size=self.dims[1], outsize=self.dims[0])
-            savename = "phase_model_3.pth"
+            savename = "phase_model_1.pth"
         else:
             print("Model ID not recognized", modelid)
             raise ValueError("Model ID not recognized")

@@ -5,23 +5,24 @@ To fetch all scans use importer_name.get_all_scans()
 import os
 import platform
 import numpy as np
-
 from unidec.UniDecImporter import SingleScanImporter as SSI
 from unidec.UniDecImporter.I2MS.I2MS import I2MSImporter
 from unidec.UniDecImporter.MZML.mzML import MZMLImporter
 from unidec.UniDecImporter.MZXML.mzXML import MZXMLImporter
 
+
+
+
 # Note, it is important that these be listed with raw data formats first and processed data formats later.
 # Batch.py will attempt the latter formats if use_converted option is on
 recognized_types = [".raw", ".d", ".mzxml",".mzml", ".mzml.gz", ".gz", '.txt', '.dat', '.csv', '.npz', '.i2ms', '.dmt',
-                    '.bin']
+                     '.bin']
 
 if platform.system() == "Windows":
     try:
         from unidec.UniDecImporter.Agilent.AgilentImporter import AgilentImporter
     except Exception as e:
         print("Unable to import AgilentImporter:", e)
-        # Remove .d and .D from recognized types
         recognized_types.remove(".d")
 
     try:
@@ -32,12 +33,14 @@ if platform.system() == "Windows":
         from unidec.UniDecImporter.Waters.Waters import WatersDataImporter
     except Exception as e:
         print("Unable to import WatersDataImporter:", e)
+
 else:
-    print("Not importing Agilent, Thermo, or Waters importers on non-Windows system")
-    # Remove .d and .D from recognized types
-    recognized_types.remove(".d")
-    # Remove Raw from recognized types
-    recognized_types.remove(".raw")
+        print("Not importing Agilent, Thermo, or Waters importers on non-Windows system")
+        # Remove .d and .D from recognized types
+        recognized_types.remove(".d")
+        # Remove Raw from recognized types
+        recognized_types.remove(".raw")
+
 
 
 class ImporterFactory:
@@ -78,10 +81,13 @@ def get_polarity(path):
     return polarity
 
 
+
+
 if __name__ == "__main__":
     test = u"C:\\Python\\UniDec3\\TestSpectra\\test.raw"
     test = "Z:\\Group Share\\JGP\\js8b05641_si_001\\1500_scans_200K_16 fills-qb1.mzML"
     importer = ImporterFactory.create_importer(test)
+    import unidec.UniDecImporter.Thermo.Thermo
     # print(len(dat))
 
 

@@ -164,16 +164,27 @@ class MatchedCollection:
             #need to update this code to allow for overlapped monoisos.
             idx = fastnearest(self.monoisos, pk.monoiso)
             nearest_mass = self.monoisos[idx]
-            if pk.scan - self.masses[idx].scans[len(self.masses[idx].scans) - 1] <= 100 and ud.within_ppm(
-                    self.masses[idx].monoiso, pk.monoiso, ppmtol):
-                self.masses[idx].scans = np.append(self.masses[idx].scans, pk.scan)
+
+            if (abs(pk.scan - self.masses[idx].scans[len(self.masses[idx].scans) - 1]) <= 100 and
+                    ud.within_ppm(self.masses[idx].monoiso, pk.monoiso, ppmtol)):
+                if pk.scan not in self.masses[idx].scans:
+                    self.masses[idx].scans = np.append(self.masses[idx].scans, pk.scan)
                 self.masses[idx].totalintensity += pk.matchedintensity
 
                 if pk.matchedintensity is not None:
-                    if pk.matchedintensity > self.masses[idx].maxintensity:
-                        self.masses[idx].maxintensity = pk.matchedintensity
-                        self.masses[idx].maxscan = pk.scan
-                        self.masses[idx].maxrt = pk.rt
+                    if pk.matchedintensity > self.masses[idx].apexintensity:
+                        self.masses[idx].apexintensity = pk.matchedintensity
+                        self.masses[idx].apexscan = pk.scan
+                        self.masses[idx].apexrt = pk.rt
+
+                #Update min and max scans if necessary
+                if pk.scan > self.masses[idx].maxscan:
+                    self.masses[idx].maxscan = pk.scan
+                    self.masses[idx].maxrt = pk.rt
+
+                if pk.scan < self.masses[idx].minscan:
+                    self.masses[idx].minscan = pk.scan
+                    self.masses[idx].minrt = pk.rt
 
                 if not np.isin(self.masses[idx].zs, pk.z).any():
                     self.masses[idx].zs = np.append(self.masses[idx].zs, pk.z)
@@ -208,14 +219,15 @@ class MatchedCollection:
             if len(indices) > 0:
                 for i in indices:
                     #Filter out the indices of peaks that are too far away in RT
-                    if np.abs(pk.rt - self.masses[i].maxrt) > rt_tol:
+                    if np.abs(pk.rt - self.masses[i].maxrt) > rt_tol and np.abs(pk.rt - self.masses[i].minrt) > rt_tol:
                         continue
-                    for m in self.masses[i].monoisos:
-                        if ud.within_ppm(m, pk.monoiso, ppmtol):
+                    for m in range(-maxshift, maxshift+1):
+                        if ud.within_ppm(self.masses[i].monoiso, pk.monoiso + m * mass_diff_c, ppmtol):
                             matched_indices.append(i)
                             break
                         if i in matched_indices:
                             break
+
 
                 if len(matched_indices) == 0:
                     if pk.monoiso > nearest_mass:
@@ -231,26 +243,63 @@ class MatchedCollection:
                     #Add the peak to the matched mass
                     self.masses[matched_indices[0]].scans = np.append(self.masses[matched_indices[0]].scans, pk.scan)
                     self.masses[idx].totalintensity += pk.matchedintensity
+                    self.masses[idx].totalpeaks += 1
+
                     if pk.matchedintensity is not None:
-                        if pk.matchedintensity > self.masses[matched_indices[0]].maxintensity:
-                            self.masses[matched_indices[0]].maxintensity = pk.matchedintensity
+                        #Add the intensity to the scan intensity dictionary
+                        if self.masses[matched_indices[0]].scan_intensities.get(pk.scan) is not None:
+                            self.masses[matched_indices[0]].scan_intensities[pk.scan] += pk.matchedintensity
+                        else:
+                            self.masses[matched_indices[0]].scan_intensities[pk.scan] = pk.matchedintensity
+                        #Update the apex intensity if necessary
+                        if pk.matchedintensity > self.masses[matched_indices[0]].apexintensity:
+                            self.masses[matched_indices[0]].apexintensity = pk.matchedintensity
+                            self.masses[matched_indices[0]].apexscan = pk.scan
+                            self.masses[matched_indices[0]].apexrt = pk.rt
+
+                        #Update the min and max rt/scan if necessary:
+                        if pk.scan > self.masses[matched_indices[0]].maxscan:
                             self.masses[matched_indices[0]].maxscan = pk.scan
                             self.masses[matched_indices[0]].maxrt = pk.rt
+
+                        if pk.scan < self.masses[matched_indices[0]].minscan:
+                            self.masses[matched_indices[0]].minscan = pk.scan
+                            self.masses[matched_indices[0]].minrt = pk.rt
+
                     if pk.z not in self.masses[matched_indices[0]].zs:
                         self.masses[matched_indices[0]].zs = np.append(self.masses[matched_indices[0]].zs, pk.z)
                         self.masses[matched_indices[0]].mzs = np.append(self.masses[matched_indices[0]].mzs, pk.mz)
                 else:
                     #The new peak matches to multiple, select the one with the closest RT
-                    rt_diffs = np.abs([pk.rt - self.masses[i].maxrt for i in matched_indices])
+                    rt_diffs = np.abs([pk.rt - self.masses[i].apexrt for i in matched_indices])
                     closest = np.argmin(rt_diffs)
 
                     self.masses[matched_indices[closest]].scans = np.append(self.masses[matched_indices[closest]].scans, pk.scan)
-                    self.masses[idx].totalintensity += pk.matchedintensity
+                    self.masses[matched_indices[closest]].totalintensity += pk.matchedintensity
+                    self.masses[matched_indices[closest]].totalpeaks += 1
+
+                    #Add the intensity to the scan intensity dictionary
                     if pk.matchedintensity is not None:
-                        if pk.matchedintensity > self.masses[matched_indices[closest]].maxintensity:
-                            self.masses[matched_indices[closest]].maxintensity = pk.matchedintensity
+                        if self.masses[matched_indices[closest]].scan_intensities.get(pk.scan) is not None:
+                            self.masses[matched_indices[closest]].scan_intensities[pk.scan] += pk.matchedintensity
+                        else:
+                            self.masses[matched_indices[closest]].scan_intensities[pk.scan] = pk.matchedintensity
+
+                        #Update the apex intensity if necessary
+                        if pk.matchedintensity > self.masses[matched_indices[closest]].apexintensity:
+                            self.masses[matched_indices[closest]].apexintensity = pk.matchedintensity
+                            self.masses[matched_indices[closest]].apexscan = pk.scan
+                            self.masses[matched_indices[closest]].apexrt = pk.rt
+
+                        #Update the min and max rt/scan if necessary:
+                        if pk.scan > self.masses[matched_indices[closest]].maxscan:
                             self.masses[matched_indices[closest]].maxscan = pk.scan
                             self.masses[matched_indices[closest]].maxrt = pk.rt
+
+                        if pk.scan < self.masses[matched_indices[closest]].minscan:
+                            self.masses[matched_indices[closest]].minscan = pk.scan
+                            self.masses[matched_indices[closest]].minrt = pk.rt
+
                     if pk.z not in self.masses[matched_indices[closest]].zs:
                         self.masses[matched_indices[closest]].zs = np.append(self.masses[matched_indices[closest]].zs, pk.z)
                         self.masses[matched_indices[closest]].mzs = np.append(self.masses[matched_indices[closest]].mzs, pk.mz)
@@ -405,14 +454,20 @@ class MatchedMass:
         self.monoiso = pk.monoiso
         self.monoisos = pk.monoisos
         self.scans = np.array([pk.scan])
-        self.maxintensity = pk.matchedintensity
+        self.apexintensity = pk.matchedintensity
         self.maxscan = pk.scan
         self.maxrt = pk.rt
+        self.minscan = pk.scan
+        self.minrt = pk.rt
+        self.apexscan = pk.scan
+        self.apexrt = pk.rt
         self.mzs = np.array([pk.mz])
         self.zs = np.array([pk.z])
         self.totalintensity = pk.matchedintensity
-        self.mzints = np.array([pk.peakint])
+        self.mzints = np.array([pk.matchedintensity])
+        self.scan_intensities = {pk.scan: pk.matchedintensity}
         self.isodists = pk.isodist
+        self.totalpeaks = 1
 
 
 
@@ -682,7 +737,7 @@ def compare_matchedmasses(coll1, coll2, ppmtol=20, maxshift=3, rt_tol = 2, f_sha
             within_tol = sorted(within_tol, key=lambda x: coll2.masses[x].totalintensity, reverse=True)
             for j in within_tol:
                 #ensure that the retention times are close enough
-                if abs(coll1.masses[i].maxrt - coll2.masses[j].maxrt) < rt_tol:
+                if abs(coll1.masses[i].apexrt - coll2.masses[j].apexrt) < rt_tol:
                     #ensure that the monoisos match within the ppmtol allowing the maxshift
                     possible_monoisos = [monoisos1[i] + x * 1.0033 for x in range(-maxshift, maxshift + 1)]
                     if any([ud.within_ppm(m, monoisos2[j], ppmtol) for m in possible_monoisos]):
@@ -703,7 +758,7 @@ def compare_matchedmasses(coll1, coll2, ppmtol=20, maxshift=3, rt_tol = 2, f_sha
             if len(within_tol) > 0:
                 for j in within_tol:
                     #ensure that the retention times are close enough
-                    if abs(coll1.masses[j].maxrt - coll2.masses[i].maxrt) < rt_tol:
+                    if abs(coll1.masses[j].apexrt - coll2.masses[i].apexrt) < rt_tol:
                         #ensure that the monoisos match within the ppmtol allowing the maxshift
                         possible_monoisos = [monoisos2[i] + x * 1.0033 for x in range(-maxshift, maxshift + 1)]
                         if any([ud.within_ppm(m, monoisos1[j], ppmtol) for m in possible_monoisos]):

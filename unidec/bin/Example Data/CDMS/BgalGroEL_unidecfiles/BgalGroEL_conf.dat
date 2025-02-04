@@ -1,4 +1,4 @@
-version 7.0.2
+version 8.0.1
 imflag 0
 cdmsflag 1
 input C:\Python\UniDec3\unidec\bin\Example Data\CDMS\BgalGroEL_unidecfiles\BgalGroEL_input.dat
@@ -33,7 +33,7 @@ normthresh1
 peakplotthresh 0.1
 plotsep 100.0
 intthresh 0.0
-reductionpercent 
+reductionpercent 0.0
 aggressive 0
 rawflag 0
 adductmass 1.007276467
@@ -60,8 +60,8 @@ kernel C:\Xcalibur\Data\20210818_HMS_01_unidecfiles\20210818_HMS_01_mass.txt
 CDslope 110750.0
 CDzbins 1.0
 CDres 0.0
-CDScanStart 
-CDScanEnd 
+CDScanStart 1000.0
+CDScanEnd 1600.0
 CDprethresh 0.0
 HTksmooth 2.0
 CDScanCompress 10.0
@@ -83,9 +83,10 @@ demultiplexmode mHT
 FTsmooth 0.0
 HTmaskn 10.0
 HTwin 5.0
-csig 
+csig 0.0
 smoothdt 0.0
 subbufdt 0.0
+centroided 0
 zout 0.0
 pusher 0.0
 mindt 0.0

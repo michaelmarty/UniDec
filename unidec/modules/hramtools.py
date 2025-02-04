@@ -5,7 +5,7 @@ import re
 
 lipidsearchspace = [["1H", 54, 184], ["12C", 29, 93], ["14N", 0, 1], ["16O", 8, 17], ["31P", 0, 1]]#, ["13C", 0, 3]]
 lipidsearchspace = [["1H", 0, 184], ["12C", 0, 93], ["14N", 0, 1], ["16O", 0, 17], ["31P", 0, 1]]#, ["13C", 0, 3]]
-smallmolsearch = [["1H", 0, 100], ["12C", 0, 100], ["14N", 0, 5], ["16O", 0, 5], ["31P", 0, 1]]
+smallmolsearch = [["1H", 20, 60], ["12C", 35, 60], ["14N", 5, 5], ["16O", 2, 2], ["35Cl", 0, 2], ['106Pd', 1, 1], ['19F', 0, 8], ['11B', 0, 2]]
 
 class HRAMResult:
     def __init__(self):
@@ -136,11 +136,26 @@ if __name__ == "__main__":
     target = 729.2312
     #target = 18.034374
     target = 529.461
-    searcher = HRAMSearchSpace()
+    target = 59.966231
+    #target = 24.997378
+    #target = 728.2088
+    target = 50.999831
+    searcher = HRAMSearchSpace(searchspace=smallmolsearch)
     # target = 1500
-    results = calc_fromula_from_mass([target], Searcher=searcher, tolerance=5)
-    print(results[0].to_df())
-    print(results[0].match_comp)
-    print(results[0].elem_keys, results[0].iso_keys)
+    results = calc_fromula_from_mass([target], Searcher=searcher, tolerance=10)
+    outdf = results[0].to_df()
+    # print(results[0].to_df())
+    # print(results[0].match_comp)
+    # print(results[0].elem_keys, results[0].iso_keys)
+    outdf["AbsPPM"] = np.abs(outdf["PPM"])
+    outdf.sort_values(by=['AbsPPM'], ascending=True, inplace=True)
+    with pd.option_context('display.max_rows', None,
+                           'display.max_columns', None,
+                           'display.precision', 3,
+                           ):
+        pd.set_option('display.width', 111111)
+        for f in outdf["Formula"]:
+            print(str(f))
+    print(outdf["AbsPPM"].sum())
 
 

@@ -207,6 +207,8 @@ class NativeZ(wx.Dialog):
             self.plot_zoffs()
         self.populate_list(0)
 
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
+
     def update(self, e):
         """
         Update self.zoffs from the self.zlistctrl. Update the intensities for each zoffset value.
@@ -569,7 +571,7 @@ class NativeZ(wx.Dialog):
         self.config.massoffset = self.massoffset
         self.config.extractshape = self.ctlfilt.GetSelection()
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
 
     def on_close_cancel(self, e):
         """
@@ -578,7 +580,7 @@ class NativeZ(wx.Dialog):
         :return: None
         """
         self.Destroy()
-        self.EndModal(1)
+        self.EndModal(wx.ID_CANCEL)
 
 
 class ColorList(wx.Panel):

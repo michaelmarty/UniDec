@@ -765,6 +765,7 @@ class SelectMarker(wx.Dialog):
             button.Bind(wx.EVT_BUTTON, self.on_close)
 
         sbs.Add(hbox5, 0)
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
 
         pnl.SetSizer(sbs)
 
@@ -784,4 +785,8 @@ class SelectMarker(wx.Dialog):
         self.pks.peaks[self.index].marker = marker
         self.pks.peaks[self.index].textmarker = textmarker
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
+
+    def on_close_cancel(self, e):
+        self.Destroy()
+        self.EndModal(wx.ID_CANCEL)

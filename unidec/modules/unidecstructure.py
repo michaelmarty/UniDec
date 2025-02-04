@@ -10,7 +10,7 @@ from unidec.modules.hdf5_tools import replace_dataset, get_dataset
 
 __author__ = 'Michael.Marty'
 
-version = "8.0.0"
+version = "8.0.1"
 
 def ofile_reader(path):
     oligos = []

@@ -62,6 +62,13 @@ class SingleInputDialog(wx.Dialog):
         self.SetSizer(vbox)
 
         okbutton.Bind(wx.EVT_BUTTON, self.on_close)
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
+
+    def on_close_cancel(self, e):
+        """
+        """
+        self.Destroy()
+        self.EndModal(wx.ID_CANCEL)
 
     def on_close(self, e):
         """
@@ -71,7 +78,7 @@ class SingleInputDialog(wx.Dialog):
         """
         self.value = self.inputbox.GetValue()
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
         return self.value
 
 
@@ -104,7 +111,7 @@ class DoubleInputDialog(wx.Dialog):
         pnl.SetSizer(hbox)
 
         hboxend = wx.BoxSizer(wx.HORIZONTAL)
-        okbutton = wx.Button(self, label='Ok')
+        okbutton = wx.Button(self, wx.ID_OK, label='Ok')
         hboxend.Add(okbutton)
 
         vbox.Add(pnl, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
@@ -112,6 +119,13 @@ class DoubleInputDialog(wx.Dialog):
         self.SetSizer(vbox)
 
         okbutton.Bind(wx.EVT_BUTTON, self.on_close)
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
+
+    def on_close_cancel(self, e):
+        """
+        """
+        self.Destroy()
+        self.EndModal(wx.ID_CANCEL)
 
     def on_close(self, e):
         """
@@ -119,8 +133,11 @@ class DoubleInputDialog(wx.Dialog):
         self.value = self.inputbox.GetValue()
         self.value2 = self.inputbox2.GetValue()
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
         return self.value, self.value2
+
+
+
 
 
 class MultiInputDialog(wx.Dialog):
@@ -168,6 +185,13 @@ class MultiInputDialog(wx.Dialog):
         self.Fit()
 
         okbutton.Bind(wx.EVT_BUTTON, self.on_close)
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
+
+    def on_close_cancel(self, e):
+        """
+        """
+        self.Destroy()
+        self.EndModal(wx.ID_CANCEL)
 
     def on_close(self, e):
         """
@@ -177,7 +201,7 @@ class MultiInputDialog(wx.Dialog):
             value = inputbox.GetValue()
             self.values.append(value)
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
         return self.values
 
 
@@ -268,6 +292,7 @@ class AdditionalParameters(wx.Dialog):
 
         okbutton.Bind(wx.EVT_BUTTON, self.on_close)
         closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
 
     def on_close(self, e):
         """
@@ -281,7 +306,7 @@ class AdditionalParameters(wx.Dialog):
         self.config.zerolog = ud.string_to_value(self.inputbox8.GetValue())
         # self.config.damp = ud.string_to_value(self.inputbox6.GetValue())
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
 
     def on_close_cancel(self, e):
         """
@@ -290,7 +315,7 @@ class AdditionalParameters(wx.Dialog):
         :return: None
         """
         self.Destroy()
-        self.EndModal(1)
+        self.EndModal(wx.ID_CANCEL)
 
 
 class SaveFigureDialog(wx.Dialog):
@@ -407,6 +432,7 @@ class SaveFigureDialog(wx.Dialog):
 
         okbutton.Bind(wx.EVT_BUTTON, self.on_close)
         closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
 
     def on_close(self, e):
         """
@@ -424,7 +450,7 @@ class SaveFigureDialog(wx.Dialog):
                      float(self.b4.GetValue())]
         self.figsize = [float(self.widebox.GetValue()), float(self.tallbox.GetValue())]
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
 
     def on_close_cancel(self, e):
         """
@@ -433,7 +459,7 @@ class SaveFigureDialog(wx.Dialog):
         :return: None
         """
         self.Destroy()
-        self.EndModal(1)
+        self.EndModal(wx.ID_CANCEL)
 
     def on_choose_dir(self, e):
         """
@@ -556,6 +582,7 @@ class FileNameDialog(wx.Dialog):
         closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
 
         self.CenterOnParent()
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
 
     def on_close(self, e):
         """
@@ -602,7 +629,7 @@ class FileNameDialog(wx.Dialog):
             self.config.dirname = dirval
             print(dirval)
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
 
     def on_close_cancel(self, e):
         """
@@ -611,6 +638,6 @@ class FileNameDialog(wx.Dialog):
         :return: None
         """
         self.Destroy()
-        self.EndModal(1)
+        self.EndModal(wx.ID_CANCEL)
 
 

@@ -18,15 +18,19 @@ for dll in dlls:
     else:
         try:
             sys.path.append(pathtothisfile)
-            clr.addReference(dll)
-        except:
+            clr.AddReference(dll)
+        except Exception as e:
+            print("Failed in mzfile", e)
             clr.AddReference(dll)
 clr.AddReference("System.Collections")
 
 from Agilent.MassSpectrometry.DataAnalysis import (MassSpecDataReader, BDAChromFilter, MsdrPeakFilter,
                                                    MsdrChargeStateAssignmentFilter, IMsdrDataReader, IBDAChromFilter,
                                                    IMsdrChargeStateAssignmentFilter,
-                                                   DesiredMSStorageType, ChromType, MinMaxRange, MSLevel)
+                                                   DesiredMSStorageType, ChromType, MinMaxRange, MSLevel
+
+                                                   )
+
 
 for item in dir(IMsdrDataReader):
     try:
@@ -315,4 +319,3 @@ def aggregate_points(pointlist, distance_function=None, MAX_WIDTH=0.025):
     if agg:
         peaks.append(agg)
     return peaks
-

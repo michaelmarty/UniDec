@@ -28,7 +28,6 @@ for dll in dlls:
 clr.AddReference('System.Collections')
 from System import *
 from System.Collections.Generic import *
-
 import ThermoFisher
 from ThermoFisher.CommonCore.Data import ToleranceUnits
 from ThermoFisher.CommonCore.Data import Extensions

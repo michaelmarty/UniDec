@@ -600,7 +600,7 @@ class UPPApp(wx.Frame):
 
     def on_add_files(self, event=None):
 
-        wildcard = "CSV or Excel files (*.csv; *.xlsx; *.xls)|*.csv; *.xlsx; *.xls|CSV files (*.csv)|*.csv|Excel files (*.xlsx; *.xls)|*.xlsx; *.xls"
+        # wildcard = "CSV or Excel files (*.csv; *.xlsx; *.xls)|*.csv; *.xlsx; *.xls|CSV files (*.csv)|*.csv|Excel files (*.xlsx; *.xls)|*.xlsx; *.xls"
         wildcard = "Any files (*.*) |*.*| " \
                    "Known file types (*.raw; *.d; *.mzML; *.mzXML; *.txt; *.csv; *.dat; *.npz)|" \
                    "*.raw; *.d; *.mzML; *.mzXML; *.txt; *.csv; *.dat; *.npz|" \

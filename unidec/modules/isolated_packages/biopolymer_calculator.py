@@ -23,6 +23,7 @@ class BiopolymerFrame(wx.Dialog):
 
         self.calcbutton = wx.Button(self.panel, -1, "Calculate", size=(450, 25))
         self.Bind(wx.EVT_BUTTON, self.calculate, self.calcbutton)
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -79,7 +80,7 @@ class BiopolymerFrame(wx.Dialog):
     def close_ok(self, e=None):
         self.Destroy()
         try:
-            self.EndModal(0)
+            self.EndModal(wx.ID_OK)
         except Exception as e:
             pass
 
@@ -91,7 +92,7 @@ class BiopolymerFrame(wx.Dialog):
         """
         self.Destroy()
         try:
-            self.EndModal(1)
+            self.EndModal(wx.ID_CANCEL)
         except Exception as e:
             pass
 

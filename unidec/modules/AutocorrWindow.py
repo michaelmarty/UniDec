@@ -134,6 +134,7 @@ class AutocorrWindow(wx.Dialog):
         self.SetSizer(vbox)
         okbutton.Bind(wx.EVT_BUTTON, self.on_close)
         # closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
         self.CenterOnParent()
         self.run_autocorr(0)
 
@@ -167,7 +168,7 @@ class AutocorrWindow(wx.Dialog):
         :return: None
         """
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
 
     def on_close_cancel(self, e):
         """
@@ -176,4 +177,4 @@ class AutocorrWindow(wx.Dialog):
         :return: None
         """
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_CANCEL)

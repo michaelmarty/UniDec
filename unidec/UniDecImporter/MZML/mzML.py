@@ -10,7 +10,8 @@ from pymzml.utils.utils import index_gzip
 import pymzml.obo
 
 from unidec.UniDecImporter.Importer import Importer
-from unidec.UniDecImporter.ImportTools import get_resolution, merge_spectra, merge_im_spectra
+from unidec.UniDecImporter.ImportTools import get_resolution
+import re
 
 __author__ = 'Michael.Marty'
 
@@ -90,12 +91,12 @@ class MZMLImporter(Importer):
     """
     Imports mzML data files.
 
-    Note: mzML files are 1 indexed, so the first scan is 1, not 0.
+    Note: Some mzML files are 1 indexed, so the first scan is 1, not 0. Others are not, which is frustrating...
     """
     def __init__(self, path, *args, **kwargs):
         super().__init__(path, **kwargs)
 
-        self.msrun = pymzml.run.Reader(path)
+        self.msrun = pymzml.run.Reader(path) #, build_index_from_scratch=True)
         self.init_scans()
 
         self.cdms_support = True
@@ -118,6 +119,8 @@ class MZMLImporter(Importer):
                 pass
         self.times = np.array(self.times)
         self.scans = np.array(self.scans)
+        # if self.scans[0] == 0:
+        #     self.scans += 1
         self.scan_range = [int(np.amin(self.scans)), int(np.amax(self.scans))]
         self.reset_reader()
 
@@ -166,6 +169,7 @@ class MZMLImporter(Importer):
         self.msrun.close()
         self.msrun = pymzml.run.Reader(self._file_path)
 
+
     def get_all_scans(self, threshold=-1):
         self.reset_reader()
         newtimes = []
@@ -179,7 +183,7 @@ class MZMLImporter(Importer):
                     newtimes.append(self.times[n])
                     newids.append(spec.ID)
                 except Exception as e:
-                    print(e)
+                    print("Failed to get all scans:", e)
         self.times = np.array(newtimes)
         self.scans = np.array(newids)
         self.reset_reader()
@@ -269,6 +273,8 @@ class MZMLImporter(Importer):
 
     # grab pol info from single scan. Similar to old impl but use direct idxing
     def get_polarity(self, scan=1):
+        if scan == -1:
+            scan = self.scans[0]
         # Directly access the scan at the provided index
         spec = self.msrun[scan]
         # to string gets the raw byte xml format of the scan
@@ -290,6 +296,8 @@ class MZMLImporter(Importer):
         return None
 
     def get_ms_order(self, scan=1):
+        if scan == -1:
+            scan = self.scans[0]
         order = self.msrun[scan].ms_level
         return order
 
@@ -306,7 +314,6 @@ class MZMLImporter(Importer):
 
     def get_cdms_data(self, scan_range=None):
         raw_dat = self.get_all_scans(threshold=0)
-        scans = self.scans
 
         it = 1. / self.get_inj_time_array()
         mz = np.concatenate([d[:, 0] for d in raw_dat])
@@ -331,10 +338,21 @@ if __name__ == "__main__":
     test = "Z:\\Group Share\\JGP\\DataForJoe\\TF_centroided.mzML"
     test = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_mzml.mzML"
     test = "Z:\\Group Share\\JGP\\DataForJoe\\TF_centroided.mzML"
+    test = "C:\\Data\\RileyLab\\exportMGF_10spectra.mzML"
     #test = "C:\\Data\\DataTypeCollection\\IMMS\\test_agilentimms_mzml.mzML"
     # test = "C:\\Data\\DataTypeCollection\\IMMS\\test_watersimms_mzml.mzML"
-    importer = MZMLImporter(test)
-    cdat = importer.get_avg_scan()
+    # importer = MZMLImporter(test)
+    # # importer.msrun[1]
+    # importer.get_single_scan(0)
+    # importer.get_all_scans()
+
+    msrun = pymzml.run.Reader(test)
+    msrun[0]
+    msrun[1]
+    msrun[0]
+    msrun[9]
+
+    exit()
     test1 = "Z:\\Group Share\\JGP\\DataForJoe\\TF.mzML"
     cimp = MZMLImporter(test1)
     rdat = cimp.get_avg_scan()

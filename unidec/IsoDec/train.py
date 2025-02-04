@@ -6,15 +6,21 @@ from unidec.IsoDec.engine import IsoDecEngine
 from unidec.IsoDec.encoding import data_dirs
 import os
 
-datatype = "phase83"
+
+topdirectory = "/groups/mtmarty/data"
+dirs = [os.path.join(topdirectory, d) for d in data_dirs]
 
 # Short script for training on an HPC
-os.chdir("/xdisk/mtmarty/mtmarty/training/data")
+os.chdir(topdirectory)
 
 eng = IsoDecEngine(phaseres=8)
-topdirectory = "/xdisk/mtmarty/mtmarty/training/data"
-dirs = [os.path.join(topdirectory, d) for d in data_dirs]
-eng.create_merged_dataloader(dirs, datatype, noise_percent=0, batchsize=32, double_percent=0.4, onedrop_percent=0.8, harmonic_percent=0.1)
+eng.create_merged_dataloader(dirs, "phase83", noise_percent=0, batchsize=32, double_percent=0.4,
+                             onedrop_percent=0.0, harmonic_percent=0, equilize=True)
+eng.train_model(epochs=10, forcenew=True)
+
+eng = IsoDecEngine(phaseres=1)
+eng.create_merged_dataloader(dirs, "phase1", noise_percent=0, batchsize=32, double_percent=0.4,
+                             onedrop_percent=0.0, harmonic_percent=0, equilize=True)
 eng.train_model(epochs=10, forcenew=True)
 #eng.create_merged_dataloader(dirs, datatype, noise_percent=0.0, batchsize=32, double_percent=0.2)
 #eng.train_model(epochs=10)

@@ -98,8 +98,6 @@ class ChromEngine(MetaUniDec):
         return hdf5
 
     def get_data_from_scans(self, scan_range=None):
-        # if scan_range is not None:
-        #     scan_range = [int(scan_range[0])+1, int(scan_range[1])+1]
         self.mzdata = self.chromdat.get_avg_scan(scan_range=scan_range)
         self.procdata = None
         return self.mzdata
@@ -109,15 +107,8 @@ class ChromEngine(MetaUniDec):
         minscan, maxscan = scan_range
         time_range = self.chromdat.get_times_from_scans(scan_range)
         minval, midval, maxval = time_range
-        # minscan = ud.nearest(self.ticdat[:, 0], minval)
-        # if self.ticdat[minscan, 0] < minval:
-        #     minscan += 1
-        # maxscan = ud.nearest(self.ticdat[:, 0], maxval)
-        # if self.ticdat[maxscan, 0] > maxval:
-        #     maxscan -= 1
-        # if maxscan <= minscan:
-        #     maxscan = minscan + 1
         self.scans = [minscan, maxscan, minval, maxval]
+        print("Scans:", self.scans)
 
         attrs = {"timestart": minval, "timeend": maxval,
                  "timemid": midval,
@@ -195,7 +186,7 @@ class ChromEngine(MetaUniDec):
         self.data.add_data(self.mzdata, name=str(self.scans[2]), attrs=self.attrs, export=False)
 
     def add_regular_times(self):
-        times = np.arange(0, np.amax(self.ticdat[:, 0]), self.config.time_window)
+        times = np.arange(np.amin(self.ticdat[:, 0]), np.amax(self.ticdat[:, 0]), self.config.time_window)
 
         if self.config.time_start is not None and self.config.time_end is not None:
             times = np.arange(self.config.time_start, np.amax(self.ticdat[:, 0]), self.config.time_window)
@@ -206,7 +197,17 @@ class ChromEngine(MetaUniDec):
 
         self.data.clear()
         for i, t in enumerate(times):
+            print(t)
             data = self.get_data_from_times(t, t + self.config.time_window)
+            self.data.add_data(data, name=str(t), attrs=self.attrs, export=False)
+
+    def add_regular_scans(self):
+        scans = np.arange(1, len(self.ticdat)+1, self.config.scan_window)
+
+        self.data.clear()
+        for i, t in enumerate(scans):
+            print(t)
+            data = self.get_data_from_scans([t, t + self.config.scan_window])
             self.data.add_data(data, name=str(t), attrs=self.attrs, export=False)
 
     def add_chrom_peaks(self):

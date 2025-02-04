@@ -276,6 +276,7 @@ class IMTools(wx.Dialog):
         closebutton = wx.Button(self.pnl2, label='Cancel')
         okbutton.Bind(wx.EVT_BUTTON, self.on_close)
         closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
         hboxend.Add(okbutton)
         hboxend.Add(closebutton, flag=wx.LEFT, border=5)
         # TODO: There is a strange bug whereby the closebutton is not drawn when the window is flipped...
@@ -297,7 +298,7 @@ class IMTools(wx.Dialog):
         """
         self.get_from_gui(e)
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
 
     def on_close_cancel(self, e):
         """
@@ -306,7 +307,7 @@ class IMTools(wx.Dialog):
         :return: None
         """
         self.Destroy()
-        self.EndModal(1)
+        self.EndModal(wx.ID_CANCEL)
 
     def load_to_gui(self, e):
         """
@@ -494,6 +495,7 @@ class IMToolExtract(wx.Dialog):
         closebutton = wx.Button(self, label='Cancel')
         okbutton.Bind(wx.EVT_BUTTON, self.on_close)
         closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
         hboxend.Add(okbutton)
         hboxend.Add(closebutton, flag=wx.LEFT, border=5)
         vbox.Add(pnl, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
@@ -515,7 +517,7 @@ class IMToolExtract(wx.Dialog):
         """
         self.config.zout = self.zout
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
 
     def on_close_cancel(self, e):
         """
@@ -524,7 +526,7 @@ class IMToolExtract(wx.Dialog):
         :return: None
         """
         self.Destroy()
-        self.EndModal(1)
+        self.EndModal(wx.ID_CANCEL)
 
     def loadpeaks(self, e):
         """

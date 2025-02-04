@@ -2902,12 +2902,25 @@ def start_at_iso(targetfile, guess=None):
             return result
 
 
+def find_all_dependencies(path):
+    dlls = []
+    for entry in os.scandir(path):
+        if entry.is_file() and entry.name.endswith(".dll") or entry.name.endswith(".lib"):
+            dlls.append(entry.path)
+        elif entry.is_dir():
+            dlls += find_all_dlls(entry.path)
+    return dlls
+
 
 
 
 
 
 if __name__ == "__main__":
+    print(find_all_dependencies("C:\\Users\\MartyLabsOfficePC\\Python\\Lib\\site-packages\\pythonwin"))
+
+
+    exit()
     x = [0., 1., 2., 3., 4.]
     y = [1, 0.7, 0.5, 0.4, 0.3]
     import matplotlib.pyplot as plt
