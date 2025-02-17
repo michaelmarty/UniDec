@@ -186,17 +186,20 @@ class UniDecPres(object):
         self.export_config(self.eng.config.defaultconfig)
         pass
 
-    def on_load_default(self, e=None):
+    def on_load_default(self, e=None, defaultconfig=None):
         """
         Resets the configuration then loads the default config file from self.eng.config.defaultconfig.
         Ignores min and max data cutoffs.
         :param e: unused space for event
+        :param defaultconfig: Path to default config file. Default is None, which will use self.eng.config.defaultconfig
         :return: None
         """
+        if defaultconfig is None:
+            defaultconfig = self.eng.config.defaultconfig
         self.on_reset(e)
-        if os.path.isfile(self.eng.config.defaultconfig):
+        if os.path.isfile(defaultconfig):
             try:
-                self.import_config(self.eng.config.defaultconfig)
+                self.import_config(defaultconfig)
                 try:
                     if not ud.isempty(self.eng.data.rawdata):
                         self.view.controls.ctlminmz.SetValue(str(np.amin(self.eng.data.rawdata[:, 0])))

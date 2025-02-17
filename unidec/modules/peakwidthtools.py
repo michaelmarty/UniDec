@@ -384,7 +384,7 @@ class PeakTools2d(wx.Dialog):
                 self.ctlsigguess.SetValue(str(self.config.dtsig))
             self.ctlpsfun.SetSelection(0)
         else:
-            self.ctlpsfun.SetSelection(self.psfun)
+            self.ctlpsfun.SetSelection(int(self.psfun))
             self.data, self.data2 = self.data2, self.data
             self.outdtsig.SetValue(str(self.fitsig))
             self.on_reset(0)

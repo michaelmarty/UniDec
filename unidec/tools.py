@@ -2857,15 +2857,12 @@ def traverse_to_unidec(topname="UniDec3"):
 
 def start_at_iso(targetfile, guess=None):
     result = ""
-    # print("Guess:", guess)
     if guess is not None:
         if os.path.isdir(guess):
             result = find_dll(targetfile, guess)
             if result:
-                # print("Found DLL within guess:", result)
                 return result
 
-    # print("Starting in unidec/isodec")
     parent = traverse_to_unidec()
     path = os.path.join(parent, "unidec", "IsoDec")
     if not os.path.exists(path):
@@ -2877,7 +2874,6 @@ def start_at_iso(targetfile, guess=None):
             if not os.path.exists(path):
                 print("Path does not exist: ", path)
                 return result
-    # print("Path:", path)
     if os.path.isdir(path):
         for entry in os.scandir(path):
             if entry.is_file() and entry.name == targetfile:
@@ -2908,7 +2904,8 @@ def find_all_dependencies(path):
         if entry.is_file() and entry.name.endswith(".dll") or entry.name.endswith(".lib"):
             dlls.append(entry.path)
         elif entry.is_dir():
-            dlls += find_all_dlls(entry.path)
+
+            dlls += find_all_dependencies(entry.path)
     return dlls
 
 
@@ -2917,7 +2914,9 @@ def find_all_dependencies(path):
 
 
 if __name__ == "__main__":
-    print(find_all_dependencies("C:\\Users\\MartyLabsOfficePC\\Python\\Lib\\site-packages\\pythonwin"))
+    ls = find_all_dependencies("C:\\Python\\UniDec3")
+    for i in ls:
+        print(i)
 
 
     exit()

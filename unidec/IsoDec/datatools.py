@@ -311,8 +311,8 @@ def get_all_centroids(data, window=5, threshold=0.0001, background=100, moving_a
     if len(data) < 3:
         return np.empty((0, 2))
 
-    if background > 0:
-        data = datacompsub(data, background)
+    # if background > 0:
+    #     data = datacompsub(data, background)
 
     if moving_average_smoothing > 1:
         data[:,1] = np.convolve(data[:,1], np.ones(moving_average_smoothing)/moving_average_smoothing, mode='same')

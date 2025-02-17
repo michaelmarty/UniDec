@@ -167,11 +167,16 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             if not p.ignore:
                 self.list_ctrl.InsertItem(i, p.textmarker)
                 # self.list_ctrl.SetItem(i, 1, str(p.mass))
-                if p.mass == round(p.mass):
-                    p.mass = int(p.mass)
-                    self.list_ctrl.SetItem(i, 1, f'{p.mass:,}')
+
+                if collab1 == "Avg Mass":
+                    self.list_ctrl.SetItem(i,1, f"{p.avgmass}")
+
                 else:
-                    self.list_ctrl.SetItem(i, 1, f'{float(str(p.mass)):,}')
+                    if p.mass == round(p.mass):
+                        p.mass = int(p.mass)
+                        self.list_ctrl.SetItem(i, 1, f'{p.mass:,}')
+                    else:
+                        self.list_ctrl.SetItem(i, 1, f'{float(str(p.mass)):,}')
 
                 self.list_ctrl.SetItem(i, 2, "%.2f" % p.height)
                 try:

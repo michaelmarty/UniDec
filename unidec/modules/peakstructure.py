@@ -82,6 +82,7 @@ class Peak:
         self.filename = ""
         self.filenumber = -1
         self.zs = []
+        self.avgmass = 0
 
     def line_out(self, type="Full", rounding=3):
         if type == "Full":
@@ -195,6 +196,7 @@ class Peaks:
             newpeak.mztab = np.transpose([p.mzs, p.mzints])
             newpeak.zs = p.zs
             newpeak.stickdat = p.isodists
+            newpeak.avgmass = p.avgmass
 
             self.peaks.append(newpeak)
         self.masses = np.array([p.mass for p in self.peaks])

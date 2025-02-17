@@ -64,8 +64,7 @@ class ThermoImporter(Importer):
             data = np.array(list(self.msrun.GetAverageSpectrum(scan_range)))
         else:
             print("Getting Data from Scan:", scan_range[0])
-            impdat = np.array(self.msrun.GetSpectrum(scan_range[0]))  # May want to test this.
-            impdat = impdat[impdat[:, 0] > 10]
+            impdat = self.get_single_scan(scan_range[0])
             data = impdat
 
         return data

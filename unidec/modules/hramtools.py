@@ -140,11 +140,13 @@ if __name__ == "__main__":
     #target = 24.997378
     #target = 728.2088
     target = 50.999831
-    searcher = HRAMSearchSpace(searchspace=smallmolsearch)
+    target = 62.9986
+    customsearch=[["1H", -7, 10], ["12C", -7, 7], ["14N", 0, 7], ["16O", -7, 7], ["31P", -1, 0], ["40Ar", 0, 0]]
+    searcher = HRAMSearchSpace(searchspace=customsearch)
     # target = 1500
     results = calc_fromula_from_mass([target], Searcher=searcher, tolerance=10)
     outdf = results[0].to_df()
-    # print(results[0].to_df())
+    print(results[0].to_df())
     # print(results[0].match_comp)
     # print(results[0].elem_keys, results[0].iso_keys)
     outdf["AbsPPM"] = np.abs(outdf["PPM"])

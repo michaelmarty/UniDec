@@ -16,7 +16,9 @@ Please contact mtmarty@email.arizona.edu for questions, suggestions, or with any
 UniDec may be downloaded from [https://github.com/michaelmarty/UniDec/releases](https://github.com/michaelmarty/UniDec/releases).
 
 This compiled version is compatible with 64-bit Windows. It a portable binary, so it does not need a conventional installation.
-Just unzip the folder, put it somewhere convenient, and click the GUI_UniDec.exe file in the folder to launch.
+Just unzip the folder, put it somewhere convenient, if you are still having issues 
+run the INSTALLER.cmd as administrator,(only have to do this once)
+then click the GUI_UniDec.exe file in the folder to launch.
 
 To use the PDF report generator, install [MikTex](https://miktex.org) and select install packages automatically from the installation options. You may need to add this to your system path so that PDFLatex is found from the command line. 
 
@@ -198,6 +200,12 @@ Of course, using the pre-compiled version means you don't need to know Python at
 ## Change Log
 
 v.8.0.1
+
+Improved CD-MS defaults.
+
+Added scan parsing to UniChrom. 
+
+Added checkboxes to UPP to allow for more control over the HTML output. Moved some output controls down to better organize the window.
 
 Fixed bug with dialog windows failing to return properly. 
 

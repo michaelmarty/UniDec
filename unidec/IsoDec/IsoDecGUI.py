@@ -243,7 +243,11 @@ class IsoDecPres(UniDecPres):
         udpks.merge_isodec_pks(idpks, self.eng.config.massbins, self.eng.config)
         self.eng.pks = udpks
         # Send pks to structure
-        self.view.peakpanel.add_data(self.eng.pks, show="zs")
+        if self.eng.config.avgpeakmasses == 1:
+            self.view.peakpanel.add_data(self.eng.pks, show="mass",collab1 = "Avg Mass" )
+            self.isodeceng.showavg = True
+        else:
+            self.view.peakpanel.add_data(self.eng.pks, show="zs")
 
     def on_full(self, evt=None):
         maxmz = np.amax(self.eng.data.rawdata[:, 0])

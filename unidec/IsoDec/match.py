@@ -406,22 +406,23 @@ class MatchedCollection:
         msalign.write_ms1_msalign(ms1_scan_dict, ms2_scan_dict, filename, config)
         msalign.write_ms2_msalign(ms2_scan_dict, ms1_scan_dict, reader, filename, config, max_precursors=max_precursors, act_type=act_type)
 
-    def to_df(self):
+    def to_df(self, avg = False):
         """
         Convert a MatchedCollection object to a pandas dataframe
         :return: Pandas dataframe
         """
+        col = "Average Mass" if avg else "Monoisotopic Mass"
         data = []
         for p in self.peaks:
-            d = {"Charge": p.z, "Most Abundant m/z": p.mz, "Monoisotopic Mass": p.monoiso, "Scan": p.scan,
+            d = {"Charge": p.z, "Most Abundant m/z": p.mz, col: p.avgmass if avg else p.monoiso, "Scan": p.scan,
                  "Most Abundant Mass": p.peakmass, "Abundance": p.matchedintensity}
             data.append(d)
         df = pd.DataFrame(data)
         return df
 
-    def export_tsv(self, filename="export.tsv"):
+    def export_tsv(self, filename="export.tsv", avg=False):
         print("Exporting to", filename)
-        df = self.to_df()
+        df = self.to_df(avg)
         df.to_csv(filename, sep="\t", index=False)
 
     def to_mass_spectrum(self, binsize=0.1):
@@ -443,6 +444,7 @@ class MatchedCollection:
             intensities[idx] += p.matchedintensity
 
         return np.transpose([masses, intensities])
+
 
 
 class MatchedMass:
@@ -468,6 +470,7 @@ class MatchedMass:
         self.scan_intensities = {pk.scan: pk.matchedintensity}
         self.isodists = pk.isodist
         self.totalpeaks = 1
+        self.avgmass = pk.avgmass
 
 
 
@@ -475,7 +478,7 @@ class MatchedPeak:
     """
     Matched peak object for collecting data on peaks with matched distributions
     """
-    def __init__(self, z, mz, centroids=None, isodist=None, matchedindexes=None, isomatches=None):
+    def __init__(self, z, mz,  avgmass, centroids=None, isodist=None, matchedindexes=None, isomatches=None):
         self.mz = mz
         self.z = z
         self.centroids = centroids
@@ -498,6 +501,7 @@ class MatchedPeak:
         self.endindex = -1
         self.monoiso = -1
         self.bestshift = -1
+        self.avgmass = avgmass
         self.acceptedshifts = None
         self.matchedions = []
         if matchedindexes is not None:
@@ -508,6 +512,7 @@ class MatchedPeak:
         if isomatches is not None:
             self.isomatches = isomatches
             self.matchedisodist = isodist[np.array(isomatches)]
+
 
     def __str__(self):
         return f"MatchedPeak: mz={self.mz}, z={self.z}, monoiso={self.monoiso}\n"

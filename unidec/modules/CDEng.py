@@ -1,8 +1,22 @@
+import platform
+import subprocess
 import numpy as np
 import os
 import scipy
 import unidec.tools as ud
-from unidec.UniDecImporter.Thermo.Thermo import ThermoImporter
+if platform.system() == "Windows":
+    try:
+        from unidec.UniDecImporter.Thermo.Thermo import ThermoImporter
+    except Exception as e:
+        print(e)
+        path = os.path.abspath(__file__)
+        path = path.split("\\")
+        path = '//'.join(path[:-4])
+        path = os.path.join(path, "installer.bat")
+        subprocess.Popen([path], shell = True).wait()
+        exit()
+
+
 from unidec.modules.unidec_enginebase import UniDecEngine
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.UniDecImporter.I2MS.I2MS import I2MSImporter
@@ -121,9 +135,7 @@ class UniDecCD(engine.UniDec):
         self.thermodata = False
         self.harray = []
         # Sets a few default config parameters
-        self.config.mzbins = 1
-        self.config.rawflag = 1
-        self.config.poolflag = 1
+        self.config.cdms_defaults()
         self.exemode = True
         self.massaxis = None
         self.invinjtime = None
@@ -169,6 +181,10 @@ class UniDecCD(engine.UniDec):
         :param path: File path to open.
         :return: None
         """
+        if platform.system() != "Windows" and path.split(".")[-1] == "raw" or path.split(".")[-1] == "RAW":
+            print("Error: Thermo Raw files are only supported on Windows")
+            raise ImportError
+
         # Setup
         starttime = time.perf_counter()
         self.path = path
@@ -183,7 +199,6 @@ class UniDecCD(engine.UniDec):
         self.before_open(refresh=refresh)
 
         self.importer = ImporterFactory.create_importer(self.path, silent=False)
-        # print(type(self.importer))
         self.darray = self.importer.get_cdms_data()
         if type(self.importer) == ThermoImporter:
             self.res = IT.get_resolution(self.importer.get_single_scan(1))
@@ -651,7 +666,7 @@ class UniDecCD(engine.UniDec):
         dataobj.massgrid = np.transpose(dataobj.massgrid)
         # Create the linearized mass data by integrating everything into the new linear axis
         dataobj.massdat = np.transpose([massaxis, np.sum(dataobj.massgrid, axis=1)])
-        if flag:
+        if flag and not ud.isempty(dataobj.massdat):
             self.config.massdatnormtop = np.amax(dataobj.massdat[:, 1])
         # Ravel the massgrid to make the format match unidec
         dataobj.massgrid = np.ravel(dataobj.massgrid)

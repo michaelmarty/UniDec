@@ -97,6 +97,7 @@ struct Decon {
 	float threshold;
 	int mlen;
 	int plen;
+	int scanindex;
 };
 
 Decon SetupDecon() {
@@ -124,6 +125,7 @@ Decon SetupDecon() {
 	decon.threshold = 0;
 	decon.mlen = 0;
 	decon.plen = 0;
+	decon.scanindex = 0;
 	return decon;
 }
 

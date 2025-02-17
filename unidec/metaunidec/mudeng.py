@@ -289,8 +289,10 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
                 else:
                     peakvals[i].append(0)
                     ints.append(0)
-            # print(peakvals[i], ints)
-            pk.errorreplicate = ud.weighted_std(peakvals[i], ints)
+            try:
+                pk.errorreplicate = ud.weighted_std(peakvals[i], ints)
+            except Exception as e:
+                print("Error in error replicates:", e)
 
     def export_params(self, e=None):
         peakparams = []

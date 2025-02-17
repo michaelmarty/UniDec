@@ -10,7 +10,7 @@ from itertools import chain
 #dll_path = "C:\\Python\\UniDec3\\unidec\\UniDecImporter\\Agilent"
 pathtothisfile = os.path.dirname(__file__)
 
-dlls = ['MassSpecDataReader', 'BaseCommon', 'BaseDataAccess']
+dlls = ['MassSpecDataReader', 'BaseCommon', 'BaseDataAccess', 'MIDAC', 'agtsampleinforw']
 for dll in dlls:
     testpath = os.path.join(pathtothisfile, dll) + ".dll"
     if os.path.isfile(testpath):

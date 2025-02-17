@@ -126,16 +126,17 @@ void WritePeaks(const Config config, const Decon* decon) {
 	char outdat[1024];
 	strjoin(config.dataset, "/peaks", outdat);
 	float* ptemp = NULL;
-	int l = decon->plen * 3;
+	int l = decon->plen * 4;
 	ptemp = (float*)calloc(l, sizeof(float));
 	if (ptemp) {
 		for (int i = 0; i < decon->plen; i++) {
 			ptemp[i * 3] = decon->peakx[i];
 			ptemp[i * 3 + 1] = decon->peaky[i];
 			ptemp[i * 3 + 2] = decon->dscores[i];
+			ptemp[i * 3 + 3] = (float) config.metamode;
 		}
 
-		mh5writefile2d_grid(config.file_id, outdat, decon->plen, 3, ptemp);
+		mh5writefile2d_grid(config.file_id, outdat, decon->plen, 4, ptemp);
 		free(ptemp);
 	}
 }

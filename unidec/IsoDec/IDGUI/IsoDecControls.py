@@ -240,8 +240,14 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlnegmode = wx.CheckBox(panel2b, label="Negative Mode")
         gbox2b.Add(self.ctlnegmode, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         self.parent.Bind(wx.EVT_CHECKBOX, self.export_gui_to_config, self.ctlnegmode)
+        self.ctlavgpeakmasses = wx.CheckBox(panel2b, label="Average Mass")
+        gbox2b.Add(self.ctlavgpeakmasses, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.parent.Bind(wx.EVT_CHECKBOX, self.export_gui_to_config, self.ctlavgpeakmasses)
+
         i += 1
         self.ctlnegmode.SetToolTip(wx.ToolTip("Set the mode to negative ion mode"))
+        self.ctlavgpeakmasses.SetToolTip(wx.ToolTip("Plot average peak masses"))
+
 
         self.ctlphaseres = wx.RadioBox(panel2b, label="Priority:", choices=["Speed", "Accuracy"])
         gbox2b.Add(self.ctlphaseres, (i, 0), span=(1, 2), flag=wx.EXPAND)
@@ -402,6 +408,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
             self.ctldatanorm.SetValue(int(self.config.datanorm))
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
+            self.ctlavgpeakmasses.SetValue(self.config.avgpeakmasses)
 
             # Decon params
             self.ctlmatchtol.SetValue(str(self.config.filterwidth))
@@ -473,6 +480,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.poolflag = int(self.ctlexportmsalign.GetValue())
         self.config.compressflag = int(self.ctlexporttsv.GetValue())
 
+        self.config.avgpeakmasses = int(self.ctlavgpeakmasses.GetValue())
         # pull integratelb and integrateub from mzwindowlb and mzwindowub
         self.config.integratelb = ud.string_to_value(self.ctlmzwindowlb.GetValue())
         self.config.integrateub = ud.string_to_value(self.ctlmzwindowub.GetValue())

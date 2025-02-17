@@ -72,6 +72,18 @@ class ChromWindow(mainwindow_base.MainwindowBase):
 
         self.ctlsizer.Add(tsizer1)
 
+        # Add Partition in Scan Steps of control
+        tsizer1b = wx.BoxSizer(wx.HORIZONTAL)
+        self.scanpartbutton = wx.Button(self.panel, label="Partition in Scan Steps of:")
+        self.Bind(wx.EVT_BUTTON, self.pres.on_scanpart, self.scanpartbutton)
+        tsizer1b.Add(self.scanpartbutton)
+
+        self.ctlscan = wx.TextCtrl(self.panel, value=str(self.config.scan_window), size=(50, 20))
+        tsizer1b.Add(self.ctlscan, 0, wx.ALIGN_CENTER_VERTICAL)
+        # tsizer1b.Add(wx.StaticText(self.panel, label="scans"), 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.ctlsizer.Add(tsizer1b)
+
         tsizer2 = wx.BoxSizer(wx.HORIZONTAL)
         self.swbutton = wx.Button(self.panel, label="Sliding Window (min):")
         self.Bind(wx.EVT_BUTTON, self.pres.on_sliding_window, self.swbutton)
@@ -147,7 +159,7 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         plotwindow = scrolled.ScrolledPanel(self.panel)
         sizerplot = wx.GridBagSizer()
 
-        figsize = (4.9, 3.5)
+        figsize = (4.99, 4)
         self.plotc = PlottingWindow.Plot1d(plotwindow, figsize=figsize)  # Chromatogram
         self.plotm = PlottingWindow.Plot1d(plotwindow, figsize=figsize)  # Selection from chromatogram
         self.plot1 = PlottingWindow.Plot1d(plotwindow, smash=1, figsize=figsize)  # MUD Plot 1 m/z cascade

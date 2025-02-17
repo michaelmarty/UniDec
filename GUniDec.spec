@@ -81,8 +81,15 @@ hiddenimportslist=['scipy.special._ufuncs_cxx', 'scipy.linalg.cython_blas', 'sci
 
 
 
-excludeslist = ['IPython', 'statsmodels', 'pyopenms', 'sklearn',
-                       'GdkPixbuf', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2', 'PyQt5', 'torch']
+excludeslist = [
+    'IPython', 'statsmodels', 'pyopenms', 'sklearn', 'GdkPixbuf',
+    'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2',
+    'PyQt5', 'torch',
+    'pywin32', 'win32api', 'win32con', 'win32gui', 'win32com',
+    'win32process', 'win32security', 'win32clipboard',
+    'win32service', 'win32event', 'win32file'
+]
+
 
 # Analysis of packages
 a = Analysis(['unidec\\Launcher.py'],
@@ -139,8 +146,6 @@ if system == "Windows":
     a.datas += [('BaseError.XML', 'unidec\\UniDecImporter\\Agilent\\BaseError.XML', 'BINARY')]
     a.datas += [('MIDAC.XML', 'unidec\\UniDecImporter\\Agilent\\MIDAC.XML', 'BINARY')]
     a.datas += [('AgtFileSelectionDialog.dll', 'unidec\\UniDecImporter\\Agilent\\AgtFileSelectionDialog.dll', 'BINARY')]
-    a.datas += [('backup_reg.py', 'unidec\\UniDecImporter\\Agilent\\backup_reg.py', 'FILE')]
-    a.datas += [('backup_register_agilent.cmd', 'unidec\\UniDecImporter\\Agilent\\backup_register_agilent.cmd', 'FILE')]
 
 
     a.datas += [('RawFileReaderLicense.doc', 'unidec\\UniDecImporter\\Thermo\\RawFileReaderLicense.doc', 'BINARY')]
@@ -222,8 +227,10 @@ src = "C:\\Python\\UniDec3\\dist\\UniDec_Windows\\_internal\\obo"
 
 shutil.copytree(src, dst)
 shutil.copy("C:\\Python\\UniDec3\\readme.md", "C:\\Python\\UniDec3\\dist\\UniDec_Windows")
-shutil.copy("C:\\Python\\UniDec3\\LICENSE", "C:\\Python\\UniDec3\\dist\\UniDec_Windows")
-shutil.copy("C:\\Python\\UniDec3\\unidec\\UniDecImporter\\Agilent\\register_agilent.cmd", "C:\\Python\\UniDec3\\dist\\UniDec_Windows")
+shutil.copy("C:\\Python\\UniDec3\\INSTALLER.bat", "C:\\Python\\UniDec3\\dist\\UniDec_Windows")
+
+
+
 
 
 
