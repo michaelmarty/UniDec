@@ -40,11 +40,12 @@ set_target_properties(isofft PROPERTIES LINKER_LANGUAGE C)
 target_include_directories(isofft PUBLIC ${FFTW_DIR})
 add_compile_definitions(isofft "ISOFFTlib_EXPORTS")
 
-if(MSVC)
+if(MSVC OR CMAKE_C_COMPILER_ID STREQUAL "GNU")
     add_library(fftw3 STATIC IMPORTED)
     set_target_properties(fftw3 PROPERTIES IMPORTED_LOCATION ${FFTW_DIR}/fftw3.lib)
 else()
     message(STATUS "Not MSVC")
+    message(STATUS "CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
     #    set(FFTW_LIB "/usr/lib/x86_64-linux-gnu/libfftw3.so")
     #target_link_libraries(isofft PUBLIC ${FFTW_LIB})
     add_library(fftw3 SHARED IMPORTED)
@@ -52,6 +53,8 @@ else()
     target_link_libraries(isofft PUBLIC m)
 endif()
 
+#add_library(fftw3 STATIC IMPORTED)
+#set_target_properties(fftw3 PROPERTIES IMPORTED_LOCATION ${FFTW_DIR}/fftw3.lib)
 target_link_libraries(isofft PUBLIC fftw3)
 
 # isofft_test

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-from isogen_base import *
-from isogen_tools import formula_to_vector, get_dist_from_formula
+from unidec.IsoDec.IsoGen.isogen_base import *
+from unidec.IsoDec.IsoGen.isogen_tools import *
 
 
 class IsoGenAtomEngine(IsoGenEngineBase):
@@ -19,6 +19,9 @@ class IsoGenAtomEngine(IsoGenEngineBase):
         return self.model.predict(vec)
 
 
+
+
+
 if __name__ == "__main__":
     os.chdir("Z:\\Group Share\\JGP\\PubChem")
     isolen = 32
@@ -28,10 +31,15 @@ if __name__ == "__main__":
     trainfile = "isodists_4194533.npz"
 
     trainfile_synethetic = "isodists_synthetic_1308425.npz"
+    trainfile1 = "isodists_synthetic_random_100000.npz"
+    trainfile2 = "isodists_synthetic_random_1000000.npz"
 
     eng = IsoGenAtomEngine(isolen=isolen)
+    if True:
+        eng.train_multiple([trainfile, trainfile_synethetic], epochs=20, forcenew=True, inputname="formulas")
+
     if False:
-        eng.train_multiple([trainfile, trainfile_synethetic], epochs=10, forcenew=False, inputname="formulas")
+        eng.train(trainfile, epochs=10, forcenew=True, inputname="formulas")
 
     testformulas = ["C2H5O", "H8N2O4W", "S8", "CHCl3", "C60", "CHBr3"]
     mpl.use("WxAgg")

@@ -192,7 +192,7 @@ class Peaks:
         for p in pks:
             newpeak = Peak()
             newpeak.mass = p.monoiso
-            newpeak.height = p.totalintensity
+            newpeak.height = p.apexintensity
             newpeak.mztab = np.transpose([p.mzs, p.mzints])
             newpeak.zs = p.zs
             newpeak.stickdat = p.isodists
@@ -206,12 +206,15 @@ class Peaks:
         if config is not None:
             if config.peaknorm == 1:
                 self.norm = np.amax(self.heights)
-            elif config.peaknorm == 2:
-                self.norm = np.sum(self.heights)
+            elif config.peaknorm > 2:
+                #self.norm = np.sum(self.heights)
+                perc = np.percentile(self.heights, 97)
+                max_val = np.amax(self.heights)
+                self.norm = max(perc, 0.7 * max_val)
 
             if config.peaknorm > 0:
                 for p in self.peaks:
-                    p.height = p.height / self.norm
+                    p.height = p.height / max(self.norm, 1e-6)
                 self.heights = np.array([p.height for p in self.peaks])
 
         self.convolved = False
@@ -388,3 +391,4 @@ class Peaks:
             df = df.loc[:, (df != "-1").any(axis=0)]
             df = df.loc[:, (df != "").any(axis=0)]
         return df
+

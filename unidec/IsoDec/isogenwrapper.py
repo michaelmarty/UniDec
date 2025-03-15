@@ -124,7 +124,7 @@ if __name__ == "__main__":
     plt.plot(d2/np.amax(d2), label="Isomike")
     plt.plot(d3/np.amax(d3), label="FFT")
     plt.legend()
-    plt.show()
+    #plt.show()
 
 
     eng = IsoGenWrapper(dllpath=dllpath)

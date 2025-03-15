@@ -207,6 +207,8 @@ Added scan parsing to UniChrom.
 
 Added checkboxes to UPP to allow for more control over the HTML output. Moved some output controls down to better organize the window.
 
+Fixed bugs with antiviruses blocking it. Created an install script to help with this and to register Agilent DLLs.
+
 Fixed bug with dialog windows failing to return properly. 
 
 Fixed a weird mzML bug.

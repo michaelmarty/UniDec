@@ -2910,7 +2910,25 @@ def find_all_dependencies(path):
 
 
 
-
+def force_register(path):
+    prev_path = path
+    path = path.split("\\")
+    path = '//'.join(path[:-4])
+    path = os.path.join(path, "installer.bat")
+    if os.path.exists(path):
+        import subprocess
+        subprocess.Popen([path], shell=True).wait()
+        exit()
+    else:
+        path = prev_path.split("\\")
+        path = '//'.join(path[:-3])
+        path = os.path.join(path, "installer.bat")
+        if os.path.exists(path):
+            import subprocess
+            subprocess.Popen([path], shell=True).wait()
+            exit()
+        else:
+            print("PATH", path + "NOT FOUND")
 
 
 if __name__ == "__main__":

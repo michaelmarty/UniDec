@@ -171,9 +171,9 @@ class MatchedCollection:
                     self.masses[idx].scans = np.append(self.masses[idx].scans, pk.scan)
                 self.masses[idx].totalintensity += pk.matchedintensity
 
-                if pk.matchedintensity is not None:
-                    if pk.matchedintensity > self.masses[idx].apexintensity:
-                        self.masses[idx].apexintensity = pk.matchedintensity
+                if pk.peakint is not None:
+                    if pk.peakint > self.masses[idx].apexintensity:
+                        self.masses[idx].apexintensity = pk.peakint
                         self.masses[idx].apexscan = pk.scan
                         self.masses[idx].apexrt = pk.rt
 
@@ -426,11 +426,11 @@ class MatchedCollection:
         df.to_csv(filename, sep="\t", index=False)
 
     def to_mass_spectrum(self, binsize=0.1):
-        if len(self.peaks) == 0:
+        if len(self.masses) == 0:
             print("Zero Sized Peak Array")
             return np.array([])
-        minmass = np.min([p.monoiso for p in self.peaks]) - 10 * binsize
-        maxmass = np.max([p.monoiso for p in self.peaks]) + 100 * binsize
+        minmass = np.min([p.monoiso for p in self.masses]) - 10 * binsize
+        maxmass = np.max([p.monoiso for p in self.masses]) + 100 * binsize
 
         # Round minmass and maxmass to nearest binsize
         minmass = np.floor(minmass / binsize) * binsize
@@ -439,9 +439,9 @@ class MatchedCollection:
         masses = np.arange(minmass, maxmass, binsize)
 
         intensities = np.zeros(len(masses))
-        for p in self.peaks:
+        for p in self.masses:
             idx = round((p.monoiso - minmass) / binsize)
-            intensities[idx] += p.matchedintensity
+            intensities[idx] += p.apexintensity
 
         return np.transpose([masses, intensities])
 
@@ -456,7 +456,7 @@ class MatchedMass:
         self.monoiso = pk.monoiso
         self.monoisos = pk.monoisos
         self.scans = np.array([pk.scan])
-        self.apexintensity = pk.matchedintensity
+        self.apexintensity = pk.peakint
         self.maxscan = pk.scan
         self.maxrt = pk.rt
         self.minscan = pk.scan
@@ -466,7 +466,7 @@ class MatchedMass:
         self.mzs = np.array([pk.mz])
         self.zs = np.array([pk.z])
         self.totalintensity = pk.matchedintensity
-        self.mzints = np.array([pk.matchedintensity])
+        self.mzints = np.array([pk.peakint])
         self.scan_intensities = {pk.scan: pk.matchedintensity}
         self.isodists = pk.isodist
         self.totalpeaks = 1

@@ -275,7 +275,6 @@ class IsoDecWrapper:
             matchedpeaks,
             settings,
         )
-        # print(nmatched)
         if pks is None:
             pks = MatchedCollection()
         for p in matchedpeaks[:nmatched]:
@@ -285,13 +284,10 @@ class IsoDecWrapper:
             pk.monoiso = p.monoiso
             pk.peakmass = p.peakmass
             pk.avgmass = p.avgmass
-            # print("pkavgmass", pk.avgmass)
-            # print("Monoiso", pk.monoiso)
 
             monoisos = np.array(p.monoisos)
             monoisos = monoisos[monoisos > 0]
             pk.monoisos = monoisos
-            # print(monoisos)
 
             if config is not None:
                 pk.scan = config.activescan

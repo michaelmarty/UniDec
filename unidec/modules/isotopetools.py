@@ -117,8 +117,6 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467):
     return dist
 
 
-
-
 #@njit(fastmath=True)
 def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007276467, isotopethresh: float = 0.01):
     # Predict Isotopic Intensities
@@ -195,6 +193,25 @@ def isojim(isolist, length=isolength):
 
 
     allft = cft ** numc * hft ** numh * nft ** numn * oft ** numo * sft ** nums
+    #print(type(allft[0]))
+
+    # with nb.objmode(allift='float64[:]'):
+    #    allift = fftpack.irfft(allft)
+    allift = np.abs(fftpack.irfft(allft))
+    # allift = np.abs(allift)
+    allift = allift / np.amax(allift)
+    return allift[:isolength]  # .astype(nb.float64)
+
+# @njit(fastmath=True)
+def isojim_rna(isolist, length=isolength):
+    numc = isolist[0]
+    numh = isolist[1]
+    numn = isolist[2]
+    numo = isolist[3]
+    numps = isolist[4]
+
+
+    allft = cft ** numc * hft ** numh * nft ** numn * oft ** numo * sft ** numps
     #print(type(allft[0]))
 
     # with nb.objmode(allift='float64[:]'):

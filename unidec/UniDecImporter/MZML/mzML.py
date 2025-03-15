@@ -338,7 +338,11 @@ if __name__ == "__main__":
     test = "Z:\\Group Share\\JGP\\DataForJoe\\TF_centroided.mzML"
     test = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_mzml.mzML"
     test = "Z:\\Group Share\\JGP\\DataForJoe\\TF_centroided.mzML"
-    test = "C:\\Data\\RileyLab\\exportMGF_10spectra.mzML"
+    importer = MZMLImporter(test)
+    dat = importer.get_avg_scan()
+
+    exit()
+    #test = "C:\\Data\\RileyLab\\exportMGF_10spectra.mzML"
     #test = "C:\\Data\\DataTypeCollection\\IMMS\\test_agilentimms_mzml.mzML"
     # test = "C:\\Data\\DataTypeCollection\\IMMS\\test_watersimms_mzml.mzML"
     # importer = MZMLImporter(test)

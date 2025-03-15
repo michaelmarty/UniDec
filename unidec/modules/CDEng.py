@@ -4,17 +4,22 @@ import numpy as np
 import os
 import scipy
 import unidec.tools as ud
+
+#first thing that wants dlls from engine
+regpath = os.path.dirname(os.path.realpath(__file__))
 if platform.system() == "Windows":
     try:
         from unidec.UniDecImporter.Thermo.Thermo import ThermoImporter
     except Exception as e:
-        print(e)
-        path = os.path.abspath(__file__)
-        path = path.split("\\")
-        path = '//'.join(path[:-4])
-        path = os.path.join(path, "installer.bat")
-        subprocess.Popen([path], shell = True).wait()
-        exit()
+        ud.force_register(regpath)
+    try:
+        from unidec.UniDecImporter.Sciex.Sciex import SciexImporter
+    except Exception as e:
+        ud.force_register(regpath)
+    try:
+        from unidec.UniDecImporter.Agilent import AgilentImporter
+    except Exception as e:
+        ud.force_register(regpath)
 
 
 from unidec.modules.unidec_enginebase import UniDecEngine
@@ -290,15 +295,17 @@ class UniDecCD(engine.UniDec):
         self.farray = deepcopy(self.darray)
         self.pks = peakstructure.Peaks()
 
+        print("Scan start from GUI", self.config.CDScanStart)
+        print("Scan end from GUI", self.config.CDScanEnd)
         # Filter Scans
         try:
             if int(self.config.CDScanStart) > 0:
-                self.farray = self.farray[self.farray[:, 2] > self.config.CDScanStart]
+                self.farray = self.farray[self.farray[:, 2] >= self.config.CDScanStart]
         except:
             pass
         try:
             if int(self.config.CDScanEnd) > 0:
-                self.farray = self.farray[self.farray[:, 2] < self.config.CDScanEnd]
+                self.farray = self.farray[self.farray[:, 2] <= self.config.CDScanEnd]
         except:
             pass
 
@@ -412,6 +419,9 @@ class UniDecCD(engine.UniDec):
             # self.farray = np.concatenate(farray2)
             self.farray = filter_centroid_const(self.farray, mz_threshold=mz_threshold)
         return self.farray
+
+    def get_scan_range(self):
+        return self.importer.get_scan_range()
 
     def simp_convert(self, y):
         if self.config.CDslope > 0 and self.config.subtype == 1:

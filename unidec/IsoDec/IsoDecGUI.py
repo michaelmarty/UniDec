@@ -165,6 +165,7 @@ class IsoDecPres(UniDecPres):
 
         self.import_config()
         self.view.clear_all_plots()
+        self.view.peakpanel.clear_list()
         self.makeplot1(imfit=False, intthresh=True)
         self.view.SetStatusText("Data Length: " + str(len(self.eng.data.data2)), number=2)
         self.view.SetStatusText("Data Prep Done", number=5)
@@ -243,11 +244,6 @@ class IsoDecPres(UniDecPres):
         udpks.merge_isodec_pks(idpks, self.eng.config.massbins, self.eng.config)
         self.eng.pks = udpks
         # Send pks to structure
-        if self.eng.config.avgpeakmasses == 1:
-            self.view.peakpanel.add_data(self.eng.pks, show="mass",collab1 = "Avg Mass" )
-            self.isodeceng.showavg = True
-        else:
-            self.view.peakpanel.add_data(self.eng.pks, show="zs")
 
     def on_full(self, evt=None):
         maxmz = np.amax(self.eng.data.rawdata[:, 0])
@@ -262,6 +258,11 @@ class IsoDecPres(UniDecPres):
         self.translate_pks()
         self.plot_mass_peaks()
         self.plot_mz_peaks()
+        if self.eng.config.avgpeakmasses == 1:
+            self.view.peakpanel.add_data(self.eng.pks, show="mass", collab1="Avg Mass")
+            self.isodeceng.showavg = True
+        else:
+            self.view.peakpanel.add_data(self.eng.pks, show="zs")
 
     def plot_mass_peaks(self, evt=None):
         print("Plotting Mass Peaks")
@@ -616,6 +617,7 @@ class IsoDecPres(UniDecPres):
         if found_warning:
             print("Warnings were found in the parameters. Please check the output above.")
             self.view.SetStatusText("Warnings found in parameters. Check the console output.", number=number)
+
 
 if __name__ == "__main__":
     app = IsoDecPres()

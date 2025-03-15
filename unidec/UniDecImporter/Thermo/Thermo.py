@@ -28,6 +28,7 @@ class ThermoImporter(Importer):
         self.times = []
         for s in self.scans:
             self.times.append(self.msrun.scan_time_from_scan_name(s))
+
         self.times = np.array(self.times)
         print("Number of Scans", len(self.scans))
 
@@ -155,12 +156,8 @@ if __name__ == "__main__":
     # import matplotlib.pyplot as plt
     test = "C:\\Python\\UniDec3\\TestSpectra\\test.raw"
     d = ThermoImporter(test, silent=False)
-
-    data = d.get_avg_scan()
     # plt.plot(data[:, 0], data[:, 1])
     # plt.show()
-
-
     exit()
     cdms_dat = importer.get_cdms_data()
     for i in cdms_dat:

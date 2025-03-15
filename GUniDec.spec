@@ -75,7 +75,7 @@ hiddenimportslist=['scipy.special._ufuncs_cxx', 'scipy.linalg.cython_blas', 'sci
                  'encodings', 'encodings.__init__',
                  'packaging', 'packaging.version', 'packaging.specifiers',
                  'pubsub', 'pubsub.core', 'matplotlib.backends.backend_ps', 'matplotlib.backends.backend_pdf',
-                 'pycparser']
+                 'pycparser', 'numba.core.types.old_scalars']
 
 
 
@@ -127,12 +127,9 @@ if system == "Windows":
     a.datas += [('ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'unidec\\UniDecImporter\\Thermo\\ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'BINARY')]
     a.datas += [('Waters_MassLynxSDK_EULA.txt', 'unidec\\bin\\Waters_MassLynxSDK_EULA.txt', 'DATA')]
 
-    a.datas += [('BaseCommon.tlb', 'unidec\\UniDecImporter\\Agilent\\BaseCommon.tlb', 'BINARY')]
     a.datas += [('BaseCommon.dll', 'unidec\\UniDecImporter\\Agilent\\BaseCommon.dll', 'BINARY')]
-    a.datas += [('BaseDataAccess.tlb', 'unidec\\UniDecImporter\\Agilent\\BaseDataAccess.tlb', 'BINARY')]
     a.datas += [('BaseDataAccess.dll', 'unidec\\UniDecImporter\\Agilent\\BaseDataAccess.dll', 'BINARY')]
     a.datas += [('MassSpecDataReader.dll', 'unidec\\UniDecImporter\\Agilent\\MassSpecDataReader.dll', 'BINARY')]
-    a.datas += [('MassSpecDataReader.tlb', 'unidec\\UniDecImporter\\Agilent\\MassSpecDataReader.tlb', 'BINARY')]
     a.datas += [('BaseTof.dll', 'unidec\\UniDecImporter\\Agilent\\BaseTof.dll', 'BINARY')]
     a.datas += [('BaseError.dll', 'unidec\\UniDecImporter\\Agilent\\BaseTof.dll', 'BINARY')]
     a.datas += [('agtsampleinforw.dll', 'unidec\\UniDecImporter\\Agilent\\agtsampleinforw.dll', 'BINARY')]
@@ -141,11 +138,29 @@ if system == "Windows":
     a.datas += [('msvcr120.dll', 'unidec\\UniDecImporter\\Agilent\\msvcr120.dll', 'BINARY')]
     a.datas += [('Interop.shell32.dll', 'unidec\\UniDecImporter\\Agilent\\Interop.shell32.dll', 'BINARY')]
     a.datas += [('BaseDataAccess.dll.config', 'unidec\\UniDecImporter\\Agilent\\BaseDataAccess.dll.config', 'BINARY')]
-    a.datas += [('BaseCommon.XML', 'unidec\\UniDecImporter\\Agilent\\BaseCommon.XML', 'BINARY')]
-    a.datas += [('BaseDataAccess.XML', 'unidec\\UniDecImporter\\Agilent\\BaseDataAccess.XML', 'BINARY')]
-    a.datas += [('BaseError.XML', 'unidec\\UniDecImporter\\Agilent\\BaseError.XML', 'BINARY')]
-    a.datas += [('MIDAC.XML', 'unidec\\UniDecImporter\\Agilent\\MIDAC.XML', 'BINARY')]
     a.datas += [('AgtFileSelectionDialog.dll', 'unidec\\UniDecImporter\\Agilent\\AgtFileSelectionDialog.dll', 'BINARY')]
+
+    a.datas += [('BlaisWiff.dll', 'unidec\\UniDecImporter\\Sciex\\BlaisWiff.dll', 'BINARY')]
+    a.datas += [('Clearcore2.Compression.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Compression.dll', 'BINARY')]
+    a.datas += [('Clearcore2.Data.AnalystDataProvider.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Data.AnalystDataProvider.dll', 'BINARY')]
+    a.datas += [('Clearcore2.Data.CommonInterfaces.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Data.CommonInterfaces.dll', 'BINARY')]
+    a.datas += [('Clearcore2.Data.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Data.dll', 'BINARY')]
+    a.datas += [('Clearcore2.Data.WiffReader.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Data.WiffReader.dll', 'BINARY')]
+    a.datas += [('Clearcore2.Muni.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Muni.dll', 'BINARY')]
+    a.datas += [('Clearcore2.InternalRawXYProcessing.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.InternalRawXYProcessing.dll', 'BINARY')]
+    a.datas += [('Clearcore2.RawXYProcessing.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.RawXYProcessing.dll', 'BINARY')]
+    a.datas += [('Clearcore2.StructuredStorage.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.StructuredStorage.dll', 'BINARY')]
+    a.datas += [('Clearcore2.Utility.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Utility.dll', 'BINARY')]
+    a.datas += [('Sciex.ClearCore.FMan.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.ClearCore.FMan.dll', 'BINARY')]
+    a.datas += [('Sciex.Data.Processing.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.Data.Processing.dll', 'BINARY')]
+    a.datas += [('Sciex.Data.SimpleTypes.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.Data.SimpleTypes.dll', 'BINARY')]
+    a.datas += [('Sciex.Data.XYData.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.Data.XYData.dll', 'BINARY')]
+    a.datas += [('Sciex.FMan.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.FMan.dll', 'BINARY')]
+    a.datas += [('Sciex.FMan.UI.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.FMan.UI.dll', 'BINARY')]
+    a.datas += [('Sciex.TofTof.T2DFman.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.TofTof.T2DFman.dll', 'BINARY')]
+    a.datas += [('WiffReaderCOM.dll', 'unidec\\UniDecImporter\\Sciex\\WiffReaderCOM.dll', 'BINARY')]
+    a.datas += [('zlib.net.dll', 'unidec\\UniDecImporter\\Sciex\\zlib.net.dll', 'BINARY')]
+
 
 
     a.datas += [('RawFileReaderLicense.doc', 'unidec\\UniDecImporter\\Thermo\\RawFileReaderLicense.doc', 'BINARY')]

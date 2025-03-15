@@ -4,6 +4,8 @@ from collections import Counter
 import molmass as mm
 from numpy import fft as fftpack
 
+from unidec.modules.isotopetools import isojim_rna
+
 elements = ['H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr', 'Y', 'Zr', 'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn', 'Sb', 'Te', 'I', 'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd', 'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu', 'Hf', 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg', 'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th', 'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm', 'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt']
 edict = {}
 for i, e in enumerate(elements):
@@ -13,11 +15,33 @@ aas = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R'
 
 rnas = ['A', 'C', 'G', 'U']
 # RNA Dictionary of Nucleotide Formulas
+# This appears to be with one Phospho group and one hydroxyl group
 rna_dict = {
     "A": "C10H12O6N5P",
     "C": "C9H12O7N3P",
     "G": "C10H12O7N5P",
     "U": "C9H11O8N2P"}
+
+# RNA Dictionary of Separated Nucleotide Formulas
+# Ordered by C,H,O,N,P
+# These are the numbers of each element in the nucleotide
+# in the context of an oligonucleotide to my best approximation.
+# Does not take into account termininal groups (OH, PO4, etc)
+rna_dict_sep = {
+    "A": [10,12,5,5,1],
+    "C": [9,12,6,3,1],
+    "G": [10,12,6,5,1],
+    "U": [9,11,7,2,1]}
+
+rna_mass_dict = {
+    "A": 347.221,
+    "C": 323.209,
+    "G": 363.221,
+    "U": 324.203}
+
+
+rnaveragine_comp_numerical = np.array([9.4999, 11.7038, 6.0010, 3.70037, 1])
+rnaveragine_mass = 304.6166 #Da
 
 rdict = {}
 for i, r in enumerate(rna_dict):
@@ -38,6 +62,8 @@ for i, d in enumerate(dna_dict):
 
 massavgine = 111.1254
 avgine = np.array([4.9384, 7.7583, 1.3577, 1.4773, 0.0417])
+rnaveragine_comp_numerical = np.array([9.50, 10.70, 6.09, 3.70, 1])
+rnaveragine_mass = 321.29163925 #Da
 isotopes = np.array(
     [
         [[12.0, 98.90], [13.0033548, 1.10], [0, 0], [0, 0]],
@@ -52,7 +78,15 @@ isotopes = np.array(
         ],
     ]
 )
-
+def rna_mass_to_isolist(initial_mass, rna_mass = rnaveragine_mass, rna_comp = rnaveragine_comp_numerical):
+    # Get the individual count of each of the C H N O P from the rna sequence based on the rnavergine_mass
+    # This will be fed into isojim for the distribution
+    value_per = initial_mass / rna_mass
+    arr = np.zeros(5)
+    for i in range(len(rna_comp)):
+        arr[i] = value_per * rna_comp[i]
+    print(arr)
+    return arr
 
 # @njit(fastmath=True)
 def makemass(testmass):
@@ -131,22 +165,55 @@ def mass_to_vector(x):
 
 # Calculate the isotopic distribution of the peptide
 def peptide_to_dist(peptide):
-    formula = ms.Composition(peptide)
-    # Formula to string
-    fstring = ""
-    for k in formula:
-        fstring += k + str(formula[k])
-    dist = get_dist_from_formula(fstring)
+    try:
+        formula = ms.Composition(peptide)
+        # Formula to string
+        fstring = ""
+        for k in formula:
+            fstring += k + str(formula[k])
+        dist = get_dist_from_formula1(fstring)
+    except Exception as e:
+        dist = None
     return dist
 
+def peptide_to_mass(peptide):
+    try:
+        formula = ms.Composition(peptide)
+        mass = formula.mass()
+    except Exception:
+        return None
+    return mass
 # Convert peptide sequence into vector
 def peptide_to_vector(peptide):
-    # Get counts of each amino acid
-    counts = Counter(peptide)
-    vec = np.zeros(len(aas))
-    for i, aa in enumerate(aas):
-        vec[i] = counts[aa]
+    try:
+        # Get counts of each amino acid
+        counts = Counter(peptide)
+        vec = np.zeros(len(aas))
+        for i, aa in enumerate(aas):
+            vec[i] = counts[aa]
+    except Exception as e:
+        vec = None
     return vec
+
+def get_dist_from_formula1(formula, isolen=128, cutoff=0.001):
+    mol = mm.Formula(formula)
+    isolist = np.zeros(5)
+    for a in mol._elements:
+        if a == "C":
+            isolist[0] = mol._elements[a][0]
+        elif a == "H":
+            isolist[1] = mol._elements[a][0]
+        elif a == "N":
+            isolist[2] = mol._elements[a][0]
+        elif a == "O":
+            isolist[3] = mol._elements[a][0]
+        elif a == "S":
+            isolist[4] = mol._elements[a][0]
+        else:
+            raise ValueError("Unknown atom found in formula")
+    dist = isojim(isolist, length=isolen)
+    return dist
+
 
 def get_dist_from_formula(formula, isolen=128, cutoff=0.001):
     # Get the isotopic distribution from a chemical formula
@@ -214,8 +281,19 @@ def dnaseq_to_vector(dnaseq):
         vec[i] = counts[b]
     return vec
 
+# RNA mass to dist
+def rnamass_to_dist(mass, isolen=128, cutoff=0.001):
+    # Get the isotopic distribution of the molecular weight
+    dist = get_dist_from_formula(mass, isolen, cutoff)
+    return dist
 
+
+#Take the total mass, then divide by the total number of atoms in the averagine
+#Then multiply by
 if __name__ == "__main__":
+    exit()
+
+
     rnaseq = "GUAC"
     dnaseq = "GATC"
     print(rnaseq_to_vector(rnaseq))

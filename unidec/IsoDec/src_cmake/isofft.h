@@ -56,7 +56,9 @@ ISOFFT_EXPORTS void test_peptide_sequence(const char *sequence);
 ISOFFT_EXPORTS float isodist_from_peptide_sequence(const char *sequence, float *isodist, int isolen);
 ISOFFT_EXPORTS void test_nt_sequence(const char *sequence);
 ISOFFT_EXPORTS float isodist_from_nt_sequence(const char *sequence, float *isodist, int isolen);
-
+ISOFFT_EXPORTS float* rna_mass_to_isolist(float initialMass);
+ISOFFT_EXPORTS float* isojim_rna(float *isolist);
+ISOFFT_EXPORTS void mass_to_formula_averaging(const float mass, int* formula);
 #endif //ISOFFT_LIBRARY_H
 
 

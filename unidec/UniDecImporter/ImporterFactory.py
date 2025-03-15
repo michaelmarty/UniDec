@@ -4,7 +4,6 @@ To fetch all scans use importer_name.get_all_scans()
 """
 import os
 import platform
-import numpy as np
 from unidec.UniDecImporter import SingleScanImporter as SSI
 from unidec.UniDecImporter.I2MS.I2MS import I2MSImporter
 from unidec.UniDecImporter.MZML.mzML import MZMLImporter
@@ -13,10 +12,11 @@ from unidec.UniDecImporter.MZXML.mzXML import MZXMLImporter
 
 
 
+
 # Note, it is important that these be listed with raw data formats first and processed data formats later.
 # Batch.py will attempt the latter formats if use_converted option is on
 recognized_types = [".raw", ".d", ".mzxml",".mzml", ".mzml.gz", ".gz", '.txt', '.dat', '.csv', '.npz', '.i2ms', '.dmt',
-                     '.bin']
+                     '.bin', ".wiff"]
 
 if platform.system() == "Windows":
     try:
@@ -33,6 +33,11 @@ if platform.system() == "Windows":
         from unidec.UniDecImporter.Waters.Waters import WatersDataImporter
     except Exception as e:
         print("Unable to import WatersDataImporter:", e)
+
+    try:
+        from unidec.UniDecImporter.Sciex.Sciex import SciexImporter
+    except Exception as e:
+        print("Unable to import SciexImporter:", e)
 
 else:
         print("Not importing Agilent, Thermo, or Waters importers on non-Windows system")
@@ -61,7 +66,8 @@ class ImporterFactory:
             return MZMLImporter(file_path, **kwargs)
         elif ending==".d":
             return AgilentImporter(file_path, **kwargs)
-        #Things to introduce in future: .Wiff (Sciex Data)
+        elif ending=='.wiff':
+            return SciexImporter(file_path, **kwargs)
         elif ending == ".txt" or ending == ".dat" or ending == ".csv" or ending == ".npz" or ending == '.bin':
             return SSI.SingleScanImporter(file_path, **kwargs)
         elif ending == ".dmt" or ending == ".i2ms":

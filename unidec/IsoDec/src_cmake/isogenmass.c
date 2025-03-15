@@ -6,9 +6,23 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "isogenmass_model_64.h"
 
+
+const char pepOrder[] = "ACDEFGHIKLMNPQRSTVWY";
+const char rnaOrder[] = "ACGU";
+const char *elements[] = {
+    "He", "Li", "Be", "Ne", "Na", "Mg", "Al", "Si", "Cl", "Ar", "Ca", "Sc", "Ti", "Cr", "Mn", "Fe", "Co", "Ni", "Cu",
+    "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In",
+    "Sn", "Sb", "Te", "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm",
+    "Yb", "Lu", "Hf", "Ta", "Re", "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac",
+    "Th", "Pa", "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr", "Rf", "Db", "Sg", "Bh", "Hs", "Mt",
+    "H", "B", "C", "N", "O", "F", "P", "S", "K", "V", "Y", "U", "W", "I"
+};
+
+#define ISO_LEN 32
 
 void mass_to_vector(const float mass, float *vector) {
     // const float x0 = mass / 10000000.0f;
@@ -52,6 +66,14 @@ struct IsoGenWeights SetupWeights(const int veclen, const int outlen) {
     }
     return weights;
 }
+
+
+typedef struct
+{
+    int isolen;
+    int vectorlen;
+    struct IsoGenWeights weights;
+}IsoGenPepEngine;
 
 // Free Weights
 void FreeWeights(const struct IsoGenWeights weights) {
@@ -215,6 +237,152 @@ float isomike(const float mass, float * isodist, const int isolen, const int off
     }
     return max;
 }
+
+
+float* peptideToVector(const char* peptide)
+{
+    static float vector[20];
+    memset(vector, 0, 20* sizeof(float));
+    int len = strlen(peptide);
+    for (int i = 0; i < len; i++)
+    {
+        char *pos = strchr(pepOrder, peptide[i]);
+        if (pos)
+        {
+            int index = pos - pepOrder;
+            vector[index] += 1.0f;
+        }
+    }
+    return vector;
+}
+
+float* rnaToVector(const char* rna)
+{
+    static float vector[4];
+    memset(vector, 0, sizeof(vector));
+    int len = strlen(rna);
+    for (int i = 0; i < len; i++)
+    {
+        char *pos = strchr(rnaOrder, rna[i]);
+        if (pos)
+        {
+            int index = pos - rnaOrder;
+            vector[index] += 1.0f;
+        }
+    }
+    return vector;
+}
+
+
+int get_element_index(const char* symbol){
+    for (int i = 0; i < 109; i++)
+    {
+        if (strcmp(elements[i], symbol) == 0)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+
+
+float* formulaToVector(const char* formula)
+{
+    float* vector = malloc(109 * sizeof(float));
+    if (!vector) {
+        printf("Memory allocation failed!\n");
+        exit(1);
+    }
+    memset(vector, 0, 109 * sizeof(float));
+    int len = strlen(formula);
+    for (int i = 0; i < len;){
+        char element[3] = {0};
+        int count = 0;
+        if (i+1 < len && islower(formula[i+1])){
+            element[0] = formula[i];
+            element[1] = formula[i+1];
+            element[2] = '\0';
+            i += 2;
+        } else{
+            element[0] = formula[i];
+            element[1] = '\0';
+            i++;
+        }
+        while(i < len && isdigit(formula[i])){
+            count = count * 10 + formula[i] - '0';
+            i++;
+        }
+        if (count == 0){
+            count = 1;
+        }
+        int index = get_element_index(element);
+        if (index != -1){
+            vector[index] += count;
+        }
+        else {
+            printf("Error: Unknown element %s in formula %s\n", element, formula);
+            exit(1);
+        }
+        vector[index]+=count;
+    }
+    return vector;
+}
+
+void freeVector(float* vector){
+    free(vector);
+}
+
+
+
+
+
+
+
+// void main()
+// {
+//     IsoGenPepEngine engine;
+//     engine.isolen = 32;
+//     engine.vectorlen = 20;
+//     engine.weights = SetupWeights(engine.vectorlen, engine.isolen);
+//     engine.weights = LoadWeights(engine.weights, isogenmass_model_64_bin);
+//     const char *testformulas[]=
+//     {
+//         "PEPTIDE", "CCCCCCCCCCCCCCCCCC", "APTIGGGQGAAAAAAAAAAAAAAAAAAASVTGGTIPGPGPGGATAR", "LLL", "KKK", "CCCM"
+//     };
+//     int num_tests = sizeof(testformulas) / sizeof(testformulas[0]);
+//     for (int i = 0; i < num_tests; i++)
+//     {
+//         float output[32] = {0};
+//         printf("Testing sequence %s\n", testformulas[i]);
+//
+//
+//         //convert to vector
+//         float vector[20] = {0};
+//         peptideToVector(testformulas[i]);
+//         //run prediction
+//         neural_net(vector, output, engine.weights);
+//
+//         printf("Predicated distribution for %s:\n", testformulas[i]);
+//         for (int j = 0; j < 10; j++)
+//         {
+//             printf("%.4f ", output[j]);
+//         }
+//         printf("\n\n");
+//
+//
+//     }
+//     FreeWeights(engine.weights);
+// }
+
+
+
+
+
+
+
+
+
 
 
 
