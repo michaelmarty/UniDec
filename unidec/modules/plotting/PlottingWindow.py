@@ -192,6 +192,7 @@ class PlottingWindowBase(PlotBase, wx.Panel):
                 dlg = DoubleInputDialog(self)
                 dlg.initialize_interface("Set Plot X Range", "Min:", '',
                                          "Max:", "")
+
                 if dlg.ShowModal() == wx.ID_OK:
                     minval = dlg.value
                     maxval = dlg.value2

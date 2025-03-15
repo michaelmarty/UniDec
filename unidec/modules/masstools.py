@@ -847,6 +847,7 @@ class MassSelection(wx.Dialog):
             print("Unable to load common masses")
         # self.load_common_masses(self.config.masstablefile)
         self.CenterOnParent()
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
 
     def get_site_df(self):
         try:
@@ -1157,7 +1158,7 @@ class MassSelection(wx.Dialog):
 
         self.Destroy()
         try:
-            self.EndModal(0)
+            self.EndModal(wx.ID_OK)
         except Exception as e:
             pass
 
@@ -1168,7 +1169,7 @@ class MassSelection(wx.Dialog):
         :return: None
         """
         self.Destroy()
-        self.EndModal(1)
+        self.EndModal(wx.ID_CANCEL)
 
     def pop_from_peaks(self, e):
         """

@@ -7,12 +7,17 @@ import zipfile
 import time
 import fnmatch
 from multiprocessing import freeze_support
+from PyInstaller.utils.hooks import collect_submodules
 from os import listdir
 from PyInstaller import compat
 import matplotlib
 import sys
 import hashlib
 import shutil
+import subprocess
+
+
+
 
 
 def hashfile(path):
@@ -66,15 +71,25 @@ zipdirectory = outputdir + "_" + date + ".zip"
 
 hiddenimportslist=['scipy.special._ufuncs_cxx', 'scipy.linalg.cython_blas', 'scipy.linalg.cython_lapack',
                  'scipy.special.cython_special','numpy',
-                 'scipy._lib.messagestream','clr', 'pythonnet',
+                 'scipy._lib.messagestream','clr', 'clr_loader', 'pythonnet',
                  'encodings', 'encodings.__init__',
                  'packaging', 'packaging.version', 'packaging.specifiers',
                  'pubsub', 'pubsub.core', 'matplotlib.backends.backend_ps', 'matplotlib.backends.backend_pdf',
-             ]
+                 'pycparser', 'numba.core.types.old_scalars']
 
 
-excludeslist = ['IPython', 'statsmodels', 'pyopenms', 'sklearn',
-                       'GdkPixbuf', 'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2', 'PyQt5', 'torch']
+
+
+
+excludeslist = [
+    'IPython', 'statsmodels', 'pyopenms', 'sklearn', 'GdkPixbuf',
+    'pyQT4', 'pygobject', 'pygtk', 'pyside', 'PySide2', 'shiboken2',
+    'PyQt5', 'torch',
+    'pywin32', 'win32api', 'win32con', 'win32gui', 'win32com',
+    'win32process', 'win32security', 'win32clipboard',
+    'win32service', 'win32event', 'win32file'
+]
+
 
 # Analysis of packages
 a = Analysis(['unidec\\Launcher.py'],
@@ -84,11 +99,11 @@ a = Analysis(['unidec\\Launcher.py'],
              hookspath=None,
              runtime_hooks=None)
 
+
+
 # Add extra things
 if system == "Windows":
     a.datas += [('UniDec.exe', 'unidec\\bin\\UniDec.exe', 'DATA')]
-    a.datas += [('readme.md', 'readme.md', 'DATA')]
-    a.datas += [('LICENSE', 'LICENSE', 'DATA')]
     a.datas += [('CDCReader.exe', 'unidec\\bin\\CDCReader.exe', 'DATA')]
     a.datas += [('h5repack.exe', 'unidec\\bin\\h5repack.exe', 'DATA')]
     a.datas += [('unimod.sqlite', 'unidec\\bin\\unimod.sqlite', 'DATA')]
@@ -98,7 +113,7 @@ if system == "Windows":
     a.datas += [('pymzml\\version.txt', compat.base_prefix + '\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
     a.datas += [('massql\\msql.ebnf', compat.base_prefix + '\\Lib\\site-packages\\massql\\msql.ebnf', 'DATA')]
 
-    # Copy over all the DLLs from the bin folder
+     # Copy over all the DLLs from the bin folder
     for file in os.listdir('unidec\\bin'):
         if fnmatch.fnmatch(file, '*.dll'):
             add = [(file, 'unidec\\bin\\' + file, 'BINARY')]
@@ -113,24 +128,68 @@ if system == "Windows":
     a.datas += [('Waters_MassLynxSDK_EULA.txt', 'unidec\\bin\\Waters_MassLynxSDK_EULA.txt', 'DATA')]
 
     a.datas += [('BaseCommon.dll', 'unidec\\UniDecImporter\\Agilent\\BaseCommon.dll', 'BINARY')]
-    a.datas += [('BaseCommon.tlb', 'unidec\\UniDecImporter\\Agilent\\BaseCommon.tlb', 'BINARY')]
     a.datas += [('BaseDataAccess.dll', 'unidec\\UniDecImporter\\Agilent\\BaseDataAccess.dll', 'BINARY')]
-    a.datas += [('BaseDataAccess.tlb', 'unidec\\UniDecImporter\\Agilent\\BaseDataAccess.tlb', 'BINARY')]
-    a.datas += [('BaseError.dll', 'unidec\\UniDecImporter\\Agilent\\BaseError.dll', 'BINARY')]
-    a.datas += [('BaseTof.dll', 'unidec\\UniDecImporter\\Agilent\\BaseTof.dll', 'BINARY')]
     a.datas += [('MassSpecDataReader.dll', 'unidec\\UniDecImporter\\Agilent\\MassSpecDataReader.dll', 'BINARY')]
-    a.datas += [('MassSpecDataReader.tlb', 'unidec\\UniDecImporter\\Agilent\\MassSpecDataReader.tlb', 'BINARY')]
+    a.datas += [('BaseTof.dll', 'unidec\\UniDecImporter\\Agilent\\BaseTof.dll', 'BINARY')]
+    a.datas += [('BaseError.dll', 'unidec\\UniDecImporter\\Agilent\\BaseTof.dll', 'BINARY')]
+    a.datas += [('agtsampleinforw.dll', 'unidec\\UniDecImporter\\Agilent\\agtsampleinforw.dll', 'BINARY')]
+    a.datas += [('MIDAC.dll', 'unidec\\UniDecImporter\\Agilent\\MIDAC.dll', 'BINARY')]
+    a.datas += [('msvcp120.dll', 'unidec\\UniDecImporter\\Agilent\\msvcp120.dll', 'BINARY')]
+    a.datas += [('msvcr120.dll', 'unidec\\UniDecImporter\\Agilent\\msvcr120.dll', 'BINARY')]
+    a.datas += [('Interop.shell32.dll', 'unidec\\UniDecImporter\\Agilent\\Interop.shell32.dll', 'BINARY')]
+    a.datas += [('BaseDataAccess.dll.config', 'unidec\\UniDecImporter\\Agilent\\BaseDataAccess.dll.config', 'BINARY')]
+    a.datas += [('AgtFileSelectionDialog.dll', 'unidec\\UniDecImporter\\Agilent\\AgtFileSelectionDialog.dll', 'BINARY')]
+
+    a.datas += [('BlaisWiff.dll', 'unidec\\UniDecImporter\\Sciex\\BlaisWiff.dll', 'BINARY')]
+    a.datas += [('Clearcore2.Compression.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Compression.dll', 'BINARY')]
+    a.datas += [('Clearcore2.Data.AnalystDataProvider.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Data.AnalystDataProvider.dll', 'BINARY')]
+    a.datas += [('Clearcore2.Data.CommonInterfaces.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Data.CommonInterfaces.dll', 'BINARY')]
+    a.datas += [('Clearcore2.Data.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Data.dll', 'BINARY')]
+    a.datas += [('Clearcore2.Data.WiffReader.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Data.WiffReader.dll', 'BINARY')]
+    a.datas += [('Clearcore2.Muni.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Muni.dll', 'BINARY')]
+    a.datas += [('Clearcore2.InternalRawXYProcessing.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.InternalRawXYProcessing.dll', 'BINARY')]
+    a.datas += [('Clearcore2.RawXYProcessing.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.RawXYProcessing.dll', 'BINARY')]
+    a.datas += [('Clearcore2.StructuredStorage.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.StructuredStorage.dll', 'BINARY')]
+    a.datas += [('Clearcore2.Utility.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Utility.dll', 'BINARY')]
+    a.datas += [('Sciex.ClearCore.FMan.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.ClearCore.FMan.dll', 'BINARY')]
+    a.datas += [('Sciex.Data.Processing.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.Data.Processing.dll', 'BINARY')]
+    a.datas += [('Sciex.Data.SimpleTypes.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.Data.SimpleTypes.dll', 'BINARY')]
+    a.datas += [('Sciex.Data.XYData.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.Data.XYData.dll', 'BINARY')]
+    a.datas += [('Sciex.FMan.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.FMan.dll', 'BINARY')]
+    a.datas += [('Sciex.FMan.UI.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.FMan.UI.dll', 'BINARY')]
+    a.datas += [('Sciex.TofTof.T2DFman.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.TofTof.T2DFman.dll', 'BINARY')]
+    a.datas += [('WiffReaderCOM.dll', 'unidec\\UniDecImporter\\Sciex\\WiffReaderCOM.dll', 'BINARY')]
+    a.datas += [('zlib.net.dll', 'unidec\\UniDecImporter\\Sciex\\zlib.net.dll', 'BINARY')]
+
+
+
+    a.datas += [('RawFileReaderLicense.doc', 'unidec\\UniDecImporter\\Thermo\\RawFileReaderLicense.doc', 'BINARY')]
+    a.datas += [('ThermoFisher.CommonCore.Data.dll', 'unidec\\UniDecImporter\\Thermo\\ThermoFisher.CommonCore.Data.dll', 'BINARY')]
+    a.datas += [('ThermoFisher.CommonCore.RawFileReader.dll', 'unidec\\UniDecImporter\\Thermo\\ThermoFisher.CommonCore.RawFileReader.dll', 'BINARY')]
+    a.datas += [('ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'unidec\\UniDecImporter\\Thermo\\ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'BINARY')]
+    a.datas += [('ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'unidec\\UniDecImporter\\Thermo\\ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'BINARY')]
+    a.datas += [('Waters_MassLynxSDK_EULA.txt', 'unidec\\bin\\Waters_MassLynxSDK_EULA.txt', 'DATA')]
 
 
     a.datas += [('isodeclib.dll', 'unidec\\IsoDec\\isodeclib.dll', 'BINARY')]
     a.datas += [('isodeclib.lib', 'unidec\\IsoDec\\isodeclib.lib', 'BINARY')]
     a.datas += [('isogenmass.dll', 'unidec\\IsoDec\\isogenmass.dll', 'BINARY')]
     a.datas += [('isogenmass.lib', 'unidec\\IsoDec\\isogenmass.lib', 'BINARY')]
+    a.datas += [('isofft.dll', 'unidec\\IsoDec\\isofft.dll', 'BINARY')]
+    a.datas += [('isofft.lib', 'unidec\\IsoDec\\isofft.lib', 'BINARY')]
+
+
+
+
+
+
+
+
+
 
 
 elif system == "Linux":
     a.datas += [('unideclinux', 'unidec/bin/unideclinux', 'BINARY')]
-
 
 
 a.datas += [('cacert.pem', os.path.join('unidec\\bin', 'cacert.pem'), 'DATA')]
@@ -161,7 +220,7 @@ exe = EXE(pyz,
           a.scripts,
           exclude_binaries=True,
           name=exename,
-          debug=False,
+          debug=True,
           strip=None,
           upx=False,
           console=True, icon='unidec\\bin\\logo.ico')
@@ -176,12 +235,22 @@ coll = COLLECT(exe,
 path = "C:\\Python\\UniDec3\\dist\\UniDec_Windows\\GUI_UniDec.exe"
 import subprocess
 
+
 dst = "C:\\Python\\UniDec3\\dist\\UniDec_Windows\\obo"
 src = "C:\\Python\\UniDec3\\dist\\UniDec_Windows\\_internal\\obo"
 
-shutil.copytree(src, dst)
 
-print("Testing Software...", path)
+shutil.copytree(src, dst)
+shutil.copy("C:\\Python\\UniDec3\\readme.md", "C:\\Python\\UniDec3\\dist\\UniDec_Windows")
+shutil.copy("C:\\Python\\UniDec3\\INSTALLER.bat", "C:\\Python\\UniDec3\\dist\\UniDec_Windows")
+
+
+
+
+
+
+
+
 
 out = subprocess.call(path)
 if out != 0:

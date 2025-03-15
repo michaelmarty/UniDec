@@ -109,6 +109,7 @@ class PeakTools1d(wx.Dialog):
         okbutton.Bind(wx.EVT_BUTTON, self.on_close)
         closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
         self.CenterOnParent()
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
 
     def on_close(self, e):
         """
@@ -119,7 +120,7 @@ class PeakTools1d(wx.Dialog):
         self.config.psfun = self.ctlpsfun.GetSelection()
         self.config.mzsig = simp_string_to_value(self.ctlmzsig.GetValue())
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
 
     def on_close_cancel(self, e):
         """
@@ -128,7 +129,7 @@ class PeakTools1d(wx.Dialog):
         :return: None
         """
         self.Destroy()
-        self.EndModal(1)
+        self.EndModal(wx.ID_CANCEL)
 
     def on_reset(self, e):
         """
@@ -332,11 +333,13 @@ class PeakTools2d(wx.Dialog):
         fitbutton.Bind(wx.EVT_BUTTON, self.on_fit)
         okbutton.Bind(wx.EVT_BUTTON, self.on_close)
         closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
         self.CenterOnParent()
 
         # Plot the result
         self.plot1.plotrefreshtop(self.data[:, 0], self.data[:, 1], title="Data", xlabel="m/z (Th)",
                                   ylabel="Normalized Intensity", zoom="span", zoomout=True)
+
 
     def on_close(self, e):
         """
@@ -348,7 +351,7 @@ class PeakTools2d(wx.Dialog):
         self.config.dtsig = simp_string_to_value(self.outdtsig.GetValue())
         self.config.psfun = self.ctlpsfun.GetSelection()
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
 
     def on_close_cancel(self, e):
         """
@@ -357,7 +360,7 @@ class PeakTools2d(wx.Dialog):
         :return: None
         """
         self.Destroy()
-        self.EndModal(1)
+        self.EndModal(wx.ID_CANCEL)
 
     def on_flip(self, e):
         """
@@ -381,7 +384,7 @@ class PeakTools2d(wx.Dialog):
                 self.ctlsigguess.SetValue(str(self.config.dtsig))
             self.ctlpsfun.SetSelection(0)
         else:
-            self.ctlpsfun.SetSelection(self.psfun)
+            self.ctlpsfun.SetSelection(int(self.psfun))
             self.data, self.data2 = self.data2, self.data
             self.outdtsig.SetValue(str(self.fitsig))
             self.on_reset(0)

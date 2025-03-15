@@ -251,6 +251,8 @@ class UPPApp(wx.Frame):
         self.use_interactive = False
         self.make_combined_peaks = True
         self.allpng = False
+        self.make_individual_reports = True
+        self.make_combined_report = True
         self.bpeng = BPEngine(parent=self)
 
         try:
@@ -322,21 +324,6 @@ class UPPApp(wx.Frame):
         hsizer.Add(self.usedeconbox, 0, wx.EXPAND)
         self.usedeconbox.SetValue(self.use_decon)
 
-        # Insert a checkbox to select whether to generate interactive HTML reports
-        self.interactivebox = wx.CheckBox(panel, label="Interactive Reports  ")
-        hsizer.Add(self.interactivebox, 0, wx.EXPAND)
-        self.interactivebox.SetValue(self.use_interactive)
-
-        # Insert a checkbox to select whether to generate HTML reports with all PNG images and not SVG. Saves a bit of space.
-        self.pngbox = wx.CheckBox(panel, label="PNG Figures  ")
-        hsizer.Add(self.pngbox, 0, wx.EXPAND)
-        self.pngbox.SetValue(self.allpng)
-
-        # Insert a checkbox to select whether to generate a combined peak list
-        self.peaklistbox = wx.CheckBox(panel, label="Generate Combined Peak List  ")
-        hsizer.Add(self.peaklistbox, 0, wx.EXPAND)
-        self.peaklistbox.SetValue(self.make_combined_peaks)
-
         # Insert Spacer Text
         hsizer.Add(wx.StaticText(panel, label="   "), 0)
 
@@ -403,6 +390,31 @@ class UPPApp(wx.Frame):
         self.hideemptybtn.Bind(wx.EVT_BUTTON, self.on_hide_empty_columns)
         hsizer2.Add(self.hideemptybtn, 0)
 
+        # Insert a checkbox to select whether to generate interactive HTML reports
+        self.interactivebox = wx.CheckBox(panel, label="Interactive Reports  ")
+        hsizer2.Add(self.interactivebox, 0, wx.EXPAND)
+        self.interactivebox.SetValue(self.use_interactive)
+
+        # Insert a checkbox to select whether to generate HTML reports with all PNG images and not SVG. Saves a bit of space.
+        self.pngbox = wx.CheckBox(panel, label="PNG Figures  ")
+        hsizer2.Add(self.pngbox, 0, wx.EXPAND)
+        self.pngbox.SetValue(self.allpng)
+
+        # Insert a checkbox to select whether to generate a combined peak list
+        self.peaklistbox = wx.CheckBox(panel, label="Generate Combined Peak List  ")
+        hsizer2.Add(self.peaklistbox, 0, wx.EXPAND)
+        self.peaklistbox.SetValue(self.make_combined_peaks)
+
+        # Insert a checkbox to select whether to create individual reports
+        self.individualbox = wx.CheckBox(panel, label="Individual Reports  ")
+        hsizer2.Add(self.individualbox, 0, wx.EXPAND)
+        self.individualbox.SetValue(True)
+
+        # Insert checkbox to generate combined report
+        self.combinedbox = wx.CheckBox(panel, label="Combined Report  ")
+        hsizer2.Add(self.combinedbox, 0, wx.EXPAND)
+        self.combinedbox.SetValue(True)
+
         sizer.Add(hsizer, 0, wx.ALL | wx.EXPAND)
 
         self.ss = SpreadsheetPanel(self, panel, nrows, ncolumns).ss
@@ -428,7 +440,8 @@ class UPPApp(wx.Frame):
         self.get_from_gui()
         wx.Yield()
         self.bpeng.run_df(decon=self.use_decon, use_converted=self.use_converted, interactive=self.use_interactive,
-                          write_peaks=self.make_combined_peaks, allpng=self.allpng)
+                          write_peaks=self.make_combined_peaks, allpng=self.allpng,
+                          write_html=self.make_combined_report, individual_html=self.make_individual_reports)
         self.load_to_gui()
         self.runbtn.SetBackgroundColour("green")
         if not self.hide_col_flag:
@@ -458,7 +471,8 @@ class UPPApp(wx.Frame):
         # Run SubDF
         subdf2 = self.bpeng.run_df(df=subdf, decon=self.use_decon, use_converted=self.use_converted,
                                    interactive=self.use_interactive, write_xlsx=False, write_html=False,
-                                   write_peaks=False, allpng=self.allpng)
+                                   write_peaks=False, allpng=self.allpng,
+                                   individual_html=self.make_individual_reports)
 
         # Update the main dataframe
         # topdf.iloc[selected_rows] = subdf2
@@ -550,6 +564,8 @@ class UPPApp(wx.Frame):
         self.use_interactive = self.interactivebox.GetValue()
         self.make_combined_peaks = self.peaklistbox.GetValue()
         self.allpng = self.pngbox.GetValue()
+        self.make_combined_report = self.combinedbox.GetValue()
+        self.make_individual_reports = self.individualbox.GetValue()
 
         self.ss.remove_empty()
         ssdf = self.ss.get_df()
@@ -600,7 +616,7 @@ class UPPApp(wx.Frame):
 
     def on_add_files(self, event=None):
 
-        wildcard = "CSV or Excel files (*.csv; *.xlsx; *.xls)|*.csv; *.xlsx; *.xls|CSV files (*.csv)|*.csv|Excel files (*.xlsx; *.xls)|*.xlsx; *.xls"
+        # wildcard = "CSV or Excel files (*.csv; *.xlsx; *.xls)|*.csv; *.xlsx; *.xls|CSV files (*.csv)|*.csv|Excel files (*.xlsx; *.xls)|*.xlsx; *.xls"
         wildcard = "Any files (*.*) |*.*| " \
                    "Known file types (*.raw; *.d; *.mzML; *.mzXML; *.txt; *.csv; *.dat; *.npz)|" \
                    "*.raw; *.d; *.mzML; *.mzXML; *.txt; *.csv; *.dat; *.npz|" \

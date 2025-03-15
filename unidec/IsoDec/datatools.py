@@ -1,7 +1,9 @@
+import math
+
 import numpy as np
 from numba import njit
 import scipy.ndimage.filters as filt
-
+import matplotlib.pyplot as plt
 # from bisect import bisect_left
 
 # Make a python code from this C code
@@ -188,6 +190,16 @@ def fastcalc_FWHM(peak, data):
     #print("FWHM:", [data[indexstart, 0], data[indexend, 0]])
     return FWHM, [data[indexstart, 0], data[indexend, 0]]
 
+#Use base 10
+def log_transform(dat, base=10):
+    """Log transform 2d data array by base 10"""
+    for i in range(len(dat[:,1])):
+        if dat[i,1] > 0:
+            dat[i,1] = math.log(dat[i,1], base)
+        else:
+            dat[i,1] = 0
+    return dat
+
 
 def get_noise(data, n=20):
     """
@@ -236,7 +248,7 @@ def remove_noise_cdata(data, localmin=100, factor=1.5, mode="median"):
 
 
 @njit(fastmath=True)
-def get_fwhm_peak(data, peakmz):
+def get_fwhm_peak(peakmz, data):
     """
     Get the full width half max of the peak.
     :param data: 2D numpy array of data
@@ -257,6 +269,8 @@ def get_centroid(data, peakmz, fwhm=1):
     :param peakmz: float, m/z value of the peak
     :return: float, centroid of the peak
     """
+    fwhm = get_fwhm_peak(peakmz, data)
+
     b1 = data[:, 0] > peakmz - fwhm
     b2 = data[:, 0] < peakmz + fwhm
     b = b1 & b2
@@ -287,6 +301,8 @@ def datacompsub(datatop, buff):
     for i in indexes:
         mins[i] = np.amin(datatop[int(max([0, i - abs(buff)])):int(min([i + abs(buff), length])), 1])
     background = filt.gaussian_filter(mins, abs(buff) * 2)
+    plt.plot(datatop[:, 0], background)
+    plt.show()
     datatop[:, 1] = datatop[:, 1] - background
     return datatop
 
@@ -295,16 +311,18 @@ def get_all_centroids(data, window=5, threshold=0.0001, background=100, moving_a
     if len(data) < 3:
         return np.empty((0, 2))
 
-    if background > 0:
-        data = datacompsub(data, 100)
+    # if background > 0:
+    #     data = datacompsub(data, background)
 
     if moving_average_smoothing > 1:
         data[:,1] = np.convolve(data[:,1], np.ones(moving_average_smoothing)/moving_average_smoothing, mode='same')
 
-    fwhm = get_fwhm_peak(data, data[np.argmax(data[:, 1]), 0])
+
     peaks = fastpeakdetect(data, window=window, threshold=threshold)
 
-    p0 = [get_centroid(data, p[0], fwhm) for p in peaks]
+    data_array = np.array(data)
+
+    p0 = [get_centroid(data_array, p[0]) for p in peaks]
     outpeaks = np.empty((len(p0), 2))
     outpeaks[:, 0] = p0
     outpeaks[:, 1] = peaks[:, 1]
@@ -377,25 +395,19 @@ def simp_charge(centroids, silent=False):
     return charge
 
 
-def subtract_matched_centroid_range(profile_data, matched_theoretical, centroids, noise_threshold=0, tolerance = 0.001, window_size=5):
+def subtract_matched_centroid_range(profile_data, matched_theoretical, centroids, tolerance = 0.0001, window_size=0):
     mz_values = profile_data[:, 0].copy()
     intensity_values = profile_data[:, 1].copy()
-
     stored_widths = {}
     peak_ranges = []
-
     for centroid in centroids:
         centroid_x = centroid[0]
-
-        fwhm = get_fwhm_peak(profile_data, centroid_x)
+        fwhm = get_fwhm_peak(centroid_x, profile_data)
         stored_widths[centroid_x] = fwhm
-        #Old
-        #left_range = max((centroid_x - fwhm / 2), 0)
-        left_range = max((centroid_x - fwhm),0)
-        right_range = max((centroid_x + fwhm),0)
+        left_range = max((centroid_x - (fwhm)),0)
+        right_range = max((centroid_x + (fwhm)),0)
         left_range -= window_size
         right_range += window_size
-
         peak_ranges.append((left_range, right_range, centroid_x))
     # 0 is left
     # 1 is right
@@ -405,22 +417,24 @@ def subtract_matched_centroid_range(profile_data, matched_theoretical, centroids
     theo_mz = matched_theoretical[:, 0]
     for peak_range in peak_ranges:
         centroid_x = peak_range[2]
-
         for t_mz, t_intent in zip(theo_mz, theo_intensites):
             if np.abs(t_mz - centroid_x) < tolerance:
                 matched_ranges.append((peak_range[0], peak_range[1], centroid_x))
                 break
 
+    #Get the fwhm from this peak to determine its own individual window
 
+    count = 0
     matched_ranges.sort(key=lambda x: x[2])
     for left_range, right_range, peak in matched_ranges:
         indices_to_zero = np.logical_and(mz_values >= left_range, mz_values <= right_range)
-
+        zeroed_count = np.sum(np.logical_and(indices_to_zero, intensity_values != 0))
+        count+=zeroed_count
         intensity_values[indices_to_zero] = 0
 
 
     profile_data[:, 1] = intensity_values
-    return profile_data
+    return profile_data, count
 
 
 if __name__ == "__main__":

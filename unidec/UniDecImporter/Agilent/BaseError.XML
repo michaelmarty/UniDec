@@ -1,0 +1,288 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>BaseError</name>
+    </assembly>
+    <members>
+        <member name="T:Agilent.MassSpectrometry.DataAnalysis.MessageTypeAttribute">
+            <summary>
+            Custom attribute 
+            Can be applied to Enum values, to indicate what type (Error, Information..)
+            of meassge the enum value is representing
+            </summary>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.DataAnalysis.MessageTypeAttribute.#ctor(Agilent.MassSpectrometry.DataAnalysis.UserMessageType)">
+            <summary>
+            Constructor
+            </summary>
+            <param name="type"></param>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.DataAnalysis.MessageTypeAttribute.UserMessageType">
+            <summary>
+            Gets the UserMessageType
+            </summary>
+        </member>
+        <member name="T:Agilent.MassSpectrometry.DataAnalysis.UserMessage">
+            <summary>
+            Helper class to generate user message.
+            Can accept Enum or string and format a message
+            Applications can define Enums which lists all error messages
+            and then use this helper class to map the enum to string and help topic id
+            The class also supports custom serialization, 
+            therefore can be used in custom exception classes
+            </summary>
+        </member>
+        <member name="T:Agilent.MassSpectrometry.DataAnalysis.IUserMessage">
+            <summary>
+            Interface to standerdize error messages / any messages displayed to user
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.DataAnalysis.IUserMessage.UserMessageType">
+            <summary>
+            Type of message
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.DataAnalysis.IUserMessage.Message">
+            <summary>
+            Message string
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.DataAnalysis.IUserMessage.Details">
+            <summary>
+            Details string
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.DataAnalysis.IUserMessage.HelpId">
+            <summary>
+            Help Id = -1 to indicate no help
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.DataAnalysis.IUserMessage.HelpFile">
+            <summary>
+            Complete file path of help file
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.DataAnalysis.IUserMessage.MessageOrigin">
+            <summary>
+            The module who create this message
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.DataAnalysis.IUserMessage.MessageId">
+            <summary>
+            The message identifier assigned by MessageOrigin ProgramModule
+            </summary>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.DataAnalysis.UserMessage.#ctor(System.Int32,System.String,Agilent.MassSpectrometry.DataAnalysis.ProgramModule,System.Enum,System.Object[])">
+            <summary>
+            Constructor 
+            Help id will be calculated as enum value + helpIdbase
+            The UserMessageType is default to Information unless the enum value has 
+            MessageTypeAttribute applied to it.
+            </summary>
+            <param name="helpIdBase"> HelpId base for the enum </param>
+            <param name="helpFile">Help file path</param>
+            <param name="messageOrigin">Program module that generates this message</param>        
+            <param name="messageFormatId">Key to message format string</param>
+            <param name="messagePrameters">Parameters to substitute in format string</param>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.DataAnalysis.UserMessage.#ctor(Agilent.MassSpectrometry.DataAnalysis.ProgramModule,System.Enum,System.Object[])">
+            <summary>
+            Constructor 
+            The UserMessageType is default to Information unless the enum value has 
+            MessageTypeAttribute applied to it.
+            </summary>
+            <param name="messageOrigin">Program module that generates this message</param>        
+            <param name="messageFormatId">Key to message format string</param>
+            <param name="messagePrameters">Parameters to substitute in format string</param>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.DataAnalysis.UserMessage.GetResourceStringForAssembly(System.Reflection.Assembly,System.String,System.Boolean)">
+            <summary>
+            Returns a string from a string table in the specified assembly.
+            If there is more than one resource associated with that assembly, 
+            this will try to find the string in each resource in turn, returning 
+            the first value that it finds.
+            </summary>
+            <param name="assembly"> assembly to look for resource</param> 
+            <param name="fullKey">the name by which the string is to be found
+            </param>
+            <param name="localized">if true, attempts to get a localized string
+            </param>
+            <returns>the string from the resource, or an empty string if none 
+            was found</returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.DataAnalysis.UserMessage.SetDetails(System.String)">
+            <summary>
+            Sets details
+            </summary>
+            <param name="details"></param>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.DataAnalysis.UserMessage.SetHelpFile(System.String)">
+            <summary>
+            Sets Help file
+            </summary>
+            <param name="helpFilePath"></param>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.DataAnalysis.UserMessage.SetHelpId(System.Int32)">
+            <summary>
+            Sets help id
+            </summary>
+            <param name="helpId"></param>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.DataAnalysis.UserMessage.SetUserMessageType(Agilent.MassSpectrometry.DataAnalysis.UserMessageType)">
+            <summary>
+            Sets user message type
+            </summary>
+            <param name="type"></param>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.DataAnalysis.UserMessage.GetObjectData(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
+            <summary>
+            Custom setialization interface
+            </summary>
+            <param name="info"></param>
+            <param name="context"></param>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.DataAnalysis.UserMessage.#ctor(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
+            <summary>
+            Constructor for deserialization
+            </summary>
+            <param name="info"></param>
+            <param name="context"></param>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.DataAnalysis.UserMessage.Details">
+            <summary>
+            Returns details
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.DataAnalysis.UserMessage.HelpFile">
+            <summary>
+            Returns help file
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.DataAnalysis.UserMessage.HelpId">
+            <summary>
+            Returns helpid
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.DataAnalysis.UserMessage.Message">
+            <summary>
+            Returns message
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.DataAnalysis.UserMessage.UserMessageType">
+            <summary>
+            Returns user message type
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.DataAnalysis.UserMessage.MessageOrigin">
+            <summary>
+            Returns the program module of origin
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.DataAnalysis.UserMessage.MessageId">
+            <summary>
+            Returns the message ID
+            </summary>
+        </member>
+        <member name="T:Agilent.MassSpectrometry.DataAnalysis.ProgramModule">
+            <summary>
+            Enumeration of Archer program modules.
+            </summary>
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.BaseCommon">
+            BaseCommon
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.BaseMsUtils">
+            BaseMsUtils
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.BaseDataAccess">
+            BaseDataAccess
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.BaseDataWriter">
+            BaseDataWriter
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.BaseExport">
+            <summary>
+            To be used only for BaseExport component
+            </summary>
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.CompoundCorrelationEngine">
+            CompoundCorrelationEngine
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.CoreDbSearch">
+            CoreDbSearch
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.CoreDeconvolute">
+            CoreDeconvolute
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.CoreFacades">
+            CoreFacades
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.CoreScda">
+            CoreScda
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.CoreSpectralLibrarySearch">
+            CoreSpectralLibrarySearch
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.CoreTypes">
+            CoreTypes
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.CoreUI">
+            CoreUI
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.MassSpecDataReader">
+            MassSpecDataReader
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.Reports">
+            Reports
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.Translators">
+            Translators
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.WiffTranslator">
+            <summary>
+            To be used only for WIFF translator component
+            </summary>
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.ChemstationTranslator">
+            <summary>
+            To be used only for Chemtation translator component
+            </summary>
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.MfeBase">
+            <summary>
+            To be used only for MFE component
+            </summary>
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.MfeEngine">
+            MfeEngine
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.CompositionCalculatorEngine">
+            CompositionCalculatorEngine
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.ProgramModule.Application">
+            <summary>
+            Application specific (e.g Qual applogic, QualUI, Qual presentation, etc)
+            </summary>
+        </member>
+        <member name="T:Agilent.MassSpectrometry.DataAnalysis.UserMessageType">
+            <summary>
+            Enum to list types of messages displayed to user
+            </summary>
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.UserMessageType.Error">
+            <summary>
+            Critical error
+            </summary>
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.UserMessageType.Warning">
+            <summary>
+            Warning
+            </summary>
+        </member>
+        <member name="F:Agilent.MassSpectrometry.DataAnalysis.UserMessageType.Information">
+            <summary>
+            Information
+            </summary>
+        </member>
+    </members>
+</doc>

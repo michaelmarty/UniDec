@@ -41,7 +41,7 @@ class IsoDecRuntime:
         self.maxz = 50
         self.reader = None
         self.predmode = 0
-
+        self.showavg = False
     def phase_predictor(self, centroids):
         """
         Predict the charge of a peak
@@ -140,7 +140,7 @@ class IsoDecRuntime:
             if len(spectrum) < 3:
                 continue
             self.config.set_scan_info(s, reader)
-            print("Scan:", s, "Length:", len(spectrum), "Centroided:", reader.centroided)
+            # print("Scan:", s, "Length:", len(spectrum), "Centroided:", reader.centroided)
             self.batch_process_spectrum(spectrum, centroided=reader.centroided)
 
             if s % 10 == 0:
@@ -164,11 +164,16 @@ class IsoDecRuntime:
         if type == "prosightlite":
             self.pks.export_prosightlite(filename)
         elif type == "msalign":
-            self.pks.export_msalign(self.config, reader, filename, act_type=act_type, max_precursors=max_precursors)
+            if self.showavg:
+                print("MSAlign not supported for Avg, defaulting to Monoisotopic")
+                self.pks.export_msalign(self.config, reader, filename, act_type=act_type, max_precursors=max_precursors)
         elif type == "pkl":
             self.pks.save_pks()
         elif type == "tsv":
-            self.pks.export_tsv(filename)
+            if self.showavg:
+                self.pks.export_tsv(filename, avg=True)
+            else:
+                self.pks.export_tsv(filename)
         else:
             raise ValueError("Unknown Export Type", type)
 

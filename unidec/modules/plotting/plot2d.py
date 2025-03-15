@@ -64,8 +64,10 @@ class Plot2dBase(PlotBase):
         if config is not None:
             speedplot = config.discreteplot
             publicationmode = config.publicationmode
+            avgpeakmasses = config.avgpeakmasses
             self.cmap = config.cmap
         else:
+            avgpeakmasses = 0
             speedplot = 0
             publicationmode = 0
             self.cmap = u"jet"
@@ -191,6 +193,8 @@ class Plot2dBase(PlotBase):
         if publicationmode == 0:
             self.subplot1.set_title(title)
         # Set colorbar
+        if avgpeakmasses == 0:
+            pass
         if normflag == 1:
             self.cbar = self.figure.colorbar(cax, ax=None, use_gridspec=True,
                                              ticks=[0, np.amax(newgrid) / 2, np.amax(newgrid)])

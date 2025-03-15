@@ -9,6 +9,7 @@ import time
 import torch
 import matplotlib as mpl
 from numba import njit
+from unidec.IsoDec.plots import cplot
 
 try:
     mpl.use("WxAgg")
@@ -29,16 +30,35 @@ def encode_phase(centroids, maxz=50, phaseres=8):
     :return: Charge phase histogram (maxz x phaseres)
     """
     phases = np.zeros((maxz, phaseres))
-    rescale = centroids[:, 0] / mass_diff_c
-    #nhits = np.zeros((maxz, phaseres))
-    for i in range(maxz):
-        phase = (rescale * (i + 1)) % 1  # Note, this is a much simpler implementation, needs different model
-        phaseindexes = np.floor(phase * phaseres)
-        for j in range(len(centroids)):
-            phases[i, int(phaseindexes[j])] += centroids[j, 1]
-            #nhits[i, int(phaseindexes[j])] += 1
-    #phases /= nhits
+
+    if phaseres == 1:
+        maxindex = np.argmax(centroids[:, 1])
+        window = 16
+        for i in range(maxz):
+            phase =((centroids[:, 0] * (i + 1)) / mass_diff_c) % 1
+            phaselock = phase[maxindex]
+            phase = (phase-phaselock) % 1
+            phaseindexes = np.round(phase * window)
+            phaseindexes = phaseindexes % window
+            for j in range(len(centroids)):
+                if int(phaseindexes[j]) == 0:
+                    phases[i, 0] += centroids[j, 1]
+    else:
+        rescale = centroids[:, 0] / mass_diff_c # Note this is probably wrong
+        for i in range(maxz):
+            phase = (rescale * (i + 1)) % 1
+            phaseindexes = np.floor(phase * phaseres)
+            for j in range(len(centroids)):
+                phases[i, int(phaseindexes[j])] += centroids[j, 1]
     phases /= np.amax(phases)
+
+    # if phaseres ==1:
+    #     plt.subplot(2, 1, 1)
+    #     plt.plot(phases[:, 0])
+    #     plt.subplot(2, 1, 2)
+    #     cplot(centroids)
+    #     plt.show()
+
     return phases
 
 @njit(fastmath=True)
@@ -125,6 +145,15 @@ def encode_double(centroid, centroid2, maxdist=1.5, minsep=0.1, intmax=0.2, phas
     emat = encode_phase(mergedc, phaseres=phaseres)
 
     return emat, mergedc
+
+@njit(fastmath=True)
+def encode_synthetic(centroid, oldz, newz, phaseres=8):
+    newcentroid = centroid.copy()
+    newcentroid[:, 0] *= oldz / newz
+
+    emat = encode_phase(newcentroid, phaseres=phaseres)
+
+    return emat, newcentroid
 
 @njit(fastmath=True)
 def encode_harmonic(centroid, z, intmax=0.2, phaseres=8):
@@ -263,11 +292,11 @@ if __name__ == "__main__":
     # directory = "C:\\Data\\TabbData\\"
     # outdir = "C:\\Data\\IsoNN\\training\\MSV000090488\\"
 
-    for d in data_dirs:
+    for d in small_data_dirs:
         topdir = os.path.join("Z:\\Group Share\\JGP", d)
         outdir = os.path.join("C:\\Data\\IsoNN\\training", d)
         print("Directory:", topdir, "Outdir:", outdir)
-        encode_dir(topdir, maxlen=4, name="phase4", onedropper=0.0, maxfiles=None,
+        encode_dir(topdir, maxlen=1, name="phase1", onedropper=0, maxfiles=None,
                    outdir=outdir)
     # encode_multi_file(file, maxlen=32, nfeatures=2, save=True, name="small32x2")
     print("Time:", time.perf_counter() - starttime)

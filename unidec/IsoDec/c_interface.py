@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from unidec.IsoDec.match import MatchedPeak, MatchedCollection, IsoDecConfig
 
 from unidec.IsoDec.plots import plot_pks
-from unidec.tools import traverse_to_unidec, find_dll, start_at_iso
+from unidec.tools import start_at_iso
 
 
 current_path = os.path.dirname(os.path.realpath(__file__))
@@ -235,7 +235,6 @@ class IsoDecWrapper:
         return charge.value
 
     def process_spectrum(self, centroids, pks=None, config=None):
-        # print("Running C Interface")
         cmz = centroids[:, 0].astype(np.double)
         cint = centroids[:, 1].astype(np.float32)
         n = len(cmz)
@@ -276,13 +275,12 @@ class IsoDecWrapper:
             matchedpeaks,
             settings,
         )
-        # print(nmatched)
         if pks is None:
             pks = MatchedCollection()
         for p in matchedpeaks[:nmatched]:
             if p.z == 0:
                 continue
-            pk = MatchedPeak(p.z, p.mz)
+            pk = MatchedPeak(p.z, p.mz, p.avgmass)
             pk.monoiso = p.monoiso
             pk.peakmass = p.peakmass
             pk.avgmass = p.avgmass
@@ -290,7 +288,6 @@ class IsoDecWrapper:
             monoisos = np.array(p.monoisos)
             monoisos = monoisos[monoisos > 0]
             pk.monoisos = monoisos
-            # print(monoisos)
 
             if config is not None:
                 pk.scan = config.activescan

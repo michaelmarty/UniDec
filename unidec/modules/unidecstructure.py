@@ -10,7 +10,7 @@ from unidec.modules.hdf5_tools import replace_dataset, get_dataset
 
 __author__ = 'Michael.Marty'
 
-version = "8.0.0"
+version = "8.0.1"
 
 def ofile_reader(path):
     oligos = []
@@ -110,6 +110,7 @@ class UniDecConfig(object):
         self.chrom_peak_width = 2
         self.sw_time_window = 1
         self.sw_scan_offset = 10
+        self.scan_window = 1
         self.time_start = ""
         self.time_end = ""
 
@@ -314,6 +315,7 @@ class UniDecConfig(object):
         """
         # plotting
         self.publicationmode = 1
+        self.avgpeakmasses = 0
         self.discreteplot = 0
         self.cmap = u"nipy_spectral"
         self.peakcmap = u"rainbow"
@@ -566,6 +568,7 @@ class UniDecConfig(object):
         f.write("datanorm " + str(self.datanorm) + "\n")
         f.write("baselineflag " + str(self.baselineflag) + "\n")
         f.write("orbimode " + str(self.orbimode) + "\n")
+        f.write("Avg Peak Masses " + str(self.avgpeakmasses) + "\n")
         if self.integratelb != "" and self.integrateub != "":
             try:
                 f.write("integratelb " + str(self.integratelb) + "\n")
@@ -1031,7 +1034,7 @@ class UniDecConfig(object):
             "exnorm": self.exnorm, "exnormz": self.exnormz, "metamode": self.metamode,
             "datanorm": self.datanorm, "chrom_time_window": self.time_window, "chrom_peak_width": self.chrom_peak_width,
             "sw_time_window": self.sw_time_window, "sw_scan_offset": self.sw_scan_offset, "time_start": self.time_start,
-            "time_end": self.time_end
+            "time_end": self.time_end, "scan_window": self.scan_window
         }
         return cdict
 
@@ -1171,6 +1174,7 @@ class UniDecConfig(object):
         self.chrom_peak_width = read_attr(self.chrom_peak_width, "chrom_peak_width", config_group)
         self.sw_time_window = read_attr(self.sw_time_window, "sw_time_window", config_group)
         self.sw_scan_offset = read_attr(self.sw_scan_offset, "sw_scan_offset", config_group)
+        self.scan_window = read_attr(self.scan_window, "scan_window", config_group)
 
         self.time_start = read_attr(self.time_start, "time_start", config_group)
         self.time_end = read_attr(self.time_end, "time_end", config_group)
@@ -1414,6 +1418,18 @@ class UniDecConfig(object):
         self.minmz = ''
         self.maxmz = ''
         self.poolflag = 2
+
+    def cdms_defaults(self):
+        self.mzbins = 10
+        self.rawflag = 1
+        self.poolflag = 1
+        self.massbins = 100
+        self.csig = 5
+        self.massub = 10000000
+        self.endz = 200
+        self.zzsig = 1e-6
+        self.mzsig=10
+
 
     def initialize_system_paths(self):
         """

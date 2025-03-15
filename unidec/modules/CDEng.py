@@ -1,8 +1,27 @@
+import platform
+import subprocess
 import numpy as np
 import os
 import scipy
 import unidec.tools as ud
-from unidec.UniDecImporter.Thermo.Thermo import ThermoImporter
+
+#first thing that wants dlls from engine
+regpath = os.path.dirname(os.path.realpath(__file__))
+if platform.system() == "Windows":
+    try:
+        from unidec.UniDecImporter.Thermo.Thermo import ThermoImporter
+    except Exception as e:
+        ud.force_register(regpath)
+    try:
+        from unidec.UniDecImporter.Sciex.Sciex import SciexImporter
+    except Exception as e:
+        ud.force_register(regpath)
+    try:
+        from unidec.UniDecImporter.Agilent import AgilentImporter
+    except Exception as e:
+        ud.force_register(regpath)
+
+
 from unidec.modules.unidec_enginebase import UniDecEngine
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.UniDecImporter.I2MS.I2MS import I2MSImporter
@@ -121,9 +140,7 @@ class UniDecCD(engine.UniDec):
         self.thermodata = False
         self.harray = []
         # Sets a few default config parameters
-        self.config.mzbins = 1
-        self.config.rawflag = 1
-        self.config.poolflag = 1
+        self.config.cdms_defaults()
         self.exemode = True
         self.massaxis = None
         self.invinjtime = None
@@ -169,6 +186,10 @@ class UniDecCD(engine.UniDec):
         :param path: File path to open.
         :return: None
         """
+        if platform.system() != "Windows" and path.split(".")[-1] == "raw" or path.split(".")[-1] == "RAW":
+            print("Error: Thermo Raw files are only supported on Windows")
+            raise ImportError
+
         # Setup
         starttime = time.perf_counter()
         self.path = path
@@ -183,7 +204,6 @@ class UniDecCD(engine.UniDec):
         self.before_open(refresh=refresh)
 
         self.importer = ImporterFactory.create_importer(self.path, silent=False)
-        # print(type(self.importer))
         self.darray = self.importer.get_cdms_data()
         if type(self.importer) == ThermoImporter:
             self.res = IT.get_resolution(self.importer.get_single_scan(1))
@@ -275,15 +295,17 @@ class UniDecCD(engine.UniDec):
         self.farray = deepcopy(self.darray)
         self.pks = peakstructure.Peaks()
 
+        print("Scan start from GUI", self.config.CDScanStart)
+        print("Scan end from GUI", self.config.CDScanEnd)
         # Filter Scans
         try:
             if int(self.config.CDScanStart) > 0:
-                self.farray = self.farray[self.farray[:, 2] > self.config.CDScanStart]
+                self.farray = self.farray[self.farray[:, 2] >= self.config.CDScanStart]
         except:
             pass
         try:
             if int(self.config.CDScanEnd) > 0:
-                self.farray = self.farray[self.farray[:, 2] < self.config.CDScanEnd]
+                self.farray = self.farray[self.farray[:, 2] <= self.config.CDScanEnd]
         except:
             pass
 
@@ -397,6 +419,9 @@ class UniDecCD(engine.UniDec):
             # self.farray = np.concatenate(farray2)
             self.farray = filter_centroid_const(self.farray, mz_threshold=mz_threshold)
         return self.farray
+
+    def get_scan_range(self):
+        return self.importer.get_scan_range()
 
     def simp_convert(self, y):
         if self.config.CDslope > 0 and self.config.subtype == 1:
@@ -651,7 +676,7 @@ class UniDecCD(engine.UniDec):
         dataobj.massgrid = np.transpose(dataobj.massgrid)
         # Create the linearized mass data by integrating everything into the new linear axis
         dataobj.massdat = np.transpose([massaxis, np.sum(dataobj.massgrid, axis=1)])
-        if flag:
+        if flag and not ud.isempty(dataobj.massdat):
             self.config.massdatnormtop = np.amax(dataobj.massdat[:, 1])
         # Ravel the massgrid to make the format match unidec
         dataobj.massgrid = np.ravel(dataobj.massgrid)

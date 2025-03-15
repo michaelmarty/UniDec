@@ -41,6 +41,8 @@ class UniChromCDApp(UniDecCDApp):
         self.view.menu.update_recent()
 
         self.on_load_default(0)
+        self.eng.config.cdms_defaults()
+        self.import_config()
 
         if "path" in kwargs:
             newdir, fname = os.path.split(kwargs["path"])

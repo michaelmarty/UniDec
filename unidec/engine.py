@@ -198,8 +198,6 @@ class UniDec(UniDecEngine):
         else:
             self.export_config()
 
-        #Need to streamline this so it isnt creating a whole new importer just to grab the polarity.
-        #For bigger files this is an additional unnecessary couple thousand iterations
         self.auto_polarity(importer = curr_importer)
 
         if load_results:
@@ -1561,9 +1559,14 @@ if __name__ == "__main__":
     # eng.run_unidec(silent=False)
 
     test = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw"
+    test1 = "C:\\Users\\MartyLabsOfficePC\\OneDrive - University of Arizona\\Desktop\\20230816_Myoglobin 0666 ugmL 01.wiff"
+    dat = eng.open_file(test1)
+    for i in eng.data.rawdata:
+        print(i)
+    exit()
     eng.config.imflag = 1
     eng.config.mzbins = 1
-    eng.open_file(test)
+    eng.open_file(test1)
     # eng.match()
     eng.run_unidec()
     # plot = eng.makeplot2()

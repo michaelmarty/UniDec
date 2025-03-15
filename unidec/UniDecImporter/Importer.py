@@ -4,7 +4,7 @@ import numpy as np
 import unidec.tools as ud
 from copy import deepcopy
 from unidec.UniDecImporter.ImportTools import merge_spectra, merge_im_spectra
-
+import subprocess
 class Importer:
     def __init__(self, file_path, **kwargs):
         self._file_path = file_path
@@ -61,6 +61,10 @@ class Importer:
             maxt = self.get_scan_time(scan_range[1])
             avgt = (mint + maxt) / 2.
             return [mint, avgt, maxt]
+        elif scan_range[1] - scan_range[0] == 0 or scan_range[1] - scan_range[0] == 1:
+            maxt = self.get_scan_time(scan_range[1]+1)
+            avgt = (mint + maxt) / 2.
+            return [mint, avgt, maxt]
         else:
             # Assume it's a single scan
             return [mint, mint, mint]
@@ -111,8 +115,10 @@ class Importer:
             print("Getting times:", time_range)
 
         scan_range = np.array(scan_range)
-        if scan_range[0] < 1:
-            scan_range[0] = 1
+        if scan_range[0] < np.amin(self.scans):
+            scan_range[0] = np.amin(self.scans)
+        if scan_range[0] > np.amax(self.scans):
+            scan_range[0] = np.amax(self.scans)
         if scan_range[1] > np.amax(self.scans) or scan_range[1] < scan_range[0]:
             scan_range[1] = np.amax(self.scans)
 

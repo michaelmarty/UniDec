@@ -1,4 +1,6 @@
 import sqlite3
+from collections import Counter
+
 import numpy as np
 
 
@@ -42,15 +44,21 @@ class I2MSImporter:
         raw_dat = self.get_all_scans()
         mz = raw_dat[:, 0]
         intensity = raw_dat[:, 1]
-        scans = np.ones(len(mz))
+        scans = self.data[:, self.scankey]
+        if len(scans) != len(mz):
+            scans = np.ones(len(mz))
         it = self.invinjtime
         data_array = np.transpose([mz, intensity, scans, it])
         return data_array
 
+    def get_cdms_data_by_scans(self, scan_range):
+        data = self.get_cdms_data()
+        mask = np.logical_and(data[:, 2] >= scan_range[0], data[:, 2] <= scan_range[1])
+        return data[mask]
 
     def get_single_scan(self, scan=None):
-        res = self.get_all_scans()
-        return res[scan]
+        res = self.data[self.data[:, self.scankey] == scan]
+        return res
 
     def close(self):
         if self.cursor:
@@ -59,13 +67,17 @@ class I2MSImporter:
             self.conn.close()
 
 
+    def get_scan_range(self):
+        return [1,  int(max(self.scans))]
+
 if __name__ == "__main__":
 
 
     file = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\CDMS\\test_dmt_cdms.dmt"
     i2ms = I2MSImporter(file)
-
-
+    i2ms.get_all_scans()
+    # for i in i2ms.scans:
+    #     print(i)
 
 
     exit()

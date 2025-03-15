@@ -299,7 +299,7 @@ class SelectMarker(wx.Dialog):
         sbs.Add(hbox5, 0)
 
         pnl.SetSizer(sbs)
-
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
         vbox.Add(pnl, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
         self.SetSizer(vbox)
         self.ShowModal()
@@ -313,4 +313,13 @@ class SelectMarker(wx.Dialog):
         id = e.GetId()
         self.textmarker = self.mdkeys[id]
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
+
+    def on_close_cancel(self, e):
+        """
+        Close the window.
+        :param e:  Event
+        :return: None
+        """
+        self.Destroy()
+        self.EndModal(wx.ID_CANCEL)

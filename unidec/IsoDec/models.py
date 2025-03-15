@@ -129,7 +129,7 @@ class PhaseModel:
             savename = "phase_model_8.pth"
         elif modelid == 2:
             self.model = PhaseNeuralNetwork(size=self.dims[1], outsize=self.dims[0])
-            savename = "phase_model_3.pth"
+            savename = "phase_model_1.pth"
         else:
             print("Model ID not recognized", modelid)
             raise ValueError("Model ID not recognized")
@@ -375,8 +375,8 @@ class PhaseModel:
                 start = batch * lx
                 end = batch * lx + lx
                 predvec = self.model(x)
-                for i in range(len(predvec[0])):
-                    print("z", i, predvec[0][i])
+                # for i in range(len(predvec[0])):
+                #     print("z", i, predvec[0][i])
                 predzs, predz_inds = torch.topk(predvec, k=2, dim=1)
                 output[start:end, 0] = predz_inds[:, 0]
                 second_score_within = ((predzs[:, 1] / predzs[:, 0]) > zscore_thresh).float()

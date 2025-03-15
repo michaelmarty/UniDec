@@ -98,26 +98,14 @@ class ChromEngine(MetaUniDec):
         return hdf5
 
     def get_data_from_scans(self, scan_range=None):
-        # if scan_range is not None:
-        #     scan_range = [int(scan_range[0])+1, int(scan_range[1])+1]
         self.mzdata = self.chromdat.get_avg_scan(scan_range=scan_range)
         self.procdata = None
-        return self.mzdata
 
-    def get_data_from_times(self, minval, maxval):
-        scan_range = self.chromdat.get_scans_from_times([minval, maxval])
         minscan, maxscan = scan_range
         time_range = self.chromdat.get_times_from_scans(scan_range)
         minval, midval, maxval = time_range
-        # minscan = ud.nearest(self.ticdat[:, 0], minval)
-        # if self.ticdat[minscan, 0] < minval:
-        #     minscan += 1
-        # maxscan = ud.nearest(self.ticdat[:, 0], maxval)
-        # if self.ticdat[maxscan, 0] > maxval:
-        #     maxscan -= 1
-        # if maxscan <= minscan:
-        #     maxscan = minscan + 1
         self.scans = [minscan, maxscan, minval, maxval]
+        print("Scans:", self.scans)
 
         attrs = {"timestart": minval, "timeend": maxval,
                  "timemid": midval,
@@ -125,7 +113,11 @@ class ChromEngine(MetaUniDec):
                  "scanmid": (minscan + maxscan) / 2.}
         self.attrs = attrs
 
-        self.get_data_from_scans([minscan, maxscan])
+        return self.mzdata
+
+    def get_data_from_times(self, minval, maxval):
+        scan_range = self.chromdat.get_scans_from_times([minval, maxval])
+        self.get_data_from_scans(scan_range)
         return self.mzdata
 
     def get_minmax_times(self):
@@ -195,7 +187,7 @@ class ChromEngine(MetaUniDec):
         self.data.add_data(self.mzdata, name=str(self.scans[2]), attrs=self.attrs, export=False)
 
     def add_regular_times(self):
-        times = np.arange(0, np.amax(self.ticdat[:, 0]), self.config.time_window)
+        times = np.arange(np.amin(self.ticdat[:, 0]), np.amax(self.ticdat[:, 0]), self.config.time_window)
 
         if self.config.time_start is not None and self.config.time_end is not None:
             times = np.arange(self.config.time_start, np.amax(self.ticdat[:, 0]), self.config.time_window)
@@ -206,7 +198,23 @@ class ChromEngine(MetaUniDec):
 
         self.data.clear()
         for i, t in enumerate(times):
+            print(t)
             data = self.get_data_from_times(t, t + self.config.time_window)
+            self.data.add_data(data, name=str(t), attrs=self.attrs, export=False)
+
+    def add_regular_scans(self):
+        if self.config.time_start is not None and self.config.time_end is not None:
+            # get scan for self.config.time_start and self.config.time_end
+            scan_range = self.chromdat.get_scans_from_times([self.config.time_start, self.config.time_end])
+            scans = np.arange(scan_range[0], scan_range[1]+self.config.scan_window, self.config.scan_window)
+        else:
+            scans = np.arange(np.amin(self.chromdat.scans), len(self.chromdat.scans), self.config.scan_window)
+
+
+        self.data.clear()
+        for i, t in enumerate(scans):
+            print(t)
+            data = self.get_data_from_scans([t, t + self.config.scan_window])
             self.data.add_data(data, name=str(t), attrs=self.attrs, export=False)
 
     def add_chrom_peaks(self):

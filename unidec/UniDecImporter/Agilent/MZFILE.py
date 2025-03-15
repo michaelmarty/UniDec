@@ -10,7 +10,7 @@ from itertools import chain
 #dll_path = "C:\\Python\\UniDec3\\unidec\\UniDecImporter\\Agilent"
 pathtothisfile = os.path.dirname(__file__)
 
-dlls = ['MassSpecDataReader', 'BaseCommon', 'BaseDataAccess']
+dlls = ['MassSpecDataReader', 'BaseCommon', 'BaseDataAccess', 'MIDAC', 'agtsampleinforw']
 for dll in dlls:
     testpath = os.path.join(pathtothisfile, dll) + ".dll"
     if os.path.isfile(testpath):
@@ -18,15 +18,19 @@ for dll in dlls:
     else:
         try:
             sys.path.append(pathtothisfile)
-            clr.addReference(dll)
-        except:
+            clr.AddReference(dll)
+        except Exception as e:
+            print("Failed in mzfile", e)
             clr.AddReference(dll)
 clr.AddReference("System.Collections")
 
 from Agilent.MassSpectrometry.DataAnalysis import (MassSpecDataReader, BDAChromFilter, MsdrPeakFilter,
                                                    MsdrChargeStateAssignmentFilter, IMsdrDataReader, IBDAChromFilter,
                                                    IMsdrChargeStateAssignmentFilter,
-                                                   DesiredMSStorageType, ChromType, MinMaxRange, MSLevel)
+                                                   DesiredMSStorageType, ChromType, MinMaxRange, MSLevel
+
+                                                   )
+
 
 for item in dir(IMsdrDataReader):
     try:
@@ -315,4 +319,3 @@ def aggregate_points(pointlist, distance_function=None, MAX_WIDTH=0.025):
     if agg:
         peaks.append(agg)
     return peaks
-

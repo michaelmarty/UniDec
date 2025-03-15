@@ -23,7 +23,7 @@ class ChromApp(MetaUniDecBase):
 
     def init(self, *args, **kwargs):
         self.eng = ChromEngine()
-        self.eng.config.datanorm=0
+        self.eng.config.datanorm = 0
         self.view = ChromWindow(self, "UniChrom", self.eng.config)
         self.import_config()
 
@@ -157,6 +157,7 @@ class ChromApp(MetaUniDecBase):
         self.eng.config.chrom_peak_width = float(self.view.ctlcpeaks_param1.GetValue())
         self.eng.config.sw_time_window = float(self.view.ctlswwin.GetValue())
         self.eng.config.sw_scan_offset = float(self.view.ctlswoffset.GetValue())
+        self.eng.config.scan_window = float(self.view.ctlscan.GetValue())
         try:
             self.eng.config.time_start = float(self.view.ctltmin.GetValue())
         except:
@@ -295,6 +296,11 @@ class ChromApp(MetaUniDecBase):
         self.eng.add_sliding_window()
         self.update_hdf5()
 
+    def on_scanpart(self, e=None):
+        self.get_from_gui()
+        self.eng.add_regular_scans()
+        self.update_hdf5()
+
     def on_delete(self, e=None):
         self.makeplot2_mud()
         self.makeplot7()
@@ -334,13 +340,13 @@ class ChromApp(MetaUniDecBase):
             if s.ignore == 0:
                 tstart = s.attrs["timestart"]
                 tend = s.attrs["timeend"]
-                #print(tstart, tend)
-                self.view.plotc.add_rect(tstart, min, tend - tstart, max - min, facecolor=s.color, nopaint=True)
+                # print(tstart, tend)
+                self.view.plotc.add_rect(tstart, min, tend - tstart, max - min, facecolor=s.color, nopaint=True,
+                                         edgecolor=s.color)
         self.view.plotc.repaint()
 
 
 if __name__ == "__main__":
-
     multiprocessing.freeze_support()
     app = ChromApp()
     app.start()

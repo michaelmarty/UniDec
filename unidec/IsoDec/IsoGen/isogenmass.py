@@ -3,8 +3,8 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import time
-from isogen_tools import *
-from isogen_base import *
+from unidec.IsoDec.IsoGen.isogen_tools import *
+from unidec.IsoDec.IsoGen.isogen_base import *
 from unidec.modules.isotopetools import isomike
 
 
@@ -78,7 +78,8 @@ class IsoGenMassEngine(IsoGenEngineBase):
         return np.array([mass_to_vector(m) for m in inputs])
 
     def predict(self, mass):
-        vec = mass_to_vector(mass)
+        import isogen_tools as ig
+        vec = ig.mass_to_vector(mass)
         isolen, index = self.get_isolen(mass)
         model = self.models[index]
         return model.predict(vec)

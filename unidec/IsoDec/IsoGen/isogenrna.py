@@ -3,8 +3,8 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import time
-from isogen_tools import *
-from isogen_base import *
+from unidec.IsoDec.IsoGen.isogen_tools import *
+from unidec.IsoDec.IsoGen.isogen_base import *
 from unidec.modules.isotopetools import isomike
 
 

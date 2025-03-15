@@ -167,11 +167,16 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             if not p.ignore:
                 self.list_ctrl.InsertItem(i, p.textmarker)
                 # self.list_ctrl.SetItem(i, 1, str(p.mass))
-                if p.mass == round(p.mass):
-                    p.mass = int(p.mass)
-                    self.list_ctrl.SetItem(i, 1, f'{p.mass:,}')
+
+                if collab1 == "Avg Mass":
+                    self.list_ctrl.SetItem(i,1, f"{p.avgmass}")
+
                 else:
-                    self.list_ctrl.SetItem(i, 1, f'{float(str(p.mass)):,}')
+                    if p.mass == round(p.mass):
+                        p.mass = int(p.mass)
+                        self.list_ctrl.SetItem(i, 1, f'{p.mass:,}')
+                    else:
+                        self.list_ctrl.SetItem(i, 1, f'{float(str(p.mass)):,}')
 
                 self.list_ctrl.SetItem(i, 2, "%.2f" % p.height)
                 try:
@@ -765,6 +770,7 @@ class SelectMarker(wx.Dialog):
             button.Bind(wx.EVT_BUTTON, self.on_close)
 
         sbs.Add(hbox5, 0)
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
 
         pnl.SetSizer(sbs)
 
@@ -784,4 +790,8 @@ class SelectMarker(wx.Dialog):
         self.pks.peaks[self.index].marker = marker
         self.pks.peaks[self.index].textmarker = textmarker
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
+
+    def on_close_cancel(self, e):
+        self.Destroy()
+        self.EndModal(wx.ID_CANCEL)

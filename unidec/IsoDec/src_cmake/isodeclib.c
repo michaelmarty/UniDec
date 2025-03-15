@@ -7,7 +7,8 @@
 #include "isodeclib.h"
 #include "phase_model_8.h"
 #include "phase_model_4.h"
-#include "isogenmass.h"
+// #include "isogenmass.h"
+#include "isofft.h"
 // #include <omp.h>
 
 // Linux code to convert binary file to header file
@@ -739,13 +740,12 @@ int isotope_dist(const float mass, float *isovals, const float normfactor,
     int offset = 0;
     if (settings.minusoneaszero == 1) { offset = 1; }
 
-    float max;
-    if (mass > 60000) {
+    if (mass > 60000 && settings.isolength <= 64) {
         printf("Warning: Mass is very high, may not be accurate: %f\n", mass);
-        max = isomike(mass, isovals, settings.isolength, offset);
-    } else {
-        max = isogenmass_fancy(mass, isovals, settings.isolength, offset);
     }
+    float max = isodist_from_averagine_mass(mass, isovals, settings.isolength, offset);
+    //max = isogenmass_fancy(mass, isovals, settings.isolength, offset);
+    //max = isomike(mass, isovals, settings.isolength, offset);
 
     int realisolength = 0;
     if (max > 0) {

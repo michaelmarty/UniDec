@@ -1,0 +1,711 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>MIDAC</name>
+    </assembly>
+    <members>
+        <member name="T:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection">
+            <summary>
+            A collection of frame spectra and metadata for a single frame 
+            (or summed frame).  It's purpose is to serve as a per-frame cache of
+            data from which individual spectra may be served when called on via
+            various MidacImsFileReader functions
+            </summary>
+        </member>
+        <member name="F:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.m_frameNumbers">
+            <summary>
+            The frame number(s) of the frame summed to produce this data
+            </summary>
+        </member>
+        <member name="F:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.m_frameBinRecords">
+            <summary>
+            References to the FrameBin records for those frames
+            </summary>
+        </member>
+        <member name="F:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.m_driftBins">
+            <summary>
+            A list of the drift bins for which there is a frame MS with non-zero 
+            abundance in this frame.  Zero corresponds to the first non-TFS spectrum's
+            drift bin (which is 1 in the data file, 0 is used for the TFS).
+            </summary>
+        </member>
+        <member name="F:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.m_scanBinRecords">
+            <summary>
+            The MsScanBinRecord for each drift bin with a non-empty spectrum
+            </summary>
+        </member>
+        <member name="F:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.m_specIters">
+            <summary>
+            The spectrum abundance iterator for each non-empty spectrum
+            </summary>
+        </member>
+        <member name="F:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.m_metrics">
+            <summary>
+            The RLZ metrics for each non-empty spectrum
+            </summary>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.MatchesFrame(System.Int32)">
+            <summary>
+            Is this collection for a single, specified frame?
+            </summary>
+            <param name="frameNumber"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.MatchesFrameList(System.Collections.Generic.List{System.Int32})">
+            <summary>
+            Is this collection for the same set of frame numbers specified?
+            </summary>
+            <param name="frameNumbers"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.AddFrameData(System.Int32,Agilent.MassSpectrometry.DataAnalysis.IImsFrameBinRecord)">
+            <summary>
+            Add information about (one of the) frames whose data is included here.
+            </summary>
+            <param name="frameNumber"></param>
+            <param name="frameBinRecord"></param>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.FrameBinRecord(System.Int32)">
+            <summary>
+            Get the FrameBinRecord for a specified frame, if stored here (else null)
+            </summary>
+            <param name="frameNumber"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.AddMsData(System.Collections.Generic.List{System.Int16},System.Collections.Generic.List{Agilent.MassSpectrometry.DataAnalysis.IMsScanBinRecord},System.Collections.Generic.List{Agilent.MassSpectrometry.IRlzArrayIterator},System.Collections.Generic.List{Agilent.MassSpectrometry.RlzArrayMetrics})">
+            <summary>
+            Add info about the frame spectra
+            </summary>
+            <param name="driftBins">The drift bins (0 = first non-TFS frame spectrum)</param>
+            <param name="scanBinRecords">The MsScanBinRecords</param>
+            <param name="specIters">The abundance iterators</param>
+            <param name="specMetrics">The iterator metrics</param>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.DriftBinByIndex(System.Int32)">
+            <summary>
+            Get a drift bin value by its index
+            </summary>
+            <param name="index"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.HasDriftBin(System.Int16)">
+            <summary>
+            Does this collection have information about a specified drift bin?
+            </summary>
+            <param name="driftBin"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.MsScanBinRecord(System.Int16)">
+            <summary>
+            Get the IMsScanBinRecord for a specified frame, if stored here (else null)
+            </summary>
+            <param name="driftBin"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.SpecIterator(System.Int16)">
+            <summary>
+            Get the IRlzArrayIterator for a specified frame, if stored here (else null)
+            </summary>
+            <param name="driftBin"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.SpecMetrics(System.Int16)">
+            <summary>
+            Get the RlzArrayMetrics for a specified frame, if stored here (else null)
+            </summary>
+            <param name="driftBin"></param>
+            <returns></returns>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.FrameNumbers">
+            <summary>
+            Get the current list of frame numbers
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.DriftBinCount">
+            <summary>
+            Get the number of drift bin entries
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.MIDAC.FrameSpectrumCollection.DriftBins">
+            <summary>
+            Get the current list of drift bins
+            </summary>
+        </member>
+        <member name="T:Agilent.MassSpectrometry.MIDAC.MidacFileAccess">
+            <summary>
+            A static class that provides access to readers for MassHunter data files
+            </summary>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.MidacFileAccess.FileHasImsData(System.String)">
+            <summary>
+            Checks (without opening the file) whether a specified file is a MassHunter IMS data file.
+            </summary>
+            <param name="filePath">Full path name of the file, e.g., C:\My\Path\stuff.d </param>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.MidacFileAccess.ImsDataReader(System.String)">
+            <summary>
+            Returns a reader capable of accessing data from a MassHunter IMS data file,
+            already opened to that file.
+            </summary>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.MidacFileAccess.MsDataReader(System.String)">
+            <summary>
+            Returns a reader capable of accessing data from a MassHunter traditional MS data file,
+            already opened to that file.
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.MIDAC.MidacFileAccess.DefaultMsSpectrumFilters">
+            <summary>
+            Instantiate and return MS Spectrum filters with default values (no filtering)
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.MIDAC.MidacFileAccess.DefaultMsChromFilters">
+            <summary>
+            Instantiate and return MS Chromatogram filters with default values (no filtering)
+            </summary>
+        </member>
+        <member name="T:Agilent.MassSpectrometry.MIDAC.MidacImsFileReader">
+            <summary>
+            An implementation of IMidacImsReader
+            </summary>
+        </member>
+        <member name="T:Agilent.MassSpectrometry.MIDAC.IMidacImsReader">
+            <summary>
+            An interface used to access MassHunter IM-MS data files
+            </summary>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.OpenFile(System.String)">
+            <summary>
+            Opens the specified data file after first closing any currently-open file.
+            </summary>
+            <param name="dataFilePath"></param>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.Close">
+            <summary>
+            Terminate access to the current IMS data file and clear all contents of this
+            object.
+            </summary>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.FilteredFrameNumbers(Agilent.MassSpectrometry.MIDAC.IMidacMsFiltersSpec)">
+            <summary>
+            Get a collection of all frame (scan) numbers for which the mass spectra 
+            meet specified filter criteria.  
+            </summary>
+            <param name="filters">If null or if filters.ApplicableFilters is Unspecified,
+            returns a list of all frame numbers in the file</param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.FilteredFrameNumbers(Agilent.MassSpectrometry.MIDAC.IMidacMsFiltersChrom)">
+            <summary>
+            Get a collection of all frame (scan) numbers for which the data 
+            meet specified filter criteria for inclusion in chromatograms.  
+            </summary>
+            <param name="filters">If null or if filters.ApplicableFilters is Unspecified,
+            returns a list of all frame numbers in the file</param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.FilteredAcqTimes(Agilent.MassSpectrometry.MIDAC.IMidacMsFiltersSpec)">
+            <summary>
+            Get a collection of all frame (scan) acquisition times (aka retention times) 
+            for which the mass spectra meet specified filter criteria.
+            </summary>
+            <param name="filters">If null or if filters.ApplicableFilters is Unspecified,
+            returns the times of all frames in the file.</param>
+            <returns>A list of times (in minutes)</returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.CcsFromDriftTime(System.Double,System.Int32,System.Double)">
+            <summary>
+            If HasCcsCalibration returns true, this will compute the CCS corresponding to 
+            a specified ion observed in this data file.
+            </summary>
+            <param name="mz">The m/z of the ion whose CCS is desired</param>
+            <param name="z">The (unsigned) charge state of the specified ion, 1 or greater</param>
+            <param name="dtMilliseconds">The observed drift time of the ion</param>
+            <returns>The cross section.  NaN if HasCcsCalibration is false or if required 
+            information is missing </returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.DriftTimeFromCcs(System.Double,System.Int32,System.Double)">
+            <summary>
+            If HasCcsCalibration returns true, this will compute the drift time (in milliseconds) 
+            that an ion with a specified CCS (and z and m/z) would have in this file.
+            </summary>
+            <param name="mz">The m/z of an ion whose drift time (in milliseconds) is desired</param>
+            <param name="z">The (unsigned) charge state of the specified ion, 1 or greater</param>
+            <param name="ccs">The collision cross section of the ion</param>
+            <returns>The drift time.  NaN if HasCcsCalibration is false or if required 
+            information is missing </returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.FrameInfo(System.Int32)">
+            <summary>
+            Get frame-specific metadata for a specific frame 
+            </summary>
+            <param name="frameNumber"></param>
+            <returns></returns>
+            <remarks>Abundance range is empty, as this doesn't access spectrum records</remarks>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.NonEmptyDriftBins(System.Int32)">
+            <summary>
+            Get a list of the drift bin numbers for which a specified frame has
+            mass spectra with non-zero abundnace.
+            </summary>
+            <param name="frameNumber"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.FrameUnitConverter(System.Int32)">
+            <summary>
+            Get a unit converter that bases its conversions on values from
+            one specfied frame
+            </summary>
+            <param name="frameNumber"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.FrameInfo(System.Int32[])">
+            <summary>
+            Get frame-specific metadata that represents a summary for a
+            specified list of frames
+            </summary>
+            <param name="frameNumbers"></param>
+            <returns></returns>
+            <remarks>Abundance range is empty, as this doesn't access spectrum records</remarks>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.NonEmptyDriftBins(System.Int32[])">
+            <summary>
+            Get a list of the drift bin numbers for which the sum of specified
+            frames has mass spectra with non-zero abundance
+            </summary>
+            <param name="frameNumbers"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.FrameUnitConverter(System.Int32[])">
+            <summary>
+            Get a unit converter that bases its conversions on values averaged
+            over a specified set of frames.
+            </summary>
+            <param name="frameNumbers"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.ProfileTotalFrameMs(Agilent.MassSpectrometry.MIDAC.MidacSpecFormat,System.Int32)">
+            <summary>
+            Get the profile TFS from a specified frame
+            </summary>
+            <param name="specFormat">The format in which the spectrum is to be returned, one of
+            Profile, ZeroTrimmed, or ZeroBound.</param>
+            <param name="frameNumber">The number of the frame whose TFS is to be read.</param>
+            <returns>
+            Null if the file doesn't have profile TFS spectra or if the specified frame number
+            does not exist.  Else, the desired spectrum. 
+            A returned spectrum will have empty X and Y arrays if it has no nonzero-abundance points
+            (and null data arrays for specFormat == Metadata).
+            </returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.ProfileTotalFrameMs(Agilent.MassSpectrometry.MIDAC.MidacSpecFormat,Agilent.MassSpectrometry.MIDAC.IMidacMsFiltersSpec,System.Boolean)">
+            <summary>
+            Get a combined profile TFS from the frames meeting specified filter criteria.
+            </summary>
+            <param name="specFormat">The format in which the spectra are to be returned, one of
+            Profile, ZeroTrimmed, or ZeroBound.</param>
+            <param name="filters">If null or if filters.ApplicableFilters is Unspecified,
+            the returned spectrum includes all frames in the file</param>
+            <param name="addSpectra">True if the returned spectrum should be the sum of
+            the individual spectra; false if the returned spectrum should be an average</param>
+            <returns>
+            Null if the file doesn't have profile TFS spectra or if there are frames number 
+            with data meeting the specified filters. Else  the desired spectrum, or an array 
+            of spectra if the specified frames have spectra of types that cannot be mixed.  
+            Any returned spectrum may have empty X and Y arrays if it has no nonzero-abundance points
+            (and null data arrays for specFormat == Metadata).
+            </returns>
+            <remarks>The same operation can be done by calling FilteredFrameNumbers (with 
+            MsStorageType == ProfileSpectra), and passing the frame number array to
+            the ProfileTotalFrameMs function with a frame number array parameter.</remarks>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.ProfileTotalFrameMs(Agilent.MassSpectrometry.MIDAC.MidacSpecFormat,System.Int32[],System.Boolean)">
+            <summary>
+            Get a combined profile TFS from a list of specified frames.
+            </summary>
+            <param name="specFormat">The format in which the spectra are to be returned, one of
+            Profile, ZeroTrimmed, or ZeroBound.</param>
+            <param name="frameNumbers">The frames whose TFS spectra are to be combined</param>
+            <param name="addSpectra">True if the returned spectrum should be the sum of
+            the individual spectra; false if the returned spectrum should be an average</param>
+            <returns>
+            Null if the file doesn't have profile TFS spectra or if none of the specified frames exist
+            in the file. Else, the desired spectrum, or an array of spectra if the specified frames 
+            have spectra of types that cannot be mixed.  
+            Any returned spectrum may have empty X and Y arrays if it has no nonzero-abundance points
+            (and null data arrays for specFormat == Metadata).
+            </returns>
+            <remarks>Examples of "non-mixable" spectra include those with different ion 
+            polarities, different MS levels or spectra from different scan segments.
+            However, data acquisition in IM-MS mode does not yet support multiple ion polarities
+            or multiple scan segments, so mixed MSLevels is currently the only practical example of this.
+            Note that spectra with different fragmentation energies ARE combined.</remarks>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.PeakDetectedTotalFrameMs(System.Int32,Agilent.MassSpectrometry.MIDAC.IMidacPeakFilters,System.Boolean)">
+            <summary>
+            Get a total frame spectrum (centroided) from a specified frame.        
+            </summary>
+            <param name="frameNumber">The number of the frame whose TFS is to be read</param>
+            <param name="pkFilters">If not null, peak filters that may be used to reduce the 
+            number of peaks included in the returned spectrum.</param>
+            <param name="convertFromProfileIfNecessary">If true and the specified frame doesn't
+            have a peak-detected spectrum, then one is created from the frame's profile spectrum. </param>
+            <remarks>This may be time consuming.  A value for pkFilters must be specified.</remarks>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.PeakDetectedTotalFrameMs(System.Int32[],System.Boolean,Agilent.MassSpectrometry.MIDAC.IMidacPeakFilters,System.Boolean)">
+            <summary>
+            Get a combined, peak-detected total frame spectrum from specified frame numbers.
+            </summary>
+            <param name="frameNumbers">The frames whose TFS spectra are to be combined</param>
+            <param name="addSpectra">True if the returned spectrum should be the sum of
+            the individual spectra; false if the returned spectrum should be an average</param>
+            <param name="pkFilters">If not null, peak filters that may be used to reduce the 
+            number of peaks included in the spectrum.</param>
+            <param name="convertFromProfileIfNecessary">If true and the specified frame doesn't
+            have a peak-detected spectrum, then one is created from the frame's profile spectrum. </param>
+            <remarks>This may be time consuming.  A value for pkFilters must be specified.</remarks>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.FrameMs(System.Int32,System.Int32,Agilent.MassSpectrometry.MIDAC.MidacSpecFormat,System.Boolean)">
+            <summary>
+            Read the drift-resolved mass spectrum at a specified drift bin in a specified frame
+            </summary>
+            <param name="frameNumber">The frame to be read</param>
+            <param name="driftIdx">The drift bin index of the desired spectrum (0..MaxBin - 1)</param>
+            <param name="specFormat">The format in which the (x,y) data of the spectrum should be returned</param>
+            <param name="useAvgCal">True to use the average mass calibration for the file when
+            computing m/z values from flight times.  False to use the individual spectrum's IRM calibration when
+            available (slower)</param>
+            <remarks>Performance for accessing many spectra is best if multiple spectra from the same
+            frame are read in successive calls before moving on to another frame.</remarks>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.FrameMs(System.Int32,System.Int32,Agilent.MassSpectrometry.MIDAC.MidacSpecFormat,System.Boolean,Agilent.MassSpectrometry.MIDAC.IMidacSpecDataMs@)">
+            <summary>
+            Replace the data in the specified mass spectrum with that of the drift-resolved mass 
+            spectrum at a specified drift bin in a specified frame.
+            </summary>
+            <param name="frameNumber">The frame to be read</param>
+            <param name="driftIdx">The drift bin index of the desired spectrum (0..MaxBin - 1)</param>
+            <param name="specFormat">The format in which the (x,y) data of the spectrum should be returned</param>
+            <param name="useAvgCal">True to use the average mass calibration for the file when
+            computing m/z values from flight times.  False to use the individual spectrum's IRM calibration when
+            available (slower)</param>
+            <param name="specData">the spectrum whose contents are to be replaced</param>
+            <remarks>Performance is best if the drift range is specified in units of
+            DriftBinIndex. Performs faster than the version returning a new IMidacSpecData for each 
+            call because it can often skip allocating new memory. </remarks>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.FrameMs(System.Int32,Agilent.MassSpectrometry.MIDAC.IDoubleRange,Agilent.MassSpectrometry.MIDAC.MidacSpecFormat,System.Boolean,Agilent.MassSpectrometry.MIDAC.AbundanceMeasure)">
+            <summary>
+            Get a single mass spectrum that represents the sum or average of the spectra 
+            falling within a specified drift range in a specified frame.
+            </summary>
+            <param name="frameNumber">The frame number from which spectra are combined</param>
+            <param name="driftRange">The drift range over which spectra are desired</param>
+            <param name="specFormat">The format in which the (x,y) data of the spectrum should be returned</param>
+            <param name="useAvgCal">True to use the average mass calibration for the file when
+            computing m/z values from flight times.  False to use the individual spectrum's IRM calibration when
+            available (slower)</param>
+            <param name="driftCombine">How spectra at different drift indices are combined;
+            Sum or Average are expected.</param>
+            <returns>A single mass spectrum representing the specified sum or average </returns>
+            <remarks>Performance is best if the drift range is specified in units of
+            DriftBinIndex.</remarks>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.FrameMs(System.Int32,Agilent.MassSpectrometry.MIDAC.IDoubleRange,Agilent.MassSpectrometry.MIDAC.MidacSpecFormat,System.Boolean,Agilent.MassSpectrometry.MIDAC.AbundanceMeasure,Agilent.MassSpectrometry.MIDAC.IMidacSpecDataMs@)">
+            <summary>
+            Replace the data in the specified mass spectrum with that of the sum or average of the spectra 
+            falling within a specified drift range in a specified frame.
+            </summary>
+            <param name="frameNumber">The frame number from which spectra are combined</param>
+            <param name="driftRange">The drift range over which spectra are desired</param>
+            <param name="specFormat">The format in which the (x,y) data of the spectrum should be returned</param>
+            <param name="useAvgCal">True to use the average mass calibration for the file when
+            computing m/z values from flight times.  False to use the individual spectrum's IRM calibration when
+            available (slower)</param>
+            <param name="specData">the spectrum whose contents are to be replaced</param>
+            <param name="driftCombine">How spectra at different drift indices are combined;
+            Sum or Average are expected.</param>
+            <returns>A single mass spectrum representing the specified sum or average, always in 
+            MidacSpecFormat.Profile</returns>
+            <remarks>Performance is best if the drift range is specified in units of
+            DriftBinIndex. Performs faster than the version returning a new IMidacSpecData for each 
+            call because it can often skip allocating new memory. </remarks>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.FrameMs(System.Int32[],Agilent.MassSpectrometry.MIDAC.IDoubleRange,Agilent.MassSpectrometry.MIDAC.MidacSpecFormat,System.Boolean,Agilent.MassSpectrometry.MIDAC.AbundanceMeasure,Agilent.MassSpectrometry.MIDAC.AbundanceMeasure)">
+            <summary>
+            Get a single mass spectrum that represents the sum or average of the spectra 
+            falling within a specified drift range from specified frames.
+            </summary>
+            <param name="frameNumbers">The frame number from which spectra are combined</param>
+            <param name="driftRange">The drift range over which spectra are desired</param>
+            <param name="specFormat">The format in which the (x,y) data of the spectrum should be returned</param>
+            <param name="useAvgCal">True to use the average mass calibration for the file when
+            computing m/z values from flight times.  False to use the individual spectrum's IRM calibration when
+            available (slower)</param>
+            <param name="driftCombine">How spectra at different drift indices are combined;
+            Sum or Average are expected.</param>
+            <param name="frameCombine">How spectra from different frames are combined;
+            Sum or Average are expected.</param>
+            <returns>A single mass spectrum representing the specified sum or average, always in 
+            MidacSpecFormat.Profile</returns>
+            <remarks>Performance is best if the drift range is specified in units of
+            DriftBinIndex.</remarks>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.Chromatogram(Agilent.MassSpectrometry.MIDAC.ChromatogramType,System.Boolean,Agilent.MassSpectrometry.MIDAC.IMidacMsFiltersChrom)">
+            <summary>
+            Extract a chromatogram described by the specified parameters.
+            Currently only TIC is supported and filters are ignored.
+            </summary>
+            <param name="chromType">The type of chromatogram to extract (TIC, BPC, EIC ...)</param>
+            <param name="doCycleSum">True if spectra acquired in a cycle (e.g., hi/low fragmentation
+            data or files with multiple scan segments) are to be summarized with one point per cycle
+            in the resulting chromatogram. </param>
+            <param name="filters">Controls which mass spectra are used in constructing the chromatogram.</param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.ChromYArrays(Agilent.MassSpectrometry.MIDAC.IDoubleRange[])">
+            <summary>
+            Return the Y-Arrays for a collection of EICs, each extracted over a specified m/z range.
+            Intended only for rough timing comparison with MHDAC, this uses Total Frame Spectra (there's 
+            no parameter for drift time)
+            </summary>
+            <param name="mzRanges"></param>
+            <returns></returns>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.FileInfo">
+            <summary>
+            Get overall file metadata
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.FileUnitConverter">
+            <summary>
+            Get a unit converter that bases its conversions on values averaged
+            over the entire data file.
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.HasPeakTfsSpectra">
+            <summary>
+            Returns true if this file has Total Frame Spectra stored in the PeakDetected MSStorageMode
+            </summary>
+            <remarks>Drift-resoved spectra are always profile</remarks>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.HasProfileTfsSpectra">
+            <summary>
+            Returns true if this file has Total Frame Spectra stored in the profile MSStorageMode
+            </summary>
+            <remarks>Drift-resoved spectra are always profile</remarks>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.MIDAC.IMidacImsReader.HasSingleFieldCcsInformation">
+            <summary>
+            Return true if the file records the data required to convert between
+            Collision Cross Section (CCS) and Drift Time values.
+            </summary>
+        </member>
+        <member name="T:Agilent.MassSpectrometry.MIDAC.IMidacImsReaderInternal">
+            <summary>
+            MidacImsreader functions with internal scope
+            </summary>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReaderInternal.FilteredFrameNumbers(Agilent.MassSpectrometry.MIDAC.IMidacMsFiltersSpec,System.Boolean,Agilent.MassSpectrometry.MIDAC.IDoubleRange[]@)">
+            <summary>
+            As in the public interface, this gets a collection of all frame (scan) numbers for 
+            which the mass spectra  meet specified filter criteria.  Additionally, it returns
+            info about the AcqTime ranges used.
+            </summary>
+            <param name="filters">If null or if filters.ApplicableFilters is Unspecified,
+            returns a list of all frame numbers in the file</param>
+            <param name="reportUsedRanges">If false, doesn't take the time to process and
+            return the used acqTime ranges</param>
+            <param name="usedAcqTimeRanges">If AcqTimeRanges are used as filter criteria, this 
+            is a modified set of those ranges to show the ranges actually used (each range is 
+            trimmed to the limits of the qualified frames in that range and overlapping ranges 
+            are coalesced).  If AcqTimeRanges are not used as filters, this is returned null.</param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReaderInternal.FilteredFrameNumbers(Agilent.MassSpectrometry.MIDAC.IMidacMsFiltersChrom,System.Boolean,Agilent.MassSpectrometry.MIDAC.IDoubleRange[]@)">
+            <summary>
+            Like the other FilteredFrameNumbers, except using the chromatogram filter interface
+            </summary>
+            <param name="filters"></param>
+            <param name="reportUsedRanges"></param>
+            <param name="usedAcqTimeRanges"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReaderInternal.ProfileTfsIterator(System.Int32)">
+            <summary>
+            Get a profile total frame spectrum from a specified frame number. 
+            </summary>
+            <param name="frameNumber">The frame to be read</param>
+            <returns>A spectrum iterator; null if the spectrum has zero recorded abundance</returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReaderInternal.FrameMsIterators(System.Int32,System.Int32,System.Int32,Agilent.MassSpectrometry.IRlzArrayIterator[]@)">
+            <summary>
+            Read the (non-TFS) mass spectra at all drift bins within a specified frame.
+            </summary>
+            <param name="frameNumber">The frame to be read</param>
+            <param name="minDriftBin">The (0-based) drift bin of the first spectrum to be read</param>
+            <param name="maxDriftBin">The (0-based) drift bin of the last spectrum to be read, or zero
+            to read all spectra in the frame.</param>
+            <param name="abundIters">An array of spectrum iterators, one for each drift bin in the frame.
+            A given entry may be null if the corresponding spectrum has zero recorded abundance.</param>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.IMidacImsReaderInternal.FrameMsIterator(System.Int32,System.Int32)">
+            <summary>
+            Read the (non-TFS) mass spectrum at a specified drift bin in a specified frame
+            </summary>
+            <param name="frameNumber">The frame to be read</param>
+            <param name="driftBin">The drift bin of the desired spectrum (0..MaxBin - 1)</param>
+            <returns>A spectrum iterator; null if the spectrum has zero recorded abundance</returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.MidacImsFileReader.#ctor">
+            <summary>
+            Default constructor
+            </summary>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.MidacImsFileReader.UpdateFrameSpectrumCollection(System.Int32)">
+            <summary>
+            Update m_frameSpecCollection if necessary so that it holds the information (and spectra)
+            for the designated frame.
+            </summary>
+            <param name="frameNumber"></param>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.MidacImsFileReader.FrameMs_GetXyDataLists(Agilent.MassSpectrometry.MIDAC.MidacSpecFormat,System.Int32,System.Int32,System.Collections.Generic.List{System.Int32}@,System.Collections.Generic.List{System.Single}@,System.Int32@)">
+            <summary>
+            Get lists of X and Y point values appropriate to the specified MidacSpecFormat.
+            </summary>
+            <param name="specFormat"></param>
+            <param name="driftIdx"></param>
+            <param name="minFlightTimeBin"></param>
+            <param name="msBinList">X value (ms flight time bin index where 0 == minFlightTimeBin)</param>
+            <param name="msAbundList">Y value (abundance)</param>
+            <param name="nonZeroPointCount">number of points with non-zero abundance</param>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.MidacImsFileReader.Unpack(Agilent.MassSpectrometry.IRlzArrayIterator,Agilent.MassSpectrometry.MIDAC.MidacSpecFormat,System.Int32,System.Int32,System.Single[]@,System.Collections.Generic.List{System.Int32}@,System.Collections.Generic.List{System.Single}@)">
+            <summary>
+            Unpacks a spectrum iterator in the most efficient way given the desired
+            spectrum format.
+            </summary>
+            <param name="iter"></param>
+            <param name="specFormat"></param>
+            <param name="fullArrayLength"></param>
+            <param name="minFlightTimeBin"></param>
+            <param name="msAbundArray">Used for MidacSpecFormat == Profile</param>
+            <param name="msBinList">Used for sparse or metadata only formats</param>
+            <param name="msAbundList">Used for sparse or metadata only formats</param>
+            <remarks>reference array and lists must be initialized before calling this function.
+            Nonzero point count is NOT reset to zero here.</remarks>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.MidacImsFileReader.Unpack(Agilent.MassSpectrometry.IRlzArrayIterator,Agilent.MassSpectrometry.MIDAC.MidacSpecFormat,System.Int32,System.Int32,System.Int32@,System.Single[]@,System.Collections.Generic.List{System.Int32}@,System.Collections.Generic.List{System.Single}@)">
+            <summary>
+            Unpacks a spectrum iterator in the most efficient way given the desired
+            spectrum format.
+            </summary>
+            <param name="iter"></param>
+            <param name="specFormat"></param>
+            <param name="fullArrayLength"></param>
+            <param name="minFlightTimeBin"></param>
+            <param name="msNzPointCount">Incremented for each non-zero abundance value found</param>
+            <param name="msAbundArray">Used for MidacSpecFormat == Profile</param>
+            <param name="msBinList">Used for sparse or metadata only formats</param>
+            <param name="msAbundList">Used for sparse or metadata only formats</param>
+            <remarks>reference array and lists must be initialized before calling this function.
+            Nonzero point count is NOT reset to zero here.</remarks>
+        </member>
+        <member name="T:Agilent.MassSpectrometry.MIDAC.MzArrayCache">
+            <summary>
+            A class designed to quickly "produce" an m/z array by caching frequently-used values
+            and doing "real work" only when required.
+            </summary>
+        </member>
+        <member name="T:Agilent.MassSpectrometry.MIDAC.MassTimeConverter">
+            <summary>
+            A class that supports ITofCal-style mass/time interconversions, optimized for frequent reuse
+            with different traditional coefficients when the polynomial corrections do not change
+            </summary>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.MassTimeConverter.#ctor(System.Double,Agilent.MassSpectrometry.ITofCal)">
+            <summary>
+            Constructor.  Initializes with the polynomial part of the specified ITofCal, which thereafter
+            remains constant.  Gets initial A, To values from the ITofCal but those may be readily changed
+            for later conversions.
+            </summary>
+            <param name="tofBinWidth"></param>
+            <param name="tofCal"></param>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.MassTimeConverter.SameTraditional(Agilent.MassSpectrometry.ITofCal)">
+            <summary>
+            Does this instance have the same A, To values as a specified calibration?
+            </summary>
+            <param name="otherCal"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.MassTimeConverter.SamePolynomial(Agilent.MassSpectrometry.ITofCal)">
+            <summary>
+            Does this instance use the same polynomial as a specified calibration?
+            </summary>
+            <param name="otherCal"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.MassTimeConverter.TimeToMass(System.Double)">
+            <summary>
+            Convert a specified flight time (in ns) to a m/z value
+            </summary>
+            <param name="time"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.MassTimeConverter.MassToTime(System.Double)">
+            <summary>
+            Convert a specified m/z value to a flight time (in ns)
+            </summary>
+            <param name="mass"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.MassTimeConverter.TimesToMasses(System.Double[])">
+            <summary>
+            Convert a specified array of flight times (in ns) to m/z values
+            </summary>
+            <param name="times"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.MassTimeConverter.MassesToTimes(System.Double[])">
+            <summary>
+            Convert a specified array of m/z values to flight times (in ns)
+            </summary>
+            <param name="masses"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Agilent.MassSpectrometry.MIDAC.MassTimeConverter.PolynomialYAtX(System.Double)">
+            <summary>
+            Calculate the polynomial's value at a specified flight time
+            </summary>
+            <param name="flightTimeNs"></param>
+            <returns></returns>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.MIDAC.MassTimeConverter.A">
+            <summary>
+            Set or get the traditional A coefficient
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.MIDAC.MassTimeConverter.To">
+            <summary>
+            Set or get the traditional To coefficient
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.MIDAC.MassTimeConverter.ExpandedCoefficients">
+            <summary>
+            Expand the "compressed" array of polynomial coefficients, guided by PowerFlags, 
+            to an array of coefficients with zero values for unused powers-of-T.
+            </summary>
+        </member>
+        <member name="P:Agilent.MassSpectrometry.MIDAC.MassTimeConverter.MassErrors">
+            <summary>
+            Get the array of mass error corrections calculated from the polynomial
+            </summary>
+        </member>
+        <member name="T:Agilent.MassSpectrometry.MIDAC.IMidacMsReader">
+            <summary>
+            Provides access to original (non-IM) MassHunter MS data files
+            </summary>
+        </member>
+    </members>
+</doc>

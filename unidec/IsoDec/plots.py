@@ -46,7 +46,7 @@ def on_scroll(event):
         plt.draw()
 
 
-def fast_vlines(centroids, color, base, factor):
+def fast_vlines(centroids, color, base, factor, ax=None):
     """
     Fast vlines plotter
     :param centroids: Centroids array
@@ -64,10 +64,13 @@ def fast_vlines(centroids, color, base, factor):
         xlist.append(None)
         ylist.extend(yends)
         ylist.append(None)
-    plt.plot(xlist, ylist, color=color)
+
+    if ax is None:
+        ax = plt.gca()
+    ax.plot(xlist, ylist, color=color)
 
 
-def cplot(centroids, color='r', factor=1, base=0, mask=None, mfactor=-1, mcolor="g", z=0, zcolor="b", zfactor=1, isodist=None):
+def cplot(centroids, color='r', factor=1, base=0, mask=None, mfactor=-1, mcolor="g", z=0, zcolor="b", zfactor=1, isodist=None, ax=None):
     """
     Simple script to plot centroids
     :param centroids: Centroid array with m/z in first column and intensity in second
@@ -84,17 +87,17 @@ def cplot(centroids, color='r', factor=1, base=0, mask=None, mfactor=-1, mcolor=
             mask = np.append(mask, np.zeros(len(centroids) - len(mask)))
         else:
             mask = mask[:len(centroids)]
-        fast_vlines(centroids[mask.astype(bool)], mcolor, base, mfactor)
+        fast_vlines(centroids[mask.astype(bool)], mcolor, base, mfactor, ax=ax)
 
     if z != 0:
         isodist = create_isodist(centroids[np.argmax(centroids[:, 1]), 0], z, centroids)
-        fast_vlines(isodist, zcolor, base, zfactor)
+        fast_vlines(isodist, zcolor, base, zfactor, ax=ax)
 
     if isodist is not None:
-        fast_vlines(isodist, zcolor, base, zfactor)
+        fast_vlines(isodist, zcolor, base, zfactor, ax=ax)
 
     if centroids is not None:
-        fast_vlines(centroids, color, base, factor)
+        fast_vlines(centroids, color, base, factor, ax=ax)
 
 
 
@@ -158,6 +161,26 @@ def plot_pks(pks, data=None, centroids=None, scan=-1, show=False, labelz=False, 
     #plt.legend()  # Optional: Add a legend
 
     plt.connect('scroll_event', on_scroll)
+
+def plot_pks_ax(pks, ax, centroids=None, ccolor="k", scan=-1, title=None):
+    if centroids is not None:
+        cplot(centroids, color=ccolor, ax=ax)
+
+    # Turn off top and right axis
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    # Plotting peaks from pks
+    if pks is not None:
+        for p in pks.peaks:
+            if scan == -1 or p.scan == scan:
+                color = p.color
+                isodist = p.isodist
+                cplot(isodist, color=color, factor=-1, ax=ax)
+
+    if title is not None:
+        ax.set_title(title)
+
 
 def gen_plot_fig(pks, centroids, ccolor="k", forcecolor='b', tickfont=14, labfont=18):
     #Scale centroids and isodists to be between 0 and 1

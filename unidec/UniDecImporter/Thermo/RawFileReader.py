@@ -8,27 +8,24 @@ pathtothisfile = os.path.dirname(__file__)
 dlls = ['ThermoFisher.CommonCore.Data', 'ThermoFisher.CommonCore.RawFileReader',
         'ThermoFisher.CommonCore.BackgroundSubtraction', 'ThermoFisher.CommonCore.MassPrecisionEstimator']
 
+
+
 for dll in dlls:
     testpath = os.path.join(pathtothisfile, dll) + ".dll"
-    # print(testpath)
     if os.path.isfile(testpath):
-        # print("1")
         clr.AddReference(testpath)
     else:
         try:
-            # print("2")
             import sys
 
             sys.path.append(pathtothisfile)
             clr.AddReference(dll)
         except:
-            # print("3")
             clr.AddReference(dll)
 
 clr.AddReference('System.Collections')
 from System import *
 from System.Collections.Generic import *
-
 import ThermoFisher
 from ThermoFisher.CommonCore.Data import ToleranceUnits
 from ThermoFisher.CommonCore.Data import Extensions
@@ -39,6 +36,7 @@ from ThermoFisher.CommonCore.Data.Interfaces import IChromatogramSettings, IScan
     RawFileClassification
 from ThermoFisher.CommonCore.MassPrecisionEstimator import PrecisionEstimate
 from ThermoFisher.CommonCore.RawFileReader import RawFileReaderAdapter, SequenceFileReader
+
 
 """"""
 '''

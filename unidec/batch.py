@@ -650,7 +650,8 @@ class UniDecBatchProcessor(object):
         self.pks = None
 
     def run_file(
-        self, file=None, decon=True, use_converted=True, interactive=False, allpng=False
+        self, file=None, decon=True, use_converted=True, interactive=False, allpng=False, write_html=True,
+            individual_html=True
     ):
         self.filename = file
         self.top_dir = os.path.dirname(file)
@@ -661,6 +662,8 @@ class UniDecBatchProcessor(object):
             use_converted=use_converted,
             interactive=interactive,
             allpng=allpng,
+            write_html=write_html,
+            individual_html=individual_html
         )
 
     def run_df(
@@ -673,6 +676,7 @@ class UniDecBatchProcessor(object):
         write_xlsx=True,
         write_peaks=True,
         allpng=False,
+        individual_html=True
     ):
         self.global_html_str = ""
         self.pks = peakstructure.Peaks()
@@ -826,18 +830,24 @@ class UniDecBatchProcessor(object):
                     findex = i
                 else:
                     findex = None
-                outfile = self.eng.gen_html_report(
-                    open_in_browser=False,
-                    interactive=interactive,
-                    findex=findex,
-                    results_string=results_string,
-                    del_columns=del_columns,
-                    allpng=allpng,
-                )
-                htmlfiles.append(outfile)
-
-                # Add the HTML report to the global HTML string
-                self.global_html_str += self.eng.html_str
+                if individual_html or write_html:
+                    outfile = self.eng.gen_html_report(
+                        open_in_browser=False,
+                        interactive=interactive,
+                        findex=findex,
+                        results_string=results_string,
+                        del_columns=del_columns,
+                        allpng=allpng,
+                    )
+                    if individual_html:
+                        htmlfiles.append(outfile)
+                    else:
+                        htmlfiles.append("")
+                    if write_html:
+                        # Add the HTML report to the global HTML string
+                        self.global_html_str += self.eng.html_str
+                else:
+                    htmlfiles.append("")
                 # Add the peaks to the global peaks
                 self.pks.merge_in_peaks(self.eng.pks, filename=path, filenumber=i)
             else:
@@ -848,8 +858,9 @@ class UniDecBatchProcessor(object):
         # Write the number of peaks IDed
         self.rundf["NumPeaks"] = npeaks
 
-        # Set the HTML file names in the DataFrame
-        self.rundf["Reports"] = htmlfiles
+        if individual_html:
+            # Set the HTML file names in the DataFrame
+            self.rundf["Reports"] = htmlfiles
 
         # If the top directory is not set, set it as the directory above the data directory
         if self.top_dir == "" and self.data_dir != "":

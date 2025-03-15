@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import unidec.tools as ud
-# import matplotlib
-#
-# matplotlib.use('WxAgg')
+import matplotlib as mpl
+
+# mpl.use('WxAgg')
 
 example = np.array(
     [
@@ -98,7 +98,14 @@ def thrash_predict(centroids):
 
 
 if __name__ == "__main__":
-    example = np.loadtxt("Z:\\Group Share\\JGP\\JPST001885\\UVPD_Test\\chopped.txt")
+    example = np.loadtxt("Z:\Group Share\JGP\MockData\mockdata_centroids.csv", delimiter=",")
+    example = ud.datachop(example, 326,327)
+    for i in range(len(example)):
+        plt.plot([example[i, 0], example[i, 0]], [0, example[i, 1]], color="black")
+    plt.show()
+
+
+
     raw_data = example
     charge_state = thrash_predict(raw_data)
     print(charge_state)

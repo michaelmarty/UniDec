@@ -378,6 +378,7 @@ class ManualSelection(wx.Dialog):
 
         okbutton.Bind(wx.EVT_BUTTON, self.on_close)
         closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
 
         self.masslistbox.list.populate(self.config.manuallist)
         self.on_plot(0)
@@ -400,7 +401,7 @@ class ManualSelection(wx.Dialog):
             self.config.manuallist = []
 
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
 
     def on_close_cancel(self, e):
         """
@@ -409,7 +410,7 @@ class ManualSelection(wx.Dialog):
         :return: None
         """
         self.Destroy()
-        self.EndModal(1)
+        self.EndModal(wx.ID_CANCEL)
 
     def on_clear(self, e):
         """
@@ -758,6 +759,7 @@ class SmashSelection(wx.Dialog):
 
         okbutton.Bind(wx.EVT_BUTTON, self.on_close)
         closebutton.Bind(wx.EVT_BUTTON, self.on_close_cancel)
+        self.Bind(wx.EVT_CLOSE, self.on_close_cancel)
 
         self.masslistbox.list.populate(self.config.smashlist)
         if self.data is not None:
@@ -785,7 +787,7 @@ class SmashSelection(wx.Dialog):
             self.config.smashlist = []
 
         self.Destroy()
-        self.EndModal(0)
+        self.EndModal(wx.ID_OK)
 
     def on_close_cancel(self, e):
         """
@@ -794,7 +796,7 @@ class SmashSelection(wx.Dialog):
         :return: None
         """
         self.Destroy()
-        self.EndModal(1)
+        self.EndModal(wx.ID_CANCEL)
 
     def on_clear(self, e):
         """

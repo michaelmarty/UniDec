@@ -16,7 +16,9 @@ Please contact mtmarty@email.arizona.edu for questions, suggestions, or with any
 UniDec may be downloaded from [https://github.com/michaelmarty/UniDec/releases](https://github.com/michaelmarty/UniDec/releases).
 
 This compiled version is compatible with 64-bit Windows. It a portable binary, so it does not need a conventional installation.
-Just unzip the folder, put it somewhere convenient, and click the GUI_UniDec.exe file in the folder to launch.
+Just unzip the folder, put it somewhere convenient, if you are still having issues 
+run the INSTALLER.cmd as administrator,(only have to do this once)
+then click the GUI_UniDec.exe file in the folder to launch.
 
 To use the PDF report generator, install [MikTex](https://miktex.org) and select install packages automatically from the installation options. You may need to add this to your system path so that PDFLatex is found from the command line. 
 
@@ -99,6 +101,8 @@ Intel libraries from the oneAPI are distributed under licenses found in the bin 
 
 RDKit libraries are gratefully used for LipiDec and are distributed under the CC-SA license. Please [cite them when using these features](https://www.rdkit.org/docs/Overview.html#citing-the-rdkit). 
 
+FFTW libraries are distributed under the GPL license, which is included alongside the relevant files.
+
 ## UniDec Compatible File Types
 
 UniDec is built to open .txt files using [numpy.loadtxt](http://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.loadtxt.html). 
@@ -115,7 +119,7 @@ A single file can be opened directly, or multiple files can be converted using
 Tools > Simple Batch Process Raw to Txt. For a fancier conversion such as extracting specific functions or scans, 
 try Tools > Raw to Txt Conversion Wizard. Note: rawreader.exe has been replaced with the MassLynxSDK 4.5 Python library. Water's converters will need MassLynxRaw.dll and/or cdt.dll in the same directory as the converter executables (the unidec/bin folder or the top directory). You can find these at: [https://interface.waters.com/masslynx/developers-area/sdks/](https://interface.waters.com/masslynx/developers-area/sdks/) if they aren't already there. 
 
-Agilent .d files can be read as you would a text file on Windows thanks to [multiplierz](https://github.com/BlaisProteomics/multiplierz). Please cite them (http://onlinelibrary.wiley.com/doi/10.1002/pmic.201700091/abstract). It will compress all scans together unless parsed with MetaUniDec. 
+Agilent .d files can be read natively on Windows. 
 
 Thermo .raw files should be able to be opened natively on Windows. Thermo DLLs are included bundled with UniDec.
 
@@ -221,6 +225,20 @@ The main GUI class is Launcher. You can launch the Launcher from the command lin
 Of course, using the pre-compiled version means you don't need to know Python at all and can just click the GUI_UniDec.exe icon to launch the program and get started. However you choose to do it, happy deconvolving!
 
 ## Change Log
+
+v.8.0.1
+
+Improved CD-MS defaults.
+
+Added scan parsing to UniChrom. 
+
+Added checkboxes to UPP to allow for more control over the HTML output. Moved some output controls down to better organize the window.
+
+Fixed bugs with antiviruses blocking it. Created an install script to help with this and to register Agilent DLLs.
+
+Fixed bug with dialog windows failing to return properly. 
+
+Fixed a weird mzML bug.
 
 v.8.0.0
 
@@ -1127,8 +1145,6 @@ natsort: https://github.com/SethMMorton/natsort/blob/master/LICENSE
 pymzml: https://github.com/pymzml/pymzML/blob/master/LICENSE.txt
 
 networkx: https://networkx.github.io/documentation/networkx-1.10/reference/legal.html
-
-multiplierz: https://github.com/BlaisProteomics/multiplierz/blob/master/LICENSE
 
 pypubsub: https://pypubsub.readthedocs.io/en/v4.0.3/about.html#license
 

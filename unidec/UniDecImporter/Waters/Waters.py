@@ -170,7 +170,7 @@ class WatersDataImporter(Importer):
 if __name__ == "__main__":
     test = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw"
     d = WatersDataImporter(test)
-    d.close()
+    print(d.get_all_scans())
 
 
 

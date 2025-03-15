@@ -127,7 +127,12 @@ if __name__ == '__main__':
     path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_agilent.d"
     #path = "C:\\Data\\DataTypeCollection\\test_agilent.d"
     d = AgilentImporter(path)
-    print(d.get_all_scans())
+    sing = d.get_single_scan(1)
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    mpl.use("WxAgg")
+    plt.plot(sing[:, 0], sing[:, 1])
+    plt.show()
 
 
 

@@ -2857,15 +2857,12 @@ def traverse_to_unidec(topname="UniDec3"):
 
 def start_at_iso(targetfile, guess=None):
     result = ""
-    # print("Guess:", guess)
     if guess is not None:
         if os.path.isdir(guess):
             result = find_dll(targetfile, guess)
             if result:
-                # print("Found DLL within guess:", result)
                 return result
 
-    # print("Starting in unidec/isodec")
     parent = traverse_to_unidec()
     path = os.path.join(parent, "unidec", "IsoDec")
     if not os.path.exists(path):
@@ -2877,7 +2874,6 @@ def start_at_iso(targetfile, guess=None):
             if not os.path.exists(path):
                 print("Path does not exist: ", path)
                 return result
-    # print("Path:", path)
     if os.path.isdir(path):
         for entry in os.scandir(path):
             if entry.is_file() and entry.name == targetfile:
@@ -2902,12 +2898,46 @@ def start_at_iso(targetfile, guess=None):
             return result
 
 
+def find_all_dependencies(path):
+    dlls = []
+    for entry in os.scandir(path):
+        if entry.is_file() and entry.name.endswith(".dll") or entry.name.endswith(".lib"):
+            dlls.append(entry.path)
+        elif entry.is_dir():
+
+            dlls += find_all_dependencies(entry.path)
+    return dlls
 
 
 
+def force_register(path):
+    prev_path = path
+    path = path.split("\\")
+    path = '//'.join(path[:-4])
+    path = os.path.join(path, "installer.bat")
+    if os.path.exists(path):
+        import subprocess
+        subprocess.Popen([path], shell=True).wait()
+        exit()
+    else:
+        path = prev_path.split("\\")
+        path = '//'.join(path[:-3])
+        path = os.path.join(path, "installer.bat")
+        if os.path.exists(path):
+            import subprocess
+            subprocess.Popen([path], shell=True).wait()
+            exit()
+        else:
+            print("PATH", path + "NOT FOUND")
 
 
 if __name__ == "__main__":
+    ls = find_all_dependencies("C:\\Python\\UniDec3")
+    for i in ls:
+        print(i)
+
+
+    exit()
     x = [0., 1., 2., 3., 4.]
     y = [1, 0.7, 0.5, 0.4, 0.3]
     import matplotlib.pyplot as plt
