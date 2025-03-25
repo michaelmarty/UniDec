@@ -108,6 +108,16 @@ class UniDecPres(object):
                 pass
         self.eng.update_history()
 
+    def save_config_to_dat(self, e=None):
+        """
+        Save the configuration to a text file
+        """
+        # Create a save dialog
+        file_path = FileDialogs.save_file_dialog(message="Save Config Dat File", file_types="Dat (*_conf.dat)|*_conf.dat")
+        if file_path is not None:
+            self.export_config()
+            self.eng.config.config_export(file_path)
+
     def check_badness(self):
         """
         Check for any bad parameters and warn the user if something is off.

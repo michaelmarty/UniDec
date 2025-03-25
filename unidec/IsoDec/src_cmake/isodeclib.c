@@ -7,8 +7,9 @@
 #include "isodeclib.h"
 #include "phase_model_8.h"
 #include "phase_model_4.h"
+
+extern void mass_to_formula_averaging(const float mass, int* forumla);
 // #include "isogenmass.h"
-#include "isofft.h"
 // #include <omp.h>
 
 // Linux code to convert binary file to header file
@@ -1411,6 +1412,7 @@ void write_matches(const struct MatchedPeak *matchedpeaks, const int nmatched, c
 
     fclose(file_ptr);
 }
+
 
 // extern "C" __declspec(dllexport)
 int process_spectrum_default(const double *cmz, const float *cint, const int n, const char *fname,

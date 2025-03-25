@@ -168,11 +168,25 @@ c = np.array([1, 0.011, 0, 0])
 n = np.array([1, 0.0037, 0, 0])
 o = np.array([1, 0.0004, 0.002, 0])
 s = np.array([1, 0.0079, 0.044, 0])
+fe = np.array([0.063, 1, 0.024,0.0031])
+k = np.array([1, 0.000129, 0.07221, 0])
+ca = np.array([1, 0.0067, 0.00144, 0.0215])
+ni = np.array([1, 0.382, 0.017, .053])
+zn = np.array([1, 0.0574, 0.0844, 0.387])
+mg = np.array([1, 0.127, 0.141, 0])
+
+
 h = np.append(h, buffer)
 c = np.append(c, buffer)
 n = np.append(n, buffer)
 o = np.append(o, buffer)
 s = np.append(s, buffer)
+fe  = np.append(fe, buffer)
+k = np.append(k, buffer)
+ca = np.append(ca, buffer)
+ni = np.append(ni, buffer)
+zn = np.append(zn, buffer)
+mg = np.append(mg, buffer)
 
 dt = np.dtype(np.complex128)
 hft = fftpack.rfft(h).astype(dt)
@@ -180,23 +194,32 @@ cft = fftpack.rfft(c).astype(dt)
 nft = fftpack.rfft(n).astype(dt)
 oft = fftpack.rfft(o).astype(dt)
 sft = fftpack.rfft(s).astype(dt)
+feft = fftpack.rfft(fe).astype(dt)
+kft = fftpack.rfft(k).astype(dt)
+caft = fftpack.rfft(ca).astype(dt)
+nift = fftpack.rfft(ni).astype(dt)
+znft = fftpack.rfft(zn).astype(dt)
+mgft = fftpack.rfft(mg).astype(dt)
+
+pre_ft = np.array([cft, hft, nft, oft, sft, feft, kft, caft, nift, znft, mgft])
 
 
 # @njit(fastmath=True)
 def isojim(isolist, length=isolength):
     """Thanks to Jim Prell for Sketching this Code"""
-    numc = isolist[0]
-    numh = isolist[1]
-    numn = isolist[2]
-    numo = isolist[3]
-    nums = isolist[4]
+    '''
+    Takes as in input a list of numbers of elements in the order above [C, H, N, O, S, P, Fe, K, Ca, Ni, Zn, Mg]
+    Calculates the aggregated isotope distribution based on the input list.
+    '''
+    num_atoms = len(isolist)
+    allft = 0
 
+    for i in range(num_atoms):
+        if i == 0:
+            allft = pre_ft[i] ** isolist[i]
+        else:
+            allft = allft * (pre_ft[i] ** isolist[i])
 
-    allft = cft ** numc * hft ** numh * nft ** numn * oft ** numo * sft ** nums
-    #print(type(allft[0]))
-
-    # with nb.objmode(allift='float64[:]'):
-    #    allift = fftpack.irfft(allft)
     allift = np.abs(fftpack.irfft(allft))
     # allift = np.abs(allift)
     allift = allift / np.amax(allift)
@@ -208,10 +231,10 @@ def isojim_rna(isolist, length=isolength):
     numh = isolist[1]
     numn = isolist[2]
     numo = isolist[3]
-    numps = isolist[4]
+    nump = isolist[4]
 
 
-    allft = cft ** numc * hft ** numh * nft ** numn * oft ** numo * sft ** numps
+    allft = cft ** numc * hft ** numh * nft ** numn * oft ** numo * sft ** nump
     #print(type(allft[0]))
 
     # with nb.objmode(allift='float64[:]'):

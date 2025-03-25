@@ -150,9 +150,14 @@ class IsoGenModelBase:
         """
         if os.path.isfile(self.savepath):
             try:
-                self.model.load_state_dict(torch.load(self.savepath, weights_only=True))
-                print("Model loaded:", self.savepath)
-                # print_model(self.model)
+                if torch.cuda.is_available():
+                    self.model.load_state_dict(torch.load(self.savepath, weights_only=True))
+                    print("Model loaded:", self.savepath)
+                    # print_model(self.model)
+                else:
+                    self.model.load_state_dict(torch.load(self.savepath, weights_only=True, map_location=torch.device('cpu')))
+                    print("Model loaded:", self.savepath)
+                    # print_model(self.model)
             except Exception as e:
                 print("Model failed to load:", self.savepath)
                 print(e)

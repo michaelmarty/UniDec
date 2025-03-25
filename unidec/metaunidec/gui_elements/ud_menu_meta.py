@@ -98,6 +98,8 @@ class meta_menu(wx.Menu):
 
         self.menuLoad = self.filemenu.Append(wx.ID_ANY, "Load External Config File", "Load in a configuration file")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_load_conf_file, self.menuLoad)
+        self.menusaveext = self.filemenu.Append(wx.ID_ANY, "Save External Config File", "Save configuration file")
+        self.parent.Bind(wx.EVT_MENU, self.pres.save_config_to_dat, self.menusaveext)
         self.menuLoadDefault = self.filemenu.Append(wx.ID_ANY, "Load Default Config File",
                                                     "Load in default configuration file")
         self.menuSaveDefault = self.filemenu.Append(wx.ID_ANY, "Save Default Config File",

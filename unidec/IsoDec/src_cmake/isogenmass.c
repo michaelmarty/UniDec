@@ -12,7 +12,7 @@
 
 
 const char pepOrder[] = "ACDEFGHIKLMNPQRSTVWY";
-const char rnaOrder[] = "ACGU";
+
 const char *elements[] = {
     "He", "Li", "Be", "Ne", "Na", "Mg", "Al", "Si", "Cl", "Ar", "Ca", "Sc", "Ti", "Cr", "Mn", "Fe", "Co", "Ni", "Cu",
     "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In",
@@ -239,6 +239,9 @@ float isomike(const float mass, float * isodist, const int isolen, const int off
 }
 
 
+
+
+
 float* peptideToVector(const char* peptide)
 {
     static float vector[20];
@@ -250,23 +253,6 @@ float* peptideToVector(const char* peptide)
         if (pos)
         {
             int index = pos - pepOrder;
-            vector[index] += 1.0f;
-        }
-    }
-    return vector;
-}
-
-float* rnaToVector(const char* rna)
-{
-    static float vector[4];
-    memset(vector, 0, sizeof(vector));
-    int len = strlen(rna);
-    for (int i = 0; i < len; i++)
-    {
-        char *pos = strchr(rnaOrder, rna[i]);
-        if (pos)
-        {
-            int index = pos - rnaOrder;
             vector[index] += 1.0f;
         }
     }
@@ -334,46 +320,6 @@ void freeVector(float* vector){
 }
 
 
-
-
-
-
-
-// void main()
-// {
-//     IsoGenPepEngine engine;
-//     engine.isolen = 32;
-//     engine.vectorlen = 20;
-//     engine.weights = SetupWeights(engine.vectorlen, engine.isolen);
-//     engine.weights = LoadWeights(engine.weights, isogenmass_model_64_bin);
-//     const char *testformulas[]=
-//     {
-//         "PEPTIDE", "CCCCCCCCCCCCCCCCCC", "APTIGGGQGAAAAAAAAAAAAAAAAAAASVTGGTIPGPGPGGATAR", "LLL", "KKK", "CCCM"
-//     };
-//     int num_tests = sizeof(testformulas) / sizeof(testformulas[0]);
-//     for (int i = 0; i < num_tests; i++)
-//     {
-//         float output[32] = {0};
-//         printf("Testing sequence %s\n", testformulas[i]);
-//
-//
-//         //convert to vector
-//         float vector[20] = {0};
-//         peptideToVector(testformulas[i]);
-//         //run prediction
-//         neural_net(vector, output, engine.weights);
-//
-//         printf("Predicated distribution for %s:\n", testformulas[i]);
-//         for (int j = 0; j < 10; j++)
-//         {
-//             printf("%.4f ", output[j]);
-//         }
-//         printf("\n\n");
-//
-//
-//     }
-//     FreeWeights(engine.weights);
-// }
 
 
 

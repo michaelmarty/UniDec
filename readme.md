@@ -199,6 +199,10 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.8.0.2
+
+Added menu option to export conf.dat text file from UniChrom and MetaUniDec.
+
 v.8.0.1
 
 Improved CD-MS defaults.

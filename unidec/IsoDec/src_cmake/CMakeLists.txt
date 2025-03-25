@@ -23,22 +23,39 @@ include_directories("${FFTW_DIR}")
 
 # ======================== IsoGen Mass Builds ========================
 
-add_library(isogenmass SHARED isogenmass.c isogenmass.h)
-set_target_properties(isogenmass PROPERTIES LINKER_LANGUAGE C)
+#add_library(isogenmass SHARED
+#        isogenmass.c isogenmass.h
+#        isogendep.c isogendep.h ${FFTW_DIR}/fftw3.h
+#        isogenpep.c
+#        isogenrna.c
+#        isogenatom.c
+#        isogenrna.h
+#        isogenatom.h)
+#set_target_properties(isogenmass PROPERTIES LINKER_LANGUAGE C)
+#target_compile_definitions(isogenmass PRIVATE ISOGEN_EXPORTS)
+#target_include_directories(isogenmass PUBLIC ${FFTW_DIR})
+#
+#
+#target_link_libraries(isogen PUBLIC isogenmass)
+#set_target_properties(isogen PROPERTIES LINKER_LANGUAGE C)
+#
+#install(TARGETS isogenmass DESTINATION ${INSTALL_DIR})
 
-add_executable(isogen isogen.cpp)
-target_link_libraries(isogen PUBLIC isogenmass)
+
+# ======================== IsoGen Builds ========================
+
+add_library(isogen SHARED
+                isogenmass.c isogenmass.h
+                isogendep.c isogendep.h
+                ${FFTW_DIR}/fftw3.h
+                isogenpep.c isogenpep.h
+                isogenrna.c isogenrna.h
+                isogenatom.c isogenatom.h
+)
 set_target_properties(isogen PROPERTIES LINKER_LANGUAGE C)
+target_include_directories(isogen PUBLIC ${FFTW_DIR})
+target_compile_definitions(isogen PUBLIC ISOGEN_BUILD_DLL)
 
-install(TARGETS isogenmass DESTINATION ${INSTALL_DIR})
-
-
-# ======================== IsoFFT Builds ========================
-
-add_library(isofft SHARED isofft.c isofft.h ${FFTW_DIR}/fftw3.h)
-set_target_properties(isofft PROPERTIES LINKER_LANGUAGE C)
-target_include_directories(isofft PUBLIC ${FFTW_DIR})
-add_compile_definitions(isofft "ISOFFTlib_EXPORTS")
 
 if(MSVC OR CMAKE_C_COMPILER_ID STREQUAL "GNU")
     add_library(fftw3 STATIC IMPORTED)
@@ -47,31 +64,36 @@ else()
     message(STATUS "Not MSVC")
     message(STATUS "CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
     #    set(FFTW_LIB "/usr/lib/x86_64-linux-gnu/libfftw3.so")
-    #target_link_libraries(isofft PUBLIC ${FFTW_LIB})
+    #target_link_libraries(isogendep PUBLIC ${FFTW_LIB})
     add_library(fftw3 SHARED IMPORTED)
     set_target_properties(fftw3 PROPERTIES IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libfftw3.so)
-    target_link_libraries(isofft PUBLIC m)
+    target_link_libraries(isogen PUBLIC m)
 endif()
 
-#add_library(fftw3 STATIC IMPORTED)
-#set_target_properties(fftw3 PROPERTIES IMPORTED_LOCATION ${FFTW_DIR}/fftw3.lib)
-target_link_libraries(isofft PUBLIC fftw3)
 
-# isofft_test
-add_executable(isofft_test isofft_test.c)
-target_link_libraries(isofft_test PUBLIC isofft)
-set_target_properties(isofft_test PROPERTIES LINKER_LANGUAGE C)
+target_link_libraries(isogen PUBLIC fftw3)
+install(TARGETS isogen DESTINATION ${INSTALL_DIR})
 
-#install(TARGETS isofft_test DESTINATION ${INSTALL_DIR})
-install(TARGETS isofft DESTINATION ${INSTALL_DIR})
+
+
 
 
 # ======================== IsoDec Builds ========================
 
 add_library(isodeclib SHARED isodeclib.c isodeclib.h phase_model_4.h phase_model_8.h)
 set_target_properties(isodeclib PROPERTIES LINKER_LANGUAGE C)
-#target_link_libraries(isodeclib PUBLIC isogenmass)
-target_link_libraries(isodeclib PUBLIC isofft)
+
+target_link_libraries(isodeclib PUBLIC isogen)
+
+
+
+target_include_directories(isodeclib PUBLIC ${SRC_DIR})
+
+
+target_compile_definitions(isodeclib PRIVATE ISODEC_BUILD_DLL)
+
+
+
 
 # Compiler flags
 include(find_avx.cmake)
@@ -86,12 +108,13 @@ else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
 endif()
 
+
 install(TARGETS isodeclib DESTINATION ${INSTALL_DIR})
 
 # isodec_test
-add_executable(isodec_test isodec_test.cpp)
-target_link_libraries(isodec_test PUBLIC isodeclib)
-set_target_properties(isodec_test PROPERTIES LINKER_LANGUAGE C)
+#add_executable(isodec_test isodec_test.cpp)
+#target_link_libraries(isodec_test PUBLIC isodeclib)
+#set_target_properties(isodec_test PROPERTIES LINKER_LANGUAGE C)
 
 
 #generate_export_header(isodeclib
@@ -100,7 +123,6 @@ set_target_properties(isodec_test PROPERTIES LINKER_LANGUAGE C)
 #        EXPORT_FILE_NAME isodec_exports.h
 #        DEFINE_NO_DEPRECATED
 #)
-
 
 
 
