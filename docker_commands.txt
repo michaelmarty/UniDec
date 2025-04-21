@@ -1,0 +1,11 @@
+docker build . -t michaeltmarty/unidec
+
+docker run -it michaeltmarty/unidec /bin/bash
+
+python -m unidec $TESTFILE
+
+python -m unidec.IsoDec $TESTFILE2 -precentroided
+
+docker cp 20c3dbdaf8d8:/opt/UniDec/unidec/bin/unideclinux .
+
+docker push michaeltmarty/unidec

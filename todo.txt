@@ -1,0 +1,36 @@
+Highest priority:
+
+Tim Bug Fixes and Feature Suggestions
+
+Mass Defect tracking to align phases of isotopic distributions for reasonable things
+
+UCD handle sub-integer charge smoothing
+
+Issues with Thrash predictor on thrash_test_data.
+
+Lower Priority:
+
+UniDec rewrite into Cmake
+
+Importer testing for Sciex
+
+UniDec/IsoDec Chimera
+
+
+Someday Maybe:
+
+Thermo centroided data loading in IsoDecGUI
+
+polarity switching, or "weaving" between scans
+
+Have eng inherit runtime
+
+Cmake install on visual studio
+
+Saer centroiding algorithm
+
+Overlapping Distribution Problem
+
+Correct IsoDec-Py and IsoDec-C divergence (appears to be a charge prediction difference?)
+
+

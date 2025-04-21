@@ -1,0 +1,273 @@
+Tris,121.14,Buffer
+Glycerol,92.09382,Buffer
+DMSO,78.13,Buffer
+Heme,616.487,Cofactor
+ATP,507.18,Cofactor
+ADP,427.201,Cofactor
+Tween 20,1228,Detergent
+Triton X-100,647,Detergent
+Sodium Deoxycholate,414.6,Detergent
+Sodium Cholate,430.6,Detergent
+OG,292.4,Detergent
+NP-40,603,Detergent
+Deoxycholate,392.572,Detergent
+DDM,510.6,Detergent
+Cholate ion ,408.5714,Detergent
+C8E4,306.5,Detergent
+CHAPS,614.88,Detergent
+Zn,65.38,Ion
+Na+,21.981944,Ion
+K+,37.955588,Ion
+Cu,61.921776,Ion
+2*Na+,43.963888,Ion
+2*K+,75.911176,Ion
+POPG,749.008,Lipid
+POPE,717.996,Lipid
+POPC,760.076,Lipid
+Cholesterol,386.6,Lipid
+Sulphation,80.0624,PTM
+Stearoylation,266.4674,PTM
+Pyroglutamic acid formed from Gln,-17.0306,PTM
+Pyridylethyleysteine (PE-Cys) from Cys (4-vinylpyridine),105.1393,PTM
+Pyridoxal phosphate (Schiff Base formed to lysine),231.1449,PTM
+Phosphorylation,79.9799,PTM
+Pentoses (Ara/Rib/Xyl),132.1161,PTM
+Retinylidene,266.42,PTM
+Palmitoylation,238.4136,PTM
+Oxidation of Met,15.9994,PTM
+N-glycolylneuraminic acid (NeuGc),307.2573,Glyco
+N-acetylneuraminic acid (Sialic acid/NeuAc/NANA/SA),291.2579,Glyco
+N-acetylhexosamines (GalNAc/GlcNAc),203.195,Glyco
+Myristoylation,210.3598,PTM
+Methylation,14.0269,PTM
+Methionine Loss,-131.040485,PTM
+Lipoic acid (amide bond to lysine),188.3147,PTM
+Hydroxylation,15.9994,PTM
+Hexoses (Fru/Gal/Glc/Man),162.1424,Glyco
+Hexosamines (GalN/GlcN),161.1577,Glyco
+Gluthathionylation,305.3117,PTM
+Geranylgeranylation,272.4741,PTM
+Formylation,28.0104,PTM
+Farnesylation,204.3556,PTM
+Disulphide bond formation,-2.0159,PTM
+Deoxyhexoses (Fuc/Rha),146.143,Glyco
+Deamidation of Asn and Gln,-0.9847,PTM
+Cysteinylation,119.1442,PTM
+C-terminal amide formed from Gly,-0.9847,PTM
+Carboxymethylcysteine (Cme) from Cys (iodoacetic acid),58.0367,PTM
+Carboxylation of Asp and Glu,44.0098,PTM
+Carboxyamidomethylcysteine (Cam) from Cys (iodoacetamide),57.052,PTM
+Biotinylation (amide bond to lysine),226.2994,PTM
+ADP-ribosylation (from NAD),541.3052,PTM
+Acetylation,42.0373,PTM
+5'-Adenosylation,329.2091,PTM
+4'-Phosphopantetheine,339.3294,PTM
+N-Glycan Core Mannose,892.317,Glyco
+M3,892.317,N-Glycan
+M4,1054.37,N-Glycan
+M5,1216.42,N-Glycan
+M6,1378.48,N-Glycan
+M7,1540.53,N-Glycan
+M8,1702.58,N-Glycan
+M9,1864.63,N-Glycan
+A1G0,1095.4,N-Glycan
+A1G0F,1241.45,N-Glycan
+A1G0M4,1257.45,N-Glycan
+A1G0M4F,1403.51,N-Glycan
+A1G0M5,1419.5,N-Glycan
+A1G0M5F,1565.56,N-Glycan
+A2G0,1298.48,N-Glycan
+A2G0F,1444.53,N-Glycan
+A2G0M4,1460.53,N-Glycan
+A2G0M5,1622.58,N-Glycan
+A2G0M5F,1768.64,N-Glycan
+A3G0,1501.56,N-Glycan
+A3G0F,1647.61,N-Glycan
+A4G0,1704.63,N-Glycan
+A4G0F,1850.69,N-Glycan
+A1G1,1257.45,N-Glycan
+A1G1F,1403.51,N-Glycan
+A1G1M4,1419.5,N-Glycan
+A1G1M4F,1565.56,N-Glycan
+A1G1M5,1581.56,N-Glycan
+A1G1M5F,1727.61,N-Glycan
+A2G1,1460.53,N-Glycan
+A2G1F,1606.59,N-Glycan
+A2G2,1622.58,N-Glycan
+A2G2F,1768.64,N-Glycan
+A2G1M4,1622.58,N-Glycan
+A2G1M4F,1768.64,N-Glycan
+A2G1M5,1784.63,N-Glycan
+A2G1M5F,1930.69,N-Glycan
+A3G1,1663.61,N-Glycan
+A3G1F,1809.67,N-Glycan
+A4G1,1866.69,N-Glycan
+A4G1F,2012.75,N-Glycan
+A2G2M4,1784.63,N-Glycan
+A2G2M4F,1930.69,N-Glycan
+A2G2M5,1946.69,N-Glycan
+A2G2M5F,2092.75,N-Glycan
+A3G2,1825.66,N-Glycan
+A3G2F,1971.72,N-Glycan
+A4G2,2028.74,N-Glycan
+A4G2F,2174.8,N-Glycan
+A3G3,1987.71,N-Glycan
+A3G3F,2133.77,N-Glycan
+A4G3,2190.79,N-Glycan
+A4G3F,2336.85,N-Glycan
+A4G4,2352.85,N-Glycan
+A4G4F,2498.9,N-Glycan
+A1S1,1548.54,N-Glycan
+A1S1F,1694.6,N-Glycan
+A1S1M4,1710.6,N-Glycan
+A1S1M4F,1856.66,N-Glycan
+A1S1M5,1872.65,N-Glycan
+A1S1M5F,2018.71,N-Glycan
+A2S1G0,1751.62,N-Glycan
+A2S1G0F,1897.68,N-Glycan
+A2S1G1,1913.68,N-Glycan
+A2S1G1F,2059.73,N-Glycan
+A2S2,2204.77,N-Glycan
+A2S2F,2350.83,N-Glycan
+A2S1G0M4,1913.68,N-Glycan
+A2S1G0M4F,2059.73,N-Glycan
+A2S1G0M5,2075.73,N-Glycan
+A2S1G0M5F,2221.79,N-Glycan
+A3S1G0,1954.7,N-Glycan
+A3S1G0F,2100.76,N-Glycan
+A4S1G0,2157.78,N-Glycan
+A4S1G0F,2303.84,N-Glycan
+A2S1G1M4,2075.73,N-Glycan
+A2S1G1M4F,2221.79,N-Glycan
+A2S1G1M5,2237.78,N-Glycan
+A2S1G1M5F,2383.84,N-Glycan
+A3S1G1,2116.76,N-Glycan
+A3S1G1F,2262.81,N-Glycan
+A4S1G1,2319.84,N-Glycan
+A4S1G1F,2465.89,N-Glycan
+A3S1G2,2278.81,N-Glycan
+A3S1G2F,2424.87,N-Glycan
+A4S1G2,2481.89,N-Glycan
+A4S1G2F,2627.95,N-Glycan
+A4S1G3,2643.94,N-Glycan
+A4S1G3F,2790,N-Glycan
+A2S2M4,2366.83,N-Glycan
+A2S2M4F,2512.88,N-Glycan
+A2S2M5,2528.88,N-Glycan
+A2S2M5F,2674.94,N-Glycan
+A3S2G0,2407.85,N-Glycan
+A3S2G0F,2553.91,N-Glycan
+A4S2G0,2610.93,N-Glycan
+A4S2G0F,2756.99,N-Glycan
+A3S2G1,2569.9,N-Glycan
+A3S2G1F,2715.96,N-Glycan
+A4S2G1,2772.98,N-Glycan
+A4S2G1F,2919.04,N-Glycan
+A4S2G2,2935.04,N-Glycan
+A4S2G2F,3081.09,N-Glycan
+A3S3,2861,N-Glycan
+A3S3F,3007.06,N-Glycan
+A4S3G0,3064.08,N-Glycan
+A4S3G0F,3210.14,N-Glycan
+A4S3G1,3226.13,N-Glycan
+A4S3G1F,3372.19,N-Glycan
+A4S4,3517.23,N-Glycan
+A4S4F,3663.29,N-Glycan
+A1Sg1,1564.54,N-Glycan
+A1Sg1F,1710.6,N-Glycan
+A2Sg1G0,1767.62,N-Glycan
+A2Sg1G0F,1913.68,N-Glycan
+A2Sg1G1,1929.67,N-Glycan
+A2Sg1G1F,2075.73,N-Glycan
+A2Sg1S1,2220.77,N-Glycan
+A2Sg1S1F,2366.83,N-Glycan
+A2Sg2,2236.76,N-Glycan
+A2Sg2F,2382.82,N-Glycan
+A3Sg1G0,1970.7,N-Glycan
+A3Sg1G0F,2116.76,N-Glycan
+A4Sg1G0,2173.78,N-Glycan
+A4Sg1G0F,2319.84,N-Glycan
+A3Sg1G1,2132.75,N-Glycan
+A3Sg1G1F,2278.81,N-Glycan
+A4Sg1G1,2335.83,N-Glycan
+A4Sg1G1F,2481.89,N-Glycan
+A3Sg1G2,2294.8,N-Glycan
+A3Sg1G2F,2440.86,N-Glycan
+A4Sg1G2,2497.88,N-Glycan
+A4Sg1G2F,2643.94,N-Glycan
+A4Sg1G3,2659.94,N-Glycan
+A4Sg1G3F,2805.99,N-Glycan
+A3Sg1S1G0,2423.85,N-Glycan
+A3Sg1S1G0F,2569.9,N-Glycan
+A4Sg1S1G0,2626.93,N-Glycan
+A4Sg1S1G0F,2772.98,N-Glycan
+A3Sg1S1G1,2585.9,N-Glycan
+A3Sg1S1G1F,2731.96,N-Glycan
+A4Sg1S1G1,2788.98,N-Glycan
+A4Sg1S1G1F,2935.04,N-Glycan
+A4Sg1S1G2,2951.03,N-Glycan
+A4Sg1S1G2F,3097.09,N-Glycan
+A3Sg1S2,2877,N-Glycan
+A3Sg1S2F,3023.05,N-Glycan
+A4Sg1S2G0,3080.07,N-Glycan
+A4Sg1S2G0F,3226.13,N-Glycan
+A4Sg1S2G1,3242.13,N-Glycan
+A4Sg1S2G1F,3388.19,N-Glycan
+A4Sg1S3,3533.22,N-Glycan
+A4Sg1S3F,3679.28,N-Glycan
+A3Sg2G0,2439.84,N-Glycan
+A3Sg2G0F,2585.9,N-Glycan
+A4Sg2G0,2642.92,N-Glycan
+A4Sg2G0F,2788.98,N-Glycan
+A3Sg2G1,2601.89,N-Glycan
+A3Sg2G1F,2747.95,N-Glycan
+A4Sg2G1,2804.97,N-Glycan
+A4Sg2G1F,2951.03,N-Glycan
+A4Sg2G2,2967.03,N-Glycan
+A4Sg2G2F,3113.08,N-Glycan
+A3Sg2S1,2892.99,N-Glycan
+A3Sg2S1F,3039.05,N-Glycan
+A4Sg2S1G0,3096.07,N-Glycan
+A4Sg2S1G0F,3242.13,N-Glycan
+A4Sg2S1G1,3258.12,N-Glycan
+A4Sg2S1G1F,3404.18,N-Glycan
+A4Sg2S2,3549.22,N-Glycan
+A4Sg2S2F,3695.28,N-Glycan
+A3Sg3,2908.98,N-Glycan
+A3Sg3F,3055.04,N-Glycan
+A4Sg3G0,3112.06,N-Glycan
+A4Sg3G0F,3258.12,N-Glycan
+A4Sg3G1,3274.12,N-Glycan
+A4Sg3G1F,3420.18,N-Glycan
+A4Sg3S1,3565.21,N-Glycan
+A4Sg3S1F,3711.27,N-Glycan
+A4Sg4,3581.21,N-Glycan
+A4Sg4F,3727.27,N-Glycan
+A2G0B,1501.56,N-Glycan
+A2G0FB,1647.61,N-Glycan
+A2G1B,1663.61,N-Glycan
+A2G1FB,1809.67,N-Glycan
+A2G2B,1825.66,N-Glycan
+A2G2FB,1971.72,N-Glycan
+A2S1G0B,1954.7,N-Glycan
+A2S1G0FB,2100.76,N-Glycan
+A2S1G1B,2116.76,N-Glycan
+A2S1G1FB,2262.81,N-Glycan
+A2S2B,2407.85,N-Glycan
+A2S2FB,2553.91,N-Glycan
+GalNAc,203.079,O-Glycan
+GalNAc-3G,365.132,O-Glycan
+GalNAc-3GnG,568.212,O-Glycan
+GalNAc-3SG,656.228,O-Glycan
+GalNAc-6GGn,568.212,O-Glycan
+GalNAc-6GGn-3G,730.264,O-Glycan
+GalNAc-6GGn-3GnG,933.344,O-Glycan
+GalNAc-6GGn-3SG,1021.36,O-Glycan
+GalNAc-6Gn,406.159,O-Glycan
+GalNAc-6Gn-3G,568.212,O-Glycan
+GalNAc-6Gn-3GnG,771.291,O-Glycan
+GalNAc-6Gn-3SG,859.307,O-Glycan
+GalNAc-6S,494.175,O-Glycan
+GalNAc-6S-3G,656.228,O-Glycan
+GalNAc-6S-3GnG,859.307,O-Glycan
+GalNAc-6S-3SG,947.323,O-Glycan

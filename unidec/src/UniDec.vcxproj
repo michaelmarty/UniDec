@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release3|Win32">
+      <Configuration>Release3</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release3|x64">
+      <Configuration>Release3</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <ProjectGuid>{E219A8B1-08D0-4B19-9ECA-BBC50C9DA09F}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler 2022</PlatformToolset>
+    <UseOfMfc>Static</UseOfMfc>
+    <InterproceduralOptimization>true</InterproceduralOptimization>
+    <UseIntelTBB>true</UseIntelTBB>
+    <InstrumentIntelTBB>true</InstrumentIntelTBB>
+    <UseIntelMKL>Parallel</UseIntelMKL>
+    <UseIntelDAAL>Parallel_Static</UseIntelDAAL>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler 2024</PlatformToolset>
+    <UseOfMfc>Dynamic</UseOfMfc>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler 2024</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler 2024</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <InterproceduralOptimization>true</InterproceduralOptimization>
+    <UseIntelTBB>true</UseIntelTBB>
+    <InstrumentIntelTBB>true</InstrumentIntelTBB>
+    <UseIntelMKL>Parallel</UseIntelMKL>
+    <UseILP64Interfaces>true</UseILP64Interfaces>
+    <UseIntelDAAL>Parallel_Static</UseIntelDAAL>
+    <UseIntelIPP>false</UseIntelIPP>
+    <UseInteloneMKL>Parallel</UseInteloneMKL>
+    <UseILP64Interfaces1A>true</UseILP64Interfaces1A>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release3|x64'">
+    <PlatformToolset>Intel C++ Compiler 2024</PlatformToolset>
+    <UseInteloneMKL>Parallel</UseInteloneMKL>
+    <InterproceduralOptimization>true</InterproceduralOptimization>
+    <UseOfMfc>false</UseOfMfc>
+    <UseILP64Interfaces1A>false</UseILP64Interfaces1A>
+    <EnableMKLOpenMPOffloadToGPU>false</EnableMKLOpenMPOffloadToGPU>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release3|Win32'">
+    <PlatformToolset>Intel C++ Compiler 2024</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Program Files\HDF_Group\HDF5\1.10.1\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files\HDF_Group\HDF5\1.10.1\lib;$(LibraryPath)</LibraryPath>
+    <GenerateManifest>false</GenerateManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(ICIncludeDir);C:\Program Files\HDF_Group\HDF5\1.12.0\include;$(MKLProductDir)\mkl\bin;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ICLibDir);$(LibraryPath);C:\Program Files\HDF_Group\HDF5\1.12.0\lib;$(MKLProductDir)\mkl\bin</LibraryPath>
+    <LinkIncremental>false</LinkIncremental>
+    <GenerateManifest>false</GenerateManifest>
+    <EmbedManifest>false</EmbedManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release3|x64'">
+    <IncludePath>$(ICIncludeDir);C:\Program Files\HDF_Group\HDF5\1.12.0\include;$(MKLProductDir)\mkl\bin;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ICLibDir);$(LibraryPath);C:\Program Files\HDF_Group\HDF5\1.12.0\lib;$(MKLProductDir)\mkl\bin</LibraryPath>
+    <LinkIncremental>false</LinkIncremental>
+    <GenerateManifest>false</GenerateManifest>
+    <EmbedManifest>false</EmbedManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>MaxSpeedHighLevel</Optimization>
+      <AdditionalIncludeDirectories>C:\Program Files %28x86%29\IntelSWTools\compilers_and_libraries_2019.3.203\windows\mkl\include\fftw;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <Parallelization>true</Parallelization>
+      <UseIntelOptimizedHeaders>true</UseIntelOptimizedHeaders>
+      <OpenMP>GenerateParallelCode</OpenMP>
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX64</TargetMachine>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>libszip.lib;libzlib.lib;libhdf5.lib;libhdf5_hl.lib;ucrt.lib;vcruntime.lib;msvcrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX86</TargetMachine>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <Profile>true</Profile>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeedHighLevel</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <Parallelization>true</Parallelization>
+      <UseIntelOptimizedHeaders>true</UseIntelOptimizedHeaders>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <OffloadConstructs>Optional</OffloadConstructs>
+      <OpenMP>GenerateParallelCode</OpenMP>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <OptimizeForWindowsApplication>false</OptimizeForWindowsApplication>
+      <FlushDenormalResultsToZero>false</FlushDenormalResultsToZero>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <UseProcessorExtensions>None</UseProcessorExtensions>
+      <OffloadArch>Default</OffloadArch>
+      <Mtune>No</Mtune>
+      <RecognizeRestrictKeyword>false</RecognizeRestrictKeyword>
+      <CompileAs>CompileAsC</CompileAs>
+      <FloatingPointExceptions>false</FloatingPointExceptions>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <LanguageStandard>Default</LanguageStandard>
+      <LlvmTransitionalOption>NextGenNone</LlvmTransitionalOption>
+      <AdditionalIncludeDirectories>C:\Program Files\HDF_Group\HDF5\1.12.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>libszip.lib;libzlib.lib;libhdf5.lib;libhdf5_hl.lib;ucrt.lib;vcruntime.lib;msvcrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <AdditionalLibraryDirectories>C:\Program Files\HDF_Group\HDF5\1.12.0\lib;$(MKLProductDir)\mkl\bin;$(MKLProductDir)\mkl\tools;C:\Program Files %28x86%29\MSBuild\Microsoft.Cpp\v4.0\V140;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <Profile>false</Profile>
+    </Link>
+    <PostBuildEvent>
+      <Command>.\copy.bat</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Copy Exe</Message>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release3|x64'">
+    <ClCompile>
+      <Optimization>MaxSpeedHighLevel</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release3|x64'">
+    <ClCompile>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OpenMP>GenerateParallelCode</OpenMP>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <OptimizeForWindowsApplication>false</OptimizeForWindowsApplication>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Program Files\HDF_Group\HDF5\1.12.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CompileAs>CompileAsC</CompileAs>
+      <WarningLevel>Level3</WarningLevel>
+      <FloatingPointExceptions>false</FloatingPointExceptions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>libszip.lib;libzlib.lib;libhdf5.lib;libhdf5_hl.lib;ucrt.lib;vcruntime.lib;msvcrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <WPOAssemblyOutput>NoListing</WPOAssemblyOutput>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>C:\Program Files\HDF_Group\HDF5\1.12.0\lib;$(MKLProductDir)\mkl\bin;$(MKLProductDir)\mkl\tools;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy.bat</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>"D:\Johnny\GitClones\vcpkg\installed\x64-windows\include";%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="UniDec.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MetaUniDec_Main.h" />
+    <ClInclude Include="UD_analysis.h" />
+    <ClInclude Include="UD_charge.h" />
+    <ClInclude Include="UD_conv.h" />
+    <ClInclude Include="UD_dataproc.h" />
+    <ClInclude Include="UD_H5_IO.h" />
+    <ClInclude Include="UD_IO.h" />
+    <ClInclude Include="UD_match.h" />
+    <ClInclude Include="UD_peak_width.h" />
+    <ClInclude Include="UD_score.h" />
+    <ClInclude Include="UD_sg.h" />
+    <ClInclude Include="UniDec.h" />
+    <ClInclude Include="UniDecCD_Main.h" />
+    <ClInclude Include="UniDecIM.h" />
+    <ClInclude Include="UniDecIM_Main.h" />
+    <ClInclude Include="UniDecLC_Main.h" />
+    <ClInclude Include="UniDec_Main.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
