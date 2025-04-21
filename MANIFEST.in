@@ -1,0 +1,50 @@
+include unidec/logo.ico readme.md unidec/bin/UniDecLogoMR.png LICENSE
+include unidec/src/*.h
+include unidec_src/*.c
+include unidec_src/*.sh
+include **.dll
+include unidec/__main__.py
+recursive-include unidec/bin *
+include unidec/IsoDec/*.dll
+include unidec/IsoDec/*.lib
+include unidec/IsoDec/*.so
+
+exclude *.spec
+exclude test_GUI.py
+exclude .gitignore
+exclude .dockerignore
+exclude Dockerfile
+exclude unidec/bin/CDCReaderOld.exe
+exclude unidec/bin/IUPAC-atomic-masses.csv
+exclude unidec/bin/recent*
+exclude unidec/modules/thermo_reader/greparam.py
+exclude unidec/iFAMS/GuiTestFun.py
+exclude unidec/iFAMS/iFAMS_V5_GUI.py
+exclude unidec/iFAMS/test.txt
+exclude build.bat
+
+recursive-exclude unidec/bin/Example?Data/ *
+recursive-exclude unidec/bin/multiplierz/ *
+recursive-exclude unidec/bin/Other_builds/ *
+recursive-exclude unidec_doc *
+recursive-exclude Scripts/ *
+recursive-exclude PublicScripts/ *
+recursive-exclude unidec/iFAMS/pyqtgraph/ *
+recursive-exclude unidec/bin/old_waters/ *
+recursive-exclude unidec/bin/TestSpectra/test_1_unidecfiles/ *
+recursive-exclude unidec/IsoDec/src_cmake *
+exclude unidec/IsoDec/*.bin
+exclude unidec/IsoDec/IsoGen/*.bin
+
+exclude unidec/bin/mkl_def.2.dll
+exclude unidec/bin/mkl_avx2.2.dll
+
+prune Scripts*
+prune unidec/iFAMS/pyqtgraph*
+prune unidec/bin/Example?Data*
+prune unidec/bin/multiplierz*
+prune unidec/bin/Other_builds*
+prune unidec/bin/old_waters*
+prune unidec/bin/TestSpectra/test_1_unidecfiles*
+prune unidec_doc
+
