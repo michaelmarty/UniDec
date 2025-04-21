@@ -1,0 +1,75 @@
+*.pyc
+*.map
+*.md5
+*.tex
+*.hdf5
+.idea
+*.spec
+*.sdf
+*.vcxproj.filters
+*.vcxproj.user
+*.VC.db
+*.o
+*.obj
+*.suo
+conf.dat
+UD_peak_width.h
+.svn
+dist
+build
+old
+TestSpectra
+default_conf.dat
+.pypirc
+*.diagsession
+*.feather
+*_report.*
+ /__pycache__/
+ __pycache__/
+ __pycache__
+ .eggs/
+.venv/
+ *recent.txt
+unidec/src/x64/
+unidec/src/.vs/
+
+*Mass_Defect*.txt
+UniDecPastedSpectra/
+*_fitdat.bin
+*_grid.bin
+*_match.dat
+*_mass.txt
+*_input.dat
+*_massgrid.bin
+*_error.txt
+*_rawdata.txt
+*default.hdf5
+*_peaks.dat
+*_chargedata*.dat
+*_peakparam.dat
+*UniDec_Figures_and_Files/
+*_peak_areas.dat
+*_manualfile.dat
+*_Figure*.pdf
+*_Figure*.eps
+*_Extract.txt
+*_chargepeaks.txt
+*_composite_spectrum.dat
+*_rawdata.npz
+*_smashfile.dat
+*_conv.bin
+*_baseline.bin
+*_extracted_*.txt
+
+ExtractFull2D_Da.txt
+extracts.txt
+sums.txt
+unidec/bin/recentCD.txt
+unidec/bin/Other_builds.zip
+UniDec.egg-info
+distpypi
+
+unidec/IsoDec/src_cmake/cmake-build*
+unidec/IsoDec/src_cmake/.idea/
+unidec/bin/Example Data/IsoDec/test2_unidecfiles*
+unidec/bin/Example Data/IsoDec/test9_unidecfiles*
