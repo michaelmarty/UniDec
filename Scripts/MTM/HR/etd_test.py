@@ -52,7 +52,7 @@ eng_thrash.config.activescanorder = 2
 eng_thrash.config.knockdown_rounds = 5
 eng_thrash.predmode = 2
 
-if True:
+if False:
     reader = ImporterFactory.create_importer(file2)
     spectrum = reader.grab_centroid_data(1)
     np.savetxt("etd_spectrum.txt", spectrum)
@@ -88,7 +88,7 @@ if True:
     shared_eng, u_nn, u_thrash = compare_matchedcollections(shared, shared_thrash, ppmtol=50, maxshift=3)
 
 
-    # plot_pks(shared_eng, centroids=spectrum, ccolor="k", forcecolor="g", show=False, plotmass=False, nocentroids=True, labelz=True)
+    plot_pks(shared_eng, centroids=spectrum, ccolor="k", forcecolor="g", show=False, plotmass=False, nocentroids=True, labelz=True)
     plot_pks(u_nn, forcecolor="r", centroids=spectrum, ccolor="k", show=False, plotmass=False, nocentroids=True, labelz=True)
     plot_pks(u_thrash, forcecolor="b", show=False, plotmass=False, nocentroids=True, labelz=True)
     plt.show()
