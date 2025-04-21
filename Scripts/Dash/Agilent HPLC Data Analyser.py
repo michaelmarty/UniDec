@@ -1,0 +1,585 @@
+import os
+import glob
+import numpy as np
+from LCImporter import extract_data
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from matplotlib import colormaps
+from matplotlib import rcParams
+from scipy.signal import find_peaks
+import pandas as pd
+import colorsys
+
+# RC Parameters
+rcParams['ps.useafm'] = True
+rcParams['ps.fonttype'] = 42
+rcParams['pdf.fonttype'] = 42
+rcParams['lines.linewidth'] = 1
+rcParams['errorbar.capsize'] = 3
+rcParams['patch.force_edgecolor'] = True
+rcParams['patch.facecolor'] = 'b'
+rcParams['lines.markersize'] = 7
+rcParams['font.size'] = 18
+rcParams['font.weight'] = 500
+rcParams['font.sans-serif'] = "Arial"
+rcParams['axes.titleweight'] = 500
+rcParams['axes.titlesize'] = 22
+rcParams['axes.linewidth'] = 3
+rcParams['xtick.major.width'] = 1
+rcParams['ytick.major.width'] = 1
+
+
+def get_filtered_colors(cmap_name='winter', num_colors=256, luminosity_factor=0.8, saturation_factor=2, hue_shift=0): #A value of 0.5 would reduce the luminosity/sat to half, while 1.0 would keep it unchanged,  A value greater than 1.0 will increase saturation, while 1.0 will keep it unchanged.
+    """Returns a list of colors from the colormap with lowered luminosity."""
+    viridis = colormaps.get_cmap(cmap_name)
+    colors = []
+
+    for i in range(num_colors):
+        color = viridis(i / num_colors)  # Sample uniformly
+        r, g, b, _ = color  # Unpack the color and ignore the alpha value
+        h, l, s = colorsys.rgb_to_hls(r, g, b)
+
+
+        new_hue = (h + hue_shift) % 1.0
+        new_light = max(0, l * luminosity_factor)  # Ensure it doesn't go below 0
+        new_sat = min(1, s * saturation_factor)  # Ensure it doesn't go below 0
+        new_color = colorsys.hls_to_rgb(new_hue, new_light, new_sat)
+
+        colors.append((new_color[0], new_color[1], new_color[2], color[3]))  # Retain the original alpha
+
+    return colors
+
+# Define the top directory and file pattern
+topdir = "Z:\\Group Share\\Dash\\Current Data\\Agilent LC Data\\Bumblebee\\20250321 TD LX DM-DP gfpmix dope 2025-03-21 18-19-40\\Sample"
+
+files = glob.glob(f'{topdir}/*.D', recursive=False)
+
+# Define the channel index to extract
+# FLD=0
+# UV=1
+channel_index = 1
+
+# outfile setup
+outfile = "spectra.npz"
+
+
+# Function to extract data and write to text files
+def extract_and_write_data(files):
+    for path in files:
+        print(path)
+        os.chdir(path)
+        if True:
+            try:
+                result = extract_data(path, index=channel_index)
+                x, y = result[:, 0], result[:, 1]
+
+                # Write x and y data to a text file in the original directory
+                output_txt = "extracted_data.txt"
+                with open(output_txt, 'w') as f:
+                    np.savetxt(f, np.column_stack((x, y)), delimiter=',', header='x,y', comments='')
+                np.savez_compressed(outfile, result)
+
+            except Exception as e:
+                print(f"Failed to process {path}: {e}")
+
+
+# Function to read data from npz files
+def read_data(files):
+    data = []
+    file_names = []
+    for path in files:
+        try:
+            output_npz = os.path.join(path, "spectra.npz")
+            if os.path.exists(output_npz):
+                result = np.load(output_npz)['arr_0']
+                data.append(result)
+                file_names.append(os.path.basename(path))
+        except Exception as e:
+            print(f"Failed to read {path}: {e}")
+    return data, file_names
+
+
+# Function to create waterfall plot
+def create_waterfall_plot(data, file_names):
+    # Sort data and file_names based on file_names
+    sorted_indices = sorted(range(len(file_names)), key=lambda i: file_names[i])
+    sorted_data = [data[i] for i in sorted_indices]
+    sorted_file_names = [file_names[i] for i in sorted_indices]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    colors = get_filtered_colors(num_colors=len(sorted_data))
+
+    for i, d in enumerate(sorted_data):
+        x, y = d[:, 0], d[:, 1]
+        label = sorted_file_names[i]
+        color = colors[i % len(colors)]  # Cycle through the filtered colors
+        ax.plot(x, y, zs=i, zdir='y', label=label, color=color)
+
+        # Create vertices for the filled area
+        verts = [(x[j], i, y[j]) for j in range(len(x))] + [(x[-1], i, 0), (x[0], i, 0)]
+        poly = Poly3DCollection([verts], color=color, alpha=1)
+        ax.add_collection3d(poly)
+
+    ax.set_xlabel('Retention Time (min)')
+    ax.set_ylabel('Replicate')
+    ax.set_zlabel('Intensity')
+    ax.set_title("Waterfall Plot of HPLC Data")
+
+    ax.grid(False)
+    ax.xaxis.pane.fill = False
+    ax.yaxis.pane.fill = False
+    ax.zaxis.pane.fill = False
+    ax.xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+    ax.yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+    ax.zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+
+    plt.savefig(os.path.join(topdir, "WF" + str(channel_index) + ".pdf"), dpi=300)
+    plt.savefig(os.path.join(topdir, "WF" + str(channel_index) + ".png"), dpi=300)
+    plt.show()
+
+
+# Function to calculate areas and retention times
+def calculate_areas_and_retention_times(data):
+    results = []
+
+    for dataset in data:
+        # Assuming each dataset is an array with two columns: time (x) and intensity (y)
+        x = dataset[:, 0]  # First column for time
+        y = dataset[:, 1]  # Second column for intensity
+        # print(x)
+        # print(y)
+
+        # Find peaks in the y data
+        peak_indices, _ = find_peaks(y)
+        # print(peak_indices)
+
+        # Define the time threshold for flowthrough and elution peaks
+        threshold_time = 4.3  # in minutes
+
+        # Initialize result dictionary for this dataset
+        result = {
+            'flowthrough_peak': {},
+            'elution_peak': {}
+        }
+
+        # Identify flowthrough peak (before 4 minutes)
+        flowthrough_idx = peak_indices[x[peak_indices] < threshold_time]
+        if len(flowthrough_idx) > 0:
+            # flowthrough_peak_idx = flowthrough_idx[0]  # Take the first peak before 4 mins
+            flowthrough_peak_idx = flowthrough_idx[np.argmax(y[flowthrough_idx])]
+            # print(flowthrough_idx)
+            # print(flowthrough_peak_idx)
+            flowthrough_array = np.array([[x[flowthrough_peak_idx]], [y[flowthrough_peak_idx]]])
+            print(flowthrough_array)
+
+            x_lower_bound = (x >= 1) & (x < flowthrough_array[0])
+            selected_y = y[x_lower_bound]
+            selected_x = x[x_lower_bound]
+            lower_indices = np.argmin(selected_y)
+            lower_bound_time = selected_x[lower_indices]
+            print("Lower Bound Time: ", lower_bound_time)
+            # lower_bound_intensity=selected_y[lower_indices]
+            # print(lowe_bound_time)
+            # print(lowe_bound_intensity)
+
+            x_upper_bound = (x >= flowthrough_array[0]) & (x < threshold_time)
+            selected_up_y = y[x_upper_bound]
+            selected_up_x = x[x_upper_bound]
+            upper_indices = np.argmin(selected_up_y)
+            upper_bound_time = selected_up_x[upper_indices]
+            print("Upper Bound Time: ", upper_bound_time)
+            # upper_bound_intensity=selected_up_y[upper_indices]
+
+            x_sub = (x >= lower_bound_time) & (x <= upper_bound_time)
+            # y_sub=(y>=lowe_bound_intensity)&(y<=upper_bound_intensity)
+            x_data = x[x_sub]
+            y_data = y[x_sub]
+            # print(y_data)
+            # print(x_data.shape)
+            # print(y_data.shape)
+
+            # Calculate the area under the curve for the flowthrough peak
+            area_flowthrough = np.trapz(y_data, x_data)
+            print(area_flowthrough)
+
+            # Store results
+            result['flowthrough_peak'] = {
+                'data': flowthrough_array,
+                'flowthrough_retention_time': x[flowthrough_peak_idx],
+                'lower_bound_time': lower_bound_time,
+                'upper_bound_time': upper_bound_time,
+                'flowthrough_area': area_flowthrough
+            }
+
+        # Identify elution peaks (after 4 minutes)
+        elution_idx = peak_indices[x[peak_indices] > threshold_time]
+        if len(elution_idx) > 0:
+            elution_peak_idx = elution_idx[np.argmax(y[elution_idx])]
+            # print(elution_idx)
+            # print(elution_peak_idx)
+            elution_array = np.array([[x[elution_peak_idx]], [y[elution_peak_idx]]])
+            print(elution_array)
+
+            x_el_lower_bound = (x >= threshold_time) & (x < elution_array[0])
+            selected_el_y = y[x_el_lower_bound]
+            selected_el_x = x[x_el_lower_bound]
+            lower_el_indices = np.argmin(selected_el_y)
+            lower_bound_el_time = selected_el_x[lower_el_indices]
+            print("Lower Bound Elution Time: ", lower_bound_el_time)
+            # lower_bound_intensity=selected_y[lower_indices]
+            # print(lowe_bound_time)
+            # print(lowe_bound_intensity)
+
+            x_el_upper_bound = (x >= elution_array[0]) & (x < 7)
+            selected_el_up_y = y[x_el_upper_bound]
+            selected_el_up_x = x[x_el_upper_bound]
+            upper_el_indices = np.argmin(selected_el_up_y)
+            upper_bound_el_time = selected_el_up_x[upper_el_indices]
+            print("Upper Bound Elution Time: ", upper_bound_el_time)
+            # upper_bound_intensity=selected_up_y[upper_indices]
+
+            x_el_sub = (x >= lower_bound_el_time) & (x <= upper_bound_el_time)
+            # y_sub=(y>=lowe_bound_intensity)&(y<=upper_bound_intensity)
+            x_el_data = x[x_el_sub]
+            y_el_data = y[x_el_sub]
+            # print(y_data)
+            # print(x_data.shape)
+            # print(y_data.shape)
+
+            # Calculate the area under the curve for the flowthrough peak
+            area_elution = np.trapz(y_el_data, x_el_data)
+            print(area_elution)
+
+            # Store results
+            result['elution_peak'] = {
+                'data': elution_array,
+                'elution_retention_time': x[elution_peak_idx],
+                'lower_el_bound_time': lower_bound_el_time,
+                'upper_el_bound_time': upper_bound_el_time,
+                'max_el': y[elution_peak_idx],
+                'elution_area': area_elution
+            }
+
+        # Append the result for this dataset to results list
+        results.append(result)
+
+    # export results to a csv file
+    df = pd.DataFrame(results)
+    df.to_csv(os.path.join(topdir, "results.csv"), index=False)
+
+    return results
+
+
+def create_annotated_ridgeline_plot(data, file_names, results, offset=100):
+    # Sort data, results, and file_names based on file_names
+    sorted_indices = sorted(range(len(file_names)), key=lambda i: file_names[i])
+    sorted_data = [data[i] for i in sorted_indices]
+    sorted_results = [results[i] for i in sorted_indices]
+    sorted_file_names = [file_names[i] for i in sorted_indices]
+
+    plt.figure(figsize=(12, 12))
+    colors = get_filtered_colors(num_colors=len(sorted_data))
+
+
+    for i, (d, result) in enumerate(zip(sorted_data, sorted_results)):
+        x, y = d[:, 0], d[:, 1]
+        color = colors[i % len(colors)]
+        plt.fill_between(x, y + i * offset, i * offset, alpha=0.4, color=color)
+        plt.plot(x, y + i * offset, color=color, linewidth=0.5)
+        plt.text(0, i * offset + 2, sorted_file_names[i], fontsize=7, fontweight='bold', ha='left', color=color)
+
+        # Annotate flowthrough if flowthrough_peak exists
+        if 'flowthrough_peak' in result and 'flowthrough_retention_time' in result['flowthrough_peak'] and 'flowthrough_area' in result['flowthrough_peak']:
+            plt.annotate(
+                f"Flowthrough RT: {result['flowthrough_peak']['flowthrough_retention_time']:.2f}\nArea: {result['flowthrough_peak']['flowthrough_area']:.2f}",
+                xy=(result['flowthrough_peak']['flowthrough_retention_time'], result['flowthrough_peak']['data'][1] + i * offset + 2),
+                xytext=(result['flowthrough_peak']['flowthrough_retention_time'] + 0.5, result['flowthrough_peak']['data'][1] + i * offset + 2),
+                #arrowprops=dict(facecolor= 'black', shrink=0.05, width=0.5, headwidth=4, connectionstyle="arc3,rad=0.3"),
+                fontsize=7, fontweight='bold',
+                color=color
+            )
+
+        # Annotate elution if elution_retention_time and elution_area exist
+        if 'elution_peak' in result and 'elution_retention_time' in result['elution_peak'] and 'elution_area' in result['elution_peak']:
+            plt.annotate(
+                f"Elution RT: {result['elution_peak']['elution_retention_time']:.2f}\nArea: {result['elution_peak']['elution_area']:.2f}",
+                xy=(result['elution_peak']['elution_retention_time'], min(d[:,1]) + i * offset + 2),
+                xytext=(result['elution_peak']['elution_retention_time'] + 0.5, min(d[:,1]) + i * offset + 2),
+                #arrowprops=dict(facecolor= 'black', shrink=0.05, width=0.5, headwidth=4, connectionstyle="arc3,rad=0.3"),
+                fontsize=7, fontweight='bold',
+                color=color
+            )
+        else:
+            print(f"Warning: Missing elution data for result #{i}. Keys must include 'elution_retention_time' and 'elution_area'.")
+
+    plt.xlabel("Time (min)", fontweight='bold')
+    plt.ylabel("")  # Remove y-axis label
+    plt.title("Annotated Ridgeline Plot of HPLC Data", fontweight='bold')
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.gca().spines['left'].set_visible(False)
+    plt.gca().spines['bottom'].set_bounds(0, 7)
+    plt.subplots_adjust(hspace = -0.3)
+
+    plt.yticks([])  # Remove y-axis ticks
+
+    plt.savefig(os.path.join(topdir, "ARP" + str(channel_index) + ".pdf"), dpi=300)
+    plt.savefig(os.path.join(topdir, "ARP" + str(channel_index) + ".png"), dpi=300)
+    plt.show()
+
+#Use data from the extracted data to create a 2D plot
+def create_2D_plot(data, file_names):
+    # Sort data and file_names based on file_names
+    sorted_indices = sorted(range(len(file_names)), key=lambda i: file_names[i])
+    sorted_data = [data[i] for i in sorted_indices]
+    sorted_file_names = [file_names[i] for i in sorted_indices]
+
+    plt.figure(figsize=(16, 9))
+    colors = get_filtered_colors(num_colors=len(sorted_data))
+
+    for i, d in enumerate(sorted_data):
+        x, y = d[:, 0], d[:, 1]
+        label = sorted_file_names[i]
+        color = colors[i % len(colors)]  # Cycle through the filtered colors
+        plt.plot(x, y, label=label, color=color)
+
+    plt.xlabel('Retention Time (min)', fontweight='bold')
+    plt.ylabel('Intensity', fontweight='bold')
+    plt.title("Peak Overlay", fontweight='bold')
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+
+    plt.legend()
+    plt.savefig(os.path.join(topdir, "2D" + str(channel_index) + ".pdf"), dpi=300)
+    plt.savefig(os.path.join(topdir, "2D" + str(channel_index) + ".png"), dpi=300)
+    plt.show()
+
+
+def calculate_average_and_rsd(areas):
+    average = np.mean(areas)
+    std_dev = np.std(areas)
+    rsd = (std_dev / average) * 100 if average != 0 else 0
+    return average, rsd
+
+def calculate_relative_elution_area_and_rsd(results):
+    relative_elution_areas = []
+    for result in results:
+        if 'elution_peak' in result and 'flowthrough_peak' in result:
+            elution_area = result['elution_peak']['elution_area']
+            flowthrough_area = result['flowthrough_peak']['flowthrough_area']
+            if elution_area + flowthrough_area != 0:
+                relative_elution_area = ((elution_area / (elution_area + flowthrough_area))*100)
+                relative_elution_areas.append(relative_elution_area)
+
+    average_relative_elution_area = np.mean(relative_areas)
+    std_dev_relative_elution_area = np.std(relative_areas)
+    rsd_relative_elution_area = (std_dev_relative_elution_area / average_relative_elution_area) * 100 if average_relative_area != 0 else 0
+
+    return average_relative_elution_area, rsd_relative_elution_area
+
+#function to calculate relative flowthrough areas and RSD
+def calculate_relative_flowthrough_area_and_rsd(results):
+    relative_flowthrough_areas = []
+    for result in results:
+        if 'elution_peak' in result and 'flowthrough_peak' in result:
+            elution_area = result['elution_peak']['elution_area']
+            flowthrough_area = result['flowthrough_peak']['flowthrough_area']
+            if elution_area + flowthrough_area != 0:
+                relative_flowthrough_area = ((flowthrough_area / (elution_area + flowthrough_area))*100)
+                relative_flowthrough_areas.append(relative_flowthrough_area)
+
+    average_relative_flowthrough_area = np.mean(relative_flowthrough_areas)
+    std_dev_relative_flowthrough_area = np.std(relative_flowthrough_areas)
+    rsd_relative_flowthrough_area = (std_dev_relative_flowthrough_area / average_relative_flowthrough_area) * 100 if average_relative_flowthrough_area != 0 else 0
+
+    return average_relative_flowthrough_area, rsd_relative_flowthrough_area
+
+
+# Function to create flowthrough area scatter plot
+def create_flowthrough_area_plot(results, file_names):
+    # Extract flowthrough areas and sort file names
+    flowthrough_areas = [result['flowthrough_peak']['flowthrough_area'] for result in results if
+                         'flowthrough_peak' in result]
+    sorted_indices = sorted(range(len(file_names)), key=lambda i: file_names[i])
+    sorted_file_names = [file_names[i] for i in sorted_indices]
+    sorted_flowthrough_areas = [flowthrough_areas[i] for i in sorted_indices if i < len(flowthrough_areas)]
+
+    # Calculate average and %RSD
+    average_flowthrough, rsd_flowthrough = calculate_average_and_rsd(sorted_flowthrough_areas)
+
+    color = get_filtered_colors(num_colors=len(sorted_flowthrough_areas))
+
+    # for i in range(len(sorted_flowthrough_areas)):
+    #     color = colors[i % len (colors)]
+
+
+    plt.figure(figsize=(12, 6))
+    plt.scatter(sorted_file_names, sorted_flowthrough_areas, color = color, alpha=0.7, label='Flowthrough Area')
+    plt.xlabel('File Names', fontweight='bold')
+    plt.ylabel('Flowthrough Area', fontweight='bold')
+    plt.title('Flowthrough Areas Tracking', fontweight='bold')
+
+    # Annotate average and %RSD
+    plt.annotate(f'Avg: {average_flowthrough:.2f}\n%RSD: {rsd_flowthrough:.2f}',
+                 xy=(0.99, 0.99), xycoords='axes fraction',
+                 fontsize=18, ha='right', fontweight='bold',
+                 bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='white'))
+
+    plt.xticks(rotation=90)
+    plt.tight_layout()
+    # plt.grid()
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.savefig(os.path.join(topdir, "Flowthrough_Area_Scatter_Plot.pdf"), dpi=300)
+    plt.savefig(os.path.join(topdir, "Flowthrough_Area_Scatter_Plot.png"), dpi=300)
+    plt.show()
+
+
+# Function to create elution area scatter plot
+def create_elution_area_plot(results, file_names):
+    # Extract elution areas and sort file names
+    elution_areas = [result['elution_peak']['elution_area'] for result in results if 'elution_peak' in result]
+    sorted_indices = sorted(range(len(file_names)), key=lambda i: file_names[i])
+    sorted_file_names = [file_names[i] for i in sorted_indices]
+    sorted_elution_areas = [elution_areas[i] for i in sorted_indices if i < len(elution_areas)]
+
+    # Calculate average and %RSD
+    average_elution, rsd_elution = calculate_average_and_rsd(sorted_elution_areas)
+
+    color = get_filtered_colors(num_colors=len(sorted_elution_areas))
+
+    # for i in range(len(sorted_elution_areas)):
+    #     color = colors[i % len(colors)]
+
+    plt.figure(figsize=(12, 6))
+    plt.scatter(sorted_file_names, sorted_elution_areas, color= color, alpha=0.7, label='Elution Area')
+    plt.xlabel('File Names', fontweight='bold')
+    plt.ylabel('Elution Area', fontweight='bold')
+    plt.title('Elution Areas Tracking', fontweight='bold')
+
+    # Annotate average and %RSD
+    plt.annotate(f'Avg: {average_elution:.2f}\n%RSD: {rsd_elution:.2f}',
+                 xy=(0.99, 0.99), xycoords='axes fraction',
+                 fontsize=18, ha='right', fontweight='bold',
+                 bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='white'))
+
+    plt.xticks(rotation=90)
+    plt.tight_layout()
+    #plt.grid()
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.savefig(os.path.join(topdir, "Elution_Area_Scatter_Plot.pdf"), dpi=300)
+    plt.savefig(os.path.join(topdir, "Elution_Area_Scatter_Plot.png"), dpi=300)
+    plt.show()
+
+#function to create relative elution area scatter plot
+def create_relative_elution_area_plot(results, file_names):
+    # Extract relative elution areas and sort file names
+    relative_areas = []
+    for result in results:
+        if 'elution_peak' in result and 'flowthrough_peak' in result:
+            elution_area = result['elution_peak']['elution_area']
+            flowthrough_area = result['flowthrough_peak']['flowthrough_area']
+            if elution_area + flowthrough_area != 0:
+                relative_elution_area = (elution_area / (elution_area + flowthrough_area))*100
+                relative_areas.append(relative_elution_area)
+
+    sorted_indices = sorted(range(len(file_names)), key=lambda i: file_names[i])
+    sorted_file_names = [file_names[i] for i in sorted_indices]
+    sorted_relative_areas = [relative_areas[i] for i in sorted_indices if i < len(relative_areas)]
+
+    # Calculate average and %RSD
+    average_relative_area, rsd_relative_area = calculate_average_and_rsd(sorted_relative_areas)
+
+    color = get_filtered_colors(num_colors=len(sorted_relative_areas))
+
+    # for i in range(len(sorted_relative_areas)):
+    #     color = colors[i % len(colors)]
+
+    plt.figure(figsize=(12, 6))
+    plt.scatter(sorted_file_names, sorted_relative_areas, color=color, alpha=0.7, label='Relative Elution Area')
+    plt.xlabel('File Names', fontweight='bold')
+    plt.ylabel('Relative Elution Area', fontweight='bold')
+    plt.title('Relative Elution Areas Tracking', fontweight='bold')
+
+    # Annotate average and %RSD
+    plt.annotate(f'Avg: {average_relative_area:.2f}\n%RSD: {rsd_relative_area:.2f}',
+                 xy=(0.99, 0.99), xycoords='axes fraction',
+                 fontsize=18, ha='right', fontweight='bold',
+                 bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='white'))
+
+    plt.xticks(rotation=90)
+    plt.tight_layout()
+    # plt.grid()
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.savefig(os.path.join(topdir, "Relative_Elution_Area_Scatter_Plot.pdf"), dpi=300)
+    plt.savefig(os.path.join(topdir, "Relative_Elution_Area_Scatter_Plot.png"), dpi=300)
+    plt.show()
+
+# Function to create relative flowthrough area scatter plot
+def create_relative_flowthrough_area_plot(results, file_names):
+    # Extract relative flowthrough areas and sort file names
+    relative_areas = []
+    for result in results:
+        if 'elution_peak' in result and 'flowthrough_peak' in result:
+            elution_area = result['elution_peak']['elution_area']
+            flowthrough_area = result['flowthrough_peak']['flowthrough_area']
+            if elution_area + flowthrough_area != 0:
+                relative_flowthrough_area = (flowthrough_area / (elution_area + flowthrough_area)*100)
+                relative_areas.append(relative_flowthrough_area)
+
+    sorted_indices = sorted(range(len(file_names)), key=lambda i: file_names[i])
+    sorted_file_names = [file_names[i] for i in sorted_indices]
+    sorted_relative_areas = [relative_areas[i] for i in sorted_indices if i < len(relative_areas)]
+
+    # Calculate average and %RSD
+    average_relative_area, rsd_relative_area = calculate_average_and_rsd(sorted_relative_areas)
+
+    color = get_filtered_colors(num_colors=len(sorted_relative_areas))
+
+    # for i in range(len(sorted_relative_areas)):
+    #     color = colors[i % len(colors)]
+
+    plt.figure(figsize=(12, 6))
+    plt.scatter(sorted_file_names, sorted_relative_areas, color=color, alpha=0.7, label='Relative Flowthrough Area')
+    plt.xlabel('File Names', fontweight='bold')
+    plt.ylabel('Relative Flowthrough Area', fontweight='bold')
+    plt.title('Relative Flowthrough Areas Tracking', fontweight='bold')
+
+    # Annotate average and %RSD
+    plt.annotate(f'Avg: {average_relative_area:.2f}\n%RSD: {rsd_relative_area:.2f}',
+                 xy=(0.99, 0.99), xycoords='axes fraction',
+                 fontsize=18, ha='right', fontweight='bold',
+                 bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='white'))
+
+    plt.xticks(rotation=90)
+    plt.tight_layout()
+    # plt.grid()
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.savefig(os.path.join(topdir, "Relative_Flowthrough_Area_Scatter_Plot.pdf"), dpi=300)
+    plt.savefig(os.path.join(topdir, "Relative_Flowthrough_Area_Scatter_Plot.png"), dpi=300)
+    plt.show()
+
+
+# Main function to parse files and process data
+def main():
+    extract_and_write_data(files)
+    data, file_names = read_data(files)
+    #create_waterfall_plot(data, file_names)
+    results = calculate_areas_and_retention_times(data)
+    #create_annotated_ridgeline_plot(data, file_names, results, offset=100)
+    create_2D_plot(data, file_names)
+    # create_flowthrough_area_plot(results, file_names)
+    # create_elution_area_plot(results, file_names)
+    create_relative_elution_area_plot(results, file_names)
+    create_relative_flowthrough_area_plot(results, file_names)
+
+
+
+if __name__ == "__main__":
+    main()
+
+

@@ -1,0 +1,17 @@
+#TopFD 1.7.6
+#Timestamp: 1722983299.2179563
+####################### Parameters ######################
+#File name:	20170105_L_MaD_ColC4_Ecoli20161108-10_01.raw
+#Faims data:	No
+#Faims voltage:	N/A
+#Number of MS1 scans:	0
+#Number of MS2 scans:	0
+#Spectral data type:	centroid
+#Peak error tolerance:	0.01
+#MS1 signal/noise ratio:	3
+#MS/MS signal/noise ratio:	1
+#Thread number:	1
+#Default precursor window:	3 m/z
+#Activation type:	FILE
+#Use MS-Deconv score:	No
+#Miss MS1 spectra:	Yes
