@@ -338,6 +338,9 @@ class MZMLImporter(Importer):
         self.msrun.close()
 
 if __name__ == "__main__":
+
+    print("This is a test")
+    exit()
     test = "Z:\\Group Share\\JGP\\DataForJoe\\TF_centroided.mzML"
     test = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_mzml.mzML"
     # test = "Z:\\Group Share\\JGP\\DataForJoe\\TF_centroided.mzML"
