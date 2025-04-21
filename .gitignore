@@ -56,7 +56,6 @@ unidec/src/.vs/
 *_Extract.txt
 *_chargepeaks.txt
 *_composite_spectrum.dat
-*_rawdata.npz
 *_smashfile.dat
 *_conv.bin
 *_baseline.bin
