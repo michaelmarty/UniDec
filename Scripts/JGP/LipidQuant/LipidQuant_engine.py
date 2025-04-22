@@ -436,6 +436,20 @@ def create_spectrafiles_fromdict(dictionary, sample_of_interest=None):
                                          dictionary[file][2],dictionary[file][3], dictionary[file][4]))
     return spectra_files
 
+def create_spectrafiles_fromfile(filepath):
+    spectra_files = []
+    files_df = pd.read_csv(filepath)
+    filepaths = files_df["Filepath"]
+    samplenums = files_df["Samplenum"]
+    bioreps = files_df["Biorep"]
+    techreps = files_df["Techrep"]
+    samplevols = files_df["Samplevol"]
+    stdvols = files_df["Stdvol"]
+    finalvols = files_df["Finalvol"]
+    inj_vols = files_df["Injvol"]
+
+
+
 def normalize_areas_to_stds(spectra_files, quant_df):
     #These will eventually be removed from the quantification dataframe, but not yet.
     standard_class_indices = {}
