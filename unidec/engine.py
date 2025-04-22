@@ -329,7 +329,6 @@ class UniDec(UniDecEngine):
                             np.random.normal(0, 100 * np.amax(self.data.data2[:, 1]), len(self.data.data2)))
                         self.data.data2[:, 1] /= np.amax(self.data.data2[:, 1])
                         print("Added noise to data")
-
             ud.dataexport(self.data.data2, self.config.infname)
 
 
