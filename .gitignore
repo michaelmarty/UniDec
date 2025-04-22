@@ -3,8 +3,7 @@
 *.md5
 *.tex
 *.hdf5
-.idea
-*.spec
+*.idea
 *.sdf
 *.vcxproj.filters
 *.vcxproj.user
@@ -13,7 +12,6 @@
 *.obj
 *.suo
 conf.dat
-UD_peak_width.h
 .svn
 dist
 build
@@ -29,12 +27,15 @@ default_conf.dat
  __pycache__
  .eggs/
 .venv/
- *recent.txt
+UniDec.egg-info
+distpypi
+
 unidec/src/x64/
 unidec/src/.vs/
 
+ *recent.txt
 *Mass_Defect*.txt
-UniDecPastedSpectra/
+*UniDecPastedSpectra/
 *_fitdat.bin
 *_grid.bin
 *_match.dat
@@ -55,19 +56,14 @@ UniDecPastedSpectra/
 *_Extract.txt
 *_chargepeaks.txt
 *_composite_spectrum.dat
-*_rawdata.npz
 *_smashfile.dat
 *_conv.bin
 *_baseline.bin
 *_extracted_*.txt
-
-ExtractFull2D_Da.txt
-extracts.txt
-sums.txt
+*ExtractFull2D_Da.txt
+*extracts.txt
+*sums.txt
 unidec/bin/recentCD.txt
-unidec/bin/Other_builds.zip
-UniDec.egg-info
-distpypi
 
 unidec/IsoDec/src_cmake/cmake-build*
 unidec/IsoDec/src_cmake/.idea/
