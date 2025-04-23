@@ -1,9 +1,8 @@
 from copy import deepcopy
-
 import numpy as np
 import unidec.tools as ud
 import lxml.etree as ET
-
+import time
 from pyteomics import mzxml
 
 from unidec.UniDecImporter.Importer import Importer
@@ -45,10 +44,13 @@ class MZXMLImporter(Importer):
     def init_scans(self):
         self.times = []
         self.scans = []
+        self.levels = []
         for i, spectrum in enumerate(self.msrun):
             try:
-                if spectrum["msLevel"] is None:
+                level = spectrum["msLevel"]
+                if level is None:
                     continue
+                self.levels.append(level)
                 t = spectrum["retentionTime"]
                 id = spectrum["num"]
                 self.times.append(float(t))
@@ -58,6 +60,7 @@ class MZXMLImporter(Importer):
 
         self.times = np.array(self.times)
         self.scans = np.array(self.scans)
+        self.levels = np.array(self.levels)
         self.scan_range = [np.amin(self.scans), np.amax(self.scans)]
 
     def get_single_scan(self, scan):
@@ -176,36 +179,10 @@ class MZXMLImporter(Importer):
             return None
 
     def get_ms_order(self, scan=None):
-        tree = ET.parse(self._file_path)
-        root = tree.getroot()
-        ms_order = None
-        namespaces = {'mz': 'http://sashimi.sourceforge.net/schema_revision/mzXML_3.2'}
-        scans = root.xpath('//mz:scan', namespaces=namespaces)
-        if scans:
-            single_scan = scans[0]
-            ms_order = single_scan.attrib.get('msLevel', None)
-        try:
-            ms_order = int(ms_order)
-        except:
-            print("Error in ms order", ms_order)
-            ms_order = 1
+        index = self.get_scan_index(scan)
+        ms_order = self.levels[index]
         return ms_order
 
-    def index_scans(self, min_mz, bin_width):
-        self.indexed_file = IndexedFile(self)
-        scans = self.get_all_scans()
-
-        for i in range(len(scans)-1):
-            scan_number = i + 1
-            if self.get_ms_order(scan_number) == 1:
-                scan = scans[scan_number]
-                rt = self.get_scan_time(scan_number)
-                ind_scan = IndexedScan(scans[i + 1], rt, scan_number, min_mz, bin_width)
-                self.indexed_file.indexed_scans.append(ind_scan)
-        return
-
-    def get_eic(self, mass, mz_tol, rt_range=None):
-        return self.indexed_file.extract_xic(mass, mz_tol, rt_range)
 
     def close(self):
         self.msrun.close()

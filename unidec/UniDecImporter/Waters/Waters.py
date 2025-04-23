@@ -118,21 +118,6 @@ class WatersDataImporter(Importer):
         tic = np.transpose(self.readerLC.ReadBPI(self.function))
         return tic
 
-    def index_scans(self, min_mz, bin_width):
-        self.indexed_file = IndexedFile(self)
-        scans = self.get_all_scans()
-
-        for i in range(len(scans) - 1):
-            scan_number = i + 1
-            if self.get_ms_order(scan_number) == 1:
-                scan = scans[scan_number]
-                rt = self.get_scan_time(scan_number)
-                ind_scan = IndexedScan(scans[i + 1], rt, scan_number, min_mz, bin_width)
-                self.indexed_file.indexed_scans.append(ind_scan)
-        return
-
-    def get_eic(self, mass, mz_tol, rt_range=None):
-        return self.indexed_file.extract_xic(mass, mz_tol, rt_range)
 
     def get_all_imms_scans(self):
         # self.mindrift = self.get_stat_name('Minimum Drift Time Channel')

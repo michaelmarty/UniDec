@@ -28,11 +28,18 @@ class AgilentImporter(Importer):
     def init_scans(self):
         self.times = []
         self.scans = []
+        self.levels = []
 
         curr_info = self.msrun.scan_info()
         for i in curr_info:
             self.scans.append(i[2]+1)
             self.times.append(i[0])
+            if "MS1" in i:
+                self.levels.append(1)
+            elif "MS2" in i:
+                self.levels.append(2)
+            else:
+                self.levels.append(1)
 
         self.times = np.array(self.times)
         self.scans = np.array(self.scans)
@@ -104,36 +111,6 @@ class AgilentImporter(Importer):
         print("Polarity: Unknown")
         return None
 
-    def get_ms_order(self, scan=1):
-        scan_info = self.msrun.scan_info()
-        for line in scan_info:
-            if scan == int(line[2]):
-                if "MS1" in line:
-                    return 1
-                elif "MS2" in line:
-                    return 2
-        print("MS Order: Unknown")
-        return 1
-
-    def index_scans(self, min_mz, bin_width):
-        self.indexed_file = IndexedFile(self)
-        scans = self.get_all_scans()
-
-        self.indexed_scans = []
-
-        for i in range(len(scans)):
-            scan_number = i+1
-            if self.get_ms_order(scan_number) == 1:
-                scan = scans[scan_number]
-                rt = self.get_scan_time(scan_number)
-                ind_scan = IndexedScan(scans[i+1], rt, scan_number, min_mz, bin_width)
-                self.indexed_scans.append(ind_scan)
-        return
-
-    def get_eic(self, mass, mz_tol, rt_range=None):
-        if self.indexed_file is None:
-            self.get_indexed_file()
-        return self.indexed_file.extract_xic(mass, mz_tol, rt_range=rt_range)
 
     def close(self):
         self.msrun.close()

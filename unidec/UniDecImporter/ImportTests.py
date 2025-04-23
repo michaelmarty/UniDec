@@ -5,7 +5,7 @@ import warnings
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 import numpy as np
 
-topdir = "C:\\Users\\Admin\\Desktop\\martylab\\DiverseDataExamples\\DataTypeCollection\\"
+topdir = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\"
 chrom_dat_examples = ["test_mzml.mzML", "test_mzmlgz.mzML.gz", "test_mzxml.mzXML",
                       "test_thermo.RAW", "test_waters.raw", "test_agilent.d"]
 chrom_paths = [os.path.join(topdir, p) for p in chrom_dat_examples]
@@ -46,7 +46,6 @@ class ImporterTests(unittest.TestCase):
         for p in chrom_paths:
             print("Testing EIC for", p)
             importer = ImporterFactory.create_importer(p)
-            importer.index_scans(0,1)
             test_eic = importer.get_eic(1000, 0.1)
             print("Shape:", np.shape(test_eic))
             self.assertTrue(np.shape(test_eic)[1] == 2)
