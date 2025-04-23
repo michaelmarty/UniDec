@@ -173,10 +173,12 @@ if system == "Windows":
 
     a.datas += [('isodeclib.dll', 'unidec\\IsoDec\\isodeclib.dll', 'BINARY')]
     a.datas += [('isodeclib.lib', 'unidec\\IsoDec\\isodeclib.lib', 'BINARY')]
-    a.datas += [('isogenmass.dll', 'unidec\\IsoDec\\isogenmass.dll', 'BINARY')]
-    a.datas += [('isogenmass.lib', 'unidec\\IsoDec\\isogenmass.lib', 'BINARY')]
-    a.datas += [('isofft.dll', 'unidec\\IsoDec\\isofft.dll', 'BINARY')]
-    a.datas += [('isofft.lib', 'unidec\\IsoDec\\isofft.lib', 'BINARY')]
+    a.datas += [('isogen.dll', 'unidec\\IsoDec\\isogen.dll', 'BINARY')]
+
+
+    a.datas += [('phase_model_8.bin', 'unidec\\IsoDec\\phase_model_8.bin', 'BINARY')]
+    a.datas += [('phase_model_4.bin', 'unidec\\IsoDec\\phase_model_4.bin', 'BINARY')]
+
 
 
 
@@ -232,17 +234,17 @@ coll = COLLECT(exe,
                upx=False,
                name=outputdir)
 
-path = "C:\\Python\\UniDec3\\dist\\UniDec_Windows\\GUI_UniDec.exe"
+path = "C:\\Python\\UniDecDev\\dist\\UniDec_Windows\\GUI_UniDec.exe"
 import subprocess
 
 
-dst = "C:\\Python\\UniDec3\\dist\\UniDec_Windows\\obo"
-src = "C:\\Python\\UniDec3\\dist\\UniDec_Windows\\_internal\\obo"
+dst = "C:\\Python\\UniDecDev\\dist\\UniDec_Windows\\obo"
+src = "C:\\Python\\UniDecDev\\dist\\UniDec_Windows\\_internal\\obo"
 
 
 shutil.copytree(src, dst)
-shutil.copy("C:\\Python\\UniDec3\\readme.md", "C:\\Python\\UniDec3\\dist\\UniDec_Windows")
-shutil.copy("C:\\Python\\UniDec3\\INSTALLER.bat", "C:\\Python\\UniDec3\\dist\\UniDec_Windows")
+shutil.copy("C:\\Python\\UniDecDev\\readme.md", "C:\\Python\\UniDecDev\\dist\\UniDec_Windows")
+shutil.copy("C:\\Python\\UniDecDev\\INSTALLER.bat", "C:\\Python\\UniDecDev\\dist\\UniDec_Windows")
 
 
 

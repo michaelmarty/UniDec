@@ -307,27 +307,28 @@ def datacompsub(datatop, buff):
     return datatop
 
 #@njit(fastmath=True)
-def get_all_centroids(data, window=5, threshold=0.0001, background=100, moving_average_smoothing=3):
+def get_all_centroids(data, window=5, threshold=0.0001):
     if len(data) < 3:
         return np.empty((0, 2))
 
     # if background > 0:
     #     data = datacompsub(data, background)
+    return np.array(fastpeakdetect(data, window=window, threshold=threshold))
 
-    if moving_average_smoothing > 1:
-        data[:,1] = np.convolve(data[:,1], np.ones(moving_average_smoothing)/moving_average_smoothing, mode='same')
-
-
-    peaks = fastpeakdetect(data, window=window, threshold=threshold)
-
-    data_array = np.array(data)
-
-    p0 = [get_centroid(data_array, p[0]) for p in peaks]
-    outpeaks = np.empty((len(p0), 2))
-    outpeaks[:, 0] = p0
-    outpeaks[:, 1] = peaks[:, 1]
-    # print("Final length:", len(outpeaks))
-    return outpeaks
+    # if moving_average_smoothing > 1:
+    #     data[:,1] = np.convolve(data[:,1], np.ones(moving_average_smoothing)/moving_average_smoothing, mode='same')
+    #
+    #
+    # peaks = fastpeakdetect(data, window=window, threshold=threshold)
+    #
+    # data_array = np.array(data)
+    #
+    # p0 = [get_centroid(data_array, p[0]) for p in peaks]
+    # outpeaks = np.empty((len(p0), 2))
+    # outpeaks[:, 0] = p0
+    # outpeaks[:, 1] = peaks[:, 1]
+    #
+    # return outpeaks
 
 
 # @njit(fastmath=True)

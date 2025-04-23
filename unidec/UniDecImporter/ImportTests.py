@@ -1,11 +1,11 @@
 import unittest
 import os
 import warnings
-
+import time
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 import numpy as np
-
-topdir = "C:\\Users\\Admin\\Desktop\\martylab\\DiverseDataExamples\\DataTypeCollection\\"
+topdir = "C:\\Users\\MartyLabsOfficePC\\OneDrive - University of Arizona\\Desktop\\DataTypeCollection"
+# topdir = "C:\\Users\\Admin\\Desktop\\martylab\\DiverseDataExamples\\DataTypeCollection\\"
 chrom_dat_examples = ["test_mzml.mzML", "test_mzmlgz.mzML.gz", "test_mzxml.mzXML",
                       "test_thermo.RAW", "test_waters.raw", "test_agilent.d"]
 chrom_paths = [os.path.join(topdir, p) for p in chrom_dat_examples]
@@ -40,6 +40,7 @@ class ImporterTests(unittest.TestCase):
             self.assertTrue(importer.chrom_support)
 
     def test_eic(self):
+        start = time.perf_counter()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", ResourceWarning)
 
@@ -53,7 +54,8 @@ class ImporterTests(unittest.TestCase):
             self.assertTrue(len(test_eic) > 20)
             self.assertTrue(importer.chrom_support)
             importer.close()
-
+        end = time.perf_counter()
+        print("EIC Time:", end - start)
     def test_full_avg_scan(self):
         for p in ss_paths:
             print("Testing Avg Scan for", p)
