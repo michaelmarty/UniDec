@@ -47,7 +47,6 @@ class ImporterTests(unittest.TestCase):
         for p in chrom_paths:
             print("Testing EIC for", p)
             importer = ImporterFactory.create_importer(p)
-            importer.index_scans(0,1)
             test_eic = importer.get_eic(1000, 0.1)
             print("Shape:", np.shape(test_eic))
             self.assertTrue(np.shape(test_eic)[1] == 2)

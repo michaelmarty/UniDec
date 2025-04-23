@@ -1,9 +1,8 @@
 from copy import deepcopy
-
 import numpy as np
 import unidec.tools as ud
 import lxml.etree as ET
-
+import time
 from pyteomics import mzxml
 
 from unidec.UniDecImporter.Importer import Importer
@@ -45,10 +44,13 @@ class MZXMLImporter(Importer):
     def init_scans(self):
         self.times = []
         self.scans = []
+        self.levels = []
         for i, spectrum in enumerate(self.msrun):
             try:
-                if spectrum["msLevel"] is None:
+                level = spectrum["msLevel"]
+                if level is None:
                     continue
+                self.levels.append(level)
                 t = spectrum["retentionTime"]
                 id = spectrum["num"]
                 self.times.append(float(t))
@@ -58,6 +60,7 @@ class MZXMLImporter(Importer):
 
         self.times = np.array(self.times)
         self.scans = np.array(self.scans)
+        self.levels = np.array(self.levels)
         self.scan_range = [np.amin(self.scans), np.amax(self.scans)]
 
     def get_single_scan(self, scan):

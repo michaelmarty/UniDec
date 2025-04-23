@@ -295,11 +295,6 @@ class MZMLImporter(Importer):
             return "Positive"
         return None
 
-    def get_ms_order(self, scan=1):
-        if scan == -1:
-            scan = self.scans[0]
-        order = self.msrun[scan].ms_level
-        return order
 
     def get_isolation_mz_width(self, s):
         scan = self.msrun[s]
@@ -331,20 +326,6 @@ class MZMLImporter(Importer):
         data_array = np.transpose([mz, intensity, scans, it])
         return data_array
 
-    def index_scans(self, min_mz, bin_width):
-        self.indexed_file = IndexedFile(self)
-
-        for i, spectrum in enumerate(self.msrun):
-            order = self.levels[i]
-            if order == 1:
-                scan = spectrum.centroidedPeaks
-                rt = self.times[i]
-                ind_scan = IndexedScan(scan, rt, spectrum.ID, min_mz, bin_width)
-                self.indexed_file.indexed_scans.append(ind_scan)
-        return
-
-    def get_eic(self, mass, mz_tol, rt_range=None):
-        return self.indexed_file.extract_xic(mass, mz_tol, rt_range)
 
     def close(self):
         self.msrun.close()

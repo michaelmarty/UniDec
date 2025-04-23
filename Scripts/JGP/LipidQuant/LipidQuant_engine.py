@@ -526,7 +526,7 @@ if __name__ == "__main__":
 
     lib = LipidLibrary("Z:\\Group Share\\JGP\\Lipidomics_MassIVE_folder\\rtcalibrated_dda_library.csv", config)
 
-    spectra_files_directory = "C:\\Users\\Admin\\Desktop\\martylab\\Lipidomics\\Lipidomics_MassIVE_folder\\Raw\\MS1\\calibrated_mzML\\"
+    spectra_files_directory = r"Z:\Group Share\JGP\Lipidomics_MassIVE_folder\Raw\MS1\calibrated_mzML"
     os.chdir(spectra_files_directory)
 
     #spectra_files = create_spectrafiles(spectra_files_directory)
