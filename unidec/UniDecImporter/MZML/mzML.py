@@ -2,15 +2,12 @@ import time
 import numpy as np
 import os
 from copy import deepcopy
-
 from unidec import tools as ud
-
 import pymzml
 from pymzml.utils.utils import index_gzip
 import pymzml.obo
-
 from unidec.UniDecImporter.Importer import Importer
-from unidec.UniDecImporter.ImportTools import get_resolution
+from unidec.UniDecImporter.ImportTools import get_resolution, IndexedFile, IndexedScan
 import re
 
 __author__ = 'Michael.Marty'
@@ -97,6 +94,7 @@ class MZMLImporter(Importer):
         super().__init__(path, **kwargs)
 
         self.msrun = pymzml.run.Reader(path) #, build_index_from_scratch=True)
+        self.levels = None
         self.init_scans()
 
         self.cdms_support = True
@@ -105,23 +103,24 @@ class MZMLImporter(Importer):
         print("Reading mzML file:", path)
 
     def init_scans(self):
-        self.times = []
-        self.scans = []
-        for i, spectrum in enumerate(self.msrun):
+        get_time = lambda s: s.scan_time_in_minutes()
+
+        times, scans, levels = [], [], []
+        for spectrum in self.msrun:
+            level = getattr(spectrum, 'ms_level', None)
+            if level is None:
+                continue
             try:
-                if spectrum.ms_level is None:
-                    continue
-                t = spectrum.scan_time_in_minutes()
-                id = spectrum.ID
-                self.times.append(float(t))
-                self.scans.append(id)
-            except:
-                pass
-        self.times = np.array(self.times)
-        self.scans = np.array(self.scans)
-        # if self.scans[0] == 0:
-        #     self.scans += 1
-        self.scan_range = [int(np.amin(self.scans)), int(np.amax(self.scans))]
+                times.append(float(get_time(spectrum)))
+                scans.append(spectrum.ID)
+                levels.append(level)
+            except Exception:
+                continue
+
+        self.times = np.array(times, dtype=np.float32)
+        self.scans = np.array(scans)
+        self.levels = np.array(levels)
+        self.scan_range = [int(self.scans.min()), int(self.scans.max())]
         self.reset_reader()
 
     def get_single_scan(self, scan):
@@ -169,7 +168,6 @@ class MZMLImporter(Importer):
         self.msrun.close()
         self.msrun = pymzml.run.Reader(self._file_path)
 
-
     def get_all_scans(self, threshold=-1):
         self.reset_reader()
         newtimes = []
@@ -188,7 +186,6 @@ class MZMLImporter(Importer):
         self.scans = np.array(newids)
         self.reset_reader()
         return self.data
-
 
     def get_avg_scan(self, scan_range=None, time_range=None):
         """
@@ -333,6 +330,21 @@ class MZMLImporter(Importer):
 
         data_array = np.transpose([mz, intensity, scans, it])
         return data_array
+
+    def index_scans(self, min_mz, bin_width):
+        self.indexed_file = IndexedFile(self)
+
+        for i, spectrum in enumerate(self.msrun):
+            order = self.levels[i]
+            if order == 1:
+                scan = spectrum.centroidedPeaks
+                rt = self.times[i]
+                ind_scan = IndexedScan(scan, rt, spectrum.ID, min_mz, bin_width)
+                self.indexed_file.indexed_scans.append(ind_scan)
+        return
+
+    def get_eic(self, mass, mz_tol, rt_range=None):
+        return self.indexed_file.extract_xic(mass, mz_tol, rt_range)
 
     def close(self):
         self.msrun.close()

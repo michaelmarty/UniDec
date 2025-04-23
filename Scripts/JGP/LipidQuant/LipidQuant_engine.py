@@ -1,6 +1,5 @@
 import pandas as pd
 from pyopenms import *
-import Scripts.JGP.xic_xtractor as xic
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import unidec.IsoDec.datatools as dt
@@ -10,6 +9,9 @@ import time
 import os
 import fnmatch
 from scipy.stats import linregress
+
+from unidec.UniDecImporter import ImporterFactory
+
 
 def match_files(directory, string, exclude=None):
     files = []
@@ -114,6 +116,7 @@ class LipidLibrary:
 class SpectraFile:
     def __init__(self, filepath, sample_num, biorep, techrep, samplevol, stdvol):
         self.filepath = filepath
+        self.importer = ImporterFactory.create_importer(filepath)
         self.ind_file = None
         self.sample_id = sample_num
         self.biorep = biorep
@@ -124,9 +127,7 @@ class SpectraFile:
         self.stdvol = float(stdvol)
 
     def load_indexed_file(self):
-        exp = MSExperiment()
-        MzMLFile().load(self.filepath, exp)
-        self.ind_file = xic.IndexedFile(exp)
+        self.ind_file = self.importer.index_scans(min_mz=0, bin_width=1)
 
 def create_spectrafile(filepath):
     return SpectraFile(filepath, 0, 0)
@@ -172,14 +173,14 @@ def calibrate_library_rts(file, library, config):
 
 def check_xics(xics, config):
     #First check if the mono xic meets intensity threshold
-    if np.max(xics[0][:,2]) < config.min_peak_intensity:
+    if np.max(xics[0][:,1]) < config.min_peak_intensity:
         return False
 
     #Next check if the mono xic meets the consecutive scans threshold
     passes_consec = False
     curr_consec = 0
-    for i in range(len(xics[0][:,2])):
-        if xics[0][i,2] > config.noise_threshold:
+    for i in range(len(xics[0][:,1])):
+        if xics[0][i,1] > config.noise_threshold:
             curr_consec += 1
             if curr_consec >= config.min_consec_peaks:
                 passes_consec = True
@@ -242,13 +243,13 @@ def score_xics(intensities_mono, intensities_iso1):
     return m, r
 
 def get_integration_indices(xic_mono, xic_iso1, rt, config):
-    rt_int_mono = np.transpose(np.array([xic_mono[:,1], xic_mono[:,2]]))
+    rt_int_mono = np.transpose(np.array([xic_mono[:,0], xic_mono[:,1]]))
 
     peaks_mono = dt.fastpeakdetect(rt_int_mono, window=5, threshold=0.05)
     possible_integration_indexes = np.empty(len(peaks_mono), dtype=object)
 
     for i in range(len(peaks_mono)):
-        nearest_idx = fastnearest(np.array(xic_mono[:,1]), peaks_mono[i][0])
+        nearest_idx = fastnearest(np.array(xic_mono[:,0]), peaks_mono[i][0])
         peak_intensity = peaks_mono[i][1]
         adding_peaks_left = True
         adding_peaks_right = True
@@ -268,11 +269,11 @@ def get_integration_indices(xic_mono, xic_iso1, rt, config):
             right_idx = nearest_idx + j
 
             if adding_peaks_left:
-                if left_idx >= 0 and xic_mono[left_idx,2]/peak_intensity > config.min_intensity_ratio:
+                if left_idx >= 0 and xic_mono[left_idx,1]/peak_intensity > config.min_intensity_ratio:
                     left_integration_indices.append(left_idx)
 
                     #Check for poorly resolved peaks
-                    if xic_mono[left_idx,2] > previous_left_intensity:
+                    if xic_mono[left_idx,1] > previous_left_intensity:
                         current_left_increasing += 1
                         if current_left_increasing >= config.max_increasing:
                             #we remove the recent increasing values
@@ -288,10 +289,10 @@ def get_integration_indices(xic_mono, xic_iso1, rt, config):
 
 
             if adding_peaks_right:
-                if right_idx < len(xic_mono) and xic_mono[right_idx,2]/peak_intensity > config.min_intensity_ratio:
+                if right_idx < len(xic_mono) and xic_mono[right_idx,1]/peak_intensity > config.min_intensity_ratio:
                     right_integration_indices.append(right_idx)
 
-                    if xic_mono[right_idx,2] > previous_right_intensity:
+                    if xic_mono[right_idx,1] > previous_right_intensity:
                         current_right_increasing += 1
 
                         if current_right_increasing >= config.max_increasing:
@@ -307,9 +308,9 @@ def get_integration_indices(xic_mono, xic_iso1, rt, config):
                     adding_peaks_right = False
 
             if right_idx < len(xic_mono):
-                previous_right_intensity = xic_mono[right_idx, 2]
+                previous_right_intensity = xic_mono[right_idx, 1]
             if left_idx >= 0:
-                previous_left_intensity = xic_mono[left_idx, 2]
+                previous_left_intensity = xic_mono[left_idx, 1]
 
             if not adding_peaks_left and not adding_peaks_right:
                 break
@@ -320,8 +321,8 @@ def get_integration_indices(xic_mono, xic_iso1, rt, config):
         integration_indices.extend(right_integration_indices)
         integration_indices = sorted(integration_indices)
 
-        mono_intensities = np.array([v[2] for v in xic_mono[integration_indices]])
-        iso1_intensities = np.array([v[2] for v in xic_iso1[integration_indices]])
+        mono_intensities = np.array([v[1] for v in xic_mono[integration_indices]])
+        iso1_intensities = np.array([v[1] for v in xic_iso1[integration_indices]])
 
         m,r = score_xics(mono_intensities, iso1_intensities)
 
@@ -334,7 +335,7 @@ def get_integration_indices(xic_mono, xic_iso1, rt, config):
         else:
             possible_integration_indexes[i] = np.array([])
 
-    delta_rts = [abs(p[0] - (rt*60)) for p in peaks_mono]
+    delta_rts = [abs(p[0] - rt) for p in peaks_mono]
     sorted_indices = np.argsort(delta_rts).astype(int)
     peaks_mono = peaks_mono[sorted_indices]
     possible_integration_indexes = possible_integration_indexes[sorted_indices]
@@ -349,21 +350,21 @@ def get_integration_indices(xic_mono, xic_iso1, rt, config):
 def integrate_xics(xics, integration_indices, lipid):
     areas = []
     summed_area = 0
-    max_intensity = np.max(xics[0][:,2])
+    max_intensity = np.max(xics[0][:,1])
     for i in range(len(xics)):
         sub_xic = np.vstack(xics[i][integration_indices])
-        area = np.trapezoid(sub_xic[:,2], sub_xic[:,1])
+        area = np.trapezoid(sub_xic[:,1], sub_xic[:,0])
         areas.append(area)
         summed_area += area
 
-    # plt.vlines(xics[0][integration_indices[0], 1]/60, 0, max_intensity, linestyles='dashed', color='r')
-    # plt.vlines(xics[0][integration_indices[-1], 1]/60, 0, max_intensity, linestyles='dashed', color='r')
-    # plt.vlines(lipid.calibrated_rt, 0, max_intensity, linestyles='dashed', color='b')
-    # for i in range(len(xics)):
-    #     plt.plot(xics[i][:,1]/60, xics[i][:,2], label="iso"+str(i))
-    # plt.legend()
-    # plt.title("Lipid: " + lipid.name + " Area: " + str(summed_area))
-    # plt.show()
+    plt.vlines(xics[0][integration_indices[0], 0], 0, max_intensity, linestyles='dashed', color='r')
+    plt.vlines(xics[0][integration_indices[-1], 0], 0, max_intensity, linestyles='dashed', color='r')
+    plt.vlines(lipid.calibrated_rt, 0, max_intensity, linestyles='dashed', color='b')
+    for i in range(len(xics)):
+        plt.plot(xics[i][:,0], xics[i][:,1], label="iso"+str(i))
+    plt.legend()
+    plt.title("Lipid: " + lipid.name + " Area: " + str(summed_area))
+    plt.show()
     return summed_area
 
 def quantify_lipid(spectra_file, lipid, config):
@@ -377,7 +378,7 @@ def quantify_lipid(spectra_file, lipid, config):
 
     xics = []
     for i in range(len(masses)):
-        xic = spectra_file.ind_file.extract_xic(masses[i], abs_width, min_rt, max_rt)
+        xic = spectra_file.importer.get_eic(masses[i], abs_width, [min_rt, max_rt])
         xics.append(xic)
 
     if check_xics(xics, config):
@@ -388,9 +389,9 @@ def quantify_lipid(spectra_file, lipid, config):
         else:
             if lipid.internal_std:
                 print("Failed to quantify", lipid.name, "in", spectra_file.filepath)
-                plt.vlines(lipid.calibrated_rt * 60, 0, np.max(xics[0][:, 2]), linestyles='dashed', color='r')
+                plt.vlines(lipid.calibrated_rt, 0, np.max(xics[0][:, 1]), linestyles='dashed', color='r')
                 for i in range(len(xics)):
-                    plt.plot(xics[i][:, 1], xics[i][:, 2], label="iso" + str(i))
+                    plt.plot(xics[i][:, 0], xics[i][:, 0], label="iso" + str(i))
                 plt.legend()
                 plt.title("Lipid: " + lipid.name)
                 plt.show()
@@ -399,9 +400,9 @@ def quantify_lipid(spectra_file, lipid, config):
     else:
         if lipid.internal_std:
             print("Failed to quantify", lipid.name, "in", spectra_file.filepath)
-            plt.vlines(lipid.calibrated_rt*60, 0,np.max(xics[0][:,2]), linestyles='dashed', color='r')
+            plt.vlines(lipid.calibrated_rt, 0,np.max(xics[0][:,1]), linestyles='dashed', color='r')
             for i in range(len(xics)):
-                plt.plot(xics[i][:, 1], xics[i][:, 2], label="iso" + str(i))
+                plt.plot(xics[i][:, 0], xics[i][:, 1], label="iso" + str(i))
             plt.legend()
             plt.title("Lipid: " + lipid.name)
             plt.show()
@@ -436,17 +437,17 @@ def create_spectrafiles_fromdict(dictionary, sample_of_interest=None):
                                          dictionary[file][2],dictionary[file][3], dictionary[file][4]))
     return spectra_files
 
-def create_spectrafiles_fromfile(filepath):
-    spectra_files = []
-    files_df = pd.read_csv(filepath)
-    filepaths = files_df["Filepath"]
-    samplenums = files_df["Samplenum"]
-    bioreps = files_df["Biorep"]
-    techreps = files_df["Techrep"]
-    samplevols = files_df["Samplevol"]
-    stdvols = files_df["Stdvol"]
-    finalvols = files_df["Finalvol"]
-    inj_vols = files_df["Injvol"]
+# def create_spectrafiles_fromfile(filepath):
+#     spectra_files = []
+#     files_df = pd.read_csv(filepath)
+#     filepaths = files_df["Filepath"]
+#     samplenums = files_df["Samplenum"]
+#     bioreps = files_df["Biorep"]
+#     techreps = files_df["Techrep"]
+#     samplevols = files_df["Samplevol"]
+#     stdvols = files_df["Stdvol"]
+#     finalvols = files_df["Finalvol"]
+#     inj_vols = files_df["Injvol"]
 
 
 
@@ -525,7 +526,7 @@ if __name__ == "__main__":
 
     lib = LipidLibrary("Z:\\Group Share\\JGP\\Lipidomics_MassIVE_folder\\rtcalibrated_dda_library.csv", config)
 
-    spectra_files_directory = "Z:\\Group Share\\JGP\\Lipidomics_MassIVE_folder\\Raw\\MS1\\calibrated_mzML\\"
+    spectra_files_directory = "C:\\Users\\Admin\\Desktop\\martylab\\Lipidomics\\Lipidomics_MassIVE_folder\\Raw\\MS1\\calibrated_mzML\\"
     os.chdir(spectra_files_directory)
 
     #spectra_files = create_spectrafiles(spectra_files_directory)
@@ -567,7 +568,7 @@ if __name__ == "__main__":
                                        "2024_09_04_AS_80_CS_13_ESIneg_fixed.mzML": [4, 3, 3,30,15]
                                        }
 
-    spectra_files = create_spectrafiles_fromdict(filenames_id_br_trs_svol_eqvol)
+    spectra_files = create_spectrafiles_fromdict(filenames_id_br_trs_svol_eqvol, sample_of_interest=6)
 
     if True:
         quantification_results = pd.DataFrame()

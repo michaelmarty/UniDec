@@ -15,13 +15,16 @@ class Importer:
         self.times = None
         self.centroided = False
         self.polarity = "Positive"
-        self.scan_range = None # Note, we will use includive scan range such that the last scan is self.scan_range[1]
+        self.scan_range = None # Note, we will use inclusive scan range such that the last scan is self.scan_range[1]
         self.data = None
         self.immsdata = None
         self.cdms_support = False
         self.imms_support = False
         self.chrom_support = False
         self.centroid_threshold = 0.8
+
+        self.indexed_file = None
+
 
     def get_polarity(self, scan=None):
         return self.polarity
@@ -75,7 +78,10 @@ class Importer:
             raise Exception
         pass
 
-    def get_eic(self, mass, tolerance):
+    def index_scans(self, min_mz, bin_width):
+        pass
+
+    def get_eic(self, mass, mz_tol, rt_range=None):
         if not self.chrom_support:
             print("EIC data not supported for this file type:", self._file_path)
             raise Exception

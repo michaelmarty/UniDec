@@ -3,7 +3,8 @@ import numpy as np
 from unidec.UniDecImporter.Agilent.MZFILE import MZFile as mzFile
 from unidec.UniDecImporter.Importer import *
 from unidec import tools as ud
-from unidec.UniDecImporter.ImportTools import merge_spectra
+from unidec.UniDecImporter.ImportTools import merge_spectra, IndexedFile, IndexedScan
+
 
 # When is the msrun scaninfo even being populated ever
 
@@ -48,7 +49,6 @@ class AgilentImporter(Importer):
             self.data.append(impdat)
         return self.data
 
-
     def get_single_scan(self, scan, threshold=-1):
         try:
             impdat = np.array(self.msrun.scan(int(scan)-1))
@@ -60,7 +60,6 @@ class AgilentImporter(Importer):
         except Exception as e:
             print(f"Error in get_single_scan for scan {scan}: {e}")
             return None
-
 
     def get_avg_scan(self, scan_range=None, time_range=None, mzbins=None):
         """
@@ -91,7 +90,6 @@ class AgilentImporter(Importer):
             xic = self.msrun.xic()
         return xic
 
-
     def get_polarity(self, scan=1):
         self.scan_info = self.msrun.scan_info()
         line = self.scan_info[scan]
@@ -116,6 +114,26 @@ class AgilentImporter(Importer):
                     return 2
         print("MS Order: Unknown")
         return 1
+
+    def index_scans(self, min_mz, bin_width):
+        self.indexed_file = IndexedFile(self)
+        scans = self.get_all_scans()
+
+        self.indexed_scans = []
+
+        for i in range(len(scans)):
+            scan_number = i+1
+            if self.get_ms_order(scan_number) == 1:
+                scan = scans[scan_number]
+                rt = self.get_scan_time(scan_number)
+                ind_scan = IndexedScan(scans[i+1], rt, scan_number, min_mz, bin_width)
+                self.indexed_scans.append(ind_scan)
+        return
+
+    def get_eic(self, mass, mz_tol, rt_range=None):
+        if self.indexed_file is None:
+            self.get_indexed_file()
+        return self.indexed_file.extract_xic(mass, mz_tol, rt_range=rt_range)
 
     def close(self):
         self.msrun.close()

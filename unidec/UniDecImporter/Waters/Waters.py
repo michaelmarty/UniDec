@@ -1,7 +1,7 @@
 import numpy as np
 import unidec.tools as ud
 from unidec.UniDecImporter.Importer import Importer
-from unidec.UniDecImporter.ImportTools import merge_spectra
+from unidec.UniDecImporter.ImportTools import merge_spectra, IndexedFile, IndexedScan
 from unidec.UniDecImporter.Waters import MassLynxRawScanReader as MLRSR, MassLynxRawInfoReader as MLRIR, \
     MassLynxRawChromatogramReader as MLCR
 
@@ -81,7 +81,6 @@ class WatersDataImporter(Importer):
         print("Names: ", self.stat_names)
         return 0
 
-
     def get_avg_scan(self, scan_range=None, time_range=None, mzbins=None):
         scan_range = self.scan_range_from_inputs(scan_range, time_range)
 
@@ -119,10 +118,21 @@ class WatersDataImporter(Importer):
         tic = np.transpose(self.readerLC.ReadBPI(self.function))
         return tic
 
-    def get_eic(self, mass=811, tolerance=0.10):
-        self.readerLC = MLCR.MassLynxRawChromatogramReader(self._file_path)
-        tic = np.transpose(self.readerLC.ReadMassChromatogram(self.function, mass, tolerance, False))
-        return tic
+    def index_scans(self, min_mz, bin_width):
+        self.indexed_file = IndexedFile(self)
+        scans = self.get_all_scans()
+
+        for i in range(len(scans) - 1):
+            scan_number = i + 1
+            if self.get_ms_order(scan_number) == 1:
+                scan = scans[scan_number]
+                rt = self.get_scan_time(scan_number)
+                ind_scan = IndexedScan(scans[i + 1], rt, scan_number, min_mz, bin_width)
+                self.indexed_file.indexed_scans.append(ind_scan)
+        return
+
+    def get_eic(self, mass, mz_tol, rt_range=None):
+        return self.indexed_file.extract_xic(mass, mz_tol, rt_range)
 
     def get_all_imms_scans(self):
         # self.mindrift = self.get_stat_name('Minimum Drift Time Channel')

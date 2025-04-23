@@ -1,4 +1,6 @@
 import numpy as np
+
+from unidec.IsoDec.datatools import fastnearest
 from unidec.UniDecImporter.Importer import Importer
 from unidec.UniDecImporter.Thermo.RawFileReader import RawFileReader as rr
 
@@ -52,7 +54,6 @@ class ThermoImporter(Importer):
         impdat = impdat[impdat[:, 0] > 10]
         return impdat
 
-
     def grab_all_centroid_dat(self):
         data = []
         for i in range(len(self.scans)):
@@ -86,9 +87,14 @@ class ThermoImporter(Importer):
     def get_tic(self):
         return self.msrun.GetChromatogram()
 
-    def get_eic(self, mass_range=None, scan_range=None):
-        if mass_range is None:
-            mass_range = [0, 1000000]
+    def get_eic(self, mass, mz_tol, rt_range=None):
+        mass_range = [mass-(mz_tol/2), mass+(mz_tol/2)]
+        if rt_range is not None:
+            min_idx = fastnearest(self.times, rt_range[0])
+            max_idx = fastnearest(self.times, rt_range[1])
+            scan_range = [self.scans[min_idx], self.scans[max_idx]]
+        else:
+            scan_range = [self.scans[0], self.scans[-1]]
         return self.msrun.Get_EIC(massrange=mass_range, scanrange=scan_range)
 
     def get_inj_time_array(self):
