@@ -106,6 +106,7 @@ class SciexImporter(Importer):
 
             template[:, 1] /= total_scans
             return template
+
     def get_single_scan(self, idx):
         spectrum = np.array(self.scirun.reader.GetScanData(self.primary_sample - 1,
                                                                 self.primary_experiment - 1,

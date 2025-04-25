@@ -3,7 +3,8 @@ import numpy as np
 from unidec.UniDecImporter.Agilent.MZFILE import MZFile as mzFile
 from unidec.UniDecImporter.Importer import *
 from unidec import tools as ud
-from unidec.UniDecImporter.ImportTools import merge_spectra
+from unidec.UniDecImporter.ImportTools import merge_spectra, IndexedFile, IndexedScan
+
 
 # When is the msrun scaninfo even being populated ever
 
@@ -27,11 +28,18 @@ class AgilentImporter(Importer):
     def init_scans(self):
         self.times = []
         self.scans = []
+        self.levels = []
 
         curr_info = self.msrun.scan_info()
         for i in curr_info:
             self.scans.append(i[2]+1)
             self.times.append(i[0])
+            if "MS1" in i:
+                self.levels.append(1)
+            elif "MS2" in i:
+                self.levels.append(2)
+            else:
+                self.levels.append(1)
 
         self.times = np.array(self.times)
         self.scans = np.array(self.scans)
@@ -48,7 +56,6 @@ class AgilentImporter(Importer):
             self.data.append(impdat)
         return self.data
 
-
     def get_single_scan(self, scan, threshold=-1):
         try:
             impdat = np.array(self.msrun.scan(int(scan)-1))
@@ -60,7 +67,6 @@ class AgilentImporter(Importer):
         except Exception as e:
             print(f"Error in get_single_scan for scan {scan}: {e}")
             return None
-
 
     def get_avg_scan(self, scan_range=None, time_range=None, mzbins=None):
         """
@@ -91,7 +97,6 @@ class AgilentImporter(Importer):
             xic = self.msrun.xic()
         return xic
 
-
     def get_polarity(self, scan=1):
         self.scan_info = self.msrun.scan_info()
         line = self.scan_info[scan]
@@ -106,16 +111,6 @@ class AgilentImporter(Importer):
         print("Polarity: Unknown")
         return None
 
-    def get_ms_order(self, scan=1):
-        scan_info = self.msrun.scan_info()
-        for line in scan_info:
-            if scan == int(line[2]):
-                if "MS1" in line:
-                    return 1
-                elif "MS2" in line:
-                    return 2
-        print("MS Order: Unknown")
-        return 1
 
     def close(self):
         self.msrun.close()
