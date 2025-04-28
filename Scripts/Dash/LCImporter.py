@@ -199,6 +199,23 @@ def parse_allfiles(path, prec=0, requested_files=None):
     return datafiles
 
 
+def extract_data(path, index=0):
+    """
+    Grabs the data from an Agilent Chemstation data file.
+
+    Args:
+        path (str): Path to the data file.
+        index (int, optional): Index of the data file to grab.
+
+    Returns:
+        DataFile representing the file, if it can be parsed. Otherwise, None.
+
+    """
+    datafiles = parse_allfiles(path)
+    if index < len(datafiles):
+        return datafiles[index].get_data()
+    return None
+
 def parse_file(path, prec=0):
     """
     Parses an Agilent Chemstation data file.
@@ -1071,33 +1088,4 @@ def get_nextstr(str_list, target_str):
     except Exception:
         return None
 
-if __name__ == "__main__":
-    # Example usage
-    path = "Z:\\Group Share\\Seun\\LX-MS\\LC\\LC Data\\OF_direct inject 2024-03-03 19-34-20\GFP.D"
 
-    paths = [path]
-    for path in paths:
-        datafiles = parse_allfiles(path)
-        #metadata = parse_metadata(path, datafiles)
-        #print(metadata)
-        infos = [d.get_info() for d in datafiles]
-        print(infos)
-        datas=np.array([d.get_data() for d in datafiles])
-
-        plt.plot(datas[2,:,0],datas[2, :,1]/np.amax(datas[2,:,1])*100)
-        #plt.plot(datas[3,:,0],datas[3, :,1]/np.amax(datas[3,:,1])*100, color="blue")
-        #plt.show()
-        #print(datafiles[0].get_info())
-    exit()
-
-    print(datafiles[0].get_info())
-    print(datafiles[0].extract_traces())
-    print(datafiles[0].extract_traces(1))
-    print(datafiles[0].extract_traces(2))
-    print(datafiles[0].extract_traces([1,2]))
-
-    #save csv file in parent path directory
-    datafiles[0].export_csv('Z:\\Group Share\\Seun\\LX-MS\\LC\\LC Data\\OF_direct inject 2024-03-03 19-34-20\GFPtest.csv')
-
-
-    #print(datafiles[0].metadata)

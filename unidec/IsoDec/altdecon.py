@@ -98,7 +98,7 @@ def thrash_predict(centroids):
 
 
 if __name__ == "__main__":
-    example = np.loadtxt("Z:\Group Share\JGP\MockData\mockdata_centroids.csv", delimiter=",")
+    example = np.loadtxt("Z:\\Group Share\\JGP\\MockData\\mockdata_centroids.csv", delimiter=",")
     example = ud.datachop(example, 326,327)
     for i in range(len(example)):
         plt.plot([example[i, 0], example[i, 0]], [0, example[i, 1]], color="black")
