@@ -21,11 +21,13 @@ current_path = os.path.dirname(os.path.realpath(__file__))
 if platform.system() == "Windows":
     dllname = "isodeclib.dll"
 elif platform.system() == "Linux":
-    dllname = "isodeclib.so"
+    dllname = "libisodeclib.so"
 else:
     dllname = "isodeclib.dylib"
 
 default_dll_path = start_at_iso(dllname, guess = current_path)
+
+
 
 if not default_dll_path:
     print("DLL not found anywhere")

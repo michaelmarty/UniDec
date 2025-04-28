@@ -180,6 +180,10 @@ if system == "Windows":
     a.datas += [('phase_model_4.bin', 'unidec\\IsoDec\\phase_model_4.bin', 'BINARY')]
 
 
+    #LINUX DEPENDENCIES:
+    a.datas += [('libisodeclib.so', 'C:\\Python\\UniDecDev\\unidec\IsoDec\\libisodeclib.so', 'BINARY')]
+    a.datas += [('libfftw3.so', 'C:\\Python\\UniDecDev\\unidec\IsoDec\\libfftw3.so', 'BINARY')]
+    a.datas += [('libisogen.so', 'C:\\Python\\UniDecDev\\unidec\IsoDec\\libisogen.so', 'BINARY')]
 
 
 

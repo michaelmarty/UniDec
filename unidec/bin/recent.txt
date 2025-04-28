@@ -1,3 +1,15 @@
+<<<<<<< Updated upstream
 Z:\Group Share\JGP\js8b05641_si_001\1500_scans_200K_16 fills-qb1.mzXML
 Z:\Group Share\JGP\js8b05641_si_001\1500_scans_200K_16 fills-qb1.raw
 Z:\Group Share\JGP\js8b05641_si_001\1500_scans_200K_16 fills-qb1.mzML
+=======
+C:\Python\UniDecDev\unidec\bin\Example Data\UniChrom\SEC_Native_Herceptin.raw
+Z:\Group Share\JGP\10uMCA25+UVPDLPT1,0mJ1pFullP_3.raw
+Z:\Group Share\JGP\js8b05641_si_001\1500_scans_200K_16 fills-qb1.mzML
+Z:\Group Share\JGP\js8b05641_si_001\etd_spectrum.txt
+Z:\Group Share\JGP\DiverseDataExamples\Sciex\20230816_Myoglobin 0666 ugmL 01.wiff
+Z:\Group Share\JGP\DiverseDataExamples\DataTypeCollection\test_thermo.RAW
+Z:\Group Share\JGP\DiverseDataExamples\DataTypeCollection\test_mzml.mzML
+Z:\Group Share\JGP\DataForJoe\TF.RAW
+Z:\Group Share\JGP\js8b05641_si_001\1500_scans_200K_16 fills-qb1.raw
+>>>>>>> Stashed changes

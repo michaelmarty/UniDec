@@ -12,16 +12,17 @@ current_path = os.path.dirname(os.path.realpath(__file__))
 if platform.system() == "Windows":
     dllname = "isogen.dll"
 elif platform.system() == "Linux":
-    dllname = "isogen.so"
+    dllname = "libisogen.so"
 
 else:
+    print("Not yet implemented for MacOS")
     dllname = "isogen.dylib"
 
 
 
 #need to commmit isogendll to srccmake
 dllpath = start_at_iso(dllname, guess=current_path)
-print(dllpath)
+
 if not dllpath:
     print("DLL not found anywhere:", dllname)
 # else:

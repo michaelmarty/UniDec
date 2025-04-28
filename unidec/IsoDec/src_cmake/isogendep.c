@@ -84,7 +84,7 @@ void isogen_nn(const float mass, float *isodist, int isolen, char* type) {
     // Run the Neural Net
     neural_net(vector, isodist, weights);
     // Free Memory
-    FreeWeights(weights);
+    FreeIsogenWeights(weights);
 
 }
 
@@ -96,7 +96,7 @@ void isogen_atom(const char* sequence, float* isodist, int isolen)
     formula_to_vector(sequence, vector);
 
     neural_net(vector, isodist, weights);
-    FreeWeights(weights);
+    FreeIsogenWeights(weights);
 
 }
 
@@ -117,7 +117,7 @@ void isogen_atom(const char* sequence, float* isodist, int isolen)
 // }
 
 // Free Weights
-void FreeWeights(const struct IsoGenWeights weights) {
+void FreeIsogenWeights(const struct IsoGenWeights weights) {
     free(weights.w1);
     free(weights.b1);
     free(weights.w2);

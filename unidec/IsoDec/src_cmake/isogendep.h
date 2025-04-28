@@ -28,6 +28,23 @@
 #include "isogenrna.h"
 #include "isogenatom.h"
 
+struct IsoGenWeights {
+    float *w1;
+    float *b1;
+    float *w2;
+    float *b2;
+    float *w3;
+    float *b3;
+    int vl1;
+    int vl2;
+    int vl3;
+    int vl4;
+    int ml1;
+    int ml2;
+    int ml3;
+    int tot;
+};
+
 // Function Declarations
 ISOGENDEP_EXPORTS void setup_ft(const int number, fftw_complex* outft, const int length, const int ftlen);
 ISOGENDEP_EXPORTS void convolve_all(const int isolist[5], fftw_complex* allft, const fftw_complex* cft, const fftw_complex* hft,
@@ -36,7 +53,7 @@ ISOGENDEP_EXPORTS void complex_power(const fftw_complex in, const int power, dou
 ISOGENDEP_EXPORTS void complex_multiplication(const double ar, const double ai, const double br,
                                               const double bi, double* oreal, double* oimag);
 ISOGENDEP_EXPORTS double normalize_isodist(double* buffer, int length);
-ISOGENDEP_EXPORTS void FreeWeights(const struct IsoGenWeights weights);
+ISOGENDEP_EXPORTS void FreeIsogenWeights(const struct IsoGenWeights weights);
 ISOGENDEP_EXPORTS struct IsoGenWeights LoadWeights(const struct IsoGenWeights weights, const unsigned char *model_weights);
 ISOGENDEP_EXPORTS struct IsoGenWeights SetupWeights(const int veclen, const int outlen);
 ISOGENDEP_EXPORTS void neural_net(const float *vector, float *isodist, const struct IsoGenWeights weights);
@@ -62,21 +79,6 @@ extern char* rna_names[];
 extern char* dna_names[];
 extern const char pepOrder[];
 extern const char *elements[];
-struct IsoGenWeights {
-    float *w1;
-    float *b1;
-    float *w2;
-    float *b2;
-    float *w3;
-    float *b3;
-    int vl1;
-    int vl2;
-    int vl3;
-    int vl4;
-    int ml1;
-    int ml2;
-    int ml3;
-    int tot;
-};
+
 
 #endif // ISOGENDEP_LIBRARY_H

@@ -8837,4 +8837,4 @@ static const unsigned char isogenatom_model_32_bin[] = {
 static const unsigned int isogenatom_model_32_bin_len = 22528;
 
 
-#endif ISOGEN_WEIGHTS_H
+#endif
