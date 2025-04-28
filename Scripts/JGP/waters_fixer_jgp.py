@@ -3,7 +3,6 @@ import os
 import fnmatch
 from copy import deepcopy
 import unidec.tools as ud
-import xic_xtractor
 import matplotlib.pyplot as plt
 import time
 import matplotlib as mpl

@@ -321,6 +321,7 @@ class UniDec(UniDecEngine):
             else:
                 centroided = None
             self.data.data2 = ud.dataprep(self.data.rawdata, self.config, centroided_dat=centroided)
+
             if "scramble" in kwargs:
                     if kwargs["scramble"]:
                         # np.random.shuffle(self.data.data2[:, 1])
@@ -328,7 +329,8 @@ class UniDec(UniDecEngine):
                             np.random.normal(0, 100 * np.amax(self.data.data2[:, 1]), len(self.data.data2)))
                         self.data.data2[:, 1] /= np.amax(self.data.data2[:, 1])
                         print("Added noise to data")
-                        ud.dataexport(self.data.data2, self.config.infname)
+
+            ud.dataexport(self.data.data2, self.config.infname)
 
 
         else:
