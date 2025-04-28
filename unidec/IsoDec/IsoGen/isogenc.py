@@ -11,7 +11,7 @@ from unidec.IsoDec.IsoGen.isogen_tools import get_dist_from_formula
 
 mpl.use('WxAgg')
 np.set_printoptions(precision=6, suppress=True)
-isogen_dll_path = "C:/Python/UniDec3/unidec/IsoDec/src_cmake/cmake-build-debug/isogen.dll"
+isogen_dll_path = "C:/Python/UniDec3/unidec/IsoDec/isogen.dll"
 
 isogen_lib = ctypes.CDLL(isogen_dll_path)
 isogen_lib.fft_pep_mass_to_dist.restype = ctypes.c_float
@@ -163,7 +163,7 @@ def plot_rna_dist_differences(seq, isolen):
 
 if __name__ == "__main__":
     # Protein comparison
-    if False:
+    if True:
         import random
         isolen = 8
         if isolen == 8:

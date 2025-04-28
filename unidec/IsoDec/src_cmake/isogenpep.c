@@ -211,11 +211,11 @@ float fft_pep_list_to_dist(const int isolist[5], const int length, float* isodis
 }
 
 
-float fft_pep_mass_to_dist(const float mass, float* isodist, const int isolen, const int offset)
+float fft_pep_mass_to_dist(const float mass, float *isodist, const int isolen, const int offset)
 {
     int formulalist[5];
     mass_to_formula_averaging(mass, formulalist);
-    const float max_val = fft_pep_list_to_dist(formulalist, isolen, isodist);
+    float max_val = fft_pep_list_to_dist(formulalist, isolen, isodist);
 
     for (int i = isolen - offset - 1; i >= 0; i--)
     {
@@ -227,6 +227,8 @@ float fft_pep_mass_to_dist(const float mass, float* isodist, const int isolen, c
             isodist[i] /= max_val;
         }
     }
+
+
     return max_val;
 }
 

@@ -752,9 +752,18 @@ int isotope_dist(const float mass, float *isovals, const float normfactor,
     if (mass > 60000 && settings.isolength <= 64) {
         printf("Warning: Mass is very high, may not be accurate: %f\n", mass);
     }
+    float max;
+    // float max = isogen_fancy(mass, isovals, settings.isolength, offset, type);
+    if (strcmp(type, "Rna") == 0)
+    {
+        max = fft_rna_mass_to_dist(mass, isovals, settings.isolength, offset);
+    }
+    else
+    {
+        max = fft_pep_mass_to_dist(mass, isovals, settings.isolength, offset);
+    }
 
-    float max = isogen_fancy(mass, isovals, settings.isolength, offset, type);
-    //float max = isomike(mass, isovals, settings.isolength, offset);
+
 
     fflush(stdout);
     int realisolength = 0;

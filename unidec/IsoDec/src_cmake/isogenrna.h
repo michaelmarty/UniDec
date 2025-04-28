@@ -23,10 +23,10 @@
 
 // Declare functions implemented in isogenrna.c
 ISOGENRNA_EXPORTS float* rna_mass_to_list(float initialMass);
-ISOGENRNA_EXPORTS float* fft_rna_list_to_dist(float *isolist);
+ISOGENRNA_EXPORTS float fft_rna_list_to_dist(const float isolist[5], const int length, float *isodist);
 ISOGENRNA_EXPORTS float* fft_rna_seq_to_dist(char* sequence);
 ISOGENRNA_EXPORTS float* rnaToVector(const char* rna);
 ISOGENRNA_EXPORTS float rnaVectorToMass(float* rnaVector);
-ISOGENRNA_EXPORTS float* fft_rna_mass_to_dist(float mass);
+ISOGENRNA_EXPORTS float fft_rna_mass_to_dist(float mass, float* isovals, int isolen, int offset);
 
 #endif

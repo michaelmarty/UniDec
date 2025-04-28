@@ -1560,8 +1560,6 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False, centroid
     :param silent: Boolean to suppress output
     :return: Processed data
     """
-    print("datatop dat", datatop.shape)
-
     newmin = config.minmz
     newmax = config.maxmz
     buff = config.subbuff
