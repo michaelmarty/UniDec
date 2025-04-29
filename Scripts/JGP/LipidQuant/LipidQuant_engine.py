@@ -1,16 +1,30 @@
+import itertools
+
 import pandas as pd
-from pyopenms import *
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import unidec.IsoDec.datatools as dt
-from unidec.IsoDec.datatools import fastnearest, fastwithin_abstol
+from unidec.IsoDec.datatools import fastnearest, fastwithin_abstol, fastpeakdetect
 import numpy as np
 import time
 import os
 import fnmatch
 from scipy.stats import linregress
-
 from unidec.UniDecImporter import ImporterFactory
+import multiprocessing as mp
+from concurrent.futures import ThreadPoolExecutor
+import builtins
+from Scripts.JGP.LipidQuant.quantification_results_plotting import *
+
+#This stops it from printing that it can't find a
+#particular term when reading the mzML files.
+real_print = builtins.print
+
+def silent_print(*args, **kwargs):
+    if not args or not str(args[0]).startswith("term not found"):
+        real_print(*args, **kwargs)
+
+builtins.print = silent_print
 
 
 def match_files(directory, string, exclude=None):
@@ -21,21 +35,25 @@ def match_files(directory, string, exclude=None):
                 files.append(file)
     return np.array(files)
 
-class PyLineConfig:
+class LipidQuantConfig:
     def __init__(self):
         #XIC creation parameters
-        self.ppm_tol = 20
-        self.rt_tol = 5
-        self.iso_count = 3
+        self.ppm_tol = 25
+        self.rt_tol = 4
+        self.iso_count = 2
 
         #XIC Filtering parameters
         self.min_peak_intensity = 500
         self.noise_threshold = 100
-        self.min_consec_peaks = 4
+        self.min_consec_peaks = 3
         self.isorange = [0.1,0.9]
         self.r_thresh = 0.5
         self.max_increasing = 3
         self.min_intensity_ratio = 0.01
+
+        #Normalization parameters
+        self.normalize_to_int_stds = True
+        self.normalize_to_total = True
 
 class LibraryLipid:
     def __init__(self, name, mass, rt, lipid_class, internal_std, adduct=None, formula=None):
@@ -51,11 +69,12 @@ class LibraryLipid:
 class LipidLibrary:
     def __init__(self, filepath, config):
         self.filepath = filepath
-        self.lipids = self.parse_library(filepath)
+        self.lipids, self.lipid_indices = self.parse_library(filepath)
         self.lipid_groups = self.group_lipids_by_rt_mz(config.ppm_tol, config.rt_tol)
 
     def parse_library(self, filepath):
         lipids = np.array([])
+        lipid_indices = {}
 
         library_df = pd.read_csv(filepath, delimiter=",")
         rts = library_df["Retention Time"]
@@ -66,10 +85,15 @@ class LipidLibrary:
         classes = library_df["Lipid class"]
         standards = library_df["Standard"]
 
+        lipid_index = 0
         for i in range(len(rts)):
+            if names[i] in lipid_indices:
+                continue
             lipids = np.append(lipids, LibraryLipid(names[i], mzs[i], rts[i], classes[i], standards[i], adducts[i], formulas[i]))
+            lipid_indices[names[i]] = lipid_index
+            lipid_index += 1
 
-        return lipids
+        return lipids, lipid_indices
 
     def group_lipids_by_rt_mz(self, ppm_tol, rt_tol):
         groups = []
@@ -78,24 +102,24 @@ class LipidLibrary:
 
         sorted_indices = np.argsort(lipid_masses)
         lipid_masses = lipid_masses[sorted_indices]
-        self.lipids = self.lipids[sorted_indices]
+        ordered_lipids = self.lipids[sorted_indices]
 
         grouped_lipids = []
         #Find cases where
-        for i in range(len(self.lipids)):
+        for i in range(len(ordered_lipids)):
             if i in grouped_lipids:
                 continue
-            mass_tol = (self.lipids[i].mass/1e6)*ppm_tol
-            within_tol = fastwithin_abstol(lipid_masses, self.lipids[i].mass, mass_tol)
-            current_group = [self.lipids[i]]
+            mass_tol = (ordered_lipids[i].mass/1e6)*ppm_tol
+            within_tol = fastwithin_abstol(lipid_masses, ordered_lipids[i].mass, mass_tol)
+            current_group = [ordered_lipids[i]]
             grouped_lipids.append(i)
             for j in range(len(within_tol)):
                 if i == within_tol[j] or within_tol[j] in grouped_lipids:
                     continue
                 else:
-                    delta_rt = abs(self.lipids[within_tol[j]].rt - self.lipids[i].rt)
-                    if abs(self.lipids[within_tol[j]].rt - self.lipids[i].rt) < rt_tol:
-                        current_group.append(self.lipids[within_tol[j]])
+                    delta_rt = abs(ordered_lipids[within_tol[j]].rt - ordered_lipids[i].rt)
+                    if abs(ordered_lipids[within_tol[j]].rt - ordered_lipids[i].rt) < rt_tol:
+                        current_group.append(ordered_lipids[within_tol[j]])
                         grouped_lipids.append(within_tol[j])
 
             if len(current_group) == 1:
@@ -110,24 +134,23 @@ class LipidLibrary:
                         filtered_group.append(l)
                 groups.append(filtered_group)
 
-
         return groups
 
 class SpectraFile:
-    def __init__(self, filepath, sample_num, biorep, techrep, samplevol, stdvol):
+    def __init__(self, filepath, sample_num, biorep, techrep, samplevol, stdvol, load_importer=True):
         self.filepath = filepath
-        self.importer = ImporterFactory.create_importer(filepath)
-        self.ind_file = None
-        self.sample_id = sample_num
+
+        if load_importer:
+            self.importer = ImporterFactory.create_importer(filepath)
+        else:
+            self.importer = None
+        self.sample_num = sample_num
         self.biorep = biorep
         self.techrep = techrep
         self.fileid = str("S" + str(sample_num) + "_BR" + str(biorep) + "_TR" + str(techrep))
 
         self.samplevol = float(samplevol)
         self.stdvol = float(stdvol)
-
-    def load_indexed_file(self):
-        self.ind_file = self.importer.index_scans(min_mz=0, bin_width=1)
 
 def create_spectrafile(filepath):
     return SpectraFile(filepath, 0, 0)
@@ -145,23 +168,24 @@ def calibrate_library_rts(file, library, config):
 
 
 
-            is_xic = file.ind_file.extract_xic(mz, abs_width, min_rt, max_rt)
-            max_index = np.argmax(is_xic[:,2])
-            if is_xic[max_index,2] > config.min_peak_intensity:
+            is_xic = file.importer.get_eic(mz, abs_width, [min_rt, max_rt])
+            max_index = np.argmax(is_xic[:,1])
+            if is_xic[max_index,1] > config.min_peak_intensity:
                 is_rts = np.append(is_rts,library.lipids[i].rt)
-                rt_error = (is_xic[max_index,0]/60) - library.lipids[i].rt
+                rt_error = (is_xic[max_index,0]) - library.lipids[i].rt
                 delta_rts = np.append(delta_rts, rt_error)
-                library.lipids[i].calibrated_rt =is_xic[max_index,0]/60
+                library.lipids[i].calibrated_rt =is_xic[max_index,0]
 
     is_rts = np.append(is_rts,0)
     delta_rts = np.append(delta_rts, 0)
 
-    is_rts = np.append(is_rts,20)
+    is_rts = np.append(is_rts,25)
     delta_rts = np.append(delta_rts, 0)
 
     sorted_indices = np.argsort(is_rts)
     is_rts = is_rts[sorted_indices]
     delta_rts = delta_rts[sorted_indices]
+    print("Delta RTs:", delta_rts)
 
     for i in range(len(library.lipids)):
         if library.lipids[i].internal_std:
@@ -193,39 +217,6 @@ def check_xics(xics, config):
 
     return True
 
-def calculate_cosinesimilarity(predicted_dist, expected_dist):
-    """
-    Calculate the cosine similarity between two distributions.
-
-    :param predicted_dist: The predicted distribution (numpy array).
-    :param expected_dist: The expected distribution (numpy array).
-    :return: The cosine similarity.
-    """
-
-    # Ensure both distributions are the same length
-    if len(predicted_dist) != len(expected_dist):
-        raise ValueError("Both distributions must have the same length.")
-
-    # Ensure both distributions are numpy arrays
-    predicted_dist = np.array(predicted_dist)
-    expected_dist = np.array(expected_dist)
-
-    # Normalize the distributions to max 1
-    predicted_dist = predicted_dist / np.max(predicted_dist)
-    expected_dist = expected_dist / np.max(expected_dist)
-
-    # Calculate the dot product of the two distributions
-    dot_product = np.dot(predicted_dist, expected_dist)
-
-    # Calculate the magnitude of each distribution
-    magnitude_predicted = np.linalg.norm(predicted_dist)
-    magnitude_expected = np.linalg.norm(expected_dist)
-
-    # Calculate the cosine similarity
-    cosine_similarity = dot_product / (magnitude_predicted * magnitude_expected)
-
-    return cosine_similarity
-
 def score_xics(intensities_mono, intensities_iso1):
     m,b,r,p,err = linregress(intensities_mono, intensities_iso1)
 
@@ -245,95 +236,11 @@ def score_xics(intensities_mono, intensities_iso1):
 def get_integration_indices(xic_mono, xic_iso1, rt, config):
     rt_int_mono = np.transpose(np.array([xic_mono[:,0], xic_mono[:,1]]))
 
-    peaks_mono = dt.fastpeakdetect(rt_int_mono, window=5, threshold=0.05)
+    peaks_mono = dt.fastpeakdetect(rt_int_mono, window=3, threshold=0.05)
     possible_integration_indexes = np.empty(len(peaks_mono), dtype=object)
 
     for i in range(len(peaks_mono)):
-        nearest_idx = fastnearest(np.array(xic_mono[:,0]), peaks_mono[i][0])
-        peak_intensity = peaks_mono[i][1]
-        adding_peaks_left = True
-        adding_peaks_right = True
-
-        left_integration_indices = []
-        right_integration_indices = []
-
-        #we expect intensity to go down, so if it increases for more than N datapoints, cutoff before the first increase
-        previous_left_intensity = peak_intensity
-        previous_right_intensity = peak_intensity
-
-        current_left_increasing = 0
-        current_right_increasing = 0
-
-        for j in range(1, len(xic_mono)):
-            left_idx =nearest_idx - j
-            right_idx = nearest_idx + j
-
-            if adding_peaks_left:
-                if left_idx >= 0 and xic_mono[left_idx,1]/peak_intensity > config.min_intensity_ratio:
-                    left_integration_indices.append(left_idx)
-
-                    #Check for poorly resolved peaks
-                    if xic_mono[left_idx,1] > previous_left_intensity:
-                        current_left_increasing += 1
-                        if current_left_increasing >= config.max_increasing:
-                            #we remove the recent increasing values
-                            for _ in range(current_left_increasing):
-                                left_integration_indices.pop()
-                            adding_peaks_left = False
-                    else:
-                        current_left_increasing = 0
-                else:
-                    if left_idx >=0:
-                        left_integration_indices.append(left_idx)
-                    adding_peaks_left = False
-
-
-            if adding_peaks_right:
-                if right_idx < len(xic_mono) and xic_mono[right_idx,1]/peak_intensity > config.min_intensity_ratio:
-                    right_integration_indices.append(right_idx)
-
-                    if xic_mono[right_idx,1] > previous_right_intensity:
-                        current_right_increasing += 1
-
-                        if current_right_increasing >= config.max_increasing:
-                            for _ in range(current_right_increasing):
-                                right_integration_indices.pop()
-                            adding_peaks_right = False
-                    else:
-                        current_right_increasing = 0
-
-                else:
-                    if right_idx < len(xic_mono):
-                        right_integration_indices.append(right_idx)
-                    adding_peaks_right = False
-
-            if right_idx < len(xic_mono):
-                previous_right_intensity = xic_mono[right_idx, 1]
-            if left_idx >= 0:
-                previous_left_intensity = xic_mono[left_idx, 1]
-
-            if not adding_peaks_left and not adding_peaks_right:
-                break
-
-        #order the integration indices in ascending order
-        integration_indices = [nearest_idx]
-        integration_indices.extend(left_integration_indices)
-        integration_indices.extend(right_integration_indices)
-        integration_indices = sorted(integration_indices)
-
-        mono_intensities = np.array([v[1] for v in xic_mono[integration_indices]])
-        iso1_intensities = np.array([v[1] for v in xic_iso1[integration_indices]])
-
-        m,r = score_xics(mono_intensities, iso1_intensities)
-
-        sufficient_peaks = len(integration_indices) >= config.min_consec_peaks+2
-        passes_iso_ratio = config.isorange[0] < m < config.isorange[1]
-        meets_rthresh = r >= config.r_thresh
-
-        if sufficient_peaks and passes_iso_ratio and meets_rthresh:
-            possible_integration_indexes[i] = np.array(integration_indices)
-        else:
-            possible_integration_indexes[i] = np.array([])
+        possible_integration_indexes[i] = check_valid_peak(xic_mono, xic_iso1, peaks_mono[i], config)
 
     delta_rts = [abs(p[0] - rt) for p in peaks_mono]
     sorted_indices = np.argsort(delta_rts).astype(int)
@@ -347,6 +254,92 @@ def get_integration_indices(xic_mono, xic_iso1, rt, config):
             continue
     return None
 
+def check_valid_peak(xic_mono, xic_iso1, peak, config):
+    nearest_idx = fastnearest(np.array(xic_mono[:, 0]), peak[0])
+    peak_intensity = peak[1]
+    adding_peaks_left = True
+    adding_peaks_right = True
+
+    left_integration_indices = []
+    right_integration_indices = []
+
+    # we expect intensity to go down, so if it increases for more than N datapoints, cutoff before the first increase
+    previous_left_intensity = peak_intensity
+    previous_right_intensity = peak_intensity
+
+    current_left_increasing = 0
+    current_right_increasing = 0
+
+    for j in range(1, len(xic_mono)):
+        left_idx = nearest_idx - j
+        right_idx = nearest_idx + j
+
+        if adding_peaks_left:
+            if left_idx >= 0 and xic_mono[left_idx, 1] / peak_intensity > config.min_intensity_ratio:
+                left_integration_indices.append(left_idx)
+
+                # Check for poorly resolved peaks
+                if xic_mono[left_idx, 1] > previous_left_intensity:
+                    current_left_increasing += 1
+                    if current_left_increasing >= config.max_increasing:
+                        # we remove the recent increasing values
+                        for _ in range(current_left_increasing):
+                            left_integration_indices.pop()
+                        adding_peaks_left = False
+                else:
+                    current_left_increasing = 0
+            else:
+                if left_idx >= 0:
+                    left_integration_indices.append(left_idx)
+                adding_peaks_left = False
+
+        if adding_peaks_right:
+            if right_idx < len(xic_mono) and xic_mono[right_idx, 1] / peak_intensity > config.min_intensity_ratio:
+                right_integration_indices.append(right_idx)
+
+                if xic_mono[right_idx, 1] > previous_right_intensity:
+                    current_right_increasing += 1
+
+                    if current_right_increasing >= config.max_increasing:
+                        for _ in range(current_right_increasing):
+                            right_integration_indices.pop()
+                        adding_peaks_right = False
+                else:
+                    current_right_increasing = 0
+
+            else:
+                if right_idx < len(xic_mono):
+                    right_integration_indices.append(right_idx)
+                adding_peaks_right = False
+
+        if right_idx < len(xic_mono):
+            previous_right_intensity = xic_mono[right_idx, 1]
+        if left_idx >= 0:
+            previous_left_intensity = xic_mono[left_idx, 1]
+
+        if not adding_peaks_left and not adding_peaks_right:
+            break
+
+    # order the integration indices in ascending order
+    integration_indices = [nearest_idx]
+    integration_indices.extend(left_integration_indices)
+    integration_indices.extend(right_integration_indices)
+    integration_indices = sorted(integration_indices)
+
+    mono_intensities = np.array([v[1] for v in xic_mono[integration_indices]])
+    iso1_intensities = np.array([v[1] for v in xic_iso1[integration_indices]])
+
+    m, r = score_xics(mono_intensities, iso1_intensities)
+
+    sufficient_peaks = len(integration_indices) >= config.min_consec_peaks + 2
+    passes_iso_ratio = config.isorange[0] < m < config.isorange[1]
+    meets_rthresh = r >= config.r_thresh
+
+    if sufficient_peaks and passes_iso_ratio and meets_rthresh:
+        return np.array(integration_indices)
+    else:
+        return np.array([])
+
 def integrate_xics(xics, integration_indices, lipid):
     areas = []
     summed_area = 0
@@ -357,20 +350,21 @@ def integrate_xics(xics, integration_indices, lipid):
         areas.append(area)
         summed_area += area
 
-    plt.vlines(xics[0][integration_indices[0], 0], 0, max_intensity, linestyles='dashed', color='r')
-    plt.vlines(xics[0][integration_indices[-1], 0], 0, max_intensity, linestyles='dashed', color='r')
-    plt.vlines(lipid.calibrated_rt, 0, max_intensity, linestyles='dashed', color='b')
-    for i in range(len(xics)):
-        plt.plot(xics[i][:,0], xics[i][:,1], label="iso"+str(i))
-    plt.legend()
-    plt.title("Lipid: " + lipid.name + " Area: " + str(summed_area))
-    plt.show()
+    # if lipid.internal_std:
+    # plt.vlines(xics[0][integration_indices[0], 0], 0, max_intensity, linestyles='dashed', color='r')
+    # plt.vlines(xics[0][integration_indices[-1], 0], 0, max_intensity, linestyles='dashed', color='r')
+    # plt.vlines(lipid.calibrated_rt, 0, max_intensity, linestyles='dashed', color='b')
+    # for i in range(len(xics)):
+    #     plt.plot(xics[i][:,0], xics[i][:,1], label="iso"+str(i))
+    # plt.legend()
+    # plt.title("Lipid: " + lipid.name + " Area: " + str(summed_area))
+    # plt.show()
     return summed_area
 
 def quantify_lipid(spectra_file, lipid, config):
     abs_width = (lipid.mass / 1e6) * config.ppm_tol
-    min_rt = lipid.rt - (config.rt_tol/2)
-    max_rt = lipid.rt + (config.rt_tol/2)
+    min_rt = lipid.calibrated_rt - (config.rt_tol/2)
+    max_rt = lipid.calibrated_rt + (config.rt_tol/2)
 
     masses = [lipid.mass]
     for i in range(1,config.iso_count):
@@ -387,71 +381,227 @@ def quantify_lipid(spectra_file, lipid, config):
             area = integrate_xics(xics, integration_indices, lipid)
             return area
         else:
-            if lipid.internal_std:
-                print("Failed to quantify", lipid.name, "in", spectra_file.filepath)
-                plt.vlines(lipid.calibrated_rt, 0, np.max(xics[0][:, 1]), linestyles='dashed', color='r')
-                for i in range(len(xics)):
-                    plt.plot(xics[i][:, 0], xics[i][:, 0], label="iso" + str(i))
-                plt.legend()
-                plt.title("Lipid: " + lipid.name)
-                plt.show()
-
-            return None
+            # print("Failed to quantify", lipid.name, "in", spectra_file.filepath)
+            # plt.vlines(lipid.calibrated_rt, 0, np.max(xics[0][:, 1]), linestyles='dashed', color='r')
+            # for i in range(len(xics)):
+            #     plt.plot(xics[i][:, 0], xics[i][:, 1], label="iso" + str(i))
+            # plt.legend()
+            # plt.title("Lipid: " + lipid.name)
+            # plt.show()
+            return 0.0
     else:
-        if lipid.internal_std:
-            print("Failed to quantify", lipid.name, "in", spectra_file.filepath)
-            plt.vlines(lipid.calibrated_rt, 0,np.max(xics[0][:,1]), linestyles='dashed', color='r')
-            for i in range(len(xics)):
-                plt.plot(xics[i][:, 0], xics[i][:, 1], label="iso" + str(i))
-            plt.legend()
-            plt.title("Lipid: " + lipid.name)
-            plt.show()
-        return None
+        # print("Failed to quantify", lipid.name, "in", spectra_file.filepath)
+        # plt.vlines(lipid.calibrated_rt, 0,np.max(xics[0][:,1]), linestyles='dashed', color='r')
+        # for i in range(len(xics)):
+        #     plt.plot(xics[i][:, 0], xics[i][:, 1], label="iso" + str(i))
+        # plt.legend()
+        # plt.title("Lipid: " + lipid.name)
+        # plt.show()
+        return 0.0
 
-def create_spectrafiles(directory):
-    files = match_files(directory, "*.mzML")
-    spectra_files = []
-    for file in files:
-        print("Processing", file)
-        entering_file_info = True
-        while entering_file_info:
-            sample_number = int(input("Enter the sample number: "))
-            biorep = int(input("Enter the biorep number: "))
-            techrep = int(input("Enter the techrep number: "))
-            print("Sample number:", sample_number, "Biorep number:", biorep, "Techrep number:", techrep)
-            accepted = input("Is this correct? (Y/N): ")
-            if accepted.lower() == "y":
-                entering_file_info = False
+def quantify_isomeric_lipids(spectra_file, lipid_group, config):
+    areas = [0.0] * len(lipid_group)
 
-        spectra_files.append(SpectraFile(file, sample_number, biorep, techrep))
+    lipid = lipid_group[0]
+    min_lipid_rt = min(lipid_group, key=lambda x:x.calibrated_rt).calibrated_rt
+    max_lipid_rt = max(lipid_group, key=lambda x:x.calibrated_rt).calibrated_rt
 
-    return spectra_files
+    #They all have the same mass, so we only need to make one set of xics.
+    abs_width = (lipid.mass / 1e6) * config.ppm_tol
+    min_rt = min_lipid_rt - (config.rt_tol / 2)
+    max_rt = max_lipid_rt + (config.rt_tol / 2)
 
-def create_spectrafiles_fromdict(dictionary, sample_of_interest=None):
-    spectra_files = []
-    for file in dictionary:
-        if sample_of_interest is not None:
-            if dictionary[file][0] != sample_of_interest:
-                continue
-        spectra_files.append(SpectraFile(file, dictionary[file][0], dictionary[file][1],
-                                         dictionary[file][2],dictionary[file][3], dictionary[file][4]))
-    return spectra_files
+    masses = [lipid.mass]
+    for i in range(1, config.iso_count):
+        masses.append(lipid.mass + (i * 1.0033))
 
-# def create_spectrafiles_fromfile(filepath):
-#     spectra_files = []
-#     files_df = pd.read_csv(filepath)
-#     filepaths = files_df["Filepath"]
-#     samplenums = files_df["Samplenum"]
-#     bioreps = files_df["Biorep"]
-#     techreps = files_df["Techrep"]
-#     samplevols = files_df["Samplevol"]
-#     stdvols = files_df["Stdvol"]
-#     finalvols = files_df["Finalvol"]
-#     inj_vols = files_df["Injvol"]
+    xics = []
+    for i in range(len(masses)):
+        xic = spectra_file.importer.get_eic(masses[i], abs_width, [min_rt, max_rt])
+        xics.append(xic)
 
 
+    if check_xics(xics, config):
+        rt_int_mono = np.transpose(np.array([xics[0][:, 0], xics[0][:, 1]]))
+        peaks_mono = fastpeakdetect(rt_int_mono)
+        possible_integration_indices = np.empty(len(peaks_mono), dtype=object)
+        for i in range(len(peaks_mono)):
+            possible_integration_indices[i] = check_valid_peak(xics[0], xics[1], peaks_mono[i], config)
 
-def normalize_areas_to_stds(spectra_files, quant_df):
+        #Remove peaks and integration indices where the peak was not found to be valid
+        invalid_integration_indices = []
+        for i in range(len(possible_integration_indices)):
+            if len(possible_integration_indices[i]) == 0:
+                invalid_integration_indices.append(i)
+
+        #Now remove these indices from both peaks_mono and possible_integration_indices
+        peaks_mono = [peak for i,peak in enumerate(peaks_mono) if i not in invalid_integration_indices]
+        possible_integration_indices = [integ for i, integ in enumerate(possible_integration_indices) if i not in invalid_integration_indices]
+
+        # max_intensity = np.max(xics[0][:,1])
+        # for i in range(len(xics)):
+        #     plt.plot(xics[i][:, 0], xics[i][:, 1], label="iso"+str(i))
+
+
+        if len(peaks_mono) == 0:
+            print("No peaks detected")
+            # plt.show()
+            return [0.0 for i in range(len(lipid_group))]
+
+        #In the case where there is only a single valid peak
+        #Assign the closest lipid in RT to that peak
+        elif len(peaks_mono) == 1:
+            delta_rts = [0.0] * len(lipid_group)
+            for i in range(len(lipid_group)):
+                delta_rts[i] = abs(peaks_mono[0][0] - lipid_group[i].calibrated_rt)
+
+            min_index = np.argmin(delta_rts)
+            area = integrate_xics(xics, possible_integration_indices[0], lipid_group[min_index])
+            areas[min_index] = area
+
+            # #print the accepted lipid name and RT in green at the max_intensity
+            # plt.vlines(lipid_group[min_index].calibrated_rt, 0, max_intensity, linestyles='dashed', color='g')
+            # plt.text(lipid_group[min_index].calibrated_rt, max_intensity,
+            #          lipid_group[min_index].name + "_"+ str(lipid_group[min_index].calibrated_rt), color='g')
+            #
+            # for i in range(len(lipid_group)):
+            #     if i == min_index:
+            #         continue
+            #     else:
+            #         plt.vlines(lipid_group[i].calibrated_rt, 0, max_intensity, linestyles='dashed', color='r')
+            #         plt.text(lipid_group[i].calibrated_rt, max_intensity,
+            #                  lipid_group[i].name + "_" + str(lipid_group[i].calibrated_rt), color='r')
+            # plt.legend()
+            # plt.show()
+
+            return areas
+
+        elif len(peaks_mono) < len(lipid_group):
+            print("Fewer peaks than lipids.")
+            rt_sorted_lipid_indices = sorted(range(len(lipid_group)), key=lambda i: lipid_group[i].calibrated_rt)
+            index_combinations = []
+            total_rt_errors = []
+
+            for start in range(len(lipid_group)-len(peaks_mono)):
+                combination = rt_sorted_lipid_indices[start:start+len(peaks_mono)]
+                index_combinations.append(combination)
+
+            for combo in index_combinations:
+                total_rt_error = 0
+                for i,lipid_index in enumerate(combo):
+                    rt_error = abs(peaks_mono[i][0] - lipid_group[lipid_index].calibrated_rt)
+                    total_rt_error += rt_error
+                total_rt_errors.append(total_rt_error)
+
+            min_index = np.argmin(total_rt_errors)
+            for i in range(len(index_combinations[min_index])):
+                lipid_index = index_combinations[min_index][i]
+                area = integrate_xics(xics, possible_integration_indices[i], lipid_group[lipid_index])
+                areas[lipid_index] = area
+
+            # for i in range(len(index_combinations[min_index])):
+            #     lipid_index = index_combinations[min_index][i]
+            #     plt.vlines(lipid_group[lipid_index].calibrated_rt, 0, max_intensity, linestyles='dashed', color='g')
+            #     plt.text(lipid_group[lipid_index].calibrated_rt, max_intensity,
+            #              lipid_group[lipid_index].name + "_" + str(lipid_group[lipid_index].calibrated_rt), color='g')
+            #
+            # for i in range(len(lipid_group)):
+            #     if i in index_combinations[min_index]:
+            #         continue
+            #     else:
+            #         plt.vlines(lipid_group[i].calibrated_rt, 0, max_intensity, linestyles='dashed', color='r')
+            #         plt.text(lipid_group[i].calibrated_rt, max_intensity,
+            #                  lipid_group[i].name + "_" + str(lipid_group[i].calibrated_rt), color='r')
+            # plt.legend()
+            # plt.show()
+
+            return areas
+
+        elif len(peaks_mono) == len(lipid_group):
+            print("Same number of peaks and lipids.")
+            rt_sorted_lipid_indices = sorted(range(len(lipid_group)), key=lambda i: lipid_group[i].calibrated_rt)
+
+            for i in range(len(peaks_mono)):
+                lipid_index = rt_sorted_lipid_indices[i]
+                area = integrate_xics(xics, possible_integration_indices[i], lipid_group[lipid_index])
+                areas[lipid_index] = area
+
+            # for i in range(len(rt_sorted_lipid_indices)):
+            #     lipid_index = rt_sorted_lipid_indices[i]
+            #     plt.vlines(lipid_group[lipid_index].calibrated_rt, 0, max_intensity, linestyles='dashed', color='g')
+            #     plt.text(lipid_group[lipid_index].calibrated_rt, max_intensity,
+            #              lipid_group[lipid_index].name + "_" + str(lipid_group[lipid_index].calibrated_rt), color='g')
+            #
+            # plt.legend()
+            # plt.show()
+            return areas
+
+        #We only get here if more peaks are valid than we have lipids
+        else:
+            print("More peaks than lipids.")
+            rt_sorted_lipid_indices = sorted(range(len(lipid_group)), key=lambda i: lipid_group[i].calibrated_rt)
+            peak_indices = [i for i in range(len(peaks_mono))]
+            combinations = list(itertools.combinations(peak_indices, len(lipid_group)))
+            rt_errors = [0.0] * len(combinations)
+            for i, combo in enumerate(combinations):
+                total_rt_error = 0
+                for j in range(len(combo)):
+                    peak_index = combo[j]
+                    rt_error = abs(peaks_mono[peak_index][0] - lipid_group[j].calibrated_rt)
+                    total_rt_error += rt_error
+                rt_errors[i] = total_rt_error
+
+            min_index = np.argmin(rt_errors)
+            for i in range(len(combinations[min_index])):
+                peak_index = combinations[min_index][i]
+                lipid_index = rt_sorted_lipid_indices[i]
+                area = integrate_xics(xics, possible_integration_indices[peak_index], lipid_group[lipid_index])
+                areas[lipid_index] = area
+
+            # for i in range(len(rt_sorted_lipid_indices)):
+            #     lipid_index = rt_sorted_lipid_indices[i]
+            #     plt.vlines(lipid_group[lipid_index].calibrated_rt, 0, max_intensity, linestyles='dashed', color='g')
+            #     plt.text(lipid_group[lipid_index].calibrated_rt, max_intensity,
+            #              lipid_group[lipid_index].name + "_" + str(lipid_group[lipid_index].calibrated_rt), color='g')
+            #
+            # for i in range(len(combinations[min_index])):
+            #     peak_index = combinations[min_index][i]
+            #     peak = peaks_mono[peak_index]
+            #     plt.scatter([peak[0]], [peak[1]], s=5, c='g')
+            #
+            # for i in range(len(peaks_mono)):
+            #     if i in combinations[min_index]:
+            #         continue
+            #     else:
+            #         plt.scatter([peaks_mono[i][0]], [peaks_mono[i][1]], s=5, c='r')
+            #
+            # plt.legend()
+            # plt.show()
+
+            return areas
+
+    return np.zeros(len(lipid_group))
+
+def create_spectrafiles_fromcsv(filepath, load_importers=True):
+    files_df = pd.read_csv(filepath)
+
+    def make_spectra_file(row):
+        return SpectraFile(
+            row["Filepath"],
+            row["Samplenum"],
+            row["Biorep"],
+            row["Techrep"],
+            row["Samplevol"],
+            row["Stdvol"],
+            load_importers
+        )
+
+    with ThreadPoolExecutor() as executor:
+        spectra_files = executor.map(make_spectra_file, files_df.to_dict("records"))
+
+    return list(spectra_files)
+
+def normalize_areas_to_stds(spectra_files, quant_df, config):
     #These will eventually be removed from the quantification dataframe, but not yet.
     standard_class_indices = {}
     for i in range(len(quant_df["Standard"])):
@@ -467,9 +617,9 @@ def normalize_areas_to_stds(spectra_files, quant_df):
             std_area_in_file = quant_df[spectra_file.fileid][standard_class_indices[lipid_class]]
             if std_area_in_file > 0:
                 if spectra_file.biorep not in br_standard_areas[lipid_class]:
-                    br_standard_areas[lipid_class][spectra_file.biorep] = [std_area_in_file/spectra_file.stdvol]
+                    br_standard_areas[lipid_class][spectra_file.biorep] = [std_area_in_file]
                 else:
-                    br_standard_areas[lipid_class][spectra_file.biorep].append(std_area_in_file/spectra_file.stdvol)
+                    br_standard_areas[lipid_class][spectra_file.biorep].append(std_area_in_file)
 
     br_std_averages = {}
     for lipid_class in br_standard_areas:
@@ -477,58 +627,74 @@ def normalize_areas_to_stds(spectra_files, quant_df):
         for br in br_standard_areas[lipid_class]:
             br_std_averages[lipid_class][br] = np.mean(br_standard_areas[lipid_class][br])
 
+    std_indices = np.array(standard_class_indices.values())
 
     for i in range(len(spectra_files)):
         spectra_file = spectra_files[i]
         standardized_areas = np.array([0.0 for i in range(len(quant_df[spectra_file.fileid]))])
         for j in range(len(quant_df[spectra_file.fileid])):
-            if quant_df["Lipid Class"][j] in standard_class_indices:
-                lipid_area = quant_df[spectra_file.fileid][j] / spectra_file.samplevol
+            if quant_df["Lipid Class"][j] in standard_class_indices and j not in std_indices:
+                lipid_area = quant_df[spectra_file.fileid][j]
                 lipid_class = quant_df["Lipid Class"][j]
-                standard_area = quant_df[spectra_file.fileid][standard_class_indices[lipid_class]]/spectra_file.stdvol
+                standard_area = quant_df[spectra_file.fileid][standard_class_indices[lipid_class]]
                 if standard_area == 0:
                     standard_area = br_std_averages[lipid_class][spectra_file.biorep]
-                standardized_area = lipid_area / standard_area
-                standardized_areas[j] = standardized_area
+                if config.normalize_to_int_stds:
+                    ratio = lipid_area / standard_area
+                    v_normalized = ratio * (spectra_file.stdvol / spectra_file.samplevol)
+                    standardized_areas[j] = v_normalized
+                else:
+                    standardized_areas[j] = lipid_area
 
-        standardized_areas = standardized_areas/np.sum(standardized_areas)
+            elif j in std_indices:
+                standardized_areas[j] = 0
+
+        if config.normalize_to_total:
+            standardized_areas = standardized_areas/np.sum(standardized_areas)
         quant_df[spectra_file.fileid] = standardized_areas
 
     std_indices = np.array(standard_class_indices.values())
     quant_df = quant_df.drop(index=std_indices)
-
-    sample_of_interest = 5
-    #Plot the average standardized area of each lipid for each biological replicate
-    for i in range(len(quant_df["Lipid Name"])):
-        br_areas = {}
-        for j in range(len(spectra_files)):
-            if spectra_files[j].sample_id == sample_of_interest:
-                if spectra_files[j].biorep in br_areas:
-                    br_areas[spectra_files[j].biorep].append(quant_df[spectra_files[j].fileid][i])
-                else:
-                    br_areas[spectra_files[j].biorep] = [quant_df[spectra_files[j].fileid][i]]
-
-        x = list(br_areas.keys())
-        y = [np.mean(v) for v in br_areas.values()]
-
-        plt.bar(x, y)
-        plt.title(quant_df["Lipid Name"][i])
-        plt.show()
+    quant_df.reset_index(drop=True, inplace=True)
 
     return quant_df
+
+def process_file(file_lib_config):
+    file, lib, config = file_lib_config
+    print("Processing", file.filepath)
+
+    calibrate_library_rts(file, lib, config)
+
+    file_areas = [0.0] * len(lib.lipid_indices)
+    for j in range(len(lib.lipid_groups)):
+        if len(lib.lipid_groups[j]) == 1:
+            area = quantify_lipid(file, lib.lipid_groups[j][0], config)
+            index = lib.lipid_indices[lib.lipid_groups[j][0].name]
+            file_areas[index] = area
+            # print(lib.lipid_groups[j][0].name, "quantity:", area)
+        else:
+            areas = quantify_isomeric_lipids(file, lib.lipid_groups[j], config)
+            for i in range(len(lib.lipid_groups[j])):
+                index = lib.lipid_indices[lib.lipid_groups[j][i].name]
+                # print(lib.lipid_groups[j][i].name, "quantity:", areas[i])
+                file_areas[index] = areas[i]
+
+    # Clean up
+    file.importer.close()
+    del file.importer.indexed_file
+
+    return file.fileid, file_areas
 
 if __name__ == "__main__":
     # Set backend to Agg
     mpl.use('WxAgg')
 
     timestart = time.perf_counter()
-    config = PyLineConfig()
+    config = LipidQuantConfig()
+    config.normalize_to_total = True
+    config.normalize_to_int_stds = True
 
     lib = LipidLibrary("Z:\\Group Share\\JGP\\Lipidomics_MassIVE_folder\\rtcalibrated_dda_library.csv", config)
-
-    spectra_files_directory = r"Z:\Group Share\JGP\Lipidomics_MassIVE_folder\Raw\MS1\calibrated_mzML"
-    os.chdir(spectra_files_directory)
-
     #spectra_files = create_spectrafiles(spectra_files_directory)
 
     filenames_id_br_trs_svol_eqvol = {"2024_09_04_AS_46_CS_08_ESIneg_fixed.mzML": [4,1,1,85,45],
@@ -568,31 +734,43 @@ if __name__ == "__main__":
                                        "2024_09_04_AS_80_CS_13_ESIneg_fixed.mzML": [4, 3, 3,30,15]
                                        }
 
-    spectra_files = create_spectrafiles_fromdict(filenames_id_br_trs_svol_eqvol, sample_of_interest=6)
+    spectra_files_csv = r"C:\Users\MartyLabPC\Desktop\MartyLab\calibrated_mzML\lipidquant_CS_LetAB_local.csv"
+    os.chdir(os.path.dirname(spectra_files_csv))
 
-    if True:
+    spectra_files = create_spectrafiles_fromcsv(spectra_files_csv, load_importers=False)
+
+    if False:
         quantification_results = pd.DataFrame()
         quantification_results["Lipid Name"] = [lipid.name for lipid in lib.lipids]
         quantification_results["Lipid Class"] = [lipid.lipid_class for lipid in lib.lipids]
         quantification_results["Standard"] = [lipid.internal_std for lipid in lib.lipids]
 
-        for i in range(len(spectra_files)):
-            print("Processing file:", spectra_files[i].filepath)
-            spectra_files[i].load_indexed_file()
-            file_areas = [0.0 for _ in range(len(lib.lipids))]
-            for j in range(len(lib.lipids)):
-                area = quantify_lipid(spectra_files[i], lib.lipids[j], config)
-                if area is not None:
-                    file_areas[j] = area
-            quantification_results[spectra_files[i].fileid] = file_areas
-            del spectra_files[i].ind_file
+        args = [(file, lib, config) for file in spectra_files]
+
+        if False:
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                results = list(executor.map(process_file, args))
+        else:
+            results = [process_file(f_l_c) for f_l_c in args]
+
+        # Gather results
+        for res in results:
+            fileid, file_areas = res
+            quantification_results[fileid] = file_areas
 
         quantification_results.to_csv("quantified_lipids.csv", index=False)
 
     else:
         quantification_results = pd.read_csv("quantified_lipids.csv", delimiter=",")
 
-    normalize_areas_to_stds(spectra_files, quantification_results)
+    normalized_quantification_results = normalize_areas_to_stds(spectra_files, quantification_results, config)
+
+
+    #compare_skyline_lipidquant(spectra_files, quantification_results)
+    skyline_quant_results = load_skyline_results()
+    normalized_skyquant_results = normalize_areas_to_stds(spectra_files, skyline_quant_results, config)
+    #plot_indlipid_barcharts(spectra_files, normalized_quantification_results)
+    plot_class_piecharts(spectra_files, normalized_skyquant_results)
     timeend = time.perf_counter()
     print("Time to process files:", timeend - timestart)
     exit()
