@@ -190,7 +190,7 @@ def calibrate_mzs(mzs_errors, exp):
     min_mz = 0
     max_mz = 2500
     bin_mzs = np.arange(min_mz, max_mz+bin_width, bin_width)
-    theoretical_mzs, ppm_errors = zip(*mzs_errors)
+    theoretical_mzs, ppm_errors = mzs_errors[0,:], mzs_errors[1,:]
     theoretical_mzs = np.array(theoretical_mzs)
     ppm_errors = np.array(ppm_errors)
 
@@ -213,7 +213,6 @@ def calibrate_mzs(mzs_errors, exp):
         else:
             filtered.addSpectrum(s)
     return filtered
-
 
 
 equisplash_calibrants = [[796.65387, 8.5],

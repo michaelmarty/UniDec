@@ -330,8 +330,7 @@ class IndexedFile:
     """
     A class to store a set of indexed scans originating from a single mzML file.
     """
-    def __init__(self, importer):
-        self.importer = importer
+    def __init__(self):
         self.min_mz = 0
         self.bin_width = 1
         self.indexed_scans = []
