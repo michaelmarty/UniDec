@@ -3,19 +3,20 @@ import time
 # from scipy import fftpack
 from numpy import fft as fftpack
 from numba import njit
+
 try:
     from unidec.IsoDec.isogenwrapper import IsoGenWrapper
 
     # @njit(fastmath=True)
-    def isogenmass(mass):
+    def isogen_nn(mass, type="PEPTIDE"):
         eng = IsoGenWrapper()
-        return eng.gen_isodist(mass)
+        return eng.gen_isodist(mass, type)
 
 except Exception as e:
     print("Could not import IsoGenWrapper")
     print(e)
 
-    def isogenmass(mass):
+    def isogenpep(mass):
         return isomike(mass, length=64)
 
 
@@ -98,7 +99,7 @@ def makemassmike(testmass: float) -> float:
 #@njit(fastmath=True)
 def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467):
     # Predict Isotopic Intensities
-    intensities = isogenmass(mass)
+    intensities = isogen_nn(mass)
     # Calculate masses for these
     masses = np.arange(0, len(intensities)) * mass_diff_c + mass
 
@@ -118,9 +119,9 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467):
 
 
 #@njit(fastmath=True)
-def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007276467, isotopethresh: float = 0.01):
+def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007276467, isotopethresh: float = 0.01, type = "PEPTIDE"):
     # Predict Isotopic Intensities
-    intensities = isogenmass(mass)
+    intensities = isogen_nn(mass, type)
     # Calculate masses for these
     masses = np.arange(0, len(intensities)) * mass_diff_c + mass
 
@@ -205,7 +206,7 @@ pre_ft = np.array([cft, hft, nft, oft, sft, feft, kft, caft, nift, znft, mgft])
 
 
 # @njit(fastmath=True)
-def isojim(isolist, length=isolength):
+def isojim(isolist, length):
     """Thanks to Jim Prell for Sketching this Code"""
     '''
     Takes as in input a list of numbers of elements in the order above [C, H, N, O, S, P, Fe, K, Ca, Ni, Zn, Mg]
@@ -223,10 +224,10 @@ def isojim(isolist, length=isolength):
     allift = np.abs(fftpack.irfft(allft))
     # allift = np.abs(allift)
     allift = allift / np.amax(allift)
-    return allift[:isolength]  # .astype(nb.float64)
+    return allift[:length]  # .astype(nb.float64)
 
 # @njit(fastmath=True)
-def isojim_rna(isolist, length=isolength):
+def isojim_rna(isolist, length):
     numc = isolist[0]
     numh = isolist[1]
     numn = isolist[2]
@@ -242,7 +243,7 @@ def isojim_rna(isolist, length=isolength):
     allift = np.abs(fftpack.irfft(allft))
     # allift = np.abs(allift)
     allift = allift / np.amax(allift)
-    return allift[:isolength]  # .astype(nb.float64)
+    return allift[:length]  # .astype(nb.float64)
 
 
 # @njit(fastmath=True)

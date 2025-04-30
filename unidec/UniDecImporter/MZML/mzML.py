@@ -2,15 +2,12 @@ import time
 import numpy as np
 import os
 from copy import deepcopy
-
 from unidec import tools as ud
-
 import pymzml
 from pymzml.utils.utils import index_gzip
 import pymzml.obo
-
 from unidec.UniDecImporter.Importer import Importer
-from unidec.UniDecImporter.ImportTools import get_resolution
+from unidec.UniDecImporter.ImportTools import get_resolution, IndexedFile, IndexedScan
 import re
 
 __author__ = 'Michael.Marty'
@@ -97,6 +94,7 @@ class MZMLImporter(Importer):
         super().__init__(path, **kwargs)
 
         self.msrun = pymzml.run.Reader(path) #, build_index_from_scratch=True)
+        self.levels = None
         self.init_scans()
 
         self.cdms_support = True
@@ -105,23 +103,24 @@ class MZMLImporter(Importer):
         print("Reading mzML file:", path)
 
     def init_scans(self):
-        self.times = []
-        self.scans = []
-        for i, spectrum in enumerate(self.msrun):
+        get_time = lambda s: s.scan_time_in_minutes()
+
+        times, scans, levels = [], [], []
+        for spectrum in self.msrun:
+            level = getattr(spectrum, 'ms_level', None)
+            if level is None:
+                continue
             try:
-                if spectrum.ms_level is None:
-                    continue
-                t = spectrum.scan_time_in_minutes()
-                id = spectrum.ID
-                self.times.append(float(t))
-                self.scans.append(id)
-            except:
-                pass
-        self.times = np.array(self.times)
-        self.scans = np.array(self.scans)
-        # if self.scans[0] == 0:
-        #     self.scans += 1
-        self.scan_range = [int(np.amin(self.scans)), int(np.amax(self.scans))]
+                times.append(float(get_time(spectrum)))
+                scans.append(spectrum.ID)
+                levels.append(level)
+            except Exception:
+                continue
+
+        self.times = np.array(times, dtype=np.float32)
+        self.scans = np.array(scans)
+        self.levels = np.array(levels)
+        self.scan_range = [int(self.scans.min()), int(self.scans.max())]
         self.reset_reader()
 
     def get_single_scan(self, scan):
@@ -169,7 +168,6 @@ class MZMLImporter(Importer):
         self.msrun.close()
         self.msrun = pymzml.run.Reader(self._file_path)
 
-
     def get_all_scans(self, threshold=-1):
         self.reset_reader()
         newtimes = []
@@ -189,7 +187,6 @@ class MZMLImporter(Importer):
         self.reset_reader()
         return self.data
 
-
     def get_avg_scan(self, scan_range=None, time_range=None):
         """
         Returns merged 1D MS data from mzML import
@@ -206,7 +203,10 @@ class MZMLImporter(Importer):
             tic = self.msrun["TIC"]
             ticdat = np.transpose([tic.time, tic.i])
             if len(ticdat) != len(self.scans):
-                print("TIC too long. Likely extra non-MS scans", len(ticdat), len(self.scans))
+                print("TIC wrong size. Likely extra non-MS scans", len(ticdat), len(self.scans))
+                raise Exception
+            if not np.isclose(ticdat[-1,0],  self.times[-1]):
+                print("TIC end time not equal to scan end time")
                 raise Exception
         except:
             print("Error getting TIC in mzML; trying to make it...")
@@ -295,11 +295,6 @@ class MZMLImporter(Importer):
             return "Positive"
         return None
 
-    def get_ms_order(self, scan=1):
-        if scan == -1:
-            scan = self.scans[0]
-        order = self.msrun[scan].ms_level
-        return order
 
     def get_isolation_mz_width(self, s):
         scan = self.msrun[s]
@@ -331,15 +326,22 @@ class MZMLImporter(Importer):
         data_array = np.transpose([mz, intensity, scans, it])
         return data_array
 
+
     def close(self):
         self.msrun.close()
 
 if __name__ == "__main__":
+
+    print("This is a test")
+    exit()
     test = "Z:\\Group Share\\JGP\\DataForJoe\\TF_centroided.mzML"
     test = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_mzml.mzML"
-    test = "Z:\\Group Share\\JGP\\DataForJoe\\TF_centroided.mzML"
+    # test = "Z:\\Group Share\\JGP\\DataForJoe\\TF_centroided.mzML"
+    test = "C:\\Data\\Sergei\\50.mzML"
     importer = MZMLImporter(test)
-    dat = importer.get_avg_scan()
+    # print(importer.scans)
+    # print(importer.times)
+    print(importer.get_tic())
 
     exit()
     #test = "C:\\Data\\RileyLab\\exportMGF_10spectra.mzML"

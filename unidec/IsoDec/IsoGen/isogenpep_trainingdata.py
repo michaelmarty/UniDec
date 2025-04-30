@@ -229,6 +229,16 @@ if __name__ == "__main__":
     # parse_file("mouse_protein_seqs.tsv", maxn=None, maxlen=200)
 
     human_prot_data =  np.load("human_protein_seqs.npz")
+    print("Keys:", human_prot_data.files)
+
+    # Access values
+    X = human_prot_data["seqs"]
+    Y = human_prot_data["dists"]
+
+    # Show first 5 entries of each
+    print("First 5 sequences (X):", X[:5])
+    print("First 5 distributions (Y):", Y[:5])
+    exit()
     gen_random_seqs_even_length(human_prot_data["seqs"], "human", nmods=2, min_length=50, max_length=200)
 
     yeast_prot_data = np.load("yeast_protein_seqs.npz")

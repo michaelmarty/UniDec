@@ -21,36 +21,17 @@ message(STATUS "FFTW_DIR: ${FFTW_DIR}")
 include_directories("${SRC_DIR}")
 include_directories("${FFTW_DIR}")
 
-# ======================== IsoGen Mass Builds ========================
-
-#add_library(isogenmass SHARED
-#        isogenmass.c isogenmass.h
-#        isogendep.c isogendep.h ${FFTW_DIR}/fftw3.h
-#        isogenpep.c
-#        isogenrna.c
-#        isogenatom.c
-#        isogenrna.h
-#        isogenatom.h)
-#set_target_properties(isogenmass PROPERTIES LINKER_LANGUAGE C)
-#target_compile_definitions(isogenmass PRIVATE ISOGEN_EXPORTS)
-#target_include_directories(isogenmass PUBLIC ${FFTW_DIR})
-#
-#
-#target_link_libraries(isogen PUBLIC isogenmass)
-#set_target_properties(isogen PROPERTIES LINKER_LANGUAGE C)
-#
-#install(TARGETS isogenmass DESTINATION ${INSTALL_DIR})
 
 
 # ======================== IsoGen Builds ========================
 
 add_library(isogen SHARED
-                isogenmass.c isogenmass.h
                 isogendep.c isogendep.h
                 ${FFTW_DIR}/fftw3.h
                 isogenpep.c isogenpep.h
                 isogenrna.c isogenrna.h
                 isogenatom.c isogenatom.h
+        isogen_weights.h
 )
 set_target_properties(isogen PROPERTIES LINKER_LANGUAGE C)
 target_include_directories(isogen PUBLIC ${FFTW_DIR})
@@ -80,7 +61,7 @@ install(TARGETS isogen DESTINATION ${INSTALL_DIR})
 
 # ======================== IsoDec Builds ========================
 
-add_library(isodeclib SHARED isodeclib.c isodeclib.h phase_model_4.h phase_model_8.h)
+add_library(isodeclib SHARED isodeclib.c isodeclib.h phase_model_4.h phase_model_8.h isogenpep.h)
 set_target_properties(isodeclib PROPERTIES LINKER_LANGUAGE C)
 
 target_link_libraries(isodeclib PUBLIC isogen)
@@ -110,19 +91,6 @@ endif()
 
 
 install(TARGETS isodeclib DESTINATION ${INSTALL_DIR})
-
-# isodec_test
-#add_executable(isodec_test isodec_test.cpp)
-#target_link_libraries(isodec_test PUBLIC isodeclib)
-#set_target_properties(isodec_test PROPERTIES LINKER_LANGUAGE C)
-
-
-#generate_export_header(isodeclib
-#        BASE_NAME isodeclib
-#        EXPORT_MACRO_NAME ISODEC_EXPORTS
-#        EXPORT_FILE_NAME isodec_exports.h
-#        DEFINE_NO_DEPRECATED
-#)
 
 
 

@@ -10,7 +10,7 @@ from copy import deepcopy
 import zipfile
 import fnmatch
 
-import numpy as np
+
 import scipy.fft
 import scipy.ndimage.filters as filt
 from numba import njit
@@ -21,9 +21,10 @@ from scipy import fftpack
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 
-from unidec.IsoDec.datatools import get_all_centroids
+
+
 from unidec.modules.fitting import *
-from unidec.IsoDec import datatools as dt
+
 
 # ...............................
 #
@@ -534,30 +535,52 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             print("No window set for local max position!\nUsing entire data range....")
 
     elif extract_method == 5:
-        # Remove data points that fall below 50% threshold
-        maxval = np.amax(data[:, 1])
-        boo2 = data[:, 1] > maxval * 0.5
-        cutdat = data[boo2]
-        # Extract from thresholded data
+        # Center of Mass Above 50% Threshold
         if window is not None:
+            # Cut data Range Down
             start = x - window
             end = x + window
+            cutdat = datachop(data, start, end)
+
+            # Remove data points that fall below 50% threshold
+            maxval = np.amax(cutdat[:, 1])
+            boo2 = cutdat[:, 1] > maxval * 0.5
+            cutdat = cutdat[boo2]
+
+            # Extract from thresholded data
             val, junk = center_of_mass(cutdat, start, end)
         else:
+            # Remove data points that fall below 50% threshold
+            maxval = np.amax(data[:, 1])
+            boo2 = data[:, 1] > maxval * 0.5
+            cutdat = data[boo2]
+
+            # Extract from cut data
             val, junk = center_of_mass(cutdat, cutdat[0, 0], cutdat[len(data) - 1, 0])
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 6:
-        # Remove data points that fall below 10% threshold
-        maxval = np.amax(data[:, 1])
-        boo2 = data[:, 1] > maxval * 0.1
-        cutdat = data[boo2]
-        # Extract from thresholded data
+        # Center of Mass Above 10% Threshold
         if window is not None:
+            # Cut data Range Down
             start = x - window
             end = x + window
+            cutdat = datachop(data, start, end)
+
+            # Remove data points that fall below 10% threshold
+            maxval = np.amax(cutdat[:, 1])
+            boo2 = cutdat[:, 1] > maxval * 0.1
+            cutdat = cutdat[boo2]
+
+            # Extract from thresholded data
             val, junk = center_of_mass(cutdat, start, end)
         else:
+            # Remove data points that fall below 10% threshold
+            maxval = np.amax(data[:, 1])
+            boo2 = data[:, 1] > maxval * 0.1
+            cutdat = data[boo2]
+
+            # Extract from cut data
             val, junk = center_of_mass(cutdat, cutdat[0, 0], cutdat[len(data) - 1, 0])
             print("No window set for center of mass!\nUsing entire data range....")
 
@@ -637,23 +660,24 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
                 val = height * fwhm * adjusted_coeff
 
     elif extract_method == 12:
-        # Peak Area with 10% relative threshold
-        start = nearest(data[:, 0], (x - window))  # x values should be sorted
-        end = nearest(data[:, 0], (x + window))
-        data_slice = data[start:end]
-        max_index = np.argmax(data_slice[:, 1])
-        local_height = data_slice[max_index, 1]
-
-        boo2 = data[:, 1] > local_height * 0.1
-        cutdat = data[boo2]
         if window is not None:
-            start = x - window
-            end = x + window
+            # Peak Area with 10% relative threshold
+            start = nearest(data[:, 0], (x - window))  # x values should be sorted
+            end = nearest(data[:, 0], (x + window))
+            data_slice = data[start:end]
+            max_index = np.argmax(data_slice[:, 1])
+            local_height = data_slice[max_index, 1]
+
+            boo2 = data[:, 1] > local_height * 0.1
+            cutdat = data[boo2]
+
             val, junk = integrate(cutdat, start, end)
         else:
-            index = nearest(data[:, 0], x)
-            val = data[index, 1]
-            print("NEED TO SET INTEGRAL WINDOW!\nUsing Peak Height Instead")
+            boo2 = data[:, 1] > np.amax(data[:,1]) * 0.1
+            cutdat = data[boo2]
+
+            val, junk = integrate(cutdat, cutdat[0,0], cutdat[len(cutdat)-1, 0])
+            print("Window undefined for area extraction!\nUsing entire data range....")
 
     else:
         val = 0
@@ -1516,7 +1540,7 @@ def smash2d(data, midpoint, window, ymidpoint, ywindow):
     return data
 
 
-def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
+def dataprep(datatop, config, peaks=True, intthresh=True, silent=False, centroided_dat = None):
     """
     Main function to process 1D MS data. The order is:
 
@@ -1546,12 +1570,15 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
     va = config.detectoreffva
     linflag = config.linflag
     redper = config.reductionpercent
+    if centroided_dat is not None:
+        data2 = centroided_dat
+
+    else:
+        data2 = datatop
     if type(newmin) != str and type(newmax) != str:
         # Crop Data
-        data2 = datachop(deepcopy(datatop), newmin, newmax)
-    else:
-        data2 = deepcopy(datatop)
-
+        data2 = datachop(deepcopy(data2), newmin, newmax)
+    print(data2.shape)
     if config.smashflag == 1:
         print("Smashing!:", config.smashlist)
         for i in range(0, len(config.smashlist)):
@@ -1561,7 +1588,6 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
         print("Error: m/z range is too small. No data fits the range.")
     # correct for detector efficiency
     if va != 0:
-        # data2=detectoreff(data2,9.1)
         data2 = detectoreff(data2, va)
 
     # Smooth Data
@@ -1576,6 +1602,8 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
             data2 = nonlinearize(data2, binsize)
 
     # Baseline Subtraction
+    # print(subtype)
+    # print(buff)
     buff = abs(buff)
     if subtype == 1 and buff != 0:
         data2 = datasimpsub(data2, buff)
@@ -1597,14 +1625,17 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
 
     # Data Reduction
     if redper > 0:
+
         data2 = remove_noise(data2, redper)
 
     if config.datanorm == 1:
         # Normalization
+
         data2 = normalize(data2)
 
     # Intensity Threshold
     if thresh > 0 and intthresh:
+
         # print(len(data2))
         data2 = intensitythresh(data2, thresh)  # thresh
         if not silent:
@@ -1619,11 +1650,13 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
         # peakind = signal.find_peaks_cwt(data2[:,1], widths)
         # data2 = data2[peakind]
         data2 = peakdetect(data2, window=-redper, threshold=thresh)
+
         if not silent:
             print(data2)
 
     if linflag == 2:
         try:
+            #This is truncating
             data2 = remove_middle_zeros(data2)
         except:
             pass
@@ -2289,7 +2322,7 @@ def get_autocorr_ratio(data):
     ratio = corry[maxindex+1]
     return ratio
 
-def test_centroided(data, cutoff=0.8):
+def is_centroided(data, cutoff=0.8):
     ratio = get_autocorr_ratio(data)
     if ratio > cutoff:
         return True
@@ -2571,7 +2604,7 @@ def win_fft_diff(rawdata, binsize=0.05, sigma=1000, diffrange=None, norm=True):
     return maxdiff, fftdat
 
 
-def calc_FWHM(peak, data):
+def calc_FWHM(peak, data, factor=0.5):
     index = nearest(data[:, 0], peak)
     int = data[index, 1]
     leftwidth = 0
@@ -2583,7 +2616,7 @@ def calc_FWHM(peak, data):
         if leftfound is False:
             if index - counter < 0:
                 leftfound = True
-            elif data[index - counter, 1] <= int / 2.:
+            elif data[index - counter, 1] <= int * factor:
                 leftfound = True
                 leftwidth += 1
             else:
@@ -2591,7 +2624,7 @@ def calc_FWHM(peak, data):
         if rightfound is False:
             if index + counter >= len(data):
                 rightfound = True
-            elif data[index + counter, 1] <= int / 2.:
+            elif data[index + counter, 1] <= int * factor:
                 rightfound = True
                 rightwidth += 1
             else:
@@ -2803,6 +2836,9 @@ def within_ppm(theo, exp, ppmtol):
     # print("Within ppm ppm-error: " + str(ppm_error))
     return np.abs(((theo - exp) / theo) * 1e6) <= ppmtol
 
+@njit
+def within_abs(theo,exp,tol):
+    return np.abs(theo-exp) <= tol
 
 def find_dll(targetfile, dir):
     if dir is None:
@@ -2932,19 +2968,14 @@ def force_register(path):
 
 
 if __name__ == "__main__":
-    ls = find_all_dependencies("C:\\Python\\UniDec3")
-    for i in ls:
-        print(i)
+    # ls = find_all_dependencies("C:\\Python\\UniDec3")
+    # for i in ls:
+    #     print(i)
+
+    # Load example file
+    data = np.loadtxt("C:\\Python\\UniDec3\\unidec\\bin\\Example Data\\BSA.txt")
+    print(data)
+
+    print(data_extract(data, 1200, 5, 100))
 
 
-    exit()
-    x = [0., 1., 2., 3., 4.]
-    y = [1, 0.7, 0.5, 0.4, 0.3]
-    import matplotlib.pyplot as plt
-
-    y = logistic(np.array(x), 2, -10, 1, 1)
-    plt.plot(x, y)
-    plt.show()
-    # fit=sig_fit(x,y)
-    # print fit
-    pass

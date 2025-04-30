@@ -203,6 +203,8 @@ v.8.0.2
 
 Added menu option to export conf.dat text file from UniChrom and MetaUniDec.
 
+Fixed potential mzML issue with TIC having seconds and scans having minutes. 
+
 v.8.0.1
 
 Improved CD-MS defaults.

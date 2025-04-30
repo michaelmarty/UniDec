@@ -1,6 +1,6 @@
+import os
 
 import numpy as np
-
 from unidec.IsoDec.datatools import fastnearest, fastwithin_abstol_withnearest, fastwithin_abstol
 from typing import List, Tuple
 from numba import njit
@@ -11,6 +11,7 @@ import unidec.tools as ud
 import unidec.IsoDec.msalign_export as msalign
 import math
 import pandas as pd
+# from Scripts.JGP.IsoDec_Analysis.compare_msaligns import *
 
 
 class IsoDecConfig: # (udstruct.UniDecConfig):
@@ -83,6 +84,7 @@ class MatchedCollection:
         self.peaks = []
         self.masses = []
         self.monoisos = np.array([])
+        self.precursors = np.array([])
         self.colormap = mpl.colormaps.get_cmap("tab10")
 
     def __str__(self):
@@ -241,7 +243,8 @@ class MatchedCollection:
 
                 elif len(matched_indices) == 1:
                     #Add the peak to the matched mass
-                    self.masses[matched_indices[0]].scans = np.append(self.masses[matched_indices[0]].scans, pk.scan)
+                    if pk.scan not in self.masses[matched_indices[0]].scans:
+                        self.masses[matched_indices[0]].scans = np.append(self.masses[matched_indices[0]].scans, pk.scan)
                     self.masses[idx].totalintensity += pk.matchedintensity
                     self.masses[idx].totalpeaks += 1
 
@@ -404,7 +407,8 @@ class MatchedCollection:
         print("MS2 Features:", ms2_features)
 
         msalign.write_ms1_msalign(ms1_scan_dict, ms2_scan_dict, filename, config)
-        msalign.write_ms2_msalign(ms2_scan_dict, ms1_scan_dict, reader, filename, config, max_precursors=max_precursors, act_type=act_type)
+        msalign.write_ms2_msalign(ms2_scan_dict, ms1_scan_dict, reader, filename, config,
+                                  max_precursors=max_precursors, act_type=act_type, report_multiple_monoisos=False)
 
     def to_df(self, avg = False):
         """
@@ -478,7 +482,7 @@ class MatchedPeak:
     """
     Matched peak object for collecting data on peaks with matched distributions
     """
-    def __init__(self, z, mz,  avgmass, centroids=None, isodist=None, matchedindexes=None, isomatches=None):
+    def __init__(self, z, mz, avgmass=None, centroids=None, isodist=None, matchedindexes=None, isomatches=None):
         self.mz = mz
         self.z = z
         self.centroids = centroids
@@ -541,7 +545,135 @@ def df_to_matchedcollection(df, monoiso="Monoisotopic Mass", peakmz="Most Abunda
     return mc
 
 
-def read_msalign_to_matchedcollection(file, data=None, mz_type="monoiso"):
+def read_msalign_to_matchedcollection_fast(file, decon_engine=None, data=None, mz_type="monoiso", msorder=1):
+    mc = MatchedCollection()
+
+    msalign_filename = os.path.splitext(os.path.basename(file))[0]
+    msalign_filename = msalign_filename.replace("_ms2", "")
+
+    scan_lines = []
+    with (open(file, "r") as f):
+        adding_to_scan = False
+        for line in f:
+            if "BEGIN IONS" in line:
+                adding_to_scan = True
+                current_scan = []
+            elif "END IONS" in line:
+                scan_lines.append(current_scan)
+                adding_to_scan = False
+            elif adding_to_scan:
+                current_scan.append(line)
+            else:
+                continue
+    for lineset in scan_lines:
+        parse_line_set(mc, msalign_filename, decon_engine, lineset, data=data, scan_order=msorder)
+    for peak in mc.peaks:
+        peak.ms_order = msorder
+    print("Loaded", len(mc.peaks), "peaks from msalign file")
+    return mc
+
+def parse_line_set(mc, filename, decon_engine, lines, data=None, scan_order=2):
+    scan = None
+    current_rt = None
+    current_precursor_mass = None
+    current_precursor_charge = None
+    current_precursor_intensity = None
+    current_precursor_mz = None
+    current_ms1_scan = None
+    current_ms2_scan = None
+    ionstart = None
+    rawpeaks = []
+    for i, line in enumerate(lines):
+        if "SCANS" in line:
+            scan = int(line.split("=")[1])
+            current_ms2_scan = int(line.split("=")[1])
+        if "RETENTION_TIME" in line:
+            current_rt = float(line.split("=")[1]) / 60
+        if "PRECURSOR_MASS" in line:
+            try:
+                mass_split = line.split("=")
+                if ":" not in mass_split[1]:
+                    current_precursor_mass = float(mass_split[1])
+                else:
+                    newsplit = mass_split[1].split(":")
+                    current_precursor_mass = float(newsplit[0])
+            except Exception as e:
+                current_precursor_mass = -1
+        if "PRECURSOR_CHARGE" in line:
+            try:
+                zsplit = line.split("=")
+                if ":" not in zsplit[1]:
+                    current_precursor_charge = int(line.split("=")[1])
+                else:
+                    newsplit = zsplit[1].split(":")
+                    current_precursor_charge = int(newsplit[0])
+            except Exception as e:
+                current_precursor_charge = -1
+        if "PRECURSOR_INTENSITY" in line:
+            try:
+                intsplit = line.split("=")
+                if ":" not in intsplit[1]:
+                    current_precursor_intensity = float(line.split("=")[1])
+                else:
+                    newsplit = intsplit[1].split(":")
+                    current_precursor_intensity = float(newsplit[0])
+            except Exception as e:
+                current_precursor_intensity = 0
+
+        if "PRECURSOR_MZ" in line:
+            try:
+                mzsplit = line.split("=")
+                if ":" not in mzsplit[1]:
+                    current_precursor_mz = float(line.split("=")[1])
+                else:
+                    newsplit = mzsplit[1].split(":")
+                    current_precursor_mz = float(newsplit[0])
+            except Exception as e:
+                current_precursor_mz = -1
+
+        if "MS_ONE_SCAN" in line:
+            current_ms1_scan = int(line.split("=")[1])
+        if "=" not in line:
+            ionstart = i
+            break
+    if ionstart is None:
+        return
+    for i in range(ionstart, len(lines)):
+        line = lines[i]
+        split = line.split("\t")
+        mz = (float(split[0]) + (1.007276467 * int(split[2]))) / int(split[2])
+        pk = MatchedPeak(int(split[2]), mz)
+        pk.monoisos = [float(split[0])]
+        pk.scan = scan
+        pk.monoiso = float(split[0])
+        pk.matchedintensity = float(split[1])
+        pk.rt = current_rt
+        pk.ms_order = scan_order
+
+        isodist = fast_calc_averagine_isotope_dist(pk.monoiso, pk.z)
+        if data is not None:
+            # Find nearest peak in data
+            mz = isodist[np.argmax(isodist[:, 1]), 0]
+            startindex = fastnearest(data[:, 0], mz)
+            # endindex = fastnearest(data[:, 0], mz + window[1])
+
+            dmax = data[startindex, 1]
+
+        else:
+            dmax = 10000
+
+        for i in range(len(isodist)):
+            isodist[i, 1] *= dmax
+        pk.isodist = isodist
+
+        pk.mz = isodist[np.argmax(isodist[:, 1]), 0]
+
+        rawpeaks.append(pk)
+
+    mc.peaks.extend(mc.group_peaks(rawpeaks))
+    return
+
+def read_msalign_to_matchedcollection(file, data=None, mz_type="monoiso", mass_type="monoiso"):
     """
     Read an msalign file to a MatchedCollection object
     :param file: Path to msalign file
@@ -572,15 +704,28 @@ def read_msalign_to_matchedcollection(file, data=None, mz_type="monoiso"):
                 current_rt = float(line.split("=")[1])/60
                 continue
             elif "=" not in line and len(line) > 1:
-                split = line.split("\t")
-                mz = (float(split[0]) + (1.007276467 * int(split[2]))) / int(split[2])
-                pk = MatchedPeak(int(split[2]), mz)
-                pk.monoisos = [float(split[0])]
-                pk.scan = current_scan
-                pk.monoiso = float(split[0])
-                pk.matchedintensity = float(split[1])
-                pk.rt = current_rt
-                scan_peaks.append(pk)
+                if mass_type == "monoiso":
+                    split = line.split("\t")
+                    mz = (float(split[0]) + (1.007276467 * int(split[2]))) / int(split[2])
+                    pk = MatchedPeak(int(split[2]), mz)
+                    pk.monoisos = [float(split[0])]
+                    pk.scan = current_scan
+                    pk.monoiso = float(split[0])
+                    pk.matchedintensity = float(split[1])
+                    pk.rt = current_rt
+                    scan_peaks.append(pk)
+                elif mass_type == "peak":
+                    split = line.split("\t")
+
+                    estimated_monoiso = get_estimated_monoiso(float(split[0]))
+                    mz = (estimated_monoiso + (1.007276467 * int(split[2]))) / int(split[2])
+                    pk = MatchedPeak(int(split[2]), mz)
+                    pk.monoisos = [estimated_monoiso]
+                    pk.scan = current_scan
+                    pk.monoiso = estimated_monoiso
+                    pk.matchedintensity = float(split[1])
+                    pk.rt = current_rt
+                    scan_peaks.append(pk)
 
                 isodist = fast_calc_averagine_isotope_dist(pk.monoiso, pk.z)
                 if data is not None:
@@ -600,6 +745,54 @@ def read_msalign_to_matchedcollection(file, data=None, mz_type="monoiso"):
                     pk.mz = isodist[np.argmax(isodist[:, 1]), 0]
                 pk.isodist = isodist
     print("Loaded", len(mc.peaks), "peaks from msalign file")
+    return mc
+
+def read_fd_tsv_to_matchedcollection(file, data=None, mz_type="monoiso"):
+    mc = MatchedCollection()
+
+
+    with open(file, "r") as f:
+        for i,line in enumerate(f):
+            if i == 0:
+                continue
+            else:
+                split = line.split('\t')
+                monoiso = float(split[6])
+                min_z = int(split[8])
+                max_z = int(split[9])
+                # snr = float(split[14])
+                # if snr < 2:
+                #     continue
+                for z in range(min_z, max_z+1):
+                    mz = (monoiso + (1.007276467 * z)) / z
+                    pk = MatchedPeak(z, mz)
+                    pk.monoisos = [monoiso]
+                    pk.scan = int(split[2])
+                    pk.monoiso = monoiso
+                    pk.matchedintensity = float(split[7])
+                    pk.rt = float(split[3])
+
+
+                    isodist = fast_calc_averagine_isotope_dist(pk.monoiso, pk.z)
+                    if data is not None:
+                        # Find nearest peak in data
+                        mz = isodist[np.argmax(isodist[:, 1]), 0]
+                        startindex = fastnearest(data[:, 0], mz)
+                        # endindex = fastnearest(data[:, 0], mz + window[1])
+
+                        dmax = data[startindex, 1]
+
+                    else:
+                        dmax = 10000
+
+                    for i in range(len(isodist)):
+                        isodist[i, 1] *= dmax
+                    if mz_type == "monoiso":
+                        pk.mz = isodist[np.argmax(isodist[:, 1]), 0]
+                    pk.isodist = isodist
+                    mc.add_peak(pk)
+
+    print("Loaded", len(mc.peaks), "peaks from FLASHDeconv .tsv file")
     return mc
 
 
@@ -800,7 +993,6 @@ def compare_matchedmasses(coll1, coll2, ppmtol=20, maxshift=3, rt_tol = 2, f_sha
 
     return percent_matched1, percent_matched2, percent_intensity1, percent_intensity2, len(matched_coll1), len(matched_coll2), len(monoisos1), len(monoisos2)
 
-
 def compare_annotated(l1, l2, ppmtol, maxshift):
     unique_annotated = []
     unique_experimental = []
@@ -852,7 +1044,6 @@ def compare_annotated(l1, l2, ppmtol, maxshift):
 
 def is_close(mz1, mz2, tolerance):
     return abs(mz1 - mz2) <= tolerance
-
 
 def compare_matched_ions(coll1, coll2, other_alg=None):
     shared1 = []
@@ -951,7 +1142,7 @@ def create_isodist(peakmz, charge, data, adductmass=1.007276467):
     return isodist
 
 
-@njit(fastmath=True)
+#@njit(fastmath=True)
 def create_isodist2(monoiso, charge, maxval, adductmass=1.007276467):
     charge = float(charge)
     isodist = fast_calc_averagine_isotope_dist(monoiso, charge=charge)
@@ -970,6 +1161,7 @@ def create_isodist_full(peakmz, charge, data, adductmass=1.007276467, isotopethr
     """
     charge = float(charge)
     mass = (peakmz - adductmass) * charge
+
     isodist, massdist = fast_calc_averagine_isotope_dist_dualoutput(mass, charge=charge, adductmass=adductmass,
                                                                     isotopethresh=isotopethresh)
     isodist[:, 1] *= np.amax(data[:, 1])
@@ -1311,8 +1503,9 @@ def read_manual_annotations(path=None, delimiter=' ', data=None):
                 currCharge = row[1].strip()
                 z = MatchedPeak(mz=peak, z=int(currCharge))
                 peakmass = (peak - 1.007276467) * int(currCharge)
-                monoiso = get_estimated_monoiso(peakmass)
-                isodist = fast_calc_averagine_isotope_dist(monoiso, currCharge)
+                z.monoiso = get_estimated_monoiso(peakmass)
+                z.monoisos = [z.monoiso]
+                isodist = fast_calc_averagine_isotope_dist(z.monoiso, currCharge)
                 if data is not None:
                     # Find nearest peak in data
                     mz = isodist[np.argmax(isodist[:, 1]), 0]

@@ -57,25 +57,45 @@ if __name__ == "__main__":
 
     os.chdir("Z:\\Group Share\\JGP\\PeptideTraining\\IntactProtein\\Training")
 
-    isolen = 32
+    isolen = 8
     # trainfile = "peptidedists_633886.npz"
     trainfile = "Z:\\Group Share\\JGP\\PeptideTraining\\peptidedists_2492495.npz"
     # trainfile_synthetic = "peptidedists_synthetic_168420.npz"
     trainfile_synthetic = "Z:\\Group Share\\JGP\\PeptideTraining\\peptidedists_synthetic_3368720.npz"
 
-    intact1 = "training_random_human_proteins_10000_min_50_max_200.npz"
-    intact2 = "training_random_yeast_proteins_10000_min_50_max_200.npz"
-    intact3 = "training_random_mouse_proteins_10000_min_50_max_200.npz"
-    intact4 = "training_random_ecoli_proteins_10000_min_50_max_200.npz"
+    #intact1 = "training_random_human_proteins_10000_min_50_max_200.npz"
+    #intact2 = "training_random_yeast_proteins_10000_min_50_max_200.npz"
+    # intact3 = "training_random_mouse_proteins_10000_min_50_max_200.npz"
+    # intact4 = "training_random_ecoli_proteins_10000_min_50_max_200.npz"
 
-    eng_pep = IsoGenPepEngine(isolen=32)
-    eng_prot = IsoGenPepEngine(isolen=64)
+
+    # syn_dat = np.load(trainfile_synthetic)
+    # short_seqs = []
+    # seq_dists = []
+    # seqs = syn_dat["seqs"]
+    # dists = syn_dat["dists"]
+    # for i in zip(seqs,dists):
+    #     if len(i[0]) > 50:
+    #         continue
+    #     #print(i[1])
+    #     short_seqs.append(i[0])
+    #     seq_dists.append(i[1])
+    #
+    # np.savez("Z:\\Group Share\\JGP\\PeptideTraining\\peptidedists_synthetic_3368720_short.npz", seqs=short_seqs, dists=seq_dists)
+    #
+    # exit()
+
+
+    eng_prot = IsoGenPepEngine(isolen=8)
+    load = "Z:\\Group Share\\JGP\\PeptideTraining\\peptidedists_synthetic_3368720_short.npz"
     if True:
         # print("Training Peptide Model")
-        # eng_pep.train_multiple([trainfile, trainfile_synthetic], epochs=10, forcenew=True)
+        #eng_pep.train_multiple([trainfile_synthetic], epochs=10, forcenew=True)
+        eng_prot.train(load, epochs=10, forcenew=True)
         print("Training Protein Model")
-        eng_prot.train_multiple([intact1, intact2, intact3, intact4], epochs=10, forcenew=True)
 
+    exit()
+    eng_prot.train_multiple([intact1, intact2], epochs=10, forcenew=True)
     eng = IsoGenPepEngine()
     if True:
         testformulas = ["PEPTIDE", "CCCCCCCCCCCCC", "APTIGGGQGAAAAAAAAAAAASVGGTIPGPGPGGGQGPGEGGEGQTAR", "LLL", "KKK", "CCCM"]

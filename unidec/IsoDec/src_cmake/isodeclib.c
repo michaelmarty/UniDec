@@ -5,11 +5,16 @@
 #include <math.h>
 #include <stdbool.h>
 #include "isodeclib.h"
+
+#include "isogendep.h"
 #include "phase_model_8.h"
 #include "phase_model_4.h"
+#include "isogenpep.h"
+
+
 
 extern void mass_to_formula_averaging(const float mass, int* forumla);
-// #include "isogenmass.h"
+
 // #include <omp.h>
 
 // Linux code to convert binary file to header file
@@ -379,6 +384,9 @@ float Max(const float *array, const int length) {
     return max;
 }
 
+
+
+
 // Finds the index of the maximum value in an array
 int ArgMax(const float *array, const int length) {
     float maxval = 0;
@@ -737,17 +745,27 @@ int peak_detect(const double *dataMZ, const float *dataInt, const int lengthmz, 
 
 // Function to calculate the isotope intensity distribution for a given mass
 int isotope_dist(const float mass, float *isovals, const float normfactor,
-                 const struct IsoSettings settings) {
+                 const struct IsoSettings settings, char* type) {
     int offset = 0;
     if (settings.minusoneaszero == 1) { offset = 1; }
 
     if (mass > 60000 && settings.isolength <= 64) {
         printf("Warning: Mass is very high, may not be accurate: %f\n", mass);
     }
-    float max = isodist_from_averagine_mass(mass, isovals, settings.isolength, offset);
-    //max = isogenmass_fancy(mass, isovals, settings.isolength, offset);
-    //max = isomike(mass, isovals, settings.isolength, offset);
+    float max;
+    // float max = isogen_fancy(mass, isovals, settings.isolength, offset, type);
+    if (strcmp(type, "Rna") == 0)
+    {
+        max = fft_rna_mass_to_dist(mass, isovals, settings.isolength, offset);
+    }
+    else
+    {
+        max = fft_pep_mass_to_dist(mass, isovals, settings.isolength, offset);
+    }
 
+
+
+    fflush(stdout);
     int realisolength = 0;
     if (max > 0) {
         for (int k = 0; k < settings.isolength; k++) {
@@ -762,6 +780,8 @@ int isotope_dist(const float mass, float *isovals, const float normfactor,
     }
     return realisolength;
 }
+
+
 
 // Sets the mz values for the isotopes
 void iso_mz_vals(const float mass, float *mzvals, const int z, const struct IsoSettings settings,
@@ -1068,7 +1088,7 @@ int bestshift_adjust(const double *mz, const float *inten, const int length, flo
 
 int optimize_shift(const int z, const double *mz, const float *inten, const int length, struct MatchedPeak *matchpeaks,
                    const int nmatched,
-                   const float peakmz, const struct IsoSettings settings) {
+                   const float peakmz, const struct IsoSettings settings, char* type) {
     // Set some parameters for max shifts allowed, which depend on charge state
     int maxshift = settings.maxshift;
     if (z < 3) { maxshift = 1; } else if (z < 6) { maxshift = 2; }
@@ -1083,7 +1103,7 @@ int optimize_shift(const int z, const double *mz, const float *inten, const int 
     // Check that it is not null
     if (isovals == NULL) { return 0; }
 
-    const int realisolength = isotope_dist(mass, isovals, maxval, settings);
+    const int realisolength = isotope_dist(mass, isovals, maxval, settings, type);
 
     // Calculate the mz values for the isotopes
     float *isomzs = calloc(settings.isolength, sizeof(float));
@@ -1126,7 +1146,7 @@ void print_matches(const struct MatchedPeak *matchedpeaks, const int nmatched) {
 
 // extern "C" __declspec(dllexport)
 int process_spectrum(const double *cmz, const float *cint, int n, const char *fname, struct MatchedPeak *matchedpeaks,
-                     struct IsoSettings settings) {
+                     struct IsoSettings settings, char* type) {
     // Set some parameters
     struct IsoConfig config = SetupConfig(50, settings.phaseres);
     config.dlen = n;
@@ -1272,10 +1292,10 @@ int process_spectrum(const double *cmz, const float *cint, int n, const char *fn
             if (z > 0) {
                 //if (z2 > 0) { printf("Z1:%i Z2: %i\n", z, z2); }
                 // Optimize the shift and add to matched peaks if good
-                int isgood = optimize_shift(z, mz, inten, l, matchedpeaks, nmatched, peakmz, settings);
+                int isgood = optimize_shift(z, mz, inten, l, matchedpeaks, nmatched, peakmz, settings, type);
 
                 if (z2 > 0) {
-                    int isgood2 = optimize_shift(z2, mz, inten, l, matchedpeaks, nmatched, peakmz, settings);
+                    int isgood2 = optimize_shift(z2, mz, inten, l, matchedpeaks, nmatched, peakmz, settings, type);
                     if (isgood2 == 1) {
                         isgood = 1;
                     }
@@ -1340,6 +1360,7 @@ int process_spectrum(const double *cmz, const float *cint, int n, const char *fn
     free(peaky);
     FreeWeights(weights);
     if (config.verbose == 1) { printf("Done\n"); }
+
     return nmatched;
 }
 
@@ -1414,11 +1435,13 @@ void write_matches(const struct MatchedPeak *matchedpeaks, const int nmatched, c
 }
 
 
+
+
 // extern "C" __declspec(dllexport)
 int process_spectrum_default(const double *cmz, const float *cint, const int n, const char *fname,
-                             struct MatchedPeak *matchedpeaks) {
+                             struct MatchedPeak *matchedpeaks, char* type) {
     const struct IsoSettings settings = DefaultSettings();
-    return process_spectrum(cmz, cint, n, fname, matchedpeaks, settings);
+    return process_spectrum(cmz, cint, n, fname, matchedpeaks, settings, type);
 }
 
 // #ifdef _MSC_VER
@@ -1437,7 +1460,7 @@ int process_spectrum_default(const double *cmz, const float *cint, const int n, 
 // }
 // #endif
 
-void run(char *filename, char *outfile, const char *weightfile) {
+void run(char *filename, char *outfile, const char *weightfile, char* type) {
     // printf("Starting Dll. Threads: %d\n", omp_get_max_threads());
     //
     // int cpuinfo[4];
@@ -1472,7 +1495,8 @@ void run(char *filename, char *outfile, const char *weightfile) {
 
     struct MatchedPeak *matchedpeaks = calloc(length, sizeof(struct MatchedPeak));
     printf("Processing Spectrum\n");
-    const int nmatched = process_spectrum_default(cmz, cint, length, weightfile, matchedpeaks);
+
+    const int nmatched = process_spectrum_default(cmz, cint, length, weightfile, matchedpeaks, type);
 
     printf("Writing Matches %s\n", outfile);
     write_matches(matchedpeaks, nmatched, outfile);

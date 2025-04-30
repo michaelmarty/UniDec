@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from unidec.IsoDec.IsoGen.isogen_base import *
 from unidec.IsoDec.IsoGen.isogen_tools import *
+from unidec.modules.isotopetools import isolength
+
 
 
 class IsoGenAtomEngine(IsoGenEngineBase):
@@ -23,27 +25,33 @@ class IsoGenAtomEngine(IsoGenEngineBase):
 
 
 if __name__ == "__main__":
-    os.chdir("Z:\\Group Share\\JGP\\PubChem")
-    isolen = 32
-    trainfile = "isodists_7056.npz"
-    trainfile = "isodists_63202.npz"
-    trainfile = "isodists_867971.npz"
-    trainfile = "isodists_4194533.npz"
+    # seq = "C2H5O"
+    # vec = formula_to_vector(seq)
 
-    trainfile_synethetic = "isodists_synthetic_1308425.npz"
-    trainfile1 = "isodists_synthetic_random_100000.npz"
-    trainfile2 = "isodists_synthetic_random_1000000.npz"
 
-    eng = IsoGenAtomEngine(isolen=isolen)
-    if True:
+    isolens = [8,16]
+    for isolen in isolens:
+        os.chdir("Z:\\Group Share\\JGP\\PubChem")
+        isolen = 32
+        trainfile = "isodists_7056.npz"
+        trainfile = "isodists_63202.npz"
+        trainfile = "isodists_867971.npz"
+        trainfile = "isodists_4194533.npz"
+
+        trainfile_synethetic = "isodists_synthetic_1308425.npz"
+        trainfile1 = "isodists_synthetic_random_100000.npz"
+        #trainfile2 = "isodists_synthetic_random_1000000.npz"
+
+        eng = IsoGenAtomEngine(isolen=isolen)
         eng.train_multiple([trainfile, trainfile_synethetic], epochs=20, forcenew=True, inputname="formulas")
-
+    exit()
     if False:
         eng.train(trainfile, epochs=10, forcenew=True, inputname="formulas")
 
     testformulas = ["C2H5O", "H8N2O4W", "S8", "CHCl3", "C60", "CHBr3"]
     mpl.use("WxAgg")
-
+    isolen = 4096
+    eng = IsoGenAtomEngine(isolen=isolen)
     for i, f in enumerate(testformulas):
         maxval = 10
         dist = eng.predict(f)
