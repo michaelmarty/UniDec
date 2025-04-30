@@ -9,8 +9,8 @@ from scipy.stats import zscore
 import unidec.IsoDec.datatools as dt
 from Scripts.MTM.Lipidomics.mass_defect_analysis import kendrick_analysis
 from Scripts.LipiDec.AddFeaturestoDF import get_overall_tails, get_class
-from sklearn.linear_model import LinearRegression, RANSACRegressor
-from sklearn.preprocessing import PolynomialFeatures
+from unidec.UniDecImporter.ImportTools import IndexedFile, IndexedScan
+
 
 def match_files(directory, string, exclude=None):
     files = []
@@ -20,67 +20,70 @@ def match_files(directory, string, exclude=None):
                 files.append(file)
     return np.array(files)
 
-# def calibrate_library_rts():
-#     existing_library = r"Z:\Group Share\JGP\Lipidomics_MassIVE_folder\dda_lipid_library.csv"
-#     library_df = pd.read_csv(existing_library, delimiter=",")
-#     masses = library_df["m/z"]
-#     retention_times = library_df["Retention Time"]
-#     names = library_df["Lipid Name"]
-#     new_rts = [[] for i in range(len(retention_times))]
-#
-#     dda_file_directory = "Z:\Group Share\JGP\Lipidomics_MassIVE_folder\Raw\DDA\calibrated_mzML"
-#     os.chdir(dda_file_directory)
-#
-#     dda_files = match_files(dda_file_directory, "*.mzML")
-#
-#     min_peak_intensity = 1000
-#     ppm_tol = 10
-#     rt_width = 2
-#
-#     for file in dda_files:
-#         exp = MSExperiment()
-#         MzMLFile().load(file, exp)
-#         print("Creating indexed file")
-#         ind_file = xic_xtractor.IndexedFile(exp)
-#
-#         for i in range(len(masses)):
-#             mass_tol = (masses[i] / 1e6) * ppm_tol
-#             min_rt = retention_times[i] - (rt_width / 2)
-#             max_rt = retention_times[i] + (rt_width / 2)
-#             xic = ind_file.extract_xic(masses[i], mass_tol, min_rt, max_rt)
-#             peak_index = np.argmax(xic[:, 2])
-#             peak_intensity = xic[peak_index, 2]
-#
-#             if peak_intensity > min_peak_intensity:
-#                 rt_int = np.transpose(np.array([xic[:, 1] / 60, xic[:, 2]]))
-#                 peaks = dt.fastpeakdetect(rt_int, window=10, threshold=0.05)
-#                 peaks = [p for p in peaks if p[1] > min_peak_intensity]
-#                 new_rt = -1
-#                 if len(peaks) > 1:
-#                     delta_rts = [abs(p[0] - retention_times[i]) for p in peaks]
-#                     sorted_indices = np.argsort(delta_rts)
-#                     new_rt = peaks[sorted_indices[0]][0]
-#                 elif len(peaks) == 1:
-#                     new_rt = peaks[0][0]
-#
-#                 if new_rt != -1:
-#                     new_rts[i].append(new_rt)
-#                     # plt.plot(xic[:,1]/60, xic[:,2])
-#                     # plt.title(names[i])
-#                     # plt.vlines(retention_times[i], 0, np.max(xic[:,2]), color='r', linestyles='dashed')
-#                     # plt.vlines(new_rt, 0, np.max(xic[:,2]), color='b', linestyles='dashed')
-#                     # plt.show()
-#
-#     rt_averages = [0.0 for i in range(len(new_rts))]
-#     for i in range(len(new_rts)):
-#         if (len(new_rts[i]) > 0):
-#             rt_averages[i] = float(np.average(new_rts[i]))
-#         else:
-#             print(names[i], "not found in any file.")
-#             rt_averages[i] = retention_times[i]
-#
-#     library_df["Retention Time"] = rt_averages
-#     library_df.to_csv("Z:\\Group Share\\JGP\\Lipidomics_MassIVE_folder\\rtcalibrated_dda_library.csv")
+def calibrate_library_rts(library_df, dda_mzml_directory):
+    masses = library_df["m/z"]
+    retention_times = library_df["Retention Time"]
+    names = library_df["Lipid name"]
+    new_rts = [[] for i in range(len(retention_times))]
+
+    dda_file_directory = "Z:\Group Share\JGP\Lipidomics_MassIVE_folder\Raw\DDA\calibrated_mzML"
+    os.chdir(dda_mzml_directory)
+
+    dda_files = match_files(dda_mzml_directory, "*.mzML")
+
+    min_peak_intensity = 1000
+    ppm_tol = 10
+    rt_width = 2
+
+    for file in dda_files:
+        exp = MSExperiment()
+        MzMLFile().load(file, exp)
+        print("Creating indexed file for", file)
+        ind_file = IndexedFile()
+
+        for i, s in enumerate(exp):
+            if s.getMSLevel() == 1:
+                peaks = np.transpose(np.vstack(s.get_peaks()))
+                rt = s.getRT() / 60
+                ind_scan = IndexedScan(peaks, rt, i + 1, 0, 1)
+                ind_file.indexed_scans.append(ind_scan)
+
+        for i in range(len(masses)):
+            mass_tol = (masses[i] / 1e6) * ppm_tol
+            min_rt = retention_times[i] - (rt_width / 2)
+            max_rt = retention_times[i] + (rt_width / 2)
+            xic = ind_file.extract_xic(masses[i], mass_tol, [min_rt, max_rt])
+            peak_index = np.argmax(xic[:, 1])
+            peak_intensity = xic[peak_index, 1]
+
+            if peak_intensity > min_peak_intensity:
+                rt_int = np.transpose(np.array([xic[:, 0], xic[:, 1]]))
+                peaks = dt.fastpeakdetect(rt_int, window=10, threshold=0.05)
+                peaks = [p for p in peaks if p[1] > min_peak_intensity]
+                new_rt = -1
+                if len(peaks) > 1:
+                    delta_rts = [abs(p[0] - retention_times[i]) for p in peaks]
+                    sorted_indices = np.argsort(delta_rts)
+                    new_rt = peaks[sorted_indices[0]][0]
+                elif len(peaks) == 1:
+                    new_rt = peaks[0][0]
+
+                if new_rt != -1:
+                    new_rts[i].append(new_rt)
+
+        del ind_file
+
+
+    rt_averages = [0.0 for i in range(len(new_rts))]
+    for i in range(len(new_rts)):
+        if (len(new_rts[i]) > 0):
+            rt_averages[i] = float(np.average(new_rts[i]))
+        else:
+            print(names[i], "not found in any file.")
+            rt_averages[i] = retention_times[i]
+
+    library_df["Retention Time"] = rt_averages
+    return library_df
 
 def filter_msdial_results(results_df, to_exclude=None):
     metabolite_names = results_df["Metabolite name"]
@@ -122,7 +125,7 @@ def plot_kmds(results_df):
         tname, tl, tu = get_overall_tails(names[i])
         kmds[i] = kmd
         # plt.text(rts[i], kmd-0.001, names[i])
-        plt.text(rts[i], kmd-0.001, tl)
+        # plt.text(rts[i], kmd-0.001, tl)
         if classes[i] == "CL":
             if tu == 0:
                 plt.plot(rts[i], kmd, 'ro')
@@ -164,28 +167,113 @@ def filter_by_kmd(results_df):
     to_remove = []
 
     for lipid_class in unique_classes:
-        unique_tus = []
+        class_kmds = []
+        class_rts = []
+        class_tus = []
+        indices = []
         for i,name in enumerate(names):
             if classes[i] == lipid_class:
                 tname,tl,tu = get_overall_tails(name)
-                if tu not in unique_tus:
-                    unique_tus.append(tu)
+                mass, kmass, kmd = kendrick_analysis(float(mzs[i]), 1)
+                class_kmds.append(kmd)
+                class_rts.append(rts[i])
+                class_tus.append(tu)
+                indices.append(i)
 
-        for tu in unique_tus:
-            kmds_within_tu = []
-            indices = []
-            for i,name in enumerate(names):
-                if classes[i] == lipid_class:
-                    tname, tl, curr_tu = get_overall_tails(name)
-                    if curr_tu == tu:
-                        mass, kmass, kmd = kendrick_analysis(float(mzs[i]), 1)
-                        kmds_within_tu.append(kmd)
-                        indices.append(i)
 
-            z_scores = zscore(kmds_within_tu)
-            for j in range(len(z_scores)):
-                if abs(z_scores[j]) > 2:
-                    to_remove.append(indices[j])
+
+        accepted_rts = np.array(class_rts)
+        accepted_kmds = np.array(class_kmds)
+        accepted_tus = np.array(class_tus)
+        accepted_indices = np.array(indices)
+
+        rejected_rts = np.array([])
+        rejected_kmds = np.array([])
+        rejected_tus = np.array([])
+        rejected_indices = np.array([])
+
+        accepted = np.column_stack((accepted_rts, accepted_kmds, accepted_tus, accepted_indices))
+        rejected = np.column_stack((rejected_rts, rejected_kmds, rejected_tus, rejected_indices))
+
+        fig, ax = plt.subplots()
+        scatter_a = ax.scatter(accepted[:, 0], accepted[:, 1], c='b', label="accepted")
+        for i in range(len(accepted)):
+            ax.text(accepted[i,0], accepted[i,1], str(accepted[i,2]))
+        scatter_b = ax.scatter(rejected[:, 0], rejected[:, 1], c='r', label="rejected")
+        for i in range(len(rejected)):
+            ax.text(rejected[i,0], rejected[i,1], str(rejected[i,2]))
+        ax.legend()
+        ax.set_title(lipid_class)
+        fig.canvas.draw()
+
+        def update_plot():
+            ax.clear()
+            ax.scatter(accepted[:, 0], accepted[:, 1], c='b', label="accepted")
+            for i in range(len(accepted)):
+                ax.text(accepted[i, 0], accepted[i, 1], str(accepted[i, 2]))
+            for i in range(len(rejected)):
+                ax.text(rejected[i, 0], rejected[i, 1], str(rejected[i, 2]))
+            ax.scatter(rejected[:, 0], rejected[:, 1], c='r', label="rejected")
+            ax.legend()
+            ax.set_title("Click near a point to move it to the other group.")
+            fig.canvas.draw()
+
+        def on_click(event):
+            nonlocal accepted, rejected
+            if not event.inaxes:
+                return
+
+            click_point = np.array([event.xdata, event.ydata])
+            threshold = 1
+
+            accepted_distances = (
+                [np.linalg.norm(click_point - [pt[0], pt[1]]) for pt in accepted]
+                if len(accepted) > 0 else []
+            )
+            rejected_distances = (
+                [np.linalg.norm(click_point - [pt[0], pt[1]]) for pt in rejected]
+                if len(rejected) > 0 else []
+            )
+
+            # Initialize defaults
+            min_accepted_dist = float('inf')
+            min_rejected_dist = float('inf')
+            min_accepted = None
+            min_rejected = None
+
+            if accepted_distances:
+                min_accepted = accepted_distances.index(min(accepted_distances))
+                min_accepted_dist = accepted_distances[min_accepted]
+
+            if rejected_distances:
+                min_rejected = rejected_distances.index(min(rejected_distances))
+                min_rejected_dist = rejected_distances[min_rejected]
+
+            if min_accepted is not None and (
+                    min_accepted_dist < min_rejected_dist and min_accepted_dist < threshold
+            ):
+                pt = accepted[min_accepted]
+                rejected = np.vstack([rejected, pt]) if len(rejected) > 0 else np.array([pt])
+                accepted = np.delete(accepted, min_accepted, axis=0)
+                update_plot()
+                return
+
+            elif min_rejected is not None and min_rejected_dist < threshold:
+                pt = rejected[min_rejected]
+                accepted = np.vstack([accepted, pt]) if len(accepted) > 0 else np.array([pt])
+                rejected = np.delete(rejected, min_rejected, axis=0)
+                update_plot()
+                return
+
+            else:
+                print("Click closer to a point to move it to the other group.")
+
+        fig.canvas.mpl_connect('button_press_event', on_click)
+        plt.show()
+
+        rejected_indices = rejected[:, 3]
+        to_remove.extend(rejected_indices.astype(int))
+
 
     results_df = results_df.drop(index=to_remove)
     results_df.reset_index(drop=True, inplace=True)
@@ -200,115 +288,153 @@ def filter_by_tl_rt(results_df):
     mzs = results_df["Average Mz"]
     classes = [get_class(name) for name in names]
 
-    class_rtrange_dict = {"CL":[13,17],
-                          "PG":[3,10],
-                          "PE":[3,14]}
+    indices_to_remove = []
 
     unique_classes = list(set(classes))
     for lipid_class in unique_classes:
         class_rts = []
         class_tls = []
         indices = []
-        rt_range = class_rtrange_dict[lipid_class]
         for i,name in enumerate(names):
             if classes[i] != lipid_class:
                 continue
-            if rt_range[0] < rts[i] < rt_range[1]:
-                tname, tl, tu = get_overall_tails(name)
-                class_rts.append(rts[i])
-                class_tls.append(tl)
-                indices.append(i)
+
+            tname, tl, tu = get_overall_tails(name)
+            class_rts.append(rts[i])
+            class_tls.append(tl)
+            indices.append(i)
 
         class_rts = np.array(class_rts)
         class_tls = np.array(class_tls)
 
-        x = np.array(class_tls).reshape(-1,1)
-        y = np.array(class_rts)
+        accepted_rts = np.array(class_rts)
+        accepted_tls = np.array(class_tls)
+        accepted_indices = np.array(indices)
 
-        # Reshape for curve_fit
-        x = x.flatten()
-        y = y.flatten()
+        rejected_rts = np.array([])
+        rejected_tls = np.array([])
+        rejected_indices = np.array([])
 
-        # Quadratic model
-        def quadratic(x, a, b, c):
-            return a * x ** 2 + b * x + c
+        accepted = np.column_stack((accepted_rts, accepted_tls, accepted_indices))
+        rejected = np.column_stack((rejected_rts, rejected_tls, rejected_indices))
 
-        # Parameters
-        max_trials = 10000
-        residual_threshold = 2
-        min_inliers = 0.5  # fraction of data points
-        bounds = ([0, -np.inf, -np.inf], [1, np.inf, np.inf])  # e.g., a >= 0
+        fig,ax = plt.subplots()
+        scatter_a = ax.scatter(accepted[:,0], accepted[:,1], c='b', label="accepted")
+        scatter_b = ax.scatter(rejected[:,0], rejected[:,1], c='r', label="rejected")
+        ax.legend()
+        ax.set_title("Click near a point to move it to the other group.")
+        fig.canvas.draw()
 
+        def update_plot():
+            ax.clear()
+            ax.scatter(accepted[:, 0], accepted[:, 1], c='b', label="accepted")
+            ax.scatter(rejected[:, 0], rejected[:, 1], c='r', label="rejected")
+            ax.legend()
+            ax.set_title("Click near a point to move it to the other group.")
+            fig.canvas.draw()
 
-        best_model = None
-        best_inlier_mask = None
-        best_num_inliers = 0
+        def on_click(event):
+            nonlocal accepted, rejected
+            if not event.inaxes:
+                return
 
-        for i in range(max_trials):
-            # Random 3-point sample (minimum for quadratic)
-            sample_indices = np.random.choice(len(x), 5, replace=False)
-            x_sample = x[sample_indices]
-            y_sample = y[sample_indices]
+            click_point = np.array([event.xdata, event.ydata])
+            threshold = 1
 
-            try:
-                # Fit model to sample
-                params, _ = curve_fit(quadratic, x_sample, y_sample, bounds=bounds)
+            accepted_distances = (
+                [np.linalg.norm(click_point - [pt[0], pt[1]]) for pt in accepted]
+                if len(accepted) > 0 else []
+            )
+            rejected_distances = (
+                [np.linalg.norm(click_point - [pt[0], pt[1]]) for pt in rejected]
+                if len(rejected) > 0 else []
+            )
 
-                # Predict all points
-                y_pred = quadratic(x, *params)
+            # Initialize defaults
+            min_accepted_dist = float('inf')
+            min_rejected_dist = float('inf')
+            min_accepted = None
+            min_rejected = None
 
-                # Compute residuals
-                residuals = np.abs(y - y_pred)
+            if accepted_distances:
+                min_accepted = accepted_distances.index(min(accepted_distances))
+                min_accepted_dist = accepted_distances[min_accepted]
 
-                # Identify inliers
-                inlier_mask = residuals < residual_threshold
-                num_inliers = np.sum(inlier_mask)
+            if rejected_distances:
+                min_rejected = rejected_distances.index(min(rejected_distances))
+                min_rejected_dist = rejected_distances[min_rejected]
 
-                # Update best model if better
-                if num_inliers > best_num_inliers and num_inliers >= min_inliers * len(x):
-                    best_model = params
-                    best_inlier_mask = inlier_mask
-                    best_num_inliers = num_inliers
+            if min_accepted is not None and (
+                    min_accepted_dist < min_rejected_dist and min_accepted_dist < threshold
+            ):
+                pt = accepted[min_accepted]
+                rejected = np.vstack([rejected, pt]) if len(rejected) > 0 else np.array([pt])
+                accepted = np.delete(accepted, min_accepted, axis=0)
+                update_plot()
+                return
 
-            except Exception:
-                continue  # If fit fails (e.g., bad sample), skip
+            elif min_rejected is not None and min_rejected_dist < threshold:
+                pt = rejected[min_rejected]
+                accepted = np.vstack([accepted, pt]) if len(accepted) > 0 else np.array([pt])
+                rejected = np.delete(rejected, min_rejected, axis=0)
+                update_plot()
+                return
 
-        # Final model fit on all inliers
-        if best_model is not None:
-            final_params, _ = curve_fit(quadratic, x[best_inlier_mask], y[best_inlier_mask], bounds=bounds)
-            print("Final parameters (a, b, c):", final_params)
+            else:
+                print("Click closer to a point to move it to the other group.")
 
-            # Plotting
-            x_fit = np.linspace(min(x), max(x), 1000)
-            y_fit = quadratic(x_fit, *final_params)
+        fig.canvas.mpl_connect('button_press_event', on_click)
+        plt.show()
 
-            plt.scatter(x, y, label='All Data', alpha=0.5)
-            plt.scatter(x[best_inlier_mask], y[best_inlier_mask], color='green', label='Inliers')
-            plt.plot(x_fit, y_fit, color='red', label='Quadratic Fit')
-            plt.legend()
-            plt.title("Custom RANSAC Quadratic Fit with Bounds")
-            plt.xlabel("x")
-            plt.ylabel("y")
-            plt.show()
-        else:
-            print("RANSAC failed to find a good model.")
+        rejected_indices = rejected[:,2]
+        indices_to_remove.extend(rejected_indices.astype(int))
 
+    results_df = results_df.drop(index=indices_to_remove)
+    results_df.reset_index(drop=True, inplace=True)
+    return results_df
 
+def search_results_to_library(results_df):
+    names = results_df["Metabolite name"]
+    names = [clean_metabolite_name(name) for name in names]
+    rts = results_df["Average Rt(min)"]
+    adducts = results_df["Adduct type"]
+    mzs = results_df["Average Mz"]
+    formulas = results_df["Formula"]
+    classes = [get_class(name) for name in names]
+    standards = [False] * len(names)
+
+    library_df = pd.DataFrame()
+    library_df["Lipid name"] = names
+    library_df["Lipid class"] = classes
+    library_df["Standard"] = standards
+    library_df["m/z"] = mzs
+    library_df["Retention Time"] = rts
+    library_df["Adduct"] = adducts
+    library_df["Chemical Formula"] = formulas
+
+    library_df = calibrate_library_rts(library_df, "Z:\\Group Share\\JGP\\Lipidomics_MassIVE_folder\\Raw\\DDA\\calibrated_mzML")
+
+    library_df.to_csv("rt_calibrated_filtered_library.csv", index=False)
+    return
 
 
 if __name__ == "__main__":
     # Set backend to Agg
     mpl.use('WxAgg')
 
-    ms_dial_results_file = r"Z:\Group Share\JGP\Lipidomics_MassIVE_folder\Raw\DDA\Height_1_2025_04_29_13_55_07.csv"
+    ms_dial_results_file = r"Z:\Group Share\JGP\Lipidomics_MassIVE_folder\Raw\DDA\filtered_search_results.csv"
     os.chdir(os.path.dirname(ms_dial_results_file))
-
     msdial_results_df = pd.read_csv(ms_dial_results_file)
+    search_results_to_library(msdial_results_df)
+    exit()
+
+
 
     to_exclude = ["RIKEN", "Unknown", "no MS2"]
     filtered_search_results = filter_msdial_results(msdial_results_df, to_exclude)
-    filtered_search_results = filter_by_kmd(filtered_search_results)
     filtered_search_results = filter_by_tl_rt(filtered_search_results)
+    filtered_search_results = filter_by_kmd(filtered_search_results)
+    filtered_search_results.to_csv("filtered_search_results.csv", index=False)
     plot_kmds(filtered_search_results)
 
 
