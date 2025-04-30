@@ -78,7 +78,7 @@ class LipidLibrary:
 
         library_df = pd.read_csv(filepath, delimiter=",")
         rts = library_df["Retention Time"]
-        names = library_df["Lipid Name"]
+        names = library_df["Lipid name"]
         adducts = library_df["Adduct"]
         mzs = library_df["m/z"]
         formulas = library_df["Chemical Formula"]
@@ -694,7 +694,7 @@ if __name__ == "__main__":
     config.normalize_to_total = True
     config.normalize_to_int_stds = True
 
-    lib = LipidLibrary("Z:\\Group Share\\JGP\\Lipidomics_MassIVE_folder\\rtcalibrated_dda_library.csv", config)
+    lib = LipidLibrary("Z:\\Group Share\\JGP\\Lipidomics_MassIVE_folder\\Raw\\DDA\\calibrated_mzML\\rt_calibrated_filtered_library.csv", config)
     #spectra_files = create_spectrafiles(spectra_files_directory)
 
     filenames_id_br_trs_svol_eqvol = {"2024_09_04_AS_46_CS_08_ESIneg_fixed.mzML": [4,1,1,85,45],
@@ -734,20 +734,20 @@ if __name__ == "__main__":
                                        "2024_09_04_AS_80_CS_13_ESIneg_fixed.mzML": [4, 3, 3,30,15]
                                        }
 
-    spectra_files_csv = r"C:\Users\MartyLabPC\Desktop\MartyLab\calibrated_mzML\lipidquant_CS_LetAB_local.csv"
+    spectra_files_csv = r"C:\Users\MartyLabPC\Desktop\MartyLab\calibrated_mzML\lipidquant_CS_LetAB_local_reduced.csv"
     os.chdir(os.path.dirname(spectra_files_csv))
 
-    spectra_files = create_spectrafiles_fromcsv(spectra_files_csv, load_importers=False)
+    spectra_files = create_spectrafiles_fromcsv(spectra_files_csv, load_importers=True)
 
-    if False:
+    if True:
         quantification_results = pd.DataFrame()
-        quantification_results["Lipid Name"] = [lipid.name for lipid in lib.lipids]
+        quantification_results["Lipid name"] = [lipid.name for lipid in lib.lipids]
         quantification_results["Lipid Class"] = [lipid.lipid_class for lipid in lib.lipids]
         quantification_results["Standard"] = [lipid.internal_std for lipid in lib.lipids]
 
         args = [(file, lib, config) for file in spectra_files]
 
-        if False:
+        if True:
             with ThreadPoolExecutor(max_workers=2) as executor:
                 results = list(executor.map(process_file, args))
         else:
