@@ -88,7 +88,7 @@ class Importer:
             print("Indexing not supported for this file type:", self._file_path)
             raise Exception
         else:
-            self.indexed_file = IndexedFile(self)
+            self.indexed_file = IndexedFile()
             scans = self.get_all_scans()
             for scan_number in self.scans:
                 if self.get_ms_order(scan_number) == 1:

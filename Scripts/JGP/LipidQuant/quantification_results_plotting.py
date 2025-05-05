@@ -28,7 +28,7 @@ def plot_class_piecharts(spectra_files, normalized_quant_results):
     for file in spectra_files:
         class_areas = {}
         for i in range(len(normalized_quant_results[file.fileid])):
-            lipid = normalized_quant_results["Lipid Name"][i]
+            lipid = normalized_quant_results["Lipid name"][i]
             lipid_class = get_class(lipid)
             if lipid_class not in class_areas:
                 class_areas[lipid_class] = normalized_quant_results[file.fileid][i]
@@ -132,7 +132,7 @@ def compare_skyline_lipidquant(spectra_files, normalized_quant_results):
 
         max_ratio  = 0
         classes_ratios = defaultdict(list)
-        for lipid in normalized_quant_results["Lipid Name"]:
+        for lipid in normalized_quant_results["Lipid name"]:
             lipid_class = get_class(lipid)
             if lipid in skyline_ratio_dict and lipid in lipidquant_ratio_dict:
                 skyline_ratio = skyline_ratio_dict[lipid][id]
@@ -223,7 +223,7 @@ def load_skyline_results():
         replicate_areas[id] = [0.0 if x is None else x for x in replicate_areas[id]]
 
     skyline_lipidquant_df = pd.DataFrame()
-    skyline_lipidquant_df["Lipid Name"] = lipid_names
+    skyline_lipidquant_df["Lipid name"] = lipid_names
     skyline_lipidquant_df["Lipid Class"] = lipid_classes
     skyline_lipidquant_df["Standard"] = lipid_int_stds
     for id in replicate_areas:
@@ -276,7 +276,7 @@ def get_ratio_dict(quant_results):
 
     ratio_dict = {}
     for i,row in quant_results.iterrows():
-        lipid_name = row["Lipid Name"]
+        lipid_name = row["Lipid name"]
         lipid_class = get_class(lipid_name)
         ratio_dict[lipid_name] = {}
         for id in replicate_ids:

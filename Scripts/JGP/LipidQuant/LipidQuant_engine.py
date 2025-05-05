@@ -1,5 +1,4 @@
 import itertools
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -38,7 +37,7 @@ def match_files(directory, string, exclude=None):
 class LipidQuantConfig:
     def __init__(self):
         #XIC creation parameters
-        self.ppm_tol = 25
+        self.ppm_tol = 50
         self.rt_tol = 4
         self.iso_count = 2
 
@@ -165,8 +164,6 @@ def calibrate_library_rts(file, library, config):
             abs_width = (mz/1e6)*config.ppm_tol
             min_rt = library.lipids[i].rt - (config.rt_tol/2)
             max_rt = library.lipids[i].rt + (config.rt_tol/2)
-
-
 
             is_xic = file.importer.get_eic(mz, abs_width, [min_rt, max_rt])
             max_index = np.argmax(is_xic[:,1])
@@ -734,10 +731,10 @@ if __name__ == "__main__":
                                        "2024_09_04_AS_80_CS_13_ESIneg_fixed.mzML": [4, 3, 3,30,15]
                                        }
 
-    spectra_files_csv = r"C:\Users\MartyLabPC\Desktop\MartyLab\calibrated_mzML\lipidquant_CS_LetAB_local_reduced.csv"
+    spectra_files_csv = r"C:\Users\MartyLabPC\Desktop\MartyLab\calibrated_mzML\lipidquant_CS_LetAB_local.csv"
     os.chdir(os.path.dirname(spectra_files_csv))
 
-    spectra_files = create_spectrafiles_fromcsv(spectra_files_csv, load_importers=True)
+    spectra_files = create_spectrafiles_fromcsv(spectra_files_csv, load_importers=False)
 
     if True:
         quantification_results = pd.DataFrame()
@@ -764,11 +761,11 @@ if __name__ == "__main__":
         quantification_results = pd.read_csv("quantified_lipids.csv", delimiter=",")
 
     normalized_quantification_results = normalize_areas_to_stds(spectra_files, quantification_results, config)
-
-
-    #compare_skyline_lipidquant(spectra_files, quantification_results)
-    skyline_quant_results = load_skyline_results()
-    normalized_skyquant_results = normalize_areas_to_stds(spectra_files, skyline_quant_results, config)
+    plot_class_piecharts(spectra_files, normalized_quantification_results)
+    compare_skyline_lipidquant(spectra_files, quantification_results)
+    exit()
+    # skyline_quant_results = load_skyline_results()
+    # normalized_skyquant_results = normalize_areas_to_stds(spectra_files, skyline_quant_results, config)
     #plot_indlipid_barcharts(spectra_files, normalized_quantification_results)
     plot_class_piecharts(spectra_files, normalized_skyquant_results)
     timeend = time.perf_counter()

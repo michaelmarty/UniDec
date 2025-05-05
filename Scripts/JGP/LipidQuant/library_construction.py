@@ -4,13 +4,11 @@ import os
 import fnmatch
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-from scipy.optimize import curve_fit
-from scipy.stats import zscore
 import unidec.IsoDec.datatools as dt
 from Scripts.MTM.Lipidomics.mass_defect_analysis import kendrick_analysis
 from Scripts.LipiDec.AddFeaturestoDF import get_overall_tails, get_class
 from unidec.UniDecImporter.ImportTools import IndexedFile, IndexedScan
-
+import re
 
 def match_files(directory, string, exclude=None):
     files = []
@@ -105,6 +103,19 @@ def clean_metabolite_name(name):
 
     return name
 
+def get_charge_from_adduct(adduct):
+    split = adduct.split("]")
+    s = split[1]
+    if s in ("","0"):
+        return 0
+    match = re.fullmatch(r"(\d*)([+-])", s)
+    if not match:
+        raise ValueError(f"Invalid charge:{adduct}")
+    num,sign = match.groups()
+    num = int(num) if num else 1
+    polarity = "POSITIVE" if sign == "+" else "NEGATIVE"
+    return num, polarity
+
 def plot_kmds(results_df):
     mzs = []
     rts = []
@@ -160,6 +171,8 @@ def filter_by_kmd(results_df):
     names = [clean_metabolite_name(name) for name in names]
     rts = results_df["Average Rt(min)"]
     mzs = results_df["Average Mz"]
+    adducts = results_df["Adduct type"]
+    charges = [get_charge_from_adduct(adduct)[0] for adduct in adducts]
     classes = [get_class(name) for name in names]
 
     unique_classes = list(set(classes))
@@ -174,12 +187,11 @@ def filter_by_kmd(results_df):
         for i,name in enumerate(names):
             if classes[i] == lipid_class:
                 tname,tl,tu = get_overall_tails(name)
-                mass, kmass, kmd = kendrick_analysis(float(mzs[i]), 1)
+                mass, kmass, kmd = kendrick_analysis(float(mzs[i]), charges[i])
                 class_kmds.append(kmd)
                 class_rts.append(rts[i])
                 class_tus.append(tu)
                 indices.append(i)
-
 
 
         accepted_rts = np.array(class_rts)
@@ -203,10 +215,14 @@ def filter_by_kmd(results_df):
         for i in range(len(rejected)):
             ax.text(rejected[i,0], rejected[i,1], str(rejected[i,2]))
         ax.legend()
+        ax.grid(True)
         ax.set_title(lipid_class)
         fig.canvas.draw()
 
         def update_plot():
+            xlim = ax.get_xlim()
+            ylim = ax.get_ylim()
+
             ax.clear()
             ax.scatter(accepted[:, 0], accepted[:, 1], c='b', label="accepted")
             for i in range(len(accepted)):
@@ -215,8 +231,17 @@ def filter_by_kmd(results_df):
                 ax.text(rejected[i, 0], rejected[i, 1], str(rejected[i, 2]))
             ax.scatter(rejected[:, 0], rejected[:, 1], c='r', label="rejected")
             ax.legend()
-            ax.set_title("Click near a point to move it to the other group.")
+            ax.set_title(lipid_class)
+            ax.set_xlim(xlim)
+            ax.set_ylim(ylim)
+            ax.grid(True)
             fig.canvas.draw()
+
+        def on_key(event):
+            if event.key == 'r':
+                ax.relim()  # Recalculate limits based on data
+                ax.autoscale_view()  # Autoscale the view to the new limits
+                fig.canvas.draw()
 
         def on_click(event):
             nonlocal accepted, rejected
@@ -224,7 +249,7 @@ def filter_by_kmd(results_df):
                 return
 
             click_point = np.array([event.xdata, event.ydata])
-            threshold = 1
+            threshold = 0.5
 
             accepted_distances = (
                 [np.linalg.norm(click_point - [pt[0], pt[1]]) for pt in accepted]
@@ -268,6 +293,7 @@ def filter_by_kmd(results_df):
             else:
                 print("Click closer to a point to move it to the other group.")
 
+        fig.canvas.mpl_connect('key_press_event', on_key)
         fig.canvas.mpl_connect('button_press_event', on_click)
         plt.show()
 
@@ -322,15 +348,22 @@ def filter_by_tl_rt(results_df):
         scatter_a = ax.scatter(accepted[:,0], accepted[:,1], c='b', label="accepted")
         scatter_b = ax.scatter(rejected[:,0], rejected[:,1], c='r', label="rejected")
         ax.legend()
-        ax.set_title("Click near a point to move it to the other group.")
+        ax.set_title(lipid_class)
         fig.canvas.draw()
 
         def update_plot():
+            xlim = ax.get_xlim()
+            ylim = ax.get_ylim()
+
             ax.clear()
             ax.scatter(accepted[:, 0], accepted[:, 1], c='b', label="accepted")
             ax.scatter(rejected[:, 0], rejected[:, 1], c='r', label="rejected")
             ax.legend()
-            ax.set_title("Click near a point to move it to the other group.")
+            ax.set_title(lipid_class)
+
+            ax.set_xlim(xlim)
+            ax.set_ylim(ylim)
+
             fig.canvas.draw()
 
         def on_click(event):
@@ -383,6 +416,13 @@ def filter_by_tl_rt(results_df):
             else:
                 print("Click closer to a point to move it to the other group.")
 
+        def on_key(event):
+            if event.key == 'r':
+                ax.relim()  # Recalculate limits based on data
+                ax.autoscale_view()  # Autoscale the view to the new limits
+                fig.canvas.draw()
+
+        fig.canvas.mpl_connect('key_press_event', on_key)
         fig.canvas.mpl_connect('button_press_event', on_click)
         plt.show()
 
@@ -422,18 +462,17 @@ if __name__ == "__main__":
     # Set backend to Agg
     mpl.use('WxAgg')
 
-    ms_dial_results_file = r"Z:\Group Share\JGP\Lipidomics_MassIVE_folder\Raw\DDA\filtered_search_results.csv"
+    ms_dial_results_file = r"Z:\Group Share\JGP\Lipidomics_MassIVE_folder\Raw\DDA\DDA_re-search\Height_11_2025_05_01_11_53_45.csv"
     os.chdir(os.path.dirname(ms_dial_results_file))
     msdial_results_df = pd.read_csv(ms_dial_results_file)
-    search_results_to_library(msdial_results_df)
-    exit()
-
 
 
     to_exclude = ["RIKEN", "Unknown", "no MS2"]
+
     filtered_search_results = filter_msdial_results(msdial_results_df, to_exclude)
     filtered_search_results = filter_by_tl_rt(filtered_search_results)
     filtered_search_results = filter_by_kmd(filtered_search_results)
+    search_results_to_library(filtered_search_results)
     filtered_search_results.to_csv("filtered_search_results.csv", index=False)
     plot_kmds(filtered_search_results)
 
