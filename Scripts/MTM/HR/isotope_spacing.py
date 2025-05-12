@@ -1,6 +1,72 @@
 import numpy as np
 from numpy import fft as fftpack
 from unidec.modules.isotopetools import makemass
+import matplotlib.pyplot as plt
+
+import matplotlib as mpl
+mpl.use("wxAgg")
+
+def merge_isotope_spacing(x1, x2, y1, y2, isolength):
+    diffs = np.add.outer(x1, x2)
+    probs = np.outer(y1, y2)
+
+    x = []
+    y = []
+    for i in range(isolength):
+        b1 = diffs < i + 0.5
+        b2 = diffs > i - 0.5
+        b1 = np.logical_and(b1, b2)
+        intensity = 0
+        weighted_average = i
+        if np.any(b1):
+            intensity = np.sum(probs[b1])
+        if intensity!=0:
+            weighted_average = np.sum(diffs[b1] * probs[b1]) / intensity
+        x.append(weighted_average)
+        y.append(intensity)
+
+    return np.array(x), np.array(y)
+
+def threshold(array, thresh):
+    b1 = array<np.amax(array) * thresh
+    array[b1] = 0
+    return array
+
+def merge_all(deltas, dists, isolength, flen=7):
+    x1 = deltas[0]
+    y1 = dists[0]
+
+    for i in range(flen - 1):
+        x2 = deltas[i + 1]
+        y2 = dists[i + 1]
+        # y2 = threshold(y2, 0.00001)
+        # y1 = threshold(y1, 0.00001)
+        x1, y1 = merge_isotope_spacing(x1, x2, y1, y2, isolength)
+    return x1, y1
+
+def calc_mzs(mass, diffs, pre_ft, isolength):
+    formula, minmassint, intnum = makemass(mass)
+    intnum = np.concatenate((intnum, [intnum[3], intnum[4]]))
+    print(intnum)
+
+    dists = []
+    deltas = []
+    for i in range(len(intnum)):
+        allft = pre_ft[i] ** intnum[i]
+        allift = np.abs(fftpack.irfft(allft))
+        allift = allift / np.amax(allift)
+        dists.append(allift[:isolength])
+        diffs_temp = diffs[i] * np.arange(isolength)
+        deltas.append(diffs_temp)
+
+    x1, y1 = merge_all(deltas, dists, isolength)
+
+    x2 = np.diff(x1)
+    y2 = y1[:-1]
+
+    weighted_avg = np.sum(x2 * y2) / np.sum(y2)
+    return weighted_avg
+
 
 avgine = np.array([4.9384, 7.7583, 1.3577, 1.4773, 0.0417])
 isotopes = np.array([[[12., 98.90], [13.0033548, 1.10], [0, 0], [0, 0]],
@@ -48,17 +114,20 @@ ds = 33.9678668-31.9720707
 ds33 = 32.9714585-31.9720707
 do17 = 16.9991315-15.9949146
 
-formula, minmassint, intnum = makemass(1000)
-print(formula, minmassint, intnum)
-intnum = np.concatenate((intnum, [intnum[3], intnum[4]]))
-print(intnum)
+diffs = [dc, dh, dn, do, ds, do17, ds33]
 
-dists = []
-for i in range(len(intnum)):
-    allft = pre_ft[i] ** intnum[i]
-    allift = np.abs(fftpack.irfft(allft))
-    allift = allift / np.amax(allift)
-    dists.append(allift[:isolength])
+a = calc_mzs(100, diffs, pre_ft, isolength)
+
+x = np.arange(2, 5, 0.1)
+masses = 10**x
+ints = [calc_mzs(m, diffs, pre_ft, isolength) for m in masses]
+
+plt.plot(masses, ints)
+plt.show()
+
+# plt.plot(np.diff(x1))
+# plt.plot(y1)
+# plt.show()
 
 
 
