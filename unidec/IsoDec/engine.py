@@ -874,7 +874,7 @@ class IsoDecEngine:
         # self.pks.save_pks()
         return reader
 
-    def export_peaks(self, type="prosightlite", filename="output", reader=None, act_type="HCD", max_precursors=None):
+    def export_peaks(self, type="prosightlite", filename="output", reader=None, act_type="HCD", max_precursors=1):
         if filename is None:
             filename = "peaks.csv"
 

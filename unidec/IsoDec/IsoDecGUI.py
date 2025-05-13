@@ -166,7 +166,7 @@ class IsoDecPres(UniDecPres):
             if path[-1].lower() == 'raw' and not os.path.isdir(self.top_path):
                 self.eng.data.data2 = self.isodeceng.reader.grab_all_centroid_dat()
             else:
-                self.eng.data.data2 = get_all_centroids(self.eng.data.data2)
+                self.eng.data.data2 = get_all_centroids(self.eng.data.rawdata)
             self.eng.config.centroided = True
         self.eng.process_data()
 
@@ -471,7 +471,7 @@ class IsoDecPres(UniDecPres):
         os.chdir(os.path.dirname(outdir))
 
         if self.eng.config.poolflag == 1:
-            self.isodeceng.export_peaks("msalign", filename, self.isodeceng.config)
+            self.isodeceng.export_peaks("msalign", filename, reader=self.isodeceng.reader)
 
         if self.eng.config.compressflag == 1:
             self.isodeceng.export_peaks("tsv", filename + ".tsv")

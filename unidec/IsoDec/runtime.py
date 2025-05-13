@@ -159,7 +159,7 @@ class IsoDecRuntime:
         # self.pks.save_pks()
         return reader
 
-    def export_peaks(self, type="prosightlite", filename=None, reader=None, act_type="HCD", max_precursors=None):
+    def export_peaks(self, type="prosightlite", filename=None, reader=None, act_type="HCD", max_precursors=1):
         print("Filename:", filename)
         if filename is None:
             filename = "peaks"
@@ -172,7 +172,7 @@ class IsoDecRuntime:
         elif type == "msalign":
             if self.showavg:
                 print("MSAlign not supported for Avg, defaulting to Monoisotopic")
-                self.pks.export_msalign(self.config, reader, filename, act_type=act_type, max_precursors=max_precursors)
+            self.pks.export_msalign(self.config, reader, filename, act_type=act_type, max_precursors=max_precursors)
         elif type == "pkl":
             self.pks.save_pks()
         elif type == "tsv":
