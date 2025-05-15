@@ -106,6 +106,23 @@ def remove_file_regex(topdir, regex, remove=True):
 
     print("Removed", count, "files.")
 
+def remove_dir_regex(topdir, regex, remove=True):
+    count = 0
+    for root, dirs, files in os.walk(topdir):
+        for f in dirs:
+            if len(f) == 0:
+                continue
+            # if regex matches the file name
+            if re.search(regex, f) and remove:
+                shutil.rmtree(os.path.join(root, f))
+                print("Removed:", f)
+                count += 1
+            elif re.search(regex, f):
+                print("Matched:", f)
+                count += 1
+
+    print("Removed", count, "files.")
+
 def remove_duplicate_files(topdir, good=".*\.raw", bad=".*\.mzML", remove=False):
     count = 0
     for root, dirs, files in os.walk(topdir):
@@ -130,6 +147,7 @@ topdir = "Z:\\Instrument"
 topdir = "Z:\\mtmarty\\Archive\\PostDoc\\"
 topdir = "Z:\\Group Share\\Hiruni Jayasekera"
 topdir = "C:\\Python\\UniDecDev\\UniDec3"
+topdir = "Z:\\Group Share\\Group\\Archive\\Grad Students and Postdocs\\Kimber Focke\\More Synapt"
 
 # topdir = "Z:\\Group Share\\Group"
 # topdir = "Z:\\Group Share\\Group\\Archive\\Grad Students and Postdocs\\Marius Kostelic"
@@ -142,9 +160,11 @@ topdir = "C:\\Python\\UniDecDev\\UniDec3"
 
 
 
-run_delete_dirs(topdir, "__pycache__")
+# run_delete_dirs(topdir, r"blank")
 # run_delete_dirs(topdir, "UniDecPastedSpectra")
 # run_delete_files(topdir, ".*.mzML$")
+
+remove_dir_regex(topdir, r'^.*blank.*', remove=True)
 
 # remove_file_regex(topdir, r'^.*.trr', remove=True)
 # remove_file_regex(topdir, r'^#.*#$', remove=True)

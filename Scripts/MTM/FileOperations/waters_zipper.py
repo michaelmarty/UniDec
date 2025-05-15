@@ -44,12 +44,15 @@ topdir = "Z:\\Group Share\\Group\\Archive\\Grad Students and Postdocs\\Skippy"
 topdir = "Z:\\mtmarty\\Archive\\Papers\\"
 topdir = "Z:\\mtmarty\\Data\\Finished Projects"
 topdir = "Z:\\Group Share\\Hiruni Jayasekera"  # Example for Hiruni's directory
+topdir = "Z:\\Group Share\\BHT\\Q Exactive HF Data\\Old Data Scheme (before 20250310)"  # Example for Hiruni's directory
+topdir = "Z:\\Group Share\\Group\\Archive\\Grad Students and Postdocs\\Julia Townsend\\Julia.PRO"
+topdir = "Z:\\Group Share\\Group\\Archive\\Grad Students and Postdocs\\Kimber Focke\\More Synapt"
 
-zip_unidecfiles_dirs(topdir)
+# zip_unidecfiles_dirs(topdir)
 zip_raw_dirs(topdir)
-# zip_pattern_dirs(topdir, ".*_datatemp.*")
-# # zip_pattern_dirs(topdir, ".*_Raw$")
-zip_pattern_dirs(topdir, ".*UniDec_Figures_and_Files$")
+# # zip_pattern_dirs(topdir, ".*_datatemp.*")
+# # # zip_pattern_dirs(topdir, ".*_Raw$")
+# zip_pattern_dirs(topdir, ".*UniDec_Figures_and_Files$")
 
 # zip_pattern_dirs(topdir, ".*\.Data$")
 # zip_pattern_dirs(topdir, ".*old$")
