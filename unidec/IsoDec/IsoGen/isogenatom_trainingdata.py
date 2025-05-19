@@ -9,6 +9,7 @@ def parse_formulas(formulas, isolen=128, cutoff=0.001):
     for f in formulas:
         try:
             dist = get_dist_from_formula(f, isolen, cutoff)
+            print(dist)
             dists.append(dist)
             goodforms.append(f)
         except:
@@ -46,7 +47,7 @@ if __name__ == "__main__":
 
     dists, goodforms = parse_formulas(formulas)
 
-    np.savez_compressed("isodists_"+str(len(dists))+".npz", dists=dists, formulas=goodforms)
-
-    print("Time:", time.perf_counter() - starttime)
+    # np.savez_compressed("isodists_aa"+str(len(dists))+".npz", dists=dists, formulas=goodforms)
+    #
+    # print("Time:", time.perf_counter() - starttime)
 

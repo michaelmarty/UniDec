@@ -87,6 +87,7 @@ class IsoDecEngine:
         else:
             self.wrapper = None
 
+
         self.reader = None
         self.predmode = 0
 
@@ -628,7 +629,7 @@ class IsoDecEngine:
         else:
             return []
 
-    def batch_process_spectrum(self, data, window=None, threshold=None, centroided=False, refresh=False):
+    def batch_process_spectrum(self, data, type=None, window=None, threshold=None, centroided=False, refresh=False):
         """
         Process a spectrum and identify the peaks. It first identifies peak cluster, then predicts the charge,
         then checks the peaks. If all is good, it adds them to the MatchedCollection as a MatchedPeak object.
@@ -665,7 +666,7 @@ class IsoDecEngine:
             self.pks = MatchedCollection()
 
         if self.use_wrapper:
-            self.pks = self.wrapper.process_spectrum(centroids, self.pks, self.config)
+            self.pks = self.wrapper.process_spectrum(centroids, self.pks, self.config, type)
         else:
             kwindow = window
             threshold = threshold
@@ -795,6 +796,7 @@ class IsoDecEngine:
                         # Find matches
                         indval = indexes[j]
                         matchindvals = indval[matchedindexes]
+                        self.pks.peaks[-1].matchedindexes = np.array(matchindvals)
                         # Knock them down
                         knockdown.extend(matchindvals)
                     else:

@@ -10,7 +10,7 @@ from unidec.modules.hdf5_tools import replace_dataset, get_dataset
 
 __author__ = 'Michael.Marty'
 
-version = "8.0.1"
+version = "8.0.2"
 
 def ofile_reader(path):
     oligos = []
@@ -316,6 +316,7 @@ class UniDecConfig(object):
         # plotting
         self.publicationmode = 1
         self.avgpeakmasses = 0
+        self.selection_type = None
         self.discreteplot = 0
         self.cmap = u"nipy_spectral"
         self.peakcmap = u"rainbow"
@@ -569,6 +570,7 @@ class UniDecConfig(object):
         f.write("baselineflag " + str(self.baselineflag) + "\n")
         f.write("orbimode " + str(self.orbimode) + "\n")
         f.write("Avg Peak Masses " + str(self.avgpeakmasses) + "\n")
+        f.write("Selection type" + str(self.selection_type) + "\n")
         if self.integratelb != "" and self.integrateub != "":
             try:
                 f.write("integratelb " + str(self.integratelb) + "\n")

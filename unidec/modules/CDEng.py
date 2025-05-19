@@ -186,7 +186,7 @@ class UniDecCD(engine.UniDec):
         :param path: File path to open.
         :return: None
         """
-        if platform.system() != "Windows" and path.split(".")[-1] == "raw" or path.split(".")[-1] == "RAW":
+        if platform.system() != "Windows" and path.split(".")[-1].lower() == "raw":
             print("Error: Thermo Raw files are only supported on Windows")
             raise ImportError
 

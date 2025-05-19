@@ -248,6 +248,15 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlnegmode.SetToolTip(wx.ToolTip("Set the mode to negative ion mode"))
         self.ctlavgpeakmasses.SetToolTip(wx.ToolTip("Plot average peak masses"))
 
+        label = wx.StaticText(panel2b, label="Deconvolution Type: ")
+        gbox2b.Add(label, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctltypelist = wx.ComboBox(panel2b, wx.ID_ANY, style=wx.CB_READONLY)
+        self.ctltypelist.Set(["None", "Rna", "Peptide"])
+        gbox2b.Add(self.ctltypelist, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.parent.Bind(wx.EVT_COMBOBOX, self.export_gui_to_config, self.ctltypelist)
+        i+=1
+
+
 
         self.ctlphaseres = wx.RadioBox(panel2b, label="Priority:", choices=["Speed", "Accuracy"])
         gbox2b.Add(self.ctlphaseres, (i, 0), span=(1, 2), flag=wx.EXPAND)
@@ -409,6 +418,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctldatanorm.SetValue(int(self.config.datanorm))
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlavgpeakmasses.SetValue(self.config.avgpeakmasses)
+            self.ctltypelist.SetValue(str(self.ctltypelist.GetValue()))
 
             # Decon params
             self.ctlmatchtol.SetValue(str(self.config.filterwidth))
@@ -492,7 +502,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.exthresh = ud.string_to_value(self.ctlencodingthresh.GetValue())
         # CSS threshold goes to csig
         self.config.csig = ud.string_to_value(self.ctlccsthresh.GetValue())
-
+        self.config.selection_type = self.ctltypelist.GetValue()
         if self.ctlphaseres.GetSelection() == 0:
             self.config.aggressiveflag = 4
         else:

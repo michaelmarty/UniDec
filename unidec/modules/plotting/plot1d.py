@@ -511,13 +511,12 @@ class Plot1dBase(PlotBase):
             ylist.extend(yends)
             ylist.append(None)
         self.subplot1.plot(xlist, ylist, color=color)
-
         self.subplot1.set_xlabel(xlabel)
         self.subplot1.set_ylabel(ylabel)
         self.subplot1.set_title(title)
         self.subplot1.spines['top'].set_visible(False)
         self.subplot1.spines['right'].set_visible(False)
-        self.subplot1.set_clip_on(False)
+        #self.subplot1.set_clip_on(False)
         self.setup_zoom([self.subplot1], self.zoomtype, pad=0.25)
         self.flag = True
         if repaint:

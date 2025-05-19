@@ -159,9 +159,17 @@ class IsoDecPres(UniDecPres):
         self.view.SetStatusText("Data Prep", number=5)
         self.fix_parameters()
         self.export_config(self.eng.config.confname)
-        self.eng.process_data()
+
         if not self.eng.config.centroided:
-            self.eng.data.data2 = get_all_centroids(self.eng.data.data2)
+            path = self.top_path.split(".")
+            #Everything going through IsoDec should be centroided
+            if path[-1].lower() == 'raw' and not os.path.isdir(self.top_path):
+                self.eng.data.data2 = self.isodeceng.reader.grab_all_centroid_dat()
+            else:
+                self.eng.data.data2 = get_all_centroids(self.eng.data.data2)
+            self.eng.config.centroided = True
+        self.eng.process_data()
+
 
         self.import_config()
         self.view.clear_all_plots()
@@ -202,6 +210,11 @@ class IsoDecPres(UniDecPres):
         :param e: unused event
         :return: None
         """
+        self.view.export_gui_to_config()
+
+        if self.eng.config.selection_type == "Peptide" or self.eng.config.selection_type == 'Rna':
+            self.isodeceng.selection_type = self.eng.config.selection_type
+
         tstart = time.perf_counter()
         self.view.SetStatusText("Running IsoDec...", number=5)
         self.fix_parameters()
@@ -214,9 +227,10 @@ class IsoDecPres(UniDecPres):
 
         data = self.eng.data.data2
         # Run IsoDec
-        self.isodeceng.batch_process_spectrum(data, centroided=True, refresh=True)
+        self.isodeceng.batch_process_spectrum(data, centroided=True, refresh=True, type=self.isodeceng.selection_type)
         # Convert to mass
         self.eng.data.massdat = self.isodeceng.pks_to_mass(self.eng.config.massbins)
+
         if len(self.isodeceng.pks.masses) == 0:
             print("No Peaks Found")
             self.view.SetStatusText("No Peaks Found", number=5)
@@ -228,7 +242,7 @@ class IsoDecPres(UniDecPres):
         self.view.clear_all_plots()
         self.makeplot1()
         self.makeplot2()
-        self.view.SetStatusText("IsoDec Done: " + str(len(self.isodeceng.pks.masses)), number=5)
+        self.view.SetStatusText("IsoDec Done: " + str(len(self.isodeceng.pks.peaks)), number=5)
         tend = time.perf_counter()
         print("IsoDec Done. Time: %.2gs" % (tend - tstart))
         self.export_results()
@@ -617,6 +631,8 @@ class IsoDecPres(UniDecPres):
         if found_warning:
             print("Warnings were found in the parameters. Please check the output above.")
             self.view.SetStatusText("Warnings found in parameters. Check the console output.", number=number)
+
+
 
 
 if __name__ == "__main__":

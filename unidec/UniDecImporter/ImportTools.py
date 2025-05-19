@@ -1,7 +1,10 @@
 import re
 import numpy as np
+from numba import njit
+from collections import defaultdict
 import unidec.tools as ud
 from copy import deepcopy
+import math
 
 def header_test(path, deletechars=None, delimiter=" |\t|,", strip_end_space=True):
     """
@@ -230,3 +233,156 @@ def nonlinear_axis(start, end, res):
 #         outfile = os.path.join(path, "converted_rawdata.txt")
 #     np.savetxt(outfile, data)
 #     return data
+
+@njit
+def compute_bin_indices(mzs, intensities, min_mz, bin_width):
+    indices = ((mzs - min_mz) / bin_width).astype(np.int32)
+    return indices, mzs, intensities
+
+class IndexedScan:
+    """
+    A class to store an in individual scan with the peaks indexed into bins by m/z.
+    """
+    def __init__(self, scan, rt, scan_num, min_mz, bin_width):
+        self.scan = scan
+        self.retention_time = rt
+        self.scan_num = scan_num
+        self.min_mz = min_mz
+        self.bin_width = bin_width
+        self.indexed_peaks = self.index_peaks(self.min_mz, self.bin_width)
+
+
+    def index_peaks(self, min_mz, bin_width):
+        mzs = np.array(self.scan[:,0])
+        intensities = np.array(self.scan[:,1])
+        indices, mzs, intensities = compute_bin_indices(mzs, intensities, min_mz, bin_width)
+
+        indexed_peaks = defaultdict(list)
+        for mz, intensity, idx in zip(mzs, intensities, indices):
+            indexed_peaks[idx].append([mz, intensity])
+
+        return indexed_peaks
+
+    def get_intensity(self, mz, mz_tolerance):
+        """
+        Calculates the total intensity within :param mz_tolerance
+        around :param mz within the scan.
+        """
+        #this is easy if the mz+/- the tolerance is within a single bin..
+        min_index = math.trunc((mz - mz_tolerance - self.min_mz) / self.bin_width)
+        max_index = math.trunc((mz + mz_tolerance - self.min_mz) / self.bin_width)
+        if min_index == max_index:
+            sum_intensity = 0
+            #sum the intensities of all peaks in the bin within the tolerance of the mz
+            if self.indexed_peaks.get(min_index, None) is None:
+                return 0
+            else:
+                bin_peaks = self.indexed_peaks.get(min_index)
+                for i in range(len(bin_peaks)):
+                    if abs(bin_peaks[i][0] - mz) <= mz_tolerance:
+                        sum_intensity += bin_peaks[i][1]
+            return sum_intensity
+        else:
+            #check peaks from both bins..
+            sum_intensity = 0
+            indices = range(min_index, max_index + 1, 1)
+            for i in range(len(indices)):
+                if self.indexed_peaks.get(indices[i], None) is None:
+                    continue
+                else:
+                    bin_peaks = self.indexed_peaks.get(indices[i])
+                    for j in range(len(bin_peaks)):
+                        if abs(bin_peaks[j][0] - mz) <= mz_tolerance:
+                            sum_intensity += bin_peaks[j][1]
+            return sum_intensity
+
+    def get_exp_mz(self, mz, mz_tol):
+        """
+        Takes an m/z and an absolute width and finds the nearest experimental m/z in the scan
+        within the given tolerance to the query m/z.
+
+        :param mz: the target m/z
+        :param mz_tol: the width (in m/z space) within which
+        """
+        min_index = math.trunc((mz - mz_tol - self.min_mz) / self.bin_width)
+        max_index = math.trunc((mz + mz_tol - self.min_mz) / self.bin_width)
+        if min_index == max_index:
+            peaks_sorted = sorted(self.indexed_peaks.get(min_index, None), key=lambda x:x[1], reverse=True)
+        else:
+            indices = range(min_index, max_index+1, 1)
+            peaks_within_tol = []
+            for s in indices:
+                if self.indexed_peaks.get(s, None) is None:
+                    continue
+                else:
+                    bin_peaks = self.indexed_peaks.get(s)
+                    for p in bin_peaks:
+                        if abs(p[0] - mz) <= mz_tol:
+                            peaks_within_tol.append(p)
+            peaks_sorted = sorted(peaks_within_tol, key=lambda x:x[1], reverse=True)
+
+        if peaks_sorted is None:
+            return None
+        else:
+            return peaks_sorted[0][0]
+
+class IndexedFile:
+    """
+    A class to store a set of indexed scans originating from a single mzML file.
+    """
+    def __init__(self):
+        self.min_mz = 0
+        self.bin_width = 1
+        self.indexed_scans = []
+
+    def extract_xic(self, mz, mz_width, rt_range=None):
+        """
+        Takes an mz and an mz width (and optionally an rt range)
+        and produces an eic (scans, retention times, and intensities)
+        """
+        rts = []
+        scans = []
+        intensities = []
+
+        t_min = -1
+        t_max = -1
+        if rt_range is not None:
+            t_min = rt_range[0]
+            t_max = rt_range[1]
+
+        for i in range(len(self.indexed_scans)):
+            if rt_range is not None and (self.indexed_scans[i].retention_time < t_min or self.indexed_scans[i].retention_time > t_max):
+                continue
+            elif rt_range is None or (t_min < self.indexed_scans[i].retention_time < t_max):
+                intensity = self.indexed_scans[i].get_intensity(mz, mz_width)
+                scans.append(self.indexed_scans[i].scan_num)
+                rts.append(self.indexed_scans[i].retention_time)
+                intensities.append(intensity)
+        return np.transpose([rts, intensities])
+
+    def get_indexed_spectrum_atRt(self, rt):
+        """
+        Grabs the spectrum with an RT nearest to the provided rt (minutes)
+        """
+        index_guess = int(round(len(self.indexed_scans)/2))
+        finding_spec = True
+        min_error = self.indexed_scans[index_guess].retention_time - rt
+        while finding_spec:
+            current_rt = self.indexed_scans[index_guess].retention_time
+            current_error = current_rt - rt
+
+            if abs(current_error) <= abs(min_error):
+                min_error = current_error
+
+                if min_error < 0:
+                    index_guess += 1
+                if min_error > 0:
+                    index_guess -= 1
+                if min_error == 0:
+                    finding_spec = False
+
+            else:
+                finding_spec = False
+
+
+        return self.indexed_scans[index_guess]

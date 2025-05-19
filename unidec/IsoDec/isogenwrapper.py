@@ -7,19 +7,22 @@ from unidec.tools import start_at_iso
 
 current_path = os.path.dirname(os.path.realpath(__file__))
 
+
+#Replace all of this with the isogen.dll for both isogenmass AND isogen
 if platform.system() == "Windows":
-    dllname = "isogenmass.dll"
-    fftdllname = "isofft.dll"
+    dllname = "isogen.dll"
 elif platform.system() == "Linux":
-    dllname = "isogenmass.so"
-    fftdllname = "isofft.so"
+    dllname = "libisogen.so"
+
 else:
-    dllname = "isogenmass.dylib"
-    fftdllname = "isofft.dylib"
+    print("Not yet implemented for MacOS")
+    dllname = "isogen.dylib"
 
 
 
+#need to commmit isogendll to srccmake
 dllpath = start_at_iso(dllname, guess=current_path)
+
 if not dllpath:
     print("DLL not found anywhere:", dllname)
 # else:
@@ -27,13 +30,22 @@ if not dllpath:
 
 isodist = ctypes.c_float * 64
 
-isogen_c_lib = ctypes.CDLL(dllpath)
-isogen_c_lib.isogenmass.argtypes = [
-            ctypes.c_float,
-            ctypes.POINTER(ctypes.c_float)
-        ]
 
-isogenmass = isogen_c_lib.isogenmass
+isogen_c_lib = ctypes.CDLL(dllpath)
+# isogen_c_lib.isogenmass.argtypes = [
+#             ctypes.c_float,
+#             ctypes.POINTER(ctypes.c_float)
+#         ]
+
+isogen_c_lib.fft_rna_mass_to_dist.argtypes = [ctypes.c_float]
+isogen_c_lib.fft_rna_mass_to_dist.restype = ctypes.POINTER(ctypes.c_float)
+isogen_c_lib.fft_pep_mass_to_dist.restype = ctypes.c_float
+isogen_c_lib.fft_pep_mass_to_dist.argtypes = [ctypes.c_float, ctypes.POINTER(ctypes.c_float), ctypes.c_int,
+                                            ctypes.c_int]
+
+
+isogen_c_lib.isogen_nn.argtypes = [ctypes.c_float, ctypes.POINTER(ctypes.c_float), ctypes.c_int, ctypes.c_char_p]
+isogen_c_lib.isogen_nn.restype = None
 
 isogen_c_lib.isomike.argtypes = [
             ctypes.c_float,
@@ -44,46 +56,44 @@ isogen_c_lib.isomike.argtypes = [
 
 isomike = isogen_c_lib.isomike
 
-dllpath2 = start_at_iso(fftdllname, guess=current_path)
-# dllpath2 = "C:\\Python\\UniDec3\\Scripts\\MTM\\IsoFFT\\isofft.dll"
-if not os.path.isfile(dllpath2):
-    raise Exception("DLL not found")
-isofft_c_lib = ctypes.CDLL(dllpath2)
 
-isofft = isofft_c_lib.isodist_from_averagine_mass
-isofft.argtypes = [
-    ctypes.c_float,
-    ctypes.POINTER(ctypes.c_float),
-    ctypes.c_int,
-    ctypes.c_int,
-]
-
-
-def gen_isofft(mass, isolen=64):
-    # Create empty array
+def gen_isodist_nn(mass, type, isolen=64):
+    res = b""
+    if type is None:
+        return
+    if type == "RNA":
+        res = b"Rna"
+    elif type == "PEPTIDE":
+        res = b"Peptide"
+        # Create empty array
     isodist = np.zeros(isolen).astype(np.float32)
+    ptr = isodist.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
     # Call the C function
-    isofft(
+    isogen_c_lib.isogen_nn(
         ctypes.c_float(mass),
-        isodist.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+        ptr,
         ctypes.c_int(isolen),
-        ctypes.c_int(0),
+        res,
     )
     # Convert isodist to numpy
     isodist = np.ctypeslib.as_array(isodist)
     return isodist
 
-def gen_isodist(mass, isolen=64):
-    # Create empty array
-    isodist = np.zeros(isolen).astype(np.float32)
-    # Call the C function
-    isogenmass(
-        ctypes.c_float(mass),
-        isodist.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-    )
-    # Convert isodist to numpy
-    isodist = np.ctypeslib.as_array(isodist)
-    return isodist
+def fft_gen_isodist(mass, type, isolen = 128):
+    if type == "RNA":
+        mass_c = ctypes.c_float(mass)
+        isolist_ptr = isogen_c_lib.fft_rna_mass_to_dist(mass_c)
+        isolist = np.ctypeslib.as_array(isolist_ptr, shape=(128,))
+        return isolist
+    elif type == "PEPTIDE":
+        fmass = ctypes.c_float(mass)
+        isodist = (ctypes.c_float * isolen)()
+        offset = ctypes.c_int(0)
+        isolen = ctypes.c_int(isolen)
+        isogen_c_lib.fft_pep_mass_to_dist(fmass, isodist, isolen, offset)
+        return np.array(isodist).copy()
+
+
 
 def gen_isomike(mass, isolen=64):
     # Create empty array
@@ -103,26 +113,24 @@ def gen_isomike(mass, isolen=64):
 class IsoGenWrapper:
     def __init__(self, dllpath=None):
         self.isolen = 64
-    def gen_isodist(self, mass):
-        return gen_isodist(mass, self.isolen)
+    def gen_isodist(self, mass, type="PEPTIDE"):
+        return gen_isodist_nn(mass, type, self.isolen)
 
     def gen_isomike(self, mass):
         return gen_isomike(mass, self.isolen)
 
-    def gen_isofft(self, mass):
-        return gen_isofft(mass, self.isolen)
+    def gen_isodist_fft(self, mass):
+        return fft_gen_isodist(mass, type, self.isolen)
 
 if __name__ == "__main__":
 
     m =20000
     d1 = gen_isodist(m)
     d2 = gen_isomike(m)
-    d3 = gen_isofft(m)
 
     import matplotlib.pyplot as plt
     plt.plot(d1/np.amax(d1), label="Isogen")
     plt.plot(d2/np.amax(d2), label="Isomike")
-    plt.plot(d3/np.amax(d3), label="FFT")
     plt.legend()
     #plt.show()
 
