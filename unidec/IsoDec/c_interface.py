@@ -5,6 +5,8 @@ from pathlib import Path
 import sys
 import platform
 
+from unidec.modules.isotopetools import fast_calc_averagine_isotope_dist
+
 path_root = Path(__file__).parents[2]
 sys.path.append(str(path_root))
 
@@ -278,7 +280,6 @@ class IsoDecWrapper:
             settings,
             type_c,
         )
-        #print(nmatched)
 
 
 
@@ -318,9 +319,8 @@ class IsoDecWrapper:
             pk.startindex = p.startindex
             pk.endindex = p.endindex
 
-            #pk.isodist = fast_calc_averagine_isotope_dist(p.monoiso, p.z)
-            # pk.isodist[:,0] /= float(p.z)
-            # pk.isodist[:, 1] *= p.peakint
+            pk.isodist = fast_calc_averagine_isotope_dist(p.monoiso, p.z)
+            pk.isodist[:, 1] *= p.peakint
             pks.add_peak(pk)
             pks.add_pk_to_masses(pk, 10)
         return pks
