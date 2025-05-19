@@ -4,6 +4,8 @@ import numpy as np
 from pathlib import Path
 import sys
 
+
+
 path_root = Path(__file__).parents[2]
 sys.path.append(str(path_root))
 
@@ -42,6 +44,8 @@ class IsoDecRuntime:
         self.reader = None
         self.predmode = 0
         self.showavg = False
+        self.selection_type = None
+
     def phase_predictor(self, centroids):
         """
         Predict the charge of a peak
@@ -54,7 +58,7 @@ class IsoDecRuntime:
     def thrash_predictor(self, centroids):
         return [thrash_predict(centroids), 0]
 
-    def batch_process_spectrum(self, data, window=5, threshold=0.0001, centroided=False, refresh=False):
+    def batch_process_spectrum(self, data, window=5, type=None, threshold=0.0001, centroided=False, refresh=False):
         """
         Process a spectrum and identify the peaks. It first identifies peak cluster, then predicts the charge,
         then checks the peaks. If all is good, it adds them to the MatchedCollection as a MatchedPeak object.
@@ -65,6 +69,7 @@ class IsoDecRuntime:
         :param centroided: Whether the data is already centroided. If not, it will centroid it.
         :return: MatchedCollection of peaks
         """
+
         if window is None:
             window = self.config.peakwindow
         if threshold is None:
@@ -84,7 +89,8 @@ class IsoDecRuntime:
         if refresh:
             self.pks = MatchedCollection()
 
-        self.pks = self.wrapper.process_spectrum(centroids, self.pks, self.config)
+        self.pks = self.wrapper.process_spectrum(centroids, self.pks, self.config, type)
+
 
         return self.pks
 
@@ -182,6 +188,9 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     starttime = time.perf_counter()
     eng = IsoDecRuntime(phaseres=8)
+    eng.selection_type = "None"
+
+
 
     file ="C:\\Python\\UniDec3\\unidec\\bin\\TestSpectra\\test_2.txt"
     eng.process_file(file)

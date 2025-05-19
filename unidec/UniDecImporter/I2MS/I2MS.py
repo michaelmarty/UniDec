@@ -70,18 +70,32 @@ class I2MSImporter:
     def get_scan_range(self):
         return [1,  int(max(self.scans))]
 
+    def get_avg_scan(self, bins =1):
+        all_scans = self.get_all_scans()
+
+
+        min_val, max_val = np.min(all_scans), np.max(all_scans)
+        bins = np.arange(min_val, max_val + 1, 1)
+        #Length off by one
+
+        counts, bin_edges = np.histogram(all_scans, bins=bins)
+
+        return np.transpose([bin_edges[:-1], counts])
+
+
 if __name__ == "__main__":
 
 
     file = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\CDMS\\test_dmt_cdms.dmt"
-    i2ms = I2MSImporter(file)
-    i2ms.get_all_scans()
-    # for i in i2ms.scans:
-    #     print(i)
-
-
-    exit()
     import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    mpl.use('WxAgg')
+    i2ms = I2MSImporter(file)
+    dat =i2ms.get_avg_scan()
+    plt.plot(dat[:,0], dat[:,1])
+    plt.show()
+    exit()
+
 
     x = i2ms.data[:,7]
     y = i2ms.data[:,10]

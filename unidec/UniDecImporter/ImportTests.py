@@ -1,9 +1,11 @@
 import unittest
 import os
+import warnings
+
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 import numpy as np
 
-topdir = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection"
+topdir = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\"
 chrom_dat_examples = ["test_mzml.mzML", "test_mzmlgz.mzML.gz", "test_mzxml.mzXML",
                       "test_thermo.RAW", "test_waters.raw", "test_agilent.d"]
 chrom_paths = [os.path.join(topdir, p) for p in chrom_dat_examples]
@@ -36,6 +38,21 @@ class ImporterTests(unittest.TestCase):
             self.assertTrue(np.shape(test_tic)[1] == 2)
             self.assertTrue(len(test_tic) > 20)
             self.assertTrue(importer.chrom_support)
+
+    def test_eic(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", ResourceWarning)
+
+        for p in chrom_paths:
+            print("Testing EIC for", p)
+            importer = ImporterFactory.create_importer(p)
+            importer.index_scans(0,1)
+            test_eic = importer.get_eic(1000, 0.1)
+            print("Shape:", np.shape(test_eic))
+            self.assertTrue(np.shape(test_eic)[1] == 2)
+            self.assertTrue(len(test_eic) > 20)
+            self.assertTrue(importer.chrom_support)
+            importer.close()
 
     def test_full_avg_scan(self):
         for p in ss_paths:

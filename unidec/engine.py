@@ -300,7 +300,6 @@ class UniDec(UniDecEngine):
             float(self.config.maxmz)
         except ValueError:
             self.config.maxmz = np.amax(self.data.rawdata[:, 0])
-        # print("Min MZ: ", self.config.minmz, "Max MZ: ", self.config.maxmz)
         if self.config.imflag == 1:
             try:
                 float(self.config.mindt)
@@ -317,15 +316,23 @@ class UniDec(UniDecEngine):
             return 1
 
         if self.config.imflag == 0:
-            self.data.data2 = ud.dataprep(self.data.rawdata, self.config)
+            if self.config.centroided:
+                centroided = self.data.data2
+            else:
+                centroided = None
+            self.data.data2 = ud.dataprep(self.data.rawdata, self.config, centroided_dat=centroided)
+
             if "scramble" in kwargs:
-                if kwargs["scramble"]:
-                    # np.random.shuffle(self.data.data2[:, 1])
-                    self.data.data2[:, 1] = np.abs(
-                        np.random.normal(0, 100 * np.amax(self.data.data2[:, 1]), len(self.data.data2)))
-                    self.data.data2[:, 1] /= np.amax(self.data.data2[:, 1])
-                    print("Added noise to data")
+                    if kwargs["scramble"]:
+                        # np.random.shuffle(self.data.data2[:, 1])
+                        self.data.data2[:, 1] = np.abs(
+                            np.random.normal(0, 100 * np.amax(self.data.data2[:, 1]), len(self.data.data2)))
+                        self.data.data2[:, 1] /= np.amax(self.data.data2[:, 1])
+                        print("Added noise to data")
+
             ud.dataexport(self.data.data2, self.config.infname)
+
+
         else:
             tstart2 = time.perf_counter()
             mz, dt, i3 = IM_func.process_data_2d(self.data.rawdata3[:, 0], self.data.rawdata3[:, 1],
@@ -335,7 +342,7 @@ class UniDec(UniDecEngine):
             if "silent" not in kwargs or not kwargs["silent"]:
                 print("Time: %.2gs" % (tend - tstart2))
             self.data.data3 = np.transpose([np.ravel(mz), np.ravel(dt), np.ravel(i3)])
-            self.data.data2 = np.transpose([np.unique(mz), np.sum(i3, axis=1)])
+            #self.data.data2 = np.transpose([np.unique(mz), np.sum(i3, axis=1)])
             ud.dataexportbin(self.data.data3, self.config.infname)
             pass
 
@@ -345,6 +352,8 @@ class UniDec(UniDecEngine):
             print("Data Prep Time: %.2gs" % (tend - tstart))
         # self.get_spectrum_peaks()
         pass
+
+
 
     def run_unidec(self, silent=False, efficiency=False):
         """
@@ -1538,6 +1547,7 @@ class UniDec(UniDecEngine):
             plot.repaint()
             print("Plot 1: %.2gs" % (time.perf_counter() - tstart))
         return plot
+
 
 
 

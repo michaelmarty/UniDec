@@ -1,55 +1,30 @@
 #ifndef ISODECLIB_LIBRARY_H
 #define ISODECLIB_LIBRARY_H
 
-#ifndef ISODEC_EXPORTS_H
-#define ISODEC_EXPORTS_H
-
-# if defined(__cplusplus)
-#  define EXTERN extern "C"
-# else
-#  define EXTERN
-# endif
-
-# ifndef OS_Windows
-	# define OS_Windows 0
-	# if defined(_WIN32) || defined(_WIN64)
-		// Set OS_Windows to 1
-		#	undef OS_Windows
-		#	define OS_Windows 1
-	# endif
-# endif
-
-#ifdef ISODECLIB_STATIC_DEFINE
-#  define ISODEC_EXPORTS
+#ifdef __cplusplus
+	#define EXTERN extern "C"
 #else
-#  ifndef ISODEC_EXPORTS
-#    ifdef isodeclib_EXPORTS
-# if OS_Windows
-		/* We are building this library */
-#      define ISODEC_EXPORTS EXTERN __declspec(dllexport)
-#    else
-		/* We are building this library */
-# 	define ISODEC_EXPORTS EXTERN __attribute__((__visibility__("default")))
-#    endif
-#    else
-# if OS_Windows
-        /* We are using this library */
-#      define ISODEC_EXPORTS EXTERN __declspec(dllimport)
-#    else
-		/* We are using this library */
-# 	define ISODEC_EXPORTS EXTERN
-#   endif
-#    endif
-#  endif
-
+	#define EXTERN
 #endif
 
-#endif /* ISODEC_EXPORTS_H */
+// 🔥 Define ISODECLIB_EXPORTS ONLY inside isodeclib.h
+#ifdef ISODEC_BUILD_DLL
+	#if defined(_WIN32) || defined(_WIN64)
+		#define ISODECLIB_EXPORTS EXTERN __declspec(dllexport)
+	#else
+		#define ISODECLIB_EXPORTS EXTERN __attribute__((__visibility__("default")))
+	#endif
+#else
+	#if defined(_WIN32) || defined(_WIN64)
+		#define ISODECLIB_EXPORTS EXTERN __declspec(dllimport)
+	#else
+		#define ISODECLIB_EXPORTS EXTERN
+	#endif
+#endif
+#include "fftw3.h"
 
-//  "isodec_exports.h"
 
 
-// Structure for matched peak
 struct MatchedPeak
 {
 	float mz;
@@ -118,10 +93,12 @@ struct Weights {
 	float *b2;
 };
 
-ISODEC_EXPORTS void run(char *filename, char *outfile, const char *weightfile);
-ISODEC_EXPORTS int encode(const double* cmz, const float* cint, int n, float * emat, struct IsoConfig config, struct IsoSettings settings);
-ISODEC_EXPORTS void predict_charge(const double* cmz, const float* cint, int n, const char* fname, int* charge);
-ISODEC_EXPORTS int process_spectrum(const double* cmz, const float* cint, int n, const char* fname, struct MatchedPeak * matchedpeaks, struct IsoSettings settings);
-ISODEC_EXPORTS int process_spectrum_default(const double* cmz, const float* cint, int n, const char* fname, struct MatchedPeak * matchedpeaks);
+ISODECLIB_EXPORTS void run(char *filename, char *outfile, const char *weightfile, char* type);
+ISODECLIB_EXPORTS int encode(const double* cmz, const float* cint, int n, float * emat, struct IsoConfig config, struct IsoSettings settings);
+ISODECLIB_EXPORTS void predict_charge(const double* cmz, const float* cint, int n, const char* fname, int* charge);
+ISODECLIB_EXPORTS int process_spectrum(const double* cmz, const float* cint, int n, const char* fname, struct MatchedPeak * matchedpeaks, struct IsoSettings settings, char* type);
+ISODECLIB_EXPORTS int process_spectrum_default(const double* cmz, const float* cint, int n, const char* fname, struct MatchedPeak * matchedpeaks, char* type);
+
+
 
 #endif //ISODECLIB_LIBRARY_H

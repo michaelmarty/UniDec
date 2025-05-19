@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 import time
 
 
+
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # Function to save the model to a binary format that can be read into C
@@ -137,7 +138,9 @@ class IsoGenModelBase:
         if lossfn == "mse":
             self.loss_fn = nn.MSELoss(reduction="sum")
         else:
+
             raise ValueError("Loss function not recognized.", lossfn)
+
         # self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.1)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
         #self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=1, gamma=0.95)
@@ -150,9 +153,14 @@ class IsoGenModelBase:
         """
         if os.path.isfile(self.savepath):
             try:
-                self.model.load_state_dict(torch.load(self.savepath, weights_only=True))
-                print("Model loaded:", self.savepath)
-                # print_model(self.model)
+                if torch.cuda.is_available():
+                    self.model.load_state_dict(torch.load(self.savepath, weights_only=True))
+                    print("Model loaded:", self.savepath)
+                    # print_model(self.model)
+                else:
+                    self.model.load_state_dict(torch.load(self.savepath, weights_only=True, map_location=torch.device('cpu')))
+                    print("Model loaded:", self.savepath)
+                    # print_model(self.model)
             except Exception as e:
                 print("Model failed to load:", self.savepath)
                 print(e)
@@ -180,6 +188,8 @@ class IsoGenModelBase:
         self.setup_training(lossfn, forcenew=forcenew)
         size = len(dataloader.dataset)
         num_batches = len(dataloader)
+
+        log_interval = max(1, int(num_batches / 5))
         self.model.train()
 
         for batch, s in enumerate(dataloader):
@@ -197,7 +207,7 @@ class IsoGenModelBase:
             self.optimizer.step()
             self.optimizer.zero_grad()
 
-            if batch % int(num_batches / 5) == 0:
+            if batch % log_interval == 0:
                 loss, current = loss.item(), (batch + 1) * len(x)
                 print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
             if self.scheduler is not None:
@@ -365,7 +375,8 @@ class IsoGenEngineBase:
     def create_data_loaders(self, traindata, testdata, batchsize=32, testbatchsize=2048):
         vectors1 = self.inputs_to_vectors(traindata[0])
         vectors2 = self.inputs_to_vectors(testdata[0])
-
+        print("Length of traindata[0]", len(traindata[0]))
+        print("Length of traindata[1]", len(traindata[1]))
         training_data = self.DatasetType(traindata[0], traindata[1], vectors1)
         test_data = self.DatasetType(testdata[0], testdata[1], vectors2)
 
@@ -436,4 +447,11 @@ class IsoGenEngineBase:
         return None
 
 if __name__ == "__main__":
-    pass
+    model = IsoGenNeuralNetwork(isolen=8, vectorlen=4)
+    model.load_state_dict(torch.load("isogenrna_model_8.pth", map_location='cpu'))
+    save_model_to_binary(model, "isogenrna_model_8.bin")
+
+
+    # model = IsoGenNeuralNetwork(isolen=8, vectorlen=5)
+    # model.load_state_dict(torch.load("isogenmass_model_8.pth", map_location='cpu'))
+    # save_model_to_binary(model, "isogenmass_model_8.bin")

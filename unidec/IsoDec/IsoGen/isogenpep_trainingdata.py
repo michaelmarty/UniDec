@@ -10,8 +10,9 @@ import multiprocessing
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import random
+from Scripts.JGP.IsoGen_Analysis.unimod_obo_parser import *
 
-os.chdir("Z:\Group Share\JGP\PeptideTraining\IntactProtein")
+os.chdir("Z:\\Group Share\\JGP\\PeptideTraining\\IntactProtein\\Training")
 
 
 def get_big_seq(seqs):
@@ -55,16 +56,18 @@ def seqs_to_vectors(seqs):
     goodseqs = []
     dists = []
     vecs = []
+    masses = []
 
     with multiprocessing.Pool(processes=8) as pool:
         results = pool.map(seq_to_dist_vecs_seqs, seqs)
 
     for result in results:
-        dist, vec, seq = result
+        dist, vec, seq, mass = result
         if dist is not None and vec is not None:
             dists.append(dist)
             vecs.append(vec)
             goodseqs.append(seq)
+            masses.append(mass)
 
 
     dists = np.array(dists)
@@ -72,8 +75,8 @@ def seqs_to_vectors(seqs):
 
     goodseqs = np.array(goodseqs)
     if len(goodseqs) < 1:
-        return None, None, None
-    return goodseqs, dists, vecs
+        return None, None, None, None
+    return goodseqs, dists, vecs, masses
 
 def parse_file(fname, maxn=1000000, maxlen=200):
     if fname.endswith(".tsv"):
@@ -88,11 +91,11 @@ def parse_file(fname, maxn=1000000, maxlen=200):
 
     seqs = [s for s in seqs if len(s) <= maxlen]
     print("Retreived Sequences:", len(seqs))
-    goodseqs, dists, vecs = seqs_to_vectors(seqs)
+    goodseqs, dists, vecs, masses = seqs_to_vectors(seqs)
 
     #Get the filename without the extension
     filename = os.path.splitext(os.path.basename(fname))[0]
-    np.savez_compressed(filename + ".npz", dists=dists, vecs=vecs, seqs=goodseqs)
+    np.savez_compressed(filename + ".npz", dists=dists, vecs=vecs, seqs=goodseqs, masses=masses)
     #np.savez_compressed("peptidedists_" + str(len(dists)) + ".npz", dists=dists, vecs=vecs, seqs=goodseqs)
 
 def gen_random_prots(all_seqs, organism, iterations=10):
@@ -147,7 +150,10 @@ def gen_random_prots(all_seqs, organism, iterations=10):
     np.savez_compressed("random_prots_" + str(organism) + ".npz", dists=dists, vecs=vectors, seqs=goodseqs)
     return
 
-def gen_random_seqs_even_length(all_seqs, n=100, min_length=1, max_length=30):
+def mod_to_chemicalformula(mod):
+    return ''.join(f"{key}{value}" for key, value in mod.composition.items())
+
+def gen_random_seqs_even_length(all_seqs, organism, nmods=0, n=10000, min_length=1, max_length=200):
     big_seq = get_big_seq(all_seqs)
     np.random.shuffle(big_seq)
 
@@ -157,34 +163,59 @@ def gen_random_seqs_even_length(all_seqs, n=100, min_length=1, max_length=30):
     masses = []
     dists = []
 
+    mods = []
+    mod_index = 0
+    if nmods > 0:
+        mods = np.load("Z:\\Group Share\\JGP\\IsoGen\\Mods\\unimod_mods.npz", allow_pickle=True)["mods"]
+    np.random.shuffle(mods)
 
     for length in range(min_length, max_length+1):
         current = 0
         index = 0
 
         while current < n:
-            random_seqs.append(big_seq[index:index+length])
+            seq = ''.join(big_seq[index:index+length])
+            current_modstring_length = 0
+            for i in range(nmods):
+                mod = mods[mod_index]
+                mod_index += 1
+                mod_cf = mod_to_chemicalformula(mod)
+                mod_string = "[" + mod_cf + "]"
+                if i == 0:
+                    seq = mod_string + seq
+                else:
+                    seq = seq[:i+current_modstring_length] + mod_string + seq[i+current_modstring_length + 1:]
+
+                current_modstring_length += len(mod_string)
+
+            random_seqs.append(seq)
             current += 1
             index += length
+
+            if mod_index + nmods > len(mods):
+                np.random.shuffle(mods)
+                mod_index = 0
 
             if index + length > len(big_seq):
                 np.random.shuffle(big_seq)
                 index = 0
 
-    results = []
-    for i,seq in enumerate(random_seqs):
-        if i % 10000 == 0:
-            print("Processing sequence",i, "of", len(random_seqs))
-        results.append(seq_to_dist_vecs_seqs(seq))
+    print("Processing sequences...")
+    with multiprocessing.Pool(processes=8) as pool:
+        results = pool.map(seq_to_dist_vecs_seqs, random_seqs)
 
+
+    print("Parsing results...")
     for r in results:
-        if r[0] is not None:
+        if r[0] is not None and r[1] is not None and r[2] is not None and r[3] is not None:
             dists.append(np.array(r[0]))
             vectors.append(r[1])
-            good_seqs.append(r[2])
+            good_seqs.append(str(r[2]))
             masses.append(r[3])
 
-    np.savez_compressed("random_proteins_"+str(n)+".npz", dists=dists, vecs=vectors, seqs=good_seqs,masses=masses)
+    np.savez_compressed("training_random_"+ str(organism)+ "_proteins_"+str(n)+ "_min_" + str(min_length) + "_max_" +
+                        str(max_length) + "_mods" + str(nmods) + ".npz",
+                        dists=dists, vecs=vectors, seqs=good_seqs,masses=masses)
 
 if __name__ == "__main__":
     # Set backend to Agg
@@ -192,16 +223,35 @@ if __name__ == "__main__":
 
     #parse_file("HeLaPeptides.tsv")
     #parse_file("large_library.mgf", maxn=10000000)
-    # parse_file("Training\\human_protein_seqs.tsv", maxn=None, maxlen=300)
-    # parse_file("Training\\rat_protein_seqs.tsv", maxn=None, maxlen=300)
-    # parse_file("Training\\yeast_protein_seqs.tsv", maxn=None, maxlen=300)
-    # parse_file("Training\\d_melanogaster_protein_seqs.tsv", maxn=None, maxlen=300)
-    # parse_file("Training\\b_subtilis_protein_seqs.tsv", maxn=None, maxlen=300)
-    # parse_file("Evaluation\\ecoli_protein_seqs.tsv", maxn=None, maxlen=300)
-    # parse_file("Evaluation\\mouse_protein_seqs.tsv", maxn=None, maxlen=300)
+    # parse_file("human_protein_seqs.tsv", maxn=None, maxlen=200)
+    # parse_file("yeast_protein_seqs.tsv", maxn=None, maxlen=200)
+    # parse_file("ecoli_protein_seqs.tsv", maxn=None, maxlen=200)
+    # parse_file("mouse_protein_seqs.tsv", maxn=None, maxlen=200)
 
-    human_prot_data =  np.load("Z:\\Group Share\\JGP\\PeptideTraining\\IntactProtein\\Training\\human_protein_seqs.npz")
-    gen_random_seqs_even_length(human_prot_data["seqs"])
+    human_prot_data =  np.load("human_protein_seqs.npz")
+    print("Keys:", human_prot_data.files)
+
+    # Access values
+    X = human_prot_data["seqs"]
+    Y = human_prot_data["dists"]
+
+    # Show first 5 entries of each
+    print("First 5 sequences (X):", X[:5])
+    print("First 5 distributions (Y):", Y[:5])
+    exit()
+    gen_random_seqs_even_length(human_prot_data["seqs"], "human", nmods=2, min_length=50, max_length=200)
+
+    yeast_prot_data = np.load("yeast_protein_seqs.npz")
+    gen_random_seqs_even_length(yeast_prot_data["seqs"], "yeast", nmods=2, min_length=50, max_length=200)
+
+    ecoli_prot_data = np.load("ecoli_protein_seqs.npz")
+    gen_random_seqs_even_length(ecoli_prot_data["seqs"], "ecoli", nmods=2, min_length=50, max_length=200)
+
+    mouse_prot_data = np.load("mouse_protein_seqs.npz")
+    gen_random_seqs_even_length(mouse_prot_data["seqs"], "mouse", nmods=2, min_length=50, max_length=200)
+
+
+
 
 
 

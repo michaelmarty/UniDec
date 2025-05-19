@@ -78,7 +78,7 @@ class IsoGenMassEngine(IsoGenEngineBase):
         return np.array([mass_to_vector(m) for m in inputs])
 
     def predict(self, mass):
-        import isogen_tools as ig
+        import unidec.IsoDec.IsoGen.isogen_tools as ig
         vec = ig.mass_to_vector(mass)
         isolen, index = self.get_isolen(mass)
         model = self.models[index]

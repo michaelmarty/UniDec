@@ -3,7 +3,7 @@ import os
 import numpy as np
 import unidec.tools as ud
 from copy import deepcopy
-from unidec.UniDecImporter.ImportTools import merge_spectra, merge_im_spectra
+from unidec.UniDecImporter.ImportTools import merge_spectra, merge_im_spectra, IndexedFile, IndexedScan
 import subprocess
 class Importer:
     def __init__(self, file_path, **kwargs):
@@ -13,9 +13,10 @@ class Importer:
         self.filesize = os.stat(file_path).st_size
         self.scans = None
         self.times = None
+        self.levels = None
         self.centroided = False
         self.polarity = "Positive"
-        self.scan_range = None # Note, we will use includive scan range such that the last scan is self.scan_range[1]
+        self.scan_range = None # Note, we will use inclusive scan range such that the last scan is self.scan_range[1]
         self.data = None
         self.immsdata = None
         self.cdms_support = False
@@ -23,11 +24,18 @@ class Importer:
         self.chrom_support = False
         self.centroid_threshold = 0.8
 
+        self.indexed_file = None
+
+
     def get_polarity(self, scan=None):
         return self.polarity
 
-    def get_ms_order(self, scan=None):
-        return 1
+    def get_ms_order(self, scan):
+        if self.levels is not None:
+            index = self.get_scan_index(scan)
+            return self.levels[index]
+        else:
+            return 1
 
     # list of all scans
     def get_all_scans(self):
@@ -74,6 +82,30 @@ class Importer:
             print("TIC data not supported for this file type:", self._file_path)
             raise Exception
         pass
+
+    def index_scans(self, min_mz, bin_width):
+        if not self.chrom_support:
+            print("Indexing not supported for this file type:", self._file_path)
+            raise Exception
+        else:
+            self.indexed_file = IndexedFile(self)
+            scans = self.get_all_scans()
+            for scan_number in self.scans:
+                if self.get_ms_order(scan_number) == 1:
+                    scan = scans[self.get_scan_index(scan_number)]
+                    rt = self.get_scan_time(scan_number)
+                    ind_scan = IndexedScan(scan, rt, scan_number, min_mz, bin_width)
+                    self.indexed_file.indexed_scans.append(ind_scan)
+        return
+
+    def get_eic(self, mass, mz_tol, rt_range=None):
+        if not self.chrom_support:
+            print("EIC data not supported for this file type:", self._file_path)
+            raise Exception
+        else:
+            if self.indexed_file is None:
+                self.index_scans(0, 1)
+            return self.indexed_file.extract_xic(mass, mz_tol, rt_range)
 
     def get_scan_time(self, scan):
         # Find index in self.scans
