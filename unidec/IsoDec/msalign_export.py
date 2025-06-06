@@ -93,7 +93,7 @@ def write_ms1_msalign(ms1_scan_dict, ms2_scan_dict, file, config):
 
 
 def write_ms2_msalign(ms2_scan_dict, ms1_scan_dict, reader, file, config, act_type="HCD",
-                      max_precursors=None, existing_precursors=None, report_multiple_monoisos=True):
+                      max_precursors=None, report_multiple_monoisos=True):
     with open(file + "_ms2.msalign", "w") as f:
         id = 0
         feature_id = 0
@@ -137,79 +137,67 @@ def write_ms2_msalign(ms2_scan_dict, ms1_scan_dict, reader, file, config, act_ty
                 mz, width = reader.get_isolation_mz_width(k)
                 precursor_min = mz - width / 2
                 precursor_max = mz + width / 2
-            except:
+            except Exception as e:
+                print("Error getting precursor info: " + str(e))
                 precursor_min = 0
                 precursor_max = 0
 
-            f.write("BEGIN IONS\n")
-            f.write("FILE_NAME=" + file.replace('\\', '/') + "\n")
-            f.write("SPECTRUM_ID=" + str(id) + "\n")
-            f.write("TITLE=Scan_" + str(k) + "\n")
-            f.write("SCANS=" + str(k) + "\n")
-            f.write("RETENTION_TIME=" + str(v[0].rt * 60) + "\n")
-            f.write("LEVEL=" + str(2) + "\n")
-            f.write("MS_ONE_ID=" + str(ms1_id) + "\n")
-            f.write("MS_ONE_SCAN=" + str(ms1_scan) + "\n")
-            f.write("PRECURSOR_WINDOW_BEGIN=" + str(precursor_min) + "\n")
-            f.write("PRECURSOR_WINDOW_END=" + str(precursor_max) + "\n")
-            f.write("ACTIVATION=" + act_type + "\n")
-
-
-
-            if existing_precursors is None:
-                if (len(ms1_scan_dict) == 0):
-                    precursors = findprecursors_noms1(precursor_min, precursor_max, v, max_precursors)
-                else:
-                    precursors = findprecursors(precursor_min, precursor_max, ms1_scan, ms1_scan_dict, max_precursors)
-
-                if precursors == []:
-                    f.write("PRECURSOR_MZ=-1\n")
-                    f.write("PRECURSOR_CHARGE=-1\n")
-                    f.write("PRECURSOR_MASS=-1\n")
-                    f.write("PRECURSOR_INTENSITY=-1\n")
-                else:
-                    f.write("PRECURSOR_MZ=")
-                    for i in range(len(precursors)):
-                        mono_mz = (precursors[i].monoiso / precursors[i].z) + 1.007276466812
-                        if i == len(precursors) - 1:
-                            f.write(str(mono_mz) + "\n")
-                        else:
-                            f.write(str(mono_mz) + ":")
-                        f.write("PRECURSOR_CHARGE=")
-                        for i in range(len(precursors)):
-                            if i == len(precursors) - 1:
-                                f.write(str(precursors[i].z) + "\n")
-                            else:
-                                f.write(str(precursors[i].z) + ":")
-                        f.write("PRECURSOR_MASS=")
-                        for i in range(len(precursors)):
-                            if i == len(precursors) - 1:
-                                f.write(str(precursors[i].monoiso) + "\n")
-                            else:
-                                f.write(str(precursors[i].monoiso) + ":")
-                        f.write("PRECURSOR_INTENSITY=")
-                        for i in range(len(precursors)):
-                            if i == len(precursors) - 1:
-                                f.write(str(precursors[i].matchedintensity) + "\n")
-                            else:
-                                f.write(str(precursors[i].matchedintensity) + ":")
+            if (len(ms1_scan_dict) == 0):
+                precursors = findprecursors_noms1(precursor_min, precursor_max, v, max_precursors)
             else:
-                precursors = [p for p in existing_precursors if p.ms2_scan == k]
-                if len(precursors) == 0:
-                    continue
-                else:
-                    precursor = precursors[0]
-                f.write("PRECURSOR_MZ=" + str(precursor.precursor_mz) + "\n")
-                f.write("PRECURSOR_CHARGE=" + str(precursor.precursor_charge) + "\n")
-                f.write("PRECURSOR_MASS=" + str(precursor.precursor_mass) + "\n")
-                f.write("PRECURSOR_INTENSITY=" + str(precursor.precursor_intensity) + "\n")
+                precursors = findprecursors(precursor_min, precursor_max, ms1_scan, ms1_scan_dict, max_precursors)
+
+            if precursors == []:
+                continue
+            else:
+                f.write("BEGIN IONS\n")
+                f.write("FILE_NAME=" + file.replace('\\', '/') + "\n")
+                f.write("SPECTRUM_ID=" + str(id) + "\n")
+                f.write("TITLE=Scan_" + str(k) + "\n")
+                f.write("SCANS=" + str(k) + "\n")
+                f.write("RETENTION_TIME=" + str(v[0].rt * 60) + "\n")
+                f.write("LEVEL=" + str(2) + "\n")
+                f.write("MS_ONE_ID=" + str(ms1_id) + "\n")
+                f.write("MS_ONE_SCAN=" + str(ms1_scan) + "\n")
+                f.write("PRECURSOR_WINDOW_BEGIN=" + str(precursor_min) + "\n")
+                f.write("PRECURSOR_WINDOW_END=" + str(precursor_max) + "\n")
+                f.write("ACTIVATION=" + act_type + "\n")
+                f.write("PRECURSOR_MZ=")
+                for i in range(len(precursors)):
+                    mono_mz = (precursors[i].monoiso / precursors[i].z) + 1.007276466812
+                    if i == len(precursors) - 1:
+                        f.write(str(mono_mz) + "\n")
+                    else:
+                        f.write(str(mono_mz) + ":")
+
+                f.write("PRECURSOR_CHARGE=")
+                for i in range(len(precursors)):
+                    if i == len(precursors) - 1:
+                        f.write(str(precursors[i].z) + "\n")
+                    else:
+                        f.write(str(precursors[i].z) + ":")
+
+                f.write("PRECURSOR_MASS=")
+                for i in range(len(precursors)):
+                    if i == len(precursors) - 1:
+                        f.write(str(precursors[i].monoiso) + "\n")
+                    else:
+                        f.write(str(precursors[i].monoiso) + ":")
+                f.write("PRECURSOR_INTENSITY=")
+                for i in range(len(precursors)):
+                    if i == len(precursors) - 1:
+                        f.write(str(precursors[i].matchedintensity) + "\n")
+                    else:
+                        f.write(str(precursors[i].matchedintensity) + ":")
+                    f.write("PRECURSOR_FEATURE_ID=0" + "\n")
+
 
             for p in v:
                 if report_multiple_monoisos:
                     for monoiso in p.monoisos:
-                        f.write(str(monoiso) + "\t" + str(p.matchedintensity) + "\t" + str(p.z) + "\n")
+                        f.write(str(round(monoiso, 4)) + "\t" + str(p.matchedintensity) + "\t" + str(p.z) + "\n")
                 else:
-                    f.write(str(p.monoiso) + "\t" + str(p.matchedintensity) + "\t" + str(p.z) + "\n")
+                    f.write(str(p.monoiso) + "\t" + str(p.matchedintensity) + "\t" + str(p.z) + "\t" + str(1) + "\n")
             f.write("END IONS\n\n")
             id += 1
 
