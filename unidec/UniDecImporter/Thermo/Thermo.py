@@ -174,7 +174,10 @@ class ThermoImporter(Importer):
 if __name__ == "__main__":
     # import matplotlib.pyplot as plt
     test = "C:\\Python\\UniDec3\\TestSpectra\\test.raw"
+    test = "Z:\\Group Share\\Annika\\2025-04-29_OE240_Stellar_UTAustin\\Analytical Flow\\Stellar\\Data\\2025-03-13_Stellar_UTAustin_Sample_E_posneg_tMS2_01.raw"
     d = ThermoImporter(test, silent=False)
+    data = d.get_single_scan(100)
+    print(data)
     # plt.plot(data[:, 0], data[:, 1])
     # plt.show()
     exit()
