@@ -37,9 +37,9 @@ FFTW_SOURCE = /usr/lib/x86_64-linux-gnu/libfftw3.so
 
 all: libisogen.so libisodeclib.so copy_fftw
 
-libisogen.so: isogendep.c isogenpep.c isogenrna.c isogenatom.c
+libisogen.so: isogendep.c isogenpep.c isogenrna.c
 	$(CC) $(CFLAGS) -shared -o libisogen.so \
-	isogendep.c isogenpep.c isogenrna.c isogenatom.c -I$(FFTW_DIR) $(LDFLAGS)
+	isogendep.c isogenpep.c isogenrna.c -I$(FFTW_DIR) $(LDFLAGS)
 
 libisodeclib.so: isodeclib.c
 	$(CC) $(CFLAGS) -shared -o libisodeclib.so \

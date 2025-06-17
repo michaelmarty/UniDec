@@ -19,7 +19,7 @@ def get_lipidcreator_name(name, polarity):
     name = split[0]
     return fullname, name
 
-directory = "D:\\MS_Data\\2025-04-29_OE240_Stellar_UTAustin\\Analytical Flow\\Stellar\\Data"
+directory = r"Z:\Group Share\Annika\2025-04-29_OE240_Stellar_UTAustin\Analytical Flow\Stellar\Data"
 os.chdir(directory)
 importer = ImporterFactory.create_importer("2025-03-13_Stellar_UTAustin_Sample_A_posneg_tMS2_01.raw")
 
@@ -57,7 +57,7 @@ for lipid in lipid_prec_dict:
 unique_lipids = np.array(lipidcreator_names)
 np.savetxt("unique_lipids.csv", unique_lipids, fmt="%s", delimiter=",")
 
-lipidcreator_path = "C:\\Users\\MartyLabPC\\Downloads\\LipidCreator\\LipidCreator.exe"
+lipidcreator_path = r"C:\Users\Admin\Downloads\LipidCreator\LipidCreator.exe"
 
 infile = "unique_lipids.csv"
 outfile = "transition_list.csv"

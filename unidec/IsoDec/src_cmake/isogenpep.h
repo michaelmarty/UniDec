@@ -22,16 +22,10 @@
 #endif
 
 
-
 // Function declarations
-ISOGENPEP_EXPORTS void mass_to_formula_averaging(float mass, int* formula);
-ISOGENPEP_EXPORTS float fft_pep_list_to_dist(const int isolist[5], int length, float *isodist);
-ISOGENPEP_EXPORTS float isodist_from_peptide_sequence(const char *sequence, float *isodist, int isolen);
-ISOGENPEP_EXPORTS float isodist_from_nt_sequence(const char *sequence, float *isodist, int isolen);
-ISOGENPEP_EXPORTS float fft_pep_mass_to_dist(const float mass, float* isodist, const int isolen, const int offset);
-ISOGENPEP_EXPORTS float isomike(float mass, float *isodist, int isolen, int offset);
-ISOGENPEP_EXPORTS float isogen_fancy(float mass, float *isodist, int isolen, int offset, char* type);
-ISOGENPEP_EXPORTS float isodist_from_averagine_mass(const float mass, float* isodist, const int isolen, const int offset);
-ISOGENPEP_EXPORTS float fft_pep_seq_to_dist(const char* sequence, float* isodist, const int isolen);
-
+ISOGENPEP_EXPORTS float fft_pep_mass_to_dist(float mass, float* isodist, int isolen, int offset);
+ISOGENPEP_EXPORTS float fft_pep_seq_to_dist(const char* sequence, float* isodist, int isolen, int offset);
+ISOGENPEP_EXPORTS float pep_mass_to_dist_fitting(float mass, float *isodist, int isolen, int offset);
+ISOGENPEP_EXPORTS float nn_pep_seq_to_dist(const char* seq, float* isodist, int offset);
+ISOGENPEP_EXPORTS float nn_pep_mass_to_dist(const float mass, float* isodist, const int isolen, const int offset);
 #endif

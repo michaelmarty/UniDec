@@ -55,6 +55,9 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         self.datathreshold = 0.05
         self.zscore_threshold = 0.95
 
+        self.report_multiple_monoisos = True
+        self.write_scans_without_precs = True
+
     def set_scan_info(self, s, reader=None):
         """
         Sets the active scan info
@@ -324,6 +327,7 @@ class MatchedCollection:
             for p in self.masses:
                 f.write(str(p.monoiso) + "\n")
 
+
     def merge_missed_monoisotopics(self, ppm_tolerance=20, max_mm=1):
         mass_diff_c = 1.0033
         to_remove = []
@@ -399,34 +403,42 @@ class MatchedCollection:
         ms1_features = 0
         for k, v in ms1_scan_dict.items():
             ms1_features += len(v)
-        print("MS1 Features:", ms1_features)
         ms2_scan_dict = msalign.sort_by_scan_order(self, 2)
         ms2_features = 0
         for k, v in ms2_scan_dict.items():
             ms2_features += len(v)
-        print("MS2 Features:", ms2_features)
-
         msalign.write_ms1_msalign(ms1_scan_dict, ms2_scan_dict, filename, config)
         msalign.write_ms2_msalign(ms2_scan_dict, ms1_scan_dict, reader, filename, config,
-                                  max_precursors=max_precursors, act_type=act_type, report_multiple_monoisos=False)
+                                  max_precursors=max_precursors, act_type=act_type,
+                                  report_multiple_monoisos=config.report_multiple_monoisos,
+                                  write_noprec_scans=config.write_scans_without_precs)
 
-    def to_df(self, avg = False):
+    def to_df(self, avg = False, report_multiple_monoisos=True):
         """
         Convert a MatchedCollection object to a pandas dataframe
         :return: Pandas dataframe
         """
         col = "Average Mass" if avg else "Monoisotopic Mass"
+
         data = []
         for p in self.peaks:
-            d = {"Charge": p.z, "Most Abundant m/z": p.mz, col: p.avgmass if avg else p.monoiso, "Scan": p.scan,
-                 "Most Abundant Mass": p.peakmass, "Abundance": p.matchedintensity}
-            data.append(d)
+            avg_mono_delta = p.avgmass - p.monoiso
+            if report_multiple_monoisos:
+                for mono in p.monoisos:
+                    d = {"Charge": p.z, "Most Abundant m/z": p.mz, col: mono + avg_mono_delta if avg else mono, "Scan": p.scan,
+                         "Most Abundant Mass": p.peakmass, "Abundance": p.matchedintensity}
+                    data.append(d)
+            else:
+                d = {"Charge": p.z, "Most Abundant m/z": p.mz, col: p.avgmass if avg else p.monoiso, "Scan": p.scan,
+                     "Most Abundant Mass": p.peakmass, "Abundance": p.matchedintensity}
+                data.append(d)
         df = pd.DataFrame(data)
         return df
 
-    def export_tsv(self, filename="export.tsv", avg=False):
+    def export_tsv(self, filename="export.tsv", avg=False,
+                   report_multiple_monoisos=True):
         print("Exporting to", filename)
-        df = self.to_df(avg)
+        df = self.to_df(avg, report_multiple_monoisos=report_multiple_monoisos)
         df.to_csv(filename, sep="\t", index=False)
 
     def to_mass_spectrum(self, binsize=0.1):

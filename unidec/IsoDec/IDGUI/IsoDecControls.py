@@ -187,6 +187,23 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                                                 "Will be saved in unidecfilesfolder\n"
                                                 "To open, select Advanced > Open Saved File Directory"))
 
+        sizercontrol2.Add(wx.StaticText(panel2, label="Additional Export Options:"), (i,0))
+        i+=1
+
+        self.ctlreportmultiplemonos = wx.CheckBox(panel2, label="Report Multiple Monoisotopic Masses?")
+        sizercontrol2.Add(self.ctlreportmultiplemonos, (i,0), span=(1,2))
+
+        self.ctlreportmultiplemonos.SetToolTip(wx.ToolTip("If checked, all monoisotopics passing filtering\n"
+                                                          "criteria will be written to selected output types."))
+        i+=1
+
+        self.ctlwrite_noprec_scans = wx.CheckBox(panel2, label="Write Scans without Precursors?")
+        sizercontrol2.Add(self.ctlwrite_noprec_scans, (i,0), span=(1,2))
+        self.ctlwrite_noprec_scans.SetToolTip(wx.ToolTip("If checked, scans without precursors\n"
+                                                         "will be written to MsAlign.\n"
+                                                         "Should be checked for single scans!"))
+        i+=1
+
         panel2.SetSizer(sizercontrol2)
         sizercontrol2.Fit(panel2)
         self.foldpanels.AddFoldPanelWindow(foldpanel2, panel2, fpb.FPB_ALIGN_WIDTH)
@@ -438,6 +455,16 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             else:
                 self.ctlexportmsalign.SetValue(False)
 
+            if self.config.noiseflag == 1:
+                self.ctlreportmultiplemonos.SetValue(True)
+            else:
+                self.ctlreportmultiplemonos.SetValue(False)
+
+            if self.config.linflag == 1:
+                self.ctlwrite_noprec_scans.SetValue(True)
+            else:
+                self.ctlwrite_noprec_scans.SetValue(False)
+
             # Relating tsv export to the config.compressflag
             if self.config.compressflag == 1:
                 self.ctlexporttsv.SetValue(True)
@@ -489,6 +516,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         # These flags are bound to the 2 export type checkboxes in the isodec gui
         self.config.poolflag = int(self.ctlexportmsalign.GetValue())
         self.config.compressflag = int(self.ctlexporttsv.GetValue())
+
+        #These flags are bound to the export multiple monoisos and write scans without precursors checkboxes
+        self.config.noiseflag = int(self.ctlreportmultiplemonos.GetValue())
+        self.config.linflag = int(self.ctlwrite_noprec_scans.GetValue())
 
         self.config.avgpeakmasses = int(self.ctlavgpeakmasses.GetValue())
         # pull integratelb and integrateub from mzwindowlb and mzwindowub

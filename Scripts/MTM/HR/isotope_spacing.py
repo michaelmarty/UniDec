@@ -65,6 +65,7 @@ def calc_mzs(mass, diffs, pre_ft, isolength):
     y2 = y1[:-1]
 
     weighted_avg = np.sum(x2 * y2) / np.sum(y2)
+    print("Avg spacing:", weighted_avg)
     return weighted_avg
 
 
@@ -117,6 +118,7 @@ do17 = 16.9991315-15.9949146
 diffs = [dc, dh, dn, do, ds, do17, ds33]
 
 a = calc_mzs(100, diffs, pre_ft, isolength)
+exit()
 
 x = np.arange(2, 5, 0.1)
 masses = 10**x

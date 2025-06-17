@@ -52,15 +52,15 @@ rna_dict = {
     "U": "C9H11O8N2P"}
 
 # RNA Dictionary of Separated Nucleotide Formulas
-# Ordered by C,H,O,N,P
+# Ordered by C,H,O,N,S
 # These are the numbers of each element in the nucleotide
 # in the context of an oligonucleotide to my best approximation.
 # Does not take into account termininal groups (OH, PO4, etc)
 rna_dict_sep = {
-    "A": [10,12,5,5,1],
-    "C": [9,12,6,3,1],
-    "G": [10,12,6,5,1],
-    "U": [9,11,7,2,1]}
+    "A": [10,12,5,5,0,0,0,0,0,0,0],
+    "C": [9,12,6,3,0,0,0,0,0,0,0],
+    "G": [10,12,6,5,0,0,0,0,0,0,0],
+    "U": [9,11,7,2,0,0,0,0,0,0,0]}
 
 rna_mass_dict = {
     "A": 347.221,
@@ -93,6 +93,7 @@ massavgine = 111.1254
 avgine = np.array([4.9384, 7.7583, 1.3577, 1.4773, 0.0417])
 '''Ordered as C, H, N, O, S, P'''
 rnaveragine_comp_numerical = np.array([9.50, 10.70, 6.09, 3.70, 0, 1])
+rnaveragine_comp_forisolist = np.array([9.50, 10.70, 6.09, 3.70, 0, 0, 0, 0, 0, 0, 0])
 rnaveragine_mass = 321.29163925 #Da
 isotopes = np.array(
     [
@@ -112,18 +113,8 @@ isotopes = np.array(
 formula_pattern = r'([A-Z][a-z]?\d*)'
 fullseq_pattern = r'\[.*?\]'
 
-def rna_mass_to_isolist(initial_mass, rna_mass = rnaveragine_mass, rna_comp = rnaveragine_comp_numerical):
-    # Get the individual count of each of the C H N O P from the rna sequence based on the rnavergine_mass
-    # This will be fed into isojim for the distribution
-    value_per = initial_mass / rna_mass
-    arr = np.zeros(5)
-    for i in range(len(rna_comp)):
-        arr[i] = value_per * rna_comp[i]
-    print(arr)
-    return arr
-
 # @njit(fastmath=True)
-def makemass(testmass):
+def pep_makemass(testmass):
     num = testmass / massavgine * avgine
     intnum = np.array([int(round(n)) for n in num])
     x = intnum * isotopes[:, 0, 0]
@@ -140,6 +131,11 @@ def makemass(testmass):
     if intnum[4] != 0:
         formula = formula + "S" + str(intnum[4])
     return formula, minmassint, intnum
+
+def rna_makemass(mass):
+    num = mass / rnaveragine_mass * rnaveragine_comp_forisolist
+    intnum = [int(round(n)) for n in num]
+    return intnum
 
 
 # # @njit(fastmath=True)
@@ -179,9 +175,9 @@ def makemass(testmass):
 #     allift = allift / np.amax(allift)
 #     return allift[:length]  # .astype(nb.float64)
 
-def mass_to_dist(mass, isolength=128):
-    _, minmassint, isolist = makemass(mass)
-    intensities = isojim(isolist, length=isolength)
+def pepmass_to_dist(mass, isolen=128):
+    _, minmassint, isolist = pep_makemass(mass)
+    intensities = isojim(isolist, length=isolen)
     #intensities /= np.sum(intensities)
     return intensities
 
@@ -195,6 +191,7 @@ def mass_to_vector(x):
     newx = np.array([x1, x2, x3, x4, x5])
     newx = np.clip(newx, 0, 1)
     return newx
+
 
 def parse_chemical_formula(formula):
     '''
@@ -215,7 +212,7 @@ def parse_chemical_formula(formula):
 
 
 # Calculate the isotopic distribution of the peptide
-def peptide_to_dist(peptide):
+def peptide_to_dist(peptide, isolen=128):
     try:
         isolist = np.array([0,2,0,1,0,0,0,0,0,0,0])
 
@@ -250,10 +247,12 @@ def peptide_to_dist(peptide):
                 print(aa)
                 raise ValueError("Unknown amino acid found in peptide")
             isolist += aa_elementalcomp_dict[aa]
-        dist = isojim(isolist)
+
+        dist = isojim(isolist, isolen)
     except Exception as e:
         dist = None
     return dist
+
 
 def peptide_to_mass(peptide):
     try:
@@ -302,7 +301,6 @@ def peptide_to_vector(peptide):
         # Get counts of each amino acid
         counts = Counter(peptide)
 
-
         for i, aa in enumerate(aas):
             vec[i] = counts[aa]
     except Exception as e:
@@ -323,6 +321,16 @@ def get_dist_from_formula(formula, isolen=128, cutoff=0.001):
     spec[spec < cutoff] = 0
     return spec
 
+def rnaseq_to_isolist(rna_seq):
+    isolist = np.zeros(11)
+    for nt in rna_seq:
+        try:
+            isolist += rna_dict_sep[nt]
+        except:
+            print("Unexpected nucleotide", nt)
+    return isolist
+
+
 def formula_to_vector(formula):
     """
     Convert a chemical formula to a vector of atom counts
@@ -341,12 +349,9 @@ def formula_to_vector(formula):
     return vector
 
 # RNA Sequence to Dist
-def rnaseq_to_dist(rnaseq, isolen=128, cutoff=0.001):
-    formula = ""
-    for r in rnaseq:
-        formula += rna_dict[r]
-    # Get the isotopic distribution of the molecular weight
-    dist = get_dist_from_formula(formula, isolen, cutoff)
+def rnaseq_to_dist(rnaseq, isolen=128):
+    isolist = rnaseq_to_isolist(rnaseq)
+    dist = isojim(isolist, isolen)
     return dist
 
 # DNA Sequence to Dist
@@ -377,11 +382,38 @@ def dnaseq_to_vector(dnaseq):
     return vec
 
 # RNA mass to dist
-def rnamass_to_dist(mass, isolen=128, cutoff=0.001):
-    # Get the isotopic distribution of the molecular weight
-    dist = get_dist_from_formula(mass, isolen, cutoff)
+def rnamass_to_dist(mass, isolen=128):
+    isolist = rna_makemass(mass)
+    dist = isojim(isolist, isolen)
     return dist
 
+
+isogenrnaveragine_massranges = [[200, 20000], [1000, 80000], [8000, 160000]]
+isogenrnaveragine_isolens = [32, 64, 128]
+
+def rnamass_to_isolen(mass):
+    if mass < 18000:
+        return 32
+    elif mass > 1800 and mass < 75000:
+        return 64
+    elif mass < 160000:
+        return 128
+    else:
+        return -1
+
+
+isogenmass_massranges = [[800, 12000], [50, 60000], [8000, 120000]]
+isogenmass_isolens = [32, 64, 128]
+
+def pepmass_to_isolen(mass):
+    if mass < 11000:
+        return 32
+    elif mass > 11001 and mass < 55000:
+        return 64
+    elif mass < 120000:
+        return 128
+    else:
+        return -1
 
 #Take the total mass, then divide by the total number of atoms in the averagine
 #Then multiply by

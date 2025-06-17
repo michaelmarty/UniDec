@@ -176,10 +176,7 @@ class IsoDecRuntime:
         elif type == "pkl":
             self.pks.save_pks()
         elif type == "tsv":
-            if self.showavg:
-                self.pks.export_tsv(filename, avg=True)
-            else:
-                self.pks.export_tsv(filename)
+            self.pks.export_tsv(filename, self.showavg, self.config.report_multiple_monoisos)
         else:
             raise ValueError("Unknown Export Type", type)
 

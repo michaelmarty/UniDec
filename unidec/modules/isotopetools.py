@@ -4,24 +4,6 @@ import time
 from numpy import fft as fftpack
 from numba import njit
 
-try:
-    from unidec.IsoDec.isogenwrapper import IsoGenWrapper
-
-    # @njit(fastmath=True)
-    def isogen_nn(mass, type="PEPTIDE"):
-        eng = IsoGenWrapper()
-        return eng.gen_isodist(mass, type)
-
-except Exception as e:
-    print("Could not import IsoGenWrapper")
-    print(e)
-
-    def isogenpep(mass):
-        return isomike(mass, length=64)
-
-
-# import numba as nb
-# import pyteomics.mass as ms
 
 mass_diff_c = 1.0033
 massavgine = 111.1254
@@ -97,9 +79,10 @@ def makemassmike(testmass: float) -> float:
 
 
 #@njit(fastmath=True)
-def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467):
+def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, isolen=128):
     # Predict Isotopic Intensities
-    intensities = isogen_nn(mass)
+    formula, minmassint, intnum = makemass(mass)
+    intensities = isojim(intnum, isolen)
     # Calculate masses for these
     masses = np.arange(0, len(intensities)) * mass_diff_c + mass
 
@@ -108,12 +91,12 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467):
     dist[:, 0] = masses
     dist[:, 1] = intensities
 
-    # Filter Low Intensities
-    b1 = intensities > np.amax(intensities) * 0.01
-    dist = dist[b1]
-
-    # Convert to m/z
-    dist[:, 0] = (dist[:, 0] + float(charge) * adductmass) / float(charge)
+    # # Filter Low Intensities
+    # b1 = intensities > np.amax(intensities) * 0.01
+    # dist = dist[b1]
+    #
+    # # Convert to m/z
+    # dist[:, 0] = (dist[:, 0] + float(charge) * adductmass) / float(charge)
 
     return dist
 
@@ -209,7 +192,7 @@ pre_ft = np.array([cft, hft, nft, oft, sft, feft, kft, caft, nift, znft, mgft])
 def isojim(isolist, length):
     """Thanks to Jim Prell for Sketching this Code"""
     '''
-    Takes as in input a list of numbers of elements in the order above [C, H, N, O, S, P, Fe, K, Ca, Ni, Zn, Mg]
+    Takes as in input a list of numbers of elements in the order above [C, H, N, O, S, Fe, K, Ca, Ni, Zn, Mg]
     Calculates the aggregated isotope distribution based on the input list.
     '''
     num_atoms = len(isolist)

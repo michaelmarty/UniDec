@@ -29,7 +29,7 @@ for i, mass in enumerate(masses):
     nn_times.append(ai_tend - ai_tstart)
 
     ft_tstart = time.perf_counter()
-    ft_dist = mass_to_dist(mass)
+    ft_dist = pepmass_to_dist(mass)
     ft_tend = time.perf_counter()
     ft_times.append(ft_tend - ft_tstart)
 

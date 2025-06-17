@@ -4,16 +4,13 @@ import numpy as np
 from pathlib import Path
 import sys
 import platform
-
 from unidec.modules.isotopetools import fast_calc_averagine_isotope_dist
 
 path_root = Path(__file__).parents[2]
 sys.path.append(str(path_root))
 
-
 import matplotlib.pyplot as plt
 from unidec.IsoDec.match import MatchedPeak, MatchedCollection, IsoDecConfig
-
 from unidec.IsoDec.plots import plot_pks
 from unidec.tools import start_at_iso
 
