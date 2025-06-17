@@ -1,130 +1,44 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "fftw3.h"
 #include "isogendep.h"
+#include "isogen_rnaveragine_model32.h"
+#include "isogen_rnaveragine_model64.h"
+#include "isogen_rnaveragine_model128.h"
+#include "isogenrna_model_64.h"
 
 
 
 const char rnaOrder[] = "ACGU";
 const float rnaveragine_mass = 321.29163925;
-const double rnaveragine_comp_numerical[] = {9.50, 10.70, 6.09, 3.70, 1.0};
+const double rnaveragine_comp_numerical[] = {10.70, 9.50, 6.09, 3.70, 0, 0, 0, 0, 0, 0, 0};
 
 
-float fft_rna_list_to_dist(const float isolist[5], const int length, float *isodist)
-{
-    int complen = (length/ 2) + 1;
-
-    fftw_complex* hft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
-    fftw_complex* cft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
-    fftw_complex* nft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
-    fftw_complex* oft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
-    fftw_complex* pft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
-    fftw_complex* allft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
-
-    if (hft == NULL || cft == NULL || nft == NULL || oft == NULL || pft == NULL || allft == NULL)
-    {
-        printf("Error: Memory allocation failed for FFTW arrays\n");
-        return -1.0f;
-    }
-
-
-    setup_ft(1, hft, length, complen); // Hydrogen
-    setup_ft(6, cft, length, complen); // Carbon
-    setup_ft(7, nft, length, complen); // Nitrogen
-    setup_ft(8, oft, length, complen); // Oxygen
-    setup_ft(15, pft, length, complen); // Phosphorus instead of sulfur
-
-
-    double numc = isolist[0];
-    double numh = isolist[1];
-    double numn = isolist[2];
-    double numo = isolist[3];
-    double nump = isolist[4];
-
-    for (int i = 0; i < complen; i++)
-    {
-        double real, imag;
-        double temp_real, temp_imag;
-
-        complex_power(cft[i], numc, &real, &imag);
-        complex_power(hft[i], numh, &temp_real, &temp_imag);
-        complex_multiplication(real, imag, temp_real, temp_imag, &real, &imag);
-
-        complex_power(nft[i], numn, &temp_real, &temp_imag);
-        complex_multiplication(real, imag, temp_real, temp_imag, &real, &imag);
-
-        complex_power(oft[i], numo, &temp_real, &temp_imag);
-        complex_multiplication(real, imag, temp_real, temp_imag, &real, &imag);
-
-        complex_power(pft[i], nump, &temp_real, &temp_imag);
-        complex_multiplication(real, imag, temp_real, temp_imag, &real, &imag);
-
-        allft[i][0] = real;
-        allft[i][1] = imag;
-    }
-
-
-    double* buffer = (double*)fftw_malloc(length * sizeof(double));
-    fftw_plan plan_irfft = fftw_plan_dft_c2r_1d(length, allft, buffer, FFTW_ESTIMATE);
-    fftw_execute(plan_irfft);
-    fftw_destroy_plan(plan_irfft);
-    fftw_free(allft);
-
-
-    double max_val = normalize_isodist(buffer, length);
+const int rna_vectors[][11] = {
+    {12,10,5,5,0,0,0,0,0,0,0},
+    {12,9,6,3,0,0,0,0,0,0,0},
+    {12,10,6,5,0,0,0,0,0,0,0},
+    {11,9,7,2,0,0,0,0,0,0,0}
+};
 
 
 
-    for (int i = 0; i < length; i++)
-    {
-        isodist[i] = (float)buffer[i];
-    }
-    fftw_free(hft);
-    fftw_free(cft);
-    fftw_free(nft);
-    fftw_free(oft);
-    fftw_free(pft);
-    fftw_free(buffer);
-
-    return (float)max_val;
-}
-float* rnaToVector(const char* rna)
-//RNA -> Vector 4 length list of number of A C G U
-{
-    static float vector[4];
-    memset(vector, 0, sizeof(vector));
-    int len = strlen(rna);
-    for (int i = 0; i < len; i++)
-    {
-        char *pos = strchr(rnaOrder, rna[i]);
-        if (pos)
-        {
-            int index = pos - rnaOrder;
-            vector[index] += 1.0f;
-        }
-    }
-    return vector;
-}
-
-float* rna_mass_to_list(float initialMass)
-//Mass -> List 5 length list of number of C H N O P
+void rna_mass_to_list(float initialMass, int* fftlist)
+//Mass -> List 11 length list of number of {H, C, N, O, S, Fe, K, Ca, Ni, Zn, Mg}
 {
     float rnaMass = rnaveragine_mass;
     float valuePer = initialMass / rnaMass;
 
-    float* isolist = (float*)calloc(5, sizeof(float));
     for (int i = 0; i < 5; i++)
     {
-
-        isolist[i] = rnaveragine_comp_numerical[i] * valuePer;
-
+        fftlist[i] = (int)round(rnaveragine_comp_numerical[i] * valuePer);
     }
-    return isolist;
+
+    for (int i = 5;i<11;i++) {
+        fftlist[i] =  0;
+    }
 }
-
-
 
 // float* fft_rna_seq_to_dist(char* sequence)
 // //String to isodist
@@ -136,43 +50,181 @@ float* rna_mass_to_list(float initialMass)
 //
 // }
 
-float rnaVectorToMass(float* rnaVector)
-//Totals mass from vector
-{
-    float totalMass = 0;
-    float values[] = {329.21f, 305.18f, 345.21f, 306.17f};
-    for (int i = 0; i < 4; i++)
-    {
-        totalMass += (rnaVector[i] * values[i]);
-    }
 
-    return totalMass;
-}
 
 float fft_rna_mass_to_dist(float mass, float* isodist, int isolen, int offset)
 // Mass to dist
 {
+    int* fftlist = (int*)calloc(11, sizeof(int));
+    rna_mass_to_list(mass, fftlist);
 
-
-    float* masses = rna_mass_to_list(mass);
-    float max_val = fft_rna_list_to_dist(masses, isolen, isodist);
+    float max_val = fft_list_to_dist(fftlist, isolen, isodist);
 
     for (int i = isolen - offset - 1; i >= 0; i--)
     {
         isodist[i + offset] = isodist[i];
         if (i < offset) { isodist[i] = 0.0f; }
     }
+
     if (max_val > 0.0f) {
         for (int i = 0; i < isolen; i++) {
             isodist[i] /= max_val;
         }
     }
-    free(masses);
+    free(fftlist);
     return max_val;
-
 }
 
 
+int nt_to_index(char nt) {
+    for (int i = 0;i<4;i++) {
+        if (rnaOrder[i] == nt) {
+            return i;
+        }
+    }
+    return -1;
+}
 
 
+void rna_seq_to_vector(const char* seq, float* vector)
+//RNA -> Vector 4 length list of number of A C G U
+{
+    int len = strlen(seq);
+    for (int i = 0; i < len; i++)
+    {
+        int nt_index = nt_to_index(seq[i]);
+        if (nt_index == -1) {
+            printf("Unexpected nucleotide in sequence: %c\n", seq[i]);
+        }
+        else {
+            vector[nt_index] += 1.0f;
+        }
+    }
+}
 
+
+void rna_seq_to_fftlist(const char* sequence, int* fftlist)
+{
+    // Initialize the formulalist to zero but add the elements of water for the terminii
+    fftlist[0] = 0; // Hydrogen
+    fftlist[1] = 0; // Carbon
+    fftlist[2] = 0; // Nitrogen
+    fftlist[3] = 0; // Oxygen
+    fftlist[4] = 0; // Sulfur
+    fftlist[5] = 0; // Iron
+    fftlist[6] = 0; // Potassium
+    fftlist[7] = 0; // Calcium
+    fftlist[8] = 0; // Nickel
+    fftlist[9] = 0; // Zinc
+    fftlist[10] = 0; // Magnesium
+
+    int seq_len = strlen(sequence);
+    for (int i = 0; i < seq_len; i++) {
+        int nt_index = nt_to_index(sequence[i]);
+        if (nt_index == -1) {
+            printf("Unexpected nucleotide in sequence:%c\n", sequence[i]);
+        }
+        else {
+            for (int j = 0;j<11;j++) {
+                fftlist[j] += rna_vectors[nt_index][j];
+            }
+        }
+    }
+}
+
+
+float fft_rna_seq_to_dist(const char* sequence, float* isodist, const int isolen, const int offset)
+{
+    int* fftlist = (int*)calloc(11, sizeof(int));
+    // Check for null
+    if (fftlist == NULL)
+    {
+        printf("Error: Could not allocate memory for formulalist\n");
+        return 1;
+    }
+    rna_seq_to_fftlist(sequence, fftlist);
+    float maxval = fft_list_to_dist(fftlist, isolen, isodist);
+    free(fftlist);
+
+    for (int i = isolen - offset - 1; i >= 0; i--)
+    {
+        isodist[i + offset] = isodist[i];
+        if (i < offset) { isodist[i] = 0.0f; }
+    }
+
+    for (int i = 0;i<isolen;i++) {
+        isodist[i] /= maxval;
+    }
+
+    return maxval;
+}
+
+
+float nn_rna_mass_to_dist(const float mass, float* isodist, const int isolen, const int offset) {
+    float* vector = (float*)calloc(5, sizeof(float));
+    if (vector == NULL) {
+        printf("Error: Could not allocate memory for vector\n");
+    }
+
+    mass_to_vector(mass, vector);
+
+    struct IsoGenWeights weights = SetupWeights(5, isolen);
+    if (isolen == 32){ weights = LoadWeights(weights, isogen_rnaveragine_model32_bin); }
+    else if ( isolen == 64 ){ weights = LoadWeights(weights, isogen_rnaveragine_model64_bin); }
+    else if ( isolen == 128 ){ weights = LoadWeights(weights, isogen_rnaveragine_model128_bin); }
+    else {
+        printf("Unsupported distribution length.");
+        return -1.0f;
+    }
+
+    neural_net(vector, isodist, weights);
+    free(vector);
+
+    for (int i = isolen - offset - 1; i >= 0; i--)
+    {
+        isodist[i + offset] = isodist[i];
+        if (i < offset) { isodist[i] = 0.0f; }
+    }
+
+    float maxval = 0.0f;
+    for (int i = 0; i < isolen; i++) {
+        if (isodist[i] > maxval) {maxval = isodist[i];}
+    }
+
+    for (int i = 0; i < isolen; i++) {
+        isodist[i] /= maxval;
+    }
+
+    return maxval;
+}
+
+
+float nn_rna_seq_to_dist(const char* seq, float* isodist, int offset) {
+    float* vector = calloc(4, sizeof(float));
+    rna_seq_to_vector(seq, vector);
+
+
+    struct IsoGenWeights weights = SetupWeights(4, 64);
+    LoadWeights(weights, isogenrna_model_64_bin);
+
+
+    neural_net(vector, isodist, weights);
+    free(vector);
+
+    for (int i = 64 - offset - 1; i >= 0; i--)
+    {
+        isodist[i + offset] = isodist[i];
+        if (i < offset) { isodist[i] = 0.0f; }
+    }
+
+    float maxval = 0.0f;
+    for (int i = 0; i < 64; i++) {
+        if (isodist[i] > maxval) {maxval = isodist[i];}
+    }
+
+    for (int i = 0; i < 64; i++) {
+        isodist[i] /= maxval;
+    }
+
+    return maxval;
+}

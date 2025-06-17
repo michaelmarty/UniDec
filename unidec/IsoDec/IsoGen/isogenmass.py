@@ -92,7 +92,7 @@ def gen_training_data(n, isolen=128, massrange=[100, 1000000], log=False):
     else:
         randmasses = np.random.uniform(massrange[0], massrange[1], n)
     # dists = [isomike(mass=m, length=isolen) for m in randmasses]
-    dists = [mass_to_dist(m, isolen) for m in randmasses]
+    dists = [pepmass_to_dist(m, isolen) for m in randmasses]
     return randmasses, np.array(dists)
 
 if __name__ == "__main__":
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         maxval = isolen
         dist = eng.predict(m)
         fastdist = isomike(m, length=isolen)
-        truedist = mass_to_dist(m, isolength=isolen)
+        truedist = pepmass_to_dist(m, isolength=isolen)
 
         plt.subplot(2, 3, i + 1)
         plt.plot(dist * 100, label="AI", color="b")

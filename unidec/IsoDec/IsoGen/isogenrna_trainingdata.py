@@ -1,9 +1,12 @@
+import time
+
 import numpy as np
 import os
 from isogen_tools import *
 
 # Create all possible combinations for peptides of lengths 1 to 5
 def create_rnas():
+    print("Creating synthetic short RNAs...")
     rnaseqs = []
     for a in rnas:
         rnaseqs.append(a)
@@ -76,20 +79,26 @@ def create_rnas():
 
     return rnaseqs
 
-def create_rand_rnas(n=1000, start=6, maxlen=1000):
+
+def create_rand_rnas(n=1000, start=6, maxlen=500):
     seqs = []
     for i in range(n):
+        if i % 10000 == 0:
+            print("Creating random RNA number", i)
         length = np.random.randint(start, maxlen)
         seq = "".join(np.random.choice(["A", "C", "G", "U"], length))
         seqs.append(seq)
     return seqs
+
 
 def seqs_to_vectors(seqs):
     goodseqs = []
     dists = []
     vecs = []
 
-    for seq in seqs:
+    for i, seq in enumerate(seqs):
+        if i% 10000 == 0:
+            print("Processing RNA number", i)
         try:
             dist = rnaseq_to_dist(seq)
             vec = rnaseq_to_vector(seq)
@@ -97,6 +106,7 @@ def seqs_to_vectors(seqs):
             dists.append(dist)
             vecs.append(vec)
         except:
+            print("Failed to process", seq)
             pass
 
     dists = np.array(dists)
@@ -106,11 +116,13 @@ def seqs_to_vectors(seqs):
         return None
     return goodseqs, dists, vecs
 
+
+
 os.chdir("Z:\Group Share\JGP\PeptideTraining")
 
 rnas = create_rnas()
-n=100000
-rnas2 = create_rand_rnas(n, maxlen=100)
+n=1000000
+rnas2 = create_rand_rnas(n, maxlen=300)
 
 # merge two lists
 rnas = rnas + rnas2

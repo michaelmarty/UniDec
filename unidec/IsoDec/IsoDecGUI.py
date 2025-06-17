@@ -190,6 +190,8 @@ class IsoDecPres(UniDecPres):
         self.isodeceng.config.adductmass = self.eng.config.adductmass
         self.isodeceng.config.datathreshold = self.eng.config.exthresh
         self.isodeceng.config.mzwindow = [self.eng.config.integratelb, self.eng.config.integrateub]
+        self.isodeceng.config.report_multiple_monoisos = self.eng.config.noiseflag
+        self.isodeceng.config.write_scans_without_precs = self.eng.config.linflag
 
     def translate_id_config(self):
         self.eng.config.peakwindow = self.isodeceng.config.peakwindow
@@ -203,6 +205,8 @@ class IsoDecPres(UniDecPres):
         self.eng.config.exthresh = self.isodeceng.config.datathreshold
         self.eng.config.integratelb = self.isodeceng.config.mzwindow[0]
         self.eng.config.integrateub = self.isodeceng.config.mzwindow[1]
+        self.eng.config.noiseflag = self.isodeceng.config.report_multiple_monoisos
+        self.eng.config.linflag = self.isodeceng.config.write_scans_without_precs
 
     def on_unidec_button(self, e=None):
         """

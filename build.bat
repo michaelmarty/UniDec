@@ -25,5 +25,4 @@ rem paste docs into UniDecDocumentation and push to git
 
 echo "Building"
 C:\Python313\Scripts\pyinstaller.exe GUniDec.spec --noconfirm
-rem C:\Users\MartyLabsOfficePC\Python\Scripts\pyinstaller.exe GUniDec.spec --noconfirm
 call "C:\Python\UniDec\dist\UniDec_Windows\GUI_UniDec.exe"
