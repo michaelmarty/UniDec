@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+	<paths>
+		<left>C:\Python\UniDecDev\</left>
+		<right>C:\Python\UniDec\</right>
+		<filter>winmergefilter</filter>
+		<subfolders>1</subfolders>
+		<left-readonly>0</left-readonly>
+		<right-readonly>0</right-readonly>
+		<white-spaces>0</white-spaces>
+		<ignore-blank-lines>0</ignore-blank-lines>
+		<ignore-case>0</ignore-case>
+		<ignore-carriage-return-diff>0</ignore-carriage-return-diff>
+		<ignore-numbers>0</ignore-numbers>
+		<ignore-codepage-diff>0</ignore-codepage-diff>
+		<ignore-missing-trailing-eol>0</ignore-missing-trailing-eol>
+		<ignore-comment-diff>0</ignore-comment-diff>
+		<compare-method>0</compare-method>
+	</paths>
+</project>
