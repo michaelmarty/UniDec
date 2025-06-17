@@ -6,14 +6,10 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
-#include "isogen_weights.h"
-#include "isogenpep.h"
 
 const int dlen = 313;
 const int dna_vectors[][5] = {{12, 10, 5, 5, 0}, {12, 9, 3, 6, 0}, {12, 10, 5, 6, 0}, {13, 10, 2, 7, 0}};
-const int rna_vectors[][5] = {{12, 10, 5, 6, 0}, {12, 9, 3, 7, 0}, {12, 10, 5, 7, 0}, {11, 9, 2, 8, 0}};
 
-int num_simp_elements = 5;
 const int numelements = 109;
 const char pepOrder[] = "ACDEFGHIKLMNPQRSTVWY";
 const char *elements[] = {
@@ -26,9 +22,11 @@ const char *elements[] = {
 };
 
 
-char* rna_names[] = {
-    "A", "C", "G", "U"
-};
+
+
+char* aa_names[] = {
+    "A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"};
+
 
 // Set up the weights
 
@@ -64,41 +62,6 @@ struct IsoGenWeights SetupWeights(const int veclen, const int outlen) {
 }
 
 
-void isogen_nn(const float mass, float *isodist, int isolen, char* type) {
-
-    struct IsoGenWeights weights = SetupWeights(5,isolen);
-    float vector[5];
-    if (strcmp(type, "Rna") == 0) {
-        // printf("Hit inside rna \n");
-            weights = LoadWeights(weights, isogenrna_model_64_bin);
-
-    } else if (type == NULL || strcmp(type, "Peptide") == 0) {
-        // printf("Hit inside peptide \n");
-        weights = LoadWeights(weights, isogenmass_model_64_bin);
-    } else {
-        printf("Error: Unsupported Peptide Isotope Length\n");
-        exit(1);
-        }
-    // Create Encoding Vector
-    mass_to_vector(mass, vector);
-    // Run the Neural Net
-    neural_net(vector, isodist, weights);
-    // Free Memory
-    FreeIsogenWeights(weights);
-
-}
-
-void isogen_atom(const char* sequence, float* isodist, int isolen)
-{
-    struct IsoGenWeights weights = SetupWeights(109,isolen);
-    float vector[109];
-    weights = LoadWeights(weights, isogenatom_model_32_bin);
-    formula_to_vector(sequence, vector);
-
-    neural_net(vector, isodist, weights);
-    FreeIsogenWeights(weights);
-
-}
 
 //back up
 // void isogenmass(const float mass, float *isodist) {
@@ -148,7 +111,6 @@ struct IsoGenWeights LoadWeights(const struct IsoGenWeights weights, const unsig
     free(default_weights);
     return weights;
 }
-
 
 void neural_net(const float *vector, float *isodist, const struct IsoGenWeights weights) {
     //Allocate the memory for the intermediate values
@@ -204,6 +166,86 @@ void mass_to_vector(const float mass, float *vector) {
 }
 
 
+//fft
+float fft_list_to_dist(const int isolist[11], const int length, float* isodist)
+{
+    // Isolist as {hydrogen, carbon, nitrogen, oxygen, sulfur, iron, potassium,
+    // calcium, nickel, zinc, magnesium}
+    // Isolist as {hydrogen, carbon, nitrogen, oxygen, sulfur}
+    int const complen = (int)(length / 2) + 1;
+
+
+    fftw_complex* hft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
+    fftw_complex* cft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
+    fftw_complex* nft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
+    fftw_complex* oft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
+    fftw_complex* sft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
+    fftw_complex* feft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
+    fftw_complex* kft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
+    fftw_complex* caft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
+    fftw_complex* nift = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
+    fftw_complex* znft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
+    fftw_complex* mgft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
+    // Check for null pointers
+    if (hft == NULL || cft == NULL || nft == NULL || oft == NULL || sft == NULL ||
+        feft == NULL || kft == NULL || caft == NULL || nift == NULL || znft == NULL || mgft == NULL)
+    {
+        printf("Error: Could not allocate memory for fftw_complex objects\n");
+        return 1;
+    }
+
+    setup_ft(1, hft, length, complen);
+    setup_ft(6, cft, length, complen);
+    setup_ft(7, nft, length, complen);
+    setup_ft(8, oft, length, complen);
+    setup_ft(16, sft, length, complen);
+    setup_ft(26, feft, length, complen);
+    setup_ft(19, kft, length, complen);
+    setup_ft(20, caft, length, complen);
+    setup_ft(28, nift, length, complen);
+    setup_ft(30, znft, length, complen);
+    setup_ft(12, mgft, length, complen);
+
+    fftw_complex* allft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
+    double* buffer = (double*)fftw_malloc(length * sizeof(double));
+    // Check for null pointers
+    if (allft == NULL || buffer == NULL)
+    {
+        printf("Error: Could not allocate memory for fftw_complex objects\n");
+        return 1;
+    }
+    //ensure normalizing
+
+    convolve_all(isolist, allft, cft, hft, nft, oft, sft, feft, caft, kft, nift, znft, mgft, complen);
+    fftw_free(hft);
+    fftw_free(cft);
+    fftw_free(nft);
+    fftw_free(oft);
+    fftw_free(sft);
+    fftw_free(feft);
+    fftw_free(caft);
+    fftw_free(kft);
+    fftw_free(nift);
+    fftw_free(znft);
+    fftw_free(mgft);
+
+    fftw_plan plan_irfft = fftw_plan_dft_c2r_1d(length, allft, buffer, FFTW_ESTIMATE);
+    fftw_execute(plan_irfft);
+    fftw_destroy_plan(plan_irfft);
+    fftw_free(allft);
+
+    const double max_val = normalize_isodist(buffer, length);
+
+    //memcpy buffer to isodist
+    for (int i = 0; i < length; i++)
+    {
+        isodist[i] = (float)buffer[i];
+    }
+
+    fftw_free(buffer);
+    return (float)max_val;
+}
+
 
 void construct_isotope_array(const int number, double* isotope_array, const int length)
 {
@@ -239,6 +281,7 @@ void construct_isotope_array(const int number, double* isotope_array, const int 
 
 int fft_len = 33;
 
+
 void copy_fft(const fftw_complex* in, fftw_complex* out, const int length)
 {
     for (int i = 0; i < length; i++)
@@ -248,10 +291,12 @@ void copy_fft(const fftw_complex* in, fftw_complex* out, const int length)
     }
 }
 
+
 void fft_from_precomputed(const int number, fftw_complex* outft, const int length)
 {
     const int index = number - 1;
     const int start = index * fft_len;
+
     if (length != fft_len)
     {
         printf("Error: Requested isotope dist length is not the same length as the precomputed FFT\n");
@@ -270,6 +315,7 @@ void fft_from_precomputed(const int number, fftw_complex* outft, const int lengt
 }
 
 int use_precomputed_fft = 1;
+
 
 void setup_ft(const int number, fftw_complex* outft, const int length, const int ftlen)
 {
@@ -306,6 +352,7 @@ void complex_power(const fftw_complex z, const int power, double* oreal, double*
     (*oimag) = magnitude * sin(angle);
 }
 
+
 void complex_multiplication(const double ar, const double ai, const double br,
                             const double bi, double* oreal, double* oimag)
 {
@@ -316,14 +363,22 @@ void complex_multiplication(const double ar, const double ai, const double br,
 }
 
 
-void convolve_all(const int isolist[5], fftw_complex* allft, const fftw_complex* cft, const fftw_complex* hft,
-                  const fftw_complex* nft, const fftw_complex* oft, const fftw_complex* sft, const int length)
+void convolve_all(const int isolist[11], fftw_complex* allft, const fftw_complex* cft, const fftw_complex* hft,
+                  const fftw_complex* nft, const fftw_complex* oft, const fftw_complex* sft, const fftw_complex* feft,
+                  const fftw_complex* caft, const fftw_complex* kft, const fftw_complex* nift, const fftw_complex* znft,
+                  const fftw_complex* mgft, const int length)
 {
-    const int numc = isolist[0];
-    const int numh = isolist[1];
+    const int numh = isolist[0];
+    const int numc = isolist[1];
     const int numn = isolist[2];
     const int numo = isolist[3];
     const int nums = isolist[4];
+    const int numfe = isolist[5];
+    const int numca = isolist[6];
+    const int numk = isolist[7];
+    const int numni = isolist[8];
+    const int numzn = isolist[9];
+    const int nummg = isolist[10];
 
     for (int i = 0; i < length; i++)
     {
@@ -347,6 +402,30 @@ void convolve_all(const int isolist[5], fftw_complex* allft, const fftw_complex*
         double souti = 0;
         complex_power(sft[i], nums, &sout, &souti);
 
+        double feoutr = 0;
+        double feouti = 0;
+        complex_power(feft[i], numfe, &feoutr, &feouti);
+
+        double caoutr = 0;
+        double caouti = 0;
+        complex_power(caft[i], numca, &caoutr, &caouti);
+
+        double koutr = 0;
+        double kouti = 0;
+        complex_power(kft[i], numk, &koutr, &kouti);
+
+        double nioutr = 0;
+        double nioouti = 0;
+        complex_power(nift[i], numni, &nioutr, &nioouti);
+
+        double znoutr = 0;
+        double znouti = 0;
+        complex_power(znft[i], numzn, &znoutr, &znouti);
+
+        double mgoutr = 0;
+        double mgouti = 0;
+        complex_power(mgft[i], nummg, &mgoutr, &mgouti);
+
         double finalr = 0;
         double finali = 0;
 
@@ -354,11 +433,20 @@ void convolve_all(const int isolist[5], fftw_complex* allft, const fftw_complex*
         complex_multiplication(finalr, finali, noutr, nouti, &finalr, &finali);
         complex_multiplication(finalr, finali, ooutr, oouti, &finalr, &finali);
         complex_multiplication(finalr, finali, sout, souti, &finalr, &finali);
+        complex_multiplication(finalr, finali, feoutr, feouti, &finalr, &finali);
+        complex_multiplication(finalr, finali, caoutr, caouti, &finalr, &finali);
+        complex_multiplication(finalr, finali, koutr, kouti, &finalr, &finali);
+        complex_multiplication(finalr, finali, nioutr, nioouti, &finalr, &finali);
+        complex_multiplication(finalr, finali, znoutr, znouti, &finalr, &finali);
+        complex_multiplication(finalr, finali, mgoutr, mgouti, &finalr, &finali);
 
         allft[i][0] = finalr;
         allft[i][1] = finali;
     }
 }
+
+
+
 
 
 const char* element_names[] = {

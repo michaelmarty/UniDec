@@ -5,7 +5,6 @@
 #include <math.h>
 #include <stdbool.h>
 #include "isodeclib.h"
-
 #include "isogendep.h"
 #include "phase_model_8.h"
 #include "phase_model_4.h"
@@ -13,7 +12,7 @@
 
 
 
-extern void mass_to_formula_averaging(const float mass, int* forumla);
+extern void pep_mass_to_fftlist(const float mass, int* forumla);
 
 // #include <omp.h>
 
@@ -749,11 +748,8 @@ int isotope_dist(const float mass, float *isovals, const float normfactor,
     int offset = 0;
     if (settings.minusoneaszero == 1) { offset = 1; }
 
-    if (mass > 60000 && settings.isolength <= 64) {
-        printf("Warning: Mass is very high, may not be accurate: %f\n", mass);
-    }
     float max;
-    // float max = isogen_fancy(mass, isovals, settings.isolength, offset, type);
+
     if (strcmp(type, "Rna") == 0)
     {
         max = fft_rna_mass_to_dist(mass, isovals, settings.isolength, offset);
@@ -763,9 +759,6 @@ int isotope_dist(const float mass, float *isovals, const float normfactor,
         max = fft_pep_mass_to_dist(mass, isovals, settings.isolength, offset);
     }
 
-
-
-    fflush(stdout);
     int realisolength = 0;
     if (max > 0) {
         for (int k = 0; k < settings.isolength; k++) {
@@ -1160,6 +1153,7 @@ int process_spectrum(const double *cmz, const float *cint, int n, const char *fn
     // Load Weights
     // ReSharper disable once CppDFAMemoryLeak
     struct Weights weights;
+
     if (fname == NULL) {
         weights = load_default_weights(config);
     } else {

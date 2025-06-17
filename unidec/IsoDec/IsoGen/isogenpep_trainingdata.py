@@ -221,34 +221,24 @@ if __name__ == "__main__":
     # Set backend to Agg
     mpl.use('WxAgg')
 
-    #parse_file("HeLaPeptides.tsv")
-    #parse_file("large_library.mgf", maxn=10000000)
-    # parse_file("human_protein_seqs.tsv", maxn=None, maxlen=200)
-    # parse_file("yeast_protein_seqs.tsv", maxn=None, maxlen=200)
-    # parse_file("ecoli_protein_seqs.tsv", maxn=None, maxlen=200)
-    # parse_file("mouse_protein_seqs.tsv", maxn=None, maxlen=200)
+    os.chdir(r"Z:\Group Share\JGP\PeptideTraining\IntactProtein\Training")
 
-    human_prot_data =  np.load("human_protein_seqs.npz")
-    print("Keys:", human_prot_data.files)
-
-    # Access values
-    X = human_prot_data["seqs"]
-    Y = human_prot_data["dists"]
-
-    # Show first 5 entries of each
-    print("First 5 sequences (X):", X[:5])
-    print("First 5 distributions (Y):", Y[:5])
-    exit()
-    gen_random_seqs_even_length(human_prot_data["seqs"], "human", nmods=2, min_length=50, max_length=200)
+    human_prot_data = np.load("human_protein_seqs.npz")
+    gen_random_seqs_even_length(human_prot_data["seqs"], "human", nmods=0, min_length=5, max_length=50)
+    gen_random_seqs_even_length(human_prot_data["seqs"], "human", nmods=1, min_length=5, max_length=50)
 
     yeast_prot_data = np.load("yeast_protein_seqs.npz")
-    gen_random_seqs_even_length(yeast_prot_data["seqs"], "yeast", nmods=2, min_length=50, max_length=200)
+    gen_random_seqs_even_length(yeast_prot_data["seqs"], "yeast", nmods=0, min_length=5, max_length=50)
+    gen_random_seqs_even_length(yeast_prot_data["seqs"], "yeast", nmods=1, min_length=5, max_length=50)
 
     ecoli_prot_data = np.load("ecoli_protein_seqs.npz")
-    gen_random_seqs_even_length(ecoli_prot_data["seqs"], "ecoli", nmods=2, min_length=50, max_length=200)
+
+    gen_random_seqs_even_length(ecoli_prot_data["seqs"], "ecoli", nmods=0, min_length=5, max_length=50)
+    gen_random_seqs_even_length(ecoli_prot_data["seqs"], "ecoli", nmods=1, min_length=5, max_length=50)
 
     mouse_prot_data = np.load("mouse_protein_seqs.npz")
-    gen_random_seqs_even_length(mouse_prot_data["seqs"], "mouse", nmods=2, min_length=50, max_length=200)
+    gen_random_seqs_even_length(mouse_prot_data["seqs"], "mouse", nmods=0, min_length=5, max_length=50)
+    gen_random_seqs_even_length(mouse_prot_data["seqs"], "mouse", nmods=1, min_length=5, max_length=50)
 
 
 
