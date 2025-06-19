@@ -47,6 +47,7 @@ f: \.*hashing.py
 f: \.*MANIFEST.in
 f: \.*pyproject.toml
 f: \.*oldisodecfunctions.py
+f: \.*build.bat
 
 f: \.*_error.txt$
 f: \.*_conv.bin$
