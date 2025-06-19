@@ -431,6 +431,7 @@ class IsoGenEngineBase:
         seqall = []
         distall = []
         for train_fname in train_fnames:
+            print("Loading", train_fname)
             tdata = np.load(train_fname)
             dists = tdata["dists"]
             seqs = tdata[inputname]
