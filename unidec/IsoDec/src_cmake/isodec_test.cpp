@@ -34,7 +34,7 @@ int main(const int argc, char *argv[])
         printf("Weight file: %s\n", weightfile);
     }
 
-    run(filename, outputfile, weightfile);
+    run(filename, outputfile, weightfile, "Pep");
     // Free memory
     delete[] outputfile;
 }
