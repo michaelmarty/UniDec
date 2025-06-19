@@ -348,6 +348,8 @@ def get_z_offset(mass, charge):
     return charge - nativez
 
 
+nativez_coefficients = [0.0467, 0.533]  # Coefficients for the native charge prediction formula
+
 def predict_charge(mass):
     """
     Give predicted native charge state of species of defined mass
@@ -355,15 +357,54 @@ def predict_charge(mass):
     :param mass: Mass in Da
     :return: Float, predicted average native charge state
     """
-    m = 0.0467
-    s = 0.533
-    nativez = m * (mass ** s)
+    a, b = nativez_coefficients
+    nativez = a * (mass ** b)
     return nativez
 
 
 def simchargefit(x2):
     fit = [predict_charge(i) for i in x2]
     return np.array(fit)
+
+def simchargefit_mz(mzs):
+    """
+    Fit the native charge state for a given m/z value.
+    :param mzs: m/z values
+    :return: Predicted native charge states
+    """
+    fit = [predict_charge_from_mz(i) for i in mzs]
+    return np.array(fit)
+
+def predict_charge_from_mz(mz):
+    """
+    Predict the native charge state from m/z value.
+    :param mz: m/z value
+    :return: Predicted native charge state
+    """
+    a, b = nativez_coefficients
+    mass = predict_mass_from_mz(mz)
+    nativez = a * (mass ** b)
+    return nativez
+
+def predict_mass_from_mz(mz):
+    """
+    Predict the native mass from a given m/z value.
+    :param mz: m/z value
+    :return: Predicted mass in Da
+    """
+    a, b = nativez_coefficients
+    mass = (mz * a) ** (1/(1-b))
+    return mass
+
+def predict_mz_from_mass(mass):
+    """
+    Predict the native m/z value from a given mass.
+    :param mass: Mass in Da
+    :return: Predicted m/z value
+    """
+    a, b = nativez_coefficients
+    naitvemz = 1/a * (mass ** (1-b))
+    return naitvemz
 
 
 def get_tvalue(dof, ci=0.99):

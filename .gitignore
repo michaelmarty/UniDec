@@ -40,6 +40,7 @@ unidec/src/.vs/
 *_grid.bin
 *_match.dat
 *_mass.txt
+*_decon.txt
 *_input.dat
 *_massgrid.bin
 *_error.txt
