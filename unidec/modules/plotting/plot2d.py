@@ -221,7 +221,7 @@ class Plot2dBase(PlotBase):
             self.repaint(setupzoom=False)
         self.flag = True
 
-    def plot_native_z(self, offset, col, xvals, width=0, alpha=1, shape=0):
+    def plot_native_z(self, offset, col, xvals, width=0, alpha=1, shape=0, mode="mass"):
         """
         Plots a showing the native charge offsets.
         :param offset: Offset value
@@ -233,8 +233,15 @@ class Plot2dBase(PlotBase):
         :return: None
         """
         x1, x2, y1, y2 = self.subplot1.axis()
-        yvals = ud.simchargefit(xvals) + offset
-        self.subplot1.plot(xvals, yvals, color=col)
+
+        if mode == "mass":
+            yvals = ud.simchargefit(xvals) + offset
+        elif mode == "mz":
+            yvals = ud.simchargefit_mz(xvals) + offset
+        else:
+            raise ValueError("Invalid mode for native z plot. Use 'mass' or 'mz'.")
+
+        self.subplot1.plot(xvals / self.kdnorm, yvals, color=col)
         if width > 0 and shape == 0:
             self.subplot1.fill_between(xvals / self.kdnorm, yvals - width, yvals + width, color=col, alpha=alpha)
         elif width > 0 and shape == 1:
@@ -248,7 +255,7 @@ class Plot2dBase(PlotBase):
                                            color=col, alpha=alpha * weight, linewidth=0.0)
         self.subplot1.axis([x1, x2, y1, y2])
         self.nativez.append([offset, col])
-        self.repaint(setupzoom=False)
+        self.repaint(setupzoom=True)
 
     def hist2d(self, xvals, yvals, bins, config=None, xlab='m/z (Th)', ylab="Charge",
                title='', repaint=True, nticks=None, test_kda=False):
