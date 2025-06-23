@@ -308,6 +308,10 @@ def peptide_to_vector(peptide):
     return vec
 
 
+def peptide_to_aacount(peptide):
+    peptide = re.sub(fullseq_pattern, '', peptide)
+    return len(peptide)
+
 def get_dist_from_formula(formula, isolen=128, cutoff=0.001):
     # Get the isotopic distribution from a chemical formula
     mol = mm.Formula(formula)

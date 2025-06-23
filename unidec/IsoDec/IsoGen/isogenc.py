@@ -70,7 +70,7 @@ def fft_rna_seq_to_dist(seq, isolen=128, offset=0):
     return np.array(isodist).copy()
 
 
-def fft_rna_mass_to_dist(mass, isolen):
+def fft_rna_mass_to_dist(mass, isolen=128):
     """RNA Mass -> IsoDist"""
     fmass = ctypes.c_float(mass)
     isodist = (ctypes.c_float * isolen)()
@@ -120,12 +120,12 @@ def fft_pep_seq_to_dist(seq, isolen=64, offset=0):
     return np.array(isodist).copy()
 
 
-def fft_pep_mass_to_dist(mass, isolen, offset=0):
+def fft_pep_mass_to_dist(mass, isolen=128, offset=0):
     fmass = ctypes.c_float(mass)
     isodist = (ctypes.c_float * isolen)()
     offset = ctypes.c_int(0)
     isolen = ctypes.c_int(isolen)
-    isogen_lib.fft_pep_mass_to_dist(fmass, isodist, isolen, offset)
+    result = isogen_lib.fft_pep_mass_to_dist(fmass, isodist, isolen, offset)
     # move to the c code
     return np.array(isodist).copy()
 

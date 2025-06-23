@@ -121,12 +121,11 @@ int aa_to_index(char aa) {
 
 //NN
 void add_mod_to_vec(char* mod, float* vec) {
-
     int i = 0;
-    printf("Mod:%s\n", mod);
     while (mod[i] != '\0') {
         if (!isupper(mod[i])) {
-            printf("Error while parsing modification formula.");
+            printf("Error while parsing modification formula:%s\n", mod);
+            fflush(stdout);
             return;
         }
 
@@ -147,13 +146,10 @@ void add_mod_to_vec(char* mod, float* vec) {
         for (int j = 0; j < 11; j++) {
             if (strcmp(symbol, pep_encoding_elements[j]) == 0) {
                 vec[j+20] += count;
-                printf("Added Element: %s, Count %f\n", symbol, count);
                 symbol_matched = 1;
                 break;
             }
         }
-        if (symbol_matched == 0){ printf("Unable to add Element: %s, Count %f\n", symbol, count); }
-
     }
 }
 
@@ -212,6 +208,7 @@ float nn_pep_seq_to_dist(const char* seq, float* isodist, int offset){
     else{ weights = LoadWeights(weights, isogenprot_model_bin); }
     neural_net(vector, isodist, weights);
     free(vector);
+    FreeIsogenWeights(weights);
 
     for (int i = 64 - offset - 1; i >= 0; i--)
     {
@@ -223,6 +220,10 @@ float nn_pep_seq_to_dist(const char* seq, float* isodist, int offset){
     for (int i = 0; i < 64; i++) {
         if (isodist[i] > maxval) {maxval = isodist[i];}
     }
+
+    for (int i = 0;i< 64;i++) {
+        isodist[i] /= maxval;
+    }
     return maxval;
 }
 
@@ -231,7 +232,8 @@ void add_mod_to_fftlist(char* mod, int* fftlist) {
     int i = 0;
     while (mod[i] != '\0') {
         if (!isupper(mod[i])) {
-            printf("Error while parsing modification formula.");
+            printf("Error while parsing modification formula:%s\n", mod);
+            fflush(stdout);
             return;
         }
 
@@ -252,13 +254,10 @@ void add_mod_to_fftlist(char* mod, int* fftlist) {
         for (int j = 0; j < 11; j++) {
             if (strcmp(symbol, pep_encoding_elements[j]) == 0) {
                 fftlist[j] += count;
-                printf("Added Element: %s, Count %i\n", symbol, count);
                 symbol_matched = 1;
                 break;
             }
         }
-        if (symbol_matched == 0){ printf("Unable to add Element: %s, Count %i\n", symbol, count); }
-
     }
 }
 
@@ -344,6 +343,7 @@ float fft_pep_seq_to_dist(const char* sequence, float* isodist, const int isolen
         return 1;
     }
     pep_seq_to_fftlist(sequence, formulalist);
+
     float maxval = fft_list_to_dist(formulalist, isolen, isodist);
 
     for (int i = isolen - offset - 1; i >= 0; i--)
@@ -362,6 +362,7 @@ float fft_pep_seq_to_dist(const char* sequence, float* isodist, const int isolen
     return maxval;
 }
 
+
 //fft
 float fft_pep_mass_to_dist(const float mass, float *isodist, const int isolen, const int offset)
 {
@@ -374,11 +375,13 @@ float fft_pep_mass_to_dist(const float mass, float *isodist, const int isolen, c
         isodist[i + offset] = isodist[i];
         if (i < offset) { isodist[i] = 0.0f; }
     }
+
     if (max_val > 0.0f) {
         for (int i = 0; i < isolen; i++) {
             isodist[i] /= max_val;
         }
     }
+    free(fftlist);
     return max_val;
 }
 
@@ -404,6 +407,7 @@ float nn_pep_mass_to_dist(const float mass, float* isodist, const int isolen, co
 
     neural_net(vector, isodist, weights);
     free(vector);
+    FreeIsogenWeights(weights);
 
     for (int i = isolen - offset - 1; i >= 0; i--)
     {
@@ -419,7 +423,6 @@ float nn_pep_mass_to_dist(const float mass, float* isodist, const int isolen, co
     for (int i = 0; i < isolen; i++) {
         isodist[i] /= maxval;
     }
-
     return maxval;
 }
 
