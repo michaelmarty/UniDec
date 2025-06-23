@@ -90,6 +90,12 @@ endif()
 
 install(TARGETS isodeclib DESTINATION ${INSTALL_DIR})
 
+add_executable(isodec_test isodec_test.cpp)
+target_include_directories(isodec_test PUBLIC ${SRC_DIR})
+target_link_libraries(isodec_test PUBLIC isogen isodeclib)
+
+install(TARGETS isodec_test DESTINATION ${INSTALL_DIR})
+
 
 
 
