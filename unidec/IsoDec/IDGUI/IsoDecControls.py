@@ -29,6 +29,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         # Setting up main fold controls
         self.scrolledpanel = scrolled.ScrolledPanel(self, style=wx.ALL | wx.EXPAND)
         self.scrolledpanel.SetupScrolling()
+
+        self.runallbutton = wx.Button(self, -1, "Run All", size=(250, 25))
+        self.parent.Bind(wx.EVT_BUTTON, self.pres.on_run_all, self.runallbutton)
+        self.runallbutton.SetToolTip(wx.ToolTip("Run all steps in the deconvolution process."))
+        sizercontrol.Add(self.runallbutton, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+
         size1 = (75, -1)
         self.foldpanels = fpb.FoldPanelBar(self.scrolledpanel, -1, size=(250, 800), agwStyle=fpb.FPB_VERTICAL)
         style1 = fpb.CaptionBarStyle()

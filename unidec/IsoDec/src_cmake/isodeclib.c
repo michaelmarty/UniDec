@@ -759,11 +759,11 @@ int isotope_dist(const float mass, float *isovals, const float normfactor,
     {
         max = fft_pep_mass_to_dist(mass, isovals, settings.isolength, offset);
     }
-
+    // printf("Max: %f %f\n", max, normfactor);
     int realisolength = 0;
     if (max > 0) {
         for (int k = 0; k < settings.isolength; k++) {
-            const float yval = isovals[k] / max;
+            const float yval = isovals[k];
             if (yval > settings.isotopethreshold || (settings.minusoneaszero == 1 && k == 0)) {
                 isovals[k] = yval * normfactor;
                 realisolength++;

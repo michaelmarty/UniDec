@@ -1603,7 +1603,6 @@ class DataContainer:
         self.fitdat2d = np.array([])  # Fit of 2D data from deconvolution
         self.rawdata = np.array([])  # Raw m/z data
         self.rawdata3 = np.array([])  # Raw IMMS data
-        self.centroided = np.array([])  # Centroided m/z data
         self.data2 = np.array([])  # Processed m/z data
         self.data3 = np.array([])  # Processed IMMS data
         self.massdat = np.array([])  # Deconvolved 1D mass data

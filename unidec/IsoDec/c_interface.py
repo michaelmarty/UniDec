@@ -14,7 +14,6 @@ from unidec.IsoDec.match import MatchedPeak, MatchedCollection, IsoDecConfig
 from unidec.IsoDec.plots import plot_pks
 from unidec.tools import start_at_iso
 
-
 current_path = os.path.dirname(os.path.realpath(__file__))
 
 if platform.system() == "Windows":
@@ -24,9 +23,7 @@ elif platform.system() == "Linux":
 else:
     dllname = "isodeclib.dylib"
 
-default_dll_path = start_at_iso(dllname, guess = current_path)
-
-
+default_dll_path = start_at_iso(dllname, guess=current_path)
 
 if not default_dll_path:
     print("DLL not found anywhere")
@@ -58,8 +55,6 @@ example = np.array(
         [5.70699369e02, 1.96462650e06],
     ]
 )
-
-
 
 isodist = ctypes.c_float * 64
 matchedinds = ctypes.c_int * 32
@@ -159,9 +154,6 @@ class IsoDecWrapper:
 
         modelpath = '\\'.join(dllpath.split("\\")[:-1])
 
-
-
-
         self.modeldir = modelpath
         self.c_lib = ctypes.CDLL(dllpath)
         self.c_lib.encode.argtypes = [
@@ -180,7 +172,6 @@ class IsoDecWrapper:
             ctypes.POINTER(ctypes.c_int),
             ctypes.c_char_p,
         ]
-
 
         self.c_lib.process_spectrum.argtypes = [
             ctypes.POINTER(ctypes.c_double),
@@ -229,7 +220,7 @@ class IsoDecWrapper:
         emat = np.ctypeslib.as_array(emat)
         return emat
 
-    def predict_charge(self, centroids, config = None):
+    def predict_charge(self, centroids, config=None):
 
         cmz = centroids[:, 0].astype(np.double)
         cint = centroids[:, 1].astype(np.float32)
@@ -263,8 +254,6 @@ class IsoDecWrapper:
             config = self.config
             settings = config_to_settings(config)
 
-
-
         elems = (MPStruct * n)()
         matchedpeaks = ctypes.cast(elems, ctypes.POINTER(MPStruct))
 
@@ -277,9 +266,6 @@ class IsoDecWrapper:
             settings,
             type_c,
         )
-
-
-
 
         if pks is None:
             pks = MatchedCollection()
@@ -303,21 +289,22 @@ class IsoDecWrapper:
             isodist = np.array(p.isodist)
             isomz = np.array(p.isomz)
             isomass = np.array(p.isomass)
-
             b1 = isodist > np.amax(isodist) * 0.001
             isodist = isodist[b1]
             isomz = isomz[b1]
             isomass = isomass[b1]
             pk.matchedintensity = np.sum(isodist)
             pk.peakint = p.peakint
+
+            # pk.isodist = fast_calc_averagine_isotope_dist(p.monoiso, p.z)
             pk.isodist = np.transpose((isomz, isodist))
+            # pk.isodist[:, 1] = p.peakint
+
             pk.massdist = np.transpose((isomass, isodist))
 
             pk.startindex = p.startindex
             pk.endindex = p.endindex
 
-            pk.isodist = fast_calc_averagine_isotope_dist(p.monoiso, p.z)
-            pk.isodist[:, 1] *= p.peakint
             pks.add_peak(pk)
             pks.add_pk_to_masses(pk, 10)
         return pks
@@ -351,8 +338,6 @@ if __name__ == "__main__":
 
     print(eng.config.phaseres)
 
-
-
     centroids = np.array([
         [500.0, 150.0],
         [505.2, 300.0],
@@ -365,28 +350,22 @@ if __name__ == "__main__":
 
     print(dat)
 
-
-
-
-
-
-
-    #filepath = "C:\\Data\\IsoNN\\test2.txt"
+    # filepath = "C:\\Data\\IsoNN\\test2.txt"
     filepath = "Z:\\Group Share\\JGP\\js8b05641_si_001\\test.txt"
     spectrum = np.loadtxt(filepath, skiprows=0)
-    #spectrum = ud.datachop(spectrum, 891.195, 893.757)
+    # spectrum = ud.datachop(spectrum, 891.195, 893.757)
     spectrum = spectrum.astype(np.double)
 
     wrapper = IsoDecWrapper()
     e1 = wrapper.encode(spectrum)
-    #exit()
-    thresh = np.amax(spectrum[:,1]) * 0.05
-    new_spec = spectrum[spectrum[:,1] > thresh]
+    # exit()
+    thresh = np.amax(spectrum[:, 1]) * 0.05
+    new_spec = spectrum[spectrum[:, 1] > thresh]
     print("Old:", len(spectrum), "New:", len(new_spec))
-    #exit()
+    # exit()
     # wrapper.process_spectrum(spectrum)
     pks = wrapper.process_spectrum(spectrum)
     print(len(pks.peaks))
-    #exit()
+    # exit()
     plot_pks(pks, centroids=spectrum, show=True, title="C Interface")
     plt.show()

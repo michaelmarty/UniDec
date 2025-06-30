@@ -61,7 +61,7 @@ class IsoDecPres(UniDecPres):
             self.on_open_file(filename, dirname)
         dlg.Destroy()
 
-    def on_open_file(self, filename, directory, skipengine=False, refresh=True, **kwargs):
+    def on_open_file(self, filename, directory, skipengine=False, refresh=False, **kwargs):
         """
         Opens a file. Run self.eng.open_file.
         :param filename: File name
@@ -311,11 +311,6 @@ class IsoDecPres(UniDecPres):
                 isodist = deepcopy(p.stickdat)
                 if len(isodist) == 0:
                     continue
-                # elif len(isodist) == 1:
-                #     isodist = isodist[0]
-                # else:
-                #     isodist = np.concatenate(isodist, axis=0)
-                #     pass
                 isodist[:, 1] = isodist[:, 1] * -1
                 self.view.plot1.add_centroid(isodist, color=p.color, repaint=False)
         self.view.plot1.repaint()
@@ -456,6 +451,16 @@ class IsoDecPres(UniDecPres):
             path = dlg.GetPath()
             self.batch_process(path)
         dlg.Destroy()
+
+    def on_run_all(self, e=None):
+        """
+        Run the whole process automatically
+        """
+        self.on_dataprep_button(e)
+        self.on_unidec_button(e)
+        self.on_pick_peaks(e)
+        self.on_plot_peaks(e)
+        self.on_plot_dists(e)
 
     def batch_process(self, path):
         """
