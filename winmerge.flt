@@ -64,3 +64,4 @@ f: \.*_ofile.dat$
 f: \.*recent.txt$
 f: \.*CDCReaderOld.exe
 f: \.*GUniDec.spec$
+f: \.*default.hdf5$

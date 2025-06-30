@@ -36,7 +36,7 @@ target_include_directories(isogen PUBLIC ${FFTW_DIR})
 target_compile_definitions(isogen PUBLIC ISOGEN_BUILD_DLL)
 
 
-if(MSVC OR CMAKE_C_COMPILER_ID STREQUAL "GNU")
+if(MSVC)
     add_library(fftw3 STATIC IMPORTED)
     set_target_properties(fftw3 PROPERTIES IMPORTED_LOCATION ${FFTW_DIR}/fftw3.lib)
 else()
@@ -49,12 +49,8 @@ else()
     target_link_libraries(isogen PUBLIC m)
 endif()
 
-
 target_link_libraries(isogen PUBLIC fftw3)
 install(TARGETS isogen DESTINATION ${INSTALL_DIR})
-
-
-
 
 
 # ======================== IsoDec Builds ========================
@@ -64,14 +60,9 @@ set_target_properties(isodeclib PROPERTIES LINKER_LANGUAGE C)
 
 target_link_libraries(isodeclib PUBLIC isogen)
 
-
-
 target_include_directories(isodeclib PUBLIC ${SRC_DIR})
 
-
 target_compile_definitions(isodeclib PRIVATE ISODEC_BUILD_DLL)
-
-
 
 
 # Compiler flags
@@ -86,7 +77,6 @@ else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
 endif()
-
 
 install(TARGETS isodeclib DESTINATION ${INSTALL_DIR})
 

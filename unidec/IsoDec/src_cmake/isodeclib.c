@@ -745,7 +745,7 @@ int peak_detect(const double *dataMZ, const float *dataInt, const int lengthmz, 
 
 // Function to calculate the isotope intensity distribution for a given mass
 int isotope_dist(const float mass, float *isovals, const float normfactor,
-                 const struct IsoSettings settings, char* type) {
+                 const struct IsoSettings settings, const char* type) {
     int offset = 0;
     if (settings.minusoneaszero == 1) { offset = 1; }
 
@@ -1082,7 +1082,7 @@ int bestshift_adjust(const double *mz, const float *inten, const int length, flo
 
 int optimize_shift(const int z, const double *mz, const float *inten, const int length, struct MatchedPeak *matchpeaks,
                    const int nmatched,
-                   const float peakmz, const struct IsoSettings settings, char* type) {
+                   const float peakmz, const struct IsoSettings settings, const char* type) {
     // Set some parameters for max shifts allowed, which depend on charge state
     int maxshift = settings.maxshift;
     if (z < 3) { maxshift = 1; } else if (z < 6) { maxshift = 2; }
@@ -1140,7 +1140,7 @@ void print_matches(const struct MatchedPeak *matchedpeaks, const int nmatched) {
 
 // extern "C" __declspec(dllexport)
 int process_spectrum(const double *cmz, const float *cint, int n, const char *fname, struct MatchedPeak *matchedpeaks,
-                     struct IsoSettings settings, char* type) {
+                     struct IsoSettings settings, const char* type) {
     // Set some parameters
     struct IsoConfig config = SetupConfig(50, settings.phaseres);
     config.dlen = n;
@@ -1433,7 +1433,7 @@ void write_matches(const struct MatchedPeak *matchedpeaks, const int nmatched, c
 
 // extern "C" __declspec(dllexport)
 int process_spectrum_default(const double *cmz, const float *cint, const int n, const char *fname,
-                             struct MatchedPeak *matchedpeaks, char* type) {
+                             struct MatchedPeak *matchedpeaks, const char* type) {
     const struct IsoSettings settings = DefaultSettings();
     return process_spectrum(cmz, cint, n, fname, matchedpeaks, settings, type);
 }
@@ -1454,7 +1454,7 @@ int process_spectrum_default(const double *cmz, const float *cint, const int n, 
 // }
 // #endif
 
-void run(char *filename, char *outfile, const char *weightfile, char* type) {
+void run(char *filename, char *outfile, const char *weightfile, const char* type) {
     // printf("Starting Dll. Threads: %d\n", omp_get_max_threads());
     //
     // int cpuinfo[4];
