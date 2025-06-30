@@ -316,11 +316,11 @@ class UniDec(UniDecEngine):
             return 1
 
         if self.config.imflag == 0:
-            if self.config.centroided:
-                centroided = self.data.data2
+            if "centroid" in kwargs and kwargs["centroid"]:
+                datatop = self.data.data2
             else:
-                centroided = None
-            self.data.data2 = ud.dataprep(self.data.rawdata, self.config, centroided_dat=centroided)
+                datatop = self.data.rawdata
+            self.data.data2 = ud.dataprep(datatop, self.config)
 
             if "scramble" in kwargs:
                     if kwargs["scramble"]:

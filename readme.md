@@ -230,6 +230,8 @@ v.8.0.3
 
 New build cleanup and refactoring. Bug fixes. Updated contact information.
 
+Fixed bug with IsoDec GUI centroiding cycling. 
+
 v.8.0.2
 
 Added menu option to export conf.dat text file from UniChrom and MetaUniDec.

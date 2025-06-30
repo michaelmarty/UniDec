@@ -61,7 +61,7 @@ class IsoDecPres(UniDecPres):
             self.on_open_file(filename, dirname)
         dlg.Destroy()
 
-    def on_open_file(self, filename, directory, skipengine=False, refresh=False, **kwargs):
+    def on_open_file(self, filename, directory, skipengine=False, refresh=True, **kwargs):
         """
         Opens a file. Run self.eng.open_file.
         :param filename: File name
@@ -77,8 +77,7 @@ class IsoDecPres(UniDecPres):
         if not skipengine:
             # Open File in Engine
             self.top_path = os.path.join(directory, filename)
-            self.eng.open_file(filename, directory, refresh=refresh, prefer_centroid=True, isodeceng=self.isodeceng,
-                               **kwargs)
+            self.eng.open_file(filename, directory, refresh=refresh, isodeceng=self.isodeceng, **kwargs)
 
         # Set Status Bar Text Values
         self.view.SetStatusText("File: " + filename, number=1)
@@ -161,14 +160,18 @@ class IsoDecPres(UniDecPres):
         self.export_config(self.eng.config.confname)
 
         if not self.eng.config.centroided:
+            print("Centroiding Data")
             path = self.top_path.split(".")
             #Everything going through IsoDec should be centroided
             if path[-1].lower() == 'raw' and not os.path.isdir(self.top_path):
                 self.eng.data.data2 = self.isodeceng.reader.grab_all_centroid_dat()
             else:
                 self.eng.data.data2 = get_all_centroids(self.eng.data.rawdata)
-            self.eng.config.centroided = True
-        self.eng.process_data()
+            # self.eng.config.centroided = True
+        else:
+            # If the data is already centroided, just use the raw data
+            self.eng.data.data2 = self.eng.data.rawdata
+        self.eng.process_data(centroid=True)
 
 
         self.import_config()

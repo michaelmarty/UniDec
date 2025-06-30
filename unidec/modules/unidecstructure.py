@@ -1254,7 +1254,7 @@ class UniDecConfig(object):
             badest = 1
 
         # Check that bin size is not too small
-        if self.mzbins < 0.01 and self.linflag != 2:
+        if 0 < self.mzbins < 0.01 and self.linflag != 2:
             warning = "Bin size is really small!\nGo ahead, but know that it will be really slow."
 
         # Check Charge range
@@ -1603,6 +1603,7 @@ class DataContainer:
         self.fitdat2d = np.array([])  # Fit of 2D data from deconvolution
         self.rawdata = np.array([])  # Raw m/z data
         self.rawdata3 = np.array([])  # Raw IMMS data
+        self.centroided = np.array([])  # Centroided m/z data
         self.data2 = np.array([])  # Processed m/z data
         self.data3 = np.array([])  # Processed IMMS data
         self.massdat = np.array([])  # Deconvolved 1D mass data

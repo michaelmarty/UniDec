@@ -1581,7 +1581,7 @@ def smash2d(data, midpoint, window, ymidpoint, ywindow):
     return data
 
 
-def dataprep(datatop, config, peaks=True, intthresh=True, silent=False, centroided_dat = None):
+def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
     """
     Main function to process 1D MS data. The order is:
 
@@ -1611,11 +1611,8 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False, centroid
     va = config.detectoreffva
     linflag = config.linflag
     redper = config.reductionpercent
-    if centroided_dat is not None:
-        data2 = centroided_dat
 
-    else:
-        data2 = datatop
+    data2 = datatop
     if type(newmin) != str and type(newmax) != str:
         # Crop Data
         data2 = datachop(deepcopy(data2), newmin, newmax)
