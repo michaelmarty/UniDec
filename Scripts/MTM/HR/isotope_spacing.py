@@ -47,7 +47,7 @@ def merge_all(deltas, dists, isolength, flen=7):
 def calc_mzs(mass, diffs, pre_ft, isolength):
     formula, minmassint, intnum = makemass(mass)
     intnum = np.concatenate((intnum, [intnum[3], intnum[4]]))
-    print(intnum)
+    print(intnum, formula)
 
     dists = []
     deltas = []
@@ -117,14 +117,20 @@ do17 = 16.9991315-15.9949146
 
 diffs = [dc, dh, dn, do, ds, do17, ds33]
 
-a = calc_mzs(100, diffs, pre_ft, isolength)
-exit()
+a = calc_mzs(10000, diffs, pre_ft, isolength)
 
-x = np.arange(2, 5, 0.1)
+known = [[86.06004, 87.06340], [975.52585,976.52868,977.53122,978.53415, 979.53640], [9998.06046, 9999.06374, 10000.06604, 10001.06952, 10002.07141,10003.07477, 10004.07626,10005.07933, 10006.08041, 10007.08338]]
+avg_known = np.array([np.mean(np.diff(x)) for x in known])
+mvals = np.array([np.mean(x) for x in known])
+print("Known average spacings:", avg_known)
+
+
+x = np.arange(2, 5, 0.75)
 masses = 10**x
 ints = [calc_mzs(m, diffs, pre_ft, isolength) for m in masses]
 
 plt.plot(masses, ints)
+plt.plot(mvals, avg_known, 'ro')
 plt.show()
 
 # plt.plot(np.diff(x1))
