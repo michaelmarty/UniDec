@@ -430,7 +430,7 @@ def integrate(data, start, end):
     boo1 = data[:, 0] < end
     boo2 = data[:, 0] > start
     intdat = data[np.all([boo1, boo2], axis=0)]
-    integral = np.trapz(intdat[:, 1], x=intdat[:, 0])
+    integral = np.trapezoid(intdat[:, 1], x=intdat[:, 0])
     return integral, intdat
 
 

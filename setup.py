@@ -4,7 +4,7 @@ setup(
     setup_requires=["setuptools-git"],
     name="unidec",
     author="Michael Marty",
-    author_email="mtmarty@arizona.edu",
+    author_email="mtmarty@utexas.edu",
     keywords="UniDec Mass Spectrometry Deconvolution Ion Mobility",
     description='Universal Deconvolution of Electrospray Mass Spectrometry Data',
     url="https://github.com/michaelmarty/UniDec",

@@ -5,7 +5,8 @@ import wx
 import numpy as np
 
 global topdir, testdir
-topdir = os.getcwd()
+# topdir = os.getcwd()
+topdir = "C:\\Data"
 testdir = os.path.join(topdir, "TestSpectra")
 
 
