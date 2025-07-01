@@ -115,6 +115,10 @@ class PlottingWindowBase(PlotBase, wx.Panel):
         self.canvas.mpl_connect('figure_leave_event', self.mouse_inactivate)
         self.canvas.mpl_connect('draw_event', self.on_draw)
 
+        self.active_size = self.GetSize()
+        self.min_size = self.GetMinSize()
+
+        self.resize = 1
         # self.sizer = wx.BoxSizer(wx.VERTICAL)
         # self.sizer.Add(self.canvas, 1, wx.EXPAND)
         # self.SetSizer(self.sizer)
@@ -144,6 +148,7 @@ class PlottingWindowBase(PlotBase, wx.Panel):
         if self.zoomvals is not None:
             self.set_zoomvals()
         self.canvas.draw()
+        self.active_size = self.GetSize()
 
     def zoomout(self):
         self.zoom.initialize()
@@ -268,11 +273,23 @@ class PlottingWindowBase(PlotBase, wx.Panel):
         :param kwargs:
         :return: None
         """
-        # print("Size Handler")
+        newsize = self.GetSize()
+        if newsize == self.active_size:
+            return None
+
+        # print("Size Handler", newsize)
+
         # event.Skip()
         # wx.CallAfter(self.on_size, event)
         if self.resize == 1:
-            self.canvas.SetSize(self.GetSize())
+            newsize = self.GetSize()
+            if newsize[0] < 100 or newsize[1] < 100:
+                # print("Size too small, not resizing")
+                return None
+            self.set_resize(self.GetSize())
+            # print("Resizing Canvas to:", self.GetSize())
+            # self.repaint()
+
 
     def on_size(self, event):
         """
