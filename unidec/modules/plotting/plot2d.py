@@ -5,7 +5,7 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib.ticker import FixedLocator
 from matplotlib.image import NonUniformImage
 
-import scipy.ndimage.filters as filt
+import scipy.ndimage as filt
 
 from unidec import tools as ud
 from unidec.modules.plotting.PlotBase import PlotBase

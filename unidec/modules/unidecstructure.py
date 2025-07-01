@@ -10,7 +10,7 @@ from unidec.modules.hdf5_tools import replace_dataset, get_dataset
 
 __author__ = 'Michael.Marty'
 
-version = "8.0.2"
+version = "8.0.3"
 
 def ofile_reader(path):
     oligos = []
@@ -1170,7 +1170,7 @@ class UniDecConfig(object):
 
         self.masslist = get_dataset(config_group, "masslist")
         self.manuallist = get_dataset(config_group, "manuallist")
-        self.oligomerlist = get_dataset(config_group, "oligomerlist").astype(np.unicode_)
+        self.oligomerlist = get_dataset(config_group, "oligomerlist").astype(np.str_)
 
         self.time_window = read_attr(self.time_window, "chrom_time_window", config_group)
         self.chrom_peak_width = read_attr(self.chrom_peak_width, "chrom_peak_width", config_group)
@@ -1254,7 +1254,7 @@ class UniDecConfig(object):
             badest = 1
 
         # Check that bin size is not too small
-        if self.mzbins < 0.01 and self.linflag != 2:
+        if 0 < self.mzbins < 0.01 and self.linflag != 2:
             warning = "Bin size is really small!\nGo ahead, but know that it will be really slow."
 
         # Check Charge range

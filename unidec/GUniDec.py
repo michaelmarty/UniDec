@@ -1384,11 +1384,15 @@ class UniDecApp(UniDecPres):
         self.view.plot2.repaint()
 
     def on_score(self, e=0):
+        if self.eng.config.imflag == 1:
+            return # No scoring in IM mode
         self.eng.dscore()
         self.view.peakpanel.add_data(self.eng.pks, show="dscore")
         self.view.SetStatusText("UniScore: " + str(round(self.eng.pks.uniscore * 100, 2)), number=3)
 
     def on_score2(self, e=0):
+        if self.eng.config.imflag == 1:
+            return # No scoring in IM mode
         self.on_filter_peaks(e)
         self.view.SetStatusText("UniScore: " + str(round(self.eng.pks.uniscore * 100, 2)), number=3)
         self.makeplot2()
@@ -1397,12 +1401,16 @@ class UniDecApp(UniDecPres):
         self.on_score_window()
 
     def on_score_window(self, e=0):
+        if self.eng.config.imflag == 1:
+            return # No scoring in IM mode
         self.on_score()
         sw = score_window.ScoreFrame(self.view)
         sw.populate(self.eng.pks)
         pass
 
     def on_score_label(self, e=0):
+        if self.eng.config.imflag == 1:
+            return # No scoring in IM mode
         self.on_score()
         offset = 0.08 * np.amax(self.eng.data.massdat[:, 1])
         for p in self.eng.pks.peaks:
@@ -1413,6 +1421,8 @@ class UniDecApp(UniDecPres):
     #    self.on_dataprep_button(removenoise=True)
 
     def on_score_FDR(self, e=0):
+        if self.eng.config.imflag == 1:
+            return # No scoring in IM mode
         self.eng.estimate_FDR()
 
     def on_flip_mode(self, e=None):

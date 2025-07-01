@@ -10,7 +10,6 @@ from copy import deepcopy
 import zipfile
 import fnmatch
 
-
 import scipy.fft
 import scipy.ndimage.filters as filt
 from numba import njit
@@ -20,8 +19,6 @@ from scipy import signal
 from scipy import fftpack
 import matplotlib.cm as cm
 import matplotlib.colors as colors
-
-
 
 from unidec.modules.fitting import *
 
@@ -430,7 +427,7 @@ def integrate(data, start, end):
     boo1 = data[:, 0] < end
     boo2 = data[:, 0] > start
     intdat = data[np.all([boo1, boo2], axis=0)]
-    integral = np.trapz(intdat[:, 1], x=intdat[:, 0])
+    integral = np.trapezoid(intdat[:, 1], x=intdat[:, 0])
     return integral, intdat
 
 
@@ -1581,7 +1578,7 @@ def smash2d(data, midpoint, window, ymidpoint, ywindow):
     return data
 
 
-def dataprep(datatop, config, peaks=True, intthresh=True, silent=False, centroided_dat = None):
+def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
     """
     Main function to process 1D MS data. The order is:
 
@@ -1611,11 +1608,8 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False, centroid
     va = config.detectoreffva
     linflag = config.linflag
     redper = config.reductionpercent
-    if centroided_dat is not None:
-        data2 = centroided_dat
 
-    else:
-        data2 = datatop
+    data2 = datatop
     if type(newmin) != str and type(newmax) != str:
         # Crop Data
         data2 = datachop(deepcopy(data2), newmin, newmax)

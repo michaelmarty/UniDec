@@ -11,10 +11,6 @@
 #include "phase_model_4.h"
 #include "isogenpep.h"
 
-
-
-extern void pep_mass_to_fftlist(const float mass, int* forumla);
-
 // #include <omp.h>
 
 // Linux code to convert binary file to header file
@@ -148,31 +144,55 @@ struct IsoSettings DefaultSettings() {
     return settings;
 }
 
+void print_settings(const struct IsoSettings settings) {
+    printf("IsoGen Settings:\n");
+    printf("Phase Resolution: %d\n", settings.phaseres);
+    printf("Verbose: %d\n", settings.verbose);
+    printf("Peak Window: %d\n", settings.peakwindow);
+    printf("Peak Threshold: %f\n", settings.peakthresh);
+    printf("Match Tolerance (ppm): %f\n", settings.matchtol);
+    printf("Minimum Peaks: %d\n", settings.minpeaks);
+    printf("CSS Threshold: %f\n", settings.css_thresh);
+    printf("Max Shift: %d\n", settings.maxshift);
+    printf("MZ Window: [%f, %f]\n", settings.mzwindow[0], settings.mzwindow[1]);
+    printf("Plus One Intensity Window: [%f, %f]\n", settings.plusoneintwindow[0], settings.plusoneintwindow[1]);
+    printf("Knockdown Rounds: %d\n", settings.knockdown_rounds);
+    printf("Min Score Difference: %f\n", settings.min_score_diff);
+    printf("Min Area Covered: %f\n", settings.minareacovered);
+    printf("Isotope Length: %d\n", settings.isolength);
+    printf("Mass Diff C: %lf\n", settings.mass_diff_c);
+    printf("Adduct Mass: %f\n", settings.adductmass);
+    printf("Minus One as Zero: %d\n", settings.minusoneaszero);
+    printf("Isotope Threshold: %f\n", settings.isotopethreshold);
+    printf("Data Threshold: %f\n", settings.datathreshold);
+    printf("Z-Score Threshold: %f\n", settings.zscore_threshold);
+}
+
 struct IsoSettings CheckSettings(struct IsoSettings settings) {
     int found_problem = 0;
     int found_warning = 0;
 
     if (settings.phaseres != 8 && settings.phaseres != 4) {
-        printf("Phase Resolution should be 8 or 4\n");
+        printf("Phase Resolution should be 8 or 4, not: %d\n", settings.phaseres);
         settings.phaseres = 8;
         found_problem = 1;
     }
 
     if (settings.css_thresh < 0) {
-        printf("CSS Threshold cannot be negative\n");
+        printf("CSS Threshold cannot be negative, %f\n", settings.css_thresh);
         settings.css_thresh = 0;
         found_problem = 1;
     } else if (settings.css_thresh > 1) {
-        printf("CSS Threshold cannot be greater than 1\n");
+        printf("CSS Threshold cannot be greater than 1, %f\n", settings.css_thresh);
         settings.css_thresh = 0.99f;
         found_problem = 1;
     } else if (settings.css_thresh < 0.25) {
-        printf("CSS Threshold is pretty low. Are you sure about this?\n");
+        printf("CSS Threshold is pretty low. Are you sure about this? %f\n", settings.css_thresh);
         found_warning = 1;
     }
 
     if (settings.peakwindow < 3) {
-        printf("Peak Detection Window needs to be at least 3\n");
+        printf("Peak Detection Window needs to be at least 3, %d\n", settings.peakwindow);
         settings.peakwindow = 5;
         found_problem = 1;
     }
@@ -565,25 +585,31 @@ int predict_nn(const float *emat, const struct Weights weights, float *h1, float
     return maxpos;
 }
 
-// Simple charge prediction library for a single input. Inputs are mz data, intensities, length, weight file name, and charge output pointer
+// Simple charge prediction library for a single input. Inputs are mz data, intensities, number of data points
 // extern "C" __declspec(dllexport)
-void predict_charge(const double *cmz, const float *cint, const int n, const char *fname, int *charge) {
+int predict_charge(const double *cmz, const float *cint, const int n, const char *fname) {
     // Set up defaults
     const struct IsoSettings settings = DefaultSettings();
     struct IsoConfig config = SetupConfig(50, settings.phaseres);
 
-    // Set up arrays
-    config.dlen = n;
-
-    char filename[500];
-    // ReSharper disable once CppDeprecatedEntity
-    strcpy(filename, fname);
-
-    float *emat = calloc(config.elen, sizeof(float));
-
+    // Load Weights
+    // struct Weights weights = load_default_weights(config);(config);
     // Load Weights
     // ReSharper disable once CppDFAMemoryLeak
-    const struct Weights weights = load_weights(filename, config);
+    struct Weights weights;
+    if (fname == NULL) {
+        weights = load_default_weights(config);
+    } else {
+        // Set weights file name
+        char filename[500];
+        // ReSharper disable once CppDeprecatedEntity
+        strcpy(filename, fname);
+        weights = load_weights(filename, config);
+    }
+
+    // Set up arrays
+    config.dlen = n;
+    float *emat = calloc(config.elen, sizeof(float));
 
     // Set up intermediate layers for NN
     float *h1 = calloc(config.elen, sizeof(float));
@@ -598,11 +624,12 @@ void predict_charge(const double *cmz, const float *cint, const int n, const cha
 
     // Encode the data and predict charge
     const int good = encode(cmz, cint, n, emat, config, settings);
+    int charge;
     if (good == 0) {
-        *charge = 0;
+        charge = 0;
         printf("Error, not enough peaks above data threshold\n");
     } else {
-        *charge = predict_nn(emat, weights, h1, h2, config, settings.zscore_threshold, &z2);
+        charge = predict_nn(emat, weights, h1, h2, config, settings.zscore_threshold, &z2);
     }
 
     // Free memory
@@ -610,6 +637,7 @@ void predict_charge(const double *cmz, const float *cint, const int n, const cha
     free(h1);
     free(h2);
     FreeWeights(weights);
+    return charge;
 }
 
 //
@@ -745,7 +773,7 @@ int peak_detect(const double *dataMZ, const float *dataInt, const int lengthmz, 
 
 // Function to calculate the isotope intensity distribution for a given mass
 int isotope_dist(const float mass, float *isovals, const float normfactor,
-                 const struct IsoSettings settings, char* type) {
+                 const struct IsoSettings settings, const char* type) {
     int offset = 0;
     if (settings.minusoneaszero == 1) { offset = 1; }
 
@@ -759,11 +787,11 @@ int isotope_dist(const float mass, float *isovals, const float normfactor,
     {
         max = fft_pep_mass_to_dist(mass, isovals, settings.isolength, offset);
     }
-
+    // printf("Max: %f %f\n", max, normfactor);
     int realisolength = 0;
     if (max > 0) {
         for (int k = 0; k < settings.isolength; k++) {
-            const float yval = isovals[k] / max;
+            const float yval = isovals[k];
             if (yval > settings.isotopethreshold || (settings.minusoneaszero == 1 && k == 0)) {
                 isovals[k] = yval * normfactor;
                 realisolength++;
@@ -1082,7 +1110,7 @@ int bestshift_adjust(const double *mz, const float *inten, const int length, flo
 
 int optimize_shift(const int z, const double *mz, const float *inten, const int length, struct MatchedPeak *matchpeaks,
                    const int nmatched,
-                   const float peakmz, const struct IsoSettings settings, char* type) {
+                   const float peakmz, const struct IsoSettings settings, const char* type) {
     // Set some parameters for max shifts allowed, which depend on charge state
     int maxshift = settings.maxshift;
     if (z < 3) { maxshift = 1; } else if (z < 6) { maxshift = 2; }
@@ -1140,7 +1168,8 @@ void print_matches(const struct MatchedPeak *matchedpeaks, const int nmatched) {
 
 // extern "C" __declspec(dllexport)
 int process_spectrum(const double *cmz, const float *cint, int n, const char *fname, struct MatchedPeak *matchedpeaks,
-                     struct IsoSettings settings, char* type) {
+                     struct IsoSettings settings, const char* type) {
+
     // Set some parameters
     struct IsoConfig config = SetupConfig(50, settings.phaseres);
     config.dlen = n;
@@ -1163,7 +1192,6 @@ int process_spectrum(const double *cmz, const float *cint, int n, const char *fn
         strcpy(filename, fname);
         weights = load_weights(filename, config);
     }
-
 
     // Set up memory for peaks
     float *peakx;
@@ -1433,7 +1461,7 @@ void write_matches(const struct MatchedPeak *matchedpeaks, const int nmatched, c
 
 // extern "C" __declspec(dllexport)
 int process_spectrum_default(const double *cmz, const float *cint, const int n, const char *fname,
-                             struct MatchedPeak *matchedpeaks, char* type) {
+                             struct MatchedPeak *matchedpeaks, const char* type) {
     const struct IsoSettings settings = DefaultSettings();
     return process_spectrum(cmz, cint, n, fname, matchedpeaks, settings, type);
 }
@@ -1454,7 +1482,7 @@ int process_spectrum_default(const double *cmz, const float *cint, const int n, 
 // }
 // #endif
 
-void run(char *filename, char *outfile, const char *weightfile, char* type) {
+void run(char *filename, char *outfile, const char *weightfile, const char* type) {
     // printf("Starting Dll. Threads: %d\n", omp_get_max_threads());
     //
     // int cpuinfo[4];

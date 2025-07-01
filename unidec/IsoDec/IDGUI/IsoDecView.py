@@ -22,6 +22,7 @@ class IsoDecView(MainwindowBase):
                 ["D", self.pres.on_dataprep_button, self.controls.dataprepbutton],
                 ["N", self.pres.on_replot, self.controls.replotbutton],
                 ["Q", self.on_exit, self.menu.menuExit],
+                ["E", self.pres.on_run_all, self.controls.runallbutton]
                 ]
 
         keys = keys + self.menu.menukeys

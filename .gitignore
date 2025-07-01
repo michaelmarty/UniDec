@@ -27,6 +27,7 @@ default_conf.dat
  __pycache__
  .eggs/
 .venv/
+venv/
 UniDec.egg-info
 distpypi
 
@@ -77,3 +78,4 @@ unidec/bin/Example Data/IsoDec/test2_unidecfiles*
 unidec/bin/Example Data/IsoDec/test9_unidecfiles*
 unidec/UniDecImporter/reader_tester.py
 /Scripts/MTM/HR/data.txt
+unidec/IsoDec/src_cmake/CmakeFiles
