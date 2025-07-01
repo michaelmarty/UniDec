@@ -75,6 +75,42 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
             else:
                 self.adductmass = 1.007276467
 
+    def __str__(self):
+        outstring = "IsoDec Configuration:\n"
+        outstring += f"Filepath: {self.filepath}\n"
+        outstring += f"Batch Size: {self.batch_size}\n"
+        outstring += f"Test Batch Size: {self.test_batch_size}\n"
+        outstring += f"Current KD Round: {self.current_KD_round}\n"
+        outstring += f"Active Scan: {self.activescan}\n"
+        outstring += f"Active Scan RT: {self.activescanrt}\n"
+        outstring += f"Active Scan Order: {self.activescanorder}\n"
+        outstring += f"Mean Peak Spacing Threshold: {self.meanpeakspacing_thresh}\n"
+        outstring += f"Isolation Width: {self.isolation_width}\n"
+        outstring += f"Adjust CSS: {self.adjust_css}\n"
+        outstring += f"Adduct Mass: {self.adductmass}\n"
+        outstring += f"Mass Diff C: {self.mass_diff_c}\n"
+        outstring += f"Verbose: {self.verbose}\n"
+        outstring += f"Peak Window: {self.peakwindow}\n"
+        outstring += f"Phase Resolution: {self.phaseres}\n"
+        outstring += f"Match Tolerance: {self.matchtol} ppm\n"
+        outstring += f"Minimum Peaks: {self.minpeaks}\n"
+        outstring += f"Peak Threshold: {self.peakthresh}\n"
+        outstring += f"CSS Threshold: {self.css_thresh}\n"
+        outstring += f"Max Shift: {self.maxshift}\n"
+        outstring += f"m/z Window: {self.mzwindow}\n"
+        outstring += f"Plus One Intensity Window: {self.plusoneintwindow}\n"
+        outstring += f"Knockdown Rounds: {self.knockdown_rounds}\n"
+        outstring += f"Minimum Score Difference: {self.min_score_diff}\n"
+        outstring += f"Minimum Area Covered: {self.minareacovered}\n"
+        outstring += f"Minus One as Zero: {self.minusoneaszero}\n"
+        outstring += f"Isotope Threshold: {self.isotopethreshold}\n"
+        outstring += f"Data Threshold: {self.datathreshold}\n"
+        outstring += f"Z-Score Threshold: {self.zscore_threshold}\n"
+        outstring += f"Report Multiple Monoisotopes: {self.report_multiple_monoisos}\n"
+        outstring += f"Write Scans Without Precursors: {self.write_scans_without_precs}\n"
+        return outstring
+
+
 
 
 # mass_diff_c = 1.0033

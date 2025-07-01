@@ -10,7 +10,6 @@ from copy import deepcopy
 import zipfile
 import fnmatch
 
-
 import scipy.fft
 import scipy.ndimage.filters as filt
 from numba import njit
@@ -20,8 +19,6 @@ from scipy import signal
 from scipy import fftpack
 import matplotlib.cm as cm
 import matplotlib.colors as colors
-
-
 
 from unidec.modules.fitting import *
 

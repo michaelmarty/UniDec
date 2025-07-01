@@ -148,31 +148,55 @@ struct IsoSettings DefaultSettings() {
     return settings;
 }
 
+void print_settings(const struct IsoSettings settings) {
+    printf("IsoGen Settings:\n");
+    printf("Phase Resolution: %d\n", settings.phaseres);
+    printf("Verbose: %d\n", settings.verbose);
+    printf("Peak Window: %d\n", settings.peakwindow);
+    printf("Peak Threshold: %f\n", settings.peakthresh);
+    printf("Match Tolerance (ppm): %f\n", settings.matchtol);
+    printf("Minimum Peaks: %d\n", settings.minpeaks);
+    printf("CSS Threshold: %f\n", settings.css_thresh);
+    printf("Max Shift: %d\n", settings.maxshift);
+    printf("MZ Window: [%f, %f]\n", settings.mzwindow[0], settings.mzwindow[1]);
+    printf("Plus One Intensity Window: [%f, %f]\n", settings.plusoneintwindow[0], settings.plusoneintwindow[1]);
+    printf("Knockdown Rounds: %d\n", settings.knockdown_rounds);
+    printf("Min Score Difference: %f\n", settings.min_score_diff);
+    printf("Min Area Covered: %f\n", settings.minareacovered);
+    printf("Isotope Length: %d\n", settings.isolength);
+    printf("Mass Diff C: %lf\n", settings.mass_diff_c);
+    printf("Adduct Mass: %f\n", settings.adductmass);
+    printf("Minus One as Zero: %d\n", settings.minusoneaszero);
+    printf("Isotope Threshold: %f\n", settings.isotopethreshold);
+    printf("Data Threshold: %f\n", settings.datathreshold);
+    printf("Z-Score Threshold: %f\n", settings.zscore_threshold);
+}
+
 struct IsoSettings CheckSettings(struct IsoSettings settings) {
     int found_problem = 0;
     int found_warning = 0;
 
     if (settings.phaseres != 8 && settings.phaseres != 4) {
-        printf("Phase Resolution should be 8 or 4\n");
+        printf("Phase Resolution should be 8 or 4, not: %d\n", settings.phaseres);
         settings.phaseres = 8;
         found_problem = 1;
     }
 
     if (settings.css_thresh < 0) {
-        printf("CSS Threshold cannot be negative\n");
+        printf("CSS Threshold cannot be negative, %f\n", settings.css_thresh);
         settings.css_thresh = 0;
         found_problem = 1;
     } else if (settings.css_thresh > 1) {
-        printf("CSS Threshold cannot be greater than 1\n");
+        printf("CSS Threshold cannot be greater than 1, %f\n", settings.css_thresh);
         settings.css_thresh = 0.99f;
         found_problem = 1;
     } else if (settings.css_thresh < 0.25) {
-        printf("CSS Threshold is pretty low. Are you sure about this?\n");
+        printf("CSS Threshold is pretty low. Are you sure about this? %f\n", settings.css_thresh);
         found_warning = 1;
     }
 
     if (settings.peakwindow < 3) {
-        printf("Peak Detection Window needs to be at least 3\n");
+        printf("Peak Detection Window needs to be at least 3, %d\n", settings.peakwindow);
         settings.peakwindow = 5;
         found_problem = 1;
     }
@@ -1141,6 +1165,8 @@ void print_matches(const struct MatchedPeak *matchedpeaks, const int nmatched) {
 // extern "C" __declspec(dllexport)
 int process_spectrum(const double *cmz, const float *cint, int n, const char *fname, struct MatchedPeak *matchedpeaks,
                      struct IsoSettings settings, const char* type) {
+    // print_settings(settings);
+    // settings = DefaultSettings();
     // Set some parameters
     struct IsoConfig config = SetupConfig(50, settings.phaseres);
     config.dlen = n;

@@ -4,7 +4,7 @@ import numpy as np
 from pathlib import Path
 import sys
 import platform
-from unidec.modules.isotopetools import fast_calc_averagine_isotope_dist
+# from unidec.modules.isotopetools import fast_calc_averagine_isotope_dist
 
 path_root = Path(__file__).parents[2]
 sys.path.append(str(path_root))
@@ -19,7 +19,7 @@ current_path = os.path.dirname(os.path.realpath(__file__))
 if platform.system() == "Windows":
     dllname = "isodeclib.dll"
 elif platform.system() == "Linux":
-    dllname = "libisodeclib.so"
+    dllname = "isodeclib.so"
 else:
     dllname = "isodeclib.dylib"
 
@@ -123,14 +123,15 @@ class IDConfig(ctypes.Structure):
 
 
 def config_to_settings(config):
+    print(config)
     settings = IDSettings()
-    settings.phaseres = config.phaseres
+    settings.phaseres = int(config.phaseres)
     settings.verbose = int(config.verbose)
     settings.peakwindow = int(config.peakwindow)
-    settings.peakthresh = config.peakthresh
+    settings.peakthresh = float(config.peakthresh)
     settings.minpeaks = int(config.minpeaks)
-    settings.css_thresh = config.css_thresh
-    settings.matchtol = config.matchtol
+    settings.css_thresh = float(config.css_thresh)
+    settings.matchtol = float(config.matchtol)
     settings.maxshift = int(config.maxshift)
     settings.mzwindow = (config.mzwindow[0], config.mzwindow[1])
     settings.plusoneintwindow = (config.plusoneintwindow[0], config.plusoneintwindow[1])
@@ -155,6 +156,7 @@ class IsoDecWrapper:
         modelpath = '\\'.join(dllpath.split("\\")[:-1])
 
         self.modeldir = modelpath
+
         self.c_lib = ctypes.CDLL(dllpath)
         self.c_lib.encode.argtypes = [
             ctypes.POINTER(ctypes.c_double),

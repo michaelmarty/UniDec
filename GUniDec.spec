@@ -181,9 +181,9 @@ if system == "Windows":
 
 
     #LINUX DEPENDENCIES:
-    a.datas += [('libisodeclib.so', 'C:\\Python\\UniDecDev\\unidec\IsoDec\\libisodeclib.so', 'BINARY')]
+    a.datas += [('isodeclib.so', 'C:\\Python\\UniDecDev\\unidec\IsoDec\\isodeclib.so', 'BINARY')]
     a.datas += [('libfftw3.so', 'C:\\Python\\UniDecDev\\unidec\IsoDec\\libfftw3.so', 'BINARY')]
-    a.datas += [('libisogen.so', 'C:\\Python\\UniDecDev\\unidec\IsoDec\\libisogen.so', 'BINARY')]
+    a.datas += [('isogen.so', 'C:\\Python\\UniDecDev\\unidec\IsoDec\\isogen.so', 'BINARY')]
 
 
 

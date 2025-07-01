@@ -31,6 +31,7 @@ d: \\*old_waters
 d: \\*Other_builds
 d: \\*IsoDec tests
 d: \\*cmake-build*
+d: \\venv
 
 f: \.*test_MUD.py$
 f: \.*GridDecon2.py$

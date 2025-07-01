@@ -21,7 +21,9 @@ message(STATUS "FFTW_DIR: ${FFTW_DIR}")
 include_directories("${SRC_DIR}")
 include_directories("${FFTW_DIR}")
 
-
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath='$ORIGIN'")
+set(CMAKE_INSTALL_RPATH ${INSTALL_DIR})
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # ======================== IsoGen Builds ========================
 
