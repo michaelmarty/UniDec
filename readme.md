@@ -57,7 +57,7 @@ You can watch a video tutorial on how to use UniDec here: [https://www.youtube.c
 
 UniDec is distributed under a completely open source license. Our hope is that this allows UniDec to be
 more widely used. If you are interested in including UniDec in another academic or commercial software distribution, 
-you are welcome to email mtmarty@arizona.edu for more information. 
+you are welcome to email mtmarty@utexas.edu for more information. 
 
 UniDec source code and compiled binaries are released under a modified BSD License as described below. Note, we ask
 that you cite us in any publications. Quantitative citation metrics will help grant applications to support future development.
@@ -67,7 +67,7 @@ By downloading UniDec, you are agreeing to the UniDec and any third party licens
 ### UniDec License:
 
 Copyright (c) 2016, University of Oxford
-              2017-2023, University of Arizona
+              2017-2025, University of Arizona
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -225,6 +225,12 @@ The main GUI class is Launcher. You can launch the Launcher from the command lin
 Of course, using the pre-compiled version means you don't need to know Python at all and can just click the GUI_UniDec.exe icon to launch the program and get started. However you choose to do it, happy deconvolving!
 
 ## Change Log
+
+v.8.0.3
+
+New build cleanup and refactoring. Bug fixes. Updated contact information.
+
+Fixed bug with IsoDec GUI centroiding cycling. 
 
 v.8.0.2
 

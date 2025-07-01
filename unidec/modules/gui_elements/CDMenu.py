@@ -168,6 +168,16 @@ class CDMenu(wx.Menu):
                                                   "Tool for exploring relationship between charge and native mass "
                                                   "and extraction specific distributions")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_nativez_tools, self.menuPlotZ)
+
+        self.menuplot_nativezmass = self.analysismenu.Append(wx.ID_ANY, "Plot Mass vs Native Charge",
+                                                            "Plot Mass vs Native Charge")
+        self.parent.Bind(wx.EVT_MENU, self.pres.plot_native_z, self.menuplot_nativezmass)
+
+        self.menuplot_nativezmz = self.analysismenu.Append(wx.ID_ANY, "Plot m/z vs Native Charge",
+                                                            "Plot m/z vs Native Charge")
+        self.parent.Bind(wx.EVT_MENU, self.pres.plot_native_mz, self.menuplot_nativezmz)
+
+
         self.analysismenu.AppendSeparator()
         self.menuExport = self.analysismenu.Append(wx.ID_ANY, "Export Peaks Parameters and Data",
                                                    "Export intensities of charge states, areas, average charge state, "

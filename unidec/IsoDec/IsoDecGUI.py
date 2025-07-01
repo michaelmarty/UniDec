@@ -77,8 +77,7 @@ class IsoDecPres(UniDecPres):
         if not skipengine:
             # Open File in Engine
             self.top_path = os.path.join(directory, filename)
-            self.eng.open_file(filename, directory, refresh=refresh, prefer_centroid=True, isodeceng=self.isodeceng,
-                               **kwargs)
+            self.eng.open_file(filename, directory, refresh=refresh, isodeceng=self.isodeceng, **kwargs)
 
         # Set Status Bar Text Values
         self.view.SetStatusText("File: " + filename, number=1)
@@ -161,14 +160,18 @@ class IsoDecPres(UniDecPres):
         self.export_config(self.eng.config.confname)
 
         if not self.eng.config.centroided:
+            print("Centroiding Data")
             path = self.top_path.split(".")
             #Everything going through IsoDec should be centroided
             if path[-1].lower() == 'raw' and not os.path.isdir(self.top_path):
                 self.eng.data.data2 = self.isodeceng.reader.grab_all_centroid_dat()
             else:
                 self.eng.data.data2 = get_all_centroids(self.eng.data.rawdata)
-            self.eng.config.centroided = True
-        self.eng.process_data()
+            # self.eng.config.centroided = True
+        else:
+            # If the data is already centroided, just use the raw data
+            self.eng.data.data2 = self.eng.data.rawdata
+        self.eng.process_data(centroid=True)
 
 
         self.import_config()
@@ -308,11 +311,6 @@ class IsoDecPres(UniDecPres):
                 isodist = deepcopy(p.stickdat)
                 if len(isodist) == 0:
                     continue
-                # elif len(isodist) == 1:
-                #     isodist = isodist[0]
-                # else:
-                #     isodist = np.concatenate(isodist, axis=0)
-                #     pass
                 isodist[:, 1] = isodist[:, 1] * -1
                 self.view.plot1.add_centroid(isodist, color=p.color, repaint=False)
         self.view.plot1.repaint()
@@ -453,6 +451,16 @@ class IsoDecPres(UniDecPres):
             path = dlg.GetPath()
             self.batch_process(path)
         dlg.Destroy()
+
+    def on_run_all(self, e=None):
+        """
+        Run the whole process automatically
+        """
+        self.on_dataprep_button(e)
+        self.on_unidec_button(e)
+        self.on_pick_peaks(e)
+        self.on_plot_peaks(e)
+        self.on_plot_dists(e)
 
     def batch_process(self, path):
         """

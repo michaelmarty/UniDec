@@ -88,7 +88,7 @@ def score_plots2(eng, save=False):
     fig = plt.figure(figsize=[4, 3])
     p1 = plt.subplot(211)
     plt.plot(eng.data.data2[:, 0], eng.data.data2[:, 1] * 100, color="k")
-    plt.xlabel("$\it{m/z}$")
+    plt.xlabel(r"$\it{m/z}$")
     p1.get_yaxis().set_ticks([0, 50, 100])
     p1.get_yaxis().set_ticklabels(["0", '%', "100"])
     p1.spines['top'].set_visible(False)

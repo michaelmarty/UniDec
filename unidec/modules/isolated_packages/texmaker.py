@@ -143,7 +143,7 @@ def MakeTexReport(fname, config, path, peaks, labels, names, color, figureflags)
 
 
 def PDFTexReport(fname):
-    path = "C:\\Program Files (x86)\\MiKTeX 2.9\\miktex\\bin\\pdflatex.exe"
+    path = "C:\\Program Files\\MiKTeX\\miktex\\bin\\x64\\pdflatex.exe"
     print(path, fname)
     oldpath = os.getcwd()
     newpath = os.path.dirname(fname)

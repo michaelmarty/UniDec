@@ -1,8 +1,8 @@
-version 8.0.1
+version 8.0.2
 imflag 0
 cdmsflag 1
-input C:\Python\UniDec3\unidec\bin\Example Data\CDMS\BgalGroEL_unidecfiles\BgalGroEL_input.dat
-output C:\Python\UniDec3\unidec\bin\Example Data\CDMS\BgalGroEL_unidecfiles\BgalGroEL
+input C:\Python\UniDecDev\unidec\bin\Example Data\CDMS\BgalGroEL_unidecfiles\BgalGroEL_input.dat
+output C:\Python\UniDecDev\unidec\bin\Example Data\CDMS\BgalGroEL_unidecfiles\BgalGroEL
 numit False
 numz -109
 endz -80
@@ -53,6 +53,8 @@ peaknorm 1
 datanorm 1
 baselineflag 1.0
 orbimode 0
+Avg Peak Masses 0
+Selection typeNone
 filterwidth 20.0
 zerolog -12.0
 doubledec 0
@@ -60,8 +62,8 @@ kernel C:\Xcalibur\Data\20210818_HMS_01_unidecfiles\20210818_HMS_01_mass.txt
 CDslope 110750.0
 CDzbins 1.0
 CDres 0.0
-CDScanStart 1000.0
-CDScanEnd 1600.0
+CDScanStart 
+CDScanEnd 
 CDprethresh 0.0
 HTksmooth 2.0
 CDScanCompress 10.0

@@ -178,7 +178,7 @@ class MZXMLImporter(Importer):
             print("Polarity: Unknown")
             return None
 
-    def get_ms_order(self, scan=None):
+    def get_ms_order(self, scan=1):
         index = self.get_scan_index(scan)
         ms_order = self.levels[index]
         return ms_order

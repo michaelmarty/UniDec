@@ -69,14 +69,11 @@ class UniDecCDApp(UniDecApp):
             # self.on_dataprep_button(0)
             # self.on_auto(0)
 
-        if False and platform.node() == 'DESKTOP-08TGCJO':
-            path = "C:\\Data\\CDMS\\02242021_MK_BSA__CD-MS_Aqu_ACN_10min.RAW"
-            path = "C:\\Data\\CDMS\\20210309_MK_ADH_pos_CDMS_512ms_5min_50ms_pressure01.RAW"
+        if True and platform.node() == 'CHEM-A90237':
+            path = "C:\\Python\\UniDecDev\\unidec\\bin\\Example Data\\CDMS\\GroEL_CDMS_1.RAW"
             # path = "C:\\Data\\CDMS\\Replicates\\AAV8_IMID_CDMS_1.RAW"
-            # path = 'C:\\Data\\CDMS\\CDMSJarrold\\data_Dec1_x8.txt'
-            # path = "C:\\Data\\CDMS\\Replicates\\DPPC_CDMS_1.RAW"
-            # path = "C:\Data\Wendy\FW CDMS runs20210322081451\\20210301_OBJ41415_CDMS_Pure_4.mzML.gz"
             self.on_open_file(None, None, path=path)
+            # self.plot_native_mz()
 
     def on_open(self, e=None):
         """
@@ -123,7 +120,7 @@ class UniDecCDApp(UniDecApp):
         if path is None:
             path = os.path.join(directory, filename)
         print("Opening", path)
-        self.top_path=path
+        self.top_path = path
         self.eng.open_file(path, refresh=refresh)
 
         # Set Status Bar Text Values
@@ -189,19 +186,19 @@ class UniDecCDApp(UniDecApp):
         # Make mz vs mass plot
         self.eng.transform_mzmass()
         if not ud.isempty(self.eng.data.mzmassgrid) or np.amax(self.eng.data.mzmassgrid) == 0:
-            self.view.plot5.contourplot(xvals=self.eng.mz, yvals=self.eng.data.massdat[:,0], zgrid=np.transpose(self.eng.data.mzmassgrid),
+            self.view.plot5.contourplot(xvals=self.eng.mz, yvals=self.eng.data.massdat[:, 0],
+                                        zgrid=np.transpose(self.eng.data.mzmassgrid),
                                         config=self.eng.config, ylab="Mass (Da)", discrete=discrete)
         else:
             print("ERROR: mzmassgrid Array is empty")
         tend = time.perf_counter()
         print("m/z vs. Mass Plot Time: %.2gs" % (tend - tstart))
 
-
     def plotkernel(self, e=None):
         self.export_config()
         self.eng.make_kernel()
         kernel = np.transpose(self.eng.kernel)
-        kernel = np.roll(kernel, (int(kernel.shape[0]/2), int(kernel.shape[1]/2)), axis=(0, 1))
+        kernel = np.roll(kernel, (int(kernel.shape[0] / 2), int(kernel.shape[1] / 2)), axis=(0, 1))
         if not ud.isempty(kernel) or np.amax(kernel) == 0:
             self.view.plot1.contourplot(xvals=self.eng.mz, yvals=self.eng.ztab, zgrid=kernel,
                                         config=self.eng.config)
@@ -221,6 +218,13 @@ class UniDecCDApp(UniDecApp):
         self.view.plot3.plotrefreshtop(self.eng.data.zdat[:, 0], self.eng.data.zdat[:, 1], config=self.eng.config,
                                        xlabel="Charge")
         pass
+
+    def plot_native_z(self, e=None):
+        self.makeplot5()
+        self.view.plot5.plot_native_z(0, "b", self.eng.data.massdat[:, 0], width=1, alpha=0.5)
+
+    def plot_native_mz(self, e=None):
+        self.view.plot1.plot_native_z(0, "b", self.eng.data.data2[:, 0], width=1, alpha=0.5, mode="mz")
 
     def on_unidec_button(self, e=None):
         self.view.SetStatusText("Deconvolving", number=5)
@@ -345,7 +349,7 @@ class UniDecCDApp(UniDecApp):
             print("Smashing!")
             self.export_config(None)
             limits = self.view.plot1.subplot1.get_xlim()
-            self.eng.config.smashrange=limits
+            self.eng.config.smashrange = limits
 
             self.on_dataprep_button()
 

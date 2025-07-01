@@ -4,8 +4,6 @@ import numpy as np
 from pathlib import Path
 import sys
 
-
-
 path_root = Path(__file__).parents[2]
 sys.path.append(str(path_root))
 
@@ -90,7 +88,6 @@ class IsoDecRuntime:
             self.pks = MatchedCollection()
 
         self.pks = self.wrapper.process_spectrum(centroids, self.pks, self.config, type)
-
 
         return self.pks
 
@@ -182,19 +179,23 @@ class IsoDecRuntime:
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
     starttime = time.perf_counter()
-    eng = IsoDecRuntime(phaseres=8)
+    eng = IsoDecRuntime()
+
     eng.selection_type = "None"
+    import platform
+    if platform.system() == "Windows":
+        file = "C:\\Python\\UniDecDev\\unidec\\bin\\TestSpectra\\test_2.txt"
+    elif platform.system() == "Linux":
+        file = "/mnt/c/Python/UniDecDev/unidec/bin/TestSpectra/test_2.txt"
 
 
-
-    file ="C:\\Python\\UniDec3\\unidec\\bin\\TestSpectra\\test_2.txt"
-    eng.process_file(file)
+    eng.process_file(file, assume_centroided=True)
 
     exit()
 
     c = example
+    import matplotlib.pyplot as plt
     pks = eng.batch_process_spectrum(c, centroided=True)
     print("Time:", time.perf_counter() - starttime)
     exit()

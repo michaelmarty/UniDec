@@ -30,7 +30,7 @@ class Importer:
     def get_polarity(self, scan=None):
         return self.polarity
 
-    def get_ms_order(self, scan):
+    def get_ms_order(self, scan=1):
         if self.levels is not None:
             index = self.get_scan_index(scan)
             return self.levels[index]

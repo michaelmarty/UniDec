@@ -1,8 +1,8 @@
-version 8.0.0a1
+version 8.0.2
 imflag 0
 cdmsflag 1
-input C:\Python\UniDec3\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat
-output C:\Python\UniDec3\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1
+input C:\Python\UniDecDev\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat
+output C:\Python\UniDecDev\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1
 numit 50
 numz 51
 endz 100
@@ -53,6 +53,8 @@ peaknorm 1
 datanorm 1
 baselineflag 1.0
 orbimode False
+Avg Peak Masses 0
+Selection typeNone
 filterwidth 20.0
 zerolog -12.0
 doubledec 0
