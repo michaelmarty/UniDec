@@ -238,6 +238,14 @@ Added menu option to export conf.dat text file from UniChrom and MetaUniDec.
 
 Fixed potential mzML issue with TIC having seconds and scans having minutes. 
 
+Fixed IsoDec export bugs
+
+IsoGen neural network for isotope distribution prediction from: protein mass, protein sequence, RNA mass, and RNA sequence
+
+FT-based isotopic distribution calculation methods have also been added.
+
+All IsoGen methods are written in C, but accessible in python in **isogenc.py**.
+
 v.8.0.1
 
 Improved CD-MS defaults.

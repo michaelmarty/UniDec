@@ -32,7 +32,11 @@ d: \\*Other_builds
 d: \\*IsoDec tests
 d: \\*cmake-build*
 d: \\venv
+d: \\.venv*
+d: \\UnIDec.egg-info
+d: \\*test_1_unidecfiles
 
+f: \.pypirc
 f: \.*test_MUD.py$
 f: \.*GridDecon2.py$
 f: \.*reader_tester.py$
