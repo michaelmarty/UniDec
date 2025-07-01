@@ -181,7 +181,7 @@ class IsoDecWrapper:
             ctypes.c_int,
             ctypes.c_char_p,
             ctypes.POINTER(MPStruct),
-            ctypes.POINTER(IDSettings),
+            IDSettings,
             ctypes.c_char_p,
         ]
 
@@ -242,20 +242,16 @@ class IsoDecWrapper:
     def process_spectrum(self, centroids, pks=None, config=None, input_type=None):
 
         if input_type is None:
-            type_c = "Peptide"
-            type_c = ctypes.c_char_p(type_c.encode('utf-8'))
-        else:
-            type_c = ctypes.c_char_p(input_type.encode('utf-8'))
+            input_type = "Peptide"
+        type_c = ctypes.c_char_p(input_type.encode('utf-8'))
 
         cmz = centroids[:, 0].astype(np.double)
         cint = centroids[:, 1].astype(np.float32)
         n = len(cmz)
-        # print(n)
 
         if config is not None:
             self.config = config
         settings = config_to_settings(self.config)
-        settings = self.c_lib.DefaultSettings()
 
         elems = (MPStruct * n)()
         matchedpeaks = ctypes.cast(elems, ctypes.POINTER(MPStruct))

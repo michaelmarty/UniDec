@@ -1169,8 +1169,7 @@ void print_matches(const struct MatchedPeak *matchedpeaks, const int nmatched) {
 // extern "C" __declspec(dllexport)
 int process_spectrum(const double *cmz, const float *cint, int n, const char *fname, struct MatchedPeak *matchedpeaks,
                      struct IsoSettings settings, const char* type) {
-    // print_settings(settings);
-    // settings = DefaultSettings();
+
     // Set some parameters
     struct IsoConfig config = SetupConfig(50, settings.phaseres);
     config.dlen = n;
@@ -1193,7 +1192,6 @@ int process_spectrum(const double *cmz, const float *cint, int n, const char *fn
         strcpy(filename, fname);
         weights = load_weights(filename, config);
     }
-
 
     // Set up memory for peaks
     float *peakx;

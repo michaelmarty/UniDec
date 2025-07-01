@@ -27,6 +27,7 @@ default_conf.dat
  __pycache__
  .eggs/
 .venv/
+venv/
 UniDec.egg-info
 distpypi
 
