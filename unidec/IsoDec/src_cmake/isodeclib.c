@@ -11,10 +11,6 @@
 #include "phase_model_4.h"
 #include "isogenpep.h"
 
-
-
-extern void pep_mass_to_fftlist(const float mass, int* forumla);
-
 // #include <omp.h>
 
 // Linux code to convert binary file to header file
@@ -589,25 +585,31 @@ int predict_nn(const float *emat, const struct Weights weights, float *h1, float
     return maxpos;
 }
 
-// Simple charge prediction library for a single input. Inputs are mz data, intensities, length, weight file name, and charge output pointer
+// Simple charge prediction library for a single input. Inputs are mz data, intensities, number of data points
 // extern "C" __declspec(dllexport)
-void predict_charge(const double *cmz, const float *cint, const int n, const char *fname, int *charge) {
+int predict_charge(const double *cmz, const float *cint, const int n, const char *fname) {
     // Set up defaults
     const struct IsoSettings settings = DefaultSettings();
     struct IsoConfig config = SetupConfig(50, settings.phaseres);
 
-    // Set up arrays
-    config.dlen = n;
-
-    char filename[500];
-    // ReSharper disable once CppDeprecatedEntity
-    strcpy(filename, fname);
-
-    float *emat = calloc(config.elen, sizeof(float));
-
+    // Load Weights
+    // struct Weights weights = load_default_weights(config);(config);
     // Load Weights
     // ReSharper disable once CppDFAMemoryLeak
-    const struct Weights weights = load_weights(filename, config);
+    struct Weights weights;
+    if (fname == NULL) {
+        weights = load_default_weights(config);
+    } else {
+        // Set weights file name
+        char filename[500];
+        // ReSharper disable once CppDeprecatedEntity
+        strcpy(filename, fname);
+        weights = load_weights(filename, config);
+    }
+
+    // Set up arrays
+    config.dlen = n;
+    float *emat = calloc(config.elen, sizeof(float));
 
     // Set up intermediate layers for NN
     float *h1 = calloc(config.elen, sizeof(float));
@@ -622,11 +624,12 @@ void predict_charge(const double *cmz, const float *cint, const int n, const cha
 
     // Encode the data and predict charge
     const int good = encode(cmz, cint, n, emat, config, settings);
+    int charge;
     if (good == 0) {
-        *charge = 0;
+        charge = 0;
         printf("Error, not enough peaks above data threshold\n");
     } else {
-        *charge = predict_nn(emat, weights, h1, h2, config, settings.zscore_threshold, &z2);
+        charge = predict_nn(emat, weights, h1, h2, config, settings.zscore_threshold, &z2);
     }
 
     // Free memory
@@ -634,6 +637,7 @@ void predict_charge(const double *cmz, const float *cint, const int n, const cha
     free(h1);
     free(h2);
     FreeWeights(weights);
+    return charge;
 }
 
 //

@@ -4,7 +4,6 @@ import numpy as np
 from pathlib import Path
 import sys
 import platform
-# from unidec.modules.isotopetools import fast_calc_averagine_isotope_dist
 
 path_root = Path(__file__).parents[2]
 sys.path.append(str(path_root))
@@ -12,7 +11,7 @@ sys.path.append(str(path_root))
 import matplotlib.pyplot as plt
 from unidec.IsoDec.match import MatchedPeak, MatchedCollection, IsoDecConfig
 from unidec.IsoDec.plots import plot_pks
-from unidec.tools import start_at_iso
+from unidec.tools import start_at_iso, datachop
 
 current_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -123,7 +122,7 @@ class IDConfig(ctypes.Structure):
 
 
 def config_to_settings(config):
-    print(config)
+    # print(config)
     settings = IDSettings()
     settings.phaseres = int(config.phaseres)
     settings.verbose = int(config.verbose)
@@ -158,6 +157,7 @@ class IsoDecWrapper:
         self.modeldir = modelpath
 
         self.c_lib = ctypes.CDLL(dllpath)
+
         self.c_lib.encode.argtypes = [
             ctypes.POINTER(ctypes.c_double),
             ctypes.POINTER(ctypes.c_float),
@@ -171,9 +171,9 @@ class IsoDecWrapper:
             ctypes.POINTER(ctypes.c_double),
             ctypes.POINTER(ctypes.c_float),
             ctypes.c_int,
-            ctypes.POINTER(ctypes.c_int),
-            ctypes.c_char_p,
+            ctypes.c_char_p,  # Model path
         ]
+        self.c_lib.predict_charge.restype = ctypes.c_int
 
         self.c_lib.process_spectrum.argtypes = [
             ctypes.POINTER(ctypes.c_double),
@@ -184,13 +184,18 @@ class IsoDecWrapper:
             ctypes.POINTER(IDSettings),
             ctypes.c_char_p,
         ]
+
+        self.c_lib.DefaultSettings.argtypes = []
+        self.c_lib.DefaultSettings.restype = IDSettings
+
         self.modeldir = modelpath
         # self.modelpath = ctypes.c_char_p(
         #     os.path.join(self.modeldir, "phase_model_8.bin").encode()
         # )
+        # Create null pointer for model path
         self.modelpath = None
         self.config = IsoDecConfig()
-        self.determine_model()
+        # self.determine_model()
 
     def encode(self, centroids, maxz=50, phaseres=8, config=None):
         cmz = centroids[:, 0].astype(np.double)
@@ -204,12 +209,8 @@ class IsoDecWrapper:
 
         if config is not None:
             self.config = config
-            settings = config_to_settings(config)
-        else:
-            config = self.config
-            settings = config_to_settings(config)
-
         settings = config_to_settings(self.config)
+
         self.c_lib.encode(
             cmz.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
             cint.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
@@ -226,16 +227,17 @@ class IsoDecWrapper:
 
         cmz = centroids[:, 0].astype(np.double)
         cint = centroids[:, 1].astype(np.float32)
-        n = len(cmz)
-        charge = ctypes.c_int(0)
-        self.c_lib.predict_charge(
+        # charge = ctypes.c_int(0)
+        # self.modelpath = ctypes.c_char_p(None)
+
+        charge = self.c_lib.predict_charge(
             cmz.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
             cint.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-            ctypes.c_int(n),
+            ctypes.c_int(len(cmz)),
             self.modelpath,
-            ctypes.byref(charge),
+            # ctypes.byref(charge),
         )
-        return charge.value
+        return charge
 
     def process_spectrum(self, centroids, pks=None, config=None, input_type=None):
 
@@ -244,6 +246,7 @@ class IsoDecWrapper:
             type_c = ctypes.c_char_p(type_c.encode('utf-8'))
         else:
             type_c = ctypes.c_char_p(input_type.encode('utf-8'))
+
         cmz = centroids[:, 0].astype(np.double)
         cint = centroids[:, 1].astype(np.float32)
         n = len(cmz)
@@ -251,10 +254,8 @@ class IsoDecWrapper:
 
         if config is not None:
             self.config = config
-            settings = config_to_settings(config)
-        else:
-            config = self.config
-            settings = config_to_settings(config)
+        settings = config_to_settings(self.config)
+        settings = self.c_lib.DefaultSettings()
 
         elems = (MPStruct * n)()
         matchedpeaks = ctypes.cast(elems, ctypes.POINTER(MPStruct))
@@ -262,7 +263,7 @@ class IsoDecWrapper:
         nmatched = self.c_lib.process_spectrum(
             cmz.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
             cint.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-            n,
+            ctypes.c_int(n),
             self.modelpath,
             matchedpeaks,
             settings,
@@ -311,62 +312,55 @@ class IsoDecWrapper:
             pks.add_pk_to_masses(pk, 10)
         return pks
 
-    def determine_model(self):
-        if self.config.phaseres == 4:
-            self.modelpath = ctypes.c_char_p(
-                os.path.join(self.modeldir, "phase_model_4.bin").encode()
-            )
-        elif self.config.phaseres == 8:
-
-            self.modelpath = ctypes.c_char_p(
-
-                os.path.join(self.modeldir, "phase_model_8.bin").encode()
-            )
+    def determine_model(self, default=True):
+        if default:
+            self.modelpath = None
         else:
-            print("Invalid phase resolution.", self.config.phaseres)
-            raise ValueError("Invalid phase resolution.")
+            print("Model Directory:", self.modeldir)
+            if self.config.phaseres == 4:
+                self.modelpath = ctypes.c_char_p(
+                    os.path.join(self.modeldir, "phase_model_4.bin").encode('utf-8')
+                )
+            elif self.config.phaseres == 8:
 
-        if self.config.verbose:
-            print(
-                "Running C code with phaseres of:",
-                self.config.phaseres,
-            )
+                self.modelpath = ctypes.c_char_p(
+                    os.path.join(self.modeldir, "phase_model_8.bin").encode('utf-8')
+                )
+            else:
+                print("Invalid phase resolution.", self.config.phaseres)
+                raise ValueError("Invalid phase resolution.")
+
+            if self.config.verbose:
+                print(
+                    "Running C code with phaseres of:",
+                    self.config.phaseres,
+                )
 
 
 if __name__ == "__main__":
     eng = IsoDecWrapper()
 
     eng.config.phaseres = 4
-
-    print(eng.config.phaseres)
-
-    centroids = np.array([
-        [500.0, 150.0],
-        [505.2, 300.0],
-        [510.5, 200.0],
-        [515.8, 100.0],
-        [520.0, 50.0]
-    ], dtype=np.float32)
-
-    dat = eng.predict_charge(centroids)
+    eng.encode(example)
+    print(eng.predict_charge(example))
+    dat = eng.process_spectrum(example)
 
     print(dat)
-
+    exit()
     # filepath = "C:\\Data\\IsoNN\\test2.txt"
-    filepath = "Z:\\Group Share\\JGP\\js8b05641_si_001\\test.txt"
+    filepath = "Z:\\Group Share\\JGP\\js8b05641_si_001\\etd_spectrum.txt"
     spectrum = np.loadtxt(filepath, skiprows=0)
-    # spectrum = ud.datachop(spectrum, 891.195, 893.757)
-    spectrum = spectrum.astype(np.double)
+    spectrum2 = datachop(spectrum, 891.195, 893.757)
 
-    wrapper = IsoDecWrapper()
-    e1 = wrapper.encode(spectrum)
+
+    e1 = eng.encode(spectrum2)
+    print("Encoded:", e1.shape)
+
+    # z = eng.predict_charge(spectrum2)
+    # print("Predicted Charge:", z)
+
     # exit()
-    thresh = np.amax(spectrum[:, 1]) * 0.05
-    new_spec = spectrum[spectrum[:, 1] > thresh]
-    print("Old:", len(spectrum), "New:", len(new_spec))
-    # exit()
-    # wrapper.process_spectrum(spectrum)
-    pks = wrapper.process_spectrum(spectrum)
+    pks = eng.process_spectrum(spectrum2)
     print(len(pks.peaks))
     # exit()
     plot_pks(pks, centroids=spectrum, show=True, title="C Interface")
