@@ -802,8 +802,8 @@ class UniDecApp(MetaUniDecBase):
             if False:
                 # testdir = "C:\Data\Others\\unidec test data set"
                 # testfile = "test.hdf5"
-                testdir = "C:\\Data\\New"
-                testfile = "20170209_P0B_dPOPC_POPC_ND_D1T0m_pos_ISTRAP_RAMP_0_275_25_1.hdf5"
+                testdir = "C:\\Data\\TestSpectra"
+                testfile = "JAW.hdf5"
                 testpath = os.path.join(testdir, testfile)
 
                 self.open_file(testpath)

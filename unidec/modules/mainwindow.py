@@ -321,22 +321,7 @@ class Mainwindow(MainwindowBase):
     #     # self.Refresh()
     #     pass
 
-    def resize_plots(self, e=None):
-        """
-        Resize the plots to fit the window.
-        :param e: Event
-        :return: None
-        """
-        # print("Resizing Plots")
-        newwidth = self.plotpanel.GetSize()[0]
-        halfwidth = int(newwidth/2.)
-        for child in self.plotpanel.GetChildren():
-            if isinstance(child, wx.Window):
-                # child.SetSize((halfwidth, child.GetSize()[1]))
-                child.SetMinSize(wx.Size(halfwidth, -1))
-        # self.plotpanel.SetMinSize((newwidth, -1))
-        self.plotpanel.Layout()
-        # self.plotpanel.Refresh()
+
 
 
 

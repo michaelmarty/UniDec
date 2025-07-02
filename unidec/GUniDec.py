@@ -78,7 +78,7 @@ class UniDecApp(UniDecPres):
             # self.on_auto(0)
 
         # For testing, load up a spectrum at startup. Used only on MTM's computer.
-        if True and platform.node() == "CHEM-A90237":
+        if False and platform.node() == "CHEM-A90237":
             # fname = "HSPCID.txt"
             fname = "0.txt"
             # fname = "test.raw"
