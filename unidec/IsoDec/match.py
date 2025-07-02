@@ -570,7 +570,6 @@ class MatchedPeak:
         :param data: The data to strip from
         :return: None
         """
-        print(self.isodist)
         minmz = np.amin(self.isodist[:, 0]) - 0.5
         maxmz = np.amax(self.isodist[:, 0]) + 0.5
         data = ud.dataremove(data, minmz, maxmz)

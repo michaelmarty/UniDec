@@ -17,6 +17,8 @@ from unidec.modules.unidec_enginebase import UniDecEngine
 from unidec.modules.plotting import plot1d, plot2d
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 
+from unidec.IsoDec.runtime import IsoDecRuntime
+
 # import modules.DoubleDec as dd
 
 __author__ = 'Michael.Marty'
@@ -320,6 +322,11 @@ class UniDec(UniDecEngine):
                 datatop = self.data.data2
             else:
                 datatop = self.data.rawdata
+
+
+            if self.config.isomode > 0:
+                datatop = self.remove_isodists(deepcopy(datatop))
+
             self.data.data2 = ud.dataprep(datatop, self.config)
 
             if "scramble" in kwargs:
@@ -351,6 +358,9 @@ class UniDec(UniDecEngine):
         if "silent" not in kwargs or not kwargs["silent"]:
             print("Data Prep Time: %.2gs" % (tend - tstart))
         # self.get_spectrum_peaks()
+
+
+
         pass
 
 
@@ -1548,7 +1558,23 @@ class UniDec(UniDecEngine):
             print("Plot 1: %.2gs" % (time.perf_counter() - tstart))
         return plot
 
-
+    def remove_isodists(self, data=None):
+        """
+        Remove isotopic distributions from the data.
+        :param data: data to remove isotopic distributions from, if None, self.data.data2 is used
+        :return: None
+        """
+        # st = time.perf_counter()
+        if data is None:
+            data = self.data.data2
+        # data = deepcopy(data)
+        isoeng = IsoDecRuntime()
+        isoeng.config.matchtol = 50
+        isoeng.config.css_thresh = 0.7
+        newdata = isoeng.remove_assigned_peaks(data)
+        # et = time.perf_counter()
+        # print("Remove Isodists: %.2gs" % (et - st))
+        return newdata
 
 
 # Optional Run

@@ -7,6 +7,7 @@ import time
 import wx.lib.scrolledpanel as scrolled
 from unidec.modules.gui_elements.PlotControlsPanel import PlotControlsPanel
 
+
 class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
     # noinspection PyMissingConstructor
     def __init__(self, parent, config, pres, panel, iconfile):
@@ -145,6 +146,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlbackcheck = wx.CheckBox(panel1, label="Use Background Subtraction", style=wx.CHK_3STATE)
         self.parent.Bind(wx.EVT_CHECKBOX, self.on_backcheck, self.ctlbackcheck)
         sizercontrol1.Add(self.ctlbackcheck, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        # Check box for whether to remove isotopes
+        self.ctlremoveisotopes = wx.CheckBox(panel1, label="Remove Isotopes", style=wx.CHK_3STATE)
+        sizercontrol1.Add(self.ctlremoveisotopes, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
         self.dataprepbutton = wx.Button(panel1, -1, "Process Data")
@@ -286,7 +292,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
                 self.ctldriftlength = wx.TextCtrl(panel1c, value='', size=size1)
                 gbox1c.Add(self.ctldriftlength, (6, 1), span=(1, 1))
-                gbox1c.Add(wx.StaticText(panel1c, label="Drift Cell Length (m)\nor Beta (Agilent)"), (6, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                gbox1c.Add(wx.StaticText(panel1c, label="Drift Cell Length (m)\nor Beta (Agilent)"), (6, 0),
+                           flag=wx.ALIGN_CENTER_VERTICAL)
 
             else:
                 self.ctltwave.SetSelection(1)
@@ -296,7 +303,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 gbox1c.Add(wx.StaticText(panel1c, label="Calibration Parameter 1: "), (i, 0),
                            flag=wx.ALIGN_CENTER_VERTICAL)
                 i += 1
-
 
                 self.ctltcal2 = wx.TextCtrl(panel1c, value='', size=size1)
                 gbox1c.Add(self.ctltcal2, (i, 1), span=(1, 1))
@@ -582,7 +588,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlwindow = wx.TextCtrl(panel3, value="", size=size1)
         self.ctlthresh = wx.TextCtrl(panel3, value="", size=size1)
 
-
         self.plotbutton = wx.Button(panel3, -1, "Peak Detection")
         self.plotbutton2 = wx.Button(panel3, -1, "Plot Peaks")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_plot_peaks, self.plotbutton2)
@@ -694,9 +699,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.foldpanels.AddFoldPanelWindow(foldpanel3b, wx.StaticText(foldpanel3b, -1, " "), fpb.FPB_ALIGN_WIDTH)
 
         # Create plotcontrol panel
-        #foldpanel4 = self.foldpanels.AddFoldPanel(caption="Plot Controls", collapsed=False, cbstyle=style3b)
-        #pcpanel = PlotControlsPanel(foldpanel4, self.config)
-        #self.foldpanels.AddFoldPanelWindow(foldpanel4, pcpanel, fpb.FPB_ALIGN_WIDTH)
+        # foldpanel4 = self.foldpanels.AddFoldPanel(caption="Plot Controls", collapsed=False, cbstyle=style3b)
+        # pcpanel = PlotControlsPanel(foldpanel4, self.config)
+        # self.foldpanels.AddFoldPanelWindow(foldpanel4, pcpanel, fpb.FPB_ALIGN_WIDTH)
 
         bright = 250
         foldpanel1.SetBackgroundColour(wx.Colour(bright, bright, 255))
@@ -816,6 +821,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlrawflag.SetSelection(self.config.rawflag)
 
+            self.ctlremoveisotopes.SetValue(self.config.isomode)
+
             if self.config.adductmass < 0:
                 self.ctlnegmode.SetValue(1)
             else:
@@ -881,8 +888,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             try:
                 test = float(self.config.msig)
             except:
-                self.config.msig=0
-
+                self.config.msig = 0
 
             if self.config.msig > 0:
                 self.parent.SetStatusText(
@@ -961,11 +967,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.discreteplot = int(self.ctldiscrete.GetValue())
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
         self.config.rawflag = self.ctlrawflag.GetSelection()
+        self.config.isomode = self.ctlremoveisotopes.GetValue()
 
         try:
             test = float(self.config.adductmass)
         except:
-            self.config.adductmass=0
+            self.config.adductmass = 0
 
         if self.ctlnegmode.GetValue() == 1:
             # print("Negative Ion Mode")

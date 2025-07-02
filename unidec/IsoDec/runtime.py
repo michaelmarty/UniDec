@@ -15,6 +15,7 @@ from unidec.IsoDec.c_interface import IsoDecWrapper, example
 from unidec.IsoDec.plots import plot_pks
 from unidec.IsoDec.altdecon import thrash_predict
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+import unidec.tools as ud
 
 class IsoDecRuntime:
     """
@@ -181,10 +182,14 @@ class IsoDecRuntime:
         """
         Return a processed spectrum where the assigned peaks have been removed.
         """
+        st = time.perf_counter()
         self.batch_process_spectrum(data)
+        print("IsoDec time:", time.perf_counter() - st)
         for p in self.pks.peaks:
-            print("Removing:", p)
+            # print("Removing:", p)
             data = p.strip_from_data(data)
+        # data = ud.remove_middle_zeros(data)
+        print("Removed Assigned Peaks, N Peaks:", len(self.pks.peaks), "Time:", time.perf_counter() - st)
         return data
 
 

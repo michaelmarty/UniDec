@@ -78,18 +78,19 @@ class UniDecApp(UniDecPres):
             # self.on_auto(0)
 
         # For testing, load up a spectrum at startup. Used only on MTM's computer.
-        if False and platform.node() == "CHEM-A90237":
+        if True and platform.node() == "CHEM-A90237":
             # fname = "HSPCID.txt"
             fname = "0.txt"
             # fname = "test.raw"
             # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
             # newdir = os.path.join(os.getcwd(), "TestSpectra")
             newdir = "C:\\Data\\TestSpectra"
+            file = "C:\\Data\\Volker noisy protein spectra\\Protein+cov-binder_#212#141.txt"
             # newdir = "C:\\cprog\\UniDecDemo"
-            self.on_open_file(fname, newdir)
+            self.on_open_file(file)
             # self.view.on_save_figure_eps(0)
             # self.on_dataprep_button(0)
-            self.on_auto(0)
+            # self.on_auto(0)
             # self.on_integrate()
             # self.on_grid_decon(0)
             # self.make_cube_plot(0)
@@ -122,7 +123,7 @@ class UniDecApp(UniDecPres):
             self.on_open_file(filename, dirname)
         dlg.Destroy()
 
-    def on_open_file(self, filename, directory, skipengine=False, refresh=False, **kwargs):
+    def on_open_file(self, filename, directory=None, skipengine=False, refresh=False, **kwargs):
         """
         Opens a file. Run self.eng.open_file.
         :param filename: File name
@@ -135,6 +136,11 @@ class UniDecApp(UniDecPres):
         # Clear other plots and panels
         self.view.peakpanel.clear_list()
         self.view.clear_all_plots()
+
+        if directory is None:
+            directory = os.path.dirname(filename)
+            filename = os.path.basename(filename)
+
         if not skipengine:
             # Open File in Engine
             self.top_path = os.path.join(directory, filename)
@@ -1383,6 +1389,10 @@ class UniDecApp(UniDecPres):
                 dist[:, 1] *= p.height / np.amax(dist[:, 1])
                 self.view.plot2.plotadd(dist[:, 0], dist[:, 1], colval=p.color)
         self.view.plot2.repaint()
+
+    def on_remove_isodists(self, e=0):
+        self.eng.remove_isodists()
+        self.makeplot1()
 
     def on_score(self, e=0):
         if self.eng.config.imflag == 1:

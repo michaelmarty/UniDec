@@ -306,6 +306,7 @@ class UniDecConfig(object):
         # IsoDec specific
         self.minusoneaszero = True
         self.verbose = False
+        self.isomode = 0
 
         self.cmaps = None
         self.cmaps2 = None
@@ -531,6 +532,7 @@ class UniDecConfig(object):
         f.write("molig " + str(self.molig) + "\n")
         f.write("massbins " + str(self.massbins) + "\n")
         f.write("mtabsig " + str(self.mtabsig) + "\n")
+        f.write("isomode " + str(int(self.isomode)) + "\n")
         if self.mfileflag:
             if not ud.isempty(self.masslist):
                 f.write("mfile " + str(self.mfile) + "\n")
@@ -945,6 +947,9 @@ class UniDecConfig(object):
                             self.nativeccsub = ud.string_to_value(line.split()[1])
                         if line.startswith("nativeccslb") or line.startswith("lbnativeccs"):
                             self.nativeccslb = ud.string_to_value(line.split()[1])
+                        if line.startswith("isomode"):
+                            self.isomode = ud.string_to_int(line.split()[1])
+
             f.close()
             self.endz = self.startz + self.numz - 1
 
