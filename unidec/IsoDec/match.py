@@ -34,7 +34,7 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         self.adductmass = 1.007276467
         self.mass_diff_c = 1.0033
 
-        self.verbose = False
+        self.verbose = True
 
         self.peakwindow = 80
 
@@ -548,7 +548,6 @@ class MatchedPeak:
         self.massdist = None
         self.monoisos = []
         self.peakmass = -1
-        self.avgmass = -1
         self.startindex = -1
         self.endindex = -1
         self.monoiso = -1
@@ -565,9 +564,20 @@ class MatchedPeak:
             self.isomatches = isomatches
             self.matchedisodist = isodist[np.array(isomatches)]
 
+    def strip_from_data(self, data):
+        """
+        Strips the matched peak from the data
+        :param data: The data to strip from
+        :return: None
+        """
+        print(self.isodist)
+        minmz = np.amin(self.isodist[:, 0]) - 0.5
+        maxmz = np.amax(self.isodist[:, 0]) + 0.5
+        data = ud.dataremove(data, minmz, maxmz)
+        return data
 
     def __str__(self):
-        return f"MatchedPeak: mz={self.mz}, z={self.z}, monoiso={self.monoiso}\n"
+        return f"MatchedPeak: mz={self.mz}, z={self.z}, monoiso={self.monoiso}"
 
 
 def df_to_matchedcollection(df, monoiso="Monoisotopic Mass", peakmz="Most Abundant m/z", peakmass="Most Abundant Mass",

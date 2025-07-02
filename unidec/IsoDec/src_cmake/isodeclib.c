@@ -986,7 +986,7 @@ int bestshift_adjust(const double *mz, const float *inten, const int length, flo
             nmatches++;
         }
         if (settings.verbose) {
-            printf("Matched: %d %f %d %f %f %f\n", j, shiftmz, highestindex, mz[highestindex], ppmtol,
+            printf("Matched: %d %f %d %f Diff ALlowed: %f Diff Measured: %f Inten: %f\n", j, shiftmz, highestindex, mz[highestindex], ppmtol, fabs(mz[highestindex] - shiftmz),
                    inten[highestindex]);
         }
     }

@@ -177,6 +177,19 @@ class IsoDecRuntime:
         else:
             raise ValueError("Unknown Export Type", type)
 
+    def remove_assigned_peaks(self, data):
+        """
+        Return a processed spectrum where the assigned peaks have been removed.
+        """
+        self.batch_process_spectrum(data)
+        for p in self.pks.peaks:
+            print("Removing:", p)
+            data = p.strip_from_data(data)
+        return data
+
+
+
+
 
 if __name__ == "__main__":
     starttime = time.perf_counter()

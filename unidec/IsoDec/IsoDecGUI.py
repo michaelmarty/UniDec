@@ -23,13 +23,17 @@ class IsoDecPres(UniDecPres):
 
         self.view = IsoDecView(self, "IsoDec", self.eng.config, iconfile=None)
         try:
-            if platform.node() == 'MTM-VOSTRO':
-                self.on_ex()
+            if platform.node() == 'CHEM-A90237':
+                # self.on_ex()
+                file = "C:\\Data\\Volker noisy protein spectra\\Protein+cov-binder_#212#141.txt"
+                self.on_open_file(file)
                 self.on_unidec_button()
-                self.on_plot_peaks()
-                self.on_plot_dists()
+                # self.on_plot_peaks()
+                # self.on_plot_dists()
+
         except:
             pass
+        #self.on_remove_assigned_peaks()
 
     def init_config(self):
         self.translate_id_config()
@@ -61,7 +65,7 @@ class IsoDecPres(UniDecPres):
             self.on_open_file(filename, dirname)
         dlg.Destroy()
 
-    def on_open_file(self, filename, directory, skipengine=False, refresh=False, **kwargs):
+    def on_open_file(self, filename, directory=None, skipengine=False, refresh=False, **kwargs):
         """
         Opens a file. Run self.eng.open_file.
         :param filename: File name
@@ -74,6 +78,10 @@ class IsoDecPres(UniDecPres):
         # Clear other plots and panels
         self.view.peakpanel.clear_list()
         self.view.clear_all_plots()
+        if directory is None:
+            directory = os.path.dirname(os.path.abspath(filename))
+            filename = os.path.basename(filename)
+
         if not skipengine:
             # Open File in Engine
             self.top_path = os.path.join(directory, filename)
@@ -195,6 +203,8 @@ class IsoDecPres(UniDecPres):
         self.isodeceng.config.mzwindow = [self.eng.config.integratelb, self.eng.config.integrateub]
         self.isodeceng.config.report_multiple_monoisos = self.eng.config.noiseflag
         self.isodeceng.config.write_scans_without_precs = self.eng.config.linflag
+        self.isodeceng.config.minusoneaszero = self.eng.config.minusoneaszero
+        self.isodeceng.config.verbose = self.eng.config.verbose
 
     def translate_id_config(self):
         self.eng.config.peakwindow = self.isodeceng.config.peakwindow
@@ -210,6 +220,8 @@ class IsoDecPres(UniDecPres):
         self.eng.config.integrateub = self.isodeceng.config.mzwindow[1]
         self.eng.config.noiseflag = self.isodeceng.config.report_multiple_monoisos
         self.eng.config.linflag = self.isodeceng.config.write_scans_without_precs
+        self.eng.config.minusoneaszero = self.isodeceng.config.minusoneaszero
+        self.eng.config.verbose = self.isodeceng.config.verbose
 
     def on_unidec_button(self, e=None):
         """
@@ -498,6 +510,12 @@ class IsoDecPres(UniDecPres):
         if self.eng.config.compressflag == 1:
             self.isodeceng.export_peaks("tsv", filename=self.eng.config.outfname + ".tsv")
             print("Exported TSV File: ", self.eng.config.outfname + ".tsv")
+
+    def on_remove_assigned_peaks(self, e=None):
+        print(self.isodeceng.config)
+        data = self.isodeceng.remove_assigned_peaks(self.eng.data.data2)
+        self.eng.data.data2 = data
+        self.view.plot1.plotadd(data[:, 0], data[:, 1], colval="r", nopaint=False)
 
     def fix_parameters(self):
         print("Checking for Bad Parameters")

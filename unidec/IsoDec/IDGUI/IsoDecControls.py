@@ -321,11 +321,21 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox2b.Add(self.ctlthresh, (i, 1))
         gbox2b.Add(wx.StaticText(panel2b, label="Peak Detection Threshold: "), (i, 0),
                    flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
         self.ctlwindow.SetToolTip(
             wx.ToolTip("Peak detection window. Peak must be maximum in a +/- number of data points. Integer."))
         self.ctlthresh.SetToolTip(wx.ToolTip(
             "Peak detection threshold. Peak's intensity must be great than threshold times maximum mass intensity."))
+
+        i += 1
+        # Check box for Minus 1 as Zero
+        self.ctlminusone = wx.CheckBox(panel2b, label="-1 as 0")
+        gbox2b.Add(self.ctlminusone, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlminusone.SetToolTip(wx.ToolTip("Set to treat the -1 isotope position as 0 in the matching score.\n Helps avoid unwanted shifts on small things"))
+
+        # Check box for Verbose
+        self.ctlverbose = wx.CheckBox(panel2b, label="Verbose")
+        gbox2b.Add(self.ctlverbose, (i, 1), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlverbose.SetToolTip(wx.ToolTip("Set to print verbose output during deconvolution.\n"))
 
         panel2b.SetSizer(gbox2b)
         gbox2b.Fit(panel2b)
@@ -450,6 +460,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlccsthresh.SetValue(str(self.config.csig))
             self.ctlmzwindowlb.SetValue(str(self.config.integratelb))
             self.ctlmzwindowub.SetValue(str(self.config.integrateub))
+            self.ctlminusone.SetValue(self.config.minusoneaszero)
+            self.ctlverbose.SetValue(self.config.verbose)
 
             if self.config.aggressiveflag == 4:
                 self.ctlphaseres.SetSelection(0)
@@ -526,6 +538,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         #These flags are bound to the export multiple monoisos and write scans without precursors checkboxes
         self.config.noiseflag = int(self.ctlreportmultiplemonos.GetValue())
         self.config.linflag = int(self.ctlwrite_noprec_scans.GetValue())
+        self.config.minusoneaszero = int(self.ctlminusone.GetValue())
+        self.config.verbose = int(self.ctlverbose.GetValue())
+
 
         self.config.avgpeakmasses = int(self.ctlavgpeakmasses.GetValue())
         # pull integratelb and integrateub from mzwindowlb and mzwindowub

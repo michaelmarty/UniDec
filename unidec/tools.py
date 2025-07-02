@@ -1577,6 +1577,19 @@ def smash2d(data, midpoint, window, ymidpoint, ywindow):
     data[b5, 2] = 0
     return data
 
+def dataremove(data, minmz, maxmz):
+    """
+    Remove data points inside the specified m/z range.
+    :param data: Data array (N x 2)
+    :param minmz: Minimum m/z value
+    :param maxmz: Maximum m/z value
+    :return: Data array with points inside the range removed
+    """
+    boo1 = data[:, 0] < minmz
+    boo2 = data[:, 0] > maxmz
+    boo3 = np.logical_or(boo1, boo2)
+    return data[boo3]
+
 
 def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
     """

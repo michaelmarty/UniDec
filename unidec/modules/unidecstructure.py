@@ -303,6 +303,10 @@ class UniDecConfig(object):
         self.doubledec = False
         self.kernel = ""
 
+        # IsoDec specific
+        self.minusoneaszero = True
+        self.verbose = False
+
         self.cmaps = None
         self.cmaps2 = None
 
@@ -615,6 +619,9 @@ class UniDecConfig(object):
         f.write("smoothdt " + str(self.smoothdt) + "\n")
         f.write("subbufdt " + str(self.subbufdt) + "\n")
         f.write("centroided " + str(int(self.centroided)) + "\n")
+        f.write("minusoneaszero " + str(int(self.minusoneaszero)) + "\n")
+        f.write("verbose " + str(int(self.verbose)) + "\n")
+
         if self.mindt != '' or self.maxdt != '':
             f.write("zout " + str(self.zout) + "\n")
             f.write("pusher " + str(self.pusher) + "\n")
@@ -721,6 +728,10 @@ class UniDecConfig(object):
                             self.startz = ud.string_to_int(line.split()[1])
                         if line.startswith("centroided"):
                             self.centroided = ud.string_to_int(line.split()[1])
+                        if line.startswith("minusoneaszero"):
+                            self.minusoneaszero = ud.string_to_int(line.split()[1])
+                        if line.startswith("verbose"):
+                            self.verbose = ud.string_to_int(line.split()[1])
                         if line.startswith("CDslope"):
                             self.CDslope = ud.string_to_value(line.split()[1])
                         if line.startswith("CDzbins"):
