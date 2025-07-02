@@ -186,6 +186,8 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.plotnames = ["Chrom_TIC", "ChromFigure_XIC", "ChromFigure_mz", "ChromFigure_mass", "Chrom_mz_selected",
                           "Chrom_mass_selected", "Chrom2Dmz", "Chrom2Dmass"]
 
+        self.plotpanel = plotwindow
+
         plotwindow.SetSizerAndFit(sizerplot)
         plotwindow.SetupScrolling()
 
@@ -205,6 +207,9 @@ class ChromWindow(mainwindow_base.MainwindowBase):
 
         self.panel.SetSizer(self.mainsizer)
         self.mainsizer.Fit(self)
+
+        self.plotpanel.SetMinSize(wx.Size(-1, -1))
+        self.plotpanel.Bind(wx.EVT_SIZE, self.resize_plots)
 
         keys = [["E", self.pres.on_auto, self.controls.autobutton],
                 # ["G", self.pres.on_paste_spectrum, self.menu.menupastespectrum],
