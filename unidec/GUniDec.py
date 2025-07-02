@@ -78,17 +78,18 @@ class UniDecApp(UniDecPres):
             # self.on_auto(0)
 
         # For testing, load up a spectrum at startup. Used only on MTM's computer.
-        if False and platform.node() == "DESKTOP-R236BN2":
+        if True and platform.node() == "CHEM-A90237":
             # fname = "HSPCID.txt"
             fname = "0.txt"
             # fname = "test.raw"
             # fname = "250313_AQPZ_POPC_100_imraw_input.dat"
-            newdir = os.path.join(os.getcwd(), "../TestSpectra")
+            # newdir = os.path.join(os.getcwd(), "TestSpectra")
+            newdir = "C:\\Data\\TestSpectra"
             # newdir = "C:\\cprog\\UniDecDemo"
             self.on_open_file(fname, newdir)
             # self.view.on_save_figure_eps(0)
             # self.on_dataprep_button(0)
-            # self.on_auto(0)
+            self.on_auto(0)
             # self.on_integrate()
             # self.on_grid_decon(0)
             # self.make_cube_plot(0)
@@ -1534,8 +1535,8 @@ class UniDecApp(UniDecPres):
 if __name__ == '__main__':
     multiprocessing.freeze_support()
     app = UniDecApp()
-    #import wx.lib.inspection
-    #wx.lib.inspection.InspectionTool().Show()
+    # import wx.lib.inspection
+    # wx.lib.inspection.InspectionTool().Show()
     app.start()
 
 
