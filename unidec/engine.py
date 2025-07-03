@@ -324,10 +324,14 @@ class UniDec(UniDecEngine):
                 datatop = self.data.rawdata
 
 
-            if self.config.isomode > 0:
+            if self.config.isomode == 1 or self.config.isomode == 3:
                 datatop = self.remove_isodists(deepcopy(datatop))
 
             self.data.data2 = ud.dataprep(datatop, self.config)
+
+            if self.config.isomode == 2 or self.config.isomode == 3:
+                self.data.data2 = self.remove_isodists(deepcopy(self.data.data2), dropzeros=True)
+
 
             if "scramble" in kwargs:
                     if kwargs["scramble"]:
@@ -1558,7 +1562,7 @@ class UniDec(UniDecEngine):
             print("Plot 1: %.2gs" % (time.perf_counter() - tstart))
         return plot
 
-    def remove_isodists(self, data=None):
+    def remove_isodists(self, data=None, dropzeros=False):
         """
         Remove isotopic distributions from the data.
         :param data: data to remove isotopic distributions from, if None, self.data.data2 is used
@@ -1572,6 +1576,8 @@ class UniDec(UniDecEngine):
         isoeng.config.matchtol = 50
         isoeng.config.css_thresh = 0.7
         newdata = isoeng.remove_assigned_peaks(data)
+        if dropzeros:
+            newdata = ud.remove_middle_zeros(newdata)
         # et = time.perf_counter()
         # print("Remove Isodists: %.2gs" % (et - st))
         return newdata
