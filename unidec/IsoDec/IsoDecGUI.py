@@ -231,8 +231,8 @@ class IsoDecPres(UniDecPres):
         """
         self.view.export_gui_to_config()
 
-        if self.eng.config.selection_type == "Peptide" or self.eng.config.selection_type == 'Rna':
-            self.isodeceng.selection_type = self.eng.config.selection_type
+        if self.eng.config.analyte_type == "Peptide" or self.eng.config.analyte_type == 'Rna':
+            self.isodeceng.analyte_type = self.eng.config.analyte_type
 
         tstart = time.perf_counter()
         self.view.SetStatusText("Running IsoDec...", number=5)
@@ -246,7 +246,7 @@ class IsoDecPres(UniDecPres):
 
         data = self.eng.data.data2
         # Run IsoDec
-        self.isodeceng.batch_process_spectrum(data, centroided=True, refresh=True, type=self.isodeceng.selection_type)
+        self.isodeceng.batch_process_spectrum(data, centroided=True, refresh=True, type=self.isodeceng.analyte_type)
         # Convert to mass
         self.eng.data.massdat = self.isodeceng.pks_to_mass(self.eng.config.massbins)
 

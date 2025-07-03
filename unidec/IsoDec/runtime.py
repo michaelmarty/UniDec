@@ -8,7 +8,8 @@ path_root = Path(__file__).parents[2]
 sys.path.append(str(path_root))
 
 from unidec.IsoDec.datatools import get_all_centroids, check_spacings, remove_noise_cdata
-from unidec.IsoDec.match import IsoDecConfig, MatchedCollection
+from unidec.IsoDec.match import MatchedCollection
+from unidec.modules.unidecstructure import IsoDecConfig
 
 from copy import deepcopy
 from unidec.IsoDec.c_interface import IsoDecWrapper, example
@@ -43,7 +44,7 @@ class IsoDecRuntime:
         self.reader = None
         self.predmode = 0
         self.showavg = False
-        self.selection_type = None
+        self.analyte_type = None
 
     def phase_predictor(self, centroids):
         """
@@ -200,7 +201,7 @@ if __name__ == "__main__":
     starttime = time.perf_counter()
     eng = IsoDecRuntime()
 
-    eng.selection_type = "None"
+    eng.analyte_type = "None"
     import platform
     if platform.system() == "Windows":
         file = "C:\\Python\\UniDecDev\\unidec\\bin\\TestSpectra\\test_2.txt"

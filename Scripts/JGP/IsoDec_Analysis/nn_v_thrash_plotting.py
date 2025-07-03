@@ -6,7 +6,7 @@ from matplotlib import rcParams
 from matplotlib import patches
 from unidec.IsoDec.datatools import *
 from unidec.IsoDec.encoding import *
-from unidec.IsoDec.match import IsoDecConfig
+from unidec.modules.unidecstructure import IsoDecConfig
 from unidec.IsoDec.models import PhaseModel
 from unidec.IsoDec.altdecon import *
 

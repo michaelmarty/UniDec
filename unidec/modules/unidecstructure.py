@@ -3,10 +3,11 @@ import time
 import numpy as np
 import unidec.tools as ud
 import platform
-import matplotlib.cm as cm
+# import matplotlib.cm as cm
 import matplotlib as mpl
 import h5py
 from unidec.modules.hdf5_tools import replace_dataset, get_dataset
+import io
 
 __author__ = 'Michael.Marty'
 
@@ -307,9 +308,13 @@ class UniDecConfig(object):
         self.minusoneaszero = True
         self.verbose = False
         self.isomode = 0
+        self.avgpeakmasses = 0
+        self.analyte_type = None
 
         self.cmaps = None
         self.cmaps2 = None
+
+        self.isoconfig = IsoDecConfig(self)
 
         self.initialize()
 
@@ -320,8 +325,7 @@ class UniDecConfig(object):
         """
         # plotting
         self.publicationmode = 1
-        self.avgpeakmasses = 0
-        self.selection_type = None
+
         self.discreteplot = 0
         self.cmap = u"nipy_spectral"
         self.peakcmap = u"rainbow"
@@ -485,7 +489,7 @@ class UniDecConfig(object):
         lists, one for the 2D plots and the other for the linear colors.
         :return: None
         """
-        m = [i for i in cm.datad]
+        # m = [i for i in cm.datad]
         m2 = [map for map in mpl.colormaps]
 
         self.cmaps = sorted(m2)
@@ -576,7 +580,7 @@ class UniDecConfig(object):
         f.write("baselineflag " + str(self.baselineflag) + "\n")
         f.write("orbimode " + str(self.orbimode) + "\n")
         f.write("Avg Peak Masses " + str(self.avgpeakmasses) + "\n")
-        f.write("Selection type" + str(self.selection_type) + "\n")
+        f.write("Selection type" + str(self.analyte_type) + "\n")
         if self.integratelb != "" and self.integrateub != "":
             try:
                 f.write("integratelb " + str(self.integratelb) + "\n")
@@ -1562,6 +1566,214 @@ class UniDecConfig(object):
     def get_preset_list(self):
         for dirpath, dirnames, files in os.walk(self.presetdir):
             print(files)
+
+
+class IsoDecConfig: # (udstruct.UniDecConfig):
+    def __init__(self, config=None):
+        """
+        Configuration class for IsoDec Engine. Holds the key parameters for the data processing and deconvolution.
+        """
+        super().__init__()
+        if config is None:
+            config = UniDecConfig()
+        self.config = config
+
+        self.adductmass = self.config.adductmass
+        self.verbose = self.config.verbose
+
+        self.filepath = ""
+        self.batch_size = 32
+        self.test_batch_size = 2048
+        self.current_KD_round = 0
+        self.activescan = -1
+        self.activescanrt = -1
+        self.activescanorder = -1
+        self.meanpeakspacing_thresh = 0.01  ##This needs to be optimized.
+
+        self.mass_diff_c = 1.0033
+        self.peakwindow = 80
+        self.phaseres = 8
+        self.matchtol = 5  # In ppm
+        self.minpeaks = 3
+        self.peakthresh = 0.0001
+        self.css_thresh = 0.7
+        self.maxshift = 3  # This will get overwritten for smaller z, where it's dangerous to have more than 1 or 2
+        self.mzwindow = [-1.05, 2.05]
+        self.plusoneintwindow = [0.1, 0.6]
+        self.knockdown_rounds = 5
+        self.min_score_diff = 0.1
+        self.minareacovered = 0.20
+        self.minusoneaszero = True
+        self.isotopethreshold = 0.01
+        self.datathreshold = 0.05
+        self.zscore_threshold = 0.95
+
+        self.report_multiple_monoisos = True
+        self.write_scans_without_precs = True
+        self.analyte_type = "Peptide"
+
+    def set_scan_info(self, s, reader=None):
+        """
+        Sets the active scan info
+        :param s: The current scan
+        :param reader: The reader object
+        :return: None
+        """
+        self.activescan = s
+        if reader is not None:
+            self.activescanrt = reader.get_scan_time(s)
+            self.activescanorder = reader.get_ms_order(s)
+            polarity = reader.polarity
+            if polarity == "Negative":
+                self.adductmass = -1.007276467
+            else:
+                self.adductmass = 1.007276467
+
+    def __str__(self):
+        outstring = "IsoDec Configuration:\n"
+        outstring += f"Filepath: {self.filepath}\n"
+        outstring += f"Batch Size: {self.batch_size}\n"
+        outstring += f"Test Batch Size: {self.test_batch_size}\n"
+        outstring += f"Current KD Round: {self.current_KD_round}\n"
+        outstring += f"Active Scan: {self.activescan}\n"
+        outstring += f"Active Scan RT: {self.activescanrt}\n"
+        outstring += f"Active Scan Order: {self.activescanorder}\n"
+        outstring += f"Mean Peak Spacing Threshold: {self.meanpeakspacing_thresh}\n"
+        outstring += f"Adduct Mass: {self.adductmass}\n"
+        outstring += f"Mass Diff C: {self.mass_diff_c}\n"
+        outstring += f"Verbose: {self.verbose}\n"
+        outstring += f"Peak Window: {self.peakwindow}\n"
+        outstring += f"Phase Resolution: {self.phaseres}\n"
+        outstring += f"Match Tolerance: {self.matchtol} ppm\n"
+        outstring += f"Minimum Peaks: {self.minpeaks}\n"
+        outstring += f"Peak Threshold: {self.peakthresh}\n"
+        outstring += f"CSS Threshold: {self.css_thresh}\n"
+        outstring += f"Max Shift: {self.maxshift}\n"
+        outstring += f"m/z Window: {self.mzwindow}\n"
+        outstring += f"Plus One Intensity Window: {self.plusoneintwindow}\n"
+        outstring += f"Knockdown Rounds: {self.knockdown_rounds}\n"
+        outstring += f"Minimum Score Difference: {self.min_score_diff}\n"
+        outstring += f"Minimum Area Covered: {self.minareacovered}\n"
+        outstring += f"Minus One as Zero: {self.minusoneaszero}\n"
+        outstring += f"Isotope Threshold: {self.isotopethreshold}\n"
+        outstring += f"Data Threshold: {self.datathreshold}\n"
+        outstring += f"Z-Score Threshold: {self.zscore_threshold}\n"
+        outstring += f"Report Multiple Monoisotopes: {self.report_multiple_monoisos}\n"
+        outstring += f"Write Scans Without Precursors: {self.write_scans_without_precs}\n"
+        return outstring
+
+    def config_export(self, file=None):
+        """
+        Write the configuration to a file.
+        :param file: The name of the file to write the configuration to or the file object.
+        :return: None
+        """
+        outputstring = ""
+        outputstring += "iso_meanpeakspacing_thresh " + str(self.meanpeakspacing_thresh) + "\n"
+        outputstring += "iso_adductmass " + str(self.adductmass) + "\n"
+        outputstring += "iso_mass_diff_c " + str(self.mass_diff_c) + "\n"
+        outputstring += "iso_verbose " + str(self.verbose) + "\n"
+        outputstring += "iso_peakwindow " + str(self.peakwindow) + "\n"
+        outputstring += "iso_phaseres " + str(self.phaseres) + "\n"
+        outputstring += "iso_matchtol " + str(self.matchtol) + "\n"
+        outputstring += "iso_minpeaks " + str(self.minpeaks) + "\n"
+        outputstring += "iso_peakthresh " + str(self.peakthresh) + "\n"
+        outputstring += "iso_css_thresh " + str(self.css_thresh) + "\n"
+        outputstring += "iso_maxshift " + str(self.maxshift) + "\n"
+        outputstring += "iso_mzwindow " + str(self.mzwindow) + "\n"
+        outputstring += "iso_plusoneintwindow " + str(self.plusoneintwindow) + "\n"
+        outputstring += "iso_knockdown_rounds " + str(self.knockdown_rounds) + "\n"
+        outputstring += "iso_min_score_diff " + str(self.min_score_diff) + "\n"
+        outputstring += "iso_minareacovered " + str(self.minareacovered) + "\n"
+        outputstring += "iso_minusoneaszero " + str(self.minusoneaszero) + "\n"
+        outputstring += "iso_isotopethreshold " + str(self.isotopethreshold) + "\n"
+        outputstring += "iso_datathreshold " + str(self.datathreshold) + "\n"
+        outputstring += "iso_zscore_threshold " + str(self.zscore_threshold) + "\n"
+        outputstring += "iso_report_multiple_monoisos " + str(self.report_multiple_monoisos) + "\n"
+        outputstring += "iso_write_scans_without_precs " + str(self.write_scans_without_precs) + "\n"
+
+        if file is None:
+            return outputstring
+        elif isinstance(file, str):
+            with open(file, 'w') as f:
+                f.write(outputstring)
+            return outputstring
+        elif isinstance(file, io.TextIOWrapper):
+            file.write(outputstring)
+            return outputstring
+        else:
+            raise ValueError("File must be a string or a file object.")
+
+    def config_import(self, file):
+        """
+        Read the configuration from a file.
+        :param file: The name of the file to read the configuration from or the file object.
+        :return: None
+        """
+        if isinstance(file, str):
+            with open(file, 'r') as f:
+                lines = f.readlines()
+        elif isinstance(file, io.TextIOWrapper):
+            lines = file.readlines()
+        else:
+            raise ValueError("File must be a string or a file object.")
+
+        for line in lines:
+            if line.startswith("#") or not line.strip():
+                continue
+
+            key, value = line.split(maxsplit=1)
+            key = key.strip()
+            value = value.strip()
+            if key == "iso_meanpeakspacing_thresh":
+                self.meanpeakspacing_thresh = float(value)
+            elif key == "iso_adductmass":
+                self.adductmass = float(value)
+            elif key == "iso_mass_diff_c":
+                self.mass_diff_c = float(value)
+            elif key == "iso_verbose":
+                self.verbose = int(value)
+            elif key == "iso_peakwindow":
+                self.peakwindow = float(value)
+            elif key == "iso_phaseres":
+                self.phaseres = int(value)
+            elif key == "iso_matchtol":
+                self.matchtol = float(value)
+            elif key == "iso_minpeaks":
+                self.minpeaks = int(value)
+            elif key == "iso_peakthresh":
+                self.peakthresh = float(value)
+            elif key == "iso_css_thresh":
+                self.css_thresh = float(value)
+            elif key == "iso_maxshift":
+                self.maxshift = int(value)
+            elif key == "iso_mzwindow":
+                self.mzwindow = [float(x) for x in value.strip("[]").split(",")]
+            elif key == "iso_plusoneintwindow":
+                self.plusoneintwindow = [float(x) for x in value.strip("[]").split(",")]
+            elif key == "iso_knockdown_rounds":
+                self.knockdown_rounds = int(value)
+            elif key == "iso_min_score_diff":
+                self.min_score_diff = float(value)
+            elif key == "iso_minareacovered":
+                self.minareacovered = float(value)
+            elif key == "iso_minusoneaszero":
+                self.minusoneaszero = value.lower() in ["true", "1", "yes"]
+            elif key == "iso_isotopethreshold":
+                self.isotopethreshold = float(value)
+            elif key == "iso_datathreshold":
+                self.datathreshold = float(value)
+            elif key == "iso_zscore_threshold":
+                self.zscore_threshold = float(value)
+            elif key == "iso_report_multiple_monoisos":
+                self.report_multiple_monoisos = value.lower() in ["true", "1", "yes"]
+            elif key == "iso_write_scans_without_precs":
+                self.write_scans_without_precs = value.lower() in ["true", "1", "yes"]
+
+
+
+
+
 
 
 class OligomerContainer:

@@ -8,7 +8,8 @@ from torch.utils.data import DataLoader
 from unidec.IsoDec.encoding import encode_synthetic
 from unidec.IsoDec.models import example, PhaseModel
 from unidec.IsoDec.datatools import fastpeakdetect, get_all_centroids, fastnearest, check_spacings, remove_noise_cdata
-from unidec.IsoDec.match import optimize_shift2, IsoDecConfig, MatchedCollection
+from unidec.IsoDec.match import optimize_shift2, MatchedCollection
+from unidec.modules.unidecstructure import IsoDecConfig
 from unidec.IsoDec.encoding import data_dirs, encode_noise, encode_phase_all, small_data_dirs, \
     encode_double, encode_harmonic, extract_centroids
 
@@ -647,8 +648,6 @@ class IsoDecEngine:
             window = self.config.peakwindow
         if threshold is None:
             threshold = self.config.peakthresh
-        if self.config.css_thresh < 0.6:
-            self.config.adjust_css = False
 
         # TODO: Need a way to test for whether data is centroided already
         if centroided:
@@ -672,7 +671,7 @@ class IsoDecEngine:
             threshold = threshold
             for i in range(self.config.knockdown_rounds):
                 # Adjust settings based on round
-                if i >= 5 and self.config.adjust_css:
+                if i >= 5:
                     self.config.css_thresh = self.config.css_thresh * 0.90
                     if self.config.css_thresh < 0.6:
                         self.config.css_thresh = 0.6

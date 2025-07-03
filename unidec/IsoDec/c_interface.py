@@ -9,7 +9,8 @@ path_root = Path(__file__).parents[2]
 sys.path.append(str(path_root))
 
 import matplotlib.pyplot as plt
-from unidec.IsoDec.match import MatchedPeak, MatchedCollection, IsoDecConfig
+from unidec.IsoDec.match import MatchedPeak, MatchedCollection
+from unidec.modules.unidecstructure import IsoDecConfig
 from unidec.IsoDec.plots import plot_pks
 from unidec.tools import start_at_iso, datachop
 

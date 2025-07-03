@@ -554,7 +554,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.exthresh = ud.string_to_value(self.ctlencodingthresh.GetValue())
         # CSS threshold goes to csig
         self.config.csig = ud.string_to_value(self.ctlccsthresh.GetValue())
-        self.config.selection_type = self.ctltypelist.GetValue()
+        self.config.analyte_type = self.ctltypelist.GetValue()
         if self.ctlphaseres.GetSelection() == 0:
             self.config.aggressiveflag = 4
         else:
