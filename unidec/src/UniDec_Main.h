@@ -408,7 +408,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	if (blurmax != 0) { cutoff = 0.000001; }
 
 	//Apply The Cutoff
-	ApplyCutoff1D(decon.blur, blurmax * cutoff, config.lengthmz * config.numz);
+	ApplyCutoff(decon.blur, blurmax * cutoff, config.lengthmz * config.numz);
 	
 	
 	//Calculate the fit data and error.

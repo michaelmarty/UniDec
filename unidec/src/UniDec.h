@@ -24,129 +24,6 @@
 #include "udio.h"
 // #include "UD_sg.h"
 
-//Perform a linear interpolation. I've left the code for other interpolation functions below but they don't seem to matter.
-float LinearInterpolate(float y1, float y2, float mu) {
-    return (y1 * (1 - mu) + y2 * mu);
-}
-
-float LinearInterpolatePosition(float x1, float x2, float x) {
-    if (x2 - x1 == 0) { return 0; }
-    return (x - x1) / (x2 - x1);
-}
-
-float CubicInterpolate(float y0, float y1, float y2, float y3, float mu) {
-    float a0, a1, a2, a3, mu2;
-    mu2 = mu * mu;
-    a0 = y3 - y2 - y0 + y1;
-    a1 = y0 - y1 - a0;
-    a2 = y2 - y0;
-    a3 = y1;
-    return (a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3);
-}
-
-float CRSplineInterpolate(float y0, float y1, float y2, float y3, float mu) {
-    float a0, a1, a2, a3, mu2;
-    mu2 = mu * mu;
-    a0 = -0.5 * y0 + 1.5 * y1 - 1.5 * y2 + 0.5 * y3;
-    a1 = y0 - 2.5 * y1 + 2 * y2 - 0.5 * y3;
-    a2 = -0.5 * y0 + 0.5 * y2;
-    a3 = y1;
-    return (a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3);
-}
-
-float clip(float x, float cutoff) {
-    if (x > cutoff) { return x; } else { return 0; }
-}
-
-//Function for defining m/z peak shape. Other peak shape functions could be easily added her.
-float mzpeakshape(float x, float y, float sig, int psfun) {
-    if (sig == 0) {
-        printf("Error: mzpeakshape sigma is 0\n");
-        exit(103);
-    }
-    float result;
-    if (psfun == 0) {
-        result = exp(-(pow(x - y, 2)) / (2 * sig * sig));
-    } else if (psfun == 1) {
-        result = pow((sig / 2), 2) / (pow((x - y), 2) + pow((sig / 2), 2));
-    } else if (psfun == 2) {
-        if (y < x) {
-            result = exp(-(pow(x - y, 2)) / (2 * sig * sig * 0.180337));
-        } else {
-            result = (sig / 2) * (sig / 2) / (pow((x - y), 2) + pow((sig / 2), 2));
-        }
-    } else {
-        printf("Invalid Peak Function");
-        exit(14);
-    }
-    return result;
-}
-
-inline int index2D(const int ncols, const int r, const int c) {
-    return r * ncols + c;
-}
-
-inline int indexmod(int length, int r, int c) {
-    return mod((c - r), length);
-}
-
-inline int index3D(const int ncols, const int nrows, const int r, const int c, const int d) {
-    return r * ncols * nrows + c * nrows + d;
-}
-
-
-float Max(const float *blur, const int length) {
-    float blurmax = 0;
-    for (int i = 0; i < length; i++) {
-        if (blur[i] > blurmax) {
-            blurmax = blur[i];
-        }
-    }
-    return blurmax;
-}
-
-float Sum(const float *blur, const int length) {
-    float sum = 0;
-    for (int i = 0; i < length; i++) {
-        sum += blur[i];
-    }
-    return sum;
-}
-
-float max1d(const float *blur, const int lengthmz) {
-    float blurmax = blur[0];
-    unsigned int i;
-    for (i = 0; i < lengthmz; i++) {
-        if (blur[i] > blurmax) {
-            blurmax = blur[i];
-        }
-    }
-    return blurmax;
-}
-
-float min1d(const float *blur, const int lengthmz) {
-    float blurmin = blur[0];
-    unsigned int i;
-    for (i = 0; i < lengthmz; i++) {
-        if (blur[i] < blurmin) {
-            blurmin = blur[i];
-        }
-    }
-    return blurmin;
-}
-
-int argmax(const float *blur, const int lengthmz) {
-    float max = blur[0];
-    int pos = 0;
-    unsigned int i;
-    for (i = 0; i < lengthmz; i++) {
-        if (blur[i] > max) {
-            max = blur[i];
-            pos = i;
-        }
-    }
-    return pos;
-}
 
 //Convolution of neighborhood function with gaussian filter.
 void blur_it(const int lengthmz,
@@ -302,11 +179,6 @@ void blur_it_hybrid2(const int lengthmz,
     }
 }
 
-//Second Derivative of a Gaussian
-float secderndis(float m, float s, float x) {
-    if (s == 0) { return 0; }
-    return s / 2 * (2 * exp(-pow(m - x, 2) / s)) / s - (4 * exp(-pow(m - x, 2) / s) * pow(m - x, 2)) / pow(s, 2);
-}
 
 
 void blur_baseline(float *baseline, const int lengthmz, const float *dataMZ, const float mzsig, int mult,
@@ -611,12 +483,6 @@ float deconvolve_iteration_speedy(const int lengthmz, const int numz, const int 
     return 0;
 }
 
-void ApplyCutoff1D(float *array, const float cutoff, const int lengthmz) {
-    //#pragma omp parallel for private (i,j), schedule(auto)
-    for (int i = 0; i < lengthmz; i++) {
-        if (array[i] < cutoff) { array[i] = 0; }
-    }
-}
 
 float getfitdatspeedy(float *fitdat, const float *blur, const char *barr, const int lengthmz, const int numz,
                       const int maxlength, const float maxint,
@@ -676,7 +542,7 @@ float errfunspeedy(Config config, Decon decon, const char *barr, const float *da
             //decon.fitdat[i] = decon.noise[i]+0.1;
         }
     }
-    ApplyCutoff1D(decon.fitdat, 0, config.lengthmz);
+    ApplyCutoff(decon.fitdat, 0, config.lengthmz);
 
     float fitmean = Average(config.lengthmz, dataInt);
 

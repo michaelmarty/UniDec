@@ -52,7 +52,7 @@ float extract_zmax(Config config, const float peak, const float *xvals, const fl
 		int pos2 = nearfast(xvals, peak + config.exwindow, mlen);
 		z_slice_range(zvals, pos1, pos2, zdat, zlen, thresh2);
 	}
-	int maxpos = argmax(zdat, zlen);
+	int maxpos = ArgMax(zdat, zlen);
 	float maxval = yvals[maxpos];
 	free(zdat);
 	return maxval;

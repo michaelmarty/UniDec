@@ -663,4 +663,11 @@ int nearfast_test(const float *dataMZ, const float point, const int numdat, floa
     } else { return -1; }
 }
 
+
+//Second Derivative of a Gaussian
+float secderndis(float m, float s, float x) {
+    if (s == 0) { return 0; }
+    return s / 2 * (2 * exp(-pow(m - x, 2) / s)) / s - (4 * exp(-pow(m - x, 2) / s) * pow(m - x, 2)) / pow(s, 2);
+}
+
 */

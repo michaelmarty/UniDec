@@ -69,8 +69,8 @@ int pool1d(float **oldmz, float **oldint, const int oldlen, const int mzbins)
 int chop1d(float **oldmz, float **oldint, const int oldlen, const float min, const float max)
 {
 	//int silent = 0;
-	float maxval = max1d(*oldmz, oldlen);
-	float minval = min1d(*oldmz, oldlen);
+	float maxval = Max(*oldmz, oldlen);
+	float minval = Min(*oldmz, oldlen);
 	//if (silent == 0) { printf("Test %f %f\n", minval, maxval); }
 	if (maxval<max && minval>min){
 		return oldlen;
@@ -241,7 +241,7 @@ int remove_middle_zeros(float **oldmz, float **oldint, int oldlen)
 //Normalize
 void norm1d(float *dataInt, const int lengthmz)
 {
-	float maxval = max1d(dataInt, lengthmz);
+	float maxval = Max(dataInt, lengthmz);
 	if(maxval>0){
 		for (int i = 0; i < lengthmz; i++)
 		{
@@ -434,7 +434,7 @@ void process_data(int argc, char *argv[], Config config)
 	if (config.intthresh != 0)
 	{
 		if (silent == 0) { printf("Intensity Threshold: %f", config.intthresh); }
-		ApplyCutoff1D(dataInt, config.intthresh, lengthmz);
+		ApplyCutoff(dataInt, config.intthresh, lengthmz);
 		lengthmz = remove_middle_zeros(&dataMZ, &dataInt, lengthmz);
 		if (silent == 0) { printf(" Length %d\n", lengthmz); }
 	}
@@ -448,7 +448,7 @@ void process_data(int argc, char *argv[], Config config)
 
 	//Remove any weird negatives
 	if (silent == 0) { printf("Removing negatives\n"); }
-	ApplyCutoff1D(dataInt, 0, lengthmz);
+	ApplyCutoff(dataInt, 0, lengthmz);
 
 	config.speedyflag = 0;
 	//Write data to processed_data

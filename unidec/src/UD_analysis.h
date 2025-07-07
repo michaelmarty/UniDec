@@ -95,8 +95,8 @@ Config get_global_min_max(int argc, char* argv[], Config config, const char* dty
 
 		mh5readfile2d(config.file_id, outdat, templen, tempaxis, temp);
 
-		float newmin = min1d(tempaxis, templen);
-		float newmax = max1d(tempaxis, templen);
+		float newmin = Min(tempaxis, templen);
+		float newmax = Max(tempaxis, templen);
 		float newres = (newmax - newmin) / (float) templen;
 
 		if (newmin < minval) { minval = newmin; }

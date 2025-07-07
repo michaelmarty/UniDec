@@ -350,7 +350,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	float datamax = getmax(lines, dataInt);
 	normalize(lines, dataInt, datamax);
 	normalize(lines, denom, denommax);
-	ApplyCutoff1D(denom, 0, lines);
+	ApplyCutoff(denom, 0, lines);
 	//printf("maxes: %f %f\n",denommax,datamax);
 	char *suffixfit = "fitdat";
 	write1D(config.outfile, suffixfit, denom, lines);

@@ -387,7 +387,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 			normalize(lines, newblur2, blurmax / dmax);
 		}
 	}
-	ApplyCutoff1D(newblur2, 0, lines);
+	ApplyCutoff(newblur2, 0, lines);
 	//Write the fitdat file
 	char* suffixfit = "fitdat";
 	write1D(config.outfile, suffixfit, newblur2, lines);
@@ -414,7 +414,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 		printf("Maxes: %f %f\n",blurmax, dmax);
 	}
 	//Write the Output file
-	ApplyCutoff1D(blur, 0, lines);
+	ApplyCutoff(blur, 0, lines);
 	
 	// Write to binary
 	//char* suffixfit = "";
