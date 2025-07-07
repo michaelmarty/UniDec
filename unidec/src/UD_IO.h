@@ -298,7 +298,7 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 
 void ManualAssign(float* dataMZ, char* barr, int* nztab, Config config)
 {
-	unsigned int i, j, k;
+	int i, j, k;
 	int manlen = 0;
 	int lengthmz = config.lengthmz;
 	int numz = config.numz;
@@ -331,7 +331,7 @@ void ManualAssign(float* dataMZ, char* barr, int* nztab, Config config)
 
 	float testmz;
 	int closest;
-#pragma omp parallel for private (i,j,testmz,closest), schedule(auto)
+#pragma omp parallel for private (i,j,testmz,closest)
 	for (i = 0; i < lengthmz; i++)
 	{
 		for (j = 0; j < numz; j++)

@@ -1,0 +1,419 @@
+/*
+void MakeBlurZ(int lengthmz, int numz, int numclose, char *barr, int *closezind, float *mtab, float adductmass, int *nztab, float *dataMZ, int *closeind)
+{
+	unsigned int i, j, k;
+	#pragma omp parallel for private (i,j,k), schedule(auto)
+	for (i = 0; i<lengthmz; i++)
+	{
+		for (j = 0; j<numz; j++)
+		{
+			if (barr[index2D(numz, i, j)] == 1)
+			{
+				for (k = 0; k<numclose; k++)
+				{
+					int indz = (int)(j + closezind[k]);
+					int ind;
+					if (indz < 0 || indz >= numz || (nztab[j] + closezind[k]) == 0) { closeind[index3D(numz, numclose, i, j, k)] = -1; }
+					else
+					{
+						float point = (float)((mtab[index2D(numz, i, j)] + adductmass*(float)(nztab[j] + closezind[k])) / (float)(nztab[j] + closezind[k]));
+						if (point<dataMZ[0] || point>dataMZ[lengthmz - 1]) { closeind[index3D(numz, numclose, i, j, k)] = -1; }
+						else {
+							ind = nearfast(dataMZ, point, lengthmz);
+							closeind[index3D(numz, numclose, i, j, k)] = index2D(numz, ind, indz);
+						}
+					}
+				}
+			}
+			else
+			{
+				for (k = 0; k<numclose; k++)
+				{
+					closeind[index3D(numz, numclose, i, j, k)] = -1;
+				}
+			}
+		}
+	}
+}
+
+
+void MakeBlurM(int lengthmz, int numz, int numclose, char *barr, int *closemind, float *mtab, float molig, float adductmass, int *nztab, float *dataMZ, int *closeind)
+{
+	unsigned int i, j, k;
+#pragma omp parallel for private (i,j,k), schedule(auto)
+	for (i = 0; i<lengthmz; i++)
+	{
+		for (j = 0; j<numz; j++)
+		{
+			if (barr[index2D(numz, i, j)] == 1)
+			{
+				for (k = 0; k<numclose; k++)
+				{
+					int ind;
+					float point = (float)((mtab[index2D(numz, i, j)] + closemind[k] * molig + adductmass*(float)(nztab[j])) / (float)(nztab[j]));
+					if (point<dataMZ[0] || point>dataMZ[lengthmz - 1]) { closeind[index3D(numz, numclose, i, j, k)] = -1; }
+					else {
+						ind = nearfast(dataMZ, point, lengthmz);
+						closeind[index3D(numz, numclose, i, j, k)] = index2D(numz, ind, j);
+					}
+				}
+			}
+			else
+			{
+				for (k = 0; k<numclose; k++)
+				{
+					closeind[index3D(numz, numclose, i, j, k)] = -1;
+				}
+			}
+		}
+	}
+}*/
+
+
+//// "Returns" discrete Fourier transform of input array. Unused.
+//// Use fftw library instead
+//void discretefouriertransform(double* input, double** output, int length) {
+//	double pi = 3.1415926535;
+//	for (int i = 0; i < length; i++) {
+//		output[i][0] = 0.0; // Real term
+//		output[i][1] = 0.0; // Imaginary term
+//		for (int j = 0; j < length; j++) {
+//			double inner = 2.0 * pi / length * i * j;
+//			output[i][0] += input[j] * cos(inner);
+//			output[i][1] += input[j] * (-1.0) * sin(inner);
+//		}
+//	}
+//}
+//
+//// "Returns" discrete inverse Fourier transform of input. Unused.
+//// Use fftw library instead
+//void inversefouriertransform(double** input, double* output, int length) {
+//	double pi = 3.1415926535;
+//	for (int i = 0; i < length; i++) {
+//		output[i] = 0.0;	// Real term
+//		double imag = 0.0;	// Imaginary term
+//		for (int j = 0; j < length; j++) {	// (ac - bd) + i(ad + bc)
+//			double inner = 2.0 * pi / length * i * j;
+//			double c = cos(inner);
+//			double d = sin(inner);
+//			output[i] += (input[j][0] * c) - (input[j][1] * d);
+//			imag += (input[j][0] * d) + (input[j][1] * c);
+//		}
+//		output[i] = output[i] / ((double)length);
+//		imag = imag / ((double)length);
+//		printf("Imaginary term is %.2f", imag);
+//	}
+//}
+
+// Gives convolution of functions a and b. Unused.
+// Use cconv2fast instead
+/*
+void cconv2(double* a, double* b, double* c, int length) {
+	double** A = (double **) malloc(length * sizeof(double*));	// (a + bi)
+	double** B = (double**) malloc(length * sizeof(double*));	// (c + di)
+	double** C = (double**) malloc(length * sizeof(double*));
+	for (int i = 0; i < length; i++) {
+		A[i] = (double*) calloc(2, sizeof(double));
+		B[i] = (double*) calloc(2, sizeof(double));
+		C[i] = (double*) calloc(2, sizeof(double));
+	}
+
+	discretefouriertransform(a, A, length);
+	discretefouriertransform(b, B, length);
+	// A * B = (ac - bd) + i(ad + bc)
+	for (int j = 0; j < length; j++) {
+		C[j][0] = (A[j][0] * B[j][0]) - (A[j][1] * B[j][1]);
+		C[j][1] = (A[j][0] * B[j][1]) + (A[j][1] * B[j][0]);
+	}
+	inversefouriertransform(C, c, length);
+	for (int k = 0; k < length; k++) {
+		if (c[k] < 0) {
+			c[k] = c[k] * -1.0;
+		}
+		free(A[k]);
+		free(B[k]);
+		free(C[k]);
+	}
+	free(A);
+	free(B);
+	free(C);
+}
+*/
+
+
+/*
+
+void softargmax_transposed(float *blur, const int lengthmz, const int numz, const float beta)
+{
+	float *newblur;
+	newblur = calloc(lengthmz*numz, sizeof(float));
+	memcpy(newblur, blur, lengthmz*numz * sizeof(float));
+#pragma omp parallel for schedule(auto)
+	for (int j = 0; j < numz; j++)
+	{
+		//float sum2 = 0;
+		//float sum1 = 0;
+		float factor = 0;
+		float max1 = 0;
+		float max2 = 0;
+		float min2 = 1000000000000;
+		//float min1 = 1000000000000;
+		for (int i = 0; i < lengthmz; i++)
+		{
+			float d = newblur[index2D(numz, i, j)];
+			//sum1 += d;
+			//if (d < min1) { min1 = d; }
+			if (d > max1) { max1 = d; }
+			float e = exp(beta * d);
+			//if (beta > 0) { e = exp(beta * d); }
+			//else { e = pow(d, -beta); }
+			if (e < min2) { min2 = e; }
+			if (e > max2) { max2 = e; }
+			blur[index2D(numz, i, j)] = e;
+			//sum2 += e;
+		}
+		//float min = min2 - min1;
+		//if (beta < 0) { min = min2; }
+		//float denom = (sum2 - min2*numz);
+		//if (denom != 0) { factor = sum1 / denom; };
+		float denom = (max2 - min2);
+		if (denom != 0) { factor = max1 / denom; };
+		//float sum3 = 0;
+		if (factor > 0) {
+			for (int i = 0; i < lengthmz; i++)
+			{
+				blur[index2D(numz, i, j)] -= min2;
+				blur[index2D(numz, i, j)] *= factor;
+				//sum3 += blur[index2D(numz, i, j)];
+			}
+		}
+		else {
+			for (int i = 0; i < lengthmz; i++)
+			{
+				blur[index2D(numz, i, j)] = 0;
+			}
+		}
+		//printf("%f %f\n", sum1, sum3);
+	}
+	free(newblur);
+	return;
+}
+
+void point_smoothing_iso(float *blur, const int lengthmz, const int numz, const int width)
+{
+	float *newblur;
+	newblur = calloc(lengthmz*numz, sizeof(float));
+	memcpy(newblur, blur, lengthmz*numz * sizeof(float));
+	#pragma omp parallel for schedule(auto)
+	for (int i = 0; i < lengthmz; i++)
+	{
+		for (int j = 0; j < numz; j++)
+		{
+			int low = i - width;
+			if (low < 0) { low = 0; }
+			int high = i + width + 1;
+			if (high > lengthmz) { high = lengthmz; }
+
+			float sum = 0;
+			float val = 0;
+			for (int k = low; k < high; k++)
+			{
+				float e= exp(500*newblur[index2D(numz, k, j)]);
+				sum += e;
+				if (k == i) { val = e; }
+			}
+			if(sum!=0){ blur[index2D(numz, i, j)] = val / sum; }
+			else { blur[index2D(numz, i, j)] = 0; }
+		}
+	}
+	free(newblur);
+	return;
+}*/
+
+/*
+void point_smoothing_sg(float *blur, const int lengthmz, const int numz, const int width)
+{
+	float *newblur;
+	newblur = calloc(lengthmz*numz, sizeof(float));
+	memcpy(newblur, blur, lengthmz*numz * sizeof(float));
+
+	float *c;
+	int np = width * 2 + 1;
+	c = calloc(np, sizeof(float));
+	savgol(c, np, width, width, 0, 2);
+
+	//printf("Savgol: ");
+	//for (int i = 0; i < np; i++){printf("%f ", c[i]);}
+	//printf("\n");
+
+	#pragma omp parallel for schedule(auto)
+	for (int i = 0; i < lengthmz; i++)
+	{
+		for (int j = 0; j < numz; j++)
+		{
+			int low = i - width;
+			if (low < 0) { low = 0; }
+			int high = i + width + 1;
+			if (high > lengthmz) { high = lengthmz; }
+
+			float sum = 0;
+			for (int k = low; k < high; k++)
+			{
+				int cind = mod((i - k) , np);
+				sum += c[cind] * newblur[index2D(numz, k, j)];
+			}
+
+			blur[index2D(numz, i, j)] = sum;
+		}
+	}
+	free(newblur);
+	return;
+}
+*/
+
+/*
+void MakeBlur(const int lengthmz, const int numz, const int numclose, char *barr, const int *closezind,
+	const int *closemind, const float *mtab, const float molig, const float adductmass, const int *nztab,
+	const float *dataMZ,int *closeind, const float threshold, const Config config)
+{
+
+	  #pragma omp parallel for schedule(auto)
+	  for(int i=0;i<lengthmz;i++)
+		{
+		  for(int j=0;j<numz;j++)
+			{
+				if(barr[index2D(numz,i,j)]==1)
+				{
+					//Reset the threshold if it is zero
+					float newthreshold = threshold;
+					if (newthreshold == 0) { newthreshold = config.massbins * 3 / (float)nztab[j];}
+
+					int num = 0;
+					for(int k=0;k<numclose;k++)
+					{
+						//Find the z index and test if it is within the charge range
+						int indz=(int)(j+closezind[k]);
+						if (indz < 0 || indz >= numz || (nztab[j] + closezind[k])==0) { closeind[index3D(numz, numclose, i, j, k)] = -1; }
+						else
+						{
+							//Find the nearest m/z value and test if it is close enough to the predicted one and within appropriate ranges
+							float point=(float)((mtab[index2D(numz, i, j)]+closemind[k]*molig+adductmass*(float)(nztab[j]+closezind[k]))/(float)(nztab[j]+closezind[k]));
+							if(point<dataMZ[0]- newthreshold || point>dataMZ[lengthmz-1]+ newthreshold){ closeind[index3D(numz, numclose, i, j, k)] = -1; }
+							else {
+								int ind = nearfast(dataMZ, point, lengthmz);
+								float closepoint = dataMZ[ind];
+								int newind= index2D(numz, ind, indz);
+								if (barr[newind] == 1 && fabs(point- closepoint)< newthreshold) {
+									closeind[index3D(numz, numclose, i, j, k)] = newind;
+									num += 1;
+								}
+								else { closeind[index3D(numz, numclose, i, j, k)] = -1; }
+								//printf("%d %d %d %f %f %d\n", i, j, k, point, closepoint, closeind[index3D(numz, numclose, i, j, k)]);
+							}
+
+						}
+					}
+					if (num < 2 && config.isotopemode == 0) { barr[index2D(numz, i, j)] = 0; }// printf("%d %d \n", i, j);}
+				}
+				else
+				{
+					for (int k=0;k<numclose;k++)
+					{
+						closeind[index3D(numz, numclose, i, j, k)] = -1;
+					}
+				}
+			}
+		}
+}*/
+
+/*
+//Charge state smooth using a mean filter of the log
+void blur_it_geometric_mean(const int lengthmz,
+	const int numz,
+	const int numclose,
+	const int* __restrict closeind,
+	float* __restrict newblur,
+	const float* __restrict blur,
+	const char* __restrict barr,
+	const float zerolog)
+{
+	float mult = 10;
+	if (numclose == 1)
+	{
+		memcpy(newblur, blur, lengthmz * numz * sizeof(float));
+	}
+	else {
+#		pragma omp parallel for schedule(auto)
+		for (int i = 0; i < lengthmz * numz; i++)
+		{
+			float temp = 0;
+			if (barr[i] == 1)
+			{
+				for (int k = 0; k < numclose; k++)
+				{
+					float temp2 = 0;
+					if (closeind[index2D(numclose, i, k)] != -1)
+					{
+						temp2 = pow(blur[closeind[index2D(numclose, i, k)]], mult);
+					}
+					temp += temp2;
+				}
+				temp = pow(temp, 1/mult)/ (float)numclose;
+			}
+			newblur[i] = temp;
+		}
+	}
+}*/
+/*
+//Convolution of neighborhood function with gaussian filter.
+void blur_it_hybrid1alt(const int lengthmz,
+	const int numz,
+	const int zlength,
+	const int mlength,
+	const int * __restrict closeind,
+	const int * __restrict closemind,
+	const int * __restrict closezind,
+	const float * __restrict mdist,
+	const float * __restrict zdist,
+	float * __restrict newblur,
+	const float * __restrict blur,
+	const char * __restrict barr,
+	const float* __restrict closearray,
+	const float zerolog)
+{
+	int i, j, k, n;
+	int numclose = zlength * mlength;
+	if (numclose == 1)
+	{
+		memcpy(newblur, blur, lengthmz*numz * sizeof(float));
+	}
+	else {
+	#pragma omp parallel for private (i,k,j, n), schedule(auto)
+		for (i = 0; i < lengthmz; i++)
+		{
+			for (j = 0; j < numz; j++)
+			{
+				float temp = 0;
+				if (barr[index2D(numz, i, j)] == 1)
+				{
+					for (k = 0; k < zlength; k++)
+					{
+						float temp2 = 0;
+						for (n = 0; n < mlength; n++)
+						{
+							int m = index2D(mlength, k, n);
+							if (closeind[index3D(numz, numclose, i, j, m)] != -1)
+							{
+								temp2 += blur[closeind[index3D(numz, numclose, i, j, m)]] * mdist[n] *closearray[index3D(numz, numclose, i, j, m)];
+							}
+						}
+						if (temp2 > 0) { temp += log(temp2); }
+						else { temp += zerolog; }
+					}
+					temp = exp(temp / (float)zlength);
+				}
+				newblur[index2D(numz, i, j)] = temp;
+			}
+		}
+	}
+}*/

@@ -210,7 +210,6 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		decon.noise = calloc(config.lengthmz, sizeof(float));
 	}
 
-
 	//#pragma omp parallel for private (i,j), schedule(auto)
 	for (int i = 0; i < config.lengthmz; i++)
 	{
@@ -422,8 +421,9 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	//TODO: It might be possible to build this in to convolve_simp so that this isn't necessary but it would require a 1D barr.
 	if (config.intthresh != -1)
 	{
-		#pragma omp parallel for schedule(auto)
-		for (int i = 0; i < config.lengthmz-1; i++)
+		int i;
+		#pragma omp parallel for private(i)
+		for (i = 0; i < config.lengthmz-1; i++)
 		{
 			if (inp.dataInt[i] == 0 && inp.dataInt[i + 1] == 0)
 			{

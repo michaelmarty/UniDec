@@ -259,14 +259,15 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 
 	int indm, indc, indz;
 	float  point2;
-#pragma omp parallel for private (indz,indc,indm,index,point2), schedule(dynamic)
-	for (int i = 0; i<size[0]; i++)
+
+#pragma omp parallel for private (indz,indc,indm,index,point2, i,j,k,l), schedule(dynamic)
+	for (i = 0; i<size[0]; i++)
 	{
-		for (int j = 0; j<size[1]; j++)
+		for (j = 0; j<size[1]; j++)
 		{
-			for (int k = 0; k<size[2]; k++)
+			for (k = 0; k<size[2]; k++)
 			{
-				for (int l = 0; l<size[3]; l++)
+				for (l = 0; l<size[3]; l++)
 				{
 					float ccspt = ccstab[index3D(size[1], size[2], i, j, k)];
 					ccspt = ccspt + closecind[l] * config.ccsbins;

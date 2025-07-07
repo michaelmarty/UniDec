@@ -23,7 +23,7 @@
 #include <math.h>
 #include <time.h>
 #include <fftw3.h>
-#include <complex.h>
+//#include <complex.h>
 //#include <omp.h>
 
 void readfilemanual(char *infile, int lengthmz, float *array1, float *array2, float *array3, float *array4, float *array5)
@@ -632,12 +632,13 @@ void blur_it_IM(int *size, float *blur, float *newblur, int *closetab, int *barr
 		int l = size[0] * size[2];
 		mzzsumgrid = calloc(l, sizeof(float));
 		sum2D(size, mzzsumgrid, blur, 1);
-#pragma omp parallel for schedule(dynamic)
-		for (int i = 0; i < size[0]; i++)
+		int i, j, k, h;
+#pragma omp parallel for private (i,j,k)
+		for (i = 0; i < size[0]; i++)
 		{
-			for (int j = 0; j < size[1]; j++)
+			for (j = 0; j < size[1]; j++)
 			{
-				for (int k = 0; k < size[2]; k++)
+				for (k = 0; k < size[2]; k++)
 				{
 					if (barr[index3D(size[1], size[2], i, j, k)] == 1)
 					{
@@ -651,20 +652,19 @@ void blur_it_IM(int *size, float *blur, float *newblur, int *closetab, int *barr
 		}
 		free(mzzsumgrid);
 
-
-#pragma omp parallel for schedule(dynamic)
-		for (int i = 0; i<size[0]; i++)
+#pragma omp parallel for private (i,j,k,h)
+		for (i = 0; i<size[0]; i++)
 		{
-			for (int j = 0; j<size[1]; j++)
+			for (j = 0; j<size[1]; j++)
 			{
-				for (int k = 0; k<size[2]; k++)
+				for (k = 0; k<size[2]; k++)
 				{
 					if (barr[index3D(size[1], size[2], i, j, k)] == 1)
 					{
 						float junk2 = 0;
-						for (int l = 0; l<size[3]; l++)
+						for (h = 0; h<size[3]; h++)
 						{
-							int index = closetab[index4D(size, i, j, k, l)];
+							int index = closetab[index4D(size, i, j, k, h)];
 							if (index == -1) {
 								junk2 += -12;
 							}
@@ -690,7 +690,7 @@ void blur_it_IM(int *size, float *blur, float *newblur, int *closetab, int *barr
 		float junk, junk2;
 		int i, j, k, l, index;
 		int logswitch = 1;
-#pragma omp parallel for private (i,j,k,l,index,junk,junk2), schedule(dynamic)
+#pragma omp parallel for private (i,j,k,l,index,junk,junk2)
 		for (i = 0; i < size[0]; i++)
 		{
 			for (j = 0; j < size[1]; j++)
@@ -1004,8 +1004,9 @@ float getmax(int length, float *data)
 void normalize(int length, float *data, float norm)
 {
 	if (norm == 0) { printf("Tried to Normalize by Zero! Aborting!\n"); exit(50); }
-	#pragma omp parallel for schedule(dynamic)
-	for (int i = 0; i<length; i++)
+	int i;
+	#pragma omp parallel for private(i)
+	for (i = 0; i<length; i++)
 	{
 		data[i] = data[i] / norm;
 	}
@@ -1256,11 +1257,11 @@ void ManualAssign_IM(char *manualfile, int * size, float *mzdat, float * dtdat, 
 	mancharge = calloc(manlength, sizeof(float));
 	readfilemanual(manualfile, manlength, manmz, manmzwin, mandt, mandtwin, mancharge);
 	printf("Read manual file of length: %d\n", manlength);
-
-#pragma omp parallel for schedule(dynamic)
-	for (int i = 0; i<size[0]; i++)
+	int i,j;
+#pragma omp parallel for private(i,j)
+	for (i = 0; i<size[0]; i++)
 	{
-		for (int j = 0; j<size[1]; j++)
+		for (j = 0; j<size[1]; j++)
 		{
 			float mz = mzdat[index2D(size[1], i, j)];
 			float dt = dtdat[index2D(size[1], i, j)];

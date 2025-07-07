@@ -21,6 +21,7 @@ msig 0.0
 molig 0.0
 massbins 10.0
 mtabsig 0.0
+isomode 1
 minmz 2267.337324860533
 maxmz 7869.814616874398
 subbuff 0.0
@@ -55,6 +56,8 @@ baselineflag 1.0
 orbimode 0
 Avg Peak Masses 0
 Selection typeNone
+integratelb -1.05
+integrateub 2.05
 filterwidth 20.0
 zerolog -12.0
 doubledec 0
@@ -89,6 +92,8 @@ csig 0.0
 smoothdt 0.0
 subbufdt 0.0
 centroided 0
+minusoneaszero 1
+verbose 0
 zout 0.0
 pusher 0.0
 mindt 0.0
