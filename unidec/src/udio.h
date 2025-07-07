@@ -15,4 +15,3 @@ void writefile1bin(const char *outstring, int lengthmz, const float *data);
 void readmfile(const char *infile, int mfilelen, float *testmasses);
 int getfilelength(const char *infile);
 int getfilelengthbin(const char *infile, int size, int width);
-void readkernel(const char *infile, int lengthmz, double *datax, double *datay);

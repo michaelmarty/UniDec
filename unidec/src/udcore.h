@@ -94,3 +94,5 @@ float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, cons
 float errfunspeedy(Config config, Decon decon, const char *barr, const float *dataInt, const int maxlength,
                    const int *starttab, const int *endtab,
                    const float *mzdist, float *rsquared);
+
+void DoubleDecon(const Config *config, Decon *decon);

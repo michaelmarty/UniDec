@@ -8,7 +8,8 @@
 #include <stdio.h>
 #include <math.h>
 #include "udtools.h"
-
+#include <fftw3.h>
+#include "udio.h"
 
 //..........
 //
@@ -522,3 +523,499 @@ float errfunspeedy(Config config, Decon decon, const char *barr, const float *da
 
     return error;
 }
+
+
+// .....................
+//
+// Double Dec
+//
+// .......................
+
+
+// Integrates data in kernel to match sampling in data. Returns the new kernel length
+int integrate_dd(float *kernel_x, float *kernel_y, int kernellen, float *data_x,
+                 float *data_y, int datalen, float **kernel_x_new, float **kernel_y_new) {
+    if (kernellen <= 1 || datalen <= 1) {
+        return kernellen;
+    }
+    float diff = data_x[1] - data_x[0]; // kernel sampling needs to match this
+    float kdiff = kernel_x[1] - kernel_x[0]; // the original kernel sampling
+    int newlen = ((kernel_x[kernellen - 1] - kernel_x[0]) / diff) + 1; // new number of points in kernel
+    // these are the newly allocated arrays for the kernel
+    int truelen;
+    if (newlen > datalen) {
+        truelen = newlen;
+    } else {
+        truelen = datalen;
+    }
+    *kernel_x_new = (float *) calloc(truelen, sizeof(float));
+    *kernel_y_new = (float *) calloc(truelen, sizeof(float));
+    if (*kernel_x_new && *kernel_y_new) {
+        float current_x = kernel_x[0];
+        float current_xl = kernel_x[0];
+        float current_xr = kernel_x[0] + (diff / 2);
+        int current_index = 0;
+        for (int i = 0; i < newlen; i++) {
+            float y_val = 0;
+            for (int j = current_index; j < kernellen; j++) {
+                // For the first value, add area to the left of the point
+                if (j == current_index && j != 0 && kernel_x[j] >= current_xl && kernel_x[j] < current_xr) {
+                    float left_mu = LinearInterpolatePosition(kernel_x[j - 1], kernel_x[j], current_xl);
+                    float left_y = LinearInterpolate(kernel_y[j - 1], kernel_y[j], left_mu);
+                    y_val += (left_y + kernel_y[j]) * (kernel_x[j] - current_xl) / 2.0;
+                }
+                // Next, add the area to the right of the point (it's either to the next point, to the
+                // boundary, or we're at the last point)
+                if (kernel_x[j] >= current_xl && kernel_x[j] < current_xr && (j + 1) < kernellen &&
+                    kernel_x[j + 1] < current_xr) {
+                    y_val += (kernel_y[j] + kernel_y[j + 1]) * kdiff / 2.0;
+                } else if (kernel_x[j] >= current_xl && kernel_x[j] < current_xr &&
+                           (j + 1) < kernellen && kernel_x[j + 1] >= current_xr) {
+                    float right_mu = LinearInterpolatePosition(kernel_x[j], kernel_x[j + 1], current_xr);
+                    float right_y = LinearInterpolate(kernel_y[j], kernel_y[j + 1], right_mu);
+                    y_val += (kernel_y[j] + right_y) * (current_xr - kernel_x[j]) / 2.0;
+                } else if (kernel_x[j] >= current_xr || (j + 1) >= kernellen) {
+                    current_index = j;
+                    break;
+                }
+            }
+            (*kernel_x_new)[i] = current_x;
+            (*kernel_y_new)[i] = y_val; // Should probably divide by diff. CHECK! --actually, I don't think it matters
+            current_x += diff;
+            current_xl = current_xr;
+            current_xr += diff;
+        }
+        // free(kernel_x_new);
+        // free(kernel_y_new);
+    }
+    return newlen;
+}
+
+// (Linear) Interpolates data in kernel to match sampling in data. Returns the new kernel length
+int interpolate_dd(float *kernel_x, float *kernel_y, int kernellen, float *data_x,
+                   float *data_y, int datalen, float **kernel_x_new, float **kernel_y_new) {
+    if (kernellen <= 1 || datalen <= 1) {
+        return kernellen;
+    }
+    float diff = data_x[1] - data_x[0]; // kernel sampling needs to match this
+    int newlen = ((kernel_x[kernellen - 1] - kernel_x[0]) / diff) + 1; // new number of points in kernel
+    // these are the newly allocated arrays for the kernel
+    int truelen;
+    if (newlen > datalen) {
+        truelen = newlen;
+    } else {
+        truelen = datalen;
+    }
+    *kernel_x_new = (float *) calloc(truelen, sizeof(float));
+    *kernel_y_new = (float *) calloc(truelen, sizeof(float));
+    if (*kernel_x_new && *kernel_y_new) {
+        float current_x = kernel_x[0];
+        for (int i = 0; i < newlen; i++) {
+            int nearest_index = nearfast(kernel_x, current_x, kernellen);
+            if (kernel_x[nearest_index] == current_x) {
+                (*kernel_y_new)[i] = kernel_y[nearest_index];
+            } else if (kernel_x[nearest_index] < current_x) {
+                if ((nearest_index + 1) < kernellen) {
+                    float mu = LinearInterpolatePosition(kernel_x[nearest_index], kernel_x[nearest_index + 1],
+                                                           current_x);
+                    float y_val = LinearInterpolate(kernel_y[nearest_index], kernel_y[nearest_index + 1], mu);
+                    (*kernel_y_new)[i] = y_val;
+                } else {
+                    // this should never be the case
+                    (*kernel_y_new)[i] = kernel_y[nearest_index];
+                }
+            } else if (kernel_x[nearest_index] > current_x) {
+                if (nearest_index > 0) {
+                    float mu = LinearInterpolatePosition(kernel_x[nearest_index - 1], kernel_x[nearest_index],
+                                                           current_x);
+                    float y_val = LinearInterpolate(kernel_y[nearest_index - 1], kernel_y[nearest_index], mu);
+                    (*kernel_y_new)[i] = y_val;
+                } else {
+                    // this should also never happen
+                    (*kernel_y_new)[i] = kernel_y[nearest_index];
+                }
+            }
+            (*kernel_x_new)[i] = current_x;
+            current_x += diff;
+        }
+        // free(kernel_x_new);
+        // free(kernel_y_new);
+    }
+    return newlen;
+}
+
+void cconv2fast(float *a, float *b, float *c, int length) {
+    // We don't seem to have complex.h, unfortunately
+    // fftwf_complex is a double[2] of real (0) and imaginary (1)
+    const int complen = (length / 2) + 1;
+    fftwf_complex *A = fftwf_malloc(complen * sizeof(fftwf_complex));
+    fftwf_complex *B = fftwf_malloc(complen * sizeof(fftwf_complex));
+    fftwf_complex *C = fftwf_malloc(complen * sizeof(fftwf_complex));
+
+    // Possible issue: create plan after we've created inputs (params)
+    fftwf_plan p1 = fftwf_plan_dft_r2c_1d(length, a, A, FFTW_ESTIMATE);
+    fftwf_plan p2 = fftwf_plan_dft_r2c_1d(length, b, B, FFTW_ESTIMATE);
+    fftwf_execute(p1);
+    fftwf_execute(p2);
+
+    // A * B = (ac - bd) + i(ad + bc)
+    for (int j = 0; j < complen; j++) {
+        C[j][0] = (A[j][0] * B[j][0]) - (A[j][1] * B[j][1]);
+        C[j][1] = (A[j][0] * B[j][1]) + (A[j][1] * B[j][0]);
+    }
+
+    fftwf_plan p3 = fftwf_plan_dft_c2r_1d(length, C, c, FFTW_ESTIMATE);
+    fftwf_execute(p3); // Will destroy input array C, but that's okay
+
+    fftwf_destroy_plan(p1);
+    fftwf_destroy_plan(p2);
+    fftwf_destroy_plan(p3);
+    fftwf_free(A);
+    fftwf_free(B);
+    fftwf_free(C);
+}
+
+void complex_mult(fftwf_complex *A, fftwf_complex *B, fftwf_complex *product_ft, int complen) {
+    // A * B = (ac - bd) + i(ad + bc)
+    for (int j = 0; j < complen; j++) {
+        product_ft[j][0] = (A[j][0] * B[j][0]) - (A[j][1] * B[j][1]);
+        product_ft[j][1] = (A[j][0] * B[j][1]) + (A[j][1] * B[j][0]);
+    }
+}
+
+void dd_deconv2(float *kernel_y, float *data_y, const int length, float *output) {
+    // Create flipped point spread function kernel_star
+    float *kernel_star = calloc(length, sizeof(float));
+    // Create estimate for solution
+    float *estimate = calloc(length, sizeof(float));
+    // Allocate arrays for convolutions
+    float *conv1 = calloc(length, sizeof(float));
+    float *conv2 = calloc(length, sizeof(float));
+    if (conv1 && conv2 && estimate && kernel_star) {
+        for (int i = 0; i < length; i++) {
+            kernel_star[i] = kernel_y[length - i - 1];
+        }
+
+        for (int i = 0; i < length; i++) {
+            estimate[i] = data_y[i];
+        }
+
+        int complen = (length / 2) + 1;
+        fftwf_complex *kernel_ft = fftwf_malloc(complen * sizeof(fftwf_complex));
+        fftwf_complex *kernel_star_ft = fftwf_malloc(complen * sizeof(fftwf_complex));
+        fftwf_complex *estimate_ft = fftwf_malloc(complen * sizeof(fftwf_complex));
+        fftwf_complex *conv1_ft = fftwf_malloc(complen * sizeof(fftwf_complex));
+        fftwf_complex *product_ft = fftwf_malloc(complen * sizeof(fftwf_complex));
+
+        // fftwf_MEASURE takes a few seconds and overwrites input arrays, so we use ESTIMATE
+        fftwf_plan pk = fftwf_plan_dft_r2c_1d(length, kernel_y, kernel_ft, FFTW_ESTIMATE); // for kernel_y
+        fftwf_plan pks = fftwf_plan_dft_r2c_1d(length, kernel_star, kernel_star_ft, FFTW_ESTIMATE); // for kernel_star
+        fftwf_plan p1 = fftwf_plan_dft_r2c_1d(length, estimate, estimate_ft, FFTW_ESTIMATE); // for estimate
+        fftwf_plan p2 = fftwf_plan_dft_r2c_1d(length, conv1, conv1_ft, FFTW_ESTIMATE); // for conv1
+        fftwf_plan p1r = fftwf_plan_dft_c2r_1d(length, product_ft, conv1, FFTW_ESTIMATE); // to conv1
+        fftwf_plan p2r = fftwf_plan_dft_c2r_1d(length, product_ft, conv2, FFTW_ESTIMATE); // to conv2
+
+        // We only need to do the transforms for kernel and kernel* once
+        fftwf_execute(pk);
+        fftwf_execute(pks);
+
+        // Perform iterations
+        int j = 0;
+        float diff = 1.0;
+        while (j < 50 && diff > 0.0001) {
+            // Thresholds same as in Python
+            // Find new estimate
+            // cconv2fast(kernel_y, estimate, conv1, length);
+            fftwf_execute(p1);
+            complex_mult(kernel_ft, estimate_ft, product_ft, complen);
+            fftwf_execute(p1r);
+            for (int k = 0; k < length; k++) {
+                if (conv1[k] != 0) {
+                    conv1[k] = data_y[k] / conv1[k];
+                }
+            }
+            // cconv2fast(conv1, kernel_star, conv2, length);
+            fftwf_execute(p2);
+            complex_mult(conv1_ft, kernel_star_ft, product_ft, complen);
+            fftwf_execute(p2r);
+            for (int k = 0; k < length; k++) {
+                conv2[k] = conv2[k] * estimate[k]; // Store new estimate in conv2
+            }
+            // Find how much the estimate changed
+            float sum_diff = 0.0;
+            float sum_est = 0.0;
+            for (int k = 0; k < length; k++) {
+                sum_diff += pow((estimate[k] - conv2[k]), 2.0);
+                sum_est += estimate[k];
+            }
+            diff = sum_diff / sum_est;
+            // Set new estimate as estimate
+            for (int k = 0; k < length; k++) {
+                estimate[k] = conv2[k];
+            }
+            j++;
+        }
+
+        // estimate now contains our deconvolution
+        // Normalize and "return"
+        float estimate_max = 0.0;
+        for (int i = 0; i < length; i++) {
+            if (estimate_max < estimate[i]) {
+                estimate_max = estimate[i];
+            }
+        }
+        for (int i = 0; i < length; i++) {
+            output[i] = estimate[i] / estimate_max;
+        }
+
+        // Free arrays
+        free(kernel_star);
+        free(estimate);
+        free(conv1);
+        free(conv2);
+        fftwf_destroy_plan(pk);
+        fftwf_destroy_plan(pks);
+        fftwf_destroy_plan(p1);
+        fftwf_destroy_plan(p2);
+        fftwf_destroy_plan(p1r);
+        fftwf_destroy_plan(p2r);
+        fftwf_free(kernel_ft);
+        fftwf_free(kernel_star_ft);
+        fftwf_free(estimate_ft);
+        fftwf_free(conv1_ft);
+        fftwf_free(product_ft);
+    }
+}
+
+void dd_deconv(float *kernel_y, float *data_y, const int length, float *output) {
+    // Create flipped point spread function kernel_star
+    float *kernel_star = calloc(length, sizeof(float));
+    // Create estimate for solution
+    float *estimate = calloc(length, sizeof(float));
+    // Allocate arrays for convolutions
+    float *conv1 = calloc(length, sizeof(float));
+    float *conv2 = calloc(length, sizeof(float));
+
+    if (conv1 && conv2 && estimate && kernel_star) {
+        for (int i = 0; i < length; i++) {
+            kernel_star[i] = kernel_y[length - i - 1];
+        }
+
+        for (int i = 0; i < length; i++) {
+            estimate[i] = data_y[i];
+        }
+        // Perform iterations
+        int j = 0;
+        float diff = 1.0;
+        while (j < 50 && diff > 0.0001) {
+            // Thresholds same as in Python
+            // Find new estimate
+            cconv2fast(kernel_y, estimate, conv1, length);
+            for (int k = 0; k < length; k++) {
+                if (conv1[k] != 0) {
+                    conv1[k] = data_y[k] / conv1[k];
+                }
+            }
+            cconv2fast(conv1, kernel_star, conv2, length);
+            for (int k = 0; k < length; k++) {
+                conv2[k] = conv2[k] * estimate[k]; // Store new estimate in conv2
+            }
+            // Find how much the estimate changed
+            float sum_diff = 0.0;
+            float sum_est = 0.0;
+            for (int k = 0; k < length; k++) {
+                sum_diff += pow((estimate[k] - conv2[k]), 2.0);
+                sum_est += estimate[k];
+            }
+            diff = sum_diff / sum_est;
+            // Set new estimate as estimate
+            for (int k = 0; k < length; k++) {
+                estimate[k] = conv2[k];
+            }
+            j++;
+        }
+
+        // estimate now contains our deconvolution
+        // Normalize and "return"
+        float estimate_max = 0.0;
+        for (int i = 0; i < length; i++) {
+            if (estimate_max < estimate[i]) {
+                estimate_max = estimate[i];
+            }
+        }
+        for (int i = 0; i < length; i++) {
+            output[i] = estimate[i] / estimate_max;
+        }
+
+        // Free arrays
+        free(kernel_star);
+        free(estimate);
+        free(conv1);
+        free(conv2);
+    }
+}
+
+void DoubleDecon(const Config *config, Decon *decon) {
+    // Get larger length
+    int true_length;
+    int kernel_length = getfilelength(config->kernel);
+    int data_length = decon->mlen;
+    if (kernel_length > data_length) {
+        true_length = kernel_length;
+    } else {
+        true_length = data_length;
+    }
+
+    // Read in kernel file
+    float *kernel_x_init = calloc(true_length, sizeof(float));
+    float *kernel_y_init = calloc(true_length, sizeof(float));
+    readfile(config->kernel, kernel_length, kernel_x_init, kernel_y_init);
+    // printf("Kernel file read.\n");
+
+    // Enforce the same sampling on the kernel
+    if (kernel_length > 1 && data_length > 1) {
+        float diff = decon->massaxis[1] - decon->massaxis[0]; // kernel sampling needs to match this
+        float kdiff = kernel_x_init[1] - kernel_x_init[0]; // the original kernel sampling
+        if (diff != kdiff) {
+            int newlen = ((kernel_x_init[kernel_length - 1] - kernel_x_init[0]) / diff) + 1;
+            if (newlen > data_length) {
+                true_length = newlen;
+            } else {
+                true_length = data_length;
+            }
+        }
+    }
+
+    // Read in data (i.e. copy from decon struct)
+    float *data_x = calloc(true_length, sizeof(float));
+    float *data_y = calloc(true_length, sizeof(float));
+    float max_data_y = 0.0;
+    for (int i = 0; i < data_length; i++) {
+        data_x[i] = decon->massaxis[i];
+        data_y[i] = decon->massaxisval[i];
+        if (data_y[i] > max_data_y) {
+            max_data_y = data_y[i];
+        }
+    }
+    for (int i = 0; i < data_length; i++) {
+        // Normalize
+        data_y[i] = data_y[i] / max_data_y;
+    }
+    // printf("Data file copied and normalized.\n");
+
+    // Integrate or interpolate if necessary...
+    float *kernel_x = NULL;
+    float *kernel_y = NULL;
+    int kernel_length2 = true_length;
+
+
+    // printf("true length is %d\n", kernel_length2);
+    if (kernel_length > 1 && data_length > 1 &&
+        (data_x[1] - data_x[0]) > (kernel_x_init[1] - kernel_x_init[0])) {
+        printf("Integrating\n");
+        kernel_length2 = integrate_dd(kernel_x_init, kernel_y_init, kernel_length, data_x, data_y,
+                                       true_length, &kernel_x, &kernel_y);
+    } else if (kernel_length > 1 && data_length > 1 &&
+               (data_x[1] - data_x[0]) < (kernel_x_init[1] - kernel_x_init[0])) {
+        printf("Interpolating\n");
+        // kernel_length2 = interpolate_dd(kernel_x_init, kernel_y_init, kernel_length, data_x, data_y,
+        //                                 true_length, &kernel_x, &kernel_y);
+    } else {
+        printf("Sampling is OK\n");
+        kernel_x = kernel_x_init;
+        kernel_y = kernel_y_init;
+    }
+
+    // ...and find max and normalize
+    float max_kernel_y = 0.0;
+    int max_kernel_i = 0;
+    for (int i = 0; i < kernel_length2; i++) {
+        // printf("kernel y for index %d is %f\n", i, kernel_y[i]);
+        if (kernel_y[i] > max_kernel_y) {
+            max_kernel_y = kernel_y[i];
+            max_kernel_i = i;
+        }
+    }
+    // printf("max is %f, out of length %d\n", max_kernel_y, kernel_length2);
+    for (int i = 0; i < kernel_length2; i++) {
+        // Normalize
+        kernel_y[i] = kernel_y[i] / max_kernel_y;
+        // printf("%f\n", kernel_y[i]);
+    }
+    // printf("Kernel file normalized.\n");
+
+    // Pad x-axis for the shorter one (is padding kernel even necessary???)
+    if (data_length < true_length) {
+        // Pad data_x
+        float diff = data_x[1] - data_x[0];
+        float last = data_x[data_length - 1];
+        for (int i = data_length; i < true_length; i++) {
+            data_x[i] = last + diff;
+            last = data_x[i];
+        }
+    } else if (kernel_length < true_length && kernel_length > 2) {
+        // Pad kernel_x
+        float diff = kernel_x[1] - kernel_x[0];
+        float last = kernel_x[kernel_length - 1];
+        for (int i = kernel_length; i < true_length; i++) {
+            kernel_x[i] = last + diff;
+            last = kernel_x[i];
+        }
+    }
+    // printf("Data padded.\n");
+
+    // Prepare kernel
+    float *real_kernel_y = calloc(true_length, sizeof(float));
+    int part1_length = true_length - max_kernel_i;
+    for (int i = 0; i < part1_length; i++) {
+        real_kernel_y[i] = kernel_y[max_kernel_i + i];
+    }
+    for (int i = 0; i < max_kernel_i; i++) {
+        real_kernel_y[part1_length + i] = kernel_y[i];
+    }
+    // printf("Kernel file prepared.\n");
+
+    // Run Richardson-Lucy deconvolution
+    float *doubledec = calloc(true_length, sizeof(float));
+    // printf("Running dd_deconv2\n");
+    dd_deconv2(real_kernel_y, data_y, true_length, doubledec);
+
+    // printf("Copying results to Decon struct.\n");
+    int lb = nearfast(data_x, config->masslb, true_length);
+    if (data_x[lb] < config->masslb) lb++;
+    int ub = nearfast(data_x, config->massub, true_length);
+    if (data_x[ub] > config->massub) lb--;
+    int write_length = ub - lb + 1;
+    if (write_length > decon->mlen) {
+        // printf("Warning: new length exceeds previous mlen.\n");
+        free(decon->massaxis);
+        free(decon->massaxisval);
+        decon->massaxis = (float *) calloc(write_length, sizeof(float));
+        decon->massaxisval = (float *) calloc(write_length, sizeof(float));
+    }
+    if (decon->massaxis && decon->massaxisval) {
+        // Copy results to the Decon struct
+        for (int i = 0; i < write_length; i++) {
+            decon->massaxis[i] = data_x[i + lb];
+            decon->massaxisval[i] = doubledec[i + lb];
+        }
+    }
+    decon->mlen = write_length;
+    // printf("Results copied to Decon.\n");
+
+    // Free memory
+    if (kernel_x != kernel_x_init) {
+        free(kernel_x);
+        free(kernel_y);
+    }
+
+    free(real_kernel_y);
+    free(data_x);
+    free(data_y);
+    free(doubledec);
+
+    free(kernel_x_init);
+    free(kernel_y_init);
+
+}
+

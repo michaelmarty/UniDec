@@ -12,7 +12,8 @@ endif()
 #set(UNIDEC_DIR "${CMAKE_CURRENT_SOURCE_DIR}../")
 cmake_path(GET CMAKE_CURRENT_SOURCE_DIR PARENT_PATH UNIDEC_DIR)
 
-set(FFTW_DIR "${UNIDEC_DIR}/IsoDec/src_cmake/fftw")
+#set(FFTW_DIR "${UNIDEC_DIR}/IsoDec/src_cmake/fftw")
+set(FFTW_DIR "C:/Program Files (x86)/Intel/oneAPI/mkl/2025.1/include/fftw")
 set(INSTALL_DIR "${UNIDEC_DIR}/bin")
 
 # Set the HDF5 directory
@@ -25,7 +26,7 @@ message(STATUS "Install Dir: ${INSTALL_DIR}")
 
 # Add FFTW3 and HDF5 directories to the include path and link directories
 include_directories("${FFTW_DIR}")
-link_directories("${FFTW_DIR}")
+#link_directories("${FFTW_DIR}")
 
 include_directories("${HDF5_DIR}/include")
 link_directories("${HDF5_DIR}/lib")
@@ -52,8 +53,19 @@ add_executable(unidec
 #target_include_directories(unideclib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 #target_compile_definitions(unidec PRIVATE UNIDEC_BUILD_DLL)
 
-target_link_libraries(unidec fftw3)
+#target_link_libraries(unidec fftw3)
 target_link_libraries(unidec hdf5 hdf5_hl)
+
+
+# Find MKL (Math Kernel Library)
+find_package(MKL REQUIRED)
+if (MKL_FOUND)
+    target_link_libraries(unidec ${MKL_LIBRARIES})
+    target_link_libraries(unidec mkl_rt)
+    include_directories(${MKL_INCLUDE_DIRS})
+else()
+    message(FATAL_ERROR "MKL not found. Please install Intel MKL.")
+endif()
 
 
 find_package(OpenMP)
