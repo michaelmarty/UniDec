@@ -25,6 +25,7 @@ float ndis(const float x, const float y, const float sig);
 int mod(const int a, const int b);
 float clip(const float x, const float cutoff);
 float calcmz(const float mass, const int z, const float adductmass);
+float calcmass(const float mz, const int z, const float adductmass);
 float mzpeakshape(const float x, const float y, const float sig, const int psfun);
 int compare_function(const void *a, const void *b);
 float nativecharge(const float mass, const float fudge);

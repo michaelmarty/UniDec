@@ -158,6 +158,11 @@ float calcmz(const float mass, const int z, const float adductmass) {
     return (mass + (float) z * adductmass) / (float) z;
 }
 
+// Simple function to calculate mass from mz, z, and adductmass
+float calcmass(const float mz, const int z, const float adductmass) {
+    return (float) z * (mz - adductmass);
+}
+
 
 //Function for defining m/z peak shape. Other peak shape functions could be easily added here.
 float mzpeakshape(const float x, const float y, const float sig, const int psfun) {

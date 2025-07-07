@@ -449,6 +449,82 @@ float deconvolve_iteration_speedy(const int lengthmz, const int numz, const int 
 }
 
 
+void softargmax(float *blur, const int lengthmz, const int numz, const float beta) {
+    const int l = lengthmz * numz;
+    const size_t sizel = (size_t) l * sizeof(float);
+    float *newblur = (float *) calloc(l, sizeof(float));
+    if (newblur) {
+        memcpy(newblur, blur, sizel);
+        #pragma omp parallel for schedule(auto)
+        for (int i = 0; i < lengthmz; i++) {
+            float sum2 = 0;
+            float sum1 = 0;
+            float factor = 0;
+            float min2 = 1000000000000.0f;
+
+            for (int j = 0; j < numz; j++) {
+                const float d = newblur[index2D(numz, i, j)];
+                sum1 += d;
+
+                const float e = expf(beta * d);
+
+                if (e < min2) { min2 = e; }
+
+                blur[index2D(numz, i, j)] = e;
+                sum2 += e;
+            }
+
+            const float denom = (sum2 - min2 * (float) numz);
+            if (denom != 0) { factor = sum1 / denom; };
+
+            if (factor > 0) {
+                for (int j = 0; j < numz; j++) {
+                    blur[index2D(numz, i, j)] -= min2;
+                    blur[index2D(numz, i, j)] *= factor;
+                }
+            } else {
+                for (int j = 0; j < numz; j++) {
+                    blur[index2D(numz, i, j)] = 0;
+                }
+            }
+        }
+        free(newblur);
+    }
+}
+
+
+
+
+void point_smoothing(float *blur, const char *barr, const int lengthmz, const int numz, const int width) {
+    const int l = lengthmz * numz;
+    const float fwidth = (float) width;
+    float *newblur = calloc(l, sizeof(float));
+    if (newblur) {
+        const size_t newl = (size_t) lengthmz * numz * sizeof(float);
+        memcpy(newblur, blur, newl);
+        #pragma omp parallel for schedule(auto)
+        for (int i = 0; i < lengthmz; i++) {
+            for (int j = 0; j < numz; j++) {
+                if (barr[index2D(numz, i, j)] == 1) {
+                    int low = i - width;
+                    if (low < 0) { low = 0; }
+                    int high = i + width + 1;
+                    if (high > lengthmz) { high = lengthmz; }
+
+                    float sum = 0;
+                    for (int k = low; k < high; k++) {
+                        sum += newblur[index2D(numz, k, j)];
+                    }
+                    blur[index2D(numz, i, j)] = sum / (1.0f + 2.0f * fwidth);
+                }
+            }
+        }
+        free(newblur);
+    }
+}
+
+
+
 float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, const int numz,
                       const int maxlength, const float maxint,
                       const int *starttab,
@@ -535,6 +611,17 @@ float errfunspeedy(Config config, Decon decon, const char *barr, const float *da
 // ....................
 
 
+void CalcMasses(const Config *config, Input *inp) {
+    //Fills mtab by multiplying each mz by each z
+    const int ln = config->lengthmz * config->numz;
+    inp->mtab = (float *) calloc(ln, sizeof(float));
+    #pragma omp parallel for schedule(auto)
+    for (int i = 0; i < config->lengthmz; i++) {
+        for (int j = 0; j < config->numz; j++) {
+            inp->mtab[index2D(config->numz, i, j)] = calcmass(inp->dataMZ[i], inp->nztab[j], config->adductmass);
+        }
+    }
+}
 
 void TestMassListWindowed(const Config config, Input *inp) {
 #pragma omp parallel for schedule(auto)
@@ -617,6 +704,27 @@ void SetLimits(const Config config, Input *inp) {
     }
 }
 
+void ignorezeros(char *barr, const float *dataInt, const int lengthmz, const int numz) {
+    #pragma omp parallel for schedule(auto)
+    for (int i = 0; i < lengthmz; i++) {
+        float val = dataInt[i];
+        if (val == 0) {
+            for (int j = 0; j < numz; j++) {
+                barr[index2D(numz, i, j)] = 0;
+            }
+        }
+    }
+}
+
+
+void KillB(const float *I, char *B, const float intthresh, const int lengthmz, const int numz) {
+    for (int i = 0; i < lengthmz; i++) {
+        for (int j = 0; j < numz; j++) {
+            if (I[i] <= intthresh) { B[index2D(numz, i, j)] = 0; }
+        }
+    }
+}
+
 // .......................
 //
 // Peak Shape Functions
@@ -629,7 +737,6 @@ void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
     int lengthmz = config.lengthmz;
     int numz = config.numz;
     float molig = config.molig;
-    float adductmass = config.adductmass;
 
     #pragma omp parallel for schedule(auto)
     for (int i = 0; i < lengthmz; i++) {
@@ -657,8 +764,7 @@ void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
                         closearray[index3D(numz, numclose, i, j, k)] = 0;
                     } else {
                         //Find the nearest m/z value and test if it is close enough to the predicted one and within appropriate ranges
-                        float point = (float) ((inp->mtab[index2D(numz, i, j)] + (float) closemind[k] * molig + adductmass * (float)
-                                                (inp->nztab[j] + closezind[k])) / (float) (inp->nztab[j] + closezind[k]));
+                        float point = calcmz(inp->mtab[index2D(numz, i, j)] + (float) closemind[k] * molig, inp->nztab[j] + closezind[k], config.adductmass);
                         if (point < inp->dataMZ[0] - newthreshold || point > inp->dataMZ[lengthmz - 1] + newthreshold) {
                             closeind[index3D(numz, numclose, i, j, k)] = -1;
                             closearray[index3D(numz, numclose, i, j, k)] = 0;
@@ -861,6 +967,265 @@ float Reconvolve(const Config config, const int maxlength, Decon *decon, const c
     }
     return newblurmax;
 }
+
+
+void charge_scaling(float *blur, const int *nztab, const int lengthmz, const int numz) {
+    for (int i = 0; i < lengthmz; i++) {
+        for (int j = 0; j < numz; j++) {
+            const int charge = nztab[j];
+            const float z = (float) charge;
+            if (z != 0) { blur[index2D(numz, i, j)] /= z; }
+        }
+    }
+}
+
+// .......................
+//
+// Transform Functions
+//
+// .......................
+
+void IntegrateTransform(const Config config, Decon *decon, const float *mtab, float massmax, float massmin) {
+
+    const float *blur;
+    if (config.rawflag == 1 || config.rawflag == 3) {
+        blur = decon->blur;
+    }
+    else if (config.rawflag == 0 || config.rawflag == 2) {
+        blur = decon->newblur;
+    }
+    else {
+        return; // Do nothing
+    }
+
+    for (int i = 0; i < config.lengthmz; i++) {
+        for (int j = 0; j < config.numz; j++) {
+            float testmass = mtab[index2D(config.numz, i, j)];
+            if (testmass < massmax && testmass > massmin) {
+                int index = nearfast(decon->massaxis, testmass, decon->mlen);
+                float newval = blur[index2D(config.numz, i, j)];
+                if (decon->massaxis[index] == testmass) {
+                    decon->massaxisval[index] += newval;
+                    decon->massgrid[index2D(config.numz, index, j)] += newval;
+                }
+
+                if (decon->massaxis[index] < testmass && index < decon->mlen - 2) {
+                    int index2 = index + 1;
+                    float interpos = LinearInterpolatePosition(decon->massaxis[index], decon->massaxis[index2], testmass);
+                    decon->massaxisval[index] += (1.0f - interpos) * newval;
+                    decon->massgrid[index2D(config.numz, index, j)] += (1.0f - interpos) * newval;
+                    decon->massaxisval[index2] += (interpos) * newval;
+                    decon->massgrid[index2D(config.numz, index2, j)] += (interpos) * newval;
+                }
+
+                if (decon->massaxis[index] > testmass && index > 0) {
+                    int index2 = index - 1;
+                    float interpos = LinearInterpolatePosition(decon->massaxis[index], decon->massaxis[index2], testmass);
+                    decon->massaxisval[index] += (1 - interpos) * newval;
+                    decon->massgrid[index2D(config.numz, index, j)] += (1 - interpos) * newval;
+                    decon->massaxisval[index2] += (interpos) * newval;
+                    decon->massgrid[index2D(config.numz, index2, j)] += (interpos) * newval;
+                }
+            }
+        }
+    }
+}
+
+void InterpolateTransform(const Config config, Decon *decon, const Input *inp) {
+    const float *blur;
+    if (config.rawflag == 1 || config.rawflag == 3) {
+        blur = decon->blur;
+    }
+    else if (config.rawflag == 0 || config.rawflag == 2) {
+        blur = decon->newblur;
+    }
+    else {
+        return; // Do nothing
+    }
+
+    float startmzval = inp->dataMZ[0];
+    float endmzval = inp->dataMZ[config.lengthmz - 1];
+    //#pragma omp parallel for schedule(auto)
+    for (int i = 0; i < decon->mlen; i++) {
+        float val = 0;
+
+        for (int j = 0; j < config.numz; j++) {
+
+            float mztest = calcmz(decon->massaxis[i], inp->nztab[j], config.adductmass);
+
+            if (mztest > startmzval && mztest < endmzval) {
+                int index = nearfast(inp->dataMZ, mztest, config.lengthmz);
+                int index2 = index;
+                float newval = 0;
+                if (inp->dataMZ[index] == mztest) {
+                    newval = blur[index2D(config.numz, index, j)];
+                    val += newval;
+                    decon->massgrid[index2D(config.numz, i, j)] = newval;
+                } else {
+                    if (inp->dataMZ[index] > mztest && index > 1 && index < config.lengthmz - 1) {
+                        index2 = index;
+                        index = index - 1;
+                    } else if (inp->dataMZ[index] < mztest && index < config.lengthmz - 2 && index > 0) {
+                        index2 = index + 1;
+                    }
+                    if (index2 > index && (inp->dataMZ[index2] - inp->dataMZ[index]) != 0) {
+                        float mu = (mztest - inp->dataMZ[index]) / (inp->dataMZ[index2] - inp->dataMZ[index]);
+                        float y0 = blur[index2D(config.numz, index - 1, j)];
+                        float y1 = blur[index2D(config.numz, index, j)];
+                        float y2 = blur[index2D(config.numz, index2, j)];
+                        float y3 = blur[index2D(config.numz, index2 + 1, j)];
+                        newval = clip(CubicInterpolate(y0, y1, y2, y3, mu), 0);
+                        //newval=CRSplineInterpolate(y0,y1,y2,y3,mu);
+                        //newval=LinearInterpolate(y1,y2,mu);
+                        val += newval;
+                        decon->massgrid[index2D(config.numz, i, j)] = newval;
+                    }
+                }
+            }
+        }
+        decon->massaxisval[i] = val;
+    }
+}
+
+void SmartTransform(const Config config, Decon *decon, const Input *inp) {
+    const float *blur;
+    if (config.rawflag == 1 || config.rawflag == 3) {
+        blur = decon->blur;
+    }
+    else if (config.rawflag == 0 || config.rawflag == 2) {
+        blur = decon->newblur;
+    }
+    else {
+        return; // Do nothing
+    }
+
+    float startmzval = inp->dataMZ[0];
+    float endmzval = inp->dataMZ[config.lengthmz - 1];
+    #pragma omp parallel for schedule(auto)
+    for (int i = 0; i < decon->mlen; i++) {
+        float val = 0;
+        for (int j = 0; j < config.numz; j++) {
+            int z = inp->nztab[j];
+            float mtest = decon->massaxis[i];
+            float mztest = calcmz(mtest, z, config.adductmass);
+
+            float mzlower;
+            float mlower;
+            if (i > 0) {
+                mlower = decon->massaxis[i - 1];
+                mzlower = calcmz(mlower, z, config.adductmass);
+            } else {
+                mzlower = mztest;
+                mlower = mtest;
+            }
+
+            float mzupper;
+            float mupper;
+            if (i < decon->mlen - 1) {
+                mupper = decon->massaxis[i + 1];
+                mzupper = calcmz(mupper, z, config.adductmass);
+            } else {
+                mzupper = mztest;
+                mupper = mtest;
+            }
+
+
+            if (mzupper > startmzval && mzlower < endmzval) {
+                int index = nearfast(inp->dataMZ, mztest, config.lengthmz);
+                int index1 = nearfast(inp->dataMZ, mzlower, config.lengthmz);
+                int index2 = nearfast(inp->dataMZ, mzupper, config.lengthmz);
+                float imz = inp->dataMZ[index];
+                float newval = 0;
+                if (index2 - index1 < 5) {
+                    if (imz == mztest) {
+                        newval = clip(blur[index2D(config.numz, index, j)], 0);
+                        val += newval;
+                        decon->massgrid[index2D(config.numz, i, j)] = newval;
+                    } else {
+                        int edge = 0;
+                        index2 = index;
+                        if (imz > mztest) {
+                            index = index - 1;
+                        } else if (imz < mztest) {
+                            index2 = index + 1;
+                        }
+
+                        if (index < 1 || index2 >= config.lengthmz - 1) {
+                            edge = 1;
+                        }
+                        if (index < 0 || index2 >= config.lengthmz) {
+                            edge = 2;
+                        }
+
+
+                        if (index2 > index && (inp->dataMZ[index2] - inp->dataMZ[index]) != 0 && edge == 0) {
+                            float mu = (mztest - inp->dataMZ[index]) / (inp->dataMZ[index2] - inp->dataMZ[index]);
+                            float y0 = blur[index2D(config.numz, index - 1, j)];
+                            float y1 = blur[index2D(config.numz, index, j)];
+                            float y2 = blur[index2D(config.numz, index2, j)];
+                            float y3 = blur[index2D(config.numz, index2 + 1, j)];
+                            newval = clip(CubicInterpolate(y0, y1, y2, y3, mu), 0);
+                            //newval=clip(CRSplineInterpolate(y0,y1,y2,y3,mu), 0);
+                            //newval=clip(LinearInterpolate(y1,y2,mu),0);
+                            val += newval;
+                            decon->massgrid[index2D(config.numz, i, j)] = newval;
+                            //printf("0\n");
+                        } else if (edge == 1 && (inp->dataMZ[index2] - inp->dataMZ[index]) != 0) {
+                            float mu = (mztest - inp->dataMZ[index]) / (inp->dataMZ[index2] - inp->dataMZ[index]);
+                            float y1 = blur[index2D(config.numz, index, j)];
+                            float y2 = blur[index2D(config.numz, index2, j)];
+                            newval = clip(LinearInterpolate(y1, y2, mu), 0);
+                            val += newval;
+                            decon->massgrid[index2D(config.numz, i, j)] = newval;
+                            //printf("1 %d %d %f %f %f\n", index, index2, mztest, imz, newval, massaxis[i]);
+                        } else if (edge == 2 && (inp->dataMZ[index2] - inp->dataMZ[index]) != 0) {
+                            if (index2 == 0) {
+                                index = 0;
+                                index2 = 1;
+                            }
+                            if (index == config.lengthmz - 1) {
+                                index = config.lengthmz - 1;
+                                index2 = config.lengthmz - 2;
+                            }
+                            float mu = (mztest - inp->dataMZ[index]) / (inp->dataMZ[index] - inp->dataMZ[index2]);
+                            float y1 = blur[index2D(config.numz, index, j)];
+                            float y2 = 0;
+                            newval = clip(LinearInterpolate(y1, y2, mu), 0);
+                            val += newval;
+                            decon->massgrid[index2D(config.numz, i, j)] = newval;
+                            //printf("2\n");
+                        }
+                    }
+                } else {
+                    //printf("Integrating\n");
+                    float num = 0;
+                    for (int k = index1; k < index2 + 1; k++) {
+                        float kmz = inp->dataMZ[k];
+                        float km = (kmz - config.adductmass) * (float) z;
+                        float scale;
+
+                        if (mztest < kmz && km < mupper) {
+                            //scale = LinearInterpolatePosition(mzupper, mztest, kmz);
+                            scale = LinearInterpolatePosition(mupper, mtest, km);
+                        } else if (kmz < mztest && km > mlower) {
+                            //scale = LinearInterpolatePosition(mzlower, mztest, kmz);
+                            scale = LinearInterpolatePosition(mlower, mtest, km);
+                        } else if (kmz == mztest) { scale = 1; } else { scale = 0; }
+
+                        newval += scale * blur[index2D(config.numz, k, j)];
+                        num += scale;
+                    }
+                    if (num != 0) { newval /= num; }
+                    newval = clip(newval, 0);
+                    val += newval;
+                    decon->massgrid[index2D(config.numz, i, j)] = newval;
+                }
+            }
+        }
+        decon->massaxisval[i] = val;
+    }
+}
+
 
 
 // .....................

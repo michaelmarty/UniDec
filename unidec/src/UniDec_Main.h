@@ -476,32 +476,13 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 
 		//Determine the mass intensities from m/z grid
 		if (config.poolflag == 0) {
-			if (config.rawflag == 1 || config.rawflag == 3) {
-				IntegrateTransform(config.lengthmz, config.numz, inp.mtab, massmax, massmin, decon.mlen, decon.massaxis, decon.massaxisval, decon.blur, decon.massgrid);
-			}
-			if (config.rawflag == 0 || config.rawflag == 2) {
-				IntegrateTransform(config.lengthmz, config.numz, inp.mtab, massmax, massmin, decon.mlen, decon.massaxis, decon.massaxisval, decon.newblur, decon.massgrid);
-			}
+			IntegrateTransform(config, &decon, inp.mtab, massmax, massmin);
 		}
 		else if (config.poolflag == 1) {
-			if (config.rawflag == 1 || config.rawflag == 3) {
-				InterpolateTransform(decon.mlen, config.numz, config.lengthmz, inp.nztab, decon.massaxis, config.adductmass,
-					inp.dataMZ, decon.massgrid, decon.massaxisval, decon.blur);
-			}
-			if (config.rawflag == 0 || config.rawflag == 2) {
-				InterpolateTransform(decon.mlen, config.numz, config.lengthmz, inp.nztab, decon.massaxis, config.adductmass,
-					inp.dataMZ, decon.massgrid, decon.massaxisval, decon.newblur);
-			}
+			InterpolateTransform(config, &decon, &inp);
 		}
 		else if (config.poolflag == 2) {
-			if (config.rawflag == 1 || config.rawflag == 3) {
-				SmartTransform(decon.mlen, config.numz, config.lengthmz, inp.nztab, decon.massaxis, config.adductmass,
-					inp.dataMZ, decon.massgrid, decon.massaxisval, decon.blur);
-			}
-			if (config.rawflag == 0 || config.rawflag == 2) {
-				SmartTransform(decon.mlen, config.numz, config.lengthmz, inp.nztab, decon.massaxis, config.adductmass,
-					inp.dataMZ, decon.massgrid, decon.massaxisval, decon.newblur);
-			}
+			SmartTransform(config, &decon, &inp);
 		}
 		else {
 			printf("Invalid poolflag %d\n", config.poolflag);

@@ -86,6 +86,8 @@ float deconvolve_iteration_speedy(const int lengthmz, const int numz, const int 
                                   float *noise, const float mzsig, const float *dataMZ, const int filterwidth,
                                   const float psig);
 
+void softargmax(float *blur, const int lengthmz, const int numz, const float beta);
+void point_smoothing(float *blur, const char *barr, const int lengthmz, const int numz, const int width);
 float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, const int numz,
                       const int maxlength, const float maxint,
                       const int *starttab,
@@ -95,10 +97,13 @@ float errfunspeedy(Config config, Decon decon, const char *barr, const float *da
                    const int *starttab, const int *endtab,
                    const float *mzdist, float *rsquared);
 
+void CalcMasses(const Config *config, Input *inp);
 void TestMassListWindowed(const Config config, Input *inp);
 void TestMassListLimit(const Config config, Input *inp, const int *testmasspos);
 void TestMass(const Config config, Input *inp);
 void SetLimits(const Config config, Input *inp);
+void ignorezeros(char *barr, const float *dataInt, const int lengthmz, const int numz);
+void KillB(const float *I, char *B, const float intthresh, const int lengthmz, const int numz);
 
 void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
                     const int *closemind, int *closeind, const float *closeval, float *closearray, const Config config, const Input *inp);
@@ -108,6 +113,11 @@ void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, in
 int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *endtab);
 int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, const int verbose);
 float Reconvolve(const Config config, const int maxlength, Decon *decon, const char *barr);
+void charge_scaling(float *blur, const int *nztab, const int lengthmz, const int numz);
+
+void IntegrateTransform(const Config config, Decon *decon, const float *mtab, float massmax, float massmin);
+void InterpolateTransform(const Config config, Decon *decon, const Input *inp);
+void SmartTransform(const Config config, Decon *decon, const Input *inp);
 
 
 void DoubleDecon(const Config *config, Decon *decon);
