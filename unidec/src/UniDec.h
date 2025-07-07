@@ -26,70 +26,6 @@
 // #include "UD_sg.h"
 
 
-
-
-void TestMassListWindowed(int lengthmz, int numz, char *barr, float *mtab, float nativezub, float nativezlb,
-                          float massub, float masslb, int *nztab, float *testmasses, int mfilelen, float mtabsig) {
-    unsigned int i, j;
-    float testmass, nativelimit;
-#pragma omp parallel for private (i,j,testmass,nativelimit), schedule(auto)
-    for (i = 0; i < lengthmz; i++) {
-        for (j = 0; j < numz; j++) {
-            barr[index2D(numz, i, j)] = 0;
-            testmass = mtab[index2D(numz, i, j)];
-            nativelimit = nativecharge(testmass, 0);
-            if (testmass < massub && testmass > masslb && nztab[j] < nativelimit + nativezub && nztab[j] > nativelimit +
-                nativezlb) {
-                if (neartest(testmasses, testmass, mfilelen, mtabsig) == 1) {
-                    barr[index2D(numz, i, j)] = 1;
-                }
-            }
-        }
-    }
-}
-
-void TestMassListLimit(int lengthmz, int numz, char *barr, float *mtab, float nativezub, float nativezlb, float massub,
-                       float masslb, int *nztab, int *testmasspos, int mfilelen) {
-    unsigned int i, j, k;
-    float testmass, nativelimit;
-#pragma omp parallel for private (i,j,testmass,nativelimit), schedule(auto)
-    for (i = 0; i < lengthmz; i++) {
-        for (j = 0; j < numz; j++) {
-            barr[index2D(numz, i, j)] = 0;
-            testmass = mtab[index2D(numz, i, j)];
-            nativelimit = nativecharge(testmass, 0);
-            if (testmass < massub && testmass > masslb && nztab[j] < nativelimit + nativezub && nztab[j] > nativelimit +
-                nativezlb) {
-                for (k = 0; k < mfilelen; k++) {
-                    if (testmasspos[index2D(numz, k, j)] == i) {
-                        barr[index2D(numz, i, j)] = 1;
-                    }
-                }
-            }
-        }
-    }
-}
-
-void TestMass(int lengthmz, int numz, char *barr, float *mtab, float nativezub, float nativezlb, float massub,
-              float masslb, int *nztab) {
-    unsigned int i, j;
-    float testmass, nativelimit;
-#pragma omp parallel for private (i,j,testmass,nativelimit), schedule(auto)
-    for (i = 0; i < lengthmz; i++) {
-        for (j = 0; j < numz; j++) {
-            testmass = mtab[index2D(numz, i, j)];
-            nativelimit = nativecharge(testmass, 0);
-            if (testmass < massub && testmass > masslb && nztab[j] < nativelimit + nativezub && nztab[j] > nativelimit +
-                nativezlb) {
-                barr[index2D(numz, i, j)] = 1;
-            } else {
-                barr[index2D(numz, i, j)] = 0;
-            }
-        }
-    }
-}
-
-
 void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
                     const int *closemind, const float *mtab, const int *nztab,
                     const float *dataMZ, int *closeind, float *closeval, float *closearray, const Config config) {
@@ -520,110 +456,13 @@ void point_smoothing_peak_width(const int lengthmz, const int numz, const int ma
         memcpy(newblur, blur, ln * sizeof(float));
         Reconvolve(lengthmz, numz, maxlength, starttab, endtab, mzdist, newblur, blur, speedyflag, barr);
     }
-    return;
-}
-
-
-void softargmax_transposed(float *blur, const int lengthmz, const int numz, const float beta, const char *barr,
-                           const int maxlength, const int speedyflag
-                           , int *starttab, int *endtab, float *mzdist, const float mzsig) {
-    float *newblur, *deltas, *deltas2, *denom, *denom2;
-    int newl = lengthmz * numz;
-    newblur = (float *) calloc(newl, sizeof(float));
-    deltas = (float *) calloc(lengthmz, sizeof(float));
-    deltas2 = (float *) calloc(lengthmz, sizeof(float));
-    denom = (float *) calloc(lengthmz, sizeof(float));
-    denom2 = (float *) calloc(lengthmz, sizeof(float));
-    size_t newl2 = (size_t) lengthmz * numz * sizeof(float);
-    memcpy(newblur, blur, newl2);
-
-    //Sum deltas
-    sum_deltas(lengthmz, numz, blur, barr, deltas);
-
-    if (mzsig != 0) //Convolve with peak shape
-    {
-        convolve_simp(lengthmz, maxlength, starttab, endtab, mzdist, deltas, denom, speedyflag);
-    } else { memcpy(denom, deltas, sizeof(float) * lengthmz); }
-
-#pragma omp parallel for schedule(auto)
-    for (int i = 0; i < lengthmz * numz; i++) {
-        blur[i] = exp(beta * newblur[i]) - 1;
-    }
-
-    //Sum deltas
-    sum_deltas(lengthmz, numz, blur, barr, deltas2);
-
-    if (mzsig != 0) //Convolve with peak shape
-    {
-        convolve_simp(lengthmz, maxlength, starttab, endtab, mzdist, deltas2, denom2, speedyflag);
-    } else { memcpy(denom2, deltas, sizeof(float) * lengthmz); }
-
-#pragma omp parallel for schedule(auto)
-    for (int i = 0; i < lengthmz; i++) {
-        float factor = 0;
-        if (denom2[i] != 0) { factor = denom[i] / denom2[i]; };
-        for (int j = 0; j < numz; j++) {
-            //blur[index2D(numz, i, j)] -= 1;
-            blur[index2D(numz, i, j)] *= factor;
-        }
-        //printf("%f %f\n", sum1, sum3);
-    }
-    free(newblur);
-    free(deltas);
-    free(deltas2);
-    free(denom);
-    free(denom2);
-    return;
-}
-
-void softargmax_everything(float *blur, const int lengthmz, const int numz, const float beta) {
-    float *newblur;
-    int l = lengthmz * numz;
-    size_t sizel = (size_t) l * sizeof(float);
-    newblur = (float *) calloc(l, sizeof(float));
-    if (newblur) {
-        memcpy(newblur, blur, sizel);
-        //float max1 = 0;
-        //float max2 = 0;
-        float sum2 = 0;
-        float sum1 = 0;
-        float min2 = 1000000000000000.0;
-        //#pragma omp parallel for schedule(auto), reduction(min:min2), reduction(+:sum1), reduction(+:sum2)
-        for (int i = 0; i < lengthmz * numz; i++) {
-            float d = newblur[i];
-            //if (d > max1) { max1 = d; }
-            float e = exp(beta * d);
-            //float e = pow(d, -beta);
-            //if (e > max2) { max2 = e; }
-            blur[i] = e;
-            if (e < min2) { min2 = e; }
-            sum1 += d;
-            sum2 += e;
-        }
-        float factor = 0;
-        //float denom = (max2 - min2);
-        //if (denom != 0) { factor = max1 / denom; };
-        float denom = (sum2 - min2 * numz * lengthmz);
-        if (denom != 0) { factor = sum1 / denom; };
-        //if (sum2 != 0) { factor = sum1 / sum2; };
-        if (factor > 0) {
-#pragma omp parallel for schedule(auto)
-            for (int i = 0; i < lengthmz * numz; i++) {
-                blur[i] -= min2;
-                blur[i] *= factor;
-            }
-        }
-        free(newblur);
-    }
-    return;
 }
 
 void softargmax(float *blur, const int lengthmz, const int numz, const float beta) {
-    if (beta < 0) {
-        //softargmax_transposed(blur, lengthmz, numz, fabs(beta));
-        softargmax_everything(blur, lengthmz, numz, fabs(beta));
-        return;
-    }
+    // if (beta < 0) {
+    //     softargmax_everything(blur, lengthmz, numz, fabs(beta));
+    //     return;
+    // }
 
     float *newblur;
     int l = lengthmz * numz;
@@ -671,35 +510,30 @@ void softargmax(float *blur, const int lengthmz, const int numz, const float bet
 
 
 void SetLimits(const Config config, Input *inp) {
-    //Determines the indexes of each test mass from mfile in m/z space
-    int *testmasspos = (int *) malloc(sizeof(float) * config.mfilelen * config.numz);
-    if (testmasspos) {
-        if (config.mflag == 1 && config.limitflag == 1) {
-            for (int i = 0; i < config.mfilelen; i++) {
-                for (int j = 0; j < config.numz; j++) {
-                    float mztest = (inp->testmasses[i] + config.adductmass * inp->nztab[j]) / (float) inp->nztab[j];
-                    testmasspos[index2D(config.numz, i, j)] = nearfast(inp->dataMZ, mztest, config.lengthmz);
+    //If there is a mass file read, it will only allow masses close to those masses within some config.mtabsig window.
+    if (config.mflag == 1 && config.limitflag == 0) {
+        TestMassListWindowed(config, inp);
+    }
+    //If there is a mass file read and the mass table window (config.mtabsig) is 0, it will only write intensities at the m/z values closest to the m/z values read in from the mfile.
+    else if (config.mflag == 1 && config.limitflag == 1) {
+        //Determines the indexes of each test mass from mfile in m/z space
+        int *testmasspos = (int *) malloc(sizeof(float) * config.mfilelen * config.numz);
+        if (testmasspos) {
+            if (config.mflag == 1 && config.limitflag == 1) {
+                for (int i = 0; i < config.mfilelen; i++) {
+                    for (int j = 0; j < config.numz; j++) {
+                        float mztest = (inp->testmasses[i] + config.adductmass * inp->nztab[j]) / (float) inp->nztab[j];
+                        testmasspos[index2D(config.numz, i, j)] = nearfast(inp->dataMZ, mztest, config.lengthmz);
+                    }
                 }
             }
-        }
-
-        //If there is a mass file read, it will only allow masses close to those masses within some config.mtabsig window.
-        if (config.mflag == 1 && config.limitflag == 0) {
-            TestMassListWindowed(config.lengthmz, config.numz, inp->barr, inp->mtab, config.nativezub, config.nativezlb,
-                                 config.massub, config.masslb, inp->nztab, inp->testmasses, config.mfilelen,
-                                 config.mtabsig);
-        }
-        //If there is a mass file read and the mass table window (config.mtabsig) is 0, it will only write intensities at the m/z values closest to the m/z values read in from the mfile.
-        else if (config.mflag == 1 && config.limitflag == 1) {
-            TestMassListLimit(config.lengthmz, config.numz, inp->barr, inp->mtab, config.nativezub, config.nativezlb,
-                              config.massub, config.masslb, inp->nztab, testmasspos, config.mfilelen);
-        }
-        //Normally, write the intensity values if the values fall within the mass upperbound and lower bound
-        else {
-            TestMass(config.lengthmz, config.numz, inp->barr, inp->mtab, config.nativezub, config.nativezlb,
-                     config.massub, config.masslb, inp->nztab);
+            TestMassListLimit(config, inp, testmasspos);
         }
         free(testmasspos);
+    }
+    //Normally, write the intensity values if the values fall within the mass upperbound and lower bound
+    else {
+        TestMass(config, inp);
     }
 }
 
@@ -732,7 +566,6 @@ int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *end
     //printf("Max Length: %d\t", maxlength);
     return maxlength;
 }
-
 
 
 void CalcMasses(Config *config, Input *inp) {
@@ -795,7 +628,6 @@ int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, con
     }
     return maxlength;
 }
-
 
 
 #endif

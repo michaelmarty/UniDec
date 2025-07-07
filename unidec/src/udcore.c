@@ -456,6 +456,10 @@ float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, cons
 
     float *deltas = NULL;
     deltas = (float *) calloc(lengthmz, sizeof(float));
+    if (deltas == NULL) {
+        fprintf(stderr, "Error allocating memory for deltas in getfitdatspeedy.\n");
+        exit(11);
+    }
 
     #pragma omp parallel for schedule(auto)
     for (int i = 0; i < lengthmz; i++) //Collapse the grid into a 1D array of delta function values
@@ -509,13 +513,13 @@ float errfunspeedy(Config config, Decon decon, const char *barr, const float *da
     }
     ApplyCutoff(decon.fitdat, 0, config.lengthmz);
 
-    float fitmean = Average(config.lengthmz, dataInt);
+    const float fitmean = Average(config.lengthmz, dataInt);
 
     float error = 0;
     float sstot = 0;
     for (int i = 0; i < config.lengthmz; i++) {
-        error += pow((decon.fitdat[i] - dataInt[i]), 2);
-        sstot += pow((dataInt[i] - fitmean), 2);
+        error += powf((decon.fitdat[i] - dataInt[i]), 2.f);
+        sstot += powf((dataInt[i] - fitmean), 2.f);
     }
 
     //Calculate R-squared
@@ -523,6 +527,69 @@ float errfunspeedy(Config config, Decon decon, const char *barr, const float *da
 
     return error;
 }
+
+// ...................
+//
+// Test Mass Functions
+//
+// ....................
+
+
+
+void TestMassListWindowed(const Config config, Input *inp) {
+#pragma omp parallel for schedule(auto)
+    for (int i = 0; i < config.lengthmz; i++) {
+        for (int j = 0; j < config.numz; j++) {
+            inp->barr[index2D(config.numz, i, j)] = 0;
+            const float testmass = inp->mtab[index2D(config.numz, i, j)];
+            const float nativelimit = nativecharge(testmass, 0);
+            if (testmass < config.massub && testmass > config.masslb && (float) inp->nztab[j] < nativelimit + config.nativezub && (float) inp->nztab[j] > nativelimit +
+                config.nativezlb) {
+                if (neartest(inp->testmasses, testmass, config.mfilelen, config.mtabsig) == 1) {
+                    inp->barr[index2D(config.numz, i, j)] = 1;
+                }
+            }
+        }
+    }
+}
+
+void TestMassListLimit(const Config config, Input *inp, const int *testmasspos) {
+
+    #pragma omp parallel for schedule(auto)
+    for (int i = 0; i < config.lengthmz; i++) {
+        for (int j = 0; j < config.numz; j++) {
+            inp->barr[index2D(config.numz, i, j)] = 0;
+            const float testmass = inp->mtab[index2D(config.numz, i, j)];
+            const float nativelimit = nativecharge(testmass, 0);
+            if (testmass < config.massub && testmass > config.masslb && (float) inp->nztab[j] < nativelimit + config.nativezub && (float) inp->nztab[j] > nativelimit +
+                config.nativezlb) {
+                for (int k = 0; k < config.mfilelen; k++) {
+                    if (testmasspos[index2D(config.numz, k, j)] == i) {
+                        inp->barr[index2D(config.numz, i, j)] = 1;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void TestMass(const Config config, Input *inp) {
+    #pragma omp parallel for schedule(auto)
+    for (int i = 0; i < config.lengthmz; i++) {
+        for (int j = 0; j < config.numz; j++) {
+            const float testmass = inp->mtab[index2D(config.numz, i, j)];
+            const float nativelimit = nativecharge(testmass, 0);
+            if (testmass < config.massub && testmass > config.masslb && (float) inp->nztab[j] < nativelimit + config.nativezub && (float) inp->nztab[j] > nativelimit +
+                config.nativezlb) {
+                inp->barr[index2D(config.numz, i, j)] = 1;
+            } else {
+                inp->barr[index2D(config.numz, i, j)] = 0;
+            }
+        }
+    }
+}
+
+
 
 
 // .....................
@@ -533,14 +600,14 @@ float errfunspeedy(Config config, Decon decon, const char *barr, const float *da
 
 
 // Integrates data in kernel to match sampling in data. Returns the new kernel length
-int integrate_dd(float *kernel_x, float *kernel_y, int kernellen, float *data_x,
-                 float *data_y, int datalen, float **kernel_x_new, float **kernel_y_new) {
+int integrate_dd(const float *kernel_x, const float *kernel_y, const int kernellen, const float *data_x,
+                 const int datalen, float **kernel_x_new, float **kernel_y_new) {
     if (kernellen <= 1 || datalen <= 1) {
         return kernellen;
     }
-    float diff = data_x[1] - data_x[0]; // kernel sampling needs to match this
-    float kdiff = kernel_x[1] - kernel_x[0]; // the original kernel sampling
-    int newlen = ((kernel_x[kernellen - 1] - kernel_x[0]) / diff) + 1; // new number of points in kernel
+    const float diff = data_x[1] - data_x[0]; // kernel sampling needs to match this
+    const float kdiff = kernel_x[1] - kernel_x[0]; // the original kernel sampling
+    const int newlen = (int) ((kernel_x[kernellen - 1] - kernel_x[0]) / diff) + 1; // new number of points in kernel
     // these are the newly allocated arrays for the kernel
     int truelen;
     if (newlen > datalen) {
@@ -550,6 +617,11 @@ int integrate_dd(float *kernel_x, float *kernel_y, int kernellen, float *data_x,
     }
     *kernel_x_new = (float *) calloc(truelen, sizeof(float));
     *kernel_y_new = (float *) calloc(truelen, sizeof(float));
+    if (*kernel_x_new == NULL || *kernel_y_new == NULL) {
+        fprintf(stderr, "Error allocating memory for kernel_x_new or kernel_y_new in integrate_dd.\n");
+        exit(11);
+    }
+
     if (*kernel_x_new && *kernel_y_new) {
         float current_x = kernel_x[0];
         float current_xl = kernel_x[0];
@@ -560,20 +632,20 @@ int integrate_dd(float *kernel_x, float *kernel_y, int kernellen, float *data_x,
             for (int j = current_index; j < kernellen; j++) {
                 // For the first value, add area to the left of the point
                 if (j == current_index && j != 0 && kernel_x[j] >= current_xl && kernel_x[j] < current_xr) {
-                    float left_mu = LinearInterpolatePosition(kernel_x[j - 1], kernel_x[j], current_xl);
-                    float left_y = LinearInterpolate(kernel_y[j - 1], kernel_y[j], left_mu);
-                    y_val += (left_y + kernel_y[j]) * (kernel_x[j] - current_xl) / 2.0;
+                    const float left_mu = LinearInterpolatePosition(kernel_x[j - 1], kernel_x[j], current_xl);
+                    const float left_y = LinearInterpolate(kernel_y[j - 1], kernel_y[j], left_mu);
+                    y_val += (left_y + kernel_y[j]) * (kernel_x[j] - current_xl) / 2.0f;
                 }
                 // Next, add the area to the right of the point (it's either to the next point, to the
                 // boundary, or we're at the last point)
                 if (kernel_x[j] >= current_xl && kernel_x[j] < current_xr && (j + 1) < kernellen &&
                     kernel_x[j + 1] < current_xr) {
-                    y_val += (kernel_y[j] + kernel_y[j + 1]) * kdiff / 2.0;
+                    y_val += (kernel_y[j] + kernel_y[j + 1]) * kdiff / 2.0f;
                 } else if (kernel_x[j] >= current_xl && kernel_x[j] < current_xr &&
                            (j + 1) < kernellen && kernel_x[j + 1] >= current_xr) {
-                    float right_mu = LinearInterpolatePosition(kernel_x[j], kernel_x[j + 1], current_xr);
-                    float right_y = LinearInterpolate(kernel_y[j], kernel_y[j + 1], right_mu);
-                    y_val += (kernel_y[j] + right_y) * (current_xr - kernel_x[j]) / 2.0;
+                    const float right_mu = LinearInterpolatePosition(kernel_x[j], kernel_x[j + 1], current_xr);
+                    const float right_y = LinearInterpolate(kernel_y[j], kernel_y[j + 1], right_mu);
+                    y_val += (kernel_y[j] + right_y) * (current_xr - kernel_x[j]) / 2.0f;
                 } else if (kernel_x[j] >= current_xr || (j + 1) >= kernellen) {
                     current_index = j;
                     break;
@@ -592,13 +664,13 @@ int integrate_dd(float *kernel_x, float *kernel_y, int kernellen, float *data_x,
 }
 
 // (Linear) Interpolates data in kernel to match sampling in data. Returns the new kernel length
-int interpolate_dd(float *kernel_x, float *kernel_y, int kernellen, float *data_x,
-                   float *data_y, int datalen, float **kernel_x_new, float **kernel_y_new) {
+int interpolate_dd(const float *kernel_x, const float *kernel_y, const int kernellen, const float *data_x,
+                   int datalen, float **kernel_x_new, float **kernel_y_new) {
     if (kernellen <= 1 || datalen <= 1) {
         return kernellen;
     }
-    float diff = data_x[1] - data_x[0]; // kernel sampling needs to match this
-    int newlen = ((kernel_x[kernellen - 1] - kernel_x[0]) / diff) + 1; // new number of points in kernel
+    const float diff = data_x[1] - data_x[0]; // kernel sampling needs to match this
+    const int newlen = (int) ((kernel_x[kernellen - 1] - kernel_x[0]) / diff) + 1; // new number of points in kernel
     // these are the newly allocated arrays for the kernel
     int truelen;
     if (newlen > datalen) {
@@ -611,14 +683,14 @@ int interpolate_dd(float *kernel_x, float *kernel_y, int kernellen, float *data_
     if (*kernel_x_new && *kernel_y_new) {
         float current_x = kernel_x[0];
         for (int i = 0; i < newlen; i++) {
-            int nearest_index = nearfast(kernel_x, current_x, kernellen);
+            const int nearest_index = nearfast(kernel_x, current_x, kernellen);
             if (kernel_x[nearest_index] == current_x) {
                 (*kernel_y_new)[i] = kernel_y[nearest_index];
             } else if (kernel_x[nearest_index] < current_x) {
                 if ((nearest_index + 1) < kernellen) {
-                    float mu = LinearInterpolatePosition(kernel_x[nearest_index], kernel_x[nearest_index + 1],
+                    const float mu = LinearInterpolatePosition(kernel_x[nearest_index], kernel_x[nearest_index + 1],
                                                            current_x);
-                    float y_val = LinearInterpolate(kernel_y[nearest_index], kernel_y[nearest_index + 1], mu);
+                    const float y_val = LinearInterpolate(kernel_y[nearest_index], kernel_y[nearest_index + 1], mu);
                     (*kernel_y_new)[i] = y_val;
                 } else {
                     // this should never be the case
@@ -626,9 +698,9 @@ int interpolate_dd(float *kernel_x, float *kernel_y, int kernellen, float *data_
                 }
             } else if (kernel_x[nearest_index] > current_x) {
                 if (nearest_index > 0) {
-                    float mu = LinearInterpolatePosition(kernel_x[nearest_index - 1], kernel_x[nearest_index],
+                    const float mu = LinearInterpolatePosition(kernel_x[nearest_index - 1], kernel_x[nearest_index],
                                                            current_x);
-                    float y_val = LinearInterpolate(kernel_y[nearest_index - 1], kernel_y[nearest_index], mu);
+                    const float y_val = LinearInterpolate(kernel_y[nearest_index - 1], kernel_y[nearest_index], mu);
                     (*kernel_y_new)[i] = y_val;
                 } else {
                     // this should also never happen
@@ -644,7 +716,7 @@ int interpolate_dd(float *kernel_x, float *kernel_y, int kernellen, float *data_
     return newlen;
 }
 
-void cconv2fast(float *a, float *b, float *c, int length) {
+void cconv2fast(float *a, float *b, float *c, const int length) {
     // We don't seem to have complex.h, unfortunately
     // fftwf_complex is a double[2] of real (0) and imaginary (1)
     const int complen = (length / 2) + 1;
@@ -675,7 +747,7 @@ void cconv2fast(float *a, float *b, float *c, int length) {
     fftwf_free(C);
 }
 
-void complex_mult(fftwf_complex *A, fftwf_complex *B, fftwf_complex *product_ft, int complen) {
+void complex_mult(const fftwf_complex *A, const fftwf_complex *B, fftwf_complex *product_ft, const int complen) {
     // A * B = (ac - bd) + i(ad + bc)
     for (int j = 0; j < complen; j++) {
         product_ft[j][0] = (A[j][0] * B[j][0]) - (A[j][1] * B[j][1]);
@@ -683,7 +755,7 @@ void complex_mult(fftwf_complex *A, fftwf_complex *B, fftwf_complex *product_ft,
     }
 }
 
-void dd_deconv2(float *kernel_y, float *data_y, const int length, float *output) {
+void dd_deconv2(float *kernel_y, const float *data_y, const int length, float *output) {
     // Create flipped point spread function kernel_star
     float *kernel_star = calloc(length, sizeof(float));
     // Create estimate for solution
@@ -700,7 +772,7 @@ void dd_deconv2(float *kernel_y, float *data_y, const int length, float *output)
             estimate[i] = data_y[i];
         }
 
-        int complen = (length / 2) + 1;
+        const int complen = (length / 2) + 1;
         fftwf_complex *kernel_ft = fftwf_malloc(complen * sizeof(fftwf_complex));
         fftwf_complex *kernel_star_ft = fftwf_malloc(complen * sizeof(fftwf_complex));
         fftwf_complex *estimate_ft = fftwf_malloc(complen * sizeof(fftwf_complex));
@@ -721,11 +793,10 @@ void dd_deconv2(float *kernel_y, float *data_y, const int length, float *output)
 
         // Perform iterations
         int j = 0;
-        float diff = 1.0;
+        float diff = 1.0f;
         while (j < 50 && diff > 0.0001) {
             // Thresholds same as in Python
             // Find new estimate
-            // cconv2fast(kernel_y, estimate, conv1, length);
             fftwf_execute(p1);
             complex_mult(kernel_ft, estimate_ft, product_ft, complen);
             fftwf_execute(p1r);
@@ -742,10 +813,10 @@ void dd_deconv2(float *kernel_y, float *data_y, const int length, float *output)
                 conv2[k] = conv2[k] * estimate[k]; // Store new estimate in conv2
             }
             // Find how much the estimate changed
-            float sum_diff = 0.0;
-            float sum_est = 0.0;
+            float sum_diff = 0.0f;
+            float sum_est = 0.0f;
             for (int k = 0; k < length; k++) {
-                sum_diff += pow((estimate[k] - conv2[k]), 2.0);
+                sum_diff += powf((estimate[k] - conv2[k]), 2.0f);
                 sum_est += estimate[k];
             }
             diff = sum_diff / sum_est;
@@ -758,7 +829,7 @@ void dd_deconv2(float *kernel_y, float *data_y, const int length, float *output)
 
         // estimate now contains our deconvolution
         // Normalize and "return"
-        float estimate_max = 0.0;
+        float estimate_max = 0.0f;
         for (int i = 0; i < length; i++) {
             if (estimate_max < estimate[i]) {
                 estimate_max = estimate[i];
@@ -787,79 +858,17 @@ void dd_deconv2(float *kernel_y, float *data_y, const int length, float *output)
     }
 }
 
-void dd_deconv(float *kernel_y, float *data_y, const int length, float *output) {
-    // Create flipped point spread function kernel_star
-    float *kernel_star = calloc(length, sizeof(float));
-    // Create estimate for solution
-    float *estimate = calloc(length, sizeof(float));
-    // Allocate arrays for convolutions
-    float *conv1 = calloc(length, sizeof(float));
-    float *conv2 = calloc(length, sizeof(float));
-
-    if (conv1 && conv2 && estimate && kernel_star) {
-        for (int i = 0; i < length; i++) {
-            kernel_star[i] = kernel_y[length - i - 1];
-        }
-
-        for (int i = 0; i < length; i++) {
-            estimate[i] = data_y[i];
-        }
-        // Perform iterations
-        int j = 0;
-        float diff = 1.0;
-        while (j < 50 && diff > 0.0001) {
-            // Thresholds same as in Python
-            // Find new estimate
-            cconv2fast(kernel_y, estimate, conv1, length);
-            for (int k = 0; k < length; k++) {
-                if (conv1[k] != 0) {
-                    conv1[k] = data_y[k] / conv1[k];
-                }
-            }
-            cconv2fast(conv1, kernel_star, conv2, length);
-            for (int k = 0; k < length; k++) {
-                conv2[k] = conv2[k] * estimate[k]; // Store new estimate in conv2
-            }
-            // Find how much the estimate changed
-            float sum_diff = 0.0;
-            float sum_est = 0.0;
-            for (int k = 0; k < length; k++) {
-                sum_diff += pow((estimate[k] - conv2[k]), 2.0);
-                sum_est += estimate[k];
-            }
-            diff = sum_diff / sum_est;
-            // Set new estimate as estimate
-            for (int k = 0; k < length; k++) {
-                estimate[k] = conv2[k];
-            }
-            j++;
-        }
-
-        // estimate now contains our deconvolution
-        // Normalize and "return"
-        float estimate_max = 0.0;
-        for (int i = 0; i < length; i++) {
-            if (estimate_max < estimate[i]) {
-                estimate_max = estimate[i];
-            }
-        }
-        for (int i = 0; i < length; i++) {
-            output[i] = estimate[i] / estimate_max;
-        }
-
-        // Free arrays
-        free(kernel_star);
-        free(estimate);
-        free(conv1);
-        free(conv2);
-    }
-}
 
 void DoubleDecon(const Config *config, Decon *decon) {
+    if (decon->massaxis == NULL || decon->massaxisval == NULL) {
+        fprintf(stderr, "Error: Config or Decon struct is NULL in DoubleDecon.\n");
+        exit(1);
+    }
+
     // Get larger length
     int true_length;
-    int kernel_length = getfilelength(config->kernel);
-    int data_length = decon->mlen;
+    const int kernel_length = getfilelength(config->kernel);
+    const int data_length = decon->mlen;
     if (kernel_length > data_length) {
         true_length = kernel_length;
     } else {
@@ -869,15 +878,20 @@ void DoubleDecon(const Config *config, Decon *decon) {
     // Read in kernel file
     float *kernel_x_init = calloc(true_length, sizeof(float));
     float *kernel_y_init = calloc(true_length, sizeof(float));
+    if (kernel_x_init == NULL || kernel_y_init == NULL) {
+        fprintf(stderr, "Error allocating memory for kernel_x_init or kernel_y_init in DoubleDecon.\n");
+        exit(1);
+    }
+
     readfile(config->kernel, kernel_length, kernel_x_init, kernel_y_init);
     // printf("Kernel file read.\n");
 
     // Enforce the same sampling on the kernel
     if (kernel_length > 1 && data_length > 1) {
-        float diff = decon->massaxis[1] - decon->massaxis[0]; // kernel sampling needs to match this
-        float kdiff = kernel_x_init[1] - kernel_x_init[0]; // the original kernel sampling
+        const float diff = decon->massaxis[1] - decon->massaxis[0]; // kernel sampling needs to match this
+        const float kdiff = kernel_x_init[1] - kernel_x_init[0]; // the original kernel sampling
         if (diff != kdiff) {
-            int newlen = ((kernel_x_init[kernel_length - 1] - kernel_x_init[0]) / diff) + 1;
+            const int newlen = (int) ((kernel_x_init[kernel_length - 1] - kernel_x_init[0]) / diff) + 1;
             if (newlen > data_length) {
                 true_length = newlen;
             } else {
@@ -889,37 +903,33 @@ void DoubleDecon(const Config *config, Decon *decon) {
     // Read in data (i.e. copy from decon struct)
     float *data_x = calloc(true_length, sizeof(float));
     float *data_y = calloc(true_length, sizeof(float));
-    float max_data_y = 0.0;
+    if (data_x == NULL || data_y == NULL) {
+        fprintf(stderr, "Error allocating memory for data_x or data_y in DoubleDecon.\n");
+        exit(1);
+    }
+
     for (int i = 0; i < data_length; i++) {
         data_x[i] = decon->massaxis[i];
         data_y[i] = decon->massaxisval[i];
-        if (data_y[i] > max_data_y) {
-            max_data_y = data_y[i];
-        }
     }
-    for (int i = 0; i < data_length; i++) {
-        // Normalize
-        data_y[i] = data_y[i] / max_data_y;
-    }
-    // printf("Data file copied and normalized.\n");
+    NormMax(data_y, data_length);
 
     // Integrate or interpolate if necessary...
     float *kernel_x = NULL;
     float *kernel_y = NULL;
     int kernel_length2 = true_length;
 
-
     // printf("true length is %d\n", kernel_length2);
     if (kernel_length > 1 && data_length > 1 &&
         (data_x[1] - data_x[0]) > (kernel_x_init[1] - kernel_x_init[0])) {
         printf("Integrating\n");
-        kernel_length2 = integrate_dd(kernel_x_init, kernel_y_init, kernel_length, data_x, data_y,
+        kernel_length2 = integrate_dd(kernel_x_init, kernel_y_init, kernel_length, data_x,
                                        true_length, &kernel_x, &kernel_y);
     } else if (kernel_length > 1 && data_length > 1 &&
                (data_x[1] - data_x[0]) < (kernel_x_init[1] - kernel_x_init[0])) {
         printf("Interpolating\n");
-        // kernel_length2 = interpolate_dd(kernel_x_init, kernel_y_init, kernel_length, data_x, data_y,
-        //                                 true_length, &kernel_x, &kernel_y);
+        kernel_length2 = interpolate_dd(kernel_x_init, kernel_y_init, kernel_length, data_x,
+                                        true_length, &kernel_x, &kernel_y);
     } else {
         printf("Sampling is OK\n");
         kernel_x = kernel_x_init;
@@ -927,27 +937,24 @@ void DoubleDecon(const Config *config, Decon *decon) {
     }
 
     // ...and find max and normalize
-    float max_kernel_y = 0.0;
+    float max_kernel_y = 0.0f;
     int max_kernel_i = 0;
     for (int i = 0; i < kernel_length2; i++) {
-        // printf("kernel y for index %d is %f\n", i, kernel_y[i]);
         if (kernel_y[i] > max_kernel_y) {
             max_kernel_y = kernel_y[i];
             max_kernel_i = i;
         }
     }
-    // printf("max is %f, out of length %d\n", max_kernel_y, kernel_length2);
+
     for (int i = 0; i < kernel_length2; i++) {
         // Normalize
         kernel_y[i] = kernel_y[i] / max_kernel_y;
-        // printf("%f\n", kernel_y[i]);
     }
-    // printf("Kernel file normalized.\n");
 
     // Pad x-axis for the shorter one (is padding kernel even necessary???)
     if (data_length < true_length) {
         // Pad data_x
-        float diff = data_x[1] - data_x[0];
+        const float diff = data_x[1] - data_x[0];
         float last = data_x[data_length - 1];
         for (int i = data_length; i < true_length; i++) {
             data_x[i] = last + diff;
@@ -955,56 +962,66 @@ void DoubleDecon(const Config *config, Decon *decon) {
         }
     } else if (kernel_length < true_length && kernel_length > 2) {
         // Pad kernel_x
-        float diff = kernel_x[1] - kernel_x[0];
+        const float diff = kernel_x[1] - kernel_x[0];
         float last = kernel_x[kernel_length - 1];
         for (int i = kernel_length; i < true_length; i++) {
             kernel_x[i] = last + diff;
             last = kernel_x[i];
         }
     }
-    // printf("Data padded.\n");
 
     // Prepare kernel
     float *real_kernel_y = calloc(true_length, sizeof(float));
-    int part1_length = true_length - max_kernel_i;
+    if (real_kernel_y == NULL) {
+        fprintf(stderr, "Error allocating memory for real_kernel_y in DoubleDecon.\n");
+        exit(1);
+    }
+
+    const int part1_length = true_length - max_kernel_i;
     for (int i = 0; i < part1_length; i++) {
         real_kernel_y[i] = kernel_y[max_kernel_i + i];
     }
     for (int i = 0; i < max_kernel_i; i++) {
         real_kernel_y[part1_length + i] = kernel_y[i];
     }
-    // printf("Kernel file prepared.\n");
 
     // Run Richardson-Lucy deconvolution
     float *doubledec = calloc(true_length, sizeof(float));
-    // printf("Running dd_deconv2\n");
+    if (doubledec == NULL) {
+        fprintf(stderr, "Error allocating memory for doubledec in DoubleDecon.\n");
+        exit(1);
+    }
     dd_deconv2(real_kernel_y, data_y, true_length, doubledec);
 
     // printf("Copying results to Decon struct.\n");
     int lb = nearfast(data_x, config->masslb, true_length);
     if (data_x[lb] < config->masslb) lb++;
-    int ub = nearfast(data_x, config->massub, true_length);
+    const int ub = nearfast(data_x, config->massub, true_length);
     if (data_x[ub] > config->massub) lb--;
-    int write_length = ub - lb + 1;
+    const int write_length = ub - lb + 1;
     if (write_length > decon->mlen) {
         // printf("Warning: new length exceeds previous mlen.\n");
         free(decon->massaxis);
         free(decon->massaxisval);
         decon->massaxis = (float *) calloc(write_length, sizeof(float));
         decon->massaxisval = (float *) calloc(write_length, sizeof(float));
-    }
-    if (decon->massaxis && decon->massaxisval) {
-        // Copy results to the Decon struct
-        for (int i = 0; i < write_length; i++) {
-            decon->massaxis[i] = data_x[i + lb];
-            decon->massaxisval[i] = doubledec[i + lb];
+        if (decon->massaxis == NULL || decon->massaxisval == NULL) {
+            fprintf(stderr, "Error: Config or Decon struct is NULL in DoubleDecon.\n");
+            exit(1);
         }
     }
+
+    // Copy results to the Decon struct
+    for (int i = 0; i < write_length; i++) {
+        decon->massaxis[i] = data_x[i + lb];
+        decon->massaxisval[i] = doubledec[i + lb];
+    }
+
     decon->mlen = write_length;
     // printf("Results copied to Decon.\n");
 
     // Free memory
-    if (kernel_x != kernel_x_init) {
+    if (kernel_x && kernel_y) {
         free(kernel_x);
         free(kernel_y);
     }

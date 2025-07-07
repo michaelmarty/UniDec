@@ -303,14 +303,8 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		decon.iterations = iterations;
 		if (config.beta > 0 && iterations > 0)
 		{
-
 			softargmax(decon.blur, config.lengthmz, config.numz, config.beta/betafactor);
 			//printf("Beta %f\n", beta);
-		}
-		else if (config.beta < 0 && iterations >0)
-		{
-			softargmax_transposed(decon.blur, config.lengthmz, config.numz, fabs(config.beta/betafactor), barr, maxlength,
-				config.speedyflag, decon.starttab, decon.endtab, decon.rmzdist, config.mzsig);
 		}
 
 		if (config.psig >= 1 && iterations > 0)

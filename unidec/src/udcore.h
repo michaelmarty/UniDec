@@ -95,4 +95,8 @@ float errfunspeedy(Config config, Decon decon, const char *barr, const float *da
                    const int *starttab, const int *endtab,
                    const float *mzdist, float *rsquared);
 
+void TestMassListWindowed(const Config config, Input *inp);
+void TestMassListLimit(const Config config, Input *inp, const int *testmasspos);
+void TestMass(const Config config, Input *inp);
+
 void DoubleDecon(const Config *config, Decon *decon);
