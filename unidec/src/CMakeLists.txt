@@ -42,7 +42,9 @@ add_executable(unidec
         udtools.c
         udtools.h
         udstruct.c
-        udstruct.h)
+        udstruct.h
+        udio.c
+        udio.h)
 
 #target_link_libraries(unidec PRIVATE unideclib)
 #target_include_directories(unideclib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

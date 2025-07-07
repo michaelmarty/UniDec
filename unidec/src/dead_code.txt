@@ -655,4 +655,12 @@ void setup_and_make_isotopes(Config *config, Input *inp) {
     printf("Isotopes set up, Length: %d\n", config->isolength);
 }
 
+int nearfast_test(const float *dataMZ, const float point, const int numdat, float cutoff) {
+    int index = nearfast(dataMZ, point, numdat);
+    float val = dataMZ[index];
+    if (fabs(val - point) < cutoff) {
+        return index;
+    } else { return -1; }
+}
+
 */
