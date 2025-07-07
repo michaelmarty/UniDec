@@ -38,7 +38,11 @@ add_executable(unidec
         UD_IO.h
         UD_sg.h UD_peak_width.h UD_score.h
         UD_match.h UniDec.c UD_match.h
-        UniDec_Main.h UniDecLC_Main.h UniDecIM.h UniDecIM_Main.h)
+        UniDec_Main.h UniDecLC_Main.h UniDecIM.h UniDecIM_Main.h
+        udtools.c
+        udtools.h
+        udstruct.c
+        udstruct.h)
 
 #target_link_libraries(unidec PRIVATE unideclib)
 #target_include_directories(unideclib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

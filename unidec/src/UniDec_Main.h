@@ -181,8 +181,6 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 
 	if (silent == 0) { printf("Charges blurred: %d  Masses blurred: %d\n", zlength, mlength); }
 
-	//IntPrint(closeind, numclose * config.lengthmz * config.numz);
-
 	//Determine the maximum intensity in the data
 	float dmax = Max(inp.dataInt, config.lengthmz);
 	float betafactor = 1;
@@ -196,7 +194,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 
 
 	//Applies the intensity threshold to kill peaks
-	if (config.intthresh != -1) { KillB(inp.dataInt, barr, config.intthresh, config.lengthmz, config.numz, config.isolength, inp.isotopepos, inp.isotopeval); }
+	if (config.intthresh != -1) { KillB(inp.dataInt, barr, config.intthresh, config.lengthmz, config.numz); }
 	
 
 	//Creates an intial probability matrix, decon.blur, of 1 for each element
@@ -312,7 +310,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		else if (config.beta < 0 && iterations >0)
 		{
 			softargmax_transposed(decon.blur, config.lengthmz, config.numz, fabs(config.beta/betafactor), barr, maxlength,
-				config.isolength, inp.isotopepos, inp.isotopeval, config.speedyflag, decon.starttab, decon.endtab, decon.rmzdist, config.mzsig);
+				config.speedyflag, decon.starttab, decon.endtab, decon.rmzdist, config.mzsig);
 		}
 
 		if (config.psig >= 1 && iterations > 0)
@@ -345,7 +343,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		//Run Richardson-Lucy Deconvolution
 		deconvolve_iteration_speedy(config.lengthmz, config.numz, maxlength,
 			decon.newblur, decon.blur, barr, config.aggressiveflag, dataInt2,
-			config.isolength, inp.isotopepos, inp.isotopeval, decon.starttab, decon.endtab, decon.mzdist, decon.rmzdist, config.speedyflag,
+			decon.starttab, decon.endtab, decon.mzdist, decon.rmzdist, config.speedyflag,
 			config.baselineflag, decon.baseline, decon.noise, config.mzsig, inp.dataMZ, config.filterwidth, config.psig);
 		
 		//Determine the metrics for conversion. Only do this every 10% to speed up.
@@ -415,7 +413,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	
 	//Calculate the fit data and error.
 	decon.fitdat = calloc(config.lengthmz, sizeof(float));
-	decon.error = errfunspeedy(config, decon, barr, inp.dataInt, maxlength, inp.isotopepos, inp.isotopeval, decon.starttab, decon.endtab, decon.mzdist, &decon.rsquared);
+	decon.error = errfunspeedy(config, decon, barr, inp.dataInt, maxlength, decon.starttab, decon.endtab, decon.mzdist, &decon.rsquared);
 
 	//Fix issues with fitdat and consecutive zero data points
 	//TODO: It might be possible to build this in to convolve_simp so that this isn't necessary but it would require a 1D barr.
@@ -441,12 +439,6 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		charge_scaling(decon.blur, inp.nztab, config.lengthmz, config.numz);
 		//simp_norm(config.lengthmz * config.numz, decon.blur);
 		printf("Done\n");
-	}
-
-	//Change Monoisotopic to Average if necessary
-	if (config.isotopemode == 2)
-	{
-		monotopic_to_average(config.lengthmz, config.numz, decon.blur, barr, config.isolength, inp.isotopepos, inp.isotopeval);
 	}
 
 	//newblur is repurposed as the convolution of blur by the mz peaks shape
@@ -676,14 +668,6 @@ int run_unidec(int argc, char *argv[], Config config) {
 	int verbose = 0;
 	if (argc>2)
 	{
-		if (strcmp(argv[2], "-test") == 0)
-		{
-			float testmass = atof(argv[3]);
-			printf("Testing Mass: %f\n", testmass);
-			test_isotopes(testmass, inp.isoparams);
-			exit(0);
-		}
-
 		if (strcmp(argv[2], "-autotune") == 0){autotune = 1;}
 		if (strcmp(argv[2], "-verbose") == 0) { verbose = 1; }
 	}
@@ -727,14 +711,6 @@ int run_unidec(int argc, char *argv[], Config config) {
 		ManualAssign(inp.dataMZ, inp.barr, inp.nztab, config);
 		if (verbose == 1) { printf("Setup Manual Assign\n"); }
 	}
-	
-	//Setup Isotope Distributions
-	if (config.isotopemode > 0)
-	{
-		setup_and_make_isotopes(&config, &inp);
-		if (verbose == 1) { printf("Setup Isotopes\n"); }
-	}
-	
 
 	//................................................................
 	//
