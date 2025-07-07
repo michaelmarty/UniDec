@@ -81,3 +81,6 @@ unidec/UniDecImporter/reader_tester.py
 unidec/IsoDec/src_cmake/CmakeFiles
 unidec/src/cmake-build*
 unidec/src/x64
+unidec/src/.vs
+unidec/src/Makefile
+unidec/src/UniDec
