@@ -590,6 +590,277 @@ void TestMass(const Config config, Input *inp) {
 }
 
 
+void SetLimits(const Config config, Input *inp) {
+    //If there is a mass file read, it will only allow masses close to those masses within some config.mtabsig window.
+    if (config.mflag == 1 && config.limitflag == 0) {
+        TestMassListWindowed(config, inp);
+    }
+    //If there is a mass file read and the mass table window (config.mtabsig) is 0, it will only write intensities at the m/z values closest to the m/z values read in from the mfile.
+    else if (config.mflag == 1 && config.limitflag == 1) {
+        //Determines the indexes of each test mass from mfile in m/z space
+        int *testmasspos = malloc(sizeof(int) * config.mfilelen * config.numz);
+        if (testmasspos) {
+            for (int i = 0; i < config.mfilelen; i++) {
+                for (int j = 0; j < config.numz; j++) {
+                    const float mztest = calcmz(inp->testmasses[i], inp->nztab[j], config.adductmass);
+                       // (inp->testmasses[i] + config.adductmass * inp->nztab[j]) / (float) inp->nztab[j];
+                    testmasspos[index2D(config.numz, i, j)] = nearfast(inp->dataMZ, mztest, config.lengthmz);
+                }
+            }
+            TestMassListLimit(config, inp, testmasspos);
+        }
+        free(testmasspos);
+    }
+    //Normally, write the intensity values if the values fall within the mass upperbound and lower bound
+    else {
+        TestMass(config, inp);
+    }
+}
+
+// .......................
+//
+// Peak Shape Functions
+//
+// .......................
+
+
+void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
+                    const int *closemind, int *closeind, const float *closeval, float *closearray, const Config config, const Input *inp) {
+    int lengthmz = config.lengthmz;
+    int numz = config.numz;
+    float molig = config.molig;
+    float adductmass = config.adductmass;
+
+    #pragma omp parallel for schedule(auto)
+    for (int i = 0; i < lengthmz; i++) {
+        for (int j = 0; j < numz; j++) {
+            if (barr[index2D(numz, i, j)] == 1) {
+                int num = 0;
+
+                //Reset the threshold if it is zero
+                float mzsig = config.mzsig;
+                if (mzsig == 0) {
+                    int i1 = i - 1;
+                    int i2 = i + 1;
+                    if (i >= lengthmz - 1) { i2 = i; }
+                    if (i == 0) { i1 = i; }
+                    mzsig = 2.0f * fabsf(inp->dataMZ[i2] - inp->dataMZ[i1]);
+                    if (mzsig > config.massbins || mzsig == 0) { mzsig = config.massbins * 2; }
+                }
+                float newthreshold = mzsig * 2;
+
+                for (int k = 0; k < numclose; k++) {
+                    //Find the z index and test if it is within the charge range
+                    int indz = (int) (j + closezind[k]);
+                    if (indz < 0 || indz >= numz || (inp->nztab[j] + closezind[k]) == 0) {
+                        closeind[index3D(numz, numclose, i, j, k)] = -1;
+                        closearray[index3D(numz, numclose, i, j, k)] = 0;
+                    } else {
+                        //Find the nearest m/z value and test if it is close enough to the predicted one and within appropriate ranges
+                        float point = (float) ((inp->mtab[index2D(numz, i, j)] + (float) closemind[k] * molig + adductmass * (float)
+                                                (inp->nztab[j] + closezind[k])) / (float) (inp->nztab[j] + closezind[k]));
+                        if (point < inp->dataMZ[0] - newthreshold || point > inp->dataMZ[lengthmz - 1] + newthreshold) {
+                            closeind[index3D(numz, numclose, i, j, k)] = -1;
+                            closearray[index3D(numz, numclose, i, j, k)] = 0;
+                        } else {
+                            int ind = nearfast(inp->dataMZ, point, lengthmz);
+                            float closepoint = inp->dataMZ[ind];
+                            int newind = index2D(numz, ind, indz);
+                            if (barr[newind] == 1 && fabsf(point - closepoint) < newthreshold) {
+                                closeind[index3D(numz, numclose, i, j, k)] = newind;
+                                closearray[index3D(numz, numclose, i, j, k)] = closeval[k] * mzpeakshape(
+                                                                                   point, closepoint, mzsig,
+                                                                                   config.psfun);
+                                num += 1;
+                            } else {
+                                closeind[index3D(numz, numclose, i, j, k)] = -1;
+                                closearray[index3D(numz, numclose, i, j, k)] = 0;
+                            }
+                            //printf("%d %d %d %f %f %d\n", i, j, k, point, closepoint, closeind[index3D(numz, numclose, i, j, k)]);
+                        }
+                    }
+                }
+                if (num < 2 && config.manualflag == 0) { barr[index2D(numz, i, j)] = 0; }
+                // printf("%d %d \n", i, j);}
+            } else {
+                for (int k = 0; k < numclose; k++) {
+                    closeind[index3D(numz, numclose, i, j, k)] = -1;
+                    closearray[index3D(numz, numclose, i, j, k)] = 0;
+                }
+            }
+        }
+    }
+}
+
+
+void MakePeakShape2D(const Config config, Decon *decon, int maxlength, const float *dataMZ, const int makereverse, const int inflateflag) {
+
+
+    float mzsig = fabsf(config.mzsig);
+    if (inflateflag == 1) {
+        mzsig *= config.peakshapeinflate;
+    }
+    #pragma omp parallel for schedule(auto)
+    for (int i = 0; i < config.lengthmz; i++) {
+        int start = decon->starttab[i];
+        int end = decon->endtab[i];
+        for (int j = start; j <= end; j++) {
+            int j2 = fixk(j, config.lengthmz);
+            decon->mzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(dataMZ[i], dataMZ[j2], mzsig, config.psfun);
+            if (makereverse == 1) {
+                decon->rmzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(dataMZ[j2], dataMZ[i], mzsig, config.psfun);
+            }
+        }
+    }
+}
+
+void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, const int makereverse, const int inflateflag) {
+    float binsize = dataMZ[1] - dataMZ[0];
+    float newrange = config.psmzthresh / binsize;
+
+    float mzsig = fabsf(config.mzsig);
+    if (inflateflag == 1) {
+        mzsig *= config.peakshapeinflate;
+    }
+
+    int n;
+    for (n = (int) -newrange; n < (int) newrange; n++) {
+        decon->mzdist[indexmod(config.lengthmz, 0, n)] = mzpeakshape(0, (float) n * binsize, mzsig, config.psfun);
+        if (makereverse == 1) { decon->rmzdist[indexmod(config.lengthmz, 0, n)] = mzpeakshape((float) n * binsize, 0, mzsig, config.psfun); }
+    }
+    printf("\nNotice: Assuming linearized data. \n\n");
+}
+
+
+//Sets the maxlength parameter and the start and end values for the m/z peak shape convolution
+//Convolution uses a reflection for the edges, so some care needs to be taken when things are over the edge.
+int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *endtab) {
+    int maxlength = 1;
+    for (int i = 0; i < config.lengthmz; i++) {
+        float point = inp->dataMZ[i] - config.psmzthresh;
+        int start, end;
+        if (point < inp->dataMZ[0] && config.speedyflag == 0) {
+            //start = (int)((point - inp->dataMZ[0]) / (inp->dataMZ[1] - inp->dataMZ[0]));
+            start = 0 - nearfast(inp->dataMZ, 2 * inp->dataMZ[0] - point, config.lengthmz);
+        } else {
+            start = nearfast(inp->dataMZ, point, config.lengthmz);
+        }
+        starttab[i] = start;
+
+        point = inp->dataMZ[i] + config.psmzthresh;
+        if (point > inp->dataMZ[config.lengthmz - 1] && config.speedyflag == 0) {
+            //end = config.lengthmz - 1 + (int)((point - inp->dataMZ[config.lengthmz - 1]) / (inp->dataMZ[config.lengthmz - 1] - inp->dataMZ[config.lengthmz - 2]));
+            end = config.lengthmz - 1 + nearfast(inp->dataMZ, 2 * inp->dataMZ[0] - point, config.lengthmz);
+        } else {
+            end = nearfast(inp->dataMZ, point, config.lengthmz);
+        }
+        endtab[i] = end;
+        if (end - start > maxlength) { maxlength = end - start; }
+        //printf("%d %d\n", start, end);
+    }
+    //printf("Max Length: %d\t", maxlength);
+    return maxlength;
+}
+
+int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, const int verbose) {
+    //Create a list of start and end values to box in arrays based on the above threshold
+    decon->starttab = (int *) calloc(config.lengthmz, sizeof(int));
+    decon->endtab = (int *) calloc(config.lengthmz, sizeof(int));
+    if (decon->starttab == NULL || decon->endtab == NULL) {
+        fprintf(stderr, "Error allocating memory for starttab or endtab in SetUpPeakShape.\n");
+        exit(11);
+    }
+
+    int maxlength;
+    if (config.mzsig != 0) {
+        //Gets maxlength and sets start and endtab
+        maxlength = SetStartsEnds(config, &inp, decon->starttab, decon->endtab);
+
+        //Changes dimensions of the peak shape function. 1D for speedy and 2D otherwise
+        int pslen = config.lengthmz;
+        if (config.speedyflag == 0) { pslen = config.lengthmz * maxlength; }
+        if (verbose == 1) {
+            printf("Maxlength: %d \t Total Size: %zu GB\n", maxlength, pslen * sizeof(float) / 1000000000);
+        }
+        decon->mzdist = (float *) calloc(pslen, sizeof(float));
+        if (decon->mzdist == NULL) {
+            fprintf(stderr, "Error allocating memory for mzdist in SetUpPeakShape.\n");
+            exit(11);
+        }
+        if (pslen * sizeof(float) / 1000000000 > 4) {
+            printf("Danger: Your data may crash the memory. Consider setting the Peak FWHM to 0.\n");
+        }
+        int makereverse = 0;
+        if (config.mzsig < 0 || config.beta < 0) {
+            makereverse = 1;
+            decon->rmzdist = (float *) calloc(pslen, sizeof(float));
+        } else { decon->rmzdist = (float *) calloc(0, sizeof(float)); }
+        if (decon->rmzdist == NULL) {
+            fprintf(stderr, "Error allocating memory for rmzdist in SetUpPeakShape.\n");
+            exit(11);
+        }
+        printf("Test: %d\n", config.psfun);
+        //Calculates the distance between mz values as a 2D or 3D matrix
+
+        if (config.speedyflag == 0) {
+            if (verbose == 1) { printf("Making Peak Shape 2D\n"); }
+            MakePeakShape2D(config, decon, maxlength, inp.dataMZ, makereverse, 1);
+        } else {
+            if (verbose == 1) { printf("Making Peak Shape 1D\n"); }
+            //Calculates peak shape as a 1D list centered at the first element for circular convolutions
+            MakePeakShape1D(config, decon, inp.dataMZ, makereverse, 0);
+        }
+        if (silent == 0) { printf("mzdist set: %f\t maxlength: %d\n", decon->mzdist[0], maxlength); }
+    } else {
+        decon->mzdist = (float *) calloc(0, sizeof(float));
+        maxlength = 0;
+    }
+    return maxlength;
+}
+
+float Reconvolve(const Config config, const int maxlength, Decon *decon, const char *barr) {
+    float newblurmax = 0;
+    if (config.speedyflag == 0) {
+        #pragma omp parallel for schedule(auto)
+        for (int i = 0; i < config.lengthmz; i++) {
+            for (int j = 0; j < config.numz; j++) {
+                float cv = 0;
+                if (barr[index2D(config.numz, i, j)] == 1) {
+                    for (int k = decon->starttab[i]; k <= decon->endtab[i]; k++) {
+                        int k2 = fixk(k, config.lengthmz);
+                        if (decon->blur[index2D(config.numz, k2, j)] != 0) {
+                            int start = decon->starttab[k2];
+                            cv += decon->blur[index2D(config.numz, k2, j)] * decon->mzdist[index2D(maxlength, k2, i - start)];
+                        }
+                    }
+                }
+                decon->newblur[index2D(config.numz, i, j)] = cv;
+                if (cv > newblurmax) {
+                    newblurmax = cv;
+                }
+            }
+        }
+    } else {
+        #pragma omp parallel for schedule(auto)
+        for (int i = 0; i < config.lengthmz; i++) {
+            for (int j = 0; j < config.numz; j++) {
+                float cv = 0;
+                if (barr[index2D(config.numz, i, j)] == 1) {
+                    for (int k = decon->starttab[i]; k <= decon->endtab[i]; k++) {
+                        if (decon->blur[index2D(config.numz, k, j)] != 0) {
+                            cv += decon->blur[index2D(config.numz, k, j)] * decon->mzdist[indexmod(config.lengthmz, k, i)];
+                        }
+                    }
+                }
+                decon->newblur[index2D(config.numz, i, j)] = cv;
+                if (cv > newblurmax) {
+                    newblurmax = cv;
+                }
+            }
+        }
+    }
+    return newblurmax;
+}
 
 
 // .....................

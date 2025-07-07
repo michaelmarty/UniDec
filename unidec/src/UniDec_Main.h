@@ -66,48 +66,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 
 	int maxlength = SetUpPeakShape(config, inp, &decon, 0, 1);
 	
-	/*
-	//Create a list of start and end values to box in arrays based on the above threshold
-	starttab = calloc(config.lengthmz, sizeof(int));
-	endtab = calloc(config.lengthmz, sizeof(int));
-	int maxlength = 1;
-	if (config.mzsig != 0) {
-		//Gets maxlength and sets start and endtab
-		maxlength = SetStartsEnds(config, &inp, starttab, endtab);
 
-		//Changes dimensions of the peak shape function. 1D for speedy and 2D otherwise
-		int pslen = config.lengthmz;
-		if (config.speedyflag == 0) { pslen = config.lengthmz * maxlength; }
-		if (verbose == 1) { printf("Maxlength: %d \t Total Size: %zu GB\n", maxlength, pslen*sizeof(float)/1000000000); }
-		mzdist = calloc(pslen, sizeof(float));
-		if (pslen * sizeof(float) / 1000000000 > 4) { printf("Danger: Your data may crash the memory. Consider setting the Peak FWHM to 0.\n"); }
-		int makereverse = 0;
-		if (config.mzsig < 0 || config.beta < 0) { makereverse = 1; rmzdist = calloc(pslen, sizeof(float));
-		//memset(rmzdist, 0, pslen * sizeof(float));
-		}
-		else { rmzdist = calloc(0, sizeof(float)); }
-
-		//Calculates the distance between mz values as a 2D or 3D matrix
-
-		if (config.speedyflag == 0)
-		{
-			if (verbose == 1) { printf("Making Peak Shape 2D\n"); }
-			MakePeakShape2D(config.lengthmz, maxlength, starttab, endtab, inp.dataMZ, fabs(config.mzsig) * config.peakshapeinflate, config.psfun, config.speedyflag, mzdist, rmzdist, makereverse);
-		}
-		else
-		{
-			if (verbose == 1) { printf("Making Peak Shape 1D\n"); }
-			//Calculates peak shape as a 1D list centered at the first element for circular convolutions
-			MakePeakShape1D(inp.dataMZ, config.psmzthresh, config.lengthmz, config.speedyflag, fabs(config.mzsig) * config.peakshapeinflate, config.psfun, mzdist, rmzdist, makereverse);
-		}
-		if (silent == 0) { printf("mzdist set: %f\t maxlength: %d\n", mzdist[0], maxlength); }
-
-	}
-	else
-	{
-		mzdist = calloc(0, sizeof(float));
-		maxlength = 0;
-	}*/
 
 	//....................................................
 	//
@@ -176,8 +135,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	if (badness1 == 1) { printf("ERROR:1\n"); exit(10); }
 
 	//Set up blur
-	//MakeBlur(config.lengthmz, config.numz, numclose, barr, closezind, closemind, inp.mtab, config.molig, config.adductmass, inp.nztab, inp.dataMZ, closeind, threshold, config);
-	MakeSparseBlur(numclose, barr, closezind, closemind, inp.mtab, inp.nztab, inp.dataMZ, closeind, closeval, closearray, config);
+	MakeSparseBlur(numclose, barr, closezind, closemind, closeind, closeval, closearray, config, &inp);
 
 	if (silent == 0) { printf("Charges blurred: %d  Masses blurred: %d\n", zlength, mlength); }
 
@@ -312,11 +270,6 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 			point_smoothing(decon.blur, barr, config.lengthmz, config.numz, abs((int)config.psig));
 			//printf("Point Smoothed %f\n", config.psig);
 		}
-		else if (config.psig < 0 && iterations >0)
-		{
-			point_smoothing_peak_width(config.lengthmz, config.numz, maxlength, decon.starttab, decon.endtab, decon.mzdist, decon.blur, config.speedyflag, barr);
-		}
-
 		
 		//Run Blurs
 		if (config.zsig >= 0 && config.msig >= 0) {
@@ -386,11 +339,11 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	if (config.peakshapeinflate != 1 && config.mzsig != 0) {
 		if (config.speedyflag == 0)
 		{
-			MakePeakShape2D(config.lengthmz, maxlength, decon.starttab, decon.endtab, inp.dataMZ, fabs(config.mzsig), config.psfun, config.speedyflag, decon.mzdist, decon.rmzdist, 0);
+			MakePeakShape2D(config, &decon, maxlength, inp.dataMZ, 0, 0);
 		}
 		else
 		{
-			MakePeakShape1D(inp.dataMZ, config.psmzthresh, config.lengthmz, config.speedyflag, fabs(config.mzsig), config.psfun, decon.mzdist, decon.rmzdist, 0);
+			MakePeakShape1D(config, &decon, inp.dataMZ, 0, 0);
 		}
 		printf("mzdist reset: %f\n", config.mzsig);
 	}
@@ -439,7 +392,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	float newblurmax = blurmax;
 	if ((config.rawflag == 0 || config.rawflag == 2)) {
 		if (config.mzsig != 0) {
-			newblurmax = Reconvolve(config.lengthmz, config.numz, maxlength, decon.starttab, decon.endtab, decon.mzdist, decon.blur, decon.newblur, config.speedyflag, barr);
+			newblurmax = Reconvolve(config, maxlength, &decon, barr);
 		}
 		else
 		{

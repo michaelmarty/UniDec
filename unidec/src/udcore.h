@@ -98,5 +98,16 @@ float errfunspeedy(Config config, Decon decon, const char *barr, const float *da
 void TestMassListWindowed(const Config config, Input *inp);
 void TestMassListLimit(const Config config, Input *inp, const int *testmasspos);
 void TestMass(const Config config, Input *inp);
+void SetLimits(const Config config, Input *inp);
+
+void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
+                    const int *closemind, int *closeind, const float *closeval, float *closearray, const Config config, const Input *inp);
+void MakePeakShape2D(const Config config, Decon *decon, int maxlength, const float *dataMZ, int makereverse,
+                     const int inflateflag);
+void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, int makereverse, const int inflateflag);
+int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *endtab);
+int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, const int verbose);
+float Reconvolve(const Config config, const int maxlength, Decon *decon, const char *barr);
+
 
 void DoubleDecon(const Config *config, Decon *decon);

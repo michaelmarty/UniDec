@@ -932,4 +932,60 @@ void softargmax_everything(float *blur, const int lengthmz, const int numz, cons
 }
 
 
+void point_smoothing_peak_width(const int lengthmz, const int numz, const int maxlength, const int *starttab,
+                                const int *endtab, const float *mzdist, float *blur, const int speedyflag,
+                                const char *barr) {
+    float *newblur;
+    int ln = lengthmz * numz;
+    newblur = (float *) calloc(ln, sizeof(float));
+    if (newblur) {
+        memcpy(newblur, blur, ln * sizeof(float));
+        Reconvolve(lengthmz, numz, maxlength, starttab, endtab, mzdist, newblur, blur, speedyflag, barr);
+    }
+}
+
+
 */
+
+	/*
+	//Create a list of start and end values to box in arrays based on the above threshold
+	starttab = calloc(config.lengthmz, sizeof(int));
+	endtab = calloc(config.lengthmz, sizeof(int));
+	int maxlength = 1;
+	if (config.mzsig != 0) {
+		//Gets maxlength and sets start and endtab
+		maxlength = SetStartsEnds(config, &inp, starttab, endtab);
+
+		//Changes dimensions of the peak shape function. 1D for speedy and 2D otherwise
+		int pslen = config.lengthmz;
+		if (config.speedyflag == 0) { pslen = config.lengthmz * maxlength; }
+		if (verbose == 1) { printf("Maxlength: %d \t Total Size: %zu GB\n", maxlength, pslen*sizeof(float)/1000000000); }
+		mzdist = calloc(pslen, sizeof(float));
+		if (pslen * sizeof(float) / 1000000000 > 4) { printf("Danger: Your data may crash the memory. Consider setting the Peak FWHM to 0.\n"); }
+		int makereverse = 0;
+		if (config.mzsig < 0 || config.beta < 0) { makereverse = 1; rmzdist = calloc(pslen, sizeof(float));
+		//memset(rmzdist, 0, pslen * sizeof(float));
+		}
+		else { rmzdist = calloc(0, sizeof(float)); }
+
+		//Calculates the distance between mz values as a 2D or 3D matrix
+
+		if (config.speedyflag == 0)
+		{
+			if (verbose == 1) { printf("Making Peak Shape 2D\n"); }
+			MakePeakShape2D(config.lengthmz, maxlength, starttab, endtab, inp.dataMZ, fabs(config.mzsig) * config.peakshapeinflate, config.psfun, config.speedyflag, mzdist, rmzdist, makereverse);
+		}
+		else
+		{
+			if (verbose == 1) { printf("Making Peak Shape 1D\n"); }
+			//Calculates peak shape as a 1D list centered at the first element for circular convolutions
+			MakePeakShape1D(inp.dataMZ, config.psmzthresh, config.lengthmz, config.speedyflag, fabs(config.mzsig) * config.peakshapeinflate, config.psfun, mzdist, rmzdist, makereverse);
+		}
+		if (silent == 0) { printf("mzdist set: %f\t maxlength: %d\n", mzdist[0], maxlength); }
+
+	}
+	else
+	{
+		mzdist = calloc(0, sizeof(float));
+		maxlength = 0;
+	}*/
