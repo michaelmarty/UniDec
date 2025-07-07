@@ -164,9 +164,9 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		closezind[k] = zind[(int)k / mlength];
 		closeval[k] = zdist[(int)k / mlength] * mdist[k % mlength];
 	}
-	simp_norm_sum(mlength, mdist);
-	simp_norm_sum(zlength, zdist);
-	simp_norm_sum(numclose, closeval);
+	NormSum(mdist, mlength);
+	NormSum(zdist, zlength);
+	NormSum(closeval, numclose);
 
 	int badness1 = 1;
 	for (int i = 0; i < config.lengthmz * config.numz; i++)

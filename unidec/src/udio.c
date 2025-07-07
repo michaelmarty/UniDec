@@ -179,3 +179,30 @@ int getfilelengthbin(const char *infile, const int size, const int width) {
     fclose(file_ptr);
     return l;
 }
+
+
+//Reads in kernel file.
+void readkernel(const char *infile, const int lengthmz, double *datax, double *datay) {
+    char x[500] = {0};
+    char y[500] = {0};
+
+    FILE *file_ptr = fopen(infile, "r");
+
+    if (file_ptr == 0) {
+        printf("Could not open %s file\n", infile);
+        exit(10);
+    }
+
+    for (int i = 0; i < lengthmz; i++) {
+        const int match = fscanf(file_ptr, "%s %s", x, y);
+        if (match != 0) {
+            // datax[i] = atof(x);
+            // datay[i] = atof(y);
+            char * endptr, * endptr2;
+            datax[i] = strtod(x, &endptr);
+            datay[i] = strtod(y, &endptr2);
+        }
+    }
+
+    fclose(file_ptr);
+}

@@ -112,7 +112,6 @@ Config SetDefaultConfig() {
     config.manualflag = 0;
     config.intthresh = 0;
     config.peakshapeinflate = 1;
-    config.killmass = 0;
     config.fixedmassaxis = 0;
     config.isotopemode = 0;
     config.filetype = 0;
@@ -280,7 +279,6 @@ Config LoadConfig(Config config, const char *filename) {
             if (strstr(x, "intthresh") != NULL) { config.intthresh = atof(y); } // printf(" intthresh"); }
             if (strstr(x, "peakshapeinflate") != NULL) { config.peakshapeinflate = atof(y); }
             // printf(" peakshapeinflate"); }
-            if (strstr(x, "killmass") != NULL) { config.killmass = atof(y); } // printf(" killmass"); }
             if (strstr(x, "isotopemode") != NULL) { config.isotopemode = atoi(y); } // printf(" isotopemode"); }
             if (strstr(x, "orbimode") != NULL) { config.orbimode = atoi(y); } // printf(" orbimode"); }
             if (strstr(x, "imflag") != NULL) { config.imflag = atoi(y); } // printf(" imflag"); }

@@ -670,4 +670,100 @@ float secderndis(float m, float s, float x) {
     return s / 2 * (2 * exp(-pow(m - x, 2) / s)) / s - (4 * exp(-pow(m - x, 2) / s) * pow(m - x, 2)) / pow(s, 2);
 }
 
+
+//Finds nearest factor of two for optimizing FFTs
+int twopow(int num) {
+    int n, val;
+    n = 0;
+    val = 1;
+    while (n < 100 && val < num) {
+        n++;
+        val = pow(2, n);
+    }
+    return val;
+}
+
+
+//Confidence score
+float Confidence(float fit, float data) {
+    if (data == 0) { return 0; }
+    return clip(1 - fabs(fit - data) / data, 0);
+}
+
+
+void textvectorprint(float *arr, int length) {
+    int levels = 20;
+    float grad = 1.0 / ((float) levels);
+    int i, j;
+    printf("\n");
+    float max = 0;
+    for (i = 0; i < length; i++) {
+        if (arr[i] > max) { max = arr[i]; }
+    }
+    if (max != 0) {
+        for (i = 0; i < length; i++) {
+            arr[i] = arr[i] / max;
+        }
+    }
+    for (i = 0; i < levels; i++) {
+        for (j = 0; j < length; j++) {
+            if (arr[j] > grad * (levels - i)) { printf("| "); } else { printf("  "); }
+        }
+        printf("\n");
+    }
+}
+
+
+void deepcopy(float *out, const float *in, int len) {
+    for (int i = 0; i < len; i++) {
+        out[i] = in[i];
+    }
+}
+
+
+void blur_noise(float *noise, int lengthmz) {
+    float *temp = NULL;
+    temp = (float *) calloc(lengthmz, sizeof(float));
+    if (temp) {
+        memcpy(temp, noise, sizeof(float) * lengthmz);
+        int i, j;
+        float filter[5] = {-0.1, -0.4, 1, -0.4, -0.1};
+#pragma omp parallel for private (i,j), schedule(auto)
+        for (i = 0; i < lengthmz; i++) {
+            float val = 0;
+            for (j = -2; j <= 2; j++) {
+                int k = i + j;
+                float newval = 0;
+                if (k >= 0 && k < lengthmz) {
+                    newval = temp[k];
+                }
+                if (k < 0) {
+                    newval = temp[-k];
+                }
+                if (k >= lengthmz) {
+                    newval = temp[2 * lengthmz - k];
+                }
+                val += newval * filter[j + 2];
+            }
+            noise[i] = val;
+        }
+        free(temp);
+    }
+}
+
+void KillMass(float killmass, int lengthmz, int numz, char *barr, int *nztab, float adductmass, float *dataMZ,
+              float psfun, float mzsig) {
+    float thresh;
+    if (psfun == 0) { thresh = mzsig * 2.35482; } else { thresh = mzsig; }
+    int j, i1, i2, k;
+    float testmz;
+    //#pragma omp parallel for private (j,testmz,i1,i2), schedule(auto)
+    for (j = 0; j < numz; j++) {
+        testmz = (killmass + adductmass * nztab[j]) / (float) nztab[j];
+        i1 = nearfast(dataMZ, testmz - thresh, lengthmz);
+        i2 = nearfast(dataMZ, testmz + thresh, lengthmz);
+        for (k = i1; k <= i2; k++) { barr[index2D(numz, k, j)] = 0; }
+    }
+}
+
 */

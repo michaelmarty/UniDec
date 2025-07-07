@@ -4,6 +4,7 @@
 
 #ifndef UDTOOLS_H
 #define UDTOOLS_H
+#include <stdlib.h>
 
 #endif //UDTOOLS_H
 
@@ -11,17 +12,22 @@ void floatPrint(const float *array, const int length);
 void IntPrint(const int *array, const int length);
 
 float Average(const int length, const float *xarray);
+float StdDev(const int length, const float *xarray, const float wmean);
 float Max(const float *blur, const int length);
 float Min(const float *blur, const int length);
 float Sum(const float *blur, const int length);
 int ArgMax(const float *blur, const int lengthmz);
 void ApplyCutoff(float *array, const float cutoff, const int lengthmz);
+void NormMax(float *data, const int length);
+void NormSum(float *data, const int length);
 
 float ndis(const float x, const float y, const float sig);
 int mod(const int a, const int b);
 float clip(const float x, const float cutoff);
 float calcmz(const float mass, const int z, const float adductmass);
 float mzpeakshape(const float x, const float y, const float sig, const int psfun);
+int compare_function(const void *a, const void *b);
+float nativecharge(const float mass, const float fudge);
 
 int nearunsorted(const float *testmasses, const float point, const int lengthtest);
 int neartest(const float *testmasses, const float point, const int lengthtest, const float cutoff);
@@ -42,4 +48,11 @@ inline int indexmod(const int length, const int r, const int c) {
 
 inline int index3D(const int ncols, const int nrows, const int r, const int c, const int d) {
     return r * ncols * nrows + c * nrows + d;
+}
+
+inline int fixk(int k, int lengthmz) {
+    k = abs(k);
+    if (k >= lengthmz) { k = 2 * lengthmz - k - 2; }
+    //if (k < 0) { k = 0; }
+    return k;
 }

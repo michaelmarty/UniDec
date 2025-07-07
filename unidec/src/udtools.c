@@ -46,6 +46,18 @@ float Average(const int length, const float *xarray) {
     return temp1 / temp2;
 }
 
+//Calculate Standard Deviation
+float StdDev(const int length, const float *xarray, const float wmean) {
+    float temp1 = 0;
+    float temp2 = 0;
+    for (int i = 0; i < length; i++) {
+        temp1 += powf(xarray[i] - wmean, 2.f);
+        temp2 += 1;
+    }
+    if (temp2 == 0) { return 0; }
+    return sqrtf(temp1 / temp2);
+}
+
 //Find the maximum value in an array
 float Max(const float *blur, const int length) {
     float blurmax = 0;
@@ -96,6 +108,24 @@ void ApplyCutoff(float *array, const float cutoff, const int lengthmz) {
     //#pragma omp parallel for private (i,j), schedule(auto)
     for (int i = 0; i < lengthmz; i++) {
         if (array[i] < cutoff) { array[i] = 0; }
+    }
+}
+
+void NormMax(float *data, const int length) {
+    const float norm = Max(data, length);
+    if (norm > 0) {
+        for (int i = 0; i < length; i++) {
+            data[i] = data[i] / norm;
+        }
+    }
+}
+
+void NormSum(float *data, const int length) {
+    const float norm = Sum(data, length);
+    if (norm > 0) {
+        for (int i = 0; i < length; i++) {
+            data[i] = data[i] / norm;
+        }
     }
 }
 
@@ -153,6 +183,21 @@ float mzpeakshape(const float x, const float y, const float sig, const int psfun
     return result;
 }
 
+// Compare function for qsort
+int compare_function(const void *a, const void *b) {
+    const float *x = (float *) a;
+    const float *y = (float *) b;
+    if (*x < *y) { return -1; }
+    if (*x > *y) { return 1; }
+    return 0;
+}
+
+//Average native charge state from Champ
+float nativecharge(const float mass, const float fudge) {
+    return 0.0467f * powf(mass, 0.533f) + fudge;
+}
+
+
 // ............
 //
 // Nearest Neighbor Functions
@@ -164,7 +209,7 @@ int nearunsorted(const float *testmasses, const float point, const int lengthtes
     float minval = fabsf(point - testmasses[0]);
     int pos = 0;
     for (int i = 1; i < lengthtest; i++) {
-        float difftest = fabsf(point - testmasses[i]);
+        const float difftest = fabsf(point - testmasses[i]);
         if (difftest < minval) {
             minval = difftest;
             pos = i;

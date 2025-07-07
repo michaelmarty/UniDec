@@ -88,7 +88,6 @@ struct Config {
     int manualflag;
     float intthresh;
     float peakshapeinflate;
-    float killmass;
     int fixedmassaxis;
     int isotopemode;
     int filetype;
