@@ -84,3 +84,4 @@ unidec/src/x64
 unidec/src/.vs
 unidec/src/Makefile
 unidec/src/UniDec
+unidec/src/out
