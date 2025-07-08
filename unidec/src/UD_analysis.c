@@ -7,12 +7,12 @@
 
 void interpolate_merge(const float *massaxis, float *outint, const float *tempaxis, const float *tempint, const int mlen, const int templen)
 {
-	float start = tempaxis[0];
-	float end = tempaxis[templen - 1];
+	const float start = tempaxis[0];
+	const float end = tempaxis[templen - 1];
 
 	for (int i = 0; i < mlen; i++)
 	{
-		float pos = massaxis[i];
+		const float pos = massaxis[i];
 		if (pos >= start && pos <= end)
 		{
 			int index = nearfast(tempaxis, pos, templen);
@@ -34,12 +34,12 @@ void interpolate_merge(const float *massaxis, float *outint, const float *tempax
 				}
 				if (index2>index && (tempaxis[index2] - tempaxis[index]) != 0)
 				{
-					float mu = (pos - tempaxis[index]) / (tempaxis[index2] - tempaxis[index]);
-					float y0 = tempint[index - 1];
-					float y1 = tempint[index];
-					float y2 = tempint[index2];
-					float y3 = tempint[index2 + 1];
-					float newval = clip(CubicInterpolate(y0, y1, y2, y3, mu), 0);
+					const float mu = (pos - tempaxis[index]) / (tempaxis[index2] - tempaxis[index]);
+					const float y0 = tempint[index - 1];
+					const float y1 = tempint[index];
+					const float y2 = tempint[index2];
+					const float y3 = tempint[index2 + 1];
+					const float newval = clip(CubicInterpolate(y0, y1, y2, y3, mu), 0);
 					//newval=CRSplineInterpolate(y0,y1,y2,y3,mu);
 					//newval=LinearInterpolate(y1,y2,mu);
 					outint[i] = newval;
@@ -59,7 +59,7 @@ Config get_global_min_max(int argc, char* argv[], Config config, const char* dty
 	int num = 0;
 	num = int_attr(config.file_id, "/ms_dataset", "num", num);
 
-	float minval = 1000000000;
+	float minval = 1000000000.f;
 	float maxval = 0;
 	float minres = minval;
 
@@ -118,7 +118,7 @@ void make_grid(int argc, char *argv[], Config config, const char *dtype, const c
 	int num = 0;
 	num = int_attr(config.file_id, "/ms_dataset", "num", num);
 
-	float minval = 1000000000;
+	float minval = 1000000000.f;
 	float maxval = 0;
 	float binval = 0;
 
@@ -134,7 +134,7 @@ void make_grid(int argc, char *argv[], Config config, const char *dtype, const c
 	}
 	printf("Template: %f to %f by %f\n", minval, maxval, binval);
 
-	int mlen = 1 + (int)(maxval - minval) / binval;
+	int mlen = 1 + (int)((maxval - minval) / binval);
 
 	float *massgrid = NULL;
 	float *massaxis = NULL;
@@ -143,10 +143,15 @@ void make_grid(int argc, char *argv[], Config config, const char *dtype, const c
 	massgrid = calloc(newlen, sizeof(float));
 	massaxis = calloc(mlen, sizeof(float));
 	masssum = calloc(mlen, sizeof(float));
+	if (massgrid == NULL || massaxis == NULL || masssum == NULL)
+	{
+		printf("Error allocating memory for mass grid, axis, or sum\n");
+		exit(1);
+	}
 
 	for (int i = 0; i < mlen; i++)
 	{
-		massaxis[i] = minval + i * binval;
+		massaxis[i] = minval + (float) i * binval;
 	}
 
 	for (int i = 0; i < num; i++)
@@ -163,11 +168,23 @@ void make_grid(int argc, char *argv[], Config config, const char *dtype, const c
 		float *tempaxis = NULL;
 		temp = calloc(templen, sizeof(float));
 		tempaxis = calloc(templen, sizeof(float));
+		if (temp == NULL || tempaxis == NULL)
+		{
+			printf("Error allocating memory for %s\n", outdat);
+			exit(1);
+		}
 
 		mh5readfile2d(config.file_id, outdat, templen, tempaxis, temp);
 
 		float *outint = NULL;
 		outint = calloc(mlen, sizeof(float));
+		if (outint == NULL)
+		{
+			printf("Error allocating memory for output interpolation\n");
+			free(temp);
+			free(tempaxis);
+			exit(1);
+		}
 
 		interpolate_merge(massaxis, outint, tempaxis, temp, mlen, templen);
 
@@ -220,17 +237,17 @@ void make_grid(int argc, char *argv[], Config config, const char *dtype, const c
 
 int is_peak(const float *dataMZ, const float *dataInt, const int lengthmz, const float window, const float thresh, const int index)
 {
-	float xval = dataMZ[index];
-	float yval = dataInt[index];
+	const float xval = dataMZ[index];
+	const float yval = dataInt[index];
 	//Check if below threshold
 	if (yval < thresh) { return 0; }
 	//Check if local max
 	for (int i = 0; i < lengthmz; i++)
 	{
-		float temp = dataMZ[i];
-		if (fabs(temp - xval) <= window)
+		const float temp = dataMZ[i];
+		if (fabsf(temp - xval) <= window)
 		{
-			float tempy = dataInt[i];
+			const float tempy = dataInt[i];
 			//printf("%f %f %f %f\n", temp, tempy, xval, yval);
 			if (tempy > yval)
 			{
@@ -250,7 +267,7 @@ int peak_detect(const float *dataMZ, const float *dataInt, const int lengthmz, c
 {
 	//printf("Detecting Peaks %d %f %f\n", lengthmz, window, thresh);
 	int plen = 0;
-	float max = Max(dataInt, lengthmz);
+	const float max = Max(dataInt, lengthmz);
 	for (int i = 0; i < lengthmz; i++)
 	{
 		if (is_peak(dataMZ, dataInt, lengthmz, window, thresh*max, i) == 1)
@@ -345,7 +362,7 @@ float extract_integral(Config config, const float peak, const float *xvals, cons
 		float fb = yvals[i];
 		float fa = yvals[i - 1];
 		if (fa > thresh2 && fb > thresh2) {
-			integral += (b - a) * ((fa + fb) / 2.0);
+			integral += (b - a) * ((fa + fb) / 2.0f);
 		}
 	}
 
@@ -400,15 +417,15 @@ float extract_estimated_area(Config config, const float peak, const float* xvals
 	float height = ywin[index];
 	float fwhm = single_fwhm(config, mlen, xwin, ywin, peak, index, height);
 
-	float pi = 3.14159265358979323846;
-	float gauss_coeff = sqrt(pi / log(2.0)) / 2.0;
-	float adjusted_coeff = ((0.5 * gauss_coeff) + (pi / 4.0));
+	float pi = 3.14159265358979323846f;
+	float gauss_coeff = sqrtf(pi / logf(2.0f)) / 2.0f;
+	float adjusted_coeff = ((0.5f * gauss_coeff) + (pi / 4.0f));
 	float area = 0;
 	if (config.psfun == 0) { // Gaussian
 		area = height * fwhm * gauss_coeff;
 	}
 	else if (config.psfun == 1) { // Lorentzian
-		area = height * fwhm * pi / 2.0;
+		area = height * fwhm * pi / 2.0f;
 	}
 	else if (config.psfun == 2) { // Split G/L
 		area = height * fwhm * adjusted_coeff;
@@ -514,6 +531,11 @@ void peak_extracts(Config config, const float *peakx, hid_t file_id, const char 
 		float *tempaxis = NULL;
 		temp = calloc(templen, sizeof(float));
 		tempaxis = calloc(templen, sizeof(float));
+		if (temp == NULL || tempaxis == NULL)
+		{
+			printf("Error allocating memory for %s\n", outdat);
+			exit(11);
+		}
 
 		mh5readfile2d(file_id, outdat, templen, tempaxis, temp);
 
@@ -611,6 +633,11 @@ void get_all_peaks(int argc, char *argv[], Config config)
 
 		massaxis = calloc(mlen, sizeof(float));
 		masssum = calloc(mlen, sizeof(float));
+		if (massaxis == NULL || masssum == NULL)
+		{
+			printf("Error allocating memory for mass axis or sum\n");
+			exit(11);
+		}
 
 		mh5readfile2d(config.file_id, outdat, mlen, massaxis, masssum);
 
@@ -618,11 +645,23 @@ void get_all_peaks(int argc, char *argv[], Config config)
 		float *peaky = NULL;
 		peakx = calloc(mlen, sizeof(float));
 		peaky = calloc(mlen, sizeof(float));
+		if (peakx == NULL || peaky == NULL)
+		{
+			printf("Error allocating memory for peak x or y values\n");
+			exit(11);
+		}
 
 		int plen = peak_detect(massaxis, masssum, mlen, config.peakwin, config.peakthresh, peakx, peaky);
 
-		peakx = realloc(peakx, plen * sizeof(float));
-		peaky = realloc(peaky, plen * sizeof(float));
+		float * px = realloc(peakx, plen * sizeof(float));
+		float * py = realloc(peaky, plen * sizeof(float));
+		if (px == NULL || py == NULL)
+		{
+			printf("Error reallocating memory for peak x or y values\n");
+			exit(11);
+		}
+		peakx = px;
+		peaky = py;
 
 		peak_norm(peaky, plen, config.peaknorm);
 
@@ -657,6 +696,11 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 
 		massaxis = calloc(mlen, sizeof(float));
 		masssum = calloc(mlen, sizeof(float));
+		if (massaxis == NULL || masssum == NULL)
+		{
+			printf("Error allocating memory for mass axis or sum\n");
+			exit(11);
+		}
 
 		mh5readfile1d(config.file_id, outdat, massaxis);
 		strcpy(dataset, "/ms_dataset");
@@ -667,17 +711,29 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 		float *peaky=NULL;
 		peakx = calloc(mlen, sizeof(float));
 		peaky = calloc(mlen, sizeof(float));
+		if (peakx == NULL || peaky == NULL)
+		{
+			printf("Error allocating memory for peak x or y values\n");
+			exit(11);
+		}
 		float* dscores = NULL;
 		float* numerators = NULL;
 		float* denominators = NULL;
 
 		int plen = peak_detect(massaxis, masssum, mlen, config.peakwin, config.peakthresh, peakx, peaky);
 
-		peakx = realloc(peakx, plen*sizeof(float));
-		peaky = realloc(peaky, plen*sizeof(float));
+		float *px = realloc(peakx, plen*sizeof(float));
+		float *py = realloc(peaky, plen*sizeof(float));
 		dscores = calloc(plen, sizeof(float));
 		numerators = calloc(plen, sizeof(float));
 		denominators = calloc(plen, sizeof(float));
+		if (px == NULL || py == NULL || dscores == NULL || numerators == NULL || denominators == NULL)
+		{
+			printf("Error allocating memory for peak x, y, scores, numerators, or denominators\n");
+			exit(11);
+		}
+		peakx = px;
+		peaky = py;
 
 		peak_norm(peaky, plen, config.peaknorm);
 
@@ -773,6 +829,11 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 		int plen = mh5getfilelength(config.file_id, outdat);
 		float *peakx = NULL;
 		peakx = calloc(plen, sizeof(float));
+		if (peakx == NULL)
+		{
+			printf("Error allocating memory for peak x values\n");
+			exit(11);
+		}
 		mh5readfile1d(config.file_id, outdat, peakx);
 
 		peak_extracts(config, peakx, config.file_id, "/mass_data", plen, 1);
