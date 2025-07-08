@@ -19,7 +19,7 @@
 
 Decon ExitToBlank(const Config config, Decon decon)
 {
-	int l = config.lengthmz * config.numz;
+	const int l = config.lengthmz * config.numz;
 	decon.blur = calloc(l, sizeof(float));
 	decon.newblur = calloc(l, sizeof(float));
 	return decon;
@@ -87,7 +87,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	for (int i = 0; i < mlength; i++)
 	{
 		mind[i] = i - (mlength - 1) / 2;
-		if (config.msig != 0) { mdist[i] = expf(-(powf((i - (mlength - 1) / 2.f), 2.f)) / (2.0f * config.msig * config.msig)); }
+		if (config.msig != 0) { mdist[i] = expf(-(powf(((float) i - ((float) mlength - 1) / 2.f), 2.f)) / (2.0f * config.msig * config.msig)); }
 		else { mdist[i] = 1; }
 	}
 
@@ -96,7 +96,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	for (int i = 0; i < zlength; i++)
 	{
 		zind[i] = i - (zlength - 1) / 2;
-		if (config.zsig != 0) { zdist[i] = expf(-(powf((i - (zlength - 1) / 2.f), 2.f)) / (2.0f * config.zsig * config.zsig)); }
+		if (config.zsig != 0) { zdist[i] = expf(-(powf(((float) i - ((float) zlength - 1) / 2.f), 2.f)) / (2.0f * config.zsig * config.zsig)); }
 		else { zdist[i] = 1; }
 		//printf("%f\n", zdist[i]);
 	}
@@ -195,12 +195,12 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	{
 		if (config.mzsig != 0)
 		{
-			deconvolve_baseline(config.lengthmz, inp.dataMZ, inp.dataInt, decon.baseline, fabs(config.mzsig));
+			deconvolve_baseline(config.lengthmz, inp.dataMZ, inp.dataInt, decon.baseline, fabsf(config.mzsig));
 			if (config.aggressiveflag == 2)
 			{
 				for (int i = 0; i < 10; i++)
 				{
-					deconvolve_baseline(config.lengthmz, inp.dataMZ, inp.dataInt, decon.baseline, fabs(config.mzsig));
+					deconvolve_baseline(config.lengthmz, inp.dataMZ, inp.dataInt, decon.baseline, fabsf(config.mzsig));
 				}
 				for (int i = 0; i < config.lengthmz; i++)
 				{
@@ -294,7 +294,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 			{
 				if (barr[i] == 1)
 				{
-					diff += pow((decon.blur[i] - oldblur[i]), 2);
+					diff += powf((decon.blur[i] - oldblur[i]), 2);
 					tot += decon.blur[i];
 				}
 			}
@@ -345,7 +345,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	//Determine the maximum intensity in the blur matrix
 	blurmax = Max(decon.blur, config.lengthmz * config.numz);
 	float cutoff = 0;
-	if (blurmax != 0) { cutoff = 0.000001; }
+	if (blurmax != 0) { cutoff = 0.000001f; }
 
 	//Apply The Cutoff
 	ApplyCutoff(decon.blur, blurmax * cutoff, config.lengthmz * config.numz);
@@ -408,14 +408,14 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		{
 			for (int j = 0; j < config.numz; j++)
 			{
-				if (decon.newblur[index2D(config.numz, i, j)] * barr[index2D(config.numz, i, j)] > newblurmax * cutoff)
+				if (decon.newblur[index2D(config.numz, i, j)] * (float) barr[index2D(config.numz, i, j)] > newblurmax * cutoff)
 				{
-					float testmax = inp.mtab[index2D(config.numz, i, j)] + config.psmzthresh * inp.nztab[j]+config.massbins;
-					float testmin = inp.mtab[index2D(config.numz, i, j)] - config.psmzthresh * inp.nztab[j];
+					float testmax = inp.mtab[index2D(config.numz, i, j)] + config.psmzthresh * (float) inp.nztab[j]+config.massbins;
+					float testmin = inp.mtab[index2D(config.numz, i, j)] - config.psmzthresh * (float) inp.nztab[j];
 
 					//To prevent really wierd decimals
-					testmin = round(testmin / config.massbins) * config.massbins;
-					testmax = round(testmax / config.massbins) * config.massbins;
+					testmin = roundf(testmin / config.massbins) * config.massbins;
+					testmax = roundf(testmax / config.massbins) * config.massbins;
 
 					if (testmax > massmax){	massmax = testmax;}
 					if (testmin < massmin){	massmin = testmin;}
@@ -427,14 +427,14 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	else { massmax = config.massub; massmin = config.masslb; }
 
 	//Checks to make sure the mass axis is good and makes a dummy axis if not
-	decon.mlen = (int)(massmax - massmin) / config.massbins;
+	decon.mlen = (int)((massmax - massmin) / config.massbins);
 	int mn = decon.mlen * config.numz;
 	size_t sizemn = (size_t)mn * sizeof(float);
 	if (decon.mlen < 1) {
 		printf("ERROR: No masses detected. Length: %d\n", decon.mlen);
 		massmax = config.massub;
 		massmin = config.masslb;
-		decon.mlen = (int)(massmax - massmin) / config.massbins;
+		decon.mlen = (int)((massmax - massmin) / config.massbins);
 
 		//Declare the memory
 		decon.massaxis = calloc(decon.mlen, sizeof(float));
@@ -446,7 +446,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		//Create the mass axis
 		for (int i = 0; i < decon.mlen; i++)
 		{
-			decon.massaxis[i] = massmin + i * config.massbins;
+			decon.massaxis[i] = massmin + (float) i * config.massbins;
 		}
 		decon.uniscore = 0;
 	}
@@ -464,7 +464,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		//Create the mass axis
 		for (int i = 0; i < decon.mlen; i++)
 		{
-			decon.massaxis[i] = massmin + i * config.massbins;
+			decon.massaxis[i] = massmin + (float) i * config.massbins;
 		}
 
 		//Determine the mass intensities from m/z grid
@@ -509,14 +509,14 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	return decon;
 }
 
-void RunAutotune(Config *config, Input *inp, Decon *decon) {
+void RunAutotune(Config *config, const Input *inp, Decon *decon) {
 	printf("Starting Autotune...\n");
-	float start_peakwindow = config->peakwin;
-	float start_peakthresh = config->peakthresh;
+	const float start_peakwindow = config->peakwin;
+	const float start_peakthresh = config->peakthresh;
 	config->peakwin = 3 * config->massbins;
-	config->peakthresh = 0.01;
+	config->peakthresh = 0.01f;
 
-	int start_numit = config->numit;
+	const int start_numit = config->numit;
 	config->numit = 10;
 	*decon = MainDeconvolution(*config, *inp, 1, 0);
 	float bestscore = decon->uniscore;
@@ -527,18 +527,18 @@ void RunAutotune(Config *config, Input *inp, Decon *decon) {
 	float start_psig = config->psig;
 
 	//float mz_sigs[5] = { 0, 0.1, 1, 10, 100};
-	float mz_sigs[2] = { 0, config->mzsig };
+	const float mz_sigs[2] = { 0, config->mzsig };
 	//float z_sigs[2] = { -1, 1 };
-	float z_sigs[1] = { config->zsig };
-	float betas[3] = { 0, 50, 500 };
-	float psigs[3] = { 0, 1, 10 };
+	const float z_sigs[1] = { config->zsig };
+	const float betas[3] = { 0, 50, 500 };
+	const float psigs[3] = { 0, 1, 10 };
 
 	//int n_mzsigs = 5;
-	int n_mzsigs = 2;
+	const int n_mzsigs = 2;
 	//int n_zsigs = 2;
-	int n_zsigs = 1;
-	int n_betas = 3;
-	int n_psigs = 3;
+	const int n_zsigs = 1;
+	const int n_betas = 3;
+	const int n_psigs = 3;
 
 	for (int i = 0; i < n_mzsigs; i++)
 	{

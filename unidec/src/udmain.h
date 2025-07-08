@@ -23,7 +23,7 @@
 
 Decon ExitToBlank(const Config config, Decon decon);
 Decon MainDeconvolution(const Config config, const Input inp, const int silent, const int verbose);
-void RunAutotune(Config *config, Input *inp, Decon *decon);
+void RunAutotune(Config *config, const Input *inp, Decon *decon);
 int run_unidec(int argc, char *argv[], Config config);
 
 #endif //UDMAIN_H
