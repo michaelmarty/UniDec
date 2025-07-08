@@ -225,6 +225,10 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 		config->lengthmz = getfilelength(config->infile);
 		inp->dataMZ = (float*)calloc(config->lengthmz, sizeof(float));
 		inp->dataInt = (float*)calloc(config->lengthmz, sizeof(float));
+		if (inp->dataMZ == NULL || inp->dataInt == NULL) {
+			printf("Error allocating memory for data arrays\n");
+			exit(1);
+		}
 
 		readfile(config->infile, config->lengthmz, inp->dataMZ, inp->dataInt);//load up the data array
 		printf("Length of Data: %d \n", config->lengthmz);
@@ -237,33 +241,40 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 			printf("Length of mfile: %d \n", config->mfilelen);
 		}
 		inp->testmasses = (float*)malloc(sizeof(float) * config->mfilelen);
+		if (inp->testmasses == NULL) {
+			printf("Error allocating memory for test masses\n");
+			exit(1);
+		}
 		if (config->mflag == 1)
 		{
 			readmfile(config->mfile, config->mfilelen, inp->testmasses);//read in mass tab
 		}
 	}
 
+	SetupZtab(*config, inp);
+}
+
+void SetupZtab(const Config config, Input *inp) {
 	//This for loop creates a list of charge values
-	inp->nztab = (int*)calloc(config->numz, sizeof(int));
+	inp->nztab = (int*)calloc(config.numz, sizeof(int));
 
 	if (inp->nztab) {
-		for (int i = 0; i < config->numz; i++) { inp->nztab[i] = i + config->startz; }
+		for (int i = 0; i < config.numz; i++) { inp->nztab[i] = i + config.startz; }
 
 		//printf("nzstart %d\n",inp.nztab[0]);
 
 		//Test to make sure no charge state is zero
-		for (int j = 0; j < config->numz; j++)
+		for (int j = 0; j < config.numz; j++)
 		{
 			if (inp->nztab[j] == 0) { printf("Error: Charge state cannot be 0"); exit(100); }
 		}
 		//Test to make sure no two data points has the same x value
-		for (int i = 0; i < config->lengthmz - 1; i++)
+		for (int i = 0; i < config.lengthmz - 1; i++)
 		{
 			if (inp->dataMZ[i] == inp->dataMZ[i + 1]) { printf("Error: Two data points are identical: %f %f \n\n", inp->dataMZ[i], inp->dataMZ[i + 1]); exit(104); }
 		}
 	}
 }
-
 
 void WritePeaks(const Config config, const Decon* decon) {
 	char outdat[1024];
@@ -428,9 +439,8 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 }
 
 
-void ManualAssign(float* dataMZ, char* barr, int* nztab, Config config)
+void ManualAssign(const float* dataMZ, char* barr, const int* nztab, Config config)
 {
-	int i, j, k;
 	int manlen = 0;
 	int lengthmz = config.lengthmz;
 	int numz = config.numz;
@@ -446,6 +456,10 @@ void ManualAssign(float* dataMZ, char* barr, int* nztab, Config config)
 	float* manualmz = (float*)malloc(sizeof(float) * manlen);
 	float* manualwin = (float*)malloc(sizeof(float) * manlen);
 	float* manualassign = (float*)malloc(sizeof(float) * manlen);
+	if (manualmz == NULL || manualwin == NULL || manualassign == NULL) {
+		printf("Error allocating memory for manual assignment arrays\n");
+		exit(1);
+	}
 	if (config.filetype == 1)
 	{
 		mh5readfile3d(config.file_id, "/config/manuallist", manlen, manualmz, manualwin, manualassign);
@@ -455,34 +469,32 @@ void ManualAssign(float* dataMZ, char* barr, int* nztab, Config config)
 		readfile3(config.manualfile, manlen, manualmz, manualwin, manualassign);
 	}
 
-	for (i = 0; i < manlen; i++) {
-		if (manualassign[i] < 0) { manualmz[i] = -manualmz[i] * 1000.0; }
+	for (int i = 0; i < manlen; i++) {
+		if (manualassign[i] < 0) { manualmz[i] = -manualmz[i] * 1000.0f; }
 		printf("Manual Assignment: %f %f %f\n", manualmz[i], manualwin[i], manualassign[i]);
 		//Cheating a bit...make the manualmz very negative if deassign, so that they aren't discovered by the assign loop
 	}
 
-	float testmz;
-	int closest;
-	#pragma omp parallel for private (i,j,testmz,closest)
-	for (i = 0; i < lengthmz; i++)
+	#pragma omp parallel for schedule(auto)
+	for (int i = 0; i < lengthmz; i++)
 	{
-		for (j = 0; j < numz; j++)
+		for (int j = 0; j < numz; j++)
 		{
 			//Manual Assign: The nearest value wins in the case of overlap
-			testmz = dataMZ[i];
-			closest = nearunsorted(manualmz, testmz, manlen);
-			if (fabs(manualmz[closest] - testmz) < manualwin[closest] && (float)nztab[j] == manualassign[closest] && manualassign[closest] > 0)
+			float testmz = dataMZ[i];
+			int closest = nearunsorted(manualmz, testmz, manlen);
+			if (fabsf(manualmz[closest] - testmz) < manualwin[closest] && (float)nztab[j] == manualassign[closest] && manualassign[closest] > 0)
 			{
 				barr[index2D(numz, i, j)] = 1;
 			}
-			else if (fabs(manualmz[closest] - testmz) < manualwin[closest] && (float)nztab[j] != manualassign[closest] && manualassign[closest] > 0)
+			else if (fabsf(manualmz[closest] - testmz) < manualwin[closest] && (float)nztab[j] != manualassign[closest] && manualassign[closest] > 0)
 			{
 				barr[index2D(numz, i, j)] = 0;
 			}
 			//Manual Deassign: Anything within the window is killed
-			for (k = 0; k < manlen; k++) {
+			for (int k = 0; k < manlen; k++) {
 
-				if (fabs(manualmz[k] - testmz * (-1000.0)) < manualwin[k] * 1000.0 && (float)nztab[j] == fabs(manualassign[k]) && manualassign[k] < 0)
+				if (fabsf(manualmz[k] - testmz * (-1000.0f)) < manualwin[k] * 1000.0f && (float)nztab[j] == fabsf(manualassign[k]) && manualassign[k] < 0)
 				{
 					barr[index2D(numz, i, j)] = 0;
 				}

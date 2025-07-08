@@ -578,40 +578,12 @@ void RunAutotune(Config *config, const Input *inp, Decon *decon) {
 	*decon = MainDeconvolution(*config, *inp, 0, 0);
 }
 
-int run_unidec(int argc, char *argv[], Config config) {
-	//Initialize
-	clock_t starttime;
-	starttime = clock();
-
-	Input inp = SetupInputs();
-
-	bool autotune = 0;
-	int verbose = 0;
-	if (argc>2)
-	{
-		if (strcmp(argv[2], "-autotune") == 0){autotune = 1;}
-		if (strcmp(argv[2], "-verbose") == 0) { verbose = 1; }
-	}
-
-	//..................................
-	//
-	// File Inputs
-	//
-	//.................................
-
-	if (argc >= 2)
-	{
-		ReadInputs(argc, argv, &config, &inp);
-	}
-	else{ exit(88); }
-	if (verbose == 1) { printf("Read Inputs\n"); }
-
+int run_unidec_core(Config config, Input inp, Decon *decon, const int verbose, const int autotune) {
 	//.............................................................
 	//
 	//          Set the Mass Values to Exclude
 	//
 	//...............................................................
-
 
 	CalcMasses(&config, &inp);
 
@@ -639,23 +611,63 @@ int run_unidec(int argc, char *argv[], Config config) {
 	//
 	//...................................................................
 
-	//Setup the Deconvolution
-	Decon decon=SetupDecon();
-
 	//Autotuning
 	if (autotune == 1) {
-		RunAutotune(&config, &inp, &decon);
+		RunAutotune(&config, &inp, decon);
 	}
 	else{
 		//Run the main Deconvolution
-		decon = MainDeconvolution(config, inp, config.silent, verbose); }
+		*decon = MainDeconvolution(config, inp, config.silent, verbose); }
 
 	// Run DoubleDec if it's checked
 	if (config.doubledec) { // Use Python to confirm kernel file is selected
 		printf("Running DoubleDec now\n");
-		DoubleDecon(&config, &decon);
+		DoubleDecon(&config, decon);
 	}
 	if (verbose == 1) { printf("Decon Done\n"); }
+	return 0;
+}
+
+
+int run_unidec(int argc, char *argv[], Config config) {
+	//Initialize
+	clock_t starttime;
+	starttime = clock();
+
+	bool autotune = 0;
+	int verbose = 0;
+	if (argc>2)
+	{
+		if (strcmp(argv[2], "-autotune") == 0){autotune = 1;}
+		if (strcmp(argv[2], "-verbose") == 0) { verbose = 1; }
+	}
+
+	//..................................
+	//
+	// File Inputs
+	//
+	//.................................
+
+	Input inp = SetupInputs();
+
+	if (argc >= 2)
+	{
+		ReadInputs(argc, argv, &config, &inp);
+	}
+	else{ exit(88); }
+	if (verbose == 1) { printf("Read Inputs\n"); }
+
+	//Setup the Deconvolution
+	Decon decon=SetupDecon();
+
+	// ........................................................
+	//
+	//  Run the Deconvolution
+	//
+	//........................................................
+
+	run_unidec_core(config, inp, &decon, verbose, autotune);
+
 	//................................................................
 	//
 	//  Wrapping up

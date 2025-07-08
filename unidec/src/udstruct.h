@@ -5,6 +5,32 @@
 #ifndef UDSTRUCT_H
 #define UDSTRUCT_H
 
+
+#ifdef __cplusplus
+    #define EXTERN extern "C"
+#else
+    #define EXTERN
+#endif
+
+// 🔥 Define UDSTRUCT_EXPORTS ONLY inside isodeclib.h
+#ifdef UNIDEC_BUILD_DLL
+    #if defined(_WIN32) || defined(_WIN64)
+        #define UDSTRUCT_EXPORTS EXTERN __declspec(dllexport)
+        // #pragma message "Message: 1 "
+    #else
+        #define UDSTRUCT_EXPORTS EXTERN __attribute__((__visibility__("default")))
+// #pragma message "Message: 2 "
+    #endif
+#else
+    #if defined(_WIN32) || defined(_WIN64)
+        #define UDSTRUCT_EXPORTS EXTERN // __declspec(dllimport)
+// #pragma message "Message: 3 "
+    #else
+        #define UDSTRUCT_EXPORTS EXTERN
+// #pragma message "Message: 4 "
+    #endif
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -155,9 +181,9 @@ Input SetupInputs();
 void FreeInputs(Input inp);
 Decon SetupDecon();
 void FreeDecon(Decon decon);
-Config SetDefaultConfig();
-Config PostImport(Config config);
-Config LoadConfig(Config config, const char *filename);
-void PrintHelp();
+UDSTRUCT_EXPORTS Config SetDefaultConfig();
+UDSTRUCT_EXPORTS Config PostImport(Config config);
+UDSTRUCT_EXPORTS Config LoadConfig(Config config, const char *filename);
+UDSTRUCT_EXPORTS void PrintHelp();
 
 #endif //UDSTRUCT_H
