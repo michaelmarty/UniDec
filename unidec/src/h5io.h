@@ -26,8 +26,8 @@ void mh5writefile1d(const hid_t file_id, const char *dataname, const int length,
 void mh5writefile2d(const hid_t file_id, const char *dataname, const int length, const float *data1, const float *data2);
 void mh5writefile2d_grid(const hid_t file_id, const char *dataname, const int length1, const int length2, const float *data1);
 
-int int_attr(hid_t file_id, char *gname, char * attr_name, int value);
-float float_attr(hid_t file_id, char *gname, char * attr_name, float value);
+int int_attr(hid_t file_id, const char *gname, char * attr_name, int value);
+float float_attr(hid_t file_id, const char *gname, char * attr_name, float value);
 void write_attr_int(hid_t file_id, const char *gname, const char *attr_name, int value);
 void write_attr_float(hid_t file_id, const char *gname, const char *attr_name, float value);
 

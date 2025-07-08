@@ -108,7 +108,7 @@ struct Config {
     float tcal2;
     float tcal3;
     float tcal4;
-    float twaveflag;
+    int twaveflag;
     float hmass;
     float to;
     float len;

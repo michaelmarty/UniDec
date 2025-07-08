@@ -75,11 +75,10 @@ void mh5readfile2dcolumn(const hid_t file_id, char* dataname, float* outdata, co
 void mh5readfile2d(const hid_t file_id, char *dataname, const int lengthmz, float *dataMZ, float *dataInt)
 {
 	check_group(file_id, dataname);
-	int i;
-	int newlen = lengthmz * 2;
+	const int newlen = lengthmz * 2;
 	float *data = calloc(newlen, sizeof(float));
 	H5LTread_dataset_float(file_id, dataname, data);
-	for (i = 0; i<lengthmz; i++)
+	for (int i = 0; i<lengthmz; i++)
 	{
 		dataMZ[i] = data[i * 2];
 		dataInt[i] = data[i * 2 + 1];
@@ -90,12 +89,10 @@ void mh5readfile2d(const hid_t file_id, char *dataname, const int lengthmz, floa
 void mh5readfile3d(const hid_t file_id, char *dataname, const int lengthmz, float *dataMZ, float *dataInt, float *data3)
 {
 	check_group(file_id, dataname);
-	int i;
-	float *data;
-	int newlen = lengthmz * 3;
-	data = calloc(newlen, sizeof(float));
+	const int newlen = lengthmz * 3;
+	float *data = calloc(newlen, sizeof(float));
 	H5LTread_dataset_float(file_id, dataname, data);
-	for (i = 0; i<lengthmz; i++)
+	for (int i = 0; i<lengthmz; i++)
 	{
 		dataMZ[i] = data[i * 3];
 		dataInt[i] = data[i * 3 + 1];
@@ -125,11 +122,9 @@ void mh5writefile2d(const hid_t file_id, const char *dataname, const int length,
 	if (H5LTpath_valid(file_id, dataname, 1)){
 		H5Ldelete(file_id, dataname, H5P_DEFAULT);
 	}
-	float *data;
-	int i;
-	int len2 = length * 2;
-	data = calloc(len2, sizeof(float));
-	for (i = 0; i<length; i++)
+	const int len2 = length * 2;
+	float *data = calloc(len2, sizeof(float));
+	for (int i = 0; i<length; i++)
 	{
 		data[2*i] = data1[i];
 		data[2*i+1] = data2[i];
@@ -147,14 +142,13 @@ void mh5writefile2d_grid(const hid_t file_id, const char *dataname, const int le
 	H5LTmake_dataset_float(file_id, dataname, 2, length, data1);
 }
 
-int int_attr(hid_t file_id, char *gname, char * attr_name, int value)
+int int_attr(const hid_t file_id, const char *gname, char * attr_name, int value)
 {
-	hid_t dset_id = H5Gopen1(file_id, gname);
-	herr_t x = H5LTfind_attribute(dset_id, attr_name);
-	herr_t y;
+	const hid_t dset_id = H5Gopen1(file_id, gname);
+	const herr_t x = H5LTfind_attribute(dset_id, attr_name);
 	int attr[1] = { 0 };
 	if (x == 1){
-		y=H5LTget_attribute_int(file_id, gname, attr_name, attr);
+		const herr_t y = H5LTget_attribute_int(file_id, gname, attr_name, attr);
 		if (y < 0) { printf("Error with: %s\n", attr_name); }
 		else{ value = attr[0]; }
 	}
@@ -162,14 +156,13 @@ int int_attr(hid_t file_id, char *gname, char * attr_name, int value)
 	return value;
 }
 
-float float_attr(hid_t file_id, char *gname, char * attr_name, float value)
+float float_attr(const hid_t file_id, const char *gname, char * attr_name, float value)
 {
-	hid_t dset_id = H5Gopen1(file_id, gname);
-	herr_t x = H5LTfind_attribute(dset_id, attr_name);
-	herr_t y;
+	const hid_t dset_id = H5Gopen1(file_id, gname);
+	const herr_t x = H5LTfind_attribute(dset_id, attr_name);
 	float attr[1] = { 0 };
 	if (x == 1){
-		y=H5LTget_attribute_float(file_id, gname, attr_name, attr);
+		const herr_t y = H5LTget_attribute_float(file_id, gname, attr_name, attr);
 		if (y < 0) { printf("Error with: %s\n", attr_name); }
 		else { value = attr[0]; }
 	}
@@ -267,7 +260,7 @@ Config mh5LoadConfig(Config config, hid_t file_id)
 
 	//Experimental
 	config.filterwidth = int_attr(file_id, "/config", "filterwidth", config.filterwidth);
-	config.zerolog = int_attr(file_id, "/config", "zerolog", config.zerolog);
+	config.zerolog = float_attr(file_id, "/config", "zerolog", config.zerolog);
 
 	config=PostImport(config);
 
@@ -304,15 +297,15 @@ void set_got_grids(const hid_t file_id)
 int question_grids(const hid_t file_id)
 {
 	//int status = check_group(file_id, "/ms_dataset/mass_axis");
-	int status = H5Lexists(file_id, "/ms_dataset/mass_axis", H5P_DEFAULT);
+	const int status = H5Lexists(file_id, "/ms_dataset/mass_axis", H5P_DEFAULT);
 	if (status == 0) { write_attr_int(file_id, "/config", "gridsflag", 0); }//printf("Grids not found %d\n", status);}
 	return int_attr(file_id, "/config", "gridsflag", 0);
 }
 
-int question_rawgrid(hid_t file_id)
+int question_rawgrid(const hid_t file_id)
 {
 	//int status = check_group(file_id, "/ms_dataset/mass_axis");
-	int status = H5Lexists(file_id, "/ms_dataset/raw_axis", H5P_DEFAULT);
+	const int status = H5Lexists(file_id, "/ms_dataset/raw_axis", H5P_DEFAULT);
 	if (status == 0) { write_attr_int(file_id, "/config", "gridsflag", 0); }//printf("Grids not found %d\n", status);}
 	return int_attr(file_id, "/config", "gridsflag", 0);
 }
