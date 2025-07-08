@@ -5,11 +5,16 @@
 #ifndef UDCORE_H
 #define UDCORE_H
 
-#endif //UDCORE_H
 
-#ifndef UDSTRUCT_H
 #include "udstruct.h"
-#endif //UDSTRUCT_H
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <math.h>
+#include "udtools.h"
+#include <fftw3.h>
+#include "udio.h"
+
 
 void blur_it(const int lengthmz,
              const int numz,
@@ -121,3 +126,5 @@ void SmartTransform(const Config config, Decon *decon, const Input *inp);
 
 
 void DoubleDecon(const Config *config, Decon *decon);
+
+#endif //UDCORE_H

@@ -3,13 +3,7 @@
 //
 
 #include "udcore.h"
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
-#include "udtools.h"
-#include <fftw3.h>
-#include "udio.h"
+
 
 //..........
 //

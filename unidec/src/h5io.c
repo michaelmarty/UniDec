@@ -1,3 +1,6 @@
+//
+// Created by mm96978 on 7/8/2025.
+//
 /*
 * UD_H5_IO.h
 *
@@ -11,30 +14,24 @@
 //
 //
 
-#ifndef UD_H5_IO
-#define UD_H5_IO
+#include "h5io.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include "hdf5.h"
-#include "hdf5_hl.h"
 
-int check_group(hid_t file_id, char *dataname)
+int check_group(const hid_t file_id, char *dataname)
 {
-	int status = H5Lexists(file_id, dataname, H5P_DEFAULT);
+	const int status = H5Lexists(file_id, dataname, H5P_DEFAULT);
 	if (status == 0) { printf("Dataset %s does not exist. Error.\n", dataname); exit(12); }
 	return status;
 }
 
-int check_group_noexit(hid_t file_id, char* dataname, const int silent)
+int check_group_noexit(const hid_t file_id, char* dataname, const int silent)
 {
-	int status = H5Lexists(file_id, dataname, H5P_DEFAULT);
+	const int status = H5Lexists(file_id, dataname, H5P_DEFAULT);
 	if (status == 0 && silent==0) { printf("Dataset %s does not exist.\n", dataname);}
 	return status;
 }
 
-void delete_group(hid_t file_id, char* dataname)
+void delete_group(const hid_t file_id, const char* dataname)
 {
 	if (H5LTpath_valid(file_id, dataname, 1)) {
 		H5Ldelete(file_id, dataname, H5P_DEFAULT);
@@ -42,16 +39,16 @@ void delete_group(hid_t file_id, char* dataname)
 }
 
 
-int mh5getfilelength(hid_t file_id, char *dataname)
+int mh5getfilelength(const hid_t file_id, char *dataname)
 {
 	check_group(file_id, dataname);
 	hsize_t     dims[2];
 	H5LTget_dataset_info(file_id, dataname, dims, NULL, NULL);
 	// printf("%d %d\n", dims[0], dims[1]);
-	return dims[0];
+	return (int) dims[0];
 }
 
-void mh5readfile2dcolumn(hid_t file_id, char* dataname, float* outdata, int col)
+void mh5readfile2dcolumn(const hid_t file_id, char* dataname, float* outdata, const int col)
 {
 	check_group(file_id, dataname);
 	hsize_t     dims[2];
@@ -64,8 +61,7 @@ void mh5readfile2dcolumn(hid_t file_id, char* dataname, float* outdata, int col)
 	H5LTget_dataset_info(file_id, dataname, dims, NULL, NULL);
 	//printf("%d %d %d %s\n", dims[0], dims[1], ndims, dataname);
 
-	float* data;
-	data = calloc(dims[0]*dims[1], sizeof(float));
+	float *data = calloc(dims[0] * dims[1], sizeof(float));
 	H5LTread_dataset_float(file_id, dataname, data);
 	for (int i = 0; i < dims[0]; i++)
 	{
@@ -74,24 +70,14 @@ void mh5readfile2dcolumn(hid_t file_id, char* dataname, float* outdata, int col)
 	free(data);
 }
 
-/*
-void mh5readfile2d_grid(hid_t file_id, char* dataname, int length1, int length2, float* data1)
-{
-	//Unfinished
-	const hsize_t length[2] = { length1 ,length2 };
-	if (H5LTpath_valid(file_id, dataname, 1)) {
-		H5Ldelete(file_id, dataname, H5P_DEFAULT);
-	}
-	H5LTmake_dataset_float(file_id, dataname, 2, length, data1);
-}*/
 
-void mh5readfile2d(hid_t file_id, char *dataname, int lengthmz, float *dataMZ, float *dataInt)
+
+void mh5readfile2d(const hid_t file_id, char *dataname, const int lengthmz, float *dataMZ, float *dataInt)
 {
 	check_group(file_id, dataname);
 	int i;
-	float *data;
 	int newlen = lengthmz * 2;
-	data = calloc(newlen, sizeof(float));
+	float *data = calloc(newlen, sizeof(float));
 	H5LTread_dataset_float(file_id, dataname, data);
 	for (i = 0; i<lengthmz; i++)
 	{
@@ -101,7 +87,7 @@ void mh5readfile2d(hid_t file_id, char *dataname, int lengthmz, float *dataMZ, f
 	free(data);
 }
 
-void mh5readfile3d(hid_t file_id, char *dataname, int lengthmz, float *dataMZ, float *dataInt, float *data3)
+void mh5readfile3d(const hid_t file_id, char *dataname, const int lengthmz, float *dataMZ, float *dataInt, float *data3)
 {
 	check_group(file_id, dataname);
 	int i;
@@ -118,13 +104,13 @@ void mh5readfile3d(hid_t file_id, char *dataname, int lengthmz, float *dataMZ, f
 	free(data);
 }
 
-void mh5readfile1d(hid_t file_id, char *dataname, float *data)
+void mh5readfile1d(const hid_t file_id, char *dataname, float *data)
 {
 	check_group(file_id, dataname);
 	H5LTread_dataset_float(file_id, dataname, data);
 }
 
-void mh5writefile1d(hid_t file_id, char *dataname,int length, float *data1)
+void mh5writefile1d(const hid_t file_id, const char *dataname, const int length, const float *data1)
 {
 	const hsize_t length2[1] = { length};
 	if (H5LTpath_valid(file_id, dataname, 1)){
@@ -133,7 +119,7 @@ void mh5writefile1d(hid_t file_id, char *dataname,int length, float *data1)
 	H5LTmake_dataset_float(file_id, dataname, 1, length2, data1);
 }
 
-void mh5writefile2d(hid_t file_id, char *dataname, int length, float *data1, float *data2)
+void mh5writefile2d(const hid_t file_id, const char *dataname, const int length, const float *data1, const float *data2)
 {
 	const hsize_t length2[2] = { length ,2};
 	if (H5LTpath_valid(file_id, dataname, 1)){
@@ -152,7 +138,7 @@ void mh5writefile2d(hid_t file_id, char *dataname, int length, float *data1, flo
 	free(data);
 }
 
-void mh5writefile2d_grid(hid_t file_id, char *dataname, int length1, int length2, float *data1)
+void mh5writefile2d_grid(const hid_t file_id, const char *dataname, const int length1, const int length2, const float *data1)
 {
 	const hsize_t length[2] = { length1 ,length2 };
 	if (H5LTpath_valid(file_id, dataname, 1)) {
@@ -170,7 +156,7 @@ int int_attr(hid_t file_id, char *gname, char * attr_name, int value)
 	if (x == 1){
 		y=H5LTget_attribute_int(file_id, gname, attr_name, attr);
 		if (y < 0) { printf("Error with: %s\n", attr_name); }
-		else{ value = attr[0]; }		
+		else{ value = attr[0]; }
 	}
 	H5Gclose(dset_id);
 	return value;
@@ -191,21 +177,21 @@ float float_attr(hid_t file_id, char *gname, char * attr_name, float value)
 	return value;
 }
 
-void write_attr_int(hid_t file_id, char *gname, char *attr_name, int value)
+void write_attr_int(const hid_t file_id, const char *gname, const char *attr_name, const int value)
 {
-	int buff[1] = { value };
+	const int buff[1] = { value };
 	H5LTset_attribute_int(file_id, gname, attr_name, buff, 1);
 }
 
-void write_attr_float(hid_t file_id, char *gname, char *attr_name, float value)
+void write_attr_float(const hid_t file_id, const char *gname, const char *attr_name, const float value)
 {
-	float buff[1] = { value };
+	const float buff[1] = { value };
 	H5LTset_attribute_float(file_id, gname, attr_name, buff, 1);
 }
 
 Config mh5LoadConfig(Config config, hid_t file_id)
 {
-	
+
 	config.numit=int_attr(file_id, "/config", "numit", config.numit);
 	config.endz=int_attr(file_id, "/config", "endz", config.endz);
 	config.startz=int_attr(file_id, "/config", "startz", config.startz);
@@ -295,29 +281,27 @@ void strjoin(const char *s1, const char *s2, char *newstring)
 	strcat(newstring,  s2);
 }
 
-void makegroup(hid_t file_id, char *dataset)
+void makegroup(const hid_t file_id, const char *dataset)
 {
-	hid_t group_id;
-	htri_t status;
-	status = H5Lexists(file_id, dataset, H5P_DEFAULT);
+	const htri_t status = H5Lexists(file_id, dataset, H5P_DEFAULT);
 	if (status == 0) {
-		group_id = H5Gcreate2(file_id, dataset, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		const hid_t group_id = H5Gcreate2(file_id, dataset, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 		H5Gclose(group_id);
 		//printf("Peaks Group not found. Creating...\n");
 	}
 }
 
-void set_needs_grids(hid_t file_id)
+void set_needs_grids(const hid_t file_id)
 {
 	write_attr_int(file_id, "/config", "gridsflag", 0);
 }
 
-void set_got_grids(hid_t file_id)
+void set_got_grids(const hid_t file_id)
 {
 	write_attr_int(file_id, "/config", "gridsflag", 1);
 }
 
-int question_grids(hid_t file_id)
+int question_grids(const hid_t file_id)
 {
 	//int status = check_group(file_id, "/ms_dataset/mass_axis");
 	int status = H5Lexists(file_id, "/ms_dataset/mass_axis", H5P_DEFAULT);
@@ -333,4 +317,3 @@ int question_rawgrid(hid_t file_id)
 	return int_attr(file_id, "/config", "gridsflag", 0);
 }
 
-#endif

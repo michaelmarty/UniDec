@@ -10,9 +10,11 @@
 // Copyright 2017 University of Arizona
 //
 //
+#include <string.h>
 #include "UD_dataproc.h"
 #include "UD_analysis.h"
 #include "UD_charge.h"
+#include "UD_score.h"
 //#include "UniDecLC_Main.h"
 //#include "UD_peak_width.h"
 

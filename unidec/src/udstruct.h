@@ -5,8 +5,11 @@
 #ifndef UDSTRUCT_H
 #define UDSTRUCT_H
 
-#endif //UDSTRUCT_H
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include <io.h>
 #include "hdf5.h"
 
 typedef struct Input Input;
@@ -156,3 +159,5 @@ Config SetDefaultConfig();
 Config PostImport(Config config);
 Config LoadConfig(Config config, const char *filename);
 void PrintHelp();
+
+#endif //UDSTRUCT_H

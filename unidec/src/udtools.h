@@ -5,8 +5,10 @@
 #ifndef UDTOOLS_H
 #define UDTOOLS_H
 #include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
 
-#endif //UDTOOLS_H
+
 
 void floatPrint(const float *array, const int length);
 void IntPrint(const int *array, const int length);
@@ -57,3 +59,6 @@ inline int fixk(int k, int lengthmz) {
     //if (k < 0) { k = 0; }
     return k;
 }
+
+
+#endif //UDTOOLS_H

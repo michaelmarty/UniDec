@@ -35,11 +35,10 @@ link_directories("${HDF5_DIR}/lib")
 #target_include_directories(unideclib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(unidec
         "${FFTW_DIR}/fftw3.h"
-        UniDec.h UD_conv.h UD_dataproc.h UD_H5_IO.h
-        UD_IO.h
+        UniDec.h UD_conv.h
         UD_sg.h UD_peak_width.h UD_score.h
         UD_match.h UniDec.c UD_match.h
-        UniDec_Main.h UniDecLC_Main.h UniDecIM.h UniDecIM_Main.h
+        UniDecLC_Main.h UniDecIM.h UniDecIM_Main.h
         udtools.c
         udtools.h
         udstruct.c
@@ -47,7 +46,17 @@ add_executable(unidec
         udio.c
         udio.h
         udcore.c
-        udcore.h)
+        udcore.h
+        udmain.c
+        udmain.h
+        h5io.c
+        h5io.h
+        UD_dataproc.c
+        UD_dataproc.h
+        UD_analysis.c
+        UD_analysis.h
+        UD_score.c
+)
 
 #target_link_libraries(unidec PRIVATE unideclib)
 #target_include_directories(unideclib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

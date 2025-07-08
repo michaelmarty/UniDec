@@ -16,6 +16,7 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include "udcore.h"
 //#include <fftw3.h>
 //#include "UniDecIM.h"
 

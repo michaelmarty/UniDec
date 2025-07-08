@@ -3,11 +3,6 @@
 //
 
 #include "udstruct.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
-#include <io.h>
 
 
 Input SetupInputs() {

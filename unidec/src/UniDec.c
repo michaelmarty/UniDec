@@ -6,19 +6,7 @@
 // Copyright University of Arizona 2016
 //
 
-#define __STDC_WANT_LIB_EXT1__ 1
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <omp.h>
-
-//#include "UD_headers.h"
-#include "UniDec_Main.h"
-#include "UniDecIM_Main.h"
-#include "MetaUniDec_Main.h"
-#include "UniDecCD_Main.h"
-// #include "UD_match.h"
-#include "UD_conv.h"
+#include "UniDec.h"
 
 
 

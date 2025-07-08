@@ -1,3 +1,6 @@
+//
+// Created by mm96978 on 7/8/2025.
+//
 /*
 * UniDec_Main.h
 *
@@ -11,17 +14,7 @@
 //
 //
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-#include <time.h>
-#include "hdf5.h"
-#include "hdf5_hl.h"
-#include "UniDec.h"
-#include "UD_H5_IO.h"
-#include "UD_IO.h"
-#include "UD_score.h"
+#include "udmain.h"
 
 
 Decon ExitToBlank(const Config config, Decon decon)
@@ -65,7 +58,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	memcpy(barr, inp.barr, sizelnc);
 
 	int maxlength = SetUpPeakShape(config, inp, &decon, 0, 1);
-	
+
 
 
 	//....................................................
@@ -80,9 +73,9 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		mlength = 1 + 2 * (int)config.msig;
 	}
 	else {
-		if (config.zsig != 0) { zlength = 1 + 2 * (int)(3 * fabs(config.zsig) + 0.5); }
+		if (config.zsig != 0) { zlength = 1 + 2 * (int)(3 * fabsf(config.zsig) + 0.5); }
 		else { zlength = 1; }
-		if (config.msig != 0) { mlength = 1 + 2 * (int)(3 * fabs(config.msig) + 0.5); }
+		if (config.msig != 0) { mlength = 1 + 2 * (int)(3 * fabsf(config.msig) + 0.5); }
 		else { mlength = 1; }
 	}
 	numclose = mlength * zlength;
@@ -94,7 +87,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	for (int i = 0; i < mlength; i++)
 	{
 		mind[i] = i - (mlength - 1) / 2;
-		if (config.msig != 0) { mdist[i] = exp(-(pow((i - (mlength - 1) / 2.), 2)) / (2.0 * config.msig * config.msig)); }
+		if (config.msig != 0) { mdist[i] = expf(-(powf((i - (mlength - 1) / 2.f), 2.f)) / (2.0f * config.msig * config.msig)); }
 		else { mdist[i] = 1; }
 	}
 
@@ -103,7 +96,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	for (int i = 0; i < zlength; i++)
 	{
 		zind[i] = i - (zlength - 1) / 2;
-		if (config.zsig != 0) { zdist[i] = exp(-(pow((i - (zlength - 1) / 2.), 2)) / (2.0 * config.zsig * config.zsig)); }
+		if (config.zsig != 0) { zdist[i] = expf(-(powf((i - (zlength - 1) / 2.f), 2.f)) / (2.0f * config.zsig * config.zsig)); }
 		else { zdist[i] = 1; }
 		//printf("%f\n", zdist[i]);
 	}
@@ -153,7 +146,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 
 	//Applies the intensity threshold to kill peaks
 	if (config.intthresh != -1) { KillB(inp.dataInt, barr, config.intthresh, config.lengthmz, config.numz); }
-	
+
 
 	//Creates an intial probability matrix, decon.blur, of 1 for each element
 	decon.blur = calloc(ln, sizeof(float));
@@ -252,7 +245,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	float blurmax = 0;
 	decon.conv = 0;
 	int off = 0;
-	
+
 
 	if (silent == 0) { printf("Iterating..."); }
 
@@ -270,7 +263,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 			point_smoothing(decon.blur, barr, config.lengthmz, config.numz, abs((int)config.psig));
 			//printf("Point Smoothed %f\n", config.psig);
 		}
-		
+
 		//Run Blurs
 		if (config.zsig >= 0 && config.msig >= 0) {
 			blur_it_mean(config.lengthmz, config.numz, numclose, closeind, decon.newblur, decon.blur, barr, closearray, config.zerolog);
@@ -292,7 +285,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 			decon.newblur, decon.blur, barr, config.aggressiveflag, dataInt2,
 			decon.starttab, decon.endtab, decon.mzdist, decon.rmzdist, config.speedyflag,
 			config.baselineflag, decon.baseline, decon.noise, config.mzsig, inp.dataMZ, config.filterwidth, config.psig);
-		
+
 		//Determine the metrics for conversion. Only do this every 10% to speed up.
 		if ((config.numit < 10 || iterations % 10 == 0 || iterations % 10 == 1 || iterations>0.9 * config.numit)) {
 			float diff = 0;
@@ -309,7 +302,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 			else {
 				if (decon.conv == 12345678) { printf("m/z vs. charge grid is zero. Iteration: %d\n", iterations); break; }
 				else{decon.conv = 12345678;}
-			} 
+			}
 
 			//printf("Iteration: %d Convergence: %f\n", iterations, decon.conv);
 			if (decon.conv < 0.000001) {
@@ -321,7 +314,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 			}
 			memcpy(oldblur, decon.blur, sizelnf);
 		}
-		
+
 	}
 
 	free(dataInt2);
@@ -333,7 +326,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	//
 	//...............................................................
 
-	
+
 
 	//Reset the peak shape if it was inflated
 	if (config.peakshapeinflate != 1 && config.mzsig != 0) {
@@ -356,8 +349,8 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 
 	//Apply The Cutoff
 	ApplyCutoff(decon.blur, blurmax * cutoff, config.lengthmz * config.numz);
-	
-	
+
+
 	//Calculate the fit data and error.
 	decon.fitdat = calloc(config.lengthmz, sizeof(float));
 	decon.error = errfunspeedy(config, decon, barr, inp.dataInt, maxlength, decon.starttab, decon.endtab, decon.mzdist, &decon.rsquared);
@@ -377,7 +370,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 			}
 		}
 	}
-	
+
 
 	// Charge scaling (orbimode)
 	if (config.orbimode == 1)
@@ -467,7 +460,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		memset(decon.massgrid, 0, sizemn);
 		if (silent == 0) { printf("Mass axis length: %d\n", decon.mlen); }
 
-		
+
 		//Create the mass axis
 		for (int i = 0; i < decon.mlen; i++)
 		{
@@ -653,8 +646,8 @@ int run_unidec(int argc, char *argv[], Config config) {
 	if (autotune == 1) {
 		RunAutotune(&config, &inp, &decon);
 	}
-	else{ 
-		//Run the main Deconvolution		
+	else{
+		//Run the main Deconvolution
 		decon = MainDeconvolution(config, inp, config.silent, verbose); }
 
 	// Run DoubleDec if it's checked

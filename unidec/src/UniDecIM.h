@@ -19,10 +19,11 @@
 
 
 #include <stdio.h>
-#include <string.h>
 #include <math.h>
-#include <time.h>
 #include <fftw3.h>
+
+#include "udtools.h"
+#include "udio.h"
 //#include <complex.h>
 //#include <omp.h>
 
