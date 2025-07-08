@@ -18,7 +18,7 @@
 #include "udio.h"
 
 
-void get_fwhms(Config config, const int plen, const int mlen, const float* massaxis, const float* masssum, const float* peakx, float* fwhmlow, float* fwhmhigh, float* badfwhm);
+void get_fwhms(Config config, const int plen, const int mlen, const float* massaxis, const float* masssum, const float* peakx, float* fwhmlow, float* fwhmhigh, int* badfwhm);
 float single_fwhm(Config config, const int mlen, const float* massaxis, const float* masssum, const float peak, int index, float max);
 
 float uscore(Config config, const float* dataMZ, const float* dataInt, const float* mzgrid, const int* nztab, const float mlow, const float mhigh, const float peak);
@@ -35,7 +35,7 @@ float score_from_peaks(const int plen, const float *peakx, const float *peaky, f
 int peaks_no_score(Config config, Decon* decon, Input inp, const float threshold, const int silent);
 float score(Config config, Decon *decon, Input inp, const float threshold, const int silent);
 
-int ReadDecon(Config* config, const Input inp, Decon* decon);
+int ReadDecon(const Config* config, const Input inp, Decon* decon);
 
 void get_scan_scores(int argc, char* argv[], Config config);
 

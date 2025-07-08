@@ -4,7 +4,7 @@
 
 #include "UD_score.h"
 
-void get_fwhms(Config config, const int plen, const int mlen, const float* massaxis, const float* masssum, const float* peakx, float* fwhmlow, float* fwhmhigh, float* badfwhm)
+void get_fwhms(Config config, const int plen, const int mlen, const float* massaxis, const float* masssum, const float* peakx, float* fwhmlow, float* fwhmhigh, int* badfwhm)
 {
 	for (int i = 0; i < plen; i++)
 	{
@@ -12,7 +12,7 @@ void get_fwhms(Config config, const int plen, const int mlen, const float* massa
 		int index = nearfast(massaxis, peak, mlen);
 		float max = masssum[index];
 
-		float halfmax = max / 2.0;
+		float halfmax = max / 2.0f;
 		int lindex = index;
 		int hindex = index;
 
@@ -59,7 +59,7 @@ void get_fwhms(Config config, const int plen, const int mlen, const float* massa
 		float lowdiff = peak - mlow;
 		float fwhm = mhigh - mlow;
 
-		float threshold = 0.75;
+		float threshold = 0.75f;
 		float mult = threshold / (1 - threshold);
 		if (fwhm != 0) {
 			float rh = highdiff / fwhm;
@@ -91,7 +91,7 @@ void get_fwhms(Config config, const int plen, const int mlen, const float* massa
 // To lower duplication, consider calling this in the loop of get_fwhms()?
 float single_fwhm(Config config, const int mlen, const float* massaxis, const float* masssum, const float peak, int index, float max)
 {
-	float halfmax = max / 2.0;
+	float halfmax = max / 2.0f;
 	int lindex = index;
 	int hindex = index;
 
@@ -138,7 +138,7 @@ float single_fwhm(Config config, const int mlen, const float* massaxis, const fl
 	float lowdiff = peak - mlow;
 	float fwhm = mhigh - mlow;
 
-	float threshold = 0.75;
+	float threshold = 0.75f;
 	float mult = threshold / (1 - threshold);
 	if (fwhm != 0) {
 		float rh = highdiff / fwhm;
@@ -165,7 +165,6 @@ float single_fwhm(Config config, const int mlen, const float* massaxis, const fl
 float uscore(Config config, const float* dataMZ, const float* dataInt, const float* mzgrid, const int* nztab,
 	const float mlow, const float mhigh, const float peak)
 {
-	float power = 2;
 	//float* errors = NULL;
 	//float* weights = NULL;
 	//errors = calloc(config.numz, sizeof(float));
@@ -185,6 +184,7 @@ float uscore(Config config, const float* dataMZ, const float* dataInt, const flo
 
 		if ( hmz > datamin && lmz < datamax)
 		{
+			float power = 2.f;
 			int lindex = nearfast(dataMZ, lmz, config.lengthmz);
 			int hindex = nearfast(dataMZ, hmz, config.lengthmz);
 
@@ -202,7 +202,7 @@ float uscore(Config config, const float* dataMZ, const float* dataInt, const flo
 				float data = dataInt[j];
 				float decon = mzgrid[index2D(config.numz, j, i)];
 				if (config.orbimode == 1) { decon *= z; }
-				sumerrors += fabs(data - decon);
+				sumerrors += fabsf(data - decon);
 				sumdata += data;
 				sumdecon += decon;
 			}
@@ -214,7 +214,7 @@ float uscore(Config config, const float* dataMZ, const float* dataInt, const flo
 			}
 			//printf("%f %f\n", mzgrid[index2D(config.numz, lindex, i)], mzgrid[index2D(config.numz, hindex, i)]);
 			//printf("%f %f %f %f %f\n", z, sumerrors, per, sumdecon, sumdata);
-			sumdecon = pow(sumdecon, power);
+			sumdecon = powf(sumdecon, power);
 			numerator += sumdecon * per;
 			denominator += sumdecon;
 		}
@@ -231,8 +231,6 @@ float uscore(Config config, const float* dataMZ, const float* dataInt, const flo
 
 float mscore(Config config, const int mlen, const float* massaxis, const float* masssum, const float* massgrid, const float mlow, const float mhigh, const float peak)
 {
-	float power = 2;
-
 	float numerator = 0;
 	float denominator = 0;
 
@@ -260,8 +258,6 @@ float mscore(Config config, const int mlen, const float* massaxis, const float* 
 
 		for (int i = 0; i < config.numz; i++)
 		{
-			float sumdata = 0;
-			float sumerrors = 0;
 			float sumdecon = 0;
 			for (int j = lindex; j <= hindex; j++)
 			{
@@ -272,11 +268,14 @@ float mscore(Config config, const int mlen, const float* massaxis, const float* 
 			//float sumdecon2 = 0;
 			if (sumdecon > 0)
 			{
+				float power = 2.f;
+				float sumerrors = 0;
+				float sumdata = 0;
 				for (int j = lindex; j <= hindex; j++)
 				{
 					float data = masssum[j];
 					float decon = massgrid[index2D(config.numz, j, i)] / sumdecon * msum;
-					sumerrors += fabs(data - decon);
+					sumerrors += fabsf(data - decon);
 					sumdata += data;
 					//sumdecon2 += decon;
 				}
@@ -289,7 +288,7 @@ float mscore(Config config, const int mlen, const float* massaxis, const float* 
 
 				//printf("%f %f\n", mzgrid[index2D(config.numz, lindex, i)], mzgrid[index2D(config.numz, hindex, i)]);
 				//printf("%f %f %f %f %f\n", z, sumerrors, per, sumdecon, sumdata);
-				sumdecon = pow(sumdecon, power);
+				sumdecon = powf(sumdecon, power);
 				numerator += sumdecon * per;
 				denominator += sumdecon;
 			}
@@ -374,6 +373,7 @@ float csscore(Config config, const int mlen, const float* massaxis, const float*
 		}
 
 	}
+	free(zvals);
 	return csscore;
 }
 
@@ -454,14 +454,17 @@ float fscore(Config config, const int plen, const int mlen, const float* massaxi
 
 
 float score_from_peaks(const int plen, const float *peakx, const float *peaky, float *dscores, const Config config, Decon *decon, const Input inp, const float threshold) {
-
-	float xfwhm = 2;
 	float* fwhmlow = NULL;
 	float* fwhmhigh = NULL;
-	float* badfwhm = NULL;
+	int* badfwhm = NULL;
 	fwhmlow = calloc(plen, sizeof(float));
 	fwhmhigh = calloc(plen, sizeof(float));
-	badfwhm = calloc(plen, sizeof(float));
+	badfwhm = calloc(plen, sizeof(int));
+	if (fwhmlow == NULL || fwhmhigh == NULL || badfwhm == NULL || peakx == NULL || peaky == NULL || dscores == NULL)
+	{
+		printf("Error allocating memory for FWHM arrays.\n");
+		exit(1);
+	}
 
 	get_fwhms(config, plen, decon->mlen, decon->massaxis, decon->massaxisval, peakx, fwhmlow, fwhmhigh, badfwhm);
 
@@ -471,6 +474,7 @@ float score_from_peaks(const int plen, const float *peakx, const float *peaky, f
 
 	for (int i = 0; i < plen; i++)
 	{
+		float xfwhm = 2;
 		float m = peakx[i];
 		float ival = peaky[i];
 		float l = m - (m - fwhmlow[i]) * xfwhm;
@@ -499,8 +503,7 @@ float score_from_peaks(const int plen, const float *peakx, const float *peaky, f
 	return uniscore;
 }
 
-int peaks_no_score(Config config, Decon* decon, Input inp, const float threshold, const int silent)
-{
+int peaks_no_score(Config config, Decon* decon, Input inp, const float threshold, const int silent) {
 	decon->peakx = calloc(decon->mlen, sizeof(float));
 	decon->peaky = calloc(decon->mlen, sizeof(float));
 
@@ -510,6 +513,11 @@ int peaks_no_score(Config config, Decon* decon, Input inp, const float threshold
 	decon->peakx = realloc(decon->peakx, plen * sizeof(float));
 	decon->peaky = realloc(decon->peaky, plen * sizeof(float));
 	decon->dscores = calloc(plen, sizeof(float));
+
+	if (decon->peakx == NULL || decon->peaky == NULL || decon->dscores == NULL){
+		printf("Error setting ");
+		exit(11);
+	}
 
 	peak_norm(decon->peaky, plen, config.peaknorm);
 
@@ -541,7 +549,7 @@ float score(Config config, Decon *decon, Input inp, const float threshold, const
 }
 
 
-int ReadDecon(Config* config, const Input inp, Decon* decon)
+int ReadDecon(const Config* config, const Input inp, Decon* decon)
 {
 	char outdat[1024];
 
