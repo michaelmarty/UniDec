@@ -11,7 +11,7 @@
     #define EXTERN
 #endif
 
-// 🔥 Define UNIDECLIB_EXPORTS ONLY inside isodeclib.h
+// Define UNIDECLIB_EXPORTS ONLY inside isodeclib.h
 #ifdef UNIDEC_BUILD_DLL
     #if defined(_WIN32) || defined(_WIN64)
         #define UDIO_EXPORTS EXTERN __declspec(dllexport)

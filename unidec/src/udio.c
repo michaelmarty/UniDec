@@ -203,6 +203,10 @@ void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
 		config->lengthmz = mh5getfilelength(config->file_id, outdat);
 		inp->dataMZ = (float*)calloc(config->lengthmz, sizeof(float));
 		inp->dataInt = (float*)calloc(config->lengthmz, sizeof(float));
+		if (inp->dataMZ == NULL || inp->dataInt == NULL) {
+			printf("Error allocating memory for data arrays\n");
+			exit(1);
+		}
 		mh5readfile2d(config->file_id, outdat, config->lengthmz, inp->dataMZ, inp->dataInt);
 		if (config->silent == 0) { printf("Length of Data: %d \n", config->lengthmz); }
 

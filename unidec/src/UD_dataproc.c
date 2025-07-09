@@ -15,9 +15,8 @@ int pool1d(float **oldmz, float **oldint, const int oldlen, const float mzbins)
 	}
 
 	//declare memory for new arrays
-	float* newmz, * newint;
-	newmz = calloc(newlen, sizeof(float));
-	newint = calloc(newlen, sizeof(float));
+	float *newmz = calloc(newlen, sizeof(float));
+	float *newint = calloc(newlen, sizeof(float));
 
 	// printf("%d %d %d\n", oldlen, newlen, mzbins);
 	for (int i = 0; i < newlen; i++)
@@ -58,8 +57,8 @@ int pool1d(float **oldmz, float **oldint, const int oldlen, const float mzbins)
 int chop1d(float **oldmz, float **oldint, const int oldlen, const float min, const float max)
 {
 	//int silent = 0;
-	float maxval = Max(*oldmz, oldlen);
-	float minval = Min(*oldmz, oldlen);
+	const float maxval = Max(*oldmz, oldlen);
+	const float minval = Min(*oldmz, oldlen);
 	//if (silent == 0) { printf("Test %f %f\n", minval, maxval); }
 	if (maxval<max && minval>min){
 		return oldlen;
@@ -79,9 +78,8 @@ int chop1d(float **oldmz, float **oldint, const int oldlen, const float min, con
 	}
 	//if (silent == 0) { printf("Test2 %d\n", newlen); }
 	//declare memory for new arrays
-	float* newmz, * newint;
-	newmz = calloc(newlen, sizeof(float));
-	newint = calloc(newlen, sizeof(float));
+	float *newmz = calloc(newlen, sizeof(float));
+	float *newint = calloc(newlen, sizeof(float));
 
 	//Fill new arrays
 	newlen = 0;
@@ -132,9 +130,8 @@ int remove_duplicates(float **oldmz, float **oldint, int oldlen)
 	}
 
 	//declare memory for new arrays
-	float* newmz, * newint;
-	newmz = calloc(newlen, sizeof(float));
-	newint = calloc(newlen, sizeof(float));
+	float *newmz = calloc(newlen, sizeof(float));
+	float *newint = calloc(newlen, sizeof(float));
 
 	//Fill new arrays
 	newlen = 0;
@@ -190,9 +187,8 @@ int remove_middle_zeros(float **oldmz, float **oldint, int oldlen)
 	}
 
 	//declare memory for new arrays
-	float* newmz, * newint;
-	newmz = calloc(newlen, sizeof(float));
-	newint = calloc(newlen, sizeof(float));
+	float *newmz = calloc(newlen, sizeof(float));
+	float *newint = calloc(newlen, sizeof(float));
 
 	//Fill new arrays
 	newlen = 0;
@@ -230,7 +226,7 @@ int remove_middle_zeros(float **oldmz, float **oldint, int oldlen)
 //Normalize
 void norm1d(float *dataInt, const int lengthmz)
 {
-	float maxval = Max(dataInt, lengthmz);
+	const float maxval = Max(dataInt, lengthmz);
 	if(maxval>0){
 		for (int i = 0; i < lengthmz; i++)
 		{
@@ -241,8 +237,7 @@ void norm1d(float *dataInt, const int lengthmz)
 
 void background_subtract(float *dataInt, const int bsub, const int lengthmz)
 {
-	float *background;
-	background = calloc(lengthmz, sizeof(float));
+	float *background = calloc(lengthmz, sizeof(float));
 	// Get Local Mins
 	for (int i=0; i < lengthmz; i++)
 	{
@@ -258,16 +253,15 @@ void background_subtract(float *dataInt, const int bsub, const int lengthmz)
 		background[i] = min;
 	}
 	// Smooth Local Mins and Subtract
-	int threshold = abs(bsub) * 6;
-	float *gaussian;
-	gaussian = calloc(threshold, sizeof(float));
+	const int threshold = abs(bsub) * 6;
+	float *gaussian = calloc(threshold, sizeof(float));
 	for (int i = 0; i < threshold; i++)
 	{
-		gaussian[i] = ndis(i, (float) abs(bsub) * 3, (float) abs(bsub));
+		gaussian[i] = ndis((float) i, (float) abs(bsub) * 3, (float) abs(bsub));
 	}
-	int i;
-	#pragma omp parallel for private (i), schedule(dynamic)
-	for (i = 0; i < lengthmz; i++)
+
+	#pragma omp parallel for schedule(dynamic)
+	for (int i = 0; i < lengthmz; i++)
 	{
 		int start = i - abs(bsub)*3;
 		int end = i + abs(bsub)*3;
@@ -280,7 +274,6 @@ void background_subtract(float *dataInt, const int bsub, const int lengthmz)
 		}
 		dataInt[i] -= val;
 	}
-
 	free(background);
 	free(gaussian);
 }
@@ -288,34 +281,33 @@ void background_subtract(float *dataInt, const int bsub, const int lengthmz)
 // A comparator function used by qsort
 int compare(const void* a, const void* b)
 {
-	return (*(float*)a - *(float*)b);
+	return (int) (*(float*)a - *(float*)b);
 }
 
 // A comparator function used by qsort
 int compare_highest_first(const void* b, const void* a)
 {
-	return (*(float*)a - *(float*)b);
+	return (int) (*(float*)a - *(float*)b);
 }
 
 //Cut out the lowest x percent of the data
 int data_reduction(float **oldmz, float **oldint, int oldlen, const float redper)
 {
-	float* newmz, * newint, *sortint, cutoff;
 	int newlen = 0;
 
 	//Create the sort array and load it with intensities
-	sortint = calloc(oldlen, sizeof(float));
+	float *sortint = calloc(oldlen, sizeof(float));
 	memcpy(sortint, oldint, sizeof(float) * oldlen);
 	//Sort it
 	qsort(sortint, oldlen, sizeof(float), compare);
 
 	//Find the index redper percent of the way through the list
-	int index = (int)redper * oldlen / 100.;
+	int index = (int)redper * oldlen / 100;
 	if (index < 0) { index = 0; }
 	if (index >= oldlen) { index = oldlen - 2; }
 
 	// Get the cutoff at that index
-	cutoff = sortint[index];
+	const float cutoff = sortint[index];
 	//printf("Cutoff: %f\n", cutoff);
 
 	//get new length
@@ -328,12 +320,15 @@ int data_reduction(float **oldmz, float **oldint, int oldlen, const float redper
 	}
 
 	//Some checks
-	if (newlen >= oldlen){return oldlen;}
+	if (newlen >= oldlen) {
+		free(sortint);
+		return oldlen;
+	}
 	if (newlen < 3) { printf("Warning: Aggressive Data Reduction!!! Lower the data reduction percentage\n\n"); }
 
 	//declare memory for new arrays
-	newmz = calloc(newlen, sizeof(float));
-	newint = calloc(newlen, sizeof(float));
+	float *newmz = calloc(newlen, sizeof(float));
+	float *newint = calloc(newlen, sizeof(float));
 
 	//Fill new arrays
 	newlen = 0;
@@ -350,8 +345,8 @@ int data_reduction(float **oldmz, float **oldint, int oldlen, const float redper
 	//Bookkeeping
 	*oldmz = realloc(*oldmz, newlen * sizeof(float));
 	*oldint = realloc(*oldint, newlen * sizeof(float));
-	if (*oldmz == NULL) { free(newmz); free(newint); return 0; }
-	if (*oldint == NULL) { free(newmz); free(newint); return 0; }
+	if (*oldmz == NULL) { free(newmz); free(newint); free(sortint); return 0; }
+	if (*oldint == NULL) { free(newmz); free(newint); free(sortint); return 0; }
 	memcpy(*oldmz, newmz, sizeof(float) * newlen);
 	memcpy(*oldint, newint, sizeof(float) * newlen);
 
@@ -382,13 +377,13 @@ void process_data(int argc, char *argv[], Config config)
 	dataMZ = calloc(lengthmz, sizeof(float));
 	dataInt = calloc(lengthmz, sizeof(float));
 	mh5readfile2d(config.file_id, outdat, lengthmz, dataMZ, dataInt);
-	int silent = 1;
+	int silent = config.silent;
 	if (silent == 0) { printf("Length of Data: %d \n", lengthmz); }
 
 	//Bin
 	if (config.mzbins > 1)
 	{
-		if (silent == 0) { printf("Binning data every %d data points\n", config.mzbins); }
+		if (silent == 0) { printf("Binning data every %f data points\n", config.mzbins); }
 		lengthmz = pool1d(&dataMZ, &dataInt, lengthmz, config.mzbins);
 	}
 
