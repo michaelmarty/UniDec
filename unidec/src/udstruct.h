@@ -148,7 +148,7 @@ struct Config {
     float minmz;
     float maxmz;
     float mzres;
-    int mzbins;
+    float mzbins;
     float bsub;
     float datareduction;
     float peakwin;
@@ -181,8 +181,8 @@ Input SetupInputs();
 void FreeInputs(Input inp);
 Decon SetupDecon();
 void FreeDecon(Decon decon);
-UDSTRUCT_EXPORTS Config SetDefaultConfig();
-UDSTRUCT_EXPORTS Config PostImport(Config config);
+UDSTRUCT_EXPORTS void SetDefaultConfig(Config *config);
+UDSTRUCT_EXPORTS void PostImport(Config *config);
 UDSTRUCT_EXPORTS Config LoadConfig(Config config, const char *filename);
 UDSTRUCT_EXPORTS void PrintHelp();
 

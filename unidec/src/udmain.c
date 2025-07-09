@@ -585,6 +585,9 @@ int run_unidec_core(Config config, Input inp, Decon *decon, const int verbose, c
 	//
 	//...............................................................
 
+	// Check inputs
+	if (verbose ==1 ) {printf("Checking inputs: %f %d\n", inp.dataMZ[0], config.lengthmz);}
+
 	CalcMasses(&config, &inp);
 
 	//Allocates the memory for the boolean array of whether to test a value
@@ -592,7 +595,7 @@ int run_unidec_core(Config config, Input inp, Decon *decon, const int verbose, c
 	inp.barr = calloc(newlen, sizeof(char));
 	//Tells the algorithm to ignore data that are equal to zero
 	ignorezeros(inp.barr, inp.dataInt, config.lengthmz, config.numz);
-	if (verbose == 1) { printf("Ignored Zeros\n"); }
+	if (verbose == 1) { printf("Ignored Zeros. Length: %d\n", config.lengthmz);  }
 
 	//Sets limits based on mass range and any test masses
 	SetLimits(config, &inp);

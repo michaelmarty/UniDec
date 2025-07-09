@@ -242,7 +242,7 @@ Config mh5LoadConfig(Config config, hid_t file_id)
 	config.metamode = int_attr(file_id, "/config", "metamode", config.metamode);
 	config.minmz = float_attr(file_id, "/config", "minmz", config.minmz);
 	config.maxmz = float_attr(file_id, "/config", "maxmz", config.maxmz);
-	config.mzbins = int_attr(file_id, "/config", "mzbins", config.mzbins);
+	config.mzbins = float_attr(file_id, "/config", "mzbins", config.mzbins);
 	config.bsub = float_attr(file_id, "/config", "subbuff", config.bsub);
 	config.datareduction = float_attr(file_id, "/config", "reductionpercent", config.datareduction);
 
@@ -262,7 +262,7 @@ Config mh5LoadConfig(Config config, hid_t file_id)
 	config.filterwidth = int_attr(file_id, "/config", "filterwidth", config.filterwidth);
 	config.zerolog = float_attr(file_id, "/config", "zerolog", config.zerolog);
 
-	config=PostImport(config);
+	PostImport(&config);
 
 	return config;
 

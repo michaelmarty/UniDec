@@ -73,151 +73,147 @@ void FreeDecon(const Decon decon) {
 }
 
 
-Config SetDefaultConfig() {
-    Config config;
-    strcpy(config.infile, "default_data.txt");
-    strcpy(config.outfile, "default_output");
-    strcpy(config.mfile, "default_mfile.txt");
-    config.numit = 50;
-    config.endz = 100;
-    config.startz = 1;
-    config.zsig = 1;
-    config.psig = 1;
-    config.beta = 0;
-    config.mzsig = 1;
-    config.msig = 0;
-    config.molig = 0;
-    config.massub = 5000000;
-    config.masslb = 100;
-    config.psfun = 0;
-    config.zpsfun = 0;
-    config.psmzthresh = 0;
-    config.mtabsig = 0;
-    config.mflag = 0;
-    config.massbins = 100;
-    config.limitflag = 0;
-    config.psthresh = 6;
-    config.speedyflag = 0;
-    config.aggressiveflag = 0;
-    config.adductmass = 1.007276467f;
-    config.rawflag = 1;
-    config.nativezub = 100;
-    config.nativezlb = -200;
-    config.poolflag = 1;
-    config.manualflag = 0;
-    config.intthresh = 0;
-    config.peakshapeinflate = 1;
-    config.fixedmassaxis = 0;
-    config.isotopemode = 0;
-    config.filetype = 0;
-    config.imflag = 0;
-    config.linflag = -1;
+void SetDefaultConfig(Config *config) {
+    strcpy(config->infile, "default_data.txt");
+    strcpy(config->outfile, "default_output");
+    strcpy(config->mfile, "default_mfile->txt");
+    config->numit = 50;
+    config->endz = 100;
+    config->startz = 1;
+    config->zsig = 1;
+    config->psig = 1;
+    config->beta = 0;
+    config->mzsig = 1;
+    config->msig = 0;
+    config->molig = 0;
+    config->massub = 5000000;
+    config->masslb = 100;
+    config->psfun = 0;
+    config->zpsfun = 0;
+    config->psmzthresh = 0;
+    config->mtabsig = 0;
+    config->mflag = 0;
+    config->massbins = 100;
+    config->limitflag = 0;
+    config->psthresh = 6;
+    config->speedyflag = 0;
+    config->aggressiveflag = 0;
+    config->adductmass = 1.007276467f;
+    config->rawflag = 1;
+    config->nativezub = 100;
+    config->nativezlb = -200;
+    config->poolflag = 1;
+    config->manualflag = 0;
+    config->intthresh = 0;
+    config->peakshapeinflate = 1;
+    config->fixedmassaxis = 0;
+    config->isotopemode = 0;
+    config->filetype = 0;
+    config->imflag = 0;
+    config->linflag = -1;
     //IM Parameters
-    config.dtsig = 0.2f;
-    config.csig = 1;
-    config.ccsub = 20000;
-    config.ccslb = -20000;
-    config.ccsbins = 100;
-    config.temp = 0;
-    config.press = 2;
-    config.volt = 50;
-    config.tcal1 = 0.3293f;
-    config.tcal2 = 6.3597f;
-    config.tcal3 = 0;
-    config.tcal4 = 0;
-    config.twaveflag = -1;
-    config.hmass = 4.002602f;
-    config.to = 0.97f;
-    config.len = 0.18202f;
-    config.edc = 1.57f;
-    config.nativeccsub = 20000;
-    config.nativeccslb = -20000;
-    config.zout = 0;
-    config.baselineflag = 1;
-    config.noiseflag = 0;
-    config.metamode = -2;
-    config.minmz = -1;
-    config.maxmz = -1;
-    config.mzres = -1;
-    config.mzbins = 0;
-    config.bsub = 0;
-    config.datareduction = 0;
-    config.peakwin = 500;
-    config.peakthresh = 0.1f;
-    config.exchoice = 0;
-    config.exchoicez = 1;
-    config.exthresh = 10;
-    config.exnorm = 0;
-    config.exnormz = 0;
-    config.peaknorm = 1;
-    config.exwindow = 0;
-    config.orbimode = 0;
-    config.datanorm = 1;
+    config->dtsig = 0.2f;
+    config->csig = 1;
+    config->ccsub = 20000;
+    config->ccslb = -20000;
+    config->ccsbins = 100;
+    config->temp = 0;
+    config->press = 2;
+    config->volt = 50;
+    config->tcal1 = 0.3293f;
+    config->tcal2 = 6.3597f;
+    config->tcal3 = 0;
+    config->tcal4 = 0;
+    config->twaveflag = -1;
+    config->hmass = 4.002602f;
+    config->to = 0.97f;
+    config->len = 0.18202f;
+    config->edc = 1.57f;
+    config->nativeccsub = 20000;
+    config->nativeccslb = -20000;
+    config->zout = 0;
+    config->baselineflag = 1;
+    config->noiseflag = 0;
+    config->metamode = -2;
+    config->minmz = -1;
+    config->maxmz = -1;
+    config->mzres = -1;
+    config->mzbins = 0;
+    config->bsub = 0;
+    config->datareduction = 0;
+    config->peakwin = 500;
+    config->peakthresh = 0.1f;
+    config->exchoice = 0;
+    config->exchoicez = 1;
+    config->exthresh = 10;
+    config->exnorm = 0;
+    config->exnormz = 0;
+    config->peaknorm = 1;
+    config->exwindow = 0;
+    config->orbimode = 0;
+    config->datanorm = 1;
     //Experimental
-    config.filterwidth = 20;
-    config.zerolog = -12;
-    config.lengthmz = 0;
-    config.mfilelen = 0;
-    config.isolength = 0;
+    config->filterwidth = 20;
+    config->zerolog = -12;
+    config->lengthmz = 0;
+    config->mfilelen = 0;
+    config->isolength = 0;
     // DoubleDec
-    config.doubledec = 0; // Consider initializing kernel as well?
-    config.file_id = 0;
-    config.silent = 0;
-    config.cdmsflag = 0;
-    return config;
+    config->doubledec = 0; // Consider initializing kernel as well?
+    config->file_id = 0;
+    config->silent = 0;
+    config->cdmsflag = 0;
 }
 
-Config PostImport(Config config) {
+void PostImport(Config *config) {
     //Convert gaussian FWHM to sigma
-    if (config.psfun == 0) { config.mzsig = config.mzsig / 2.35482f; }
-    if (config.zpsfun == 0) { config.csig = config.csig / 2.35482f; }
-    config.dtsig = config.dtsig / 2.35482f;
-    //Check whether to turn off or on the config.limitflag. Limit flag on means it will select only the mass values closest to the mass values from mfile.
-    if (config.mflag == 1 && config.mtabsig == 0) { config.limitflag = 1; }
+    if (config->psfun == 0) { config->mzsig = config->mzsig / 2.35482f; }
+    if (config->zpsfun == 0) { config->csig = config->csig / 2.35482f; }
+    config->dtsig = config->dtsig / 2.35482f;
+    //Check whether to turn off or on the config->limitflag. Limit flag on means it will select only the mass values closest to the mass values from mfile.
+    if (config->mflag == 1 && config->mtabsig == 0) { config->limitflag = 1; }
 
-    config.numz = config.endz - config.startz + 1;
+    config->numz = config->endz - config->startz + 1;
 
     //If linflag is active, overwrite speedy}
-    if (config.linflag != -1) {
-        if (config.linflag != 2) { config.speedyflag = 1; } else { config.speedyflag = 0; }
+    if (config->linflag != -1) {
+        if (config->linflag != 2) { config->speedyflag = 1; } else { config->speedyflag = 0; }
     }
-    if (config.speedyflag == 1) { printf("Speedy mode: Assuming Linearized Data\n"); }
+    if (config->speedyflag == 1) { printf("Speedy mode: Assuming Linearized Data\n"); }
 
-    if (config.filetype == 0) {
+    if (config->filetype == 0) {
         //Print inputs for check
-        printf("infile = %s\n", config.infile);
-        //printf("outfile = %s\n", config.outfile);
+        printf("infile = %s\n", config->infile);
+        //printf("outfile = %s\n", config->outfile);
         //printf("\n");
     }
 
     //Check to see if the mass axis should be fixed
-    if (config.massub < 0 || config.masslb < 0) {
-        config.fixedmassaxis = 1;
-        config.massub = fabsf(config.massub);
-        config.masslb = fabsf(config.masslb);
+    if (config->massub < 0 || config->masslb < 0) {
+        config->fixedmassaxis = 1;
+        config->massub = fabsf(config->massub);
+        config->masslb = fabsf(config->masslb);
     }
 
-    if (config.twaveflag == -1 && config.imflag == 1) {
+    if (config->twaveflag == -1 && config->imflag == 1) {
         printf("\n\nNeed to define twaveflag for CCS calculation\n\n");
     }
 
     //bug proofing so we don't get a 1/0 problem
-    //if (config.msig == 0) { config.msig = 0.00001; }
-    //if (config.zsig == 0) { config.zsig = 0.00001; }
-    if (config.massbins == 0) { config.massbins = 1; }
+    //if (config->msig == 0) { config->msig = 0.00001; }
+    //if (config->zsig == 0) { config->zsig = 0.00001; }
+    if (config->massbins == 0) { config->massbins = 1; }
 
     //Convert aggressiveflag to baselineflag
-    if (config.aggressiveflag == 1 || config.aggressiveflag == 2) { config.baselineflag = 1; } else {
-        config.baselineflag = 0;
+    if (config->aggressiveflag == 1 || config->aggressiveflag == 2) { config->baselineflag = 1; } else {
+        config->baselineflag = 0;
     }
 
     //Experimental correction. Not sure why this is necessary.
-    if (config.psig < 0) { config.mzsig /= 3; }
+    if (config->psig < 0) { config->mzsig /= 3; }
 
     //Sets a threshold for m/z values to check. Things that are far away in m/z space don't need to be considered in the iterations.
-    config.psmzthresh = config.psthresh * fabsf(config.mzsig) * config.peakshapeinflate;
-
-    return config;
+    config->psmzthresh = config->psthresh * fabsf(config->mzsig) * config->peakshapeinflate;
 }
 
 Config LoadConfig(Config config, const char *filename) {
@@ -318,7 +314,7 @@ Config LoadConfig(Config config, const char *filename) {
     }
     fclose(file);
 
-    config = PostImport(config);
+    PostImport(&config);
 
     return config;
 }
@@ -441,4 +437,88 @@ void PrintHelp() {
     printf("Test 3rd Order DT: %f => CCS: %f\n", dt, test);
     test = calcDtSLIMpoly3(mass, z, ccs, a, b, c, d, hmass, edc);
     printf("Test 3rd Order CCS: %f => Dt: %f\n", ccs, test);*/
+}
+
+void PrintConfig(Config config) {
+    printf("infile: %s\n", config.infile);
+    printf("outfile: %s\n", config.outfile);
+    printf("mfile: %s\n", config.mfile);
+    printf("numit: %d\n", config.numit);
+    printf("startz: %d\n", config.startz);
+    printf("endz: %d\n", config.endz);
+    printf("zsig: %f\n", config.zsig);
+    printf("psig: %f\n", config.psig);
+    printf("beta: %f\n", config.beta);
+    printf("mzsig: %f\n", config.mzsig);
+    printf("msig: %f\n", config.msig);
+    printf("molig: %f\n", config.molig);
+    printf("massub: %f\n", config.massub);
+    printf("masslb: %f\n", config.masslb);
+    printf("psfun: %d\n", config.psfun);
+    printf("zpsfun: %d\n", config.zpsfun);
+    printf("mtabsig: %f\n", config.mtabsig);
+    printf("massbins: %f\n", config.massbins);
+    printf("psthresh: %f\n", config.psthresh);
+    printf("speedyflag: %d\n", config.speedyflag);
+    printf("aggressiveflag: %d\n", config.aggressiveflag);
+    printf("adductmass: %f\n", config.adductmass);
+    printf("rawflag: %d\n", config.rawflag);
+    printf("nativezub: %f\n", config.nativezub);
+    printf("nativezlb: %f\n", config.nativezlb);
+    printf("poolflag: %d\n", config.poolflag);
+    printf("manualflag: %d manualfile:%s \n", config.manualflag, config.manualfile);
+    printf("intthresh:%f \n", config.intthresh);
+    printf("peakshapeinflate:%f \n", config.peakshapeinflate);
+    //IM Parameters
+    if (config.imflag == 1) {
+        printf("\nIM-MS Parameters:\n");
+        printf("\tcsig:%f \n\tdtsig:%f \n\tccsub:%f \n\tccslb:%f \n\tccsbins:%f \n",
+               config.csig, config.dtsig, config.ccsub, config.ccslb, config.ccsbins);
+
+        printf("\ttemp:%f \n\tpress:%f \n\tvolt:%f \n\ttnaught:%f \n",
+               config.temp, config.press, config.volt, config.to);
+
+        printf("\ttcal1:%f \n\ttcal2:%f \n\ttcal3:%f \n\ttcal4:%f \n",
+               config.tcal1, config.tcal2, config.tcal3, config.tcal4);
+
+        printf("\thmass:%f \n\tedc:%f \n", config.hmass, config.edc);
+
+        printf("\ttwaveflag:%d \n\tubnativeccs:%f \n\tlbnativeccs:%f \n",
+               config.twaveflag, config.nativeccsub, config.nativeccslb);
+    }
+
+    printf("isotopemode: %d\n", config.isotopemode);
+    printf("orbimode: %d\n", config.orbimode);
+    printf("imflag: %d\n", config.imflag);
+    printf("cdmsflag: %d\n", config.cdmsflag);
+    printf("linflag: %d\n", config.linflag);
+    printf("fixedmassaxis: %d\n", config.fixedmassaxis);
+    printf("filetype: %d\n", config.filetype);
+    //Experimental
+    printf("\nExperimental Parameters:\n");
+    printf("\tfilterwidth: %d \n\tzerolog: %.1e \n\tlengthmz: %d \n\tmfilelen: %d \n\tisolength: %d \n",
+           config.filterwidth, config.zerolog, config.lengthmz, config.mfilelen, config.isolength);
+    printf("\tdoubledec:%d \n", config.doubledec);
+    printf("\tkernel:%s \n", config.kernel);
+    printf("\tsilent:%d \n", config.silent);
+    printf("\tbaselineflag: %d \n", config.baselineflag);
+    printf("\tnoiseflag: %d \n", config.noiseflag);
+    printf("\tmetamode: %d \n", config.metamode);
+    printf("\tminmz: %f \n", config.minmz);
+    printf("\tmaxmz: %f \n", config.maxmz);
+    printf("\tmzres: %f \n", config.mzres);
+    printf("\tmzbins: %f \n", config.mzbins);
+    printf("\tbsub: %f \n", config.bsub);
+    printf("\tdatareduction: %f \n", config.datareduction);
+    printf("\tpeakwin: %f \n", config.peakwin);
+    printf("\tpeakthresh: %.2f \n", config.peakthresh);
+    printf("\texchoice: %d \n", config.exchoice);
+    printf("\texchoicez: %d \n", config.exchoicez);
+    printf("\texthresh: %f \n", config.exthresh);
+    printf("\texnorm: %d \n", config.exnorm);
+    printf("\texnormz: %d \n", config.exnormz);
+    printf("\texwindow: %f \n", config.exwindow);
+    printf("\tdatanorm: %d \n", config.datanorm);
+    printf("\tsilent: %d \n", config.silent);
+    printf("\n");
 }

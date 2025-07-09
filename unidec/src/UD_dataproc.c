@@ -5,11 +5,11 @@
 
 
 //Pool data
-int pool1d(float **oldmz, float **oldint, const int oldlen, const int mzbins)
+int pool1d(float **oldmz, float **oldint, const int oldlen, const float mzbins)
 {
-	int newlen = oldlen/mzbins;
+	int newlen = oldlen/(int)mzbins;
 
-	if (oldlen > newlen*mzbins)
+	if (oldlen > newlen* (int) mzbins)
 	{
 		newlen++;
 	}
@@ -25,9 +25,9 @@ int pool1d(float **oldmz, float **oldint, const int oldlen, const int mzbins)
 		float mz = 0;
 		float val = 0;
 		float bins = 0;
-		for(int j=0; j<mzbins; j++)
+		for(int j=0; j< (int) mzbins; j++)
 		{
-			int index = i*mzbins + j;
+			const int index = i* (int) mzbins + j;
 			if (index < oldlen)
 			{
 				mz += (*oldmz)[index];

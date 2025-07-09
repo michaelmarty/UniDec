@@ -316,7 +316,181 @@ class UniDecConfig(object):
 
         self.isoconfig = IsoDecConfig(self)
 
+        self.namedict = {}
+
         self.initialize()
+
+    def get_dict(self):
+        self.namedict = {
+            "version": (self.version, str),
+            "imflag": (self.imflag, int),
+            "cdmsflag": (self.cdmsflag, int),
+            "input": (self.infname, str),
+            "output": (self.outfname, str),
+            "numit": (self.numit, int),
+            "numz": (self.numz, int),
+            "endz": (self.endz, int),
+            "startz": (self.startz, int),
+            "zzsig": (self.zzsig, float),
+            "psig": (self.psig, float),
+            "beta": (self.beta, float),
+            "mzsig": (self.mzsig, float),
+            "psfun": (self.psfun, int),
+            "zpsfn": (self.psfunz, int),
+            "discreteplot": (self.discreteplot, int),
+            "smashflag": (self.smashflag, int),
+            "massub": (self.massub, float),
+            "masslb": (self.masslb, float),
+            "msig": (self.msig, float),
+            "molig": (self.molig, float),
+            "massbins": (self.massbins, float),
+            "mtabsig": (self.mtabsig, float),
+            "isomode": (self.isomode, int),
+            "mfile": (self.mfile, str),
+            "manualfile": (self.manualfile, str),
+            "minmz": (self.minmz, float),
+            "maxmz": (self.maxmz, float),
+            "subbuff": (self.subbuff, float),
+            "subtype": (self.subtype, int),
+            "smooth": (self.smooth, float),
+            "mzbins": (self.mzbins, float),
+            "peakwindow": (self.peakwindow, float),
+            "peakthresh": (self.peakthresh, float),
+            "normthresh": (self.normthresh, float),
+            "peakplotthresh": (self.peakplotthresh, float),
+            "plotsep": (self.separation, float),
+            "intthresh": (self.intthresh, float),
+            "reductionpercent": (self.reductionpercent, float),
+            "aggressive": (self.aggressiveflag, int),
+            "rawflag": (self.rawflag, int),
+            "adductmass": (self.adductmass, float),
+            "nativezub": (self.nativezub, float),
+            "nativezlb": (self.nativezlb, float),
+            "poolflag": (self.poolflag, int),
+            "accvol": (self.detectoreffva, float),
+            "peakshapeinflate": (self.inflate, float),
+            "noiseflag": (self.noiseflag, int),
+            "linflag": (self.linflag, int),
+            "cmap": (self.cmap, str),
+            "peakcmap": (self.peakcmap, str),
+            "spectracmap": (self.spectracmap, str),
+            "publicationmode": (self.publicationmode, int),
+            "isotopemode": (self.isotopemode, int),
+            "peaknorm": (self.peaknorm, int),
+            "datanorm": (self.datanorm, int),
+            "baselineflag": (self.baselineflag, int),
+            "orbimode": (self.orbimode, int),
+            "avgpeakmasses": (self.avgpeakmasses, int),
+            "selectiontype": (self.analyte_type, str),
+            "integratelb": (self.integratelb, float),
+            "integrateub": (self.integrateub, float),
+            "filterwidth": (self.filterwidth, int),
+            "zerolog": (self.zerolog, float),
+            "doubledec": (self.doubledec, bool),
+            "kernel": (self.kernel, str),
+            "CDslope": (self.CDslope, float),
+            "CDzbins": (self.CDzbins, int),
+            "CDres": (self.CDres, float),
+            "CDScanStart": (self.CDScanStart, float),
+            "CDScanEnd": (self.CDScanEnd, float),
+            "CDprethresh": (self.CDprethresh, float),
+            "HTksmooth": (self.HTksmooth, float),
+            "CDScanCompress": (self.CDScanCompress, int),
+            "HTmaxscans": (self.HTmaxscans, int),
+            "HToutlb": (self.HToutputlb, float),
+            "HToutub": (self.HToutputub, float),
+            "HTtimepad": (self.HTtimepad, float),
+            "HTanalysistime": (self.HTanalysistime, float),
+            "HTxaxis": (self.HTxaxis, str),
+            "HTcycleindex": (self.HTcycleindex, int),
+            "HTcylctime": (self.HTcycletime, float),
+            "HTtimeshift": (self.HTtimeshift, float),
+            "htbit": (self.htbit, str),
+            "FTstart": (self.FTstart, float),
+            "FTend": (self.FTend, float),
+            "FTflatten": (self.FTflatten, bool),
+            "FTapodize": (self.FTapodize, int),
+            "demultiplexmode": (self.demultiplexmode, str),
+            "FTsmooth": (self.FTsmooth, float),
+            "HTmaskn": (self.HTmaskn, int),
+            "HTwin": (self.HTwin, int),
+            "csig": (self.csig, float),
+            "smoothdt": (self.smoothdt, float),
+            "subbufdt": (self.subbufdt, float),
+            "centroided": (self.centroided, bool),
+            "minusoneaszero": (self.minusoneaszero, bool),
+            "verbose": (self.verbose, bool),
+            "zout": (self.zout, int),
+            "pusher": (self.pusher, int),
+            "mindt": (self.mindt, float),
+            "maxdt": (self.maxdt, float),
+            "ccsub": (self.ccsub, float),
+            "ccslb": (self.ccslb, float),
+            "dtsig": (self.dtsig, float),
+            "ccsbins": (self.ccsbins, float),
+            "ubnativeccs": (self.nativeccsub, float),
+            "lbnativeccs": (self.nativeccslb, float),
+            "twaveflag": (self.twaveflag, int),
+            "temp": (self.temp, float),
+            "pressure": (self.pressure, float),
+            "volt": (self.volt, float),
+            "gasmass": (self.gasmass, float),
+            "tnaught": (self.to, float),
+            "driftlength": (self.driftlength, float),
+            "tcal1": (self.tcal1, float),
+            "tcal2": (self.tcal2, float),
+            "tcal3": (self.tcal3, float),
+            "tcal4": (self.tcal4, float),
+            "edc": (self.edc, float)
+        }
+        return self.namedict
+
+    def __iter__(self):
+        """
+        Allows iteration over the namedict keys.
+        :return: Iterator over namedict keys.
+        """
+        self.get_dict()
+        return iter(self.namedict.keys())
+
+    def __next__(self):
+        """ Allows iteration over the namedict values."""
+        keys = list(self.namedict.keys())
+        if not hasattr(self, '_iter_index'):
+            self._iter_index = 0
+        if self._iter_index < len(keys):
+            key = keys[self._iter_index]
+            self._iter_index += 1
+            return key, self.namedict[key]
+        else:
+            raise StopIteration
+
+    def __str__(self):
+        self.get_dict()
+        outstring = ""
+        for key in self.namedict.keys():
+            value, dtype = self.namedict[key]
+            if dtype == float:
+                value = float(value)
+                outstring += f"{key}: {value:.6f}\n"
+            elif dtype == int:
+                value = int(value)
+                outstring += f"{key}: {value:d}\n"
+            else:
+                outstring += f"{key}: {value}\n"
+        return outstring
+
+    def __getitem__(self, item):
+        """
+        Allows access to namedict items using the syntax config[key].
+        :param item: Key to access in namedict.
+        :return: Value associated with the key in namedict.
+        """
+        self.get_dict()
+        if item in self.namedict:
+            return self.namedict[item]
+        else:
+            raise KeyError(f"Key '{item}' not found in configuration.")
 
     def initialize(self):
         """
@@ -503,40 +677,22 @@ class UniDecConfig(object):
         :param name: File name to write to.
         :return: None
         """
-
+        self.get_dict()
+        print(self)
         self.numz = self.endz - self.startz + 1
         f = open(name, 'w+')
-        '''
-        except:
-            path = os.path.join(os.getcwd(), name)
-            path = "\\\\?\\%s" % path
-            print(path)
-            f = open(path, 'w+')
-            print("NOTE: Your path length might exceed the limit for Windows. Please shorten your file name.")'''
-        f.write("version " + str(self.version) + "\n")
-        f.write("imflag " + str(self.imflag) + "\n")
-        f.write("cdmsflag " + str(self.cdmsflag) + "\n")
-        f.write("input " + str(self.infname) + "\n")
-        f.write("output " + str(self.outfname) + "\n")
-        f.write("numit " + str(self.numit) + "\n")
-        f.write("numz " + str(self.numz) + "\n")
-        f.write("endz " + str(self.endz) + "\n")
-        f.write("startz " + str(self.startz) + "\n")
-        f.write("zzsig " + str(self.zzsig) + "\n")
-        f.write("psig " + str(self.psig) + "\n")
-        f.write("beta " + str(self.beta) + "\n")
-        f.write("mzsig " + str(self.mzsig) + "\n")
-        f.write("psfun " + str(self.psfun) + "\n")
-        f.write("zpsfn " + str(self.psfunz) + "\n")
-        f.write("discreteplot " + str(self.discreteplot) + "\n")
-        f.write("smashflag " + str(self.smashflag) + "\n")
-        f.write("massub " + str(self.massub) + "\n")
-        f.write("masslb " + str(self.masslb) + "\n")
-        f.write("msig " + str(self.msig) + "\n")
-        f.write("molig " + str(self.molig) + "\n")
-        f.write("massbins " + str(self.massbins) + "\n")
-        f.write("mtabsig " + str(self.mtabsig) + "\n")
-        f.write("isomode " + str(int(self.isomode)) + "\n")
+        ignorelist = ["mfile", "manualfile", "smashfile", "ofile", "matchfile", "peaksfile",]
+        for key in self.namedict.keys():
+            if key in ignorelist:
+                continue
+            if self.namedict[key] is not None:
+                value, dtype = self.namedict[key]
+                if dtype == float:
+                    value = float(value)
+                elif dtype == int:
+                    value = int(value)
+                f.write(key + " " + str(value) + "\n")
+
         if self.mfileflag:
             if not ud.isempty(self.masslist):
                 f.write("mfile " + str(self.mfile) + "\n")
@@ -547,114 +703,6 @@ class UniDecConfig(object):
                 f.write("manualfile " + str(self.manualfile) + "\n")
             else:
                 print("Need to specify manual assignments. Running without assignments.")
-        f.write("minmz " + str(self.minmz) + "\n")
-        f.write("maxmz " + str(self.maxmz) + "\n")
-        f.write("subbuff " + str(self.subbuff) + "\n")
-        f.write("subtype " + str(self.subtype) + "\n")
-        f.write("smooth " + str(self.smooth) + "\n")
-        f.write("mzbins " + str(self.mzbins) + "\n")
-        f.write("peakwindow " + str(self.peakwindow) + "\n")
-        f.write("peakthresh " + str(self.peakthresh) + "\n")
-        f.write("normthresh" + str(int(self.normthresh)) + "\n")
-        f.write("peakplotthresh " + str(self.peakplotthresh) + "\n")
-        f.write("plotsep " + str(self.separation) + "\n")
-        f.write("intthresh " + str(self.intthresh) + "\n")
-        f.write("reductionpercent " + str(self.reductionpercent) + "\n")
-        f.write("aggressive " + str(self.aggressiveflag) + "\n")
-        f.write("rawflag " + str(self.rawflag) + "\n")
-        f.write("adductmass " + str(self.adductmass) + "\n")
-        f.write("nativezub " + str(self.nativezub) + "\n")
-        f.write("nativezlb " + str(self.nativezlb) + "\n")
-        f.write("poolflag " + str(self.poolflag) + "\n")
-        f.write("accvol " + str(self.detectoreffva) + "\n")
-        f.write("peakshapeinflate " + str(self.inflate) + "\n")
-        f.write("noiseflag " + str(self.noiseflag) + "\n")
-        f.write("linflag " + str(self.linflag) + "\n")
-        f.write("cmap " + str(self.cmap) + "\n")
-        f.write("peakcmap " + str(self.peakcmap) + "\n")
-        f.write("spectracmap " + str(self.spectracmap) + "\n")
-        f.write("publicationmode " + str(self.publicationmode) + "\n")
-        f.write("isotopemode " + str(self.isotopemode) + "\n")
-        f.write("peaknorm " + str(self.peaknorm) + "\n")
-        f.write("datanorm " + str(self.datanorm) + "\n")
-        f.write("baselineflag " + str(self.baselineflag) + "\n")
-        f.write("orbimode " + str(self.orbimode) + "\n")
-        f.write("Avg Peak Masses " + str(self.avgpeakmasses) + "\n")
-        f.write("Selection type" + str(self.analyte_type) + "\n")
-        if self.integratelb != "" and self.integrateub != "":
-            try:
-                f.write("integratelb " + str(self.integratelb) + "\n")
-                f.write("integrateub " + str(self.integrateub) + "\n")
-            except ValueError:
-                print("Failed to write integation areas:", self.integratelb, self.integrateub)
-                pass
-        f.write("filterwidth " + str(self.filterwidth) + "\n")
-        f.write("zerolog " + str(self.zerolog) + "\n")
-
-        f.write("doubledec " + str(int(self.doubledec)) + "\n")
-        f.write("kernel " + str(self.kernel) + "\n")
-
-        f.write("CDslope " + str(self.CDslope) + "\n")
-        f.write("CDzbins " + str(self.CDzbins) + "\n")
-        f.write("CDres " + str(self.CDres) + "\n")
-        f.write("CDScanStart " + str(self.CDScanStart) + "\n")
-        f.write("CDScanEnd " + str(self.CDScanEnd) + "\n")
-        f.write("CDprethresh " + str(self.CDprethresh) + "\n")
-        f.write("HTksmooth " + str(self.HTksmooth) + "\n")
-        f.write("CDScanCompress " + str(self.CDScanCompress) + "\n")
-        f.write("HTmaxscans " + str(self.HTmaxscans) + "\n")
-        f.write("HToutlb " + str(self.HToutputlb) + "\n")
-        f.write("HToutub " + str(self.HToutputub) + "\n")
-        f.write("HTtimepad " + str(self.HTtimepad) + "\n")
-        f.write("HTanalysistime " + str(self.HTanalysistime) + "\n")
-        f.write("HTxaxis " + str(self.HTxaxis) + "\n")
-        f.write("HTcycleindex " + str(self.HTcycleindex) + "\n")
-        f.write("HTcylctime " + str(self.HTcycletime) + "\n")
-        f.write("HTtimeshift " + str(self.HTtimeshift) + "\n")
-        f.write("htbit " + str(self.htbit) + "\n")
-        f.write("FTstart " + str(self.FTstart) + "\n")
-        f.write("FTend " + str(self.FTend) + "\n")
-        f.write("FTflatten " + str(int(self.FTflatten)) + "\n")
-        f.write("FTapodize " + str(int(self.FTapodize)) + "\n")
-        f.write("demultiplexmode " + str(self.demultiplexmode) + "\n")
-        f.write("FTsmooth " + str(self.FTsmooth) + "\n")
-        f.write("HTmaskn " + str(self.HTmaskn) + "\n")
-        f.write("HTwin " + str(self.HTwin) + "\n")
-
-        f.write("csig " + str(self.csig) + "\n")
-        f.write("smoothdt " + str(self.smoothdt) + "\n")
-        f.write("subbufdt " + str(self.subbufdt) + "\n")
-        f.write("centroided " + str(int(self.centroided)) + "\n")
-        f.write("minusoneaszero " + str(int(self.minusoneaszero)) + "\n")
-        f.write("verbose " + str(int(self.verbose)) + "\n")
-
-        if self.mindt != '' or self.maxdt != '':
-            f.write("zout " + str(self.zout) + "\n")
-            f.write("pusher " + str(self.pusher) + "\n")
-            f.write("mindt " + str(self.mindt) + "\n")
-            f.write("maxdt " + str(self.maxdt) + "\n")
-            f.write("ccsub " + str(self.ccsub) + "\n")
-            f.write("ccslb " + str(self.ccslb) + "\n")
-            f.write("dtsig " + str(self.dtsig) + "\n")
-            f.write("ccsbins " + str(self.ccsbins) + "\n")
-            f.write("ubnativeccs " + str(self.nativeccsub) + "\n")
-            f.write("lbnativeccs " + str(self.nativeccslb) + "\n")
-            f.write("twaveflag " + str(self.twaveflag) + "\n")
-            if self.twaveflag == 0:  # and (self.pressure!=0 or self.temp!=0 or self.volt!=0 or self.to!=0):
-                f.write("temp " + str(self.temp) + "\n")
-                f.write("pressure " + str(self.pressure) + "\n")
-                f.write("volt " + str(self.volt) + "\n")
-                f.write("gasmass " + str(self.gasmass) + "\n")
-                f.write("tnaught " + str(self.to) + "\n")
-                f.write("driftlength " + str(self.driftlength) + "\n")
-
-            if self.twaveflag > 0:  # and (self.tcal1!=0 or self.tcal2!=0 or self.edc!=0):
-                f.write("tcal1 " + str(self.tcal1) + "\n")
-                f.write("tcal2 " + str(self.tcal2) + "\n")
-                f.write("tcal3 " + str(self.tcal3) + "\n")
-                f.write("tcal4 " + str(self.tcal4) + "\n")
-                f.write("edc " + str(self.edc) + "\n")
-                f.write("gasmass " + str(self.gasmass) + "\n")
 
         f.close()
         # Export Mass List
@@ -884,7 +932,7 @@ class UniDecConfig(object):
                         if line.startswith("integrateub"):
                             self.integrateub = ud.string_to_value(line.split()[1])
                         if line.startswith("filterwidth"):
-                            self.filterwidth = ud.string_to_value(line.split()[1])
+                            self.filterwidth = ud.string_to_int(line.split()[1])
                         if line.startswith("zerolog"):
                             self.zerolog = ud.string_to_value(line.split()[1])
                         if line.startswith("peaknorm"):

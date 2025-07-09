@@ -47,7 +47,8 @@ int main(int argc, char *argv[])
 		if (strcmp(argv[2], "-nthreads") == 0) { omp_set_num_threads(atoi(argv[3])); printf("Number of Threads: %d\n", atoi(argv[3])); }
 	}
 
-	Config config = SetDefaultConfig();
+	Config config;
+	SetDefaultConfig(&config);
 
 	config=ImportConfig(argc, argv, config);
 

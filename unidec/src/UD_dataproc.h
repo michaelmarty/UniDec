@@ -21,7 +21,7 @@
 #include "h5io.h"
 #include "udio.h"
 
-int pool1d(float **oldmz, float **oldint, const int oldlen, const int mzbins);
+int pool1d(float **oldmz, float **oldint, const int oldlen, const float mzbins);
 int chop1d(float **oldmz, float **oldint, const int oldlen, const float min, const float max);
 int remove_duplicates(float **oldmz, float **oldint, int oldlen);
 int remove_middle_zeros(float **oldmz, float **oldint, int oldlen);
