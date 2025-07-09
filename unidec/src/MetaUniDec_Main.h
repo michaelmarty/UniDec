@@ -15,8 +15,6 @@
 #include "UD_analysis.h"
 #include "UD_charge.h"
 #include "UD_score.h"
-//#include "UniDecLC_Main.h"
-//#include "UD_peak_width.h"
 
 int run_metaunidec(int argc, char* argv[], Config config) {
 	clock_t starttime;

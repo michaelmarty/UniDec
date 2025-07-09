@@ -40,6 +40,8 @@ add_library(unideclib SHARED udmain.c udmain.h
         UD_analysis.h
         UD_dataproc.c
         UD_dataproc.h
+        UD_conv.h
+        UD_conv.c
 )
 #target_include_directories(unideclib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(unidec
@@ -64,7 +66,10 @@ add_executable(unidec
         UD_score.c
         UD_score.h
         UD_conv.h
-        UniDecLC_Main.h UniDecIM.h UniDecIM_Main.h
+        UD_conv.c
+        UniDecIM.h UniDecIM_Main.h
+        UD_charge.h
+        UD_charge.c
 )
 
 #target_link_libraries(unidec PRIVATE unideclib)
