@@ -125,6 +125,16 @@ void NormSum(float *data, const int length) {
     }
 }
 
+void Normalize(const int length, float *data, const float norm)
+{
+    if (norm == 0) { printf("Tried to Normalize by Zero! Aborting!\n"); exit(50); }
+    #pragma omp parallel for schedule(auto)
+    for (int i = 0; i<length; i++)
+    {
+        data[i] = data[i] / norm;
+    }
+}
+
 // ............
 //
 // Math Functions

@@ -954,18 +954,6 @@ float errfun(int length, float *dataInt, float *fitdat)
 	return 1.0 - error / error2;
 }
 
-void normalize(int length, float *data, float norm)
-{
-	if (norm == 0) { printf("Tried to Normalize by Zero! Aborting!\n"); exit(50); }
-	int i;
-	#pragma omp parallel for private(i)
-	for (i = 0; i<length; i++)
-	{
-		data[i] = data[i] / norm;
-	}
-	return;
-}
-
 void writezslice(int *size, char *outfile, char *suffix, float *massaxis, float *ccsaxis, int *ztab, float *array, int k)
 {
 	int i, j;

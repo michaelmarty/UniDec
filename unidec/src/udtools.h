@@ -22,6 +22,7 @@ int ArgMax(const float *blur, const int lengthmz);
 void ApplyCutoff(float *array, const float cutoff, const int lengthmz);
 void NormMax(float *data, const int length);
 void NormSum(float *data, const int length);
+void Normalize(const int length, float *data, const float norm);
 
 float ndis(const float x, const float y, const float sig);
 int mod(const int a, const int b);

@@ -368,7 +368,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	if (config.datanorm == 1) {
 		float blurmax = Max(newblur2, lines);
 		if (dmax != 0) {
-			normalize(lines, newblur2, blurmax / dmax);
+			Normalize(lines, newblur2, blurmax / dmax);
 		}
 	}
 	ApplyCutoff(newblur2, 0, lines);
@@ -393,7 +393,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	if (config.datanorm == 1) {
 		float blurmax = Max(blur, lines);
 		if (dmax != 0) {
-			normalize(lines, blur, blurmax / dmax);
+			Normalize(lines, blur, blurmax / dmax);
 		}
 		printf("Maxes: %f %f\n",blurmax, dmax);
 	}

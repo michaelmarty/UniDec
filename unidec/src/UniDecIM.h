@@ -75,7 +75,6 @@ void writemfileres(char *outfile, char *suffix, float *array1, float *array2, fl
 void writemzgrid(char *outfile, char *suffix, float *mzext, float *dtext, int *ztab, float *blur, int *size);
 float errfun(int length, float *dataInt, float *fitdat);
 
-void normalize(int length, float *data, float norm);
 void writezslice(int *size, char *outfile, char *suffix, float *massaxis, float *ccsaxis, int *ztab, float *array, int k);
 float nativeCCS(float mass, float fudge, float gasmass);
 float bilinearinterpolation(int *size, int indm, int indc, int k, float *mzext, float *dtext, float tempmz, float tempdt, int rawflag, float *newblur, float *blur);
