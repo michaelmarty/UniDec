@@ -129,7 +129,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	//Extracting mz and dt ranges
 	mzext = calloc(size[0], sizeof(float));
 	dtext = calloc(size[1], sizeof(float));
-	Extract(mzext, dtext, mzdat, dtdat, size);
+	PullXY(mzext, dtext, mzdat, dtdat, size);
 	float mzranges[4] = {0,0,0,0};
 	mzranges[0] = mzext[0];
 	mzranges[1] = mzext[size[0] - 1];
@@ -139,7 +139,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	printf("DT Range: %f to %f\n", mzranges[2], mzranges[3]);
 
 	peakshape = calloc(lines, sizeof(float));
-	GetPeaks(peakshape, size, mzext, dtext, config.mzsig, config.dtsig, config.psfun, 0);
+	MakeKernel2D(peakshape, size, mzext, dtext, config.mzsig, config.dtsig, config.psfun, 0);
 	printf("Peak Shape Set\n");
 
 	//Filling the mass table
@@ -202,7 +202,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 				{
 					if (config.mflag == 1)
 					{
-						testmassclose = nearfastpoint(testmasses, tempmass, tmlen);
+						testmassclose = nearfastval(testmasses, tempmass, tmlen);
 						if (fabs(testmassclose - tempmass) <= config.mtabsig) { barr[index3D(size[1], size[2], i, j, k)] = 1; }
 						else { barr[index3D(size[1], size[2], i, j, k)] = 0; }
 					}
@@ -470,8 +470,8 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 		printf("Transformed m/z and dt to mass and ccs by Interpolation\n");
 	}
 	//Sum all config.to mass axis
-	sum1D(newsize, massvals, newgrid, 0);
-	sum1D(newsize, ccsvals, newgrid, 1);
+	Sum1D(newsize, massvals, newgrid, 0);
+	Sum1D(newsize, ccsvals, newgrid, 1);
 	char *suffixmass = "mass";
 	write2D(config.outfile, suffixmass, massaxis, massvals, maaxle);
 	char *suffixccs = "ccs";
@@ -485,9 +485,9 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	massccsgrid = calloc(l1, sizeof(float));
 	masszgrid = calloc(l2, sizeof(float));
 	ccszgrid = calloc(l3, sizeof(float));
-	sum2D(newsize, massccsgrid, newgrid, 2);
-	sum2D(newsize, masszgrid, newgrid, 1);
-	sum2D(newsize, ccszgrid, newgrid, 0);
+	Sum2D(newsize, massccsgrid, newgrid, 2);
+	Sum2D(newsize, masszgrid, newgrid, 1);
+	Sum2D(newsize, ccszgrid, newgrid, 0);
 	char *suffix3 = "massccs";
 	write1D(config.outfile, suffix3, massccsgrid, maaxle*ccaxle);
 	char *suffix4 = "massgrid";

@@ -136,6 +136,113 @@ float Sum(const float *blur, const int length) {
     return sum;
 }
 
+
+void Sum1D(const int *size, float *sum, const float *array, const int axis)
+{
+    if (axis == 0) {
+        for (int i = 0; i<size[0]; i++)
+        {
+            float temp = 0;
+            for (int j = 0; j<size[1]; j++)
+            {
+
+                for (int k = 0; k<size[2]; k++)
+                {
+                    temp += array[index3D(size[1], size[2], i, j, k)];
+                }
+
+            }
+            sum[i] = temp;
+        }
+    }
+    else if (axis == 1)
+    {
+        for (int j = 0; j<size[1]; j++)
+        {
+            float temp = 0;
+            for (int i = 0; i<size[0]; i++)
+            {
+
+                for (int k = 0; k<size[2]; k++)
+                {
+                    temp += array[index3D(size[1], size[2], i, j, k)];
+                }
+
+            }
+            sum[j] = temp;
+        }
+    }
+    else if (axis == 2)
+    {
+        for (int k = 0; k<size[2]; k++)
+        {
+            float temp = 0;
+            for (int j = 0; j<size[1]; j++)
+            {
+
+                for (int i = 0; i<size[0]; i++)
+                {
+                    temp += array[index3D(size[1], size[2], i, j, k)];
+                }
+
+            }
+            sum[k] = temp;
+        }
+    }
+}
+
+
+void Sum2D(const int *size, float *sum, const float *array, const int axis)
+{
+    if (axis == 2)
+    {
+        for (int i = 0; i<size[0]; i++)
+        {
+            for (int j = 0; j<size[1]; j++)
+            {
+                float temp = 0;
+                for (int k = 0; k<size[2]; k++)
+                {
+                    temp += array[index3D(size[1], size[2], i, j, k)];
+                }
+                sum[index2D(size[1], i, j)] = temp;
+            }
+        }
+    }
+    else if (axis == 1)
+    {
+        for (int i = 0; i<size[0]; i++)
+        {
+            for (int k = 0; k<size[2]; k++)
+            {
+                float temp = 0;
+                for (int j = 0; j<size[1]; j++)
+                {
+                    temp += array[index3D(size[1], size[2], i, j, k)];
+                }
+                sum[index2D(size[2], i, k)] = temp;
+            }
+        }
+    }
+    else if (axis == 0)
+    {
+        for (int k = 0; k<size[2]; k++)
+        {
+            for (int j = 0; j<size[1]; j++)
+            {
+                float temp = 0;
+                for (int i = 0; i<size[0]; i++)
+                {
+                    temp += array[index3D(size[1], size[2], i, j, k)];
+                }
+                sum[index2D(size[1], k, j)] = temp;
+            }
+        }
+    }
+}
+
+
+
 //Find the index of the maximum value in an array
 int ArgMax(const float *blur, const int lengthmz) {
     float max = blur[0];
@@ -220,6 +327,22 @@ int GetSize1(const float *array, const int lines)
     return cnt;
 }
 
+// From two lists of data, extract the unique values for the first dimension (mz) and the second dimension (dt)
+void PullXY(float *mzext, float *dtext, const float *mzdat, const float *dtdat, const int *size)
+{
+    //Extract mz data
+    #pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i<size[0]; i++)
+    {
+        mzext[i] = mzdat[i*size[1]];
+    }
+    //Extract dt data
+    #pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i<size[1]; i++)
+    {
+        dtext[i] = dtdat[i];
+    }
+}
 
 // ............
 //
@@ -258,6 +381,80 @@ float SplitGL(const float x, const float y, const float sig)
     }
 }
 
+
+//function to return a 2D peak value at a given point
+float PeakDist(const float x1, const float x2, const float y1, const float y2, const float sig1, const float sig2, const int psfun, const int zpsfun)
+{
+    float d2 = 0;
+    float d1 = 0;
+    if (sig2 == 0) {
+        if (y1 == y2) { d2 = 1; }
+        else { d2 = 0; }
+    }
+    else {
+        if (zpsfun == 0) {
+            d2 = Gaus(y1, y2, sig2);
+        }
+        if (zpsfun == 1) {
+            d2 = Lorentz(y1, y2, sig2);
+        }
+        if (psfun == 2) {
+            d2 = SplitGL(-1*y1, -1*y2, sig2);
+        }
+    }
+
+    if (sig1 == 0) {
+        if (x1 == x2) { d1 = 1; }
+        else { d1 = 0; }
+    }
+    else {
+        if (psfun == 0) {
+            d1= Gaus(x1, x2, sig1);
+        }
+        if (psfun == 1) {
+            d1 = Lorentz(x1, x2, sig1);
+        }
+        if (psfun == 2) {
+            d1 = SplitGL(x1, x2, sig1);
+        }
+    }
+
+    return d1 * d2;
+}
+
+
+
+void MakeKernel2D(float *peak, const int *Size, const float *dH, const float *dC, const float sig1,
+    const float sig2, const int psfun, const int zpsfun)
+{
+    const float hmax = 2 * dH[Size[0] - 1] - dH[Size[0] - 2];
+    const float cmax = 2 * dC[Size[1] - 1] - dC[Size[1] - 2];
+    const float hmin = dH[0];
+    const float cmin = dC[0];
+
+    #pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i<Size[0]; i++)
+    {
+        for (int j = 0; j<Size[1]; j++)
+        {
+            const float Hval = dH[i];
+            const float Cval = dC[j];
+
+            //put the peakj in the four corners
+            const float v1 = PeakDist(hmin, Hval, cmin, Cval, sig1, sig2, psfun, zpsfun);
+            const float v2 = PeakDist(hmax, Hval, cmax, Cval, sig1, sig2, psfun, zpsfun);
+            const float v3 = PeakDist(hmin, Hval, cmax, Cval, sig1, sig2, psfun, zpsfun);
+            const float v4 = PeakDist(hmax, Hval, cmin, Cval, sig1, sig2, psfun, zpsfun);
+
+            const float val = v1 + v2 + v3 + v4;
+            peak[index2D(Size[1], i, j)] = val; //store peak in complete peak list
+        }
+    }
+    //printf("mzmax: %f\n",hmax);
+    //printf("dtmax: %f\n",cmax);
+}
+
+
 //Actual Modulus operator rather than Remainder operator %
 int mod(const int a, const int b) {
     const int r = a % b;
@@ -268,6 +465,11 @@ int mod(const int a, const int b) {
 float clip(const float x, const float cutoff) {
     if (x > cutoff) { return x; }
     return 0;
+}
+
+float euclid(const float a, const float b, const float c, const float d)
+{
+    return sqrtf((a - b)*(a - b) + (c - d)*(c - d));
 }
 
 // Simple function to calculate mz from mass, z, and adductmass
@@ -358,7 +560,7 @@ int neartest(const float *testmasses, const float point, const int lengthtest, c
     return test;
 }
 
-//Fast way of finding the nearest data point in an ordered list.
+//Fast way of finding the nearest data point index in an ordered list.
 int nearfast(const float *dataMZ, const float point, const int numdat) {
     int start = 0;
     int length = numdat - 1;
@@ -382,6 +584,27 @@ int nearfast(const float *dataMZ, const float point, const int numdat) {
     }
     return end;
 }
+
+// Return the nearest data point value in an ordered list.
+float nearfastval(const float *dataMZ, const float point, const int numdat)
+{
+    const int index = nearfast(dataMZ, point, numdat);
+    return dataMZ[index];
+}
+
+
+int nearint(const int *array, const int point, const int numdat)
+{
+    int temp = -1;
+    for (int i = 0; i<numdat; i++)
+    {
+        if (array[i] == point) { temp = i; }
+    }
+    if (temp == -1) { printf("Problem finding integer in list\n"); }
+    return temp;
+}
+
+
 
 // .............
 //

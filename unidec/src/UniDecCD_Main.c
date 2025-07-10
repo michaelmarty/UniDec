@@ -238,7 +238,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	//Extracting mz and z ranges
 	mzext = calloc(size[0], sizeof(float));
 	zext = calloc(size[1], sizeof(float));
-	Extract(mzext, zext, mzdat, zdat, size);
+	PullXY(mzext, zext, mzdat, zdat, size);
 	float mzranges[4] = { 0,0,0,0 };
 	mzranges[0] = mzext[0];
 	mzranges[1] = mzext[size[0] - 1];
@@ -256,7 +256,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	mkernel_FFT = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * lines);
 
 	//Make Peak Shape Kernel
-	GetPeaks(peakshape, size, mzext, zext, config.mzsig, config.csig, config.psfun, config.zpsfun);
+	MakeKernel2D(peakshape, size, mzext, zext, config.mzsig, config.csig, config.psfun, config.zpsfun);
 	// Precompute FFTs
 	precompute_fft2D(peakshape, size, peakshape_FFT);
 	complex_conjugate(peakshape_FFT, inverse_peakshape_FFT, lines);
@@ -381,7 +381,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 
 	//Reconvolve if necessary
 	if (config.rawflag == 0) {
-		GetPeaks(mkernel, size, mzext, zext, config.mzsig, 0, config.psfun, config.zpsfun);
+		MakeKernel2D(mkernel, size, mzext, zext, config.mzsig, 0, config.psfun, config.zpsfun);
 		precompute_fft2D(mkernel, size, mkernel_FFT);
 
 		memcpy(newblur, blur, matsize);

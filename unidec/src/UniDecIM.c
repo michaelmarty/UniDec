@@ -4,128 +4,6 @@
 
 #include "UniDecIM.h"
 
-void readfilemanual(char *infile, int lengthmz, float *array1, float *array2, float *array3, float *array4, float *array5)
-{
-	FILE *file_ptr;
-	int i;
-	char a[500];
-	char b[500];
-	char c[500];
-	char d[500];
-	char e[500];
-	file_ptr = fopen(infile, "r");
-	if (file_ptr == 0)
-	{
-		printf("Could not open %s file\n", infile);
-		exit(1);
-	}
-	else {
-
-		for (i = 0; i<lengthmz; i++)
-		{
-			fscanf(file_ptr, "%s %s %s %s %s", a, b, c, d, e);
-			array1[i] = atof(a);
-			array2[i] = atof(b);
-			array3[i] = atof(c);
-			array4[i] = atof(d);
-			array5[i] = atof(e);
-		}
-	}
-	fclose(file_ptr);
-}
-
-void Extract(float *mzext, float *dtext, float *mzdat, float *dtdat, int *size)
-{
-	int i;
-	//Extract mz data
-	#pragma omp parallel for private (i), schedule(dynamic)
-	for (i = 0; i<size[0]; i++)
-	{
-		mzext[i] = mzdat[i*size[1]];
-	}
-	//Extract dt data
-	#pragma omp parallel for private (i), schedule(dynamic)
-	for (i = 0; i<size[1]; i++)
-	{
-		dtext[i] = dtdat[i];
-	}
-	return;
-}
-
-
-//function to return a 2D peak value at a given point
-float Peak(const float x1, const float x2, const float y1, const float y2, const float sig1, const float sig2, const int psfun, const int zpsfun)
-{
-	float d2 = 0;
-	float d1 = 0;
-	if (sig2 == 0) {
-		if (y1 == y2) { d2 = 1; }
-		else { d2 = 0; }
-	}
-	else {
-		if (zpsfun == 0) {
-			d2 = Gaus(y1, y2, sig2);
-		}
-		if (zpsfun == 1) {
-			d2 = Lorentz(y1, y2, sig2);
-		}
-		if (psfun == 2) {
-			d2 = SplitGL(-1*y1, -1*y2, sig2);
-		}
-	}
-
-	if (sig1 == 0) {
-		if (x1 == x2) { d1 = 1; }
-		else { d1 = 0; }
-	}
-	else {
-		if (psfun == 0) {
-			d1= Gaus(x1, x2, sig1);
-		}
-		if (psfun == 1) {
-			d1 = Lorentz(x1, x2, sig1);
-		}
-		if (psfun == 2) {
-			d1 = SplitGL(x1, x2, sig1);
-		}
-	}
-
-	return d1 * d2;
-}
-
-
-
-
-void GetPeaks(float *peak, int *Size, float *dH, float *dC, float sig1, float sig2, int psfun, int zpsfun)
-{
-	int i, j;
-	float hmax = 2 * dH[Size[0] - 1] - dH[Size[0] - 2];
-	float cmax = 2 * dC[Size[1] - 1] - dC[Size[1] - 2];
-	float hmin = dH[0];
-	float cmin = dC[0];
-
-	#pragma omp parallel for private (i,j), schedule(dynamic)
-	for (i = 0; i<Size[0]; i++)
-	{
-		for (j = 0; j<Size[1]; j++)
-		{
-			float Hval = dH[i];
-			float Cval = dC[j];
-
-			//put the peakj in the four corners
-			float v1 = Peak(hmin, Hval, cmin, Cval, sig1, sig2, psfun, zpsfun);
-			float v2 = Peak(hmax, Hval, cmax, Cval, sig1, sig2, psfun, zpsfun);
-			float v3 = Peak(hmin, Hval, cmax, Cval, sig1, sig2, psfun, zpsfun);
-			float v4 = Peak(hmax, Hval, cmin, Cval, sig1, sig2, psfun, zpsfun);
-
-			float val = v1 + v2 + v3 + v4;
-			peak[index2D(Size[1], i, j)] = val; //store peak in complete peak list
-		}
-	}
-	//printf("mzmax: %f\n",hmax);
-	//printf("dtmax: %f\n",cmax);
-	return;
-}
 
 void fftconvolve2D(float *corr, float *list1, float *list2, int *size)
 {
@@ -406,59 +284,7 @@ float calcDtSLIMpoly2(float mass, int z, float ccs, float tcal1, float tcal2, fl
 	return 0;
 }
 
-int nearint(int *array, int point, int numdat)
-{
-	int i;
-	int temp = -1;
-	for (i = 0; i<numdat; i++)
-	{
-		if (array[i] == point) { temp = i; }
-	}
-	if (temp == -1) { printf("Problem finding integer in list\n"); }
-	return temp;
-}
 
-int nearfastpoint(float *dataMZ, float point, int numdat)
-{
-	int start = 0;
-	int length = numdat - 1;
-	int end = 0;
-
-	int diff = length - start;
-	while (diff>1)
-	{
-		if (point<dataMZ[start + (length - start) / 2])
-		{
-			length = start + (length - start) / 2;
-		}
-		else if (point == dataMZ[start + (length - start) / 2])
-		{
-			end = start + (length - start) / 2;
-			length = start + (length - start) / 2;
-			start = start + (length - start) / 2;
-			return end;
-		}
-		else if (point>dataMZ[start + (length - start) / 2])
-		{
-			start = start + (length - start) / 2;
-		}
-		diff = length - start;
-	}
-	if (fabs(point - dataMZ[start]) >= fabs(point - dataMZ[length]))
-	{
-		end = length;
-	}
-	else
-	{
-		end = start;
-	}
-	return dataMZ[end];
-}
-
-float euclid(float a, float b, float c, float d)
-{
-	return sqrt((a - b)*(a - b) + (c - d)*(c - d));
-}
 
 //Slow nearest unsorted.
 int nearunsorted_IM(float *testmasses, float *testtimes, float mz, float dt, int lengthtest)
@@ -478,58 +304,6 @@ int nearunsorted_IM(float *testmasses, float *testtimes, float mz, float dt, int
 	return pos;
 }
 
-void sum2D(int *size, float *sum, float *array, int axis)
-{
-	int i, j, k;
-	float temp;
-	if (axis == 2)
-	{
-		for (i = 0; i<size[0]; i++)
-		{
-			for (j = 0; j<size[1]; j++)
-			{
-				temp = 0;
-				for (k = 0; k<size[2]; k++)
-				{
-					temp += array[index3D(size[1], size[2], i, j, k)];
-				}
-				sum[index2D(size[1], i, j)] = temp;
-			}
-		}
-	}
-	else if (axis == 1)
-	{
-		for (i = 0; i<size[0]; i++)
-		{
-			for (k = 0; k<size[2]; k++)
-			{
-				temp = 0;
-				for (j = 0; j<size[1]; j++)
-				{
-					temp += array[index3D(size[1], size[2], i, j, k)];
-				}
-				sum[index2D(size[2], i, k)] = temp;
-			}
-		}
-	}
-	else if (axis == 0)
-	{
-		for (k = 0; k<size[2]; k++)
-		{
-			for (j = 0; j<size[1]; j++)
-			{
-				temp = 0;
-				for (i = 0; i<size[0]; i++)
-				{
-					temp += array[index3D(size[1], size[2], i, j, k)];
-				}
-				sum[index2D(size[1], k, j)] = temp;
-			}
-		}
-	}
-	return;
-}
-
 void blur_it_IM(int *size, float *blur, float *newblur, int *closetab, int *barr, float csig)
 {
 
@@ -537,7 +311,7 @@ void blur_it_IM(int *size, float *blur, float *newblur, int *closetab, int *barr
 		float *mzzsumgrid = NULL;
 		int l = size[0] * size[2];
 		mzzsumgrid = calloc(l, sizeof(float));
-		sum2D(size, mzzsumgrid, blur, 1);
+		Sum2D(size, mzzsumgrid, blur, 1);
 		int i, j, k, h;
 #pragma omp parallel for private (i,j,k)
 		for (i = 0; i < size[0]; i++)
@@ -656,63 +430,6 @@ void sumdeltas(int *size, float *deltas, float *newblur)
 
 }
 
-void sum1D(int *size, float *sum, float *array, int axis)
-{
-	int i, j, k;
-	float temp;
-	if (axis == 0) {
-		for (i = 0; i<size[0]; i++)
-		{
-			temp = 0;
-			for (j = 0; j<size[1]; j++)
-			{
-
-				for (k = 0; k<size[2]; k++)
-				{
-					temp += array[index3D(size[1], size[2], i, j, k)];
-				}
-
-			}
-			sum[i] = temp;
-		}
-	}
-	else if (axis == 1)
-	{
-		for (j = 0; j<size[1]; j++)
-		{
-			temp = 0;
-			for (i = 0; i<size[0]; i++)
-			{
-
-				for (k = 0; k<size[2]; k++)
-				{
-					temp += array[index3D(size[1], size[2], i, j, k)];
-				}
-
-			}
-			sum[j] = temp;
-		}
-	}
-	else if (axis == 2)
-	{
-		for (k = 0; k<size[2]; k++)
-		{
-			temp = 0;
-			for (j = 0; j<size[1]; j++)
-			{
-
-				for (i = 0; i<size[0]; i++)
-				{
-					temp += array[index3D(size[1], size[2], i, j, k)];
-				}
-
-			}
-			sum[k] = temp;
-		}
-	}
-	return;
-}
-
 
 
 void bayes(int *size, float*denom, float *blur, float *newblur, float *dataInt, int *barr)
@@ -779,56 +496,37 @@ void makeaxis(float *axis, int length, float min, float binsize)
 	return;
 }
 
-void write1D(char *outfile, char *suffix, float *array, int length)
-{
-	char outstring[500];
-	FILE *out_ptr = NULL;
-	sprintf(outstring, "%s_%s.bin", outfile, suffix);
-	out_ptr = fopen(outstring, "wb");
-	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
-	fwrite(array, sizeof(float), length, out_ptr);
 
-	//sprintf(outstring,"%s_%s.txt",outfile,suffix);
-	//out_ptr=fopen(outstring,"w");
-	//for(i=0;i<length;i++)
-	//{
-	//	  fprintf(out_ptr,"%f\n",array[i]);
-	//}
-	fclose(out_ptr);
-	printf("File written to: %s\n", outstring);
-}
-
-void write2D(char *outfile, char *suffix, float *array1, float *array2, int length)
+void readfilemanual(char *infile, int lengthmz, float *array1, float *array2, float *array3, float *array4, float *array5)
 {
-	char outstring[500];
+	FILE *file_ptr;
 	int i;
-	FILE *out_ptr = NULL;
-	sprintf(outstring, "%s_%s.txt", outfile, suffix);
-	out_ptr = fopen(outstring, "w");
-	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
-	for (i = 0; i<length; i++)
+	char a[500];
+	char b[500];
+	char c[500];
+	char d[500];
+	char e[500];
+	file_ptr = fopen(infile, "r");
+	if (file_ptr == 0)
 	{
-		fprintf(out_ptr, "%f %f\n", array1[i], array2[i]);
+		printf("Could not open %s file\n", infile);
+		exit(1);
 	}
-	fclose(out_ptr);
-	printf("File written to: %s\n", outstring);
+	else {
+
+		for (i = 0; i<lengthmz; i++)
+		{
+			fscanf(file_ptr, "%s %s %s %s %s", a, b, c, d, e);
+			array1[i] = atof(a);
+			array2[i] = atof(b);
+			array3[i] = atof(c);
+			array4[i] = atof(d);
+			array5[i] = atof(e);
+		}
+	}
+	fclose(file_ptr);
 }
 
-void write3D(char *outfile, char *suffix, float *array1, float *array2, float *array3, int length)
-{
-	char outstring[500];
-	int i;
-	FILE *out_ptr = NULL;
-	sprintf(outstring, "%s_%s.txt", outfile, suffix);
-	out_ptr = fopen(outstring, "w");
-	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
-	for (i = 0; i<length; i++)
-	{
-		fprintf(out_ptr, "%f %f %f\n", array1[i], array2[i], array3[i]);
-	}
-	fclose(out_ptr);
-	printf("File written to: %s\n", outstring);
-}
 
 void writemfileres(char *outfile, char *suffix, float *array1, float *array2, float *array3, float *array4, float *array5, float *array6, int length)
 {
@@ -1109,7 +807,7 @@ void ManualAssign_IM(char *manualfile, int * size, float *mzdat, float * dtdat, 
 	printf("Using Manual Assignments for Some Peaks\n");
 }
 
-void TwaveError(int twaveflag)
+void TwaveError(const int twaveflag)
 {
 	printf("Error: Undefined twaveflag. Value was %d. Aborting.", twaveflag);
 	exit(20);

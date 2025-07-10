@@ -113,6 +113,43 @@ void writefile1bin(const char *outstring, const int lengthmz, const float *data)
 }
 
 
+void write1D(char *outfile, char *suffix, const float *array, const int length)
+{
+	char outstring[500];
+	sprintf(outstring, "%s_%s.bin", outfile, suffix);
+	writefile1bin(outstring, length, array);
+	printf("File written to: %s\n", outstring);
+}
+
+void write2D(char *outfile, char *suffix, const float *array1, const float *array2, const int length)
+{
+	char outstring[500];
+	sprintf(outstring, "%s_%s.txt", outfile, suffix);
+	FILE *out_ptr = fopen(outstring, "w");
+	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
+	for (int i = 0; i<length; i++)
+	{
+		fprintf(out_ptr, "%f %f\n", array1[i], array2[i]);
+	}
+	fclose(out_ptr);
+	printf("File written to: %s\n", outstring);
+}
+
+void write3D(char *outfile, char *suffix, const float *array1, const float *array2, const float *array3, const int length)
+{
+	char outstring[500];
+	sprintf(outstring, "%s_%s.txt", outfile, suffix);
+	FILE *out_ptr = fopen(outstring, "w");
+	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
+	for (int i = 0; i<length; i++)
+	{
+		fprintf(out_ptr, "%f %f %f\n", array1[i], array2[i], array3[i]);
+	}
+	fclose(out_ptr);
+	printf("File written to: %s\n", outstring);
+}
+
+
 //Reads in single list of values
 void readmfile(const char *infile, const int mfilelen, float *testmasses) {
     char input[500] = {0};

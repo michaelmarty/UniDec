@@ -23,8 +23,8 @@ float WeightedStdDevInt(const int length, const int *xarray, const float *warray
 float Max(const float *blur, const int length);
 float Min(const float *blur, const int length);
 float Sum(const float *blur, const int length);
-void Sum2D(int *size, float *sum, float *array, int axis);
-void Sum1D(int *size, float *sum, float *array, int axis);
+void Sum2D(const int *size, float *sum, const float *array, int axis);
+void Sum1D(const int *size, float *sum, const float *array, int axis);
 
 int ArgMax(const float *blur, const int lengthmz);
 void ApplyCutoff(float *array, const float cutoff, const int lengthmz);
@@ -34,13 +34,19 @@ void Normalize(const int length, float *data, const float norm);
 
 int GetSize0(const float *array, int lines);
 int GetSize1(const float *array, int lines);
+void PullXY(float *mzext, float *dtext, const float *mzdat, const float *dtdat, const int *size);
 
 float ndis(const float x, const float y, const float sig);
 float Gaus(float x, float x0, float sig);
 float Lorentz(float x, float x0, float sig);
 float SplitGL(float x, float y, float sig);
+float PeakDist(const float x1, const float x2, const float y1, const float y2, const float sig1, const float sig2, const int psfun, const int zpsfun);
+void MakeKernel2D(float *peak, const int *Size, const float *dH, const float *dC, const float sig1,
+    const float sig2, const int psfun, const int zpsfun);
+
 int mod(const int a, const int b);
 float clip(const float x, const float cutoff);
+float euclid(float a, float b, float c, float d);
 float calcmz(const float mass, const int z, const float adductmass);
 float calcmass(const float mz, const int z, const float adductmass);
 
@@ -51,6 +57,8 @@ float nativecharge(const float mass, const float fudge);
 int nearunsorted(const float *testmasses, const float point, const int lengthtest);
 int neartest(const float *testmasses, const float point, const int lengthtest, const float cutoff);
 int nearfast(const float *dataMZ, const float point, const int numdat);
+float nearfastval(const float *dataMZ, float point, int numdat);
+int nearint(const int *array, int point, int numdat);
 
 float LinearInterpolate(const float y1, const float y2, const float mu);
 float LinearInterpolatePosition(const float x1, const float x2, const float x);
