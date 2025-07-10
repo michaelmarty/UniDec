@@ -70,6 +70,8 @@ add_executable(unidec
         UniDecIM.h UniDecIM_Main.h
         UD_charge.h
         UD_charge.c
+        UniDecCD_Main.h
+        UniDecIM.c
 )
 
 #target_link_libraries(unidec PRIVATE unideclib)

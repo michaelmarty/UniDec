@@ -471,7 +471,13 @@ class UniDecConfig(object):
         for key in self.namedict.keys():
             value, dtype = self.namedict[key]
             if dtype == float:
-                value = float(value)
+                try:
+                    value = float(value)
+                except ValueError:
+                    if value == '':
+                        value = -1
+                    else:
+                        raise ValueError(f"Value for {key} is not a valid float: {value}")
                 outstring += f"{key}: {value:.6f}\n"
             elif dtype == int:
                 value = int(value)
@@ -678,7 +684,7 @@ class UniDecConfig(object):
         :return: None
         """
         self.get_dict()
-        print(self)
+
         self.numz = self.endz - self.startz + 1
         f = open(name, 'w+')
         ignorelist = ["mfile", "manualfile", "smashfile", "ofile", "matchfile", "peaksfile",]
@@ -688,7 +694,13 @@ class UniDecConfig(object):
             if self.namedict[key] is not None:
                 value, dtype = self.namedict[key]
                 if dtype == float:
-                    value = float(value)
+                    try:
+                        value = float(value)
+                    except ValueError:
+                        if value == '':
+                            value = -1
+                        else:
+                            raise ValueError(f"Value for {key} is not a valid float: {value}")
                 elif dtype == int:
                     value = int(value)
                 f.write(key + " " + str(value) + "\n")
