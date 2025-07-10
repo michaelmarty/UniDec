@@ -29,7 +29,7 @@
 #include "udio.h"
 
 void fftconvolve2D(float *corr, const float *list1, const float *list2, const int *size);
-void convolve3D(float *out, float *in, float *peakshape, int *size);
+void convolve3D(float *out, const float *in, const float *peakshape, const int *size);
 
 float calcCCS(const float mass, const int z, const float dt, const float ccsconst, const float hmass, const float to, const int type);
 float calcCCSTwaveLog(float mass, int z, float dt, float tcal1, float tcal2, float hmass, float edc);
@@ -64,10 +64,10 @@ float bicubicInterpolate_IM(float p[4][4], float x, float y);
 float bicubicinterpolation(const int *size, int indm, int indc, int k, const float *mzext, const float *dtext, float tempmz, float tempdt, int rawflag, const float *newblur, const float *blur);
 
 void MFileInt(int mfilelen, float *massaxis, float *massaxisval, float *testmasses, float *testmassint, float maaxle);
-void MFileCCS(int mfilelen, float *massaxis, float *ccsaxis, float *massccsgrid, float *testmasses, float *testmassCCSavg, float *testmassCCSstddev, int maaxle, int ccaxle);
-void MFileZ(int mfilelen, float *massaxis, int *ztab, float *masszgrid, float *testmasses, float *testmassZavg, float *testmassZstddev, int maaxle, int numz);
-void KillB_IM(float *IntArray, int *B, int * size, float intthresh);
-void ManualAssign_IM(char *manualfile, int * size, float *mzdat, float * dtdat, int *ztab, int *barr);
+void MFileCCS(int mfilelen, const float *massaxis, const float *ccsaxis, const float *massccsgrid, const float *testmasses, float *testmassCCSavg, float *testmassCCSstddev, int maaxle, int ccaxle);
+void MFileZ(int mfilelen, const float *massaxis, const int *ztab, const float *masszgrid, const float *testmasses, float *testmassZavg, float *testmassZstddev, int maaxle, int numz);
+void KillB_IM(const float *IntArray, int *B, const int * size, float intthresh);
+void ManualAssign_IM(char *manualfile, const int * size, const float *mzdat, const float * dtdat, const int *ztab, int *barr);
 void TwaveError(int twaveflag);
 
 #endif

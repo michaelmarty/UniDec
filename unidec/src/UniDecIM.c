@@ -7,58 +7,58 @@
 
 void fftconvolve2D(float *corr, const float *list1, const float *list2, const int *size)
 {
-	fftw_complex *in1, *in2, *out1, *out2;
-	fftw_plan p1, p2, p3;
-	float a, b, c, d;
-	int i;
-	int length = size[0] * size[1];
-	in1 = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * length);
-	in2 = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * length);
-	out1 = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * length);
-	out2 = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * length);
-#pragma omp parallel for private (i), schedule(dynamic)
-	for (i = 0; i<length; i++)
+	const int length = size[0] * size[1];
+	fftwf_complex *in1 = (fftwf_complex *) fftwf_malloc(sizeof(fftwf_complex) * length);
+	fftwf_complex *in2 = (fftwf_complex *) fftwf_malloc(sizeof(fftwf_complex) * length);
+	fftwf_complex *out1 = (fftwf_complex *) fftwf_malloc(sizeof(fftwf_complex) * length);
+	fftwf_complex *out2 = (fftwf_complex *) fftwf_malloc(sizeof(fftwf_complex) * length);
+	#pragma omp parallel for schedule(dynamic)
+	for (int i = 0; i<length; i++)
 	{
 		in1[i][0] = list1[i];
 		in1[i][1] = 0;
 		in2[i][0] = list2[i];
 		in2[i][1] = 0;
 	}
-	p1 = fftw_plan_dft_2d(size[0], size[1], in1, out1, FFTW_FORWARD, FFTW_ESTIMATE);
-	p2 = fftw_plan_dft_2d(size[0], size[1], in2, out2, FFTW_FORWARD, FFTW_ESTIMATE);
-	fftw_execute(p1);
-	fftw_execute(p2);
-#pragma omp parallel for private (i,a,b,c,d), schedule(dynamic)
-	for (i = 0; i<length; i++)
+	fftwf_plan p1 = fftwf_plan_dft_2d(size[0], size[1], in1, out1, FFTW_FORWARD, FFTW_ESTIMATE);
+	fftwf_plan p2 = fftwf_plan_dft_2d(size[0], size[1], in2, out2, FFTW_FORWARD, FFTW_ESTIMATE);
+	fftwf_execute(p1);
+	fftwf_execute(p2);
+	#pragma omp parallel for schedule(dynamic)
+	for (int i = 0; i<length; i++)
 	{
-		a = out1[i][0];
-		b = out1[i][1];
-		c = out2[i][0];
-		d = out2[i][1];
+		const float a = out1[i][0];
+		const float b = out1[i][1];
+		const float c = out2[i][0];
+		const float d = out2[i][1];
 		in1[i][0] = a*c - b*d;
 		in1[i][1] = b*c + a*d;
 	}
 
-	p3 = fftw_plan_dft_2d(size[0], size[1], in1, out1, FFTW_BACKWARD, FFTW_ESTIMATE);
-	fftw_execute(p3);
-#pragma omp parallel for private (i), schedule(dynamic)
-	for (i = 0; i<length; i++)
+	fftwf_plan p3 = fftwf_plan_dft_2d(size[0], size[1], in1, out1, FFTW_BACKWARD, FFTW_ESTIMATE);
+	fftwf_execute(p3);
+	#pragma omp parallel for schedule(dynamic)
+	for (int i = 0; i<length; i++)
 	{
-		corr[i] = out1[i][0] / length;
+		corr[i] = out1[i][0] / (float) length;
 	}
 	//
-	fftw_destroy_plan(p1);
-	fftw_destroy_plan(p2);
-	fftw_destroy_plan(p3);
-	fftw_free(in1); fftw_free(in2); fftw_free(out1); fftw_free(out2);
+	fftwf_destroy_plan(p1);
+	fftwf_destroy_plan(p2);
+	fftwf_destroy_plan(p3);
+	fftwf_free(in1); fftwf_free(in2); fftwf_free(out1); fftwf_free(out2);
 }
 
-void convolve3D(float *out, float *in, float *peakshape, int *size)
+void convolve3D(float *out, const float *in, const float *peakshape, const int *size)
 {
 	//Initialize memory
 	const int l = size[0] * size[1];
 	float *temp = calloc(l, sizeof(float));
 	float *tempout = calloc(l, sizeof(float));
+	if (temp == NULL || tempout == NULL) {
+		fprintf(stderr, "Memory allocation failed in convolve3D\n");
+		exit(EXIT_FAILURE);
+	}
 	//Convolve for each charge slice
 	for (int k = 0; k<size[2]; k++)
 	{
@@ -90,134 +90,127 @@ void convolve3D(float *out, float *in, float *peakshape, int *size)
 
 float calcCCS(const float mass, const int z, const float dt, const float ccsconst, const float hmass, const float to, const int type)
 {
-	float ac = 1.6605389E-27;
-	float factor = 0.001;
+	const float ac = 1.6605389E-27f;
+	float factor = 0.001f;
 	float rmass = ac * (mass * hmass) / (mass + hmass);
 	if (type == 1) {
-		ac = 1;
 		factor = 1;
 		rmass = mass / (mass + hmass);
 	}
 
-	float td = (dt - to)*factor;
-	float ccs = (float)z*(td)*sqrt(1 / rmass)*ccsconst;
+	const float td = (dt - to)*factor;
+	const float ccs = (float)z*(td)*sqrtf(1 / rmass)*ccsconst;
 	return ccs;
 }
 
-float calcCCSTwaveLog(float mass, int z, float dt, float tcal1, float tcal2, float hmass, float edc)
+float calcCCSTwaveLog(const float mass, const int z, const float dt, const float tcal1, const float tcal2, const float hmass, const float edc)
 {
-	float rdt = dt - (edc*sqrt(mass / z) / 1.000E3);
-	float rccs;
+	const float rdt = dt - (edc*sqrtf(mass / (float) z) / 1.000E3f);
 	if (rdt <= 0) { return 0; }
-	else { rccs = exp(tcal1*log(rdt) + tcal2); }
-	float rmass = (mass*hmass) / (mass + hmass);
-	return rccs*z*sqrt(1 / rmass);
+	const float rccs = expf(tcal1*logf(rdt) + tcal2);
+	const float rmass = (mass*hmass) / (mass + hmass);
+	return rccs* (float) z *sqrtf(1 / rmass);
 }
 
-float calcCCSTwaveLinear(float mass, int z, float dt, float tcal1, float tcal2, float hmass, float edc)
+float calcCCSTwaveLinear(const float mass, const int z, const float dt, const float tcal1, const float tcal2, const float hmass, const float edc)
 {
-	float rdt = dt - (edc*sqrt(mass / z) / 1.000E3);
-	float rccs;
+	const float rdt = dt - (edc*sqrtf(mass / (float) z) / 1.000E3f);
 	if (rdt <= 0) { return 0; }
-	else { rccs = tcal1*rdt + tcal2; }
-	float rmass = (mass*hmass) / (mass + hmass);
-	return rccs*z*sqrt(1 / rmass);
+	const float rccs = tcal1*rdt + tcal2;
+	const float rmass = (mass*hmass) / (mass + hmass);
+	return rccs* (float) z*sqrtf(1 / rmass);
 }
 
-float calcCCSTwavePower(float mass, int z, float dt, float tcal1, float tcal2, float hmass, float edc)
+float calcCCSTwavePower(const float mass, const int z, const float dt, const float tcal1, const float tcal2, const float hmass, const float edc)
 {
-	float rdt = dt - (edc*sqrt(mass / z) / 1.000E3);
-	float rccs;
+	const float rdt = dt - (edc*sqrtf(mass / (float) z) / 1.000E3f);
 	if (rdt <= 0) { return 0; }
-	else { rccs = tcal1*pow(rdt, tcal2); }
-	float rmass = (mass*hmass) / (mass + hmass);
-	return rccs*z*sqrt(1 / rmass);
+	const float rccs = tcal1*powf(rdt, tcal2);
+	const float rmass = (mass*hmass) / (mass + hmass);
+	return rccs*(float) z*sqrtf(1 / rmass);
 }
 
-float calcDtTwaveLog(float mass, int z, float ccs, float tcal1, float tcal2, float hmass, float edc)
+float calcDtTwaveLog(const float mass, const int z, const float ccs, const float tcal1, const float tcal2, const float hmass, const float edc)
 {
 	//float ac=1.6605389E-27;
-	float rmass = (mass*hmass) / (mass + hmass);
-	float rccs = ccs / (z*sqrt(1 / rmass));
-	float rdt;
+	const float rmass = (mass*hmass) / (mass + hmass);
+	const float rccs = ccs / ((float) z*sqrtf(1 / rmass));
 	if (rccs <= 0) { return 0; }
-	else { rdt = exp((log(rccs) - tcal2) / tcal1); }
-	return rdt + (edc*sqrt(mass / z) / 1000);
+	const float rdt = expf((logf(rccs) - tcal2) / tcal1);
+	return rdt + (edc*sqrtf(mass / (float) z) / 1000);
 }
 
-float calcDtTwaveLinear(float mass, int z, float ccs, float tcal1, float tcal2, float hmass, float edc)
+float calcDtTwaveLinear(const float mass, const int z, const float ccs, const float tcal1, const float tcal2, const float hmass, const float edc)
 {
-	float rmass = (mass*hmass) / (mass + hmass);
-	float rccs = ccs / (z*sqrt(1 / rmass));
-	float rdt;
+	const float rmass = (mass*hmass) / (mass + hmass);
+	const float rccs = ccs / ((float) z*sqrtf(1 / rmass));
+
 	if (rccs <= 0) { return 0; }
-	else { rdt = (rccs - tcal2) / tcal1; }
-	return rdt + (edc*sqrt(mass / z) / 1000);
+	const float rdt = (rccs - tcal2) / tcal1;
+	return rdt + (edc*sqrtf(mass / (float) z) / 1000);
 }
 
-float calcDtTwavePower(float mass, int z, float ccs, float tcal1, float tcal2, float hmass, float edc)
+float calcDtTwavePower(const float mass, const int z, const float ccs, const float tcal1, const float tcal2, const float hmass, const float edc)
 {
-	float rmass = (mass*hmass) / (mass + hmass);
-	float rccs = ccs / (z*sqrt(1 / rmass));
-	float rdt;
+	const float rmass = (mass*hmass) / (mass + hmass);
+	const float rccs = ccs / ((float) z*sqrtf(1 / rmass));
+
 	if (rccs <= 0) { return 0; }
-	else { rdt = pow(rccs / tcal1, 1.0 / tcal2); }
-	return rdt + (edc*sqrt(mass / z) / 1000);
+	const float rdt = powf(rccs / tcal1, 1.0f / tcal2);
+	return rdt + (edc*sqrtf(mass / (float) z) / 1000);
 }
 
 float calcDt(const float mass, const int z, const float ccs, const float ccsconst, const float hmass, const float to, const int type)
 {
-
-	float ac = 1.6605389E-27;
+	const float ac = 1.6605389E-27f;
 	float factor = 1000;
 	float rmass = ac * (mass * hmass) / (mass + hmass);
 	if (type == 1)
 	{
-		ac = 1;
 		factor = 1;
 		rmass = mass / (mass + hmass);
 	}
 
-	float td = ccs / (ccsconst*(float)z*sqrt(1 / rmass));
-	float dt = (td * factor) + to;
+	const float td = ccs / (ccsconst*(float)z*sqrtf(1 / rmass));
+	const float dt = (td * factor) + to;
 	return dt;
 }
 
-float calcCCSSLIMpoly3(float mass, int z, float dt, float tcal1, float tcal2, float tcal3, float tcal4, float hmass, float edc)
+float calcCCSSLIMpoly3(const float mass, const int z, const float dt, const float tcal1, const float tcal2, const float tcal3, const float tcal4, const float hmass, const float edc)
 {
-	float rdt = dt -(edc * sqrtf(mass / z) / 1000.);
-	float rccs;
+	const float rdt = dt -(edc * sqrtf(mass / (float) z) / 1000.f);
+
 	if (rdt <= 0) { return 0; }
-	rccs = tcal4 * powf(rdt,3) + tcal3 * powf(rdt, 2) + tcal2 * rdt+tcal1;
-	float gamma = z;// (1 / (float)z)* sqrtf(mass / (mass + hmass));
+	float rccs = tcal4 * powf(rdt,3) + tcal3 * powf(rdt, 2) + tcal2 * rdt+tcal1;
+	float gamma = (float) z;// (1 / (float)z)* sqrtf(mass / (mass + hmass));
 	if (gamma > 0) { rccs *= gamma; }
 	else { printf("CCS Gamma is negative %d %f %f %f\n", z, mass, hmass, gamma); exit(93);}
 	return rccs;
 }
 
 
-float calcDtSLIMpoly3(float mass, int z, float ccs, float tcal1, float tcal2, float tcal3, float tcal4, float hmass, float edc)
+float calcDtSLIMpoly3(const float mass, const int z, const float ccs, const float tcal1, const float tcal2, const float tcal3, const float tcal4, const float hmass, const float edc)
 {
-	float gamma = z;// (1 / (float)z)* sqrtf(mass / (mass + hmass));
+	const float gamma = (float) z;// (1 / (float)z)* sqrtf(mass / (mass + hmass));
 	float rccs = ccs;
 	if (gamma > 0) { rccs /= gamma; }
 	else { printf("Dt Gamma is negative %d %f %f %f\n", z, mass, hmass, gamma); exit(94);}
 	if (rccs <= 0) { return 0; }
 
-	float a = tcal4;
-	float b = tcal3;
-	float c = tcal2;
-	float d = tcal1 - rccs;
+	const float a = tcal4;
+	const float b = tcal3;
+	const float c = tcal2;
+	const float d = tcal1 - rccs;
 
 	//printf("%.5e x^3 + %fx^2 + %fx + %f = 0 \n", a, b, c, d);
-	float d0 = powf(b, 2) - 3 * a * c;
-	float d1 = 2 * powf(b, 3) - 9 * a * b * c + 27 * powf(a, 2) * d;
-	float d2 = powf(d1, 2) - 4 * powf(d0, 3);
+	const float d0 = powf(b, 2) - 3 * a * c;
+	const float d1 = 2 * powf(b, 3) - 9 * a * b * c + 27 * powf(a, 2) * d;
+	const float d2 = powf(d1, 2) - 4 * powf(d0, 3);
 	if (d2 < 0) { return 0; }
 
-	float cst = cbrtf((d1+sqrtf(d2))/2.);
+	const float cst = cbrtf((d1+sqrtf(d2))/2.f);
 	if (cst == 0) { return 0; }
-	float rdt = -1 / (3 * a) * (b + cst + d0 / cst);
+	const float rdt = -1 / (3 * a) * (b + cst + d0 / cst);
 	//printf("x = %f \n", rdt);
 	/*
 	//An early attempt. Doesn't seem to work very well...
@@ -478,31 +471,28 @@ void makeaxis(float *axis, int length, float min, float binsize)
 
 void readfilemanual(char *infile, int lengthmz, float *array1, float *array2, float *array3, float *array4, float *array5)
 {
-	FILE *file_ptr;
-	int i;
 	char a[500];
 	char b[500];
 	char c[500];
 	char d[500];
 	char e[500];
-	file_ptr = fopen(infile, "r");
+	FILE *file_ptr = fopen(infile, "r");
 	if (file_ptr == 0)
 	{
 		printf("Could not open %s file\n", infile);
 		exit(1);
 	}
-	else {
 
-		for (i = 0; i<lengthmz; i++)
-		{
-			fscanf(file_ptr, "%s %s %s %s %s", a, b, c, d, e);
-			array1[i] = atof(a);
-			array2[i] = atof(b);
-			array3[i] = atof(c);
-			array4[i] = atof(d);
-			array5[i] = atof(e);
-		}
+	for (int i = 0; i<lengthmz; i++)
+	{
+		fscanf(file_ptr, "%s %s %s %s %s", a, b, c, d, e);
+		array1[i] = atof(a);
+		array2[i] = atof(b);
+		array3[i] = atof(c);
+		array4[i] = atof(d);
+		array5[i] = atof(e);
 	}
+
 	fclose(file_ptr);
 }
 
@@ -679,47 +669,43 @@ void MFileInt(int mfilelen, float *massaxis, float *massaxisval, float *testmass
 }
 
 //Works for both CCS and Z to get weighted average and Standard Deviation.
-void MFileCCS(int mfilelen, float *massaxis, float *ccsaxis, float *massccsgrid, float *testmasses, float *testmassCCSavg, float *testmassCCSstddev, int maaxle, int ccaxle)
+void MFileCCS(const int mfilelen, const float *massaxis, const float *ccsaxis, const float *massccsgrid,
+	const float *testmasses, float *testmassCCSavg, float *testmassCCSstddev, const int maaxle, const int ccaxle)
 {
-	int i, j, index;
-	float *temp;
-	float wmean;
-	temp = calloc(ccaxle, sizeof(float));
-	for (i = 0; i<mfilelen; i++)
+	float *temp = calloc(ccaxle, sizeof(float));
+	for (int i = 0; i<mfilelen; i++)
 	{
-		index = nearfast(massaxis, testmasses[i], maaxle);
-		for (j = 0; j<ccaxle; j++)
+		const int index = nearfast(massaxis, testmasses[i], maaxle);
+		for (int j = 0; j<ccaxle; j++)
 		{
 			temp[j] = massccsgrid[index2D(ccaxle, index, j)];
 		}
-		wmean = WeightedAverage(ccaxle, ccsaxis, temp);
+		const float wmean = WeightedAverage(ccaxle, ccsaxis, temp);
 		testmassCCSavg[i] = wmean;
 		testmassCCSstddev[i] = WeightedStdDev(ccaxle, ccsaxis, temp, wmean);
 	}
 	free(temp);
 }
 
-void MFileZ(int mfilelen, float *massaxis, int *ztab, float *masszgrid, float *testmasses, float *testmassZavg, float *testmassZstddev, int maaxle, int numz)
+void MFileZ(const int mfilelen, const float *massaxis, const int *ztab, const float *masszgrid, const float *testmasses,
+	float *testmassZavg, float *testmassZstddev, const int maaxle, const int numz)
 {
-	int i, j, index;
-	float *temp;
-	float wmean;
-	temp = calloc(numz, sizeof(float));
-	for (i = 0; i<mfilelen; i++)
+	float *temp = calloc(numz, sizeof(float));
+	for (int i = 0; i<mfilelen; i++)
 	{
-		index = nearfast(massaxis, testmasses[i], maaxle);
-		for (j = 0; j<numz; j++)
+		const int index = nearfast(massaxis, testmasses[i], maaxle);
+		for (int j = 0; j<numz; j++)
 		{
 			temp[j] = masszgrid[index2D(numz, index, j)];
 		}
-		wmean = WeightedAverageInt(numz, ztab, temp);
+		const float wmean = WeightedAverageInt(numz, ztab, temp);
 		testmassZavg[i] = wmean;
 		testmassZstddev[i] = WeightedStdDevInt(numz, ztab, temp, wmean);
 	}
 	free(temp);
 }
 
-void KillB_IM(float *IntArray, int *B, int * size, float intthresh)
+void KillB_IM(const float *IntArray, int *B, const int * size, const float intthresh)
 {
 	for (int i = 0; i<size[0]; i++)
 	{
@@ -737,35 +723,32 @@ void KillB_IM(float *IntArray, int *B, int * size, float intthresh)
 
 
 
-void ManualAssign_IM(char *manualfile, int * size, float *mzdat, float * dtdat, int *ztab, int *barr)
+void ManualAssign_IM(char *manualfile, const int * size, const float *mzdat, const float * dtdat, const int *ztab, int *barr)
 {
-
 	//Manual Assignments
-	int manlength;
-	float *manmz = NULL,
-		*manmzwin = NULL,
-		*mandt = NULL,
-		*mandtwin = NULL,
-		*mancharge = NULL;
-	manlength = getfilelength(manualfile);
-	manmz = calloc(manlength, sizeof(float));
-	manmzwin = calloc(manlength, sizeof(float));
-	mandt = calloc(manlength, sizeof(float));
-	mandtwin = calloc(manlength, sizeof(float));
-	mancharge = calloc(manlength, sizeof(float));
+	const int manlength = getfilelength(manualfile);
+	float *manmz = calloc(manlength, sizeof(float));
+	float *manmzwin = calloc(manlength, sizeof(float));
+	float *mandt = calloc(manlength, sizeof(float));
+	float *mandtwin = calloc(manlength, sizeof(float));
+	float *mancharge = calloc(manlength, sizeof(float));
+	if (manmz == NULL || manmzwin == NULL || mandt == NULL || mandtwin == NULL || mancharge == NULL)
+	{
+		printf("Error allocating memory for manual assignments.\n");
+		exit(1);
+	}
 	readfilemanual(manualfile, manlength, manmz, manmzwin, mandt, mandtwin, mancharge);
 	printf("Read manual file of length: %d\n", manlength);
-	int i,j;
-#pragma omp parallel for private(i,j)
-	for (i = 0; i<size[0]; i++)
+	#pragma omp parallel for schedule(auto)
+	for (int i = 0; i<size[0]; i++)
 	{
-		for (j = 0; j<size[1]; j++)
+		for (int j = 0; j<size[1]; j++)
 		{
-			float mz = mzdat[index2D(size[1], i, j)];
-			float dt = dtdat[index2D(size[1], i, j)];
-			int close = nearunsorted2D(manmz, mandt, mz, dt, manlength);
-			int charge = mancharge[close];
-			if (fabs(manmz[close] - mz) < manmzwin[close] && fabs(mandt[close] - dt) < mandtwin[close])
+			const float mz = mzdat[index2D(size[1], i, j)];
+			const float dt = dtdat[index2D(size[1], i, j)];
+			const int close = nearunsorted2D(manmz, mandt, mz, dt, manlength);
+			const int charge = (int) mancharge[close];
+			if (fabsf(manmz[close] - mz) < manmzwin[close] && fabsf(mandt[close] - dt) < mandtwin[close])
 			{
 				for (int k = 0; k < size[2]; k++)
 				{
