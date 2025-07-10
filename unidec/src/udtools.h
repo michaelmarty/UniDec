@@ -59,6 +59,7 @@ int neartest(const float *testmasses, const float point, const int lengthtest, c
 int nearfast(const float *dataMZ, const float point, const int numdat);
 float nearfastval(const float *dataMZ, float point, int numdat);
 int nearint(const int *array, int point, int numdat);
+int nearunsorted2D(const float *testmasses, const float *testtimes, float mz, float dt, int lengthtest);
 
 float LinearInterpolate(const float y1, const float y2, const float mu);
 float LinearInterpolatePosition(const float x1, const float x2, const float x);

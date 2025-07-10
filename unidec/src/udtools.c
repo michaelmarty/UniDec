@@ -605,6 +605,23 @@ int nearint(const int *array, const int point, const int numdat)
 }
 
 
+//Slow nearest unsorted for 2D data. Returns the index of the closest point in the testmasses and testtimes arrays.
+int nearunsorted2D(const float *testmasses, const float *testtimes, const float mz, const float dt, const int lengthtest)
+{
+    float minval = euclid(mz, testmasses[0], dt, testtimes[0]);
+    int pos = 0;
+    for (int i = 1; i<lengthtest; i++)
+    {
+        const float difftest = euclid(mz, testmasses[i], dt, testtimes[i]);
+        if (difftest<minval)
+        {
+            minval = difftest;
+            pos = i;
+        }
+    }
+    return pos;
+}
+
 
 // .............
 //

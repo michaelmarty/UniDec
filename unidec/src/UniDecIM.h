@@ -28,7 +28,7 @@
 #include "udtools.h"
 #include "udio.h"
 
-void fftconvolve2D(float *corr, float *list1, float *list2, int *size);
+void fftconvolve2D(float *corr, const float *list1, const float *list2, const int *size);
 void convolve3D(float *out, float *in, float *peakshape, int *size);
 
 float calcCCS(const float mass, const int z, const float dt, const float ccsconst, const float hmass, const float to, const int type);
@@ -44,11 +44,6 @@ float calcDtSLIMpoly3(float mass, int z, float ccs, float tcal1, float tcal2, fl
 float calcCCSSLIMpoly2(float mass, int z, float dt, float tcal1, float tcal2, float tcal3, float hmass, float edc);
 float calcDtSLIMpoly2(float mass, int z, float ccs, float tcal1, float tcal2, float tcal3, float hmass, float edc);
 
-
-
-
-int nearunsorted_IM(float *testmasses, float *testtimes, float mz, float dt, int lengthtest);
-
 void blur_it_IM(int *size, float *blur, float *newblur, int *closetab, int *barr, float csig);
 void sumdeltas(int *size, float *deltas, float *newblur);
 
@@ -57,7 +52,6 @@ void getranges(int *size, float *blur, float *masstab, float *ccstab, float *ran
 void makeaxis(float *axis, int length, float min, float binsize);
 
 void readfilemanual(char *infile, int lengthmz, float *array1, float *array2, float *array3, float *array4, float *array5);
-
 void writemfileres(char *outfile, char *suffix, float *array1, float *array2, float *array3, float *array4, float *array5, float *array6, int length);
 void writemzgrid(char *outfile, char *suffix, float *mzext, float *dtext, int *ztab, float *blur, int *size);
 float errfun(int length, float *dataInt, float *fitdat);

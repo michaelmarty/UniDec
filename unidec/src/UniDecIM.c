@@ -5,7 +5,7 @@
 #include "UniDecIM.h"
 
 
-void fftconvolve2D(float *corr, float *list1, float *list2, int *size)
+void fftconvolve2D(float *corr, const float *list1, const float *list2, const int *size)
 {
 	fftw_complex *in1, *in2, *out1, *out2;
 	fftw_plan p1, p2, p3;
@@ -56,19 +56,17 @@ void fftconvolve2D(float *corr, float *list1, float *list2, int *size)
 void convolve3D(float *out, float *in, float *peakshape, int *size)
 {
 	//Initialize memory
-	float *temp = NULL, *tempout = NULL;
-	int l = size[0] * size[1];
-	temp = calloc(l, sizeof(float));
-	tempout = calloc(l, sizeof(float));
-	int i, j, k;
+	const int l = size[0] * size[1];
+	float *temp = calloc(l, sizeof(float));
+	float *tempout = calloc(l, sizeof(float));
 	//Convolve for each charge slice
-	for (k = 0; k<size[2]; k++)
+	for (int k = 0; k<size[2]; k++)
 	{
 		//Cut out a slice
-#pragma omp parallel for private (i,j), schedule(dynamic)
-		for (i = 0; i<size[0]; i++)
+		#pragma omp parallel for schedule(dynamic)
+		for (int i = 0; i<size[0]; i++)
 		{
-			for (j = 0; j<size[1]; j++)
+			for (int j = 0; j<size[1]; j++)
 			{
 				temp[index2D(size[1], i, j)] = in[index3D(size[1], size[2], i, j, k)];
 			}
@@ -76,10 +74,10 @@ void convolve3D(float *out, float *in, float *peakshape, int *size)
 		//Convolve it
 		fftconvolve2D(tempout, temp, peakshape, size);
 		//Repack slice into output array
-#pragma omp parallel for private (i,j), schedule(dynamic)
-		for (i = 0; i<size[0]; i++)
+		#pragma omp parallel for schedule(dynamic)
+		for (int i = 0; i<size[0]; i++)
 		{
-			for (j = 0; j<size[1]; j++)
+			for (int j = 0; j<size[1]; j++)
 			{
 				out[index3D(size[1], size[2], i, j, k)] = tempout[index2D(size[1], i, j)];
 			}
@@ -284,25 +282,6 @@ float calcDtSLIMpoly2(float mass, int z, float ccs, float tcal1, float tcal2, fl
 	return 0;
 }
 
-
-
-//Slow nearest unsorted.
-int nearunsorted_IM(float *testmasses, float *testtimes, float mz, float dt, int lengthtest)
-{
-	float minval = euclid(mz, testmasses[0], dt, testtimes[0]);
-	float difftest;
-	int pos = 0;
-	for (int i = 1; i<lengthtest; i++)
-	{
-		difftest = euclid(mz, testmasses[i], dt, testtimes[i]);
-		if (difftest<minval)
-		{
-			minval = difftest;
-			pos = i;
-		}
-	}
-	return pos;
-}
 
 void blur_it_IM(int *size, float *blur, float *newblur, int *closetab, int *barr, float csig)
 {
@@ -784,7 +763,7 @@ void ManualAssign_IM(char *manualfile, int * size, float *mzdat, float * dtdat, 
 		{
 			float mz = mzdat[index2D(size[1], i, j)];
 			float dt = dtdat[index2D(size[1], i, j)];
-			int close = nearunsorted_IM(manmz, mandt, mz, dt, manlength);
+			int close = nearunsorted2D(manmz, mandt, mz, dt, manlength);
 			int charge = mancharge[close];
 			if (fabs(manmz[close] - mz) < manmzwin[close] && fabs(mandt[close] - dt) < mandtwin[close])
 			{
