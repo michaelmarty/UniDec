@@ -506,16 +506,16 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	//Write out specific charge slices
 	char *suffix5 = "zout";
 	if (config.zout>0) {
-		writezslice(newsize, config.outfile, suffix5, massaxis, ccsaxis, ztab, newgrid, nearint(ztab, config.zout, numz));
+		writezslice(newsize, config.outfile, suffix5, ztab, newgrid, nearint(ztab, config.zout, numz));
 	}
 	if (config.zout < 0) {
 		for (int k = 0; k < numz; k++)
 		{
-			writezslice(newsize, config.outfile, suffix5, massaxis, ccsaxis, ztab, newgrid, k);
+			writezslice(newsize, config.outfile, suffix5, ztab, newgrid, k);
 		}
 	}
 	char *suffixgrid = "mzgrid";
-	writemzgrid(config.outfile, suffixgrid, mzext, dtext, ztab, newblur, size);
+	writemzgrid(config.outfile, suffixgrid, newblur, size);
 
 	char outstring[500];
 	char *suffixerr = "error";

@@ -231,36 +231,35 @@ float calcDtSLIMpoly3(const float mass, const int z, const float ccs, const floa
 	//rdt = pow(q + pow(pow(q, 2) + pow(r - pow(p, 2), 3), 0.5), 1 / 3) + pow(q - pow(pow(q, 2) + pow(r - pow(p, 2), 3), 0.5), 1 / 3) + p;
 	*/
 
-	return rdt +(edc * sqrtf(mass / z) / 1000);
+	return rdt +(edc * sqrtf(mass / (float) z) / 1000);
 }
 
-float calcCCSSLIMpoly2(float mass, int z, float dt, float tcal1, float tcal2, float tcal3,  float hmass, float edc)
+float calcCCSSLIMpoly2(const float mass, const int z, const float dt, const float tcal1, const float tcal2, const float tcal3, const float hmass, const float edc)
 {
-	float rdt = dt -(edc * sqrtf(mass / z) / 1000.);
-	float rccs;
+	const float rdt = dt -(edc * sqrtf(mass / (float) z) / 1000.f);
 	if (rdt <= 0) { return 0; }
-	rccs = tcal3 * powf(rdt,2) + tcal2 *rdt+tcal1;
-	float gamma = z;// (1 / (float)z)* sqrtf(mass / (mass + hmass));
+	float rccs = tcal3 * powf(rdt,2) + tcal2 *rdt+tcal1;
+	float gamma = (float) z;// (1 / (float)z)* sqrtf(mass / (mass + hmass));
 	if (gamma > 0) { rccs *= gamma; }
 	else { printf("CCS Gamma is negative %d %f %f %f\n", z, mass, hmass, gamma); exit(91); }
 	return rccs;
 }
 
-float calcDtSLIMpoly2(float mass, int z, float ccs, float tcal1, float tcal2, float tcal3,  float hmass, float edc)
+float calcDtSLIMpoly2(const float mass, const int z, const float ccs, const float tcal1, const float tcal2, const float tcal3, const float hmass, float edc)
 {
-	float gamma = z;// (1 / (float)z)* sqrtf(mass / (mass + hmass));
+	const float gamma = (float) z;// (1 / (float)z)* sqrtf(mass / (mass + hmass));
 	float rccs = ccs;
 	if (gamma > 0) { rccs /= gamma; }
 	else { printf("DT Gamma is negative %d %f %f %f\n", z, mass, hmass, gamma); exit(92); }
 	if (rccs <= 0) { return 0; }
 
-	float a = tcal3;
-	float b = tcal2;
-	float c = tcal1-rccs;
+	const float a = tcal3;
+	const float b = tcal2;
+	const float c = tcal1-rccs;
 
-	float d0 = powf(b, 2) - 4 * a * c;
+	const float d0 = powf(b, 2) - 4 * a * c;
 	if (d0 < 0) { return 0; }
-	float d1 = sqrtf(d0);
+	const float d1 = sqrtf(d0);
 
 	//printf(" %fx^2 + %fx + %f = 0 \n", a, b, c);
 
@@ -276,21 +275,18 @@ float calcDtSLIMpoly2(float mass, int z, float ccs, float tcal1, float tcal2, fl
 }
 
 
-void blur_it_IM(int *size, float *blur, float *newblur, int *closetab, int *barr, float csig)
+void blur_it_IM(const int *size, float *blur, float *newblur, const int *closetab, const int *barr, const float csig)
 {
-
 	if (csig < 0) {
-		float *mzzsumgrid = NULL;
-		int l = size[0] * size[2];
-		mzzsumgrid = calloc(l, sizeof(float));
+		const int l = size[0] * size[2];
+		float *mzzsumgrid = calloc(l, sizeof(float));
 		Sum2D(size, mzzsumgrid, blur, 1);
-		int i, j, k, h;
-#pragma omp parallel for private (i,j,k)
-		for (i = 0; i < size[0]; i++)
+		#pragma omp parallel for
+		for (int i = 0; i < size[0]; i++)
 		{
-			for (j = 0; j < size[1]; j++)
+			for (int j = 0; j < size[1]; j++)
 			{
-				for (k = 0; k < size[2]; k++)
+				for (int k = 0; k < size[2]; k++)
 				{
 					if (barr[index3D(size[1], size[2], i, j, k)] == 1)
 					{
@@ -304,30 +300,30 @@ void blur_it_IM(int *size, float *blur, float *newblur, int *closetab, int *barr
 		}
 		free(mzzsumgrid);
 
-#pragma omp parallel for private (i,j,k,h)
-		for (i = 0; i<size[0]; i++)
+		#pragma omp parallel for
+		for (int i = 0; i<size[0]; i++)
 		{
-			for (j = 0; j<size[1]; j++)
+			for (int j = 0; j<size[1]; j++)
 			{
-				for (k = 0; k<size[2]; k++)
+				for (int k = 0; k<size[2]; k++)
 				{
 					if (barr[index3D(size[1], size[2], i, j, k)] == 1)
 					{
 						float junk2 = 0;
-						for (h = 0; h<size[3]; h++)
+						for (int h = 0; h<size[3]; h++)
 						{
-							int index = closetab[index4D(size, i, j, k, h)];
+							const int index = closetab[index4D(size, i, j, k, h)];
 							if (index == -1) {
 								junk2 += -12;
 							}
 							else
 							{
-								float junk = blur[index];
-								if (junk>0) { junk2 += log(junk); }
+								const float junk = blur[index];
+								if (junk>0) { junk2 += logf(junk); }
 								else { junk2 += -12; }
 							}
 						}
-						newblur[index3D(size[1], size[2], i, j, k)] = exp(junk2 / size[3]);
+						newblur[index3D(size[1], size[2], i, j, k)] = expf(junk2 / (float) size[3]);
 					}
 					else
 					{
@@ -339,38 +335,35 @@ void blur_it_IM(int *size, float *blur, float *newblur, int *closetab, int *barr
 	}
 
 	else {
-		float junk, junk2;
-		int i, j, k, l, index;
-		int logswitch = 1;
-#pragma omp parallel for private (i,j,k,l,index,junk,junk2)
-		for (i = 0; i < size[0]; i++)
+		#pragma omp parallel for
+		for (int i = 0; i < size[0]; i++)
 		{
-			for (j = 0; j < size[1]; j++)
+			for (int j = 0; j < size[1]; j++)
 			{
-				for (k = 0; k < size[2]; k++)
+				for (int k = 0; k < size[2]; k++)
 				{
 					if (barr[index3D(size[1], size[2], i, j, k)] == 1)
 					{
-						junk2 = 0;
-						for (l = 0; l < size[3]; l++)
+						float junk2 = 0;
+						for (int l = 0; l < size[3]; l++)
 						{
-							index = closetab[index4D(size, i, j, k, l)];
+							const int index = closetab[index4D(size, i, j, k, l)];
 							if (index == -1) {
-								if (logswitch == 1) { junk2 += -12; }
-								else { junk2 += 0; }
+								junk2 += -12;
+								// else { junk2 += 0; }
 							}
 							else
 							{
-								junk = blur[index];
-								if (logswitch == 0) { junk2 += junk; }
-								else {
-									if (junk > 0) { junk2 += log(junk); }
-									else { junk2 += -12; }
-								}
+								const float junk = blur[index];
+								// if (logswitch == 0) { junk2 += junk; }
+								// else {
+								if (junk > 0) { junk2 += logf(junk); }
+								else { junk2 += -12; }
+
 							}
 						}
-						if (logswitch == 0) { newblur[index3D(size[1], size[2], i, j, k)] = junk2 / size[3]; }
-						else { newblur[index3D(size[1], size[2], i, j, k)] = exp(junk2 / size[3]); }
+						// if (logswitch == 0) { newblur[index3D(size[1], size[2], i, j, k)] = junk2 / size[3]; }
+						newblur[index3D(size[1], size[2], i, j, k)] = expf(junk2 / (float) size[3]);
 					}
 					else
 					{
@@ -382,37 +375,32 @@ void blur_it_IM(int *size, float *blur, float *newblur, int *closetab, int *barr
 	}
 }
 
-void sumdeltas(int *size, float *deltas, float *newblur)
+void sumdeltas(const int *size, float *deltas, const float *newblur)
 {
-	int i, j, k;
-	float temp;
-#pragma omp parallel for private (i,j,temp), schedule(dynamic)
-	for (i = 0; i<size[0]; i++)
+	#pragma omp parallel for schedule(dynamic)
+	for (int i = 0; i<size[0]; i++)
 	{
-		for (j = 0; j<size[1]; j++)
+		for (int j = 0; j<size[1]; j++)
 		{
-			temp = 0;
-			for (k = 0; k<size[2]; k++)
+			float temp = 0;
+			for (int k = 0; k<size[2]; k++)
 			{
 				temp += newblur[index3D(size[1], size[2], i, j, k)];
 			}
 			deltas[index2D(size[1], i, j)] = temp;
 		}
 	}
-
 }
 
 
-
-void bayes(int *size, float*denom, float *blur, float *newblur, float *dataInt, int *barr)
+void bayes(const int *size, const float*denom, float *blur, const float *newblur, const float *dataInt, const int *barr)
 {
-	int i, j, k;
-#pragma omp parallel for private (i,j,k), schedule(dynamic)
-	for (i = 0; i<size[0]; i++)
+#pragma omp parallel for schedule(dynamic)
+	for (int i = 0; i<size[0]; i++)
 	{
-		for (j = 0; j<size[1]; j++)
+		for (int j = 0; j<size[1]; j++)
 		{
-			for (k = 0; k<size[2]; k++)
+			for (int k = 0; k<size[2]; k++)
 			{
 				if (denom[index2D(size[1], i, j)] != 0 && barr[index3D(size[1], size[2], i, j, k)] == 1)
 				{
@@ -425,27 +413,24 @@ void bayes(int *size, float*denom, float *blur, float *newblur, float *dataInt, 
 			}
 		}
 	}
-	return;
 }
 
-void getranges(int *size, float *blur, float *masstab, float *ccstab, float *range, int *barr)
+void getranges(const int *size, const float *blur, const float *masstab, const float *ccstab, float *range, const int *barr)
 {
-	int i, j, k;
-	int mass, ccs;
-	range[0] = 100000000;
+	range[0] = 100000000.f;
 	range[1] = 0;
-	range[2] = 100000000;
+	range[2] = 100000000.f;
 	range[3] = 0;
-	for (i = 0; i<size[0]; i++)
+	for (int i = 0; i<size[0]; i++)
 	{
-		for (j = 0; j<size[1]; j++)
+		for (int j = 0; j<size[1]; j++)
 		{
-			for (k = 0; k<size[2]; k++)
+			for (int k = 0; k<size[2]; k++)
 			{
 				if (blur[index3D(size[1], size[2], i, j, k)]>1E-12&&barr[index3D(size[1], size[2], i, j, k)] == 1)
 				{
-					mass = masstab[index2D(size[2], i, k)];
-					ccs = ccstab[index3D(size[1], size[2], i, j, k)];
+					const float mass = masstab[index2D(size[2], i, k)];
+					const float ccs = ccstab[index3D(size[1], size[2], i, j, k)];
 					if (mass<range[0]) { range[0] = mass; }
 					if (mass>range[1]) { range[1] = mass; }
 					if (ccs<range[2]) { range[2] = ccs; }
@@ -454,22 +439,19 @@ void getranges(int *size, float *blur, float *masstab, float *ccstab, float *ran
 			}
 		}
 	}
-	return;
 }
 
-void makeaxis(float *axis, int length, float min, float binsize)
+void makeaxis(float *axis, const int length, const float min, const float binsize)
 {
-	int i;
-#pragma omp parallel for private (i), schedule(dynamic)
-	for (i = 0; i<length; i++)
+	#pragma omp parallel for schedule(dynamic)
+	for (int i = 0; i<length; i++)
 	{
-		axis[i] = min + i*binsize;
+		axis[i] = min + (float) i*binsize;
 	}
-	return;
 }
 
 
-void readfilemanual(char *infile, int lengthmz, float *array1, float *array2, float *array3, float *array4, float *array5)
+void readfilemanual(char *infile, const int lengthmz, float *array1, float *array2, float *array3, float *array4, float *array5)
 {
 	char a[500];
 	char b[500];
@@ -486,27 +468,26 @@ void readfilemanual(char *infile, int lengthmz, float *array1, float *array2, fl
 	for (int i = 0; i<lengthmz; i++)
 	{
 		fscanf(file_ptr, "%s %s %s %s %s", a, b, c, d, e);
-		array1[i] = atof(a);
-		array2[i] = atof(b);
-		array3[i] = atof(c);
-		array4[i] = atof(d);
-		array5[i] = atof(e);
+		char * endptr;
+		array1[i] = strtof(a, &endptr);
+		array2[i] = strtof(b, &endptr);
+		array3[i] = strtof(c, &endptr);
+		array4[i] = strtof(d, &endptr);
+		array5[i] = strtof(e, &endptr);
 	}
 
 	fclose(file_ptr);
 }
 
 
-void writemfileres(char *outfile, char *suffix, float *array1, float *array2, float *array3, float *array4, float *array5, float *array6, int length)
+void writemfileres(char *outfile, char *suffix, const float *array1, const float *array2, const float *array3, const float *array4, const float *array5, const float *array6, const int length)
 {
 	char outstring[500];
-	int i;
-	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.txt", outfile, suffix);
-	out_ptr = fopen(outstring, "w");
+	FILE *out_ptr = fopen(outstring, "w");
 	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
 	//fprintf(out_ptr,"Mass\tIntensity\tCCS Avg.\tCCS Std. Dev.\tZ avg.\tZ Std. Dev.\n");
-	for (i = 0; i<length; i++)
+	for (int i = 0; i<length; i++)
 	{
 		fprintf(out_ptr, "%f\t%f\t%f\t%f\t%f\t%f\n", array1[i], array2[i], array3[i], array4[i], array5[i], array6[i]);
 	}
@@ -514,64 +495,57 @@ void writemfileres(char *outfile, char *suffix, float *array1, float *array2, fl
 	printf("File written to: %s\n", outstring);
 }
 
-void writemzgrid(char *outfile, char *suffix, float *mzext, float *dtext, int *ztab, float *blur, int *size)
+void writemzgrid(char *outfile, char *suffix, const float *blur, const int *size)
 {
 	char outstring[500];
-	//int i,j,k;
 	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s.bin", outfile, suffix);
 	//printf("%s\n",outstring);
 	out_ptr = fopen(outstring, "wb");
 	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
-	int l = size[0] * size[1] * size[2];
+	const int l = size[0] * size[1] * size[2];
 	fwrite(blur, sizeof(float), l, out_ptr);
 	fclose(out_ptr);
 	printf("File written to: %s\n", outstring);
 }
 
-float errfun(int length, float *dataInt, float *fitdat)
+float errfun(const int length, const float *dataInt, const float *fitdat)
 {
-	int i;
 	float tot = 0;
-	float mean;
-
-	for (i = 0; i<length; i++)
+	for (int i = 0; i<length; i++)
 	{
 		tot += fitdat[i];
 	}
-	mean = tot / ((float)length);
+	const float mean = tot / ((float)length);
 
 	float error = 0;
 	float error2 = 0;
-	for (i = 0; i<length; i++)
+	for (int i = 0; i<length; i++)
 	{
-		error += pow((fitdat[i] - dataInt[i]), 2);
-		error2 += pow((mean - dataInt[i]), 2);
+		error += powf((fitdat[i] - dataInt[i]), 2);
+		error2 += powf((mean - dataInt[i]), 2);
 	}
 	if (error2 == 0) { printf("Error function divide by 0!"); error2 = 1; }
-	return 1.0 - error / error2;
+	return 1.0f - error / error2;
 }
 
-void writezslice(int *size, char *outfile, char *suffix, float *massaxis, float *ccsaxis, int *ztab, float *array, int k)
+void writezslice(const int *size, char *outfile, char *suffix, const int *ztab, const float *array, const int k)
 {
-	int i, j;
 	char outstring[500];
-	FILE *out_ptr = NULL;
 	sprintf(outstring, "%s_%s_%d.bin", outfile, suffix, ztab[k]);
-	out_ptr = fopen(outstring, "wb");
+	FILE *out_ptr = fopen(outstring, "wb");
 	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
-	float *temp = NULL;
-	int newlen = size[0] * size[1];
-	temp = calloc(newlen, sizeof(float));
-	for (i = 0; i<size[0]; i++)
+	const int newlen = size[0] * size[1];
+	float *temp = calloc(newlen, sizeof(float));
+	for (int i = 0; i<size[0]; i++)
 	{
-		for (j = 0; j<size[1]; j++)
+		for (int j = 0; j<size[1]; j++)
 		{
 			//fprintf(out_ptr,"%f %f %f\n",massaxis[i],ccsaxis[j],array[index3D(size[1],size[2],i,j,k)]);
 			temp[index2D(size[1], i, j)] = array[index3D(size[1], size[2], i, j, k)];
 		}
 	}
-	int l = size[0] * size[1];
+	const int l = size[0] * size[1];
 	fwrite(temp, sizeof(float), l, out_ptr);
 	fclose(out_ptr);
 	free(temp);
@@ -658,12 +632,11 @@ float bicubicinterpolation(const int *size, const int indm, const int indc, cons
 }
 
 
-void MFileInt(int mfilelen, float *massaxis, float *massaxisval, float *testmasses, float *testmassint, float maaxle)
+void MFileInt(const int mfilelen, const float *massaxis, const float *massaxisval, const float *testmasses, float *testmassint, const int maaxle)
 {
-	int i, index;
-	for (i = 0; i<mfilelen; i++)
+	for (int i = 0; i<mfilelen; i++)
 	{
-		index = nearfast(massaxis, testmasses[i], maaxle);
+		const int index = nearfast(massaxis, testmasses[i], maaxle);
 		testmassint[i] = massaxisval[index];
 	}
 }
