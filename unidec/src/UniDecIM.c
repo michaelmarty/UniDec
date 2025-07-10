@@ -34,40 +34,6 @@ void readfilemanual(char *infile, int lengthmz, float *array1, float *array2, fl
 	fclose(file_ptr);
 }
 
-int GetSize0(float *array, int lines)
-{
-	int cnt = 1;
-	float test = array[0];
-	for (int i = 1; i<lines; i++) //look for the number of times dH decrements
-	{
-		if (array[i] > test)
-		{
-			test = array[i];
-			cnt++;
-		}
-	}
-	return cnt;
-}
-
-int GetSize1(float *array, int lines)
-{
-	int cnt = 1;
-	int flag = 0;
-	float test = array[0];
-	for (int i = 1; i<lines; i++)
-	{
-		if (array[i] > test && flag == 0)
-		{
-			cnt++;
-		}
-		else
-		{
-			flag = 1;
-		}
-	}
-	return cnt;
-}
-
 void Extract(float *mzext, float *dtext, float *mzdat, float *dtdat, int *size)
 {
 	int i;

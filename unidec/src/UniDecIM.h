@@ -33,8 +33,6 @@
 
 
 void readfilemanual(char *infile, int lengthmz, float *array1, float *array2, float *array3, float *array4, float *array5);
-int GetSize0(float *array, int lines);
-int GetSize1(float *array, int lines);
 void Extract(float *mzext, float *dtext, float *mzdat, float *dtdat, int *size);
 float Gaus(float x, float x0, float sig);
 float Lorentz(float x, float x0, float sig);

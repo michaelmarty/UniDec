@@ -135,6 +135,42 @@ void Normalize(const int length, float *data, const float norm)
     }
 }
 
+
+int GetSize0(const float *array, const int lines)
+{
+    int cnt = 1;
+    float test = array[0];
+    for (int i = 1; i<lines; i++) //look for the number of times dH decrements
+    {
+        if (array[i] > test)
+        {
+            test = array[i];
+            cnt++;
+        }
+    }
+    return cnt;
+}
+
+int GetSize1(const float *array, const int lines)
+{
+    int cnt = 1;
+    int flag = 0;
+    const float test = array[0];
+    for (int i = 1; i<lines; i++)
+    {
+        if (array[i] > test && flag == 0)
+        {
+            cnt++;
+        }
+        else
+        {
+            flag = 1;
+        }
+    }
+    return cnt;
+}
+
+
 // ............
 //
 // Math Functions

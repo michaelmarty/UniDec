@@ -24,11 +24,15 @@ void NormMax(float *data, const int length);
 void NormSum(float *data, const int length);
 void Normalize(const int length, float *data, const float norm);
 
+int GetSize0(const float *array, int lines);
+int GetSize1(const float *array, int lines);
+
 float ndis(const float x, const float y, const float sig);
 int mod(const int a, const int b);
 float clip(const float x, const float cutoff);
 float calcmz(const float mass, const int z, const float adductmass);
 float calcmass(const float mz, const int z, const float adductmass);
+
 float mzpeakshape(const float x, const float y, const float sig, const int psfun);
 int compare_function(const void *a, const void *b);
 float nativecharge(const float mass, const float fudge);
