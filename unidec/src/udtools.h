@@ -14,7 +14,12 @@ void floatPrint(const float *array, const int length);
 void IntPrint(const int *array, const int length);
 
 float Average(const int length, const float *xarray);
+float WeightedAverage(int length, const float *xarray, const float *warray);
+float WeightedAverageInt(int length, const int *xarray, const float *warray);
 float StdDev(const int length, const float *xarray, const float wmean);
+float WeightedStdDev(const int length, const float *xarray, const float *warray, const float wmean);
+float WeightedStdDevInt(const int length, const int *xarray, const float *warray, const float wmean);
+
 float Max(const float *blur, const int length);
 float Min(const float *blur, const int length);
 float Sum(const float *blur, const int length);
@@ -28,6 +33,9 @@ int GetSize0(const float *array, int lines);
 int GetSize1(const float *array, int lines);
 
 float ndis(const float x, const float y, const float sig);
+float Gaus(float x, float x0, float sig);
+float Lorentz(float x, float x0, float sig);
+float SplitGL(float x, float y, float sig);
 int mod(const int a, const int b);
 float clip(const float x, const float cutoff);
 float calcmz(const float mass, const int z, const float adductmass);

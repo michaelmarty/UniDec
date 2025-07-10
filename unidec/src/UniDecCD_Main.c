@@ -42,13 +42,13 @@ void setup_blur_z(int * zupind, int * zloind, const float *mzdat, const float *z
 		float mz = mzdat[i];
 		float z = zdat[i];
 		int zind = (int)z - mzranges[2];
-		float mass = calcMass(mz, z, adductmass);
+		float mass = calcmass(mz, z, adductmass);
 
-		float uppermz = calcMz(mass, z + 1, adductmass);
+		float uppermz = calcmz(mass, z + 1, adductmass);
 
 		float lowermz = 0;
 		if ((z - 1) != 0) {
-			lowermz = calcMz(mass, z - 1, adductmass);
+			lowermz = calcmz(mass, z - 1, adductmass);
 		}
 
 		int mzupind = (int)roundf((uppermz - mzranges[0]) / (mzranges[1] - mzranges[0]) * (size[0] - 1));
@@ -86,10 +86,10 @@ void setup_blur_m(int* mupind, int* mloind, const float* mzdat, const float* zda
 		float mz = mzdat[i];
 		float z = zdat[i];
 		int zind = (int)z - mzranges[2];
-		float mass = calcMass(mz, z, adductmass);
+		float mass = calcmass(mz, z, adductmass);
 
-		float uppermz = calcMz(mass+molig, z, adductmass);
-		float lowermz = calcMz(mass-molig, z, adductmass);
+		float uppermz = calcmz(mass+molig, z, adductmass);
+		float lowermz = calcmz(mass-molig, z, adductmass);
 
 		int mzupind = (int)roundf((uppermz - mzranges[0]) / (mzranges[1] - mzranges[0]) * (size[0] - 1));
 		if (mzupind < 0 || mzupind > size[0]) {

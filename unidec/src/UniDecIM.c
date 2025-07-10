@@ -52,29 +52,6 @@ void Extract(float *mzext, float *dtext, float *mzdat, float *dtdat, int *size)
 	return;
 }
 
-float Gaus(float x, float x0, float sig)
-{
-	return expf(-powf(x - x0, 2.) / (2.*sig*sig));
-}
-
-
-//function to return a gaussian at a specific point
-float Lorentz(float x, float x0, float sig)
-{
-	return powf(sig / 2, 2) / (powf(x - x0, 2) + powf(sig / 2, 2));
-}
-
-float SplitGL(float x, float y, float sig)
-{
-	if (y<x)
-	{
-		return expf(-(powf(x - y, 2)) / (2 * sig*sig*0.180337));
-	}
-	else
-	{
-		return (sig / 2)*(sig / 2) / (powf((x - y), 2) + powf((sig / 2), 2));
-	}
-}
 
 //function to return a 2D peak value at a given point
 float Peak(const float x1, const float x2, const float y1, const float y2, const float sig1, const float sig2, const int psfun, const int zpsfun)
@@ -427,18 +404,6 @@ float calcDtSLIMpoly2(float mass, int z, float ccs, float tcal1, float tcal2, fl
 	if (rdt > 0) { return rdt; }// +(edc * sqrt(mass / z) / 1000); }
 
 	return 0;
-}
-
-
-
-float calcMass(float mz, int z, float adductmass)
-{
-	return mz*(float)z - adductmass*(float)z;
-}
-
-float calcMz(float mass, int z, float adductmass)
-{
-	return (mass + z*adductmass) / (float)z;
 }
 
 int nearint(int *array, int point, int numdat)
@@ -1024,57 +989,7 @@ float bicubicinterpolation(int *size, int indm, int indc, int k, float *mzext, f
 	return clip(bicubicInterpolate_IM(p, mu1, mu2), 0);
 }
 
-float WeightedAverage(int length, float *xarray, float *warray)
-{
-	float temp1 = 0;
-	float temp2 = 0;
-	int i;
-	for (i = 0; i<length; i++)
-	{
-		temp1 += xarray[i] * warray[i];
-		temp2 += warray[i];
-	}
-	return temp1 / temp2;
-}
 
-float WeightedAverageInt(int length, int *xarray, float *warray)
-{
-	float temp1 = 0;
-	float temp2 = 0;
-	int i;
-	for (i = 0; i<length; i++)
-	{
-		temp1 += xarray[i] * warray[i];
-		temp2 += warray[i];
-	}
-	return temp1 / temp2;
-}
-
-float StdDev2(int length, float *xarray, float *warray, float wmean)
-{
-	float temp1 = 0;
-	float temp2 = 0;
-	int i;
-	for (i = 0; i<length; i++)
-	{
-		temp1 += pow(xarray[i] - wmean, 2)*warray[i];
-		temp2 += warray[i];
-	}
-	return sqrt(temp1 / temp2);
-}
-
-float StdDev2Int(int length, int *xarray, float *warray, float wmean)
-{
-	float temp1 = 0;
-	float temp2 = 0;
-	int i;
-	for (i = 0; i<length; i++)
-	{
-		temp1 += pow(xarray[i] - wmean, 2)*warray[i];
-		temp2 += warray[i];
-	}
-	return sqrt(temp1 / temp2);
-}
 
 
 void MFileInt(int mfilelen, float *massaxis, float *massaxisval, float *testmasses, float *testmassint, float maaxle)
@@ -1103,7 +1018,7 @@ void MFileCCS(int mfilelen, float *massaxis, float *ccsaxis, float *massccsgrid,
 		}
 		wmean = WeightedAverage(ccaxle, ccsaxis, temp);
 		testmassCCSavg[i] = wmean;
-		testmassCCSstddev[i] = StdDev2(ccaxle, ccsaxis, temp, wmean);
+		testmassCCSstddev[i] = WeightedStdDev(ccaxle, ccsaxis, temp, wmean);
 	}
 	free(temp);
 }
@@ -1123,7 +1038,7 @@ void MFileZ(int mfilelen, float *massaxis, int *ztab, float *masszgrid, float *t
 		}
 		wmean = WeightedAverageInt(numz, ztab, temp);
 		testmassZavg[i] = wmean;
-		testmassZstddev[i] = StdDev2Int(numz, ztab, temp, wmean);
+		testmassZstddev[i] = WeightedStdDevInt(numz, ztab, temp, wmean);
 	}
 	free(temp);
 }

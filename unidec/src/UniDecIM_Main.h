@@ -152,7 +152,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	{
 		for (j = 0; j<size[2]; j++)
 		{
-			masstab[index2D(size[2], i, j)] = calcMass(mzext[i], ztab[j], config.adductmass);
+			masstab[index2D(size[2], i, j)] = calcmass(mzext[i], ztab[j], config.adductmass);
 		}
 	}
 	//Fill CCS table and simultaneously set limit array
@@ -276,7 +276,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 					if (indz<0 || indz >= numz) { badflag = 1; }
 					else
 					{
-						float point = calcMz(masstab[index2D(size[2], i, k)] + closemind[l] * config.molig, ztab[k] + closezind[l], config.adductmass);
+						float point = calcmz(masstab[index2D(size[2], i, k)] + closemind[l] * config.molig, ztab[k] + closezind[l], config.adductmass);
 						if (point<mzranges[0] || point>mzranges[1]) { badflag = 1; }
 						else
 						{
@@ -446,7 +446,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 				for (k = 0; k<newsize[2]; k++)
 				{
 					tempmass = massaxis[i];
-					tempmz = calcMz(tempmass, ztab[k], config.adductmass);
+					tempmz = calcmz(tempmass, ztab[k], config.adductmass);
 					tempccs = ccsaxis[j];
 
 					if (config.twaveflag == 0) { tempdt = calcDt(tempmass, ztab[k], tempccs, ccsconst, config.hmass, config.to, ccsconsttype); }

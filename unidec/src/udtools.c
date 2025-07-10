@@ -42,6 +42,31 @@ float Average(const int length, const float *xarray) {
     return temp1 / temp2;
 }
 
+
+float WeightedAverage(const int length, const float *xarray, const float *warray)
+{
+    float temp1 = 0;
+    float temp2 = 0;
+    for (int i = 0; i<length; i++)
+    {
+        temp1 += xarray[i] * warray[i];
+        temp2 += warray[i];
+    }
+    return temp1 / temp2;
+}
+
+float WeightedAverageInt(const int length, const int *xarray, const float *warray)
+{
+    float temp1 = 0;
+    float temp2 = 0;
+    for (int i = 0; i<length; i++)
+    {
+        temp1 += (float) xarray[i] * warray[i];
+        temp2 += warray[i];
+    }
+    return temp1 / temp2;
+}
+
 //Calculate Standard Deviation
 float StdDev(const int length, const float *xarray, const float wmean) {
     float temp1 = 0;
@@ -51,6 +76,31 @@ float StdDev(const int length, const float *xarray, const float wmean) {
         temp2 += 1;
     }
     if (temp2 == 0) { return 0; }
+    return sqrtf(temp1 / temp2);
+}
+
+
+float WeightedStdDev(const int length, const float *xarray, const float *warray, const float wmean)
+{
+    float temp1 = 0;
+    float temp2 = 0;
+    for (int i = 0; i<length; i++)
+    {
+        temp1 += powf(xarray[i] - wmean, 2)*warray[i];
+        temp2 += warray[i];
+    }
+    return sqrtf(temp1 / temp2);
+}
+
+float WeightedStdDevInt(const int length, const int *xarray, const float *warray, const float wmean)
+{
+    float temp1 = 0;
+    float temp2 = 0;
+    for (int i = 0; i<length; i++)
+    {
+        temp1 += powf((float) xarray[i] - wmean, 2)*warray[i];
+        temp2 += warray[i];
+    }
     return sqrtf(temp1 / temp2);
 }
 
@@ -181,6 +231,31 @@ int GetSize1(const float *array, const int lines)
 float ndis(const float x, const float y, const float sig) {
     if (sig == 0) { return 0; }
     return 1.0f / (sig * 2.50663f) * expf(-(powf(x - y, 2.0f)) / (2.0f * sig * sig));
+}
+
+
+float Gaus(const float x, const float x0, const float sig)
+{
+    return expf(-powf(x - x0, 2.f) / (2.f*sig*sig));
+}
+
+
+//function to return a gaussian at a specific point
+float Lorentz(const float x, const float x0, const float sig)
+{
+    return powf(sig / 2, 2) / (powf(x - x0, 2) + powf(sig / 2, 2));
+}
+
+float SplitGL(const float x, const float y, const float sig)
+{
+    if (y<x)
+    {
+        return expf(-(powf(x - y, 2)) / (2 * sig*sig*0.180337f));
+    }
+    else
+    {
+        return (sig / 2)*(sig / 2) / (powf((x - y), 2) + powf((sig / 2), 2));
+    }
 }
 
 //Actual Modulus operator rather than Remainder operator %
