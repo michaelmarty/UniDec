@@ -58,9 +58,10 @@ int nearint(int *array, int point, int numdat);
 int nearfastpoint(float *dataMZ, float point, int numdat);
 float euclid(float a, float b, float c, float d);
 int nearunsorted_IM(float *testmasses, float *testtimes, float mz, float dt, int lengthtest);
-void sum2D(int *size, float *sum, float *array, int axis);
+
 void blur_it_IM(int *size, float *blur, float *newblur, int *closetab, int *barr, float csig);
 void sumdeltas(int *size, float *deltas, float *newblur);
+void sum2D(int *size, float *sum, float *array, int axis);
 void sum1D(int *size, float *sum, float *array, int axis);
 void bayes(int *size, float*denom, float *blur, float *newblur, float *dataInt, int *barr);
 void getranges(int *size, float *blur, float *masstab, float *ccstab, float *range, int *barr);
@@ -74,10 +75,10 @@ float errfun(int length, float *dataInt, float *fitdat);
 
 void writezslice(int *size, char *outfile, char *suffix, float *massaxis, float *ccsaxis, int *ztab, float *array, int k);
 float nativeCCS(float mass, float fudge, float gasmass);
-float bilinearinterpolation(int *size, int indm, int indc, int k, float *mzext, float *dtext, float tempmz, float tempdt, int rawflag, float *newblur, float *blur);
+float bilinearinterpolation(const int *size, int indm, int indc, int k, const float *mzext, const float *dtext, float tempmz, float tempdt, int rawflag, const float *newblur, const float *blur);
 float cubicInterpolate_IM(float p[4], float x);
 float bicubicInterpolate_IM(float p[4][4], float x, float y);
-float bicubicinterpolation(int *size, int indm, int indc, int k, float *mzext, float *dtext, float tempmz, float tempdt, int rawflag, float *newblur, float *blur);
+float bicubicinterpolation(const int *size, int indm, int indc, int k, const float *mzext, const float *dtext, float tempmz, float tempdt, int rawflag, const float *newblur, const float *blur);
 
 void MFileInt(int mfilelen, float *massaxis, float *massaxisval, float *testmasses, float *testmassint, float maaxle);
 void MFileCCS(int mfilelen, float *massaxis, float *ccsaxis, float *massccsgrid, float *testmasses, float *testmassCCSavg, float *testmassCCSstddev, int maaxle, int ccaxle);

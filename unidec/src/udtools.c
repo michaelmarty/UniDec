@@ -106,7 +106,7 @@ float WeightedStdDevInt(const int length, const int *xarray, const float *warray
 
 //Find the maximum value in an array
 float Max(const float *blur, const int length) {
-    float blurmax = 0;
+    float blurmax = blur[0];
     for (int i = 0; i < length; i++) {
         if (blur[i] > blurmax) {
             blurmax = blur[i];

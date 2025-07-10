@@ -402,9 +402,6 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 					if (tempmass>massaxis[0] && tempmass<massaxis[newsize[0] - 1] && tempccs>ccsaxis[0] && tempccs<ccsaxis[newsize[1] - 1]) {
 						indm = nearfast(massaxis, tempmass, newsize[0]);
 						indc = nearfast(ccsaxis, tempccs, newsize[1]);
-						//if(config.rawflag==0){
-						//newgrid[index3D(newsize[1],newsize[2],indm,indc,k)]+=newblur[index3D(size[1],size[2],i,j,k)];}
-						//else{newgrid[index3D(newsize[1],newsize[2],indm,indc,k)]+=blur[index3D(size[1],size[2],i,j,k)];}
 
 						float val;
 						if (config.rawflag == 0) {
@@ -437,8 +434,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 		printf("Tranformed m/z and dt to mass and ccs by Integration\n");
 	}
 	else {
-		float tempmz, tempdt, endval;
-#pragma omp parallel for private (i,j,k,tempmass,tempmz,endval,tempccs,indm,indc), schedule(dynamic)
+		// #pragma omp parallel for private (i,j,k,tempmass,tempccs,indm,indc), schedule(dynamic)
 		for (i = 0; i<newsize[0]; i++)
 		{
 			for (j = 0; j<newsize[1]; j++)
@@ -446,8 +442,9 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 				for (k = 0; k<newsize[2]; k++)
 				{
 					tempmass = massaxis[i];
-					tempmz = calcmz(tempmass, ztab[k], config.adductmass);
+					float tempmz = calcmz(tempmass, ztab[k], config.adductmass);
 					tempccs = ccsaxis[j];
+					float tempdt, endval = 0;
 
 					if (config.twaveflag == 0) { tempdt = calcDt(tempmass, ztab[k], tempccs, ccsconst, config.hmass, config.to, ccsconsttype); }
 					else if (config.twaveflag == 1) { tempdt = calcDtTwaveLog(tempmass, ztab[k], tempccs, config.tcal1, config.tcal2, config.hmass, config.edc); }
@@ -461,11 +458,11 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 					{
 						indm = nearfast(mzext, tempmz, size[0]);
 						indc = nearfast(dtext, tempdt, size[1]);
+						// printf("indm: %d indc: %d k: %d tempmass: %f tempmz: %f\n", indm, indc, k, tempmass, tempmz);
 						endval = bicubicinterpolation(size, indm, indc, k, mzext, dtext, tempmz, tempdt, config.rawflag, newblur, blur);//bicubic interpolation
-																																 //endval=bilinearinterpolation(size,indm,indc,k,mzext,dtext,tempmz,tempdt,config.rawflag,newblur,blur);//bilinear interpolation
-																																 //endval=newblur[index3D(size[1],size[2],indm,indc,k)]; //(Nearest Neighbor)
+						//endval=bilinearinterpolation(size,indm,indc,k,mzext,dtext,tempmz,tempdt,config.rawflag,newblur,blur);//bilinear interpolation
+						//endval=newblur[index3D(size[1],size[2],indm,indc,k)]; //(Nearest Neighbor)
 					}
-					else { endval = 0; }
 					newgrid[index3D(newsize[1], newsize[2], i, j, k)] = endval;
 				}
 			}

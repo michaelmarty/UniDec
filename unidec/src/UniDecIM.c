@@ -912,32 +912,33 @@ void writezslice(int *size, char *outfile, char *suffix, float *massaxis, float 
 }
 
 
-float nativeCCS(float mass, float fudge, float gasmass)
+float nativeCCS(const float mass, const float fudge, const float gasmass)
 {
 	float a, b;
 	if (gasmass<10)
 	{
-		a = 4.06739;
-		b = 0.629424;
+		a = 4.06739f;
+		b = 0.629424f;
 	}
 	else {
-		a = 5.33311;
-		b = 0.613072;
+		a = 5.33311f;
+		b = 0.613072f;
 	}
 	//float c=-1481.7;
-	return a*pow(mass, b) + fudge;
+	return a*powf(mass, b) + fudge;
 }
 
-float bilinearinterpolation(int *size, int indm, int indc, int k, float *mzext, float *dtext, float tempmz, float tempdt, int rawflag, float *newblur, float *blur)
+float bilinearinterpolation(const int *size, const int indm, const int indc, const int k, const float *mzext,
+	const float *dtext, const float tempmz, const float tempdt, const int rawflag, const float *newblur, const float *blur)
 {
-	float y11, y12, y21, y22, mu1, mu2;
+	float y11, y12, y21, y22;
 	int im1, im2, ic1, ic2;
 	if (mzext[indm]>tempmz) { im2 = indm; im1 = indm - 1; }
 	else { im1 = indm; im2 = indm + 1; }
 	if (dtext[indc]>tempdt) { ic2 = indc; ic1 = indc - 1; }
 	else { ic1 = indc; ic2 = indc + 1; }
-	mu1 = (tempmz - mzext[im1]) / (mzext[im2] - mzext[im1]);
-	mu2 = (tempdt - dtext[ic1]) / (dtext[ic2] - dtext[ic1]);
+	const float mu1 = (tempmz - mzext[im1]) / (mzext[im2] - mzext[im1]);
+	const float mu2 = (tempdt - dtext[ic1]) / (dtext[ic2] - dtext[ic1]);
 	if (rawflag == 0) {
 		y11 = newblur[index3D(size[1], size[2], im1, ic1, k)];
 		y12 = newblur[index3D(size[1], size[2], im1, ic2, k)];
@@ -950,14 +951,15 @@ float bilinearinterpolation(int *size, int indm, int indc, int k, float *mzext, 
 		y21 = blur[index3D(size[1], size[2], im2, ic1, k)];
 		y22 = blur[index3D(size[1], size[2], im2, ic2, k)];
 	}
-	return y11*(1 - mu1)*(1 - mu2) + y12*mu1*(1 - mu2) + y21*mu2*(1 - mu1) + y22*mu1*mu2;
+	return clip(y11*(1 - mu1)*(1 - mu2) + y12*mu1*(1 - mu2) + y21*mu2*(1 - mu1) + y22*mu1*mu2, 0);
 }
 
 //cubicInterpolate_IM and bicubicInterpolate_IM were taken from http://www.paulinternet.nl/?page=bicubic
-float cubicInterpolate_IM(float p[4], float x) {
-	return p[1] + 0.5 * x*(p[2] - p[0] + x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + x*(3.0*(p[1] - p[2]) + p[3] - p[0])));
+float cubicInterpolate_IM(float p[4], const float x) {
+	return p[1] + 0.5f * x*(p[2] - p[0] + x*(2.0f*p[0] - 5.0f*p[1] + 4.0f*p[2] - p[3] + x*(3.0f*(p[1] - p[2]) + p[3] - p[0])));
 }
-float bicubicInterpolate_IM(float p[4][4], float x, float y) {
+
+float bicubicInterpolate_IM(float p[4][4], const float x, const float y) {
 	float arr[4] = { 0, 0 ,0, 0 };
 	arr[0] = cubicInterpolate_IM(p[0], y);
 	arr[1] = cubicInterpolate_IM(p[1], y);
@@ -966,21 +968,20 @@ float bicubicInterpolate_IM(float p[4][4], float x, float y) {
 	return cubicInterpolate_IM(arr, x);
 }
 
-float bicubicinterpolation(int *size, int indm, int indc, int k, float *mzext, float *dtext, float tempmz, float tempdt, int rawflag, float *newblur, float *blur)
+float bicubicinterpolation(const int *size, const int indm, const int indc, const int k, const float *mzext,
+	const float *dtext, const float tempmz, const float tempdt, const int rawflag, const float *newblur, const float *blur)
 {
-	float mu1, mu2;
 	float p[4][4] = { { 0,0,0,0 } , { 0,0,0,0 } , { 0,0,0,0 } , { 0,0,0,0 } };
 	int im[4] = { 0,0,0,0 }, ic[4] = { 0,0,0,0 };
-	int i, j;
 	if (mzext[indm]>tempmz) { im[2] = indm; im[1] = indm - 1; im[0] = indm - 2; im[3] = indm + 1; }
 	else { im[1] = indm; im[2] = indm + 1; im[0] = indm - 1; im[3] = indm + 2; }
 	if (dtext[indc]>tempdt) { ic[2] = indc; ic[1] = indc - 1; ic[0] = indc - 2; ic[3] = indc + 1; }
 	else { ic[1] = indc; ic[2] = indc + 1; ic[0] = indc - 1; ic[3] = indc + 2; }
-	mu1 = (tempmz - mzext[im[1]]) / (mzext[im[2]] - mzext[im[1]]);
-	mu2 = (tempdt - dtext[ic[1]]) / (dtext[ic[2]] - dtext[ic[1]]);
-	for (i = 0; i<4; i++)
+	const float mu1 = (tempmz - mzext[im[1]]) / (mzext[im[2]] - mzext[im[1]]);
+	const float mu2 = (tempdt - dtext[ic[1]]) / (dtext[ic[2]] - dtext[ic[1]]);
+	for (int i = 0; i<4; i++)
 	{
-		for (j = 0; j<4; j++)
+		for (int j = 0; j<4; j++)
 		{
 			if (rawflag == 0) { p[i][j] = newblur[index3D(size[1], size[2], im[i], ic[j], k)]; }
 			else { p[i][j] = blur[index3D(size[1], size[2], im[i], ic[j], k)]; }
@@ -988,8 +989,6 @@ float bicubicinterpolation(int *size, int indm, int indc, int k, float *mzext, f
 	}
 	return clip(bicubicInterpolate_IM(p, mu1, mu2), 0);
 }
-
-
 
 
 void MFileInt(int mfilelen, float *massaxis, float *massaxisval, float *testmasses, float *testmassint, float maaxle)

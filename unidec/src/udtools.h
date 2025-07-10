@@ -23,6 +23,9 @@ float WeightedStdDevInt(const int length, const int *xarray, const float *warray
 float Max(const float *blur, const int length);
 float Min(const float *blur, const int length);
 float Sum(const float *blur, const int length);
+void Sum2D(int *size, float *sum, float *array, int axis);
+void Sum1D(int *size, float *sum, float *array, int axis);
+
 int ArgMax(const float *blur, const int lengthmz);
 void ApplyCutoff(float *array, const float cutoff, const int lengthmz);
 void NormMax(float *data, const int length);
