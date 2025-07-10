@@ -74,7 +74,7 @@ void write3D(char *outfile, char *suffix, float *array1, float *array2, float *a
 void writemfileres(char *outfile, char *suffix, float *array1, float *array2, float *array3, float *array4, float *array5, float *array6, int length);
 void writemzgrid(char *outfile, char *suffix, float *mzext, float *dtext, int *ztab, float *blur, int *size);
 float errfun(int length, float *dataInt, float *fitdat);
-float getmax(int length, float *data);
+
 void normalize(int length, float *data, float norm);
 void writezslice(int *size, char *outfile, char *suffix, float *massaxis, float *ccsaxis, int *ztab, float *array, int k);
 float nativeCCS(float mass, float fudge, float gasmass);
@@ -92,10 +92,5 @@ void MFileZ(int mfilelen, float *massaxis, int *ztab, float *masszgrid, float *t
 void KillB_IM(float *IntArray, int *B, int * size, float intthresh);
 void ManualAssign_IM(char *manualfile, int * size, float *mzdat, float * dtdat, int *ztab, int *barr);
 void TwaveError(int twaveflag);
-
-static int index4D(int *size, int r, int c, int d, int f)
-{
-    return r*size[1] * size[2] * size[3] + c*size[2] * size[3] + d*size[3] + f;
-}
 
 #endif

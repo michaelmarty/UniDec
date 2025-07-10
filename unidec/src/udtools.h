@@ -53,6 +53,11 @@ inline int index3D(const int ncols, const int nrows, const int r, const int c, c
     return r * ncols * nrows + c * nrows + d;
 }
 
+static int index4D(const int *size, const int r, const int c, const int d, const int f)
+{
+    return r*size[1] * size[2] * size[3] + c*size[2] * size[3] + d*size[3] + f;
+}
+
 inline int fixk(int k, int lengthmz) {
     k = abs(k);
     if (k >= lengthmz) { k = 2 * lengthmz - k - 2; }

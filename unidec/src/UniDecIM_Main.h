@@ -346,8 +346,8 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 	sumdeltas(size, deltas, blur);
 	fftconvolve2D(denom, deltas, peakshape, size);
 
-	float denommax = getmax(lines, denom);
-	float datamax = getmax(lines, dataInt);
+	float denommax = Max(denom, lines);
+	float datamax = Max(dataInt, lines);
 	normalize(lines, dataInt, datamax);
 	normalize(lines, denom, denommax);
 	ApplyCutoff(denom, 0, lines);

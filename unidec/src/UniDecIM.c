@@ -954,16 +954,6 @@ float errfun(int length, float *dataInt, float *fitdat)
 	return 1.0 - error / error2;
 }
 
-float getmax(int length, float *data)
-{
-	float max = 0;
-	for (int i = 0; i<length; i++)
-	{
-		if (data[i]>max) { max = data[i]; }
-	}
-	return max;
-}
-
 void normalize(int length, float *data, float norm)
 {
 	if (norm == 0) { printf("Tried to Normalize by Zero! Aborting!\n"); exit(50); }
