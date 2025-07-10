@@ -29,11 +29,11 @@ void setup_blur_z(int *zupind, int *zloind, const float *mzdat, const float *zda
 
 void setup_blur_m(int *mupind, int *mloind, const float *mzdat, const float *zdat, const int lines, const float adductmass, const float mzranges[4], const int size[3], const float molig);
 
-void precompute_fft2D(float *list2, int *size, fftw_complex *out2);
+void precompute_fft2D(const float *list2, const int *size, fftwf_complex *out2);
 
-void fftconvolve2D_precomputed(float *corr, float *list1, fftw_complex *out2, int *size, fftw_plan p1, fftw_plan p3, fftw_complex *in1, fftw_complex *out1);
+void fftconvolve2D_precomputed(float *corr, const float *list1, const fftwf_complex *out2, const int *size, fftwf_plan p1, fftwf_plan p3, fftwf_complex *in1, const fftwf_complex *out1);
 
-void complex_conjugate(fftw_complex *in, fftw_complex *out, int length);
+void complex_conjugate(const fftwf_complex *in, fftwf_complex *out, int length);
 
 int run_unidec_CD(int argc, char *argv[], Config config);
 
