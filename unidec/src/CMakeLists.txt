@@ -67,12 +67,14 @@ add_executable(unidec
         UD_score.h
         UD_conv.h
         UD_conv.c
-        UniDecIM.h UniDecIM_Main.h
+        UniDecIM.c
+        UniDecIM.h
+        UniDecIM_Main.c
+        UniDecIM_Main.h
         UD_charge.h
         UD_charge.c
         UniDecCD_Main.c
         UniDecCD_Main.h
-        UniDecIM.c
 )
 
 #target_link_libraries(unidec PRIVATE unideclib)

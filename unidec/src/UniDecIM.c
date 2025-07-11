@@ -162,16 +162,21 @@ float calcDtTwavePower(const float mass, const int z, const float ccs, const flo
 
 float calcDt(const float mass, const int z, const float ccs, const float ccsconst, const float hmass, const float to, const int type)
 {
+	//printf("Test: %f %d %f %f %f %f %d\n", mass, z, ccs, ccsconst, hmass, to, type);
 	const float ac = 1.6605389E-27f;
 	float factor = 1000;
-	float rmass = ac * (mass * hmass) / (mass + hmass);
+	const float denom1 = mass + hmass;
+	if (denom1 ==0){return -1;}
+	float rmass = ac * (mass * hmass) / denom1;
 	if (type == 1)
 	{
 		factor = 1;
-		rmass = mass / (mass + hmass);
+		rmass = mass / denom1;
 	}
-
-	const float td = ccs / (ccsconst*(float)z*sqrtf(1 / rmass));
+	if (rmass==0){return -1;}
+	const float denom2 = ccsconst*(float)z*sqrtf(1 / rmass);
+	if (denom2 == 0) { return -1; }
+	const float td = ccs / denom2;
 	const float dt = (td * factor) + to;
 	return dt;
 }
@@ -179,10 +184,9 @@ float calcDt(const float mass, const int z, const float ccs, const float ccscons
 float calcCCSSLIMpoly3(const float mass, const int z, const float dt, const float tcal1, const float tcal2, const float tcal3, const float tcal4, const float hmass, const float edc)
 {
 	const float rdt = dt -(edc * sqrtf(mass / (float) z) / 1000.f);
-
 	if (rdt <= 0) { return 0; }
 	float rccs = tcal4 * powf(rdt,3) + tcal3 * powf(rdt, 2) + tcal2 * rdt+tcal1;
-	float gamma = (float) z;// (1 / (float)z)* sqrtf(mass / (mass + hmass));
+	const float gamma = (float) z;// (1 / (float)z)* sqrtf(mass / (mass + hmass));
 	if (gamma > 0) { rccs *= gamma; }
 	else { printf("CCS Gamma is negative %d %f %f %f\n", z, mass, hmass, gamma); exit(93);}
 	return rccs;
