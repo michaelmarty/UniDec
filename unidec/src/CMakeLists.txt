@@ -75,6 +75,7 @@ add_executable(unidec
         UD_charge.c
         UniDecCD_Main.c
         UniDecCD_Main.h
+        MetaUniDec_Main.c
 )
 
 #target_link_libraries(unidec PRIVATE unideclib)
