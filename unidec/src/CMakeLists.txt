@@ -100,6 +100,12 @@ target_link_libraries(unideclib PUBLIC hdf5 hdf5_hl)
 if(NOT MSVC)
     target_link_libraries(unidec PUBLIC m)
     target_link_libraries(unideclib PUBLIC m)
+    # If linux
+    if (UNIX AND NOT APPLE)
+        set_target_properties(unidec PROPERTIES OUTPUT_NAME "unideclinux")
+    elseif (APPLE)
+        set_target_properties(unidec PROPERTIES OUTPUT_NAME "unidecmac")
+    endif()
 endif()
 
 #target_link_libraries(unidec PUBLIC unideclib)
