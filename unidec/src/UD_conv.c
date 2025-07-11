@@ -31,7 +31,7 @@ int conv_main(int argc, char* argv[], Config config)
 	ReadInputs(argc, argv, &config, &inp);
 	CalcMasses(&config, &inp);
 
-	char pfile[500];
+	char pfile[510];
 	sprintf(pfile, "%s_peaks.dat", config.outfile);
 	int plen = getfilelength(pfile);
 	float* peakmasses, * peakints;
@@ -44,7 +44,7 @@ int conv_main(int argc, char* argv[], Config config)
 	readfile(pfile, plen, peakmasses, peakints);
 	printf("Pfile Length: %d\n", plen);
 
-	char gfile[500];
+	char gfile[510];
 	sprintf(gfile, "%s_grid.bin", config.outfile);
 	int glen = getfilelengthbin(gfile, sizeof(float), 1);
 	float* blur;
@@ -109,7 +109,7 @@ int conv_main(int argc, char* argv[], Config config)
 		outptr += config.lengthmz;
 	}
 
-	char gfileout[500];
+	char gfileout[510];
 	sprintf(gfileout, "%s_conv.bin", config.outfile);
 	writefile1bin(gfileout, config.lengthmz * plen, outarray);
 

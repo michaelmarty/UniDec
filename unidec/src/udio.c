@@ -78,7 +78,13 @@ void readfile3bin(const char *infile, const int lengthmz, float *array1, float *
     }
 
     if (data) {
-        fread(data, sizeof(float), l, file_ptr);
+        const size_t result = fread(data, sizeof(float), l, file_ptr);
+    	if (result != l) {
+			printf("Error reading file %s: expected %d floats, got %zu\n", infile, l, result);
+			free(data);
+			fclose(file_ptr);
+			exit(1);
+		}
         for (int i = 0; i < lengthmz; i++) {
             array1[i] = data[i * 3];
             array2[i] = data[i * 3 + 1];
@@ -97,7 +103,12 @@ void readfile1bin(const char *infile, const int lengthmz, float *data) {
         printf("Error Opening %s\n", infile);
         exit(1);
     }
-    fread(data, sizeof(float), lengthmz, file_ptr);
+	const size_t result = fread(data, sizeof(float), lengthmz, file_ptr);
+	if (result != lengthmz) {
+		printf("Error reading file %s: expected %d floats, got %zu\n", infile, lengthmz, result);
+		fclose(file_ptr);
+		exit(1);
+	}
     fclose(file_ptr);
 }
 
@@ -348,7 +359,7 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 	//Write the fit data to a file.
 	if (config.rawflag >= 0) {
 		if (config.filetype == 0) {
-			char outstring2[500];
+			char outstring2[511];
 			sprintf(outstring2, "%s_fitdat.bin", config.outfile);
 			out_ptr = fopen(outstring2, "wb");
 			if (out_ptr == 0) { printf("Error Opening %s \n", outstring2); exit(1); }
@@ -365,7 +376,7 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 	//Write the baseline to a file.
 	if (config.rawflag >= 0 && config.baselineflag == 1) {
 		if (config.filetype == 0) {
-			char outstring2[500];
+			char outstring2[513];
 			sprintf(outstring2, "%s_baseline.bin", config.outfile);
 			out_ptr = fopen(outstring2, "wb");
 			if (out_ptr == 0) { printf("Error Opening %s \n", outstring2); exit(1); }
@@ -387,7 +398,7 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 		// rawflag=1 -> Raw/Centroid -> blur
 		int l = config.lengthmz * config.numz;
 		if (config.filetype == 0) {
-			char outstring9[500];
+			char outstring9[509];
 			sprintf(outstring9, "%s_grid.bin", config.outfile);
 			out_ptr = fopen(outstring9, "wb");
 			if (out_ptr == 0) { printf("Error Opening %s\n", outstring9); exit(1); }
@@ -438,7 +449,7 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 	if (config.rawflag == 0 || config.rawflag == 1) {
 		int l = decon->mlen * config.numz;
 		if (config.filetype == 0) {
-			char outstring10[500];
+			char outstring10[513];
 			sprintf(outstring10, "%s_massgrid.bin", config.outfile);
 			out_ptr = fopen(outstring10, "wb");
 			if (out_ptr == 0) { printf("Error Opening %s\n", outstring10); exit(1); }
@@ -455,7 +466,7 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 	//Writes the mass values convolved with the peak shape
 	if (config.rawflag == 0 || config.rawflag == 1 || config.rawflag == 2 || config.rawflag == 3) {
 		if (config.filetype == 0) {
-			char outstring4[500];
+			char outstring4[509];
 			sprintf(outstring4, "%s_mass.txt", config.outfile);
 			out_ptr = fopen(outstring4, "w");
 			if (out_ptr == 0) { printf("Error Opening %s\n", outstring4); exit(1); }

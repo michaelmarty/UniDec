@@ -35,7 +35,10 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include <io.h>
+#if defined(_WIN32) || defined(_WIN64)
+    #include <io.h>
+#endif
+
 #include "hdf5.h"
 
 typedef struct Input Input;

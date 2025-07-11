@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.31)
+cmake_minimum_required(VERSION 3.28)
 project(UniDec C)
 
 set(CMAKE_C_STANDARD 11)
@@ -18,10 +18,19 @@ set(INSTALL_DIR "${UNIDEC_DIR}/bin")
 message(STATUS "Install Dir: ${INSTALL_DIR}")
 
 # Add HDF5 directories to the include path and link directories
-set(HDF5_DIR "C:/Program Files/HDF_Group/HDF5/1.14.6/")
-message(STATUS "HDF5_DIR: ${HDF5_DIR}")
-include_directories("${HDF5_DIR}/include")
-link_directories("${HDF5_DIR}/lib")
+if(MSVC)
+    set(HDF5_DIR "C:/Program Files/HDF_Group/HDF5/1.14.6/")
+    message(STATUS "HDF5_DIR: ${HDF5_DIR}")
+    include_directories("${HDF5_DIR}/include")
+    link_directories("${HDF5_DIR}/lib")
+else()
+    set(HDF5_INCLUDE_DIR "/usr/include/hdf5/serial")
+    message(STATUS "HDF5_DIR: ${HDF5_INCLUDE_DIR}")
+    include_directories("${HDF5_INCLUDE_DIR}")
+    set(HDF5_LINK_DIR "/usr/lib/x86_64-linux-gnu/hdf5/serial")
+    link_directories("${HDF5_LINK_DIR}")
+
+endif()
 
 add_library(unideclib SHARED udmain.c udmain.h
         udtools.c
@@ -76,6 +85,7 @@ add_executable(unidec
         UniDecCD_Main.c
         UniDecCD_Main.h
         MetaUniDec_Main.c
+        MetaUniDec_Main.h
 )
 
 #target_link_libraries(unidec PRIVATE unideclib)
@@ -86,6 +96,11 @@ set_target_properties(unideclib PROPERTIES LINKER_LANGUAGE C)
 # Set linking for HDF5 libraries
 target_link_libraries(unidec PUBLIC hdf5 hdf5_hl)
 target_link_libraries(unideclib PUBLIC hdf5 hdf5_hl)
+# IF not msvc add this
+if(NOT MSVC)
+    target_link_libraries(unidec PUBLIC m)
+    target_link_libraries(unideclib PUBLIC m)
+endif()
 
 #target_link_libraries(unidec PUBLIC unideclib)
 
@@ -107,8 +122,8 @@ else()
     message(STATUS "FFTW_DIR: ${FFTW_DIR}")
     include_directories("${FFTW_DIR}")
     link_directories("${FFTW_DIR}")
-    target_link_libraries(unidec PUBLIC fftw3)
-    target_link_libraries(unideclib PUBLIC fftw3)
+    target_link_libraries(unidec PUBLIC fftw3f)
+    target_link_libraries(unideclib PUBLIC fftw3f)
 endif()
 
 
