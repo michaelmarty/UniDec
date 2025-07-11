@@ -55,7 +55,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
     //CCS Constants
     float tempo = 273.15f;
     float ccsconst = 0;
-    float ccsconsttype = 0;
+    int ccsconsttype = 0;
     config.temp = config.temp + tempo;
     if (config.press == 0 || config.volt == 0 || config.temp == 0) {
         printf("Either pressure, voltage, or temp is 0. Assuming length is beta (Agilent style)\n");
@@ -270,7 +270,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
                             }
                         }
                     }
-                    int index = -1;
+                    int index;
                     if (badflag == 1) { index = -1; } else { index = index3D(size[1], size[2], indm, indc, indz); }
                     int index2 = index4D(size, i, j, k, n);
                     closetab[index2] = index;
@@ -353,7 +353,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
     printf("Dimensions of Output: %d m by %d ccs by %d z: %d total\n", newsize[0], newsize[1], newsize[2],
            newsize[0] * newsize[1] * newsize[2]);
     float *massaxis = NULL, *massvals = NULL, *ccsaxis = NULL, *ccsvals = NULL, *newgrid = NULL;
-    if (newsize[0] * newsize[1] * newsize[2] * sizeof(float) > 2E6) {
+    if (newsize[0] * newsize[1] * newsize[2] * sizeof(float) > 2000000) {
         printf("Warning: May exceed system memory capacity");
     }
 
