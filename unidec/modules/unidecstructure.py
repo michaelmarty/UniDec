@@ -702,7 +702,14 @@ class UniDecConfig(object):
                         else:
                             raise ValueError(f"Value for {key} is not a valid float: {value}")
                 elif dtype == int:
-                    value = int(value)
+                    try:
+                        value = int(value)
+                    except ValueError:
+                        if value == '':
+                            value = -1
+                        else:
+                            raise ValueError(f"Value for {key} is not a valid int: {value}")
+
                 f.write(key + " " + str(value) + "\n")
 
         if self.mfileflag:

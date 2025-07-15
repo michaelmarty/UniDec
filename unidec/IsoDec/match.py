@@ -359,7 +359,10 @@ class MatchedCollection:
 
         data = []
         for p in self.peaks:
-            avg_mono_delta = p.avgmass - p.monoiso
+            try:
+                avg_mono_delta = p.avgmass - p.monoiso
+            except:
+                avg_mono_delta = 0
             if report_multiple_monoisos:
                 for mono in p.monoisos:
                     d = {"Charge": p.z, "Most Abundant m/z": p.mz, col: mono + avg_mono_delta if avg else mono, "Scan": p.scan,
@@ -481,7 +484,7 @@ class MatchedPeak:
 
 
 def df_to_matchedcollection(df, monoiso="Monoisotopic Mass", peakmz="Most Abundant m/z", peakmass="Most Abundant Mass",
-                            scan="Scan", z="Charge", intensity="Abundance", ion="Ion"):
+                            scan="Scan", z="Charge", intensity="Abundance", ion="Ion", checkmultiplemonoisos=False):
     """
     Convert a pandas dataframe to a MatchedCollection object
     :param df: Pandas dataframe with columns mz, intensity, z, scan, rt, monoiso, peakmass, avgmass
@@ -490,17 +493,62 @@ def df_to_matchedcollection(df, monoiso="Monoisotopic Mass", peakmz="Most Abunda
     mc = MatchedCollection()
     for i, row in df.iterrows():
         pk = MatchedPeak(row[z], row[peakmz])
-        pk.scan = row[scan]
         pk.monoiso = row[monoiso]
-        pk.peakmass = row[peakmass]
-        pk.matchedion = row[ion]
+        pk.monoisos = np.array([pk.monoiso])
+
+        if scan is not None:
+            pk.scan = row[scan]
+        else:
+            pk.scan = -1
+        if peakmass is not None:
+            pk.peakmass = row[peakmass]
+        else:
+            pk.peakmass = row[monoiso]
+        if ion is not None:
+            pk.matchedion = row[ion]
+        else:
+            pk.matchedion = None
         if pk.matchedion == math.nan:
             pk.matchedion = None
-        isodist = create_isodist2(pk.monoiso, pk.z, row[intensity])
+        if intensity is not None:
+            pk.matchedintensity = row[intensity]
+        else:
+            pk.matchedintensity = 1
+
+        isodist = create_isodist2(pk.monoiso, pk.z, pk.matchedintensity)
         pk.isodist = isodist
         mc.add_peak(pk)
+
+    if checkmultiplemonoisos:
+        mc = remove_multiple_monoisos(mc)
+
     print("Loaded", len(mc.peaks), "peaks from dataframe")
     return mc
+
+def remove_multiple_monoisos(mc):
+    # Find the objects with the same everything except for monoiso
+    mcnew = MatchedCollection()
+    duplicate_indices = []
+    for i, pk in enumerate(mc.peaks):
+        pklist = [pk.scan, pk.peakmass, pk.matchedion, pk.matchedintensity, pk.z]
+        if i in duplicate_indices:
+            continue  # Skip if this peak has already been identified as a duplicate
+        for j, pk2 in enumerate(mc.peaks[i+1:]):
+            pklist2 = [pk2.scan, pk2.peakmass, pk2.matchedion, pk2.matchedintensity, pk2.z]
+            # check each list to see if they are the same
+            if pklist == pklist2 and pk.monoiso != pk2.monoiso:
+                # Add the monoiso to the list of monoisos
+                if pk2.monoiso not in pk.monoisos:
+                    pk.monoisos= np.append(pk.monoisos, pk2.monoiso)
+                # print("Found multiple monoisos for the same peak:", pk.monoisos, duplicate_indices[-3:])
+                duplicate_indices.append(j+i+1)
+            else:
+                # Add the peak to the new collection
+                mcnew.add_peak(pk)
+                break
+
+    return mcnew
+
 
 
 def read_msalign_to_matchedcollection_fast(file, decon_engine=None, data=None, mz_type="monoiso", msorder=1):
@@ -820,6 +868,7 @@ def compare_matchedcollections(coll1, coll2, ppmtol=50, objecttocompare="monoiso
 
         for i in range(len(coll1_sub.peaks)):
             foundmatch = False
+
             within_tol = fastwithin_abstol(masses2, masses1[i], int(math.ceil(maxshift + 0.5)))
             if len(within_tol) > 0:
                 for j in within_tol:
@@ -827,7 +876,9 @@ def compare_matchedcollections(coll1, coll2, ppmtol=50, objecttocompare="monoiso
                         # now check if a monoiso is within the ppmtol
                         for m1 in coll1_sub.peaks[i].monoisos:
                             for m2 in coll2_sub.peaks[j].monoisos:
+
                                 if ud.within_ppm(m1, m2, ppmtol):
+
                                     coll2_matched_indices.append(j)
                                     foundmatch = True
                                     diffs.append((m1 - m2) / m1 * 1e6)
@@ -859,6 +910,8 @@ def compare_matchedcollections(coll1, coll2, ppmtol=50, objecttocompare="monoiso
     unique2 = MatchedCollection().add_peaks(unique2)
 
     print("Avg PPM Diff:", np.mean(diffs))
+
+    print("Shared:", len(shared.peaks), "Unique 1", len(unique1.peaks) ,  "Unique2:", len(unique2.peaks))
 
     return shared, unique1, unique2
 
