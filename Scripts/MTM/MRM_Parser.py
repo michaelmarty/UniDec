@@ -3,7 +3,7 @@ import pymzml
 import pandas as pd
 
 file = "C:\\Users\\mm96978\\Downloads\\UT-Austin_Dr Marty_7600_7500+_Data_May2025\\UT-Austin_Dr Marty_7600_7500+_Data_May2025\\20250304_7500_Samples\\7500 Pos LX MRM_Samples-H Pos.mzML"
-
+file = "C:\\Users\\mm96978\\Downloads\\UT-Austin_Dr Marty_7600_7500+_Data_May2025\\UT-Austin_Dr Marty_7600_7500+_Data_May2025\\CID_POS_MRMhr_20250227\\CID_POS_MRMhr_A_100000x.mzML"
 d = pymzml.run.Reader(file, skip_chromatogram=False)
 
 numc = d.get_chromatogram_count()

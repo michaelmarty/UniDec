@@ -193,6 +193,26 @@ class IsoDecRuntime:
         print("Removed Assigned Peaks, N Peaks:", len(self.pks.peaks), "Time:", time.perf_counter() - st)
         return data
 
+    def batch_centroid(self, files, window=5, threshold=0.00001):
+        """
+        Batch centroiding of files.
+        :param files: List of files to centroid
+        :return: List of centroided data
+        """
+        outfiles = []
+        for file in files:
+            reader = ImporterFactory.create_importer(file)
+            for s in reader.scans:
+                spectrum = reader.get_single_scan(s)
+                if len(spectrum) < 3:
+                    continue
+                centroids = get_all_centroids(spectrum, window=window, threshold=threshold)
+                basepath = os.path.splitext(file)[0]
+                outfile = f"{basepath}_{s}_centroided.txt"
+                print("Centroiding file:", file, "Scan:", s, "N Centroids:", len(centroids))
+                np.savetxt(outfile, centroids)
+                outfiles.append(outfile)
+        return outfiles
 
 
 
@@ -200,6 +220,11 @@ class IsoDecRuntime:
 if __name__ == "__main__":
     starttime = time.perf_counter()
     eng = IsoDecRuntime()
+
+    # files = ["C:\Data\Yuri\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_100k_Charge Reduction-yes_adduct_N-term_MP2_pi200_IntGaus_NoP_N3.csv",
+    #          "C:\Data\Yuri\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_400k_Charge Reduction-yes_adduct_N-term_MP2_pi200_NoP_IntGaus_high_range_NL1000_768ms.csv",
+    #          "C:\Data\Yuri\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_400k_Charge Reduction-yes_adduct_N-term_MP2_pi200_NoP_IntGaus_high_range_NL1000_768ms_NT3p5.csv"]
+    # eng.batch_centroid(files)
 
     eng.analyte_type = "None"
     import platform

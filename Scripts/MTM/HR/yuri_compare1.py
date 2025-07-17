@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import molmass as mm
 import unidec.IsoDec.match as match
+import os
 
 file = "C:\\Data\\Yuri\\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_Charge Reduction-yes_adduct_N-term_MP2_pi200_IntGaus_NoP_Toshare (1).xlsx"
 
@@ -43,7 +44,13 @@ print(len(df["Mass"]))
 mc = match.df_to_matchedcollection(df, monoiso="Mass", peakmz = "m/z", z="Charge", scan=None, intensity=None, peakmass=None, ion=None)
 print("Data MatchedCollection created with", len(mc), "peaks.")
 
-datafile = "C:\\Data\\Yuri\\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_100k_Charge Reduction-yes_adduct_N-term_MP2_pi200_IntGaus_NoP_N3_unidecfiles\\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_100k_Charge Reduction-yes_adduct_N-term_MP2_pi200_IntGaus_NoP_N3.tsv"
+path = "C:\\Data\\Yuri\\"
+
+fname = "CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_100k_Charge Reduction-yes_adduct_N-term_MP2_pi200_IntGaus_NoP_N3_1_centroided"
+fname = "CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_400k_Charge Reduction-yes_adduct_N-term_MP2_pi200_NoP_IntGaus_high_range_NL1000_768ms_1_centroided"
+fname = "CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_400k_Charge Reduction-yes_adduct_N-term_MP2_pi200_NoP_IntGaus_high_range_NL1000_768ms_NT3p5_1_centroided"
+
+datafile = os.path.join(path, fname + "_unidecfiles", fname + ".tsv")
 
 data = pd.read_csv(datafile, sep="\t")
 
@@ -51,8 +58,6 @@ dc = match.df_to_matchedcollection(data, ion=None, checkmultiplemonoisos=True)
 
 shared, u1, u2 = match.compare_matchedcollections(mc, dc, ignorescan=True)
 
-# Get dir where datafile is located
-import os
 data_dir = os.path.dirname(file)
 
 # Save TSV of matched collection for shared

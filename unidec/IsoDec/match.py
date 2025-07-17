@@ -1551,6 +1551,23 @@ def get_estimated_monoiso(peakmass):
     most_intense_iso = (int)(0.0006*peakmass + 0.4074)
     return peakmass - (most_intense_iso * 1.0033)
 
+def calc_css_from_data(centroids, isodist):
+    """
+    Check if the data matches the isotopic distribution.
+    :param centroids: Centroid data as numpy array [m/z, intensity]
+    :param isodist: Isotopic distribution as numpy array [m/z, intensity]
+    :param ccsthresh: Cosine similarity threshold for a match
+    :return: True if the data matches the isotopic distribution, False otherwise
+    """
+    cent_intensities = find_matched_intensities(centroids[:, 0], centroids[:, 1], isodist[:, 0], 0,
+                                                tolerance=5, z=1, peakmz=isodist[0, 0])
+
+    norm_factor = max(cent_intensities) / max(isodist[:, 1])
+    isodist[:, 1] *= norm_factor
+
+    css = calculate_cosinesimilarity(cent_intensities, isodist[:, 1], 0, 0)
+    return css
+
 
 if __name__ == "__main__":
     isodist = [[860.51031724, 66796.046875],

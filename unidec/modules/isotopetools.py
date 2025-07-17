@@ -79,7 +79,7 @@ def makemassmike(testmass: float) -> float:
 
 
 #@njit(fastmath=True)
-def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, isolen=128):
+def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, isolen=128, threshold=0.001):
     # Predict Isotopic Intensities
     formula, minmassint, intnum = makemass(mass)
     intensities = isojim(intnum, isolen)
@@ -91,12 +91,13 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, iso
     dist[:, 0] = masses
     dist[:, 1] = intensities
 
-    # # Filter Low Intensities
-    # b1 = intensities > np.amax(intensities) * 0.01
-    # dist = dist[b1]
-    #
-    # # Convert to m/z
-    # dist[:, 0] = (dist[:, 0] + float(charge) * adductmass) / float(charge)
+    # Filter Low Intensities
+    b1 = intensities > np.amax(intensities) * threshold
+    dist = dist[b1]
+
+    # Convert to m/z
+    if charge >=1:
+        dist[:, 0] = (dist[:, 0] + float(charge) * adductmass) / float(charge)
 
     return dist
 
