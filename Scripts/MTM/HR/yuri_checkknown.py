@@ -11,9 +11,12 @@ os.chdir(dir)
 
 infile = "known_masses.csv"
 df = pd.read_csv(infile)
+# Only keep lines where "Ion" inclucdes "c"
+df = df[df["Ion"].str.contains("c", na=False)]
 
 datafile = "CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_400k_Charge Reduction-yes_adduct_N-term_MP2_pi200_NoP_IntGaus_high_range_NL1000_768ms.csv"
 datafile = "CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_400k_Charge Reduction-yes_adduct_N-term_MP2_pi200_NoP_IntGaus_high_range_NL1000_768ms_NT3p5.csv"
+datafile = "CA2_Sim_c_34+_LTQ-FT 21T_Charge Reduction-no_adduct_N-term_MP2_pi200_NoP_IntGaus_high_range_NL0.csv"
 
 
 # data = np.loadtxt(datafile, delimiter=",", skiprows=1)
@@ -46,6 +49,8 @@ for pk in mc.peaks:
 # exit()
 
 print("Number of peaks with CSS above 0.8:", len([pk for pk in mc.peaks if pk.css > 0.8]))
+print("Out of total peaks:", len(mc.peaks))
+print("Percent: ", len([pk for pk in mc.peaks if pk.css > 0.8]) / len(mc.peaks) * 100)
 
 isoplots.plot_pks(mc, centroids=cdata, plotmass=False, ccolor="k")
 plt.show()
