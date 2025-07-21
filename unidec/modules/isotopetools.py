@@ -3,6 +3,7 @@ import time
 # from scipy import fftpack
 from numpy import fft as fftpack
 from numba import njit
+import unidec.IsoDec.isogenwrapper as isogen
 
 
 mass_diff_c = 1.0033
@@ -105,7 +106,7 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, iso
 #@njit(fastmath=True)
 def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007276467, isotopethresh: float = 0.01, type = "PEPTIDE"):
     # Predict Isotopic Intensities
-    intensities = isogen_nn(mass, type)
+    intensities = isogen.fft_gen_isodist(mass, type)
     # Calculate masses for these
     masses = np.arange(0, len(intensities)) * mass_diff_c + mass
 

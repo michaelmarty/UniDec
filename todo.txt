@@ -1,3 +1,14 @@
+Big picture:
+
+Mixed res algorithm: UniDec/IsoDec Chimera
+
+LC mode with adjacent scans
+
+Improvements to IsoDec workflow and training
+
+De-duplicate parameters
+
+
 Highest priority:
 
 Tim Bug Fixes and Feature Suggestions
@@ -6,15 +17,13 @@ Mass Defect tracking to align phases of isotopic distributions for reasonable th
 
 UCD handle sub-integer charge smoothing
 
-Issues with Thrash predictor on thrash_test_data.
+Profile-mode IsoDec
+
 
 Lower Priority:
 
-UniDec rewrite into Cmake
-
 Importer testing for Sciex
 
-UniDec/IsoDec Chimera
 
 
 Someday Maybe:
