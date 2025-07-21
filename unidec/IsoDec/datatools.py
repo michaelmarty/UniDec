@@ -334,7 +334,7 @@ def get_all_centroids(data, window=5, threshold=0.0001):
 # @njit(fastmath=True)
 def get_centroids(data, peakmz, mzwindow=None):
     if mzwindow is None:
-        mzwindow = [-1.5, 3.5]
+        mzwindow = [-1.5, 4.5]
     chopped = data[(data[:, 0] > peakmz + mzwindow[0]) & (data[:, 0] < peakmz + mzwindow[1])]
 
     if len(chopped) < 3:

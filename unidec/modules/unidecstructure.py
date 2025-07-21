@@ -1665,7 +1665,7 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         self.peakthresh = 0.0001
         self.css_thresh = 0.7
         self.maxshift = 3  # This will get overwritten for smaller z, where it's dangerous to have more than 1 or 2
-        self.mzwindow = [-1.05, 2.05]
+        self.mzwindow = [-1.05, 4.05]
         self.plusoneintwindow = [0.1, 0.6]
         self.knockdown_rounds = 5
         self.min_score_diff = 0.1

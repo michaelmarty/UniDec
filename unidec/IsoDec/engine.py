@@ -45,6 +45,10 @@ class IsoDecDataset(torch.utils.data.Dataset):
         return [self.emat[idx], self.z[idx]]
 
 
+# Note, this is primarily a tool for training, testing, and development.
+# We recommend most people use IsoDecRuntime for routine use.
+
+
 # TODO: Inherit this from IsoDecRuntime
 class IsoDecEngine:
     """

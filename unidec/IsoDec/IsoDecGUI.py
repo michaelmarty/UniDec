@@ -632,10 +632,10 @@ class IsoDecPres(UniDecPres):
             found_warning = True
 
         # Warn if either the mz window values are greater than 4
-        if np.abs(self.eng.config.integratelb) > 4:
+        if np.abs(self.eng.config.integratelb) > 6.5:
             print("Lower m/z window is very high. Are you sure?")
             found_warning = True
-        if np.abs(self.eng.config.integrateub) > 4:
+        if np.abs(self.eng.config.integrateub) > 6.5:
             print("Upper m/z window is very high. Are you sure?")
             found_warning = True
 
