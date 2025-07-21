@@ -82,8 +82,9 @@ def makemassmike(testmass: float) -> float:
 #@njit(fastmath=True)
 def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, isolen=128, threshold=0.001):
     # Predict Isotopic Intensities
-    formula, minmassint, intnum = makemass(mass)
-    intensities = isojim(intnum, isolen)
+    # formula, minmassint, intnum = makemass(mass)
+    # intensities = isojim(intnum, isolen)
+    intensities = isogen.fft_gen_isodist(mass, isolen=isolen)
     # Calculate masses for these
     masses = np.arange(0, len(intensities)) * mass_diff_c + mass
 
@@ -253,8 +254,7 @@ def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.0072
         intensities = isomike(mass)
     else:
         _, minmassint, isolist = makemass(mass)
-        # print(isolist)
-        intensities = isojim(isolist)
+        intensities = isojim(isolist, length)
 
     if mono:
         minmassint = mass
