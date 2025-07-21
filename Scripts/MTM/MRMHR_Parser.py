@@ -1,7 +1,8 @@
 import os
 import pandas as pd
+import numpy as np
 
-resfile = "C:\\Users\\mm96978\\Downloads\\UT-Austin_Dr Marty_7600_7500+_Data_May2025\\UT-Austin_Dr Marty_7600_7500+_Data_May2025\\Sample H CID Matches.xlsx"
+resfile = "Sample H CID Matches.xlsx"
 df = pd.read_excel(resfile)
 
 
@@ -22,14 +23,20 @@ for i, r in df.iterrows():
     for mzi in ms2spec.split(" "):
         mz, i = mzi.split(":")
         ms2data.append((float(mz), float(i)))
+    ms2data = np.array(ms2data)
+    b1 = ms2data[:,0]<q1 - 10
+    cutms2 = ms2data[b1]
 
-    # Find highest intensity m/z in ms2data that isn't the q1 m/z
-    q3 = 0
-    max_intensity = 0
-    for mz, intensity in ms2data:
-        if mz != q1 and intensity > max_intensity:
-            max_intensity = intensity
-            q3 = mz
+    highestindex = np.argmax(cutms2[:, 1])
+    q3 = cutms2[highestindex, 0]  # Get the m/z of the highest intensity peak that is not the precursor
+    print(q1, q3, ms2data)
+    # # Find highest intensity m/z in ms2data that isn't the q1 m/z
+    # q3 = 0
+    # max_intensity = 0
+    # for mz, intensity in ms2data:
+    #     if mz != q1 and intensity > max_intensity:
+    #         max_intensity = intensity
+    #         q3 = mz
 
 
 
@@ -48,9 +55,9 @@ for i, r in df.iterrows():
 
 # Convert list of dictionaries to DataFrame
 df = pd.DataFrame(datalist)
-
+print(df)
 # Save to CSV
-df.to_csv(os.path.join(os.path.dirname(resfile), "MRMHR_TransitionListPos.csv"), index=False)
+# df.to_csv(os.path.join(os.path.dirname(resfile), "MRMHR_TransitionListPos.csv"), index=False)
 
 
 
