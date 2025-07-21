@@ -30,7 +30,7 @@ class MatchedCollection:
     def __str__(self):
         outstring = ""
         for p in self.peaks:
-            outstring += str(p)
+            outstring += str(p) + "\n"
         return outstring
 
     def __len__(self):

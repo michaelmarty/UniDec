@@ -771,8 +771,6 @@ class IsoDecEngine:
                     kindex = fastnearest(centroids[:, 0], p[0])
 
                     matchedindexes = []
-                    if self.predmode == 4:
-                        matchedindexes = self.get_matches_zloop(centlist[j], preds[j], p[0], pks=self.pks)
 
                     if self.config.verbose:
                         print("Peak:", p, z)
@@ -789,6 +787,8 @@ class IsoDecEngine:
                             matchedindexes = self.get_matches_multiple_z(centlist[j], z, p[0], pks=self.pks)
                         else:
                             matchedindexes = self.get_matches(centlist[j], z[0], p[0], pks=self.pks)
+                    elif self.predmode == 4:
+                        matchedindexes = self.get_matches_zloop(centlist[j], preds[j], p[0], pks=self.pks)
 
                     if len(matchedindexes) > 0:
                         ngood += 1

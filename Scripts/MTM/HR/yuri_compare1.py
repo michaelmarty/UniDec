@@ -58,9 +58,10 @@ print("Data MatchedCollection created with", len(mc), "peaks.")
 path = "C:\\Data\\Yuri\\"
 
 fname = "CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_100k_Charge Reduction-yes_adduct_N-term_MP2_pi200_IntGaus_NoP_N3_1_centroided"
-fname = "CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_400k_Charge Reduction-yes_adduct_N-term_MP2_pi200_NoP_IntGaus_high_range_NL1000_768ms_1_centroided"
-fname = "CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_400k_Charge Reduction-yes_adduct_N-term_MP2_pi200_NoP_IntGaus_high_range_NL1000_768ms_NT3p5_1_centroided"
-fname = "CA2_Sim_c_34+_LTQ-FT 21T_Charge Reduction-no_adduct_N-term_MP2_pi200_NoP_IntGaus_high_range_NL0_1_centroided"
+# fname = "CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_400k_Charge Reduction-yes_adduct_N-term_MP2_pi200_NoP_IntGaus_high_range_NL1000_768ms_1_centroided"
+# fname = "CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_400k_Charge Reduction-yes_adduct_N-term_MP2_pi200_NoP_IntGaus_high_range_NL1000_768ms_NT3p5_1_centroided"
+# fname = "CA2_Sim_c_34+_LTQ-FT 21T_Charge Reduction-no_adduct_N-term_MP2_pi200_NoP_IntGaus_high_range_NL0_1_centroided"
+fname = "1"
 
 datafile = os.path.join(path, fname + "_unidecfiles", fname + ".tsv")
 

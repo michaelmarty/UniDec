@@ -23,7 +23,7 @@ class IsoDecPres(UniDecPres):
 
         self.view = IsoDecView(self, "IsoDec", self.eng.config, iconfile=None)
         try:
-            if platform.node() == 'CHEM-A90237':
+            if platform.node() == 'CHEM-A90237' and False:
                 # self.on_ex()
                 file = "C:\\Data\\Volker noisy protein spectra\\Protein+cov-binder_#212#141.txt"
                 file = "C:\\Data\\Yuri\\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_100k_Charge Reduction-yes_adduct_N-term_MP2_pi200_IntGaus_NoP_N3.csv"
