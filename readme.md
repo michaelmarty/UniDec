@@ -237,6 +237,8 @@ Fixed issue with IsoDec where narrow m/z windows were cutting off extended isoto
 Now, the high m/z window value will be extended in full, but the encoding will only be half of that. The 
 new defaults are 4.05 rather than 2.05 to catch these additional isotopes while still encoding a narrow range of 2.025.
 
+Bug fixes throughout. 
+
 v.8.0.3
 
 New build cleanup and refactoring. Bug fixes. Updated contact information.

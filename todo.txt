@@ -11,8 +11,6 @@ De-duplicate parameters
 
 Highest priority:
 
-Issues with matching isotope distributions outside m/z window
-
 Tim Bug Fixes and Feature Suggestions
 
 Mass Defect tracking to align phases of isotopic distributions for reasonable things

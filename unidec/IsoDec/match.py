@@ -401,6 +401,18 @@ class MatchedCollection:
 
         return np.transpose([masses, intensities])
 
+    def to_merged_isodists(self):
+        isodistall = []
+        for p in self.peaks:
+            if p.isodist is not None:
+                for d in p.isodist:
+                    isodistall.append(d)
+        # to numpy array
+        isodistall = np.array(isodistall)
+        # Sort by mass
+        isodistall = isodistall[np.argsort(isodistall[:, 0])]
+        return isodistall
+
 
 
 class MatchedMass:
