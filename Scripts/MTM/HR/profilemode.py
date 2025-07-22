@@ -9,9 +9,11 @@ import time
 import matplotlib as mpl
 
 os.chdir("C:\\Data\\Yuri\\")
-file = "C:\\Data\\Yuri\\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_100k_Charge Reduction-yes_adduct_N-term_MP2_pi200_IntGaus_NoP_N3.csv"
+# file = "C:\\Data\\Yuri\\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_100k_Charge Reduction-yes_adduct_N-term_MP2_pi200_IntGaus_NoP_N3.csv"
+# data = np.genfromtxt(file, delimiter=',')
 
-data = np.genfromtxt(file, delimiter=',')
+file = "etd_spectrum_profile.txt"
+data = np.loadtxt(file)
 # data = ud.datachop(data, 1415, 1445)
 
 eng = IsoDecRuntime(verbose=False)
