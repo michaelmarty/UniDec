@@ -23,10 +23,10 @@ class IsoDecPres(UniDecPres):
 
         self.view = IsoDecView(self, "IsoDec", self.eng.config, iconfile=None)
         try:
-            if platform.node() == 'CHEM-A90237' and False:
+            if platform.node() == 'CHEM-A90237' and True:
                 # self.on_ex()
                 file = "C:\\Data\\Volker noisy protein spectra\\Protein+cov-binder_#212#141.txt"
-                file = "C:\\Data\\Yuri\\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_100k_Charge Reduction-yes_adduct_N-term_MP2_pi200_IntGaus_NoP_N3.csv"
+                # file = "C:\\Data\\Yuri\\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_100k_Charge Reduction-yes_adduct_N-term_MP2_pi200_IntGaus_NoP_N3.csv"
                 self.on_open_file(file)
                 self.on_unidec_button()
                 # self.on_plot_peaks()
@@ -196,7 +196,7 @@ class IsoDecPres(UniDecPres):
         self.isodeceng.config.peakthresh = self.eng.config.peakthresh
         self.isodeceng.config.knockdown_rounds = self.eng.config.numit
         self.isodeceng.config.phaseres = self.eng.config.aggressiveflag
-        self.isodeceng.config.matchtol = self.eng.config.filterwidth
+        self.isodeceng.config.matchtol = float(self.eng.config.filterwidth)
         self.isodeceng.config.maxshift = self.eng.config.msig
         self.isodeceng.config.css_thresh = self.eng.config.csig
         self.isodeceng.config.adductmass = self.eng.config.adductmass
@@ -212,7 +212,7 @@ class IsoDecPres(UniDecPres):
         self.eng.config.peakthresh = self.isodeceng.config.peakthresh
         self.eng.config.numit = self.isodeceng.config.knockdown_rounds
         self.eng.config.aggressiveflag = self.isodeceng.config.phaseres
-        self.eng.config.filterwidth = self.isodeceng.config.matchtol
+        self.eng.config.filterwidth = float(self.isodeceng.config.matchtol)
         self.eng.config.msig = self.isodeceng.config.maxshift
         self.eng.config.csig = self.isodeceng.config.css_thresh
         self.eng.config.adductmass = self.isodeceng.config.adductmass
@@ -576,7 +576,7 @@ class IsoDecPres(UniDecPres):
             found_warning = True
 
         # Match Tolerance should be greater than 0
-        if self.eng.config.filterwidth <= 0:
+        if float(self.eng.config.filterwidth) <= 0:
             print("Match Tolerance cannot be negative")
             self.eng.config.filterwidth = 5.0
             found_problem = True

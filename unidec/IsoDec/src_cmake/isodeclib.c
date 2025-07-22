@@ -294,7 +294,7 @@ struct IsoSettings CheckSettings(struct IsoSettings settings) {
         found_warning = 1;
     }
     if (settings.mzwindow[1] > 6.5) {
-        printf("Mz Window is very high. Are you sure?\n");
+        printf("Mz Window is very high. %f Are you sure?\n", settings.mzwindow[1]);
         found_warning = 1;
     }
 

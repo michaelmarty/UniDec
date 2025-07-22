@@ -17,6 +17,7 @@ from unidec.IsoDec.plots import plot_pks
 from unidec.IsoDec.altdecon import thrash_predict
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 import unidec.tools as ud
+import unidec.modules.fwhmtools as fwhmtools
 
 class IsoDecRuntime:
     """
