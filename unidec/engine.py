@@ -186,6 +186,8 @@ class UniDec(UniDecEngine):
         if os.path.isfile(self.config.infname) and not refresh and self.config.imflag == 0:
             try:
                 self.data.data2 = np.loadtxt(self.config.infname)
+                if len(self.data.data2) == 0:
+                    raise ValueError("Data array is empty")
                 self.config.procflag = 1
             except:
                 self.data.data2 = self.data.rawdata
@@ -209,6 +211,8 @@ class UniDec(UniDecEngine):
         tend = time.perf_counter()
         if "silent" not in kwargs or not kwargs["silent"]:
             print("Loading Time: %.2gs" % (tend - tstart))
+
+        return self.data.data2
 
     def raw_process(self, dirname, inflag=False, binsize=1):
         """
@@ -325,12 +329,12 @@ class UniDec(UniDecEngine):
 
 
             if self.config.isomode == 1 or self.config.isomode == 3:
-                datatop = self.remove_isodists(deepcopy(datatop))
+                datatop, _ = self.remove_isodists(deepcopy(datatop))
 
             self.data.data2 = ud.dataprep(datatop, self.config)
 
             if self.config.isomode == 2 or self.config.isomode == 3:
-                self.data.data2 = self.remove_isodists(deepcopy(self.data.data2), dropzeros=True)
+                self.data.data2, _ = self.remove_isodists(deepcopy(self.data.data2), dropzeros=True)
 
 
             if "scramble" in kwargs:
@@ -1573,14 +1577,14 @@ class UniDec(UniDecEngine):
             data = self.data.data2
         # data = deepcopy(data)
         isoeng = IsoDecRuntime()
-        isoeng.config.matchtol = 50
-        isoeng.config.css_thresh = 0.7
-        newdata = isoeng.remove_assigned_peaks(data)
+        isoeng.config.matchtol = 25
+        isoeng.config.css_thresh = 0.8
+        newdata, isodists = isoeng.remove_assigned_peaks(data)
         if dropzeros:
             newdata = ud.remove_middle_zeros(newdata)
         # et = time.perf_counter()
         # print("Remove Isodists: %.2gs" % (et - st))
-        return newdata
+        return newdata, isodists
 
 
 # Optional Run
@@ -1602,9 +1606,17 @@ if __name__ == "__main__":
 
     test = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw"
     test1 = "C:\\Users\\MartyLabsOfficePC\\OneDrive - University of Arizona\\Desktop\\20230816_Myoglobin 0666 ugmL 01.wiff"
-    dat = eng.open_file(test1)
-    for i in eng.data.rawdata:
-        print(i)
+    test1 = "C:\\Data\\Volker noisy protein spectra\\Protein+cov-binder_#212#141.txt"
+    dat = eng.open_file(test1, refresh=True)
+    newdat, isodists = eng.remove_isodists(dat)
+    import matplotlib.pyplot as plt
+    import unidec.IsoDec.plots as plots
+    plt.plot(dat[:, 0], dat[:, 1], label="Original")
+    plt.plot(newdat[:, 0], newdat[:, 1], label="No Isodists")
+    plots.cplot(isodists)
+    plt.ylim(0, np.amax(newdat[:, 1]))
+    plt.show()
+
     exit()
     eng.config.imflag = 1
     eng.config.mzbins = 1

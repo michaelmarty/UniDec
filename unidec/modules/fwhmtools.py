@@ -32,7 +32,7 @@ def linear_interpolation(d1, d2, y):
     return x
 
 # @njit(fastmath=True)
-def find_fwhm(data, index, wfactor=4):
+def find_fwhm(data, index, wfactor=4, maxppmtol=1000):
     """
     Find the full width at half maximum (FWHM) of a peak in the data.
     :param data: Data array with m/z and intensity
@@ -51,16 +51,23 @@ def find_fwhm(data, index, wfactor=4):
 
     # Find left side
     left_index = index
-    while left_index > 0 and data[left_index, 1] >= half_max:
+    while left_index > 0 and data[left_index, 1] >= half_max and check_tol(data[left_index, 0], mz, maxppmtol):
         left_index -= 1
 
     # Find right side
     right_index = index
-    while right_index < len(data) - 1 and data[right_index, 1] >= half_max:
+    while right_index < len(data) - 1 and data[right_index, 1] >= half_max and check_tol(data[right_index, 0], mz, maxppmtol):
         right_index += 1
 
     leftmz = linear_interpolation(data[left_index], data[left_index + 1], half_max)
     rightmz = linear_interpolation(data[right_index - 1], data[right_index], half_max)
+    if rightmz < mz:
+        # If the right mz is less than the peak mz, we cannot calculate FWHM properly
+        return default
+    if leftmz > mz:
+        # If the left mz is greater than the peak mz, we cannot calculate FWHM properly
+        return default
+
     # print("Left MZ:", leftmz, "Right MZ:", rightmz, "Peak MZ:", mz)
     leftwidth = mz - leftmz
     rightwidth = rightmz - mz
@@ -82,7 +89,7 @@ def find_fwhm(data, index, wfactor=4):
     return [fwhm, leftwidth, rightwidth, left_index, right_index]
 
 # @njit(fastmath=True)
-def fast_fwhm(data, peaks, sort=False, wfactor=4):
+def fast_fwhm(data, peaks, sort=False, wfactor=4, maxppmtol=1000):
     """
     Fast FWHM calculation for a set of peaks.
     :param data: Data array with m/z and intensity
@@ -104,11 +111,36 @@ def fast_fwhm(data, peaks, sort=False, wfactor=4):
             continue
 
         index = matchedindexes[i]
-        fwhm = find_fwhm(data, index, wfactor=wfactor)
+        fwhm = find_fwhm(data, index, wfactor=wfactor, maxppmtol=maxppmtol)
 
         fwhmlist.append(fwhm)
 
     return np.array(fwhmlist)
+
+
+
+# @njit(fastmath=True)
+def match_indexes(array, targetarray):
+    """
+    Assuming that both arrays are sorted, find the indexes of the elements in targetarray that match the elements in array.
+    """
+    indexes = []
+    index = 0
+    for t in targetarray:
+        while index < len(array)-1 and array[index] < t:
+            index += 1
+
+        i1 = array[index]
+        i2 = array[index - 1] if index > 0 else 0
+
+        d1 = np.abs(i1 - t)
+        d2 = np.abs(i2 - t)
+        if d1 < d2:
+            indexes.append(index)
+        else:
+            indexes.append(index - 1)
+
+    return np.array(indexes)
 
 # @njit(fastmath=True)
 def remove_peaks_from_fwhmlist(data, fwhmlist):
@@ -125,36 +157,17 @@ def remove_peaks_from_fwhmlist(data, fwhmlist):
         s = int(fwhm[3])
         e = int(fwhm[4])
         b1[s:e] = 0
-
+    # print("Removing Peaks, N Peaks:", np.sum(~b1), "Total Data Points:", len(data))
     return data[b1]
 
 # @njit(fastmath=True)
-def match_indexes(array, targetarray):
-    """
-    Assuming that both arrays are sorted, find the indexes of the elements in targetarray that match the elements in array.
-    """
-    indexes = []
-    index = 0
-    for t in targetarray:
-        while index < len(array) and array[index] < t:
-            index += 1
-
-        i1 = array[index]
-        i2 = array[index - 1] if index > 0 else 0
-
-        d1 = np.abs(i1 - t)
-        d2 = np.abs(i2 - t)
-        if d1 < d2:
-            indexes.append(index)
-        else:
-            indexes.append(index - 1)
-
-    return np.array(indexes)
-
-# @njit(fastmath=True)
-def remove_peaks(data, isodist, wfactor=6):
-    fwhms = fast_fwhm(data, isodist, wfactor=wfactor)
+def remove_peaks(data, isodist, wfactor=6, maxppmtol=1000):
+    # print("Data Length:", len(data), "Isodist Length:", len(isodist))
+    fwhms = fast_fwhm(data, isodist, wfactor=wfactor, maxppmtol=maxppmtol)
+    # print("FWHM List:", len(fwhms))
+    # print(fwhms)
     leftoverdata = remove_peaks_from_fwhmlist(data, fwhms)
+    # print("Leftover Data Length:", len(leftoverdata))
     return leftoverdata
 
 if __name__ == "__main__":

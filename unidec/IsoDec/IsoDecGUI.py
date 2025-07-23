@@ -28,7 +28,7 @@ class IsoDecPres(UniDecPres):
                 file = "C:\\Data\\Volker noisy protein spectra\\Protein+cov-binder_#212#141.txt"
                 # file = "C:\\Data\\Yuri\\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_100k_Charge Reduction-yes_adduct_N-term_MP2_pi200_IntGaus_NoP_N3.csv"
                 self.on_open_file(file)
-                self.on_unidec_button()
+                # self.on_unidec_button()
                 # self.on_plot_peaks()
                 # self.on_plot_dists()
 
@@ -514,7 +514,7 @@ class IsoDecPres(UniDecPres):
 
     def on_remove_assigned_peaks(self, e=None):
         print(self.isodeceng.config)
-        data = self.isodeceng.remove_assigned_peaks(self.eng.data.data2)
+        data, isodists = self.isodeceng.remove_assigned_peaks(self.eng.data.data2)
         self.eng.data.data2 = data
         self.view.plot1.plotadd(data[:, 0], data[:, 1], colval="r", nopaint=False)
 

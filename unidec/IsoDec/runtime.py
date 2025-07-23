@@ -187,12 +187,15 @@ class IsoDecRuntime:
         st = time.perf_counter()
         self.batch_process_spectrum(data)
         print("IsoDec time:", time.perf_counter() - st)
-        for p in self.pks.peaks:
-            # print("Removing:", p)
-            data = p.strip_from_data(data)
+        isodists = self.pks.to_merged_isodists()
+        data = fwhmtools.remove_peaks(data, isodists, wfactor=6, maxppmtol=100)
+
+        # for p in self.pks.peaks:
+        #     # print("Removing:", p)
+        #     data = p.strip_from_data(data)
         # data = ud.remove_middle_zeros(data)
         print("Removed Assigned Peaks, N Peaks:", len(self.pks.peaks), "Time:", time.perf_counter() - st)
-        return data
+        return data, isodists
 
     def batch_centroid(self, files, window=5, threshold=0.00001):
         """
