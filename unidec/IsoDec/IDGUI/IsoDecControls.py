@@ -1,22 +1,18 @@
 import wx
 import wx.lib.agw.foldpanelbar as fpb
-import os
 import unidec.tools as ud
-import numpy as np
 import time
 import wx.lib.scrolledpanel as scrolled
 
 
-class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
+class MainControls(wx.Panel):  # scrolled.ScrolledPanel):
     # noinspection PyMissingConstructor
-    def __init__(self, parent, config, pres, panel, iconfile):
+    def __init__(self, parent, config, pres, panel):
         super(wx.Panel, self).__init__(panel)
         self.parent = parent
         self.config = config
         self.pres = pres
         self.backgroundchoices = self.config.backgroundchoices
-        self.psigsettings = [0, 1, 10, 100]
-        self.betasettings = [0, 50, 500, 1000]
         self.update_flag = True
 
         # ..........................
@@ -30,7 +26,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.scrolledpanel = scrolled.ScrolledPanel(self, style=wx.ALL | wx.EXPAND)
         self.scrolledpanel.SetupScrolling()
 
-        self.runallbutton = wx.Button(self, -1, "Run All", size=(250, 25))
+        self.runallbutton = wx.Button(self, -1, "Run All", size=wx.Size(250, 25))
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_run_all, self.runallbutton)
         self.runallbutton.SetToolTip(wx.ToolTip("Run all steps in the deconvolution process."))
         sizercontrol.Add(self.runallbutton, 0, wx.ALIGN_LEFT | wx.ALL, 5)
@@ -70,15 +66,15 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         panel1 = wx.Panel(foldpanel1, -1)
         sizercontrol1 = wx.GridBagSizer(wx.VERTICAL)
 
-        self.ctlminmz = wx.TextCtrl(panel1, value="", size=(50, -1))
-        self.ctlmaxmz = wx.TextCtrl(panel1, value="", size=(60, -1))
+        self.ctlminmz = wx.TextCtrl(panel1, value="", size=wx.Size(50, -1))
+        self.ctlmaxmz = wx.TextCtrl(panel1, value="", size=wx.Size(60, -1))
         mzrange = wx.BoxSizer(wx.HORIZONTAL)
         mzrange.Add(wx.StaticText(panel1, label="m/z: "), 0, wx.ALIGN_CENTER_VERTICAL)
         mzrange.Add(self.ctlminmz)
         mzrange.Add(wx.StaticText(panel1, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
         mzrange.Add(self.ctlmaxmz)
         mzrange.Add(wx.StaticText(panel1, label=" Th "), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.fullbutton = wx.Button(panel1, -1, "Full", size=(40, 25))
+        self.fullbutton = wx.Button(panel1, -1, "Full", size=wx.Size(40, 25))
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_full, self.fullbutton)
         mzrange.Add(self.fullbutton)
         i = 0
@@ -411,7 +407,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         foldpanel3.SetBackgroundColour(wx.Colour(255, bright, bright))
         foldpanel3b.SetBackgroundColour(wx.Colour(255, bright, bright))
 
-        sizercontrol.SetMinSize((250 + self.config.imflag * 10, 0))
+        sizercontrol.SetMinSize(wx.Size(250, 0))
 
         # Add to sizer and setup
         sizercontrolscrolled = wx.BoxSizer(wx.VERTICAL)
@@ -437,7 +433,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.Freeze()
         self.update_flag = False
         if self.config.batchflag == 0:
-            self.ctlcentroided.SetValue(int(self.config.centroided))
+            self.ctlcentroided.SetValue(bool(self.config.centroided))
             self.ctlmassbins.SetValue(str(self.config.massbins))
             self.ctlnorm.SetSelection(int(self.config.peaknorm))
             self.ctlbuff.SetValue(str(self.config.subbuff))
@@ -448,7 +444,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctladductmass.SetValue(str(self.config.adductmass))
             self.ctlnumit.SetValue(str(int(self.config.idconfig.knockdown_rounds)))
             self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
-            self.ctldatanorm.SetValue(int(self.config.datanorm))
+            self.ctldatanorm.SetValue(bool(self.config.datanorm))
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlavgpeakmasses.SetValue(self.config.idconfig.avgpeakmasses)
             self.ctltypelist.SetValue(str(self.ctltypelist.GetValue()))
@@ -490,9 +486,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctlexporttsv.SetValue(False)
 
             if self.config.adductmass < 0:
-                self.ctlnegmode.SetValue(1)
+                self.ctlnegmode.SetValue(True)
             else:
-                self.ctlnegmode.SetValue(0)
+                self.ctlnegmode.SetValue(False)
 
             try:
                 self.ctlpeakcm.SetSelection(self.config.cmaps.index(self.config.peakcmap))

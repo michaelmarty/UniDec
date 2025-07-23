@@ -99,7 +99,7 @@ class IsoDecView(MainwindowBase):
         #
         # .............................
         sizercontrols = wx.BoxSizer(wx.VERTICAL)
-        self.controls = IsoDecControls.main_controls(self, self.config, self.pres, panel, self.icon_path)
+        self.controls = IsoDecControls.MainControls(self, self.config, self.pres, panel)
         sizercontrols.Add(self.controls, 1, wx.EXPAND)
         panel.SetSizer(sizercontrols)
         sizercontrols.Fit(self)
