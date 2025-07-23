@@ -1,22 +1,18 @@
 import wx
 import wx.lib.agw.foldpanelbar as fpb
-import os
 import unidec.tools as ud
-import numpy as np
 import time
 import wx.lib.scrolledpanel as scrolled
 
 
-class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
+class MainControls(wx.Panel):  # scrolled.ScrolledPanel):
     # noinspection PyMissingConstructor
-    def __init__(self, parent, config, pres, panel, iconfile):
+    def __init__(self, parent, config, pres, panel):
         super(wx.Panel, self).__init__(panel)
         self.parent = parent
         self.config = config
         self.pres = pres
         self.backgroundchoices = self.config.backgroundchoices
-        self.psigsettings = [0, 1, 10, 100]
-        self.betasettings = [0, 50, 500, 1000]
         self.update_flag = True
 
         # ..........................
@@ -30,12 +26,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.scrolledpanel = scrolled.ScrolledPanel(self, style=wx.ALL | wx.EXPAND)
         self.scrolledpanel.SetupScrolling()
 
-        self.runallbutton = wx.Button(self, -1, "Run All", size=(250, 25))
+        self.runallbutton = wx.Button(self, -1, "Run All", size=wx.Size(250, 25))
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_run_all, self.runallbutton)
         self.runallbutton.SetToolTip(wx.ToolTip("Run all steps in the deconvolution process."))
         sizercontrol.Add(self.runallbutton, 0, wx.ALIGN_LEFT | wx.ALL, 5)
 
-        size1 = (75, -1)
+        size1 = wx.Size(75, -1)
         self.foldpanels = fpb.FoldPanelBar(self.scrolledpanel, -1, size=(250, 800), agwStyle=fpb.FPB_VERTICAL)
         style1 = fpb.CaptionBarStyle()
         style1b = fpb.CaptionBarStyle()
@@ -70,15 +66,15 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         panel1 = wx.Panel(foldpanel1, -1)
         sizercontrol1 = wx.GridBagSizer(wx.VERTICAL)
 
-        self.ctlminmz = wx.TextCtrl(panel1, value="", size=(50, -1))
-        self.ctlmaxmz = wx.TextCtrl(panel1, value="", size=(60, -1))
+        self.ctlminmz = wx.TextCtrl(panel1, value="", size=wx.Size(50, -1))
+        self.ctlmaxmz = wx.TextCtrl(panel1, value="", size=wx.Size(60, -1))
         mzrange = wx.BoxSizer(wx.HORIZONTAL)
         mzrange.Add(wx.StaticText(panel1, label="m/z: "), 0, wx.ALIGN_CENTER_VERTICAL)
         mzrange.Add(self.ctlminmz)
         mzrange.Add(wx.StaticText(panel1, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
         mzrange.Add(self.ctlmaxmz)
         mzrange.Add(wx.StaticText(panel1, label=" Th "), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.fullbutton = wx.Button(panel1, -1, "Full", size=(40, 25))
+        self.fullbutton = wx.Button(panel1, -1, "Full", size=wx.Size(40, 25))
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_full, self.fullbutton)
         mzrange.Add(self.fullbutton)
         i = 0
@@ -88,11 +84,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlmaxmz.SetToolTip(wx.ToolTip("Set maximum m/z of data"))
         self.fullbutton.SetToolTip(wx.ToolTip("Set m/z range to full data range"))
 
-        self.ctlbackcheck = wx.CheckBox(panel1, label="Use Background Subtraction", style=wx.CHK_3STATE)
-        self.parent.Bind(wx.EVT_CHECKBOX, self.on_backcheck, self.ctlbackcheck)
-        sizercontrol1.Add(self.ctlbackcheck, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
-        self.ctlbackcheck.SetToolTip(wx.ToolTip("Select to use background subtraction"))
+        # self.ctlbackcheck = wx.CheckBox(panel1, label="Use Background Subtraction", style=wx.CHK_3STATE)
+        # self.parent.Bind(wx.EVT_CHECKBOX, self.on_backcheck, self.ctlbackcheck)
+        # sizercontrol1.Add(self.ctlbackcheck, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        # i += 1
+        # self.ctlbackcheck.SetToolTip(wx.ToolTip("Select to use background subtraction"))
 
         self.ctlcentroided = wx.CheckBox(panel1, label="Data is Centroided")
         sizercontrol1.Add(self.ctlcentroided, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -118,18 +114,13 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox1b = wx.GridBagSizer(wx.VERTICAL)
         i = 0
 
-        self.subtypectl = wx.Choice(panel1b, -1, choices=self.backgroundchoices)
-        self.subtypectl.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
+
         self.ctlbuff = wx.TextCtrl(panel1b, value="", size=size1)
-        self.subtypectl.SetSelection(2)
-        gbox1b.Add(self.subtypectl, (i, 0))
+        gbox1b.Add(wx.StaticText(panel1b, label="Background Subtraction: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         gbox1b.Add(self.ctlbuff, (i, 1))
         i += 1
         self.ctlbuff.SetToolTip(wx.ToolTip(
-            "Background subtraction parameters.\nMinimum: 0=off 1=on"
-            "\nLine: The first and last n data points will be averaged;"
-            "\n a line between the two averages will be subtracted.\nCurved: Width of smoothed background"))
-        self.subtypectl.SetToolTip(wx.ToolTip("Background subtraction type."))
+            "Background subtraction parameters. Width of smoothed background"))
 
         self.ctlintthresh = wx.TextCtrl(panel1b, value="", size=size1)
         gbox1b.Add(self.ctlintthresh, (i, 1), span=(1, 1))
@@ -321,11 +312,21 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox2b.Add(self.ctlthresh, (i, 1))
         gbox2b.Add(wx.StaticText(panel2b, label="Peak Detection Threshold: "), (i, 0),
                    flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
         self.ctlwindow.SetToolTip(
             wx.ToolTip("Peak detection window. Peak must be maximum in a +/- number of data points. Integer."))
         self.ctlthresh.SetToolTip(wx.ToolTip(
             "Peak detection threshold. Peak's intensity must be great than threshold times maximum mass intensity."))
+
+        i += 1
+        # Check box for Minus 1 as Zero
+        self.ctlminusone = wx.CheckBox(panel2b, label="-1 as 0")
+        gbox2b.Add(self.ctlminusone, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlminusone.SetToolTip(wx.ToolTip("Set to treat the -1 isotope position as 0 in the matching score.\n Helps avoid unwanted shifts on small things"))
+
+        # Check box for Verbose
+        self.ctlverbose = wx.CheckBox(panel2b, label="Verbose")
+        gbox2b.Add(self.ctlverbose, (i, 1), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlverbose.SetToolTip(wx.ToolTip("Set to print verbose output during deconvolution.\n"))
 
         panel2b.SetSizer(gbox2b)
         gbox2b.Fit(panel2b)
@@ -401,7 +402,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         foldpanel3.SetBackgroundColour(wx.Colour(255, bright, bright))
         foldpanel3b.SetBackgroundColour(wx.Colour(255, bright, bright))
 
-        sizercontrol.SetMinSize((250 + self.config.imflag * 10, 0))
+        sizercontrol.SetMinSize(wx.Size(250, 0))
 
         # Add to sizer and setup
         sizercontrolscrolled = wx.BoxSizer(wx.VERTICAL)
@@ -427,60 +428,61 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.Freeze()
         self.update_flag = False
         if self.config.batchflag == 0:
-            self.ctlcentroided.SetValue(self.config.centroided)
+            self.ctlcentroided.SetValue(bool(self.config.centroided))
             self.ctlmassbins.SetValue(str(self.config.massbins))
             self.ctlnorm.SetSelection(int(self.config.peaknorm))
-            self.ctlbuff.SetValue(str(self.config.subbuff))
-            self.subtypectl.SetSelection(int(self.config.subtype))
-            self.ctlwindow.SetValue(str(int(self.config.peakwindow)))
-            self.ctlthresh.SetValue(str(self.config.peakthresh))
+            self.ctlbuff.SetValue(str(self.config.idconfig.background_subtraction))
+            self.ctlwindow.SetValue(str(int(self.config.idconfig.peakwindow)))
+            self.ctlthresh.SetValue(str(self.config.idconfig.peakthresh))
             self.ctlintthresh.SetValue(str(self.config.intthresh))
             self.ctladductmass.SetValue(str(self.config.adductmass))
-            self.ctlnumit.SetValue(str(int(self.config.numit)))
+            self.ctlnumit.SetValue(str(int(self.config.idconfig.knockdown_rounds)))
             self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
-            self.ctldatanorm.SetValue(int(self.config.datanorm))
+            self.ctldatanorm.SetValue(bool(self.config.datanorm))
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
-            self.ctlavgpeakmasses.SetValue(self.config.avgpeakmasses)
+            self.ctlavgpeakmasses.SetValue(self.config.idconfig.avgpeakmasses)
             self.ctltypelist.SetValue(str(self.ctltypelist.GetValue()))
 
             # Decon params
-            self.ctlmatchtol.SetValue(str(self.config.filterwidth))
-            self.ctlmaxshift.SetValue(str(int(self.config.msig)))
-            self.ctlencodingthresh.SetValue(str(self.config.exthresh))
-            self.ctlccsthresh.SetValue(str(self.config.csig))
+            self.ctlmatchtol.SetValue(str(self.config.idconfig.matchtol))
+            self.ctlmaxshift.SetValue(str(int(self.config.idconfig.maxshift)))
+            self.ctlencodingthresh.SetValue(str(self.config.idconfig.datathreshold))
+            self.ctlccsthresh.SetValue(str(self.config.idconfig.css_thresh))
             self.ctlmzwindowlb.SetValue(str(self.config.integratelb))
             self.ctlmzwindowub.SetValue(str(self.config.integrateub))
+            self.ctlminusone.SetValue(self.config.idconfig.minusoneaszero)
+            self.ctlverbose.SetValue(self.config.verbose)
 
-            if self.config.aggressiveflag == 4:
+            if self.config.idconfig.phaseres == 4:
                 self.ctlphaseres.SetSelection(0)
             else:
                 self.ctlphaseres.SetSelection(1)
-            # Relating msalign export to the config.poolflag parameter
-            if self.config.poolflag == 1:
+            # Relating msalign export to the config.idconfig.write_msalign parameter
+            if self.config.idconfig.write_msalign == 1:
                 self.ctlexportmsalign.SetValue(True)
             else:
                 self.ctlexportmsalign.SetValue(False)
 
-            if self.config.noiseflag == 1:
+            if self.config.idconfig.report_multiple_monoisos == 1:
                 self.ctlreportmultiplemonos.SetValue(True)
             else:
                 self.ctlreportmultiplemonos.SetValue(False)
 
-            if self.config.linflag == 1:
+            if self.config.idconfig.write_scans_without_precs == 1:
                 self.ctlwrite_noprec_scans.SetValue(True)
             else:
                 self.ctlwrite_noprec_scans.SetValue(False)
 
-            # Relating tsv export to the config.compressflag
-            if self.config.compressflag == 1:
+            # Relating tsv export to the config.idconfig.write_tsv
+            if self.config.idconfig.write_tsv == 1:
                 self.ctlexporttsv.SetValue(True)
             else:
                 self.ctlexporttsv.SetValue(False)
 
             if self.config.adductmass < 0:
-                self.ctlnegmode.SetValue(1)
+                self.ctlnegmode.SetValue(True)
             else:
-                self.ctlnegmode.SetValue(0)
+                self.ctlnegmode.SetValue(False)
 
             try:
                 self.ctlpeakcm.SetSelection(self.config.cmaps.index(self.config.peakcmap))
@@ -503,47 +505,49 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         Exports parameters from the GUI to the config object.
         :return: None
         """
-        self.config.centroided = self.ctlcentroided.GetValue()
+        self.config.centroided = ud.string_to_int(self.ctlcentroided.GetValue())
         self.config.minmz = ud.string_to_value(self.ctlminmz.GetValue())
         self.config.maxmz = ud.string_to_value(self.ctlmaxmz.GetValue())
-        self.config.subbuff = ud.string_to_value(self.ctlbuff.GetValue())
-        self.config.subtype = self.subtypectl.GetSelection()
+        self.config.idconfig.background_subtraction = ud.string_to_value(self.ctlbuff.GetValue())
         self.config.intthresh = ud.string_to_value(self.ctlintthresh.GetValue())
         self.config.massbins = ud.string_to_value(self.ctlmassbins.GetValue())
         self.config.peaknorm = self.ctlnorm.GetSelection()
-        self.config.peakwindow = ud.string_to_int(self.ctlwindow.GetValue())
-        self.config.peakthresh = ud.string_to_value(self.ctlthresh.GetValue())
+        self.config.idconfig.peakwindow = ud.string_to_int(self.ctlwindow.GetValue())
+        self.config.idconfig.peakthresh = ud.string_to_value(self.ctlthresh.GetValue())
         self.config.adductmass = ud.string_to_value(self.ctladductmass.GetValue())
-        self.config.numit = ud.string_to_int(self.ctlnumit.GetValue())
+        self.config.idconfig.knockdown_rounds = ud.string_to_int(self.ctlnumit.GetValue())
         self.config.reductionpercent = ud.string_to_value(self.ctldatareductionpercent.GetValue())
         # self.config.isotopemode = int(self.ctlisotopemode.GetSelection())
         self.config.datanorm = int(self.ctldatanorm.GetValue())
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
         # These flags are bound to the 2 export type checkboxes in the isodec gui
-        self.config.poolflag = int(self.ctlexportmsalign.GetValue())
-        self.config.compressflag = int(self.ctlexporttsv.GetValue())
+        self.config.idconfig.write_msalign = int(self.ctlexportmsalign.GetValue())
+        self.config.idconfig.write_tsv = int(self.ctlexporttsv.GetValue())
 
         #These flags are bound to the export multiple monoisos and write scans without precursors checkboxes
-        self.config.noiseflag = int(self.ctlreportmultiplemonos.GetValue())
-        self.config.linflag = int(self.ctlwrite_noprec_scans.GetValue())
+        self.config.idconfig.report_multiple_monoisos = int(self.ctlreportmultiplemonos.GetValue())
+        self.config.idconfig.write_scans_without_precs = int(self.ctlwrite_noprec_scans.GetValue())
+        self.config.idconfig.minusoneaszero = int(self.ctlminusone.GetValue())
+        self.config.verbose = int(self.ctlverbose.GetValue())
 
-        self.config.avgpeakmasses = int(self.ctlavgpeakmasses.GetValue())
+
+        self.config.idconfig.avgpeakmasses = int(self.ctlavgpeakmasses.GetValue())
         # pull integratelb and integrateub from mzwindowlb and mzwindowub
         self.config.integratelb = ud.string_to_value(self.ctlmzwindowlb.GetValue())
         self.config.integrateub = ud.string_to_value(self.ctlmzwindowub.GetValue())
-        # matchtol goes to filterwidth
-        self.config.filterwidth = ud.string_to_value(self.ctlmatchtol.GetValue())
-        # Maxshift goes to msig
-        self.config.msig = ud.string_to_int(self.ctlmaxshift.GetValue())
-        # Encoding threshold goes to exthresh
-        self.config.exthresh = ud.string_to_value(self.ctlencodingthresh.GetValue())
-        # CSS threshold goes to csig
-        self.config.csig = ud.string_to_value(self.ctlccsthresh.GetValue())
-        self.config.selection_type = self.ctltypelist.GetValue()
+        # matchtol goes to idconfig.matchtol
+        self.config.idconfig.matchtol = ud.string_to_value(self.ctlmatchtol.GetValue())
+        # Maxshift goes to idconfig.maxshift
+        self.config.idconfig.maxshift = ud.string_to_int(self.ctlmaxshift.GetValue())
+        # Encoding threshold goes to idconfig.datathreshold
+        self.config.idconfig.datathreshold = ud.string_to_value(self.ctlencodingthresh.GetValue())
+        # CSS threshold goes to idconfig.css_thresh
+        self.config.idconfig.css_thresh = ud.string_to_value(self.ctlccsthresh.GetValue())
+        self.config.idconfig.analyte_type = self.ctltypelist.GetValue()
         if self.ctlphaseres.GetSelection() == 0:
-            self.config.aggressiveflag = 4
+            self.config.idconfig.phaseres = 4
         else:
-            self.config.aggressiveflag = 8
+            self.config.idconfig.phaseres = 8
 
         try:
             test = float(self.config.adductmass)
@@ -568,15 +572,14 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
     #  The Main Panel
     #
     # .......................................................
-
-    def on_backcheck(self, e):
-        value = self.ctlbackcheck.Get3StateValue()
-        if value == 1:
-            self.ctlbuff.SetValue("100")
-            self.subtypectl.SetSelection(2)
-        elif value == 0:
-            self.ctlbuff.SetValue("0")
-        self.export_gui_to_config()
+    #
+    # def on_backcheck(self, e):
+    #     value = self.ctlbackcheck.Get3StateValue()
+    #     if value == 1:
+    #         self.ctlbuff.SetValue("100")
+    #     elif value == 0:
+    #         self.ctlbuff.SetValue("0")
+    #     self.export_gui_to_config()
 
     def on_mousewheel(self, e):
         pass

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import time
 from numpy import fft as fftpack
-from unidec.modules.isotopetools import calc_averagine_isotope_dist, isomike
+from unidec.modules.isotopetools import isomike
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 

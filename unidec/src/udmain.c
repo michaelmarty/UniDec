@@ -1,3 +1,6 @@
+//
+// Created by mm96978 on 7/8/2025.
+//
 /*
 * UniDec_Main.h
 *
@@ -11,22 +14,12 @@
 //
 //
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-#include <time.h>
-#include "hdf5.h"
-#include "hdf5_hl.h"
-#include "UniDec.h"
-#include "UD_H5_IO.h"
-#include "UD_IO.h"
-#include "UD_score.h"
+#include "udmain.h"
 
 
 Decon ExitToBlank(const Config config, Decon decon)
 {
-	int l = config.lengthmz * config.numz;
+	const int l = config.lengthmz * config.numz;
 	decon.blur = calloc(l, sizeof(float));
 	decon.newblur = calloc(l, sizeof(float));
 	return decon;
@@ -65,49 +58,8 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	memcpy(barr, inp.barr, sizelnc);
 
 	int maxlength = SetUpPeakShape(config, inp, &decon, 0, 1);
-	
-	/*
-	//Create a list of start and end values to box in arrays based on the above threshold
-	starttab = calloc(config.lengthmz, sizeof(int));
-	endtab = calloc(config.lengthmz, sizeof(int));
-	int maxlength = 1;
-	if (config.mzsig != 0) {
-		//Gets maxlength and sets start and endtab
-		maxlength = SetStartsEnds(config, &inp, starttab, endtab);
 
-		//Changes dimensions of the peak shape function. 1D for speedy and 2D otherwise
-		int pslen = config.lengthmz;
-		if (config.speedyflag == 0) { pslen = config.lengthmz * maxlength; }
-		if (verbose == 1) { printf("Maxlength: %d \t Total Size: %zu GB\n", maxlength, pslen*sizeof(float)/1000000000); }
-		mzdist = calloc(pslen, sizeof(float));
-		if (pslen * sizeof(float) / 1000000000 > 4) { printf("Danger: Your data may crash the memory. Consider setting the Peak FWHM to 0.\n"); }
-		int makereverse = 0;
-		if (config.mzsig < 0 || config.beta < 0) { makereverse = 1; rmzdist = calloc(pslen, sizeof(float));
-		//memset(rmzdist, 0, pslen * sizeof(float));
-		}
-		else { rmzdist = calloc(0, sizeof(float)); }
 
-		//Calculates the distance between mz values as a 2D or 3D matrix
-
-		if (config.speedyflag == 0)
-		{
-			if (verbose == 1) { printf("Making Peak Shape 2D\n"); }
-			MakePeakShape2D(config.lengthmz, maxlength, starttab, endtab, inp.dataMZ, fabs(config.mzsig) * config.peakshapeinflate, config.psfun, config.speedyflag, mzdist, rmzdist, makereverse);
-		}
-		else
-		{
-			if (verbose == 1) { printf("Making Peak Shape 1D\n"); }
-			//Calculates peak shape as a 1D list centered at the first element for circular convolutions
-			MakePeakShape1D(inp.dataMZ, config.psmzthresh, config.lengthmz, config.speedyflag, fabs(config.mzsig) * config.peakshapeinflate, config.psfun, mzdist, rmzdist, makereverse);
-		}
-		if (silent == 0) { printf("mzdist set: %f\t maxlength: %d\n", mzdist[0], maxlength); }
-
-	}
-	else
-	{
-		mzdist = calloc(0, sizeof(float));
-		maxlength = 0;
-	}*/
 
 	//....................................................
 	//
@@ -121,9 +73,9 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		mlength = 1 + 2 * (int)config.msig;
 	}
 	else {
-		if (config.zsig != 0) { zlength = 1 + 2 * (int)(3 * fabs(config.zsig) + 0.5); }
+		if (config.zsig != 0) { zlength = 1 + 2 * (int)(3 * fabsf(config.zsig) + 0.5); }
 		else { zlength = 1; }
-		if (config.msig != 0) { mlength = 1 + 2 * (int)(3 * fabs(config.msig) + 0.5); }
+		if (config.msig != 0) { mlength = 1 + 2 * (int)(3 * fabsf(config.msig) + 0.5); }
 		else { mlength = 1; }
 	}
 	numclose = mlength * zlength;
@@ -135,7 +87,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	for (int i = 0; i < mlength; i++)
 	{
 		mind[i] = i - (mlength - 1) / 2;
-		if (config.msig != 0) { mdist[i] = exp(-(pow((i - (mlength - 1) / 2.), 2)) / (2.0 * config.msig * config.msig)); }
+		if (config.msig != 0) { mdist[i] = expf(-(powf(((float) i - ((float) mlength - 1) / 2.f), 2.f)) / (2.0f * config.msig * config.msig)); }
 		else { mdist[i] = 1; }
 	}
 
@@ -144,7 +96,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	for (int i = 0; i < zlength; i++)
 	{
 		zind[i] = i - (zlength - 1) / 2;
-		if (config.zsig != 0) { zdist[i] = exp(-(pow((i - (zlength - 1) / 2.), 2)) / (2.0 * config.zsig * config.zsig)); }
+		if (config.zsig != 0) { zdist[i] = expf(-(powf(((float) i - ((float) zlength - 1) / 2.f), 2.f)) / (2.0f * config.zsig * config.zsig)); }
 		else { zdist[i] = 1; }
 		//printf("%f\n", zdist[i]);
 	}
@@ -164,9 +116,9 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		closezind[k] = zind[(int)k / mlength];
 		closeval[k] = zdist[(int)k / mlength] * mdist[k % mlength];
 	}
-	simp_norm_sum(mlength, mdist);
-	simp_norm_sum(zlength, zdist);
-	simp_norm_sum(numclose, closeval);
+	NormSum(mdist, mlength);
+	NormSum(zdist, zlength);
+	NormSum(closeval, numclose);
 
 	int badness1 = 1;
 	for (int i = 0; i < config.lengthmz * config.numz; i++)
@@ -176,12 +128,9 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	if (badness1 == 1) { printf("ERROR:1\n"); exit(10); }
 
 	//Set up blur
-	//MakeBlur(config.lengthmz, config.numz, numclose, barr, closezind, closemind, inp.mtab, config.molig, config.adductmass, inp.nztab, inp.dataMZ, closeind, threshold, config);
-	MakeSparseBlur(numclose, barr, closezind, closemind, inp.mtab, inp.nztab, inp.dataMZ, closeind, closeval, closearray, config);
+	MakeSparseBlur(numclose, barr, closezind, closemind, closeind, closeval, closearray, config, &inp);
 
 	if (silent == 0) { printf("Charges blurred: %d  Masses blurred: %d\n", zlength, mlength); }
-
-	//IntPrint(closeind, numclose * config.lengthmz * config.numz);
 
 	//Determine the maximum intensity in the data
 	float dmax = Max(inp.dataInt, config.lengthmz);
@@ -196,8 +145,8 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 
 
 	//Applies the intensity threshold to kill peaks
-	if (config.intthresh != -1) { KillB(inp.dataInt, barr, config.intthresh, config.lengthmz, config.numz, config.isolength, inp.isotopepos, inp.isotopeval); }
-	
+	if (config.intthresh != -1) { KillB(inp.dataInt, barr, config.intthresh, config.lengthmz, config.numz); }
+
 
 	//Creates an intial probability matrix, decon.blur, of 1 for each element
 	decon.blur = calloc(ln, sizeof(float));
@@ -209,7 +158,6 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		decon.baseline = calloc(config.lengthmz, sizeof(float));
 		decon.noise = calloc(config.lengthmz, sizeof(float));
 	}
-
 
 	//#pragma omp parallel for private (i,j), schedule(auto)
 	for (int i = 0; i < config.lengthmz; i++)
@@ -247,12 +195,12 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	{
 		if (config.mzsig != 0)
 		{
-			deconvolve_baseline(config.lengthmz, inp.dataMZ, inp.dataInt, decon.baseline, fabs(config.mzsig));
+			deconvolve_baseline(config.lengthmz, inp.dataMZ, inp.dataInt, decon.baseline, fabsf(config.mzsig));
 			if (config.aggressiveflag == 2)
 			{
 				for (int i = 0; i < 10; i++)
 				{
-					deconvolve_baseline(config.lengthmz, inp.dataMZ, inp.dataInt, decon.baseline, fabs(config.mzsig));
+					deconvolve_baseline(config.lengthmz, inp.dataMZ, inp.dataInt, decon.baseline, fabsf(config.mzsig));
 				}
 				for (int i = 0; i < config.lengthmz; i++)
 				{
@@ -297,7 +245,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	float blurmax = 0;
 	decon.conv = 0;
 	int off = 0;
-	
+
 
 	if (silent == 0) { printf("Iterating..."); }
 
@@ -306,14 +254,8 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		decon.iterations = iterations;
 		if (config.beta > 0 && iterations > 0)
 		{
-
 			softargmax(decon.blur, config.lengthmz, config.numz, config.beta/betafactor);
 			//printf("Beta %f\n", beta);
-		}
-		else if (config.beta < 0 && iterations >0)
-		{
-			softargmax_transposed(decon.blur, config.lengthmz, config.numz, fabs(config.beta/betafactor), barr, maxlength,
-				config.isolength, inp.isotopepos, inp.isotopeval, config.speedyflag, decon.starttab, decon.endtab, decon.rmzdist, config.mzsig);
 		}
 
 		if (config.psig >= 1 && iterations > 0)
@@ -321,12 +263,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 			point_smoothing(decon.blur, barr, config.lengthmz, config.numz, abs((int)config.psig));
 			//printf("Point Smoothed %f\n", config.psig);
 		}
-		else if (config.psig < 0 && iterations >0)
-		{
-			point_smoothing_peak_width(config.lengthmz, config.numz, maxlength, decon.starttab, decon.endtab, decon.mzdist, decon.blur, config.speedyflag, barr);
-		}
 
-		
 		//Run Blurs
 		if (config.zsig >= 0 && config.msig >= 0) {
 			blur_it_mean(config.lengthmz, config.numz, numclose, closeind, decon.newblur, decon.blur, barr, closearray, config.zerolog);
@@ -346,9 +283,9 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		//Run Richardson-Lucy Deconvolution
 		deconvolve_iteration_speedy(config.lengthmz, config.numz, maxlength,
 			decon.newblur, decon.blur, barr, config.aggressiveflag, dataInt2,
-			config.isolength, inp.isotopepos, inp.isotopeval, decon.starttab, decon.endtab, decon.mzdist, decon.rmzdist, config.speedyflag,
+			decon.starttab, decon.endtab, decon.mzdist, decon.rmzdist, config.speedyflag,
 			config.baselineflag, decon.baseline, decon.noise, config.mzsig, inp.dataMZ, config.filterwidth, config.psig);
-		
+
 		//Determine the metrics for conversion. Only do this every 10% to speed up.
 		if ((config.numit < 10 || iterations % 10 == 0 || iterations % 10 == 1 || iterations>0.9 * config.numit)) {
 			float diff = 0;
@@ -357,7 +294,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 			{
 				if (barr[i] == 1)
 				{
-					diff += pow((decon.blur[i] - oldblur[i]), 2);
+					diff += powf((decon.blur[i] - oldblur[i]), 2);
 					tot += decon.blur[i];
 				}
 			}
@@ -365,7 +302,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 			else {
 				if (decon.conv == 12345678) { printf("m/z vs. charge grid is zero. Iteration: %d\n", iterations); break; }
 				else{decon.conv = 12345678;}
-			} 
+			}
 
 			//printf("Iteration: %d Convergence: %f\n", iterations, decon.conv);
 			if (decon.conv < 0.000001) {
@@ -377,7 +314,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 			}
 			memcpy(oldblur, decon.blur, sizelnf);
 		}
-		
+
 	}
 
 	free(dataInt2);
@@ -389,17 +326,17 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	//
 	//...............................................................
 
-	
+
 
 	//Reset the peak shape if it was inflated
 	if (config.peakshapeinflate != 1 && config.mzsig != 0) {
 		if (config.speedyflag == 0)
 		{
-			MakePeakShape2D(config.lengthmz, maxlength, decon.starttab, decon.endtab, inp.dataMZ, fabs(config.mzsig), config.psfun, config.speedyflag, decon.mzdist, decon.rmzdist, 0);
+			MakePeakShape2D(config, &decon, maxlength, inp.dataMZ, 0, 0);
 		}
 		else
 		{
-			MakePeakShape1D(inp.dataMZ, config.psmzthresh, config.lengthmz, config.speedyflag, fabs(config.mzsig), config.psfun, decon.mzdist, decon.rmzdist, 0);
+			MakePeakShape1D(config, &decon, inp.dataMZ, 0, 0);
 		}
 		printf("mzdist reset: %f\n", config.mzsig);
 	}
@@ -408,22 +345,23 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	//Determine the maximum intensity in the blur matrix
 	blurmax = Max(decon.blur, config.lengthmz * config.numz);
 	float cutoff = 0;
-	if (blurmax != 0) { cutoff = 0.000001; }
+	if (blurmax != 0) { cutoff = 0.000001f; }
 
 	//Apply The Cutoff
-	ApplyCutoff1D(decon.blur, blurmax * cutoff, config.lengthmz * config.numz);
-	
-	
+	ApplyCutoff(decon.blur, blurmax * cutoff, config.lengthmz * config.numz);
+
+
 	//Calculate the fit data and error.
 	decon.fitdat = calloc(config.lengthmz, sizeof(float));
-	decon.error = errfunspeedy(config, decon, barr, inp.dataInt, maxlength, inp.isotopepos, inp.isotopeval, decon.starttab, decon.endtab, decon.mzdist, &decon.rsquared);
+	decon.error = errfunspeedy(config, decon, barr, inp.dataInt, maxlength, decon.starttab, decon.endtab, decon.mzdist, &decon.rsquared);
 
 	//Fix issues with fitdat and consecutive zero data points
 	//TODO: It might be possible to build this in to convolve_simp so that this isn't necessary but it would require a 1D barr.
 	if (config.intthresh != -1)
 	{
-		#pragma omp parallel for schedule(auto)
-		for (int i = 0; i < config.lengthmz-1; i++)
+		int i;
+		#pragma omp parallel for private(i)
+		for (i = 0; i < config.lengthmz-1; i++)
 		{
 			if (inp.dataInt[i] == 0 && inp.dataInt[i + 1] == 0)
 			{
@@ -432,7 +370,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 			}
 		}
 	}
-	
+
 
 	// Charge scaling (orbimode)
 	if (config.orbimode == 1)
@@ -443,17 +381,11 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		printf("Done\n");
 	}
 
-	//Change Monoisotopic to Average if necessary
-	if (config.isotopemode == 2)
-	{
-		monotopic_to_average(config.lengthmz, config.numz, decon.blur, barr, config.isolength, inp.isotopepos, inp.isotopeval);
-	}
-
 	//newblur is repurposed as the convolution of blur by the mz peaks shape
 	float newblurmax = blurmax;
 	if ((config.rawflag == 0 || config.rawflag == 2)) {
 		if (config.mzsig != 0) {
-			newblurmax = Reconvolve(config.lengthmz, config.numz, maxlength, decon.starttab, decon.endtab, decon.mzdist, decon.blur, decon.newblur, config.speedyflag, barr);
+			newblurmax = Reconvolve(config, maxlength, &decon, barr);
 		}
 		else
 		{
@@ -476,14 +408,14 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		{
 			for (int j = 0; j < config.numz; j++)
 			{
-				if (decon.newblur[index2D(config.numz, i, j)] * barr[index2D(config.numz, i, j)] > newblurmax * cutoff)
+				if (decon.newblur[index2D(config.numz, i, j)] * (float) barr[index2D(config.numz, i, j)] > newblurmax * cutoff)
 				{
-					float testmax = inp.mtab[index2D(config.numz, i, j)] + config.psmzthresh * inp.nztab[j]+config.massbins;
-					float testmin = inp.mtab[index2D(config.numz, i, j)] - config.psmzthresh * inp.nztab[j];
+					float testmax = inp.mtab[index2D(config.numz, i, j)] + config.psmzthresh * (float) inp.nztab[j]+config.massbins;
+					float testmin = inp.mtab[index2D(config.numz, i, j)] - config.psmzthresh * (float) inp.nztab[j];
 
 					//To prevent really wierd decimals
-					testmin = round(testmin / config.massbins) * config.massbins;
-					testmax = round(testmax / config.massbins) * config.massbins;
+					testmin = roundf(testmin / config.massbins) * config.massbins;
+					testmax = roundf(testmax / config.massbins) * config.massbins;
 
 					if (testmax > massmax){	massmax = testmax;}
 					if (testmin < massmin){	massmin = testmin;}
@@ -495,14 +427,14 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	else { massmax = config.massub; massmin = config.masslb; }
 
 	//Checks to make sure the mass axis is good and makes a dummy axis if not
-	decon.mlen = (int)(massmax - massmin) / config.massbins;
+	decon.mlen = (int)((massmax - massmin) / config.massbins);
 	int mn = decon.mlen * config.numz;
 	size_t sizemn = (size_t)mn * sizeof(float);
 	if (decon.mlen < 1) {
 		printf("ERROR: No masses detected. Length: %d\n", decon.mlen);
 		massmax = config.massub;
 		massmin = config.masslb;
-		decon.mlen = (int)(massmax - massmin) / config.massbins;
+		decon.mlen = (int)((massmax - massmin) / config.massbins);
 
 		//Declare the memory
 		decon.massaxis = calloc(decon.mlen, sizeof(float));
@@ -514,7 +446,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		//Create the mass axis
 		for (int i = 0; i < decon.mlen; i++)
 		{
-			decon.massaxis[i] = massmin + i * config.massbins;
+			decon.massaxis[i] = massmin + (float) i * config.massbins;
 		}
 		decon.uniscore = 0;
 	}
@@ -528,41 +460,22 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		memset(decon.massgrid, 0, sizemn);
 		if (silent == 0) { printf("Mass axis length: %d\n", decon.mlen); }
 
-		
+
 		//Create the mass axis
 		for (int i = 0; i < decon.mlen; i++)
 		{
-			decon.massaxis[i] = massmin + i * config.massbins;
+			decon.massaxis[i] = massmin + (float) i * config.massbins;
 		}
 
 		//Determine the mass intensities from m/z grid
 		if (config.poolflag == 0) {
-			if (config.rawflag == 1 || config.rawflag == 3) {
-				IntegrateTransform(config.lengthmz, config.numz, inp.mtab, massmax, massmin, decon.mlen, decon.massaxis, decon.massaxisval, decon.blur, decon.massgrid);
-			}
-			if (config.rawflag == 0 || config.rawflag == 2) {
-				IntegrateTransform(config.lengthmz, config.numz, inp.mtab, massmax, massmin, decon.mlen, decon.massaxis, decon.massaxisval, decon.newblur, decon.massgrid);
-			}
+			IntegrateTransform(config, &decon, inp.mtab, massmax, massmin);
 		}
 		else if (config.poolflag == 1) {
-			if (config.rawflag == 1 || config.rawflag == 3) {
-				InterpolateTransform(decon.mlen, config.numz, config.lengthmz, inp.nztab, decon.massaxis, config.adductmass,
-					inp.dataMZ, decon.massgrid, decon.massaxisval, decon.blur);
-			}
-			if (config.rawflag == 0 || config.rawflag == 2) {
-				InterpolateTransform(decon.mlen, config.numz, config.lengthmz, inp.nztab, decon.massaxis, config.adductmass,
-					inp.dataMZ, decon.massgrid, decon.massaxisval, decon.newblur);
-			}
+			InterpolateTransform(config, &decon, &inp);
 		}
 		else if (config.poolflag == 2) {
-			if (config.rawflag == 1 || config.rawflag == 3) {
-				SmartTransform(decon.mlen, config.numz, config.lengthmz, inp.nztab, decon.massaxis, config.adductmass,
-					inp.dataMZ, decon.massgrid, decon.massaxisval, decon.blur);
-			}
-			if (config.rawflag == 0 || config.rawflag == 2) {
-				SmartTransform(decon.mlen, config.numz, config.lengthmz, inp.nztab, decon.massaxis, config.adductmass,
-					inp.dataMZ, decon.massgrid, decon.massaxisval, decon.newblur);
-			}
+			SmartTransform(config, &decon, &inp);
 		}
 		else {
 			printf("Invalid poolflag %d\n", config.poolflag);
@@ -596,14 +509,14 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	return decon;
 }
 
-void RunAutotune(Config *config, Input *inp, Decon *decon) {
+void RunAutotune(Config *config, const Input *inp, Decon *decon) {
 	printf("Starting Autotune...\n");
-	float start_peakwindow = config->peakwin;
-	float start_peakthresh = config->peakthresh;
+	const float start_peakwindow = config->peakwin;
+	const float start_peakthresh = config->peakthresh;
 	config->peakwin = 3 * config->massbins;
-	config->peakthresh = 0.01;
+	config->peakthresh = 0.01f;
 
-	int start_numit = config->numit;
+	const int start_numit = config->numit;
 	config->numit = 10;
 	*decon = MainDeconvolution(*config, *inp, 1, 0);
 	float bestscore = decon->uniscore;
@@ -614,18 +527,18 @@ void RunAutotune(Config *config, Input *inp, Decon *decon) {
 	float start_psig = config->psig;
 
 	//float mz_sigs[5] = { 0, 0.1, 1, 10, 100};
-	float mz_sigs[2] = { 0, config->mzsig };
+	const float mz_sigs[2] = { 0, config->mzsig };
 	//float z_sigs[2] = { -1, 1 };
-	float z_sigs[1] = { config->zsig };
-	float betas[3] = { 0, 50, 500 };
-	float psigs[3] = { 0, 1, 10 };
+	const float z_sigs[1] = { config->zsig };
+	const float betas[3] = { 0, 50, 500 };
+	const float psigs[3] = { 0, 1, 10 };
 
 	//int n_mzsigs = 5;
-	int n_mzsigs = 2;
+	const int n_mzsigs = 2;
 	//int n_zsigs = 2;
-	int n_zsigs = 1;
-	int n_betas = 3;
-	int n_psigs = 3;
+	const int n_zsigs = 1;
+	const int n_betas = 3;
+	const int n_psigs = 3;
 
 	for (int i = 0; i < n_mzsigs; i++)
 	{
@@ -665,48 +578,15 @@ void RunAutotune(Config *config, Input *inp, Decon *decon) {
 	*decon = MainDeconvolution(*config, *inp, 0, 0);
 }
 
-int run_unidec(int argc, char *argv[], Config config) {
-	//Initialize
-	clock_t starttime;
-	starttime = clock();
-
-	Input inp = SetupInputs();
-
-	bool autotune = 0;
-	int verbose = 0;
-	if (argc>2)
-	{
-		if (strcmp(argv[2], "-test") == 0)
-		{
-			float testmass = atof(argv[3]);
-			printf("Testing Mass: %f\n", testmass);
-			test_isotopes(testmass, inp.isoparams);
-			exit(0);
-		}
-
-		if (strcmp(argv[2], "-autotune") == 0){autotune = 1;}
-		if (strcmp(argv[2], "-verbose") == 0) { verbose = 1; }
-	}
-
-	//..................................
-	//
-	// File Inputs
-	//
-	//.................................
-
-	if (argc >= 2)
-	{
-		ReadInputs(argc, argv, &config, &inp);
-	}
-	else{ exit(88); }
-	if (verbose == 1) { printf("Read Inputs\n"); }
-
+int run_unidec_core(Config config, Input inp, Decon *decon, const int verbose, const int autotune) {
 	//.............................................................
 	//
 	//          Set the Mass Values to Exclude
 	//
 	//...............................................................
 
+	// Check inputs
+	if (verbose ==1 ) {printf("Checking inputs: %f %d\n", inp.dataMZ[0], config.lengthmz);}
 
 	CalcMasses(&config, &inp);
 
@@ -715,7 +595,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 	inp.barr = calloc(newlen, sizeof(char));
 	//Tells the algorithm to ignore data that are equal to zero
 	ignorezeros(inp.barr, inp.dataInt, config.lengthmz, config.numz);
-	if (verbose == 1) { printf("Ignored Zeros\n"); }
+	if (verbose == 1) { printf("Ignored Zeros. Length: %d\n", config.lengthmz);  }
 
 	//Sets limits based on mass range and any test masses
 	SetLimits(config, &inp);
@@ -727,14 +607,6 @@ int run_unidec(int argc, char *argv[], Config config) {
 		ManualAssign(inp.dataMZ, inp.barr, inp.nztab, config);
 		if (verbose == 1) { printf("Setup Manual Assign\n"); }
 	}
-	
-	//Setup Isotope Distributions
-	if (config.isotopemode > 0)
-	{
-		setup_and_make_isotopes(&config, &inp);
-		if (verbose == 1) { printf("Setup Isotopes\n"); }
-	}
-	
 
 	//................................................................
 	//
@@ -742,23 +614,63 @@ int run_unidec(int argc, char *argv[], Config config) {
 	//
 	//...................................................................
 
-	//Setup the Deconvolution
-	Decon decon=SetupDecon();
-
 	//Autotuning
 	if (autotune == 1) {
-		RunAutotune(&config, &inp, &decon);
+		RunAutotune(&config, &inp, decon);
 	}
-	else{ 
-		//Run the main Deconvolution		
-		decon = MainDeconvolution(config, inp, config.silent, verbose); }
+	else{
+		//Run the main Deconvolution
+		*decon = MainDeconvolution(config, inp, config.silent, verbose); }
 
 	// Run DoubleDec if it's checked
 	if (config.doubledec) { // Use Python to confirm kernel file is selected
 		printf("Running DoubleDec now\n");
-		DoubleDecon(&config, &decon);
+		DoubleDecon(&config, decon);
 	}
 	if (verbose == 1) { printf("Decon Done\n"); }
+	return 0;
+}
+
+
+int run_unidec(int argc, char *argv[], Config config) {
+	//Initialize
+	clock_t starttime;
+	starttime = clock();
+
+	bool autotune = 0;
+	int verbose = 0;
+	if (argc>2)
+	{
+		if (strcmp(argv[2], "-autotune") == 0){autotune = 1;}
+		if (strcmp(argv[2], "-verbose") == 0) { verbose = 1; }
+	}
+
+	//..................................
+	//
+	// File Inputs
+	//
+	//.................................
+
+	Input inp = SetupInputs();
+
+	if (argc >= 2)
+	{
+		ReadInputs(argc, argv, &config, &inp);
+	}
+	else{ exit(88); }
+	if (verbose == 1) { printf("Read Inputs\n"); }
+
+	//Setup the Deconvolution
+	Decon decon=SetupDecon();
+
+	// ........................................................
+	//
+	//  Run the Deconvolution
+	//
+	//........................................................
+
+	run_unidec_core(config, inp, &decon, verbose, autotune);
+
 	//................................................................
 	//
 	//  Wrapping up

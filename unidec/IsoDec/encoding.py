@@ -73,6 +73,7 @@ def extract_centroids(centroids, peaks, lowmz=-1.5, highmz=5.5, minpeaks=3, data
         # Find all centroids in the neighborhood of the peak
         start = fastnearest(centroids[:, 0], peakmz + lowmz)
         end = fastnearest(centroids[:, 0], peakmz + highmz) + 1
+        mid = fastnearest(centroids[:, 0], peakmz + highmz/2.) + 1
 
         if i < len(peaks) - 1:
             nextpeak = peaks[i + 1][0]
@@ -83,7 +84,7 @@ def extract_centroids(centroids, peaks, lowmz=-1.5, highmz=5.5, minpeaks=3, data
         if end - start < minpeaks:
             continue
         c = centroids[start:end]
-        new_c = centroids[start:end]
+        new_c = centroids[start:mid]
         if datathresh > 0:
             b1 = c[:, 1] > (datathresh * np.amax(c[:, 1]))
             new_c = c[b1]

@@ -7,6 +7,7 @@ import time
 import wx.lib.scrolledpanel as scrolled
 from unidec.modules.gui_elements.PlotControlsPanel import PlotControlsPanel
 
+
 class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
     # noinspection PyMissingConstructor
     def __init__(self, parent, config, pres, panel, iconfile):
@@ -23,8 +24,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.betasettings = [0, 50, 500, 1000]
         self.update_flag = True
 
-        # Get a few tool bar icons
-        tsize = (16, 16)
+        # Get a few toolbar icons
+        tsize = wx.Size(16, 16)
         try:
             self.open_bmp = wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN, wx.ART_TOOLBAR, tsize)
             self.next_bmp = wx.ArtProvider.GetBitmap(wx.ART_GO_FORWARD, wx.ART_TOOLBAR, tsize)
@@ -52,7 +53,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         # Small Toolbar
         buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
-        bsize = (54, 25)
+        bsize = wx.Size(54, 25)
         self.openbutton = wx.BitmapButton(self, -1, self.open_bmp, size=bsize)
         self.procbutton = wx.BitmapButton(self, -1, self.next_bmp, size=bsize)
         self.procbutton.SetBackgroundColour(wx.Colour(150, 150, 255))
@@ -74,7 +75,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         # Setting up main fold controls
         self.scrolledpanel = scrolled.ScrolledPanel(self, style=wx.ALL | wx.EXPAND)
         self.scrolledpanel.SetupScrolling()
-        size1 = (75, -1)
+        size1 = wx.Size(75, -1)
         self.foldpanels = fpb.FoldPanelBar(self.scrolledpanel, -1, size=(250, 1900), agwStyle=fpb.FPB_VERTICAL)
         style1 = fpb.CaptionBarStyle()
         style1b = fpb.CaptionBarStyle()
@@ -109,8 +110,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         panel1 = wx.Panel(foldpanel1, -1)
         sizercontrol1 = wx.GridBagSizer(wx.VERTICAL)
 
-        self.ctlminmz = wx.TextCtrl(panel1, value="", size=(50, -1))
-        self.ctlmaxmz = wx.TextCtrl(panel1, value="", size=(60, -1))
+        self.ctlminmz = wx.TextCtrl(panel1, value="", size=wx.Size(50, -1))
+        self.ctlmaxmz = wx.TextCtrl(panel1, value="", size=wx.Size(60, -1))
         mzrange = wx.BoxSizer(wx.HORIZONTAL)
         if self.config.imflag == 1:
             mzrange.Add(wx.StaticText(panel1, label="               "), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -119,7 +120,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         mzrange.Add(wx.StaticText(panel1, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
         mzrange.Add(self.ctlmaxmz)
         mzrange.Add(wx.StaticText(panel1, label=" Th "), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.fullbutton = wx.Button(panel1, -1, "Full", size=(40, 25))
+        self.fullbutton = wx.Button(panel1, -1, "Full", size=wx.Size(40, 25))
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_full, self.fullbutton)
         mzrange.Add(self.fullbutton)
         i = 0
@@ -127,8 +128,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         i += 1
 
         if self.config.imflag == 1:
-            self.ctlmindt = wx.TextCtrl(panel1, value="", size=(50, -1))
-            self.ctlmaxdt = wx.TextCtrl(panel1, value="", size=(60, -1))
+            self.ctlmindt = wx.TextCtrl(panel1, value="", size=wx.Size(50, -1))
+            self.ctlmaxdt = wx.TextCtrl(panel1, value="", size=wx.Size(60, -1))
             dtrange = wx.BoxSizer(wx.HORIZONTAL)
             dtrange.Add(wx.StaticText(panel1, label="Arrival Time Range: "), 0, wx.ALIGN_CENTER_VERTICAL)
             dtrange.Add(self.ctlmindt)
@@ -145,6 +146,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlbackcheck = wx.CheckBox(panel1, label="Use Background Subtraction", style=wx.CHK_3STATE)
         self.parent.Bind(wx.EVT_CHECKBOX, self.on_backcheck, self.ctlbackcheck)
         sizercontrol1.Add(self.ctlbackcheck, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        # Check box for whether to remove isotopes
+        self.ctlremoveisotopes = wx.Choice(panel1, -1, choices=["Off", "Pre", "Post", "Both"])
+        sizercontrol1.Add(self.ctlremoveisotopes, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
         self.dataprepbutton = wx.Button(panel1, -1, "Process Data")
@@ -226,7 +232,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         i += 1
 
         if self.config.imflag == 0:
-            self.ctlbintype = wx.Choice(panel1b, -1, size=(240, 50),
+            self.ctlbintype = wx.Choice(panel1b, -1, size=wx.Size(240, 50),
                                         choices=["Linear m/z (Constant " + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z)",
                                                  "Linear resolution (Constant (m/z)/(" + '\N{GREEK CAPITAL LETTER DELTA}' + "m/z))",
                                                  "Nonlinear", "Linear Interpolated", "Linear Resolution Interpolated"])
@@ -286,7 +292,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
                 self.ctldriftlength = wx.TextCtrl(panel1c, value='', size=size1)
                 gbox1c.Add(self.ctldriftlength, (6, 1), span=(1, 1))
-                gbox1c.Add(wx.StaticText(panel1c, label="Drift Cell Length (m)\nor Beta (Agilent)"), (6, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                gbox1c.Add(wx.StaticText(panel1c, label="Drift Cell Length (m)\nor Beta (Agilent)"), (6, 0),
+                           flag=wx.ALIGN_CENTER_VERTICAL)
 
             else:
                 self.ctltwave.SetSelection(1)
@@ -296,7 +303,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 gbox1c.Add(wx.StaticText(panel1c, label="Calibration Parameter 1: "), (i, 0),
                            flag=wx.ALIGN_CENTER_VERTICAL)
                 i += 1
-
 
                 self.ctltcal2 = wx.TextCtrl(panel1c, value='', size=size1)
                 gbox1c.Add(self.ctltcal2, (i, 1), span=(1, 1))
@@ -342,16 +348,16 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         panel2 = wx.Panel(foldpanel2, -1)
         sizercontrol2 = wx.GridBagSizer(wx.VERTICAL)
 
-        self.ctlstartz = wx.TextCtrl(panel2, value="", size=(60, -1))
-        self.ctlendz = wx.TextCtrl(panel2, value="", size=(60, -1))
+        self.ctlstartz = wx.TextCtrl(panel2, value="", size=wx.Size(60, -1))
+        self.ctlendz = wx.TextCtrl(panel2, value="", size=wx.Size(60, -1))
         zrange = wx.BoxSizer(wx.HORIZONTAL)
         zrange.Add(wx.StaticText(panel2, label="Charge Range: "), 0, wx.ALIGN_CENTER_VERTICAL)
         zrange.Add(self.ctlstartz)
         zrange.Add(wx.StaticText(panel2, label=" to "), 0, wx.ALIGN_CENTER_VERTICAL)
         zrange.Add(self.ctlendz)
 
-        self.ctlmasslb = wx.TextCtrl(panel2, value="", size=(60, -1))
-        self.ctlmassub = wx.TextCtrl(panel2, value="", size=(70, -1))
+        self.ctlmasslb = wx.TextCtrl(panel2, value="", size=wx.Size(60, -1))
+        self.ctlmassub = wx.TextCtrl(panel2, value="", size=wx.Size(70, -1))
         massrange = wx.BoxSizer(wx.HORIZONTAL)
         massrange.Add(wx.StaticText(panel2, label="Mass Range: "), 0, wx.ALIGN_CENTER_VERTICAL)
         massrange.Add(self.ctlmasslb)
@@ -366,8 +372,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         i += 1
 
         if self.config.imflag == 1:
-            self.ctlccslb = wx.TextCtrl(panel2, value="", size=(60, -1))
-            self.ctlccsub = wx.TextCtrl(panel2, value="", size=(70, -1))
+            self.ctlccslb = wx.TextCtrl(panel2, value="", size=wx.Size(60, -1))
+            self.ctlccsub = wx.TextCtrl(panel2, value="", size=wx.Size(70, -1))
             ccsrange = wx.BoxSizer(wx.HORIZONTAL)
             ccsrange.Add(wx.StaticText(panel2, label="CCS Range: "), 0, wx.ALIGN_CENTER_VERTICAL)
             ccsrange.Add(self.ctlccslb)
@@ -518,7 +524,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         if self.config.imflag == 0:
             # self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
-            self.ctlisotopemode = wx.Choice(panel2b, -1, size=(100, -1), choices=self.config.isotopechoices)
+            self.ctlisotopemode = wx.Choice(panel2b, -1, size=wx.Size(100, -1), choices=self.config.isotopechoices)
             self.ctlisotopemode.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
             gbox2b.Add(self.ctlisotopemode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
 
@@ -529,7 +535,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         mlsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.ctlmasslistflag = wx.CheckBox(panel2b, label="Mass List Window:")
         self.parent.Bind(wx.EVT_CHECKBOX, self.on_mass_list, self.ctlmasslistflag)
-        self.ctlmtabsig = wx.TextCtrl(panel2b, value="", size=(60, -1))
+        self.ctlmtabsig = wx.TextCtrl(panel2b, value="", size=wx.Size(60, -1))
         mlsizer.Add(self.ctlmasslistflag, 0, wx.ALIGN_CENTER_VERTICAL)
         mlsizer.Add(self.ctlmtabsig, 0, wx.ALIGN_CENTER_VERTICAL)
         mlsizer.Add(wx.StaticText(panel2b, label=" Da "), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -538,8 +544,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         sb = wx.StaticBox(panel2b, label='Native Charge Offset Range')
         sbs = wx.StaticBoxSizer(sb, orient=wx.HORIZONTAL)
-        self.ctlminnativez = wx.TextCtrl(panel2b, value='', size=(75, -1))
-        self.ctlmaxnativez = wx.TextCtrl(panel2b, value='', size=(75, -1))
+        self.ctlminnativez = wx.TextCtrl(panel2b, value='', size=wx.Size(75, -1))
+        self.ctlmaxnativez = wx.TextCtrl(panel2b, value='', size=wx.Size(75, -1))
         sbs.Add(self.ctlminnativez, flag=wx.LEFT | wx.EXPAND, border=5)
         sbs.Add(wx.StaticText(panel2b, label=' to '), 0, wx.EXPAND)
         sbs.Add(self.ctlmaxnativez, flag=wx.LEFT | wx.EXPAND, border=5)
@@ -549,8 +555,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         if self.config.imflag == 1:
             sb2 = wx.StaticBox(panel2b, label='Native CCS Offset Range')
             sbs2 = wx.StaticBoxSizer(sb2, orient=wx.HORIZONTAL)
-            self.ctlnativeccslb = wx.TextCtrl(panel2b, value='', size=(75, -1))
-            self.ctlnativeccsub = wx.TextCtrl(panel2b, value='', size=(75, -1))
+            self.ctlnativeccslb = wx.TextCtrl(panel2b, value='', size=wx.Size(75, -1))
+            self.ctlnativeccsub = wx.TextCtrl(panel2b, value='', size=wx.Size(75, -1))
             sbs2.Add(self.ctlnativeccslb, flag=wx.LEFT | wx.EXPAND, border=5)
             sbs2.Add(wx.StaticText(panel2b, label=' to '), 0, wx.EXPAND)
             sbs2.Add(self.ctlnativeccsub, flag=wx.LEFT | wx.EXPAND, border=5)
@@ -581,7 +587,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         sizercontrol3 = wx.GridBagSizer(wx.VERTICAL)
         self.ctlwindow = wx.TextCtrl(panel3, value="", size=size1)
         self.ctlthresh = wx.TextCtrl(panel3, value="", size=size1)
-
 
         self.plotbutton = wx.Button(panel3, -1, "Peak Detection")
         self.plotbutton2 = wx.Button(panel3, -1, "Plot Peaks")
@@ -664,8 +669,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         sb2 = wx.StaticBox(panel3b, label='Integration Range')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.HORIZONTAL)
-        self.ctlintlb = wx.TextCtrl(panel3b, value='', size=(75, -1))
-        self.ctlintub = wx.TextCtrl(panel3b, value='', size=(75, -1))
+        self.ctlintlb = wx.TextCtrl(panel3b, value='', size=wx.Size(75, -1))
+        self.ctlintub = wx.TextCtrl(panel3b, value='', size=wx.Size(75, -1))
         sbs2.Add(self.ctlintlb, flag=wx.LEFT | wx.EXPAND, border=5)
         sbs2.Add(wx.StaticText(panel3b, label=' to '), 0, flag=wx.EXPAND)
         sbs2.Add(self.ctlintub, flag=wx.LEFT | wx.EXPAND, border=5)
@@ -694,9 +699,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.foldpanels.AddFoldPanelWindow(foldpanel3b, wx.StaticText(foldpanel3b, -1, " "), fpb.FPB_ALIGN_WIDTH)
 
         # Create plotcontrol panel
-        #foldpanel4 = self.foldpanels.AddFoldPanel(caption="Plot Controls", collapsed=False, cbstyle=style3b)
-        #pcpanel = PlotControlsPanel(foldpanel4, self.config)
-        #self.foldpanels.AddFoldPanelWindow(foldpanel4, pcpanel, fpb.FPB_ALIGN_WIDTH)
+        # foldpanel4 = self.foldpanels.AddFoldPanel(caption="Plot Controls", collapsed=False, cbstyle=style3b)
+        # pcpanel = PlotControlsPanel(foldpanel4, self.config)
+        # self.foldpanels.AddFoldPanelWindow(foldpanel4, pcpanel, fpb.FPB_ALIGN_WIDTH)
 
         bright = 250
         foldpanel1.SetBackgroundColour(wx.Colour(bright, bright, 255))
@@ -711,7 +716,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         foldpanel3.SetBackgroundColour(wx.Colour(255, bright, bright))
         foldpanel3b.SetBackgroundColour(wx.Colour(255, bright, bright))
 
-        sizercontrol.SetMinSize((250 + self.config.imflag * 10, 0))
+        sizercontrol.SetMinSize(wx.Size(250 + self.config.imflag * 10, 0))
 
         # Add to sizer and setup
         sizercontrolscrolled = wx.BoxSizer(wx.VERTICAL)
@@ -725,7 +730,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         # Bottom Buttons
         if self.config.imflag == 0:
             buttonsizer2 = wx.BoxSizer(wx.HORIZONTAL)
-            bsize = (45, 25)
+            bsize = wx.Size(45, 25)
             self.mainbutton = wx.Button(self, -1, "Main", size=bsize)
             self.expandbutton = wx.Button(self, -1, "All", size=bsize)
             self.collapsebutton = wx.Button(self, -1, "None", size=bsize)
@@ -785,7 +790,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlbinsize.SetValue(str(self.config.mzbins))
             self.ctlwindow.SetValue(str(self.config.peakwindow))
             self.ctlthresh.SetValue(str(self.config.peakthresh))
-            self.ctlnormpeakthresh.SetValue(int(self.config.normthresh))
+            self.ctlnormpeakthresh.SetValue(bool(self.config.normthresh))
             self.ctlthresh2.SetValue(str(self.config.peakplotthresh))
             self.ctlsep.SetValue(str(self.config.separation))
             self.ctlintthresh.SetValue(str(self.config.intthresh))
@@ -805,8 +810,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
                 self.ctlmanualassign.SetValue(self.config.manualfileflag)
                 self.ctlisotopemode.SetSelection(self.config.isotopemode)
-                self.ctlorbimode.SetValue(int(self.config.orbimode))
-                self.ctldatanorm.SetValue(int(self.config.datanorm))
+                self.ctlorbimode.SetValue(bool(self.config.orbimode))
+                self.ctldatanorm.SetValue(bool(self.config.datanorm))
                 self.ctlbintype.SetSelection(int(self.config.linflag))
                 self.ctlpsig.SetValue(str(self.config.psig))
                 self.ctlbeta.SetValue(str(self.config.beta))
@@ -816,10 +821,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlrawflag.SetSelection(self.config.rawflag)
 
+            self.ctlremoveisotopes.SetSelection(self.config.isomode)
+
             if self.config.adductmass < 0:
-                self.ctlnegmode.SetValue(1)
+                self.ctlnegmode.SetValue(True)
             else:
-                self.ctlnegmode.SetValue(0)
+                self.ctlnegmode.SetValue(False)
 
             try:
                 self.ctl2dcm.SetSelection(self.config.cmaps2.index(self.config.cmap))
@@ -881,8 +888,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             try:
                 test = float(self.config.msig)
             except:
-                self.config.msig=0
-
+                self.config.msig = 0
 
             if self.config.msig > 0:
                 self.parent.SetStatusText(
@@ -961,11 +967,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.discreteplot = int(self.ctldiscrete.GetValue())
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
         self.config.rawflag = self.ctlrawflag.GetSelection()
+        self.config.isomode = int(self.ctlremoveisotopes.GetSelection())
 
         try:
             test = float(self.config.adductmass)
         except:
-            self.config.adductmass=0
+            self.config.adductmass = 0
 
         if self.ctlnegmode.GetValue() == 1:
             # print("Negative Ion Mode")
