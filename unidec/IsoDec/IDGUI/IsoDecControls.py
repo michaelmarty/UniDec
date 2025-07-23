@@ -437,7 +437,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.Freeze()
         self.update_flag = False
         if self.config.batchflag == 0:
-            self.ctlcentroided.SetValue(self.config.centroided)
+            self.ctlcentroided.SetValue(int(self.config.centroided))
             self.ctlmassbins.SetValue(str(self.config.massbins))
             self.ctlnorm.SetSelection(int(self.config.peaknorm))
             self.ctlbuff.SetValue(str(self.config.subbuff))
@@ -515,7 +515,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         Exports parameters from the GUI to the config object.
         :return: None
         """
-        self.config.centroided = self.ctlcentroided.GetValue()
+        self.config.centroided = ud.string_to_int(self.ctlcentroided.GetValue())
         self.config.minmz = ud.string_to_value(self.ctlminmz.GetValue())
         self.config.maxmz = ud.string_to_value(self.ctlmaxmz.GetValue())
         self.config.subbuff = ud.string_to_value(self.ctlbuff.GetValue())

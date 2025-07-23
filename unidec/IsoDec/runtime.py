@@ -188,6 +188,9 @@ class IsoDecRuntime:
         self.batch_process_spectrum(data)
         print("IsoDec time:", time.perf_counter() - st)
         isodists = self.pks.to_merged_isodists()
+        if len(isodists) == 0:
+            print("No peaks found, returning original data.")
+            return data, isodists
         data = fwhmtools.remove_peaks(data, isodists, wfactor=6, maxppmtol=100)
 
         # for p in self.pks.peaks:

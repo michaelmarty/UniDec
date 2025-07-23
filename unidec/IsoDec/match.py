@@ -409,6 +409,9 @@ class MatchedCollection:
                     isodistall.append(d)
         # to numpy array
         isodistall = np.array(isodistall)
+        if len(isodistall) == 0:
+            print("Zero Sized Isodist Array")
+            return np.array([])
         # Sort by mass
         isodistall = isodistall[np.argsort(isodistall[:, 0])]
         return isodistall

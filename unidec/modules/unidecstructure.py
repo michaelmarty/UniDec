@@ -52,8 +52,8 @@ class UniDecConfig(object):
         self.version = version
         self.inputversion = None
         self.dtype = ud.dtype
-        self.centroided = False
-        self.verbose = False
+        self.centroided = 0
+        self.verbose = 0
 
         # File names and paths
         self.system = platform.system()
@@ -1666,16 +1666,16 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         self.knockdown_rounds = 5
         self.min_score_diff = 0.1
         self.minareacovered = 0.20
-        self.minusoneaszero = True
+        self.minusoneaszero = 1
         self.isotopethreshold = 0.01
         self.datathreshold = 0.05
         self.zscore_threshold = 0.95
 
         self.avgpeakmasses = 0
-        self.report_multiple_monoisos = True
-        self.write_scans_without_precs = True
-        self.write_msalign = False
-        self.write_tsv = True
+        self.report_multiple_monoisos = 1
+        self.write_scans_without_precs = 1
+        self.write_msalign = 0
+        self.write_tsv = 1
         self.analyte_type = "Peptide"
 
     def set_scan_info(self, s, reader=None):
@@ -1740,7 +1740,6 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         outputstring += "iso_meanpeakspacing_thresh " + str(self.meanpeakspacing_thresh) + "\n"
         outputstring += "iso_adductmass " + str(self.adductmass) + "\n"
         outputstring += "iso_mass_diff_c " + str(self.mass_diff_c) + "\n"
-        outputstring += "iso_verbose " + str(self.verbose) + "\n"
         outputstring += "iso_peakwindow " + str(self.peakwindow) + "\n"
         outputstring += "iso_phaseres " + str(self.phaseres) + "\n"
         outputstring += "iso_matchtol " + str(self.matchtol) + "\n"
@@ -1803,8 +1802,6 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
                 self.adductmass = float(value)
             elif key == "iso_mass_diff_c":
                 self.mass_diff_c = float(value)
-            elif key == "iso_verbose":
-                self.verbose = int(value)
             elif key == "iso_peakwindow":
                 self.peakwindow = float(value)
             elif key == "iso_phaseres":
@@ -1835,6 +1832,7 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
                 self.minareacovered = float(value)
             elif key == "iso_minusoneaszero":
                 self.minusoneaszero = value.lower() in ["true", "1", "yes"]
+                self.minusoneaszero = int(self.minusoneaszero)  # Ensure it's an integer
             elif key == "iso_isotopethreshold":
                 self.isotopethreshold = float(value)
             elif key == "iso_datathreshold":
@@ -1843,12 +1841,17 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
                 self.zscore_threshold = float(value)
             elif key == "iso_report_multiple_monoisos":
                 self.report_multiple_monoisos = value.lower() in ["true", "1", "yes"]
+                self.report_multiple_monoisos = int(self.report_multiple_monoisos)  # Ensure it's an integer
             elif key == "iso_write_scans_without_precs":
                 self.write_scans_without_precs = value.lower() in ["true", "1", "yes"]
+                self.write_scans_without_precs = int(self.write_scans_without_precs)  # Ensure it's an integer
             elif key == "iso_write_msalign":
                 self.write_msalign = value.lower() in ["true", "1", "yes"]
+                self.write_msalign = int(self.write_msalign)  # Ensure it's an integer
             elif key == "iso_write_tsv":
                 self.write_tsv = value.lower() in ["true", "1", "yes"]
+                # Ensure it's an integer
+                self.write_tsv = int(self.write_tsv)
 
 
 
