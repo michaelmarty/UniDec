@@ -11,7 +11,7 @@ import unidec.tools as ud
 import unidec.IsoDec.msalign_export as msalign
 import math
 import pandas as pd
-# from Scripts.JGP.IsoDec_Analysis.compare_msaligns import *
+from unidec.modules.fwhmtools import fast_fwhm
 
 
 # mass_diff_c = 1.0033
@@ -416,6 +416,11 @@ class MatchedCollection:
         isodistall = isodistall[np.argsort(isodistall[:, 0])]
         return isodistall
 
+    def fill_fwhm(self, profiledata, sort=False, wfactor=4, maxppmtol=1000):
+        for p in self.peaks:
+            p.set_fwhms(profiledata, sort=sort, wfactor=wfactor, maxppmtol=maxppmtol)
+
+
 
 
 class MatchedMass:
@@ -474,6 +479,10 @@ class MatchedPeak:
         self.avgmass = avgmass
         self.acceptedshifts = None
         self.matchedions = []
+        self.fwhms = []
+        self.avgfwhm = 0
+        self.fwhmratio = 0
+        self.avgsigma = 0
         if matchedindexes is not None:
             self.matchedindexes = matchedindexes
             self.matchedcentroids = centroids[np.array(matchedindexes)]
@@ -493,6 +502,49 @@ class MatchedPeak:
         maxmz = np.amax(self.isodist[:, 0]) + 0.5
         data = ud.dataremove(data, minmz, maxmz)
         return data
+
+    def set_fwhms(self, profiledata, sort=False, wfactor=4, maxppmtol=1000):
+        if ud.isempty(self.isodist):
+            self.fwhms = np.array([])
+        else:
+            self.fwhms = fast_fwhm(profiledata, self.isodist, sort=sort, wfactor=wfactor, maxppmtol=maxppmtol)
+
+        goodb = self.fwhms[:, 0] > 0
+        goodfwhms = self.fwhms[goodb]
+        if len(goodfwhms) > 0:
+            self.avgfwhm = np.mean(goodfwhms[:, 0])
+            self.fwhmratio = np.mean(goodfwhms[:, 1] / goodfwhms[:, 2])
+            self.avgsigma = np.mean(goodfwhms[:, 5])
+
+    def gen_peak(self, data):
+        if self.isodist is None or len(self.isodist) == 0:
+            print("No isodist for peak", self.mz, self.z)
+            return None
+        if len(self.fwhms) == 0:
+            print("No FWHM for peak", self.mz, self.z)
+            return None
+        if self.avgfwhm == 0 or np.isnan(self.avgfwhm):
+            print("No valid FWHM for peak", self.mz, self.z)
+            return None
+
+        xvalues = []
+        yvalues = []
+        for i, fwhm in enumerate(self.fwhms):
+            if fwhm[0] <= 0:
+                continue
+            # Generate the peak using the isodist and FWHM
+            peakmz = self.isodist[i, 0]
+            peakint = self.isodist[i, 1]
+            fwhm_value = fwhm[0]
+            sigma = fwhm[5]
+            startindex = fwhm[3]
+            endindex = fwhm[4]
+
+            xvalues = data[startindex:endindex+1, 0]
+
+            yvalues = ud.ndis_std(xvalues, peakmz, sigma, peakint)
+
+
 
     def __str__(self):
         return f"MatchedPeak: mz={self.mz}, z={self.z}, monoiso={self.monoiso}"

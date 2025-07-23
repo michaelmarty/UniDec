@@ -7,7 +7,7 @@ import sys
 path_root = Path(__file__).parents[2]
 sys.path.append(str(path_root))
 
-from unidec.IsoDec.datatools import get_all_centroids, check_spacings, remove_noise_cdata
+from unidec.IsoDec.datatools import get_all_centroids, check_spacings, remove_noise_cdata, datacompsub
 from unidec.IsoDec.match import MatchedCollection
 from unidec.modules.unidecstructure import IsoDecConfig
 
@@ -16,7 +16,6 @@ from unidec.IsoDec.c_interface import IsoDecWrapper, example
 from unidec.IsoDec.plots import plot_pks
 from unidec.IsoDec.altdecon import thrash_predict
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
-import unidec.tools as ud
 import unidec.modules.fwhmtools as fwhmtools
 
 class IsoDecRuntime:
@@ -79,7 +78,10 @@ class IsoDecRuntime:
         if centroided:
             centroids = deepcopy(data)
         else:
-            centroids = deepcopy(get_all_centroids(data, window=window, threshold=threshold * 0.1))
+            newdat = deepcopy(data)
+            if self.config.background_subtraction > 0:
+                newdat = datacompsub(newdat, self.config.background_subtraction)
+            centroids = get_all_centroids(newdat, window=window, threshold=threshold * 0.1)
 
         med_spacing = check_spacings(centroids)
         if med_spacing <= self.config.meanpeakspacing_thresh:

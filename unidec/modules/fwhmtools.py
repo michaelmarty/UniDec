@@ -1,8 +1,24 @@
 import numpy as np
 from numba import njit
+from unidec.modules.fitting import ndis_std
 
+@njit(fastmath=True)
+def calc_sigma(data):
+    s = 0
+    x1, y1 = data[0]
+    for d in data[1:]:
+        x2, y2 = d
+        s += (y1 + y2) * (x2 - x1) / 2.0
+        x1, y1 = x2, y2
 
-# @njit(fastmath=True)
+    # diffs = np.diff(data[:,0])
+    # ys = data[:-1,1]
+    # ys2 = data[1:,1]
+    # ys = (ys + ys2) / 2.0  # Average the y values
+    # sum = np.sum(ys * diffs)
+    return s/(np.sqrt(2 * np.pi) * np.amax(data[:, 1]))
+
+@njit(fastmath=True)
 def check_tol(x, y, ppmtol):
     diff = np.abs(x - y)
     diffcut = x * ppmtol * 1e-6
@@ -11,7 +27,7 @@ def check_tol(x, y, ppmtol):
     else:
         return False
 
-# @njit(fastmath=True)
+@njit(fastmath=True)
 def linear_interpolation(d1, d2, y):
     """
     Perform linear interpolation between two points.
@@ -31,7 +47,7 @@ def linear_interpolation(d1, d2, y):
     x = (y - b) / m
     return x
 
-# @njit(fastmath=True)
+@njit(fastmath=True)
 def find_fwhm(data, index, wfactor=4, maxppmtol=1000):
     """
     Find the full width at half maximum (FWHM) of a peak in the data.
@@ -42,7 +58,7 @@ def find_fwhm(data, index, wfactor=4, maxppmtol=1000):
     """
     mz = data[index, 0]
     intensity = data[index, 1]
-    default = [-1.0, -1.0, -1.0, -1.0, -1.0]
+    default = [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0]
 
     if intensity == 0:
         return default
@@ -85,10 +101,11 @@ def find_fwhm(data, index, wfactor=4, maxppmtol=1000):
     # If leftwidth is far apart from rightwidth, we can assume the peak is not symmetric
     # if 0.5 < leftwidth / rightwidth < 2:
     #     return -1, -1, -1, -1, -1
+    sigma = calc_sigma(data[left_index:right_index + 1])
 
-    return [fwhm, leftwidth, rightwidth, left_index, right_index]
+    return [fwhm, leftwidth, rightwidth, left_index, right_index, sigma]
 
-# @njit(fastmath=True)
+@njit(fastmath=True)
 def fast_fwhm(data, peaks, sort=False, wfactor=4, maxppmtol=1000):
     """
     Fast FWHM calculation for a set of peaks.
@@ -107,7 +124,7 @@ def fast_fwhm(data, peaks, sort=False, wfactor=4, maxppmtol=1000):
     fwhmlist = []
     for i, p in enumerate(peaks):
         if p[1] == 0:
-            fwhmlist.append([-1.0, -1.0, -1.0, -1.0, -1.0])
+            fwhmlist.append([-1.0, -1.0, -1.0, -1.0, -1.0, -1.0])
             continue
 
         index = matchedindexes[i]
@@ -118,8 +135,7 @@ def fast_fwhm(data, peaks, sort=False, wfactor=4, maxppmtol=1000):
     return np.array(fwhmlist)
 
 
-
-# @njit(fastmath=True)
+@njit(fastmath=True)
 def match_indexes(array, targetarray):
     """
     Assuming that both arrays are sorted, find the indexes of the elements in targetarray that match the elements in array.
@@ -169,6 +185,25 @@ def remove_peaks(data, isodist, wfactor=6, maxppmtol=1000):
     leftoverdata = remove_peaks_from_fwhmlist(data, fwhms)
     # print("Leftover Data Length:", len(leftoverdata))
     return leftoverdata
+
+def create_peak(data, isodist, fwhmlist):
+    xvalues = []
+    yvalues = []
+    for i, fwhm in enumerate(fwhmlist):
+        if fwhm[0] <= 0:
+            continue
+        # Generate the peak using the isodist and FWHM
+        peakmz = isodist[i, 0]
+        peakint = isodist[i, 1]
+        fwhm_value = fwhm[0]
+        sigma = fwhm[5]
+        startindex = fwhm[3]
+        endindex = fwhm[4]
+
+        xvalues = data[startindex:endindex + 1, 0]
+        yvalues = ndis_std(xvalues, peakmz, sigma, peakint)
+
+
 
 if __name__ == "__main__":
     import os
