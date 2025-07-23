@@ -26,6 +26,7 @@ class IsoDecPres(UniDecPres):
                 # self.on_ex()
                 file = "C:\\Data\\Volker noisy protein spectra\\Protein+cov-binder_#212#141.txt"
                 # file = "C:\\Data\\Yuri\\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_100k_Charge Reduction-yes_adduct_N-term_MP2_pi200_IntGaus_NoP_N3.csv"
+                # file = "C:\\Python\\UniDecDev\\unidec\\bin\\Example Data\\IsoDec\\test2.txt"
                 self.on_open_file(file)
                 # self.on_unidec_button()
                 # self.on_plot_peaks()
@@ -160,6 +161,10 @@ class IsoDecPres(UniDecPres):
         self.fix_parameters()
         self.translate_config()
         self.export_config(self.eng.config.confname)
+        self.eng.config.smooth = 0
+        self.eng.config.subbuff = 0
+        self.eng.config.detectoreffva = 0
+        self.eng.config.mzbins = 0
 
         if not self.eng.config.centroided:
             print("Centroiding Data")
@@ -167,12 +172,17 @@ class IsoDecPres(UniDecPres):
             #Everything going through IsoDec should be centroided
             if path[-1].lower() == 'raw' and not os.path.isdir(self.top_path):
                 self.eng.data.data2 = self.isodeceng.reader.grab_all_centroid_dat()
+                if self.eng.config.idconfig.background_subtraction>0:
+                    self.eng.data.data2 = ud.datacompsub(self.eng.data.data2, self.eng.config.idconfig.background_subtraction)
             else:
-                self.eng.data.data2 = get_all_centroids(self.eng.data.rawdata)
+                self.eng.data.data2 = get_all_centroids(self.eng.data.rawdata, background=self.eng.config.idconfig.background_subtraction)
             # self.eng.config.centroided = True
         else:
             # If the data is already centroided, just use the raw data
             self.eng.data.data2 = self.eng.data.rawdata
+            if self.eng.config.idconfig.background_subtraction > 0:
+                self.eng.data.data2 = ud.datacompsub(self.eng.data.data2,
+                                                     self.eng.config.idconfig.background_subtraction)
         self.eng.process_data(centroid=True)
 
         self.import_config()

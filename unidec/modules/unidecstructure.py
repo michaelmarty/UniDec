@@ -13,6 +13,7 @@ __author__ = 'Michael.Marty'
 
 version = "8.0.3"
 
+
 def ofile_reader(path):
     oligos = []
     for line in open(path):
@@ -684,7 +685,7 @@ class UniDecConfig(object):
 
         self.numz = self.endz - self.startz + 1
         f = open(name, 'w+')
-        ignorelist = ["mfile", "manualfile", "smashfile", "ofile", "matchfile", "peaksfile",]
+        ignorelist = ["mfile", "manualfile", "smashfile", "ofile", "matchfile", "peaksfile", "kernel"]
         for key in self.namedict.keys():
             if key in ignorelist:
                 continue
@@ -707,7 +708,9 @@ class UniDecConfig(object):
                         else:
                             raise ValueError(f"Value for {key} is not a valid int: {value}")
 
-                f.write(key + " " + str(value) + "\n")
+                outstring = str(value)
+                if outstring != "" and outstring != " ":
+                    f.write(key + " " + outstring + "\n")
 
         if self.mfileflag:
             if not ud.isempty(self.masslist):
@@ -719,6 +722,9 @@ class UniDecConfig(object):
                 f.write("manualfile " + str(self.manualfile) + "\n")
             else:
                 print("Need to specify manual assignments. Running without assignments.")
+
+        if self.kernel != "":
+            f.write("kernel " + str(self.kernel) + "\n")
 
         # Add IsoDec Config to File
         self.idconfig.config_export(f)
@@ -1013,9 +1019,10 @@ class UniDecConfig(object):
                         if line.startswith("isomode"):
                             self.isomode = ud.string_to_int(line.split()[1])
 
-            self.idconfig.config_import(f)
-
             f.close()
+
+            self.idconfig.config_import(name)
+
             self.endz = self.startz + self.numz - 1
 
             # Import massfile
@@ -1511,8 +1518,7 @@ class UniDecConfig(object):
         self.massub = 10000000
         self.endz = 200
         self.zzsig = 1e-6
-        self.mzsig=10
-
+        self.mzsig = 10
 
     def initialize_system_paths(self):
         """
@@ -1629,7 +1635,7 @@ class UniDecConfig(object):
             print(files)
 
 
-class IsoDecConfig: # (udstruct.UniDecConfig):
+class IsoDecConfig:  # (udstruct.UniDecConfig):
     def __init__(self, config=None):
         """
         Configuration class for IsoDec Engine. Holds the key parameters for the data processing and deconvolution.
@@ -1650,6 +1656,7 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         self.activescanrt = -1
         self.activescanorder = -1
         self.meanpeakspacing_thresh = 0.01  ##This needs to be optimized.
+        self.background_subtraction = 0
 
         self.mass_diff_c = 1.0033
         self.peakwindow = 80
@@ -1705,6 +1712,7 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         outstring += f"Active Scan RT: {self.activescanrt}\n"
         outstring += f"Active Scan Order: {self.activescanorder}\n"
         outstring += f"Mean Peak Spacing Threshold: {self.meanpeakspacing_thresh}\n"
+        outstring += f"Background Subtraction: {self.background_subtraction}\n"
         outstring += f"Adduct Mass: {self.adductmass}\n"
         outstring += f"Mass Diff C: {self.mass_diff_c}\n"
         outstring += f"Verbose: {self.verbose}\n"
@@ -1738,6 +1746,7 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         """
         outputstring = ""
         outputstring += "iso_meanpeakspacing_thresh " + str(self.meanpeakspacing_thresh) + "\n"
+        outputstring += "iso_background_subtraction " + str(self.background_subtraction) + "\n"
         outputstring += "iso_adductmass " + str(self.adductmass) + "\n"
         outputstring += "iso_mass_diff_c " + str(self.mass_diff_c) + "\n"
         outputstring += "iso_peakwindow " + str(self.peakwindow) + "\n"
@@ -1793,11 +1802,17 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
             if line.startswith("#") or not line.strip():
                 continue
 
-            key, value = line.split(maxsplit=1)
+            try:
+                key, value = line.split(maxsplit=1)
+            except:
+                print(f"Skipping malformed line: {line.strip()}")
+                continue
             key = key.strip()
             value = value.strip()
             if key == "iso_meanpeakspacing_thresh":
                 self.meanpeakspacing_thresh = float(value)
+            elif key == "iso_background_subtraction":
+                self.background_subtraction = float(value)
             elif key == "iso_adductmass":
                 self.adductmass = float(value)
             elif key == "iso_mass_diff_c":
@@ -1852,11 +1867,6 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
                 self.write_tsv = value.lower() in ["true", "1", "yes"]
                 # Ensure it's an integer
                 self.write_tsv = int(self.write_tsv)
-
-
-
-
-
 
 
 class OligomerContainer:

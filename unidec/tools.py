@@ -1090,6 +1090,10 @@ def datasimpsub(datatop, buff):
     return datatop
 
 
+# def isodec_background_subtract(datatop, width):
+
+
+
 def datacompsub(datatop, buff):
     """
     Complex background subtraction.

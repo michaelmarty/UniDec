@@ -84,11 +84,11 @@ class MainControls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlmaxmz.SetToolTip(wx.ToolTip("Set maximum m/z of data"))
         self.fullbutton.SetToolTip(wx.ToolTip("Set m/z range to full data range"))
 
-        self.ctlbackcheck = wx.CheckBox(panel1, label="Use Background Subtraction", style=wx.CHK_3STATE)
-        self.parent.Bind(wx.EVT_CHECKBOX, self.on_backcheck, self.ctlbackcheck)
-        sizercontrol1.Add(self.ctlbackcheck, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
-        self.ctlbackcheck.SetToolTip(wx.ToolTip("Select to use background subtraction"))
+        # self.ctlbackcheck = wx.CheckBox(panel1, label="Use Background Subtraction", style=wx.CHK_3STATE)
+        # self.parent.Bind(wx.EVT_CHECKBOX, self.on_backcheck, self.ctlbackcheck)
+        # sizercontrol1.Add(self.ctlbackcheck, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        # i += 1
+        # self.ctlbackcheck.SetToolTip(wx.ToolTip("Select to use background subtraction"))
 
         self.ctlcentroided = wx.CheckBox(panel1, label="Data is Centroided")
         sizercontrol1.Add(self.ctlcentroided, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -114,18 +114,13 @@ class MainControls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox1b = wx.GridBagSizer(wx.VERTICAL)
         i = 0
 
-        self.subtypectl = wx.Choice(panel1b, -1, choices=self.backgroundchoices)
-        self.subtypectl.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
+
         self.ctlbuff = wx.TextCtrl(panel1b, value="", size=size1)
-        self.subtypectl.SetSelection(2)
-        gbox1b.Add(self.subtypectl, (i, 0))
+        gbox1b.Add(wx.StaticText(panel1b, label="Background Subtraction: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         gbox1b.Add(self.ctlbuff, (i, 1))
         i += 1
         self.ctlbuff.SetToolTip(wx.ToolTip(
-            "Background subtraction parameters.\nMinimum: 0=off 1=on"
-            "\nLine: The first and last n data points will be averaged;"
-            "\n a line between the two averages will be subtracted.\nCurved: Width of smoothed background"))
-        self.subtypectl.SetToolTip(wx.ToolTip("Background subtraction type."))
+            "Background subtraction parameters. Width of smoothed background"))
 
         self.ctlintthresh = wx.TextCtrl(panel1b, value="", size=size1)
         gbox1b.Add(self.ctlintthresh, (i, 1), span=(1, 1))
@@ -436,8 +431,7 @@ class MainControls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlcentroided.SetValue(bool(self.config.centroided))
             self.ctlmassbins.SetValue(str(self.config.massbins))
             self.ctlnorm.SetSelection(int(self.config.peaknorm))
-            self.ctlbuff.SetValue(str(self.config.subbuff))
-            self.subtypectl.SetSelection(int(self.config.subtype))
+            self.ctlbuff.SetValue(str(self.config.idconfig.background_subtraction))
             self.ctlwindow.SetValue(str(int(self.config.idconfig.peakwindow)))
             self.ctlthresh.SetValue(str(self.config.idconfig.peakthresh))
             self.ctlintthresh.SetValue(str(self.config.intthresh))
@@ -514,8 +508,7 @@ class MainControls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.centroided = ud.string_to_int(self.ctlcentroided.GetValue())
         self.config.minmz = ud.string_to_value(self.ctlminmz.GetValue())
         self.config.maxmz = ud.string_to_value(self.ctlmaxmz.GetValue())
-        self.config.subbuff = ud.string_to_value(self.ctlbuff.GetValue())
-        self.config.subtype = self.subtypectl.GetSelection()
+        self.config.idconfig.background_subtraction = ud.string_to_value(self.ctlbuff.GetValue())
         self.config.intthresh = ud.string_to_value(self.ctlintthresh.GetValue())
         self.config.massbins = ud.string_to_value(self.ctlmassbins.GetValue())
         self.config.peaknorm = self.ctlnorm.GetSelection()
@@ -579,15 +572,14 @@ class MainControls(wx.Panel):  # scrolled.ScrolledPanel):
     #  The Main Panel
     #
     # .......................................................
-
-    def on_backcheck(self, e):
-        value = self.ctlbackcheck.Get3StateValue()
-        if value == 1:
-            self.ctlbuff.SetValue("100")
-            self.subtypectl.SetSelection(2)
-        elif value == 0:
-            self.ctlbuff.SetValue("0")
-        self.export_gui_to_config()
+    #
+    # def on_backcheck(self, e):
+    #     value = self.ctlbackcheck.Get3StateValue()
+    #     if value == 1:
+    #         self.ctlbuff.SetValue("100")
+    #     elif value == 0:
+    #         self.ctlbuff.SetValue("0")
+    #     self.export_gui_to_config()
 
     def on_mousewheel(self, e):
         pass

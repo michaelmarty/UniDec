@@ -139,7 +139,6 @@ class UniDec(UniDecEngine):
         if "clean" in kwargs and kwargs["clean"] and os.path.isdir(dirnew):
             shutil.rmtree(dirnew)
 
-        print(self.config.udir)
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
         self.config.udir = dirnew
