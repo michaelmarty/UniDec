@@ -580,23 +580,23 @@ class IsoDecPres(UniDecPres):
             found_warning = True
 
         # Data encoding threshold should be between 0 and 1 inclusive
-        if self.eng.config.exthresh < 0:
+        if self.eng.config.idconfig.datathreshold < 0:
             print("Data Encoding Threshold cannot be negative")
-            self.eng.config.exthresh = 0
+            self.eng.config.idconfig.datathreshold = 0
             found_problem = True
-        elif self.eng.config.exthresh > 1:
+        elif self.eng.config.idconfig.datathreshold > 1:
             print("Data Encoding Threshold cannot be greater than 1")
-            self.eng.config.exthresh = 0.05
+            self.eng.config.idconfig.datathreshold = 0.05
             found_problem = True
-        elif self.eng.config.exthresh > 0.5:
+        elif self.eng.config.idconfig.datathreshold > 0.5:
             print("Data Encoding Threshold may be too high. Are you sure about this?")
             found_warning = True
 
         # Warn if either the mz window values are greater than 4
-        if np.abs(self.eng.config.integratelb) > 6.5:
+        if np.abs(self.eng.config.idconfig.mzwindowlb) < -6.5:
             print("Lower m/z window is very high. Are you sure?")
             found_warning = True
-        if np.abs(self.eng.config.integrateub) > 6.5:
+        if np.abs(self.eng.config.idconfig.mzwindowub) > 6.5:
             print("Upper m/z window is very high. Are you sure?")
             found_warning = True
 
