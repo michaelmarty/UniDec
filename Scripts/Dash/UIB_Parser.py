@@ -22,6 +22,7 @@ os.chdir("Z:\\Group Share\\Dash")
 file = "UIB data.txt"
 
 data = np.loadtxt(file)
+data[:, 1] = data[:, 1] - np.min(data[:, 1])  # Subtract the minimum to avoid negative values
 
 pdata = nonlinearize(data[6:], 50)
 
