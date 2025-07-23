@@ -53,6 +53,7 @@ class UniDecConfig(object):
         self.inputversion = None
         self.dtype = ud.dtype
         self.centroided = False
+        self.verbose = False
 
         # File names and paths
         self.system = platform.system()
@@ -305,11 +306,7 @@ class UniDecConfig(object):
         self.kernel = ""
 
         # IsoDec specific
-        self.minusoneaszero = True
-        self.verbose = False
         self.isomode = 0
-        self.avgpeakmasses = 0
-        self.analyte_type = None
 
         self.cmaps = None
         self.cmaps2 = None
@@ -380,8 +377,6 @@ class UniDecConfig(object):
             "datanorm": (self.datanorm, int),
             "baselineflag": (self.baselineflag, int),
             "orbimode": (self.orbimode, int),
-            "avgpeakmasses": (self.avgpeakmasses, int),
-            "selectiontype": (self.analyte_type, str),
             "integratelb": (self.integratelb, float),
             "integrateub": (self.integrateub, float),
             "filterwidth": (self.filterwidth, int),
@@ -418,7 +413,6 @@ class UniDecConfig(object):
             "smoothdt": (self.smoothdt, float),
             "subbufdt": (self.subbufdt, float),
             "centroided": (self.centroided, bool),
-            "minusoneaszero": (self.minusoneaszero, bool),
             "verbose": (self.verbose, bool),
             "zout": (self.zout, int),
             "pusher": (self.pusher, int),
@@ -503,6 +497,8 @@ class UniDecConfig(object):
         Initialize configuration parameters but not paths. Runs self.default_colormaps
         :return: None
         """
+        self.idconfig = IsoDecConfig(config=self)
+
         # plotting
         self.publicationmode = 1
 
@@ -570,6 +566,7 @@ class UniDecConfig(object):
         self.default_colormaps()
 
     def default_decon_params(self):
+        self.idconfig = IsoDecConfig(config=self)
         # Data Prep
         self.detectoreffva = 0
         self.mzbins = 0
@@ -723,6 +720,9 @@ class UniDecConfig(object):
             else:
                 print("Need to specify manual assignments. Running without assignments.")
 
+        # Add IsoDec Config to File
+        self.idconfig.config_export(f)
+
         f.close()
         # Export Mass List
         if not ud.isempty(self.masslist):
@@ -785,12 +785,6 @@ class UniDecConfig(object):
                     if line.startswith("maxdt"):
                         self.maxdt = ud.string_to_value(line.split()[1])
                     if self.batchflag == 0:
-                        '''
-                        if (line.startswith("input")):
-                            self.infname = line.split()[1]
-                        if (line.startswith("output")):
-                            self.outfname = line.split()[1]
-                        '''
                         if line.startswith("numit"):
                             self.numit = ud.string_to_int(line.split()[1])
                         if line.startswith("numz"):
@@ -801,8 +795,6 @@ class UniDecConfig(object):
                             self.startz = ud.string_to_int(line.split()[1])
                         if line.startswith("centroided"):
                             self.centroided = ud.string_to_int(line.split()[1])
-                        if line.startswith("minusoneaszero"):
-                            self.minusoneaszero = ud.string_to_int(line.split()[1])
                         if line.startswith("verbose"):
                             self.verbose = ud.string_to_int(line.split()[1])
                         if line.startswith("CDslope"):
@@ -1020,6 +1012,8 @@ class UniDecConfig(object):
                             self.nativeccslb = ud.string_to_value(line.split()[1])
                         if line.startswith("isomode"):
                             self.isomode = ud.string_to_int(line.split()[1])
+
+            self.idconfig.config_import(f)
 
             f.close()
             self.endz = self.startz + self.numz - 1
@@ -1665,8 +1659,10 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         self.peakthresh = 0.0001
         self.css_thresh = 0.7
         self.maxshift = 3  # This will get overwritten for smaller z, where it's dangerous to have more than 1 or 2
-        self.mzwindow = [-1.05, 4.05]
-        self.plusoneintwindow = [0.1, 0.6]
+        self.mzwindowlb = -1.05
+        self.mzwindowub = 4.05
+        self.plusoneintwindowlb = 0.1
+        self.plusoneintwindowub = 0.6
         self.knockdown_rounds = 5
         self.min_score_diff = 0.1
         self.minareacovered = 0.20
@@ -1675,8 +1671,11 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         self.datathreshold = 0.05
         self.zscore_threshold = 0.95
 
+        self.avgpeakmasses = 0
         self.report_multiple_monoisos = True
         self.write_scans_without_precs = True
+        self.write_msalign = False
+        self.write_tsv = True
         self.analyte_type = "Peptide"
 
     def set_scan_info(self, s, reader=None):
@@ -1716,8 +1715,8 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         outstring += f"Peak Threshold: {self.peakthresh}\n"
         outstring += f"CSS Threshold: {self.css_thresh}\n"
         outstring += f"Max Shift: {self.maxshift}\n"
-        outstring += f"m/z Window: {self.mzwindow}\n"
-        outstring += f"Plus One Intensity Window: {self.plusoneintwindow}\n"
+        outstring += f"m/z Window: {self.mzwindowlb} {self.mzwindowub}\n"
+        outstring += f"Plus One Intensity Window: {self.plusoneintwindowlb} {self.plusoneintwindowub}\n"
         outstring += f"Knockdown Rounds: {self.knockdown_rounds}\n"
         outstring += f"Minimum Score Difference: {self.min_score_diff}\n"
         outstring += f"Minimum Area Covered: {self.minareacovered}\n"
@@ -1727,6 +1726,8 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         outstring += f"Z-Score Threshold: {self.zscore_threshold}\n"
         outstring += f"Report Multiple Monoisotopes: {self.report_multiple_monoisos}\n"
         outstring += f"Write Scans Without Precursors: {self.write_scans_without_precs}\n"
+        outstring += f"Write MSAlign: {self.write_msalign}\n"
+        outstring += f"Write TSV: {self.write_tsv}\n"
         return outstring
 
     def config_export(self, file=None):
@@ -1747,8 +1748,10 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         outputstring += "iso_peakthresh " + str(self.peakthresh) + "\n"
         outputstring += "iso_css_thresh " + str(self.css_thresh) + "\n"
         outputstring += "iso_maxshift " + str(self.maxshift) + "\n"
-        outputstring += "iso_mzwindow " + str(self.mzwindow) + "\n"
-        outputstring += "iso_plusoneintwindow " + str(self.plusoneintwindow) + "\n"
+        outputstring += "iso_mzwindowlb " + str(self.mzwindowlb) + "\n"
+        outputstring += "iso_mzwindowub " + str(self.mzwindowub) + "\n"
+        outputstring += "iso_plusoneintwindowlb " + str(self.plusoneintwindowlb) + "\n"
+        outputstring += "iso_plusoneintwindowub " + str(self.plusoneintwindowub) + "\n"
         outputstring += "iso_knockdown_rounds " + str(self.knockdown_rounds) + "\n"
         outputstring += "iso_min_score_diff " + str(self.min_score_diff) + "\n"
         outputstring += "iso_minareacovered " + str(self.minareacovered) + "\n"
@@ -1758,6 +1761,8 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
         outputstring += "iso_zscore_threshold " + str(self.zscore_threshold) + "\n"
         outputstring += "iso_report_multiple_monoisos " + str(self.report_multiple_monoisos) + "\n"
         outputstring += "iso_write_scans_without_precs " + str(self.write_scans_without_precs) + "\n"
+        outputstring += "iso_write_msalign " + str(self.write_msalign) + "\n"
+        outputstring += "iso_write_tsv " + str(self.write_tsv) + "\n"
 
         if file is None:
             return outputstring
@@ -1814,10 +1819,14 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
                 self.css_thresh = float(value)
             elif key == "iso_maxshift":
                 self.maxshift = int(value)
-            elif key == "iso_mzwindow":
-                self.mzwindow = [float(x) for x in value.strip("[]").split(",")]
-            elif key == "iso_plusoneintwindow":
-                self.plusoneintwindow = [float(x) for x in value.strip("[]").split(",")]
+            elif key == "iso_mzwindowlb":
+                self.mzwindowlb = float(value)
+            elif key == "iso_mzwindowub":
+                self.mzwindowub = float(value)
+            elif key == "iso_plusoneintwindowlb":
+                self.plusoneintwindowlb = float(value)
+            elif key == "iso_plusoneintwindowub":
+                self.plusoneintwindowub = float(value)
             elif key == "iso_knockdown_rounds":
                 self.knockdown_rounds = int(value)
             elif key == "iso_min_score_diff":
@@ -1836,6 +1845,10 @@ class IsoDecConfig: # (udstruct.UniDecConfig):
                 self.report_multiple_monoisos = value.lower() in ["true", "1", "yes"]
             elif key == "iso_write_scans_without_precs":
                 self.write_scans_without_precs = value.lower() in ["true", "1", "yes"]
+            elif key == "iso_write_msalign":
+                self.write_msalign = value.lower() in ["true", "1", "yes"]
+            elif key == "iso_write_tsv":
+                self.write_tsv = value.lower() in ["true", "1", "yes"]
 
 
 

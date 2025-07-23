@@ -700,8 +700,8 @@ class IsoDecEngine:
 
                 if self.predmode == 0:
                     # Encode phase of all
-                    emats, peaks, centlist, indexes = encode_phase_all(centroids, peaks, lowmz=self.config.mzwindow[0],
-                                                                       highmz=self.config.mzwindow[1],
+                    emats, peaks, centlist, indexes = encode_phase_all(centroids, peaks, lowmz=self.config.mzwindowlb,
+                                                                       highmz=self.config.mzwindowub,
                                                                        phaseres=self.config.phaseres,
                                                                        minpeaks=2, datathresh=self.config.datathreshold)
 
@@ -713,10 +713,8 @@ class IsoDecEngine:
                     preds = self.phasemodel.batch_predict(data_loader)
                 elif self.predmode == 1:
                     encodingcentroids, goodpeaks, outcentroids, indexes = extract_centroids(centroids, peaks,
-                                                                                            lowmz=self.config.mzwindow[
-                                                                                                0],
-                                                                                            highmz=self.config.mzwindow[
-                                                                                                1],
+                                                                                            lowmz=self.config.mzwindowlb,
+                                                                                            highmz=self.config.mzwindowub,
                                                                                             minpeaks=2,
                                                                                             datathresh=self.config.datathreshold)
                     peaks = goodpeaks
@@ -724,10 +722,8 @@ class IsoDecEngine:
                     preds = [self.phase_predictor(c) for c in encodingcentroids]
                 elif self.predmode == 2:
                     encodingcentroids, goodpeaks, outcentroids, indexes = extract_centroids(centroids, peaks,
-                                                                                            lowmz=self.config.mzwindow[
-                                                                                                0],
-                                                                                            highmz=self.config.mzwindow[
-                                                                                                1],
+                                                                                            lowmz=self.config.mzwindowlb,
+                                                                                            highmz=self.config.mzwindowub,
                                                                                             minpeaks=2,
                                                                                             datathresh=self.config.datathreshold)
                     peaks = goodpeaks
@@ -735,10 +731,8 @@ class IsoDecEngine:
                     preds = [self.thrash_predictor(c) for c in encodingcentroids]
                 elif self.predmode == 3:
                     encodingcentroids, goodpeaks, outcentroids, indexes = extract_centroids(centroids, peaks,
-                                                                                            lowmz=self.config.mzwindow[
-                                                                                                0],
-                                                                                            highmz=self.config.mzwindow[
-                                                                                                1],
+                                                                                            lowmz=self.config.mzwindowlb,
+                                                                                            highmz=self.config.mzwindowub,
                                                                                             minpeaks=2,
                                                                                             datathresh=self.config.datathreshold)
                     peaks = goodpeaks
@@ -749,10 +743,8 @@ class IsoDecEngine:
 
                 elif self.predmode == 4:
                     encodingcentroids, goodpeaks, outcentroids, indexes = extract_centroids(centroids, peaks,
-                                                                                            lowmz=self.config.mzwindow[
-                                                                                                0],
-                                                                                            highmz=self.config.mzwindow[
-                                                                                                1],
+                                                                                            lowmz=self.config.mzwindowlb,
+                                                                                            highmz=self.config.mzwindowub,
                                                                                             minpeaks=2,
                                                                                             datathresh=self.config.datathreshold)
                     peaks = goodpeaks

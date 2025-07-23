@@ -35,7 +35,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.runallbutton.SetToolTip(wx.ToolTip("Run all steps in the deconvolution process."))
         sizercontrol.Add(self.runallbutton, 0, wx.ALIGN_LEFT | wx.ALL, 5)
 
-        size1 = (75, -1)
+        size1 = wx.Size(75, -1)
         self.foldpanels = fpb.FoldPanelBar(self.scrolledpanel, -1, size=(250, 800), agwStyle=fpb.FPB_VERTICAL)
         style1 = fpb.CaptionBarStyle()
         style1b = fpb.CaptionBarStyle()
@@ -442,49 +442,49 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlnorm.SetSelection(int(self.config.peaknorm))
             self.ctlbuff.SetValue(str(self.config.subbuff))
             self.subtypectl.SetSelection(int(self.config.subtype))
-            self.ctlwindow.SetValue(str(int(self.config.peakwindow)))
-            self.ctlthresh.SetValue(str(self.config.peakthresh))
+            self.ctlwindow.SetValue(str(int(self.config.idconfig.peakwindow)))
+            self.ctlthresh.SetValue(str(self.config.idconfig.peakthresh))
             self.ctlintthresh.SetValue(str(self.config.intthresh))
             self.ctladductmass.SetValue(str(self.config.adductmass))
-            self.ctlnumit.SetValue(str(int(self.config.numit)))
+            self.ctlnumit.SetValue(str(int(self.config.idconfig.knockdown_rounds)))
             self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
             self.ctldatanorm.SetValue(int(self.config.datanorm))
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
-            self.ctlavgpeakmasses.SetValue(self.config.avgpeakmasses)
+            self.ctlavgpeakmasses.SetValue(self.config.idconfig.avgpeakmasses)
             self.ctltypelist.SetValue(str(self.ctltypelist.GetValue()))
 
             # Decon params
-            self.ctlmatchtol.SetValue(str(self.config.filterwidth))
-            self.ctlmaxshift.SetValue(str(int(self.config.msig)))
-            self.ctlencodingthresh.SetValue(str(self.config.exthresh))
-            self.ctlccsthresh.SetValue(str(self.config.csig))
+            self.ctlmatchtol.SetValue(str(self.config.idconfig.matchtol))
+            self.ctlmaxshift.SetValue(str(int(self.config.idconfig.maxshift)))
+            self.ctlencodingthresh.SetValue(str(self.config.idconfig.datathreshold))
+            self.ctlccsthresh.SetValue(str(self.config.idconfig.css_thresh))
             self.ctlmzwindowlb.SetValue(str(self.config.integratelb))
             self.ctlmzwindowub.SetValue(str(self.config.integrateub))
-            self.ctlminusone.SetValue(self.config.minusoneaszero)
+            self.ctlminusone.SetValue(self.config.idconfig.minusoneaszero)
             self.ctlverbose.SetValue(self.config.verbose)
 
-            if self.config.aggressiveflag == 4:
+            if self.config.idconfig.phaseres == 4:
                 self.ctlphaseres.SetSelection(0)
             else:
                 self.ctlphaseres.SetSelection(1)
-            # Relating msalign export to the config.poolflag parameter
-            if self.config.poolflag == 1:
+            # Relating msalign export to the config.idconfig.write_msalign parameter
+            if self.config.idconfig.write_msalign == 1:
                 self.ctlexportmsalign.SetValue(True)
             else:
                 self.ctlexportmsalign.SetValue(False)
 
-            if self.config.noiseflag == 1:
+            if self.config.idconfig.report_multiple_monoisos == 1:
                 self.ctlreportmultiplemonos.SetValue(True)
             else:
                 self.ctlreportmultiplemonos.SetValue(False)
 
-            if self.config.linflag == 1:
+            if self.config.idconfig.write_scans_without_precs == 1:
                 self.ctlwrite_noprec_scans.SetValue(True)
             else:
                 self.ctlwrite_noprec_scans.SetValue(False)
 
-            # Relating tsv export to the config.compressflag
-            if self.config.compressflag == 1:
+            # Relating tsv export to the config.idconfig.write_tsv
+            if self.config.idconfig.write_tsv == 1:
                 self.ctlexporttsv.SetValue(True)
             else:
                 self.ctlexporttsv.SetValue(False)
@@ -523,42 +523,42 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.intthresh = ud.string_to_value(self.ctlintthresh.GetValue())
         self.config.massbins = ud.string_to_value(self.ctlmassbins.GetValue())
         self.config.peaknorm = self.ctlnorm.GetSelection()
-        self.config.peakwindow = ud.string_to_int(self.ctlwindow.GetValue())
-        self.config.peakthresh = ud.string_to_value(self.ctlthresh.GetValue())
+        self.config.idconfig.peakwindow = ud.string_to_int(self.ctlwindow.GetValue())
+        self.config.idconfig.peakthresh = ud.string_to_value(self.ctlthresh.GetValue())
         self.config.adductmass = ud.string_to_value(self.ctladductmass.GetValue())
-        self.config.numit = ud.string_to_int(self.ctlnumit.GetValue())
+        self.config.idconfig.knockdown_rounds = ud.string_to_int(self.ctlnumit.GetValue())
         self.config.reductionpercent = ud.string_to_value(self.ctldatareductionpercent.GetValue())
         # self.config.isotopemode = int(self.ctlisotopemode.GetSelection())
         self.config.datanorm = int(self.ctldatanorm.GetValue())
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
         # These flags are bound to the 2 export type checkboxes in the isodec gui
-        self.config.poolflag = int(self.ctlexportmsalign.GetValue())
-        self.config.compressflag = int(self.ctlexporttsv.GetValue())
+        self.config.idconfig.write_msalign = int(self.ctlexportmsalign.GetValue())
+        self.config.idconfig.write_tsv = int(self.ctlexporttsv.GetValue())
 
         #These flags are bound to the export multiple monoisos and write scans without precursors checkboxes
-        self.config.noiseflag = int(self.ctlreportmultiplemonos.GetValue())
-        self.config.linflag = int(self.ctlwrite_noprec_scans.GetValue())
-        self.config.minusoneaszero = int(self.ctlminusone.GetValue())
+        self.config.idconfig.report_multiple_monoisos = int(self.ctlreportmultiplemonos.GetValue())
+        self.config.idconfig.write_scans_without_precs = int(self.ctlwrite_noprec_scans.GetValue())
+        self.config.idconfig.minusoneaszero = int(self.ctlminusone.GetValue())
         self.config.verbose = int(self.ctlverbose.GetValue())
 
 
-        self.config.avgpeakmasses = int(self.ctlavgpeakmasses.GetValue())
+        self.config.idconfig.avgpeakmasses = int(self.ctlavgpeakmasses.GetValue())
         # pull integratelb and integrateub from mzwindowlb and mzwindowub
         self.config.integratelb = ud.string_to_value(self.ctlmzwindowlb.GetValue())
         self.config.integrateub = ud.string_to_value(self.ctlmzwindowub.GetValue())
-        # matchtol goes to filterwidth
-        self.config.filterwidth = ud.string_to_value(self.ctlmatchtol.GetValue())
-        # Maxshift goes to msig
-        self.config.msig = ud.string_to_int(self.ctlmaxshift.GetValue())
-        # Encoding threshold goes to exthresh
-        self.config.exthresh = ud.string_to_value(self.ctlencodingthresh.GetValue())
-        # CSS threshold goes to csig
-        self.config.csig = ud.string_to_value(self.ctlccsthresh.GetValue())
-        self.config.analyte_type = self.ctltypelist.GetValue()
+        # matchtol goes to idconfig.matchtol
+        self.config.idconfig.matchtol = ud.string_to_value(self.ctlmatchtol.GetValue())
+        # Maxshift goes to idconfig.maxshift
+        self.config.idconfig.maxshift = ud.string_to_int(self.ctlmaxshift.GetValue())
+        # Encoding threshold goes to idconfig.datathreshold
+        self.config.idconfig.datathreshold = ud.string_to_value(self.ctlencodingthresh.GetValue())
+        # CSS threshold goes to idconfig.css_thresh
+        self.config.idconfig.css_thresh = ud.string_to_value(self.ctlccsthresh.GetValue())
+        self.config.idconfig.analyte_type = self.ctltypelist.GetValue()
         if self.ctlphaseres.GetSelection() == 0:
-            self.config.aggressiveflag = 4
+            self.config.idconfig.phaseres = 4
         else:
-            self.config.aggressiveflag = 8
+            self.config.idconfig.phaseres = 8
 
         try:
             test = float(self.config.adductmass)

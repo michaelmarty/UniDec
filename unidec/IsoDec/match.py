@@ -1334,7 +1334,7 @@ def optimize_shift2(config, centroids: np.ndarray, z, peakmz):
 
     peakmz_new, isodist_new, matchedindexes, isomatches, monoiso_new, massdist_new = make_shifted_peak(
         bestshift[0], bestshift[1], monoiso, massdist, isodist, peakmz, z, centroids, config.matchtol, config.minpeaks,
-        config.plusoneintwindow[0], config.plusoneintwindow[1], config.css_thresh,
+        config.plusoneintwindowlb, config.plusoneintwindowub, config.css_thresh,
         config.minareacovered,
         config.verbose)
 

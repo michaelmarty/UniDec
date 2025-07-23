@@ -64,7 +64,7 @@ class Plot2dBase(PlotBase):
         if config is not None:
             speedplot = config.discreteplot
             publicationmode = config.publicationmode
-            avgpeakmasses = config.avgpeakmasses
+            avgpeakmasses = config.idconfig.avgpeakmasses
             self.cmap = config.cmap
         else:
             avgpeakmasses = 0
