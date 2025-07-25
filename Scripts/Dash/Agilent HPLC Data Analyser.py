@@ -2,6 +2,7 @@ import os
 import glob
 import numpy as np
 from LCImporter import extract_data
+from LCImporter import parse_uv
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib import colormaps
@@ -29,7 +30,7 @@ rcParams['xtick.major.width'] = 1
 rcParams['ytick.major.width'] = 1
 
 
-def get_filtered_colors(cmap_name='winter', num_colors=256, luminosity_factor=0.8, saturation_factor=2, hue_shift=0): #A value of 0.5 would reduce the luminosity/sat to half, while 1.0 would keep it unchanged,  A value greater than 1.0 will increase saturation, while 1.0 will keep it unchanged.
+def get_filtered_colors(cmap_name='cool', num_colors=256, luminosity_factor=0.8, saturation_factor=2, hue_shift=0): #A value of 0.5 would reduce the luminosity/sat to half, while 1.0 would keep it unchanged,  A value greater than 1.0 will increase saturation, while 1.0 will keep it unchanged.
     """Returns a list of colors from the colormap with lowered luminosity."""
     viridis = colormaps.get_cmap(cmap_name)
     colors = []
@@ -50,17 +51,20 @@ def get_filtered_colors(cmap_name='winter', num_colors=256, luminosity_factor=0.
     return colors
 
 # Define the top directory and file pattern
-topdir = "Z:\\Group Share\\Dash\\Current Data\\Agilent LC Data\\Bumblebee\\20250321 TD LX DM-DP gfpmix dope 2025-03-21 18-19-40\\Sample"
+topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\20250716 TD test_Gain3_Sen3_tog500 2025-07-23 16-40-55\001-D1F-A2-sfgfp-.D"
 
 files = glob.glob(f'{topdir}/*.D', recursive=False)
 
 # Define the channel index to extract
-# FLD=0
-# UV=1
-channel_index = 1
+
+channel_index = 6
+
+# Define the channel indices for multi-channel extraction only
+channel_indices = [3, 4]
 
 # outfile setup
-outfile = "spectra.npz"
+outfile = "UIB.txt"
+multioutfile = "UIB" + str(channel_indices) + ".txt"
 
 
 # Function to extract data and write to text files
@@ -74,7 +78,7 @@ def extract_and_write_data(files):
                 x, y = result[:, 0], result[:, 1]
 
                 # Write x and y data to a text file in the original directory
-                output_txt = "extracted_data.txt"
+                output_txt = "UIB1 B.txt"
                 with open(output_txt, 'w') as f:
                     np.savetxt(f, np.column_stack((x, y)), delimiter=',', header='x,y', comments='')
                 np.savez_compressed(outfile, result)
@@ -82,6 +86,50 @@ def extract_and_write_data(files):
             except Exception as e:
                 print(f"Failed to process {path}: {e}")
 
+
+def extract_and_write_data_multi_channel(files, channel_indices, multioutfile):
+    for path in files:
+        print(path)
+        os.chdir(path)
+        data_dict = {}
+        for idx in channel_indices:
+            try:
+                result = extract_data(path, index=idx)
+                # Normalize y-axis data to np.amax
+                y_max = np.amax(result[:, 1])
+                if y_max != 0:
+                    result[:, 1] = result[:, 1] #/ y_max
+                data_dict[f'channel_{idx}'] = result
+                # Optionally, save each channel as a separate txt
+                output_txt = f"extracted_data_channel_{idx}.txt"
+                with open(output_txt, 'w') as f:
+                    np.savetxt(f, result, delimiter=',', header='x,y', comments='')
+            except Exception as e:
+                print(f"Failed to process {path} for channel {idx}: {e}")
+        # Save all channels for this file in a single npz
+        np.savez_compressed(multioutfile, **data_dict)
+
+def extract_spectra(files, channel_index=0):
+    """
+    Extracts spectra data from the given files and saves it to a .npz file.
+    :param files: List of file paths to extract data from.
+    :param channel_index: Index of the channel to extract (0 for FLD, 1 for UV).
+    """
+    for path in files:
+        print(f"Processing {path}...")
+        os.chdir(path)
+        try:
+            result = parse_uv(path)
+            if result is None or result.size == 0:
+                print(f"No data found in {path}. Skipping...")
+                continue
+
+            # Save the extracted data to a .npz file
+            output_npz = os.path.join(path, "Test.txt")
+            np.savez_compressed(output_npz, result)
+
+        except Exception as e:
+            print(f"Failed to process {path}: {e}")
 
 # Function to read data from npz files
 def read_data(files):
@@ -335,24 +383,37 @@ def create_2D_plot(data, file_names):
     sorted_data = [data[i] for i in sorted_indices]
     sorted_file_names = [file_names[i] for i in sorted_indices]
 
-    plt.figure(figsize=(16, 9))
+    plt.figure(figsize=(9, 4.5))
     colors = get_filtered_colors(num_colors=len(sorted_data))
 
     for i, d in enumerate(sorted_data):
         x, y = d[:, 0], d[:, 1]
         label = sorted_file_names[i]
         color = colors[i % len(colors)]  # Cycle through the filtered colors
+        # Normalize y to 0-100%
+        #y_norm = (y - np.min(y)) / (np.max(y) - np.min(y)) * 100 if np.max(y) != np.min(y) else y
         plt.plot(x, y, label=label, color=color)
 
     plt.xlabel('Retention Time (min)', fontweight='bold')
-    plt.ylabel('Intensity', fontweight='bold')
-    plt.title("Peak Overlay", fontweight='bold')
+    plt.ylabel('Intensity %', fontweight='bold')
+    #plt.title("Peak Overlay", fontweight='bold')
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
 
-    plt.legend()
+
+    #Set y axis limits from 0 to max value of Y among all datasets
+    #max_y = max([np.max(d[:, 1]) for d in sorted_data])
+    #plt.ylim(0, max_y * 1.1)  # Add a little padding above the max value
+
+    #plt.ylim(0, 100)  # Set y-axis limits from 0 to 100%
+
+    #set fig size to 1.79" by 6.03"
+    #plt.gcf().set_size_inches(9, 4.5)
+
+
+    #plt.legend()
     plt.savefig(os.path.join(topdir, "2D" + str(channel_index) + ".pdf"), dpi=300)
-    plt.savefig(os.path.join(topdir, "2D" + str(channel_index) + ".png"), dpi=300)
+    plt.savefig(os.path.join(topdir, "2D_Raw" + str(channel_index) + ".png"), dpi=300)
     plt.show()
 
 
@@ -563,19 +624,63 @@ def create_relative_flowthrough_area_plot(results, file_names):
     plt.savefig(os.path.join(topdir, "Relative_Flowthrough_Area_Scatter_Plot.png"), dpi=300)
     plt.show()
 
+def create_multi_channel_npz(topdir, channel_indices, title=""):
+    """
+    Reads all multi-channel .npz files in topdir and plots each channel as a 2D overlay.
+    """
+
+    # Find all .npz files in topdir that match the multi-channel pattern
+    npz_files = [
+        os.path.join(root, f'spectra[{idx1}, {idx2}].npz')
+        for root, _, _ in os.walk(topdir)
+        for idx1 in channel_indices for idx2 in channel_indices if idx1 != idx2
+        if os.path.exists(os.path.join(root, f'spectra[{idx1}, {idx2}].npz'))
+    ]
+    if not npz_files:
+        print(f"No multi-channel .npz files found in {topdir}")
+        return
+
+    colors = get_filtered_colors(num_colors=len(channel_indices))
+    plt.figure(figsize=(16, 9))
+
+    for file_idx, multioutfile in enumerate(npz_files):
+        data = np.load(multioutfile)
+        for i, idx in enumerate(channel_indices):
+            key = f'channel_{idx}'
+            if key in data:
+                arr = data[key]
+                x, y = arr[:, 0], arr[:, 1]
+                label = f'{os.path.basename(multioutfile)} - Channel {idx}'
+                plt.plot(x, y, label=label, color=colors[i % len(colors)], alpha=0.7)
+            else:
+                print(f"Channel {idx} not found in {multioutfile}")
+
+    plt.xlabel('Retention Time (min)', fontweight='bold')
+    plt.ylabel('Intensity (LU)', fontweight='bold')
+    plt.title(title, fontweight='bold')
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    #plt.legend(fontsize=8)
+    plt.tight_layout()
+    plt.savefig(os.path.join(topdir, "Multi_Channel_Overlay_Plot.pdf"), dpi=300)
+    plt.savefig(os.path.join(topdir, "Multi_Channel_Overlay_Plot.png"), dpi=300)
+    plt.show()
 
 # Main function to parse files and process data
 def main():
     extract_and_write_data(files)
+    extract_and_write_data_multi_channel(files, channel_indices, multioutfile)
+    #extract_spectra(files, channel_index=channel_index)
     data, file_names = read_data(files)
     #create_waterfall_plot(data, file_names)
-    results = calculate_areas_and_retention_times(data)
+    #results = calculate_areas_and_retention_times(data)
     #create_annotated_ridgeline_plot(data, file_names, results, offset=100)
     create_2D_plot(data, file_names)
     # create_flowthrough_area_plot(results, file_names)
     # create_elution_area_plot(results, file_names)
-    create_relative_elution_area_plot(results, file_names)
-    create_relative_flowthrough_area_plot(results, file_names)
+    #create_multi_channel_npz(topdir, channel_indices, title=" ")
+    #create_relative_elution_area_plot(results, file_names)
+    #create_relative_flowthrough_area_plot(results, file_names)
 
 
 
