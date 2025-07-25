@@ -1,9 +1,11 @@
 import numpy as np
 from numba import njit
-from unidec.modules.fitting import ndis_std
 
 @njit(fastmath=True)
 def calc_sigma(data):
+    """
+    https://arxiv.org/pdf/1907.07241
+    """
     s = 0
     x1, y1 = data[0]
     for d in data[1:]:
@@ -47,6 +49,8 @@ def linear_interpolation(d1, d2, y):
     x = (y - b) / m
     return x
 
+
+
 @njit(fastmath=True)
 def find_fwhm(data, index, wfactor=4, maxppmtol=1000):
     """
@@ -58,10 +62,11 @@ def find_fwhm(data, index, wfactor=4, maxppmtol=1000):
     """
     mz = data[index, 0]
     intensity = data[index, 1]
-    default = [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0]
+
+    fwhmdefault = [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0]
 
     if intensity == 0:
-        return default
+        return fwhmdefault
 
     half_max = intensity / 2.0
 
@@ -79,15 +84,17 @@ def find_fwhm(data, index, wfactor=4, maxppmtol=1000):
     rightmz = linear_interpolation(data[right_index - 1], data[right_index], half_max)
     if rightmz < mz:
         # If the right mz is less than the peak mz, we cannot calculate FWHM properly
-        return default
+        return fwhmdefault
     if leftmz > mz:
         # If the left mz is greater than the peak mz, we cannot calculate FWHM properly
-        return default
+        return fwhmdefault
 
     # print("Left MZ:", leftmz, "Right MZ:", rightmz, "Peak MZ:", mz)
     leftwidth = mz - leftmz
     rightwidth = rightmz - mz
     fwhm = leftwidth + rightwidth
+
+    centroid = np.sum(data[left_index:right_index + 1, 0] * data[left_index:right_index + 1, 1]) / np.sum(data[left_index:right_index + 1, 1])
 
     # left_index = ud.nearest(data[:, 0], mz-wfactor*leftwidth)
     # right_index = ud.nearest(data[:, 0], mz+wfactor*rightwidth)
@@ -96,14 +103,14 @@ def find_fwhm(data, index, wfactor=4, maxppmtol=1000):
 
     if leftwidth == 0 or rightwidth == 0:
         # If either width is zero, we cannot calculate FWHM properly
-        return default
+        return fwhmdefault
 
     # If leftwidth is far apart from rightwidth, we can assume the peak is not symmetric
     # if 0.5 < leftwidth / rightwidth < 2:
     #     return -1, -1, -1, -1, -1
     sigma = calc_sigma(data[left_index:right_index + 1])
 
-    return [fwhm, leftwidth, rightwidth, left_index, right_index, sigma]
+    return [fwhm, leftwidth, rightwidth, left_index, right_index, sigma, centroid, intensity]
 
 @njit(fastmath=True)
 def fast_fwhm(data, peaks, sort=False, wfactor=4, maxppmtol=1000):
@@ -120,11 +127,11 @@ def fast_fwhm(data, peaks, sort=False, wfactor=4, maxppmtol=1000):
 
     # matchedindexes = np.array([ud.nearest(data[:, 0], i) for i in peaks[:, 0]])
     matchedindexes = match_indexes(data[:,0], peaks[:,0])
-
+    fwhmdefault = [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0]
     fwhmlist = []
     for i, p in enumerate(peaks):
         if p[1] == 0:
-            fwhmlist.append([-1.0, -1.0, -1.0, -1.0, -1.0, -1.0])
+            fwhmlist.append(fwhmdefault)
             continue
 
         index = matchedindexes[i]
@@ -158,7 +165,7 @@ def match_indexes(array, targetarray):
 
     return np.array(indexes)
 
-# @njit(fastmath=True)
+@njit(fastmath=True)
 def remove_peaks_from_fwhmlist(data, fwhmlist):
     """
     Remove peaks from the data based on FWHM values.
@@ -176,7 +183,7 @@ def remove_peaks_from_fwhmlist(data, fwhmlist):
     # print("Removing Peaks, N Peaks:", np.sum(~b1), "Total Data Points:", len(data))
     return data[b1]
 
-# @njit(fastmath=True)
+@njit(fastmath=True)
 def remove_peaks(data, isodist, wfactor=6, maxppmtol=1000):
     # print("Data Length:", len(data), "Isodist Length:", len(isodist))
     fwhms = fast_fwhm(data, isodist, wfactor=wfactor, maxppmtol=maxppmtol)
@@ -186,22 +193,46 @@ def remove_peaks(data, isodist, wfactor=6, maxppmtol=1000):
     # print("Leftover Data Length:", len(leftoverdata))
     return leftoverdata
 
-def create_peak(data, isodist, fwhmlist):
-    xvalues = []
-    yvalues = []
+@njit(fastmath=True)
+def ndis_std(x: np.ndarray, mid: float, sig: float, a: float = 1.0) -> np.array:
+    """
+    Normal Gaussian function normalized to the max of 1.
+    :param x: x values
+    :param mid: Mean of Gaussian
+    :param sig: Standard Deviation
+    :param a: Maximum amplitude (default is 1)
+    :return: Gaussian distribution at x values
+    """
+    # x = np.array(x).astype(float)
+    return a * np.exp(-(x - mid) * (x - mid) / (2.0 * sig * sig))
+
+# @njit(fastmath=True)
+def create_peaks(data, isodist, fwhmlist=None):
+    if fwhmlist is None:
+        fwhmlist = fast_fwhm(data, isodist)
+
+    xvals = data[:,0]
+    yvals = np.zeros_like(xvals)
     for i, fwhm in enumerate(fwhmlist):
         if fwhm[0] <= 0:
             continue
         # Generate the peak using the isodist and FWHM
-        peakmz = isodist[i, 0]
-        peakint = isodist[i, 1]
-        fwhm_value = fwhm[0]
-        sigma = fwhm[5]
-        startindex = fwhm[3]
-        endindex = fwhm[4]
+        # peakmz = isodist[i, 0]
+        # peakint = isodist[i, 1]
 
-        xvalues = data[startindex:endindex + 1, 0]
-        yvalues = ndis_std(xvalues, peakmz, sigma, peakint)
+        # Pull the sigma and start/end indexes from the FWHM list
+        sigma = fwhm[5]
+        mean = fwhm[6]
+        amp = fwhm[7]
+        startindex = int(fwhm[3])
+        endindex = int(fwhm[4])
+
+        xvalues = xvals[startindex:endindex + 1]
+        yvalues = ndis_std(xvalues, float(mean), float(sigma), float(amp))
+
+        yvals[startindex:endindex + 1] += yvalues
+
+    return np.column_stack((xvals, yvals))
 
 
 
@@ -218,9 +249,12 @@ if __name__ == "__main__":
     print(len(data), len(isodist))
     st = time.perf_counter()
     leftoverdata = remove_peaks(data, isodist)
+    gdat = create_peaks(data, isodist)
+
     print("Removed Peaks, Time:", time.perf_counter() - st)
     plt.plot(data[:, 0], data[:, 1], label='Processed Data')
     plt.plot(leftoverdata[:, 0], leftoverdata[:, 1], label='Leftover Data', linestyle='--')
+    plt.plot(gdat[:, 0], gdat[:, 1], label='Generated Peaks', linestyle=':')
     plt.xlabel('m/z')
     plt.ylabel('Intensity')
     plt.show()

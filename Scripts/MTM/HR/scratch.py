@@ -28,6 +28,44 @@ def calc_sigma(data):
         x1, y1 = x2, y2
     return s/(np.sqrt(2 * np.pi) * np.amax(data[:, 1]))
 
+@njit(fastmath=True)
+def calc_ab(data, c):
+    b1 = data[:,1] > np.amax(data[:,1]) * 0.25  # Remove points with very low intensity
+    data = data[b1]  # Remove zero intensity points
+    ys = data[:, 1]**2
+    m11 = np.sum(ys)
+    m12 = np.sum(data[:,0] * ys)
+    m22 = np.sum(data[:,0]**2 * ys)
+
+    M = np.array([[m11, m12], [m12, m22]])
+
+    logdat = np.log(data[:, 1])
+
+    v1 = np.sum(ys * logdat) - c * m22
+    v2 = np.sum(data[:,0] * ys * logdat) - c * np.sum(data[:,0] **3 * ys)
+
+    v = np.array([v1, v2])
+
+    ab = np.linalg.solve(M, v)
+    return ab
+
+@njit(fastmath=True)
+def calc_gauss(data):
+    """
+    Calculate the Gaussian fit parameters for the data.
+    https://arxiv.org/pdf/1907.07241
+    :param data: Data array with m/z and intensity
+    :return: Gaussian fit parameters (amplitude, mean, sigma)
+    """
+    # mean = np.sum(data[:, 0] * data[:, 1]) / np.sum(data[:, 1])
+    sigma = calc_sigma(data)
+    # amplitude = np.amax(data[:, 1])
+    c = -1 / (2 * sigma ** 2)
+    a, b = calc_ab(data, c)
+    mean = -b / (2 * c)
+    amplitude = np.exp(a - (b ** 2 / (4*c)))
+    return mean, sigma, amplitude
+
 test1 = "C:\\Data\\Volker noisy protein spectra\\Protein+cov-binder_#212#141.txt"
 
 data = np.loadtxt(test1)
@@ -43,15 +81,19 @@ print("Fitted Peak:", fit)
 print("Fit Sigma:", fit[0][0] / 2.35482)
 sigma = calc_sigma(data)
 print("Sigma:", sigma)
+m, s, a = calc_gauss(data)
+print("Calculated Gaussian:", m, s, a)
+
 
 f2 = ndis_std(data[:, 0], data[np.argmax(data[:, 1]), 0], sigma, 1)
+f3 = ndis_std(data[:, 0], m, s, a)
 
+offset = 0
 plt.plot(data[:, 0], data[:, 1], label='Processed Data')
-plt.plot(data[:, 0], fitdat-1, 'r-', label='Fitted Peak')
-plt.plot(data[:, 0], f2-2, 'g-', label='Fitted Peak')
+plt.plot(data[:, 0], fitdat-1*offset, 'r-', label='Fitted Peak')
+plt.plot(data[:, 0], f2-2*offset, 'g-', label='Fitted Peak')
+plt.plot(data[:, 0], f3-3*offset, 'b-', label='Calculated Gaussian')
 plt.show()
-
-
 
 exit()
 
