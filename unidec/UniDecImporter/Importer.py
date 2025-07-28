@@ -23,6 +23,7 @@ class Importer:
         self.imms_support = False
         self.chrom_support = False
         self.centroid_threshold = 0.8
+        self.thermo_support = False
 
         self.indexed_file = None
 

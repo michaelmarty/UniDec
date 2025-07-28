@@ -203,7 +203,7 @@ class UniDecCD(engine.UniDec):
 
         self.importer = ImporterFactory.create_importer(self.path, silent=False)
         self.darray = self.importer.get_cdms_data()
-        if type(self.importer) == ThermoImporter:
+        if self.importer.thermo_support:
             self.res = IT.get_resolution(self.importer.get_single_scan(1))
 
         # Correct Thermo Data
