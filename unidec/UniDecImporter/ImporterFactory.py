@@ -9,10 +9,6 @@ from unidec.UniDecImporter.I2MS.I2MS import I2MSImporter
 from unidec.UniDecImporter.MZML.mzML import MZMLImporter
 from unidec.UniDecImporter.MZXML.mzXML import MZXMLImporter
 
-
-
-
-
 # Note, it is important that these be listed with raw data formats first and processed data formats later.
 # Batch.py will attempt the latter formats if use_converted option is on
 recognized_types = [".raw", ".d", ".mzxml",".mzml", ".mzml.gz", ".gz", '.txt', '.dat', '.csv', '.npz', '.i2ms', '.dmt',
@@ -34,10 +30,10 @@ if platform.system() == "Windows":
     except Exception as e:
         print("Unable to import WatersDataImporter:", e)
 
-    try:
-        from unidec.UniDecImporter.Sciex.Sciex import SciexImporter
-    except Exception as e:
-        print("Unable to import SciexImporter:", e)
+    # try:
+    #     from Scripts.Importers.Sciex import SciexImporter
+    # except Exception as e:
+    #     print("Unable to import SciexImporter:", e)
 
 else:
         print("Not importing Agilent, Thermo, or Waters importers on non-Windows system")
@@ -93,7 +89,6 @@ if __name__ == "__main__":
     test = u"C:\\Python\\UniDec3\\TestSpectra\\test.raw"
     test = "Z:\\Group Share\\JGP\\js8b05641_si_001\\1500_scans_200K_16 fills-qb1.mzML"
     importer = ImporterFactory.create_importer(test)
-    import unidec.UniDecImporter.Thermo.Thermo
     # print(len(dat))
 
 

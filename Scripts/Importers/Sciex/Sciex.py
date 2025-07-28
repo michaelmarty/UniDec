@@ -3,8 +3,7 @@ from scipy.interpolate import interp1d
 
 from unidec.UniDecImporter import ImporterFactory
 from unidec.UniDecImporter.Importer import Importer
-from unidec.UniDecImporter.Sciex.SciexReader import SciexReader
-import matplotlib.pyplot as plt
+from Scripts.Importers.Sciex.SciexReader import SciexReader
 import matplotlib as mpl
 from unidec import tools as ud
 
