@@ -11,15 +11,15 @@ from unidec.UniDecImporter.MZXML.mzXML import MZXMLImporter
 
 # Note, it is important that these be listed with raw data formats first and processed data formats later.
 # Batch.py will attempt the latter formats if use_converted option is on
-recognized_types = [".raw", ".d", ".mzxml",".mzml", ".mzml.gz", ".gz", '.txt', '.dat', '.csv', '.npz', '.i2ms', '.dmt',
-                     '.bin', ".wiff"]
+recognized_types = [".raw", ".mzxml",".mzml", ".mzml.gz", ".gz", '.txt', '.dat', '.csv', '.npz', '.i2ms', '.dmt','.bin']
+                     # ".d", ".wiff"]
 
 if platform.system() == "Windows":
-    try:
-        from unidec.UniDecImporter.Agilent.AgilentImporter import AgilentImporter
-    except Exception as e:
-        print("Unable to import AgilentImporter:", e)
-        recognized_types.remove(".d")
+    # try:
+    #     from Scripts.Importers.Agilent.AgilentImporter import AgilentImporter
+    # except Exception as e:
+    #     print("Unable to import AgilentImporter:", e)
+    #     recognized_types.remove(".d")
 
     try:
         from unidec.UniDecImporter.Thermo.Thermo import ThermoImporter
@@ -36,11 +36,11 @@ if platform.system() == "Windows":
     #     print("Unable to import SciexImporter:", e)
 
 else:
-        print("Not importing Agilent, Thermo, or Waters importers on non-Windows system")
-        # Remove .d and .D from recognized types
-        recognized_types.remove(".d")
-        # Remove Raw from recognized types
-        recognized_types.remove(".raw")
+    print("Not importing Thermo, or Waters importers on non-Windows system")
+    # Remove .d and .D from recognized types
+    # recognized_types.remove(".d")
+    # Remove Raw from recognized types
+    recognized_types.remove(".raw")
 
 
 
@@ -60,10 +60,10 @@ class ImporterFactory:
             return MZXMLImporter(file_path, **kwargs)
         elif ending==".mzml" or ending==".mzml.gz" or ending==".gz":
             return MZMLImporter(file_path, **kwargs)
-        elif ending==".d":
-            return AgilentImporter(file_path, **kwargs)
-        elif ending=='.wiff':
-            return SciexImporter(file_path, **kwargs)
+        # elif ending==".d":
+        #     return AgilentImporter(file_path, **kwargs)
+        # elif ending=='.wiff':
+        #     return SciexImporter(file_path, **kwargs)
         elif ending == ".txt" or ending == ".dat" or ending == ".csv" or ending == ".npz" or ending == '.bin':
             return SSI.SingleScanImporter(file_path, **kwargs)
         elif ending == ".dmt" or ending == ".i2ms":

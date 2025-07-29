@@ -621,13 +621,14 @@ class UPPApp(wx.Frame):
                    "Known file types (*.raw; *.d; *.mzML; *.mzXML; *.txt; *.csv; *.dat; *.npz)|" \
                    "*.raw; *.d; *.mzML; *.mzXML; *.txt; *.csv; *.dat; *.npz|" \
                    "Thermo RAW files (*.raw)|*.raw|" \
-                   "Agilent D files (*.d)|*.d|" \
                    "mzML files (*.mzML)|*.mzML|" \
                    "mzXML files (*.mzXML)|*.mzXML|" \
                    "Text files (*.txt)|*.txt|" \
                    "CSV files (*.csv)|*.csv|" \
                    "Dat files (*.dat)|*.dat|" \
                    "NPZ files (*.npz)|*.npz"
+
+        # "Agilent D files (*.d)|*.d|" \
 
         # Create a file selection dialog
         with wx.FileDialog(self, "Select Files to Add",
