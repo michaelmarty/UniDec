@@ -20,17 +20,17 @@ echo Unblocking the following DLLs:
 powershell -Command "Get-ChildItem -Path '%INTERNAL_DIR%' -Recurse -Filter *.dll | ForEach-Object { Unblock-File -Path $_.FullName; echo $_.FullName }"
 
 :: Define the path to regasm.exe
-set "REGASMPROG=%SystemRoot%\Microsoft.NET\Framework64\v4.0.30319\regasm.exe"
+:: set "REGASMPROG=%SystemRoot%\Microsoft.NET\Framework64\v4.0.30319\regasm.exe"
 
 :: Unregister DLLs
-%REGASMPROG% "%INTERNAL_DIR%\BaseCommon.dll" /tlb /u
-%REGASMPROG% "%INTERNAL_DIR%\BaseDataAccess.dll" /tlb /u
-%REGASMPROG% "%INTERNAL_DIR%\MassSpecDataReader.dll" /tlb /u
-
+:: %REGASMPROG% "%INTERNAL_DIR%\BaseCommon.dll" /tlb /u
+:: %REGASMPROG% "%INTERNAL_DIR%\BaseDataAccess.dll" /tlb /u
+:: %REGASMPROG% "%INTERNAL_DIR%\MassSpecDataReader.dll" /tlb /u
+::
 :: Register DLLs
-%REGASMPROG% "%INTERNAL_DIR%\BaseCommon.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\BaseDataAccess.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\MassSpecDataReader.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\BaseCommon.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\BaseDataAccess.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\MassSpecDataReader.dll" /tlb
 
 
 :: %REGASMPROG% "%INTERNAL_DIR%\Clearcore2.Compression.dll" /tlb

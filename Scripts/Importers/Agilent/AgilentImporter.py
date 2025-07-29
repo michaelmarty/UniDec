@@ -1,9 +1,5 @@
-from copy import deepcopy
-import numpy as np
-from unidec.UniDecImporter.Agilent.MZFILE import MZFile as mzFile
+from Scripts.Importers.Agilent.MZFILE import MZFile as mzFile
 from unidec.UniDecImporter.Importer import *
-from unidec import tools as ud
-from unidec.UniDecImporter.ImportTools import merge_spectra, IndexedFile, IndexedScan
 
 
 # When is the msrun scaninfo even being populated ever
@@ -117,7 +113,6 @@ class AgilentImporter(Importer):
 
 
 if __name__ == '__main__':
-    import time
     # path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\AgilentData\\2019_05_15_bsa_ccs_02.d"
     path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_agilent.d"
     #path = "C:\\Data\\DataTypeCollection\\test_agilent.d"

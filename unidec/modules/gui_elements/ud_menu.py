@@ -27,8 +27,8 @@ class main_menu(wx.Menu):
         # File Menu
         self.menuOpen = self.filemenu.Append(wx.ID_OPEN, "Open File (Text, mzML, Wiff, or Thermo RAW)\tCtrl+O",
                                              " Open a Text File in x y text, mzML, or Thermo RAW format")
-        self.menuOpenRaw = self.filemenu.Append(wx.ID_ANY, "Open Waters or Agilent File",
-                                                " Open a Waters .Raw or Agilent .D File")
+        self.menuOpenRaw = self.filemenu.Append(wx.ID_ANY, "Open Waters File",
+                                                " Open a Waters .Raw File")
         self.filemenu.AppendSubMenu(self.menuOpenRecent, "Open Recent File")
         self.filemenu.AppendSeparator()
 

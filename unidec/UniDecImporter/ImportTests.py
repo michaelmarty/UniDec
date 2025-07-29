@@ -7,7 +7,7 @@ import numpy as np
 
 topdir = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\"
 chrom_dat_examples = ["test_mzml.mzML", "test_mzmlgz.mzML.gz", "test_mzxml.mzXML",
-                      "test_thermo.RAW", "test_waters.raw", "test_agilent.d"]
+                      "test_thermo.RAW", "test_waters.raw"]#, "test_agilent.d"]
 chrom_paths = [os.path.join(topdir, p) for p in chrom_dat_examples]
 
 ss_dir = "SingleScan"

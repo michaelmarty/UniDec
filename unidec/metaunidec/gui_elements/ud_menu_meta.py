@@ -68,8 +68,8 @@ class meta_menu(wx.Menu):
                                                  "Open mzML or Thermo Raw File")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_open, self.openmenu)
 
-            self.openmenudir = self.filemenu.Append(wx.ID_ANY, "Open Waters or Agilent File",
-                                                    "Open Waters or Agilent File")
+            self.openmenudir = self.filemenu.Append(wx.ID_ANY, "Open Waters File",
+                                                    "Open Waters File")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_open_dir, self.openmenudir)
             self.filemenu.AppendSeparator()
             self.menuopenhdf5 = self.filemenu.Append(wx.ID_ANY, "Open HDF5 File",
@@ -199,7 +199,7 @@ class meta_menu(wx.Menu):
                                                       "Apply current config and time windows and run deconvolution for batch of  files")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_batch_chrom1, self.menubatchrun)
 
-            self.menubatchrun2 = self.toolsmenu.Append(wx.ID_ANY, "Batch Run Directories (Waters/Agilent)",
+            self.menubatchrun2 = self.toolsmenu.Append(wx.ID_ANY, "Batch Run Directories (Waters)",
                                                        "Apply current config and time windows and run deconvolution for batch of  files")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_batch_chrom_dirs, self.menubatchrun2)
 

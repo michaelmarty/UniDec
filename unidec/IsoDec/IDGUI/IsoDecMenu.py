@@ -28,8 +28,8 @@ class main_menu(wx.Menu):
         self.menuOpenRaw = self.filemenu.Append(
 
             wx.ID_ANY,
-            "Open Waters or Agilent File",
-            " Open a Waters .Raw or Agilent .D File",
+            "Open Waters File",
+            " Open a Waters .Raw File",
         )
         self.filemenu.AppendSubMenu(self.menuOpenRecent, "Open Recent File")
         self.filemenu.AppendSeparator()
