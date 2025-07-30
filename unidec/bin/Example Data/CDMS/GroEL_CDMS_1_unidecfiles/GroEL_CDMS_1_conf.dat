@@ -62,8 +62,8 @@ doubledec False
 CDslope 0.2074
 CDzbins 1
 CDres 0.0
-CDScanStart -1
-CDScanEnd -1
+CDScanStart -1.0
+CDScanEnd -1.0
 CDprethresh 0.0
 HTksmooth 0.0
 CDScanCompress 0
@@ -113,12 +113,12 @@ tcal3 0.0
 tcal4 0.0
 edc 1.57
 iso_meanpeakspacing_thresh 0.01
-iso_background_subtraction 0
+iso_background_subtraction 0.0
 iso_adductmass 1.007276467
 iso_mass_diff_c 1.0033
-iso_peakwindow 80
+iso_peakwindow 80.0
 iso_phaseres 8
-iso_matchtol 5
+iso_matchtol 5.0
 iso_minpeaks 3
 iso_peakthresh 0.0001
 iso_css_thresh 0.7
