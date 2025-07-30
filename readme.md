@@ -228,10 +228,16 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.8.1.0
 
+Removed Agilent and Sciex importers. They were causing issues with admin privileges for people.
+I'm talking to Agilent and Sciex to see if I can get support for these in the future.
+
 Rewrote C source code to compile with CMake. Lots of little issues fixed along the way. Included prototype DLL 
 for unideclib.dll. 
 
 New parameter management in background. Some parameter names have changed. 
+
+Added new text file export in 3 column format for mass, var1, and extract on UniChrom and MetaUniDec.
+Also, I modified the _extracts.txt file to include the var1 values in the top row with a 0 in the first column.
 
 Fixed issue with IsoDec where narrow m/z windows were cutting off extended isotopes on +1 peaks.
 Now, the high m/z window value will be extended in full, but the encoding will only be half of that. The 

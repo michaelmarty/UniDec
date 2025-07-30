@@ -304,12 +304,24 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         except:
             pass
 
-        peakexts = []
+        peakexts = list([np.concatenate(([0], self.data.var1))])
         for p in self.pks.peaks:
             peakexts.append(np.concatenate(([p.mass], p.extracts)))
         outfile = self.config.outfname + "_extracts.txt"
         np.savetxt(outfile, np.array(peakexts))
         print("Peak info saved to:", outfile)
+
+        self.export_3column()
+
+    def export_3column(self, e=None):
+        var1 = self.data.var1
+        outlist = []
+        for p in self.pks.peaks:
+            for i, val in enumerate(p.extracts):
+                outlist.append([p.mass, var1[i], val])
+        outfile = self.config.outfname + "_extracts_3col.txt"
+        np.savetxt(outfile, np.array(outlist))
+        print("3 Column Peak info saved to:", outfile)
 
     def export_spectra(self, e=None):
         for s in self.data.spectra:
