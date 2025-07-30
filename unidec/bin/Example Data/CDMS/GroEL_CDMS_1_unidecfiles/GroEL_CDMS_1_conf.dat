@@ -30,7 +30,7 @@ smooth 0.0
 mzbins 10.0
 peakwindow 500.0
 peakthresh 0.2
-normthresh 0.0
+normthresh 1
 peakplotthresh 0.1
 plotsep 0.025
 intthresh 0.0
@@ -62,8 +62,8 @@ doubledec False
 CDslope 0.2074
 CDzbins 1
 CDres 0.0
-CDScanStart -1.0
-CDScanEnd -1.0
+CDScanStart -1
+CDScanEnd -1
 CDprethresh 0.0
 HTksmooth 0.0
 CDScanCompress 0

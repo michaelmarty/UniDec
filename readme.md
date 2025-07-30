@@ -241,6 +241,8 @@ Also, I modified the _extracts.txt file to include the var1 values in the top ro
 
 Ultrameta will now attempt to group values if it doesn't find any exact matches.
 
+Added Norm Peak Thresh control to UniDecCD.
+
 Fixed issue with IsoDec where narrow m/z windows were cutting off extended isotopes on +1 peaks.
 Now, the high m/z window value will be extended in full, but the encoding will only be half of that. The 
 new defaults are 4.05 rather than 2.05 to catch these additional isotopes while still encoding a narrow range of 2.025.

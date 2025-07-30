@@ -354,7 +354,7 @@ class UniDecConfig(object):
             "mzbins": (self.mzbins, float),
             "peakwindow": (self.peakwindow, float),
             "peakthresh": (self.peakthresh, float),
-            "normthresh": (self.normthresh, float),
+            "normthresh": (self.normthresh, int),
             "peakplotthresh": (self.peakplotthresh, float),
             "plotsep": (self.separation, float),
             "intthresh": (self.intthresh, float),
