@@ -245,7 +245,8 @@ class DataCollector(wx.Frame):
             if True:
                 try:
                     testdir = "C:\\Python\\UniDec3\\TestSpectra"
-                    testfile = "um_collection1.json"
+                    testdir = "Z:\\Group Share\\BHT\\Q Exactive HF Data\\Walti HSP60\\20250729"
+                    testfile = "collection1.json"
                     self.load(os.path.join(testdir, testfile))
                     # self.on_plot_all()
                     pass
@@ -617,18 +618,46 @@ class DataCollector(wx.Frame):
                         hdf.close()
 
                 if not ud.isempty(xvalsall) and not ud.isempty(extracts):
-                    extracts = np.array(extracts)
-                    zexts = np.array(zexts)
-                    # xvals = np.array(xvals)
-                    xvalsall = np.array(xvalsall)
                     l = len(xvalsall)
                     unix, counts = np.unique(np.hstack(xvalsall), return_counts=True)
                     b1 = counts == l
                     unix = unix[b1]
 
+                    if len(unix) == 0:
+                        print("No consensus x values found for", u)
+                        print("X Values:", xvalsall)
+                        print("Grouping x values that are close")
+
+                        median_diff = np.median([np.diff(np.sort(x)) for x in xvalsall if len(x) > 1])
+                        print("Median Difference:", median_diff)
+
+                        cutoff = 0.2 * median_diff
+
+                        print("Cutoff for grouping:", cutoff)
+                        if len(xvalsall) < 2:
+                            print("Not enough x values to group, skipping")
+                            continue
+
+                        for i, x in enumerate(xvalsall[0]):
+                            closevals = [x]
+                            closeindex = [[0, i]]
+
+                            for j, xlist in enumerate(xvalsall[1:]):
+                                for k, x2 in enumerate(xlist):
+                                    if np.abs(x - x2) < cutoff:
+                                        print(f"Grouping {x} and {x2} together")
+                                        closevals.append(x2)
+                                        closeindex.append([j + 1, k])
+
+                            avg = np.mean(closevals)
+                            print(f"Average for group: {avg}")
+                            unix = np.append(unix, avg)
+                            for j, (list_index, val_index) in enumerate(closeindex):
+                                xvalsall[list_index][val_index] = avg
+
                     for i, x in enumerate(xvalsall):
                         x = np.array(x)
-                        b2 = np.in1d(x, unix)
+                        b2 = np.isin(x, unix)
                         test = np.all(b2)
                         if not test:
                             print("Removing some data points to take only consensus x values")
