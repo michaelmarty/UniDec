@@ -10,6 +10,7 @@ from matplotlib import rcParams
 from scipy.signal import find_peaks
 import pandas as pd
 import colorsys
+import rainbow as rb
 
 # RC Parameters
 rcParams['ps.useafm'] = True
@@ -51,7 +52,7 @@ def get_filtered_colors(cmap_name='cool', num_colors=256, luminosity_factor=0.8,
     return colors
 
 # Define the top directory and file pattern
-topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\20250716 TD test_Gain3_Sen3_tog500 2025-07-23 16-40-55\001-D1F-A2-sfgfp-.D"
+topdir = r"Z:\Group Share\Dash\UIB data test"
 
 files = glob.glob(f'{topdir}/*.D', recursive=False)
 
@@ -63,8 +64,8 @@ channel_index = 6
 channel_indices = [3, 4]
 
 # outfile setup
-outfile = "UIB.txt"
-multioutfile = "UIB" + str(channel_indices) + ".txt"
+outfile = str(channel_index)+".txt"
+multioutfile = "Agilent" + str(channel_indices) + ".txt"
 
 
 # Function to extract data and write to text files
@@ -76,15 +77,39 @@ def extract_and_write_data(files):
             try:
                 result = extract_data(path, index=channel_index)
                 x, y = result[:, 0], result[:, 1]
-
-                # Write x and y data to a text file in the original directory
                 output_txt = "UIB1 B.txt"
                 with open(output_txt, 'w') as f:
-                    np.savetxt(f, np.column_stack((x, y)), delimiter=',', header='x,y', comments='')
-                np.savez_compressed(outfile, result)
-
+                    np.savetxt(f, result, delimiter=',', header='x,y', comments='')
+                np.savetxt(outfile, result)
             except Exception as e:
                 print(f"Failed to process {path}: {e}")
+
+def get_UIB_data(files):
+
+    for path in files:
+        print(f"Processing: {path}")
+        datadir = rb.read(path)
+        # print(datadir)
+
+        datafile = datadir.get_file("UIB1B.ch")
+        time = np.array(datafile.xlabels)
+        # print(time)
+        voltages = np.array(datafile.data)
+        # print(voltages)
+
+        print("time shape:", time.shape)
+        print("voltages shape:", voltages.shape)
+
+        outdir = os.path.basename(path).replace(".D", "")
+        os.makedirs(outdir, exist_ok=True)
+        np.savetxt(os.path.join(outdir, "UIB1B_data.txt"), np.column_stack((time, voltages)),
+                   header="Time (s)\tVoltage (V)", delimiter="\t")
+
+        plt.figure(figsize=(16, 9))
+        plt.plot(time, voltages, marker='o', markersize=2, linestyle='-', linewidth=0.5, color='b', label='UIB1B Data')
+        plt.savefig(os.path.join(path, "UIB1B_data_raw.png"))
+        plt.close()
+
 
 
 def extract_and_write_data_multi_channel(files, channel_indices, multioutfile):
@@ -98,7 +123,7 @@ def extract_and_write_data_multi_channel(files, channel_indices, multioutfile):
                 # Normalize y-axis data to np.amax
                 y_max = np.amax(result[:, 1])
                 if y_max != 0:
-                    result[:, 1] = result[:, 1] #/ y_max
+                    result[:, 1] = result[:, 1]  # / y_max
                 data_dict[f'channel_{idx}'] = result
                 # Optionally, save each channel as a separate txt
                 output_txt = f"extracted_data_channel_{idx}.txt"
@@ -668,14 +693,15 @@ def create_multi_channel_npz(topdir, channel_indices, title=""):
 
 # Main function to parse files and process data
 def main():
-    extract_and_write_data(files)
-    extract_and_write_data_multi_channel(files, channel_indices, multioutfile)
+    #extract_and_write_data(files)
+    #extract_and_write_data_multi_channel(files, channel_indices, multioutfile)
+    get_UIB_data(files)
     #extract_spectra(files, channel_index=channel_index)
-    data, file_names = read_data(files)
+    #data, file_names = read_data(files)
     #create_waterfall_plot(data, file_names)
     #results = calculate_areas_and_retention_times(data)
     #create_annotated_ridgeline_plot(data, file_names, results, offset=100)
-    create_2D_plot(data, file_names)
+    #create_2D_plot(data, file_names)
     # create_flowthrough_area_plot(results, file_names)
     # create_elution_area_plot(results, file_names)
     #create_multi_channel_npz(topdir, channel_indices, title=" ")
