@@ -88,6 +88,7 @@ class UniDecApp(UniDecPres):
             file = "C:\\Data\\Volker noisy protein spectra\\Protein+cov-binder_#212#141.txt"
             # newdir = "C:\\cprog\\UniDecDemo"
             self.on_open_file(file)
+            self.view.on_save_figure_dialog(0)
             # self.view.on_save_figure_eps(0)
             # self.on_dataprep_button(0)
             # self.on_auto(0)
