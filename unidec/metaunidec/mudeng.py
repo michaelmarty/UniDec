@@ -341,6 +341,10 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
 
         outlist = np.ravel(outgrid, order='C')
         outlist = outlist.reshape(-1, 3)
+
+        b1 = outlist[:, 2] > 0  # Remove zero intensity points
+        outlist = outlist[b1]
+
         outfile = self.config.outfname + "_2D_decon_3col.txt"
 
         np.savetxt(outfile, outlist, delimiter="\t", fmt='%.6f')
