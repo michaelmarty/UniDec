@@ -35,7 +35,7 @@ class HRAMSearchSpace:
         searchspace = np.array(searchspace, dtype=object)
         # Set up the element file
         if efile is None:
-            efile = "C:\\Python\\UniDec3\\unidec\\bin\\IUPAC-atomic-masses.csv"
+            efile = "C:\\Python\\UniDecDev\\unidec\\bin\\IUPAC-atomic-masses.csv"
         self.elements = pd.read_csv(efile)
         # Set up the element dict
         self.edict = {}
@@ -106,8 +106,8 @@ class HRAMSearchSpace:
                 self.result.iso_keys.append(isoname)
                 simpname = re.sub('\d', '', isoname)
                 self.result.elem_keys.append(simpname)
-                fpart = np.core.defchararray.add(" " + isoname + ":", self.result.match_comp[:, i].astype(str))
-                self.result.match_formulas = np.core.defchararray.add(self.result.match_formulas, fpart)
+                fpart = np.char.add(" " + isoname + ":", self.result.match_comp[:, i].astype(str))
+                self.result.match_formulas = np.char.add(self.result.match_formulas, fpart)
 
             if not silent:
                 print(self.result.to_df())
@@ -141,10 +141,11 @@ if __name__ == "__main__":
     #target = 728.2088
     target = 50.999831
     target = 62.9986
-    customsearch=[["1H", -7, 10], ["12C", -7, 7], ["14N", 0, 7], ["16O", -7, 7], ["31P", -1, 0], ["40Ar", 0, 0]]
+    target = 281.24806
+    customsearch=[["1H", 0, 50], ["12C", 0, 25], ["14N", 0, 4], ["16O", 0, 7]]
     searcher = HRAMSearchSpace(searchspace=customsearch)
     # target = 1500
-    results = calc_fromula_from_mass([target], Searcher=searcher, tolerance=10)
+    results = calc_fromula_from_mass([target], Searcher=searcher, tolerance=20)
     outdf = results[0].to_df()
     print(results[0].to_df())
     # print(results[0].match_comp)
