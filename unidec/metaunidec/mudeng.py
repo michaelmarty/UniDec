@@ -320,7 +320,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
                 for i, val in enumerate(p.extracts):
                     outlist.append([var1[i], p.mass, val])
             outfile = self.config.outfname + "_extracts_3col_peaks.txt"
-            np.savetxt(outfile, np.array(outlist), delimiter="\t")
+            np.savetxt(outfile, np.array(outlist), delimiter="\t", header="Var1\tMass\tIntensity", comments='', fmt='%.6f')
             print("3 Column Peak info saved to:", outfile)
 
     def export_2D_decon_3column(self, e=None):
@@ -347,7 +347,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
 
         outfile = self.config.outfname + "_2D_decon_3col.txt"
 
-        np.savetxt(outfile, outlist, delimiter="\t", fmt='%.6f')
+        np.savetxt(outfile, outlist, delimiter="\t", header="Var1\tMass\tIntensity", comments='', fmt='%.6f')
         tend = time.perf_counter()
         print("3 Column Full Decon Data Saved to:", outfile)
         print("Export Time: %.3gs" % (tend - tstart))
