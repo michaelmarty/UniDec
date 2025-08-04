@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -12,7 +13,7 @@ file_paths = [
     r'Z:\Group Share\BHT\Akta FPLC Data\20250731\20250731_BHT_HIC_2M_ammoniumacetate_PhenylFF(lowsub) 001.csv',
     r'Z:\Group Share\BHT\Akta FPLC Data\20250731\20250731_BHT_HIC_2M_ammoniumacetate_ButylFF 001.csv'
 ]
-labels = ['UV (ButylFF)', 'UV (OctylFF)', 'UV (PhenylFF)', 'UV (ButylSFF)']
+labels = ['UV (ButylSFF)', 'UV (OctylFF)', 'UV (PhenylFF)', 'UV (ButylFF)']
 colors = ['blue', 'green', 'orange', 'purple']
 
 # Read all CSV files
@@ -31,15 +32,19 @@ for UV_Data, label, color in zip(UV_datas, labels, colors):
 ax1.set_xlabel('Volume (mL)')
 ax1.set_ylabel('UV Absorbance (mAU)')
 ax1.tick_params(axis='y')
-ax1.set_xlim(left=0)
+ax1.set_xlim(left=0, right=50)
 ax1.set_ylim(bottom=-5)
-ax1.legend(loc='upper right')  # Legend moved to the right
+ax1.legend(loc='upper right', fontsize=18)
 
 # Create secondary y-axis for Concentration B from first file
 ax2 = ax1.twinx()
 ax2.plot(Concentration_B_Data_1.iloc[:, 0], Concentration_B_Data_1.iloc[:, 1], color='red', label='% B')
-ax2.set_ylabel('Concentration B', color='red')
+ax2.set_ylabel('% Mobile Phase B', color='red')
 ax2.tick_params(axis='y', labelcolor='red')
-ax2.set_xlim(left=0)
+ax2.set_xlim(left=0, right=50)
 
-plt.show()
+# Save plot as PNG in the same directory as the first CSV file
+output_dir = os.path.dirname(file_paths[0])
+output_path = os.path.join(output_dir, 'Akta_Chromatogram_Comparison.png')
+plt.savefig(output_path, bbox_inches='tight', dpi=300)
+plt.close()
