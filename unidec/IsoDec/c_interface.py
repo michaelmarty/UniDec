@@ -9,7 +9,8 @@ path_root = Path(__file__).parents[2]
 sys.path.append(str(path_root))
 
 import matplotlib.pyplot as plt
-from unidec.IsoDec.match import MatchedPeak, MatchedCollection, IsoDecConfig
+from unidec.IsoDec.match import MatchedPeak, MatchedCollection
+from unidec.modules.unidecstructure import IsoDecConfig
 from unidec.IsoDec.plots import plot_pks
 from unidec.tools import start_at_iso, datachop
 
@@ -132,8 +133,8 @@ def config_to_settings(config):
     settings.css_thresh = float(config.css_thresh)
     settings.matchtol = float(config.matchtol)
     settings.maxshift = int(config.maxshift)
-    settings.mzwindow = (config.mzwindow[0], config.mzwindow[1])
-    settings.plusoneintwindow = (config.plusoneintwindow[0], config.plusoneintwindow[1])
+    settings.mzwindow = (config.mzwindowlb, config.mzwindowub)
+    settings.plusoneintwindow = (config.plusoneintwindowlb, config.plusoneintwindowub)
     settings.knockdown_rounds = int(config.knockdown_rounds)
     settings.min_score_diff = config.min_score_diff
     settings.minareacovered = config.minareacovered

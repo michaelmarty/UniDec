@@ -3,6 +3,7 @@ import time
 # from scipy import fftpack
 from numpy import fft as fftpack
 from numba import njit
+import unidec.IsoDec.isogenwrapper as isogen
 
 
 mass_diff_c = 1.0033
@@ -79,10 +80,11 @@ def makemassmike(testmass: float) -> float:
 
 
 #@njit(fastmath=True)
-def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, isolen=128):
+def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, isolen=128, threshold=0.001):
     # Predict Isotopic Intensities
-    formula, minmassint, intnum = makemass(mass)
-    intensities = isojim(intnum, isolen)
+    # formula, minmassint, intnum = makemass(mass)
+    # intensities = isojim(intnum, isolen)
+    intensities = isogen.fft_gen_isodist(mass, isolen=isolen)
     # Calculate masses for these
     masses = np.arange(0, len(intensities)) * mass_diff_c + mass
 
@@ -91,12 +93,13 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, iso
     dist[:, 0] = masses
     dist[:, 1] = intensities
 
-    # # Filter Low Intensities
-    # b1 = intensities > np.amax(intensities) * 0.01
-    # dist = dist[b1]
-    #
-    # # Convert to m/z
-    # dist[:, 0] = (dist[:, 0] + float(charge) * adductmass) / float(charge)
+    # Filter Low Intensities
+    b1 = intensities > np.amax(intensities) * threshold
+    dist = dist[b1]
+
+    # Convert to m/z
+    if charge >=1:
+        dist[:, 0] = (dist[:, 0] + float(charge) * adductmass) / float(charge)
 
     return dist
 
@@ -104,7 +107,7 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, iso
 #@njit(fastmath=True)
 def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007276467, isotopethresh: float = 0.01, type = "PEPTIDE"):
     # Predict Isotopic Intensities
-    intensities = isogen_nn(mass, type)
+    intensities = isogen.fft_gen_isodist(mass, type)
     # Calculate masses for these
     masses = np.arange(0, len(intensities)) * mass_diff_c + mass
 
@@ -251,8 +254,7 @@ def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.0072
         intensities = isomike(mass)
     else:
         _, minmassint, isolist = makemass(mass)
-        # print(isolist)
-        intensities = isojim(isolist)
+        intensities = isojim(isolist, length)
 
     if mono:
         minmassint = mass

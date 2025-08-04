@@ -226,6 +226,31 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.8.1.0
+
+Removed Agilent and Sciex importers. They were causing issues with admin privileges for people.
+I'm talking to Agilent and Sciex to see if I can get support for these in the future.
+
+Rewrote C source code to compile with CMake. Lots of little issues fixed along the way. Included prototype DLL 
+for unideclib.dll. 
+
+New parameter management in background. Some parameter names have changed. 
+
+Added new text file export in 3 column format for var1, mass, and extract on UniChrom and MetaUniDec.
+Also, I modified the _extracts.txt file to include the var1 values in the top row with a 0 in the first column.
+
+Ultrameta will now attempt to group values if it doesn't find any exact matches.
+
+Added Norm Peak Thresh control to UniDecCD.
+
+Fixed bug with Save Figure As dialog.
+
+Fixed issue with IsoDec where narrow m/z windows were cutting off extended isotopes on +1 peaks.
+Now, the high m/z window value will be extended in full, but the encoding will only be half of that. The 
+new defaults are 4.05 rather than 2.05 to catch these additional isotopes while still encoding a narrow range of 2.025.
+
+Bug fixes throughout. 
+
 v.8.0.3
 
 New build cleanup and refactoring. Bug fixes. Updated contact information.
@@ -237,6 +262,14 @@ v.8.0.2
 Added menu option to export conf.dat text file from UniChrom and MetaUniDec.
 
 Fixed potential mzML issue with TIC having seconds and scans having minutes. 
+
+Fixed IsoDec export bugs
+
+IsoGen neural network for isotope distribution prediction from: protein mass, protein sequence, RNA mass, and RNA sequence
+
+FT-based isotopic distribution calculation methods have also been added.
+
+All IsoGen methods are written in C, but accessible in python in **isogenc.py**.
 
 v.8.0.1
 

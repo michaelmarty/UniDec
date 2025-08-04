@@ -23,6 +23,7 @@ class ThermoImporter(Importer):
         self.cdms_support = True
         self.imms_support = False
         self.chrom_support = True
+        self.thermo_support = True
 
     def init_scans(self):
         self.scan_range = self.msrun.scan_range

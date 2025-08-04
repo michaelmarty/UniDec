@@ -1,12 +1,11 @@
 import sqlite3
-from collections import Counter
-
 import numpy as np
+from unidec.UniDecImporter.Importer import Importer
 
 
-
-class I2MSImporter:
+class I2MSImporter(Importer):
     def __init__(self, file):
+        super().__init__(file)
         conn = sqlite3.connect(file)
         cursor = conn.cursor()
         cursor.execute('SELECT * from main.Ion ORDER BY mz ASC')

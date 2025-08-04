@@ -8,7 +8,8 @@ from torch.utils.data import DataLoader
 from unidec.IsoDec.encoding import encode_synthetic
 from unidec.IsoDec.models import example, PhaseModel
 from unidec.IsoDec.datatools import fastpeakdetect, get_all_centroids, fastnearest, check_spacings, remove_noise_cdata
-from unidec.IsoDec.match import optimize_shift2, IsoDecConfig, MatchedCollection
+from unidec.IsoDec.match import optimize_shift2, MatchedCollection
+from unidec.modules.unidecstructure import IsoDecConfig
 from unidec.IsoDec.encoding import data_dirs, encode_noise, encode_phase_all, small_data_dirs, \
     encode_double, encode_harmonic, extract_centroids
 
@@ -42,6 +43,10 @@ class IsoDecDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         return [self.emat[idx], self.z[idx]]
+
+
+# Note, this is primarily a tool for training, testing, and development.
+# We recommend most people use IsoDecRuntime for routine use.
 
 
 # TODO: Inherit this from IsoDecRuntime
@@ -647,8 +652,6 @@ class IsoDecEngine:
             window = self.config.peakwindow
         if threshold is None:
             threshold = self.config.peakthresh
-        if self.config.css_thresh < 0.6:
-            self.config.adjust_css = False
 
         # TODO: Need a way to test for whether data is centroided already
         if centroided:
@@ -672,7 +675,7 @@ class IsoDecEngine:
             threshold = threshold
             for i in range(self.config.knockdown_rounds):
                 # Adjust settings based on round
-                if i >= 5 and self.config.adjust_css:
+                if i >= 5:
                     self.config.css_thresh = self.config.css_thresh * 0.90
                     if self.config.css_thresh < 0.6:
                         self.config.css_thresh = 0.6
@@ -697,8 +700,8 @@ class IsoDecEngine:
 
                 if self.predmode == 0:
                     # Encode phase of all
-                    emats, peaks, centlist, indexes = encode_phase_all(centroids, peaks, lowmz=self.config.mzwindow[0],
-                                                                       highmz=self.config.mzwindow[1],
+                    emats, peaks, centlist, indexes = encode_phase_all(centroids, peaks, lowmz=self.config.mzwindowlb,
+                                                                       highmz=self.config.mzwindowub,
                                                                        phaseres=self.config.phaseres,
                                                                        minpeaks=2, datathresh=self.config.datathreshold)
 
@@ -710,10 +713,8 @@ class IsoDecEngine:
                     preds = self.phasemodel.batch_predict(data_loader)
                 elif self.predmode == 1:
                     encodingcentroids, goodpeaks, outcentroids, indexes = extract_centroids(centroids, peaks,
-                                                                                            lowmz=self.config.mzwindow[
-                                                                                                0],
-                                                                                            highmz=self.config.mzwindow[
-                                                                                                1],
+                                                                                            lowmz=self.config.mzwindowlb,
+                                                                                            highmz=self.config.mzwindowub,
                                                                                             minpeaks=2,
                                                                                             datathresh=self.config.datathreshold)
                     peaks = goodpeaks
@@ -721,10 +722,8 @@ class IsoDecEngine:
                     preds = [self.phase_predictor(c) for c in encodingcentroids]
                 elif self.predmode == 2:
                     encodingcentroids, goodpeaks, outcentroids, indexes = extract_centroids(centroids, peaks,
-                                                                                            lowmz=self.config.mzwindow[
-                                                                                                0],
-                                                                                            highmz=self.config.mzwindow[
-                                                                                                1],
+                                                                                            lowmz=self.config.mzwindowlb,
+                                                                                            highmz=self.config.mzwindowub,
                                                                                             minpeaks=2,
                                                                                             datathresh=self.config.datathreshold)
                     peaks = goodpeaks
@@ -732,10 +731,8 @@ class IsoDecEngine:
                     preds = [self.thrash_predictor(c) for c in encodingcentroids]
                 elif self.predmode == 3:
                     encodingcentroids, goodpeaks, outcentroids, indexes = extract_centroids(centroids, peaks,
-                                                                                            lowmz=self.config.mzwindow[
-                                                                                                0],
-                                                                                            highmz=self.config.mzwindow[
-                                                                                                1],
+                                                                                            lowmz=self.config.mzwindowlb,
+                                                                                            highmz=self.config.mzwindowub,
                                                                                             minpeaks=2,
                                                                                             datathresh=self.config.datathreshold)
                     peaks = goodpeaks
@@ -746,10 +743,8 @@ class IsoDecEngine:
 
                 elif self.predmode == 4:
                     encodingcentroids, goodpeaks, outcentroids, indexes = extract_centroids(centroids, peaks,
-                                                                                            lowmz=self.config.mzwindow[
-                                                                                                0],
-                                                                                            highmz=self.config.mzwindow[
-                                                                                                1],
+                                                                                            lowmz=self.config.mzwindowlb,
+                                                                                            highmz=self.config.mzwindowub,
                                                                                             minpeaks=2,
                                                                                             datathresh=self.config.datathreshold)
                     peaks = goodpeaks
@@ -772,8 +767,6 @@ class IsoDecEngine:
                     kindex = fastnearest(centroids[:, 0], p[0])
 
                     matchedindexes = []
-                    if self.predmode == 4:
-                        matchedindexes = self.get_matches_zloop(centlist[j], preds[j], p[0], pks=self.pks)
 
                     if self.config.verbose:
                         print("Peak:", p, z)
@@ -790,6 +783,8 @@ class IsoDecEngine:
                             matchedindexes = self.get_matches_multiple_z(centlist[j], z, p[0], pks=self.pks)
                         else:
                             matchedindexes = self.get_matches(centlist[j], z[0], p[0], pks=self.pks)
+                    elif self.predmode == 4:
+                        matchedindexes = self.get_matches_zloop(centlist[j], preds[j], p[0], pks=self.pks)
 
                     if len(matchedindexes) > 0:
                         ngood += 1

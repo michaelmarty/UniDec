@@ -19,28 +19,26 @@ class IsoDecPres(UniDecPres):
         super().__init__()
         self.isodeceng = IsoDecRuntime()
         self.eng = UniDec()
-        self.init_config()
 
         self.view = IsoDecView(self, "IsoDec", self.eng.config, iconfile=None)
         try:
-            if platform.node() == 'MTM-VOSTRO':
-                self.on_ex()
-                self.on_unidec_button()
-                self.on_plot_peaks()
-                self.on_plot_dists()
+            if platform.node() == 'CHEM-A90237' and True:
+                # self.on_ex()
+                file = "C:\\Data\\Volker noisy protein spectra\\Protein+cov-binder_#212#141.txt"
+                # file = "C:\\Data\\Yuri\\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_100k_Charge Reduction-yes_adduct_N-term_MP2_pi200_IntGaus_NoP_N3.csv"
+                # file = "C:\\Python\\UniDecDev\\unidec\\bin\\Example Data\\IsoDec\\test2.txt"
+                self.on_open_file(file)
+                # self.on_unidec_button()
+                # self.on_plot_peaks()
+                # self.on_plot_dists()
+
         except:
             pass
-
-    def init_config(self):
-        self.translate_id_config()
-        self.eng.config.massbins = 1
-        self.eng.config.aggressiveflag = 8
-        self.eng.config.numit = self.isodeceng.config.knockdown_rounds
+        #self.on_remove_assigned_peaks()
 
     def on_init_config(self, e=None):
         self.isodeceng.config.__init__()
         self.eng.config.initialize()
-        self.init_config()
         self.view.import_config_to_gui()
 
     def on_open(self, e=None):
@@ -61,7 +59,7 @@ class IsoDecPres(UniDecPres):
             self.on_open_file(filename, dirname)
         dlg.Destroy()
 
-    def on_open_file(self, filename, directory, skipengine=False, refresh=False, **kwargs):
+    def on_open_file(self, filename, directory=None, skipengine=False, refresh=False, **kwargs):
         """
         Opens a file. Run self.eng.open_file.
         :param filename: File name
@@ -74,6 +72,10 @@ class IsoDecPres(UniDecPres):
         # Clear other plots and panels
         self.view.peakpanel.clear_list()
         self.view.clear_all_plots()
+        if directory is None:
+            directory = os.path.dirname(os.path.abspath(filename))
+            filename = os.path.basename(filename)
+
         if not skipengine:
             # Open File in Engine
             self.top_path = os.path.join(directory, filename)
@@ -157,7 +159,12 @@ class IsoDecPres(UniDecPres):
         """
         self.view.SetStatusText("Data Prep", number=5)
         self.fix_parameters()
+        self.translate_config()
         self.export_config(self.eng.config.confname)
+        self.eng.config.smooth = 0
+        self.eng.config.subbuff = 0
+        self.eng.config.detectoreffva = 0
+        self.eng.config.mzbins = 0
 
         if not self.eng.config.centroided:
             print("Centroiding Data")
@@ -165,14 +172,18 @@ class IsoDecPres(UniDecPres):
             #Everything going through IsoDec should be centroided
             if path[-1].lower() == 'raw' and not os.path.isdir(self.top_path):
                 self.eng.data.data2 = self.isodeceng.reader.grab_all_centroid_dat()
+                if self.eng.config.idconfig.background_subtraction>0:
+                    self.eng.data.data2 = ud.datacompsub(self.eng.data.data2, self.eng.config.idconfig.background_subtraction)
             else:
-                self.eng.data.data2 = get_all_centroids(self.eng.data.rawdata)
+                self.eng.data.data2 = get_all_centroids(self.eng.data.rawdata, background=self.eng.config.idconfig.background_subtraction)
             # self.eng.config.centroided = True
         else:
             # If the data is already centroided, just use the raw data
             self.eng.data.data2 = self.eng.data.rawdata
+            if self.eng.config.idconfig.background_subtraction > 0:
+                self.eng.data.data2 = ud.datacompsub(self.eng.data.data2,
+                                                     self.eng.config.idconfig.background_subtraction)
         self.eng.process_data(centroid=True)
-
 
         self.import_config()
         self.view.clear_all_plots()
@@ -183,33 +194,9 @@ class IsoDecPres(UniDecPres):
         pass
 
     def translate_config(self):
-        self.isodeceng.config.peakwindow = self.eng.config.peakwindow
-        self.isodeceng.config.peakthresh = self.eng.config.peakthresh
-        self.isodeceng.config.knockdown_rounds = self.eng.config.numit
-        self.isodeceng.config.phaseres = self.eng.config.aggressiveflag
-        self.isodeceng.config.matchtol = self.eng.config.filterwidth
-        self.isodeceng.config.maxshift = self.eng.config.msig
-        self.isodeceng.config.css_thresh = self.eng.config.csig
+        self.isodeceng.config = self.eng.config.idconfig
         self.isodeceng.config.adductmass = self.eng.config.adductmass
-        self.isodeceng.config.datathreshold = self.eng.config.exthresh
-        self.isodeceng.config.mzwindow = [self.eng.config.integratelb, self.eng.config.integrateub]
-        self.isodeceng.config.report_multiple_monoisos = self.eng.config.noiseflag
-        self.isodeceng.config.write_scans_without_precs = self.eng.config.linflag
-
-    def translate_id_config(self):
-        self.eng.config.peakwindow = self.isodeceng.config.peakwindow
-        self.eng.config.peakthresh = self.isodeceng.config.peakthresh
-        self.eng.config.numit = self.isodeceng.config.knockdown_rounds
-        self.eng.config.aggressiveflag = self.isodeceng.config.phaseres
-        self.eng.config.filterwidth = self.isodeceng.config.matchtol
-        self.eng.config.msig = self.isodeceng.config.maxshift
-        self.eng.config.csig = self.isodeceng.config.css_thresh
-        self.eng.config.adductmass = self.isodeceng.config.adductmass
-        self.eng.config.exthresh = self.isodeceng.config.datathreshold
-        self.eng.config.integratelb = self.isodeceng.config.mzwindow[0]
-        self.eng.config.integrateub = self.isodeceng.config.mzwindow[1]
-        self.eng.config.noiseflag = self.isodeceng.config.report_multiple_monoisos
-        self.eng.config.linflag = self.isodeceng.config.write_scans_without_precs
+        self.isodeceng.config.verbose = self.eng.config.verbose
 
     def on_unidec_button(self, e=None):
         """
@@ -219,22 +206,19 @@ class IsoDecPres(UniDecPres):
         """
         self.view.export_gui_to_config()
 
-        if self.eng.config.selection_type == "Peptide" or self.eng.config.selection_type == 'Rna':
-            self.isodeceng.selection_type = self.eng.config.selection_type
-
         tstart = time.perf_counter()
         self.view.SetStatusText("Running IsoDec...", number=5)
         self.fix_parameters()
-        self.export_config(self.eng.config.confname)
         self.translate_config()
-
+        self.export_config(self.eng.config.confname)
+        self.isodeceng.config = self.eng.config.idconfig
         self.isodeceng.config.activescan = 1
         self.isodeceng.config.activescanorder = 2
         self.isodeceng.config.activescanrt = 0
 
         data = self.eng.data.data2
         # Run IsoDec
-        self.isodeceng.batch_process_spectrum(data, centroided=True, refresh=True, type=self.isodeceng.selection_type)
+        self.isodeceng.batch_process_spectrum(data, centroided=True, refresh=True, type=self.isodeceng.analyte_type)
         # Convert to mass
         self.eng.data.massdat = self.isodeceng.pks_to_mass(self.eng.config.massbins)
 
@@ -262,7 +246,7 @@ class IsoDecPres(UniDecPres):
             self.view.SetStatusText("No Peaks Found", number=5)
             return
         udpks = Peaks()
-        udpks.merge_isodec_pks(idpks, self.eng.config.massbins, self.eng.config)
+        udpks.merge_isodec_pks(idpks, self.eng.config)
         self.eng.pks = udpks
         # Send pks to structure
 
@@ -279,7 +263,7 @@ class IsoDecPres(UniDecPres):
         self.translate_pks()
         self.plot_mass_peaks()
         self.plot_mz_peaks()
-        if self.eng.config.avgpeakmasses == 1:
+        if self.eng.config.idconfig.avgpeakmasses == 1:
             self.view.peakpanel.add_data(self.eng.pks, show="mass", collab1="Avg Mass")
             self.isodeceng.showavg = True
         else:
@@ -482,29 +466,35 @@ class IsoDecPres(UniDecPres):
         filename = os.path.splitext(os.path.basename(path))[0]
         os.chdir(os.path.dirname(outdir))
 
-        if self.eng.config.poolflag == 1:
+        if self.eng.config.idconfig.write_msalign == 1:
             self.isodeceng.export_peaks("msalign", filename, reader=self.isodeceng.reader)
 
-        if self.eng.config.compressflag == 1:
+        if self.eng.config.idconfig.write_tsv == 1:
             self.isodeceng.export_peaks("tsv", filename + ".tsv")
         pass
 
     def export_results(self):
-        if self.eng.config.poolflag == 1:
+        if self.eng.config.idconfig.write_msalign == 1:
             self.isodeceng.export_peaks("msalign", filename=self.eng.config.outfname,
                                         reader=self.isodeceng.reader, max_precursors=1)
             print("Exported MSAlign File: ", self.eng.config.outfname)
 
-        if self.eng.config.compressflag == 1:
+        if self.eng.config.idconfig.write_tsv == 1:
             self.isodeceng.export_peaks("tsv", filename=self.eng.config.outfname + ".tsv")
             print("Exported TSV File: ", self.eng.config.outfname + ".tsv")
+
+    def on_remove_assigned_peaks(self, e=None):
+        print(self.isodeceng.config)
+        data, isodists = self.isodeceng.remove_assigned_peaks(self.eng.data.data2)
+        self.eng.data.data2 = data
+        self.view.plot1.plotadd(data[:, 0], data[:, 1], colval="r", nopaint=False)
 
     def fix_parameters(self):
         print("Checking for Bad Parameters")
         self.view.export_gui_to_config()
         found_problem = False
         found_warning = False
-
+        self.eng.config.isomode = 0
         # min and maxmz cannot be negative
         try:
             if self.eng.config.minmz < 0:
@@ -544,54 +534,54 @@ class IsoDecPres(UniDecPres):
             found_problem = True
 
         # CSS should be between 0 and 1 inclusive
-        if self.eng.config.csig < 0:
+        if self.eng.config.idconfig.css_thresh < 0:
             print("CSS Threshold cannot be negative")
-            self.eng.config.csig = 0
+            self.eng.config.idconfig.css_thresh = 0
             found_problem = True
-        elif self.eng.config.csig > 1:
+        elif self.eng.config.idconfig.css_thresh > 1:
             print("CSS Threshold cannot be greater than 1")
-            self.eng.config.csig = 0.99
+            self.eng.config.idconfig.css_thresh = 0.99
             found_problem = True
-        elif self.eng.config.csig < 0.25:
+        elif self.eng.config.idconfig.css_thresh < 0.25:
             print("CSS Threshold is pretty low. Are you sure about this?")
             found_warning = True
 
         # Match Tolerance should be greater than 0
-        if self.eng.config.filterwidth <= 0:
+        if float(self.eng.config.idconfig.matchtol) <= 0:
             print("Match Tolerance cannot be negative")
-            self.eng.config.filterwidth = 5.0
+            self.eng.config.idconfig.matchtol = 5.0
             found_problem = True
         # Warn if it is greater than 1000
-        if self.eng.config.filterwidth > 1000:
+        if self.eng.config.idconfig.matchtol > 1000:
             print("Match Tolerance is very high. Are you sure? This is ppm we are talking about...")
             found_warning = True
 
         # Max shift should not be negative
-        if self.eng.config.msig < 0:
+        if self.eng.config.idconfig.maxshift < 0:
             print("Max Shift cannot be negative")
-            self.eng.config.msig = 0
+            self.eng.config.idconfig.maxshift = 0
             found_problem = True
-        elif 10 > self.eng.config.msig > 5:
+        elif 10 > self.eng.config.idconfig.maxshift > 5:
             print("Max Shift is very high. Are you sure?")
             found_warning = True
-        elif self.eng.config.msig > 8:
+        elif self.eng.config.idconfig.maxshift > 8:
             print("Max Shift is too high. We're concerned about you. "
                   "If you need us to let it go this high, send an email to the developers.")
-            self.eng.config.msig = 3
+            self.eng.config.idconfig.maxshift = 3
             found_problem = True
 
         # Knockdown rounds should not be 0 or lower
-        if self.eng.config.numit <= 0:
+        if self.eng.config.idconfig.knockdown_rounds <= 0:
             print("Knockdown Rounds cannot be 0 or negative")
-            self.eng.config.numit = 1
+            self.eng.config.idconfig.knockdown_rounds = 1
             found_problem = True
-        elif 20 > self.eng.config.numit > 10:
+        elif 20 > self.eng.config.idconfig.knockdown_rounds > 10:
             print("Knockdown Rounds is very high. Are you sure?")
             found_warning = True
-        elif self.eng.config.numit > 20:
+        elif self.eng.config.idconfig.knockdown_rounds > 20:
             print("Knockdown Rounds is too high. We're concerned about you. "
                   "If you need us to let it go this high, send an email to the developers.")
-            self.eng.config.numit = 5
+            self.eng.config.idconfig.knockdown_rounds = 5
             found_problem = True
 
         # Adduct mass should be close to 1.007276 or its negative
@@ -600,36 +590,36 @@ class IsoDecPres(UniDecPres):
             found_warning = True
 
         # Data encoding threshold should be between 0 and 1 inclusive
-        if self.eng.config.exthresh < 0:
+        if self.eng.config.idconfig.datathreshold < 0:
             print("Data Encoding Threshold cannot be negative")
-            self.eng.config.exthresh = 0
+            self.eng.config.idconfig.datathreshold = 0
             found_problem = True
-        elif self.eng.config.exthresh > 1:
+        elif self.eng.config.idconfig.datathreshold > 1:
             print("Data Encoding Threshold cannot be greater than 1")
-            self.eng.config.exthresh = 0.05
+            self.eng.config.idconfig.datathreshold = 0.05
             found_problem = True
-        elif self.eng.config.exthresh > 0.5:
+        elif self.eng.config.idconfig.datathreshold > 0.5:
             print("Data Encoding Threshold may be too high. Are you sure about this?")
             found_warning = True
 
         # Warn if either the mz window values are greater than 4
-        if np.abs(self.eng.config.integratelb) > 4:
+        if np.abs(self.eng.config.idconfig.mzwindowlb) < -6.5:
             print("Lower m/z window is very high. Are you sure?")
             found_warning = True
-        if np.abs(self.eng.config.integrateub) > 4:
+        if np.abs(self.eng.config.idconfig.mzwindowub) > 6.5:
             print("Upper m/z window is very high. Are you sure?")
             found_warning = True
 
         # Peak detection window needs to be above 3
-        if self.eng.config.peakwindow < 3:
+        if self.eng.config.idconfig.peakwindow < 3:
             print("Peak Detection Window needs to be at least 3")
-            self.eng.config.peakwindow = 3
+            self.eng.config.idconfig.peakwindow = 3
             found_problem = True
 
         # Peak detection threshold needs to be above 0
-        if self.eng.config.peakthresh < 0:
+        if self.eng.config.idconfig.peakthresh < 0:
             print("Peak Detection Threshold needs to be 0 or above")
-            self.eng.config.peakthresh = 0.0000001
+            self.eng.config.idconfig.peakthresh = 0.0000001
             found_problem = True
 
         number = 1

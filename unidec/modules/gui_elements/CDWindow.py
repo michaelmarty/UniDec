@@ -103,8 +103,10 @@ class CDMainwindow(MainwindowBase):
         panelp = wx.Panel(splitterwindow2, -1)
         panel = scrolled.ScrolledPanel(splitterwindow2, -1)  # wx.Panel(splitterwindow2, -1)
         splitterwindow2.SplitVertically(panelp, panel, sashPosition=-270 - self.config.imflag * 20)
-        splitterwindow2.SetMinimumPaneSize(270)
-        splitterwindow.SetMinimumPaneSize(250)
+        splitterwindow2.SetMinimumPaneSize(20)
+        splitterwindow.SetMinimumPaneSize(20)
+        splitterwindow.SetSashGravity(0.99)
+        splitterwindow2.SetSashGravity(0.5)
         # splitterwindow.SetMinSize((0,0))
         # splitterwindow2.SetMinSize((0,0))
         file_drop_target = MyFileDropTarget(self)
@@ -231,6 +233,7 @@ class CDMainwindow(MainwindowBase):
             plotwindow.SetupScrolling()
             plotwindow.SetFocus()
             plotwindow.Bind(wx.EVT_SET_FOCUS, self.onFocus)
+
         self.plotpanel = plotwindow
 
         if self.htmode:
@@ -292,6 +295,10 @@ class CDMainwindow(MainwindowBase):
         # Set everything up
         self.SetSizer(sizer)
         sizer.Fit(self)
+        self.Layout()
+
+        self.plotpanel.SetMinSize(wx.Size(-1, -1))
+        self.plotpanel.Bind(wx.EVT_SIZE, self.resize_plots)
         pass
 
 

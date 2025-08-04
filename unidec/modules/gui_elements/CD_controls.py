@@ -825,6 +825,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox3b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
+        self.ctlnormpeakthresh = wx.CheckBox(panel3b, label="Normalize Peak Threshold")
+        gbox3b.Add(self.ctlnormpeakthresh, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
         self.ctlnorm = wx.RadioBox(panel3b, label="Peak Normalization", choices=["None", "Max", "Total"])
         gbox3b.Add(self.ctlnorm, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
@@ -985,6 +989,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlwindow.SetValue(str(self.config.peakwindow))
             self.ctlthresh.SetValue(str(self.config.peakthresh))
             self.ctlthresh2.SetValue(str(self.config.peakplotthresh))
+            self.ctlnormpeakthresh.SetValue(bool(self.config.normthresh))
             self.ctlsep.SetValue(str(self.config.separation))
             self.ctlintthresh.SetValue(str(self.config.intthresh))
             self.ctlprethresh.SetValue(str(self.config.CDprethresh))
@@ -1133,6 +1138,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.peakwindow = ud.string_to_value(self.ctlwindow.GetValue())
         self.config.peakthresh = ud.string_to_value(self.ctlthresh.GetValue())
         self.config.peakplotthresh = ud.string_to_value(self.ctlthresh2.GetValue())
+        self.config.normthresh = int(self.ctlnormpeakthresh.GetValue())
         self.config.separation = ud.string_to_value(self.ctlsep.GetValue())
         self.config.adductmass = ud.string_to_value(self.ctladductmass.GetValue())
 

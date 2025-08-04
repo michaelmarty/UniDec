@@ -11,7 +11,7 @@ from unidec.modules.isotopetools import fast_calc_averagine_isotope_dist
 
 mpl.use('WxAgg')
 np.set_printoptions(precision=6, suppress=True)
-isogen_dll_path = "C:/Python/UniDecDev/unidec/IsoDec/src_cmake/cmake-build-debug/isogen.dll"
+isogen_dll_path = "C:/Python/UniDecDev/unidec/IsoDec/isogen.dll"
 
 isogen_lib = ctypes.CDLL(isogen_dll_path)
 

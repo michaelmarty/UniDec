@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -36,7 +36,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>Intel C++ Compiler 2022</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <UseOfMfc>Static</UseOfMfc>
     <InterproceduralOptimization>true</InterproceduralOptimization>
     <UseIntelTBB>true</UseIntelTBB>
@@ -47,18 +47,18 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>Intel C++ Compiler 2024</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <UseOfMfc>Dynamic</UseOfMfc>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>Intel C++ Compiler 2024</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>Intel C++ Compiler 2024</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <InterproceduralOptimization>true</InterproceduralOptimization>
     <UseIntelTBB>true</UseIntelTBB>
@@ -69,9 +69,10 @@
     <UseIntelIPP>false</UseIntelIPP>
     <UseInteloneMKL>Parallel</UseInteloneMKL>
     <UseILP64Interfaces1A>true</UseILP64Interfaces1A>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
   </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release3|x64'">
-    <PlatformToolset>Intel C++ Compiler 2024</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <UseInteloneMKL>Parallel</UseInteloneMKL>
     <InterproceduralOptimization>true</InterproceduralOptimization>
     <UseOfMfc>false</UseOfMfc>
@@ -79,7 +80,7 @@
     <EnableMKLOpenMPOffloadToGPU>false</EnableMKLOpenMPOffloadToGPU>
   </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release3|Win32'">
-    <PlatformToolset>Intel C++ Compiler 2024</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -109,8 +110,8 @@
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ICIncludeDir);C:\Program Files\HDF_Group\HDF5\1.12.0\include;$(MKLProductDir)\mkl\bin;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ICLibDir);$(LibraryPath);C:\Program Files\HDF_Group\HDF5\1.12.0\lib;$(MKLProductDir)\mkl\bin</LibraryPath>
+    <IncludePath>$(ICIncludeDir);C:\Program Files\HDF_Group\HDF5\1.14.6\include;$(MKLProductDir)\mkl\bin;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ICLibDir);$(LibraryPath);C:\Program Files\HDF_Group\HDF5\1.14.6\lib;$(MKLProductDir)\mkl\bin</LibraryPath>
     <LinkIncremental>false</LinkIncremental>
     <GenerateManifest>false</GenerateManifest>
     <EmbedManifest>false</EmbedManifest>
@@ -174,29 +175,30 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <OffloadConstructs>Optional</OffloadConstructs>
       <OpenMP>GenerateParallelCode</OpenMP>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;H5_BUILT_AS_DYNAMIC_LIB</PreprocessorDefinitions>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
-      <OptimizeForWindowsApplication>false</OptimizeForWindowsApplication>
+      <OptimizeForWindowsApplication>true</OptimizeForWindowsApplication>
       <FlushDenormalResultsToZero>false</FlushDenormalResultsToZero>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <UseProcessorExtensions>None</UseProcessorExtensions>
       <OffloadArch>Default</OffloadArch>
       <Mtune>No</Mtune>
       <RecognizeRestrictKeyword>false</RecognizeRestrictKeyword>
-      <CompileAs>CompileAsC</CompileAs>
+      <CompileAs>Default</CompileAs>
       <FloatingPointExceptions>false</FloatingPointExceptions>
-      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
       <LanguageStandard>Default</LanguageStandard>
       <LlvmTransitionalOption>NextGenNone</LlvmTransitionalOption>
-      <AdditionalIncludeDirectories>C:\Program Files\HDF_Group\HDF5\1.12.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files\HDF_Group\HDF5\1.14.6\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PGOUsePreTrainedModel>false</PGOUsePreTrainedModel>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>libszip.lib;libzlib.lib;libhdf5.lib;libhdf5_hl.lib;ucrt.lib;vcruntime.lib;msvcrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libaec.lib; libszaec.lib;zlib-static.lib;libhdf5.lib;hdf5_hl.lib;shlwapi.lib;hdf5.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalLibraryDirectories>C:\Program Files\HDF_Group\HDF5\1.12.0\lib;$(MKLProductDir)\mkl\bin;$(MKLProductDir)\mkl\tools;C:\Program Files %28x86%29\MSBuild\Microsoft.Cpp\v4.0\V140;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Program Files\HDF_Group\HDF5\1.14.6\lib;$(MKLProductDir)\mkl\bin;$(MKLProductDir)\mkl\tools;C:\Program Files %28x86%29\MSBuild\Microsoft.Cpp\v4.0\V140;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <Profile>false</Profile>
     </Link>
     <PostBuildEvent>
@@ -205,6 +207,9 @@
     <PostBuildEvent>
       <Message>Copy Exe</Message>
     </PostBuildEvent>
+    <ProjectReference>
+      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release3|x64'">
     <ClCompile>

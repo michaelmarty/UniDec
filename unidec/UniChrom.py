@@ -131,7 +131,7 @@ class ChromApp(MetaUniDecBase):
         self.batch_run(paths)
 
     def on_batch_chrom_dirs(self, e=None):
-        paths = FileDialogs.open_multiple_dir_dialog(message="Choose Waters or Agilent files to batch process.",
+        paths = FileDialogs.open_multiple_dir_dialog(message="Choose Waters files to batch process.",
                                                      default=None)
         print("Batch Run Directories:", paths)
         self.batch_run(paths)

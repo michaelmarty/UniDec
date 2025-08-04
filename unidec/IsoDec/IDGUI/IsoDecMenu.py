@@ -28,8 +28,8 @@ class main_menu(wx.Menu):
         self.menuOpenRaw = self.filemenu.Append(
 
             wx.ID_ANY,
-            "Open Waters or Agilent File",
-            " Open a Waters .Raw or Agilent .D File",
+            "Open Waters File",
+            " Open a Waters .Raw File",
         )
         self.filemenu.AppendSubMenu(self.menuOpenRecent, "Open Recent File")
         self.filemenu.AppendSeparator()
@@ -142,13 +142,19 @@ class main_menu(wx.Menu):
                                                     "Opens the save directory in the file explorer")
         self.parent.Bind(wx.EVT_MENU, self.parent.on_open_dir, self.menuOpenDir)
 
+        ### Experimental Menu
+
+        self.menuRemoveAssigned = self.experimentalmenu.Append(wx.ID_ANY, "Remove Assigned Peaks", "Experimental: Remove assigned peaks from the current spectrum")
+
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_remove_assigned_peaks, self.menuRemoveAssigned)
+
         # Setting Menu Bar
         self.menuBar = wx.MenuBar()
         self.menuBar.Append(self.filemenu, "&File")
         self.menuBar.Append(self.toolsmenu, "Tools")
         # self.menuBar.Append(self.analysismenu, "Analysis")
         self.menuBar.Append(self.advancedmenu, "Advanced")
-        # self.menuBar.Append(self.experimentalmenu, "Experimental")
+        self.menuBar.Append(self.experimentalmenu, "Experimental")
         self.parent.SetMenuBar(self.menuBar)
 
     def on_example_data(self, e):

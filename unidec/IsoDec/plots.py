@@ -81,7 +81,8 @@ def cplot(centroids, color='r', factor=1, base=0, mask=None, mfactor=-1, mcolor=
     """
     # if centroids is not None and len(centroids) > 0:
     #    plt.hlines(0, np.amin(centroids[:, 0]), np.amax(centroids[:, 0]), color="k")
-
+    if len(centroids) == 0:
+        return
     if mask is not None:
         if len(centroids) > len(mask):
             mask = np.append(mask, np.zeros(len(centroids) - len(mask)))
