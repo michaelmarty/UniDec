@@ -11,7 +11,7 @@ import io
 
 __author__ = 'Michael.Marty'
 
-version = "8.0.3"
+version = "8.1.0"
 
 
 def ofile_reader(path):
