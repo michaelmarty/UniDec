@@ -276,7 +276,18 @@ class MZMLImporter(Importer):
         if scan == -1:
             scan = self.scans[0]
         # Directly access the scan at the provided index
-        spec = self.msrun[scan]
+        try:
+            spec = self.msrun[scan]
+        except Exception as e:
+            try:
+                print(e)
+                print("Error getting scan", scan, "trying to get scan", self.scans[1])
+                scan = int(self.scans[1])
+                spec = self.msrun[scan]
+            except Exception as e:
+                print("Error getting scan", scan, e)
+                print("Defaulting to positive polarity")
+                return "Positive"  # Default to positive if error occurs
         # to string gets the raw byte xml format of the scan
         comp = ""
         xml = spec.to_string()

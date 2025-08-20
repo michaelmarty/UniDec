@@ -9,7 +9,7 @@
 project = 'UniDec'
 copyright = '2025, University of Arizona'
 author = 'Michael Marty'
-release = '8.0.2'
+release = '8.1.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -19,7 +19,7 @@ release = '8.0.2'
 
 import sys, os
 
-sys.path.append("C:\\Python\\UniDec3\\unidec")
+sys.path.append("C:\\Python\\UniDec\\unidec")
 
 topdir = os.path.abspath('..\\..\\unidec')
 print(topdir)
