@@ -1152,7 +1152,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.config.HTtimeshift = ud.string_to_value(self.ctlhttimeshift.GetValue())
             self.config.HTtimepad = ud.string_to_value(self.ctltimepad.GetValue())
             self.config.HTanalysistime = ud.string_to_value(self.ctlanalysistime.GetValue())
-            self.config.HTmaxscans = ud.string_to_value(self.ctlmaxscans.GetValue())
+            self.config.HTmaxscans = ud.string_to_int(self.ctlmaxscans.GetValue())
             self.config.HTcycleindex = ud.string_to_value(self.ctlcycleindex.GetValue())
             self.config.HTmaskn = ud.string_to_value(self.ctlhtmaskn.GetValue())
             self.config.HTwin = ud.string_to_value(self.ctlhtwin.GetValue())

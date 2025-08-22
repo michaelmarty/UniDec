@@ -834,7 +834,7 @@ class UniDecConfig(object):
                         if line.startswith("CDScanCompress"):
                             self.CDScanCompress = ud.string_to_value(line.split()[1])
                         if line.startswith("HTmaxscans"):
-                            self.HTmaxscans = ud.string_to_value(line.split()[1])
+                            self.HTmaxscans = ud.string_to_int(line.split()[1])
                         if line.startswith("HToutlb"):
                             self.HToutputlb = ud.string_to_value(line.split()[1])
                         if line.startswith("HToutub"):
