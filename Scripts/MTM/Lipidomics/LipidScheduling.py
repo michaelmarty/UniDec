@@ -13,15 +13,21 @@ print(len(df))
 dropclasses = ["PIM", "EBDS", "AHex"]
 # Drop rows where the class contains any of the dropclasses as substrings
 df = df[~df['compoundclass'].str.contains('|'.join(dropclasses), case=False, na=False)]
+
+includeclasses = []#["PC"]
+if len(includeclasses) > 0:
+    df = df[df['compoundclass'].str.contains('|'.join(includeclasses), case=False, na=False)]
+
+
 print(len(df))
 # Print unique compoundclass values
 print(df['compoundclass'].unique())
 
 # Create a new column with rounded values of m/z
-df['mz_rounded'] = df['precursor_mz'].round()
+df['mz_rounded'] = df['precursor_mz'].round(2)
 
 # create a colum for rounded retention_time values to the first decimal
-df['rt_rounded'] = df['retention_time'].round(1)
+df['rt_rounded'] = df['retention_time'].round(2)
 
 # Create bins for m/z and retention time
 mzbins = np.arange(df['mz_rounded'].min(), df['mz_rounded'].max() + 1, 1)
@@ -36,7 +42,20 @@ unique_counts = np.count_nonzero(hist, axis=0)
 plt.plot(yedges[:-1], unique_counts, marker='o', linestyle='-', color='blue')
 plt.show()
 
-exit()
+# Scatter plot collored by compoundclass
+plt.figure(figsize=(10, 6))
+classes = df['compoundclass'].unique()
+colors = plt.get_cmap('tab20', len(classes))
+for i, cls in enumerate(classes):
+    subset = df[df['compoundclass'] == cls]
+    plt.scatter(subset['mz_rounded'], subset['rt_rounded'], label=cls, color=colors(i), alpha=0.6, edgecolors='w', s=50)
+plt.xlabel('m/z (rounded)')
+plt.ylabel('Retention Time (rounded)')
+plt.title('Scatter Plot of m/z vs Retention Time Colored by Compound Class')
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.tight_layout()
+plt.show()
+
 # Plot the 2D histogram
 plt.figure(figsize=(10, 6))
 plt.imshow(np.log(hist.T), origin='lower', aspect='auto', cmap='viridis',
