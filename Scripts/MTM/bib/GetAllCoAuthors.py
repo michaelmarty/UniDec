@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 import time
 import os
 
+sc.init(keys=["07070f5eff2d979e7792ebcc2096daf6"])
+print(sc.get_keys())
+
 def get_affil_name(id):
     if id != "":
         aff = sc.AffiliationRetrieval(id)
@@ -12,7 +15,7 @@ def get_affil_name(id):
     else:
         return None
 
-def get_coauthors(id, startyear=2019, endyear=None):
+def get_coauthors(id, startyear=2020, endyear=None):
     au = sc.AuthorRetrieval(id)
     docs = pd.DataFrame(au.get_documents(refresh=10))
     docs['year'] = docs['coverDate'].str[:4]
@@ -80,6 +83,6 @@ if __name__ == '__main__':
     #id = "9-s2.0-13008328400"
     coauthors = get_coauthors(id)
     print(coauthors)
-    path = "C:\\Users\\marty\\OneDrive - University of Arizona\\Career\\"
+    path = "C:\\Users\\marty\\OneDrive - University of Texas at Austin\\Career\\"
     os.chdir(path)
-    coauthors.to_excel("MMcoauthors2019-2024.xlsx", index=False)
+    coauthors.to_excel("MMcoauthors2020-2025.xlsx", index=False)
