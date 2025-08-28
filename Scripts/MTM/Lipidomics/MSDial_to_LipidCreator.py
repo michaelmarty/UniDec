@@ -1,14 +1,8 @@
 import pandas as pd
 import numpy as np
 import os
+from LipidFunctions import *
 
-adduct_translator = np.array([["[M+H]+", "[M+H]", "+1", 1, "[M+H]1+"],
-                              ["[M+NH4]+", "[M+NH4]", "+1", 1, "[M+NH4]1+"],
-                              ["[M+2H]2+", "[M+2H]", "+2", 2, "[M+2H]2+"],
-                              ["[M-H]-", "[M-H]", "-1", -1, "[M-H]1-"],
-                              ["[M-HCOO]-", "[M-HCOO]", "-1", -1, "[M-HCOO]1-"],
-                              ["[M-CH3OO]-", "[M-CH3OO]", "-1", -1, "[M-CH3OO]1-"],
-                              ["[M-2H]2-", "[M-2H]", "-2", -2, "[M-2H]2-"]])
 
 toppath = "C:\\Data\\Lipidomics\\OpenMS\\"
 os.chdir(toppath)
