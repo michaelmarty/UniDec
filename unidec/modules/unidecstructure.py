@@ -293,7 +293,7 @@ class UniDecConfig(object):
         self.HToutputlb = -1
 
         self.demultiplexmode = "HT"
-        self.demultiplexchoices = ["HT", "mHT", "FT", "aFT"]
+        self.demultiplexchoices = ["HT", "mHT", "FT", "aFT", "PP"]
         self.FTstart = 5
         self.FTend = 1000
         self.FTflatten = True
