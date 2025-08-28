@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-from LipidFunctions import lipidlist_to_LC
+from LipidFunctions import lipidlist_to_LC, check_FA_count
 
 def clean_names(name):
     if "|" in name:
@@ -22,8 +22,13 @@ def msdial_to_lipidlist(df):
     # Clean names
     df["Molecule Name"] = df["Molecule Name"].apply(clean_names)
 
+    # Check FA count
+    df = check_FA_count(df)
+
     # Convert to LC format
     df = lipidlist_to_LC(df)
+
+
 
     return df
 
