@@ -43,6 +43,17 @@ class_nfattyacids = {
     "TAG": 3
 }
 
+def msdialnames_to_LC(df):
+    fixednames = []
+    for i, row in df.iterrows():
+        name = row["Molecule Name"]
+        if "|" in name:
+            name = name.split("|")[1]
+        name = fix_dash(name)
+        name, _ = fix_name(name, "")
+        fixednames.append(name)
+    df["Molecule Name"] = fixednames
+    return df
 
 def lipidlist_to_LC(df):
     outnames = []
@@ -98,15 +109,15 @@ def fix_dash(name):
 
 
 def fix_name(name, lclass):
-    if "TG" in name:
+    if name.startswith("TG "):
         name = name.replace("TG", "TAG")
         lclass = "TAG"
 
-    if "DG" in name:
+    if name.startswith("DG "):
         name = name.replace("DG", "DAG")
         lclass = "DAG"
 
-    if "MG" in name:
+    if name.startswith("MG "):
         name = name.replace("MG", "MAG")
         lclass = "MAG"
 

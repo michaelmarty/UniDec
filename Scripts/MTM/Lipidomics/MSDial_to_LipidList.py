@@ -28,8 +28,6 @@ def msdial_to_lipidlist(df):
     # Convert to LC format
     df = lipidlist_to_LC(df)
 
-
-
     return df
 
 topdir = r"Z:\Group Share\Annika\Stellar"
