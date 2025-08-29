@@ -65,6 +65,9 @@ class HTEng:
         self.cycleindex = 0
         self.rollindex = 0
         self.config.HTcycleindex = -1
+        self.ppmaxindex = -1
+        self.ppstartindex = 0
+        self.ppskip = 0
 
         # Important Parameters that Should be Automatically Set by File Name
         self.config.htbit = 3  # HT bit, should automatically grab this
@@ -262,7 +265,6 @@ class HTEng:
         """
         if mode is None:
             mode = self.config.demultiplexmode
-
         if mode == "HT":
             output, data = self.htdecon(data, **kwargs)
         elif mode == "mHT":
@@ -317,14 +319,24 @@ class HTEng:
         """
         Set up Peak Pooling Deconvolution
         """
-        self.get_cycle_time()
+        if cycleindex is None or cycleindex <=0:
+            self.get_cycle_time()
+        else:
+            self.cycleindex = cycleindex
+        # self.get_cycle_time()
+        self.ppskip = int(self.config.HTtimepad)
         print("Setting up Peak Pooling Deconvolution", self.cycleindex)
         # Create empty kernel
         self.htkernel=np.zeros_like(self.fulltime)
         # Set every cylceindex to 1
-        self.htkernel[::self.cycleindex]=1
+        ncycles = math.floor(len(self.htkernel)/self.cycleindex)
+        if self.ppskip >= 0:
+            self.ppstartindex = self.ppskip*self.cycleindex
+        self.ppmaxindex = ncycles*self.cycleindex
+        print("Number of Cycles:", ncycles, "Skip", self.ppskip)
+        self.htkernel[self.ppstartindex:self.ppmaxindex:self.cycleindex]=1
         # Make fft of kernel for later use
-        self.fftk = fft.rfft(self.htkernel).conj()
+        self.fftk = fft.rfft(self.htkernel[self.ppstartindex:self.ppmaxindex]).conj()
         self.decontime = self.fulltime[:self.cycleindex]
         self.deconscans = self.fullscans[:len(self.decontime)]
 
@@ -335,7 +347,7 @@ class HTEng:
         """
         print("Running Peak Pooling Deconvolution")
         # Perform the convolution
-        output = fft.irfft(fft.rfft(data) * self.fftk).real
+        output = fft.irfft(fft.rfft(data[self.ppstartindex:self.ppmaxindex]) * self.fftk).real
         # Cut the convolution to just the first cyclindex points
         output = output[:self.cycleindex]
         # Normalize if desired
