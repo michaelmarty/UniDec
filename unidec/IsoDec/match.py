@@ -11,8 +11,8 @@ import unidec.tools as ud
 import unidec.IsoDec.msalign_export as msalign
 import math
 import pandas as pd
-from unidec.modules.fwhmtools import fast_fwhm
-
+from unidec.modules.fwhmtools import fast_fwhm, ndis_std, intensity_decon
+from copy import deepcopy
 
 # mass_diff_c = 1.0033
 class MatchedCollection:
@@ -26,6 +26,8 @@ class MatchedCollection:
         self.monoisos = np.array([])
         self.precursors = np.array([])
         self.colormap = mpl.colormaps.get_cmap("tab10")
+        self.simdata = []
+        self.sumsim = []
 
     def __str__(self):
         outstring = ""
@@ -420,7 +422,37 @@ class MatchedCollection:
         for p in self.peaks:
             p.set_fwhms(profiledata, sort=sort, wfactor=wfactor, maxppmtol=maxppmtol)
 
+    def gen_peaks(self, profiledata):
+        newpeaks = []
+        for p in self.peaks:
+            newpeak = p.gen_peak(profiledata)
+            if newpeak is not None:
+                newpeaks.append(newpeak)
+            if np.isnan(newpeak).any():
+                print("NaN in simdata")
+                print(p)
+        self.simdata = np.array(newpeaks)
+        self.sumsim = self.sum_peaks_data(profiledata)
+        huskleft = self.remove_peaks_from_data(profiledata)
+        return newpeaks, self.sumsim, huskleft
 
+    def sum_peaks_data(self, data):
+        firstsum = np.sum(self.simdata, axis=0)
+        sum = intensity_decon(data, self.simdata, n=10)
+        error1 = np.sum((data[:, 1] - firstsum) ** 2)/ np.sum(data[:,1]**2)
+        error2 = np.sum((data[:, 1] - sum) ** 2) / np.sum(data[:,1]**2)
+        print("Sum of Squares Error: Simple Sum:", error1, "Deconvoluted Sum:", error2)
+        return sum
+
+    def remove_peaks_from_data(self, data, percentcutoff=0.25):
+        huskleft = data[:, 1] - self.sumsim
+        huskleft[huskleft < 0] = 0
+
+        if percentcutoff > 0:
+            pointerror = ud.safedivide(huskleft, data[:,1])
+            huskleft[pointerror < percentcutoff] = 0
+
+        return huskleft
 
 
 class MatchedMass:
@@ -527,22 +559,28 @@ class MatchedPeak:
             print("No valid FWHM for peak", self.mz, self.z)
             return None
 
-        xvalues = []
-        yvalues = []
+        outdata = np.zeros_like(data)
         for i, fwhm in enumerate(self.fwhms):
             if fwhm[0] <= 0:
                 continue
             # Generate the peak using the isodist and FWHM
             peakmz = self.isodist[i, 0]
             peakint = self.isodist[i, 1]
-            fwhm_value = fwhm[0]
+            # fwhm_value = fwhm[0]
             sigma = fwhm[5]
-            startindex = fwhm[3]
-            endindex = fwhm[4]
+            startindex = int(fwhm[3])
+            endindex = int(fwhm[4])
+            centroid = fwhm[6]
+
+            if sigma <= 0:
+                sigma = self.avgsigma
 
             xvalues = data[startindex:endindex+1, 0]
+            yvalues = ndis_std(xvalues, centroid, sigma, peakint)
 
-            yvalues = ud.ndis_std(xvalues, peakmz, sigma, peakint)
+            outdata[startindex:endindex+1, 1] += yvalues
+
+        return outdata[:, 1]
 
 
 
