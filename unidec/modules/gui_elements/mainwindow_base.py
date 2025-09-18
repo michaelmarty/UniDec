@@ -282,7 +282,8 @@ class MainwindowBase(wx.Frame):
         dlg = miscwindows.SaveFigureDialog(self)
         dlg.initialize_interface(self.config)
         code = dlg.ShowModal()
-        if code == 0:
+
+        if code == wx.ID_OK:
             directory = dlg.directory
             header = dlg.header
             extension = dlg.extension

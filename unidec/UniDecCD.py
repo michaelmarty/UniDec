@@ -231,7 +231,7 @@ class UniDecCDApp(UniDecApp):
         # self.view.clear_all_plots()
         self.export_config(self.eng.config.confname)
         if self.showht:
-            self.eng.run_deconvolution(process_data=False)
+            self.eng.run_deconvolution(process_data=True) # This used to be false, but I can't remember why. Was creating issues.
         else:
             self.eng.run_deconvolution()
         self.makeplot1()

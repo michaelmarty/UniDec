@@ -82,6 +82,13 @@ def get_internal_standards(classname, classes):
 
 
 def clean_name(name):
+    # Check for adduct in the name between [ and + or [ and -
+    name = re.sub(r'\[.*[\+\-].*?', '', name)
+
+    # Switch PC O to PC-O and same for PE
+    name = re.sub(r'PC O ', 'PC-O ', name)
+    name = re.sub(r'PE O ', 'PE-O ', name)
+
     # Check for _A or similar in the name
     name = re.sub(r'_[A-Z]', '', name)
     name = re.sub(r'2OH', '', name)
@@ -92,13 +99,16 @@ def clean_name(name):
     name = re.sub(r'Unsettled: ', '', name)
     name = re.sub(r'O-', '', name)
     name = re.sub(r'P-', '', name)
+
     name = re.sub(r'-', '_', name)
     name = re.sub(r'/', '_', name)
-    name = re.sub(r';', '', name)
+    name = re.sub(r';[0-9]', '', name)
 
     name = re.sub(r'\(', '', name)
     name = re.sub(r'\)', '', name)
     name = re.sub(r'd', '', name)
+    name = re.sub(r'p', '', name)
+    name = re.sub(r'a', '', name)
     return name
 
 
@@ -123,15 +133,25 @@ def get_overall_tails(name):
             tu = -1
             print("Unable to parse unsaturation: ", name, tname, tu)
     else:
-        name = clean_name(name)
+        # Remove values of just a name or a name and then an adduct
+        if " " not in name or ":" not in name:
+            return "NA", -1, -1
 
-        tname = name.split(" ")[1]
+        name = clean_name(name)
+        try:
+            tname = name.split(" ")[1]
+        except Exception as e:
+            print("Unable to parse tails: ", name)
+            raise e
 
         # fas = tname.split("_")
         fas = re.split('_|/', tname)
         tls = 0
         tus = 0
+        # Remove '' from fas
         for f in fas:
+            if f == '':
+                continue
             tl = f.split(":")[0]  # Get length
             try:
                 tu = f.split(":")[1]  # Get unsaturation
@@ -158,8 +178,34 @@ def get_overall_tails(name):
 
     return tname, tl, tu
 
+def get_tail_vectors(tname):
+    fas = re.split('_|/', tname)
+    tail_lengths = []
+    tail_unsats = []
+    for f in fas:
+        tl = f.split(":")[0]  # Get length
+        try:
+            tu = f.split(":")[1]  # Get unsaturation
+        except:
+            print("Unable to parse part 2: ", f, tname, fas)
+            continue
+            # exit()
+        try:
+            tl = int(tl)
+        except:
+            tl = -1
+            print("Unable to parse length 2: ", f, tname, fas)
+        try:
+            tu = int(tu)
+        except:
+            tu = -1
+            print("Unable to parse unsaturation 2: ", f, tname, fas)
+        tail_lengths.append(tl)
+        tail_unsats.append(tu)
+    return tail_lengths, tail_unsats
 
-def set_tails(df, name="Metabolite name"):
+
+def set_tails(df, name="Metabolite name", vectors=False):
     df = df.copy(deep=True)
     names = df[name].to_numpy()
     tus = []
@@ -173,7 +219,41 @@ def set_tails(df, name="Metabolite name"):
     df["Tail Lengths"] = tls
     df["Tail Unsaturation"] = tus
     df["Tail Names"] = tnames
+
+    if vectors:
+        tail_lengths = []
+        tail_unsats = []
+        for tn in tnames:
+            if tn == "NA":
+                tail_lengths.append([])
+                tail_unsats.append([])
+                continue
+            tlv, tuv = get_tail_vectors(tn)
+            tail_lengths.append(tlv)
+            tail_unsats.append(tuv)
+        df["Tail Length Vectors"] = tail_lengths
+        df["Tail Unsat Vectors"] = tail_unsats
+
     return df
+
+def get_tail_list(df):
+    taillist = []
+    for index, row in df.iterrows():
+        tlv = row["Tail Length Vectors"]
+        if isinstance(tlv, str):
+            tlv = eval(tlv)
+
+        tuv = row["Tail Unsat Vectors"]
+        if isinstance(tuv, str):
+            tuv = eval(tuv)
+
+        # print(tlv, tuv)
+
+        for i in range(len(tlv)):
+            taillist.append([tlv[i], tuv[i]])
+
+    taillist = np.array(taillist)
+    return taillist
 
 
 def get_class(name):
@@ -200,6 +280,13 @@ def set_class_name(df, name="Metabolite name"):
         classes.append(n)
     df["Class Name"] = classes
     return df
+
+def get_class_list(df):
+    classlist = []
+    for index, row in df.iterrows():
+        classlist.append(row["Class Name"])
+    classlist = np.array(classlist)
+    return classlist
 
 
 def calc_tail_diff(df, class_col="Class Name", tail_col="Tail Lengths", unsat_col="Tail Unsaturation", weight_col=None):
