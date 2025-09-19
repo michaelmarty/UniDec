@@ -1,16 +1,16 @@
 //
 // Created by marty on 12/31/2024.
 //
-#include "isofft.h"
 #include <stdio.h>
-// #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
+
+
 int main(const int argc, char *argv[])
 {
-    printf("Testing IsoFFT with ");
+    printf("Testing IsoGen ");
     float mass = 0.0f;
     char *input = NULL;
     int mode = 2;

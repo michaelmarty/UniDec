@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import gc
 from unidec.IsoDec.IsoGen.isogenc import *
@@ -7,6 +8,9 @@ from unidec.IsoDec.IsoGen.isogen_tools import *
 from Scripts.JGP.IsoGen_Analysis.distribution_assessment import *
 import fnmatch
 import time
+import random
+from matplotlib.pyplot import rcParams
+from Scripts.JGP.IsoGen_Analysis.BRAIN_wrapper import *
 
 
 def match_files(directory, string, exclude=None):
@@ -17,11 +21,68 @@ def match_files(directory, string, exclude=None):
                 files.append(file)
     return np.array(files)
 
+
+def remove_outliers(data, multiplier=2):
+    """
+    Remove outliers from a list using the IQR method.
+
+    Args:
+        data (list or iterable of float): The input list of numbers.
+        multiplier (float): The IQR multiplier (default 1.5). Larger = less strict.
+
+    Returns:
+        list: A list with outliers removed.
+    """
+    if len(data) < 4:
+        # Too few data points to determine outliers reliably
+        return data
+
+    sorted_data = sorted(data)
+    q1 = sorted_data[len(sorted_data) // 4]
+    q3 = sorted_data[(len(sorted_data) * 3) // 4]
+    iqr = q3 - q1
+
+    lower_bound = q1 - multiplier * iqr
+    upper_bound = q3 + multiplier * iqr
+
+    return [x for x in data if lower_bound <= x <= upper_bound]
+
+
+def get_s_count_from_pepmass(mass):
+    formula, minmassint, isolist = pep_makemass(mass)
+    return isolist[4]
+
+def get_aacount_scount_array():
+    aa_counts = np.arange(5,300,1)
+
+    #Store the AA counts where S count increases
+    transition_aa_counts = []
+    s_counts = []
+    previous_s_count = 0
+
+    for aa_count in aa_counts:
+        mass = aa_count * massavgine
+        formula, minmassint, isolist = pep_makemass(mass)
+        if isolist[4] > previous_s_count:
+            transition_aa_counts.append(aa_count)
+        previous_s_count = isolist[4]
+
+    return transition_aa_counts
+
+
 # Set backend to Agg
 mpl.use('WxAgg')
 
+rcParams['ps.useafm'] = True
+rcParams['ps.fonttype'] = 42
+rcParams['pdf.fonttype'] = 42
+rcParams['font.family'] = 'Arial'
+
 eng = IsoGenPepEngine()
 eng_avg = IsoGenMassEngine()
+
+tick_size = 16
+label_size = 20
 
 if False:
     masses = [1000, 5000, 10000, 50000]
@@ -57,15 +118,17 @@ if False:
         plt.show()
 
 if True:
-    topdir = r"C:\Users\Admin\Desktop\martylab\IsoGen\IntactProtein\Assessment"
+    topdir = r"C:\Users\Admin\Desktop\martylab\IsoGen\IntactProtein\Training"
     os.chdir(topdir)
     assessment_files = match_files(topdir, "*0.npz")
-    assessment_files = ["assessment_random_human_proteins_1000_min_5_max_200_mods0.npz"]
+    assessment_files = [r"C:\Users\Admin\Desktop\martylab\IsoGen\IntactProtein\Training\human_protein_seqs.npz"]
 
     seqs = []
     dists = []
     vecs = []
     masses = []
+
+
 
     for file in assessment_files:
         data = np.load(file)
@@ -75,21 +138,41 @@ if True:
         masses.extend(data["masses"])
 
 
+    # with open("masses_seqs.txt", "w") as f:
+    #     for i in range(len(masses)):
+    #         f.write(f"{masses[i]:.4f} {seqs[i]}\n")
+
+    all_aa_counts = np.zeros(len(masses))
+    s_counts = np.zeros(len(masses))
+
     fft_seq_times = {}
     fft_mass_times = {}
     nn_seq_times = {}
     nn_mass_times = {}
+    brain_mass_times = {}
+    brain_seq_times = {}
 
     fft_mass_css_vals = {}
     nn_seq_css_vals = {}
     nn_mass_css_vals = {}
+    brain_mass_css_vals = {}
+    brain_seq_css_vals = {}
 
+    shuffled_indices = np.arange(0, len(masses))
+    random.shuffle(shuffled_indices)
 
-    for i in range(len(masses)):
+    for i in shuffled_indices:
         if i % 10000 == 0:
             print("Processing sequence", i, "of", len(masses))
 
+        s_counts[i] = get_s_count_from_pepmass(masses[i])
+
         aa_count = peptide_to_aacount(seqs[i])
+
+        all_aa_counts[i] = aa_count
+        if len(seqs[i]) > 50:
+            continue
+
         pep_isolen = pepmass_to_isolen(masses[i])
         rna_isolen = rnamass_to_isolen(masses[i])
 
@@ -106,7 +189,7 @@ if True:
         timestart = time.perf_counter()
         fft_mass_dist = fft_pep_mass_to_dist(masses[i])
         fft_mass_time = round(time.perf_counter() - timestart, 6)
-        fft_mass_css = calculate_pearson_chisquared(fft_mass_dist, fft_seq_dist)
+        fft_mass_css = calculate_cosinesimilarity(fft_mass_dist, fft_seq_dist)
 
         if aa_count in fft_mass_times:
             fft_mass_times[aa_count].append(fft_mass_time)
@@ -116,10 +199,11 @@ if True:
             fft_mass_css_vals[aa_count] = [fft_mass_css]
 
 
+
         timestart = time.perf_counter()
         nn_seq_dist = nn_pep_seq_to_dist(seqs[i])
         nn_seq_time = round(time.perf_counter() - timestart, 6)
-        nn_seq_css = calculate_pearson_chisquared(nn_seq_dist, fft_seq_dist)
+        nn_seq_css = calculate_cosinesimilarity(nn_seq_dist, fft_seq_dist)
 
         if aa_count in nn_seq_times:
             nn_seq_times[aa_count].append(nn_seq_time)
@@ -132,7 +216,7 @@ if True:
         timestart = time.perf_counter()
         nn_mass_dist = nn_pep_mass_to_dist(masses[i])
         nn_mass_time = round(time.perf_counter() - timestart, 6)
-        nn_mass_css = calculate_pearson_chisquared(nn_mass_dist, fft_seq_dist)
+        nn_mass_css = calculate_cosinesimilarity(nn_mass_dist, fft_seq_dist)
 
         if aa_count in nn_mass_times:
             nn_mass_times[aa_count].append(nn_mass_time)
@@ -141,59 +225,155 @@ if True:
             nn_mass_times[aa_count] = [nn_mass_time]
             nn_mass_css_vals[aa_count] = [nn_mass_css]
 
-        # if i % 100000 == 0:
+
+        timestart = time.perf_counter()
+        brain_mass_dist = brain_pepmass_to_dist(masses[i])
+        brain_mass_time = round(time.perf_counter() - timestart, 6)
+        brain_mass_css = calculate_cosinesimilarity(brain_mass_dist, fft_seq_dist)
+
+        if aa_count in brain_mass_times:
+            brain_mass_times[aa_count].append(brain_mass_time)
+            brain_mass_css_vals[aa_count].append(brain_mass_css)
+        else:
+            brain_mass_times[aa_count] = [brain_mass_time]
+            brain_mass_css_vals[aa_count] = [brain_mass_css]
+
+
+        timestart = time.perf_counter()
+        brain_seq_dist = brain_pepseq_to_dist(seqs[i])
+        brain_seq_time = round(time.perf_counter() - timestart, 6)
+        brain_seq_css = calculate_cosinesimilarity(brain_seq_dist, fft_seq_dist)
+
+        if aa_count in brain_seq_times:
+            brain_seq_times[aa_count].append(brain_seq_time)
+            brain_seq_css_vals[aa_count].append(brain_seq_css)
+        else:
+            brain_seq_times[aa_count] = [brain_seq_time]
+            brain_seq_css_vals[aa_count] = [brain_seq_css]
+
+        # if i % 10000 == 0:
         #     plt.plot(fft_seq_dist, label="FFT-Seq")
         #     plt.plot(fft_mass_dist, label="FFT-Mass")
         #     plt.plot(nn_seq_dist, label="NN-Seq")
         #     plt.plot(nn_mass_dist, label="NN-Mass")
+        #     plt.plot(py_seq_dist, label="Py-FFT")
+        #     plt.title(seqs[i])
         #     plt.legend()
         #     plt.show()
 
 
 
-
     for k,v in fft_seq_times.items():
-        fft_seq_times[k] = np.average(v)
+        fft_seq_times[k] = np.average(remove_outliers(v))
 
     for k,v in fft_mass_times.items():
-        fft_mass_times[k] = np.average(v)
+        fft_mass_times[k] = np.average(remove_outliers(v))
 
     for k,v in nn_seq_times.items():
-        nn_seq_times[k] = np.average(v)
+        nn_seq_times[k] = np.average(remove_outliers(v))
 
     for k,v in nn_mass_times.items():
-        nn_mass_times[k] = np.average(v)
+        nn_mass_times[k] = np.average(remove_outliers(v))
 
     for k,v in fft_mass_css_vals.items():
-        fft_mass_css_vals[k] = np.average(v)
+        fft_mass_css_vals[k] = np.average(remove_outliers(v))
 
     for k,v in nn_seq_css_vals.items():
-        nn_seq_css_vals[k] = np.average(v)
+        nn_seq_css_vals[k] = np.average(remove_outliers(v))
 
     for k,v in nn_mass_css_vals.items():
-        nn_mass_css_vals[k] = np.average(v)
+        nn_mass_css_vals[k] = np.average(remove_outliers(v))
+
+    for k,v in brain_mass_times.items():
+        brain_mass_times[k] = np.average(remove_outliers(v))
+
+    for k,v in brain_seq_times.items():
+        brain_seq_times[k] = np.average(remove_outliers(v))
+
+    for k,v in brain_mass_css_vals.items():
+        brain_mass_css_vals[k] = np.average(remove_outliers(v))
+
+    for k,v in brain_seq_css_vals.items():
+        brain_seq_css_vals[k] = np.average(remove_outliers(v))
+
 
     aa_counts = list(fft_seq_times.keys())
     fft_seq_avgtimes = list(fft_seq_times.values())
     fft_mass_avgtimes = list(fft_mass_times.values())
     nn_seq_avgtimes = list(nn_seq_times.values())
     nn_mass_avgtimes = list(nn_mass_times.values())
+    brain_mass_avgtimes = list(brain_mass_times.values())
+    brain_seq_avgtimes = list(brain_seq_times.values())
+
     fft_mass_avgcss = list(fft_mass_css_vals.values())
     nn_mass_avgcss = list(nn_mass_css_vals.values())
     nn_seq_avgcss = list(nn_seq_css_vals.values())
+    brain_mass_avgcss = list(brain_mass_css_vals.values())
+    brain_seq_avgcss = list(brain_seq_css_vals.values())
+
 
     plt.scatter(aa_counts, fft_seq_avgtimes, label="FFT-Seq")
     plt.scatter(aa_counts, fft_mass_avgtimes, label="FFT-Mass")
     plt.scatter(aa_counts, nn_seq_avgtimes, label="NN-Seq")
     plt.scatter(aa_counts, nn_mass_avgtimes, label="NN-Mass")
+    plt.scatter(aa_counts, brain_mass_avgtimes, label="BRAIN-Mass")
+    plt.scatter(aa_counts, brain_seq_avgtimes, label="BRAIN-Seq")
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.xlim(0,300)
+    plt.ylim(bottom=0)
+    plt.gca().spines['bottom'].set_linewidth(2)
+    plt.gca().spines['left'].set_linewidth(2)
+    plt.tick_params(length=5, width=2)
+    plt.xticks(fontsize=tick_size)
+    plt.yticks(fontsize=tick_size)
+    plt.xlabel("AA Count", fontsize=label_size)
+    plt.ylabel("Average Time (sec)", fontsize=label_size)
     plt.legend()
+    plt.tight_layout()
+    plt.savefig(r"C:\Users\Admin\Desktop\martylab\IsoGen\Figures\aa_count_speed.pdf", dpi=300, transparent=True)
+    plt.savefig(r"C:\Users\Admin\Desktop\martylab\IsoGen\Figures\aa_count_speed.png", dpi=300, transparent=True)
     plt.show()
+
+
+    aa_count_s_transitions = get_aacount_scount_array()
 
     plt.scatter(aa_counts, fft_mass_avgcss, label="FFT-Mass")
     plt.scatter(aa_counts, nn_seq_avgcss, label="NN-Seq")
     plt.scatter(aa_counts, nn_mass_avgcss, label="NN-Mass")
+    plt.scatter(aa_counts, brain_mass_avgcss, label="BRAIN-Mass")
+    plt.scatter(aa_counts, brain_seq_avgcss, label="BRAIN-Seq")
+
+    # for aa_count in aa_count_s_transitions:
+    #     plt.vlines(aa_count, 0.995, 1, color='r', linestyle='-')
+
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.gca().spines['bottom'].set_linewidth(2)
+    plt.gca().spines['left'].set_linewidth(2)
+    plt.xticks()
+    plt.tick_params(length=5, width=2)
+    plt.xlim(0, 300)
+    plt.ylim(top=1)
+    plt.xticks(fontsize=tick_size)
+    plt.yticks(fontsize=tick_size)
+    plt.xlabel("AA Count",fontsize=label_size)
+    plt.ylabel("CSS", fontsize=label_size)
     plt.legend()
+    plt.tight_layout()
+    plt.savefig(r"C:\Users\Admin\Desktop\martylab\IsoGen\Figures\aa_count_css.pdf", dpi=300, transparent=True)
+    plt.savefig(r"C:\Users\Admin\Desktop\martylab\IsoGen\Figures\aa_count_css.png", dpi=300, transparent=True)
     plt.show()
 
+if False:
+    mass = 1000000
+
+    c_fft_mass_dist = fft_pep_mass_to_dist(mass, isolen=1024)
+    py_fft_mass_dist = pepmass_to_dist(mass, 1024)
+
+    plt.plot(c_fft_mass_dist, label="C")
+    plt.plot(py_fft_mass_dist, label="Py")
+    plt.legend()
+    plt.show()
 
 

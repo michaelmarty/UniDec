@@ -13,26 +13,23 @@ class IsoGenPepEngine(IsoGenEngineBase):
         super().__init__()
         modelid=0
         self.isolen = isolen
-        self.seqlengthranges = np.array([[1, 50], [51,200]])
-        self.lengths = np.array([32, 64])
+        self.seqlengthranges = np.array([[1, 50], [51,300]])
+        self.lengths = np.array([16, 64])
         self.inputname = "seqs"
-        self.models = self.create_models()
-        self.model = self.models[0]
+        self.models = []
+        for l in self.lengths:
+            if l > 128:
+                modelid = 1
+            else:
+                modelid = 0
+            model = IsoGenModelBase(isolen=l, savename="isogenpep_model_", vectorlen=20, modelid=modelid)
+            self.models.append(model)
+
+        for i in range(len(self.lengths)):
+            if self.lengths[i] == self.isolen:
+                self.model = self.models[i]
 
 
-    def create_models(self):
-        #First create the peptide model
-        pep = IsoGenModelBase(working_dir=None, isolen=64, vectorlen=31, savename="isogenpep_model.pth", modelid=0)
-        pep.model = IsoGenNeuralNetwork(64,31)
-        pep.savepath = os.path.join(pep.working_dir, pep.savename)
-        pep.load_model()
-
-        prot = IsoGenModelBase(working_dir=None, isolen=64, vectorlen=31, savename="isogenprot_model.pth", modelid=1)
-        prot.model = IsoGenNeuralNetwork(64,31)
-        prot.savepath = os.path.join(prot.working_dir, prot.savename)
-        prot.load_model()
-
-        return [pep, prot]
 
 
     def inputs_to_vectors(self, inputs):
@@ -70,38 +67,33 @@ if __name__ == "__main__":
     # Set backend to Agg
     mpl.use('WxAgg')
 
-    os.chdir("Z:\\Group Share\\JGP\\PeptideTraining\\IntactProtein\\Training")
+    os.chdir(r"C:\Users\Admin\Desktop\martylab\IsoGen\IntactProtein\Training")
 
     isolen = 32
     # trainfile = "peptidedists_633886.npz"
     trainfile = "Z:\\Group Share\\JGP\\PeptideTraining\\peptidedists_2492495.npz"
     # trainfile_synthetic = "peptidedists_synthetic_168420.npz"
-    trainfile_synthetic = "Z:\\Group Share\\JGP\\PeptideTraining\\peptidedists_synthetic_3368720.npz"
+    trainfile_synthetic = r"E:\Zdrive_backup\PeptideTraining\peptidedists_synthetic_3368720.npz"
 
-    intact1 = "training_random_human_proteins_10000_min_50_max_200.npz"
-    intact2 = "training_random_human_proteins_10000_min_50_max_200_mods2.npz"
-    intact3 = "training_random_mouse_proteins_10000_min_50_max_200.npz"
-    intact4 = "training_random_mouse_proteins_10000_min_50_max_200_mods2.npz"
-    intact5 = "training_random_ecoli_proteins_10000_min_50_max_200.npz"
-    intact6 = "training_random_ecoli_proteins_10000_min_50_max_200_mods2.npz"
-    intact7 = "training_random_yeast_proteins_10000_min_50_max_200.npz"
-    intact8 = "training_random_yeast_proteins_10000_min_50_max_200_mods2.npz"
+    pep1 = "training_random_ecoli_proteins_50000_min_5_max_50.npz"
+    pep2 = "training_random_yeast_proteins_50000_min_5_max_50.npz"
+    pep3 = "training_random_human_proteins_50000_min_5_max_50.npz"
+    pep4 = "training_random_mouse_proteins_50000_min_5_max_50.npz"
 
-    pep1 = "training_random_ecoli_proteins_10000_min_5_max_50_mods0.npz"
-    pep2 = "training_random_ecoli_proteins_10000_min_5_max_50_mods1.npz"
-    pep3 = "training_random_human_proteins_10000_min_5_max_50_mods0.npz"
-    pep4 = "training_random_human_proteins_10000_min_5_max_50_mods1.npz"
-    pep5 = "training_random_mouse_proteins_10000_min_5_max_50_mods0.npz"
-    pep6 = "training_random_mouse_proteins_10000_min_5_max_50_mods1.npz"
-    pep7 = "training_random_yeast_proteins_10000_min_5_max_50_mods0.npz"
-    pep8 = "training_random_yeast_proteins_10000_min_5_max_50_mods1.npz"
+    intact1 = "training_random_ecoli_proteins_10000_min_51_max_300.npz"
+    intact2 = "training_random_yeast_proteins_10000_min_51_max_300.npz"
+    intact3 = "training_random_human_proteins_10000_min_51_max_300.npz"
+    intact4 = "training_random_mouse_proteins_10000_min_51_max_300.npz"
 
-    load = "Z:\\Group Share\\JGP\\PeptideTraining\\peptidedists_synthetic_3368720_short.npz"
-    if False:
-        print("Training Peptide Model...")
-        eng_pep.train_multiple([trainfile_synthetic, pep1, pep2, pep3, pep4], epochs=10, forcenew=True)
-        # print("Training Protein Model...")
-        # eng_prot.train_multiple([intact1, intact2, intact3, intact4], epochs=10, forcenew=True)
+    if True:
+        # eng_pep = IsoGenPepEngine(isolen=16)
+        # print("Training Peptide Model...")
+        # eng_pep.train_multiple([trainfile_synthetic, pep1, pep2, pep3, pep4],
+        #                        epochs=10, forcenew=True)
+
+        eng_prot = IsoGenPepEngine(isolen=64)
+        print("Training Protein Model...")
+        eng_prot.train_multiple([intact1, intact2, intact3, intact4], epochs=10, forcenew=True)
 
     if False:
         testformulas = ["PEPTIDE", "CCCCCCCCCCCCC", "APTIGGGQGAAAAAAAAAAAASVGGTIPGPGPGGGQGPGEGGEGQTAR", "LLL", "KKK", "CCCM"]
@@ -129,7 +121,7 @@ if __name__ == "__main__":
         plt.tight_layout()
         plt.show()
 
-    if True:
+    if False:
         eng = IsoGenPepEngine()
         data = np.load("Z:\\Group Share\\JGP\\PeptideTraining\\IntactProtein\\Training\\human_protein_seqs.npz")
 
