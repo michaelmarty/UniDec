@@ -67,7 +67,7 @@ def write_ms1_msalign(ms1_scan_dict, ms2_scan_dict, file, config):
         f.write("#Cosine Similarity Score Threhsold:\t"+str(config.css_thresh)+"\n")
         f.write("#Minimum Experimental Peak Area Explained:\t"+str(config.minareacovered)+"\n")
         f.write("#Maximum Monoisotopic Shift:\t"+str(config.maxshift)+"\n")
-        f.write("#Peak Cluster Window (m/z):\t"+str(config.mzwindow[0]) + "-" + str(config.mzwindow[1])+"\n")
+        f.write("#Peak Cluster Window (m/z):\t"+str(config.mzwindowlb) + "-" + str(config.mzwindowub)+"\n")
         f.write("#Activation type:\tFILE\n")
         if len(ms1_scan_dict) == 0:
             f.write("#Max scan number:\t" + str(-1) + "\n")
@@ -115,7 +115,7 @@ def write_ms2_msalign(ms2_scan_dict, ms1_scan_dict, reader, file, config, act_ty
         f.write("#Cosine Similarity Score Threhsold:\t" + str(config.css_thresh) + "\n")
         f.write("#Minimum Experimental Peak Area Explained:\t" + str(config.minareacovered) + "\n")
         f.write("#Maximum Monoisotopic Shift:\t" + str(config.maxshift) + "\n")
-        f.write("#Peak Cluster Window (m/z):\t" + str(config.mzwindow[0]) + "-" + str(config.mzwindow[1]) + "\n")
+        f.write("#Peak Cluster Window (m/z):\t" + str(config.mzwindowlb) + "-" + str(config.mzwindowub) + "\n")
         f.write("#Activation type:\tFILE\n")
         if len(ms1_scan_dict) == 0:
             f.write("#Max scan number:\t" + str(-1) + "\n")

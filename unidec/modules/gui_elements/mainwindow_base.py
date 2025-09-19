@@ -90,6 +90,23 @@ class MainwindowBase(wx.Frame):
     def resize(self):
         pass
 
+    def resize_plots(self, e=None):
+        """
+        Resize the plots to fit the window.
+        :param e: Event
+        :return: None
+        """
+        # print("Resizing Plots")
+        newwidth = self.plotpanel.GetSize()[0]
+        halfwidth = int(newwidth/2.)
+        for child in self.plotpanel.GetChildren():
+            if isinstance(child, wx.Window):
+                # child.SetSize((halfwidth, child.GetSize()[1]))
+                child.SetMinSize(wx.Size(halfwidth, -1))
+        # self.plotpanel.SetMinSize((newwidth, -1))
+        self.plotpanel.Layout()
+        # self.plotpanel.Refresh()
+
     def launch(self):
         self.Centre()
         self.Show(True)
@@ -265,7 +282,8 @@ class MainwindowBase(wx.Frame):
         dlg = miscwindows.SaveFigureDialog(self)
         dlg.initialize_interface(self.config)
         code = dlg.ShowModal()
-        if code == 0:
+
+        if code == wx.ID_OK:
             directory = dlg.directory
             header = dlg.header
             extension = dlg.extension
@@ -366,7 +384,7 @@ class MainwindowBase(wx.Frame):
         """
         dlg = wx.MessageDialog(self,
                                "UniDec GUI version " + self.version +
-                               "\nPlease contact mtmarty@arizona.edu with any questions, bugs, or features to add.\n"
+                               "\nPlease contact mtmarty@utexas.edu with any questions, bugs, or features to add.\n"
                                "The latest version may be found at https://github.com/michaelmarty/UniDec/releases.\n"
                                "RawFileReader reading tool. Copyright © 2016 by Thermo Fisher Scientific, Inc. All rights reserved.\n"
                                "If used in publication, please cite Marty et Al. Anal. Chem. 2015, DOI: 10.1021/acs.analchem.5b00140 ",

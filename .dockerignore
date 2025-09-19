@@ -6,6 +6,7 @@
 **/*.dll
 **/*.exe
 **/*.html
+venv
 unidec_doc
 .gitignore
 .idea

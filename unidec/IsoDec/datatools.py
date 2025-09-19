@@ -1,9 +1,8 @@
 import math
-
 import numpy as np
 from numba import njit
-import scipy.ndimage.filters as filt
-import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter
+from copy import deepcopy
 # from bisect import bisect_left
 
 # Make a python code from this C code
@@ -300,41 +299,33 @@ def datacompsub(datatop, buff):
     indexes = list(range(0, length))
     for i in indexes:
         mins[i] = np.amin(datatop[int(max([0, i - abs(buff)])):int(min([i + abs(buff), length])), 1])
-    background = filt.gaussian_filter(mins, abs(buff) * 2)
-    plt.plot(datatop[:, 0], background)
-    plt.show()
+    background = gaussian_filter(mins, abs(buff) * 2)
     datatop[:, 1] = datatop[:, 1] - background
+
+    b1 = datatop[:, 1] > 0
+    datatop = datatop[b1]
+
     return datatop
 
 #@njit(fastmath=True)
-def get_all_centroids(data, window=5, threshold=0.0001):
+def get_all_centroids(data, window=5, threshold=0.0001, background=0):
     if len(data) < 3:
         return np.empty((0, 2))
-
-    # if background > 0:
-    #     data = datacompsub(data, background)
-    return np.array(fastpeakdetect(data, window=window, threshold=threshold))
+    if background > 0:
+        datanew = datacompsub(deepcopy(data), background)
+    else:
+        datanew = deepcopy(data)
+    return np.array(fastpeakdetect(datanew, window=window, threshold=threshold))
 
     # if moving_average_smoothing > 1:
     #     data[:,1] = np.convolve(data[:,1], np.ones(moving_average_smoothing)/moving_average_smoothing, mode='same')
-    #
-    #
-    # peaks = fastpeakdetect(data, window=window, threshold=threshold)
-    #
-    # data_array = np.array(data)
-    #
-    # p0 = [get_centroid(data_array, p[0]) for p in peaks]
-    # outpeaks = np.empty((len(p0), 2))
-    # outpeaks[:, 0] = p0
-    # outpeaks[:, 1] = peaks[:, 1]
-    #
-    # return outpeaks
+
 
 
 # @njit(fastmath=True)
 def get_centroids(data, peakmz, mzwindow=None):
     if mzwindow is None:
-        mzwindow = [-1.5, 3.5]
+        mzwindow = [-1.5, 4.5]
     chopped = data[(data[:, 0] > peakmz + mzwindow[0]) & (data[:, 0] < peakmz + mzwindow[1])]
 
     if len(chopped) < 3:
@@ -439,11 +430,19 @@ def subtract_matched_centroid_range(profile_data, matched_theoretical, centroids
 
 
 if __name__ == "__main__":
-    a = 14501.69584
-    blist = [8031.29980469, 9462.05664062, 9820.18164062, 9935.2109375,
-             10980.79394531, 11164.91015625, 12485.61914062, 12727.8125,
-             12973.95507812, 14500.69335938, 14719.77832031]
+    test1 = "C:\\Data\\Volker noisy protein spectra\\Protein+cov-binder_#212#141.txt"
+    data = np.loadtxt(test1)
 
-    index = fastnearest(np.array(blist), a)
+    import matplotlib.pyplot as plt
+    import unidec.tools as ud
+    from unidec.IsoDec.plots import cplot
 
-    print(index, blist[index])
+    data = ud.datachop(data, 800, 2000)
+    data2 = datacompsub(deepcopy(data), 100)
+    cdata = get_all_centroids(data, window=5, threshold=0.0001, background=100)
+    plt.plot(data2[:, 0], data2[:, 1])
+    plt.plot(data[:,0], data[:, 1])
+    cplot(cdata)
+
+
+    plt.show()

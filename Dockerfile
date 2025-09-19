@@ -4,7 +4,7 @@ FROM python:3.11.9-bookworm
 RUN apt-get update && apt-get install -y libfftw3-dev hdf5-tools libhdf5-dev cmake --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
 # To Run GUI
-RUN pip install setuptools attrdict attrdict3 numpy pymzml networkx natsort h5py matplotlib scipy pyteomics mpld3 pandas plotly numba
+RUN pip install setuptools attrdict attrdict3 numpy pymzml networkx natsort h5py matplotlib scipy pyteomics mpld3 pandas plotly numba lxml lxml_html_clean
 # RUN pip install wxpython
 
 # Copy in stuff

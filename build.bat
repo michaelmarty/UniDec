@@ -1,6 +1,6 @@
-rem update version in pyproject.toml and enginebase
+rem update version in pyproject.toml and unidecstructure.py
 
-rem commit to svn and git
+rem commit to dev git and release git
 
 rem Run Tests on test_GUI and test_MUD and and ImporterTest
 

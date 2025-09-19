@@ -22,6 +22,7 @@ class IsoDecView(MainwindowBase):
                 ["D", self.pres.on_dataprep_button, self.controls.dataprepbutton],
                 ["N", self.pres.on_replot, self.controls.replotbutton],
                 ["Q", self.on_exit, self.menu.menuExit],
+                ["E", self.pres.on_run_all, self.controls.runallbutton]
                 ]
 
         keys = keys + self.menu.menukeys
@@ -38,8 +39,8 @@ class IsoDecView(MainwindowBase):
         # s2 = (550, self.displaysize[1])
         self.splitterwindow = wx.SplitterWindow(self, -1, style=wx.SP_3D | wx.SP_BORDER)
         splitterwindow2 = wx.SplitterWindow(self.splitterwindow, -1, style=wx.SP_3D | wx.SP_BORDER)
-        self.splitterwindow.SetSashGravity(0)
-        splitterwindow2.SetSashGravity(0.5)
+        # self.splitterwindow.SetSashGravity(0)
+        # splitterwindow2.SetSashGravity(0.5)
         panelp = wx.Panel(splitterwindow2, -1)
         panel = scrolled.ScrolledPanel(splitterwindow2, -1)  # wx.Panel(splitterwindow2, -1)
         splitterwindow2.SplitVertically(panelp, panel, sashPosition=-270)
@@ -98,7 +99,7 @@ class IsoDecView(MainwindowBase):
         #
         # .............................
         sizercontrols = wx.BoxSizer(wx.VERTICAL)
-        self.controls = IsoDecControls.main_controls(self, self.config, self.pres, panel, self.icon_path)
+        self.controls = IsoDecControls.MainControls(self, self.config, self.pres, panel)
         sizercontrols.Add(self.controls, 1, wx.EXPAND)
         panel.SetSizer(sizercontrols)
         sizercontrols.Fit(self)
@@ -112,13 +113,22 @@ class IsoDecView(MainwindowBase):
             self.sizerplot.Fit(self.splitterwindow)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.splitterwindow, 0, wx.EXPAND)
+        sizer.Add(self.splitterwindow, 1, wx.EXPAND)
 
         # Set everything up
         self.SetSizer(sizer)
         sizer.Fit(self)
 
         self.Layout()
+
+        self.plotpanel.SetMinSize(wx.Size(-1, -1))
+        self.plotpanel.Bind(wx.EVT_SIZE, self.resize_plots)
+
+        self.splitterwindow.SetMinimumPaneSize(20)
+        self.splitterwindow.SetSashGravity(0.99)
+
+        splitterwindow2.SetMinimumPaneSize(20)
+        splitterwindow2.SetSashGravity(0.5)
 
 
 class MyFileDropTarget(wx.FileDropTarget):

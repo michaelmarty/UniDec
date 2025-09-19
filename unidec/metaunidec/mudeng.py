@@ -304,12 +304,59 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         except:
             pass
 
-        peakexts = []
+        peakexts = list([np.concatenate(([0], self.data.var1))])
         for p in self.pks.peaks:
             peakexts.append(np.concatenate(([p.mass], p.extracts)))
         outfile = self.config.outfname + "_extracts.txt"
         np.savetxt(outfile, np.array(peakexts))
         print("Peak info saved to:", outfile)
+
+    def export_3column(self, e=None):
+        self.export_2D_decon_3column()
+        if len(self.pks.peaks) > 0:
+            var1 = self.data.var1
+            outlist = []
+            for p in self.pks.peaks:
+                for i, val in enumerate(p.extracts):
+                    outlist.append([var1[i], p.mass, val])
+            outfile = self.config.outfname + "_extracts_3col_peaks.txt"
+            np.savetxt(outfile, np.array(outlist), delimiter="\t", header="Var1\tMass\tIntensity", comments='', fmt='%.6f')
+            print("3 Column Peak info saved to:", outfile)
+
+    def export_2D_decon_3column(self, e=None):
+        if ud.isempty(self.data.massgrid):
+            print("No 2D Decon data to export, trying to sum masses first.")
+            self.sum_masses(refresh=True)
+
+        tstart = time.perf_counter()
+        print(len(self.data.massgrid), "Mass Grid Points")
+        self.data.massgrid = np.array(self.data.massgrid)
+        print(self.data.massgrid.shape)
+
+        xgrid = self.data.massgrid[:, :, 0]
+        zgrid = self.data.massgrid[:, :, 1]
+
+        yvals = self.data.var1
+        #ygrid = np.tile(yvals, (xgrid.shape[1], 1)).T
+        ygrid = np.array([yvals] * xgrid.shape[1]).T  # Create a 2D grid of y values
+
+        # Add zgrid after ygrid to ensure correct shape
+        outgrid = np.dstack([ygrid, xgrid, zgrid])
+
+        outlist = np.ravel(outgrid, order='C')
+        outlist = outlist.reshape(-1, 3)
+
+        b1 = outlist[:, 2] > 0  # Remove zero intensity points
+        outlist = outlist[b1]
+
+        outfile = self.config.outfname + "_2D_decon_3col.txt"
+
+        np.savetxt(outfile, outlist, delimiter="\t", header="Var1\tMass\tIntensity", comments='', fmt='%.6f')
+        tend = time.perf_counter()
+        print(outlist.shape)
+        print("3 Column Full Decon Data Saved to:", outfile)
+        print("Export Time: %.3gs" % (tend - tstart))
+        pass
 
     def export_spectra(self, e=None):
         for s in self.data.spectra:
@@ -522,5 +569,11 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
 
 if __name__ == '__main__':
     eng = MetaUniDec()
-    path = "C:\\Data\\HTS_Sharon\\20220404-5_sequence_Shortlist.csv"
-    eng.csv_reader(path)
+    # path = "C:\\Data\\HTS_Sharon\\20220404-5_sequence_Shortlist.csv"
+    # eng.csv_reader(path)
+    file = r"C:\Data\TestSpectra\JAW.hdf5"
+
+    eng.open(file)
+    eng.run_unidec()
+    eng.sum_masses()
+    eng.export_2D_decon_3column()

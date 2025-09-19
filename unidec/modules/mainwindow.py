@@ -13,6 +13,8 @@ from unidec.modules.gui_elements.mainwindow_base import MainwindowBase
 __author__ = 'Michael.Marty'
 
 
+
+
 # noinspection PyAttributeOutsideInit,PyUnusedLocal,PyUnusedLocal
 class Mainwindow(MainwindowBase):
     """
@@ -34,18 +36,25 @@ class Mainwindow(MainwindowBase):
             # If tabbed isn't specified, use the display size to decide what is best
             print("Display Size ", self.displaysize)
             self.tabbed = 0
-            if self.displaysize[0] < 1400:
+            self.defaultwidth = 800
+            self.defaultheight = self.displaysize[1] - 100
+            if self.displaysize[0] < 1000:
                 self.tabbed = 1
             elif 1500 <= self.displaysize[0] < 1800:
                 self.config.figsize = (5, 4)
-            elif 1400 <= self.displaysize[0] < 1500:
+                self.defaultwidth = 1000
+            elif 1000 <= self.displaysize[0] < 1500:
                 self.config.figsize = (4, 3)
+                self.defaultwidth = 800
             elif 1800 <= self.displaysize[0] < 2200:
                 self.config.figsize = (6.5, 4.5)
+                self.defaultwidth = 1200
             elif 2200 <= self.displaysize[0] < 3600:
                 self.config.figsize = (9, 6)
+                self.defaultwidth = 1500
             elif self.displaysize[0] >= 3600:
                 self.config.figsize = (12, 6)
+                self.defaultwidth = 2000
         else:
             self.tabbed = tabbed
 
@@ -99,12 +108,11 @@ class Mainwindow(MainwindowBase):
         # s1 = (min(self.displaysize[0], 1851), self.displaysize[1])
         # s2 = (550, self.displaysize[1])
         self.splitterwindow = wx.SplitterWindow(self, -1, style=wx.SP_3D | wx.SP_BORDER)
-        splitterwindow2 = wx.SplitterWindow(self.splitterwindow, -1, style=wx.SP_3D | wx.SP_BORDER)
-        self.splitterwindow.SetSashGravity(0)
-        splitterwindow2.SetSashGravity(0.5)
-        panelp = wx.Panel(splitterwindow2, -1)
-        panel = scrolled.ScrolledPanel(splitterwindow2, -1)  # wx.Panel(splitterwindow2, -1)
-        splitterwindow2.SplitVertically(panelp, panel, sashPosition=-270 - self.config.imflag * 20)
+        self.splitterwindow2 = wx.SplitterWindow(self.splitterwindow, -1, style=wx.SP_3D | wx.SP_BORDER)
+
+        panelp = wx.Panel(self.splitterwindow2, -1)
+        panel = scrolled.ScrolledPanel(self.splitterwindow2, -1)  # wx.Panel(splitterwindow2, -1)
+        self.splitterwindow2.SplitVertically(panelp, panel, sashPosition=-270 - self.config.imflag * 20)
 
         file_drop_target = MyFileDropTarget(self)
         self.splitterwindow.SetDropTarget(file_drop_target)
@@ -118,7 +126,7 @@ class Mainwindow(MainwindowBase):
         if self.tabbed == 1:
             figsize = self.config.figsize
             plotwindow = wx.Notebook(self.splitterwindow)
-            self.splitterwindow.SplitVertically(plotwindow, splitterwindow2, sashPosition=-550)
+            self.splitterwindow.SplitVertically(plotwindow, self.splitterwindow2, sashPosition=-550)
             tab1 = wx.Panel(plotwindow)
             tab2 = wx.Panel(plotwindow)
             tab3 = wx.Panel(plotwindow)
@@ -190,7 +198,7 @@ class Mainwindow(MainwindowBase):
         else:
             # TODO: Line up plots on left hand side so that they share an m/z axis
             plotwindow = scrolled.ScrolledPanel(self.splitterwindow)
-            self.splitterwindow.SplitVertically(plotwindow, splitterwindow2, sashPosition=-550)
+            self.splitterwindow.SplitVertically(plotwindow, self.splitterwindow2, sashPosition=-550)
             self.sizerplot = wx.GridBagSizer()
             figsize = self.config.figsize
             self.plot1 = PlottingWindow.Plot1d(plotwindow, smash=1, figsize=figsize, parent=plotwindow)
@@ -239,10 +247,18 @@ class Mainwindow(MainwindowBase):
                 self.sizerplot.Fit(self)
             else:
                 plotwindow.SetSizerAndFit(self.sizerplot)
+
+            # plotwindow.SetScrollbars(20,20,50,50)
             plotwindow.SetupScrolling()
             plotwindow.SetFocus()
             plotwindow.Bind(wx.EVT_SET_FOCUS, self.onFocus)
+
+        # Set the minimum size of the plot panel
+        #plotwindow.SetMinSize((self.defaultwidth, self.defaultheight))
         self.plotpanel = plotwindow
+        self.plotpanel.Bind(wx.EVT_SIZE, self.resize_plots)
+        # self.Bind(wx.EVT_SPLITTER_SASH_POS_CHANGED, self.resize, self.splitterwindow)
+
 
         self.plots = [self.plot1, self.plot2, self.plot3, self.plot4, self.plot5, self.plot6]
         if self.config.imflag == 1:
@@ -261,7 +277,7 @@ class Mainwindow(MainwindowBase):
         sizerpeaks = wx.BoxSizer(wx.VERTICAL)
         self.peakpanel = peaklistsort.PeakListCtrlPanel(panelp)
         self.bind_peakpanel()
-        sizerpeaks.Add(self.peakpanel, 0, wx.EXPAND)
+        sizerpeaks.Add(self.peakpanel, 1, wx.EXPAND)
         panelp.SetSizer(sizerpeaks)
         sizerpeaks.Fit(self)
 
@@ -276,39 +292,35 @@ class Mainwindow(MainwindowBase):
         panel.SetSizer(sizercontrols)
         sizercontrols.Fit(self)
 
-        splitterwindow2.SetMinimumPaneSize(20)
         self.splitterwindow.SetMinimumPaneSize(20)
-        # self.splitterwindow.SetMinSize((0,0))
-        # splitterwindow2.SetMinSize((0,0))
+        self.splitterwindow.SetSashGravity(0.99)
+
+        self.splitterwindow2.SetMinimumPaneSize(20)
+        self.splitterwindow2.SetSashGravity(0.5)
 
         if self.system == "Linux" and self.tabbed != 1:
             self.sizerplot.Fit(self.splitterwindow)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.splitterwindow, 0, wx.EXPAND)
+        sizer.Add(self.splitterwindow, 1, wx.EXPAND)
 
         # Set everything up
         self.SetSizer(sizer)
         sizer.Fit(self)
 
         self.Layout()
+        self.plotpanel.SetMinSize(wx.Size(-1,-1))
 
-    def resize(self):
-        '''
-        self.plotpanel.SetSize(self.splitterwindow.GetSize())
-        self.plotpanel.SetMinSize(self.splitterwindow.GetSize())
-        self.plotpanel.SetVirtualSize(self.splitterwindow.GetSize())
-        self.plotpanel.SetVirtualSizeWH(*self.splitterwindow.GetSize())
-        #self.plotpanel.SetBestVirtualSize(self.splitterwindow.GetSize())
-        #self.sizerplot.SetMinSize(self.splitterwindow.GetSize())
+    # def resize(self, e=None):
+    #     # fullsize = self.splitterwindow.GetSize()
+    #     # w2size = self.splitterwindow.GetWindow2().GetSize()
+    #     # newwidth = fullsize[0] - w2size[0] -500
+    #     # self.plotpanel.SetMinSize((-1, -1))
+    #     # self.splitterwindow2.SetMinSize((w2size[0], -1))
+    #     # self.Layout()
+    #     # self.Refresh()
+    #     pass
 
-        self.plotpanel.SetSizer(self.sizerplot)
-        self.sizerplot.FitInside(self.splitterwindow)
-        self.sizerplot.RepositionChildren(wx.Size(10, 10))'''
-
-        self.Layout()
-        self.Refresh()
-        pass
 
 
 

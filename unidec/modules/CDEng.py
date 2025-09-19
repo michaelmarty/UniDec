@@ -1,30 +1,28 @@
 import platform
-import subprocess
 import numpy as np
 import os
 import scipy
 import unidec.tools as ud
 
 #first thing that wants dlls from engine
-regpath = os.path.dirname(os.path.realpath(__file__))
-if platform.system() == "Windows":
-    try:
-        from unidec.UniDecImporter.Thermo.Thermo import ThermoImporter
-    except Exception as e:
-        ud.force_register(regpath)
-    try:
-        from unidec.UniDecImporter.Sciex.Sciex import SciexImporter
-    except Exception as e:
-        ud.force_register(regpath)
-    try:
-        from unidec.UniDecImporter.Agilent import AgilentImporter
-    except Exception as e:
-        ud.force_register(regpath)
+# regpath = os.path.dirname(os.path.realpath(__file__))
+# if platform.system() == "Windows":
+#     try:
+#         from unidec.UniDecImporter.Thermo.Thermo import ThermoImporter
+#     except Exception as e:
+#         ud.force_register(regpath)
+#     try:
+#         from Scripts.Importers.Sciex import SciexImporter
+#     except Exception as e:
+#         ud.force_register(regpath)
+#     try:
+#         from unidec.UniDecImporter.Agilent import AgilentImporter
+#     except Exception as e:
+#         ud.force_register(regpath)
 
 
 from unidec.modules.unidec_enginebase import UniDecEngine
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
-from unidec.UniDecImporter.I2MS.I2MS import I2MSImporter
 from copy import deepcopy
 import matplotlib.pyplot as plt
 import scipy.fft as fft
@@ -205,7 +203,7 @@ class UniDecCD(engine.UniDec):
 
         self.importer = ImporterFactory.create_importer(self.path, silent=False)
         self.darray = self.importer.get_cdms_data()
-        if type(self.importer) == ThermoImporter:
+        if self.importer.thermo_support:
             self.res = IT.get_resolution(self.importer.get_single_scan(1))
 
         # Correct Thermo Data
@@ -1001,7 +999,7 @@ class UniDecCD(engine.UniDec):
         startdims = np.shape(outarray)
         outdat = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(outarray)])
         np.savetxt(self.config.infname, outdat)
-        print("Saved Input File:", self.config.infname)
+        print("Saved Input File:", self.config.infname)#, outdat.shape, np.amax(outarray), np.sum(outarray))
 
         # Make the call
         ud.unidec_call(self.config)

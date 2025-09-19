@@ -6,10 +6,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "UniDec"
-version = "8.0.1"
+version = "8.1.0"
 description = "Universal Deconvolution of Mass and Ion Mobility Spectra"
 readme = "README.md"
-authors = [{ name = "Michael Marty", email = "mtmarty@arizona.edu" }]
+authors = [{ name = "Michael Marty", email = "mtmarty@utexas.edu" }]
 license = { file = "LICENSE" }
 classifiers = [
     #"License :: OSI Approved :: MIT License",

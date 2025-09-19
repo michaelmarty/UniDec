@@ -20,38 +20,38 @@ echo Unblocking the following DLLs:
 powershell -Command "Get-ChildItem -Path '%INTERNAL_DIR%' -Recurse -Filter *.dll | ForEach-Object { Unblock-File -Path $_.FullName; echo $_.FullName }"
 
 :: Define the path to regasm.exe
-set "REGASMPROG=%SystemRoot%\Microsoft.NET\Framework64\v4.0.30319\regasm.exe"
+:: set "REGASMPROG=%SystemRoot%\Microsoft.NET\Framework64\v4.0.30319\regasm.exe"
 
 :: Unregister DLLs
-%REGASMPROG% "%INTERNAL_DIR%\BaseCommon.dll" /tlb /u
-%REGASMPROG% "%INTERNAL_DIR%\BaseDataAccess.dll" /tlb /u
-%REGASMPROG% "%INTERNAL_DIR%\MassSpecDataReader.dll" /tlb /u
-
+:: %REGASMPROG% "%INTERNAL_DIR%\BaseCommon.dll" /tlb /u
+:: %REGASMPROG% "%INTERNAL_DIR%\BaseDataAccess.dll" /tlb /u
+:: %REGASMPROG% "%INTERNAL_DIR%\MassSpecDataReader.dll" /tlb /u
+::
 :: Register DLLs
-%REGASMPROG% "%INTERNAL_DIR%\BaseCommon.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\BaseDataAccess.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\MassSpecDataReader.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\BaseCommon.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\BaseDataAccess.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\MassSpecDataReader.dll" /tlb
 
 
-%REGASMPROG% "%INTERNAL_DIR%\Clearcore2.Compression.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\Clearcore2.Data.AnalystDataProvider.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\Clearcore2.Data.CommonInterfaces.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\Clearcore2.Data.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\Clearcore2.InternalRawXYProcessing.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\Clearcore2.Muni.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\Clearcore2.ProjectUtilities.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\Clearcore2.RawXYProcessing.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\Clearcore2.StructuredStorage.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\Clearcore2.Utility.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\Clearcore2.Data.WiffReader.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\Sciex.TofTof.T2DFMan.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\BlaisWiff.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\WiffReaderCOM.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\Sciex.ClearCore.FMAN.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\Sciex.Data.Processing.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\SCiex.Data.SimpleTypes.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\Data.XYData.dll" /tlb
-%REGASMPROG% "%INTERNAL_DIR%\Sciex.FMan.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\Clearcore2.Compression.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\Clearcore2.Data.AnalystDataProvider.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\Clearcore2.Data.CommonInterfaces.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\Clearcore2.Data.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\Clearcore2.InternalRawXYProcessing.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\Clearcore2.Muni.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\Clearcore2.ProjectUtilities.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\Clearcore2.RawXYProcessing.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\Clearcore2.StructuredStorage.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\Clearcore2.Utility.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\Clearcore2.Data.WiffReader.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\Sciex.TofTof.T2DFMan.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\BlaisWiff.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\WiffReaderCOM.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\Sciex.ClearCore.FMAN.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\Sciex.Data.Processing.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\SCiex.Data.SimpleTypes.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\Data.XYData.dll" /tlb
+:: %REGASMPROG% "%INTERNAL_DIR%\Sciex.FMan.dll" /tlb
 
 
 :: Display the directory for user feedback

@@ -30,7 +30,13 @@ d: \\*src_vs
 d: \\*old_waters
 d: \\*Other_builds
 d: \\*IsoDec tests
+d: \\*cmake-build*
+d: \\venv
+d: \\.venv*
+d: \\UnIDec.egg-info
+d: \\*test_1_unidecfiles
 
+f: \.pypirc
 f: \.*test_MUD.py$
 f: \.*GridDecon2.py$
 f: \.*reader_tester.py$
@@ -62,3 +68,5 @@ f: \.*_manualfile.dat$
 f: \.*_ofile.dat$
 f: \.*recent.txt$
 f: \.*CDCReaderOld.exe
+f: \.*GUniDec.spec$
+f: \.*default.hdf5$

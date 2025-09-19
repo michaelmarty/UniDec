@@ -21,9 +21,6 @@
 		#define ISODECLIB_EXPORTS EXTERN
 	#endif
 #endif
-#include "fftw3.h"
-
-
 
 struct MatchedPeak
 {
@@ -93,12 +90,11 @@ struct Weights {
 	float *b2;
 };
 
-ISODECLIB_EXPORTS void run(char *filename, char *outfile, const char *weightfile, char* type);
+ISODECLIB_EXPORTS void run(char *filename, char *outfile, const char *weightfile, const char* type);
 ISODECLIB_EXPORTS int encode(const double* cmz, const float* cint, int n, float * emat, struct IsoConfig config, struct IsoSettings settings);
-ISODECLIB_EXPORTS void predict_charge(const double* cmz, const float* cint, int n, const char* fname, int* charge);
-ISODECLIB_EXPORTS int process_spectrum(const double* cmz, const float* cint, int n, const char* fname, struct MatchedPeak * matchedpeaks, struct IsoSettings settings, char* type);
-ISODECLIB_EXPORTS int process_spectrum_default(const double* cmz, const float* cint, int n, const char* fname, struct MatchedPeak * matchedpeaks, char* type);
-
-
+ISODECLIB_EXPORTS int predict_charge(const double* cmz, const float* cint, int n, const char* fname);
+ISODECLIB_EXPORTS int process_spectrum(const double* cmz, const float* cint, int n, const char* fname, struct MatchedPeak * matchedpeaks, struct IsoSettings settings, const char* type);
+ISODECLIB_EXPORTS int process_spectrum_default(const double* cmz, const float* cint, int n, const char* fname, struct MatchedPeak * matchedpeaks, const char* type);
+ISODECLIB_EXPORTS struct IsoSettings DefaultSettings();
 
 #endif //ISODECLIB_LIBRARY_H

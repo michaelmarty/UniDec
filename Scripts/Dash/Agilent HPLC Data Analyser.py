@@ -2,6 +2,7 @@ import os
 import glob
 import numpy as np
 from LCImporter import extract_data
+from LCImporter import parse_uv
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib import colormaps
@@ -19,7 +20,7 @@ rcParams['errorbar.capsize'] = 3
 rcParams['patch.force_edgecolor'] = True
 rcParams['patch.facecolor'] = 'b'
 rcParams['lines.markersize'] = 7
-rcParams['font.size'] = 18
+rcParams['font.size'] = 12
 rcParams['font.weight'] = 500
 rcParams['font.sans-serif'] = "Arial"
 rcParams['axes.titleweight'] = 500
@@ -29,7 +30,7 @@ rcParams['xtick.major.width'] = 1
 rcParams['ytick.major.width'] = 1
 
 
-def get_filtered_colors(cmap_name='winter', num_colors=256, luminosity_factor=0.8, saturation_factor=2, hue_shift=0): #A value of 0.5 would reduce the luminosity/sat to half, while 1.0 would keep it unchanged,  A value greater than 1.0 will increase saturation, while 1.0 will keep it unchanged.
+def get_filtered_colors(cmap_name='cool', num_colors=256, luminosity_factor=0.8, saturation_factor=2, hue_shift=0): #A value of 0.5 would reduce the luminosity/sat to half, while 1.0 would keep it unchanged,  A value greater than 1.0 will increase saturation, while 1.0 will keep it unchanged.
     """Returns a list of colors from the colormap with lowered luminosity."""
     viridis = colormaps.get_cmap(cmap_name)
     colors = []
@@ -50,17 +51,21 @@ def get_filtered_colors(cmap_name='winter', num_colors=256, luminosity_factor=0.
     return colors
 
 # Define the top directory and file pattern
-topdir = "Z:\\Group Share\\Dash\\Current Data\\Agilent LC Data\\Bumblebee\\20250321 TD LX DM-DP gfpmix dope 2025-03-21 18-19-40\\Sample"
+topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\C4 Tests_Prelim 2025-08-13 15-40-41\Steep_Fast"
 
 files = glob.glob(f'{topdir}/*.D', recursive=False)
 
 # Define the channel index to extract
 # FLD=0
 # UV=1
-channel_index = 1
+channel_index = 2
+
+# Define the channel indices for multi-channel extraction only
+channel_indices = [2, 5]
 
 # outfile setup
 outfile = "spectra.npz"
+multioutfile = "spectra" + str(channel_indices) + ".npz"
 
 
 # Function to extract data and write to text files
@@ -82,6 +87,48 @@ def extract_and_write_data(files):
             except Exception as e:
                 print(f"Failed to process {path}: {e}")
 
+
+def extract_and_write_data_multi_channel(files, channel_indices, multioutfile):
+    for path in files:
+        print(path)
+        os.chdir(path)
+        data_dict = {}
+        for idx in channel_indices:
+            try:
+                result = extract_data(path, index=idx)
+                # Optionally normalize y-axis data
+                # y_max = np.amax(result[:, 1])
+                # if y_max != 0:
+                #     result[:, 1] = result[:, 1] / y_max
+                data_dict[f'channel_{idx}'] = result
+                # Save each channel as a separate txt
+                output_txt = f"extracted_data_channel_{idx}.txt"
+                with open(output_txt, 'w') as f:
+                    np.savetxt(f, result, delimiter=',', header='x,y', comments='')
+            except Exception as e:
+                print(f"Failed to process {path} for channel {idx}: {e}")
+        # Save all channels for this file in a single npz
+        np.savez_compressed(multioutfile, **data_dict)
+
+def extract_spectra(files, channel_index=0):
+    """
+    Extracts spectra data from the given files and saves it to a .npz file.
+    :param files: List of file paths to extract data from.
+    :param channel_index: Index of the channel to extract (0 for FLD, 1 for UV).
+    """
+    for path in files:
+        print(f"Processing {path}...")
+        os.chdir(path)
+        try:
+            result = parse_uv(path, index=channel_index)
+            x, y = result[:, 0], result[:, 1]
+
+            # Save the extracted data to a .npz file
+            output_npz = os.path.join(path, "Test.npz")
+            np.savez_compressed(output_npz, result)
+
+        except Exception as e:
+            print(f"Failed to process {path}: {e}")
 
 # Function to read data from npz files
 def read_data(files):
@@ -335,22 +382,67 @@ def create_2D_plot(data, file_names):
     sorted_data = [data[i] for i in sorted_indices]
     sorted_file_names = [file_names[i] for i in sorted_indices]
 
-    plt.figure(figsize=(16, 9))
+    plt.figure(figsize=(16, 7))
     colors = get_filtered_colors(num_colors=len(sorted_data))
 
     for i, d in enumerate(sorted_data):
         x, y = d[:, 0], d[:, 1]
+        y_sub = y - np.min(y)  # Subtract the minimum to avoid negative values
         label = sorted_file_names[i]
         color = colors[i % len(colors)]  # Cycle through the filtered colors
-        plt.plot(x, y, label=label, color=color)
+        plt.plot(x, y_sub, label=label, color=color, linewidth=1)
+        #plt.fill_between(x, y, label=label, color=color, alpha=0.3)  # Fill the area under the curve
 
     plt.xlabel('Retention Time (min)', fontweight='bold')
-    plt.ylabel('Intensity', fontweight='bold')
-    plt.title("Peak Overlay", fontweight='bold')
+    #plt.xlim(0, 10) # Set x-axis limits
+    plt.ylabel('Intensity [LU]', fontweight='bold')
+    #plt.ylim(0, 180)
+    plt.legend()
+    #plt.title("Peak Overlay", fontweight='bold')
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
+    # Overlay timetable as a step plot on a secondary y-axis
+    # t1 = np.array([0, 4])
+    # p1 = np.array([0, 0])
+    #
+    # t2 = np.linspace(4, 4.01, 20)  # Slope segment
+    # p2 = np.linspace(0, 100, 20)
+    #
+    # t3 = np.array([4.01, 5.49])
+    # p3 = np.array([100, 100])
+    #
+    # t4 = np.linspace(5.49, 5.5, 20)  # Slope down
+    # p4 = np.linspace(100, 0, 20)
+    #
+    # t5 = np.array([5.5, 8.10])
+    # p5 = np.array([0, 0])
+    #
+    # t6 = np.linspace(8.10, 8.11, 10)  # Slope up
+    # p6 = np.linspace(0, 100, 10)
+    #
+    # t7 = np.array([8.11, 9.59])
+    # p7 = np.array([100, 100])
+    #
+    # t8 = np.linspace(9.59, 9.6, 10)  # Slope down
+    # p8 = np.linspace(100, 0, 10)
+    #
+    # t9 = np.array([9.6, 10])
+    # p9 = np.array([0, 0])
+    #
+    # # Concatenate all segments
+    # timetable_times = np.concatenate([t1, t2[1:], t3[1:], t4[1:], t5[1:], t6[1:], t7[1:], t8[1:], t9[1:]])
+    # timetable_percent = np.concatenate([p1, p2[1:], p3[1:], p4[1:], p5[1:], p6[1:], p7[1:], p8[1:], p9[1:]])
+    #
+    # # In your plotting function, replace the timetable overlay with:
+    # ax2 = plt.gca().twinx()
+    # ax2.plot(timetable_times, timetable_percent, color='black', linewidth=1, label='Timetable (%)', alpha=0.5)
+    # ax2.set_ylabel('B (%)', fontweight='bold', color='black')
+    # ax2.tick_params(axis='y', labelcolor='black')
+    # ax2.set_ylim(-5, 105)
+    # # x2.legend(loc='upper right')
+    # plt.gca().spines['top'].set_visible(False)
 
-    plt.legend()
+    #plt.legend()
     plt.savefig(os.path.join(topdir, "2D" + str(channel_index) + ".pdf"), dpi=300)
     plt.savefig(os.path.join(topdir, "2D" + str(channel_index) + ".png"), dpi=300)
     plt.show()
@@ -563,19 +655,136 @@ def create_relative_flowthrough_area_plot(results, file_names):
     plt.savefig(os.path.join(topdir, "Relative_Flowthrough_Area_Scatter_Plot.png"), dpi=300)
     plt.show()
 
+def get_timetable():
+    t1 = np.array([0, 1])
+    p1 = np.array([10,10])
+    t2 = np.linspace(1, 1.01, 20)
+    p2 = np.linspace(10, 100, 20)
+    t3 = np.array([1.01, 5.0])
+    p3 = np.array([100, 100])
+    t4 = np.linspace(5.0, 6.0, 20)
+    p4 = np.linspace(100, 10, 20)
+    t5 = np.array([6.0, 7.0])
+    p5 = np.array([10, 10])
+    # t6 = np.linspace(8.10, 8.6, 10)
+    # p6 = np.linspace(0, 100, 10)
+    # t7 = np.array([8.6, 9.1])
+    # p7 = np.array([100, 100])
+    # t8 = np.linspace(9.1, 9.6, 10)
+    # p8 = np.linspace(100, 0, 10)
+    # t9 = np.array([9.6, 10])
+    # p9 = np.array([0, 0])
+    timetable_times = np.concatenate([t1, t2[1:], t3[1:], t4[1:], t5[1:]]) #t6[1:], t7[1:], t8[1:], t9[1:]])
+    timetable_percent = np.concatenate([p1, p2[1:], p3[1:], p4[1:], p5[1:]]) #p6[1:], p7[1:], p8[1:], p9[1:]])
+    return timetable_times, timetable_percent
+
+
+def create_multi_channel_npz(topdir, channel_indices, title=""):
+    """
+    Reads all multi-channel .npz files in topdir and plots each channel as a 2D overlay,
+    and also shows each channel as a separate subplot for each file.
+    """
+    # Find all .npz files in topdir that match the multi-channel pattern
+    npz_files = [
+        os.path.join(root, file)
+        for root, _, files in os.walk(topdir)
+        for file in files
+        if file.startswith("spectra") and file.endswith(".npz")
+    ]
+    if not npz_files:
+        print(f"No multi-channel .npz files found in {topdir}")
+        return
+
+    # Timetable definition (Gradient Information for %B)
+
+
+    timetable_times, timetable_percent = get_timetable()
+    colors = get_filtered_colors(num_colors=len(channel_indices))
+
+    # Overlay plot for all files and channels
+    plt.figure(figsize=(16, 9))
+    for multioutfile in npz_files:
+        data = np.load(multioutfile)
+        for i, idx in enumerate(channel_indices):
+            key = f'channel_{idx}'
+            if key in data:
+                arr = data[key]
+                x, y = arr[:, 0], arr[:, 1]
+                if idx == 2:
+                    y = y * 25.0
+                label = f'{os.path.basename(multioutfile)} - Channel {idx}'
+                plt.plot(x, y, label=label, color=colors[i % len(colors)], alpha=0.7)
+            else:
+                print(f"Channel {idx} not found in {multioutfile}")
+
+    plt.xlabel('Retention Time (min)', fontweight='bold')
+    plt.ylabel('Intensity', fontweight='bold')
+    plt.title("Peak Overlay", fontweight='bold')
+    plt.legend(loc='upper right', fontsize=4)
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    ax2 = plt.gca().twinx()
+    ax2.plot(timetable_times, timetable_percent, color='black', linewidth=1, label='Timetable (%)', alpha=0.5)
+    ax2.set_ylabel('B (%)', fontweight='bold', color='black')
+    ax2.tick_params(axis='y', labelcolor='black')
+    ax2.set_ylim(-5, 105)
+    plt.tight_layout()
+    plt.savefig(os.path.join(topdir, "Multi_Channel_Overlay.pdf"), dpi=300)
+    plt.savefig(os.path.join(topdir, "Multi_Channel_Overlay.png"), dpi=300)
+    plt.show()
+
+    # Individual subplots for each file, one subplot per channel
+    for multioutfile in npz_files:
+        data = np.load(multioutfile)
+        num_channels = len(channel_indices)
+        fig, axes = plt.subplots(num_channels + 1, 1, figsize=(16, 4 * (num_channels + 1)), sharex=True)
+        if num_channels == 1:
+            axes = [axes]
+        for i, idx in enumerate(channel_indices):
+            key = f'channel_{idx}'
+            ax = axes[i]
+            if key in data:
+                arr = data[key]
+                x, y = arr[:, 0], arr[:, 1]
+                if idx == 2:
+                    y = y * 25.0
+                ax.plot(x, y, color=colors[i % len(colors)], alpha=0.7)
+                ax.set_ylabel(f'Intensity (Channel {idx})', fontweight='bold')
+            else:
+                ax.set_ylabel(f'Channel {idx} not found', fontweight='bold')
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+
+        timetable_ax = axes[-1]
+        timetable_ax.plot(timetable_times, timetable_percent, color='black', linewidth=2, label='Timetable (%)', alpha=0.7)
+        timetable_ax.set_ylabel('B (%)', fontweight='bold', color='black')
+        timetable_ax.set_ylim(-5, 105)
+        timetable_ax.spines['top'].set_visible(False)
+        timetable_ax.spines['right'].set_visible(False)
+        timetable_ax.set_xlabel('Time (min)', fontweight='bold')
+        #timetable_ax.set_title('Timetable', fontweight='bold')
+        #fig.suptitle(f"Channels for {os.path.basename(multioutfile)}", fontweight='bold')
+        plt.savefig(os.path.join(topdir, f"Multi_Channel_{os.path.basename(multioutfile)}.pdf"), dpi=300)
+        plt.savefig(os.path.join(topdir, f"Multi_Channel_{os.path.basename(multioutfile)}.png"), dpi=300)
+        plt.tight_layout(rect=[0, 0, 1, 0.97])
+        plt.close()
 
 # Main function to parse files and process data
 def main():
     extract_and_write_data(files)
+    extract_and_write_data_multi_channel(files, channel_indices, multioutfile)
+    #extract_spectra(files, channel_index=channel_index)
     data, file_names = read_data(files)
+    get_timetable()
     #create_waterfall_plot(data, file_names)
-    results = calculate_areas_and_retention_times(data)
+    #results = calculate_areas_and_retention_times(data)
     #create_annotated_ridgeline_plot(data, file_names, results, offset=100)
     create_2D_plot(data, file_names)
     # create_flowthrough_area_plot(results, file_names)
     # create_elution_area_plot(results, file_names)
-    create_relative_elution_area_plot(results, file_names)
-    create_relative_flowthrough_area_plot(results, file_names)
+    create_multi_channel_npz(topdir, channel_indices, title=" ")
+    #create_relative_elution_area_plot(results, file_names)
+    #create_relative_flowthrough_area_plot(results, file_names)
 
 
 

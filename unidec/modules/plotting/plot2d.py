@@ -5,7 +5,7 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib.ticker import FixedLocator
 from matplotlib.image import NonUniformImage
 
-import scipy.ndimage.filters as filt
+import scipy.ndimage as filt
 
 from unidec import tools as ud
 from unidec.modules.plotting.PlotBase import PlotBase
@@ -64,7 +64,7 @@ class Plot2dBase(PlotBase):
         if config is not None:
             speedplot = config.discreteplot
             publicationmode = config.publicationmode
-            avgpeakmasses = config.avgpeakmasses
+            avgpeakmasses = config.idconfig.avgpeakmasses
             self.cmap = config.cmap
         else:
             avgpeakmasses = 0
