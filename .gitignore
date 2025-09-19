@@ -15,7 +15,6 @@ conf.dat
 .svn
 dist
 build
-old
 TestSpectra
 default_conf.dat
 .pypirc

@@ -1,0 +1,103 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+
+
+from scipy.interpolate import interp1d
+
+def peakdetect(data, config=None, window=10, threshold=0.0):
+    """
+    Simple peak detection algorithm.
+
+    Detects a peak if a given data point is a local maximum within plus or minus config.peakwindow.
+    Peaks must also be above a threshold of config.peakthresh * max_data_intensity.
+
+    The mass and intensity of peaks meeting these criteria are output as a P x 2 array.
+
+    :param data: Mass data array (N x 2) (mass intensity)
+    :param config: UniDecConfig object
+    :return: Array of peaks positions and intensities (P x 2) (mass intensity)
+    """
+    if config is not None:
+        window = config.peakwindow / config.massbins
+        threshold = config.peakthresh
+    peaks = []
+    length = len(data)
+    maxval = np.amax(data[:, 1])
+    for i in range(1, length):
+        if data[i, 1] > maxval * threshold:
+            start = i - window
+            end = i + window
+            if start < 0:
+                start = 0
+            if end > length:
+                end = length
+            testmax = np.amax(data[int(start):int(end) + 1, 1])
+            if data[i, 1] == testmax and data[i, 1] != data[i - 1, 1]:
+                peaks.append([data[i, 0], data[i, 1]])
+    return np.array(peaks)
+
+def linterpolate(datatop, intx):
+    """
+    Linearize x-axis by interpolation.
+
+    The new x-axis is interpolated on the old data and the corresponding intensities and picked out.
+
+    :param datatop: Data array
+    :param intx: New x-axis
+    :return: Interpolation of intensity from original data onto the new x-axis.
+        Same shape as the old data but new length.
+    """
+    f = interp1d(datatop[:, 0], datatop[:, 1])
+    inty = f(intx)
+    newdat = np.column_stack((intx, inty))
+    return newdat
+
+path = "C:\\Users\\Michael Marty\\Box Sync\\Grants\\2016_R21\\Data"
+
+files = ["peptide 1to118C.asc"]
+row = [1, 1, 1, 1]
+corr = [0, 0, 0, 1.52]
+plt.figure(figsize=(2, 2))
+
+for i, f in enumerate(files):
+    fname = os.path.join(path, f)
+    data = np.loadtxt(fname, skiprows=3)
+    ydata = data[:, row[i]]
+    ydata = ydata - np.amin(ydata)
+    ydata = ydata / np.amax(ydata)
+    xdata = data[:, 0] - corr[i]
+
+    b1 = xdata > 5
+    b2 = xdata < 18
+    b3 = np.logical_and(b1, b2)
+
+    plt.plot(xdata[b3], ydata[b3])
+    pex=peakdetect(data,window=3,threshold=0.1)
+
+    print(pex)
+
+calfile = "calibration.asc"
+cdata = np.loadtxt(os.path.join(path, calfile), skiprows=3)
+cdata[:, 1] = cdata[:, 1] / np.amax(cdata[:, 1])
+#plt.plot(cdata[:, 0], cdata[:, 1])
+
+peaks=peakdetect(cdata, window=3, threshold=0.5)
+diams=[17,12.2,10.4,7.1]
+
+pdata=np.transpose([peaks[:,0],diams])
+for p in pdata:
+    plt.vlines(p[0],0.9,1)
+    plt.text(p[0]-0.5,1.1,str(p[1]))
+for p in pex:
+    try:
+        print(linterpolate(pdata, p[0]))
+    except:
+        pass
+
+
+
+
+plt.xlabel("Retention Time (min)")
+plt.ylabel("Normalized A280")
+plt.show()
