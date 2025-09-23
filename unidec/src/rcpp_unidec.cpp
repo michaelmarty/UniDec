@@ -16,6 +16,7 @@
 using namespace Rcpp;
 
 #include "udstruct.h" // Assuming udstruct.h defines Config, Input, and function prototypes
+#include "udinterface.h" // Exposes the InputVec and DeconVec classes in CPP
 
 // ----------- Expose Structs to R via Rcpp Module -----------
 
@@ -116,51 +117,51 @@ RCPP_MODULE(unidec_mod) {
     ;
 
     // --- Input binding ---
-    class_<Input>("Input")
+    class_<InputVec>("InputVec")
         .constructor()
-        .field("dataMZ", &Input::dataMZ)
-        .field("dataInt", &Input::dataInt)
-        .field("testmasses", &Input::testmasses)
-        .field("nztab", &Input::nztab)
-        .field("mtab", &Input::mtab)
-        .field("barr", &Input::barr)
+        .field("dataMZ", &InputVec::dataMZ)
+        .field("dataInt", &InputVec::dataInt)
+        .field("testmasses", &InputVec::testmasses)
+        .field("nztab", &InputVec::nztab)
+        .field("mtab", &InputVec::mtab)
+        .field("barr", &InputVec::barr)
         // Add custom methods here if needed
         ;
 
-    // --- Decon binding ---
-    class_<Decon>("Decon")
+    // --- DeconVec binding ---
+    class_<DeconVec>("DeconVec")
         .constructor()
-        .field("fitdat",     &Decon::fitdat)
-        .field("baseline",   &Decon::baseline)
-        .field("noise",      &Decon::noise)
-        .field("massgrid",   &Decon::massgrid)
-        .field("massaxis",   &Decon::massaxis)
-        .field("massaxisval",&Decon::massaxisval)
-        .field("blur",       &Decon::blur)
-        .field("newblur",    &Decon::newblur)
-        .field("peakx",      &Decon::peakx)
-        .field("peaky",      &Decon::peaky)
-        .field("dscores",    &Decon::dscores)
-        .field("starttab",   &Decon::starttab)
-        .field("endtab",     &Decon::endtab)
-        .field("mzdist",     &Decon::mzdist)
-        .field("rmzdist",    &Decon::rmzdist)
-        .field("error",      &Decon::error)
-        .field("rsquared",   &Decon::rsquared)
-        .field("iterations", &Decon::iterations)
-        .field("uniscore",   &Decon::uniscore)
-        .field("conv",       &Decon::conv)
-        .field("threshold",  &Decon::threshold)
-        .field("mlen",       &Decon::mlen)
-        .field("plen",       &Decon::plen)
-        .field("scanindex",  &Decon::scanindex)
+        .field("fitdat",     &DeconVec::fitdat)
+        .field("baseline",   &DeconVec::baseline)
+        .field("noise",      &DeconVec::noise)
+        .field("massgrid",   &DeconVec::massgrid)
+        .field("massaxis",   &DeconVec::massaxis)
+        .field("massaxisval",&DeconVec::massaxisval)
+        .field("blur",       &DeconVec::blur)
+        .field("newblur",    &DeconVec::newblur)
+        .field("peakx",      &DeconVec::peakx)
+        .field("peaky",      &DeconVec::peaky)
+        .field("dscores",    &DeconVec::dscores)
+        .field("starttab",   &DeconVec::starttab)
+        .field("endtab",     &DeconVec::endtab)
+        .field("mzdist",     &DeconVec::mzdist)
+        .field("rmzdist",    &DeconVec::rmzdist)
+        .field("error",      &DeconVec::error)
+        .field("rsquared",   &DeconVec::rsquared)
+        .field("iterations", &DeconVec::iterations)
+        .field("uniscore",   &DeconVec::uniscore)
+        .field("conv",       &DeconVec::conv)
+        .field("threshold",  &DeconVec::threshold)
+        .field("mlen",       &DeconVec::mlen)
+        .field("plen",       &DeconVec::plen)
+        .field("scanindex",  &DeconVec::scanindex)
         ;
 }
 
 
 // ----------- DLL Function Typedef for Example -----------
 
-typedef int (*run_unidec_core_t)(Config*, Input*, int, int);
+typedef DeconVec (*run_unidec_core_t)(Config*, InputVec*, int, int);
 
 // ----------- Example Function to Call DLL Function -----------
 
@@ -168,7 +169,7 @@ typedef int (*run_unidec_core_t)(Config*, Input*, int, int);
 int call_run_unidec_core(std::string dll_path, SEXP configR, SEXP inputR) {
     // Retrieve pointers to existing Config and Input objects
     Rcpp::XPtr<Config> config(configR);
-    Rcpp::XPtr<Input> input(inputR);
+    Rcpp::XPtr<InputVec> input(inputR);
 
     // Load DLL
     DLL_HANDLE dh = LOAD_DLL(dll_path.c_str());
@@ -176,12 +177,12 @@ int call_run_unidec_core(std::string dll_path, SEXP configR, SEXP inputR) {
         Rcpp::stop("Failed to load DLL: %s", dll_path);
 
     // Get function pointer
-    run_unidec_core_t fn = (run_unidec_core_t)GET_FN(dh, "run_unidec_core");
+    run_unidec_core_t fn = (run_unidec_core_t)GET_FN(dh, "RunDeconvolution");
     if (!fn)
-        Rcpp::stop("Failed to locate run_unidec_core in DLL");
+        Rcpp::stop("Failed to locate RunDeconvolution in DLL");
 
     // Call function
-    int result = fn(config.get(), input.get(), 0, 0);
+    DeconVec result = fn(config.get(), input.get(), 0, 0);
 
     // Unload DLL
 #ifdef _WIN32
@@ -190,5 +191,5 @@ int call_run_unidec_core(std::string dll_path, SEXP configR, SEXP inputR) {
     dlclose(dh);
 #endif
 
-    return result;
+    return 0;
 }
