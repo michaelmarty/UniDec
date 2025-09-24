@@ -60,6 +60,15 @@ cat("Updated system PATH to include:", dll_dir, "\n")
 # Load the DLL
 dyn.load(default_dll_path)
 
+# Register the custom plugin
+Rcpp::registerPlugin("unideclib", function() {
+  list(
+    env = list(
+      PKG_LIBS = "-LC:/Python/UniDecDev/unidec/bin -lunideclib"
+    )
+  )
+})
+
 library(Rcpp)
 # Set the path to your C++ file as in the src directory of the current path
 sourceCpp("src/rcpp_unidec.cpp") # path to your cpp file
@@ -67,7 +76,7 @@ loadModule("unidec_mod", TRUE)
 
 cfg <- new(Config)
 
-inp <- new(Input)
+inp <- new(InputVec)
 inp$dataMZ <- c(100, 200, 300)
 inp$nztab <- c(1L, 2L, 3L)
 inp$testmasses <- c(199.5, 201.2)

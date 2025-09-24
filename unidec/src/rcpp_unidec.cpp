@@ -1,4 +1,7 @@
 // [[Rcpp::plugins(cpp11)]]
+// [[Rcpp::depends(Rcpp)]]
+// [[Rcpp::export]]
+// [[Rcpp::plugins(unideclib)]]
 #include <Rcpp.h>
 
 #ifdef _WIN32
@@ -16,7 +19,7 @@
 using namespace Rcpp;
 
 #include "udstruct.h" // Assuming udstruct.h defines Config, Input, and function prototypes
-#include "udinterface.h" // Exposes the InputVec and DeconVec classes in CPP
+#include "udinterface.hpp" // Exposes the InputVec and DeconVec classes in CPP
 
 // ----------- Expose Structs to R via Rcpp Module -----------
 

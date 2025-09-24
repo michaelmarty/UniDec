@@ -52,7 +52,7 @@ add_library(unideclib SHARED udmain.c udmain.h
         UD_conv.h
         UD_conv.c
         udinterface.cpp
-        udinterface.h
+        udinterface.hpp
 )
 #target_include_directories(unideclib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(unidec

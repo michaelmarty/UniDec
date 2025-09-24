@@ -2,7 +2,7 @@
 // Created by Michael Marty on 9/23/2025.
 //
 
-#include "udinterface.h"
+#include "udinterface.hpp"
 
 // Function to convert CPP InputVec to C Input struct
 Input ConvertToCInput(const InputVec& inputVec) {
