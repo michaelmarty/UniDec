@@ -1,6 +1,5 @@
 // [[Rcpp::plugins(cpp11)]]
 // [[Rcpp::depends(Rcpp)]]
-// [[Rcpp::export]]
 // [[Rcpp::plugins(unideclib)]]
 #include <Rcpp.h>
 
@@ -20,6 +19,33 @@ using namespace Rcpp;
 
 #include "udstruct.h" // Assuming udstruct.h defines Config, Input, and function prototypes
 #include "udinterface.hpp" // Exposes the InputVec and DeconVec classes in CPP
+
+//// S4-based function, NOT exported with sourceCpp
+//Rcpp::List call_run_unidec_core_s4(Rcpp::S4 configS4, Rcpp::S4 inputS4) {
+//    Rcpp::XPtr<Config> config(SEXP(configS4.slot(".pointer")));
+//    Rcpp::XPtr<InputVec> input(SEXP(inputS4.slot(".pointer")));
+//    DeconVec result = RunDeconvolution(*config, *input, 0, 0);
+//    return Rcpp::List::create(
+//        Rcpp::Named("massaxis") = Rcpp::NumericVector(result.massaxis.begin(), result.massaxis.end()),
+//        Rcpp::Named("fitdat")   = Rcpp::NumericVector(result.fitdat.begin(), result.fitdat.end()),
+//        Rcpp::Named("baseline") = Rcpp::NumericVector(result.baseline.begin(), result.baseline.end())
+//    );
+//}
+
+// // [[Rcpp::export]]
+Rcpp::List call_run_unidec_core(SEXP configR, SEXP inputR) {
+    Rcpp::XPtr<Config> config(configR);
+    Rcpp::XPtr<InputVec> input(inputR);
+
+    // Pass references, not pointers
+    DeconVec result = RunDeconvolution(*config, *input, 0, 0);
+
+    return Rcpp::List::create(
+        Rcpp::Named("massaxis") = Rcpp::NumericVector(result.massaxis.begin(), result.massaxis.end()),
+        Rcpp::Named("massaxisval") = Rcpp::NumericVector(result.massaxisval.begin(), result.massaxisval.end())
+        // Add other fields as needed
+    );
+}
 
 // ----------- Expose Structs to R via Rcpp Module -----------
 
@@ -129,6 +155,7 @@ RCPP_MODULE(unidec_mod) {
         .field("mtab", &InputVec::mtab)
         .field("barr", &InputVec::barr)
         // Add custom methods here if needed
+        .method("setInput", &InputVec::setInput)
         ;
 
     // --- DeconVec binding ---
@@ -159,40 +186,37 @@ RCPP_MODULE(unidec_mod) {
         .field("plen",       &DeconVec::plen)
         .field("scanindex",  &DeconVec::scanindex)
         ;
+
+    function("call_run_unidec_core", &call_run_unidec_core);
 }
 
+// [[Rcpp::export]]
+SEXP create_config() {
+    Config* cfg = new Config();
+    Rcpp::XPtr<Config> p(cfg, true); // 'true' for automatic deletion
+    return p;
+}
+
+// [[Rcpp::export]]
+SEXP create_inputvec() {
+    InputVec* inp = new InputVec();
+    Rcpp::XPtr<InputVec> p(inp, true);
+    return p;
+}
+
+//// Create a function to set the input data from R mz and intensity vectors
+//// [[Rcpp::export]]
+//void set_input_data(Rcpp::XPtr<InputVec> inp, NumericVector mz, NumericVector intensity) {
+//    inp->setInput(mz, intensity);
+//}
 
 // ----------- DLL Function Typedef for Example -----------
 
-typedef DeconVec (*run_unidec_core_t)(Config*, InputVec*, int, int);
+//typedef DeconVec (*run_unidec_core_t)(Config*, InputVec*, int, int);
 
 // ----------- Example Function to Call DLL Function -----------
 
-// [[Rcpp::export]]
-int call_run_unidec_core(std::string dll_path, SEXP configR, SEXP inputR) {
-    // Retrieve pointers to existing Config and Input objects
-    Rcpp::XPtr<Config> config(configR);
-    Rcpp::XPtr<InputVec> input(inputR);
 
-    // Load DLL
-    DLL_HANDLE dh = LOAD_DLL(dll_path.c_str());
-    if (!dh)
-        Rcpp::stop("Failed to load DLL: %s", dll_path);
 
-    // Get function pointer
-    run_unidec_core_t fn = (run_unidec_core_t)GET_FN(dh, "RunDeconvolution");
-    if (!fn)
-        Rcpp::stop("Failed to locate RunDeconvolution in DLL");
 
-    // Call function
-    DeconVec result = fn(config.get(), input.get(), 0, 0);
 
-    // Unload DLL
-#ifdef _WIN32
-    FreeLibrary(dh);
-#else
-    dlclose(dh);
-#endif
-
-    return 0;
-}

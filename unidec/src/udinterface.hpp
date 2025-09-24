@@ -19,6 +19,11 @@ public:
     std::vector<int> nztab;
     std::vector<float> mtab;
     std::vector<bool> barr;
+
+    void setInput(NumericVector mz, NumericVector intensity) {
+        dataMZ = as<std::vector<float>>(mz);
+        dataInt = as<std::vector<float>>(intensity);
+    }
 };
 
 // Create Vector class to mirror the Decon C struct

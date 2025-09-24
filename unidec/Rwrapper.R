@@ -72,14 +72,23 @@ Rcpp::registerPlugin("unideclib", function() {
 library(Rcpp)
 # Set the path to your C++ file as in the src directory of the current path
 sourceCpp("src/rcpp_unidec.cpp") # path to your cpp file
+cat("Test0")
 loadModule("unidec_mod", TRUE)
 
-cfg <- new(Config)
+# cfg <- new(Config)
+# inp <- new(InputVec)
+cat("Test1")
+cfg <- create_config()
+inp <- create_inputvec()
+cat("Test2")
+x <- c(100, 200, 300, 400, 500, 600, 700, 800, 900, 1000)
+y <- c(10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
 
-inp <- new(InputVec)
-inp$dataMZ <- c(100, 200, 300)
-inp$nztab <- c(1L, 2L, 3L)
-inp$testmasses <- c(199.5, 201.2)
+# set_input_data(inp, x, y)
 
+# Print the input data to verify
+cat("Test2")
+
+test <- call_run_unidec_core(cfg, inp)
 
 
