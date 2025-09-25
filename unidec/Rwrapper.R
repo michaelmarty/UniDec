@@ -69,26 +69,146 @@ Rcpp::registerPlugin("unideclib", function() {
   )
 })
 
+
+
+
 library(Rcpp)
+
+
 # Set the path to your C++ file as in the src directory of the current path
 sourceCpp("src/rcpp_unidec.cpp") # path to your cpp file
 cat("Test0")
 loadModule("unidec_mod", TRUE)
 
-# cfg <- new(Config)
-# inp <- new(InputVec)
+#
+setClass("Config",
+  slots = list(
+    numit = "integer",
+    numz = "integer",
+    endz = "integer",
+    startz = "integer",
+    zsig = "numeric",
+    psig = "numeric",
+    beta = "numeric",
+    mzsig = "numeric",
+    msig = "numeric",
+    molig = "numeric",
+    massub = "numeric",
+    masslb = "numeric",
+    psfun = "integer",
+    zpsfun = "integer",
+    psmzthresh = "numeric",
+    mtabsig = "numeric",
+    mflag = "integer",
+    massbins = "numeric",
+    limitflag = "integer",
+    psthresh = "numeric",
+    speedyflag = "integer",
+    linflag = "integer",
+    aggressiveflag = "integer",
+    adductmass = "numeric",
+    rawflag = "integer",
+    nativezub = "integer",
+    nativezlb = "integer",
+    poolflag = "integer",
+    manualflag = "integer",
+    intthresh = "numeric",
+    peakshapeinflate = "numeric",
+    fixedmassaxis = "integer",
+    isotopemode = "integer",
+    filetype = "integer",
+    imflag = "integer",
+    dtsig = "numeric",
+    csig = "numeric",
+    ccsub = "numeric",
+    ccslb = "numeric",
+    ccsbins = "numeric",
+    temp = "numeric",
+    press = "numeric",
+    volt = "numeric",
+    tcal1 = "numeric",
+    tcal2 = "numeric",
+    tcal3 = "numeric",
+    tcal4 = "numeric",
+    twaveflag = "integer",
+    hmass = "numeric",
+    to = "numeric",
+    len = "numeric",
+    edc = "numeric",
+    nativeccsub = "integer",
+    nativeccslb = "integer",
+    baselineflag = "integer",
+    noiseflag = "integer",
+    zout = "integer",
+    metamode = "integer",
+    minmz = "numeric",
+    maxmz = "numeric",
+    mzres = "numeric",
+    mzbins = "numeric",
+    bsub = "numeric",
+    datareduction = "integer",
+    peakwin = "integer",
+    peakthresh = "numeric",
+    exwindow = "integer",
+    exchoice = "integer",
+    exchoicez = "integer",
+    exthresh = "numeric",
+    exnorm = "integer",
+    exnormz = "integer",
+    peaknorm = "integer",
+    orbimode = "integer",
+    datanorm = "integer",
+    filterwidth = "integer",
+    zerolog = "integer",
+    lengthmz = "integer",
+    mfilelen = "integer",
+    isolength = "integer",
+    doubledec = "integer",
+    file_id = "integer",
+    silent = "integer",
+    cdmsflag = "integer"
+  )
+)
+
+UDConfig <- function(){
+  cfg <- new(Config)
+  cfg$SetDefaultConfig()
+  return(cfg)
+}
+
+cfg <- UDConfig()
+inp <- new(InputVec)
 cat("Test1")
-cfg <- create_config()
-inp <- create_inputvec()
+
+# cfg <- create_config()
+# inp <- create_inputvec()
+
+# Print cfg numit value to verify
+print(cfg$numit)
+# Print type of cfg
+# print(typeof(cfg))
+# # Unwrap cfg to see its structure
+# str(cfg)
+#
+# # Print all lots in cfg
+# print(slotNames(cfg))
+
 cat("Test2")
 x <- c(100, 200, 300, 400, 500, 600, 700, 800, 900, 1000)
 y <- c(10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
 
+inp$dataMZ <- x
+inp$dataInt <- y
+
 # set_input_data(inp, x, y)
 
 # Print the input data to verify
-cat("Test2")
+cat("Test3")
 
-test <- call_run_unidec_core(cfg, inp)
+cfg$numit <- 50
+
+cat("Test4")
+
+test <- run_unidec(cfg, inp)
 
 
