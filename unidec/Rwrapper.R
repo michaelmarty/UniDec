@@ -74,49 +74,35 @@ library(Rcpp)
 sourceCpp("src/rcpp_unidec.cpp") # path to your cpp file
 cat("Test0")
 loadModule("unidec_mod", TRUE)
-
-UDConfig <- function(){
-  cfg <- new(Config)
-  cfg$SetDefaultConfig()
-
-  cfgptr <- create_config()
-
-  return(cfg)
-}
-
-cfg <- UDConfig()
-inp <- new(InputVec)
+#
+# UDConfig <- function(){
+#   cfg <- new(Config)
+#   cfg$SetDefaultConfig()
+#
+#   cfgptr <- create_config()
+#
+#   return(cfg)
+# }
+#
+# cfg <- UDConfig()
+# inp <- new(InputVec)
 cat("Test1")
 
-# cfg <- create_config()
-# inp <- create_inputvec()
+cfg <- create_config()
+inp <- create_inputvec()
 
-# Print cfg numit value to verify
-print(cfg$numit)
-# Print type of cfg
-# print(typeof(cfg))
-# # Unwrap cfg to see its structure
-# str(cfg)
-#
-# # Print all lots in cfg
-# print(slotNames(cfg))
+print(typeof(cfg))
 
 cat("Test2")
 x <- c(100, 200, 300, 400, 500, 600, 700, 800, 900, 1000)
 y <- c(10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
 
-inp$dataMZ <- x
-inp$dataInt <- y
-
-# set_input_data(inp, x, y)
-
-# Print the input data to verify
-cat("Test3")
-
-cfg$numit <- 50
+set_input_data(inp, cfg, x, y)
 
 cat("Test4")
 
 test <- run_unidec(cfg, inp)
+
+print("Test5")
 
 

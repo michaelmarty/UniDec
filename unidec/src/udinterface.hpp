@@ -51,6 +51,6 @@ public:
 };
 
 // Expose this function to DLL DeconVec RunDeconvolution(const Config& config, const InputVec& inputVec, int silent, int verbose)
-DeconVec RunDeconvolution(const Config& config, const InputVec& inputVec, int silent, int verbose);
+DeconVec RunDeconvolution(const Config *config, const InputVec *inputVec, int silent, int verbose);
 
 #endif //UDINTERFACE_H
