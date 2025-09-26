@@ -50,7 +50,7 @@ eng_thrash.config.activescan = 1
 eng_thrash.config.activescanrt = -1
 eng_thrash.config.activescanorder = 2
 eng_thrash.config.knockdown_rounds = 5
-eng_thrash.predmode = 2
+eng_thrash.predmode = 0
 
 if False:
     reader = ImporterFactory.create_importer(file2)

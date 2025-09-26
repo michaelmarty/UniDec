@@ -1,0 +1,85 @@
+from brainpy import isotopic_variants
+import matplotlib.pyplot as plt
+from unidec.IsoDec.IsoGen.isogen_tools import *
+from unidec.IsoDec.IsoGen.isogenc import *
+
+
+def pepmass_to_brain_input(mass):
+    num = mass / massavgine * avgine
+    intnum = np.array([int(round(n)) for n in num])
+    pep = {"C":intnum[0], "H":intnum[1], "N":intnum[2], "O":intnum[3], "S":intnum[4]}
+    return pep
+
+
+def brain_pepmass_to_dist(mass, isolen=64):
+    pep = pepmass_to_brain_input(mass)
+    isotope_peaks = isotopic_variants(pep, npeaks=isolen, charge=1)
+    intensities = np.zeros(isolen)
+    max_intensity = 0
+    for i in range(len(isotope_peaks)):
+        if isotope_peaks[i].intensity > max_intensity:
+            max_intensity = isotope_peaks[i].intensity
+        intensities[i] = isotope_peaks[i].intensity
+    intensities /= max_intensity
+    return intensities
+
+
+def pepseq_to_brain_input(sequence):
+    pep = {"C":0, "H":2, "N":0, "O":1, "S":0}
+
+    mod_matches = re.findall(fullseq_pattern, sequence)
+
+    if len(mod_matches) > 0:
+        mod_matches = [match.strip('[]') for match in mod_matches]
+
+        for mod in mod_matches:
+            current_mod = parse_chemical_formula(mod)
+            for element in current_mod:
+                if element not in pep:
+                    pep[element] = current_mod[element]
+                else:
+                    pep[element] += current_mod[element]
+
+    sequence = re.sub(fullseq_pattern, '', sequence)
+
+    for aa in sequence:
+        if aa not in aa_elementalcomp_dict:
+            print(aa)
+            raise ValueError("Unknown amino acid found in peptide")
+        else:
+            add_aa_to_braindict(pep, aa_elementalcomp_dict[aa])
+
+    return pep
+
+
+
+def add_aa_to_braindict(braindict, aa_comp):
+    braindict["C"] += aa_comp[0]
+    braindict["H"] += aa_comp[1]
+    braindict["N"] += aa_comp[2]
+    braindict["O"] += aa_comp[3]
+    braindict["S"] += aa_comp[4]
+
+
+def brain_pepseq_to_dist(sequence, isolen=64):
+    formula_dict = pepseq_to_brain_input(sequence)
+    isotope_peaks = isotopic_variants(formula_dict, npeaks=isolen, charge=1)
+    intensities = np.zeros(isolen)
+    max_intensity = 0
+    for i in range(len(isotope_peaks)):
+        if isotope_peaks[i].intensity > max_intensity:
+            max_intensity = isotope_peaks[i].intensity
+        intensities[i] = isotope_peaks[i].intensity
+    intensities /= max_intensity
+    return intensities
+
+
+if __name__ == "__main__":
+    sequence = "AAGCCKHKCS"
+    brain_intensities = brain_pepseq_to_dist(sequence)
+    fft_intensities = fft_pep_seq_to_dist(sequence)
+
+    plt.plot(brain_intensities, label="BRAIN")
+    plt.plot(fft_intensities, label="FFT")
+    plt.legend()
+    plt.show()
