@@ -3,12 +3,12 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 
-data = r"Z:\Group Share\MTM\IQ-X\MartyLab_AX\PosIDs.csv"
+data = r"Z:\Group Share\MTM\IQ-X\MartyLab_AX\PosIDs3.csv"
 os.chdir("Z:\\Group Share\\MTM\\IQ-X\\MartyLab_AX")
 
 df = pd.read_csv(data)
 
-libfile = r"C:\Users\mm96978\Downloads\MSDIAL-TandemMassSpectralAtlas-VS69-Pos.msp"
+libfile = r"C:\Users\mm96978\Downloads\MSDIAL-TandemMassSpectralAtlas-VS69-Pos-Corrected2.msp"
 
 # Read library file
 with open(libfile, 'r') as f:
@@ -49,7 +49,7 @@ rtdf = pd.DataFrame(rts, columns=['Name', 'Average Rt(min)', 'Reference RT', 'Li
 print(rtdf)
 
 # Save to CSV
-rtdf.to_csv("RTComparisonPos.csv", index=False)
+rtdf.to_csv("RTComparisonPos3Corr.csv", index=False)
 
 exit()
 

@@ -1,11 +1,16 @@
 import numpy as np
+import pickle
 
-fit = [-1.20739753e-03,  7.55428678e-02, -1.72632321e+00,  1.83605245e+01,
- -9.03502485e+01,  1.67554242e+02]
-p = np.poly1d(fit)
+# fit = [ 2.42393107e-05, -1.59066957e-03,  3.61629338e-02, -3.54583941e-01,
+#   2.46833668e+00, -1.96586339e+00]
+# p = np.poly1d(fit)
+
+interpolationfunction = r"Z:\Group Share\MTM\IQ-X\MartyLab_AX\RTInterpolation.pkl"
+with open(interpolationfunction, 'rb') as f:
+    p = pickle.load(f)
 
 libfile = r"C:\Users\mm96978\Downloads\MSDIAL-TandemMassSpectralAtlas-VS69-Pos.msp"
-outfile = r"C:\Users\mm96978\Downloads\MSDIAL-TandemMassSpectralAtlas-VS69-Pos-Corrected.msp"
+outfile = r"C:\Users\mm96978\Downloads\MSDIAL-TandemMassSpectralAtlas-VS69-Pos-C1.msp"
 
 # Read library file
 with open(libfile, 'r') as f:
