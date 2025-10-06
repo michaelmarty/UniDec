@@ -55,6 +55,62 @@ def msdialnames_to_LC(df):
     df["Molecule Name"] = fixednames
     return df
 
+
+def fix_plasmalogens(name):
+    if "TAG" in name:
+        if "P_" in name:
+            # Remove P- and add p to the end
+            name = name.replace("P_", "")
+            name = name + "p"
+            print(name)
+        if "O_" in name:
+            # Remove O- and add a to the end
+            name = name.replace("O_", "")
+            name = name + "a"
+            print(name)
+        return name
+    if "O_" in name:
+        # Replace O_ with O-
+        name = name.replace("O_", "O-")
+        # After the first number after the first ":", add "a"
+        if ":" in name:
+            parts = name.split(":", 1)
+            if len(parts) > 1:
+                first_part = parts[0]
+                second_part = parts[1]
+                # Find the first number in the second part
+                num = ""
+                for char in second_part:
+                    if char.isdigit():
+                        num += char
+                    else: break
+                if num:
+                    new_second_part = second_part.replace(num, num + "a", 1)
+                    name = first_part + ":" + new_second_part
+                    # Add the rest of the parts back in
+        # print(name)
+    if "P_" in name:
+        # Replace P_ with O-
+        name = name.replace("P_", "O-")
+        # After the first number after the first ":", add "p"
+        if ":" in name:
+            parts = name.split(":", 1)
+            if len(parts) > 1:
+                first_part = parts[0]
+                second_part = parts[1]
+                # Find the first number in the second part
+                num = ""
+                for char in second_part:
+                    if char.isdigit():
+                        num += char
+                    else: break
+                if num:
+                    new_second_part = second_part.replace(num, num + "p", 1)
+                    name = first_part + ":" + new_second_part
+                    # Add the rest of the parts back in
+        # print(name)
+    return name
+
 def lipidlist_to_LC(df):
     outnames = []
     fixednames = []
@@ -65,6 +121,8 @@ def lipidlist_to_LC(df):
         name = fix_dash(name)
 
         name, lclass = fix_name(name, lclass)
+
+        name = fix_plasmalogens(name)
 
         adduct = row["Precursor Adduct"]
 
