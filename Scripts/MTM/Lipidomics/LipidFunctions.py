@@ -62,12 +62,12 @@ def fix_plasmalogens(name):
             # Remove P- and add p to the end
             name = name.replace("P_", "")
             name = name + "p"
-            print(name)
+            # print(name)
         if "O_" in name:
             # Remove O- and add a to the end
             name = name.replace("O_", "")
             name = name + "a"
-            print(name)
+            # print(name)
         return name
     if "O_" in name:
         # Replace O_ with O-

@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+# from LipidFunctions import lipidlist_to_LC
 
 def get_charge(adduct):
     if adduct in ["[M+H]+", "[M+NH4]+", "[M+Na]+", "[M+K]+"]:
