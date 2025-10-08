@@ -19,10 +19,7 @@ UCD handle sub-integer charge smoothing
 
 Profile-mode IsoDec
 
-Issue with monoisotopic merging for proteins with multiple charge states
-
-Plotting issue with Centroids on isodec GUI
-
+Consider smarter merging of mixed monoisotopics by looking at the alternative monoisotopics...
 
 Lower Priority:
 
