@@ -95,7 +95,7 @@ class MatchedCollection:
         return grouped_peaks
 
 
-    def add_pk_to_masses(self, pk, ppmtol):
+    def add_pk_to_masses(self, pk, ppmtol, maxshift=2, mass_diff_c=1.0033):
         """
         Checks if an existing mass matches to this peak, if so adds it to that mass, otherwise creates a new mass
         The list of masses is constantly kept in order of monoisotopic mass.
@@ -105,12 +105,11 @@ class MatchedCollection:
             self.masses.append(MatchedMass(pk))
 
         else:
-            #need to update this code to allow for overlapped monoisos.
             idx = fastnearest(self.monoisos, pk.monoiso)
             nearest_mass = self.monoisos[idx]
 
             if (abs(pk.scan - self.masses[idx].scans[len(self.masses[idx].scans) - 1]) <= 100 and
-                    ud.within_ppm(self.masses[idx].monoiso, pk.monoiso, ppmtol)):
+                    within_ppm_plus_mm(self.masses[idx].monoiso, pk.monoiso, ppmtol, maxshift, mass_diff_c)):
                 if pk.scan not in self.masses[idx].scans:
                     self.masses[idx].scans = np.append(self.masses[idx].scans, pk.scan)
                 self.masses[idx].totalintensity += pk.matchedintensity
@@ -267,14 +266,13 @@ class MatchedCollection:
                 f.write(str(p.monoiso) + "\n")
 
 
-    def merge_missed_monoisotopics(self, ppm_tolerance=20, max_mm=1):
-        mass_diff_c = 1.0033
+    def merge_missed_monoisotopics(self, ppm_tolerance=20, max_mm=1, mass_diff_c=1.0033):
         to_remove = []
         for i1 in range(len(self.peaks)):
             for i2 in range(len(self.peaks)):
                 if i1 == i2 or self.peaks[i1].z != self.peaks[i2].z:
                     continue
-                if abs(self.peaks[i1].monoiso - self.peaks[i2].monoiso) < max_mm * 1.0033 * 1.1:
+                if abs(self.peaks[i1].monoiso - self.peaks[i2].monoiso) < max_mm * mass_diff_c * 1.1:
                     mm_count = int(round(self.peaks[i1].monoiso - self.peaks[i2].monoiso))
                     if self.peaks[i1].matchedintensity > self.peaks[i2].matchedintensity:
                         adj_mass = self.peaks[i2].monoiso + mm_count * mass_diff_c
@@ -629,6 +627,13 @@ def df_to_matchedcollection(df, monoiso="Monoisotopic Mass", peakmz="Most Abunda
 
     print("Loaded", len(mc.peaks), "peaks from dataframe")
     return mc
+
+def within_ppm_plus_mm(mass1, mass2, ppm_tol=20, max_mm=1, mass_diff_c = 1.0033):
+    for mm in range(-max_mm, max_mm + 1):
+        adjusted_mass2 = mass2 + mm * mass_diff_c
+        if ud.within_ppm(mass1, adjusted_mass2, ppm_tol):
+            return True
+    return False
 
 def remove_multiple_monoisos(mc):
     # Find the objects with the same everything except for monoiso

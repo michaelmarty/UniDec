@@ -57,6 +57,7 @@ def add_ref_spectra(df, libfile):
     return df, outdata
 
 def parse_xml(xmlfile):
+    pass
 
 topdir = r"Z:\Group Share\MTM\IQ-X\MartyLab_AX\FinalResults"
 os.chdir(topdir)
