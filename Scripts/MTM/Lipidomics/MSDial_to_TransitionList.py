@@ -16,11 +16,18 @@ def get_charge(adduct):
         print("Unknown adduct", adduct)
         return 0
 
-def add_product_ions(row, cutoff=0.1):
-    msmsspec = row["MS/MS spectrum"]
+def add_product_ions(row, cutoff=0.1, spectrumkey="Ref Spec"):
+    msmsspec = row[spectrumkey]
+    # Remove final space if present
+    if msmsspec.endswith(" "):
+        msmsspec = msmsspec[:-1]
     # Parse spectrum
     msmsspec = [a.split(":") for a in msmsspec.split(" ")]
-    msmsspec = np.array([(float(a[0]), float(a[1])) for a in msmsspec])
+    try:
+        msmsspec = np.array([(float(a[0]), float(a[1])) for a in msmsspec])
+    except:
+        print("Error parsing spectrum:", msmsspec)
+        raise Exception("Error parsing spectrum")
 
     # Filter by cutoff
     b1 = msmsspec[:, 1] >= cutoff * np.max(msmsspec[:, 1])
@@ -42,12 +49,12 @@ def add_product_ions(row, cutoff=0.1):
 
     return newrows
 
-def msdial_to_transitionlist(df):
+def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
     # Drop all where "Ontology" is Others or Unknown
     # df = df[~df["Ontology"].isin(["Others", "Unknown"])]
     newdf = df.copy()
     # Export Df with "Molecule List Name", "Molecule Name", "Precursor Adduct"
-    newdf = newdf[["Ontology", "Metabolite name", "Adduct type", "Average Mz", "Formula", "Average Rt(min)", "MS/MS spectrum"]]
+    newdf = newdf[["Ontology", "Metabolite name", "Adduct type", "Average Mz", "Formula", "Average Rt(min)", spectrumkey]]
     newdf = newdf.rename(columns={"Ontology": "Molecule List Name", "Metabolite name": "Molecule Name",
                             "Adduct type": "Precursor Adduct", "Average Mz": "Precursor Mz",
                                   "Average Rt(min)":"Explicit Retention Time", "Formula":"Molecule Formula"})
@@ -68,14 +75,14 @@ def msdial_to_transitionlist(df):
     newrows = []
     # Get product ion list
     for i, row in newdf.iterrows():
-        prodrows = add_product_ions(row)
+        prodrows = add_product_ions(row, cutoff=cutoff, spectrumkey=spectrumkey)
         newrows.extend(prodrows)
 
     # New rows to df
     proddf = pd.DataFrame(newrows)
 
     # Drop MS/MS spectrum column
-    proddf = proddf.drop(columns=["MS/MS spectrum"])
+    proddf = proddf.drop(columns=[spectrumkey])
 
 
     print(proddf.columns)
@@ -85,22 +92,22 @@ def msdial_to_transitionlist(df):
 topdir = r"Z:\Group Share\MTM\IQ-X\MartyLab_AX\FinalResults"
 os.chdir(topdir)
 
-infile = "NegIDsC1.csv"
+spectrumkey = "Ref Spec" # or "MS/MS spectrum" if experimental spectra are used, if so, a cutoff is recommended
+cutoff=0
+
+infile = "NegIDsC1_Ref.csv"
 outfile = "Neg_TransitionList.csv"
 
 df = pd.read_csv(infile)
-
-print(df.columns)
-
-df = msdial_to_transitionlist(df)
+df = msdial_to_transitionlist(df, cutoff=cutoff, spectrumkey=spectrumkey)
 df.to_csv(outfile, index=False)
 
 # Repeate for Positive Mode
-infile = "PosIDsC1.csv"
+infile = "PosIDsC1_Ref.csv"
 outfile = "Pos_TransitionList.csv"
 
 posdf = pd.read_csv(infile)
-posdf = msdial_to_transitionlist(posdf)
+posdf = msdial_to_transitionlist(posdf, cutoff=cutoff, spectrumkey=spectrumkey)
 posdf.to_csv(outfile, index=False)
 
 # Merge pos and neg
