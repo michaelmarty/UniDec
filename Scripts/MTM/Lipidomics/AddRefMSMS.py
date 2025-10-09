@@ -1,7 +1,8 @@
 import os
 import pandas as pd
 from matchms.importing import load_from_msp
-from matchms.exporting import save_as_msp
+# from matchms.exporting import save_as_msp
+from MergePosNeg import merge_pos_neg
 import numpy as np
 import lxml
 
@@ -139,16 +140,21 @@ def parse_xml(xmlfile):
 topdir = r"Z:\Group Share\MTM\IQ-X\MartyLab_AX\FinalResults"
 os.chdir(topdir)
 
-# posfile = "PosIDsC1.csv"
-# posdf = load_df(posfile)
-# refposdf = parse_xml("Pos.xml")
-# posdf = add_ref_from_xml(posdf, refposdf)
-# posdf.to_csv("PosIDsC1_Ref.csv", index=False)
+posfile = "PosIDsC1.csv"
+posdf = load_df(posfile)
+refposdf = parse_xml("Pos.xml")
+posdf = add_ref_from_xml(posdf, refposdf)
+
 
 negfile = "NegIDsC1.csv"
 negdf = load_df(negfile)
 refnegdf = parse_xml("Neg.xml")
 negdf = add_ref_from_xml(negdf, refnegdf)
+
+rttol = 0.1
+posdf, negdf = merge_pos_neg(posdf, negdf, rttol)
+
+posdf.to_csv("PosIDsC1_Ref.csv", index=False)
 negdf.to_csv("NegIDsC1_Ref.csv", index=False)
 
 # poslibfile = "MSDIAL-TandemMassSpectralAtlas-VS69-Pos-C1.msp"

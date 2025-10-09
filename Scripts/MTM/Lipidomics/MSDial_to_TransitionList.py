@@ -114,6 +114,8 @@ posdf.to_csv(outfile, index=False)
 df = pd.concat([df, posdf])
 # Write to csv
 df.to_csv("Combined_TransitionList.csv", index=False)
+# Print number of unique Molecule Names
+print("Number of unique Molecule Names:", df["Molecule Name"].nunique())
 
 # Needed: Precursor Ion Formula	Precursor Neutral Formula
 # Needed: Product Mz	Product Charge	Product Ion Formula	Product Neutral Formula	Product Adduct

@@ -68,6 +68,10 @@ print(subdf)
 badfile = infile1.replace(".csv", "_BadLipids.csv")
 subdf.to_csv(badfile, index=False)
 
+# Read Transition List file and say how many unique Molecule Names are in it
+tldf = pd.read_csv(outpath)
+print(f"Successfully created {outpath} with {tldf['PrecursorName'].nunique()} unique Molecule Names")
+
 # for cls in classes:
 #     print(f"Processing class {cls}")
 #     df2 = df[df["Molecule List Name"] == cls]
