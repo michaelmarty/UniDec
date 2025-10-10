@@ -1,5 +1,8 @@
 import numpy as np
 import re
+import pandas as pd
+import lxml.etree
+import matplotlib.pyplot as plt
 
 adduct_translator = np.array([["[M+H]+", "[M+H]", "+1", 1, "[M+H]1+"],
                               ["[M+NH4]+", "[M+NH4]", "+1", 1, "[M+NH4]1+"],
@@ -345,3 +348,401 @@ def remove_specific_problems(df):
     #     df = df[df['Molecule List Name'].str.contains('|'.join(includeclasses), case=False, na=False)]
 
     return df
+
+
+
+def get_charge(adduct):
+    if adduct in ["[M+H]+", "[M+NH4]+", "[M+Na]+", "[M+K]+"]:
+        return 1
+    elif adduct in ["[M+2H]2+"]:
+        return 2
+    elif adduct in ["[M-H]-", "[M+HCOO]-", "[M+CH3COO]-"]:
+        return -1
+    elif adduct in ["[M-2H]2-"]:
+        return -2
+    else:
+        print("Unknown adduct", adduct)
+        return 0
+
+def add_product_ions(row, cutoff=0.1, spectrumkey="Ref Spec"):
+    msmsspec = row[spectrumkey]
+    # Remove final space if present
+    if msmsspec.endswith(" "):
+        msmsspec = msmsspec[:-1]
+    # Parse spectrum
+    msmsspec = [a.split(":") for a in msmsspec.split(" ")]
+    try:
+        msmsspec = np.array([(float(a[0]), float(a[1])) for a in msmsspec])
+    except:
+        print("Error parsing spectrum:", msmsspec)
+        raise Exception("Error parsing spectrum")
+
+    # Filter by cutoff
+    b1 = msmsspec[:, 1] >= cutoff * np.max(msmsspec[:, 1])
+    msmsspec = msmsspec[b1]
+
+    mz = msmsspec[:, 0]
+    newrows = []
+    for m in mz:
+        newrow = row.copy()
+        charge = row["Precursor Charge"]
+        if charge > 1:
+            # Assume charge 1 for product ions
+            charge = 1
+        elif charge < -1:
+            charge = -1
+        newrow["Product Mz"] = m
+        newrow["Product Charge"] = charge
+        newrows.append(newrow)
+
+    return newrows
+
+def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
+    # Drop all where "Ontology" is Others or Unknown
+    # df = df[~df["Ontology"].isin(["Others", "Unknown"])]
+    newdf = df.copy()
+    # Export Df with "Molecule List Name", "Molecule Name", "Precursor Adduct"
+    newdf = newdf[["Ontology", "Metabolite name", "Adduct type", "Average Mz", "Formula", "Average Rt(min)", spectrumkey]]
+    newdf = newdf.rename(columns={"Ontology": "Molecule List Name", "Metabolite name": "Molecule Name",
+                            "Adduct type": "Precursor Adduct", "Average Mz": "Precursor Mz",
+                                  "Average Rt(min)":"Explicit Retention Time", "Formula":"Molecule Formula"})
+
+    charges = []
+    for i, row in newdf.iterrows():
+        prec_adduct = row["Precursor Adduct"]
+        charge = get_charge(prec_adduct)
+        charges.append(charge)
+    newdf["Precursor Charge"] = charges
+
+    # Set Explicit Retention Time Window to 4
+    newdf["Explicit Retention Time Window"] = 4
+
+    # Sort by Molecule List Name and Molecule Name
+    newdf = newdf.sort_values(by=["Molecule List Name", "Molecule Name"])
+
+    newrows = []
+    # Get product ion list
+    for i, row in newdf.iterrows():
+        prodrows = add_product_ions(row, cutoff=cutoff, spectrumkey=spectrumkey)
+        newrows.extend(prodrows)
+
+    # New rows to df
+    proddf = pd.DataFrame(newrows)
+
+    # Drop MS/MS spectrum column
+    proddf = proddf.drop(columns=[spectrumkey])
+
+    return proddf
+    pass
+
+
+def find_match_name(name, rt, refdf, rttol=0.1):
+    newname = ""
+    # Look for same name in negdf contained ahead of "|"
+    rows = refdf[refdf["Metabolite name"].str.contains(name + "|", regex=False)]
+    if len(rows) == 0:
+        return newname
+    if len(rows) == 1:
+        refrt = rows.iloc[0]["Average Rt(min)"]
+        refname = rows.iloc[0]["Metabolite name"]
+        # If RTs are within 0.5 min, assume same lipid
+        if abs(rt - refrt) < rttol:
+            # print("Match found:", name, refname, rt, refrt)
+            newname = refname
+        # else:
+        #     print("RTs not close:", name, rtpos, negname, negrt)
+    else:
+        # Find one with the closest rt
+        rtdiff = np.abs(rows["Average Rt(min)"] - rt)
+        rows = rows[rtdiff == rtdiff.min()]
+        if len(rows) > 1:
+            print("Warning Still multiple matches for", name, rt, rows[["Metabolite name", "Average Rt(min)"]])
+        refrt = rows.iloc[0]["Average Rt(min)"]
+        refname = rows.iloc[0]["Metabolite name"]
+        if abs(rt - refrt) < 0.1:
+            # print("Closest match found:", name, refname, rt, refrt)
+            newname = refname
+        # else:
+        #     print("RTs not close:", name, rtpos, negname, negrt)
+    return newname
+
+def merge_pos_neg(posdf, negdf, rttol=0.1):
+    # Loop through posdf and look for names without "|"
+    for i, row in posdf.iterrows():
+        name = row["Metabolite name"]
+        rtpos = row["Average Rt(min)"]
+        if "|" not in name:
+            newname = find_match_name(name, rtpos, negdf, rttol=rttol)
+            if newname != "":
+                posdf.at[i, "Metabolite name"] = newname
+                print("Positive Updated name:", name, "to", newname)
+
+    # Repeat in negative mode
+    for i, row in negdf.iterrows():
+        name = row["Metabolite name"]
+        negrt = row["Average Rt(min)"]
+        if "|" not in name:
+            newname = find_match_name(name, negrt, posdf, rttol=rttol)
+            if newname != "":
+                negdf.at[i, "Metabolite name"] = newname
+                print("Negative Updated name:", name, "to", newname)
+
+    return posdf, negdf
+
+
+
+def add_ref_from_xml(df, refdf):
+    # Match SpotID in refdf to Alignment ID in df
+    for index, row in refdf.iterrows():
+        spotid = row["SpotID"]
+        spec = row["MS/MS spectrum ref"]
+        # Find rows in df that match Alignment ID
+        rows = df[df["Alignment ID"] == int(spotid)]
+        if len(rows) == 0:
+            continue
+        for i, r in rows.iterrows():
+            df.at[i, "Ref Spec"] = spec
+
+    # Print how many rows have Ref Spec empty
+    n_empty = len(df[df["Ref Spec"].isnull()])
+    print("N rows without Ref Spec:", n_empty, "out of", len(df))
+    return df
+
+def parse_xml(xmlfile, exclude_precursor=True):
+    tree = lxml.etree.parse(xmlfile)
+    root = tree.getroot()
+    # Extract spots
+    spots = root.find("Spots")
+    print("N Spots:", len(spots))
+
+    rows = []
+    # Loop through spots
+    for spot in spots:
+        row = {}
+        spotid = -1
+        adduct = ""
+        name = ""
+        prec_mz = -1
+        spectrum = None
+        specstring = ""
+        for elem in spot:
+            # Extract SpotID
+            if elem.tag == "SpotId":
+                spotid = elem.text
+                # print("SpotID:", spotid)
+                continue
+
+            # If "Reference" element exists, strip
+            if elem.tag == "Reference":
+                adduct = elem.find("Adduct").text
+                name = elem.find("Name").text
+                prec_mz = elem.find("Mz").text
+                # print("Reference:", adduct, name, mz)
+                continue
+
+            spectrum = elem.find("MatchedSpectrum")
+            if spectrum is not None:
+                # Find number of MatchSpectrumPeaks
+                npeaks = len(spectrum.findall("MatchedSpectrumPeak"))
+                if len(spectrum) == 0:
+                    continue
+                for subelem in spectrum:
+
+                    # If Peak is "Reference", strip
+                    if subelem.tag == "MatchedSpectrumPeak":
+                        for subsubelem in subelem:
+                            if subsubelem.tag == "Reference":
+                                # Extract Mz and Intensity
+                                mz = subsubelem.find("Mz").text
+                                inten = subsubelem.find("Intensity").text
+
+                                if exclude_precursor and npeaks > 1:
+                                    if abs(float(mz) - float(prec_mz)) < 5:
+                                        # print("Excluding precursor mz:", mz)
+                                        continue
+                                # Round mz to 4 decimal places
+                                mz = round(float(mz), 4)
+                                if str(mz) in specstring:
+                                    continue
+                                specstring += f"{mz}:{inten} "
+
+        if spotid != -1 and specstring != "":
+            row["SpotID"] = spotid
+            row["Adduct"] = adduct
+            row["Name"] = name
+            row["Mz"] = prec_mz
+            row["MS/MS spectrum ref"] = specstring
+            rows.append(row)
+
+    columns = ["SpotID", "Adduct", "Name", "Mz", "MS/MS spectrum ref"]
+    df = pd.DataFrame(rows, columns=columns)
+
+    return df
+
+
+
+def clean_names(name):
+    if "|" in name:
+        name = name.split("|")[1]
+    return name
+
+
+
+def msdial_to_lipidlist(df):
+    # Drop all where "Ontology" is Others or Unknown
+    df = df[~df["Ontology"].isin(["Others", "Unknown"])]
+
+    # Export Df with "Molecule List Name", "Molecule Name", "Precursor Adduct"
+    df = df[["Ontology", "Metabolite name", "Adduct type"]]
+    df = df.rename(columns={"Ontology": "Molecule List Name", "Metabolite name": "Molecule Name",
+                            "Adduct type": "Precursor Adduct"})
+
+    # Sort by Molecule List Name and Molecule Name
+    df = df.sort_values(by=["Molecule List Name", "Molecule Name"])
+
+    # Clean names
+    df["Molecule Name"] = df["Molecule Name"].apply(clean_names)
+
+    # Check FA count
+    df = check_FA_count(df)
+
+    # Convert to LC format
+    df = lipidlist_to_LC(df)
+
+    return df
+
+
+def get_specstring(spectrum, remove_precursor=True, precursor_mz=None):
+    spec = spectrum.peaks
+    spec = np.array(spec)
+    specstr = ""
+    try:
+        for mz, inten in zip(spec[:, 0], spec[:, 1]):
+            mz = float(mz)
+            if remove_precursor and precursor_mz is not None:
+                if mz > precursor_mz - 5:
+                    continue
+            specstr += f"{mz:.4f}:{int(inten)} "
+    except:
+        print("Error in spectrum:", spec)
+    specstr = specstr.strip()
+    return specstr
+
+
+def add_ref_spectra(df, libfile, rttol=0.1, remove_precursor=True):
+    names = df["Metabolite name"].values
+    redone_names = []
+    for n in names:
+        if "|" in n:
+            n = n.split("|")[1]
+        redone_names.append(n)
+    df["Metabolite name Corr"] = redone_names
+
+    lib = load_from_msp(libfile)
+    outdata = []
+    for l in lib:
+        name = l.metadata["compound_name"]
+        # print(name)
+        if name in df["Metabolite name Corr"].values:
+            adduct = l.metadata["adduct"]
+            rt = l.metadata["retention_time"]
+            libmz = l.metadata["precursor_mz"]
+
+            # Find row in dfpos that matches name and adduct
+            rows = df[df["Metabolite name Corr"] == name]
+            rows = rows[rows["Adduct type"] == adduct]
+            if len(rows) == 0:
+                continue
+            if len(rows) == 1:
+                index = rows.index[0]
+                rowrt = rows.at[index, "Average Rt(min)"]
+                if np.abs(rowrt - rt) > rttol:
+                    # print("RT mismatch for", name, adduct, rowrt, rt)
+                    continue
+                # else:
+                #     print("Match for", name, adduct, rowrt, rt)
+
+            # if len(rows) > 1:
+            #     print("Multiple matches for", name, adduct, rows)
+
+            outdata.append(l)
+            specstr = get_specstring(l, remove_precursor=remove_precursor, precursor_mz=libmz)
+            for index, row in rows.iterrows():
+                # Check RT
+                rowrt = row["Average Rt(min)"]
+                if np.abs(rowrt - rt) > rttol:
+                    continue
+                #else:
+                df.at[index, "Lib Spec"] = specstr
+
+    print(len(outdata), len(df))
+    # Count how many Lib Spec in df are empty
+    nempty = np.sum(df["Lib Spec"].isna())
+    print("N empty Lib Spec:", nempty)
+    return df, outdata
+
+
+def make_plots(posdf, negdf):
+
+    plt.figure(figsize=(8, 6))
+    # Make plots of Average RT versus reference RT
+    plt.subplot(221)
+    x1 = posdf["Average Rt(min)"]
+    y1 = posdf["Reference RT"]
+
+    x2 = negdf["Average Rt(min)"]
+    y2 = negdf["Reference RT"]
+
+    plt.scatter(x1, y1, label="Positive", alpha=0.5, color="blue")
+    plt.scatter(x2, y2, label="Negative", alpha=0.5, color="red")
+    plt.plot([0, max(max(x1), max(x2))], [0, max(max(x1), max(x2))], color="black", linestyle="--")
+    plt.xlabel("Average RT (min)")
+    plt.ylabel("Reference RT (min)")
+    plt.title("Average RT vs Reference RT")
+    plt.legend()
+    plt.grid()
+
+    # Make violin plots of RT diff
+    plt.subplot(222)
+    rt_diff_pos = posdf["Average Rt(min)"] - posdf["Reference RT"]
+    rt_diff_neg = negdf["Average Rt(min)"] - negdf["Reference RT"]
+
+    plt.violinplot([rt_diff_pos.dropna(), rt_diff_neg.dropna()], positions=[1, 2], showmeans=True)
+    plt.xticks([1, 2], ["Positive", "Negative"])
+    plt.ylabel("RT Difference (min)")
+    plt.title("RT Difference Distribution")
+    plt.grid()
+
+    # Make violin plots of Mz diff versus reference Mz
+    plt.subplot(223)
+    mz_diff_pos = posdf["Average Mz"] - posdf["Reference m/z"]
+    mz_diff_neg = negdf["Average Mz"] - negdf["Reference m/z"]
+
+    plt.violinplot([mz_diff_pos.dropna(), mz_diff_neg.dropna()], positions=[1, 2], showmeans=True)
+    plt.xticks([1, 2], ["Positive", "Negative"])
+    plt.ylabel("Mz Difference")
+    plt.title("Mz Difference Distribution")
+    plt.grid()
+
+    # Violin plots of Simple dot product, Weighted dot product, Reverse dot product, and Total Score
+    plt.subplot(224)
+    sdp_pos = posdf["Simple dot product"]
+    sdp_neg = negdf["Simple dot product"]
+    wdp_pos = posdf["Weighted dot product"]
+    wdp_neg = negdf["Weighted dot product"]
+    rdp_pos = posdf["Reverse dot product"]
+    rdp_neg = negdf["Reverse dot product"]
+    ts_pos = posdf["Total score"]
+    ts_neg = negdf["Total score"]
+
+    plt.violinplot([sdp_pos.dropna(), sdp_neg.dropna(), wdp_pos.dropna(), wdp_neg.dropna(),
+                    rdp_pos.dropna(), rdp_neg.dropna(), ts_pos.dropna(), ts_neg.dropna()],
+                   positions=[1, 2, 3, 4, 5, 6, 7, 8], showmeans=True)
+    plt.xticks([1, 2, 3, 4, 5, 6, 7, 8], ["SDP Pos", "SDP Neg", "WDP Pos", "WDP Neg",
+                                        "RDP Pos", "RDP Neg", "TS Pos", "TS Neg"], rotation=45)
+    plt.ylabel("Score")
+    plt.title("MS/MS Score Distributions")
+    plt.grid()
+
+    plt.tight_layout()
+    plt.show()
