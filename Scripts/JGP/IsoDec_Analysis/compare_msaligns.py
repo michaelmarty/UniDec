@@ -31,7 +31,7 @@ def load_ms1_msaligns(directories, engines, make_masses=False, mass_tol=20, rt_t
             mc = read_msalign_to_matchedcollection_fast(directory + msalign_file, engines[i], load_precursors=False, mz_type=None, msorder=1)
             if make_masses:
                 for peak in mc.peaks:
-                    mc.add_pk_to_masses2(peak, ppmtol=mass_tol, rt_tol=rt_tol)
+                    mc.add_pk_to_masses(peak, rt_tol=rt_tol)
                 mass_indices_to_remove = []
                 for mi, mass in enumerate(mc.masses):
                     if len(mass.scans) < min_scans or len(mass.scans) > max_scans or mass.monoiso < min_pfm_mass:
