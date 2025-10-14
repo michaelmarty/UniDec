@@ -1,3 +1,4 @@
+from unidec.IsoDec.compare_tools import read_msalign_to_matchedcollection
 from unidec.IsoDec.engine import IsoDecEngine
 from unidec.IsoDec.plots import *
 from unidec.IsoDec.match import *

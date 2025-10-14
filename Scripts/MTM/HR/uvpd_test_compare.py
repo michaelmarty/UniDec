@@ -1,8 +1,4 @@
-import os
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import unidec.tools as ud
+from unidec.IsoDec.compare_tools import get_unique_matchedions, compare_matchedcollections, df_to_matchedcollection
 from unidec.IsoDec.match import *
 from unidec.IsoDec.plots import *
 from unidec.UniDecImporter.Importer import ImporterFactory

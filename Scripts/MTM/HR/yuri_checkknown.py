@@ -1,6 +1,8 @@
 import os
 import numpy as np
 import pandas as pd
+
+import unidec.IsoDec.compare_tools
 import unidec.IsoDec.match as match
 import matplotlib.pyplot as plt
 import unidec.IsoDec.plots as isoplots
@@ -25,7 +27,7 @@ cdatafile = os.path.splitext(datafile)[0] + "_1_centroided.txt"
 cdata = np.loadtxt(cdatafile)
 
 # Convert to MatchedCollection
-mc = match.df_to_matchedcollection(df, monoiso="Mass", peakmz="m/z", z="Charge", scan=None, intensity=None, peakmass=None, ion=None)
+mc = unidec.IsoDec.compare_tools.df_to_matchedcollection(df, monoiso="Mass", peakmz="m/z", z="Charge", scan=None, intensity=None, peakmass=None, ion=None)
 
 colormap = plt.get_cmap("rainbow_r")
 

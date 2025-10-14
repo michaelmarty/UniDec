@@ -1,8 +1,8 @@
+from unidec.IsoDec.compare_tools import read_msalign_to_matchedcollection_fast
 from unidec.IsoDec.match import *
 from unidec.IsoDec.msalign_export import *
 import fnmatch
 from matplotlib import rcParams
-import matplotlib.pyplot as plt
 
 from unidec.UniDecImporter import ImporterFactory
 

@@ -1,6 +1,4 @@
-import matplotlib as mpl
-import numpy as np
-from unidec.IsoDec.match import *
+from unidec.IsoDec.compare_tools import read_manual_annotations, compare_annotated
 from unidec.IsoDec.engine import *
 
 # Set backend to Agg

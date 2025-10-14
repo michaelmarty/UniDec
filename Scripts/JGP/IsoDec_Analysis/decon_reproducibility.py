@@ -1,3 +1,4 @@
+from unidec.IsoDec.compare_tools import compare_matchedmasses, read_msalign_to_matchedcollection
 from unidec.IsoDec.match import *
 import os
 import fnmatch

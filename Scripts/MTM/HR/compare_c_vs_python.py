@@ -1,13 +1,8 @@
+from unidec.IsoDec.compare_tools import compare_matchedcollections
 from unidec.IsoDec.engine import IsoDecEngine
-import os
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import numpy as np
-import unidec.tools as ud
 from unidec.IsoDec.plots import *
 from unidec.IsoDec.datatools import *
 import pyperclip
-import pandas as pd
 from unidec.IsoDec.match import *
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 from Scripts.MTM.proteomicstools import *

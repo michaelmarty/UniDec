@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import molmass as mm
+
+import unidec.IsoDec.compare_tools
 import unidec.IsoDec.match as match
 import os
 
@@ -52,7 +54,7 @@ print(len(df["Mass"]))
 # Limit df to only those with "Ion" containing "c"
 df = df[df["Ion"].str.contains("c", na=False)]
 
-mc = match.df_to_matchedcollection(df, monoiso="Mass", peakmz = "m/z", z="Charge", scan=None, intensity=None, peakmass=None, ion=None)
+mc = unidec.IsoDec.compare_tools.df_to_matchedcollection(df, monoiso="Mass", peakmz ="m/z", z="Charge", scan=None, intensity=None, peakmass=None, ion=None)
 print("Data MatchedCollection created with", len(mc), "peaks.")
 
 path = "C:\\Data\\Yuri\\"
@@ -67,9 +69,9 @@ datafile = os.path.join(path, fname + "_unidecfiles", fname + ".tsv")
 
 data = pd.read_csv(datafile, sep="\t")
 
-dc = match.df_to_matchedcollection(data, ion=None, checkmultiplemonoisos=True)
+dc = unidec.IsoDec.compare_tools.df_to_matchedcollection(data, ion=None, checkmultiplemonoisos=True)
 
-shared, u1, u2 = match.compare_matchedcollections(mc, dc, ignorescan=True)
+shared, u1, u2 = unidec.IsoDec.compare_tools.compare_matchedcollections(mc, dc, ignorescan=True)
 
 # Save TSV of matched collection for shared
 shared_file = os.path.join(topdir, "shared_peaks.tsv")

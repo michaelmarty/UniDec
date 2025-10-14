@@ -1,12 +1,7 @@
+from unidec.IsoDec.compare_tools import read_manual_annotations, compare_annotated, read_msalign_to_matchedcollection
 from unidec.IsoDec.engine import IsoDecEngine
-import os
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import numpy as np
-import unidec.tools as ud
 from unidec.IsoDec.plots import *
 from unidec.IsoDec.datatools import *
-import pandas as pd
 from unidec.IsoDec.match import *
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 

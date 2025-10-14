@@ -1,8 +1,4 @@
-import os
-import fnmatch
-import numpy as np
-from unidec.IsoDec.match import *
-import unidec.IsoDec.datatools as dt
+from unidec.IsoDec.compare_tools import compare_matchedmasses, read_msalign_to_matchedcollection_fast
 from unidec.UniDecImporter.ImporterFactory import *
 from unidec.IsoDec.msalign_export import *
 from Scripts.JGP.IsoDec_Workflow.toppic_prsm_comparison import *
