@@ -358,8 +358,7 @@ class MatchedMass:
         self.isodists = pk.isodist
         self.totalpeaks = 1
         self.avgmass = pk.avgmass
-        self.decon_centroids = pk.centroids
-
+        self.decon_centroids = pk.calc_mass_dists()
 
     def merge_in_pk(self, newpk):
         # Add to total intensity
@@ -431,7 +430,6 @@ class MatchedPeak:
     """
     Matched peak object for collecting data on peaks with matched distributions
     """
-
     def __init__(self, z, mz, avgmass=None, centroids=None, isodist=None, matchedindexes=None, isomatches=None):
         self.mz = mz
         self.z = z
@@ -448,6 +446,7 @@ class MatchedPeak:
         self.rt = -1
         self.ms_order = -1
         self.massdist = None
+        self.decon_centroids = None
         self.monoisos = []
         self.peakmass = -1
         self.startindex = -1
@@ -469,6 +468,13 @@ class MatchedPeak:
         if isomatches is not None:
             self.isomatches = isomatches
             self.matchedisodist = isodist[np.array(isomatches)]
+
+    def calc_mass_dists(self, adductmass=1.007276467):
+        if self.centroids is not None:
+            self.decon_centroids = np.column_stack((self.centroids[:, 0] * self.z - adductmass * self.z, self.centroids[:, 1]))
+            return self.decon_centroids
+        else:
+            return None
 
     def strip_from_data(self, data):
         """
