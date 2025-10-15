@@ -2890,7 +2890,7 @@ def get_swoop_mz_minmax(mz, i):
     return mzmin, mzmax
 
 
-@njit
+@njit(fastmath=True)
 def within_ppm(theo, exp, ppmtol):
     # ppm_error = np.abs(((theo - exp) / theo) * 1e6)
     # print("Within ppm ppm-error: " + str(ppm_error))

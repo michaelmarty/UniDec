@@ -237,7 +237,6 @@ for unideclib.dll.
 New parameter management in background. Some parameter names have changed. 
 
 IsoDec now will combine mass peaks more smartly, looking for missed monoisotopics when combining multiple charge states.
-This is also now more user controllable, with the max shift controlling the monoisotopics allowed and the match tolerance controlling the ppm tolerance for matching.
 
 Added new text file export in 3 column format for var1, mass, and extract on UniChrom and MetaUniDec.
 Also, I modified the _extracts.txt file to include the var1 values in the top row with a 0 in the first column.
@@ -251,6 +250,8 @@ Fixed bug with Save Figure As dialog.
 Fixed issue with IsoDec where narrow m/z windows were cutting off extended isotopes on +1 peaks.
 Now, the high m/z window value will be extended in full, but the encoding will only be half of that. The 
 new defaults are 4.05 rather than 2.05 to catch these additional isotopes while still encoding a narrow range of 2.025.
+
+Basic code for building an R wrapper around unideclib.dll. Development welcome for any interested in contributing.
 
 Bug fixes throughout. 
 

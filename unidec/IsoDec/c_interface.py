@@ -11,7 +11,7 @@ sys.path.append(str(path_root))
 import matplotlib.pyplot as plt
 from unidec.IsoDec.match import MatchedPeak, MatchedCollection
 from unidec.modules.unidecstructure import IsoDecConfig
-from unidec.IsoDec.plots import plot_pks
+from unidec.IsoDec.plots import plot_pks, cplot
 from unidec.tools import start_at_iso, datachop
 
 current_path = os.path.dirname(os.path.realpath(__file__))
@@ -272,7 +272,15 @@ class IsoDecWrapper:
         for p in matchedpeaks[:nmatched]:
             if p.z == 0:
                 continue
-            pk = MatchedPeak(p.z, p.mz, p.avgmass)
+
+            # Extract peak centroid data
+            startindex = p.startindex
+            endindex = p.endindex
+            if startindex < 0 or endindex < 0 or endindex <= startindex:
+                raise ValueError("Invalid start or end index in matched peak.")
+            pkcent = centroids[startindex:endindex + 1]
+
+            pk = MatchedPeak(p.z, p.mz, p.avgmass, centroids=pkcent, config=self.config)
             pk.monoiso = p.monoiso
             pk.peakmass = p.peakmass
             pk.avgmass = p.avgmass
@@ -336,13 +344,36 @@ class IsoDecWrapper:
 
 if __name__ == "__main__":
     eng = IsoDecWrapper()
+    #
+    # eng.config.phaseres = 4
+    # eng.encode(example)
+    # print(eng.predict_charge(example))
+    # dat = eng.process_spectrum(example)
+    #
+    # print(dat)
+    filepath = "C:\\Data\\IsoNN\\test2.txt"
+    spectrum = np.loadtxt(filepath, skiprows=0)
+    pks = eng.process_spectrum(spectrum)
+    print(len(pks.peaks))
 
-    eng.config.phaseres = 4
-    eng.encode(example)
-    print(eng.predict_charge(example))
-    dat = eng.process_spectrum(example)
+    # Find peak with monoiso near 6396
+    for pk in pks.masses:
+        if 6395 < pk.monoiso < 6397:
+            print("Found Peak:", pk)
+            cplot(pk.decon_centroids, color="k", factor=1)
+            cplot(pk.massdist, color="k", factor=-1)
+            import matplotlib.pyplot as plt
 
-    print(dat)
+            colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+            for i, p in enumerate(pk.clusters):
+                print("  Subpeak:", p)
+                # if p.monoiso > 6396:
+                #     continue
+                cplot(p.decon_centroids, color=colors[i % len(colors)], factor=1)
+                cplot(p.massdist, color=colors[i % len(colors)], factor=-1)
+            plt.show()
+
+
     exit()
     # filepath = "C:\\Data\\IsoNN\\test2.txt"
     filepath = "Z:\\Group Share\\JGP\\js8b05641_si_001\\etd_spectrum.txt"
