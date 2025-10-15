@@ -6,8 +6,6 @@ LC mode with adjacent scans
 
 Improvements to IsoDec workflow and training
 
-De-duplicate parameters
-
 
 Highest priority:
 
@@ -18,8 +16,6 @@ Mass Defect tracking to align phases of isotopic distributions for reasonable th
 UCD handle sub-integer charge smoothing
 
 Profile-mode IsoDec
-
-Consider smarter merging of mixed monoisotopics by looking at the alternative monoisotopics...
 
 Lower Priority:
 

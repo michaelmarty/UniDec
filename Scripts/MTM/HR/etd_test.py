@@ -60,13 +60,11 @@ else:
 #     spectrum = ud.datachop(spectrum, mzrange[0], mzrange[1])
 #     np.savetxt("chopped.txt", spectrum)
 
-
-
-
 eng.batch_process_spectrum(spectrum, centroided=True)
 eng_thrash.batch_process_spectrum(spectrum, centroided=True)
 print("Peaks:", len(eng.pks.peaks))
 
+exit()
 if False:
     ca_seq = 'S[42.010565]HHWGYGKHNGPEHWHKDFPIANGERQSPVDIDTKAVVQDPALKPLALVYGEATSRRMVNNGHSFNVEYDDSQDKAVLKDGPLTGTYRLVQFHFHWGSSDDQGSEHTVDRKKYAAELHLVHWNTKYGDFGTAAQQPDGLAVVGVFLKVGDANPALQKVLDALDSIKTKGKSTDFPNFDPGSLLPNVLDYWTYPGSLTTPPLLESVTWIVLKEPISVSSQQMLKFRTLNFNAEGEPELLMLANWRPAQPLKNRQVRGFPK'
     ion_types = ['c', 'z']
