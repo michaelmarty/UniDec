@@ -6,8 +6,7 @@ import pandas as pd
 
 from unidec import tools as ud
 from unidec.IsoDec.datatools import fastnearest, fastwithin_abstol
-from unidec.IsoDec.match import MatchedCollection, MatchedPeak, get_estimated_monoiso, create_isodist2, \
-    remove_multiple_monoisos
+from unidec.IsoDec.match import MatchedCollection, MatchedPeak, get_estimated_monoiso, remove_multiple_monoisos
 from unidec.modules.isotopetools import fast_calc_averagine_isotope_dist
 
 
@@ -677,3 +676,10 @@ def df_to_matchedcollection(df, monoiso="Monoisotopic Mass", peakmz="Most Abunda
 
     print("Loaded", len(mc.peaks), "peaks from dataframe")
     return mc
+
+
+def create_isodist2(monoiso, charge, maxval, adductmass=1.007276467):
+    charge = float(charge)
+    isodist = fast_calc_averagine_isotope_dist(monoiso, charge=charge)
+    isodist[:, 1] *= maxval
+    return isodist
