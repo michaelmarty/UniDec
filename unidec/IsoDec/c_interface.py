@@ -360,14 +360,17 @@ if __name__ == "__main__":
     for pk in pks.masses:
         if 6395 < pk.monoiso < 6397:
             print("Found Peak:", pk)
-            cplot(pk.decon_centroids, color="b", factor=-1)
-            print(type(pk))
+            cplot(pk.decon_centroids, color="k", factor=1)
+            cplot(pk.massdist, color="k", factor=-1)
             import matplotlib.pyplot as plt
 
             colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
             for i, p in enumerate(pk.clusters):
                 print("  Subpeak:", p)
+                # if p.monoiso > 6396:
+                #     continue
                 cplot(p.decon_centroids, color=colors[i % len(colors)], factor=1)
+                cplot(p.massdist, color=colors[i % len(colors)], factor=-1)
             plt.show()
 
 
