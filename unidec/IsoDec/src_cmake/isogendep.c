@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <string.h>
 
+
 const int dlen = 313;
 const int dna_vectors[][5] = {{12, 10, 5, 5, 0}, {12, 9, 3, 6, 0}, {12, 10, 5, 6, 0}, {13, 10, 2, 7, 0}};
 
@@ -444,7 +445,6 @@ void convolve_all(const int isolist[11], fftw_complex* allft, const fftw_complex
         allft[i][1] = finali;
     }
 }
-
 
 
 

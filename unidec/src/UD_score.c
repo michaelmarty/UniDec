@@ -491,6 +491,9 @@ float score_from_peaks(const int plen, const float *peakx, const float *peaky, f
 		dscores[i] = dsc;
 		if (dsc > threshold)
 		{
+			if (config.silent == 0) {
+				printf("Peak: Mass: %f Int: %f DScore: %f \n", peakx[i], peaky[i], dsc);
+			}
 			//printf("Peak: Mass:%f Int:%f M:%f U:%f CS:%f F:%f D: %f \n", peakx[i], peaky[i], msc, usc, cssc, fsc, dsc);
 			numerator += ival * ival * dsc;
 			denominator += ival * ival;

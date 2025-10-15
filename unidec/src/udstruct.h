@@ -180,10 +180,10 @@ struct Config {
     int cdmsflag;
 };
 
-Input SetupInputs();
-void FreeInputs(Input inp);
-Decon SetupDecon();
-void FreeDecon(Decon decon);
+UDSTRUCT_EXPORTS Input SetupInputs();
+UDSTRUCT_EXPORTS void FreeInputs(Input inp);
+UDSTRUCT_EXPORTS Decon SetupDecon();
+UDSTRUCT_EXPORTS void FreeDecon(Decon decon);
 UDSTRUCT_EXPORTS void SetDefaultConfig(Config *config);
 UDSTRUCT_EXPORTS void PostImport(Config *config);
 UDSTRUCT_EXPORTS Config LoadConfig(Config config, const char *filename);

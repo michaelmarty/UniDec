@@ -434,9 +434,24 @@ class IsoGenEngineBase:
             print("Loading", train_fname)
             tdata = np.load(train_fname)
             dists = tdata["dists"]
+            fixed_dists = [[] for i in range(len(dists))]
             seqs = tdata[inputname]
+
+            if len(distall) > 0 and len(dists[0]) < len(distall[0]):
+                print("Padding dists to length", len(distall[0]))
+                diff = len(distall[0]) - len(dists[0])
+                to_add = np.zeros(diff)
+                for i in range(len(dists)):
+                    fixed_dists[i] = np.concatenate([dists[i], to_add])
+            elif len(distall) > 0 and len(dists[0] > len(distall[0])):
+                print("Dists too long, truncating to", len(distall[0]))
+                fixed_dists = dists[:,:len(distall[0])]
+            else:
+                fixed_dists = dists
+
+
             seqall.extend(seqs)
-            distall.extend(dists)
+            distall.extend(fixed_dists)
 
         trd, ted = self.setup_data(np.array(distall), np.array(seqall))
         self.model.run_training(trd, ted, epochs=epochs, forcenew=forcenew)

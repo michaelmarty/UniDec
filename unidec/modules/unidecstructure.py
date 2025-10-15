@@ -293,7 +293,7 @@ class UniDecConfig(object):
         self.HToutputlb = -1
 
         self.demultiplexmode = "HT"
-        self.demultiplexchoices = ["HT", "mHT", "FT", "aFT"]
+        self.demultiplexchoices = ["HT", "mHT", "FT", "aFT", "PP"]
         self.FTstart = 5
         self.FTend = 1000
         self.FTflatten = True
@@ -834,7 +834,7 @@ class UniDecConfig(object):
                         if line.startswith("CDScanCompress"):
                             self.CDScanCompress = ud.string_to_value(line.split()[1])
                         if line.startswith("HTmaxscans"):
-                            self.HTmaxscans = ud.string_to_value(line.split()[1])
+                            self.HTmaxscans = ud.string_to_int(line.split()[1])
                         if line.startswith("HToutlb"):
                             self.HToutputlb = ud.string_to_value(line.split()[1])
                         if line.startswith("HToutub"):

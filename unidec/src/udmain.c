@@ -125,7 +125,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	{
 		if (barr[i] == 1) { badness1 = 0; }
 	}
-	if (badness1 == 1) { printf("ERROR:1\n"); exit(10); }
+	if (badness1 == 1) { printf("ERROR: No points are allowed. Setup is bad\n"); exit(10); }
 
 	//Set up blur
 	MakeSparseBlur(numclose, barr, closezind, closemind, closeind, closeval, closearray, config, &inp);

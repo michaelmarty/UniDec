@@ -11,8 +11,10 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import random
 from Scripts.JGP.IsoGen_Analysis.unimod_obo_parser import *
+from unidec.IsoDec.IsoGen.isogenc import fft_pep_seq_to_dist
 
-os.chdir("Z:\\Group Share\\JGP\\PeptideTraining\\IntactProtein\\Training")
+
+atoms_to_ignore = ["Br", "I", "Cl", "F", "Hg", "Mo", "Se", "B", "Cu", "Si", "As", ]
 
 
 def get_big_seq(seqs):
@@ -20,9 +22,10 @@ def get_big_seq(seqs):
     return big_seq
 
 def seq_to_dist_vecs_seqs(seq):
-    dist = peptide_to_dist(seq)
+    dist = fft_pep_seq_to_dist(seq)
     vec = peptide_to_vector(seq)
     mass = peptide_to_mass(seq)
+
     return dist, vec, seq, mass
 
 def parse_tsv_file(fname):
@@ -147,13 +150,13 @@ def gen_random_prots(all_seqs, organism, iterations=10):
     goodseqs = np.array(goodseqs)
     dists = np.array(dists)
     vectors = np.array(vectors)
-    np.savez_compressed("random_prots_" + str(organism) + ".npz", dists=dists, vecs=vectors, seqs=goodseqs)
+    np.savez_compressed("training_random_prots_" + str(organism) + ".npz", dists=dists, vecs=vectors, seqs=goodseqs)
     return
 
 def mod_to_chemicalformula(mod):
     return ''.join(f"{key}{value}" for key, value in mod.composition.items())
 
-def gen_random_seqs_even_length(all_seqs, organism, nmods=0, n=10000, min_length=1, max_length=200):
+def gen_random_seqs_even_length(all_seqs, organism, n=10000, min_length=1, max_length=200):
     big_seq = get_big_seq(all_seqs)
     np.random.shuffle(big_seq)
 
@@ -163,11 +166,6 @@ def gen_random_seqs_even_length(all_seqs, organism, nmods=0, n=10000, min_length
     masses = []
     dists = []
 
-    mods = []
-    mod_index = 0
-    if nmods > 0:
-        mods = np.load("Z:\\Group Share\\JGP\\IsoGen\\Mods\\unimod_mods.npz", allow_pickle=True)["mods"]
-    np.random.shuffle(mods)
 
     for length in range(min_length, max_length+1):
         current = 0
@@ -175,26 +173,10 @@ def gen_random_seqs_even_length(all_seqs, organism, nmods=0, n=10000, min_length
 
         while current < n:
             seq = ''.join(big_seq[index:index+length])
-            current_modstring_length = 0
-            for i in range(nmods):
-                mod = mods[mod_index]
-                mod_index += 1
-                mod_cf = mod_to_chemicalformula(mod)
-                mod_string = "[" + mod_cf + "]"
-                if i == 0:
-                    seq = mod_string + seq
-                else:
-                    seq = seq[:i+current_modstring_length] + mod_string + seq[i+current_modstring_length + 1:]
-
-                current_modstring_length += len(mod_string)
 
             random_seqs.append(seq)
             current += 1
             index += length
-
-            if mod_index + nmods > len(mods):
-                np.random.shuffle(mods)
-                mod_index = 0
 
             if index + length > len(big_seq):
                 np.random.shuffle(big_seq)
@@ -214,31 +196,31 @@ def gen_random_seqs_even_length(all_seqs, organism, nmods=0, n=10000, min_length
             masses.append(r[3])
 
     np.savez_compressed("training_random_"+ str(organism)+ "_proteins_"+str(n)+ "_min_" + str(min_length) + "_max_" +
-                        str(max_length) + "_mods" + str(nmods) + ".npz",
+                        str(max_length) + ".npz",
                         dists=dists, vecs=vectors, seqs=good_seqs,masses=masses)
 
 if __name__ == "__main__":
     # Set backend to Agg
     mpl.use('WxAgg')
 
-    os.chdir(r"Z:\Group Share\JGP\PeptideTraining\IntactProtein\Training")
+    os.chdir(r"C:\Users\Admin\Desktop\martylab\IsoGen\IntactProtein\Training")
+
+    min_length = 51
+    max_length = 300
 
     human_prot_data = np.load("human_protein_seqs.npz")
-    gen_random_seqs_even_length(human_prot_data["seqs"], "human", nmods=0, min_length=5, max_length=50)
-    gen_random_seqs_even_length(human_prot_data["seqs"], "human", nmods=1, min_length=5, max_length=50)
+    gen_random_seqs_even_length(human_prot_data["seqs"], "human", min_length=min_length, max_length=max_length)
 
     yeast_prot_data = np.load("yeast_protein_seqs.npz")
-    gen_random_seqs_even_length(yeast_prot_data["seqs"], "yeast", nmods=0, min_length=5, max_length=50)
-    gen_random_seqs_even_length(yeast_prot_data["seqs"], "yeast", nmods=1, min_length=5, max_length=50)
+    gen_random_seqs_even_length(yeast_prot_data["seqs"], "yeast", min_length=min_length, max_length=max_length)
 
     ecoli_prot_data = np.load("ecoli_protein_seqs.npz")
+    gen_random_seqs_even_length(ecoli_prot_data["seqs"], "ecoli", min_length=min_length, max_length=max_length)
 
-    gen_random_seqs_even_length(ecoli_prot_data["seqs"], "ecoli", nmods=0, min_length=5, max_length=50)
-    gen_random_seqs_even_length(ecoli_prot_data["seqs"], "ecoli", nmods=1, min_length=5, max_length=50)
 
     mouse_prot_data = np.load("mouse_protein_seqs.npz")
-    gen_random_seqs_even_length(mouse_prot_data["seqs"], "mouse", nmods=0, min_length=5, max_length=50)
-    gen_random_seqs_even_length(mouse_prot_data["seqs"], "mouse", nmods=1, min_length=5, max_length=50)
+    gen_random_seqs_even_length(mouse_prot_data["seqs"], "mouse", min_length=min_length, max_length=max_length)
+
 
 
 

@@ -5,7 +5,6 @@
 #include <math.h>
 #include <stdbool.h>
 #include "isodeclib.h"
-
 #include "isogendep.h"
 #include "phase_model_8.h"
 #include "phase_model_4.h"
@@ -1183,6 +1182,7 @@ int process_spectrum(const double *cmz, const float *cint, int n, const char *fn
     // Load Weights
     // ReSharper disable once CppDFAMemoryLeak
     struct Weights weights;
+
     if (fname == NULL) {
         weights = load_default_weights(config);
     } else {

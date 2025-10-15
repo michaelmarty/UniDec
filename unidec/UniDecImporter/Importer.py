@@ -256,6 +256,26 @@ class Importer:
             print("IMMS data not supported for this file type:", self._file_path)
             raise Exception
 
+    def get_mz_localmax(self, mz, mz_tol):
+        if self.data is None:
+            self.get_all_scans()
+        if self.data is None or ud.isempty(self.data):
+            print("Error: Empty Data Object", self.data)
+            return None
+        window = mz * mz_tol / 1e6
+        print(window)
+        localmaxlist = []
+        for d in self.data:
+            localmax = ud.data_extract(d, mz, 1, window)
+            if localmax == 0:
+                continue
+            localmaxpos = ud.data_extract(d, mz, 4, window)
+            if localmaxpos == 0:
+                continue
+            localmaxlist.append([localmaxpos, localmax])
+        return np.array(localmaxlist)
+
+
     def close(self):
         pass
 

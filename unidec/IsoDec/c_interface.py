@@ -306,7 +306,7 @@ class IsoDecWrapper:
             pk.endindex = p.endindex
 
             pks.add_peak(pk)
-            pks.add_pk_to_masses(pk, 10)
+            pks.add_pk_to_masses(pk, config=self.config)
         return pks
 
     def determine_model(self, default=True):

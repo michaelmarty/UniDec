@@ -1,5 +1,6 @@
 import numpy as np
 from numba import njit
+import unidec.tools as ud
 
 @njit(fastmath=True)
 def calc_sigma(data):
@@ -233,6 +234,23 @@ def create_peaks(data, isodist, fwhmlist=None):
         yvals[startindex:endindex + 1] += yvalues
 
     return np.column_stack((xvals, yvals))
+
+def intensity_decon(data, dlist, n=10):
+    # dmax = np.amax(data[:, 1])
+    simsum = np.sum(dlist, axis=0)
+    b1 = data[:, 1] < 0
+    data[b1, 1] = 0
+    for i in range(n):
+        ratios = ud.safedivide(data[:,1], simsum)
+        for j in range(len(dlist)):
+            dsum = np.sum(dlist[j])
+            if dsum <= 0:
+                continue
+            avgratio = np.sum(ratios * dlist[j]) / dsum
+            dlist[j] = dlist[j] * avgratio
+        simsum = np.sum(dlist, axis=0)
+
+    return simsum
 
 
 

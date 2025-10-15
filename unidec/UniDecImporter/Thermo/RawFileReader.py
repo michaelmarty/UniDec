@@ -517,21 +517,26 @@ class RawFileReader(object):
         if scanStatistics.IsCentroidScan:
             # Get the centroid (label) data from the RAW file for this
             # scan
-            centroidStream = self.source.GetCentroidStream(int(scanNumber), False)
+            scan = Scan.FromFile(self.source, int(scanNumber))
+            masses = DotNetArrayToNPArray(scan.PreferredMasses)
+            intensities = DotNetArrayToNPArray(scan.PreferredIntensities)
+            self.data = np.transpose([masses, intensities])
 
-            # Print the spectral data (mass, intensity, charge values).
-            # Not all of the information in the high resolution centroid
-            # (label data) object is reported in this example.  Please
-            # check the documentation for more information about what is
-            # available in high resolution centroid (label) data.
-            if outputData:
-                print('Spectrum (centroid/label) {} - {} points'.format(scanNumber, centroidStream.Length))
-                for i in range(centroidStream.Length):
-                    print('  {} - {:.4f}, {:.0f}, {:.0f}'.format(
-                        i, centroidStream.Masses[i], centroidStream.Intensities[i], centroidStream.Charges[i]))
-                print()
-            self.data = np.transpose(
-                [DotNetArrayToNPArray(centroidStream.Masses), DotNetArrayToNPArray(centroidStream.Intensities)])
+            # centroidStream = self.source.GetCentroidStream(int(scanNumber), False)
+            #
+            # # Print the spectral data (mass, intensity, charge values).
+            # # Not all of the information in the high resolution centroid
+            # # (label data) object is reported in this example.  Please
+            # # check the documentation for more information about what is
+            # # available in high resolution centroid (label) data.
+            # if outputData:
+            #     print('Spectrum (centroid/label) {} - {} points'.format(scanNumber, centroidStream.Length))
+            #     for i in range(centroidStream.Length):
+            #         print('  {} - {:.4f}, {:.0f}, {:.0f}'.format(
+            #             i, centroidStream.Masses[i], centroidStream.Intensities[i], centroidStream.Charges[i]))
+            #     print()
+            # self.data = np.transpose(
+            #     [DotNetArrayToNPArray(centroidStream.Masses), DotNetArrayToNPArray(centroidStream.Intensities)])
         else:
             # Get the segmented (low res and profile) scan data
             segmentedScan = self.source.GetSegmentedScanFromScanNumber(int(scanNumber), scanStatistics)

@@ -15,7 +15,6 @@ conf.dat
 .svn
 dist
 build
-old
 TestSpectra
 default_conf.dat
 .pypirc
@@ -85,4 +84,3 @@ unidec/src/.vs
 unidec/src/Makefile
 unidec/src/UniDec
 unidec/src/out
-/unidec/src/Archive/dead_code.txt
