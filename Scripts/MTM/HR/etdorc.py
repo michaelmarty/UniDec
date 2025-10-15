@@ -1,11 +1,9 @@
 from sympy.integrals.intpoly import point_sort
 
-from Scripts.MTM.proteomicstools import *
+from unidec.IsoDec.compare_tools import read_manual_annotations, compare_annotated
 from unidec.IsoDec.engine import IsoDecEngine
-import os
 import time
 import matplotlib.pyplot as plt
-import unidec.tools as ud
 from unidec.IsoDec.match import *
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 

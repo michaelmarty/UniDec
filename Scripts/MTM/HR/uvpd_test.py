@@ -1,11 +1,8 @@
 import pyopenms
 
+from unidec.IsoDec.compare_tools import read_manual_annotations, compare_annotated, read_msalign_to_matchedcollection, \
+    read_fd_tsv_to_matchedcollection
 from unidec.IsoDec.engine import IsoDecEngine
-import os
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import numpy as np
-import unidec.tools as ud
 from unidec.IsoDec.plots import plot_pks, gen_plot_fig
 from unidec.IsoDec.datatools import *
 from unidec.IsoDec.match import *

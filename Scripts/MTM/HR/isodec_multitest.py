@@ -1,8 +1,7 @@
+from unidec.IsoDec.compare_tools import read_msalign_to_matchedcollection, peak_mz_z_df_to_matchedcollection, \
+    compare_matchedcollections
 from unidec.IsoDec.engine import IsoDecEngine
-from unidec.IsoDec.plots import *
 import pyperclip
-from unidec.IsoDec.match import *
-from Scripts.MTM.proteomicstools import *
 import pandas as pd
 
 from unidec.UniDecImporter.Importer import ImporterFactory

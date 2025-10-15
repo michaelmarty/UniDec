@@ -1,3 +1,4 @@
+from unidec.IsoDec.compare_tools import compare_matchedmasses, read_msalign_to_matchedcollection
 from unidec.IsoDec.match import *
 import os
 import fnmatch
@@ -33,7 +34,7 @@ for ms1_msalign_file in ms1_msalign_files:
     mc = read_msalign_to_matchedcollection(toppath + ms1_msalign_file, mz_type=None)
     totalpks.append(len(mc.peaks))
     for peak in mc.peaks:
-        mc.add_pk_to_masses2(peak, ppmtol=20, rt_tol=3)
+        mc.add_pk_to_masses(peak, rt_tol=3)
 
     peaks_in_masses = 0
     mc1_indices_to_remove = []

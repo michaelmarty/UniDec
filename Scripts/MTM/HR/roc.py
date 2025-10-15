@@ -1,13 +1,8 @@
+from unidec.IsoDec.compare_tools import read_manual_annotations, compare_annotated
 from unidec.IsoDec.engine import IsoDecEngine
-import os
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import numpy as np
-import unidec.tools as ud
 from unidec.IsoDec.plots import *
 from unidec.IsoDec.datatools import *
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
-import pandas as pd
 from unidec.IsoDec.match import *
 
 # Set backend to Agg
