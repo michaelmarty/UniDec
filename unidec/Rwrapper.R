@@ -1,3 +1,9 @@
+setClass("DeconResult", slots = list(
+  mass = "numeric",
+  intensity = "numeric"
+  # Add other slots as needed
+))
+
 # Platform-specific DLL file extension
 dllname <- switch(Sys.info()[["sysname"]],
                  "Windows" = "unideclib.dll",
@@ -21,6 +27,21 @@ get_local_path <- function() {
   match <- grep(needle, args)
   if (length(match)) {
     file <- sub(needle, "", args[match])
+    # Print file name for debugging
+    cat("Script file is", file, "\n")
+
+    return(dirname(file))
+  }
+  # Otherwise look for arg equal to -f exactly
+  match <- which(args == "-f")
+  # match <- grep("-f", args)
+  # Print matc
+
+  if (length(match)) {
+    file <- args[match + 1]
+    # Print file name for debugging
+    cat("Script file is", file, "\n")
+
     return(dirname(file))
   }
   # Fallback to working directory
@@ -33,9 +54,15 @@ cat("Current path is", current_path, "\n")
 
 # Function to search for DLL, if analogous
 start_at_iso <- function(dllname, guesspath = "bin") {
-  # Custom search for DLL as in Python (add details as needed)
+  ## Custom search for DLL as in Python (add details as needed)
   candidate <- file.path(guesspath, dllname)
-  if (file.exists(candidate)) candidate else NULL
+  if (file.exists(candidate)) {
+    candidate
+  } else {
+    # Try searching in unidec/bin as a fallback
+    fallback_candidate <- file.path("unidec", "bin", dllname)
+    if (file.exists(fallback_candidate)) fallback_candidate else NULL
+  }
 }
 
 # Locate the DLL
@@ -60,7 +87,7 @@ cat("Updated system PATH to include:", dll_dir, "\n")
 # Load the DLL
 dyn.load(default_dll_path)
 
-# Register the custom plugin
+# Register the custom plugin, WILL NEED TO ADJUST THIS TO YOUR PATH (Fix that in future)
 Rcpp::registerPlugin("unideclib", function() {
   list(
     env = list(
@@ -72,8 +99,8 @@ Rcpp::registerPlugin("unideclib", function() {
 library(Rcpp)
 # Set the path to your C++ file as in the src directory of the current path
 sourceCpp("src/rcpp_unidec.cpp") # path to your cpp file
-cat("Test0")
-loadModule("unidec_mod", TRUE)
+# cat("Test0")
+# loadModule("unidec_mod", TRUE)
 #
 # UDConfig <- function(){
 #   cfg <- new(Config)
@@ -86,23 +113,43 @@ loadModule("unidec_mod", TRUE)
 #
 # cfg <- UDConfig()
 # inp <- new(InputVec)
-cat("Test1")
+# cat("Test1")
 
 cfg <- create_config()
 inp <- create_inputvec()
 
 print(typeof(cfg))
+#
+# cat("Test2")
 
-cat("Test2")
-x <- c(100, 200, 300, 400, 500, 600, 700, 800, 900, 1000)
-y <- c(10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
+# Data file path "C:\Data\UniDecTest\BSA.txt"
+datapath <- file.path("C:", "Data", "UniDecTest", "BSA.txt")
+print(datapath)
+# Open data file in R as x y columns
+data <- read.table(datapath, header = TRUE)
+x <- data[[1]]
+y <- data[[2]]
+
+# Print first few rows of data for verification
+# print(head(data))
+
+#
+# x <- c(100, 200, 300, 400, 500, 600, 700, 800, 900, 1000)
+# y <- c(10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
 
 set_input_data(inp, cfg, x, y)
 
-cat("Test4")
+# cat("Test4")
 
-test <- run_unidec(cfg, inp)
+decon <- run_unidec(cfg, inp)
 
-print("Test5")
+# Plot decon
+x <- decon@mass
+y <- decon@intensity
+
+plot(x, y, type = "l", xlab = "Mass", ylab = "Intensity", main = "Deconvolution Result")
+
+
+
 
 

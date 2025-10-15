@@ -313,8 +313,6 @@ void SetupZtab(const Config config, Input *inp) {
 	if (inp->nztab) {
 		for (int i = 0; i < config.numz; i++) { inp->nztab[i] = i + config.startz; }
 
-		//printf("nzstart %d\n",inp.nztab[0]);
-
 		//Test to make sure no charge state is zero
 		for (int j = 0; j < config.numz; j++)
 		{

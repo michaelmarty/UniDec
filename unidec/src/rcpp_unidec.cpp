@@ -39,18 +39,32 @@ void set_input_data(Rcpp::XPtr<InputVec> input, Rcpp::XPtr<Config> config, Numer
     input->dataInt = std::vector<float>(dataInt.begin(), dataInt.end());
     // Set lengthmz in config based on input data size
     config->lengthmz = input->dataMZ.size();
+    // print lengthmz to verify
+    printf("Input data set. lengthmz: %d\n", config->lengthmz);
 }
 
+// Function to set default config values
 // [[Rcpp::export]]
-int run_unidec(Rcpp::XPtr<Config> config, Rcpp::XPtr<InputVec> input) {
-//    Config *config;
-//    SetDefaultConfig(config);
-//    Rcpp::XPtr<Config> config(config_ptr);
-//    Rcpp::XPtr<InputVec> input(input_ptr);
-    DeconVec result = RunDeconvolution(config, input, 0, 0);
-    return 0;
+void set_default_config(Rcpp::XPtr<Config> config) {
+    SetDefaultConfig(config);
+    printf("Default configuration set.\n");
 }
-//
+
+
+// [[Rcpp::export]]
+SEXP run_unidec(Rcpp::XPtr<Config> config, Rcpp::XPtr<InputVec> input) {
+    DeconVec result = RunDeconvolution(config, input, 1);
+
+    // Create S4 object of class "DeconResult"
+    S4 s4res("DeconResult");
+    s4res.slot("mass") = wrap(result.massaxis);
+    s4res.slot("intensity") = wrap(result.massaxisval);
+    // Set other slots as needed
+
+    return s4res;
+}
+
+//None of this seemed to work, so going with XPtr approach
 //// ----------- Expose Structs to R via Rcpp Module -----------
 //
 //RCPP_MODULE(unidec_mod) {
