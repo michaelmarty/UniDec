@@ -468,9 +468,12 @@ def perform_pca(classes, df, columns):
 mpl.use('WxAgg')
 
 file_path = "Z:\\Group Share\\Annika\\CS Collab Data\\Collaborator Samples (CS)\\lipidomic_analysis_results.xlsx"
-
-df = pd.read_excel(r"Z:\Group Share\JGP\Christina_letAB_MlaC_pqiAB_data\Analysis_and_Other\normalized_abundances.xlsx")
 df = pd.read_excel(file_path, sheet_name="Aggregated")
+
+file_path = r"Z:\Group Share\JGP\Christina_letAB_MlaC_pqiAB_data\Analysis_and_Other\normalized_abundances.xlsx"
+file_path = r"C:\Users\mm96978\Downloads\NormalizedMS1_Quantification.xlsx"
+df = pd.read_excel(file_path)
+
 #need to compare samples 2 and 3 in each group.
 
 column_comparisons1 = [("S2_R1", "S2_R2", "S2_R3", "S2_R4", "S2_R5", "S2_R6", "S2_R7", "S2_R8"),
