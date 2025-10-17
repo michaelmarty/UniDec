@@ -494,7 +494,7 @@ pqiAB_membrane_columns = ["S9_R1", "S9_R2", "S9_R3", "S9_R4", "S9_R5", "S9_R6", 
 
 #make_content_barcharts(["CL", "PE", "PG"], df, "MlaC Protein", letAB_membrane_columns, 2.306, plot_std=True)
 
-t_crit = 2.306
+t_crit = 2.306 # I think this is right for n=9, df=8, alpha=0.05, two-tailed
 plot_std = False
 
 # perform_pca(["CL", "PE", "PG"], df,
