@@ -793,20 +793,25 @@ void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
 }
 
 
-void MakePeakShape2D(const Config config, Decon *decon, int maxlength, const float *dataMZ, const int makereverse, const int inflateflag) {
+void MakePeakShape2D(const Config config, Decon *decon, int maxlength, const Input *inp, const int makereverse, const int inflateflag) {
     float mzsig = fabsf(config.mzsig);
     if (inflateflag == 1) {
         mzsig *= config.peakshapeinflate;
     }
     #pragma omp parallel for
     for (int i = 0; i < config.lengthmz; i++) {
+        if (config.csig > 0) {
+            mzsig = inp->fwhmlist[i];
+            // printf("Using Variable Peak Width %f\n", mzsig);
+        }
+
         int start = decon->starttab[i];
         int end = decon->endtab[i];
         for (int j = start; j <= end; j++) {
             int j2 = fixk(j, config.lengthmz);
-            decon->mzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(dataMZ[i], dataMZ[j2], mzsig, config.psfun);
+            decon->mzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(inp->dataMZ[i], inp->dataMZ[j2], mzsig, config.psfun);
             if (makereverse == 1) {
-                decon->rmzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(dataMZ[j2], dataMZ[i], mzsig, config.psfun);
+                decon->rmzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(inp->dataMZ[j2], inp->dataMZ[i], mzsig, config.psfun);
             }
         }
     }
@@ -901,7 +906,7 @@ int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, con
 
         if (config.speedyflag == 0) {
             if (verbose == 1) { printf("Making Peak Shape 2D\n"); }
-            MakePeakShape2D(config, decon, maxlength, inp.dataMZ, makereverse, 1);
+            MakePeakShape2D(config, decon, maxlength, &inp, makereverse, 1);
         } else {
             if (verbose == 1) { printf("Making Peak Shape 1D\n"); }
             //Calculates peak shape as a 1D list centered at the first element for circular convolutions
@@ -912,6 +917,8 @@ int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, con
         decon->mzdist = (float *) calloc(0, sizeof(float));
         maxlength = 0;
     }
+    // Set maxlength in the decon object
+    decon->maxlength = maxlength;
     return maxlength;
 }
 

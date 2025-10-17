@@ -332,7 +332,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	if (config.peakshapeinflate != 1 && config.mzsig != 0) {
 		if (config.speedyflag == 0)
 		{
-			MakePeakShape2D(config, &decon, maxlength, inp.dataMZ, 0, 0);
+			MakePeakShape2D(config, &decon, maxlength, &inp, 0, 0);
 		}
 		else
 		{

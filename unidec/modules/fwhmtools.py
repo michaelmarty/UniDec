@@ -365,7 +365,7 @@ def variable_pw(data, window=5):
 
     # Use these max values for the background subtraction
     data = deepcopy(data)
-    data = ud.datacompsub(data, indexwidthintensity*2)
+    data = ud.datacompsub(data, indexwidthintensity)
     # Remove data below 0
     data[:, 1][data[:, 1] < 0] = 0
 
@@ -396,6 +396,8 @@ if __name__ == "__main__":
     import os
     import matplotlib.pyplot as plt
     from unidec.IsoDec.plots import cplot
+    from unidec.engine import UniDec
+    from unidec.modules.unidecwrapper import run_unidec_core
     import time
 
     os.chdir("C:\\Data\\UniDecTest\\")
@@ -409,6 +411,29 @@ if __name__ == "__main__":
 
     print(len(peaks), "Peaks Found")
     print(len(fwhms), "FWHMs Calculated")
+
+    eng = UniDec()
+    eng.pass_data_in(data)
+    eng.data.fwhmlist = flist
+    eng.config.psig = 1
+    eng.config.beta = 10
+
+    eng.config.csig = 0
+    run_unidec_core(eng)
+    m1 = deepcopy(eng.data.massdat)
+
+    eng.config.csig = 1
+    run_unidec_core(eng)
+    m2 = deepcopy(eng.data.massdat)
+
+    plt.subplot(121)
+    plt.plot(data[:, 0], data[:, 1], 'k')
+    plt.subplot(122)
+    plt.plot(m1[:,0], m1[:,1], 'k')
+    plt.plot(m2[:,0], m2[:,1], 'g')
+    plt.show()
+
+    exit()
 
     plt.subplot(121)
     # plt.plot(data[:, 0], data[:, 1])

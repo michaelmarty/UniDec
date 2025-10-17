@@ -80,6 +80,7 @@ struct Decon {
     int mlen;
     int plen;
     int scanindex;
+    int maxlength;
 };
 
 

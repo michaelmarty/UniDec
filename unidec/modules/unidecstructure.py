@@ -1934,6 +1934,7 @@ class DataContainer:
         self.massccs = np.array([])  # Mass vs CCS table
         self.ccsz = np.array([])  # CCS vs charge table
         self.ccsdata = np.array([])  # CCS data in 1D
+        self.fwhmlist = np.array([])  # FWHM list for peaks
         self.tscore = 0
 
     def write_hdf5(self, file_name):

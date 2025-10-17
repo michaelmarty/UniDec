@@ -112,7 +112,7 @@ void KillB(const float *I, char *B, const float intthresh, const int lengthmz, c
 
 void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
                     const int *closemind, int *closeind, const float *closeval, float *closearray, const Config config, const Input *inp);
-void MakePeakShape2D(const Config config, Decon *decon, int maxlength, const float *dataMZ, int makereverse,
+void MakePeakShape2D(const Config config, Decon *decon, int maxlength, const Input *inp, int makereverse,
                      const int inflateflag);
 void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, int makereverse, const int inflateflag);
 int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *endtab);
