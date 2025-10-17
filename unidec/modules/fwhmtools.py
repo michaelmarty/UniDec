@@ -414,9 +414,14 @@ if __name__ == "__main__":
 
     eng = UniDec()
     eng.pass_data_in(data)
+    # flist = flist * 0 + 10
     eng.data.fwhmlist = flist
     eng.config.psig = 1
     eng.config.beta = 10
+    eng.config.mzsig = 10
+    eng.config.psfun = 2
+
+
 
     eng.config.csig = 0
     run_unidec_core(eng)
