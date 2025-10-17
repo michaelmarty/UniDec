@@ -2897,7 +2897,7 @@ def within_ppm(theo, exp, ppmtol):
     return np.abs(((theo - exp) / theo) * 1e6) <= ppmtol
 
 
-@njit
+@njit(fastmath=True)
 def within_abs(theo, exp, tol):
     return np.abs(theo - exp) <= tol
 

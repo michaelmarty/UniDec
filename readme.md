@@ -228,11 +228,15 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.8.1.0
 
+Removed Isotope Mode from UniDec....Ongoing work here......
+
 Removed Agilent and Sciex importers. They were causing issues with admin privileges for people.
 I'm talking to Agilent and Sciex to see if I can get support for these in the future.
 
 Rewrote C source code to compile with CMake. Lots of little issues fixed along the way. Included prototype DLL 
 for unideclib.dll. 
+
+Basic code for building an R wrapper around unideclib.dll. Development welcome for any interested in contributing.
 
 New parameter management in background. Some parameter names have changed. 
 
@@ -250,8 +254,6 @@ Fixed bug with Save Figure As dialog.
 Fixed issue with IsoDec where narrow m/z windows were cutting off extended isotopes on +1 peaks.
 Now, the high m/z window value will be extended in full, but the encoding will only be half of that. The 
 new defaults are 4.05 rather than 2.05 to catch these additional isotopes while still encoding a narrow range of 2.025.
-
-Basic code for building an R wrapper around unideclib.dll. Development welcome for any interested in contributing.
 
 Bug fixes throughout. 
 

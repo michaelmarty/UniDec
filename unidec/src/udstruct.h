@@ -50,6 +50,7 @@ struct Input {
     int *nztab;
     float *mtab;
     char *barr;
+    float *fwhmlist;
 };
 
 typedef struct Decon Decon;

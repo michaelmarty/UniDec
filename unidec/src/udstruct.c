@@ -13,6 +13,7 @@ Input SetupInputs() {
     inp.nztab = NULL;
     inp.mtab = NULL;
     inp.barr = NULL;
+    inp.fwhmlist = NULL;
     return inp;
 }
 
@@ -23,6 +24,7 @@ void FreeInputs(const Input inp) {
     free(inp.mtab);
     free(inp.testmasses);
     free(inp.barr);
+    free(inp.fwhmlist);
 }
 
 Decon SetupDecon() {

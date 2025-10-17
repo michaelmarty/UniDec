@@ -794,13 +794,11 @@ void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
 
 
 void MakePeakShape2D(const Config config, Decon *decon, int maxlength, const float *dataMZ, const int makereverse, const int inflateflag) {
-
-
     float mzsig = fabsf(config.mzsig);
     if (inflateflag == 1) {
         mzsig *= config.peakshapeinflate;
     }
-    #pragma omp parallel for schedule(auto)
+    #pragma omp parallel for
     for (int i = 0; i < config.lengthmz; i++) {
         int start = decon->starttab[i];
         int end = decon->endtab[i];
@@ -823,8 +821,7 @@ void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, co
         mzsig *= config.peakshapeinflate;
     }
 
-    int n;
-    for (n = (int) -newrange; n < (int) newrange; n++) {
+    for (int n = (int) -newrange; n < (int) newrange; n++) {
         decon->mzdist[indexmod(config.lengthmz, 0, n)] = mzpeakshape(0, (float) n * binsize, mzsig, config.psfun);
         if (makereverse == 1) { decon->rmzdist[indexmod(config.lengthmz, 0, n)] = mzpeakshape((float) n * binsize, 0, mzsig, config.psfun); }
     }

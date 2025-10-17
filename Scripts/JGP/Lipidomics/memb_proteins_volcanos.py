@@ -467,10 +467,10 @@ def perform_pca(classes, df, columns):
 # Set backend to Agg
 mpl.use('WxAgg')
 
-file_path = "Z:\\Group Share\\Synapt\\Collaborator Samples (CS)\\lipidomic_analysis_results.xlsx"
+file_path = "Z:\\Group Share\\Annika\\CS Collab Data\\Collaborator Samples (CS)\\lipidomic_analysis_results.xlsx"
 
-df = pd.read_excel("Z:\\Group Share\\JGP\\CS MS1 Runs\\mzML\\normalized_abundances.xlsx")
-
+df = pd.read_excel(r"Z:\Group Share\JGP\Christina_letAB_MlaC_pqiAB_data\Analysis_and_Other\normalized_abundances.xlsx")
+df = pd.read_excel(file_path, sheet_name="Aggregated")
 #need to compare samples 2 and 3 in each group.
 
 column_comparisons1 = [("S2_R1", "S2_R2", "S2_R3", "S2_R4", "S2_R5", "S2_R6", "S2_R7", "S2_R8"),
@@ -492,28 +492,28 @@ pqiAB_membrane_columns = ["S9_R1", "S9_R2", "S9_R3", "S9_R4", "S9_R5", "S9_R6", 
 #make_content_barcharts(["CL", "PE", "PG"], df, "MlaC Protein", letAB_membrane_columns, 2.306, plot_std=True)
 
 t_crit = 2.306
-plot_std = True
+plot_std = False
 
-perform_pca(["CL", "PE", "PG"], df,
-            ["S2_R1", "S2_R2", "S2_R3", "S2_R4", "S2_R5", "S2_R6", "S2_R7", "S2_R8",
-             "S3_R1", "S3_R2", "S3_R3", "S3_R4", "S3_R5", "S3_R6", "S3_R7", "S3_R8", "S3_R9"])
-
-
+# perform_pca(["CL", "PE", "PG"], df,
+#             ["S2_R1", "S2_R2", "S2_R3", "S2_R4", "S2_R5", "S2_R6", "S2_R7", "S2_R8",
+#              "S3_R1", "S3_R2", "S3_R3", "S3_R4", "S3_R5", "S3_R6", "S3_R7", "S3_R8", "S3_R9"])
 
 
-make_content_barcharts(["CL", "PE", "PG"], df, "LetAB Membrane", letAB_membrane_columns, t_crit, plot_std=plot_std)
-make_content_barcharts(["CL", "PE", "PG"], df, "MlaC Membrane", mlac_membrane_columns, t_crit, plot_std=plot_std)
-make_content_barcharts(["CL", "PE", "PG"], df, "pqiAB Membrane", pqiAB_membrane_columns, t_crit, plot_std=plot_std)
-
-make_content_paired_barcharts(["CL", "PE", "PG"], df, "MlaC Protein", column_comparisons2, t_crit, plot_std=plot_std)
 
 
-#Plot MlaC
-# make_diff_barchart(["CL", "PE", "PG"], df, ["MlaC Protein","MlaC Membrane"],
-#                    column_comparisons1, t_crit, plot_std=plot_std)
-
-make_fc_barchart(["CL", "PE", "PG"], df, ["MlaC Protein","MlaC Membrane"],
-                 column_comparisons1, t_crit, plot_std=plot_std)
+# make_content_barcharts(["CL", "PE", "PG"], df, "LetAB Membrane", letAB_membrane_columns, t_crit, plot_std=plot_std)
+# make_content_barcharts(["CL", "PE", "PG"], df, "MlaC Membrane", mlac_membrane_columns, t_crit, plot_std=plot_std)
+# make_content_barcharts(["CL", "PE", "PG"], df, "pqiAB Membrane", pqiAB_membrane_columns, t_crit, plot_std=plot_std)
+#
+# make_content_paired_barcharts(["CL", "PE", "PG"], df, "MlaC Protein", column_comparisons2, t_crit, plot_std=plot_std)
+#
+#
+# #Plot MlaC
+# # make_diff_barchart(["CL", "PE", "PG"], df, ["MlaC Protein","MlaC Membrane"],
+# #                    column_comparisons1, t_crit, plot_std=plot_std)
+#
+# make_fc_barchart(["CL", "PE", "PG"], df, ["MlaC Protein","MlaC Membrane"],
+#                  column_comparisons1, t_crit, plot_std=plot_std)
 
 #Plot LetAB
 # make_diff_barchart(["CL", "PE", "PG"], df, ["LetAB Protein","LetAB Membrane"],
@@ -522,6 +522,7 @@ make_fc_barchart(["CL", "PE", "PG"], df, ["MlaC Protein","MlaC Membrane"],
 make_fc_barchart(["CL", "PE", "PG"], df, ["LetAB Protein","LetAB Membrane"],
                  column_comparisons2, t_crit, plot_std=plot_std)
 
+exit()
 #plot pqiAB
 make_diff_barchart(["CL", "PE", "PG"], df, ["pqiAB Protein","pqiAB Membrane"],
                    column_comparisons3, t_crit, plot_std=plot_std)
