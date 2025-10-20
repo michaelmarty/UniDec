@@ -170,7 +170,7 @@ def make_fc_barchart(classes, df, groups, column_comparisons, t_critical, plot_s
 
     fcslist = []
 
-
+    ddof=0
     for i in range(len(classes)):
         mean1 = np.mean(class_areas1[i])
         mean2 = np.mean(class_areas2[i])
@@ -180,8 +180,8 @@ def make_fc_barchart(classes, df, groups, column_comparisons, t_critical, plot_s
         fcs[i] = mean1 / mean2
         # fcslist.append(class_areas1[i] / class_areas2[i])
         stds[i] = fcs[i] * np.sqrt((std1/mean1)**2 + (std2/mean2)**2)
-        margins[i] = (stds[i] / np.sqrt(len(column_comparisons[0])-2)) * t_critical
-        zscore[i] = (fcs[i]-1)/(stds[i]/np.sqrt(len(column_comparisons[0])-2))
+        margins[i] = (stds[i] / np.sqrt(len(column_comparisons[0])-ddof)) * t_critical
+        zscore[i] = (fcs[i]-1)/(stds[i]/np.sqrt(len(column_comparisons[0])-ddof))
 
     #perform a paired t-test to determine if the fold change is significantly different from 1
     t_stats = np.zeros(len(classes))
