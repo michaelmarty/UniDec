@@ -181,15 +181,16 @@ def make_fc_barchart(classes, df, groups, column_comparisons, t_critical, plot_s
         # fcslist.append(class_areas1[i] / class_areas2[i])
         stds[i] = fcs[i] * np.sqrt((std1/mean1)**2 + (std2/mean2)**2)
         margins[i] = (stds[i] / np.sqrt(len(column_comparisons[0])-2)) * t_critical
-        zscore[i] = (fcs[i]-1)/(stds[i]/np.sqrt(7))
+        zscore[i] = (fcs[i]-1)/(stds[i]/np.sqrt(len(column_comparisons[0])-2))
 
     #perform a paired t-test to determine if the fold change is significantly different from 1
     t_stats = np.zeros(len(classes))
     p_vals = np.zeros(len(classes))
+    p_vals_means = np.zeros(len(classes))
     print(zscore)
 
     for i in range(len(classes)):
-        # t_stats[i], p_vals[i] = stats.ttest_ind(class_areas1[i], class_areas2[i])
+        t_stats[i], p_vals_means[i] = stats.ttest_ind(class_areas1[i], class_areas2[i])
         # print(fcslist[i])
         # print(stats.ttest_1samp(fcslist[i], popmean=1))
         # result = stats.ttest_1samp(fcslist[i], popmean=1)
@@ -198,12 +199,13 @@ def make_fc_barchart(classes, df, groups, column_comparisons, t_critical, plot_s
     print(p_vals)
     #correct the p-values
     rejected,corrected_pvalues,_,_ = multipletests(p_vals, method='fdr_bh')
+    rejected_means, corrected_pvalues_means,_,_ = multipletests(p_vals_means, method='fdr_bh')
     print(corrected_pvalues)
     for i in range(len(classes)):
         if corrected_pvalues[i] < 0.05:
-            print("Significant difference in " + classes[i] + " content between " + groups[0] + " and " + groups[1] + " (p = " + str(corrected_pvalues[i]) + ")")
+            print("Significant difference in " + classes[i] + " content between " + groups[0] + " and " + groups[1] + " (p = " + str(corrected_pvalues[i]) + ")", "p_means = " + str(corrected_pvalues_means[i]))
         else:
-            print("No significant difference in " + classes[i] + " content between " + groups[0] + " and " + groups[1] + " (p = " + str(corrected_pvalues[i]) + ")")
+            print("No significant difference in " + classes[i] + " content between " + groups[0] + " and " + groups[1] + " (p = " + str(corrected_pvalues[i]) + ")", "p_means = " + str(corrected_pvalues_means[i]))
 
 
     plt.title(str(groups[0]) + " vs " + str(groups[1]), fontsize=26)
