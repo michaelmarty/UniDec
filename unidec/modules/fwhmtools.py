@@ -417,20 +417,25 @@ if __name__ == "__main__":
     # flist = flist * 0 + 10
     eng.data.fwhmlist = flist
     eng.config.psig = 1
-    eng.config.beta = 10
+    eng.config.beta = 0
     eng.config.mzsig = 10
     eng.config.psfun = 2
 
 
-
-    eng.config.csig = 0
+    eng.config.variablepeakwidth = 0
+    ts1 = time.perf_counter()
     run_unidec_core(eng)
+
+    te1 = time.perf_counter()
     m1 = deepcopy(eng.data.massdat)
 
-    eng.config.csig = 1
+    eng.config.variablepeakwidth = 1
+    ts2 = time.perf_counter()
     run_unidec_core(eng)
+    print("Time1:", te1 - ts1)
+    print("Time2:", time.perf_counter()-ts2)
     m2 = deepcopy(eng.data.massdat)
-
+    exit()
     plt.subplot(121)
     plt.plot(data[:, 0], data[:, 1], 'k')
     plt.subplot(122)

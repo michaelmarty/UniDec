@@ -242,8 +242,10 @@ struct Config {
     char kernel[500];
     hid_t file_id;
     char dataset[1024];
+    // Other
     int silent;
     int cdmsflag;
+    int variablepw;
 };
 """
 
@@ -340,8 +342,10 @@ class Config(ctypes.Structure):
         ("kernel", ctypes.c_char * 500),
         ("file_id", ctypes.c_int),  # hid_t, adjust if needed
         ("dataset", ctypes.c_char * 1024),
+        # Other Parameters
         ("silent", ctypes.c_int),
         ("cdmsflag", ctypes.c_int),
+        ("variablepw", ctypes.c_int),
     ]
 
 
@@ -371,6 +375,7 @@ def py_to_c_config(py_config):
         if name in py_config:
             value = py_config[name]
             value, type = value
+
             if type == str:
                 value = str(value).encode('utf-8')
             elif type == float:
@@ -381,6 +386,7 @@ def py_to_c_config(py_config):
                     print("Error converting", name, "with value", value, "to float.")
             elif type == int:
                 value = ctypes.c_int(int(value))
+                print("name:", name, "ctype:", ctype, value)
             try:
                 setattr(c_config, name, value)
             except TypeError as e:

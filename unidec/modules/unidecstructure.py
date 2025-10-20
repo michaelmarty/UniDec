@@ -207,6 +207,7 @@ class UniDecConfig(object):
         self.endz = 50
         self.numz = 50
         self.mzsig = 0.85
+        self.variablepw = 0
         self.automzsig = 0
         self.psfun = 0
         self.psfunz = 0
@@ -436,7 +437,8 @@ class UniDecConfig(object):
             "tcal2": (self.tcal2, float),
             "tcal3": (self.tcal3, float),
             "tcal4": (self.tcal4, float),
-            "edc": (self.edc, float)
+            "edc": (self.edc, float),
+            "variablepw": (self.variablepw, int),
         }
         return self.namedict
 

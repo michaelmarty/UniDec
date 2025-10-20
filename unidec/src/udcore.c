@@ -361,14 +361,20 @@ void deconvolve_baseline(const int lengthmz, const float *dataMZ, const float *d
 }
 
 
-float deconvolve_iteration_speedy(const int lengthmz, const int numz, const int maxlength, const float *__restrict blur,
+float deconvolve_iteration_speedy(const Config config, Decon *decon, const float *__restrict blur,
                                   float *__restrict blur2,
-                                  const char *__restrict barr, const int aggressiveflag,
+                                  const char *__restrict barr,
                                   const float *__restrict dataInt,
-                                  const int *starttab, const int *endtab, const float *mzdist, const float *rmzdist,
-                                  const int speedyflag, const int baselineflag, float *baseline,
-                                  float *noise, const float mzsig, const float *dataMZ, const int filterwidth,
-                                  const float psig) {
+                                  float *baseline, const float *dataMZ) {
+
+    const int lengthmz = config.lengthmz;
+    const int numz = config.numz;
+    const float psig = config.psig;
+    const int filterwidth = config.filterwidth;
+    const float mzsig = config.mzsig;
+    const int maxlength = decon->maxlength;
+    const int aggressiveflag = config.aggressiveflag;
+    const int speedyflag = config.speedyflag;
 
     float *deltas = NULL, *denom = NULL;
     deltas = (float *) calloc(lengthmz, sizeof(float));
@@ -387,7 +393,7 @@ float deconvolve_iteration_speedy(const int lengthmz, const int numz, const int 
     //printf("2\n");
     if (mzsig != 0 && psig >= 0) {
         //Convolve with peak shape
-        convolve_simp(lengthmz, maxlength, starttab, endtab, mzdist, deltas, denom, speedyflag);
+        convolve_simp(lengthmz, maxlength, decon->starttab, decon->endtab, decon->mzdist, deltas, denom, speedyflag);
     } else {
         memcpy(denom, deltas, sizeof(float) * lengthmz);
     }
@@ -407,7 +413,7 @@ float deconvolve_iteration_speedy(const int lengthmz, const int numz, const int 
     //printf("5\n");
     if (mzsig < 0) {
         //Real Richardson-Lucy Second Convolution
-        convolve_simp(lengthmz, maxlength, starttab, endtab, rmzdist, denom, deltas, speedyflag);
+        convolve_simp(lengthmz, maxlength, decon->starttab, decon->endtab, decon->rmzdist, denom, deltas, speedyflag);
         memcpy(denom, deltas, sizeof(float) * lengthmz);
         /*
         for (i = 0; i<lengthmz; i++)
@@ -562,17 +568,15 @@ float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, cons
     return fitmax;
 }
 
-float errfunspeedy(Config config, Decon decon, const char *barr, const float *dataInt, const int maxlength,
-                   const int *starttab, const int *endtab,
-                   const float *mzdist, float *rsquared) {
+float errfunspeedy(Config config, Decon decon, const float *dataInt, float *rsquared) {
     //Get max intensity
     float maxint = 0;
     for (int i = 0; i < config.lengthmz; i++) {
         if (dataInt[i] > maxint) { maxint = dataInt[i]; }
     }
 
-    getfitdatspeedy(decon.fitdat, decon.blur, config.lengthmz, config.numz, maxlength,
-                    maxint, starttab, endtab, mzdist, config.speedyflag);
+    getfitdatspeedy(decon.fitdat, decon.blur, config.lengthmz, config.numz, decon.maxlength,
+                    maxint, decon.starttab, decon.endtab, decon.mzdist, config.speedyflag);
 
     if (config.baselineflag == 1) {
         #pragma omp parallel for schedule(auto)
@@ -793,11 +797,13 @@ void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
 }
 
 
-void MakePeakShape2D(const Config config, Decon *decon, int maxlength, const Input *inp, const int makereverse, const int inflateflag) {
+void MakePeakShape2D(const Config config, Decon *decon, const Input *inp, const int makereverse, const int inflateflag) {
     float mzsig = fabsf(config.mzsig);
     if (inflateflag == 1) {
         mzsig *= config.peakshapeinflate;
     }
+    int maxlength = decon->maxlength;
+    printf("maxlength = %d\n", maxlength);
     #pragma omp parallel for
     for (int i = 0; i < config.lengthmz; i++) {
         if (config.csig > 0) {
@@ -877,6 +883,7 @@ int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, con
     if (config.mzsig != 0) {
         //Gets maxlength and sets start and endtab
         maxlength = SetStartsEnds(config, &inp, decon->starttab, decon->endtab);
+        decon->maxlength = maxlength;
 
         //Changes dimensions of the peak shape function. 1D for speedy and 2D otherwise
         int pslen = config.lengthmz;
@@ -901,12 +908,11 @@ int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, con
             fprintf(stderr, "Error allocating memory for rmzdist in SetUpPeakShape.\n");
             exit(11);
         }
-        printf("Test: %d\n", config.psfun);
         //Calculates the distance between mz values as a 2D or 3D matrix
 
         if (config.speedyflag == 0) {
             if (verbose == 1) { printf("Making Peak Shape 2D\n"); }
-            MakePeakShape2D(config, decon, maxlength, &inp, makereverse, 1);
+            MakePeakShape2D(config, decon, &inp, makereverse, 1);
         } else {
             if (verbose == 1) { printf("Making Peak Shape 1D\n"); }
             //Calculates peak shape as a 1D list centered at the first element for circular convolutions
@@ -916,14 +922,15 @@ int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, con
     } else {
         decon->mzdist = (float *) calloc(0, sizeof(float));
         maxlength = 0;
+        decon->maxlength = maxlength;
     }
-    // Set maxlength in the decon object
-    decon->maxlength = maxlength;
+
     return maxlength;
 }
 
-float Reconvolve(const Config config, const int maxlength, Decon *decon, const char *barr) {
+float Reconvolve(const Config config, Decon *decon, const char *barr) {
     float newblurmax = 0;
+    int maxlength = decon->maxlength;
     if (config.speedyflag == 0) {
         #pragma omp parallel for schedule(auto)
         for (int i = 0; i < config.lengthmz; i++) {

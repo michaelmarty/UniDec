@@ -163,8 +163,10 @@ void SetDefaultConfig(Config *config) {
     // DoubleDec
     config->doubledec = 0; // Consider initializing kernel as well?
     config->file_id = 0;
+    // Other
     config->silent = 0;
     config->cdmsflag = 0;
+    config->variablepw = 0;
 }
 
 void PostImport(Config *config) {

@@ -166,26 +166,39 @@ def make_fc_barchart(classes, df, groups, column_comparisons, t_critical, plot_s
     fcs = np.zeros(len(classes))
     stds = np.zeros(len(classes))
     margins = np.zeros(len(classes))
+    zscore = np.zeros(len(classes))
+
+    fcslist = []
+
 
     for i in range(len(classes)):
         mean1 = np.mean(class_areas1[i])
         mean2 = np.mean(class_areas2[i])
-        std1 = np.std(class_areas1[i])
-        std2 = np.std(class_areas2[i])
+        std1 = np.std(class_areas1[i], ddof=1)
+        std2 = np.std(class_areas2[i], ddof=1)
 
         fcs[i] = mean1 / mean2
+        # fcslist.append(class_areas1[i] / class_areas2[i])
         stds[i] = fcs[i] * np.sqrt((std1/mean1)**2 + (std2/mean2)**2)
-        margins[i] = (stds[i] / np.sqrt(len(column_comparisons[0]))) * t_critical
+        margins[i] = (stds[i] / np.sqrt(len(column_comparisons[0])-2)) * t_critical
+        zscore[i] = (fcs[i]-1)/(stds[i]/np.sqrt(7))
 
     #perform a paired t-test to determine if the fold change is significantly different from 1
     t_stats = np.zeros(len(classes))
     p_vals = np.zeros(len(classes))
+    print(zscore)
 
     for i in range(len(classes)):
-        t_stats[i], p_vals[i] = stats.ttest_ind(class_areas1[i], class_areas2[i])
-
+        # t_stats[i], p_vals[i] = stats.ttest_ind(class_areas1[i], class_areas2[i])
+        # print(fcslist[i])
+        # print(stats.ttest_1samp(fcslist[i], popmean=1))
+        # result = stats.ttest_1samp(fcslist[i], popmean=1)
+        # t_stats[i], p_vals[i] = result.statistic, result.pvalue
+        p_vals[i] = 2*(1 - stats.norm.cdf(abs(zscore[i])))
+    print(p_vals)
     #correct the p-values
     rejected,corrected_pvalues,_,_ = multipletests(p_vals, method='fdr_bh')
+    print(corrected_pvalues)
     for i in range(len(classes)):
         if corrected_pvalues[i] < 0.05:
             print("Significant difference in " + classes[i] + " content between " + groups[0] + " and " + groups[1] + " (p = " + str(corrected_pvalues[i]) + ")")
@@ -471,7 +484,7 @@ file_path = "Z:\\Group Share\\Annika\\CS Collab Data\\Collaborator Samples (CS)\
 df = pd.read_excel(file_path, sheet_name="Aggregated")
 
 file_path = r"Z:\Group Share\JGP\Christina_letAB_MlaC_pqiAB_data\Analysis_and_Other\normalized_abundances.xlsx"
-file_path = r"C:\Users\mm96978\Downloads\NormalizedMS1_Quantification.xlsx"
+# file_path = r"C:\Users\mm96978\Downloads\NormalizedMS1_Quantification.xlsx"
 df = pd.read_excel(file_path)
 
 #need to compare samples 2 and 3 in each group.
@@ -495,6 +508,9 @@ pqiAB_membrane_columns = ["S9_R1", "S9_R2", "S9_R3", "S9_R4", "S9_R5", "S9_R6", 
 #make_content_barcharts(["CL", "PE", "PG"], df, "MlaC Protein", letAB_membrane_columns, 2.306, plot_std=True)
 
 t_crit = 2.306 # I think this is right for n=9, df=8, alpha=0.05, two-tailed
+# Calculate t_critical for n=8, df=7, alpha=0.05, two-tailed
+t_crit = stats.t.ppf(1-0.025, 7)
+print(t_crit)
 plot_std = False
 
 # perform_pca(["CL", "PE", "PG"], df,

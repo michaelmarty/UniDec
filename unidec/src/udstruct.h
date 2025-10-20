@@ -178,8 +178,10 @@ struct Config {
     char kernel[500];
     hid_t file_id;
     char dataset[1024];
+    // Other
     int silent;
     int cdmsflag;
+    int variablepw;
 };
 
 UDSTRUCT_EXPORTS Input SetupInputs();
