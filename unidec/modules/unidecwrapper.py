@@ -290,7 +290,6 @@ class Config(ctypes.Structure):
         ("isotopemode", ctypes.c_int),
         ("filetype", ctypes.c_int),
         ("imflag", ctypes.c_int),
-        # IM Parameters
         ("dtsig", ctypes.c_float),
         ("csig", ctypes.c_float),
         ("ccsub", ctypes.c_float),
@@ -331,18 +330,15 @@ class Config(ctypes.Structure):
         ("peaknorm", ctypes.c_int),
         ("orbimode", ctypes.c_int),
         ("datanorm", ctypes.c_int),
-        # Experimental Parameters
         ("filterwidth", ctypes.c_int),
         ("zerolog", ctypes.c_float),
         ("lengthmz", ctypes.c_int),
         ("mfilelen", ctypes.c_int),
         ("isolength", ctypes.c_int),
-        # DoubleDec Parameters
         ("doubledec", ctypes.c_int),
         ("kernel", ctypes.c_char * 500),
-        ("file_id", ctypes.c_int),  # hid_t, adjust if needed
+        ("file_id", ctypes.c_longlong),  # adjust to platform's hid_t if needed
         ("dataset", ctypes.c_char * 1024),
-        # Other Parameters
         ("silent", ctypes.c_int),
         ("cdmsflag", ctypes.c_int),
         ("variablepw", ctypes.c_int),
@@ -386,7 +382,6 @@ def py_to_c_config(py_config):
                     print("Error converting", name, "with value", value, "to float.")
             elif type == int:
                 value = ctypes.c_int(int(value))
-                print("name:", name, "ctype:", ctype, value)
             try:
                 setattr(c_config, name, value)
             except TypeError as e:
