@@ -16,7 +16,7 @@ mpl.rcParams['font.family'] = 'Arial'
 mpl.rcParams['font.size'] = 18
 
 
-def make_content_paired_barcharts(classes, df, group, column_comparisons, t_critical):
+def make_content_paired_barcharts(classes, df, column_comparisons):
     colors = [ '#fd9121', '#922290', '#0f8f53' ]
 
     group1_contents = [np.zeros(len(column_comparisons[0])) for i in range(len(classes))]
@@ -46,8 +46,18 @@ def make_content_paired_barcharts(classes, df, group, column_comparisons, t_crit
     group2_stds = np.zeros(len(classes))
     group1_margins = np.zeros(len(classes))
     group2_margins = np.zeros(len(classes))
+    df = len(column_comparisons[0]) - 1
+    alpha = 0.05  # for 95% confidence
 
+    # Now perform a t-test to determine if the means are significantly different
+    t_stats = np.zeros(len(classes))
+    p_vals = np.zeros(len(classes))
     for i in range(len(classes)):
+        t_result = stats.ttest_ind(group1_contents[i], group2_contents[i])
+        p_vals[i] = t_result.pvalue
+        dof = t_result.df
+        t_critical = stats.t.ppf(1 - 0.025, dof)
+        t_stats[i] = t_result.statistic
         group1_means[i] = np.mean(group1_contents[i]*100)
         group2_means[i] = np.mean(group2_contents[i]*100)
         group1_stds[i] = np.std(group1_contents[i]*100, ddof=1)
@@ -55,13 +65,6 @@ def make_content_paired_barcharts(classes, df, group, column_comparisons, t_crit
         group1_margins[i] = (group1_stds[i] / np.sqrt(len(column_comparisons[0])))*t_critical
         group2_margins[i] = (group2_stds[i] / np.sqrt(len(column_comparisons[1])))*t_critical
 
-
-    #Now perform a t-test to determine if the means are significantly different
-    t_stats = np.zeros(len(classes))
-    p_vals = np.zeros(len(classes))
-
-    for i in range(len(classes)):
-        t_stats[i], p_vals[i] = stats.ttest_ind(group1_contents[i], group2_contents[i])
 
         print(f"{classes[i]}: p = {p_vals[i]:.3e}")
 
@@ -183,10 +186,10 @@ letAB_membrane_columns = ["S6_R1", "S6_R2", "S6_R3", "S6_R4", "S6_R5", "S6_R6", 
 pqiAB_membrane_columns = ["S9_R1", "S9_R2", "S9_R3", "S9_R4", "S9_R5", "S9_R6", "S9_R7", "S9_R8", "S9_R9"]
 
 
-t_crit = 2.306 # I think this is right for n=9, df=8, alpha=0.05, two-tailed
-t_crit = stats.t.ppf(1-0.025, 7)
+#t_crit = 2.306 # I think this is right for n=9, df=8, alpha=0.05, two-tailed
 
-make_content_paired_barcharts(["CL", "PE", "PG"], df, "MlaC Protein", column_comparisons2, t_crit)
+
+make_content_paired_barcharts(["CL", "PE", "PG"], df, column_comparisons2)
 
 
 

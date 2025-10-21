@@ -166,46 +166,31 @@ def make_fc_barchart(classes, df, groups, column_comparisons, t_critical, plot_s
     fcs = np.zeros(len(classes))
     stds = np.zeros(len(classes))
     margins = np.zeros(len(classes))
-    zscore = np.zeros(len(classes))
 
-    fcslist = []
-
-    ddof=0
     for i in range(len(classes)):
         mean1 = np.mean(class_areas1[i])
         mean2 = np.mean(class_areas2[i])
-        std1 = np.std(class_areas1[i], ddof=1)
-        std2 = np.std(class_areas2[i], ddof=1)
+        std1 = np.std(class_areas1[i])
+        std2 = np.std(class_areas2[i])
 
         fcs[i] = mean1 / mean2
-        # fcslist.append(class_areas1[i] / class_areas2[i])
         stds[i] = fcs[i] * np.sqrt((std1/mean1)**2 + (std2/mean2)**2)
-        margins[i] = (stds[i] / np.sqrt(len(column_comparisons[0])-ddof)) * t_critical
-        zscore[i] = (fcs[i]-1)/(stds[i]/np.sqrt(len(column_comparisons[0])-ddof))
+        margins[i] = (stds[i] / np.sqrt(len(column_comparisons[0]))) * t_critical
 
     #perform a paired t-test to determine if the fold change is significantly different from 1
     t_stats = np.zeros(len(classes))
     p_vals = np.zeros(len(classes))
-    p_vals_means = np.zeros(len(classes))
-    print(zscore)
 
     for i in range(len(classes)):
-        t_stats[i], p_vals_means[i] = stats.ttest_ind(class_areas1[i], class_areas2[i])
-        # print(fcslist[i])
-        # print(stats.ttest_1samp(fcslist[i], popmean=1))
-        # result = stats.ttest_1samp(fcslist[i], popmean=1)
-        # t_stats[i], p_vals[i] = result.statistic, result.pvalue
-        p_vals[i] = 2*(1 - stats.norm.cdf(abs(zscore[i])))
-    print(p_vals)
+        t_stats[i], p_vals[i] = stats.ttest_ind(class_areas1[i], class_areas2[i])
+
     #correct the p-values
     rejected,corrected_pvalues,_,_ = multipletests(p_vals, method='fdr_bh')
-    rejected_means, corrected_pvalues_means,_,_ = multipletests(p_vals_means, method='fdr_bh')
-    print(corrected_pvalues)
     for i in range(len(classes)):
         if corrected_pvalues[i] < 0.05:
-            print("Significant difference in " + classes[i] + " content between " + groups[0] + " and " + groups[1] + " (p = " + str(corrected_pvalues[i]) + ")", "p_means = " + str(corrected_pvalues_means[i]))
+            print("Significant difference in " + classes[i] + " content between " + groups[0] + " and " + groups[1] + " (p = " + str(corrected_pvalues[i]) + ")")
         else:
-            print("No significant difference in " + classes[i] + " content between " + groups[0] + " and " + groups[1] + " (p = " + str(corrected_pvalues[i]) + ")", "p_means = " + str(corrected_pvalues_means[i]))
+            print("No significant difference in " + classes[i] + " content between " + groups[0] + " and " + groups[1] + " (p = " + str(corrected_pvalues[i]) + ")")
 
 
     plt.title(str(groups[0]) + " vs " + str(groups[1]), fontsize=26)
@@ -432,8 +417,8 @@ def make_content_paired_barcharts(classes, df, group, column_comparisons, t_crit
     plt.ylabel('Summed Intensity %', fontsize=22)
     plt.tight_layout()
     plt.legend(handles=legend_handles, fontsize=14,  loc='upper right')
-    plt.savefig("Z:\\Group Share\\JGP\\CS MS1 Runs\\mzML\\letAB_paired_barcharg.pdf", dpi=300)
-    plt.savefig("Z:\\Group Share\\JGP\\CS MS1 Runs\\mzML\\letAB_paired_barcharg.png", dpi=300)
+    #plt.savefig("Z:\\Group Share\\JGP\\CS MS1 Runs\\mzML\\letAB_paired_barcharg.pdf", dpi=300)
+    #plt.savefig("Z:\\Group Share\\JGP\\CS MS1 Runs\\mzML\\letAB_paired_barcharg.png", dpi=300)
     plt.show()
 
 def perform_pca(classes, df, columns):
@@ -482,12 +467,9 @@ def perform_pca(classes, df, columns):
 # Set backend to Agg
 mpl.use('WxAgg')
 
-file_path = "Z:\\Group Share\\Annika\\CS Collab Data\\Collaborator Samples (CS)\\lipidomic_analysis_results.xlsx"
-df = pd.read_excel(file_path, sheet_name="Aggregated")
+#file_path = "Z:\\Group Share\\Synapt\\Collaborator Samples (CS)\\lipidomic_analysis_results.xlsx"
 
-file_path = r"Z:\Group Share\JGP\Christina_letAB_MlaC_pqiAB_data\Analysis_and_Other\normalized_abundances.xlsx"
-# file_path = r"C:\Users\mm96978\Downloads\NormalizedMS1_Quantification.xlsx"
-df = pd.read_excel(file_path)
+df = pd.read_excel("Z:\\Group Share\\JGP\\Christina_letAB_MlaC_pqiAB_data\\Analysis_and_Other\\normalized_abundances.xlsx")
 
 #need to compare samples 2 and 3 in each group.
 
@@ -509,32 +491,29 @@ pqiAB_membrane_columns = ["S9_R1", "S9_R2", "S9_R3", "S9_R4", "S9_R5", "S9_R6", 
 
 #make_content_barcharts(["CL", "PE", "PG"], df, "MlaC Protein", letAB_membrane_columns, 2.306, plot_std=True)
 
-t_crit = 2.306 # I think this is right for n=9, df=8, alpha=0.05, two-tailed
-# Calculate t_critical for n=8, df=7, alpha=0.05, two-tailed
-t_crit = stats.t.ppf(1-0.025, 7)
-print(t_crit)
-plot_std = False
+t_crit = 2.306
+plot_std = True
 
-# perform_pca(["CL", "PE", "PG"], df,
-#             ["S2_R1", "S2_R2", "S2_R3", "S2_R4", "S2_R5", "S2_R6", "S2_R7", "S2_R8",
-#              "S3_R1", "S3_R2", "S3_R3", "S3_R4", "S3_R5", "S3_R6", "S3_R7", "S3_R8", "S3_R9"])
+perform_pca(["CL", "PE", "PG"], df,
+            ["S2_R1", "S2_R2", "S2_R3", "S2_R4", "S2_R5", "S2_R6", "S2_R7", "S2_R8",
+             "S3_R1", "S3_R2", "S3_R3", "S3_R4", "S3_R5", "S3_R6", "S3_R7", "S3_R8", "S3_R9"])
 
 
 
 
-# make_content_barcharts(["CL", "PE", "PG"], df, "LetAB Membrane", letAB_membrane_columns, t_crit, plot_std=plot_std)
-# make_content_barcharts(["CL", "PE", "PG"], df, "MlaC Membrane", mlac_membrane_columns, t_crit, plot_std=plot_std)
-# make_content_barcharts(["CL", "PE", "PG"], df, "pqiAB Membrane", pqiAB_membrane_columns, t_crit, plot_std=plot_std)
-#
-# make_content_paired_barcharts(["CL", "PE", "PG"], df, "MlaC Protein", column_comparisons2, t_crit, plot_std=plot_std)
-#
-#
-# #Plot MlaC
-# # make_diff_barchart(["CL", "PE", "PG"], df, ["MlaC Protein","MlaC Membrane"],
-# #                    column_comparisons1, t_crit, plot_std=plot_std)
-#
-# make_fc_barchart(["CL", "PE", "PG"], df, ["MlaC Protein","MlaC Membrane"],
-#                  column_comparisons1, t_crit, plot_std=plot_std)
+make_content_barcharts(["CL", "PE", "PG"], df, "LetAB Membrane", letAB_membrane_columns, t_crit, plot_std=plot_std)
+make_content_barcharts(["CL", "PE", "PG"], df, "MlaC Membrane", mlac_membrane_columns, t_crit, plot_std=plot_std)
+make_content_barcharts(["CL", "PE", "PG"], df, "pqiAB Membrane", pqiAB_membrane_columns, t_crit, plot_std=plot_std)
+
+make_content_paired_barcharts(["CL", "PE", "PG"], df, "MlaC Protein", column_comparisons2, t_crit, plot_std=plot_std)
+
+
+#Plot MlaC
+# make_diff_barchart(["CL", "PE", "PG"], df, ["MlaC Protein","MlaC Membrane"],
+#                    column_comparisons1, t_crit, plot_std=plot_std)
+
+make_fc_barchart(["CL", "PE", "PG"], df, ["MlaC Protein","MlaC Membrane"],
+                 column_comparisons1, t_crit, plot_std=plot_std)
 
 #Plot LetAB
 # make_diff_barchart(["CL", "PE", "PG"], df, ["LetAB Protein","LetAB Membrane"],
@@ -543,7 +522,6 @@ plot_std = False
 make_fc_barchart(["CL", "PE", "PG"], df, ["LetAB Protein","LetAB Membrane"],
                  column_comparisons2, t_crit, plot_std=plot_std)
 
-exit()
 #plot pqiAB
 make_diff_barchart(["CL", "PE", "PG"], df, ["pqiAB Protein","pqiAB Membrane"],
                    column_comparisons3, t_crit, plot_std=plot_std)

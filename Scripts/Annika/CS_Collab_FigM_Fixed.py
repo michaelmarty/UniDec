@@ -1,5 +1,5 @@
 from scipy import stats
-from scipy.stats import t
+import scipy.stats
 import matplotlib as mpl
 from statsmodels.stats.multitest import multipletests
 import matplotlib.pyplot as plt
@@ -57,65 +57,51 @@ def make_fc_barchart(classes, df, groups, column_comparisons, alpha=0.05):
     fcs = np.zeros(len(classes))
     stds = np.zeros(len(classes))
     margins = np.zeros(len(classes))
-    n_classes = len(classes)
-    t_stats = np.zeros(n_classes)
-    p_vals = np.zeros(n_classes)
+    ddof = 2
 
     for i in range(len(classes)):
-        group1 = class_areas1[i]  # protein
-        group2 = class_areas2[i]  # membrane
+        mean1 = np.mean(class_areas1[i])
+        mean2 = np.mean(class_areas2[i])
+        std1 = np.std(class_areas1[i], ddof=ddof)
+        std2 = np.std(class_areas2[i], ddof=ddof)
 
-        # Levene test for equal variance
-        stat, p_var = stats.levene(group1, group2)
-        print(f"{classes[i]} Levene test: stat={stat:.4f}, p={p_var:.4f}")
+        fcs[i] = mean1 / mean2
+        stds[i] = fcs[i] * np.sqrt((std1 / mean1) ** 2 + (std2 / mean2) ** 2)
+        margins[i] = (stds[i] / np.sqrt(len(column_comparisons[0]) - ddof)) * z_critical
 
+    #z
 
-        # Get protein and membrane replicates
-        protein = np.array(class_areas1[i])
-        membrane = np.array(class_areas2[i])
+    # correct the p-values
 
-
-        fc_points = protein / membrane
-        fcs[i] = np.mean(fc_points)
-        stds[i] = np.std(fc_points, ddof=1)
-        df = len(fc_points) - 1
-        alpha = 0.05
-        t_critical = stats.t.ppf(1 - alpha / 2, df)
-        margins[i] = (stds[i] / np.sqrt(len(fc_points))) * t_critical
+    rejected, corrected_pvalues, _, _ = multipletests(p_vals, method='fdr_bh')
+    for i, lipid_class in enumerate(classes):
+        print(
+            f"{lipid_class}: raw p={p_vals[i]:.4f}, corrected p={corrected_pvalues[i]:.4f}, significant={rejected[i]}")
+    for i in range(len(classes)):
+        if corrected_pvalues[i] < 0.05:
+            print(
+                f"Significant difference in {classes[i]} content between {groups[0]} and {groups[1]} (p = {corrected_pvalues[i]:.4f})")
+        else:
+            print(
+                f"No significant difference in {classes[i]} content between {groups[0]} and {groups[1]} (p = {corrected_pvalues[i]:.4f})")
 
     sig_labels = []
-
-    for i in range(len(classes)):
-        protein = np.array(class_areas1[i])
-        membrane = np.array(class_areas2[i])
-        fc_points = protein / membrane  # recalc for this specific class
-
-        t_stat, p_val = stats.ttest_1samp(fc_points, popmean=1)
-
-        t_stats[i] = t_stat
-        p_vals[i] = p_val
-
-        # assign significance
-        if p_val < 0.001:
+    for p in corrected_pvalues:
+        if p < 0.001:
             sig_labels.append('***')
-        elif p_val < 0.01:
+        elif p < 0.01:
             sig_labels.append('**')
-        elif p_val < 0.05:
+        elif p < 0.05:
             sig_labels.append('*')
         else:
             sig_labels.append('ns')
 
-    # Correct p-values using Benjamini-Hochberg FDR
-    rejected, corrected_pvalues, _, _ = multipletests(p_vals, method='fdr_bh')
-
-    # Print results
+    # ---- Print results ----
+    print("\nZ-test results with Benjamini–Hochberg correction:")
+    print("--------------------------------------------------")
     for i in range(len(classes)):
-        if corrected_pvalues[i] < 0.05:
-            print(
-                f"Significant difference in {classes[i]} content between {groups[0]} and {groups[1]} (corrected p = {corrected_pvalues[i]:.3e})")
-        else:
-            print(
-                f"No significant difference in {classes[i]} content between {groups[0]} and {groups[1]} (corrected p = {corrected_pvalues[i]:.3e})")
+        print(
+            f"{classes[i]}: Z = {zscores[i]:.2f}, raw p = {p_vals[i]:.4g}, BH p = {corrected_pvals[i]:.4g}, FC = {fcs[i]:.3f}")
 
     plt.figure(figsize=(5, 5))
 
@@ -191,35 +177,35 @@ def make_fc_barchart(classes, df, groups, column_comparisons, alpha=0.05):
       #      sig_labels.append('ns')
 
     # add the stars/ns above bars
-    for i in range(len(sig_labels)):
+    #for i in range(len(sig_labels)):
         # replicate points
-        g1 = np.array(class_areas1[i])
-        g2 = np.array(class_areas2[i])
+    #    g1 = np.array(class_areas1[i])
+      #  g2 = np.array(class_areas2[i])
 
         # compute the fold change points plotted
-        fc_points1 = g1 / np.mean(class_areas2[i])
-        fc_points2 = g2 / np.mean(class_areas2[i])
+     #   fc_points1 = g1 / np.mean(class_areas2[i])
+     #   fc_points2 = g2 / np.mean(class_areas2[i])
 
-        all_points = np.concatenate([fc_points1, fc_points2])
+      #  all_points = np.concatenate([fc_points1, fc_points2])
 
         # top of error bar
-        top_error = fcs[i] + margins[i]
+     #  top_error = fcs[i] + margins[i]
 
         # highest point between replicates and error bar
-        max_y = max(np.max(all_points), top_error)
+      #  max_y = max(np.max(all_points), top_error)
 
         # add a small offset
-        y = max_y + 0.05  # tweak as needed
-        plt.text(
-            x[i], y, sig_labels[i],
-            ha='center', va='bottom',
-            fontsize=20,  # bigger stars
-            fontname='Arial'
-            )
+   #     y = max_y + 0.05  # tweak as needed
+    #    plt.text(
+       #     x[i], y, sig_labels[i],
+           # ha='center', va='bottom',
+          #  fontsize=20,  # bigger stars
+           # fontname='Arial'
+        #    )
     plt.tight_layout()
     plt.show()
 
-
+z_critical = scipy.stats.norm.ppf(1 - .01 / 2)
 
 # Set backend to Agg
 mpl.use('WxAgg')
@@ -233,10 +219,9 @@ df = pd.read_excel("Z:\\Group Share\\JGP\\Christina_letAB_MlaC_pqiAB_data\\Analy
 column_comparisons2 = [("S5_R1", "S5_R2", "S5_R3", "S5_R4", "S5_R5", "S5_R6", "S5_R7", "S5_R8", "S5_R9"),
                        ("S6_R1", "S6_R2", "S6_R3", "S6_R4", "S6_R5", "S6_R6", "S6_R7", "S6_R8", "S6_R9")]
 
-t_crit = 2.306
-t_crit = stats.t.ppf(1-0.025, 7)
+#t_critical = stats.t.ppf(1-0.025, 16)
 
 
 make_fc_barchart(["CL", "PE", "PG"], df, ["LetAB Protein","LetAB Membrane"],
-                 column_comparisons2, t_crit)
+                 column_comparisons2, z_critical)
 
