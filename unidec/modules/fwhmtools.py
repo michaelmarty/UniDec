@@ -422,20 +422,20 @@ if __name__ == "__main__":
     eng.config.psfun = 2
 
 
-    eng.config.variablepeakwidth = 0
+    eng.config.variablepw = 0
     ts1 = time.perf_counter()
     run_unidec_core(eng)
 
     te1 = time.perf_counter()
     m1 = deepcopy(eng.data.massdat)
 
-    eng.config.variablepeakwidth = 1
+    eng.config.variablepw = 1
     ts2 = time.perf_counter()
     run_unidec_core(eng)
     print("Time1:", te1 - ts1)
     print("Time2:", time.perf_counter()-ts2)
     m2 = deepcopy(eng.data.massdat)
-    exit()
+
     plt.subplot(121)
     plt.plot(data[:, 0], data[:, 1], 'k')
     plt.subplot(122)
