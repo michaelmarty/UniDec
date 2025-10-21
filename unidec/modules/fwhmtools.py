@@ -409,17 +409,21 @@ if __name__ == "__main__":
 
     peaks, fwhms, procdata, flist = variable_pw(data)
 
+    # Max fwhm
+    print("Max FWHM:", np.amax(flist))
+
     print(len(peaks), "Peaks Found")
     print(len(fwhms), "FWHMs Calculated")
 
     eng = UniDec()
-    eng.pass_data_in(data)
+    eng.pass_data_in(procdata)
     # flist = flist * 0 + 10
     eng.data.fwhmlist = flist
     eng.config.psig = 1
     eng.config.beta = 0
     eng.config.mzsig = 16
     eng.config.psfun = 2
+    eng.config.minratio = 0
 
 
     eng.config.variablepw = 0
@@ -430,6 +434,7 @@ if __name__ == "__main__":
     m1 = deepcopy(eng.data.massdat)
 
     eng.config.variablepw = 1
+    # eng.config.minratio = 0.1
     ts2 = time.perf_counter()
     run_unidec_core(eng)
     print("Time1:", te1 - ts1)
@@ -437,7 +442,7 @@ if __name__ == "__main__":
     m2 = deepcopy(eng.data.massdat)
 
     plt.subplot(121)
-    plt.plot(data[:, 0], data[:, 1], 'k')
+    plt.plot(procdata[:, 0], procdata[:, 1], 'k')
     plt.subplot(122)
     plt.plot(m1[:,0], m1[:,1], 'k')
     plt.plot(m2[:,0], m2[:,1], 'g')

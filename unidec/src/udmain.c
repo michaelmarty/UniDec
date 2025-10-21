@@ -244,12 +244,19 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	decon.conv = 0;
 	int off = 0;
 
+	// if (config.minratio > 0 && config.variablepw > 0){
+	// 	check_ratios(config, inp, barr, numclose, closeind, decon.blur);
+	// }
 
 	if (silent == 0) { printf("Iterating..."); }
 
 	for (int iterations = 0; iterations < abs(config.numit); iterations++)
 	{
 		decon.iterations = iterations;
+		// if (config.minratio > 0){
+		// 	adjust_ratios(config, barr, numclose, closeind, decon.blur);
+		// }
+
 		if (config.beta > 0 && iterations > 0)
 		{
 			softargmax(decon.blur, config.lengthmz, config.numz, config.beta/betafactor);

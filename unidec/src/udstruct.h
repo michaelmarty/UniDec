@@ -182,6 +182,7 @@ struct Config {
     int silent;
     int cdmsflag;
     int variablepw;
+    float minratio;
 };
 
 UDSTRUCT_EXPORTS Input SetupInputs();
