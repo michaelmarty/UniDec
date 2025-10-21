@@ -418,7 +418,7 @@ if __name__ == "__main__":
     eng.data.fwhmlist = flist
     eng.config.psig = 1
     eng.config.beta = 0
-    eng.config.mzsig = 10
+    eng.config.mzsig = 16
     eng.config.psfun = 2
 
 

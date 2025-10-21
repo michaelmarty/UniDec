@@ -59,8 +59,6 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 
 	SetUpPeakShape(config, inp, &decon, 0, 1);
 
-	printf("Variable Peak Width = %d\n", config.variablepw);
-
 	//....................................................
 	//
 	//    Setting up the neighborhood blur

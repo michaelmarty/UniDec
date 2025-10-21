@@ -803,10 +803,10 @@ void MakePeakShape2D(const Config config, Decon *decon, const Input *inp, const 
         mzsig *= config.peakshapeinflate;
     }
     int maxlength = decon->maxlength;
-    printf("maxlength = %d\n", maxlength);
+
     #pragma omp parallel for
     for (int i = 0; i < config.lengthmz; i++) {
-        if (config.csig > 0) {
+        if (config.variablepw == 1) {
             mzsig = inp->fwhmlist[i];
             // printf("Using Variable Peak Width %f\n", mzsig);
         }
@@ -845,7 +845,15 @@ void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, co
 int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *endtab) {
     int maxlength = 1;
     for (int i = 0; i < config.lengthmz; i++) {
-        float point = inp->dataMZ[i] - config.psmzthresh;
+        float window;
+        if (config.variablepw == 0) {
+            window = config.psmzthresh;
+        }
+        else {
+            window = inp->fwhmlist[i] * config.psthresh * config.peakshapeinflate;
+        }
+        float point = inp->dataMZ[i] - window;
+
         int start, end;
         if (point < inp->dataMZ[0] && config.speedyflag == 0) {
             //start = (int)((point - inp->dataMZ[0]) / (inp->dataMZ[1] - inp->dataMZ[0]));
@@ -855,7 +863,7 @@ int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *end
         }
         starttab[i] = start;
 
-        point = inp->dataMZ[i] + config.psmzthresh;
+        point = inp->dataMZ[i] + window;
         if (point > inp->dataMZ[config.lengthmz - 1] && config.speedyflag == 0) {
             //end = config.lengthmz - 1 + (int)((point - inp->dataMZ[config.lengthmz - 1]) / (inp->dataMZ[config.lengthmz - 1] - inp->dataMZ[config.lengthmz - 2]));
             end = config.lengthmz - 1 + nearfast(inp->dataMZ, 2 * inp->dataMZ[0] - point, config.lengthmz);
