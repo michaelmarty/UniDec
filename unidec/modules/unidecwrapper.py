@@ -342,6 +342,7 @@ class Config(ctypes.Structure):
         ("silent", ctypes.c_int),
         ("cdmsflag", ctypes.c_int),
         ("variablepw", ctypes.c_int),
+        ("minratio", ctypes.c_float),
     ]
 
 

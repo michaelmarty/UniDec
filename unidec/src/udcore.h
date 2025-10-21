@@ -16,6 +16,13 @@
 #include "udio.h"
 
 
+void check_ratios(const Config config, const Input inp, char * barr, const int numclose,
+              const int *__restrict closeind,
+              const float *__restrict blur);
+
+void adjust_ratios(const Config config, char * barr, const int numclose,
+              const int * closeind, float * blur);
+
 void blur_it(const int lengthmz,
              const int numz,
              const int numclose,

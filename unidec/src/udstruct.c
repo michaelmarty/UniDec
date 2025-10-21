@@ -167,6 +167,7 @@ void SetDefaultConfig(Config *config) {
     config->silent = 0;
     config->cdmsflag = 0;
     config->variablepw = 0;
+    config->minratio = 0.0f;
 }
 
 void PostImport(Config *config) {

@@ -11,6 +11,75 @@
 //
 //............
 
+void check_ratios(const Config config, const Input inp, char * barr, const int numclose,
+              const int *__restrict closeind,
+              const float *__restrict blur) {
+    const int lengthmz = config.lengthmz;
+    const int numz = config.numz;
+    const float minratio = config.minratio;
+    if (minratio <= 0) { return; }
+
+    #pragma omp parallel for schedule(auto)
+    for (int i = 0; i < lengthmz * numz; i++) {
+        if (barr[i] == 1) {
+            int goodsigfound=0;
+            const float mzsig = inp.fwhmlist[i%lengthmz];
+            const float siglb = mzsig * minratio;
+            const float sigub = mzsig / minratio;
+            for (int k = 0; k < numclose; k++) {
+                const int newindex = closeind[index2D(numclose, i, k)];
+                if (newindex != -1 && newindex != i) {
+                    const float tempsig = inp.fwhmlist[newindex % lengthmz];
+                    if (tempsig >= siglb && tempsig <= sigub) {
+                        goodsigfound = 1;
+                        break;
+                    }
+                }
+            }
+            if (goodsigfound == 0) {
+                barr[i] = 0;
+            }
+        }
+    }
+}
+
+void adjust_ratios(const Config config, char * barr, const int numclose,
+              const int * closeind,
+              float * blur) {
+    const int lengthmz = config.lengthmz;
+    const int numz = config.numz;
+    const float minratio = config.minratio;
+    if (minratio <= 0) { return; }
+
+    #pragma omp parallel for schedule(auto)
+    for (int i = 0; i < lengthmz * numz; i++) {
+        if (barr[i] == 1) {
+            const float peak = blur[i];
+            const float lowerbound = peak * minratio;
+            const float upperbound = peak / minratio;
+            int goodfound = 0;
+            if (peak == 0) {
+                barr[i] = 0;
+                continue;
+            }
+            for (int k = 0; k < numclose; k++) {
+                const int newindex = closeind[index2D(numclose, i, k)];
+                if (newindex != -1 && newindex != i) {
+                    const float temp = blur[closeind[index2D(numclose, i, k)]];
+                    if (temp >= lowerbound && temp <= upperbound) {
+                        goodfound = 1;
+                        break;
+                    }
+                }
+            }
+            if (goodfound == 0) {
+                blur[i] *= minratio;
+            }
+        }
+    }
+}
+
+
 //Convolution of neighborhood function with gaussian filter.
 void blur_it(const int lengthmz,
              const int numz,
@@ -810,6 +879,12 @@ void MakePeakShape2D(const Config config, Decon *decon, const Input *inp, const 
             mzsig = inp->fwhmlist[i];
             // printf("Using Variable Peak Width %f\n", mzsig);
         }
+        else if (config.variablepw == 2) {
+            mzsig = inp->fwhmlist[i];
+            if (mzsig > config.mzsig) {
+                mzsig = config.mzsig;
+            }
+        }
 
         int start = decon->starttab[i];
         int end = decon->endtab[i];
@@ -848,6 +923,15 @@ int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *end
         float window;
         if (config.variablepw == 0) {
             window = config.psmzthresh;
+        }
+        else if (config.variablepw ==2) {
+            float localmzsig =  inp->fwhmlist[i];
+            if (localmzsig > config.psmzthresh) {
+                window = config.psmzthresh;
+            }
+            else {
+                window = localmzsig * config.psthresh * config.peakshapeinflate;
+            }
         }
         else {
             window = inp->fwhmlist[i] * config.psthresh * config.peakshapeinflate;
