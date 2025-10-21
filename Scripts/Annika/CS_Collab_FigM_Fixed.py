@@ -1,4 +1,5 @@
 from scipy import stats
+from scipy.stats import t
 import matplotlib as mpl
 from statsmodels.stats.multitest import multipletests
 import matplotlib.pyplot as plt
@@ -8,7 +9,7 @@ import numpy as np
 from Scripts.LipiDec.AddFeaturestoDF import *
 
 
-def make_fc_barchart(classes, df, groups, column_comparisons, t_critical):
+def make_fc_barchart(classes, df, groups, column_comparisons, alpha=0.05):
     '''
     Makes a bar chart of the difference in lipid class composition between each comparison group.
     :param names: Names of the lipids
@@ -56,23 +57,53 @@ def make_fc_barchart(classes, df, groups, column_comparisons, t_critical):
     fcs = np.zeros(len(classes))
     stds = np.zeros(len(classes))
     margins = np.zeros(len(classes))
+    n_classes = len(classes)
+    t_stats = np.zeros(n_classes)
+    p_vals = np.zeros(n_classes)
 
     for i in range(len(classes)):
-        mean1 = np.mean(class_areas1[i])
-        mean2 = np.mean(class_areas2[i])
-        std1 = np.std(class_areas1[i], ddof=1)
-        std2 = np.std(class_areas2[i], ddof=1)
+        group1 = class_areas1[i]  # protein
+        group2 = class_areas2[i]  # membrane
 
-        fcs[i] = mean1 / mean2
-        stds[i] = fcs[i] * np.sqrt((std1 / mean1) ** 2 + (std2 / mean2) ** 2)
-        margins[i] = (stds[i] / np.sqrt(len(column_comparisons[0]))) * t_critical # CHECK N
+        # Levene test for equal variance
+        stat, p_var = stats.levene(group1, group2)
+        print(f"{classes[i]} Levene test: stat={stat:.4f}, p={p_var:.4f}")
 
-    # Two-tailed unpaired t-test (independent samples)
-    p_vals = np.zeros(len(classes))
+
+        # Get protein and membrane replicates
+        protein = np.array(class_areas1[i])
+        membrane = np.array(class_areas2[i])
+
+
+        fc_points = protein / membrane
+        fcs[i] = np.mean(fc_points)
+        stds[i] = np.std(fc_points, ddof=1)
+        df = len(fc_points) - 1
+        alpha = 0.05
+        t_critical = stats.t.ppf(1 - alpha / 2, df)
+        margins[i] = (stds[i] / np.sqrt(len(fc_points))) * t_critical
+
+    sig_labels = []
 
     for i in range(len(classes)):
-        t_result = stats.ttest_ind(class_areas1[i], class_areas2[i], equal_var=True) # TEST THIS
-        p_vals[i] = t_result.pvalue
+        protein = np.array(class_areas1[i])
+        membrane = np.array(class_areas2[i])
+        fc_points = protein / membrane  # recalc for this specific class
+
+        t_stat, p_val = stats.ttest_1samp(fc_points, popmean=1)
+
+        t_stats[i] = t_stat
+        p_vals[i] = p_val
+
+        # assign significance
+        if p_val < 0.001:
+            sig_labels.append('***')
+        elif p_val < 0.01:
+            sig_labels.append('**')
+        elif p_val < 0.05:
+            sig_labels.append('*')
+        else:
+            sig_labels.append('ns')
 
     # Correct p-values using Benjamini-Hochberg FDR
     rejected, corrected_pvalues, _, _ = multipletests(p_vals, method='fdr_bh')
@@ -144,22 +175,20 @@ def make_fc_barchart(classes, df, groups, column_comparisons, t_critical):
     plt.xlim(-0.3, len(classes) - 1 + 0.3)
     plt.title(f"{groups[0]} vs {groups[1]}", fontsize=16)
 
-    # fcs and margins already calculated above
-    sig_labels = []
 
     # calculate p-values and assign symbols
-    for i in range(len(classes)):
-        g1 = class_areas1[i]
-        g2 = class_areas2[i]
-        t, p = ttest_ind(g1, g2, equal_var=False)
-        if p < 0.001:
-            sig_labels.append('***')
-        elif p < 0.01:
-            sig_labels.append('**')
-        elif p < 0.05:
-            sig_labels.append('*')
-        else:
-            sig_labels.append('ns')
+    #for i in range(len(classes)):
+        #g1 = class_areas1[i]
+       # g2 = class_areas2[i]
+       # t, p = ttest_ind(g1, g2, equal_var=False)
+       # if p < 0.001:
+       #     sig_labels.append('***')
+       # elif p < 0.01:
+      #      sig_labels.append('**')
+       # elif p < 0.05:
+      #      sig_labels.append('*')
+     #   else:
+      #      sig_labels.append('ns')
 
     # add the stars/ns above bars
     for i in range(len(sig_labels)):
@@ -206,6 +235,7 @@ column_comparisons2 = [("S5_R1", "S5_R2", "S5_R3", "S5_R4", "S5_R5", "S5_R6", "S
 
 t_crit = 2.306
 t_crit = stats.t.ppf(1-0.025, 7)
+
 
 make_fc_barchart(["CL", "PE", "PG"], df, ["LetAB Protein","LetAB Membrane"],
                  column_comparisons2, t_crit)
