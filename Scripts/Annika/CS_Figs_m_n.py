@@ -61,7 +61,11 @@ def make_fc_barchart(classes, df, groups, column_comparisons):
     fcs = np.zeros(len(classes))
     stds = np.zeros(len(classes))
     margins = np.zeros(len(classes))
+    zscore = np.zeros(len(classes))
+    df = 16
+    t_critical = stats.t.ppf(1 - 0.025, df)
 
+    p_vals = np.zeros(len(classes))
     for i in range(len(classes)):
         mean1 = np.mean(class_areas1[i])
         mean2 = np.mean(class_areas2[i])
@@ -70,33 +74,10 @@ def make_fc_barchart(classes, df, groups, column_comparisons):
 
         fcs[i] = mean1 / mean2
         stds[i] = fcs[i] * np.sqrt((std1/mean1)**2 + (std2/mean2)**2)
-        margins[i] = (stds[i] / np.sqrt(len(column_comparisons[0]))) * 1.96
-
-    # perform a z-test vs 1 (unpaired, two-tailed)
-    zscores = np.zeros(len(classes))
-    p_vals = np.zeros(len(classes))
-
-    for i in range(len(classes)):
-        g1 = np.array(class_areas1[i])
-        g2 = np.array(class_areas2[i])
-        mean2 = np.mean(g2)
-        if mean2 == 0:
-            zscores[i] = 0
-            p_vals[i] = 1
-            continue
-
-        fc_points = g1 / mean2  # fold change vs 1
-        mean_fc = np.mean(fc_points)
-        std_fc = np.std(fc_points, ddof=1)
-        n = len(fc_points)
-        se = std_fc / np.sqrt(n)
-
-        if se == 0:
-            zscores[i] = 0
-            p_vals[i] = 1
-        else:
-            zscores[i] = (mean_fc - 1) / se
-            p_vals[i] = 2 * (1 - stats.norm.cdf(abs(zscores[i])))
+        #margins[i] = (stds[i] / np.sqrt(len(column_comparisons[0]) - ddof)) * t_critical
+        margins[i] = stds[i]* t_critical
+        zscore[i] = (fcs[i] - 1) / (stds[i] / np.sqrt(len(column_comparisons[0])))
+        p_vals[i] = 2*(1-stats.norm.cdf(abs(zscore[i])))
 
     #correct the p-values
     rejected,corrected_pvalues,_,_ = multipletests(p_vals, method='fdr_bh')
