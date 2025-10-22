@@ -62,23 +62,33 @@ def make_fc_barchart(classes, df, groups, column_comparisons):
     stds = np.zeros(len(classes))
     margins = np.zeros(len(classes))
     zscore = np.zeros(len(classes))
-    df = 16
-    t_critical = stats.t.ppf(1 - 0.025, df)
+    # df = 7
+    # t_critical = stats.t.ppf(1 - 0.025, df)
+    confidence_level = 0.95
+    z_critical = stats.norm.ppf(1 - (1 - confidence_level) / 2)
+    # print(t_critical)
 
     p_vals = np.zeros(len(classes))
     for i in range(len(classes)):
+        n = len(column_comparisons[0])
         mean1 = np.mean(class_areas1[i])
         mean2 = np.mean(class_areas2[i])
-        std1 = np.std(class_areas1[i])
-        std2 = np.std(class_areas2[i])
+        std1 = np.std(class_areas1[i], ddof=1) / np.sqrt(n)
+        std2 = np.std(class_areas2[i], ddof=1) / np.sqrt(n)
 
         fcs[i] = mean1 / mean2
         stds[i] = fcs[i] * np.sqrt((std1/mean1)**2 + (std2/mean2)**2)
-        #margins[i] = (stds[i] / np.sqrt(len(column_comparisons[0]) - ddof)) * t_critical
-        margins[i] = stds[i]* t_critical
-        zscore[i] = (fcs[i] - 1) / (stds[i] / np.sqrt(len(column_comparisons[0])))
-        p_vals[i] = 2*(1-stats.norm.cdf(abs(zscore[i])))
 
+        # margins[i] = (stds[i] / np.sqrt(n)) * t_critical
+        #margins[i] = stds[i] * t_critical
+        margins[i] = stds[i] * z_critical
+        zscore[i] = (fcs[i] - 1.00) / stds[i]
+        p_vals[i] = 2.0*(1.0-stats.norm.cdf(abs(zscore[i])))
+        if p_vals[i] == 0:
+            zs = zscore[i]
+            print(zs)
+            print(2* stats.norm.cdf(zs))
+    print(p_vals)
     #correct the p-values
     rejected,corrected_pvalues,_,_ = multipletests(p_vals, method='fdr_bh')
     for i in range(len(classes)):

@@ -68,7 +68,7 @@ def make_content_paired_barcharts(classes, df, column_comparisons):
 
         print(f"{classes[i]}: p = {p_vals[i]:.3e}")
 
-
+    # NEEDS BH
     bar_width = 0.15
     spacing = 0.02
     class_spacing = 0.5
