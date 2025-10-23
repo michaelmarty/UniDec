@@ -66,9 +66,24 @@ def make_content_paired_barcharts(classes, df, column_comparisons):
         group2_margins[i] = (group2_stds[i] / np.sqrt(len(column_comparisons[1])))*t_critical
 
 
-        print(f"{classes[i]}: p = {p_vals[i]:.3e}")
+        #print(f"{classes[i]}: p = {p_vals[i]:.3e}")
 
-    # NEEDS BH
+
+        # Apply Benjamini-Hochberg correction
+        rejected, corrected_pvals, _, _ = multipletests(p_vals, method='fdr_bh')
+
+        # Print corrected p-values once
+
+    for i in range(len(classes)):
+        if rejected[i]:
+            print(
+                f"Significant difference in {classes[i]} content after BH correction (corrected p = {corrected_pvals[i]:.3e})")
+        else:
+            print(
+                f"No significant difference in {classes[i]} content after BH correction (corrected p = {corrected_pvals[i]:.3e})")
+
+
+    plt.figure(figsize=(6, 7))
     bar_width = 0.15
     spacing = 0.02
     class_spacing = 0.5
@@ -109,7 +124,7 @@ def make_content_paired_barcharts(classes, df, column_comparisons):
                 fc_points2,
                 facecolors='none',
                 edgecolors='black',
-                s=30,
+                s=35,
                 zorder=5
             )
 
@@ -119,9 +134,8 @@ def make_content_paired_barcharts(classes, df, column_comparisons):
         Patch(facecolor='white', edgecolor='black', hatch='\\', label='LetAB Membrane')  # striped bars
     ]
 
-    #plt.legend(handles=legend_handles, fontsize=14, loc='upper right')
 
-    # Plot significance lines and stars as before
+    # Plot significance lines and stars
     plt.plot([r1[0], r1[0], r2[0], r2[0]],
              [group1_means[0] + 6, group2_means[0] + 10, group2_means[0] + 10, group2_means[0] + 6],
              color='black', linestyle='-', linewidth=2)
@@ -150,6 +164,8 @@ def make_content_paired_barcharts(classes, df, column_comparisons):
 
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
+    plt.gca().spines['bottom'].set_linewidth(2)  # Set bottom spine thickness
+    plt.gca().spines['left'].set_linewidth(2)  # Set left spine thickness
     # plt.xticks([r + bar_width/2 for r in range(len(classes))], classes, fontsize=18)
     plt.xlabel('Lipid Class', fontsize=22)
     plt.ylim(0, 100)
@@ -157,8 +173,7 @@ def make_content_paired_barcharts(classes, df, column_comparisons):
     plt.ylabel('Summed Intensity %', fontsize=22)
     plt.tight_layout()
     plt.legend(handles=legend_handles, fontsize=14,  loc='upper right', bbox_to_anchor=(1.05, 1.05))
-    plt.savefig("Z:\\Group Share\\JGP\\CS MS1 Runs\\mzML\\letAB_paired_barcharg.pdf", dpi=300)
-    plt.savefig("Z:\\Group Share\\JGP\\CS MS1 Runs\\mzML\\letAB_paired_barcharg.png", dpi=300)
+    plt.tick_params(axis='both', width=2, length=10)  # Tick mark thickness
     plt.show()
 
 
