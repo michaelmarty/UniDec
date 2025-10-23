@@ -40,8 +40,8 @@ def local_softmax(deltas, templates, beta=1):
     exps = np.exp(beta * deltas)
     localsums = np.dot(templates.T, exps)
     sim_data = np.dot(templates.T, deltas)
-    plt.plot(deltas, label='Before Softmax', color='r', alpha=0.5)
-    plt.plot(sim_data*exps/localsums, label='After Softmax', color='b', alpha=0.5)
+    # plt.plot(deltas, label='Before Softmax', color='r', alpha=0.5)
+    # plt.plot(sim_data*exps/localsums, label='After Softmax', color='b', alpha=0.5)
     return sim_data * exps / localsums
 
 def richardson_lucy(data, minmax=[0.5, 3]):
@@ -57,11 +57,11 @@ def richardson_lucy(data, minmax=[0.5, 3]):
         # Adjust intensities of deltas
         sim_data = np.dot(templates.T, deltas)
         correction = data[:,1] / sim_data
+        correction = np.dot(templates.T, correction) / np.sum(templates, axis=0)
         deltas = deltas * correction # np.dot(templates.T, correction)
-        #deltas = deltas * np.dot(templates.T, correction)
 
         # Apply softmax to deltas to stabilize
-        deltas = local_softmax(deltas, templates, beta=10)
+        deltas = local_softmax(deltas, templates, beta=50)
 
         plt.plot(data[:, 0], deltas, label=f'Iteration {i + 1}', color=plt.cm.viridis(i / maxit), alpha=0.5)
 
@@ -87,7 +87,7 @@ def richardson_lucy(data, minmax=[0.5, 3]):
 
 np.random.seed(0)
 
-x = np.linspace(-10, 20, 100)
+x = np.linspace(-10, 20, 1000)
 deltax = x[1] - x[0]
 
 
