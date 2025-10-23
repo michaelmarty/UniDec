@@ -96,6 +96,8 @@ float deconvolve_iteration_speedy(const Config config, Decon *decon, const float
                                   float *baseline, const float *dataMZ);
 
 void softargmax(float *blur, const int lengthmz, const int numz, const float beta);
+void softmax_peakwidth(const Config config, const Decon decon, float *blur, const char * barr, const float beta);
+
 void point_smoothing(float *blur, const char *barr, const int lengthmz, const int numz, const int width);
 float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, const int numz,
                       const int maxlength, const float maxint,

@@ -1069,9 +1069,12 @@ class UniChromCDEng(HTEng, UniDecCD):
         # Loop over all charge states
         for i, zval in enumerate(z):
             # For each charge state, filter z values within the bounds
-            b1 = self.zarray >= zdown[i]
-            b2 = self.zarray <= zup[i]
-            bz = b1 & b2
+            if zdown[i] == zup[i]:
+                bz = np.round(self.zarray) == zdown[i]
+            else:
+                b1 = self.zarray >= zdown[i]
+                b2 = self.zarray <= zup[i]
+                bz = b1 & b2
 
             # Filter m/z values within the bounds of that charge state
             mzmin, mzmax = ud.get_swoop_mz_minmax(mz, i)
@@ -1084,7 +1087,7 @@ class UniChromCDEng(HTEng, UniDecCD):
             bsum += bmz * bz
         # Filter farray
         farray2 = self.farray[bsum.astype(bool)]
-
+        print(np.sum(farray2))
         # Create EIC
         eic = self.create_chrom(farray2, **kwargs)
         return eic
