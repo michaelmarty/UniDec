@@ -68,10 +68,6 @@ ax_zoom.set_xlim(zoom_min, zoom_max)
 ymin_zoom = min(np.min(data[:, 1][(data[:, 0] >= zoom_min) & (data[:, 0] <= zoom_max)]) for data in [np.loadtxt(file) for file in file_paths])
 ymax_zoom = max(np.max(data[:, 1][(data[:, 0] >= zoom_min) & (data[:, 0] <= zoom_max)]) for data in [np.loadtxt(file) for file in file_paths])
 
-# Ensure ymin is non-negative
-if ymin_zoom < 0:
-    ymin_zoom = 0.0
-
 # Set y-axis limits
 ax_zoom.set_ylim(ymin_zoom, max(60, ymax_zoom))
 

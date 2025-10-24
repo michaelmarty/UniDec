@@ -51,10 +51,6 @@ ax_raw.set_xlim(0, 122)
 ymin_raw = np.min(intensity_raw)
 ymax_raw = np.max(intensity_raw)
 
-# Ensure ymin is non-negative
-if ymin_raw < 0:
-    ymin_raw = 0.0
-
 # Set y-axis limits
 ax_raw.set_ylim(ymin_raw, 60)
 
