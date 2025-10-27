@@ -4,16 +4,16 @@ import os
 
 os.chdir(r"Z:\Group Share\Annika\Stellar\HEK")
 
-poslibfile = r"MSDIAL-TandemMassSpectralAtlas-VS69-Pos-C1.msp"
-neglibfile = r"MSDIAL-TandemMassSpectralAtlas-VS69-Neg-C1.msp"
+poslibfile = r"MSDIAL-TandemMassSpectralAtlas-VS69-Pos.msp"
+neglibfile = r"MSDIAL-TandemMassSpectralAtlas-VS69-Neg.msp"
 
 interpolationfunction = r"RTInterpolation.pkl"
 with open(interpolationfunction, 'rb') as f:
     p = pickle.load(f)
 
 # Rename outfile to replace C1 with Stellar 1
-posoutfile = poslibfile.replace("-C1", "-Stellar1")
-negoutfile = neglibfile.replace("-C1", "-Stellar1")
+posoutfile = poslibfile.replace("-Pos", "-Pos-Stellar2")
+negoutfile = neglibfile.replace("-Neg", "-Neg-Stellar2")
 
 # Read library file
 with open(poslibfile, 'r') as f:
