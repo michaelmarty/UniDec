@@ -8,7 +8,7 @@ from matplotlib.lines import Line2D
 # Set backend to Agg
 mpl.use('WxAgg')
 
-file = "Z:\\Group Share\\Estevan\\MSDIAL exported data\\Height_2_2024_12_13_12_31_23.csv"
+file = "Z:\\Group Share\\Annika\\Stellar\\EC\\Raw Data\\Rt_1_2025_09_22_11_28_09.csv"
 
 classes_to_ignore = ["RIKEN"]
 

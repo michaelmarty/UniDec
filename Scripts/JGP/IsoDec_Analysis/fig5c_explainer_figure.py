@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-from unidec.IsoDec.match import read_manual_annotations
+from unidec.IsoDec.compare_tools import read_manual_annotations
 import unidec.tools as ud
 import os
 from unidec.IsoDec.engine import *

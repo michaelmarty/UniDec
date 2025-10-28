@@ -50,6 +50,7 @@ struct Input {
     int *nztab;
     float *mtab;
     char *barr;
+    float *fwhmlist;
 };
 
 typedef struct Decon Decon;
@@ -79,6 +80,7 @@ struct Decon {
     int mlen;
     int plen;
     int scanindex;
+    int maxlength;
 };
 
 
@@ -176,14 +178,17 @@ struct Config {
     char kernel[500];
     hid_t file_id;
     char dataset[1024];
+    // Other
     int silent;
     int cdmsflag;
+    int variablepw;
+    float minratio;
 };
 
-Input SetupInputs();
-void FreeInputs(Input inp);
-Decon SetupDecon();
-void FreeDecon(Decon decon);
+UDSTRUCT_EXPORTS Input SetupInputs();
+UDSTRUCT_EXPORTS void FreeInputs(Input inp);
+UDSTRUCT_EXPORTS Decon SetupDecon();
+UDSTRUCT_EXPORTS void FreeDecon(Decon decon);
 UDSTRUCT_EXPORTS void SetDefaultConfig(Config *config);
 UDSTRUCT_EXPORTS void PostImport(Config *config);
 UDSTRUCT_EXPORTS Config LoadConfig(Config config, const char *filename);

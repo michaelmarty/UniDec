@@ -6,8 +6,6 @@ LC mode with adjacent scans
 
 Improvements to IsoDec workflow and training
 
-De-duplicate parameters
-
 
 Highest priority:
 
@@ -23,6 +21,8 @@ Profile-mode IsoDec
 Lower Priority:
 
 Importer testing for Sciex
+
+Fix Agilent Importer
 
 
 

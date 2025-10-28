@@ -228,13 +228,19 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.8.1.0
 
+Removed Isotope Mode from UniDec....Ongoing work here......
+
 Removed Agilent and Sciex importers. They were causing issues with admin privileges for people.
 I'm talking to Agilent and Sciex to see if I can get support for these in the future.
 
 Rewrote C source code to compile with CMake. Lots of little issues fixed along the way. Included prototype DLL 
 for unideclib.dll. 
 
+Basic code for building an R wrapper around unideclib.dll. Development welcome for any interested in contributing.
+
 New parameter management in background. Some parameter names have changed. 
+
+IsoDec now will combine mass peaks more smartly, looking for missed monoisotopics when combining multiple charge states.
 
 Added new text file export in 3 column format for var1, mass, and extract on UniChrom and MetaUniDec.
 Also, I modified the _extracts.txt file to include the var1 values in the top row with a 0 in the first column.

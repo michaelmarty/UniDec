@@ -999,7 +999,7 @@ class UniDecCD(engine.UniDec):
         startdims = np.shape(outarray)
         outdat = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(outarray)])
         np.savetxt(self.config.infname, outdat)
-        print("Saved Input File:", self.config.infname)
+        print("Saved Input File:", self.config.infname)#, outdat.shape, np.amax(outarray), np.sum(outarray))
 
         # Make the call
         ud.unidec_call(self.config)

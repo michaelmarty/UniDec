@@ -1,4 +1,4 @@
-from unidec.IsoDec.match import *
+from unidec.IsoDec.compare_tools import read_manual_annotations, compare_annotated, read_msalign_to_matchedcollection
 
 tof_msalign = "Z:\\Group Share\\JGP\\js8b05641_si_001\\FLASHDeconv_results\\tof_ecd_spectrum_ms1.msalign"
 uvpd_msalign = "Z:\\Group Share\\JGP\\js8b05641_si_001\\FLASHDeconv_results\\uvpd_spectrum_ms1.msalign"

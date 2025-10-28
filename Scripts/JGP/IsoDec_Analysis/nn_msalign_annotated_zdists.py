@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
-import numpy as np
 
 from Scripts.MTM.proteomicstools import searchTD
+from unidec.IsoDec.compare_tools import read_manual_annotations, compare_annotated, read_msalign_to_matchedcollection, \
+    compare_matchedcollections
 from unidec.IsoDec.engine import IsoDecEngine
 from unidec.IsoDec.match import *
 import bisect

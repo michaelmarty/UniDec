@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import os
 import numpy as np
 import pandas as pd
+
+import unidec.IsoDec.compare_tools
 import unidec.IsoDec.match as match
 from unidec.IsoDec.plots import cplot
 
@@ -22,7 +24,7 @@ intensity = data[:, 1]
 # df = pd.read_csv("shared_peaks.tsv", sep="\t")
 df = pd.read_csv("unmatched_decon.tsv", sep="\t")
 
-mc = match.df_to_matchedcollection(df, ion=None, checkmultiplemonoisos=True)
+mc = unidec.IsoDec.compare_tools.df_to_matchedcollection(df, ion=None, checkmultiplemonoisos=True)
 
 # for pk in mc.peaks:
 #     if pk.mz > 0:

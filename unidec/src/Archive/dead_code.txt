@@ -973,7 +973,7 @@ void point_smoothing_peak_width(const int lengthmz, const int numz, const int ma
 		if (config.speedyflag == 0)
 		{
 			if (verbose == 1) { printf("Making Peak Shape 2D\n"); }
-			MakePeakShape2D(config.lengthmz, maxlength, starttab, endtab, inp.dataMZ, fabs(config.mzsig) * config.peakshapeinflate, config.psfun, config.speedyflag, mzdist, rmzdist, makereverse);
+			MakePeakShape2D(config.lengthmz, maxlength, starttab, endtab, inp, fabs(config.mzsig) * config.peakshapeinflate, config.psfun, config.speedyflag, mzdist, rmzdist, makereverse);
 		}
 		else
 		{

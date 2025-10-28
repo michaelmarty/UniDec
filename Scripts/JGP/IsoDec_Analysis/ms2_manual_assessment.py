@@ -1,10 +1,6 @@
-import os
-import matplotlib as mpl
-
 from Scripts.MTM.proteomicstools import searchTD
-from unidec.IsoDec.engine import IsoDecEngine
+from unidec.IsoDec.compare_tools import compare_matchedcollections, read_msalign_to_matchedcollection_fast
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
-from unidec.IsoDec.match import *
 from unidec.IsoDec.plots import *
 from unidec.IsoDec.datatools import *
 

@@ -207,6 +207,8 @@ class UniDecConfig(object):
         self.endz = 50
         self.numz = 50
         self.mzsig = 0.85
+        self.variablepw = 0
+        self.minratio = 0.0
         self.automzsig = 0
         self.psfun = 0
         self.psfunz = 0
@@ -293,7 +295,7 @@ class UniDecConfig(object):
         self.HToutputlb = -1
 
         self.demultiplexmode = "HT"
-        self.demultiplexchoices = ["HT", "mHT", "FT", "aFT"]
+        self.demultiplexchoices = ["HT", "mHT", "FT", "aFT", "PP"]
         self.FTstart = 5
         self.FTend = 1000
         self.FTflatten = True
@@ -436,7 +438,9 @@ class UniDecConfig(object):
             "tcal2": (self.tcal2, float),
             "tcal3": (self.tcal3, float),
             "tcal4": (self.tcal4, float),
-            "edc": (self.edc, float)
+            "edc": (self.edc, float),
+            "variablepw": (self.variablepw, int),
+            "minratio": (self.minratio, float),
         }
         return self.namedict
 
@@ -834,7 +838,7 @@ class UniDecConfig(object):
                         if line.startswith("CDScanCompress"):
                             self.CDScanCompress = ud.string_to_value(line.split()[1])
                         if line.startswith("HTmaxscans"):
-                            self.HTmaxscans = ud.string_to_value(line.split()[1])
+                            self.HTmaxscans = ud.string_to_int(line.split()[1])
                         if line.startswith("HToutlb"):
                             self.HToutputlb = ud.string_to_value(line.split()[1])
                         if line.startswith("HToutub"):
@@ -1934,6 +1938,7 @@ class DataContainer:
         self.massccs = np.array([])  # Mass vs CCS table
         self.ccsz = np.array([])  # CCS vs charge table
         self.ccsdata = np.array([])  # CCS data in 1D
+        self.fwhmlist = np.array([])  # FWHM list for peaks
         self.tscore = 0
 
     def write_hdf5(self, file_name):

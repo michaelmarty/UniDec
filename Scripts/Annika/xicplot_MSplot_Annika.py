@@ -1,62 +1,48 @@
 import os
-
-import numpy as np
-import unidec.tools as ud
-
-import unidec.modules.waters_importer.WatersImporter as WDI
+import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
+import numpy as np
 
-directory = "Z:\Group Share\Annika\APCI Data\Data for Figures"
+# Set directory where files live
+data_dir = "Z:\\Group Share\\Annika\\Stellar"
 
-os.chdir(directory)
+chrom_file = os.path.join(data_dir, "CHROMATOGRAM747.txt")
+spectrum_file = os.path.join(data_dir, "MS747.txt")
 
-file1 = "brainextract.txt"
+# === Read data ===
+chrom = pd.read_csv(chrom_file, delim_whitespace=True, header=None, names=["time", "intensity"])
+spec = pd.read_csv(spectrum_file, delim_whitespace=True, header=None, names=["mz", "intensity"])
 
-data1 = np.loadtxt(file1)
+# === Smooth MS intensity to reduce tiny noise spikes ===
+mz = spec["mz"].values
+intensity = spec["intensity"].values
+window = 3  # simple moving average
+intensity_smooth = np.convolve(intensity, np.ones(window)/window, mode='same')
 
-i1 = ud.integrate(data1, 7.0, 8.0)[0]
+# === Pick peaks using prominence instead of just height ===
+peaks, _ = find_peaks(intensity_smooth, prominence=intensity_smooth.max()*0.01)
+mz_centroid = mz[peaks]
+intensity_centroid = intensity[peaks]
 
-cholmass = 369.3085
-mrange = 0.05
-range2 = 1
-trange = 0.05
+# === Plot ===
+fig, axes = plt.subplots(2, 1, figsize=(9, 10), sharex=False)  # taller, less wide
 
-path = "Z:\\Group Share\\Annika\\APCI Data\\Brain Extract\\20230620_APCI_BrainPolarExt_brainmethod_10uLinj.raw"
-
-importer = WDI.WatersDataImporter(path)
-
-importer = WDI.WatersDataImporter(path)
-
-xic = importer.get_eic(cholmass, mrange)
-
-fit = ud.auto_peak_width(xic, singlepeak=True)
-print(fit)
-
-maxtime = xic[np.argmax(xic[:,1]),0]
-print(maxtime)
-
-d1 = WDI.WatersDataImporter(path).get_data(time_range=(maxtime - trange, maxtime + trange))
-d = ud.datachop(d1, cholmass-range2, cholmass + range2)
+# Chromatogram (top)
+axes[0].plot(chrom["time"], chrom["intensity"], color="blue", linewidth=2)
 
 
-#plt.plot(d[:, 0], d[:, 1])
-#plt.show()
+plt.xlim(150, 750)
+axes[0].set_ylim(bottom=0)
+axes[0].set_xlim(left=0)
 
-plt.subplot(211)
-plt.plot(d[:,0], d[:,1], color="k")
-plt.xlabel("m/z")
-plt.ylabel("Intensity")
+# Spectrum (bottom) - centroided peaks
+axes[1].stem(mz_centroid, intensity_centroid, linefmt='b-', markerfmt=' ', basefmt='k-')
 
 
-plt.subplot(212)
-plt.plot(xic[:,0], xic[:,1], label="Cholesterol", color="red")
-plt.legend()
-plt.xlim(7,8)
-plt.xlabel("Retention Time (min)")
-plt.ylabel("Intensity")
+
+axes[1].set_ylim(bottom=0)
+axes[1].set_xlim(left=0)
+
 plt.tight_layout()
-plt.show()
-
-
-
 plt.show()

@@ -16,6 +16,13 @@
 #include "udio.h"
 
 
+void check_ratios(const Config config, const Input inp, char * barr, const int numclose,
+              const int *__restrict closeind,
+              const float *__restrict blur);
+
+void adjust_ratios(const Config config, char * barr, const int numclose,
+              const int * closeind, float * blur);
+
 void blur_it(const int lengthmz,
              const int numz,
              const int numclose,
@@ -82,25 +89,22 @@ void apply_ratios(const int lengthmz, const int numz, const float *__restrict bl
 void deconvolve_baseline(const int lengthmz, const float *dataMZ, const float *dataInt, float *baseline,
                          const float mzsig);
 
-float deconvolve_iteration_speedy(const int lengthmz, const int numz, const int maxlength, const float *__restrict blur,
+float deconvolve_iteration_speedy(const Config config, Decon *decon, const float *__restrict blur,
                                   float *__restrict blur2,
-                                  const char *__restrict barr, const int aggressiveflag,
+                                  const char *__restrict barr,
                                   const float *__restrict dataInt,
-                                  const int *starttab, const int *endtab, const float *mzdist, const float *rmzdist,
-                                  const int speedyflag, const int baselineflag, float *baseline,
-                                  float *noise, const float mzsig, const float *dataMZ, const int filterwidth,
-                                  const float psig);
+                                  float *baseline, const float *dataMZ);
 
 void softargmax(float *blur, const int lengthmz, const int numz, const float beta);
+void softmax_peakwidth(const Config config, const Decon decon, float *blur, const char * barr, const float beta);
+
 void point_smoothing(float *blur, const char *barr, const int lengthmz, const int numz, const int width);
 float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, const int numz,
                       const int maxlength, const float maxint,
                       const int *starttab,
                       const int *endtab, const float *mzdist, const int speedyflag);
 
-float errfunspeedy(Config config, Decon decon, const char *barr, const float *dataInt, const int maxlength,
-                   const int *starttab, const int *endtab,
-                   const float *mzdist, float *rsquared);
+float errfunspeedy(Config config, Decon decon, const float *dataInt, float *rsquared);
 
 void CalcMasses(const Config *config, Input *inp);
 void TestMassListWindowed(const Config config, Input *inp);
@@ -112,12 +116,12 @@ void KillB(const float *I, char *B, const float intthresh, const int lengthmz, c
 
 void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
                     const int *closemind, int *closeind, const float *closeval, float *closearray, const Config config, const Input *inp);
-void MakePeakShape2D(const Config config, Decon *decon, int maxlength, const float *dataMZ, int makereverse,
+void MakePeakShape2D(const Config config, Decon *decon, const Input *inp, int makereverse,
                      const int inflateflag);
 void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, int makereverse, const int inflateflag);
 int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *endtab);
 int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, const int verbose);
-float Reconvolve(const Config config, const int maxlength, Decon *decon, const char *barr);
+float Reconvolve(const Config config, Decon *decon, const char *barr);
 void charge_scaling(float *blur, const int *nztab, const int lengthmz, const int numz);
 
 void IntegrateTransform(const Config config, Decon *decon, const float *mtab, float massmax, float massmin);

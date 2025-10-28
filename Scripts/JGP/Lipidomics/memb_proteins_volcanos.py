@@ -417,8 +417,8 @@ def make_content_paired_barcharts(classes, df, group, column_comparisons, t_crit
     plt.ylabel('Summed Intensity %', fontsize=22)
     plt.tight_layout()
     plt.legend(handles=legend_handles, fontsize=14,  loc='upper right')
-    plt.savefig("Z:\\Group Share\\JGP\\CS MS1 Runs\\mzML\\letAB_paired_barcharg.pdf", dpi=300)
-    plt.savefig("Z:\\Group Share\\JGP\\CS MS1 Runs\\mzML\\letAB_paired_barcharg.png", dpi=300)
+    #plt.savefig("Z:\\Group Share\\JGP\\CS MS1 Runs\\mzML\\letAB_paired_barcharg.pdf", dpi=300)
+    #plt.savefig("Z:\\Group Share\\JGP\\CS MS1 Runs\\mzML\\letAB_paired_barcharg.png", dpi=300)
     plt.show()
 
 def perform_pca(classes, df, columns):
@@ -467,9 +467,9 @@ def perform_pca(classes, df, columns):
 # Set backend to Agg
 mpl.use('WxAgg')
 
-file_path = "Z:\\Group Share\\Synapt\\Collaborator Samples (CS)\\lipidomic_analysis_results.xlsx"
+#file_path = "Z:\\Group Share\\Synapt\\Collaborator Samples (CS)\\lipidomic_analysis_results.xlsx"
 
-df = pd.read_excel("Z:\\Group Share\\JGP\\CS MS1 Runs\\mzML\\normalized_abundances.xlsx")
+df = pd.read_excel("Z:\\Group Share\\JGP\\Christina_letAB_MlaC_pqiAB_data\\Analysis_and_Other\\normalized_abundances.xlsx")
 
 #need to compare samples 2 and 3 in each group.
 

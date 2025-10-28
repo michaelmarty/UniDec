@@ -98,8 +98,8 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, iso
     dist = dist[b1]
 
     # Convert to m/z
-    if charge >=1:
-        dist[:, 0] = (dist[:, 0] + float(charge) * adductmass) / float(charge)
+    if abs(charge) >=1:
+        dist[:, 0] = (dist[:, 0] + float(charge) * adductmass) / float(abs(charge))
 
     return dist
 
@@ -123,7 +123,9 @@ def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007
 
     # Convert to m/z
     massdist = dist.copy()
-    dist[:, 0] = (dist[:, 0] + float(charge) * adductmass) / float(charge)
+
+    if abs(charge) >=1:
+        dist[:, 0] = (dist[:, 0] + float(charge) * adductmass) / float(abs(charge))
 
     return dist, massdist
 
@@ -148,10 +150,10 @@ def makemass(testmass):
     return formula, minmassint, intnum
 
 
-isolength = 128
+isolength = 1024
 buffer = np.zeros(isolength)
-h = np.array([1, 0.00015, 0, 0])
-c = np.array([1, 0.011, 0, 0])
+h = np.array([1, 0.000115, 0, 0])
+c = np.array([1, 0.01082, 0, 0])
 n = np.array([1, 0.0037, 0, 0])
 o = np.array([1, 0.0004, 0.002, 0])
 s = np.array([1, 0.0079, 0.044, 0])

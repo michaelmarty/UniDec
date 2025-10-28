@@ -1,0 +1,18 @@
+import unidec
+from unidec_modules.unidec_enginebase import UniDecEngine
+class test:
+    def __init__(self):
+        pass
+
+    def runtest(self):
+        print "Starting up\n"
+        filename = "20170816_JMD_Montfort_Desalt2_Gas5_interval__Ramp_0_100_5.txt"
+        dir = "Z:\Group Share\Matt"
+        self.eng = unidec.Unidec()
+        self.eng.open_file(filename, dir)
+        self.eng.run_unidec()
+        self.eng.pick_peaks()
+
+if __name__ == '__main__':
+    t = test()
+    t.runtest()

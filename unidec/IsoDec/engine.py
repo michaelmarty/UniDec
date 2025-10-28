@@ -536,7 +536,7 @@ class IsoDecEngine:
                 pk.rt = self.config.activescanrt
                 pk.scan = self.config.activescan
                 pks.add_peak(pk)
-                pks.add_pk_to_masses(pk, 10)
+                pks.add_pk_to_masses(pk, self.config)
             else:
                 self.pks.add_peak(pk)
             return pk.matchedindexes

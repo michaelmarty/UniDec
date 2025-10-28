@@ -58,8 +58,13 @@ def calculate_cosinesimilarity(predicted_dist, expected_dist):
     """
 
     # Ensure both distributions are the same length
+    # Ensure both distributions are the same length
     if len(predicted_dist) != len(expected_dist):
-        raise ValueError("Both distributions must have the same length.")
+        # Pad the shorter distribution with zeros
+        if len(predicted_dist) < len(expected_dist):
+            predicted_dist = np.pad(predicted_dist, (0, len(expected_dist) - len(predicted_dist)))
+        else:
+            expected_dist = np.pad(expected_dist, (0, len(predicted_dist) - len(expected_dist)))
 
     # Ensure both distributions are numpy arrays
     predicted_dist = np.array(predicted_dist)

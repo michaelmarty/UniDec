@@ -1,14 +1,10 @@
 from Scripts.MTM.proteomicstools import *
+from unidec.IsoDec.compare_tools import read_manual_annotations, compare_annotated, read_msalign_to_matchedcollection, \
+    compare_matchedcollections
 from unidec.IsoDec.engine import IsoDecEngine
-import os
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import numpy as np
-import unidec.tools as ud
 from unidec.IsoDec.plots import *
 from unidec.IsoDec.datatools import *
 import pyperclip
-import pandas as pd
 from unidec.IsoDec.match import *
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 
@@ -50,7 +46,7 @@ eng_thrash.config.activescan = 1
 eng_thrash.config.activescanrt = -1
 eng_thrash.config.activescanorder = 2
 eng_thrash.config.knockdown_rounds = 5
-eng_thrash.predmode = 2
+eng_thrash.predmode = 0
 
 if False:
     reader = ImporterFactory.create_importer(file2)
@@ -64,13 +60,11 @@ else:
 #     spectrum = ud.datachop(spectrum, mzrange[0], mzrange[1])
 #     np.savetxt("chopped.txt", spectrum)
 
-
-
-
 eng.batch_process_spectrum(spectrum, centroided=True)
 eng_thrash.batch_process_spectrum(spectrum, centroided=True)
 print("Peaks:", len(eng.pks.peaks))
 
+exit()
 if False:
     ca_seq = 'S[42.010565]HHWGYGKHNGPEHWHKDFPIANGERQSPVDIDTKAVVQDPALKPLALVYGEATSRRMVNNGHSFNVEYDDSQDKAVLKDGPLTGTYRLVQFHFHWGSSDDQGSEHTVDRKKYAAELHLVHWNTKYGDFGTAAQQPDGLAVVGVFLKVGDANPALQKVLDALDSIKTKGKSTDFPNFDPGSLLPNVLDYWTYPGSLTTPPLLESVTWIVLKEPISVSSQQMLKFRTLNFNAEGEPELLMLANWRPAQPLKNRQVRGFPK'
     ion_types = ['c', 'z']

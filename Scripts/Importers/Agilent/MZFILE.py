@@ -28,7 +28,6 @@ from Agilent.MassSpectrometry.DataAnalysis import (MassSpecDataReader, BDAChromF
                                                    MsdrChargeStateAssignmentFilter, IMsdrDataReader, IBDAChromFilter,
                                                    IMsdrChargeStateAssignmentFilter,
                                                    DesiredMSStorageType, ChromType, MinMaxRange, MSLevel
-
                                                    )
 
 
