@@ -245,12 +245,12 @@ def count_tails(name, verbose=False):
     return tname, tl, tu
 
 
-def set_tails(df):
+def set_tails(df, columnname="Molecule Name"):
     tails = []
     lengths = []
     unsats = []
     for i, row in df.iterrows():
-        name = row["Molecule Name"]
+        name = row[columnname]
         tname, tl, tu = count_tails(name)
         tails.append(tname)
         lengths.append(tl)
@@ -586,7 +586,39 @@ def clean_names(name):
         name = name.split("|")[1]
     return name
 
+def clean_df(df, column="Molecule Name"):
+    df = df.copy()
+    cleanednames = []
+    for i, row in df.iterrows():
+        name = row[column]
+        name = clean_names(name)
+        cleanednames.append(name)
+    df[column] = cleanednames
+    return df
 
+def encode_headgroups(df, classname="Ontology", rtcol_name="Average Rt(min)"):
+    headgroups = df[classname].unique()
+    # Sort by average RT
+    avg_rts = {}
+    for hg in headgroups:
+        subdf = df[df[classname] == hg]
+        avg_rt = subdf[rtcol_name].mean()
+        avg_rts[hg] = avg_rt
+    # Sort headgroups by avg_rt
+    sorted_hgs = sorted(avg_rts, key=avg_rts.get)
+    # Create encoding dict
+    encoding = {}
+    for i, hg in enumerate(sorted_hgs):
+        encoding[hg] = i + 1
+    print("Headgroup encoding:", encoding)
+    # Add encoding column
+    encodings = []
+    for i, row in df.iterrows():
+        hg = row[classname]
+        enc = encoding[hg]
+        encodings.append(enc)
+    df["Headgroup Encoding"] = encodings
+    return df
 
 def msdial_to_lipidlist(df):
     # Drop all where "Ontology" is Others or Unknown
