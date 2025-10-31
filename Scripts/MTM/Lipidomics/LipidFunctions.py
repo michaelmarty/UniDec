@@ -618,6 +618,11 @@ def encode_headgroups(df, classname="Ontology", rtcol_name="Average Rt(min)"):
         enc = encoding[hg]
         encodings.append(enc)
     df["Headgroup Encoding"] = encodings
+
+    # Create one-hot encoding columns
+    for hg in headgroups:
+        colname = f"HG_{hg}"
+        df[colname] = df[classname].apply(lambda x: 1 if x == hg else 0)
     return df
 
 def msdial_to_lipidlist(df):

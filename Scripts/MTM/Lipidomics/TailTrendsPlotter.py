@@ -9,6 +9,14 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_squared_error
+# python
+from sklearn.preprocessing import SplineTransformer
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_squared_error
+import numpy as np
+import matplotlib.pyplot as plt
 
 def plsr(df, xcols, ycol):
 
@@ -32,45 +40,51 @@ def plsr(df, xcols, ycol):
     plt.plot([min(Y), max(Y)], [min(Y), max(Y)], 'r--')
     plt.show()
 
-def random_forest(df, xcols, ycol):
+def mars(df, xcols, ycol, test_size=0.2, random_state=42,
+                     n_knots=10, degree=3, plot=True):
+    """
+    Spline-based alternative to MARS using scikit-learn's SplineTransformer.
+    Returns: (model, r2, rmse)
+    """
     X = df[xcols].values
-    Y = df[ycol].values
+    y = df[ycol].values
 
-    rf = RandomForestRegressor(n_estimators=100, random_state=42)
-    rf.fit(X, Y)
-    Y_pred = rf.predict(X)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+    X_train, X_test, y_train, y_test = X, X, y, y
 
-    # X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
-    #
-    # rf = RandomForestRegressor(n_estimators=100, random_state=42)
-    # rf.fit(X_train, Y_train)
-    #
-    # Y_pred = rf.predict(X_test)
-    #
-    # r2 = r2_score(Y_test, Y_pred)
-    # rmse = np.sqrt(mean_squared_error(Y_test, Y_pred))
-    #
-    # print(f'Random Forest R^2: {r2:.3f}, RMSE: {rmse:.3f}')
-    #
+    pipeline = make_pipeline(
+        SplineTransformer(n_knots=n_knots, degree=degree, include_bias=False),
+        LinearRegression()
+    )
 
-    diffs = Y - Y_pred
-    # Count how many are within 0.5 minutes
-    within_05 = np.sum(np.abs(diffs) <= 0.5)
-    total = len(Y)
-    print(f'Random Forest: {within_05}/{total} predictions within 0.5 minutes ({(within_05/total)*100:.2f}%)')
-    # Count how many are outside 0.5 minutes
-    outside_05 = np.sum(np.abs(diffs) > 0.5)
-    print(f'Random Forest: {outside_05}/{total} predictions outside 0.5 minutes ({(outside_05/total)*100:.2f}%)')
+    pipeline.fit(X_train, y_train)
+    y_pred = pipeline.predict(X_test)
 
+    r2 = r2_score(y_test, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 
-    plt.scatter(Y, Y_pred)
-    plt.xlabel('Measured')
-    plt.ylabel('Predicted')
-    plt.title('Random Forest Prediction')
-    plt.plot([min(Y), max(Y)], [min(Y), max(Y)], 'r--')
-    plt.show()
+    # Print outliers where y_test - y_pred > 0.5
+    # outliers = np.where(np.abs(y_test - y_pred) > 0.5)[0]
+    # if len(outliers) > 0:
+    #     print("Outliers:")
+    #     for idx in outliers:
+    #         print(f"Measured: {y_test[idx]}, Predicted: {y_pred[idx]}, Difference: {y_test[idx] - y_pred[idx]}")
 
-file = r"C:\Data\IQ-X\MartyLab_AX\PosIDs.csv"
+    if plot:
+        plt.figure()
+        plt.scatter(y_test, y_pred, alpha=0.7)
+        mn, mx = np.min(y_test), np.max(y_test)
+        plt.plot([mn, mx], [mn, mx], "r--")
+        plt.xlabel("Measured")
+        plt.ylabel("Predicted")
+        plt.title(f"Spline Regression (R^2={r2:.3f}, RMSE={rmse:.3f})")
+        plt.show()
+
+    return pipeline, r2, rmse
+
+os.chdir(r"Z:\Group Share\MTM\IQ-X\MartyLab_AX\FinalResults")
+
+file = r"PosIDsC1.csv"
 column_name = "Metabolite name"
 rt_name = "Average Rt(min)"
 class_name = "Ontology"
@@ -82,15 +96,25 @@ print(df.columns)
 
 print(df[class_name].unique())
 
+# Find columns with HG_ in them
+hg_columns = [col for col in df.columns if col.startswith("HG_")]
+print("Headgroup encoding columns:", hg_columns)
+
+xc1 = ["Tail Length", "Tail Unsaturation"]
+xcols = ["Tail Length", "Tail Unsaturation"] + hg_columns
+print("X columns:", xcols)
 
 # Isolate FA ontology
 
-fa_df = df[df[class_name] == "DG"]
+fa_df = df[df[class_name] == "TG"]
 
 # plsr(df, xcols=["Tail Length", "Tail Unsaturation", "Headgroup Encoding"], ycol=rt_name)
-#plsr(fa_df, xcols=["Tail Length", "Tail Unsaturation"], ycol=rt_name)
+# plsr(fa_df, xcols=["Tail Length", "Tail Unsaturation"], ycol=rt_name)
+# plsr(df , xcols=xcols, ycol=rt_name)
+# mars(fa_df, xcols = xc1, ycol=rt_name)
+# mars(df, xcols=xcols, ycol=rt_name)
 
-random_forest(fa_df, xcols=["Tail Length", "Tail Unsaturation"], ycol=rt_name)
+# random_forest(fa_df, xcols=["Tail Length", "Tail Unsaturation"], ycol=rt_name)
 #random_forest(df, xcols=["Tail Length", "Tail Unsaturation", "Headgroup Encoding"], ycol=rt_name)
 
 
@@ -129,11 +153,12 @@ for u in unsats:
     xnew = np.linspace(np.min(tail_lengths), np.max(tail_lengths), num=100)
     ynew = p(xnew)
 
-    outliers = np.where(np.abs(rts - p(tail_lengths)) > 0.5)[0]
+    outliers = np.where(np.abs(rts - p(tail_lengths)) > 0.25)[0]
     if len(outliers) > 0:
         print(f"Outliers for unsaturation {u}:")
         for idx in outliers:
             print(f"Tail Length: {tail_lengths[idx]}, Rt: {rts[idx]}, Predicted Rt: {p(tail_lengths[idx])}")
+            print("Name:", subdf.iloc[idx][column_name])
 
     plt.plot(tail_lengths, rts, marker='o', label=f'Unsaturation {u}')
     plt.plot(xnew, ynew, linestyle='--')
