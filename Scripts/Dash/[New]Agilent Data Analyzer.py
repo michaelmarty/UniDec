@@ -4,12 +4,13 @@ import rainbow as rb
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib import colormaps
+from unidec.tools import integrate
 from matplotlib import rcParams
 import re
 import colorsys
 import glob
 
-topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\Shimadzu issie\Dim 1Validation_Shim_morepsplit_sfGFP 2025-10-23 19-06-25\Low Flow"
+topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\20251030 LX\20251029 Control 2025-10-29 13-01-55"
 files = glob.glob(os.path.join(topdir, "*.D"))
 
 
@@ -69,6 +70,21 @@ def rc_params_setup():
     rcParams['xtick.major.width'] = 1
     rcParams['ytick.major.width'] = 1
 
+    # Ensure explicit tick label sizes (default to global font.size if unset)
+    rcParams['xtick.labelsize'] = rcParams.get('xtick.labelsize', rcParams['font.size'])
+    rcParams['ytick.labelsize'] = rcParams.get('ytick.labelsize', rcParams['font.size'])
+
+    # Set legend font size to be 3 points smaller than tick label size and mark as bold.
+    # Store bold weight in a small global helper so callers can apply it when creating legends.
+    try:
+        tick_size = float(rcParams['xtick.labelsize'])
+    except Exception:
+        tick_size = float(rcParams.get('font.size', 12))
+    legend_size = max(1.0, tick_size - 3.0)
+    rcParams['legend.fontsize'] = legend_size
+    rcParams['legend.title_fontsize'] = legend_size
+    globals()['LEGEND_FONT_WEIGHT'] = 'bold'
+
 def get_just_UIB1B_files(files):
     """
     Save text and npz versions into `Text files` and `NPZ files` subdirs under each sample path.
@@ -88,11 +104,11 @@ def get_just_UIB1B_files(files):
         os.makedirs(npz_outdir, exist_ok=True)
 
         # Save text
-        txt_path = os.path.join(txt_outdir, "UIB1B_data.txt")
+        txt_path = os.path.join(txt_outdir, "UIB1B_rawdata.txt")
         np.savetxt(txt_path, np.column_stack((time, voltages)), delimiter="\t")
 
         # Save npz with named array for consistency
-        npz_path = os.path.join(npz_outdir, "UIB1B_data.npz")
+        npz_path = os.path.join(npz_outdir, "UIB1B_rawdata.npz")
         np.savez_compressed(npz_path, data=np.column_stack((time, voltages)))
 
         # Save a quick preview png in the sample root (optional)
@@ -101,15 +117,16 @@ def get_just_UIB1B_files(files):
         plt.savefig(os.path.join(path, "UIB1B_data_raw.png"))
         plt.close()
 
-
 def extract_all_files(files):
     """
     Extract all .ch channel files and save text into `Text files` and npz into `NPZ files`.
+    Skips `UIB1B.ch`.
     """
+    skip_name = "UIB1B.ch"
     for path in files:
         print(f"Processing: {path}")
         datadir = rb.read(path)
-        ch_files = [f for f in os.listdir(path) if f.endswith('.ch')]
+        ch_files = [f for f in os.listdir(path) if f.lower().endswith('.ch') and f.lower() != skip_name]
         if not ch_files:
             continue
 
@@ -120,7 +137,12 @@ def extract_all_files(files):
 
         for ch_file in ch_files:
             print(f"Processing channel file: {ch_file}")
-            datafile = datadir.get_file(ch_file)
+            try:
+                datafile = datadir.get_file(ch_file)
+            except Exception as e:
+                print(f"  Failed to read channel file {ch_file}: {e}")
+                continue
+
             time = np.array(datafile.xlabels)
             voltages = np.array(datafile.data)
 
@@ -132,6 +154,155 @@ def extract_all_files(files):
             # Save with explicit key 'data' for predictable reading
             np.savez_compressed(npz_path, data=np.column_stack((time, voltages)))
 
+def nonlinearize(datatop, num_compressed, gap=5):
+    """
+    Compress the data in a simple and nonlinear way.
+    :param datatop: Data array (N x 2)
+    :param num_compressed:
+    :return:
+    """
+    if num_compressed == 0:
+        return datatop
+    else:
+        num_compressed = int(num_compressed)
+        gap = int(gap)
+        return np.array([np.mean(datatop[index:index + num_compressed-gap], axis=0) for index in
+                         range(0, len(datatop), num_compressed)])
+
+def calc_start_index(data, numcompressed):
+    adata = np.abs(data[:, 1])
+    maxy = np.max(adata)
+    ymaxindex = np.argmax(adata)
+    threshold = 0.95 * maxy
+    while ymaxindex > 0 and np.abs(data[ymaxindex, 1]) > threshold:
+        ymaxindex -= 1
+    return (ymaxindex+1) % numcompressed
+
+def parse_rg_data(data, numcompressed, gap=5, negcolor="green", ramp=0):
+    startindex = calc_start_index(data, numcompressed)
+    print("Start Index:", startindex)
+
+    parseddata = nonlinearize(data[startindex:], numcompressed, gap=gap)
+
+    maxarg = np.argmax(parseddata[:, 1])
+    minarg = np.argmin(parseddata[:, 1])
+
+    print("Max Arg:", maxarg, "Min Arg:", minarg)
+
+    nindex = minarg % 2
+    pindex = maxarg % 2
+
+    if nindex == pindex:
+        raise ValueError("Negative and positive indices are the same, check the data.")
+
+    ndata = parseddata[nindex::2]  # Negative data
+    pdata = parseddata[pindex::2]  # Positive data
+
+    #invert ndata
+    ndata[:, 1] = ndata[:, 1] * -1  # Flip the negative channel to positive values
+
+    if negcolor == "green":
+        gdata = ndata
+        rdata = pdata
+    else:
+        gdata = pdata
+        rdata = ndata
+
+    rdata[:, 1] = rdata[:, 1] - np.min(rdata[:, 1])  # Subtract the minimum to avoid negative values
+    gdata[:, 1] = gdata[:, 1] - np.min(gdata[:, 1])  # Subtract the minimum to avoid negative values
+
+    if ramp > 0:
+        rdata[:, 1] = rdata[:, 1] * ramp
+
+    print (rdata, gdata, parseddata)
+
+    return rdata, gdata, parseddata
+
+def process_UIB_data(files, numcompressed=50, gap=5, negcolor="magenta", ramp=0):
+    for d in files:
+        txt_outdir = os.path.join(d, TXT_DIR)
+        os.makedirs(txt_outdir, exist_ok=True)
+
+        txt_path = os.path.join(txt_outdir, "UIB1B_rawdata.txt")
+        if not os.path.exists(txt_path):
+            txt_path = os.path.join(d, "UIB1B_rawdata.txt")  # fallback to sample root
+        if not os.path.exists(txt_path):
+            print(f"No UIB1B_rawdata.txt found in {d}, skipping.")
+            continue
+
+        print("Processing file:", txt_path)
+        data = np.loadtxt(txt_path)
+        rdata, gdata, pdata = parse_rg_data(data, numcompressed, gap=gap, negcolor=negcolor, ramp=ramp)
+
+        # Save plotted data into Text Files subdirectory
+        g_out = os.path.join(txt_outdir, "UIB1B_gdata.txt")
+        r_out = os.path.join(txt_outdir, "UIB1B_rdata.txt")
+
+        header = "time\tintensity"
+        if gdata is not None and gdata.size > 0:
+            np.savetxt(g_out, gdata, delimiter="\t", header=header, comments='')
+        else:
+            with open(g_out, "w", encoding="utf-8") as f:
+                f.write(header + "\n")
+
+        if rdata is not None and rdata.size > 0:
+            np.savetxt(r_out, rdata, delimiter="\t", header=header, comments='')
+        else:
+            with open(r_out, "w", encoding="utf-8") as f:
+                f.write(header + "\n")
+
+        print(f"Saved plotted data to `UIB1B_gdata.txt` and `UIB1B_rdata.txt` in `{txt_outdir}`")
+
+        r1 = [2.5, 5]
+        r2 = [8, 12]
+
+        rps = np.round(calc_percents(gdata, r1, r2))
+        gps = np.round(calc_percents(rdata, r1, r2))
+
+        print("Red Channel Percent Unbound:", rps[0], "Bound:", rps[1])
+        print("Green Channel Percent Unbound:", gps[0], "Bound:", gps[1])
+
+        # Plot only when data present
+        if rdata is not None and rdata.size > 0:
+            plt.plot(rdata[:, 0], rdata[:, 1], label='Inverted Channel', color='magenta')
+        if gdata is not None and gdata.size > 0:
+            plt.plot(gdata[:, 0], gdata[:, 1], label='Uninverted Channel', color='lightseagreen')
+
+        # Add vertical lines for the ranges
+        plt.axvline(r1[0], color='grey', linestyle='--', label=f'Red Range {r1[0]}-{r1[1]}')
+        plt.axvline(r1[1], color='grey', linestyle='--')
+        plt.axvline(r2[0], color='blue', linestyle='--', label=f'Blue Range {r2[0]}-{r2[1]}')
+        plt.axvline(r2[1], color='blue', linestyle='--')
+
+        #plt.legend()
+        # Save figure files
+        plt.savefig(os.path.join(d, "UIB1B_rawdata.png"))
+        plt.savefig( os.path.join(d, "UIB1B_rawdata.pdf"))
+        #plt.show()
+        plt.close()
+
+def calc_percents(data, range1 = [2.2, 5], range2=[6.5,9]):
+    """
+    Calculate the percentage of data in the specified ranges.
+    :param data: Data array (N x 2)
+    :param range1: First range to calculate percentage
+    :param range2: Second range to calculate percentage
+    :return: Tuple of percentages in the two ranges
+    """
+
+    s1, _ = integrate(data, range1[0], range1[1])
+    s2, _ = integrate(data, range2[0], range2[1])
+
+    total = s1 + s2
+
+    if total==0:
+        percent1 = 0
+        percent2 = 0
+    else:
+        percent1 = s1 / total * 100
+        percent2 = s2 / total * 100
+
+    return percent1, percent2
 
 def read_data(files, read_files):
     """
@@ -218,7 +389,6 @@ def read_data(files, read_files):
     print(f"[read_data] finished. counts: " + ", ".join(f"{rf}={len(data[rf])}" for rf in read_files))
     return data, file_names
 
-
 def parse_array_to_xy(arr):
     arr = np.asarray(arr)
     print(f"[parse_array_to_xy] input type={type(arr)} dtype={arr.dtype if hasattr(arr, 'dtype') else 'N/A'} ndim={arr.ndim} shape={getattr(arr, 'shape', None)}")
@@ -228,8 +398,6 @@ def parse_array_to_xy(arr):
         return x, y
     print("[parse_array_to_xy] input is not a 2-column 2D array; returning (None, None)")
     return None, None
-
-
 
 def plot_overlay(files, topdir, read_files=None, figsize=(16, 7), save=True):
     """
@@ -337,8 +505,6 @@ def convert_acq_to_utf8(files):
                     print(f"Converted {fname} → {os.path.basename(dst_path)}")
     return utf8_files
 
-
-
 def parse_instrument_method(files, debug=True):
     """
     Parses 'acq_utf8.txt' from each .D directory (no fallback).
@@ -435,8 +601,6 @@ def parse_instrument_method(files, debug=True):
             print(f" Saved {os.path.basename(out_path)} ({len(lines_tt)} lines)")
 
         print(f" Done parsing {os.path.basename(acq_file)} — {saved} timetable(s) written\n")
-
-
 
 def plot_instrument_timetables(files):
     """
@@ -622,23 +786,236 @@ def plot_instrument_timetables(files):
         out_path = os.path.join(d_path, "instrument_method.png")
         plt.savefig(out_path, dpi=200)
         plt.close(fig)
-        print(f"💾 Saved 4-panel instrument method plot: {out_path}")
+        print(f" Saved 4-panel instrument method plot: {out_path}")
 
+def plot_UIB_overlay(files, topdir, figsize=(14, 8), save=True):
+    """
+    Reads all 'UIB1B_gdata.txt' and 'UIB1B_rdata.txt' files from each
+    'Text files' subdirectory in the provided .D folders, then plots
+    a figure with 2 subplots:
+      - Top: overlay of all gdata traces (summer colormap)
+      - Bottom: overlay of all rdata traces (cool colormap)
+    Sorted alphabetically by the substring after the last '-' and before '.D',
+    which is also used for the legend labels.
+    """
+    # --- Extract substring after the last '-' and before '.D' ---
+    def extract_key_and_sort(path):
+        base = os.path.basename(path)
+        m = re.search(r'-([^-\\/.]+)\.D$', base, re.IGNORECASE)
+        key = m.group(1).lower() if m else base.lower()
+        return key
 
+    # Build sorted list and keep mapping
+    keys = {d: extract_key_and_sort(d) for d in files}
+    files_sorted = sorted(files, key=lambda p: keys[p])
 
+    g_all, r_all, labels = [], [], []
+
+    for d in files_sorted:
+        txtdir = os.path.join(d, "Text files")
+        gpath = os.path.join(txtdir, "UIB1B_gdata.txt")
+        rpath = os.path.join(txtdir, "UIB1B_rdata.txt")
+        label = keys[d]  # legend label = extracted key
+
+        def safe_loadtxt(path):
+            if not os.path.exists(path):
+                return None
+            try:
+                # Skip header if it starts with 'time'
+                with open(path, 'r', encoding='utf-8') as f:
+                    first = f.readline().strip().lower()
+                skip = 1 if first.startswith("time") else 0
+                return np.loadtxt(path, delimiter="\t", skiprows=skip)
+            except Exception as e:
+                print(f"Failed to read {path}: {e}")
+                return None
+
+        gdata = safe_loadtxt(gpath)
+        rdata = safe_loadtxt(rpath)
+
+        if gdata is not None and gdata.size > 0:
+            g_all.append(gdata)
+            labels.append(label)
+        if rdata is not None and rdata.size > 0:
+            r_all.append(rdata)
+
+    if not g_all and not r_all:
+        print("No gdata or rdata files found — nothing to plot.")
+        return
+
+    fig, (axg, axr) = plt.subplots(2, 1, figsize=figsize, sharex=False)
+    fig.suptitle("UIB1B", fontsize=16)
+
+    # Separate colormaps
+    g_colors = get_filtered_colors('summer_r', num_colors=max(len(g_all), 1))
+    r_colors = get_filtered_colors('spring_r', num_colors=max(len(r_all), 1))
+
+    # --- gdata overlay (summer) ---
+    for i, arr in enumerate(g_all):
+        if arr.ndim == 2 and arr.shape[1] == 2:
+            axg.plot(arr[:, 0], arr[:, 1],
+                     label=labels[i],
+                     color=g_colors[i % len(g_colors)],
+                     linewidth=1)
+    axg.set_title("Green Channel (gdata)")
+    axg.set_xlabel("Time")
+    axg.set_ylabel("Intensity")
+    axg.legend(fontsize='small', loc='upper right')
+
+    # --- rdata overlay (cool) ---
+    for i, arr in enumerate(r_all):
+        if arr.ndim == 2 and arr.shape[1] == 2:
+            axr.plot(arr[:, 0], arr[:, 1],
+                     label=labels[i] if i < len(labels) else f"Sample {i+1}",
+                     color=r_colors[i % len(r_colors)],
+                     linewidth=1)
+    axr.set_title("Red Channel (rdata)")
+    axr.set_xlabel("Time")
+    axr.set_ylabel("Intensity")
+    axr.legend(fontsize='small', loc='upper right')
+
+    plt.tight_layout(rect=[0, 0, 1, 0.97])
+    if save:
+        outpath = os.path.join(topdir, "UIB1B_g_r_overlay_sorted.png")
+        fig.savefig(outpath, dpi=300)
+        print(f" Saved sorted overlay figure: {outpath}")
+
+    plt.show()
+    plt.close(fig)
+
+def plot_g_r_ridgelines(files, topdir, base_offset=100, autoscale=True, padding_factor=0.15):
+    """
+    Creates two separate ridgeline plots (not subplots):
+      - One for all gdata (summer_r colormap)
+      - One for all rdata (spring_r colormap)
+
+    Sorting is based on the substring after the last '-' and before '.D'.
+    Offset can be fixed (base_offset) or automatically adjusted to just above
+    each dataset's maximum y-intensity if autoscale=True.
+
+    padding_factor defines how much taller each offset is than the previous max (default 5%).
+    """
+    # --- Extract label between last '-' and '.D' ---
+    def extract_label(path):
+        base = os.path.basename(path)
+        m = re.search(r'-([^-\\/.]+)\.D$', base, re.IGNORECASE)
+        return m.group(1).lower() if m else base.lower()
+
+    # --- Safely load text data, skipping header if needed ---
+    def safe_loadtxt(path):
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                first = f.readline().strip().lower()
+            skip = 1 if first.startswith("time") else 0
+            return np.loadtxt(path, delimiter="\t", skiprows=skip)
+        except Exception as e:
+            print(f"Failed to read {path}: {e}")
+            return None
+
+    # --- Collect and sort files ---
+    labels = {d: extract_label(d) for d in files}
+    files_sorted = sorted(files, key=lambda p: labels[p])
+
+    g_data, r_data, g_labels, r_labels = [], [], [], []
+
+    for d in files_sorted:
+        txtdir = os.path.join(d, "Text files")
+        gpath = os.path.join(txtdir, "UIB1B_gdata.txt")
+        rpath = os.path.join(txtdir, "UIB1B_rdata.txt")
+        label = labels[d]
+
+        g_arr = safe_loadtxt(gpath)
+        r_arr = safe_loadtxt(rpath)
+
+        if g_arr is not None and g_arr.size > 0:
+            g_data.append(g_arr)
+            g_labels.append(label)
+        if r_arr is not None and r_arr.size > 0:
+            r_data.append(r_arr)
+            r_labels.append(label)
+
+    # --- Internal helper for one ridgeline group ---
+    def plot_ridgeline(data_list, label_list, cmap_name, title, save_prefix):
+        if not data_list:
+            print(f"No data found for {title}")
+            return
+
+        colors = get_filtered_colors(cmap_name, num_colors=len(data_list))
+        plt.figure(figsize=(12, 12))
+
+        y_cursor = 0
+        for i, (arr, label) in enumerate(zip(data_list, label_list)):
+            if arr is None or arr.size == 0:
+                continue
+            x, y = arr[:, 0], arr[:, 1]
+            color = colors[i % len(colors)]
+
+            # Compute dynamic offset
+            if autoscale:
+                y_shifted = y + y_cursor
+                ymax = np.max(y)
+                y_cursor += ymax * (1 + padding_factor)
+            else:
+                y_shifted = y + y_cursor
+                y_cursor += base_offset
+
+            #plt.fill_between(x, y_shifted, y_cursor - (np.max(y) if autoscale else base_offset),alpha=0.4, color=color)
+            plt.plot(x, y_shifted, color=color, linewidth=0.7)
+            plt.text(0, y_shifted[0] + 0.05 * (np.max(y)), label,
+                     fontsize=8, fontweight='bold', ha='left', color=color)
+
+        plt.xlabel("Time (min)", fontweight='bold')
+        plt.ylabel("")
+        plt.title(title + (" (autoscaled)" if autoscale else ""), fontweight='bold')
+        plt.yticks([])
+        ax = plt.gca()
+        for spine in ['top', 'right', 'left']:
+            ax.spines[spine].set_visible(False)
+        plt.subplots_adjust(hspace=-0.3)
+
+        # Save output
+        out_png = os.path.join(topdir, f"{save_prefix}_ridgeline.png")
+        out_pdf = os.path.join(topdir, f"{save_prefix}_ridgeline.pdf")
+        plt.savefig(out_png, dpi=300, bbox_inches='tight')
+        plt.savefig(out_pdf, dpi=300, bbox_inches='tight')
+        print(f" Saved ridgeline plots:\n  {out_png}\n  {out_pdf}")
+
+        plt.show()
+        plt.close()
+
+    # --- Generate both ridgeline plots ---
+    if g_data:
+        plot_ridgeline(
+            g_data, g_labels,
+            cmap_name='winter_r',
+            title="UIB1B gdata",
+            save_prefix="UIB1B_gdata"
+        )
+
+    if r_data:
+        plot_ridgeline(
+            r_data, r_labels,
+            cmap_name='spring_r',
+            title="UIB1B rdata",
+            save_prefix="UIB1B_rdata"
+        )
 
 
 
 def main():
-    #rc_params_setup()
-    #extract_all_files(files)
-    #get_just_UIB1B_files(files)
-    #read_data(files, read_files)
+    rc_params_setup()
+    extract_all_files(files)
+    get_just_UIB1B_files(files)
+    read_data(files, read_files)
     convert_acq_to_utf8(files)
     parse_instrument_method(files, debug=True)
     plot_instrument_timetables(files)
-    #plot_instrument_timetables(method_dir=files[0])
-    #plot_overlay(files, topdir, read_files=read_files, figsize=(16, 7), save=True)
+    process_UIB_data(files, numcompressed=50, gap=5, negcolor="magenta", ramp=0)
+    plot_overlay(files, topdir, read_files=read_files, figsize=(16, 7), save=True)
+    plot_UIB_overlay(files, topdir, figsize=(14, 8), save=True)
+    plot_g_r_ridgelines(files, topdir, base_offset=100, autoscale=True)
 
 
 if __name__ == "__main__":
