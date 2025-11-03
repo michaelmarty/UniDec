@@ -1,8 +1,6 @@
 import os
 import LipidFunctions
 import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
 import scipy.interpolate as interp
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.model_selection import cross_val_predict
@@ -17,6 +15,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_squared_error
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+
+matplotlib.use("WxAgg")
 
 def plsr(df, xcols, ycol):
 
@@ -41,7 +42,7 @@ def plsr(df, xcols, ycol):
     plt.show()
 
 def mars(df, xcols, ycol, test_size=0.2, random_state=42,
-                     n_knots=10, degree=3, plot=True):
+                     n_knots=4, degree=2, plot=True):
     """
     Spline-based alternative to MARS using scikit-learn's SplineTransformer.
     Returns: (model, r2, rmse)
@@ -88,25 +89,43 @@ file = r"PosIDsC1.csv"
 column_name = "Metabolite name"
 rt_name = "Average Rt(min)"
 class_name = "Ontology"
+refcol = "Reference RT"
+
+file = r"C1_Ref_Testing.csv"
+column_name = "Name"
+rt_name = "RT"
+class_name = "CompoundClass"
+refcol = "RTP"
 df = pd.read_csv(file)
 df = LipidFunctions.clean_df(df, column=column_name)
 df = LipidFunctions.set_tails(df, columnname=column_name)
 df = LipidFunctions.encode_headgroups(df, classname=class_name, rtcol_name=rt_name)
-print(df.columns)
+df["Residuals"] = np.abs(df[rt_name] - df[refcol])
+
+# Stats on residuals
+print(f'Mean Residual: {np.mean(df["Residuals"]):.3f} min')
+print(f'Median Residual: {np.median(df["Residuals"]):.3f} min')
+print(f'STD of Residuals: {np.std(df["Residuals"]):.3f} min')
 
 print(df[class_name].unique())
 
 # Find columns with HG_ in them
 hg_columns = [col for col in df.columns if col.startswith("HG_")]
-print("Headgroup encoding columns:", hg_columns)
+
 
 xc1 = ["Tail Length", "Tail Unsaturation"]
 xcols = ["Tail Length", "Tail Unsaturation"] + hg_columns
-print("X columns:", xcols)
+
 
 # Isolate FA ontology
 
-fa_df = df[df[class_name] == "TG"]
+fa_df = df[df[class_name] == "PC"]
+
+print(f'Mean Residual: {np.mean(fa_df["Residuals"]):.3f} min')
+print(f'Median Residual: {np.median(fa_df["Residuals"]):.3f} min')
+print(f'STD of Residuals: {np.std(fa_df["Residuals"]):.3f} min')
+
+classstd = np.std(fa_df["Residuals"])
 
 # plsr(df, xcols=["Tail Length", "Tail Unsaturation", "Headgroup Encoding"], ycol=rt_name)
 # plsr(fa_df, xcols=["Tail Length", "Tail Unsaturation"], ycol=rt_name)
@@ -115,53 +134,96 @@ fa_df = df[df[class_name] == "TG"]
 # mars(df, xcols=xcols, ycol=rt_name)
 
 # random_forest(fa_df, xcols=["Tail Length", "Tail Unsaturation"], ycol=rt_name)
-#random_forest(df, xcols=["Tail Length", "Tail Unsaturation", "Headgroup Encoding"], ycol=rt_name)
+# random_forest(df, xcols=["Tail Length", "Tail Unsaturation", "Headgroup Encoding"], ycol=rt_name)
 
-
+# # Create 3D Plot of Tail Length, Tail Unsaturation vs RT
+# from mpl_toolkits.mplot3d import Axes3D
+# fig = plt.figure()
+# ax = fig.add_subplot(121, projection='3d')
+# ax.set_title('3D Plot of Tail Length, Tail Unsaturation vs RT')
+# ax.set_xlabel('Tail Length')
+# ax.set_ylabel('Tail Unsaturation')
+# ax.set_zlabel('Retention Time (min)')
+#
+#
+#
+# # Fit 3D data using polynomial surface fitting
+# from sklearn.preprocessing import PolynomialFeatures
+# from sklearn.linear_model import LinearRegression
+# X = fa_df[["Tail Length", "Tail Unsaturation"]].values
+# Y = fa_df[rt_name].values
+# poly = PolynomialFeatures(degree=3)
+# X_poly = poly.fit_transform(X)
+# model = LinearRegression()
+# model.fit(X_poly, Y)
+# # Create grid to plot surface
+# xlen = np.linspace(fa_df["Tail Length"].min(), fa_df["Tail Length"].max(), 10)
+# xunsat = np.linspace(fa_df["Tail Unsaturation"].min(), fa_df["Tail Unsaturation"].max(), 10)
+# xlen, xunsat = np.meshgrid(xlen, xunsat)
+# xgrid = np.column_stack((xlen.ravel(), xunsat.ravel()))
+# xgrid_poly = poly.transform(xgrid)
+# ygrid = model.predict(xgrid_poly)
+# ygrid = ygrid.reshape(xlen.shape)
+# ax.plot_surface(xlen, xunsat, ygrid, alpha=0.5, color='r')
+#
+#
+#
+# residuals = np.abs(Y - model.predict(X_poly))
+#
+# # Color by residuals
+# colors = plt.cm.viridis((residuals - residuals.min()) / (residuals.max() - residuals.min()))
+# ax.scatter(fa_df["Tail Length"], fa_df["Tail Unsaturation"], fa_df[rt_name], marker='o', c=colors)
+#
+# # Plot residuals
+# ax = fig.add_subplot(122)
+# ax.set_title('Residuals of 3D Fit')
+# ax.set_xlabel('Index')
+# ax.set_ylabel('Residual (min)')
+# ax.scatter(range(len(residuals)), residuals, marker='o', c=colors)
+#
+#
+# plt.figure()
 
 unsats = np.unique(fa_df["Tail Unsaturation"].values)
+colors = plt.cm.viridis(np.linspace(0, 1, len(unsats)))
 
-for u in unsats:
+for i, u in enumerate(unsats):
     subdf = fa_df[fa_df["Tail Unsaturation"] == u]
+    # Sort subdf by tail lengths
+    subdf = subdf.sort_values(by=["Tail Length"])
     tail_lengths = subdf["Tail Length"].values
     rts = subdf[rt_name].values
-    areas = subdf["Total score"].values
+    refrts = subdf[refcol].values
 
-    # Perform cubic interpolation for smoother curve
-    sorted_indices = np.argsort(tail_lengths)
-    tail_lengths = tail_lengths[sorted_indices]
-    rts = rts[sorted_indices]
 
-    if len(tail_lengths) < 4:
-        plt.plot(tail_lengths, rts, marker='o', label=f'Unsaturation {u}')
-        continue
+    # print(subdf[[column_name, "Tail Length", rt_name, refcol]])
+    # areas = subdf["Total score"].values
+    # residualcolors = plt.cm.viridis(subdf["Residuals"].values / np.max(subdf["Residuals"].values))
 
-    # # If any tail lengths are duplicated, average their rts
-    # unique_lengths, indices = np.unique(tail_lengths, return_index=True)
-    # averaged_rts = []
-    # for length in unique_lengths:
-    #     averaged_rts.append(np.average(rts[tail_lengths == length], weights = areas[tail_lengths == length]))
-    # tail_lengths = unique_lengths
-    # rts = np.array(averaged_rts)
+
+    # plt.subplot(122)
+    plt.plot(tail_lengths, refrts, marker='x', color=colors[i])
+
     #
-    # if len(tail_lengths) < 4:
-    #     p=interp.interp1d(tail_lengths, rts, kind='linear', fill_value="extrapolate")
-    # else:
-    #     p = interp.interp1d(tail_lengths, rts, kind='cubic', fill_value="extrapolate")
-    p = np.polyfit(tail_lengths, rts, 3, w=areas)
-    p = np.poly1d(p)
-    xnew = np.linspace(np.min(tail_lengths), np.max(tail_lengths), num=100)
-    ynew = p(xnew)
+    # plt.subplot(121)
+    plt.plot(tail_lengths, rts, marker='o', linestyle="--", label=f'Unsaturation {u}', color=colors[i])
 
-    outliers = np.where(np.abs(rts - p(tail_lengths)) > 0.25)[0]
-    if len(outliers) > 0:
-        print(f"Outliers for unsaturation {u}:")
-        for idx in outliers:
-            print(f"Tail Length: {tail_lengths[idx]}, Rt: {rts[idx]}, Predicted Rt: {p(tail_lengths[idx])}")
-            print("Name:", subdf.iloc[idx][column_name])
+    # Mark outliers
+    for j in range(len(rts)):
+        if np.abs(rts[j] - refrts[j]) > 0.25:
+            plt.plot(tail_lengths[j], rts[j], marker='s', markersize=10, markerfacecolor='none', markeredgecolor='r', markeredgewidth=2)
 
-    plt.plot(tail_lengths, rts, marker='o', label=f'Unsaturation {u}')
-    plt.plot(xnew, ynew, linestyle='--')
+    # if len(tail_lengths) < 6:
+    #     continue
+    # p = np.polyfit(tail_lengths, rts, 3)#, w=areas)
+    # p = np.poly1d(p)
+    # xnew = np.linspace(np.min(tail_lengths), np.max(tail_lengths), num=100)
+    # ynew = p(xnew)
+    # resid = rts - p(tail_lengths)
+    # plt.plot(tail_lengths, rts, marker='o', label=f'Unsaturation {u}', color=colors[i])
+    #
+    # plt.plot(xnew, ynew, linestyle='--', color=colors[int(u)])
 plt.xlabel('Tail Length')
 plt.ylabel('Retention Time (min)')
+plt.legend()
 plt.show()
