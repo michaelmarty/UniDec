@@ -645,7 +645,7 @@ def clean_names(name):
         name = name.split("|")[1]
     return name
 
-def clean_df(df, column="Molecule Name"):
+def clean_df(df, column="Molecule name"):
     df = df.copy()
     cleanednames = []
     for i, row in df.iterrows():

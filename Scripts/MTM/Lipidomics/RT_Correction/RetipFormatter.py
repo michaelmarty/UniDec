@@ -1,8 +1,16 @@
 import numpy as np
 import os
 import pandas as pd
+import Scripts.MTM.Lipidomics.LipidFunctions as LipidFunctions
 
 def df_to_df(df):
+    # Clean up duplicate names with same name and INCHIKEY
+    # Keep the one with highest Area
+    print(len(df))
+    df = df.sort_values(by=['S/N average'], ascending=False)
+    df = df.drop_duplicates(subset=['Metabolite name', 'INCHIKEY'], keep='first')
+    print(len(df))
+
     # Rename Alignment ID to ID
     df = df.rename(columns={"Alignment ID": "ID"})
     # Rename "Metabolite name" to "Name"
@@ -14,7 +22,7 @@ def df_to_df(df):
     # Rename "INCHIKEY" to InChIKey
     df = df.rename(columns={"INCHIKEY": "InChIKey"})
     # Keep only ID, Name, CompoundClass, RT, Reference RT, InChIKey and SMILES
-    df = df[["ID", "Name", "CompoundClass", "InChIKey", "SMILES", "RT", "Reference RT"]]
+    df = df[["ID", "Name", "CompoundClass", "InChIKey", "SMILES", "RT", "Tail Length", "Tail Unsaturation", "Reference RT", "S/N average"]] #
 
     return df
 
@@ -95,21 +103,21 @@ def df_to_msp(df, mspfile, outfile, newcol="RT"):
                     f.write(line)
 
 
-os.chdir(r"Z:\Group Share\MTM\IQ-X\MartyLab_AX\FinalResults")
-# posdf = msp_to_df("MSDIAL-TandemMassSpectralAtlas-VS69-Pos-C1.msp")
-# # Write to CSV
-# posdf.to_csv("Pos_C1_Ref_FromMSP.csv", index=False)
+# os.chdir(r"Z:\Group Share\MTM\IQ-X\MartyLab_AX\FinalResults")
+# # posdf = msp_to_df("MSDIAL-TandemMassSpectralAtlas-VS69-Pos-C1.msp")
+# # # Write to CSV
+# # posdf.to_csv("Pos_C1_Ref_FromMSP.csv", index=False)
+# #
+# # # Read neg file
+# # negdf = msp_to_df("MSDIAL-TandemMassSpectralAtlas-VS69-Neg-C1.msp")
+# # # Write to CSV
+# # negdf.to_csv("Neg_C1_Ref_FromMSP.csv", index=False)
 #
-# # Read neg file
-# negdf = msp_to_df("MSDIAL-TandemMassSpectralAtlas-VS69-Neg-C1.msp")
-# # Write to CSV
-# negdf.to_csv("Neg_C1_Ref_FromMSP.csv", index=False)
-
-# Test the df to msp function
-posdf = pd.read_csv("Pos_C1_Ref_FromMSP.csv")
-df_to_msp(posdf, "MSDIAL-TandemMassSpectralAtlas-VS69-Pos-C1.msp", "Test_Pos_C1.msp")
-
-exit()
+# # Test the df to msp function
+# posdf = pd.read_csv("Pos_C1_Ref_FromMSP.csv")
+# df_to_msp(posdf, "MSDIAL-TandemMassSpectralAtlas-VS69-Pos-C1.msp", "Test_Pos_C1.msp")
+#
+# exit()
 
 os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
 
@@ -120,6 +128,11 @@ posdf = pd.read_csv(posfile)
 negdf = pd.read_csv(negfile)
 # Combine dataframes
 df = pd.concat([negdf, posdf])
+
+# Add Tail Length and Unsaturation columns if not present
+if "Tail Length" not in df.columns:
+    df = LipidFunctions.clean_df(df, column="Metabolite name")
+    df = LipidFunctions.set_tails(df, columnname="Metabolite name")
 
 df = df_to_df(df)
 
