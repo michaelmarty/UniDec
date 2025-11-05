@@ -17,11 +17,11 @@ dataset = retip.Dataset(target_column='RT').load_retip_dataset(
       'C1_Ref_preprocessed_testing.csv')
 
 trainer = retip.AutoGluonTrainer(dataset)
-trainer.load_model('C1_Ref_autogluon-model_HighW10')
+trainer.load_model('C1_Ref_autogluon-model_FilteredHighWLimited10')
 
 annotated = trainer.annotate(dataset.get_testing_data(include_metadata=True), prediction_column='RTP')
 # Save
-annotated.to_csv("C1_Ref_Testing_HighW10.csv")
+annotated.to_csv("C1_Ref_Testing_FilteredHighWLimited10.csv")
 
 print(trainer.score(plot=True))
 

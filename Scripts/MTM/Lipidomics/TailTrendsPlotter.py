@@ -29,7 +29,7 @@ refcol = "Reference RT"
 
 os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
 
-file = r"C1_Ref_Testing_HighW10.csv"
+file = r"C1_Ref_Testing_FilteredHighWLimited10.csv"
 column_name = "Name"
 rt_name = "RT"
 class_name = "CompoundClass"
@@ -39,52 +39,62 @@ refcol = "RTP"
 df = pd.read_csv(file)
 df = LipidFunctions.clean_df(df, column=column_name)
 df = LipidFunctions.set_tails(df, columnname=column_name)
-df = LipidFunctions.encode_headgroups(df, classname=class_name, rtcol_name=rt_name)
+# df = LipidFunctions.encode_headgroups(df, classname=class_name, rtcol_name=rt_name)
 df["Residuals"] = np.abs(df[rt_name] - df[refcol])
+
+# Remove residuals above 0.25 min
+filtereddf = df[df["Residuals"] <= 0.25]
+(print(len(filtereddf)))
+# Write to file
+if "Filtered" not in file:
+    filtereddf.to_csv("Filtered_" + file, index=False)
 
 # Stats on residuals
 print(f'Mean Residual: {np.mean(df["Residuals"]):.3f} min')
 print(f'Median Residual: {np.median(df["Residuals"]):.3f} min')
 print(f'STD of Residuals: {np.std(df["Residuals"]):.3f} min')
 
-print(df[class_name].unique())
+classes = df[class_name].unique()
+print(classes)
 
-# Isolate FA ontology
-fa_df = df[df[class_name] == "PC"]
+# classes = ["PC", "PE", "TG"]
 
-print(f'Mean Residual: {np.mean(fa_df["Residuals"]):.3f} min')
-print(f'Median Residual: {np.median(fa_df["Residuals"]):.3f} min')
-print(f'STD of Residuals: {np.std(fa_df["Residuals"]):.3f} min')
-
-classstd = np.std(fa_df["Residuals"])
-
-
-
-unsats = np.unique(fa_df["Tail Unsaturation"].values)
-colors = plt.cm.viridis(np.linspace(0, 1, len(unsats)))
-
-for i, u in enumerate(unsats):
-    subdf = fa_df[fa_df["Tail Unsaturation"] == u]
-    # Sort subdf by tail lengths
-    subdf = subdf.sort_values(by=["Tail Length"])
-    tail_lengths = subdf["Tail Length"].values
-    rts = subdf[rt_name].values
-    refrts = subdf[refcol].values
-
-    # plt.subplot(122)
-    plt.plot(tail_lengths, refrts, marker='x', color=colors[i])
-
+for c in classes:
+    # Isolate FA ontology
+    fa_df = df[df[class_name] == c]
+    if len(fa_df) < 10:
+        continue
     #
-    # plt.subplot(121)
-    plt.plot(tail_lengths, rts, marker='o', linestyle="--", label=f'Unsaturation {u}', color=colors[i])
+    # print(f'Mean Residual: {np.mean(fa_df["Residuals"]):.3f} min')
+    # print(f'STD of Residuals: {np.std(fa_df["Residuals"]):.3f} min')
+    plt.figure()
+    classstd = np.std(fa_df["Residuals"])
 
-    # Mark outliers
-    for j in range(len(rts)):
-        if np.abs(rts[j] - refrts[j]) > 0.25:
-            plt.plot(tail_lengths[j], rts[j], marker='s', markersize=10, markerfacecolor='none', markeredgecolor='r', markeredgewidth=2)
+    unsats = np.unique(fa_df["Tail Unsaturation"].values)
+    colors = plt.cm.viridis(np.linspace(0, 1, len(unsats)))
+
+    for i, u in enumerate(unsats):
+        subdf = fa_df[fa_df["Tail Unsaturation"] == u]
+        # Sort subdf by tail lengths
+        subdf = subdf.sort_values(by=["Tail Length"])
+        tail_lengths = subdf["Tail Length"].values
+        rts = subdf[rt_name].values
+        refrts = subdf[refcol].values
+
+        # plt.subplot(122)
+        plt.plot(tail_lengths, refrts, marker='x', color=colors[i])
+
+        #
+        # plt.subplot(121)
+        plt.plot(tail_lengths, rts, marker='o', linestyle="--", label=f'{c} Unsaturation {u}', color=colors[i])
+
+        # Mark outliers
+        for j in range(len(rts)):
+            if np.abs(rts[j] - refrts[j]) > 0.25:
+                plt.plot(tail_lengths[j], rts[j], marker='s', markersize=10, markerfacecolor='none', markeredgecolor='r', markeredgewidth=2)
 
 
-plt.xlabel('Tail Length')
-plt.ylabel('Retention Time (min)')
-plt.legend()
+    plt.xlabel('Tail Length')
+    plt.ylabel('Retention Time (min)')
+    plt.legend()
 plt.show()

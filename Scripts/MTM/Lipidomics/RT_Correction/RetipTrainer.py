@@ -1,4 +1,5 @@
 import os
+import numpy as np
 
 try:
     import retip
@@ -13,29 +14,34 @@ except:
 os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
 
 dataset = retip.Dataset(target_column='RT').load_retip_dataset(
-      'C1_Ref_preprocessed_training.csv',
+      'Filtered_C1_Ref_Testing_HighWLimited30.csv',
       'C1_Ref_preprocessed_testing.csv')
-
-drop_cols = ["Reference RT"]
-for d in dataset.datasets.keys():
-    for col in drop_cols:
-        if col in dataset.datasets[d].columns:
-            dataset.datasets[d] = dataset.datasets[d].drop(columns=[col])
 
 dataset.describe()
 # Print dataset columns
-print(dataset.datasets["training"].columns)
-dataset.descriptor_names.append('S/N average')
-dataset.descriptor_names.append("Tail Length")
-dataset.descriptor_names.append("Tail Unsaturation")
+print("Columns in Training Data:", dataset.datasets["training"].columns)
 
+# The top 12 features from a more extensive training plus nAcid and nBase, which I think are important
+allowed_columns = ["nAcid", "nBase", "SLogP", "SlogP_VSA5", "SssCH2", "ZMIC1", "CIC0", "MDEC-22", "AATS2pe", "AMID", "CIC1", "SMR_VSA5"]
 
-# trainer = retip.XGBoostTrainer(dataset)
-trainer = retip.AutoGluonTrainer(dataset, training_duration=3, preset="high_quality")
+new_descriptor_names = []
+for col in allowed_columns:
+    if col in dataset.descriptor_names:
+        new_descriptor_names.append(col)
+
+new_descriptor_names.append('S/N average')
+# new_descriptor_names.append("Tail Length")
+# new_descriptor_names.append("Tail Unsaturation")
+dataset.descriptor_names = new_descriptor_names
+
+# Use log of weight column
+dataset.datasets["training"]["S/N average"] = dataset.datasets["training"]["S/N average"].apply(lambda x: np.log(x))
+
+trainer = retip.AutoGluonTrainer(dataset, training_duration=10, preset="high_quality")
 trainer.weight_column = "S/N average"
 trainer.train()
 print(trainer.model_columns)
 
-trainer.save_model('C1_Ref_autogluon-model_HighW10')
-
-print(trainer.score(plot=False))
+trainer.save_model('C1_Ref_autogluon-model_FilteredHighWLimited10')
+#
+# print(trainer.score(plot=False))
