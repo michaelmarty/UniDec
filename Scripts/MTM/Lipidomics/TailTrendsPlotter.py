@@ -29,7 +29,7 @@ refcol = "Reference RT"
 
 os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
 
-file = r"C1_Ref_Testing_FilteredHighWLimited10.csv"
+file = r"C1_Ref_Testing_FilteredHighLimited10.csv"
 column_name = "Name"
 rt_name = "RT"
 class_name = "CompoundClass"
@@ -58,6 +58,7 @@ classes = df[class_name].unique()
 print(classes)
 
 # classes = ["PC", "PE", "TG"]
+# classes = ["LPC"]
 
 for c in classes:
     # Isolate FA ontology

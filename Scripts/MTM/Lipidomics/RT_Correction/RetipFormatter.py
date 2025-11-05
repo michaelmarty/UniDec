@@ -5,7 +5,7 @@ import Scripts.MTM.Lipidomics.LipidFunctions as LipidFunctions
 
 def df_to_df(df):
     # Clean up duplicate names with same name and INCHIKEY
-    # Keep the one with highest Area
+    # Keep the one with highest S/N average
     print(len(df))
     df = df.sort_values(by=['S/N average'], ascending=False)
     df = df.drop_duplicates(subset=['Metabolite name', 'INCHIKEY'], keep='first')
@@ -75,7 +75,10 @@ def df_to_msp(df, mspfile, outfile, newcol="RT"):
         name = ""
         inchi = ""
         smiles = ""
-        for line in lines:
+        for i, line in enumerate(lines):
+            # Print progress every 50000 lines
+            if i % 50000 == 0:
+                print(f"Processing line {i}... of {len(lines)}")
             if name == "":
                 f.write(line)
                 if "NAME:" in line:
@@ -84,10 +87,12 @@ def df_to_msp(df, mspfile, outfile, newcol="RT"):
                 if "INCHIKEY:" in line:
                     inchi = line.split(":", 1)[1].strip()
                     f.write(line)
+                    continue
 
                 if "SMILES:" in line:
                     smiles = line.split(":", 1)[1].strip()
                     f.write(line)
+                    continue
 
                 if "RETENTIONTIME:" in line:
                     newrt = get_rt_for_name(df, name, inchi, smiles, newcol)
@@ -138,4 +143,19 @@ if __name__ == "__main__":
 
     outfile = "C1_Ref_Training.csv"
     df.to_csv(outfile, index=False)
+
+### Notes
+"""
+Used RetipFormatter to take output from MSDial and format it for Retip training.
+Ran RetipPreprocessor to prepare the data for training
+Did initial training for 30 min with S/N average as weight column and the top 10 features plus nAcid and nBase as the descriptor names.
+Used high quality preset for training.
+Ran RetipPredictor to predict RTs for the training set again. 
+Used TailTrendsPlotter to analyze residuals and filter out entries with residuals above 0.25 min.
+Reran RetipTrainer on the filtered data for 10 min to get the final model with high quality and no weight column.
+Ran RetipLibProcessor to process MSP file into CSV for prediction and add descriptors
+Ran RetipLibPredictor to predict RTs for the MSP entries in the CSV
+Ran RetipLibtoMSP to write the predicted RTs back into a new MSP file.
+
+"""
 

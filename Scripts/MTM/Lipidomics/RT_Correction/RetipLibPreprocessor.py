@@ -31,7 +31,7 @@ if True:
     allowed_columns = ["nAcid", "nBase", "SLogP", "SlogP_VSA5", "SssCH2", "ZMIC1", "CIC0", "MDEC-22", "AATS2pe", "AMID", "CIC1",
      "SMR_VSA5"]
 
-    dataset = retip.Dataset(target_column='RT', allowed_descriptors=allowed_columns).load_retip_dataset(training=posdfname)
+    dataset = retip.Dataset(target_column='RT', allowed_descriptors=allowed_columns).load_retip_dataset(testing=posdfname)
     # Limit dataset to first 100 entries for testing
     dataset.calculate_descriptors()
     dataset.describe()
@@ -39,7 +39,7 @@ if True:
     dataset.save_retip_dataset(posdfname.replace(".csv", "_preprocessed"))
     dataset.describe()
 
-    dataset = retip.Dataset(target_column='RT', allowed_descriptors=allowed_columns).load_retip_dataset(training=negdfname)
+    dataset = retip.Dataset(target_column='RT', allowed_descriptors=allowed_columns).load_retip_dataset(testing=negdfname)
     dataset.calculate_descriptors()
     dataset.describe()
     dataset.preprocess_features('lipidomics')

@@ -29,19 +29,19 @@ for col in allowed_columns:
     if col in dataset.descriptor_names:
         new_descriptor_names.append(col)
 
-new_descriptor_names.append('S/N average')
+# new_descriptor_names.append('S/N average')
 # new_descriptor_names.append("Tail Length")
 # new_descriptor_names.append("Tail Unsaturation")
 dataset.descriptor_names = new_descriptor_names
 
 # Use log of weight column
-dataset.datasets["training"]["S/N average"] = dataset.datasets["training"]["S/N average"].apply(lambda x: np.log(x))
+# dataset.datasets["training"]["S/N average"] = dataset.datasets["training"]["S/N average"].apply(lambda x: np.log2(x))
 
-trainer = retip.AutoGluonTrainer(dataset, training_duration=10, preset="high_quality")
-trainer.weight_column = "S/N average"
+trainer = retip.AutoGluonTrainer(dataset, training_duration=30, preset="medium_quality")
+# trainer.weight_column = "S/N average"
 trainer.train()
 print(trainer.model_columns)
 
-trainer.save_model('C1_Ref_autogluon-model_FilteredHighWLimited10')
+trainer.save_model('C1_Ref_autogluon-model_FilteredMedLimited30')
 #
 # print(trainer.score(plot=False))
