@@ -28,22 +28,23 @@ if False:
 
 if True:
     os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
-    allowed_columns = ["nAcid", "nBase", "SLogP", "SlogP_VSA5", "SssCH2", "ZMIC1", "CIC0", "MDEC-22", "AATS2pe", "AMID", "CIC1",
-     "SMR_VSA5"]
+    # allowed_columns = ["nAcid", "nBase", "SLogP", "SlogP_VSA5", "SssCH2", "ZMIC1", "CIC0", "MDEC-22", "AATS2pe", "AMID", "CIC1",
+    #  "SMR_VSA5"]
+    allowed_columns = None
 
-    dataset = retip.Dataset(target_column='RT', allowed_descriptors=allowed_columns).load_retip_dataset(testing=posdfname)
+    dataset = retip.Dataset(target_column='RT', allowed_descriptors=allowed_columns).load_retip_dataset(posdfname)
     # Limit dataset to first 100 entries for testing
     dataset.calculate_descriptors()
     dataset.describe()
-    dataset.preprocess_features('lipidomics')
-    dataset.save_retip_dataset(posdfname.replace(".csv", "_preprocessed"))
+    # dataset.preprocess_features('lipidomics')
+    dataset.save_retip_dataset(posdfname.replace(".csv", "_preprocessed_full"))
     dataset.describe()
 
-    dataset = retip.Dataset(target_column='RT', allowed_descriptors=allowed_columns).load_retip_dataset(testing=negdfname)
+    dataset = retip.Dataset(target_column='RT', allowed_descriptors=allowed_columns).load_retip_dataset(negdfname)
     dataset.calculate_descriptors()
     dataset.describe()
-    dataset.preprocess_features('lipidomics')
-    dataset.save_retip_dataset(negdfname.replace(".csv", "_preprocessed"))
+    # dataset.preprocess_features('lipidomics')
+    dataset.save_retip_dataset(negdfname.replace(".csv", "_preprocessed_full"))
     dataset.describe()
 
 

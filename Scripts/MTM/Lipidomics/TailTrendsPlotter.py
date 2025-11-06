@@ -21,19 +21,19 @@ import matplotlib
 
 os.chdir(r"Z:\Group Share\MTM\IQ-X\MartyLab_AX\FinalResults")
 
-file = r"PosIDsC1.csv"
+file = r"PosIDsRTP1.csv"
 column_name = "Metabolite name"
 rt_name = "Average Rt(min)"
 class_name = "Ontology"
 refcol = "Reference RT"
 
-os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
-
-file = r"C1_Ref_Testing_FilteredHighLimited10.csv"
-column_name = "Name"
-rt_name = "RT"
-class_name = "CompoundClass"
-refcol = "RTP"
+# os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
+#
+# file = r"C1_Ref_Testing_FilteredHighLimited10.csv"
+# column_name = "Name"
+# rt_name = "RT"
+# class_name = "CompoundClass"
+# refcol = "RTP"
 # refcol= "Reference RT"
 
 df = pd.read_csv(file)

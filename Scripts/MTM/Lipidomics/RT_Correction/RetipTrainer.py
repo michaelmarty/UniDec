@@ -15,7 +15,7 @@ os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
 
 dataset = retip.Dataset(target_column='RT').load_retip_dataset(
       'Filtered_C1_Ref_Testing_HighWLimited30.csv',
-      'C1_Ref_preprocessed_testing.csv')
+      'C1_Ref_preprocessed_training.csv')
 
 dataset.describe()
 # Print dataset columns
@@ -37,11 +37,11 @@ dataset.descriptor_names = new_descriptor_names
 # Use log of weight column
 # dataset.datasets["training"]["S/N average"] = dataset.datasets["training"]["S/N average"].apply(lambda x: np.log2(x))
 
-trainer = retip.AutoGluonTrainer(dataset, training_duration=30, preset="medium_quality")
+trainer = retip.AutoGluonTrainer(dataset, training_duration=10, preset="high_quality")
 # trainer.weight_column = "S/N average"
 trainer.train()
 print(trainer.model_columns)
 
-trainer.save_model('C1_Ref_autogluon-model_FilteredMedLimited30')
+trainer.save_model('C1_Ref_autogluon-model_FilteredHighLimited10')
 #
 # print(trainer.score(plot=False))

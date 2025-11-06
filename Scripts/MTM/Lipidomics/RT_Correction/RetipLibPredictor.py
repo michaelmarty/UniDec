@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
 
-fname = 'Pos_C1_Ref_FromMSP_preprocessed_testing.csv'
+fname = 'Neg_C1_Ref_FromMSP_preprocessed_testing.csv'
 
 dataset = retip.Dataset(target_column='RT').load_retip_dataset(training='Filtered_C1_Ref_Testing_HighWLimited30.csv',
       testing=fname)

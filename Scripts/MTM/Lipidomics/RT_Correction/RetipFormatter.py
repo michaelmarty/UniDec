@@ -51,7 +51,7 @@ def msp_to_df(mspfile):
     df = df[["Name", "CompoundClass", "InChIKey", "SMILES", "RT"]]
     return df
 
-def get_rt_for_name(df, name, inchi, smiles, newcol="RT"):
+def get_rt_for_name(df, name, inchi, smiles, newcol="RT", verbose=True):
     rt = df.loc[df['Name'] == name, newcol].values
     if len(rt) == 1:
         return rt[0]
@@ -62,12 +62,13 @@ def get_rt_for_name(df, name, inchi, smiles, newcol="RT"):
         if len(filtered) == 1:
             return filtered.iloc[0][newcol]
         else:
-            print(f"Could not resolve duplicates for {name} using InChIKey or SMILES, using first occurrence.")
+            if verbose:
+                print(f"Couldn't resolve duplicates for {name}. Using first")
             return rt[0]  # or handle duplicates as needed
     else:
         return None
 
-def df_to_msp(df, mspfile, outfile, newcol="RT"):
+def df_to_msp(df, mspfile, outfile, newcol="RT", verbose=True):
     with open(mspfile, 'r') as f:
         lines = f.readlines()
 
@@ -95,7 +96,7 @@ def df_to_msp(df, mspfile, outfile, newcol="RT"):
                     continue
 
                 if "RETENTIONTIME:" in line:
-                    newrt = get_rt_for_name(df, name, inchi, smiles, newcol)
+                    newrt = get_rt_for_name(df, name, inchi, smiles, newcol, verbose=verbose)
                     try:
                         f.write(f"RETENTIONTIME: {float(newrt)}\n")
                     except:
