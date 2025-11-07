@@ -15,7 +15,7 @@ os.chdir(r"Z:\Group Share\Annika\Stellar\HEK")
 file = r"20250929_AS_HEK_DDA_20_Neg.txt"
 file = r"20251027_AS_HEK_DDA_Neg_Stellar_RTCor2.txt"
 os.chdir(r"Z:\Group Share\MTM\IQ-X\MartyLab_AX\FinalResults")
-file = "PosIDsRTP1.csv"
+file = "NegIDsRTP1.csv"
 
 # df = pd.read_table(file)
 df = pd.read_csv(file)
