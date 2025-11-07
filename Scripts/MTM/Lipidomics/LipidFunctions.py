@@ -4,6 +4,56 @@ import pandas as pd
 import lxml.etree
 import matplotlib.pyplot as plt
 
+posadducts = [
+    ["[M+H]+", 1, 1.00782503207, True],
+    ["[M+NH4]+", 1, 18.03437413, True],
+    ["[M+Na]+", 1, 22.9897692809, True],
+    ["[M+CH3OH+H]+", 1, 33.03403978207, True],
+    ["[M+K]+", 1, 38.9637066, True],
+    ["[M+Li]+", 1, 7.01604545, False],
+    ["[M+ACN+H]+", 1, 42.03473142507, False],
+    ["[M+H2O]+", 1, 17.00273964793, False],
+    ["[M+Zn+H]+", 1, 65.919582379, False],
+    ["[M+IsoProp+Na+H]+", 1, 81.0596798687, False],
+    ["[M+C6H100S+H]+", 1, -161.0449838463, False],
+    ["[2M+H]+", 1, 1.00782503207, True],
+    ["[2M+NH4]+", 1, 18.03437413, True],
+    ["[2M+Na]+", 1, 22.9897692809, True],
+    ["[2M+ACN+H]+", 1, 42.0347312307, False],
+    ["[2M+ACN+Na]+", 1, 64.061638839, False],
+    ["[M+2H]+", 2, 2.01565006414, False],
+    ["[M+H+Na]+", 2, 19.04219961207, False],
+    ["[M+H+K]+", 2, 39.971517127, False],
+    ["[M+2ACN+H]+", 2, 43.04219191614, False],
+    ["[M+2ACN+Na]+", 2, 64.0674826414, False],
+    ["[M+3ACN+H]+", 3, 125.02597294614, False],
+    ["[M+3H]+", 3, 3.02347509261, False],
+    ["[M+3Na]+", 3, 68.9693078427, False],
+]
+
+negadducts = [
+    ["[M-H]-", 1, -1.00782503207, True],
+    ["[M-H2O-H]-", 1, -19.01838971207, False],
+    ["[M+Na-2H]-", 1, 20.97411921676, False],
+    ["[M+Cl]-", 1, 34.96885268, False],
+    ["[M+K-2H]-", 1, 36.94805661586, False],
+    ["[M+HCOO]-", 1, 44.997654, False],
+    ["[M+CH3COO]-", 1, 59.013305, True],
+    ["[M+C2H3N+Na-2H]-", 1, 62.00066831777, True],
+    ["[M+Br]-", 1, 78.9183371, False],
+    ["[M+TFA]-", 1, 112.98503896793, False],
+    ["[M-C6H10O4-H]-", 1, -147.06573383101, False],
+    ["[M-C6H10O5-H]-", 1, -163.06064845057, False],
+    ["[M-C6H8O6-H]-", 1, -177.03991305059, False],
+    ["[M+CH3COONa-H]-", 1, 80.99524996793, False],
+    ["[2M-H]-", 1, -1.00782503207, True],
+    ["[2M+FA-H]-", 1, 44.99765496793, False],
+    ["[2M+Hac-H]-", 1, 59.01330596793, False],
+    ["[3M-H]-", 1, -1.00782503207, True],
+    ["[M-2H]2-", 2, -2.01565006414, False],
+    ["[M-3H]3-", 3, -3.02347509261, False],
+]
+
 adduct_translator = np.array([["[M+H]+", "[M+H]", "+1", 1, "[M+H]1+"],
                               ["[M+NH4]+", "[M+NH4]", "+1", 1, "[M+NH4]1+"],
                               ["[M+2H]2+", "[M+2H]", "+2", 2, "[M+2H]2+"],
@@ -216,6 +266,15 @@ def count_tails(name, verbose=False):
     for f in fas:
         if f == '':
             continue
+        if "O-" in f:
+            f = f.replace("O-", "")
+        if "P-" in f:
+            f = f.replace("P-", "")
+        if ";O2" in f:
+            f = f.replace(";O2", "")
+        if ";O3" in f:
+            f = f.replace(";O3", "")
+
         tl = f.split(":")[0]  # Get length
         try:
             tu = f.split(":")[1]  # Get unsaturation
@@ -251,7 +310,7 @@ def set_tails(df, columnname="Molecule Name"):
     unsats = []
     for i, row in df.iterrows():
         name = row[columnname]
-        tname, tl, tu = count_tails(name)
+        tname, tl, tu = count_tails(name, verbose=True)
         tails.append(tname)
         lengths.append(tl)
         unsats.append(tu)
@@ -586,7 +645,7 @@ def clean_names(name):
         name = name.split("|")[1]
     return name
 
-def clean_df(df, column="Molecule Name"):
+def clean_df(df, column="Molecule name"):
     df = df.copy()
     cleanednames = []
     for i, row in df.iterrows():
@@ -618,6 +677,11 @@ def encode_headgroups(df, classname="Ontology", rtcol_name="Average Rt(min)"):
         enc = encoding[hg]
         encodings.append(enc)
     df["Headgroup Encoding"] = encodings
+
+    # Create one-hot encoding columns
+    for hg in headgroups:
+        colname = f"HG_{hg}"
+        df[colname] = df[classname].apply(lambda x: 1 if x == hg else 0)
     return df
 
 def msdial_to_lipidlist(df):

@@ -345,7 +345,7 @@ class HTEng:
         """
         Perform Peak Pooling Deconvolution
         """
-        print("Running Peak Pooling Deconvolution")
+        # print("Running Peak Pooling Deconvolution")
         # Perform the convolution
         output = fft.irfft(fft.rfft(data[self.ppstartindex:self.ppmaxindex]) * self.fftk).real
         # Cut the convolution to just the first cyclindex points
@@ -354,7 +354,7 @@ class HTEng:
         if "normalize" in kwargs:
             if kwargs["normalize"]:
                 output /= np.amax(output)
-                print("Normalized")
+                # print("Normalized")
         # Return demultiplexed data
         return output, data
 
