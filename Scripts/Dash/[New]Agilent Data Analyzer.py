@@ -3,52 +3,66 @@ import numpy as np
 import rainbow as rb
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-from matplotlib import colormaps
+from matplotlib import colormaps, colors
 from unidec.tools import integrate
 from matplotlib import rcParams
 import re
 import colorsys
 import glob
+from matplotlib.path import Path
+from matplotlib.patches import PathPatch
 
-topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\20251030 LX\20251029 Control 2025-10-29 13-01-55"
+topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\Channel 2 Tests\20251111_fld validation 2025-11-11 17-48-11"
 files = glob.glob(os.path.join(topdir, "*.D"))
 
 
-# Define the channel indices for multi-channel extraction only. Numbering starts from 0, so 3 and 4 correspond to the 4th and 5th channels in the data files.
+''' Define the channel indices for multi-channel extraction only. Numbering starts from 0, so 3 and 4 correspond to the 4th and 5th channels in the data files.'''
 channel_indices = [3, 4]
 
 NPZ_DIR = "NPZ files"
 TXT_DIR = "Text files"
 
 
-#Read one of DAD1A.npz - DAD1B.npz - DAD1C - DAD1D - FLD1A.npz - UIB1B.npz
+'''Read one of DAD1A.npz - DAD1B.npz - DAD1C - DAD1D - FLD1A.npz - UIB1B.npz'''
 read_files=["FLD1A_data.npz", "UIB1B_data.npz"]
 
-def get_filtered_colors(cmap_name='cool', num_colors=256, luminosity_factor=0.8, saturation_factor=2, hue_shift=0):
-    '''
 
-    cmap_name: Name of the matplotlib colormap to use (default is 'cool').
-    num_colors: Number of colors to sample from the colormap.
-    luminosity_factor: Multiplier for brightness (values < 1 darken, > 1 brighten).
-    saturation_factor: Multiplier for color intensity (values < 1 desaturate, > 1 saturate).
-    hue_shift: Value to shift the hue (color shade).
-    '''
+# Global color tuning (HSL modifiers)
+GLOBAL_LUM_FACTOR = 0.55       # brightness (1 = normal, <1 = darker, >1 = brighter)
+GLOBAL_SAT_FACTOR = 1.4        # saturation (1 = normal, >1 = more vivid)
+GLOBAL_HUE_SHIFT   = 0.00      # hue shift (0–1; cycles colors)
 
-    viridis = colormaps.get_cmap(cmap_name)
+# Global colormap dictionary
+COLOR_SCHEMES = {
+    "alpha": "winter_r",
+    "beta": "cool",
+    "gamma": "Wistia",
+    "gdata": "summer_r",
+    "rdata": "spring_r",
+    "overlay": "cool",
+}
+
+def get_filtered_colors(cmap_name, num_colors=256,luminosity_factor=None, saturation_factor=None, hue_shift=None):
+    """
+    Retrieve color samples from a given colormap with global HSL modifiers applied.
+    Any individual parameter overrides the global setting.
+    """
+    # Fallback to global values if not given
+    luminosity_factor = luminosity_factor or GLOBAL_LUM_FACTOR
+    saturation_factor = saturation_factor or GLOBAL_SAT_FACTOR
+    hue_shift = hue_shift or GLOBAL_HUE_SHIFT
+
+    cmap = colormaps.get_cmap(cmap_name)
     colors = []
 
     for i in range(num_colors):
-        color = viridis(i / num_colors)  # Sample uniformly
-        r, g, b, _ = color  # Unpack the color and ignore the alpha value
+        r, g, b, a = cmap(i / num_colors)
         h, l, s = colorsys.rgb_to_hls(r, g, b)
-
-
-        new_hue = (h + hue_shift) % 1.0
-        new_light = max(0, l * luminosity_factor)  # Ensure it doesn't go below 0
-        new_sat = min(1, s * saturation_factor)  # Ensure it doesn't go below 0
-        new_color = colorsys.hls_to_rgb(new_hue, new_light, new_sat)
-
-        colors.append((new_color[0], new_color[1], new_color[2], color[3]))  # Retain the original alpha
+        h = (h + hue_shift) % 1.0
+        l = max(0, min(1, l * luminosity_factor))
+        s = max(0, min(1, s * saturation_factor))
+        r2, g2, b2 = colorsys.hls_to_rgb(h, l, s)
+        colors.append((r2, g2, b2, a))
 
     return colors
 
@@ -86,73 +100,138 @@ def rc_params_setup():
     globals()['LEGEND_FONT_WEIGHT'] = 'bold'
 
 def get_just_UIB1B_files(files):
-    """
-    Save text and npz versions into `Text files` and `NPZ files` subdirs under each sample path.
-    Sample name stored remains the basename of `path` (not the subdir).
-    """
-    for path in files:
-        print(f"Processing: {path}")
-        datadir = rb.read(path)
-        datafile = datadir.get_file("UIB1B.ch")
-        time = np.array(datafile.xlabels)
-        voltages = np.array(datafile.data)
+            """
+            Save text and npz versions into `Text files` and `NPZ files` subdirs under each sample path.
+            Sample name stored remains the basename of `path` (not the subdir).
+            """
 
-        # Ensure subdirs
-        txt_outdir = os.path.join(path, TXT_DIR)
-        npz_outdir = os.path.join(path, NPZ_DIR)
-        os.makedirs(txt_outdir, exist_ok=True)
-        os.makedirs(npz_outdir, exist_ok=True)
 
-        # Save text
-        txt_path = os.path.join(txt_outdir, "UIB1B_rawdata.txt")
-        np.savetxt(txt_path, np.column_stack((time, voltages)), delimiter="\t")
+            expected_txt = "UIB1B_rawdata.txt"
+            expected_npz = "UIB1B_rawdata.npz"
 
-        # Save npz with named array for consistency
-        npz_path = os.path.join(npz_outdir, "UIB1B_rawdata.npz")
-        np.savez_compressed(npz_path, data=np.column_stack((time, voltages)))
+            # If all paths already have both the text and npz, skip remaining script run.
+            all_exist = True
+            for path in files:
+                txt_path = os.path.join(path, TXT_DIR, expected_txt)
+                npz_path = os.path.join(path, NPZ_DIR, expected_npz)
+                if not (os.path.exists(txt_path) and os.path.exists(npz_path)):
+                    all_exist = False
+                    break
 
-        # Save a quick preview png in the sample root (optional)
-        plt.figure(figsize=(16, 9))
-        plt.plot(time, voltages, marker='o', markersize=2, linestyle='-', linewidth=0.5, color='b', label='UIB1B Data')
-        plt.savefig(os.path.join(path, "UIB1B_data_raw.png"))
-        plt.close()
+            if all_exist:
+                print("Found existing `Text files/UIB1B_rawdata.txt` and `NPZ files/UIB1B_rawdata.npz` for all paths. Skipping remainder of script.")
+                return
+
+            for path in files:
+                print(f"Processing: {path}")
+                txt_outdir = os.path.join(path, TXT_DIR)
+                npz_outdir = os.path.join(path, NPZ_DIR)
+                txt_path = os.path.join(txt_outdir, expected_txt)
+                npz_path = os.path.join(npz_outdir, expected_npz)
+
+                # If this sample already has both files, skip generating them.
+                if os.path.exists(txt_path) and os.path.exists(npz_path):
+                    print(f"  Skipping `{path}` — `{txt_path}` and `{npz_path}` already exist")
+                    continue
+
+                try:
+                    datadir = rb.read(path)
+                    datafile = datadir.get_file("UIB1B.ch")
+                    time = np.array(datafile.xlabels)
+                    voltages = np.array(datafile.data)
+                except Exception as e:
+                    print(f"  Failed to read UIB1B from `{path}`: {e}")
+                    continue
+
+                # Ensure subdirs
+                os.makedirs(txt_outdir, exist_ok=True)
+                os.makedirs(npz_outdir, exist_ok=True)
+
+                # Save text
+                np.savetxt(txt_path, np.column_stack((time, voltages)), delimiter="\t")
+
+                # Save npz with named array for consistency
+                np.savez_compressed(npz_path, data=np.column_stack((time, voltages)))
+
+                # Save a quick preview png in the sample root (optional)
+                plt.figure(figsize=(16, 9))
+                plt.plot(time, voltages, marker='o', markersize=2, linestyle='-', linewidth=0.5, color='b', label='UIB1B Data')
+                plt.savefig(os.path.join(path, "UIB1B_data_raw.png"))
+                plt.close()
 
 def extract_all_files(files):
-    """
-    Extract all .ch channel files and save text into `Text files` and npz into `NPZ files`.
-    Skips `UIB1B.ch`.
-    """
-    skip_name = "UIB1B.ch"
-    for path in files:
-        print(f"Processing: {path}")
-        datadir = rb.read(path)
-        ch_files = [f for f in os.listdir(path) if f.lower().endswith('.ch') and f.lower() != skip_name]
-        if not ch_files:
-            continue
+                """
+                Extract all .ch channel files and save text into `Text files` and npz into `NPZ files`.
+                Skips `UIB1B.ch`.
+                """
+                if not files:
+                    print("No paths provided to extract_all_files; nothing to do.")
+                    return
 
-        txt_outdir = os.path.join(path, TXT_DIR)
-        npz_outdir = os.path.join(path, NPZ_DIR)
-        os.makedirs(txt_outdir, exist_ok=True)
-        os.makedirs(npz_outdir, exist_ok=True)
+                skip_name = "UIB1B.ch"
+                for path in files:
+                    if not os.path.isdir(path):
+                        print(f"Skipping: {path} (not a directory)")
+                        continue
+                    print(f"Processing: {path}")
+                    try:
+                        datadir = rb.read(path)
+                    except Exception as e:
+                        print(f"  Failed to open directory with rb.read: {e}")
+                        continue
 
-        for ch_file in ch_files:
-            print(f"Processing channel file: {ch_file}")
-            try:
-                datafile = datadir.get_file(ch_file)
-            except Exception as e:
-                print(f"  Failed to read channel file {ch_file}: {e}")
-                continue
+                    try:
+                        ch_files = [f for f in os.listdir(path) if f.lower().endswith('.ch') and f.lower() != skip_name]
+                    except Exception as e:
+                        print(f"  Failed to list files in {path}: {e}")
+                        continue
 
-            time = np.array(datafile.xlabels)
-            voltages = np.array(datafile.data)
+                    if not ch_files:
+                        print(f"  No channel files found in {path}")
+                        continue
 
-            base_name = ch_file.replace('.ch', '_data')
-            txt_path = os.path.join(txt_outdir, f"{base_name}.txt")
-            np.savetxt(txt_path, np.column_stack((time, voltages)), delimiter="\t")
+                    txt_outdir = os.path.join(path, TXT_DIR)
+                    npz_outdir = os.path.join(path, NPZ_DIR)
 
-            npz_path = os.path.join(npz_outdir, f"{base_name}.npz")
-            # Save with explicit key 'data' for predictable reading
-            np.savez_compressed(npz_path, data=np.column_stack((time, voltages)))
+                    # If all channel files already have both .txt and .npz in their respective folders, skip this sample.
+                    all_exist = True
+                    for ch_file in ch_files:
+                        base_name = os.path.splitext(ch_file)[0] + '_data'
+                        txt_path = os.path.join(txt_outdir, f"{base_name}.txt")
+                        npz_path = os.path.join(npz_outdir, f"{base_name}.npz")
+                        if not (os.path.exists(txt_path) and os.path.exists(npz_path)):
+                            all_exist = False
+                            break
+
+                    if all_exist:
+                        print(f"  All channel data files exist in `{TXT_DIR}` and `{NPZ_DIR}` for {path} — skipping")
+                        return
+
+                    os.makedirs(txt_outdir, exist_ok=True)
+                    os.makedirs(npz_outdir, exist_ok=True)
+
+                    for ch_file in ch_files:
+                        base_name = os.path.splitext(ch_file)[0] + '_data'
+                        txt_path = os.path.join(txt_outdir, f"{base_name}.txt")
+                        npz_path = os.path.join(npz_outdir, f"{base_name}.npz")
+
+                        # Skip per-file if both outputs already exist
+                        if os.path.exists(txt_path) and os.path.exists(npz_path):
+                            print(f"  Skipping `{ch_file}` — `{txt_path}` and `{npz_path}` already exist")
+                            continue
+
+                        print(f"Processing channel file: {ch_file}")
+                        try:
+                            datafile = datadir.get_file(ch_file)
+                        except Exception as e:
+                            print(f"  Failed to read channel file {ch_file}: {e}")
+                            continue
+
+                        time = np.array(datafile.xlabels)
+                        voltages = np.array(datafile.data)
+
+                        np.savetxt(txt_path, np.column_stack((time, voltages)), delimiter="\t")
+                        np.savez_compressed(npz_path, data=np.column_stack((time, voltages)))
 
 def nonlinearize(datatop, num_compressed, gap=5):
     """
@@ -628,15 +707,16 @@ def plot_instrument_timetables(files):
         return filled
 
     cmap_map = {
-        "alpha": "winter",
-        "beta": "cool",
-        "gamma": "Wistia"
-    }
+    "alpha": COLOR_SCHEMES["alpha"],
+    "beta":  COLOR_SCHEMES["beta"],
+    "gamma": COLOR_SCHEMES["gamma"]
+	}
+
 
     for d_path in files:
         timetable_dir = os.path.join(d_path, "Method Timetables")
         if not os.path.isdir(timetable_dir):
-            print(f"⚠️ No Method Timetables found in {d_path}")
+            print(f" No Method Timetables found in {d_path}")
             continue
 
         # Explicit file selection
@@ -833,10 +913,10 @@ def plot_UIB_overlay(files, topdir, figsize=(14, 8), save=True):
         gdata = safe_loadtxt(gpath)
         rdata = safe_loadtxt(rpath)
 
-        if gdata is not None and gdata.size > 0:
+        if gdata is not None and getattr(gdata, "size", 0) > 0:
             g_all.append(gdata)
             labels.append(label)
-        if rdata is not None and rdata.size > 0:
+        if rdata is not None and getattr(rdata, "size", 0) > 0:
             r_all.append(rdata)
 
     if not g_all and not r_all:
@@ -847,35 +927,44 @@ def plot_UIB_overlay(files, topdir, figsize=(14, 8), save=True):
     fig.suptitle("UIB1B", fontsize=16)
 
     # Separate colormaps
-    g_colors = get_filtered_colors('summer_r', num_colors=max(len(g_all), 1))
-    r_colors = get_filtered_colors('spring_r', num_colors=max(len(r_all), 1))
+    g_colors = get_filtered_colors(COLOR_SCHEMES["gdata"], num_colors=max(len(g_all), 1))
+    r_colors = get_filtered_colors(COLOR_SCHEMES["rdata"], num_colors=max(len(r_all), 1))
 
     # --- gdata overlay (summer) ---
     for i, arr in enumerate(g_all):
+        if arr is None:
+            continue
+        arr = np.asarray(arr)
         if arr.ndim == 2 and arr.shape[1] == 2:
             axg.plot(arr[:, 0], arr[:, 1],
-                     label=labels[i],
+                     label=labels[i] if i < len(labels) else f"Sample {i+1}",
                      color=g_colors[i % len(g_colors)],
                      linewidth=1)
     axg.set_title("Green Channel (gdata)")
     axg.set_xlabel("Time")
     axg.set_ylabel("Intensity")
-    axg.legend(fontsize='small', loc='upper right')
+    #if labels:
+        #axg.legend(fontsize='small', loc='upper right')
 
     # --- rdata overlay (cool) ---
     for i, arr in enumerate(r_all):
+        if arr is None:
+            continue
+        arr = np.asarray(arr)
         if arr.ndim == 2 and arr.shape[1] == 2:
+            lbl = labels[i] if i < len(labels) else f"Sample {i+1}"
             axr.plot(arr[:, 0], arr[:, 1],
-                     label=labels[i] if i < len(labels) else f"Sample {i+1}",
+                     label=lbl,
                      color=r_colors[i % len(r_colors)],
                      linewidth=1)
     axr.set_title("Red Channel (rdata)")
     axr.set_xlabel("Time")
     axr.set_ylabel("Intensity")
-    axr.legend(fontsize='small', loc='upper right')
+    #if r_all:
+        #axr.legend(fontsize='small', loc='upper right')
 
     plt.tight_layout(rect=[0, 0, 1, 0.97])
-    if save:
+    if save and topdir:
         outpath = os.path.join(topdir, "UIB1B_g_r_overlay_sorted.png")
         fig.savefig(outpath, dpi=300)
         print(f" Saved sorted overlay figure: {outpath}")
@@ -989,7 +1078,7 @@ def plot_g_r_ridgelines(files, topdir, base_offset=100, autoscale=True, padding_
     if g_data:
         plot_ridgeline(
             g_data, g_labels,
-            cmap_name='winter_r',
+            COLOR_SCHEMES["gdata"],
             title="UIB1B gdata",
             save_prefix="UIB1B_gdata"
         )
@@ -997,10 +1086,269 @@ def plot_g_r_ridgelines(files, topdir, base_offset=100, autoscale=True, padding_
     if r_data:
         plot_ridgeline(
             r_data, r_labels,
-            cmap_name='spring_r',
+            COLOR_SCHEMES["rdata"],
             title="UIB1B rdata",
             save_prefix="UIB1B_rdata"
         )
+
+def plot_g_r_filled_ridgelines(files,topdir,base_offset=100,autoscale=True,padding_factor=0.15,g_cmap_name="summer_r",r_cmap_name="spring_r",line_width=0.6,fill_alpha=0.9,cmap_trim=(0.5, 1),group_gap_factor=0.25):
+    """
+    Creates:
+      1) Ridgeline for gdata
+      2) Ridgeline for rdata
+      3) Combined ridgeline (g + r on the same axes)
+
+    Aligns rdata with gdata by using a shared baseline per label, derived from
+    the max peak height across both channels for that label.
+    """
+
+    # ---- helpers: label extraction & data load ----
+    def extract_label(path):
+        base = os.path.basename(path)
+        m = re.search(r'-([^-\\/.]+)\.D$', base, re.IGNORECASE)
+        return m.group(1).lower() if m else base.lower()
+
+    def safe_loadtxt(path):
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                first = f.readline().strip().lower()
+            skip = 1 if first.startswith("time") else 0
+            return np.loadtxt(path, delimiter="\t", skiprows=skip)
+        except Exception as e:
+            print(f"Failed to read {path}: {e}")
+            return None
+
+    # ---- collect & sort ----
+    labels = {d: extract_label(d) for d in files}
+    files_sorted = sorted(files, key=lambda p: labels[p])
+
+    # Maps: label -> array (or None)
+    g_map, r_map = {}, {}
+    for d in files_sorted:
+        txtdir = os.path.join(d, "Text files")
+        gpath = os.path.join(txtdir, "UIB1B_gdata.txt")
+        rpath = os.path.join(txtdir, "UIB1B_rdata.txt")
+        label = labels[d]
+
+        g_arr = safe_loadtxt(gpath)
+        r_arr = safe_loadtxt(rpath)
+
+        if g_arr is not None and g_arr.ndim == 2 and g_arr.shape[1] == 2 and g_arr.size > 0:
+            g_map[label] = g_arr
+        if r_arr is not None and r_arr.ndim == 2 and r_arr.shape[1] == 2 and r_arr.size > 0:
+            r_map[label] = r_arr
+
+    # unified ordered label list
+    all_labels = sorted(set(list(g_map.keys()) + list(r_map.keys())))
+
+    # ---- colormap utilities ----
+    def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=256):
+        new_colors = cmap(np.linspace(minval, maxval, n))
+        return colors.LinearSegmentedColormap.from_list(
+            f"trunc({cmap.name},{minval:.2f},{maxval:.2f})", new_colors
+        )
+
+    # ---- core drawer: gradient fill under curve + black outline ----
+    def gradient_fill_under_curve(ax, x, y_shifted, baseline, cmap, alpha=0.9):
+        x = np.asarray(x)
+        y_shifted = np.asarray(y_shifted)
+        order = np.argsort(x)
+        x = x[order]
+        y_shifted = y_shifted[order]
+
+        ymin = min(baseline, float(np.min(y_shifted)))
+        ymax = float(np.max(y_shifted))
+        if ymax <= ymin:
+            ymax = ymin + 1e-9
+
+        grad = np.linspace(0, 1, 256).reshape(-1, 1)  # vertical gradient
+        im = ax.imshow(
+            grad,
+            aspect='auto',
+            origin='lower',
+            extent=(x.min(), x.max(), ymin, ymax),
+            cmap=cmap,
+            alpha=alpha,
+            interpolation='bilinear',
+            zorder=1
+        )
+
+        verts = np.concatenate([
+            np.column_stack([x, y_shifted]),
+            np.array([[x[-1], baseline], [x[0], baseline]])
+        ])
+        patch = PathPatch(Path(verts), facecolor='none', edgecolor='none')
+        ax.add_patch(patch)
+        im.set_clip_path(patch)
+
+        ax.plot(x, y_shifted, color='black', linewidth=line_width, zorder=2)
+
+    # ---- baseline plan shared across plots ----
+    # For each label, determine a "height" used for spacing.
+    # If autoscale: height = max( max_y_g, max_y_r ) * (1 + padding_factor)
+    # Else: height = base_offset
+    label_height = {}
+    for lab in all_labels:
+        max_g = float(np.max(g_map[lab][:, 1])) if lab in g_map else 0.0
+        max_r = float(np.max(r_map[lab][:, 1])) if lab in r_map else 0.0
+        peak = max(max_g, max_r, 1e-12)  # avoid zero
+        label_height[lab] = (peak * (1 + padding_factor)) if autoscale else float(base_offset)
+
+    # cumulative baselines
+    label_baseline = {}
+    y_cursor = 0.0
+    for lab in all_labels:
+        label_baseline[lab] = y_cursor
+        y_cursor += label_height[lab]
+
+    # ---- single-group ridgeline using shared baselines ----
+    def plot_ridgeline_separate(which_map, title, save_prefix, cmap_name):
+        if not which_map:
+            print(f"No data for {title}")
+            return
+        cmap = truncate_colormap(colormaps.get_cmap(cmap_name), *cmap_trim)
+
+        plt.figure(figsize=(12, 12))
+        ax = plt.gca()
+
+        for lab in all_labels:
+            if lab not in which_map:
+                continue
+            arr = which_map[lab]
+            x, y = arr[:, 0], arr[:, 1]
+            baseline = label_baseline[lab]
+            y_shifted = y + baseline
+
+            gradient_fill_under_curve(ax, x, y_shifted, baseline, cmap, alpha=fill_alpha)
+            ax.text(x.min(), baseline, lab, fontsize=8, ha='left', va='bottom', color='black')
+
+        ax.set_xlabel("Time (min)", fontweight='bold')
+        ax.set_title(title + (" (autoscaled)" if autoscale else ""), fontweight='bold')
+        ax.set_yticks([])
+        for s in ['top', 'right', 'left']:
+            ax.spines[s].set_visible(False)
+        plt.subplots_adjust(hspace=-0.3)
+
+        out_png = os.path.join(topdir, f"{save_prefix}_ridgeline.png")
+        out_pdf = os.path.join(topdir, f"{save_prefix}_ridgeline.pdf")
+        plt.savefig(out_png, dpi=300, bbox_inches='tight')
+        plt.savefig(out_pdf, dpi=300, bbox_inches='tight')
+        print(f"Saved:\n {out_png}\n {out_pdf}")
+        plt.show()
+        plt.close()
+
+    # ---- combined ridgeline: draw g and r at the SAME baseline per label ----
+    def plot_ridgeline_combined(title="UIB1B g+r (combined aligned)", save_prefix="UIB1B_gr_combined_aligned"):
+        if not (g_map or r_map):
+            print("No data for combined plot.")
+            return
+
+        gmap = truncate_colormap(colormaps.get_cmap(g_cmap_name), *cmap_trim)
+        rmap = truncate_colormap(colormaps.get_cmap(r_cmap_name), *cmap_trim)
+
+        plt.figure(figsize=(14, 12))
+        ax = plt.gca()
+
+        for lab in all_labels:
+            baseline = label_baseline[lab]
+
+            # g at baseline
+            if lab in g_map:
+                g_arr = g_map[lab]
+                xg, yg = g_arr[:, 0], g_arr[:, 1]
+                gradient_fill_under_curve(ax, xg, yg + baseline, baseline, gmap, alpha=fill_alpha)
+                ax.text(xg.min(), baseline, f"[g] {lab}", fontsize=8, ha='left', va='bottom', color='black')
+
+            # r at the same baseline
+            if lab in r_map:
+                r_arr = r_map[lab]
+                xr, yr = r_arr[:, 0], r_arr[:, 1]
+                gradient_fill_under_curve(ax, xr, yr + baseline, baseline, rmap, alpha=fill_alpha*0.95)
+
+        ax.set_xlabel("Time (min)", fontweight='bold')
+        ax.set_title(title + (" (autoscaled)" if autoscale else ""), fontweight='bold')
+        ax.set_yticks([])
+        for s in ['top', 'right', 'left']:
+            ax.spines[s].set_visible(False)
+        plt.subplots_adjust(hspace=-0.3)
+
+        out_png = os.path.join(topdir, f"{save_prefix}.png")
+        out_pdf = os.path.join(topdir, f"{save_prefix}.pdf")
+        plt.savefig(out_png, dpi=300, bbox_inches='tight')
+        plt.savefig(out_pdf, dpi=300, bbox_inches='tight')
+        print(f"Saved combined plot:\n {out_png}\n {out_pdf}")
+        plt.show()
+        plt.close()
+
+    # ---- generate separate ridgelines (aligned baselines) ----
+    if g_map:
+        plot_ridgeline_separate(g_map, "UIB1B gdata", "UIB1B_gdata_filled", g_cmap_name)
+    if r_map:
+        plot_ridgeline_separate(r_map, "UIB1B rdata", "UIB1B_rdata_filled", r_cmap_name)
+
+    # ---- generate combined ridgeline (aligned) ----
+    if g_map or r_map:
+        plot_ridgeline_combined()
+
+def move_pdf_and_png(files, topdir):
+    """
+    Move any .png and .pdf files created in each sample root into a `Figures`
+    subdirectory under that sample. Also move any .png/.pdf found in `topdir`
+    into `topdir/Figures`.
+    Returns a list of moved destination paths.
+    """
+    import shutil
+
+    def _unique_path(path):
+        if not os.path.exists(path):
+            return path
+        base, ext = os.path.splitext(path)
+        i = 1
+        while True:
+            candidate = f"{base}_{i}{ext}"
+            if not os.path.exists(candidate):
+                return candidate
+            i += 1
+
+    moved = []
+    exts = (".png", ".pdf")
+
+    # Move files from each sample directory
+    for d in files:
+        figs_dir = os.path.join(d, "Figures")
+        os.makedirs(figs_dir, exist_ok=True)
+        for ext in exts:
+            for src in glob.glob(os.path.join(d, f"*{ext}")):
+                if os.path.isdir(src):
+                    continue
+                dst = os.path.join(figs_dir, os.path.basename(src))
+                dst = _unique_path(dst)
+                try:
+                    shutil.move(src, dst)
+                    moved.append(dst)
+                except Exception as e:
+                    print(f"Failed to move {src} → {dst}: {e}")
+
+    # Move files from topdir
+    if topdir:
+        top_figs = os.path.join(topdir, "Figures")
+        os.makedirs(top_figs, exist_ok=True)
+        for ext in exts:
+            for src in glob.glob(os.path.join(topdir, f"*{ext}")):
+                if os.path.isdir(src):
+                    continue
+                dst = os.path.join(top_figs, os.path.basename(src))
+                dst = _unique_path(dst)
+                try:
+                    shutil.move(src, dst)
+                    moved.append(dst)
+                except Exception as e:
+                    print(f"Failed to move {src} → {dst}: {e}")
+
+    print(f"Moved {len(moved)} file(s) to Figures directories")
+    return moved
 
 
 
@@ -1016,6 +1364,9 @@ def main():
     plot_overlay(files, topdir, read_files=read_files, figsize=(16, 7), save=True)
     plot_UIB_overlay(files, topdir, figsize=(14, 8), save=True)
     plot_g_r_ridgelines(files, topdir, base_offset=100, autoscale=True)
+    plot_g_r_filled_ridgelines(files,topdir,base_offset=100,autoscale=True,padding_factor=0.15,g_cmap_name="summer_r",r_cmap_name="spring_r",line_width=0.6,fill_alpha=0.9)
+    move_pdf_and_png(files, topdir)
+
 
 
 if __name__ == "__main__":
