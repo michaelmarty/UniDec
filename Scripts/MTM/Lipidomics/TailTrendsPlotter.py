@@ -21,7 +21,7 @@ import matplotlib
 
 os.chdir(r"Z:\Group Share\MTM\IQ-X\MartyLab_AX\FinalResults")
 
-file = r"PosIDsRTP1.csv"
+file = r"NegIDsRTP2.csv"
 column_name = "Metabolite name"
 rt_name = "Average Rt(min)"
 class_name = "Ontology"

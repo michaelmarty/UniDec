@@ -127,8 +127,8 @@ if __name__ == "__main__":
 
     os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
 
-    posfile = "PosIDsC1_Ref.csv"
-    negfile = "NegIDsC1_Ref.csv"
+    posfile = "PosIDsRTP1.csv"
+    negfile = "NegIDsRTP1.csv"
 
     posdf = pd.read_csv(posfile)
     negdf = pd.read_csv(negfile)
@@ -142,7 +142,7 @@ if __name__ == "__main__":
 
     df = df_to_df(df)
 
-    outfile = "C1_Ref_Training.csv"
+    outfile = "RTP1_Ref_Training.csv"
     df.to_csv(outfile, index=False)
 
 ### Notes
@@ -157,6 +157,7 @@ Reran RetipTrainer on the filtered data for 10 min to get the final model with h
 Ran RetipLibProcessor to process MSP file into CSV for prediction and add descriptors
 Ran RetipLibPredictor to predict RTs for the MSP entries in the CSV
 Ran RetipLibtoMSP to write the predicted RTs back into a new MSP file.
-
+Reran MSDial on RTP1 libraries
+Ran RTCorrection1 and 2 to generate RTP2
 """
 
