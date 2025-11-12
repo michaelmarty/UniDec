@@ -319,6 +319,39 @@ def set_tails(df, columnname="Molecule Name"):
     df["Tail Unsaturation"] = unsats
     return df
 
+def set_basic_tail_names(df, columnname="Molecule Name"):
+    tnames = []
+    t1s = []
+    t2s = []
+    t3s = []
+    t4s = []
+    for i, row in df.iterrows():
+        name = row[columnname]
+        try:
+            tname = name.split(" ")[1]
+        except Exception as e:
+            tname = name
+            print(name)
+
+        fanames = re.split('_|/', tname)
+        tnames.append(tname)
+        t1 = fanames[0] if len(fanames) > 0 else ""
+        t2 = fanames[1] if len(fanames) > 1 else ""
+        t3 = fanames[2] if len(fanames) > 2 else ""
+        t4 = fanames[3] if len(fanames) > 3 else ""
+
+        t1s.append(t1)
+        t2s.append(t2)
+        t3s.append(t3)
+        t4s.append(t4)
+
+    df["Tails"] = tnames
+    df["T1"] = t1s
+    df["T2"] = t2s
+    df["T3"] = t3s
+    df["T4"] = t4s
+
+    return df
 
 def get_fa_count(name):
     if "_" in name or "/" in name:
