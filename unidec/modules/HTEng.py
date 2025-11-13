@@ -1074,9 +1074,10 @@ class UniChromCDEng(HTEng, UniDecCD):
             # For each charge state, filter z values within the bounds
             if zdown[i] == zup[i]:
                 try:
-                    bz = np.round(self.zarray) == zdown[i]
+                    bz = np.round(self.zarray.astype(float)) == int(zdown[i])
                 except:
-                    bz = self.zarray == zdown[i]
+                    print("ERROR:", len(self.zarray), zdown[i])
+                    raise ValueError("Error with zarray and zdown.")
             else:
                 b1 = self.zarray >= zdown[i]
                 b2 = self.zarray <= zup[i]

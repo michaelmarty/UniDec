@@ -119,8 +119,9 @@ for file in [file]:#os.listdir(dir):
 
 
     data = np.loadtxt(os.path.join(dir, file))
+    plt.plot(data[:, 0], data[:, 1], label='Original Data', color='black', alpha=0.5)
     numcompressed = 50
-    rdata, gdata, pdata = parse_rg_data(data, numcompressed, gap=5, negcolor="green", ramp=1)
+    rdata, gdata, pdata = parse_rg_data(data, numcompressed, gap=20, negcolor="green", ramp=1)
 
     r1 = [2.5, 5]
     r2 = [6.5, 9]

@@ -50,7 +50,7 @@ def get_fragments_df(libfile):
         if key not in headgroup_fragments:
             headgroup_fragments[key] = set()
             headgroup_fragments_nl[key] = set()
-    print(headgroup_fragments.keys())
+    print(len(headgroup_fragments.keys()))
     print(time.perf_counter()-starttime)
 
     for key in headgroup_fragments.keys():
@@ -96,7 +96,7 @@ def get_fragments_df(libfile):
 os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
 
 poslib = "MSDIAL-TandemMassSpectralAtlas-VS69-Pos-RTP2.msp"
-neglib = "MSDIAL-TandemMassSpectralAtlas-VS69-Neg-RTP2.msp"
+neglib = "MSDIAL-TandemMassSpectralAtlas-VS69-Neg-RTP2_Fixed.msp"
 
 libfile = r"TestShort.msp"
 libfile = poslib
@@ -104,6 +104,7 @@ libfile = poslib
 posfrag, posfulldf = get_fragments_df(poslib)
 negfrag, negfulldf = get_fragments_df(neglib)
 
+# exit()
 # Merge posfrag and negfrag dataframes
 hgfrag_df = pd.concat([posfrag, negfrag], ignore_index=True)
 # Sorty by CompoundClass, Adduct, IonMode
