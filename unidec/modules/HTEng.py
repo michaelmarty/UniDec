@@ -974,11 +974,14 @@ class UniChromCDEng(HTEng, UniDecCD):
         for i, s in enumerate(scans):
             fulleic[int(s) - 1] = counts[i]
         # Normalize
-        if "normalize" in kwargs:
-            if kwargs["normalize"]:
-                fulleic = fulleic / np.amax(fulleic)
-        else:
-            fulleic /= np.amax(fulleic)
+        try:
+            if "normalize" in kwargs:
+                if kwargs["normalize"]:
+                    fulleic = fulleic / np.amax(fulleic)
+            else:
+                fulleic /= np.amax(fulleic)
+        except:
+            pass
         return np.transpose([self.fulltime, fulleic])
 
     def get_tic(self, farray=None, **kwargs):
