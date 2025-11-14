@@ -57,14 +57,14 @@ with open("Neg_split_files.txt", "r") as f:
         print(f"Processing {file} -> {outputfile}")
         run_preprocessor(file, outputfile)
 
-with open("Pos_split_files.txt", "r") as f:
-    posfiles = f.read().splitlines()
-
-    print("Processing positive files...")
-    for file in posfiles:
-        outputfile = file.replace(".csv", "_preprocessed_full")
-        print(f"Processing {file} -> {outputfile}")
-        run_preprocessor(file, outputfile)
+# with open("Pos_split_files.txt", "r") as f:
+#     posfiles = f.read().splitlines()
+#
+#     print("Processing positive files...")
+#     for file in posfiles:
+#         outputfile = file.replace(".csv", "_preprocessed_full")
+#         print(f"Processing {file} -> {outputfile}")
+#         run_preprocessor(file, outputfile)
 
 
 

@@ -974,11 +974,14 @@ class UniChromCDEng(HTEng, UniDecCD):
         for i, s in enumerate(scans):
             fulleic[int(s) - 1] = counts[i]
         # Normalize
-        if "normalize" in kwargs:
-            if kwargs["normalize"]:
-                fulleic = fulleic / np.amax(fulleic)
-        else:
-            fulleic /= np.amax(fulleic)
+        try:
+            if "normalize" in kwargs:
+                if kwargs["normalize"]:
+                    fulleic = fulleic / np.amax(fulleic)
+            else:
+                fulleic /= np.amax(fulleic)
+        except:
+            pass
         return np.transpose([self.fulltime, fulleic])
 
     def get_tic(self, farray=None, **kwargs):
@@ -1070,7 +1073,11 @@ class UniChromCDEng(HTEng, UniDecCD):
         for i, zval in enumerate(z):
             # For each charge state, filter z values within the bounds
             if zdown[i] == zup[i]:
-                bz = np.round(self.zarray) == zdown[i]
+                try:
+                    bz = np.round(self.zarray.astype(float)) == int(zdown[i])
+                except:
+                    print("ERROR:", len(self.zarray), zdown[i])
+                    raise ValueError("Error with zarray and zdown.")
             else:
                 b1 = self.zarray >= zdown[i]
                 b2 = self.zarray <= zup[i]
