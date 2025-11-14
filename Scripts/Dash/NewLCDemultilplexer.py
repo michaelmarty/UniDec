@@ -26,23 +26,6 @@ def calc_start_index(data, numcompressed):
     while ymaxindex > 0 and np.abs(data[ymaxindex, 1]) > threshold:
         ymaxindex -= 1
     return (ymaxindex+1) % numcompressed
-#
-# def parse_rg_data_old(data, numcompressed, gap=5):
-#     startindex = calc_start_index(data, numcompressed)
-#
-#     pdata = nonlinearize(data[startindex:], numcompressed, gap=gap)
-#
-#     rb = pdata[:, 1] < -100
-#     gb = np.logical_not(rb)
-#
-#     gdata = pdata[gb]
-#     rdata = pdata[rb]
-#
-#     rdata[:, 1] = rdata[:, 1] * -1  # Flip the red channel to positive values
-#     rdata[:, 1] = rdata[:, 1] - np.min(rdata[:, 1])  # Subtract the minimum to avoid negative values
-#
-#     gdata[:, 1] = gdata[:, 1] - np.min(gdata[:, 1])  # Subtract the minimum to avoid negative values
-#     return rdata, gdata
 
 def parse_rg_data(data, numcompressed, gap=5, negcolor="green", ramp=0):
     startindex = calc_start_index(data, numcompressed)
@@ -59,7 +42,9 @@ def parse_rg_data(data, numcompressed, gap=5, negcolor="green", ramp=0):
     pindex = maxarg % 2
 
     if nindex == pindex:
-        raise ValueError("Negative and positive indices are the same, check the data.")
+        pindex += 1 ### MANUALLY ADJUST IT HERE
+        print("WARNING!!!: Negative and positive indices are the same, adjusting positive index.")
+        # raise ValueError("Negative and positive indices are the same, check the data.")
 
     ndata = parseddata[nindex::2]  # Negative data
     pdata = parseddata[pindex::2]  # Positive data
@@ -112,7 +97,7 @@ dir = "Z:\\Group Share\\Dash\\Current Data\\Agilent LC Data\\LXEngine\\20250729 
 file = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\20250729 TD UIB_FLDTest_MultiplexBoost 2025-07-30 16-36-56\009-D1F-A6-MSP1D1sfGFP(+)-MSP1D1mCherry(.D\processed\UIB1B_data.txt"
 file = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\20251030 LX\20251029 Control 2025-10-29 13-01-55\sfGFP\006-D1F-C1-d1gfp_disc.D\Text files\UIB1B_rawdata.txt"
 file = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\Channel 2 Tests\Tracer test\20251111_fld validation 2025-11-12 12-53-29\005-D1F-B1-Trace Mix_2.D\Text files\UIB1B_rawdata.txt"
-file = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\Channel 2 Tests\Tracer test\20251111_fld validation 2025-11-12 12-53-29\003-NV-blank.D\Text files\UIB1B_rawdata.txt"
+#file = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\Channel 2 Tests\Tracer test\20251111_fld validation 2025-11-12 12-53-29\003-NV-blank.D\Text files\UIB1B_rawdata.txt"
 
 
 
@@ -123,9 +108,9 @@ for file in [file]:#os.listdir(dir):
 
 
     data = np.loadtxt(os.path.join(dir, file))
-    plt.plot(data[:, 0], data[:, 1], label='Original Data', color='black', alpha=0.5)
+    plt.plot( data[:,0], data[:, 1], label='Original Data', color='black', alpha=0.5)
     numcompressed = 50
-    rdata, gdata, pdata = parse_rg_data(data, numcompressed, gap=20, negcolor="green", ramp=1)
+    rdata, gdata, pdata = parse_rg_data(data, numcompressed, gap=20, negcolor="red", ramp=1)
 
     r1 = [2.5, 5]
     r2 = [6.5, 9]
