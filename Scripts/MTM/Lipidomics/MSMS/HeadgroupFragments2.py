@@ -64,13 +64,6 @@ def get_fragments_df(csvfile, allowed_classes=None):
         common_nl_ions = unique_nl[counts_nl >= cutoff]
         headgroup_fragments_nl[key] = common_nl_ions
 
-        if class_name == "PG":
-            print("PG subset size:", slen)
-            print("PG common ions:", common_ions)
-            print("PG common NL ions:", common_nl_ions)
-            print(unique_nl)
-            print(counts_nl)
-
         print(f"Class: {class_name}, Adduct: {adduct}, IonMode: {ionmode}, Common Fragments: {common_ions}, Common NLs: {common_nl_ions}")
 
     # print(headgroup_fragments)
@@ -100,7 +93,7 @@ os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
 poslib = "PosFullMSMS.csv"
 neglib = "NegFullMSMS.csv"
 
-negfrag, negfulldf = get_fragments_df(neglib, allowed_classes=["PG"])
+negfrag, negfulldf = get_fragments_df(neglib)
 posfrag, posfulldf = get_fragments_df(poslib)
 
 
