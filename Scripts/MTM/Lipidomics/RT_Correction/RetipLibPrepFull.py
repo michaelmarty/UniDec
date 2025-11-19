@@ -50,7 +50,7 @@ def run_preprocessor_batch(input_csv, output_csv, allowed_columns=None, batchsiz
         temp.to_csv("temp_batch.csv", index=False)
         batch_dataset = retip.Dataset(target_column='RT', allowed_descriptors=allowed_columns).load_retip_dataset("temp_batch.csv")
         # batch_dataset.datasets["training"] = batch_df
-        batch_dataset.calculate_descriptors(n_proc=4)
+        batch_dataset.calculate_descriptors(n_proc=20)
         batch_dataset.save_retip_dataset(batch_output_csv)
         batch_dataset.describe()
 
