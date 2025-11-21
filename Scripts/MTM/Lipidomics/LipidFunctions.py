@@ -327,6 +327,8 @@ def set_basic_tail_names(df, columnname="Molecule Name"):
     t4s = []
     for i, row in df.iterrows():
         name = row[columnname]
+        if "|" in name:
+            name = name.split("|")[1]
         try:
             tname = name.split(" ")[1]
         except Exception as e:
@@ -690,14 +692,17 @@ def clean_df(df, column="Molecule name"):
 
 def encode_headgroups(df, classname="Ontology", rtcol_name="Average Rt(min)"):
     headgroups = df[classname].unique()
-    # Sort by average RT
-    avg_rts = {}
-    for hg in headgroups:
-        subdf = df[df[classname] == hg]
-        avg_rt = subdf[rtcol_name].mean()
-        avg_rts[hg] = avg_rt
-    # Sort headgroups by avg_rt
-    sorted_hgs = sorted(avg_rts, key=avg_rts.get)
+    if rtcol_name is None:
+        sorted_hgs = sorted(headgroups)
+    else:
+        # Sort by average RT
+        avg_rts = {}
+        for hg in headgroups:
+            subdf = df[df[classname] == hg]
+            avg_rt = subdf[rtcol_name].mean()
+            avg_rts[hg] = avg_rt
+        # Sort headgroups by avg_rt
+        sorted_hgs = sorted(avg_rts, key=avg_rts.get)
     # Create encoding dict
     encoding = {}
     for i, hg in enumerate(sorted_hgs):
@@ -810,6 +815,193 @@ def add_ref_spectra(df, libfile, rttol=0.1, remove_precursor=True):
     print("N empty Lib Spec:", nempty)
     return df, outdata
 
+def check_headgroup_fragments(df, fragdf, tol=0.01, intthresh=0.01):
+    good = []
+    goodnl = []
+    for index, row in df.iterrows():
+        class_name = row["Ontology"]
+        adduct = row["Adduct type"]
+        if "+" in adduct:
+            ionmode = "positive"
+        else:
+            ionmode = "negative"
+
+        fragments = fragdf[
+            (fragdf["CompoundClass"] == class_name) &
+            (fragdf["Adduct"] == adduct) &
+            (fragdf["IonMode"] == ionmode)
+        ]
+        if fragments.empty:
+            good.append(-1)
+            goodnl.append(-1)
+            # print("Not Found:", class_name, adduct, ionmode)
+            continue
+
+        msms_mz = row["MS/MS spectrum"]
+        msms_mz = np.array([m.split(":") for m in msms_mz.split(" ")]).astype(float)
+        b1 = msms_mz[:, 1] >= intthresh * np.max(msms_mz[:, 1])
+        msms_mz = msms_mz[b1, :]
+
+        prodmz = fragments["HeadgroupFragment_mz"].values[0]
+        try:
+            prodmz = np.array([prodmz]).astype(float)
+        except:
+            prodmz = np.array([float(f) for f in prodmz.split(",") if f])
+
+        if prodmz is None or np.any(np.isnan(prodmz)) or len(prodmz) == 0:
+            good.append(-1)
+            # print("No Fragments:", class_name, adduct, ionmode)
+        else:
+            match_count = sum(1 for mz in msms_mz[:,0] if any(abs(mz - f) < tol for f in prodmz))
+            good.append(match_count/len(prodmz))
+            # if match_count == len(prodmz):
+            #     good.append(1)
+            # else:
+            #     good.append(0)
+
+        nlmz = fragments["HeadgroupNL_mz"].values[0]
+        try:
+            nlmz = np.array([nlmz]).astype(float)
+        except:
+            nlmz = np.array([float(f) for f in nlmz.split(",") if f])
+
+        if nlmz is None or np.any(np.isnan(nlmz)) or len(nlmz) == 0:
+            goodnl.append(-1)
+            # print("No NL Fragments:", class_name, adduct, ionmode)
+        else:
+            nl_mz = row["Average Mz"] - msms_mz[:,0]
+            match_count_nl = sum(1 for mz in nl_mz if any(abs(mz - f) < tol for f in nlmz))
+            goodnl.append(match_count_nl/len(nlmz))
+            # if match_count_nl == len(prodmz):
+            #     goodnl.append(1)
+            # else:
+            #     goodnl.append(0)
+
+        # print(f"Row {index}: Class={class_name} Adduct={adduct}, IonMode={ionmode}, Good={good[-1]} GoodNL={goodnl[-1]}")
+
+    df["HG_Fragment_Match"] = np.array(good, dtype=float).round(2)
+    df["HG_NL_Match"] = np.array(goodnl, dtype=float).round(2)
+
+    # Set match counts > 1 to 1
+    df.loc[df["HG_Fragment_Match"] > 1, "HG_Fragment_Match"] = 1.0
+    df.loc[df["HG_NL_Match"] > 1, "HG_NL_Match"] = 1.0
+    return df
+
+def check_tail_fragments(df, taildf, tol=0.01, intthresh=0.01, allowedclasses=None):
+    good = []
+    goodnl = []
+    df = set_basic_tail_names(df, columnname="Metabolite name")
+    for index, row in df.iterrows():
+        class_name = row["Ontology"]
+        if allowedclasses is not None:
+            if class_name not in allowedclasses:
+                # Append -2 for all tails
+                good.extend([-2, -2, -2, -2])
+                goodnl.extend([-2, -2, -2, -2])
+                continue
+        adduct = row["Adduct type"]
+        if "+" in adduct:
+            ionmode = "positive"
+        else:
+            ionmode = "negative"
+
+        t1 = row["T1"]
+        t2 = row["T2"]
+        t3 = row["T3"]
+        t4 = row["T4"]
+        tlist = [t1, t2, t3, t4]
+        for tail in tlist:
+            if pd.isna(tail) or tail == "":
+                good.append(-2)
+                goodnl.append(-2)
+                continue
+            fragments = taildf[
+                (taildf["CompoundClass"] == class_name) &
+                (taildf["Adduct"] == adduct) &
+                (taildf["IonMode"] == ionmode) &
+                (taildf["Tail"] == tail)]
+
+            if fragments.empty:
+                good.append(-1)
+                goodnl.append(-1)
+                # print("Not Found:", class_name, adduct, ionmode)
+                continue
+
+            msms_mz = row["MS/MS spectrum"]
+            msms_mz = np.array([m.split(":") for m in msms_mz.split(" ")]).astype(float)
+            b1 = msms_mz[:, 1] >= intthresh * np.max(msms_mz[:, 1])
+            msms_mz = msms_mz[b1, :]
+
+            # print(f"Row {index}, Tail {tail}: Class={class_name} Adduct={adduct}, IonMode={ionmode}")
+            # print(fragments)
+
+            prodmz = fragments["TailFragment_mz"].values[0]
+            try:
+                prodmz = np.array([prodmz]).astype(float)
+            except:
+                prodmz = np.array([float(f) for f in prodmz.split(",") if f])
+
+            if prodmz is None or np.any(np.isnan(prodmz)) or len(prodmz) == 0:
+                good.append(-1)
+                # print("No Fragments:", class_name, adduct, ionmode)
+            else:
+                match_count = sum(1 for mz in msms_mz[:, 0] if any(abs(mz - f) < tol for f in prodmz))
+                good.append(match_count / len(prodmz))
+
+
+            nlmz = fragments["TailNL_mz"].values[0]
+            try:
+                nlmz = np.array([nlmz]).astype(float)
+            except:
+                nlmz = np.array([float(f) for f in nlmz.split(",") if f])
+
+            if nlmz is None or np.any(np.isnan(nlmz)) or len(nlmz) == 0:
+                goodnl.append(-1)
+                # print("No NL Fragments:", class_name, adduct, ionmode)
+            else:
+                nl_mz = row["Average Mz"] - msms_mz[:, 0]
+                match_count_nl = sum(1 for mz in nl_mz if any(abs(mz - f) < tol for f in nlmz))
+                goodnl.append(match_count_nl / len(nlmz))
+
+            print(
+                f"Row {index}: Class={class_name} Adduct={adduct}, IonMode={ionmode}, Good={good[-1]} GoodNL={goodnl[-1]}")
+
+    good = np.array(good, dtype=float).round(2)
+    good[good > 1] = 1.0
+    # Set all below 0 to NaN
+    good[good < 0] = np.nan
+    # Reshape good and goodnl to have one entry per row in df
+    n_tails = 4
+    n_rows = len(df)
+    good = good.reshape((n_rows, n_tails))
+    goodnl = np.array(goodnl, dtype=float).round(2)
+    goodnl[goodnl > 1] = 1.0
+    goodnl[goodnl < 0] = np.nan
+    goodnl = goodnl.reshape((n_rows, n_tails))
+
+    df["T1_Match"] = good[:, 0]
+    df["T2_Match"] = good[:, 1]
+    df["T3_Match"] = good[:, 2]
+    df["T4_Match"] = good[:, 3]
+    df["T1_NL_Match"] = goodnl[:, 0]
+    df["T2_NL_Match"] = goodnl[:, 1]
+    df["T3_NL_Match"] = goodnl[:, 2]
+    df["T4_NL_Match"] = goodnl[:, 3]
+
+    # Combine tail matches into overall Tail_Fragment_Match and Tail_NL_Match
+    df["Tail_Fragment_Match"] = np.nansum(good, axis=1)
+    df["Tail_NL_Match"] = np.nansum(goodnl, axis=1)
+
+    return df
+
+def categorize_nl(x):
+    if pd.isna(x) or x == -1:
+        return "No NL"
+    if x == 1:
+        return "All"
+    if x == 0:
+        return "None"
+    return "Partial"
 
 def make_plots(posdf, negdf):
 
