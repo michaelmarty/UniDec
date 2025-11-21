@@ -95,9 +95,16 @@ fragdf = pd.read_csv(fragmentslib)
 posdf = pd.read_csv(posfile)
 negdf = pd.read_csv(negfile)
 
+# Sort posdf and negdf by Ontology and Adduct type
+posdf = posdf.sort_values(by=["Ontology", "Adduct type"]).reset_index(drop=True)
+negdf = negdf.sort_values(by=["Ontology", "Adduct type"]).reset_index(drop=True)
+
 posdf = check_headgroup_fragments(posdf, fragdf)
 negdf = check_headgroup_fragments(negdf, fragdf)
 
+# write out to modified csv
+posdf.to_csv("PosIDsRTP2_HeadgroupCheck.csv", index=False)
+negdf.to_csv("NegIDsRTP2_HeadgroupCheck.csv", index=False)
 
 
 import matplotlib.pyplot as plt
