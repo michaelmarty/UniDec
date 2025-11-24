@@ -80,6 +80,37 @@ def search_by_id(obo, id):
                         return_value += "{0}\n".format(lookup[key][fn])
     return return_value
 
+def correct_mzML_ID(mzmlpath):
+    """
+    Some mzML files have weird scan IDs, which pymzML cannot handle.
+    This function creates a temporary mzML file with corrected integer IDs.
+    """
+    temp_path = mzmlpath + "_corrected.mzML"
+    with open(mzmlpath, 'r') as fin, open(temp_path, 'w') as fout:
+        for line in fin:
+            if "<spectrum " not in line:
+                fout.write(line)
+                continue
+            match = re.search(r'id="([^"]+)"', line)
+            if match:
+                # Find "index=" in the ID and extract the number after it
+                index = re.search(r'index="(\d+)"', line)
+                if index:
+                    indexval = index.group(1)
+                else:
+                    raise Exception("Could not find index= in mzML id")
+                try:
+                    int_id = int(indexval) + 1
+                    print(match.group(1), "->", int_id)
+                    line = line.replace(f'id="{match.group(1)}"', f'id="scan={int_id}"')
+                    print(line)
+                except ValueError:
+                    pass
+            fout.write(line)
+    # Rename original file and move corrected file to original name, overwriting if needed
+    os.replace(mzmlpath, mzmlpath[:-5] + "_original.mzML")
+    os.replace(temp_path, mzmlpath)
+    return mzmlpath
 
 FIELDNAMES = ["id", "name", "def", "is_a"]
 
@@ -119,6 +150,28 @@ class MZMLImporter(Importer):
 
         self.times = np.array(times, dtype=np.float32)
         self.scans = np.array(scans)
+        # Check if self.scans is all the same, if so, call correct_mzML_ID
+        if len(set(self.scans)) == 1 and len(self.scans) > 1:
+            self.msrun.close()
+            print("All scan IDs are the same. Attempting to correct mzML IDs.")
+            corrected_path = correct_mzML_ID(self._file_path)
+
+            self.msrun = pymzml.run.Reader(corrected_path)
+            # Re-initialize scans
+            times, scans, levels = [], [], []
+            for spectrum in self.msrun:
+                level = getattr(spectrum, 'ms_level', None)
+                if level is None:
+                    continue
+                try:
+                    times.append(float(get_time(spectrum)))
+                    scans.append(spectrum.ID)
+                    levels.append(level)
+                except Exception:
+                    continue
+
+            self.times = np.array(times, dtype=np.float32)
+            self.scans = np.array(scans)
         self.levels = np.array(levels)
         self.scan_range = [int(self.scans.min()), int(self.scans.max())]
         self.reset_reader()
@@ -342,17 +395,17 @@ class MZMLImporter(Importer):
         self.msrun.close()
 
 if __name__ == "__main__":
-
-    print("This is a test")
-    exit()
     test = "Z:\\Group Share\\JGP\\DataForJoe\\TF_centroided.mzML"
-    test = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_mzml.mzML"
-    # test = "Z:\\Group Share\\JGP\\DataForJoe\\TF_centroided.mzML"
-    test = "C:\\Data\\Sergei\\50.mzML"
+    # test = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_mzml.mzML"
+    test = "Z:\\Group Share\\JGP\\DataForJoe\\TF_centroided.mzML"
+    # test = "C:\\Data\\Sergei\\50.mzML"
+    test = r"C:\Data\DataTypeCollection\20250523_HBD_200ng_NR_1.mzML"
     importer = MZMLImporter(test)
-    # print(importer.scans)
+    print(importer.scans)
     # print(importer.times)
-    print(importer.get_tic())
+    # print(importer.get_tic())
+    # print(importer.msrun["cycle=10"])
+    print(importer.msrun[10])
 
     exit()
     #test = "C:\\Data\\RileyLab\\exportMGF_10spectra.mzML"
