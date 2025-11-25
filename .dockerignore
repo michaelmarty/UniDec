@@ -7,6 +7,7 @@
 **/*.exe
 **/*.html
 venv
+*venv*
 unidec_doc
 .gitignore
 .idea
@@ -32,6 +33,11 @@ build
 old
 TestSpectra
 default_conf.dat
+CODE_OF_CONDUCT.md
+MergeProject.WinMerge
+installer.bat
+unidec.egg-info/
+winmerge.flt
 
 pyinstaller_64.bat
 pyinstaller_64_dist.bat
@@ -110,6 +116,7 @@ unidec/bin/Presets/CDMS/Heck_CDMS_AAVs_240K_021_slope
 *.o
 *.obj
 *.suo
+
 
 unidec_src/UniDec/.vs
 unidec_src/UniDec/x64
