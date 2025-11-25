@@ -181,9 +181,9 @@ if system == "Windows":
 
 
     #LINUX DEPENDENCIES:
-    a.datas += [('libisodeclib.so', 'C:\\Python\\UniDecDev\\unidec\IsoDec\\libisodeclib.so', 'BINARY')]
-    a.datas += [('libfftw3.so', 'C:\\Python\\UniDecDev\\unidec\IsoDec\\libfftw3.so', 'BINARY')]
-    a.datas += [('libisogen.so', 'C:\\Python\\UniDecDev\\unidec\IsoDec\\libisogen.so', 'BINARY')]
+    a.datas += [('libisodeclib.so', 'C:\\Python\\UniDecDev\\unidec\\IsoDec\\libisodeclib.so', 'BINARY')]
+    a.datas += [('libfftw3.so', 'C:\\Python\\UniDecDev\\unidec\\IsoDec\\libfftw3.so', 'BINARY')]
+    a.datas += [('libisogen.so', 'C:\\Python\\UniDecDev\\unidec\\IsoDec\\libisogen.so', 'BINARY')]
 
 
 
@@ -247,15 +247,8 @@ src = "C:\\Python\\UniDec\\dist\\UniDec_Windows\\_internal\\obo"
 
 
 shutil.copytree(src, dst)
-shutil.copy("C:\\Python\\UniDec\\readme.md", "C:\\Python\\UniDec3\\dist\\UniDec_Windows")
-shutil.copy("C:\\Python\\UniDec\\INSTALLER.bat", "C:\\Python\\UniDec3\\dist\\UniDec_Windows")
-
-
-
-
-
-
-
+shutil.copy("C:\\Python\\UniDec\\readme.md", "C:\\Python\\UniDec\\dist\\UniDec_Windows")
+shutil.copy("C:\\Python\\UniDec\\INSTALLER.bat", "C:\\Python\\UniDec\\dist\\UniDec_Windows")
 
 
 out = subprocess.call(path)
