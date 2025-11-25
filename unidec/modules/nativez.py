@@ -9,6 +9,7 @@ from wx.lib.agw import ultimatelistctrl as ulc
 from unidec import tools as ud
 from unidec.modules.plotting import PlottingWindow
 from unidec.modules import MassFitter
+from unidec.modules.unidecstructure import UniDecConfig
 
 __author__ = 'Michael.Marty'
 
@@ -56,7 +57,8 @@ class NativeZ(wx.Dialog):
         :param kwargs: Passed to wx.Dialog
         :return: None
         """
-        wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
+        # wx.Dialog.__init__(self, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
+        super(NativeZ, self).__init__(style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, *args, **kwargs)
         defaultsize = [1400, 1000]
         displaysize = wx.GetDisplaySize()
         self.figsize = (4.75, 3)
@@ -104,6 +106,8 @@ class NativeZ(wx.Dialog):
         """
         # Initialize the parameters
         self.config = config
+        if self.config is None:
+            self.config = UniDecConfig()
         self.pks = pks
 
         self.massaxis = np.array(massaxis)
@@ -135,8 +139,8 @@ class NativeZ(wx.Dialog):
         hbox2.Add(self.plot5, 0, wx.EXPAND)
         hbox2.Add(self.plot6, 0, wx.EXPAND)
 
-        sbs.Add(hbox0, 0, wx.EXPAND)
-        sbs.Add(hbox2, 0, wx.EXPAND)
+        sbs.Add(hbox0, 1, wx.EXPAND)
+        sbs.Add(hbox2, 1, wx.EXPAND)
 
         hbox1 = wx.BoxSizer(wx.HORIZONTAL)
         addbutton = wx.Button(pnl, label="Add Line")
@@ -746,3 +750,18 @@ class ColorList(wx.Panel):
                 print("Delete Failed:", e)
                 pass
         self.ultimateList.DeleteAllItems()
+
+
+if __name__ == "__main__":
+    app = wx.App(False)
+    frame = wx.Frame(None, title="Native Z Example", size=(800, 600))
+    native_z = NativeZ(frame)
+    native_z.initialize_interface(
+        massaxis=np.linspace(1000, 20000, 100),
+        chargeaxis=np.linspace(1, 20, 20),
+        igrid=np.random.rand(100, 20) * 1000,
+        config=None,
+        pks=None
+    )
+    native_z.Show()
+    app.MainLoop()

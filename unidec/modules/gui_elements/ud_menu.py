@@ -27,8 +27,8 @@ class main_menu(wx.Menu):
         # File Menu
         self.menuOpen = self.filemenu.Append(wx.ID_OPEN, "Open File (Text, mzML, Wiff, or Thermo RAW)\tCtrl+O",
                                              " Open a Text File in x y text, mzML, or Thermo RAW format")
-        self.menuOpenRaw = self.filemenu.Append(wx.ID_ANY, "Open Waters or Agilent File",
-                                                " Open a Waters .Raw or Agilent .D File")
+        self.menuOpenRaw = self.filemenu.Append(wx.ID_ANY, "Open Waters File",
+                                                " Open a Waters .Raw File")
         self.filemenu.AppendSubMenu(self.menuOpenRecent, "Open Recent File")
         self.filemenu.AppendSeparator()
 
@@ -351,6 +351,10 @@ class main_menu(wx.Menu):
         self.menuisotopes = self.experimentalmenu.Append(wx.ID_ANY, "Plot Averagine Isotope Distributions")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_plot_isotope_distribution, self.menuisotopes)
 
+        # self.menuremoveiso = self.experimentalmenu.Append(wx.ID_ANY, "Remove Isotopic Peaks", "Remove Isotopic Peaks")
+        # self.parent.Bind(wx.EVT_MENU, self.pres.on_remove_isodists, self.menuremoveiso)
+
+
         self.menupdi = self.experimentalmenu.Append(wx.ID_ANY, "Print Polydispersity Index")
         self.parent.Bind(wx.EVT_MENU, self.pres.eng.polydispersity_index, self.menupdi)
 
@@ -361,6 +365,7 @@ class main_menu(wx.Menu):
 
         self.menutheomass = self.experimentalmenu.Append(wx.ID_ANY, "Plot Theoretical Mass")
         self.parent.Bind(wx.EVT_MENU, self.pres.plot_theo_mass, self.menutheomass)
+
 
         #self.menupeakares = self.experimentalmenu.Append(wx.ID_ANY, "Label Peak Areas")
         #self.parent.Bind(wx.EVT_MENU, self.pres.on_label_integral, self.menupeakares)

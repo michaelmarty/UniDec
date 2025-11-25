@@ -825,6 +825,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox3b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
+        self.ctlnormpeakthresh = wx.CheckBox(panel3b, label="Normalize Peak Threshold")
+        gbox3b.Add(self.ctlnormpeakthresh, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
         self.ctlnorm = wx.RadioBox(panel3b, label="Peak Normalization", choices=["None", "Max", "Total"])
         gbox3b.Add(self.ctlnorm, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
@@ -985,6 +989,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlwindow.SetValue(str(self.config.peakwindow))
             self.ctlthresh.SetValue(str(self.config.peakthresh))
             self.ctlthresh2.SetValue(str(self.config.peakplotthresh))
+            self.ctlnormpeakthresh.SetValue(bool(self.config.normthresh))
             self.ctlsep.SetValue(str(self.config.separation))
             self.ctlintthresh.SetValue(str(self.config.intthresh))
             self.ctlprethresh.SetValue(str(self.config.CDprethresh))
@@ -1133,6 +1138,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.peakwindow = ud.string_to_value(self.ctlwindow.GetValue())
         self.config.peakthresh = ud.string_to_value(self.ctlthresh.GetValue())
         self.config.peakplotthresh = ud.string_to_value(self.ctlthresh2.GetValue())
+        self.config.normthresh = int(self.ctlnormpeakthresh.GetValue())
         self.config.separation = ud.string_to_value(self.ctlsep.GetValue())
         self.config.adductmass = ud.string_to_value(self.ctladductmass.GetValue())
 
@@ -1146,7 +1152,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.config.HTtimeshift = ud.string_to_value(self.ctlhttimeshift.GetValue())
             self.config.HTtimepad = ud.string_to_value(self.ctltimepad.GetValue())
             self.config.HTanalysistime = ud.string_to_value(self.ctlanalysistime.GetValue())
-            self.config.HTmaxscans = ud.string_to_value(self.ctlmaxscans.GetValue())
+            self.config.HTmaxscans = ud.string_to_int(self.ctlmaxscans.GetValue())
             self.config.HTcycleindex = ud.string_to_value(self.ctlcycleindex.GetValue())
             self.config.HTmaskn = ud.string_to_value(self.ctlhtmaskn.GetValue())
             self.config.HTwin = ud.string_to_value(self.ctlhtwin.GetValue())
@@ -1530,6 +1536,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         elif "FT" in demultiplexmode:
             self.foldpanels.Collapse(self.foldpanelht)
             self.foldpanels.Expand(self.foldpanelft)
+        elif "PP" in demultiplexmode:
+            self.foldpanels.Collapse(self.foldpanelht)
+            self.foldpanels.Collapse(self.foldpanelft)
+            self.foldpanels.Collapse(self.foldpanelim)
         else:
             print("Unknown demultiplex mode:", demultiplexmode)
 

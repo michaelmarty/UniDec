@@ -75,7 +75,7 @@ def get_longest_index(datalist):
     lengths = [len(x) for x in datalist]
     return np.argmax(lengths)
 
-def merge_spectra(datalist, mzbins=None, type="Interpolate"):
+def merge_spectra(datalist, mzbins=None, type="Integrate"):
     """
     Merge together a list of data.
     Interpolates each data set in the list to a new nonlinear axis with the median resolution of the first element.
@@ -124,9 +124,9 @@ def merge_spectra(datalist, mzbins=None, type="Interpolate"):
             if type == "Interpolate":
                 newdat = ud.mergedata(template, d)
             elif type == "Integrate":
-                newdat = ud.lintegrate(d, axis)
+                newdat = ud.lintegrate(d, axis, fastmode=True)
             else:
-                print("ERROR: unrecognized trdtrmerge spectra type:", type)
+                print("ERROR: unrecognized merge spectra type:", type)
                 continue
 
             template[:, 1] += newdat[:, 1]
@@ -188,11 +188,11 @@ def merge_im_spectra(datalist, mzbins=None, type="Integrate"):
     template = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(np.zeros_like(X))])
     print("Shape merge axis:", X.shape)
     xbins = deepcopy(mzaxis)
-    xbins[1:] -= np.diff(xbins)
-    xbins = np.append(xbins, xbins[-1] + np.diff(xbins)[-1])
+    xbins[1:] -= np.diff(xbins) / 2.
+    xbins = np.append(xbins, xbins[-1] + np.diff(xbins)[-1] /2.)
     ybins = deepcopy(dtaxis)
     ybins[1:] -= np.diff(ybins) / 2.
-    ybins = np.append(ybins, ybins[-1] + np.diff(ybins)[-1])
+    ybins = np.append(ybins, ybins[-1] + np.diff(ybins)[-1] /2.)
     # Loop through the data and resample it to match the template, either by integration or interpolation
     # Sum the resampled data into the template.
     for d in datalist:

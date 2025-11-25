@@ -11,7 +11,7 @@ from unidec.modules.isotopetools import fast_calc_averagine_isotope_dist
 
 mpl.use('WxAgg')
 np.set_printoptions(precision=6, suppress=True)
-isogen_dll_path = "C:/Python/UniDecDev/unidec/IsoDec/src_cmake/cmake-build-debug/isogen.dll"
+isogen_dll_path = "C:/Python/UniDecDev/unidec/IsoDec/src_cmake/build/Debug/isogen.dll"
 
 isogen_lib = ctypes.CDLL(isogen_dll_path)
 
@@ -31,7 +31,8 @@ isogen_lib.fft_pep_seq_to_dist.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctype
                                            ctypes.c_int]
 isogen_lib.fft_pep_seq_to_dist.restype = ctypes.c_float
 
-isogen_lib.nn_pep_seq_to_dist.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_float), ctypes.c_int]
+isogen_lib.nn_pep_seq_to_dist.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_float), ctypes.c_int,
+                                          ctypes.c_int]
 isogen_lib.nn_pep_seq_to_dist.restype = ctypes.c_float
 
 isogen_lib.fft_rna_seq_to_dist.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_float), ctypes.c_int,
@@ -70,7 +71,7 @@ def fft_rna_seq_to_dist(seq, isolen=128, offset=0):
     return np.array(isodist).copy()
 
 
-def fft_rna_mass_to_dist(mass, isolen):
+def fft_rna_mass_to_dist(mass, isolen=128):
     """RNA Mass -> IsoDist"""
     fmass = ctypes.c_float(mass)
     isodist = (ctypes.c_float * isolen)()
@@ -102,12 +103,13 @@ def nn_rna_mass_to_dist(mass, offset=0):
     return np.array(isodist).copy()
 
 
-def nn_pep_seq_to_dist(seq, offset=0):
+def nn_pep_seq_to_dist(seq, isolen=64, offset=0):
     """Proteoform Sequence -> Isotope Distribution"""
     seq_bytes = seq.encode("utf-8")
-    isodist = (ctypes.c_float * 64)()
+    isodist = (ctypes.c_float * isolen)()
+    isolen = ctypes.c_int(isolen)
     offset = ctypes.c_int(offset)
-    isogen_lib.nn_pep_seq_to_dist(seq_bytes, isodist, offset)
+    isogen_lib.nn_pep_seq_to_dist(seq_bytes, isodist, isolen, offset)
     return np.array(isodist).copy()
 
 
@@ -120,26 +122,23 @@ def fft_pep_seq_to_dist(seq, isolen=64, offset=0):
     return np.array(isodist).copy()
 
 
-def fft_pep_mass_to_dist(mass, isolen, offset=0):
+def fft_pep_mass_to_dist(mass, isolen=64, offset=0):
     fmass = ctypes.c_float(mass)
     isodist = (ctypes.c_float * isolen)()
     offset = ctypes.c_int(0)
     isolen = ctypes.c_int(isolen)
-    isogen_lib.fft_pep_mass_to_dist(fmass, isodist, isolen, offset)
+    result = isogen_lib.fft_pep_mass_to_dist(fmass, isodist, isolen, offset)
     # move to the c code
     return np.array(isodist).copy()
 
 
-def nn_pep_mass_to_dist(mass, offset=0):
-    isolen = igs.pepmass_to_isolen(mass)
+def nn_pep_mass_to_dist(mass, isolen=64, offset=0):
     fmass = ctypes.c_float(mass)
     isodist = (ctypes.c_float * isolen)()
     offset = ctypes.c_int(0)
     isolen = ctypes.c_int(isolen)
     isogen_lib.nn_pep_mass_to_dist(fmass, isodist, isolen, offset)
     return np.array(isodist).copy()
-
-
 
 
 def plot_protein_dist_speed_differences(massList, isolen):
@@ -185,9 +184,9 @@ def plot_rna_dist_differences(mass, isolen):
 if __name__ == "__main__":
     import random
     #Test peptide methods
-    if False:
+    if True:
         test_sequences = ["AGCKLIHRK"]
-        test_masses = [1200, 11205, 98765]
+        test_masses = [1200, 11205, 38000]
 
         print("Testing Peptide Sequence to Dist Methods")
         for i in range(len(test_sequences)):
@@ -210,7 +209,7 @@ if __name__ == "__main__":
 
 
     #Test RNA methods
-    if True:
+    if False:
         test_sequences = ["GUAC", "GUACGUACGUACGUAC", "GUACGUACGUACGUACGUACGUACGUACGUACGUAC",
                     "GUACGUACGUACGCGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUAC",
                     "AAAAAAAAAAAAA", "UUUUUUUUUUUUU"]

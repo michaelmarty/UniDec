@@ -7,14 +7,16 @@ import sys
 path_root = Path(__file__).parents[2]
 sys.path.append(str(path_root))
 
-from unidec.IsoDec.datatools import get_all_centroids, check_spacings, remove_noise_cdata
-from unidec.IsoDec.match import IsoDecConfig, MatchedCollection
+from unidec.IsoDec.datatools import get_all_centroids, check_spacings, remove_noise_cdata, datacompsub
+from unidec.IsoDec.match import MatchedCollection
+from unidec.modules.unidecstructure import IsoDecConfig
 
 from copy import deepcopy
 from unidec.IsoDec.c_interface import IsoDecWrapper, example
 from unidec.IsoDec.plots import plot_pks
 from unidec.IsoDec.altdecon import thrash_predict
 from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+import unidec.modules.fwhmtools as fwhmtools
 
 class IsoDecRuntime:
     """
@@ -42,7 +44,7 @@ class IsoDecRuntime:
         self.reader = None
         self.predmode = 0
         self.showavg = False
-        self.selection_type = None
+        self.analyte_type = None
 
     def phase_predictor(self, centroids):
         """
@@ -76,7 +78,10 @@ class IsoDecRuntime:
         if centroided:
             centroids = deepcopy(data)
         else:
-            centroids = deepcopy(get_all_centroids(data, window=window, threshold=threshold * 0.1))
+            newdat = deepcopy(data)
+            if self.config.background_subtraction > 0:
+                newdat = datacompsub(newdat, self.config.background_subtraction)
+            centroids = get_all_centroids(newdat, window=window, threshold=threshold * 0.1)
 
         med_spacing = check_spacings(centroids)
         if med_spacing <= self.config.meanpeakspacing_thresh:
@@ -177,12 +182,60 @@ class IsoDecRuntime:
         else:
             raise ValueError("Unknown Export Type", type)
 
+    def remove_assigned_peaks(self, data):
+        """
+        Return a processed spectrum where the assigned peaks have been removed.
+        """
+        st = time.perf_counter()
+        self.batch_process_spectrum(data)
+        print("IsoDec time:", time.perf_counter() - st)
+        isodists = self.pks.to_merged_isodists()
+        if len(isodists) == 0:
+            print("No peaks found, returning original data.")
+            return data, isodists
+        data = fwhmtools.remove_peaks(data, isodists, wfactor=6, maxppmtol=100)
+
+        # for p in self.pks.peaks:
+        #     # print("Removing:", p)
+        #     data = p.strip_from_data(data)
+        # data = ud.remove_middle_zeros(data)
+        print("Removed Assigned Peaks, N Peaks:", len(self.pks.peaks), "Time:", time.perf_counter() - st)
+        return data, isodists
+
+    def batch_centroid(self, files, window=5, threshold=0.00001):
+        """
+        Batch centroiding of files.
+        :param files: List of files to centroid
+        :return: List of centroided data
+        """
+        outfiles = []
+        for file in files:
+            reader = ImporterFactory.create_importer(file)
+            for s in reader.scans:
+                spectrum = reader.get_single_scan(s)
+                if len(spectrum) < 3:
+                    continue
+                centroids = get_all_centroids(spectrum, window=window, threshold=threshold)
+                basepath = os.path.splitext(file)[0]
+                outfile = f"{basepath}_{s}_centroided.txt"
+                print("Centroiding file:", file, "Scan:", s, "N Centroids:", len(centroids))
+                np.savetxt(outfile, centroids)
+                outfiles.append(outfile)
+        return outfiles
+
+
+
 
 if __name__ == "__main__":
     starttime = time.perf_counter()
     eng = IsoDecRuntime()
 
-    eng.selection_type = "None"
+    # files = ["C:\Data\Yuri\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_100k_Charge Reduction-yes_adduct_N-term_MP2_pi200_IntGaus_NoP_N3.csv",
+    #          "C:\Data\Yuri\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_400k_Charge Reduction-yes_adduct_N-term_MP2_pi200_NoP_IntGaus_high_range_NL1000_768ms.csv",
+    #          "C:\Data\Yuri\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_400k_Charge Reduction-yes_adduct_N-term_MP2_pi200_NoP_IntGaus_high_range_NL1000_768ms_NT3p5.csv"]
+    # eng.batch_centroid(files)
+
+    eng.analyte_type = "None"
     import platform
     if platform.system() == "Windows":
         file = "C:\\Python\\UniDecDev\\unidec\\bin\\TestSpectra\\test_2.txt"

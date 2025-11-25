@@ -22,7 +22,6 @@ import matplotlib.colors as colors
 
 from unidec.modules.fitting import *
 
-
 # ...............................
 #
 # Constants
@@ -40,6 +39,7 @@ dtype = np.single
 extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position",
                   5: "Center of Mass 50%", 6: "Center of Mass 10%", 7: "Center of Mass Squares",
                   8: "Center of Mass Cubes", 9: "Center of Mass 50% Squares", 10: "Center of Mass 50% Cubes"}
+
 
 # ..........................
 #
@@ -347,6 +347,7 @@ def get_z_offset(mass, charge):
 
 nativez_coefficients = [0.0467, 0.533]  # Coefficients for the native charge prediction formula
 
+
 def predict_charge(mass):
     """
     Give predicted native charge state of species of defined mass
@@ -363,6 +364,7 @@ def simchargefit(x2):
     fit = [predict_charge(i) for i in x2]
     return np.array(fit)
 
+
 def simchargefit_mz(mzs):
     """
     Fit the native charge state for a given m/z value.
@@ -371,6 +373,7 @@ def simchargefit_mz(mzs):
     """
     fit = [predict_charge_from_mz(i) for i in mzs]
     return np.array(fit)
+
 
 def predict_charge_from_mz(mz):
     """
@@ -383,6 +386,7 @@ def predict_charge_from_mz(mz):
     nativez = a * (mass ** b)
     return nativez
 
+
 def predict_mass_from_mz(mz):
     """
     Predict the native mass from a given m/z value.
@@ -390,8 +394,9 @@ def predict_mass_from_mz(mz):
     :return: Predicted mass in Da
     """
     a, b = nativez_coefficients
-    mass = (mz * a) ** (1/(1-b))
+    mass = (mz * a) ** (1 / (1 - b))
     return mass
+
 
 def predict_mz_from_mass(mass):
     """
@@ -400,7 +405,7 @@ def predict_mz_from_mass(mass):
     :return: Predicted m/z value
     """
     a, b = nativez_coefficients
-    naitvemz = 1/a * (mass ** (1-b))
+    naitvemz = 1 / a * (mass ** (1 - b))
     return naitvemz
 
 
@@ -711,10 +716,10 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
 
             val, junk = integrate(cutdat, start, end)
         else:
-            boo2 = data[:, 1] > np.amax(data[:,1]) * 0.1
+            boo2 = data[:, 1] > np.amax(data[:, 1]) * 0.1
             cutdat = data[boo2]
 
-            val, junk = integrate(cutdat, cutdat[0,0], cutdat[len(cutdat)-1, 0])
+            val, junk = integrate(cutdat, cutdat[0, 0], cutdat[len(cutdat) - 1, 0])
             print("Window undefined for area extraction!\nUsing entire data range....")
 
     else:
@@ -1085,6 +1090,10 @@ def datasimpsub(datatop, buff):
     return datatop
 
 
+# def isodec_background_subtract(datatop, width):
+
+
+
 def datacompsub(datatop, buff):
     """
     Complex background subtraction.
@@ -1390,6 +1399,13 @@ def lintegrate(datatop, intx, fastmode=False):
     """
     length = len(datatop)
     l2 = len(intx)
+    if fastmode:
+        # Use a histogram
+        bins = np.append(intx, intx[-1] + (intx[-1] - intx[-2])) - (intx[1] - intx[0]) / 2.
+        inty, bin_edges = np.histogram(datatop[:, 0], bins=bins, weights=datatop[:, 1])
+        newdat = np.column_stack((intx, inty))
+        return newdat
+
     inty = np.zeros_like(intx)
     for i in range(0, length):
         x = datatop[i, 0]
@@ -1578,6 +1594,21 @@ def smash2d(data, midpoint, window, ymidpoint, ywindow):
     return data
 
 
+def dataremove(data, minmz, maxmz):
+    """
+    Remove data points inside the specified m/z range.
+    :param data: Data array (N x 2)
+    :param minmz: Minimum m/z value
+    :param maxmz: Maximum m/z value
+    :return: Data array with points inside the range removed
+    """
+    boo1 = data[:, 0] >= minmz
+    boo2 = data[:, 0] <= maxmz
+    boo3 = np.logical_and(boo1, boo2)
+    data[boo3, 1] = 0 # np.amin(data[boo3, 1])  # Set to minimum value
+    return data
+
+
 def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
     """
     Main function to process 1D MS data. The order is:
@@ -1613,7 +1644,7 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
     if type(newmin) != str and type(newmax) != str:
         # Crop Data
         data2 = datachop(deepcopy(data2), newmin, newmax)
-    print(data2.shape)
+
     if config.smashflag == 1:
         print("Smashing!:", config.smashlist)
         for i in range(0, len(config.smashlist)):
@@ -1660,7 +1691,6 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
 
     # Data Reduction
     if redper > 0:
-
         data2 = remove_noise(data2, redper)
 
     if config.datanorm == 1:
@@ -1691,7 +1721,7 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
 
     if linflag == 2:
         try:
-            #This is truncating
+            # This is truncating
             data2 = remove_middle_zeros(data2)
         except:
             pass
@@ -2049,6 +2079,7 @@ def sticks_only(mztab, kernel):
     temp[np.array(mztab[:, 2]).astype(int)] = mztab[:, 1]
     return temp
 
+
 # ..............................................
 #
 # Matching Functions
@@ -2354,8 +2385,9 @@ def get_autocorr_ratio(data):
         corry /= np.amax(corry)
 
     maxindex = np.argmax(corry)
-    ratio = corry[maxindex+1]
+    ratio = corry[maxindex + 1]
     return ratio
+
 
 def is_centroided(data, cutoff=0.8):
     ratio = get_autocorr_ratio(data)
@@ -2865,15 +2897,17 @@ def get_swoop_mz_minmax(mz, i):
     return mzmin, mzmax
 
 
-@njit
+@njit(fastmath=True)
 def within_ppm(theo, exp, ppmtol):
     # ppm_error = np.abs(((theo - exp) / theo) * 1e6)
     # print("Within ppm ppm-error: " + str(ppm_error))
     return np.abs(((theo - exp) / theo) * 1e6) <= ppmtol
 
-@njit
-def within_abs(theo,exp,tol):
-    return np.abs(theo-exp) <= tol
+
+@njit(fastmath=True)
+def within_abs(theo, exp, tol):
+    return np.abs(theo - exp) <= tol
+
 
 def find_dll(targetfile, dir):
     if dir is None:
@@ -2980,7 +3014,6 @@ def find_all_dependencies(path):
     return dlls
 
 
-
 def force_register(path):
     prev_path = path
     path = path.split("\\")
@@ -3007,10 +3040,13 @@ if __name__ == "__main__":
     # for i in ls:
     #     print(i)
 
+    data = np.array([[1, 1], [2, 0], [3, 0], [4, 0], [5, 1]])
+
+    print(remove_middle_zeros(data))
+    exit()
+
     # Load example file
     data = np.loadtxt("C:\\Python\\UniDec3\\unidec\\bin\\Example Data\\BSA.txt")
     print(data)
 
     print(data_extract(data, 1200, 5, 100))
-
-

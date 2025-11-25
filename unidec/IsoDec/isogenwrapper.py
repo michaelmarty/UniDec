@@ -75,7 +75,7 @@ def nn_gen_isodist(mass, type="PEPTIDE", isolen=64):
     isodist = np.ctypeslib.as_array(isodist)
     return isodist
 
-def fft_gen_isodist(mass, type, isolen = 128):
+def fft_gen_isodist(mass, type="PEPTIDE", isolen = 128):
     # Create empty array
     isodist = np.zeros(isolen).astype(np.float32)
     ptr = isodist.ctypes.data_as(ctypes.POINTER(ctypes.c_float))

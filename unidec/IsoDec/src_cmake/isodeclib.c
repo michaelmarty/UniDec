@@ -5,7 +5,6 @@
 #include <math.h>
 #include <stdbool.h>
 #include "isodeclib.h"
-
 #include "isogendep.h"
 #include "phase_model_8.h"
 #include "phase_model_4.h"
@@ -128,7 +127,7 @@ struct IsoSettings DefaultSettings() {
     settings.css_thresh = 0.7f; //
     settings.maxshift = 3; //
     settings.mzwindow[0] = -1.5f; //
-    settings.mzwindow[1] = 2.5f; //
+    settings.mzwindow[1] = 4.5f; //
     settings.plusoneintwindow[0] = 0.1f; //
     settings.plusoneintwindow[1] = 0.6f; //
     settings.knockdown_rounds = 5; //
@@ -285,16 +284,16 @@ struct IsoSettings CheckSettings(struct IsoSettings settings) {
     // If mz window[1] is 0 or lower, reset to default
     if (settings.mzwindow[1] <= 0) {
         printf("Mz Window is 0 or lower. Resetting to default\n");
-        settings.mzwindow[1] = 2.5f;
+        settings.mzwindow[1] = 4.5f;
         found_warning = 1;
     }
 
-    if (settings.mzwindow[0] < -4) {
+    if (settings.mzwindow[0] < -6.5) {
         printf("Mz Window is very low. Are you sure?\n");
         found_warning = 1;
     }
-    if (settings.mzwindow[1] > 4) {
-        printf("Mz Window is very high. Are you sure?\n");
+    if (settings.mzwindow[1] > 6.5) {
+        printf("Mz Window is very high. %f Are you sure?\n", settings.mzwindow[1]);
         found_warning = 1;
     }
 
@@ -986,7 +985,7 @@ int bestshift_adjust(const double *mz, const float *inten, const int length, flo
             nmatches++;
         }
         if (settings.verbose) {
-            printf("Matched: %d %f %d %f %f %f\n", j, shiftmz, highestindex, mz[highestindex], ppmtol,
+            printf("Matched: %d %f %d %f Diff ALlowed: %f Diff Measured: %f Inten: %f\n", j, shiftmz, highestindex, mz[highestindex], ppmtol, fabs(mz[highestindex] - shiftmz),
                    inten[highestindex]);
         }
     }
@@ -1183,6 +1182,7 @@ int process_spectrum(const double *cmz, const float *cint, int n, const char *fn
     // Load Weights
     // ReSharper disable once CppDFAMemoryLeak
     struct Weights weights;
+
     if (fname == NULL) {
         weights = load_default_weights(config);
     } else {
@@ -1263,19 +1263,25 @@ int process_spectrum(const double *cmz, const float *cint, int n, const char *fn
             // Find the window around the peak
             const float lowmz = peakmz + settings.mzwindow[0];
             const float highmz = peakmz + settings.mzwindow[1];
+            const float midmz = (peakmz + highmz)/2.0f;
             int start = nearfast(cmzcopy, lowmz, n);
             int end = nearfast(cmzcopy, highmz, n) + 1;
+            int mid = nearfast(cmzcopy, midmz, n)+1;
+
             // Correct window if there are two peaks selected in the same window
             if (i < plen - 1) {
                 const float nextpeakmz = peakx[i + 1];
                 const int nextpeakindex = nearfast(cmzcopy, nextpeakmz, n);
                 if (nextpeakindex <= end) {
                     end = nextpeakindex - 1;
+                    mid = end;
                 }
             }
-            //printf("Lowmz: %f Peak: %f Highmz: %f\n", lowmz, peakmz, highmz);
+            // printf("Lowmz: %f Peak: %f Highmz: %f Midmz: %f\n", lowmz, peakmz, highmz, midmz);
 
             const int l = end - start;
+            const int l2 = mid - start;
+
             // This should be settings.minpeaks, but it is possible for 2 peaks to be assigned to a +1 charge, so we need to check for at least 2 peaks
             if (l < 2) {
                 if (cintcopy[peakindex] != 0) {
@@ -1305,7 +1311,7 @@ int process_spectrum(const double *cmz, const float *cint, int n, const char *fn
             }
 
             // Encode the data, this will check if enough peaks have met the data threshold
-            int good = encode(mz, inten, l, emat, config, settings);
+            int good = encode(mz, inten, l2, emat, config, settings);
             int z2 = 0;
             // If good, predict the charge
             int z = 0;

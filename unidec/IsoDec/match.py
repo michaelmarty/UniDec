@@ -1,119 +1,20 @@
-import os
-
 import numpy as np
-from unidec.IsoDec.datatools import fastnearest, fastwithin_abstol_withnearest, fastwithin_abstol
+from unidec.IsoDec.datatools import fastnearest, fastwithin_abstol_withnearest
 from typing import List, Tuple
 from numba import njit
 import matplotlib as mpl
-from unidec.modules.isotopetools import fast_calc_averagine_isotope_dist, mass_diff_c, fast_calc_averagine_isotope_dist_dualoutput
+from unidec.modules.isotopetools import fast_calc_averagine_isotope_dist, mass_diff_c, \
+    fast_calc_averagine_isotope_dist_dualoutput
 import pickle as pkl
 import unidec.tools as ud
 import unidec.IsoDec.msalign_export as msalign
 import math
+from copy import deepcopy
 import pandas as pd
-# from Scripts.JGP.IsoDec_Analysis.compare_msaligns import *
+from unidec.modules.fwhmtools import fast_fwhm, ndis_std, intensity_decon
+from unidec.modules.unidecstructure import IsoDecConfig
 
 
-class IsoDecConfig: # (udstruct.UniDecConfig):
-    def __init__(self):
-        """
-        Configuration class for IsoDec Engine. Holds the key parameters for the data processing and deconvolution.
-        """
-        super().__init__()
-        self.filepath = ""
-        self.batch_size = 32
-        self.test_batch_size = 2048
-        self.current_KD_round = 0
-        self.activescan = -1
-        self.activescanrt = -1
-        self.activescanorder = -1
-        self.meanpeakspacing_thresh = 0.01  ##This needs to be optimized.
-        self.isolation_width = 3.0
-        self.adjust_css = True
-
-        self.adductmass = 1.007276467
-        self.mass_diff_c = 1.0033
-
-        self.verbose = False
-
-        self.peakwindow = 80
-
-        self.phaseres = 8
-
-        self.matchtol = 5  # In ppm
-        self.minpeaks = 3
-        self.peakthresh = 0.0001
-        self.css_thresh = 0.7
-        self.maxshift = 3  # This will get overwritten for smaller z, where it's dangerous to have more than 1 or 2
-        self.mzwindow = [-1.05, 2.05]
-        self.plusoneintwindow = [0.1, 0.6]
-        self.knockdown_rounds = 5
-        self.min_score_diff = 0.1
-        self.minareacovered = 0.20
-        self.minusoneaszero = True
-        self.isotopethreshold = 0.01
-        self.datathreshold = 0.05
-        self.zscore_threshold = 0.95
-
-        self.report_multiple_monoisos = True
-        self.write_scans_without_precs = True
-
-    def set_scan_info(self, s, reader=None):
-        """
-        Sets the active scan info
-        :param s: The current scan
-        :param reader: The reader object
-        :return: None
-        """
-        self.activescan = s
-        if reader is not None:
-            self.activescanrt = reader.get_scan_time(s)
-            self.activescanorder = reader.get_ms_order(s)
-            polarity = reader.polarity
-            if polarity == "Negative":
-                self.adductmass = -1.007276467
-            else:
-                self.adductmass = 1.007276467
-
-    def __str__(self):
-        outstring = "IsoDec Configuration:\n"
-        outstring += f"Filepath: {self.filepath}\n"
-        outstring += f"Batch Size: {self.batch_size}\n"
-        outstring += f"Test Batch Size: {self.test_batch_size}\n"
-        outstring += f"Current KD Round: {self.current_KD_round}\n"
-        outstring += f"Active Scan: {self.activescan}\n"
-        outstring += f"Active Scan RT: {self.activescanrt}\n"
-        outstring += f"Active Scan Order: {self.activescanorder}\n"
-        outstring += f"Mean Peak Spacing Threshold: {self.meanpeakspacing_thresh}\n"
-        outstring += f"Isolation Width: {self.isolation_width}\n"
-        outstring += f"Adjust CSS: {self.adjust_css}\n"
-        outstring += f"Adduct Mass: {self.adductmass}\n"
-        outstring += f"Mass Diff C: {self.mass_diff_c}\n"
-        outstring += f"Verbose: {self.verbose}\n"
-        outstring += f"Peak Window: {self.peakwindow}\n"
-        outstring += f"Phase Resolution: {self.phaseres}\n"
-        outstring += f"Match Tolerance: {self.matchtol} ppm\n"
-        outstring += f"Minimum Peaks: {self.minpeaks}\n"
-        outstring += f"Peak Threshold: {self.peakthresh}\n"
-        outstring += f"CSS Threshold: {self.css_thresh}\n"
-        outstring += f"Max Shift: {self.maxshift}\n"
-        outstring += f"m/z Window: {self.mzwindow}\n"
-        outstring += f"Plus One Intensity Window: {self.plusoneintwindow}\n"
-        outstring += f"Knockdown Rounds: {self.knockdown_rounds}\n"
-        outstring += f"Minimum Score Difference: {self.min_score_diff}\n"
-        outstring += f"Minimum Area Covered: {self.minareacovered}\n"
-        outstring += f"Minus One as Zero: {self.minusoneaszero}\n"
-        outstring += f"Isotope Threshold: {self.isotopethreshold}\n"
-        outstring += f"Data Threshold: {self.datathreshold}\n"
-        outstring += f"Z-Score Threshold: {self.zscore_threshold}\n"
-        outstring += f"Report Multiple Monoisotopes: {self.report_multiple_monoisos}\n"
-        outstring += f"Write Scans Without Precursors: {self.write_scans_without_precs}\n"
-        return outstring
-
-
-
-
-# mass_diff_c = 1.0033
 class MatchedCollection:
     """
     Class for collecting matched peaks
@@ -125,11 +26,13 @@ class MatchedCollection:
         self.monoisos = np.array([])
         self.precursors = np.array([])
         self.colormap = mpl.colormaps.get_cmap("tab10")
+        self.simdata = []
+        self.sumsim = []
 
     def __str__(self):
         outstring = ""
         for p in self.peaks:
-            outstring += str(p)
+            outstring += str(p) + "\n"
         return outstring
 
     def __len__(self):
@@ -170,7 +73,7 @@ class MatchedCollection:
         return self
 
     def group_peaks(self, peaks):
-        #Groups peaks with identical intensities
+        # Groups peaks with identical intensities
         grouped_peaks = []
         grouped_peak_intensities = np.array([])
         for p in peaks:
@@ -184,194 +87,73 @@ class MatchedCollection:
                 if intensity_diff < 0.001 and p.z == grouped_peaks[nearest_idx].z:
                     grouped_peaks[nearest_idx].monoisos.append(p.monoiso)
                 else:
-                    #Insert into the grouped peaks/grouped_mzs at the proper position
+                    # Insert into the grouped peaks/grouped_mzs at the proper position
                     if p.matchedintensity > grouped_peak_intensities[nearest_idx]:
                         nearest_idx += 1
                     grouped_peaks.insert(nearest_idx, p)
                     grouped_peak_intensities = np.insert(grouped_peak_intensities, nearest_idx, p.matchedintensity)
         return grouped_peaks
 
-
-    def add_pk_to_masses(self, pk, ppmtol):
+    def add_pk_to_masses(self, pk, config=None, rt_tol=None, scan_tol=100):
         """
         Checks if an existing mass matches to this peak, if so adds it to that mass, otherwise creates a new mass
         The list of masses is constantly kept in order of monoisotopic mass.
         """
+        if config is None:
+            config = IsoDecConfig()
+
         if len(self.masses) == 0:
             self.monoisos = np.append(self.monoisos, pk.monoiso)
             self.masses.append(MatchedMass(pk))
+            return
 
+        # Get the index of the nearest mass
+        idx, indices = fastwithin_abstol_withnearest(self.monoisos, pk.monoiso, config.maxshift * 1.25)
+        nearest_mass = self.monoisos[idx]
+        matched_indices = []
+
+        # Loop through the indices and check for a match
+        for i in indices:
+            massobj = self.masses[i]
+            # Check massobj for match
+            check = massobj.check_if_match(pk, config, scan_tol=scan_tol, rt_tol=rt_tol)
+            if check:
+                matched_indices.append(i)
+            pass
+
+        # If one match is found, use it
+        if len(matched_indices) == 1:
+            matchedindex = matched_indices[0]
+            self.masses[matchedindex].merge_in_pk(pk)
+        elif len(matched_indices) > 1:
+            # The new peak matches to multiple, select the one with the closest RT
+            rt_diffs = np.abs([pk.rt - self.masses[i].apexrt for i in matched_indices])
+            closest = np.argmin(rt_diffs)
+            matchedindex = matched_indices[closest]
+            self.masses[matchedindex].merge_in_pk(pk)
         else:
-            #need to update this code to allow for overlapped monoisos.
-            idx = fastnearest(self.monoisos, pk.monoiso)
-            nearest_mass = self.monoisos[idx]
-
-            if (abs(pk.scan - self.masses[idx].scans[len(self.masses[idx].scans) - 1]) <= 100 and
-                    ud.within_ppm(self.masses[idx].monoiso, pk.monoiso, ppmtol)):
-                if pk.scan not in self.masses[idx].scans:
-                    self.masses[idx].scans = np.append(self.masses[idx].scans, pk.scan)
-                self.masses[idx].totalintensity += pk.matchedintensity
-
-                if pk.peakint is not None:
-                    if pk.peakint > self.masses[idx].apexintensity:
-                        self.masses[idx].apexintensity = pk.peakint
-                        self.masses[idx].apexscan = pk.scan
-                        self.masses[idx].apexrt = pk.rt
-
-                #Update min and max scans if necessary
-                if pk.scan > self.masses[idx].maxscan:
-                    self.masses[idx].maxscan = pk.scan
-                    self.masses[idx].maxrt = pk.rt
-
-                if pk.scan < self.masses[idx].minscan:
-                    self.masses[idx].minscan = pk.scan
-                    self.masses[idx].minrt = pk.rt
-
-                if not np.isin(self.masses[idx].zs, pk.z).any():
-                    self.masses[idx].zs = np.append(self.masses[idx].zs, pk.z)
-                    self.masses[idx].mzs = np.append(self.masses[idx].mzs, pk.mz)
-                    self.masses[idx].mzints = np.append(self.masses[idx].mzints, pk.peakint)
-                    self.masses[idx].isodists = np.vstack([self.masses[idx].isodists, pk.isodist])
-
+            # If no matches are found, create a new mass
+            if pk.monoiso > nearest_mass:
+                idx += 1
+            if idx == len(self.monoisos):
+                self.monoisos = np.append(self.monoisos, pk.monoiso)
+                self.masses.append(MatchedMass(pk))
             else:
-                if pk.monoiso > nearest_mass:
-                    idx += 1
-                if idx == len(self.monoisos):
-                    self.monoisos = np.append(self.monoisos, pk.monoiso)
-                    self.masses.append(MatchedMass(pk))
-                else:
-                    self.monoisos = np.insert(self.monoisos, idx, pk.monoiso)
-                    self.masses.insert(idx, MatchedMass(pk))
-
-    def add_pk_to_masses2(self, pk, ppmtol, rt_tol=2, maxshift=3):
-        """
-        Checks if an existing mass matches to this peak, if so adds it to that mass, otherwise creates a new mass
-        The list of masses is constantly kept in order of monoisotopic mass.
-        """
-        if len(self.masses) == 0:
-            self.monoisos = np.append(self.monoisos, pk.monoiso)
-            self.masses.append(MatchedMass(pk))
-
-        else:
-            #Get the index of the nearest mass
-            idx, indices = fastwithin_abstol_withnearest(self.monoisos, pk.monoiso, maxshift*1.25)
-            nearest_mass = self.monoisos[idx]
-            matched_indices = []
-            if len(indices) > 0:
-                for i in indices:
-                    #Filter out the indices of peaks that are too far away in RT
-                    if np.abs(pk.rt - self.masses[i].maxrt) > rt_tol and np.abs(pk.rt - self.masses[i].minrt) > rt_tol:
-                        continue
-                    for m in range(-maxshift, maxshift+1):
-                        if ud.within_ppm(self.masses[i].monoiso, pk.monoiso + m * mass_diff_c, ppmtol):
-                            matched_indices.append(i)
-                            break
-                        if i in matched_indices:
-                            break
-
-
-                if len(matched_indices) == 0:
-                    if pk.monoiso > nearest_mass:
-                        idx += 1
-                    if idx == len(self.monoisos):
-                        self.monoisos = np.append(self.monoisos, pk.monoiso)
-                        self.masses.append(MatchedMass(pk))
-                    else:
-                        self.monoisos = np.insert(self.monoisos, idx, pk.monoiso)
-                        self.masses.insert(idx, MatchedMass(pk))
-
-                elif len(matched_indices) == 1:
-                    #Add the peak to the matched mass
-                    if pk.scan not in self.masses[matched_indices[0]].scans:
-                        self.masses[matched_indices[0]].scans = np.append(self.masses[matched_indices[0]].scans, pk.scan)
-                    self.masses[idx].totalintensity += pk.matchedintensity
-                    self.masses[idx].totalpeaks += 1
-
-                    if pk.matchedintensity is not None:
-                        #Add the intensity to the scan intensity dictionary
-                        if self.masses[matched_indices[0]].scan_intensities.get(pk.scan) is not None:
-                            self.masses[matched_indices[0]].scan_intensities[pk.scan] += pk.matchedintensity
-                        else:
-                            self.masses[matched_indices[0]].scan_intensities[pk.scan] = pk.matchedintensity
-                        #Update the apex intensity if necessary
-                        if pk.matchedintensity > self.masses[matched_indices[0]].apexintensity:
-                            self.masses[matched_indices[0]].apexintensity = pk.matchedintensity
-                            self.masses[matched_indices[0]].apexscan = pk.scan
-                            self.masses[matched_indices[0]].apexrt = pk.rt
-
-                        #Update the min and max rt/scan if necessary:
-                        if pk.scan > self.masses[matched_indices[0]].maxscan:
-                            self.masses[matched_indices[0]].maxscan = pk.scan
-                            self.masses[matched_indices[0]].maxrt = pk.rt
-
-                        if pk.scan < self.masses[matched_indices[0]].minscan:
-                            self.masses[matched_indices[0]].minscan = pk.scan
-                            self.masses[matched_indices[0]].minrt = pk.rt
-
-                    if pk.z not in self.masses[matched_indices[0]].zs:
-                        self.masses[matched_indices[0]].zs = np.append(self.masses[matched_indices[0]].zs, pk.z)
-                        self.masses[matched_indices[0]].mzs = np.append(self.masses[matched_indices[0]].mzs, pk.mz)
-                else:
-                    #The new peak matches to multiple, select the one with the closest RT
-                    rt_diffs = np.abs([pk.rt - self.masses[i].apexrt for i in matched_indices])
-                    closest = np.argmin(rt_diffs)
-
-                    self.masses[matched_indices[closest]].scans = np.append(self.masses[matched_indices[closest]].scans, pk.scan)
-                    self.masses[matched_indices[closest]].totalintensity += pk.matchedintensity
-                    self.masses[matched_indices[closest]].totalpeaks += 1
-
-                    #Add the intensity to the scan intensity dictionary
-                    if pk.matchedintensity is not None:
-                        if self.masses[matched_indices[closest]].scan_intensities.get(pk.scan) is not None:
-                            self.masses[matched_indices[closest]].scan_intensities[pk.scan] += pk.matchedintensity
-                        else:
-                            self.masses[matched_indices[closest]].scan_intensities[pk.scan] = pk.matchedintensity
-
-                        #Update the apex intensity if necessary
-                        if pk.matchedintensity > self.masses[matched_indices[closest]].apexintensity:
-                            self.masses[matched_indices[closest]].apexintensity = pk.matchedintensity
-                            self.masses[matched_indices[closest]].apexscan = pk.scan
-                            self.masses[matched_indices[closest]].apexrt = pk.rt
-
-                        #Update the min and max rt/scan if necessary:
-                        if pk.scan > self.masses[matched_indices[closest]].maxscan:
-                            self.masses[matched_indices[closest]].maxscan = pk.scan
-                            self.masses[matched_indices[closest]].maxrt = pk.rt
-
-                        if pk.scan < self.masses[matched_indices[closest]].minscan:
-                            self.masses[matched_indices[closest]].minscan = pk.scan
-                            self.masses[matched_indices[closest]].minrt = pk.rt
-
-                    if pk.z not in self.masses[matched_indices[closest]].zs:
-                        self.masses[matched_indices[closest]].zs = np.append(self.masses[matched_indices[closest]].zs, pk.z)
-                        self.masses[matched_indices[closest]].mzs = np.append(self.masses[matched_indices[closest]].mzs, pk.mz)
-
-
-            else:
-                #Find where to insert a new mass
-                if pk.monoiso > nearest_mass:
-                    idx += 1
-                if idx == len(self.monoisos):
-                    self.monoisos = np.append(self.monoisos, pk.monoiso)
-                    self.masses.append(MatchedMass(pk))
-                else:
-                    self.monoisos = np.insert(self.monoisos, idx, pk.monoiso)
-                    self.masses.insert(idx, MatchedMass(pk))
+                self.monoisos = np.insert(self.monoisos, idx, pk.monoiso)
+                self.masses.insert(idx, MatchedMass(pk))
 
     def export_prosightlite(self, filename="prosight.txt"):
         with open(filename, "w") as f:
             for p in self.masses:
                 f.write(str(p.monoiso) + "\n")
 
-
-    def merge_missed_monoisotopics(self, ppm_tolerance=20, max_mm=1):
-        mass_diff_c = 1.0033
+    def merge_missed_monoisotopics(self, ppm_tolerance=20, max_mm=1, mass_diff_c=1.0033):
         to_remove = []
         for i1 in range(len(self.peaks)):
             for i2 in range(len(self.peaks)):
                 if i1 == i2 or self.peaks[i1].z != self.peaks[i2].z:
                     continue
-                if abs(self.peaks[i1].monoiso - self.peaks[i2].monoiso) < max_mm * 1.0033 * 1.1:
+                if abs(self.peaks[i1].monoiso - self.peaks[i2].monoiso) < max_mm * mass_diff_c * 1.1:
                     mm_count = int(round(self.peaks[i1].monoiso - self.peaks[i2].monoiso))
                     if self.peaks[i1].matchedintensity > self.peaks[i2].matchedintensity:
                         adj_mass = self.peaks[i2].monoiso + mm_count * mass_diff_c
@@ -395,13 +177,13 @@ class MatchedCollection:
                 for mono1 in self.masses[i1].monoisos:
                     for mono2 in self.masses[i2].monoisos:
                         if ud.within_ppm(mono1, mono2, ppm_tolerance):
-                            #Remove the mass at i2 and add unmatched monoisos to the mass at i1
+                            # Remove the mass at i2 and add unmatched monoisos to the mass at i1
                             for mono in self.masses[i2].monoisos:
                                 if any(ud.within_ppm(x, mono, ppm_tolerance) for x in self.masses[i1].monoisos):
                                     continue
                                 else:
                                     self.masses[i1].monoisos = np.append(self.masses[i1].monoisos, mono)
-                            #Add charge states from i2 that don't exist in i1
+                            # Add charge states from i2 that don't exist in i1
                             for z in self.masses[i2].zs:
                                 if z not in self.masses[i1].zs:
                                     self.masses[i1].zs = np.append(self.masses[i1].zs, z)
@@ -449,7 +231,7 @@ class MatchedCollection:
                                   report_multiple_monoisos=config.report_multiple_monoisos,
                                   write_noprec_scans=config.write_scans_without_precs)
 
-    def to_df(self, avg = False, report_multiple_monoisos=True):
+    def to_df(self, avg=False, report_multiple_monoisos=True):
         """
         Convert a MatchedCollection object to a pandas dataframe
         :return: Pandas dataframe
@@ -458,10 +240,14 @@ class MatchedCollection:
 
         data = []
         for p in self.peaks:
-            avg_mono_delta = p.avgmass - p.monoiso
+            try:
+                avg_mono_delta = p.avgmass - p.monoiso
+            except:
+                avg_mono_delta = 0
             if report_multiple_monoisos:
                 for mono in p.monoisos:
-                    d = {"Charge": p.z, "Most Abundant m/z": p.mz, col: mono + avg_mono_delta if avg else mono, "Scan": p.scan,
+                    d = {"Charge": p.z, "Most Abundant m/z": p.mz, col: mono + avg_mono_delta if avg else mono,
+                         "Scan": p.scan,
                          "Most Abundant Mass": p.peakmass, "Abundance": p.matchedintensity}
                     data.append(d)
             else:
@@ -497,6 +283,56 @@ class MatchedCollection:
 
         return np.transpose([masses, intensities])
 
+    def to_merged_isodists(self):
+        isodistall = []
+        for p in self.peaks:
+            if p.isodist is not None:
+                for d in p.isodist:
+                    isodistall.append(d)
+        # to numpy array
+        isodistall = np.array(isodistall)
+        if len(isodistall) == 0:
+            print("Zero Sized Isodist Array")
+            return np.array([])
+        # Sort by mass
+        isodistall = isodistall[np.argsort(isodistall[:, 0])]
+        return isodistall
+
+    def fill_fwhm(self, profiledata, sort=False, wfactor=4, maxppmtol=1000):
+        for p in self.peaks:
+            p.set_fwhms(profiledata, sort=sort, wfactor=wfactor, maxppmtol=maxppmtol)
+
+    def gen_peaks(self, profiledata):
+        newpeaks = []
+        for p in self.peaks:
+            newpeak = p.gen_peak(profiledata)
+            if newpeak is not None:
+                newpeaks.append(newpeak)
+            if np.isnan(newpeak).any():
+                print("NaN in simdata")
+                print(p)
+        self.simdata = np.array(newpeaks)
+        self.sumsim = self.sum_peaks_data(profiledata)
+        huskleft = self.remove_peaks_from_data(profiledata)
+        return newpeaks, self.sumsim, huskleft
+
+    def sum_peaks_data(self, data):
+        firstsum = np.sum(self.simdata, axis=0)
+        sum = intensity_decon(data, self.simdata, n=10)
+        error1 = np.sum((data[:, 1] - firstsum) ** 2) / np.sum(data[:, 1] ** 2)
+        error2 = np.sum((data[:, 1] - sum) ** 2) / np.sum(data[:, 1] ** 2)
+        print("Sum of Squares Error: Simple Sum:", error1, "Deconvoluted Sum:", error2)
+        return sum
+
+    def remove_peaks_from_data(self, data, percentcutoff=0.25):
+        huskleft = data[:, 1] - self.sumsim
+        huskleft[huskleft < 0] = 0
+
+        if percentcutoff > 0:
+            pointerror = ud.safedivide(huskleft, data[:, 1])
+            huskleft[pointerror < percentcutoff] = 0
+
+        return huskleft
 
 
 class MatchedMass:
@@ -523,18 +359,144 @@ class MatchedMass:
         self.isodists = pk.isodist
         self.totalpeaks = 1
         self.avgmass = pk.avgmass
+        self.decon_centroids = pk.calc_mass_dists()
+        self.massdist = pk.massdist
 
+        # List of MatchedPeak objects
+        self.clusters = [pk]
+
+    def __str__(self):
+        return f"Mass: {self.monoiso:.4f}, Charge States: {self.zs}, Total Intensity: {self.totalintensity}, Total Peaks: {self.totalpeaks}"
+
+    def merge_in_pk(self, newpk):
+        # Add to list of peaks
+        self.clusters.append(newpk)
+
+        # Update Apex intensity and scans
+        if newpk.peakint is not None:
+            if newpk.peakint > self.apexintensity:
+                self.apexintensity = newpk.peakint
+                self.apexscan = newpk.scan
+                self.apexrt = newpk.rt
+
+        # Update min and max scans if necessary
+        if newpk.scan > self.maxscan:
+            self.maxscan = newpk.scan
+            self.maxrt = newpk.rt
+        if newpk.scan < self.minscan:
+            self.minscan = newpk.scan
+            self.minrt = newpk.rt
+
+        # Update mz, z, mzints, isodists if new z state
+        if not np.isin(self.zs, newpk.z).any():
+            self.zs = np.append(self.zs, newpk.z)
+            self.mzs = np.append(self.mzs, newpk.mz)
+            self.mzints = np.append(self.mzints, newpk.peakint)
+            self.isodists = np.vstack([self.isodists, newpk.isodist])
+
+        # Update self.decon_centroids
+        newdist = newpk.calc_mass_dists()
+        if newdist is not None:
+            if self.decon_centroids is not None:
+                self.decon_centroids = np.vstack([self.decon_centroids, newdist])
+            else:
+                self.decon_centroids = newdist
+        self.decon_centroids = merge_decon_centroids(self.decon_centroids, ppm_tol=newpk.config.matchtol)
+
+        # Update monoisotopic masses if necessary
+        for m in newpk.monoisos:
+            closeindex = fastnearest(self.monoisos, m)
+            # Check if within ppm tolerance of the closest monoisotopic mass
+            if ud.within_ppm(m, self.monoisos[closeindex], newpk.config.matchtol):
+                intensity = newpk.matchedintensity if newpk.matchedintensity is not None else 1
+                # Average the monoisotopic masses weighted by intensity of the cluster
+                self.monoisos[closeindex] = self.monoisos[closeindex] * self.totalintensity + m * intensity / (
+                        self.totalintensity + intensity)
+            else:
+                self.monoisos = np.append(self.monoisos, m)
+
+        # Update monoisotopic mass
+        if ud.within_ppm(self.monoiso, newpk.monoiso, newpk.config.matchtol):
+            # If monoisotopic mass is exactly the same, average weighted by intensity
+            intensity = newpk.matchedintensity if newpk.matchedintensity is not None else 1
+            self.monoiso = (self.monoiso * self.totalintensity + newpk.monoiso * intensity) / (
+                    self.totalintensity + intensity)
+        else:
+            # If monoisotopics masses don't match, compare each with the deconvolved centroids and keep the one with the best CSS
+            # There's a faster way to do this where you don't match each, but I'm not up for it today
+            # print("Warning: Merging peaks with different monoisotopic masses:", self.monoiso, newpk.monoiso)
+            css_new = calc_css_from_data(self.decon_centroids, newpk.massdist, ppm_tol=newpk.config.matchtol)
+            css_old = calc_css_from_data(self.decon_centroids, self.massdist, ppm_tol=newpk.config.matchtol)
+            if css_new > css_old:
+                self.monoiso = newpk.monoiso
+                self.massdist = newpk.massdist
+            # else:
+            #     print("Warning: Merging peaks with different monoisotopic masses:", self.monoiso, newpk.monoiso,)
+            # Do nothing if peak is not better
+
+        # Fit Massdist to decon_centroids, this is somewhat crude, but I think it's probably good enough
+        self.massdist = merge_massdist(np.array(self.massdist), self.decon_centroids, newpk.config.matchtol)
+
+        # Add to total intensity
+        if newpk.scan not in self.scans:
+            self.scans = np.append(self.scans, newpk.scan)
+        if newpk.matchedintensity is not None:
+            # Add the intensity to the scan intensity dictionary
+            if self.scan_intensities.get(newpk.scan) is not None:
+                self.scan_intensities[newpk.scan] += newpk.matchedintensity
+            else:
+                self.scan_intensities[newpk.scan] = newpk.matchedintensity
+            self.totalintensity += newpk.matchedintensity
+        else:
+            self.totalintensity += 1
+        self.totalpeaks += 1
+
+    def check_if_match(self, pk, config, scan_tol=100, rt_tol=None):
+        nearest_mass = self.monoiso
+        # Close check to see if the masses are anywhere near each other
+        close_check = abs(pk.monoiso - nearest_mass) <= config.maxshift * config.mass_diff_c * 1.1
+        if not close_check:
+            return False
+
+        # Check if the scan is close enough
+        scan_check = abs(pk.scan - self.scans[len(self.scans) - 1]) <= scan_tol
+        # If RT tolerance is set, check if within RT tolerance
+        if rt_tol is not None and self.maxrt > 0 and self.minrt > 0 and pk.rt > 0:
+            rt_check = abs(pk.rt - self.maxrt) <= rt_tol or abs(pk.rt - self.minrt) <= rt_tol
+            scan_check = scan_check and rt_check
+        if not scan_check:
+            return False
+
+        # Check if within tolerance with monoisotopic shifts
+        ppm_check = within_ppm_plus_mm(nearest_mass, pk.monoiso, config.matchtol, config.maxshift, config.mass_diff_c)
+        if not ppm_check:
+            return False
+
+        # Check if the isodist matches on each
+        isodist_check = isodist_match(self.decon_centroids, pk.massdist, css_threshold=config.css_thresh,
+                                      ppm_tol=config.matchtol)
+        if not isodist_check:
+            # print("Isodist check failed for peak", pk.monoiso, "and mass", self.monoiso)
+            return False
+
+        return True
 
 
 class MatchedPeak:
     """
     Matched peak object for collecting data on peaks with matched distributions
     """
-    def __init__(self, z, mz, avgmass=None, centroids=None, isodist=None, matchedindexes=None, isomatches=None):
+
+    def __init__(self, z, mz, avgmass=None, centroids=None, isodist=None, matchedindexes=None, isomatches=None,
+                 config=None):
         self.mz = mz
         self.z = z
         self.centroids = centroids
+        self.decon_centroids = None
+
         self.isodist = isodist
+        self.massdist = None
+
         self.matchedintensity = 0
         self.peakint = 0
         self.matchedcentroids = None
@@ -545,17 +507,24 @@ class MatchedPeak:
         self.scan = -1
         self.rt = -1
         self.ms_order = -1
-        self.massdist = None
+
+        self.monoiso = -1
         self.monoisos = []
+
         self.peakmass = -1
-        self.avgmass = -1
         self.startindex = -1
         self.endindex = -1
-        self.monoiso = -1
+
         self.bestshift = -1
         self.avgmass = avgmass
         self.acceptedshifts = None
         self.matchedions = []
+
+        self.fwhms = []
+        self.avgfwhm = 0
+        self.fwhmratio = 0
+        self.avgsigma = 0
+
         if matchedindexes is not None:
             self.matchedindexes = matchedindexes
             self.matchedcentroids = centroids[np.array(matchedindexes)]
@@ -565,613 +534,187 @@ class MatchedPeak:
             self.isomatches = isomatches
             self.matchedisodist = isodist[np.array(isomatches)]
 
+        # Keep a copy of config here solely for calc_mass_dists
+        self.config = config
+        if self.config is None:
+            self.config = IsoDecConfig()
+
+    def calc_mass_dists(self):
+        if self.centroids is not None:
+            self.decon_centroids = np.column_stack(
+                (self.centroids[:, 0] * self.z - self.config.adductmass * self.z, self.centroids[:, 1]))
+            return self.decon_centroids
+        else:
+            print("No centroids")
+            return None
+
+    def strip_from_data(self, data):
+        """
+        Strips the matched peak from the data
+        :param data: The data to strip from
+        :return: None
+        """
+        minmz = np.amin(self.isodist[:, 0]) - 0.5
+        maxmz = np.amax(self.isodist[:, 0]) + 0.5
+        data = ud.dataremove(data, minmz, maxmz)
+        return data
+
+    def set_fwhms(self, profiledata, sort=False, wfactor=4, maxppmtol=1000):
+        if ud.isempty(self.isodist):
+            self.fwhms = np.array([])
+        else:
+            self.fwhms = fast_fwhm(profiledata, self.isodist, sort=sort, wfactor=wfactor, maxppmtol=maxppmtol)
+
+        goodb = self.fwhms[:, 0] > 0
+        goodfwhms = self.fwhms[goodb]
+        if len(goodfwhms) > 0:
+            self.avgfwhm = np.mean(goodfwhms[:, 0])
+            self.fwhmratio = np.mean(goodfwhms[:, 1] / goodfwhms[:, 2])
+            self.avgsigma = np.mean(goodfwhms[:, 5])
+
+    def gen_peak(self, data):
+        if self.isodist is None or len(self.isodist) == 0:
+            print("No isodist for peak", self.mz, self.z)
+            return None
+        if len(self.fwhms) == 0:
+            print("No FWHM for peak", self.mz, self.z)
+            return None
+        if self.avgfwhm == 0 or np.isnan(self.avgfwhm):
+            print("No valid FWHM for peak", self.mz, self.z)
+            return None
+
+        outdata = np.zeros_like(data)
+        for i, fwhm in enumerate(self.fwhms):
+            if fwhm[0] <= 0:
+                continue
+            # Generate the peak using the isodist and FWHM
+            peakmz = self.isodist[i, 0]
+            peakint = self.isodist[i, 1]
+            # fwhm_value = fwhm[0]
+            sigma = fwhm[5]
+            startindex = int(fwhm[3])
+            endindex = int(fwhm[4])
+            centroid = fwhm[6]
+
+            if sigma <= 0:
+                sigma = self.avgsigma
+
+            xvalues = data[startindex:endindex + 1, 0]
+            yvalues = ndis_std(xvalues, centroid, sigma, peakint)
+
+            outdata[startindex:endindex + 1, 1] += yvalues
+
+        return outdata[:, 1]
 
     def __str__(self):
-        return f"MatchedPeak: mz={self.mz}, z={self.z}, monoiso={self.monoiso}\n"
+        return f"MatchedPeak: mz={self.mz}, z={self.z}, monoiso={self.monoiso}"
+
+@njit(fastmath=True)
+def within_ppm_plus_mm(mass1, mass2, ppm_tol=20, max_mm=1, mass_diff_c=1.0033):
+    for mm in range(-max_mm, max_mm + 1):
+        adjusted_mass2 = mass2 + mm * mass_diff_c
+        if ud.within_ppm(mass1, adjusted_mass2, ppm_tol):
+            return True
+    return False
+
+@njit(fastmath=True)
+def merge_massdist(massdist: np.ndarray, decon_centroids: np.ndarray, matchtol: float):
+    max_intensity = 0.0
+    diff_at_max = 0.0
+    normfactor = 1.0
+    for d in massdist:
+        if d[1] > max_intensity:
+            # Check if it matches anything in self.decon_centroids
+            idx = fastnearest(decon_centroids[:, 0], d[0])
+            if ud.within_ppm(decon_centroids[idx, 0], d[0], matchtol):
+                max_intensity = d[1]
+                diff_at_max = abs(decon_centroids[idx, 0] - d[0])
+                normfactor = decon_centroids[idx, 1] / d[1] if d[1] != 0 else 1
+    if diff_at_max < matchtol * massdist[0,0] / 1e6:
+        massdist[:, 0] += diff_at_max
+    if max_intensity != 0:
+        massdist[:, 1] = massdist[:, 1] * normfactor
+
+    return massdist
 
 
-def df_to_matchedcollection(df, monoiso="Monoisotopic Mass", peakmz="Most Abundant m/z", peakmass="Most Abundant Mass",
-                            scan="Scan", z="Charge", intensity="Abundance", ion="Ion"):
-    """
-    Convert a pandas dataframe to a MatchedCollection object
-    :param df: Pandas dataframe with columns mz, intensity, z, scan, rt, monoiso, peakmass, avgmass
-    :return: MatchedCollection object
-    """
-    mc = MatchedCollection()
-    for i, row in df.iterrows():
-        pk = MatchedPeak(row[z], row[peakmz])
-        pk.scan = row[scan]
-        pk.monoiso = row[monoiso]
-        pk.peakmass = row[peakmass]
-        pk.matchedion = row[ion]
-        if pk.matchedion == math.nan:
-            pk.matchedion = None
-        isodist = create_isodist2(pk.monoiso, pk.z, row[intensity])
-        pk.isodist = isodist
-        mc.add_peak(pk)
-    print("Loaded", len(mc.peaks), "peaks from dataframe")
-    return mc
+@njit(fastmath=True)
+def merge_decon_centroids(centroids, ppm_tol=10):
+    if centroids is None or len(centroids) == 0:
+        return None
 
+    centroids = centroids[np.argsort(centroids[:, 0])]
+    merged = np.zeros((len(centroids), 2))
+    m_idx = 0
 
-def read_msalign_to_matchedcollection_fast(file, decon_engine=None, data=None, mz_type="monoiso", msorder=1):
-    mc = MatchedCollection()
+    current_mass = centroids[0, 0]
+    current_intensity = centroids[0, 1]
+    weighted_sum = current_mass * current_intensity
+    total_intensity = current_intensity
 
-    msalign_filename = os.path.splitext(os.path.basename(file))[0]
-    msalign_filename = msalign_filename.replace("_ms2", "")
-
-    scan_lines = []
-    with (open(file, "r") as f):
-        adding_to_scan = False
-        for line in f:
-            if "BEGIN IONS" in line:
-                adding_to_scan = True
-                current_scan = []
-            elif "END IONS" in line:
-                scan_lines.append(current_scan)
-                adding_to_scan = False
-            elif adding_to_scan:
-                current_scan.append(line)
-            else:
-                continue
-    for lineset in scan_lines:
-        parse_line_set(mc, msalign_filename, decon_engine, lineset, data=data, scan_order=msorder)
-    for peak in mc.peaks:
-        peak.ms_order = msorder
-    print("Loaded", len(mc.peaks), "peaks from msalign file")
-    return mc
-
-def parse_line_set(mc, filename, decon_engine, lines, data=None, scan_order=2):
-    scan = None
-    current_rt = None
-    current_precursor_mass = None
-    current_precursor_charge = None
-    current_precursor_intensity = None
-    current_precursor_mz = None
-    current_ms1_scan = None
-    current_ms2_scan = None
-    ionstart = None
-    rawpeaks = []
-    for i, line in enumerate(lines):
-        if "SCANS" in line:
-            scan = int(line.split("=")[1])
-            current_ms2_scan = int(line.split("=")[1])
-        if "RETENTION_TIME" in line:
-            current_rt = float(line.split("=")[1]) / 60
-        if "PRECURSOR_MASS" in line:
-            try:
-                mass_split = line.split("=")
-                if ":" not in mass_split[1]:
-                    current_precursor_mass = float(mass_split[1])
-                else:
-                    newsplit = mass_split[1].split(":")
-                    current_precursor_mass = float(newsplit[0])
-            except Exception as e:
-                current_precursor_mass = -1
-        if "PRECURSOR_CHARGE" in line:
-            try:
-                zsplit = line.split("=")
-                if ":" not in zsplit[1]:
-                    current_precursor_charge = int(line.split("=")[1])
-                else:
-                    newsplit = zsplit[1].split(":")
-                    current_precursor_charge = int(newsplit[0])
-            except Exception as e:
-                current_precursor_charge = -1
-        if "PRECURSOR_INTENSITY" in line:
-            try:
-                intsplit = line.split("=")
-                if ":" not in intsplit[1]:
-                    current_precursor_intensity = float(line.split("=")[1])
-                else:
-                    newsplit = intsplit[1].split(":")
-                    current_precursor_intensity = float(newsplit[0])
-            except Exception as e:
-                current_precursor_intensity = 0
-
-        if "PRECURSOR_MZ" in line:
-            try:
-                mzsplit = line.split("=")
-                if ":" not in mzsplit[1]:
-                    current_precursor_mz = float(line.split("=")[1])
-                else:
-                    newsplit = mzsplit[1].split(":")
-                    current_precursor_mz = float(newsplit[0])
-            except Exception as e:
-                current_precursor_mz = -1
-
-        if "MS_ONE_SCAN" in line:
-            current_ms1_scan = int(line.split("=")[1])
-        if "=" not in line:
-            ionstart = i
-            break
-    if ionstart is None:
-        return
-    for i in range(ionstart, len(lines)):
-        line = lines[i]
-        split = line.split("\t")
-        mz = (float(split[0]) + (1.007276467 * int(split[2]))) / int(split[2])
-        pk = MatchedPeak(int(split[2]), mz)
-        pk.monoisos = [float(split[0])]
-        pk.scan = scan
-        pk.monoiso = float(split[0])
-        pk.matchedintensity = float(split[1])
-        pk.rt = current_rt
-        pk.ms_order = scan_order
-
-        isodist = fast_calc_averagine_isotope_dist(pk.monoiso, pk.z)
-        if data is not None:
-            # Find nearest peak in data
-            mz = isodist[np.argmax(isodist[:, 1]), 0]
-            startindex = fastnearest(data[:, 0], mz)
-            # endindex = fastnearest(data[:, 0], mz + window[1])
-
-            dmax = data[startindex, 1]
-
+    for i in range(1, len(centroids)):
+        next_mass = centroids[i, 0]
+        next_intensity = centroids[i, 1]
+        ppm = abs(current_mass - next_mass) / current_mass * 1e6
+        if ppm <= ppm_tol:
+            weighted_sum += next_mass * next_intensity
+            total_intensity += next_intensity
+            current_mass = weighted_sum / total_intensity
+            current_intensity = total_intensity
         else:
-            dmax = 10000
+            merged[m_idx, 0] = current_mass
+            merged[m_idx, 1] = current_intensity
+            m_idx += 1
+            current_mass = next_mass
+            current_intensity = next_intensity
+            weighted_sum = current_mass * current_intensity
+            total_intensity = current_intensity
 
-        for i in range(len(isodist)):
-            isodist[i, 1] *= dmax
-        pk.isodist = isodist
+    merged[m_idx, 0] = current_mass
+    merged[m_idx, 1] = current_intensity
+    return merged[:m_idx+1]
 
-        pk.mz = isodist[np.argmax(isodist[:, 1]), 0]
+@njit(fastmath=True)
+def isodist_match(isodists1, isodist2, css_threshold=0.7, ppm_tol=20):
+    if isodists1 is None or isodist2 is None:
+        return False
+    if len(isodists1) == 0 or len(isodist2) == 0:
+        return False
 
-        rawpeaks.append(pk)
-
-    mc.peaks.extend(mc.group_peaks(rawpeaks))
-    return
-
-def read_msalign_to_matchedcollection(file, data=None, mz_type="monoiso", mass_type="monoiso"):
-    """
-    Read an msalign file to a MatchedCollection object
-    :param file: Path to msalign file
-    :return: MatchedCollection object
-    """
-
-    mc = MatchedCollection()
-
-    current_scan = 1
-    current_rt = 0
-    scan_peaks = []
-    with open(file, "r") as f:
-        for line in f:
-            # print(line)
-            if line[0] == "#":
-                continue
-            elif "BEGIN IONS" in line:
-                continue
-            elif "END IONS" in line:
-                grouped_peaks = mc.group_peaks(scan_peaks)
-                mc.peaks.extend(grouped_peaks)
-                scan_peaks = []
-                continue
-            elif "SCANS" in line:
-                current_scan = int(line.split("=")[1])
-                continue
-            elif "RETENTION_TIME" in line:
-                current_rt = float(line.split("=")[1])/60
-                continue
-            elif "=" not in line and len(line) > 1:
-                if mass_type == "monoiso":
-                    split = line.split("\t")
-                    mz = (float(split[0]) + (1.007276467 * int(split[2]))) / int(split[2])
-                    pk = MatchedPeak(int(split[2]), mz)
-                    pk.monoisos = [float(split[0])]
-                    pk.scan = current_scan
-                    pk.monoiso = float(split[0])
-                    pk.matchedintensity = float(split[1])
-                    pk.rt = current_rt
-                    scan_peaks.append(pk)
-                elif mass_type == "peak":
-                    split = line.split("\t")
-
-                    estimated_monoiso = get_estimated_monoiso(float(split[0]))
-                    mz = (estimated_monoiso + (1.007276467 * int(split[2]))) / int(split[2])
-                    pk = MatchedPeak(int(split[2]), mz)
-                    pk.monoisos = [estimated_monoiso]
-                    pk.scan = current_scan
-                    pk.monoiso = estimated_monoiso
-                    pk.matchedintensity = float(split[1])
-                    pk.rt = current_rt
-                    scan_peaks.append(pk)
-
-                isodist = fast_calc_averagine_isotope_dist(pk.monoiso, pk.z)
-                if data is not None:
-                    # Find nearest peak in data
-                    mz = isodist[np.argmax(isodist[:, 1]), 0]
-                    startindex = fastnearest(data[:, 0], mz)
-                    # endindex = fastnearest(data[:, 0], mz + window[1])
-
-                    dmax = data[startindex, 1]
-
-                else:
-                    dmax = 10000
-
-                for i in range(len(isodist)):
-                    isodist[i, 1] *= dmax
-                if mz_type == "monoiso":
-                    pk.mz = isodist[np.argmax(isodist[:, 1]), 0]
-                pk.isodist = isodist
-    print("Loaded", len(mc.peaks), "peaks from msalign file")
-    return mc
-
-def read_fd_tsv_to_matchedcollection(file, data=None, mz_type="monoiso"):
-    mc = MatchedCollection()
+    # Calc cosine similarity
+    css = calc_css_from_data(isodists1, isodist2, ppm_tol=ppm_tol)
+    # print("css=", css)
+    if css < css_threshold:
+        return False
+    return True
 
 
-    with open(file, "r") as f:
-        for i,line in enumerate(f):
-            if i == 0:
-                continue
+def remove_multiple_monoisos(mc):
+    # Find the objects with the same everything except for monoiso
+    mcnew = MatchedCollection()
+    duplicate_indices = []
+    for i, pk in enumerate(mc.peaks):
+        pklist = [pk.scan, pk.peakmass, pk.matchedion, pk.matchedintensity, pk.z]
+        if i in duplicate_indices:
+            continue  # Skip if this peak has already been identified as a duplicate
+        for j, pk2 in enumerate(mc.peaks[i + 1:]):
+            pklist2 = [pk2.scan, pk2.peakmass, pk2.matchedion, pk2.matchedintensity, pk2.z]
+            # check each list to see if they are the same
+            if pklist == pklist2 and pk.monoiso != pk2.monoiso:
+                # Add the monoiso to the list of monoisos
+                if pk2.monoiso not in pk.monoisos:
+                    pk.monoisos = np.append(pk.monoisos, pk2.monoiso)
+                # print("Found multiple monoisos for the same peak:", pk.monoisos, duplicate_indices[-3:])
+                duplicate_indices.append(j + i + 1)
             else:
-                split = line.split('\t')
-                monoiso = float(split[6])
-                min_z = int(split[8])
-                max_z = int(split[9])
-                # snr = float(split[14])
-                # if snr < 2:
-                #     continue
-                for z in range(min_z, max_z+1):
-                    mz = (monoiso + (1.007276467 * z)) / z
-                    pk = MatchedPeak(z, mz)
-                    pk.monoisos = [monoiso]
-                    pk.scan = int(split[2])
-                    pk.monoiso = monoiso
-                    pk.matchedintensity = float(split[7])
-                    pk.rt = float(split[3])
-
-
-                    isodist = fast_calc_averagine_isotope_dist(pk.monoiso, pk.z)
-                    if data is not None:
-                        # Find nearest peak in data
-                        mz = isodist[np.argmax(isodist[:, 1]), 0]
-                        startindex = fastnearest(data[:, 0], mz)
-                        # endindex = fastnearest(data[:, 0], mz + window[1])
-
-                        dmax = data[startindex, 1]
-
-                    else:
-                        dmax = 10000
-
-                    for i in range(len(isodist)):
-                        isodist[i, 1] *= dmax
-                    if mz_type == "monoiso":
-                        pk.mz = isodist[np.argmax(isodist[:, 1]), 0]
-                    pk.isodist = isodist
-                    mc.add_peak(pk)
-
-    print("Loaded", len(mc.peaks), "peaks from FLASHDeconv .tsv file")
-    return mc
-
-
-def peak_mz_z_df_to_matchedcollection(df, data=None):
-    """
-    Convert a pandas dataframe of peak mzs (col1) and zs (col2) to a MatchedCollection object
-    :param df: Pandas dataframe with columns mz, z
-    :param data: Optional data to match to as 2D numpy array [m/z, intensity]
-    :return: MatchedCollection object
-    """
-    mc = MatchedCollection()
-    for i, row in df.iterrows():
-        pk = MatchedPeak(z=int(row['z']), mz=row['peakmz'])
-        pk.monoiso = (pk.mz - 1.007276467) * pk.z
-        pk.monoisos = [pk.monoiso]
-        mc.add_peak(pk)
-        isodist = fast_calc_averagine_isotope_dist(pk.monoiso, pk.z)
-
-        if data is not None:
-            # Find nearest peak in data
-            mz = isodist[np.argmax(isodist[:, 1]), 0]
-            startindex = fastnearest(data[:, 0], mz)
-            # endindex = fastnearest(data[:, 0], mz + window[1])
-
-            dmax = data[startindex, 1]
-
-
-        else:
-            dmax = 10000
-
-        for i in range(len(isodist)):
-            isodist[i, 1] *= dmax
-        pk.mz = isodist[np.argmax(isodist[:, 1]), 0]
-        pk.isodist = isodist
-    print("Loaded", len(mc.peaks), "peaks from dataframe")
-    return mc
-
-def compare_matchedcollections(coll1, coll2, ppmtol=50, objecttocompare="monoisos", maxshift=3, ignorescan=False):
-    unique1 = []
-    shared = []
-    unique2 = []
-
-    diffs = []
-
-    if not ignorescan:
-        scans = np.unique([p.scan for p in coll1.peaks])
-        scans2 = np.unique([p.scan for p in coll2.peaks])
-        scans = np.union1d(scans, scans2)
-    else:
-        scans = [0]
-    for s in scans:
-        if not ignorescan:
-            # Pull out peaks for each individual scan.
-            coll1_sub = MatchedCollection().add_peaks([p for p in coll1.peaks if p.scan == s])
-            coll2_sub = MatchedCollection().add_peaks([p for p in coll2.peaks if p.scan == s])
-        else:
-            coll1_sub = coll1
-            coll2_sub = coll2
-
-        # Sort the peak lists and the masses by monoisotopic mass
-        coll1_sub.peaks = sorted(coll1_sub.peaks, key=lambda x: x.monoiso)
-        coll2_sub.peaks = sorted(coll2_sub.peaks, key=lambda x: x.monoiso)
-        masses1 = np.array([p.monoiso for p in coll1_sub.peaks])
-        masses2 = np.array([p.monoiso for p in coll2_sub.peaks])
-        # print(masses1, masses2)
-        coll2_matched_indices = []
-
-        for i in range(len(coll1_sub.peaks)):
-            foundmatch = False
-            within_tol = fastwithin_abstol(masses2, masses1[i], int(math.ceil(maxshift + 0.5)))
-            if len(within_tol) > 0:
-                for j in within_tol:
-                    if coll1_sub.peaks[i].z == coll2_sub.peaks[j].z:
-                        # now check if a monoiso is within the ppmtol
-                        for m1 in coll1_sub.peaks[i].monoisos:
-                            for m2 in coll2_sub.peaks[j].monoisos:
-                                if ud.within_ppm(m1, m2, ppmtol):
-                                    coll2_matched_indices.append(j)
-                                    foundmatch = True
-                                    diffs.append((m1 - m2) / m1 * 1e6)
-
-                                else:
-                                    if maxshift > 0:
-                                        diff = np.abs(m1 - m2)
-                                        # print(m1, m2, diff)
-                                        if diff < maxshift * 1.1:
-                                            mm_count = int(round(m1 - m2))
-                                            newm2 = m2 + mm_count * 1.0033
-                                            if ud.within_ppm(m1, newm2, ppmtol):
-                                                coll2_matched_indices.append(j)
-                                                foundmatch = True
-                                                diffs.append((m1 - newm2) / m1 * 1e6)
-
-            if foundmatch:
-                shared.append(coll1_sub.peaks[i])
-            else:
-                unique1.append(coll1_sub.peaks[i])
-
-        coll2_unique_matchedinds = list(set(coll2_matched_indices))
-        for i in range(len(coll2_sub.peaks)):
-            if i not in coll2_matched_indices:
-                unique2.append(coll2_sub.peaks[i])
-
-    shared = MatchedCollection().add_peaks(shared)
-    unique1 = MatchedCollection().add_peaks(unique1)
-    unique2 = MatchedCollection().add_peaks(unique2)
-
-    print("Avg PPM Diff:", np.mean(diffs))
-
-    return shared, unique1, unique2
-
-def compare_matchedmasses(coll1, coll2, ppmtol=20, maxshift=3, rt_tol = 2, f_shared_zs=0.5):
-    #make a list of the masses within the list of matched masses contained by each collection
-    monoisos1 = np.array([m.monoiso for m in coll1.masses])
-    monoisos2 = np.array([m.monoiso for m in coll2.masses])
-
-    sum_intensity1 = np.sum(np.array([m.totalintensity for m in coll1.masses]))
-    sum_intensity2 = np.sum(np.array([m.totalintensity for m in coll2.masses]))
-
-    #now order the monoisos and apply that ordering to the masses
-    sorted_indices1 = np.argsort(monoisos1)
-    sorted_indices2 = np.argsort(monoisos2)
-    monoisos1 = monoisos1[sorted_indices1]
-    monoisos2 = monoisos2[sorted_indices2]
-    coll1.masses = [coll1.masses[i] for i in sorted_indices1]
-    coll2.masses = [coll2.masses[i] for i in sorted_indices2]
-
-    matched_coll1 = []
-    matched_coll2 = []
-
-    unique_coll1 = []
-    unique_coll2 = []
-
-    #Initially we'll store the indices of the matches/unique masses
-    for i in range(len(monoisos1)):
-        foundmatch = False
-        within_tol = fastwithin_abstol(monoisos2, monoisos1[i], int(math.ceil(maxshift + 0.5)))
-        if len(within_tol) > 0:
-            #Order the within_tol by descending matched intensity
-            within_tol = sorted(within_tol, key=lambda x: coll2.masses[x].totalintensity, reverse=True)
-            for j in within_tol:
-                #ensure that the retention times are close enough
-                if abs(coll1.masses[i].apexrt - coll2.masses[j].apexrt) < rt_tol:
-                    #ensure that the monoisos match within the ppmtol allowing the maxshift
-                    possible_monoisos = [monoisos1[i] + x * 1.0033 for x in range(-maxshift, maxshift + 1)]
-                    if any([ud.within_ppm(m, monoisos2[j], ppmtol) for m in possible_monoisos]):
-                        #ensure that the z values overlap enough
-                        z_overlap = np.intersect1d(coll1.masses[i].zs, coll2.masses[j].zs)
-                        min_frac = len(z_overlap) / max(len(coll1.masses[i].zs), len(coll2.masses[j].zs))
-                        if min_frac >= f_shared_zs:
-                            matched_coll1.append(i)
-                            foundmatch = True
-                            break
-        if not foundmatch:
-            unique_coll1.append(i)
-
-    for i in range(len(monoisos2)):
-        if i not in matched_coll2:
-            foundmatch = False
-            within_tol = fastwithin_abstol(monoisos1, monoisos2[i], int(math.ceil(maxshift + 0.5)))
-            if len(within_tol) > 0:
-                for j in within_tol:
-                    #ensure that the retention times are close enough
-                    if abs(coll1.masses[j].apexrt - coll2.masses[i].apexrt) < rt_tol:
-                        #ensure that the monoisos match within the ppmtol allowing the maxshift
-                        possible_monoisos = [monoisos2[i] + x * 1.0033 for x in range(-maxshift, maxshift + 1)]
-                        if any([ud.within_ppm(m, monoisos1[j], ppmtol) for m in possible_monoisos]):
-                            #ensure that the z values overlap enough
-                            z_overlap = np.intersect1d(coll1.masses[j].zs, coll2.masses[i].zs)
-                            min_frac = len(z_overlap) / max(len(coll1.masses[j].zs), len(coll2.masses[i].zs))
-                            if min_frac >= f_shared_zs:
-                                matched_coll2.append(i)
-                                foundmatch = True
-                                break
-            if not foundmatch:
-                unique_coll2.append(i)
-
-
-    #Now we'll convert the indices to the actual masses
-    matched_coll1 = [coll1.masses[i] for i in matched_coll1]
-    matched_coll2 = [coll2.masses[i] for i in matched_coll2]
-    unique_coll1 = [coll1.masses[i] for i in unique_coll1]
-    unique_coll2 = [coll2.masses[i] for i in unique_coll2]
-
-    matched_intensity1 = np.sum(np.array([m.totalintensity for m in matched_coll1]))
-    matched_intensity2 = np.sum(np.array([m.totalintensity for m in matched_coll2]))
-
-
-
-    percent_matched1 = (len(matched_coll1) / len(coll1.masses)) * 100
-    percent_matched2 = (len(matched_coll2) / len(coll2.masses)) * 100
-    percent_intensity1 = (matched_intensity1 / sum_intensity1) * 100
-    percent_intensity2 = (matched_intensity2 / sum_intensity2) * 100
-    print("% Masses Matched Collection 1:", (len(matched_coll1) / len(coll1.masses)) * 100)
-    print("% Masses Matched Collection 2:", (len(matched_coll2) / len(coll2.masses)) * 100)
-    print("% Matched Intensity Collection 1:", (matched_intensity1 / sum_intensity1) * 100)
-    print("% Matched Intensity Collection 2:", (matched_intensity2 / sum_intensity2) * 100)
-
-    return percent_matched1, percent_matched2, percent_intensity1, percent_intensity2, len(matched_coll1), len(matched_coll2), len(monoisos1), len(monoisos2)
-
-def compare_annotated(l1, l2, ppmtol, maxshift):
-    unique_annotated = []
-    unique_experimental = []
-    shared = []
-
-    annotated_mzs = []
-    annotated_charges = []
-    annotated_indices = []
-    for i in range(len(l1.peaks)):
-        annotated_mzs.append(l1[i].mz)
-        annotated_charges.append(l1[i].z)
-        annotated_indices.append(i)
-        currentshift = 1
-        while currentshift <= maxshift:
-            negative_mz = l1[i].mz - (1 / l1[i].z) * currentshift
-            annotated_mzs.append(negative_mz)
-            annotated_charges.append(l1[i].z)
-            annotated_indices.append(i)
-            positive_mz = l1[i].mz + (1 / l1[i].z) * currentshift
-            annotated_mzs.append(positive_mz)
-            annotated_charges.append(l1[i].z)
-            annotated_indices.append(i)
-            currentshift += 1
-
-    #Sort annotated mzs and apply that sort to the other lists
-    annotated_mzs, annotated_charges, annotated_indices = zip(*sorted(zip(annotated_mzs, annotated_charges, annotated_indices)))
-
-    matched_annotated_indices = []
-    for i in range(len(l2.peaks)):
-        foundmatch = False
-        curr_mz = l2[i].mz
-        curr_tol = (curr_mz / 1e6) * ppmtol
-        matched_indices = fastwithin_abstol(np.array(annotated_mzs), curr_mz, curr_tol)
-        for index in matched_indices:
-            matched_charge = annotated_charges[index]
-            if matched_charge == l2[i].z:
-                shared.append(l2[i])
-                matched_annotated_indices.append(annotated_indices[index])
-                foundmatch = True
+                # Add the peak to the new collection
+                mcnew.add_peak(pk)
                 break
-        if not foundmatch:
-            unique_experimental.append(l2[i])
 
-    unique_annotated = MatchedCollection().add_peaks([l1[i] for i in range(len(l1.peaks)) if i not in matched_annotated_indices])
-    shared = MatchedCollection().add_peaks(shared)
-    unique_experimental = MatchedCollection().add_peaks(unique_experimental)
-
-    return shared, unique_annotated, unique_experimental
-
-def is_close(mz1, mz2, tolerance):
-    return abs(mz1 - mz2) <= tolerance
-
-def compare_matched_ions(coll1, coll2, other_alg=None):
-    shared1 = []
-    unique1 = []
-
-    shared2 = []
-    unique2 = []
-
-    for p1 in coll1.peaks:
-        matched = False
-        for p2 in coll2.peaks:
-            if set(p1.matchedions) & set(p2.matchedions):
-                if p1 not in shared1:
-                    shared1.append(p1)
-                matched = True
-        if not matched and len(p1.matchedions) > 0:
-            unique1.append(p1)
-
-    for p2 in coll2.peaks:
-        matched = False
-        for p1 in coll1.peaks:
-            if set(p1.matchedions) & set(p2.matchedions):
-                if p2 not in shared2:
-                    shared2.append(p2)
-                matched = True
-        if not matched and len(p2.matchedions) > 0:
-            unique2.append(p2)
-
-    other_name = "Other"
-    if other_alg is not None:
-        other_name = other_alg
-
-    print("% Shared IsoDec:", len(shared1) / (len(shared1) + len(unique1)) * 100)
-    print("% Shared", other_name, ":", len(shared2) / (len(shared2) + len(unique2)) * 100)
-    print("% Unique IsoDec:", len(unique1) / (len(shared1) + len(unique1)) * 100)
-    print("% Unique", other_name, ":", len(unique2) / (len(shared2) + len(unique2)) * 100)
-
-    print("Number shared IsoDec:", len(shared1))
-    print("Number shared", other_name, ":", len(shared2))
-    print("Number unique IsoDec:", len(unique1))
-    print("Number unique", other_name, ":", len(unique2))
-
-    #Create matched collections of shared and unique peaks
-    shared1 = MatchedCollection().add_peaks(shared1)
-    unique1 = MatchedCollection().add_peaks(unique1)
-    shared2 = MatchedCollection().add_peaks(shared2)
-    unique2 = MatchedCollection().add_peaks(unique2)
+    return mcnew
 
 
-    return shared1, unique1, shared2, unique2
-
-def get_unique_matchedions(coll1, coll2):
-    shared = []
-    unique1 = []
-    unique2 = []
-
-    coll2_matchedindices = []
-    for p1 in range(len(coll1.peaks)):
-        if not pd.isnull(coll1.peaks[p1].matchedion):
-            matched = False
-            for p2 in range(len(coll2.peaks)):
-                if (not pd.isnull(coll2.peaks[p2].matchedion) and
-                        coll1.peaks[p1].matchedion == coll2.peaks[p2].matchedion and
-                        coll1.peaks[p1].z == coll2.peaks[p2].z):
-                    coll2_matchedindices.append(p2)
-                    matched = True
-
-            if matched:
-                shared.append(coll1.peaks[p1])
-            else:
-                unique1.append(coll1.peaks[p1])
-
-    for p2 in range(len(coll2.peaks)):
-        if p2 not in coll2_matchedindices and not pd.isnull(coll2.peaks[p2].matchedion):
-            unique2.append(coll2.peaks[p2])
-
-    return shared, unique1, unique2
-
-
-#@njit(fastmath=True)
+# @njit(fastmath=True)
 def create_isodist(peakmz, charge, data, adductmass=1.007276467):
     """
     Create an isotopic distribution based on the peak m/z and charge state.
@@ -1181,8 +724,11 @@ def create_isodist(peakmz, charge, data, adductmass=1.007276467):
     :return: Isotopic distribution as 2D numpy array [m/z, intensity]
     """
     charge = float(charge)
-    mass = (peakmz - adductmass) * charge
-    isodist = fast_calc_averagine_isotope_dist(mass, charge=charge)
+    if charge == 0:
+        mass = peakmz
+    else:
+        mass = (peakmz - adductmass) * charge
+    isodist = fast_calc_averagine_isotope_dist(mass, charge=charge, adductmass=adductmass)
     isodist[:, 1] *= np.amax(data[:, 1])
     # shift isodist so that maxes are aligned with data
     mzshift = peakmz - isodist[np.argmax(isodist[:, 1]), 0]
@@ -1190,15 +736,7 @@ def create_isodist(peakmz, charge, data, adductmass=1.007276467):
     return isodist
 
 
-#@njit(fastmath=True)
-def create_isodist2(monoiso, charge, maxval, adductmass=1.007276467):
-    charge = float(charge)
-    isodist = fast_calc_averagine_isotope_dist(monoiso, charge=charge)
-    isodist[:, 1] *= maxval
-    return isodist
-
-
-#@njit(fastmath=True)
+# @njit(fastmath=True)
 def create_isodist_full(peakmz, charge, data, adductmass=1.007276467, isotopethresh: float = 0.01):
     """
     Create an isotopic distribution based on the peak m/z and charge state.
@@ -1208,7 +746,10 @@ def create_isodist_full(peakmz, charge, data, adductmass=1.007276467, isotopethr
     :return: Isotopic distribution as 2D numpy array [m/z, intensity]
     """
     charge = float(charge)
-    mass = (peakmz - adductmass) * charge
+    if charge == 0:
+        mass = peakmz
+    else:
+        mass = (peakmz - adductmass) * charge
 
     isodist, massdist = fast_calc_averagine_isotope_dist_dualoutput(mass, charge=charge, adductmass=adductmass,
                                                                     isotopethresh=isotopethresh)
@@ -1218,14 +759,34 @@ def create_isodist_full(peakmz, charge, data, adductmass=1.007276467, isotopethr
     mzshift = peakmz - isodist[np.argmax(isodist[:, 1]), 0]
     isodist[:, 0] = isodist[:, 0] + mzshift
 
-    massshift = mzshift * charge
+    if charge == 0:
+        massshift = mzshift
+    else:
+        massshift = mzshift * charge
     monoiso = mass + massshift
     massdist[:, 0] = massdist[:, 0] + massshift
     return isodist, massdist, monoiso
 
 
-#@njit(fastmath=True)
-def get_accepted_shifts(cent_intensities, isodist, maxshift, min_score_diff, css_thresh, minusoneaszero=True):
+# @njit(fastmath=True)
+def get_accepted_shifts(centroids, z, peakmz, config):
+    # Limit max shifts if necessary
+    if z < 3:
+        maxshift = 1
+    elif z < 6:
+        maxshift = 2
+    else:
+        maxshift = config.maxshift
+
+    isodist, massdist, monoiso = create_isodist_full(peakmz, z, centroids, adductmass=config.adductmass,
+                                                     isotopethresh=config.isotopethreshold)
+
+    cent_intensities = find_matched_intensities(centroids[:, 0], centroids[:, 1], isodist[:, 0], maxshift,
+                                                tolerance=config.matchtol, z=z, peakmz=peakmz)
+
+    norm_factor = max(cent_intensities) / max(isodist[:, 1])
+    isodist[:, 1] *= norm_factor
+
     shiftrange = np.arange(-maxshift, maxshift + 1)
     # shifts_scores = [[0, 0] for i in range(len(shiftrange))]
     shifts_scores = np.zeros((len(shiftrange), 2))
@@ -1235,19 +796,19 @@ def get_accepted_shifts(cent_intensities, isodist, maxshift, min_score_diff, css
     meanratio = 1
     for i, shift in enumerate(shiftrange):
         s = calculate_cosinesimilarity(cent_intensities, isodist[:, 1], shift, maxshift,
-                                       minusoneareaszero=minusoneaszero)
+                                       minusoneaszero=config.minusoneaszero)
         shifts_scores[i, 0] = shift
         shifts_scores[i, 1] = s
         if s > sum:
             sum = s
             bestshift = shift
     max_score = np.amax(shifts_scores[:, 1])
-    if max_score < css_thresh:
-        return None
+    if max_score < config.css_thresh:
+        return None, None, None, None
 
-    accepted_shifts = [x for x in shifts_scores if x[1] > max_score - min_score_diff]
+    accepted_shifts = [x for x in shifts_scores if x[1] > max_score - config.min_score_diff]
 
-    return accepted_shifts
+    return accepted_shifts, monoiso, massdist, isodist
 
 
 @njit(fastmath=True)
@@ -1323,27 +884,7 @@ def make_shifted_peak(shift: int, shiftscore: float, monoiso: float, massdist: n
 
 # @njit(fastmath=True)
 def optimize_shift2(config, centroids: np.ndarray, z, peakmz):
-    peaks = []
-
-    # Limit max shifts if necessary
-    if z < 3:
-        maxshift = 1
-    elif z < 6:
-        maxshift = 2
-    else:
-        maxshift = config.maxshift
-
-    isodist, massdist, monoiso = create_isodist_full(peakmz, z, centroids, adductmass=config.adductmass,
-                                                     isotopethresh=config.isotopethreshold)
-
-    cent_intensities = find_matched_intensities(centroids[:, 0], centroids[:, 1], isodist[:, 0], maxshift,
-                                                tolerance=config.matchtol, z=z, peakmz=peakmz)
-
-    norm_factor = max(cent_intensities) / max(isodist[:, 1])
-    isodist[:, 1] *= norm_factor
-
-    accepted_shifts = get_accepted_shifts(cent_intensities, isodist, maxshift, config.min_score_diff,
-                                          config.css_thresh, config.minusoneaszero)
+    accepted_shifts, monoiso, massdist, isodist = get_accepted_shifts(centroids, z, peakmz, config)
 
     if config.verbose:
         print("Accepted Shifts:", accepted_shifts)
@@ -1351,7 +892,7 @@ def optimize_shift2(config, centroids: np.ndarray, z, peakmz):
         return None
 
     # The plan is to report a set of possible monoisotopics, but only include the centroids, isodist, massdist, and matches for the best one.
-    m = MatchedPeak(int(z), float(peakmz), centroids, isodist, None, None)
+    m = MatchedPeak(int(z), float(peakmz), centroids=centroids, isodist=isodist, config=config)
 
     bestshift = accepted_shifts[np.argmax([x[1] for x in accepted_shifts])]
     m.bestshift = bestshift
@@ -1359,10 +900,9 @@ def optimize_shift2(config, centroids: np.ndarray, z, peakmz):
 
     peakmz_new, isodist_new, matchedindexes, isomatches, monoiso_new, massdist_new = make_shifted_peak(
         bestshift[0], bestshift[1], monoiso, massdist, isodist, peakmz, z, centroids, config.matchtol, config.minpeaks,
-        config.plusoneintwindow[0], config.plusoneintwindow[1], config.css_thresh,
+        config.plusoneintwindowlb, config.plusoneintwindowub, config.css_thresh,
         config.minareacovered,
         config.verbose)
-
 
     if peakmz_new is None:
         return None
@@ -1387,12 +927,12 @@ def optimize_shift2(config, centroids: np.ndarray, z, peakmz):
 # We already have this function in datatools
 @njit(fastmath=True)
 def calculate_cosinesimilarity(cent_intensities, iso_intensities, shift: int, max_shift: int,
-                               minusoneareaszero: bool = True):
+                               minusoneaszero: bool = True):
     ab = 0
     a2 = 0
     b2 = 0
 
-    if minusoneareaszero:
+    if minusoneaszero:
         a_val = cent_intensities[max_shift + shift - 1]
         b_val = 0
         ab += a_val * b_val
@@ -1486,6 +1026,8 @@ def find_matched_intensities(spec1_mz: np.ndarray, spec1_intensity: np.ndarray, 
 
     """
     mass_diff_c = 1.0033
+    if z == 0:
+        z = 1
 
     query_mzs = [float(0) for i in range(len(spec2_mz) + 2 * max_shift)]
 
@@ -1535,46 +1077,6 @@ def remove_noise_peaks(pks, noiselevel):
     return newcollection
 
 
-# Will generate list of matchedpeak objects from text file
-# Just specify the desired field with charge
-# Text file should be in the format: field(monoiso or mz) " " charge
-def read_manual_annotations(path=None, delimiter=' ', data=None):
-    if path is None:
-        path = "Z:\\Group Share\\JGP\\js8b05641_si_001\\ETD Manual Annotations.txt"
-    mc = MatchedCollection()
-    peaks = []
-    with open(path, "r") as file:
-        for line in file:
-            if line.strip():
-                row = line.strip().split(delimiter, 1)
-                peak = round(float(row[0]), 2)
-                currCharge = row[1].strip()
-                z = MatchedPeak(mz=peak, z=int(currCharge))
-                peakmass = (peak - 1.007276467) * int(currCharge)
-                z.monoiso = get_estimated_monoiso(peakmass)
-                z.monoisos = [z.monoiso]
-                isodist = fast_calc_averagine_isotope_dist(z.monoiso, currCharge)
-                if data is not None:
-                    # Find nearest peak in data
-                    mz = isodist[np.argmax(isodist[:, 1]), 0]
-                    startindex = fastnearest(data[:, 0], mz)
-                    # endindex = fastnearest(data[:, 0], mz + window[1])
-
-                    dmax = data[startindex, 1]
-
-                else:
-                    dmax = 10000
-
-                for i in range(len(isodist)):
-                    isodist[i, 1] *= dmax
-
-                z.isodist = isodist
-
-                mc.add_peak(z)
-                peaks.append(z)
-    return mc
-
-
 def get_estimated_monoiso(peakmass):
     """
     Estimates the monoisotopic mass from the peak mass.
@@ -1585,8 +1087,28 @@ def get_estimated_monoiso(peakmass):
     Returns:
         estimated monoisotopic mass
     """
-    most_intense_iso = (int)(0.0006*peakmass + 0.4074)
+    most_intense_iso = (int)(0.0006 * peakmass + 0.4074)
     return peakmass - (most_intense_iso * 1.0033)
+
+@njit(fastmath=True)
+def calc_css_from_data(centroids, isodist, ppm_tol=5):
+    """
+    Check if the data matches the isotopic distribution.
+    :param centroids: Centroid data as numpy array [m/z, intensity]
+    :param isodist: Isotopic distribution as numpy array [m/z, intensity]
+    :param ccsthresh: Cosine similarity threshold for a match
+    :return: True if the data matches the isotopic distribution, False otherwise
+    """
+    isodist = isodist.copy()
+
+    cent_intensities = find_matched_intensities(centroids[:, 0], centroids[:, 1], isodist[:, 0], 0,
+                                                tolerance=ppm_tol, z=1, peakmz=isodist[0, 0])
+
+    norm_factor = max(cent_intensities) / max(isodist[:, 1])
+    isodist[:, 1] *= norm_factor
+
+    css = calculate_cosinesimilarity(cent_intensities, isodist[:, 1], 0, 0)
+    return css
 
 
 if __name__ == "__main__":

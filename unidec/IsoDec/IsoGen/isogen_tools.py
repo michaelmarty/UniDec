@@ -181,6 +181,7 @@ def pepmass_to_dist(mass, isolen=128):
     #intensities /= np.sum(intensities)
     return intensities
 
+
 def mass_to_vector(x):
     # x0 = x / 10000000.0
     x1 = x / 1000000.0
@@ -270,34 +271,8 @@ def peptide_to_mass(peptide):
 # Convert peptide sequence into vector
 def peptide_to_vector(peptide):
     try:
-        vec = np.zeros(31)
-        # Check if there are any mods
-        mod_matches = re.findall(fullseq_pattern, peptide)
-        if len(mod_matches) > 0:
-            mod_matches = [match.strip('[]') for match in mod_matches]
-            mod_chemical_formula = {}
-            for mod in mod_matches:
-                current_mod = parse_chemical_formula(mod)
-                for element in current_mod:
-                    if element not in mod_chemical_formula:
-                        mod_chemical_formula[element] = current_mod[element]
-                    else:
-                        mod_chemical_formula[element] += current_mod[element]
-
-            vec[20] = mod_chemical_formula.get("C", 0)
-            vec[21] = mod_chemical_formula.get("H", 0)
-            vec[22] = mod_chemical_formula.get("N", 0)
-            vec[23] = mod_chemical_formula.get("O", 0)
-            vec[24] = mod_chemical_formula.get("S", 0)
-            vec[25] = mod_chemical_formula.get("Fe", 0)
-            vec[26] = mod_chemical_formula.get("K", 0)
-            vec[27] = mod_chemical_formula.get("Ca", 0)
-            vec[28] = mod_chemical_formula.get("Ni", 0)
-            vec[29] = mod_chemical_formula.get("Zn", 0)
-            vec[30] = mod_chemical_formula.get("Mg", 0)
-
-            peptide = re.sub(fullseq_pattern, '', peptide)
-
+        vec = np.zeros(20)
+        peptide = re.sub(fullseq_pattern, '', peptide)
         # Get counts of each amino acid
         counts = Counter(peptide)
 
@@ -306,6 +281,11 @@ def peptide_to_vector(peptide):
     except Exception as e:
         vec = None
     return vec
+
+
+def peptide_to_aacount(peptide):
+    peptide = re.sub(fullseq_pattern, '', peptide)
+    return len(peptide)
 
 
 def get_dist_from_formula(formula, isolen=128, cutoff=0.001):
@@ -320,6 +300,7 @@ def get_dist_from_formula(formula, isolen=128, cutoff=0.001):
     spec /= np.sum(spec)
     spec[spec < cutoff] = 0
     return spec
+
 
 def rnaseq_to_isolist(rna_seq):
     isolist = np.zeros(11)
@@ -347,6 +328,7 @@ def formula_to_vector(formula):
         vector[edict[element]] = num
 
     return vector
+
 
 # RNA Sequence to Dist
 def rnaseq_to_dist(rnaseq, isolen=128):

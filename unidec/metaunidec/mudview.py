@@ -141,6 +141,7 @@ class Mainwindow(mainwindow_base.MainwindowBase):
             plotwindow.AddPage(tab3, "m/z Grid")
             plotwindow.AddPage(tab5, "Mass vs. Charge")
             sizer.Add(plotwindow, 1, wx.EXPAND)
+            self.plotpanel = plotwindow
         else:
             self.plotpanel = scrolled.ScrolledPanel(panel)
             sizerplot = wx.GridBagSizer()
@@ -166,6 +167,8 @@ class Mainwindow(mainwindow_base.MainwindowBase):
             self.plotpanel.SetupScrolling()
             sizer.Add(self.plotpanel, 1, wx.EXPAND)
 
+        self.plotpanel.Bind(wx.EVT_SIZE, self.resize_plots)
+
         self.plots = [self.plot1, self.plot2, self.plot6, self.plot7, self.plot8, self.plot9, self.plot3, self.plot5]
         self.plotnames = ["MetaFigure1", "MetaFigure2", "MetaFigure3", "MetaFigure4", "MetaFigure5", "MetaFigure6",
                           "MeatFigure7", "MetaFigure8"]
@@ -184,6 +187,9 @@ class Mainwindow(mainwindow_base.MainwindowBase):
 
         self.CreateStatusBar(7)
         self.SetStatusWidths([-1, 600, 120, 0, 230, 250, 130])
+
+        self.Layout()
+        self.plotpanel.SetMinSize(wx.Size(-1,-1))
 
     def export_gui_to_config(self):
         self.controls.export_gui_to_config()

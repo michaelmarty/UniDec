@@ -6,7 +6,6 @@ import time
 from unidec.IsoDec.IsoGen.isogen_tools import *
 from unidec.IsoDec.IsoGen.isogen_base import *
 from unidec.IsoDec.IsoGen.isogenc import *
-from unidec.modules.isotopetools import isomike
 
 
 class IsoGenRNAEngine(IsoGenEngineBase):

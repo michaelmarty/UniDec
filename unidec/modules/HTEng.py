@@ -65,6 +65,9 @@ class HTEng:
         self.cycleindex = 0
         self.rollindex = 0
         self.config.HTcycleindex = -1
+        self.ppmaxindex = -1
+        self.ppstartindex = 0
+        self.ppskip = 0
 
         # Important Parameters that Should be Automatically Set by File Name
         self.config.htbit = 3  # HT bit, should automatically grab this
@@ -262,7 +265,6 @@ class HTEng:
         """
         if mode is None:
             mode = self.config.demultiplexmode
-
         if mode == "HT":
             output, data = self.htdecon(data, **kwargs)
         elif mode == "mHT":
@@ -271,6 +273,8 @@ class HTEng:
             output, data = self.ftdecon(data, aFT=False, **kwargs)
         elif mode == "aFT":
             output, data = self.ftdecon(data, aFT=True, **kwargs)
+        elif mode == "PP":
+            output, data = self.ppdecon(data, **kwargs)
         else:
             output, data = data
             print("Demultiplexing mode not recognized. Returning original data.", mode)
@@ -307,6 +311,53 @@ class HTEng:
         elif mode == "FT" or mode == "aFT":
             self.dtype = complex
             self.setup_ft(**kwargs)
+        elif mode == "PP":
+            self.dtype = float
+            self.setup_pp(**kwargs)
+
+    def setup_pp(self, cycleindex=None, **kwargs):
+        """
+        Set up Peak Pooling Deconvolution
+        """
+        if cycleindex is None or cycleindex <=0:
+            self.get_cycle_time()
+        else:
+            self.cycleindex = cycleindex
+        # self.get_cycle_time()
+        self.ppskip = int(self.config.HTtimepad)
+        print("Setting up Peak Pooling Deconvolution", self.cycleindex)
+        # Create empty kernel
+        self.htkernel=np.zeros_like(self.fulltime)
+        # Set every cylceindex to 1
+        ncycles = math.floor(len(self.htkernel)/self.cycleindex)
+        if self.ppskip >= 0:
+            self.ppstartindex = self.ppskip*self.cycleindex
+        self.ppmaxindex = ncycles*self.cycleindex
+        print("Number of Cycles:", ncycles, "Skip", self.ppskip)
+        self.htkernel[self.ppstartindex:self.ppmaxindex:self.cycleindex]=1
+        # Make fft of kernel for later use
+        self.fftk = fft.rfft(self.htkernel[self.ppstartindex:self.ppmaxindex]).conj()
+        self.decontime = self.fulltime[:self.cycleindex]
+        self.deconscans = self.fullscans[:len(self.decontime)]
+
+
+    def ppdecon(self, data, **kwargs):
+        """
+        Perform Peak Pooling Deconvolution
+        """
+        # print("Running Peak Pooling Deconvolution")
+        # Perform the convolution
+        output = fft.irfft(fft.rfft(data[self.ppstartindex:self.ppmaxindex]) * self.fftk).real
+        # Cut the convolution to just the first cyclindex points
+        output = output[:self.cycleindex]
+        # Normalize if desired
+        if "normalize" in kwargs:
+            if kwargs["normalize"]:
+                output /= np.amax(output)
+                # print("Normalized")
+        # Return demultiplexed data
+        return output, data
+
 
     def htdecon(self, data, **kwargs):
         """
@@ -923,11 +974,14 @@ class UniChromCDEng(HTEng, UniDecCD):
         for i, s in enumerate(scans):
             fulleic[int(s) - 1] = counts[i]
         # Normalize
-        if "normalize" in kwargs:
-            if kwargs["normalize"]:
-                fulleic = fulleic / np.amax(fulleic)
-        else:
-            fulleic /= np.amax(fulleic)
+        try:
+            if "normalize" in kwargs:
+                if kwargs["normalize"]:
+                    fulleic = fulleic / np.amax(fulleic)
+            else:
+                fulleic /= np.amax(fulleic)
+        except:
+            pass
         return np.transpose([self.fulltime, fulleic])
 
     def get_tic(self, farray=None, **kwargs):
@@ -1018,9 +1072,16 @@ class UniChromCDEng(HTEng, UniDecCD):
         # Loop over all charge states
         for i, zval in enumerate(z):
             # For each charge state, filter z values within the bounds
-            b1 = self.zarray >= zdown[i]
-            b2 = self.zarray <= zup[i]
-            bz = b1 & b2
+            if zdown[i] == zup[i]:
+                try:
+                    bz = np.round(self.zarray.astype(float)) == int(zdown[i])
+                except:
+                    print("ERROR:", len(self.zarray), zdown[i])
+                    raise ValueError("Error with zarray and zdown.")
+            else:
+                b1 = self.zarray >= zdown[i]
+                b2 = self.zarray <= zup[i]
+                bz = b1 & b2
 
             # Filter m/z values within the bounds of that charge state
             mzmin, mzmax = ud.get_swoop_mz_minmax(mz, i)
@@ -1033,7 +1094,7 @@ class UniChromCDEng(HTEng, UniDecCD):
             bsum += bmz * bz
         # Filter farray
         farray2 = self.farray[bsum.astype(bool)]
-
+        print(np.sum(farray2))
         # Create EIC
         eic = self.create_chrom(farray2, **kwargs)
         return eic
@@ -1501,36 +1562,35 @@ class UniChromCDEng(HTEng, UniDecCD):
 
 if __name__ == '__main__':
     eng = UniChromCDEng()
-    # eng = UniChromHT()
-
-    dir = "C:\\Data\\HT-CD-MS"
-    dir = "Z:\\Group Share\\Skippy\\Projects\\HT\\Example data for MTM\\2023-10-26"
-    # dir = "Z:\\Group Share\\Skippy\\Projects\\HT\\Example data for MTM"
-    os.chdir(dir)
-    path = "C:\\Data\\HT-CD-MS\\20230906 JDS BSA SEC f22 10x dilute STORI high flow 1_20230906171314_2023-09-07-01-43-26.dmt"
-    path = "C:\\Data\\HT-CD-MS\\20230906 JDS BSA SEC f22 10x dilute STORI high flow 1_20230906171314.raw"
-    path = "2023103 JDS BSA inj5s cyc2m bit3 zp3 rep2.raw"
-    path = "2023103 JDS BSA inj5s cyc2m bit3 zp5 rep1.raw"
-    path = "20231026 JDS BSA cyc2s inj5s bit3 zp1 rep1.raw"
-    # path = '20231102_ADH_BSA SEC 15k cyc2m inj3s bit3 zp3 no1.raw'
-    # path = '20231202 JDS 0o1uMBgal 0o4uMgroEL shortCol 300ul_m 6_1spl bit5 zp7 inj4s cyc1m AICoff IIT100.RAW'
-    # path = "Z:\\Group Share\\Skippy\Projects\HT\\2023-10-13 BSA ADH\\20231013 BSA STORI inj2s cyc2m 5bit_2023-10-13-05-06-03.dmt"
-    # path = "20231202 JDS Bgal groEL bit5 zp7 inj4s cyc1m_2023-12-07-03-46-56.dmt"
-    # path = "20231202 JDS 0o1uMBgal 0o4uMgroEL shortCol 300ul_m 6_1spl bit3 zp4 inj5s cyc1m AICoff IIT200.RAW"
-    path = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\GDH\\01302024_GDH_stepsize3_repeat15_5to500_2024-02-06-04-44-16.dmt"
-    pathft = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\01302024_GDH_stepsize3_repeat15_5to500.dmt"
-    eng.open_file(pathft)
-    eng.process_data()
-    eng.process_data_scans()
-    eng.run_all_ht()
-    eng.transform_stacks()
-    eng.config.ccsbins = 1
-    eng.ccs_transform_stacks()
-
-    ccs_tic = np.sum(eng.ccsstack_ht, axis=(1, 2))
-    plt.plot(eng.ccsaxis, ccs_tic)
-    plt.show()
-    # eng.get_mass_eic([8500, 10500], [1, 100])
+    #
+    # dir = "C:\\Data\\HT-CD-MS"
+    # dir = "Z:\\Group Share\\Skippy\\Projects\\HT\\Example data for MTM\\2023-10-26"
+    # # dir = "Z:\\Group Share\\Skippy\\Projects\\HT\\Example data for MTM"
+    # os.chdir(dir)
+    # path = "C:\\Data\\HT-CD-MS\\20230906 JDS BSA SEC f22 10x dilute STORI high flow 1_20230906171314_2023-09-07-01-43-26.dmt"
+    # path = "C:\\Data\\HT-CD-MS\\20230906 JDS BSA SEC f22 10x dilute STORI high flow 1_20230906171314.raw"
+    # path = "2023103 JDS BSA inj5s cyc2m bit3 zp3 rep2.raw"
+    # path = "2023103 JDS BSA inj5s cyc2m bit3 zp5 rep1.raw"
+    # path = "20231026 JDS BSA cyc2s inj5s bit3 zp1 rep1.raw"
+    # # path = '20231102_ADH_BSA SEC 15k cyc2m inj3s bit3 zp3 no1.raw'
+    # # path = '20231202 JDS 0o1uMBgal 0o4uMgroEL shortCol 300ul_m 6_1spl bit5 zp7 inj4s cyc1m AICoff IIT100.RAW'
+    # # path = "Z:\\Group Share\\Skippy\Projects\HT\\2023-10-13 BSA ADH\\20231013 BSA STORI inj2s cyc2m 5bit_2023-10-13-05-06-03.dmt"
+    # # path = "20231202 JDS Bgal groEL bit5 zp7 inj4s cyc1m_2023-12-07-03-46-56.dmt"
+    # # path = "20231202 JDS 0o1uMBgal 0o4uMgroEL shortCol 300ul_m 6_1spl bit3 zp4 inj5s cyc1m AICoff IIT200.RAW"
+    # path = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\GDH\\01302024_GDH_stepsize3_repeat15_5to500_2024-02-06-04-44-16.dmt"
+    # pathft = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\01302024_GDH_stepsize3_repeat15_5to500.dmt"
+    # eng.open_file(pathft)
+    # eng.process_data()
+    # eng.process_data_scans()
+    # eng.run_all_ht()
+    # eng.transform_stacks()
+    # eng.config.ccsbins = 1
+    # eng.ccs_transform_stacks()
+    #
+    # ccs_tic = np.sum(eng.ccsstack_ht, axis=(1, 2))
+    # plt.plot(eng.ccsaxis, ccs_tic)
+    # plt.show()
+    # # eng.get_mass_eic([8500, 10500], [1, 100])
     # eng.process_data_scans()
     # xicdata = eng.get_eic([8500, 10500])
     # eng.eic_ht([8500, 10500], [1, 100])
@@ -1541,3 +1601,25 @@ if __name__ == '__main__':
     # import matplotlib.pyplot as plt
     # plt.plot(ac)
     # plt.show()
+    # path = r"C:\Data\PeakPooling\20250827_BHT_RPLC_C4_0.1mgmL_carbonicanhydrase_pooling6inj_1.RAW"
+    # eng.open_file(path)
+    # tic = eng.get_tic()
+    os.chdir(r"C:\Data\PeakPooling")
+    eng.config.htbit = 6
+    eng.config.demultiplexmode = "PP"
+    # np.savetxt("tic.txt", tic)
+    data = np.loadtxt("tic.txt")
+    eng.fulltime = data[:,0]
+    eng.fulltic = data[:,1]
+    print(len(eng.fulltic))
+    eng.get_cycle_time()
+    eng.setup_demultiplex()
+    output, _ = eng.run_demultiplex(eng.fulltic, normalize=False)
+
+    import matplotlib.pyplot as plt
+    plt.plot(data[:, 0], data[:, 1], label="Raw TIC")
+    plt.plot(data[:eng.cycleindex,0], output, label="Demultiplexed")
+    plt.plot(data[:,0], eng.htkernel, label="HT Kernel")
+    plt.legend()
+    plt.show()
+
