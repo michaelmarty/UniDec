@@ -33,10 +33,22 @@ def auto_gzip(mzml_path):
     return out_path
 
 
-def get_data_from_spectrum(spectrum, threshold=-1):
+def get_data_from_spectrum(spectrum, threshold=-1, check_duplicates=False):
     if spectrum == None:
         return
     impdat = np.transpose([spectrum.mz, spectrum.i])
+    if check_duplicates:
+        mz = np.unique(impdat[:, 0])
+        if len(mz) < len(impdat):
+            # remove duplicates
+            # Sort mz and intensities based on mz values
+            sarray = impdat[np.argsort(impdat[:, 0])]
+            # Sum intensities for duplicate mz values
+            mz, starts = np.unique(sarray[:, 0], return_index=True)
+            inten = [np.sum(sarray[starts[i]:starts[i + 1], 1]) for i in range(len(starts) - 1)]
+            inten.append(np.sum(sarray[starts[-1]:, 1]))
+            impdat = np.transpose([mz, inten])
+            pass
     impdat = impdat[impdat[:, 0] > 10]
     if threshold >= 0:
         impdat = impdat[impdat[:, 1] > threshold]
@@ -151,9 +163,9 @@ class MZMLImporter(Importer):
         self.times = np.array(times, dtype=np.float32)
         self.scans = np.array(scans)
         # Check if self.scans is all the same, if so, call correct_mzML_ID
-        if len(set(self.scans)) == 1 and len(self.scans) > 1:
+        if len(np.unique(self.scans)) < len(self.scans) and len(self.scans) > 1:
             self.msrun.close()
-            print("All scan IDs are the same. Attempting to correct mzML IDs.")
+            print("Duplicate Scan IDs Detected. Attempting to correct mzML IDs.")
             corrected_path = correct_mzML_ID(self._file_path)
 
             self.msrun = pymzml.run.Reader(corrected_path)
@@ -227,6 +239,7 @@ class MZMLImporter(Importer):
         newids = []
         self.data = []
         for n, spec in enumerate(self.msrun):
+            # print("Processing scan:", spec.ID)
             if spec.ID in self.scans:
                 try:
                     impdat = get_data_from_spectrum(spec, threshold=threshold)
@@ -245,10 +258,12 @@ class MZMLImporter(Importer):
         Returns merged 1D MS data from mzML import
         :return: merged data
         """
+        starttime = time.perf_counter()
         if self.filesize > 1e9 and self.data is None:
             data = self.avg_safe(scan_range, time_range)
         else:
             data = self.avg_fast(scan_range, time_range)
+        print("Import Time:", time.perf_counter() - starttime)
         return data
 
     def get_tic(self):
@@ -399,13 +414,34 @@ if __name__ == "__main__":
     # test = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_mzml.mzML"
     test = "Z:\\Group Share\\JGP\\DataForJoe\\TF_centroided.mzML"
     # test = "C:\\Data\\Sergei\\50.mzML"
-    test = r"C:\Data\DataTypeCollection\20250523_HBD_200ng_NR_1.mzML"
+    test = r"C:\Data\DataTypeCollection\mzML_collection\20250523_HBD_200ng_NR_1.mzML"
+    test = r"C:\Data\DataTypeCollection\mzML_collection\20250901_MB_NOPFBS_IMS_10eV.mzML"
     importer = MZMLImporter(test)
     print(importer.scans)
     # print(importer.times)
     # print(importer.get_tic())
     # print(importer.msrun["cycle=10"])
-    print(importer.msrun[10])
+    # s1 = importer.get_all_scans()[10]
+    # s2 = importer.get_all_imms_scans()[10]
+    # print(np.sum(s1[:,1]), np.sum(s2[:,2]))
+
+    import matplotlib.pyplot as plt
+
+
+    mzdata = importer.get_avg_scan()
+    mzdata = ud.linearize(mzdata, 1, 0)
+    plt.plot(mzdata[:,0], mzdata[:,1])
+    imzdata = importer.get_imms_avg_scan()
+    # Reshape imzdata into 2D array for plotting
+    mz_values = np.unique(imzdata[:, 0])
+    im_values = np.unique(imzdata[:, 1])
+    intensity_matrix = imzdata[:, 2].reshape(len(mz_values), len(im_values))
+    mzdata2 = np.transpose([mz_values, np.sum(intensity_matrix, axis=1)])
+    plt.plot(mzdata2[:,0], mzdata2[:,1]/np.amax(mzdata2[:,1]) * np.amax(mzdata[:,1]), 'r--')
+
+    print(np.sum(mzdata[:,1]), np.sum(mzdata2[:,1]), np.sum(mzdata[:,1])/np.sum(mzdata2[:,1]))
+    plt.show()
+
 
     exit()
     #test = "C:\\Data\\RileyLab\\exportMGF_10spectra.mzML"
