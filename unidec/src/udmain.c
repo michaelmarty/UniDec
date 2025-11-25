@@ -57,9 +57,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	barr = calloc(ln, sizeof(char));
 	memcpy(barr, inp.barr, sizelnc);
 
-	int maxlength = SetUpPeakShape(config, inp, &decon, 0, 1);
-
-
+	SetUpPeakShape(config, inp, &decon, 0, 1);
 
 	//....................................................
 	//
@@ -246,16 +244,24 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	decon.conv = 0;
 	int off = 0;
 
+	// if (config.minratio > 0 && config.variablepw > 0){
+	// 	check_ratios(config, inp, barr, numclose, closeind, decon.blur);
+	// }
 
 	if (silent == 0) { printf("Iterating..."); }
 
 	for (int iterations = 0; iterations < abs(config.numit); iterations++)
 	{
 		decon.iterations = iterations;
+		// if (config.minratio > 0){
+		// 	adjust_ratios(config, barr, numclose, closeind, decon.blur);
+		// }
+
 		if (config.beta > 0 && iterations > 0)
 		{
 			softargmax(decon.blur, config.lengthmz, config.numz, config.beta/betafactor);
 			//printf("Beta %f\n", beta);
+			// softmax_peakwidth(config, decon, decon.blur, barr, config.beta/betafactor);
 		}
 
 		if (config.psig >= 1 && iterations > 0)
@@ -281,10 +287,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		}
 
 		//Run Richardson-Lucy Deconvolution
-		deconvolve_iteration_speedy(config.lengthmz, config.numz, maxlength,
-			decon.newblur, decon.blur, barr, config.aggressiveflag, dataInt2,
-			decon.starttab, decon.endtab, decon.mzdist, decon.rmzdist, config.speedyflag,
-			config.baselineflag, decon.baseline, decon.noise, config.mzsig, inp.dataMZ, config.filterwidth, config.psig);
+		deconvolve_iteration_speedy(config, &decon,decon.newblur, decon.blur, barr, dataInt2, decon.baseline, inp.dataMZ);
 
 		//Determine the metrics for conversion. Only do this every 10% to speed up.
 		if ((config.numit < 10 || iterations % 10 == 0 || iterations % 10 == 1 || iterations>0.9 * config.numit)) {
@@ -332,7 +335,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	if (config.peakshapeinflate != 1 && config.mzsig != 0) {
 		if (config.speedyflag == 0)
 		{
-			MakePeakShape2D(config, &decon, maxlength, inp.dataMZ, 0, 0);
+			MakePeakShape2D(config, &decon, &inp, 0, 0);
 		}
 		else
 		{
@@ -353,7 +356,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 
 	//Calculate the fit data and error.
 	decon.fitdat = calloc(config.lengthmz, sizeof(float));
-	decon.error = errfunspeedy(config, decon, barr, inp.dataInt, maxlength, decon.starttab, decon.endtab, decon.mzdist, &decon.rsquared);
+	decon.error = errfunspeedy(config, decon, inp.dataInt, &decon.rsquared);
 
 	//Fix issues with fitdat and consecutive zero data points
 	//TODO: It might be possible to build this in to convolve_simp so that this isn't necessary but it would require a 1D barr.
@@ -385,7 +388,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	float newblurmax = blurmax;
 	if ((config.rawflag == 0 || config.rawflag == 2)) {
 		if (config.mzsig != 0) {
-			newblurmax = Reconvolve(config, maxlength, &decon, barr);
+			newblurmax = Reconvolve(config, &decon, barr);
 		}
 		else
 		{

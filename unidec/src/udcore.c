@@ -11,6 +11,75 @@
 //
 //............
 
+void check_ratios(const Config config, const Input inp, char * barr, const int numclose,
+              const int *__restrict closeind,
+              const float *__restrict blur) {
+    const int lengthmz = config.lengthmz;
+    const int numz = config.numz;
+    const float minratio = config.minratio;
+    if (minratio <= 0) { return; }
+
+    #pragma omp parallel for schedule(auto)
+    for (int i = 0; i < lengthmz * numz; i++) {
+        if (barr[i] == 1) {
+            int goodsigfound=0;
+            const float mzsig = inp.fwhmlist[i%lengthmz];
+            const float siglb = mzsig * minratio;
+            const float sigub = mzsig / minratio;
+            for (int k = 0; k < numclose; k++) {
+                const int newindex = closeind[index2D(numclose, i, k)];
+                if (newindex != -1 && newindex != i) {
+                    const float tempsig = inp.fwhmlist[newindex % lengthmz];
+                    if (tempsig >= siglb && tempsig <= sigub) {
+                        goodsigfound = 1;
+                        break;
+                    }
+                }
+            }
+            if (goodsigfound == 0) {
+                barr[i] = 0;
+            }
+        }
+    }
+}
+
+void adjust_ratios(const Config config, char * barr, const int numclose,
+              const int * closeind,
+              float * blur) {
+    const int lengthmz = config.lengthmz;
+    const int numz = config.numz;
+    const float minratio = config.minratio;
+    if (minratio <= 0) { return; }
+
+    #pragma omp parallel for schedule(auto)
+    for (int i = 0; i < lengthmz * numz; i++) {
+        if (barr[i] == 1) {
+            const float peak = blur[i];
+            const float lowerbound = peak * minratio;
+            const float upperbound = peak / minratio;
+            int goodfound = 0;
+            if (peak == 0) {
+                barr[i] = 0;
+                continue;
+            }
+            for (int k = 0; k < numclose; k++) {
+                const int newindex = closeind[index2D(numclose, i, k)];
+                if (newindex != -1 && newindex != i) {
+                    const float temp = blur[closeind[index2D(numclose, i, k)]];
+                    if (temp >= lowerbound && temp <= upperbound) {
+                        goodfound = 1;
+                        break;
+                    }
+                }
+            }
+            if (goodfound == 0) {
+                blur[i] *= minratio;
+            }
+        }
+    }
+}
+
+
 //Convolution of neighborhood function with gaussian filter.
 void blur_it(const int lengthmz,
              const int numz,
@@ -361,14 +430,20 @@ void deconvolve_baseline(const int lengthmz, const float *dataMZ, const float *d
 }
 
 
-float deconvolve_iteration_speedy(const int lengthmz, const int numz, const int maxlength, const float *__restrict blur,
+float deconvolve_iteration_speedy(const Config config, Decon *decon, const float *__restrict blur,
                                   float *__restrict blur2,
-                                  const char *__restrict barr, const int aggressiveflag,
+                                  const char *__restrict barr,
                                   const float *__restrict dataInt,
-                                  const int *starttab, const int *endtab, const float *mzdist, const float *rmzdist,
-                                  const int speedyflag, const int baselineflag, float *baseline,
-                                  float *noise, const float mzsig, const float *dataMZ, const int filterwidth,
-                                  const float psig) {
+                                  float *baseline, const float *dataMZ) {
+
+    const int lengthmz = config.lengthmz;
+    const int numz = config.numz;
+    const float psig = config.psig;
+    const int filterwidth = config.filterwidth;
+    const float mzsig = config.mzsig;
+    const int maxlength = decon->maxlength;
+    const int aggressiveflag = config.aggressiveflag;
+    const int speedyflag = config.speedyflag;
 
     float *deltas = NULL, *denom = NULL;
     deltas = (float *) calloc(lengthmz, sizeof(float));
@@ -387,7 +462,7 @@ float deconvolve_iteration_speedy(const int lengthmz, const int numz, const int 
     //printf("2\n");
     if (mzsig != 0 && psig >= 0) {
         //Convolve with peak shape
-        convolve_simp(lengthmz, maxlength, starttab, endtab, mzdist, deltas, denom, speedyflag);
+        convolve_simp(lengthmz, maxlength, decon->starttab, decon->endtab, decon->mzdist, deltas, denom, speedyflag);
     } else {
         memcpy(denom, deltas, sizeof(float) * lengthmz);
     }
@@ -407,7 +482,7 @@ float deconvolve_iteration_speedy(const int lengthmz, const int numz, const int 
     //printf("5\n");
     if (mzsig < 0) {
         //Real Richardson-Lucy Second Convolution
-        convolve_simp(lengthmz, maxlength, starttab, endtab, rmzdist, denom, deltas, speedyflag);
+        convolve_simp(lengthmz, maxlength, decon->starttab, decon->endtab, decon->rmzdist, denom, deltas, speedyflag);
         memcpy(denom, deltas, sizeof(float) * lengthmz);
         /*
         for (i = 0; i<lengthmz; i++)
@@ -454,7 +529,7 @@ void softargmax(float *blur, const int lengthmz, const int numz, const float bet
             float sum2 = 0;
             float sum1 = 0;
             float factor = 0;
-            float min2 = 1000000000000.0f;
+            float min2 = 1.0f;
 
             for (int j = 0; j < numz; j++) {
                 const float d = newblur[index2D(numz, i, j)];
@@ -486,7 +561,48 @@ void softargmax(float *blur, const int lengthmz, const int numz, const float bet
     }
 }
 
+void softmax_peakwidth(const Config config, const Decon decon, float *blur, const char * barr, const float beta) {
+    const int lengthmz = config.lengthmz;
+    const int numz = config.numz;
 
+    float *exps = (float *) calloc(lengthmz, sizeof(float));
+    float *deltas = (float *) calloc(lengthmz, sizeof(float));
+    float *localsums = (float *) calloc(lengthmz, sizeof(float));
+    float *convdeltas = (float *) calloc(lengthmz, sizeof(float));
+    if (exps == NULL || deltas == NULL || localsums == NULL || convdeltas == NULL) {
+        fprintf(stderr, "Error allocating memory for softmax_peakwidth.\n");
+        exit(11);
+    }
+
+    sum_deltas(lengthmz, numz, blur, barr, deltas);
+
+    const float min = 1.0f;
+
+    # pragma omp parallel for schedule(auto)
+    for (int i = 0; i < lengthmz; i++) {
+        float e = expf(beta * deltas[i]);
+        if (e < min) { e = min; }
+        exps[i] = e;
+    }
+
+    convolve_simp(lengthmz, decon.maxlength, decon.starttab, decon.endtab, decon.mzdist, exps, localsums,
+                  config.speedyflag);
+    convolve_simp(lengthmz, decon.maxlength, decon.starttab, decon.endtab, decon.mzdist, deltas, convdeltas,
+                  config.speedyflag);
+
+    # pragma omp parallel for schedule(auto)
+    for (int i = 0; i < lengthmz; i++) {
+        const float factor = convdeltas[i] / localsums[i];
+        for (int j = 0; j < numz; j++) {
+            blur[index2D(numz, i, j)] *= factor;// expf(blur[index2D(numz, i, j)]) * factor;
+        }
+    }
+
+    free(exps);
+    free(deltas);
+    free(localsums);
+    free(convdeltas);
+}
 
 
 void point_smoothing(float *blur, const char *barr, const int lengthmz, const int numz, const int width) {
@@ -562,17 +678,15 @@ float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, cons
     return fitmax;
 }
 
-float errfunspeedy(Config config, Decon decon, const char *barr, const float *dataInt, const int maxlength,
-                   const int *starttab, const int *endtab,
-                   const float *mzdist, float *rsquared) {
+float errfunspeedy(Config config, Decon decon, const float *dataInt, float *rsquared) {
     //Get max intensity
     float maxint = 0;
     for (int i = 0; i < config.lengthmz; i++) {
         if (dataInt[i] > maxint) { maxint = dataInt[i]; }
     }
 
-    getfitdatspeedy(decon.fitdat, decon.blur, config.lengthmz, config.numz, maxlength,
-                    maxint, starttab, endtab, mzdist, config.speedyflag);
+    getfitdatspeedy(decon.fitdat, decon.blur, config.lengthmz, config.numz, decon.maxlength,
+                    maxint, decon.starttab, decon.endtab, decon.mzdist, config.speedyflag);
 
     if (config.baselineflag == 1) {
         #pragma omp parallel for schedule(auto)
@@ -793,22 +907,33 @@ void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
 }
 
 
-void MakePeakShape2D(const Config config, Decon *decon, int maxlength, const float *dataMZ, const int makereverse, const int inflateflag) {
-
-
+void MakePeakShape2D(const Config config, Decon *decon, const Input *inp, const int makereverse, const int inflateflag) {
     float mzsig = fabsf(config.mzsig);
     if (inflateflag == 1) {
         mzsig *= config.peakshapeinflate;
     }
-    #pragma omp parallel for schedule(auto)
+    int maxlength = decon->maxlength;
+
+    #pragma omp parallel for
     for (int i = 0; i < config.lengthmz; i++) {
+        if (config.variablepw == 1) {
+            mzsig = inp->fwhmlist[i];
+            // printf("Using Variable Peak Width %f\n", mzsig);
+        }
+        else if (config.variablepw == 2) {
+            mzsig = inp->fwhmlist[i];
+            if (mzsig > config.mzsig) {
+                mzsig = config.mzsig;
+            }
+        }
+
         int start = decon->starttab[i];
         int end = decon->endtab[i];
         for (int j = start; j <= end; j++) {
             int j2 = fixk(j, config.lengthmz);
-            decon->mzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(dataMZ[i], dataMZ[j2], mzsig, config.psfun);
+            decon->mzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(inp->dataMZ[i], inp->dataMZ[j2], mzsig, config.psfun);
             if (makereverse == 1) {
-                decon->rmzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(dataMZ[j2], dataMZ[i], mzsig, config.psfun);
+                decon->rmzdist[index2D(maxlength, i, j2 - start)] = mzpeakshape(inp->dataMZ[j2], inp->dataMZ[i], mzsig, config.psfun);
             }
         }
     }
@@ -823,8 +948,7 @@ void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, co
         mzsig *= config.peakshapeinflate;
     }
 
-    int n;
-    for (n = (int) -newrange; n < (int) newrange; n++) {
+    for (int n = (int) -newrange; n < (int) newrange; n++) {
         decon->mzdist[indexmod(config.lengthmz, 0, n)] = mzpeakshape(0, (float) n * binsize, mzsig, config.psfun);
         if (makereverse == 1) { decon->rmzdist[indexmod(config.lengthmz, 0, n)] = mzpeakshape((float) n * binsize, 0, mzsig, config.psfun); }
     }
@@ -837,7 +961,24 @@ void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, co
 int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *endtab) {
     int maxlength = 1;
     for (int i = 0; i < config.lengthmz; i++) {
-        float point = inp->dataMZ[i] - config.psmzthresh;
+        float window;
+        if (config.variablepw == 0) {
+            window = config.psmzthresh;
+        }
+        else if (config.variablepw ==2) {
+            float localmzsig =  inp->fwhmlist[i];
+            if (localmzsig > config.psmzthresh) {
+                window = config.psmzthresh;
+            }
+            else {
+                window = localmzsig * config.psthresh * config.peakshapeinflate;
+            }
+        }
+        else {
+            window = inp->fwhmlist[i] * config.psthresh * config.peakshapeinflate;
+        }
+        float point = inp->dataMZ[i] - window;
+
         int start, end;
         if (point < inp->dataMZ[0] && config.speedyflag == 0) {
             //start = (int)((point - inp->dataMZ[0]) / (inp->dataMZ[1] - inp->dataMZ[0]));
@@ -847,7 +988,7 @@ int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *end
         }
         starttab[i] = start;
 
-        point = inp->dataMZ[i] + config.psmzthresh;
+        point = inp->dataMZ[i] + window;
         if (point > inp->dataMZ[config.lengthmz - 1] && config.speedyflag == 0) {
             //end = config.lengthmz - 1 + (int)((point - inp->dataMZ[config.lengthmz - 1]) / (inp->dataMZ[config.lengthmz - 1] - inp->dataMZ[config.lengthmz - 2]));
             end = config.lengthmz - 1 + nearfast(inp->dataMZ, 2 * inp->dataMZ[0] - point, config.lengthmz);
@@ -875,6 +1016,7 @@ int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, con
     if (config.mzsig != 0) {
         //Gets maxlength and sets start and endtab
         maxlength = SetStartsEnds(config, &inp, decon->starttab, decon->endtab);
+        decon->maxlength = maxlength;
 
         //Changes dimensions of the peak shape function. 1D for speedy and 2D otherwise
         int pslen = config.lengthmz;
@@ -899,12 +1041,11 @@ int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, con
             fprintf(stderr, "Error allocating memory for rmzdist in SetUpPeakShape.\n");
             exit(11);
         }
-        printf("Test: %d\n", config.psfun);
         //Calculates the distance between mz values as a 2D or 3D matrix
 
         if (config.speedyflag == 0) {
             if (verbose == 1) { printf("Making Peak Shape 2D\n"); }
-            MakePeakShape2D(config, decon, maxlength, inp.dataMZ, makereverse, 1);
+            MakePeakShape2D(config, decon, &inp, makereverse, 1);
         } else {
             if (verbose == 1) { printf("Making Peak Shape 1D\n"); }
             //Calculates peak shape as a 1D list centered at the first element for circular convolutions
@@ -914,12 +1055,15 @@ int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, con
     } else {
         decon->mzdist = (float *) calloc(0, sizeof(float));
         maxlength = 0;
+        decon->maxlength = maxlength;
     }
+
     return maxlength;
 }
 
-float Reconvolve(const Config config, const int maxlength, Decon *decon, const char *barr) {
+float Reconvolve(const Config config, Decon *decon, const char *barr) {
     float newblurmax = 0;
+    int maxlength = decon->maxlength;
     if (config.speedyflag == 0) {
         #pragma omp parallel for schedule(auto)
         for (int i = 0; i < config.lengthmz; i++) {

@@ -37,6 +37,7 @@ struct Input {
     int *nztab;
     float *mtab;
     char *barr;
+    float * fwhmlist;
 };
 """
 class Input(ctypes.Structure):
@@ -46,7 +47,8 @@ class Input(ctypes.Structure):
         ("testmasses", ctypes.POINTER(ctypes.c_float)),
         ("nztab", ctypes.POINTER(ctypes.c_int)),
         ("mtab", ctypes.POINTER(ctypes.c_float)),
-        ("barr", ctypes.POINTER(ctypes.c_char))
+        ("barr", ctypes.POINTER(ctypes.c_char)),
+        ("fwhmlist", ctypes.POINTER(ctypes.c_float)),
     ]
 
 
@@ -80,6 +82,12 @@ def py_to_c_input(dataobj, c_config, py_config):
         c_input.testmasses = ctypes.POINTER(ctypes.c_float)()
         setattr(c_config, "mfilelen", 0)
 
+    if dataobj.fwhmlist is not None and len(dataobj.fwhmlist) > 0:
+        fwhmlist = np.array(dataobj.fwhmlist, dtype=np.float32)
+        c_input.fwhmlist = (ctypes.c_float * len(fwhmlist))(*fwhmlist)
+    else:
+        c_input.fwhmlist = ctypes.POINTER(ctypes.c_float)()
+
     return c_input
 
 """
@@ -108,6 +116,7 @@ struct Decon {
     int mlen;
     int plen;
     int scanindex;
+    int maxlength;
 };
 """
 
@@ -136,7 +145,8 @@ class Decon(ctypes.Structure):
         ("threshold", ctypes.c_float),
         ("mlen", ctypes.c_int),
         ("plen", ctypes.c_int),
-        ("scanindex", ctypes.c_int)
+        ("scanindex", ctypes.c_int),
+        ("maxlength", ctypes.c_int),
     ]
 
 """
@@ -232,8 +242,10 @@ struct Config {
     char kernel[500];
     hid_t file_id;
     char dataset[1024];
+    // Other
     int silent;
     int cdmsflag;
+    int variablepw;
 };
 """
 
@@ -278,7 +290,6 @@ class Config(ctypes.Structure):
         ("isotopemode", ctypes.c_int),
         ("filetype", ctypes.c_int),
         ("imflag", ctypes.c_int),
-        # IM Parameters
         ("dtsig", ctypes.c_float),
         ("csig", ctypes.c_float),
         ("ccsub", ctypes.c_float),
@@ -319,19 +330,19 @@ class Config(ctypes.Structure):
         ("peaknorm", ctypes.c_int),
         ("orbimode", ctypes.c_int),
         ("datanorm", ctypes.c_int),
-        # Experimental Parameters
         ("filterwidth", ctypes.c_int),
         ("zerolog", ctypes.c_float),
         ("lengthmz", ctypes.c_int),
         ("mfilelen", ctypes.c_int),
         ("isolength", ctypes.c_int),
-        # DoubleDec Parameters
         ("doubledec", ctypes.c_int),
         ("kernel", ctypes.c_char * 500),
-        ("file_id", ctypes.c_int),  # hid_t, adjust if needed
+        ("file_id", ctypes.c_longlong),  # adjust to platform's hid_t if needed
         ("dataset", ctypes.c_char * 1024),
         ("silent", ctypes.c_int),
         ("cdmsflag", ctypes.c_int),
+        ("variablepw", ctypes.c_int),
+        ("minratio", ctypes.c_float),
     ]
 
 
@@ -361,10 +372,15 @@ def py_to_c_config(py_config):
         if name in py_config:
             value = py_config[name]
             value, type = value
+
             if type == str:
                 value = str(value).encode('utf-8')
             elif type == float:
-                value = ctypes.c_float(float(value))
+                try:
+                    value = ctypes.c_float(float(value))
+                except:
+                    value = ctypes.c_float(0.0)
+                    print("Error converting", name, "with value", value, "to float.")
             elif type == int:
                 value = ctypes.c_int(int(value))
             try:
@@ -372,7 +388,6 @@ def py_to_c_config(py_config):
             except TypeError as e:
                 print(f"Error setting field {name} with value {value}. Expected type {ctype}.")
                 raise e
-
     return c_config
 
 

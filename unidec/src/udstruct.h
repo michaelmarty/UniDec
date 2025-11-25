@@ -50,6 +50,7 @@ struct Input {
     int *nztab;
     float *mtab;
     char *barr;
+    float *fwhmlist;
 };
 
 typedef struct Decon Decon;
@@ -79,6 +80,7 @@ struct Decon {
     int mlen;
     int plen;
     int scanindex;
+    int maxlength;
 };
 
 
@@ -176,8 +178,11 @@ struct Config {
     char kernel[500];
     hid_t file_id;
     char dataset[1024];
+    // Other
     int silent;
     int cdmsflag;
+    int variablepw;
+    float minratio;
 };
 
 UDSTRUCT_EXPORTS Input SetupInputs();

@@ -83,7 +83,7 @@ static int index4D(const int *size, const int r, const int c, const int d, const
     return r*size[1] * size[2] * size[3] + c*size[2] * size[3] + d*size[3] + f;
 }
 
-inline int fixk(int k, int lengthmz) {
+inline int fixk(int k, const int lengthmz) {
     k = abs(k);
     if (k >= lengthmz) { k = 2 * lengthmz - k - 2; }
     //if (k < 0) { k = 0; }

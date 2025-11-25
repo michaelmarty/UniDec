@@ -13,6 +13,7 @@ Input SetupInputs() {
     inp.nztab = NULL;
     inp.mtab = NULL;
     inp.barr = NULL;
+    inp.fwhmlist = NULL;
     return inp;
 }
 
@@ -23,6 +24,7 @@ void FreeInputs(const Input inp) {
     free(inp.mtab);
     free(inp.testmasses);
     free(inp.barr);
+    free(inp.fwhmlist);
 }
 
 Decon SetupDecon() {
@@ -161,8 +163,11 @@ void SetDefaultConfig(Config *config) {
     // DoubleDec
     config->doubledec = 0; // Consider initializing kernel as well?
     config->file_id = 0;
+    // Other
     config->silent = 0;
     config->cdmsflag = 0;
+    config->variablepw = 0;
+    config->minratio = 0.0f;
 }
 
 void PostImport(Config *config) {

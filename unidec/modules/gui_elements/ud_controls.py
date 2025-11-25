@@ -148,10 +148,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         sizercontrol1.Add(self.ctlbackcheck, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
-        # Check box for whether to remove isotopes
-        self.ctlremoveisotopes = wx.Choice(panel1, -1, choices=["Off", "Pre", "Post", "Both"])
-        sizercontrol1.Add(self.ctlremoveisotopes, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
+        # # Check box for whether to remove isotopes
+        # self.ctlremoveisotopes = wx.Choice(panel1, -1, choices=["Off", "Pre", "Post", "Both"])
+        # sizercontrol1.Add(self.ctlremoveisotopes, (i, 0), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        # i += 1
 
         self.dataprepbutton = wx.Button(panel1, -1, "Process Data")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_dataprep_button, self.dataprepbutton)
@@ -524,9 +524,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         if self.config.imflag == 0:
             # self.ctlisotopemode = wx.CheckBox(panel2b, label="Isotope Mode")
-            self.ctlisotopemode = wx.Choice(panel2b, -1, size=wx.Size(100, -1), choices=self.config.isotopechoices)
-            self.ctlisotopemode.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
-            gbox2b.Add(self.ctlisotopemode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            # self.ctlisotopemode = wx.Choice(panel2b, -1, size=wx.Size(100, -1), choices=self.config.isotopechoices)
+            # self.ctlisotopemode.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
+            # gbox2b.Add(self.ctlisotopemode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
 
             self.ctlorbimode = wx.CheckBox(panel2b, label="Charge Scaling")
             gbox2b.Add(self.ctlorbimode, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -809,7 +809,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.doubledecflag.SetValue(self.config.doubledec)  # DoubleDec config import
                 self.ctldatareductionpercent.SetValue(str(self.config.reductionpercent))
                 self.ctlmanualassign.SetValue(self.config.manualfileflag)
-                self.ctlisotopemode.SetSelection(self.config.isotopemode)
+                # self.ctlisotopemode.SetSelection(self.config.isotopemode)
                 self.ctlorbimode.SetValue(bool(self.config.orbimode))
                 self.ctldatanorm.SetValue(bool(self.config.datanorm))
                 self.ctlbintype.SetSelection(int(self.config.linflag))
@@ -821,7 +821,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlrawflag.SetSelection(self.config.rawflag)
 
-            self.ctlremoveisotopes.SetSelection(self.config.isomode)
+            # self.ctlremoveisotopes.SetSelection(self.config.isomode)
 
             if self.config.adductmass < 0:
                 self.ctlnegmode.SetValue(True)
@@ -953,7 +953,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         if self.config.imflag == 0:
             self.config.doubledec = self.doubledecflag.GetValue()  # DoubleDec config export
             self.config.reductionpercent = ud.string_to_value(self.ctldatareductionpercent.GetValue())
-            self.config.isotopemode = int(self.ctlisotopemode.GetSelection())
+            # self.config.isotopemode = int(self.ctlisotopemode.GetSelection())
             self.config.orbimode = int(self.ctlorbimode.GetValue())
             self.config.datanorm = int(self.ctldatanorm.GetValue())
             self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
@@ -967,7 +967,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.discreteplot = int(self.ctldiscrete.GetValue())
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
         self.config.rawflag = self.ctlrawflag.GetSelection()
-        self.config.isomode = int(self.ctlremoveisotopes.GetSelection())
+        # self.config.isomode = int(self.ctlremoveisotopes.GetSelection())
 
         try:
             test = float(self.config.adductmass)
@@ -1102,8 +1102,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctldatareductionpercent.SetToolTip(
                 wx.ToolTip(
                     "Reduces the amount of data by removing everything below a threshold.\nSets the threshold to fit the percentage of data to remove."))
-            self.ctlisotopemode.SetToolTip(wx.ToolTip(
-                "Use isotopic distributions in deconvolution.\nOutput either monoisotopic or average masses"))
+            # self.ctlisotopemode.SetToolTip(wx.ToolTip(
+            #     "Use isotopic distributions in deconvolution.\nOutput either monoisotopic or average masses"))
             self.ctlorbimode.SetToolTip(wx.ToolTip("Scale intensities by 1/z to compensate for induced charge effects"))
             self.ctlmanualassign.SetToolTip(wx.ToolTip("Use manual assignments. See Tools>Manual Assignment"))
             self.ctlsmashflag.SetToolTip(wx.ToolTip("Remove Noise Peaks. See Tools>Select Noise Peaks"))

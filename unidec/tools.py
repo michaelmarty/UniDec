@@ -1399,6 +1399,13 @@ def lintegrate(datatop, intx, fastmode=False):
     """
     length = len(datatop)
     l2 = len(intx)
+    if fastmode:
+        # Use a histogram
+        bins = np.append(intx, intx[-1] + (intx[-1] - intx[-2])) - (intx[1] - intx[0]) / 2.
+        inty, bin_edges = np.histogram(datatop[:, 0], bins=bins, weights=datatop[:, 1])
+        newdat = np.column_stack((intx, inty))
+        return newdat
+
     inty = np.zeros_like(intx)
     for i in range(0, length):
         x = datatop[i, 0]
@@ -2897,7 +2904,7 @@ def within_ppm(theo, exp, ppmtol):
     return np.abs(((theo - exp) / theo) * 1e6) <= ppmtol
 
 
-@njit
+@njit(fastmath=True)
 def within_abs(theo, exp, tol):
     return np.abs(theo - exp) <= tol
 

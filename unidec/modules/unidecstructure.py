@@ -207,6 +207,8 @@ class UniDecConfig(object):
         self.endz = 50
         self.numz = 50
         self.mzsig = 0.85
+        self.variablepw = 0
+        self.minratio = 0.0
         self.automzsig = 0
         self.psfun = 0
         self.psfunz = 0
@@ -436,7 +438,9 @@ class UniDecConfig(object):
             "tcal2": (self.tcal2, float),
             "tcal3": (self.tcal3, float),
             "tcal4": (self.tcal4, float),
-            "edc": (self.edc, float)
+            "edc": (self.edc, float),
+            "variablepw": (self.variablepw, int),
+            "minratio": (self.minratio, float),
         }
         return self.namedict
 
@@ -1934,6 +1938,7 @@ class DataContainer:
         self.massccs = np.array([])  # Mass vs CCS table
         self.ccsz = np.array([])  # CCS vs charge table
         self.ccsdata = np.array([])  # CCS data in 1D
+        self.fwhmlist = np.array([])  # FWHM list for peaks
         self.tscore = 0
 
     def write_hdf5(self, file_name):

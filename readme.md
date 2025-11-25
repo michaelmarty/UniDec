@@ -228,15 +228,22 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.8.1.0
 
+Removed Isotope Mode from UniDec. I am working on merging IsoDec with UniDec, but it isn't quite ready for this release. Stay tuned.
+Drop back to a prior version if you need isotope mode in UniDec. It was delaying the bug fixes too long, so I wanted to get this version out.
+
 Removed Agilent and Sciex importers. They were causing issues with admin privileges for people.
-I'm talking to Agilent and Sciex to see if I can get support for these in the future.
+I'm talking to Agilent and Sciex to see if I can get support for these in the future. If you need these, drop back to a prior version.
+
+Added a new peak pooling mode (PP) in UniChromCD. Currently under development and still experimental, but it allows for summing of data between subsequent replicate injections.
+
+IsoDec now will combine mass peaks more smartly, looking for missed monoisotopics when combining multiple charge states.
 
 Rewrote C source code to compile with CMake. Lots of little issues fixed along the way. Included prototype DLL 
 for unideclib.dll. 
 
-New parameter management in background. Some parameter names have changed. 
+Basic code for building an R wrapper around unideclib.dll. Development welcome for any interested in contributing.
 
-IsoDec now will combine mass peaks more smartly, looking for missed monoisotopics when combining multiple charge states.
+New parameter management in background to try to fix some bad habits of reusing parameters in different modes. Some parameter names have changed for clarity.
 
 Added new text file export in 3 column format for var1, mass, and extract on UniChrom and MetaUniDec.
 Also, I modified the _extracts.txt file to include the var1 values in the top row with a 0 in the first column.
@@ -247,11 +254,12 @@ Added Norm Peak Thresh control to UniDecCD.
 
 Fixed bug with Save Figure As dialog.
 
+Fixed issues with mzML files where the ID was not coded clearly and with averaging IM-MS data files. Switched to integration 
+summing rather than interpolation when merging scans. I think this is more accurate, but let me know if there are issues.
+
 Fixed issue with IsoDec where narrow m/z windows were cutting off extended isotopes on +1 peaks.
 Now, the high m/z window value will be extended in full, but the encoding will only be half of that. The 
 new defaults are 4.05 rather than 2.05 to catch these additional isotopes while still encoding a narrow range of 2.025.
-
-Basic code for building an R wrapper around unideclib.dll. Development welcome for any interested in contributing.
 
 Bug fixes throughout. 
 

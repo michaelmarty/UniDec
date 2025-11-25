@@ -149,6 +149,13 @@ def process_data_2d(xgrid, ygrid, igrid, config):
     # tstart = time.perf_counter()
     if config.pusher != 0:
         ygrid = np.array(ygrid) * config.pusher * 0.001
+
+    if config.minmz < 0 and config.maxmz < 0:
+        config.minmz = np.amin(xgrid)
+        config.maxmz = np.amax(xgrid)
+    if config.mindt < 0 and config.maxdt < 0:
+        config.mindt = np.amin(ygrid)
+        config.maxdt = np.amax(ygrid)
     boo1 = xgrid > config.minmz
     boo2 = xgrid < config.maxmz
     boo3 = ygrid > config.mindt

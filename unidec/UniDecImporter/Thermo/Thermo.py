@@ -45,6 +45,16 @@ class ThermoImporter(Importer):
             self.data.append(impdat)
         return self.data
 
+    def get_all_centroid_scans(self, threshold=-1):
+        self.data = []
+        for s in self.scans:
+            impdat = np.array(self.msrun.GetCentroidSpectrum(s))
+            impdat = impdat[impdat[:, 0] > 10]
+            if threshold >= 0:
+                impdat = impdat[impdat[:, 1] > threshold]
+            self.data.append(impdat)
+        return self.data
+
     def get_single_scan(self, s):
         impdat = np.array(self.msrun.GetSpectrum(s))
         impdat = impdat[impdat[:, 0] > 10]
@@ -148,7 +158,7 @@ class ThermoImporter(Importer):
         return mz, width
 
     def get_cdms_data(self, scan_range=None):
-        raw_dat = self.get_all_scans(threshold=0)
+        raw_dat = self.get_all_centroid_scans(threshold=0)
         scans = self.scans
 
         it = 1. / self.get_inj_time_array()
