@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 # -----------------------------
 # Step 1: Load CSV
 # -----------------------------
-folder = r"Z:\\Group Share\\Annika\\Stellar\\EC\\Replicates"
-file_path = f"{folder}\\MembDisc_vs_FlowThruDisc.csv"
+folder = r"Z:\Group Share\Annika\Stellar\EC\AqpZ New Data\Analysis"
+file_path = f"{folder}\\Samples1,2,3,4,5,6_ANALYSIS.csv"
 
 data = pd.read_csv(file_path, header=0)
 
@@ -15,7 +15,7 @@ data = pd.read_csv(file_path, header=0)
 # Step 2: Define sample columns
 # -----------------------------
 # Make sure these match your CSV exactly
-samples = ['MD1','MD2','MD3','FD1','FD2','FD3']
+samples = ['1','3','5','2','4','6']
 
 # Convert to numeric, coerce errors, fill NaNs
 for col in samples:
@@ -50,7 +50,7 @@ pc1_pc2 = X_centered @ eigenvectors[:, :2]
 # -----------------------------
 # Step 6: Prepare DataFrame for plotting
 # -----------------------------
-groups = ['MD','MD','MD','FD','FD','FD']  # matches 'samples' order
+groups = ['A','A','A','B','B','B']  # matches 'samples' order
 pca_df = pd.DataFrame(pc1_pc2, columns=['PC1','PC2'])
 pca_df['Sample'] = samples
 pca_df['Group'] = groups
@@ -59,7 +59,7 @@ pca_df['Group'] = groups
 # Step 7: Plot PCA
 # -----------------------------
 plt.figure(figsize=(8,6))
-colors = {'MD':'blue','FD':'red'}
+colors = {'A':'blue','B':'red'}
 
 for i, row in pca_df.iterrows():
     plt.scatter(row['PC1'], row['PC2'], color=colors[row['Group']], s=200)

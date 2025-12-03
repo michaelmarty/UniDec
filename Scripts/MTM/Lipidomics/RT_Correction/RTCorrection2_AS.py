@@ -12,8 +12,8 @@ with open(interpolationfunction, 'rb') as f:
     p = pickle.load(f)
 
 # Rename outfile to replace C1 with Stellar 1
-posoutfile = poslibfile.replace("-Pos", "-Pos-Stellar2")
-negoutfile = neglibfile.replace("-Neg", "-Neg-Stellar2")
+posoutfile = poslibfile.replace("-Pos", "-Pos-Stellar3")
+negoutfile = neglibfile.replace("-Neg", "-Neg-Stellar3")
 
 # Read library file
 with open(poslibfile, 'r') as f:

@@ -15,10 +15,10 @@ def cleanup_df(df):
 
 os.chdir(r"Z:\Group Share\Annika\Stellar\HEK")
 
-os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
+os.chdir(r"Z:\Group Share\Annika\Stellar\Untargeted DDA\BPL")
 
-posfile = "PosIDsRTP1.csv"
-negfile = "NegIDsRTP1.csv"
+posfile = r"PeakMaster_BPL_Pos_UntDDA.csv"
+negfile = r"PeakMaster_BPL_Neg_UntDDA.csv"
 
 limit = 5
 smooth= 1

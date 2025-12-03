@@ -13,13 +13,13 @@ def cleanup_df(df):
     df = df[~df['Name'].str.contains("low score", na=False)]
     return df
 
-os.chdir(r"Z:\Group Share\Annika\Stellar\HEK")
+os.chdir(r"Z:\Group Share\Annika\Stellar\Untargeted DDA\BPL")
 
-posfile = r"20251023_AS_HEK_PosDDA_MSDial.csv"
-negfile = r"20251023_AS_HEK_NegDDA_MSDial.csv"
+posfile = r"PeakMaster_BPL_Pos_UntDDA.csv"
+negfile = r"PeakMaster_BPL_Neg_UntDDA.csv"
 
-posfile = "20250929_AS_HEK_DDA_20_Pos.txt"
-negfile = "20250929_AS_HEK_DDA_20_Neg.txt"
+# posfile = "20250929_AS_HEK_DDA_20_Pos.txt"
+# negfile = "20250929_AS_HEK_DDA_20_Neg.txt"
 
 limit = 5
 smooth= 1

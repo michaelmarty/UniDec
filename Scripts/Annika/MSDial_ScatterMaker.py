@@ -2,78 +2,176 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import matplotlib as mpl
+import numpy as np
 
-# Load your CSV
-file = r"Z:\\Group Share\\Annika\\Stellar\\HEK\\20251023_AS_HEK_PosDDA_MSDial.csv"
+# ------------------------------
+# User files
+# ------------------------------
+file = "Z:\Group Share\Annika\Stellar\EC\AqpZ New Data\PeakMaster_AqpZ_MembExtLib.csv"
+colormap_file = r"Z:\\Group Share\\Annika\\Lipid_ColorMap.xlsx"
+
+# ------------------------------
+# Load CSV
+# ------------------------------
 df = pd.read_csv(file, delimiter=",")
 
+blacklist = "RIKEN|Unknown|low|no MS2"
+df = df[~df["Metabolite name"].astype(str).str.contains(blacklist, case=False, na=False)]
 
-# --- Filter out unwanted names ---
-df = df[~df["Name"].astype(str).str.contains("RIKEN|Unknown|low", case=False, na=False)]
+# Remove ALL fatty acids (FA, FFA, Fatty acid)
+fa_pattern = r"^FA\b|^FFA\b|fatty acid"
+df = df[~df["Metabolite name"].astype(str).str.contains(fa_pattern, case=False, na=False)]
+# ------------------------------
+# Load color map
+# ------------------------------
+color_df = pd.read_excel(colormap_file)
+tmp_class = color_df["Class"].astype(str).str.strip()
+tmp_color = color_df["Color"].astype(str).str.strip()
+color_map = dict(zip(tmp_class, tmp_color))
 
-# --- Heuristic to extract lipid class from Name ---
-def get_class_from_name(name):
-    """
-    Extracts the core lipid class from a lipid name.
-    Groups variants like CoQ8, CoQ9, CoQ10 into 'CoQ'.
-    Assumes class is the first part before a parenthesis or space.
-    """
+# ------------------------------
+# Class extraction
+# ------------------------------
+
+def get_class(name):
     if not isinstance(name, str):
-        return "Unknown"
+        return "Other"
+    name = name.strip()
 
-    # Group CoQ variants together
+    # -------------------
+    # Straightforward sphingolipids
+    # -------------------
+    if name.startswith("Cer "):
+        return "Cer"
+    if name.startswith("SM "):
+        return "SM"
+
+    # HexCer variants
+    if name.startswith(("AHexCer", "Hex2Cer", "Hex3Cer", "SHexCer")):
+        return "HexCer"
+
+    # Gangliosides → HexCer
+    if name.startswith("GM3"):
+        return "HexCer"
+
+    # PE-Cer, PI-Cer → Cer
+    if name.startswith(("PI-Cer", "PE-Cer")):
+        return "Cer"
+
+    # -------------------
+    # Glycerolipids: DG cluster
+    # -------------------
+    if name.startswith(("DGCC", "DGDG", "DGGA", "ADGGA", "MGDG", "SQDG")):
+        return "DG"
+
+    # -------------------
+    # Cardiolipin family → CL
+    # -------------------
+    if name.startswith(("DLCL", "MLCL", "HBMP")):
+        return "CL"
+
+    if "d7" in name.lower():
+        return "Standard"
+
+    if name.startswith("CL ") and "14:0_14:0_14:0_14:0" in name.lower():
+        return "Standard"
+    # -------------------
+    # CoQ stays as CoQ
+    # -------------------
     if name.startswith("CoQ"):
         return "CoQ"
+    if name.startswith("LPS-N"):
+        return "LPS"
 
-    # You can add more grouping rules here, e.g.:
-    # if name.startswith("Cer"): return "Cer"
-    # if name.startswith("PC"): return "PC"
 
-    # Default: take text before '(' or space
-    for sep in ['(', ' ']:
+    # -------------------
+    # Bacterial-only classes stay in Other
+    # -------------------
+    if name.startswith(("PIM", "Ac2PIM", "Ac4PIM", "SPB", "SL", "BA")):
+        return "Other"
+
+    # -------------------
+    # Default assignment (first token before space or parenthesis)
+    # -------------------
+    for sep in ["(", " "]:
         if sep in name:
             return name.split(sep)[0]
 
-    return name  # fallback to full name
+    return name
 
-# --- Apply class extraction ---
-df["Class"] = df["Name"].apply(get_class_from_name)
+# Apply extraction
+df["Class"] = df["Metabolite name"].apply(get_class).str.strip()
 
-# --- Assign a unique color to each class dynamically ---
-unique_classes = df["Class"].unique()
-num_classes = len(unique_classes)
-cmap = plt.get_cmap("tab20b")  # choose any colormap
-class_colors = {cls: cmap(i / max(num_classes-1, 1)) for i, cls in enumerate(unique_classes)}
+# ------------------------------
+# Assign final class/color
+# ------------------------------
+def_color = "#808080"
+final_classes = []
+colors = []
 
-# --- Prepare plotting data ---
-classes = df["Class"].tolist()
-rts = df["RT (min)"].tolist()
-mzs = df["Precursor m/z"].tolist()
+for c in df["Class"]:
+    if c in color_map:
+        final_classes.append(c)
+        colors.append(color_map[c])
+    else:
+        final_classes.append("Other")
+        colors.append(def_color)
 
-# --- Create legend ---
+df["Class"] = final_classes
+df["Color"] = colors
+
+# ------------------------------
+# Diagnostics
+# ------------------------------
+print("Unique extracted classes:", sorted(df["Class"].unique()))
+print("Classes in color map:", sorted(color_map.keys()))
+print("Number of points plotted:", len(df))
+
+# List "Other"
+other_df = df[df["Class"] == "Other"]
+print("\nLipids labeled as 'Other' (unique names):")
+for name in sorted(other_df["Metabolite name"].unique()):
+    print(" •", name)
+print(f"\nTotal unique 'Other' lipids: {len(other_df['Metabolite name'].unique())}")
+
+# ------------------------------
+# Plot setup
+# ------------------------------
+mpl.rcParams['pdf.fonttype'] = 42
+mpl.rcParams['ps.fonttype'] = 42
+mpl.rcParams['font.family'] = 'Arial'
+mpl.rcParams['font.size'] = 18
+
+# Legend order: alphabetical, but put Other last if present
+unique_classes = sorted([c for c in df["Class"].unique() if c != "Other"])
+if "Other" in df["Class"].unique():
+    unique_classes.append("Other")
+
+# Build legend
 custom_legend = [
-    Line2D([0], [0], marker='o', color=class_colors[cls], label=cls,
-           markerfacecolor=class_colors[cls], linestyle='None', markersize=10)
+    Line2D([0], [0], marker='o', color=color_map.get(cls, def_color), label=cls,
+           markerfacecolor=color_map.get(cls, def_color), linestyle='None', markersize=10)
     for cls in unique_classes
 ]
 
-# --- Plot ---
-plt.figure(figsize=(14,10))
-for i in range(len(classes)):
-    plt.scatter(rts[i], mzs[i], color=class_colors[classes[i]], s=60)  # adjust dot size
+# ------------------------------
+# Plot
+# ------------------------------
+plt.figure(figsize=(12, 8))
+plt.scatter(df["Average Rt(min)"], df["Average Mz"], c=df["Color"], s=80)
 
 plt.gca().spines['top'].set_visible(False)
 plt.gca().spines['right'].set_visible(False)
-plt.xlabel("Retention Time (min)", fontsize=14)
-plt.ylabel("m/z", fontsize=14)
-plt.title("Stellar HEK +ESI", fontsize=16)
+plt.xlabel("Retention Time (min)")
+plt.ylabel("m/z")
+plt.title("Stellar AqpZ Membrane Discs")
+plt.xticks(np.arange(0.0, 18, 2.5))
+plt.yticks(np.arange(0.0, 1600.1, 200))
 
-# automatic ncol: roughly 6 classes per row
 ncol = min(6, len(unique_classes))
-plt.legend(handles=custom_legend, loc='upper center', bbox_to_anchor=(0.5, -0.05),
-           ncol=ncol, fontsize=20, frameon=False)
+plt.legend(handles=custom_legend, loc='upper center', bbox_to_anchor=(0.5, -0.08),
+           ncol=ncol, frameon=False)
 
-# Make space at bottom for the legend
-plt.subplots_adjust(bottom=0.35)
+plt.subplots_adjust(bottom=0.25)
 plt.tight_layout()
 plt.show()

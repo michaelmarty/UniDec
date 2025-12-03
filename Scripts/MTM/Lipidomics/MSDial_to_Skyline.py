@@ -14,12 +14,12 @@ import os
 10: Product Adduct
 '''
 
-toppath = "Z:\\Group Share\\Synapt\\Collaborator Samples (CS)\\All_Reps"
+toppath = "Z:\Group Share\Annika\IQ-X"
 os.chdir(toppath)
 
-file = "Height_1_2024_08_23_14_32_45.txt"
+file = "Filtered_20251112_IQX_HEKneg_acidified_RTCor_PeakMaster_Ref.csv"
 
-df = pd.read_table(file, header=4)
+df = pd.read_csv(file)
 
 df = df[df["MS/MS matched"]]
 
@@ -49,4 +49,4 @@ df = df[df["Full Name"].str.contains("RIKEN") == False]
 df = df.sort_values("Full Name")
 print(df["Full Name"])
 df.to_csv("Filtered.csv")
-df.to_csv("LipidList.csv", columns=["Full Name"], index=False, header=False)
+df.to_csv("LipidListTest.csv", columns=["Full Name"], index=False, header=False)

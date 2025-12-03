@@ -19,9 +19,9 @@ import matplotlib
 
 # matplotlib.use("WxAgg")
 
-os.chdir(r"Z:\Group Share\MTM\IQ-X\MartyLab_AX\FinalResults")
+os.chdir(r"Z:\Group Share\Annika\IQ-X")
 
-file = r"NegIDsRTP2.csv"
+file = r"20251112_IQX_HEKneg_acidified_RTCor_PeakMaster.csv"
 column_name = "Metabolite name"
 rt_name = "Average Rt(min)"
 class_name = "Ontology"
