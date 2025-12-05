@@ -6,8 +6,26 @@ import matplotlib as mpl
 import mplcursors
 import matchms as mms
 import networkx as nx
+from Scripts.MTM.Lipidomics.LipidFunctions import detect_outliers_mahalanobis
 
 mpl.use("WxAgg")
+
+def class_network_analysis(df):
+    graphs = []
+    outdf = pd.DataFrame()
+    for c in df['Ontology'].unique():
+        # Get subset for class
+        subdf = df[df['Ontology'] == c].reset_index(drop=True)
+
+        if len(subdf) < 3:
+            outdf = pd.concat([outdf, subdf])
+            continue
+
+        G, newdf = network_analysis(subdf)
+        graphs.append(G)
+        outdf = pd.concat([outdf, newdf])
+    outdf = outdf.reset_index(drop=True)
+    return outdf, graphs
 
 def robust_z(values_dict):
     # returns dict of z-scores
@@ -24,44 +42,57 @@ def create_msms_score_matrix(df, mz_tol=0.01):
     nlspectra = []
     for i, row in df.iterrows():
         if pd.isna(row['MS/MS spectrum']):
-            continue
+            raise ValueError(f"Row {i} has no MS/MS spectrum data.")
         text = row['MS/MS spectrum']
         data = text.split(" ")
         data2 = np.array([d.split(":") for d in data]).astype(float)
         mz = row['Average Mz']
         metadata = {"precursor_mz": mz}
         nldata = data2.copy()
-        nldata[:,0] = mz - data2[:,0]
+        nldata[:, 0] = mz - data2[:, 0]
         # Sort nldata by m/z
-        nldata = nldata[np.argsort(nldata[:,0])]
+        nldata = nldata[np.argsort(nldata[:, 0])]
         # Take only nldata > 10
-        nldata = nldata[nldata[:,0] > 10]
-        spec = mms.Spectrum(data2[:,0], data2[:,1], metadata=metadata)
+        nldata = nldata[nldata[:, 0] > 10]
+        spec = mms.Spectrum(data2[:, 0], data2[:, 1], metadata=metadata)
         spectra.append(spec)
-        nlspec = mms.Spectrum(nldata[:,0], nldata[:,1], metadata=metadata)
+        nlspec = mms.Spectrum(nldata[:, 0], nldata[:, 1], metadata=metadata)
         nlspectra.append(nlspec)
 
-    score_matrix = mms.calculate_scores(references=spectra, queries=spectra, similarity_function=mms.similarity.CosineGreedy(),
-                                 is_symmetric=True, ).scores.to_array()
-    score_matrix = np.array(score_matrix.tolist())[:,:,0]
+    score_matrix = mms.calculate_scores(references=spectra, queries=spectra,
+                                        similarity_function=mms.similarity.CosineGreedy(),
+                                        is_symmetric=True, ).scores.to_array()
+    score_matrix = np.array(score_matrix.tolist())[:, :, 0]
 
-    nlscore_matrix = mms.calculate_scores(references=nlspectra, queries=nlspectra, similarity_function=mms.similarity.CosineGreedy(),
-                                 is_symmetric=True).scores.to_array()
-    nlscore_matrix = np.array(nlscore_matrix.tolist())[:,:,0]
+    nlscore_matrix = mms.calculate_scores(references=nlspectra, queries=nlspectra,
+                                          similarity_function=mms.similarity.CosineGreedy(),
+                                          is_symmetric=True).scores.to_array()
+    nlscore_matrix = np.array(nlscore_matrix.tolist())[:, :, 0]
 
     score_matrix += nlscore_matrix
+    score_matrix /= 2.0
+    return score_matrix
 
+def network_analysis(df, mz_tol=0.01):
+    # Create score matrix
+    score_matrix = create_msms_score_matrix(df, mz_tol=mz_tol)
+
+    # Create graph from score matrix
     G = nx.Graph()
-    G.add_weighted_edges_from([ (i, j, score_matrix[i,j]) for i in range(score_matrix.shape[0]) for j in range(i+1, score_matrix.shape[1]) if score_matrix[i,j] > 0.01 ])
+    G.add_weighted_edges_from([ (i, j, score_matrix[i,j]) for i in range(score_matrix.shape[0]) for j in range(i, score_matrix.shape[1]) if score_matrix[i,j] > 0.1 ])
+
     # Add node labels
-    labels = {i: df.iloc[i]['Metabolite name'].split("|")[0] for i in range(len(df))}
+    labels = {i: str(i) + "~"+ df.iloc[i]['Metabolite name'] for i in range(len(df))}
     nx.relabel_nodes(G, labels, copy=False)
-    # Print edge weights
+
+    # Drop self-loops
+    G.remove_edges_from(nx.selfloop_edges(G))
+
+    # Add distance attribute for shortest-path calculations
     for u, v, data in G.edges(data=True):
-        data['distance'] = 2.0 - data['weight']
+        data['distance'] = 1.0 - data['weight']
 
-
-    # Core features (works for undirected; for directed graphs, use in/out variants)
+    # Measure a variety of features of the graph
     strength = dict(G.degree(weight='weight'))  # s_i
     degree = dict(G.degree())  # unweighted degree
     clust_w = nx.clustering(G, weight='weight')  # weighted clustering coeff
@@ -69,7 +100,7 @@ def create_msms_score_matrix(df, mz_tol=0.01):
     close = nx.closeness_centrality(G, distance='distance')  # distance-based closeness
     pr = nx.pagerank(G, weight='weight')  # weighted PageRank
     tri = nx.triangles(G)  # triangle count per node
-    ev = nx.eigenvector_centrality(G, weight='weight')
+    ev = nx.eigenvector_centrality(G, weight='weight', tol=1e-04)  # eigenvector centrality
 
     # Network features dict
     n_features = {
@@ -102,45 +133,40 @@ def create_msms_score_matrix(df, mz_tol=0.01):
     # Add anomaly score as z_features
     z_features['Anomaly_Score'] = A
     z_features['z_Anomaly_Score'] = robust_z(A)
-
     outdf = df.copy()
 
     # Set these as columns in df
     for i, row in df.iterrows():
-        name = row['Metabolite name'].split("|")[0]
+        name = str(i) + "~" + row['Metabolite name']
         # Apply to outdf
-        if name in G:
-            for feat_name, feat_dict in n_features.items():
-                outdf.at[i, feat_name] = float(feat_dict.get(name, 0.0))
-            for zfeat_name, zfeat_dict in z_features.items():
-                outdf.at[i, zfeat_name] = float(zfeat_dict.get(name, 0.0))
+        for feat_name, feat_dict in n_features.items():
+            outdf.at[i, feat_name] = float(feat_dict.get(name, 0.0))
+        for zfeat_name, zfeat_dict in z_features.items():
+            outdf.at[i, zfeat_name] = float(zfeat_dict.get(name, 0.0))
 
+        if name in G:
             # Apply to nodes in G
             attrs = {}
             for feat_name, feat_dict in n_features.items():
                 attrs[feat_name] = float(feat_dict.get(name, 0.0))
             for zfeat_name, zfeat_dict in z_features.items():
                 attrs[zfeat_name] = float(zfeat_dict.get(name, 0.0))
+            attrs['Adduct type'] = row['Adduct type']
             G.nodes[name].update(attrs)
 
+    # outdf = detect_outliers_mahalanobis(outdf, features=list(z_features.keys()), verbose=True, sort=False)
+    # # Embed mahalanobis scores into graph nodes
+    # for i, row in outdf.iterrows():
+    #     name = str(i) + "~" + row['Metabolite name']
+    #     if name in G:
+    #         attrs = {}
+    #         attrs['mahalanobis'] = row['mahalanobis']
+    #         attrs['outlier'] = row['outlier']
+    #         G.nodes[name].update(attrs)
+    #     else:
+    #         print(f"Node {name} not in graph.", G.nodes())
     return G, outdf
 
-def class_network_analysis(df):
-    graphs = []
-    outdf = pd.DataFrame()
-    for c in df['Ontology'].unique():
-        # Get subset for class
-        subdf = df[df['Ontology'] == c]
-
-        if len(subdf) < 3:
-            outdf = pd.concat([outdf, subdf])
-            continue
-
-        G, newdf = create_msms_score_matrix(subdf)
-        graphs.append(G)
-        outdf = pd.concat([outdf, newdf])
-
-    return outdf, graphs
 
 
 
@@ -194,13 +220,14 @@ for G in graphs:
     nc.set_facecolor(node_colors)
 
     # labels on the same Axes
-    nx.draw_networkx_labels(G, pos, labels={n: n for n in node_list}, font_size=8, ax=ax)
+    nx.draw_networkx_labels(G, pos, labels={n: n.split("~")[1] for n in node_list}, font_size=8, ax=ax)
 
     # prepare label mapping
     labels_text = {node: (
-        f"{node}\n"
+        f"{node.split("~")[1]}\n"
         # f"Betweenness: {G.nodes[node].get('Betweenness', 0.0):.4f}\n"
         f"Score: {G.nodes[node].get(colortarget, 0.0):.4f}\n"
+        f"Adduct: {G.nodes[node].get('Adduct type', 'N/A')}\n"
         # f"Closeness: {G.nodes[node].get('Closeness', 0.0):.4f}"
     ) for node in node_list}
 

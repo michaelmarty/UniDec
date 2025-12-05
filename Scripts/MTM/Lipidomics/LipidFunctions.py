@@ -3,6 +3,8 @@ import re
 import pandas as pd
 import lxml.etree
 import matplotlib.pyplot as plt
+from sklearn.covariance import MinCovDet
+from scipy.spatial.distance import mahalanobis
 
 posadducts = [
     ["[M+H]+", 1, 1.00782503207, True],
@@ -1002,6 +1004,155 @@ def categorize_nl(x):
     if x == 0:
         return "None"
     return "Partial"
+
+
+
+def detect_outliers_class(df, features):
+    newdf = pd.DataFrame()
+    for c in df['Ontology'].unique():
+        # Get subset for class
+        subdf = df[df['Ontology'] == c]
+
+        # Clean up things that will cause issues with covariance matrix
+        if len(subdf) < 3:
+            newdf = pd.concat([newdf, subdf])
+            continue
+
+        # Drop any features with zero variance
+        variances = subdf[features].var()
+        valid_features = variances[variances > 0].index.tolist()
+        # Sort features by variance
+        valid_features = sorted(valid_features, key=lambda x: variances[x], reverse=True)
+
+        # Check for two columns of valid features that are identical
+        to_drop = set()
+        for i in range(len(valid_features)):
+            for j in range(i+1, len(valid_features)):
+                if np.all(subdf[valid_features[i]] == subdf[valid_features[j]]):
+                    to_drop.add(valid_features[j])
+        valid_features = [f for f in valid_features if f not in to_drop]
+
+        # Remove class if not enough valid features
+        if len(subdf) < len(valid_features)+1:
+            valid_features = valid_features[:len(subdf)-1]
+
+        outputdf = detect_outliers_mahalanobis(subdf, valid_features)
+        newdf = pd.concat([newdf, outputdf])
+    df = newdf.reset_index(drop=True)
+    # Sort by outlier score
+    df = df.sort_values(by='mahalanobis').reset_index(drop=True)
+
+    # Print number of outliers detected
+    print("Outlier detection complete. Number of outliers detected:", np.nansum(df['outlier']), "out of", len(df))
+    return df
+
+
+def mahalanobis_distance(data, robust=True, contrib="pca", dropcorr=None, checkrank=True):
+    # Remove highly correlated variables
+    to_drop = []
+    if dropcorr is not None:
+        df = pd.DataFrame(data)
+        corr_matrix = df.corr().abs()
+        upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+        to_drop = [column for column in upper.columns if any(upper[column] > dropcorr)]
+        if len(to_drop) > 0:
+            print("Dropping highly correlated variables:", to_drop)
+        df = df.drop(columns=to_drop)
+        data = df.values
+
+    if checkrank:
+        cov = np.cov(data, rowvar=False)
+        is_full_rank = np.linalg.matrix_rank(cov) == cov.shape[0]
+        # print(is_full_rank)
+    else:
+        is_full_rank = True
+
+    if robust and is_full_rank:
+        mcd = MinCovDet().fit(data)
+        mean = mcd.location_
+        cov = mcd.covariance_
+    else:
+        mean = np.mean(data, axis=0)
+        cov = np.cov(data, rowvar=False)
+
+    # try:
+    inv_cov = np.linalg.pinv(cov)
+    # except:
+    #     inv_cov = np.linalg.pinv(cov)
+    distances = np.array([mahalanobis(row, mean, inv_cov) for row in data])
+
+    if contrib == "pca":
+        # Calculate contributions using PCA method
+        eigvals, V = np.linalg.eigh(cov)
+        eigvals = np.maximum(eigvals, 1e-12)  # Prevent division by zero
+
+        z = V.T @ (data - mean).T
+        y = z.T / np.sqrt(eigvals)
+
+        comp_contrib = np.square(y)
+        contrib = comp_contrib @ (V.T **2)
+        contrib = contrib / np.array(distances)[:, None]
+    else:
+        contrib = np.zeros_like(data)
+
+    # Fill back in 0 for dropped columns
+    if dropcorr is not None and len(to_drop) > 0:
+        full_contrib = np.zeros((data.shape[0], data.shape[1] + len(to_drop)))
+        keep_indices = [i for i in range(data.shape[1] + len(to_drop)) if i not in to_drop]
+        for i, idx in enumerate(keep_indices):
+            full_contrib[:, idx] = contrib[:, i]
+        contrib = full_contrib
+
+    return np.array(distances), contrib
+
+
+def detect_outliers_mahalanobis(df, features, threshold=2, robust=True, verbose=False, contribs=True, sort=True):
+    # Calculate Mahalanobis distance for each point
+    data = df[features].values
+    outdf = df.copy()
+
+    # Check for nan in data
+    if np.any(np.isnan(data)):
+        # Drop features with nan
+        nan_cols = np.isnan(data).any(axis=0)
+        nan_features = [features[i] for i in range(len(features)) if nan_cols[i]]
+        print("Warning: NaN values found in data. Dropping features with NaN:", nan_features)
+        data = df[[f for f in features if f not in nan_features]].values
+        features = [f for f in features if f not in nan_features]
+
+    md, contrib = mahalanobis_distance(data, robust=robust)
+    outdf['mahalanobis'] = md
+    # Print if any nan in md
+    if np.any(np.isnan(md)):
+        print("Warning: NaN values found in Mahalanobis distances. These rows will be marked as outliers.")
+        # Set NaN distances to large value
+        outdf.loc[np.isnan(md), 'mahalanobis'] = -10
+
+    # Calculate mean and std dev of distances
+    mean_md = np.mean(md[md<np.percentile(md, 95)])  # Exclude extreme outliers for mean/std calculation
+    std_md = np.std(md[md<np.percentile(md, 95)])
+    # Define outlier threshold
+    threshold = mean_md + threshold * std_md
+
+    outdf['outlier'] = outdf['mahalanobis'] > threshold
+
+    if contribs:
+        # Add contribution columns to outdf with feature_contrib name
+        for i, feature in enumerate(features):
+            outdf[f'{feature}_contrib'] = contrib[:, i]
+        # Max contribution
+        outdf["Top contrib"] = np.argmax(contrib, axis=1)
+        outdf["Top contrib feature"] = outdf["Top contrib"].apply(lambda x: features[x])
+
+    if sort:
+        # Sort by outlier score
+        outdf = outdf.sort_values(by='mahalanobis').reset_index(drop=True)
+
+    if verbose and sum(outdf['outlier']) != 0:
+        print("Mahalanobis outlier detection complete. Number of outliers detected:", sum(outdf['outlier']), "of", len(outdf))
+        testdf = outdf[outdf['outlier']][["Metabolite name"] + features + [f"{f}_contrib" for f in features]]
+        print(testdf.to_string())
+    return outdf
 
 def make_plots(posdf, negdf):
 
