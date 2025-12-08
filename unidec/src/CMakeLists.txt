@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.25)
 project(UniDec C)
 
 set(CMAKE_C_STANDARD 11)
@@ -27,8 +27,11 @@ else()
     set(HDF5_INCLUDE_DIR "/usr/include/hdf5/serial")
     message(STATUS "HDF5_DIR: ${HDF5_INCLUDE_DIR}")
     include_directories("${HDF5_INCLUDE_DIR}")
-    set(HDF5_LINK_DIR "/usr/lib/x86_64-linux-gnu/hdf5/serial")
-    link_directories("${HDF5_LINK_DIR}")
+#    set(HDF5_LINK_DIR "/usr/lib/x86_64-linux-gnu/hdf5/serial")
+#    link_directories("${HDF5_LINK_DIR}")
+    link_directories("/usr/lib/x86_64-linux-gnu")
+    link_directories("/usr/lib/x86_64-linux-gnu/hdf5/serial/lib")
+
 
 endif()
 

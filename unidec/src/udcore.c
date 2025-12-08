@@ -529,7 +529,7 @@ void softargmax(float *blur, const int lengthmz, const int numz, const float bet
             float sum2 = 0;
             float sum1 = 0;
             float factor = 0;
-            float min2 = 1000000000000.0f;
+            float min2 = 1.0f;
 
             for (int j = 0; j < numz; j++) {
                 const float d = newblur[index2D(numz, i, j)];
@@ -561,7 +561,48 @@ void softargmax(float *blur, const int lengthmz, const int numz, const float bet
     }
 }
 
+void softmax_peakwidth(const Config config, const Decon decon, float *blur, const char * barr, const float beta) {
+    const int lengthmz = config.lengthmz;
+    const int numz = config.numz;
 
+    float *exps = (float *) calloc(lengthmz, sizeof(float));
+    float *deltas = (float *) calloc(lengthmz, sizeof(float));
+    float *localsums = (float *) calloc(lengthmz, sizeof(float));
+    float *convdeltas = (float *) calloc(lengthmz, sizeof(float));
+    if (exps == NULL || deltas == NULL || localsums == NULL || convdeltas == NULL) {
+        fprintf(stderr, "Error allocating memory for softmax_peakwidth.\n");
+        exit(11);
+    }
+
+    sum_deltas(lengthmz, numz, blur, barr, deltas);
+
+    const float min = 1.0f;
+
+    # pragma omp parallel for schedule(auto)
+    for (int i = 0; i < lengthmz; i++) {
+        float e = expf(beta * deltas[i]);
+        if (e < min) { e = min; }
+        exps[i] = e;
+    }
+
+    convolve_simp(lengthmz, decon.maxlength, decon.starttab, decon.endtab, decon.mzdist, exps, localsums,
+                  config.speedyflag);
+    convolve_simp(lengthmz, decon.maxlength, decon.starttab, decon.endtab, decon.mzdist, deltas, convdeltas,
+                  config.speedyflag);
+
+    # pragma omp parallel for schedule(auto)
+    for (int i = 0; i < lengthmz; i++) {
+        const float factor = convdeltas[i] / localsums[i];
+        for (int j = 0; j < numz; j++) {
+            blur[index2D(numz, i, j)] *= factor;// expf(blur[index2D(numz, i, j)]) * factor;
+        }
+    }
+
+    free(exps);
+    free(deltas);
+    free(localsums);
+    free(convdeltas);
+}
 
 
 void point_smoothing(float *blur, const char *barr, const int lengthmz, const int numz, const int width) {

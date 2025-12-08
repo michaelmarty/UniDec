@@ -8,7 +8,7 @@ numz 50
 endz 50
 startz 1
 zzsig 1.0
-psig 1.0
+psig 10.0
 beta 50.0
 mzsig 10.0
 psfun 2
@@ -22,8 +22,8 @@ molig 0.0
 massbins 10.0
 mtabsig 0.0
 isomode 0
-minmz 989.9406399034492
-maxmz 20213.597994866224
+minmz 3001.0
+maxmz 17498.0
 subbuff 100.0
 subtype 2
 smooth 0.0
@@ -112,9 +112,11 @@ tcal2 6.3597
 tcal3 0.0
 tcal4 0.0
 edc 1.57
+variablepw 0
+minratio 0.0
 kernel C:\Python\UniDecDev\unidec\bin\Example Data\ADHclean_unidecfiles\ADHclean_mass.txt
 iso_meanpeakspacing_thresh 0.01
-iso_background_subtraction 0
+iso_background_subtraction 0.0
 iso_adductmass 1.007276467
 iso_mass_diff_c 1.0033
 iso_peakwindow 80.0

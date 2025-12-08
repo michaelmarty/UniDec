@@ -261,6 +261,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 		{
 			softargmax(decon.blur, config.lengthmz, config.numz, config.beta/betafactor);
 			//printf("Beta %f\n", beta);
+			// softmax_peakwidth(config, decon, decon.blur, barr, config.beta/betafactor);
 		}
 
 		if (config.psig >= 1 && iterations > 0)

@@ -3,6 +3,58 @@ import re
 import pandas as pd
 import lxml.etree
 import matplotlib.pyplot as plt
+from sklearn.covariance import MinCovDet
+from scipy.spatial.distance import mahalanobis
+
+posadducts = [
+    ["[M+H]+", 1, 1.00782503207, True],
+    ["[M+NH4]+", 1, 18.03437413, True],
+    ["[M+Na]+", 1, 22.9897692809, True],
+    ["[M+CH3OH+H]+", 1, 33.03403978207, True],
+    ["[M+K]+", 1, 38.9637066, True],
+    ["[M+Li]+", 1, 7.01604545, False],
+    ["[M+ACN+H]+", 1, 42.03473142507, False],
+    ["[M+H2O]+", 1, 17.00273964793, False],
+    ["[M+Zn+H]+", 1, 65.919582379, False],
+    ["[M+IsoProp+Na+H]+", 1, 81.0596798687, False],
+    ["[M+C6H100S+H]+", 1, -161.0449838463, False],
+    ["[2M+H]+", 1, 1.00782503207, True],
+    ["[2M+NH4]+", 1, 18.03437413, True],
+    ["[2M+Na]+", 1, 22.9897692809, True],
+    ["[2M+ACN+H]+", 1, 42.0347312307, False],
+    ["[2M+ACN+Na]+", 1, 64.061638839, False],
+    ["[M+2H]+", 2, 2.01565006414, False],
+    ["[M+H+Na]+", 2, 19.04219961207, False],
+    ["[M+H+K]+", 2, 39.971517127, False],
+    ["[M+2ACN+H]+", 2, 43.04219191614, False],
+    ["[M+2ACN+Na]+", 2, 64.0674826414, False],
+    ["[M+3ACN+H]+", 3, 125.02597294614, False],
+    ["[M+3H]+", 3, 3.02347509261, False],
+    ["[M+3Na]+", 3, 68.9693078427, False],
+]
+
+negadducts = [
+    ["[M-H]-", 1, -1.00782503207, True],
+    ["[M-H2O-H]-", 1, -19.01838971207, False],
+    ["[M+Na-2H]-", 1, 20.97411921676, False],
+    ["[M+Cl]-", 1, 34.96885268, False],
+    ["[M+K-2H]-", 1, 36.94805661586, False],
+    ["[M+HCOO]-", 1, 44.997654, False],
+    ["[M+CH3COO]-", 1, 59.013305, True],
+    ["[M+C2H3N+Na-2H]-", 1, 62.00066831777, True],
+    ["[M+Br]-", 1, 78.9183371, False],
+    ["[M+TFA]-", 1, 112.98503896793, False],
+    ["[M-C6H10O4-H]-", 1, -147.06573383101, False],
+    ["[M-C6H10O5-H]-", 1, -163.06064845057, False],
+    ["[M-C6H8O6-H]-", 1, -177.03991305059, False],
+    ["[M+CH3COONa-H]-", 1, 80.99524996793, False],
+    ["[2M-H]-", 1, -1.00782503207, True],
+    ["[2M+FA-H]-", 1, 44.99765496793, False],
+    ["[2M+Hac-H]-", 1, 59.01330596793, False],
+    ["[3M-H]-", 1, -1.00782503207, True],
+    ["[M-2H]2-", 2, -2.01565006414, False],
+    ["[M-3H]3-", 3, -3.02347509261, False],
+]
 
 adduct_translator = np.array([["[M+H]+", "[M+H]", "+1", 1, "[M+H]1+"],
                               ["[M+NH4]+", "[M+NH4]", "+1", 1, "[M+NH4]1+"],
@@ -216,6 +268,15 @@ def count_tails(name, verbose=False):
     for f in fas:
         if f == '':
             continue
+        if "O-" in f:
+            f = f.replace("O-", "")
+        if "P-" in f:
+            f = f.replace("P-", "")
+        if ";O2" in f:
+            f = f.replace(";O2", "")
+        if ";O3" in f:
+            f = f.replace(";O3", "")
+
         tl = f.split(":")[0]  # Get length
         try:
             tu = f.split(":")[1]  # Get unsaturation
@@ -245,13 +306,13 @@ def count_tails(name, verbose=False):
     return tname, tl, tu
 
 
-def set_tails(df):
+def set_tails(df, columnname="Molecule Name"):
     tails = []
     lengths = []
     unsats = []
     for i, row in df.iterrows():
-        name = row["Molecule Name"]
-        tname, tl, tu = count_tails(name)
+        name = row[columnname]
+        tname, tl, tu = count_tails(name, verbose=True)
         tails.append(tname)
         lengths.append(tl)
         unsats.append(tu)
@@ -260,6 +321,41 @@ def set_tails(df):
     df["Tail Unsaturation"] = unsats
     return df
 
+def set_basic_tail_names(df, columnname="Molecule Name"):
+    tnames = []
+    t1s = []
+    t2s = []
+    t3s = []
+    t4s = []
+    for i, row in df.iterrows():
+        name = row[columnname]
+        if "|" in name:
+            name = name.split("|")[1]
+        try:
+            tname = name.split(" ")[1]
+        except Exception as e:
+            tname = name
+            print(name)
+
+        fanames = re.split('_|/', tname)
+        tnames.append(tname)
+        t1 = fanames[0] if len(fanames) > 0 else ""
+        t2 = fanames[1] if len(fanames) > 1 else ""
+        t3 = fanames[2] if len(fanames) > 2 else ""
+        t4 = fanames[3] if len(fanames) > 3 else ""
+
+        t1s.append(t1)
+        t2s.append(t2)
+        t3s.append(t3)
+        t4s.append(t4)
+
+    df["Tails"] = tnames
+    df["T1"] = t1s
+    df["T2"] = t2s
+    df["T3"] = t3s
+    df["T4"] = t4s
+
+    return df
 
 def get_fa_count(name):
     if "_" in name or "/" in name:
@@ -586,7 +682,47 @@ def clean_names(name):
         name = name.split("|")[1]
     return name
 
+def clean_df(df, column="Molecule name"):
+    df = df.copy()
+    cleanednames = []
+    for i, row in df.iterrows():
+        name = row[column]
+        name = clean_names(name)
+        cleanednames.append(name)
+    df[column] = cleanednames
+    return df
 
+def encode_headgroups(df, classname="Ontology", rtcol_name="Average Rt(min)"):
+    headgroups = df[classname].unique()
+    if rtcol_name is None:
+        sorted_hgs = sorted(headgroups)
+    else:
+        # Sort by average RT
+        avg_rts = {}
+        for hg in headgroups:
+            subdf = df[df[classname] == hg]
+            avg_rt = subdf[rtcol_name].mean()
+            avg_rts[hg] = avg_rt
+        # Sort headgroups by avg_rt
+        sorted_hgs = sorted(avg_rts, key=avg_rts.get)
+    # Create encoding dict
+    encoding = {}
+    for i, hg in enumerate(sorted_hgs):
+        encoding[hg] = i + 1
+    print("Headgroup encoding:", encoding)
+    # Add encoding column
+    encodings = []
+    for i, row in df.iterrows():
+        hg = row[classname]
+        enc = encoding[hg]
+        encodings.append(enc)
+    df["Headgroup Encoding"] = encodings
+
+    # Create one-hot encoding columns
+    for hg in headgroups:
+        colname = f"HG_{hg}"
+        df[colname] = df[classname].apply(lambda x: 1 if x == hg else 0)
+    return df
 
 def msdial_to_lipidlist(df):
     # Drop all where "Ontology" is Others or Unknown
@@ -681,6 +817,342 @@ def add_ref_spectra(df, libfile, rttol=0.1, remove_precursor=True):
     print("N empty Lib Spec:", nempty)
     return df, outdata
 
+def check_headgroup_fragments(df, fragdf, tol=0.01, intthresh=0.01):
+    good = []
+    goodnl = []
+    for index, row in df.iterrows():
+        class_name = row["Ontology"]
+        adduct = row["Adduct type"]
+        if "+" in adduct:
+            ionmode = "positive"
+        else:
+            ionmode = "negative"
+
+        fragments = fragdf[
+            (fragdf["CompoundClass"] == class_name) &
+            (fragdf["Adduct"] == adduct) &
+            (fragdf["IonMode"] == ionmode)
+        ]
+        if fragments.empty:
+            good.append(-1)
+            goodnl.append(-1)
+            # print("Not Found:", class_name, adduct, ionmode)
+            continue
+
+        msms_mz = row["MS/MS spectrum"]
+        msms_mz = np.array([m.split(":") for m in msms_mz.split(" ")]).astype(float)
+        b1 = msms_mz[:, 1] >= intthresh * np.max(msms_mz[:, 1])
+        msms_mz = msms_mz[b1, :]
+
+        prodmz = fragments["HeadgroupFragment_mz"].values[0]
+        try:
+            prodmz = np.array([prodmz]).astype(float)
+        except:
+            prodmz = np.array([float(f) for f in prodmz.split(",") if f])
+
+        if prodmz is None or np.any(np.isnan(prodmz)) or len(prodmz) == 0:
+            good.append(-1)
+            # print("No Fragments:", class_name, adduct, ionmode)
+        else:
+            match_count = sum(1 for mz in msms_mz[:,0] if any(abs(mz - f) < tol for f in prodmz))
+            good.append(match_count/len(prodmz))
+            # if match_count == len(prodmz):
+            #     good.append(1)
+            # else:
+            #     good.append(0)
+
+        nlmz = fragments["HeadgroupNL_mz"].values[0]
+        try:
+            nlmz = np.array([nlmz]).astype(float)
+        except:
+            nlmz = np.array([float(f) for f in nlmz.split(",") if f])
+
+        if nlmz is None or np.any(np.isnan(nlmz)) or len(nlmz) == 0:
+            goodnl.append(-1)
+            # print("No NL Fragments:", class_name, adduct, ionmode)
+        else:
+            nl_mz = row["Average Mz"] - msms_mz[:,0]
+            match_count_nl = sum(1 for mz in nl_mz if any(abs(mz - f) < tol for f in nlmz))
+            goodnl.append(match_count_nl/len(nlmz))
+            # if match_count_nl == len(prodmz):
+            #     goodnl.append(1)
+            # else:
+            #     goodnl.append(0)
+
+        # print(f"Row {index}: Class={class_name} Adduct={adduct}, IonMode={ionmode}, Good={good[-1]} GoodNL={goodnl[-1]}")
+
+    df["HG_Fragment_Match"] = np.array(good, dtype=float).round(2)
+    df["HG_NL_Match"] = np.array(goodnl, dtype=float).round(2)
+
+    # Set match counts > 1 to 1
+    df.loc[df["HG_Fragment_Match"] > 1, "HG_Fragment_Match"] = 1.0
+    df.loc[df["HG_NL_Match"] > 1, "HG_NL_Match"] = 1.0
+    return df
+
+def check_tail_fragments(df, taildf, tol=0.01, intthresh=0.01, allowedclasses=None):
+    good = []
+    goodnl = []
+    df = set_basic_tail_names(df, columnname="Metabolite name")
+    for index, row in df.iterrows():
+        class_name = row["Ontology"]
+        if allowedclasses is not None:
+            if class_name not in allowedclasses:
+                # Append -2 for all tails
+                good.extend([-2, -2, -2, -2])
+                goodnl.extend([-2, -2, -2, -2])
+                continue
+        adduct = row["Adduct type"]
+        if "+" in adduct:
+            ionmode = "positive"
+        else:
+            ionmode = "negative"
+
+        t1 = row["T1"]
+        t2 = row["T2"]
+        t3 = row["T3"]
+        t4 = row["T4"]
+        tlist = [t1, t2, t3, t4]
+        for tail in tlist:
+            if pd.isna(tail) or tail == "":
+                good.append(-2)
+                goodnl.append(-2)
+                continue
+            fragments = taildf[
+                (taildf["CompoundClass"] == class_name) &
+                (taildf["Adduct"] == adduct) &
+                (taildf["IonMode"] == ionmode) &
+                (taildf["Tail"] == tail)]
+
+            if fragments.empty:
+                good.append(-1)
+                goodnl.append(-1)
+                # print("Not Found:", class_name, adduct, ionmode)
+                continue
+
+            msms_mz = row["MS/MS spectrum"]
+            msms_mz = np.array([m.split(":") for m in msms_mz.split(" ")]).astype(float)
+            b1 = msms_mz[:, 1] >= intthresh * np.max(msms_mz[:, 1])
+            msms_mz = msms_mz[b1, :]
+
+            # print(f"Row {index}, Tail {tail}: Class={class_name} Adduct={adduct}, IonMode={ionmode}")
+            # print(fragments)
+
+            prodmz = fragments["TailFragment_mz"].values[0]
+            try:
+                prodmz = np.array([prodmz]).astype(float)
+            except:
+                prodmz = np.array([float(f) for f in prodmz.split(",") if f])
+
+            if prodmz is None or np.any(np.isnan(prodmz)) or len(prodmz) == 0:
+                good.append(-1)
+                # print("No Fragments:", class_name, adduct, ionmode)
+            else:
+                match_count = sum(1 for mz in msms_mz[:, 0] if any(abs(mz - f) < tol for f in prodmz))
+                good.append(match_count / len(prodmz))
+
+
+            nlmz = fragments["TailNL_mz"].values[0]
+            try:
+                nlmz = np.array([nlmz]).astype(float)
+            except:
+                nlmz = np.array([float(f) for f in nlmz.split(",") if f])
+
+            if nlmz is None or np.any(np.isnan(nlmz)) or len(nlmz) == 0:
+                goodnl.append(-1)
+                # print("No NL Fragments:", class_name, adduct, ionmode)
+            else:
+                nl_mz = row["Average Mz"] - msms_mz[:, 0]
+                match_count_nl = sum(1 for mz in nl_mz if any(abs(mz - f) < tol for f in nlmz))
+                goodnl.append(match_count_nl / len(nlmz))
+
+            print(
+                f"Row {index}: Class={class_name} Adduct={adduct}, IonMode={ionmode}, Good={good[-1]} GoodNL={goodnl[-1]}")
+
+    good = np.array(good, dtype=float).round(2)
+    good[good > 1] = 1.0
+    # Set all below 0 to NaN
+    good[good < 0] = np.nan
+    # Reshape good and goodnl to have one entry per row in df
+    n_tails = 4
+    n_rows = len(df)
+    good = good.reshape((n_rows, n_tails))
+    goodnl = np.array(goodnl, dtype=float).round(2)
+    goodnl[goodnl > 1] = 1.0
+    goodnl[goodnl < 0] = np.nan
+    goodnl = goodnl.reshape((n_rows, n_tails))
+
+    df["T1_Match"] = good[:, 0]
+    df["T2_Match"] = good[:, 1]
+    df["T3_Match"] = good[:, 2]
+    df["T4_Match"] = good[:, 3]
+    df["T1_NL_Match"] = goodnl[:, 0]
+    df["T2_NL_Match"] = goodnl[:, 1]
+    df["T3_NL_Match"] = goodnl[:, 2]
+    df["T4_NL_Match"] = goodnl[:, 3]
+
+    # Combine tail matches into overall Tail_Fragment_Match and Tail_NL_Match
+    df["Tail_Fragment_Match"] = np.nansum(good, axis=1)
+    df["Tail_NL_Match"] = np.nansum(goodnl, axis=1)
+
+    return df
+
+def categorize_nl(x):
+    if pd.isna(x) or x == -1:
+        return "No NL"
+    if x == 1:
+        return "All"
+    if x == 0:
+        return "None"
+    return "Partial"
+
+
+
+def detect_outliers_class(df, features):
+    newdf = pd.DataFrame()
+    for c in df['Ontology'].unique():
+        # Get subset for class
+        subdf = df[df['Ontology'] == c]
+
+        # Clean up things that will cause issues with covariance matrix
+        if len(subdf) < 3:
+            newdf = pd.concat([newdf, subdf])
+            continue
+
+        # Drop any features with zero variance
+        variances = subdf[features].var()
+        valid_features = variances[variances > 0].index.tolist()
+        # Sort features by variance
+        valid_features = sorted(valid_features, key=lambda x: variances[x], reverse=True)
+
+        # Check for two columns of valid features that are identical
+        to_drop = set()
+        for i in range(len(valid_features)):
+            for j in range(i+1, len(valid_features)):
+                if np.all(subdf[valid_features[i]] == subdf[valid_features[j]]):
+                    to_drop.add(valid_features[j])
+        valid_features = [f for f in valid_features if f not in to_drop]
+
+        # Remove class if not enough valid features
+        if len(subdf) < len(valid_features)+1:
+            valid_features = valid_features[:len(subdf)-1]
+
+        outputdf = detect_outliers_mahalanobis(subdf, valid_features)
+        newdf = pd.concat([newdf, outputdf])
+    df = newdf.reset_index(drop=True)
+    # Sort by outlier score
+    df = df.sort_values(by='mahalanobis').reset_index(drop=True)
+
+    # Print number of outliers detected
+    print("Outlier detection complete. Number of outliers detected:", np.nansum(df['outlier']), "out of", len(df))
+    return df
+
+
+def mahalanobis_distance(data, robust=True, contrib="pca", dropcorr=None, checkrank=True):
+    # Remove highly correlated variables
+    to_drop = []
+    if dropcorr is not None:
+        df = pd.DataFrame(data)
+        corr_matrix = df.corr().abs()
+        upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+        to_drop = [column for column in upper.columns if any(upper[column] > dropcorr)]
+        if len(to_drop) > 0:
+            print("Dropping highly correlated variables:", to_drop)
+        df = df.drop(columns=to_drop)
+        data = df.values
+
+    if checkrank:
+        cov = np.cov(data, rowvar=False)
+        is_full_rank = np.linalg.matrix_rank(cov) == cov.shape[0]
+        # print(is_full_rank)
+    else:
+        is_full_rank = True
+
+    if robust and is_full_rank:
+        mcd = MinCovDet().fit(data)
+        mean = mcd.location_
+        cov = mcd.covariance_
+    else:
+        mean = np.mean(data, axis=0)
+        cov = np.cov(data, rowvar=False)
+
+    # try:
+    inv_cov = np.linalg.pinv(cov)
+    # except:
+    #     inv_cov = np.linalg.pinv(cov)
+    distances = np.array([mahalanobis(row, mean, inv_cov) for row in data])
+
+    if contrib == "pca":
+        # Calculate contributions using PCA method
+        eigvals, V = np.linalg.eigh(cov)
+        eigvals = np.maximum(eigvals, 1e-12)  # Prevent division by zero
+
+        z = V.T @ (data - mean).T
+        y = z.T / np.sqrt(eigvals)
+
+        comp_contrib = np.square(y)
+        contrib = comp_contrib @ (V.T **2)
+        contrib = contrib / np.array(distances)[:, None]
+    else:
+        contrib = np.zeros_like(data)
+
+    # Fill back in 0 for dropped columns
+    if dropcorr is not None and len(to_drop) > 0:
+        full_contrib = np.zeros((data.shape[0], data.shape[1] + len(to_drop)))
+        keep_indices = [i for i in range(data.shape[1] + len(to_drop)) if i not in to_drop]
+        for i, idx in enumerate(keep_indices):
+            full_contrib[:, idx] = contrib[:, i]
+        contrib = full_contrib
+
+    return np.array(distances), contrib
+
+
+def detect_outliers_mahalanobis(df, features, threshold=2, robust=True, verbose=False, contribs=True, sort=True):
+    # Calculate Mahalanobis distance for each point
+    data = df[features].values
+    outdf = df.copy()
+
+    # Check for nan in data
+    if np.any(np.isnan(data)):
+        # Drop features with nan
+        nan_cols = np.isnan(data).any(axis=0)
+        nan_features = [features[i] for i in range(len(features)) if nan_cols[i]]
+        print("Warning: NaN values found in data. Dropping features with NaN:", nan_features)
+        data = df[[f for f in features if f not in nan_features]].values
+        features = [f for f in features if f not in nan_features]
+
+    md, contrib = mahalanobis_distance(data, robust=robust)
+    outdf['mahalanobis'] = md
+    # Print if any nan in md
+    if np.any(np.isnan(md)):
+        print("Warning: NaN values found in Mahalanobis distances. These rows will be marked as outliers.")
+        # Set NaN distances to large value
+        outdf.loc[np.isnan(md), 'mahalanobis'] = -10
+
+    # Calculate mean and std dev of distances
+    mean_md = np.mean(md[md<np.percentile(md, 95)])  # Exclude extreme outliers for mean/std calculation
+    std_md = np.std(md[md<np.percentile(md, 95)])
+    # Define outlier threshold
+    threshold = mean_md + threshold * std_md
+
+    outdf['outlier'] = outdf['mahalanobis'] > threshold
+
+    if contribs:
+        # Add contribution columns to outdf with feature_contrib name
+        for i, feature in enumerate(features):
+            outdf[f'{feature}_contrib'] = contrib[:, i]
+        # Max contribution
+        outdf["Top contrib"] = np.argmax(contrib, axis=1)
+        outdf["Top contrib feature"] = outdf["Top contrib"].apply(lambda x: features[x])
+
+    if sort:
+        # Sort by outlier score
+        outdf = outdf.sort_values(by='mahalanobis').reset_index(drop=True)
+
+    if verbose and sum(outdf['outlier']) != 0:
+        print("Mahalanobis outlier detection complete. Number of outliers detected:", sum(outdf['outlier']), "of", len(outdf))
+        testdf = outdf[outdf['outlier']][["Metabolite name"] + features + [f"{f}_contrib" for f in features]]
+        print(testdf.to_string())
+    return outdf
 
 def make_plots(posdf, negdf):
 

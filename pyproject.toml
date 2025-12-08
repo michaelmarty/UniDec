@@ -17,7 +17,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 keywords = ["Mass Spectrometry", "Ion Mobility", "Deconvolution"]
-dependencies = ["numpy>=1.16", "scipy>=1.2", "matplotlib>=3.7", 'pandas',
+dependencies = ["numpy>=2.0.0", "scipy>=1.2", "matplotlib>=3.7", 'pandas',
                       "pymzml", "natsort", "networkx", "h5py", "pypubsub", "numba",
                       "pyimzml", "pythonnet", "pyteomics", "lxml", "lxml_html_clean", "pywin32"]
 requires-python = ">=3.7"

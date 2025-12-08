@@ -56,7 +56,7 @@ class UniChromCDApp(UniDecCDApp):
             # self.on_dataprep_button(0)
             # self.on_auto(0)
 
-        if False and platform.node() == 'MTM-VOSTRO':
+        if True and platform.node() == 'CHEM-A90237':
             print("Opening Test File")
             path = ("Z:\\Group Share\\Skippy\\Projects\\HT\\Example data for MTM\\"
                     "20231202 JDS Bgal groEL bit5 zp7 inj4s cyc1m_2023-12-07-03-46-56.dmt")
@@ -66,6 +66,8 @@ class UniChromCDApp(UniDecCDApp):
             # path3 = "Z:\\Group Share\\ONO\\CDMS\\5 bit HT data\\20240313 JDS Bgal 0o1g_l inj1o5 quad9k bit-5 zp10 i2.dmt"
             path4 = "Z:\\Group Share\\Skippy\\Projects\\HT\\2024-04-01\\20240401 ribos s6Col bit3 inj5s 1_2024-04-01-04-19-29.dmt"
             pathft3 = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\01302024_GDH_stepsize3_repeat15_5to500.dmt"
+            path2 = r"Z:\Group Share\BHT\Q Exactive HF Data\RPLC-MS\Agilent LC\20251021\20251022_BHT_0.1mgmL_proteinmix_6inj_0.1gas_50inj_zoom_CDMS_C4_2_2025-10-22-08-56-16.dmt"
+            path2 = r"Z:\Group Share\BHT\20251030_BHT_POSB_10XDiluted_HEKcelllysate_12INJ_CDMS_C4_3.dmt"
             # try:
             self.on_open_file(None, None, path=path2)
             # except:
@@ -77,6 +79,8 @@ class UniChromCDApp(UniDecCDApp):
             # self.run_all_mass_transform()
             # self.make_mass_cube_plot()
             # self.on_run_ccs()
+            self.on_run_tic_ht()
+            self.on_run_eic_ht()
 
     def on_open_file(self, filename, directory, path=None, refresh=False):
         """
@@ -534,7 +538,7 @@ class UniChromCDApp(UniDecCDApp):
         :param e: Unused event
         :return: None
         """
-        self.eng.cc = self.view.chrompanel.list.get_all_scans()
+        self.eng.cc = self.view.chrompanel.list.get_data()
         self.plot_chromatograms()
 
     def on_select_time_range(self, e=None):
