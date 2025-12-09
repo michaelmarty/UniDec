@@ -7,7 +7,7 @@ import numpy as np
 # ------------------------------
 # User files
 # ------------------------------
-file = "Z:\Group Share\Annika\Stellar\EC\AqpZ New Data\PeakMaster_AqpZ_MembExtLib.csv"
+file = "Z:\Group Share\Annika\IQ-X\UntDDA Tests HEKpos\Peak Masters"
 colormap_file = r"Z:\\Group Share\\Annika\\Lipid_ColorMap.xlsx"
 
 # ------------------------------
@@ -119,7 +119,13 @@ for c in df["Class"]:
 
 df["Class"] = final_classes
 df["Color"] = colors
-
+# ------------------------------
+# Count lipids per class
+# ------------------------------
+class_counts = df["Class"].value_counts()
+print("\nNumber of lipids per class:")
+for cls, count in class_counts.items():
+    print(f" • {cls}: {count}")
 # ------------------------------
 # Diagnostics
 # ------------------------------

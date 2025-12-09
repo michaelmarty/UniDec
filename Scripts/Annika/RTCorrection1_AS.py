@@ -16,10 +16,10 @@ def cleanup_df(df):
 os.chdir(r"Z:\Group Share\Annika\Stellar\HEK")
 
 posfile = r"20251023_AS_HEK_PosDDA_MSDial.csv"
-# negfile = r"20251023_AS_HEK_NegDDA_MSDial.csv"
+negfile = r"20251023_AS_HEK_NegDDA_MSDial.csv"
 
-# posfile = "20250929_AS_HEK_DDA_20_Pos.txt"
-# negfile = "20250929_AS_HEK_DDA_20_Neg.txt"
+posfile = "20250929_AS_HEK_DDA_20_Pos.txt"
+negfile = "20250929_AS_HEK_DDA_20_Neg.txt"
 
 limit = 5
 smooth= 1

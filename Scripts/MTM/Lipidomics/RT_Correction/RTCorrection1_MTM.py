@@ -15,10 +15,9 @@ def cleanup_df(df):
 
 os.chdir(r"Z:\Group Share\Annika\Stellar\HEK")
 
-os.chdir(r"Z:\Group Share\Annika\Stellar\Untargeted DDA\BPL")
-
-posfile = r"PeakMaster_BPL_Pos_UntDDA.csv"
-negfile = r"PeakMaster_BPL_Neg_UntDDA.csv"
+os.chdir(r"Z:\Group Share\Annika\IQ-X\UntDDA Tests HEKpos\New Libs Test")
+posfile = r"PosPeakMaster_HEKpos_OT_IT.csv"
+negfile = r"NegPeakMaster_HEKneg_OT_IT.csv"
 
 limit = 5
 smooth= 1

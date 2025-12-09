@@ -2,18 +2,18 @@ import numpy as np
 import pickle
 import os
 
-os.chdir(r"Z:\Group Share\Annika\Stellar\HEK")
+os.chdir(r"Z:\Group Share\Annika\Stellar\Untargeted DDA\HEK\New Libs Tests")
 
-poslibfile = r"MSDIAL-TandemMassSpectralAtlas-VS69-Pos.msp"
-neglibfile = r"MSDIAL-TandemMassSpectralAtlas-VS69-Neg.msp"
+poslibfile = r"MSDIAL-TandemMassSpectralAtlas-VS69-Pos-StellarRTP2.msp"
+neglibfile = r"MSDIAL-TandemMassSpectralAtlas-VS69-Neg-StellarRTP2.msp"
 
 interpolationfunction = r"RTInterpolation.pkl"
 with open(interpolationfunction, 'rb') as f:
     p = pickle.load(f)
 
 # Rename outfile to replace C1 with Stellar 1
-posoutfile = poslibfile.replace("-Pos", "-Pos-Stellar3")
-negoutfile = neglibfile.replace("-Neg", "-Neg-Stellar3")
+posoutfile = poslibfile.replace("-RTP2", "-RTP3")
+negoutfile = neglibfile.replace("-RTP2", "-RTP3")
 
 # Read library file
 with open(poslibfile, 'r') as f:
@@ -26,7 +26,7 @@ with open(posoutfile, 'w') as f:
             rt = float(line.split(":")[1].strip())
             newrt = p(rt)
             f.write(f"RETENTIONTIME: {newrt:.4f}\n")
-            print(f"Corrected RT: {rt} -> {newrt:.4f}")
+            # print(f"Corrected RT: {rt} -> {newrt:.4f}")
         else:
             f.write(line)
 
@@ -40,6 +40,6 @@ with open(negoutfile, 'w') as f:
             rt = float(line.split(":")[1].strip())
             newrt = p(rt)
             f.write(f"RETENTIONTIME: {newrt:.4f}\n")
-            print(f"Corrected RT: {rt} -> {newrt:.4f}")
+            # print(f"Corrected RT: {rt} -> {newrt:.4f}")
         else:
             f.write(line)
