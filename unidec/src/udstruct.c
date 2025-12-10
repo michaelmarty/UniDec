@@ -402,7 +402,7 @@ void PrintHelp() {
     printf("\t\t\t\t\t\"tcal3\"=Calibration paramter 3 (P3)\n");
     printf("\t\t\t\t5=SLIM T-Wave 3rd Order Polynomial Calibration\n");
     printf("\t\t\t\t\t\"tcal4\"=Calibration parmater 4 (P4)\n");
-    printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@utexas.edu) commit date 7/7/2025\n");
+    printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@utexas.edu) commit date 11/25/2025\n");
     //printf("\nsize of: %d",sizeof(char));
 
     /*
