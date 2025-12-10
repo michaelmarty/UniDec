@@ -1159,22 +1159,56 @@ def detect_outliers_mahalanobis(df, features, threshold=2, robust=True, verbose=
     return outdf
 
 
-def class_network_analysis(df):
+def class_network_analysis(df, min_count=3):
     graphs = []
     outdf = pd.DataFrame()
     for c in df['Ontology'].unique():
         # Get subset for class
         subdf = df[df['Ontology'] == c].reset_index(drop=True)
 
-        if len(subdf) < 3:
+        if len(subdf) < min_count:
             outdf = pd.concat([outdf, subdf])
             continue
 
-        G, newdf = network_analysis(subdf)
+        newdf, G = network_analysis(subdf)
+        G.graph["Title"]=c
         graphs.append(G)
         outdf = pd.concat([outdf, newdf])
     outdf = outdf.reset_index(drop=True)
     return outdf, graphs
+
+def tail_network_analysis(df, mz_tol=0.01, columnname="Metabolite name", min_count=3):
+    graphs = []
+    outdf = pd.DataFrame()
+    if "T1" not in df.columns:
+        print("Creating Tail Names")
+        df = set_basic_tail_names(df, columnname=columnname)
+    tail_cols = ["T1", "T2", "T3", "T4"]
+    uniquetails = set()
+    for col in tail_cols:
+        tails = df[col].unique()
+        for t in tails:
+            if pd.isna(t) or t == "":
+                continue
+            uniquetails.add(t)
+    # Sort by tail name
+    uniquetails = sorted(uniquetails)
+    for tail in uniquetails:
+        # Get subset for tail
+        subdf = df[(df["T1"] == tail) | (df["T2"] == tail) | (df["T3"] == tail) | (df["T4"] == tail)].reset_index(drop=True)
+
+        if len(subdf) < min_count:
+            outdf = pd.concat([outdf, subdf])
+            continue
+
+        newdf, G = network_analysis(subdf, mz_tol=mz_tol)
+        G.graph["Title"]=tail
+        graphs.append(G)
+        outdf = pd.concat([outdf, newdf])
+    outdf = outdf.reset_index(drop=True)
+    return outdf, graphs
+
+
 
 def robust_z(values_dict):
     # returns dict of z-scores
@@ -1222,7 +1256,7 @@ def create_msms_score_matrix(df, mz_tol=0.01):
     score_matrix /= 2.0
     return score_matrix
 
-def network_analysis(df, mz_tol=0.01):
+def network_analysis(df, mz_tol=0.01, title=""):
     # Create score matrix
     score_matrix = create_msms_score_matrix(df, mz_tol=mz_tol)
 
@@ -1310,20 +1344,10 @@ def network_analysis(df, mz_tol=0.01):
             for zfeat_name, zfeat_dict in z_features.items():
                 attrs[zfeat_name] = float(zfeat_dict.get(name, 0.0))
             attrs['Adduct type'] = row['Adduct type']
+            attrs['Class'] = row['Ontology']
             G.nodes[name].update(attrs)
-
-    # outdf = detect_outliers_mahalanobis(outdf, features=list(z_features.keys()), verbose=True, sort=False)
-    # # Embed mahalanobis scores into graph nodes
-    # for i, row in outdf.iterrows():
-    #     name = str(i) + "~" + row['Metabolite name']
-    #     if name in G:
-    #         attrs = {}
-    #         attrs['mahalanobis'] = row['mahalanobis']
-    #         attrs['outlier'] = row['outlier']
-    #         G.nodes[name].update(attrs)
-    #     else:
-    #         print(f"Node {name} not in graph.", G.nodes())
-    return G, outdf
+    G.graph['Title'] = title
+    return outdf, G
 
 def network_plot(G, axis=None, colortarget="z_Anomaly_Score"):
     if axis is None:
@@ -1331,6 +1355,7 @@ def network_plot(G, axis=None, colortarget="z_Anomaly_Score"):
     else:
         ax = axis
 
+    ax.set_title(G.graph.get("Title", "Network Plot"))
     # Set up position layout
     pos = nx.spring_layout(G, k=0.5, iterations=50)
 
@@ -1344,21 +1369,37 @@ def network_plot(G, axis=None, colortarget="z_Anomaly_Score"):
     nc = nx.draw_networkx_nodes(G, pos, nodelist=node_list, ax=ax)
 
     # Set color as colortarget attribute
-    degrees = np.array([G.nodes[n].get(colortarget, 0.0) for n in node_list])
-    norm = mpl.colors.Normalize(vmin=np.amin(degrees), vmax=np.amax(degrees))
-    cmap = mpl.cm.viridis
-    node_colors = cmap(norm(degrees))
+    colorvals = np.array([G.nodes[n].get(colortarget, 0.0) for n in node_list])
+    # If colorvals are not floats, encode them as floats
+    if not np.issubdtype(colorvals.dtype, np.floating):
+        unique_vals = list(set(colorvals))
+        # Sort alphanumerically
+        unique_vals = sorted(unique_vals, key=lambda x: (str(type(x)), str(x)))
+        val_to_float = {v: i for i, v in enumerate(unique_vals)}
+        colorvals = np.array([val_to_float[v] for v in colorvals], dtype=float)
+        # prepare label mapping
+        labels_text = {node: (
+            f"{node.split('~')[1]}\n"
+            f"{colortarget}: {G.nodes[node].get(colortarget, 'N/A')}\n"
+            f"Adduct: {G.nodes[node].get('Adduct type', 'N/A')}\n"
+        ) for node in node_list}
+        cmap = mpl.cm.tab20
+    else:
+        cmap = mpl.cm.viridis
+        # prepare label mapping
+        labels_text = {node: (
+            f"{node.split("~")[1]}\n"
+            f"{colortarget}: {G.nodes[node].get(colortarget, 0.0):.2f}\n"
+            f"Adduct: {G.nodes[node].get('Adduct type', 'N/A')}\n"
+        ) for node in node_list}
+
+    norm = mpl.colors.Normalize(vmin=np.amin(colorvals), vmax=np.amax(colorvals))
+
+    node_colors = cmap(norm(colorvals))
     nc.set_facecolor(node_colors)
 
     # labels on the same Axes
     nx.draw_networkx_labels(G, pos, labels={n: n.split("~")[1] for n in node_list}, font_size=8, ax=ax)
-
-    # prepare label mapping
-    labels_text = {node: (
-        f"{node.split("~")[1]}\n"
-        f"{colortarget}: {G.nodes[node].get(colortarget, 0.0):.4f}\n"
-        f"Adduct: {G.nodes[node].get('Adduct type', 'N/A')}\n"
-    ) for node in node_list}
 
     # attach cursor to this collection
     cursor = mplcursors.cursor(nc, hover=True)
