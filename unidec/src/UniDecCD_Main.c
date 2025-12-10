@@ -422,7 +422,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 
 	// Write to text
 	FILE* out_ptr = NULL;
-	char outstring4[500];
+	char outstring4[510];
 	sprintf(outstring4, "%s_decon.txt", config.outfile);
 	out_ptr = fopen(outstring4, "w");
 	if (out_ptr == 0) { printf("Error Opening %s\n", outstring4); exit(1); }
