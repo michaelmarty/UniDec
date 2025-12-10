@@ -471,7 +471,18 @@ void readfilemanual(char *infile, const int lengthmz, float *array1, float *arra
 
 	for (int i = 0; i<lengthmz; i++)
 	{
-		fscanf(file_ptr, "%s %s %s %s %s", a, b, c, d, e);
+		// replacement for the fscanf line in `UniDecIM.c`
+		const int ret = fscanf(file_ptr, "%499s %499s %499s %499s %499s", a, b, c, d, e);
+		if (ret != 5) {
+			if (ret == EOF) {
+				fprintf(stderr, "Unexpected end of file while reading `infile` at entry %d\n", i);
+				break; // or handle EOF appropriately
+			}
+			else {
+				fprintf(stderr, "Parse error in `infile` at entry %d (fields read: %d)\n", i, ret);
+				a[0]=b[0]=c[0]=d[0]=e[0]='\0'; // set defaults so strtof yields 0.0f
+			}
+		}
 		char * endptr;
 		array1[i] = strtof(a, &endptr);
 		array2[i] = strtof(b, &endptr);

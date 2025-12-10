@@ -22,7 +22,7 @@ def get_big_seq(seqs):
     return big_seq
 
 def seq_to_dist_vecs_seqs(seq):
-    dist = fft_pep_seq_to_dist(seq)
+    dist = fft_pep_seq_to_dist(seq, isolen=128)
     vec = peptide_to_vector(seq)
     mass = peptide_to_mass(seq)
 
@@ -156,7 +156,7 @@ def gen_random_prots(all_seqs, organism, iterations=10):
 def mod_to_chemicalformula(mod):
     return ''.join(f"{key}{value}" for key, value in mod.composition.items())
 
-def gen_random_seqs_even_length(all_seqs, organism, n=10000, min_length=1, max_length=200):
+def gen_random_seqs_even_length(all_seqs, organism, n=5000, min_length=1, max_length=200):
     big_seq = get_big_seq(all_seqs)
     np.random.shuffle(big_seq)
 
@@ -203,10 +203,10 @@ if __name__ == "__main__":
     # Set backend to Agg
     mpl.use('WxAgg')
 
-    os.chdir(r"C:\Users\Admin\Desktop\martylab\IsoGen\IntactProtein\Training")
+    os.chdir(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\IntactProtein\Training")
 
     min_length = 51
-    max_length = 300
+    max_length = 1000
 
     human_prot_data = np.load("human_protein_seqs.npz")
     gen_random_seqs_even_length(human_prot_data["seqs"], "human", min_length=min_length, max_length=max_length)
@@ -216,7 +216,6 @@ if __name__ == "__main__":
 
     ecoli_prot_data = np.load("ecoli_protein_seqs.npz")
     gen_random_seqs_even_length(ecoli_prot_data["seqs"], "ecoli", min_length=min_length, max_length=max_length)
-
 
     mouse_prot_data = np.load("mouse_protein_seqs.npz")
     gen_random_seqs_even_length(mouse_prot_data["seqs"], "mouse", min_length=min_length, max_length=max_length)

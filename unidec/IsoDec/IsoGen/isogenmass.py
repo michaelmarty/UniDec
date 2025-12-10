@@ -57,10 +57,10 @@ class IsoGenMassEngine(IsoGenEngineBase):
             self.train(n, epochs, l)
 
     def get_isolen(self, mass):
-        # if mass < 1000:
-        #     index = 0
-        # elif mass <= 10000:
-        #     index = 1
+        if mass < 1000:
+            index = 0
+        elif mass <= 10000:
+            index = 1
         if mass < 60000:
             index = 2
         elif mass <= 100000:
@@ -98,11 +98,11 @@ def gen_training_data(n, isolen=128, massrange=[100, 1000000], log=False):
 if __name__ == "__main__":
 
     eng = IsoGenMassEngine()
-    os.chdir("Z:\\Group Share\\JGP\\PeptideTraining")
+    #os.chdir("Z:\\Group Share\\JGP\\PeptideTraining")
     #masses, dists = gen_training_data(1000000, isolen=1024, massrange=[80000, 1100000])
     #np.savez_compressed("massdata_"+str(len(masses))+".npz", masses=masses, dists=dists)
 
-    if True:
+    if False:
         n = 60000
         # eng.train_all(n, 20, forcenew=False, ignore=[])
         eng.train(n, 10, 1024, forcenew=False)
@@ -111,13 +111,13 @@ if __name__ == "__main__":
     mpl.use("WxAgg")
     # exit()
     testmasses = [100, 1000, 10000, 50000, 100000, 1000000]
-    testmasses = [110000, 230000, 450000, 670000, 890000, 1000000]
+    #testmasses = [110000, 230000, 450000, 670000, 890000, 1000000]
     for i, m in enumerate(testmasses):
         isolen = eng.get_isolen(m)[0]
         maxval = isolen
         dist = eng.predict(m)
         fastdist = isomike(m, length=isolen)
-        truedist = pepmass_to_dist(m, isolength=isolen)
+        truedist = pepmass_to_dist(m, isolen=isolen)
 
         plt.subplot(2, 3, i + 1)
         plt.plot(dist * 100, label="AI", color="b")
