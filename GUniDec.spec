@@ -231,7 +231,11 @@ out = subprocess.call(path)
 if out != 0:
     exit()
 
-# exit()
+# Pause and ask for yes or no on zipping
+userin = input("Sign complete. Zip build? (y/n): ")
+if userin.lower() != 'y':
+    print("Exiting without zipping.")
+    sys.exit(0)
 
 print("Zipping...")
 # Zip up the final file

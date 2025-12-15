@@ -21,6 +21,32 @@ def nonlinearize(datatop, num_compressed, gap=5):
         out = out[~np.isnan(out).any(axis=1)]
         return out
 
+def nonlinearize_freq(datatop, widtht=1.02, gap=0):
+    widtht = widtht/60.
+    if widtht == 0:
+        return datatop
+    else:
+        d0 = datatop[0, 0]
+        dlast = datatop[-1, 0]
+        num_compressed = int((dlast - d0) / widtht) + 1
+        times = d0 + widtht/2. + widtht * np.arange(num_compressed + 1)
+        tstarts = times[:-1]
+        tends = times[1:]
+        out = []
+        for i in range(num_compressed):
+            tstart = tstarts[i]
+            tend = tends[i]
+            b1 = datatop[:, 0] >= tstart
+            b2 = datatop[:, 0] < tend
+            b = b1 & b2
+            dchop = datatop[b][gap:]
+            if np.sum(dchop) > 0:
+                out.append( np.mean(dchop, axis=0))
+            else:
+                out.append( [ (tstart+tend)/2 , 0])
+        out = np.array(out)
+        return out
+
 def calc_start_index(data, num_compressed):
     adata = np.abs(data[:, 1])
     maxy = np.max(adata)
@@ -51,6 +77,8 @@ def parse_rg_data(data, num_compressed, gap=5, negcolor="green", ramp=0, shift=0
         print("Adjusted backparseddata to ensure odd number of points.")
     # Stitch the two parts back together
     parseddata = np.vstack((frontparseddata, backparseddata))
+    #
+    # parseddata = nonlinearize_freq(data[startindex:], gap=gap)
 
     maxarg = np.argmax(parseddata[:, 1])
     minarg = np.argmin(parseddata[:, 1])
@@ -133,7 +161,7 @@ for file in [file]:#os.listdir(dir):
         data = data[data[:, 0] > 2]
         plt.plot( data[:,0], data[:, 1], label='Original Data', color='black', marker = 'o', markersize=1, alpha=0.1)
         num_compressed = 50
-        rdata, gdata, pdata = parse_rg_data(data, num_compressed, gap=15, negcolor="red", ramp=1, shift=i)
+        rdata, gdata, pdata = parse_rg_data(data, num_compressed, gap=20, negcolor="red", ramp=1, shift=i)
         print(rdata)
         r1 = [2.5, 6]
         r2 = [8, 12]
