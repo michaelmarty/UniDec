@@ -142,10 +142,12 @@ if __name__ == "__main__":
     target = 50.999831
     target = 62.9986
     target = 281.24806
-    customsearch=[["1H", 0, 50], ["12C", 0, 25], ["14N", 0, 4], ["16O", 0, 7]]
+    target = 89.0192
+    target = 120.06
+    customsearch=[["1H", 0, 50], ["12C", 0, 25], ["14N", 0, 1], ["16O", 0, 7]]
     searcher = HRAMSearchSpace(searchspace=customsearch)
     # target = 1500
-    results = calc_fromula_from_mass([target], Searcher=searcher, tolerance=20)
+    results = calc_fromula_from_mass([target], Searcher=searcher, tolerance=100)
     outdf = results[0].to_df()
     print(results[0].to_df())
     # print(results[0].match_comp)

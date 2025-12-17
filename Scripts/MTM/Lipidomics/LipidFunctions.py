@@ -336,10 +336,25 @@ def set_basic_tail_names(df, columnname="Molecule Name"):
         if "|" in name:
             name = name.split("|")[1]
         try:
-            tname = name.split(" ")[1]
+            tname = name.split(" ", 1)[1]
         except Exception as e:
             tname = name
-            print(name)
+            print("Error parsing basic tail name:", name)
+
+        t5 = ""
+        if tname[0] == "(":
+            # Extract stuff inside parentheses
+            t5 = re.search(r'\((.*?)\)', tname).group(0)
+            # Remove parentheses part from tname
+            if t5:
+                tname = tname.replace(t5, "")
+                t5 = t5.replace("(", "").replace(")", "").strip()
+
+        if "(FA" in tname:
+            t5 = re.search(r'\(FA(.*?)\)', tname).group(0)
+            if t5:
+                tname = tname.replace(t5, "")
+                t5 = t5.replace("(FA", "").replace(")", "").strip()
 
         fanames = re.split('_|/', tname)
         tnames.append(tname)
@@ -348,10 +363,24 @@ def set_basic_tail_names(df, columnname="Molecule Name"):
         t3 = fanames[2] if len(fanames) > 2 else ""
         t4 = fanames[3] if len(fanames) > 3 else ""
 
+        if t5 != "":
+            if t1 == "":
+                t1 = t5
+            elif t2 == "":
+                t2 = t5
+            elif t3 == "":
+                t3 = t5
+            elif t4 == "":
+                t4 = t5
+
         t1s.append(t1)
         t2s.append(t2)
         t3s.append(t3)
         t4s.append(t4)
+
+        # if t5 != "":
+        #     print(t1, t2, t3, t4, t5, tname, name)
+        #     exit()
 
     df["Tails"] = tnames
     df["T1"] = t1s

@@ -26,8 +26,8 @@ def str_to_float_list_limit(s, mzlimit=50):
 def get_fragments_df(dffile):
     starttime = time.perf_counter()
     df = pd.read_csv(dffile, dtype={"T1": str, "T2": str, "T3": str, "T4": str})
-    # df = set_basic_tail_names(df, columnname="Name")
-    # df.to_csv(dffile, index=False)
+    df = set_basic_tail_names(df, columnname="Name")
+    df.to_csv(dffile, index=False)
     print(df.columns)
 
     # Remove [ and ] if present
@@ -96,7 +96,10 @@ def get_fragments_df(dffile):
                 (subset["T3"] == tail) |
                 (subset["T4"] == tail)
                 ]
-            if len(tail_subset) < 2:
+            if len(tail_subset) < 5:
+                continue
+
+            if np.allclose(subset["MZ"], subset['MZ'].values[0], rtol=0.01):
                 continue
 
             fragment_sets = [set(np.round(mz_list, 2)) for mz_list in tail_subset["MSMS_mz"]]
@@ -151,8 +154,9 @@ os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
 poslib = "PosFullMSMS.csv"
 neglib = "NegFullMSMS.csv"
 
-posfrag, posdf = get_fragments_df(poslib)
 negfrag, negdf = get_fragments_df(neglib)
+posfrag, posdf = get_fragments_df(poslib)
+
 #
 # Merge posfrag and negfrag dataframes
 hgfrag_df = pd.concat([posfrag, negfrag], ignore_index=True)
