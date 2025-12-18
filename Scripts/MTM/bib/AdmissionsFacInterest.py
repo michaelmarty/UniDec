@@ -3,23 +3,46 @@ import sys
 import pandas as pd
 import matplotlib
 matplotlib.use('WxAgg')
+import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
 
-# Default input file path (can be overridden by command-line argument)
-filepath = r"C:\Users\mm96978\Downloads\FacInterest.xlsx"
+data = [
+    ("Brodbelt", 2, 2),
+    ("Marty",    2, 2),
+    ("Mullins",  2, 2),
+    ("Ren",      3, 3),
+    ("Samanta",  1, 1),
+    ("Callmann", 0, 1),
+    ("Hsu",      0, 1),
+    ("Lu",       0, 1),
+    ("Newberry", 0, 1),
+    ("Aubrey",   0, 1),
+    ("Carsch",   0, 1),
+    ("Humphrey", 0, 1),
+    ("Anslyn",   0, 0),
+    ("Krische",  0, 1),
+    ("Page",     0, 1),
+    ("Baiz",     1, 1),
+    ("Henkelman",0, 1),
+    ("Lin",      2, 2),
+    ("Makarov",  0, 1),
+    ("Raccah",   0, 1),
+    ("Roberts",  1, 1),
+    ("Thirumalai",0,1),
+    ("Webb",     2, 2),
+    ("Li", 1, 1),
+    ("Brenna", 1, 1),
+    ("Ellington",0,0),
+    ("Milliron", 0,0),
+    ("Yu", 0, 0),
+    ("Rose", 0, 1),
+]
+facdf = pd.DataFrame(data, columns=["Names", "MIN", "MAX"])
+facnames = facdf["Names"].tolist()
 
-
-def load_two_columns(path):
-    """Load the Excel and return the first two columns as strings.
-    If the file has headers, pandas will keep them; we select the first two columns by position.
-    Returns a DataFrame with columns ['col1', 'col2'].
-    """
-    df = pd.read_excel(path, dtype=str, header=None)
-    df2 = df.iloc[:, 0:2].copy()
-    df2.columns = ["col1", "col2"]
-    return df2
-
+# Add one to the MAX to make it inclusive
+# facdf["MAX"] = facdf["MAX"] + 1
 
 def split_names(cell):
     """Split a cell (string) by commas into cleaned name tokens.
@@ -52,10 +75,9 @@ def compute_counts(df):
     - counts_df: DataFrame with name, row_count, col1_count, col2_count
     """
     c_row = Counter()
-    c1 = Counter()
-    c2 = Counter()
 
     # Iterate rows and count presence per row (deduplicate within the row)
+    rows = []
     for _, row in df.iterrows():
         names_in_row_col1 = set(split_names(row["col1"]))
         names_in_row_col2 = set(split_names(row["col2"]))
@@ -65,79 +87,158 @@ def compute_counts(df):
         # increment row-wise counter once per name present in this row
         for name in names_in_row:
             c_row[name] += 1
+        row["Names"] = ",".join(names_in_row)
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
 
     # Unique names union
-    all_names = set(c_row.keys()) | set(c1.keys()) | set(c2.keys())
+    all_names = set(c_row.keys())
 
     # Sort by row-wise counts descending
     names_sorted = sorted(all_names, key=lambda n: (-(c_row[n]), n))
 
     counts1 = [c_row[name] for name in names_sorted]
 
-    counts_df = pd.DataFrame({
-        "name": names_sorted,
-        "row_count": counts1,
-        "col1_count": [c1[name] for name in names_sorted],
-        "col2_count": [c2[name] for name in names_sorted],
-    })
-    return names_sorted, counts1, counts_df
+    return names_sorted, counts1, df
 
 
-def plot_grouped_counts(names, counts1, outpath=None, title=None):
+def plot_grouped_counts(names, counts1, title=None):
     """Create a grouped bar chart for counts. If counts2 is None, plot a single-series bar chart.
     Saves the figure to outpath if provided, and also shows it.
     """
     x = range(len(names))
-    width = 0.35
-
     plt.figure(figsize=(max(8, len(names) * 0.4), 6))
-
     plt.bar(x, counts1, width=0.6, label="Row-wise count", color="#4C72B0")
-
-
-
     plt.xticks(x, names, rotation=90)
     plt.xlabel("Name")
     plt.ylabel("Count")
     if title:
         plt.title(title)
-    # plt.legend()
     plt.tight_layout()
-
-    # if outpath:
-    #     plt.savefig(outpath)
-    #     print(f"Saved plot to: {outpath}")
     plt.show()
 
 
-def main(path=None):
-    if not os.path.exists(path):
-        print(f"File not found: {path}")
-        return
+def check_full(facname, faclist):
+    maxtaking = facdf[facdf["Names"] == facname]["MAX"].values[0]
+    currentcount = faclist.count(facname)
+    return currentcount >= maxtaking
 
-    try:
-        df = load_two_columns(path)
-    except Exception as e:
-        print(f"Error reading Excel: {e}")
-        return
+def check_all_full(facinterest, faclist):
+    for fac in facinterest:
+        if not check_full(fac, faclist):
+            return False
+    return True
 
-    names, counts1, counts_df = compute_counts(df)
+def monte_carlo(df, matriculation_range=[.4, .7], num=1000, limit=True):
+    """Perform Monte Carlo simulation of faculty assignments based on matriculation rates."""
+    faculty = df["Names"].str.split(",").explode().str.strip().unique()
+    faculty = [f for f in faculty if f != ""]
+    faculty.append("FAILED")  # To account for students who cannot be assigned
+    faccounts = []
+    for i in range(num):
+        # Uniform:
+        matriculation_rate = np.random.uniform(matriculation_range[0], matriculation_range[1])
+        # Gaussian
+        # matriculation_rate = np.random.normal(loc=(matriculation_range[0] + matriculation_range[1]) / 2,
+        #     scale=(matriculation_range[1] - matriculation_range[0]) / 3 )
+        # Select students based on the matriculation rate
+        sampled_df = df.sample(frac=matriculation_rate, replace=True)
+        # Randomly shuffle the sampled dataframe
+        sampled_df = sampled_df.sample(frac=1).reset_index(drop=True)
+        # For each student in the sampled_df, pick a random faculty
+        faculty_list = []
+        for _, row in sampled_df.iterrows():
+            facinterest = row["Names"].split(",")
+            allfull = check_all_full(facinterest, faculty_list)
+            if allfull:
+                chosen_faculty = "FAILED"
+                faculty_list.append(chosen_faculty)
+                continue
 
-    if counts_df.empty:
-        print("No names found in the first two columns.")
-        return
+            if len(facinterest) == 0:
+                raise ValueError("No faculty interest found for a student.")
+            chosen_faculty = np.random.choice(facinterest)
 
-    # # Save counts to CSV next to the input file
-    # out_csv = os.path.splitext(path)[0] + "_name_counts.csv"
-    # counts_df.to_csv(out_csv, index=False)
-    # print(f"Saved counts CSV to: {out_csv}")
+            labfull = False
 
-    # Plot and save figure
-    out_png = os.path.splitext(path)[0] + "_name_counts.png"
-    plot_grouped_counts(names, counts1, outpath=out_png, title="Name counts by column")
+            if limit:
+                labfull = check_full(chosen_faculty, faculty_list)
+
+            while not allfull and labfull:
+                # if labfull:
+                #     print("Initial choice:", chosen_faculty, "Lab full:", labfull, "Faculty list:", faculty_list)
+                chosen_faculty = np.random.choice(facinterest)
+                if limit:
+                    labfull = check_full(chosen_faculty, faculty_list)
+
+            if allfull:
+                chosen_faculty = "FAILED"
+            faculty_list.append(chosen_faculty)
+
+        # For each faculty, count how many times they were chosen
+        fac_counter = Counter(faculty_list)
+        flist = []
+        for f in faculty:
+            flist.append(fac_counter[f])
+        faccounts.append(flist)
+
+    # Make a bar plot of the mean and std dev of faculty counts
+    faccounts = np.array(faccounts)
+    fac_means = np.mean(faccounts, axis=0)
+    fac_stds = np.std(faccounts, axis=0)
+    # Sort by means descending
+    sorted_indices = np.argsort(-fac_means)
+    faculty = [faculty[i] for i in sorted_indices]
+    fac_means = fac_means[sorted_indices]
+    fac_stds = fac_stds[sorted_indices]
+
+    # Drop any who are zero mean
+    nonzero_indices = [i for i in range(len(fac_means)) if fac_means[i] > 0]
+    faculty = [faculty[i] for i in nonzero_indices]
+    fac_means = fac_means[nonzero_indices]
+    fac_stds = fac_stds[nonzero_indices]
+
+    # Print max and min values for each faculty
+    for i, fac in enumerate(faculty):
+        print(f"{fac}: Max={np.max(faccounts[:, sorted_indices[i]])}, Min={np.min(faccounts[:, sorted_indices[i]])}")
+
+
+    x = range(len(faculty))
+    plt.figure(figsize=(max(8, len(faculty) * 0.4), 6))
+    plt.bar(x, fac_means, yerr=fac_stds, capsize=5, color="#55A868", alpha=0.7)
+
+    # Add lines on each bar for min and max from facdf
+    for i, fac in enumerate(faculty):
+        if fac == "FAILED":
+            continue
+        max_allowed = facdf[facdf["Names"] == fac]["MAX"].values[0]
+        min_allowed = facdf[facdf["Names"] == fac]["MIN"].values[0]
+
+        # Use fill betewen for min and max
+        plt.fill_between([x[i] - 0.2, x[i] + 0.2], [min_allowed, min_allowed], [max_allowed, max_allowed], color='gray', alpha=0.2, label='Allowed Range' if i == 0 else "")
+        plt.plot([x[i] - 0.2, x[i] + 0.2], [max_allowed, max_allowed], color='r', linestyle='-', label='Max Allowed' if i == 0 else "")
+        plt.plot([x[i] - 0.2, x[i] + 0.2], [min_allowed, min_allowed], color='b', linestyle='-', label='Min Allowed' if i == 0 else "")
+    plt.xticks(x, faculty, rotation=90)
+    plt.xlabel("Faculty")
+    plt.ylabel("Average Assigned Students")
+    plt.title("Monte Carlo Simulation of Faculty Assignments")
+    plt.tight_layout()
+    plt.show()
+
+
 
 
 if __name__ == "__main__":
-    # Allow optional path override: python AdmissionsFacInterest.py <path_to_excel>
-    arg_path = sys.argv[1] if len(sys.argv) > 1 else None
-    main(arg_path or filepath)
+    filepath = r"C:\Users\mm96978\Downloads\FacInterest.xlsx"
+    df = pd.read_excel(filepath, dtype=str, header=None)
+    df.columns = ["col1", "col2"]
+
+    names, counts1, df = compute_counts(df)
+    print(df)
+
+    monte_carlo(df)
+    exit()
+
+    # Plot and save figure
+    plot_grouped_counts(names, counts1, title="Name counts by column")
