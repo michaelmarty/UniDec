@@ -120,6 +120,8 @@ def plot_grouped_counts(names, counts1, title=None):
 
 
 def check_full(facname, faclist):
+    if facname not in facdf["Names"].values:
+        return False
     maxtaking = facdf[facdf["Names"] == facname]["MAX"].values[0]
     currentcount = faclist.count(facname)
     return currentcount >= maxtaking
@@ -210,7 +212,7 @@ def monte_carlo(df, matriculation_range=[.4, .7], num=1000, limit=True):
 
     # Add lines on each bar for min and max from facdf
     for i, fac in enumerate(faculty):
-        if fac == "FAILED":
+        if fac == "FAILED" or fac not in facdf["Names"].values:
             continue
         max_allowed = facdf[facdf["Names"] == fac]["MAX"].values[0]
         min_allowed = facdf[facdf["Names"] == fac]["MIN"].values[0]

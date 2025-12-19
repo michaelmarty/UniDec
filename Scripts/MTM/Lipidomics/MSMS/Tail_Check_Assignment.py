@@ -165,8 +165,8 @@ def assign_ref_match(row, tol=0.05, hgdf=None, verbose=True):
         grade = "A+: Full Match"
     elif hgmatch == 1 and tailmatch == ntails:
         grade = "A: Headgroup and All Tails Match"
-    elif hgmatch == 1 and tailmatch >= ntails - 1:
-        grade = "B: Headgroup and Most Tails Match"
+    elif hgmatch == 1 and tailmatch > 0:
+        grade = "B: Headgroup and Some Tails Match"
     elif hgmatch == 1:
         grade = "C: Headgroup Match Only"
     elif tailmatch == ntails and ntails > 0:
@@ -178,7 +178,7 @@ def assign_ref_match(row, tol=0.05, hgdf=None, verbose=True):
 
 os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
 
-negfile = "NegIDsC1_Ref.csv"
+negfile = "PosIDsC1_Ref.csv"
 
 negdf = pd.read_csv(negfile)
 
@@ -187,4 +187,4 @@ hgdf = pd.read_csv(hgfile, dtype=str)
 
 outdf = assign_df(negdf, hgdf=hgdf)
 
-outdf.to_csv("NegIDsC1_Ref_TailCheck.csv", index=False)
+outdf.to_csv(negfile[:-4] + "_TailCheck.csv", index=False)
