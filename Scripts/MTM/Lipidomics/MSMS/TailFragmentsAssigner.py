@@ -59,6 +59,7 @@ hgbasedict = {"PG": [228.04], "PI": [316.05], "SQDG": [282.04], "PS": [87.032, 2
 ignore_fragments = {}
 ignore_nls = {"Hex2Cer": [46.01, 46.0], "Hex3Cer": [46.01], "HexCer": [46.01], "AHexCer": [46.01], "SM":[60.02], "SL":[111.98]}
 acelated_classes = ["AHexCer", "ASM"]
+adduct_nls = {"[M+CH3COO]-": [60.02], "[M+HCOO]-": [46.01]}
 
 
 def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[], adduct="[M-H]-", classname=""):
@@ -362,6 +363,60 @@ def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[], adduct="[M-H]
         nls[key] = round(nls[key], 4)
 
     return fragments, nls
+
+def gen_fragdict(cname, adduct, tails, hgdf):
+    # print(cname, adduct)
+    if cname in hgbasedict:
+        hgbase = hgbasedict[cname]
+    else:
+        hgbase = 0
+
+    # Unpack headgroup fragments from hgdf
+    hgrow = hgdf[(hgdf["CompoundClass"] == cname) & (hgdf["Adduct"] == adduct)]
+    if len(hgrow) == 0:
+        # print("No headgroup fragments found for", cname, adduct)
+        hgfrags = []
+        hgnls = []
+    else:
+        hgfrags = hgrow.iloc[0]["HeadgroupFragment_mz"]
+        hgnls = hgrow.iloc[0]["HeadgroupNL_mz"]
+        # Drop nans
+        if pd.isna(hgfrags) or hgfrags.strip() == "":
+            hgfrags = []
+        else:
+            hgfrags = [float(f) for f in hgfrags.split(",")]
+        if pd.isna(hgnls) or hgnls.strip() == "":
+            hgnls = []
+        else:
+            hgnls = [float(nl) for nl in hgnls.split(",")]
+
+    # Convert to dict with "HG(FRAG1)": mz format
+    fragdict = {}
+    nldict = {}
+    for i, frag in enumerate(hgfrags):
+        fragdict[f"HG({frag})"] = frag
+    for i, nl in enumerate(hgnls):
+        nldict[f"HG_NL({nl})"] = nl
+
+    # Merge these into the main dicts with tail info
+    tname = ["T1", "T2", "T3", "T4"]
+    tailfrags = []
+    tailnls = []
+    for i, tail in enumerate(tails):
+        if pd.isna(tail) or tail.strip() == "":
+            tailfrags.append([])
+            tailnls.append([])
+            continue
+        predicted_frags, predicted_nls = predict_tail_fragments(tail, hgfrags, hgbase, adduct=adduct, classname=cname)
+        tailfrags.append(predicted_frags)
+        tailnls.append(predicted_nls)
+
+        # Add headgroup frags/nls to fragdict with appended tail name
+        for frag_name, frag_mz in predicted_frags.items():
+            fragdict[f"{tname[i]}_{tail}_{frag_name}"] = frag_mz
+        for nl_name, nlval in predicted_nls.items():
+            nldict[f"{tname[i]}_{tail}_NL[{nl_name}]"] = nlval
+    return fragdict, nldict
 
 
 def assign_fragments(row, tol=0.05):
