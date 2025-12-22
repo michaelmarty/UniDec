@@ -35,17 +35,13 @@ def assign_msms(row, tol=0.05, hgdf=None, verbose=False):
     if verbose:
         print(name, fragdict, nldict)
 
-    nfrag_missed = 0
-    nnl_missed = 0
-    if pd.isna(msms_mz) or msms_mz.strip() == "":
-        outstring = ""
-    else:
+    outfraglist = []
+    if not (pd.isna(msms_mz) or msms_mz.strip() == ""):
         msms_mz = msms_mz.replace("[", "").replace("]", "")
         mzsplit = msms_mz.split(" ")
         mzsplit = [f for f in mzsplit if f.strip() != ""]
         fraglist = [float(f) for f in mzsplit]
 
-        outfraglist = []
         for frag in fraglist:
             found = False
             for frag_name, frag_mz in fragdict.items():
@@ -56,21 +52,16 @@ def assign_msms(row, tol=0.05, hgdf=None, verbose=False):
                     found = True
             if not found:
                 outfraglist.append("NOTFOUND[" + str(frag) + "|" + name + "]")
-                nfrag_missed += 1
                 if verbose:
                     print("NOTFOUND Fragment:", frag, "for", cname, "Name:", name)
 
-        outstring = ",".join(outfraglist)
-
-    if pd.isna(nl_mz) or nl_mz.strip() == "":
-        outstring2 = ""
-    else:
+    outnllist = []
+    if not (pd.isna(nl_mz) or nl_mz.strip() == ""):
         nl_mz = nl_mz.replace("[", "").replace("]", "")
         nlsplit = nl_mz.split(" ")
         nlsplit = [nl for nl in nlsplit if nl.strip() != ""]
         nllist = [float(nl) for nl in nlsplit]
 
-        outnllist = []
         for nl in nllist:
             if nl in ignorenl:
                 outnllist.append("IGNORE[" + str(nl) + "|" + name + "]")
@@ -84,10 +75,24 @@ def assign_msms(row, tol=0.05, hgdf=None, verbose=False):
                     found = True
             if not found:
                 outnllist.append("NOTFOUND[" + str(nl) + "|" + name + "]")
-                nnl_missed += 1
                 if verbose:
                     print("NOTFOUND Neutral Loss:", nl, "for", cname, "Name:", name)
-        outstring2 = ",".join(outnllist)
+
+    outfraglist, outnllist = merge_lists(outfraglist, outnllist)
+
+    nfrag_missed = 0
+    nnl_missed = 0
+    for frag in outfraglist:
+        if "NOTFOUND" in frag:
+            nfrag_missed += 1
+            # print("NOTFOUND Fragment:", frag, "for", cname, "Name:", name, "Adduct:", adduct)
+    for nl in outnllist:
+        if "NOTFOUND" in nl:
+            nnl_missed += 1
+            # print("NOTFOUND Neutral Loss:", nl, "for", cname, "Name:", name, "Adduct:", adduct)
+
+    outstring = ",".join(outfraglist)
+    outstring2 = ",".join(outnllist)
 
     row["Fragments_Assigned"] = outstring
     row["NL_Assigned"] = outstring2
@@ -98,7 +103,7 @@ def assign_msms(row, tol=0.05, hgdf=None, verbose=False):
 
 os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
 
-negfile = "NegFullMSMS.csv"
+negfile = "PosFullMSMS.csv"
 
 hgfile = "LipidHeadgroupFragments.csv"
 hgdf = pd.read_csv(hgfile, dtype=str)
@@ -107,4 +112,4 @@ negdf = pd.read_csv(negfile, dtype=str)
 
 outdf = assign_df(negdf, hgdf)
 
-outdf.to_csv("NegFullMSMS_Assigned.csv", index=False)
+outdf.to_csv("PosFullMSMS_Assigned.csv", index=False)

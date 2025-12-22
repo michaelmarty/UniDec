@@ -3,7 +3,7 @@ import time
 
 import pandas as pd
 import numpy as np
-from Scripts.MTM.Lipidomics.LipidFunctions import set_basic_tail_names
+from PublicScripts.Lipids.LipidFunctions import set_basic_tail_names
 
 
 def str_to_float_list(s, mzlimit=0):

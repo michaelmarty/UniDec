@@ -1,21 +1,9 @@
 import os
-import LipidFunctions
+from PublicScripts.Lipids import LipidFunctions
 import pandas as pd
-import scipy.interpolate as interp
-from sklearn.cross_decomposition import PLSRegression
-from sklearn.model_selection import cross_val_predict
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score, mean_squared_error
 # python
-from sklearn.preprocessing import SplineTransformer
-from sklearn.linear_model import LinearRegression
-from sklearn.pipeline import make_pipeline
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score, mean_squared_error
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
 
 # matplotlib.use("WxAgg")
 

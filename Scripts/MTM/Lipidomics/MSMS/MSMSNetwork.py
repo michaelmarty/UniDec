@@ -1,11 +1,9 @@
 import os
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import mplcursors
 
-from Scripts.MTM.Lipidomics.LipidFunctions import class_network_analysis, network_plot, network_analysis, tail_network_analysis
+from PublicScripts.Lipids.LipidFunctions import network_plot, network_analysis
 
 mpl.use("WxAgg")
 
