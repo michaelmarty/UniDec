@@ -1,5 +1,238 @@
 import pandas as pd
 import numpy as np
+import io
+from PublicScripts.Lipids.LipidFunctions import set_basic_tail_names
+
+
+raw_data = """CompoundClass	Adduct	IonMode	HeadgroupFragment_mz	HeadgroupNL_mz
+CompoundClass	Adduct	IonMode	HeadgroupFragment_mz	HeadgroupNL_mz
+AHexBRS	[M+CH3COO]-	negative		602.42
+AHexBRS	[M+HCOO]-	negative		588.4
+AHexBRS	[M+NH4]+	positive	381.35	
+AHexCAS	[M+CH3COO]-	negative		604.43
+AHexCAS	[M+HCOO]-	negative		590.42
+AHexCAS	[M+NH4]+	positive	383.37	
+AHexCS	[M+CH3COO]-	negative		590.42
+AHexCS	[M+HCOO]-	negative		576.4
+AHexCS	[M+NH4]+	positive	369.35	
+AHexCer	[M+CH3COO]-	negative		60.02
+AHexCer	[M+H]+	positive		18.01
+AHexSIS	[M+CH3COO]-	negative		618.45
+AHexSIS	[M+HCOO]-	negative		604.43
+AHexSIS	[M+NH4]+	positive	397.38	
+AHexSTS	[M+CH3COO]-	negative		616.43
+AHexSTS	[M+HCOO]-	negative		602.42
+AHexSTS	[M+NH4]+	positive	395.37	
+ASM	[M+CH3COO]-	negative	168.04	74.04
+ASM	[M+HCOO]-	negative	168.04	60.02
+ASM	[M+H]+	positive	184.07	
+Ac2PIM1	[M-H]-	negative		162.05,324.11
+Ac2PIM2	[M-H]-	negative	621.14	162.05
+Ac3PIM2	[M-H]-	negative		162.05
+BASulfate	[M+NH4]+	positive		114.99
+BASulfate	[M-H]-	negative	96.96	
+BMP	[M+NH4]+	positive		189.04
+BRSE	[M+NH4]+	positive	381.35	
+BileAcid	[M+CH3COO]-	negative		60.02
+CAR	[M]+	positive	85.03	
+CASE	[M+NH4]+	positive	383.37	
+CE	[M+NH4]+	positive		18.01
+CL	[M+NH4]+	positive		17.03
+CL	[M-H]-	negative	153	
+CerP	[M+H]+	positive		18.01,79.97,97.98,115.99
+CerP	[M-H]-	negative	78.96,96.97	18.01
+Cer_ADS	[M+CH3COO]-	negative		60.02,78.03,92.05,108.04
+Cer_ADS	[M+HCOO]-	negative		46.01,64.02,78.03,94.03
+Cer_ADS	[M-H]-	negative		18.01,32.03,48.02
+Cer_AP	[M+CH3COO]-	negative		60.02
+Cer_AP	[M+HCOO]-	negative		46.01
+Cer_AP	[M+H]+	positive		18.01,36.02,54.03
+Cer_AS	[M+CH3COO]-	negative		60.02,78.03,92.05,108.04
+Cer_AS	[M+HCOO]-	negative		46.01,64.02,78.03,94.03
+Cer_AS	[M-H]-	negative		18.01,32.03,48.02
+Cer_BDS	[M+CH3COO]-	negative		60.02
+Cer_BDS	[M+HCOO]-	negative		46.01
+Cer_BS	[M+CH3COO]-	negative		60.02,78.03
+Cer_BS	[M+HCOO]-	negative		46.01,64.02
+Cer_BS	[M-H]-	negative		18.01
+Cer_EBDS	[M+CH3COO]-	negative		60.02
+Cer_EBDS	[M+HCOO]-	negative		46.01
+Cer_EODS	[M+CH3COO]-	negative		60.02
+Cer_EODS	[M+HCOO]-	negative		46.01
+Cer_EOS	[M+CH3COO]-	negative		60.02
+Cer_EOS	[M+HCOO]-	negative		46.01
+Cer_EOS	[M+H]+	positive		18.01,36.02
+Cer_NDS	[M+CH3COO]-	negative		60.02,92.05,108.04
+Cer_NDS	[M+HCOO]-	negative		46.01,78.03,94.03
+Cer_NDS	[M+H]+	positive		18.01,36.02
+Cer_NDS	[M-H]-	negative		32.03,48.02
+Cer_NP	[M+CH3COO]-	negative		60.02,78.03,96.04
+Cer_NP	[M+HCOO]-	negative		46.01,64.02,82.03
+Cer_NP	[M-H]-	negative		18.01,36.02
+Cer_NS	[M+CH3COO]-	negative		60.02,90.03,92.05,108.04
+Cer_NS	[M+HCOO]-	negative		46.01,76.02,78.03,94.03
+Cer_NS	[M+H]+	positive		18.01,36.02
+Cer_NS	[M-H]-	negative		30.01,32.03,48.02
+CoQ	[M+H]+	positive	197.08	
+DCAE	[M+NH4]+	positive	357.28	
+DCAE	[M-H]-	negative	373.27	374.28
+DGCC	[M+H]+	positive	104.11,132.1	
+DGDG	[M+CH3COO]-	negative	379.12,397.14,415.15	60.02
+DGDG	[M+HCOO]-	negative	379.12,397.14,415.15	46.01
+DGDG	[M+NH4]+	positive		341.13,359.14
+DGGA	[M+NH4]+	positive		211.07
+DGTS	[M+H]+	positive	144.1,236.15	
+DHSph	[M+H]+	positive	81.07,95.09	18.01,36.02,48.02
+DLCL	[M-H]-	negative	153	
+EtherDG	[M+NH4]+	positive		35.04
+EtherDGDG	[M+CH3COO]-	negative		60.02
+EtherDGDG	[M+HCOO]-	negative		46.01
+EtherDGDG	[M+NH4]+	positive		341.13,359.14
+EtherLPC	[M+CH3COO]-	negative	78.96,168.04	74.04,163.12
+EtherLPC	[M+HCOO]-	negative	78.96,168.04	60.02,149.11
+EtherLPC	[M+H]+	positive	86.1,104.11,125.0,184.07	
+EtherLPE	[M+H]+	positive		154.03,172.04
+EtherLPE	[M-H]-	negative	78.96,140.01	
+EtherLPG	[M-H]-	negative	78.96,153.0,171.01	228.04
+EtherMGDG	[M+CH3COO]-	negative		60.02
+EtherMGDG	[M+HCOO]-	negative		46.01
+EtherMGDG	[M+NH4]+	positive		197.09
+EtherOxPC	[M+CH3COO]-	negative	224.07	74.04
+EtherOxPC	[M+HCOO]-	negative	224.07	60.02
+EtherPC	[M+CH3COO]-	negative	224.07	74.04
+EtherPC	[M+HCOO]-	negative	224.07	60.02
+EtherPC	[M+H]+	positive	184.07	183.07
+EtherPE	[M+H]+	positive		141.02
+EtherPG	[M-H]-	negative	153	
+EtherPI	[M-H]-	negative	241.01	
+EtherPS	[M-H]-	negative		87.03
+EtherSMGDG	[M-H]-	negative	96.96,241.0	
+EtherTG	[M+NH4]+	positive		17.03
+GDCAE	[M+NH4]+	positive	414.3	
+GDCAE	[M-H]-	negative	430.3	431.3
+GLCAE	[M+NH4]+	positive	416.32	
+GLCAE	[M-H]-	negative	414.3	415.31
+GM3	[M+NH4]+	positive	292.1	17.03,35.04,308.12,326.13,470.17,632.23,650.24
+GM3	[M-H]-	negative	87.01,290.09	291.1
+Hex2Cer	[M+CH3COO]-	negative	89.02,179.06	60.02,222.07,384.13
+Hex2Cer	[M+HCOO]-	negative	89.02,179.06	208.06,370.11
+Hex2Cer	[M+H]+	positive		18.01,162.05,180.06,198.07,324.11,342.12,360.13
+Hex3Cer	[M+CH3COO]-	negative	161.04,179.06,221.07	60.02,222.07,384.13,546.18
+Hex3Cer	[M+HCOO]-	negative	161.04,179.06	208.06,370.11,532.16
+Hex3Cer	[M+H]+	positive		18.01,162.05,180.06,198.07,324.11,342.12,360.13,486.16,504.17,522.18
+HexCer_AP	[M+CH3COO]-	negative	179.06	60.02,222.07
+HexCer_AP	[M+HCOO]-	negative	179.06	46.01,208.06
+HexCer_AP	[M+H]+	positive		162.05,180.06,198.07
+HexCer_AP	[M-H]-	negative	179.06	162.05
+HexCer_EOS	[M+CH3COO]-	negative		60.02,222.07
+HexCer_EOS	[M+HCOO]-	negative		46.01,208.06
+HexCer_EOS	[M+H]+	positive		162.05,180.06,198.07
+HexCer_HDS	[M+CH3COO]-	negative	179.06	60.02,222.07
+HexCer_HDS	[M+HCOO]-	negative	179.06	46.01,208.06
+HexCer_HDS	[M+H]+	positive		18.01,180.06,198.07,210.07
+HexCer_HS	[M+CH3COO]-	negative	179.06	60.02,222.07
+HexCer_HS	[M+HCOO]-	negative	179.06	46.01,208.06
+HexCer_HS	[M+H]+	positive		18.01,180.06,198.07,210.07
+HexCer_NDS	[M+CH3COO]-	negative	179.06	60.02,222.07
+HexCer_NDS	[M+HCOO]-	negative	179.06	46.01,208.06
+HexCer_NDS	[M+H]+	positive		162.05,180.06,198.07
+HexCer_NDS	[M-H]-	negative	179.06	162.05
+HexCer_NS	[M+CH3COO]-	negative	179.06	60.02,222.07
+HexCer_NS	[M+HCOO]-	negative	179.06	46.01,208.06
+HexCer_NS	[M+H]+	positive		162.05,180.06,198.07
+HexCer_NS	[M-H]-	negative	179.06	162.05
+LDGCC	[M+H]+	positive	104.11,132.1	
+LDGTS	[M+H]+	positive	144.1,218.14,236.15	18.01
+LNAPE	[M-H]-	negative	153	
+LNAPS	[M-H]-	negative	153	
+LPA	[M-H]-	negative	78.96,153.0	
+LPC	[M+CH3COO]-	negative	224.07	74.04
+LPC	[M+HCOO]-	negative	224.07	60.02
+LPC	[M+H]+	positive	184.07	18.01
+LPC	[M+Na]+	positive	86.1,104.11	59.07
+LPE	[M+H]+	positive		141.02
+LPE	[M-H]-	negative	196.04	
+LPG	[M-H]-	negative	153.0,227.03,245.04	228.04
+LPI	[M-H]-	negative	78.96,153.0,241.01,315.05	316.06
+LPS	[M-H]-	negative	78.96,153.0	87.03,241.04
+MG	[M+NH4]+	positive		17.0,35.01
+MGDG	[M+CH3COO]-	negative	253.09	60.02
+MGDG	[M+HCOO]-	negative	253.09	46.01
+MGDG	[M+NH4]+	positive		197.09
+MLCL	[M-H]-	negative	153	
+NAGly	[M+H]+	positive	76.04	
+NAGly	[M+NH4]+	positive	76.04	17.03
+NAGly	[M-H]-	negative	74.02	
+NAGlySer	[M+NH4]+	positive	106.05,145.06	35.04
+NAGlySer	[M-H]-	negative		18.01
+NAOrn	[M+H]+	positive	70.07,115.09,133.1	
+OxPC	[M+CH3COO]-	negative	224.07	74.04
+OxPC	[M+HCOO]-	negative	224.07	60.02
+OxPE	[M-H]-	negative	196.04	
+OxPI	[M-H]-	negative	241.01,297.04	
+OxPS	[M-H]-	negative		87.03
+PA	[M-H]-	negative	153	
+PC	[M+CH3COO]-	negative	224.07	74.04
+PC	[M+HCOO]-	negative	224.07	60.02
+PC	[M+H]+	positive	184.07	
+PC	[M+Na]+	positive	86.1,146.98	59.07,183.07,205.05
+PE	[M+H]+	positive		141.02
+PE	[M+Na]+	positive	164.01	43.04,141.02,163.0
+PE	[M-H]-	negative	196.04	
+PE_Cer	[M-H]-	negative	78.96,140.01	
+PEtOH	[M+NH4]+	positive	127.02,183.04	143.03
+PEtOH	[M-H]-	negative	125.0,181.03	
+PG	[M+NH4]+	positive		189.04
+PG	[M-H]-	negative	153	
+PI	[M+NH4]+	positive		277.06
+PI	[M+Na]+	positive	283.02	260.03,282.01
+PI	[M-H]-	negative	241.01,297.04	
+PI_Cer	[M+H]+	positive		260.03
+PI_Cer	[M-H]-	negative	78.96,241.01	162.05
+PMeOH	[M+NH4]+	positive	113.0,169.03	129.02
+PMeOH	[M-H]-	negative	110.99,167.01	
+PS	[M+H]+	positive		185.01
+PS	[M+Na]+	positive	208	87.03,185.01,206.99
+PS	[M-H]-	negative		87.03
+PhytoSph	[M+H]+	positive		36.02,54.03,66.03
+SHex	[M+CH3COO]-	negative	179.06	60.02
+SHex	[M+HCOO]-	negative	179.06	46.01
+SHex	[M+NH4]+	positive	135.12,147.12,161.13,175.15	197.09
+SHexCer	[M+H]+	positive		97.97,260.02,278.03
+SHexCer	[M+NH4]+	positive		17.03,114.99,277.05,295.06
+SHexCer	[M-H]-	negative	96.96	
+SISE	[M+NH4]+	positive	397.38	
+SL	[M+H]+	positive	124.01	18.01
+SL	[M+NH4]+	positive	124.01	17.03,35.04
+SL	[M-H]-	negative	79.96,80.96	
+SM	[M+CH3COO]-	negative	78.96,168.04	74.04
+SM	[M+HCOO]-	negative	78.96,168.04	
+SM	[M+H]+	positive	184.07	18.01
+SM	[M+Na]+	positive		59.07,183.07,223.06
+SQDG	[M+NH4]+	positive		243.04,261.05
+SQDG	[M-H]-	negative	225.01	
+SSulfate	[M+NH4]+	positive		114.99
+SSulfate	[M-H]-	negative	96.96	
+STSE	[M+NH4]+	positive	395.37	
+Sph	[M+H]+	positive	79.05,93.07	18.01,36.02,48.02
+TDCAE	[M+NH4]+	positive	464.28	
+TDCAE	[M-H]-	negative	480.28	481.29
+TLCAE	[M+NH4]+	positive	466.3	
+TLCAE	[M-H]-	negative	464.28	465.29
+VAE	[M+H]+	positive	79.05,119.09,169.1,184.12,199.15,239.18,269.23	
+VAE	[M+Na]+	positive	81.07,107.09,119.09,173.13,199.15,213.16,269.23	
+"""
+
+# read into DataFrame using tab separator (works for tabs or the normalized whitespace)
+hgdf_default = pd.read_csv(io.StringIO(raw_data), sep=r'\t', engine='python', dtype=str, header=1).map(lambda x: x.strip() if isinstance(x, str) else x)
+
+# ensure column names are tidy
+hgdf_default.columns = [c.strip() for c in hgdf_default.columns]
+
+# convert empty strings to NA
+# hgdf = hgdf.replace({'': pd.NA})
+hgdf_default = hgdf_default.replace({None: ""})
+# print(hgdf)
 
 
 mass_c = 12.000000
@@ -541,19 +774,18 @@ def merge_lists(fraglist, nllist):
     return fraglist, nllist
 
 
-
-def assign_df(df, hgdf):
+def assign_df_fragments(df, hgdf=None, verbose=False):
     if "T1" not in df.columns:
         df = set_basic_tail_names(df, columnname="Metabolite name")
 
     outrows = []
     for i, row in df.iterrows():
-        row = assign_ref_match(row, tol=0.05, hgdf=hgdf)
+        row = assign_ref_match(row, tol=0.05, hgdf=hgdf, verbose=verbose)
         outrows.append(row)
 
     return pd.DataFrame(outrows)
 
-def assign_ref_match(row, tol=0.05, hgdf=None, verbose=True):
+def assign_ref_match(row, tol=0.05, hgdf=None, verbose=True, full_output=False):
     # Unpack row
     name = row["Metabolite name"]
     cname = row["Ontology"]
@@ -563,9 +795,18 @@ def assign_ref_match(row, tol=0.05, hgdf=None, verbose=True):
     tail3 = row["T3"]
     tail4 = row["T4"]
     tails = [tail1, tail2, tail3, tail4]
+    tdict = {"T1": tail1, "T2": tail2, "T3": tail3, "T4": tail4}
+    # Drop NaN tails from tdict
+    tdict = {k: v for k, v in tdict.items() if pd.notna(v) and v.strip() != ""}
+    # Drop duplicates from tdict
+    tdict = {k: v for i, (k, v) in enumerate(tdict.items()) if v not in list(tdict.values())[:i]}
+
     msms_mz = row["MS/MS spectrum"]
     ref_spectrum = row["Ref Spec"]
     ref_mz = float(row["Reference m/z"])
+
+    if hgdf is None:
+        hgdf = hgdf_default
 
     # Unpack reference spectrum and msms_mz
     mzlist = [m.split(":") for m in msms_mz.split(" ") if m.strip() != ""]
@@ -679,16 +920,17 @@ def assign_ref_match(row, tol=0.05, hgdf=None, verbose=True):
     outstring = ",".join(outfraglist)
     outstring2 = ",".join(outnllist)
 
-    for i in range(4):
-        row[f"T{i+1}_Fragments_Found"] = tailcounts[i]
-        row[f"T{i+1}_NL_Found"] = tailnlcounts[i]
-    row["HG_Fragments_Found"] = hgcounts
-    row["HG_NL_Found"] = hgcountsnl
-    row["Adduct_NL_Found"] = adductcountsnl
-    row["Fragments_Assigned"] = outstring
-    row["NL_Assigned"] = outstring2
-    row["Fragments_Missed"] = nfrag_missed
-    row["NL_Missed"] = nnl_missed
+    if full_output:
+        for i in range(4):
+            row[f"T{i+1}_Fragments_Found"] = tailcounts[i]
+            row[f"T{i+1}_NL_Found"] = tailnlcounts[i]
+        row["HG_Fragments_Found"] = hgcounts
+        row["HG_NL_Found"] = hgcountsnl
+        row["Adduct_NL_Found"] = adductcountsnl
+        row["Fragments_Assigned"] = outstring
+        row["NL_Assigned"] = outstring2
+        row["Fragments_Missed"] = nfrag_missed
+        row["NL_Missed"] = nnl_missed
 
     hgmatch = 0
     if hgcounts > 0 or hgcountsnl > 0:
@@ -696,15 +938,14 @@ def assign_ref_match(row, tol=0.05, hgdf=None, verbose=True):
     row["Headgroup_Match"] = hgmatch
 
     tailmatch = 0
-    ntails = 0
+    ntails = len(tdict.values())
     for idx, t in enumerate(tails):
-        if t.strip() == "":
-            continue
-        ntails += 1
         if tailcounts[idx] > 0 or tailnlcounts[idx] > 0:
             tailmatch += 1
-    row["Tail_Match_Count"] = tailmatch
-    row["Total_Tails"] = ntails
+
+    if full_output:
+        row["Tail_Match_Count"] = tailmatch
+        row["Total_Tails"] = ntails
     row["Tail_Match_Fraction"] = tailmatch / ntails if ntails > 0 else 0
 
     adduct_match = 0

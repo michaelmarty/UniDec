@@ -103,7 +103,7 @@ def assign_msms(row, tol=0.05, hgdf=None, verbose=False):
 
 os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
 
-negfile = "PosFullMSMS.csv"
+negfile = "NegFullMSMS.csv"
 
 hgfile = "LipidHeadgroupFragments.csv"
 hgdf = pd.read_csv(hgfile, dtype=str)
@@ -112,4 +112,4 @@ negdf = pd.read_csv(negfile, dtype=str)
 
 outdf = assign_df(negdf, hgdf)
 
-outdf.to_csv("PosFullMSMS_Assigned.csv", index=False)
+outdf.to_csv("NegFullMSMS_Assigned.csv", index=False)

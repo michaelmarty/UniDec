@@ -9,10 +9,6 @@ negfile = "PosIDsC1_Ref.csv"
 negdf = pd.read_csv(negfile)
 # Filter negdf to only things where Metabolite name is PG 18:1_18:1
 # negdf = negdf[negdf["Metabolite name"].str.contains("PG 18:1_18:1")]
-
-hgfile = "LipidHeadgroupFragments.csv"
-hgdf = pd.read_csv(hgfile, dtype=str)
-
-outdf = assign_df(negdf, hgdf=hgdf)
+outdf = assign_df(negdf)
 
 outdf.to_csv(negfile[:-4] + "_TailCheck.csv", index=False)

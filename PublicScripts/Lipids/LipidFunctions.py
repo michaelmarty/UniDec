@@ -10,6 +10,9 @@ import matchms as mms
 import matplotlib as mpl
 import mplcursors
 
+import warnings
+warnings.filterwarnings("error")
+
 posadducts = [
     ["[M+H]+", 1, 1.00782503207, True],
     ["[M+NH4]+", 1, 18.03437413, True],
@@ -565,7 +568,7 @@ def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
     pass
 
 
-def find_match_name(name, rt, refdf, rttol=0.1):
+def find_match_name(name, rt, refdf, rttol=0.1, verbose=False):
     newname = ""
     # Look for same name in negdf contained ahead of "|"
     rows = refdf[refdf["Metabolite name"].str.contains(name + "|", regex=False)]
@@ -574,25 +577,19 @@ def find_match_name(name, rt, refdf, rttol=0.1):
     if len(rows) == 1:
         refrt = rows.iloc[0]["Average Rt(min)"]
         refname = rows.iloc[0]["Metabolite name"]
-        # If RTs are within 0.5 min, assume same lipid
+        # If RTs are within rttol, assume same lipid
         if abs(rt - refrt) < rttol:
-            # print("Match found:", name, refname, rt, refrt)
             newname = refname
-        # else:
-        #     print("RTs not close:", name, rtpos, negname, negrt)
     else:
         # Find one with the closest rt
         rtdiff = np.abs(rows["Average Rt(min)"] - rt)
         rows = rows[rtdiff == rtdiff.min()]
-        if len(rows) > 1:
+        if len(rows) > 1 and verbose:
             print("Warning Still multiple matches for", name, rt, rows[["Metabolite name", "Average Rt(min)"]])
         refrt = rows.iloc[0]["Average Rt(min)"]
         refname = rows.iloc[0]["Metabolite name"]
-        if abs(rt - refrt) < 0.1:
-            # print("Closest match found:", name, refname, rt, refrt)
+        if abs(rt - refrt) < rttol:
             newname = refname
-        # else:
-        #     print("RTs not close:", name, rtpos, negname, negrt)
     return newname
 
 def merge_pos_neg(posdf, negdf, rttol=0.1):
@@ -618,7 +615,11 @@ def merge_pos_neg(posdf, negdf, rttol=0.1):
 
     return posdf, negdf
 
-
+def add_ref_spec_xml(df, xmlfile):
+    refdf = parse_xml(xmlfile)
+    print("Parsed", len(refdf), "spectra from XML file")
+    df = add_ref_from_xml(df, refdf)
+    return df
 
 def add_ref_from_xml(df, refdf):
     # Match SpotID in refdf to Alignment ID in df
@@ -705,10 +706,7 @@ def parse_xml(xmlfile, exclude_precursor=True):
 
     columns = ["SpotID", "Adduct", "Name", "Mz", "MS/MS spectrum ref"]
     df = pd.DataFrame(rows, columns=columns)
-
     return df
-
-
 
 def clean_names(name):
     if "|" in name:
@@ -806,7 +804,7 @@ def add_ref_spectra(df, libfile, rttol=0.1, remove_precursor=True):
             n = n.split("|")[1]
         redone_names.append(n)
     df["Metabolite name Corr"] = redone_names
-
+    from matchms.importing import load_from_msp
     lib = load_from_msp(libfile)
     outdata = []
     for l in lib:
@@ -1038,9 +1036,75 @@ def categorize_nl(x):
         return "None"
     return "Partial"
 
+def merge_grades(grade1, grade2):
+    # If grade2 is alphabetically first, swap
+    if grade2 < grade1:
+        grade1, grade2 = grade2, grade1
+    a = grade1[0]
+    b = grade2[0]
+    c = "F"
+    if a == "A" or b == "A":
+        c = "A: Headgroup and All Tails Match"
+    elif grade1 == "B: Headgroup and Some Tails Match" and grade2 == "B: Headgroup and Some Tails Match":
+        c = "BB: Headgroup and Some Tails Match. Manually check for both."
+    elif a == "B" and (grade2 == "C: Headgroup Match Only" or b=="D" or b=="F"):
+        c = grade1
+    elif a == "B" and grade2 == "C: All Tails Match Only":
+        c = "A: Headgroup and All Tails Match"
+    elif grade1 == "C: Headgroup Match Only" and grade2 == "C: Headgroup Match Only":
+        c = grade1
+    elif grade1 == "C: All Tails Match Only" and grade2 == "C: All Tails Match Only":
+        c = grade1
+    elif grade1 == "C: All Tails Match Only" and grade2 == "C: Headgroup Match Only":
+        c = "A: Headgroup and All Tails Match"
+    elif a == "C" and (b == "D" or b == "F"):
+        c = grade1
+    elif a == "D" and b == "F":
+        c = grade1
+    elif grade1 == grade2:
+        c = grade1
+    else:
+        c = "Unable to Merge Grades: " + grade1 + " + " + grade2
+    return c
+
+def get_unique_names(df, namecol="Metabolite name", classcol="Ontology", rtcol="Average Rt(min)",
+                     gradecol="Match_Grade", outlier_col="outlier", rttol=0.1):
+    unique_names = {}
+    for i, row in df.iterrows():
+        name = row[namecol]
+        classname = row[classcol]
+        rt = row[rtcol]
+        match_grade = row[gradecol]
+        outlier = bool(row[outlier_col]) if outlier_col in df.columns else False
+
+        if name not in unique_names:
+            unique_names[name] = {"Class": classname, "RT": rt, "Match_Grade": match_grade, "Outlier": outlier}
+        else:
+            existing_rt = unique_names[name]["RT"]
+            if abs(existing_rt - rt) > rttol:
+                # Add a suffix to the name to make it unique
+                new_name = f"{name}_rt{rt:.2f}"
+                unique_names[new_name] = {"Class": classname, "RT": rt, "Match_Grade": match_grade, "Outlier": outlier}
+            else:
+                # Merge the grades
+                existing_grade = unique_names[name]["Match_Grade"]
+                newgrade = merge_grades(existing_grade, match_grade)
+                unique_names[name]["Match_Grade"] = newgrade
+                # If one is not an outlier, set to false
+                if not outlier:
+                    unique_names[name]["Outlier"] = False
+
+    newdf = pd.DataFrame()
+    for name in unique_names:
+        classname = unique_names[name]["Class"]
+        rt = unique_names[name]["RT"]
+        newrow = {"Metabolite name": name, "Ontology": classname, "Average Rt(min)": rt,
+                  "Match_Grade": unique_names[name]["Match_Grade"], "outlier": unique_names[name]["Outlier"]}
+        newdf = pd.concat([newdf, pd.DataFrame([newrow])], ignore_index=True)
+    return newdf
 
 
-def detect_outliers_class(df, features):
+def detect_outliers_class(df, features, separate_adducts=False, contribs=True, sort=False):
     newdf = pd.DataFrame()
     for c in df['Ontology'].unique():
         # Get subset for class
@@ -1051,26 +1115,18 @@ def detect_outliers_class(df, features):
             newdf = pd.concat([newdf, subdf])
             continue
 
-        # Drop any features with zero variance
-        variances = subdf[features].var()
-        valid_features = variances[variances > 0].index.tolist()
-        # Sort features by variance
-        valid_features = sorted(valid_features, key=lambda x: variances[x], reverse=True)
+        if not separate_adducts:
+            outputdf = detect_outliers_mahalanobis(subdf, features, contribs=contribs, sort=sort)
+            newdf = pd.concat([newdf, outputdf])
+        else:
+            for adduct in subdf['Adduct type'].unique():
+                subsubdf = subdf[subdf['Adduct type'] == adduct]
+                if len(subsubdf) < 3:
+                    newdf = pd.concat([newdf, subsubdf])
+                    continue
+                outputdf = detect_outliers_mahalanobis(subsubdf, features, contribs=contribs, sort=sort)
+                newdf = pd.concat([newdf, outputdf])
 
-        # Check for two columns of valid features that are identical
-        to_drop = set()
-        for i in range(len(valid_features)):
-            for j in range(i+1, len(valid_features)):
-                if np.all(subdf[valid_features[i]] == subdf[valid_features[j]]):
-                    to_drop.add(valid_features[j])
-        valid_features = [f for f in valid_features if f not in to_drop]
-
-        # Remove class if not enough valid features
-        if len(subdf) < len(valid_features)+1:
-            valid_features = valid_features[:len(subdf)-1]
-
-        outputdf = detect_outliers_mahalanobis(subdf, valid_features)
-        newdf = pd.concat([newdf, outputdf])
     df = newdf.reset_index(drop=True)
     # Sort by outlier score
     df = df.sort_values(by='mahalanobis').reset_index(drop=True)
@@ -1139,7 +1195,27 @@ def mahalanobis_distance(data, robust=True, contrib="pca", dropcorr=None, checkr
     return np.array(distances), contrib
 
 
-def detect_outliers_mahalanobis(df, features, threshold=2, robust=True, verbose=False, contribs=True, sort=True):
+def detect_outliers_mahalanobis(df, features, threshold=2, robust=True, verbose=False, contribs=True, sort=True, dropbadfeatures=True):
+    if dropbadfeatures:
+        # Drop any features with zero variance
+        variances = df[features].var()
+        valid_features = variances[variances > 0].index.tolist()
+        # Sort features by variance
+        valid_features = sorted(valid_features, key=lambda x: variances[x], reverse=True)
+
+        # Check for two columns of valid features that are identical
+        to_drop = set()
+        for i in range(len(valid_features)):
+            for j in range(i + 1, len(valid_features)):
+                if np.all(df[valid_features[i]] == df[valid_features[j]]):
+                    to_drop.add(valid_features[j])
+        valid_features = [f for f in valid_features if f not in to_drop]
+
+        # Remove class if not enough valid features
+        if len(df) < len(valid_features) + 1:
+            valid_features = valid_features[:len(df) - 1]
+        features = valid_features
+
     # Calculate Mahalanobis distance for each point
     data = df[features].values
     outdf = df.copy()
@@ -1162,8 +1238,11 @@ def detect_outliers_mahalanobis(df, features, threshold=2, robust=True, verbose=
         outdf.loc[np.isnan(md), 'mahalanobis'] = -10
 
     # Calculate mean and std dev of distances
-    mean_md = np.mean(md[md<np.percentile(md, 95)])  # Exclude extreme outliers for mean/std calculation
-    std_md = np.std(md[md<np.percentile(md, 95)])
+    pmd = md[md<np.percentile(md, 95)]
+    if len(pmd) > 0:
+        md = pmd
+    mean_md = np.mean(md)  # Exclude extreme outliers for mean/std calculation
+    std_md = np.std(md)
     # Define outlier threshold
     threshold = mean_md + threshold * std_md
 
@@ -1176,6 +1255,8 @@ def detect_outliers_mahalanobis(df, features, threshold=2, robust=True, verbose=
         # Max contribution
         outdf["Top contrib"] = np.argmax(contrib, axis=1)
         outdf["Top contrib feature"] = outdf["Top contrib"].apply(lambda x: features[x])
+        # Drop top contrib column
+        outdf = outdf.drop(columns=["Top contrib"])
 
     if sort:
         # Sort by outlier score
@@ -1188,7 +1269,7 @@ def detect_outliers_mahalanobis(df, features, threshold=2, robust=True, verbose=
     return outdf
 
 
-def class_network_analysis(df, min_count=3):
+def class_network_analysis(df, min_count=3, header="Class_", add_all_cols=False):
     graphs = []
     outdf = pd.DataFrame()
     for c in df['Ontology'].unique():
@@ -1199,14 +1280,57 @@ def class_network_analysis(df, min_count=3):
             outdf = pd.concat([outdf, subdf])
             continue
 
-        newdf, G = network_analysis(subdf)
+        newdf, G = network_analysis(subdf, header=header, add_all_cols=add_all_cols)
         G.graph["Title"]=c
         graphs.append(G)
         outdf = pd.concat([outdf, newdf])
     outdf = outdf.reset_index(drop=True)
     return outdf, graphs
 
-def tail_network_analysis(df, mz_tol=0.01, columnname="Metabolite name", min_count=3):
+def correct_tail_network_columns(row, header):
+    # Find whether the header is T1, T2, T3, or T4
+    tails = ["T1", "T2", "T3", "T4"]
+    tailmatches = []
+    for i, tail in enumerate(tails):
+        if row[tail] == header:
+            tailmatches.append(tail)
+
+    for t in tailmatches:
+        # Find all columns that start with header
+        tail_cols = [col for col in row.index if col.startswith(header)]
+
+        # Find columns that start with header and replace with tail
+        for col in tail_cols:
+            if col.startswith(header):
+                newcol = col.replace(header, t)
+                row[newcol] = row[col]
+                row = row.drop(labels=[col])
+
+    return row
+
+def merge_tail_rows(df):
+    # Find all rows with same Alignment ID
+    outdf = pd.DataFrame()
+    grouped = df.groupby("Alignment ID")
+    for name, group in grouped:
+        if len(group) == 1:
+            outdf = pd.concat([outdf, group])
+            continue
+        # Merge rows
+        newrow = group.iloc[0].copy()
+        for col in group.columns:
+            if col in ["Alignment ID", "Metabolite name"]:
+                continue
+            # If any value in group[col] is not NaN, take that value
+            values = group[col].dropna().unique()
+            if len(values) > 0:
+                newrow[col] = values[0]
+        outdf = pd.concat([outdf, pd.DataFrame([newrow])])
+    outdf = outdf.reset_index(drop=True)
+    return outdf
+
+
+def tail_network_analysis(df, mz_tol=0.01, columnname="Metabolite name", min_count=3, header="Tail_", add_all_cols=False):
     graphs = []
     outdf = pd.DataFrame()
     if "T1" not in df.columns:
@@ -1230,11 +1354,42 @@ def tail_network_analysis(df, mz_tol=0.01, columnname="Metabolite name", min_cou
             outdf = pd.concat([outdf, subdf])
             continue
 
-        newdf, G = network_analysis(subdf, mz_tol=mz_tol)
+        newdf, G = network_analysis(subdf, mz_tol=mz_tol, header=tail+"_", add_all_cols=add_all_cols)
         G.graph["Title"]=tail
         graphs.append(G)
+
+        # Apply correct_tail_network_columns to each row in newdf
+        newdf = newdf.apply(lambda row: correct_tail_network_columns(row, tail), axis=1)
+
         outdf = pd.concat([outdf, newdf])
-    outdf = outdf.reset_index(drop=True)
+
+    # For every unique Alignment ID
+    outdf = merge_tail_rows(outdf)
+
+    # Create an anomly score by summing tail network scores
+    tail_scores = []
+    tail_zscores = []
+    for index, row in outdf.iterrows():
+        ascore = 0.0
+        zscore = 0.0
+        tails = ["T1", "T2", "T3", "T4"]
+        for tail in tails:
+            score_col = f"{tail}_Anomaly_Score"
+            zscore_col = f"{tail}_z_Anomaly_Score"
+            if score_col in outdf.columns:
+                val = row[score_col]
+                if not pd.isna(val):
+                    ascore += val
+            if zscore_col in outdf.columns:
+                zval = row[zscore_col]
+                if not pd.isna(zval):
+                    zscore += zval
+        tail_scores.append(ascore)
+        tail_zscores.append(zscore)
+
+    outdf[header + "Anomaly_Score"] = tail_zscores
+    outdf[header + "z_Anomaly_Score"] = robust_z_list(tail_zscores)
+
     return outdf, graphs
 
 
@@ -1247,6 +1402,14 @@ def robust_z(values_dict):
     eps = 1e-9
     z = 0.6745 * (vals - med) / (mad + eps)
     return dict(zip(values_dict.keys(), z))
+
+def robust_z_list(values):
+    vals = np.array(values, dtype=float)
+    med = np.median(vals)
+    mad = np.median(np.abs(vals - med))
+    eps = 1e-9
+    z = 0.6745 * (vals - med) / (mad + eps)
+    return z
 
 def create_msms_score_matrix(df, mz_tol=0.01):
     # Create a score matrix based on MS/MS similarity
@@ -1285,7 +1448,7 @@ def create_msms_score_matrix(df, mz_tol=0.01):
     score_matrix /= 2.0
     return score_matrix
 
-def network_analysis(df, mz_tol=0.01, title=""):
+def network_analysis(df, mz_tol=0.01, title="", header="", add_all_cols=False):
     # Create score matrix
     score_matrix = create_msms_score_matrix(df, mz_tol=mz_tol)
 
@@ -1308,7 +1471,7 @@ def network_analysis(df, mz_tol=0.01, title=""):
     strength = dict(G.degree(weight='weight'))  # s_i
     degree = dict(G.degree())  # unweighted degree
     clust_w = nx.clustering(G, weight='weight')  # weighted clustering coeff
-    betw = nx.betweenness_centrality(G, weight='distance')  # uses shortest-path distances
+    # betw = nx.betweenness_centrality(G, weight='distance')  # uses shortest-path distances
     close = nx.closeness_centrality(G, distance='distance')  # distance-based closeness
     pr = nx.pagerank(G, weight='weight')  # weighted PageRank
     tri = nx.triangles(G)  # triangle count per node
@@ -1322,13 +1485,12 @@ def network_analysis(df, mz_tol=0.01, title=""):
         except nx.PowerIterationFailedConvergence:
             ev = dict.fromkeys(G.nodes(), 0.0)
 
-
     # Network features dict
     n_features = {
         'strength': strength,
         'degree': degree,
         'clust_w': clust_w,
-        'betw': betw,
+        # 'betw': betw,
         'close': close,
         'pr': pr,
         'tri': tri,
@@ -1339,7 +1501,7 @@ def network_analysis(df, mz_tol=0.01, title=""):
         'z_strength': robust_z(strength),
         'z_degree': robust_z(degree),
         'z_clust_w': robust_z(clust_w),
-        'z_betw': robust_z(betw),
+        # 'z_betw': robust_z(betw),
         'z_close': robust_z(close),
         'z_pr': robust_z(pr),
         'z_tri': robust_z(tri),
@@ -1350,7 +1512,7 @@ def network_analysis(df, mz_tol=0.01, title=""):
     nodes = list(G.nodes())
     A = {}
     for n in nodes:
-        A[n] = sum(zf[n] for zf in n_features.values())
+        A[n] = sum(zf[n] for zf in z_features.values())
     # Add anomaly score as z_features
     z_features['Anomaly_Score'] = A
     z_features['z_Anomaly_Score'] = robust_z(A)
@@ -1359,11 +1521,16 @@ def network_analysis(df, mz_tol=0.01, title=""):
     # Set these as columns in df
     for i, row in df.iterrows():
         name = str(i) + "~" + row['Metabolite name']
-        # Apply to outdf
-        for feat_name, feat_dict in n_features.items():
-            outdf.at[i, feat_name] = float(feat_dict.get(name, 0.0))
-        for zfeat_name, zfeat_dict in z_features.items():
-            outdf.at[i, zfeat_name] = float(zfeat_dict.get(name, 0.0))
+        if add_all_cols:
+            # Apply to outdf
+            for feat_name, feat_dict in n_features.items():
+                outdf.at[i, header+feat_name] = float(feat_dict.get(name, 0.0))
+            for zfeat_name, zfeat_dict in z_features.items():
+                outdf.at[i, header+zfeat_name] = float(zfeat_dict.get(name, 0.0))
+        else:
+            # Only add anomaly scores
+            outdf.at[i, header+'Anomaly_Score'] = float(z_features['Anomaly_Score'].get(name, 0.0))
+            outdf.at[i, header+'z_Anomaly_Score'] = float(z_features['z_Anomaly_Score'].get(name, 0.0))
 
         if name in G:
             # Apply to nodes in G
@@ -1534,5 +1701,9 @@ def make_plots(posdf, negdf):
 
     plt.tight_layout()
     plt.show()
+
+
+
+    #
 
 
