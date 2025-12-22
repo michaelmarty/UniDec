@@ -1536,7 +1536,3 @@ def make_plots(posdf, negdf):
     plt.show()
 
 
-def check_match(query_mz, target, tol=0.05):
-    if abs(query_mz - target) <= tol:
-        return True
-    return False

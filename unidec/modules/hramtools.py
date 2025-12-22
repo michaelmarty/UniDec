@@ -156,7 +156,7 @@ if __name__ == "__main__":
     target = 281.24806
     target = 89.0192
     target = 47.013
-    target = 60.043
+    target = 26.03880
     customsearch=[["1H", 0, 50], ["12C", 0, 25], ["14N", 0, 1], ["16O", 0, 7]]
     searcher = HRAMSearchSpace(searchspace=reallysmallsearch)
     # target = 1500

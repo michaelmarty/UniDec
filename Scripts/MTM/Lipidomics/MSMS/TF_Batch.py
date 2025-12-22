@@ -1,6 +1,6 @@
-from TailFragmentsAssigner import *
+from PublicScripts.Lipids.LipidFragPrediction import *
 import time
-from Scripts.MTM.Lipidomics.LipidFunctions import check_match
+import os
 
 def assign_df(df, hgdf):
     starttime = time.perf_counter()
@@ -28,7 +28,6 @@ def assign_msms(row, tol=0.05, hgdf=None, verbose=False):
     nl_mz = row["NL_mz"]
 
     # Get these from the assignment module
-    ignorefrag = ignore_fragments[cname] if cname in ignore_fragments else []
     ignorenl = ignore_nls[cname] if cname in ignore_nls else []
 
     fragdict, nldict = gen_fragdict(cname, adduct, tails, hgdf)
@@ -48,11 +47,10 @@ def assign_msms(row, tol=0.05, hgdf=None, verbose=False):
 
         outfraglist = []
         for frag in fraglist:
-            if frag in ignorefrag:
-                continue
-
             found = False
             for frag_name, frag_mz in fragdict.items():
+                if found:
+                    continue
                 if check_match(frag, frag_mz, tol):
                     outfraglist.append(frag_name)
                     found = True
@@ -75,9 +73,12 @@ def assign_msms(row, tol=0.05, hgdf=None, verbose=False):
         outnllist = []
         for nl in nllist:
             if nl in ignorenl:
+                outnllist.append("IGNORE[" + str(nl) + "|" + name + "]")
                 continue
             found = False
             for nl_name, nl_mz in nldict.items():
+                if found:
+                    continue
                 if check_match(nl, nl_mz, tol):
                     outnllist.append(nl_name)
                     found = True
