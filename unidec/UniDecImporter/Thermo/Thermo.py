@@ -174,7 +174,13 @@ class ThermoImporter(Importer):
         except Exception as e:
             print("Error with injection time correction:", e)
 
-        data_array = np.transpose([mz, intensity, scans, it])
+        try:
+            times = np.concatenate([self.times[i] * np.ones(len(raw_dat[i])) for i, _ in enumerate(raw_dat)])
+        except Exception as e:
+            print("Error with time array:", e)
+            times = np.zeros_like(mz) - 1
+
+        data_array = np.transpose([mz, intensity, scans, it, times])
         return data_array
 
     def close(self):

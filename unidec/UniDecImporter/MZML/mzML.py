@@ -391,18 +391,25 @@ class MZMLImporter(Importer):
 
         it = 1. / self.get_inj_time_array()
         mz = np.concatenate([d[:, 0] for d in raw_dat])
-        scans = np.concatenate([s * np.ones(len(raw_dat[i])) for i, s in enumerate(self.scans)])
+        scans = np.concatenate([self.scans[i] * np.ones(len(raw_dat[i])) for i, d in enumerate(raw_dat)])
         try:
             intensity = np.concatenate([d[:, 1] * it[i] / 1000. for i, d in enumerate(raw_dat)])
         except Exception as e:
             print("Mark1:", e, it)
             intensity = np.concatenate([d[:, 1] for i, d in enumerate(raw_dat)])
+
         try:
             it = np.concatenate([it * np.ones(len(raw_dat[i])) for i, it in enumerate(it)])
         except Exception as e:
             print("Error with injection time correction:", e)
 
-        data_array = np.transpose([mz, intensity, scans, it])
+        try:
+            times = np.concatenate([self.times[i] * np.ones(len(raw_dat[i])) for i, d in enumerate(raw_dat)])
+        except Exception as e:
+            print("Error with Times:", e)
+            times = np.zeros_like(mz) - 1
+
+        data_array = np.transpose([mz, intensity, scans, it, times])
         return data_array
 
 
