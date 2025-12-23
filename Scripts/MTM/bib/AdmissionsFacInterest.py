@@ -217,7 +217,7 @@ def monte_carlo(df, matriculation_range=[.4, .6], num=1000, limit=True):
         print(f"{fac}: Max={np.max(faccounts[:, sorted_indices[i]])}, Min={np.min(faccounts[:, sorted_indices[i]])}")
 
     x = range(len(faculty))
-    plt.figure(figsize=(max(8, len(faculty) * 0.4), 6))
+    plt.figure(figsize=(max(8, len(faculty) * 0.4), 10))
     plt.subplot(2,1,1)
     plt.bar(x, fac_means, yerr=fac_stds, capsize=5, color="#55A868", alpha=0.7)
 
@@ -250,11 +250,13 @@ def monte_carlo(df, matriculation_range=[.4, .6], num=1000, limit=True):
     sorted_failed_indices = np.argsort(-np.array(failed_counts))
     failed_names = [failed_names[i] for i in sorted_failed_indices]
     failed_counts = [failed_counts[i] for i in sorted_failed_indices]
+    # Divide failed_counts by num
+    failed_counts = [count / num for count in failed_counts]
     x2 = range(len(failed_names))
     plt.bar(x2, failed_counts, color="#C44E52", alpha=0.7)
     plt.xticks(x2, failed_names, rotation=90)
     plt.xlabel("Faculty")
-    plt.ylabel("Number of Failed Assignments")
+    plt.ylabel("Percentage of Runs")
     plt.title("Faculty Interest of Students Who Could Not Be Assigned")
 
 
@@ -268,7 +270,6 @@ if __name__ == "__main__":
     df.columns = ["col1", "col2"]
 
     names, counts1, df = compute_counts(df)
-    print(df)
 
     monte_carlo(df)
     exit()
