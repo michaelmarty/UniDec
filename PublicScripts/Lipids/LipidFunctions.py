@@ -243,6 +243,13 @@ def fix_name(name, lclass):
 
     return name, lclass
 
+def fix_adduct(adduct, incol, outcol):
+    if adduct in adduct_translator[:, incol]:
+        index = np.where(adduct_translator[:, incol] == adduct)[0][0]
+        adduct_row = adduct_translator[index]
+        adduct = adduct_row[outcol]
+    return adduct
+
 
 def fix_d7(name, adduct):
     if "d7" in name:

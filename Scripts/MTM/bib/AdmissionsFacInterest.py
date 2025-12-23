@@ -2,6 +2,7 @@ import os
 import sys
 import pandas as pd
 import matplotlib
+
 matplotlib.use('WxAgg')
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,37 +10,42 @@ from collections import Counter
 
 data = [
     ("Brodbelt", 2, 2),
-    ("Marty",    2, 2),
-    ("Mullins",  2, 2),
-    ("Ren",      3, 3),
-    ("Samanta",  1, 1),
-    ("Callmann", 0, 1),
-    ("Hsu",      0, 1),
-    ("Lu",       0, 1),
-    ("Newberry", 0, 1),
-    ("Aubrey",   0, 1),
-    ("Carsch",   0, 1),
-    ("Humphrey", 0, 1),
-    ("Anslyn",   0, 0),
-    ("Krische",  0, 1),
-    ("Page",     0, 1),
-    ("Baiz",     1, 1),
-    ("Henkelman",0, 1),
-    ("Lin",      2, 2),
-    ("Makarov",  0, 1),
-    ("Raccah",   0, 1),
-    ("Roberts",  1, 1),
-    ("Thirumalai",0,1),
-    ("Webb",     2, 2),
+    ("Marty", 2, 2),
+    ("Mullins", 2, 2),
+    ("Ren", 3, 3),
+    ("Samanta", 2, 2),
+    ("Callmann", 1, 1),
+    ("Hsu", 1, 3),
+    ("Lu", 2, 2),
+    ("Newberry", 1, 2),
+    ("Aubrey", 1, 1),
+    ("Carsch", 5, 5),
+    ("Humphrey", 2, 2),
+    ("Anslyn", 0, 0),
+    ("Krische", 4, 4),
+    ("Page", 1, 2),
+    ("Baiz", 1, 1),
+    ("Henkelman", 1, 2),
+    ("Lin", 3, 3),
+    ("Makarov", 1, 2),
+    ("Raccah", 2, 4),
+    ("Roberts", 1, 1),
+    ("Thirumalai", 0, 1),
+    ("Webb", 2, 2),
     ("Li", 1, 1),
     ("Brenna", 1, 1),
-    ("Ellington",0,0),
-    ("Milliron", 0,0),
+    ("Ellington", 0, 0),
+    ("Milliron", 0, 0),
     ("Yu", 0, 0),
-    ("Rose", 0, 1),
+    ("Rose", 0, 0),
+    ("Que", 1, 1),
+    ("Hull", 0, 2),
+    ("Sessler", 1, 2),
+    ("Belardi", 1, 1),
 ]
 facdf = pd.DataFrame(data, columns=["Names", "MIN", "MAX"])
 facnames = facdf["Names"].tolist()
+
 
 # Add one to the MAX to make it inclusive
 # facdf["MAX"] = facdf["MAX"] + 1
@@ -83,7 +89,7 @@ def compute_counts(df):
         names_in_row_col2 = set(split_names(row["col2"]))
         # union of names in this row across both columns
         names_in_row = names_in_row_col1 | names_in_row_col2
-        print(names_in_row)
+        # print(names_in_row)
         # increment row-wise counter once per name present in this row
         for name in names_in_row:
             c_row[name] += 1
@@ -126,18 +132,21 @@ def check_full(facname, faclist):
     currentcount = faclist.count(facname)
     return currentcount >= maxtaking
 
+
 def check_all_full(facinterest, faclist):
     for fac in facinterest:
         if not check_full(fac, faclist):
             return False
     return True
 
-def monte_carlo(df, matriculation_range=[.4, .7], num=1000, limit=True):
+
+def monte_carlo(df, matriculation_range=[.4, .6], num=1000, limit=True):
     """Perform Monte Carlo simulation of faculty assignments based on matriculation rates."""
     faculty = df["Names"].str.split(",").explode().str.strip().unique()
     faculty = [f for f in faculty if f != ""]
     faculty.append("FAILED")  # To account for students who cannot be assigned
     faccounts = []
+    failed_interests = []
     for i in range(num):
         # Uniform:
         matriculation_rate = np.random.uniform(matriculation_range[0], matriculation_range[1])
@@ -156,6 +165,7 @@ def monte_carlo(df, matriculation_range=[.4, .7], num=1000, limit=True):
             if allfull:
                 chosen_faculty = "FAILED"
                 faculty_list.append(chosen_faculty)
+                failed_interests.append(facinterest)
                 continue
 
             if len(facinterest) == 0:
@@ -176,6 +186,7 @@ def monte_carlo(df, matriculation_range=[.4, .7], num=1000, limit=True):
 
             if allfull:
                 chosen_faculty = "FAILED"
+                failed_interests.append(facinterest)
             faculty_list.append(chosen_faculty)
 
         # For each faculty, count how many times they were chosen
@@ -205,9 +216,9 @@ def monte_carlo(df, matriculation_range=[.4, .7], num=1000, limit=True):
     for i, fac in enumerate(faculty):
         print(f"{fac}: Max={np.max(faccounts[:, sorted_indices[i]])}, Min={np.min(faccounts[:, sorted_indices[i]])}")
 
-
     x = range(len(faculty))
     plt.figure(figsize=(max(8, len(faculty) * 0.4), 6))
+    plt.subplot(2,1,1)
     plt.bar(x, fac_means, yerr=fac_stds, capsize=5, color="#55A868", alpha=0.7)
 
     # Add lines on each bar for min and max from facdf
@@ -218,17 +229,37 @@ def monte_carlo(df, matriculation_range=[.4, .7], num=1000, limit=True):
         min_allowed = facdf[facdf["Names"] == fac]["MIN"].values[0]
 
         # Use fill betewen for min and max
-        plt.fill_between([x[i] - 0.2, x[i] + 0.2], [min_allowed, min_allowed], [max_allowed, max_allowed], color='gray', alpha=0.2, label='Allowed Range' if i == 0 else "")
-        plt.plot([x[i] - 0.2, x[i] + 0.2], [max_allowed, max_allowed], color='r', linestyle='-', label='Max Allowed' if i == 0 else "")
-        plt.plot([x[i] - 0.2, x[i] + 0.2], [min_allowed, min_allowed], color='b', linestyle='-', label='Min Allowed' if i == 0 else "")
+        plt.fill_between([x[i] - 0.2, x[i] + 0.2], [min_allowed, min_allowed], [max_allowed, max_allowed], color='gray',
+                         alpha=0.2, label='Allowed Range' if i == 0 else "")
+        plt.plot([x[i] - 0.2, x[i] + 0.2], [max_allowed, max_allowed], color='r', linestyle='-',
+                 label='Max Allowed' if i == 0 else "")
+        plt.plot([x[i] - 0.2, x[i] + 0.2], [min_allowed, min_allowed], color='b', linestyle='-',
+                 label='Min Allowed' if i == 0 else "")
     plt.xticks(x, faculty, rotation=90)
     plt.xlabel("Faculty")
     plt.ylabel("Average Assigned Students")
     plt.title("Monte Carlo Simulation of Faculty Assignments")
+
+    plt.subplot(2,1,2)
+    # Histogram of failed assignments
+    failed_interests_flat = [fac for sublist in failed_interests for fac in sublist]
+    failed_counter = Counter(failed_interests_flat)
+    failed_names = list(failed_counter.keys())
+    failed_counts = [failed_counter[name] for name in failed_names]
+    # Sort by counts descending
+    sorted_failed_indices = np.argsort(-np.array(failed_counts))
+    failed_names = [failed_names[i] for i in sorted_failed_indices]
+    failed_counts = [failed_counts[i] for i in sorted_failed_indices]
+    x2 = range(len(failed_names))
+    plt.bar(x2, failed_counts, color="#C44E52", alpha=0.7)
+    plt.xticks(x2, failed_names, rotation=90)
+    plt.xlabel("Faculty")
+    plt.ylabel("Number of Failed Assignments")
+    plt.title("Faculty Interest of Students Who Could Not Be Assigned")
+
+
     plt.tight_layout()
     plt.show()
-
-
 
 
 if __name__ == "__main__":

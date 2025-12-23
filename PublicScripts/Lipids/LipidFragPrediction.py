@@ -1,8 +1,7 @@
 import pandas as pd
 import numpy as np
 import io
-from PublicScripts.Lipids.LipidFunctions import set_basic_tail_names
-
+from PublicScripts.Lipids.LipidFunctions import set_basic_tail_names, fix_dash, fix_adduct
 
 raw_data = """CompoundClass	Adduct	IonMode	HeadgroupFragment_mz	HeadgroupNL_mz
 CompoundClass	Adduct	IonMode	HeadgroupFragment_mz	HeadgroupNL_mz
@@ -183,7 +182,7 @@ PE_Cer	[M-H]-	negative	78.96,140.01
 PEtOH	[M+NH4]+	positive	127.02,183.04	143.03
 PEtOH	[M-H]-	negative	125.0,181.03	
 PG	[M+NH4]+	positive		189.04
-PG	[M-H]-	negative	153	
+PG	[M-H]-	negative	152.995834	
 PI	[M+NH4]+	positive		277.06
 PI	[M+Na]+	positive	283.02	260.03,282.01
 PI	[M-H]-	negative	241.01,297.04	
@@ -224,7 +223,8 @@ VAE	[M+Na]+	positive	81.07,107.09,119.09,173.13,199.15,213.16,269.23
 """
 
 # read into DataFrame using tab separator (works for tabs or the normalized whitespace)
-hgdf_default = pd.read_csv(io.StringIO(raw_data), sep=r'\t', engine='python', dtype=str, header=1).map(lambda x: x.strip() if isinstance(x, str) else x)
+hgdf_default = pd.read_csv(io.StringIO(raw_data), sep=r'\t', engine='python', dtype=str, header=1).map(
+    lambda x: x.strip() if isinstance(x, str) else x)
 
 # ensure column names are tidy
 hgdf_default.columns = [c.strip() for c in hgdf_default.columns]
@@ -746,7 +746,8 @@ def gen_fragdict(cname, adduct, tails, hgdf, mode=None):
             tailfrags.append([])
             tailnls.append([])
             continue
-        predicted_frags, predicted_nls = predict_tail_fragments(tail, hgfrags, hgbase, adduct=adduct, classname=cname, mode=mode)
+        predicted_frags, predicted_nls = predict_tail_fragments(tail, hgfrags, hgbase, adduct=adduct, classname=cname,
+                                                                mode=mode)
         tailfrags.append(predicted_frags)
         tailnls.append(predicted_nls)
 
@@ -756,6 +757,7 @@ def gen_fragdict(cname, adduct, tails, hgdf, mode=None):
         for nl_name, nlval in predicted_nls.items():
             nldict[f"{tname[i]}_{tail}_NL[{nl_name}]"] = nlval
     return fragdict, nldict
+
 
 def merge_lists(fraglist, nllist):
     # Remove NOTFOUND entries where they were found in the other list
@@ -785,11 +787,14 @@ def assign_df_fragments(df, hgdf=None, verbose=False):
 
     return pd.DataFrame(outrows)
 
-def assign_ref_match(row, tol=0.05, hgdf=None, verbose=True, full_output=False):
+
+def assign_ref_match(row, tol=0.05, hgdf=None, verbose=True, full_output=False,
+                     namecol="Metabolite name", classcol="Ontology", adductcol="Adduct type",
+                     msmscol="MS/MS spectrum", refspecol="Ref Spec", refmzcol="Reference m/z"):
     # Unpack row
-    name = row["Metabolite name"]
-    cname = row["Ontology"]
-    adduct = row["Adduct type"]
+    name = row[namecol]
+    cname = row[classcol]
+    adduct = row[adductcol]
     tail1 = row["T1"]
     tail2 = row["T2"]
     tail3 = row["T3"]
@@ -801,23 +806,41 @@ def assign_ref_match(row, tol=0.05, hgdf=None, verbose=True, full_output=False):
     # Drop duplicates from tdict
     tdict = {k: v for i, (k, v) in enumerate(tdict.items()) if v not in list(tdict.values())[:i]}
 
-    msms_mz = row["MS/MS spectrum"]
-    ref_spectrum = row["Ref Spec"]
-    ref_mz = float(row["Reference m/z"])
+    msms_mz = row[msmscol]
+    ref_spectrum = row[refspecol]
+    ref_mz = float(row[refmzcol])
 
     if hgdf is None:
         hgdf = hgdf_default
 
     # Unpack reference spectrum and msms_mz
-    mzlist = [m.split(":") for m in msms_mz.split(" ") if m.strip() != ""]
-    reflist = [m.split(":") for m in ref_spectrum.split(" ") if m.strip() != ""]
-    mzlist = np.array([[float(mz[0]), float(mz[1])] for mz in mzlist])
-    reflist = np.array([[float(r[0]), float(r[1])] for r in reflist])
-    # Filter each to 1% intensity threshold
-    mzthreshold = np.max(mzlist[:, 1]) * 0.01
-    refthreshold = np.max(reflist[:, 1]) * 0.01
-    mzlist = mzlist[mzlist[:, 1] >= mzthreshold]
-    reflist = reflist[reflist[:, 1] >= refthreshold]
+    if type(msms_mz) is str:
+        if ":" in msms_mz:
+            mzlist = [m.split(":") for m in msms_mz.split(" ") if m.strip() != ""]
+            reflist = [m.split(":") for m in ref_spectrum.split(" ") if m.strip() != ""]
+        elif "," in msms_mz:
+            mzlist = [m.split(",") for m in msms_mz.split(" ") if m.strip() != ""]
+            reflist = [m.split(",") for m in ref_spectrum.split(" ") if m.strip() != ""]
+        else:
+            mzlist = [float(m) for m in msms_mz.split(" ") if m.strip() != ""]
+            reflist = [float(r) for r in ref_spectrum.split(" ") if r.strip() != ""]
+            mzlist = np.array([[m, 1.0] for m in mzlist])
+            reflist = np.array([[r, 1.0] for r in reflist])
+        mzlist = np.array([[float(mz[0]), float(mz[1])] for mz in mzlist])
+        reflist = np.array([[float(r[0]), float(r[1])] for r in reflist])
+        # Filter each to 1% intensity threshold
+        mzthreshold = np.max(mzlist[:, 1]) * 0.01
+        refthreshold = np.max(reflist[:, 1]) * 0.01
+        mzlist = mzlist[mzlist[:, 1] >= mzthreshold]
+        reflist = reflist[reflist[:, 1] >= refthreshold]
+    elif type(msms_mz) is float or type(msms_mz) is int:
+        # Single float mz value
+        mzlist = np.array([msms_mz, 1.0]).reshape((1, 2))
+        reflist = np.array([ref_spectrum, 1.0]).reshape((1, 2))
+    else:
+        # Assume already an array
+        mzlist = msms_mz
+        reflist = ref_spectrum
 
     matchedmz = []
     for r in reflist[:, 0]:
@@ -922,8 +945,8 @@ def assign_ref_match(row, tol=0.05, hgdf=None, verbose=True, full_output=False):
 
     if full_output:
         for i in range(4):
-            row[f"T{i+1}_Fragments_Found"] = tailcounts[i]
-            row[f"T{i+1}_NL_Found"] = tailnlcounts[i]
+            row[f"T{i + 1}_Fragments_Found"] = tailcounts[i]
+            row[f"T{i + 1}_NL_Found"] = tailnlcounts[i]
         row["HG_Fragments_Found"] = hgcounts
         row["HG_NL_Found"] = hgcountsnl
         row["Adduct_NL_Found"] = adductcountsnl
@@ -969,7 +992,46 @@ def assign_ref_match(row, tol=0.05, hgdf=None, verbose=True, full_output=False):
     row["Match_Grade"] = grade
     return row
 
+
 def check_match(query_mz, target, tol=0.05):
     if abs(query_mz - target) <= tol:
         return True
     return False
+
+
+def skyline_tail_namer(tldf):
+    # Adjust tail names to Skyline format
+    tldf = tldf.copy()
+    names = tldf["Molecule Name"].tolist()
+    names = [fix_dash(n) for n in names]
+    tldf["Molecule Name"] = names
+
+    adducts = tldf["Precursor Adduct"].tolist()
+    adducts = [fix_adduct(a, 1, 0) for a in adducts]
+    tldf["Precursor Adduct"] = adducts
+    # Apply fix_dash
+    # tldf = tldf.apply(lambda row: fix_dash(row["Molecule Name"]), axis=1)
+
+    tldf = set_basic_tail_names(tldf, columnname="Molecule Name")
+
+    newrows = []
+    for i, row in tldf.iterrows():
+        newrow = assign_ref_match(row, namecol="Molecule Name", classcol="Molecule List Name",
+                                  adductcol="Precursor Adduct",
+                                  msmscol="Product Mz", refspecol="Product Mz", refmzcol="Precursor Mz",
+                                  full_output=True)
+        newrows.append(newrow)
+    outdf = pd.DataFrame(newrows)
+    # Drop unneeded columns
+    dropcols = ["Tails", "T1", "T2", "T3", "T4", "Match_Grade", "Headgroup_Match",
+                "Tail_Match_Count", "Total_Tails", "Adduct_Match", 'T1_Fragments_Found', 'T1_NL_Found',
+                'T2_Fragments_Found', 'T2_NL_Found', 'T3_Fragments_Found',
+                'T3_NL_Found', 'T4_Fragments_Found', 'T4_NL_Found',
+                'HG_Fragments_Found', 'HG_NL_Found', 'Adduct_NL_Found', 'Fragments_Missed', 'NL_Missed',
+                'Tail_Match_Fraction', "NL_Assigned"]
+    outdf = outdf.drop(columns=dropcols)
+    # Rename Fragments_Assigned to "Precursor Name"
+    outdf = outdf.rename(columns={"Fragments_Assigned": "Product Name"})
+    print(outdf.columns)
+
+    return outdf
