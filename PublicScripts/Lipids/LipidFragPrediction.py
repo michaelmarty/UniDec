@@ -496,9 +496,8 @@ def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[], adduct="[M-H]
         fragments["FA(-C)"] = acylmass - mass_c - mass_h
         fragments["FA(+O+NH)"] = mass + mass_n + mass_h
         fragments["FA(+O+C)"] = mass + mass_c
-        fragments["FA(+2O)"] = mass + mass_o
-        fragments["FA(+O+C3H6)"] = mass + 3 * mass_ch2
-        fragments["FA(+O+2O-CH2)"] = mass + 3 * mass_ch2
+        # fragments["FA(+2O)"] = mass + mass_o
+        # fragments["FA(+O+C3H6)"] = mass + 3 * mass_ch2
         fragments["FA(-H+NOH2)"] = acylmass + mass_n + mass_h + mass_o
         fragments["FA(+O+O-2H)"] = mass + mass_o - 2 * mass_h
 

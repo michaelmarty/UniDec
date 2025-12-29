@@ -140,7 +140,7 @@ def check_all_full(facinterest, faclist):
     return True
 
 
-def monte_carlo(df, matriculation_range=[.4, .6], num=1000, limit=True):
+def monte_carlo(df, matriculation_range=[.4, .7], num=1000, limit=True):
     """Perform Monte Carlo simulation of faculty assignments based on matriculation rates."""
     faculty = df["Names"].str.split(",").explode().str.strip().unique()
     faculty = [f for f in faculty if f != ""]
