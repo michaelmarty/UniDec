@@ -18,10 +18,10 @@ def autocorr_ratio(deltas):
 def area_ratio(data, template, threshold=0.1):
     b1 = template > np.amax(template) * threshold
     normfactor = np.amax(data[b1]) / np.amax(template[b1])
-    # area_data = np.sum(data[b1])
-    # area_template = np.sum(template[b1])
-    area_data = np.sum(data * template)
-    area_template = np.sum(template * template)
+    area_data = np.sum(data[b1])
+    area_template = np.sum(template[b1])
+    # area_data = np.sum(data * template)
+    # area_template = np.sum(template * template)
     if area_data == 0:
         return 1.0
     return area_template / area_data * normfactor
@@ -71,23 +71,6 @@ def local_softmax(deltas, templates, beta=1):
     sim_data = np.dot(templates.T, deltas)
     return safedivide(exps * sim_data , localsums)
 
-def tilt(deltas, data, templates):
-    sim_data = np.dot(templates.T, deltas)
-    diffs = data - sim_data
-
-    # Get upper and lower triangular components
-    ut = np.dot(np.triu(templates.T), diffs) / np.sum(np.triu(templates.T), axis=0)
-    lt = np.dot(np.tril(templates.T), diffs) / np.sum(np.tril(templates.T), axis=0)
-    tiltarray = ut-lt
-
-    leftshift = deltas * tiltarray
-    rightshift = -deltas * tiltarray
-
-    deltas[1:] += leftshift[:-1]
-    deltas[:-1] += rightshift[1:]
-    return deltas
-
-
 def richardson_lucy(data, minmax=[0.5, 3], beta=50, threshold=0.1, plot=False):
     # Create initial templates
     templates = np.array([fit.ndis_std(data[:,0], x, 2, 1) for x in data[:,0]])
@@ -110,9 +93,6 @@ def richardson_lucy(data, minmax=[0.5, 3], beta=50, threshold=0.1, plot=False):
         correction = safedivide(np.dot(templates.T, correction) , np.sum(templates, axis=0))
         # correction += np.random.normal(0, np.amax(correction)*0.01, correction.shape)  # Avoid zeros
         deltas = deltas * correction
-
-        # Tilt
-        deltas = tilt(deltas, data[:,1], templates)
 
         # maxpos = np.argmax(data[:,1])
         # deltaratios = np.array([delta_ratio(deltas, t, threshold=threshold) for i, t in enumerate(templates)])
@@ -139,9 +119,13 @@ def richardson_lucy(data, minmax=[0.5, 3], beta=50, threshold=0.1, plot=False):
             # plotdata = sim_data
             # plotdata = deltas / deltas[maxpos] * data[maxpos, 1]
             plotdata = deltas
+
             # plotdata = correction
             # plotdata = deltaratios
             plt.plot(data[:, 0], plotdata, label=f'Iteration {i + 1}', color=plt.cm.viridis(i / maxit), alpha=0.5)
+
+    plotdata = [calc_sigma(np.column_stack((data[:, 0], t))) for t in templates]
+    plt.plot(data[:, 0], plotdata, 'k-', label='Final Sigmas', linewidth=2)
 
     sim_data = np.dot(templates.T, deltas)
     # sim_data /= np.amax(sim_data) * np.amax(data[:, 1])
