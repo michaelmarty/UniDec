@@ -10,7 +10,7 @@ from unidec.modules.IM_functions import calc_linear_ccs, calc_linear_ccsconst
 import unidec.tools as ud
 from unidec.modules.unidecstructure import UniDecConfig
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import scipy.fft as fft
 import math
 from unidec.modules.unidecstructure import ChromatogramContainer
@@ -1239,7 +1239,7 @@ class UniChromCDEng(HTEng, UniDecCD):
             ticdat[:, 1] /= np.amax(ticdat[:, 1])
             processed_tic /= np.amax(processed_tic)
 
-        print("Full HT Demultiplexing Done:", time.perf_counter() - starttime)
+        print("Full Demultiplexing Done:", time.perf_counter() - starttime)
         return ticdat, processed_tic
 
     def select_ht_range(self, range=None):
