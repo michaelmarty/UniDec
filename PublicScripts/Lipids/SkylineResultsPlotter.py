@@ -4,6 +4,9 @@ import numpy as np
 import scipy.stats as stats
 from statsmodels.stats.multitest import multipletests
 import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+
 
 def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True):
     molecules = df["Molecule"].unique()
@@ -31,7 +34,7 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
                 pass
 
             total_area = subset["Area"].sum()
-            newrow[r]= total_area
+            newrow[r] = total_area
         newrows.append(newrow)
 
     outdf = pd.DataFrame(newrows)
@@ -46,12 +49,14 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
         outdf = normalize_tic(outdf, replicates)
     return outdf, replicates
 
+
 def normalize_tic(df, replicates):
     normdf = df.copy()
     for r in replicates:
         total = normdf[r].sum()
         normdf[r] = normdf[r] / total
     return normdf
+
 
 def normalize_is(df, replicates):
     normdf = df.copy()
@@ -67,7 +72,8 @@ def normalize_is(df, replicates):
         for r in replicates:
             isval = float(isrow[r].values[0])
             if isval == 0:
-                print(f"Warning: IS value is zero for class {c} in replicate {r}. Skipping normalization for this class and replicate.")
+                print(
+                    f"Warning: IS value is zero for class {c} in replicate {r}. Skipping normalization for this class and replicate.")
                 continue
             normdf.loc[mask, r] = normdf.loc[mask, r].astype(float) / isval
     return normdf
@@ -82,7 +88,7 @@ def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correctio
         ratios = set2_values / set1_values
         # Put ratios in their own columns
         for i in range(ratios.shape[1]):
-            df[f"Ratio_{i+1}"] = ratios[:, i]
+            df[f"Ratio_{i + 1}"] = ratios[:, i]
         ratiomean = ratios.mean(axis=1)
         df["FC"] = ratiomean
         df["Log2FC"] = np.log2(np.array(ratiomean) + 1e-10)
@@ -123,7 +129,9 @@ def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correctio
 
     return df
 
-def class_calcs(df, replicate_set1, replicate_set2, class_col="Molecule List Name", normalize=True, paired=True, bh_correction=True):
+
+def class_calcs(df, replicate_set1, replicate_set2, class_col="Molecule List Name", normalize=True, paired=True,
+                bh_correction=True):
     classes = df[class_col].unique()
     replicates = replicate_set1 + replicate_set2
 
@@ -144,9 +152,10 @@ def class_calcs(df, replicate_set1, replicate_set2, class_col="Molecule List Nam
     print(outdf)
     return outdf
 
+
 def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volcano Plot", ax=None):
     if ax is None:
-        plt.figure(figsize=(8,6))
+        plt.figure(figsize=(8, 6))
     else:
         plt.sca(ax)
     # Color by Molecule List Name
@@ -161,9 +170,10 @@ def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volc
     plt.axvline(x=1, color='g', linestyle='--')
     plt.axvline(x=-1, color='g', linestyle='--')
 
+
 def make_class_plots(classdf, ax=None):
     if ax is None:
-        plt.figure(figsize=(10,6))
+        plt.figure(figsize=(10, 6))
     else:
         plt.sca(ax)
     classes = classdf["Molecule List Name"].unique()
@@ -183,28 +193,64 @@ def make_class_plots(classdf, ax=None):
     plt.legend()
 
 
-file = r"Z:\Group Share\Annika\Stellar\EC\AqpZ New Data\DDM 05 AqpZ Molecule Transition Results.csv"
+def pca_plot(df, replicates_set1, replicates_set2, title="PCA Plot", ax=None):
+    replicates = replicates_set1 + replicates_set2
+    data = df[replicates].values
+    data = StandardScaler().fit_transform(data.T)
 
-set1 = ["2", "3", "4"]
-set2 = ["5_D1_EC_2","7_D2_2","9_D3_EC_2"]
-paired = True
+    pca = PCA(n_components=2)
+    principalComponents = pca.fit_transform(data)
+    pc_df = pd.DataFrame(data=principalComponents, columns=['PC1', 'PC2'])
+    pc_df['Group'] = ['Set1'] * len(replicates_set1) + ['Set2'] * len(replicates_set2)
 
-df = pd.read_csv(file)
+    if ax is None:
+        plt.figure(figsize=(8, 6))
+    else:
+        plt.sca(ax)
 
-normdf, replicates = sum_transitions(df, mode="All", normalize_IS=False)
-classdf = class_calcs(normdf, set1, set2, paired=paired)
-normdf = stats_calcs(normdf, set1, set2, paired=paired, bh_correction=True)
+    colors = {'Set1': 'b', 'Set2': 'r'}
+    for group in pc_df['Group'].unique():
+        indicesToKeep = pc_df['Group'] == group
+        plt.scatter(pc_df.loc[indicesToKeep, 'PC1'], pc_df.loc[indicesToKeep, 'PC2'], c=colors[group], s=50)
+    plt.title(title)
+    plt.xlabel(f'PC1 - {pca.explained_variance_ratio_[0] * 100:.2f}%')
+    plt.ylabel(f'PC2 - {pca.explained_variance_ratio_[1] * 100:.2f}%')
+    plt.legend(pc_df['Group'].unique())
 
-plt.figure(figsize=(12, 5))
-ax1 = plt.subplot(1, 2, 1)
-make_class_plots(classdf, ax=ax1)
 
-ax2 = plt.subplot(1, 2, 2)
-make_volcano_plot(normdf, title="AqpZ DDM 0.5% Volcano Plot", ax=ax2)
-plt.show()
+def full_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
+                  normalize_TIC=True, paired=True, bh_correction=True, plot_results=True):
 
-# Write classdf to CSV
-classdf.to_csv(os.path.splitext(file)[0] + "_class_stats.csv", index=False)
-# Write normdf to CSV
-normdf.to_csv(os.path.splitext(file)[0] + "_molecule_stats.csv", index=False)
+    df = pd.read_csv(filepath)
+    normdf, replicates = sum_transitions(df, mode=mode, drop_IS=drop_IS, normalize_IS=normalize_IS,
+                                         normalize_TIC=normalize_TIC)
+    classdf = class_calcs(normdf, set1, set2, paired=paired)
+    normdf = stats_calcs(normdf, set1, set2, paired=paired, bh_correction=bh_correction)
 
+    # Write classdf to CSV
+    classdf.to_csv(os.path.splitext(filepath)[0] + "_class_stats.csv", index=False)
+    # Write normdf to CSV
+    normdf.to_csv(os.path.splitext(filepath)[0] + "_molecule_stats.csv", index=False)
+
+    if plot_results:
+        plt.figure(figsize=(12, 5))
+        ax1 = plt.subplot(1, 3, 1)
+        make_class_plots(classdf, ax=ax1)
+
+        ax2 = plt.subplot(1, 3, 2)
+        make_volcano_plot(normdf, title="Volcano Plot", ax=ax2)
+
+        ax3 = plt.subplot(1, 3, 3)
+        pca_plot(normdf, set1, set2, title="PCA Plot", ax=ax3)
+        plt.tight_layout()
+        plt.show()
+
+
+if __name__ == "__main__":
+    file = r"Z:\Group Share\Annika\Stellar\EC\AqpZ New Data\DDM 05 AqpZ Molecule Transition Results.csv"
+
+    set1 = ["2", "3", "4"]
+    set2 = ["5_D1_EC_2", "7_D2_2", "9_D3_EC_2"]
+
+    full_pipeline(file, set1, set2, mode="Products", drop_IS=True, normalize_IS=False,
+                  normalize_TIC=True, paired=True, bh_correction=True, plot_results=True)
