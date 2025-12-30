@@ -18,8 +18,10 @@ def autocorr_ratio(deltas):
 def area_ratio(data, template, threshold=0.1):
     b1 = template > np.amax(template) * threshold
     normfactor = np.amax(data[b1]) / np.amax(template[b1])
-    area_data = np.sum(data[b1])
-    area_template = np.sum(template[b1])
+    # area_data = np.sum(data[b1])
+    # area_template = np.sum(template[b1])
+    area_data = np.sum(data * template)
+    area_template = np.sum(template * template)
     if area_data == 0:
         return 1.0
     return area_template / area_data * normfactor
@@ -40,7 +42,7 @@ def delta_ratio(data, template, threshold=0.1):
 
 def template_decon(ydata, templates, threshold=0.1):
     ratios = np.array([area_ratio(ydata, t, threshold=threshold) for i, t in enumerate(templates)])
-    ratios = np.dot(templates.T, ratios) / np.sum(templates, axis=0) # Convolve ratios
+    # ratios = np.dot(templates.T, ratios) / np.sum(templates, axis=0) # Convolve ratios
     return np.array([apply_ratio(t, r) for t, r in zip(templates, ratios)])
 
 def apply_delta_ratios(deltas, templates, threshold=0.1):
@@ -48,7 +50,7 @@ def apply_delta_ratios(deltas, templates, threshold=0.1):
     # smooth ratios
     ratios = np.dot(templates.T, ratios) / np.sum(templates, axis=0)
     dmax = np.amax(deltas)
-    out = deltas ** (ratios ** 0.1)
+    out = deltas ** (ratios**0.1)
     out = out / np.amax(out) * dmax
     return out
 
@@ -69,6 +71,23 @@ def local_softmax(deltas, templates, beta=1):
     sim_data = np.dot(templates.T, deltas)
     return safedivide(exps * sim_data , localsums)
 
+def tilt(deltas, data, templates):
+    sim_data = np.dot(templates.T, deltas)
+    diffs = data - sim_data
+
+    # Get upper and lower triangular components
+    ut = np.dot(np.triu(templates.T), diffs) / np.sum(np.triu(templates.T), axis=0)
+    lt = np.dot(np.tril(templates.T), diffs) / np.sum(np.tril(templates.T), axis=0)
+    tiltarray = ut-lt
+
+    leftshift = deltas * tiltarray
+    rightshift = -deltas * tiltarray
+
+    deltas[1:] += leftshift[:-1]
+    deltas[:-1] += rightshift[1:]
+    return deltas
+
+
 def richardson_lucy(data, minmax=[0.5, 3], beta=50, threshold=0.1, plot=False):
     # Create initial templates
     templates = np.array([fit.ndis_std(data[:,0], x, 2, 1) for x in data[:,0]])
@@ -82,14 +101,18 @@ def richardson_lucy(data, minmax=[0.5, 3], beta=50, threshold=0.1, plot=False):
         templates = np.array([enforce_minmax(data[:, 0], t, minmax) for t in templates])
 
     # Run Iteration
-    maxit = 50
+    maxit = 500
     lastdeltas = deltas.copy()
     for i in range(1, maxit):
         # Adjust intensities of deltas
         sim_data = np.dot(templates.T, deltas)
         correction = safedivide(data[:,1] , sim_data)
         correction = safedivide(np.dot(templates.T, correction) , np.sum(templates, axis=0))
+        # correction += np.random.normal(0, np.amax(correction)*0.01, correction.shape)  # Avoid zeros
         deltas = deltas * correction
+
+        # Tilt
+        deltas = tilt(deltas, data[:,1], templates)
 
         # maxpos = np.argmax(data[:,1])
         # deltaratios = np.array([delta_ratio(deltas, t, threshold=threshold) for i, t in enumerate(templates)])
@@ -127,12 +150,16 @@ def richardson_lucy(data, minmax=[0.5, 3], beta=50, threshold=0.1, plot=False):
     # peakindexes = [np.argmin(np.abs(data[:,0]-p[0])) for p in peaks]
     # for pi in peakindexes:
     #     print("Peak at:", data[pi,0], "Value:", deltas[pi], "Sigma:", calc_sigma(np.column_stack((data[:,0], templates[pi]))))
-
     return deltas, sim_data
 
 def gen_random_spectrum(x, npeaks=5, noiselevel=0.01):
     y = np.zeros_like(x)
     centers = np.random.uniform(np.min(x), np.max(x), npeaks)
+    # any centers that are within 0.5 of each other, re-generate
+    for i in range(npeaks):
+        for j in range(i):
+            while abs(centers[i] - centers[j]) < 0.5:
+                centers[i] = np.random.uniform(np.min(x), np.max(x))
     sigmas = np.random.uniform(0.5, 2.0, npeaks)
     amplitudes = np.random.uniform(0.1, 1.0, npeaks)
     datas = []
@@ -152,7 +179,7 @@ minmax = [0.5, 3]
 minmax = None
 
 x = np.linspace(-50, 50, 2000)
-y, info, datas  = gen_random_spectrum(x, npeaks=1, noiselevel=0.02)
+y, info, datas  = gen_random_spectrum(x, npeaks=5, noiselevel=0.02)
 
 plt.figure(figsize=(20,10))
 for i, d in enumerate(datas):
