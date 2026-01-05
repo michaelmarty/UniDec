@@ -7,6 +7,38 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
+class_color_map = {
+    "PC": "#788BFF",
+    "PC O": "#BFD7FF",
+    "LPC-O/P": "#BFD7FF",
+    "LPC": "#3019E3",
+    "PE": "#6017A9",
+    "PE-O": "#A276E5",
+    "LPE": "#8F5CD2",
+    "PG": "#356935",
+    "LPG": "#B1D8B1",
+    "LPS": "#FDF32F",
+    "PS": "#C89504",
+    "PA": "#95F4D4",
+    "LPA": "#42EBB3",
+    "PI": "#8FFBFF",
+    "LPI": "#00CAD1",
+    "CL": "#FFA200",
+    "Cer": "#AB30A1",
+    "HexCer": "#F708E3",
+    "SM": "#FFDB73",
+    "CoQ": "#F25C54",
+    "MAG": "#F7B267",
+    "DG": "#F4845F",
+    "DAG": "#F4845F",
+    "TG": "#8F1458",
+    "TAG": "#8F1458",
+    "FA": "#FFA1DB",
+    "CE": "#D10081",
+    "NAE": "#777777",
+    "ST": "#B40808",
+    "Standard": "#0D0D0D"
+}
 
 def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True):
     molecules = df["Molecule"].unique()
@@ -161,12 +193,11 @@ def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volc
     # Color by Molecule List Name
     classes = df["Molecule List Name"].unique()
     colors = plt.cm.get_cmap('tab10', len(classes))
-    class_color_map = {cls: colors(i) for i, cls in enumerate(classes)}
+    # class_color_map = {cls: colors(i) for i, cls in enumerate(classes)}
     plt.scatter(df[log2fc_col], df[neglogp_col], alpha=0.7, c=df["Molecule List Name"].map(class_color_map))
     plt.title(title)
     plt.xlabel("Log2 Fold Change")
     plt.ylabel("-Log10 p-value")
-    plt.xlim(-5, 5)
     plt.axhline(y=-np.log10(0.05), color='r', linestyle='--')
     plt.axvline(x=1, color='g', linestyle='--')
     plt.axvline(x=-1, color='g', linestyle='--')
@@ -179,7 +210,7 @@ def make_class_plots(classdf, ax=None):
         plt.sca(ax)
     classes = classdf["Molecule List Name"].unique()
     colors = plt.cm.get_cmap('tab10', len(classes))
-    class_color_map = {cls: colors(i) for i, cls in enumerate(classes)}
+    # class_color_map = {cls: colors(i) for i, cls in enumerate(classes)}
     colors = [class_color_map[cls] for cls in classdf["Molecule List Name"]]
 
     # Labels are class name plus p-value
@@ -248,10 +279,10 @@ def full_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize
 
 
 if __name__ == "__main__":
-    file = r"Z:\Group Share\Annika\Stellar\EC\Test_TransResults.csv"
+    file = r"Z:\Group Share\Annika\Stellar\EC\AqpZ New Data\DDM 05 AqpZ Molecule Transition Results2.csv"
 
-    set1 = ["20251216_AS_11_FT1_EC", "20251216_AS_13_FT2_EC", "20251216_AS_15_FT3_EC"]
-    set2 = ["20251216_AS_05_D1_EC_2", "20251216_AS_07_D2_2", "20251216_AS_09_D3_EC_2"]
+    set1 = ["2", "3", "4"]
+    set2 = ["5_D1_EC_2", "7_D2_2", "9_D3_EC_2"]
 
-    full_pipeline(file, set1, set2, mode="Products", drop_IS=True, normalize_IS=False,
+    full_pipeline(file, set1, set2, mode="All", drop_IS=True, normalize_IS=False,
                   normalize_TIC=True, paired=True, bh_correction=True, plot_results=True)
