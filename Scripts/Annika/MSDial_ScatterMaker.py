@@ -7,7 +7,7 @@ import numpy as np
 # ------------------------------
 # User files
 # ------------------------------
-file = "Z:\Group Share\Annika\IQ-X\UntDDA Tests HEKpos\Peak Masters"
+file = "Z:\\Group Share\\Annika\\IQ-X\\UntDDA Tests HEK\\HEKpos_OTOT_OldLib_Peakmaster.csv"
 colormap_file = r"Z:\\Group Share\\Annika\\Lipid_ColorMap.xlsx"
 
 # ------------------------------
@@ -170,9 +170,20 @@ plt.gca().spines['top'].set_visible(False)
 plt.gca().spines['right'].set_visible(False)
 plt.xlabel("Retention Time (min)")
 plt.ylabel("m/z")
-plt.title("Stellar AqpZ Membrane Discs")
+plt.title("IQ-X HEKpos OT OT Previous Library")
 plt.xticks(np.arange(0.0, 18, 2.5))
 plt.yticks(np.arange(0.0, 1600.1, 200))
+
+# Add total number of lipids on the plot
+total_lipids = len(df)
+plt.text(
+    0.95, 0.95, f"Total lipids: {total_lipids}",
+    horizontalalignment='right',
+    verticalalignment='top',
+    transform=plt.gca().transAxes,
+    fontsize=14,
+    bbox=dict(facecolor='white', alpha=0.6, edgecolor='none', pad=5)
+)
 
 ncol = min(6, len(unique_classes))
 plt.legend(handles=custom_legend, loc='upper center', bbox_to_anchor=(0.5, -0.08),

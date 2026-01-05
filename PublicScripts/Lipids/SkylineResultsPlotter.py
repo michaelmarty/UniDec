@@ -166,6 +166,7 @@ def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volc
     plt.title(title)
     plt.xlabel("Log2 Fold Change")
     plt.ylabel("-Log10 p-value")
+    plt.xlim(-5, 5)
     plt.axhline(y=-np.log10(0.05), color='r', linestyle='--')
     plt.axvline(x=1, color='g', linestyle='--')
     plt.axvline(x=-1, color='g', linestyle='--')
@@ -247,10 +248,10 @@ def full_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize
 
 
 if __name__ == "__main__":
-    file = r"Z:\Group Share\Annika\Stellar\EC\AqpZ New Data\DDM 05 AqpZ Molecule Transition Results.csv"
+    file = r"Z:\Group Share\Annika\Stellar\EC\Test_TransResults.csv"
 
-    set1 = ["2", "3", "4"]
-    set2 = ["5_D1_EC_2", "7_D2_2", "9_D3_EC_2"]
+    set1 = ["20251216_AS_11_FT1_EC", "20251216_AS_13_FT2_EC", "20251216_AS_15_FT3_EC"]
+    set2 = ["20251216_AS_05_D1_EC_2", "20251216_AS_07_D2_2", "20251216_AS_09_D3_EC_2"]
 
     full_pipeline(file, set1, set2, mode="Products", drop_IS=True, normalize_IS=False,
                   normalize_TIC=True, paired=True, bh_correction=True, plot_results=True)

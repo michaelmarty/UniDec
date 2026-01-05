@@ -76,7 +76,7 @@ def outlier_pipeline(posfile, negfile, posxml="", negxml=""):
         namedf.to_excel(writer, sheet_name='Unique_Names', index=False)
 
 
-topdir = r"C:\Python\pyRetip\notebooks\lipidomics"
+topdir = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\HEK\New Libs Tests"
 posfile = "PosIDsRTP2.csv"
 negfile = "NegIDsRTP2.csv"
 posfile = "PosIDsC1_Ref.csv"

@@ -1591,7 +1591,7 @@ def network_plot(G, axis=None, colortarget="z_Anomaly_Score"):
         cmap = mpl.cm.viridis
         # prepare label mapping
         labels_text = {node: (
-            f"{node.split("~")[1]}\n"
+            f"{node.split('~')[1]}\n"
             f"{colortarget}: {G.nodes[node].get(colortarget, 0.0):.2f}\n"
             f"Adduct: {G.nodes[node].get('Adduct type', 'N/A')}\n"
         ) for node in node_list}
