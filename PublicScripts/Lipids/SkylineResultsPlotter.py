@@ -72,6 +72,8 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
     outdf = pd.DataFrame(newrows)
     if normalize_IS:
         outdf = normalize_is(outdf, replicates)
+        if len(outdf) == 0:
+            raise ValueError("No data left after IS normalization. Check if IS compounds are present.")
 
     if drop_IS:
         # Drop any rows where Molecule starts with "IS_"
@@ -101,11 +103,14 @@ def normalize_is(df, replicates):
         subdf = normdf[normdf["Molecule List Name"] == c]
         # Find IS as molecule that starts with "IS_"
         isrow = subdf[subdf["Molecule"].str.startswith("IS")]
+        if len(isrow) == 0:
+            print(f"WARNING: No IS found for class {c}. Skipping normalization for this class.")
+            continue
         for r in replicates:
             isval = float(isrow[r].values[0])
             if isval == 0:
                 print(
-                    f"Warning: IS value is zero for class {c} in replicate {r}. Skipping normalization for this class and replicate.")
+                    f"WARNING: IS value is zero for class {c} in replicate {r}. Skipping normalization for this class and replicate.")
                 continue
             normdf.loc[mask, r] = normdf.loc[mask, r].astype(float) / isval
     return normdf
