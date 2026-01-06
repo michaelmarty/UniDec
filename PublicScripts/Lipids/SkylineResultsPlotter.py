@@ -310,6 +310,7 @@ def full_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize
     with pd.ExcelWriter(os.path.splitext(filepath)[0] + "_stats.xlsx") as writer:
         classdf.to_excel(writer, sheet_name="Class Stats", index=False)
         normdf.to_excel(writer, sheet_name="Molecule Stats", index=False)
+        df.to_excel(writer, sheet_name="Raw Data", index=False)
 
     # # Write classdf to CSV
     # classdf.to_csv(os.path.splitext(filepath)[0] + "_class_stats.csv", index=False)
