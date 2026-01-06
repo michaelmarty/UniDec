@@ -6,6 +6,9 @@ from statsmodels.stats.multitest import multipletests
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+import matplotlib as mpl
+
+mpl.use("WxAgg")
 
 class_color_map = {
     "PC": "#788BFF",
@@ -117,6 +120,10 @@ def normalize_is(df, replicates):
 
 
 def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correction=True):
+
+    df["Mean"] = df[replicates_set1 + replicates_set2].mean(axis=1)
+
+    summarycols = []
     if paired:
         if len(replicates_set1) != len(replicates_set2):
             raise ValueError("For paired t-test, the number of replicates in both sets must be equal.")
@@ -126,22 +133,28 @@ def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correctio
         # Put ratios in their own columns
         for i in range(ratios.shape[1]):
             df[f"Ratio_{i + 1}"] = ratios[:, i]
+            summarycols.append(f"Ratio_{i + 1}")
         ratiomean = ratios.mean(axis=1)
         df["FC"] = ratiomean
         df["Log2FC"] = np.log2(np.array(ratiomean) + 1e-10)
         df["StdDevFC"] = np.std(ratios, axis=1, ddof=1)
+        df["CI95_FC"] = stats.t.ppf(0.975, df=len(replicates_set1) - 1) * (df["StdDevFC"] / np.sqrt(len(replicates_set1)))
 
     else:
         set1_means = df[replicates_set1].mean(axis=1)
         set2_means = df[replicates_set2].mean(axis=1)
         df["Set1_Mean"] = set1_means
         df["Set2_Mean"] = set2_means
+        summarycols.append("Set1_Mean")
+        summarycols.append("Set2_Mean")
         df["FC"] = set2_means / set1_means
         df["Log2FC"] = np.log2(set2_means + 1e-10) - np.log2(set1_means + 1e-10)
         # Propagate standard deviation
         set1_std = df[replicates_set1].std(axis=1, ddof=1)
         set2_std = df[replicates_set2].std(axis=1, ddof=1)
         df["StdDevFC"] = df["FC"] * np.sqrt((set1_std / set1_means) ** 2 + (set2_std / set2_means) ** 2)
+        df["CI95_FC"] = stats.t.ppf(0.975, df=len(replicates_set1) + len(replicates_set2) - 2) * (
+                    df["StdDevFC"] / np.sqrt(len(replicates_set1) + len(replicates_set2)))
 
     p_values = []
     for index, row in df.iterrows():
@@ -150,6 +163,9 @@ def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correctio
 
         set1_values = np.array(set1_values, dtype=np.float64)
         set2_values = np.array(set2_values, dtype=np.float64)
+
+        if index == 0:
+            print("N Set1:", len(set1_values), "N Set2:", len(set2_values))
 
         if paired:
             _, p = stats.ttest_rel(set1_values, set2_values)
@@ -164,7 +180,7 @@ def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correctio
 
     df["Log10p"] = -np.log10(df["p-value"] + 1e-10)
 
-    return df
+    return df, summarycols
 
 
 def class_calcs(df, replicate_set1, replicate_set2, class_col="Molecule List Name", normalize=True, paired=True,
@@ -185,9 +201,9 @@ def class_calcs(df, replicate_set1, replicate_set2, class_col="Molecule List Nam
     if normalize:
         outdf = normalize_tic(outdf, replicates)
 
-    outdf = stats_calcs(outdf, replicate_set1, replicate_set2, paired=paired, bh_correction=bh_correction)
+    outdf, summarycols = stats_calcs(outdf, replicate_set1, replicate_set2, paired=paired, bh_correction=bh_correction)
     print(outdf)
-    return outdf
+    return outdf, summarycols
 
 
 def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volcano Plot", ax=None):
@@ -197,9 +213,12 @@ def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volc
         plt.sca(ax)
     # Color by Molecule List Name
     classes = df["Molecule List Name"].unique()
-    colors = plt.cm.get_cmap('tab10', len(classes))
+    # colors = plt.cm.get_cmap('tab10', len(classes))
     # class_color_map = {cls: colors(i) for i, cls in enumerate(classes)}
-    plt.scatter(df[log2fc_col], df[neglogp_col], alpha=0.7, c=df["Molecule List Name"].map(class_color_map))
+    sizes = df["Mean"]
+    # Scale sizes to between 20 and 50
+    sizes = 20 + (sizes - sizes.min()) / (sizes.max() - sizes.min()) * (50 - 20)
+    plt.scatter(df[log2fc_col], df[neglogp_col], alpha=0.7, c=df["Molecule List Name"].map(class_color_map), s=sizes)
     plt.title(title)
     plt.xlabel("Log2 Fold Change")
     plt.ylabel("-Log10 p-value")
@@ -213,8 +232,7 @@ def make_class_plots(classdf, ax=None):
         plt.figure(figsize=(10, 6))
     else:
         plt.sca(ax)
-    classes = classdf["Molecule List Name"].unique()
-    colors = plt.cm.get_cmap('tab10', len(classes))
+    # classes = classdf["Molecule List Name"].unique()
     # class_color_map = {cls: colors(i) for i, cls in enumerate(classes)}
     colors = [class_color_map[cls] for cls in classdf["Molecule List Name"]]
 
@@ -254,6 +272,30 @@ def pca_plot(df, replicates_set1, replicates_set2, title="PCA Plot", ax=None):
     plt.ylabel(f'PC2 - {pca.explained_variance_ratio_[1] * 100:.2f}%')
     plt.legend(pc_df['Group'].unique())
 
+def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=-3, colormap='viridis', normtype="minmax", scale="linear"):
+    data = df[replicates].values
+    if normtype=="minmax":
+        # Normalize data to 0-1 for better color mapping
+        data = (data - np.min(data)) / (np.max(data) - np.min(data))
+    elif normtype=="zscore":
+        data = StandardScaler().fit_transform(data)
+    elif normtype=="zerocentered":
+        data = (data / (2 * np.amax(np.abs(data)))) + 0.5
+    elif normtype=="onecentered":
+        data = ((data - 1) / (2 * np.amax(np.abs(data - 1)))) + 0.5
+    print("Min max of heatmap data:", np.min(data), np.max(data))
+    if ax is None:
+        plt.figure(figsize=(10, 8))
+    else:
+        plt.sca(ax)
+
+    plt.imshow(data, aspect='auto', cmap=colormap, norm=scale, vmax=1, vmin=0)
+    # plt.colorbar(label='Normalized Intensity')
+    plt.yticks(ticks=np.arange(len(df)), labels=df['Molecule'], fontsize=5)
+    # Labels are last 3 characters of replicates
+    labels = [r[lindex:] for r in replicates]
+    plt.xticks(ticks=np.arange(len(replicates)), labels=labels, rotation=0, fontsize=8)
+    plt.title(title)
 
 def full_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
                   normalize_TIC=True, paired=True, bh_correction=True, plot_results=True):
@@ -261,8 +303,8 @@ def full_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize
     df = pd.read_csv(filepath)
     normdf, replicates = sum_transitions(df, mode=mode, drop_IS=drop_IS, normalize_IS=normalize_IS,
                                          normalize_TIC=normalize_TIC)
-    classdf = class_calcs(normdf, set1, set2, paired=paired)
-    normdf = stats_calcs(normdf, set1, set2, paired=paired, bh_correction=bh_correction)
+    classdf, classsummarycols = class_calcs(normdf, set1, set2, paired=paired)
+    normdf, summarycols = stats_calcs(normdf, set1, set2, paired=paired, bh_correction=bh_correction)
 
     # Write classdf to CSV
     classdf.to_csv(os.path.splitext(filepath)[0] + "_class_stats.csv", index=False)
@@ -271,14 +313,35 @@ def full_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize
 
     if plot_results:
         plt.figure(figsize=(12, 5))
-        ax1 = plt.subplot(1, 3, 1)
+        ax1 = plt.subplot(2, 3, 1)
         make_class_plots(classdf, ax=ax1)
 
-        ax2 = plt.subplot(1, 3, 2)
+        ax2 = plt.subplot(2, 3, 2)
         make_volcano_plot(normdf, title="Volcano Plot", ax=ax2)
 
-        ax3 = plt.subplot(1, 3, 3)
+        ax3 = plt.subplot(2, 3, 3)
         pca_plot(normdf, set1, set2, title="PCA Plot", ax=ax3)
+
+        ax4 = plt.subplot(2, 3, 4)
+        # Sort normdf by class and then by Mean
+        normdfsorted = normdf.sort_values(by=["Molecule List Name", "Mean"], ascending=[True, False])
+        heatmap_plot(normdfsorted, replicates, title="Heatmap", ax=ax4, normtype="minmax")
+
+        ax5 = plt.subplot(2, 3, 5)
+        if paired:
+            titleval = "Paired Ratio Heatmap"
+            normtype = "onecentered"
+            cmap = "RdBu_r"
+        else:
+            titleval = "Set Means Heatmap"
+            normtype = "minmax"
+            cmap = "viridis"
+        heatmap_plot(normdfsorted, summarycols, title=titleval, ax=ax5, lindex=0, colormap=cmap, normtype=normtype)
+
+        ax6 = plt.subplot(2, 3, 6)
+        cols = ["Log2FC", "StdDevFC"]
+        heatmap_plot(normdfsorted, cols, title="Fold Change Heatmap", ax=ax6, lindex=0, colormap="RdBu_r", normtype="zerocentered")
+
         plt.tight_layout()
         plt.show()
 
