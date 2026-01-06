@@ -306,10 +306,15 @@ def full_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize
     classdf, classsummarycols = class_calcs(normdf, set1, set2, paired=paired)
     normdf, summarycols = stats_calcs(normdf, set1, set2, paired=paired, bh_correction=bh_correction)
 
-    # Write classdf to CSV
-    classdf.to_csv(os.path.splitext(filepath)[0] + "_class_stats.csv", index=False)
-    # Write normdf to CSV
-    normdf.to_csv(os.path.splitext(filepath)[0] + "_molecule_stats.csv", index=False)
+    # Write to two sheets in an Excel file
+    with pd.ExcelWriter(os.path.splitext(filepath)[0] + "_stats.xlsx") as writer:
+        classdf.to_excel(writer, sheet_name="Class Stats", index=False)
+        normdf.to_excel(writer, sheet_name="Molecule Stats", index=False)
+
+    # # Write classdf to CSV
+    # classdf.to_csv(os.path.splitext(filepath)[0] + "_class_stats.csv", index=False)
+    # # Write normdf to CSV
+    # normdf.to_csv(os.path.splitext(filepath)[0] + "_molecule_stats.csv", index=False)
 
     if plot_results:
         plt.figure(figsize=(12, 5))
