@@ -289,7 +289,7 @@ def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=-3, colormap='
     else:
         plt.sca(ax)
 
-    plt.imshow(data, aspect='auto', cmap=colormap, norm=scale, vmax=1, vmin=0)
+    plt.imshow(data, aspect='auto', cmap=colormap, norm=scale, vmax=1-1e-12, vmin=1e-12)
     # plt.colorbar(label='Normalized Intensity')
     plt.yticks(ticks=np.arange(len(df)), labels=df['Molecule'], fontsize=5)
     # Labels are last 3 characters of replicates
@@ -325,7 +325,7 @@ def full_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize
         ax4 = plt.subplot(2, 3, 4)
         # Sort normdf by class and then by Mean
         normdfsorted = normdf.sort_values(by=["Molecule List Name", "Mean"], ascending=[True, False])
-        heatmap_plot(normdfsorted, replicates, title="Heatmap", ax=ax4, normtype="minmax")
+        heatmap_plot(normdfsorted, replicates, title="Heatmap", ax=ax4, normtype="minmax", scale="linear")
 
         ax5 = plt.subplot(2, 3, 5)
         if paired:
