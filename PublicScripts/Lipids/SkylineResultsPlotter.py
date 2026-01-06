@@ -274,6 +274,8 @@ def pca_plot(df, replicates_set1, replicates_set2, title="PCA Plot", ax=None):
 
 def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=-3, colormap='viridis', normtype="minmax", scale="linear"):
     data = df[replicates].values
+    vmax = 1-1e-12
+    vmin = 1e-12
     if normtype=="minmax":
         # Normalize data to 0-1 for better color mapping
         data = (data - np.min(data)) / (np.max(data) - np.min(data))
@@ -283,18 +285,48 @@ def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=-3, colormap='
         data = (data / (2 * np.amax(np.abs(data)))) + 0.5
     elif normtype=="onecentered":
         data = ((data - 1) / (2 * np.amax(np.abs(data - 1)))) + 0.5
+    elif normtype=="zerocentered_clip":
+        data = data + 0.5
+        data[data < vmin] = vmin
+        data[data > vmax] = vmax
+    elif normtype=="onecentered_clip":
+        data = data - 0.5
+        data[data < vmin] = vmin
+        data[data > vmax] = vmax
+
     print("Min max of heatmap data:", np.min(data), np.max(data))
     if ax is None:
         plt.figure(figsize=(10, 8))
     else:
         plt.sca(ax)
 
-    plt.imshow(data, aspect='auto', cmap=colormap, norm=scale, vmax=1-1e-12, vmin=1e-12)
+    plt.imshow(data, aspect='auto', cmap=colormap, norm=scale, vmax=vmax, vmin=vmin)
     # plt.colorbar(label='Normalized Intensity')
     plt.yticks(ticks=np.arange(len(df)), labels=df['Molecule'], fontsize=5)
     # Labels are last 3 characters of replicates
     labels = [r[lindex:] for r in replicates]
     plt.xticks(ticks=np.arange(len(replicates)), labels=labels, rotation=0, fontsize=8)
+
+    # Draw colored rectangles around each class
+    classes = df["Molecule List Name"].values
+    class_changes = [0]
+    for i in range(1, len(classes)):
+        if classes[i] != classes[i - 1]:
+            class_changes.append(i)
+    class_changes.append(len(classes))
+    for i in range(len(class_changes) - 1):
+        start = class_changes[i] - 0.5
+        end = class_changes[i + 1] - 0.5
+        rect = mpl.patches.Rectangle(( -0.5, start), len(replicates), end - start,
+                                     linewidth=1, edgecolor=class_color_map[classes[class_changes[i]]],
+                                     facecolor='none')
+        plt.gca().add_patch(rect)
+        # print(start, end)
+        # # Add a thick colored line to the right of the rectangle
+        # line = mpl.lines.Line2D([len(replicates) - 0.5, len(replicates) - 0.5], [start, end],
+        #                         linewidth=3, color=class_color_map[classes[class_changes[i]]])
+        # plt.gca().add_line(line)
+
     plt.title(title)
 
 def full_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
