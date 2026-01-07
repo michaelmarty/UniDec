@@ -121,6 +121,9 @@ class Peak:
                 outstring += str(o) + "\t"
         return outstring
 
+    def __str__(self):
+        line = self.line_out(type="Full", rounding=3)
+        return line
 
 class Peaks:
     """
