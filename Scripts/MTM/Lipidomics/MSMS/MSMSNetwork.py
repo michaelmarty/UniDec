@@ -7,9 +7,9 @@ from PublicScripts.Lipids.LipidFunctions import network_plot, network_analysis
 
 mpl.use("WxAgg")
 
-os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
-posfile = "PosIDsRTP2_HeadgroupTailCheck.csv"
-negfile = "NegIDsRTP2_HeadgroupTailCheck.csv"
+os.chdir(r"Z:\Group Share\Annika\IQ-X\UntDDA Tests HEK\New Libs Tests\Peak Masters")
+posfile = "PosPeakMaster_HEKpos_OTIT_WithCorr.csv"
+negfile = "NegPeakMaster_HEKneg_OTIT_WithCorr.csv"
 posdf = pd.read_csv(posfile)
 negdf = pd.read_csv(negfile)
 
@@ -26,8 +26,8 @@ graphs = [neggraphs] + [posgraphs]
 # graphs = posgraphs + neggraphs
 
 # Save updated dataframes
-posdf.to_csv("PosIDsRTP2_HeadgroupTailCheck_Network.csv", index=False)
-negdf.to_csv("NegIDsRTP2_HeadgroupTailCheck_Network.csv", index=False)
+# posdf.to_csv("PosHEK_OTIT_HeadgroupTailCheck_Network.csv", index=False)
+# negdf.to_csv("NegHEK_OTIT_HeadgroupTailCheck_Network.csv", index=False)
 
 # Get global min and max degree for color normalization
 colortarget = "z_Anomaly_Score"

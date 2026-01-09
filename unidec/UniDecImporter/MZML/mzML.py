@@ -164,6 +164,10 @@ class MZMLImporter(Importer):
         self.scans = np.array(scans)
         # Check if self.scans is all the same, if so, call correct_mzML_ID
         if len(np.unique(self.scans)) < len(self.scans) and len(self.scans) > 1:
+            # try:
+            #     self.msrun = pymzml.run.Reader(test, index_regex=re.compile(b'"merged=(?P<ID>\d+)">(?P<offset>\d+)'))
+            # except:
+            #     pass
             self.msrun.close()
             print("Duplicate Scan IDs Detected. Attempting to correct mzML IDs.")
             corrected_path = correct_mzML_ID(self._file_path)
