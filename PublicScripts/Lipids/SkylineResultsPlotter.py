@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import matplotlib as mpl
+# Import s
 
 mpl.use("WxAgg")
 
@@ -46,9 +47,9 @@ class_color_map = {
     "PC": "#788BFF",
     "PC O": "#BFD7FF",
     "EtherPC": "#BFD7FF",
-    "LPC-O/P": "#BFD7FF",
+    "LPC-O/P": "#27D3F5",
     "LPC": "#3019E3",
-    "EtherLPC": "#BFD7FF",
+    "EtherLPC": "#27D3F5",
     "PE": "#6017A9",
     "PE-O": "#A276E5",
     "EtherPE": "#A276E5",
@@ -70,16 +71,22 @@ class_color_map = {
     "DLCL": "#FFE6C2",
     "Cer": "#AB30A1",
     "Cer_NS": "#AB30A1",
+    "Cer_NDS": "#AB30A1",
     "Cer_EODS": "#AB30A1",
     "Cer_EOS": "#AB30A1",
     "Cer_EBDS": "#AB30A1",
+    "Cer_AP": "#AB30A1",
+    "Cer_AS": "#AB30A1",
     "CAR": "#AB30A1",
     "HexCer": "#F708E3",
     "HexCer_NS": "#F708E3",
     "HexCer_NDS": "#F708E3",
+    "HexCer_HDS": "#F708E3",
     "HexCer_AP": "#F708E3",
+    "HexCer_HS": "#F708E3",
     "Hex2Cer": "#FF73FF",
     "SM": "#FFDB73",
+    "ASM": "#FFDB73",
     "CoQ": "#F25C54",
     "MAG": "#F7B267",
     "DG": "#F4845F",
@@ -94,6 +101,27 @@ class_color_map = {
     "GM3": "#FF73FF",
     "HBMP": "#FFA200",
     "SHexCer": "#F708E3",
+    "OxPI": "#8FFBFF",
+    "PI_Cer": "#8FFBFF",
+    "PE_Cer": "#6017A9",
+    "AHexBRS": "#FF73FF",
+    "AHexCAS": "#FF73FF",
+    "EtherPG": "#356935",
+    "OxPE": "#6017A9",
+    "AHexCer": "#FF73FF",
+    "EtherLPG": "#B1D8B1",
+    "EtherPG": "#356935",
+    "EtherTG": "#8F1458",
+    "BileAcid": "#FF8800",
+    "SL": "#FFDB73",
+    "LNAPE": "#8F5CD2",
+    "LNAPS": "#FDF32F",
+    "EtherDGDG": "#FFA200",
+    "EtherMGDG": "#FFA200",
+    "DGGA": "#FFA200",
+    "SQDG": "#FFA200",
+    "MGDG": "#FFA200",
+    "OxPS": "#C89504",
 }
 
 # python
@@ -293,6 +321,36 @@ def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volc
     plt.axvline(x=-1, color='g', linestyle='--')
     plt.xlim(xlims)
 
+    # Add cursor hover to show molecule names
+    annot = plt.annotate("", xy=(0,0), xytext=(20,20),textcoords="offset points",
+                         bbox=dict(boxstyle="round", fc="w"),
+                         arrowprops=dict(arrowstyle="->"))
+    annot.set_visible(False)
+    def update_annot(ind):
+        pos = sc.get_offsets()[ind["ind"][0]]
+        annot.xy = pos
+        text = "\n".join([df["Molecule"].iloc[n] for n in ind["ind"]])
+        annot.set_text(text)
+        annot.get_bbox_patch().set_facecolor("lightyellow")
+        annot.get_bbox_patch().set_alpha(0.9)
+    def hover(event):
+        vis = annot.get_visible()
+        if event.inaxes == ax:
+            cont, ind = sc.contains(event)
+            if cont:
+                update_annot(ind)
+                annot.set_visible(True)
+                plt.draw()
+            else:
+                if vis:
+                    annot.set_visible(False)
+                    plt.draw()
+
+    sc = plt.scatter(df[log2fc_col], df[neglogp_col], alpha=0)  # Invisible scatter for hover
+    plt.gcf().canvas.mpl_connect("motion_notify_event", hover)
+
+
+
 
 def make_class_plots(classdf, ax=None, fclimit=10):
     if ax is None:
@@ -404,7 +462,7 @@ def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=-3, colormap='
 
     plt.title(title)
 
-def pie_chart(df, set, ax=None, title="Class Distribution", otherthresh=0.05):
+def pie_chart(df, set, ax=None, title="Class Distribution", otherthresh=0.035):
     class_sums = df.groupby("Molecule List Name")[set].sum()
     if ax is None:
         plt.figure(figsize=(8, 8))
@@ -427,7 +485,8 @@ def pie_chart(df, set, ax=None, title="Class Distribution", otherthresh=0.05):
 
 
 def full_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
-                  normalize_TIC=True, paired=True, bh_correction=True, plot_results=True, heatplots=True, piecharts=True):
+                  normalize_TIC=True, paired=True, bh_correction=True, plot_results=True, heatplots=True,
+                  piecharts=True, figsavepath=None):
 
     df = pd.read_csv(filepath)
     normdf, replicates = sum_transitions(df, mode=mode, drop_IS=drop_IS, normalize_IS=normalize_IS,
@@ -447,7 +506,7 @@ def full_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize
     # normdf.to_csv(os.path.splitext(filepath)[0] + "_molecule_stats.csv", index=False)
 
     if plot_results:
-        plt.figure(figsize=(12, 5))
+        plt.figure(figsize=(18, 10))
         nrow = 1
         if heatplots:
             nrow +=1
@@ -493,6 +552,10 @@ def full_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize
             pie_chart(classdf, "Set2_Mean", ax=ax8, title="Class Distribution Set 2")
 
         plt.tight_layout()
+
+        if figsavepath is not None:
+            plt.savefig(figsavepath)
+
         plt.show()
 
 
