@@ -78,15 +78,15 @@ def merge_files(rawlist, dmtlist, outfile):
     np.savez_compressed(outfile, data=np.array(outdata))
 
 
+if __name__ == "__main__":
 
+    folder = r"Z:\Group Share\BHT\Q Exactive HF Data\RPLC-MS\Acquity UPLC\CDMS Injections to Stitch\20251216"
+    os.chdir(folder)
 
-folder = r"Z:\Group Share\BHT\Q Exactive HF Data\RPLC-MS\Acquity UPLC\CDMS Injections to Stitch\20251216"
-os.chdir(folder)
+    strip_dmt_files(folder)
 
-# strip_dmt_files(folder)
-
-filedict = get_file_list(folder)
-print(merge_looper(filedict))
+    filedict = get_file_list(folder)
+    print(merge_looper(filedict))
 
 
 
