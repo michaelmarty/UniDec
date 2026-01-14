@@ -2,22 +2,22 @@ import os
 from LipidFunctions import *
 
 # Set the working directory
-topdir = r"Z:\Group Share\Annika\IQ-X\UntDDA Tests HEK\New Libs Tests\Manually Filtered\Trans List"
+topdir = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\HEK"
 os.chdir(topdir)
 
 # Set the results file names, should be the peak_master files from MS-DIAL
-negfile = "PeakMaster_1_2025_12_12_12_57_16.csv"
-posfile = "HEKpos_ITIT_Peakmaster.csv"
+negfile = "HEK_neg_new_peakmaster.csv"
+posfile = "HEK_pos_new_peakmaster.csv"
 
 # Set the XML files with reference spectra
-negxml = "SpectrumAndReference_20251211_HEKneg_OTIT_2025_12_12_12_57_19.xml"
-posxml = "SpectrumAndReference_20251211_HEKpos_ITIT_2025_12_11_13_48_16.xml"
+negxml = "20260112_HEK_UntDDA_Neg_new.xml"
+posxml = "SpectrumAndReference_20260112_HEK_UntDDA_Pos_new_2026_01_12_12_45_51.xml"
 
 # Load the data
 negdf = pd.read_csv(negfile)
 posdf = pd.read_csv(posfile)
 
-make_plots(posdf, negdf)
+# make_plots(posdf, negdf)
 
 # Load the reference spectra from XML
 refnegdf = parse_xml(negxml)

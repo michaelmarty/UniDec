@@ -13,30 +13,47 @@ def cleanup_df(df):
     df = df[~df['Name'].str.contains("low score", na=False)]
     return df
 
-os.chdir(r"Z:\Group Share\Annika\Stellar\HEK")
+os.chdir(r"Z:\Group Share\Annika\Stellar\Untargeted DDA\HEK")
 
-posfile = r"20251023_AS_HEK_PosDDA_MSDial.csv"
-negfile = r"20251023_AS_HEK_NegDDA_MSDial.csv"
+posfile = r"HEK_pos_new_peakmaster.csv"
+negfile = r"HEK_neg_new_peakmaster.csv"
 
-posfile = "20250929_AS_HEK_DDA_20_Pos.txt"
-negfile = "20250929_AS_HEK_DDA_20_Neg.txt"
+# posfile = "20250929_AS_HEK_DDA_20_Pos.txt"
+# negfile = "20250929_AS_HEK_DDA_20_Neg.txt"
 
 limit = 5
 smooth= 1
 window = 0.5
 
-posdf = pd.read_table(posfile)
-posdf = cleanup_df(posdf)
+# posdf = pd.read_table(posfile)
 
-posrtdf = posdf[['Name', 'RT (min)', 'Reference RT', "Area", "Total score"]].rename(columns={'RT (min)': 'Average Rt(min)'}).reset_index(drop=True)
+# posdf = cleanup_df(posdf)
+posdf = pd.read_csv(
+    posfile,
+    sep=",",
+    encoding="utf-8",
+    engine="python",
+    quotechar='"'
+)
+print(posdf.columns.tolist())
+posrtdf = posdf[['Metabolite name', 'Average Rt(min)', 'Reference RT', "Total score"]].rename(columns={'RT (min)': 'Average Rt(min)'}).reset_index(drop=True)
 
 negdf = pd.read_table(negfile)
-negdf = cleanup_df(negdf)
-negrtdf = negdf[['Name', 'RT (min)', 'Reference RT', "Area", "Total score"]].rename(columns={'RT (min)': 'Average Rt(min)'}).reset_index(drop=True)
+# negdf = cleanup_df(negdf)
+# posdf = cleanup_df(posdf)
+negdf = pd.read_csv(
+    negfile,
+    sep=",",
+    encoding="utf-8",
+    engine="python",
+    quotechar='"'
+)
+negrtdf = negdf[['Metabolite name', 'Average Rt(min)', 'Reference RT', "Total score"]].rename(columns={'RT (min)': 'Average Rt(min)'}).reset_index(drop=True)
 
 # Contatenate dataframes
 df = pd.concat([negrtdf, posrtdf])
-# df = negrtdf
+df = pd.concat([posrtdf])
+df = negrtdf
 
 # Append a line beyond this to force fit to go through these points
 # List of rows to add
