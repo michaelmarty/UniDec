@@ -606,7 +606,10 @@ class UniDec(UniDecEngine):
 
             convdata = np.fromfile(self.config.outfname + "_conv.bin", dtype=self.config.dtype)
             xlen = len(self.data.data2)
-            convdata = convdata.reshape((len(self.pks.peaks), xlen))
+            try:
+                convdata = convdata.reshape((len(self.pks.peaks), xlen))
+            except:
+                convdata = ud.makeconvspecies(self.data.data2, self.pks, self.config)
 
             self.pks.composite = np.zeros(xlen)
             for i in range(0, self.pks.plen):
