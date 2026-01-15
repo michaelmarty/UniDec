@@ -197,8 +197,9 @@ class Importer:
         intensity = np.concatenate([d[:, 1] for i, d in enumerate(raw_dat)])
         scans = np.ones(len(mz))  # Update this
         it = np.ones(len(mz))
+        times = np.zeros(len(mz)) - 1
 
-        data_array = np.transpose([mz, intensity, scans, it])
+        data_array = np.transpose([mz, intensity, scans, it, times])
 
         return data_array
 

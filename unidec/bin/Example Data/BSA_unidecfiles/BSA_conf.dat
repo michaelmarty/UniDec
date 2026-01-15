@@ -1,4 +1,4 @@
-version 8.1.0
+version 8.1.1
 imflag 0
 cdmsflag 0
 input C:\Python\UniDecDev\unidec\bin\Example Data\BSA_unidecfiles\BSA_input.dat
@@ -30,7 +30,7 @@ smooth 0.0
 mzbins 0.0
 peakwindow 50.0
 peakthresh 0.01
-normthresh 0
+normthresh 1
 peakplotthresh 0.1
 plotsep 0.025
 intthresh 0.0

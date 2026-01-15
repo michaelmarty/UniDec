@@ -295,6 +295,8 @@ class UniDecCD(engine.UniDec):
 
         print("Scan start from GUI", self.config.CDScanStart)
         print("Scan end from GUI", self.config.CDScanEnd)
+        print("Scan and Time Min/Max", np.amin(self.farray[:, 2]), np.amax(self.farray[:, 2]),
+              np.amin(self.farray[:, 4]), np.amax(self.farray[:, 4]))
         # Filter Scans
         try:
             if int(self.config.CDScanStart) > 0:

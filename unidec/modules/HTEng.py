@@ -10,7 +10,7 @@ from unidec.modules.IM_functions import calc_linear_ccs, calc_linear_ccsconst
 import unidec.tools as ud
 from unidec.modules.unidecstructure import UniDecConfig
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import scipy.fft as fft
 import math
 from unidec.modules.unidecstructure import ChromatogramContainer
@@ -47,6 +47,7 @@ class HTEng:
 
         # Empty Arrays
         self.scans = []
+        self.times = []
         self.fullscans = []
         self.fulltime = []
         self.fulltic = []
@@ -805,6 +806,8 @@ class UniChromCDEng(HTEng, UniDecCD):
         :return: None
         """
         self.scans = np.unique(self.farray[:, 2])
+        self.times = np.unique(self.farray[:, 4])
+
         if self.config.HTmaxscans < 0:
             maxscans = np.amax(self.scans)
             print("Max Scans: ", maxscans)
@@ -818,7 +821,16 @@ class UniChromCDEng(HTEng, UniDecCD):
                 maxscans = np.amax(self.scans)
 
         self.fullscans = np.arange(1, maxscans + 1)
-        self.fulltime = self.fullscans * self.config.HTanalysistime / np.amax(self.fullscans)
+        if self.times[0] == -1:
+            print("No time data found")
+            self.fulltime = self.fullscans * self.config.HTanalysistime / np.amax(self.fullscans)
+        elif len(self.times) != len(self.scans):
+            print("Time data length does not match scan length, falling back to max scans and time.")
+            self.fulltime = self.fullscans * self.config.HTanalysistime / np.amax(self.fullscans)
+        else:
+            print("Using Interpolated Time Data from Scans")
+            intpolation = scipy.interpolate.interp1d(self.scans, self.times, kind='linear', fill_value="extrapolate")
+            self.fulltime = intpolation(self.fullscans)
         self.decontime = self.fulltime
         self.deconscans = self.fullscans
 
@@ -1227,7 +1239,7 @@ class UniChromCDEng(HTEng, UniDecCD):
             ticdat[:, 1] /= np.amax(ticdat[:, 1])
             processed_tic /= np.amax(processed_tic)
 
-        print("Full HT Demultiplexing Done:", time.perf_counter() - starttime)
+        print("Full Demultiplexing Done:", time.perf_counter() - starttime)
         return ticdat, processed_tic
 
     def select_ht_range(self, range=None):

@@ -1,4 +1,4 @@
-version 8.0.3
+version 8.1.1
 imflag 0
 cdmsflag 1
 input C:\Python\UniDecDev\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat
@@ -112,6 +112,8 @@ tcal2 6.3597
 tcal3 0.0
 tcal4 0.0
 edc 1.57
+variablepw 0
+minratio 0.0
 iso_meanpeakspacing_thresh 0.01
 iso_background_subtraction 0.0
 iso_adductmass 1.007276467

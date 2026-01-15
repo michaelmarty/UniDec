@@ -226,6 +226,12 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.8.1.1
+
+Fixed bug for Oligomer and Mass Tools matching and simulation.
+
+Added export to Meta and UniChrom for peak apex values, including mass, intensity, dscore, and var1 apex location.
+
 v.8.1.0
 
 Removed Isotope Mode from UniDec. I am working on merging IsoDec with UniDec, but it isn't quite ready for this release. Stay tuned.
