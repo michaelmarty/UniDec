@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from unidec.tools import integrate
 
-def nonlinearize(datatop, num_compressed, gap=5):
+def nonlinearize(datatop, num_compressed, gap=20):
     """
     Compress the data in a simple and nonlinear way.
     :param datatop: Data array (N x 2)
@@ -56,12 +56,12 @@ def calc_start_index(data, num_compressed):
         ymaxindex -= 1
     return (ymaxindex+1) % num_compressed
 
-def parse_rg_data(data, num_compressed, gap=5, negcolor="green", ramp=0, shift=0):
+def parse_rg_data(data, num_compressed, gap=20, negcolor="red", ramp=0, shift=0):
 
 
     # Split the data prior to 8 min and after 8 min
-    frontdata = data[data[:, 0] < 8]
-    backdata = data[data[:, 0] >= 8]
+    frontdata = data[data[:, 0] < 8.005]
+    backdata = data[data[:, 0] >= 8.005]
 
     startindex = calc_start_index(frontdata, num_compressed) + shift
     print("Front Start Index:", startindex)
@@ -89,7 +89,7 @@ def parse_rg_data(data, num_compressed, gap=5, negcolor="green", ramp=0, shift=0
     pindex = maxarg % 2
 
     if nindex == pindex:
-        nindex += 1 ### MANUALLY ADJUST IT HERE
+        pindex += 1 ### MANUALLY ADJUST IT HERE
         print("WARNING!!!: Negative and positive indices are the same, adjusting positive index.")
         # raise ValueError("Negative and positive indices are the same, check the data.")
 
@@ -146,7 +146,7 @@ file = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\20250729 TD U
 file = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\20251030 LX\20251029 Control 2025-10-29 13-01-55\sfGFP\006-D1F-C1-d1gfp_disc.D\Text files\UIB1B_rawdata.txt"
 file = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\Channel 2 Tests\Tracer test\20251111_fld validation 2025-11-12 12-53-29\005-D1F-B1-Trace Mix_2.D\Text files\UIB1B_rawdata.txt"
 #file = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\Channel 2 Tests\Tracer test\20251111_fld validation 2025-11-12 12-53-29\003-NV-blank.D\Text files\UIB1B_rawdata.txt"
-file = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\20251209_sfGFP_mCherryXL 2025-12-09 12-08-53\Mix\007-D1F-E3-sfGFP(+)_mCherryXL(-).D\Text files\UIB1B_rawdata.txt"
+file = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\New Stuff - Jan 2026\Bad Sample\003-D1B-D1-tracer_t00.D\Text files\UIB1B_rawdata.txt"
 
 
 for file in [file]:#os.listdir(dir):
@@ -161,10 +161,10 @@ for file in [file]:#os.listdir(dir):
         data = data[data[:, 0] > 2]
         plt.plot( data[:,0], data[:, 1], label='Original Data', color='black', marker = 'o', markersize=1, alpha=0.1)
         num_compressed = 50
-        rdata, gdata, pdata = parse_rg_data(data, num_compressed, gap=20, negcolor="red", ramp=1, shift=i)
+        rdata, gdata, pdata = parse_rg_data(data, num_compressed, gap=20, negcolor="red", ramp=1, shift=1)
         print(rdata)
         r1 = [2.5, 6]
-        r2 = [8, 12]
+        r2 = [8.5, 12]
 
         rps = np.round(calc_percents(gdata, r1, r2))
         gps = np.round(calc_percents(rdata, r1, r2))
