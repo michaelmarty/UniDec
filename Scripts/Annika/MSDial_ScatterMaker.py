@@ -7,7 +7,7 @@ import numpy as np
 # ------------------------------
 # User files
 # ------------------------------
-file = "Z:\\Group Share\\Annika\\IQ-X\\UntDDA Tests HEK\\HEKpos_OTOT_OldLib_Peakmaster.csv"
+file = "Z:\\Group Share\\Annika\\Stellar\\Untargeted DDA\\HEK\\New Libs Tests\\PosPeakMaster_Stellar_HEKpos.csv"
 colormap_file = r"Z:\\Group Share\\Annika\\Lipid_ColorMap.xlsx"
 
 # ------------------------------
@@ -170,7 +170,7 @@ plt.gca().spines['top'].set_visible(False)
 plt.gca().spines['right'].set_visible(False)
 plt.xlabel("Retention Time (min)")
 plt.ylabel("m/z")
-plt.title("IQ-X HEKpos OT OT Previous Library")
+plt.title("HEK Lipids ESI+")
 plt.xticks(np.arange(0.0, 18, 2.5))
 plt.yticks(np.arange(0.0, 1600.1, 200))
 

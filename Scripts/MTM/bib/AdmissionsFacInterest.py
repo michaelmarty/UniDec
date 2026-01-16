@@ -46,6 +46,7 @@ data = [
 facdf = pd.DataFrame(data, columns=["Names", "MIN", "MAX"])
 facnames = facdf["Names"].tolist()
 
+target_dict = {"ChemBio": 7, "INORGANIC": 7, "ORGANIC": 8, "ExP/Analyt": 17, "CompTheory": 3}
 
 # Add one to the MAX to make it inclusive
 # facdf["MAX"] = facdf["MAX"] + 1
@@ -73,7 +74,7 @@ def split_names(cell):
     return final_tokens
 
 
-def compute_counts(df):
+def compute_counts(df, c1name="col1", c2name="col2"):
     """Compute per-name counts using row-wise presence:
     - names: sorted list of unique names (by row-wise counts desc)
     - counts1: list of row-wise counts (number of rows where name appears in either column)
@@ -85,8 +86,8 @@ def compute_counts(df):
     # Iterate rows and count presence per row (deduplicate within the row)
     rows = []
     for _, row in df.iterrows():
-        names_in_row_col1 = set(split_names(row["col1"]))
-        names_in_row_col2 = set(split_names(row["col2"]))
+        names_in_row_col1 = set(split_names(row[c1name]))
+        names_in_row_col2 = set(split_names(row[c2name]))
         # union of names in this row across both columns
         names_in_row = names_in_row_col1 | names_in_row_col2
         # print(names_in_row)
@@ -125,22 +126,22 @@ def plot_grouped_counts(names, counts1, title=None):
     plt.show()
 
 
-def check_full(facname, faclist):
+def check_full(facname, faclist, flex=0):
     if facname not in facdf["Names"].values:
         return False
-    maxtaking = facdf[facdf["Names"] == facname]["MAX"].values[0]
+    maxtaking = facdf[facdf["Names"] == facname]["MAX"].values[0] + flex
     currentcount = faclist.count(facname)
     return currentcount >= maxtaking
 
 
-def check_all_full(facinterest, faclist):
+def check_all_full(facinterest, faclist, flex=0):
     for fac in facinterest:
-        if not check_full(fac, faclist):
+        if not check_full(fac, faclist, flex=flex):
             return False
     return True
 
 
-def monte_carlo(df, matriculation_range=[.4, .7], num=1000, limit=True):
+def monte_carlo(df, matriculation_range=[.4, .6], num=1000, limit=True, flex=0):
     """Perform Monte Carlo simulation of faculty assignments based on matriculation rates."""
     faculty = df["Names"].str.split(",").explode().str.strip().unique()
     faculty = [f for f in faculty if f != ""]
@@ -161,7 +162,7 @@ def monte_carlo(df, matriculation_range=[.4, .7], num=1000, limit=True):
         faculty_list = []
         for _, row in sampled_df.iterrows():
             facinterest = row["Names"].split(",")
-            allfull = check_all_full(facinterest, faculty_list)
+            allfull = check_all_full(facinterest, faculty_list, flex=flex)
             if allfull:
                 chosen_faculty = "FAILED"
                 faculty_list.append(chosen_faculty)
@@ -175,14 +176,14 @@ def monte_carlo(df, matriculation_range=[.4, .7], num=1000, limit=True):
             labfull = False
 
             if limit:
-                labfull = check_full(chosen_faculty, faculty_list)
+                labfull = check_full(chosen_faculty, faculty_list, flex=flex)
 
             while not allfull and labfull:
                 # if labfull:
                 #     print("Initial choice:", chosen_faculty, "Lab full:", labfull, "Faculty list:", faculty_list)
                 chosen_faculty = np.random.choice(facinterest)
                 if limit:
-                    labfull = check_full(chosen_faculty, faculty_list)
+                    labfull = check_full(chosen_faculty, faculty_list, flex=flex)
 
             if allfull:
                 chosen_faculty = "FAILED"
@@ -263,15 +264,65 @@ def monte_carlo(df, matriculation_range=[.4, .7], num=1000, limit=True):
     plt.tight_layout()
     plt.show()
 
+def filter_df_visit(df, visitcol="Visit Date", natcol="Nationality"):
+    # Remove any where the visit date is empty or NaN and the nationality is DOMESTIC or D.INT
+    filtered_rows = []
+    for _, row in df.iterrows():
+        visit_date = row[visitcol]
+        nat = row[natcol]
+        if (pd.isna(visit_date) or str(visit_date).strip() == "") and (str(nat).strip().upper() in ["DOMESTIC", "D.INT"]):
+            continue
+        filtered_rows.append(row)
+    filtered_df = pd.DataFrame(filtered_rows)
+    return filtered_df
+
+def division_bar_charts(df, division_col="DIV", visitcol="Visit Date", natcol="Nationality"):
+    divisions = df[division_col].unique()
+    plt.figure()
+    for i, division in enumerate(divisions):
+        div_df = df[df[division_col] == division]
+        for_df = div_df[div_df[natcol].fillna("").str.upper().isin(["FOREIGN", "FR EXEMPT"])]
+        dom_df = div_df[~div_df.index.isin(for_df.index)]
+        nfor = len(for_df)
+        nvisit = len(dom_df[(dom_df[visitcol].notna()) & (dom_df[visitcol].str.strip() != "")])
+        nnot_visit = len(div_df) - nvisit - nfor
+        labels = ["Foreign", "RSVP'd", "Not Foreign Not RSVP'd"]
+        sizes = [nfor, nvisit, nnot_visit]
+        # Foreign as blue, visited as green, not visited as grey
+        colors = ['#1f77b4', '#2ca02c', '#7f7f7f']
+        # Stacked bar chart at i
+        plt.bar(i, nfor, color=colors[0], label=labels[0] if i == 0 else "")
+        plt.bar(i, nvisit, bottom=nfor, color=colors[1], label=labels[1] if i == 0 else "")
+        plt.bar(i, nnot_visit, bottom=nfor+nvisit, color=colors[2], label=labels[2] if i == 0 else "")
+
+        # Add blue star at target class for division
+        if division.strip() in target_dict:
+            target = target_dict[division.strip()]
+            plt.plot(i, target, marker='x', color='gold', markersize=15, label='Matriculate Target' if i == 2 else "")
+            plt.plot(i, target*2, marker='s', color='red', markersize=15, label='Admit Target' if i == 2 else "")
+    plt.xticks(range(len(divisions)), divisions, rotation=90)
+    plt.ylabel("Number of Students")
+    plt.title("Student Visits by Division")
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
 
 if __name__ == "__main__":
-    filepath = r"C:\Users\mm96978\Downloads\FacInterest.xlsx"
-    df = pd.read_excel(filepath, dtype=str, header=None)
-    df.columns = ["col1", "col2"]
+    filepath = r"C:\Users\mm96978\Downloads\Offers 1.7.26.xlsx"
+    df = pd.read_excel(filepath, dtype=str)
+    division_bar_charts(df)
 
-    names, counts1, df = compute_counts(df)
+    print(len(df))
+    df = filter_df_visit(df)
+    print(len(df))
+    # df.columns = ["col1", "col2"]
 
-    monte_carlo(df)
+
+
+    names, counts1, df = compute_counts(df, c1name="SOP FAC", c2name="FAC Question")
+
+    monte_carlo(df, flex=0)
     exit()
 
     # Plot and save figure

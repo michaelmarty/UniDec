@@ -606,6 +606,11 @@ class UniDecEngine:
                         maxval = np.amax(mztab[:, 1])
                         # Filter all peaks where the deconvolved intensity is above the relative threshold
                         b1 = mztab[:, 1] > config.peakplotthresh * maxval
+                        # To avoid bugs with no peaks passing the threshold
+                        if np.sum(b1) == 0:
+                            continue
+                        if ud.isempty(mztab2[b1]):
+                            continue
                         # Plot the filtered peaks as dots on the spectrum
                         plot.plotadddot(mztab2[b1, 0], mztab2[b1, 1], p.color, p.marker)
                     # Check if convolved data is present

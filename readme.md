@@ -228,6 +228,8 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.8.1.1
 
+Fixed bug for Oligomer and Mass Tools matching and simulation.
+
 Added export to Meta and UniChrom for peak apex values, including mass, intensity, dscore, and var1 apex location.
 
 v.8.1.0
