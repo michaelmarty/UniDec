@@ -265,6 +265,8 @@ def monte_carlo(df, matriculation_range=[.4, .6], num=1000, limit=True, flex=0):
     plt.show()
 
 def filter_df_visit(df, visitcol="Visit Date", natcol="Nationality"):
+    nforeign = len(df[df[natcol].fillna("").str.upper().isin(["FOREIGN", "FR EXEMPT"])])
+    print("Number of foreign students:", nforeign)
     # Remove any where the visit date is empty or NaN and the nationality is DOMESTIC or D.INT
     filtered_rows = []
     for _, row in df.iterrows():
@@ -309,10 +311,10 @@ def division_bar_charts(df, division_col="DIV", visitcol="Visit Date", natcol="N
 
 
 if __name__ == "__main__":
-    filepath = r"C:\Users\mm96978\Downloads\Offers 1.7.26.xlsx"
+    filepath = r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Attachments\Offers 1.15.26.xlsx"
     df = pd.read_excel(filepath, dtype=str)
-    division_bar_charts(df)
-
+    # division_bar_charts(df)
+    #
     print(len(df))
     df = filter_df_visit(df)
     print(len(df))
