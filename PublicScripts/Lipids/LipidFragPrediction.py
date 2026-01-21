@@ -775,13 +775,13 @@ def merge_lists(fraglist, nllist):
     return fraglist, nllist
 
 
-def assign_df_fragments(df, hgdf=None, verbose=False):
+def assign_df_fragments(df, hgdf=None, verbose=False, tol=0.05):
     if "T1" not in df.columns:
         df = set_basic_tail_names(df, columnname="Metabolite name")
 
     outrows = []
     for i, row in df.iterrows():
-        row = assign_ref_match(row, tol=0.05, hgdf=hgdf, verbose=verbose)
+        row = assign_ref_match(row, tol=tol, hgdf=hgdf, verbose=verbose)
         outrows.append(row)
 
     return pd.DataFrame(outrows)

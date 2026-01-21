@@ -10,8 +10,8 @@ import matchms as mms
 import matplotlib as mpl
 import mplcursors
 
-import warnings
-warnings.filterwarnings("error")
+# import warnings
+# warnings.filterwarnings("error")
 
 posadducts = [
     ["[M+H]+", 1, 1.00782503207, True],
@@ -1276,7 +1276,7 @@ def detect_outliers_mahalanobis(df, features, threshold=2, robust=True, verbose=
     return outdf
 
 
-def class_network_analysis(df, min_count=3, header="Class_", add_all_cols=False):
+def class_network_analysis(df, min_count=3, header="Class_", add_all_cols=False, tol=0.05):
     graphs = []
     outdf = pd.DataFrame()
     for c in df['Ontology'].unique():
@@ -1287,7 +1287,7 @@ def class_network_analysis(df, min_count=3, header="Class_", add_all_cols=False)
             outdf = pd.concat([outdf, subdf])
             continue
 
-        newdf, G = network_analysis(subdf, header=header, add_all_cols=add_all_cols)
+        newdf, G = network_analysis(subdf, header=header, add_all_cols=add_all_cols, mz_tol=tol)
         G.graph["Title"]=c
         graphs.append(G)
         outdf = pd.concat([outdf, newdf])
