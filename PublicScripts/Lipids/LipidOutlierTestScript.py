@@ -11,6 +11,19 @@ drop_columns = ["MS/MS assigned", "m/z matched", "Manually modified for annotati
                 "INCHIKEY", "Annotation tag (VS1.0)", "Matched peaks percentage", "Matched peaks count",
                 "RT similarity", "m/z similarity", "Formula"]
 
+def comment_parser(df):
+    if "Comment" not in df.columns:
+        return df
+    if df["Comment"].isnull().all():
+        return df
+    # See if any of the comments contain "Low quality"
+    ucomments = df["Comment"].unique()
+    if not any("Low quality" in str(c) for c in ucomments):
+        return df
+    # Create a new column "Low_Quality_Flag"
+    df["Low_Quality_Flag"] = df["Comment"].apply(lambda x: True if "Low quality" in str(x) else False)
+    return df
+
 def outlier_pipeline(posfile, negfile, posxml="", negxml="", tol=0.05):
     print("Importing Files:", posfile, negfile)
     posdf = pd.read_csv(posfile)
@@ -66,6 +79,9 @@ def outlier_pipeline(posfile, negfile, posxml="", negxml="", tol=0.05):
 
     # Sort by Class and then Metabolite Name
     combined_df = combined_df.sort_values(by=["Ontology", "Metabolite name"])
+
+    # Parse Comments if present
+    combined_df = comment_parser(combined_df)
 
     # Write Outputs
     combined_df.to_excel("Combined_OutlierAnalysis.xlsx", index=False, sheet_name="Outlier_Analysis")
