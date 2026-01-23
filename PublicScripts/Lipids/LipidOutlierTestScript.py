@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 drop_columns = ["MS/MS assigned", "m/z matched", "Manually modified for annotation", "RT matched", "MS/MS matched",
-                "Post curation result", "Fill %", "Comment", "Manually modified for quantification",
+                "Post curation result", "Fill %", "Manually modified for quantification",
                 "Isotope tracking parent ID", "Isotope tracking weight number", "Spectrum reference file name",
                 "INCHIKEY", "Annotation tag (VS1.0)", "Matched peaks percentage", "Matched peaks count",
                 "RT similarity", "m/z similarity", "Formula"]
