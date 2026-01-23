@@ -278,6 +278,20 @@ def filter_df_visit(df, visitcol="Visit Date", natcol="Nationality"):
     filtered_df = pd.DataFrame(filtered_rows)
     return filtered_df
 
+def filter_fac(df, facname="Brodbelt", c1name="SOP FAC", c2name="FAC Question"):
+    """Filter dataframe to only rows where facname appears in either c1name or c2name columns."""
+    filtered_rows = []
+    for _, row in df.iterrows():
+        names_in_row_col1 = set(split_names(row[c1name]))
+        names_in_row_col2 = set(split_names(row[c2name]))
+        # union of names in this row across both columns
+        names_in_row = names_in_row_col1 | names_in_row_col2
+        if facname in names_in_row:
+            filtered_rows.append(row)
+    filtered_df = pd.DataFrame(filtered_rows)
+    return filtered_df
+
+
 def division_bar_charts(df, division_col="DIV", visitcol="Visit Date", natcol="Nationality"):
     divisions = df[division_col].unique()
     plt.figure()
@@ -318,6 +332,12 @@ if __name__ == "__main__":
     print(len(df))
     df = filter_df_visit(df)
     print(len(df))
+    facdf = filter_fac(df, facname="Marty")
+    print(len(facdf))
+    # Write to excel
+    facdf.to_excel(r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Attachments\Offers_Marty_1.15.26.xlsx", index=False)
+    exit()
+
     # df.columns = ["col1", "col2"]
 
 
