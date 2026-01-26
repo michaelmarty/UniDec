@@ -9,26 +9,21 @@ import pandas as pd
 import rainbow as rb
 import matplotlib.pyplot as plt
 from matplotlib import colormaps, colors, rcParams
-from matplotlib.path import Path
-from matplotlib.patches import PathPatch
-from matplotlib.colors import ListedColormap, Normalize
-from matplotlib.cm import ScalarMappable
-import matplotlib as mpl
 
-
-
+'''======================================================================'''
 G_FILENAME = "UIB1B_gdata.txt"
 R_FILENAME = "UIB1B_rdata.txt"
 NPZ_DIR = "NPZ files"
 TXT_DIR = "Text files"
 FIG_DIR = "Figures"
 
-
+'''======================================================================'''
 # Global color tuning (HSL Modifiers)
 global_LUM = 0.55  # brightness (1 = normal, <1 = darker, >1 = brighter)
 global_SAT = 1.4  # saturation (1 = normal, >1 = more vivid)
 global_HUE = 0  # hue shift (0–1; cycles colors)
 
+'''======================================================================'''
 # Global colormap and or color dictionary associated with each channel related data
 color_scheme = {
     "alpha": "winter_r",
@@ -341,15 +336,14 @@ def plot_subtraction_verification(path, original, blank, subtracted, channel_nam
     plt.axhline(0, color='black', lw=0.5, alpha=0.3)
 
     # Raw Data
-    plt.plot(original[:, 0], original[:, 1], label="Raw Tracer", alpha=0.3, color='gray')
+    plt.plot(original[:, 0], original[:, 1], label="Raw Tracer", alpha=0.5, color='skyblue')
 
     # Interpolated Blank (This is the one that was subtracted)
     if interp_blank is not None:
-        plt.plot(original[:, 0], interp_blank, label="Interpolated Blank", alpha=0.5, color='tab:orange',
-                 linestyle='--')
+        plt.plot(original[:, 0], interp_blank, label="Interpolated Blank", alpha=0.3, color='magenta')
 
     # Final Result
-    plt.plot(original[:, 0], subtracted[:, 1], label="Subtracted Result", color='tab:green', lw=1.5)
+    plt.plot(original[:, 0], subtracted[:, 1], label="Subtracted Result", color='deepskyblue', lw=1.5)
 
     plt.title(f" {os.path.basename(path)} | {channel_name}")
     plt.xlabel("Time (min)");
@@ -357,9 +351,8 @@ def plot_subtraction_verification(path, original, blank, subtracted, channel_nam
     plt.legend(loc='upper right', fontsize='x-small')
     plt.tight_layout()
 
-    plt.savefig(os.path.join(path, f"Verify_Subtraction_{channel_name}.png"))
+    plt.savefig(os.path.join(path, f"Verify_Subtraction_{channel_name}.png"), dpi=300)
     plt.close()
-
 
 def plot_UIB_dashboard(analysis_results, topdir, sort_by='reps', kin_xaxis='reps', figsize=(20, 18)):
 
@@ -408,20 +401,20 @@ def plot_UIB_dashboard(analysis_results, topdir, sort_by='reps', kin_xaxis='reps
         x_label = "Replicate Number"
 
     gp2 = [analysis_results[p]['g_p2'] for p in sorted_paths]
-    rp2 = [analysis_results[p]['r_p2'] for p in sorted_paths]
+    rp1 = [analysis_results[p]['r_p1'] for p in sorted_paths]
 
     # Plot Green Kinetics
     ax_kin_g.plot(x_data, gp2, color='lime', ls='--', alpha=0.3)
     ax_kin_g.scatter(x_data, gp2, color='lime', s=120, edgecolors='k', label='Bound (P2) %', zorder=3)
 
     # Plot Red Kinetics
-    ax_kin_r.plot(x_data, rp2, color='magenta', ls='--', alpha=0.3)
-    ax_kin_r.scatter(x_data, rp2, color='magenta', s=120, edgecolors='k', label='Bound (P2) %', zorder=3)
+    ax_kin_r.plot(x_data, rp1, color='magenta', ls='--', alpha=0.3)
+    ax_kin_r.scatter(x_data, rp1, color='magenta', s=120, edgecolors='k', label='UnBound (P1) %', zorder=3)
 
     # --- Formatting ---
     titles = ["Green: Raw Multiplexed", "Red: Raw Multiplexed",
               "Green: Subtracted (Normalized)", "Red: Subtracted (Normalized)",
-              f"Green Kinetics vs {kin_xaxis.capitalize()}", f"Red Kinetics vs {kin_xaxis.capitalize()}"]
+              f"Green Binding vs {kin_xaxis.capitalize()}", f"Red Binding vs {kin_xaxis.capitalize()}"]
 
     for ax, title in zip([ax_raw_g, ax_raw_r, ax_sub_g, ax_sub_r, ax_kin_g, ax_kin_r], titles):
         ax.set_title(title, fontweight='bold', fontsize=14)
@@ -502,18 +495,21 @@ def parse_instrument_method(files):
                 safe = re.sub(r"[^\w\s\(\)\-\.]", "", mod_name).strip()
                 with open(os.path.join(out_dir, f"{safe}.txt"), "w", encoding="utf-8") as f: f.write(tt)
 
+
 def plot_instrument_timetables(files):
     COLOR_SCHEMES = color_scheme
     print("[PLOTTING] Generating Instrument Method Timetable Visualizations...")
+
     def ffill(vals):
-        last = None;
+        last = None
         out = []
         for v in vals:
             if v is None or v == "---":
                 out.append(last)
             else:
                 try:
-                    last = float(v); out.append(last)
+                    last = float(v)
+                    out.append(last)
                 except:
                     out.append(last)
         return out
@@ -521,11 +517,16 @@ def plot_instrument_timetables(files):
     for d in files:
         tt_dir = os.path.join(d, "Method Timetables")
         if not os.path.isdir(tt_dir): continue
-        files_map = {k: next((f for f in os.listdir(tt_dir) if k in f.lower()), None) for k in
-                     ["alpha", "beta", "gamma", "g7116a", "g1316a"]}
+
+        files_map = {k: next((f for f in os.listdir(tt_dir) if k in f.lower()), None)
+                     for k in ["alpha", "beta", "gamma", "g7116a", "g1316a"]}
+
         if not any(files_map.values()): continue
-        fig, axs = plt.subplots(4, 1, figsize=(10, 12));
+
+        fig, axs = plt.subplots(4, 1, figsize=(10, 12))
         fig.subplots_adjust(hspace=0.4)
+
+        valve_times = []
 
         def parse_quat(fn):
             with open(os.path.join(tt_dir, fn)) as f:
@@ -546,6 +547,7 @@ def plot_instrument_timetables(files):
                 F.append(v[4])
             return np.array(t), ffill(A), ffill(B), ffill(C), ffill(D), ffill(F)
 
+        # 1 & 2: Alpha and Beta Pumps (Independent Smart Limits)
         for i, key in enumerate(["alpha", "beta"]):
             if files_map[key]:
                 t, A, B, C, D, F = parse_quat(files_map[key])
@@ -554,38 +556,155 @@ def plot_instrument_timetables(files):
                 for j in range(len(t) - 1):
                     dom = np.argmax([float(A[j] or 0), float(B[j] or 0), float(C[j] or 0), float(D[j] or 0)])
                     axs[i].plot(t[j:j + 2], F[j:j + 2], color=colors[dom], lw=3)
+
+                # Independent Smart Limit
+                if len(t) > 0:
+                    axs[i].set_xlim(0, t.max() + 0.5)
                 axs[i].set_title(f"{key.capitalize()} Pump")
+        # 2. Extract G1316A Valve Switches (BEFORE Gamma plotting)
+        if files_map["g1316a"]:
+            with open(os.path.join(tt_dir, files_map["g1316a"])) as f:
+                for line in f:
+                    # RegEx to find a float at the very start, even if text follows immediately
+                    # Captures '12.50' from '12.50Left'
+                    match = re.match(r"^(\d+\.?\d*)", line.strip())
+                    if match:
+                        valve_times.append(float(match.group(1)))
+
         if files_map["gamma"]:
             with open(os.path.join(tt_dir, files_map["gamma"])) as f:
                 lines = [l.strip() for l in f if l.strip()]
             start = next((i for i, l in enumerate(lines) if re.match(r"^-{3,}$", l)), None)
-            t, B, F = [], [], []
+            t_g, B_g, F_g = [], [], []
             for ln in lines[start + 1:]:
                 p = re.split(r"\s+", ln)
-                t.append(0.0 if p[0].lower().startswith("start") else float(p[0]))
-                B.append(p[2]);
-                F.append(p[3])
-            axs[2].plot(t, ffill(F), 'k', label="Flow");
-            axr = axs[2].twinx()
-            axr.plot(t, ffill(B), 'tab:orange', ls='--', label="%B")
-            axs[2].set_title("Gamma Pump")
-        axs[3].set_title("Column Compartments")
-        for k, c in [("g7116a", "tab:blue"), ("g1316a", "tab:orange")]:
-            if files_map[k]:
-                with open(os.path.join(tt_dir, files_map[k])) as f:
-                    ts = []
-                    for ln in f:
-                        ln = re.sub(r"(\d)([A-Za-z])", r"\1 \2", ln.strip())
-                        try:
-                            ts.append(float(re.split(r"\s+", ln)[0]))
-                        except:
-                            pass
-                    if ts: axs[3].scatter(ts, [1] * len(ts), color=c, s=50, label=files_map[k])
-        axs[3].legend(fontsize=8)
-        plt.tight_layout(rect=[0, 0, 1, 0.96]);
-        plt.savefig(os.path.join(d, "instrument_method.png"), dpi=200);
+                t_g.append(0.0 if p[0].lower().startswith("start") else float(p[0]))
+                B_g.append(p[2]);
+                F_g.append(p[3])
+
+            t_g = np.array(t_g)
+            # --- Left Y-Axis: Flow ---
+            ax_left = axs[2]
+            line_flow = ax_left.plot(t_g, ffill(F_g), 'k', lw=1.5, label="Flow", zorder=3)
+            ax_left.set_ylabel("Flow (mL/min)", color='black', fontweight='bold')
+            ax_left.tick_params(axis='y', labelcolor='black')
+
+            # --- Right Y-Axis: %B ---
+            ax_right = ax_left.twinx()
+            line_grad = ax_right.plot(t_g, ffill(B_g), color='tab:orange', ls='--', label="%B", zorder=3)
+            ax_right.set_ylabel("Solvent B (%)", color='tab:orange', fontweight='bold')
+            ax_right.tick_params(axis='y', labelcolor='tab:orange')
+            # Match the spine color to the data
+            ax_right.spines['right'].set_color('tab:orange')
+
+            # --- Valve Overlays (Vertical Lines) ---
+            for v_time in valve_times:
+                ax_left.axvline(x=v_time, color='deepbluesky', linestyle=':', alpha=1, lw=1.5, zorder=1)
+                # Position text slightly above the top of the plot
+                ax_left.text(v_time, ax_left.get_ylim()[1] * 1.02, f'{v_time}',
+                             color='red', fontsize=8, ha='center', weight='bold')
+
+            # Dynamic Scaling
+            if len(t_g) > 0:
+                max_x = max(t_g.max(), (max(valve_times) if valve_times else 0))
+                ax_left.set_xlim(0, max_x + 1)
+
+            ax_left.set_title("Gamma Pump (Flow & Gradient Profiles)", fontweight='bold')
+
+            # Unified Legend for both axes
+            lines = line_flow + line_grad
+            labels = [l.get_label() for l in lines]
+            ax_left.legend(lines, labels, loc='upper left', fontsize='small', framealpha=0.8)
+
+            # 4. Column Compartments (Visualizing the dots)
+        axs[3].set_title("Column Compartment Events")
+        if valve_times:
+            axs[3].scatter(valve_times, [1] * len(valve_times), color='tab:orange', s=60, label="G1316A Switch")
+            axs[3].set_xlim(0, max(valve_times) + 1)
+            axs[3].set_yticks([])  # Hide Y axis as it's just a timeline
+            axs[3].legend(fontsize=8)
+
+        plt.tight_layout(rect=[0, 0, 1, 0.96])
+        plt.savefig(os.path.join(d, "instrument_method.png"), dpi=200)
         plt.close()
 
+
+def plot_individual_samples(files, topdir, figsize=(12, 8), save=True):
+    """
+    Creates a 2-row subplot for each sample directory.
+    Row 1: UIB Green & Red Overlay (with fills).
+    Row 2: FLD Raw Data (with fill).
+    """
+    for s_path in files:
+        sample_name = os.path.basename(s_path)
+        print(f"[PLOTTING] Individual Processing sample: {sample_name}")
+
+        # 1. Define targets and load data for THIS sample
+        # Mapping: {filename: (label, color_key, row_index)}
+        targets = {
+            "UIB1B_gdata.txt": ("Green Channel", "gdata", 0),
+            "UIB1B_rdata.txt": ("Red Channel", "rdata", 0),
+            "FLD1A_rawdata.txt": ("FLD Raw", "overlay", 1)  # Using overlay or FLD scheme
+        }
+
+        fig, axes = plt.subplots(2, 1, figsize=figsize, sharex=False)
+        data_found = False
+
+        for fname, (label, c_key, row_idx) in targets.items():
+            # Check NPZ_DIR or TXT_DIR
+            ext = os.path.splitext(fname)[1].lower()
+            pref_dir = NPZ_DIR if ext in (".npz", ".npy") else TXT_DIR
+            target_file = os.path.join(s_path, pref_dir, fname)
+
+            if not os.path.exists(target_file):
+                target_file = os.path.join(s_path, fname)  # Fallback
+
+            if os.path.exists(target_file):
+                try:
+                    # Loading
+                    if ext == ".npz":
+                        raw = np.load(target_file, allow_pickle=True)
+                        arr = raw[raw.files[0]] if hasattr(raw, 'files') else raw
+                    else:
+                        arr = np.loadtxt(target_file)
+
+                    x, y = parse_array_to_xy(arr)
+                    if x is not None:
+                        data_found = True
+                        ax = axes[row_idx]
+
+                        # Get color from scheme
+                        color = get_filtered_colors(color_scheme.get(c_key, "viridis"), num_colors=1)[0]
+
+                        # Plot line and Fill
+                        ax.plot(x, y, label=label, color=color, linewidth=1.2, zorder=2)
+                        ax.fill_between(x, y, color=color, alpha=0.15, zorder=1)
+                except Exception as e:
+                    print(f" [!] Error loading {fname} in {sample_name}: {e}")
+
+        if not data_found:
+            plt.close(fig)
+            continue
+
+        # 2. Formatting
+        axes[0].set_title(f"Sample: {sample_name} | Dimension 1", fontweight='bold')
+        axes[0].set_ylabel("UIB Voltage (mV)")
+        axes[0].legend(loc='upper right', fontsize='small')
+
+        axes[1].set_title(f"Sample: {sample_name} | Dimension 2", fontweight='bold')
+        axes[1].set_ylabel("Intensity (LU)")
+        axes[1].set_xlabel("Time (min)")
+
+        plt.tight_layout()
+
+        # 3. Save Logic
+        if save:
+            out_dir = os.path.join(topdir, "individual_plots")
+            os.makedirs(out_dir, exist_ok=True)
+            plt.savefig(os.path.join(out_dir, f"{sample_name}_report.png"), dpi=300)
+            plt.savefig(os.path.join(out_dir, f"{sample_name}_report.pdf"), dpi=300)
+
+        plt.show()
 
 def plot_overlay(files, topdir, read_files=None, figsize=(16, 7), save=True):
     if not read_files:
@@ -692,14 +811,15 @@ def move_figures(files, topdir):
 
 def main():
     rc_params_setup()
-    topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\20260115 td cc test 2026-01-22 22-31-57\Nanodisc Rep"
+    topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\20260123"
     files = glob.glob(os.path.join(topdir, "*.D"))
-    detector_files = ["UIB1B_rawdata.npz", "FLD1A_data.npz"]
+    detector_files = ["UIB1B_rawdata.npz", "FLD1A_rawdata.npz"]
 
     #extract_all_files(files)
     convert_acq_to_utf8(files)
     parse_instrument_method(files)
     plot_instrument_timetables(files)
+    plot_individual_samples(files, topdir, figsize=(12, 8), save=True)
     analysis_results = analyze_UIB_samples(files, topdir, num_compressed=50)
 
     # Visualization & cleanup using results
