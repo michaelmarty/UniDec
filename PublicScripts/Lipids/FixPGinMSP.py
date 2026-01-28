@@ -1,10 +1,11 @@
 import os
 
-os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
+os.chdir(r"Z:\Group Share\Annika\Stellar\Untargeted DDA\HEK")
 
-neglib = "MSDIAL-TandemMassSpectralAtlas-VS69-Neg-RTP2.msp"
+neglib = "20260112_HEK_UntDDA_Neg_New_Corrected.msp"
 
 insert = "152.9958	50"
+compound_class = None
 
 # Read the MSP file and modify PG entries to add the missing fragment
 # Will need to do this for EtherPG and LysoPG as well

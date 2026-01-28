@@ -13,8 +13,8 @@ class IsoGenPepEngine(IsoGenEngineBase):
         super().__init__()
         modelid=0
         self.isolen = isolen
-        self.seqlengthranges = np.array([[1, 50], [51,300]])
-        self.lengths = np.array([16, 64])
+        self.seqlengthranges = np.array([[1, 50], [51, 1000]])
+        self.lengths = np.array([16, 128])
         self.inputname = "seqs"
         self.models = []
         for l in self.lengths:
@@ -28,7 +28,6 @@ class IsoGenPepEngine(IsoGenEngineBase):
         for i in range(len(self.lengths)):
             if self.lengths[i] == self.isolen:
                 self.model = self.models[i]
-
 
 
 
@@ -80,10 +79,10 @@ if __name__ == "__main__":
     pep3 = "training_random_human_proteins_50000_min_5_max_50.npz"
     pep4 = "training_random_mouse_proteins_50000_min_5_max_50.npz"
 
-    intact1 = "training_random_ecoli_proteins_10000_min_51_max_300.npz"
-    intact2 = "training_random_yeast_proteins_10000_min_51_max_300.npz"
-    intact3 = "training_random_human_proteins_10000_min_51_max_300.npz"
-    intact4 = "training_random_mouse_proteins_10000_min_51_max_300.npz"
+    intact1 = "training_random_ecoli_proteins_1000_min_51_max_1000.npz"
+    intact2 = "training_random_yeast_proteins_1000_min_51_max_1000.npz"
+    intact3 = "training_random_human_proteins_1000_min_51_max_1000.npz"
+    intact4 = "training_random_mouse_proteins_1000_min_51_max_1000.npz"
 
     if True:
         # eng_pep = IsoGenPepEngine(isolen=16)
@@ -91,7 +90,7 @@ if __name__ == "__main__":
         # eng_pep.train_multiple([trainfile_synthetic, pep1, pep2, pep3, pep4],
         #                        epochs=10, forcenew=True)
 
-        eng_prot = IsoGenPepEngine(isolen=64)
+        eng_prot = IsoGenPepEngine(isolen=128)
         print("Training Protein Model...")
         eng_prot.train_multiple([intact1, intact2, intact3, intact4], epochs=10, forcenew=True)
 

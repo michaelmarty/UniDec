@@ -797,9 +797,12 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 			printf("\tWriting %d Peaks to: %s\n", plen, outdat);
 		}
 
-		float* ptemp = NULL;
 		int newlen = plen * 3;
-		ptemp = calloc(newlen, sizeof(float));
+		float *ptemp = calloc(newlen, sizeof(float));
+		if (ptemp == NULL) {
+			fprintf(stderr, "Memory allocation failed for %d floats\n", newlen);
+			exit(11);
+		}
 
 		for (int i = 0; i < plen; i++) {
 			ptemp[i * 3] = peakx[i];

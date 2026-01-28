@@ -25,6 +25,8 @@ include_directories("${FFTW_DIR}")
 set(CMAKE_INSTALL_RPATH ${INSTALL_DIR})
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
+
+
 # ======================== IsoGen Builds ========================
 
 add_library(isogen SHARED
@@ -32,6 +34,7 @@ add_library(isogen SHARED
                 ${FFTW_DIR}/fftw3.h
                 isogenpep.c isogenpep.h
                 isogenrna.c isogenrna.h
+        isogen_test.cpp
 )
 set_target_properties(isogen PROPERTIES LINKER_LANGUAGE C)
 target_include_directories(isogen PUBLIC ${FFTW_DIR})
@@ -85,6 +88,10 @@ install(TARGETS isodeclib DESTINATION ${INSTALL_DIR})
 add_executable(isodec_test isodec_test.cpp)
 target_include_directories(isodec_test PUBLIC ${SRC_DIR})
 target_link_libraries(isodec_test PUBLIC isogen isodeclib)
+
+add_executable(isogen_test isogen_test.cpp)
+target_include_directories(isogen_test PUBLIC ${SRC_DIR})
+target_link_libraries(isogen_test PUBLIC isogen isogen)
 
 install(TARGETS isodec_test DESTINATION ${INSTALL_DIR})
 

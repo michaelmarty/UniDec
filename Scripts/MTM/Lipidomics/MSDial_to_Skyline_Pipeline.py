@@ -1,5 +1,5 @@
 import os
-from LipidFunctions import *
+from PublicScripts.Lipids.LipidFunctions import *
 
 # Set the working directory
 topdir = r"Z:\Group Share\MTM\IQ-X\MartyLab_AX\FinalResults"

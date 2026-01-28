@@ -1,7 +1,6 @@
-import numpy as np
 import os
 import pandas as pd
-import Scripts.MTM.Lipidomics.LipidFunctions as LipidFunctions
+
 
 def df_to_df(df):
     # Clean up duplicate names with same name and INCHIKEY

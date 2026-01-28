@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from LipidFunctions import fix_name, fix_dash, fix_plasmalogens, msdialnames_to_LC
+from PublicScripts.Lipids.LipidFunctions import fix_name, fix_dash, fix_plasmalogens, msdialnames_to_LC
 
 topdir = r"Z:\Group Share\MTM\IQ-X\MartyLab_AX\FinalResults"
 os.chdir(topdir)

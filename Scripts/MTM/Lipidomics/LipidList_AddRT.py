@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-from LipidFunctions import msdialnames_to_LC
 import sqlite3
 
 topdir = r"Z:\Group Share\Annika\Stellar"

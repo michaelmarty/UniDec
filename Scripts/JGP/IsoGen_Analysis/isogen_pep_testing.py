@@ -11,6 +11,7 @@ import time
 import random
 from matplotlib.pyplot import rcParams
 from Scripts.JGP.IsoGen_Analysis.BRAIN_wrapper import *
+import pickle
 
 
 def match_files(directory, string, exclude=None):
@@ -20,7 +21,6 @@ def match_files(directory, string, exclude=None):
             if exclude is None or exclude not in file:
                 files.append(file)
     return np.array(files)
-
 
 def remove_outliers(data, multiplier=2):
     """
@@ -46,7 +46,6 @@ def remove_outliers(data, multiplier=2):
     upper_bound = q3 + multiplier * iqr
 
     return [x for x in data if lower_bound <= x <= upper_bound]
-
 
 def get_s_count_from_pepmass(mass):
     formula, minmassint, isolist = pep_makemass(mass)
@@ -77,6 +76,8 @@ rcParams['ps.useafm'] = True
 rcParams['ps.fonttype'] = 42
 rcParams['pdf.fonttype'] = 42
 rcParams['font.family'] = 'Arial'
+
+save_figs = False
 
 eng = IsoGenPepEngine()
 eng_avg = IsoGenMassEngine()
@@ -118,17 +119,15 @@ if False:
         plt.show()
 
 if True:
-    topdir = r"C:\Users\Admin\Desktop\martylab\IsoGen\IntactProtein\Training"
+    topdir = r"C:\Users\Admin\Desktop\martylab\IsoGen\IntactProtein\Assessment"
     os.chdir(topdir)
-    assessment_files = match_files(topdir, "*0.npz")
-    assessment_files = [r"C:\Users\Admin\Desktop\martylab\IsoGen\IntactProtein\Training\human_protein_seqs.npz"]
+    assessment_files = match_files(topdir, "*1000.npz")
+    #assessment_files = [r"C:\Users\Admin\Desktop\martylab\IsoGen\IntactProtein\Training\human_protein_seqs.npz"]
 
     seqs = []
     dists = []
     vecs = []
     masses = []
-
-
 
     for file in assessment_files:
         data = np.load(file)
@@ -161,17 +160,18 @@ if True:
     shuffled_indices = np.arange(0, len(masses))
     random.shuffle(shuffled_indices)
 
+    num_processed = 0
+
     for i in shuffled_indices:
-        if i % 10000 == 0:
-            print("Processing sequence", i, "of", len(masses))
+        num_processed += 1
+        if num_processed % 10000 == 0:
+            print("Processing sequence", num_processed, "of", len(masses))
 
         s_counts[i] = get_s_count_from_pepmass(masses[i])
 
         aa_count = peptide_to_aacount(seqs[i])
 
         all_aa_counts[i] = aa_count
-        if len(seqs[i]) > 50:
-            continue
 
         pep_isolen = pepmass_to_isolen(masses[i])
         rna_isolen = rnamass_to_isolen(masses[i])
@@ -212,7 +212,6 @@ if True:
             nn_seq_times[aa_count] = [nn_seq_time]
             nn_seq_css_vals[aa_count] = [nn_seq_css]
 
-
         timestart = time.perf_counter()
         nn_mass_dist = nn_pep_mass_to_dist(masses[i])
         nn_mass_time = round(time.perf_counter() - timestart, 6)
@@ -224,7 +223,6 @@ if True:
         else:
             nn_mass_times[aa_count] = [nn_mass_time]
             nn_mass_css_vals[aa_count] = [nn_mass_css]
-
 
         timestart = time.perf_counter()
         brain_mass_dist = brain_pepmass_to_dist(masses[i])
@@ -262,37 +260,58 @@ if True:
         #     plt.show()
 
 
-
+    with open("fft_seq_times.txt", "wb") as myFile:
+        pickle.dump(fft_seq_times, myFile)
     for k,v in fft_seq_times.items():
         fft_seq_times[k] = np.average(remove_outliers(v))
 
+    with open("fft_mass_times.txt", "wb") as myFile:
+        pickle.dump(fft_mass_times, myFile)
     for k,v in fft_mass_times.items():
         fft_mass_times[k] = np.average(remove_outliers(v))
 
+    with open("nn_seq_times.txt", "wb") as myFile:
+        pickle.dump(nn_seq_times, myFile)
     for k,v in nn_seq_times.items():
         nn_seq_times[k] = np.average(remove_outliers(v))
 
+    with open("nn_mass_times.txt", "wb") as myFile:
+        pickle.dump(nn_mass_times, myFile)
     for k,v in nn_mass_times.items():
         nn_mass_times[k] = np.average(remove_outliers(v))
 
+    with open("fft_mass_css_vals.txt", "wb") as myFile:
+        pickle.dump(fft_mass_css_vals, myFile)
     for k,v in fft_mass_css_vals.items():
         fft_mass_css_vals[k] = np.average(remove_outliers(v))
 
+    with open("nn_seq_css_vals.txt", "wb") as myFile:
+        pickle.dump(nn_seq_css_vals, myFile)
     for k,v in nn_seq_css_vals.items():
         nn_seq_css_vals[k] = np.average(remove_outliers(v))
 
+    with open("nn_mass_css_vals.txt", "wb") as myFile:
+        pickle.dump(nn_mass_css_vals, myFile)
     for k,v in nn_mass_css_vals.items():
         nn_mass_css_vals[k] = np.average(remove_outliers(v))
 
+    with open("brain_mass_times.txt", "wb") as myFile:
+        pickle.dump(brain_mass_times, myFile)
     for k,v in brain_mass_times.items():
         brain_mass_times[k] = np.average(remove_outliers(v))
 
+    with open("brain_seq_times.txt", "wb") as myFile:
+        pickle.dump(brain_seq_times, myFile)
     for k,v in brain_seq_times.items():
         brain_seq_times[k] = np.average(remove_outliers(v))
 
+    with open("brain_mass_css_vals.txt", "wb") as myFile:
+        pickle.dump(brain_mass_css_vals, myFile)
     for k,v in brain_mass_css_vals.items():
         brain_mass_css_vals[k] = np.average(remove_outliers(v))
 
+    with open("brain_seq_css_vals.txt", "wb") as myFile:
+        pickle.dump(brain_seq_css_vals, myFile)
     for k,v in brain_seq_css_vals.items():
         brain_seq_css_vals[k] = np.average(remove_outliers(v))
 
@@ -331,8 +350,9 @@ if True:
     plt.ylabel("Average Time (sec)", fontsize=label_size)
     plt.legend()
     plt.tight_layout()
-    plt.savefig(r"C:\Users\Admin\Desktop\martylab\IsoGen\Figures\aa_count_speed.pdf", dpi=300, transparent=True)
-    plt.savefig(r"C:\Users\Admin\Desktop\martylab\IsoGen\Figures\aa_count_speed.png", dpi=300, transparent=True)
+    if save_figs:
+        plt.savefig(r"C:\Users\Admin\Desktop\martylab\IsoGen\Figures\aa_count_speed.pdf", dpi=300, transparent=True)
+        plt.savefig(r"C:\Users\Admin\Desktop\martylab\IsoGen\Figures\aa_count_speed.png", dpi=300, transparent=True)
     plt.show()
 
 
@@ -344,8 +364,8 @@ if True:
     plt.scatter(aa_counts, brain_mass_avgcss, label="BRAIN-Mass")
     plt.scatter(aa_counts, brain_seq_avgcss, label="BRAIN-Seq")
 
-    # for aa_count in aa_count_s_transitions:
-    #     plt.vlines(aa_count, 0.995, 1, color='r', linestyle='-')
+    for aa_count in aa_count_s_transitions:
+        plt.vlines(aa_count, 0.995, 1, color='r', linestyle='-')
 
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
@@ -361,8 +381,9 @@ if True:
     plt.ylabel("CSS", fontsize=label_size)
     plt.legend()
     plt.tight_layout()
-    plt.savefig(r"C:\Users\Admin\Desktop\martylab\IsoGen\Figures\aa_count_css.pdf", dpi=300, transparent=True)
-    plt.savefig(r"C:\Users\Admin\Desktop\martylab\IsoGen\Figures\aa_count_css.png", dpi=300, transparent=True)
+    if save_figs:
+        plt.savefig(r"C:\Users\Admin\Desktop\martylab\IsoGen\Figures\aa_count_css.pdf", dpi=300, transparent=True)
+        plt.savefig(r"C:\Users\Admin\Desktop\martylab\IsoGen\Figures\aa_count_css.png", dpi=300, transparent=True)
     plt.show()
 
 if False:
