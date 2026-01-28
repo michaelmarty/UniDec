@@ -13,12 +13,10 @@ def cleanup_df(df):
     df = df[~df['Name'].str.contains("low score", na=False)]
     return df
 
-os.chdir(r"Z:\Group Share\Annika\Stellar\HEK")
+os.chdir(r"Z:\Group Share\Annika\Stellar\Untargeted DDA\BPL")
 
-os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
-
-posfile = "PosIDsRTP1.csv"
-negfile = "NegIDsRTP1.csv"
+posfile = r"BrainPos_Peakmaster.csv"
+negfile = r"BrainNeg_Peakmaster.csv"
 
 limit = 5
 smooth= 1

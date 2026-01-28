@@ -15,6 +15,7 @@ def get_fragments_df(libfile):
     msmss = []
     nls = []
     names = []
+    mzvals = []
     for s in spectra:
         md = s.metadata_dict()
         name = md["compound_name"]
@@ -24,7 +25,9 @@ def get_fragments_df(libfile):
         msms = s.peaks.mz
         mz = md["precursor_mz"]
         neutrallosses = mz - np.array(msms)
-        neutrallosses = neutrallosses[neutrallosses > 1]
+        neutrallosses = neutrallosses[neutrallosses > 5]
+
+        msms = msms[msms < mz-5]  # Remove precursor and higher fragments
 
         classes.append(classname)
         adducts.append(adduct)
@@ -32,11 +35,13 @@ def get_fragments_df(libfile):
         msmss.append(msms)
         nls.append(neutrallosses)
         names.append(name)
+        mzvals.append(mz)
 
     df = pd.DataFrame({
         "Name": names,
         "CompoundClass": classes,
         "Adduct": adducts,
+        "MZ": mzvals,
         "IonMode": modes,
         "MSMS_mz": msmss,
         "NL_mz": nls

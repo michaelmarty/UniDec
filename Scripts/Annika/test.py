@@ -1,33 +1,50 @@
 import pandas as pd
+import numpy as np
+from scipy.stats import ttest_ind
+from pathlib import Path
 
-# ----------------------------
-# User settings
-# ----------------------------
-input_excel = r"Z:\Group Share\Annika\Stellar\HEK\TargetedHEK_StellarList.xlsx"  # your Excel file
-sheet_all = "TargetedHEK_StellarList"      # sheet with all lipids
-sheet_pos = "Pos"       # sheet with positive lipids
-output_excel = r"Z:\Group Share\Annika\Stellar\HEK\Lipids_with_Overlap.xlsx"
-key_column = "Compound"  # column to match lipids
-# ----------------------------
+# -----------------------------
+# Load CSV
+# -----------------------------
+file_path = r"Z:\Group Share\Annika\Stellar\EC\AqpZ New Data\Analysis\NEWSamples1,2,3,4,5,6_ANALYSIS.csv"
+df = pd.read_csv(file_path)
 
-# Load the sheets
-all_df = pd.read_excel(input_excel, sheet_name=sheet_all)
-pos_df = pd.read_excel(input_excel, sheet_name=sheet_pos)
+# -----------------------------
+# Define the groups (replace with your column names)
+# -----------------------------
+groupA = ["1", "3", "5"]  # columns for condition A
+groupB = ["2", "4", "6"]  # columns for condition B
 
-# Ensure key column exists
-for df, name in [(all_df, sheet_all), (pos_df, sheet_pos)]:
-    if key_column not in df.columns:
-        raise ValueError(f"Column '{key_column}' not found in sheet '{name}'")
+# -----------------------------
+# Clean & convert to numeric
+# -----------------------------
+for col in groupA + groupB:
+    df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', '').str.strip(), errors='coerce')
 
-# Find overlapping lipids (keep all columns from AllLipids)
-overlap_df = all_df[all_df[key_column].isin(pos_df[key_column])]
+# -----------------------------
+# Compute t-test p-values row by row
+# -----------------------------
+pvals = []
+for _, row in df.iterrows():
+    a = row[groupA].dropna().astype(float).values
+    b = row[groupB].dropna().astype(float).values
 
-print(f"Found {len(overlap_df)} overlapping lipids.")
+    if len(a) > 0 and len(b) > 0:
+        p = ttest_ind(a, b, equal_var=False).pvalue
+    else:
+        p = np.nan
 
-# Write back to Excel with a new sheet (keep original sheets)
-with pd.ExcelWriter(output_excel, engine="openpyxl") as writer:
-    all_df.to_excel(writer, sheet_name=sheet_all, index=False)
-    pos_df.to_excel(writer, sheet_name=sheet_pos, index=False)
-    overlap_df.to_excel(writer, sheet_name="Overlap", index=False)
+    pvals.append(p)
 
-print(f"Overlap sheet added to {output_excel}")
+df["PValue"] = pvals
+
+# -----------------------------
+# Save results to a CSV you control
+# -----------------------------
+# Change this path to wherever you want the CSV to appear
+save_folder = Path(r"Downloads")  # for example
+save_folder.mkdir(parents=True, exist_ok=True)  # ensure folder exists
+output_file = save_folder / "PValues_Lipid_Test.csv"
+
+df.to_csv(output_file, index=False)
+print(f"Done! Saved p-values to: {output_file}")

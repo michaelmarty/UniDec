@@ -505,7 +505,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
     char *suffixgrid = "mzgrid";
     writemzgrid(config.outfile, suffixgrid, newblur, size);
 
-    char outstring[500];
+    char outstring[510];
     char *suffixerr = "error";
     FILE *out_ptrIM = NULL;
     sprintf(outstring, "%s_%s.txt", config.outfile, suffixerr);

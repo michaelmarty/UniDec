@@ -2,18 +2,18 @@ import numpy as np
 import pickle
 import os
 
-os.chdir(r"C:\Python\pyRetip\notebooks\lipidomics")
+os.chdir(r"Z:\Group Share\Annika\Stellar\Untargeted DDA\BPL")
 
-poslibfile = r"MSDIAL-TandemMassSpectralAtlas-VS69-Pos-RTP1.msp"
-neglibfile = r"MSDIAL-TandemMassSpectralAtlas-VS69-Neg-RTP1.msp"
+poslibfile = r"MSDIAL-TandemMassSpectralAtlas-VS69-Pos-StellarRTP2.msp"
+neglibfile = r"MSDIAL-TandemMassSpectralAtlas-VS69-Neg-StellarRTP2.msp"
 
 interpolationfunction = r"RTInterpolation.pkl"
 with open(interpolationfunction, 'rb') as f:
     p = pickle.load(f)
 
 # Rename outfile to replace C1 with Stellar 1
-posoutfile = poslibfile.replace("-RTP1", "-RTP2")
-negoutfile = neglibfile.replace("-RTP1", "-RTP2")
+posoutfile = poslibfile.replace("-RTP2", "-RTP2_Brain")
+negoutfile = neglibfile.replace("-RTP2", "-RTP2_Brain")
 
 # Read library file
 with open(poslibfile, 'r') as f:

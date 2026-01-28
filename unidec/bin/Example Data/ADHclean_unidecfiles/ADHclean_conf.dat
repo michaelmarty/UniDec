@@ -1,4 +1,4 @@
-version 8.0.3
+version 8.1.1
 imflag 0
 cdmsflag 0
 input C:\Python\UniDecDev\unidec\bin\Example Data\ADHclean_unidecfiles\ADHclean_input.dat
@@ -30,7 +30,7 @@ smooth 0.0
 mzbins 0.0
 peakwindow 500.0
 peakthresh 0.1
-normthresh 0.0
+normthresh 0
 peakplotthresh 0.1
 plotsep 0.025
 intthresh 0.0
@@ -50,18 +50,15 @@ peakcmap rainbow
 spectracmap rainbow
 publicationmode 1
 isotopemode 0
-peaknorm 0.0
-datanorm 0.0
+peaknorm 0
+datanorm 0
 baselineflag 1
 orbimode 0
-avgpeakmasses 0
-selectiontype None
 integratelb -1.05
 integrateub 2.05
-filterwidth 20.0
+filterwidth 0
 zerolog -12.0
 doubledec False
-kernel 
 CDslope 0.2074
 CDzbins 1
 CDres 0.0
@@ -92,12 +89,11 @@ csig 0.0
 smoothdt 0.0
 subbufdt 0.0
 centroided False
-minusoneaszero False
 verbose False
 zout 0
 pusher 0
-mindt 
-maxdt 
+mindt -1.0
+maxdt -1.0
 ccsub 25000.0
 ccslb 100.0
 dtsig 0.2
@@ -116,3 +112,31 @@ tcal2 6.3597
 tcal3 0.0
 tcal4 0.0
 edc 1.57
+variablepw 0
+minratio 0.0
+iso_meanpeakspacing_thresh 0.01
+iso_background_subtraction 0.0
+iso_adductmass 1.007276467
+iso_mass_diff_c 1.0033
+iso_peakwindow 80.0
+iso_phaseres 8
+iso_matchtol 5.0
+iso_minpeaks 3
+iso_peakthresh 0.0001
+iso_css_thresh 0.7
+iso_maxshift 3
+iso_mzwindowlb -1.05
+iso_mzwindowub 4.05
+iso_plusoneintwindowlb 0.1
+iso_plusoneintwindowub 0.6
+iso_knockdown_rounds 5
+iso_min_score_diff 0.1
+iso_minareacovered 0.2
+iso_minusoneaszero 1
+iso_isotopethreshold 0.01
+iso_datathreshold 0.05
+iso_zscore_threshold 0.95
+iso_report_multiple_monoisos 1
+iso_write_scans_without_precs 1
+iso_write_msalign 0
+iso_write_tsv 1

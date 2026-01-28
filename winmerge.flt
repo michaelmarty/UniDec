@@ -24,7 +24,7 @@ d: \\build
 d: \\dist
 d: \\unidec_doc
 d: \\*__pycache__
-d: \\*Scripts
+d: \\Scripts
 d: \\*Licensing
 d: \\*src_vs
 d: \\*old_waters
@@ -35,6 +35,7 @@ d: \\venv
 d: \\.venv*
 d: \\UnIDec.egg-info
 d: \\*test_1_unidecfiles
+d: \\TestSpectra
 
 f: \.pypirc
 f: \.*test_MUD.py$

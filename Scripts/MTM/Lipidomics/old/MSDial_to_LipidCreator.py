@@ -1,19 +1,17 @@
-import pandas as pd
-import numpy as np
 import os
-from LipidFunctions import *
+from PublicScripts.Lipids.LipidFunctions import *
 
 
-toppath = "C:\\Data\\Lipidomics\\OpenMS\\"
+toppath = "Z:\\Group Share\\Annika\\Stellar\\EC\\AqpZ New Data\\11282025"
 os.chdir(toppath)
 
 file = "Area_0_20227291548.txt"
 file = "MsmsIncluded_0_2022729127.txt"
-file = "RT_0_2022861815.txt"
+file = "20251201_EC_03_MembExtract_EqCL_UntDDA.txt"
 
 df = pd.read_table(file, header=4)
 
-df = df[df["MS/MS matched"]]
+df = df[df["MS/MS spectrum"]]
 
 simp_names = []
 full_names = []

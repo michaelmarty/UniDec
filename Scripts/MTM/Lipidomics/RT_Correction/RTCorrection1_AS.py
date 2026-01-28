@@ -13,26 +13,24 @@ def cleanup_df(df):
     df = df[~df['Name'].str.contains("low score", na=False)]
     return df
 
-os.chdir(r"Z:\Group Share\Annika\Stellar\HEK")
+os.chdir(r"Z:\Group Share\Annika\IQ-X\UntDDA Tests HEKpos\New Libs Tests")
 
-posfile = r"20251023_AS_HEK_PosDDA_MSDial.csv"
-negfile = r"20251023_AS_HEK_NegDDA_MSDial.csv"
-
-posfile = "20250929_AS_HEK_DDA_20_Pos.txt"
-negfile = "20250929_AS_HEK_DDA_20_Neg.txt"
+posfile = r"PosPeakMaster_HEKpos_IT_IT.csv"
+negfile = r"NegPeakMaster_HEKneg_IT_IT.csv"
 
 limit = 5
 smooth= 1
 window = 0.5
 
-posdf = pd.read_table(posfile)
-posdf = cleanup_df(posdf)
+posdf = pd.read_csv(posfile)
+# posdf = cleanup_df(posdf)
+print(posdf.columns)
+# Grab relevant columns: Metabolite name, Average Rt(min), Reference RT, S/N average, Total score
+posrtdf = posdf[['Metabolite name', 'Average Rt(min)', 'Reference RT', "S/N average", "Total score"]].reset_index(drop=True)
 
-posrtdf = posdf[['Name', 'RT (min)', 'Reference RT', "Area", "Total score"]].rename(columns={'RT (min)': 'Average Rt(min)'}).reset_index(drop=True)
-
-negdf = pd.read_table(negfile)
-negdf = cleanup_df(negdf)
-negrtdf = negdf[['Name', 'RT (min)', 'Reference RT', "Area", "Total score"]].rename(columns={'RT (min)': 'Average Rt(min)'}).reset_index(drop=True)
+negdf = pd.read_csv(negfile)
+# negdf = cleanup_df(negdf)
+negrtdf = negdf[['Metabolite name', 'Average Rt(min)', 'Reference RT', "S/N average", "Total score"]].reset_index(drop=True)
 
 # Contatenate dataframes
 df = pd.concat([negrtdf, posrtdf])
@@ -40,14 +38,22 @@ df = pd.concat([negrtdf, posrtdf])
 
 # Append a line beyond this to force fit to go through these points
 # List of rows to add
-new_rows = [
-    {'Name': 'End1', 'Average Rt(min)': 30, 'Reference RT': 30, "Area":1, "Total score":100},
-    {'Name': 'End2', 'Average Rt(min)': 20, 'Reference RT': 20, "Area":1, "Total score":100},
-     {'Name': 'End3', 'Average Rt(min)': 25, 'Reference RT': 25, "Area":1, "Total score":100},
-{'Name': 'End3', 'Average Rt(min)': 22, 'Reference RT': 22, "Area":1, "Total score":100},
-{'Name': 'End3', 'Average Rt(min)': 27, 'Reference RT': 27, "Area":1, "Total score":100},
-]
+template_row = {'Metabolite name': 'End1', 'Average Rt(min)': 0, 'Reference RT': 0, "S/N average":1, "Total score":100}
+# For 0 to min rt, add x=y
+min_rt = df['Reference RT'].min()
+new_rows = []
+for rt in np.arange(0, min_rt, 0.1):
+    row = template_row.copy()
+    row['Average Rt(min)'] = rt
+    row['Reference RT'] = rt
+    new_rows.append(row)
 
+max_rt = df['Reference RT'].max()
+for rt in np.arange(max_rt, max_rt + 10, 0.1):
+    row = template_row.copy()
+    row['Average Rt(min)'] = rt
+    row['Reference RT'] = rt
+    new_rows.append(row)
 
 # Convert to DataFrame and concatenate
 df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
@@ -61,6 +67,7 @@ df = df.sort_values(by=['Reference RT'], ascending=True)
 x = np.array(df['Reference RT'])
 y = np.array(df['Average Rt(min)'])
 w = np.array(df['Total score'])
+w = np.ones_like(y)
 
 minx = np.min(x)
 maxx = np.max(x)

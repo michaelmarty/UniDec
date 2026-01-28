@@ -1,4 +1,4 @@
-version 8.1.0
+version 8.1.1
 imflag 0
 cdmsflag 0
 input C:\Python\UniDecDev\unidec\bin\Example Data\BSA_unidecfiles\BSA_input.dat
@@ -28,9 +28,9 @@ subbuff 0.0
 subtype 2
 smooth 0.0
 mzbins 0.0
-peakwindow 500.0
+peakwindow 50.0
 peakthresh 0.01
-normthresh 0
+normthresh 1
 peakplotthresh 0.1
 plotsep 0.025
 intthresh 0.0
@@ -112,6 +112,8 @@ tcal2 6.3597
 tcal3 0.0
 tcal4 0.0
 edc 1.57
+variablepw 0
+minratio 0.0
 kernel C:\Python\UniDec3\unidec\bin\Example Data\BSA_unidecfiles\BSA_mass.txt
 iso_meanpeakspacing_thresh 0.01
 iso_background_subtraction 0.0
