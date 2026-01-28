@@ -183,18 +183,7 @@ def main():
     title in EVERY plot function to match accurately the data you're plotting
     :return: Plots out the wazoo
     """
-    fold_path = "farhana_cb2"
-    names = ["CB2 FT", "CB2 FT New", "CB2 500 ug ND", "CB2 250 ug ND", "CB2 250 ug ND new", "CB2 200 ug ND"]
-    color = ["black", "blue","lime","red","purple","orange", "cyan"]
-    sec_data = folder_handler(folder_name=fold_path, names=names)
-    # plot_chrom(sec_data, colours=color, title="CB2 Direct ND Raw All")
-    # plot_chrom(sec_data, colours=color, grouping_index=[1, 3, 4], title="CB2 Direct ND Raw New")
-    normalized_sec_data = normalize_sec(sec_data)
-    # plot_chrom(normalized_sec_data, normalized=True, colours=color, title="CB2 Direct ND Normalized All", subplots=1)
-    # plot_chrom(normalized_sec_data, normalized=True, colours=color, grouping_index=[1, 3, 4], title="CB2 Direct ND Normalized New", subplots=0)
-    # plot_chrom(normalized_sec_data, normalized=True, colours=color, grouping_index=[1, 3, 4], title="CB2 Direct ND Normalized New", subplots=1)
-    plot_chrom(normalized_sec_data, normalized=True, colours=color, xlim=(0, 40), title="CB2 Direct ND Normalized All Small Window", subplots=1)
-    # plot_chrom(normalized_sec_data, normalized=True, colours=color, grouping_index=[1, 3, 4], xlim=(11, 40), title="CB2 Direct ND Normalized New Small Window")
+    
     print("All Done! Thanks")
     gc.collect()
 
