@@ -29,7 +29,7 @@ def rename_overlapping_species(df):
         df.at[idx, "Molecule Name"] = new_name
     return df
 
-filepath = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Full Library Master Lists\Positive_updated_PeakMaster_7_2026_01_23_14_30_21_TransitionList.csv"
+filepath = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Full Library Master Lists\Negative_updated_PeakMaster_1_2026_01_23_14_07_18_TransitionList.csv"
 outfile = filepath.replace(".csv", "_NoPrecursorAssigned.csv")
 
 df = pd.read_csv(filepath)
@@ -38,7 +38,7 @@ df = pd.read_csv(filepath)
 df_filtered = df[df["Product Mz"] < (df["Precursor Mz"] - 5)]
 
 # Only take PC class for now
-df_filtered = df_filtered[df_filtered["Molecule List Name"] == "PC"]
+# df_filtered = df_filtered[df_filtered["Molecule List Name"] == "PC"]
 
 df_filtered = rename_overlapping_species(df_filtered)
 
@@ -60,8 +60,8 @@ df_filtered = lfp.skyline_tail_namer(df_filtered)
 # df_filtered = df_filtered[~df_filtered["Product Name"].str.startswith("NOT")]
 
 # Drop molecular formula column if it exists
-if "Molecule Formula" in df_filtered.columns:
-    df_filtered = df_filtered.drop(columns=["Molecule Formula"])
+if "Precursor Mz" in df_filtered.columns:
+    df_filtered = df_filtered.drop(columns=["Precursor Mz"])
 
 # If charge is 0 set to 1
 # df_filtered.loc[df_filtered["Precursor Charge"] == 0, "Precursor Charge"] = 1

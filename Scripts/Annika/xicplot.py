@@ -10,7 +10,7 @@ directory = "Z:\\Group Share\\Annika\\Stellar"
 os.chdir(directory)
 
 file1 = "AqpZ_Membrane_Extract.txt"
-# file2 = "HEK_Acidified_NegTrace.txt"  # Change this for each TIC
+file2 = "HEK_Acidified_NegTrace.txt"  # Change this for each TIC
 
 data1 = np.loadtxt(file1)
 
@@ -41,7 +41,7 @@ mpl.rcParams['font.size'] = 14
 #plt.subplot(211)
 fig, ax = plt.subplots(figsize=(11, 5))
 plt.plot(data1[:, 0], data1[:, 1], label="ESI+" , color = "mediumvioletred", linewidth=2)
-# plt.plot(data2[:,0], data2[:,1], label="ESI-", color="indigo", linewidth=2)
+plt.plot(data2[:,0], data2[:,1], label="ESI-", color="indigo", linewidth=2)
 #plt.plot(data3[:,0], data3[:,1], label="40 uM Cholesterol ToF MRM", color="blue")
 plt.gca().spines['top'].set_visible(False)
 plt.gca().spines['right'].set_visible(False)
@@ -60,8 +60,8 @@ plt.ylabel("Intensity", fontsize=18)
 
 #plt.subplot(211)
 #plt.plot(data3[:,0], data3[:,1], color="k")
-plt.xlabel("Retention Time (min)")
-plt.ylabel("Intensity")
+# plt.xlabel("Retention Time (min)")
+# plt.ylabel("Intensity")
 
 plt.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
 plt.tight_layout()

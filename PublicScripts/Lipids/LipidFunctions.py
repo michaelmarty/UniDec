@@ -506,7 +506,7 @@ def get_charge(adduct):
 def add_product_ions(row, cutoff=0.1, spectrumkey="Ref Spec"):
     msmsspec = row[spectrumkey]
     # Remove final space if present
-    if msmsspec.endswith(" "):
+    if isinstance(msmsspec, str) and msmsspec.endswith(" "):
         msmsspec = msmsspec[:-1]
     # Parse spectrum
     msmsspec = [a.split(":") for a in msmsspec.split(" ")]
