@@ -785,6 +785,42 @@ def msdial_to_lipidlist(df):
 
     return df
 
+def rename_overlapping_species(df, rttol=0.1):
+    # Find all species that share the same name and adduct but have different retention times, rename them as _A _B, etc
+    grouped = df.groupby(["Molecule Name", "Precursor Adduct"])
+    rename_map = {}
+    for (name, adduct), group in grouped:
+        if len(group) > 1:
+            # Check if all retention times are different and continue if they are all the same
+            rts = group["Explicit Retention Time"].values
+            if len(set(rts)) == 1:
+                continue
+
+            # If not, rename all with the same retention time with suffixes
+            rt_groups = group.groupby("Explicit Retention Time")
+            suffixes = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            i=0
+            for rt, rt_group in rt_groups:
+                if len(rt_group) >= 1:
+                    for j, idx in enumerate(rt_group.index):
+                        new_name = f"{name}_{suffixes[i]}"
+                        rename_map[idx] = new_name
+
+                    # Select all from DF with the same name and rt within rttol
+                    othermatchs = df[(df["Molecule Name"] == name) &
+                                      (df["Explicit Retention Time"].between(rt - rttol, rt + rttol)) &
+                                      (~df.index.isin(rt_group.index))]
+                    for om_idx in othermatchs.index:
+                        new_name = f"{name}_{suffixes[i]}"
+                        rename_map[om_idx] = new_name
+
+                    i+=1
+
+    df = df.copy()
+    for idx, new_name in rename_map.items():
+        df.at[idx, "Molecule Name"] = new_name
+    return df
+
 
 def get_specstring(spectrum, remove_precursor=True, precursor_mz=None):
     spec = spectrum.peaks
