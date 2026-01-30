@@ -4,7 +4,7 @@ import PublicScripts.Lipids.LipidFragPrediction as lfp
 from PublicScripts.Lipids.LipidFunctions import rename_overlapping_species
 
 
-filepath = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Full Library Master Lists\Negative_updated_PeakMaster_1_2026_01_23_14_07_18_TransitionList.csv"
+filepath = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Transition Lists\Pos\HEK_Pos_FullTransitionList.csv"
 outfile = filepath.replace(".csv", "_NoPrecursorAssigned.csv")
 
 df = pd.read_csv(filepath)
@@ -35,8 +35,8 @@ df_filtered = lfp.skyline_tail_namer(df_filtered)
 # df_filtered = df_filtered[~df_filtered["Product Name"].str.startswith("NOT")]
 
 # Drop molecular formula column if it exists
-if "Precursor Mz" in df_filtered.columns:
-    df_filtered = df_filtered.drop(columns=["Precursor Mz"])
+if "Molecule Formula" in df_filtered.columns:
+    df_filtered = df_filtered.drop(columns=["Molecule Formula"])
 
 # If charge is 0 set to 1
 # df_filtered.loc[df_filtered["Precursor Charge"] == 0, "Precursor Charge"] = 1
