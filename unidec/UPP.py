@@ -40,7 +40,7 @@ class HelpDlg(wx.Frame):
 
         html_str += "<html><body>" \
                     "<header><h1>Overview</h1></header><p>" \
-                    "Welcome to the UniDec Processing Pipeline (UPP)! " \
+                    "Welcome to the UniDec Processing HEKPipeline (UPP)! " \
                     "This module is designed to help you process, deconvolve, " \
                     "and extract specific information from your data. " \
                     "Expanding on the batch processing features present in UniDec from the beginning, " \
@@ -243,7 +243,7 @@ class MyFileDropTarget(wx.FileDropTarget):
 class UPPApp(wx.Frame):
     """"""
 
-    def __init__(self, nrows=2, ncolumns=2, title="UniDec Processing Pipeline"):
+    def __init__(self, nrows=2, ncolumns=2, title="UniDec Processing HEKPipeline"):
         """Constructor"""
         wx.Frame.__init__(self, parent=None, title=title, size=(1800, 600))
         self.use_decon = True

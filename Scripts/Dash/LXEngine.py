@@ -833,7 +833,7 @@ def main():
     plot_overlay(files, topdir, read_files=detector_files, figsize=(16, 7), save=True)
     move_figures(files, topdir)
 
-    print("Pipeline Complete!")
+    print("HEKPipeline Complete!")
 
 if __name__ == "__main__":
     main()

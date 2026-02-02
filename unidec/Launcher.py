@@ -103,7 +103,7 @@ class Lview(wx.Frame):
         button7 = wx.Button(panel, -1, "UltraMeta Data Collector\n\nVisualize Multiple HDF5 Data Sets\nFit Trends")
         button8 = wx.Button(panel, -1, "UniChrom\n\nDeconvolution of Chromatograms\nUniDec for LC/MS Data")
         button9 = wx.Button(panel, -1, "UniDecCD\n\nDeconvolution of Charge Detection MS\nUniDec for CD-MS Data")
-        button10 = wx.Button(panel, -1, "UniDec Processing Pipeline\n\nBatch Processing Workflow")
+        button10 = wx.Button(panel, -1, "UniDec Processing HEKPipeline\n\nBatch Processing Workflow")
         button11 = wx.Button(panel, -1,
                              "UniChromCD\n\nDeconvolution of CD-MS Chromatograms")
         button12 = wx.Button(panel, -1, "IsoDec\n\nDeconvolution of Isotope Patterns")
