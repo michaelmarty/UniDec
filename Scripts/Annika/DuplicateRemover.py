@@ -51,6 +51,26 @@ def combine_overlapping_molecules(
         })
 
     out_df = pd.DataFrame(combined_rows)
+
+    # =========================
+    # ADDITIONS START HERE
+    # =========================
+
+    RT_WINDOW_VALUE = 2.0  # <-- set your desired RT window (min)
+
+    out_df = out_df.rename(columns={
+        "Molecule": "Compound",
+        "Product Charge": "z",
+        "Precursor Mz": "m/z",
+        "Molecule Retention Time": "Retention Time (min)"
+    })
+
+    out_df["RT Window (min)"] = RT_WINDOW_VALUE
+
+    # =========================
+    # ADDITIONS END HERE
+    # =========================
+
     out_df.to_csv(output_csv, index=False)
 
     print(f"Combined {len(df)} rows → {len(out_df)} rows")
@@ -58,8 +78,8 @@ def combine_overlapping_molecules(
 
 
 if __name__ == "__main__":
-    input_csv = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Skyline Exports\New_Neg_translist_ISOLIST.csv"
-    output_csv = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Skyline Exports\NoDups_New_Neg_translist_ISOLIST.csv"
+    input_csv = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\HEK_IsoList.csv"
+    output_csv = r"Z:\\Group Share\\Annika\\Stellar\\HEK\\tMS2\\NoDups_HEK_IsoList.csv"
 
     combine_overlapping_molecules(
         input_csv,

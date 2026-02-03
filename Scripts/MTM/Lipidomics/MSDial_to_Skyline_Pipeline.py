@@ -2,17 +2,16 @@ import os
 from PublicScripts.Lipids.LipidFunctions import *
 
 # Set the working directory
-topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2"
+topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Full Dataset From SS\Peak Masters & xml\Negative_Ion_Mode"
 os.chdir(topdir)
 
 # Set the results file names, should be the peak_master files from MS-DIAL
-negfile = "Neg_LipidList_PeakMaster_SS.csv"
-# posfile = "Pos_PeakMaster.csv"
+negfile = "Negative_updated_PeakMaster_1_2026_01_23_14_07_18.csv"
+# posfile = "Positive_updated_PeakMaster_7_2026_01_23_14_30_21.csv"
 
 # Set the XML files with reference spectra
 negxml = "Negative_updated_SpectrumAndReference_AlignmentResult_2026_01_21_15_54_37_2026_01_23_14_07_18.xml"
-# posxml = "Pos_Ref.xml"
-
+# posxml = "Positive_updated_SpectrumAndReference_AlignmentResult_2026_01_14_17_58_45_2026_01_23_14_30_22.xml"
 
 # Load the data
 negdf = pd.read_csv(negfile)

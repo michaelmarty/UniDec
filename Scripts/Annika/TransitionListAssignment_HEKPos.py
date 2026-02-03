@@ -4,7 +4,7 @@ import PublicScripts.Lipids.LipidFragPrediction as lfp
 from PublicScripts.Lipids.LipidFunctions import rename_overlapping_species
 
 
-filepath = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Transition Lists\Pos\HEK_Pos_FullTransitionList.csv"
+filepath = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Peak Masters & xmls\Trans & Iso Lists\Pos_PeakMaster_TransitionList.csv"
 outfile = filepath.replace(".csv", "_NoPrecursorAssigned.csv")
 
 df = pd.read_csv(filepath)
