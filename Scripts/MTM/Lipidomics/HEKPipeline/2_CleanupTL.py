@@ -15,11 +15,36 @@ df = pd.read_csv(filepath)
 df_filtered = df[df["Product Mz"] < (df["Precursor Mz"] - 5)]
 
 # Drop classes with these names
-drop_classes = ["ASM", "EtherSMGDG", "EtherTG", "MGDG", "EtherMGDG", "LNAPS", "LNAPE", "DLCL", "EtherLPG", "MLCL"]
+drop_classes = ["ASM", "EtherSMGDG", "EtherTG", "MGDG", "EtherMGDG", "LNAPS", "LNAPE", "DLCL", "EtherLPG", "MLCL",
+                "AHexCer", "HexCer_NDS", "EtherPS", "OxPE"]
 df_filtered = df_filtered[~df_filtered["Molecule List Name"].isin(drop_classes)]
 
+# Drop TG, LPC, PC, SM with M+Na adducts
+df_filtered = df_filtered[~((df_filtered["Molecule List Name"] == "TG") & (df_filtered["Precursor Adduct"] == "[M+Na]+"))]
+df_filtered = df_filtered[~((df_filtered["Molecule List Name"] == "SM") & (df_filtered["Precursor Adduct"] == "[M+Na]+"))]
+df_filtered = df_filtered[~((df_filtered["Molecule List Name"] == "PC") & (df_filtered["Precursor Adduct"] == "[M+Na]+"))]
+df_filtered = df_filtered[~((df_filtered["Molecule List Name"] == "LPC") & (df_filtered["Precursor Adduct"] == "[M+Na]+"))]
+
+# On LPC, strip /0:0 from names
+df_filtered.loc[df_filtered["Molecule List Name"] == "LPC", "Molecule Name"] = df_filtered.loc[df_filtered["Molecule List Name"] == "LPC", "Molecule Name"].str.replace(r"/0:0", "", regex=True)
+
+
+# Group Cer classes together for Cer_NDS, Cer_EOS, Cer_NS, Cer_EODS
+cer_classes = ["Cer_NDS", "Cer_EOS", "Cer_NS", "Cer_EODS"]
+df_filtered.loc[df_filtered["Molecule List Name"].isin(cer_classes), "Molecule List Name"] = "Cer"
+
 # Only take PC class for testing
-# df_filtered = df_filtered[df_filtered["Molecule List Name"] == "PC"]
+# df_filtered = df_filtered[df_filtered["Molecule List Name"] == "Cer_NS"]
+
+# Drop specific problems
+drop_names = ["CL 14:0_18:1_16:1_16:1", r"Cer 19:0;2O/43:0", r"Cer 18:1;O2/40:2", r"Cer 18:1;O2/40:3", r"Cer 18:1;O2/42:3",
+              "Cer 56", "Cer 58", "Cer 60", "Cer 62", "Cer 52", "Cer 54", "Cer 51"]
+# Drop if Molecule Name contains any of the drop names
+for name in drop_names:
+    df_filtered = df_filtered[~df_filtered["Molecule Name"].str.contains(name)]
+# print(df_filtered.to_string())
+# exit()
+
 # # only take [M+CH3COO] adduct
 # df_filtered = df_filtered[df_filtered["Precursor Adduct"] == "[M+H]+"]
 # # only take name contains PC 16:1_18:1
@@ -50,7 +75,7 @@ if "Molecule Formula" in df_filtered.columns:
 df_filtered = df_filtered[df_filtered["Precursor Charge"] != 0]
 
 # Rename species with the same name but different RTs
-df_filtered = rename_overlapping_species(df_filtered)
+df_filtered = rename_overlapping_species(df_filtered, rttol=1)
 
 # Drop any fragments where Product Name contains +HG
 # df_filtered = df_filtered[~df_filtered["Product Name"].str.contains(r"\+HG")]
@@ -58,3 +83,6 @@ df_filtered = rename_overlapping_species(df_filtered)
 # df_filtered = df_filtered[~df_filtered["Product Name"].str.startswith("NOT")]
 
 df_filtered.to_csv(outfile, index=False)
+
+# PROBLEM LIST
+# CL 68:2 duplicate
