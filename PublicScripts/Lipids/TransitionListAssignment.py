@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import PublicScripts.Lipids.LipidFragPrediction as lfp
 
-filepath = r"Z:\Group Share\Dash\Ecoli_TransList_FINAL.csv"
+filepath = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Full Library Master Lists\Positive_updated_PeakMaster_7_2026_01_23_14_30_21_TransitionList.csv"
 outfile = filepath.replace(".csv", "_NoPrecursorAssigned.csv")
 
 df = pd.read_csv(filepath)

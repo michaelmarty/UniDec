@@ -10,8 +10,8 @@ import matchms as mms
 import matplotlib as mpl
 import mplcursors
 
-import warnings
-warnings.filterwarnings("error")
+# import warnings
+# warnings.filterwarnings("error")
 
 posadducts = [
     ["[M+H]+", 1, 1.00782503207, True],
@@ -506,7 +506,7 @@ def get_charge(adduct):
 def add_product_ions(row, cutoff=0.1, spectrumkey="Ref Spec"):
     msmsspec = row[spectrumkey]
     # Remove final space if present
-    if msmsspec.endswith(" "):
+    if isinstance(msmsspec, str) and msmsspec.endswith(" "):
         msmsspec = msmsspec[:-1]
     # Parse spectrum
     msmsspec = [a.split(":") for a in msmsspec.split(" ")]
@@ -541,9 +541,9 @@ def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
     # df = df[~df["Ontology"].isin(["Others", "Unknown"])]
     newdf = df.copy()
     # Export Df with "Molecule List Name", "Molecule Name", "Precursor Adduct"
-    newdf = newdf[["Ontology", "Metabolite name", "Adduct type", "Average Mz", "Formula", "Average Rt(min)", spectrumkey]]
+    newdf = newdf[["Ontology", "Metabolite name", "Adduct type", "Reference m/z", "Formula", "Average Rt(min)", spectrumkey]]
     newdf = newdf.rename(columns={"Ontology": "Molecule List Name", "Metabolite name": "Molecule Name",
-                            "Adduct type": "Precursor Adduct", "Average Mz": "Precursor Mz",
+                            "Adduct type": "Precursor Adduct", "Reference m/z": "Precursor Mz",
                                   "Average Rt(min)":"Explicit Retention Time", "Formula":"Molecule Formula"})
 
     charges = []
@@ -783,6 +783,97 @@ def msdial_to_lipidlist(df):
     # Convert to LC format
     df = lipidlist_to_LC(df)
 
+    return df
+
+def compress_similar_species(df, rttol=0.05):
+    # Find all species that share the same name and adduct but have different retention times, compress them to the same retention time
+    grouped = df.groupby(["Molecule Name"])
+    rename_map = {}
+    for (name, ), group in grouped:
+        if len(group) > 1:
+            # Check if all retention times are different and continue if they are all the same
+            rts = group["Explicit Retention Time"].values
+            if len(set(rts)) == 1:
+                continue
+
+            # If not, rename all with the same retention time with suffixes
+            rt_groups = group.groupby("Explicit Retention Time")
+            for rt, rt_group in rt_groups:
+                if len(rt_group) >= 1:
+                    # Select all from DF with the same name and rt within rttol
+                    othermatchs = df[(df["Molecule Name"] == name) &
+                                      (df["Explicit Retention Time"].between(rt - rttol, rt + rttol)) &
+                                      (~df.index.isin(rt_group.index))]
+
+                    otherrt = np.mean(othermatchs["Explicit Retention Time"].values) if len(othermatchs) > 0 else rt
+                    avgrt = (rt + otherrt) / 2.0
+                    # Round to 3 decimal places
+                    avgrt = round(avgrt, 3)
+                    for idx in rt_group.index:
+                        if idx in rename_map:
+                            continue
+                        rename_map[idx] = avgrt
+
+                    for om_idx in othermatchs.index:
+                        if om_idx in rename_map:
+                            continue
+                        rename_map[om_idx] = avgrt
+
+    df = df.copy()
+    for idx, new_rt in rename_map.items():
+        df.at[idx, "Explicit Retention Time"] = new_rt
+
+    # Drop duplicate rows
+    df = df.drop_duplicates(subset=["Molecule Name", "Precursor Adduct", "Explicit Retention Time", "Product Mz"])
+
+    # Sort by Molecule Name, Precursor Adduct, Explicit Retention Time, Product Mz
+    df = df.sort_values(by=["Molecule Name", "Precursor Adduct", "Explicit Retention Time", "Product Mz"])
+
+    return df
+
+def rename_overlapping_species(df, rttol=0.05):
+    # Compress similar species first
+    df = compress_similar_species(df, rttol=rttol)
+
+    # Find all species that share the same name and adduct but have different retention times, rename them as _A _B, etc
+    grouped = df.groupby(["Molecule Name"])
+    rename_map = {}
+    for (name,), group in grouped:
+        if len(group) > 1:
+            # Check if all retention times are different and continue if they are all the same
+            rts = group["Explicit Retention Time"].values
+            if len(set(rts)) == 1:
+                continue
+
+            # If not, rename all with the same retention time with suffixes
+            rt_groups = group.groupby("Explicit Retention Time")
+            suffixes = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            i=0
+            for rt, rt_group in rt_groups:
+                if len(rt_group) >= 1:
+                    for j, idx in enumerate(rt_group.index):
+                        if idx in rename_map:
+                            continue
+                        new_name = f"{name}_{suffixes[i]}"
+                        rename_map[idx] = new_name
+
+                    # Select all from DF with the same name and rt within rttol
+                    othermatchs = df[(df["Molecule Name"] == name) &
+                                      (df["Explicit Retention Time"].between(rt - rttol, rt + rttol)) &
+                                      (~df.index.isin(rt_group.index))]
+                    for om_idx in othermatchs.index:
+                        if om_idx in rename_map:
+                            continue
+                        new_name = f"{name}_{suffixes[i]}"
+                        rename_map[om_idx] = new_name
+
+                    i+=1
+
+    df = df.copy()
+    for idx, new_name in rename_map.items():
+        df.at[idx, "Molecule Name"] = new_name
+
+    df = df.sort_values(by=["Molecule Name", "Precursor Adduct", "Explicit Retention Time", "Product Mz"])
     return df
 
 
@@ -1276,7 +1367,7 @@ def detect_outliers_mahalanobis(df, features, threshold=2, robust=True, verbose=
     return outdf
 
 
-def class_network_analysis(df, min_count=3, header="Class_", add_all_cols=False):
+def class_network_analysis(df, min_count=3, header="Class_", add_all_cols=False, tol=0.05):
     graphs = []
     outdf = pd.DataFrame()
     for c in df['Ontology'].unique():
@@ -1287,7 +1378,7 @@ def class_network_analysis(df, min_count=3, header="Class_", add_all_cols=False)
             outdf = pd.concat([outdf, subdf])
             continue
 
-        newdf, G = network_analysis(subdf, header=header, add_all_cols=add_all_cols)
+        newdf, G = network_analysis(subdf, header=header, add_all_cols=add_all_cols, mz_tol=tol)
         G.graph["Title"]=c
         graphs.append(G)
         outdf = pd.concat([outdf, newdf])

@@ -697,13 +697,15 @@ def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[], adduct="[M-H]
     return fragments, nls
 
 
-def gen_fragdict(cname, adduct, tails, hgdf, mode=None):
+def gen_fragdict(cname, adduct, tails, hgdf=None, mode=None):
+    if hgdf is None:
+        hgdf = hgdf_default
     if mode is None:
-        if "+" in adduct:
+        if "+" == adduct[-1]:
             mode = "positive"
         else:
             mode = "negative"
-    # print(cname, adduct)
+    # print(cname, adduct, mode)
     if cname in hgbasedict:
         hgbase = hgbasedict[cname]
     else:
@@ -775,13 +777,13 @@ def merge_lists(fraglist, nllist):
     return fraglist, nllist
 
 
-def assign_df_fragments(df, hgdf=None, verbose=False):
+def assign_df_fragments(df, hgdf=None, verbose=False, tol=0.05):
     if "T1" not in df.columns:
         df = set_basic_tail_names(df, columnname="Metabolite name")
 
     outrows = []
     for i, row in df.iterrows():
-        row = assign_ref_match(row, tol=0.05, hgdf=hgdf, verbose=verbose)
+        row = assign_ref_match(row, tol=tol, hgdf=hgdf, verbose=verbose)
         outrows.append(row)
 
     return pd.DataFrame(outrows)
@@ -804,7 +806,6 @@ def assign_ref_match(row, tol=0.05, hgdf=None, verbose=True, full_output=False,
     tdict = {k: v for k, v in tdict.items() if pd.notna(v) and v.strip() != ""}
     # Drop duplicates from tdict
     tdict = {k: v for i, (k, v) in enumerate(tdict.items()) if v not in list(tdict.values())[:i]}
-
     msms_mz = row[msmscol]
     ref_spectrum = row[refspecol]
     ref_mz = float(row[refmzcol])
@@ -1034,3 +1035,15 @@ def skyline_tail_namer(tldf):
     print(outdf.columns)
 
     return outdf
+
+if __name__ == "__main__":
+    cname = "PC"
+    adduct = "[M+H]+"
+    tails = ["18:1", "22:1"]
+    fragdict, nldict = gen_fragdict(cname, adduct, tails)
+    print("Fragments:")
+    for k, v in fragdict.items():
+        print(k, v)
+    print("Neutral Losses:")
+    for k, v in nldict.items():
+        print(k, v)

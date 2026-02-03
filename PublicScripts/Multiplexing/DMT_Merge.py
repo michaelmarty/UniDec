@@ -80,10 +80,10 @@ def merge_files(rawlist, dmtlist, outfile):
 
 if __name__ == "__main__":
 
-    folder = r"Z:\Group Share\BHT\Q Exactive HF Data\RPLC-MS\Acquity UPLC\CDMS Injections to Stitch\20251216"
+    folder = r"Z:\Group Share\BHT\Q Exactive HF Data\RPLC-MS\Acquity UPLC\CDMS Injections to Stitch\20251216\Carbonic Anhydrase 3"
     os.chdir(folder)
 
-    strip_dmt_files(folder)
+    #strip_dmt_files(folder)
 
     filedict = get_file_list(folder)
     print(merge_looper(filedict))

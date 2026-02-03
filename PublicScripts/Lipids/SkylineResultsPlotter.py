@@ -558,12 +558,11 @@ def full_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize
 
         plt.show()
 
-
 if __name__ == "__main__":
-    file = r"Z:\Group Share\Annika\Stellar\EC\AqpZ New Data\DDM 05 AqpZ Molecule Transition Results2.csv"
+    file = r"Z:\Group Share\Annika\Stellar\EC\0.5% DDM\Molecule Ratio Results.csv"
 
-    set1 = ["2", "3", "4"]
-    set2 = ["5_D1_EC_2", "7_D2_2", "9_D3_EC_2"]
+    set1 = ["0.5% FT1", "0.5% FT2", "0.5% FT3"]
+    set2 = ["0.5% D1", "0.5% D2", "0.5% D3"]
 
-    full_pipeline(file, set1, set2, mode="All", drop_IS=True, normalize_IS=False,
+    full_pipeline(file, set1, set2, mode="Products", drop_IS=True, normalize_IS=False,
                   normalize_TIC=True, paired=True, bh_correction=True, plot_results=True)

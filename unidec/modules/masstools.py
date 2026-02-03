@@ -949,6 +949,9 @@ class MassSelection(wx.Dialog):
         """
         newmasslist = self.masslistbox.get_list()
         newpeaks = []
+        if ud.isempty(self.massdat):
+            print("No mass distribution loaded, cannot simulate peaks.")
+            return
         f = interp1d(self.massdat[:, 0], self.massdat[:, 1], bounds_error=False, fill_value=0)
         for mass in newmasslist:
             intensity = f(mass)

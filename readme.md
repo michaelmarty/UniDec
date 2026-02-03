@@ -228,6 +228,9 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.8.1.1
 
+Added ability to use "n*" notation when defining combinations in UPP. As long as n is an integer, 
+it will use it as multiples. For example, "2*Seq1" will be the same as "Seq1+Seq1". Note, this also means that * in sequence names is not allowed.
+
 Fixed bug for Oligomer and Mass Tools matching and simulation.
 
 Added export to Meta and UniChrom for peak apex values, including mass, intensity, dscore, and var1 apex location.
