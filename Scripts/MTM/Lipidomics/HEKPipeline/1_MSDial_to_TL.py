@@ -59,12 +59,12 @@ spectrumkey = "Ref Spec" # or "MS/MS spectrum" if experimental spectra are used,
 cutoff=0
 
 postldf = msdial_to_transitionlist(posdf, cutoff=cutoff, spectrumkey=spectrumkey)
-postlfileout = posfile.replace(".csv", "_TransitionList.csv")
-postldf.to_csv(postlfileout, index=False)
+# postlfileout = posfile.replace(".csv", "_TransitionList.csv")
+# postldf.to_csv(postlfileout, index=False)
 
 negtldf = msdial_to_transitionlist(negdf, cutoff=cutoff, spectrumkey=spectrumkey)
-negtlfileout = negfile.replace(".csv", "_TransitionList.csv")
-negtldf.to_csv(negtlfileout, index=False)
+# negtlfileout = negfile.replace(".csv", "_TransitionList.csv")
+# negtldf.to_csv(negtlfileout, index=False)
 
 # Merge pos and neg Transition Lists
 tldf = pd.concat([postldf, negtldf])

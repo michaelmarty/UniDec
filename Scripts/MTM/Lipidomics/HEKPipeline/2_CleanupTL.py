@@ -3,7 +3,7 @@ import pandas as pd
 import PublicScripts.Lipids.LipidFragPrediction as lfp
 from PublicScripts.Lipids.LipidFunctions import rename_overlapping_species
 
-topdir = r"Z:\Group Share\Shivam\Reducing_FP\Finished results"
+topdir = r"Z:\Group Share\Shivam\Reducing_FP\Final_results"
 os.chdir(topdir)
 
 filepath = r"Combined_TransitionList.csv"
@@ -15,10 +15,15 @@ df = pd.read_csv(filepath)
 df_filtered = df[df["Product Mz"] < (df["Precursor Mz"] - 5)]
 
 # Drop classes with these names
-drop_classes = ["ASM", "EtherSMGDG", "EtherTG", "MGDG", "EtherMGDG", "LNAPS", "LNAPE"]
+drop_classes = ["ASM", "EtherSMGDG", "EtherTG", "MGDG", "EtherMGDG", "LNAPS", "LNAPE", "DLCL", "EtherLPG", "MLCL"]
 df_filtered = df_filtered[~df_filtered["Molecule List Name"].isin(drop_classes)]
 
-
+# Only take PC class for testing
+# df_filtered = df_filtered[df_filtered["Molecule List Name"] == "PC"]
+# # only take [M+CH3COO] adduct
+# df_filtered = df_filtered[df_filtered["Precursor Adduct"] == "[M+H]+"]
+# # only take name contains PC 16:1_18:1
+# df_filtered = df_filtered[df_filtered["Molecule Name"].str.contains("PC 18:1_22:1")]
 
 # Remove any where Precursor Adduct is [M-2H]
 df_filtered = df_filtered[df_filtered["Precursor Adduct"] != "[M-2H]"]
