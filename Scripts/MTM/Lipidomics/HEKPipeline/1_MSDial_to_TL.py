@@ -2,7 +2,7 @@ import os
 from PublicScripts.Lipids.LipidFunctions import *
 
 # Set the working directory
-topdir = r"Z:\Group Share\Shivam\Reducing_FP\Finished results"
+topdir = r"Z:\Group Share\Shivam\Reducing_FP\Final_results"
 os.chdir(topdir)
 
 # Set the results file names, should be the peak_master files from MS-DIAL
@@ -68,6 +68,11 @@ negtldf = msdial_to_transitionlist(negdf, cutoff=cutoff, spectrumkey=spectrumkey
 
 # Merge pos and neg Transition Lists
 tldf = pd.concat([postldf, negtldf])
+
+# Correct Explicit Retention Time by adding 0.5 minutes
+if "Explicit Retention Time" in tldf.columns:
+    tldf["Explicit Retention Time"] = tldf["Explicit Retention Time"] + 0.5
+
 # Write to csv
 tldf.to_csv("Combined_TransitionList.csv", index=False)
 # Print number of unique Molecule Names
