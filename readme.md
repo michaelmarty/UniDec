@@ -228,6 +228,8 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.8.1.1
 
+Added code signing to help with security warnings on Windows.
+
 Added ability to use "n*" notation when defining combinations in UPP. As long as n is an integer, 
 it will use it as multiples. For example, "2*Seq1" will be the same as "Seq1+Seq1". Note, this also means that * in sequence names is not allowed.
 
