@@ -75,7 +75,6 @@ def derplicate_il(df, mztol=0.8):
                     good_rows.append(g.to_dict())
                 pass
 
-    print(good_rows)
     return pd.DataFrame(good_rows).reset_index(drop=True)
 
 
@@ -91,7 +90,6 @@ ildf = tl_to_il(tldf)
 print(len(ildf))
 ildf = derplicate_il(ildf)
 print(len(ildf))
-exit()
 
 ildf.to_csv(outpath, index=False)
 
