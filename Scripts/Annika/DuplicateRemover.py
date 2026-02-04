@@ -43,7 +43,7 @@ def combine_overlapping_molecules(
         group = df.loc[group_indices]
 
         combined_rows.append({
-            "Molecule Name": " & ".join(sorted(group["Molecule Name"].astype(str).unique())),
+            "Molecule": " & ".join(sorted(group["Molecule"].astype(str).unique())),
             "Product Charge": group["Product Charge"].iloc[0],
             "Precursor Adduct": group["Precursor Adduct"].iloc[0],
             "Precursor Mz": group["Precursor Mz"].mean(),
@@ -78,7 +78,7 @@ def combine_overlapping_molecules(
 
 
 if __name__ == "__main__":
-    input_csv = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\HEK_NewMTM_IsoList.csv"
+    input_csv = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\NEW_IsoList_PostScripts.csv"
     output_csv = r"Z:\\Group Share\\Annika\\Stellar\\HEK\\tMS2\\NoDups_HEK_NewMTM_IsoList.csv"
 
     combine_overlapping_molecules(
