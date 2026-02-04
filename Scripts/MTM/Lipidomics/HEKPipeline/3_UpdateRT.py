@@ -36,9 +36,9 @@ def get_rt(rtrows, tcol="Times", icol="Intensities", mode="apex"):
         max_pos = rtsummed[max_index,0]
         com_rt = (max_pos, com_rt[1])
 
-    return float(com_rt[0]), float(com_rt[1])*8
+    return float(com_rt[0]), float(com_rt[1])
 
-def update_rt(df, cdf, min_window=0.5, max_window=5.0, mode="apex"):
+def update_rt(df, cdf, min_window=0.5, max_window=5.0, mode="apex", nstds=8):
     # Find all unique molecule names in transition list
     unique_names = df["Molecule Name"].unique()
     outdf = df.copy()
@@ -55,6 +55,7 @@ def update_rt(df, cdf, min_window=0.5, max_window=5.0, mode="apex"):
             # df.at[index, "Explicit Retention Time"] = rt_row["Retention Time (min)"].values[0]
             # df.at[index, "Explicit Retention Time Window"] = rt_row["RT Window (min)"].values[0]
             rt, window = get_rt(rt_row, mode=mode)
+            window = nstds * window
             window = max(min_window, min(window, max_window))
             outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time"] = rt
             outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time Window"] = window
@@ -75,7 +76,7 @@ df = pd.read_csv(transition_list_path)
 
 cdf = pd.read_csv(rtfile, sep="\t")
 
-df = update_rt(df, cdf, mode="apex", min_window=0.5, max_window=5.0)
+df = update_rt(df, cdf, mode="apex", min_window=0.5, max_window=5.0, nstds=4)
 
 # Write to output
 df.to_csv(output_path, index=False)
