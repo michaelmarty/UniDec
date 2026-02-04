@@ -67,12 +67,11 @@ def update_rt(df, cdf, min_window=0.5, max_window=5.0, mode="apex", nstds=8):
 topdir = r"Z:\Group Share\Shivam\Reducing_FP\Final_results"
 os.chdir(topdir)
 
-transition_list_path = r"Combined_TransitionList_Clean.csv"
+tlpath = r"Combined_TransitionList_Clean.csv"
 rtfile = r"HEK.tsv"
-output_path = r"Combined_TransitionList_Clean_RT.csv"
+output_path = tlpath.replace(".csv", "_RT.csv")
 
-
-df = pd.read_csv(transition_list_path)
+df = pd.read_csv(tlpath)
 
 cdf = pd.read_csv(rtfile, sep="\t")
 
