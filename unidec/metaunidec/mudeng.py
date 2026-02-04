@@ -322,6 +322,8 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
             outfile = self.config.outfname + "_extracts_3col_peaks.txt"
             np.savetxt(outfile, np.array(outlist), delimiter="\t", header="Var1\tMass\tIntensity", comments='', fmt='%.6f')
             print("3 Column Peak info saved to:", outfile)
+        else:
+            print("No peaks to export extracts. Try picking peaks first.")
 
     def export_2D_decon_3column(self, e=None):
         if ud.isempty(self.data.massgrid):
@@ -365,7 +367,23 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
             print("Writing HDF5 spctrum to text file:", outfile)
             self.config.config_export(self.config.outfname + "_conf.dat")
 
-
+    def export_peaks_2d_apex(self, e=None):
+        if len(self.pks.peaks) == 0:
+            print("No peaks to export. Try picking peaks first.")
+            return
+        outfile = self.config.outfname + "_peaks_apexes.txt"
+        outputdata = []
+        for i, p in enumerate(self.pks.peaks):
+            mass = p.mass
+            intensity = p.height
+            dscore = p.dscore
+            apex_var1 = self.data.var1[np.argmax(p.extracts)]
+            line = [mass, intensity, dscore, apex_var1]
+            outputdata.append(line)
+        outputdata = np.array(outputdata)
+        print(outputdata)
+        np.savetxt(outfile, outputdata, header="Mass\tIntensity\tDScore\tApex_Var1", comments='', fmt='%.2f', delimiter="\t")
+        print("Writing peak apexes to text file:", outfile)
 
     def batch_set_config(self, paths):
         for p in paths:

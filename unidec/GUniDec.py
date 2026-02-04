@@ -457,9 +457,9 @@ class UniDecApp(UniDecPres):
 
     def after_pick_peaks(self):
         self.view.peakpanel.add_data(self.eng.pks)
-        self.makeplot2(1)
-        self.makeplot6(1)
-        self.makeplot4(1)
+        self.makeplot2()
+        self.makeplot6()
+        self.makeplot4()
 
     def on_plot_peaks(self, e=None):
         """
@@ -474,7 +474,7 @@ class UniDecApp(UniDecPres):
         tend = time.perf_counter()
         print("Convolving: %.2gs" % (tend - tstart))
         self.view.SetStatusText("Plotting", number=5)
-        self.makeplot4(1)
+        self.makeplot4()
         self.export_config(self.eng.config.confname)
         self.view.SetStatusText("Peak Plot Done", number=5)
         print("peak plotting")
@@ -587,17 +587,17 @@ class UniDecApp(UniDecPres):
         self.export_config(self.eng.config.confname)
         if self.eng.config.imflag == 1:
             self.make_im_plots()
-            self.makeplot4(1)
-            self.makeplot6(1)
+            self.makeplot4()
+            self.makeplot6()
             if self.view.plot9.flag and self.view.plot10.flag:
                 self.make_cube_plot(0)
         else:
-            self.makeplot1(1)
-            self.makeplot2(1)
-            self.makeplot3(1)
-            self.makeplot4(1)
-            self.makeplot5(1)
-            self.makeplot6(1)
+            self.makeplot1()
+            self.makeplot2()
+            self.makeplot3()
+            self.makeplot4()
+            self.makeplot5()
+            self.makeplot6()
 
     def make_cube_plot(self, event=None):
         """
@@ -840,8 +840,9 @@ class UniDecApp(UniDecPres):
             result = 0
             dlg.on_match_all(0)
             dlg.on_close(0)
+
         # TODO: Rewrite so p.match isn't overwritten somehow if cancel is selected
-        if not ud.isempty(self.eng.config.matchlist) and result == 0:
+        if not ud.isempty(self.eng.config.matchlist) and result == 5100:
             if len(self.eng.config.matchlist[3]) == self.eng.pks.plen:
                 self.view.SetStatusText("Matching", number=5)
                 np.savetxt(self.eng.config.matchfile, np.transpose(self.eng.config.matchlist), fmt='%s', delimiter=",")
@@ -855,9 +856,9 @@ class UniDecApp(UniDecPres):
             mztab = ud.make_peaks_mztab(self.eng.data.mzgrid, self.eng.pks, self.eng.config.adductmass)
             ud.make_peaks_mztab_spectrum(self.eng.data.mzgrid, self.eng.pks, self.eng.data.data2, mztab)
             self.view.peakpanel.add_data(self.eng.pks)
-            self.makeplot2(1)
-            self.makeplot6(1)
-            self.makeplot4(1)
+            self.makeplot2()
+            self.makeplot6()
+            self.makeplot4()
             self.eng.pks.changed = 0
             self.on_plot_peaks(0)
         self.export_config(self.eng.config.confname)

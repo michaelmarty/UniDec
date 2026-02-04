@@ -8,6 +8,7 @@ from unidec.modules.gui_elements.ChromWindow import ChromWindow
 from unidec.modules.isolated_packages import FileDialogs
 from unidec.modules.ChromEng import ChromEngine, chrom_file_exts
 from unidec import GUniDec
+import platform
 
 
 class ChromApp(MetaUniDecBase):
@@ -46,8 +47,10 @@ class ChromApp(MetaUniDecBase):
             # path = "D:\Data\ChromTest\SYJMX160819_04.hdf5"
             self.open_file(path)
 
-        if False:
+        if False and platform.node() == 'CHEM-A90237':
             self.open_most_recent()
+            self.on_pick_peaks()
+            self.eng.export_peaks_2d_apex()
 
     def on_open(self, e=None):
         """

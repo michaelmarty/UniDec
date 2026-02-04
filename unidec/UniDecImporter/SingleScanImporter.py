@@ -64,13 +64,20 @@ class SingleScanImporter(Importer):
         try:
             scans = np.concatenate([d[:, 2] for d in raw_dat])
         except Exception as e:
-            print("No scan data in CSV file, populating with 1's")
+            print("No scan data in NPZ file, populating with 1's")
             scans = np.ones_like(intensity)
         try:
             it = np.concatenate([d[:, 3] for d in raw_dat])
         except Exception as e:
-            print("No injection time data in CSV file, populating with 1's")
+            print("No injection time data in NPZ file, populating with 1's")
             it = np.ones_like(mz)
+
+        try:
+            times = np.concatenate([d[:, 4] for d in raw_dat])
+        except Exception as e:
+            print("No time data in NPZ file, populating with -1's")
+            times = np.zeros_like(mz) - 1
+
         # elif ext.lower() == '.bin':
         #     try:
         #         raw_dat = raw_dat.reshape((int(len(raw_dat) / 3), 3))
@@ -84,7 +91,7 @@ class SingleScanImporter(Importer):
         #     it = np.ones_like(mz)
         #     scans = np.ones_like(intensity)
 
-        return np.transpose([mz, intensity, scans, it])
+        return np.transpose([mz, intensity, scans, it, times])
 
     def get_imms_avg_scan(self, scan_range=None, time_range=None, mzbins=None):
         self.immsdata = np.loadtxt(self._file_path, skiprows=header_test(self._file_path))
@@ -101,8 +108,9 @@ if __name__ == "__main__":
     path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\CDMS\\test_csv_cdms.csv"
     path = "Z:\\Group Share\\Group\\Archive\\Grad Students and Postdocs\\Skippy\\HT SEC paper data\\Bgal GroEL\\20240412 Bgal GroEL bit5 zp10 3_2024-04-16-11-38-01_unidecfiles\\20240412 Bgal GroEL bit5 zp10 3_2024-04-16-11-38-01_rawdata.npz"
     path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\SingleScan\\test_csv.csv"
+    path = r"Z:\Group Share\BHT\Q Exactive HF Data\RPLC-MS\Acquity UPLC\CDMS Injections to Stitch\20251216\20251216_BHT_0o1mgmL_carbonicanhydrase_CDMS_2uLinj_merged.npz"
     importer = SingleScanImporter(path)
-    print(importer.get_scan_time(12))
+    print(importer.get_cdms_data())
 
 
 

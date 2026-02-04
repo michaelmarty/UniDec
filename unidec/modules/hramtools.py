@@ -6,6 +6,7 @@ import re
 lipidsearchspace = [["1H", 54, 184], ["12C", 29, 93], ["14N", 0, 1], ["16O", 8, 17], ["31P", 0, 1]]#, ["13C", 0, 3]]
 lipidsearchspace = [["1H", 0, 184], ["12C", 0, 93], ["14N", 0, 1], ["16O", 0, 17], ["31P", 0, 1]]#, ["13C", 0, 3]]
 smallmolsearch = [["1H", 20, 60], ["12C", 35, 60], ["14N", 5, 5], ["16O", 2, 2], ["35Cl", 0, 2], ['106Pd', 1, 1], ['19F', 0, 8], ['11B', 0, 2]]
+reallysmallsearch = [["1H", -20, 20], ["12C", -5, 5], ["14N", -2, 2], ["16O", -5, 5]]
 
 class HRAMResult:
     def __init__(self):
@@ -25,6 +26,12 @@ class HRAMResult:
         # self.df["Composition"] = self.match_comp
         self.df["Formula"] = self.match_formulas
         return self.df
+
+    def __str__(self):
+        return str(self.to_df())
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class HRAMSearchSpace:
@@ -59,7 +66,7 @@ class HRAMSearchSpace:
         startmass = np.sum(self.starts * self.isomasses)
         deltamzmin = tolerance * 1e-6 * mintarget
         deltamzmax = tolerance * 1e-6 * maxtarget
-        print(self.ends)
+        # print(self.ends)
         for i, m in enumerate(self.isomasses):
             counts = np.arange(0, self.ends[i] - self.starts[i] + 1)
             newmasses = counts * m + startmass
@@ -68,11 +75,11 @@ class HRAMSearchSpace:
                 continue
             maxcount = np.amax(counts[b1])
             self.ends[i] = self.starts[i] + maxcount
-        print(self.ends)
+        # print(self.ends)
 
         # Check for any things where going in a single dimension will go over the target
         endmass = np.sum(self.ends * self.isomasses)
-        print(self.starts)
+        # print(self.starts)
         for i, m in enumerate(self.isomasses):
             counts = np.arange(0, self.ends[i] - self.starts[i] + 1)
             newmasses = endmass - counts * m
@@ -81,14 +88,14 @@ class HRAMSearchSpace:
                 continue
             maxcount = np.amax(counts[b1])
             self.starts[i] = self.starts[i] + len(newmasses) - maxcount - 1
-        print(self.starts)
+        # print(self.starts)
 
     def filter_indexes(self):
         pass
 
     def generate_masses(self):
         lens = self.ends - self.starts + 1
-        print("Generating combinations:", lens, np.prod(lens))
+        # print("Generating combinations:", lens, np.prod(lens))
         self.indexes = np.array(list(np.ndindex(tuple(lens))))
         self.massvals = np.array([np.sum(self.isomasses * (i + self.starts)) for i in self.indexes])
 
@@ -117,15 +124,20 @@ class HRAMSearchSpace:
         return self.result
 
 
-def calc_fromula_from_mass(targets, Searcher=None, tolerance=5):
+def calc_fromula_from_mass(targets, Searcher=None, tolerance=5, searchspace=None, verbose=False):
+    if type(targets) is not list:
+        targets = [targets]
+    targets = np.array(targets)
     st = time.perf_counter()
     if Searcher is None:
-        Searcher = HRAMSearchSpace()
+        Searcher = HRAMSearchSpace(searchspace=searchspace)
     Searcher.limit_search_space(np.amin(targets), np.amax(targets), tolerance=tolerance)
     Searcher.generate_masses()
-    print("Generated Masses:", time.perf_counter() - st)
+    if verbose:
+        print("Generated Masses:", time.perf_counter() - st)
     results = [Searcher.match_to_target(target, tolerance=tolerance) for target in targets]
-    print("Search Complete:", time.perf_counter() - st)
+    if verbose:
+        print("Search Complete:", time.perf_counter() - st)
     return results
 
 
@@ -142,10 +154,13 @@ if __name__ == "__main__":
     target = 50.999831
     target = 62.9986
     target = 281.24806
-    customsearch=[["1H", 0, 50], ["12C", 0, 25], ["14N", 0, 4], ["16O", 0, 7]]
-    searcher = HRAMSearchSpace(searchspace=customsearch)
+    target = 89.0192
+    target = 47.013
+    target = 26.03880
+    customsearch=[["1H", 0, 50], ["12C", 0, 25], ["14N", 0, 1], ["16O", 0, 7]]
+    searcher = HRAMSearchSpace(searchspace=reallysmallsearch)
     # target = 1500
-    results = calc_fromula_from_mass([target], Searcher=searcher, tolerance=20)
+    results = calc_fromula_from_mass([target], Searcher=searcher, tolerance=100)
     outdf = results[0].to_df()
     print(results[0].to_df())
     # print(results[0].match_comp)

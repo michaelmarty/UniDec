@@ -47,7 +47,8 @@ class I2MSImporter(Importer):
         if len(scans) != len(mz):
             scans = np.ones(len(mz))
         it = self.invinjtime
-        data_array = np.transpose([mz, intensity, scans, it])
+        times = np.zeros(len(mz)) - 1
+        data_array = np.transpose([mz, intensity, scans, it, times])
         return data_array
 
     def get_cdms_data_by_scans(self, scan_range):
