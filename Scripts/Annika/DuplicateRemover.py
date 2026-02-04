@@ -78,8 +78,8 @@ def combine_overlapping_molecules(
 
 
 if __name__ == "__main__":
-    input_csv = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\HEK_IsoList.csv"
-    output_csv = r"Z:\\Group Share\\Annika\\Stellar\\HEK\\tMS2\\NoDups_HEK_IsoList.csv"
+    input_csv = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\NEW_IsoList_PostScripts.csv"
+    output_csv = r"Z:\\Group Share\\Annika\\Stellar\\HEK\\tMS2\\NoDups_HEK_NewMTM_IsoList.csv"
 
     combine_overlapping_molecules(
         input_csv,
