@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 import numpy as np
-from unidec.tools import center_of_mass
+from unidec.tools import center_of_mass, weighted_std
 
 def fix_inhomogeneous_rt(rtdata):
     lengths = [len(rt[0]) for rt in rtdata]
@@ -30,11 +30,11 @@ def get_rt(rtrows, tcol="Times", icol="Intensities", mode="apex"):
     summed_eic = np.sum(rtdata[:,1], axis=0)
     rtsummed = np.transpose([times, summed_eic])
 
-    if mode == "COM":
-        com_rt = center_of_mass(rtsummed, relative_cutoff=0.1)
-    elif mode == "apex":
+    com_rt = center_of_mass(rtsummed, relative_cutoff=0.1)
+    if mode == "apex":
         max_index = np.argmax(rtsummed[:,1])
-        com_rt = (rtsummed[max_index,0], 0)
+        max_pos = rtsummed[max_index,0]
+        com_rt = (max_pos, com_rt[1])
 
     return float(com_rt[0]), float(com_rt[1])*8
 
@@ -45,6 +45,7 @@ def update_rt(df, cdf, min_window=0.5, max_window=5.0, mode="apex"):
     # Set Explicity Retention Time and Window as floats to avoid dtype issues
     outdf["Explicit Retention Time"] = outdf["Explicit Retention Time"].astype(float)
     outdf["Explicit Retention Time Window"] = outdf["Explicit Retention Time Window"].astype(float)
+
     for name in unique_names:
         # name = row["Molecule Name"]
         rt_row = cdf[cdf["PeptideModifiedSequence"] == name]
