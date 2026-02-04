@@ -38,7 +38,7 @@ df_filtered.loc[df_filtered["Molecule List Name"].isin(cer_classes), "Molecule L
 
 # Drop specific problems
 drop_names = ["CL 14:0_18:1_16:1_16:1", r"Cer 19:0;2O/43:0", r"Cer 18:1;O2/40:2", r"Cer 18:1;O2/40:3", r"Cer 18:1;O2/42:3",
-              "Cer 56", "Cer 58", "Cer 60", "Cer 62", "Cer 52", "Cer 54", "Cer 51"]
+              "Cer 56", "Cer 58", "Cer 60", "Cer 62", "Cer 52", "Cer 54", "Cer 51", "PC 85:4", "PC 57:5", "TG 15:0_16:0_18:1"]
 # Drop if Molecule Name contains any of the drop names
 for name in drop_names:
     df_filtered = df_filtered[~df_filtered["Molecule Name"].str.contains(name)]
