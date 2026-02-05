@@ -10,6 +10,8 @@ def tl_to_il(df):
     rts = df["Explicit Retention Time"].to_numpy()
     rtwindows = df["Explicit Retention Time Window"].to_numpy()
     il_df["t start (min)"] = rts - (rtwindows / 2)
+    b1 = il_df["t start (min)"] < 0
+    il_df.loc[b1, "t start (min)"] = 0.1
     il_df["t stop (min)"] = rts + (rtwindows / 2)
     # il_df["Retention Time (min)"] = rts
     # il_df["RT Window (min)"] = rtwindows
