@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 
-from Scripts.MTM.Lipidomics.LipidFunctions import check_headgroup_fragments
+from PublicScripts.Lipids.LipidFunctions import check_headgroup_fragments
 
 
 

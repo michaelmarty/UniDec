@@ -79,8 +79,8 @@ class UniChromCDApp(UniDecCDApp):
             # self.run_all_mass_transform()
             # self.make_mass_cube_plot()
             # self.on_run_ccs()
-            self.on_run_tic_ht()
-            self.on_run_eic_ht()
+            # self.on_run_tic_ht()
+            # self.on_run_eic_ht()
 
     def on_open_file(self, filename, directory, path=None, refresh=False):
         """

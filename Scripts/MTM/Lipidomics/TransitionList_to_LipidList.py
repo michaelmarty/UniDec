@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 
-from LipidFunctions import lipidlist_to_LC
+from PublicScripts.Lipids.LipidFunctions import lipidlist_to_LC
 
 topdir = r"Z:\Group Share\Annika\Stellar"
 

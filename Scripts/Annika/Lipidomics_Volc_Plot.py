@@ -1,140 +1,118 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import matplotlib as mpl
-# ---- Load CSV ----
-file_path = r"Z:\Group Share\Annika\Stellar\EC\AqpZ New Data\Analysis\THISONESamples1,2,3,4,5,6_ANALYSIS.csv"
-df = pd.read_csv(file_path)
+from adjustText import adjust_text
 
-# ---- Columns ----
-log2fc_col = "Log2FC"
-raw_p_col = "P-value"
-class_col = "Class"
-name_col = "Lipid"
+# ------------------------------
+# Load data
+# ------------------------------
 
-# ---- Ensure numeric ----
-df[log2fc_col] = pd.to_numeric(df[log2fc_col], errors='coerce')
-df[raw_p_col] = pd.to_numeric(df[raw_p_col], errors='coerce')
-df = df.dropna(subset=[log2fc_col, raw_p_col, class_col])
+folder = r"Z:\Group Share\Annika\Stellar\EC\AqpZ New Data\20251216_MoreLipidDiscs_FTs\DDM Comparisons"
+file_path = f"{folder}\\1%vs2%_DDM_Comparison_Stats.xlsx"
 
-# ---- Replace zero p-values ----
-df[raw_p_col] = df[raw_p_col].replace(0, 1e-300)
+df = pd.read_excel(file_path)
 
-# ---- Compute -log10(p-value) ----
-df['NegLog10P'] = -np.log10(df[raw_p_col])
+# ------------------------------
+# Clean column names
+# ------------------------------
+df.columns = (
+    df.columns
+      .str.strip()
+      .str.replace(r'\s+', '_', regex=True)
+      .str.replace('-', '_')
+      .str.replace('+', '_')
+)
 
-# ---- Parameters ----
-fc_threshold = 1
-pval_thresh = 0.05
-top_n = 10
+# Remove rows with NaNs in key columns
+df_clean = df.dropna(subset=['Avg_log2fc', 'p', 'BH_p']).copy()
 
-# ---- Color mapping by class ----
-class_colors = {'CL': '#F25C54', 'PE': '#356935', 'PG': '#6017A9'}
-df['color'] = df[class_col].map(class_colors).fillna('gray')
-
-# ---- Identify top N lipids by significance ----
-df['rank_p'] = df['NegLog10P'].rank(method='min', ascending=False)
-top_points = df[df['rank_p'] <= top_n]
-
-# ---- Volcano plot ----
-plt.figure(figsize=(8,6))
-plt.scatter(df[log2fc_col], df['NegLog10P'], color=df['color'], alpha=0.7, s=100)
-
-# Highlight top points
-plt.scatter(top_points[log2fc_col], top_points['NegLog10P'],
-            facecolors='none', edgecolors='black', s=120, linewidths=1.5)
-
-# Fold-change threshold lines
-plt.axvline(fc_threshold, color='grey', linestyle='--', linewidth=1)
-plt.axvline(-fc_threshold, color='grey', linestyle='--', linewidth=1)
-
-# P-value threshold line
-neglog10_cutoff = -np.log10(pval_thresh)
-plt.axhline(neglog10_cutoff, color='grey', linestyle=':', linewidth=1.5)
-plt.text(plt.xlim()[1] - 1, neglog10_cutoff + 0.1, f'p = {pval_thresh}', color='grey', fontsize=10)
-
-# Label top points
-x_offset = 0.15
-y_offset = 0.05
-for idx, (i, row) in enumerate(top_points.iterrows()):
-    x = row[log2fc_col]
-    y = row['NegLog10P']
-    if idx % 2 == 0:
-        plt.text(x + x_offset, y + y_offset, row[name_col], ha='left', va='bottom', fontsize=9)
-    else:
-        plt.text(x - x_offset, y + y_offset, row[name_col], ha='right', va='bottom', fontsize=9)
-
-plt.xlabel('Log2 Fold Change')
+# ------------------------------
+# Assign specific colors per class
+# ------------------------------
+class_colors = {
+    'CL': '#F25C54',
+    'PG': '#356935',
+    'PE': '#6017A9',
+}
 
 
-plt.ylabel('-Log10(p-value)')
-plt.title('Volcano Plot Colored by Lipid Class')
+def volcano_plot(df, y_col, title, fc_thresh=0.263, p_thresh=0.05):
+    plt.figure(figsize=(10, 6))
+
+    for cls in df['Class'].unique():
+        subset = df[df['Class'] == cls]
+        color = class_colors.get(cls, '#7f7f7f')
+        plt.scatter(
+            subset['Avg_log2fc'],
+            -np.log10(subset[y_col]),
+            color=color,
+            label=cls,
+            alpha=0.7
+        )
+
+    # Filter for significant lipids
+    sig_df = df[(df[y_col] < p_thresh) & (abs(df['Avg_log2fc']) >= fc_thresh)]
+
+    for i, row in sig_df.iterrows():
+        plt.text(
+            row['Avg_log2fc'],
+            -np.log10(row[y_col]) + 0.1,  # small offset
+            row['Lipid'],
+            fontsize=8,
+            ha='center',
+            rotation=30
+        )
+
+    # Horizontal significance line
+    plt.axhline(-np.log10(p_thresh), color='grey', linestyle='--', linewidth=0.8)
+
+    # Vertical fold-change thresholds
+    plt.axvline(fc_thresh, color='grey', linestyle='--', linewidth=0.8)
+    plt.axvline(-fc_thresh, color='grey', linestyle='--', linewidth=0.8)
+    plt.xlim(-3,3)
+    plt.xlabel('Average log2 Fold Change')
+    plt.ylabel(f'-log10({y_col})')
+    plt.title(title)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+# ------------------------------
+# Volcano plots
+# ------------------------------
+# volcano_plot(df_clean, 'p', 'Volcano Plot (Raw p-values)')
+volcano_plot(df_clean, 'BH_p', 'Volcano Plot (BH-adjusted FDR)')
+
+# ------------------------------
+# Fold-change plot per class
+# ------------------------------
+plt.figure(figsize=(8, 6))
+
+class_means = df_clean.groupby('Class')['Avg_log2fc'].mean()
+classes = class_means.index
+avg_fc = class_means.values
+colors = [class_colors.get(c, '#7f7f7f') for c in classes]
+
+bars = plt.bar(classes, avg_fc, color=colors)
+
+# Significance labels (BH-adjusted)
+for i, cls in enumerate(classes):
+    sig = (df_clean[df_clean['Class'] == cls]['BH_p'] < 0.05).any()
+    label = '*' if sig else 'ns'
+    plt.text(
+        i,
+        avg_fc[i] + 0.05,
+        label,
+        ha='center',
+        va='bottom',
+        fontsize=12,
+        color='red' if sig else 'black'
+    )
+
+plt.axhline(0, color='black', linewidth=0.8)
+plt.ylabel('Average log2 Fold Change')
+plt.xlabel('Lipid Class')
+plt.title('Average Fold Change per Class')
+plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
 plt.show()
-extreme = df[df[log2fc_col].abs() > 5]
-print(extreme[[name_col, log2fc_col, raw_p_col, class_col]])
-
-
-
-# ---- Define thresholds ----
-fc_thresh = 1  # optional: consider only significant fold-changes
-pval_thresh = 0.05  # optional: consider only significant lipids
-
-# ---- Compute mean Log2 fold change per class ----
-classes = ['PE', 'PG', 'CL']
-mean_fc = []
-std_fc = []
-p_vals = []
-
-for cls in classes:
-    class_data = df[df['Class'] == cls]
-
-    # Optionally, only use significant lipids:
-    sig = (abs(class_data['Log2FC']) >= fc_thresh) & (class_data['NegLog10P'] >= pval_thresh)
-    fc_values = class_data.loc[sig, 'Log2FC']
-    p_values = 10 ** (-class_data.loc[sig, 'NegLog10P'])  # Convert -log10(p) → p
-    # If no significant lipids, take all
-    if fc_values.empty:
-        fc_values = class_data['Log2FC']
-        p_values = 10 ** (-class_data['NegLog10P'])
-    mean_fc.append(fc_values.mean())
-    std_fc.append(fc_values.std())
-    p_vals.append(np.nanmean(p_values))  # average p-value per class
-
-    # ---- Determine significance stars ----
-    def p_to_stars(p):
-        if p < 0.001:
-            return '***'
-        elif p < 0.01:
-            return '**'
-        elif p < 0.05:
-            return '*'
-        else:
-            return 'ns'
-
-
-    stars = [p_to_stars(p) for p in p_vals]
-# ---- Plot bar chart ----
-plt.figure(figsize=(6, 6))
-
-mpl.rcParams['pdf.fonttype'] = 42
-mpl.rcParams['ps.fonttype'] = 42
-mpl.rcParams['font.family'] = 'Arial'
-mpl.rcParams['font.size'] = 14
-plt.gca().spines['top'].set_visible(False)
-plt.gca().spines['right'].set_visible(False)
-bars = plt.bar(classes, mean_fc, yerr=std_fc, color=['royalblue', 'darkslateblue', 'Magenta'], capsize=5)
-plt.ylabel('Mean Log2 Fold Change')
-plt.title('Class-level Fold Change')
-plt.axhline(0, color='black', linewidth=0.8)  # zero line
-#plt.grid(axis='y', linestyle='--', alpha=0.7)
-# ---- Add significance stars above each bar ----
-for i, (bar, star) in enumerate(zip(bars, stars)):
-    height = bar.get_height()
-    err = std_fc[i] if not np.isnan(std_fc[i]) else 0  # handle NaNs safely
-    y = height + err + 0.15  # space above error bar
-    plt.text(bar.get_x() + bar.get_width()/2, y, star,
-             ha='center', va='bottom', fontsize=20, fontweight='bold')
-plt.tight_layout()
-plt.show()
-

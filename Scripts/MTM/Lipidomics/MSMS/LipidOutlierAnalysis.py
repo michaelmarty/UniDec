@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # from Scripts.MTM.Lipidomics.LipidFunctions import encode_headgroups
 import matplotlib as mpl
 import mplcursors
-from Scripts.MTM.Lipidomics.LipidFunctions import detect_outliers_class
+from PublicScripts.Lipids.LipidFunctions import detect_outliers_class
 
 mpl.use("WxAgg")
 

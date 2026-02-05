@@ -8,6 +8,7 @@ def calc_sigma(data):
     """
     https://arxiv.org/pdf/1907.07241
     """
+    # s = np.trapezoid(data[:,1], data[:,0])
     s = 0
     x1, y1 = data[0]
     for d in data[1:]:

@@ -212,6 +212,10 @@ class meta_menu(wx.Menu):
                                                     "Export 3 column data with Var1, Mass, and Intensity")
         self.parent.Bind(wx.EVT_MENU, self.pres.eng.export_3column, self.menuExport3col)
 
+        self.menuExportApexes = self.toolsmenu.Append(wx.ID_ANY, "Export Peak Apexes",
+                                                      "Export mass and var1 apexes of deconvolved peaks")
+        self.parent.Bind(wx.EVT_MENU, self.pres.eng.export_peaks_2d_apex, self.menuExportApexes)
+
         self.toolsmenu.AppendSeparator()
         self.menuAutoWidth = self.toolsmenu.Append(wx.ID_ANY, "Automatic Peak Width\tCtrl+W",
                                                    "Try to get peak width automatically.")

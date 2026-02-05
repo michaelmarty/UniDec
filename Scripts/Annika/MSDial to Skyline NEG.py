@@ -1,17 +1,17 @@
 import os
-from LipidFunctions import *
+from PublicScripts.Lipids.LipidFunctions import *
 
 # Set the working directory
-topdir = r"Z:\Group Share\Annika\Stellar\EC\AqpZ New Data"
+topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Updated_after_eliminating_FP\New"
 os.chdir(topdir)
 
 # Set the results file names, should be the peak_master files from MS-DIAL
-negfile = "PeakMaster_1_2025_12_01_12_40_57.csv"
-# posfile = "PosIDsC1.csv"
+negfile = "Negative_updated_PeakMaster_1_2026_01_23_14_07_18.csv"
+# posfile = "Positive_updated_PeakMaster_7_2026_01_23_14_30_21.csv"
 
 # Set the XML files with reference spectra
-negxml = "SpectrumAndReference_20251201_Immadtest_2025_12_01_12_40_57.xml"
-# posxml = "Pos.xml"
+negxml = "Negative_updated_SpectrumAndReference_AlignmentResult_2026_01_21_15_54_37_2026_01_23_14_07_18.xml"
+# posxml = "Positive_updated_SpectrumAndReference_AlignmentResult_2026_01_14_17_58_45_2026_01_23_14_30_22.xml"
 
 # Load the data
 negdf = pd.read_csv(negfile)
@@ -41,6 +41,8 @@ negdf.to_csv(negfileout, index=False)
 spectrumkey = "Ref Spec" # or "MS/MS spectrum" if experimental spectra are used, if so, a cutoff is recommended
 cutoff=0
 
+negtldf = msdial_to_transitionlist(negdf, cutoff=cutoff, spectrumkey=spectrumkey)
+negtldf.to_csv(negfile.replace(".csv", "_TransitionList.csv"), index=False)
 # postldf = msdial_to_transitionlist(posdf, cutoff=cutoff, spectrumkey=spectrumkey)
 # postlfileout = posfile.replace(".csv", "_TransitionList.csv")
 # postldf.to_csv(postlfileout, index=False)
@@ -49,12 +51,12 @@ negtldf = msdial_to_transitionlist(negdf, cutoff=cutoff, spectrumkey=spectrumkey
 negtlfileout = negfile.replace(".csv", "_TransitionList.csv")
 negtldf.to_csv(negtlfileout, index=False)
 
-# Merge pos and neg Transition Lists
-tldf = pd.concat([negtldf])
-# Write to csv
-tldf.to_csv("Combined_TransitionList.csv", index=False)
-# Print number of unique Molecule Names
-print("Number of unique Molecule Names:", tldf["Molecule Name"].nunique())
+# # Merge pos and neg Transition Lists
+# tldf = pd.concat([postldf, negtldf])
+# # Write to csv
+# tldf.to_csv("AS_Combined_TransitionList.csv", index=False)
+# # Print number of unique Molecule Names
+# print("Number of unique Molecule Names:", tldf["Molecule Name"].nunique())
 
 if False:
     # Convert to LipidList format

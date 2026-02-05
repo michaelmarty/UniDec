@@ -24,7 +24,7 @@ d: \\build
 d: \\dist
 d: \\unidec_doc
 d: \\*__pycache__
-d: \\*Scripts
+d: \\Scripts
 d: \\*Licensing
 d: \\*src_vs
 d: \\*old_waters

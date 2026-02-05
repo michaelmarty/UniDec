@@ -7,7 +7,7 @@ import numpy as np
 # ------------------------------
 # User files
 # ------------------------------
-file = "Z:\Group Share\Annika\Stellar\EC\AqpZ New Data\PeakMaster_AqpZ_MembExtLib.csv"
+file = "Z:\Group Share\\Annika\\Stellar\\Untargeted DDA\\HEK\\New Libs Tests\\NegPeakMaster_CorrLib_Ref.csv"
 colormap_file = r"Z:\\Group Share\\Annika\\Lipid_ColorMap.xlsx"
 
 # ------------------------------
@@ -25,7 +25,7 @@ df = df[~df["Metabolite name"].astype(str).str.contains(fa_pattern, case=False, 
 # Load color map
 # ------------------------------
 color_df = pd.read_excel(colormap_file)
-tmp_class = color_df["Class"].astype(str).str.strip()
+tmp_class = color_df["Lipid Class"].astype(str).str.strip()
 tmp_color = color_df["Color"].astype(str).str.strip()
 color_map = dict(zip(tmp_class, tmp_color))
 
@@ -119,7 +119,13 @@ for c in df["Class"]:
 
 df["Class"] = final_classes
 df["Color"] = colors
-
+# ------------------------------
+# Count lipids per class
+# ------------------------------
+class_counts = df["Class"].value_counts()
+print("\nNumber of lipids per class:")
+for cls, count in class_counts.items():
+    print(f" • {cls}: {count}")
 # ------------------------------
 # Diagnostics
 # ------------------------------
@@ -164,9 +170,20 @@ plt.gca().spines['top'].set_visible(False)
 plt.gca().spines['right'].set_visible(False)
 plt.xlabel("Retention Time (min)")
 plt.ylabel("m/z")
-plt.title("Stellar AqpZ Membrane Discs")
+plt.title("Stellar UntDDA ESI-")
 plt.xticks(np.arange(0.0, 18, 2.5))
 plt.yticks(np.arange(0.0, 1600.1, 200))
+
+# Add total number of lipids on the plot
+total_lipids = len(df)
+plt.text(
+    0.95, 0.95, f"Total lipids: {total_lipids}",
+    horizontalalignment='right',
+    verticalalignment='top',
+    transform=plt.gca().transAxes,
+    fontsize=14,
+    bbox=dict(facecolor='white', alpha=0.6, edgecolor='none', pad=5)
+)
 
 ncol = min(6, len(unique_classes))
 plt.legend(handles=custom_legend, loc='upper center', bbox_to_anchor=(0.5, -0.08),

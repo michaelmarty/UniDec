@@ -1,7 +1,5 @@
-import pandas as pd
-import numpy as np
 import os
-from LipidFunctions import *
+from PublicScripts.Lipids.LipidFunctions import *
 
 
 toppath = "Z:\\Group Share\\Annika\\Stellar\\EC\\AqpZ New Data\\11282025"

@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-from LipidFunctions import remove_specific_problems
+from PublicScripts.Lipids.LipidFunctions import remove_specific_problems
 
 topdir = r"Z:\Group Share\Annika\Stellar"
 file2 = "Sciex_Combined_LipidList.csv"

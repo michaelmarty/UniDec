@@ -1,39 +1,39 @@
 import os
-from LipidFunctions import *
+from PublicScripts.Lipids.LipidFunctions import *
 
 # Set the working directory
-topdir = r"Z:\Group Share\MTM\IQ-X\MartyLab_AX\FinalResults"
+topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Full Dataset From SS\Peak Masters & xml\Negative_Ion_Mode"
 os.chdir(topdir)
 
 # Set the results file names, should be the peak_master files from MS-DIAL
-negfile = "NegIDsC1.csv"
-posfile = "PosIDsC1.csv"
+negfile = "Negative_updated_PeakMaster_1_2026_01_23_14_07_18.csv"
+# posfile = "Positive_updated_PeakMaster_7_2026_01_23_14_30_21.csv"
 
 # Set the XML files with reference spectra
-negxml = "Neg.xml"
-posxml = "Pos.xml"
+negxml = "Negative_updated_SpectrumAndReference_AlignmentResult_2026_01_21_15_54_37_2026_01_23_14_07_18.xml"
+# posxml = "Positive_updated_SpectrumAndReference_AlignmentResult_2026_01_14_17_58_45_2026_01_23_14_30_22.xml"
 
 # Load the data
 negdf = pd.read_csv(negfile)
-posdf = pd.read_csv(posfile)
+# posdf = pd.read_csv(posfile)
 
-make_plots(posdf, negdf)
+# make_plots(posdf, negdf)
 
 # Load the reference spectra from XML
 refnegdf = parse_xml(negxml)
-refposdf = parse_xml(posxml)
+# refposdf = parse_xml(posxml)
 
 # Add reference spectra to the dataframes
 negdf = add_ref_from_xml(negdf, refnegdf)
-posdf = add_ref_from_xml(posdf, refposdf)
+# posdf = add_ref_from_xml(posdf, refposdf)
 
-# Merge positive and negative dataframes to ensure no duplicates
-rttol = 0.1
-posdf, negdf = merge_pos_neg(posdf, negdf, rttol)
+# # Merge positive and negative dataframes to ensure no duplicates
+# rttol = 0.1
+# posdf, negdf = merge_pos_neg(posdf, negdf, rttol)
 
 # Save to output
-posfileout = posfile.replace(".csv", "_Ref.csv")
-posdf.to_csv(posfileout, index=False)
+# posfileout = posfile.replace(".csv", "_Ref.csv")
+# posdf.to_csv(posfileout, index=False)
 negfileout = negfile.replace(".csv", "_Ref.csv")
 negdf.to_csv(negfileout, index=False)
 
@@ -41,20 +41,22 @@ negdf.to_csv(negfileout, index=False)
 spectrumkey = "Ref Spec" # or "MS/MS spectrum" if experimental spectra are used, if so, a cutoff is recommended
 cutoff=0
 
-postldf = msdial_to_transitionlist(posdf, cutoff=cutoff, spectrumkey=spectrumkey)
-postlfileout = posfile.replace(".csv", "_TransitionList.csv")
-postldf.to_csv(postlfileout, index=False)
+negtldf = msdial_to_transitionlist(negdf, cutoff=cutoff, spectrumkey=spectrumkey)
+negtldf.to_csv(negfile.replace(".csv", "_TransitionList.csv"), index=False)
+# postldf = msdial_to_transitionlist(posdf, cutoff=cutoff, spectrumkey=spectrumkey)
+# postlfileout = posfile.replace(".csv", "_TransitionList.csv")
+# postldf.to_csv(postlfileout, index=False)
 
 negtldf = msdial_to_transitionlist(negdf, cutoff=cutoff, spectrumkey=spectrumkey)
 negtlfileout = negfile.replace(".csv", "_TransitionList.csv")
 negtldf.to_csv(negtlfileout, index=False)
 
-# Merge pos and neg Transition Lists
-tldf = pd.concat([postldf, negtldf])
-# Write to csv
-tldf.to_csv("Combined_TransitionList.csv", index=False)
-# Print number of unique Molecule Names
-print("Number of unique Molecule Names:", tldf["Molecule Name"].nunique())
+# # Merge pos and neg Transition Lists
+# tldf = pd.concat([postldf, negtldf])
+# # Write to csv
+# tldf.to_csv("AS_Combined_TransitionList.csv", index=False)
+# # Print number of unique Molecule Names
+# print("Number of unique Molecule Names:", tldf["Molecule Name"].nunique())
 
 if False:
     # Convert to LipidList format
