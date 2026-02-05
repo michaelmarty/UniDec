@@ -106,6 +106,7 @@ tldf = pd.read_csv(tlpath)
 
 ildf = tl_to_il(tldf)
 print(len(ildf))
+print("Number of unique names:", ildf["Compound"].nunique())
 ildf = derplicate_il(ildf)
 print(len(ildf))
 

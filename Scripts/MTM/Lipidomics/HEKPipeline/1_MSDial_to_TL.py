@@ -23,8 +23,9 @@ if 'Comment' in posdf.columns:
     posdf = posdf[~posdf['Comment'].str.contains('Low Quality', case=False, na=False)]
     negdf = negdf[~negdf['Comment'].str.contains('Low Quality', case=False, na=False)]
 
-# Drop CL in positive mode
+# Drop CL and PS in positive mode
 posdf = posdf[~posdf["Ontology"].str.startswith("CL")]
+posdf = posdf[~posdf["Ontology"].str.startswith("PS")]
 
 # Sort by Ontology and Name
 posdf = posdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
@@ -45,7 +46,7 @@ negdf = add_ref_from_xml(negdf, refnegdf)
 posdf = add_ref_from_xml(posdf, refposdf)
 
 # Merge positive and negative dataframes
-rttol = 0.1
+rttol = 0.2
 posdf, negdf = merge_pos_neg(posdf, negdf, rttol)
 
 # Save to output

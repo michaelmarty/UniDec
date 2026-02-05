@@ -38,7 +38,7 @@ def get_rt(rtrows, tcol="Times", icol="Intensities", mode="apex"):
 
     return float(com_rt[0]), float(com_rt[1])
 
-def update_rt(df, cdf, min_window=3.0, max_window=5.0, mode="apex", nstds=8):
+def update_rt(df, cdf, min_window=3.0, max_window=5.0, mode="apex", nstds=8, forcedrts=None):
     # Find all unique molecule names in transition list
     unique_names = df["Molecule Name"].unique()
     outdf = df.copy()
@@ -47,6 +47,12 @@ def update_rt(df, cdf, min_window=3.0, max_window=5.0, mode="apex", nstds=8):
     outdf["Explicit Retention Time Window"] = outdf["Explicit Retention Time Window"].astype(float)
 
     for name in unique_names:
+        if forcedrts is not None and name in forcedrts:
+            outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time"] = forcedrts[name]
+            outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time Window"] = min_window
+            print(f"Manually setting {name} to RT: {forcedrts[name]:.2f} with window: {min_window:.2f}")
+            continue
+
         # name = row["Molecule Name"]
         rt_row = cdf[cdf["PeptideModifiedSequence"] == name]
         # adduct = row["Precursor Adduct"][:-1]  # remove + or - at end
@@ -62,6 +68,7 @@ def update_rt(df, cdf, min_window=3.0, max_window=5.0, mode="apex", nstds=8):
             print(f"Updated RT for: {name} to {rt:.2f} +/- {window:.2f}")
         else:
             print(f"No RT found for: {name}")
+            outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time Window"] = max_window
     return outdf
 
 topdir = r"Z:\Group Share\Shivam\Reducing_FP\Final_results"
@@ -74,8 +81,8 @@ output_path = tlpath.replace(".csv", "_RT.csv")
 df = pd.read_csv(tlpath)
 
 cdf = pd.read_csv(rtfile, sep="\t")
-
-df = update_rt(df, cdf, mode="apex", min_window=3.0, max_window=5.0, nstds=8)
+forcedrts = {"CL 68:2|CL 16:0_18:1_18:0_16:1": 15.42}
+df = update_rt(df, cdf, mode="apex", min_window=3.0, max_window=5.0, nstds=8, forcedrts=forcedrts)
 
 # Write to output
 df.to_csv(output_path, index=False)

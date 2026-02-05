@@ -16,7 +16,7 @@ df_filtered = df[df["Product Mz"] < (df["Precursor Mz"] - 5)]
 
 # Drop classes with these names
 drop_classes = ["ASM", "EtherSMGDG", "EtherTG", "MGDG", "EtherMGDG", "LNAPS", "LNAPE", "DLCL", "EtherLPG", "MLCL",
-                "AHexCer", "HexCer_NDS", "EtherPS", "OxPE"]
+                "AHexCer", "HexCer_NDS", "EtherPS", "OxPE", "LPA", "LPI"]
 df_filtered = df_filtered[~df_filtered["Molecule List Name"].isin(drop_classes)]
 
 # Drop TG, LPC, PC, SM with M+Na adducts
@@ -38,12 +38,19 @@ df_filtered.loc[df_filtered["Molecule List Name"].isin(cer_classes), "Molecule L
 
 # Drop specific problems
 drop_names = ["CL 14:0_18:1_16:1_16:1", r"Cer 19:0;2O/43:0", r"Cer 18:1;O2/40:2", r"Cer 18:1;O2/40:3", r"Cer 18:1;O2/42:3",
-              "Cer 56", "Cer 58", "Cer 60", "Cer 62", "Cer 52", "Cer 54", "Cer 51", "PC 85:4", "PC 57:5", "TG 15:0_16:0_18:1"]
+              "Cer 56", "Cer 58", "Cer 60", "Cer 62", "Cer 52", "Cer 54", "Cer 51", "PC 85:4", "PC 57:5",
+              "TG 15:0_16:0_18:1", "TG 16:0_18:0_32:0"]
 # Drop if Molecule Name contains any of the drop names
 for name in drop_names:
     df_filtered = df_filtered[~df_filtered["Molecule Name"].str.contains(name)]
 # print(df_filtered.to_string())
 # exit()
+
+# Drop specific transitions in specific lipids
+drop_frags_dict = {"PS 16:0_16:1":[253.2166], "PS 16:0_18:1" : [281.2479]}
+for lipid, frags in drop_frags_dict.items():
+    for frag in frags:
+        df_filtered = df_filtered[~((df_filtered["Molecule Name"].str.contains(lipid)) & (df_filtered["Product Mz"].between(frag - 0.1, frag + 0.1)))]
 
 # # only take [M+CH3COO] adduct
 # df_filtered = df_filtered[df_filtered["Precursor Adduct"] == "[M+H]+"]
@@ -60,7 +67,6 @@ df_filtered = df_filtered[df_filtered["Precursor Adduct"] != "[M-2H]"]
 # Remove PE fragment near 152.9958
 # df_filtered = df_filtered[~((df_filtered["Molecule List Name"] == "PE") & (df_filtered["Product Mz"].between(152.9958 - 0.1, 152.9958 + 0.1)))]
 
-df_filtered = lfp.skyline_tail_namer(df_filtered)
 
 # if "Molecule Formula" in df_filtered.columns:
 #     df_filtered = df_filtered.drop(columns=["Molecule Formula"])
@@ -77,6 +83,8 @@ df_filtered = df_filtered[df_filtered["Precursor Charge"] != 0]
 # Rename species with the same name but different RTs
 df_filtered = rename_overlapping_species(df_filtered, rttol=1)
 
+df_filtered = lfp.skyline_tail_namer(df_filtered)
+
 # Drop any fragments where Product Name contains +HG
 # df_filtered = df_filtered[~df_filtered["Product Name"].str.contains(r"\+HG")]
 # df_filtered = df_filtered[~df_filtered["Product Name"].str.startswith("HG")]
@@ -85,4 +93,10 @@ df_filtered = rename_overlapping_species(df_filtered, rttol=1)
 df_filtered.to_csv(outfile, index=False)
 
 # PROBLEM LIST
-# CL 68:2 duplicate
+#
+
+"""
+Notes:
+LPC isomers
+
+"""
