@@ -8,6 +8,7 @@
 #include "isogenpep.h"
 #include "isogenpep_model_16.h"
 #include "isogenpep_model_64.h"
+#include "isogenpep_model_128.h"
 #include "isogenmass_model_8.h"
 #include "isogenmass_model_32.h"
 #include "isogenmass_model_64.h"
@@ -15,39 +16,39 @@
 
 
 double massavgine = 111.1254;
-double avgine[11] = {7.7583, 4.9384, 1.3577, 1.4773, 0.0417, 0, 0, 0, 0, 0, 0};
+double avgine[5] = {4.9384, 7.7583, 1.3577, 1.4773, 0.0417};
 int numaminoacids = 23;
 
 int num_simp_elements = 5;
 
-//{H, C, N, O, S, Fe, K, Ca, Ni, Zn, Mg}
-const int aa_vectors[][11] = {
-    {5,3,1,1,0,0,0,0,0,0,0},
-    {5,3,1,1,1,0,0,0,0,0,0},
-    {5,4,1,3,0,0,0,0,0,0,0},
-    {7,5,2,3,0,0,0,0,0,0,0},
-    {9,9,1,1,0,0,0,0,0,0,0},
-    {3,2,1,1,0,0,0,0,0,0,0},
-    {7,6,3,1,0,0,0,0,0,0,0},
-    {11,6,1,1,0,0,0,0,0,0,0},
-    {12,6,2,1,0,0,0,0,0,0,0},
-    {11,6,1,1,0,0,0,0,0,0,0},
-    {9,5,1,1,1,0,0,0,0,0,0},
-    {6,4,2,2,0,0,0,0,0,0,0},
-    {7,5,1,1,0,0,0,0,0,0,0},
-    {8,5,2,2,0,0,0,0,0,0,0},
-    {12,6,4,1,0,0,0,0,0,0,0},
-    {7,5,1,2,0,0,0,0,0,0,0},
-    {7,4,1,2,0,0,0,0,0,0,0},
-    {9,5,1,1,0,0,0,0,0,0,0},
-    {10,11,2,1,0,0,0,0,0,0,0},
-    {9,9,1,2,0,0,0,0,0,0,0}
+//{C, H, N, O, S}
+const int aa_vectors[][5] = {
+    {3,5,1,1,0},
+    {3,5,1,1,1},
+    {4,5,1,3,0},
+    {5,7,2,3,0},
+    {9,9,1,1,0},
+    {2,3,1,1,0},
+    {6,7,3,1,0},
+    {6,11,1,1,0},
+    {6,12,2,1,0},
+    {6,11,1,1,0},
+    {5,9,1,1,1},
+    {4,3,2,2,0},
+    {5,7,1,1,0},
+    {5,7,2,2,0},
+    {6,12,4,1,0},
+    {5,7,1,2,0},
+    {4,7,1,2,0},
+    {5,9,1,1,0},
+    {11,10,2,1,0},
+    {9,9,1,2,0}
 };
 
 
 const char aaorder[] = "ACDEFGHIKLMNPQRSTVWY";
 
-const char *pep_encoding_elements[] = {"H", "C", "N", "O", "S", "Fe", "K", "Ca", "Ni", "Zn", "Mg"};
+const char *pep_encoding_elements[] = {"C", "H", "N", "O", "S"};
 
 #define ISO_LEN 32
 
@@ -119,6 +120,28 @@ int aa_to_index(char aa) {
     return -1;
 }
 
+int pep_seq_to_aacount(const char* seq) {
+    int length = strlen(seq);
+
+    int aas = 0;
+
+    int in_mod = 0;
+
+    for (int i = 0; i < length; i++) {
+        if (in_mod == 0) {
+            if (seq[i] == '[') {
+                in_mod = 1;
+                continue;
+            }
+            aas += 1;
+        }
+        else {
+            if (seq[i] == '['){ in_mod = 0; }
+        }
+    }
+    return aas;
+}
+
 
 //NN
 int pep_seq_to_nnvector(const char* seq, float* vector) {
@@ -150,8 +173,8 @@ float nn_pep_seq_to_dist(const char* seq, float* isodist, int isolen, int offset
     float* vector = (float *) calloc(20, sizeof(float));
     int aas = pep_seq_to_nnvector(seq, vector);
 
-    if (aas > 300) {
-        printf("Sequence contains too many amino acids (>300).");
+    if (aas > 1000) {
+        printf("Sequence contains too many amino acids (>1000).");
         return -1.0f;
     }
 
@@ -165,10 +188,16 @@ float nn_pep_seq_to_dist(const char* seq, float* isodist, int isolen, int offset
         nn_isolen = 16;
         nn_isodist = (float*)calloc(nn_isolen, sizeof(float));
     }
-    else {
+    else if (aas > 50 && aas <= 300) {
         weights = SetupWeights(20, 64);
         weights = LoadWeights(weights, isogenpep_model_64_bin);
         nn_isolen = 64;
+        nn_isodist = (float*)calloc(nn_isolen, sizeof(float));
+    }
+    else {
+        weights = SetupWeights(20, 128);
+        weights = LoadWeights(weights, isogenpep_model_128_bin);
+        nn_isolen = 128;
         nn_isodist = (float*)calloc(nn_isolen, sizeof(float));
     }
 
@@ -227,11 +256,9 @@ void add_mod_to_fftlist(char* mod, int* fftlist) {
 
         if (count == 0) count = 1;
 
-        int symbol_matched = 0;
         for (int j = 0; j < 11; j++) {
             if (strcmp(symbol, pep_encoding_elements[j]) == 0) {
                 fftlist[j] += count;
-                symbol_matched = 1;
                 break;
             }
         }
@@ -242,17 +269,11 @@ void add_mod_to_fftlist(char* mod, int* fftlist) {
 void pep_seq_to_fftlist(const char* sequence, int* fftlist)
 {
     // Initialize the formulalist to zero but add the elements of water for the terminii
-    fftlist[0] = 2; // Hydrogen
-    fftlist[1] = 0; // Carbon
+    fftlist[0] = 0; // Carbon
+    fftlist[1] = 2; // Hydrogen
     fftlist[2] = 0; // Nitrogen
     fftlist[3] = 1; // Oxygen
     fftlist[4] = 0; // Sulfur
-    fftlist[5] = 0; // Iron
-    fftlist[6] = 0; // Potassium
-    fftlist[7] = 0; // Calcium
-    fftlist[8] = 0; // Nickel
-    fftlist[9] = 0; // Zinc
-    fftlist[10] = 0; // Magnesium
 
     int length = strlen(sequence);
 
@@ -331,9 +352,6 @@ void pep_mass_to_fftlist(const float mass, int* fftlist)
     {
         fftlist[i] = (int)round(num * avgine[i]);
     }
-    for (int i =5;i<11;i++) {
-        fftlist[i] = 0;
-    }
 }
 
 
@@ -364,7 +382,7 @@ int get_pep_isolen_from_seq(const char* seq) {
 //fft
 float fft_pep_seq_to_dist(const char* sequence, float* isodist, const int isolen, const int offset)
 {
-    int* formulalist = (int*)calloc(11, sizeof(int));
+    int* formulalist = (int*)calloc(5, sizeof(int));
     // Check for null
     if (formulalist == NULL)
     {
@@ -373,8 +391,23 @@ float fft_pep_seq_to_dist(const char* sequence, float* isodist, const int isolen
     }
     pep_seq_to_fftlist(sequence, formulalist);
 
-    //int fft_isolen = get_pep_isolen_from_seq(sequence);
-    int fft_isolen = 64;
+    int fft_isolen;
+
+    int aas = pep_seq_to_aacount(sequence);
+
+    if (aas > 1000) {
+        printf("Sequence contains too many amino acids (>1000).");
+        return -1.0f;
+    }
+
+
+    if (aas <= 300) {
+        fft_isolen = 64;
+    }
+    else {
+        fft_isolen = 128;
+    }
+
 
     float* fft_isodist = (float*)calloc(fft_isolen, sizeof(float));
 
@@ -409,7 +442,7 @@ float fft_pep_seq_to_dist(const char* sequence, float* isodist, const int isolen
 //fft
 float fft_pep_mass_to_dist(const float mass, float *isodist, const int isolen, const int offset)
 {
-    int* fftlist = (int*)calloc(11, sizeof(int));
+    int* fftlist = (int*)calloc(5, sizeof(int));
     pep_mass_to_fftlist(mass, fftlist);
 
     int fft_isolen = fft_pep_mass_to_isolen(mass);
