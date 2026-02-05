@@ -14,7 +14,13 @@ def tl_to_il(df):
     # il_df["Retention Time (min)"] = rts
     # il_df["RT Window (min)"] = rtwindows
 
-    il_df["HCD Collision Energy/Energies (%)"] = 30  # Default value, can be adjusted
+    # il_df["HCD Collision Energy/Energies (%)"] = 30  # Default value, can be adjusted
+
+    # Set polarity to be positive if charge is positive, negative if charge is negative
+    il_df["Polarity"] = il_df["z"].apply(lambda x: "Positive" if x > 0 else "Negative")
+
+    # Take abs of charge
+    il_df["z"] = il_df["z"].abs()
 
     # Drop duplicates
     il_df = il_df.drop_duplicates().reset_index(drop=True)
@@ -67,7 +73,8 @@ def derplicate_il(df, mztol=0.8):
                     "z": group["z"].iloc[0],
                     "t start (min)": startt,
                     "t stop (min)": stopt,
-                    "HCD Collision Energy/Energies (%)": group["HCD Collision Energy/Energies (%)"].iloc[0]
+                    # "HCD Collision Energy/Energies (%)": group["HCD Collision Energy/Energies (%)"].iloc[0]
+                    "Polarity": group["Polarity"].iloc[0]
                 }
                 good_rows.append(combined_row)
                 print("Overlap found, new combined row:")
