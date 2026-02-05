@@ -325,18 +325,18 @@ def division_bar_charts(df, division_col="DIV", visitcol="Visit Date", natcol="N
 
 
 if __name__ == "__main__":
-    filepath = r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Attachments\Offers 1.15.26.xlsx"
+    filepath = r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Attachments\Offers 2.4.26.xlsx"
     df = pd.read_excel(filepath, dtype=str)
-    # division_bar_charts(df)
+    division_bar_charts(df)
     #
     print(len(df))
     df = filter_df_visit(df)
     print(len(df))
-    facdf = filter_fac(df, facname="Marty")
+    outdf = filter_fac(df, facname="Ren")
     print(len(facdf))
     # Write to excel
-    facdf.to_excel(r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Attachments\Offers_Marty_1.15.26.xlsx", index=False)
-    exit()
+    outdf.to_excel(r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Attachments\Offers_Ren_2.4.26.xlsx", index=False)
+
 
     # df.columns = ["col1", "col2"]
 

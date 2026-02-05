@@ -11,6 +11,8 @@ def tl_to_il(df):
     rtwindows = df["Explicit Retention Time Window"].to_numpy()
     il_df["t start (min)"] = rts - (rtwindows / 2)
     il_df["t stop (min)"] = rts + (rtwindows / 2)
+    # il_df["Retention Time (min)"] = rts
+    # il_df["RT Window (min)"] = rtwindows
 
     il_df["HCD Collision Energy/Energies (%)"] = 30  # Default value, can be adjusted
 
@@ -75,7 +77,14 @@ def derplicate_il(df, mztol=0.8):
                     good_rows.append(g.to_dict())
                 pass
 
-    return pd.DataFrame(good_rows).reset_index(drop=True)
+    outdata = pd.DataFrame(good_rows).reset_index(drop=True)
+    outdata["Retention Time (min)"] = (outdata["t start (min)"] + outdata["t stop (min)"]) / 2
+    outdata["RT Window (min)"] = outdata["t stop (min)"] - outdata["t start (min)"]
+
+    # Drop tstart and tstop columns
+    outdata = outdata.drop(columns=["t start (min)", "t stop (min)"])
+
+    return outdata
 
 
 topdir = r"Z:\Group Share\Shivam\Reducing_FP\Final_results"
