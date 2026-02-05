@@ -1,84 +1,100 @@
 import pandas as pd
-import numpy as np
 
-# Load the CSV
-file = "Z:\\Group Share\\Annika\\Stellar\\Untargeted DDA\\HEK\\Stellar_MassList_HEKPos2.csv"
-df = pd.read_csv(file)
 
-# --------------------------------------------------
-# Step 1: Condense true duplicates (Compound + m/z exact)
-# --------------------------------------------------
-df_dedup = (
-    df.groupby(["Compound", "m/z"], as_index=False)
-      .agg({
-          "Product Charge": "first",
-          "Explicit Retention Time Window": "max",
-          "Explicit Retention Time": "first",
-          "Precursor Adduct": "first"
-      })
+def keep_highest_area_adduct(df):
+    df["Total Area"] = pd.to_numeric(df["Total Area"], errors="coerce")
+    df["Precursor Mz"] = pd.to_numeric(df["Precursor Mz"], errors="coerce")
+    df["Molecule Retention Time"] = pd.to_numeric(df["Molecule Retention Time"], errors="coerce")
+
+    df = df.dropna(subset=[
+        "Molecule",
+        "Precursor Adduct",
+        "Precursor Mz",
+        "Molecule Retention Time",
+        "Total Area"
+    ])
+
+    idx = df.groupby("Molecule")["Total Area"].idxmax()
+    return df.loc[idx].reset_index(drop=True)
+
+
+def combine_overlapping_mz_rt(df, mz_tolerance=0.3, rt_tolerance=0.3):
+    """
+    Combine rows ONLY if:
+      - |Δm/z| <= mz_tolerance
+      - |ΔRT| <= rt_tolerance (minutes)
+    """
+    df = df.rename(columns={
+        "Molecule": "Compound",
+        "Product Charge": "z",
+        "Precursor Adduct": "Adduct",
+        "Precursor Mz": "m/z",
+        "Molecule Retention Time": "Retention Time (min)"
+    })
+
+    df = df.sort_values("m/z").reset_index(drop=True)
+    used = set()
+    combined_rows = []
+
+    for i, row in df.iterrows():
+        if i in used:
+            continue
+
+        mz_center = row["m/z"]
+        rt_center = row["Retention Time (min)"]
+        group_indices = [i]
+
+        for j in range(i + 1, len(df)):
+            if j in used:
+                continue
+
+            mz_diff = abs(df.loc[j, "m/z"] - mz_center)
+            rt_diff = abs(df.loc[j, "Retention Time (min)"] - rt_center)
+
+            if mz_diff <= mz_tolerance and rt_diff <= rt_tolerance:
+                group_indices.append(j)
+
+        used.update(group_indices)
+        group = df.loc[group_indices]
+
+        combined_rows.append({
+            "Compound": " & ".join(sorted(set(group["Compound"].astype(str)))),
+            "Retention Time (min)": group["Retention Time (min)"].median(),
+            "z": group["z"].iloc[0],
+            "Adduct": " & ".join(sorted(set(group["Adduct"].astype(str)))),
+            "m/z": group["m/z"].median(),
+            "Total Area": group["Total Area"].sum()
+        })
+
+    return pd.DataFrame(combined_rows)
+
+
+# -----------------------
+# USER INPUT
+# -----------------------
+input_csv = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Skyline Exports\New_FullHEK_PCs_LPCs.csv"
+output_csv = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Skyline Exports\Fixed_New_FullHEK_PCs_LPCs.csv"
+
+mz_tolerance = 0.3      # m/z tolerance
+rt_tolerance = 0.25    # RT tolerance in minutes (≈15 sec)
+
+# -----------------------
+# RUN
+# -----------------------
+df = pd.read_csv(input_csv)
+
+df_filtered = keep_highest_area_adduct(df)
+df_combined = combine_overlapping_mz_rt(
+    df_filtered,
+    mz_tolerance=mz_tolerance,
+    rt_tolerance=rt_tolerance
 )
 
-# --------------------------------------------------
-# Step 2: Fuzzy merge compounds within ±1 m/z
-# --------------------------------------------------
-def fuzzy_merge(group, mz_col="m/z", tolerance=1.0):
-    """
-    Merge rows with the same Compound within ±tolerance m/z
-    """
-    group = group.sort_values(mz_col).reset_index(drop=True)
-    merged_rows = []
-    i = 0
-    while i < len(group):
-        # Start a cluster
-        cluster = [group.loc[i]]
-        j = i + 1
-        while j < len(group) and abs(group.loc[j, mz_col] - group.loc[i, mz_col]) <= tolerance:
-            cluster.append(group.loc[j])
-            j += 1
-        # Merge cluster
-        merged = {
-            "Explicit Retention Time Window": max([row["Explicit Retention Time Window"] for row in cluster]),
-            "Explicit Retention Time": np.mean([row["Explicit Retention Time"] for row in cluster]),
-            "Product Charge": cluster[0]["Product Charge"],  # keep first
-            "Compound": cluster[0]["Compound"],  # same compound
-            "m/z": np.mean([row["m/z"] for row in cluster]),  # avg m/z
-            "Precursor Adduct": cluster[0]["Precursor Adduct"]  # keep first
-        }
-        merged_rows.append(merged)
-        i = j
-    return pd.DataFrame(merged_rows)
+df_combined = df_combined.sort_values("m/z").reset_index(drop=True)
+df_combined.to_csv(output_csv, index=False)
 
-# Apply fuzzy merge per compound
-df_fuzzy = pd.concat([fuzzy_merge(group) for _, group in df_dedup.groupby("Compound")], ignore_index=True)
-
-# --------------------------------------------------
-# Step 3: Optional combine all compounds with identical m/z (as before)
-# --------------------------------------------------
-df_combined = (
-    df_fuzzy.groupby("m/z", as_index=False)
-            .agg({
-                "Compound": lambda x: " \\ ".join(sorted(set(x))),
-                "Product Charge": "first",
-                "Explicit Retention Time Window": "max",
-                "Explicit Retention Time": "first",
-                "Precursor Adduct": "first"
-            })
+print(
+    f"Input rows: {len(df)}, "
+    f"After highest-area adduct filter: {len(df_filtered)}, "
+    f"After m/z + RT combining: {len(df_combined)}"
 )
-
-# Reorder columns to match Stellar expectations
-df_combined = df_combined[
-    [
-        "Explicit Retention Time Window",
-        "Explicit Retention Time",
-        "Product Charge",
-        "Compound",
-        "m/z",
-        "Precursor Adduct"
-    ]
-]
-
-# Save output
-output_path = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\\HEK\stellar_mass_table_unique_mz_fuzzy2.csv"
-df_combined.to_csv(output_path, index=False)
-
-print(f"Saved fuzzy-merged mass table to:\n{output_path}")

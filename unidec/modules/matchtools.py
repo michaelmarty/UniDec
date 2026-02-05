@@ -341,7 +341,7 @@ known_labels = ["Correct", "Incorrect", "Ignore"]
 
 def calc_pairs(row, remove_zeros=True, fmoddf=None, keywords=None):
     """
-    For use with UniDec Processing Pipeline
+    For use with UniDec Processing HEKPipeline
     Calculate the potential pairs from a row.
     :param row: Row from a df with Sequence N in the column heading designating the sequence. Seq N + Seq M will look for a pair.
     :param remove_zeros: Boolean to remove the pairs with masses of 0 from the output. Default is True.
@@ -397,6 +397,24 @@ def calc_pairs(row, remove_zeros=True, fmoddf=None, keywords=None):
                 if type(pairing) is str and "Seq" in pairing:
                     pairing = pairing.replace("Seq", "")
                     pairing = np.array(pairing.split("+"))
+                    # If any have * in them, assume that's multiplication
+                    if any("*" in p for p in pairing):
+                        print("Parsing Multiplication in Pairing:", pairing)
+                        newpairing = []
+                        for p in pairing:
+                            if "*" in p:
+                                mult = p.split("*")
+                                try:
+                                    n = int(mult[0])
+                                except:
+                                    n = 1
+                                for i in range(n):
+                                    newpairing.append(mult[1])
+                            else:
+                                newpairing.append(p)
+                        pairing = np.array(newpairing)
+                        print("New Pairing:", pairing)
+                    print(pairing)
                     # pairing = pairing.astype(int)
                     pairs.append(pairing)
                 # If it is a float or int, add it to the array

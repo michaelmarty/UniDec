@@ -15,16 +15,27 @@ def add_dnaseq_to_rnadict(seq, existing_dict):
     Returns:
         dict: The updated dictionary with the new sequence added
     """
+    bad_nucs_dict = {}
+
     #First replace T with U
     seq = seq.replace("T", "U")
-    #Also replace N with empty string
-    seq = seq.replace("N", "")
+
     for i, s in enumerate(seq):
-        existing_dict[s] += 1
+        if s in existing_dict:
+            existing_dict[s] += 1
+        else:
+            if s in bad_nucs_dict:
+                bad_nucs_dict[s] += 1
+            else:
+                bad_nucs_dict[s] = 1
+
+    for k,v in bad_nucs_dict.items():
+        print("nuc: ", k, " frac: ", v/len(seq))
 
     return existing_dict
 
-topdir = "Z:\\Group Share\\JGP\\RNA_Seq\\Data\\dna\\Chroms"
+topdir = r"C:\Users\Admin\Documents\martylab\RNA_SeqData\HomoSapiens\Chrom_fastas"
+os.chdir(topdir)
 
 seqs = []
 
@@ -42,7 +53,9 @@ for root, dirs, files in os.walk(topdir):
         if file.endswith(".gz"):
             with gzip.open(os.path.join(root, file), 'rt') as f:
                 for record in SeqIO.parse(f, "fasta"):
+                    #seqs.append(str(record.seq.replace("T", "U")))
                     nucleotide_dict = add_dnaseq_to_rnadict(str(record.seq), nucleotide_dict)
+
 
 for k, v in nucleotide_dict.items():
     print(f"{k}: {v}")
@@ -53,6 +66,11 @@ A_fract = nucleotide_dict["A"] / total
 C_fract = nucleotide_dict["C"] / total
 G_fract = nucleotide_dict["G"] / total
 U_fract = nucleotide_dict["U"] / total
+
+print("A Frac:", A_fract)
+print("C Frac:", C_fract)
+print("G Frac:", G_fract)
+print("U Frac:", U_fract)
 
 rnaveragine_comp = np.zeros(len(rna_dict_sep["A"]))
 
@@ -68,6 +86,8 @@ for i, k in enumerate(rna_dict_sep):
         elif k == "U":
             rnaveragine_comp[j] += U_fract * v
 
+rnaveragine_comp = np.append(rnaveragine_comp, [1])
+rnaveragine_comp[3] += 4
 elements = ["C", "H", "O", "N", "P"]
 print("RNA Averagine Composition:")
 for i, e in enumerate(elements):

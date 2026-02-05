@@ -147,7 +147,7 @@ LNAPS	[M-H]-	negative	153
 LPA	[M-H]-	negative	78.96,153.0	
 LPC	[M+CH3COO]-	negative	224.07	74.04
 LPC	[M+HCOO]-	negative	224.07	60.02
-LPC	[M+H]+	positive	184.07	18.01
+LPC	[M+H]+	positive	184.07,104.1070	18.01
 LPC	[M+Na]+	positive	86.1,104.11	59.07
 LPE	[M+H]+	positive		141.02
 LPE	[M-H]-	negative	196.04	
@@ -308,7 +308,7 @@ hgbasedict = {
     "OxPI": [-36.0225],
     "OxPS": [87.034, 223.0022, -36.0225],
     "OxPG": [228.04, -36.0225],
-    "PC": [281.102, 240.1036, 71.0057, 92.9958, 216.9858, 130.08363, 190.97364],
+    "PC": [281.102, 240.1036, 71.0057, 92.9958, 216.9858, 130.08363, 190.97364, 104.1070],
     "PE": [198.05144],
     "PEtOH": [165.0336, 200.07144, 126.03144],
     "PE_Cer": [-3.04804],
@@ -697,13 +697,15 @@ def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[], adduct="[M-H]
     return fragments, nls
 
 
-def gen_fragdict(cname, adduct, tails, hgdf, mode=None):
+def gen_fragdict(cname, adduct, tails, hgdf=None, mode=None):
+    if hgdf is None:
+        hgdf = hgdf_default
     if mode is None:
-        if "+" in adduct:
+        if "+" == adduct[-1]:
             mode = "positive"
         else:
             mode = "negative"
-    # print(cname, adduct)
+    # print(cname, adduct, mode)
     if cname in hgbasedict:
         hgbase = hgbasedict[cname]
     else:
@@ -804,7 +806,6 @@ def assign_ref_match(row, tol=0.05, hgdf=None, verbose=True, full_output=False,
     tdict = {k: v for k, v in tdict.items() if pd.notna(v) and v.strip() != ""}
     # Drop duplicates from tdict
     tdict = {k: v for i, (k, v) in enumerate(tdict.items()) if v not in list(tdict.values())[:i]}
-
     msms_mz = row[msmscol]
     ref_spectrum = row[refspecol]
     ref_mz = float(row[refmzcol])
@@ -1034,3 +1035,15 @@ def skyline_tail_namer(tldf):
     print(outdf.columns)
 
     return outdf
+
+if __name__ == "__main__":
+    cname = "PC"
+    adduct = "[M+H]+"
+    tails = ["18:1", "22:1"]
+    fragdict, nldict = gen_fragdict(cname, adduct, tails)
+    print("Fragments:")
+    for k, v in fragdict.items():
+        print(k, v)
+    print("Neutral Losses:")
+    for k, v in nldict.items():
+        print(k, v)
