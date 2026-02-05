@@ -38,7 +38,7 @@ def get_rt(rtrows, tcol="Times", icol="Intensities", mode="apex"):
 
     return float(com_rt[0]), float(com_rt[1])
 
-def update_rt(df, cdf, min_window=0.5, max_window=5.0, mode="apex", nstds=8):
+def update_rt(df, cdf, min_window=3.0, max_window=5.0, mode="apex", nstds=8):
     # Find all unique molecule names in transition list
     unique_names = df["Molecule Name"].unique()
     outdf = df.copy()
@@ -75,7 +75,7 @@ df = pd.read_csv(tlpath)
 
 cdf = pd.read_csv(rtfile, sep="\t")
 
-df = update_rt(df, cdf, mode="apex", min_window=0.5, max_window=5.0, nstds=4)
+df = update_rt(df, cdf, mode="apex", min_window=3.0, max_window=5.0, nstds=8)
 
 # Write to output
 df.to_csv(output_path, index=False)

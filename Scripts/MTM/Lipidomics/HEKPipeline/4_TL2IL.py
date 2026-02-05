@@ -94,7 +94,7 @@ def derplicate_il(df, mztol=0.8):
     return outdata
 
 
-topdir = r"Z:\Group Share\Shivam\Reducing_FP\Final_results"
+topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2"
 os.chdir(topdir)
 
 tlpath = r"Combined_TransitionList_Clean_RT.csv"
