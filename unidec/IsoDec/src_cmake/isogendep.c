@@ -168,11 +168,9 @@ void mass_to_vector(const float mass, float *vector) {
 
 
 //fft
-float fft_list_to_dist(const int isolist[11], const int length, float* isodist)
+float fft_list_to_dist(const int isolist[5], const int length, float* isodist)
 {
-    // Isolist as {hydrogen, carbon, nitrogen, oxygen, sulfur, iron, potassium,
-    // calcium, nickel, zinc, magnesium}
-    // Isolist as {hydrogen, carbon, nitrogen, oxygen, sulfur}
+    // Isolist as {carbon, hydrogen, nitrogen, oxygen, sulfur}
     int const complen = (int)(length / 2) + 1;
 
 
@@ -181,15 +179,9 @@ float fft_list_to_dist(const int isolist[11], const int length, float* isodist)
     fftw_complex* nft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
     fftw_complex* oft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
     fftw_complex* sft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
-    fftw_complex* feft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
-    fftw_complex* kft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
-    fftw_complex* caft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
-    fftw_complex* nift = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
-    fftw_complex* znft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
-    fftw_complex* mgft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
+
     // Check for null pointers
-    if (hft == NULL || cft == NULL || nft == NULL || oft == NULL || sft == NULL ||
-        feft == NULL || kft == NULL || caft == NULL || nift == NULL || znft == NULL || mgft == NULL)
+    if (hft == NULL || cft == NULL || nft == NULL || oft == NULL || sft == NULL)
     {
         printf("Error: Could not allocate memory for fftw_complex objects\n");
         return 1;
@@ -200,12 +192,6 @@ float fft_list_to_dist(const int isolist[11], const int length, float* isodist)
     setup_ft(7, nft, length, complen);
     setup_ft(8, oft, length, complen);
     setup_ft(16, sft, length, complen);
-    setup_ft(26, feft, length, complen);
-    setup_ft(19, kft, length, complen);
-    setup_ft(20, caft, length, complen);
-    setup_ft(28, nift, length, complen);
-    setup_ft(30, znft, length, complen);
-    setup_ft(12, mgft, length, complen);
 
     fftw_complex* allft = (fftw_complex*)fftw_malloc(complen * sizeof(fftw_complex));
     double* buffer = (double*)fftw_malloc(length * sizeof(double));
@@ -217,18 +203,12 @@ float fft_list_to_dist(const int isolist[11], const int length, float* isodist)
     }
     //ensure normalizing
 
-    convolve_all(isolist, allft, cft, hft, nft, oft, sft, feft, caft, kft, nift, znft, mgft, complen);
+    convolve_all(isolist, allft, cft, hft, nft, oft, sft, complen);
     fftw_free(hft);
     fftw_free(cft);
     fftw_free(nft);
     fftw_free(oft);
     fftw_free(sft);
-    fftw_free(feft);
-    fftw_free(caft);
-    fftw_free(kft);
-    fftw_free(nift);
-    fftw_free(znft);
-    fftw_free(mgft);
 
     fftw_plan plan_irfft = fftw_plan_dft_c2r_1d(length, allft, buffer, FFTW_ESTIMATE);
     fftw_execute(plan_irfft);
@@ -364,22 +344,14 @@ void complex_multiplication(const double ar, const double ai, const double br,
 }
 
 
-void convolve_all(const int isolist[11], fftw_complex* allft, const fftw_complex* cft, const fftw_complex* hft,
-                  const fftw_complex* nft, const fftw_complex* oft, const fftw_complex* sft, const fftw_complex* feft,
-                  const fftw_complex* caft, const fftw_complex* kft, const fftw_complex* nift, const fftw_complex* znft,
-                  const fftw_complex* mgft, const int length)
+void convolve_all(const int isolist[5], fftw_complex* allft, const fftw_complex* cft, const fftw_complex* hft,
+                  const fftw_complex* nft, const fftw_complex* oft, const fftw_complex* sft, const int length)
 {
-    const int numh = isolist[0];
-    const int numc = isolist[1];
+    const int numc = isolist[0];
+    const int numh = isolist[1];
     const int numn = isolist[2];
     const int numo = isolist[3];
     const int nums = isolist[4];
-    const int numfe = isolist[5];
-    const int numca = isolist[6];
-    const int numk = isolist[7];
-    const int numni = isolist[8];
-    const int numzn = isolist[9];
-    const int nummg = isolist[10];
 
     for (int i = 0; i < length; i++)
     {
@@ -403,29 +375,6 @@ void convolve_all(const int isolist[11], fftw_complex* allft, const fftw_complex
         double souti = 0;
         complex_power(sft[i], nums, &sout, &souti);
 
-        double feoutr = 0;
-        double feouti = 0;
-        complex_power(feft[i], numfe, &feoutr, &feouti);
-
-        double caoutr = 0;
-        double caouti = 0;
-        complex_power(caft[i], numca, &caoutr, &caouti);
-
-        double koutr = 0;
-        double kouti = 0;
-        complex_power(kft[i], numk, &koutr, &kouti);
-
-        double nioutr = 0;
-        double nioouti = 0;
-        complex_power(nift[i], numni, &nioutr, &nioouti);
-
-        double znoutr = 0;
-        double znouti = 0;
-        complex_power(znft[i], numzn, &znoutr, &znouti);
-
-        double mgoutr = 0;
-        double mgouti = 0;
-        complex_power(mgft[i], nummg, &mgoutr, &mgouti);
 
         double finalr = 0;
         double finali = 0;
@@ -434,12 +383,7 @@ void convolve_all(const int isolist[11], fftw_complex* allft, const fftw_complex
         complex_multiplication(finalr, finali, noutr, nouti, &finalr, &finali);
         complex_multiplication(finalr, finali, ooutr, oouti, &finalr, &finali);
         complex_multiplication(finalr, finali, sout, souti, &finalr, &finali);
-        complex_multiplication(finalr, finali, feoutr, feouti, &finalr, &finali);
-        complex_multiplication(finalr, finali, caoutr, caouti, &finalr, &finali);
-        complex_multiplication(finalr, finali, koutr, kouti, &finalr, &finali);
-        complex_multiplication(finalr, finali, nioutr, nioouti, &finalr, &finali);
-        complex_multiplication(finalr, finali, znoutr, znouti, &finalr, &finali);
-        complex_multiplication(finalr, finali, mgoutr, mgouti, &finalr, &finali);
+
 
         allft[i][0] = finalr;
         allft[i][1] = finali;

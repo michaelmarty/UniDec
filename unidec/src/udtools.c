@@ -467,6 +467,12 @@ float clip(const float x, const float cutoff) {
     return 0;
 }
 
+// Clip a number to a cutoff value to the floor
+float clip_floor(const float x, const float floor) {
+    if (x > floor) { return x; }
+    return floor;
+}
+
 float euclid(const float a, const float b, const float c, const float d)
 {
     return sqrtf((a - b)*(a - b) + (c - d)*(c - d));

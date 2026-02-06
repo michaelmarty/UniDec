@@ -235,6 +235,8 @@ it will use it as multiples. For example, "2*Seq1" will be the same as "Seq1+Seq
 
 Fixed bug for Oligomer and Mass Tools matching and simulation.
 
+Fixed two major bugs for UniDecCD when using not normalized data.
+
 Added export to Meta and UniChrom for peak apex values, including mass, intensity, dscore, and var1 apex location.
 
 v.8.1.0

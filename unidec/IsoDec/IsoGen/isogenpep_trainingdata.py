@@ -1,13 +1,7 @@
-import pyteomics.mass as ms
-import numpy as np
-import os
-import time
-from collections import Counter
 import pandas as pd
 import fileinput
 from isogen_tools import *
 import multiprocessing
-import matplotlib.pyplot as plt
 import matplotlib as mpl
 import random
 from Scripts.JGP.IsoGen_Analysis.unimod_obo_parser import *
@@ -150,13 +144,13 @@ def gen_random_prots(all_seqs, organism, iterations=10):
     goodseqs = np.array(goodseqs)
     dists = np.array(dists)
     vectors = np.array(vectors)
-    np.savez_compressed("training_random_prots_" + str(organism) + ".npz", dists=dists, vecs=vectors, seqs=goodseqs)
+    np.savez_compressed("assessment_random_prots_" + str(organism) + ".npz", dists=dists, vecs=vectors, seqs=goodseqs)
     return
 
 def mod_to_chemicalformula(mod):
     return ''.join(f"{key}{value}" for key, value in mod.composition.items())
 
-def gen_random_seqs_even_length(all_seqs, organism, n=5000, min_length=1, max_length=200):
+def gen_random_seqs_even_length(all_seqs, organism, n=10, min_length=1, max_length=200):
     big_seq = get_big_seq(all_seqs)
     np.random.shuffle(big_seq)
 
@@ -195,7 +189,7 @@ def gen_random_seqs_even_length(all_seqs, organism, n=5000, min_length=1, max_le
             good_seqs.append(str(r[2]))
             masses.append(r[3])
 
-    np.savez_compressed("training_random_"+ str(organism)+ "_proteins_"+str(n)+ "_min_" + str(min_length) + "_max_" +
+    np.savez_compressed("assessment_random_"+ str(organism)+ "_proteins_"+str(n)+ "_min_" + str(min_length) + "_max_" +
                         str(max_length) + ".npz",
                         dists=dists, vecs=vectors, seqs=good_seqs,masses=masses)
 
@@ -203,9 +197,9 @@ if __name__ == "__main__":
     # Set backend to Agg
     mpl.use('WxAgg')
 
-    os.chdir(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\IntactProtein\Training")
+    os.chdir(r"C:\Users\Admin\Documents\martylab\Protein\IntactProtein\OtherTesting")
 
-    min_length = 51
+    min_length = 5
     max_length = 1000
 
     human_prot_data = np.load("human_protein_seqs.npz")

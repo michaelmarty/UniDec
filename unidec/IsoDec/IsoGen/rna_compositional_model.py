@@ -61,7 +61,7 @@ class NucleicAcidCompositionalModelEngine:
         return ordered_coefs
 
     # Get the isotopic distribution from a mass
-    def get_dist_from_mass(self, mass, charge=1, adductmass=-1.007276467):
+    def get_mzdist_from_mass(self, mass, charge=1, adductmass=-1.007276467):
         z = (mass - 23151.52) / 4883.142
         mass_mat = np.array([z for i in range(11)])
         for i in range(self.k+1):
@@ -93,6 +93,37 @@ class NucleicAcidCompositionalModelEngine:
         dist = np.column_stack((mzs, q_hat))
         return dist
 
+    def get_massdist_from_mass(self, mass, charge=1, adductmass=-1.007276467):
+        z = (mass - 23151.52) / 4883.142
+        mass_mat = np.array([z for i in range(11)])
+        for i in range(self.k+1):
+            mass_mat[i] = mass_mat[i] ** i
+
+        mass_mat = mass_mat.T
+
+        q_ALR_hat = np.array(np.dot(mass_mat, self.coefs))
+        q_ALR_hat = q_ALR_hat.reshape(-1, 1)  # Reshape to make it a 2D array (20, 1)
+        print("shape of q_ALR_hat", q_ALR_hat.shape)
+        # perform anti-ALR via softmax with one added to vector
+        # Add a 1 to the beginning of q_ALR_hat and remove the last element
+        tmp = np.insert(np.exp(q_ALR_hat), 0, 1, axis=0)
+        tmp = np.delete(tmp, -1, axis=0)  # remove last element
+        rs = np.sum(tmp, axis=0)  # row sums
+        q_hat = tmp / rs
+
+        #now create an m/z distribution
+        masses = mass + self.mass_shifts
+
+        #combine the m/z and intensity arrays
+        q_hat = np.array(q_hat).flatten()
+        masses = np.array(masses).flatten()
+        q_hat = q_hat / np.sum(q_hat)
+        #Zip the two arrays together
+        masses = np.array(masses)
+        q_hat = np.array(q_hat)
+        dist = np.column_stack((masses, q_hat))
+        return dist
+
     def get_intensities_from_mass(self, mass):
         z = (mass - 23151.52) / 4883.142
         mass_mat = np.array([z for i in range(11)])
@@ -107,8 +138,8 @@ class NucleicAcidCompositionalModelEngine:
         # Add a 1 to the beginning of q_ALR_hat and remove the last element
         tmp = np.insert(np.exp(q_ALR_hat), 0, 1, axis=0)
         tmp = np.delete(tmp, -1, axis=0)  # remove last element
-        rs = np.sum(tmp, axis=0)  # row sums
-        q_hat = tmp / rs
+        max = np.max(tmp, axis=0)  # row sums
+        q_hat = tmp / max
 
         return q_hat
 
