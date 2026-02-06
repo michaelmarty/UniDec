@@ -5,9 +5,10 @@
 #include "UniDecCD_Main.h"
 
 
+
 void blur_it_CD(float * output, const float * input, const int* upinds, const int *loinds, const int length, const float floor)
 {
-	#pragma omp parallel for schedule(dynamic)
+	// #pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < length; i++) {
 		const int lowindex = loinds[i];
 		const int uppindex = upinds[i];
@@ -15,10 +16,22 @@ void blur_it_CD(float * output, const float * input, const int* upinds, const in
 		float i2 = input[lowindex];
 		float i3 = input[uppindex];
 		if (floor > 0) {
+			// i1 = logf(clip_floor(i1, floor));
+			// i2 = logf(clip_floor(i2, floor));
+			// i3 = logf(clip_floor(i2, floor));
+			// i1 = logf(clip(i1, 0)+floor);
+			// i2 = logf(clip(i2, 0)+floor);
+			// i3 = logf(clip(i2, 0)+floor);
 			i1 = logf(i1 + floor);
 			i2 = logf(i2 + floor);
 			i3 = logf(i3 + floor);
-			float newval = (i1 + i2 + i3) / 3;
+			// For some reason, this last one is best
+			// // Check for nan or inf
+			if (isnan(i1) || isinf(i1)) { i1 = 0; }
+			if (isnan(i2) || isinf(i2)) { i2 = 0; }
+			if (isnan(i3) || isinf(i3)) { i3 = 0; }
+
+			float newval = (i1 + i2 + i3) / 3.0f;
 			newval = expf(newval) - floor;
 			if (newval < 0) {
 				newval = 0;
@@ -27,7 +40,7 @@ void blur_it_CD(float * output, const float * input, const int* upinds, const in
 		}
 		else {
 			const float ratio = fabsf(floor);
-			output[i] = (i1 + i2 * ratio + i3 * ratio) / 3;
+			output[i] = (i1 + i2 * ratio + i3 * ratio) / 3.0f;
 		}
 	}
 }
@@ -247,6 +260,10 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	mzranges[3] = zext[size[1] - 1];
 	printf("MZ Range: %f to %f\n", mzranges[0], mzranges[1]);
 	printf("Z Range: %f to %f\n", mzranges[2], mzranges[3]);
+	float maxint = Max(dataInt, lines);
+	printf("Max Int: %f\n", maxint);
+	float betafactor = 1;
+	if (dmax > 1) { betafactor=maxint; }
 
 	// Set Up Peak Shapes
 	peakshape = calloc(lines, sizeof(float));
@@ -314,7 +331,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	for (int m = 0; m < config.numit; m++) {
 		// Apply softmax
 		if (config.beta > 0) {
-			softargmax(blur, size[0], size[1], config.beta);
+			softargmax(blur, size[0], size[1], config.beta/betafactor);
 		}
 		// Apply point smoothing
 		if (config.psig > 0) {
@@ -322,12 +339,12 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 		}
 		// Apply charge smoothing
 		if (config.zsig!=0) {
-			blur_it_CD(newblur, blur, zupind, zloind, lines, config.zsig);
+			blur_it_CD(newblur, blur, zupind, zloind, lines, config.zsig*maxint);
 			memcpy(blur, newblur, matsize);
 		}
 		// Apply mass smoothing
 		if (config.msig != 0) {
-			blur_it_CD(newblur, blur, mupind, mloind, lines, config.msig);
+			blur_it_CD(newblur, blur, mupind, mloind, lines, config.msig*maxint);
 			memcpy(blur, newblur, matsize);
 		}
 
