@@ -13,9 +13,7 @@ posfile = "Stellar_pos.csv"
 negxml = "Stellar_neg.xml"
 posxml = "Stellar_pos.xml"
 
-# Load the data
-negdf = pd.read_csv(negfile)
-posdf = pd.read_csv(posfile)
+mergeddf, posdf, negdf = cleanup_and_merge_msdial(posfile, negfile, posxml, negxml, rttol=0.2)
 
 # Cleanup the data
 # Drop if comment has "Low Quality" in it (case-insensitive). If no 'Comment' column exists, leave unchanged.
@@ -27,33 +25,17 @@ if 'Comment' in posdf.columns:
 posdf = posdf[~posdf["Ontology"].str.startswith("CL")]
 posdf = posdf[~posdf["Ontology"].str.startswith("PS")]
 
-# Sort by Ontology and Name
-posdf = posdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
-negdf = negdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
-
 # Drop if simple dot product is below 0.45
 # posdf = posdf[posdf["Simple dot product"] > 0.45]
 # negdf = negdf[negdf["Simple dot product"] > 0.45]
 #
 # make_plots(posdf, negdf)
 
-# Load the reference spectra from XML
-refnegdf = parse_xml(negxml)
-refposdf = parse_xml(posxml)
-
-# Add reference spectra to the dataframes
-negdf = add_ref_from_xml(negdf, refnegdf)
-posdf = add_ref_from_xml(posdf, refposdf)
-
-# Merge positive and negative dataframes
-rttol = 0.2
-posdf, negdf = merge_pos_neg(posdf, negdf, rttol)
-
 # Save to output
-posfileout = posfile.replace(".csv", "_Ref.csv")
-posdf.to_csv(posfileout, index=False)
-negfileout = negfile.replace(".csv", "_Ref.csv")
-negdf.to_csv(negfileout, index=False)
+# posfileout = posfile.replace(".csv", "_Ref.csv")
+# posdf.to_csv(posfileout, index=False)
+# negfileout = negfile.replace(".csv", "_Ref.csv")
+# negdf.to_csv(negfileout, index=False)
 
 # Convert these to TransitionLists
 spectrumkey = "Ref Spec" # or "MS/MS spectrum" if experimental spectra are used, if so, a cutoff is recommended

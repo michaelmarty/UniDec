@@ -106,6 +106,11 @@ class_nfattyacids = {
     "TAG": 3
 }
 
+hg_simplifier = {"Cer_AP": "Cer", "Cer_HDS": "Cer", 'Cer_NDS': "Cer", 'Cer_NP': "Cer", 'Cer_NS': "Cer",
+                 "Cer_EODS" : "Cer", "Cer_EOS" : "Cer", "Cer_HS" : "Cer", "Cer_AS": "Cer",
+                 "HexCer_AP": "HexCer", "HexCer_NDS": "HexCer", "HexCer_HS": "HexCer", "HexCer_NS": "HexCer",
+                 "HexCer_EOS": "HexCer", "HexCer_HDS": "HexCer",}
+
 def msdialnames_to_LC(df):
     fixednames = []
     for i, row in df.iterrows():
@@ -573,7 +578,35 @@ def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
     proddf = proddf.drop(columns=[spectrumkey])
 
     return proddf
-    pass
+
+def cleanup_and_merge_msdial(posfile, negfile, posxml, negxml, rttol=0.2):
+    # Load the data
+    negdf = pd.read_csv(negfile)
+    posdf = pd.read_csv(posfile)
+
+    # Sort by Ontology and Name
+    posdf = posdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
+    negdf = negdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
+
+    # Load the reference spectra from XML
+    refnegdf = parse_xml(negxml)
+    refposdf = parse_xml(posxml)
+
+    # Add reference spectra to the dataframes
+    negdf = add_ref_from_xml(negdf, refnegdf)
+    posdf = add_ref_from_xml(posdf, refposdf)
+
+    # Merge positive and negative dataframes
+    posdf, negdf = merge_pos_neg(posdf, negdf, rttol)
+
+    # Create polarity columns and fill with "Positive" and "Negative"
+    posdf["Polarity"] = "Positive"
+    negdf["Polarity"] = "Negative"
+
+    # Concatenate the dataframes
+    mergeddf = pd.concat([posdf, negdf], ignore_index=True)
+
+    return mergeddf, posdf, negdf
 
 
 def find_match_name(name, rt, refdf, rttol=0.1, verbose=False):
@@ -1942,7 +1975,7 @@ def tl_to_il(df):
     il_df = pd.DataFrame()
     il_df["Compound"] = df["Molecule Name"]
     il_df["m/z"] = df["Precursor Mz"]
-    il_df["z"] = tldf["Precursor Charge"]
+    il_df["z"] = df["Precursor Charge"]
 
     rts = df["Explicit Retention Time"].to_numpy()
     rtwindows = df["Explicit Retention Time Window"].to_numpy()
@@ -1980,7 +2013,7 @@ def derplicate_il(df, mztol=0.8):
                 continue
             other = df.loc[j]
             mz_close = abs(row["m/z"] - other["m/z"]) <= mztol
-            same_charge = row["z"] == other["z"]
+            same_charge = row["Polarity"] == other["Polarity"]
             if mz_close and same_charge:
                 group_indices.append(j)
         used.update(group_indices)
