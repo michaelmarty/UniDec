@@ -324,7 +324,7 @@ def analyze_UIB_samples(files, topdir, num_compressed=50):
     if summary_data:
         summary_df = pd.DataFrame(summary_data)
         summary_df = summary_df.sort_values(by=["Time_Point", "Rep_Number"])
-        csv_path = os.path.join(topdir, "UIB_Analysis_Summary.csv")
+        csv_path = os.path.join(topdir, "Dimension_One_Summary.csv")
         summary_df.to_csv(csv_path, index=False)
         print(f"[SUCCESS] Summary report saved to: {csv_path}")
 
@@ -767,7 +767,7 @@ def plot_individual_samples(files, figsize=(12, 10), save=True):
         cols = ['Sample'] + [c for c in df.columns if c != 'Sample']
         df = df[cols]
 
-        csv_path = os.path.join(os.path.dirname(files[0]), "integration_results.csv")
+        csv_path = os.path.join(os.path.dirname(files[0]), "Dimension_Two_Summary.csv")
         df.to_csv(csv_path, index=False)
         print(f" Exported integration results to: {csv_path}")
 
@@ -878,7 +878,7 @@ def move_figures(files, topdir):
 
 def main():
     rc_params_setup()
-    topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\New Method V2\20260204 New Method New Mehtod 2026-02-05 13-27-29"
+    topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\ph stuff\20260204 New Method New Mehtod 2026-02-06 15-31-19"
     files = glob.glob(os.path.join(topdir, "*.D"))
     detector_files = ["UIB1B_rawdata.npz", "FLD1A_rawdata.npz"]
 
@@ -891,7 +891,7 @@ def main():
 
     # Visualization & cleanup using results
     if analysis_results:
-        plot_UIB_dashboard(analysis_results, topdir, figsize=(20, 12))
+        plot_UIB_dashboard(analysis_results, topdir, sort_by='reps', kin_xaxis='reps', figsize=(20, 18))
 
         #plot_UIB_ridgelines(analysis_results, topdir, autoscale=True, base_offset=10)
     else:
@@ -901,7 +901,7 @@ def main():
     plot_individual_samples(files, figsize=(12, 10), save=True)
     move_figures(files, topdir)
 
-    print("HEKPipeline Complete!")
+    print("[Main] Pipeline Complete!")
 
 if __name__ == "__main__":
     main()
