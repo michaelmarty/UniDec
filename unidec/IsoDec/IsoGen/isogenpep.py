@@ -13,8 +13,8 @@ class IsoGenPepEngine(IsoGenEngineBase):
         super().__init__()
         modelid=0
         self.isolen = isolen
-        self.seqlengthranges = np.array([[1, 50], [51, 1000]])
-        self.lengths = np.array([16, 128])
+        self.seqlengthranges = np.array([[1, 50], [51,300], [301, 1000]])
+        self.lengths = np.array([16, 64, 128])
         self.inputname = "seqs"
         self.models = []
         for l in self.lengths:
@@ -30,20 +30,17 @@ class IsoGenPepEngine(IsoGenEngineBase):
                 self.model = self.models[i]
 
 
-
     def inputs_to_vectors(self, inputs):
         return np.array([peptide_to_vector(s) for s in inputs])
 
 
     def get_model_index(self, seqlength):
-        if seqlength < 50:
-            index = 0
-        elif seqlength <= 200:
-            index = 1
-        else:
-            print("Sequence length out of range")
-            raise ValueError("Sequence length out of range, must be under 200 AAs.")
-        return index
+        for i, range in enumerate(self.seqlengthranges):
+            if seqlength >= range[0] and seqlength <= range[1]:
+                return i
+
+        print("Sequence length out of range")
+        raise ValueError("Sequence length out of range, must be under 1000 AAs.")
 
 
     def predict(self, seq):
@@ -55,8 +52,7 @@ class IsoGenPepEngine(IsoGenEngineBase):
 
 
     def check(self, seq):
-
-        if len(seq) > 200:
+        if len(seq) > 1000:
             print("Sequence length longer than training data. Behavior may be unpredictable.")
 
 
@@ -66,11 +62,11 @@ if __name__ == "__main__":
     # Set backend to Agg
     mpl.use('WxAgg')
 
-    os.chdir(r"C:\Users\Admin\Desktop\martylab\IsoGen\IntactProtein\Training")
+    os.chdir(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\IntactProtein\Training")
 
     isolen = 32
     # trainfile = "peptidedists_633886.npz"
-    trainfile = "Z:\\Group Share\\JGP\\PeptideTraining\\peptidedists_2492495.npz"
+    #trainfile = "Z:\\Group Share\\JGP\\PeptideTraining\\peptidedists_2492495.npz"
     # trainfile_synthetic = "peptidedists_synthetic_168420.npz"
     trainfile_synthetic = r"E:\Zdrive_backup\PeptideTraining\peptidedists_synthetic_3368720.npz"
 

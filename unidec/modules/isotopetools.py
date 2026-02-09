@@ -157,12 +157,7 @@ c = np.array([1, 0.01082, 0, 0])
 n = np.array([1, 0.0037, 0, 0])
 o = np.array([1, 0.0004, 0.002, 0])
 s = np.array([1, 0.0079, 0.044, 0])
-fe = np.array([0.063, 1, 0.024,0.0031])
-k = np.array([1, 0.000129, 0.07221, 0])
-ca = np.array([1, 0.0067, 0.00144, 0.0215])
-ni = np.array([1, 0.382, 0.017, .053])
-zn = np.array([1, 0.0574, 0.0844, 0.387])
-mg = np.array([1, 0.127, 0.141, 0])
+
 
 
 h = np.append(h, buffer)
@@ -170,12 +165,7 @@ c = np.append(c, buffer)
 n = np.append(n, buffer)
 o = np.append(o, buffer)
 s = np.append(s, buffer)
-fe  = np.append(fe, buffer)
-k = np.append(k, buffer)
-ca = np.append(ca, buffer)
-ni = np.append(ni, buffer)
-zn = np.append(zn, buffer)
-mg = np.append(mg, buffer)
+
 
 dt = np.dtype(np.complex128)
 hft = fftpack.rfft(h).astype(dt)
@@ -183,21 +173,16 @@ cft = fftpack.rfft(c).astype(dt)
 nft = fftpack.rfft(n).astype(dt)
 oft = fftpack.rfft(o).astype(dt)
 sft = fftpack.rfft(s).astype(dt)
-feft = fftpack.rfft(fe).astype(dt)
-kft = fftpack.rfft(k).astype(dt)
-caft = fftpack.rfft(ca).astype(dt)
-nift = fftpack.rfft(ni).astype(dt)
-znft = fftpack.rfft(zn).astype(dt)
-mgft = fftpack.rfft(mg).astype(dt)
 
-pre_ft = np.array([cft, hft, nft, oft, sft, feft, kft, caft, nift, znft, mgft])
+
+pre_ft = np.array([cft, hft, nft, oft, sft])
 
 
 # @njit(fastmath=True)
 def isojim(isolist, length):
     """Thanks to Jim Prell for Sketching this Code"""
     '''
-    Takes as in input a list of numbers of elements in the order above [C, H, N, O, S, Fe, K, Ca, Ni, Zn, Mg]
+    Takes as in input a list of numbers of elements in the order above [C, H, N, O, S]
     Calculates the aggregated isotope distribution based on the input list.
     '''
     num_atoms = len(isolist)
@@ -223,7 +208,7 @@ def isojim_rna(isolist, length):
     nump = isolist[4]
 
 
-    allft = cft ** numc * hft ** numh * nft ** numn * oft ** numo * sft ** nump
+    allft = cft ** numc * hft ** numh * nft ** numn * oft ** numo * pft ** nump
     #print(type(allft[0]))
 
     # with nb.objmode(allift='float64[:]'):
@@ -313,9 +298,6 @@ def predict_apex_mono_diff(mass):
 
 
 if __name__ == "__main__":
-
-
-
     m = 1000
     formula, minmassint, isolist = makemass(m)
     x = isojim(isolist)[:10]

@@ -901,7 +901,7 @@ def main():
     plot_individual_samples(files, figsize=(12, 10), save=True)
     move_figures(files, topdir)
 
-    print("Pipeline Complete!")
+    print("HEKPipeline Complete!")
 
 if __name__ == "__main__":
     main()

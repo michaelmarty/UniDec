@@ -221,7 +221,9 @@ recipe_w = [
         False,
         "The amino acid sequence or mass for the {n} protein or molecule. There can be multiple sequences, "
         "each as their own columns and with unique names. If it can convert to float, it will. "
-        "If not, it will assume it is an amino acid sequence with 1 letter codes.",
+        "If not, it will assume it is an amino acid sequence with 1 letter codes. "
+        "You can in theory use any character or number to define the sequence but + and * are not allowed."
+        ,
     ],
     [
         "Correct",
@@ -1178,6 +1180,7 @@ if __name__ == "__main__":
         # path = "C:\\Data\\UPPDemo\\DAR\\Biotin UPP template WP_MTM.xlsx"
         path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short.xlsx"
         path = "C:\\Data\\Wilson_Genentech\\BsAb\\BsAb test short_repeat.xlsx"
+        path = "Y:\\Data\\Wilson_Genentech\\sequences_short4.xlsx"
         # path = "C:\\Data\\PatelTest\\CTNNB13DR010_batch_trunc.csv"
         # path = "C:\\Data\\Wilson_Genentech\\sequences_short3.xlsx"
         pd.set_option("display.max_columns", None)

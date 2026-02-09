@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 
 
 # Load the file (assumes comma-separated and correct headers)
-directory = "Z:\\Group Share\\Annika\\Stellar\\Cholesterol"
+directory = "Z:\\Group Share\\Annika\\Figures"
 os.chdir(directory)
 
-file1 = "D7Chol_TIC.txt"  # Change this for each TIC
+file1 = "HEK_neg_TIC.txt"  # Change this for each TIC
 
-file2 = "Chol_TIC.txt"
+file2 = "HEK_pos_TIC.txt"
 #file3 = "popc-postexch.txt"
 
 #file4 = "D7pc-postexch.txt"

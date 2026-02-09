@@ -7,7 +7,7 @@ import numpy as np
 # ------------------------------
 # User files
 # ------------------------------
-file = "Z:\\Group Share\\Annika\\Stellar\\Untargeted DDA\\HEK\\New Libs Tests\\PosPeakMaster_Stellar_HEKpos.csv"
+file = "Z:\Group Share\\Annika\\Stellar\\Untargeted DDA\\HEK\\New Libs Tests\\NegPeakMaster_CorrLib_Ref.csv"
 colormap_file = r"Z:\\Group Share\\Annika\\Lipid_ColorMap.xlsx"
 
 # ------------------------------
@@ -25,7 +25,7 @@ df = df[~df["Metabolite name"].astype(str).str.contains(fa_pattern, case=False, 
 # Load color map
 # ------------------------------
 color_df = pd.read_excel(colormap_file)
-tmp_class = color_df["Class"].astype(str).str.strip()
+tmp_class = color_df["Lipid Class"].astype(str).str.strip()
 tmp_color = color_df["Color"].astype(str).str.strip()
 color_map = dict(zip(tmp_class, tmp_color))
 
@@ -170,7 +170,7 @@ plt.gca().spines['top'].set_visible(False)
 plt.gca().spines['right'].set_visible(False)
 plt.xlabel("Retention Time (min)")
 plt.ylabel("m/z")
-plt.title("HEK Lipids ESI+")
+plt.title("Stellar UntDDA ESI-")
 plt.xticks(np.arange(0.0, 18, 2.5))
 plt.yticks(np.arange(0.0, 1600.1, 200))
 

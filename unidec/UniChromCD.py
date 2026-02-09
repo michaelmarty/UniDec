@@ -68,6 +68,7 @@ class UniChromCDApp(UniDecCDApp):
             pathft3 = "Z:\\Group Share\\Skippy\\Projects\\FT IM CD MS\\01302024_GDH_stepsize3_repeat15_5to500.dmt"
             path2 = r"Z:\Group Share\BHT\Q Exactive HF Data\RPLC-MS\Agilent LC\20251021\20251022_BHT_0.1mgmL_proteinmix_6inj_0.1gas_50inj_zoom_CDMS_C4_2_2025-10-22-08-56-16.dmt"
             path2 = r"Z:\Group Share\BHT\20251030_BHT_POSB_10XDiluted_HEKcelllysate_12INJ_CDMS_C4_3.dmt"
+            path2 = r"Z:\Group Share\BHT\Q Exactive HF Data\RPLC-MS\Acquity UPLC\CDMS Injections to Stitch\20251216\Number of Injections Comparison\Carbonic Anhydrase\1 Injection\20251216_BHT_0o1mgmL_carbonicanhydrase_CDMS_2uLinj_1.dmt"
             # try:
             self.on_open_file(None, None, path=path2)
             # except:

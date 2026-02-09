@@ -1,42 +1,46 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-
+import matplotlib as mpl
 # Define the working directory
-directory = "Z:\\Group Share\\Annika\\Stellar"
+directory = "Z:\\Group Share\\Annika\\Figures"
 os.chdir(directory)
 
-# Manually enter the TIC file name each time you run the script
-file1 = "NEWEcoliChrom.txt"  # Change this for each TIC
+# TIC files
+file1 = "HEK_pos_TIC.txt"     #pos
+file2 = "HEK_neg_TIC.txt"    #neg
 
-#file2 = "(+)Ecoli_t-1_withFE.txt"
-#file3 = "popc-postexch.txt"
+# Load data
+data1 = np.loadtxt(file1)
+data2 = np.loadtxt(file2)
+mpl.rcParams['pdf.fonttype'] = 42
+mpl.rcParams['ps.fonttype'] = 42
+mpl.rcParams['font.family'] = 'Arial'
+mpl.rcParams['font.size'] = 14
 
-#file4 = "D7pc-postexch.txt"
 
-# Load the data from the text file
-data = np.loadtxt(file1)
-#data2 = np.loadtxt(file2)
-#data3 = np.loadtxt(file3)
-#data4 = np.loadtxt(file4)
-
-# Assuming the first column is time and the second column is TIC intensity
-time = data[:, 0]  # Retention time
-intensity = data[:, 1]  # TIC intensity
-# Plot the TIC
+# Plot both on the same figure
 plt.figure(figsize=(8, 5))
-plt.plot(data[:,0], data[:,1], label= "No Folch", color = "k", linewidth=2)
-#plt.plot(data2[:,0], data2[:,1], label="With Folch", color="red", linewidth=2)
-#plt.plot(data3[:,0], data3[:,1], label="POPC", color="darkgreen", linewidth=2)
-#plt.plot(data4[:,0], data4[:,1], label="D7 PC", color="lime", linewidth=3)
+plt.gca().spines['top'].set_visible(False)
+plt.gca().spines['right'].set_visible(False)
+plt.gca().spines['bottom'].set_linewidth(2)  # Set bottom spine thickness
+plt.gca().spines['left'].set_linewidth(2)  # Set left spine thickness
+plt.tick_params(axis='both', width=2, length=5)  # Tick mark thickness
+
+
+plt.plot(data1[:, 0], data1[:, 1],
+         label="Positive", color="royalblue", linewidth=2)
+
+plt.plot(data2[:, 0], data2[:, 1],
+         label="Negative", color="fuchsia", linewidth=2)
+
+# Formatting
 plt.xlim(5, 12)
-plt.ylim(bottom=0)
-plt.ylim(0, 80000000)
+# plt.ylim(0, 8e7)
 plt.xlabel("Retention Time (min)")
 plt.ylabel("Intensity")
-#plt.title("E.col)")
 plt.legend()
-plt.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
-plt.savefig("(-)EPL_Ctrl_Chrom.pdf")
-plt.show()
+plt.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
 
+#plt.savefig("Ecoli_Overlay_Chrom.pdf")
+plt.show()
