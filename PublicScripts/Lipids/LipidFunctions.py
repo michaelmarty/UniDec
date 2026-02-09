@@ -497,7 +497,7 @@ def remove_specific_problems(df):
 
 
 def get_charge(adduct):
-    if adduct in ["[M+H]+", "[M+NH4]+", "[M+Na]+", "[M+K]+"]:
+    if adduct in ["[M+H]+", "[M+NH4]+", "[M+Na]+", "[M+K]+", "[M]+", "[M+H-H2O]+"]:
         return 1
     elif adduct in ["[M+2H]2+"]:
         return 2
@@ -542,7 +542,7 @@ def add_product_ions(row, cutoff=0.1, spectrumkey="Ref Spec"):
 
     return newrows
 
-def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
+def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec", rtwindow=4, remove_precursors=True):
     # Drop all where "Ontology" is Others or Unknown
     # df = df[~df["Ontology"].isin(["Others", "Unknown"])]
     newdf = df.copy()
@@ -560,7 +560,7 @@ def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
     newdf["Precursor Charge"] = charges
 
     # Set Explicit Retention Time Window to 4
-    newdf["Explicit Retention Time Window"] = 4
+    newdf["Explicit Retention Time Window"] = rtwindow
 
     # Sort by Molecule List Name and Molecule Name
     newdf = newdf.sort_values(by=["Molecule List Name", "Molecule Name"])
@@ -576,6 +576,10 @@ def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
 
     # Drop MS/MS spectrum column
     proddf = proddf.drop(columns=[spectrumkey])
+
+    # If remove_precursors is True, drop rows where Product Mz is greater than 5 below Precursor Mz
+    if remove_precursors:
+        proddf = proddf[proddf["Product Mz"] < proddf["Precursor Mz"] - 5]
 
     return proddf
 

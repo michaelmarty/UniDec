@@ -20,6 +20,9 @@ combineddf = pd.concat(dfs)
 # Sort by class, then by name
 combineddf = combineddf.sort_values(by=["Ontology", "Metabolite name"])
 
+# Drop any with (d7) in name
+combineddf = combineddf[~combineddf["Metabolite name"].str.contains(r"\(d7\)", na=False)]
+
 # Drop any where the class has less than 2 total entries across all datasets, to focus on more common classes
 class_counts = combineddf["Ontology"].value_counts()
 classes_to_keep = class_counts[class_counts >= 2].index
