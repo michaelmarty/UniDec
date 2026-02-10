@@ -62,7 +62,7 @@ if __name__ == "__main__":
     plt.show()
 
 
-    # Plot features with whether Low_Quality_Flag is true of false
+    # Plot features with whether Low_Quality_Flag is true or false
     for feature in features:
         plt.figure(figsize=(8, 6))
         for flag in [True, False]:

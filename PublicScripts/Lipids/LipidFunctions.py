@@ -497,7 +497,7 @@ def remove_specific_problems(df):
 
 
 def get_charge(adduct):
-    if adduct in ["[M+H]+", "[M+NH4]+", "[M+Na]+", "[M+K]+"]:
+    if adduct in ["[M+H]+", "[M+NH4]+", "[M+Na]+", "[M+K]+", "[M]+", "[M+H-H2O]+"]:
         return 1
     elif adduct in ["[M+2H]2+"]:
         return 2
@@ -542,7 +542,7 @@ def add_product_ions(row, cutoff=0.1, spectrumkey="Ref Spec"):
 
     return newrows
 
-def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
+def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec", rtwindow=4, remove_precursors=True):
     # Drop all where "Ontology" is Others or Unknown
     # df = df[~df["Ontology"].isin(["Others", "Unknown"])]
     newdf = df.copy()
@@ -560,7 +560,7 @@ def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
     newdf["Precursor Charge"] = charges
 
     # Set Explicit Retention Time Window to 4
-    newdf["Explicit Retention Time Window"] = 4
+    newdf["Explicit Retention Time Window"] = rtwindow
 
     # Sort by Molecule List Name and Molecule Name
     newdf = newdf.sort_values(by=["Molecule List Name", "Molecule Name"])
@@ -576,6 +576,10 @@ def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
 
     # Drop MS/MS spectrum column
     proddf = proddf.drop(columns=[spectrumkey])
+
+    # If remove_precursors is True, drop rows where Product Mz is greater than 5 below Precursor Mz
+    if remove_precursors:
+        proddf = proddf[proddf["Product Mz"] < proddf["Precursor Mz"] - 5]
 
     return proddf
 
@@ -781,7 +785,7 @@ def encode_headgroups(df, classname="Ontology", rtcol_name="Average Rt(min)"):
     encoding = {}
     for i, hg in enumerate(sorted_hgs):
         encoding[hg] = i + 1
-    print("Headgroup encoding:", encoding)
+    # print("Headgroup encoding:", encoding)
     # Add encoding column
     encodings = []
     for i, row in df.iterrows():
@@ -1602,42 +1606,42 @@ def network_analysis(df, mz_tol=0.01, title="", header="", add_all_cols=False):
     # Measure a variety of features of the graph
     strength = dict(G.degree(weight='weight'))  # s_i
     degree = dict(G.degree())  # unweighted degree
-    clust_w = nx.clustering(G, weight='weight')  # weighted clustering coeff
+    # clust_w = nx.clustering(G, weight='weight')  # weighted clustering coeff
     # betw = nx.betweenness_centrality(G, weight='distance')  # uses shortest-path distances
-    close = nx.closeness_centrality(G, distance='distance')  # distance-based closeness
-    pr = nx.pagerank(G, weight='weight')  # weighted PageRank
+    # close = nx.closeness_centrality(G, distance='distance')  # distance-based closeness
+    # pr = nx.pagerank(G, weight='weight')  # weighted PageRank
     tri = nx.triangles(G)  # triangle count per node
     # ev = nx.eigenvector_centrality(G, weight='weight', tol=1e-04)  # eigenvector centrality
     # ----- SAFETY GUARD FOR EMPTY / EDGELESS GRAPHS -----
-    if G.number_of_nodes() < 2 or G.number_of_edges() == 0:
-        ev = dict.fromkeys(G.nodes(), 0.0)
-    else:
-        try:
-            ev = nx.eigenvector_centrality(G, weight='weight', max_iter=1000)
-        except nx.PowerIterationFailedConvergence:
-            ev = dict.fromkeys(G.nodes(), 0.0)
+    # if G.number_of_nodes() < 2 or G.number_of_edges() == 0:
+    #     ev = dict.fromkeys(G.nodes(), 0.0)
+    # else:
+    #     try:
+    #         ev = nx.eigenvector_centrality(G, weight='weight', max_iter=1000)
+    #     except nx.PowerIterationFailedConvergence:
+    #         ev = dict.fromkeys(G.nodes(), 0.0)
 
     # Network features dict
     n_features = {
         'strength': strength,
         'degree': degree,
-        'clust_w': clust_w,
+        # 'clust_w': clust_w,
         # 'betw': betw,
-        'close': close,
-        'pr': pr,
+        # 'close': close,
+        # 'pr': pr,
         'tri': tri,
-        'ev': ev,
+        # 'ev': ev,
     }
 
     z_features = {
         'z_strength': robust_z(strength),
         'z_degree': robust_z(degree),
-        'z_clust_w': robust_z(clust_w),
+        # 'z_clust_w': robust_z(clust_w),
         # 'z_betw': robust_z(betw),
-        'z_close': robust_z(close),
-        'z_pr': robust_z(pr),
+        # 'z_close': robust_z(close),
+        # 'z_pr': robust_z(pr),
         'z_tri': robust_z(tri),
-        'z_ev': robust_z(ev),
+        # 'z_ev': robust_z(ev),
     }
 
     # Simple aggregate anomaly score A_i = sum |z_ik|
@@ -2049,8 +2053,8 @@ def derplicate_il(df, mztol=0.8):
                     "Polarity": group["Polarity"].iloc[0]
                 }
                 good_rows.append(combined_row)
-                print("Overlap found, new combined row:")
-                print(pd.Series(combined_row).to_string())
+                # print("Overlap found, new combined row:")
+                # print(pd.Series(combined_row).to_string())
             else:
                 for _, g in group.iterrows():
                     good_rows.append(g.to_dict())
