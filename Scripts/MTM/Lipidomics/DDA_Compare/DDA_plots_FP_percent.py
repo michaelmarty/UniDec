@@ -22,11 +22,12 @@ def plot_attributes_by_datasetcount(df, attrlist = []):
     plt.show()
 
 def good_percentage_plot(df):
-    plt.figure(figsize=(8, 6))
+
     dataset_counts = sorted(df["Dataset Count"].unique())
     datasets = sorted(df["Dataset"].unique())
     percentages = []
     labels = []
+    totalcounts = []
     for count in dataset_counts:
         subset = df[df["Dataset Count"] == count]
         # Bad ones are where "Comment" contaings "Low Quality"
@@ -34,7 +35,9 @@ def good_percentage_plot(df):
         total_count = len(subset)
         good_percentage = 100 * (total_count - bad_count) / total_count if total_count > 0 else 0
         percentages.append(good_percentage)
+        totalcounts.append(total_count)
         labels.append(f"{count} datasets")
+        print(f"{count} datasets: {good_percentage:.2f}% good IDs")
 
     for dataset in datasets:
         # Isolate all where only this dataset is present
@@ -43,6 +46,7 @@ def good_percentage_plot(df):
         total_count = len(subset)
         good_percentage = 100 * (total_count - bad_count) / total_count if total_count > 0 else 0
         percentages.append(good_percentage)
+        totalcounts.append(total_count)
         print(f"{dataset} only: {good_percentage:.2f}% good IDs")
         labels.append(f"{dataset} only")
 
@@ -53,16 +57,27 @@ def good_percentage_plot(df):
         total_count = len(subset)
         good_percentage = 100 * (total_count - bad_count) / total_count if total_count > 0 else 0
         percentages.append(good_percentage)
+        totalcounts.append(total_count)
         print(f"{dataset} present: {good_percentage:.2f}% good IDs")
         labels.append(f"{dataset} Total")
 
     # plt.bar(dataset_counts, percentages, color="skyblue")
+    plt.figure(figsize=(8, 6))
+    plt.subplot(121)
     plt.bar(labels, percentages)
     plt.xlabel("Dataset Count")
     plt.ylabel("Percentage of Good IDs")
     plt.title("Percentage of Good IDs by Dataset Count")
     plt.xticks(rotation=45, ha="right")
     plt.ylim(0, 100)
+
+    plt.subplot(122)
+    plt.bar(labels, totalcounts, color="lightgreen")
+    plt.xlabel("Dataset Count")
+    plt.ylabel("Total Count of IDs")
+    plt.title("Total Count of IDs by Dataset Count")
+    plt.xticks(rotation=45, ha="right")
+
     plt.tight_layout()
     plt.show()
 

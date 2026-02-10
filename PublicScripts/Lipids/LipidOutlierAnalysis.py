@@ -36,8 +36,8 @@ def basic_class_network_analysis(df, tol=0.3):
     posdf = df[df["Polarity"] == "Positive"]
     negdf = df[df["Polarity"] == "Negative"]
 
-    posdf, posgraphs = class_network_analysis(posdf, tol=tol)
-    negdf, neggraphs = class_network_analysis(negdf, tol=tol)
+    posdf, posgraphs = class_network_analysis(posdf, tol=tol, add_all_cols=True)
+    negdf, neggraphs = class_network_analysis(negdf, tol=tol, add_all_cols=True)
 
     # Recombine DFs
     combined_df = pd.concat([posdf, negdf], ignore_index=True)
@@ -195,7 +195,7 @@ def random_forest(X_train, X_test, y_train, y_test, features, n_estimators=50, r
         print(feature_importance)
     return clf, feature_importance, y_pred, cr
 
-def apply_rf_prediction(df, model):
+def apply_rf_prediction(df, model=None):
     if model is None:
         modelpath = "RF_Model.pkl"
         if not os.path.exists(modelpath):

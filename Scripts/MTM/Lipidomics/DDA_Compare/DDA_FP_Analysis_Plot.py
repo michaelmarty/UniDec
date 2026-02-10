@@ -93,7 +93,6 @@ with pd.ExcelWriter("Combined_DDA_OutlierAnalysis_Results.xlsx") as writer:
     df[df["Outlier_Prediction"] == 1].to_excel(writer, sheet_name="Predicted Bad", index=False)
 print(df)
 
-exit()
 
 # Feature importance plots
 plt.figure(figsize=(10, 6))
