@@ -1,4 +1,4 @@
-import PublicScripts.Lipids.LipidOutlierTestScript as ot
+import PublicScripts.Lipids.LipidOutlierAnalysis as ot
 import os
 
 topdir = r"Z:\Group Share\Shivam\Reducing_FP\Tagged_Peaks"

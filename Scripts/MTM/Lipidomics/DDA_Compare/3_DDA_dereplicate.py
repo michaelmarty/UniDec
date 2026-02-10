@@ -65,7 +65,7 @@ os.chdir(topdir)
 
 df = pd.read_csv("Combined_DDA_RT_Corrected.csv")
 
-df = full_name_assignment(df, rttol=0.5, rtcol="Average Rt(min)")
+df = full_name_assignment(df, rttol=0.2, rtcol="Average Rt(min)")
 df = get_number_of_datasets(df, namecol="Metabolite name")
 
 subdfs = split_dfs(df)
@@ -79,3 +79,8 @@ with pd.ExcelWriter("Combined_DDA_Full.xlsx") as writer:
         else:
             sheet_name = f"{key} Only"
         subdf.to_excel(writer, sheet_name=sheet_name, index=False)
+    # Split df by dataset and write each to a separate sheet
+    for dataset in df["Dataset"].unique():
+        dataset_subdf = df[df["Dataset"] == dataset]
+        sheet_name = f"{dataset} Total"
+        dataset_subdf.to_excel(writer, sheet_name=sheet_name, index=False)

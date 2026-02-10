@@ -12,12 +12,15 @@ dfs = pd.read_excel(filepath, sheet_name=None)
 tldfs = {}
 ildfs = {}
 for key, df in dfs.items():
-    print(f"Processing sheet: {key}")
+    # print(f"Processing sheet: {key}")
+    # Drop any that have "Low Quality" in the "Comment" column, to focus on good IDs
+    df = df[~df["Comment"].str.contains("Low Quality", case=False, na=False)]
     tl_df = msdial_to_transitionlist(df)
     tldfs[key] = tl_df
     ildf = tl_to_il(tl_df)
     ildf = derplicate_il(ildf)
     ildfs[key] = ildf
+    print("Length of isolation list for {}: {}".format(key, len(ildf)))
 
 # Write out each transition list to a separate sheet in the same Excel file
 with pd.ExcelWriter("Combined_DDA_TransitionLists.xlsx") as writer:

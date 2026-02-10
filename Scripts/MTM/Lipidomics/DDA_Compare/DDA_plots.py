@@ -36,7 +36,6 @@ def count_number_of_datasets(df, namecol="Metabolite name", dataset_col="Dataset
 
 def get_class_counts(df, name_col="Metabolite name", dataset_col="Dataset", class_col="Ontology"):
     datasets = sorted(df[dataset_col].unique())
-
     counts = []
 
     for i in range(2, len(datasets) + 1):
@@ -65,7 +64,8 @@ def bar_chart_of_classes(df, dataset_col="Dataset", class_col="Ontology", name_c
     # Create counts of classes in all datasets
     # Print number of unique classes
     print("Number of unique classes:", df[class_col].nunique())
-    df = count_number_of_datasets(df)
+    if "Dataset Count" not in df.columns:
+        df = count_number_of_datasets(df)
     class_counts = get_class_counts(df, name_col=name_col, dataset_col=dataset_col, class_col=class_col)
 
     if ax is None:
@@ -87,7 +87,10 @@ os.chdir(topdir)
 
 datasets = ["ITIT", "OTIT", "OTOT", "OTOT_AqX", "Stellar_RT_1", "Stellar"]
 
-df = pd.read_csv("Combined_DDA.csv")
+df = pd.read_excel("Combined_DDA_Full.xlsx", sheet_name="Full Data")
+
+# print(df.columns)
+
 
 # Remove low quality ids where comment includes "Low quality"
 df = df[~df["Comment"].str.contains("Low quality", case=False, na=False)]
@@ -109,7 +112,7 @@ df = bar_chart_of_classes(df, dataset_col="Dataset", class_col="Ontology", title
 # df = df.drop_duplicates(subset=["Ontology", "Metabolite name"])
 # Sort by ontology and metabolite name
 df = df.sort_values(by=["Ontology", "Metabolite name", "Adduct type"])
-df.to_csv("Combined_DDA_with_Dataset_Counts.csv", index=False)
+# df.to_csv("Combined_DDA_with_Dataset_Counts.csv", index=False)
 plt.tight_layout()
 plt.show()
 
