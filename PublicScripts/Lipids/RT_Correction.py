@@ -194,7 +194,7 @@ def find_lib_file(df, col="Comment"):
     # Add .msp to both library names
     poslibname += ".msp"
     neglibname += ".msp"
-    print(poslibname, neglibname)
+    # print(poslibname, neglibname)
     return poslibname, neglibname
 
 
@@ -305,6 +305,9 @@ if __name__ == "__main__":
         interpolation_file = dataset + '_RTcorr.pkl'
         poslibfile, neglibfile = find_lib_file(dfs[dataset])
         posout, negout = adjust_msp_file(poslibfile, neglibfile, interpolation_file, fileoutstr="_" + dataset + "_DDA")
+        if posout is None or negout is None:
+            print(f"Skipping PG fix for {dataset} due to missing library files.")
+            continue
         # If fixed not in name, also fix PG in the new library file
         if "fixed" not in negout.lower():
             fix_pg_in_msp(negout)
