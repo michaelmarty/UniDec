@@ -127,7 +127,7 @@ def rt_correction(df, rtcol="Average Rt(min)", refcol="Reference RT", weight_col
 
     return p2
 
-def adjust_msp_file(poslibfile, neglibfile, interpolation_file, fileoutstr="_corrected"):
+def adjust_msp_file(poslibfile, neglibfile, interpolation_file, fileoutstr="_corrected", force_overwrite=False):
     # Check if interpolation file exists
     if not os.path.exists(interpolation_file):
         print(f"Interpolation file {interpolation_file} not found. Skipping RT correction.")
@@ -144,20 +144,26 @@ def adjust_msp_file(poslibfile, neglibfile, interpolation_file, fileoutstr="_cor
         # Rename outfile to replace
         posoutfile = poslibfile.replace(".msp", fileoutstr + ".msp")
 
-        # Read library file
-        with open(poslibfile, 'r') as f:
-            lines = f.readlines()
+        # If outfile already exists and force_overwrite is False, skip
+        if os.path.exists(posoutfile) and not force_overwrite:
+            print(f"Output file {posoutfile} already exists. Skipping RT correction for positive library.")
+            posoutfile = None
 
-        # Write new library file correcting RTs
-        with open(posoutfile, 'w') as f:
-            for i, line in enumerate(lines):
-                if line.startswith("RETENTIONTIME:"):
-                    rt = float(line.split(":")[1].strip())
-                    newrt = p(rt)
-                    f.write(f"RETENTIONTIME: {newrt:.4f}\n")
-                    # print(f"Corrected RT: {rt} -> {newrt:.4f}")
-                else:
-                    f.write(line)
+        else:
+            # Read library file
+            with open(poslibfile, 'r') as f:
+                lines = f.readlines()
+
+            # Write new library file correcting RTs
+            with open(posoutfile, 'w') as f:
+                for i, line in enumerate(lines):
+                    if line.startswith("RETENTIONTIME:"):
+                        rt = float(line.split(":")[1].strip())
+                        newrt = p(rt)
+                        f.write(f"RETENTIONTIME: {newrt:.4f}\n")
+                        # print(f"Corrected RT: {rt} -> {newrt:.4f}")
+                    else:
+                        f.write(line)
 
     if not os.path.exists(neglibfile):
         print(f"Error: Negative library file {neglibfile} not found. Skipping RT correction for negative library.")
@@ -165,19 +171,23 @@ def adjust_msp_file(poslibfile, neglibfile, interpolation_file, fileoutstr="_cor
     else:
         print("Adjusting negative library file: ", neglibfile)
         negoutfile = neglibfile.replace(".msp", fileoutstr + ".msp")
-
-        with open(neglibfile, 'r') as f:
-            lines = f.readlines()
-        # Write new library file correcting RTs
-        with open(negoutfile, 'w') as f:
-            for i, line in enumerate(lines):
-                if line.startswith("RETENTIONTIME:"):
-                    rt = float(line.split(":")[1].strip())
-                    newrt = p(rt)
-                    f.write(f"RETENTIONTIME: {newrt:.4f}\n")
-                    # print(f"Corrected RT: {rt} -> {newrt:.4f}")
-                else:
-                    f.write(line)
+        # If outfile already exists and force_overwrite is False, skip
+        if os.path.exists(negoutfile) and not force_overwrite:
+            print(f"Output file {negoutfile} already exists. Skipping RT correction for negative library.")
+            negoutfile = None
+        else:
+            with open(neglibfile, 'r') as f:
+                lines = f.readlines()
+            # Write new library file correcting RTs
+            with open(negoutfile, 'w') as f:
+                for i, line in enumerate(lines):
+                    if line.startswith("RETENTIONTIME:"):
+                        rt = float(line.split(":")[1].strip())
+                        newrt = p(rt)
+                        f.write(f"RETENTIONTIME: {newrt:.4f}\n")
+                        # print(f"Corrected RT: {rt} -> {newrt:.4f}")
+                    else:
+                        f.write(line)
     return posoutfile, negoutfile
 
 def find_lib_file(df, col="Comment"):
@@ -190,6 +200,10 @@ def find_lib_file(df, col="Comment"):
     comment = negdf[col].iloc[0]
     # Extract the library name from the comment
     neglibname = comment.split("Annotation method: ")[1].split(";")[0]
+
+    # Remove _2 that is getting added to the library name for some reason
+    poslibname = poslibname.replace("_2", "")
+    neglibname = neglibname.replace("_2", "")
 
     # Add .msp to both library names
     poslibname += ".msp"
