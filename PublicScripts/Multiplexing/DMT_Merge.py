@@ -87,7 +87,6 @@ def merge_files(rawlist, dmtlist, outfile):
         f.write(f"HTanalysistime {HTanalysistime}\n")
         f.write(f"HTmaxscans {HTmaxscans}\n")
 
-
     # Save to Numpy compressed file
     np.savez_compressed(outfile, data=np.array(outdata))
 
