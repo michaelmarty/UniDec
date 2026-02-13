@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import matplotlib as mpl
-# Import s
 
 mpl.use("WxAgg")
 
