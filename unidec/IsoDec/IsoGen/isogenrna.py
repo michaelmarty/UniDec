@@ -11,51 +11,60 @@ from unidec.IsoDec.IsoGen.isogenc import *
 class IsoGenRNAEngine(IsoGenEngineBase):
     def __init__(self, isolen=64):
         super().__init__()
-        self.model = IsoGenModelBase(isolen=isolen, savename="isogenrna_model_", vectorlen=4)
         self.isolen = isolen
-        self.raw_sequences = []
+        self.seqlengthranges = np.array([[1, 200], [201, 500]])
+        self.lengths = np.array([64, 128])
+        self.inputname = "seqs"
+        self.models = []
+        for l in self.lengths:
+            if l > 128:
+                modelid = 1
+            else:
+                modelid = 0
+            model = IsoGenModelBase(isolen=l, savename="isogenrna_model_", vectorlen=4, modelid=modelid)
+            self.models.append(model)
+
+        for i in range(len(self.lengths)):
+            if self.lengths[i] == self.isolen:
+                self.model = self.models[i]
 
     def inputs_to_vectors(self, inputs):
         return np.array([rnaseq_to_vector(m) for m in inputs])
 
+    def get_model_index(self, seqlength):
+        for i, range in enumerate(self.seqlengthranges):
+            if seqlength >= range[0] and seqlength <= range[1]:
+                return i
+
+        print("Sequence length out of range.")
+        raise ValueError("Sequence length out of range, must be under 500.")
+
     def predict(self, seq):
         self.check(seq)
         vec = rnaseq_to_vector(seq)
-        return self.model.predict(vec)
+        modelindex = self.get_model_index(len(seq))
+        model = self.models[modelindex]
+        return model.predict(vec)
 
     def check(self, seq):
-        if len(seq) > 300:
+        if len(seq) > 500:
             print("Warning: Sequence is too long. Behavior may be unpredictable.")
 
 
 
 
 if __name__ == "__main__":
-    os.chdir("Z:\Group Share\JGP\PeptideTraining")
-    trainfile = "rnadists_synthetic_1001424.npz"
+    os.chdir(r"C:\Users\Admin\Documents\martylab\RNA_SeqData\Training")
 
-    eng = IsoGenRNAEngine(isolen=64)
-    #eng.train(trainfile, forcenew=True)
+    trainfile = "synthetic_RNAs_10621.npz"
+    trainfile1 = "training_random_RNAs_10000_min_21_max_220.npz"
+    trainfile2 = "training_random_RNAs_10000_min_180_max_520.npz"
 
-    mpl.use("WxAgg")
+    eng1 = IsoGenRNAEngine(isolen=64)
+    eng2 = IsoGenRNAEngine(isolen=128)
 
-    testseqs = ["GUAC", "GUACGUACGUACGUAC", "GUACGUACGUACGUACGUACGUACGUACGUACGUAC", "GUACGUACGUACGCGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUAC", "AAAAAAAAAAAAA", "UUUUUUUUUUUUU"]
-    #testmasses = [110000, 230000, 450000, 670000, 890000, 1000000]
-    for i, m in enumerate(testseqs):
-        dist = eng.predict(m)
-        truedist = rnaseq_to_dist(m, isolen=64)
-        plt.subplot(2, 3, i + 1)
-        plt.plot(dist * 100, label="AI", color="b")
-        plt.plot(truedist * 100, color="k", label="True")
-        plt.xlim(0, 64)
-        title_string = str(m)
-        if len(m) > 5:
-            title_string = title_string[:5] + "...{" + str(len(m)) + "}"
-        plt.title(title_string)
-        plt.xlabel("Isotope Number")
-        plt.ylabel("%")
-        if i == 5:
-            plt.legend()
-    plt.tight_layout()
-    plt.show()
+    #eng1.train_multiple([trainfile, trainfile1], epochs=10, forcenew=True)
+    eng2.train_multiple([trainfile, trainfile1], epochs=10, forcenew=True)
+    eng2.train(trainfile2, epochs=10, forcenew=False)
+
 

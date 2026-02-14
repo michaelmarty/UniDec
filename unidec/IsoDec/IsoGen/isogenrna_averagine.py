@@ -1,4 +1,3 @@
-from unidec.IsoDec.IsoGen.isogen_tools import *
 from unidec.IsoDec.IsoGen.isogen_base import *
 from unidec.IsoDec.IsoGen.isogenc import fft_rna_mass_to_dist
 from unidec.IsoDec.IsoGen.rna_compositional_model import *
@@ -18,7 +17,7 @@ class IsoGenRNAveragineEngine(IsoGenEngineBase):
         self.model = IsoGenModelBase(isolen=isolen, savename="isogen_rnaveragine_model", vectorlen=self.veclen, modelid=0)
         self.lengths = np.array([32, 64, 128])
         self.massranges = np.array(
-            [[200, 20000], [1000, 80000], [8000, 160000]])
+            [[200, 25000], [23000, 70000], [60000, 165000]])
         self.isolen = isolen
         self.modelindex = 0
         try:
@@ -95,13 +94,6 @@ def gen_training_data(n, isolen=128, massrange=[100, 1000000]):
         dists.append(dist)
     return np.array(masses), np.array(dists)
 
-def rna_seq_to_mass(seq):
-    # Get the molecular weight of the sequence
-    mw = 0
-    for base in seq:
-        mw += mm.Formula(rna_dict[base]).mass
-    return mw
-
 def rna_seq_to_formula(seq):
     #Get the molecular formula of the sequence
     formula = np.zeros(5)
@@ -118,6 +110,7 @@ def mass_to_rnaveragine_dist(mass_len_tuple):
 if __name__ == "__main__":
     eng = IsoGenRNAveragineEngine()
     eng.train_all(1000000, forcenew=True)
+
 
 
 

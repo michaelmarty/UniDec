@@ -324,7 +324,7 @@ def analyze_UIB_samples(files, topdir, num_compressed=50):
     if summary_data:
         summary_df = pd.DataFrame(summary_data)
         summary_df = summary_df.sort_values(by=["Time_Point", "Rep_Number"])
-        csv_path = os.path.join(topdir, "UIB_Analysis_Summary.csv")
+        csv_path = os.path.join(topdir, "Dimension_One_Summary.csv")
         summary_df.to_csv(csv_path, index=False)
         print(f"[SUCCESS] Summary report saved to: {csv_path}")
 
@@ -599,7 +599,7 @@ def plot_instrument_timetables(files):
 
             # --- Valve Overlays (Vertical Lines) ---
             for v_time in valve_times:
-                ax_left.axvline(x=v_time, color='deepbluesky', linestyle=':', alpha=1, lw=1.5, zorder=1)
+                ax_left.axvline(x=v_time, color='deepskyblue', linestyle=':', alpha=1, lw=1.5, zorder=1)
                 # Position text slightly above the top of the plot
                 ax_left.text(v_time, ax_left.get_ylim()[1] * 1.02, f'{v_time}',
                              color='red', fontsize=8, ha='center', weight='bold')
@@ -629,66 +629,116 @@ def plot_instrument_timetables(files):
         plt.close()
 
 
-def plot_individual_samples(files, topdir, figsize=(12, 8), save=True):
+def plot_individual_samples(files, figsize=(12, 10), save=True):
     """
-    Creates a 2-row subplot for each sample directory.
-    Row 1: UIB Green & Red Overlay (with fills).
-    Row 2: FLD Raw Data (with fill).
+    Standardizes plotting:
+    - No normalization for UIB subplot.
+    - Blank mapping/subtraction for non-UIB (FLD) channels.
+    - Peak integration for FLD (5-7m and 11-13m).
+    - Saves verification diagnostics and subtracted data.
     """
-    for s_path in files:
-        sample_name = os.path.basename(s_path)
-        print(f"[PLOTTING] Individual Processing sample: {sample_name}")
+    sample_map = map_samples_to_blanks(files)
+    if not sample_map:
+        return
 
-        # 1. Define targets and load data for THIS sample
-        # Mapping: {filename: (label, color_key, row_index)}
+    # Define integration windows
+    windows = [(6, 8), (14, 16)]
+    results_log = []
+
+    for s_path, b_path in sample_map.items():
+        sample_name = os.path.basename(s_path)
+
+        txt_out_dir = os.path.join(s_path, TXT_DIR)
+        os.makedirs(txt_out_dir, exist_ok=True)
+        diag_dir = os.path.join(s_path, "individual_plots")
+        os.makedirs(diag_dir, exist_ok=True)
+
         targets = {
-            "UIB1B_gdata.txt": ("Green Channel", "gdata", 0),
-            "UIB1B_rdata.txt": ("Red Channel", "rdata", 0),
-            "FLD1A_rawdata.txt": ("FLD Raw", "overlay", 1)  # Using overlay or FLD scheme
+            "UIB1B_gdata.txt": ("Green Channel (UIB)", 0, False, None),
+            "UIB1B_rdata.txt": ("Red Channel (UIB)", 0, False, None),
+            "FLD1A_rawdata.txt": ("FLD Channel", 1, True, "FLD1A_subdata.txt")
         }
 
-        fig, axes = plt.subplots(2, 1, figsize=figsize, sharex=False)
+        fig, axes = plt.subplots(2, 1, figsize=figsize, sharex=True)
         data_found = False
 
-        for fname, (label, c_key, row_idx) in targets.items():
-            # Check NPZ_DIR or TXT_DIR
-            ext = os.path.splitext(fname)[1].lower()
-            pref_dir = NPZ_DIR if ext in (".npz", ".npy") else TXT_DIR
-            target_file = os.path.join(s_path, pref_dir, fname)
+        for fname, (label, row_idx, subtract, export_name) in targets.items():
+            s_file = os.path.join(txt_out_dir, fname)
+            b_file = os.path.join(b_path, TXT_DIR, fname)
 
-            if not os.path.exists(target_file):
-                target_file = os.path.join(s_path, fname)  # Fallback
+            if not os.path.exists(s_file):
+                s_file = os.path.join(s_path, fname)
 
-            if os.path.exists(target_file):
-                try:
-                    # Loading
-                    if ext == ".npz":
-                        raw = np.load(target_file, allow_pickle=True)
-                        arr = raw[raw.files[0]] if hasattr(raw, 'files') else raw
-                    else:
-                        arr = np.loadtxt(target_file)
+            if not os.path.exists(s_file):
+                continue
 
-                    x, y = parse_array_to_xy(arr)
-                    if x is not None:
-                        data_found = True
-                        ax = axes[row_idx]
+            try:
+                s_raw = np.loadtxt(s_file)
+                sx, sy = s_raw[:, 0], s_raw[:, 1]
 
-                        # Get color from scheme
-                        color = get_filtered_colors(color_scheme.get(c_key, "viridis"), num_colors=1)[0]
+                if subtract and os.path.exists(b_file):
+                    b_raw = np.loadtxt(b_file)
+                    bx, by = b_raw[:, 0], b_raw[:, 1]
+                    interp_by = np.interp(sx, bx, by)
+                    sy = np.maximum(sy - interp_by, 0)
 
-                        # Plot line and Fill
-                        ax.plot(x, y, label=label, color=color, linewidth=1.2, zorder=2)
-                        ax.fill_between(x, y, color=color, alpha=0.15, zorder=1)
-                except Exception as e:
-                    print(f" [!] Error loading {fname} in {sample_name}: {e}")
+                    plot_subtraction_verification(s_path, s_raw, b_raw,
+                                                  np.column_stack((sx, sy)),
+                                                  label, interp_blank=interp_by)
+
+                    if export_name:
+                        np.savetxt(os.path.join(txt_out_dir, export_name),
+                                   np.column_stack((sx, sy)), header="time\tintensity")
+                    label += " (Sub)"
+
+                data_found = True
+                ax = axes[row_idx]
+                color = "green" if "Green" in label else ("red" if "Red" in label else "darkorchid")
+
+                # Plotting: Raw scale for UIB (row 0), Normalization optional for FLD (row 1)
+                ax.plot(sx, sy, label=label, color=color, linewidth=1.5)
+                ax.fill_between(sx, sy, color=color, alpha=0.1)
+
+                # --- Integration Logic for FLD (Row 1) ---
+                # --- Integration Logic for FLD (Row 1) ---
+                if row_idx == 1:
+                    integration_text = "Integrals:\n"
+                    # Prepare a dictionary for this specific sample
+                    sample_results = {"Sample": sample_name}
+
+                    for start, end in windows:
+                        mask = (sx >= start) & (sx <= end)
+                        try:
+                            area = np.trapezoid(sy[mask], sx[mask])
+                        except Exception:
+                            area = np.trapz(sy[mask], sx[mask])
+
+                        ax.fill_between(sx[mask], sy[mask], color=color, alpha=0.5)
+
+                        # Store data for plot and for CSV
+                        window_label = f"{start}-{end}m"
+                        integration_text += f"{window_label}: {area:.2f}\n"
+                        sample_results[window_label] = area
+
+                    # Add text box to plot
+                    ax.text(0.98, 0.5, integration_text, transform=ax.transAxes,
+                            verticalalignment='center', horizontalalignment='right',
+                            bbox=dict(boxstyle='round', facecolor='white', alpha=0.8), fontsize=9)
+
+                    # Append this sample's results to our master log
+                    results_log.append(sample_results)
+
+            except Exception as e:
+                print(f" [!] Error processing {fname} for {sample_name}: {e}")
+
 
         if not data_found:
             plt.close(fig)
             continue
 
-        # 2. Formatting
+        # Formatting
         axes[0].set_title(f"Sample: {sample_name} | Dimension 1", fontweight='bold')
-        axes[0].set_ylabel("UIB Voltage (mV)")
+        axes[0].set_ylabel("Voltage (mV)")
         axes[0].legend(loc='upper right', fontsize='small')
 
         axes[1].set_title(f"Sample: {sample_name} | Dimension 2", fontweight='bold')
@@ -697,14 +747,30 @@ def plot_individual_samples(files, topdir, figsize=(12, 8), save=True):
 
         plt.tight_layout()
 
-        # 3. Save Logic
         if save:
-            out_dir = os.path.join(topdir, "individual_plots")
-            os.makedirs(out_dir, exist_ok=True)
-            plt.savefig(os.path.join(out_dir, f"{sample_name}_report.png"), dpi=300)
-            plt.savefig(os.path.join(out_dir, f"{sample_name}_report.pdf"), dpi=300)
+            save_path = os.path.join(diag_dir, f"{sample_name}_report.png")
+            save_path2 = save_path.replace(".png", ".pdf")
+            plt.savefig(save_path2, dpi=300)
+            plt.savefig(save_path, dpi=300)
 
-        plt.show()
+            # Master Gallery copy
+            # master_dir = os.path.join(topdir, "Report_Gallery")
+            # os.makedirs(master_dir, exist_ok=True)
+            # plt.savefig(os.path.join(master_dir, f"{sample_name}_report.png"), dpi=300)
+
+        plt.close(fig)
+
+    if results_log:
+        import pandas as pd
+        df = pd.DataFrame(results_log)
+        # Reorder columns so 'Sample' is first
+        cols = ['Sample'] + [c for c in df.columns if c != 'Sample']
+        df = df[cols]
+
+        csv_path = os.path.join(os.path.dirname(files[0]), "Dimension_Two_Summary.csv")
+        df.to_csv(csv_path, index=False)
+        print(f" Exported integration results to: {csv_path}")
+
 
 def plot_overlay(files, topdir, read_files=None, figsize=(16, 7), save=True):
     if not read_files:
@@ -771,6 +837,7 @@ def plot_overlay(files, topdir, read_files=None, figsize=(16, 7), save=True):
         overlay_colors = get_filtered_colors(color_scheme.get("overlay", "viridis"), num_colors=len(current_traces))
         for idx, (x, y, label) in enumerate(current_traces):
             ax.plot(x, y, linewidth=0.8, alpha=0.3, label=f"{label} (Raw)", color=overlay_colors[idx], zorder=1)
+            ax.fill_between(x, y, color=overlay_colors[idx], alpha=0.5, zorder=1)
 
         #Handle UIB Overlays (Accessing the "hidden" loaded dependencies)
         if "UIB1B_rawdata" in rf:
@@ -811,29 +878,30 @@ def move_figures(files, topdir):
 
 def main():
     rc_params_setup()
-    topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\20260123"
+    topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\ph stuff\20260204 New Method New Mehtod 2026-02-06 15-31-19"
     files = glob.glob(os.path.join(topdir, "*.D"))
     detector_files = ["UIB1B_rawdata.npz", "FLD1A_rawdata.npz"]
 
-    #extract_all_files(files)
+    extract_all_files(files)
     convert_acq_to_utf8(files)
     parse_instrument_method(files)
     plot_instrument_timetables(files)
-    plot_individual_samples(files, topdir, figsize=(12, 8), save=True)
+
     analysis_results = analyze_UIB_samples(files, topdir, num_compressed=50)
 
     # Visualization & cleanup using results
     if analysis_results:
-        plot_UIB_dashboard(analysis_results, topdir, figsize=(20, 12))
+        plot_UIB_dashboard(analysis_results, topdir, sort_by='reps', kin_xaxis='reps', figsize=(20, 18))
 
         #plot_UIB_ridgelines(analysis_results, topdir, autoscale=True, base_offset=10)
     else:
         print("[MAIN] No analysis results generated; skipping dashboard/ridgeline plots.")
 
     plot_overlay(files, topdir, read_files=detector_files, figsize=(16, 7), save=True)
+    plot_individual_samples(files, figsize=(12, 10), save=True)
     move_figures(files, topdir)
 
-    print("Pipeline Complete!")
+    print("[Main] Pipeline Complete!")
 
 if __name__ == "__main__":
     main()

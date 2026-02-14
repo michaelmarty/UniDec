@@ -9,12 +9,15 @@ num_datasets = int(input("Enter the number of datasets: "))
 # Initialize lists to store data
 file_paths = []
 data_list = []
+legend_labels = []
 
 # Prompt the user for each file path
 for i in range(num_datasets):
     file_path = input(f"Enter the file path for dataset {i + 1} (with quotes): ").strip('"').strip("'")
     file_paths.append(file_path)
     data_list.append(np.loadtxt(file_path))
+    legend_label = input(f"Enter the legend label for dataset {i + 1}: ")
+    legend_labels.append(legend_label)
 
 # Set font properties and styling
 plt.rcParams['font.family'] = 'Arial'
@@ -43,7 +46,7 @@ for i, data in enumerate(data_list):
     intensity = intensity / np.max(intensity)
 
     # Plot the data with a unique color for each dataset
-    plt.plot(mz, intensity, label=f'Dataset {i + 1}')
+    plt.plot(mz, intensity, label=legend_labels[i])
 
 # Set labels
 plt.xlabel(r'$m/z$')

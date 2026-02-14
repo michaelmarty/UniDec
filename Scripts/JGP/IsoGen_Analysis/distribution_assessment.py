@@ -57,6 +57,9 @@ def calculate_cosinesimilarity(predicted_dist, expected_dist):
     :return: The cosine similarity.
     """
 
+    predicted_dist = np.asarray(predicted_dist).squeeze()
+    expected_dist = np.asarray(expected_dist).squeeze()
+
     # Ensure both distributions are the same length
     # Ensure both distributions are the same length
     if len(predicted_dist) != len(expected_dist):

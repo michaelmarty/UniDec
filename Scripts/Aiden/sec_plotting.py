@@ -183,7 +183,7 @@ def main():
     title in EVERY plot function to match accurately the data you're plotting
     :return: Plots out the wazoo
     """
-
+    
     print("All Done! Thanks")
     gc.collect()
 

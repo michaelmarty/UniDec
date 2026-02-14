@@ -9,6 +9,7 @@ import networkx as nx
 import matchms as mms
 import matplotlib as mpl
 import mplcursors
+from unidec.tools import center_of_mass
 
 # import warnings
 # warnings.filterwarnings("error")
@@ -104,6 +105,11 @@ class_nfattyacids = {
     "ST": 1,
     "TAG": 3
 }
+
+hg_simplifier = {"Cer_AP": "Cer", "Cer_HDS": "Cer", 'Cer_NDS': "Cer", 'Cer_NP': "Cer", 'Cer_NS': "Cer",
+                 "Cer_EODS" : "Cer", "Cer_EOS" : "Cer", "Cer_HS" : "Cer", "Cer_AS": "Cer",
+                 "HexCer_AP": "HexCer", "HexCer_NDS": "HexCer", "HexCer_HS": "HexCer", "HexCer_NS": "HexCer",
+                 "HexCer_EOS": "HexCer", "HexCer_HDS": "HexCer",}
 
 def msdialnames_to_LC(df):
     fixednames = []
@@ -491,7 +497,7 @@ def remove_specific_problems(df):
 
 
 def get_charge(adduct):
-    if adduct in ["[M+H]+", "[M+NH4]+", "[M+Na]+", "[M+K]+"]:
+    if adduct in ["[M+H]+", "[M+NH4]+", "[M+Na]+", "[M+K]+", "[M]+", "[M+H-H2O]+"]:
         return 1
     elif adduct in ["[M+2H]2+"]:
         return 2
@@ -506,7 +512,7 @@ def get_charge(adduct):
 def add_product_ions(row, cutoff=0.1, spectrumkey="Ref Spec"):
     msmsspec = row[spectrumkey]
     # Remove final space if present
-    if msmsspec.endswith(" "):
+    if isinstance(msmsspec, str) and msmsspec.endswith(" "):
         msmsspec = msmsspec[:-1]
     # Parse spectrum
     msmsspec = [a.split(":") for a in msmsspec.split(" ")]
@@ -536,14 +542,14 @@ def add_product_ions(row, cutoff=0.1, spectrumkey="Ref Spec"):
 
     return newrows
 
-def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
+def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec", rtwindow=4, remove_precursors=True):
     # Drop all where "Ontology" is Others or Unknown
     # df = df[~df["Ontology"].isin(["Others", "Unknown"])]
     newdf = df.copy()
     # Export Df with "Molecule List Name", "Molecule Name", "Precursor Adduct"
-    newdf = newdf[["Ontology", "Metabolite name", "Adduct type", "Average Mz", "Formula", "Average Rt(min)", spectrumkey]]
+    newdf = newdf[["Ontology", "Metabolite name", "Adduct type", "Reference m/z", "Formula", "Average Rt(min)", spectrumkey]]
     newdf = newdf.rename(columns={"Ontology": "Molecule List Name", "Metabolite name": "Molecule Name",
-                            "Adduct type": "Precursor Adduct", "Average Mz": "Precursor Mz",
+                            "Adduct type": "Precursor Adduct", "Reference m/z": "Precursor Mz",
                                   "Average Rt(min)":"Explicit Retention Time", "Formula":"Molecule Formula"})
 
     charges = []
@@ -554,7 +560,7 @@ def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
     newdf["Precursor Charge"] = charges
 
     # Set Explicit Retention Time Window to 4
-    newdf["Explicit Retention Time Window"] = 4
+    newdf["Explicit Retention Time Window"] = rtwindow
 
     # Sort by Molecule List Name and Molecule Name
     newdf = newdf.sort_values(by=["Molecule List Name", "Molecule Name"])
@@ -571,8 +577,40 @@ def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
     # Drop MS/MS spectrum column
     proddf = proddf.drop(columns=[spectrumkey])
 
+    # If remove_precursors is True, drop rows where Product Mz is greater than 5 below Precursor Mz
+    if remove_precursors:
+        proddf = proddf[proddf["Product Mz"] < proddf["Precursor Mz"] - 5]
+
     return proddf
-    pass
+
+def cleanup_and_merge_msdial(posfile, negfile, posxml, negxml, rttol=0.2):
+    # Load the data
+    negdf = pd.read_csv(negfile)
+    posdf = pd.read_csv(posfile)
+
+    # Sort by Ontology and Name
+    posdf = posdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
+    negdf = negdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
+
+    # Load the reference spectra from XML
+    refnegdf = parse_xml(negxml)
+    refposdf = parse_xml(posxml)
+
+    # Add reference spectra to the dataframes
+    negdf = add_ref_from_xml(negdf, refnegdf)
+    posdf = add_ref_from_xml(posdf, refposdf)
+
+    # Merge positive and negative dataframes
+    posdf, negdf = merge_pos_neg(posdf, negdf, rttol)
+
+    # Create polarity columns and fill with "Positive" and "Negative"
+    posdf["Polarity"] = "Positive"
+    negdf["Polarity"] = "Negative"
+
+    # Concatenate the dataframes
+    mergeddf = pd.concat([posdf, negdf], ignore_index=True)
+
+    return mergeddf, posdf, negdf
 
 
 def find_match_name(name, rt, refdf, rttol=0.1, verbose=False):
@@ -747,7 +785,7 @@ def encode_headgroups(df, classname="Ontology", rtcol_name="Average Rt(min)"):
     encoding = {}
     for i, hg in enumerate(sorted_hgs):
         encoding[hg] = i + 1
-    print("Headgroup encoding:", encoding)
+    # print("Headgroup encoding:", encoding)
     # Add encoding column
     encodings = []
     for i, row in df.iterrows():
@@ -783,6 +821,97 @@ def msdial_to_lipidlist(df):
     # Convert to LC format
     df = lipidlist_to_LC(df)
 
+    return df
+
+def compress_similar_species(df, rttol=0.05):
+    # Find all species that share the same name and adduct but have different retention times, compress them to the same retention time
+    grouped = df.groupby(["Molecule Name"])
+    rename_map = {}
+    for (name, ), group in grouped:
+        if len(group) > 1:
+            # Check if all retention times are different and continue if they are all the same
+            rts = group["Explicit Retention Time"].values
+            if len(set(rts)) == 1:
+                continue
+
+            # If not, rename all with the same retention time with suffixes
+            rt_groups = group.groupby("Explicit Retention Time")
+            for rt, rt_group in rt_groups:
+                if len(rt_group) >= 1:
+                    # Select all from DF with the same name and rt within rttol
+                    othermatchs = df[(df["Molecule Name"] == name) &
+                                      (df["Explicit Retention Time"].between(rt - rttol, rt + rttol)) &
+                                      (~df.index.isin(rt_group.index))]
+
+                    otherrt = np.mean(othermatchs["Explicit Retention Time"].values) if len(othermatchs) > 0 else rt
+                    avgrt = (rt + otherrt) / 2.0
+                    # Round to 3 decimal places
+                    avgrt = round(avgrt, 3)
+                    for idx in rt_group.index:
+                        if idx in rename_map:
+                            continue
+                        rename_map[idx] = avgrt
+
+                    for om_idx in othermatchs.index:
+                        if om_idx in rename_map:
+                            continue
+                        rename_map[om_idx] = avgrt
+
+    df = df.copy()
+    for idx, new_rt in rename_map.items():
+        df.at[idx, "Explicit Retention Time"] = new_rt
+
+    # Drop duplicate rows
+    df = df.drop_duplicates(subset=["Molecule Name", "Precursor Adduct", "Explicit Retention Time", "Product Mz"])
+
+    # Sort by Molecule Name, Precursor Adduct, Explicit Retention Time, Product Mz
+    df = df.sort_values(by=["Molecule Name", "Precursor Adduct", "Explicit Retention Time", "Product Mz"])
+
+    return df
+
+def rename_overlapping_species(df, rttol=0.05):
+    # Compress similar species first
+    df = compress_similar_species(df, rttol=rttol)
+
+    # Find all species that share the same name and adduct but have different retention times, rename them as _A _B, etc
+    grouped = df.groupby(["Molecule Name"])
+    rename_map = {}
+    for (name,), group in grouped:
+        if len(group) > 1:
+            # Check if all retention times are different and continue if they are all the same
+            rts = group["Explicit Retention Time"].values
+            if len(set(rts)) == 1:
+                continue
+
+            # If not, rename all with the same retention time with suffixes
+            rt_groups = group.groupby("Explicit Retention Time")
+            suffixes = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            i=0
+            for rt, rt_group in rt_groups:
+                if len(rt_group) >= 1:
+                    for j, idx in enumerate(rt_group.index):
+                        if idx in rename_map:
+                            continue
+                        new_name = f"{name}_{suffixes[i]}"
+                        rename_map[idx] = new_name
+
+                    # Select all from DF with the same name and rt within rttol
+                    othermatchs = df[(df["Molecule Name"] == name) &
+                                      (df["Explicit Retention Time"].between(rt - rttol, rt + rttol)) &
+                                      (~df.index.isin(rt_group.index))]
+                    for om_idx in othermatchs.index:
+                        if om_idx in rename_map:
+                            continue
+                        new_name = f"{name}_{suffixes[i]}"
+                        rename_map[om_idx] = new_name
+
+                    i+=1
+
+    df = df.copy()
+    for idx, new_name in rename_map.items():
+        df.at[idx, "Molecule Name"] = new_name
+
+    df = df.sort_values(by=["Molecule Name", "Precursor Adduct", "Explicit Retention Time", "Product Mz"])
     return df
 
 
@@ -1477,42 +1606,42 @@ def network_analysis(df, mz_tol=0.01, title="", header="", add_all_cols=False):
     # Measure a variety of features of the graph
     strength = dict(G.degree(weight='weight'))  # s_i
     degree = dict(G.degree())  # unweighted degree
-    clust_w = nx.clustering(G, weight='weight')  # weighted clustering coeff
+    # clust_w = nx.clustering(G, weight='weight')  # weighted clustering coeff
     # betw = nx.betweenness_centrality(G, weight='distance')  # uses shortest-path distances
-    close = nx.closeness_centrality(G, distance='distance')  # distance-based closeness
-    pr = nx.pagerank(G, weight='weight')  # weighted PageRank
+    # close = nx.closeness_centrality(G, distance='distance')  # distance-based closeness
+    # pr = nx.pagerank(G, weight='weight')  # weighted PageRank
     tri = nx.triangles(G)  # triangle count per node
     # ev = nx.eigenvector_centrality(G, weight='weight', tol=1e-04)  # eigenvector centrality
     # ----- SAFETY GUARD FOR EMPTY / EDGELESS GRAPHS -----
-    if G.number_of_nodes() < 2 or G.number_of_edges() == 0:
-        ev = dict.fromkeys(G.nodes(), 0.0)
-    else:
-        try:
-            ev = nx.eigenvector_centrality(G, weight='weight', max_iter=1000)
-        except nx.PowerIterationFailedConvergence:
-            ev = dict.fromkeys(G.nodes(), 0.0)
+    # if G.number_of_nodes() < 2 or G.number_of_edges() == 0:
+    #     ev = dict.fromkeys(G.nodes(), 0.0)
+    # else:
+    #     try:
+    #         ev = nx.eigenvector_centrality(G, weight='weight', max_iter=1000)
+    #     except nx.PowerIterationFailedConvergence:
+    #         ev = dict.fromkeys(G.nodes(), 0.0)
 
     # Network features dict
     n_features = {
         'strength': strength,
         'degree': degree,
-        'clust_w': clust_w,
+        # 'clust_w': clust_w,
         # 'betw': betw,
-        'close': close,
-        'pr': pr,
+        # 'close': close,
+        # 'pr': pr,
         'tri': tri,
-        'ev': ev,
+        # 'ev': ev,
     }
 
     z_features = {
         'z_strength': robust_z(strength),
         'z_degree': robust_z(degree),
-        'z_clust_w': robust_z(clust_w),
+        # 'z_clust_w': robust_z(clust_w),
         # 'z_betw': robust_z(betw),
-        'z_close': robust_z(close),
-        'z_pr': robust_z(pr),
+        # 'z_close': robust_z(close),
+        # 'z_pr': robust_z(pr),
         'z_tri': robust_z(tri),
-        'z_ev': robust_z(ev),
+        # 'z_ev': robust_z(ev),
     }
 
     # Simple aggregate anomaly score A_i = sum |z_ik|
@@ -1709,8 +1838,233 @@ def make_plots(posdf, negdf):
     plt.tight_layout()
     plt.show()
 
+    def fix_inhomogeneous_rt(rtdata):
+        lengths = [len(rt[0]) for rt in rtdata]
+        # If all lengths are the same, return as is
+        if len(set(lengths)) == 1:
+            return np.array(rtdata)
+        # Otherwise, interpolate to min to max range
+        min_time = min([min(rt[0]) for rt in rtdata])
+        max_time = max([max(rt[0]) for rt in rtdata])
+        spacing = rtdata[0][0][1] - rtdata[0][0][0]
+        new_times = np.arange(min_time, max_time, spacing)
+        new_rtdata = []
+        for times, intensities in rtdata:
+            new_intensities = np.interp(new_times, times, intensities, left=0, right=0)
+            new_rtdata.append((new_times, new_intensities))
+        return np.array(new_rtdata)
+
+    def get_rt(rtrows, tcol="Times", icol="Intensities", mode="apex"):
+        rtdata = []
+        for index, row in rtrows.iterrows():
+            times = [float(x) for x in row[tcol].split(",")]
+            intensities = [float(x) for x in row[icol].split(",")]
+            rtdata.append((times, intensities))
+        rtdata = fix_inhomogeneous_rt(rtdata)
+        times = rtdata[0, 0]
+        summed_eic = np.sum(rtdata[:, 1], axis=0)
+        rtsummed = np.transpose([times, summed_eic])
+
+        com_rt = center_of_mass(rtsummed, relative_cutoff=0.1)
+        if mode == "apex":
+            max_index = np.argmax(rtsummed[:, 1])
+            max_pos = rtsummed[max_index, 0]
+            com_rt = (max_pos, com_rt[1])
+
+        return float(com_rt[0]), float(com_rt[1])
+
+    def update_rt(df, cdf, min_window=3.0, max_window=5.0, mode="apex", nstds=8, forcedrts=None):
+        # Find all unique molecule names in transition list
+        unique_names = df["Molecule Name"].unique()
+        outdf = df.copy()
+        # Set Explicity Retention Time and Window as floats to avoid dtype issues
+        outdf["Explicit Retention Time"] = outdf["Explicit Retention Time"].astype(float)
+        outdf["Explicit Retention Time Window"] = outdf["Explicit Retention Time Window"].astype(float)
+
+        for name in unique_names:
+            if forcedrts is not None and name in forcedrts:
+                outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time"] = forcedrts[name]
+                outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time Window"] = min_window
+                print(f"Manually setting {name} to RT: {forcedrts[name]:.2f} with window: {min_window:.2f}")
+                continue
+
+            # name = row["Molecule Name"]
+            rt_row = cdf[cdf["PeptideModifiedSequence"] == name]
+            # adduct = row["Precursor Adduct"][:-1]  # remove + or - at end
+            # rt_row = rt_row[rt_row["PrecursorCharge"] == adduct]
+            if not rt_row.empty:
+                # df.at[index, "Explicit Retention Time"] = rt_row["Retention Time (min)"].values[0]
+                # df.at[index, "Explicit Retention Time Window"] = rt_row["RT Window (min)"].values[0]
+                rt, window = get_rt(rt_row, mode=mode)
+                window = nstds * window
+                window = max(min_window, min(window, max_window))
+                outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time"] = rt
+                outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time Window"] = window
+                print(f"Updated RT for: {name} to {rt:.2f} +/- {window:.2f}")
+            else:
+                print(f"No RT found for: {name}")
+                outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time Window"] = max_window
+        return outdf
 
 
-    #
+def fix_inhomogeneous_rt(rtdata):
+    lengths = [len(rt[0]) for rt in rtdata]
+    # If all lengths are the same, return as is
+    if len(set(lengths)) == 1:
+        return np.array(rtdata)
+    # Otherwise, interpolate to min to max range
+    min_time = min([min(rt[0]) for rt in rtdata])
+    max_time = max([max(rt[0]) for rt in rtdata])
+    spacing = rtdata[0][0][1] - rtdata[0][0][0]
+    new_times = np.arange(min_time, max_time, spacing)
+    new_rtdata = []
+    for times, intensities in rtdata:
+        new_intensities = np.interp(new_times, times, intensities, left=0, right=0)
+        new_rtdata.append((new_times, new_intensities))
+    return np.array(new_rtdata)
 
+def get_rt(rtrows, tcol="Times", icol="Intensities", mode="apex"):
+    rtdata = []
+    for index, row in rtrows.iterrows():
+        times = [float(x) for x in row[tcol].split(",")]
+        intensities = [float(x) for x in row[icol].split(",")]
+        rtdata.append((times, intensities))
+    rtdata = fix_inhomogeneous_rt(rtdata)
+    times = rtdata[0,0]
+    summed_eic = np.sum(rtdata[:,1], axis=0)
+    rtsummed = np.transpose([times, summed_eic])
 
+    com_rt = center_of_mass(rtsummed, relative_cutoff=0.1)
+    if mode == "apex":
+        max_index = np.argmax(rtsummed[:,1])
+        max_pos = rtsummed[max_index,0]
+        com_rt = (max_pos, com_rt[1])
+
+    return float(com_rt[0]), float(com_rt[1])
+
+def update_rt(df, cdf, min_window=3.0, max_window=5.0, mode="apex", nstds=8, forcedrts=None):
+    # Find all unique molecule names in transition list
+    unique_names = df["Molecule Name"].unique()
+    outdf = df.copy()
+    # Set Explicity Retention Time and Window as floats to avoid dtype issues
+    outdf["Explicit Retention Time"] = outdf["Explicit Retention Time"].astype(float)
+    outdf["Explicit Retention Time Window"] = outdf["Explicit Retention Time Window"].astype(float)
+
+    for name in unique_names:
+        if forcedrts is not None and name in forcedrts:
+            outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time"] = forcedrts[name]
+            outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time Window"] = min_window
+            print(f"Manually setting {name} to RT: {forcedrts[name]:.2f} with window: {min_window:.2f}")
+            continue
+
+        # name = row["Molecule Name"]
+        rt_row = cdf[cdf["PeptideModifiedSequence"] == name]
+        # adduct = row["Precursor Adduct"][:-1]  # remove + or - at end
+        # rt_row = rt_row[rt_row["PrecursorCharge"] == adduct]
+        if not rt_row.empty:
+            # df.at[index, "Explicit Retention Time"] = rt_row["Retention Time (min)"].values[0]
+            # df.at[index, "Explicit Retention Time Window"] = rt_row["RT Window (min)"].values[0]
+            rt, window = get_rt(rt_row, mode=mode)
+            window = nstds * window
+            window = max(min_window, min(window, max_window))
+            outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time"] = rt
+            outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time Window"] = window
+            print(f"Updated RT for: {name} to {rt:.2f} +/- {window:.2f}")
+        else:
+            print(f"No RT found for: {name}")
+            outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time Window"] = max_window
+    return outdf
+
+def tl_to_il(df):
+    il_df = pd.DataFrame()
+    il_df["Compound"] = df["Molecule Name"]
+    il_df["m/z"] = df["Precursor Mz"]
+    il_df["z"] = df["Precursor Charge"]
+
+    rts = df["Explicit Retention Time"].to_numpy()
+    rtwindows = df["Explicit Retention Time Window"].to_numpy()
+    il_df["t start (min)"] = rts - (rtwindows / 2)
+    b1 = il_df["t start (min)"] < 0
+    il_df.loc[b1, "t start (min)"] = 0.1
+    il_df["t stop (min)"] = rts + (rtwindows / 2)
+    # il_df["Retention Time (min)"] = rts
+    # il_df["RT Window (min)"] = rtwindows
+
+    # il_df["HCD Collision Energy/Energies (%)"] = 30  # Default value, can be adjusted
+
+    # Set polarity to be positive if charge is positive, negative if charge is negative
+    il_df["Polarity"] = il_df["z"].apply(lambda x: "Positive" if x > 0 else "Negative")
+
+    # Take abs of charge
+    il_df["z"] = il_df["z"].abs()
+
+    # Drop duplicates
+    il_df = il_df.drop_duplicates().reset_index(drop=True)
+    return il_df
+
+def derplicate_il(df, mztol=0.8):
+    good_rows = []
+    df = df.sort_values(by=["m/z"]).reset_index(drop=True)
+    # Group similar m/z and charge
+    groups = []
+    used = set()
+    for i, row in df.iterrows():
+        if i in used:
+            continue
+        group_indices = [i]
+        for j in range(i + 1, len(df)):
+            if j in used:
+                continue
+            other = df.loc[j]
+            mz_close = abs(row["m/z"] - other["m/z"]) <= mztol
+            same_charge = row["Polarity"] == other["Polarity"]
+            if mz_close and same_charge:
+                group_indices.append(j)
+        used.update(group_indices)
+        group = df.loc[group_indices]
+        groups.append(group)
+
+    for group in groups:
+        if len(group) == 1:
+            good_rows.append(group.iloc[0].to_dict())
+        else:
+            # print(group.to_string())
+            tstarts = group["t start (min)"].to_numpy()
+            tstops = group["t stop (min)"].to_numpy()
+            # Check if there are any overlaps
+            overlap = False
+            for i in range(len(group)):
+                for j in range(i + 1, len(group)):
+                    if not (tstops[i] < tstarts[j] or tstops[j] < tstarts[i]):
+                        overlap = True
+                        break
+                if overlap:
+                    break
+            if overlap:
+                startt = min(tstarts)
+                stopt = max(tstops)
+                combined_row = {
+                    "Compound": " & ".join(sorted(group["Compound"].astype(str).unique())),
+                    "m/z": group["m/z"].mean(),
+                    "z": group["z"].iloc[0],
+                    "t start (min)": startt,
+                    "t stop (min)": stopt,
+                    # "HCD Collision Energy/Energies (%)": group["HCD Collision Energy/Energies (%)"].iloc[0]
+                    "Polarity": group["Polarity"].iloc[0]
+                }
+                good_rows.append(combined_row)
+                # print("Overlap found, new combined row:")
+                # print(pd.Series(combined_row).to_string())
+            else:
+                for _, g in group.iterrows():
+                    good_rows.append(g.to_dict())
+                pass
+
+    outdata = pd.DataFrame(good_rows).reset_index(drop=True)
+    outdata["Retention Time (min)"] = (outdata["t start (min)"] + outdata["t stop (min)"]) / 2
+    outdata["RT Window (min)"] = outdata["t stop (min)"] - outdata["t start (min)"]
+
+    # Drop tstart and tstop columns
+    outdata = outdata.drop(columns=["t start (min)", "t stop (min)"])
+
+    return outdata

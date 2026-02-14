@@ -47,9 +47,7 @@ struct IsoGenWeights {
 // Function Declarations
 ISOGENDEP_EXPORTS void setup_ft(const int number, fftw_complex* outft, const int length, const int ftlen);
 ISOGENDEP_EXPORTS void convolve_all(const int isolist[11], fftw_complex* allft, const fftw_complex* cft, const fftw_complex* hft,
-                  const fftw_complex* nft, const fftw_complex* oft, const fftw_complex* sft, const fftw_complex* feft,
-                  const fftw_complex* caft, const fftw_complex* kft, const fftw_complex* nift, const fftw_complex* znft,
-                  const fftw_complex* mgft, const int length);
+                  const fftw_complex* nft, const fftw_complex* oft, const fftw_complex* sft, const int length);
 ISOGENDEP_EXPORTS void complex_power(const fftw_complex in, const int power, double* outreal, double* outimag);
 ISOGENDEP_EXPORTS void complex_multiplication(const double ar, const double ai, const double br,
                                               const double bi, double* oreal, double* oimag);
