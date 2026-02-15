@@ -168,7 +168,7 @@ def calc_percents(data, range1=[2.5, 3.5], range2=[10, 12]):
         percent1 = (s1 / total) * 100
         percent2 = (s2 / total) * 100
 
-        return percent1, percent2
+        return s1, s2, percent1, percent2
     except Exception as e:
         # Returns 0,0 if integration fails (e.g. empty data)
         # to prevent the dashboard from crashing.
@@ -293,15 +293,15 @@ def analyze_UIB_samples(files, topdir, num_compressed=50):
         tr_sub, br_interp = subtract_background(tr_raw, br)
 
         #Ratio Calculation
-        g_p1, g_p2 = calc_percents(tg_sub)
-        r_p1, r_p2 = calc_percents(tr_sub)
+        g_r1, g_r2, g_p1, g_p2 = calc_percents(tg_sub)
+        r_r1, r_r2, r_p1, r_p2 = calc_percents(tr_sub)
 
         #Store Data for Summary CSV
         summary_data.append({
             "BaseName": base_name,
             "Time_Point": time_hours,
-            "Rep_Number": rep_number,
-            "Green_P1": g_p1, "Green_P2": g_p2,
+            "Rep_Number": rep_number, "Green_1_raw":g_r1, "Green_2_raw":g_r2,
+            "Green_P1": g_p1, "Green_P2": g_p2, "Red_1_raw":r_r1, "Red_2_raw":r_r2,
             "Red_P1": r_p1, "Red_P2": r_p2,
             "Used_Blank": os.path.basename(blank_path)
         })
@@ -942,7 +942,7 @@ def move_figures(files, topdir):
 
 def main():
     rc_params_setup()
-    topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\Repeat Injection Tests\20260213 Dim1 Stuff 2026-02-13 21-29-04\Rep1"
+    topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\Repeat Injection Tests\20260213 Dim1 Stuff 2026-02-13 21-29-04\Rep3"
     files = glob.glob(os.path.join(topdir, "*.D"))
     detector_files = ["UIB1B_rawdata.npz", "FLD1A_rawdata.npz"]
 
