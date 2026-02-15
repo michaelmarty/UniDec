@@ -29,8 +29,8 @@ color_scheme = {
     "alpha": "winter_r",
     "beta": "cool",
     "gamma": "Wistia",
-    "gdata": "winter_r",
-    "rdata": "RdPu",
+    "gdata": "GnBu_r",
+    "rdata": "OrRd_r",
     "overlay": "cool",
 }
 
@@ -150,7 +150,7 @@ def parse_lock_data(data, num_compressed, gap=20):
 
     return rdata, gdata
 
-def calc_percents(data, range1=[2.5, 3.5], range2=[8.2, 9.2]):
+def calc_percents(data, range1=[2.5, 3.5], range2=[10, 12]):
     """
     Calculates the percentage of signal area in two defined windows.
     Returns: (percent1, percent2)
@@ -250,8 +250,8 @@ def analyze_UIB_samples(files, topdir, num_compressed=50):
             continue
 
         #Filter and Demultiplex
-        t_filtered = t_raw_data[t_raw_data[:, 0] > 0.003]
-        b_filtered = b_raw_data[b_raw_data[:, 0] > 0.003]
+        t_filtered = t_raw_data[t_raw_data[:, 0] > 0.005]
+        b_filtered = b_raw_data[b_raw_data[:, 0] > 0.005]
 
         tr_raw, tg_raw = parse_lock_data(t_filtered, num_compressed, gap=20)
         br, bg = parse_lock_data(b_filtered, num_compressed, gap=20)
@@ -495,7 +495,6 @@ def parse_instrument_method(files):
                 safe = re.sub(r"[^\w\s\(\)\-\.]", "", mod_name).strip()
                 with open(os.path.join(out_dir, f"{safe}.txt"), "w", encoding="utf-8") as f: f.write(tt)
 
-
 def plot_instrument_timetables(files):
     COLOR_SCHEMES = color_scheme
     print("[PLOTTING] Generating Instrument Method Timetable Visualizations...")
@@ -627,7 +626,6 @@ def plot_instrument_timetables(files):
         plt.tight_layout(rect=[0, 0, 1, 0.96])
         plt.savefig(os.path.join(d, "instrument_method.png"), dpi=200)
         plt.close()
-
 
 def plot_individual_samples(files, figsize=(12, 10), save=True):
     """
@@ -771,8 +769,7 @@ def plot_individual_samples(files, figsize=(12, 10), save=True):
         df.to_csv(csv_path, index=False)
         print(f" Exported integration results to: {csv_path}")
 
-
-def plot_overlay(files, topdir, read_files=None, figsize=(16, 7), save=True):
+def plot_multidetector_overlay(files, topdir, read_files=None, figsize=(16, 7), save=True):
     if not read_files:
         print("[plot_overlay] No files to read; aborting.")
         return
@@ -866,6 +863,73 @@ def plot_overlay(files, topdir, read_files=None, figsize=(16, 7), save=True):
         fig.savefig(os.path.join(topdir, outname), dpi=300)
     plt.show()
 
+
+def plot_UIB_ridgelines_combined(analysis_results, topdir, autoscale=True, v_step=1.0, scale_factor=0.8):
+    print("[PLOTTING] Generating Combined UIB Ridgeline Plot with defined spacing...")
+
+    # Sort results by time/rep
+    sort_key = lambda x: (analysis_results[x]['hours'], analysis_results[x].get('rep', 0))
+    sorted_paths = sorted(analysis_results.keys(), key=sort_key)
+
+    if not sorted_paths:
+        return
+
+    # Create figure
+    fig, ax = plt.subplots(figsize=(12, 10))
+
+    # Colors
+    g_colors = get_filtered_colors(color_scheme['gdata'], len(sorted_paths))
+    r_colors = get_filtered_colors(color_scheme['rdata'], len(sorted_paths))
+    labels = [f"t={analysis_results[p]['hours']}h (rep {analysis_results[p].get('rep', 0)})" for p in sorted_paths]
+    labels = [f"rep {analysis_results[p].get('rep', 0)}" for p in sorted_paths]
+
+    # Plotting loop
+    for i in range(len(sorted_paths)):
+        # The 'baseline' is where the flat part of the graph sits
+        baseline = i * v_step
+
+        # Lower zorder for higher indices so top plots stay "behind" bottom ones
+        # (or vice-versa depending on your visual preference)
+        current_z = len(sorted_paths) - i
+
+        # --- Green Channel ---
+        data_g = analysis_results[sorted_paths[i]]['tg_sub']
+        if data_g.size > 0:
+            # Normalize to 0-1, then multiply by scale_factor
+            # This ensures peak height < v_step
+            y_max = np.max(data_g[:, 1])
+            y_norm_g = (data_g[:, 1] / y_max * scale_factor) if y_max > 0 else 0
+            y_shifted_g = y_norm_g + baseline
+
+            ax.plot(data_g[:, 0], y_shifted_g, color=g_colors[i], lw=1.5, zorder=current_z)
+            ax.fill_between(data_g[:, 0], y_shifted_g, baseline, color=g_colors[i], alpha=0.4, zorder=current_z)
+
+        # --- Red Channel ---
+        data_r = analysis_results[sorted_paths[i]]['tr_sub']
+        if data_r.size > 0:
+            y_max_r = np.max(data_r[:, 1])
+            y_norm_r = (data_r[:, 1] / y_max_r * scale_factor) if y_max_r > 0 else 0
+            y_shifted_r = y_norm_r + baseline
+
+            ax.plot(data_r[:, 0], y_shifted_r, color=r_colors[i], lw=1.5, zorder=current_z)
+            ax.fill_between(data_r[:, 0], y_shifted_r, baseline, color=r_colors[i], alpha=0.4, zorder=current_z)
+
+
+    # Formatting
+    ax.set_title("Dimension 1 (Normalized in Channel)", fontweight='bold')
+    ax.set_xlabel("Time (min)")
+    ax.set_yticks([i * v_step for i in range(len(labels))])
+    ax.set_yticklabels(labels, fontsize='small')
+
+    # Remove spines for that clean ridgeline look
+    for spine in ['top', 'right', 'left']:
+        ax.spines[spine].set_visible(False)
+    #ax.grid(True, axis='x', linestyle=':', alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(topdir, "UIB_Combined_Ridgelines_Spaced.png"), dpi=300)
+    plt.show()
+
 def move_figures(files, topdir):
     print("[CLEANUP] Moving figures to subdirectories...")
     for d in files + [topdir]:
@@ -878,35 +942,29 @@ def move_figures(files, topdir):
 
 def main():
     rc_params_setup()
-    topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\ph stuff\20260204 New Method New Mehtod 2026-02-06 15-31-19"
+    topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\Repeat Injection Tests\20260213 Dim1 Stuff 2026-02-13 21-29-04\Rep1"
     files = glob.glob(os.path.join(topdir, "*.D"))
     detector_files = ["UIB1B_rawdata.npz", "FLD1A_rawdata.npz"]
 
-    extract_all_files(files)
-    convert_acq_to_utf8(files)
-    parse_instrument_method(files)
-    plot_instrument_timetables(files)
+    # extract_all_files(files)
+    # convert_acq_to_utf8(files)
+    # parse_instrument_method(files)
+    # plot_instrument_timetables(files)
 
     analysis_results = analyze_UIB_samples(files, topdir, num_compressed=50)
 
     # Visualization & cleanup using results
     if analysis_results:
-        plot_UIB_dashboard(analysis_results, topdir, sort_by='reps', kin_xaxis='reps', figsize=(20, 18))
-
-        #plot_UIB_ridgelines(analysis_results, topdir, autoscale=True, base_offset=10)
+        # plot_UIB_dashboard(analysis_results, topdir, sort_by='reps', kin_xaxis='reps', figsize=(20, 18))
+        plot_UIB_ridgelines_combined(analysis_results, topdir, autoscale=True, v_step=1.0, scale_factor=0.8)
     else:
         print("[MAIN] No analysis results generated; skipping dashboard/ridgeline plots.")
 
-    plot_overlay(files, topdir, read_files=detector_files, figsize=(16, 7), save=True)
-    plot_individual_samples(files, figsize=(12, 10), save=True)
+    # plot_multidetector_overlay(files, topdir, read_files=detector_files, figsize=(16, 7), save=True)
+    # plot_individual_samples(files, figsize=(12, 10), save=True)
     move_figures(files, topdir)
 
     print("[Main] Pipeline Complete!")
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
