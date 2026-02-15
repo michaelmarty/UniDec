@@ -7,7 +7,7 @@ topdir = r"Z:\Group Share\Shivam\DDA"
 os.chdir(topdir)
 
 filepath = r"Combined_DDA_Full.xlsx"
-df = pd.read_excel(filepath, sheet_name="OTOT_AqX Total")
+df = pd.read_excel(filepath, sheet_name="AX Total")
 print(len(df))
 
 df = basic_class_network_analysis(df)

@@ -226,6 +226,10 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.8.1.2
+
+Changed UniChrom default to timemid rather than timestart.
+
 v.8.1.1
 
 Added code signing to help with security warnings on Windows.

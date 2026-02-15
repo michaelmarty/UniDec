@@ -85,10 +85,9 @@ def bar_chart_of_classes(df, dataset_col="Dataset", class_col="Ontology", name_c
 topdir = r"Z:\Group Share\Shivam\DDA"
 os.chdir(topdir)
 
-datasets = ["ITIT", "OTIT", "OTOT", "OTOT_AqX", "Stellar_RT_1", "Stellar"]
-
 df = pd.read_excel("Combined_DDA_Full.xlsx", sheet_name="Full Data")
 
+datasets = sorted(df["Dataset"].unique())
 # print(df.columns)
 
 

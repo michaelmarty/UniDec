@@ -4,7 +4,7 @@ from PublicScripts.Lipids.LipidFunctions import *
 topdir = r"Z:\Group Share\Shivam\DDA"
 os.chdir(topdir)
 
-datasets = ["ITIT", "OTIT", "OTOT", "OTOT_AqX", "Stellar_RT_1", "Stellar"]
+datasets = ["ITIT", "OTIT", "OTOT", "AX", "Stellar_RT_1", "Stellar"]
 
 dfs = []
 # Data sets
